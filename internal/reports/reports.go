@@ -152,6 +152,7 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 		out.NotSent = ns
 		out.Headline.SentBy = []ReportProviderCount{}
 		out.Headline.NotReportedBy = []string{}
+		out.Comparisons = ReportComparisons{Tiles: []ReportComparison{}, Unavailable: "not_final"}
 		out.Engagement.Points = []ReportEngagementPoint{}
 		out.ClickMap.Links = []ReportLink{}
 		out.ClickMap.Variants = []ReportVariantClickMap{}
@@ -170,6 +171,9 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 		return out, err
 	}
 	out.Headline, out.Mailboxes = headline(cells, c.Origin)
+	if out.Comparisons, err = s.compare(ctx, ws, c, cells, info.Final); err != nil {
+		return out, err
+	}
 	if out.Providers, err = s.providerTable(ctx, c, cells, routes, loc); err != nil {
 		return out, err
 	}

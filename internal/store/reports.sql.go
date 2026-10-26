@@ -540,6 +540,97 @@ func (q *Queries) ReportLinks(ctx context.Context, campaignID uuid.UUID) ([]Repo
 	return items, nil
 }
 
+const reportRecentIssues = `-- name: ReportRecentIssues :many
+WITH this AS (
+    SELECT coalesce(t.audience -> 'lists', '[]') AS lists, coalesce(t.audience -> 'segments', '[]') AS segments
+    FROM campaigns t WHERE t.id = $1
+), recent AS (
+    SELECT c.id, c.started_at
+    FROM campaigns c, this
+    WHERE c.workspace_id = $2 AND c.id <> $1 AND c.deleted_at IS NULL AND c.channel = 'email'
+      AND c.status = 'sent' AND c.started_at IS NOT NULL AND c.started_at < $3
+      AND coalesce(c.audience -> 'lists', '[]') @> this.lists AND this.lists @> coalesce(c.audience -> 'lists', '[]')
+      AND coalesce(c.audience -> 'segments', '[]') @> this.segments AND this.segments @> coalesce(c.audience -> 'segments', '[]')
+      AND EXISTS (SELECT 1 FROM campaign_counters x WHERE x.campaign_id = c.id AND x.sent > 0)
+    ORDER BY c.started_at DESC
+    LIMIT $4
+)
+SELECT r.id AS campaign_id, cc.mailbox_provider,
+       sum(cc.sent)::bigint AS sent, sum(cc.delivered)::bigint AS delivered, sum(cc.hard_bounced)::bigint AS hard_bounced,
+       sum(cc.soft_bounced)::bigint AS soft_bounced, sum(cc.complained)::bigint AS complained, sum(cc.opened_human)::bigint AS opened_human,
+       sum(cc.opened_privacy)::bigint AS opened_privacy, sum(cc.opened_machine)::bigint AS opened_machine, sum(cc.clicked)::bigint AS clicked,
+       sum(cc.unsubscribed)::bigint AS unsubscribed
+FROM recent r
+JOIN campaign_counters cc ON cc.campaign_id = r.id
+GROUP BY r.id, r.started_at, cc.mailbox_provider
+ORDER BY r.started_at DESC, cc.mailbox_provider
+`
+
+type ReportRecentIssuesParams struct {
+	CampaignID  uuid.UUID  `json:"campaignId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Before      *time.Time `json:"before"`
+	Lim         int32      `json:"lim"`
+}
+
+type ReportRecentIssuesRow struct {
+	CampaignID      uuid.UUID `json:"campaignId"`
+	MailboxProvider string    `json:"mailboxProvider"`
+	Sent            int64     `json:"sent"`
+	Delivered       int64     `json:"delivered"`
+	HardBounced     int64     `json:"hardBounced"`
+	SoftBounced     int64     `json:"softBounced"`
+	Complained      int64     `json:"complained"`
+	OpenedHuman     int64     `json:"openedHuman"`
+	OpenedPrivacy   int64     `json:"openedPrivacy"`
+	OpenedMachine   int64     `json:"openedMachine"`
+	Clicked         int64     `json:"clicked"`
+	Unsubscribed    int64     `json:"unsubscribed"`
+}
+
+// The last issues before a campaign to the same audience (sent email
+// campaigns, not deleted, to the same lists and segments in any order),
+// with their counters per mailbox provider, for the tiles' comparison with
+// the median of the last issues (review AN-11): another list's sends
+// aren't this newsletter's issues.
+func (q *Queries) ReportRecentIssues(ctx context.Context, arg ReportRecentIssuesParams) ([]ReportRecentIssuesRow, error) {
+	rows, err := q.db.Query(ctx, reportRecentIssues,
+		arg.CampaignID,
+		arg.WorkspaceID,
+		arg.Before,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportRecentIssuesRow{}
+	for rows.Next() {
+		var i ReportRecentIssuesRow
+		if err := rows.Scan(
+			&i.CampaignID,
+			&i.MailboxProvider,
+			&i.Sent,
+			&i.Delivered,
+			&i.HardBounced,
+			&i.SoftBounced,
+			&i.Complained,
+			&i.OpenedHuman,
+			&i.OpenedPrivacy,
+			&i.OpenedMachine,
+			&i.Clicked,
+			&i.Unsubscribed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const reportRoutes = `-- name: ReportRoutes :many
 SELECT cr.provider_id, p.name AS provider_name, p.adapter, cr.planned, cr.status, cr.cost_micros,
        coalesce(cr.delivery_p50_ms,

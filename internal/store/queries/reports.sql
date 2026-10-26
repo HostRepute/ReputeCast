@@ -51,6 +51,36 @@ FROM campaign_links
 WHERE campaign_id = @campaign_id
 ORDER BY position, url;
 
+-- name: ReportRecentIssues :many
+-- The last issues before a campaign to the same audience (sent email
+-- campaigns, not deleted, to the same lists and segments in any order),
+-- with their counters per mailbox provider, for the tiles' comparison with
+-- the median of the last issues (review AN-11): another list's sends
+-- aren't this newsletter's issues.
+WITH this AS (
+    SELECT coalesce(t.audience -> 'lists', '[]') AS lists, coalesce(t.audience -> 'segments', '[]') AS segments
+    FROM campaigns t WHERE t.id = @campaign_id
+), recent AS (
+    SELECT c.id, c.started_at
+    FROM campaigns c, this
+    WHERE c.workspace_id = @workspace_id AND c.id <> @campaign_id AND c.deleted_at IS NULL AND c.channel = 'email'
+      AND c.status = 'sent' AND c.started_at IS NOT NULL AND c.started_at < @before
+      AND coalesce(c.audience -> 'lists', '[]') @> this.lists AND this.lists @> coalesce(c.audience -> 'lists', '[]')
+      AND coalesce(c.audience -> 'segments', '[]') @> this.segments AND this.segments @> coalesce(c.audience -> 'segments', '[]')
+      AND EXISTS (SELECT 1 FROM campaign_counters x WHERE x.campaign_id = c.id AND x.sent > 0)
+    ORDER BY c.started_at DESC
+    LIMIT @lim
+)
+SELECT r.id AS campaign_id, cc.mailbox_provider,
+       sum(cc.sent)::bigint AS sent, sum(cc.delivered)::bigint AS delivered, sum(cc.hard_bounced)::bigint AS hard_bounced,
+       sum(cc.soft_bounced)::bigint AS soft_bounced, sum(cc.complained)::bigint AS complained, sum(cc.opened_human)::bigint AS opened_human,
+       sum(cc.opened_privacy)::bigint AS opened_privacy, sum(cc.opened_machine)::bigint AS opened_machine, sum(cc.clicked)::bigint AS clicked,
+       sum(cc.unsubscribed)::bigint AS unsubscribed
+FROM recent r
+JOIN campaign_counters cc ON cc.campaign_id = r.id
+GROUP BY r.id, r.started_at, cc.mailbox_provider
+ORDER BY r.started_at DESC, cc.mailbox_provider;
+
 -- name: ReportLinkVariants :many
 -- Clicks per link and A/B variant, for each variant's click map (review
 -- AN-5).

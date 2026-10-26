@@ -2940,6 +2940,12 @@ type Querier interface {
 	// Clicks per link: people's clicks, people's first click per link, and
 	// the clicks the bot filter left out.
 	ReportLinks(ctx context.Context, campaignID uuid.UUID) ([]ReportLinksRow, error)
+	// The last issues before a campaign to the same audience (sent email
+	// campaigns, not deleted, to the same lists and segments in any order),
+	// with their counters per mailbox provider, for the tiles' comparison with
+	// the median of the last issues (review AN-11): another list's sends
+	// aren't this newsletter's issues.
+	ReportRecentIssues(ctx context.Context, arg ReportRecentIssuesParams) ([]ReportRecentIssuesRow, error)
 	// Each sending provider's share of the send: what was planned, the cost and
 	// the median time to delivery (stored at completion, else computed from the
 	// route's messages; 0 before anything was delivered).

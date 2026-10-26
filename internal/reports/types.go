@@ -10,8 +10,11 @@ import (
 // It only ever holds aggregate numbers: no contact address or other personal
 // data, so the same document serves the read-only shared link.
 type CampaignReport struct {
-	Campaign     ReportCampaignInfo   `json:"campaign"`
-	Headline     ReportHeadline       `json:"headline"`
+	Campaign ReportCampaignInfo `json:"campaign"`
+	Headline ReportHeadline     `json:"headline"`
+	// Comparisons are the tiles' changes against the median of the last
+	// issues (review AN-11).
+	Comparisons  ReportComparisons    `json:"comparisons"`
 	Engagement   ReportEngagement     `json:"engagement"`
 	ClickMap     ReportClickMap       `json:"clickMap"`
 	Mailboxes    []ReportMailboxRow   `json:"mailboxes"`

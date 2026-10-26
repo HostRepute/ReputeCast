@@ -37,6 +37,14 @@ type report struct {
 		Points        []struct{ Hour int }
 		Rollout       *struct{ Variant string }
 	}
+	Comparisons struct {
+		Issues      int
+		Unavailable string
+		Tiles       []struct {
+			Metric, Unit, Tone string
+			Change, Median     float64
+		}
+	}
 	Backlog *struct {
 		Minutes   int
 		Providers []struct {
@@ -172,6 +180,17 @@ func TestCampaignReport(t *testing.T) {
 	final := r.Campaign.FinalAt != nil && !time.Now().Before(*r.Campaign.FinalAt)
 	if r.Campaign.Final != final || r.Campaign.Audience != "All subscribers" || len(r.Campaign.Notes) == 0 || r.Campaign.Notes[0] != "A/B subject, winner B" {
 		t.Fatalf("campaign: %+v", r.Campaign)
+	}
+	// Each tile compares with the median of the last issues to the same
+	// audience (review AN-11): only Welcome to news.acme.io went to all
+	// subscribers before; the Weekly Digest has its own six.
+	if want := map[bool]string{true: "", false: "not_final"}[final]; r.Comparisons.Unavailable != want || (final && r.Comparisons.Issues != 1) {
+		t.Fatalf("comparisons: %+v", r.Comparisons)
+	}
+	var wd report
+	c.Do("GET", "/workspaces/acme-newsletter/campaigns/"+campaignID(t, c, "Weekly Digest #141")+"/report", nil).MustStatus(t, 200).JSON(t, &wd)
+	if wd.Comparisons.Issues != 6 || len(wd.Comparisons.Tiles) != 8 || wd.Comparisons.Tiles[0].Metric != "sent" || wd.Comparisons.Tiles[0].Unit != "percent" {
+		t.Fatalf("Weekly Digest #141 comparisons: %+v", wd.Comparisons)
 	}
 	if !r.Engagement.Available || len(r.Engagement.Points) != 73 || r.Engagement.HumanWithin6h < 61.5 || r.Engagement.HumanWithin6h >= 62.5 ||
 		r.Engagement.Rollout == nil || r.Engagement.Rollout.Variant != "B" {
