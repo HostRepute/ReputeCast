@@ -15,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/providers/eventqueue"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
+	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -69,7 +70,18 @@ func (a *App) normalizer() *ingest.Normalizer {
 func init() {
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		manage.Register(h, a.providersService())
-		routing.Register(h, &routing.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Mailbox: a.mailboxClassifier()})
+		routing.Register(h, &routing.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Mailbox: a.mailboxClassifier(),
+			// Warm-up imports routing: its allowance comes in as functions.
+			WarmupToday: func(ctx context.Context, id uuid.UUID) *state.WarmupToday {
+				return warmup.Today(ctx, a.Q, id, time.Now(), nil)
+			},
+			WarmCap: func(ctx context.Context, id uuid.UUID, at time.Time) (routing.WarmCap, bool) {
+				al, ok, err := warmup.AllowanceFor(ctx, a.Q, id, at, nil)
+				if err != nil || !ok {
+					return routing.WarmCap{}, false
+				}
+				return routing.WarmCap{Cap: al.Cap, Day: al.Day, Days: al.Days, Overflow: al.Overflow}, true
+			}})
 		demoworkspace.Register(h, &demoworkspace.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets})
 		warmup.Register(h, &warmup.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit})
 		suppressions.Register(h, a.suppressionSync())

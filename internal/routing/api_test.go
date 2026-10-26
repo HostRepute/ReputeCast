@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/routing"
 )
 
 const ws = "/workspaces/acme-newsletter"
@@ -267,5 +268,125 @@ func TestRoutingSavesChangedStreamsWithVersions(t *testing.T) {
 	var n int
 	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action = 'routing.update' AND metadata->'streams' = '["automation"]'`).Scan(&n); err != nil || n != 1 {
 		t.Fatalf("audit for the automation save = %d %v", n, err)
+	}
+}
+
+// PR-14: the route tester's Campaign tab runs the next broadcast's audience
+// through the saved routing and an unsaved draft. Moving the split from
+// 90/10 to 85/15 moves only the difference, from SES to Postal, and the
+// counts add up to the audience.
+func TestCampaignSimulation(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	owner := env.Client()
+	owner.SignInDemo("aisha@acme.io") // viewers may test routes
+	var c config
+	owner.Do("GET", ws+"/routing", nil).MustStatus(t, 200).JSON(t, &c)
+
+	// The shared card counts what providers get (PR-1), and a failover
+	// target's quota says what it counts (Postmark's month, SES's day).
+	var view struct {
+		Shared  struct{ Suppressions, Pushed int64 }
+		Streams []struct {
+			Stream      string
+			FailoverVet *struct {
+				Checks []struct{ Key, Result, Period string }
+			}
+		}
+	}
+	owner.Do("GET", ws+"/routing", nil).MustStatus(t, 200).JSON(t, &view)
+	if view.Shared.Pushed == 0 || view.Shared.Pushed >= view.Shared.Suppressions {
+		t.Fatalf("shared %+v", view.Shared)
+	}
+	periods := map[string]string{}
+	for _, st := range view.Streams {
+		if st.FailoverVet == nil {
+			continue
+		}
+		for _, ch := range st.FailoverVet.Checks {
+			if ch.Key == "quota" {
+				periods[st.Stream] = ch.Period
+			}
+		}
+	}
+	if periods["automation"] != "month" || periods["system"] != "day" {
+		t.Fatalf("quota periods %v", periods)
+	}
+	type share struct {
+		ProviderID string
+		Count      int64
+	}
+	type result struct {
+		None          bool
+		Name          string
+		Total, Sunset int64
+		Shares        []share
+		Conditions    []struct {
+			Field string
+			Count int64
+		}
+		Draft *struct {
+			Shares []share
+			Moved  int64
+		}
+	}
+	var sim result
+	owner.Do("POST", ws+"/routing/test-campaign", map[string]any{}).MustStatus(t, 200).JSON(t, &sim)
+	if sim.None || sim.Total == 0 || len(sim.Shares) < 2 || sim.Draft != nil {
+		t.Fatalf("simulation %+v", sim)
+	}
+	var sum int64
+	saved := map[string]int64{}
+	for _, s := range sim.Shares {
+		sum += s.Count
+		saved[s.ProviderID] = s.Count
+	}
+	if sum != sim.Total {
+		t.Fatalf("shares add up to %d of %d", sum, sim.Total)
+	}
+
+	in := input(c)
+	var postal string
+	for i := range in {
+		if in[i].Stream == "broadcast" {
+			in[i].Splits[0]["weight"], in[i].Splits[1]["weight"] = 85, 15
+			postal = in[i].Splits[1]["providerId"].(string)
+		}
+	}
+	var draft result
+	owner.Do("POST", ws+"/routing/test-campaign", map[string]any{"draft": map[string]any{"streams": in}}).MustStatus(t, 200).JSON(t, &draft)
+	if draft.Draft == nil || draft.Total != sim.Total {
+		t.Fatalf("draft simulation %+v", draft)
+	}
+	after := map[string]int64{}
+	for _, s := range draft.Draft.Shares {
+		after[s.ProviderID] = s.Count
+	}
+	gained := after[postal] - saved[postal]
+	if gained <= 0 || draft.Draft.Moved != gained {
+		t.Fatalf("85/15 moved %d, Postal gained %d (saved %v, draft %v)", draft.Draft.Moved, gained, saved, after)
+	}
+
+	// A larger audience than one simulation reads: the first recipients
+	// go through the routing and the counts are scaled to the whole
+	// audience, whose size stays exact.
+	wsRow, err := env.App.Q.GetWorkspaceBySlug(context.Background(), "acme-newsletter")
+	if err != nil {
+		t.Fatal(err)
+	}
+	small := &routing.Service{Pool: env.App.Pool, Q: env.App.Q, SimulateLimit: 1000}
+	est, err := small.SimulateCampaign(context.Background(), &wsRow, routing.RouteCampaignInput{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !est.Estimated || est.Simulated == 0 || est.Simulated > 1000 || est.Total != sim.Total || est.Sunset != sim.Sunset || len(est.Shares) != len(sim.Shares) {
+		t.Fatalf("estimate: %+v (exact %+v)", est, sim)
+	}
+	var estSum int64
+	for _, s := range est.Shares {
+		estSum += s.Count
+	}
+	if d := estSum - est.Total; d < -int64(len(est.Shares)) || d > int64(len(est.Shares)) {
+		t.Fatalf("estimated shares add up to %d of %d", estSum, est.Total)
 	}
 }

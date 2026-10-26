@@ -372,3 +372,107 @@ export function conditionWithout(c: Condition, id: string): Condition[] {
   rest[0] = { ...rest[0]!, weight: rest[0]!.weight + gone.weight }
   return [{ ...c, providerId: rest[0]!.providerId, splits: rest }]
 }
+
+// ── The ordered split (PR-14) ─────────────────────────────────────────
+
+/** What a split's weights add up to. */
+export function splitTotal(sd: Pick<StreamDraft, 'splits'>): number {
+  return sd.splits.reduce((n, x) => n + x.weight, 0)
+}
+
+/** Moves a row of the split: the order only changes how the bar reads, never who goes where. */
+export function moveSplit(sd: StreamDraft, from: number, to: number): StreamDraft {
+  if (from === to || from < 0 || to < 0 || from >= sd.splits.length || to >= sd.splits.length) return sd
+  const splits = [...sd.splits]
+  const [row] = splits.splice(from, 1)
+  splits.splice(to, 0, row!)
+  return { ...sd, splits }
+}
+
+/** Sets one provider's weight; the others keep theirs, so the total may need fixing before a save. */
+export function setWeight(sd: StreamDraft, providerId: string, weight: number): StreamDraft {
+  const w = Math.max(0, Math.min(100, Math.round(weight)))
+  return { ...sd, splits: sd.splits.map((x) => (x.providerId === providerId ? { ...x, weight: w } : x)) }
+}
+
+/** Adds a provider to the split at 0%: its share comes from the others. */
+export function addToSplit(sd: StreamDraft, providerId: string): StreamDraft {
+  if (sd.splits.some((x) => x.providerId === providerId)) return sd
+  return { ...sd, splits: [...sd.splits, { providerId, weight: sd.splits.length ? 0 : 100 }], fallback: sd.fallback === providerId ? '' : sd.fallback }
+}
+
+/** Takes a provider out of the split; its weight goes to the first remaining row. */
+export function removeFromSplit(sd: StreamDraft, providerId: string): StreamDraft {
+  const gone = sd.splits.find((x) => x.providerId === providerId)
+  const rest = sd.splits.filter((x) => x.providerId !== providerId)
+  if (!gone || !rest.length) return sd
+  rest[0] = { ...rest[0]!, weight: rest[0]!.weight + gone.weight }
+  return { ...sd, splits: rest }
+}
+
+/** The first split of a draft (a stream's or a condition's) whose weights don't add up to 100. */
+export function weightsProblem(d: Draft): { stream: Stream; total: number } | undefined {
+  for (const s of streams) {
+    const sd = d[s]
+    if (sd.splits.length > 1 && splitTotal(sd) !== 100) return { stream: s, total: splitTotal(sd) }
+    for (const c of sd.conditions) {
+      const splits = c.splits ?? []
+      if (splits.length > 1) {
+        const total = splits.reduce((n, x) => n + x.weight, 0)
+        if (total !== 100) return { stream: s, total }
+      }
+    }
+  }
+  return undefined
+}
+
+/** "90/10": a split's weights in its order. */
+export function splitPair(sd: Pick<StreamDraft, 'splits'>): string {
+  return sd.splits.map((x) => x.weight).join('/')
+}
+
+/** Whether only the order of a stream's split changed: same providers, same weights, same everything else. */
+export function onlyOrderChanged(a: StreamDraft, b: StreamDraft): boolean {
+  if (a.splits.length !== b.splits.length) return false
+  const rows = (sd: StreamDraft) =>
+    sd.splits
+      .map((x) => `${x.providerId}:${x.weight}`)
+      .sort()
+      .join(',')
+  const rest = (sd: StreamDraft) => JSON.stringify({ f: sd.fallback, p: sd.failover, pr: sd.priority, c: sd.conditions })
+  const order = (sd: StreamDraft) => sd.splits.map((x) => x.providerId).join(',')
+  return rows(a) === rows(b) && rest(a) === rest(b) && order(a) !== order(b)
+}
+
+/**
+ * The unsaved-changes bar's sentence: what saving would change, with the
+ * recipients that move when the campaign simulation says so ("Broadcasts
+ * split 90/10 → 85/15 · about 1,600 Broadcast recipients move from Postal
+ * to SES; nobody else changes provider").
+ */
+export function changeText(d: Draft, saved: Draft, providers: RoutingProvider[], impact?: { moved: number; toward?: string; from?: string }): string {
+  const problem = weightsProblem(d)
+  if (problem) return t(mr.weightsNot100, { total: problem.total })
+  const changed = changedStreams(d, saved)
+  const byId = new Map(providers.map((p) => [p.id, p]))
+  if (changed.length === 1 && changed[0] === 'broadcast') {
+    const a = d.broadcast
+    const b = saved.broadcast
+    if (onlyOrderChanged(a, b)) {
+      return t(mr.orderChanged, { order: a.splits.map((x) => byId.get(x.providerId)?.short ?? t(mr.unknown)).join(', ') })
+    }
+    if (JSON.stringify(a.conditions) === JSON.stringify(b.conditions) && a.fallback === b.fallback && a.failover === b.failover && splitPair(a) !== splitPair(b)) {
+      const base = t(mr.splitChanged, { before: splitPair(b), after: splitPair(a) })
+      if (!impact) return `${base} · ${t(mr.onlyDifferenceMoves)}`
+      if (impact.moved === 0) return `${base} · ${t(mr.nobodyMoves)}`
+      return `${base} · ${t(mr.recipientsMove, { about: aboutCount(impact.moved), from: impact.from ?? '', to: impact.toward ?? '' })}`
+    }
+  }
+  return t(mr.streamsChanged, { count: changed.length, streams: changed.map((s) => streamName[s]).join(', ') })
+}
+
+/** "about 1,600", or "fewer than 100" for a small number. */
+export function aboutCount(n: number): string {
+  if (n < 50) return t(mr.fewerThan100)
+  return t(mr.aboutN, { n: count(Math.round(n / 100) * 100) })
+}

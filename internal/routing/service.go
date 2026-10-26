@@ -35,6 +35,17 @@ type Service struct {
 	// Mailbox classifies an address that isn't a contact from its domain's
 	// MX records (internal/mailbox); nil uses the domain name only.
 	Mailbox MailboxClassifier
+	// WarmupToday is a warming provider's allowance today, for vetting it
+	// as a failover target; WarmCap its cap on a day, for the campaign
+	// simulation. Both come from internal/warmup, which imports routing.
+	WarmupToday func(ctx context.Context, providerID uuid.UUID) *state.WarmupToday
+	WarmCap     func(ctx context.Context, providerID uuid.UUID, at time.Time) (WarmCap, bool)
+	// LookupMX finds a domain's first MX host for the route tester; nil
+	// asks DNS.
+	LookupMX func(ctx context.Context, domain string) string
+	// SimulateLimit is how many recipients a campaign simulation reads
+	// before it scales to the audience (0: 200,000).
+	SimulateLimit int64
 }
 
 // MailboxClassifier is the part of mailbox.Classifier the route tester uses.
@@ -181,6 +192,30 @@ type RoutingStreamView struct {
 	// SenderDomains (Transactional only) are the domains marked for
 	// transactional mail ("notify.acme.io").
 	SenderDomains []string `json:"senderDomains,omitempty"`
+	// FailoverVet is what's checked before the stream fails over: its
+	// fallback, or the split's other provider (PR-14).
+	FailoverVet *RoutingTargetVet `json:"failoverVet,omitempty"`
+}
+
+// RoutingVetCheck is one check of a failover target (state.Vet).
+type RoutingVetCheck struct {
+	Key    string `json:"key" enum:"available,bulk_terms,sandbox,domain,quota,warm"`
+	Result string `json:"result" enum:"pass,warn,fail,unknown"`
+	// Left is what the quota or today's warm-up cap has left.
+	Left *int64 `json:"left,omitempty"`
+	// Period is what a quota's Left counts: today ("day") or this month
+	// ("month"); empty when the provider sets no quota.
+	Period string `json:"period,omitempty" enum:"day,month"`
+}
+
+// RoutingTargetVet is a failover target and its checks.
+type RoutingTargetVet struct {
+	ProviderID string            `json:"providerId"`
+	Provider   string            `json:"provider"`
+	Checks     []RoutingVetCheck `json:"checks"`
+	// WarmupDay of WarmupDays while the target warms up.
+	WarmupDay  int `json:"warmupDay,omitempty"`
+	WarmupDays int `json:"warmupDays,omitempty"`
 }
 
 // RoutingTerms is one row of "What each connected provider's terms allow".
@@ -233,8 +268,11 @@ type RoutingNamed struct {
 
 // RoutingShared is the "Shared across providers" card.
 type RoutingShared struct {
-	Suppressions int64      `json:"suppressions"`
-	SyncedAt     *time.Time `json:"syncedAt,omitempty"`
+	Suppressions int64 `json:"suppressions"`
+	// Pushed counts the suppressions providers get: hard bounces and
+	// complaints that apply to all mail (review PR-1).
+	Pushed   int64      `json:"pushed"`
+	SyncedAt *time.Time `json:"syncedAt,omitempty"`
 }
 
 // RoutingConfig is the routing screen.
@@ -319,6 +357,12 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 		}
 	}
 	volumes := s.volumes(ctx, ws)
+	// The default sender's verification per provider (failover checks).
+	var sender map[string]string
+	if raw, err := s.Q.RoutingDefaultSenderVerification(ctx, ws.ID); err == nil {
+		sender = map[string]string{}
+		_ = json.Unmarshal(raw, &sender)
+	}
 	for _, stream := range Streams {
 		v := RoutingStreamView{Stream: string(stream), Version: st.versions[stream], Splits: []RoutingSplit{}, Failover: string(set.Policy(stream)), Conditions: []RoutingConditionView{},
 			BulkTermsAcknowledgedAt: acks[string(stream)], Volume: volumes[stream]}
@@ -342,6 +386,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 			c := conditionView(l, r, listNames, categoryNames)
 			v.Conditions = append(v.Conditions, c)
 		}
+		v.FailoverVet = s.failoverVet(ctx, ws, stream, v, provs, sender)
 		out.Streams = append(out.Streams, v)
 	}
 	if saved, err := s.Q.RoutingSaved(ctx, ws.ID); err == nil {
@@ -351,8 +396,26 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 		return RoutingConfig{}, err
 	}
 	out.Shared.Suppressions, _ = s.Q.SuppCount(ctx, ws.ID)
+	if summary, err := s.Q.SuppPushSummary(ctx, ws.ID); err == nil {
+		for _, r := range summary {
+			if r.Pushed {
+				out.Shared.Pushed += r.N
+			}
+		}
+	}
 	out.Shared.SyncedAt = s.syncedAt(ctx, provs)
 	return out, nil
+}
+
+// quotaPeriod is what a provider's quota kind counts.
+func quotaPeriod(kind string) string {
+	switch kind {
+	case "rolling_24h", "daily", "warmup_daily":
+		return "day"
+	case "monthly_plan", "monthly":
+		return "month"
+	}
+	return ""
 }
 
 func conditionView(l i18n.Lang, r Rule, listNames, categoryNames map[string]string) RoutingConditionView {
@@ -822,4 +885,46 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveI
 		return RoutingConfig{}, err
 	}
 	return s.Get(ctx, ws)
+}
+
+// failoverVet checks the stream's failover target the way a failover
+// would (state.Vet): its fallback, or for a split the other provider.
+func (s *Service) failoverVet(ctx context.Context, ws *store.Workspace, stream providers.Stream, v RoutingStreamView, provs []RoutingProvider,
+	sender map[string]string) *RoutingTargetVet {
+	target := v.Fallback
+	if target == "" && stream == providers.StreamBroadcast && len(v.Splits) > 1 {
+		target = v.Splits[1].ProviderID
+	}
+	id, err := uuid.Parse(target)
+	if err != nil {
+		return nil
+	}
+	p, err := s.Q.ProvGet(ctx, store.ProvGetParams{WorkspaceID: ws.ID, ID: id})
+	if err != nil {
+		return nil
+	}
+	load := state.Load{Broadcast: stream == providers.StreamBroadcast, Sender: sender}
+	if s.WarmupToday != nil {
+		load.Warmup = s.WarmupToday(ctx, p.ID)
+	}
+	vet := state.Vet(p, load)
+	out := &RoutingTargetVet{ProviderID: p.ID.String(), Provider: p.Name, Checks: []RoutingVetCheck{}}
+	for _, c := range vet.Checks {
+		// Availability and bulk terms show only when they fail: the
+		// stream card says them elsewhere.
+		if (c.Key == state.VetAvailable || c.Key == state.VetBulkTerms) && c.Result == state.VetPass {
+			continue
+		}
+		rc := RoutingVetCheck{Key: c.Key, Result: c.Result, Left: c.Left}
+		if c.Key == state.VetQuota {
+			rc.Period = quotaPeriod(c.Detail)
+		}
+		out.Checks = append(out.Checks, rc)
+	}
+	for _, rp := range provs {
+		if rp.ID == out.ProviderID && rp.WarmingUp {
+			out.WarmupDay, out.WarmupDays = rp.WarmupDay, rp.WarmupDays
+		}
+	}
+	return out
 }
