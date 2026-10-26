@@ -10,6 +10,8 @@ import { SendTestButton } from './SendTest'
 import { mb } from './blocks.messages'
 import { m } from './messages'
 import { mp } from './preview.messages'
+import { ApproxNote, ConnectRenderingDialog, RealRendersCard, RenderDialog } from './RealRenders'
+import { mr } from './renders.messages'
 import { fallbackOf, PersonalizationCard } from './Personalization'
 import { ABPanel, PreviewingSwitch } from './ABPanel'
 import { usePreviewAsLabel, versionLanguage } from '@/features/languages/composerParts'
@@ -232,6 +234,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
   const [preview, setPreview] = useState<Preview | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [lightDoc, setLightDoc] = useState<Document | null>(null)
+  const [renderDialog, setRenderDialog] = useState<'connect' | 'render' | null>(null)
   const previewAs = usePreviewAsLabel()
   const contacts = $api.useQuery('get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/preview-contacts', { params: { path: { workspace: c.slug, campaignId: c.campaign.id } } }, { staleTime: 60_000 })
   const media = $api.useQuery('get', '/api/v1/workspaces/{workspace}/media', { params: { path: { workspace: c.slug } } }, { staleTime: 60_000 })
@@ -354,10 +357,11 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
               </button>
             ))}
           </div>
-          <span className="k">{tr(mp.approximated)}</span>
         </div>
+        <ApproxNote onConnect={() => setRenderDialog('connect')} onRender={() => setRenderDialog('render')} />
         <PreviewVersionLine v={version} />
         <div className="grid flex-1 items-start overflow-auto" style={{ padding: 24, gridTemplateColumns: 'repeat(auto-fit,minmax(min(380px,100%),1fr))', gap: 20 }}>
+          <RealRendersCard />
           {error ? (
             <div role="alert" className="card" style={{ padding: 16, borderColor: '#FCA5A5' }}>
               <span className="font-semibold">{tr(mp.renderFailed)}</span> <span className="k">{error}</span>
@@ -369,7 +373,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
                 {tr(mp.light, { client: meta.short })}
                 {variantTag}
               </span>
-              <span className="k">{preview ? tr(mp.rendered, { time: clock(preview.renderedAt) }) : tr(mp.rendering)}</span>
+              <span className="k">{preview ? tr(mr.approximatedAt, { time: clock(preview.renderedAt) }) : tr(mr.approximating)}</span>
             </div>
             <div style={{ padding: 12, background: '#fff' }}>
               {senderLine(false)}
@@ -428,6 +432,8 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
         <PersonalizationCard preview={preview} />
         <ABPanel />
       </aside>
+      <ConnectRenderingDialog open={renderDialog === 'connect'} onClose={() => setRenderDialog(null)} />
+      <RenderDialog open={renderDialog === 'render'} onClose={() => setRenderDialog(null)} />
     </div>
   )
 }

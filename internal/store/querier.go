@@ -455,6 +455,12 @@ type Querier interface {
 	BumpChallengeAttempts(ctx context.Context, id uuid.UUID) (int32, error)
 	BumpNotificationEmailAttempts(ctx context.Context, arg BumpNotificationEmailAttemptsParams) error
 	CampaignCostSince(ctx context.Context, arg CampaignCostSinceParams) ([]CampaignCostSinceRow, error)
+	CampaignRenderInsert(ctx context.Context, arg CampaignRenderInsertParams) error
+	// A render of this campaign still running, if any.
+	CampaignRenderPending(ctx context.Context, arg CampaignRenderPendingParams) (uuid.UUID, error)
+	// What the service answered when it was asked again.
+	CampaignRenderUpdate(ctx context.Context, arg CampaignRenderUpdateParams) error
+	CampaignRendersList(ctx context.Context, arg CampaignRendersListParams) ([]CampaignRendersListRow, error)
 	CampaignTotalsSince(ctx context.Context, arg CampaignTotalsSinceParams) (CampaignTotalsSinceRow, error)
 	// The reason given on the cancel page, for the paid member's timeline.
 	CancelSetReason(ctx context.Context, arg CancelSetReasonParams) error
@@ -2838,6 +2844,12 @@ type Querier interface {
 	RemoteRuntimeSetSecret(ctx context.Context, arg RemoteRuntimeSetSecretParams) error
 	RemoteRuntimeTouch(ctx context.Context, adapterID uuid.UUID) error
 	RenamePasskey(ctx context.Context, arg RenamePasskeyParams) error
+	// A test of the stored key: its outcome, and the clients when it worked.
+	RenderingServiceChecked(ctx context.Context, arg RenderingServiceCheckedParams) error
+	RenderingServiceDelete(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	// Real renders from the workspace's own rendering service (CO-13).
+	RenderingServiceGet(ctx context.Context, workspaceID uuid.UUID) (RenderingServiceGetRow, error)
+	RenderingServiceUpsert(ctx context.Context, arg RenderingServiceUpsertParams) error
 	// Bounces of a campaign by taxonomy class, sending provider and the
 	// provider's original event and code, with how many of the bounced
 	// addresses are on the shared suppression list now.

@@ -697,6 +697,24 @@ type CampaignLink struct {
 	UniqueClicks int64     `json:"uniqueClicks"`
 }
 
+type CampaignRender struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	CampaignID  uuid.UUID       `json:"campaignId"`
+	Version     int32           `json:"version"`
+	Variant     string          `json:"variant"`
+	Service     string          `json:"service"`
+	ExternalID  string          `json:"externalId"`
+	Clients     []string        `json:"clients"`
+	Status      string          `json:"status"`
+	Results     json.RawMessage `json:"results"`
+	Error       string          `json:"error"`
+	RequestedBy *uuid.UUID      `json:"requestedBy"`
+	RequestedAt time.Time       `json:"requestedAt"`
+	PolledAt    *time.Time      `json:"polledAt"`
+	CompletedAt *time.Time      `json:"completedAt"`
+}
+
 type CampaignRoute struct {
 	CampaignID    uuid.UUID `json:"campaignId"`
 	ProviderID    uuid.UUID `json:"providerId"`
@@ -3384,6 +3402,20 @@ type ReferralVisitsDaily struct {
 	Via       string    `json:"via"`
 	Visits    int32     `json:"visits"`
 	Signups   int32     `json:"signups"`
+}
+
+type RenderingService struct {
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Service     string          `json:"service"`
+	Region      string          `json:"region"`
+	Credentials []byte          `json:"credentials"`
+	KeyHint     string          `json:"keyHint"`
+	Status      string          `json:"status"`
+	LastError   string          `json:"lastError"`
+	Clients     json.RawMessage `json:"clients"`
+	ConnectedBy *uuid.UUID      `json:"connectedBy"`
+	ConnectedAt time.Time       `json:"connectedAt"`
+	CheckedAt   *time.Time      `json:"checkedAt"`
 }
 
 type ReportShare struct {

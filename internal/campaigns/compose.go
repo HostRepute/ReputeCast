@@ -223,6 +223,10 @@ type ComposerPreviewRequest struct {
 	// to (the one the composer has open; empty is the source). Previewing as
 	// a contact who gets another version shows that version as saved.
 	Editing string `json:"editing,omitempty" maxLength:"16"`
+
+	// synthetic previews as the sample contact whatever the audience
+	// holds, for renders made outside ReputeCast (SampleRender).
+	synthetic bool
 }
 
 // ComposerPreviewContact is who the preview is personalized for.
@@ -466,6 +470,9 @@ func scopeLists(p *authz.Principal) []uuid.UUID {
 // subscribers:view only the synthetic samples are available.
 func (s *Service) previewContact(ctx context.Context, ws *store.Workspace, p *authz.Principal, audience json.RawMessage, in ComposerPreviewRequest) (*ComposerPreviewContact, map[string]any, error) {
 	l := i18n.LangFrom(ctx)
+	if in.synthetic {
+		return &ComposerPreviewContact{Name: "Sam Rivera", FirstName: "Sam", LastName: "Rivera", Email: "sam@example.com", Label: mLabelSample.Text(l, nil)}, map[string]any{}, nil
+	}
 	if in.Sample == "no_first_name" {
 		return &ComposerPreviewContact{Name: "", Email: "someone@example.com", Label: mLabelSampleNoFirst.Text(l, nil)}, map[string]any{}, nil
 	}

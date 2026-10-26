@@ -4297,6 +4297,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/renders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A campaign's latest real renders
+         * @description Newest first. Running renders are refreshed from the service at most every few seconds.
+         */
+        get: operations["list-campaign-renders"];
+        put?: never;
+        /**
+         * Render the saved campaign in real email clients
+         * @description Sends the saved version (one A/B variant), personalized for the sample contact, to the connected service. Each client is one preview on the account's plan.
+         */
+        post: operations["render-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report": {
         parameters: {
             query?: never;
@@ -12423,6 +12447,54 @@ export interface paths {
          * @description Reports whether the file was found, its version and its scope.
          */
         post: operations["check-push-site"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/rendering-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The workspace's rendering service (Litmus or Mailgun Inspect)
+         * @description Whether real renders are available, from which service, and its email clients. The API key is never returned.
+         */
+        get: operations["get-rendering-service"];
+        /**
+         * Connect Litmus or Mailgun Inspect with the workspace's own API key
+         * @description The key is tested by listing the account's email clients, then sealed at rest. It is never returned; a new key replaces the old one.
+         */
+        put: operations["connect-rendering-service"];
+        post?: never;
+        /**
+         * Disconnect the rendering service and forget its key
+         * @description Renders already made stay with their campaigns.
+         */
+        delete: operations["disconnect-rendering-service"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/rendering-service/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test the rendering service's key again
+         * @description Lists the account's email clients with the stored key; status and lastError say how it went.
+         */
+        post: operations["test-rendering-service"];
         delete?: never;
         options?: never;
         head?: never;
@@ -20778,6 +20850,15 @@ export interface components {
             revenueCents: number;
             /** Format: int64 */
             window: number;
+        };
+        CampaignRenderInput: {
+            /** @description Client ids from the connection's clients; each is one preview on the account's plan */
+            clients: string[];
+            /**
+             * @description The A/B variant to render (A by default)
+             * @enum {string}
+             */
+            variant?: "A" | "B" | "C";
         };
         CampaignReport: {
             abTest?: components["schemas"]["ReportABTest"];
@@ -34327,6 +34408,79 @@ export interface components {
         };
         "Rename-passkeyRequest": {
             name: string;
+        };
+        Render: {
+            /** Format: date-time */
+            completedAt?: string;
+            error?: string;
+            id: string;
+            /** Format: date-time */
+            requestedAt: string;
+            requestedBy: string;
+            results: components["schemas"]["RenderResult"][];
+            /** @enum {string} */
+            service: "litmus" | "mailgun_inspect";
+            /** @enum {string} */
+            status: "pending" | "done" | "failed";
+            /** @enum {string} */
+            variant: "A" | "B" | "C";
+            /**
+             * Format: int64
+             * @description The saved version rendered
+             */
+            version: number;
+        };
+        RenderClient: {
+            default: boolean;
+            id: string;
+            name: string;
+        };
+        RenderList: {
+            items: components["schemas"]["Render"][];
+        };
+        RenderResult: {
+            client: string;
+            /** @description The full screenshot, hosted by the service */
+            imageUrl?: string;
+            name: string;
+            /** @enum {string} */
+            status: "pending" | "done" | "failed";
+            thumbUrl?: string;
+        };
+        RenderingConnectInput: {
+            /** @description Write-only: sealed at rest and never returned */
+            apiKey: string;
+            /**
+             * @description Mailgun Inspect: the account's region (us by default)
+             * @enum {string}
+             */
+            region?: "us" | "eu";
+            /** @enum {string} */
+            service: "litmus" | "mailgun_inspect";
+        };
+        RenderingService: {
+            /** Format: date-time */
+            checkedAt?: string;
+            /** @description The email clients the account can render, as the service last listed them */
+            clients: components["schemas"]["RenderClient"][];
+            connected: boolean;
+            /** Format: date-time */
+            connectedAt?: string;
+            connectedBy?: string;
+            keyHint?: string;
+            lastError?: string;
+            /**
+             * @description Mailgun Inspect: the account's region
+             * @enum {string}
+             */
+            region?: "us" | "eu";
+            /** @enum {string} */
+            service?: "litmus" | "mailgun_inspect";
+            /**
+             * @description failing: the last call was refused or failed (lastError says why)
+             * @enum {string}
+             */
+            status?: "connected" | "failing";
         };
         ReportABTest: {
             /** Format: double */
@@ -53424,6 +53578,76 @@ export interface operations {
             };
         };
     };
+    "list-campaign-renders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RenderList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "render-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampaignRenderInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Render"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-campaign-report": {
         parameters: {
             query?: {
@@ -71972,6 +72196,136 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PushSite"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-rendering-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RenderingService"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-rendering-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenderingConnectInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RenderingService"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "disconnect-rendering-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-rendering-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RenderingService"];
                 };
             };
             /** @description Error */

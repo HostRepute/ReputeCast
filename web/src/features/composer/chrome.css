@@ -266,3 +266,33 @@
     min-height: 44px;
   }
 }
+
+/* The previews are approximations (ComposerPreview · CO-13). */
+.cmp .honest {
+  display: flex;
+  align-items: center;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  margin: 12px 14px 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
+  font-size: 12.5px;
+}
+.cmp .honest .t {
+  flex: 1 1 360px;
+  min-width: 0;
+}
+.cmp .honest .t b {
+  font-weight: 600;
+}
+@media (max-width: 640px) {
+  .cmp .honest {
+    margin: 12px 12px 0;
+  }
+  .cmp .honest .btn {
+    min-height: 44px;
+  }
+}
