@@ -85,3 +85,23 @@ func TestDeliveredCountsOnce(t *testing.T) {
 		t.Fatalf("%d events in the log, want both kept", n)
 	}
 }
+
+// A message counts once as deferred however often the mailbox provider
+// asks to retry it, and never after it was delivered (review GS-9).
+func TestDeferredCountsOnce(t *testing.T) {
+	apply, counts, events := countsFixture(t)
+	for range 3 {
+		apply(providers.EventDeferred, "4.7.0")
+	}
+	if d, _ := counts(); d != 1 {
+		t.Fatalf("deferred %d after three retries of one message, want 1", d)
+	}
+	apply(providers.EventDelivered, "2.0.0")
+	apply(providers.EventDeferred, "4.7.0")
+	if d, del := counts(); d != 1 || del != 1 {
+		t.Fatalf("deferred %d, delivered %d: want each once", d, del)
+	}
+	if n := events(); n != 5 {
+		t.Fatalf("%d events in the log, want all 5 kept", n)
+	}
+}

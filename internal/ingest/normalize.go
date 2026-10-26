@@ -250,7 +250,13 @@ func (n *Normalizer) Apply(ctx context.Context, tx pgx.Tx, p store.Provider, raw
 				c.Delivered = 1
 			}
 		case providers.EventDeferred:
-			c.Deferred = 1
+			// A message counts as deferred once, however often the mailbox
+			// provider asks to retry it, and never after it was delivered
+			// (review GS-9): the deferral rate is the share of messages
+			// deferred once or more.
+			if msg.Status != "deferred" && msg.DeliveredAt == nil {
+				c.Deferred = 1
+			}
 		case providers.EventHardBounce:
 			c.HardBounced = 1
 		case providers.EventSoftBounce:
