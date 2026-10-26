@@ -93,8 +93,8 @@
 
   "opt.resumeTitle": { "message": "Resume as is{recommended, select, yes { (recommended)} other {}}", "note": "a way to continue after an auto-pause, a radio card's title" },
   "opt.resumeAction": { "message": "Resume as is", "note": "the button's label when this way is picked" },
-  "opt.resumeAll": "Send to the {held} remaining recipients. The threshold stays armed and will pause again at the next {metric, select, complaint {complaint} bounce {bounce} deferral {deferral} other {}}.",
-  "opt.resumeScoped": "Send to all {held} remaining {who} recipients. The threshold stays armed and will pause again at the next {metric, select, complaint {complaint} bounce {bounce} deferral {deferral} other {}}.",
+  "opt.resumeAll": {"message": "Send to the {held} remaining recipients. The thresholds re-arm from the current counts, so only new {metric, select, complaint {complaints} bounce {bounces} deferral {deferrals} other {events}} can pause the campaign again.{more, select, yes { At today's {ratePct}, expect about {expect} more.} other {}}", "note": "a way to continue after a campaign-wide auto-pause; ratePct: the rate that tripped; expect: how many more events that rate brings in the rest; more: yes when it brings any"},
+  "opt.resumeScoped": {"message": "Send to all {held} remaining {who} recipients. The threshold re-arms from the current counts, so only new {metric, select, complaint {complaints} bounce {bounces} deferral {deferrals} other {events}} can pause it again.{more, select, yes { At today's {ratePct}, expect about {expect} more.} other {}}", "note": "who: a mailbox provider or sending provider"},
   "opt.cancelCampaign": "Cancel the campaign",
   "opt.cancelCampaignBody": "Skip the {held} remaining recipients. They're marked \"not sent\" in the report.",
   "opt.changesTitle": "Resume with changes (recommended)",
@@ -165,5 +165,8 @@
   "check.warm": "{target} is warm",
   "check.warming": "{target} is warming up: today's cap may hold part of the share",
   "check.abHoldouts": "A/B holdouts stay held until the winner",
-  "check.canaryHoldouts": "Recipients waiting for the canary stay held until it passes"
+  "check.canaryHoldouts": "Recipients waiting for the canary stay held until it passes",
+
+  "state.thresholdRange": {"message": "{metric, select, bounce {The bounce limit} complaint {The complaint limit} mailbox_complaint {The complaint limit per mailbox provider} deferral {The deferral limit} other {The API error limit}} must be between {minPct} and {maxPct}.", "note": "a threshold a person set while the send runs is out of range"},
+  "state.nothingTripped": "Nothing tripped on \"{name}\": there's no limit to raise."
 }

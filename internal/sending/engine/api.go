@@ -50,6 +50,21 @@ type LiveResumeRequest struct {
 	// WithChanges applies the incident's recommended changes (exclude the
 	// group, lower the rate, hand the excluded contacts to the flow).
 	WithChanges bool `json:"withChanges,omitempty"`
+	// Limit raises the limit of the metric that tripped, for this send
+	// only, in percent ("Resume with the threshold raised to 0.20%").
+	Limit *float64 `json:"limit,omitempty" minimum:"0.01" maximum:"100"`
+}
+
+// LiveThresholdsRequest changes a running or waiting send's auto-pause
+// thresholds, in percent; a field left out keeps its value.
+type LiveThresholdsRequest struct {
+	Bounce           *float64 `json:"bounce,omitempty" minimum:"0.1" maximum:"20"`
+	Complaint        *float64 `json:"complaint,omitempty" minimum:"0.01" maximum:"5"`
+	MailboxComplaint *float64 `json:"mailboxComplaint,omitempty" minimum:"0.01" maximum:"5"`
+	Deferral         *float64 `json:"deferral,omitempty" minimum:"1" maximum:"100"`
+	APIErrors        *float64 `json:"apiErrors,omitempty" minimum:"1" maximum:"100"`
+	// Scope: pause only the affected route or mailbox provider, or the whole campaign.
+	Scope string `json:"scope,omitempty" enum:"route,campaign"`
 }
 
 // LiveCancelRequest cancels the whole send, or one share of it.
@@ -186,7 +201,7 @@ func Register(h huma.API, e *Engine) {
 			if err != nil {
 				return nil, err
 			}
-			req := ResumeRequest{Mailbox: in.Body.Mailbox, WithChanges: in.Body.WithChanges}
+			req := ResumeRequest{Mailbox: in.Body.Mailbox, WithChanges: in.Body.WithChanges, Limit: in.Body.Limit}
 			if in.Body.ProviderID != "" {
 				pid, err := uuid.Parse(in.Body.ProviderID)
 				if err != nil {
@@ -199,6 +214,18 @@ func Register(h huma.API, e *Engine) {
 				return nil, mapErr(ctx, err)
 			}
 			return e.result(ctx, id, LiveActionResult{Excluded: res.Excluded})
+		})
+	api.Put(h, api.Op{ID: "set-live-thresholds", Path: base + "/thresholds", Summary: "Change a running or waiting send's auto-pause thresholds", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
+		func(ctx context.Context, in *body[LiveThresholdsRequest]) (*api.Body[LiveActionResult], error) {
+			ctx = ownAPI(ctx)
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
+			if err != nil {
+				return nil, err
+			}
+			if err := e.SetThresholds(ctx, id, by, ThresholdChange(in.Body)); err != nil {
+				return nil, mapErr(ctx, err)
+			}
+			return e.result(ctx, id, LiveActionResult{})
 		})
 	api.Post(h, api.Op{ID: "cancel-live-send", Path: base + "/cancel", Summary: "Cancel a send, or one mailbox provider's or sending provider's share", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
 		func(ctx context.Context, in *body[LiveCancelRequest]) (*api.Body[LiveActionResult], error) {

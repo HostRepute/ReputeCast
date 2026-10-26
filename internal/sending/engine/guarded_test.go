@@ -46,6 +46,11 @@ func TestGuardedSending(t *testing.T) {
 	t.Run("RetryTestsWithTheShareWithoutSeeds", func(t *testing.T) { testRetryResumes(t, s.Fixture(t, "GS-3 resume own"), false) })
 	// GS-5: moves are vetted, holdouts stay held, a person's pause stays.
 	t.Run("MoveKeepsHoldoutsAndPause", func(t *testing.T) { testMoveKeepsHoldouts(t, s.Fixture(t, "GS-5 move")) })
+	// GS-2: resuming re-arms; changes at every scope; thresholds while paused.
+	t.Run("ResumeDoesNotRetripOnOldEvents", func(t *testing.T) { testResumeRearms(t, s.Fixture(t, "GS-2 mailbox")) })
+	t.Run("CampaignResumeRearms", func(t *testing.T) { testCampaignResumeRearms(t, s.Fixture(t, "GS-2 campaign")) })
+	t.Run("RouteResumeWithChanges", func(t *testing.T) { testRouteResumeWithChanges(t, s.Fixture(t, "GS-2 route")) })
+	t.Run("ThresholdsWhilePaused", func(t *testing.T) { testThresholdsWhilePaused(t, s.Fixture(t, "GS-2 thresholds")) })
 }
 
 // routeOf is the fixture's route on a provider: its status and detail.

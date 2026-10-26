@@ -28,6 +28,9 @@ type ResumeRequest struct {
 	WithChanges bool
 	// Changes override the incident's recommendation.
 	Changes *ResumeChanges
+	// Limit raises the limit of the metric that tripped, for this send
+	// only, in percent (review GS-2).
+	Limit *float64
 }
 
 // ResumeResult says what resuming changed.
@@ -37,11 +40,13 @@ type ResumeResult struct {
 	Automation string  `json:"automation,omitempty"`
 }
 
-// ResumeScope resumes a held mailbox provider or route, as is or with the
-// recommended changes.
+// ResumeScope resumes a held mailbox provider or route, or the whole
+// campaign, as is or with the recommended changes, optionally raising the
+// limit that tripped. The resumed scope's thresholds re-arm from the
+// current counts (review GS-2).
 func (e *Engine) ResumeScope(ctx context.Context, campaignID, by uuid.UUID, in ResumeRequest) (ResumeResult, error) {
 	if in.Mailbox == "" && in.ProviderID == nil {
-		return ResumeResult{}, e.Resume(ctx, campaignID, by)
+		return e.resumeCampaign(ctx, campaignID, by, in)
 	}
 	now := e.now()
 	var out ResumeResult
@@ -93,16 +98,14 @@ func (e *Engine) ResumeScope(ctx context.Context, campaignID, by uuid.UUID, in R
 			h.Resumed = true
 			h.Rearm = map[string]int64{"complaint": m.complained, "bounce": m.bounced(), "deferral": m.deferred}
 			holds[in.Mailbox] = h
-			if in.WithChanges {
+			if in.WithChanges || in.Changes != nil {
 				ch := in.Changes
 				if ch == nil && incident != nil {
-					var d IncidentDetail
-					_ = json.Unmarshal(incident.Detail, &d)
-					ch = d.Changes
+					ch = parseDetail(incident.Detail).Changes
 				}
 				if ch != nil {
 					resolution = "resumed_with_changes"
-					if err := e.applyChanges(ctx, q, tx, c, snd, in.Mailbox, ch, &out, now); err != nil {
+					if err := e.applyChanges(ctx, q, tx, c, snd, in.Mailbox, nil, ch, &out, now); err != nil {
 						return err
 					}
 				}
@@ -111,24 +114,53 @@ func (e *Engine) ResumeScope(ctx context.Context, campaignID, by uuid.UUID, in R
 			if err := q.SendingSetHolds(ctx, store.SendingSetHoldsParams{CampaignID: campaignID, Holds: b, At: now}); err != nil {
 				return err
 			}
+			if err := e.rearmScopes(ctx, q, campaignID, resumedScopes{mailboxes: []string{in.Mailbox}}, now); err != nil {
+				return err
+			}
 		} else {
 			routes, err := q.SendingRoutes(ctx, campaignID)
 			if err != nil {
 				return err
 			}
-			found := false
+			found, tripped := false, false
 			for _, r := range routes {
 				if r.ProviderID == *in.ProviderID && (r.Status == "held" || r.Status == "paused") {
-					found = true
+					// "paused": its bounces tripped the threshold; "held": an outage.
+					found, tripped = true, r.Status == "paused"
 				}
 			}
 			if !found {
 				return stateErr("state.shareNotHeld", nil)
 			}
+			if in.WithChanges || in.Changes != nil {
+				ch := in.Changes
+				if ch == nil && incident != nil {
+					ch = parseDetail(incident.Detail).Changes
+				}
+				if ch != nil {
+					resolution = "resumed_with_changes"
+					if err := e.applyChanges(ctx, q, tx, c, snd, "", in.ProviderID, ch, &out, now); err != nil {
+						return err
+					}
+				}
+			}
 			if err := q.SendingSetRouteStatus(ctx, store.SendingSetRouteStatusParams{CampaignID: campaignID, ProviderID: *in.ProviderID, Status: "sending", StatusDetail: `{"decision":"resume"}`}); err != nil {
 				return err
 			}
 			e.resetCalls(routeKey{campaignID, *in.ProviderID})
+			if tripped {
+				if err := e.rearmScopes(ctx, q, campaignID, resumedScopes{routes: []uuid.UUID{*in.ProviderID}}, now); err != nil {
+					return err
+				}
+			}
+		}
+		if in.Limit != nil {
+			if incident == nil || incident.Kind != "threshold" {
+				return stateErr("state.nothingTripped", campaignArgs(c.Name, c.Status))
+			}
+			if _, _, err := changeThresholds(ctx, q, c, limitChange(*incident, *in.Limit), now); err != nil {
+				return err
+			}
 		}
 		if incident != nil {
 			if err := q.SendingResolveIncident(ctx, store.SendingResolveIncidentParams{ID: incident.ID, At: &now, Resolution: resolution, ResolvedBy: ref}); err != nil {
@@ -173,9 +205,10 @@ func (e *Engine) ResumeScope(ctx context.Context, campaignID, by uuid.UUID, in R
 	return out, err
 }
 
-// applyChanges takes a group out of the rest of the send, lowers a mailbox
-// provider's rate and hands the excluded contacts to a flow.
-func (e *Engine) applyChanges(ctx context.Context, q *store.Queries, tx pgx.Tx, c store.Campaign, snd store.CampaignSend, mailbox string, ch *ResumeChanges, out *ResumeResult, now time.Time) error {
+// applyChanges takes a group out of the rest of the send (or of a mailbox
+// provider's or a sending provider's share), lowers the scope's rate and
+// hands the excluded contacts to a flow.
+func (e *Engine) applyChanges(ctx context.Context, q *store.Queries, tx pgx.Tx, c store.Campaign, snd store.CampaignSend, mailbox string, provider *uuid.UUID, ch *ResumeChanges, out *ResumeResult, now time.Time) error {
 	cid := c.ID
 	var contacts []uuid.UUID
 	if ch.Exclude > 0 {
@@ -184,16 +217,37 @@ func (e *Engine) applyChanges(ctx context.Context, q *store.Queries, tx pgx.Tx, 
 			why = "never engaged"
 		}
 		share := "the campaign"
-		if mailbox != "" {
+		switch {
+		case mailbox != "":
 			share = "the " + mailboxName(mailbox) + " share"
+		case provider != nil:
+			share = "this sending provider's share"
 		}
 		reason := "Excluded when " + share + " resumed: " + why
-		ids, err := q.SendingExcludeGroup(ctx, store.SendingExcludeGroupParams{Reason: reason, CampaignID: &cid, MailboxProvider: mailbox, Grp: ch.group(), Source: ch.Source})
+		var ids []*uuid.UUID
+		var err error
+		if provider != nil {
+			ids, err = q.SendingExcludeGroupOn(ctx, store.SendingExcludeGroupOnParams{Reason: reason, CampaignID: &cid, ProviderID: provider, Grp: ch.group(), Source: ch.Source})
+		} else {
+			ids, err = q.SendingExcludeGroup(ctx, store.SendingExcludeGroupParams{Reason: reason, CampaignID: &cid, MailboxProvider: mailbox, Grp: ch.group(), Source: ch.Source})
+		}
 		if err != nil {
 			return err
 		}
 		out.Excluded = int64(len(ids))
 		contacts = derefIDs(ids)
+	}
+	if ch.Rate > 0 && provider != nil {
+		// The route sends slower for the rest of this send.
+		g := parseGuard(snd.Guard)
+		if g.RouteRates == nil {
+			g.RouteRates = map[string]float64{}
+		}
+		g.RouteRates[provider.String()] = ch.Rate
+		if err := saveGuard(ctx, q, cid, g, now); err != nil {
+			return err
+		}
+		out.Rate = ch.Rate
 	}
 	if ch.Rate > 0 && mailbox != "" {
 		th := map[string]float64{}

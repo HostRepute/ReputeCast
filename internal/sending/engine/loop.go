@@ -141,6 +141,8 @@ type runState struct {
 	started    time.Time
 	// settledAt is when stale claims were last settled (doubt.go).
 	settledAt time.Time
+	// guard is campaign_sends.guard (guardstate.go).
+	guard guardState
 	// links are the per-recipient links of the email's polls and surveys.
 	links []RecipientLink
 }
@@ -232,6 +234,7 @@ func (e *Engine) loadState(ctx context.Context, id uuid.UUID, now time.Time, pau
 	rs.throttles = map[string]float64{}
 	_ = json.Unmarshal(snd.Throttles, &rs.throttles)
 	rs.holds = parseHolds(snd.Holds)
+	rs.guard = parseGuard(snd.Guard)
 	if rs.templates, err = e.templatesFor(id, rs.content); err != nil {
 		return nil, err
 	}
@@ -271,6 +274,10 @@ func (e *Engine) loadRoutes(ctx context.Context, rs *runState, now time.Time) er
 		}
 		r.provider, r.planned, r.status, r.detail = p, row.Planned, row.Status, parseRouteDetail(row.StatusDetail)
 		r.rate = e.rateOf(ctx, e.Q, p, rs.loc, now)
+		if v := rs.guard.routeRate(p.ID); v > 0 && v < r.rate.PerSecond {
+			// A person slowed this route for the send when resuming it (GS-2).
+			r.rate.PerSecond = v
+		}
 		r.batch = batchSize(p)
 		r.tracked = state.TrackingOf(p).Mode != "provider"
 		if pr := state.PricingOf(p); pr.Model == "metered" {
@@ -297,6 +304,11 @@ func (e *Engine) refresh(ctx context.Context, rs *runState, now time.Time) error
 	}
 	rs.send = snd
 	rs.holds = parseHolds(snd.Holds)
+	rs.guard = parseGuard(snd.Guard)
+	if len(snd.Thresholds) > 0 {
+		// A person may change them while the send runs or waits (GS-2).
+		_ = json.Unmarshal(snd.Thresholds, &rs.thresholds)
+	}
 	rs.ab = parseAB(snd.Ab)
 	rs.throttles = map[string]float64{}
 	_ = json.Unmarshal(snd.Throttles, &rs.throttles)

@@ -108,3 +108,26 @@ WHERE campaign_id = @campaign_id AND provider_id = @provider_id AND status = 'he
 -- move, vetted as every move is.
 SELECT count(*)::bigint FROM messages
 WHERE provider_id = @provider_id AND status = 'queued' AND campaign_id IS NULL AND stream = 'automation';
+
+-- GS-2: resuming re-arms; thresholds while paused -------------------------
+
+-- name: SendingSetGuard :exec
+-- The guard's state of a send (engine/guardstate.go).
+UPDATE campaign_sends SET guard = @guard, updated_at = @at WHERE campaign_id = @campaign_id;
+
+-- name: SendingSetSendThresholds :exec
+-- A send's thresholds, changed by a person while it sends or waits.
+UPDATE campaign_sends SET thresholds = @thresholds, updated_at = @at WHERE campaign_id = @campaign_id;
+
+-- name: SendingExcludeGroupOn :many
+-- Takes a group out of the rest of one sending provider's share (resuming a
+-- route with changes); returns their contact ids for another flow.
+UPDATE messages m SET status = 'cancelled', claimed_at = NULL, error = @reason
+FROM contacts c
+WHERE c.id = m.contact_id AND m.campaign_id = @campaign_id AND m.provider_id = @provider_id AND m.status IN ('queued', 'held')
+  AND CASE @grp::text
+        WHEN 'imported' THEN c.last_human_open_at IS NULL AND c.source LIKE 'import:%' AND (@source::text = '' OR c.source = @source::text)
+        WHEN 'lapsed' THEN c.tier IN ('at_risk', 'sunset')
+        ELSE c.last_human_open_at IS NULL
+      END
+RETURNING m.contact_id;

@@ -424,9 +424,19 @@ func (e *Engine) Pause(ctx context.Context, campaignID, by uuid.UUID, reason str
 }
 
 // Resume implements Starter: a paused campaign sends again, and every
-// mailbox provider or route on hold is released.
+// mailbox provider or route on hold is released. Every threshold that
+// tripped re-arms from the current counts (review GS-2).
 func (e *Engine) Resume(ctx context.Context, campaignID, by uuid.UUID) error {
+	_, err := e.resumeCampaign(ctx, campaignID, by, ResumeRequest{})
+	return err
+}
+
+// resumeCampaign is Resume with a person's choices: the campaign-wide
+// incident's recommended changes, and a raised limit for the metric that
+// tripped.
+func (e *Engine) resumeCampaign(ctx context.Context, campaignID, by uuid.UUID, in ResumeRequest) (ResumeResult, error) {
 	now := e.now()
+	var out ResumeResult
 	err := db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		c, err := q.SendingCampaignForUpdate(ctx, campaignID)
@@ -440,6 +450,53 @@ func (e *Engine) Resume(ctx context.Context, campaignID, by uuid.UUID) error {
 			return stateErr("state.notPaused", campaignArgs(c.Name, c.Status))
 		}
 		ref, name := e.actorRef(ctx, q, by)
+		tripped, err := trippedScopes(ctx, q, c.ID)
+		if err != nil {
+			return err
+		}
+		var incident *store.CampaignIncident
+		open, err := q.SendingOpenIncidents(ctx, c.ID)
+		if err != nil {
+			return err
+		}
+		for i := range open {
+			if open[i].Kind == "threshold" && open[i].Scope == "campaign" {
+				incident = &open[i]
+				break
+			}
+		}
+		withChanges := false
+		if ch := in.Changes; in.WithChanges || ch != nil {
+			if ch == nil && incident != nil {
+				ch = parseDetail(incident.Detail).Changes
+			}
+			if ch != nil {
+				snd, err := q.SendingGetSendForUpdate(ctx, c.ID)
+				if err != nil {
+					return err
+				}
+				if err := e.applyChanges(ctx, q, tx, c, snd, "", nil, ch, &out, now); err != nil {
+					return err
+				}
+				withChanges = true
+			}
+		}
+		meta := map[string]any{}
+		if in.Limit != nil {
+			if incident == nil {
+				return stateErr("state.nothingTripped", campaignArgs(c.Name, c.Status))
+			}
+			before, after, err := changeThresholds(ctx, q, c, limitChange(*incident, *in.Limit), now)
+			if err != nil {
+				return err
+			}
+			meta["thresholds_before"], meta["thresholds_after"] = before, after
+		}
+		if incident != nil && withChanges {
+			if err := q.SendingResolveIncident(ctx, store.SendingResolveIncidentParams{ID: incident.ID, At: &now, Resolution: "resumed_with_changes", ResolvedBy: ref}); err != nil {
+				return err
+			}
+		}
 		if err := q.SendingSetCampaignStatus(ctx, store.SendingSetCampaignStatusParams{ID: c.ID, Status: "sending", At: now}); err != nil {
 			return err
 		}
@@ -447,22 +504,34 @@ func (e *Engine) Resume(ctx context.Context, campaignID, by uuid.UUID) error {
 		if err != nil {
 			return err
 		}
+		if err := e.rearmScopes(ctx, q, c.ID, tripped, now); err != nil {
+			return err
+		}
 		if err := q.SendingSetPaused(ctx, store.SendingSetPausedParams{CampaignID: c.ID}); err != nil {
 			return err
 		}
-		if err := emit(ctx, tx, c.WorkspaceID, "campaign.resumed", campaignData(c.ID, c.Name, "resumed_by", firstNonEmpty(name, "System"), "scope", "campaign")); err != nil {
+		data := campaignData(c.ID, c.Name, "resumed_by", firstNonEmpty(name, "System"), "scope", "campaign")
+		if withChanges {
+			data["with_changes"], data["excluded"] = true, out.Excluded
+		}
+		if err := emit(ctx, tx, c.WorkspaceID, "campaign.resumed", data); err != nil {
 			return err
 		}
 		if !records(ctx) {
 			return nil
 		}
+		meta["released"] = released
+		if withChanges {
+			meta["summary"] = fmt.Sprintf("Resumed with changes · %s left out", countText(out.Excluded))
+		}
 		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.resumed", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Before: map[string]any{"status": c.Status}, After: map[string]any{"status": "sending"}, Metadata: map[string]any{"released": released}, Actor: e.actorFor(ctx, ref, name)})
+			Before: map[string]any{"status": c.Status}, After: map[string]any{"status": "sending", "with_changes": withChanges, "excluded": out.Excluded},
+			Metadata: meta, Actor: e.actorFor(ctx, ref, name)})
 	})
 	if err == nil {
 		e.kick(ctx, campaignID)
 	}
-	return err
+	return out, err
 }
 
 // releaseAll lifts every hold of a campaign and resolves the incidents.

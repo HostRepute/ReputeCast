@@ -4165,6 +4165,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/thresholds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a running or waiting send's auto-pause thresholds */
+        put: operations["set-live-thresholds"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/poll-test-answers": {
         parameters: {
             query?: never;
@@ -28500,6 +28517,8 @@ export interface components {
             warmupSent?: number;
         };
         LiveResumeRequest: {
+            /** Format: double */
+            limit?: number;
             /** @enum {string} */
             mailbox?: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
             /** Format: uuid */
@@ -28616,6 +28635,20 @@ export interface components {
             mailbox?: string;
             /** Format: double */
             value: number;
+        };
+        LiveThresholdsRequest: {
+            /** Format: double */
+            apiErrors?: number;
+            /** Format: double */
+            bounce?: number;
+            /** Format: double */
+            complaint?: number;
+            /** Format: double */
+            deferral?: number;
+            /** Format: double */
+            mailboxComplaint?: number;
+            /** @enum {string} */
+            scope?: "route" | "campaign";
         };
         LiveThrottle: {
             mailbox: string;
@@ -53113,6 +53146,44 @@ export interface operations {
                         /** @description The retry time in milliseconds. */
                         retry?: number;
                     }[];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-live-thresholds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveThresholdsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
                 };
             };
             /** @description Error */

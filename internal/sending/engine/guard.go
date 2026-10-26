@@ -210,24 +210,24 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 	th := rs.thresholds
 	var trips []trip
 	for _, mbp := range sortedKeys(ts.mailbox) {
-		m := ts.mailbox[mbp]
 		h, onHold := rs.holds[mbp]
 		if onHold && !h.Resumed {
 			continue
 		}
-		armed := func(metric string, n int64) bool {
-			if !onHold || h.Rearm == nil {
-				return true
-			}
-			base, ok := h.Rearm[metric]
-			return !ok || n > base
+		// A scope a person resumed is judged on what happened since, with
+		// the evidence a fresh one needs: old events never pause it again
+		// (review GS-2).
+		m := rs.guard.judged(rearmMailbox(mbp), *ts.mailbox[mbp])
+		if _, rearmed := rs.guard.Rearm[rearmMailbox(mbp)]; !rearmed && onHold && h.Rearm != nil {
+			// A resume recorded before the guard kept its counts.
+			m = m.since(counts{Complained: h.Rearm["complaint"], Hard: h.Rearm["bounce"], Deferred: h.Rearm["deferral"]})
 		}
 		switch {
-		case m.delivered >= minSampleScoped && over(m.complained, m.delivered, th.MailboxComplaint, minEvents) && armed("complaint", m.complained):
+		case m.delivered >= minSampleScoped && over(m.complained, m.delivered, th.MailboxComplaint, minEvents):
 			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "complaint", value: rate(m.complained, m.delivered), limit: th.MailboxComplaint, events: m.complained, base: m.delivered})
-		case m.sent >= minSampleScoped && over(m.bounced(), m.sent, th.Bounce, minEvents) && armed("bounce", m.bounced()):
+		case m.sent >= minSampleScoped && over(m.bounced(), m.sent, th.Bounce, minEvents):
 			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "bounce", value: rate(m.bounced(), m.sent), limit: th.Bounce, events: m.bounced(), base: m.sent})
-		case m.sent >= minSampleScoped && over(m.deferred, m.sent, th.Deferral, minDeferrals) && armed("deferral", m.deferred):
+		case m.sent >= minSampleScoped && over(m.deferred, m.sent, th.Deferral, minDeferrals):
 			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "deferral", value: rate(m.deferred, m.sent), limit: th.Deferral, events: m.deferred, base: m.sent})
 		}
 		if len(trips) > 0 {
@@ -242,10 +242,11 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 		// would hold a whole provider for one mailbox provider's readers.
 		for _, pid := range rs.order {
 			r := rs.routes[pid]
-			p := ts.provider[pid]
-			if p == nil || !r.open() {
+			pt := ts.provider[pid]
+			if pt == nil || !r.open() {
 				continue
 			}
+			p := rs.guard.judged(rearmRoute(pid), *pt)
 			if p.sent >= minSampleScoped && over(p.bounced(), p.sent, th.Bounce, minEvents) {
 				trips = append(trips, trip{scope: "route", provider: pid, metric: "bounce", value: rate(p.bounced(), p.sent), limit: th.Bounce, events: p.bounced(), base: p.sent})
 				break
@@ -270,6 +271,7 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 				t.complained -= p.complained
 			}
 		}
+		t = rs.guard.judged(rearmCampaign, t)
 		if t.sent >= minSampleCampaign && over(t.bounced(), t.sent, th.Bounce, minEvents) {
 			trips = append(trips, trip{scope: "campaign", metric: "bounce", value: rate(t.bounced(), t.sent), limit: th.Bounce, events: t.bounced(), base: t.sent})
 		}

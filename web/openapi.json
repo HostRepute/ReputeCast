@@ -41056,6 +41056,12 @@
       "LiveResumeRequest": {
         "additionalProperties": false,
         "properties": {
+          "limit": {
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0.01,
+            "type": "number"
+          },
           "mailbox": {
             "enum": [
               "gmail",
@@ -41461,6 +41467,49 @@
           "value",
           "limit"
         ],
+        "type": "object"
+      },
+      "LiveThresholdsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "apiErrors": {
+            "format": "double",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "number"
+          },
+          "bounce": {
+            "format": "double",
+            "maximum": 20,
+            "minimum": 0.1,
+            "type": "number"
+          },
+          "complaint": {
+            "format": "double",
+            "maximum": 5,
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "deferral": {
+            "format": "double",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "number"
+          },
+          "mailboxComplaint": {
+            "format": "double",
+            "maximum": 5,
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "scope": {
+            "enum": [
+              "route",
+              "campaign"
+            ],
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "LiveThrottle": {
@@ -111832,6 +111881,84 @@
         ],
         "x-access": "workspace",
         "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/thresholds": {
+      "put": {
+        "operationId": "set-live-thresholds",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Campaign id",
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "description": "Campaign id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveThresholdsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveActionResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change a running or waiting send's auto-pause thresholds",
+        "tags": [
+          "Live sending"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:send"
       }
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/poll-test-answers": {

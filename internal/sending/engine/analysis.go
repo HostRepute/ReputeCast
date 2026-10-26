@@ -270,37 +270,45 @@ func thresholdOptions(tr trip, sc i18n.Args, held int64, ch *ResumeChanges) []op
 	if metric != "complaint" && metric != "bounce" && metric != "deferral" {
 		metric = "none"
 	}
+	// Resuming as is re-arms the threshold from the current counts (review
+	// GS-2): what today's rate would bring in the rest.
+	expect := int64(math.Round(float64(held) * tr.value / 100))
+	resume := i18n.Args{"held": held, "metric": metric, "ratePct": round2(tr.value), "expect": expect, "more": yesNo(expect > 0)}
+	body := keep("opt.resumeScoped", with(sc, "held", held, "metric", metric, "ratePct", resume["ratePct"], "expect", expect, "more", resume["more"]))
 	if tr.scope == "campaign" {
-		return []option{
-			{key: "resume", title: keep("opt.resumeTitle", i18n.Args{"recommended": "no"}), body: keep("opt.resumeAll", i18n.Args{"held": held, "metric": metric}),
-				action: keep("opt.resumeAction", nil)},
-			{key: "cancel", title: keep("opt.cancelCampaign", nil), body: keep("opt.cancelCampaignBody", i18n.Args{"held": held}), action: keep("opt.cancelCampaign", nil)},
-		}
+		body = keep("opt.resumeAll", resume)
 	}
-	out := []option{
-		{key: "resume", title: keep("opt.resumeTitle", i18n.Args{"recommended": "no"}), body: keep("opt.resumeScoped", with(sc, "held", held, "metric", metric)),
-			action: keep("opt.resumeAction", nil)},
+	out := []option{{key: "resume", title: keep("opt.resumeTitle", i18n.Args{"recommended": "no"}), body: body, action: keep("opt.resumeAction", nil)}}
+	// A campaign-wide resume takes a group out; a mailbox provider's or a
+	// route's also slows down.
+	rate := 0.0
+	if ch != nil && tr.scope != "campaign" {
+		rate = ch.Rate
 	}
-	if ch != nil && (ch.Exclude > 0 || ch.Rate > 0) {
+	if ch != nil && (ch.Exclude > 0 || rate > 0) {
 		// What resuming with changes does: exclude a group, slow down, hand
 		// the excluded contacts to a flow.
 		combo := "rate"
 		switch {
-		case ch.Exclude > 0 && ch.Rate > 0 && ch.Automation != "":
+		case ch.Exclude > 0 && rate > 0 && ch.Automation != "":
 			combo = "all"
-		case ch.Exclude > 0 && ch.Rate > 0:
+		case ch.Exclude > 0 && rate > 0:
 			combo = "excludeRate"
 		case ch.Exclude > 0 && ch.Automation != "":
 			combo = "excludeFlow"
 		case ch.Exclude > 0:
 			combo = "exclude"
 		}
-		args := i18n.Args{"combo": combo, "exclude": ch.Exclude, "group": ch.group(), "rest": max(held-ch.Exclude, 0), "changeRate": ch.Rate, "automation": ch.Automation}
+		args := i18n.Args{"combo": combo, "exclude": ch.Exclude, "group": ch.group(), "rest": max(held-ch.Exclude, 0), "changeRate": rate, "automation": ch.Automation}
 		out = append(out, option{key: "resume_with_changes", recommended: true, title: keep("opt.changesTitle", nil), body: keep("opt.changes", args),
 			action: keep("opt.changesAction", nil)})
 	}
-	out = append(out, option{key: "cancel_share", title: keep("opt.cancelShare", sc), body: keep("opt.cancelShareBody", with(sc, "held", held)),
-		action: keep("opt.cancelShare", sc)})
+	if tr.scope == "campaign" {
+		out = append(out, option{key: "cancel", title: keep("opt.cancelCampaign", nil), body: keep("opt.cancelCampaignBody", i18n.Args{"held": held}), action: keep("opt.cancelCampaign", nil)})
+	} else {
+		out = append(out, option{key: "cancel_share", title: keep("opt.cancelShare", sc), body: keep("opt.cancelShareBody", with(sc, "held", held)),
+			action: keep("opt.cancelShare", sc)})
+	}
 	if len(out) == 2 {
 		out[0].recommended = true
 		out[0].title = keep("opt.resumeTitle", i18n.Args{"recommended": "yes"})

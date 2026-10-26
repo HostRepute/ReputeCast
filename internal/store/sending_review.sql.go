@@ -7,6 +7,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -38,6 +39,54 @@ func (q *Queries) SendingCallWindow(ctx context.Context, arg SendingCallWindowPa
 	var i SendingCallWindowRow
 	err := row.Scan(&i.Calls, &i.Errors)
 	return i, err
+}
+
+const sendingExcludeGroupOn = `-- name: SendingExcludeGroupOn :many
+UPDATE messages m SET status = 'cancelled', claimed_at = NULL, error = $1
+FROM contacts c
+WHERE c.id = m.contact_id AND m.campaign_id = $2 AND m.provider_id = $3 AND m.status IN ('queued', 'held')
+  AND CASE $4::text
+        WHEN 'imported' THEN c.last_human_open_at IS NULL AND c.source LIKE 'import:%' AND ($5::text = '' OR c.source = $5::text)
+        WHEN 'lapsed' THEN c.tier IN ('at_risk', 'sunset')
+        ELSE c.last_human_open_at IS NULL
+      END
+RETURNING m.contact_id
+`
+
+type SendingExcludeGroupOnParams struct {
+	Reason     string     `json:"reason"`
+	CampaignID *uuid.UUID `json:"campaignId"`
+	ProviderID *uuid.UUID `json:"providerId"`
+	Grp        string     `json:"grp"`
+	Source     string     `json:"source"`
+}
+
+// Takes a group out of the rest of one sending provider's share (resuming a
+// route with changes); returns their contact ids for another flow.
+func (q *Queries) SendingExcludeGroupOn(ctx context.Context, arg SendingExcludeGroupOnParams) ([]*uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, sendingExcludeGroupOn,
+		arg.Reason,
+		arg.CampaignID,
+		arg.ProviderID,
+		arg.Grp,
+		arg.Source,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*uuid.UUID{}
+	for rows.Next() {
+		var contact_id *uuid.UUID
+		if err := rows.Scan(&contact_id); err != nil {
+			return nil, err
+		}
+		items = append(items, contact_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const sendingInDoubtByProvider = `-- name: SendingInDoubtByProvider :many
@@ -294,6 +343,24 @@ func (q *Queries) SendingResolveInDoubt(ctx context.Context, arg SendingResolveI
 	return result.RowsAffected(), nil
 }
 
+const sendingSetGuard = `-- name: SendingSetGuard :exec
+
+UPDATE campaign_sends SET guard = $1, updated_at = $2 WHERE campaign_id = $3
+`
+
+type SendingSetGuardParams struct {
+	Guard      json.RawMessage `json:"guard"`
+	At         time.Time       `json:"at"`
+	CampaignID uuid.UUID       `json:"campaignId"`
+}
+
+// GS-2: resuming re-arms; thresholds while paused -------------------------
+// The guard's state of a send (engine/guardstate.go).
+func (q *Queries) SendingSetGuard(ctx context.Context, arg SendingSetGuardParams) error {
+	_, err := q.db.Exec(ctx, sendingSetGuard, arg.Guard, arg.At, arg.CampaignID)
+	return err
+}
+
 const sendingSetProbe = `-- name: SendingSetProbe :execrows
 UPDATE campaign_routes SET status_detail = $1
 WHERE campaign_id = $2 AND provider_id = $3 AND status = 'held' AND status_detail = $4
@@ -319,6 +386,22 @@ func (q *Queries) SendingSetProbe(ctx context.Context, arg SendingSetProbeParams
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const sendingSetSendThresholds = `-- name: SendingSetSendThresholds :exec
+UPDATE campaign_sends SET thresholds = $1, updated_at = $2 WHERE campaign_id = $3
+`
+
+type SendingSetSendThresholdsParams struct {
+	Thresholds json.RawMessage `json:"thresholds"`
+	At         time.Time       `json:"at"`
+	CampaignID uuid.UUID       `json:"campaignId"`
+}
+
+// A send's thresholds, changed by a person while it sends or waits.
+func (q *Queries) SendingSetSendThresholds(ctx context.Context, arg SendingSetSendThresholdsParams) error {
+	_, err := q.db.Exec(ctx, sendingSetSendThresholds, arg.Thresholds, arg.At, arg.CampaignID)
+	return err
 }
 
 const sendingSettleInDoubt = `-- name: SendingSettleInDoubt :one

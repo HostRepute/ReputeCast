@@ -3215,6 +3215,9 @@ type Querier interface {
 	// Takes a group out of the rest of the send; returns their contact ids so
 	// they can be added to another flow.
 	SendingExcludeGroup(ctx context.Context, arg SendingExcludeGroupParams) ([]*uuid.UUID, error)
+	// Takes a group out of the rest of one sending provider's share (resuming a
+	// route with changes); returns their contact ids for another flow.
+	SendingExcludeGroupOn(ctx context.Context, arg SendingExcludeGroupOnParams) ([]*uuid.UUID, error)
 	// The newest delivery and engagement events of a campaign.
 	SendingFeed(ctx context.Context, arg SendingFeedParams) ([]SendingFeedRow, error)
 	SendingFinishPrepare(ctx context.Context, arg SendingFinishPrepareParams) error
@@ -3319,6 +3322,9 @@ type Querier interface {
 	// event, per route, stored when a send ends ("Median time to delivery" in
 	// the report's per-provider comparison).
 	SendingSetDeliveryP50(ctx context.Context, campaignID uuid.UUID) error
+	// GS-2: resuming re-arms; thresholds while paused -------------------------
+	// The guard's state of a send (engine/guardstate.go).
+	SendingSetGuard(ctx context.Context, arg SendingSetGuardParams) error
 	SendingSetHolds(ctx context.Context, arg SendingSetHoldsParams) error
 	SendingSetPaused(ctx context.Context, arg SendingSetPausedParams) error
 	SendingSetPhase(ctx context.Context, arg SendingSetPhaseParams) error
@@ -3326,6 +3332,8 @@ type Querier interface {
 	// as the send loop last read it: a person's decision in the meantime wins.
 	SendingSetProbe(ctx context.Context, arg SendingSetProbeParams) (int64, error)
 	SendingSetRouteStatus(ctx context.Context, arg SendingSetRouteStatusParams) error
+	// A send's thresholds, changed by a person while it sends or waits.
+	SendingSetSendThresholds(ctx context.Context, arg SendingSetSendThresholdsParams) error
 	SendingSetThrottles(ctx context.Context, arg SendingSetThrottlesParams) error
 	// A provider reported an event for a message in doubt: it took the message
 	// after all. The message counts as sent from the event on.

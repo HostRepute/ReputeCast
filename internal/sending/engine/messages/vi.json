@@ -93,8 +93,8 @@
 
   "opt.resumeTitle": "Tiếp tục như cũ{recommended, select, yes { (khuyên dùng)} other {}}",
   "opt.resumeAction": "Tiếp tục như cũ",
-  "opt.resumeAll": "Gửi cho {held} người nhận còn lại. Ngưỡng vẫn được bật và sẽ tạm dừng lại ở {metric, select, complaint {khiếu nại} bounce {thư trả lại} deferral {lần hoãn nhận} other {lần vượt ngưỡng}} tiếp theo.",
-  "opt.resumeScoped": "Gửi cho tất cả {held} người nhận còn lại ở {who}. Ngưỡng vẫn được bật và sẽ tạm dừng lại ở {metric, select, complaint {khiếu nại} bounce {thư trả lại} deferral {lần hoãn nhận} other {lần vượt ngưỡng}} tiếp theo.",
+  "opt.resumeAll": "Gửi cho {held} người nhận còn lại. Các ngưỡng được tính lại từ số liệu hiện tại, nên chỉ {metric, select, complaint {khiếu nại} bounce {thư trả lại} deferral {lần hoãn nhận} other {sự kiện}} mới có thể tạm dừng chiến dịch lần nữa.{more, select, yes { Với tỷ lệ {ratePct} hôm nay, dự kiến thêm khoảng {expect}.} other {}}",
+  "opt.resumeScoped": "Gửi cho tất cả {held} người nhận còn lại ở {who}. Ngưỡng được tính lại từ số liệu hiện tại, nên chỉ {metric, select, complaint {khiếu nại} bounce {thư trả lại} deferral {lần hoãn nhận} other {sự kiện}} mới có thể tạm dừng lần nữa.{more, select, yes { Với tỷ lệ {ratePct} hôm nay, dự kiến thêm khoảng {expect}.} other {}}",
   "opt.cancelCampaign": "Hủy chiến dịch",
   "opt.cancelCampaignBody": "Bỏ qua {held} người nhận còn lại. Họ được đánh dấu \"chưa gửi\" trong báo cáo.",
   "opt.changesTitle": "Tiếp tục với thay đổi (khuyên dùng)",
@@ -165,5 +165,8 @@
   "check.warm": "{target} đã khởi động xong",
   "check.warming": "{target} đang khởi động: giới hạn hôm nay có thể giữ lại một phần",
   "check.abHoldouts": "Người nhận chờ kết quả A/B vẫn được tạm giữ đến khi có bản thắng",
-  "check.canaryHoldouts": "Người nhận chờ đợt gửi thử vẫn được tạm giữ đến khi đợt gửi thử đạt"
+  "check.canaryHoldouts": "Người nhận chờ đợt gửi thử vẫn được tạm giữ đến khi đợt gửi thử đạt",
+
+  "state.thresholdRange": "{metric, select, bounce {Ngưỡng thư trả lại} complaint {Ngưỡng khiếu nại} mailbox_complaint {Ngưỡng khiếu nại theo nhà cung cấp hộp thư} deferral {Ngưỡng hoãn nhận} other {Ngưỡng lỗi API}} phải nằm trong khoảng {minPct} đến {maxPct}.",
+  "state.nothingTripped": "“{name}” không có ngưỡng nào bị vượt: không có giới hạn nào để nâng."
 }
