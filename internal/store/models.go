@@ -2024,19 +2024,23 @@ type ListMembership struct {
 }
 
 type MediaAsset struct {
-	ID          uuid.UUID  `json:"id"`
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	FileName    string     `json:"fileName"`
-	ContentType string     `json:"contentType"`
-	SizeBytes   int32      `json:"sizeBytes"`
-	Width       int32      `json:"width"`
-	Height      int32      `json:"height"`
-	HasAlpha    bool       `json:"hasAlpha"`
-	Sha256      []byte     `json:"sha256"`
-	Data        []byte     `json:"data"`
-	CreatedBy   *uuid.UUID `json:"createdBy"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	HiddenAt    *time.Time `json:"hiddenAt"`
+	ID                  uuid.UUID  `json:"id"`
+	WorkspaceID         uuid.UUID  `json:"workspaceId"`
+	FileName            string     `json:"fileName"`
+	ContentType         string     `json:"contentType"`
+	SizeBytes           int32      `json:"sizeBytes"`
+	Width               int32      `json:"width"`
+	Height              int32      `json:"height"`
+	HasAlpha            bool       `json:"hasAlpha"`
+	Sha256              []byte     `json:"sha256"`
+	Data                []byte     `json:"data"`
+	CreatedBy           *uuid.UUID `json:"createdBy"`
+	CreatedAt           time.Time  `json:"createdAt"`
+	HiddenAt            *time.Time `json:"hiddenAt"`
+	OriginalSizeBytes   *int32     `json:"originalSizeBytes"`
+	OriginalWidth       *int32     `json:"originalWidth"`
+	OriginalHeight      *int32     `json:"originalHeight"`
+	OriginalContentType *string    `json:"originalContentType"`
 }
 
 type Message struct {

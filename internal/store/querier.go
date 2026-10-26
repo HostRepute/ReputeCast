@@ -1523,6 +1523,8 @@ type Querier interface {
 	InsertEmailTemplate(ctx context.Context, arg InsertEmailTemplateParams) error
 	InsertImportLog(ctx context.Context, arg InsertImportLogParams) error
 	// Uploading the same bytes twice returns the existing asset (and shows it again).
+	// sha256 is the uploaded file's; data may be its resized, compressed copy,
+	// and the original_* columns then say what was uploaded.
 	InsertMediaAsset(ctx context.Context, arg InsertMediaAssetParams) (InsertMediaAssetRow, error)
 	// Notification center, preferences and email delivery (internal/notify).
 	// Stores a notification unless the person turned both in-app and email off

@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import type { Component } from 'grapesjs'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Dialog } from '@/components/ui/Dialog'
@@ -10,7 +10,7 @@ import { useComposer, type ComposerDialog } from './context'
 import { diffLines } from './diff'
 import { sectionLabel, sectionOf } from './editor/labels'
 import { formatMjml } from './editor/mjmlDoc'
-import { kb, readText } from './format'
+import { fileSize, kb, readText } from './format'
 import { t as tt, useT, type MessageDescriptor } from '@/i18n'
 import { common } from '@/i18n/common'
 import { sectionWord } from './editor/labels'
@@ -304,6 +304,82 @@ function CompareDialog({ open, onClose, versions }: { open: boolean; onClose: ()
   )
 }
 
+/** What the server did to an upload, in one line ("Resized from 4032×3024 (3.1 MB) for email"); empty when it's stored as uploaded or barely changed. */
+export function optimizedNote(t: ReturnType<typeof useT>, a: Schemas['MediaAsset']): string {
+  const o = a.original
+  if (!o) return ''
+  const size = fileSize(o.sizeBytes)
+  if (o.contentType !== a.contentType) return t(md.convertedFrom, { size, type: o.contentType.replace('image/', '').toUpperCase() })
+  if (o.width !== a.width || o.height !== a.height) return t(md.resizedFrom, { width: o.width, height: o.height, size })
+  return a.sizeBytes < o.sizeBytes * 0.95 ? t(md.compressedFrom, { size }) : ''
+}
+
+type Picked = { src: string; asset?: Schemas['MediaAsset'] }
+
+/**
+ * The alt text prompt after an image is chosen (CO-12, ComposerWrite ·
+ * image block): describe it, or say it's decorative (an empty alt, which
+ * screen readers skip). Either clears the "No alt text" warning.
+ */
+function AltStep({ component, picked, onDone }: { component: Component; picked: Picked; onDone: () => void }) {
+  const t = useT()
+  const id = useId()
+  const before = (component.getAttributes() as Record<string, unknown>).alt
+  const [alt, setAlt] = useState(typeof before === 'string' ? before : '')
+  const name = picked.asset?.fileName ?? (picked.src.split('?')[0]!.split('/').pop() || picked.src)
+  const save = (value: string) => {
+    component.addAttributes({ alt: value })
+    onDone()
+  }
+  const a = picked.asset
+  const note = a ? optimizedNote(t, a) : ''
+  const done = alt.trim().length > 0
+  return (
+    <form
+      className="flex flex-col gap-3"
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (done) save(alt.trim())
+      }}
+    >
+      <div className="flex items-start gap-3">
+        <img
+          src={picked.src}
+          alt=""
+          className="shrink-0 rounded-md border border-line"
+          style={{ width: 120, height: 80, objectFit: 'contain', background: 'repeating-conic-gradient(#F3F4F6 0 25%, #fff 0 50%) 0 0/12px 12px' }}
+        />
+        <div className="flex min-w-0 flex-col items-start gap-1">
+          <span className="max-w-full truncate font-semibold" title={name}>
+            {name}
+          </span>
+          {a ? <span className="k">{t(md.imageMeta, { width: a.width, height: a.height, size: kb(a.sizeBytes) })}</span> : null}
+          {note ? <span className="k">{note}</span> : null}
+          <Badge tone={done ? 'ok' : 'warn'} size="sm">
+            {done ? t(md.altAdded) : t(md.altMissing)}
+          </Badge>
+        </div>
+      </div>
+      <label className="vh" htmlFor={id}>
+        {t(md.altFor, { name })}
+      </label>
+      <input id={id} className="in" autoFocus placeholder={t(md.altPlaceholder)} value={alt} onChange={(e) => setAlt(e.target.value)} />
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" className="btn sm" onClick={() => save('')}>
+          {t(md.altDecorative)}
+        </button>
+        <span className="flex-1" />
+        <button type="button" className="btn" onClick={onDone}>
+          {t(md.altSkip)}
+        </button>
+        <button type="submit" className="btn primary" disabled={!done}>
+          {t(md.altSave)}
+        </button>
+      </div>
+    </form>
+  )
+}
+
 function AssetsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const c = useComposer()
   const t = useT()
@@ -312,15 +388,33 @@ function AssetsDialog({ open, onClose }: { open: boolean; onClose: () => void })
   const [uploading, setUploading] = useState(false)
   const [drag, setDrag] = useState(false)
   const [url, setUrl] = useState('')
+  const [picked, setPicked] = useState<Picked | null>(null)
+  // A prompt left open when the dialog closed doesn't come back next time.
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (!open) setPicked(null)
+  }
   const input = useRef<HTMLInputElement>(null)
   const target = c.assetTarget
-  const choose = (src: string) => {
+  const close = () => {
+    setPicked(null)
+    onClose()
+  }
+  const choose = (src: string, asset?: Schemas['MediaAsset']) => {
     const comp = target?.component as Component | undefined
     if (comp) {
       comp.addAttributes({ [target!.attr]: src })
-      if (target!.attr === 'src') comp.set('src', src)
+      if (target!.attr === 'src') {
+        comp.set('src', src)
+        // An image needs alt text, or to be marked decorative: ask now.
+        if (c.canEdit) {
+          setPicked({ src, asset })
+          return
+        }
+      }
     }
-    onClose()
+    close()
   }
   const upload = async (files: FileList | null) => {
     const file = files?.[0]
@@ -333,8 +427,8 @@ function AssetsDialog({ open, onClose }: { open: boolean; onClose: () => void })
       const body = (await r.json().catch(() => ({}))) as Schemas['MediaAsset'] & { detail?: string; title?: string; errors?: { message?: string }[] }
       if (!r.ok) throw new Error(body.errors?.[0]?.message || body.detail || body.title || t(md.uploadFailedStatus, { status: r.status }))
       void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/media'] })
-      toast({ kind: 'success', title: t(md.uploaded, { name: body.fileName }) })
-      if (target) choose(body.url)
+      toast({ kind: 'success', title: t(md.uploaded, { name: body.fileName }), detail: optimizedNote(t, body) || undefined })
+      if (target) choose(body.url, body)
     } catch (e) {
       toast({ kind: 'error', title: t(md.uploadFailed), detail: e instanceof Error ? e.message : String(e) })
     } finally {
@@ -350,8 +444,15 @@ function AssetsDialog({ open, onClose }: { open: boolean; onClose: () => void })
       toast({ kind: 'error', title: t(md.removeFailed), detail: errorMessage(e) })
     }
   }
+  if (picked && target) {
+    return (
+      <Dialog open={open} onOpenChange={(o) => !o && close()} title={t(md.altTitle)} description={t(md.altLead)}>
+        <AltStep component={target.component as Component} picked={picked} onDone={close} />
+      </Dialog>
+    )
+  }
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()} title={target?.attr === 'background-url' ? t(md.chooseBackground) : t(md.chooseImage)} size="lg" description={t(md.assetsLead)}>
+    <Dialog open={open} onOpenChange={(o) => !o && close()} title={target?.attr === 'background-url' ? t(md.chooseBackground) : t(md.chooseImage)} size="lg" description={t(md.assetsLead)}>
       <div className="flex flex-col gap-3">
         <div
           className="flex flex-col items-center justify-center gap-2 rounded-[10px] border border-dashed text-center"
@@ -397,13 +498,14 @@ function AssetsDialog({ open, onClose }: { open: boolean; onClose: () => void })
           <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))' }}>
             {q.data.items.map((a) => (
               <div key={a.id} className="flex flex-col gap-1.5 rounded-[10px] border border-line bg-surface" style={{ padding: 8 }}>
-                <button type="button" className="overflow-hidden rounded-md border border-line" style={{ height: 90, padding: 0, background: 'repeating-conic-gradient(#F3F4F6 0 25%, #fff 0 50%) 0 0/12px 12px', cursor: 'pointer' }} onClick={() => choose(a.url)} disabled={!target} aria-label={t(md.useImage, { name: a.fileName })}>
+                <button type="button" className="overflow-hidden rounded-md border border-line" style={{ height: 90, padding: 0, background: 'repeating-conic-gradient(#F3F4F6 0 25%, #fff 0 50%) 0 0/12px 12px', cursor: 'pointer' }} onClick={() => choose(a.url, a)} disabled={!target} aria-label={t(md.useImage, { name: a.fileName })}>
                   <img src={a.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} loading="lazy" />
                 </button>
                 <span className="truncate text-[12px] font-semibold" title={a.fileName}>
                   {a.fileName}
                 </span>
                 <span className="k">{t(a.hasAlpha ? md.imageMetaTransparent : md.imageMeta, { width: a.width, height: a.height, size: kb(a.sizeBytes) })}</span>
+                {optimizedNote(t, a) ? <span className="k text-[12px]">{optimizedNote(t, a)}</span> : null}
                 {c.canEdit ? (
                   <button type="button" className="btn sm self-start" onClick={() => void remove(a)}>
                     {t(md.remove)}

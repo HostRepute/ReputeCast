@@ -59,9 +59,26 @@ export const md = defineMessages('composer.dialogs', {
   // Images.
   chooseImage: 'Choose an image',
   chooseBackground: 'Choose a background image',
-  assetsLead: 'PNG, JPEG or GIF up to 5 MB. Images are served from your ReputeCast address, so they load in every inbox.',
+  assetsLead:
+    'PNG or JPEG up to 20 MB, GIF up to 5 MB. Images are resized to 1,200 px wide at most and compressed for email, and served from your ReputeCast address so they load in every inbox.',
   uploadFailedStatus: 'Upload failed ({status})',
   uploaded: '{name} uploaded',
+  /** What the server did to an upload (CO-12): it was wider than 1,200 px. */
+  resizedFrom: 'Resized from {width}×{height} ({size}) for email',
+  /** Same dimensions, fewer bytes. */
+  compressedFrom: 'Compressed from {size} for email',
+  /** A photo uploaded as PNG, stored as JPEG. {type}: PNG. */
+  convertedFrom: 'Saved as JPEG from a {size} {type} for email',
+  // The alt text prompt after choosing an image (CO-12, ComposerWrite · image block).
+  altTitle: 'Describe the image',
+  altLead: 'Outlook and many work inboxes block images by default, so alt text is what shows. Screen readers read it out.',
+  altFor: 'Alt text for {name}',
+  altPlaceholder: 'Describe the image, for example: three runners crossing the finish line',
+  altMissing: 'No alt text',
+  altAdded: 'Alt text added',
+  altDecorative: "It's decorative",
+  altSkip: 'Skip',
+  altSave: 'Save',
   uploadFailed: "Couldn't upload the image",
   removedFromLibrary: '{name} removed from the library',
   removedDetail: 'Emails already sent keep showing it.',

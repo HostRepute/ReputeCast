@@ -10167,8 +10167,8 @@ export interface paths {
         get: operations["list-media"];
         put?: never;
         /**
-         * Upload an image (PNG, JPEG or GIF, up to 5 MB)
-         * @description The file is validated by its content, not its name. Uploading the same file twice returns the stored image.
+         * Upload an image (PNG or JPEG up to 20 MB, GIF up to 5 MB)
+         * @description The file is validated by its content, not its name. What's stored is made for email: at most 1,200 px wide (same proportions, never enlarged), photos turned upright and compressed (a photo saved as PNG may become a JPEG), and metadata such as location and camera details removed. GIFs keep their frames. `original` describes the file as uploaded when the stored image differs from it. Uploading the same file twice returns the stored image.
          */
         post: operations["upload-media"];
         delete?: never;
@@ -28817,6 +28817,8 @@ export interface components {
             /** Format: int64 */
             height: number;
             id: string;
+            /** @description The file as uploaded, when ReputeCast resized or compressed it or removed its metadata */
+            original?: components["schemas"]["MediaOriginal"];
             /** Format: int64 */
             sizeBytes: number;
             /** @description Root-relative URL; emails get the absolute public URL */
@@ -28826,6 +28828,16 @@ export interface components {
         };
         MediaAssetList: {
             items: components["schemas"]["MediaAsset"][];
+        };
+        MediaOriginal: {
+            /** @enum {string} */
+            contentType: "image/png" | "image/jpeg" | "image/gif";
+            /** Format: int64 */
+            height: number;
+            /** Format: int64 */
+            sizeBytes: number;
+            /** Format: int64 */
+            width: number;
         };
         MemberLanguage: {
             /**
@@ -66898,7 +66910,7 @@ export interface operations {
                 "multipart/form-data": {
                     /**
                      * Format: binary
-                     * @description PNG, JPEG or GIF, up to 5 MB
+                     * @description PNG or JPEG up to 20 MB, GIF up to 5 MB
                      */
                     file: string;
                 };

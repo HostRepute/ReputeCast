@@ -1,9 +1,10 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { json, mockApi } from '@/test/api'
 import { renderInWorkspace, workspaceMe } from '@/test/app'
 import { ComposerCtx, type ComposerState } from './context'
 import { Dialogs } from './Dialogs'
+import { headlessMjmlEditor } from './editor/testEditor'
 import { testCampaign, testComposer } from './testing'
 
 const campaign = testCampaign()
@@ -96,5 +97,76 @@ describe('version history', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Named · 1' }))
     expect(await screen.findByText('Sent to legal')).toBeInTheDocument()
+  })
+})
+
+describe('image library (CO-12)', () => {
+  const hero = {
+    id: 'a1',
+    url: '/media/a1/hero.jpg',
+    fileName: 'hero.jpg',
+    contentType: 'image/jpeg',
+    sizeBytes: 217088,
+    width: 1200,
+    height: 900,
+    hasAlpha: false,
+    createdAt: '2026-10-25T09:30:00Z',
+    createdBy: 'Linh Nguyen',
+    original: { sizeBytes: 3250586, width: 4032, height: 3024, contentType: 'image/jpeg' },
+  }
+
+  async function openLibrary() {
+    const { editor } = await headlessMjmlEditor('<mjml><mj-body><mj-section><mj-column><mj-image src="https://placehold.co/600x300"></mj-image></mj-column></mj-section></mj-body></mjml>')
+    const img = editor.getWrapper()!.findType('mj-image')[0]!
+    const onClose = vi.fn()
+    await renderInWorkspace(
+      <ComposerCtx.Provider value={testComposer({ campaign, editor, assetTarget: { component: img, attr: 'src' } })}>
+        <Dialogs dialog="assets" onClose={onClose} onSavedTemplate={() => {}} />
+      </ComposerCtx.Provider>,
+      { me },
+    )
+    return { editor, img, onClose }
+  }
+
+  it('says what the server did to an upload', async () => {
+    unmock = mockApi({ 'GET /api/v1/workspaces/acme-newsletter/media': () => json({ items: [hero, { ...hero, id: 'a2', fileName: 'logo.png', original: undefined }] }) })
+    await openLibrary()
+    expect(await screen.findByText('Resized from 4032×3024 (3.1 MB) for email')).toBeInTheDocument()
+    expect(screen.getAllByText(/for email$/)).toHaveLength(1)
+  })
+
+  it('asks for alt text once an image is chosen, and the image gets it', async () => {
+    unmock = mockApi({ 'GET /api/v1/workspaces/acme-newsletter/media': () => json({ items: [hero] }) })
+    const { editor, img, onClose } = await openLibrary()
+    fireEvent.click(await screen.findByRole('button', { name: 'Use hero.jpg' }))
+    const dialog = screen.getByRole('dialog', { name: 'Describe the image' })
+    expect(dialog).toHaveTextContent('1200×900 · 212 KB')
+    expect(within(dialog).getByText('No alt text')).toBeInTheDocument()
+    const input = within(dialog).getByLabelText('Alt text for hero.jpg')
+    expect(input).toHaveFocus()
+    expect(within(dialog).getByRole('button', { name: 'Save' })).toBeDisabled()
+    fireEvent.change(input, { target: { value: '  Runners crossing the finish line ' } })
+    expect(within(dialog).getByText('Alt text added')).toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }))
+    expect(img.getAttributes()).toMatchObject({ src: '/media/a1/hero.jpg', alt: 'Runners crossing the finish line' })
+    expect(editor.getHtml()).toContain('alt="Runners crossing the finish line"')
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('marks the image decorative, or leaves it for later', async () => {
+    unmock = mockApi({ 'GET /api/v1/workspaces/acme-newsletter/media': () => json({ items: [hero] }) })
+    const first = await openLibrary()
+    fireEvent.click(await screen.findByRole('button', { name: 'Use hero.jpg' }))
+    fireEvent.click(screen.getByRole('button', { name: "It's decorative" }))
+    expect(first.img.getAttributes().alt).toBe('')
+    expect(first.onClose).toHaveBeenCalled()
+    cleanup()
+
+    const second = await openLibrary()
+    fireEvent.click(await screen.findByRole('button', { name: 'Use hero.jpg' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }))
+    expect(second.img.getAttributes().alt).toBeUndefined()
+    expect(second.img.getAttributes().src).toBe('/media/a1/hero.jpg')
+    expect(second.onClose).toHaveBeenCalled()
   })
 })

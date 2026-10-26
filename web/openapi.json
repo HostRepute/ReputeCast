@@ -42153,6 +42153,10 @@
           "id": {
             "type": "string"
           },
+          "original": {
+            "$ref": "#/components/schemas/MediaOriginal",
+            "description": "The file as uploaded, when ReputeCast resized or compressed it or removed its metadata"
+          },
           "sizeBytes": {
             "format": "int64",
             "type": "integer"
@@ -42192,6 +42196,38 @@
         },
         "required": [
           "items"
+        ],
+        "type": "object"
+      },
+      "MediaOriginal": {
+        "additionalProperties": false,
+        "properties": {
+          "contentType": {
+            "enum": [
+              "image/png",
+              "image/jpeg",
+              "image/gif"
+            ],
+            "type": "string"
+          },
+          "height": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "width": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sizeBytes",
+          "width",
+          "height",
+          "contentType"
         ],
         "type": "object"
       },
@@ -139593,7 +139629,7 @@
         "x-permission": "campaigns:view"
       },
       "post": {
-        "description": "The file is validated by its content, not its name. Uploading the same file twice returns the stored image.",
+        "description": "The file is validated by its content, not its name. What's stored is made for email: at most 1,200 px wide (same proportions, never enlarged), photos turned upright and compressed (a photo saved as PNG may become a JPEG), and metadata such as location and camera details removed. GIFs keep their frames. `original` describes the file as uploaded when the stored image differs from it. Uploading the same file twice returns the stored image.",
         "operationId": "upload-media",
         "parameters": [
           {
@@ -139624,7 +139660,7 @@
                   "file": {
                     "contentEncoding": "binary",
                     "contentMediaType": "application/octet-stream",
-                    "description": "PNG, JPEG or GIF, up to 5 MB",
+                    "description": "PNG or JPEG up to 20 MB, GIF up to 5 MB",
                     "format": "binary",
                     "type": "string"
                   }
@@ -139667,7 +139703,7 @@
             "bearer": []
           }
         ],
-        "summary": "Upload an image (PNG, JPEG or GIF, up to 5 MB)",
+        "summary": "Upload an image (PNG or JPEG up to 20 MB, GIF up to 5 MB)",
         "tags": [
           "Media"
         ],

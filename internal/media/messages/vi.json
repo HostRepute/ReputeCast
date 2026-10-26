@@ -3,10 +3,13 @@
   "problem.interrupted": "Quá trình tải lên bị gián đoạn. Hãy thử lại.",
   "problem.empty": "Tệp trống.",
   "problem.tooLarge": "Hình ảnh nặng {size} MB; giới hạn là 5 MB. Hình ảnh trong email hiển thị tốt nhất khi dưới 200 KB.",
+  "problem.uploadTooLarge": "Tệp nặng {size} MB; giới hạn là 20 MB. Hãy xuất hình ảnh nhỏ hơn rồi thử lại.",
+  "problem.gifTooLarge": "Ảnh GIF nặng {size} MB; ảnh GIF tối đa 5 MB vì được lưu nguyên như khi tải lên để giữ đủ các khung hình động.",
+  "problem.stillTooLarge": "Dù đã thu nhỏ và nén, hình ảnh vẫn nặng {size} MB; giới hạn là 5 MB. Hãy dùng hình ảnh nhỏ hơn.",
   "problem.webp": "Hình ảnh WebP không hiển thị trong Outlook và một số ứng dụng email khác. Hãy tải lên tệp PNG, JPEG hoặc GIF.",
   "problem.svg": "Hình ảnh SVG không hiển thị trong Gmail hoặc Outlook. Hãy tải lên tệp PNG, JPEG hoặc GIF.",
   "problem.notImage": "Tệp này không phải hình ảnh ReputeCast dùng được. Hãy tải lên tệp PNG, JPEG hoặc GIF.",
   "problem.damaged": "Hình ảnh bị hỏng hoặc không đầy đủ nên không đọc được. Hãy xuất lại và thử lại.",
-  "problem.dimensions": "Kích thước hình ảnh không hợp lệ hoặc quá lớn (tối đa 100 megapixel).",
+  "problem.dimensions": "Kích thước hình ảnh không hợp lệ hoặc quá lớn (tối đa 50 megapixel).",
   "problem.notFound": "Không tìm thấy hình ảnh."
 }
