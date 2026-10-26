@@ -2542,6 +2542,17 @@ type Querier interface {
 	ProvUpdateSettings(ctx context.Context, arg ProvUpdateSettingsParams) error
 	ProvUpdateTracking(ctx context.Context, arg ProvUpdateTrackingParams) error
 	ProviderNames(ctx context.Context, workspaceID uuid.UUID) ([]ProviderNamesRow, error)
+	// Proxies seen often enough, recently, whose admins weren't told lately.
+	ProxyDue(ctx context.Context, arg ProxyDueParams) ([]UntrustedProxy, error)
+	// A proxy that is trusted now.
+	ProxyForget(ctx context.Context, peer netip.Addr) error
+	// Proxies not seen for a long time.
+	ProxyForgetOld(ctx context.Context, seenBefore time.Time) error
+	ProxyList(ctx context.Context) ([]UntrustedProxy, error)
+	ProxyNotified(ctx context.Context, arg ProxyNotifiedParams) error
+	// Requests through a proxy ReputeCast doesn't trust (review AN-8).
+	// Adds requests from an untrusted proxy since the last write.
+	ProxySeen(ctx context.Context, arg ProxySeenParams) error
 	// Keeps the newest @keep versions; the first version and anything that is
 	// not an autosave (restores, imports, ⌘S) are always kept.
 	PruneComposerVersions(ctx context.Context, arg PruneComposerVersionsParams) (int64, error)

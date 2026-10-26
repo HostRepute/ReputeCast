@@ -4699,6 +4699,15 @@ type UnsubscribeFeedback struct {
 	CreatedAt   time.Time  `json:"createdAt"`
 }
 
+type UntrustedProxy struct {
+	Peer       netip.Addr `json:"peer"`
+	Header     string     `json:"header"`
+	Requests   int64      `json:"requests"`
+	FirstSeen  time.Time  `json:"firstSeen"`
+	LastSeen   time.Time  `json:"lastSeen"`
+	NotifiedAt *time.Time `json:"notifiedAt"`
+}
+
 type User struct {
 	ID                   uuid.UUID  `json:"id"`
 	Email                string     `json:"email"`
