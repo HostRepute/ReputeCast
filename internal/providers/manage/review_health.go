@@ -308,3 +308,95 @@ func mailboxAddress(p store.Provider) string {
 	}
 	return c.Mailbox.Host
 }
+
+// RecordQueuePoll records how a poll of a connection's event queue went
+// (PR-4): a queue that can't be read for 15 minutes makes the provider
+// Degraded and tells the team, like a bounce mailbox.
+func (s *Service) RecordQueuePoll(ctx context.Context, p store.Provider, pollErr error) {
+	if err := s.recordQueuePoll(ctx, p, pollErr); err != nil && s.Log != nil {
+		s.Log.WarnContext(ctx, "record event queue poll", "provider", p.ID, "err", err)
+	}
+}
+
+func (s *Service) recordQueuePoll(ctx context.Context, p store.Provider, pollErr error) error {
+	now := s.now()
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		var raw []byte
+		var status string
+		if err := tx.QueryRow(ctx, `SELECT health, status FROM providers WHERE id = $1 FOR UPDATE`, p.ID).Scan(&raw, &status); err != nil {
+			return err
+		}
+		var h state.Health
+		_ = json.Unmarshal(raw, &h)
+		m := h.EventQueue
+		if m == nil {
+			m = &state.MailboxState{}
+		}
+		m.LastPollAt = now
+		raise, recovered := false, false
+		if pollErr == nil {
+			t := now
+			m.LastOKAt = &t
+			recovered = m.Reported
+			m.Error, m.FailingSince, m.Reported = "", nil, false
+		} else {
+			m.Error = pollErr.Error()
+			if m.FailingSince == nil {
+				t := now
+				m.FailingSince = &t
+			}
+			if !m.Reported && now.Sub(*m.FailingSince) >= state.MailboxFailAfter {
+				m.Reported, raise = true, true
+			}
+		}
+		b, _ := json.Marshal(m)
+		if _, err := tx.Exec(ctx, `UPDATE providers SET health = jsonb_set(coalesce(health, '{}'::jsonb), '{eventQueue}', $2::jsonb) WHERE id = $1`, p.ID, b); err != nil {
+			return err
+		}
+		ws, err := q.GetWorkspace(ctx, p.WorkspaceID)
+		if err != nil {
+			return err
+		}
+		wsID := ws.ID
+		switch {
+		case raise:
+			if status != state.Down {
+				if _, err := tx.Exec(ctx, `UPDATE providers SET status = $2, status_detail = $3 WHERE id = $1`, p.ID, state.Degraded, state.DetailQueueFailing); err != nil {
+					return err
+				}
+			}
+			since := m.FailingSince.In(state.Location(ws.Timezone))
+			args := i18n.Args{"name": p.Name, "since": since, "error": m.Error}
+			if err := s.incident(ctx, q, ws.ID, *m.FailingSince, "event_queue_failing", "warn",
+				fmt.Sprintf("%s: the event queue can't be read since %s: %s. Deliveries, bounces and complaints wait in the queue.", p.Name, since.Format("15:04"), m.Error),
+				mIncidentQueueFailing.Keep(args), &p.ID, nil); err != nil {
+				return err
+			}
+			title, titleText := keep(mNotifyQueueTitle, i18n.Args{"name": p.Name})
+			body, bodyText := keep(mNotifyQueueBody, args)
+			if err := notify.ToMembersWith(ctx, tx, ws.ID, authz.ProvidersManage, notify.Notification{
+				Kind: notify.KindProviderDegraded, Severity: "warn", Title: title, TitleText: titleText, Body: body, BodyText: bodyText, Link: "/w/" + ws.Slug + "/providers",
+				Data: map[string]any{"providerId": p.ID.String(), "reason": "event_queue"},
+			}); err != nil {
+				return err
+			}
+			return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Actor: systemActor, Action: "provider.event_queue_failing", TargetType: "provider",
+				TargetID: p.ID.String(), TargetName: p.Name, Metadata: map[string]any{"error": m.Error, "since": m.FailingSince}})
+		case recovered:
+			if _, err := tx.Exec(ctx, `UPDATE providers SET status = $2, status_detail = '' WHERE id = $1 AND status_detail = $3`, p.ID, state.Healthy, state.DetailQueueFailing); err != nil {
+				return err
+			}
+			if err := q.ProvResolveIncidents(ctx, store.ProvResolveIncidentsParams{ProviderID: &p.ID, Kinds: []string{"event_queue_failing"}, ResolvedAt: &now}); err != nil {
+				return err
+			}
+			if err := s.incident(ctx, q, ws.ID, now, "event_queue_ok", "ok", p.Name+": the event queue can be read again.",
+				mIncidentQueueOK.Keep(i18n.Args{"name": p.Name}), &p.ID, nil); err != nil {
+				return err
+			}
+			return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Actor: systemActor, Action: "provider.event_queue_ok", TargetType: "provider",
+				TargetID: p.ID.String(), TargetName: p.Name})
+		}
+		return nil
+	})
+}

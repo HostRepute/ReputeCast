@@ -753,9 +753,14 @@ type Querier interface {
 	ConfirmInstanceBasics(ctx context.Context) error
 	ConnectActiveContacts(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	ConnectCreateList(ctx context.Context, arg ConnectCreateListParams) error
-	// The first webhook payload about a message (its provider message id is in
-	// the body) a provider sent in a window after the send: the test send's
-	// "event came back" step, with the body to name the event.
+	// The first event a provider delivered after a time, by webhook or queue:
+	// its endpoint was reached from outside (PR-9).
+	ConnectFirstEventSince(ctx context.Context, arg ConnectFirstEventSinceParams) (ConnectFirstEventSinceRow, error)
+	// The first event payload about a message (its provider message id is in
+	// the body) a provider sent in a window after the send, by webhook or
+	// through the queue ReputeCast polls (PR-4): the test send's "event came
+	// back" step and the setup's event check (PR-3), with the body to name the
+	// event and how it came.
 	ConnectFirstWebhook(ctx context.Context, arg ConnectFirstWebhookParams) (ConnectFirstWebhookRow, error)
 	ConnectInsertProvider(ctx context.Context, arg ConnectInsertProviderParams) (Provider, error)
 	ConnectListNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
@@ -2999,7 +3004,17 @@ type Querier interface {
 	// Smallest and largest broadcast audience over a window ("31,988 to 48,213
 	// recipients per send").
 	RoutingBroadcastSizes(ctx context.Context, arg RoutingBroadcastSizesParams) (RoutingBroadcastSizesRow, error)
+	// A page of a campaign's list audience for the route tester: subscribed,
+	// not suppressed, not on an excluded list, with each contact's mailbox
+	// provider, tier and lists.
+	RoutingCampaignAudience(ctx context.Context, arg RoutingCampaignAudienceParams) ([]RoutingCampaignAudienceRow, error)
+	// How many recipients the route tester's audience has, the sunset tier
+	// apart: a simulation of the first recipients is scaled to it.
+	RoutingCampaignAudienceSize(ctx context.Context, arg RoutingCampaignAudienceSizeParams) (RoutingCampaignAudienceSizeRow, error)
 	RoutingContact(ctx context.Context, arg RoutingContactParams) (RoutingContactRow, error)
+	// The default sender's verification per provider: a failover target must
+	// be able to sign for it (PR-14 target checks).
+	RoutingDefaultSenderVerification(ctx context.Context, workspaceID uuid.UUID) (json.RawMessage, error)
 	// A save replaces only the streams it changes.
 	RoutingDeleteStreamRules(ctx context.Context, arg RoutingDeleteStreamRulesParams) error
 	RoutingInsertRule(ctx context.Context, arg RoutingInsertRuleParams) error
@@ -3010,6 +3025,9 @@ type Querier interface {
 	RoutingLists(ctx context.Context, workspaceID uuid.UUID) ([]RoutingListsRow, error)
 	// Serializes routing saves of a workspace (the version check and the write).
 	RoutingLock(ctx context.Context, workspaceID uuid.UUID) error
+	// The broadcast the route tester's Campaign tab simulates (PR-14): the next
+	// scheduled one, else the draft edited last.
+	RoutingNextBroadcast(ctx context.Context, workspaceID uuid.UUID) (RoutingNextBroadcastRow, error)
 	// When the routing was last saved and by whom.
 	RoutingSaved(ctx context.Context, workspaceID uuid.UUID) (RoutingSavedRow, error)
 	RoutingSenderDomains(ctx context.Context, workspaceID uuid.UUID) ([]RoutingSenderDomainsRow, error)

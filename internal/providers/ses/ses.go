@@ -63,6 +63,14 @@ type Settings struct {
 	// list and reputation, so a bounce in this workspace never stops mail of
 	// another workspace or app on the same AWS account. Sends name it.
 	Tenant string `json:"tenant,omitempty"`
+	// Events is how SES events come back: "" (SNS calls the webhook) or
+	// "queue" (an SQS queue ReputeCast polls, PR-4), with the queue's URL
+	// and ARN once provisioned.
+	Events   string `json:"events,omitempty"`
+	QueueURL string `json:"queue_url,omitempty"`
+	QueueARN string `json:"queue_arn,omitempty"`
+	// AccountID is the AWS account (the tenant's resource ARNs).
+	AccountID string `json:"account_id,omitempty"`
 	// Endpoint overrides the SES API endpoint (tests, VPC endpoints).
 	Endpoint string `json:"endpoint,omitempty"`
 }
@@ -119,6 +127,8 @@ type Provider struct {
 	// aws is the resolved SDK configuration, reused by provisioning (SNS)
 	// and region scans (provision.go).
 	aws aws.Config
+	// callerARN is who the credentials belong to, read with AccountID.
+	callerARN string
 }
 
 var _ providers.Provider = (*Provider)(nil)
@@ -511,7 +521,7 @@ func (p *Provider) RemoveSuppressions(ctx context.Context, emails []string) erro
 }
 
 // AddDomain implements providers.DomainManager: Easy DKIM and a custom MAIL
-// FROM domain (bounce.<domain>).
+// FROM domain (bounce.<domain>), associated with the workspace's tenant.
 func (p *Provider) AddDomain(ctx context.Context, domain string) ([]providers.DNSRecord, error) {
 	_, err := p.client.CreateEmailIdentity(ctx, &sesv2.CreateEmailIdentityInput{EmailIdentity: aws.String(domain), ConfigurationSetName: optional(p.s.ConfigurationSet)})
 	if err != nil {
@@ -519,6 +529,9 @@ func (p *Provider) AddDomain(ctx context.Context, domain string) ([]providers.DN
 		if !errors.As(err, &ae) || ae.ErrorCode() != "AlreadyExistsException" {
 			return nil, callError("CreateEmailIdentity", err)
 		}
+	}
+	if err := p.associate(ctx, p.resourceARN("identity", domain)); err != nil {
+		return nil, err
 	}
 	_, err = p.client.PutEmailIdentityMailFromAttributes(ctx, &sesv2.PutEmailIdentityMailFromAttributesInput{
 		EmailIdentity: aws.String(domain), MailFromDomain: aws.String("bounce." + domain), BehaviorOnMxFailure: types.BehaviorOnMxFailureUseDefaultValue,

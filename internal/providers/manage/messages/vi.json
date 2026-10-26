@@ -30,9 +30,6 @@
 
   "check.responds": "{op} phản hồi",
   "check.authAccepted": "AUTH được chấp nhận",
-  "check.selfTestOK": "200 OK khi tự kiểm tra",
-  "check.selfTestStatus": "{status} khi tự kiểm tra",
-  "test.unreachable": "Không truy cập được {url}: {error}",
 
   "incident.down": "{name}: {hasError, select, yes {{error}} other {lỗi API}}{hasOp, select, yes { ở {op}} other {}} · kiểm tra sức khỏe thất bại.",
   "incident.authDown": "{name} đã từ chối thông tin xác thực: {hasError, select, yes {{error}} other {lỗi API}}{hasOp, select, yes { ở {op}} other {}}.",
@@ -109,5 +106,11 @@
   "adapters.download": "Không tải được manifest: {error}",
   "adapters.status": "URL của manifest đã trả về {status}.",
   "adapters.notJson": "Tệp này không phải manifest adapter hợp lệ (cần JSON).",
-  "adapters.incomplete": "Manifest cần có tên, phiên bản và loại (remote, http hoặc wasm)."
+  "adapters.incomplete": "Manifest cần có tên, phiên bản và loại (remote, http hoặc wasm).",
+  "check.lastReached": "{name} truy cập nó lần cuối lúc {at, time}",
+  "check.addressProblem": "{kind, select, local {{host} chỉ dùng được trên máy này} private {{host} phân giải thành {ip}, một địa chỉ riêng mà không nhà cung cấp nào truy cập được} dns {{host} không phân giải được trong DNS công khai} other {địa chỉ không phải URL hợp lệ}}",
+  "incident.queueFailing": "{name}: không đọc được hàng đợi sự kiện từ {since, time}: {error}. Các sự kiện giao thư, trả lại và khiếu nại đang chờ trong hàng đợi.",
+  "incident.queueOK": "{name}: đã đọc được hàng đợi sự kiện trở lại.",
+  "notify.queueTitle": "{name}: không đọc được hàng đợi sự kiện",
+  "notify.queueBody": "ReputeCast không đọc được hàng đợi SQS của {name} từ {since, time} ({error}). Cho đến khi đọc được, các sự kiện giao thư, trả lại và khiếu nại chờ ở đó (tối đa bốn ngày). Hãy kiểm tra chính sách IAM cho phép sqs:ReceiveMessage."
 }

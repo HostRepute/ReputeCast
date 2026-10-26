@@ -25,10 +25,12 @@ export default translate(m, {
   stepContactsLine: 'Nhập hoặc bắt đầu trống',
   stepStreamsCurrent: '{provider} sẽ gửi những gì',
   stepStreamsCurrentNoName: 'Nhà cung cấp sẽ gửi những gì',
-  stepsFoot: 'Hầu hết mọi người hoàn tất trong khoảng 10 phút. Bạn có thể thêm nhà cung cấp sau và gửi qua nhiều nhà cung cấp cùng lúc.',
+  stepsFoot:
+    'Phần lớn việc thiết lập mất 10–15 phút; một tài khoản AWS mới có thể phải chờ đến 24 giờ để có quyền gửi chính thức. Bạn có thể thêm nhà cung cấp sau và gửi qua nhiều nhà cung cấp cùng lúc.',
 
   // ── Status badges of a row ───────────────────────────────────────────
   stateDone: 'Xong',
+  stateVerified: 'Đã xác minh',
   stateFailed: 'Thất bại',
   stateSkipped: 'Bỏ qua',
   statePending: 'Đang chờ',

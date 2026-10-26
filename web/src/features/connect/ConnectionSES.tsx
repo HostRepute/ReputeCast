@@ -47,94 +47,161 @@ function rateText(v: number): string {
   return decimal(n, (String(n).split('.')[1] ?? '').length)
 }
 
-/** 7.2 step 2 for Amazon SES (SetupSES): AWS access, region, provisioning, sandbox. */
+/** 7.2 step 2 for Amazon SES (SetupSES): AWS access, region, how events arrive, provisioning and the event check, sandbox. */
 export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
   const t = useT()
   const { slug } = useWorkspace()
   const a = useSetupActions(slug, setup.id)
   const c = setup.connection
   const connected = c.status === 'connected'
-  const [access, setAccess] = useState<'role' | 'keys'>(c.access || 'role')
+  const host = c.host
+  // Off AWS keys come first and are preselected (PR-5); on AWS the stack.
+  const recommended = host?.recommended ?? 'keys'
+  const [access, setAccess] = useState<'role' | 'keys'>(c.access || recommended)
+  const [replacing, setReplacing] = useState(false)
   const [roleArn, setRoleArn] = useState(c.roleArn)
   const [keyId, setKeyId] = useState('')
   const [secret, setSecret] = useState('')
   const [region, setRegion] = useState(c.region || 'us-east-1')
+  const [events, setEvents] = useState<'webhook' | 'queue'>(c.events || 'webhook')
   const connecting = a.connect.isPending
+  const editing = !connected || replacing || access !== c.access
   const connect = (e?: FormEvent) => {
     e?.preventDefault()
     a.connect.mutate(
-      { ses: access === 'role' ? { access, roleArn: roleArn.trim(), region } : { access, accessKeyId: keyId.trim(), secretAccessKey: secret, region } },
-      { onError: failed(t(mses.accessFailed), () => connect()) },
+      {
+        ses:
+          access === 'role'
+            ? { access, roleArn: roleArn.trim(), region, events }
+            : { access, accessKeyId: keyId.trim(), secretAccessKey: secret, region, events },
+      },
+      { onSuccess: () => setReplacing(false), onError: failed(t(mses.accessFailed), () => connect()) },
     )
   }
   const pickRegion = (r: string) => {
     setRegion(r)
     if (connected) a.region.mutate({ region: r }, { onError: failed(t(mses.regionFailed)) })
   }
+  const pickEvents = (v: 'webhook' | 'queue') => {
+    setEvents(v)
+    if (connected && v !== c.events) a.events.mutate({ events: v }, { onError: failed(t(mses.eventsFailed), () => pickEvents(v)) })
+  }
   const err = c.error
   const done = c.provisioning.filter((r) => r.status === 'done').length
+  const keysOption = (
+    <AccessOption
+      key="keys"
+      checked={access === 'keys'}
+      onPick={() => setAccess('keys')}
+      disabled={Boolean(reason) || connecting}
+      title={t(mses.keysTitle)}
+      recommended={recommended === 'keys' ? t(mses.recommendedHere) : undefined}
+      description={t(mses.keysLine)}
+    >
+      {connected && c.access === 'keys' && !replacing ? (
+        <>
+          <span className="mt-2 grid grid-cols-2 gap-2">
+            <input className="in mono min-w-0" value={c.accessKey || 'AKIA…'} aria-label={t(mses.keyIdLabel)} readOnly />
+            <input className="in min-w-0" value={t(mses.savedSecret)} aria-label={t(mses.secretLabel)} readOnly />
+          </span>
+          <Button size="sm" className="mt-2" onClick={() => setReplacing(true)} disabledReason={reason}>
+            {t(mses.replaceKeys)}
+          </Button>
+        </>
+      ) : (
+        <span className="mt-2 grid grid-cols-2 gap-2">
+          {/* Disabled until picked, but white as on the board. */}
+          <input
+            className="in mono min-w-0 bg-white"
+            placeholder={'AKIA…'}
+            aria-label={t(mses.keyIdLabel)}
+            aria-invalid={err?.field === 'access_key_id' || undefined}
+            disabled={access !== 'keys' || Boolean(reason)}
+            value={keyId}
+            onChange={(e) => setKeyId(e.target.value)}
+            autoComplete="off"
+          />
+          <input
+            className="in mono min-w-0 bg-white"
+            type="password"
+            placeholder={t(mses.secretPlaceholder)}
+            aria-label={t(mses.secretLabel)}
+            disabled={access !== 'keys' || Boolean(reason)}
+            value={secret}
+            onChange={(e) => setSecret(e.target.value)}
+            autoComplete="new-password"
+          />
+        </span>
+      )}
+    </AccessOption>
+  )
+  const roleOption = (
+    <AccessOption
+      key="role"
+      checked={access === 'role'}
+      onPick={() => setAccess('role')}
+      disabled={Boolean(reason) || connecting}
+      title={t(mses.stackTitle)}
+      recommended={recommended === 'role' ? t(mses.recommendedHere) : undefined}
+      description={t(mses.stackLine)}
+    >
+      <a href={c.template?.launchUrl} className="btn sm mt-2 underline decoration-1 underline-offset-2" target="_blank" rel="noopener noreferrer">
+        {t(mses.launchStack)}
+      </a>
+      {access === 'role' && (!connected || c.access !== 'role') ? (
+        <span className="mt-2 flex flex-col gap-1">
+          <input
+            className="in mono w-full"
+            placeholder={`arn:aws:iam::123456789012:role/${c.template?.roleName || 'ReputeCastSES'}`}
+            aria-label={t(mses.roleArnLabel)}
+            aria-invalid={err?.field === 'role_arn' || undefined}
+            value={roleArn}
+            onChange={(e) => setRoleArn(e.target.value)}
+            disabled={Boolean(reason)}
+          />
+          <span className="k">{c.externalId ? <T msg={mses.roleArnHint} values={{ id: c.externalId, mono }} /> : t(mses.roleArnHintNoId)}</span>
+          {host && !host.onAws ? <span className={host.baseCredentials ? 'k' : 'k text-warn-fg'}>{host.baseCredentials ? t(mses.stackNeedsKeys) : t(mses.stackNoKeys)}</span> : null}
+        </span>
+      ) : null}
+    </AccessOption>
+  )
+  const verified = c.eventsCheck === 'verified'
+  const caption = !connected
+    ? undefined
+    : verified && c.eventsAt
+      ? t(mses.continueVerified, { time: clockSeconds(c.eventsAt) })
+      : c.eventsCheck === 'deferred'
+        ? t(mses.continueDeferred)
+        : c.eventsCheck === 'none'
+          ? undefined
+          : t(mses.continueWaiting)
   return (
     <>
-      <StepHeading title={setup.info.heading}>{setup.info.lead}</StepHeading>
+      <StepHeading title={setup.info.heading} note={t(mses.setupTime)}>
+        {setup.info.lead}
+      </StepHeading>
 
       <SectionCard title={t(mses.grantTitle)}>
-        <form className="grid gap-3 max-md:grid-cols-1!" style={fourCols} onSubmit={connect} id="ses-access">
-          <AccessOption
-            checked={access === 'role'}
-            onPick={() => setAccess('role')}
-            disabled={Boolean(reason) || connecting}
-            title={t(mses.stackTitle)}
-            description={t(mses.stackLine)}
-          >
-              <a href={c.template?.launchUrl} className="btn sm mt-2 underline decoration-1 underline-offset-2" target="_blank" rel="noopener noreferrer">
-                {t(mses.launchStack)}
-              </a>
-              {!connected && access === 'role' ? (
-                <span className="mt-2 flex flex-col gap-1">
-                  <input
-                    className="in mono w-full"
-                    placeholder={`arn:aws:iam::123456789012:role/${c.template?.roleName || 'ReputeCastSES'}`}
-                    aria-label={t(mses.roleArnLabel)}
-                    aria-invalid={err?.field === 'role_arn' || undefined}
-                    value={roleArn}
-                    onChange={(e) => setRoleArn(e.target.value)}
-                    disabled={Boolean(reason)}
-                  />
-                  <span className="k">{c.externalId ? <T msg={mses.roleArnHint} values={{ id: c.externalId, mono }} /> : t(mses.roleArnHintNoId)}</span>
-                </span>
-              ) : null}
-          </AccessOption>
-          <AccessOption
-            checked={access === 'keys'}
-            onPick={() => setAccess('keys')}
-            disabled={Boolean(reason) || connecting}
-            title={t(mses.keysTitle)}
-            description={t(mses.keysLine)}
-          >
-              <span className="mt-2 grid grid-cols-2 gap-2">
-                {/* Disabled until picked, but white as on the board. */}
-                <input
-                  className="in mono min-w-0 bg-white"
-                  placeholder={'AKIA…'}
-                  aria-label={t(mses.keyIdLabel)}
-                  aria-invalid={err?.field === 'access_key_id' || undefined}
-                  disabled={access !== 'keys' || Boolean(reason)}
-                  value={keyId}
-                  onChange={(e) => setKeyId(e.target.value)}
-                  autoComplete="off"
-                />
-                <input
-                  className="in mono min-w-0 bg-white"
-                  type="password"
-                  placeholder={t(mses.secretPlaceholder)}
-                  aria-label={t(mses.secretLabel)}
-                  disabled={access !== 'keys' || Boolean(reason)}
-                  value={secret}
-                  onChange={(e) => setSecret(e.target.value)}
-                  autoComplete="new-password"
-                />
-              </span>
-          </AccessOption>
+        {host ? (
+          // Where ReputeCast runs decides the access it recommends (PR-5).
+          <div className="flex items-start gap-2.5 rounded-[8px] bg-(--info-bg) px-3 py-2.5 text-(--info-fg)">
+            <svg className="mt-0.5 flex-none" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+              <circle cx="8" cy="8" r="6.2" />
+              <path d="M8 7.2v3.6M8 5.2v.1" />
+            </svg>
+            <p className="m-0 text-[13px]">
+              <span className="font-semibold">{host.onAws ? t(mses.hostOnAws, { kind: hostKind(host.kind) }) : t(mses.hostOffAws)}</span>{' '}
+              {host.onAws ? t(mses.hostCheckedOn, { time: clock(host.checkedAt), kind: host.kind }) : t(mses.hostCheckedOff, { time: clock(host.checkedAt) })}
+            </p>
+          </div>
+        ) : null}
+        <form id="ses-access" onSubmit={connect}>
+          <fieldset className="m-0 min-w-0 border-0 p-0">
+            <legend className="sr-only">{t(mses.grantLegend)}</legend>
+            <div className="grid gap-3 max-md:grid-cols-1!" style={fourCols}>
+              {recommended === 'keys' ? [keysOption, roleOption] : [roleOption, keysOption]}
+            </div>
+          </fieldset>
         </form>
         <details className="text-[13px]">
           <summary className="cursor-pointer font-semibold">{t(mses.policyToggle)}</summary>
@@ -142,7 +209,7 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
             {c.template?.policy}
           </ScrollPre>
         </details>
-        {connected ? (
+        {connected && !editing ? (
           <div className="flex flex-wrap items-center gap-3 rounded-lg border border-ok-line bg-ok-tint px-3 py-2.5" role="status">
             <Badge tone="ok" dot>
               {t(mses.connected)}
@@ -153,6 +220,10 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
                 values={{
                   access: c.access === 'role' ? 'role' : 'keys',
                   arn: c.roleArn,
+                  hasKey: c.accessKey ? 'yes' : 'no',
+                  key: c.accessKey,
+                  hasUser: c.iamUser ? 'yes' : 'no',
+                  user: c.iamUser,
                   hasTime: c.at ? 'yes' : 'no',
                   time: c.at ? clock(c.at) : '',
                   hasAccount: c.accountId ? 'yes' : 'no',
@@ -179,6 +250,16 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
               <Button type="submit" form="ses-access" variant="primary" loading={connecting} disabledReason={reason}>
                 {err ? t(common.tryAgain) : t(mses.checkAccess)}
               </Button>
+              {connected ? (
+                <Button
+                  onClick={() => {
+                    setReplacing(false)
+                    setAccess(c.access)
+                  }}
+                >
+                  {t(common.cancel)}
+                </Button>
+              ) : null}
               <span className="k">{t(mses.checkAccessLine)}</span>
             </Row>
           </>
@@ -205,6 +286,24 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
         </div>
       </SectionCard>
 
+      <SectionCard title={t(mses.eventsTitle)}>
+        <span className="k -mt-1.5">{t(mses.eventsLine)}</span>
+        <fieldset className="m-0 min-w-0 border-0 p-0" disabled={Boolean(reason) || a.events.isPending}>
+          <legend className="sr-only">{t(mses.eventsLegend)}</legend>
+          <div className="grid gap-3 max-md:grid-cols-1!" style={fourCols}>
+            <EventsOption
+              value="webhook"
+              checked={events === 'webhook'}
+              onPick={() => pickEvents('webhook')}
+              title={t(mses.eventsWebhook)}
+              line={<T msg={mses.eventsWebhookLine} values={{ url: c.eventsUrl, mono }} />}
+            />
+            <EventsOption value="queue" checked={events === 'queue'} onPick={() => pickEvents('queue')} title={t(mses.eventsQueue)} line={t(mses.eventsQueueLine)} />
+          </div>
+        </fieldset>
+        {connected ? <span className="k">{t(mses.eventsChangeNote)}</span> : null}
+      </SectionCard>
+
       {c.provisioning.length ? (
         <section className="card flex flex-col" aria-labelledby="prov-h">
           <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5">
@@ -213,9 +312,13 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
             </h3>
             <span className="k">{t(mses.provisioningLine)}</span>
           </div>
-          {c.provisioning.map((r) => (
-            <ProvisionRow key={r.key} row={r} setup={setup} onRetry={() => a.provision.mutate(undefined, { onError: failed(t(mses.retryFailed)) })} retrying={a.provision.isPending} reason={reason} />
-          ))}
+          <ol className="m-0 list-none p-0">
+            {c.provisioning.map((r) => (
+              <li key={r.key}>
+                <ProvisionRow row={r} setup={setup} onRetry={() => a.provision.mutate(undefined, { onError: failed(t(mses.retryFailed)) })} retrying={a.provision.isPending} reason={reason} />
+              </li>
+            ))}
+          </ol>
         </section>
       ) : null}
 
@@ -227,11 +330,19 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
             {t(common.back)}
           </ButtonLink>
         }
+        caption={caption}
+        captionId="ses-continue-why"
       >
         <Button onClick={saveLater} disabledReason={reason}>
           {t(mn.saveLater)}
         </Button>
-        <Button variant="primary" className={continueClass} onClick={() => go('domain')} disabledReason={c.canContinue ? undefined : t(mses.awsFirst)}>
+        <Button
+          variant="primary"
+          className={continueClass}
+          onClick={() => go('domain')}
+          aria-describedby={caption ? 'ses-continue-why' : undefined}
+          disabledReason={c.canContinue ? undefined : connected ? t(mses.eventsFirst) : t(mses.awsFirst)}
+        >
           {t(mn.continueDomain)}
         </Button>
       </WizardFooter>
@@ -239,12 +350,34 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
   )
 }
 
-/** One way to grant access (`label.opt`), laid out as on the board: title, description, then its controls. */
+/** AWS's own names for where ReputeCast runs. */
+function hostKind(kind: string): string {
+  return { ec2: 'EC2', ecs: 'ECS', eks: 'EKS', lambda: 'Lambda' }[kind] ?? kind.toUpperCase()
+}
+
+/** One way SES events can reach ReputeCast (PR-4): webhook or queue. */
+function EventsOption({ value, checked, onPick, title, line }: { value: string; checked: boolean; onPick: () => void; title: string; line: ReactNode }) {
+  const head = <span className="font-semibold">{title}</span>
+  const body = <span className="k break-words">{line}</span>
+  return (
+    <label className="opt">
+      <input type="radio" name="ses-events" value={value} checked={checked} onChange={onPick} />
+      <span className="min-w-0">
+        {head}
+        <br />
+        {body}
+      </span>
+    </label>
+  )
+}
+
+/** One way to grant access (`label.opt`), laid out as on the board: title (and "Recommended here"), description, then its controls. */
 function AccessOption({
   checked,
   onPick,
   disabled,
   title,
+  recommended,
   description,
   children,
 }: {
@@ -252,6 +385,7 @@ function AccessOption({
   onPick: () => void
   disabled: boolean
   title: string
+  recommended?: string
   description: string
   children: ReactNode
 }) {
@@ -260,6 +394,14 @@ function AccessOption({
       <input type="radio" name="ses-access" checked={checked} onChange={onPick} disabled={disabled} />
       <span className="min-w-0">
         <span className="font-semibold">{title}</span>
+        {recommended ? (
+          <>
+            {' '}
+            <Badge tone="ok" dot>
+              {recommended}
+            </Badge>
+          </>
+        ) : null}
         <br />
         <span className="k">{description}</span>
         <br />
@@ -273,7 +415,15 @@ function ProvisionRow({ row: r, setup, onRetry, retrying, reason }: { row: Schem
   const t = useT()
   if (r.status === 'done') {
     return (
-      <StatusRow badge={<Badge tone="ok">{t(m.stateDone)}</Badge>} aside={r.at ? <span className="k">{clockSeconds(r.at)}</span> : null}>
+      <StatusRow badge={<Badge tone="ok" dot>{t(m.stateDone)}</Badge>} aside={r.at ? <span className="k whitespace-nowrap">{clockSeconds(r.at)}</span> : null}>
+        <Ticks text={r.text} />
+        {r.note ? <span className="k block">{r.note}</span> : null}
+      </StatusRow>
+    )
+  }
+  if (r.status === 'deferred') {
+    return (
+      <StatusRow badge={<Badge tone="neutral" dot>{t(mn.waiting)}</Badge>} aside={<span className="k whitespace-nowrap">{t(mses.waitingDomain)}</span>}>
         <Ticks text={r.text} />
       </StatusRow>
     )
@@ -281,18 +431,21 @@ function ProvisionRow({ row: r, setup, onRetry, retrying, reason }: { row: Schem
   if (r.status === 'failed') {
     const role = setup.connection.roleArn.split('/').pop()
     const iam = setup.connection.access === 'role' && role ? `https://console.aws.amazon.com/iam/home#/roles/details/${encodeURIComponent(role)}?section=permissions` : 'https://console.aws.amazon.com/iam/home#/users'
+    const policyProblem = !r.key.startsWith('event_')
     return (
       <StatusRow
         className="bg-bad-tint"
-        badge={<Badge tone="bad">{t(m.stateFailed)}</Badge>}
+        badge={<Badge tone="bad" dot>{t(m.stateFailed)}</Badge>}
         aside={
           <>
             <Button size="sm" variant="primary" onClick={onRetry} loading={retrying} disabledReason={reason}>
               {t(common.retry)}
             </Button>
-            <ButtonAnchor size="sm" href={iam}>
-              {t(mses.fixPolicy)}
-            </ButtonAnchor>
+            {policyProblem ? (
+              <ButtonAnchor size="sm" href={iam}>
+                {t(mses.fixPolicy)}
+              </ButtonAnchor>
+            ) : null}
           </>
         }
       >
@@ -303,7 +456,12 @@ function ProvisionRow({ row: r, setup, onRetry, retrying, reason }: { row: Schem
             <span className="mono text-bad-fg">{r.error}</span>
           </>
         ) : null}
-        {r.hint ? ` · ${r.hint}` : null}
+        {r.hint ? (
+          <>
+            {' · '}
+            <Ticks text={r.hint} />
+          </>
+        ) : null}
       </StatusRow>
     )
   }

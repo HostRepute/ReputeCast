@@ -22,7 +22,7 @@ function config(broadcast: Partial<StreamView> = {}, automation: Partial<StreamV
     templates: [],
     savedBy: '',
     issues: [],
-    shared: { suppressions: 0 },
+    shared: { suppressions: 0, pushed: 0 },
   }
 }
 

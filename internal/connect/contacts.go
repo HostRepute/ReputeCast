@@ -205,6 +205,10 @@ func (s *Service) Finish(ctx context.Context, ws *store.Workspace, rawID string,
 	if cur.Status == "abandoned" {
 		return ConnectSetup{}, conflict(ctx, mProblemCancelledShort, nil)
 	}
+	// An SES setup finishes only once a real event came back (PR-3).
+	if check, _ := eventsCheckOf(decodeState(cur.State).Connection.Provisioning); check != "verified" && check != "none" {
+		return ConnectSetup{}, conflict(ctx, mProblemEventsUnverified, i18n.Args{"name": p.Name})
+	}
 	lists, err := s.Q.ConnectListNames(ctx, ws.ID)
 	if err != nil {
 		return ConnectSetup{}, err
@@ -336,7 +340,8 @@ func (w *PullWorker) Work(ctx context.Context, job *river.Job[PullArgs]) error {
 
 // ConnectDoneRow is one line of "What was configured".
 type ConnectDoneRow struct {
-	Status string `json:"status" enum:"done,skipped,failed,pending"`
+	// Status verified: the events arrived (PR-3).
+	Status string `json:"status" enum:"done,verified,skipped,failed,pending"`
 	Lead   string `json:"lead"`
 	// Text follows the bold lead; `backticks` mark code.
 	Text string `json:"text"`
@@ -377,7 +382,9 @@ func (s *Service) doneView(ctx context.Context, l i18n.Lang, ws *store.Workspace
 	loc := state.Location(ws.Timezone)
 	switch flowOf(d) {
 	case "ses":
-		args := i18n.Args{"via": "keys", "region": cn.Region, "hasAccount": yesNo(cn.AccountID != ""), "account": cn.AccountID, "quota": "none"}
+		args := i18n.Args{"via": "keys", "region": cn.Region, "hasAccount": yesNo(cn.AccountID != ""), "account": cn.AccountID, "quota": "none",
+			"hasKey": yesNo(cn.Settings["access_key_hint"] != ""), "key": cn.Settings["access_key_hint"], "hasUser": yesNo(cn.Settings["iam_user"] != ""),
+			"user": cn.Settings["iam_user"]}
 		if cn.Access == "role" {
 			role := cn.RoleARN
 			if i := strings.LastIndex(role, "/"); i >= 0 {
@@ -404,18 +411,32 @@ func (s *Service) doneView(ctx context.Context, l i18n.Lang, ws *store.Workspace
 		}
 		if topic != "" && prov != nil {
 			events.Status = "done"
-			args := i18n.Args{"topic": topic, "url": s.webhookURL(*prov, ""), "hasFirst": "no"}
+			queue := cn.Events == providers.EventsQueue
+			args := i18n.Args{"topic": topic, "url": s.webhookURL(*prov, ""), "hasFirst": "no", "via": viaKey(queue), "queue": queueName(cfg)}
 			if prov.LastEventAt != nil {
 				args["hasFirst"], args["at"] = "yes", prov.LastEventAt.In(loc)
 			}
 			if t := s.firstDelivery(ctx, stt); t != nil {
 				args["hasFirst"], args["at"] = "yes", t.In(loc)
 			}
-			events.Text = ": " + mDoneEventsSNS.Text(l, args)
+			// The event check's delivery from the mailbox simulator verified
+			// the events (PR-3).
+			if check, at := eventsCheckOf(cn.Provisioning); check == "verified" && at != nil {
+				events.Status = "verified"
+				args["at"] = at.In(loc)
+				events.Text = ": " + mDoneEventsVerified.Text(l, args)
+			} else {
+				events.Text = ": " + mDoneEventsSNS.Text(l, args)
+			}
 		} else {
 			events.Text = ": " + mDoneEventsUnfinished.Text(l, nil)
 		}
 		out.Rows = append(out.Rows, events)
+		// The workspace's own SES tenant (PR-11).
+		if tenant := stringOf(cfg["tenant"]); tenant != "" {
+			policy := tenantPolicyName(stringOf(cfg["tenant_reputation_policy"]))
+			out.Rows = append(out.Rows, row("done", mDoneTenant, nil, " ", mDoneTenantText, i18n.Args{"tenant": tenant, "hasPolicy": yesNo(policy != ""), "policy": policy}))
+		}
 		sets := []string{}
 		if m, ok := cfg["configuration_sets"].(map[string]any); ok {
 			for _, k := range []string{"broadcast", "automation", "system"} {
@@ -619,4 +640,26 @@ func (s *Service) domainRow(ctx context.Context, l i18n.Lang, ds *DomainStep, p 
 		status = "pending"
 	}
 	return ConnectDoneRow{Status: status, Lead: lead, Text: " " + mDoneDomainText.Text(l, args)}
+}
+
+// queueName is the SQS queue of an SES connection whose events come
+// through one ("reputecast-events").
+func queueName(cfg map[string]any) string {
+	u := stringOf(cfg["queue_url"])
+	if i := strings.LastIndex(u, "/"); i >= 0 {
+		return u[i+1:]
+	}
+	return u
+}
+
+// tenantPolicyName is a reputation policy's name as people read it
+// ("standard" → "Standard").
+func tenantPolicyName(p string) string {
+	if p == "" {
+		return ""
+	}
+	if i := strings.LastIndexAny(p, "/:"); i >= 0 {
+		p = p[i+1:]
+	}
+	return strings.ToUpper(p[:1]) + p[1:]
 }

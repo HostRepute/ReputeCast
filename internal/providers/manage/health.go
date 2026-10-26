@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -456,18 +455,22 @@ func (s *Service) diagnose(ctx context.Context, p store.Provider, adapter provid
 		}
 	}
 	checks = append(checks, reg)
-	code, err := s.selfTest(ctx, p)
+	// The endpoint (PR-9): its address must be a public one; the provider
+	// calling it is what proves it reachable, so the check says when it
+	// last did.
 	end := state.WebhookCheck{Key: "endpoint"}
-	if err == nil && code == http.StatusOK {
+	if bad, ok := s.checkAddress(ctx, url); ok {
 		end.OK = &yes
-		end.Detail, end.DetailText = keep(mCheckSelfTestOK, nil)
+		if p.LastEventAt != nil {
+			loc := time.UTC
+			if ws, err := s.Q.GetWorkspace(ctx, p.WorkspaceID); err == nil {
+				loc = state.Location(ws.Timezone)
+			}
+			end.Detail, end.DetailText = keep(mCheckLastReached, i18n.Args{"name": state.Short(p.Name, p.Adapter), "at": p.LastEventAt.In(loc)})
+		}
 	} else {
 		end.OK = &no
-		if err != nil {
-			end.Detail = err.Error()
-		} else {
-			end.Detail, end.DetailText = keep(mCheckSelfTest, i18n.Args{"status": strconv.Itoa(code)})
-		}
+		end.Detail, end.DetailText = keep(mCheckAddressProblem, i18n.Args{"kind": bad.Kind, "host": bad.Host, "ip": bad.IP})
 	}
 	checks = append(checks, end)
 	var got int64
@@ -526,29 +529,17 @@ func VerifySelfTest(token, header string, now time.Time) bool {
 	return hmac.Equal([]byte(SelfTestSignature(token, n)), []byte(header))
 }
 
-// selfTest posts to the provider's public webhook URL, through whatever
-// proxy and TLS the instance sits behind, and expects 200.
-func (s *Service) selfTest(ctx context.Context, p store.Provider) (int, error) {
-	url := WebhookURL(s.URLs, p)
-	hdr := http.Header{}
-	hdr.Set(SelfTestHeader, SelfTestSignature(p.WebhookToken, s.now().Unix()))
-	hdr.Set("Content-Type", "application/json")
-	if s.SelfTest != nil {
-		return s.SelfTest(ctx, url, hdr)
+// checkAddress looks at a webhook address without calling it.
+func (s *Service) checkAddress(ctx context.Context, url string) (AddressProblem, bool) {
+	if s.CheckAddress != nil {
+		return s.CheckAddress(ctx, url)
 	}
-	cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	req, err := http.NewRequestWithContext(cctx, http.MethodPost, url, strings.NewReader(`{"selfTest":true}`))
-	if err != nil {
-		return 0, err
-	}
-	req.Header = hdr
-	resp, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
-	if err != nil {
-		return 0, err
-	}
-	_ = resp.Body.Close()
-	return resp.StatusCode, nil
+	return CheckAddress(ctx, url)
+}
+
+// addressText says why no provider can reach an address.
+func addressText(l i18n.Lang, a AddressProblem) string {
+	return mCheckAddressProblem.Text(l, i18n.Args{"kind": a.Kind, "host": a.Host, "ip": a.IP})
 }
 
 func streamLabel(s string) string {

@@ -200,6 +200,9 @@ type Health struct {
 	// BounceMailbox is the last read of an SMTP provider's bounce mailbox
 	// (PR-10): when reading fails, bounces from that server go unseen.
 	BounceMailbox *MailboxState `json:"bounceMailbox,omitempty"`
+	// EventQueue is the last poll of the SQS queue an SES connection's
+	// events arrive in (PR-4).
+	EventQueue *MailboxState `json:"eventQueue,omitempty"`
 }
 
 // MailboxState is how reading a bounce mailbox goes.

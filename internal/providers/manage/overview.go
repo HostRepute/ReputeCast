@@ -229,6 +229,13 @@ func (s *Service) summary(ctx context.Context, sn *snapshot) ProvidersSummary {
 		sum.CostPer1000 = &v
 	}
 	sum.Suppressions, _ = s.Q.SuppCount(ctx, sn.ws.ID)
+	if pushed, err := s.Q.SuppPushSummary(ctx, sn.ws.ID); err == nil {
+		for _, r := range pushed {
+			if r.Pushed {
+				sum.Pushed += r.N
+			}
+		}
+	}
 	sum.InSync = true
 	for _, p := range sn.provs {
 		if !state.Caps(p).SuppressionSync {
@@ -277,6 +284,16 @@ func (s *Service) card(sn *snapshot, p store.Provider) ProviderCard {
 	}
 	if c.Account == "" && h.Version != "" {
 		c.Account = h.Version
+	}
+	if p.Adapter == "ses" {
+		var tc struct {
+			Tenant string `json:"tenant"`
+			Policy string `json:"tenant_reputation_policy"`
+		}
+		_ = json.Unmarshal(p.Config, &tc)
+		if tc.Tenant != "" {
+			c.Tenant = &ProviderTenant{Name: tc.Tenant, Policy: policyWord(tc.Policy)}
+		}
 	}
 	c.Webhook = ProviderWebhookFeed{Kind: caps.Webhooks, LastEventAt: p.LastEventAt}
 	if h.Webhooks != nil {
@@ -558,4 +575,16 @@ func kindLabel(l i18n.Lang, kind string, n int64) string {
 		return mKindLabel.Text(l, i18n.Args{"kind": kind, "count": n})
 	}
 	return strings.ReplaceAll(kind, "_", " ")
+}
+
+// policyWord is a reputation policy's name as people read it ("standard" →
+// "Standard").
+func policyWord(p string) string {
+	if i := strings.LastIndexAny(p, "/:"); i >= 0 {
+		p = p[i+1:]
+	}
+	if p == "" {
+		return ""
+	}
+	return strings.ToUpper(p[:1]) + p[1:]
 }

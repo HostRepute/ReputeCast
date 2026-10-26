@@ -52,11 +52,10 @@ var (
 	mKindLabel  = msgs.M("label.kind")
 	mSource     = msgs.M("label.source")
 
-	mCheckResponds     = msgs.M("check.responds")
-	mCheckAuthAccepted = msgs.M("check.authAccepted")
-	mCheckSelfTestOK   = msgs.M("check.selfTestOK")
-	mCheckSelfTest     = msgs.M("check.selfTestStatus")
-	mTestUnreachable   = msgs.M("test.unreachable")
+	mCheckResponds       = msgs.M("check.responds")
+	mCheckAuthAccepted   = msgs.M("check.authAccepted")
+	mCheckLastReached    = msgs.M("check.lastReached")
+	mCheckAddressProblem = msgs.M("check.addressProblem")
 
 	mIncidentDown           = msgs.M("incident.down")
 	mIncidentAuthDown       = msgs.M("incident.authDown")
@@ -72,6 +71,8 @@ var (
 	mIncidentAccepting      = msgs.M("incident.accepting")
 	mIncidentMailboxFailing = msgs.M("incident.mailboxFailing")
 	mIncidentMailboxOK      = msgs.M("incident.mailboxOK")
+	mIncidentQueueFailing   = msgs.M("incident.queueFailing")
+	mIncidentQueueOK        = msgs.M("incident.queueOK")
 
 	mNotifyDownTitle   = msgs.M("notify.downTitle")
 	mNotifyAuthTitle   = msgs.M("notify.authTitle")
@@ -85,6 +86,8 @@ var (
 	mNotifyRejectingBody  = msgs.M("notify.rejectingBody")
 	mNotifyMailboxTitle   = msgs.M("notify.mailboxTitle")
 	mNotifyMailboxBody    = msgs.M("notify.mailboxBody")
+	mNotifyQueueTitle     = msgs.M("notify.queueTitle")
+	mNotifyQueueBody      = msgs.M("notify.queueBody")
 
 	mErrorSettings = msgs.M("error.settings")
 

@@ -72,12 +72,12 @@ func init() {
 func service(env *apptest.Env, now func() time.Time) *manage.Service {
 	return &manage.Service{
 		Pool: env.App.Pool, Q: env.App.Q, Audit: env.App.Audit, URLs: env.App.URLs,
-		Factory:  &manage.Factory{Box: env.App.Secrets, HTTP: http.DefaultClient},
-		Log:      slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Jobs:     func() *jobs.Client { return env.App.Jobs },
-		Sending:  func() sending.Starter { return env.App.Sending },
-		Now:      now,
-		SelfTest: func(context.Context, string, http.Header) (int, error) { return http.StatusOK, nil },
+		Factory:      &manage.Factory{Box: env.App.Secrets, HTTP: http.DefaultClient},
+		Log:          slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Jobs:         func() *jobs.Client { return env.App.Jobs },
+		Sending:      func() sending.Starter { return env.App.Sending },
+		Now:          now,
+		CheckAddress: func(context.Context, string) (manage.AddressProblem, bool) { return manage.AddressProblem{}, true },
 	}
 }
 
@@ -164,6 +164,7 @@ func TestProvidersOverview(t *testing.T) {
 			Connected     int
 			SentThisMonth int64
 			Suppressions  int64
+			Pushed        int64
 		}
 		Providers []struct {
 			Name, Adapter, Status, Account string
@@ -189,6 +190,11 @@ func TestProvidersOverview(t *testing.T) {
 	// invalid addresses and spam traps from its verification (X14).
 	if o.Summary.Connected != 3 || o.Summary.Suppressions != 2162 || o.Summary.SentThisMonth == 0 {
 		t.Fatalf("summary %+v", o.Summary)
+	}
+	// Providers get only the hard bounces and complaints that apply to all
+	// mail (PR-1): fewer than the shared list holds.
+	if o.Summary.Pushed == 0 || o.Summary.Pushed >= o.Summary.Suppressions {
+		t.Fatalf("pushed %d of %d", o.Summary.Pushed, o.Summary.Suppressions)
 	}
 	rates := map[string][2]float64{"ses": {0.6, 0.04}, "postmark": {0.2, 0.01}, "postal": {0.9, 0.05}}
 	for _, p := range o.Providers {

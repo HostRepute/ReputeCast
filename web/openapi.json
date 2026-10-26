@@ -18477,8 +18477,31 @@
           "adapter": {
             "type": "string"
           },
+          "bulk": {
+            "type": "string"
+          },
           "bulkAllowed": {
             "type": "boolean"
+          },
+          "bulkMark": {
+            "enum": [
+              "yes",
+              "limited",
+              "no"
+            ],
+            "type": "string"
+          },
+          "bulkRank": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "capabilityMax": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "capabilityScore": {
+            "format": "int64",
+            "type": "integer"
           },
           "chips": {
             "items": {
@@ -18505,11 +18528,17 @@
           "name": {
             "type": "string"
           },
+          "priceList": {
+            "$ref": "#/components/schemas/ConnectPriceList"
+          },
           "pricing": {
             "type": "string"
           },
           "recommended": {
             "type": "boolean"
+          },
+          "setup": {
+            "type": "string"
           },
           "short": {
             "type": "string"
@@ -18542,7 +18571,13 @@
           "bulkAllowed",
           "webhooks",
           "dedicatedIps",
-          "connected"
+          "connected",
+          "bulk",
+          "bulkMark",
+          "setup",
+          "bulkRank",
+          "capabilityScore",
+          "capabilityMax"
         ],
         "type": "object"
       },
@@ -18616,6 +18651,9 @@
             ],
             "type": "string"
           },
+          "accessKey": {
+            "type": "string"
+          },
           "account": {
             "type": "string"
           },
@@ -18632,6 +18670,30 @@
           "error": {
             "$ref": "#/components/schemas/ConnectError"
           },
+          "events": {
+            "enum": [
+              "webhook",
+              "queue"
+            ],
+            "type": "string"
+          },
+          "eventsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "eventsCheck": {
+            "enum": [
+              "none",
+              "waiting",
+              "deferred",
+              "verified",
+              "failed"
+            ],
+            "type": "string"
+          },
+          "eventsUrl": {
+            "type": "string"
+          },
           "externalId": {
             "type": "string"
           },
@@ -18640,6 +18702,12 @@
               "$ref": "#/components/schemas/ConnectField"
             },
             "type": "array"
+          },
+          "host": {
+            "$ref": "#/components/schemas/ConnectHost"
+          },
+          "iamUser": {
+            "type": "string"
           },
           "mailbox": {
             "$ref": "#/components/schemas/ConnectProbe"
@@ -18707,6 +18775,11 @@
           "summary",
           "fields",
           "access",
+          "accessKey",
+          "iamUser",
+          "events",
+          "eventsUrl",
+          "eventsCheck",
           "externalId",
           "roleArn",
           "region",
@@ -18837,6 +18910,7 @@
           "status": {
             "enum": [
               "done",
+              "verified",
               "skipped",
               "failed",
               "pending"
@@ -18873,6 +18947,22 @@
         },
         "required": [
           "message"
+        ],
+        "type": "object"
+      },
+      "ConnectEventsInput": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "enum": [
+              "webhook",
+              "queue"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "events"
         ],
         "type": "object"
       },
@@ -18950,6 +19040,39 @@
         "required": [
           "pullSuppressions",
           "startEmpty"
+        ],
+        "type": "object"
+      },
+      "ConnectHost": {
+        "additionalProperties": false,
+        "properties": {
+          "baseCredentials": {
+            "type": "boolean"
+          },
+          "checkedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "onAws": {
+            "type": "boolean"
+          },
+          "recommended": {
+            "enum": [
+              "role",
+              "keys"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "onAws",
+          "kind",
+          "baseCredentials",
+          "checkedAt",
+          "recommended"
         ],
         "type": "object"
       },
@@ -19125,6 +19248,87 @@
         ],
         "type": "object"
       },
+      "ConnectPriceList": {
+        "additionalProperties": false,
+        "properties": {
+          "dataPerMb": {
+            "format": "double",
+            "type": "number"
+          },
+          "dedicatedIp": {
+            "format": "double",
+            "type": "number"
+          },
+          "dedicatedPlans": {
+            "items": {
+              "$ref": "#/components/schemas/ConnectPricePlan"
+            },
+            "type": "array"
+          },
+          "from": {
+            "format": "double",
+            "type": "number"
+          },
+          "kind": {
+            "enum": [
+              "metered",
+              "plans",
+              "contract",
+              "self_hosted",
+              "relay"
+            ],
+            "type": "string"
+          },
+          "perThousand": {
+            "format": "double",
+            "type": "number"
+          },
+          "plans": {
+            "items": {
+              "$ref": "#/components/schemas/ConnectPricePlan"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
+      "ConnectPricePlan": {
+        "additionalProperties": false,
+        "properties": {
+          "dedicated": {
+            "type": "boolean"
+          },
+          "free": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "perDay": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "price": {
+            "format": "double",
+            "type": "number"
+          },
+          "upTo": {
+            "type": "boolean"
+          },
+          "upto": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "upto",
+          "price"
+        ],
+        "type": "object"
+      },
       "ConnectProbe": {
         "additionalProperties": false,
         "properties": {
@@ -19218,12 +19422,16 @@
           "key": {
             "type": "string"
           },
+          "note": {
+            "type": "string"
+          },
           "status": {
             "enum": [
               "waiting",
               "running",
               "done",
-              "failed"
+              "failed",
+              "deferred"
             ],
             "type": "string"
           },
@@ -19327,6 +19535,13 @@
           },
           "accessKeyId": {
             "maxLength": 128,
+            "type": "string"
+          },
+          "events": {
+            "enum": [
+              "webhook",
+              "queue"
+            ],
             "type": "string"
           },
           "region": {
@@ -20154,6 +20369,9 @@
       "ConnectWebhook": {
         "additionalProperties": false,
         "properties": {
+          "canTest": {
+            "type": "boolean"
+          },
           "mode": {
             "enum": [
               "webhook",
@@ -20178,6 +20396,9 @@
           "selfTest": {
             "$ref": "#/components/schemas/ConnectSelfTest"
           },
+          "test": {
+            "$ref": "#/components/schemas/ConnectWebhookTest"
+          },
           "url": {
             "type": "string"
           }
@@ -20186,7 +20407,8 @@
           "mode",
           "url",
           "publicUrl",
-          "needsSecret"
+          "needsSecret",
+          "canTest"
         ],
         "type": "object"
       },
@@ -20216,6 +20438,41 @@
         "required": [
           "url",
           "secret"
+        ],
+        "type": "object"
+      },
+      "ConnectWebhookTest": {
+        "additionalProperties": false,
+        "properties": {
+          "arrivedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "requestedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "waiting",
+              "arrived",
+              "missing",
+              "refused"
+            ],
+            "type": "string"
+          },
+          "until": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "requestedAt",
+          "until"
         ],
         "type": "object"
       },
@@ -24346,6 +24603,30 @@
         "required": [
           "day",
           "days"
+        ],
+        "type": "object"
+      },
+      "DemoWorkspace": {
+        "additionalProperties": false,
+        "properties": {
+          "created": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "created"
         ],
         "type": "object"
       },
@@ -51241,6 +51522,9 @@
             },
             "type": "array"
           },
+          "tenant": {
+            "$ref": "#/components/schemas/ProviderTenant"
+          },
           "warmup": {
             "$ref": "#/components/schemas/ProviderWarmupBrief"
           },
@@ -52294,6 +52578,21 @@
         ],
         "type": "object"
       },
+      "ProviderTenant": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "policy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
       "ProviderTrackingActionInput": {
         "additionalProperties": false,
         "properties": {
@@ -52741,6 +53040,10 @@
             "format": "date-time",
             "type": "string"
           },
+          "pushed": {
+            "format": "int64",
+            "type": "integer"
+          },
           "sentBy": {
             "items": {
               "$ref": "#/components/schemas/ProviderMonthAmount"
@@ -52768,6 +53071,7 @@
           "monthStart",
           "costToDate",
           "suppressions",
+          "pushed",
           "inSync"
         ],
         "type": "object"
@@ -64649,6 +64953,228 @@
         ],
         "type": "object"
       },
+      "RouteCampaignCondition": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "field": {
+            "type": "string"
+          },
+          "values": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "field",
+          "values",
+          "count"
+        ],
+        "type": "object"
+      },
+      "RouteCampaignDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "moved": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "shares": {
+            "items": {
+              "$ref": "#/components/schemas/RouteCampaignShare"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "shares",
+          "moved"
+        ],
+        "type": "object"
+      },
+      "RouteCampaignInput": {
+        "additionalProperties": false,
+        "properties": {
+          "draft": {
+            "$ref": "#/components/schemas/RoutingSaveInput"
+          }
+        },
+        "type": "object"
+      },
+      "RouteCampaignOverflow": {
+        "additionalProperties": false,
+        "properties": {
+          "cap": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "day": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerId",
+          "provider",
+          "to",
+          "count",
+          "cap",
+          "day",
+          "date"
+        ],
+        "type": "object"
+      },
+      "RouteCampaignResult": {
+        "additionalProperties": false,
+        "properties": {
+          "campaignId": {
+            "type": "string"
+          },
+          "conditions": {
+            "items": {
+              "$ref": "#/components/schemas/RouteCampaignCondition"
+            },
+            "type": "array"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "draft": {
+            "$ref": "#/components/schemas/RouteCampaignDraft"
+          },
+          "estimated": {
+            "type": "boolean"
+          },
+          "lists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "none": {
+            "type": "boolean"
+          },
+          "overflow": {
+            "items": {
+              "$ref": "#/components/schemas/RouteCampaignOverflow"
+            },
+            "type": "array"
+          },
+          "scheduledAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "shares": {
+            "items": {
+              "$ref": "#/components/schemas/RouteCampaignShare"
+            },
+            "type": "array"
+          },
+          "simulated": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sunset": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "none",
+          "campaignId",
+          "name",
+          "timezone",
+          "lists",
+          "domain",
+          "total",
+          "sunset",
+          "shares",
+          "conditions",
+          "overflow",
+          "estimated",
+          "simulated"
+        ],
+        "type": "object"
+      },
+      "RouteCampaignShare": {
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "enum": [
+              "ses",
+              "postal",
+              "postmark",
+              "other"
+            ],
+            "type": "string"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "fallback": {
+            "type": "string"
+          },
+          "policy": {
+            "enum": [
+              "automatic",
+              "pause_and_ask",
+              "warm_only"
+            ],
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "short": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerId",
+          "provider",
+          "short",
+          "color",
+          "count",
+          "policy"
+        ],
+        "type": "object"
+      },
       "RouteShare": {
         "additionalProperties": false,
         "properties": {
@@ -64811,6 +65337,9 @@
             "type": "string"
           },
           "mailboxProvider": {
+            "type": "string"
+          },
+          "mx": {
             "type": "string"
           },
           "provider": {
@@ -65263,6 +65792,10 @@
       "RoutingShared": {
         "additionalProperties": false,
         "properties": {
+          "pushed": {
+            "format": "int64",
+            "type": "integer"
+          },
           "suppressions": {
             "format": "int64",
             "type": "integer"
@@ -65273,7 +65806,8 @@
           }
         },
         "required": [
-          "suppressions"
+          "suppressions",
+          "pushed"
         ],
         "type": "object"
       },
@@ -65372,6 +65906,9 @@
             ],
             "type": "string"
           },
+          "failoverVet": {
+            "$ref": "#/components/schemas/RoutingTargetVet"
+          },
           "fallback": {
             "type": "string"
           },
@@ -65416,6 +65953,37 @@
         ],
         "type": "object"
       },
+      "RoutingTargetVet": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/RoutingVetCheck"
+            },
+            "type": "array"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "warmupDay": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warmupDays": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "providerId",
+          "provider",
+          "checks"
+        ],
+        "type": "object"
+      },
       "RoutingTerms": {
         "additionalProperties": false,
         "properties": {
@@ -65454,6 +66022,47 @@
           "streams",
           "active",
           "available"
+        ],
+        "type": "object"
+      },
+      "RoutingVetCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "enum": [
+              "available",
+              "bulk_terms",
+              "sandbox",
+              "domain",
+              "quota",
+              "warm"
+            ],
+            "type": "string"
+          },
+          "left": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "period": {
+            "enum": [
+              "day",
+              "month"
+            ],
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "pass",
+              "warn",
+              "fail",
+              "unknown"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "result"
         ],
         "type": "object"
       },
@@ -99661,6 +100270,43 @@
         "x-access": "public"
       }
     },
+    "/api/v1/demo-workspace": {
+      "post": {
+        "operationId": "create-demo-workspace",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoWorkspace"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Load the Acme sample into a separate demo workspace you own; nothing is sent",
+        "tags": [
+          "Workspaces"
+        ],
+        "x-access": "user"
+      }
+    },
     "/api/v1/integration": {
       "get": {
         "description": "Needs only the key: the apps call it first to learn the workspace slug the other paths take.",
@@ -115581,6 +116227,82 @@
           }
         ],
         "summary": "Set up the provider for a sending domain, or skip the step",
+        "tags": [
+          "Connect a provider"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/connect/setups/{setupId}/events": {
+      "put": {
+        "operationId": "set-provider-events",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "setupId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectEventsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectSetup"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Choose how SES events reach ReputeCast: webhook or SQS queue",
         "tags": [
           "Connect a provider"
         ],
@@ -150569,6 +151291,73 @@
           }
         ],
         "summary": "Which provider would send this email?",
+        "tags": [
+          "Routing"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/routing/test-campaign": {
+      "post": {
+        "operationId": "test-route-campaign",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteCampaignInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteCampaignResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Where the next broadcast's recipients go, on the saved routing and an unsaved one",
         "tags": [
           "Routing"
         ],

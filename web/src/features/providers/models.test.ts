@@ -60,7 +60,7 @@ const cfg: RoutingConfig = {
   templates: [],
   savedBy: '',
   issues: [],
-  shared: { suppressions: 0 },
+  shared: { suppressions: 0, pushed: 0 },
 }
 
 describe('routing model', () => {

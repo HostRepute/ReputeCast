@@ -30,9 +30,6 @@
 
   "check.responds": { "message": "{op} responds", "note": "a webhooks-silent check: the provider's API answers; op: GetAccount, GET /server" },
   "check.authAccepted": { "message": "AUTH accepted", "note": "the SMTP server accepts the login; AUTH is SMTP's command" },
-  "check.selfTestOK": { "message": "200 OK on a self-test", "note": "the webhook endpoint answered ReputeCast's own test request with HTTP 200 OK" },
-  "check.selfTestStatus": { "message": "{status} on a self-test", "note": "status: the HTTP status the endpoint answered" },
-  "test.unreachable": { "message": "Couldn't reach {url}: {error}", "note": "error: what the network said" },
 
   "incident.down": { "message": "{name}: {hasError, select, yes {{error}} other {API errors}}{hasOp, select, yes { on {op}} other {}} · health check failed.", "note": "the outage timeline; error: the status and code of the failed call (503 ServiceUnavailable); op: the call (SendEmail)" },
   "incident.authDown": { "message": "{name} rejected the credentials: {hasError, select, yes {{error}} other {API errors}}{hasOp, select, yes { on {op}} other {}}.", "note": "the outage timeline: the provider refused ReputeCast's credentials" },
@@ -109,5 +106,11 @@
   "adapters.download": { "message": "Couldn't download the manifest: {error}", "note": "error: what the network said" },
   "adapters.status": { "message": "The manifest URL answered {status}.", "note": "status: an HTTP status code" },
   "adapters.notJson": "The file is not a valid adapter manifest (JSON expected).",
-  "adapters.incomplete": { "message": "The manifest needs a name, a version and a kind (remote, http or wasm).", "note": "remote, http and wasm are the kinds, as manifests name them" }
+  "adapters.incomplete": { "message": "The manifest needs a name, a version and a kind (remote, http or wasm).", "note": "remote, http and wasm are the kinds, as manifests name them" },
+  "check.lastReached": { "message": "{name} last reached it at {at, time}", "note": "PR-9: the provider calling the webhook proves it reachable" },
+  "check.addressProblem": { "message": "{kind, select, local {{host} only works on this machine} private {{host} resolves to {ip}, a private address no provider can reach} dns {{host} doesn't resolve in public DNS} other {the address isn't a valid URL}}", "note": "PR-9: why no provider can reach the webhook address" },
+  "incident.queueFailing": { "message": "{name}: the event queue can't be read since {since, time}: {error}. Deliveries, bounces and complaints wait in the queue.", "note": "PR-4: SES events arrive in an SQS queue ReputeCast polls; error: what AWS said" },
+  "incident.queueOK": "{name}: the event queue can be read again.",
+  "notify.queueTitle": "{name}: the event queue can't be read",
+  "notify.queueBody": "ReputeCast couldn't read the SQS queue of {name} since {since, time} ({error}). Until it can, its deliveries, bounces and complaints wait there (up to four days). Check the IAM policy allows sqs:ReceiveMessage."
 }

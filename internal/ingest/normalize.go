@@ -126,8 +126,9 @@ func (n *Normalizer) Normalize(ctx context.Context, rawID uuid.UUID) error {
 			suppressed += added
 		}
 		// Event freshness (PR-6): the provider's event feed delivered
-		// something, by webhook or from its bounce mailbox.
-		if raw.Source == "webhook" || raw.Source == "bounce_mailbox" {
+		// something, by webhook, from its bounce mailbox or through the
+		// queue ReputeCast polls (PR-4).
+		if raw.Source == "webhook" || raw.Source == "bounce_mailbox" || raw.Source == "queue" {
 			if err := q.ProvTouchLastEvent(ctx, store.ProvTouchLastEventParams{ID: p.ID, At: raw.ReceivedAt}); err != nil {
 				return err
 			}

@@ -14,6 +14,7 @@ const (
 	DetailWebhooksSilent = "Webhooks silent"
 	DetailRejecting      = "Rejecting messages"
 	DetailMailboxFailing = "Bounce mailbox unreachable"
+	DetailQueueFailing   = "Event queue unreachable"
 )
 
 //go:embed messages/*.json
@@ -27,6 +28,7 @@ var details = map[string]i18n.Msg{
 	DetailWebhooksSilent: msgs.M("detail.webhooksSilent"),
 	DetailRejecting:      msgs.M("detail.rejecting"),
 	DetailMailboxFailing: msgs.M("detail.mailboxFailing"),
+	DetailQueueFailing:   msgs.M("detail.queueFailing"),
 }
 
 // DetailIn is a provider's status detail for a reader: the health check's

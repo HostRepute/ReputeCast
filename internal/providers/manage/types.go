@@ -30,8 +30,11 @@ type ProvidersSummary struct {
 	CostToDate float64   `json:"costToDate" doc:"Dollars"`
 	// CostPer1000 is the blended cost per 1,000 emails this month.
 	CostPer1000  *float64   `json:"costPer1000,omitempty"`
-	Suppressions int64      `json:"suppressions"`
-	SyncedAt     *time.Time `json:"syncedAt,omitempty"`
+	Suppressions int64 `json:"suppressions"`
+	// Pushed counts the suppressions providers get: hard bounces and
+	// complaints that apply to all mail (review PR-1).
+	Pushed   int64      `json:"pushed"`
+	SyncedAt *time.Time `json:"syncedAt,omitempty"`
 	// InSync is true when every provider that syncs is up to date.
 	InSync bool `json:"inSync"`
 	// CheckedAt is the oldest of the providers' last health checks.
@@ -158,8 +161,10 @@ type ProviderCard struct {
 	ErrorRate3m *float64             `json:"errorRate3m,omitempty"`
 	// AccountKind says how to label Account: "account" ("Account status")
 	// or "server" ("Server", self-hosted).
-	AccountKind  string                    `json:"accountKind" enum:"account,server"`
-	Account      string                    `json:"account"`
+	AccountKind string `json:"accountKind" enum:"account,server"`
+	Account     string `json:"account"`
+	// Tenant is the workspace's own SES tenant (PR-11).
+	Tenant       *ProviderTenant           `json:"tenant,omitempty"`
 	Bounce       ProviderLimitRate         `json:"bounce"`
 	Complaint    ProviderLimitRate         `json:"complaint"`
 	Quota        ProviderQuotaUse          `json:"quota"`
@@ -378,4 +383,13 @@ type ProviderAuthFailure struct {
 	Down       ProviderDownState      `json:"down"`
 	Rerouted   int64                  `json:"rerouted"`
 	Streams    []ProviderOutageStream `json:"streams"`
+}
+
+// ProviderTenant is the workspace's own SES tenant: its own suppression
+// list and reputation policy.
+type ProviderTenant struct {
+	Name string `json:"name"`
+	// Policy is the reputation policy's name ("Standard"); empty while SES
+	// hasn't said.
+	Policy string `json:"policy,omitempty"`
 }

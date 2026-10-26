@@ -62,6 +62,12 @@ type regionBody struct {
 	Body    ConnectRegionInput
 }
 
+type eventsBody struct {
+	api.WorkspaceInput
+	SetupID string `path:"setupId" format:"uuid"`
+	Body    ConnectEventsInput
+}
+
 type productionBody struct {
 	api.WorkspaceInput
 	SetupID string `path:"setupId" format:"uuid"`
@@ -170,6 +176,11 @@ func Register(h huma.API, s *Service) {
 	api.Put(h, api.Op{ID: "set-provider-region", Path: base + "/region", Summary: "Move an SES connection to another region", Tags: tags, Access: manage},
 		func(ctx context.Context, in *regionBody) (*api.Body[ConnectSetup], error) {
 			out, err := s.SetRegion(ctx, api.WorkspaceFrom(ctx), in.SetupID, in.Body)
+			return api.OK(out), err
+		})
+	api.Put(h, api.Op{ID: "set-provider-events", Path: base + "/events", Summary: "Choose how SES events reach ReputeCast: webhook or SQS queue", Tags: tags, Access: manage},
+		func(ctx context.Context, in *eventsBody) (*api.Body[ConnectSetup], error) {
+			out, err := s.SetEvents(ctx, api.WorkspaceFrom(ctx), in.SetupID, in.Body)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "retry-provider-provisioning", Path: base + "/provision", Summary: "Retry the failed provisioning steps", Tags: tags, Access: manage},

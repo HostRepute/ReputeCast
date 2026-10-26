@@ -12,6 +12,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/ingest"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/netguard"
+	"github.com/hostrepute/reputecast/internal/providers/eventqueue"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/sending"
@@ -86,6 +87,8 @@ func init() {
 		river.AddWorker(a.JobReg.Workers, &ingest.NormalizeWorker{N: n})
 		river.AddWorker(a.JobReg.Workers, &ingest.SweepWorker{N: n, Jobs: jobsFn})
 		river.AddWorker(a.JobReg.Workers, &ingest.MailboxWorker{N: n, Jobs: jobsFn, OnPoll: svc.RecordMailboxPoll})
+		// SES events through an SQS queue ReputeCast polls (PR-4).
+		river.AddWorker(a.JobReg.Workers, &eventqueue.Worker{Pool: a.Pool, Q: a.Q, Factory: a.providerFactory(), Jobs: jobsFn, Log: a.Log, OnPoll: svc.RecordQueuePoll})
 		river.AddWorker(a.JobReg.Workers, &ingest.BackfillWorker{N: n})
 		river.AddWorker(a.JobReg.Workers, &suppressions.SyncWorker{S: a.suppressionSync()})
 		river.AddWorker(a.JobReg.Workers, &warmup.DailyWorker{S: &warmup.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit}, Log: a.Log,
@@ -93,6 +96,7 @@ func init() {
 		river.AddWorker(a.JobReg.Workers, &warmup.ResumeWorker{S: &warmup.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit}})
 		a.JobReg.Every(time.Minute, func() (river.JobArgs, *river.InsertOpts) { return manage.HealthArgs{}, nil }, true)
 		a.JobReg.Every(time.Minute, func() (river.JobArgs, *river.InsertOpts) { return ingest.MailboxArgs{}, nil }, false)
+		a.JobReg.Every(time.Minute, func() (river.JobArgs, *river.InsertOpts) { return eventqueue.PollArgs{}, nil }, false)
 		a.JobReg.Every(5*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return ingest.SweepArgs{}, nil }, false)
 		a.JobReg.Every(15*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return suppressions.SyncArgs{}, nil }, false)
 		a.JobReg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return warmup.DailyArgs{}, nil }, true)
