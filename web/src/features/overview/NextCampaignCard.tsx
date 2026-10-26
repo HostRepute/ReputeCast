@@ -119,12 +119,24 @@ export function NextCampaignCard({ n }: { n: Schemas['OverviewNextCampaign'] }) 
 /** First run: nothing to send yet (OverviewEmpty). */
 export function PendingNextCard() {
   const t = useT()
+  const { slug } = useWorkspace()
+  const editReason = usePermissionReason('campaigns:edit')
   return (
     <section className="card flex flex-col gap-2.5 border-dashed px-5 py-4.5" aria-labelledby="ov-next-p">
       <h3 className="h2 text-ink-3" id="ov-next-p">
         {t(m.nextCampaign)}
       </h3>
       <span className="k">{t(m.nextPending)}</span>
+      {/* PR-13: a campaign can be written before a provider is connected. */}
+      {editReason ? (
+        <Button size="sm" className="self-start" disabledReason={editReason}>
+          {t(m.newCampaign)}
+        </Button>
+      ) : (
+        <ButtonLink size="sm" className="self-start" to="/w/$workspace/campaigns/new" params={{ workspace: slug }}>
+          {t(m.newCampaign)}
+        </ButtonLink>
+      )}
     </section>
   )
 }

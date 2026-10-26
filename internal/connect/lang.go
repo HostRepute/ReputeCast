@@ -49,6 +49,8 @@ var (
 	mTermsOwnPolicy              = msgs.M("terms.ownPolicy")
 	mChipWebhooks                = msgs.M("chip.webhooks")
 	mChipWebhooksVia             = msgs.M("chip.webhooksVia")
+	mChipWebhooksOrQueue         = msgs.M("chip.webhooksOrQueue")
+	mChipTenant                  = msgs.M("chip.tenant")
 	mChipEventWebhook            = msgs.M("chip.eventWebhook")
 	mChipEventGrid               = msgs.M("chip.eventGrid")
 	mChipBounceMailbox           = msgs.M("chip.bounceMailbox")

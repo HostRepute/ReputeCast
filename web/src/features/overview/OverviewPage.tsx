@@ -100,11 +100,9 @@ export function OverviewPage() {
   const stale = providers.data?.providers.find((p) => p.refresh)
   const alert = stale ? refreshSentences(stale, clock) : null
 
-  const newCampaign = firstRun ? (
-    <Button variant="primary" disabledReason={t(m.connectFirst)}>
-      {t(m.newCampaign)}
-    </Button>
-  ) : editReason ? (
+  // A campaign can be written before a provider is connected (PR-13):
+  // scheduling and sending unlock once Broadcasts has a provider.
+  const newCampaign = editReason ? (
     <Button variant="primary" disabledReason={editReason}>
       {t(m.newCampaign)}
     </Button>

@@ -66,6 +66,12 @@ type Capabilities struct {
 	// RemovesWebhook is true when the adapter removes the webhook it
 	// registered once the provider is removed (WebhookUnregistrar).
 	RemovesWebhook bool `json:"removesWebhook"`
+	// EventQueue names the queue the adapter can take its events from
+	// instead of webhooks ("SQS", review PR-4); empty for none.
+	EventQueue string `json:"eventQueue,omitempty"`
+	// Tenants is true when each workspace sends as its own tenant at the
+	// provider, with its own suppression list and reputation (SES, PR-11).
+	Tenants bool `json:"tenants,omitempty"`
 	// PricingText and DedicatedIPsText are the messages Pricing and
 	// DedicatedIPs come from (text.go). They are kept with the capability
 	// snapshot of a connected provider, so it reads in each reader's

@@ -184,6 +184,7 @@ func TestCatalog(t *testing.T) {
 	var cat struct {
 		Builtin []struct {
 			Adapter, Name, Short, Terms, TermsTone, Pricing string
+			Bulk, BulkMark, Setup                           string
 			Recommended, BulkAllowed                        bool
 			Chips                                           []struct{ Label, Kind string }
 			Connected                                       int
@@ -207,7 +208,7 @@ func TestCatalog(t *testing.T) {
 	for _, ch := range first.Chips {
 		labels = append(labels, ch.Kind+":"+ch.Label)
 	}
-	if got := strings.Join(labels, ","); got != "yes:Webhooks (SNS),yes:Domain via API,yes:Suppression sync,yes:Batch 50,partial:Dedicated IPs, paid,yes:Sandbox detection,yes:Quota discovery" {
+	if got := strings.Join(labels, ","); got != "yes:Webhooks (SNS) or SQS queue,yes:Domain via API,yes:Suppression sync,yes:Batch 50,partial:Dedicated IPs, paid,yes:Sandbox detection,yes:Quota discovery,yes:Tenant per workspace" {
 		t.Fatalf("SES chips: %s", got)
 	}
 	names := map[string]string{}
@@ -216,6 +217,21 @@ func TestCatalog(t *testing.T) {
 	}
 	if names["smtp"] != "Any SMTP server|Depends on the server" || names["postal"] != "Postal (self-hosted)|Your own policy" || names["fakeesp"] != "Fake ESP|Bulk marketing allowed" {
 		t.Fatalf("names: %v", names)
+	}
+	// Help me choose (PR-13): each card's bulk-marketing line and mark,
+	// and an honest setup time.
+	bulk := map[string]string{}
+	for _, b := range cat.Builtin {
+		bulk[b.Adapter] = b.BulkMark + ":" + b.Bulk
+	}
+	for adapter, want := range map[string]string{"ses": "yes:Allowed after production access", "postmark": "limited:Broadcast streams only", "mailgun": "yes:Allowed",
+		"postal": "yes:Your own policy", "smtp": "limited:Depends on the server"} {
+		if bulk[adapter] != want {
+			t.Errorf("%s bulk line %q, want %q", adapter, bulk[adapter], want)
+		}
+	}
+	if !strings.HasPrefix(first.Setup, "10–15 min, plus up to 24 h") {
+		t.Errorf("SES setup time %q", first.Setup)
 	}
 	// Installed community adapters show (the unmaintained one doesn't), then
 	// the generic HTTP adapter, configured on the Adapters page.

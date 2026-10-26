@@ -315,5 +315,7 @@
   "catalog.bulkAzure": "Không cho phép · chỉ thư giao dịch, nên chỉ Tự động hóa và Hệ thống",
   "catalog.bulkAllowed": "Cho phép",
   "catalog.bulkBroadcastOnly": "Chỉ trên Broadcast stream",
-  "catalog.bulkNotAllowed": "Không cho phép · chỉ thư giao dịch"
+  "catalog.bulkNotAllowed": "Không cho phép · chỉ thư giao dịch",
+  "chip.webhooksOrQueue": "Webhook ({via}) hoặc hàng đợi {queue}",
+  "chip.tenant": "Tenant riêng cho mỗi không gian làm việc"
 }

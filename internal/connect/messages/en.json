@@ -315,5 +315,7 @@
   "catalog.bulkAzure": "Not allowed · transactional only, so Automations and System",
   "catalog.bulkAllowed": { "message": "Allowed", "note": "a catalog card, after \"Bulk marketing\"" },
   "catalog.bulkBroadcastOnly": { "message": "Broadcast streams only", "note": "a catalog card, after \"Bulk marketing\" (Postmark)" },
-  "catalog.bulkNotAllowed": { "message": "Not allowed · transactional only", "note": "a catalog card, after \"Bulk marketing\"" }
+  "catalog.bulkNotAllowed": { "message": "Not allowed · transactional only", "note": "a catalog card, after \"Bulk marketing\"" },
+  "chip.webhooksOrQueue": { "message": "Webhooks ({via}) or {queue} queue", "note": "via: SNS; queue: SQS (PR-4: events through a queue ReputeCast polls)" },
+  "chip.tenant": { "message": "Tenant per workspace", "note": "SES: each workspace sends as its own tenant (PR-11)" }
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/riverqueue/river"
 
+	"github.com/hostrepute/reputecast/internal/demoworkspace"
 	"github.com/hostrepute/reputecast/internal/ingest"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/netguard"
@@ -69,6 +70,7 @@ func init() {
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		manage.Register(h, a.providersService())
 		routing.Register(h, &routing.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Mailbox: a.mailboxClassifier()})
+		demoworkspace.Register(h, &demoworkspace.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets})
 		warmup.Register(h, &warmup.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit})
 		suppressions.Register(h, a.suppressionSync())
 		ingest.RegisterLog(h, &ingest.EventLog{Pool: a.Pool, Q: a.Q, Audit: a.Audit})
