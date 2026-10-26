@@ -35,6 +35,10 @@ func TestGuardedSending(t *testing.T) {
 		testRouteHeldFor(t, s.Fixture(t, "GS-4 throttled"), sendtest.FaultThrottle, "throttled")
 	})
 	t.Run("UsedUpQuotaHoldsRoute", func(t *testing.T) { testRouteHeldFor(t, s.Fixture(t, "GS-4 quota"), sendtest.FaultQuota, "quota") })
+	// C6 / PR-7 (engine part): an unverified sender holds the route.
+	t.Run("IdentityErrorHoldsRoute", func(t *testing.T) {
+		testRouteHeldFor(t, s.Fixture(t, "PR-7 identity"), sendtest.FaultIdentity, "identity")
+	})
 	// GS-3: one outage path, Retry with test messages.
 	t.Run("HealthJobOutageHasOptions", func(t *testing.T) { testHealthJobOutage(t, s.Fixture(t, "GS-3 health job")) })
 	t.Run("RetryAsksAgainWhileDown", func(t *testing.T) { testRetryAsksAgain(t, s.Fixture(t, "GS-3 ask again")) })
@@ -83,6 +87,9 @@ func testRouteHeldFor(t *testing.T, f *sendtest.Fixture, mode, reason string) {
 	}
 	if !keys["retry"] || !keys["cancel_share"] {
 		t.Fatalf("options %v, want retry and cancel_share", keys)
+	}
+	if reason == "identity" && in.Detail.ErrorKind != "unverified sender" {
+		t.Fatalf("error kind %q, want an unverified sender", in.Detail.ErrorKind)
 	}
 	if n := f.Count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND status IN ('failed', 'rejected')`, f.Campaign); n != 0 {
 		t.Fatalf("%d messages failed on answers about the route", n)

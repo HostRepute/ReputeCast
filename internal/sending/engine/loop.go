@@ -707,11 +707,13 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 		return err
 	}
 	switch {
-	case d.hold == "quota":
+	case d.hold == "quota" || d.hold == "identity":
 		// An outage of the route: held, or moved when the Broadcast policy
-		// allows it and a vetted target can take the rest.
+		// allows it and a vetted target (where the sender is verified) can
+		// take the rest. Nothing is dropped (review PR-7).
 		return e.outage(ctx, rs, r, d.hold, now, false)
 	case d.hold != "":
+		// Rejected credentials: a person fixes them or decides.
 		return e.holdRoute(ctx, rs, r, d.hold, now)
 	case d.slowed:
 		r.throttled(now)
