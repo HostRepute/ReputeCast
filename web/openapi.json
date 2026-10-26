@@ -42299,6 +42299,9 @@
             "maxLength": 45,
             "type": "string"
           },
+          "overflow": {
+            "type": "boolean"
+          },
           "providerId": {
             "format": "uuid",
             "type": "string"
@@ -64942,6 +64945,13 @@
             "format": "uuid",
             "type": "string"
           },
+          "splits": {
+            "items": {
+              "$ref": "#/components/schemas/RoutingSplit"
+            },
+            "maxItems": 5,
+            "type": "array"
+          },
           "values": {
             "items": {
               "type": "string"
@@ -64953,8 +64963,7 @@
         },
         "required": [
           "field",
-          "values",
-          "providerId"
+          "values"
         ],
         "type": "object"
       },
@@ -64979,6 +64988,13 @@
             "format": "uuid",
             "type": "string"
           },
+          "splits": {
+            "items": {
+              "$ref": "#/components/schemas/RoutingSplit"
+            },
+            "maxItems": 5,
+            "type": "array"
+          },
           "valueLabels": {
             "items": {
               "type": "string"
@@ -64997,8 +65013,7 @@
         "required": [
           "valueLabels",
           "field",
-          "values",
-          "providerId"
+          "values"
         ],
         "type": "object"
       },
@@ -87328,85 +87343,116 @@
         ],
         "type": "object"
       },
-      "WarmupDay": {
+      "WarmupCapHold": {
         "additionalProperties": false,
         "properties": {
-          "bounce": {
-            "format": "double",
-            "type": "number"
+          "alternatives": {
+            "items": {
+              "$ref": "#/components/schemas/WarmupHoldAlternative"
+            },
+            "type": "array"
           },
-          "cap": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "complaint": {
-            "format": "double",
-            "type": "number"
-          },
-          "date": {
-            "format": "date-time",
+          "campaign": {
             "type": "string"
           },
-          "day": {
-            "format": "int64",
-            "type": "integer"
+          "campaignId": {
+            "type": "string"
           },
-          "eligible": {
-            "type": "boolean"
+          "decision": {
+            "type": "string"
           },
           "held": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "paused": {
             "type": "boolean"
           },
-          "plannedCap": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "sent": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "share": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "shareChange": {
-            "type": "boolean"
-          },
-          "status": {
-            "enum": [
-              "done",
-              "slowdown",
-              "resumed",
-              "today",
-              "planned"
-            ],
+          "resumeAt": {
+            "format": "date-time",
             "type": "string"
-          },
-          "tiers": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "uses": {
-            "items": {
-              "$ref": "#/components/schemas/WarmupCampaignUse"
-            },
-            "type": "array"
           }
         },
         "required": [
-          "day",
-          "date",
-          "cap",
-          "plannedCap",
+          "campaignId",
+          "campaign",
           "held",
-          "tiers",
-          "share",
-          "shareChange",
-          "uses",
-          "status",
-          "eligible"
+          "paused",
+          "alternatives"
+        ],
+        "type": "object"
+      },
+      "WarmupHoldAlternative": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed": {
+            "type": "boolean"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/VetCheck"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "short": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerId",
+          "name",
+          "short",
+          "allowed",
+          "checks"
+        ],
+        "type": "object"
+      },
+      "WarmupHoldDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "wait",
+              "move",
+              "cancel"
+            ],
+            "type": "string"
+          },
+          "targetProviderId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "type": "object"
+      },
+      "WarmupHoldDecisionResult": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "cancelled": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "moved": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "action",
+          "moved",
+          "cancelled"
         ],
         "type": "object"
       },
@@ -87432,6 +87478,33 @@
           "kind",
           "title",
           "body"
+        ],
+        "type": "object"
+      },
+      "WarmupMailboxCap": {
+        "additionalProperties": false,
+        "properties": {
+          "cap": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "mailbox": {
+            "type": "string"
+          },
+          "percent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "mailbox",
+          "percent",
+          "cap",
+          "sent"
         ],
         "type": "object"
       },
@@ -87464,9 +87537,21 @@
             "format": "double",
             "type": "number"
           },
+          "calendarDays": {
+            "format": "int64",
+            "type": "integer"
+          },
           "complaintRate": {
             "format": "double",
             "type": "number"
+          },
+          "countShare": {
+            "format": "double",
+            "type": "number"
+          },
+          "counted": {
+            "format": "int64",
+            "type": "integer"
           },
           "createdBy": {
             "type": "string"
@@ -87479,9 +87564,27 @@
             "format": "int64",
             "type": "integer"
           },
-          "endDate": {
+          "finishesOn": {
             "format": "date-time",
             "type": "string"
+          },
+          "healthyDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "healthyStreak": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "held": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "holds": {
+            "items": {
+              "$ref": "#/components/schemas/WarmupCapHold"
+            },
+            "type": "array"
           },
           "id": {
             "type": "string"
@@ -87498,15 +87601,32 @@
             },
             "type": "array"
           },
+          "mailboxCaps": {
+            "items": {
+              "$ref": "#/components/schemas/WarmupMailboxCap"
+            },
+            "type": "array"
+          },
+          "minSample": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "needToday": {
+            "format": "int64",
+            "type": "integer"
+          },
           "nextRate": {
             "$ref": "#/components/schemas/WarmupStep"
           },
-          "plannedToDate": {
+          "overflowTo": {
+            "type": "string"
+          },
+          "overflowToday": {
             "format": "int64",
             "type": "integer"
           },
           "progress": {
-            "description": "Percent of the plan's days",
+            "description": "Percent of the plan's days counted",
             "format": "double",
             "type": "number"
           },
@@ -87516,15 +87636,28 @@
           "providerId": {
             "type": "string"
           },
+          "ramp": {
+            "items": {
+              "$ref": "#/components/schemas/WarmupRampDay"
+            },
+            "type": "array"
+          },
           "rateToday": {
             "format": "double",
             "type": "number"
           },
-          "schedule": {
+          "repeatsTomorrow": {
+            "type": "boolean"
+          },
+          "rows": {
             "items": {
-              "$ref": "#/components/schemas/WarmupDay"
+              "$ref": "#/components/schemas/WarmupRow"
             },
             "type": "array"
+          },
+          "scheduledToday": {
+            "format": "int64",
+            "type": "integer"
           },
           "sentToday": {
             "format": "int64",
@@ -87544,7 +87677,7 @@
             "format": "int64",
             "type": "integer"
           },
-          "startDate": {
+          "startedOn": {
             "format": "date-time",
             "type": "string"
           },
@@ -87575,19 +87708,187 @@
           "statusDetail",
           "day",
           "days",
-          "startDate",
-          "endDate",
+          "counted",
+          "calendarDays",
+          "startedOn",
+          "finishesOn",
           "progress",
           "todayCap",
           "sentToday",
+          "needToday",
+          "repeatsTomorrow",
+          "scheduledToday",
           "sentTotal",
-          "plannedToDate",
           "slowdowns",
           "rateToday",
-          "schedule",
+          "healthyStreak",
+          "healthyDays",
+          "minSample",
+          "countShare",
+          "rows",
+          "ramp",
+          "mailboxCaps",
+          "overflowToday",
           "settings",
+          "holds",
           "log",
           "createdBy"
+        ],
+        "type": "object"
+      },
+      "WarmupRampDay": {
+        "additionalProperties": false,
+        "properties": {
+          "day": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "plannedCap": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "slowed": {
+            "type": "boolean"
+          },
+          "today": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "day",
+          "plannedCap",
+          "slowed",
+          "today"
+        ],
+        "type": "object"
+      },
+      "WarmupRow": {
+        "additionalProperties": false,
+        "properties": {
+          "bounce": {
+            "format": "double",
+            "type": "number"
+          },
+          "bounced": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "cap": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "complained": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "complaint": {
+            "format": "double",
+            "type": "number"
+          },
+          "date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "day": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "delivered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "eligible": {
+            "type": "boolean"
+          },
+          "healthy": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "held": {
+            "type": "boolean"
+          },
+          "judged": {
+            "type": "boolean"
+          },
+          "metric": {
+            "enum": [
+              "bounce",
+              "complaint"
+            ],
+            "type": "string"
+          },
+          "need": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "plannedCap": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reason": {
+            "enum": [
+              "short",
+              "guard"
+            ],
+            "type": "string"
+          },
+          "repeat": {
+            "type": "boolean"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "share": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "shareChange": {
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "counted",
+              "not_counted",
+              "today",
+              "planned"
+            ],
+            "type": "string"
+          },
+          "tiers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "uses": {
+            "items": {
+              "$ref": "#/components/schemas/WarmupCampaignUse"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "day",
+          "date",
+          "cap",
+          "tiers",
+          "share",
+          "shareChange",
+          "uses",
+          "status",
+          "judged",
+          "bounced",
+          "complained",
+          "delivered",
+          "need",
+          "held",
+          "repeat",
+          "eligible"
         ],
         "type": "object"
       },
@@ -87626,6 +87927,9 @@
             "minimum": 0.01,
             "type": "number"
           },
+          "overflow": {
+            "type": "boolean"
+          },
           "spreadMailbox": {
             "type": "boolean"
           }
@@ -87643,18 +87947,25 @@
       "WarmupSlowdown": {
         "additionalProperties": false,
         "properties": {
-          "bounce": {
-            "format": "double",
-            "type": "number"
-          },
           "day": {
             "format": "int64",
             "type": "integer"
+          },
+          "metric": {
+            "enum": [
+              "bounce",
+              "complaint"
+            ],
+            "type": "string"
+          },
+          "rate": {
+            "format": "double",
+            "type": "number"
           }
         },
         "required": [
           "day",
-          "bounce"
+          "metric"
         ],
         "type": "object"
       },
@@ -166028,6 +166339,92 @@
         ],
         "x-access": "workspace",
         "x-permission": "providers:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/warmup/{planId}/held/{campaignId}": {
+      "post": {
+        "description": "A share held at a warming provider's daily cap waits for tomorrow's cap by itself. Move sends it through another provider once it passes the same checks as a failover target; cancel drops the held rest of this share only. Cancelling needs campaigns:pause; waiting and moving resume the send and need campaigns:send.",
+        "operationId": "decide-warmup-hold",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarmupHoldDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmupHoldDecisionResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Wait for tomorrow's cap, move or cancel a share held at the warm-up cap",
+        "tags": [
+          "Warm-up"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:pause"
       }
     },
     "/api/v1/workspaces/{workspace}/warmup/{planId}/pause": {

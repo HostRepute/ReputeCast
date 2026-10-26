@@ -4064,16 +4064,41 @@ type Querier interface {
 	WarmupActivePlans(ctx context.Context) ([]WarmupActivePlansRow, error)
 	// texts keeps the title's and body's messages for later readers.
 	WarmupAddEvent(ctx context.Context, arg WarmupAddEventParams) error
+	// Messages over today's cap that went through a warm provider (PR-8).
+	WarmupAddOverflow(ctx context.Context, arg WarmupAddOverflowParams) error
+	// The running plan of a provider with its workspace's time zone: warm-up
+	// caps count the workspace's day, whatever the caller's clock (PR-8).
+	WarmupAllowancePlan(ctx context.Context, providerID uuid.UUID) (WarmupAllowancePlanRow, error)
+	// PR-8: campaign shares today's warm-up cap holds on a provider (route
+	// held with reason warmup_cap), with what still waits.
+	WarmupCapHolds(ctx context.Context, providerID uuid.UUID) ([]WarmupCapHoldsRow, error)
+	// Shares a warm-up cap held whose provider's new day has started (the
+	// daily job sends them on), across workspaces.
+	WarmupCapHoldsDue(ctx context.Context) ([]WarmupCapHoldsDueRow, error)
 	WarmupDailyStats(ctx context.Context, arg WarmupDailyStatsParams) ([]WarmupDailyStatsRow, error)
+	// One day of a warming provider (the workspace's day): sent, bounced,
+	// complained and delivered per mailbox provider.
+	WarmupDayStats(ctx context.Context, arg WarmupDayStatsParams) ([]WarmupDayStatsRow, error)
 	WarmupGetPlan(ctx context.Context, arg WarmupGetPlanParams) (WarmupGetPlanRow, error)
 	WarmupInsertPlan(ctx context.Context, arg WarmupInsertPlanParams) error
 	// Warm-up plans for new providers and dedicated IPs.
 	// Plans of a workspace's providers, current first.
 	WarmupListPlans(ctx context.Context, workspaceID uuid.UUID) ([]WarmupListPlansRow, error)
 	WarmupLog(ctx context.Context, arg WarmupLogParams) ([]WarmupEvent, error)
+	// PR-8: where the plan stands after the daily job judged its days: the
+	// day that counts as day 1 now (start_date), the last day judged and a
+	// slowdown's hold.
+	WarmupMove(ctx context.Context, arg WarmupMoveParams) error
 	// Scheduled campaigns with a share on the provider (the plan table shows
 	// "Weekly Digest #142 uses 3,160").
 	WarmupPlannedCampaignUse(ctx context.Context, arg WarmupPlannedCampaignUseParams) ([]WarmupPlannedCampaignUseRow, error)
+	WarmupResolveCapHold(ctx context.Context, arg WarmupResolveCapHoldParams) error
+	// PR-8: a paused plan resumes on the day it stopped: its days move on by
+	// the days it was paused, which are never judged.
+	WarmupResume(ctx context.Context, arg WarmupResumeParams) error
+	// What a provider sent since a time (the start of the workspace's day),
+	// per mailbox provider: every stream counts toward the warm-up cap.
+	WarmupSentSince(ctx context.Context, arg WarmupSentSinceParams) ([]WarmupSentSinceRow, error)
 	// texts keeps the status detail's message for later readers ({} without one).
 	WarmupSetProgress(ctx context.Context, arg WarmupSetProgressParams) error
 	// texts keeps the status detail's message for later readers ({} without one).

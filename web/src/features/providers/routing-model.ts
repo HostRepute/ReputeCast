@@ -32,7 +32,16 @@ export function toDraft(cfg: RoutingConfig): Draft {
       splits: v ? v.splits.map((x) => ({ providerId: x.providerId, weight: x.weight })) : [],
       fallback: v?.fallback ?? '',
       failover: (v?.failover ?? (s === 'broadcast' ? 'pause_and_ask' : 'automatic')) as FailoverPolicy,
-      conditions: v ? v.conditions.map((c) => ({ field: c.field, values: [...c.values], providerId: c.providerId, note: c.note, valueLabels: c.valueLabels })) : [],
+      conditions: v
+        ? v.conditions.map((c) => ({
+            field: c.field,
+            values: [...c.values],
+            providerId: c.providerId,
+            splits: c.splits?.map((x) => ({ providerId: x.providerId, weight: x.weight })),
+            note: c.note,
+            valueLabels: c.valueLabels,
+          }))
+        : [],
       priority: v?.priority ?? true,
     }
   }
@@ -48,9 +57,23 @@ function streamInput(d: Draft, s: Stream): StreamInput {
     splits: d[s].splits.filter((x) => x.weight > 0),
     fallback: d[s].fallback || undefined,
     failover: d[s].failover,
-    conditions: d[s].conditions.map((c) => ({ field: c.field, values: c.values, providerId: c.providerId, note: c.note || undefined })),
+    conditions: d[s].conditions.map(conditionInput),
     priority: s === 'transactional' ? d[s].priority : undefined,
   }
+}
+
+/** A condition as the API takes it: one provider, or a split by weight (PR-12). */
+function conditionInput(c: Condition): Schemas['RoutingCondition'] {
+  const splits = (c.splits ?? []).filter((x) => x.weight > 0)
+  if (splits.length > 1) return { field: c.field, values: c.values, splits, note: c.note || undefined }
+  return { field: c.field, values: c.values, providerId: splits[0]?.providerId ?? c.providerId, note: c.note || undefined }
+}
+
+/** The providers a condition sends to: its one provider, or its split's. */
+export function conditionProviders(c: Pick<Condition, 'providerId' | 'splits'>): string[] {
+  const splits = (c.splits ?? []).filter((x) => x.weight > 0)
+  if (splits.length) return splits.map((x) => x.providerId)
+  return c.providerId ? [c.providerId] : []
 }
 
 /** The whole draft as a save body (the route tester's unsaved routing). */
@@ -203,7 +226,7 @@ export function bulkIssues(d: Draft, providers: RoutingProvider[]): BulkIssue[] 
   const b = d.broadcast
   if (b.fallback && bad(b.fallback)) out.push({ stream: 'broadcast', providerId: b.fallback, where: 'fallback' })
   for (const s of b.splits) if (s.weight > 0 && bad(s.providerId)) out.push({ stream: 'broadcast', providerId: s.providerId, where: 'split' })
-  for (const c of b.conditions) if (bad(c.providerId)) out.push({ stream: 'broadcast', providerId: c.providerId, where: 'condition' })
+  for (const c of b.conditions) for (const id of conditionProviders(c)) if (bad(id)) out.push({ stream: 'broadcast', providerId: id, where: 'condition' })
   return out
 }
 
@@ -253,7 +276,10 @@ export function stepText(st: Schemas['RouteTestStep'], stream: Stream, hasCondit
           ? t(mr.stepStreamPrimary, { stream: name, provider: st.provider })
           : t(mr.stepStreamNoPrimary, { stream: name })
     case 'condition': {
-      const matched = t(mr.stepCondition, { field: st.field ?? 'mailbox_provider', value: st.value ?? '', provider: st.provider ?? '' })
+      const args = { field: st.field ?? 'mailbox_provider', value: st.value ?? '', provider: st.provider ?? '' }
+      const matched = st.splits?.length
+        ? t(mr.stepConditionSplit, { ...args, split: st.splits.map((x) => `${x.short} ${x.weight}`).join(' / ') })
+        : t(mr.stepCondition, args)
       return st.warming ? `${matched} ${t(mr.stepStillWarming, { provider: st.warming })}` : matched
     }
     case 'split': {
@@ -308,7 +334,7 @@ export function providerUses(d: Draft, id: string): ProviderUse[] {
     const share = splits.slice(1).find((x) => x.providerId === id)
     if (share) out.push({ kind: 'share', stream: s, weight: share.weight })
     if (sd.fallback === id) out.push({ kind: 'failover', stream: s })
-    for (const c of sd.conditions) if (c.providerId === id) out.push({ kind: 'condition', stream: s, values: (c.valueLabels ?? c.values).join(', ') })
+    for (const c of sd.conditions) if (conditionProviders(c).includes(id)) out.push({ kind: 'condition', stream: s, values: (c.valueLabels ?? c.values).join(', ') })
   }
   return out.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind))
 }
@@ -328,5 +354,21 @@ export function withoutProvider(sd: StreamDraft, id: string, primary: string, fa
   let fb = sd.fallback === id ? fallback : sd.fallback
   // A stream never fails over to its own primary.
   if (fb && fb === splits[0]?.providerId) fb = ''
-  return { ...sd, splits, fallback: fb, conditions: sd.conditions.filter((c) => c.providerId !== id) }
+  return { ...sd, splits, fallback: fb, conditions: sd.conditions.flatMap((c) => conditionWithout(c, id)) }
+}
+
+/**
+ * A condition without a removed provider: a split gives the provider's
+ * weight to its first remaining provider (a split of one is one provider
+ * again); a condition left without providers goes.
+ */
+export function conditionWithout(c: Condition, id: string): Condition[] {
+  const splits = (c.splits ?? []).filter((x) => x.weight > 0)
+  if (splits.length < 2) return conditionProviders(c).includes(id) ? [] : [c]
+  const gone = splits.find((x) => x.providerId === id)
+  if (!gone) return [c]
+  const rest = splits.filter((x) => x.providerId !== id)
+  if (rest.length === 1) return [{ ...c, providerId: rest[0]!.providerId, splits: undefined }]
+  rest[0] = { ...rest[0]!, weight: rest[0]!.weight + gone.weight }
+  return [{ ...c, providerId: rest[0]!.providerId, splits: rest }]
 }

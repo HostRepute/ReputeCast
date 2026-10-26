@@ -14,6 +14,7 @@ import { Banner, Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { T, formatList, useT, type MessageDescriptor } from '@/i18n'
 import { common } from '@/i18n/common'
+import { cn } from '@/lib/cn'
 import { ago, clock, count, trimPct } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { onProviderColor, perSec, providerColor, ProvidersTabs, streamName, throwIfForbidden, type FailoverPolicy, type Stream } from './common'
@@ -532,7 +533,15 @@ function Conditions({
       <span className="text-[13px] font-semibold">{sd.splits.length > 1 ? t(mr.conditionsBeforeSplit) : t(mr.conditionsBeforePrimary)}</span>
       {sd.conditions.map((c, i) => {
         const values = c.field === 'list' ? c.values.map((v) => lists.get(v) ?? v) : c.field === 'mailbox_provider' ? c.values.map((v) => mailboxName[v] ?? v) : c.values
-        const p = byId.get(c.providerId)
+        const split = (c.splits ?? []).filter((x) => x.weight > 0)
+        const p = byId.get(c.providerId ?? split[0]?.providerId ?? '')
+        const then =
+          split.length > 1
+            ? split.map((x) => t(mr.condShare, { provider: byId.get(x.providerId)?.name ?? t(mr.condUnknownProvider), share: trimPct(x.weight) })).join(' · ')
+            : p
+              ? t(mr.condOnly, { provider: p.name })
+              : t(mr.condUnknownProvider)
+        const note = [c.note, split.length > 1 ? t(mr.condSticky) : ''].filter(Boolean).join(' · ')
         return (
           <div key={i} className="pv-cond">
             <span className="k">{t(mr.condIf)}</span>
@@ -540,8 +549,8 @@ function Conditions({
             <span className="pv-chip">{values.length > 1 ? t(mr.condIsOneOf) : t(mr.condIs)}</span>
             <span className="pv-chip">{values.join(', ')}</span>
             <span className="k">{t(mr.condThen)}</span>
-            <span className="pv-chip then">{p ? t(mr.condOnly, { provider: p.name }) : t(mr.condUnknownProvider)}</span>
-            {c.note ? <span className="k ml-auto">{c.note}</span> : <span className="ml-auto" />}
+            <span className="pv-chip then">{then}</span>
+            {note ? <span className="k ml-auto">{note}</span> : <span className="ml-auto" />}
             <Button
               size="sm"
               aria-label={t(mr.removeCondition, { field: fieldText[c.field], values: values.join(', ') })}
@@ -625,14 +634,29 @@ function SharedCard({ cfg }: { cfg: RoutingConfig }) {
   )
 }
 
-/** Adds a condition: when a field matches, send only through one provider. */
+/**
+ * Adds a condition: when a field matches, send through one provider, or a
+ * split by weight of its own (PR-12), sticky per address like the stream's.
+ */
 function ConditionDialog({ stream, cfg, onClose, onAdd }: { stream: Stream; cfg: RoutingConfig; onClose: () => void; onAdd: (c: Condition) => void }) {
   const t = useT()
   const [field, setField] = useState<Condition['field']>(stream === 'transactional' ? 'category' : 'mailbox_provider')
   const [values, setValues] = useState<string[]>([])
   const [providerId, setProviderId] = useState(cfg.providers.find((p) => !p.warmingUp)?.id ?? cfg.providers[0]?.id ?? '')
+  const [mode, setMode] = useState<'one' | 'split'>('one')
+  const [split, setSplit] = useState<{ providerId: string; weight: number }[]>(() => {
+    const ids = cfg.providers.map((p) => p.id)
+    return [
+      { providerId: providerId || ids[0] || '', weight: 70 },
+      { providerId: ids.find((id) => id !== providerId) ?? '', weight: 30 },
+    ]
+  })
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
+  const [splitError, setSplitError] = useState('')
+  const thenName = useId()
+  const total = split.reduce((n, x) => n + x.weight, 0)
+  const setRow = (i: number, patch: Partial<{ providerId: string; weight: number }>) => setSplit((cur) => cur.map((x, j) => (j === i ? { ...x, ...patch } : x)))
   const choices: { value: string; label: string }[] =
     field === 'mailbox_provider'
       ? Object.entries(mailboxName).map(([value, label]) => ({ value, label }))
@@ -659,6 +683,19 @@ function ConditionDialog({ stream, cfg, onClose, onAdd }: { stream: Stream; cfg:
                 return
               }
               const labels = values.map((v) => choices.find((c) => c.value === v)?.label ?? v)
+              if (mode === 'split') {
+                const rows = split.filter((x) => x.providerId && x.weight > 0)
+                if (new Set(rows.map((x) => x.providerId)).size !== rows.length || rows.length < 2) {
+                  setSplitError(t(mr.splitTwoProviders))
+                  return
+                }
+                if (total !== 100) {
+                  setSplitError(t(mr.splitMust100))
+                  return
+                }
+                onAdd({ field, values, providerId: rows[0]!.providerId, splits: rows, note: note.trim() || undefined, valueLabels: labels })
+                return
+              }
               onAdd({ field, values, providerId, note: note.trim() || undefined, valueLabels: labels })
             }}
           >
@@ -700,19 +737,84 @@ function ConditionDialog({ stream, cfg, onClose, onAdd }: { stream: Stream; cfg:
             </span>
           ) : null}
         </fieldset>
-        <Field label={t(mr.thenSend)}>
-          <Select value={providerId} onChange={(e) => setProviderId(e.target.value)}>
-            {cfg.providers.map((p) => (
-              <option key={p.id} value={p.id}>
-                {providerOption(p, { warming: true })}
-              </option>
-            ))}
-          </Select>
-        </Field>
+        <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
+          <legend className="lbl mb-1 p-0">{t(mr.thenLegend)}</legend>
+          <div className="flex flex-wrap gap-x-4 gap-y-1" role="radiogroup" aria-label={t(mr.thenLegend)}>
+            <label className="pv-tg">
+              <input type="radio" name={thenName} checked={mode === 'one'} onChange={() => setMode('one')} />
+              <span>{t(mr.thenOne)}</span>
+            </label>
+            <label className="pv-tg">
+              <input type="radio" name={thenName} checked={mode === 'split'} onChange={() => setMode('split')} disabled={cfg.providers.length < 2} />
+              <span>{t(mr.thenSplit)}</span>
+            </label>
+          </div>
+          {mode === 'one' ? (
+            <Field label={t(mr.thenSend)}>
+              <Select value={providerId} onChange={(e) => setProviderId(e.target.value)}>
+                {cfg.providers.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {providerOption(p, { warming: true })}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {split.map((row, i) => {
+                const name = cfg.providers.find((p) => p.id === row.providerId)?.name ?? t(mr.splitProviderLabel, { n: i + 1 })
+                return (
+                  <div key={i} className="flex flex-wrap items-end gap-2">
+                    <Field label={t(mr.splitProviderLabel, { n: i + 1 })} className="min-w-[180px] flex-1">
+                      <Select value={row.providerId} onChange={(e) => setRow(i, { providerId: e.target.value })}>
+                        {cfg.providers.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {providerOption(p, { warming: true })}
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
+                    <Field label={t(mr.splitShareLabel, { provider: name })} className="w-[110px]">
+                      <Input
+                        inputMode="numeric"
+                        value={String(row.weight)}
+                        onChange={(e) => setRow(i, { weight: Math.max(0, Math.min(100, Number(e.target.value.replace(/[^0-9]/g, '')) || 0)) })}
+                      />
+                    </Field>
+                    {split.length > 2 ? (
+                      <Button aria-label={t(mr.splitRemoveProvider, { provider: name })} onClick={() => setSplit((cur) => cur.filter((_, j) => j !== i))}>
+                        {t(mr.remove)}
+                      </Button>
+                    ) : null}
+                  </div>
+                )
+              })}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                {split.length < Math.min(5, cfg.providers.length) ? (
+                  <Button size="sm" onClick={() => setSplit((cur) => [...cur, { providerId: cfg.providers.find((p) => !cur.some((x) => x.providerId === p.id))?.id ?? '', weight: 0 }])}>
+                    {t(mr.splitAddProvider)}
+                  </Button>
+                ) : (
+                  <span />
+                )}
+                <span className={cn('text-[13px]', total === 100 ? 'k' : 'text-warn-fg')} aria-live="polite">
+                  {t(mr.splitTotal, { total: trimPct(total) })}
+                </span>
+              </div>
+              <span className="k">{t(mr.thenSplitHint)}</span>
+              {splitError ? (
+                <span className="err" role="alert">
+                  {splitError}
+                </span>
+              ) : null}
+            </div>
+          )}
+        </fieldset>
         <Field label={t(mr.why)} optional hint={t(mr.whyHint)}>
           <Input value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} />
         </Field>
-        {stream === 'broadcast' && cfg.providers.find((p) => p.id === providerId && !p.bulkAllowed) ? (
+        {stream === 'broadcast' &&
+        cfg.providers.find((p) => (mode === 'one' ? p.id === providerId : split.some((x) => x.weight > 0 && x.providerId === p.id)) && !p.bulkAllowed) ? (
           <Note tone="warn">{t(mr.notBulk)}</Note>
         ) : null}
       </div>

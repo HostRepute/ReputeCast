@@ -15737,6 +15737,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/warmup/{planId}/held/{campaignId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Wait for tomorrow's cap, move or cancel a share held at the warm-up cap
+         * @description A share held at a warming provider's daily cap waits for tomorrow's cap by itself. Move sends it through another provider once it passes the same checks as a failover target; cancel drops the held rest of this share only. Cancelling needs campaigns:pause; waiting and moving resume the send and need campaigns:send.
+         */
+        post: operations["decide-warmup-hold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/warmup/{planId}/pause": {
         parameters: {
             query?: never;
@@ -28841,6 +28861,7 @@ export interface components {
             /** Format: double */
             guardComplaint: number;
             ip?: string;
+            overflow?: boolean;
             /** Format: uuid */
             providerId: string;
             spreadMailbox: boolean;
@@ -35339,7 +35360,8 @@ export interface components {
             field: "mailbox_provider" | "list" | "sender_domain" | "category";
             note?: string;
             /** Format: uuid */
-            providerId: string;
+            providerId?: string;
+            splits?: components["schemas"]["RoutingSplit"][];
             values: string[];
         };
         RoutingConditionView: {
@@ -35350,7 +35372,8 @@ export interface components {
             field: "mailbox_provider" | "list" | "sender_domain" | "category";
             note?: string;
             /** Format: uuid */
-            providerId: string;
+            providerId?: string;
+            splits?: components["schemas"]["RoutingSplit"][];
             valueLabels: string[];
             values: string[];
         };
@@ -41651,30 +41674,36 @@ export interface components {
             name: string;
             providerId: string;
         };
-        WarmupDay: {
-            /** Format: double */
-            bounce?: number;
+        WarmupCapHold: {
+            alternatives: components["schemas"]["WarmupHoldAlternative"][];
+            campaign: string;
+            campaignId: string;
+            decision?: string;
             /** Format: int64 */
-            cap: number;
-            /** Format: double */
-            complaint?: number;
+            held: number;
+            paused: boolean;
             /** Format: date-time */
-            date: string;
-            /** Format: int64 */
-            day: number;
-            eligible: boolean;
-            held: boolean;
-            /** Format: int64 */
-            plannedCap: number;
-            /** Format: int64 */
-            sent?: number;
-            /** Format: int64 */
-            share: number;
-            shareChange: boolean;
+            resumeAt?: string;
+        };
+        WarmupHoldAlternative: {
+            allowed: boolean;
+            checks: components["schemas"]["VetCheck"][];
+            name: string;
+            providerId: string;
+            short: string;
+        };
+        WarmupHoldDecision: {
             /** @enum {string} */
-            status: "done" | "slowdown" | "resumed" | "today" | "planned";
-            tiers: string[];
-            uses: components["schemas"]["WarmupCampaignUse"][];
+            action: "wait" | "move" | "cancel";
+            /** Format: uuid */
+            targetProviderId?: string;
+        };
+        WarmupHoldDecisionResult: {
+            action: string;
+            /** Format: int64 */
+            cancelled: number;
+            /** Format: int64 */
+            moved: number;
         };
         WarmupLogEntry: {
             /** Format: date-time */
@@ -41683,6 +41712,15 @@ export interface components {
             kind: string;
             title: string;
         };
+        WarmupMailboxCap: {
+            /** Format: int64 */
+            cap: number;
+            mailbox: string;
+            /** Format: int64 */
+            percent: number;
+            /** Format: int64 */
+            sent: number;
+        };
         WarmupOverview: {
             candidates: components["schemas"]["WarmupCandidate"][];
             plans: components["schemas"]["WarmupPlanView"][];
@@ -41690,32 +41728,55 @@ export interface components {
         WarmupPlanView: {
             /** Format: double */
             bounceRate?: number;
+            /** Format: int64 */
+            calendarDays: number;
             /** Format: double */
             complaintRate?: number;
+            /** Format: double */
+            countShare: number;
+            /** Format: int64 */
+            counted: number;
             createdBy: string;
             /** Format: int64 */
             day: number;
             /** Format: int64 */
             days: number;
             /** Format: date-time */
-            endDate: string;
+            finishesOn: string;
+            /** Format: int64 */
+            healthyDays: number;
+            /** Format: int64 */
+            healthyStreak: number;
+            /** Format: int64 */
+            held?: number;
+            holds: components["schemas"]["WarmupCapHold"][];
             id: string;
             ip: string;
             lastSlowdown?: components["schemas"]["WarmupSlowdown"];
             log: components["schemas"]["WarmupLogEntry"][];
-            nextRate?: components["schemas"]["WarmupStep"];
+            mailboxCaps: components["schemas"]["WarmupMailboxCap"][];
             /** Format: int64 */
-            plannedToDate: number;
+            minSample: number;
+            /** Format: int64 */
+            needToday: number;
+            nextRate?: components["schemas"]["WarmupStep"];
+            overflowTo?: string;
+            /** Format: int64 */
+            overflowToday: number;
             /**
              * Format: double
-             * @description Percent of the plan's days
+             * @description Percent of the plan's days counted
              */
             progress: number;
             provider: string;
             providerId: string;
+            ramp: components["schemas"]["WarmupRampDay"][];
             /** Format: double */
             rateToday: number;
-            schedule: components["schemas"]["WarmupDay"][];
+            repeatsTomorrow: boolean;
+            rows: components["schemas"]["WarmupRow"][];
+            /** Format: int64 */
+            scheduledToday: number;
             /** Format: int64 */
             sentToday: number;
             /** Format: int64 */
@@ -41725,12 +41786,63 @@ export interface components {
             /** Format: int64 */
             slowdowns: number;
             /** Format: date-time */
-            startDate: string;
+            startedOn: string;
             /** @enum {string} */
             status: "active" | "slowed" | "paused" | "done";
             statusDetail: string;
             /** Format: int64 */
             todayCap: number;
+        };
+        WarmupRampDay: {
+            /** Format: int64 */
+            day: number;
+            /** Format: int64 */
+            plannedCap: number;
+            /** Format: int64 */
+            sent?: number;
+            slowed: boolean;
+            today: boolean;
+        };
+        WarmupRow: {
+            /** Format: double */
+            bounce?: number;
+            /** Format: int64 */
+            bounced: number;
+            /** Format: int64 */
+            cap: number;
+            /** Format: int64 */
+            complained: number;
+            /** Format: double */
+            complaint?: number;
+            /** Format: date-time */
+            date: string;
+            /** Format: int64 */
+            day: number;
+            /** Format: int64 */
+            delivered: number;
+            eligible: boolean;
+            /** Format: int64 */
+            healthy?: number;
+            held: boolean;
+            judged: boolean;
+            /** @enum {string} */
+            metric?: "bounce" | "complaint";
+            /** Format: int64 */
+            need: number;
+            /** Format: int64 */
+            plannedCap?: number;
+            /** @enum {string} */
+            reason?: "short" | "guard";
+            repeat: boolean;
+            /** Format: int64 */
+            sent?: number;
+            /** Format: int64 */
+            share: number;
+            shareChange: boolean;
+            /** @enum {string} */
+            status: "counted" | "not_counted" | "today" | "planned";
+            tiers: string[];
+            uses: components["schemas"]["WarmupCampaignUse"][];
         };
         WarmupSettings: {
             /**
@@ -41745,13 +41857,16 @@ export interface components {
             guardBounce: number;
             /** Format: double */
             guardComplaint: number;
+            overflow?: boolean;
             spreadMailbox: boolean;
         };
         WarmupSlowdown: {
-            /** Format: double */
-            bounce: number;
             /** Format: int64 */
             day: number;
+            /** @enum {string} */
+            metric: "bounce" | "complaint";
+            /** Format: double */
+            rate?: number;
         };
         WarmupStep: {
             /** Format: int64 */
@@ -79901,6 +80016,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WarmupPlanView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "decide-warmup-hold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                planId: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarmupHoldDecision"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupHoldDecisionResult"];
                 };
             };
             /** @description Error */

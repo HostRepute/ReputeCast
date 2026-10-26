@@ -83,6 +83,10 @@ export const mr = defineMessages('providers.routing', {
   condIsOneOf: 'is one of',
   condIs: 'is',
   condOnly: '{provider} only',
+  /** One provider of a condition's split ("Amazon SES 70%"); {share} is a percentage. */
+  condShare: '{provider} {share}',
+  /** After a split condition's note: its split keeps each address on one provider too. */
+  condSticky: 'sticky too',
   condUnknownProvider: 'Unknown provider',
   /** {field} is the condition's field ("recipient mailbox provider") and {values} its values. */
   removeCondition: 'Remove condition: {field} {values}',
@@ -126,6 +130,19 @@ export const mr = defineMessages('providers.routing', {
   legendIsOneOf: 'is one of',
   nothingToPick: 'Nothing to pick yet.',
   thenSend: 'Then send only through',
+  thenLegend: 'Then send through',
+  thenOne: 'One provider',
+  thenSplit: 'A split by weight',
+  thenSplitHint: 'Each address keeps its provider, as in the stream\'s split.',
+  /** {provider} is a provider's name. */
+  splitShareLabel: "{provider}'s share",
+  splitProviderLabel: 'Provider {n}',
+  splitAddProvider: 'Add a provider',
+  splitRemoveProvider: 'Remove {provider} from the split',
+  /** {total} is a percentage ("90%"). */
+  splitTotal: 'Adds up to {total}',
+  splitMust100: 'The split must add up to 100%.',
+  splitTwoProviders: 'Pick two different providers for the split.',
   why: 'Why',
   whyHint: 'Shown beside the condition, like “Outlook is strict with new IPs”.',
   notBulk: "This provider's terms don't allow bulk marketing on Broadcasts.",
@@ -159,6 +176,9 @@ export const mr = defineMessages('providers.routing', {
   stepCondition:
     '{field, select, list {Condition matched: list is {value}, so {provider} only.} sender_domain {Condition matched: sender domain is {value}, so {provider} only.} category {Condition matched: category is {value}, so {provider} only.} other {Condition matched: recipient mailbox provider is {value}, so {provider} only.}}',
   stepStillWarming: '{provider} is still warming up.',
+  /** {split} is "SES 70 / Postal 30". */
+  stepConditionSplit:
+    '{field, select, list {Condition matched: list is {value}; its {split} split sends this address to {provider}.} sender_domain {Condition matched: sender domain is {value}; its {split} split sends this address to {provider}.} category {Condition matched: category is {value}; its {split} split sends this address to {provider}.} other {Condition matched: recipient mailbox provider is {value}; its {split} split sends this address to {provider}.}}',
   stepNoMatch: 'No condition matched.',
   /** {split} is the split ("SES 90 / Postal 10"). */
   stepSplit: 'Weighted split {split}: this address hashes to bucket {bucket} of 100.',

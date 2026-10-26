@@ -103,12 +103,18 @@ type RoutingSplit struct {
 }
 
 // RoutingCondition is a rule evaluated before the split: IF field matches
-// one of values THEN only providerId.
+// one of values THEN providerId only, or a weighted split of its own
+// (PR-12), sticky per recipient like the stream's split.
 type RoutingCondition struct {
-	Field      string   `json:"field" enum:"mailbox_provider,list,sender_domain,category" doc:"category: a transactional category (Transactional stream only)"`
-	Values     []string `json:"values" minItems:"1" maxItems:"50"`
-	ProviderID string   `json:"providerId" format:"uuid"`
-	Note       string   `json:"note,omitempty" maxLength:"120"`
+	Field  string   `json:"field" enum:"mailbox_provider,list,sender_domain,category" doc:"category: a transactional category (Transactional stream only)"`
+	Values []string `json:"values" minItems:"1" maxItems:"50"`
+	// ProviderID is the one provider the condition sends to; with Splits it
+	// is the first of them.
+	ProviderID string `json:"providerId,omitempty" format:"uuid"`
+	// Splits, when set, split the matching recipients by weight (adding up
+	// to 100) instead of sending them all to one provider.
+	Splits []RoutingSplit `json:"splits,omitempty" maxItems:"5"`
+	Note   string         `json:"note,omitempty" maxLength:"120"`
 }
 
 // RoutingStreamInput is one stream's routing in a save.
@@ -276,6 +282,14 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 	for _, d := range domains {
 		out.SenderDomains = append(out.SenderDomains, d.Domain)
 	}
+	// Domains a condition names can be tested too, set up here or not.
+	for _, r := range set.Rules {
+		for _, d := range r.Conditions.SenderDomains {
+			if !slices.Contains(out.SenderDomains, d) {
+				out.SenderDomains = append(out.SenderDomains, d)
+			}
+		}
+	}
 	categoryNames := map[string]string{}
 	if cats, err := s.Q.TxnRouteCategories(ctx, ws.ID); err == nil {
 		for _, c := range cats {
@@ -343,6 +357,11 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 
 func conditionView(l i18n.Lang, r Rule, listNames, categoryNames map[string]string) RoutingConditionView {
 	c := RoutingConditionView{RoutingCondition: RoutingCondition{ProviderID: r.Splits[0].ProviderID.String(), Note: r.Name}}
+	if len(r.Splits) > 1 {
+		for _, sp := range r.Splits {
+			c.Splits = append(c.Splits, RoutingSplit{ProviderID: sp.ProviderID.String(), Weight: sp.Weight})
+		}
+	}
 	switch {
 	case len(r.Conditions.Categories) > 0:
 		c.Field, c.Values = "category", r.Conditions.Categories
@@ -553,9 +572,9 @@ func toSet(ctx context.Context, in RoutingSaveInput, base Set) (Set, error) {
 		}
 		out.Rules = append(out.Rules, def)
 		for j, c := range st.Conditions {
-			id, err := uuid.Parse(c.ProviderID)
+			splits, err := conditionSplits(ctx, c, i, j)
 			if err != nil {
-				return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].providerId", i, j), say(ctx, "problem.pickConditionProvider", nil))
+				return Set{}, err
 			}
 			values := []string{}
 			for _, v := range c.Values {
@@ -599,13 +618,40 @@ func toSet(ctx context.Context, in RoutingSaveInput, base Set) (Set, error) {
 				cond.SenderDomains = values
 			}
 			out.Rules = append(out.Rules, Rule{ID: uuid.Must(uuid.NewV7()), Stream: stream, Priority: 10 * (j + 1), Name: strings.TrimSpace(c.Note),
-				Conditions: cond, Splits: []Split{{ProviderID: id, Weight: 100}}, Fallback: fallback, Enabled: true})
+				Conditions: cond, Splits: splits, Fallback: fallback, Enabled: true})
 		}
 	}
 	for _, r := range base.Rules {
 		if !replaced[r.Stream] {
 			out.Rules = append(out.Rules, r)
 		}
+	}
+	return out, nil
+}
+
+// conditionSplits is where a condition sends its recipients: one provider,
+// or a split by weight (a 0% share is left out; Validate checks the rest).
+func conditionSplits(ctx context.Context, c RoutingCondition, i, j int) ([]Split, error) {
+	if len(c.Splits) == 0 {
+		id, err := uuid.Parse(c.ProviderID)
+		if err != nil {
+			return nil, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].providerId", i, j), say(ctx, "problem.pickConditionProvider", nil))
+		}
+		return []Split{{ProviderID: id, Weight: 100}}, nil
+	}
+	out := []Split{}
+	for k, sp := range c.Splits {
+		id, err := uuid.Parse(sp.ProviderID)
+		if err != nil {
+			return nil, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].splits[%d].providerId", i, j, k), say(ctx, "problem.pickConditionProvider", nil))
+		}
+		if sp.Weight == 0 && len(c.Splits) > 1 {
+			continue
+		}
+		out = append(out, Split{ProviderID: id, Weight: sp.Weight})
+	}
+	if len(out) == 1 {
+		out[0].Weight = 100
 	}
 	return out, nil
 }

@@ -34,6 +34,7 @@ type config struct {
 			Field      string
 			Values     []string
 			ProviderID string
+			Splits     []map[string]any
 			Note       string
 		}
 		Volume *struct {
@@ -59,7 +60,11 @@ func input(c config) []streamIn {
 			in.Splits = append(in.Splits, map[string]any{"providerId": sp.ProviderID, "weight": sp.Weight})
 		}
 		for _, cd := range s.Conditions {
-			in.Conditions = append(in.Conditions, map[string]any{"field": cd.Field, "values": cd.Values, "providerId": cd.ProviderID, "note": cd.Note})
+			c := map[string]any{"field": cd.Field, "values": cd.Values, "providerId": cd.ProviderID, "note": cd.Note}
+			if len(cd.Splits) > 0 {
+				c["splits"] = cd.Splits
+			}
+			in.Conditions = append(in.Conditions, c)
 		}
 		out = append(out, in)
 	}
@@ -137,12 +142,27 @@ func TestRouteTester(t *testing.T) {
 	}
 	var r result
 	owner.Do("POST", ws+"/routing/test", map[string]any{"stream": "broadcast", "email": "sam.rivera@outlook.com", "senderDomain": "news.acme.io"}).MustStatus(t, 200).JSON(t, &r)
-	if r.Provider != "Amazon SES" || r.MailboxProvider != "outlook" || r.Fallback.Policy != "pause_and_ask" || r.Cost.Basis != "metered" {
+	if r.MailboxProvider != "outlook" || r.Fallback.Policy != "pause_and_ask" || r.Steps[1].Kind != "split" {
 		t.Fatalf("outlook route %+v", r)
 	}
-	if len(r.Steps) < 3 || r.Steps[1].Kind != "condition" || r.Steps[1].Field != "mailbox_provider" || r.Steps[1].Value != "Outlook" {
-		t.Fatalf("steps %+v", r.Steps)
+	// A condition that splits by weight (PR-12): product announcements from
+	// updates.acme.io go SES 70 / Postal 30, sticky per address.
+	var cond struct {
+		Provider string
+		Steps    []struct {
+			Kind, Field, Value string
+			Bucket             *int
+			Splits             []struct {
+				Short  string
+				Weight int
+			}
+		}
 	}
+	owner.Do("POST", ws+"/routing/test", map[string]any{"stream": "broadcast", "email": "sam.rivera@outlook.com", "senderDomain": "updates.acme.io"}).MustStatus(t, 200).JSON(t, &cond)
+	if s := cond.Steps[1]; s.Kind != "condition" || s.Field != "sender_domain" || s.Value != "updates.acme.io" || len(s.Splits) != 2 || s.Splits[0].Weight != 70 || s.Bucket == nil {
+		t.Fatalf("condition split steps %+v", cond.Steps)
+	}
+
 	owner.Do("POST", ws+"/routing/test", map[string]any{"stream": "broadcast", "email": "pat@gmail.com"}).MustStatus(t, 200).JSON(t, &r)
 	if r.Steps[1].Kind != "split" || r.Steps[1].Bucket < 0 || r.Steps[1].Bucket > 99 {
 		t.Fatalf("gmail steps %+v", r.Steps)

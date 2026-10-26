@@ -284,7 +284,7 @@ func (o *TransactionalOutbox) next(ctx context.Context, q *store.Queries, curren
 	if rs.Fallback != nil {
 		cands = append(cands, *rs.Fallback)
 	}
-	for _, id := range cands {
+	for i, id := range cands {
 		if id == uuid.Nil || gaveUp[id.String()] {
 			continue
 		}
@@ -296,6 +296,11 @@ func (o *TransactionalOutbox) next(ctx context.Context, q *store.Queries, curren
 			return nil, err
 		}
 		if p.DisconnectedAt != nil || !state.Available(p) {
+			continue
+		}
+		// A warming primary at today's cap leaves product mail to the
+		// fallback; with none, it still sends (PR-8).
+		if i == 0 && len(cands) > 1 && o.E.warmFull(ctx, p, o.E.now()) {
 			continue
 		}
 		return &p, nil

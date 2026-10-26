@@ -204,6 +204,18 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 				step.Warming = f.Short
 			}
 		}
+		// A condition that splits by weight (PR-12) says its split too.
+		if d.Split {
+			if d.Bucket >= 0 {
+				b := d.Bucket
+				step.Bucket = &b
+			}
+			for _, sp := range d.Rule.Splits {
+				if pp, ok := byID[sp.ProviderID]; ok {
+					step.Splits = append(step.Splits, RouteTestSplit{Short: state.Short(pp.Name, pp.Adapter), Weight: sp.Weight})
+				}
+			}
+		}
 		out.Steps = append(out.Steps, step)
 	case d.Split:
 		step := RouteTestStep{Kind: "split", Provider: p.Name}

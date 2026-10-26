@@ -295,7 +295,11 @@ func TestOutageFailsOverAndRecovers(t *testing.T) {
 		conds := []map[string]any{}
 		for _, c := range m["conditions"].([]any) {
 			cm := c.(map[string]any)
-			conds = append(conds, map[string]any{"field": cm["field"], "values": cm["values"], "providerId": cm["providerId"], "note": cm["note"]})
+			cond := map[string]any{"field": cm["field"], "values": cm["values"], "providerId": cm["providerId"], "note": cm["note"]}
+			if sp, ok := cm["splits"]; ok && sp != nil {
+				cond["splits"] = sp
+			}
+			conds = append(conds, cond)
 		}
 		in := map[string]any{"stream": m["stream"], "splits": m["splits"], "failover": m["failover"], "conditions": conds}
 		if fb, _ := m["fallback"].(string); fb != "" {

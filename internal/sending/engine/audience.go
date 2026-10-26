@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
-	"math/rand/v2"
 	"slices"
 	"strings"
 	"time"
@@ -341,8 +340,9 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 				}
 			}
 			// A random send order: the first minutes of the send are a fair
-			// sample of the audience (migration 00652).
-			order := rand.Int32() //nolint:gosec // an order, not a secret
+			// sample of the audience (migration 00652); a warming provider's
+			// share goes most engaged first (warmup_send.go).
+			order := r.sendOrder(ctx, pid, c.Tier)
 			ml := content.pick(chooser, multilingual, c.Language)
 			msgs = append(msgs, []any{newID(), cc.WorkspaceID, "broadcast", &campaignID, &c.ID, c.Email, variant, &pid, mbp, status, now, next, rt.note, rt.failover, order,
 				ml.Language, ml.Contact, ml.Reason, hidden[c.ID]})
@@ -911,7 +911,10 @@ func (r *router) route(ctx context.Context, c store.SendingAudiencePageRow, mbp 
 	if pr.WarmingUp {
 		allowed := len(pr.Tiers) == 0 || slices.Contains(pr.Tiers, c.Tier)
 		capLeft := pr.Cap <= 0 || pr.SentToday+r.planned[pid] < pr.Cap
-		if !allowed || !capLeft || pr.Paused {
+		// Over today's cap goes to a warm provider only when the plan
+		// allows overflow; otherwise it waits on the warming provider and
+		// the send loop holds it at the cap with choices (PR-8).
+		if !allowed || (!capLeft && pr.Overflow) || pr.Paused {
 			if alt, ok := r.warmAlternative(ctx, d.Rule, pid); ok {
 				ap := r.byID[alt]
 				why := "cap"

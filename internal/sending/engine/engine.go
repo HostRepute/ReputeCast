@@ -321,6 +321,8 @@ type providerRate struct {
 	Tiers                 []string
 	WarmingUp             bool
 	Paused                bool
+	// EngagedFirst and Overflow are the warm-up plan's (warmup_send.go).
+	EngagedFirst, Overflow bool
 }
 
 func (e *Engine) rateOf(ctx context.Context, q *store.Queries, p store.Provider, loc *time.Location, now time.Time) providerRate {
@@ -332,6 +334,7 @@ func (e *Engine) rateOf(ctx context.Context, q *store.Queries, p store.Provider,
 	if a, ok, err := warmup.AllowanceFor(ctx, q, p.ID, now, loc); err == nil && ok {
 		r.WarmingUp = true
 		r.WarmupDay, r.WarmupDays, r.Cap, r.SentToday, r.Tiers, r.Paused = a.Day, a.Days, a.Cap, a.Sent, a.Tiers, a.Paused
+		r.EngagedFirst, r.Overflow = a.EngagedFirst, a.Overflow
 		if a.Rate > 0 {
 			r.PerSecond = math.Min(r.PerSecond, a.Rate)
 		}

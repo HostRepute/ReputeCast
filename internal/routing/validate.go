@@ -101,12 +101,30 @@ func Validate(l i18n.Lang, set Set, facts map[uuid.UUID]Facts) []RoutingIssue {
 				continue
 			}
 			field := fmt.Sprintf("conditions[%d]", i)
-			if len(r.Splits) != 1 {
+			if len(r.Splits) == 0 {
 				issues = append(issues, RoutingIssue{Code: IssueWeights, Stream: st, Field: field, Message: text(l, "issue.conditionOne", nil), Blocking: true})
 				continue
 			}
-			if _, ok := facts[r.Splits[0].ProviderID]; !ok {
-				issues = append(issues, RoutingIssue{Code: IssueUnknownProvider, Stream: st, Field: field, ProviderID: r.Splits[0].ProviderID.String(), Message: text(l, "issue.unknownProvider", nil), Blocking: true})
+			// A condition may split by weight too (PR-12): the same checks
+			// as the stream's split.
+			sum := 0
+			seenCond := map[uuid.UUID]bool{}
+			for _, sp := range r.Splits {
+				sum += sp.Weight
+				if seenCond[sp.ProviderID] {
+					issues = append(issues, RoutingIssue{Code: IssueDuplicate, Stream: st, Field: field, ProviderID: sp.ProviderID.String(), Message: text(l, "issue.duplicate", nil), Blocking: true})
+				}
+				seenCond[sp.ProviderID] = true
+				if _, ok := facts[sp.ProviderID]; !ok {
+					issues = append(issues, RoutingIssue{Code: IssueUnknownProvider, Stream: st, Field: field, ProviderID: sp.ProviderID.String(), Message: text(l, "issue.unknownProvider", nil), Blocking: true})
+				}
+				if sp.Weight < 0 || sp.Weight > 100 {
+					issues = append(issues, RoutingIssue{Code: IssueWeights, Stream: st, Field: field, Message: text(l, "issue.weightRange", i18n.Args{"min": 0, "max": 1}), Blocking: true})
+				}
+			}
+			if len(r.Splits) > 1 && sum != 100 {
+				issues = append(issues, RoutingIssue{Code: IssueWeights, Stream: st, Field: field,
+					Message: text(l, "issue.conditionWeightSum", i18n.Args{"total": float64(sum) / 100, "full": 1}), Blocking: true})
 			}
 		}
 		// Terms: every provider that can carry Broadcasts must allow bulk mail.

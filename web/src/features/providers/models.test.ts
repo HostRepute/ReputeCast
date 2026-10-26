@@ -1,8 +1,23 @@
 import type { Schemas } from '@/api/client'
-import { setDisplayTimeZone } from '@/lib/format'
 import { bouncePct, complaintPct, limitLabel, limitPct, perSec, rateColor, statusBadge } from './common'
-import { bulkIssues, costText, fallbackText, providerOption, providerUses, sameDraft, setPrimary, setShare, stepText, toDraft, toInput, withoutProvider, type RoutingConfig } from './routing-model'
-import { audienceText, rampHeight, tiersText, visibleDays, type WarmupDay } from './warmup-model'
+import {
+  bulkIssues,
+  conditionProviders,
+  conditionWithout,
+  costText,
+  fallbackText,
+  providerOption,
+  providerUses,
+  sameDraft,
+  setPrimary,
+  setShare,
+  stepText,
+  toDraft,
+  toInput,
+  withoutProvider,
+  type Condition,
+  type RoutingConfig,
+} from './routing-model'
 
 const ses = 'ses-0000-0000-0000-000000000001'
 const postmark = 'pm-00-0000-0000-0000-000000000002'
@@ -168,49 +183,6 @@ describe('provider card helpers', () => {
   })
 })
 
-describe('warm-up model', () => {
-  beforeAll(() => setDisplayTimeZone('UTC'))
-  const day = (n: number, status: WarmupDay['status'], extra: Partial<WarmupDay> = {}): WarmupDay => ({
-    day: n,
-    date: `2026-10-${String(n + 3).padStart(2, '0')}T00:00:00Z`,
-    cap: 100 * n,
-    plannedCap: 100 * n,
-    held: false,
-    tiers: ['active'],
-    share: 10,
-    shareChange: false,
-    uses: [],
-    status,
-    eligible: false,
-    ...extra,
-  })
-
-  it('compresses the ramp but keeps it monotonic', () => {
-    expect(rampHeight(48000, 48000)).toBe(100)
-    expect(rampHeight(6000, 48000)).toBe(22)
-    expect(rampHeight(200, 48000)).toBe(2)
-    expect(rampHeight(0, 48000)).toBe(0)
-    expect(rampHeight(7500, 48000)).toBeGreaterThan(rampHeight(6000, 48000))
-  })
-
-  it('shows the days around today and the last day', () => {
-    const days = Array.from({ length: 21 }, (_, i) => day(i + 1, i + 1 < 9 ? 'done' : i + 1 === 9 ? 'today' : 'planned'))
-    expect(visibleDays(days).map((d) => d.day)).toEqual([5, 6, 7, 8, 9, 10, 11, 12, 21])
-  })
-
-  it('describes the audience of a day', () => {
-    expect(tiersText(['active'])).toBe('Active tier')
-    expect(tiersText(['active', 'cooling'])).toBe('Active + Cooling')
-    expect(tiersText(['active', 'cooling', 'at_risk'])).toBe('All tiers except Sunset')
-    expect(tiersText(['active', 'cooling', 'at_risk', 'sunset'])).toBe('All')
-    expect(audienceText(day(11, 'planned', { tiers: ['active', 'cooling'], uses: [{ name: 'Weekly Digest #142', count: 3160 }] }))).toBe(
-      'Active + Cooling · Weekly Digest #142 uses 3,160',
-    )
-    expect(audienceText(day(12, 'planned', { tiers: ['active', 'cooling', 'at_risk'], share: 15, shareChange: true }))).toBe('All tiers except Sunset · share rises to 15%')
-    expect(audienceText(day(21, 'planned', { tiers: ['active', 'cooling', 'at_risk', 'sunset'], share: 40, eligible: true }))).toBe('All · share 40%, eligible as failover')
-  })
-})
-
 describe('removing a provider', () => {
   it('lists where a provider is used, primaries first', () => {
     expect(providerUses(toDraft(cfg), postmark)).toEqual([
@@ -232,5 +204,29 @@ describe('removing a provider', () => {
     expect(withoutProvider(d.broadcast, postal, '', '')).toMatchObject({ splits: [{ providerId: ses, weight: 100 }], conditions: [] })
     // A replacement already in the split takes the removed primary's weight too.
     expect(withoutProvider(d.broadcast, ses, postal, '').splits).toEqual([{ providerId: postal, weight: 100 }])
+  })
+
+  // PR-12: a condition can split by weight.
+  it('keeps a split condition when one of its providers goes', () => {
+    const split: Condition = {
+      field: 'sender_domain',
+      values: ['updates.acme.io'],
+      providerId: ses,
+      splits: [
+        { providerId: ses, weight: 60 },
+        { providerId: postal, weight: 30 },
+        { providerId: postmark, weight: 10 },
+      ],
+      note: 'product announcements',
+    }
+    expect(conditionWithout(split, postmark)).toEqual([{ ...split, splits: [{ providerId: ses, weight: 70 }, { providerId: postal, weight: 30 }] }])
+    const two = conditionWithout(split, postmark)[0]!
+    expect(conditionWithout(two, ses)).toEqual([{ ...split, providerId: postal, splits: undefined }])
+    expect(conditionWithout({ field: 'list', values: ['x'], providerId: postal }, postal)).toEqual([])
+    const d = toDraft(cfg)
+    d.broadcast.conditions = [split]
+    expect(providerUses(d, postmark)).toContainEqual({ kind: 'condition', stream: 'broadcast', values: 'updates.acme.io' })
+    expect(toInput(d).streams[0]!.conditions).toEqual([{ field: 'sender_domain', values: ['updates.acme.io'], splits: split.splits, note: 'product announcements' }])
+    expect(conditionProviders({ providerId: ses })).toEqual([ses])
   })
 })

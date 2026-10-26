@@ -232,3 +232,58 @@ func TestUnavailableProviderRaisesAnIssue(t *testing.T) {
 		t.Fatalf("issues:\n%s", strings.Join(got, "\n"))
 	}
 }
+
+// PR-12: a condition can split by weight. Its recipients split like the
+// stream's (sticky, order-independent), and the split is checked the same
+// way: weights add up to 100 and a provider appears once.
+func TestConditionSplitsByWeight(t *testing.T) {
+	s := sample()
+	s.Rules = append([]Rule{{Stream: providers.StreamBroadcast, Priority: 5, Name: "product announcements", Enabled: true,
+		Conditions: Conditions{SenderDomains: []string{"updates.acme.io"}}, Splits: []Split{{ses, 70}, {postal, 30}}}}, s.Rules...)
+	counts := map[uuid.UUID]int{}
+	for i := 0; i < 10000; i++ {
+		email := fmt.Sprintf("reader%d@gmail.com", i)
+		d, _ := s.Resolve(Recipient{Stream: providers.StreamBroadcast, Email: email, SenderDomain: "Updates.Acme.io"})
+		if d.Matched != "sender_domain" || !d.Split {
+			t.Fatalf("not the condition's split: %+v", d)
+		}
+		swapped := s
+		swapped.Rules = append([]Rule(nil), s.Rules...)
+		swapped.Rules[0].Splits = []Split{{postal, 30}, {ses, 70}}
+		again, _ := swapped.Resolve(Recipient{Stream: providers.StreamBroadcast, Email: email, SenderDomain: "updates.acme.io"})
+		if again.ProviderID != d.ProviderID {
+			t.Fatal("reordering a condition's split moved an address")
+		}
+		counts[d.ProviderID]++
+	}
+	if share := float64(counts[postal]) / 10000; share < 0.28 || share > 0.32 {
+		t.Fatalf("Postal's share of the condition %.3f, want about 0.30", share)
+	}
+	facts := map[uuid.UUID]Facts{ses: {ID: ses, Name: "Amazon SES", BulkAllowed: true, Available: true}, postal: {ID: postal, Name: "Postal", BulkAllowed: true, Available: true},
+		postmark: {ID: postmark, Name: "Postmark", BulkAllowed: false, Available: true}}
+	for _, i := range Validate(i18n.Default, s, facts) {
+		if i.Blocking {
+			t.Fatalf("a valid condition split is blocked: %+v", i)
+		}
+	}
+	bad := s
+	bad.Rules = append([]Rule(nil), s.Rules...)
+	bad.Rules[0].Splits = []Split{{ses, 70}, {postal, 20}}
+	blocked := false
+	for _, i := range Validate(i18n.Default, bad, facts) {
+		if i.Blocking && i.Code == IssueWeights && i.Field == "conditions[0]" && strings.Contains(i.Message, "90%") {
+			blocked = true
+		}
+	}
+	if !blocked {
+		t.Fatal("a condition split adding up to 90% isn't blocked")
+	}
+	bad.Rules[0].Splits = []Split{{ses, 50}, {ses, 50}}
+	dup := false
+	for _, i := range Validate(i18n.Default, bad, facts) {
+		dup = dup || (i.Blocking && i.Code == IssueDuplicate && i.Field == "conditions[0]")
+	}
+	if !dup {
+		t.Fatal("a provider twice in a condition split isn't blocked")
+	}
+}

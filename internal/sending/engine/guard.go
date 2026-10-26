@@ -140,6 +140,10 @@ func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.D
 	switch {
 	case queued == 0 && held == 0:
 		return 0, e.finish(ctx, rs, ts, now)
+	case held == 0 && queued > 0 && queued == blocked && e.warmWaiting(rs) == blocked:
+		// Only shares a warm-up cap holds are left: they go on with the next
+		// day's cap (or the plan's resume) by themselves (warmup_send.go).
+		return 30 * time.Second, nil
 	case held == 0 && queued > 0 && queued == blocked:
 		// Only held shares are left: nothing sends until someone decides.
 		return 0, e.waitForDecision(ctx, rs, now)

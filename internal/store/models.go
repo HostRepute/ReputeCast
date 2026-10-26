@@ -4895,6 +4895,14 @@ type WarmupPlan struct {
 	PausedAt          *time.Time      `json:"pausedAt"`
 	UpdatedAt         time.Time       `json:"updatedAt"`
 	Texts             json.RawMessage `json:"texts"`
+	StartedOn         time.Time       `json:"startedOn"`
+	EvaluatedThrough  *time.Time      `json:"evaluatedThrough"`
+	HeldCap           *int64          `json:"heldCap"`
+	HealthyStreak     int32           `json:"healthyStreak"`
+	Overflow          bool            `json:"overflow"`
+	MinSample         int32           `json:"minSample"`
+	Overflowed        int64           `json:"overflowed"`
+	OverflowedOn      *time.Time      `json:"overflowedOn"`
 }
 
 type Webhook struct {

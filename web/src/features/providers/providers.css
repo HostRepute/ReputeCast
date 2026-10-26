@@ -150,6 +150,16 @@
     border-radius: 3px 3px 0 0;
   }
 
+  /* Warm-up: today's caps by mailbox provider (.mtbl, tr.tot) */
+  .tbl.pv-mtbl td,
+  .tbl.pv-mtbl th {
+    padding: 7px 8px;
+  }
+  .tbl.pv-mtbl tr.tot td {
+    font-weight: 600;
+    border-top: 1px solid var(--line);
+  }
+
   /* Table cell spacing that differs per board */
   .tbl.pv-9 td {
     padding: 9px 12px;

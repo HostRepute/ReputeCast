@@ -90,11 +90,13 @@ func init() {
 		river.AddWorker(a.JobReg.Workers, &suppressions.SyncWorker{S: a.suppressionSync()})
 		river.AddWorker(a.JobReg.Workers, &warmup.DailyWorker{S: &warmup.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit}, Log: a.Log,
 			Skip: func(p store.Provider) bool { return manage.IsDemo(p) }})
+		river.AddWorker(a.JobReg.Workers, &warmup.ResumeWorker{S: &warmup.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit}})
 		a.JobReg.Every(time.Minute, func() (river.JobArgs, *river.InsertOpts) { return manage.HealthArgs{}, nil }, true)
 		a.JobReg.Every(time.Minute, func() (river.JobArgs, *river.InsertOpts) { return ingest.MailboxArgs{}, nil }, false)
 		a.JobReg.Every(5*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return ingest.SweepArgs{}, nil }, false)
 		a.JobReg.Every(15*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return suppressions.SyncArgs{}, nil }, false)
 		a.JobReg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return warmup.DailyArgs{}, nil }, true)
+		a.JobReg.Every(5*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return warmup.ResumeArgs{}, nil }, false)
 		a.JobReg.Every(24*time.Hour, func() (river.JobArgs, *river.InsertOpts) { return manage.TrackingArgs{}, nil }, true)
 	})
 }
