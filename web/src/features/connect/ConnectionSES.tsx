@@ -100,7 +100,7 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
     >
       {connected && c.access === 'keys' && !replacing ? (
         <>
-          <span className="mt-2 grid grid-cols-2 gap-2">
+          <span className="mt-2 grid grid-cols-2 gap-2 max-md:grid-cols-1">
             <input className="in mono min-w-0" value={c.accessKey || 'AKIA…'} aria-label={t(mses.keyIdLabel)} readOnly />
             <input className="in min-w-0" value={t(mses.savedSecret)} aria-label={t(mses.secretLabel)} readOnly />
           </span>
@@ -109,7 +109,7 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
           </Button>
         </>
       ) : (
-        <span className="mt-2 grid grid-cols-2 gap-2">
+        <span className="mt-2 grid grid-cols-2 gap-2 max-md:grid-cols-1">
           {/* Disabled until picked, but white as on the board. */}
           <input
             className="in mono min-w-0 bg-white"
@@ -145,7 +145,7 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
       recommended={recommended === 'role' ? t(mses.recommendedHere) : undefined}
       description={t(mses.stackLine)}
     >
-      <a href={c.template?.launchUrl} className="btn sm mt-2 underline decoration-1 underline-offset-2" target="_blank" rel="noopener noreferrer">
+      <a href={c.template?.launchUrl} className="btn sm mt-2" target="_blank" rel="noopener noreferrer">
         {t(mses.launchStack)}
       </a>
       {access === 'role' && (!connected || c.access !== 'role') ? (
