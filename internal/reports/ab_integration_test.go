@@ -107,7 +107,7 @@ func testABWinner(t *testing.T, f *sendtest.Fixture) {
 	if card := abReport(t, f); card.State != "testing" || card.Winner != "" {
 		t.Fatalf("during the test: %+v", card)
 	}
-	clicks(t, f, "B", 4) // a quarter of B's sample clicks
+	clicked := clicks(t, f, "B", 4) // a quarter of B's sample clicks
 	if _, done := f.Drive(3 * time.Hour); !done {
 		f.Dump()
 		t.Fatal("the send didn't finish")
@@ -155,6 +155,36 @@ func testABWinner(t *testing.T, f *sendtest.Fixture) {
 	}
 	if sampled != sample {
 		t.Fatalf("the card's samples add up to %d recipients, want %d (the rollout apart)", sampled, sample)
+	}
+	// Each variant has its click map (review AN-5): the same email (a
+	// subject test), each variant's recipients' clicks.
+	var r struct {
+		ClickMap struct {
+			Variants []struct {
+				Key       string
+				SameEmail bool
+				Links     []struct {
+					Position     int
+					Clicks       int64
+					UniqueClicks int64
+				}
+			}
+		}
+	}
+	c := f.Env.Client()
+	c.SignInDemo("linh@acme.io")
+	c.Do("GET", fmt.Sprintf("/workspaces/acme-newsletter/campaigns/%s/report", f.Campaign), nil).MustStatus(t, 200).JSON(t, &r)
+	if len(r.ClickMap.Variants) != 2 || r.ClickMap.Variants[0].Key != "A" || r.ClickMap.Variants[1].Key != "B" || !r.ClickMap.Variants[1].SameEmail {
+		t.Fatalf("variant click maps: %+v", r.ClickMap.Variants)
+	}
+	var onB int64
+	for _, l := range r.ClickMap.Variants[1].Links {
+		if l.Position == 0 {
+			onB = l.UniqueClicks
+		}
+	}
+	if onB < int64(clicked) {
+		t.Fatalf("B's map has %d people on the first link, want at least the %d who clicked it", onB, clicked)
 	}
 }
 

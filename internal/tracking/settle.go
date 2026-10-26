@@ -117,7 +117,7 @@ func (s *Service) settleOne(ctx context.Context, tx pgx.Tx, q *store.Queries, b 
 			return err
 		}
 		if m.CampaignID != nil {
-			b.ledger.Click(*m.CampaignID, int(r.Link), true, false)
+			b.ledger.Click(*m.CampaignID, int(r.Link), m.Variant, true, false)
 		}
 		return nil
 	}
@@ -195,7 +195,7 @@ func (s *Service) countClick(ctx context.Context, tx pgx.Tx, q *store.Queries, b
 		} else if !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
-		b.ledger.Click(*m.CampaignID, link, false, unique)
+		b.ledger.Click(*m.CampaignID, link, m.Variant, false, unique)
 	} else if ref := refOf(m.ContentRef); ref.Email != uuid.Nil {
 		if err := q.TrackingBumpAutomationLink(ctx, store.TrackingBumpAutomationLinkParams{EmailID: ref.Email, Version: int32(ref.Version), Language: ref.Language, Position: int32(link)}); err != nil {
 			return err

@@ -140,6 +140,42 @@ func (q *Queries) CountersBumpHourly(ctx context.Context, arg CountersBumpHourly
 	return err
 }
 
+const countersBumpLinkVariants = `-- name: CountersBumpLinkVariants :exec
+WITH d AS (
+    SELECT unnest($1::uuid[]) AS campaign_id, unnest($2::integer[]) AS position, unnest($3::text[]) AS variant,
+           unnest($4::bigint[]) AS clicks, unnest($5::bigint[]) AS unique_clicks, unnest($6::bigint[]) AS bot_clicks
+)
+INSERT INTO campaign_link_variants AS v (campaign_id, position, variant, clicks, unique_clicks, bot_clicks)
+SELECT d.campaign_id, d.position, d.variant, d.clicks, d.unique_clicks, d.bot_clicks
+FROM d
+ORDER BY d.campaign_id, d.position, d.variant
+ON CONFLICT (campaign_id, position, variant) DO UPDATE
+SET clicks = v.clicks + EXCLUDED.clicks, unique_clicks = v.unique_clicks + EXCLUDED.unique_clicks, bot_clicks = v.bot_clicks + EXCLUDED.bot_clicks
+`
+
+type CountersBumpLinkVariantsParams struct {
+	CampaignIds  []uuid.UUID `json:"campaignIds"`
+	Positions    []int32     `json:"positions"`
+	Variants     []string    `json:"variants"`
+	Clicks       []int64     `json:"clicks"`
+	UniqueClicks []int64     `json:"uniqueClicks"`
+	BotClicks    []int64     `json:"botClicks"`
+}
+
+// Adds clicks per link and A/B variant (review AN-5), in key order, after
+// campaign_links.
+func (q *Queries) CountersBumpLinkVariants(ctx context.Context, arg CountersBumpLinkVariantsParams) error {
+	_, err := q.db.Exec(ctx, countersBumpLinkVariants,
+		arg.CampaignIds,
+		arg.Positions,
+		arg.Variants,
+		arg.Clicks,
+		arg.UniqueClicks,
+		arg.BotClicks,
+	)
+	return err
+}
+
 const countersBumpLinks = `-- name: CountersBumpLinks :exec
 WITH d AS (
     SELECT unnest($1::uuid[]) AS campaign_id, unnest($2::integer[]) AS position,
@@ -205,6 +241,19 @@ func (q *Queries) CountersCampaignHistory(ctx context.Context, id uuid.UUID) (Co
 		&i.CountedSent,
 	)
 	return i, err
+}
+
+const countersClearLinkVariants = `-- name: CountersClearLinkVariants :exec
+DELETE FROM campaign_link_variants v
+WHERE v.campaign_id = $1::uuid
+  AND NOT EXISTS (SELECT 1 FROM delivery_events e WHERE e.campaign_id = $1::uuid AND e.type = 'click' AND e.link IS NULL)
+`
+
+// Before CountersRebuildLinkVariants; kept when clicks without link
+// positions are stored (as CountersRebuildLinks).
+func (q *Queries) CountersClearLinkVariants(ctx context.Context, campaignID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, countersClearLinkVariants, campaignID)
+	return err
 }
 
 const countersDueRebuilds = `-- name: CountersDueRebuilds :many
@@ -584,6 +633,42 @@ type CountersRebuildHourlyParams struct {
 // the first click, in the hour after the send started they happened in.
 func (q *Queries) CountersRebuildHourly(ctx context.Context, arg CountersRebuildHourlyParams) error {
 	_, err := q.db.Exec(ctx, countersRebuildHourly, arg.CampaignID, arg.StartedAt)
+	return err
+}
+
+const countersRebuildLinkVariants = `-- name: CountersRebuildLinkVariants :exec
+INSERT INTO campaign_link_variants (campaign_id, position, variant, clicks, unique_clicks, bot_clicks)
+SELECT $1::uuid, k.position, k.variant, coalesce(c.clicks, 0), coalesce(u.unique_clicks, 0), coalesce(c.bot_clicks, 0)
+FROM (
+    SELECT e.link AS position, m.variant
+    FROM delivery_events e JOIN messages m ON m.id = e.message_id
+    WHERE e.campaign_id = $1 AND e.type = 'click' AND e.link >= 0 AND e.class IN ('human', 'bot') AND m.variant <> ''
+    UNION
+    SELECT t.link, m.variant
+    FROM tracking_link_clicks t JOIN messages m ON m.id = t.message_id
+    WHERE m.campaign_id = $1 AND t.link >= 0 AND m.variant <> ''
+) k
+LEFT JOIN (
+    SELECT e.link AS position, m.variant, count(*) FILTER (WHERE e.class = 'human') AS clicks, count(*) FILTER (WHERE e.class = 'bot') AS bot_clicks
+    FROM delivery_events e JOIN messages m ON m.id = e.message_id
+    WHERE e.campaign_id = $1 AND e.type = 'click' AND e.link >= 0 AND m.variant <> ''
+    GROUP BY e.link, m.variant
+) c ON c.position = k.position AND c.variant = k.variant
+LEFT JOIN (
+    SELECT t.link AS position, m.variant, count(*) AS unique_clicks
+    FROM tracking_link_clicks t JOIN messages m ON m.id = t.message_id
+    WHERE m.campaign_id = $1 AND m.variant <> ''
+    GROUP BY t.link, m.variant
+) u ON u.position = k.position AND u.variant = k.variant
+WHERE NOT EXISTS (SELECT 1 FROM delivery_events e WHERE e.campaign_id = $1 AND e.type = 'click' AND e.link IS NULL)
+ORDER BY k.position, k.variant
+`
+
+// Clicks per link and A/B variant from the stored clicks: people's and
+// bots' click events by the variant their message had, people's first
+// click per link (tracking_link_clicks).
+func (q *Queries) CountersRebuildLinkVariants(ctx context.Context, campaignID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, countersRebuildLinkVariants, campaignID)
 	return err
 }
 

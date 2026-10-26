@@ -448,6 +448,49 @@ func (q *Queries) ReportLatestSent(ctx context.Context, arg ReportLatestSentPara
 	return i, err
 }
 
+const reportLinkVariants = `-- name: ReportLinkVariants :many
+SELECT position, variant, clicks, unique_clicks, bot_clicks
+FROM campaign_link_variants
+WHERE campaign_id = $1
+ORDER BY variant, position
+`
+
+type ReportLinkVariantsRow struct {
+	Position     int32  `json:"position"`
+	Variant      string `json:"variant"`
+	Clicks       int64  `json:"clicks"`
+	UniqueClicks int64  `json:"uniqueClicks"`
+	BotClicks    int64  `json:"botClicks"`
+}
+
+// Clicks per link and A/B variant, for each variant's click map (review
+// AN-5).
+func (q *Queries) ReportLinkVariants(ctx context.Context, campaignID uuid.UUID) ([]ReportLinkVariantsRow, error) {
+	rows, err := q.db.Query(ctx, reportLinkVariants, campaignID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportLinkVariantsRow{}
+	for rows.Next() {
+		var i ReportLinkVariantsRow
+		if err := rows.Scan(
+			&i.Position,
+			&i.Variant,
+			&i.Clicks,
+			&i.UniqueClicks,
+			&i.BotClicks,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const reportLinks = `-- name: ReportLinks :many
 SELECT id, url, label, position, clicks, unique_clicks, bot_clicks
 FROM campaign_links
@@ -548,6 +591,19 @@ func (q *Queries) ReportRoutes(ctx context.Context, campaignID uuid.UUID) ([]Rep
 		return nil, err
 	}
 	return items, nil
+}
+
+const reportSendContent = `-- name: ReportSendContent :one
+SELECT coalesce(content, '{}'::jsonb)::jsonb AS content FROM campaign_sends WHERE campaign_id = $1
+`
+
+// The email as the send captured it: each content variant's HTML and the
+// first link position of each (internal/sending/engine sendContent).
+func (q *Queries) ReportSendContent(ctx context.Context, campaignID uuid.UUID) (json.RawMessage, error) {
+	row := q.db.QueryRow(ctx, reportSendContent, campaignID)
+	var content json.RawMessage
+	err := row.Scan(&content)
+	return content, err
 }
 
 const reportShareByToken = `-- name: ReportShareByToken :one

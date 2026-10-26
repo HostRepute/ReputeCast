@@ -223,7 +223,7 @@ func (s *Service) count(ctx context.Context, tx pgx.Tx, q *store.Queries, b *bat
 			// Bot clicks are logged and shown apart (the click map's Bot
 			// clicks), never counted as clicks.
 			if m.CampaignID != nil {
-				b.ledger.Click(*m.CampaignID, link, true, false)
+				b.ledger.Click(*m.CampaignID, link, m.Variant, true, false)
 			}
 		default:
 			return q.TrackingPendingClick(ctx, store.TrackingPendingClickParams{EventID: eventID, MessageID: m.ID, Link: int32(link), Url: clip(url, 2048),

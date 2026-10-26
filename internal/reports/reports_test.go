@@ -45,11 +45,22 @@ type report struct {
 		Available bool
 		HTML      string
 		Total     int64
+		BotTotal  int64
 		Links     []struct {
-			Label   string
-			Share   float64
-			Grouped bool
-			Hot     bool
+			Label                string
+			Position             int
+			Share                float64
+			Grouped              bool
+			Hot                  bool
+			UniqueClicks, Clicks int64
+			BotClicks            int64
+		}
+		Rows []struct {
+			Place     string
+			Labels    []string
+			Positions []int
+			Share     float64
+			Clicks    int64
 		}
 		Other *struct {
 			Share float64
@@ -189,11 +200,18 @@ func TestCampaignReport(t *testing.T) {
 		t.Fatalf("A/B: %+v", ab)
 	}
 	// The click map is drawn over the email as sent (the composer's
-	// content): every click is on one of its links, "Read the docs" draws
-	// the most, and the links under 5% are grouped.
+	// content): 2,996 people made 3,412 human clicks across its links (each
+	// person once per link), "Read the docs" draws the most, the navigation
+	// row is one entry and the other links under 5% are grouped.
 	cm := r.ClickMap
-	if !cm.Available || cm.Total != 2996 || len(cm.Links) == 0 {
-		t.Fatalf("click map: %+v", cm.Links)
+	if !cm.Available || cm.Total != 3412 || cm.BotTotal != 1108 || len(cm.Links) != 10 {
+		t.Fatalf("click map: %d %d %+v", cm.Total, cm.BotTotal, cm.Links)
+	}
+	inRow := map[int]bool{}
+	for _, row := range cm.Rows {
+		for _, p := range row.Positions {
+			inRow[p] = true
+		}
 	}
 	sum, grouped, top := 0.0, 0, cm.Links[0]
 	for _, l := range cm.Links {
@@ -204,23 +222,25 @@ func TestCampaignReport(t *testing.T) {
 		if l.Grouped {
 			grouped++
 		}
-		if l.Grouped != (l.Share < 5) || l.Hot != (l.Share >= 20) {
-			t.Errorf("%s at %v%%: grouped %v, hot %v", l.Label, l.Share, l.Grouped, l.Hot)
+		if l.Grouped != (l.Share < 5 && !inRow[l.Position]) || l.Hot != (l.Share >= 20) || l.Clicks < l.UniqueClicks || l.BotClicks < 110 || l.BotClicks > 111 {
+			t.Errorf("%s at %v%%: grouped %v, hot %v, %d clicks by %d, %d bots", l.Label, l.Share, l.Grouped, l.Hot, l.Clicks, l.UniqueClicks, l.BotClicks)
 		}
 	}
-	if top.Label != "Read the docs" || sum < 99.5 || sum > 100.5 || cm.Other == nil || cm.Other.Links != grouped {
+	if top.Label != "Read the docs" || top.UniqueClicks != 1297 || sum < 99.5 || sum > 100.5 || cm.Other == nil || cm.Other.Links != grouped {
 		t.Fatalf("click map: top %+v, shares add to %v, other %+v, %d grouped", top, sum, cm.Other, grouped)
 	}
-	// The board's bubbles: 38%, 24%, 19% and 6%, and "Other" 13% over 9 links.
+	// The board's table: 38%, 24% and 19%, "Header links" 6% and "Other"
+	// 13% (the images; preferences and view in browser aren't tracked).
 	shown := map[string]float64{}
 	for _, l := range cm.Links {
-		if !l.Grouped {
+		if !l.Grouped && !inRow[l.Position] {
 			shown[l.Label] = l.Share
 		}
 	}
-	if len(shown) != 4 || shown["Read the docs"] != 38 || shown["See changelog"] != 24 || shown["Read the guide"] != 19 || shown["Docs"] != 6 ||
-		cm.Other.Share != 13 || cm.Other.Links != 9 {
-		t.Fatalf("click map: %v, other %+v", shown, cm.Other)
+	if len(shown) != 3 || shown["Read the docs"] != 38 || shown["See changelog"] != 24 || shown["Read the guide"] != 19 ||
+		len(cm.Rows) != 1 || cm.Rows[0].Place != "header" || strings.Join(cm.Rows[0].Labels, ",") != "Blog,Docs,Changelog" || cm.Rows[0].Share != 6 || cm.Rows[0].Clicks != 205 ||
+		cm.Other.Share != 13 || cm.Other.Links != 4 {
+		t.Fatalf("click map: %v, rows %+v, other %+v", shown, cm.Rows, cm.Other)
 	}
 
 	// History imported from Brevo: its totals, and nothing ReputeCast can't

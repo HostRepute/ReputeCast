@@ -868,6 +868,9 @@ type Querier interface {
 	CountersBump(ctx context.Context, arg CountersBumpParams) error
 	// Adds hourly engagement deltas, locking the rows in key order.
 	CountersBumpHourly(ctx context.Context, arg CountersBumpHourlyParams) error
+	// Adds clicks per link and A/B variant (review AN-5), in key order, after
+	// campaign_links.
+	CountersBumpLinkVariants(ctx context.Context, arg CountersBumpLinkVariantsParams) error
 	// Adds clicks per link (people's clicks, people's first click per link,
 	// bot clicks), locking the links in key order.
 	CountersBumpLinks(ctx context.Context, arg CountersBumpLinksParams) error
@@ -875,6 +878,9 @@ type Querier interface {
 	// be rebuilt from it: imported history and sample data have counters but
 	// no message per recipient.
 	CountersCampaignHistory(ctx context.Context, id uuid.UUID) (CountersCampaignHistoryRow, error)
+	// Before CountersRebuildLinkVariants; kept when clicks without link
+	// positions are stored (as CountersRebuildLinks).
+	CountersClearLinkVariants(ctx context.Context, campaignID uuid.UUID) error
 	// Campaigns to rebuild: sent from ReputeCast, their results final (72 h
 	// after the send ended), and not rebuilt with the current rules yet.
 	CountersDueRebuilds(ctx context.Context, arg CountersDueRebuildsParams) ([]uuid.UUID, error)
@@ -912,6 +918,10 @@ type Querier interface {
 	// person's first open, a privacy prefetch or a scanner's first open, and
 	// the first click, in the hour after the send started they happened in.
 	CountersRebuildHourly(ctx context.Context, arg CountersRebuildHourlyParams) error
+	// Clicks per link and A/B variant from the stored clicks: people's and
+	// bots' click events by the variant their message had, people's first
+	// click per link (tracking_link_clicks).
+	CountersRebuildLinkVariants(ctx context.Context, campaignID uuid.UUID) error
 	// Replaces clicks per link with the stored clicks: people's clicks and
 	// bot clicks (click events with the link's position and their class;
 	// clicks still waiting to settle count as neither), people's first click
@@ -2913,6 +2923,9 @@ type Querier interface {
 	ReportLatestReadiness(ctx context.Context, campaignID uuid.UUID) (ReportLatestReadinessRow, error)
 	// The most recent campaign with results, for "See the last report instead".
 	ReportLatestSent(ctx context.Context, arg ReportLatestSentParams) (ReportLatestSentRow, error)
+	// Clicks per link and A/B variant, for each variant's click map (review
+	// AN-5).
+	ReportLinkVariants(ctx context.Context, campaignID uuid.UUID) ([]ReportLinkVariantsRow, error)
 	// Clicks per link: people's clicks, people's first click per link, and
 	// the clicks the bot filter left out.
 	ReportLinks(ctx context.Context, campaignID uuid.UUID) ([]ReportLinksRow, error)
@@ -2920,6 +2933,9 @@ type Querier interface {
 	// the median time to delivery (stored at completion, else computed from the
 	// route's messages; 0 before anything was delivered).
 	ReportRoutes(ctx context.Context, campaignID uuid.UUID) ([]ReportRoutesRow, error)
+	// The email as the send captured it: each content variant's HTML and the
+	// first link position of each (internal/sending/engine sendContent).
+	ReportSendContent(ctx context.Context, campaignID uuid.UUID) (json.RawMessage, error)
 	// A link by its token hash with its campaign and workspace (the public page).
 	ReportShareByToken(ctx context.Context, tokenHash []byte) (ReportShareByTokenRow, error)
 	ReportShareCreate(ctx context.Context, arg ReportShareCreateParams) (ReportShare, error)

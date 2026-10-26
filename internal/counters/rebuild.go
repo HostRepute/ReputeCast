@@ -78,6 +78,12 @@ func Rebuild(ctx context.Context, pool *pgxpool.Pool, campaign uuid.UUID, now ti
 			if err := q.CountersRebuildLinks(ctx, campaign); err != nil {
 				return err
 			}
+			if err := q.CountersClearLinkVariants(ctx, campaign); err != nil {
+				return err
+			}
+			if err := q.CountersRebuildLinkVariants(ctx, campaign); err != nil {
+				return err
+			}
 			res.Rebuilt = true
 		}
 		return q.CountersBuildSave(ctx, store.CountersBuildSaveParams{CampaignID: campaign, Version: Version, BuiltAt: now, Skipped: res.Skipped})

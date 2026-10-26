@@ -25,12 +25,19 @@ type linkKey struct {
 
 type linkDelta struct{ clicks, unique, bot int64 }
 
+type variantLinkKey struct {
+	campaign uuid.UUID
+	position int
+	variant  string
+}
+
 // Ledger collects counter changes during a transaction and applies them
 // in one lock order (Flush). The zero value is ready to use.
 type Ledger struct {
-	cells map[Cell]*Delta
-	hours map[hourKey]*hourDelta
-	links map[linkKey]*linkDelta
+	cells    map[Cell]*Delta
+	hours    map[hourKey]*hourDelta
+	links    map[linkKey]*linkDelta
+	variants map[variantLinkKey]*linkDelta
 }
 
 // Move records a message moving from one state to another: the counters
@@ -82,8 +89,9 @@ func (l *Ledger) hour(campaign uuid.UUID, h *int, fn func(*hourDelta)) {
 }
 
 // Click records a click on a campaign's link: a person's (unique is their
-// first click on that link) or a bot's.
-func (l *Ledger) Click(campaign uuid.UUID, position int, bot, unique bool) {
+// first click on that link) or a bot's. variant is the A/B variant the
+// message had ("" without a test): each variant has its click map.
+func (l *Ledger) Click(campaign uuid.UUID, position int, variant string, bot, unique bool) {
 	if campaign == uuid.Nil {
 		return
 	}
@@ -96,26 +104,43 @@ func (l *Ledger) Click(campaign uuid.UUID, position int, bot, unique bool) {
 		cur = &linkDelta{}
 		l.links[k] = cur
 	}
+	cur.add(bot, unique)
+	if variant == "" || position < 0 {
+		return
+	}
+	if l.variants == nil {
+		l.variants = map[variantLinkKey]*linkDelta{}
+	}
+	vk := variantLinkKey{campaign, position, variant}
+	v := l.variants[vk]
+	if v == nil {
+		v = &linkDelta{}
+		l.variants[vk] = v
+	}
+	v.add(bot, unique)
+}
+
+func (d *linkDelta) add(bot, unique bool) {
 	switch {
 	case bot:
-		cur.bot++
+		d.bot++
 	default:
-		cur.clicks++
+		d.clicks++
 		if unique {
-			cur.unique++
+			d.unique++
 		}
 	}
 }
 
 // Empty reports whether the ledger has nothing to apply.
 func (l *Ledger) Empty() bool {
-	return len(l.cells) == 0 && len(l.hours) == 0 && len(l.links) == 0
+	return len(l.cells) == 0 && len(l.hours) == 0 && len(l.links) == 0 && len(l.variants) == 0
 }
 
 func uuidLess(a, b uuid.UUID) bool { return bytes.Compare(a[:], b[:]) < 0 }
 
 // Flush applies what the ledger collected: counter cells, then hours, then
-// links, each in key order, and empties it.
+// links, then links per variant, each in key order, and empties it.
 func (l *Ledger) Flush(ctx context.Context, q *store.Queries) error {
 	if len(l.cells) > 0 {
 		keys := make([]Cell, 0, len(l.cells))
@@ -216,7 +241,36 @@ func (l *Ledger) Flush(ctx context.Context, q *store.Queries) error {
 			return err
 		}
 	}
-	l.cells, l.hours, l.links = nil, nil, nil
+	if len(l.variants) > 0 {
+		keys := make([]variantLinkKey, 0, len(l.variants))
+		for k := range l.variants {
+			keys = append(keys, k)
+		}
+		sort.Slice(keys, func(i, j int) bool {
+			a, b := keys[i], keys[j]
+			if a.campaign != b.campaign {
+				return uuidLess(a.campaign, b.campaign)
+			}
+			if a.position != b.position {
+				return a.position < b.position
+			}
+			return a.variant < b.variant
+		})
+		var p store.CountersBumpLinkVariantsParams
+		for _, k := range keys {
+			d := l.variants[k]
+			p.CampaignIds = append(p.CampaignIds, k.campaign)
+			p.Positions = append(p.Positions, int32(k.position))
+			p.Variants = append(p.Variants, k.variant)
+			p.Clicks = append(p.Clicks, d.clicks)
+			p.UniqueClicks = append(p.UniqueClicks, d.unique)
+			p.BotClicks = append(p.BotClicks, d.bot)
+		}
+		if err := q.CountersBumpLinkVariants(ctx, p); err != nil {
+			return err
+		}
+	}
+	l.cells, l.hours, l.links, l.variants = nil, nil, nil, nil
 	return nil
 }
 

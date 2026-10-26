@@ -62,21 +62,29 @@ func TestUnsubscribes(t *testing.T) {
 }
 
 func TestClickMap(t *testing.T) {
+	// Clicks count every human click; the map counts people per link.
 	rows := []store.ReportLinksRow{
-		{ID: uuid.New(), Url: "https://docs.acme.io/flags", Label: "Read the docs", Position: 0, Clicks: 380},
-		{ID: uuid.New(), Url: "https://acme.io/changelog", Label: "", Position: 1, Clicks: 240},
-		{ID: uuid.New(), Url: "https://acme.io/blog", Label: "Blog", Position: 2, Clicks: 300},
-		{ID: uuid.New(), Url: "{{ unsubscribe_url }}", Label: "Unsubscribe", Position: 3, Clicks: 40},
-		{ID: uuid.New(), Url: "{{ preferences_url }}", Label: "Preferences", Position: 4, Clicks: 40},
+		{ID: uuid.New(), Url: "https://docs.acme.io/flags", Label: "Read the docs", Position: 0, Clicks: 450, UniqueClicks: 380},
+		{ID: uuid.New(), Url: "https://acme.io/changelog", Label: "", Position: 1, Clicks: 260, UniqueClicks: 240},
+		{ID: uuid.New(), Url: "https://acme.io/blog", Label: "Blog", Position: 2, Clicks: 330, UniqueClicks: 300},
+		{ID: uuid.New(), Url: "https://acme.io/about", Label: "About", Position: 3, Clicks: 41, UniqueClicks: 40, BotClicks: 9},
+		{ID: uuid.New(), Url: "https://acme.io/jobs", Label: "Jobs", Position: 4, Clicks: 44, UniqueClicks: 40, BotClicks: 9},
 	}
-	m := clickMap(i18n.Default, "<a href='x'>x</a>", rows)
-	if !m.Available || m.Total != 1000 || m.Links[1].Label != "acme.io/changelog" || !m.Links[0].Hot || !m.Links[1].Hot || m.Links[3].Hot || !m.Links[3].Grouped {
+	m := clickMap(i18n.Default, "<a href='x'>x</a>", rows, nil)
+	if !m.Available || m.Total != 1000 || m.BotTotal != 18 || m.Links[1].Label != "acme.io/changelog" || !m.Links[0].Hot || !m.Links[1].Hot || m.Links[3].Hot ||
+		!m.Links[3].Grouped || m.Links[0].Share != 38 || len(m.Rows) != 0 {
 		t.Fatalf("map: %+v", m)
 	}
-	if m.Other == nil || m.Other.Links != 2 || m.Other.Share != 8 || strings.Join(m.Other.Labels, ",") != "Unsubscribe,Preferences" {
+	if m.Other == nil || m.Other.Links != 2 || m.Other.Share != 8 || m.Other.Clicks != 80 || strings.Join(m.Other.Labels, ",") != "About,Jobs" {
 		t.Fatalf("other: %+v", m.Other)
 	}
-	if clickMap(i18n.Default, "  ", rows).Available {
+	// The two small links sit on one line at the end: one footer entry.
+	m = clickMap(i18n.Default, "<a href='x'>x</a>", rows, [][]int{{3, 4}, {0, 1}})
+	if len(m.Rows) != 1 || m.Rows[0].Place != "footer" || m.Rows[0].Clicks != 80 || m.Rows[0].BotClicks != 18 || m.Rows[0].Share != 8 ||
+		strings.Join(m.Rows[0].Labels, ",") != "About,Jobs" || m.Other != nil || m.Links[3].Grouped {
+		t.Fatalf("rows: %+v %+v", m.Rows, m.Other)
+	}
+	if clickMap(i18n.Default, "  ", rows, nil).Available {
 		t.Fatal("missing content must not render")
 	}
 }

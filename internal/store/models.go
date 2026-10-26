@@ -707,6 +707,15 @@ type CampaignLink struct {
 	BotClicks    int64     `json:"botClicks"`
 }
 
+type CampaignLinkVariant struct {
+	CampaignID   uuid.UUID `json:"campaignId"`
+	Position     int32     `json:"position"`
+	Variant      string    `json:"variant"`
+	Clicks       int64     `json:"clicks"`
+	UniqueClicks int64     `json:"uniqueClicks"`
+	BotClicks    int64     `json:"botClicks"`
+}
+
 type CampaignRoute struct {
 	CampaignID    uuid.UUID `json:"campaignId"`
 	ProviderID    uuid.UUID `json:"providerId"`

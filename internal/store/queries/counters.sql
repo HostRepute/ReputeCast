@@ -135,6 +135,20 @@ SET clicks = l.clicks + d.clicks, unique_clicks = l.unique_clicks + d.unique_cli
 FROM d
 WHERE l.campaign_id = d.campaign_id AND l.position = d.position AND l.id IN (SELECT id FROM locked);
 
+-- name: CountersBumpLinkVariants :exec
+-- Adds clicks per link and A/B variant (review AN-5), in key order, after
+-- campaign_links.
+WITH d AS (
+    SELECT unnest(@campaign_ids::uuid[]) AS campaign_id, unnest(@positions::integer[]) AS position, unnest(@variants::text[]) AS variant,
+           unnest(@clicks::bigint[]) AS clicks, unnest(@unique_clicks::bigint[]) AS unique_clicks, unnest(@bot_clicks::bigint[]) AS bot_clicks
+)
+INSERT INTO campaign_link_variants AS v (campaign_id, position, variant, clicks, unique_clicks, bot_clicks)
+SELECT d.campaign_id, d.position, d.variant, d.clicks, d.unique_clicks, d.bot_clicks
+FROM d
+ORDER BY d.campaign_id, d.position, d.variant
+ON CONFLICT (campaign_id, position, variant) DO UPDATE
+SET clicks = v.clicks + EXCLUDED.clicks, unique_clicks = v.unique_clicks + EXCLUDED.unique_clicks, bot_clicks = v.bot_clicks + EXCLUDED.bot_clicks;
+
 -- name: CountersCampaignHistory :one
 -- Whether a campaign's per-message history is stored, so its counters can
 -- be rebuilt from it: imported history and sample data have counters but
@@ -275,6 +289,43 @@ WHERE l.id = x.id AND l.campaign_id = @campaign_id
   -- Clicks recorded before link positions were stored can't be told apart:
   -- those links keep their counts.
   AND NOT EXISTS (SELECT 1 FROM delivery_events e WHERE e.campaign_id = @campaign_id AND e.type = 'click' AND e.link IS NULL);
+
+-- name: CountersClearLinkVariants :exec
+-- Before CountersRebuildLinkVariants; kept when clicks without link
+-- positions are stored (as CountersRebuildLinks).
+DELETE FROM campaign_link_variants v
+WHERE v.campaign_id = sqlc.arg(campaign_id)::uuid
+  AND NOT EXISTS (SELECT 1 FROM delivery_events e WHERE e.campaign_id = sqlc.arg(campaign_id)::uuid AND e.type = 'click' AND e.link IS NULL);
+
+-- name: CountersRebuildLinkVariants :exec
+-- Clicks per link and A/B variant from the stored clicks: people's and
+-- bots' click events by the variant their message had, people's first
+-- click per link (tracking_link_clicks).
+INSERT INTO campaign_link_variants (campaign_id, position, variant, clicks, unique_clicks, bot_clicks)
+SELECT @campaign_id::uuid, k.position, k.variant, coalesce(c.clicks, 0), coalesce(u.unique_clicks, 0), coalesce(c.bot_clicks, 0)
+FROM (
+    SELECT e.link AS position, m.variant
+    FROM delivery_events e JOIN messages m ON m.id = e.message_id
+    WHERE e.campaign_id = @campaign_id AND e.type = 'click' AND e.link >= 0 AND e.class IN ('human', 'bot') AND m.variant <> ''
+    UNION
+    SELECT t.link, m.variant
+    FROM tracking_link_clicks t JOIN messages m ON m.id = t.message_id
+    WHERE m.campaign_id = @campaign_id AND t.link >= 0 AND m.variant <> ''
+) k
+LEFT JOIN (
+    SELECT e.link AS position, m.variant, count(*) FILTER (WHERE e.class = 'human') AS clicks, count(*) FILTER (WHERE e.class = 'bot') AS bot_clicks
+    FROM delivery_events e JOIN messages m ON m.id = e.message_id
+    WHERE e.campaign_id = @campaign_id AND e.type = 'click' AND e.link >= 0 AND m.variant <> ''
+    GROUP BY e.link, m.variant
+) c ON c.position = k.position AND c.variant = k.variant
+LEFT JOIN (
+    SELECT t.link AS position, m.variant, count(*) AS unique_clicks
+    FROM tracking_link_clicks t JOIN messages m ON m.id = t.message_id
+    WHERE m.campaign_id = @campaign_id AND m.variant <> ''
+    GROUP BY t.link, m.variant
+) u ON u.position = k.position AND u.variant = k.variant
+WHERE NOT EXISTS (SELECT 1 FROM delivery_events e WHERE e.campaign_id = @campaign_id AND e.type = 'click' AND e.link IS NULL)
+ORDER BY k.position, k.variant;
 
 -- name: CountersBuildSave :exec
 INSERT INTO campaign_counter_builds (campaign_id, version, built_at, skipped)

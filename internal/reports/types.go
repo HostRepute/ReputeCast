@@ -126,20 +126,37 @@ type ReportEngagement struct {
 
 // ReportLink is one tracked link of the email.
 type ReportLink struct {
-	ID           string `json:"id"`
-	URL          string `json:"url"`
-	Label        string `json:"label"`
-	Position     int    `json:"position"`
-	Clicks       int64  `json:"clicks"`
-	UniqueClicks int64  `json:"uniqueClicks"`
+	ID       string `json:"id"`
+	URL      string `json:"url"`
+	Label    string `json:"label"`
+	Position int    `json:"position"`
+	// Clicks are every human click on the link; UniqueClicks the people who
+	// clicked it, which the map and its shares count.
+	Clicks       int64 `json:"clicks"`
+	UniqueClicks int64 `json:"uniqueClicks"`
 	// BotClicks landed on this link and were left out of its clicks.
 	BotClicks int64 `json:"botClicks"`
-	// Share of all link clicks, percent.
+	// Share of the map's human clicks (people per link), percent.
 	Share float64 `json:"share"`
-	// Grouped links fall under "Other" on the map (under the threshold).
+	// Grouped links fall under "Other" on the map (under the threshold);
+	// a link of one of the map's Rows isn't grouped but drawn with its row.
 	Grouped bool `json:"grouped"`
 	// Hot marks the most-clicked links (drawn in red).
 	Hot bool `json:"hot"`
+}
+
+// ReportLinkRow is links that sit on one line of the email with only
+// separators between them (a navigation bar: "Blog · Docs · Changelog"),
+// each under the threshold: the map shows them as one entry and one bubble.
+type ReportLinkRow struct {
+	// Place is where the row is: header (at the top, after a logo at
+	// most), footer (after every other link) or body.
+	Place     string   `json:"place" enum:"header,footer,body"`
+	Positions []int    `json:"positions"`
+	Labels    []string `json:"labels"`
+	Clicks    int64    `json:"clicks" doc:"Human clicks, each person once per link"`
+	BotClicks int64    `json:"botClicks"`
+	Share     float64  `json:"share"`
 }
 
 // ReportLinkGroup is "Other": the links under the threshold, as one bubble.
@@ -156,15 +173,39 @@ type ReportClickMap struct {
 	HTML string `json:"html"`
 	// Available is false when the stored content is missing; the links
 	// are still listed.
-	Available bool             `json:"available"`
-	Total     int64            `json:"total" doc:"All people's link clicks"`
-	BotTotal  int64            `json:"botTotal" doc:"Clicks the bot filter left out"`
-	Links     []ReportLink     `json:"links"`
-	Threshold float64          `json:"threshold" doc:"Links under this share (percent) are grouped as Other"`
-	Other     *ReportLinkGroup `json:"other,omitempty"`
+	Available bool         `json:"available"`
+	Total     int64        `json:"total" doc:"Human clicks on the links, each person once per link"`
+	BotTotal  int64        `json:"botTotal" doc:"Clicks the bot filter left out"`
+	Links     []ReportLink `json:"links"`
+	Threshold float64      `json:"threshold" doc:"Links under this share (percent) are grouped as Other"`
+	// Rows are the links on one line of the email shown as one entry; their
+	// links aren't in Other.
+	Rows  []ReportLinkRow  `json:"rows"`
+	Other *ReportLinkGroup `json:"other,omitempty"`
 	// Language is the language version the map shows, for a campaign sent
 	// in several languages.
 	Language string `json:"language,omitempty"`
+	// Variants are the A/B test's maps, one per variant (review AN-5): each
+	// variant's recipients' clicks (its sample and, for the winner, everyone
+	// who got it after the test) on the variant's email. Empty without a
+	// test, or when the clicks weren't kept per variant.
+	Variants []ReportVariantClickMap `json:"variants"`
+}
+
+// ReportVariantClickMap is one A/B variant's click map.
+type ReportVariantClickMap struct {
+	Key string `json:"key"`
+	// SameEmail: the variants share the email (a subject or send-time
+	// test), so the map is drawn on the campaign's email (ReportClickMap's
+	// HTML) and HTML is empty.
+	SameEmail bool             `json:"sameEmail"`
+	HTML      string           `json:"html"`
+	Available bool             `json:"available"`
+	Total     int64            `json:"total"`
+	BotTotal  int64            `json:"botTotal"`
+	Links     []ReportLink     `json:"links"`
+	Rows      []ReportLinkRow  `json:"rows"`
+	Other     *ReportLinkGroup `json:"other,omitempty"`
 }
 
 // ReportRates are a slice of the send's results. Rates as in ReportHeadline.

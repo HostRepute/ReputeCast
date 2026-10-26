@@ -22,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
+	"github.com/hostrepute/reputecast/internal/linkrule"
 	provstate "github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/secrets"
@@ -151,6 +152,7 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 		out.Headline.SentBy = []ReportProviderCount{}
 		out.Engagement.Points = []ReportEngagementPoint{}
 		out.ClickMap.Links = []ReportLink{}
+		out.ClickMap.Variants = []ReportVariantClickMap{}
 		out.Providers.Columns = []ReportProviderColumn{}
 		out.Bounces.Rows = []ReportBounceRow{}
 		out.Unsubscribes.Reasons = []ReportUnsubscribeReason{}
@@ -178,7 +180,9 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 	if err != nil {
 		return out, err
 	}
-	out.ClickMap = clickMap(l, c.Html, links)
+	if out.ClickMap, err = s.clickMaps(ctx, l, c, ab, links); err != nil {
+		return out, err
+	}
 	out.Headline.BotClicks = out.ClickMap.BotTotal
 	if s.Languages != nil {
 		if out.Languages, err = s.Languages.CampaignResults(ctx, ws, c.ID, c.Audience); err != nil {
@@ -194,7 +198,7 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 						mine = append(mine, l)
 					}
 				}
-				out.ClickMap = clickMap(l, html, mine)
+				out.ClickMap = clickMap(l, linkrule.Mark(html), mine, linkrule.Rows(html))
 				out.ClickMap.Language = lang
 				if lang == "" && len(out.Languages.ClickMaps) > 0 {
 					out.ClickMap.Language = out.Languages.ClickMaps[0].Language
@@ -519,12 +523,19 @@ func engagement(rows []store.ReportHourlyRow, delivered int64, hours int) Report
 	return out
 }
 
-// clickMap sizes each link against all link clicks and groups the small ones.
-func clickMap(l i18n.Lang, html string, rows []store.ReportLinksRow) ReportClickMap {
+// clickMap sizes each link against all link clicks and groups the small
+// ones. A link's human clicks count each person once (a repeat click on the
+// same link doesn't add one), so the map's total is people per link: 2,996
+// people can make 3,412 human clicks across the links (Report board).
+//
+// lines are the email's rows of links (linkrule.Rows): a row whose links
+// are all under the threshold is one entry instead of joining "Other".
+func clickMap(l i18n.Lang, html string, rows []store.ReportLinksRow, lines [][]int) ReportClickMap {
 	rows = groupPersonal(l, rows)
-	out := ReportClickMap{HTML: html, Available: strings.TrimSpace(html) != "", Links: []ReportLink{}, Threshold: LinkThreshold}
+	out := ReportClickMap{HTML: html, Available: strings.TrimSpace(html) != "", Links: []ReportLink{}, Threshold: LinkThreshold, Rows: []ReportLinkRow{},
+		Variants: []ReportVariantClickMap{}}
 	for _, r := range rows {
-		out.Total += r.Clicks
+		out.Total += r.UniqueClicks
 		out.BotTotal += r.BotClicks
 	}
 	var other ReportLinkGroup
@@ -537,16 +548,61 @@ func clickMap(l i18n.Lang, html string, rows []store.ReportLinksRow) ReportClick
 		l := ReportLink{ID: r.ID.String(), URL: r.Url, Label: linkLabel(r.Label, r.Url), Position: int(r.Position), Clicks: r.Clicks, UniqueClicks: r.UniqueClicks,
 			BotClicks: r.BotClicks}
 		if out.Total > 0 {
-			l.Share = round(float64(r.Clicks)/float64(out.Total)*100, 1)
+			l.Share = round(float64(r.UniqueClicks)/float64(out.Total)*100, 1)
 		}
 		l.Grouped = l.Share < LinkThreshold
 		l.Hot = l.Share >= HotShare
-		if l.Grouped && r.Clicks > 0 {
-			other.Links++
-			other.Clicks += r.Clicks
-			grouped = append(grouped, labelled{l.Label, r.Clicks})
-		}
 		out.Links = append(out.Links, l)
+	}
+	// Rows of small links: one entry each.
+	inRow := map[int]bool{}
+	byPos := map[int]int{}
+	last := -1
+	for i, lk := range out.Links {
+		byPos[lk.Position] = i
+		last = max(last, lk.Position)
+	}
+	for _, line := range lines {
+		row := ReportLinkRow{Positions: []int{}, Labels: []string{}}
+		small := true
+		for _, p := range line {
+			i, ok := byPos[p]
+			if !ok || !out.Links[i].Grouped {
+				small = false
+				break
+			}
+			lk := out.Links[i]
+			row.Positions = append(row.Positions, p)
+			row.Labels = append(row.Labels, lk.Label)
+			row.Clicks += lk.UniqueClicks
+			row.BotClicks += lk.BotClicks
+		}
+		if !small || len(row.Positions) < 2 {
+			continue
+		}
+		switch {
+		case row.Positions[0] <= 1:
+			row.Place = "header"
+		case row.Positions[len(row.Positions)-1] == last:
+			row.Place = "footer"
+		default:
+			row.Place = "body"
+		}
+		if out.Total > 0 {
+			row.Share = round(float64(row.Clicks)/float64(out.Total)*100, 1)
+		}
+		for _, p := range row.Positions {
+			inRow[p] = true
+			out.Links[byPos[p]].Grouped = false
+		}
+		out.Rows = append(out.Rows, row)
+	}
+	for _, lk := range out.Links {
+		if lk.Grouped && !inRow[lk.Position] && lk.UniqueClicks > 0 {
+			other.Links++
+			other.Clicks += lk.UniqueClicks
+			grouped = append(grouped, labelled{lk.Label, lk.UniqueClicks})
+		}
 	}
 	if other.Links > 0 && out.Total > 0 {
 		other.Share = round(float64(other.Clicks)/float64(out.Total)*100, 1)

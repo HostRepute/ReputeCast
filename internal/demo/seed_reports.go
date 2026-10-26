@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"html"
 	"math"
 	"regexp"
 	"sort"
@@ -18,6 +17,8 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/abstats"
 	"github.com/hostrepute/reputecast/internal/authn"
+	"github.com/hostrepute/reputecast/internal/linkrule"
+	"github.com/hostrepute/reputecast/internal/liquid"
 )
 
 func init() { seedReports = seedReportsImpl }
@@ -869,52 +870,35 @@ func reportHourly(ctx context.Context, s *Seeder, c *reportCampaignSeed, ab bool
 	return err
 }
 
-var (
-	anchorRe = regexp.MustCompile(`(?is)<a\s[^>]*?href\s*=\s*["']([^"']+)["'][^>]*>(.*?)</a>`)
-	tagRe    = regexp.MustCompile(`(?s)<[^>]+>`)
-	attrRe   = regexp.MustCompile(`(?i)\b(aria-label|title|alt)\s*=\s*["']([^"']+)["']`)
-	spaceRe  = regexp.MustCompile(`\s+`)
+// The October Product Update's people per link, as on the Report board's
+// click map: 3,412 human clicks by the 2,996 people who clicked (a person
+// can click several links; a repeat click on one link counts once). By
+// address, so the composer's email and the placeholder one get the same.
+var octLinkPeople = map[string]int64{
+	"https://docs.acme.io/flags": 1297, "https://acme.io/changelog/audit-exports": 819, "https://docs.acme.io/migrate-v2": 648,
+	// The navigation row: "Header links" on the map.
+	"https://acme.io/blog": 82, "https://docs.acme.io": 68, "https://acme.io/changelog": 55,
+	// Images: "Other".
+	"https://acme.io/blog/october-product-update": 160, "https://acme.io": 106, "https://acme.io/features/feature-flags-ga": 103,
+	"https://acme.io/features/audit-log-exports": 74,
+}
+
+// octBotClicks are the clicks the bot filter left out: security scanners
+// following every link of the October Product Update on arrival.
+const octBotClicks = 1108
+
+// Per link, the people who clicked it make this many clicks, repeats
+// included; across links, people per link add up to this many times the
+// people who clicked (3,412 / 2,996).
+const (
+	repeatClicks    = 1.18
+	linksPerClicker = 1.139
 )
 
-type reportAnchor struct{ url, label string }
-
-func reportAnchors(doc string) []reportAnchor {
-	var out []reportAnchor
-	for _, m := range anchorRe.FindAllStringSubmatch(doc, -1) {
-		u := strings.TrimSpace(html.UnescapeString(m[1]))
-		if u == "" || strings.HasPrefix(u, "#") || strings.HasPrefix(strings.ToLower(u), "mailto:") {
-			continue
-		}
-		label := strings.TrimSpace(spaceRe.ReplaceAllString(html.UnescapeString(tagRe.ReplaceAllString(m[2], " ")), " "))
-		if label == "" {
-			// An image link: its aria-label, title or the image's alt text.
-			for _, src := range []string{m[0], m[2]} {
-				if a := attrRe.FindStringSubmatch(src); a != nil {
-					label = strings.TrimSpace(html.UnescapeString(a[2]))
-					break
-				}
-			}
-		}
-		out = append(out, reportAnchor{u, label})
-	}
-	return out
-}
-
-// Shares of clicks (percent) for the October Product Update's links, as on
-// the Report board's click map; other links share what is left.
-// The images are labelled by their alt text (the composer's email) or as
-// placeholders (reportEmailHTML).
-var octLinkShares = map[string]float64{
-	"read the docs": 38, "see changelog": 24, "read the guide": 19, "docs": 6,
-	"email preferences": 2.0, "view in browser": 1.8, "unsubscribe": 1.6, "blog": 1.5, "changelog": 1.4, "acme": 1.3,
-	"october product update": 1.2, "hero image": 1.2,
-	"feature flags dashboard": 1.1, "feature flags ga image": 1.1, "audit log export settings": 1.1, "audit log exports image": 1.1,
-}
-
-var footerLabel = regexp.MustCompile(`(?i)unsubscribe|preferences|view (in|online)|browser|privacy|github|^x$|twitter|linkedin|image$`)
-
 // reportLinks stores the email (when no other seeder wrote its content)
-// and the clicks per link: Σ clicks equals the campaign's clicks.
+// and the clicks per link, the links numbered as the sending engine numbers
+// them (internal/linkrule): people per link add up to about 1.14 times the
+// people who clicked, and scanners clicked each link alike.
 func reportLinks(ctx context.Context, s *Seeder, c *reportCampaignSeed, oct bool) error {
 	if strings.TrimSpace(c.html) == "" {
 		c.html = reportEmailHTML(c.name, oct)
@@ -922,63 +906,84 @@ func reportLinks(ctx context.Context, s *Seeder, c *reportCampaignSeed, oct bool
 			return err
 		}
 	}
-	anchors := reportAnchors(c.html)
-	if len(anchors) == 0 {
+	_, links := linkrule.Rewrite(liquid.ExpandBlocks(c.html), func(l linkrule.Link) string { return l.URL })
+	if len(links) == 0 {
 		return nil
 	}
-	weights := make([]float64, len(anchors))
-	body := []float64{38, 24, 19, 12, 8, 6, 5, 4, 3, 3}
-	b := 0
-	for i, a := range anchors {
-		l := strings.ToLower(a.label)
-		if v, ok := octLinkShares[l]; ok && oct {
-			weights[i] = v
-			continue
-		}
-		switch {
-		case footerLabel.MatchString(a.label):
-			weights[i] = 1.5
-		case len(a.label) <= 10 && i < 4:
-			weights[i] = 2 // header navigation
-		default:
-			if b < len(body) {
-				weights[i] = body[b]
-			} else {
-				weights[i] = 2
-			}
-			b++
+	rows := linkrule.Rows(c.html)
+	inRow := map[int]bool{}
+	for _, r := range rows {
+		for _, p := range r {
+			inRow[p] = true
 		}
 	}
-	clicks := Split(c.total(rmClicked), weights)
+	people := make([]int64, len(links))
+	if oct {
+		for i, l := range links {
+			people[i] = octLinkPeople[l.URL]
+		}
+	} else {
+		weights := make([]float64, len(links))
+		body := []float64{38, 24, 19, 12, 8, 6, 5, 4, 3, 3}
+		b := 0
+		for i, l := range links {
+			switch {
+			case inRow[i]:
+				weights[i] = 2 // a navigation row
+			case l.Label == "" || strings.HasSuffix(strings.ToLower(l.Label), "image"):
+				weights[i] = 2.5 // an image
+			case b < len(body):
+				weights[i] = body[b]
+				b++
+			default:
+				weights[i] = 2
+			}
+		}
+		people = Split(int64(math.Round(float64(c.total(rmClicked))*linksPerClicker)), weights)
+	}
+	bots := make([]int64, len(links))
+	if oct {
+		even := make([]float64, len(links))
+		for i := range even {
+			even[i] = 1
+		}
+		bots = Split(octBotClicks, even)
+	} else {
+		// About one delivered message in sixty meets a scanner that clicks
+		// every link.
+		for i := range bots {
+			bots[i] = c.total(rmDelivered) / 60
+		}
+	}
 	// Links other seeders created for the campaign (matched by address) are
 	// updated, so a link appears once.
 	existing := map[string][]uuid.UUID{}
-	rows, err := s.Tx.Query(ctx, `SELECT id, url FROM campaign_links WHERE campaign_id = $1 ORDER BY position, id`, c.id)
+	rs, err := s.Tx.Query(ctx, `SELECT id, url FROM campaign_links WHERE campaign_id = $1 ORDER BY position, id`, c.id)
 	if err != nil {
 		return err
 	}
-	for rows.Next() {
+	for rs.Next() {
 		var id uuid.UUID
 		var u string
-		if err := rows.Scan(&id, &u); err != nil {
-			rows.Close()
+		if err := rs.Scan(&id, &u); err != nil {
+			rs.Close()
 			return err
 		}
 		existing[u] = append(existing[u], id)
 	}
-	rows.Close()
-	for i, a := range anchors {
-		unique := int64(math.Round(float64(clicks[i]) * 0.86))
-		if ids := existing[a.url]; len(ids) > 0 {
-			existing[a.url] = ids[1:]
-			if _, err := s.Tx.Exec(ctx, `UPDATE campaign_links SET label = $2, position = $3, clicks = $4, unique_clicks = $5 WHERE id = $1`,
-				ids[0], a.label, i, clicks[i], unique); err != nil {
+	rs.Close()
+	for i, l := range links {
+		clicks := int64(math.Round(float64(people[i]) * repeatClicks))
+		if ids := existing[l.URL]; len(ids) > 0 {
+			existing[l.URL] = ids[1:]
+			if _, err := s.Tx.Exec(ctx, `UPDATE campaign_links SET label = $2, position = $3, clicks = $4, unique_clicks = $5, bot_clicks = $6 WHERE id = $1`,
+				ids[0], l.Label, i, clicks, people[i], bots[i]); err != nil {
 				return err
 			}
 			continue
 		}
-		if _, err := s.Tx.Exec(ctx, `INSERT INTO campaign_links (id, campaign_id, url, label, position, clicks, unique_clicks) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-			ID(), c.id, a.url, a.label, i, clicks[i], unique); err != nil {
+		if _, err := s.Tx.Exec(ctx, `INSERT INTO campaign_links (id, campaign_id, url, label, position, clicks, unique_clicks, bot_clicks) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+			ID(), c.id, l.URL, l.Label, i, clicks, people[i], bots[i]); err != nil {
 			return err
 		}
 	}

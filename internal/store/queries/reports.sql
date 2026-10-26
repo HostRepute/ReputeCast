@@ -51,6 +51,19 @@ FROM campaign_links
 WHERE campaign_id = @campaign_id
 ORDER BY position, url;
 
+-- name: ReportLinkVariants :many
+-- Clicks per link and A/B variant, for each variant's click map (review
+-- AN-5).
+SELECT position, variant, clicks, unique_clicks, bot_clicks
+FROM campaign_link_variants
+WHERE campaign_id = @campaign_id
+ORDER BY variant, position;
+
+-- name: ReportSendContent :one
+-- The email as the send captured it: each content variant's HTML and the
+-- first link position of each (internal/sending/engine sendContent).
+SELECT coalesce(content, '{}'::jsonb)::jsonb AS content FROM campaign_sends WHERE campaign_id = @campaign_id;
+
 -- name: ReportBounceCodes :many
 -- Bounces of a campaign by taxonomy class, sending provider and the
 -- provider's original event and code, with how many of the bounced

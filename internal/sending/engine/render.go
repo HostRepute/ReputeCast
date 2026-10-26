@@ -3,7 +3,6 @@ package engine
 import (
 	"errors"
 	"fmt"
-	"html"
 	"io"
 	"regexp"
 	"strconv"
@@ -12,6 +11,7 @@ import (
 	osteele "github.com/osteele/liquid"
 
 	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/linkrule"
 	"github.com/hostrepute/reputecast/internal/liquid"
 )
 
@@ -73,12 +73,7 @@ var (
 	// parsed here without liquid.Validate, so this engine can't load
 	// templates or files either.
 	engine     = liquid.NewEngine()
-	anchorRe   = regexp.MustCompile(`(?is)<a\b([^>]*)>(.*?)</a\s*>`)
-	hrefRe     = regexp.MustCompile(`(?is)(\shref\s*=\s*)("([^"]*)"|'([^']*)'|([^\s>"']+))`)
-	tagRe      = regexp.MustCompile(`(?s)<[^>]*>`)
-	spaceRe    = regexp.MustCompile(`\s+`)
 	bodyCloseR = regexp.MustCompile(`(?i)</body\s*>`)
-	systemLink = regexp.MustCompile(`^\{\{-?\s*(unsubscribe_url|preferences_url|view_in_browser_url)\b`)
 )
 
 // ErrRender wraps personalization errors in an email.
@@ -161,77 +156,17 @@ func parse(src string) (*osteele.Template, error) {
 	return tpl, nil
 }
 
-// rewriteLinks replaces every trackable href with a per-recipient variable
-// and returns the links in order. Unsubscribe, preference and view-online
-// links, anchors, mailto: and tel: links are left alone.
+// rewriteLinks replaces every tracked link's href with a per-recipient
+// variable and returns the links in order. Which links are tracked is
+// internal/linkrule's rule, the one the report's click map uses too
+// (review AN-5).
 func rewriteLinks(src string) (string, []TrackedLink) {
-	links := []TrackedLink{}
-	out := anchorRe.ReplaceAllStringFunc(src, func(a string) string {
-		m := anchorRe.FindStringSubmatch(a)
-		attrs, inner := m[1], m[2]
-		hm := hrefRe.FindStringSubmatchIndex(attrs)
-		if hm == nil {
-			return a
-		}
-		raw := ""
-		for _, g := range []int{3, 4, 5} {
-			if hm[2*g] >= 0 {
-				raw = attrs[hm[2*g]:hm[2*g+1]]
-				break
-			}
-		}
-		href := strings.TrimSpace(html.UnescapeString(raw))
-		if !trackable(href) {
-			return a
-		}
-		pos := len(links)
-		links = append(links, TrackedLink{Position: pos, URL: href, Label: linkLabel(inner)})
-		newAttrs := attrs[:hm[0]] + attrs[hm[2]:hm[3]] + `"{{ ` + varLink + strconv.Itoa(pos) + ` }}"` + attrs[hm[1]:]
-		return "<a" + newAttrs + ">" + inner + "</a>"
-	})
+	out, ls := linkrule.Rewrite(src, func(l linkrule.Link) string { return "{{ " + varLink + strconv.Itoa(l.Position) + " }}" })
+	links := make([]TrackedLink, 0, len(ls))
+	for _, l := range ls {
+		links = append(links, TrackedLink{Position: l.Position, URL: l.URL, Label: l.Label})
+	}
 	return out, links
-}
-
-func trackable(href string) bool {
-	if href == "" || strings.HasPrefix(href, "#") {
-		return false
-	}
-	lower := strings.ToLower(href)
-	for _, p := range []string{"mailto:", "tel:", "sms:", "javascript:", "data:"} {
-		if strings.HasPrefix(lower, p) {
-			return false
-		}
-	}
-	if systemLink.MatchString(href) || strings.Contains(href, "unsubscribe_url") || strings.Contains(href, "preferences_url") || strings.Contains(href, "view_in_browser_url") {
-		return false
-	}
-	// Poll answers and survey links aren't clicks: the answer page records
-	// the answer, and the click map shows a poll as one region.
-	if strings.Contains(href, "rc_poll_") || strings.Contains(href, "rc_survey_") {
-		return false
-	}
-	// Earn's personal links: the upgrade page knows the reader and credits
-	// the email itself, and the billing link is the reader's own.
-	if strings.Contains(href, "upgrade_url") || strings.Contains(href, "manage_subscription_url") {
-		return false
-	}
-	// The Recommendations block's buttons open the hosted recommendations
-	// page, which counts them (internal/recommendations); they sit in a
-	// loop, so one tracked link couldn't tell the newsletters apart.
-	if strings.Contains(href, "rc_rec_") {
-		return false
-	}
-	// Only absolute web links (possibly personalized) are redirected.
-	return strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") || strings.HasPrefix(href, "{{")
-}
-
-func linkLabel(inner string) string {
-	s := html.UnescapeString(tagRe.ReplaceAllString(inner, " "))
-	s = strings.TrimSpace(spaceRe.ReplaceAllString(s, " "))
-	if r := []rune(s); len(r) > 120 {
-		s = string(r[:119]) + "…"
-	}
-	return s
 }
 
 // pixel is the open-tracking image: 1×1, no alt text to announce, block so
