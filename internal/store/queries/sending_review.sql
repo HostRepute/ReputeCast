@@ -194,3 +194,25 @@ DELETE FROM sending_mailbox_windows WHERE slot < @before;
 -- Frees a workspace's mailbox windows over a past interval (the demo
 -- command's fast-forward).
 DELETE FROM sending_mailbox_windows WHERE workspace_id = @workspace_id AND slot BETWEEN @from_sec AND @to_sec;
+
+-- GS-11: thresholds by bounce type ------------------------------------------
+
+-- name: SendingBounceTypes :many
+-- A send's hard bounces by mailbox provider and class (block/policy or
+-- unknown users).
+SELECT mailbox_provider, bounce_class, count(*)::bigint AS n FROM delivery_events
+WHERE campaign_id = @campaign_id AND type = 'hard_bounce'
+GROUP BY mailbox_provider, bounce_class;
+
+-- name: SendingDeferredSince :many
+-- The messages each mailbox provider deferred, or bounced softly, since a
+-- time (each message once).
+SELECT mailbox_provider, count(DISTINCT message_id)::bigint AS n FROM delivery_events
+WHERE campaign_id = @campaign_id AND type IN ('deferred', 'soft_bounce') AND occurred_at >= @since::timestamptz
+GROUP BY mailbox_provider;
+
+-- name: SendingSentSinceByMailbox :many
+-- What a send sent to each mailbox provider since a time.
+SELECT mailbox_provider, count(*)::bigint AS n FROM messages
+WHERE campaign_id = @campaign_id AND sent_at >= @since
+GROUP BY mailbox_provider;

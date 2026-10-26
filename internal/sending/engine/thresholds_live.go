@@ -23,11 +23,23 @@ func guardOf(snd store.CampaignSend, hasSend bool) guardState {
 
 // liveThresholds are the thresholds card's rows; api are the API error
 // rates of the routes the send still uses.
-func liveThresholds(th Thresholds, ts tallies, g guardState, api []LiveThresholdPart) []LiveThreshold {
+func liveThresholds(th Thresholds, ts tallies, g guardState, api []LiveThresholdPart, ty typed) []LiveThreshold {
 	t := g.judged(rearmCampaign, ts.total)
 	out := []LiveThreshold{thresholdRow("bounce", t.bounced(), t.sent, minEvents, minSampleCampaign, th.Bounce)}
-	if row, ok := worstMailbox(ts, g, "deferral", th.Deferral); ok {
+	// By bounce type and deferral levels (GS-11): the mailbox provider
+	// closest to its limit.
+	if row, ok := worstTyped(ts, g, ty, "block_bounce", th); ok {
 		out = append(out, row)
+	}
+	switch {
+	case th.DeferralSlowWindow > 0 || th.DeferralWindow > 0:
+		if row, ok := worstTyped(ts, g, ty, "deferral", th); ok {
+			out = append(out, row)
+		}
+	default:
+		if row, ok := worstMailbox(ts, g, "deferral", th.Deferral); ok {
+			out = append(out, row)
+		}
 	}
 	// Complaints count only where mailbox providers report them (F-2).
 	complaint := thresholdRow("complaint", t.complained, t.reported, minEvents, minSampleCampaign, th.Complaint)
@@ -122,6 +134,51 @@ func worstMailbox(ts tallies, g guardState, metric string, limit float64) (LiveT
 		ratio := 0.0
 		if row.Value != nil && limit > 0 {
 			ratio = *row.Value / limit
+		}
+		if ratio > bestRatio {
+			best, bestRatio = row, ratio
+		}
+	}
+	return best, bestRatio >= 0
+}
+
+// worstTyped is a typed threshold's row for the mailbox provider closest
+// to its limit: block/policy bounces of what was sent, or deferrals
+// within the first level's window.
+func worstTyped(ts tallies, g guardState, ty typed, metric string, th Thresholds) (LiveThreshold, bool) {
+	var best LiveThreshold
+	bestRatio := -1.0
+	for _, k := range routing.MailboxProviders {
+		mt := ts.mailbox[k]
+		if mt == nil {
+			continue
+		}
+		key := rearmMailbox(k)
+		var row LiveThreshold
+		switch metric {
+		case "block_bounce":
+			m := g.judged(key, *mt)
+			if m.sent == 0 || th.BlockBounce <= 0 {
+				continue
+			}
+			row = thresholdRow("block_bounce", max(ty.block[k]-g.Rearm[key].Block, 0), m.sent, minEvents, minSampleScoped, th.BlockBounce)
+			row.Action = th.BlockAction
+		default:
+			limit, window, action := th.DeferralSlow, th.DeferralSlowWindow, th.DeferralSlowAction
+			if limit <= 0 || window <= 0 {
+				limit, window, action = th.Deferral, th.DeferralWindow, th.DeferralAction
+			}
+			s := ty.sent[window][k]
+			if s == 0 || limit <= 0 {
+				continue
+			}
+			row = thresholdRow("deferral", ty.deferred[window][k], s, minDeferrals, minSampleScoped, limit)
+			row.Window, row.Action = window, action
+		}
+		row.Mailbox = k
+		ratio := 0.0
+		if row.Value != nil && row.Limit > 0 {
+			ratio = *row.Value / row.Limit
 		}
 		if ratio > bestRatio {
 			best, bestRatio = row, ratio

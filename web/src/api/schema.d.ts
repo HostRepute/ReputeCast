@@ -26843,6 +26843,8 @@ export interface components {
             lead: string;
         };
         IncidentDetail: {
+            /** @enum {string} */
+            action?: "slowed" | "warned" | "alerted" | "";
             /** Format: int64 */
             attempts?: number;
             /** Format: int64 */
@@ -26878,6 +26880,8 @@ export interface components {
             sent?: number;
             /** Format: int64 */
             sentOnRoute?: number;
+            /** Format: double */
+            slowedTo?: number;
             /** Format: int64 */
             succeeded: number;
             /** Format: double */
@@ -26887,6 +26891,8 @@ export interface components {
             /** Format: int64 */
             total?: number;
             warmupNote?: string;
+            /** Format: int64 */
+            window?: number;
         };
         IncidentLogLine: {
             /** Format: date-time */
@@ -28680,6 +28686,7 @@ export interface components {
             watch?: components["schemas"]["LiveWatch"];
         };
         LiveThreshold: {
+            action?: string;
             /** Format: int64 */
             base: number;
             /** Format: int64 */
@@ -28700,6 +28707,8 @@ export interface components {
             state: "ok" | "near" | "collecting" | "tripped" | "na";
             /** Format: double */
             value?: number;
+            /** Format: int64 */
+            window?: number;
         };
         LiveThresholdPart: {
             key?: string;
@@ -28728,6 +28737,8 @@ export interface components {
         };
         LiveTotals: {
             /** Format: int64 */
+            blockBounced: number;
+            /** Format: int64 */
             bounced: number;
             /** Format: int64 */
             clicked: number;
@@ -28752,6 +28763,8 @@ export interface components {
             rejected: number;
             /** Format: int64 */
             softBounced: number;
+            /** Format: int64 */
+            unknownBounced: number;
             /** Format: int64 */
             unsubscribed: number;
         };

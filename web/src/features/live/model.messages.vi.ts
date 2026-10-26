@@ -57,7 +57,8 @@ export default translate(mm, {
   tileClicked: 'Đã nhấp',
   tileCost: 'Chi phí',
   deliveredSub: '{rate} số đã gửi',
-  bouncedSub: '{rate} · {hard} vĩnh viễn, {soft} tạm thời',
+  bouncedSub: '{rate} · {unknown} người nhận không tồn tại, {block} do chặn/chính sách, {soft} tạm thời',
+  bouncedBlock: '{rate} · {block} do chặn/chính sách',
   bouncedSuppressed: '{rate} · đã thêm vào danh sách chặn gửi',
   complainedSubReported: '{rate} trên {base} thư đã giao ở nơi có báo cáo khiếu nại',
   complainedFinal: '{rate} trên {base} thư đã giao ở nơi có báo cáo{counting, select, yes { · vẫn đang đếm} other {}}',
@@ -78,7 +79,7 @@ export default translate(mm, {
   thresholdErrors: 'Lỗi API của nhà cung cấp gửi',
   thresholdWholeSend: 'cả lần gửi',
   thresholdPerMailbox: 'theo nhà cung cấp hộp thư',
-  thresholdPerMailboxWindow: 'theo nhà cung cấp hộp thư, trong 10 phút',
+  thresholdPerMailboxWindow: 'theo nhà cung cấp hộp thư, trong {window} phút',
   thresholdWhereReported: 'cả lần gửi, nơi có báo cáo',
   thresholdHighest: 'nhà cung cấp hộp thư cao nhất',
   thresholdRepliesSub: '{count, plural, other {# quy tắc phản hồi}}, trong 10 phút',
@@ -106,7 +107,8 @@ export default translate(mm, {
     '{events} trên {base} thư {unit, select, delivered {đã giao} other {đã gửi}} · cần {minEvents} {key, select, complaint {khiếu nại} mailbox_complaint {khiếu nại} deferral {lần hoãn nhận} other {thư trả lại}} và {minBase} thư {unit, select, delivered {đã giao} other {đã gửi}} mới có thể tạm dừng',
   thresholdComplaintsTo: '{events} trên {base} thư đã giao tới {names}',
   thresholdIn: '{unit, select, delivered {{events} trên {base} thư đã giao} other {{events} trên {base} thư đã gửi}}',
-  thresholdHighestAction: '{key, select, deferral {cao nhất · chỉ tạm dừng nhà cung cấp hộp thư đó} other {cao nhất · chỉ tạm dừng nhà cung cấp hộp thư đó}}',
+  thresholdHighestAction:
+    '{action, select, slow {cao nhất · khi đạt {limit} sẽ giảm còn một nửa tốc độ} pause_send {cao nhất · khi đạt {limit} sẽ tạm dừng lần gửi} warn {cao nhất · khi đạt {limit} sẽ cảnh báo} other {cao nhất · chỉ tạm dừng nhà cung cấp hộp thư đó}}',
   thresholdReplyAction: 'khi đạt {limit}, quy tắc áp dụng cho {who}',
   thresholdsFootnote:
     'Một ngưỡng chỉ bị vượt sau ít nhất 5 sự kiện và đủ bằng chứng rằng tỷ lệ thực sự cao hơn giới hạn. Trước đó nó hiện “Đang thu thập bằng chứng” với thanh màu xám.',

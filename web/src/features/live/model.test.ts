@@ -51,9 +51,11 @@ function thr(key: Threshold['key'], value: number | undefined, limit: number, ex
   return { key, value, limit, events: 0, base: 0, minEvents: 5, minBase: 500, state: 'ok', ...extra }
 }
 
-/** Totals, with what complaint rates are counted on (F-2). */
-function totals(t: Omit<Snapshot['totals'], 'complaintBase' | 'notReported'> & Partial<Snapshot['totals']>): Snapshot['totals'] {
-  return { complaintBase: 0, notReported: [], ...t }
+/** Totals, with what complaint rates are counted on (F-2) and bounces by type (GS-11). */
+function totals(
+  t: Omit<Snapshot['totals'], 'complaintBase' | 'notReported' | 'blockBounced' | 'unknownBounced'> & Partial<Snapshot['totals']>,
+): Snapshot['totals'] {
+  return { complaintBase: 0, notReported: [], blockBounced: 0, unknownBounced: t.hardBounced, ...t }
 }
 
 function provider(p: Partial<Provider>): Provider {
@@ -174,7 +176,7 @@ const live = snapshot({
   etaSeconds: 780,
   finishesAt: T('09:34:44'),
   providers: [ses, postal],
-  totals: totals({ delivered: 19402, bounced: 118, hardBounced: 94, softBounced: 24, complained: 4, deferred: 40, rejected: 0, opened: 2811, openedHuman: 1920, openedMachine: 891, clicked: 402, unsubscribed: 0, complaintBase: 8895, notReported: ['gmail', 'icloud'] }),
+  totals: totals({ delivered: 19402, bounced: 118, hardBounced: 94, unknownBounced: 86, blockBounced: 8, softBounced: 24, complained: 4, deferred: 40, rejected: 0, opened: 2811, openedHuman: 1920, openedMachine: 891, clicked: 402, unsubscribed: 0, complaintBase: 8895, notReported: ['gmail', 'icloud'] }),
   thresholds: [
     thr('bounce', 0.6, 2),
     thr('complaint', 0.03, 0.1),
@@ -211,7 +213,7 @@ describe('LiveMonitor', () => {
   it('writes the five counters', () => {
     expect(tiles(live).map((t) => `${t.label} ${t.value} ${t.sub}`)).toEqual([
       'Delivered 19,402 99.0% of sent',
-      'Bounced 118 0.60% · 94 hard, 24 soft',
+      'Bounced 118 0.60% · 86 unknown user, 8 block/policy, 24 soft',
       'Complained 4 0.04% of 8,895 delivered where complaints are reported',
       'Opened 2,811 14.5% · 1,920 human, 891 machine',
       'Clicked 402 2.1% · 14.3% click-to-open',
@@ -254,7 +256,7 @@ describe('LiveMonitorMobile', () => {
   it('writes the phone layout', () => {
     expect(mobileTiles(live).map((t) => `${t.label} ${t.value} ${t.sub}`)).toEqual([
       'Delivered 19,402 99.0%',
-      'Bounced 118 0.60%',
+      'Bounced 118 0.60% · 8 block/policy',
       'Complained 4 0.04% where reported',
       'Opened · human 1,920 +891 machine',
       'Clicked 402 2.1% · 14.3% click-to-open',

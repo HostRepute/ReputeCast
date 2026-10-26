@@ -127,18 +127,22 @@ type LiveHelpers struct {
 
 // LiveTotals are the campaign's counts.
 type LiveTotals struct {
-	Delivered     int64 `json:"delivered"`
-	Bounced       int64 `json:"bounced"`
-	HardBounced   int64 `json:"hardBounced"`
-	SoftBounced   int64 `json:"softBounced"`
-	Complained    int64 `json:"complained"`
-	Deferred      int64 `json:"deferred"`
-	Rejected      int64 `json:"rejected"`
-	Opened        int64 `json:"opened"`
-	OpenedHuman   int64 `json:"openedHuman"`
-	OpenedMachine int64 `json:"openedMachine"`
-	Clicked       int64 `json:"clicked"`
-	Unsubscribed  int64 `json:"unsubscribed"`
+	Delivered   int64 `json:"delivered"`
+	Bounced     int64 `json:"bounced"`
+	HardBounced int64 `json:"hardBounced"`
+	SoftBounced int64 `json:"softBounced"`
+	// BlockBounced and UnknownBounced split the hard bounces: block/policy
+	// rejections, and unknown users with the rest (review GS-11).
+	BlockBounced   int64 `json:"blockBounced"`
+	UnknownBounced int64 `json:"unknownBounced"`
+	Complained     int64 `json:"complained"`
+	Deferred       int64 `json:"deferred"`
+	Rejected       int64 `json:"rejected"`
+	Opened         int64 `json:"opened"`
+	OpenedHuman    int64 `json:"openedHuman"`
+	OpenedMachine  int64 `json:"openedMachine"`
+	Clicked        int64 `json:"clicked"`
+	Unsubscribed   int64 `json:"unsubscribed"`
 	// ComplaintBase is what was delivered where mailbox providers report
 	// complaints: the complaint rate's base (review F-2).
 	ComplaintBase int64 `json:"complaintBase"`
@@ -346,6 +350,11 @@ type LiveThreshold struct {
 	// (nothing to count: see Reason).
 	State  string `json:"state" enum:"ok,near,collecting,tripped,na"`
 	Reason string `json:"reason,omitempty" enum:"no_data,not_reported"`
+	// Window is the minutes a windowed rate counts (deferrals); Action what
+	// the threshold does at its limit (pause_mailbox, slow, pause_send,
+	// warn).
+	Window int    `json:"window,omitempty"`
+	Action string `json:"action,omitempty"`
 	// Parts break the row down: the API error rate per sending provider,
 	// the mailbox providers a whole-send complaint rate counts.
 	Parts []LiveThresholdPart `json:"parts,omitempty"`
@@ -787,7 +796,19 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			}
 		}
 	}
-	s.Thresholds = liveThresholds(th, ts, guardOf(snd, hasSend), apiRates)
+	var ty typed
+	if hasSend {
+		if ty, err = readTypedAt(ctx, e.Q, campaignID, th, now); err != nil {
+			return s, err
+		}
+		for _, n := range ty.block {
+			s.Totals.BlockBounced += n
+		}
+		for _, n := range ty.unknown {
+			s.Totals.UnknownBounced += n
+		}
+	}
+	s.Thresholds = liveThresholds(th, ts, guardOf(snd, hasSend), apiRates, ty)
 	if hasSend {
 		s.Watch = e.liveWatch(ctx, cc.WorkspaceID, snd, ts, th, now)
 	}
@@ -923,7 +944,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			li.Since = sinceTrip(ts, in, li.Detail)
 		}
 		s.Incidents = append(s.Incidents, li)
-		if in.ResolvedAt == nil && s.Incident == nil && (in.Kind == "threshold" || in.Kind == "provider_outage") {
+		if in.ResolvedAt == nil && s.Incident == nil && (in.Kind == "threshold" || in.Kind == "provider_outage") && !isNotice(in) {
 			c := li
 			s.Incident = &c
 		}

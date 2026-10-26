@@ -3169,6 +3169,10 @@ type Querier interface {
 	// The sender of an automation email: its own (milestone emails come from
 	// their program's sender), else the workspace's default sender.
 	SendingAutomationSender(ctx context.Context, arg SendingAutomationSenderParams) (SendingAutomationSenderRow, error)
+	// GS-11: thresholds by bounce type ------------------------------------------
+	// A send's hard bounces by mailbox provider and class (block/policy or
+	// unknown users).
+	SendingBounceTypes(ctx context.Context, campaignID *uuid.UUID) ([]SendingBounceTypesRow, error)
 	SendingBumpCounters(ctx context.Context, arg SendingBumpCountersParams) error
 	// GS-4: the provider errors threshold ---------------------------------------
 	// A provider's API calls and failed calls within a time window (the API
@@ -3209,6 +3213,9 @@ type Querier interface {
 	SendingContactForAutomation(ctx context.Context, id uuid.UUID) (SendingContactForAutomationRow, error)
 	SendingCounters(ctx context.Context, campaignID uuid.UUID) ([]SendingCountersRow, error)
 	SendingDeferralsSince(ctx context.Context, arg SendingDeferralsSinceParams) (int64, error)
+	// The messages each mailbox provider deferred, or bounced softly, since a
+	// time (each message once).
+	SendingDeferredSince(ctx context.Context, arg SendingDeferredSinceParams) ([]SendingDeferredSinceRow, error)
 	SendingDeleteSimEvents(ctx context.Context, ids []int64) error
 	// Scheduled campaigns whose time has come (the watchdog starts any whose
 	// start job was lost). One held by a Blocked send-time recheck is left to
@@ -3336,6 +3343,8 @@ type Querier interface {
 	SendingSavePrepare(ctx context.Context, arg SendingSavePrepareParams) error
 	SendingSegmentNames(ctx context.Context, workspaceID uuid.UUID) ([]SendingSegmentNamesRow, error)
 	SendingSentSince(ctx context.Context, arg SendingSentSinceParams) ([]SendingSentSinceRow, error)
+	// What a send sent to each mailbox provider since a time.
+	SendingSentSinceByMailbox(ctx context.Context, arg SendingSentSinceByMailboxParams) ([]SendingSentSinceByMailboxRow, error)
 	SendingSetAB(ctx context.Context, arg SendingSetABParams) error
 	SendingSetAudienceCount(ctx context.Context, arg SendingSetAudienceCountParams) error
 	SendingSetCampaignStatus(ctx context.Context, arg SendingSetCampaignStatusParams) error

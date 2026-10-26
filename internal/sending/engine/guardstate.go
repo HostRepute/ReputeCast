@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,6 +23,10 @@ type guardState struct {
 	// RouteRates are sending providers slowed for this send when a person
 	// resumed them with changes, in messages per second.
 	RouteRates map[string]float64 `json:"routeRates,omitempty"`
+	// Acted are the typed threshold levels that acted, by "level:mailbox"
+	// ("block:outlook", "unknown2:"), when (review GS-11): each acts once
+	// until a person resumes its scope.
+	Acted map[string]time.Time `json:"acted,omitempty"`
 }
 
 // counts are a scope's counters at a moment.
@@ -33,6 +38,11 @@ type counts struct {
 	Soft       int64 `json:"soft"`
 	Complained int64 `json:"complained"`
 	Reported   int64 `json:"reported"`
+	// Block and Unknown are block/policy and other hard bounces (typed
+	// thresholds, GS-11); At is when the scope was re-armed.
+	Block   int64     `json:"block,omitempty"`
+	Unknown int64     `json:"unknown,omitempty"`
+	At      time.Time `json:"at,omitzero"`
 }
 
 func countsOf(t tally) counts {
@@ -101,4 +111,14 @@ func (g guardState) judged(key string, t tally) tally {
 		return t.since(b)
 	}
 	return t
+}
+
+// clearActed forgets the typed levels that acted on a scope a person
+// resumed ("" for the whole send: all of them).
+func (g *guardState) clearActed(mbp string) {
+	for k := range g.Acted {
+		if mbp == "" || strings.HasSuffix(k, ":"+mbp) {
+			delete(g.Acted, k)
+		}
+	}
 }

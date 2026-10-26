@@ -34,6 +34,13 @@ type IncidentDetail struct {
 	Note       string        `json:"note,omitempty"`
 	Continuing []string      `json:"continuing,omitempty"`
 	Throttle   float64       `json:"throttle,omitempty"`
+	// Action is what a level that didn't pause did (GS-11, GS-12):
+	// slowed (to SlowedTo messages per second), warned or alerted. Such an
+	// incident is a notice to acknowledge, not a decision. Window is a
+	// deferral level's window, in minutes.
+	Action   string  `json:"action,omitempty" enum:"slowed,warned,alerted,"`
+	SlowedTo float64 `json:"slowedTo,omitempty"`
+	Window   int     `json:"window,omitempty"`
 
 	// Outages.
 	Reason    string            `json:"reason,omitempty"`
@@ -164,7 +171,7 @@ func (e *Engine) analyzeThreshold(ctx context.Context, rs *runState, ts tallies,
 	case "complaint":
 		d.Campaign = &IncidentRate{Metric: "complaint", Events: all.complained, Base: all.reported, Value: round2(all.complaintRate()), Limit: rs.thresholds.Complaint}
 		d.Secondary = &IncidentRate{Metric: "bounce", Events: scope.bounced(), Base: scope.sent, Value: round2(rate(scope.bounced(), scope.sent)), Limit: rs.thresholds.Bounce}
-	case "bounce":
+	case "bounce", "block_bounce", "unknown_user":
 		d.Campaign = &IncidentRate{Metric: "bounce", Events: all.bounced(), Base: all.sent, Value: round2(rate(all.bounced(), all.sent)), Limit: rs.thresholds.Bounce}
 		d.Secondary = &IncidentRate{Metric: "complaint", Events: scope.complained, Base: scope.reported, Value: round2(scope.complaintRate()), Limit: rs.thresholds.MailboxComplaint}
 	case "deferral":

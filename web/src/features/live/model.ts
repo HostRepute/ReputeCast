@@ -261,7 +261,7 @@ export function tiles(s: Snapshot, variant: TilesVariant = 'live', incident?: In
     'bounced',
     mm.tileBounced,
     t.bounced,
-    variant === 'outage' ? bounceRate : tt(mm.bouncedSub, { rate: bounceRate, hard: count(t.hardBounced), soft: count(t.softBounced) }),
+    variant === 'outage' ? bounceRate : tt(mm.bouncedSub, { rate: bounceRate, unknown: count(t.unknownBounced), block: count(t.blockBounced), soft: count(t.softBounced) }),
   )
   let complained = countTile('complained', mm.tileComplained, t.complained, complaintSub(s, variant))
   if (variant === 'threshold' && incident?.metric === 'complaint' && incident.scope === 'mailbox_provider') complained = { ...complained, alert: true }
@@ -362,7 +362,7 @@ export function thresholdRows(s: Snapshot): ThresholdRow[] {
         value = ofLimit(pct(v, 2), pct(t.limit, 1))
         break
       case 'deferral':
-        ;[label, sub, short] = [tt(mm.thresholdDeferral), tt(mm.thresholdPerMailboxWindow), tt(mm.thresholdDeferralShort)]
+        ;[label, sub, short] = [tt(mm.thresholdDeferral), t.window ? tt(mm.thresholdPerMailboxWindow, { window: t.window }) : tt(mm.thresholdPerMailbox), tt(mm.thresholdDeferralShort)]
         value = ofLimit(pct(v, 1), trimPct(t.limit))
         break
       case 'complaint':
@@ -411,7 +411,7 @@ export function thresholdEvidence(t: Threshold): string {
       return (t.parts ?? []).map((p) => `${p.name} ${errorRate(p.value ?? undefined)}`).join(', ')
     case 'deferral':
     case 'block_bounce':
-      return tt(mm.thresholdHighestAction, { key: t.key })
+      return tt(mm.thresholdHighestAction, { action: t.action ?? 'pause_mailbox', limit: t.key === 'deferral' ? trimPct(t.limit) : pct(t.limit, 1) })
     case 'reply_rules':
       return t.parts?.[0]?.name ? tt(mm.thresholdReplyAction, { who: mailboxName(t.mailbox), limit: count(t.minEvents) }) : ''
   }
@@ -956,7 +956,7 @@ export function mobileTiles(s: Snapshot): Tile[] {
   const t = s.totals
   return [
     countTile('delivered', mm.tileDelivered, t.delivered, pct1(share(t.delivered, s.sent) ?? 0)),
-    countTile('bounced', mm.tileBounced, t.bounced, rate(share(t.bounced, s.sent) ?? 0)),
+    countTile('bounced', mm.tileBounced, t.bounced, tt(mm.bouncedBlock, { rate: rate(share(t.bounced, s.sent) ?? 0), block: count(t.blockBounced) })),
     countTile('complained', mm.tileComplained, t.complained, t.complaintBase > 0 ? tt(mm.complainedWhereReported, { rate: pct2(share(t.complained, t.complaintBase)) }) : tt(mm.notAvailable)),
     countTile('opened', mm.tileOpenedHuman, t.openedHuman, tt(mm.openedMachine, { n: count(t.openedMachine) })),
     countTile('clicked', mm.tileClicked, t.clicked, tt(mm.clickedSub, { rate: pct1(share(t.clicked, t.delivered) ?? 0), ctor: pct1(share(t.clicked, t.opened) ?? 0) })),

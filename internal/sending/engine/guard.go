@@ -110,6 +110,9 @@ func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.D
 	if err := e.settleStale(ctx, rs, now); err != nil {
 		return 0, err
 	}
+	if err := e.readTyped(ctx, rs, now); err != nil {
+		return 0, err
+	}
 	if now.Sub(rs.queueAt) >= time.Second {
 		if err := e.refreshQueue(ctx, rs, now); err != nil {
 			return 0, err
@@ -202,11 +205,13 @@ type trip struct {
 	scope    string // campaign, mailbox_provider, route
 	mailbox  string
 	provider uuid.UUID
-	metric   string // bounce, complaint, deferral
+	metric   string // bounce, complaint, deferral, block_bounce, unknown_user
 	value    float64
 	limit    float64
 	events   int64
 	base     int64
+	// window is a deferral level's window in minutes (GS-11).
+	window int
 }
 
 // checkThresholds pauses a mailbox provider, a route or the whole campaign
@@ -218,6 +223,11 @@ type trip struct {
 // whole campaign paused.
 func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, now time.Time) (bool, error) {
 	th := rs.thresholds
+	// Thresholds by bounce type and deferral levels act first, each with
+	// its own action (review GS-11, bytype.go).
+	if tt := e.checkTyped(rs, ts, now); tt != nil {
+		return e.typedAct(ctx, rs, ts, *tt, now)
+	}
 	var trips []trip
 	for _, mbp := range sortedKeys(ts.mailbox) {
 		h, onHold := rs.holds[mbp]
@@ -233,11 +243,12 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 			m = m.since(counts{Complained: h.Rearm["complaint"], Hard: h.Rearm["bounce"], Deferred: h.Rearm["deferral"]})
 		}
 		switch {
-		case m.reported >= minSampleScoped && over(m.complained, m.reported, th.MailboxComplaint, minEvents):
+		case m.reported >= minSampleScoped && over(m.complained, m.reported, th.MailboxComplaint, minEvents) &&
+			(th.ComplaintAction != actWarn || !rs.guard.acted("complaint", mbp)):
 			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "complaint", value: m.complaintRate(), limit: th.MailboxComplaint, events: m.complained, base: m.reported})
 		case m.sent >= minSampleScoped && over(m.bounced(), m.sent, th.Bounce, minEvents):
 			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "bounce", value: rate(m.bounced(), m.sent), limit: th.Bounce, events: m.bounced(), base: m.sent})
-		case m.sent >= minSampleScoped && over(m.deferred, m.sent, th.Deferral, minDeferrals):
+		case th.DeferralWindow == 0 && m.sent >= minSampleScoped && over(m.deferred, m.sent, th.Deferral, minDeferrals):
 			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "deferral", value: rate(m.deferred, m.sent), limit: th.Deferral, events: m.deferred, base: m.sent})
 		}
 		if len(trips) > 0 {
@@ -296,6 +307,16 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 		return false, nil
 	}
 	tr := trips[0]
+	if tr.scope == "mailbox_provider" && tr.metric == "complaint" {
+		// What the complaint limit per mailbox provider does (Traffic
+		// rules): pause it (the default), pause the send, or warn.
+		switch th.ComplaintAction {
+		case actWarn:
+			return e.typedAct(ctx, rs, ts, typedTrip{tr, "complaint", actWarn}, now)
+		case actPauseSend:
+			tr.scope = "campaign"
+		}
+	}
 	if th.Scope == "campaign" {
 		tr.scope = "campaign"
 	}
@@ -440,7 +461,8 @@ func liveLink(slug string, id uuid.UUID) string {
 
 // metricName names a threshold's metric ("complaint rate").
 func metricName(metric string) string {
-	return map[string]string{"bounce": "bounce rate", "complaint": "complaint rate", "deferral": "deferral rate", "api_errors": "API error rate"}[metric]
+	return map[string]string{"bounce": "bounce rate", "complaint": "complaint rate", "deferral": "deferral rate", "api_errors": "API error rate",
+		"block_bounce": "block/policy bounce rate", "unknown_user": "unknown-user rate"}[metric]
 }
 
 func thresholdHeadline(tr trip, scopeName string) string {

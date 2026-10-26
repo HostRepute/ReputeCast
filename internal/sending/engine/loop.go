@@ -146,6 +146,9 @@ type runState struct {
 	settledAt time.Time
 	// guard is campaign_sends.guard (guardstate.go).
 	guard guardState
+	// typed are the bounces by type and recent deferrals the typed
+	// thresholds read (bytype.go).
+	typed typed
 	// links are the per-recipient links of the email's polls and surveys.
 	links []RecipientLink
 }

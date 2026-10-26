@@ -28,7 +28,7 @@ func TestComplaintsCountWhereReported(t *testing.T) {
 	if ts.mailbox["gmail"].reported != 0 {
 		t.Fatal("Gmail's deliveries count as reported")
 	}
-	rows := liveThresholds(DefaultThresholds, ts, guardState{}, nil)
+	rows := liveThresholds(DefaultThresholds, ts, guardState{}, nil, typed{})
 	byKey := map[string]LiveThreshold{}
 	for _, r := range rows {
 		byKey[r.Key] = r

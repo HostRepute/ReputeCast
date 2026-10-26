@@ -87,12 +87,19 @@ func (e *Engine) rearmScopes(ctx context.Context, q *store.Queries, campaignID u
 	}
 	ts := tallyRows(rows)
 	g := parseGuard(snd.Guard)
+	block, unknown, err := typedTotals(ctx, q, campaignID)
+	if err != nil {
+		return err
+	}
 	for _, m := range s.mailboxes {
 		t := tally{}
 		if x := ts.mailbox[m]; x != nil {
 			t = *x
 		}
-		g.rearm(rearmMailbox(m), countsOf(t))
+		c := countsOf(t)
+		c.Block, c.Unknown, c.At = block[m], unknown[m], now
+		g.rearm(rearmMailbox(m), c)
+		g.clearActed(m)
 		if !s.campaign {
 			g.rejoin(t)
 		}
@@ -110,9 +117,17 @@ func (e *Engine) rearmScopes(ctx context.Context, q *store.Queries, campaignID u
 	if s.campaign {
 		// With the campaign scope any trip pauses everything, the mailbox
 		// provider's or route's that tripped included: all of them re-arm.
-		g.rearm(rearmCampaign, countsOf(ts.total))
+		c := countsOf(ts.total)
+		c.At = now
+		for _, n := range unknown {
+			c.Unknown += n
+		}
+		g.rearm(rearmCampaign, c)
+		g.clearActed("")
 		for k, t := range ts.mailbox {
-			g.rearm(rearmMailbox(k), countsOf(*t))
+			mc := countsOf(*t)
+			mc.Block, mc.Unknown, mc.At = block[k], unknown[k], now
+			g.rearm(rearmMailbox(k), mc)
 		}
 		for p, t := range ts.provider {
 			g.rearm(rearmRoute(p), countsOf(*t))

@@ -67,7 +67,8 @@ export const mm = defineMessages('live.model', {
   tileClicked: 'Clicked',
   tileCost: 'Cost',
   deliveredSub: '{rate} of sent',
-  bouncedSub: '{rate} · {hard} hard, {soft} soft',
+  bouncedSub: '{rate} · {unknown} unknown user, {block} block/policy, {soft} soft',
+  bouncedBlock: '{rate} · {block} block/policy',
   bouncedSuppressed: '{rate} · added to suppression',
   /** Complaint rates count only where mailbox providers report them (review F-2). */
   complainedSubReported: '{rate} of {base} delivered where complaints are reported',
@@ -90,7 +91,7 @@ export const mm = defineMessages('live.model', {
   thresholdErrors: 'Sending provider API errors',
   thresholdWholeSend: 'whole send',
   thresholdPerMailbox: 'per mailbox provider',
-  thresholdPerMailboxWindow: 'per mailbox provider, over 10 min',
+  thresholdPerMailboxWindow: 'per mailbox provider, over {window} min',
   thresholdWhereReported: 'whole send, where reported',
   thresholdHighest: 'highest mailbox provider',
   thresholdRepliesSub: '{count, plural, one {# reply rule} other {# reply rules}}, over 10 min',
@@ -123,7 +124,8 @@ export const mm = defineMessages('live.model', {
     '{events} in {base} {unit, select, delivered {delivered} other {sent}} · needs {minEvents} {key, select, complaint {complaints} mailbox_complaint {complaints} deferral {deferrals} other {bounces}} and {minBase} {unit, select, delivered {delivered} other {sent}} to pause',
   thresholdComplaintsTo: '{events} in {base} delivered to {names}',
   thresholdIn: '{unit, select, delivered {{events} in {base} delivered} other {{events} of {base} sent}}',
-  thresholdHighestAction: '{key, select, deferral {highest · pauses only that mailbox provider} other {highest · pauses only that mailbox provider}}',
+  thresholdHighestAction:
+    '{action, select, slow {highest · at {limit} it slows to half rate} pause_send {highest · at {limit} it pauses the send} warn {highest · at {limit} it warns} other {highest · pauses only that mailbox provider}}',
   thresholdReplyAction: 'at {limit}, the rule acts on {who}',
   thresholdsFootnote:
     'A threshold trips after at least 5 events and enough evidence that the rate is really above the limit. Until then it shows “Collecting evidence” with a grey bar.',

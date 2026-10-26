@@ -159,10 +159,36 @@ type Thresholds struct {
 	// Scope is "route" (pause only the affected mailbox provider or sending
 	// provider) or "campaign" (pause everything).
 	Scope string `json:"scope"`
+	// By bounce type and level (review GS-11; Traffic rules › Thresholds
+	// by bounce type), each with its action: pause_mailbox, slow (to half
+	// rate), pause_send or warn.
+	//
+	// BlockBounce: block/policy bounces (rejections for reputation, policy
+	// or content) at one mailbox provider.
+	BlockBounce float64 `json:"block_bounce"`
+	BlockAction string  `json:"block_action"`
+	// UnknownWarn and UnknownPause: unknown users (other hard bounces)
+	// over the whole send, two levels.
+	UnknownWarn        float64 `json:"unknown_warn"`
+	UnknownWarnAction  string  `json:"unknown_warn_action"`
+	UnknownPause       float64 `json:"unknown_pause"`
+	UnknownPauseAction string  `json:"unknown_pause_action"`
+	// DeferralSlow and Deferral: soft bounces and deferrals at one mailbox
+	// provider over a window of minutes (0: the whole send so far), two
+	// levels.
+	DeferralSlow       float64 `json:"deferral_slow"`
+	DeferralSlowWindow int     `json:"deferral_slow_window"`
+	DeferralSlowAction string  `json:"deferral_slow_action"`
+	DeferralWindow     int     `json:"deferral_window"`
+	DeferralAction     string  `json:"deferral_action"`
+	// ComplaintAction is what MailboxComplaint does.
+	ComplaintAction string `json:"complaint_action"`
 }
 
 // DefaultThresholds are used for limits a campaign doesn't set.
-var DefaultThresholds = Thresholds{Bounce: 2.0, Complaint: 0.1, MailboxComplaint: 0.1, Deferral: 5.0, APIErrors: 5.0, Scope: "route"}
+var DefaultThresholds = Thresholds{Bounce: 2.0, Complaint: 0.1, MailboxComplaint: 0.1, Deferral: 40, APIErrors: 5.0, Scope: "route",
+	BlockBounce: 0.5, BlockAction: actPauseMailbox, UnknownWarn: 3, UnknownWarnAction: actWarn, UnknownPause: 5, UnknownPauseAction: actPauseSend,
+	DeferralSlow: 15, DeferralSlowWindow: 10, DeferralSlowAction: actSlow, DeferralWindow: 10, DeferralAction: actPauseMailbox, ComplaintAction: actPauseMailbox}
 
 // ParseThresholds resolves a send's thresholds: the defaults, then the
 // workspace's (workspaces.send_thresholds, Settings › Providers), then the
@@ -184,6 +210,19 @@ func ParseThresholds(campaign, workspace json.RawMessage) Thresholds {
 			ProviderErrors    *float64 `json:"provider_errors"`
 			ProviderErrorRate *float64 `json:"provider_error_rate"`
 			Scope             string   `json:"scope"`
+			// By type and level (GS-11).
+			BlockBounce        *float64 `json:"block_bounce"`
+			BlockAction        string   `json:"block_action"`
+			UnknownWarn        *float64 `json:"unknown_warn"`
+			UnknownWarnAction  string   `json:"unknown_warn_action"`
+			UnknownPause       *float64 `json:"unknown_pause"`
+			UnknownPauseAction string   `json:"unknown_pause_action"`
+			DeferralSlow       *float64 `json:"deferral_slow"`
+			DeferralSlowWindow *int     `json:"deferral_slow_window"`
+			DeferralSlowAction string   `json:"deferral_slow_action"`
+			DeferralWindow     *int     `json:"deferral_window"`
+			DeferralAction     string   `json:"deferral_action"`
+			ComplaintAction    string   `json:"complaint_action"`
 		}
 		if len(raw) == 0 || json.Unmarshal(raw, &in) != nil {
 			continue
@@ -204,6 +243,27 @@ func ParseThresholds(campaign, workspace json.RawMessage) Thresholds {
 		set(&t.APIErrors, in.ProviderErrorRate, in.ProviderErrors, in.APIErrors)
 		if in.Scope == "campaign" || in.Scope == "route" {
 			t.Scope = in.Scope
+		}
+		set(&t.BlockBounce, in.BlockBounce)
+		set(&t.UnknownWarn, in.UnknownWarn)
+		set(&t.UnknownPause, in.UnknownPause)
+		set(&t.DeferralSlow, in.DeferralSlow)
+		for _, w := range []struct {
+			dst *int
+			v   *int
+		}{{&t.DeferralSlowWindow, in.DeferralSlowWindow}, {&t.DeferralWindow, in.DeferralWindow}} {
+			if w.v != nil && *w.v >= 0 && *w.v <= 60 {
+				*w.dst = *w.v
+			}
+		}
+		for _, a := range []struct {
+			dst *string
+			v   string
+		}{{&t.BlockAction, in.BlockAction}, {&t.UnknownWarnAction, in.UnknownWarnAction}, {&t.UnknownPauseAction, in.UnknownPauseAction},
+			{&t.DeferralSlowAction, in.DeferralSlowAction}, {&t.DeferralAction, in.DeferralAction}, {&t.ComplaintAction, in.ComplaintAction}} {
+			if validAction(a.v) {
+				*a.dst = a.v
+			}
 		}
 	}
 	if !mailbox {

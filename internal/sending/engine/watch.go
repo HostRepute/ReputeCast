@@ -185,8 +185,9 @@ func (e *Engine) watchAlert(ctx context.Context, c store.SendingCampaignContextR
 	})
 }
 
-// Acknowledge closes an alert a person has read: a complaint alert after
-// the send.
+// Acknowledge closes a notice a person has read: a complaint alert after
+// the send, a threshold level that slowed the send down or warned, a reply
+// rule's alert, the template's errors (bytype.go's isNotice).
 func (e *Engine) Acknowledge(ctx context.Context, campaignID, by, incidentID uuid.UUID) error {
 	now := e.now()
 	return db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
@@ -204,7 +205,7 @@ func (e *Engine) Acknowledge(ctx context.Context, campaignID, by, incidentID uui
 		}
 		var in *store.CampaignIncident
 		for i := range open {
-			if open[i].ID == incidentID && open[i].Kind == "complaint_watch" {
+			if open[i].ID == incidentID && isNotice(open[i]) {
 				in = &open[i]
 			}
 		}

@@ -35241,6 +35241,15 @@
       "IncidentDetail": {
         "additionalProperties": false,
         "properties": {
+          "action": {
+            "enum": [
+              "slowed",
+              "warned",
+              "alerted",
+              ""
+            ],
+            "type": "string"
+          },
           "attempts": {
             "format": "int64",
             "type": "integer"
@@ -35346,6 +35355,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "slowedTo": {
+            "format": "double",
+            "type": "number"
+          },
           "succeeded": {
             "format": "int64",
             "type": "integer"
@@ -35364,6 +35377,10 @@
           },
           "warmupNote": {
             "type": "string"
+          },
+          "window": {
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
@@ -41547,6 +41564,9 @@
       "LiveThreshold": {
         "additionalProperties": false,
         "properties": {
+          "action": {
+            "type": "string"
+          },
           "base": {
             "format": "int64",
             "type": "integer"
@@ -41608,6 +41628,10 @@
           "value": {
             "format": "double",
             "type": "number"
+          },
+          "window": {
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
@@ -41703,6 +41727,10 @@
       "LiveTotals": {
         "additionalProperties": false,
         "properties": {
+          "blockBounced": {
+            "format": "int64",
+            "type": "integer"
+          },
           "bounced": {
             "format": "int64",
             "type": "integer"
@@ -41757,6 +41785,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "unknownBounced": {
+            "format": "int64",
+            "type": "integer"
+          },
           "unsubscribed": {
             "format": "int64",
             "type": "integer"
@@ -41767,6 +41799,8 @@
           "bounced",
           "hardBounced",
           "softBounced",
+          "blockBounced",
+          "unknownBounced",
           "complained",
           "deferred",
           "rejected",

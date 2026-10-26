@@ -57,6 +57,8 @@ func TestGuardedSending(t *testing.T) {
 	t.Run("SMTPInfersDelivery", func(t *testing.T) { testSMTPInfersDelivery(t, s.Fixture(t, "GS-7 smtp")) })
 	// GS-8: throttles shared by sends going out at once; ETAs.
 	t.Run("SendsShareThrottles", func(t *testing.T) { testSharedThrottles(t, s) })
+	// GS-11: thresholds by bounce type; deferrals slow down, then pause.
+	t.Run("TypedLevels", func(t *testing.T) { testTypedLevels(t, s.Fixture(t, "GS-11 levels")) })
 }
 
 // routeOf is the fixture's route on a provider: its status and detail.

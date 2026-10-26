@@ -13,6 +13,42 @@ import (
 	"github.com/google/uuid"
 )
 
+const sendingBounceTypes = `-- name: SendingBounceTypes :many
+
+SELECT mailbox_provider, bounce_class, count(*)::bigint AS n FROM delivery_events
+WHERE campaign_id = $1 AND type = 'hard_bounce'
+GROUP BY mailbox_provider, bounce_class
+`
+
+type SendingBounceTypesRow struct {
+	MailboxProvider string `json:"mailboxProvider"`
+	BounceClass     string `json:"bounceClass"`
+	N               int64  `json:"n"`
+}
+
+// GS-11: thresholds by bounce type ------------------------------------------
+// A send's hard bounces by mailbox provider and class (block/policy or
+// unknown users).
+func (q *Queries) SendingBounceTypes(ctx context.Context, campaignID *uuid.UUID) ([]SendingBounceTypesRow, error) {
+	rows, err := q.db.Query(ctx, sendingBounceTypes, campaignID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SendingBounceTypesRow{}
+	for rows.Next() {
+		var i SendingBounceTypesRow
+		if err := rows.Scan(&i.MailboxProvider, &i.BounceClass, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const sendingCallWindow = `-- name: SendingCallWindow :one
 
 SELECT coalesce(sum(calls), 0)::bigint AS calls, coalesce(sum(errors), 0)::bigint AS errors
@@ -56,6 +92,44 @@ type SendingClearMailboxWindowsParams struct {
 func (q *Queries) SendingClearMailboxWindows(ctx context.Context, arg SendingClearMailboxWindowsParams) error {
 	_, err := q.db.Exec(ctx, sendingClearMailboxWindows, arg.WorkspaceID, arg.FromSec, arg.ToSec)
 	return err
+}
+
+const sendingDeferredSince = `-- name: SendingDeferredSince :many
+SELECT mailbox_provider, count(DISTINCT message_id)::bigint AS n FROM delivery_events
+WHERE campaign_id = $1 AND type IN ('deferred', 'soft_bounce') AND occurred_at >= $2::timestamptz
+GROUP BY mailbox_provider
+`
+
+type SendingDeferredSinceParams struct {
+	CampaignID *uuid.UUID `json:"campaignId"`
+	Since      time.Time  `json:"since"`
+}
+
+type SendingDeferredSinceRow struct {
+	MailboxProvider string `json:"mailboxProvider"`
+	N               int64  `json:"n"`
+}
+
+// The messages each mailbox provider deferred, or bounced softly, since a
+// time (each message once).
+func (q *Queries) SendingDeferredSince(ctx context.Context, arg SendingDeferredSinceParams) ([]SendingDeferredSinceRow, error) {
+	rows, err := q.db.Query(ctx, sendingDeferredSince, arg.CampaignID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SendingDeferredSinceRow{}
+	for rows.Next() {
+		var i SendingDeferredSinceRow
+		if err := rows.Scan(&i.MailboxProvider, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const sendingEndWatches = `-- name: SendingEndWatches :exec
@@ -562,6 +636,43 @@ func (q *Queries) SendingResolveInDoubt(ctx context.Context, arg SendingResolveI
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const sendingSentSinceByMailbox = `-- name: SendingSentSinceByMailbox :many
+SELECT mailbox_provider, count(*)::bigint AS n FROM messages
+WHERE campaign_id = $1 AND sent_at >= $2
+GROUP BY mailbox_provider
+`
+
+type SendingSentSinceByMailboxParams struct {
+	CampaignID *uuid.UUID `json:"campaignId"`
+	Since      *time.Time `json:"since"`
+}
+
+type SendingSentSinceByMailboxRow struct {
+	MailboxProvider string `json:"mailboxProvider"`
+	N               int64  `json:"n"`
+}
+
+// What a send sent to each mailbox provider since a time.
+func (q *Queries) SendingSentSinceByMailbox(ctx context.Context, arg SendingSentSinceByMailboxParams) ([]SendingSentSinceByMailboxRow, error) {
+	rows, err := q.db.Query(ctx, sendingSentSinceByMailbox, arg.CampaignID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SendingSentSinceByMailboxRow{}
+	for rows.Next() {
+		var i SendingSentSinceByMailboxRow
+		if err := rows.Scan(&i.MailboxProvider, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const sendingSetGuard = `-- name: SendingSetGuard :exec
