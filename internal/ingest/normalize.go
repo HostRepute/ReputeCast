@@ -22,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/counters"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/providers"
+	"github.com/hostrepute/reputecast/internal/providers/bounce"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
@@ -463,7 +464,12 @@ func (n *Normalizer) apply(ctx context.Context, tx pgx.Tx, e *effects, p store.P
 	reason, contactStatus := "", ""
 	switch ev.Type {
 	case providers.EventHardBounce:
-		reason, contactStatus = "hard_bounce", "bounced"
+		// A block for the sender's reputation or policy says nothing about
+		// the address: it stays on the list and gets the next send once the
+		// block is fixed (review AN-7).
+		if !senderBlock(ev.BounceClass) {
+			reason, contactStatus = "hard_bounce", "bounced"
+		}
 	case providers.EventComplaint:
 		reason, contactStatus = "complaint", "complained"
 	case providers.EventUnsubscribe:
@@ -481,6 +487,16 @@ func (n *Normalizer) apply(ctx context.Context, tx pgx.Tx, e *effects, p store.P
 		OriginalCode: clip(ev.OriginalCode, 100), Detail: clip(strings.TrimSpace(ev.OriginalType+" · "+ev.Diagnostic), 500), CreatedAt: occurred,
 	}})
 	return nil
+}
+
+// senderBlock: a bounce for the sender's reputation or policy (a
+// blocklist, the sending IP's reputation, DMARC), not for the address.
+func senderBlock(class string) bool {
+	switch class {
+	case bounce.PolicyBlock, bounce.SpamBlock, bounce.Reputation:
+		return true
+	}
+	return false
 }
 
 // hooks tells the message hooks about an event.

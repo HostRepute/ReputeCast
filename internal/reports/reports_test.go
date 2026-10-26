@@ -2,6 +2,7 @@ package reports_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -174,7 +175,7 @@ func TestCampaignReport(t *testing.T) {
 	wantBounces := map[string]struct {
 		n     int64
 		state string
-	}{"unknown_user": {171, "auto"}, "domain_invalid": {22, "auto"}, "mailbox_full": {41, "retry"}, "deferral_expired": {38, "retry"}, "blocked": {11, "add"}, "other": {5, "review"}}
+	}{"unknown_user": {171, "auto"}, "domain_invalid": {22, "auto"}, "mailbox_full": {41, "retry"}, "deferral_expired": {38, "retry"}, "blocked": {11, "investigate"}, "other": {5, "review"}}
 	if r.Bounces.Total != 288 || len(r.Bounces.Rows) != 6 {
 		t.Fatalf("bounces: %+v", r.Bounces)
 	}
@@ -323,21 +324,28 @@ func TestReportExportAndSuppress(t *testing.T) {
 		t.Fatalf("export audit entries: %d %v", n, err)
 	}
 
-	// Soft bounces are retried, not suppressed.
+	// Soft bounces are retried, not suppressed; addresses blocked for the
+	// sender's reputation are valid and are never suppressed (review AN-7).
 	c.Do("POST", base+"/bounces/mailbox_full/suppress", nil).MustStatus(t, 409)
+	if p := c.Do("POST", base+"/bounces/blocked/suppress", nil).MustStatus(t, 409).Problem(t); !strings.Contains(fmt.Sprint(p["detail"]), "sending IP or domain") {
+		t.Fatalf("blocked: %v", p)
+	}
 	var sr struct{ Added, Already int }
-	c.Do("POST", base+"/bounces/blocked/suppress", nil).MustStatus(t, 200).JSON(t, &sr)
-	if sr.Added != 11 {
+	c.Do("POST", base+"/bounces/other/suppress", nil).MustStatus(t, 200).JSON(t, &sr)
+	if sr.Added != 5 {
 		t.Fatalf("suppressed: %+v", sr)
 	}
 	var r report
 	c.Do("GET", base, nil).MustStatus(t, 200).JSON(t, &r)
 	for _, row := range r.Bounces.Rows {
-		if row.Type == "blocked" && (row.Suppression != "suppressed" || row.Unsuppressed != 0) {
-			t.Fatalf("blocked after suppressing: %+v", row)
+		if row.Type == "other" && (row.Suppression != "suppressed" || row.Unsuppressed != 0) {
+			t.Fatalf("other after suppressing: %+v", row)
+		}
+		if row.Type == "blocked" && row.Suppression != "investigate" {
+			t.Fatalf("blocked: %+v", row)
 		}
 	}
-	c.Do("POST", base+"/bounces/blocked/suppress", nil).MustStatus(t, 409)
+	c.Do("POST", base+"/bounces/other/suppress", nil).MustStatus(t, 409)
 	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action = 'suppression.add'`).Scan(&n); err != nil || n != 1 {
 		t.Fatalf("suppression audit: %d %v", n, err)
 	}

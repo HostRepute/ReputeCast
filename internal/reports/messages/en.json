@@ -31,5 +31,6 @@
   "problem.sharedGone": "This link doesn't work. It may have been revoked, or it expired. Ask the person who shared it for a new one.",
   "problem.unknownBounceType": "Unknown bounce type.",
   "problem.softBounces": "Soft bounces aren't suppressed: the address is retried on the next send, and suppressed only if it keeps failing.",
+  "problem.senderBlocks": { "message": "These addresses are valid: the block is about the sending IP or domain. They stay on your list and are retried after you fix it.", "note": "why blocked bounces can't be added to the suppression list" },
   "problem.allSuppressed": "Every address that bounced this way is already on the suppression list."
 }

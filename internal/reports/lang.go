@@ -32,6 +32,7 @@ var (
 	mSharedGone     = msgs.M("problem.sharedGone")
 	mUnknownBounce  = msgs.M("problem.unknownBounceType")
 	mSoftBounces    = msgs.M("problem.softBounces")
+	mSenderBlocks   = msgs.M("problem.senderBlocks")
 	mAllSuppressed  = msgs.M("problem.allSuppressed")
 )
 

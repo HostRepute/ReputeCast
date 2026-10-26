@@ -275,8 +275,10 @@ type ReportBounceRow struct {
 	// Suppression: auto (every address was suppressed when it bounced),
 	// retry (soft bounces are retried next send), add (addresses aren't
 	// suppressed; a person can add them), review (look at the diagnostics
-	// first), suppressed (all of them are on the list now).
-	Suppression string `json:"suppression" enum:"auto,retry,add,review,suppressed"`
+	// first), suppressed (all of them are on the list now), investigate (a
+	// block for the sending IP or domain: the addresses are valid and stay
+	// on the list; never suppressed, review AN-7).
+	Suppression string `json:"suppression" enum:"auto,retry,add,review,suppressed,investigate"`
 	// Unsuppressed is how many bounced addresses aren't on the list.
 	Unsuppressed int64 `json:"unsuppressed"`
 }

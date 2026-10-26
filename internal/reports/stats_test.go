@@ -32,7 +32,7 @@ func TestBounceTable(t *testing.T) {
 	}{
 		{"unknown_user", "auto", 171, 0, "SES Permanent/General 550 5.1.1"},
 		{"deferral_expired", "retry", 8, 8, "Postal 421 4.7.0 TSS04"},
-		{"blocked", "add", 7, 6, "SES Permanent/Suppressed"},
+		{"blocked", "investigate", 7, 6, "SES Permanent/Suppressed"},
 		{"other", "review", 2, 0, "SES Undetermined"},
 	}
 	for i, w := range want {
