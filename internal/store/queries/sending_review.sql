@@ -156,3 +156,41 @@ SELECT * FROM campaign_incidents WHERE campaign_id = @campaign_id AND kind = @ki
 SELECT day, spam_rate FROM postmaster_daily
 WHERE workspace_id = @workspace_id AND domain = @domain AND spam_rate IS NOT NULL AND day >= @since::date
 ORDER BY day DESC LIMIT 1;
+
+-- GS-8: throttles shared by a workspace's sends -----------------------------
+
+-- name: SendingOpenMailboxWindow :exec
+-- Opens a mailbox provider's window: a slot of the workspace's sends to it.
+INSERT INTO sending_mailbox_windows (workspace_id, mailbox_provider, slot, used, last_grant)
+VALUES (@workspace_id, @mailbox_provider, @slot, 0, 0)
+ON CONFLICT (workspace_id, mailbox_provider, slot) DO NOTHING;
+
+-- name: SendingMailboxSenders :one
+-- How many sends took part of a mailbox provider's window in a slot.
+SELECT coalesce(max(cardinality(senders)), 0)::int FROM sending_mailbox_windows
+WHERE workspace_id = @workspace_id AND mailbox_provider = @mailbox_provider AND slot = @slot;
+
+-- name: SendingMailboxReserve :one
+-- Takes up to want sends from a mailbox provider's window of cap (open it
+-- first), and no more than fair: every send going out at once shares it,
+-- so together they keep to the throttle and each gets its part. The send
+-- is recorded even when it gets nothing, so the next slot is shared.
+UPDATE sending_mailbox_windows
+SET senders = CASE WHEN sqlc.arg(campaign_id)::uuid = ANY(senders) THEN senders ELSE array_append(senders, sqlc.arg(campaign_id)::uuid) END,
+    last_grant = greatest(least(sqlc.arg(want)::int, sqlc.arg(cap)::int - used, sqlc.arg(fair)::int), 0),
+    used = used + greatest(least(sqlc.arg(want)::int, sqlc.arg(cap)::int - used, sqlc.arg(fair)::int), 0)
+WHERE workspace_id = sqlc.arg(workspace_id) AND mailbox_provider = sqlc.arg(mailbox_provider) AND slot = sqlc.arg(slot)
+RETURNING last_grant;
+
+-- name: SendingMailboxRelease :exec
+-- Gives back what a send took from a window and didn't send.
+UPDATE sending_mailbox_windows SET used = greatest(used - @n::int, 0)
+WHERE workspace_id = @workspace_id AND mailbox_provider = @mailbox_provider AND slot = @slot;
+
+-- name: SendingPurgeMailboxWindows :exec
+DELETE FROM sending_mailbox_windows WHERE slot < @before;
+
+-- name: SendingClearMailboxWindows :exec
+-- Frees a workspace's mailbox windows over a past interval (the demo
+-- command's fast-forward).
+DELETE FROM sending_mailbox_windows WHERE workspace_id = @workspace_id AND slot BETWEEN @from_sec AND @to_sec;

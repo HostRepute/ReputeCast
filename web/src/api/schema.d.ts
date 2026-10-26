@@ -28456,6 +28456,8 @@ export interface components {
             delivered: number;
             /** Format: double */
             deliveredRate?: number;
+            /** Format: date-time */
+            doneAt?: string;
             held: boolean;
             /** Format: date-time */
             heldSince?: string;
@@ -28512,6 +28514,8 @@ export interface components {
             cost: number;
             /** Format: double */
             deliveredRate?: number;
+            /** Format: date-time */
+            doneAt?: string;
             /** Format: date-time */
             downSince?: string;
             host: string;

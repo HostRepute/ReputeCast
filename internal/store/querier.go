@@ -3190,6 +3190,9 @@ type Querier interface {
 	// settles it (SendingRequeueStale, SendingMarkInDoubt).
 	SendingClaim(ctx context.Context, arg SendingClaimParams) ([]SendingClaimRow, error)
 	SendingClearLinks(ctx context.Context, campaignID uuid.UUID) error
+	// Frees a workspace's mailbox windows over a past interval (the demo
+	// command's fast-forward).
+	SendingClearMailboxWindows(ctx context.Context, arg SendingClearMailboxWindowsParams) error
 	// A send that is prepared again (after a failed preparation) starts clean.
 	SendingClearMessages(ctx context.Context, campaignID *uuid.UUID) error
 	SendingClearRoutes(ctx context.Context, campaignID uuid.UUID) error
@@ -3247,6 +3250,15 @@ type Querier interface {
 	SendingInsertLink(ctx context.Context, arg SendingInsertLinkParams) error
 	SendingInsertSend(ctx context.Context, arg SendingInsertSendParams) error
 	SendingListNames(ctx context.Context, workspaceID uuid.UUID) ([]SendingListNamesRow, error)
+	// Gives back what a send took from a window and didn't send.
+	SendingMailboxRelease(ctx context.Context, arg SendingMailboxReleaseParams) error
+	// Takes up to want sends from a mailbox provider's window of cap (open it
+	// first), and no more than fair: every send going out at once shares it,
+	// so together they keep to the throttle and each gets its part. The send
+	// is recorded even when it gets nothing, so the next slot is shared.
+	SendingMailboxReserve(ctx context.Context, arg SendingMailboxReserveParams) (int32, error)
+	// How many sends took part of a mailbox provider's window in a slot.
+	SendingMailboxSenders(ctx context.Context, arg SendingMailboxSendersParams) (int32, error)
 	SendingMarkCompleted(ctx context.Context, arg SendingMarkCompletedParams) error
 	// The other stale claims: the call that took them ended without a recorded
 	// answer, so nobody knows whether the provider has them. They are in doubt
@@ -3268,6 +3280,9 @@ type Querier interface {
 	SendingMoveRemaining(ctx context.Context, arg SendingMoveRemainingParams) (int64, error)
 	SendingNextSimEvent(ctx context.Context) (time.Time, error)
 	SendingOpenIncidents(ctx context.Context, campaignID uuid.UUID) ([]CampaignIncident, error)
+	// GS-8: throttles shared by a workspace's sends -----------------------------
+	// Opens a mailbox provider's window: a slot of the workspace's sends to it.
+	SendingOpenMailboxWindow(ctx context.Context, arg SendingOpenMailboxWindowParams) error
 	SendingOpenWindow(ctx context.Context, arg SendingOpenWindowParams) error
 	// Claims queued automation emails of one provider; a stale claim is never
 	// taken over (SendingOutboxRequeueStale, SendingOutboxMarkInDoubt).
@@ -3292,6 +3307,7 @@ type Querier interface {
 	// A connected seed inbox of the workspace, for the test message a share
 	// retried after an outage sends every minute.
 	SendingProbeSeed(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	SendingPurgeMailboxWindows(ctx context.Context, before int64) error
 	SendingPurgeWindows(ctx context.Context, before int64) error
 	// What is left of a campaign per sending and mailbox provider: queued (and
 	// when the next retry is due), held for the A/B winner or the canary

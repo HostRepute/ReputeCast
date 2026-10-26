@@ -313,6 +313,9 @@ func (e *Engine) Watch(ctx context.Context) error {
 		e.insert(ctx, OutboxArgs{}, nil)
 	}
 	e.wakeStuck(ctx)
+	if err := e.Q.SendingPurgeMailboxWindows(ctx, now.Add(-time.Minute).Unix()); err != nil {
+		return err
+	}
 	return e.Q.SendingPurgeWindows(ctx, now.Add(-time.Minute).Unix())
 }
 

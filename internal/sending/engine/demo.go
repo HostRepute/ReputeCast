@@ -175,6 +175,9 @@ func (e *Engine) DemoSend(ctx context.Context, o DemoSendOptions) (DemoSendResul
 			if err = e.Q.SendingClearWindows(ctx, store.SendingClearWindowsParams{ProviderIds: ids, FromSec: t.Unix() - 1, ToSec: end.Unix() + 1}); err != nil {
 				break
 			}
+			if err = e.Q.SendingClearMailboxWindows(ctx, store.SendingClearMailboxWindowsParams{WorkspaceID: ws.ID, FromSec: t.Unix() - 10, ToSec: end.Unix() + 1}); err != nil {
+				break
+			}
 			var done bool
 			if t, done, err = e.drive(ctx, c.ID, t, end.Sub(t)); err != nil || done {
 				break

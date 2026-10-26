@@ -3566,11 +3566,12 @@ type SendingDomain struct {
 }
 
 type SendingMailboxWindow struct {
-	WorkspaceID     uuid.UUID `json:"workspaceId"`
-	MailboxProvider string    `json:"mailboxProvider"`
-	Slot            int64     `json:"slot"`
-	Used            int32     `json:"used"`
-	LastGrant       int32     `json:"lastGrant"`
+	WorkspaceID     uuid.UUID   `json:"workspaceId"`
+	MailboxProvider string      `json:"mailboxProvider"`
+	Slot            int64       `json:"slot"`
+	Used            int32       `json:"used"`
+	LastGrant       int32       `json:"lastGrant"`
+	Senders         []uuid.UUID `json:"senders"`
 }
 
 type SendingRateWindow struct {

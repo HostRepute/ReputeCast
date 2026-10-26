@@ -41,6 +41,23 @@ func (q *Queries) SendingCallWindow(ctx context.Context, arg SendingCallWindowPa
 	return i, err
 }
 
+const sendingClearMailboxWindows = `-- name: SendingClearMailboxWindows :exec
+DELETE FROM sending_mailbox_windows WHERE workspace_id = $1 AND slot BETWEEN $2 AND $3
+`
+
+type SendingClearMailboxWindowsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	FromSec     int64     `json:"fromSec"`
+	ToSec       int64     `json:"toSec"`
+}
+
+// Frees a workspace's mailbox windows over a past interval (the demo
+// command's fast-forward).
+func (q *Queries) SendingClearMailboxWindows(ctx context.Context, arg SendingClearMailboxWindowsParams) error {
+	_, err := q.db.Exec(ctx, sendingClearMailboxWindows, arg.WorkspaceID, arg.FromSec, arg.ToSec)
+	return err
+}
+
 const sendingEndWatches = `-- name: SendingEndWatches :exec
 UPDATE campaign_sends SET watch_until = NULL WHERE watch_until IS NOT NULL AND watch_until <= $1::timestamptz
 `
@@ -180,6 +197,86 @@ func (q *Queries) SendingIncidentsOfKind(ctx context.Context, arg SendingInciden
 	return items, nil
 }
 
+const sendingMailboxRelease = `-- name: SendingMailboxRelease :exec
+UPDATE sending_mailbox_windows SET used = greatest(used - $1::int, 0)
+WHERE workspace_id = $2 AND mailbox_provider = $3 AND slot = $4
+`
+
+type SendingMailboxReleaseParams struct {
+	N               int32     `json:"n"`
+	WorkspaceID     uuid.UUID `json:"workspaceId"`
+	MailboxProvider string    `json:"mailboxProvider"`
+	Slot            int64     `json:"slot"`
+}
+
+// Gives back what a send took from a window and didn't send.
+func (q *Queries) SendingMailboxRelease(ctx context.Context, arg SendingMailboxReleaseParams) error {
+	_, err := q.db.Exec(ctx, sendingMailboxRelease,
+		arg.N,
+		arg.WorkspaceID,
+		arg.MailboxProvider,
+		arg.Slot,
+	)
+	return err
+}
+
+const sendingMailboxReserve = `-- name: SendingMailboxReserve :one
+UPDATE sending_mailbox_windows
+SET senders = CASE WHEN $1::uuid = ANY(senders) THEN senders ELSE array_append(senders, $1::uuid) END,
+    last_grant = greatest(least($2::int, $3::int - used, $4::int), 0),
+    used = used + greatest(least($2::int, $3::int - used, $4::int), 0)
+WHERE workspace_id = $5 AND mailbox_provider = $6 AND slot = $7
+RETURNING last_grant
+`
+
+type SendingMailboxReserveParams struct {
+	CampaignID      uuid.UUID `json:"campaignId"`
+	Want            int32     `json:"want"`
+	Cap             int32     `json:"cap"`
+	Fair            int32     `json:"fair"`
+	WorkspaceID     uuid.UUID `json:"workspaceId"`
+	MailboxProvider string    `json:"mailboxProvider"`
+	Slot            int64     `json:"slot"`
+}
+
+// Takes up to want sends from a mailbox provider's window of cap (open it
+// first), and no more than fair: every send going out at once shares it,
+// so together they keep to the throttle and each gets its part. The send
+// is recorded even when it gets nothing, so the next slot is shared.
+func (q *Queries) SendingMailboxReserve(ctx context.Context, arg SendingMailboxReserveParams) (int32, error) {
+	row := q.db.QueryRow(ctx, sendingMailboxReserve,
+		arg.CampaignID,
+		arg.Want,
+		arg.Cap,
+		arg.Fair,
+		arg.WorkspaceID,
+		arg.MailboxProvider,
+		arg.Slot,
+	)
+	var last_grant int32
+	err := row.Scan(&last_grant)
+	return last_grant, err
+}
+
+const sendingMailboxSenders = `-- name: SendingMailboxSenders :one
+SELECT coalesce(max(cardinality(senders)), 0)::int FROM sending_mailbox_windows
+WHERE workspace_id = $1 AND mailbox_provider = $2 AND slot = $3
+`
+
+type SendingMailboxSendersParams struct {
+	WorkspaceID     uuid.UUID `json:"workspaceId"`
+	MailboxProvider string    `json:"mailboxProvider"`
+	Slot            int64     `json:"slot"`
+}
+
+// How many sends took part of a mailbox provider's window in a slot.
+func (q *Queries) SendingMailboxSenders(ctx context.Context, arg SendingMailboxSendersParams) (int32, error) {
+	row := q.db.QueryRow(ctx, sendingMailboxSenders, arg.WorkspaceID, arg.MailboxProvider, arg.Slot)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const sendingMarkInDoubt = `-- name: SendingMarkInDoubt :many
 UPDATE messages m SET status = 'in_doubt', error = $1
 WHERE m.status = 'queued' AND m.claimed_at IS NOT NULL AND m.claimed_at < $2::timestamptz AND m.campaign_id = $3
@@ -218,6 +315,26 @@ func (q *Queries) SendingMarkInDoubt(ctx context.Context, arg SendingMarkInDoubt
 		return nil, err
 	}
 	return items, nil
+}
+
+const sendingOpenMailboxWindow = `-- name: SendingOpenMailboxWindow :exec
+
+INSERT INTO sending_mailbox_windows (workspace_id, mailbox_provider, slot, used, last_grant)
+VALUES ($1, $2, $3, 0, 0)
+ON CONFLICT (workspace_id, mailbox_provider, slot) DO NOTHING
+`
+
+type SendingOpenMailboxWindowParams struct {
+	WorkspaceID     uuid.UUID `json:"workspaceId"`
+	MailboxProvider string    `json:"mailboxProvider"`
+	Slot            int64     `json:"slot"`
+}
+
+// GS-8: throttles shared by a workspace's sends -----------------------------
+// Opens a mailbox provider's window: a slot of the workspace's sends to it.
+func (q *Queries) SendingOpenMailboxWindow(ctx context.Context, arg SendingOpenMailboxWindowParams) error {
+	_, err := q.db.Exec(ctx, sendingOpenMailboxWindow, arg.WorkspaceID, arg.MailboxProvider, arg.Slot)
+	return err
 }
 
 const sendingOutboxMarkInDoubt = `-- name: SendingOutboxMarkInDoubt :execrows
@@ -371,6 +488,15 @@ func (q *Queries) SendingProbeSeed(ctx context.Context, workspaceID uuid.UUID) (
 		return nil, err
 	}
 	return items, nil
+}
+
+const sendingPurgeMailboxWindows = `-- name: SendingPurgeMailboxWindows :exec
+DELETE FROM sending_mailbox_windows WHERE slot < $1
+`
+
+func (q *Queries) SendingPurgeMailboxWindows(ctx context.Context, before int64) error {
+	_, err := q.db.Exec(ctx, sendingPurgeMailboxWindows, before)
+	return err
 }
 
 const sendingRequeueStale = `-- name: SendingRequeueStale :execrows

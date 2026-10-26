@@ -96,6 +96,7 @@ func (s *Suite) Fixture(t *testing.T, name string) *Fixture {
 	s.n++
 	f := &Fixture{Suite: s, T: t, List: uuid.Must(uuid.NewV7()), Campaign: uuid.Must(uuid.NewV7())}
 	f.Exec(`DELETE FROM sending_rate_windows`)
+	f.Exec(`DELETE FROM sending_mailbox_windows`)
 	f.Exec(`INSERT INTO lists (id, workspace_id, name) VALUES ($1, $2, $3)`, f.List, s.WS, "Send test "+name)
 	f.Exec(`INSERT INTO campaigns (id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, editor_mode, mjml, html, plain_text,
 		ab_test, schedule, thresholds, tracking, created_by, updated_by, content_hash)

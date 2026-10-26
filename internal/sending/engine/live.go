@@ -162,12 +162,15 @@ type LiveMailbox struct {
 	ComplaintRate *float64 `json:"complaintRate,omitempty"`
 	// ComplaintReason says why ComplaintRate is null: Gmail and iCloud
 	// don't report complaints per message (review F-2).
-	ComplaintReason string     `json:"complaintReason,omitempty" enum:"not_reported"`
-	OpenRate        *float64   `json:"openRate,omitempty"`
-	Throttle        *float64   `json:"throttle,omitempty" doc:"Messages per second; absent = the provider's full rate"`
-	Held            bool       `json:"held"`
-	HeldSince       *time.Time `json:"heldSince,omitempty"`
-	Status          string     `json:"status" enum:"ok,sending,paused,done"`
+	ComplaintReason string   `json:"complaintReason,omitempty" enum:"not_reported"`
+	OpenRate        *float64 `json:"openRate,omitempty"`
+	Throttle        *float64 `json:"throttle,omitempty" doc:"Messages per second; absent = the provider's full rate"`
+	// DoneAt is when its mail still to send has gone, at current rates
+	// with its limit (review GS-8); absent while it waits.
+	DoneAt    *time.Time `json:"doneAt,omitempty"`
+	Held      bool       `json:"held"`
+	HeldSince *time.Time `json:"heldSince,omitempty"`
+	Status    string     `json:"status" enum:"ok,sending,paused,done"`
 }
 
 // LiveProvider is one sending provider's row.
@@ -215,6 +218,10 @@ type LiveProvider struct {
 	// Idempotent: the provider recognizes a message it already took, so a
 	// retry after a lost answer never delivers it twice (review GS-1).
 	Idempotent bool `json:"idempotent"`
+	// DoneAt is when its share is done at current rates, including the
+	// per-mailbox limits (review GS-8: "Done about"); absent while it
+	// waits.
+	DoneAt *time.Time `json:"doneAt,omitempty"`
 }
 
 // LiveLimits are a send's auto-pause thresholds, in percent.
@@ -231,6 +238,92 @@ type LiveLimits struct {
 func infersDelivery(p store.Provider) bool {
 	d, ok := providers.Lookup(p.Adapter)
 	return ok && d.Capabilities.InfersDelivery
+}
+
+// liveETAs sets when each route and mailbox provider is done at current
+// rates (review GS-8). A throttled mailbox provider takes its remaining
+// mail over its limit; a route takes its own over its rate, and no less
+// than the throttled mailbox providers it carries; the others share what
+// the throttled ones leave of their routes' rates. It returns when the
+// last one is done (0 without an estimate).
+func liveETAs(s *LiveSnapshot, queue map[queueKey]queueCell, holds map[string]hold, heldProviders map[uuid.UUID]bool, throttles map[string]float64,
+	rates map[uuid.UUID]float64, now time.Time) time.Duration {
+	left := map[string]int64{}
+	routeLeft := map[uuid.UUID]int64{}
+	cell := map[queueKey]int64{}
+	for k, c := range queue {
+		n := c.queued - c.waiting
+		if h, on := holds[k.mailbox]; n <= 0 || heldProviders[k.provider] || (on && !h.Resumed) {
+			continue
+		}
+		left[k.mailbox] += n
+		routeLeft[k.provider] += n
+		cell[k] = n
+	}
+	secs := func(n int64, rate float64) float64 { return float64(n) / rate }
+	mbTime := map[string]float64{}
+	for k, n := range left {
+		if t := throttles[k]; t > 0 {
+			mbTime[k] = secs(n, t)
+		}
+	}
+	// Each route's time, and what its unthrottled mail sends at.
+	routeTime := map[uuid.UUID]float64{}
+	freeTime := map[uuid.UUID]float64{}
+	for pid, n := range routeLeft {
+		rate := rates[pid]
+		if rate <= 0 {
+			continue
+		}
+		t := secs(n, rate)
+		var throttled float64 // what the throttled mailbox providers take of its rate
+		var free int64
+		for k, c := range cell {
+			if k.provider != pid {
+				continue
+			}
+			if tr := throttles[k.mailbox]; tr > 0 {
+				t = math.Max(t, mbTime[k.mailbox])
+				throttled += tr * float64(c) / float64(left[k.mailbox])
+			} else {
+				free += c
+			}
+		}
+		routeTime[pid] = t
+		freeTime[pid] = secs(free, math.Max(rate-throttled, rate*0.1))
+	}
+	at := func(sec float64) *time.Time {
+		v := now.Add(time.Duration(math.Ceil(sec)) * time.Second)
+		return &v
+	}
+	var latest float64
+	for i := range s.Providers {
+		pid, err := uuid.Parse(s.Providers[i].ID)
+		if t, ok := routeTime[pid]; err == nil && ok {
+			s.Providers[i].DoneAt = at(t)
+			latest = math.Max(latest, t)
+		}
+	}
+	for i := range s.Mailboxes {
+		k := s.Mailboxes[i].Key
+		if left[k] == 0 {
+			continue
+		}
+		t, ok := mbTime[k]
+		if !ok {
+			for c := range cell {
+				if c.mailbox == k {
+					if ft, has := freeTime[c.provider]; has {
+						t, ok = math.Max(t, ft), true
+					}
+				}
+			}
+		}
+		if ok {
+			s.Mailboxes[i].DoneAt = at(t)
+		}
+	}
+	return time.Duration(math.Ceil(latest)) * time.Second
 }
 
 // LiveThreshold is a rate against its auto-pause limit, with the evidence
@@ -558,6 +651,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		apiErr[w.ProviderID] = ptrRate(w.Errors, w.Calls)
 	}
 	heldProviders := map[uuid.UUID]bool{}
+	routeRate := map[uuid.UUID]float64{}
 	var apiRates []LiveThresholdPart
 	via := []viaPart{}
 	routeLabel := []string{}
@@ -615,7 +709,12 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			mx := h.Quota.Max
 			lp.QuotaFree, lp.QuotaMax = &free, &mx
 		}
-		if pr := e.rateOf(ctx, e.Q, p, loc, now); pr.WarmingUp {
+		pr := e.rateOf(ctx, e.Q, p, loc, now)
+		routeRate[p.ID] = rateBy[p.ID]
+		if routeRate[p.ID] <= 0 {
+			routeRate[p.ID] = pr.PerSecond
+		}
+		if pr.WarmingUp {
 			day, days, cp, sent := pr.WarmupDay, pr.WarmupDays, pr.Cap, pr.SentToday
 			lp.WarmupDay, lp.WarmupDays, lp.WarmupCap, lp.WarmupSent = &day, &days, &cp, &sent
 		}
@@ -721,6 +820,13 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		s.ETASeconds = &eta
 		f := now.Add(time.Duration(eta) * time.Second)
 		s.FinishesAt = &f
+	}
+	if s.State == "sending" || s.State == "partial" {
+		if latest := liveETAs(&s, queue, holds, heldProviders, throttles, routeRate, now); latest > 0 && (s.FinishesAt == nil || now.Add(latest).After(*s.FinishesAt)) {
+			eta := int64(math.Ceil(latest.Seconds()))
+			f := now.Add(time.Duration(eta) * time.Second)
+			s.ETASeconds, s.FinishesAt = &eta, &f
+		}
 	}
 	if lastDue != nil && (s.State == "sending" || s.State == "partial") && (s.FinishesAt == nil || lastDue.After(*s.FinishesAt)) {
 		eta := int64(math.Ceil(lastDue.Sub(now).Seconds()))

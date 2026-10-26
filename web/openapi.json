@@ -40833,6 +40833,10 @@
             "format": "double",
             "type": "number"
           },
+          "doneAt": {
+            "format": "date-time",
+            "type": "string"
+          },
           "held": {
             "type": "boolean"
           },
@@ -40998,6 +41002,10 @@
           "deliveredRate": {
             "format": "double",
             "type": "number"
+          },
+          "doneAt": {
+            "format": "date-time",
+            "type": "string"
           },
           "downSince": {
             "format": "date-time",

@@ -487,6 +487,16 @@ func (e *Engine) tick(ctx context.Context, rs *runState, r *runRoute, now time.T
 		return 0, nil
 	}
 	alloc := e.allocate(rs, r, want)
+	// A mailbox provider's throttle is shared by the workspace's sends
+	// going out at once (review GS-8): this send takes its part of each
+	// throttled mailbox provider's window first, and gives back what it
+	// doesn't send.
+	taken, err := e.reserveMailboxes(ctx, rs, alloc, now)
+	if err != nil {
+		return 0, err
+	}
+	used := map[string]int{}
+	defer e.releaseMailboxes(ctx, rs, taken, used)
 	total := 0
 	for _, n := range alloc {
 		total += n
@@ -523,6 +533,7 @@ func (e *Engine) tick(ctx context.Context, rs *runState, r *runRoute, now time.T
 			return 0, err
 		}
 		claimed = append(claimed, rows...)
+		used[mbp] += len(rows)
 		if t, ok := rs.throttles[mbp]; ok && t > 0 {
 			rs.tokens[mbp] -= float64(len(rows))
 		}
@@ -603,6 +614,91 @@ func (e *Engine) allocate(rs *runState, r *runRoute, want int) map[string]int {
 		}
 	}
 	return out
+}
+
+// mailboxGrant is what a send took from a mailbox provider's window.
+type mailboxGrant struct {
+	slot int64
+	n    int
+}
+
+// reserveMailboxes takes each throttled mailbox provider's part of alloc
+// from the workspace's window for now; alloc shrinks to what was granted.
+func (e *Engine) reserveMailboxes(ctx context.Context, rs *runState, alloc map[string]int, now time.Time) (map[string]mailboxGrant, error) {
+	taken := map[string]mailboxGrant{}
+	for _, mbp := range sortedKeys(alloc) {
+		n := alloc[mbp]
+		t, ok := rs.throttles[mbp]
+		if n <= 0 || !ok || t <= 0 {
+			continue
+		}
+		period, capN := throttleSlot(t)
+		sec := now.Unix()
+		slot := sec - sec%period
+		err := e.Q.SendingOpenMailboxWindow(ctx, store.SendingOpenMailboxWindowParams{WorkspaceID: rs.campaign.WorkspaceID, MailboxProvider: mbp, Slot: slot})
+		var g int32
+		if err == nil {
+			// Each send takes no more than its part of the slot: the cap
+			// divided among the sends of the slot before.
+			var others int32
+			others, err = e.Q.SendingMailboxSenders(ctx, store.SendingMailboxSendersParams{WorkspaceID: rs.campaign.WorkspaceID, MailboxProvider: mbp, Slot: slot - period})
+			fair := int32(capN)
+			if others > 1 {
+				fair = int32(math.Ceil(float64(capN) / float64(others)))
+			}
+			if err == nil {
+				g, err = e.Q.SendingMailboxReserve(ctx, store.SendingMailboxReserveParams{CampaignID: rs.campaign.ID, WorkspaceID: rs.campaign.WorkspaceID,
+					MailboxProvider: mbp, Slot: slot, Want: int32(n), Cap: int32(capN), Fair: fair})
+				if errors.Is(err, pgx.ErrNoRows) {
+					g, err = 0, nil
+				}
+			}
+		}
+		if err != nil {
+			e.releaseMailboxes(ctx, rs, taken, nil)
+			return nil, err
+		}
+		alloc[mbp] = int(g)
+		if g > 0 {
+			taken[mbp] = mailboxGrant{slot, int(g)}
+		}
+	}
+	return taken, nil
+}
+
+// releaseMailboxes gives back what a send took from the windows and
+// didn't send. The windows only pace sending: a failure is logged.
+func (e *Engine) releaseMailboxes(ctx context.Context, rs *runState, taken map[string]mailboxGrant, used map[string]int) {
+	for mbp, g := range taken {
+		left := g.n - used[mbp]
+		if left <= 0 {
+			continue
+		}
+		if err := e.Q.SendingMailboxRelease(context.WithoutCancel(ctx), store.SendingMailboxReleaseParams{WorkspaceID: rs.campaign.WorkspaceID, MailboxProvider: mbp,
+			Slot: g.slot, N: int32(left)}); err != nil {
+			e.log().WarnContext(ctx, "release mailbox window", "mailbox", mbp, "err", err)
+		}
+	}
+}
+
+// throttleSlot is the window a rate is counted in: a slot of period
+// seconds that takes capN messages, as close to the rate as whole
+// messages allow and never over it (2.5 /s: 5 every 2 s).
+func throttleSlot(rate float64) (period int64, capN int) {
+	if rate*10 < 1 {
+		return int64(math.Ceil(1 / rate)), 1
+	}
+	best, short := int64(1), math.Inf(1)
+	for p := int64(1); p <= 10; p++ {
+		x := rate * float64(p)
+		if x < 1 {
+			continue
+		}
+		if s := (x - math.Floor(x+1e-9)) / x; s < short-1e-9 {
+			best, short = p, s
+		}
+	}
+	return best, max(int(math.Floor(rate*float64(best)+1e-9)), 1)
 }
 
 func scaleAlloc(alloc map[string]int, n int) map[string]int {
