@@ -129,11 +129,11 @@ export function PendingNextCard() {
       <span className="k">{t(m.nextPending)}</span>
       {/* PR-13: a campaign can be written before a provider is connected. */}
       {editReason ? (
-        <Button size="sm" className="self-start" disabledReason={editReason}>
+        <Button size="sm" className="self-start max-md:min-h-11" disabledReason={editReason}>
           {t(m.newCampaign)}
         </Button>
       ) : (
-        <ButtonLink size="sm" className="self-start" to="/w/$workspace/campaigns/new" params={{ workspace: slug }}>
+        <ButtonLink size="sm" className="self-start max-md:min-h-11" to="/w/$workspace/campaigns/new" params={{ workspace: slug }}>
           {t(m.newCampaign)}
         </ButtonLink>
       )}

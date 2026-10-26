@@ -103,11 +103,11 @@ export function OverviewPage() {
   // A campaign can be written before a provider is connected (PR-13):
   // scheduling and sending unlock once Broadcasts has a provider.
   const newCampaign = editReason ? (
-    <Button variant="primary" disabledReason={editReason}>
+    <Button variant="primary" className="max-md:min-h-11" disabledReason={editReason}>
       {t(m.newCampaign)}
     </Button>
   ) : (
-    <ButtonLink variant="primary" to="/w/$workspace/campaigns/new" params={path}>
+    <ButtonLink variant="primary" className="max-md:min-h-11" to="/w/$workspace/campaigns/new" params={path}>
       {t(m.newCampaign)}
     </ButtonLink>
   )

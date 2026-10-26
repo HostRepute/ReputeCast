@@ -59,10 +59,10 @@ export function FirstRun({ audience }: { audience?: Schemas['OverviewAudience'] 
           <span className="text-ink-2">{t(m.stepConnectLine)}</span>
           <span className="text-ink-2">{t(m.writeFirst)}</span>
           <div className="mt-1.5 flex flex-wrap gap-2.5">
-            <ButtonLink variant="primary" to="/w/$workspace/providers/connect" params={params}>
+            <ButtonLink variant="primary" className="max-md:min-h-11" to="/w/$workspace/providers/connect" params={params}>
               {t(m.chooseProvider)}
             </ButtonLink>
-            <ButtonLink to="/w/$workspace/providers/adapters" params={params}>
+            <ButtonLink className="max-md:min-h-11" to="/w/$workspace/providers/adapters" params={params}>
               {t(m.browseAdapters)}
             </ButtonLink>
           </div>
@@ -74,7 +74,7 @@ export function FirstRun({ audience }: { audience?: Schemas['OverviewAudience'] 
           n={3}
           title={t(m.stepImport)}
           action={
-            <ButtonLink size="sm" to="/w/$workspace/import" params={params}>
+            <ButtonLink size="sm" className="max-md:min-h-11" to="/w/$workspace/import" params={params}>
               {t(m.importNow)}
             </ButtonLink>
           }
@@ -115,7 +115,7 @@ function ExploreDemo() {
   })
   return (
     <div className="mt-2 flex flex-wrap items-center gap-3">
-      <Button onClick={() => load.mutate({})} loading={load.isPending} busyLabel={t(m.exploreDemoBusy)}>
+      <Button className="max-md:min-h-11" onClick={() => load.mutate({})} loading={load.isPending} busyLabel={t(m.exploreDemoBusy)}>
         {t(m.exploreDemo)}
       </Button>
       <span className="k">{t(m.exploreDemoLine)}</span>
