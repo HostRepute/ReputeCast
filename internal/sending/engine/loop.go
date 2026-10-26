@@ -50,10 +50,15 @@ func parseHolds(raw json.RawMessage) map[string]hold {
 // routeDetail is campaign_routes.status_detail for the engine's decisions.
 type routeDetail struct {
 	Decision string     `json:"decision,omitempty"` // retry, wait, move, resume
-	Reason   string     `json:"reason,omitempty"`   // provider_down, outage, auth, threshold
+	Reason   string     `json:"reason,omitempty"`   // provider_down, outage, auth, identity, quota, throttled, api_errors, threshold
 	Until    *time.Time `json:"until,omitempty"`
 	Incident string     `json:"incident,omitempty"`
 	To       string     `json:"to,omitempty"`
+	// Retry (outages.go): test messages that went through in a row, when
+	// the next one goes and whether they go to a seed inbox.
+	Probes    int        `json:"probes,omitempty"`
+	NextProbe *time.Time `json:"nextProbe,omitempty"`
+	Seed      bool       `json:"seed,omitempty"`
 }
 
 func parseRouteDetail(s string) routeDetail {
@@ -82,8 +87,10 @@ type runRoute struct {
 	// calmFrom since when it has been answered normally (routeerrors.go).
 	slow     float64
 	calmFrom time.Time
-	// apiCheckedAt is when the API error threshold was last checked.
-	apiCheckedAt time.Time
+	// apiCheckedAt is when the API error threshold was last checked;
+	// judgedFrom is when the route last started sending again after a hold
+	// (calls before it don't count against it).
+	apiCheckedAt, judgedFrom time.Time
 }
 
 // active reports whether the route may send now.
@@ -94,9 +101,6 @@ func (r *runRoute) active(now time.Time) bool {
 	switch r.status {
 	case "pending", "sending":
 	default:
-		return false
-	}
-	if r.detail.Decision == "retry" && now.Sub(r.lastProbe) < retryEvery && !r.lastProbe.IsZero() {
 		return false
 	}
 	return state.Available(r.provider) || r.provider.Status == state.Degraded
@@ -188,6 +192,12 @@ func (e *Engine) templatesFor(id uuid.UUID, c sendContent) (map[string]*Template
 // load reads everything a run needs. It returns errStopped when the
 // campaign isn't sending.
 func (e *Engine) load(ctx context.Context, id uuid.UUID, now time.Time) (*runState, error) {
+	return e.loadState(ctx, id, now, false)
+}
+
+// loadState is load; paused also takes a paused send (a decision about one
+// of its shares, an outage the health job found).
+func (e *Engine) loadState(ctx context.Context, id uuid.UUID, now time.Time, paused bool) (*runState, error) {
 	cc, err := e.Q.SendingCampaignContext(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, errStopped
@@ -202,7 +212,7 @@ func (e *Engine) load(ctx context.Context, id uuid.UUID, now time.Time) (*runSta
 	if err != nil {
 		return nil, err
 	}
-	if cc.Status != "sending" || snd.Phase != "sending" {
+	if (cc.Status != "sending" && (!paused || cc.Status != "paused")) || snd.Phase != "sending" {
 		return nil, errStopped
 	}
 	rs := &runState{campaign: cc, send: snd, routes: map[uuid.UUID]*runRoute{}, tokens: map[string]float64{}, queue: map[queueKey]queueCell{},
@@ -255,6 +265,9 @@ func (e *Engine) loadRoutes(ctx context.Context, rs *runState, now time.Time) er
 			if s, ok := r.transport.(*simulator.Provider); ok {
 				r.sim = s
 			}
+		}
+		if (r.status == "held" || r.status == "paused") && (row.Status == "pending" || row.Status == "sending") {
+			r.judgedFrom = now
 		}
 		r.provider, r.planned, r.status, r.detail = p, row.Planned, row.Status, parseRouteDetail(row.StatusDetail)
 		r.rate = e.rateOf(ctx, e.Q, p, rs.loc, now)
@@ -686,11 +699,40 @@ func (o *outcome) drop(id uuid.UUID, status, msg string) {
 	o.unsentEr = append(o.unsentEr, clip(msg, 500))
 }
 
-// deliver renders claimed messages, hands them to the provider in batches
-// and records every outcome in one transaction. Once messages are claimed
-// it runs to the end even when the job is told to stop: rendering, the
-// provider calls and the record all happen, so nothing is left claimed.
+// deliver sends claimed messages (send) and acts on what the provider said
+// about the route: a hold, an outage, a slowdown.
 func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed []store.SendingClaimRow, now time.Time) error {
+	d, err := e.send(ctx, rs, r, claimed, now)
+	if err != nil {
+		return err
+	}
+	switch {
+	case d.hold == "quota":
+		// An outage of the route: held, or moved when the Broadcast policy
+		// allows it and a vetted target can take the rest.
+		return e.outage(ctx, rs, r, d.hold, now, false)
+	case d.hold != "":
+		return e.holdRoute(ctx, rs, r, d.hold, now)
+	case d.slowed:
+		r.throttled(now)
+	}
+	return nil
+}
+
+// delivery is what a batch's provider calls said about the route: a hold
+// (rejected credentials, an unverified sender, a used-up quota), whether the
+// provider paced the account, and how many messages it took.
+type delivery struct {
+	hold   string
+	slowed bool
+	sent   int
+}
+
+// send renders claimed messages, hands them to the provider in batches and
+// records every outcome in one transaction. Once messages are claimed it
+// runs to the end even when the job is told to stop: rendering, the
+// provider calls and the record all happen, so nothing is left claimed.
+func (e *Engine) send(ctx context.Context, rs *runState, r *runRoute, claimed []store.SendingClaimRow, now time.Time) (delivery, error) {
 	ctx = context.WithoutCancel(ctx)
 	var out outcome
 	type pending struct {
@@ -806,22 +848,12 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 		return e.record(ctx, store.New(tx), tx, rs.campaign.ID, r.provider.ID, &out, now)
 	})
 	if err != nil {
-		return err
+		return delivery{}, err
 	}
 	if len(out.sims) > 0 {
 		e.insert(ctx, SimArgs{}, nil)
 	}
-	switch {
-	case hold == "quota":
-		// An outage of the route: held, or moved when the Broadcast policy
-		// allows it and a vetted target can take the rest.
-		return e.outage(ctx, rs, r, hold, now, false)
-	case hold != "":
-		return e.holdRoute(ctx, rs, r, hold, now)
-	case slowed:
-		r.throttled(now)
-	}
-	return nil
+	return delivery{hold: hold, slowed: slowed, sent: len(out.sentIDs)}, nil
 }
 
 // record writes a batch's outcomes.

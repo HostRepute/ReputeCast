@@ -50,6 +50,7 @@ type FaultState struct {
 	mu      sync.Mutex
 	mode    string
 	took    map[uuid.UUID]int
+	to      map[string]int
 	calls   int
 	started chan struct{}
 	release chan struct{}
@@ -59,7 +60,7 @@ type FaultState struct {
 func (f *FaultState) Reset(mode string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.mode, f.took, f.calls = mode, map[uuid.UUID]int{}, 0
+	f.mode, f.took, f.to, f.calls = mode, map[uuid.UUID]int{}, map[string]int{}, 0
 	f.started, f.release = make(chan struct{}, 64), make(chan struct{})
 }
 
@@ -97,6 +98,13 @@ func (f *FaultState) Took() map[uuid.UUID]int {
 		out[k] = v
 	}
 	return out
+}
+
+// TookFor is how many messages the provider took for an address.
+func (f *FaultState) TookFor(address string) int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.to[address]
 }
 
 // Calls is how many Send calls arrived.
@@ -142,6 +150,7 @@ func (p *faultESP) take(msgs []providers.Message) []providers.SendResult {
 	for i, m := range msgs {
 		if !p.dedupe || Fault.took[m.ID] == 0 {
 			Fault.took[m.ID]++
+			Fault.to[m.To.Address]++
 		}
 		out[i] = providers.SendResult{MessageID: m.ID, ProviderMessageID: "fault-" + m.ID.String()}
 	}

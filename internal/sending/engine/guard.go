@@ -3,7 +3,6 @@ package engine
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math"
 	"sort"
@@ -124,7 +123,7 @@ func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.D
 	if err := e.checkAB(ctx, rs, ts, now); err != nil {
 		return 0, err
 	}
-	var queued, held, waiting, blocked, doubt int64
+	var queued, held, waiting, blocked, doubt, probing int64
 	var next *time.Time
 	for k, c := range rs.queue {
 		queued += c.queued
@@ -135,6 +134,9 @@ func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.D
 		h, onHold := rs.holds[k.mailbox]
 		if r == nil || (onHold && !h.Resumed) || !r.open() {
 			blocked += c.queued
+			if r != nil && (!onHold || h.Resumed) && r.retrying() {
+				probing += c.queued
+			}
 		}
 		if c.nextAt != nil && (next == nil || c.nextAt.Before(*next)) {
 			t := *c.nextAt
@@ -148,17 +150,41 @@ func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.D
 		// Only messages in doubt are left: the send waits for someone to
 		// send them again or leave them out (doubt.go).
 		return 0, e.waitForDecision(ctx, rs, now)
+	case held == 0 && queued > 0 && queued == blocked && probing > 0:
+		// Only retried shares are left: the loop stays to send their test
+		// messages (outages.go).
+		return rs.untilProbe(now), nil
 	case held == 0 && queued > 0 && queued == blocked:
 		// Only held shares are left: nothing sends until someone decides.
 		return 0, e.waitForDecision(ctx, rs, now)
 	case queued-blocked > 0 && queued-blocked == waiting && next != nil:
 		return max(next.Sub(now), time.Second), nil
 	case queued-blocked <= 0 && held > 0 && rs.ab.DecideAt != nil:
-		return max(rs.ab.DecideAt.Sub(now), time.Second), nil
+		return min(max(rs.ab.DecideAt.Sub(now), time.Second), rs.untilProbe(now)), nil
 	case queued-blocked <= 0 && held > 0:
-		return 30 * time.Second, nil
+		return min(30*time.Second, rs.untilProbe(now)), nil
 	}
 	return 0, nil
+}
+
+// retrying reports whether a route is a retried share sending test
+// messages (outages.go).
+func (r *runRoute) retrying() bool { return r.status == "held" && r.detail.Decision == "retry" }
+
+// untilProbe is how long until a retried share's next test message (a
+// minute when none is retried).
+func (rs *runState) untilProbe(now time.Time) time.Duration {
+	wait := retryEvery
+	for _, r := range rs.routes {
+		if !r.retrying() {
+			continue
+		}
+		if r.detail.NextProbe == nil || !now.Before(*r.detail.NextProbe) {
+			return time.Second
+		}
+		wait = min(wait, r.detail.NextProbe.Sub(now))
+	}
+	return max(wait, time.Second)
 }
 
 // trip is one threshold that tripped.
@@ -448,16 +474,6 @@ func (e *Engine) checkOutage(ctx context.Context, rs *runState, r *runRoute, now
 	if r.status != "pending" && r.status != "sending" {
 		return nil
 	}
-	if r.detail.Decision == "retry" {
-		switch {
-		case !lastOK.IsZero() && lastOK.After(first) && first.IsZero():
-			// The provider answers again: back to normal.
-			return e.setRouteDetail(ctx, rs, r, routeDetail{}, "sending")
-		case r.detail.Until != nil && now.After(*r.detail.Until) && !first.IsZero():
-			return e.outage(ctx, rs, r, "outage", now, true)
-		}
-		return nil
-	}
 	// The provider kept throttling the account for three minutes, or the
 	// share of its failed calls passed the send's limit (review GS-4).
 	if !throttledSince.IsZero() && now.Sub(throttledSince) >= outageAfter && throttles >= outageMinCalls && (lastOK.IsZero() || lastOK.Before(throttledSince)) {
@@ -508,7 +524,8 @@ func (e *Engine) setRouteDetail(ctx context.Context, rs *runState, r *runRoute, 
 
 // outage handles a failing route: an automatic move to a warmed-up
 // provider when the Broadcast policy allows it, otherwise a hold that waits
-// for a person.
+// for a person. again is a retried share still failing after 15 minutes
+// (outages.go): the person is asked again.
 func (e *Engine) outage(ctx context.Context, rs *runState, r *runRoute, reason string, now time.Time, again bool) error {
 	set, err := routing.Load(ctx, e.Q, rs.campaign.WorkspaceID)
 	if err != nil {
@@ -519,7 +536,7 @@ func (e *Engine) outage(ctx context.Context, rs *runState, r *runRoute, reason s
 	if target != nil && policy != routing.PauseAndAsk && reason != "auth" {
 		return e.autoMove(ctx, rs, r, target, reason, policy, now)
 	}
-	return e.holdRoute(ctx, rs, r, reason, now)
+	return e.holdOutage(ctx, rs, r, reason, again, now)
 }
 
 // moveTarget is where a held share would go: the stream's fallback, else
@@ -571,6 +588,15 @@ func (e *Engine) moveTarget(ctx context.Context, rs *runState, r *runRoute, set 
 
 // holdRoute puts a route on hold and asks a person what to do.
 func (e *Engine) holdRoute(ctx context.Context, rs *runState, r *runRoute, reason string, now time.Time) error {
+	return e.holdOutage(ctx, rs, r, reason, false, now)
+}
+
+// holdOutage puts a route on hold with the engine's analysis and options and
+// asks a person what to do; again says the share was retried for 15
+// minutes and still fails. The campaign's row is locked and the route read
+// again first, so a person's decision taken meanwhile (a move, a cancel, a
+// retry) is never overwritten.
+func (e *Engine) holdOutage(ctx context.Context, rs *runState, r *runRoute, reason string, again bool, now time.Time) error {
 	c := rs.campaign
 	cid := c.ID
 	remaining, err := e.Q.SendingRemainingOn(ctx, store.SendingRemainingOnParams{CampaignID: &cid, ProviderID: &r.provider.ID})
@@ -578,14 +604,30 @@ func (e *Engine) holdRoute(ctx context.Context, rs *runState, r *runRoute, reaso
 		return err
 	}
 	detail := e.analyzeOutage(ctx, rs, r, reason, remaining, now)
+	if again {
+		detail.retried(r.shortName())
+	}
 	b := detail.stored()
 	id := newID()
 	short := r.shortName()
 	headline := outageHeadline(detail, r.provider.Name)
 	words := outageArgs(detail, r.provider.Name)
 	words["name"], words["who"], words["remaining"] = quoted(c.Name), short, remaining
+	skipped := false
 	err = db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
+		cur, err := q.SendingCampaignForUpdate(ctx, c.ID)
+		if err != nil {
+			return err
+		}
+		rt, err := routeOf(ctx, q, c.ID, r.provider.ID)
+		if err != nil {
+			return err
+		}
+		if cur.Status != "sending" && cur.Status != "paused" || rt == nil || !holdable(*rt, again) {
+			skipped = true
+			return nil
+		}
 		// The provider health job may have held it already: one open incident per route.
 		open, err := q.SendingOpenIncidents(ctx, c.ID)
 		if err != nil {
@@ -615,8 +657,12 @@ func (e *Engine) holdRoute(ctx context.Context, rs *runState, r *runRoute, reaso
 			Title: title.In(i18n.Default), CampaignID: &cid, ProviderID: &pid, Texts: titleTexts(title)}); err != nil {
 			return err
 		}
+		titleKey, bodyKey := "notify.decisionTitle", "notify.decisionBody"
+		if again {
+			titleKey, bodyKey = "notify.askAgainTitle", "notify.askAgainBody"
+		}
 		if err := notify.ToMembersWith(ctx, tx, c.WorkspaceID, authz.CampaignsSend, notify.Notification{
-			Kind: notify.KindSendPaused, Severity: "bad", TitleText: keep("notify.decisionTitle", words), BodyText: keep("notify.decisionBody", words),
+			Kind: notify.KindSendPaused, Severity: "bad", TitleText: keep(titleKey, words), BodyText: keep(bodyKey, words),
 			Link: liveLink(c.WorkspaceSlug, c.ID), Data: map[string]any{"campaignId": c.ID.String(), "providerId": pid.String(), "incidentId": id.String()},
 		}); err != nil {
 			return err
@@ -628,9 +674,25 @@ func (e *Engine) holdRoute(ctx context.Context, rs *runState, r *runRoute, reaso
 		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.share_held", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
 			Reason: headline, Actor: systemActor, Metadata: map[string]any{"provider": r.provider.Name, "reason": reason, "held": remaining, "policy": detail.Policy,
 				"summary": fmt.Sprintf("%s · %s recipients held, decision requested", headline, countText(remaining)), "target": c.Name + " · " + short + " share",
-				"source": "guard", "via": "provider outage"}})
+				"source": "guard", "via": "provider outage", "asked_again": again}})
 	})
+	if err == nil && skipped {
+		// Someone decided in the meantime: read the routes again.
+		rs.loadedAt = time.Time{}
+	}
 	return err
+}
+
+// holdable reports whether a route may be put on hold now: it still sends,
+// or it is held and either waits for a decision or (again) was retried.
+func holdable(rt store.SendingRoutesRow, again bool) bool {
+	switch rt.Status {
+	case "pending", "sending":
+		return true
+	case "held":
+		return again || parseRouteDetail(rt.StatusDetail).Decision != "retry"
+	}
+	return false
 }
 
 func (e *Engine) markHeld(ctx context.Context, q *store.Queries, rs *runState, r *runRoute, reason string, incident uuid.UUID) error {
@@ -649,6 +711,19 @@ func (e *Engine) autoMove(ctx context.Context, rs *runState, r *runRoute, target
 	cid := c.ID
 	return db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
+		cur, err := q.SendingCampaignForUpdate(ctx, cid)
+		if err != nil {
+			return err
+		}
+		rt, err := routeOf(ctx, q, cid, r.provider.ID)
+		if err != nil {
+			return err
+		}
+		if cur.Status != "sending" && cur.Status != "paused" || rt == nil || (rt.Status != "pending" && rt.Status != "sending" && rt.Status != "held") {
+			// Someone decided in the meantime.
+			rs.loadedAt = time.Time{}
+			return nil
+		}
 		moved, err := e.moveShare(ctx, q, cid, r.provider.ID, target.ID)
 		if err != nil {
 			return err
@@ -712,59 +787,6 @@ func (e *Engine) moveShare(ctx context.Context, q *store.Queries, campaign, from
 
 func (e *Engine) adjustPlanned(ctx context.Context, q *store.Queries, campaign, provider uuid.UUID, by int64) error {
 	return q.SendingAddPlanned(ctx, store.SendingAddPlannedParams{CampaignID: campaign, ProviderID: provider, Planned: by})
-}
-
-// probeHeld checks a held route's provider once after it was held and adds
-// what it found to the incident ("health check · still failing").
-func (e *Engine) probeHeld(ctx context.Context, rs *runState, r *runRoute, now time.Time) error {
-	if r.detail.Incident == "" || now.Sub(r.lastProbe) < 30*time.Second {
-		return nil
-	}
-	r.lastProbe = now
-	id, ok := parseID(r.detail.Incident)
-	if !ok {
-		return nil // no incident to report to
-	}
-	var raw json.RawMessage
-	var tripped time.Time
-	var held int64
-	err := e.Pool.QueryRow(ctx, `SELECT detail, tripped_at, held FROM campaign_incidents WHERE id = $1 AND resolved_at IS NULL`, id).Scan(&raw, &tripped, &held)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil // decided since
-	}
-	if err != nil {
-		return err
-	}
-	if now.Sub(tripped) < 30*time.Second {
-		return nil
-	}
-	d := parseDetail(raw)
-	if d.Probed {
-		return nil
-	}
-	failing := r.provider.Status == state.Down
-	switch {
-	case r.sim != nil:
-		failing = r.sim.Outage(now)
-	case r.transport != nil:
-		cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-		switch a := r.transport.(type) {
-		case providers.QuotaReporter:
-			_, err := a.Quota(cctx)
-			failing = err != nil
-		case providers.Verifier:
-			_, err := a.Verify(cctx)
-			failing = err != nil
-		}
-		cancel()
-	}
-	line := english("probe.failing", nil)
-	if !failing {
-		line = english("probe.answering", nil)
-	}
-	d.Log = append(d.Log, IncidentLogLine{At: now, Text: line, Bad: false})
-	d.Probed = true
-	return e.Q.SendingUpdateIncidentDetail(ctx, store.SendingUpdateIncidentDetailParams{ID: id, Detail: d.stored(), Held: held})
 }
 
 func (e *Engine) callLines(k routeKey) []IncidentLogLine {

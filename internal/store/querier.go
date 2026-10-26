@@ -3275,6 +3275,9 @@ type Querier interface {
 	// How many of a cohort's contacts received anything from this workspace
 	// before this campaign.
 	SendingPriorSends(ctx context.Context, arg SendingPriorSendsParams) (int64, error)
+	// A connected seed inbox of the workspace, for the test message a share
+	// retried after an outage sends every minute.
+	SendingProbeSeed(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
 	SendingPurgeWindows(ctx context.Context, before int64) error
 	// What is left of a campaign per sending and mailbox provider: queued (and
 	// when the next retry is due), held for the A/B winner or the canary
@@ -3315,11 +3318,18 @@ type Querier interface {
 	SendingSetHolds(ctx context.Context, arg SendingSetHoldsParams) error
 	SendingSetPaused(ctx context.Context, arg SendingSetPausedParams) error
 	SendingSetPhase(ctx context.Context, arg SendingSetPhaseParams) error
+	// A retried share's test messages so far. Written only while the route is
+	// as the send loop last read it: a person's decision in the meantime wins.
+	SendingSetProbe(ctx context.Context, arg SendingSetProbeParams) (int64, error)
 	SendingSetRouteStatus(ctx context.Context, arg SendingSetRouteStatusParams) error
 	SendingSetThrottles(ctx context.Context, arg SendingSetThrottlesParams) error
 	// A provider reported an event for a message in doubt: it took the message
 	// after all. The message counts as sent from the event on.
 	SendingSettleInDoubt(ctx context.Context, arg SendingSettleInDoubtParams) (SendingSettleInDoubtRow, error)
+	// GS-3: one outage path ---------------------------------------------------
+	// The running sends with an open or held share on a provider: an outage
+	// the provider health job finds goes through each one's outage path.
+	SendingSharesOn(ctx context.Context, providerID uuid.UUID) ([]uuid.UUID, error)
 	SendingSimMessages(ctx context.Context, ids []uuid.UUID) ([]SendingSimMessagesRow, error)
 	SendingStageAdd(ctx context.Context, arg SendingStageAddParams) error
 	SendingStageClear(ctx context.Context, campaignID uuid.UUID) error

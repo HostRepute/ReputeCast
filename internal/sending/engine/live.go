@@ -184,6 +184,13 @@ type LiveProvider struct {
 	PlannedCost   float64    `json:"plannedCost"`
 	Retrying      bool       `json:"retrying"`
 	RetryUntil    *time.Time `json:"retryUntil,omitempty"`
+	// While a share is retried (review GS-3): the test messages that went
+	// through in a row (it resumes at ProbesNeeded), when the next one goes
+	// and whether they go to a seed inbox.
+	Probes       int        `json:"probes"`
+	ProbesNeeded int        `json:"probesNeeded"`
+	NextProbe    *time.Time `json:"nextProbe,omitempty"`
+	ProbeSeed    bool       `json:"probeSeed"`
 	// Idempotent: the provider recognizes a message it already took, so a
 	// retry after a lost answer never delivers it twice (review GS-1).
 	Idempotent bool `json:"idempotent"`
@@ -525,9 +532,11 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 				}
 			}
 		}
-		if d.Decision == "retry" {
+		if d.Decision == "retry" && r.Status == "held" {
 			lp.Retrying, lp.RetryUntil = true, d.Until
+			lp.Probes, lp.NextProbe, lp.ProbeSeed = d.Probes, d.NextProbe, d.Seed
 		}
+		lp.ProbesNeeded = probesToResume
 		if h.Quota != nil && h.Quota.Max > 0 {
 			free := max(h.Quota.Max-h.Quota.Used-lp.Remaining, 0)
 			mx := h.Quota.Max

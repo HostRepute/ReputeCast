@@ -105,7 +105,7 @@
   "opt.cancelShareLater": "Skip the {remaining} remaining recipients. They're marked \"not sent\" in the report and can be re-sent later.",
   "opt.retryTitle": "Retry {who}{recommended, select, yes { (recommended)} other {}}",
   "opt.retry": "Retry {who}",
-  "opt.retryBody": "Keep the {remaining} recipients on {who} and retry every 60 s. If it stays down for 15 more minutes, you'll be asked again.",
+  "opt.retryBody": {"message": "Keep the {remaining} recipients on {who}. {seed, select, yes {ReputeCast sends 1 test message to a seed inbox every 60 s} other {ReputeCast sends 1 of them every 60 s as a test}}; the share resumes by itself after 3 successes in a row. If {who} is still down after 15 min, you're asked again.", "note": "who: a sending provider's short name; seed: whether the workspace has a connected seed inbox"},
   "opt.moveTitle": { "message": "Move the remaining {who} share to {target} (recommended)", "note": "who, target: sending providers' short names" },
   "opt.moveBody": "{remaining} recipients join the {target} queue now. The {sent} already sent via {who} keep their tracking.",
   "opt.move": "Move {remaining} to {target}",
@@ -149,5 +149,12 @@
   "cause.quotaUsedUp": {"message": "{known, select, yes {{used} of {max} used.} other {It answered that the account's quota is exhausted.}} The rest of this share waits; nothing was marked failed.", "note": "known: yes when the provider reported the quota's numbers"},
   "cause.apiErrorsLead": "{name}'s API failed too often.",
   "cause.apiErrors": {"message": "{errorPct} of its calls failed in the last 3 minutes, over this send's {limitPct} limit.", "note": "errorPct, limitPct: percentages"},
-  "cause.throttledLong": "It kept answering that the account sends too fast for 3 minutes, even at half the rate; its rate or daily quota may be lower than ReputeCast assumed."
+  "cause.throttledLong": "It kept answering that the account sends too fast for 3 minutes, even at half the rate; its rate or daily quota may be lower than ReputeCast assumed.",
+
+  "cause.retriedLead": {"message": "Retried for {mins} minutes.", "note": "a likely cause's bold lead: the share was retried and still fails"},
+  "cause.retried": "{who} still didn't take the test message ReputeCast sent every 60 s, so you're asked again.",
+  "notify.askAgainTitle": "\"{name}\" needs your decision again",
+  "notify.askAgainBody": {"message": "{provider} still isn't taking mail after 15 minutes of retrying. Its share ({remaining, number} recipients) is still held; the rest keeps sending.", "note": "provider: the sending provider's name"},
+  "audit.shareRetried": {"message": "Retrying {who}: 1 test message every 60 s{seed, select, yes { to a seed inbox} other {}}, resumes after 3 in a row, asks again after 15 minutes", "note": "an audit log summary"},
+  "audit.shareProbed": {"message": "{who} took {count} test messages in a row; its share resumed by itself", "note": "an audit log summary"}
 }

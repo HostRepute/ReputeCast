@@ -426,8 +426,10 @@ func (e *Engine) shiftWarmup(ctx context.Context, q *store.Queries, tx pgx.Tx, w
 	return err
 }
 
-// RetryRoute keeps a held share on its provider and retries every minute;
-// if it is still down after 15 minutes, a person is asked again.
+// RetryRoute keeps a held share on its provider and tests it (outages.go):
+// one test message every minute, to a seed inbox when the workspace has
+// one; the share resumes by itself after three in a row go through, and a
+// person is asked again if it still fails after 15 minutes.
 func (e *Engine) RetryRoute(ctx context.Context, campaignID, by, provider uuid.UUID) error {
 	now := e.now()
 	err := db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
@@ -442,50 +444,44 @@ func (e *Engine) RetryRoute(ctx context.Context, campaignID, by, provider uuid.U
 		if c.Status != "sending" && c.Status != "paused" {
 			return stateErr("state.notSending", campaignArgs(c.Name, c.Status))
 		}
-		routes, err := q.SendingRoutes(ctx, campaignID)
+		rt, err := routeOf(ctx, q, campaignID, provider)
 		if err != nil {
 			return err
 		}
-		held := false
-		for _, r := range routes {
-			held = held || (r.ProviderID == provider && r.Status == "held")
-		}
-		if !held {
+		if rt == nil || rt.Status != "held" {
 			return stateErr("state.shareNotHeld", nil)
 		}
+		cur := parseRouteDetail(rt.StatusDetail)
 		until := now.Add(retryFor)
-		d, _ := json.Marshal(routeDetail{Decision: "retry", Until: &until})
-		if err := q.SendingSetRouteStatus(ctx, store.SendingSetRouteStatusParams{CampaignID: campaignID, ProviderID: provider, Status: "sending", StatusDetail: string(d)}); err != nil {
+		seed := e.seedInbox(ctx, c.WorkspaceID) != ""
+		d := routeDetail{Decision: "retry", Reason: cur.Reason, Until: &until, NextProbe: &now, Seed: seed}
+		if err := q.SendingSetRouteStatus(ctx, store.SendingSetRouteStatusParams{CampaignID: campaignID, ProviderID: provider, Status: "held", StatusDetail: rawRouteDetail(d)}); err != nil {
 			return err
 		}
 		cid := campaignID
+		// Messages waiting for a retry time can be the test message now.
 		if err := q.SendingRetryNow(ctx, store.SendingRetryNowParams{CampaignID: &cid, ProviderID: &provider}); err != nil {
 			return err
 		}
 		ref, name := e.actorRef(ctx, q, by)
 		if _, err := tx.Exec(ctx, `UPDATE campaign_incidents SET resolved_at = $3, resolution = 'retried', resolved_by = $4
-			WHERE campaign_id = $1 AND provider_id = $2 AND resolved_at IS NULL`, campaignID, provider, now, ref); err != nil {
+			WHERE campaign_id = $1 AND provider_id = $2 AND kind = 'provider_outage' AND resolved_at IS NULL`, campaignID, provider, now, ref); err != nil {
 			return err
 		}
-		if c.Status == "paused" {
-			if err := q.SendingSetCampaignStatus(ctx, store.SendingSetCampaignStatusParams{ID: c.ID, Status: "sending", At: now}); err != nil {
-				return err
-			}
-		}
-		pname := ""
-		if p, err := q.ProvGetAny(ctx, provider); err == nil {
-			pname = p.Name
-		}
-		if err := emit(ctx, tx, c.WorkspaceID, "campaign.resumed", campaignData(c.ID, c.Name, "resumed_by", firstNonEmpty(name, "System"), "scope", "route",
-			"provider_id", provider.String(), "provider", pname, "decision", "retry")); err != nil {
+		// The loop sends the test messages; a person's pause stays.
+		if err := e.unpause(ctx, q, c, now); err != nil {
 			return err
 		}
 		if !records(ctx) {
 			return nil
 		}
+		pname, short := "", "the provider"
+		if p, err := q.ProvGetAny(ctx, provider); err == nil {
+			pname, short = p.Name, state.Short(p.Name, p.Adapter)
+		}
 		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.share_retried", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Actor: e.actorFor(ctx, ref, name), After: map[string]any{"provider": provider.String(), "until": until},
-			Metadata: map[string]any{"summary": "Retrying " + firstNonEmpty(pname, "the provider") + " every minute for 15 minutes"}})
+			Actor: e.actorFor(ctx, ref, name), After: map[string]any{"provider": firstNonEmpty(pname, provider.String()), "until": until, "seed_inbox": seed},
+			Metadata: map[string]any{"summary": english("audit.shareRetried", i18n.Args{"who": short, "seed": yesNo(seed)})}})
 	})
 	if err == nil {
 		e.resetCalls(routeKey{campaignID, provider})

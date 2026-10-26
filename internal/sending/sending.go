@@ -58,6 +58,19 @@ type Starter interface {
 	Cancel(ctx context.Context, campaignID uuid.UUID, by uuid.UUID) error
 }
 
+// Outages is the sending engine's side of a provider outage that the
+// provider health job found (review GS-3): every running send's share on
+// that provider goes through the engine's outage path, the same as an
+// outage the send loop finds itself: held with its analysis and ways to
+// continue (retry with a probe, move to a vetted provider, cancel the
+// share), or moved when the Broadcast failover policy allows it. The engine
+// implements it; the health job type-asserts its Starter.
+type Outages interface {
+	// HoldShares holds the shares on a provider; reason is "provider_down"
+	// or "auth".
+	HoldShares(ctx context.Context, providerID uuid.UUID, reason string) error
+}
+
 // ErrUnavailable is returned by Unavailable, before the sending domain is wired.
 var ErrUnavailable = errors.New("sending is not available in this process")
 

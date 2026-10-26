@@ -26838,6 +26838,7 @@ export interface components {
             recommendations?: string[];
             /** Format: int64 */
             remaining?: number;
+            retried?: boolean;
             secondary?: components["schemas"]["IncidentRate"];
             /** Format: int64 */
             sent?: number;
@@ -28459,10 +28460,17 @@ export interface components {
             idempotent: boolean;
             ip: string;
             name: string;
+            /** Format: date-time */
+            nextProbe?: string;
             /** Format: int64 */
             planned: number;
             /** Format: double */
             plannedCost: number;
+            probeSeed: boolean;
+            /** Format: int64 */
+            probes: number;
+            /** Format: int64 */
+            probesNeeded: number;
             /** Format: int64 */
             quotaFree?: number;
             /** Format: int64 */

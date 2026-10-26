@@ -170,14 +170,18 @@ func (r *runRoute) slowFactor() float64 {
 }
 
 // apiErrorTrip reports whether a route's share of failed calls over the last
-// three minutes is over the send's limit, with enough evidence, and the
-// rate.
+// three minutes (since it sends again, after a hold) is over the send's
+// limit, with enough evidence, and the rate.
 func (e *Engine) apiErrorTrip(ctx context.Context, rs *runState, r *runRoute, now time.Time) (bool, float64, error) {
 	limit := rs.thresholds.APIErrors
 	if limit <= 0 {
 		return false, 0, nil
 	}
-	w, err := e.Q.SendingCallWindow(ctx, store.SendingCallWindowParams{ProviderID: r.provider.ID, Since: now.Add(-apiErrorWindow), Until: now})
+	since := now.Add(-apiErrorWindow)
+	if r.judgedFrom.After(since) {
+		since = r.judgedFrom
+	}
+	w, err := e.Q.SendingCallWindow(ctx, store.SendingCallWindowParams{ProviderID: r.provider.ID, Since: since, Until: now})
 	if err != nil {
 		return false, 0, err
 	}

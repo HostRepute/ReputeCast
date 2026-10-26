@@ -35332,6 +35332,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "retried": {
+            "type": "boolean"
+          },
           "secondary": {
             "$ref": "#/components/schemas/IncidentRate"
           },
@@ -40937,6 +40940,10 @@
           "name": {
             "type": "string"
           },
+          "nextProbe": {
+            "format": "date-time",
+            "type": "string"
+          },
           "planned": {
             "format": "int64",
             "type": "integer"
@@ -40944,6 +40951,17 @@
           "plannedCost": {
             "format": "double",
             "type": "number"
+          },
+          "probeSeed": {
+            "type": "boolean"
+          },
+          "probes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "probesNeeded": {
+            "format": "int64",
+            "type": "integer"
           },
           "quotaFree": {
             "format": "int64",
@@ -41028,6 +41046,9 @@
           "cost",
           "plannedCost",
           "retrying",
+          "probes",
+          "probesNeeded",
+          "probeSeed",
           "idempotent"
         ],
         "type": "object"

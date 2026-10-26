@@ -73,3 +73,30 @@ RETURNING campaign_id, provider_id, mailbox_provider, variant;
 SELECT coalesce(sum(calls), 0)::bigint AS calls, coalesce(sum(errors), 0)::bigint AS errors
 FROM provider_call_windows
 WHERE provider_id = @provider_id AND minute >= @since AND minute <= @until;
+
+-- GS-3: one outage path ---------------------------------------------------
+
+-- name: SendingSharesOn :many
+-- The running sends with an open or held share on a provider: an outage
+-- the provider health job finds goes through each one's outage path.
+SELECT cr.campaign_id
+FROM campaign_routes cr
+JOIN campaigns c ON c.id = cr.campaign_id
+JOIN campaign_sends s ON s.campaign_id = cr.campaign_id
+WHERE cr.provider_id = @provider_id AND cr.status IN ('pending', 'sending', 'held')
+  AND c.status IN ('sending', 'paused') AND c.deleted_at IS NULL AND s.phase = 'sending'
+ORDER BY cr.campaign_id;
+
+-- name: SendingProbeSeed :many
+-- A connected seed inbox of the workspace, for the test message a share
+-- retried after an outage sends every minute.
+SELECT email FROM placement_seeds
+WHERE workspace_id = @workspace_id AND status = 'connected'
+ORDER BY email
+LIMIT 1;
+
+-- name: SendingSetProbe :execrows
+-- A retried share's test messages so far. Written only while the route is
+-- as the send loop last read it: a person's decision in the meantime wins.
+UPDATE campaign_routes SET status_detail = @new
+WHERE campaign_id = @campaign_id AND provider_id = @provider_id AND status = 'held' AND status_detail = @old;

@@ -338,6 +338,7 @@ export function mailboxRate(m: Mailbox): string {
 
 /** A sending provider's state word. */
 export function providerStatus(p: Provider, mobile = false): { tone: Tone; text: string } {
+  if (p.retrying && p.routeStatus === 'held') return { tone: 'warn', text: tt(mm.providerRetrying, { done: p.probes, needed: p.probesNeeded }) }
   if (p.downSince && (p.routeStatus === 'held' || p.status === 'down')) return { tone: 'bad', text: tt(mm.providerDownSince, { time: clock(p.downSince) }) }
   if (p.routeStatus === 'held' || p.routeStatus === 'paused') return { tone: 'warn', text: tt(mm.providerHeld) }
   if (p.status === 'down') return { tone: 'bad', text: tt(pm.statusDown) }
@@ -414,6 +415,7 @@ function outageMinutes(d: Incident['detail']): number {
 export function outageTitle(i: Incident): string {
   const d = i.detail
   const name = i.provider || i.providerShort
+  if (d.retried) return tt(mm.outageStillDown, { name })
   if (d.reason === 'auth') return tt(mm.outageAuth, { name })
   if (d.reason === 'identity') return tt(mm.outageIdentity, { name })
   if (d.reason === 'quota') return tt(mm.outageQuota, { name })
@@ -620,6 +622,14 @@ export function headerBadges(s: Snapshot, incident: Incident | undefined): { ton
       { tone: 'warn', text: tt(p?.retrying ? mm.badgeRouteRetrying : mm.badgeRouteWaiting, { provider: incident.providerShort }) },
     ]
     const others = continuingProviders(s, incident)
+    if (others.length) out.push({ tone: 'ok', text: tt(mm.badgeStillSending, { providers: andList(others.map((x) => x.short)) }) })
+    return out
+  }
+  // A retried share sends test messages while the rest keeps going (review GS-3).
+  const retrying = s.providers.find((x) => x.retrying && x.routeStatus === 'held')
+  if (retrying && (s.state === 'partial' || s.state === 'sending')) {
+    const out: { tone: Tone; text: string; pulse?: boolean; live?: boolean }[] = [{ tone: 'warn', text: tt(mm.badgeRouteRetrying, { provider: retrying.short }) }]
+    const others = s.providers.filter((x) => x.id !== retrying.id && (x.routeStatus === 'sending' || x.routeStatus === 'pending') && x.remaining > 0)
     if (others.length) out.push({ tone: 'ok', text: tt(mm.badgeStillSending, { providers: andList(others.map((x) => x.short)) }) })
     return out
   }

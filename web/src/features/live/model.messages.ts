@@ -101,6 +101,8 @@ export const mm = defineMessages('live.model', {
   rateFull: 'full',
   providerDownSince: 'Down since {time}',
   providerHeld: 'Held',
+  /** A retried share's test messages: {done} of {needed} went through in a row (review GS-3). */
+  providerRetrying: 'Retrying · {done} of {needed} tests passed',
   providerWarmup: 'Warm-up',
   providerWarmupNote: "warm-up day {day} · {sent} of today's {cap} cap",
   providerQuotaNote: 'quota {free} free after this send',
@@ -115,6 +117,8 @@ export const mm = defineMessages('live.model', {
   outageAuth: '{name} rejected the credentials',
   outageReturned: '{name} returned {errorKind}',
   outageDown: '{name} is down',
+  /** Asked again: a retried share still failed its test messages for 15 minutes. */
+  outageStillDown: '{name} is still down after 15 minutes of retrying',
   /** {errorKind} comes from the provider's adapter ("connection errors"). */
   outageReturnedFor: '{name} returned {errorKind} for {mins, plural, one {# minute} other {# minutes}}',
   outageErrorsFor: '{name} returned errors for {mins, plural, one {# minute} other {# minutes}}',

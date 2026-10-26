@@ -64,6 +64,10 @@ function provider(p: Partial<Provider>): Provider {
     cost: 0,
     plannedCost: 0,
     retrying: false,
+    probes: 0,
+    probesNeeded: 3,
+    probeSeed: false,
+    idempotent: false,
     ...p,
   }
 }
@@ -412,6 +416,20 @@ describe('LiveMonitorOutage', () => {
     expect(failoverCaption({ ...down, failovers: [] })).toBe("Automations and System don't use Postal")
     expect(failoverCaption({ ...down, failovers: [], sharedStreams: ['Automations'] })).toBe('Automations also uses Postal')
     expect(optionAction(outage, 'move')).toEqual({ kind: 'move', body: { fromProviderId: 'postal', toProviderId: 'ses' } })
+  })
+
+  // Review GS-3: Retry keeps the share held and sends a test message a
+  // minute; three in a row resume it, 15 minutes of failures ask again.
+  it('shows a retried share testing the provider', () => {
+    const retrying = snapshot({
+      ...down,
+      incident: undefined,
+      providers: [down.providers[0]!, { ...down.providers[1]!, retrying: true, probes: 1, probesNeeded: 3, probeSeed: true }],
+    })
+    expect(headerBadges(retrying, undefined).map((b) => b.text)).toEqual(['Postal route held · retrying every 60 s', 'SES still sending'])
+    expect(providerStatus(retrying.providers[1]!)).toEqual({ tone: 'warn', text: 'Retrying · 1 of 3 tests passed' })
+    const again: Incident = { ...outage, detail: { ...outage.detail, retried: true } }
+    expect(outageTitle(again)).toBe('Postal is still down after 15 minutes of retrying')
   })
 })
 

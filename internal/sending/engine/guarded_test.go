@@ -35,6 +35,11 @@ func TestGuardedSending(t *testing.T) {
 		testRouteHeldFor(t, s.Fixture(t, "GS-4 throttled"), sendtest.FaultThrottle, "throttled")
 	})
 	t.Run("UsedUpQuotaHoldsRoute", func(t *testing.T) { testRouteHeldFor(t, s.Fixture(t, "GS-4 quota"), sendtest.FaultQuota, "quota") })
+	// GS-3: one outage path, Retry with test messages.
+	t.Run("HealthJobOutageHasOptions", func(t *testing.T) { testHealthJobOutage(t, s.Fixture(t, "GS-3 health job")) })
+	t.Run("RetryAsksAgainWhileDown", func(t *testing.T) { testRetryAsksAgain(t, s.Fixture(t, "GS-3 ask again")) })
+	t.Run("RetryResumesAfterThreeTests", func(t *testing.T) { testRetryResumes(t, s.Fixture(t, "GS-3 resume seed"), true) })
+	t.Run("RetryTestsWithTheShareWithoutSeeds", func(t *testing.T) { testRetryResumes(t, s.Fixture(t, "GS-3 resume own"), false) })
 }
 
 // routeOf is the fixture's route on a provider: its status and detail.

@@ -184,6 +184,35 @@ func (q *Queries) SendingOutboxStaleProviders(ctx context.Context, stale time.Ti
 	return items, nil
 }
 
+const sendingProbeSeed = `-- name: SendingProbeSeed :many
+SELECT email FROM placement_seeds
+WHERE workspace_id = $1 AND status = 'connected'
+ORDER BY email
+LIMIT 1
+`
+
+// A connected seed inbox of the workspace, for the test message a share
+// retried after an outage sends every minute.
+func (q *Queries) SendingProbeSeed(ctx context.Context, workspaceID uuid.UUID) ([]string, error) {
+	rows, err := q.db.Query(ctx, sendingProbeSeed, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var email string
+		if err := rows.Scan(&email); err != nil {
+			return nil, err
+		}
+		items = append(items, email)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const sendingRequeueStale = `-- name: SendingRequeueStale :execrows
 
 
@@ -249,6 +278,33 @@ func (q *Queries) SendingResolveInDoubt(ctx context.Context, arg SendingResolveI
 	return result.RowsAffected(), nil
 }
 
+const sendingSetProbe = `-- name: SendingSetProbe :execrows
+UPDATE campaign_routes SET status_detail = $1
+WHERE campaign_id = $2 AND provider_id = $3 AND status = 'held' AND status_detail = $4
+`
+
+type SendingSetProbeParams struct {
+	New        string    `json:"new"`
+	CampaignID uuid.UUID `json:"campaignId"`
+	ProviderID uuid.UUID `json:"providerId"`
+	Old        string    `json:"old"`
+}
+
+// A retried share's test messages so far. Written only while the route is
+// as the send loop last read it: a person's decision in the meantime wins.
+func (q *Queries) SendingSetProbe(ctx context.Context, arg SendingSetProbeParams) (int64, error) {
+	result, err := q.db.Exec(ctx, sendingSetProbe,
+		arg.New,
+		arg.CampaignID,
+		arg.ProviderID,
+		arg.Old,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const sendingSettleInDoubt = `-- name: SendingSettleInDoubt :one
 UPDATE messages
 SET status = $1, sent_at = coalesce(sent_at, $2::timestamptz), claimed_at = NULL, error = '',
@@ -282,4 +338,38 @@ func (q *Queries) SendingSettleInDoubt(ctx context.Context, arg SendingSettleInD
 		&i.Variant,
 	)
 	return i, err
+}
+
+const sendingSharesOn = `-- name: SendingSharesOn :many
+
+SELECT cr.campaign_id
+FROM campaign_routes cr
+JOIN campaigns c ON c.id = cr.campaign_id
+JOIN campaign_sends s ON s.campaign_id = cr.campaign_id
+WHERE cr.provider_id = $1 AND cr.status IN ('pending', 'sending', 'held')
+  AND c.status IN ('sending', 'paused') AND c.deleted_at IS NULL AND s.phase = 'sending'
+ORDER BY cr.campaign_id
+`
+
+// GS-3: one outage path ---------------------------------------------------
+// The running sends with an open or held share on a provider: an outage
+// the provider health job finds goes through each one's outage path.
+func (q *Queries) SendingSharesOn(ctx context.Context, providerID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, sendingSharesOn, providerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var campaign_id uuid.UUID
+		if err := rows.Scan(&campaign_id); err != nil {
+			return nil, err
+		}
+		items = append(items, campaign_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

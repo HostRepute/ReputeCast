@@ -105,7 +105,7 @@
   "opt.cancelShareLater": "Bỏ qua {remaining} người nhận còn lại. Họ được đánh dấu \"chưa gửi\" trong báo cáo và có thể gửi lại sau.",
   "opt.retryTitle": "Thử lại {who}{recommended, select, yes { (khuyên dùng)} other {}}",
   "opt.retry": "Thử lại {who}",
-  "opt.retryBody": "Giữ {remaining} người nhận ở {who} và thử lại mỗi 60 giây. Nếu nhà cung cấp vẫn gián đoạn thêm 15 phút, bạn sẽ được hỏi lại.",
+  "opt.retryBody": "Giữ {remaining} người nhận ở {who}. {seed, select, yes {ReputeCast gửi 1 thư kiểm tra tới một hộp thư seed mỗi 60 giây} other {ReputeCast gửi 1 thư trong số đó mỗi 60 giây để kiểm tra}}; phần này tự tiếp tục gửi sau 3 lần thành công liên tiếp. Nếu {who} vẫn gián đoạn sau 15 phút, bạn sẽ được hỏi lại.",
   "opt.moveTitle": "Chuyển phần còn lại của {who} sang {target} (khuyên dùng)",
   "opt.moveBody": "{remaining} người nhận vào hàng đợi của {target} ngay bây giờ. {sent} thư đã gửi qua {who} vẫn được theo dõi như cũ.",
   "opt.move": "Chuyển {remaining} sang {target}",
@@ -149,5 +149,12 @@
   "cause.quotaUsedUp": "{known, select, yes {Đã dùng {used} trên {max}.} other {Nhà cung cấp báo hạn mức của tài khoản đã hết.}} Phần còn lại của phần gửi này đang chờ; không thư nào bị đánh dấu thất bại.",
   "cause.apiErrorsLead": "API của {name} lỗi quá nhiều.",
   "cause.apiErrors": "{errorPct} số lệnh gọi bị lỗi trong 3 phút qua, vượt giới hạn {limitPct} của lần gửi này.",
-  "cause.throttledLong": "Nhà cung cấp liên tục báo tài khoản gửi quá nhanh trong 3 phút, kể cả khi đã giảm còn một nửa tốc độ; tốc độ hoặc hạn mức ngày của tài khoản có thể thấp hơn ReputeCast giả định."
+  "cause.throttledLong": "Nhà cung cấp liên tục báo tài khoản gửi quá nhanh trong 3 phút, kể cả khi đã giảm còn một nửa tốc độ; tốc độ hoặc hạn mức ngày của tài khoản có thể thấp hơn ReputeCast giả định.",
+
+  "cause.retriedLead": "Đã thử lại trong {mins} phút.",
+  "cause.retried": "{who} vẫn chưa nhận thư kiểm tra ReputeCast gửi mỗi 60 giây, nên bạn được hỏi lại.",
+  "notify.askAgainTitle": "“{name}” lại cần bạn quyết định",
+  "notify.askAgainBody": "{provider} vẫn chưa nhận thư sau 15 phút thử lại. Phần của nhà cung cấp này ({remaining, number} người nhận) vẫn đang bị tạm giữ; phần còn lại vẫn tiếp tục gửi.",
+  "audit.shareRetried": "Đang thử lại {who}: 1 thư kiểm tra mỗi 60 giây{seed, select, yes { tới một hộp thư seed} other {}}, tự tiếp tục sau 3 lần liên tiếp, hỏi lại sau 15 phút",
+  "audit.shareProbed": "{who} đã nhận {count} thư kiểm tra liên tiếp; phần của nó tự tiếp tục gửi"
 }

@@ -36,21 +36,24 @@ type IncidentDetail struct {
 	Throttle   float64       `json:"throttle,omitempty"`
 
 	// Outages.
-	Reason      string            `json:"reason,omitempty"`
-	ErrorKind   string            `json:"errorKind,omitempty"`
-	From        *time.Time        `json:"from,omitempty"`
-	To          *time.Time        `json:"to,omitempty"`
-	Attempts    int               `json:"attempts,omitempty"`
-	Succeeded   int               `json:"succeeded"`
-	Host        string            `json:"host,omitempty"`
-	Policy      string            `json:"policy,omitempty"`
-	Log         []IncidentLogLine `json:"log,omitempty"`
-	Probed      bool              `json:"probed,omitempty"`
-	ErrorRate   float64           `json:"errorRate,omitempty"`
-	SentOnRoute int64             `json:"sentOnRoute,omitempty"`
-	Remaining   int64             `json:"remaining,omitempty"`
-	Move        *MoveEstimate     `json:"move,omitempty"`
-	WarmupNote  string            `json:"warmupNote,omitempty"`
+	Reason    string            `json:"reason,omitempty"`
+	ErrorKind string            `json:"errorKind,omitempty"`
+	From      *time.Time        `json:"from,omitempty"`
+	To        *time.Time        `json:"to,omitempty"`
+	Attempts  int               `json:"attempts,omitempty"`
+	Succeeded int               `json:"succeeded"`
+	Host      string            `json:"host,omitempty"`
+	Policy    string            `json:"policy,omitempty"`
+	Log       []IncidentLogLine `json:"log,omitempty"`
+	Probed    bool              `json:"probed,omitempty"`
+	// Retried: the share was retried for 15 minutes and still failed, so a
+	// person is asked again (outages.go).
+	Retried     bool          `json:"retried,omitempty"`
+	ErrorRate   float64       `json:"errorRate,omitempty"`
+	SentOnRoute int64         `json:"sentOnRoute,omitempty"`
+	Remaining   int64         `json:"remaining,omitempty"`
+	Move        *MoveEstimate `json:"move,omitempty"`
+	WarmupNote  string        `json:"warmupNote,omitempty"`
 
 	// Messages in doubt (doubt.go), per sending provider.
 	InDoubt []InDoubtShare `json:"inDoubt,omitempty"`
@@ -445,6 +448,11 @@ func (e *Engine) analyzeOutage(ctx context.Context, rs *runState, r *runRoute, r
 	first, last, failures := l.firstFailure, l.lastFailure, l.failures
 	lines := append([]IncidentLogLine(nil), l.lines...)
 	e.mu.Unlock()
+	if len(lines) == 0 {
+		// The provider health job found the outage, or another process
+		// sent: what the provider answered comes from its health record.
+		lines, first, last = healthLines(r.provider, now)
+	}
 	d := IncidentDetail{Reason: reason, Attempts: failures, Remaining: remaining, Log: lines}
 	if !first.IsZero() {
 		f, t := first, last
@@ -538,8 +546,34 @@ func (e *Engine) analyzeOutage(ctx context.Context, rs *runState, r *runRoute, r
 		}
 		d.setRisk(risk, keep("risk."+risk, i18n.Args{"target": d.Move.TargetShort}))
 	}
-	d.setOptions(outageOptions(short, remaining, d.SentOnRoute, d.Move))
+	d.setOptions(outageOptions(short, remaining, d.SentOnRoute, d.Move, e.seedInbox(ctx, rs.campaign.WorkspaceID) != ""))
 	return d
+}
+
+// healthLines are a provider's recent failed calls as an outage's log
+// (oldest first, within the last 15 minutes, at most 6), with the first
+// and last one's time.
+func healthLines(p store.Provider, now time.Time) (lines []IncidentLogLine, first, last time.Time) {
+	h := state.HealthOf(p)
+	for i := len(h.RecentErrors) - 1; i >= 0; i-- {
+		rec := h.RecentErrors[i]
+		if now.Sub(rec.At) > 15*time.Minute || rec.At.After(now) {
+			continue
+		}
+		text := callText(&providers.CallError{Op: rec.Op, Status: rec.Status, Code: rec.Code, Message: rec.Message})
+		if n := len(lines); n > 0 && lines[n-1].Text == text && rec.At.Sub(lines[n-1].At) < time.Minute {
+			continue
+		}
+		lines = append(lines, IncidentLogLine{At: rec.At, Text: text, Bad: true})
+		if first.IsZero() {
+			first = rec.At
+		}
+		last = rec.At
+	}
+	if len(lines) > 6 {
+		lines = lines[len(lines)-6:]
+	}
+	return lines, first, last
 }
 
 // moveEstimate is what moving n recipients to target costs, and whether
@@ -564,9 +598,10 @@ func (e *Engine) moveEstimate(ctx context.Context, rs *runState, target store.Pr
 	return m, tr.WarmingUp
 }
 
-// outageOptions are the ways to continue after an outage held a share.
-func outageOptions(short string, remaining, sent int64, move *MoveEstimate) []option {
-	p := i18n.Args{"who": short, "remaining": remaining}
+// outageOptions are the ways to continue after an outage held a share;
+// seed says Retry's test messages go to a seed inbox (outages.go).
+func outageOptions(short string, remaining, sent int64, move *MoveEstimate, seed bool) []option {
+	p := i18n.Args{"who": short, "remaining": remaining, "seed": yesNo(seed)}
 	out := []option{{key: "retry", title: keep("opt.retryTitle", with(p, "recommended", "no")), body: keep("opt.retryBody", p), action: keep("opt.retry", p)}}
 	if move != nil {
 		mv := with(p, "target", move.TargetShort, "sent", sent)
@@ -599,6 +634,9 @@ func outageArgs(d IncidentDetail, name string) i18n.Args {
 }
 
 func outageHeadline(d IncidentDetail, name string) string {
+	if d.Retried {
+		return name + " is still down after 15 minutes of retrying"
+	}
 	switch d.Reason {
 	case "auth":
 		return name + " rejected the credentials"
