@@ -53,6 +53,14 @@ type LiveResumeRequest struct {
 	// Limit raises the limit of the metric that tripped, for this send
 	// only, in percent ("Resume with the threshold raised to 0.20%").
 	Limit *float64 `json:"limit,omitempty" minimum:"0.01" maximum:"100"`
+	// Rate slows the resumed mailbox provider or route down for the rest
+	// of the send, in messages per second ("Resume at 2 /s").
+	Rate *float64 `json:"rate,omitempty" minimum:"0.1" maximum:"10000"`
+}
+
+// LiveAcknowledgeRequest marks an alert as read (complaints after the send).
+type LiveAcknowledgeRequest struct {
+	IncidentID string `json:"incidentId" format:"uuid"`
 }
 
 // LiveThresholdsRequest changes a running or waiting send's auto-pause
@@ -202,6 +210,9 @@ func Register(h huma.API, e *Engine) {
 				return nil, err
 			}
 			req := ResumeRequest{Mailbox: in.Body.Mailbox, WithChanges: in.Body.WithChanges, Limit: in.Body.Limit}
+			if in.Body.Rate != nil && !in.Body.WithChanges {
+				req.Changes = &ResumeChanges{Mailbox: in.Body.Mailbox, Rate: *in.Body.Rate}
+			}
 			if in.Body.ProviderID != "" {
 				pid, err := uuid.Parse(in.Body.ProviderID)
 				if err != nil {
@@ -223,6 +234,22 @@ func Register(h huma.API, e *Engine) {
 				return nil, err
 			}
 			if err := e.SetThresholds(ctx, id, by, ThresholdChange(in.Body)); err != nil {
+				return nil, mapErr(ctx, err)
+			}
+			return e.result(ctx, id, LiveActionResult{})
+		})
+	api.Post(h, api.Op{ID: "acknowledge-live-alert", Path: base + "/acknowledge", Summary: "Mark an alert of a send as read (complaints after the send)", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
+		func(ctx context.Context, in *body[LiveAcknowledgeRequest]) (*api.Body[LiveActionResult], error) {
+			ctx = ownAPI(ctx)
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
+			if err != nil {
+				return nil, err
+			}
+			iid, err := uuid.Parse(in.Body.IncidentID)
+			if err != nil {
+				return nil, api.Invalid("body.incidentId", say(ctx, "problem.incidentId", nil))
+			}
+			if err := e.Acknowledge(ctx, id, by, iid); err != nil {
 				return nil, mapErr(ctx, err)
 			}
 			return e.result(ctx, id, LiveActionResult{})

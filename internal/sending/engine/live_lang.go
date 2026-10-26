@@ -330,12 +330,13 @@ func mailboxNamesIn(l i18n.Lang, names []string) []string {
 
 // liveText is what a snapshot needs to be written in another language.
 type liveText struct {
-	via        []viaPart
-	audience   audienceParts
-	shared     []string // SharedStreams' streams
-	failovers  []string // Failovers' streams
-	held       []string // MailboxesHeld's keys
-	continuing []string // Continuing's keys
+	via         []viaPart
+	audience    audienceParts
+	shared      []string // SharedStreams' streams
+	failovers   []string // Failovers' streams
+	held        []string // MailboxesHeld's keys
+	continuing  []string // Continuing's keys
+	notReported []string // Totals.NotReported's keys
 }
 
 // viaPart is one way a send's events arrive: SNS, the bounce mailbox or a
@@ -462,6 +463,7 @@ func (s LiveSnapshot) In(l i18n.Lang) LiveSnapshot {
 	}
 	if t := s.text; t != nil {
 		out.MailboxesHeld, out.Continuing = keysIn(l, t.held), keysIn(l, t.continuing)
+		out.Totals.NotReported = keysIn(l, t.notReported)
 		out.SharedStreams = make([]string, len(t.shared))
 		for i, st := range t.shared {
 			out.SharedStreams[i] = streamIn(l, st)

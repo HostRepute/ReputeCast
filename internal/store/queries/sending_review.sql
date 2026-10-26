@@ -131,3 +131,28 @@ WHERE c.id = m.contact_id AND m.campaign_id = @campaign_id AND m.provider_id = @
         ELSE c.last_human_open_at IS NULL
       END
 RETURNING m.contact_id;
+
+-- GS-6: the complaint watch after a send ----------------------------------
+
+-- name: SendingSetWatch :exec
+-- How long complaints are watched after the send ended.
+UPDATE campaign_sends SET watch_until = @watch_until WHERE campaign_id = @campaign_id;
+
+-- name: SendingWatchDue :many
+-- The sends whose complaint watch runs.
+SELECT campaign_id FROM campaign_sends WHERE watch_until IS NOT NULL AND watch_until > @now::timestamptz ORDER BY watch_until;
+
+-- name: SendingEndWatches :exec
+-- Watches that ended.
+UPDATE campaign_sends SET watch_until = NULL WHERE watch_until IS NOT NULL AND watch_until <= @now::timestamptz;
+
+-- name: SendingIncidentsOfKind :many
+-- A campaign's incidents of one kind, open or not (an alert is raised once
+-- per scope).
+SELECT * FROM campaign_incidents WHERE campaign_id = @campaign_id AND kind = @kind ORDER BY tripped_at;
+
+-- name: SendingPostmasterLatest :many
+-- Gmail's latest daily spam rate for a sending domain (Postmaster Tools).
+SELECT day, spam_rate FROM postmaster_daily
+WHERE workspace_id = @workspace_id AND domain = @domain AND spam_rate IS NOT NULL AND day >= @since::date
+ORDER BY day DESC LIMIT 1;

@@ -41,6 +41,16 @@ func (q *Queries) SendingCallWindow(ctx context.Context, arg SendingCallWindowPa
 	return i, err
 }
 
+const sendingEndWatches = `-- name: SendingEndWatches :exec
+UPDATE campaign_sends SET watch_until = NULL WHERE watch_until IS NOT NULL AND watch_until <= $1::timestamptz
+`
+
+// Watches that ended.
+func (q *Queries) SendingEndWatches(ctx context.Context, now time.Time) error {
+	_, err := q.db.Exec(ctx, sendingEndWatches, now)
+	return err
+}
+
 const sendingExcludeGroupOn = `-- name: SendingExcludeGroupOn :many
 UPDATE messages m SET status = 'cancelled', claimed_at = NULL, error = $1
 FROM contacts c
@@ -113,6 +123,53 @@ func (q *Queries) SendingInDoubtByProvider(ctx context.Context, campaignID *uuid
 	for rows.Next() {
 		var i SendingInDoubtByProviderRow
 		if err := rows.Scan(&i.ProviderID, &i.N, &i.Since); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const sendingIncidentsOfKind = `-- name: SendingIncidentsOfKind :many
+SELECT id, campaign_id, kind, scope, provider_id, mailbox_provider, metric, value, threshold, held, detail, tripped_at, resolved_at, resolution, resolved_by FROM campaign_incidents WHERE campaign_id = $1 AND kind = $2 ORDER BY tripped_at
+`
+
+type SendingIncidentsOfKindParams struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	Kind       string    `json:"kind"`
+}
+
+// A campaign's incidents of one kind, open or not (an alert is raised once
+// per scope).
+func (q *Queries) SendingIncidentsOfKind(ctx context.Context, arg SendingIncidentsOfKindParams) ([]CampaignIncident, error) {
+	rows, err := q.db.Query(ctx, sendingIncidentsOfKind, arg.CampaignID, arg.Kind)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CampaignIncident{}
+	for rows.Next() {
+		var i CampaignIncident
+		if err := rows.Scan(
+			&i.ID,
+			&i.CampaignID,
+			&i.Kind,
+			&i.Scope,
+			&i.ProviderID,
+			&i.MailboxProvider,
+			&i.Metric,
+			&i.Value,
+			&i.Threshold,
+			&i.Held,
+			&i.Detail,
+			&i.TrippedAt,
+			&i.ResolvedAt,
+			&i.Resolution,
+			&i.ResolvedBy,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -242,6 +299,44 @@ func (q *Queries) SendingOutboxStaleProviders(ctx context.Context, stale time.Ti
 			return nil, err
 		}
 		items = append(items, provider_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const sendingPostmasterLatest = `-- name: SendingPostmasterLatest :many
+SELECT day, spam_rate FROM postmaster_daily
+WHERE workspace_id = $1 AND domain = $2 AND spam_rate IS NOT NULL AND day >= $3::date
+ORDER BY day DESC LIMIT 1
+`
+
+type SendingPostmasterLatestParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Domain      string    `json:"domain"`
+	Since       time.Time `json:"since"`
+}
+
+type SendingPostmasterLatestRow struct {
+	Day      time.Time `json:"day"`
+	SpamRate *float64  `json:"spamRate"`
+}
+
+// Gmail's latest daily spam rate for a sending domain (Postmaster Tools).
+func (q *Queries) SendingPostmasterLatest(ctx context.Context, arg SendingPostmasterLatestParams) ([]SendingPostmasterLatestRow, error) {
+	rows, err := q.db.Query(ctx, sendingPostmasterLatest, arg.WorkspaceID, arg.Domain, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SendingPostmasterLatestRow{}
+	for rows.Next() {
+		var i SendingPostmasterLatestRow
+		if err := rows.Scan(&i.Day, &i.SpamRate); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -404,6 +499,23 @@ func (q *Queries) SendingSetSendThresholds(ctx context.Context, arg SendingSetSe
 	return err
 }
 
+const sendingSetWatch = `-- name: SendingSetWatch :exec
+
+UPDATE campaign_sends SET watch_until = $1 WHERE campaign_id = $2
+`
+
+type SendingSetWatchParams struct {
+	WatchUntil *time.Time `json:"watchUntil"`
+	CampaignID uuid.UUID  `json:"campaignId"`
+}
+
+// GS-6: the complaint watch after a send ----------------------------------
+// How long complaints are watched after the send ended.
+func (q *Queries) SendingSetWatch(ctx context.Context, arg SendingSetWatchParams) error {
+	_, err := q.db.Exec(ctx, sendingSetWatch, arg.WatchUntil, arg.CampaignID)
+	return err
+}
+
 const sendingSettleInDoubt = `-- name: SendingSettleInDoubt :one
 UPDATE messages
 SET status = $1, sent_at = coalesce(sent_at, $2::timestamptz), claimed_at = NULL, error = '',
@@ -455,6 +567,31 @@ ORDER BY cr.campaign_id
 // the provider health job finds goes through each one's outage path.
 func (q *Queries) SendingSharesOn(ctx context.Context, providerID uuid.UUID) ([]uuid.UUID, error) {
 	rows, err := q.db.Query(ctx, sendingSharesOn, providerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var campaign_id uuid.UUID
+		if err := rows.Scan(&campaign_id); err != nil {
+			return nil, err
+		}
+		items = append(items, campaign_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const sendingWatchDue = `-- name: SendingWatchDue :many
+SELECT campaign_id FROM campaign_sends WHERE watch_until IS NOT NULL AND watch_until > $1::timestamptz ORDER BY watch_until
+`
+
+// The sends whose complaint watch runs.
+func (q *Queries) SendingWatchDue(ctx context.Context, now time.Time) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, sendingWatchDue, now)
 	if err != nil {
 		return nil, err
 	}

@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
@@ -66,15 +67,22 @@ type LiveSnapshot struct {
 	Providers      []LiveProvider  `json:"providers"`
 	Thresholds     []LiveThreshold `json:"thresholds"`
 	ThresholdScope string          `json:"thresholdScope" enum:"route,campaign"`
-	Details        LiveDetails     `json:"details"`
-	DeliveredMix   []LiveShare     `json:"deliveredMix"`
-	AB             *LiveAB         `json:"ab,omitempty"`
-	Incident       *LiveIncident   `json:"incident,omitempty"`
-	Incidents      []LiveIncident  `json:"incidents"`
-	Events         []LiveEvent     `json:"events"`
-	EventsVia      string          `json:"eventsVia"`
-	LastEventAt    *time.Time      `json:"lastEventAt,omitempty"`
-	Failovers      []LiveFailover  `json:"failovers"`
+	// Limits are the send's thresholds, as "Edit for this send" changes
+	// them (review GS-2).
+	Limits LiveLimits `json:"limits"`
+	// Watch is the complaint watch after the send (review GS-6).
+	Watch *LiveWatch `json:"watch,omitempty"`
+	// Postmaster is Gmail's latest daily spam rate for the sending domain.
+	Postmaster   *LivePostmaster `json:"postmaster,omitempty"`
+	Details      LiveDetails     `json:"details"`
+	DeliveredMix []LiveShare     `json:"deliveredMix"`
+	AB           *LiveAB         `json:"ab,omitempty"`
+	Incident     *LiveIncident   `json:"incident,omitempty"`
+	Incidents    []LiveIncident  `json:"incidents"`
+	Events       []LiveEvent     `json:"events"`
+	EventsVia    string          `json:"eventsVia"`
+	LastEventAt  *time.Time      `json:"lastEventAt,omitempty"`
+	Failovers    []LiveFailover  `json:"failovers"`
 	// SharedStreams are the other streams (Automations, System) that route
 	// to a sending provider whose share is held.
 	SharedStreams  []string         `json:"sharedStreams"`
@@ -131,26 +139,35 @@ type LiveTotals struct {
 	OpenedMachine int64 `json:"openedMachine"`
 	Clicked       int64 `json:"clicked"`
 	Unsubscribed  int64 `json:"unsubscribed"`
+	// ComplaintBase is what was delivered where mailbox providers report
+	// complaints: the complaint rate's base (review F-2).
+	ComplaintBase int64 `json:"complaintBase"`
+	// NotReported names the mailbox providers this send reached that
+	// don't report complaints ("Gmail", "iCloud").
+	NotReported []string `json:"notReported"`
 }
 
 // LiveMailbox is one mailbox provider's row.
 type LiveMailbox struct {
-	Key           string     `json:"key" enum:"gmail,outlook,yahoo,icloud,other"`
-	Name          string     `json:"name"`
-	Sent          int64      `json:"sent"`
-	Remaining     int64      `json:"remaining"`
-	Delivered     int64      `json:"delivered"`
-	Bounced       int64      `json:"bounced"`
-	Complained    int64      `json:"complained"`
-	Opened        int64      `json:"opened"`
-	DeliveredRate *float64   `json:"deliveredRate,omitempty"`
-	BounceRate    *float64   `json:"bounceRate,omitempty"`
-	ComplaintRate *float64   `json:"complaintRate,omitempty"`
-	OpenRate      *float64   `json:"openRate,omitempty"`
-	Throttle      *float64   `json:"throttle,omitempty" doc:"Messages per second; absent = the provider's full rate"`
-	Held          bool       `json:"held"`
-	HeldSince     *time.Time `json:"heldSince,omitempty"`
-	Status        string     `json:"status" enum:"ok,sending,paused,done"`
+	Key           string   `json:"key" enum:"gmail,outlook,yahoo,icloud,other"`
+	Name          string   `json:"name"`
+	Sent          int64    `json:"sent"`
+	Remaining     int64    `json:"remaining"`
+	Delivered     int64    `json:"delivered"`
+	Bounced       int64    `json:"bounced"`
+	Complained    int64    `json:"complained"`
+	Opened        int64    `json:"opened"`
+	DeliveredRate *float64 `json:"deliveredRate,omitempty"`
+	BounceRate    *float64 `json:"bounceRate,omitempty"`
+	ComplaintRate *float64 `json:"complaintRate,omitempty"`
+	// ComplaintReason says why ComplaintRate is null: Gmail and iCloud
+	// don't report complaints per message (review F-2).
+	ComplaintReason string     `json:"complaintReason,omitempty" enum:"not_reported"`
+	OpenRate        *float64   `json:"openRate,omitempty"`
+	Throttle        *float64   `json:"throttle,omitempty" doc:"Messages per second; absent = the provider's full rate"`
+	Held            bool       `json:"held"`
+	HeldSince       *time.Time `json:"heldSince,omitempty"`
+	Status          string     `json:"status" enum:"ok,sending,paused,done"`
 }
 
 // LiveProvider is one sending provider's row.
@@ -196,12 +213,45 @@ type LiveProvider struct {
 	Idempotent bool `json:"idempotent"`
 }
 
-// LiveThreshold is a rate against its auto-pause limit.
+// LiveLimits are a send's auto-pause thresholds, in percent.
+type LiveLimits struct {
+	Bounce           float64 `json:"bounce"`
+	Complaint        float64 `json:"complaint"`
+	MailboxComplaint float64 `json:"mailboxComplaint"`
+	Deferral         float64 `json:"deferral"`
+	APIErrors        float64 `json:"apiErrors"`
+}
+
+// LiveThreshold is a rate against its auto-pause limit, with the evidence
+// behind it (review GS-6): the events and the base it counts, and what the
+// guard needs before it can trip. Without data the value is null with a
+// reason (F-3).
 type LiveThreshold struct {
-	Key     string  `json:"key" enum:"bounce,complaint,mailbox_complaint,api_errors"`
-	Value   float64 `json:"value"`
-	Limit   float64 `json:"limit"`
-	Mailbox string  `json:"mailbox,omitempty"`
+	Key   string   `json:"key" enum:"bounce,block_bounce,deferral,complaint,mailbox_complaint,reply_rules,api_errors"`
+	Value *float64 `json:"value,omitempty"`
+	Limit float64  `json:"limit"`
+	// Mailbox is the mailbox provider a per-mailbox-provider row shows (the
+	// one closest to its limit).
+	Mailbox   string `json:"mailbox,omitempty"`
+	Events    int64  `json:"events"`
+	Base      int64  `json:"base"`
+	MinEvents int64  `json:"minEvents"`
+	MinBase   int64  `json:"minBase"`
+	// State: ok (watching), near (at 90% of the limit or more), collecting
+	// (at or near the limit without the evidence to trip yet), tripped, na
+	// (nothing to count: see Reason).
+	State  string `json:"state" enum:"ok,near,collecting,tripped,na"`
+	Reason string `json:"reason,omitempty" enum:"no_data,not_reported"`
+	// Parts break the row down: the API error rate per sending provider,
+	// the mailbox providers a whole-send complaint rate counts.
+	Parts []LiveThresholdPart `json:"parts,omitempty"`
+}
+
+// LiveThresholdPart is one part of a threshold's row.
+type LiveThresholdPart struct {
+	Name  string   `json:"name"`
+	Key   string   `json:"key,omitempty"`
+	Value *float64 `json:"value,omitempty"`
 }
 
 // LiveDetails is the "Send details" card.
@@ -244,7 +294,7 @@ type LiveABVariant struct {
 // LiveIncident is an auto-pause, outage or blocked recheck.
 type LiveIncident struct {
 	ID            string         `json:"id"`
-	Kind          string         `json:"kind" enum:"threshold,provider_outage,throttled,recheck_blocked"`
+	Kind          string         `json:"kind" enum:"threshold,provider_outage,throttled,recheck_blocked,reply_rule,canary,render_error,complaint_watch,in_doubt"`
 	Scope         string         `json:"scope" enum:"campaign,route,mailbox_provider"`
 	Mailbox       string         `json:"mailbox"`
 	MailboxName   string         `json:"mailboxName"`
@@ -259,6 +309,9 @@ type LiveIncident struct {
 	ResolvedAt    *time.Time     `json:"resolvedAt,omitempty"`
 	Resolution    string         `json:"resolution"`
 	Detail        IncidentDetail `json:"detail"`
+	// Since is the tripped scope's rate on what was delivered (or sent)
+	// after the trip, for the resume dialog (review GS-2).
+	Since *IncidentRate `json:"since,omitempty"`
 }
 
 // LiveEvent is one line of the live event feed. Addresses are masked.
@@ -395,6 +448,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		}
 	}
 	s.ThresholdScope = th.Scope
+	s.Limits = LiveLimits{Bounce: th.Bounce, Complaint: th.Complaint, MailboxComplaint: th.MailboxComplaint, Deferral: th.Deferral, APIErrors: th.APIErrors}
 	for _, k := range sortedKeys(throttles) {
 		s.Throttles = append(s.Throttles, LiveThrottle{Mailbox: k, Rate: throttles[k]})
 	}
@@ -424,7 +478,14 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	t := ts.total
 	s.Sent = t.sent
 	s.Totals = LiveTotals{Delivered: t.delivered, Bounced: t.bounced(), HardBounced: t.hard, SoftBounced: t.soft, Complained: t.complained, Deferred: t.deferred,
-		Rejected: t.rejected, Opened: t.human + t.machine, OpenedHuman: t.human, OpenedMachine: t.machine, Clicked: t.clicked, Unsubscribed: t.unsubscribed}
+		Rejected: t.rejected, Opened: t.human + t.machine, OpenedHuman: t.human, OpenedMachine: t.machine, Clicked: t.clicked, Unsubscribed: t.unsubscribed,
+		ComplaintBase: t.reported, NotReported: []string{}}
+	for _, k := range routing.MailboxProviders {
+		if m := ts.mailbox[k]; m != nil && m.delivered > 0 && !mailbox.ReportsComplaints(k) {
+			s.Totals.NotReported = append(s.Totals.NotReported, mailboxName(k))
+			s.text.notReported = append(s.text.notReported, k)
+		}
+	}
 	cid := cc.ID
 	queue := map[queueKey]queueCell{}
 	// The latest a recipient is due (a send at each recipient's best time,
@@ -486,7 +547,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		apiErr[w.ProviderID] = ptrRate(w.Errors, w.Calls)
 	}
 	heldProviders := map[uuid.UUID]bool{}
-	var maxAPI *float64
+	var apiRates []LiveThresholdPart
 	via := []viaPart{}
 	routeLabel := []string{}
 	for _, r := range routes {
@@ -501,7 +562,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		short := state.Short(p.Name, p.Adapter)
 		lp := LiveProvider{ID: p.ID.String(), Name: p.Name, Short: short, Adapter: p.Adapter, Color: state.Color(p.Adapter), Sent: pt.sent, Planned: r.Planned,
 			Rate: math.Round(rateBy[p.ID]*10) / 10, DeliveredRate: ptrRate(pt.delivered, pt.sent), BounceRate: ptrRate(pt.bounced(), pt.sent),
-			ComplaintRate: ptrRate(pt.complained, pt.delivered), APIErrorRate: apiErr[p.ID], Status: p.Status, RouteStatus: r.Status,
+			ComplaintRate: ptrRate(pt.complained, pt.reported), APIErrorRate: apiErr[p.ID], Status: p.Status, RouteStatus: r.Status,
 			Host: hostOf(p), Cost: float64(r.CostMicros) / 1e6, Idempotent: dedupes(p)}
 		if len(p.Ips) > 0 {
 			lp.IP = p.Ips[0]
@@ -548,9 +609,8 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		}
 		// The API error threshold watches the routes this send still uses (a
 		// share moved away or finished doesn't count).
-		if lp.APIErrorRate != nil && (r.Status == "pending" || r.Status == "sending" || r.Status == "held") && (maxAPI == nil || *lp.APIErrorRate > *maxAPI) {
-			v := *lp.APIErrorRate
-			maxAPI = &v
+		if r.Status == "pending" || r.Status == "sending" || r.Status == "held" {
+			apiRates = append(apiRates, LiveThresholdPart{Name: short, Value: lp.APIErrorRate})
 		}
 		via = append(via, viaOf(p))
 		s.Providers = append(s.Providers, lp)
@@ -572,15 +632,16 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		viaWords[i] = v.in(i18n.Default)
 	}
 	s.EventsVia = joinAnd(viaWords)
-	var bestMailbox string
-	var bestRate float64 = -1
 	for _, k := range routing.MailboxProviders {
 		m := ts.mailbox[k]
 		if m == nil {
 			m = &tally{}
 		}
 		lm := LiveMailbox{Key: k, Name: mailboxName(k), Sent: m.sent, Delivered: m.delivered, Bounced: m.bounced(), Complained: m.complained, Opened: m.human + m.machine,
-			DeliveredRate: ptrRate(m.delivered, m.sent), BounceRate: ptrRate(m.bounced(), m.sent), ComplaintRate: ptrRate(m.complained, m.delivered), OpenRate: ptrRate(m.human+m.machine, m.delivered)}
+			DeliveredRate: ptrRate(m.delivered, m.sent), BounceRate: ptrRate(m.bounced(), m.sent), ComplaintRate: ptrRate(m.complained, m.reported), OpenRate: ptrRate(m.human+m.machine, m.delivered)}
+		if !mailbox.ReportsComplaints(k) {
+			lm.ComplaintRate, lm.ComplaintReason = nil, mailbox.NotReported
+		}
 		for qk, c := range queue {
 			if qk.mailbox == k {
 				lm.Remaining += c.queued + c.held
@@ -606,9 +667,6 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		if m.sent == 0 && lm.Remaining == 0 {
 			continue
 		}
-		if lm.ComplaintRate != nil && *lm.ComplaintRate > bestRate {
-			bestRate, bestMailbox = *lm.ComplaintRate, k
-		}
 		s.Mailboxes = append(s.Mailboxes, lm)
 	}
 	if t.delivered > 0 {
@@ -618,17 +676,11 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			}
 		}
 	}
-	s.Thresholds = append(s.Thresholds,
-		LiveThreshold{Key: "bounce", Value: round2(rate(t.bounced(), t.sent)), Limit: th.Bounce},
-		LiveThreshold{Key: "complaint", Value: round2(rate(t.complained, t.delivered)), Limit: th.Complaint})
-	if bestMailbox != "" {
-		s.Thresholds = append(s.Thresholds, LiveThreshold{Key: "mailbox_complaint", Value: round2(bestRate), Limit: th.MailboxComplaint, Mailbox: bestMailbox})
+	s.Thresholds = liveThresholds(th, ts, guardOf(snd, hasSend), apiRates)
+	if hasSend {
+		s.Watch = e.liveWatch(ctx, cc.WorkspaceID, snd, ts, th, now)
 	}
-	api := 0.0
-	if maxAPI != nil {
-		api = *maxAPI
-	}
-	s.Thresholds = append(s.Thresholds, LiveThreshold{Key: "api_errors", Value: round2(api), Limit: th.APIErrors})
+	s.Postmaster = e.livePostmaster(ctx, cc.WorkspaceID, cc.SenderEmail, now)
 	for k, c := range queue {
 		_, onHold := holds[k.mailbox]
 		heldMailbox := onHold && !holds[k.mailbox].Resumed
@@ -749,6 +801,9 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			li.ProviderID, li.Provider, li.ProviderShort = in.ProviderID.String(), p.Name, state.Short(p.Name, p.Adapter)
 		}
 		li.Detail = parseDetail(in.Detail)
+		if in.Kind == "threshold" && in.ResolvedAt == nil {
+			li.Since = sinceTrip(ts, in, li.Detail)
+		}
 		s.Incidents = append(s.Incidents, li)
 		if in.ResolvedAt == nil && s.Incident == nil && (in.Kind == "threshold" || in.Kind == "provider_outage") {
 			c := li

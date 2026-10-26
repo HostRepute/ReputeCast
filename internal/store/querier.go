@@ -3212,6 +3212,8 @@ type Querier interface {
 	// Review & send, which rechecks it every 15 minutes.
 	SendingDueScheduled(ctx context.Context, now *time.Time) ([]uuid.UUID, error)
 	SendingDueSimEvents(ctx context.Context, arg SendingDueSimEventsParams) ([]SendingSimEvent, error)
+	// Watches that ended.
+	SendingEndWatches(ctx context.Context, now time.Time) error
 	// Takes a group out of the rest of the send; returns their contact ids so
 	// they can be added to another flow.
 	SendingExcludeGroup(ctx context.Context, arg SendingExcludeGroupParams) ([]*uuid.UUID, error)
@@ -3236,6 +3238,9 @@ type Querier interface {
 	// A campaign's messages in doubt per sending provider, with the oldest.
 	SendingInDoubtByProvider(ctx context.Context, campaignID *uuid.UUID) ([]SendingInDoubtByProviderRow, error)
 	SendingIncidents(ctx context.Context, campaignID uuid.UUID) ([]CampaignIncident, error)
+	// A campaign's incidents of one kind, open or not (an alert is raised once
+	// per scope).
+	SendingIncidentsOfKind(ctx context.Context, arg SendingIncidentsOfKindParams) ([]CampaignIncident, error)
 	SendingInsertAutomationLink(ctx context.Context, arg SendingInsertAutomationLinkParams) error
 	SendingInsertAutomationMessage(ctx context.Context, arg SendingInsertAutomationMessageParams) error
 	SendingInsertIncident(ctx context.Context, arg SendingInsertIncidentParams) error
@@ -3279,6 +3284,8 @@ type Querier interface {
 	SendingOutboxRequeueStale(ctx context.Context, arg SendingOutboxRequeueStaleParams) (int64, error)
 	// Providers with automation emails claimed before the stale time.
 	SendingOutboxStaleProviders(ctx context.Context, stale time.Time) ([]uuid.UUID, error)
+	// Gmail's latest daily spam rate for a sending domain (Postmaster Tools).
+	SendingPostmasterLatest(ctx context.Context, arg SendingPostmasterLatestParams) ([]SendingPostmasterLatestRow, error)
 	// How many of a cohort's contacts received anything from this workspace
 	// before this campaign.
 	SendingPriorSends(ctx context.Context, arg SendingPriorSendsParams) (int64, error)
@@ -3335,6 +3342,9 @@ type Querier interface {
 	// A send's thresholds, changed by a person while it sends or waits.
 	SendingSetSendThresholds(ctx context.Context, arg SendingSetSendThresholdsParams) error
 	SendingSetThrottles(ctx context.Context, arg SendingSetThrottlesParams) error
+	// GS-6: the complaint watch after a send ----------------------------------
+	// How long complaints are watched after the send ended.
+	SendingSetWatch(ctx context.Context, arg SendingSetWatchParams) error
 	// A provider reported an event for a message in doubt: it took the message
 	// after all. The message counts as sent from the event on.
 	SendingSettleInDoubt(ctx context.Context, arg SendingSettleInDoubtParams) (SendingSettleInDoubtRow, error)
@@ -3357,6 +3367,8 @@ type Querier interface {
 	// own opens since a date (privacy-proxy fetches left out): the best time of
 	// a send scheduled per recipient.
 	SendingUsualOpenHours(ctx context.Context, arg SendingUsualOpenHoursParams) ([]SendingUsualOpenHoursRow, error)
+	// The sends whose complaint watch runs.
+	SendingWatchDue(ctx context.Context, now time.Time) ([]uuid.UUID, error)
 	// The workspace's sending defaults (Settings › Providers): auto-pause
 	// thresholds and the throttles per mailbox provider.
 	SendingWorkspaceDefaults(ctx context.Context, id uuid.UUID) (SendingWorkspaceDefaultsRow, error)
@@ -3731,6 +3743,11 @@ type Querier interface {
 	// last_open_at counts every open, last_human_open_at only people's (tiers
 	// and the sunset policy use it); last_open_machine says what the latest was.
 	TrackingTouchContactOpen(ctx context.Context, arg TrackingTouchContactOpenParams) error
+	// Traffic rules (Sending providers › Traffic rules, review 2026-10, M34):
+	// the canary defaults, the complaint watch after a send and the mailbox
+	// provider response rules of a workspace.
+	TrafficRulesGet(ctx context.Context, workspaceID uuid.UUID) ([]TrafficRule, error)
+	TrafficRulesSave(ctx context.Context, arg TrafficRulesSaveParams) error
 	// The domains a template's bounces of the window went to, most first.
 	TxnAlertBounceDomains(ctx context.Context, arg TxnAlertBounceDomainsParams) ([]TxnAlertBounceDomainsRow, error)
 	TxnAlertEnd(ctx context.Context, arg TxnAlertEndParams) (int64, error)

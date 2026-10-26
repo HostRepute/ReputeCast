@@ -4043,6 +4043,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark an alert of a send as read (complaints after the send) */
+        post: operations["acknowledge-live-alert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/cancel": {
         parameters: {
             query?: never;
@@ -28291,6 +28308,10 @@ export interface components {
             /** Format: int64 */
             sent: number;
         };
+        LiveAcknowledgeRequest: {
+            /** Format: uuid */
+            incidentId: string;
+        };
         LiveActionResult: {
             /** Format: int64 */
             cancelled: number;
@@ -28388,7 +28409,7 @@ export interface components {
             held: number;
             id: string;
             /** @enum {string} */
-            kind: "threshold" | "provider_outage" | "throttled" | "recheck_blocked";
+            kind: "threshold" | "provider_outage" | "throttled" | "recheck_blocked" | "reply_rule" | "canary" | "render_error" | "complaint_watch" | "in_doubt";
             /** Format: double */
             limit?: number;
             mailbox: string;
@@ -28402,10 +28423,23 @@ export interface components {
             resolvedAt?: string;
             /** @enum {string} */
             scope: "campaign" | "route" | "mailbox_provider";
+            since?: components["schemas"]["IncidentRate"];
             /** Format: date-time */
             trippedAt: string;
             /** Format: double */
             value?: number;
+        };
+        LiveLimits: {
+            /** Format: double */
+            apiErrors: number;
+            /** Format: double */
+            bounce: number;
+            /** Format: double */
+            complaint: number;
+            /** Format: double */
+            deferral: number;
+            /** Format: double */
+            mailboxComplaint: number;
         };
         LiveMailbox: {
             /** Format: double */
@@ -28416,6 +28450,8 @@ export interface components {
             complained: number;
             /** Format: double */
             complaintRate?: number;
+            /** @enum {string} */
+            complaintReason?: "not_reported";
             /** Format: int64 */
             delivered: number;
             /** Format: double */
@@ -28455,6 +28491,12 @@ export interface components {
         };
         LivePauseRequest: {
             reason?: string;
+        };
+        LivePostmaster: {
+            /** Format: date */
+            day: string;
+            /** Format: double */
+            spamRate: number;
         };
         LiveProvider: {
             adapter: string;
@@ -28523,6 +28565,8 @@ export interface components {
             mailbox?: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
             /** Format: uuid */
             providerId?: string;
+            /** Format: double */
+            rate?: number;
             withChanges?: boolean;
         };
         LiveRetryRequest: {
@@ -28573,6 +28617,7 @@ export interface components {
             incidents: components["schemas"]["LiveIncident"][];
             /** Format: date-time */
             lastEventAt?: string;
+            limits: components["schemas"]["LiveLimits"];
             mailboxes: components["schemas"]["LiveMailbox"][];
             mailboxesHeld: string[];
             name: string;
@@ -28584,6 +28629,7 @@ export interface components {
             pausedBy: string;
             /** Format: double */
             percent: number;
+            postmaster?: components["schemas"]["LivePostmaster"];
             /** Format: date-time */
             preparedAt?: string;
             providers: components["schemas"]["LiveProvider"][];
@@ -28626,15 +28672,35 @@ export interface components {
             version: number;
             /** Format: int64 */
             waiting: number;
+            watch?: components["schemas"]["LiveWatch"];
         };
         LiveThreshold: {
+            /** Format: int64 */
+            base: number;
+            /** Format: int64 */
+            events: number;
             /** @enum {string} */
-            key: "bounce" | "complaint" | "mailbox_complaint" | "api_errors";
+            key: "bounce" | "block_bounce" | "deferral" | "complaint" | "mailbox_complaint" | "reply_rules" | "api_errors";
             /** Format: double */
             limit: number;
             mailbox?: string;
+            /** Format: int64 */
+            minBase: number;
+            /** Format: int64 */
+            minEvents: number;
+            parts?: components["schemas"]["LiveThresholdPart"][];
+            /** @enum {string} */
+            reason?: "no_data" | "not_reported";
+            /** @enum {string} */
+            state: "ok" | "near" | "collecting" | "tripped" | "na";
             /** Format: double */
-            value: number;
+            value?: number;
+        };
+        LiveThresholdPart: {
+            key?: string;
+            name: string;
+            /** Format: double */
+            value?: number;
         };
         LiveThresholdsRequest: {
             /** Format: double */
@@ -28663,11 +28729,14 @@ export interface components {
             /** Format: int64 */
             complained: number;
             /** Format: int64 */
+            complaintBase: number;
+            /** Format: int64 */
             deferred: number;
             /** Format: int64 */
             delivered: number;
             /** Format: int64 */
             hardBounced: number;
+            notReported: string[];
             /** Format: int64 */
             opened: number;
             /** Format: int64 */
@@ -28680,6 +28749,17 @@ export interface components {
             softBounced: number;
             /** Format: int64 */
             unsubscribed: number;
+        };
+        LiveWatch: {
+            active: boolean;
+            alert: boolean;
+            /** Format: int64 */
+            hours: number;
+            /** Format: double */
+            limit: number;
+            rows: components["schemas"]["LiveThreshold"][];
+            /** Format: date-time */
+            until: string;
         };
         LiveWinnerRequest: {
             /** @enum {string} */
@@ -52855,6 +52935,44 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["LiveWinnerRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "acknowledge-live-alert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveAcknowledgeRequest"];
             };
         };
         responses: {

@@ -32,10 +32,11 @@ type counts struct {
 	Hard       int64 `json:"hard"`
 	Soft       int64 `json:"soft"`
 	Complained int64 `json:"complained"`
+	Reported   int64 `json:"reported"`
 }
 
 func countsOf(t tally) counts {
-	return counts{Sent: t.sent, Delivered: t.delivered, Deferred: t.deferred, Hard: t.hard, Soft: t.soft, Complained: t.complained}
+	return counts{Sent: t.sent, Delivered: t.delivered, Deferred: t.deferred, Hard: t.hard, Soft: t.soft, Complained: t.complained, Reported: t.reported}
 }
 
 // plus adds a scope's counts (a scope that joins the campaign-wide check
@@ -47,6 +48,7 @@ func (c counts) plus(t tally) counts {
 	c.Hard += t.hard
 	c.Soft += t.soft
 	c.Complained += t.complained
+	c.Reported += t.reported
 	return c
 }
 
@@ -55,6 +57,7 @@ func (t tally) since(b counts) tally {
 	sub := func(a, b int64) int64 { return max(a-b, 0) }
 	t.sent, t.delivered, t.deferred = sub(t.sent, b.Sent), sub(t.delivered, b.Delivered), sub(t.deferred, b.Deferred)
 	t.hard, t.soft, t.complained = sub(t.hard, b.Hard), sub(t.soft, b.Soft), sub(t.complained, b.Complained)
+	t.reported = sub(t.reported, b.Reported)
 	return t
 }
 

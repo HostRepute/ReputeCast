@@ -162,11 +162,11 @@ func (e *Engine) analyzeThreshold(ctx context.Context, rs *runState, ts tallies,
 	all := ts.total
 	switch tr.metric {
 	case "complaint":
-		d.Campaign = &IncidentRate{Metric: "complaint", Events: all.complained, Base: all.delivered, Value: round2(rate(all.complained, all.delivered)), Limit: rs.thresholds.Complaint}
+		d.Campaign = &IncidentRate{Metric: "complaint", Events: all.complained, Base: all.reported, Value: round2(all.complaintRate()), Limit: rs.thresholds.Complaint}
 		d.Secondary = &IncidentRate{Metric: "bounce", Events: scope.bounced(), Base: scope.sent, Value: round2(rate(scope.bounced(), scope.sent)), Limit: rs.thresholds.Bounce}
 	case "bounce":
 		d.Campaign = &IncidentRate{Metric: "bounce", Events: all.bounced(), Base: all.sent, Value: round2(rate(all.bounced(), all.sent)), Limit: rs.thresholds.Bounce}
-		d.Secondary = &IncidentRate{Metric: "complaint", Events: scope.complained, Base: scope.delivered, Value: round2(rate(scope.complained, scope.delivered)), Limit: rs.thresholds.MailboxComplaint}
+		d.Secondary = &IncidentRate{Metric: "complaint", Events: scope.complained, Base: scope.reported, Value: round2(scope.complaintRate()), Limit: rs.thresholds.MailboxComplaint}
 	case "deferral":
 		d.Campaign = &IncidentRate{Metric: "deferral", Events: all.deferred, Base: all.sent, Value: round2(rate(all.deferred, all.sent)), Limit: rs.thresholds.Deferral}
 		d.Secondary = &IncidentRate{Metric: "bounce", Events: scope.bounced(), Base: scope.sent, Value: round2(rate(scope.bounced(), scope.sent)), Limit: rs.thresholds.Bounce}

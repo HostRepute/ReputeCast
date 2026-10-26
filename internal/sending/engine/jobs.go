@@ -398,5 +398,7 @@ func RegisterJobs(reg *jobs.Registry, e *Engine) {
 	river.AddWorker(reg.Workers, &SimWorker{E: e})
 	river.AddWorker(reg.Workers, &OutboxWorker{E: e})
 	river.AddWorker(reg.Workers, &WatchWorker{E: e})
+	river.AddWorker(reg.Workers, &ComplaintWatchWorker{E: e})
 	reg.Every(30*time.Second, func() (river.JobArgs, *river.InsertOpts) { return WatchArgs{}, nil }, true)
+	reg.Every(10*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return ComplaintWatchArgs{}, nil }, false)
 }

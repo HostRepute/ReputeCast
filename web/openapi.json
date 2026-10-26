@@ -40359,6 +40359,19 @@
         ],
         "type": "object"
       },
+      "LiveAcknowledgeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "incidentId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "incidentId"
+        ],
+        "type": "object"
+      },
       "LiveActionResult": {
         "additionalProperties": false,
         "properties": {
@@ -40679,7 +40692,12 @@
               "threshold",
               "provider_outage",
               "throttled",
-              "recheck_blocked"
+              "recheck_blocked",
+              "reply_rule",
+              "canary",
+              "render_error",
+              "complaint_watch",
+              "in_doubt"
             ],
             "type": "string"
           },
@@ -40720,6 +40738,9 @@
             ],
             "type": "string"
           },
+          "since": {
+            "$ref": "#/components/schemas/IncidentRate"
+          },
           "trippedAt": {
             "format": "date-time",
             "type": "string"
@@ -40746,6 +40767,39 @@
         ],
         "type": "object"
       },
+      "LiveLimits": {
+        "additionalProperties": false,
+        "properties": {
+          "apiErrors": {
+            "format": "double",
+            "type": "number"
+          },
+          "bounce": {
+            "format": "double",
+            "type": "number"
+          },
+          "complaint": {
+            "format": "double",
+            "type": "number"
+          },
+          "deferral": {
+            "format": "double",
+            "type": "number"
+          },
+          "mailboxComplaint": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "bounce",
+          "complaint",
+          "mailboxComplaint",
+          "deferral",
+          "apiErrors"
+        ],
+        "type": "object"
+      },
       "LiveMailbox": {
         "additionalProperties": false,
         "properties": {
@@ -40764,6 +40818,12 @@
           "complaintRate": {
             "format": "double",
             "type": "number"
+          },
+          "complaintReason": {
+            "enum": [
+              "not_reported"
+            ],
+            "type": "string"
           },
           "delivered": {
             "format": "int64",
@@ -40884,6 +40944,24 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "LivePostmaster": {
+        "additionalProperties": false,
+        "properties": {
+          "day": {
+            "format": "date",
+            "type": "string"
+          },
+          "spamRate": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "spamRate",
+          "day"
+        ],
         "type": "object"
       },
       "LiveProvider": {
@@ -41076,6 +41154,12 @@
             "format": "uuid",
             "type": "string"
           },
+          "rate": {
+            "format": "double",
+            "maximum": 10000,
+            "minimum": 0.1,
+            "type": "number"
+          },
           "withChanges": {
             "type": "boolean"
           }
@@ -41231,6 +41315,9 @@
             "format": "date-time",
             "type": "string"
           },
+          "limits": {
+            "$ref": "#/components/schemas/LiveLimits"
+          },
           "mailboxes": {
             "items": {
               "$ref": "#/components/schemas/LiveMailbox"
@@ -41265,6 +41352,9 @@
           "percent": {
             "format": "double",
             "type": "number"
+          },
+          "postmaster": {
+            "$ref": "#/components/schemas/LivePostmaster"
           },
           "preparedAt": {
             "format": "date-time",
@@ -41390,6 +41480,9 @@
           "waiting": {
             "format": "int64",
             "type": "integer"
+          },
+          "watch": {
+            "$ref": "#/components/schemas/LiveWatch"
           }
         },
         "required": [
@@ -41417,6 +41510,7 @@
           "providers",
           "thresholds",
           "thresholdScope",
+          "limits",
           "details",
           "deliveredMix",
           "incidents",
@@ -41441,11 +41535,22 @@
       "LiveThreshold": {
         "additionalProperties": false,
         "properties": {
+          "base": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "events": {
+            "format": "int64",
+            "type": "integer"
+          },
           "key": {
             "enum": [
               "bounce",
+              "block_bounce",
+              "deferral",
               "complaint",
               "mailbox_complaint",
+              "reply_rules",
               "api_errors"
             ],
             "type": "string"
@@ -41457,6 +41562,37 @@
           "mailbox": {
             "type": "string"
           },
+          "minBase": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "minEvents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "parts": {
+            "items": {
+              "$ref": "#/components/schemas/LiveThresholdPart"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "enum": [
+              "no_data",
+              "not_reported"
+            ],
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "ok",
+              "near",
+              "collecting",
+              "tripped",
+              "na"
+            ],
+            "type": "string"
+          },
           "value": {
             "format": "double",
             "type": "number"
@@ -41464,8 +41600,31 @@
         },
         "required": [
           "key",
-          "value",
-          "limit"
+          "limit",
+          "events",
+          "base",
+          "minEvents",
+          "minBase",
+          "state"
+        ],
+        "type": "object"
+      },
+      "LiveThresholdPart": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name"
         ],
         "type": "object"
       },
@@ -41544,6 +41703,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "complaintBase": {
+            "format": "int64",
+            "type": "integer"
+          },
           "deferred": {
             "format": "int64",
             "type": "integer"
@@ -41555,6 +41718,12 @@
           "hardBounced": {
             "format": "int64",
             "type": "integer"
+          },
+          "notReported": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "opened": {
             "format": "int64",
@@ -41593,7 +41762,47 @@
           "openedHuman",
           "openedMachine",
           "clicked",
-          "unsubscribed"
+          "unsubscribed",
+          "complaintBase",
+          "notReported"
+        ],
+        "type": "object"
+      },
+      "LiveWatch": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "alert": {
+            "type": "boolean"
+          },
+          "hours": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "limit": {
+            "format": "double",
+            "type": "number"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/LiveThreshold"
+            },
+            "type": "array"
+          },
+          "until": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "until",
+          "hours",
+          "active",
+          "alert",
+          "limit",
+          "rows"
         ],
         "type": "object"
       },
@@ -111278,6 +111487,84 @@
           }
         ],
         "summary": "End the A/B test with a chosen winner",
+        "tags": [
+          "Live sending"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:send"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/acknowledge": {
+      "post": {
+        "operationId": "acknowledge-live-alert",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Campaign id",
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "description": "Campaign id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveAcknowledgeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveActionResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark an alert of a send as read (complaints after the send)",
         "tags": [
           "Live sending"
         ],

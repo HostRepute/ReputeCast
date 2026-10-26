@@ -168,5 +168,18 @@
   "check.canaryHoldouts": "Recipients waiting for the canary stay held until it passes",
 
   "state.thresholdRange": {"message": "{metric, select, bounce {The bounce limit} complaint {The complaint limit} mailbox_complaint {The complaint limit per mailbox provider} deferral {The deferral limit} other {The API error limit}} must be between {minPct} and {maxPct}.", "note": "a threshold a person set while the send runs is out of range"},
-  "state.nothingTripped": "Nothing tripped on \"{name}\": there's no limit to raise."
+  "state.nothingTripped": "Nothing tripped on \"{name}\": there's no limit to raise.",
+
+  "note.watch": {"message": "Complaints keep arriving for days after delivery: ReputeCast watches them for {watchHours} hours after the send.", "note": "the note of a complaint alert raised after a send; watchHours: a count"},
+  "cause.watchLead": "Complaints passed the limit after the send.",
+  "cause.watch": {"message": "{scope, select, mailbox_provider {{events} complaints in {base} delivered to {mailbox}} other {{events} complaints in {base} delivered where complaints are reported}}: {valuePct}, over the {limitPct} limit.", "note": "events, base: counts; valuePct, limitPct: percentages"},
+  "rec.watchSuppressed": "The contacts who complained are on the suppression list already.",
+  "rec.watchNext": "Before the next send, look at who complained: a recent import, or contacts who haven't opened in months, are the usual source.",
+  "opt.acknowledgeTitle": "Acknowledge",
+  "opt.acknowledgeBody": "Marks the alert as read. ReputeCast keeps watching until the watch ends.",
+  "opt.acknowledge": {"message": "Acknowledge", "note": "a button: marks an alert as read"},
+  "notify.watchTitle": {"message": "{name}: complaints after the send", "note": "name: the campaign's name in quotes"},
+  "notify.watchBody": "{scope, select, mailbox_provider {{mailbox} complaints reached {valuePct} (limit {limitPct})} other {Complaints reached {valuePct} (limit {limitPct})}} after the send ended. Nothing is sending; check who complained before the next send.",
+  "state.nothingToAcknowledge": "There's no alert to acknowledge on \"{name}\".",
+  "problem.incidentId": "That isn't an incident id."
 }

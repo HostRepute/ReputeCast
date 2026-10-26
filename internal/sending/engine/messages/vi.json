@@ -168,5 +168,18 @@
   "check.canaryHoldouts": "Người nhận chờ đợt gửi thử vẫn được tạm giữ đến khi đợt gửi thử đạt",
 
   "state.thresholdRange": "{metric, select, bounce {Ngưỡng thư trả lại} complaint {Ngưỡng khiếu nại} mailbox_complaint {Ngưỡng khiếu nại theo nhà cung cấp hộp thư} deferral {Ngưỡng hoãn nhận} other {Ngưỡng lỗi API}} phải nằm trong khoảng {minPct} đến {maxPct}.",
-  "state.nothingTripped": "“{name}” không có ngưỡng nào bị vượt: không có giới hạn nào để nâng."
+  "state.nothingTripped": "“{name}” không có ngưỡng nào bị vượt: không có giới hạn nào để nâng.",
+
+  "note.watch": "Khiếu nại vẫn tiếp tục đến nhiều ngày sau khi thư được giao: ReputeCast theo dõi chúng trong {watchHours} giờ sau lần gửi.",
+  "cause.watchLead": "Khiếu nại đã vượt ngưỡng sau lần gửi.",
+  "cause.watch": "{scope, select, mailbox_provider {{events} khiếu nại trên {base} thư đã giao tới {mailbox}} other {{events} khiếu nại trên {base} thư đã giao ở nơi có báo cáo khiếu nại}}: {valuePct}, vượt ngưỡng {limitPct}.",
+  "rec.watchSuppressed": "Những liên hệ đã khiếu nại đã có trong danh sách chặn gửi.",
+  "rec.watchNext": "Trước lần gửi tiếp theo, hãy xem ai đã khiếu nại: thường là một lần nhập gần đây, hoặc những liên hệ đã nhiều tháng không mở thư.",
+  "opt.acknowledgeTitle": "Đã xem",
+  "opt.acknowledgeBody": "Đánh dấu cảnh báo là đã xem. ReputeCast vẫn tiếp tục theo dõi đến khi kết thúc thời gian theo dõi.",
+  "opt.acknowledge": "Đã xem",
+  "notify.watchTitle": "{name}: có khiếu nại sau lần gửi",
+  "notify.watchBody": "{scope, select, mailbox_provider {Khiếu nại ở {mailbox} đạt {valuePct} (ngưỡng {limitPct})} other {Khiếu nại đạt {valuePct} (ngưỡng {limitPct})}} sau khi lần gửi kết thúc. Không có gì đang gửi; hãy xem ai đã khiếu nại trước lần gửi tiếp theo.",
+  "state.nothingToAcknowledge": "Không có cảnh báo nào để đánh dấu đã xem trên “{name}”.",
+  "problem.incidentId": "Đó không phải là mã sự cố."
 }

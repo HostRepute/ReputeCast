@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -27,7 +28,13 @@ import (
 // tally sums counters for one scope.
 type tally struct {
 	sent, delivered, deferred, hard, soft, complained, rejected, human, machine, clicked, unsubscribed int64
+	// reported is what was delivered at mailbox providers that report
+	// complaints: the base of a complaint rate (review F-2, GS-6).
+	reported int64
 }
+
+// complaintRate is the complaint rate where complaints are reported.
+func (t tally) complaintRate() float64 { return rate(t.complained, t.reported) }
 
 func (t tally) bounced() int64 { return t.hard + t.soft }
 
@@ -43,6 +50,9 @@ func (t *tally) add(r store.SendingCountersRow) {
 	t.machine += r.OpenedMachine
 	t.clicked += r.Clicked
 	t.unsubscribed += r.Unsubscribed
+	if mailbox.ReportsComplaints(r.MailboxProvider) {
+		t.reported += r.Delivered
+	}
 }
 
 // tallies are a campaign's counters by scope.
@@ -223,8 +233,8 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 			m = m.since(counts{Complained: h.Rearm["complaint"], Hard: h.Rearm["bounce"], Deferred: h.Rearm["deferral"]})
 		}
 		switch {
-		case m.delivered >= minSampleScoped && over(m.complained, m.delivered, th.MailboxComplaint, minEvents):
-			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "complaint", value: rate(m.complained, m.delivered), limit: th.MailboxComplaint, events: m.complained, base: m.delivered})
+		case m.reported >= minSampleScoped && over(m.complained, m.reported, th.MailboxComplaint, minEvents):
+			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "complaint", value: m.complaintRate(), limit: th.MailboxComplaint, events: m.complained, base: m.reported})
 		case m.sent >= minSampleScoped && over(m.bounced(), m.sent, th.Bounce, minEvents):
 			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "bounce", value: rate(m.bounced(), m.sent), limit: th.Bounce, events: m.bounced(), base: m.sent})
 		case m.sent >= minSampleScoped && over(m.deferred, m.sent, th.Deferral, minDeferrals):
@@ -260,7 +270,7 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 			if h, onHold := rs.holds[mbp]; onHold && !h.Resumed {
 				continue
 			}
-			t.add(store.SendingCountersRow{Sent: m.sent, Delivered: m.delivered, Deferred: m.deferred, HardBounced: m.hard, SoftBounced: m.soft, Complained: m.complained})
+			t.add(store.SendingCountersRow{MailboxProvider: mbp, Sent: m.sent, Delivered: m.delivered, Deferred: m.deferred, HardBounced: m.hard, SoftBounced: m.soft, Complained: m.complained})
 		}
 		for pid, p := range ts.provider {
 			if r := rs.routes[pid]; r != nil && (r.status == "held" || r.status == "paused") {
@@ -269,14 +279,17 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 				t.hard -= p.hard
 				t.soft -= p.soft
 				t.complained -= p.complained
+				t.reported -= p.reported
 			}
 		}
 		t = rs.guard.judged(rearmCampaign, t)
 		if t.sent >= minSampleCampaign && over(t.bounced(), t.sent, th.Bounce, minEvents) {
 			trips = append(trips, trip{scope: "campaign", metric: "bounce", value: rate(t.bounced(), t.sent), limit: th.Bounce, events: t.bounced(), base: t.sent})
 		}
-		if t.delivered >= minSampleCampaign && over(t.complained, t.delivered, th.Complaint, minEvents) {
-			trips = append(trips, trip{scope: "campaign", metric: "complaint", value: rate(t.complained, t.delivered), limit: th.Complaint, events: t.complained, base: t.delivered})
+		// Complaints count only where mailbox providers report them: Gmail's
+		// and iCloud's delivered mail would dilute the rate (review F-2).
+		if t.reported >= minSampleCampaign && over(t.complained, t.reported, th.Complaint, minEvents) {
+			trips = append(trips, trip{scope: "campaign", metric: "complaint", value: t.complaintRate(), limit: th.Complaint, events: t.complained, base: t.reported})
 		}
 	}
 	if len(trips) == 0 {
@@ -905,6 +918,10 @@ func (e *Engine) finish(ctx context.Context, rs *runState, ts tallies, now time.
 			return err
 		}
 		if err := q.SendingSetPhase(ctx, store.SendingSetPhaseParams{CampaignID: c.ID, Phase: "finished", FinishedAt: &now, At: now}); err != nil {
+			return err
+		}
+		// Complaints keep arriving for days: they're watched (review GS-6).
+		if err := startWatch(ctx, q, c, now); err != nil {
 			return err
 		}
 		t := ts.total

@@ -51,6 +51,8 @@ func TestGuardedSending(t *testing.T) {
 	t.Run("CampaignResumeRearms", func(t *testing.T) { testCampaignResumeRearms(t, s.Fixture(t, "GS-2 campaign")) })
 	t.Run("RouteResumeWithChanges", func(t *testing.T) { testRouteResumeWithChanges(t, s.Fixture(t, "GS-2 route")) })
 	t.Run("ThresholdsWhilePaused", func(t *testing.T) { testThresholdsWhilePaused(t, s.Fixture(t, "GS-2 thresholds")) })
+	// GS-6: complaints count where reported; the complaint watch after the send.
+	t.Run("ComplaintWatchAfterTheSend", func(t *testing.T) { testComplaintWatch(t, s.Fixture(t, "GS-6 watch")) })
 }
 
 // routeOf is the fixture's route on a provider: its status and detail.
