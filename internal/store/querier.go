@@ -2927,10 +2927,21 @@ type Querier interface {
 	// Final or live counters per sending provider × mailbox provider × A/B
 	// variant, with the provider's name for the per-provider comparison.
 	ReportCounterCells(ctx context.Context, campaignID uuid.UUID) ([]ReportCounterCellsRow, error)
+	// Contacts who joined since a campaign started through a form or the
+	// subscribe page, with their first touch's page, referrer and UTM medium
+	// and campaign: the issue's forwards and web-post signups are read from
+	// them (review AN-12).
+	ReportGrowthJoins(ctx context.Context, arg ReportGrowthJoinsParams) ([]ReportGrowthJoinsRow, error)
+	// Referral signups since a campaign started credited to it: it was the
+	// last email their referrer clicked, as a person, in the 7 days before the
+	// signup (the attribution rule upgrades follow, review AN-12).
+	ReportGrowthReferrals(ctx context.Context, arg ReportGrowthReferralsParams) (int64, error)
 	ReportHourly(ctx context.Context, arg ReportHourlyParams) ([]ReportHourlyRow, error)
 	// Provider events received but not normalized yet, per provider: when the
 	// normalization job falls behind, live counts lag by that much.
 	ReportIngestBacklog(ctx context.Context, arg ReportIngestBacklogParams) ([]ReportIngestBacklogRow, error)
+	// Where a campaign is on the web: its archive page and its website post.
+	ReportIssuePages(ctx context.Context, arg ReportIssuePagesParams) (ReportIssuePagesRow, error)
 	ReportLatestReadiness(ctx context.Context, campaignID uuid.UUID) (ReportLatestReadinessRow, error)
 	// The most recent campaign with results, for "See the last report instead".
 	ReportLatestSent(ctx context.Context, arg ReportLatestSentParams) (ReportLatestSentRow, error)
@@ -2962,9 +2973,15 @@ type Querier interface {
 	ReportShareRevoke(ctx context.Context, arg ReportShareRevokeParams) (ReportShare, error)
 	ReportShareTouch(ctx context.Context, arg ReportShareTouchParams) error
 	ReportUnsubscribeReasons(ctx context.Context, arg ReportUnsubscribeReasonsParams) ([]ReportUnsubscribeReasonsRow, error)
+	// Which of these messages are a campaign's (view-online pages a signup
+	// came from).
+	ReportViewedMessages(ctx context.Context, arg ReportViewedMessagesParams) ([]uuid.UUID, error)
 	// Warm-up plans of the campaign's providers (the day each was on when the
 	// campaign was sent).
 	ReportWarmupAt(ctx context.Context, providerIds []uuid.UUID) ([]ReportWarmupAtRow, error)
+	// First-party, cookie-free views of a campaign on the web: its archive
+	// page and its website post (review AN-13).
+	ReportWebViews(ctx context.Context, arg ReportWebViewsParams) (int64, error)
 	ResetUserTwoFactor(ctx context.Context, id uuid.UUID) error
 	ResolveAutomationAlert(ctx context.Context, arg ResolveAutomationAlertParams) (int64, error)
 	RestoreList(ctx context.Context, id uuid.UUID) (List, error)

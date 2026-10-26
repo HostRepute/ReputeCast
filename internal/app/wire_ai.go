@@ -6,8 +6,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/ai"
 	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/integrations"
-	"github.com/hostrepute/reputecast/internal/languages"
-	"github.com/hostrepute/reputecast/internal/reports"
 )
 
 // ai is the AI assistant with the workspace's own model (M22). It holds no
@@ -27,7 +25,7 @@ func (a *App) ai() *ai.Service {
 		// development and in tests, never from Anthropic.
 		Development: cfg.IsDevelopment() || cfg.Env == "test",
 		Segments:    a.segments(),
-		Reports:     &reports.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, URLs: a.URLs, Languages: &languages.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit}},
+		Reports:     reportsService(a),
 		Languages:   languagesService(a),
 	}
 }

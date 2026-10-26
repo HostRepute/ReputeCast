@@ -14,7 +14,10 @@ type CampaignReport struct {
 	Headline ReportHeadline     `json:"headline"`
 	// Comparisons are the tiles' changes against the median of the last
 	// issues (review AN-11).
-	Comparisons  ReportComparisons    `json:"comparisons"`
+	Comparisons ReportComparisons `json:"comparisons"`
+	// Growth is the issue's new subscribers and web views (review AN-12);
+	// its upgrades and revenue are the campaign's revenue (Earn).
+	Growth       ReportGrowth         `json:"growth"`
 	Engagement   ReportEngagement     `json:"engagement"`
 	ClickMap     ReportClickMap       `json:"clickMap"`
 	Mailboxes    []ReportMailboxRow   `json:"mailboxes"`

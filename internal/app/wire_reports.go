@@ -11,15 +11,23 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
+// reportsService is the campaign reports domain as the API, the AI
+// assistant and MCP agents read it.
+func reportsService(a *App) *reports.Service {
+	return &reports.Service{
+		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, URLs: a.URLs,
+		Suppress: reportSuppressor{a}, Limits: reports.NewLimiter(),
+		// Results per language for campaigns sent in several languages.
+		Languages: &languages.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
+		// View-online pages a signup came from (an issue's forwards).
+		Links: a.Links,
+	}
+}
+
 // Campaign reports and read-only report links.
 func init() {
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
-		reports.Register(h, &reports.Service{
-			Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, URLs: a.URLs,
-			Suppress: reportSuppressor{a}, Limits: reports.NewLimiter(),
-			// Results per language for campaigns sent in several languages.
-			Languages: &languages.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
-		})
+		reports.Register(h, reportsService(a))
 	})
 }
 

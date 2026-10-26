@@ -37,6 +37,9 @@ type report struct {
 		Points        []struct{ Hour int }
 		Rollout       *struct{ Variant string }
 	}
+	Growth struct {
+		NewSubscribers, Forwards, Referrals, WebPost, WebViews int64
+	}
 	Comparisons struct {
 		Issues      int
 		Unavailable string
@@ -186,6 +189,11 @@ func TestCampaignReport(t *testing.T) {
 	// subscribers before; the Weekly Digest has its own six.
 	if want := map[bool]string{true: "", false: "not_final"}[final]; r.Comparisons.Unavailable != want || (final && r.Comparisons.Issues != 1) {
 		t.Fatalf("comparisons: %+v", r.Comparisons)
+	}
+	// The growth the issue brought (review AN-12): the board's 38 new
+	// subscribers, 9 from forwards, 12 referrals and 17 from the web post.
+	if g := r.Growth; g.NewSubscribers != 38 || g.Forwards != 9 || g.Referrals != 12 || g.WebPost != 17 || g.WebViews == 0 {
+		t.Fatalf("growth: %+v", g)
 	}
 	var wd report
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns/"+campaignID(t, c, "Weekly Digest #141")+"/report", nil).MustStatus(t, 200).JSON(t, &wd)

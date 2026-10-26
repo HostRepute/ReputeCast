@@ -23,6 +23,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/linkrule"
+	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/mailbox"
 	provstate "github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/publicurl"
@@ -65,6 +66,9 @@ type Service struct {
 	Now    func() time.Time
 	// Languages adds results per language; nil leaves them out.
 	Languages *languages.Service
+	// Links reads the view-online pages new subscribers came from (an
+	// issue's forwards); nil leaves those out.
+	Links *linktoken.Signer
 }
 
 func (s *Service) now() time.Time {
@@ -172,6 +176,9 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 	}
 	out.Headline, out.Mailboxes = headline(cells, c.Origin)
 	if out.Comparisons, err = s.compare(ctx, ws, c, cells, info.Final); err != nil {
+		return out, err
+	}
+	if out.Growth, err = s.growth(ctx, ws, c); err != nil {
 		return out, err
 	}
 	if out.Providers, err = s.providerTable(ctx, c, cells, routes, loc); err != nil {

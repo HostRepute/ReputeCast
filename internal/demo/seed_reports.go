@@ -123,6 +123,8 @@ func seedReportsImpl(ctx context.Context, s *Seeder) error {
 			if err := reportShareLink(ctx, s, c); err != nil {
 				return err
 			}
+			// Growth from the issue, once Grow and the archive are seeded.
+			s.After(reportOctoberGrowth(c))
 		} else {
 			reportShapeGeneric(c)
 		}

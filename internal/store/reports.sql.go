@@ -310,6 +310,88 @@ func (q *Queries) ReportCounterCells(ctx context.Context, campaignID uuid.UUID) 
 	return items, nil
 }
 
+const reportGrowthJoins = `-- name: ReportGrowthJoins :many
+SELECT g.contact_id, g.page, g.referrer, g.utm_medium, g.utm_campaign
+FROM contact_growth g
+WHERE g.workspace_id = $1 AND g.joined_at >= $2 AND g.source_kind IN ('form', 'subscribe_page')
+  AND (g.referrer LIKE '%/view/%' OR g.page LIKE '%/archive/%' OR g.referrer LIKE '%/archive/%' OR g.page LIKE $3 OR g.referrer LIKE $3
+       OR lower(g.utm_medium) = 'forward')
+ORDER BY g.joined_at
+LIMIT 20000
+`
+
+type ReportGrowthJoinsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+	PostPath    string    `json:"postPath"`
+}
+
+type ReportGrowthJoinsRow struct {
+	ContactID   uuid.UUID `json:"contactId"`
+	Page        string    `json:"page"`
+	Referrer    string    `json:"referrer"`
+	UtmMedium   string    `json:"utmMedium"`
+	UtmCampaign string    `json:"utmCampaign"`
+}
+
+// Contacts who joined since a campaign started through a form or the
+// subscribe page, with their first touch's page, referrer and UTM medium
+// and campaign: the issue's forwards and web-post signups are read from
+// them (review AN-12).
+func (q *Queries) ReportGrowthJoins(ctx context.Context, arg ReportGrowthJoinsParams) ([]ReportGrowthJoinsRow, error) {
+	rows, err := q.db.Query(ctx, reportGrowthJoins, arg.WorkspaceID, arg.Since, arg.PostPath)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportGrowthJoinsRow{}
+	for rows.Next() {
+		var i ReportGrowthJoinsRow
+		if err := rows.Scan(
+			&i.ContactID,
+			&i.Page,
+			&i.Referrer,
+			&i.UtmMedium,
+			&i.UtmCampaign,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const reportGrowthReferrals = `-- name: ReportGrowthReferrals :one
+SELECT count(DISTINCT rf.id)::bigint
+FROM referrals rf
+JOIN messages m ON m.contact_id = rf.referrer_id AND m.campaign_id = $1
+WHERE rf.workspace_id = $2 AND rf.signed_up_at >= $3 AND rf.status <> 'not_counted'
+  AND m.clicked_at IS NOT NULL AND m.clicked_at <= rf.signed_up_at AND m.clicked_at > rf.signed_up_at - interval '7 days'
+  AND NOT EXISTS (
+      SELECT 1 FROM messages o
+      WHERE o.contact_id = rf.referrer_id AND o.campaign_id IS DISTINCT FROM m.campaign_id
+        AND o.clicked_at > m.clicked_at AND o.clicked_at <= rf.signed_up_at)
+`
+
+type ReportGrowthReferralsParams struct {
+	CampaignID  *uuid.UUID `json:"campaignId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Since       time.Time  `json:"since"`
+}
+
+// Referral signups since a campaign started credited to it: it was the
+// last email their referrer clicked, as a person, in the 7 days before the
+// signup (the attribution rule upgrades follow, review AN-12).
+func (q *Queries) ReportGrowthReferrals(ctx context.Context, arg ReportGrowthReferralsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, reportGrowthReferrals, arg.CampaignID, arg.WorkspaceID, arg.Since)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const reportHourly = `-- name: ReportHourly :many
 SELECT hour, opened_human, opened_privacy, opened_machine, clicked
 FROM campaign_hourly
@@ -405,6 +487,29 @@ func (q *Queries) ReportIngestBacklog(ctx context.Context, arg ReportIngestBackl
 		return nil, err
 	}
 	return items, nil
+}
+
+const reportIssuePages = `-- name: ReportIssuePages :one
+SELECT coalesce((SELECT ai.slug FROM archive_issues ai WHERE ai.workspace_id = $1 AND ai.campaign_id = $2), '')::text AS archive_slug,
+       coalesce((SELECT p.slug FROM website_posts p WHERE p.campaign_id = $2 AND p.deleted_at IS NULL LIMIT 1), '')::text AS post_slug
+`
+
+type ReportIssuePagesParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+}
+
+type ReportIssuePagesRow struct {
+	ArchiveSlug string `json:"archiveSlug"`
+	PostSlug    string `json:"postSlug"`
+}
+
+// Where a campaign is on the web: its archive page and its website post.
+func (q *Queries) ReportIssuePages(ctx context.Context, arg ReportIssuePagesParams) (ReportIssuePagesRow, error) {
+	row := q.db.QueryRow(ctx, reportIssuePages, arg.WorkspaceID, arg.CampaignID)
+	var i ReportIssuePagesRow
+	err := row.Scan(&i.ArchiveSlug, &i.PostSlug)
+	return i, err
 }
 
 const reportLatestReadiness = `-- name: ReportLatestReadiness :one
@@ -955,6 +1060,37 @@ func (q *Queries) ReportUnsubscribeReasons(ctx context.Context, arg ReportUnsubs
 	return items, nil
 }
 
+const reportViewedMessages = `-- name: ReportViewedMessages :many
+SELECT id FROM messages WHERE campaign_id = $1 AND id = ANY ($2::uuid[])
+`
+
+type ReportViewedMessagesParams struct {
+	CampaignID *uuid.UUID  `json:"campaignId"`
+	Ids        []uuid.UUID `json:"ids"`
+}
+
+// Which of these messages are a campaign's (view-online pages a signup
+// came from).
+func (q *Queries) ReportViewedMessages(ctx context.Context, arg ReportViewedMessagesParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, reportViewedMessages, arg.CampaignID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const reportWarmupAt = `-- name: ReportWarmupAt :many
 SELECT w.provider_id, w.start_date, w.days, w.engaged_first, w.status
 FROM warmup_plans w
@@ -996,4 +1132,26 @@ func (q *Queries) ReportWarmupAt(ctx context.Context, providerIds []uuid.UUID) (
 		return nil, err
 	}
 	return items, nil
+}
+
+const reportWebViews = `-- name: ReportWebViews :one
+SELECT coalesce(sum(v.views), 0)::bigint
+FROM website_view_days v
+WHERE v.workspace_id = $1
+  AND ((v.page_kind = 'issue' AND v.page_id = $2)
+    OR (v.page_kind = 'post' AND v.page_id IN (SELECT p.id FROM website_posts p WHERE p.campaign_id = $2)))
+`
+
+type ReportWebViewsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+}
+
+// First-party, cookie-free views of a campaign on the web: its archive
+// page and its website post (review AN-13).
+func (q *Queries) ReportWebViews(ctx context.Context, arg ReportWebViewsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, reportWebViews, arg.WorkspaceID, arg.CampaignID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
 }

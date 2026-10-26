@@ -81,6 +81,52 @@ JOIN campaign_counters cc ON cc.campaign_id = r.id
 GROUP BY r.id, r.started_at, cc.mailbox_provider
 ORDER BY r.started_at DESC, cc.mailbox_provider;
 
+-- name: ReportGrowthJoins :many
+-- Contacts who joined since a campaign started through a form or the
+-- subscribe page, with their first touch's page, referrer and UTM medium
+-- and campaign: the issue's forwards and web-post signups are read from
+-- them (review AN-12).
+SELECT g.contact_id, g.page, g.referrer, g.utm_medium, g.utm_campaign
+FROM contact_growth g
+WHERE g.workspace_id = @workspace_id AND g.joined_at >= @since AND g.source_kind IN ('form', 'subscribe_page')
+  AND (g.referrer LIKE '%/view/%' OR g.page LIKE '%/archive/%' OR g.referrer LIKE '%/archive/%' OR g.page LIKE @post_path OR g.referrer LIKE @post_path
+       OR lower(g.utm_medium) = 'forward')
+ORDER BY g.joined_at
+LIMIT 20000;
+
+-- name: ReportViewedMessages :many
+-- Which of these messages are a campaign's (view-online pages a signup
+-- came from).
+SELECT id FROM messages WHERE campaign_id = @campaign_id AND id = ANY (@ids::uuid[]);
+
+-- name: ReportGrowthReferrals :one
+-- Referral signups since a campaign started credited to it: it was the
+-- last email their referrer clicked, as a person, in the 7 days before the
+-- signup (the attribution rule upgrades follow, review AN-12).
+SELECT count(DISTINCT rf.id)::bigint
+FROM referrals rf
+JOIN messages m ON m.contact_id = rf.referrer_id AND m.campaign_id = @campaign_id
+WHERE rf.workspace_id = @workspace_id AND rf.signed_up_at >= @since AND rf.status <> 'not_counted'
+  AND m.clicked_at IS NOT NULL AND m.clicked_at <= rf.signed_up_at AND m.clicked_at > rf.signed_up_at - interval '7 days'
+  AND NOT EXISTS (
+      SELECT 1 FROM messages o
+      WHERE o.contact_id = rf.referrer_id AND o.campaign_id IS DISTINCT FROM m.campaign_id
+        AND o.clicked_at > m.clicked_at AND o.clicked_at <= rf.signed_up_at);
+
+-- name: ReportIssuePages :one
+-- Where a campaign is on the web: its archive page and its website post.
+SELECT coalesce((SELECT ai.slug FROM archive_issues ai WHERE ai.workspace_id = @workspace_id AND ai.campaign_id = @campaign_id), '')::text AS archive_slug,
+       coalesce((SELECT p.slug FROM website_posts p WHERE p.campaign_id = @campaign_id AND p.deleted_at IS NULL LIMIT 1), '')::text AS post_slug;
+
+-- name: ReportWebViews :one
+-- First-party, cookie-free views of a campaign on the web: its archive
+-- page and its website post (review AN-13).
+SELECT coalesce(sum(v.views), 0)::bigint
+FROM website_view_days v
+WHERE v.workspace_id = @workspace_id
+  AND ((v.page_kind = 'issue' AND v.page_id = @campaign_id)
+    OR (v.page_kind = 'post' AND v.page_id IN (SELECT p.id FROM website_posts p WHERE p.campaign_id = @campaign_id)));
+
 -- name: ReportLinkVariants :many
 -- Clicks per link and A/B variant, for each variant's click map (review
 -- AN-5).
