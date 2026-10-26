@@ -171,7 +171,8 @@ func sentMessages(t *testing.T, f *sendtest.Fixture, n int) *script {
 		t.Fatalf("%d of %d sent", got, n)
 	}
 	f.Exec(`DELETE FROM sending_sim_events WHERE campaign_id = $1`, f.Campaign)
-	f.Exec(`UPDATE messages SET status = 'sent', delivered_at = NULL, opened_at = NULL, human_opened_at = NULL, clicked_at = NULL
+	f.Exec(`UPDATE messages SET status = 'sent', delivered_at = NULL, opened_at = NULL, human_opened_at = NULL, clicked_at = NULL,
+		deferred_at = NULL, soft_bounced_at = NULL, unsubscribed_at = NULL, privacy_opened_at = NULL
 		WHERE campaign_id = $1`, f.Campaign)
 	f.Exec(`UPDATE campaign_counters SET delivered = 0, deferred = 0, hard_bounced = 0, soft_bounced = 0, complained = 0, rejected = 0,
 		opened_human = 0, opened_privacy = 0, opened_machine = 0, clicked = 0, unsubscribed = 0 WHERE campaign_id = $1`, f.Campaign)
