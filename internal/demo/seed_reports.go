@@ -32,7 +32,9 @@ func init() { seedReports = seedReportsImpl }
 // to delivery per route and, for the October Product Update, the A/B test.
 // The October Product Update reproduces the Report board.
 
-// Counter metrics of one cell, in this order.
+// Counter metrics of one cell, in this order. Opens are in three buckets
+// (review AN-10): people's (rmHuman), privacy-protected (rmPrivacy: Apple
+// Mail opening every message on delivery) and scanners' (rmMachine).
 const (
 	rmSent = iota
 	rmDelivered
@@ -42,6 +44,7 @@ const (
 	rmMachine
 	rmClicked
 	rmUnsub
+	rmPrivacy
 	rmCount
 )
 
@@ -147,7 +150,7 @@ func seedReportsImpl(ctx context.Context, s *Seeder) error {
 
 func reportLoadCells(ctx context.Context, s *Seeder, c *reportCampaignSeed, adapters map[uuid.UUID]string) error {
 	rows, err := s.Tx.Query(ctx, `SELECT provider_id, mailbox_provider, variant, sent, delivered, hard_bounced + soft_bounced, complained,
-		opened_human, opened_machine, clicked, unsubscribed FROM campaign_counters WHERE campaign_id = $1 ORDER BY provider_id, mailbox_provider, variant`, c.id)
+		opened_human, opened_privacy, opened_machine, clicked, unsubscribed FROM campaign_counters WHERE campaign_id = $1 ORDER BY provider_id, mailbox_provider, variant`, c.id)
 	if err != nil {
 		return err
 	}
@@ -155,7 +158,7 @@ func reportLoadCells(ctx context.Context, s *Seeder, c *reportCampaignSeed, adap
 	for rows.Next() {
 		cell := &reportCell{}
 		if err := rows.Scan(&cell.provider, &cell.mailbox, &cell.variant, &cell.m[rmSent], &cell.m[rmDelivered], &cell.m[rmBounced], &cell.m[rmComplained],
-			&cell.m[rmHuman], &cell.m[rmMachine], &cell.m[rmClicked], &cell.m[rmUnsub]); err != nil {
+			&cell.m[rmHuman], &cell.m[rmPrivacy], &cell.m[rmMachine], &cell.m[rmClicked], &cell.m[rmUnsub]); err != nil {
 			return err
 		}
 		cell.adapter = adapters[cell.provider]
@@ -177,9 +180,10 @@ func (c *reportCampaignSeed) total(k int) int64 {
 var reportMailboxFactor = map[int]map[string]float64{
 	rmDelivered:  {"gmail": 1.003, "outlook": 0.995, "yahoo": 0.999, "icloud": 1.004, "other": 0.997},
 	rmBounced:    {"gmail": 0.67, "outlook": 1.67, "yahoo": 1.17, "icloud": 0.5, "other": 1.33},
-	rmComplained: {"gmail": 0.75, "outlook": 1.5, "yahoo": 1.25, "icloud": 0.1, "other": 1.0},
-	rmHuman:      {"gmail": 1.083, "outlook": 0.876, "yahoo": 0.966, "icloud": 0.757, "other": 0.983},
-	rmMachine:    {"gmail": 0.495, "outlook": 1.15, "yahoo": 0.683, "icloud": 3.17, "other": 0.806},
+	rmComplained: {"gmail": 0, "outlook": 1.5, "yahoo": 1.25, "icloud": 0, "other": 1.0},
+	rmHuman:      {"gmail": 1.138, "outlook": 0.959, "yahoo": 0.993, "icloud": 0.272, "other": 1.027},
+	rmPrivacy:    {"gmail": 0.69, "outlook": 0.73, "yahoo": 0.94, "icloud": 3.67, "other": 0.95},
+	rmMachine:    {"gmail": 0.62, "outlook": 2.0, "yahoo": 0.73, "icloud": 0.27, "other": 1.23},
 	rmClicked:    {"gmail": 1.11, "outlook": 0.84, "yahoo": 0.94, "icloud": 0.81, "other": 1.02},
 	rmUnsub:      {"gmail": 0.89, "outlook": 1.27, "yahoo": 1.1, "icloud": 0.76, "other": 1.02},
 }
@@ -265,7 +269,7 @@ func reportShapeGeneric(c *reportCampaignSeed) {
 	delivered := func(cell *reportCell) int64 { return cell.m[rmDelivered] }
 	reshape(rmDelivered, sent, sent)
 	reshape(rmBounced, sent, func(cell *reportCell) int64 { return cell.m[rmSent] - cell.m[rmDelivered] })
-	for _, k := range []int{rmComplained, rmHuman, rmMachine, rmClicked, rmUnsub} {
+	for _, k := range []int{rmComplained, rmHuman, rmPrivacy, rmMachine, rmClicked, rmUnsub} {
 		reshape(k, delivered, delivered)
 	}
 	mix := reportClassMix
@@ -309,22 +313,27 @@ func (cell *reportCell) splitHardSoft() {
 // A/B test (10% sample each, the winner to the remaining 80% at 12:00).
 var (
 	octMailboxSent = map[string]int64{"gmail": 22071, "outlook": 10076, "yahoo": 4318, "icloud": 3838, "other": 7677}
-	octTotals      = map[int]int64{rmDelivered: 47548, rmBounced: 288, rmComplained: 19, rmHuman: 19590, rmMachine: 8844, rmClicked: 2996, rmUnsub: 112}
-	// Per mailbox provider, in reportMailboxes order (percent; decimals).
+	octTotals      = map[int]int64{rmDelivered: 47548, rmBounced: 288, rmComplained: 19, rmHuman: 19590, rmPrivacy: 10436, rmMachine: 1240, rmClicked: 2996, rmUnsub: 112}
+	// Per mailbox provider, in reportMailboxes order (percent of delivered;
+	// decimals). Human opens are the board's share of measurable (55.3,
+	// 47.0, 51.5, 57.0, 53.4) times the share that isn't privacy-protected.
 	octMailboxRates = map[int][]float64{
-		rmDelivered:  {99.4, 98.6, 99.0, 99.5, 98.8},
-		rmHuman:      {44.6, 36.1, 39.8, 31.2, 40.5},
-		rmMachine:    {9.2, 21.4, 12.7, 58.9, 15.0},
-		rmClicked:    {7.0, 5.3, 5.9, 5.1, 6.4},
-		rmBounced:    {0.4, 1.0, 0.7, 0.3, 0.8},
-		rmComplained: {0.03, 0.06, 0.05, 0.00, 0.04},
+		rmDelivered: {99.4, 98.6, 99.0, 99.5, 98.8},
+		rmHuman:     {46.9, 39.5, 40.9, 11.2, 42.3},
+		rmPrivacy:   {15.2, 16.0, 20.5, 80.4, 20.7},
+		rmMachine:   {1.6, 5.2, 1.9, 0.7, 3.2},
+		rmClicked:   {7.0, 5.3, 5.9, 5.1, 6.4},
+		rmBounced:   {0.4, 1.0, 0.7, 0.3, 0.8},
+		// Gmail and iCloud don't report complaints to senders (review F-2).
+		rmComplained: {0, 0.09, 0.09, 0, 0.08},
 		rmUnsub:      {0.21, 0.30, 0.26, 0.18, 0.24},
 	}
-	octDigits = map[int]int{rmDelivered: 1, rmHuman: 1, rmMachine: 1, rmClicked: 1, rmBounced: 1, rmComplained: 2, rmUnsub: 2}
+	octDigits = map[int]int{rmDelivered: 1, rmHuman: 1, rmPrivacy: 1, rmMachine: 1, rmClicked: 1, rmBounced: 1, rmComplained: 2, rmUnsub: 2}
 	// Per sending provider (SES, Postal).
 	octProviderRates = map[int][]float64{
 		rmDelivered:  {99.2, 98.6},
 		rmHuman:      {41.4, 39.6},
+		rmPrivacy:    {22.0, 21.9},
 		rmClicked:    {6.4, 5.8},
 		rmBounced:    {0.5, 0.9},
 		rmComplained: {0.04, 0.06},
@@ -454,7 +463,7 @@ func reportShapeOctober(c *reportCampaignSeed) error {
 	delivered := func(cell *reportCell) int64 { return cell.m[rmDelivered] }
 	fit(rmDelivered, sent)
 	fit(rmBounced, sent)
-	for _, k := range []int{rmHuman, rmMachine, rmClicked, rmComplained, rmUnsub} {
+	for _, k := range []int{rmHuman, rmPrivacy, rmMachine, rmClicked, rmComplained, rmUnsub} {
 		fit(k, delivered)
 	}
 	// Bounce types: per provider, the board's type totals spread over the
@@ -593,7 +602,7 @@ func reportShapeOctober(c *reportCampaignSeed) error {
 	byDelivered := func(r, v int) float64 { return float64(split[r][v].m[rmDelivered]) }
 	splitMetric(rmDelivered, func(c *reportCell) int64 { return c.m[rmDelivered] }, func(c *reportCell, x int64) { c.m[rmDelivered] = x }, bySent)
 	splitMetric(rmBounced, func(c *reportCell) int64 { return c.m[rmBounced] }, func(c *reportCell, x int64) { c.m[rmBounced] = x }, bySent)
-	for _, k := range []int{rmHuman, rmMachine, rmClicked, rmComplained, rmUnsub} {
+	for _, k := range []int{rmHuman, rmPrivacy, rmMachine, rmClicked, rmComplained, rmUnsub} {
 		k := k
 		splitMetric(k, func(c *reportCell) int64 { return c.m[k] }, func(c *reportCell, x int64) { c.m[k] = x }, byDelivered)
 	}
@@ -648,10 +657,10 @@ func reportWriteCounters(ctx context.Context, s *Seeder, c *reportCampaignSeed) 
 			continue
 		}
 		rows = append(rows, []any{c.id, cell.provider, cell.mailbox, cell.variant, cell.m[rmSent], cell.m[rmDelivered], cell.hard, cell.soft,
-			cell.m[rmComplained], cell.m[rmHuman], cell.m[rmMachine], cell.m[rmClicked], cell.m[rmUnsub]})
+			cell.m[rmComplained], cell.m[rmHuman], cell.m[rmPrivacy], cell.m[rmMachine], cell.m[rmClicked], cell.m[rmUnsub]})
 	}
 	_, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"campaign_counters"}, []string{"campaign_id", "provider_id", "mailbox_provider", "variant", "sent", "delivered",
-		"hard_bounced", "soft_bounced", "complained", "opened_human", "opened_machine", "clicked", "unsubscribed"}, pgx.CopyFromRows(rows))
+		"hard_bounced", "soft_bounced", "complained", "opened_human", "opened_privacy", "opened_machine", "clicked", "unsubscribed"}, pgx.CopyFromRows(rows))
 	return err
 }
 
@@ -843,7 +852,8 @@ func reportCurve(h, fast, tauFast, tauSlow float64) float64 {
 // winner goes out two hours later: the second rise of the chart.
 func reportHourly(ctx context.Context, s *Seeder, c *reportCampaignSeed, ab bool) error {
 	type curve struct{ fast, tauFast, tauSlow float64 }
-	curves := map[int]curve{rmHuman: {0.578, 1.7, 20}, rmMachine: {0.78, 1.0, 14}, rmClicked: {0.72, 1.2, 12}}
+	// Privacy-protected opens come as the mail arrives.
+	curves := map[int]curve{rmHuman: {0.578, 1.7, 20}, rmPrivacy: {0.92, 0.35, 10}, rmMachine: {0.9, 0.2, 6}, rmClicked: {0.72, 1.2, 12}}
 	cum := func(k int, h float64) float64 {
 		cv := curves[k]
 		if !ab {
@@ -852,7 +862,7 @@ func reportHourly(ctx context.Context, s *Seeder, c *reportCampaignSeed, ab bool
 		return 0.2*reportCurve(h, cv.fast, cv.tauFast, cv.tauSlow) + 0.8*reportCurve(h-2, cv.fast, cv.tauFast, cv.tauSlow)/reportCurve(70, cv.fast, cv.tauFast, cv.tauSlow)
 	}
 	counts := map[int][]int64{}
-	for _, k := range []int{rmHuman, rmMachine, rmClicked} {
+	for _, k := range []int{rmHuman, rmPrivacy, rmMachine, rmClicked} {
 		w := make([]float64, 72)
 		for h := 0; h < 72; h++ {
 			w[h] = math.Max(cum(k, float64(h+1))-cum(k, float64(h)), 0)
@@ -861,12 +871,12 @@ func reportHourly(ctx context.Context, s *Seeder, c *reportCampaignSeed, ab bool
 	}
 	rows := make([][]any, 0, 72)
 	for h := 0; h < 72; h++ {
-		rows = append(rows, []any{c.id, int32(h), counts[rmHuman][h], counts[rmMachine][h], counts[rmClicked][h]})
+		rows = append(rows, []any{c.id, int32(h), counts[rmHuman][h], counts[rmPrivacy][h], counts[rmMachine][h], counts[rmClicked][h]})
 	}
 	if _, err := s.Tx.Exec(ctx, `DELETE FROM campaign_hourly WHERE campaign_id = $1`, c.id); err != nil {
 		return err
 	}
-	_, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"campaign_hourly"}, []string{"campaign_id", "hour", "opened_human", "opened_machine", "clicked"}, pgx.CopyFromRows(rows))
+	_, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"campaign_hourly"}, []string{"campaign_id", "hour", "opened_human", "opened_privacy", "opened_machine", "clicked"}, pgx.CopyFromRows(rows))
 	return err
 }
 

@@ -311,7 +311,7 @@ func (q *Queries) ReportCounterCells(ctx context.Context, campaignID uuid.UUID) 
 }
 
 const reportHourly = `-- name: ReportHourly :many
-SELECT hour, opened_human, opened_machine, clicked
+SELECT hour, opened_human, opened_privacy, opened_machine, clicked
 FROM campaign_hourly
 WHERE campaign_id = $1 AND hour <= $2
 ORDER BY hour
@@ -325,6 +325,7 @@ type ReportHourlyParams struct {
 type ReportHourlyRow struct {
 	Hour          int32 `json:"hour"`
 	OpenedHuman   int64 `json:"openedHuman"`
+	OpenedPrivacy int64 `json:"openedPrivacy"`
 	OpenedMachine int64 `json:"openedMachine"`
 	Clicked       int64 `json:"clicked"`
 }
@@ -341,6 +342,7 @@ func (q *Queries) ReportHourly(ctx context.Context, arg ReportHourlyParams) ([]R
 		if err := rows.Scan(
 			&i.Hour,
 			&i.OpenedHuman,
+			&i.OpenedPrivacy,
 			&i.OpenedMachine,
 			&i.Clicked,
 		); err != nil {

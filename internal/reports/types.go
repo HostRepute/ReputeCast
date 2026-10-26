@@ -60,18 +60,30 @@ type ReportProviderCount struct {
 // ReportHeadline holds the headline tiles. Rates are percentages: delivered
 // and bounces of sent; opens, clicks, unsubscribes and complaints of
 // delivered; click-to-open of human opens.
+//
+// Opens are in three buckets (review AN-10): people's (HumanOpens),
+// privacy-protected (PrivacyOpens: Apple Mail opens every message on
+// delivery, so whether anyone read it can't be measured) and scanners'
+// (MachineOpens, left out). Measurable are the delivered recipients whose
+// opens can be measured (all but the privacy-protected), and
+// HumanOpenRateMeasurable is human opens of them: "41.2% of delivered ·
+// 52.8% of measurable".
 type ReportHeadline struct {
-	Sent            int64                 `json:"sent"`
-	SentBy          []ReportProviderCount `json:"sentBy"`
-	Delivered       int64                 `json:"delivered"`
-	DeliveredRate   *float64              `json:"deliveredRate,omitempty"`
-	HumanOpens      int64                 `json:"humanOpens"`
-	HumanOpenRate   *float64              `json:"humanOpenRate,omitempty"`
-	MachineOpens    int64                 `json:"machineOpens"`
-	MachineOpenRate *float64              `json:"machineOpenRate,omitempty"`
-	Clicks          int64                 `json:"clicks"`
-	ClickRate       *float64              `json:"clickRate,omitempty"`
-	ClickToOpen     *float64              `json:"clickToOpen,omitempty"`
+	Sent                    int64                 `json:"sent"`
+	SentBy                  []ReportProviderCount `json:"sentBy"`
+	Delivered               int64                 `json:"delivered"`
+	DeliveredRate           *float64              `json:"deliveredRate,omitempty"`
+	HumanOpens              int64                 `json:"humanOpens"`
+	HumanOpenRate           *float64              `json:"humanOpenRate,omitempty"`
+	Measurable              int64                 `json:"measurable"`
+	HumanOpenRateMeasurable *float64              `json:"humanOpenRateMeasurable,omitempty"`
+	PrivacyOpens            int64                 `json:"privacyOpens"`
+	PrivacyOpenRate         *float64              `json:"privacyOpenRate,omitempty"`
+	MachineOpens            int64                 `json:"machineOpens" doc:"Scanner opens, left out of every rate"`
+	MachineOpenRate         *float64              `json:"machineOpenRate,omitempty"`
+	Clicks                  int64                 `json:"clicks"`
+	ClickRate               *float64              `json:"clickRate,omitempty"`
+	ClickToOpen             *float64              `json:"clickToOpen,omitempty"`
 	// BotClicks are the clicks on the email's links the bot filter left
 	// out (scanners following every link, the hidden link's scanners).
 	BotClicks       int64    `json:"botClicks"`
@@ -79,10 +91,15 @@ type ReportHeadline struct {
 	UnsubscribeRate *float64 `json:"unsubscribeRate,omitempty"`
 	Complaints      int64    `json:"complaints"`
 	ComplaintRate   *float64 `json:"complaintRate,omitempty"`
-	Bounces         int64    `json:"bounces"`
-	HardBounces     int64    `json:"hardBounces"`
-	SoftBounces     int64    `json:"softBounces"`
-	BounceRate      *float64 `json:"bounceRate,omitempty"`
+	// ComplaintRateReported is complaints of the messages delivered to
+	// mailbox providers that report complaints; NotReportedBy names the
+	// ones in this send that don't ("Gmail", "iCloud", review F-2).
+	ComplaintRateReported *float64 `json:"complaintRateReported,omitempty"`
+	NotReportedBy         []string `json:"notReportedBy"`
+	Bounces               int64    `json:"bounces"`
+	HardBounces           int64    `json:"hardBounces"`
+	SoftBounces           int64    `json:"softBounces"`
+	BounceRate            *float64 `json:"bounceRate,omitempty"`
 	// Rejected: the providers refused them, when they were handed over or
 	// afterwards; they were never sent.
 	Rejected int64 `json:"rejected"`
@@ -96,6 +113,7 @@ type ReportHeadline struct {
 type ReportEngagementPoint struct {
 	Hour         int   `json:"hour"`
 	HumanOpens   int64 `json:"humanOpens"`
+	PrivacyOpens int64 `json:"privacyOpens"`
 	MachineOpens int64 `json:"machineOpens"`
 	Clicks       int64 `json:"clicks"`
 }
@@ -210,14 +228,23 @@ type ReportVariantClickMap struct {
 
 // ReportRates are a slice of the send's results. Rates as in ReportHeadline.
 type ReportRates struct {
-	Sent            int64    `json:"sent"`
-	Delivered       int64    `json:"delivered"`
-	DeliveredRate   *float64 `json:"deliveredRate,omitempty"`
-	HumanOpenRate   *float64 `json:"humanOpenRate,omitempty"`
-	MachineOpenRate *float64 `json:"machineOpenRate,omitempty"`
-	ClickRate       *float64 `json:"clickRate,omitempty"`
-	BounceRate      *float64 `json:"bounceRate,omitempty"`
-	ComplaintRate   *float64 `json:"complaintRate,omitempty"`
+	Sent          int64    `json:"sent"`
+	Delivered     int64    `json:"delivered"`
+	DeliveredRate *float64 `json:"deliveredRate,omitempty"`
+	HumanOpenRate *float64 `json:"humanOpenRate,omitempty"`
+	// Measurable and HumanOpenRateMeasurable: human opens of the recipients
+	// whose opens can be measured; PrivacyOpenRate: privacy-protected opens
+	// of delivered (review AN-10).
+	Measurable              int64    `json:"measurable"`
+	HumanOpenRateMeasurable *float64 `json:"humanOpenRateMeasurable,omitempty"`
+	PrivacyOpenRate         *float64 `json:"privacyOpenRate,omitempty"`
+	MachineOpenRate         *float64 `json:"machineOpenRate,omitempty"`
+	ClickRate               *float64 `json:"clickRate,omitempty"`
+	BounceRate              *float64 `json:"bounceRate,omitempty"`
+	ComplaintRate           *float64 `json:"complaintRate,omitempty"`
+	// ComplaintRateNA says why ComplaintRate is empty: not_reported (the
+	// mailbox provider doesn't report complaints to senders, review F-2).
+	ComplaintRateNA string   `json:"complaintRateNa,omitempty" enum:"not_reported"`
 	UnsubscribeRate *float64 `json:"unsubscribeRate,omitempty"`
 }
 

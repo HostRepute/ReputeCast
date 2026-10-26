@@ -21,7 +21,10 @@ type report struct {
 	}
 	Headline struct {
 		Sent, Delivered, HumanOpens, MachineOpens, Clicks, Unsubscribes, Complaints, Bounces, Undelivered int64
-		DeliveredRate, HumanOpenRate, ClickToOpen                                                         float64
+		PrivacyOpens, Measurable                                                                          int64
+		DeliveredRate, HumanOpenRate, ClickToOpen, HumanOpenRateMeasurable, PrivacyOpenRate               float64
+		ComplaintRateReported                                                                             *float64
+		NotReportedBy                                                                                     []string
 		SentBy                                                                                            []struct {
 			Short string
 			Count int64
@@ -146,9 +149,19 @@ func TestCampaignReport(t *testing.T) {
 	c.Do("GET", base, nil).MustStatus(t, 200).JSON(t, &r)
 	h := r.Headline
 	// The Report board's headline (and the spec's sample data).
-	if h.Sent != 47980 || h.Delivered != 47548 || h.HumanOpens != 19590 || h.MachineOpens != 8844 || h.Clicks != 2996 ||
+	if h.Sent != 47980 || h.Delivered != 47548 || h.HumanOpens != 19590 || h.MachineOpens != 1240 || h.Clicks != 2996 ||
 		h.Unsubscribes != 112 || h.Complaints != 19 || h.Bounces != 288 || h.Undelivered != 144 {
 		t.Fatalf("headline: %+v", h)
+	}
+	// Opens in three buckets, and the measurable rate (review AN-10):
+	// "41.2% of delivered · 52.8% of measurable".
+	if h.PrivacyOpens != 10436 || h.Measurable != 37112 || fmt.Sprintf("%.1f", h.HumanOpenRate) != "41.2" || fmt.Sprintf("%.1f", h.HumanOpenRateMeasurable) != "52.8" ||
+		fmt.Sprintf("%.1f", h.PrivacyOpenRate) != "21.9" {
+		t.Fatalf("open buckets: %+v", h)
+	}
+	// Complaints where they are reported (review F-2).
+	if len(h.NotReportedBy) != 2 || h.NotReportedBy[0] != "Gmail" || h.NotReportedBy[1] != "iCloud" || h.ComplaintRateReported == nil || fmt.Sprintf("%.2f", *h.ComplaintRateReported) != "0.09" {
+		t.Fatalf("complaints where reported: %+v", h)
 	}
 	if len(h.SentBy) != 2 || h.SentBy[0].Short != "SES" || h.SentBy[0].Count != 43182 || h.SentBy[1].Count != 4798 {
 		t.Fatalf("sent by: %+v", h.SentBy)
@@ -310,7 +323,8 @@ func TestReportExportAndSuppress(t *testing.T) {
 		t.Fatalf("disposition %q", cd)
 	}
 	body := string(res.Body)
-	for _, want := range []string{"Campaign report,October Product Update", "Gmail,22071", "Hard · unknown user,171", "Too many emails,41", "Two-proportion z-test"} {
+	for _, want := range []string{"Campaign report,October Product Update", "Gmail,22071", "Hard · unknown user,171", "Too many emails,41", "Two-proportion z-test",
+		"Privacy-protected opens,10436", "Scanner opens (left out),1240", "n/a (not reported)", "Bot clicks (left out),1108"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("CSV lacks %q", want)
 		}

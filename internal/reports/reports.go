@@ -23,6 +23,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/linkrule"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	provstate "github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/secrets"
@@ -150,6 +151,7 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 		}
 		out.NotSent = ns
 		out.Headline.SentBy = []ReportProviderCount{}
+		out.Headline.NotReportedBy = []string{}
 		out.Engagement.Points = []ReportEngagementPoint{}
 		out.ClickMap.Links = []ReportLink{}
 		out.ClickMap.Variants = []ReportVariantClickMap{}
@@ -318,6 +320,7 @@ func (a counts) rates() ReportRates {
 	return ReportRates{
 		Sent: a.sent, Delivered: a.delivered,
 		DeliveredRate: rate(a.delivered, a.sent), HumanOpenRate: rate(a.human, a.delivered), MachineOpenRate: rate(a.machine, a.delivered),
+		Measurable: a.measurable(), HumanOpenRateMeasurable: rate(a.human, a.measurable()), PrivacyOpenRate: rate(a.privacy, a.delivered),
 		ClickRate: rate(a.clicked, a.delivered), BounceRate: rate(a.hard+a.soft, a.sent), ComplaintRate: rate(a.complained, a.delivered),
 		UnsubscribeRate: rate(a.unsub, a.delivered),
 	}
@@ -361,6 +364,7 @@ func headline(cells []store.ReportCounterCellsRow, origin string) (ReportHeadlin
 	h := ReportHeadline{
 		Sent: all.sent, SentBy: []ReportProviderCount{}, Delivered: all.delivered, DeliveredRate: rate(all.delivered, all.sent),
 		HumanOpens: all.human, HumanOpenRate: rate(all.human, all.delivered), MachineOpens: all.machine, MachineOpenRate: rate(all.machine, all.delivered),
+		Measurable: all.measurable(), HumanOpenRateMeasurable: rate(all.human, all.measurable()), PrivacyOpens: all.privacy, PrivacyOpenRate: rate(all.privacy, all.delivered),
 		Clicks: all.clicked, ClickRate: rate(all.clicked, all.delivered), ClickToOpen: rate(all.clicked, all.human),
 		Unsubscribes: all.unsub, UnsubscribeRate: rate(all.unsub, all.delivered), Complaints: all.complained, ComplaintRate: rate(all.complained, all.delivered),
 		Bounces: all.hard + all.soft, HardBounces: all.hard, SoftBounces: all.soft, BounceRate: rate(all.hard+all.soft, all.sent), Rejected: all.rejected,
@@ -373,12 +377,28 @@ func headline(cells []store.ReportCounterCellsRow, origin string) (ReportHeadlin
 		h.SentBy = append(h.SentBy, *byProvider[id])
 	}
 	sort.SliceStable(h.SentBy, func(i, j int) bool { return h.SentBy[i].Count > h.SentBy[j].Count })
+	// Complaints only where they are reported (review F-2): Gmail and
+	// iCloud never tell senders, so their rate is n/a with the reason, and
+	// the headline's rate where reported leaves their deliveries out.
 	rows := []ReportMailboxRow{}
+	h.NotReportedBy = []string{}
+	var reported counts
 	for _, m := range mailboxes {
-		if c := byMailbox[m.key]; c != nil && c.sent > 0 {
-			rows = append(rows, ReportMailboxRow{Key: m.key, Name: m.name, ReportRates: c.rates()})
+		c := byMailbox[m.key]
+		if c == nil || c.sent == 0 {
+			continue
 		}
+		r := ReportMailboxRow{Key: m.key, Name: m.name, ReportRates: c.rates()}
+		if mailbox.ReportsComplaints(m.key) {
+			reported.delivered += c.delivered
+			reported.complained += c.complained
+		} else {
+			r.ComplaintRate, r.ComplaintRateNA = nil, mailbox.NotReported
+			h.NotReportedBy = append(h.NotReportedBy, m.name)
+		}
+		rows = append(rows, r)
 	}
+	h.ComplaintRateReported = rate(reported.complained, reported.delivered)
 	return h, rows
 }
 
@@ -500,15 +520,16 @@ func engagement(rows []store.ReportHourlyRow, delivered int64, hours int) Report
 		last = max(last, int(r.Hour)+1)
 	}
 	end := max(min(hours, 72), min(last, 72))
-	var h, m, k int64
+	var h, p, m, k int64
 	out.Points = append(out.Points, ReportEngagementPoint{Hour: 0})
 	var at6 int64
 	for i := 0; i < end; i++ {
 		r := byHour[i]
 		h += r.OpenedHuman
+		p += r.OpenedPrivacy
 		m += r.OpenedMachine
 		k += r.Clicked
-		out.Points = append(out.Points, ReportEngagementPoint{Hour: i + 1, HumanOpens: h, MachineOpens: m, Clicks: k})
+		out.Points = append(out.Points, ReportEngagementPoint{Hour: i + 1, HumanOpens: h, PrivacyOpens: p, MachineOpens: m, Clicks: k})
 		if i+1 == 6 {
 			at6 = h
 		}

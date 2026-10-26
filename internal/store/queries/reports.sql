@@ -38,7 +38,7 @@ WHERE cr.campaign_id = @campaign_id
 ORDER BY cr.planned DESC, p.name;
 
 -- name: ReportHourly :many
-SELECT hour, opened_human, opened_machine, clicked
+SELECT hour, opened_human, opened_privacy, opened_machine, clicked
 FROM campaign_hourly
 WHERE campaign_id = @campaign_id AND hour <= @max_hour
 ORDER BY hour;
