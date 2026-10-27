@@ -3324,6 +3324,11 @@ type Querier interface {
 	// The A/B winner goes to everyone who waited for it.
 	SendingReleaseHeld(ctx context.Context, arg SendingReleaseHeldParams) (int64, error)
 	SendingRemainingOn(ctx context.Context, arg SendingRemainingOnParams) (int64, error)
+	// GS-12: mailbox provider response rules ------------------------------------
+	// How many of a mailbox provider's replies in a send contained a text since
+	// a time, per sending provider: the deferrals and bounces the providers
+	// report. The text is matched as plain text, not case-sensitive.
+	SendingReplyMatches(ctx context.Context, arg SendingReplyMatchesParams) ([]SendingReplyMatchesRow, error)
 	// Guarded sending and the live monitor (review 2026-10, M34).
 	// GS-1: messages in doubt -------------------------------------------------
 	// Stale claims of providers that dedupe by message id, still inside the
@@ -3341,6 +3346,8 @@ type Querier interface {
 	SendingRetryNow(ctx context.Context, arg SendingRetryNowParams) error
 	SendingRoutes(ctx context.Context, campaignID uuid.UUID) ([]SendingRoutesRow, error)
 	SendingSavePrepare(ctx context.Context, arg SendingSavePrepareParams) error
+	// How many seed inboxes a workspace connected.
+	SendingSeedCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	SendingSegmentNames(ctx context.Context, workspaceID uuid.UUID) ([]SendingSegmentNamesRow, error)
 	SendingSentSince(ctx context.Context, arg SendingSentSinceParams) ([]SendingSentSinceRow, error)
 	// What a send sent to each mailbox provider since a time.
@@ -3768,6 +3775,20 @@ type Querier interface {
 	// last_open_at counts every open, last_human_open_at only people's (tiers
 	// and the sunset policy use it); last_open_machine says what the latest was.
 	TrackingTouchContactOpen(ctx context.Context, arg TrackingTouchContactOpenParams) error
+	// What the traffic rules did lately in a workspace: auto-pauses,
+	// slowdowns, reply rules, canaries and complaint alerts, newest first.
+	TrafficRecentActions(ctx context.Context, arg TrafficRecentActionsParams) ([]TrafficRecentActionsRow, error)
+	// The audiences of a workspace's last 8 sends that went out: the canary's
+	// usual size is their median.
+	TrafficRecentAudiences(ctx context.Context, workspaceID uuid.UUID) ([]int64, error)
+	TrafficReplyRuleDelete(ctx context.Context, arg TrafficReplyRuleDeleteParams) (int64, error)
+	TrafficReplyRuleInsert(ctx context.Context, arg TrafficReplyRuleInsertParams) error
+	// A rule acted in a send.
+	TrafficReplyRuleMatched(ctx context.Context, arg TrafficReplyRuleMatchedParams) error
+	TrafficReplyRuleUpdate(ctx context.Context, arg TrafficReplyRuleUpdateParams) (int64, error)
+	// A workspace's mailbox provider response rules, in their order (GS-12).
+	TrafficReplyRules(ctx context.Context, workspaceID uuid.UUID) ([]TrafficReplyRule, error)
+	TrafficReplyRulesEnabled(ctx context.Context, workspaceID uuid.UUID) ([]TrafficReplyRule, error)
 	// Traffic rules (Sending providers › Traffic rules, review 2026-10, M34):
 	// the canary defaults, the complaint watch after a send and the mailbox
 	// provider response rules of a workspace.

@@ -27,6 +27,10 @@ type guardState struct {
 	// ("block:outlook", "unknown2:"), when (review GS-11): each acts once
 	// until a person resumes its scope.
 	Acted map[string]time.Time `json:"acted,omitempty"`
+	// Replies are what the reply rules did, by rule (GS-12); ReplyCounts
+	// their matches in their windows, for the live monitor.
+	Replies     map[string]replyAct `json:"replies,omitempty"`
+	ReplyCounts map[string]int64    `json:"replyCounts,omitempty"`
 }
 
 // counts are a scope's counters at a moment.
@@ -119,6 +123,17 @@ func (g *guardState) clearActed(mbp string) {
 	for k := range g.Acted {
 		if mbp == "" || strings.HasSuffix(k, ":"+mbp) {
 			delete(g.Acted, k)
+		}
+	}
+}
+
+// endReplies records that a person resumed a mailbox provider a reply rule
+// held: the rule counts only new replies from now on.
+func (g *guardState) endReplies(mbp string) {
+	for id, a := range g.Replies {
+		if a.Mailbox == mbp && !a.Ended && (a.Action == "pause" || a.Action == "pause_route") {
+			a.Ended = true
+			g.Replies[id] = a
 		}
 	}
 }

@@ -14371,6 +14371,99 @@
         ],
         "type": "object"
       },
+      "Canary": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "gates": {
+            "$ref": "#/components/schemas/CanaryGates"
+          },
+          "neverMailed": {
+            "type": "boolean"
+          },
+          "newDomain": {
+            "type": "boolean"
+          },
+          "overUsual": {
+            "type": "boolean"
+          },
+          "percent": {
+            "format": "double",
+            "maximum": 20,
+            "minimum": 1,
+            "type": "number"
+          },
+          "seeds": {
+            "type": "boolean"
+          },
+          "watchMinutes": {
+            "enum": [
+              10,
+              20,
+              30,
+              60
+            ],
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "newDomain",
+          "neverMailed",
+          "overUsual",
+          "percent",
+          "seeds",
+          "watchMinutes",
+          "gates"
+        ],
+        "type": "object"
+      },
+      "CanaryGates": {
+        "additionalProperties": false,
+        "properties": {
+          "blockBounce": {
+            "format": "double",
+            "maximum": 20,
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "bounce": {
+            "format": "double",
+            "maximum": 20,
+            "minimum": 0.1,
+            "type": "number"
+          },
+          "complaint": {
+            "format": "double",
+            "maximum": 5,
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "deferral": {
+            "format": "double",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "number"
+          },
+          "seedSpam": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bounce",
+          "blockBounce",
+          "deferral",
+          "complaint",
+          "seedSpam"
+        ],
+        "type": "object"
+      },
       "CancelInput": {
         "additionalProperties": false,
         "properties": {
@@ -40861,6 +40954,10 @@
             "format": "date-time",
             "type": "string"
           },
+          "heldUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
           "key": {
             "enum": [
               "gmail",
@@ -41568,6 +41665,10 @@
             "type": "string"
           },
           "base": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "duration": {
             "format": "int64",
             "type": "integer"
           },
@@ -80834,6 +80935,341 @@
         ],
         "type": "object"
       },
+      "TrafficAction": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "campaign": {
+            "type": "string"
+          },
+          "campaignId": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "threshold",
+              "reply_rule",
+              "canary",
+              "complaint_watch"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "campaignId",
+          "campaign",
+          "kind",
+          "text"
+        ],
+        "type": "object"
+      },
+      "TrafficReplyRule": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "slow",
+              "pause",
+              "pause_route",
+              "alert"
+            ],
+            "type": "string"
+          },
+          "contains": {
+            "description": "Matched as plain text, not case-sensitive, anywhere in the reply",
+            "maxLength": 120,
+            "minLength": 2,
+            "type": "string"
+          },
+          "count": {
+            "format": "int64",
+            "maximum": 10000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "durationMinutes": {
+            "format": "int64",
+            "maximum": 10080,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastCampaign": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "lastMatchedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "mailbox": {
+            "enum": [
+              "gmail",
+              "outlook",
+              "yahoo",
+              "icloud",
+              "other"
+            ],
+            "type": "string"
+          },
+          "means": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "note": {
+            "description": "What the reply means, in the rule's own words",
+            "maxLength": 300,
+            "type": "string"
+          },
+          "windowMinutes": {
+            "format": "int64",
+            "maximum": 1440,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "mailbox",
+          "contains",
+          "count",
+          "windowMinutes",
+          "action",
+          "durationMinutes",
+          "enabled"
+        ],
+        "type": "object"
+      },
+      "TrafficRules": {
+        "additionalProperties": false,
+        "properties": {
+          "canManage": {
+            "type": "boolean"
+          },
+          "canary": {
+            "$ref": "#/components/schemas/Canary"
+          },
+          "recent": {
+            "items": {
+              "$ref": "#/components/schemas/TrafficAction"
+            },
+            "type": "array"
+          },
+          "replyRules": {
+            "items": {
+              "$ref": "#/components/schemas/TrafficReplyRule"
+            },
+            "type": "array"
+          },
+          "resumers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "savedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "savedBy": {
+            "type": "string"
+          },
+          "seeds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "thresholds": {
+            "$ref": "#/components/schemas/TrafficThresholds"
+          },
+          "usual": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "watch": {
+            "$ref": "#/components/schemas/Watch"
+          }
+        },
+        "required": [
+          "thresholds",
+          "replyRules",
+          "canary",
+          "watch",
+          "seeds",
+          "resumers",
+          "usual",
+          "canManage",
+          "recent"
+        ],
+        "type": "object"
+      },
+      "TrafficRulesInput": {
+        "additionalProperties": false,
+        "properties": {
+          "canary": {
+            "$ref": "#/components/schemas/Canary"
+          },
+          "replyRules": {
+            "items": {
+              "$ref": "#/components/schemas/TrafficReplyRule"
+            },
+            "maxItems": 50,
+            "type": "array"
+          },
+          "thresholds": {
+            "$ref": "#/components/schemas/TrafficThresholds"
+          },
+          "watch": {
+            "$ref": "#/components/schemas/Watch"
+          }
+        },
+        "required": [
+          "thresholds",
+          "replyRules",
+          "canary",
+          "watch"
+        ],
+        "type": "object"
+      },
+      "TrafficThresholds": {
+        "additionalProperties": false,
+        "properties": {
+          "blockAction": {
+            "enum": [
+              "pause_mailbox",
+              "slow",
+              "pause_send",
+              "warn"
+            ],
+            "type": "string"
+          },
+          "blockBounce": {
+            "format": "double",
+            "maximum": 20,
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "complaint": {
+            "description": "Complaints per mailbox provider, where they're reported",
+            "format": "double",
+            "maximum": 5,
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "complaintAction": {
+            "enum": [
+              "pause_mailbox",
+              "pause_send",
+              "warn"
+            ],
+            "type": "string"
+          },
+          "deferral": {
+            "format": "double",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "number"
+          },
+          "deferralAction": {
+            "enum": [
+              "pause_mailbox",
+              "slow",
+              "warn"
+            ],
+            "type": "string"
+          },
+          "deferralSlow": {
+            "format": "double",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "number"
+          },
+          "deferralSlowAction": {
+            "enum": [
+              "slow",
+              "pause_mailbox",
+              "warn"
+            ],
+            "type": "string"
+          },
+          "deferralSlowWindow": {
+            "enum": [
+              5,
+              10,
+              15,
+              30
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "deferralWindow": {
+            "enum": [
+              5,
+              10,
+              15,
+              30
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "unknownPause": {
+            "format": "double",
+            "maximum": 50,
+            "minimum": 0.1,
+            "type": "number"
+          },
+          "unknownPauseAction": {
+            "enum": [
+              "pause_send",
+              "warn",
+              "slow"
+            ],
+            "type": "string"
+          },
+          "unknownWarn": {
+            "format": "double",
+            "maximum": 50,
+            "minimum": 0.1,
+            "type": "number"
+          },
+          "unknownWarnAction": {
+            "enum": [
+              "warn",
+              "slow",
+              "pause_send"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "blockBounce",
+          "blockAction",
+          "unknownWarn",
+          "unknownWarnAction",
+          "unknownPause",
+          "unknownPauseAction",
+          "deferralSlow",
+          "deferralSlowWindow",
+          "deferralSlowAction",
+          "deferral",
+          "deferralWindow",
+          "deferralAction",
+          "complaint",
+          "complaintAction"
+        ],
+        "type": "object"
+      },
       "TransactionalAccess": {
         "additionalProperties": false,
         "properties": {
@@ -88070,6 +88506,37 @@
         "required": [
           "day",
           "value"
+        ],
+        "type": "object"
+      },
+      "Watch": {
+        "additionalProperties": false,
+        "properties": {
+          "alert": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "hours": {
+            "enum": [
+              24,
+              48,
+              72,
+              168
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "postmaster": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "hours",
+          "alert",
+          "postmaster"
         ],
         "type": "object"
       },
@@ -161303,6 +161770,128 @@
         ],
         "x-access": "workspace",
         "x-permission": "providers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/traffic-rules": {
+      "get": {
+        "operationId": "get-traffic-rules",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrafficRules"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A workspace's traffic rules: thresholds by bounce type, reply rules, canary, complaint watch",
+        "tags": [
+          "Traffic rules"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:view"
+      },
+      "put": {
+        "operationId": "save-traffic-rules",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrafficRulesInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrafficRules"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save a workspace's traffic rules (audited)",
+        "tags": [
+          "Traffic rules"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:manage"
       }
     },
     "/api/v1/workspaces/{workspace}/transactional/alerts/{alertId}/seen": {

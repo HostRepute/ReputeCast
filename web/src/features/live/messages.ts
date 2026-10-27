@@ -39,6 +39,7 @@ export const m = defineMessages('live', {
   colRate: 'Rate',
   colStatus: 'Status',
   perProvider: 'Per sending provider',
+  workspaceDefaults: 'Workspace defaults',
   // Plain SMTP reports no deliveries: they're inferred from the server's acceptance (review GS-7).
   deliveredInferred: 'inferred',
   inferredNote: 'Delivered (inferred): plain SMTP reports no deliveries, so a message counts as delivered once the server accepts it. Bounces and complaints still arrive as reports.',

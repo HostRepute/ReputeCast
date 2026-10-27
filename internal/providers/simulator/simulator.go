@@ -347,7 +347,7 @@ func (p *Provider) Plan(m providers.Message) []Event {
 		return out
 	case roll < rt.bounce+rt.deferral:
 		def := sec(1, 8)
-		out = append(out, p.deferral(mbp, def))
+		out = append(out, p.deferral(mbp, def, rng(m.ID, 0x7553_5304).Float64() < 0.025))
 		deliveredAt = def + 5*time.Minute + sec(0, 40)
 	}
 	out = append(out, Event{Kind: "delivered", After: deliveredAt, OriginalType: p.deliveredType(), Code: p.deliveredCode()})
@@ -461,12 +461,15 @@ func (p *Provider) softBounce(mbp string, after time.Duration) Event {
 	return Event{Kind: "soft_bounce", After: after, OriginalType: typ, Code: "452 4.2.2", Diagnostic: "mailbox full", BounceClass: "mailbox_full"}
 }
 
-func (p *Provider) deferral(mbp string, after time.Duration) Event {
+// deferral is a deferral's event. Yahoo says TSS04 in about one deferral
+// in forty, as on the boards ("TSS04: 1 of 10 replies" in ten minutes),
+// so the demo's reply rule acts only when Yahoo really pushes back.
+func (p *Provider) deferral(mbp string, after time.Duration, tss04 bool) Event {
 	typ := "DeliveryDelay"
 	if p.s.Mimic == "postal" {
 		typ = "MessageDelayed"
 	}
-	if mbp == "yahoo" {
+	if mbp == "yahoo" && tss04 {
 		return Event{Kind: "deferred", After: after, OriginalType: typ, Code: "421 4.7.0 TSS04", Diagnostic: "retry in 5 min", BounceClass: "temporary"}
 	}
 	return Event{Kind: "deferred", After: after, OriginalType: typ, Code: "451 4.7.1", Diagnostic: "temporarily deferred, retry in 5 min", BounceClass: "temporary"}

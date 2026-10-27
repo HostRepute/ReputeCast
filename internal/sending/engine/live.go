@@ -174,6 +174,8 @@ type LiveMailbox struct {
 	DoneAt    *time.Time `json:"doneAt,omitempty"`
 	Held      bool       `json:"held"`
 	HeldSince *time.Time `json:"heldSince,omitempty"`
+	// HeldUntil is when a timed hold ends by itself (a reply rule's).
+	HeldUntil *time.Time `json:"heldUntil,omitempty"`
 	Status    string     `json:"status" enum:"ok,sending,paused,done"`
 }
 
@@ -257,7 +259,7 @@ func liveETAs(s *LiveSnapshot, queue map[queueKey]queueCell, holds map[string]ho
 	cell := map[queueKey]int64{}
 	for k, c := range queue {
 		n := c.queued - c.waiting
-		if h, on := holds[k.mailbox]; n <= 0 || heldProviders[k.provider] || (on && !h.Resumed) {
+		if n <= 0 || heldProviders[k.provider] || holdBlocks(holds, k.mailbox, k.provider) {
 			continue
 		}
 		left[k.mailbox] += n
@@ -355,6 +357,9 @@ type LiveThreshold struct {
 	// warn).
 	Window int    `json:"window,omitempty"`
 	Action string `json:"action,omitempty"`
+	// Duration is how long a reply rule's action lasts, in minutes (0:
+	// until someone resumes).
+	Duration int `json:"duration,omitempty"`
 	// Parts break the row down: the API error rate per sending provider,
 	// the mailbox providers a whole-send complaint rate counts.
 	Parts []LiveThresholdPart `json:"parts,omitempty"`
@@ -774,7 +779,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		if h, ok := holds[k]; ok && !h.Resumed {
 			lm.Held, lm.Status = true, "paused"
 			since := h.Since
-			lm.HeldSince = &since
+			lm.HeldSince, lm.HeldUntil = &since, h.Until
 			s.MailboxesHeld = append(s.MailboxesHeld, lm.Name)
 			s.text.held = append(s.text.held, k)
 		} else if lm.Remaining > 0 && (s.State == "sending" || s.State == "partial") {
@@ -809,13 +814,15 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		}
 	}
 	s.Thresholds = liveThresholds(th, ts, guardOf(snd, hasSend), apiRates, ty)
+	if row, ok := e.replyRow(ctx, cc.WorkspaceID, guardOf(snd, hasSend)); ok {
+		s.Thresholds = append(s.Thresholds[:len(s.Thresholds)-1], row, s.Thresholds[len(s.Thresholds)-1])
+	}
 	if hasSend {
 		s.Watch = e.liveWatch(ctx, cc.WorkspaceID, snd, ts, th, now)
 	}
 	s.Postmaster = e.livePostmaster(ctx, cc.WorkspaceID, cc.SenderEmail, now)
 	for k, c := range queue {
-		_, onHold := holds[k.mailbox]
-		heldMailbox := onHold && !holds[k.mailbox].Resumed
+		heldMailbox := holdBlocks(holds, k.mailbox, k.provider)
 		switch {
 		case heldMailbox || heldProviders[k.provider] || s.State == "paused":
 			s.Held += c.queued
@@ -944,7 +951,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			li.Since = sinceTrip(ts, in, li.Detail)
 		}
 		s.Incidents = append(s.Incidents, li)
-		if in.ResolvedAt == nil && s.Incident == nil && (in.Kind == "threshold" || in.Kind == "provider_outage") && !isNotice(in) {
+		if in.ResolvedAt == nil && s.Incident == nil && (in.Kind == "threshold" || in.Kind == "provider_outage" || in.Kind == "reply_rule") && !isNotice(in) {
 			c := li
 			s.Incident = &c
 		}

@@ -74,6 +74,9 @@ func (e *Engine) ResumeScope(ctx context.Context, campaignID, by uuid.UUID, in R
 		}
 		for i := range open {
 			in2 := open[i]
+			if isNotice(in2) {
+				continue
+			}
 			if (in.Mailbox != "" && in2.Scope == "mailbox_provider" && in2.MailboxProvider == in.Mailbox) ||
 				(in.ProviderID != nil && in2.ProviderID != nil && *in2.ProviderID == *in.ProviderID) {
 				incident = &open[i]

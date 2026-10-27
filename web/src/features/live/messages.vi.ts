@@ -33,6 +33,7 @@ export default translate(m, {
   colRate: 'Tốc độ',
   colStatus: 'Trạng thái',
   perProvider: 'Theo nhà cung cấp gửi thư',
+  workspaceDefaults: 'Mặc định của không gian làm việc',
   deliveredInferred: 'suy ra',
   inferredNote: 'Gửi thành công (suy ra): SMTP thuần không báo cáo việc giao thư, nên thư được tính là đã giao khi máy chủ nhận. Thư trả lại và khiếu nại vẫn đến qua báo cáo.',
   colProvider: 'Nhà cung cấp gửi thư',

@@ -63,6 +63,7 @@ import { Route as WWorkspaceAppProvidersIndexRouteImport } from './routes/w/$wor
 import { Route as WWorkspaceAppProvidersAdaptersRouteImport } from './routes/w/$workspace/_app/providers/adapters'
 import { Route as WWorkspaceAppProvidersEventsRouteImport } from './routes/w/$workspace/_app/providers/events'
 import { Route as WWorkspaceAppProvidersRoutingRouteImport } from './routes/w/$workspace/_app/providers/routing'
+import { Route as WWorkspaceAppProvidersTrafficRulesRouteImport } from './routes/w/$workspace/_app/providers/traffic-rules'
 import { Route as WWorkspaceAppProvidersWarmupRouteImport } from './routes/w/$workspace/_app/providers/warmup'
 import { Route as WWorkspaceAppSettingsIndexRouteImport } from './routes/w/$workspace/_app/settings/index'
 import { Route as WWorkspaceAppSettingsApprovalsRouteImport } from './routes/w/$workspace/_app/settings/approvals'
@@ -459,6 +460,12 @@ const WWorkspaceAppProvidersRoutingRoute =
   WWorkspaceAppProvidersRoutingRouteImport.update({
     id: '/providers/routing',
     path: '/providers/routing',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppProvidersTrafficRulesRoute =
+  WWorkspaceAppProvidersTrafficRulesRouteImport.update({
+    id: '/providers/traffic-rules',
+    path: '/providers/traffic-rules',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppProvidersWarmupRoute =
@@ -1107,6 +1114,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/providers/adapters': typeof WWorkspaceAppProvidersAdaptersRoute
   '/w/$workspace/providers/events': typeof WWorkspaceAppProvidersEventsRoute
   '/w/$workspace/providers/routing': typeof WWorkspaceAppProvidersRoutingRoute
+  '/w/$workspace/providers/traffic-rules': typeof WWorkspaceAppProvidersTrafficRulesRoute
   '/w/$workspace/providers/warmup': typeof WWorkspaceAppProvidersWarmupRoute
   '/w/$workspace/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
   '/w/$workspace/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
@@ -1260,6 +1268,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/providers/adapters': typeof WWorkspaceAppProvidersAdaptersRoute
   '/w/$workspace/providers/events': typeof WWorkspaceAppProvidersEventsRoute
   '/w/$workspace/providers/routing': typeof WWorkspaceAppProvidersRoutingRoute
+  '/w/$workspace/providers/traffic-rules': typeof WWorkspaceAppProvidersTrafficRulesRoute
   '/w/$workspace/providers/warmup': typeof WWorkspaceAppProvidersWarmupRoute
   '/w/$workspace/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
   '/w/$workspace/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
@@ -1417,6 +1426,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/providers/adapters': typeof WWorkspaceAppProvidersAdaptersRoute
   '/w/$workspace/_app/providers/events': typeof WWorkspaceAppProvidersEventsRoute
   '/w/$workspace/_app/providers/routing': typeof WWorkspaceAppProvidersRoutingRoute
+  '/w/$workspace/_app/providers/traffic-rules': typeof WWorkspaceAppProvidersTrafficRulesRoute
   '/w/$workspace/_app/providers/warmup': typeof WWorkspaceAppProvidersWarmupRoute
   '/w/$workspace/_app/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
   '/w/$workspace/_app/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
@@ -1574,6 +1584,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/providers/adapters'
     | '/w/$workspace/providers/events'
     | '/w/$workspace/providers/routing'
+    | '/w/$workspace/providers/traffic-rules'
     | '/w/$workspace/providers/warmup'
     | '/w/$workspace/settings/approvals'
     | '/w/$workspace/settings/audit'
@@ -1727,6 +1738,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/providers/adapters'
     | '/w/$workspace/providers/events'
     | '/w/$workspace/providers/routing'
+    | '/w/$workspace/providers/traffic-rules'
     | '/w/$workspace/providers/warmup'
     | '/w/$workspace/settings/approvals'
     | '/w/$workspace/settings/audit'
@@ -1883,6 +1895,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/providers/adapters'
     | '/w/$workspace/_app/providers/events'
     | '/w/$workspace/_app/providers/routing'
+    | '/w/$workspace/_app/providers/traffic-rules'
     | '/w/$workspace/_app/providers/warmup'
     | '/w/$workspace/_app/settings/approvals'
     | '/w/$workspace/_app/settings/audit'
@@ -2383,6 +2396,13 @@ declare module '@tanstack/react-router' {
       path: '/providers/routing'
       fullPath: '/w/$workspace/providers/routing'
       preLoaderRoute: typeof WWorkspaceAppProvidersRoutingRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/providers/traffic-rules': {
+      id: '/w/$workspace/_app/providers/traffic-rules'
+      path: '/providers/traffic-rules'
+      fullPath: '/w/$workspace/providers/traffic-rules'
+      preLoaderRoute: typeof WWorkspaceAppProvidersTrafficRulesRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/providers/warmup': {
@@ -3126,6 +3146,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppProvidersAdaptersRoute: typeof WWorkspaceAppProvidersAdaptersRoute
   WWorkspaceAppProvidersEventsRoute: typeof WWorkspaceAppProvidersEventsRoute
   WWorkspaceAppProvidersRoutingRoute: typeof WWorkspaceAppProvidersRoutingRoute
+  WWorkspaceAppProvidersTrafficRulesRoute: typeof WWorkspaceAppProvidersTrafficRulesRoute
   WWorkspaceAppProvidersWarmupRoute: typeof WWorkspaceAppProvidersWarmupRoute
   WWorkspaceAppSettingsApprovalsRoute: typeof WWorkspaceAppSettingsApprovalsRoute
   WWorkspaceAppSettingsAuditRoute: typeof WWorkspaceAppSettingsAuditRoute
@@ -3243,6 +3264,8 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppProvidersAdaptersRoute: WWorkspaceAppProvidersAdaptersRoute,
   WWorkspaceAppProvidersEventsRoute: WWorkspaceAppProvidersEventsRoute,
   WWorkspaceAppProvidersRoutingRoute: WWorkspaceAppProvidersRoutingRoute,
+  WWorkspaceAppProvidersTrafficRulesRoute:
+    WWorkspaceAppProvidersTrafficRulesRoute,
   WWorkspaceAppProvidersWarmupRoute: WWorkspaceAppProvidersWarmupRoute,
   WWorkspaceAppSettingsApprovalsRoute: WWorkspaceAppSettingsApprovalsRoute,
   WWorkspaceAppSettingsAuditRoute: WWorkspaceAppSettingsAuditRoute,

@@ -281,7 +281,7 @@ func (e *Engine) probeMessage(ctx context.Context, rs *runState, r *runRoute, no
 		if k.provider != pid || c.queued <= c.waiting {
 			continue
 		}
-		if h, on := rs.holds[k.mailbox]; on && !h.Resumed {
+		if holdBlocks(rs.holds, k.mailbox, k.provider) {
 			continue
 		}
 		keys = append(keys, k.mailbox)

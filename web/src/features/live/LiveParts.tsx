@@ -396,6 +396,9 @@ export function ThresholdsCard({ s, campaignId, edit }: { s: Snapshot; campaignI
           <span className="k">{scopeLine(s)}</span>
         </div>
         <div className="lv-thr-links flex flex-wrap items-center gap-4 text-[13px]">
+          <Link to="/w/$workspace/providers/traffic-rules" params={{ workspace: slug }}>
+            {t(m.workspaceDefaults)}
+          </Link>
           {edit ? (
             <Button size="sm" onClick={edit.onEdit} disabledReason={edit.disabledReason}>
               {t(m.editThresholdsLive)}

@@ -573,6 +573,56 @@ func (q *Queries) SendingPurgeMailboxWindows(ctx context.Context, before int64) 
 	return err
 }
 
+const sendingReplyMatches = `-- name: SendingReplyMatches :many
+
+SELECT provider_id, count(*)::bigint AS n FROM delivery_events
+WHERE campaign_id = $1 AND type IN ('deferred', 'soft_bounce', 'hard_bounce', 'rejected')
+  AND occurred_at >= $2::timestamptz AND mailbox_provider = $3
+  AND position(lower($4::text) IN lower(original_code || ' ' || diagnostic || ' ' || original_type)) > 0
+GROUP BY provider_id
+`
+
+type SendingReplyMatchesParams struct {
+	CampaignID      *uuid.UUID `json:"campaignId"`
+	Since           time.Time  `json:"since"`
+	MailboxProvider string     `json:"mailboxProvider"`
+	Contains        string     `json:"contains"`
+}
+
+type SendingReplyMatchesRow struct {
+	ProviderID *uuid.UUID `json:"providerId"`
+	N          int64      `json:"n"`
+}
+
+// GS-12: mailbox provider response rules ------------------------------------
+// How many of a mailbox provider's replies in a send contained a text since
+// a time, per sending provider: the deferrals and bounces the providers
+// report. The text is matched as plain text, not case-sensitive.
+func (q *Queries) SendingReplyMatches(ctx context.Context, arg SendingReplyMatchesParams) ([]SendingReplyMatchesRow, error) {
+	rows, err := q.db.Query(ctx, sendingReplyMatches,
+		arg.CampaignID,
+		arg.Since,
+		arg.MailboxProvider,
+		arg.Contains,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SendingReplyMatchesRow{}
+	for rows.Next() {
+		var i SendingReplyMatchesRow
+		if err := rows.Scan(&i.ProviderID, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const sendingRequeueStale = `-- name: SendingRequeueStale :execrows
 
 
@@ -636,6 +686,18 @@ func (q *Queries) SendingResolveInDoubt(ctx context.Context, arg SendingResolveI
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const sendingSeedCount = `-- name: SendingSeedCount :one
+SELECT count(*)::bigint FROM placement_seeds WHERE workspace_id = $1 AND status = 'connected'
+`
+
+// How many seed inboxes a workspace connected.
+func (q *Queries) SendingSeedCount(ctx context.Context, workspaceID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, sendingSeedCount, workspaceID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const sendingSentSinceByMailbox = `-- name: SendingSentSinceByMailbox :many

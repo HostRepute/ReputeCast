@@ -1,8 +1,13 @@
 package engine
 
 import (
+	"context"
+
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/routing"
+	"github.com/hostrepute/reputecast/internal/sending/rules"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -185,4 +190,41 @@ func worstTyped(ts tallies, g guardState, ty typed, metric string, th Thresholds
 		}
 	}
 	return best, bestRatio >= 0
+}
+
+// replyRow is the thresholds card's row for the reply rules: the rule
+// closest to its count in its window (review GS-12), as the send loop
+// last counted it.
+func (e *Engine) replyRow(ctx context.Context, ws uuid.UUID, g guardState) (LiveThreshold, bool) {
+	rs, err := rules.ReplyRules(ctx, e.Q, ws)
+	if err != nil {
+		return LiveThreshold{}, false
+	}
+	var on []rules.ReplyRule
+	for _, r := range rs {
+		if r.Enabled {
+			on = append(on, r)
+		}
+	}
+	if len(on) == 0 {
+		return LiveThreshold{}, false
+	}
+	best, bestRatio := on[0], -1.0
+	for _, r := range on {
+		if ratio := float64(g.ReplyCounts[r.ID.String()]) / float64(max(r.Count, 1)); ratio > bestRatio {
+			best, bestRatio = r, ratio
+		}
+	}
+	n := g.ReplyCounts[best.ID.String()]
+	row := LiveThreshold{Key: "reply_rules", Limit: float64(best.Count), Events: n, MinEvents: int64(best.Count), MinBase: int64(len(on)), Mailbox: best.Mailbox,
+		Window: best.WindowMinutes, Action: best.Action, Duration: best.DurationMinutes, Parts: []LiveThresholdPart{{Name: best.Contains, Key: best.Mailbox}}, State: "ok"}
+	v := float64(n)
+	row.Value = &v
+	switch {
+	case n >= int64(best.Count):
+		row.State = "tripped"
+	case float64(n) >= 0.9*float64(best.Count):
+		row.State = "near"
+	}
+	return row, true
 }

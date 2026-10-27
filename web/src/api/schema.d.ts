@@ -14730,6 +14730,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/traffic-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A workspace's traffic rules: thresholds by bounce type, reply rules, canary, complaint watch */
+        get: operations["get-traffic-rules"];
+        /** Save a workspace's traffic rules (audited) */
+        put: operations["save-traffic-rules"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/transactional/alerts/{alertId}/seen": {
         parameters: {
             query?: never;
@@ -20926,6 +20944,33 @@ export interface components {
             offer?: string;
             period: string;
             tier: string;
+        };
+        Canary: {
+            enabled: boolean;
+            gates: components["schemas"]["CanaryGates"];
+            neverMailed: boolean;
+            newDomain: boolean;
+            overUsual: boolean;
+            /** Format: double */
+            percent: number;
+            seeds: boolean;
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            watchMinutes: 10 | 20 | 30 | 60;
+        };
+        CanaryGates: {
+            /** Format: double */
+            blockBounce: number;
+            /** Format: double */
+            bounce: number;
+            /** Format: double */
+            complaint: number;
+            /** Format: double */
+            deferral: number;
+            /** Format: int64 */
+            seedSpam: number;
         };
         CancelInput: {
             reason?: string;
@@ -28467,6 +28512,8 @@ export interface components {
             held: boolean;
             /** Format: date-time */
             heldSince?: string;
+            /** Format: date-time */
+            heldUntil?: string;
             /** @enum {string} */
             key: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
             name: string;
@@ -28689,6 +28736,8 @@ export interface components {
             action?: string;
             /** Format: int64 */
             base: number;
+            /** Format: int64 */
+            duration?: number;
             /** Format: int64 */
             events: number;
             /** @enum {string} */
@@ -39819,6 +39868,98 @@ export interface components {
             challenge: string;
             code: string;
         };
+        TrafficAction: {
+            /** Format: date-time */
+            at: string;
+            campaign: string;
+            campaignId: string;
+            /** @enum {string} */
+            kind: "threshold" | "reply_rule" | "canary" | "complaint_watch";
+            text: string;
+        };
+        TrafficReplyRule: {
+            /** @enum {string} */
+            action: "slow" | "pause" | "pause_route" | "alert";
+            /** @description Matched as plain text, not case-sensitive, anywhere in the reply */
+            contains: string;
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            durationMinutes: number;
+            enabled: boolean;
+            id?: string;
+            readonly lastCampaign?: string;
+            /** Format: date-time */
+            readonly lastMatchedAt?: string;
+            /** @enum {string} */
+            mailbox: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
+            readonly means?: string;
+            /** @description What the reply means, in the rule's own words */
+            note?: string;
+            /** Format: int64 */
+            windowMinutes: number;
+        };
+        TrafficRules: {
+            canManage: boolean;
+            canary: components["schemas"]["Canary"];
+            recent: components["schemas"]["TrafficAction"][];
+            replyRules: components["schemas"]["TrafficReplyRule"][];
+            resumers: string[];
+            /** Format: date-time */
+            savedAt?: string;
+            savedBy?: string;
+            /** Format: int64 */
+            seeds: number;
+            thresholds: components["schemas"]["TrafficThresholds"];
+            /** Format: int64 */
+            usual: number;
+            watch: components["schemas"]["Watch"];
+        };
+        TrafficRulesInput: {
+            canary: components["schemas"]["Canary"];
+            replyRules: components["schemas"]["TrafficReplyRule"][];
+            thresholds: components["schemas"]["TrafficThresholds"];
+            watch: components["schemas"]["Watch"];
+        };
+        TrafficThresholds: {
+            /** @enum {string} */
+            blockAction: "pause_mailbox" | "slow" | "pause_send" | "warn";
+            /** Format: double */
+            blockBounce: number;
+            /**
+             * Format: double
+             * @description Complaints per mailbox provider, where they're reported
+             */
+            complaint: number;
+            /** @enum {string} */
+            complaintAction: "pause_mailbox" | "pause_send" | "warn";
+            /** Format: double */
+            deferral: number;
+            /** @enum {string} */
+            deferralAction: "pause_mailbox" | "slow" | "warn";
+            /** Format: double */
+            deferralSlow: number;
+            /** @enum {string} */
+            deferralSlowAction: "slow" | "pause_mailbox" | "warn";
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            deferralSlowWindow: 5 | 10 | 15 | 30;
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            deferralWindow: 5 | 10 | 15 | 30;
+            /** Format: double */
+            unknownPause: number;
+            /** @enum {string} */
+            unknownPauseAction: "pause_send" | "warn" | "slow";
+            /** Format: double */
+            unknownWarn: number;
+            /** @enum {string} */
+            unknownWarnAction: "warn" | "slow" | "pause_send";
+        };
         TransactionalAccess: {
             content: boolean;
             edit: boolean;
@@ -41933,6 +42074,16 @@ export interface components {
             day: number;
             /** Format: double */
             value: number;
+        };
+        Watch: {
+            alert: boolean;
+            enabled: boolean;
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            hours: 24 | 48 | 72 | 168;
+            postmaster: boolean;
         };
         WebhookCreated: {
             /** @description The signing secret. Shown only in this response. */
@@ -77648,6 +77799,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProviderTrackingChecks"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-traffic-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrafficRules"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-traffic-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrafficRulesInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrafficRules"];
                 };
             };
             /** @description Error */

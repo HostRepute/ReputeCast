@@ -22,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers/simulator"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
+	"github.com/hostrepute/reputecast/internal/sending/rules"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -39,6 +40,28 @@ type hold struct {
 	// Resumed is true once a person resumed it (it stays here only to
 	// remember Rearm).
 	Resumed bool `json:"resumed,omitempty"`
+	// Until ends a timed hold by itself; Route keeps it to one sending
+	// provider; Rule is the reply rule that set it (review GS-12).
+	Until *time.Time `json:"until,omitempty"`
+	Route *uuid.UUID `json:"route,omitempty"`
+	Rule  string     `json:"rule,omitempty"`
+}
+
+// blocks reports whether the hold stops its mailbox provider's mail
+// through a route.
+func (h hold) blocks(route uuid.UUID) bool {
+	return !h.Resumed && (h.Route == nil || *h.Route == route)
+}
+
+// whole reports whether the hold stops its mailbox provider on every
+// route.
+func (h hold) whole() bool { return !h.Resumed && h.Route == nil }
+
+// holdBlocks reports whether a mailbox provider's mail through a route is
+// on hold.
+func holdBlocks(holds map[string]hold, mbp string, route uuid.UUID) bool {
+	h, ok := holds[mbp]
+	return ok && h.blocks(route)
 }
 
 func parseHolds(raw json.RawMessage) map[string]hold {
@@ -149,6 +172,12 @@ type runState struct {
 	// typed are the bounces by type and recent deferrals the typed
 	// thresholds read (bytype.go).
 	typed typed
+	// replyRules are the workspace's enabled reply rules, replyHits the
+	// replies the loop got that a rule could count (replies.go).
+	replyRules []rules.ReplyRule
+	replyHits  []replyHit
+	rulesAt    time.Time
+	repliedAt  time.Time
 	// links are the per-recipient links of the email's polls and surveys.
 	links []RecipientLink
 }
@@ -241,6 +270,9 @@ func (e *Engine) loadState(ctx context.Context, id uuid.UUID, now time.Time, pau
 	_ = json.Unmarshal(snd.Throttles, &rs.throttles)
 	rs.holds = parseHolds(snd.Holds)
 	rs.guard = parseGuard(snd.Guard)
+	if err := e.loadReplyRules(ctx, rs, now); err != nil {
+		return nil, err
+	}
 	if rs.templates, err = e.templatesFor(id, rs.content); err != nil {
 		return nil, err
 	}
@@ -312,6 +344,9 @@ func (e *Engine) refresh(ctx context.Context, rs *runState, now time.Time) error
 	rs.send = snd
 	rs.holds = parseHolds(snd.Holds)
 	rs.guard = parseGuard(snd.Guard)
+	if err := e.loadReplyRules(ctx, rs, now); err != nil {
+		return err
+	}
 	if len(snd.Thresholds) > 0 {
 		// A person may change them while the send runs or waits (GS-2).
 		_ = json.Unmarshal(snd.Thresholds, &rs.thresholds)
@@ -571,7 +606,7 @@ func (e *Engine) allocate(rs *runState, r *runRoute, want int) map[string]int {
 		if k.provider != r.provider.ID || c.queued-c.waiting <= 0 {
 			continue
 		}
-		if h, ok := rs.holds[k.mailbox]; ok && !h.Resumed {
+		if holdBlocks(rs.holds, k.mailbox, r.provider.ID) {
 			continue
 		}
 		capN := math.Inf(1)
@@ -926,6 +961,10 @@ func (e *Engine) send(ctx context.Context, rs *runState, r *runRoute, claimed []
 		r.answered(now)
 		for i, res := range res {
 			p := chunk[i]
+			if res.Err != nil && len(rs.replyRules) > 0 {
+				// A server's answer a reply rule may count (GS-12).
+				rs.noteReply(now, p.row.MailboxProvider, r.provider.ID, res.Err.Error())
+			}
 			switch {
 			case res.Err == nil:
 				out.sentIDs = append(out.sentIDs, p.row.ID)

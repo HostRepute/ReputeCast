@@ -154,7 +154,7 @@ func deferralLevels(th Thresholds) []typedLevel {
 func (e *Engine) checkTyped(rs *runState, ts tallies, now time.Time) *typedTrip {
 	th, ty := rs.thresholds, rs.typed
 	for _, mbp := range sortedKeys(ts.mailbox) {
-		if h, on := rs.holds[mbp]; on && !h.Resumed {
+		if h, on := rs.holds[mbp]; on && h.whole() {
 			continue
 		}
 		key := rearmMailbox(mbp)

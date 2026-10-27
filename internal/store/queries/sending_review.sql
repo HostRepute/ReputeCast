@@ -216,3 +216,19 @@ GROUP BY mailbox_provider;
 SELECT mailbox_provider, count(*)::bigint AS n FROM messages
 WHERE campaign_id = @campaign_id AND sent_at >= @since
 GROUP BY mailbox_provider;
+
+-- GS-12: mailbox provider response rules ------------------------------------
+
+-- name: SendingReplyMatches :many
+-- How many of a mailbox provider's replies in a send contained a text since
+-- a time, per sending provider: the deferrals and bounces the providers
+-- report. The text is matched as plain text, not case-sensitive.
+SELECT provider_id, count(*)::bigint AS n FROM delivery_events
+WHERE campaign_id = @campaign_id AND type IN ('deferred', 'soft_bounce', 'hard_bounce', 'rejected')
+  AND occurred_at >= @since::timestamptz AND mailbox_provider = @mailbox_provider
+  AND position(lower(@contains::text) IN lower(original_code || ' ' || diagnostic || ' ' || original_type)) > 0
+GROUP BY provider_id;
+
+-- name: SendingSeedCount :one
+-- How many seed inboxes a workspace connected.
+SELECT count(*)::bigint FROM placement_seeds WHERE workspace_id = @workspace_id AND status = 'connected';

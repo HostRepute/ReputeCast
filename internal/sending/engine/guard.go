@@ -113,6 +113,11 @@ func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.D
 	if err := e.readTyped(ctx, rs, now); err != nil {
 		return 0, err
 	}
+	// Reply rules act as soon as their count is reached, before any rate
+	// threshold (GS-12).
+	if err := e.checkReplies(ctx, rs, now); err != nil {
+		return 0, err
+	}
 	if now.Sub(rs.queueAt) >= time.Second {
 		if err := e.refreshQueue(ctx, rs, now); err != nil {
 			return 0, err
@@ -144,10 +149,10 @@ func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.D
 		waiting += c.waiting
 		doubt += c.doubt
 		r := rs.routes[k.provider]
-		h, onHold := rs.holds[k.mailbox]
-		if r == nil || (onHold && !h.Resumed) || !r.open() {
+		held := holdBlocks(rs.holds, k.mailbox, k.provider)
+		if r == nil || held || !r.open() {
 			blocked += c.queued
-			if r != nil && (!onHold || h.Resumed) && r.retrying() {
+			if r != nil && !held && r.retrying() {
 				probing += c.queued
 			}
 		}
@@ -231,7 +236,7 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 	var trips []trip
 	for _, mbp := range sortedKeys(ts.mailbox) {
 		h, onHold := rs.holds[mbp]
-		if onHold && !h.Resumed {
+		if onHold && h.whole() {
 			continue
 		}
 		// A scope a person resumed is judged on what happened since, with
@@ -278,7 +283,7 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 		// Campaign-wide, on the mailbox providers and routes still sending.
 		t := tally{}
 		for mbp, m := range ts.mailbox {
-			if h, onHold := rs.holds[mbp]; onHold && !h.Resumed {
+			if h, onHold := rs.holds[mbp]; onHold && h.whole() {
 				continue
 			}
 			t.add(store.SendingCountersRow{MailboxProvider: mbp, Sent: m.sent, Delivered: m.delivered, Deferred: m.deferred, HardBounced: m.hard, SoftBounced: m.soft, Complained: m.complained})

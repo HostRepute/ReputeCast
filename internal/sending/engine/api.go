@@ -125,6 +125,7 @@ type body[T any] struct {
 
 // Register adds the live monitor's operations.
 func Register(h huma.API, e *Engine) {
+	RegisterTraffic(h, e)
 	tags := []string{"Live sending"}
 	base := "/workspaces/{workspace}/campaigns/{campaignId}/live"
 	api.Get(h, api.Op{ID: "get-live-send", Path: base, Summary: "The live monitor's snapshot of a send", Tags: tags, Access: api.Workspace(authz.CampaignsView)},

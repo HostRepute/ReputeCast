@@ -100,6 +100,7 @@ func (e *Engine) rearmScopes(ctx context.Context, q *store.Queries, campaignID u
 		c.Block, c.Unknown, c.At = block[m], unknown[m], now
 		g.rearm(rearmMailbox(m), c)
 		g.clearActed(m)
+		g.endReplies(m)
 		if !s.campaign {
 			g.rejoin(t)
 		}

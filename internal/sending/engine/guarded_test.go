@@ -59,6 +59,9 @@ func TestGuardedSending(t *testing.T) {
 	t.Run("SendsShareThrottles", func(t *testing.T) { testSharedThrottles(t, s) })
 	// GS-11: thresholds by bounce type; deferrals slow down, then pause.
 	t.Run("TypedLevels", func(t *testing.T) { testTypedLevels(t, s.Fixture(t, "GS-11 levels")) })
+	// GS-12: mailbox provider response rules; the Traffic rules API.
+	t.Run("ReplyRules", func(t *testing.T) { testReplyRules(t, s.Fixture(t, "GS-12 replies")) })
+	t.Run("TrafficRulesAPI", func(t *testing.T) { testTrafficRulesAPI(t, s.Fixture(t, "GS-12 api")) })
 }
 
 // routeOf is the fixture's route on a provider: its status and detail.
