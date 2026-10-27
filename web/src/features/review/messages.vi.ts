@@ -310,8 +310,9 @@ export default translate(m, {
   canaryAuto: 'Tự động',
   canaryOn: 'Bắt đầu bằng nhóm gửi thử',
   canaryOff: 'Không gửi thử trước',
-  canaryPlanAuto: 'Chế độ tự động sẽ bắt đầu lần gửi này bằng nhóm gửi thử: {size} liên hệ tương tác nhiều nhất và các hộp thư thử nhận trước ({reasons}).',
-  canaryPlanNew: 'lần gửi có điểm mới',
+  canaryPlanAuto:
+    '{seeds, plural, =0 {Chế độ tự động sẽ bắt đầu lần gửi này bằng nhóm gửi thử: {size} liên hệ tương tác nhiều nhất nhận trước.} other {Chế độ tự động sẽ bắt đầu lần gửi này bằng nhóm gửi thử: {size} liên hệ tương tác nhiều nhất và # hộp thư thử nhận trước.}} {reasons}',
+  canaryPlanNew: 'Lần gửi có điểm mới.',
   canaryPlanNone: 'Chế độ tự động sẽ gửi không cần nhóm gửi thử: lần gửi này không có gì mới với các nhà cung cấp hộp thư.',
   canaryPlanUnknown:
     'Hệ thống gửi quyết định khi bắt đầu gửi: tên miền hoặc IP gửi mới, liên hệ chưa từng nhận thư từ tên miền này hoặc số người nhận gấp hơn 2 lần thường lệ sẽ bắt đầu bằng nhóm gửi thử.',

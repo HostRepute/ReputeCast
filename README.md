@@ -36,8 +36,12 @@ seat or workspace limit.
   blocklists, SPF/DKIM/DMARC, content, links, Gmail and Yahoo bulk-sender
   rules, audience quality and routing.
 - **Guarded sending.** Live progress per mailbox provider and per sending
-  provider. The whole send, or just one route, pauses when bounces or
-  complaints cross your thresholds.
+  provider, with an ETA for each. The whole send, one mailbox provider or
+  one route pauses or slows down when bounces (by type), deferrals or
+  complaints (only where mailbox providers report them) cross your
+  thresholds, or when a mailbox provider's replies match your traffic
+  rules; a canary phase tests new domains and unusual audiences first, and
+  a message is never sent twice when a provider's answer is lost.
 - **Bring your own providers.** Amazon SES, Mailgun, SendGrid, Postmark,
   Resend, SparkPost, Mailjet, Brevo, Azure Communication Services, Postal and
   any SMTP server, several at once: routing per stream and mailbox provider

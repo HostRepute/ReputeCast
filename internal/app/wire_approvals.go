@@ -131,9 +131,21 @@ var readinessConditional = func(*App) readiness.ConditionalChecker { return nil 
 var readinessVerification = func(*App) readiness.VerificationChecker { return nil }
 
 // approvalsCanaryPlanner tells Review & send the sending engine's canary
-// plan (C1: engine.CanaryPlanFor); the engine's wire file sets it. Nil
-// asks the sending starter, when it tells one.
-var approvalsCanaryPlanner = func(*App) sending.CanaryPlanner { return nil }
+// plan (C1: engine.CanaryPlanFor).
+var approvalsCanaryPlanner = func(a *App) sending.CanaryPlanner { return engineCanaryPlanner{a} }
+
+// engineCanaryPlanner is the sending engine's canary plan as Review & send
+// reads it (sending.CanaryPlan).
+type engineCanaryPlanner struct{ a *App }
+
+func (p engineCanaryPlanner) CanaryPlanFor(ctx context.Context, campaignID uuid.UUID) (sending.CanaryPlan, error) {
+	plan, err := p.a.SendingEngine().CanaryPlanFor(ctx, campaignID)
+	if err != nil {
+		return sending.CanaryPlan{}, err
+	}
+	return sending.CanaryPlan{Auto: plan.Auto, Reasons: plan.Reasons, Size: plan.Size, Seeds: plan.Seeds, Domain: plan.Domain,
+		NeverMailed: plan.NeverMailed, Usual: plan.Usual, Audience: plan.Audience}, nil
+}
 
 // newApprovals builds the approvals service with its own Send Readiness.
 func newApprovals(a *App) *approvals.Service {

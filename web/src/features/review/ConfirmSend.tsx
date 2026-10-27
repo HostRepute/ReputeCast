@@ -7,11 +7,26 @@ import { Field, Select } from '@/components/ui/Field'
 import { clock, count, money } from '@/lib/format'
 import { confirmLanguages } from '@/features/languages/review'
 import { mr } from '@/features/languages/messages'
+import { mc } from '@/features/live/canary.messages'
 import { formatList, useT } from '@/i18n'
 import { acknowledgedKeys, acknowledgements, dismissedWarnings, minutes, scheduleSentence, thresholdsLine, verdictTitle, type Check, type Fix, type Review, type Run } from './logic'
 import { m } from './messages'
 
 export type Canary = 'auto' | 'on' | 'off'
+
+/** Why the engine would run a canary, worded as the live monitor words it. */
+function canaryReasons(t: ReturnType<typeof useT>, plan: Review['canary']): string {
+  const domain = plan.domain ?? ''
+  return plan.reasons
+    .map((r) =>
+      r === 'new_domain'
+        ? t(mc.whyNewDomain, { domain })
+        : r === 'never_mailed'
+          ? t(mc.whyNeverMailed, { count: plan.neverMailed, domain })
+          : t(mc.whyOverUsual, { audience: count(plan.audience), usual: count(plan.usual) }),
+    )
+    .join(' ')
+}
 
 export type SendIntent = { acknowledged: string[]; confirm?: string; canary: Canary }
 
@@ -125,7 +140,7 @@ export function ConfirmSend({
         : !plan.planned
           ? t(m.canaryPlanUnknown)
           : plan.auto
-            ? t(m.canaryPlanAuto, { size: count(plan.size), reasons: plan.reasons.join('; ') || t(m.canaryPlanNew) })
+            ? t(m.canaryPlanAuto, { size: count(plan.size), seeds: plan.seeds, reasons: canaryReasons(t, plan) || t(m.canaryPlanNew) })
             : t(m.canaryPlanNone)
   const subjectLabel = t(m.rowSubject)
   const rows: [string, string][] = [

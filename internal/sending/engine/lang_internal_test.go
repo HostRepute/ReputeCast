@@ -36,7 +36,10 @@ func TestSentenceEnglish(t *testing.T) {
 		{keep("opt.changes", i18n.Args{"combo": "all", "exclude": 1420, "group": "imported", "rest": 1102, "changeRate": 2, "automation": "Re-permission"}),
 			"Exclude 1,420 never-engaged imports, send to 1,102 at 2 /s, add the excluded contacts to Re-permission."},
 		{keep("opt.changes", i18n.Args{"combo": "rate", "exclude": 0, "group": "never", "rest": 2810, "changeRate": 2, "automation": ""}), "Send to 2,810 at 2 /s."},
-		{keep("opt.resumeAll", i18n.Args{"held": 120, "metric": "none"}), "Send to the 120 remaining recipients. The threshold stays armed and will pause again at the next ."},
+		{keep("opt.resumeAll", i18n.Args{"held": 120, "metric": "none", "ratePct": 0.0, "expect": int64(0), "more": "no"}),
+			"Send to the 120 remaining recipients. The thresholds re-arm from the current counts, so only new events can pause the campaign again."},
+		{keep("opt.resumeScoped", i18n.Args{"scope": "mailbox_provider", "mailbox": "outlook", "who": "", "held": 2436, "metric": "complaint", "ratePct": 0.18, "expect": int64(4), "more": "yes"}),
+			"Send to all 2,436 remaining Outlook recipients. The threshold re-arms from the current counts, so only new complaints can pause it again. At today's 0.18%, expect about 4 more."},
 		{keep("cause.warmupCap", i18n.Args{"sentToday": 1960, "cap": 4000, "perSecondRate": 14.25}),
 			"Not a quota or rate issue: 1,960 of today's 4,000 warm-up cap used, 14.2 /s."},
 	}

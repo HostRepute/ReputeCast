@@ -84,6 +84,15 @@ type Engine struct {
 	// audience is built, and automation recipients without a contact
 	// (internal/mailbox); nil keeps the providers contacts already carry.
 	Mailbox MailboxClassifier
+	// CallTimeout bounds one provider call (30 s when zero).
+	CallTimeout time.Duration
+	// StreamHeartbeat is how often the live stream says it's alive while
+	// nothing changes (15 s when zero; review GS-14).
+	StreamHeartbeat time.Duration
+	// Seeds sends a canary's copies to the workspace's seed mailboxes and
+	// reads where they landed (internal/placement; review GS-10); nil
+	// leaves the seed gate out.
+	Seeds SeedChecker
 
 	mu       sync.Mutex
 	calls    map[routeKey]*callLog
@@ -157,10 +166,36 @@ type Thresholds struct {
 	// Scope is "route" (pause only the affected mailbox provider or sending
 	// provider) or "campaign" (pause everything).
 	Scope string `json:"scope"`
+	// By bounce type and level (review GS-11; Traffic rules › Thresholds
+	// by bounce type), each with its action: pause_mailbox, slow (to half
+	// rate), pause_send or warn.
+	//
+	// BlockBounce: block/policy bounces (rejections for reputation, policy
+	// or content) at one mailbox provider.
+	BlockBounce float64 `json:"block_bounce"`
+	BlockAction string  `json:"block_action"`
+	// UnknownWarn and UnknownPause: unknown users (other hard bounces)
+	// over the whole send, two levels.
+	UnknownWarn        float64 `json:"unknown_warn"`
+	UnknownWarnAction  string  `json:"unknown_warn_action"`
+	UnknownPause       float64 `json:"unknown_pause"`
+	UnknownPauseAction string  `json:"unknown_pause_action"`
+	// DeferralSlow and Deferral: soft bounces and deferrals at one mailbox
+	// provider over a window of minutes (0: the whole send so far), two
+	// levels.
+	DeferralSlow       float64 `json:"deferral_slow"`
+	DeferralSlowWindow int     `json:"deferral_slow_window"`
+	DeferralSlowAction string  `json:"deferral_slow_action"`
+	DeferralWindow     int     `json:"deferral_window"`
+	DeferralAction     string  `json:"deferral_action"`
+	// ComplaintAction is what MailboxComplaint does.
+	ComplaintAction string `json:"complaint_action"`
 }
 
 // DefaultThresholds are used for limits a campaign doesn't set.
-var DefaultThresholds = Thresholds{Bounce: 2.0, Complaint: 0.1, MailboxComplaint: 0.1, Deferral: 5.0, APIErrors: 5.0, Scope: "route"}
+var DefaultThresholds = Thresholds{Bounce: 2.0, Complaint: 0.1, MailboxComplaint: 0.1, Deferral: 40, APIErrors: 5.0, Scope: "route",
+	BlockBounce: 0.5, BlockAction: actPauseMailbox, UnknownWarn: 3, UnknownWarnAction: actWarn, UnknownPause: 5, UnknownPauseAction: actPauseSend,
+	DeferralSlow: 15, DeferralSlowWindow: 10, DeferralSlowAction: actSlow, DeferralWindow: 10, DeferralAction: actPauseMailbox, ComplaintAction: actPauseMailbox}
 
 // ParseThresholds resolves a send's thresholds: the defaults, then the
 // workspace's (workspaces.send_thresholds, Settings › Providers), then the
@@ -182,6 +217,19 @@ func ParseThresholds(campaign, workspace json.RawMessage) Thresholds {
 			ProviderErrors    *float64 `json:"provider_errors"`
 			ProviderErrorRate *float64 `json:"provider_error_rate"`
 			Scope             string   `json:"scope"`
+			// By type and level (GS-11).
+			BlockBounce        *float64 `json:"block_bounce"`
+			BlockAction        string   `json:"block_action"`
+			UnknownWarn        *float64 `json:"unknown_warn"`
+			UnknownWarnAction  string   `json:"unknown_warn_action"`
+			UnknownPause       *float64 `json:"unknown_pause"`
+			UnknownPauseAction string   `json:"unknown_pause_action"`
+			DeferralSlow       *float64 `json:"deferral_slow"`
+			DeferralSlowWindow *int     `json:"deferral_slow_window"`
+			DeferralSlowAction string   `json:"deferral_slow_action"`
+			DeferralWindow     *int     `json:"deferral_window"`
+			DeferralAction     string   `json:"deferral_action"`
+			ComplaintAction    string   `json:"complaint_action"`
 		}
 		if len(raw) == 0 || json.Unmarshal(raw, &in) != nil {
 			continue
@@ -202,6 +250,27 @@ func ParseThresholds(campaign, workspace json.RawMessage) Thresholds {
 		set(&t.APIErrors, in.ProviderErrorRate, in.ProviderErrors, in.APIErrors)
 		if in.Scope == "campaign" || in.Scope == "route" {
 			t.Scope = in.Scope
+		}
+		set(&t.BlockBounce, in.BlockBounce)
+		set(&t.UnknownWarn, in.UnknownWarn)
+		set(&t.UnknownPause, in.UnknownPause)
+		set(&t.DeferralSlow, in.DeferralSlow)
+		for _, w := range []struct {
+			dst *int
+			v   *int
+		}{{&t.DeferralSlowWindow, in.DeferralSlowWindow}, {&t.DeferralWindow, in.DeferralWindow}} {
+			if w.v != nil && *w.v >= 0 && *w.v <= 60 {
+				*w.dst = *w.v
+			}
+		}
+		for _, a := range []struct {
+			dst *string
+			v   string
+		}{{&t.BlockAction, in.BlockAction}, {&t.UnknownWarnAction, in.UnknownWarnAction}, {&t.UnknownPauseAction, in.UnknownPauseAction},
+			{&t.DeferralSlowAction, in.DeferralSlowAction}, {&t.DeferralAction, in.DeferralAction}, {&t.ComplaintAction, in.ComplaintAction}} {
+			if validAction(a.v) {
+				*a.dst = a.v
+			}
 		}
 	}
 	if !mailbox {
@@ -271,13 +340,31 @@ func over(events, base int64, limit float64, minEv int64) bool {
 }
 
 // Retry back-off for temporary errors: 5 s doubling to 60 s, at most
-// maxAttempts provider calls per message.
+// maxAttempts provider calls per message. A claim still open after
+// staleClaim belonged to a call whose answer was lost (doubt.go). A
+// provider call gets sendTimeout, even when the job is told to stop: what
+// the provider took must be recorded.
 const (
 	backoffMin  = 5 * time.Second
 	backoffMax  = 60 * time.Second
 	maxAttempts = 10
 	staleClaim  = 5 * time.Minute
+	sendTimeout = 30 * time.Second
 )
+
+// callContext is a provider call's context: it outlives the job's
+// cancellation (River stopping the worker, the job's timeout), since a call
+// cut in the middle leaves its messages in doubt, but never runs past
+// sendTimeout. The send loops stop between steps once the job's context
+// ends, so a stopping worker drains: the batch in flight is sent and
+// recorded, nothing new is claimed.
+func (e *Engine) callContext(ctx context.Context, now time.Time) (context.Context, context.CancelFunc) {
+	d := e.CallTimeout
+	if d <= 0 {
+		d = sendTimeout
+	}
+	return context.WithTimeout(simulator.WithNow(context.WithoutCancel(ctx), now), d)
+}
 
 func backoff(attempts int) time.Duration {
 	d := backoffMin << max(attempts-1, 0)
@@ -323,6 +410,10 @@ type providerRate struct {
 	Paused                bool
 	// EngagedFirst and Overflow are the warm-up plan's (warmup_send.go).
 	EngagedFirst, Overflow bool
+	// PlanID is the warm-up plan; NextDay when tomorrow's cap starts (the
+	// live monitor's warm-up hold and ETA).
+	PlanID  uuid.UUID
+	NextDay time.Time
 }
 
 func (e *Engine) rateOf(ctx context.Context, q *store.Queries, p store.Provider, loc *time.Location, now time.Time) providerRate {
@@ -335,6 +426,7 @@ func (e *Engine) rateOf(ctx context.Context, q *store.Queries, p store.Provider,
 		r.WarmingUp = true
 		r.WarmupDay, r.WarmupDays, r.Cap, r.SentToday, r.Tiers, r.Paused = a.Day, a.Days, a.Cap, a.Sent, a.Tiers, a.Paused
 		r.EngagedFirst, r.Overflow = a.EngagedFirst, a.Overflow
+		r.PlanID, r.NextDay = a.PlanID, a.NextDay
 		if a.Rate > 0 {
 			r.PerSecond = math.Min(r.PerSecond, a.Rate)
 		}
@@ -399,7 +491,11 @@ type callLog struct {
 	lastFailure  time.Time
 	lastSuccess  time.Time
 	failures     int
-	lines        []IncidentLogLine
+	// Throttling is tracked apart: the provider pacing the account is an
+	// outage only when it lasts (routeerrors.go).
+	firstThrottle time.Time
+	throttles     int
+	lines         []IncidentLogLine
 }
 
 type IncidentLogLine struct {
@@ -428,19 +524,23 @@ func (e *Engine) recordCall(k routeKey, at time.Time, err error) {
 	defer e.mu.Unlock()
 	if err == nil {
 		l.lastSuccess, l.firstFailure, l.lastFailure, l.failures = at, time.Time{}, time.Time{}, 0
+		l.firstThrottle, l.throttles = time.Time{}, 0
 		return
 	}
-	// Throttling is the provider pacing us, not an outage: the batch backs
-	// off and the call doesn't count toward holding the route.
-	var ce *providers.CallError
-	if asCallError(err, &ce) && ce.Throttled {
-		return
+	// Throttling is the provider pacing us: the batch backs off and the
+	// route slows down; it holds the route only when it lasts three minutes.
+	if throttledErr(err) {
+		if l.firstThrottle.IsZero() {
+			l.firstThrottle = at
+		}
+		l.throttles++
+	} else {
+		if l.firstFailure.IsZero() {
+			l.firstFailure = at
+		}
+		l.lastFailure = at
+		l.failures++
 	}
-	if l.firstFailure.IsZero() {
-		l.firstFailure = at
-	}
-	l.lastFailure = at
-	l.failures++
 	// The log summarises: a line when the answer changes, and once more a
 	// minute later when the provider keeps answering the same way.
 	text := callText(err)

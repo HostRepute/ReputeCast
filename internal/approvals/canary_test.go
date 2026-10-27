@@ -38,6 +38,8 @@ type canaryReview struct {
 		Auto    bool
 		Reasons []string
 		Size    int64
+		Seeds   int
+		Domain  string
 	}
 }
 
@@ -59,15 +61,18 @@ func TestCanaryChoice(t *testing.T) {
 		return r
 	}
 
-	// The engine doesn't tell: automatic, plan unknown.
+	// The sending engine's own plan (engine.CanaryPlanFor), whatever starts the send.
 	env.App.Sending = &fakeStarter{}
-	if c := canary().Canary; c.Choice != "auto" || c.Planned || len(c.Reasons) != 0 {
-		t.Fatalf("no plan: %+v", c)
-	}
-	starter := &canaryStarter{plan: sending.CanaryPlan{Auto: true, Reasons: []string{"the first send from news.acme.io"}, Size: 1560}}
-	env.App.Sending = starter
-	if c := canary().Canary; c.Choice != "auto" || !c.Planned || !c.Auto || c.Size != 1560 || len(c.Reasons) != 1 {
+	if c := canary().Canary; c.Choice != "auto" || !c.Planned {
 		t.Fatalf("the engine's plan: %+v", c)
+	}
+	// A starter that tells its own plan is asked first: why, in codes the
+	// live monitor words too, with the numbers behind them.
+	starter := &canaryStarter{plan: sending.CanaryPlan{Auto: true, Reasons: []string{"new_domain"}, Domain: "news.acme.io", Size: 1560, Seeds: 10}}
+	env.App.Sending = starter
+	if c := canary().Canary; c.Choice != "auto" || !c.Planned || !c.Auto || c.Size != 1560 || c.Seeds != 10 || len(c.Reasons) != 1 || c.Reasons[0] != "new_domain" ||
+		c.Domain != "news.acme.io" {
+		t.Fatalf("the starter's plan: %+v", c)
 	}
 
 	// No approval in the way.

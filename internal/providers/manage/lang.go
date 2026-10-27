@@ -60,7 +60,6 @@ var (
 
 	mIncidentDown           = msgs.M("incident.down")
 	mIncidentAuthDown       = msgs.M("incident.authDown")
-	mIncidentHeld           = msgs.M("incident.held")
 	mIncidentFailoverEnded  = msgs.M("incident.failoverEnded")
 	mIncidentRecovered      = msgs.M("incident.recovered")
 	mIncidentSilent         = msgs.M("incident.silent")
@@ -110,7 +109,6 @@ var (
 	mNothingHeld         = msgs.M("problem.nothingHeld")
 	mPickTarget          = msgs.M("problem.pickTarget")
 	mTargetMissing       = msgs.M("problem.targetMissing")
-	mTargetUnavailable   = msgs.M("problem.targetUnavailable")
 
 	mAdminOnly          = msgs.M("adapters.adminOnly")
 	mNoRemote           = msgs.M("adapters.noRemote")

@@ -1,7 +1,6 @@
 package approvals
 
 import (
-	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -40,9 +39,10 @@ type ReviewSendInput struct {
 	Confirm string `json:"confirm,omitempty" maxLength:"20"`
 	// Acknowledged lists the keys of the warnings the person confirmed.
 	Acknowledged []string `json:"acknowledged,omitempty" maxItems:"60"`
-	// Canary is the canary phase of the send (C1): auto (the sending
-	// engine decides), on or off.
-	Canary string `json:"canary,omitempty" enum:"auto,on,off"`
+	// Canary is the canary choice (review GS-10, C1): auto lets Traffic
+	// rules decide, on runs one, off sends to everyone at once; without one
+	// the campaign keeps the choice it has.
+	Canary string `json:"canary,omitempty" enum:"auto,on,off,"`
 }
 
 // ApprovalBypassInput is an Owner's emergency bypass of the approval policy.
@@ -289,10 +289,10 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	if err := s.Q.ApprovalScheduleCampaign(ctx, store.ApprovalScheduleCampaignParams{Schedule: c.Schedule, ScheduledAt: at, UpdatedBy: &p.UserID, Now: now, WorkspaceID: ws.ID, ID: c.ID}); err != nil {
 		return ReviewSendResult{}, err
 	}
-	// The canary choice goes with the start (C1); a scheduled send keeps it
-	// with what was confirmed.
-	canary := cmp.Or(in.Canary, sending.CanaryAuto)
-	ctx = sending.WithCanary(ctx, c.ID, canary)
+	// The canary choice goes with the start (C1): the engine keeps it on the
+	// campaign, so a scheduled send starts with it at its time; without one
+	// the campaign keeps its own.
+	ctx = sending.WithCanary(ctx, c.ID, in.Canary)
 	if err := s.starter().Start(ctx, c.ID, p.UserID); err != nil {
 		// Nothing was scheduled: the campaign keeps its time as it was.
 		_ = s.Q.ApprovalScheduleCampaign(ctx, store.ApprovalScheduleCampaignParams{Schedule: c.Schedule, ScheduledAt: c.ScheduledAt, UpdatedBy: c.UpdatedBy, Now: c.UpdatedAt,
@@ -331,10 +331,13 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		if err := s.Readiness.Confirm(ctx, q, ws, c, *run, p.UserID, acknowledged, at, now); err != nil {
 			return err
 		}
-		if err := s.Readiness.SetCanary(ctx, q, c.ID, canary); err != nil {
-			return err
+		// Review & send shows the choice confirmed with the send.
+		if in.Canary != "" {
+			if err := s.Readiness.SetCanary(ctx, q, c.ID, in.Canary); err != nil {
+				return err
+			}
+			meta["canary"] = in.Canary
 		}
-		meta["canary"] = canary
 		// The confirmed run describes the campaign at its new time.
 		if fp := s.Readiness.CurrentFingerprint(ctx, ws, c); fp != run.Fingerprint {
 			if rid, err := uuid.Parse(run.ID); err == nil {

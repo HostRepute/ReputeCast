@@ -47,31 +47,20 @@ const (
 	CanaryOff  = "off"
 )
 
-type canaryKey struct{ campaign uuid.UUID }
-
-// WithCanary hands Start the canary choice a person confirmed on Review &
-// send for the campaign (the engine's StartOptions.Canary). A scheduled
-// send keeps it with what was confirmed (readiness.Confirmation.Canary).
-func WithCanary(ctx context.Context, campaignID uuid.UUID, choice string) context.Context {
-	return context.WithValue(ctx, canaryKey{campaignID}, choice)
-}
-
-// CanaryFrom is the choice WithCanary attached for the campaign, "auto"
-// without one.
-func CanaryFrom(ctx context.Context, campaignID uuid.UUID) string {
-	if c, ok := ctx.Value(canaryKey{campaignID}).(string); ok && c != "" {
-		return c
-	}
-	return CanaryAuto
-}
-
 // CanaryPlan is what the sending engine would do about a canary for a
 // campaign (C1: engine.CanaryPlanFor): whether it starts with one on its
-// own, why, and how many recipients the canary holds.
+// own, why (new_domain, never_mailed, over_usual) with the numbers behind
+// the reasons, how many recipients the canary holds and how many seed
+// mailboxes go with it.
 type CanaryPlan struct {
-	Auto    bool
-	Reasons []string
-	Size    int64
+	Auto        bool
+	Reasons     []string
+	Size        int64
+	Seeds       int
+	Domain      string
+	NeverMailed int64
+	Usual       int64
+	Audience    int64
 }
 
 // CanaryPlanner tells Review & send the canary plan of a campaign.
@@ -91,6 +80,23 @@ func RecheckFrom(ctx context.Context, campaignID uuid.UUID) (Recheck, bool) {
 	return rc, ok
 }
 
+type canaryKey struct{ id uuid.UUID }
+
+// WithCanary hands Start the canary choice Review & send made for the
+// campaign: auto (Traffic rules decide), on or off (review GS-10, C1).
+func WithCanary(ctx context.Context, campaignID uuid.UUID, choice string) context.Context {
+	if choice == "" {
+		return ctx
+	}
+	return context.WithValue(ctx, canaryKey{campaignID}, choice)
+}
+
+// CanaryFrom returns the canary choice WithCanary attached ("" for none).
+func CanaryFrom(ctx context.Context, campaignID uuid.UUID) string {
+	c, _ := ctx.Value(canaryKey{campaignID}).(string)
+	return c
+}
+
 // Starter starts or schedules a campaign send. The review & send screen
 // calls it after confirmation (and after approval, when required).
 type Starter interface {
@@ -98,6 +104,27 @@ type Starter interface {
 	Pause(ctx context.Context, campaignID uuid.UUID, by uuid.UUID, reason string) error
 	Resume(ctx context.Context, campaignID uuid.UUID, by uuid.UUID) error
 	Cancel(ctx context.Context, campaignID uuid.UUID, by uuid.UUID) error
+}
+
+// Outages is the sending engine's side of a provider outage that the
+// provider health job found (review GS-3): every running send's share on
+// that provider goes through the engine's outage path, the same as an
+// outage the send loop finds itself: held with its analysis and ways to
+// continue (retry with a probe, move to a vetted provider, cancel the
+// share), or moved when the Broadcast failover policy allows it. The engine
+// implements it; the health job type-asserts its Starter.
+type Outages interface {
+	// HoldShares holds the shares on a provider; reason is "provider_down"
+	// or "auth".
+	HoldShares(ctx context.Context, providerID uuid.UUID, reason string) error
+}
+
+// ShareMover moves what is left of a held share to another provider, vetted
+// as every move is, keeping A/B and canary holdouts held (review GS-5). The
+// engine implements it; the providers screen's decision on a held share
+// goes through it.
+type ShareMover interface {
+	MoveShare(ctx context.Context, campaignID, by, from, to uuid.UUID) (int64, error)
 }
 
 // ErrUnavailable is returned by Unavailable, before the sending domain is wired.

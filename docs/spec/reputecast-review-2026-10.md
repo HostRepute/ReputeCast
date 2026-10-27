@@ -45,7 +45,7 @@ What M33 built for the others to use:
 | SR-12 | Gmail Postmaster compliance status is a compliance check when Postmaster data is connected. | Check shows Compliant / Needs work / not connected. |
 | SR-13 | Review & send matches the new boards: issues first, passes collapsed by group, technical details, fix review drawer with consequences and undo through versions, sending locked while checks re-run with real progress, the schedule in the main action, sticky action bar on phones, typed confirmation only for unusual sends, auto-pause summary, "blocklist checks skipped" wording, test sends while blocked, emergency send in a menu. | Visual QA at 1440/834/390 against SendReadiness*, SendReadinessFixes, SettingsSendingRules. |
 
-## Guarded sending and the live monitor (M34) 🚧
+## Guarded sending and the live monitor (M34) ✅
 
 | ID | What | Done when |
 |---|---|---|

@@ -84,6 +84,10 @@ type Capabilities struct {
 	// language later.
 	PricingText      i18n.Text `json:"pricingText,omitzero"`
 	DedicatedIPsText i18n.Text `json:"dedicatedIpsText,omitzero"`
+	// InfersDelivery: the provider reports no deliveries (plain SMTP), so
+	// a message counts as delivered once the server accepts it ("delivered
+	// (inferred)"); bounces and complaints still arrive as reports.
+	InfersDelivery bool `json:"infersDelivery,omitempty"`
 }
 
 // How a provider carries the one-click unsubscribe headers

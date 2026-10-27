@@ -15,17 +15,18 @@ ORDER BY variant;
 -- name: ABReleaseHeld :execrows
 -- Everyone who waited for the test gets the variant that goes out (the
 -- winner, or the default when no variant won), counted apart as the
--- rollout; a best-time send keeps each recipient's time.
+-- rollout; a best-time send keeps each recipient's time. Recipients a
+-- canary still holds (hold_reason 'canary') wait for it (review GS-10).
 UPDATE messages
 SET status = 'queued', variant = @variant, ab_rollout = true, claimed_at = NULL
-WHERE campaign_id = @campaign_id AND status = 'held' AND variant = '';
+WHERE campaign_id = @campaign_id AND status = 'held' AND variant = '' AND hold_reason = '';
 
 -- name: ABHeldZones :many
 -- The recipients waiting for a send-time test, with their time zone.
 SELECT m.id, coalesce(c.timezone, '')::text AS timezone
 FROM messages m
 LEFT JOIN contacts c ON c.id = m.contact_id
-WHERE m.campaign_id = @campaign_id AND m.status = 'held' AND m.variant = ''
+WHERE m.campaign_id = @campaign_id AND m.status = 'held' AND m.variant = '' AND m.hold_reason = ''
 ORDER BY m.id;
 
 -- name: ABReleaseAt :execrows

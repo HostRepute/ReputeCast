@@ -646,6 +646,7 @@ type Campaign struct {
 	DigestID        *uuid.UUID      `json:"digestId"`
 	DigestRole      string          `json:"digestRole"`
 	Channel         string          `json:"channel"`
+	Canary          string          `json:"canary"`
 }
 
 type CampaignAudienceStage struct {
@@ -834,6 +835,9 @@ type CampaignSend struct {
 	FinishedAt    *time.Time      `json:"finishedAt"`
 	CreatedAt     time.Time       `json:"createdAt"`
 	UpdatedAt     time.Time       `json:"updatedAt"`
+	Guard         json.RawMessage `json:"guard"`
+	Canary        json.RawMessage `json:"canary"`
+	WatchUntil    *time.Time      `json:"watchUntil"`
 }
 
 type CampaignSendConfirmation struct {
@@ -2194,6 +2198,8 @@ type Message struct {
 	ContactLanguage   string          `json:"contactLanguage"`
 	LanguageReason    string          `json:"languageReason"`
 	HiddenBlocks      string          `json:"hiddenBlocks"`
+	Canary            bool            `json:"canary"`
+	HoldReason        string          `json:"holdReason"`
 	DeferredAt        *time.Time      `json:"deferredAt"`
 	SoftBouncedAt     *time.Time      `json:"softBouncedAt"`
 	UnsubscribedAt    *time.Time      `json:"unsubscribedAt"`
@@ -3726,6 +3732,15 @@ type SendingDomain struct {
 	Transactional  bool            `json:"transactional"`
 }
 
+type SendingMailboxWindow struct {
+	WorkspaceID     uuid.UUID   `json:"workspaceId"`
+	MailboxProvider string      `json:"mailboxProvider"`
+	Slot            int64       `json:"slot"`
+	Used            int32       `json:"used"`
+	LastGrant       int32       `json:"lastGrant"`
+	Senders         []uuid.UUID `json:"senders"`
+}
+
 type SendingRateWindow struct {
 	ProviderID uuid.UUID `json:"providerId"`
 	Sec        int64     `json:"sec"`
@@ -4624,6 +4639,32 @@ type TrackingRetry struct {
 	NextAt    time.Time       `json:"nextAt"`
 	Error     string          `json:"error"`
 	CreatedAt time.Time       `json:"createdAt"`
+}
+
+type TrafficReplyRule struct {
+	ID              uuid.UUID  `json:"id"`
+	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	MailboxProvider string     `json:"mailboxProvider"`
+	Contains        string     `json:"contains"`
+	MinCount        int32      `json:"minCount"`
+	WindowSeconds   int32      `json:"windowSeconds"`
+	Action          string     `json:"action"`
+	DurationSeconds *int32     `json:"durationSeconds"`
+	Enabled         bool       `json:"enabled"`
+	Position        int32      `json:"position"`
+	Note            string     `json:"note"`
+	LastMatchedAt   *time.Time `json:"lastMatchedAt"`
+	LastCampaignID  *uuid.UUID `json:"lastCampaignId"`
+	CreatedBy       *uuid.UUID `json:"createdBy"`
+	CreatedAt       time.Time  `json:"createdAt"`
+}
+
+type TrafficRule struct {
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Canary      json.RawMessage `json:"canary"`
+	Watch       json.RawMessage `json:"watch"`
+	UpdatedBy   *uuid.UUID      `json:"updatedBy"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
 }
 
 type TransactionalAlert struct {

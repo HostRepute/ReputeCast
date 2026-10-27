@@ -189,11 +189,18 @@ type ReviewTyped struct {
 // can tell: whether it starts with a canary on its own (Auto), why, and how
 // many recipients the canary holds.
 type ReviewCanary struct {
-	Choice  string   `json:"choice" enum:"auto,on,off"`
-	Planned bool     `json:"planned"`
-	Auto    bool     `json:"auto"`
-	Reasons []string `json:"reasons"`
-	Size    int64    `json:"size"`
+	Choice  string `json:"choice" enum:"auto,on,off"`
+	Planned bool   `json:"planned"`
+	Auto    bool   `json:"auto"`
+	// Reasons are why the engine would run one by itself, with the numbers
+	// behind them (the live monitor words them the same way).
+	Reasons     []string `json:"reasons" enum:"new_domain,never_mailed,over_usual"`
+	Size        int64    `json:"size"`
+	Seeds       int      `json:"seeds"`
+	Domain      string   `json:"domain,omitempty"`
+	NeverMailed int64    `json:"neverMailed"`
+	Usual       int64    `json:"usual"`
+	Audience    int64    `json:"audience"`
 }
 
 func abSummary(l i18n.Lang, raw json.RawMessage) *ReviewAB {
@@ -227,7 +234,8 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	if cp := s.canaryPlanner(); cp != nil {
 		if plan, err := cp.CanaryPlanFor(ctx, campaignID); err == nil {
-			out.Canary.Planned, out.Canary.Auto, out.Canary.Size = true, plan.Auto, plan.Size
+			out.Canary.Planned, out.Canary.Auto, out.Canary.Size, out.Canary.Seeds = true, plan.Auto, plan.Size, plan.Seeds
+			out.Canary.Domain, out.Canary.NeverMailed, out.Canary.Usual, out.Canary.Audience = plan.Domain, plan.NeverMailed, plan.Usual, plan.Audience
 			if plan.Reasons != nil {
 				out.Canary.Reasons = plan.Reasons
 			}

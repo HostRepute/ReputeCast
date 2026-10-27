@@ -73,17 +73,14 @@ func (s *Service) now() time.Time {
 	return time.Now()
 }
 
-// canaryPlanner is the sending engine's canary plan (C1): the
-// CanaryPlanner the app wires (engine.CanaryPlanFor), else the sending
-// starter when it tells one; nil when nothing does.
+// canaryPlanner is the sending engine's canary plan (C1): the sending
+// starter's when it tells one, else the CanaryPlanner the app wires
+// (engine.CanaryPlanFor); nil when nothing does.
 func (s *Service) canaryPlanner() sending.CanaryPlanner {
-	if s.CanaryPlanner != nil {
-		return s.CanaryPlanner
-	}
 	if cp, ok := s.starter().(sending.CanaryPlanner); ok {
 		return cp
 	}
-	return nil
+	return s.CanaryPlanner
 }
 
 func (s *Service) starter() sending.Starter {

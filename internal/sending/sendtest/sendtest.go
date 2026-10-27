@@ -96,11 +96,14 @@ func (s *Suite) Fixture(t *testing.T, name string) *Fixture {
 	s.n++
 	f := &Fixture{Suite: s, T: t, List: uuid.Must(uuid.NewV7()), Campaign: uuid.Must(uuid.NewV7())}
 	f.Exec(`DELETE FROM sending_rate_windows`)
+	f.Exec(`DELETE FROM sending_mailbox_windows`)
+	f.Exec(`DELETE FROM traffic_reply_rules WHERE workspace_id = $1`, s.WS)
 	f.Exec(`INSERT INTO lists (id, workspace_id, name) VALUES ($1, $2, $3)`, f.List, s.WS, "Send test "+name)
+	// The copy starts without a canary unless a test asks for one (GS-10).
 	f.Exec(`INSERT INTO campaigns (id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, editor_mode, mjml, html, plain_text,
-		ab_test, schedule, thresholds, tracking, created_by, updated_by, content_hash)
+		ab_test, schedule, thresholds, tracking, created_by, updated_by, content_hash, canary)
 		SELECT $1, workspace_id, $2, 'draft', subject, preheader, sender_id, reply_to, $3, editor_mode, mjml, html, plain_text,
-		ab_test, '{"mode":"now"}', thresholds, tracking, created_by, updated_by, content_hash
+		ab_test, '{"mode":"now"}', thresholds, tracking, created_by, updated_by, content_hash, 'off'
 		FROM campaigns WHERE workspace_id = $4 AND name = 'Weekly Digest #142'`, f.Campaign, name, fmt.Sprintf(`{"lists":[%q]}`, f.List), s.WS)
 	return f
 }

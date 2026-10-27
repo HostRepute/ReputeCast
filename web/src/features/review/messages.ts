@@ -325,8 +325,9 @@ export const m = defineMessages('review', {
   canaryAuto: 'Automatic',
   canaryOn: 'Start with a canary',
   canaryOff: 'No canary',
-  canaryPlanAuto: 'Automatic starts this send with a canary: the {size} most engaged contacts and the seed mailboxes first ({reasons}).',
-  canaryPlanNew: 'something about it is new',
+  canaryPlanAuto:
+    '{seeds, plural, =0 {Automatic starts this send with a canary: the {size} most engaged contacts first.} other {Automatic starts this send with a canary: the {size} most engaged contacts and # seed mailboxes first.}} {reasons}',
+  canaryPlanNew: 'Something about it is new.',
   canaryPlanNone: 'Automatic sends without a canary: nothing about this send is new to the mailbox providers.',
   canaryPlanUnknown:
     'The sending engine decides as the send starts: a new sending domain or IP, contacts never mailed from this domain or an audience over 2× usual start with a canary.',

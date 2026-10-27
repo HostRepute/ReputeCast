@@ -22,7 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers/simulator"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
-	"github.com/hostrepute/reputecast/internal/sending"
+	"github.com/hostrepute/reputecast/internal/sending/rules"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -40,6 +40,28 @@ type hold struct {
 	// Resumed is true once a person resumed it (it stays here only to
 	// remember Rearm).
 	Resumed bool `json:"resumed,omitempty"`
+	// Until ends a timed hold by itself; Route keeps it to one sending
+	// provider; Rule is the reply rule that set it (review GS-12).
+	Until *time.Time `json:"until,omitempty"`
+	Route *uuid.UUID `json:"route,omitempty"`
+	Rule  string     `json:"rule,omitempty"`
+}
+
+// blocks reports whether the hold stops its mailbox provider's mail
+// through a route.
+func (h hold) blocks(route uuid.UUID) bool {
+	return !h.Resumed && (h.Route == nil || *h.Route == route)
+}
+
+// whole reports whether the hold stops its mailbox provider on every
+// route.
+func (h hold) whole() bool { return !h.Resumed && h.Route == nil }
+
+// holdBlocks reports whether a mailbox provider's mail through a route is
+// on hold.
+func holdBlocks(holds map[string]hold, mbp string, route uuid.UUID) bool {
+	h, ok := holds[mbp]
+	return ok && h.blocks(route)
 }
 
 func parseHolds(raw json.RawMessage) map[string]hold {
@@ -51,10 +73,15 @@ func parseHolds(raw json.RawMessage) map[string]hold {
 // routeDetail is campaign_routes.status_detail for the engine's decisions.
 type routeDetail struct {
 	Decision string     `json:"decision,omitempty"` // retry, wait, move, resume
-	Reason   string     `json:"reason,omitempty"`   // provider_down, outage, auth, threshold
+	Reason   string     `json:"reason,omitempty"`   // provider_down, outage, auth, identity, quota, throttled, api_errors, threshold
 	Until    *time.Time `json:"until,omitempty"`
 	Incident string     `json:"incident,omitempty"`
 	To       string     `json:"to,omitempty"`
+	// Retry (outages.go): test messages that went through in a row, when
+	// the next one goes and whether they go to a seed mailbox.
+	Probes    int        `json:"probes,omitempty"`
+	NextProbe *time.Time `json:"nextProbe,omitempty"`
+	Seed      bool       `json:"seed,omitempty"`
 }
 
 func parseRouteDetail(s string) routeDetail {
@@ -79,6 +106,17 @@ type runRoute struct {
 	carry     float64
 	cooldown  time.Time
 	lastProbe time.Time
+	// slow is the share of its rate a throttled route sends at (0 = full),
+	// calmFrom since when it has been answered normally (routeerrors.go).
+	slow     float64
+	calmFrom time.Time
+	// infers: the provider reports no deliveries, so they are inferred
+	// from its acceptance (SMTP, review GS-7).
+	infers bool
+	// apiCheckedAt is when the API error threshold was last checked;
+	// judgedFrom is when the route last started sending again after a hold
+	// (calls before it don't count against it).
+	apiCheckedAt, judgedFrom time.Time
 	// warm is today's warm-up allowance of a warming provider (nil
 	// otherwise), as this run spends it (warmup_send.go).
 	warm *warmRoute
@@ -94,9 +132,6 @@ func (r *runRoute) active(now time.Time) bool {
 	default:
 		return false
 	}
-	if r.detail.Decision == "retry" && now.Sub(r.lastProbe) < retryEvery && !r.lastProbe.IsZero() {
-		return false
-	}
 	return state.Available(r.provider) || r.provider.Status == state.Degraded
 }
 
@@ -107,7 +142,10 @@ type queueKey struct {
 
 type queueCell struct {
 	queued, held, waiting int64
-	nextAt                *time.Time
+	// canary is what is held until the canary passes (also in held); doubt
+	// is in doubt (doubt.go).
+	canary, doubt int64
+	nextAt        *time.Time
 }
 
 // runState is a campaign during one run of the send loop.
@@ -130,6 +168,19 @@ type runState struct {
 	loc        *time.Location
 	ab         abState
 	started    time.Time
+	// settledAt is when stale claims were last settled (doubt.go).
+	settledAt time.Time
+	// guard is campaign_sends.guard (guardstate.go).
+	guard guardState
+	// typed are the bounces by type and recent deferrals the typed
+	// thresholds read (bytype.go).
+	typed typed
+	// replyRules are the workspace's enabled reply rules, replyHits the
+	// replies the loop got that a rule could count (replies.go).
+	replyRules []rules.ReplyRule
+	replyHits  []replyHit
+	rulesAt    time.Time
+	repliedAt  time.Time
 	// links are the per-recipient links of the email's polls and surveys.
 	links []RecipientLink
 }
@@ -181,6 +232,12 @@ func (e *Engine) templatesFor(id uuid.UUID, c sendContent) (map[string]*Template
 // load reads everything a run needs. It returns errStopped when the
 // campaign isn't sending.
 func (e *Engine) load(ctx context.Context, id uuid.UUID, now time.Time) (*runState, error) {
+	return e.loadState(ctx, id, now, false)
+}
+
+// loadState is load; paused also takes a paused send (a decision about one
+// of its shares, an outage the health job found).
+func (e *Engine) loadState(ctx context.Context, id uuid.UUID, now time.Time, paused bool) (*runState, error) {
 	cc, err := e.Q.SendingCampaignContext(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, errStopped
@@ -195,7 +252,7 @@ func (e *Engine) load(ctx context.Context, id uuid.UUID, now time.Time) (*runSta
 	if err != nil {
 		return nil, err
 	}
-	if cc.Status != "sending" || snd.Phase != "sending" {
+	if (cc.Status != "sending" && (!paused || cc.Status != "paused")) || snd.Phase != "sending" {
 		return nil, errStopped
 	}
 	rs := &runState{campaign: cc, send: snd, routes: map[uuid.UUID]*runRoute{}, tokens: map[string]float64{}, queue: map[queueKey]queueCell{},
@@ -215,6 +272,10 @@ func (e *Engine) load(ctx context.Context, id uuid.UUID, now time.Time) (*runSta
 	rs.throttles = map[string]float64{}
 	_ = json.Unmarshal(snd.Throttles, &rs.throttles)
 	rs.holds = parseHolds(snd.Holds)
+	rs.guard = parseGuard(snd.Guard)
+	if err := e.loadReplyRules(ctx, rs, now); err != nil {
+		return nil, err
+	}
 	if rs.templates, err = e.templatesFor(id, rs.content); err != nil {
 		return nil, err
 	}
@@ -248,9 +309,17 @@ func (e *Engine) loadRoutes(ctx context.Context, rs *runState, now time.Time) er
 			if s, ok := r.transport.(*simulator.Provider); ok {
 				r.sim = s
 			}
+			r.infers = r.transport != nil && r.transport.Capabilities().InfersDelivery
+		}
+		if (r.status == "held" || r.status == "paused") && (row.Status == "pending" || row.Status == "sending") {
+			r.judgedFrom = now
 		}
 		r.provider, r.planned, r.status, r.detail = p, row.Planned, row.Status, parseRouteDetail(row.StatusDetail)
 		r.rate = e.rateOf(ctx, e.Q, p, rs.loc, now)
+		if v := rs.guard.routeRate(p.ID); v > 0 && v < r.rate.PerSecond {
+			// A person slowed this route for the send when resuming it (GS-2).
+			r.rate.PerSecond = v
+		}
 		r.warm = e.warmRouteFor(ctx, p, now)
 		r.batch = batchSize(p)
 		r.tracked = state.TrackingOf(p).Mode != "provider"
@@ -278,6 +347,14 @@ func (e *Engine) refresh(ctx context.Context, rs *runState, now time.Time) error
 	}
 	rs.send = snd
 	rs.holds = parseHolds(snd.Holds)
+	rs.guard = parseGuard(snd.Guard)
+	if err := e.loadReplyRules(ctx, rs, now); err != nil {
+		return err
+	}
+	if len(snd.Thresholds) > 0 {
+		// A person may change them while the send runs or waits (GS-2).
+		_ = json.Unmarshal(snd.Thresholds, &rs.thresholds)
+	}
 	rs.ab = parseAB(snd.Ab)
 	rs.throttles = map[string]float64{}
 	_ = json.Unmarshal(snd.Throttles, &rs.throttles)
@@ -299,21 +376,36 @@ func (e *Engine) refreshQueue(ctx context.Context, rs *runState, now time.Time) 
 		}
 		k := queueKey{*r.ProviderID, r.MailboxProvider}
 		c := q[k]
-		if r.Status == "held" {
-			c.held += r.N
-		} else {
-			c.queued += r.N
-			c.waiting += r.Waiting
-			if r.NextAt.Year() > 2000 && (c.nextAt == nil || r.NextAt.Before(*c.nextAt)) {
-				t := r.NextAt
-				c.nextAt = &t
-			}
-		}
+		c.add(r)
 		q[k] = c
 	}
 	rs.queue, rs.queueAt = q, now
 	return nil
 }
+
+// add counts one row of SendingQueueState.
+func (c *queueCell) add(r store.SendingQueueStateRow) {
+	switch r.Status {
+	case "held":
+		c.held += r.N
+		if r.HoldReason == holdCanary {
+			c.canary += r.N
+		}
+	case "in_doubt":
+		c.doubt += r.N
+	default:
+		c.queued += r.N
+		c.waiting += r.Waiting
+		if r.NextAt.Year() > 2000 && (c.nextAt == nil || r.NextAt.Before(*c.nextAt)) {
+			t := r.NextAt
+			c.nextAt = &t
+		}
+	}
+}
+
+// holdCanary is messages.hold_reason of the recipients held until the
+// canary passes (canary.go).
+const holdCanary = "canary"
 
 // Run sends a campaign for up to budget, then returns how soon it should
 // run again (done when there is nothing left to do now).
@@ -424,7 +516,7 @@ func (e *Engine) refill(rs *runState, now time.Time) {
 
 // tick sends one second's allowance through one route.
 func (e *Engine) tick(ctx context.Context, rs *runState, r *runRoute, now time.Time) (int, error) {
-	rate := r.rate.PerSecond
+	rate := r.rate.PerSecond * r.slowFactor()
 	// Today's warm-up cap (or a paused plan) stops queued mail: overflow
 	// to a warm provider, or hold the share with choices (PR-8).
 	if e.warmStopped(rs, r) {
@@ -436,6 +528,16 @@ func (e *Engine) tick(ctx context.Context, rs *runState, r *runRoute, now time.T
 		return 0, nil
 	}
 	alloc := e.allocateWarm(rs, r, want)
+	// A mailbox provider's throttle is shared by the workspace's sends
+	// going out at once (review GS-8): this send takes its part of each
+	// throttled mailbox provider's window first, and gives back what it
+	// doesn't send.
+	taken, err := e.reserveMailboxes(ctx, rs, alloc, now)
+	if err != nil {
+		return 0, err
+	}
+	used := map[string]int{}
+	defer e.releaseMailboxes(ctx, rs, taken, used)
 	total := 0
 	for _, n := range alloc {
 		total += n
@@ -464,11 +566,15 @@ func (e *Engine) tick(ctx context.Context, rs *runState, r *runRoute, now time.T
 		if n <= 0 {
 			continue
 		}
-		rows, err := e.Q.SendingClaim(ctx, store.SendingClaimParams{CampaignID: &cid, ProviderID: &pid, MailboxProvider: mbp, Stale: now.Add(-staleClaim), Now: now, Lim: int32(n)})
+		rows, err := e.Q.SendingClaim(ctx, store.SendingClaimParams{CampaignID: &cid, ProviderID: &pid, MailboxProvider: mbp, Now: now, Lim: int32(n)})
 		if err != nil {
+			// What this second claimed already was never handed to the
+			// provider: it goes back to the queue, not into doubt.
+			e.releaseClaims(ctx, claimed)
 			return 0, err
 		}
 		claimed = append(claimed, rows...)
+		used[mbp] += len(rows)
 		if t, ok := rs.throttles[mbp]; ok && t > 0 {
 			rs.tokens[mbp] -= float64(len(rows))
 		}
@@ -504,7 +610,7 @@ func (e *Engine) allocate(rs *runState, r *runRoute, want int) map[string]int {
 		if k.provider != r.provider.ID || c.queued-c.waiting <= 0 {
 			continue
 		}
-		if h, ok := rs.holds[k.mailbox]; ok && !h.Resumed {
+		if holdBlocks(rs.holds, k.mailbox, r.provider.ID) {
 			continue
 		}
 		capN := math.Inf(1)
@@ -550,6 +656,91 @@ func (e *Engine) allocate(rs *runState, r *runRoute, want int) map[string]int {
 		}
 	}
 	return out
+}
+
+// mailboxGrant is what a send took from a mailbox provider's window.
+type mailboxGrant struct {
+	slot int64
+	n    int
+}
+
+// reserveMailboxes takes each throttled mailbox provider's part of alloc
+// from the workspace's window for now; alloc shrinks to what was granted.
+func (e *Engine) reserveMailboxes(ctx context.Context, rs *runState, alloc map[string]int, now time.Time) (map[string]mailboxGrant, error) {
+	taken := map[string]mailboxGrant{}
+	for _, mbp := range sortedKeys(alloc) {
+		n := alloc[mbp]
+		t, ok := rs.throttles[mbp]
+		if n <= 0 || !ok || t <= 0 {
+			continue
+		}
+		period, capN := throttleSlot(t)
+		sec := now.Unix()
+		slot := sec - sec%period
+		err := e.Q.SendingOpenMailboxWindow(ctx, store.SendingOpenMailboxWindowParams{WorkspaceID: rs.campaign.WorkspaceID, MailboxProvider: mbp, Slot: slot})
+		var g int32
+		if err == nil {
+			// Each send takes no more than its part of the slot: the cap
+			// divided among the sends of the slot before.
+			var others int32
+			others, err = e.Q.SendingMailboxSenders(ctx, store.SendingMailboxSendersParams{WorkspaceID: rs.campaign.WorkspaceID, MailboxProvider: mbp, Slot: slot - period})
+			fair := int32(capN)
+			if others > 1 {
+				fair = int32(math.Ceil(float64(capN) / float64(others)))
+			}
+			if err == nil {
+				g, err = e.Q.SendingMailboxReserve(ctx, store.SendingMailboxReserveParams{CampaignID: rs.campaign.ID, WorkspaceID: rs.campaign.WorkspaceID,
+					MailboxProvider: mbp, Slot: slot, Want: int32(n), Cap: int32(capN), Fair: fair})
+				if errors.Is(err, pgx.ErrNoRows) {
+					g, err = 0, nil
+				}
+			}
+		}
+		if err != nil {
+			e.releaseMailboxes(ctx, rs, taken, nil)
+			return nil, err
+		}
+		alloc[mbp] = int(g)
+		if g > 0 {
+			taken[mbp] = mailboxGrant{slot, int(g)}
+		}
+	}
+	return taken, nil
+}
+
+// releaseMailboxes gives back what a send took from the windows and
+// didn't send. The windows only pace sending: a failure is logged.
+func (e *Engine) releaseMailboxes(ctx context.Context, rs *runState, taken map[string]mailboxGrant, used map[string]int) {
+	for mbp, g := range taken {
+		left := g.n - used[mbp]
+		if left <= 0 {
+			continue
+		}
+		if err := e.Q.SendingMailboxRelease(context.WithoutCancel(ctx), store.SendingMailboxReleaseParams{WorkspaceID: rs.campaign.WorkspaceID, MailboxProvider: mbp,
+			Slot: g.slot, N: int32(left)}); err != nil {
+			e.log().WarnContext(ctx, "release mailbox window", "mailbox", mbp, "err", err)
+		}
+	}
+}
+
+// throttleSlot is the window a rate is counted in: a slot of period
+// seconds that takes capN messages, as close to the rate as whole
+// messages allow and never over it (2.5 /s: 5 every 2 s).
+func throttleSlot(rate float64) (period int64, capN int) {
+	if rate*10 < 1 {
+		return int64(math.Ceil(1 / rate)), 1
+	}
+	best, short := int64(1), math.Inf(1)
+	for p := int64(1); p <= 10; p++ {
+		x := rate * float64(p)
+		if x < 1 {
+			continue
+		}
+		if s := (x - math.Floor(x+1e-9)) / x; s < short-1e-9 {
+			best, short = p, s
+		}
+	}
+	return best, max(int(math.Floor(rate*float64(best)+1e-9)), 1)
 }
 
 func scaleAlloc(alloc map[string]int, n int) map[string]int {
@@ -648,21 +839,64 @@ func (o *outcome) retry(id uuid.UUID, attempts int, now time.Time, msg string) {
 	o.retryErr = append(o.retryErr, clip(msg, 500))
 }
 
+// doubt puts a message whose call may have reached the provider in doubt
+// (doubt.go): never retried on a guess.
+func (o *outcome) doubt(id uuid.UUID) {
+	o.unsentID = append(o.unsentID, id)
+	o.unsentSt = append(o.unsentSt, "in_doubt")
+	o.unsentEr = append(o.unsentEr, inDoubtReason)
+}
+
 func (o *outcome) drop(id uuid.UUID, status, msg string) {
 	o.unsentID = append(o.unsentID, id)
 	o.unsentSt = append(o.unsentSt, status)
 	o.unsentEr = append(o.unsentEr, clip(msg, 500))
 }
 
-// deliver renders claimed messages, hands them to the provider in batches
-// and records every outcome in one transaction.
+// deliver sends claimed messages (send) and acts on what the provider said
+// about the route: a hold, an outage, a slowdown.
 func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed []store.SendingClaimRow, now time.Time) error {
+	d, err := e.send(ctx, rs, r, claimed, now)
+	if err != nil {
+		return err
+	}
+	switch {
+	case d.hold == "quota" || d.hold == "identity":
+		// An outage of the route: held, or moved when the Broadcast policy
+		// allows it and a vetted target (where the sender is verified) can
+		// take the rest. Nothing is dropped (review PR-7).
+		return e.outage(ctx, rs, r, d.hold, now, false)
+	case d.hold != "":
+		// Rejected credentials: a person fixes them or decides.
+		return e.holdRoute(ctx, rs, r, d.hold, now)
+	case d.slowed:
+		r.throttled(now)
+	}
+	return nil
+}
+
+// delivery is what a batch's provider calls said about the route: a hold
+// (rejected credentials, an unverified sender, a used-up quota), whether the
+// provider paced the account, and how many messages it took.
+type delivery struct {
+	hold   string
+	slowed bool
+	sent   int
+}
+
+// send renders claimed messages, hands them to the provider in batches and
+// records every outcome in one transaction. Once messages are claimed it
+// runs to the end even when the job is told to stop: rendering, the
+// provider calls and the record all happen, so nothing is left claimed.
+func (e *Engine) send(ctx context.Context, rs *runState, r *runRoute, claimed []store.SendingClaimRow, now time.Time) (delivery, error) {
+	ctx = context.WithoutCancel(ctx)
 	var out outcome
 	type pending struct {
 		row store.SendingClaimRow
 		msg providers.Message
 	}
 	var batch []pending
+	var unrendered []renderFailure
 	extra := e.readerVars(ctx, rs, claimed)
 	for _, m := range claimed {
 		switch {
@@ -676,11 +910,23 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 		pm, err := e.compose(rs, r, m, extra)
 		if err != nil {
 			out.drop(m.ID, "failed", err.Error())
+			if errors.Is(err, ErrRender) {
+				unrendered = append(unrendered, renderFailure{email: m.Email, err: clip(err.Error(), 300)})
+			}
 			continue
 		}
 		batch = append(batch, pending{m, pm})
 	}
+	// The recipients the template failed for go on the send's notice
+	// (review CO-4); the others go out.
+	if err := e.noteRenderErrors(ctx, rs, unrendered, now); err != nil {
+		e.log().WarnContext(ctx, "render error notice", "campaign", rs.campaign.ID, "err", err)
+	}
 	key := routeKey{rs.campaign.ID, r.provider.ID}
+	// hold is an answer about the route (rejected credentials, an unverified
+	// sender, a used-up quota), acted on once the batch is recorded; slowed
+	// means the provider paced the account (routeerrors.go).
+	hold, slowed := "", false
 	for len(batch) > 0 {
 		n := min(len(batch), max(r.batch, 1))
 		chunk := batch[:n]
@@ -689,45 +935,51 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 		for i, p := range chunk {
 			msgs[i] = p.msg
 		}
-		cctx, cancel := context.WithTimeout(simulator.WithNow(ctx, now), 30*time.Second)
+		cctx, cancel := e.callContext(ctx, now)
 		res, callErr := r.transport.Send(cctx, msgs)
 		cancel()
 		if callErr == nil && len(res) != len(msgs) {
 			callErr = &providers.CallError{Op: "Send", Message: fmt.Sprintf("the provider answered for %d of %d messages", len(res), len(msgs)), Temporary: true}
 		}
 		e.recordCall(key, now, callErr)
-		if err := manage.RecordSend(ctx, e.Pool, r.provider, res, callErr, now); err != nil {
+		if err := manage.RecordSend(context.WithoutCancel(ctx), e.Pool, r.provider, res, callErr, now); err != nil {
 			e.log().WarnContext(ctx, "record provider call", "provider", r.provider.ID, "err", err)
 		}
 		if callErr != nil {
-			if errors.Is(callErr, providers.ErrUnauthorized) {
+			// The batch goes back to the queue without using an attempt when
+			// the answer is about the route or the provider paces the account.
+			if hold, slowed = routeHold(callErr), throttledErr(callErr); hold != "" || slowed {
 				for _, p := range chunk {
 					out.release = append(out.release, p.row.ID)
 				}
-				for _, p := range batch {
-					out.release = append(out.release, p.row.ID)
-				}
-				batch = nil
-				if err := e.holdRoute(ctx, rs, r, "auth", now); err != nil {
-					return err
-				}
 				break
 			}
+			// A call that may have reached the provider (a timeout, a cut
+			// connection) leaves its messages in doubt, unless the provider
+			// dedupes them by message id; one the provider answered or never
+			// got is retried.
+			doubt := outcomeUnknown(callErr) && idempotency(r.transport) == 0
 			for _, p := range chunk {
+				if doubt {
+					out.doubt(p.row.ID)
+					continue
+				}
 				out.retry(p.row.ID, int(p.row.Attempts), now, callText(callErr))
 			}
 			// Back off the whole route briefly; the rest of this second's
 			// batch goes back to the queue.
-			for _, p := range batch {
-				out.release = append(out.release, p.row.ID)
-			}
-			batch = nil
 			r.cooldown = now.Add(backoffMin)
 			break
 		}
+		r.answered(now)
 		for i, res := range res {
 			p := chunk[i]
-			if res.Err == nil {
+			if res.Err != nil && len(rs.replyRules) > 0 {
+				// A server's answer a reply rule may count (GS-12).
+				rs.noteReply(now, p.row.MailboxProvider, r.provider.ID, res.Err.Error())
+			}
+			switch {
+			case res.Err == nil:
 				out.sentIDs = append(out.sentIDs, p.row.ID)
 				out.sentPMID = append(out.sentPMID, res.ProviderMessageID)
 				out.cell(p.row.MailboxProvider, cellVariant(p.row.Variant, p.row.AbRollout)).sent++
@@ -735,29 +987,45 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 				if r.sim != nil && !e.QuietDemo {
 					out.sims = append(out.sims, simRows(rs.campaign.WorkspaceID, &rs.campaign.ID, p.row.ID, r.provider.ID, now, r.sim.Plan(p.msg))...)
 				}
-				continue
-			}
-			if res.Err.Temporary {
+				if r.infers {
+					out.sims = append(out.sims, inferredRow(rs.campaign.WorkspaceID, &rs.campaign.ID, p.row.ID, r.provider.ID, now))
+				}
+			case sendErrIdentity(res.Err):
+				out.release, hold = append(out.release, p.row.ID), "identity"
+			case sendErrQuota(res.Err):
+				out.release, hold = append(out.release, p.row.ID), "quota"
+			case res.Err.Throttled:
+				out.release, slowed = append(out.release, p.row.ID), true
+			case sendErrUnknown(res.Err) && idempotency(r.transport) == 0:
+				out.doubt(p.row.ID)
+			case res.Err.Temporary:
 				out.retry(p.row.ID, int(p.row.Attempts), now, res.Err.Error())
-				continue
+			default:
+				out.drop(p.row.ID, "rejected", res.Err.Error())
+				out.cell(p.row.MailboxProvider, cellVariant(p.row.Variant, p.row.AbRollout)).rejected++
 			}
-			out.drop(p.row.ID, "rejected", res.Err.Error())
-			out.cell(p.row.MailboxProvider, cellVariant(p.row.Variant, p.row.AbRollout)).rejected++
+		}
+		if hold != "" || slowed {
+			break
 		}
 	}
-	// The provider has the batch now: the outcome must be recorded, or the
-	// messages would be claimed again later.
-	err := sending.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		return e.record(ctx, q, tx, rs.campaign.ID, r.provider.ID, &out, now)
+	// What this second didn't hand over goes back to the queue.
+	for _, p := range batch {
+		out.release = append(out.release, p.row.ID)
+	}
+	// The provider has the batch now: the outcome is recorded even when the
+	// job is told to stop. Messages it couldn't record stay claimed and end
+	// in doubt (doubt.go), never sent again on a guess.
+	err := e.recordOutcome(ctx, func(ctx context.Context, tx pgx.Tx) error {
+		return e.record(ctx, store.New(tx), tx, rs.campaign.ID, r.provider.ID, &out, now)
 	})
 	if err != nil {
-		return err
+		return delivery{}, err
 	}
 	if len(out.sims) > 0 {
 		e.insert(ctx, SimArgs{}, nil)
 	}
-	return nil
+	return delivery{hold: hold, slowed: slowed, sent: len(out.sentIDs)}, nil
 }
 
 // record writes a batch's outcomes.
@@ -824,6 +1092,14 @@ func (e *Engine) record(ctx context.Context, q *store.Queries, tx pgx.Tx, campai
 		}
 	}
 	return nil
+}
+
+// inferredRow is the delivery a provider that reports none (SMTP) is
+// credited with when it accepts a message, applied by the event pump with
+// the provider's real events (review GS-7).
+func inferredRow(ws uuid.UUID, campaign *uuid.UUID, msg, provider uuid.UUID, now time.Time) []any {
+	data, _ := json.Marshal(map[string]any{"type": "SMTP 250 · delivered (inferred)", "code": "250", "diagnostic": "Accepted by the server; delivery inferred"})
+	return []any{ws, campaign, msg, provider, now, "delivered", data}
 }
 
 // simRows turns the demo transport's plan into rows to apply when due.
