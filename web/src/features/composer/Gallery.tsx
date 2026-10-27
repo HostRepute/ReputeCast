@@ -81,8 +81,11 @@ export function EmptyGallery() {
           <p className="k">{t(m.templatesFailed, { error: errorMessage(g.error) })}</p>
         ) : (
           <>
-            {defaultColours ? <span className="k">{defaultColours}</span> : null}
-            <div className="tpl-grid grid gap-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <span className="font-semibold">{t(m.templatesHeading)}</span>
+              {defaultColours ? <span className="k">{defaultColours}</span> : null}
+            </div>
+            <div className="tpl-grid grid gap-3" style={{ marginTop: -10 }}>
               {g.data.starters.map((tpl) => (
                 <button key={tpl.id} type="button" className={galleryTileClass(a11y.byId.get(tpl.id))} disabled={!c.canEdit} aria-busy={busy === tpl.id || undefined} onClick={() => void applyTemplate(tpl.id, tpl.name)}>
                   <Thumb items={tpl.thumb} blank={tpl.id === 'starter:blank'} />

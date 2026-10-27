@@ -1179,13 +1179,6 @@
   }
 }
 
-/* The canvas's selection badge: "Section · 2 columns  Feature highlights". */
-.cmp-sel .lab .lab-n {
-  margin-left: 6px;
-  font-weight: 400;
-  opacity: 0.85;
-}
-
 /* The inspector's head for a section: "Section · 2 columns  Feature highlights". */
 .cmp .ihead {
   padding: 10px 12px;

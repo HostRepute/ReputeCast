@@ -52,17 +52,38 @@ type starter struct {
 	digest bool
 }
 
-// The gallery order and wireframes of the starters (ComposerEmpty board).
+// Parts of the starters' miniature emails (Composer and ComposerEmpty boards).
+var (
+	thumbHeader = mjml.MJMLThumbItem{Kind: "header", H: 10, W: 40}
+	thumbFooter = mjml.MJMLThumbItem{Kind: "footer", H: 8}
+	thumbButton = mjml.MJMLThumbItem{Kind: "button", H: 14, W: 35, Accent: true}
+)
+
+func thumbImage(h int) mjml.MJMLThumbItem { return mjml.MJMLThumbItem{Kind: "image", H: h} }
+
+func thumbHeading(w int) mjml.MJMLThumbItem { return mjml.MJMLThumbItem{Kind: "heading", H: 8, W: w} }
+
+func thumbText(w int) mjml.MJMLThumbItem { return mjml.MJMLThumbItem{Kind: "text", H: 8, W: w} }
+
+func thumbRow(n, h int) mjml.MJMLThumbItem {
+	row := make([]mjml.MJMLThumbItem, n)
+	for i := range row {
+		row[i] = thumbImage(h)
+	}
+	return mjml.MJMLThumbItem{Row: row}
+}
+
+// The gallery order and miniature emails of the starters (ComposerEmpty board).
 var starters = []starter{
 	{key: "blank", thumb: []mjml.MJMLThumbItem{}},
-	{key: "weekly-digest", thumb: []mjml.MJMLThumbItem{{H: 10, W: 40}, {H: 34}, {Row: []mjml.MJMLThumbItem{{H: 28}, {H: 28}}}, {H: 8}}},
-	{key: "product-update", thumb: []mjml.MJMLThumbItem{{H: 10, W: 40}, {H: 40}, {H: 8, W: 70}, {H: 14, W: 35, Accent: true}}},
-	{key: "plain-text", thumb: []mjml.MJMLThumbItem{{H: 8, W: 90}, {H: 8, W: 85}, {H: 8, W: 88}, {H: 8, W: 60}}},
-	{key: "announcement", thumb: []mjml.MJMLThumbItem{{H: 48}, {H: 10, W: 60}, {H: 8, W: 80}}},
-	{key: "product-grid", thumb: []mjml.MJMLThumbItem{{Row: []mjml.MJMLThumbItem{{H: 30}, {H: 30}, {H: 30}}}, {H: 8, W: 70}, {Row: []mjml.MJMLThumbItem{{H: 30}, {H: 30}, {H: 30}}}}},
+	{key: "weekly-digest", thumb: []mjml.MJMLThumbItem{thumbHeader, thumbImage(30), thumbHeading(80), thumbText(60), thumbRow(2, 18), thumbFooter}},
+	{key: "product-update", thumb: []mjml.MJMLThumbItem{thumbHeader, thumbHeading(85), thumbHeading(60), thumbImage(30), thumbText(80), thumbText(65), thumbButton, thumbFooter}},
+	{key: "plain-text", thumb: []mjml.MJMLThumbItem{thumbHeader, thumbText(90), thumbText(85), thumbText(88), thumbText(75), thumbText(60), thumbFooter}},
+	{key: "announcement", thumb: []mjml.MJMLThumbItem{thumbImage(48), thumbHeading(70), thumbText(80), thumbText(60), thumbButton, thumbFooter}},
+	{key: "product-grid", thumb: []mjml.MJMLThumbItem{thumbHeader, thumbHeading(60), thumbRow(3, 16), thumbRow(3, 16), thumbButton, thumbFooter}},
 	// Recurring digests (design expansion, phase 3).
 	{key: "blog-digest", digest: true,
-		thumb: []mjml.MJMLThumbItem{{H: 10, W: 40}, {H: 8, W: 85}, {H: 30}, {H: 8, W: 70}, {H: 30}, {H: 8}}},
+		thumb: []mjml.MJMLThumbItem{thumbHeader, thumbText(85), thumbImage(30), thumbText(70), thumbImage(30), thumbFooter}},
 }
 
 // BlogDigestStarter is the key of the recurring digest's starter.

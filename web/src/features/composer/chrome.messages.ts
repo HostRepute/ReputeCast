@@ -136,6 +136,9 @@ export const mh = defineMessages('composer.chrome', {
   writeFootNote: 'Layout, columns and spacing stay as set in Design.',
 
   /** Quick review on phones. */
+  /** A blank template's thumbnail. */
+  thumbEmpty: 'Empty',
+
   quickNote: '<b>Quick review on this screen.</b> Edit text, the subject and comments here. Drag-and-drop layout editing works on larger screens.',
   quickGroup: 'Quick review',
   editText: 'Edit text',

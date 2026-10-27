@@ -43098,6 +43098,18 @@
             "format": "int64",
             "type": "integer"
           },
+          "kind": {
+            "description": "What the part stands for; empty in thumbnails stored before kinds",
+            "enum": [
+              "header",
+              "image",
+              "heading",
+              "text",
+              "button",
+              "footer"
+            ],
+            "type": "string"
+          },
           "row": {
             "items": {
               "$ref": "#/components/schemas/MJMLThumbItem"

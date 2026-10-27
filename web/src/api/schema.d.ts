@@ -29572,6 +29572,11 @@ export interface components {
             accent?: boolean;
             /** Format: int64 */
             h?: number;
+            /**
+             * @description What the part stands for; empty in thumbnails stored before kinds
+             * @enum {string}
+             */
+            kind?: "header" | "image" | "heading" | "text" | "button" | "footer";
             row?: components["schemas"]["MJMLThumbItem"][];
             /** Format: int64 */
             w?: number;

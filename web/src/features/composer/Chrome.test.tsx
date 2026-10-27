@@ -11,6 +11,7 @@ import { ModeTabs, PermissionBanner, StatusChip, useReadiness } from './Header'
 import { InboxStrip } from './InboxStrip'
 import { StyleFields } from './Inspector'
 import { QuickReviewBar } from './QuickReview'
+import { Thumb } from './Thumb'
 import { testCampaign, testComposer } from './testing'
 
 // CO-14: the composer's chrome per the review boards.
@@ -260,5 +261,28 @@ describe('permission banner', () => {
     const banner = await screen.findByRole('status')
     expect(banner).toHaveTextContent('Only people who can send campaigns can send it: ask Linh Nguyen or Marcus Chen.')
     expect(banner.textContent).not.toMatch(/campaigns:send|providers:manage/)
+  })
+})
+
+describe('template thumbnails', () => {
+  it('draw a miniature email, and read older thumbnails by their sizes', async () => {
+    const { container } = await renderInWorkspace(
+      <>
+        <Thumb items={[{ kind: 'header', h: 10, w: 40 }, { kind: 'image', h: 30 }, { kind: 'heading', h: 8, w: 80 }, { row: [{ kind: 'image', h: 18 }, { kind: 'image', h: 18 }] }, { kind: 'button', h: 14, w: 35, accent: true }, { kind: 'footer', h: 8 }]} />
+        <Thumb items={[{ h: 10, w: 40 }, { h: 34 }, { h: 8, w: 70 }, { h: 14, w: 35, accent: true }, { h: 8 }]} />
+        <Thumb items={[]} blank />
+      </>,
+    )
+    const [mini, legacy, blank] = Array.from(container.querySelectorAll('.thumb.mini'))
+    expect(mini!.querySelector('.memail > .mhead .mlogo')).not.toBeNull()
+    expect(mini!.querySelectorAll('.mbody > .mimg')).toHaveLength(1)
+    expect(mini!.querySelectorAll('.mrow .mcol')).toHaveLength(2)
+    expect(mini!.querySelectorAll('.mbody .mbt')).toHaveLength(3)
+    expect(mini!.querySelector(':scope > .mfoot')).not.toBeNull()
+    expect(legacy!.querySelector('.mhead')).not.toBeNull()
+    expect(legacy!.querySelector('.mimg')).not.toBeNull()
+    expect(legacy!.querySelector('.mbt')).not.toBeNull()
+    expect(legacy!.querySelector(':scope > .mfoot')).not.toBeNull()
+    expect(blank).toHaveTextContent('Empty')
   })
 })
