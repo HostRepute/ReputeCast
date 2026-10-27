@@ -82,3 +82,91 @@ SELECT c.id, c.status,
 FROM campaigns c
 WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL AND c.mjml LIKE @pattern::text
 ORDER BY c.created_at;
+
+-- name: ComposerMentionable :many
+-- The workspace's active people, for @mentions in comments (CO-10).
+SELECT u.id, u.name, u.avatar_color, r.name AS role_name
+FROM workspace_members m
+JOIN roles r ON r.id = m.role_id
+JOIN users u ON u.id = m.user_id AND u.status = 'active'
+WHERE m.workspace_id = @workspace_id AND m.status = 'active'
+ORDER BY u.name;
+
+-- name: CommentInsert :exec
+INSERT INTO campaign_comments (id, workspace_id, campaign_id, thread_id, anchor, anchor_label, body, author_id, reviewer_name, review_link_id, version, mentions, created_at)
+VALUES (@id, @workspace_id, @campaign_id, sqlc.narg(thread_id), @anchor, @anchor_label, @body, sqlc.narg(author_id), @reviewer_name, sqlc.narg(review_link_id), @version, @mentions, @created_at);
+
+-- name: CommentsList :many
+SELECT c.id, c.thread_id, c.anchor, c.anchor_label, c.body, c.author_id, coalesce(u.name, '')::text AS author_name, coalesce(u.avatar_color, '')::text AS author_color, c.reviewer_name,
+       c.review_link_id, c.version, c.mentions, c.resolved_at, coalesce(r.name, '')::text AS resolved_by_name, c.created_at
+FROM campaign_comments c
+LEFT JOIN users u ON u.id = c.author_id
+LEFT JOIN users r ON r.id = c.resolved_by
+WHERE c.workspace_id = @workspace_id AND c.campaign_id = @campaign_id
+ORDER BY c.created_at, c.id;
+
+-- name: CommentsByLink :many
+-- What a reviewer sees: the threads started through their link, with the
+-- members' replies to them.
+SELECT c.id, c.thread_id, c.anchor, c.anchor_label, c.body, c.author_id, coalesce(u.name, '')::text AS author_name, coalesce(u.avatar_color, '')::text AS author_color, c.reviewer_name,
+       c.review_link_id, c.version, c.mentions, c.resolved_at, ''::text AS resolved_by_name, c.created_at
+FROM campaign_comments c
+LEFT JOIN users u ON u.id = c.author_id
+WHERE c.review_link_id = @review_link_id
+   OR c.thread_id IN (SELECT t.id FROM campaign_comments t WHERE t.review_link_id = @review_link_id AND t.thread_id IS NULL)
+ORDER BY c.created_at, c.id;
+
+-- name: CommentGet :one
+SELECT id, thread_id, anchor, anchor_label, resolved_at FROM campaign_comments
+WHERE workspace_id = @workspace_id AND campaign_id = @campaign_id AND id = @id;
+
+-- name: CommentResolve :execrows
+UPDATE campaign_comments SET resolved_at = sqlc.narg(resolved_at), resolved_by = sqlc.narg(resolved_by)
+WHERE workspace_id = @workspace_id AND campaign_id = @campaign_id AND id = @id AND thread_id IS NULL;
+
+-- name: ReviewLinkInsert :exec
+INSERT INTO campaign_review_links (id, workspace_id, campaign_id, version, token_hash, token_sealed, created_by, created_at, expires_at)
+VALUES (@id, @workspace_id, @campaign_id, @version, @token_hash, @token_sealed, sqlc.narg(created_by), @created_at, @expires_at);
+
+-- name: ReviewLinksActive :many
+SELECT l.id, l.version, l.token_sealed, l.created_at, l.expires_at, coalesce(u.name, '')::text AS created_by_name
+FROM campaign_review_links l
+LEFT JOIN users u ON u.id = l.created_by
+WHERE l.workspace_id = @workspace_id AND l.campaign_id = @campaign_id AND l.revoked_at IS NULL AND l.expires_at > @now
+ORDER BY l.created_at DESC;
+
+-- name: ReviewLinkRevoke :execrows
+UPDATE campaign_review_links SET revoked_at = @now, revoked_by = sqlc.narg(revoked_by)
+WHERE workspace_id = @workspace_id AND campaign_id = @campaign_id AND id = @id AND revoked_at IS NULL;
+
+-- name: ReviewLinkByToken :one
+SELECT l.id, l.workspace_id, l.campaign_id, l.version, l.expires_at, l.revoked_at, c.name AS campaign_name, w.name AS workspace_name
+FROM campaign_review_links l
+JOIN campaigns c ON c.id = l.campaign_id AND c.deleted_at IS NULL
+JOIN workspaces w ON w.id = l.workspace_id AND w.deleted_at IS NULL
+WHERE l.token_hash = @token_hash;
+
+-- name: ReviewLinkCommentCount :one
+-- Comments through a link since a time: reviewers are limited per hour.
+SELECT count(*)::bigint FROM campaign_comments WHERE review_link_id = @review_link_id AND created_at > @since;
+
+-- name: PresenceTouch :exec
+INSERT INTO campaign_presence (campaign_id, user_id, editing, seen_at)
+VALUES (@campaign_id, @user_id, @editing, @now)
+ON CONFLICT (campaign_id, user_id) DO UPDATE SET editing = EXCLUDED.editing, seen_at = EXCLUDED.seen_at;
+
+-- name: PresenceList :many
+-- Who else has a campaign open (seen since a time).
+SELECT p.user_id, u.name, u.avatar_color, p.editing, p.seen_at
+FROM campaign_presence p
+JOIN users u ON u.id = p.user_id
+WHERE p.campaign_id = @campaign_id AND p.seen_at > @since AND p.user_id <> @me
+ORDER BY p.seen_at DESC;
+
+-- name: PresenceLeave :exec
+DELETE FROM campaign_presence WHERE campaign_id = @campaign_id AND user_id = @user_id;
+
+-- name: ComposerNameVersionIfUnnamed :execrows
+-- Names a version only when nobody named it (a review link's version).
+UPDATE campaign_versions SET name = @name
+WHERE campaign_id = @campaign_id AND version = @version AND name = '';

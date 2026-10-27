@@ -521,6 +521,13 @@ type Querier interface {
 	ClearSegmentMembers(ctx context.Context, segmentID uuid.UUID) error
 	ClearSignInThrottle(ctx context.Context, email string) error
 	ClearUserLockout(ctx context.Context, id uuid.UUID) error
+	CommentGet(ctx context.Context, arg CommentGetParams) (CommentGetRow, error)
+	CommentInsert(ctx context.Context, arg CommentInsertParams) error
+	CommentResolve(ctx context.Context, arg CommentResolveParams) (int64, error)
+	// What a reviewer sees: the threads started through their link, with the
+	// members' replies to them.
+	CommentsByLink(ctx context.Context, reviewLinkID *uuid.UUID) ([]CommentsByLinkRow, error)
+	CommentsList(ctx context.Context, arg CommentsListParams) ([]CommentsListRow, error)
 	// The skip rule: the contact got an email from an abandoned-cart flow
 	// (one started by abandoned checkouts) since a time.
 	CommerceAbandonedCartEmailedSince(ctx context.Context, arg CommerceAbandonedCartEmailedSinceParams) (bool, error)
@@ -764,8 +771,12 @@ type Querier interface {
 	ComposerLatestReadiness(ctx context.Context, campaignID uuid.UUID) (ComposerLatestReadinessRow, error)
 	// Row lock for autosave: the version check and the new version are atomic.
 	ComposerLockCampaign(ctx context.Context, arg ComposerLockCampaignParams) (ComposerLockCampaignRow, error)
+	// The workspace's active people, for @mentions in comments (CO-10).
+	ComposerMentionable(ctx context.Context, workspaceID uuid.UUID) ([]ComposerMentionableRow, error)
 	// Names (or unnames, with '') one version; returns the name it had.
 	ComposerNameVersion(ctx context.Context, arg ComposerNameVersionParams) (string, error)
+	// Names a version only when nobody named it (a review link's version).
+	ComposerNameVersionIfUnnamed(ctx context.Context, arg ComposerNameVersionIfUnnamedParams) (int64, error)
 	ComposerNamedVersionCount(ctx context.Context, campaignID uuid.UUID) (int64, error)
 	// A campaign's pending or approved request: who asked, when it was
 	// decided and the version it covers (editing cancels it).
@@ -2329,6 +2340,10 @@ type Querier interface {
 	// The approved request a publish relied on remembers it went out.
 	PostApprovalMarkPublished(ctx context.Context, arg PostApprovalMarkPublishedParams) error
 	PostApprovalPending(ctx context.Context, postID *uuid.UUID) (PostApprovalPendingRow, error)
+	PresenceLeave(ctx context.Context, arg PresenceLeaveParams) error
+	// Who else has a campaign open (seen since a time).
+	PresenceList(ctx context.Context, arg PresenceListParams) ([]PresenceListRow, error)
+	PresenceTouch(ctx context.Context, arg PresenceTouchParams) error
 	// A product, deleted or not (an order's product).
 	ProductAny(ctx context.Context, id uuid.UUID) (Product, error)
 	ProductArchive(ctx context.Context, arg ProductArchiveParams) error
@@ -3005,6 +3020,12 @@ type Querier interface {
 	// Whether a campaign report shows a Revenue section: the workspace takes
 	// payments or records conversions.
 	RevenueUsesEarn(ctx context.Context, workspaceID uuid.UUID) (bool, error)
+	ReviewLinkByToken(ctx context.Context, tokenHash []byte) (ReviewLinkByTokenRow, error)
+	// Comments through a link since a time: reviewers are limited per hour.
+	ReviewLinkCommentCount(ctx context.Context, arg ReviewLinkCommentCountParams) (int64, error)
+	ReviewLinkInsert(ctx context.Context, arg ReviewLinkInsertParams) error
+	ReviewLinkRevoke(ctx context.Context, arg ReviewLinkRevokeParams) (int64, error)
+	ReviewLinksActive(ctx context.Context, arg ReviewLinksActiveParams) ([]ReviewLinksActiveRow, error)
 	RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) (int64, error)
 	RevokeAPIKeysCreatedBy(ctx context.Context, arg RevokeAPIKeysCreatedByParams) (int64, error)
 	RevokeAllUserSessions(ctx context.Context, userID uuid.UUID) (int64, error)

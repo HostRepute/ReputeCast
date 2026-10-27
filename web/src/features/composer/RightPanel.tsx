@@ -3,7 +3,8 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
 import { LanguageBlockPanel } from '@/features/languages/composerParts'
-import { useComposer, type Issue } from './context'
+import { useComposer, type Issue, type RightTab } from './context'
+import { CommentsTab, useCommentsTabLabel } from './Comments'
 import { mjChildren, sectionOf, tagOf } from './editor/labels'
 import { applyFix, bodyOf, reveal } from './fixes'
 import { describe, SettingsFields, StyleFields } from './Inspector'
@@ -311,6 +312,7 @@ export function RightPanel() {
   const a11y = useAccessibility()
   const digest = useDigestMode()
   const web = useWebMode()
+  const commentsLabel = useCommentsTabLabel()
   const issues = contentIssues(c.checks?.issues)
   const variantCount = variantIssueCount(c.checks)
   // Checks that couldn't run keep their tab, with the stale note and Retry.
@@ -337,7 +339,7 @@ export function RightPanel() {
   const sel = c.selected && tagOf(c.selected) ? c.selected : null
   // The Feed items block has its own checks (the posts it draws are not in the template).
   const footer = sel && (isFeedItems(sel) || isGrowBlock(sel)) ? null : c.device === 'mobile' ? <MobileChecks selected={sel} /> : <SectionHealth selected={sel} />
-  const items: { value: 'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'; label: string }[] = [
+  const items: { value: RightTab; label: string }[] = [
     { value: 'style', label: t(m.tabStyle) },
     { value: 'settings', label: t(m.tabSettings) },
   ]
@@ -347,9 +349,11 @@ export function RightPanel() {
   if (allWarn.length || variantCount || stale) items.push({ value: 'deliverability', label: t(m.tabDeliverability, { count: (issues.length || allWarn.length) + variantCount }) })
   const a11yTab = accessibilityTab(a11y)
   if (a11yTab) items.push({ value: 'accessibility', label: a11yTab })
+  // Comments (CO-10): campaigns only.
+  if (c.kind !== 'transactional') items.push({ value: 'comments', label: commentsLabel })
   return (
     // Digest mode keeps the wide panel: the Feed items settings need the room.
-    <aside className={tab === 'accessibility' || items.length > 3 || digest ? 'cpanel right a11y-wide' : 'cpanel right'} aria-label={t(m.rightPanelLabel)}>
+    <aside className={tab === 'accessibility' || items.filter((i) => i.value !== 'comments').length > 3 || digest ? 'cpanel right a11y-wide' : 'cpanel right'} aria-label={t(m.rightPanelLabel)}>
       <PanelTabs value={tab} onChange={c.setRightTab} label={t(m.inspector)} items={items} className="flex flex-1 flex-col">
         <TabPanel value="style" className="flex flex-1 flex-col" tabIndex={-1}>
           {sel && isFeedItems(sel) ? (
@@ -405,6 +409,9 @@ export function RightPanel() {
         </TabPanel>
         <TabPanel value="web" className="flex flex-1 flex-col overflow-y-auto" tabIndex={-1}>
           <WebTabPanel />
+        </TabPanel>
+        <TabPanel value="comments" className="flex flex-1 flex-col overflow-y-auto" tabIndex={-1}>
+          <CommentsTab thread={c.thread} />
         </TabPanel>
       </PanelTabs>
     </aside>

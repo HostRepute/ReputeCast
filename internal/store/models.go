@@ -654,6 +654,24 @@ type CampaignAudienceStage struct {
 	Exclude    bool      `json:"exclude"`
 }
 
+type CampaignComment struct {
+	ID           uuid.UUID   `json:"id"`
+	WorkspaceID  uuid.UUID   `json:"workspaceId"`
+	CampaignID   uuid.UUID   `json:"campaignId"`
+	ThreadID     *uuid.UUID  `json:"threadId"`
+	Anchor       string      `json:"anchor"`
+	AnchorLabel  string      `json:"anchorLabel"`
+	Body         string      `json:"body"`
+	AuthorID     *uuid.UUID  `json:"authorId"`
+	ReviewerName string      `json:"reviewerName"`
+	ReviewLinkID *uuid.UUID  `json:"reviewLinkId"`
+	Version      int32       `json:"version"`
+	Mentions     []uuid.UUID `json:"mentions"`
+	ResolvedAt   *time.Time  `json:"resolvedAt"`
+	ResolvedBy   *uuid.UUID  `json:"resolvedBy"`
+	CreatedAt    time.Time   `json:"createdAt"`
+}
+
 type CampaignCounter struct {
 	CampaignID      uuid.UUID `json:"campaignId"`
 	ProviderID      uuid.UUID `json:"providerId"`
@@ -708,6 +726,13 @@ type CampaignLink struct {
 	UniqueClicks int64     `json:"uniqueClicks"`
 }
 
+type CampaignPresence struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	UserID     uuid.UUID `json:"userId"`
+	Editing    bool      `json:"editing"`
+	SeenAt     time.Time `json:"seenAt"`
+}
+
 type CampaignRender struct {
 	ID          uuid.UUID       `json:"id"`
 	WorkspaceID uuid.UUID       `json:"workspaceId"`
@@ -724,6 +749,20 @@ type CampaignRender struct {
 	RequestedAt time.Time       `json:"requestedAt"`
 	PolledAt    *time.Time      `json:"polledAt"`
 	CompletedAt *time.Time      `json:"completedAt"`
+}
+
+type CampaignReviewLink struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	CampaignID  uuid.UUID  `json:"campaignId"`
+	Version     int32      `json:"version"`
+	TokenHash   []byte     `json:"tokenHash"`
+	TokenSealed []byte     `json:"tokenSealed"`
+	CreatedBy   *uuid.UUID `json:"createdBy"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	ExpiresAt   time.Time  `json:"expiresAt"`
+	RevokedAt   *time.Time `json:"revokedAt"`
+	RevokedBy   *uuid.UUID `json:"revokedBy"`
 }
 
 type CampaignRoute struct {

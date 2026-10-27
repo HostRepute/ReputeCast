@@ -19,6 +19,7 @@ import { m } from './messages'
 import { useAssistBanner } from '@/features/ai/composer/panel'
 import { AssistMenu } from '@/features/ai/composer/assistMenu'
 import { WebChip } from '@/features/website/composer/campaign'
+import { PresenceChip, ShareReviewButton } from './Collab'
 
 const routeColors: Record<string, string> = { ses: 'var(--chart-ses)', postal: 'var(--chart-postal)', postmark: 'var(--chart-postmark)' }
 
@@ -167,6 +168,8 @@ export function Header({ onReview }: { onReview: () => void }) {
           )}
         </Badge>
       )}
+      {/* Who else has it open (CO-10). */}
+      {preview ? null : <PresenceChip />}
       {preview || digest || issue ? null : <ComposerLanguageSwitcher />}
       {preview ? null : (
         <div className="flex flex-wrap gap-2" style={{ marginLeft: 12 }}>
@@ -192,6 +195,7 @@ export function Header({ onReview }: { onReview: () => void }) {
         ) : (
           <>
             <AssistMenu />
+            <ShareReviewButton disabled={empty} />
             <button type="button" className="btn" disabled={empty} style={empty ? { opacity: 0.5 } : undefined} onClick={() => c.setView('preview')}>
               {t(m.preview)}
             </button>

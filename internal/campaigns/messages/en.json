@@ -53,5 +53,17 @@
   "version.fromPost": { "message": "created from the post on {site}", "note": "the first version of a draft made from a WordPress post; site: blog.acme.io" },
   "note.draftFrom": { "message": "draft from {site}", "note": "the campaign list's note of a draft made from a WordPress post; site: blog.acme.io" },
   "version.keptYours": { "message": "your edits, kept when {name}'s v{version} was loaded", "note": "a version's label: after a conflict, Load theirs keeps your edits in the history; name: a member's name; version: 15" },
-  "version.loadedTheirs": { "message": "loaded {name}'s v{version}", "note": "a version's label: the other person's version, put back on top after Load theirs" }
+  "version.loadedTheirs": { "message": "loaded {name}'s v{version}", "note": "a version's label: the other person's version, put back on top after Load theirs" },
+  "version.merged": { "message": "merged with {name}'s v{version}", "note": "a version's label: two people changed different sections and both edits were kept; name: a member's name; version: 15" },
+  "version.synced": { "message": "{kind, select, header {Header} other {Footer}} updated in Brand kit", "note": "a version's label: the synced Header or Footer changed in Settings › Brand kit" },
+  "version.sharedForReview": { "message": "Shared for review", "note": "the name given to the version a review link shows" },
+  "problem.commentEmpty": "Write something to comment.",
+  "problem.commentAnchor": { "message": "That block can't hold a comment. Select it again and retry.", "note": "the block's comment marker is malformed" },
+  "problem.commentMention": "You can only mention people in this workspace.",
+  "notify.mentionTitle": { "message": "{name} mentioned you", "note": "a notification's title; name: a member's name" },
+  "notify.mentionSummary": { "message": "{name} mentioned you on “{campaign}”: “{excerpt}”", "note": "campaign: the campaign's name; excerpt: the comment's first words" },
+  "notify.mentionBody": { "message": "{name} mentioned you in a comment on “{campaign}”: “{excerpt}” Open the comment to reply.", "note": "the notification email's text" },
+  "problem.reviewLimited": "Too many requests from this address. Try again in a few minutes.",
+  "problem.reviewGone": "This review link has expired or was revoked. Ask whoever shared it for a new one.",
+  "problem.reviewName": "Add your name so the team knows who commented."
 }

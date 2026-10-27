@@ -1805,6 +1805,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/review/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The email behind a review link (public, rate-limited)
+         * @description One version of one campaign, personalized for a sample reader, and the comments written through the link. Limited per client address.
+         */
+        get: operations["get-review"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/review/{token}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Comment through a review link (public, rate-limited)
+         * @description Signed with the name the reviewer gives. At most 30 comments an hour through one link.
+         */
+        post: operations["add-review-comment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/setup": {
         parameters: {
             query?: never;
@@ -3768,6 +3808,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Comment threads on the campaign, open ones first */
+        get: operations["list-campaign-comments"];
+        put?: never;
+        /**
+         * Comment on a block or the whole email, or reply to a thread
+         * @description Anyone who can view the campaign can comment. The members in mentions get a notification (and an email unless they turned it off) linking to the thread.
+         */
+        post: operations["add-campaign-comment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/comments/{threadId}/resolved": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Resolve a comment thread, or open it again */
+        put: operations["resolve-campaign-comment"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/content": {
         parameters: {
             query?: never;
@@ -4212,6 +4290,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/mentionable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Members who can be @mentioned in the campaign's comments */
+        get: operations["list-mentionable-members"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/poll-test-answers": {
         parameters: {
             query?: never;
@@ -4245,6 +4340,27 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/presence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Say you have the campaign open; returns who else does
+         * @description The composer calls it every 20 seconds while open. Someone not heard from for a minute is gone.
+         */
+        put: operations["campaign-presence"];
+        post?: never;
+        /** Say you closed the campaign */
+        delete: operations["leave-campaign"];
         options?: never;
         head?: never;
         patch?: never;
@@ -4526,6 +4642,44 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The campaign's working review links, newest first */
+        get: operations["list-campaign-review-links"];
+        put?: never;
+        /**
+         * Share the saved version for review
+         * @description Anyone with the link sees that version of the email (personalized for a sample reader) and can comment without signing in, for 7 days or until the link is revoked. Nothing about the audience, settings or other campaigns.
+         */
+        post: operations["create-campaign-review-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review-links/{linkId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke a review link */
+        delete: operations["revoke-campaign-review-link"];
         options?: never;
         head?: never;
         patch?: never;
@@ -22009,6 +22163,32 @@ export interface components {
             probeLinks?: boolean;
             subject?: string;
         };
+        ComposerComment: {
+            author: string;
+            authorColor?: string;
+            authorId?: string;
+            body: string;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            /** @description Members it notified (user ids) */
+            mentions: string[];
+            reviewer: boolean;
+            /**
+             * Format: int64
+             * @description The campaign version it was written on
+             */
+            version: number;
+        };
+        ComposerCommentInput: {
+            /** @description The block's rc-comment id; empty for the whole email */
+            anchor?: string;
+            anchorLabel?: string;
+            body: string;
+            mentions?: string[];
+            /** Format: uuid */
+            threadId?: string;
+        };
         ComposerCompileRequest: {
             mjml: string;
         };
@@ -22046,9 +22226,48 @@ export interface components {
             /** @description Start from a template (starter:<key> or a saved template id) */
             templateId?: string;
         };
+        ComposerMember: {
+            /** @description Avatar colour */
+            color: string;
+            id: string;
+            name: string;
+            role: string;
+        };
+        ComposerMemberList: {
+            items: components["schemas"]["ComposerMember"][];
+        };
+        ComposerMerged: {
+            head?: string;
+            preheader?: string;
+            /** @description Their sections, at their positions in the email */
+            sections: components["schemas"]["MergedSection"][];
+            subject?: string;
+            /**
+             * Format: int64
+             * @description Their version
+             */
+            version: number;
+            /** @description Who saved the newer version */
+            with: string;
+        };
         ComposerNameVersion: {
             /** @description The version's name; empty removes it */
             name: string;
+        };
+        ComposerPresence: {
+            others: components["schemas"]["ComposerPresent"][];
+        };
+        ComposerPresenceInput: {
+            editing?: boolean;
+        };
+        ComposerPresent: {
+            /** @description Avatar colour */
+            color: string;
+            editing: boolean;
+            name: string;
+            /** Format: date-time */
+            seenAt: string;
+            userId: string;
         };
         ComposerPreview: {
             contact?: components["schemas"]["ComposerPreviewContact"];
@@ -22098,9 +22317,30 @@ export interface components {
             /** @enum {string} */
             variant?: "A" | "B" | "C";
         };
+        ComposerResolveInput: {
+            resolved: boolean;
+        };
         ComposerRestoreVersion: {
             /** Format: int64 */
             baseVersion: number;
+        };
+        ComposerReviewLink: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            /** @description Shown to the workspace's members only */
+            url: string;
+            /**
+             * Format: int64
+             * @description The version reviewers see
+             */
+            version: number;
+        };
+        ComposerReviewLinkList: {
+            items: components["schemas"]["ComposerReviewLink"][];
         };
         ComposerRoute: {
             shares: components["schemas"]["RouteShare"][];
@@ -22128,6 +22368,7 @@ export interface components {
         ComposerSavedContent: {
             contentHash: string;
             html: string;
+            merged?: components["schemas"]["ComposerMerged"];
             plainText: string;
             recompiled?: string;
             /** Format: date-time */
@@ -22172,6 +22413,22 @@ export interface components {
             languages: string[];
             provider: string;
             sent: string[];
+        };
+        ComposerThread: {
+            anchor: string;
+            anchorLabel: string;
+            comments: components["schemas"]["ComposerComment"][];
+            id: string;
+            /** Format: date-time */
+            resolvedAt?: string;
+            resolvedBy?: string;
+        };
+        ComposerThreadList: {
+            /** Format: int64 */
+            open: number;
+            /** Format: int64 */
+            resolved: number;
+            threads: components["schemas"]["ComposerThread"][];
         };
         ComposerTokenValue: {
             /** Format: int64 */
@@ -29112,6 +29369,12 @@ export interface components {
             /** @enum {string} */
             state: "on" | "off" | "idp" | "required";
         };
+        MergedSection: {
+            /** Format: int64 */
+            index: number;
+            label: string;
+            mjml: string;
+        };
         MoveEstimate: {
             /** Format: double */
             extraCost: number;
@@ -35487,6 +35750,13 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        ReviewCommentInput: {
+            body: string;
+            /** @description How the reviewer signs their comment */
+            name: string;
+            /** Format: uuid */
+            threadId?: string;
+        };
         ReviewHeld: {
             blocks: components["schemas"]["ReadinessCheck"][];
             /** Format: int64 */
@@ -35494,6 +35764,20 @@ export interface components {
             reason: string;
             /** Format: date-time */
             since: string;
+        };
+        ReviewPage: {
+            campaign: string;
+            /** Format: date-time */
+            expiresAt: string;
+            fromName: string;
+            html: string;
+            preheader: string;
+            sample: string;
+            subject: string;
+            threads: components["schemas"]["ComposerThread"][];
+            /** Format: int64 */
+            version: number;
+            workspace: string;
         };
         ReviewScheduled: {
             /** Format: date-time */
@@ -48081,6 +48365,78 @@ export interface operations {
             };
         };
     };
+    "get-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The token from the review link */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "X-Robots-Tag"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewPage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-review-comment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The token from the review link */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewCommentInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "X-Robots-Tag"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-setup": {
         parameters: {
             query?: never;
@@ -52631,6 +52987,112 @@ export interface operations {
             };
         };
     };
+    "list-campaign-comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerThreadList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-campaign-comment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComposerCommentInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resolve-campaign-comment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                threadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComposerResolveInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "save-campaign-content": {
         parameters: {
             query?: {
@@ -53593,6 +54055,39 @@ export interface operations {
             };
         };
     };
+    "list-mentionable-members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerMemberList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-campaign-poll-test-answers": {
         parameters: {
             query?: never;
@@ -53683,6 +54178,74 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PollResultsList"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "campaign-presence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComposerPresenceInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerPresence"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "leave-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -54279,6 +54842,104 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CampaignReview"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-campaign-review-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerReviewLinkList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-campaign-review-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerReviewLink"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "revoke-campaign-review-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                linkId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {

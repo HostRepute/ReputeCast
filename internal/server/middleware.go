@@ -143,15 +143,15 @@ func SecurityHeaders(httpsOnly bool) func(http.Handler) http.Handler {
 }
 
 // secretSegments match paths whose last part is a bearer secret: tracking
-// and email links, shared reports, provider webhooks, invitations and
-// password resets (API and app routes).
+// and email links, shared reports, provider webhooks, invitations,
+// password resets and composer review links (API and app routes).
 var secretSegments = []*regexp.Regexp{
 	regexp.MustCompile(`^(/t/[oc]/)[^/]+`),
 	regexp.MustCompile(`^(/p/[^/]+/(?:unsubscribe|preferences|confirm|view)/)[^/]+`),
 	regexp.MustCompile(`^(/r/)[^/]+`),
 	regexp.MustCompile(`^(/hooks/[^/]+/)[^/]+`),
-	regexp.MustCompile(`^(/(?:invite|reset-password)/)[^/]+`),
-	regexp.MustCompile(`^(/api/v1/(?:auth/password-reset|invitations|shared-reports)/)[^/]+`),
+	regexp.MustCompile(`^(/(?:invite|reset-password|review)/)[^/]+`),
+	regexp.MustCompile(`^(/api/v1/(?:auth/password-reset|invitations|shared-reports|review)/)[^/]+`),
 	// The same email links on a workspace's custom domain, at the root
 	// (news.acme.io/unsubscribe/{token}).
 	regexp.MustCompile(`^(/(?:unsubscribe|preferences|confirm|view)/)[^/]+`),

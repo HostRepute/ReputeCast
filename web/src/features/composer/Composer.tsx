@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import type { Component } from 'grapesjs'
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { $api, ApiError, errorMessage, http } from '@/api/client'
+import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
 import { andList, clock } from '@/lib/format'
@@ -14,7 +14,7 @@ import { useCan, useMe, useWorkspace } from '@/lib/session'
 import { ComposerBanners, type Recovered } from './Banners'
 import { ApprovalBanner, ApprovalDialog, type Approval } from './Approval'
 import { CanvasArea } from './CanvasArea'
-import { ComposerCtx, type ABTest, type Campaign, type Checks, type ComposerCtxData, type ComposerDialog, type ComposerState, type SaveStatus, type View } from './context'
+import { ComposerCtx, type ABTest, type Campaign, type Checks, type ComposerCtxData, type ComposerDialog, type ComposerState, type RightTab, type SaveStatus, type View } from './context'
 import { Dialogs } from './Dialogs'
 import { variantLines } from './ABPanel'
 import { trackChanges, type ChangeTracker } from './editor/changes'
@@ -24,7 +24,9 @@ import { lockCanvas, unlockCanvas, type Locked } from './editor/lock'
 import { isKnownField, knownFields } from './editor/fields'
 import { setChipLabels } from './editor/liquid'
 import { trackMeta, type Meta, type MetaUndo } from './editor/metaUndo'
-import { atPath } from './editor/labels'
+import { atPath, sectionWord } from './editor/labels'
+import { applySections } from './editor/merge'
+import { mx } from './collab.messages'
 import { canvasHead, isEmptyBody, joinMjml, splitMjml, withHeadMeta } from './editor/mjmlDoc'
 import { Footer, VersionLink } from './Footer'
 import { Header, PermissionBanner } from './Header'
@@ -62,8 +64,10 @@ export interface ComposerSearch {
   variant?: string
   /** Component to select once the canvas is ready (element path from mj-body, "1-0-0"). */
   select?: string
-  panel?: 'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'
+  panel?: RightTab
   left?: 'blocks' | 'layers' | 'templates'
+  /** A comment thread to show with panel=comments (a mention's link, CO-10). */
+  thread?: string
 }
 
 function offlineError(e: unknown) {
@@ -157,7 +161,7 @@ export function Composer({
   const [checksRun, setChecksRun] = useState<{ state: 'ok' | 'failed' | 'recovered'; reason?: 'network' | 'server' }>({ state: 'ok' })
   const [checksPending, setChecksPending] = useState(false)
   const [checksNonce, setChecksNonce] = useState(0)
-  const [rightTab, setRightTab] = useState<'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'>(search.panel ?? 'style')
+  const [rightTab, setRightTab] = useState<RightTab>(search.panel ?? 'style')
   const [leftTab, setLeftTab] = useState<'blocks' | 'layers' | 'templates'>(search.left ?? 'blocks')
   // A deep link selects its component once the canvas is ready.
   const deepLink = useRef(search.select)
@@ -411,6 +415,43 @@ export function Composer({
     [markDirty, setHead, onSearch, search],
   )
 
+  /**
+   * A save merged with someone else's (CO-10): their sections, head,
+   * subject and preheader come onto the canvas, as stored. With no edits
+   * since the save, the canvas is the saved version.
+   */
+  const applyMerged = useCallback(
+    (merged: Schemas['ComposerMerged'], rev0: number, saved: { at: string; version: number }) => {
+      const clean = revision.current === rev0
+      if (geRef.current) applySections(geRef.current.editor, merged.sections)
+      if (merged.head) setHead(merged.head)
+      if (merged.subject != null) {
+        subjectRef.current = merged.subject
+        setSubjectState(merged.subject)
+      }
+      if (merged.preheader != null) {
+        preheaderRef.current = merged.preheader
+        setPreheaderState(merged.preheader)
+      }
+      if (clean) {
+        // The editor reports these changes a moment later: they're saved.
+        window.setTimeout(() => {
+          tracker.current?.take()
+          savedRevision.current = revision.current
+          setStatus({ kind: 'saved', at: saved.at, version: saved.version })
+        }, 0)
+      }
+      const parts = [
+        ...merged.sections.map((x) => sectionWord(x.label)),
+        ...(merged.subject != null ? [tt(mx.mergedSubject)] : []),
+        ...(merged.preheader != null ? [tt(mx.mergedPreheader)] : []),
+        ...(merged.head ? [tt(mx.mergedHead)] : []),
+      ]
+      toast({ kind: 'info', title: tt(mx.mergedTitle, { name: merged.with }), detail: tt(mx.mergedDetail, { name: merged.with, parts: andList(parts), version: merged.version }) })
+    },
+    [setHead],
+  )
+
   /** Saves run one after another: each reads what is on screen when its turn comes. */
   const [enqueueSave] = useState(serialQueue)
   const save = useCallback(
@@ -449,12 +490,15 @@ export function Composer({
           version.current = data!.version
           savedRevision.current = rev0
           pendingSource.current = null
+          // Someone saved a newer version and changed other sections: theirs
+          // are in the saved version; the canvas takes them too (CO-10).
+          if (data!.merged) applyMerged(data!.merged, rev0, { at: data!.savedAt, version: data!.version })
           afterSaved.current?.(rev0)
           setStatus(revision.current === rev0 ? { kind: 'saved', at: data!.savedAt, version: data!.version } : { kind: 'dirty', at: data!.savedAt, version: data!.version })
           if (opts.manual && !opts.quiet) setSavedCard({ version: data!.version, at: data!.savedAt })
           // The source's versions: offer to keep them in step (LanguageStates).
           if (!language && !opts.stash && !data!.unchanged) void afterSourceSave(savedMjml.current, mjml, data!.version)
-          if (!opts.stash) savedMjml.current = mjml
+          if (!opts.stash) savedMjml.current = data!.merged ? currentMjml() : mjml
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns'] })
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions'] })
           return true
@@ -490,7 +534,7 @@ export function Composer({
       }
       return enqueueSave(run)
     },
-    [canEdit, currentMjml, abForSave, slug, campaign.id, qc, language, afterSourceSave, enqueueSave],
+    [canEdit, currentMjml, abForSave, slug, campaign.id, qc, language, afterSourceSave, enqueueSave, applyMerged],
   )
 
   const saveRef = useRef(save)
@@ -834,6 +878,7 @@ export function Composer({
     retryChecks: () => setChecksNonce((n) => n + 1),
     rightTab,
     setRightTab,
+    thread: search.thread,
     leftTab,
     setLeftTab,
     openDialog: setDialog,

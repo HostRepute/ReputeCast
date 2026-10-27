@@ -110,8 +110,10 @@ export interface ComposerState {
   checksRecovered?: boolean
   retryChecks?(): void
   /** The inspector's tab; Web is the website's (features/website/composer), while it's on. */
-  rightTab: 'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'
-  setRightTab(t: 'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'): void
+  rightTab: RightTab
+  setRightTab(t: RightTab): void
+  /** A comment thread to show (a mention's link: ?panel=comments&thread=…), CO-10. */
+  thread?: string
   leftTab: 'blocks' | 'layers' | 'templates'
   setLeftTab(t: 'blocks' | 'layers' | 'templates'): void
   openDialog(d: ComposerDialog): void
@@ -121,6 +123,9 @@ export interface ComposerState {
   /** A language picked that has no version (internal/languages): the canvas gives way to "No … version". */
   missingLanguage?: string
 }
+
+/** The inspector's tabs (Comments: CO-10). */
+export type RightTab = 'style' | 'settings' | 'deliverability' | 'accessibility' | 'web' | 'comments'
 
 export type ComposerDialog = 'versions' | 'assets' | 'import' | 'sendTest' | 'saveTemplate' | 'shortcuts' | 'compare' | null
 

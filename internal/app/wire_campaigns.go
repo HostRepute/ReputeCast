@@ -44,6 +44,8 @@ func (a *App) campaigns() *campaigns.Service {
 		Channels: campaignChannelRows(a),
 		// Previews and test sends show Grow's blocks for the reader.
 		Recipients: func() []liquid.RecipientData { return recipientData(a) },
+		// Review links' tokens are sealed (CO-10).
+		Box: a.Secrets,
 	}
 }
 

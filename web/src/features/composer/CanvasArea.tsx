@@ -31,6 +31,7 @@ import { ConditionalOverlays, ConditionalToggle } from '@/features/conditional/C
 import { VersionsPanel } from '@/features/conditional/Versions'
 import { SurveyLinkChoices } from '@/features/surveys/LinkChoices'
 import { EmailWebToggle, WebOverlays } from '@/features/website/composer/campaign'
+import { CommentOverlays } from './Comments'
 import { GrowPreviewAs } from '@/features/grow/composer/Panel'
 import { mb as growMessages } from '@/features/grow/composer/messages'
 import { mc as earnComposer } from '@/features/earn/composer/composer.messages'
@@ -815,6 +816,7 @@ export function CanvasArea({
             <AccessibilityOverlays host={host} tick={tick} boxOf={boxOf} />
             <ConditionalOverlays host={host} tick={tick} boxOf={boxOf} />
             <WebOverlays host={host} tick={tick} boxOf={boxOf} />
+            <CommentOverlays host={host} tick={tick} boxOf={boxOf} />
             <LanguageTags host={host} tick={tick} />
             <SelectionOverlay host={host} tick={tick} />
             <RteToolbar host={host} tick={tick} />

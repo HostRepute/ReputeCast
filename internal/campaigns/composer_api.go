@@ -290,6 +290,7 @@ func RegisterComposer(h huma.API, s *Service) {
 			res := mjml.CompileIn(l, in.Body.MJML)
 			return api.OK(ComposerCompiled{HTML: res.HTML, Errors: nonNilProblems(res.Errors), Warnings: mjml.LintIn(l, in.Body.MJML), SizeBytes: len(res.HTML), DurationMs: res.Duration.Milliseconds()}), nil
 		})
+	registerCollaboration(h, s, tags)
 }
 
 func nonNilProblems(p []mjml.MJMLProblem) []mjml.MJMLProblem {

@@ -54,6 +54,240 @@ func (q *Queries) CampaignsHoldingSynced(ctx context.Context, arg CampaignsHoldi
 	return items, nil
 }
 
+const commentGet = `-- name: CommentGet :one
+SELECT id, thread_id, anchor, anchor_label, resolved_at FROM campaign_comments
+WHERE workspace_id = $1 AND campaign_id = $2 AND id = $3
+`
+
+type CommentGetParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+type CommentGetRow struct {
+	ID          uuid.UUID  `json:"id"`
+	ThreadID    *uuid.UUID `json:"threadId"`
+	Anchor      string     `json:"anchor"`
+	AnchorLabel string     `json:"anchorLabel"`
+	ResolvedAt  *time.Time `json:"resolvedAt"`
+}
+
+func (q *Queries) CommentGet(ctx context.Context, arg CommentGetParams) (CommentGetRow, error) {
+	row := q.db.QueryRow(ctx, commentGet, arg.WorkspaceID, arg.CampaignID, arg.ID)
+	var i CommentGetRow
+	err := row.Scan(
+		&i.ID,
+		&i.ThreadID,
+		&i.Anchor,
+		&i.AnchorLabel,
+		&i.ResolvedAt,
+	)
+	return i, err
+}
+
+const commentInsert = `-- name: CommentInsert :exec
+INSERT INTO campaign_comments (id, workspace_id, campaign_id, thread_id, anchor, anchor_label, body, author_id, reviewer_name, review_link_id, version, mentions, created_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+`
+
+type CommentInsertParams struct {
+	ID           uuid.UUID   `json:"id"`
+	WorkspaceID  uuid.UUID   `json:"workspaceId"`
+	CampaignID   uuid.UUID   `json:"campaignId"`
+	ThreadID     *uuid.UUID  `json:"threadId"`
+	Anchor       string      `json:"anchor"`
+	AnchorLabel  string      `json:"anchorLabel"`
+	Body         string      `json:"body"`
+	AuthorID     *uuid.UUID  `json:"authorId"`
+	ReviewerName string      `json:"reviewerName"`
+	ReviewLinkID *uuid.UUID  `json:"reviewLinkId"`
+	Version      int32       `json:"version"`
+	Mentions     []uuid.UUID `json:"mentions"`
+	CreatedAt    time.Time   `json:"createdAt"`
+}
+
+func (q *Queries) CommentInsert(ctx context.Context, arg CommentInsertParams) error {
+	_, err := q.db.Exec(ctx, commentInsert,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.CampaignID,
+		arg.ThreadID,
+		arg.Anchor,
+		arg.AnchorLabel,
+		arg.Body,
+		arg.AuthorID,
+		arg.ReviewerName,
+		arg.ReviewLinkID,
+		arg.Version,
+		arg.Mentions,
+		arg.CreatedAt,
+	)
+	return err
+}
+
+const commentResolve = `-- name: CommentResolve :execrows
+UPDATE campaign_comments SET resolved_at = $1, resolved_by = $2
+WHERE workspace_id = $3 AND campaign_id = $4 AND id = $5 AND thread_id IS NULL
+`
+
+type CommentResolveParams struct {
+	ResolvedAt  *time.Time `json:"resolvedAt"`
+	ResolvedBy  *uuid.UUID `json:"resolvedBy"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	CampaignID  uuid.UUID  `json:"campaignId"`
+	ID          uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) CommentResolve(ctx context.Context, arg CommentResolveParams) (int64, error) {
+	result, err := q.db.Exec(ctx, commentResolve,
+		arg.ResolvedAt,
+		arg.ResolvedBy,
+		arg.WorkspaceID,
+		arg.CampaignID,
+		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const commentsByLink = `-- name: CommentsByLink :many
+SELECT c.id, c.thread_id, c.anchor, c.anchor_label, c.body, c.author_id, coalesce(u.name, '')::text AS author_name, coalesce(u.avatar_color, '')::text AS author_color, c.reviewer_name,
+       c.review_link_id, c.version, c.mentions, c.resolved_at, ''::text AS resolved_by_name, c.created_at
+FROM campaign_comments c
+LEFT JOIN users u ON u.id = c.author_id
+WHERE c.review_link_id = $1
+   OR c.thread_id IN (SELECT t.id FROM campaign_comments t WHERE t.review_link_id = $1 AND t.thread_id IS NULL)
+ORDER BY c.created_at, c.id
+`
+
+type CommentsByLinkRow struct {
+	ID             uuid.UUID   `json:"id"`
+	ThreadID       *uuid.UUID  `json:"threadId"`
+	Anchor         string      `json:"anchor"`
+	AnchorLabel    string      `json:"anchorLabel"`
+	Body           string      `json:"body"`
+	AuthorID       *uuid.UUID  `json:"authorId"`
+	AuthorName     string      `json:"authorName"`
+	AuthorColor    string      `json:"authorColor"`
+	ReviewerName   string      `json:"reviewerName"`
+	ReviewLinkID   *uuid.UUID  `json:"reviewLinkId"`
+	Version        int32       `json:"version"`
+	Mentions       []uuid.UUID `json:"mentions"`
+	ResolvedAt     *time.Time  `json:"resolvedAt"`
+	ResolvedByName string      `json:"resolvedByName"`
+	CreatedAt      time.Time   `json:"createdAt"`
+}
+
+// What a reviewer sees: the threads started through their link, with the
+// members' replies to them.
+func (q *Queries) CommentsByLink(ctx context.Context, reviewLinkID *uuid.UUID) ([]CommentsByLinkRow, error) {
+	rows, err := q.db.Query(ctx, commentsByLink, reviewLinkID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CommentsByLinkRow{}
+	for rows.Next() {
+		var i CommentsByLinkRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ThreadID,
+			&i.Anchor,
+			&i.AnchorLabel,
+			&i.Body,
+			&i.AuthorID,
+			&i.AuthorName,
+			&i.AuthorColor,
+			&i.ReviewerName,
+			&i.ReviewLinkID,
+			&i.Version,
+			&i.Mentions,
+			&i.ResolvedAt,
+			&i.ResolvedByName,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const commentsList = `-- name: CommentsList :many
+SELECT c.id, c.thread_id, c.anchor, c.anchor_label, c.body, c.author_id, coalesce(u.name, '')::text AS author_name, coalesce(u.avatar_color, '')::text AS author_color, c.reviewer_name,
+       c.review_link_id, c.version, c.mentions, c.resolved_at, coalesce(r.name, '')::text AS resolved_by_name, c.created_at
+FROM campaign_comments c
+LEFT JOIN users u ON u.id = c.author_id
+LEFT JOIN users r ON r.id = c.resolved_by
+WHERE c.workspace_id = $1 AND c.campaign_id = $2
+ORDER BY c.created_at, c.id
+`
+
+type CommentsListParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+}
+
+type CommentsListRow struct {
+	ID             uuid.UUID   `json:"id"`
+	ThreadID       *uuid.UUID  `json:"threadId"`
+	Anchor         string      `json:"anchor"`
+	AnchorLabel    string      `json:"anchorLabel"`
+	Body           string      `json:"body"`
+	AuthorID       *uuid.UUID  `json:"authorId"`
+	AuthorName     string      `json:"authorName"`
+	AuthorColor    string      `json:"authorColor"`
+	ReviewerName   string      `json:"reviewerName"`
+	ReviewLinkID   *uuid.UUID  `json:"reviewLinkId"`
+	Version        int32       `json:"version"`
+	Mentions       []uuid.UUID `json:"mentions"`
+	ResolvedAt     *time.Time  `json:"resolvedAt"`
+	ResolvedByName string      `json:"resolvedByName"`
+	CreatedAt      time.Time   `json:"createdAt"`
+}
+
+func (q *Queries) CommentsList(ctx context.Context, arg CommentsListParams) ([]CommentsListRow, error) {
+	rows, err := q.db.Query(ctx, commentsList, arg.WorkspaceID, arg.CampaignID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CommentsListRow{}
+	for rows.Next() {
+		var i CommentsListRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ThreadID,
+			&i.Anchor,
+			&i.AnchorLabel,
+			&i.Body,
+			&i.AuthorID,
+			&i.AuthorName,
+			&i.AuthorColor,
+			&i.ReviewerName,
+			&i.ReviewLinkID,
+			&i.Version,
+			&i.Mentions,
+			&i.ResolvedAt,
+			&i.ResolvedByName,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const composerApprovalApprovers = `-- name: ComposerApprovalApprovers :many
 SELECT coalesce(u.name, '')::text AS name
 FROM approval_decisions d
@@ -176,6 +410,48 @@ func (q *Queries) ComposerCountMissingFields(ctx context.Context, arg ComposerCo
 	return items, nil
 }
 
+const composerMentionable = `-- name: ComposerMentionable :many
+SELECT u.id, u.name, u.avatar_color, r.name AS role_name
+FROM workspace_members m
+JOIN roles r ON r.id = m.role_id
+JOIN users u ON u.id = m.user_id AND u.status = 'active'
+WHERE m.workspace_id = $1 AND m.status = 'active'
+ORDER BY u.name
+`
+
+type ComposerMentionableRow struct {
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	AvatarColor string    `json:"avatarColor"`
+	RoleName    string    `json:"roleName"`
+}
+
+// The workspace's active people, for @mentions in comments (CO-10).
+func (q *Queries) ComposerMentionable(ctx context.Context, workspaceID uuid.UUID) ([]ComposerMentionableRow, error) {
+	rows, err := q.db.Query(ctx, composerMentionable, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ComposerMentionableRow{}
+	for rows.Next() {
+		var i ComposerMentionableRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.AvatarColor,
+			&i.RoleName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const composerNameVersion = `-- name: ComposerNameVersion :one
 UPDATE campaign_versions v SET name = $1
 FROM (SELECT x.name AS old_name FROM campaign_versions x WHERE x.campaign_id = $2 AND x.version = $3 FOR UPDATE) o
@@ -195,6 +471,26 @@ func (q *Queries) ComposerNameVersion(ctx context.Context, arg ComposerNameVersi
 	var old_name string
 	err := row.Scan(&old_name)
 	return old_name, err
+}
+
+const composerNameVersionIfUnnamed = `-- name: ComposerNameVersionIfUnnamed :execrows
+UPDATE campaign_versions SET name = $1
+WHERE campaign_id = $2 AND version = $3 AND name = ''
+`
+
+type ComposerNameVersionIfUnnamedParams struct {
+	Name       string    `json:"name"`
+	CampaignID uuid.UUID `json:"campaignId"`
+	Version    int32     `json:"version"`
+}
+
+// Names a version only when nobody named it (a review link's version).
+func (q *Queries) ComposerNameVersionIfUnnamed(ctx context.Context, arg ComposerNameVersionIfUnnamedParams) (int64, error) {
+	result, err := q.db.Exec(ctx, composerNameVersionIfUnnamed, arg.Name, arg.CampaignID, arg.Version)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const composerNamedVersionCount = `-- name: ComposerNamedVersionCount :one
@@ -295,6 +591,253 @@ func (q *Queries) ComposerVersionsPage(ctx context.Context, arg ComposerVersions
 			&i.SizeBytes,
 			&i.Name,
 			&i.SavedByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const presenceLeave = `-- name: PresenceLeave :exec
+DELETE FROM campaign_presence WHERE campaign_id = $1 AND user_id = $2
+`
+
+type PresenceLeaveParams struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	UserID     uuid.UUID `json:"userId"`
+}
+
+func (q *Queries) PresenceLeave(ctx context.Context, arg PresenceLeaveParams) error {
+	_, err := q.db.Exec(ctx, presenceLeave, arg.CampaignID, arg.UserID)
+	return err
+}
+
+const presenceList = `-- name: PresenceList :many
+SELECT p.user_id, u.name, u.avatar_color, p.editing, p.seen_at
+FROM campaign_presence p
+JOIN users u ON u.id = p.user_id
+WHERE p.campaign_id = $1 AND p.seen_at > $2 AND p.user_id <> $3
+ORDER BY p.seen_at DESC
+`
+
+type PresenceListParams struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	Since      time.Time `json:"since"`
+	Me         uuid.UUID `json:"me"`
+}
+
+type PresenceListRow struct {
+	UserID      uuid.UUID `json:"userId"`
+	Name        string    `json:"name"`
+	AvatarColor string    `json:"avatarColor"`
+	Editing     bool      `json:"editing"`
+	SeenAt      time.Time `json:"seenAt"`
+}
+
+// Who else has a campaign open (seen since a time).
+func (q *Queries) PresenceList(ctx context.Context, arg PresenceListParams) ([]PresenceListRow, error) {
+	rows, err := q.db.Query(ctx, presenceList, arg.CampaignID, arg.Since, arg.Me)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PresenceListRow{}
+	for rows.Next() {
+		var i PresenceListRow
+		if err := rows.Scan(
+			&i.UserID,
+			&i.Name,
+			&i.AvatarColor,
+			&i.Editing,
+			&i.SeenAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const presenceTouch = `-- name: PresenceTouch :exec
+INSERT INTO campaign_presence (campaign_id, user_id, editing, seen_at)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (campaign_id, user_id) DO UPDATE SET editing = EXCLUDED.editing, seen_at = EXCLUDED.seen_at
+`
+
+type PresenceTouchParams struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	UserID     uuid.UUID `json:"userId"`
+	Editing    bool      `json:"editing"`
+	Now        time.Time `json:"now"`
+}
+
+func (q *Queries) PresenceTouch(ctx context.Context, arg PresenceTouchParams) error {
+	_, err := q.db.Exec(ctx, presenceTouch,
+		arg.CampaignID,
+		arg.UserID,
+		arg.Editing,
+		arg.Now,
+	)
+	return err
+}
+
+const reviewLinkByToken = `-- name: ReviewLinkByToken :one
+SELECT l.id, l.workspace_id, l.campaign_id, l.version, l.expires_at, l.revoked_at, c.name AS campaign_name, w.name AS workspace_name
+FROM campaign_review_links l
+JOIN campaigns c ON c.id = l.campaign_id AND c.deleted_at IS NULL
+JOIN workspaces w ON w.id = l.workspace_id AND w.deleted_at IS NULL
+WHERE l.token_hash = $1
+`
+
+type ReviewLinkByTokenRow struct {
+	ID            uuid.UUID  `json:"id"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	CampaignID    uuid.UUID  `json:"campaignId"`
+	Version       int32      `json:"version"`
+	ExpiresAt     time.Time  `json:"expiresAt"`
+	RevokedAt     *time.Time `json:"revokedAt"`
+	CampaignName  string     `json:"campaignName"`
+	WorkspaceName string     `json:"workspaceName"`
+}
+
+func (q *Queries) ReviewLinkByToken(ctx context.Context, tokenHash []byte) (ReviewLinkByTokenRow, error) {
+	row := q.db.QueryRow(ctx, reviewLinkByToken, tokenHash)
+	var i ReviewLinkByTokenRow
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.CampaignID,
+		&i.Version,
+		&i.ExpiresAt,
+		&i.RevokedAt,
+		&i.CampaignName,
+		&i.WorkspaceName,
+	)
+	return i, err
+}
+
+const reviewLinkCommentCount = `-- name: ReviewLinkCommentCount :one
+SELECT count(*)::bigint FROM campaign_comments WHERE review_link_id = $1 AND created_at > $2
+`
+
+type ReviewLinkCommentCountParams struct {
+	ReviewLinkID *uuid.UUID `json:"reviewLinkId"`
+	Since        time.Time  `json:"since"`
+}
+
+// Comments through a link since a time: reviewers are limited per hour.
+func (q *Queries) ReviewLinkCommentCount(ctx context.Context, arg ReviewLinkCommentCountParams) (int64, error) {
+	row := q.db.QueryRow(ctx, reviewLinkCommentCount, arg.ReviewLinkID, arg.Since)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const reviewLinkInsert = `-- name: ReviewLinkInsert :exec
+INSERT INTO campaign_review_links (id, workspace_id, campaign_id, version, token_hash, token_sealed, created_by, created_at, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+`
+
+type ReviewLinkInsertParams struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	CampaignID  uuid.UUID  `json:"campaignId"`
+	Version     int32      `json:"version"`
+	TokenHash   []byte     `json:"tokenHash"`
+	TokenSealed []byte     `json:"tokenSealed"`
+	CreatedBy   *uuid.UUID `json:"createdBy"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	ExpiresAt   time.Time  `json:"expiresAt"`
+}
+
+func (q *Queries) ReviewLinkInsert(ctx context.Context, arg ReviewLinkInsertParams) error {
+	_, err := q.db.Exec(ctx, reviewLinkInsert,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.CampaignID,
+		arg.Version,
+		arg.TokenHash,
+		arg.TokenSealed,
+		arg.CreatedBy,
+		arg.CreatedAt,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
+const reviewLinkRevoke = `-- name: ReviewLinkRevoke :execrows
+UPDATE campaign_review_links SET revoked_at = $1, revoked_by = $2
+WHERE workspace_id = $3 AND campaign_id = $4 AND id = $5 AND revoked_at IS NULL
+`
+
+type ReviewLinkRevokeParams struct {
+	Now         *time.Time `json:"now"`
+	RevokedBy   *uuid.UUID `json:"revokedBy"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	CampaignID  uuid.UUID  `json:"campaignId"`
+	ID          uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) ReviewLinkRevoke(ctx context.Context, arg ReviewLinkRevokeParams) (int64, error) {
+	result, err := q.db.Exec(ctx, reviewLinkRevoke,
+		arg.Now,
+		arg.RevokedBy,
+		arg.WorkspaceID,
+		arg.CampaignID,
+		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const reviewLinksActive = `-- name: ReviewLinksActive :many
+SELECT l.id, l.version, l.token_sealed, l.created_at, l.expires_at, coalesce(u.name, '')::text AS created_by_name
+FROM campaign_review_links l
+LEFT JOIN users u ON u.id = l.created_by
+WHERE l.workspace_id = $1 AND l.campaign_id = $2 AND l.revoked_at IS NULL AND l.expires_at > $3
+ORDER BY l.created_at DESC
+`
+
+type ReviewLinksActiveParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+	Now         time.Time `json:"now"`
+}
+
+type ReviewLinksActiveRow struct {
+	ID            uuid.UUID `json:"id"`
+	Version       int32     `json:"version"`
+	TokenSealed   []byte    `json:"tokenSealed"`
+	CreatedAt     time.Time `json:"createdAt"`
+	ExpiresAt     time.Time `json:"expiresAt"`
+	CreatedByName string    `json:"createdByName"`
+}
+
+func (q *Queries) ReviewLinksActive(ctx context.Context, arg ReviewLinksActiveParams) ([]ReviewLinksActiveRow, error) {
+	rows, err := q.db.Query(ctx, reviewLinksActive, arg.WorkspaceID, arg.CampaignID, arg.Now)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReviewLinksActiveRow{}
+	for rows.Next() {
+		var i ReviewLinksActiveRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Version,
+			&i.TokenSealed,
+			&i.CreatedAt,
+			&i.ExpiresAt,
+			&i.CreatedByName,
 		); err != nil {
 			return nil, err
 		}

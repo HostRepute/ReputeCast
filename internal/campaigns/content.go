@@ -80,6 +80,72 @@ type ComposerSavedContent struct {
 	// what the MJML says (links, images, text, conditional markers): the
 	// server stored its own compile of the MJML instead.
 	Recompiled string `json:"recompiled,omitempty"`
+	// Merged is set when someone saved a newer version in the meantime and
+	// the two edits changed different sections: both were kept (CO-10).
+	// The composer puts their sections in; the rest is yours.
+	Merged *ComposerMerged `json:"merged,omitempty"`
+}
+
+// ComposerMerged is what a merged save took from the newer version.
+type ComposerMerged struct {
+	With     string               `json:"with" doc:"Who saved the newer version"`
+	Version  int                  `json:"version" doc:"Their version"`
+	Sections []mjml.MergedSection `json:"sections" doc:"Their sections, at their positions in the email"`
+	// Head is their mj-head (styles, title, preview) when they changed it.
+	Head      string  `json:"head,omitempty"`
+	Subject   *string `json:"subject,omitempty"`
+	Preheader *string `json:"preheader,omitempty"`
+}
+
+// pick3 merges one field: the side that changed it wins; both changing it
+// differently is a conflict.
+func pick3(base, theirs, mine string) (string, bool) {
+	switch {
+	case theirs == base || theirs == mine:
+		return mine, true
+	case mine == base:
+		return theirs, true
+	}
+	return "", false
+}
+
+// merge tries to keep both edits when someone saved a newer version since
+// in's base: section by section, with the subject, preheader and head. It
+// changes in to the merged content when it can.
+func (s *Service) merge(ctx context.Context, q *store.Queries, id uuid.UUID, cur store.ComposerLockCampaignRow, in *ComposerSaveContent) (*ComposerMerged, error) {
+	base, err := q.GetComposerVersion(ctx, store.GetComposerVersionParams{CampaignID: id, Version: int32(in.BaseVersion)})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil // the base left the history: a person chooses
+	}
+	if err != nil {
+		return nil, err
+	}
+	// The A/B test isn't merged: only when they left it as it was.
+	if string(base.AbTest) != string(cur.AbTest) {
+		return nil, nil
+	}
+	subject, ok1 := pick3(base.Subject, cur.Subject, in.Subject)
+	preheader, ok2 := pick3(base.Preheader, cur.Preheader, in.Preheader)
+	if !ok1 || !ok2 {
+		return nil, nil
+	}
+	m, ok := mjml.MergeSections(base.Mjml, cur.Mjml, in.MJML)
+	if !ok {
+		return nil, nil
+	}
+	info := &ComposerMerged{With: cur.UpdatedByName, Version: int(cur.Version), Sections: m.Theirs, Head: m.Head}
+	if info.Sections == nil {
+		info.Sections = []mjml.MergedSection{}
+	}
+	if subject != in.Subject {
+		info.Subject = &subject
+	}
+	if preheader != in.Preheader {
+		info.Preheader = &preheader
+	}
+	// The HTML sent was compiled without their sections: the server compiles.
+	in.Subject, in.Preheader, in.MJML, in.HTML = subject, preheader, m.MJML, ""
+	return info, nil
 }
 
 // conflict is the 409 sent when someone else saved a newer version.
@@ -149,8 +215,19 @@ func (s *Service) SaveIn(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			out = ComposerSavedContent{Version: int(cur.Version), SavedAt: at, ContentHash: cur.ContentHash, SizeBytes: len(cur.Html), PlainText: cur.PlainText, HTML: cur.Html, Unchanged: true}
 			return nil
 		}
+		var merged *ComposerMerged
 		if int(cur.Version) != in.BaseVersion && !in.Force && !in.Stash {
-			return s.conflictFor(ctx, q, l, id, cur, in)
+			// Two people changed different sections: keep both (CO-10).
+			if merged, err = s.merge(ctx, q, id, cur, &in); err != nil {
+				return err
+			}
+			if merged == nil {
+				return s.conflictFor(ctx, q, l, id, cur, in)
+			}
+			if c, err = s.prepareContent(ctx, q, ws, id, in, settings); err != nil {
+				return err
+			}
+			in.Source, in.Label = "merge", mVersionMerged.Text(i18n.Default, i18n.Args{"name": merged.With, "version": strconv.Itoa(merged.Version)})
 		}
 		// Editing an approved (or pending) campaign cancels its request: only
 		// once the person said so (CO-7). Load theirs keeps the content as it is.
@@ -171,6 +248,7 @@ func (s *Service) SaveIn(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			return err
 		}
 		out, err = s.storeVersion(ctx, q, ws, p, id, cur, c, in.Label, in.Source)
+		out.Merged = merged
 		return err
 	})
 	if err == nil && !out.Unchanged && !in.Stash {

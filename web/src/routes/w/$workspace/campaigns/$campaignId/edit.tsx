@@ -19,7 +19,9 @@ const search = z.object({
     .optional()
     .catch(undefined),
   /** Panel to open with it: the inspector tab, and the left panel tab. */
-  panel: z.enum(['style', 'settings', 'deliverability', 'accessibility', 'web']).optional().catch(undefined),
+  panel: z.enum(['style', 'settings', 'deliverability', 'accessibility', 'web', 'comments']).optional().catch(undefined),
+  /** A comment thread to show with panel=comments (a mention's link). */
+  thread: z.string().uuid().optional().catch(undefined),
   left: z.enum(['blocks', 'layers', 'templates']).optional().catch(undefined),
 })
 

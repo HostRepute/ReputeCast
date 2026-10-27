@@ -53,5 +53,17 @@
   "version.fromPost": "tạo từ bài viết trên {site}",
   "note.draftFrom": "bản nháp từ {site}",
   "version.keptYours": "nội dung bạn sửa, được giữ lại khi mở v{version} của {name}",
-  "version.loadedTheirs": "đã mở v{version} của {name}"
+  "version.loadedTheirs": "đã mở v{version} của {name}",
+  "version.merged": "đã gộp với v{version} của {name}",
+  "version.synced": "{kind, select, header {Đầu trang} other {Chân trang}} được cập nhật trong Bộ nhận diện",
+  "version.sharedForReview": "Đã chia sẻ để góp ý",
+  "problem.commentEmpty": "Hãy viết nhận xét.",
+  "problem.commentAnchor": "Khối này không nhận nhận xét được. Hãy chọn lại khối rồi thử lại.",
+  "problem.commentMention": "Bạn chỉ có thể nhắc đến người trong không gian làm việc này.",
+  "notify.mentionTitle": "{name} đã nhắc đến bạn",
+  "notify.mentionSummary": "{name} đã nhắc đến bạn trong “{campaign}”: “{excerpt}”",
+  "notify.mentionBody": "{name} đã nhắc đến bạn trong một nhận xét về “{campaign}”: “{excerpt}” Mở nhận xét để trả lời.",
+  "problem.reviewLimited": "Có quá nhiều yêu cầu từ địa chỉ này. Hãy thử lại sau vài phút.",
+  "problem.reviewGone": "Liên kết góp ý này đã hết hạn hoặc bị thu hồi. Hãy xin người đã chia sẻ một liên kết mới.",
+  "problem.reviewName": "Hãy thêm tên của bạn để nhóm biết ai đã nhận xét."
 }

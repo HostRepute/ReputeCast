@@ -73,6 +73,20 @@ var (
 	mNoteDraftFrom       = msgs.M("note.draftFrom")
 	mVersionKeptYours    = msgs.M("version.keptYours")
 	mVersionLoadedTheirs = msgs.M("version.loadedTheirs")
+
+	// Collaboration (CO-10, CO-11).
+	mVersionMerged          = msgs.M("version.merged")
+	mVersionSynced          = msgs.M("version.synced")
+	mVersionSharedForReview = msgs.M("version.sharedForReview")
+	mCommentEmpty           = msgs.M("problem.commentEmpty")
+	mCommentAnchor          = msgs.M("problem.commentAnchor")
+	mCommentMention         = msgs.M("problem.commentMention")
+	mNotifyMentionTitle     = msgs.M("notify.mentionTitle")
+	mNotifyMentionSummary   = msgs.M("notify.mentionSummary")
+	mNotifyMentionBody      = msgs.M("notify.mentionBody")
+	mReviewLimited          = msgs.M("problem.reviewLimited")
+	mReviewGone             = msgs.M("problem.reviewGone")
+	mReviewName             = msgs.M("problem.reviewName")
 )
 
 // PostDraftLabel is the first version's label of a draft made from a
@@ -141,8 +155,19 @@ func versionLabel(l i18n.Lang, label string) string {
 	if m := reVersionLoadedTheirs.FindStringSubmatch(label); m != nil {
 		return mVersionLoadedTheirs.Text(l, i18n.Args{"name": m[1], "version": m[2]})
 	}
+	if m := reVersionMerged.FindStringSubmatch(label); m != nil {
+		return mVersionMerged.Text(l, i18n.Args{"name": m[1], "version": m[2]})
+	}
+	if m := reVersionSynced.FindStringSubmatch(label); m != nil {
+		return mVersionSynced.Text(l, i18n.Args{"kind": strings.ToLower(m[1])})
+	}
 	return label
 }
+
+var (
+	reVersionMerged = regexp.MustCompile(`^merged with (.+)'s v(\d+)$`)
+	reVersionSynced = regexp.MustCompile(`^(Header|Footer) updated in Brand kit$`)
+)
 
 // abNote describes an A/B test that ran: "A/B subject, winner B".
 func abNote(l i18n.Lang, kind, winner string) string {

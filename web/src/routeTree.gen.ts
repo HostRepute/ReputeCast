@@ -16,6 +16,7 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as ResetPasswordTokenRouteImport } from './routes/reset-password.$token'
+import { Route as ReviewTokenRouteImport } from './routes/review.$token'
 import { Route as WWorkspaceRouteRouteImport } from './routes/w/$workspace/route'
 import { Route as WorkspacesNewRouteImport } from './routes/workspaces/new'
 import { Route as WWorkspaceAppRouteRouteImport } from './routes/w/$workspace/_app/route'
@@ -199,6 +200,11 @@ const ResetPasswordTokenRoute = ResetPasswordTokenRouteImport.update({
   id: '/$token',
   path: '/$token',
   getParentRoute: () => ResetPasswordRoute,
+} as any)
+const ReviewTokenRoute = ReviewTokenRouteImport.update({
+  id: '/review/$token',
+  path: '/review/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const WWorkspaceRouteRoute = WWorkspaceRouteRouteImport.update({
   id: '/w/$workspace',
@@ -1078,6 +1084,7 @@ export interface FileRoutesByFullPath {
   '/invite/$token': typeof InviteTokenRoute
   '/r/$token': typeof RTokenRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
+  '/review/$token': typeof ReviewTokenRoute
   '/workspaces/new': typeof WorkspacesNewRoute
   '/w/$workspace/agency': typeof WWorkspaceAgencyRouteRouteWithChildren
   '/w/$workspace/account': typeof WWorkspaceAppAccountRoute
@@ -1234,6 +1241,7 @@ export interface FileRoutesByTo {
   '/invite/$token': typeof InviteTokenRoute
   '/r/$token': typeof RTokenRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
+  '/review/$token': typeof ReviewTokenRoute
   '/workspaces/new': typeof WorkspacesNewRoute
   '/w/$workspace/account': typeof WWorkspaceAppAccountRoute
   '/w/$workspace/notifications': typeof WWorkspaceAppNotificationsRoute
@@ -1389,6 +1397,7 @@ export interface FileRoutesById {
   '/invite/$token': typeof InviteTokenRoute
   '/r/$token': typeof RTokenRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
+  '/review/$token': typeof ReviewTokenRoute
   '/workspaces/new': typeof WorkspacesNewRoute
   '/w/$workspace/_app': typeof WWorkspaceAppRouteRouteWithChildren
   '/w/$workspace/agency': typeof WWorkspaceAgencyRouteRouteWithChildren
@@ -1548,6 +1557,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/r/$token'
     | '/reset-password/$token'
+    | '/review/$token'
     | '/workspaces/new'
     | '/w/$workspace/agency'
     | '/w/$workspace/account'
@@ -1704,6 +1714,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/r/$token'
     | '/reset-password/$token'
+    | '/review/$token'
     | '/workspaces/new'
     | '/w/$workspace/account'
     | '/w/$workspace/notifications'
@@ -1858,6 +1869,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/r/$token'
     | '/reset-password/$token'
+    | '/review/$token'
     | '/workspaces/new'
     | '/w/$workspace/_app'
     | '/w/$workspace/agency'
@@ -2015,6 +2027,7 @@ export interface RootRouteChildren {
   WWorkspaceRouteRoute: typeof WWorkspaceRouteRouteWithChildren
   InviteTokenRoute: typeof InviteTokenRoute
   RTokenRoute: typeof RTokenRoute
+  ReviewTokenRoute: typeof ReviewTokenRoute
   WorkspacesNewRoute: typeof WorkspacesNewRoute
 }
 
@@ -2068,6 +2081,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/reset-password/$token'
       preLoaderRoute: typeof ResetPasswordTokenRouteImport
       parentRoute: typeof ResetPasswordRoute
+    }
+    '/review/$token': {
+      id: '/review/$token'
+      path: '/review/$token'
+      fullPath: '/review/$token'
+      preLoaderRoute: typeof ReviewTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/w/$workspace': {
       id: '/w/$workspace'
@@ -3517,6 +3537,7 @@ const rootRouteChildren: RootRouteChildren = {
   WWorkspaceRouteRoute: WWorkspaceRouteRouteWithChildren,
   InviteTokenRoute: InviteTokenRoute,
   RTokenRoute: RTokenRoute,
+  ReviewTokenRoute: ReviewTokenRoute,
   WorkspacesNewRoute: WorkspacesNewRoute,
 }
 export const routeTree = rootRouteImport
