@@ -3,8 +3,10 @@ package media_test
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"image"
 	"image/color"
+	"image/jpeg"
 	"image/png"
 	"mime/multipart"
 	"strings"
@@ -126,4 +128,98 @@ func TestUploadServeRemove(t *testing.T) {
 	v := env.Client()
 	v.SignInDemo("aisha@acme.io")
 	upload(t, v, "x.png", data).MustStatus(t, 403)
+}
+
+// photoWithLocation is a 3000×2000 JPEG stored sideways with EXIF saying
+// "turn right" (orientation 6) and a stand-in for its GPS position.
+func photoWithLocation(t *testing.T) []byte {
+	t.Helper()
+	m := image.NewRGBA(image.Rect(0, 0, 3000, 2000))
+	for y := range 2000 {
+		for x := range 3000 {
+			m.SetRGBA(x, y, color.RGBA{uint8(x / 12), uint8(y / 8), 90, 255})
+		}
+	}
+	var b bytes.Buffer
+	if err := jpeg.Encode(&b, m, &jpeg.Options{Quality: 95}); err != nil {
+		t.Fatal(err)
+	}
+	tiff := []byte("MM\x00\x2a\x00\x00\x00\x08\x00\x02")
+	tiff = append(tiff, 0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, 6, 0, 0)
+	text := []byte("GPS 10.7769 N 106.7009 E\x00")
+	tiff = append(tiff, 0x01, 0x0E, 0, 2)
+	tiff = binary.BigEndian.AppendUint32(tiff, uint32(len(text)))
+	tiff = binary.BigEndian.AppendUint32(tiff, 8+2+24+4)
+	tiff = append(append(tiff, 0, 0, 0, 0), text...)
+	app1 := append([]byte("Exif\x00\x00"), tiff...)
+	seg := append([]byte{0xFF, 0xE1, byte((len(app1) + 2) >> 8), byte(len(app1) + 2)}, app1...)
+	jpg := b.Bytes()
+	return append(append(append([]byte{}, jpg[:2]...), seg...), jpg[2:]...)
+}
+
+// CO-12: what's stored is made for email: upright, at most 1,200 px wide,
+// compressed, without the photo's location. The library says what changed.
+func TestUploadIsResizedAndStripped(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+
+	photo := photoWithLocation(t)
+	type original struct {
+		SizeBytes, Width, Height int
+		ContentType              string
+	}
+	var a struct {
+		ID, URL, FileName, ContentType string
+		Width, Height, SizeBytes       int
+		Original                       *original
+	}
+	upload(t, c, "IMG_2041.JPG", photo).MustStatus(t, 201).JSON(t, &a)
+	if a.ContentType != "image/jpeg" || a.Width != 1200 || a.Height != 1800 || a.FileName != "img_2041.jpg" {
+		t.Fatalf("stored: %+v", a)
+	}
+	if a.Original == nil || *a.Original != (original{SizeBytes: len(photo), Width: 3000, Height: 2000, ContentType: "image/jpeg"}) {
+		t.Fatalf("original: %+v", a.Original)
+	}
+	if a.SizeBytes >= len(photo) {
+		t.Fatalf("not compressed: %d of %d", a.SizeBytes, len(photo))
+	}
+	g := env.Client().DoRaw("GET", a.URL, "", nil)
+	g.MustStatus(t, 200)
+	if bytes.Contains(g.Body, []byte("GPS")) || bytes.Contains(g.Body, []byte("Exif")) || len(g.Body) != a.SizeBytes {
+		t.Fatal("served image must be the stripped copy")
+	}
+	if cfg, err := jpeg.DecodeConfig(bytes.NewReader(g.Body)); err != nil || cfg.Width != 1200 || cfg.Height != 1800 {
+		t.Fatalf("served: %+v %v", cfg, err)
+	}
+
+	// The same photo again is found by the uploaded file, not the copy.
+	var again struct{ ID string }
+	upload(t, c, "IMG_2041 copy.JPG", photo).MustStatus(t, 201).JSON(t, &again)
+	if again.ID != a.ID {
+		t.Fatalf("dedupe on the uploaded file: %s vs %s", again.ID, a.ID)
+	}
+	var list struct {
+		Items []struct {
+			ID       string
+			Original *original
+		}
+	}
+	c.Do("GET", "/workspaces/acme-newsletter/media", nil).MustStatus(t, 200).JSON(t, &list)
+	if list.Items[0].ID != a.ID || list.Items[0].Original == nil || list.Items[0].Original.Width != 3000 {
+		t.Fatalf("library: %+v", list.Items[0])
+	}
+	// An image stored exactly as uploaded says nothing about an original.
+	var small struct{ Original *original }
+	upload(t, c, "dot.png", pngBytes(t, 8, 8, false)).MustStatus(t, 201).JSON(t, &small)
+	if small.Original != nil {
+		t.Fatalf("unchanged image: %+v", small.Original)
+	}
+
+	var after string
+	if err := env.App.Pool.QueryRow(context.Background(), `SELECT after::text FROM audit_events WHERE target_id = $1 AND action = 'media.upload' ORDER BY occurred_at LIMIT 1`, a.ID).Scan(&after); err != nil ||
+		!strings.Contains(after, `"original": {`) || !strings.Contains(after, `"width": 3000`) {
+		t.Fatalf("audit: %s %v", after, err)
+	}
 }

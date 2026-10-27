@@ -154,6 +154,10 @@ export const mz = defineMessages('languages.composer', {
   switcherLabel: 'Language version: {language}, {status}. Change language',
   switcherSourceLabel: 'Language version: {language}, Source · {have} of {total, plural, one {# language} other {# languages}} have a version. Change language',
   sourceChip: 'Source · {have} of {total, plural, one {# language} other {# languages}}',
+  /** The composer's top bar (Composer board): "English · 3 of 4". */
+  sourceShort: '· {have} of {total}',
+  /** Starts with what the compact button shows (WCAG 2.5.3, label in name). */
+  switcherShortLabel: '{language} · {have} of {total, plural, one {# language} other {# languages}} have a version. Change language',
   listLabel: 'Language versions of {name}',
   versions: 'Language versions',
   readers: 'Readers',

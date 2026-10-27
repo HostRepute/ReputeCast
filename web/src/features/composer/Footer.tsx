@@ -2,35 +2,35 @@ import type { Component } from 'grapesjs'
 import { DigestFooterSummary, useDigestMode } from '@/features/digests/composer/DigestMode'
 import { Fragment } from 'react'
 import { $api } from '@/api/client'
-import { Badge } from '@/components/ui/Badge'
 import { useVersionName } from '@/features/languages/composerParts'
 import { useComposer } from './context'
-import { ancestry, mjChildren, sectionLabel, sectionWord, tagOf } from './editor/labels'
+import { ancestry, mjChildren, sectionName, tagOf } from './editor/labels'
 import { kb } from './format'
-import { useT } from '@/i18n'
+import { t as tt, useT } from '@/i18n'
+import { modKeyLabel } from '@/lib/shortcuts'
+import { mh } from './chrome.messages'
 import { m } from './messages'
 import { contentIssues } from './RightPanel'
 import { useAccessibility } from '@/features/accessibility/composer/state'
-import { AccessibilityChip, AccessibilityClear, useAccessibilityIssueCount } from '@/features/accessibility/composer/Status'
+import { AccessibilityChip, AccessibilityClear } from '@/features/accessibility/composer/Status'
 import { ConditionalFooter, useVersionSizes } from '@/features/conditional/Versions'
 
-/** "mj-section · hero" for the current element; plain tag for the others. */
-function crumbLabel(c: Component, current: boolean): string {
+/** A crumb as the board names it: Email › Body › Feature highlights · 2 columns › Column 1 › Button. */
+function crumbLabel(c: Component): string {
   const tag = tagOf(c)
-  if (!current) return tag
+  if (tag === 'mjml') return tt(mh.crumbEmail)
+  if (tag === 'mj-body') return tt(mh.crumbBody)
   if (tagOf(c.parent()) === 'mj-body') {
-    const l = sectionLabel(c)
-    return /^\d+ columns$/.test(l) ? tag : `${tag} · ${sectionWord(l)}`
+    const cols = mjChildren(c).filter((x) => tagOf(x) === 'mj-column').length
+    const name = sectionName(c)
+    return cols > 1 ? tt(mh.crumbColumns, { name, count: cols }) : name
   }
-  return tag
-}
-
-/** "mj-column × 2" when an element's children are all the same tag. */
-function childrenSummary(c: Component): string {
-  const kids = mjChildren(c)
-  if (kids.length < 2) return ''
-  const tag = tagOf(kids[0]!)
-  return kids.every((k) => tagOf(k) === tag) ? `${tag} × ${kids.length}` : ''
+  if (tag === 'mj-column') {
+    const parent = c.parent()
+    const n = parent ? mjChildren(parent).filter((x) => tagOf(x) === 'mj-column').indexOf(c) + 1 : 1
+    return tt(mh.crumbColumn, { n })
+  }
+  return tt(mh.crumbTag, { tag: tag.replace(/-/g, '_') })
 }
 
 export function Breadcrumb() {
@@ -39,42 +39,61 @@ export function Breadcrumb() {
   const sel = c.selected && tagOf(c.selected) ? c.selected : null
   if (!sel) {
     return (
-      <div className="bc">
-        <span>{'mjml'}</span>
+      <nav className="bc" aria-label={t(mh.selectionPath)}>
+        <span>{t(mh.crumbEmail)}</span>
         <span aria-hidden="true">›</span>
-        <span>{'mj-body'}</span>
+        <span>{t(mh.crumbBody)}</span>
         <span className="k">{t(m.selectOnCanvas)}</span>
-      </div>
+      </nav>
     )
   }
   const chain = ancestry(sel)
-  const kids = childrenSummary(sel)
   return (
-    <nav className="bc" aria-label={t(m.selectedComponent)}>
+    <nav className="bc" aria-label={t(mh.selectionPath)}>
       {chain.map((x, i) => {
         const current = x === sel
         return (
           <Fragment key={x.cid}>
             {i ? <span aria-hidden="true">›</span> : null}
             {current ? (
-              <b aria-current="true">{crumbLabel(x, true)}</b>
+              <b aria-current="true">{crumbLabel(x)}</b>
             ) : tagOf(x) === 'mjml' ? (
-              <span>{'mjml'}</span>
+              <span>{crumbLabel(x)}</span>
             ) : (
               <button type="button" onClick={() => c.editor?.select(x)}>
-                {crumbLabel(x, false)}
+                {crumbLabel(x)}
               </button>
             )}
           </Fragment>
         )
       })}
-      {kids ? (
-        <>
-          <span aria-hidden="true">›</span>
-          <span>{kids}</span>
-        </>
-      ) : null}
     </nav>
+  )
+}
+
+/** The canvas's keys (Composer board): Enter edits text, Esc selects the parent, undo, the shortcuts. */
+function KeyHints() {
+  const t = useT()
+  const mod = modKeyLabel()
+  return (
+    <span className="hint" aria-label={t(mh.keysLabel)}>
+      <span>
+        <span className="kbd">{t(mh.keyEnter)}</span>
+        {t(mh.keyEditText)}
+      </span>
+      <span>
+        <span className="kbd">{t(mh.keyEsc)}</span>
+        {t(mh.keyParent)}
+      </span>
+      <span>
+        <span className="kbd">{mod}Z</span>
+        {t(mh.keyUndo)}
+      </span>
+      <span>
+        <span className="kbd">{mod}/</span>
+        {t(mh.keyShortcuts)}
+      </span>
+    </span>
   )
 }
 
@@ -118,31 +137,6 @@ export function SizeSummary() {
   )
 }
 
-export function ChecksBadge() {
-  const c = useComposer()
-  const t = useT()
-  const a11y = useAccessibilityIssueCount()
-  const r = c.checks
-  if (!r) return null
-  const issues = contentIssues(r.issues)
-  const blocks = issues.filter((i) => i.severity === 'block').length
-  const warns = issues.length - blocks
-  // With accessibility issues the status bar shows their chip instead.
-  if (!issues.length && a11y) return null
-  if (!issues.length)
-    return (
-      <Badge tone="ok" dot>
-        {t(m.noWarnings)}
-      </Badge>
-    )
-  const text = blocks && warns ? t(m.blockingAndWarnings, { blocks, warnings: warns }) : blocks ? t(m.blocking, { count: blocks }) : t(m.warnings, { count: warns })
-  return (
-    <Badge tone={blocks ? 'bad' : 'warn'} dot>
-      {text}
-    </Badge>
-  )
-}
-
 export function VersionLink() {
   const c = useComposer()
   const t = useT()
@@ -169,12 +163,24 @@ export function Footer() {
     )
   }
   const code = c.view === 'mjml' || c.view === 'html'
+  if (c.view === 'write')
+    // Write mode (ComposerWrite board): what it edits, and the history.
+    return (
+      <footer className="cmp-foot">
+        <span className="wfootn">
+          <b>{t(mh.writeFootStrong)}</b> <span className="k">{t(mh.writeFootNote)}</span>
+        </span>
+        <span style={{ marginLeft: 'auto' }}>
+          <VersionLink />
+        </span>
+      </footer>
+    )
   return (
     <footer className="cmp-foot">
       {code ? <span className="k">{c.view === 'mjml' ? t(m.footerMjml) : t(m.footerHtml)}</span> : <Breadcrumb />}
+      {code ? null : <KeyHints />}
       <SizeSummary />
       {code ? null : <ConditionalFooter />}
-      <ChecksBadge />
       <AccessibilityChip />
       {code ? null : <VersionLink />}
     </footer>

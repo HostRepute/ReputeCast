@@ -84,7 +84,7 @@ What M33 built for the others to use:
 | PR-14 | Routing UI per the new boards: priority list with keyboard moves, impact preview before saving, unsaved-changes bar, campaign simulation in the route tester, failover triggers and target checks. | Visual QA against ProvidersRouting. |
 | PR-15 | Provider screens per the new boards: channel menu, Traffic rules tab, honest setup copy (time, events verified), suppression scope, webhook grace, SES tenant. | Visual QA against Providers*, Setup*, OverviewEmpty. |
 
-## Composer (M38) 🚧
+## Composer (M38) ✅
 
 | ID | What | Done when |
 |---|---|---|

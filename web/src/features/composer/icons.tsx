@@ -186,6 +186,56 @@ const tool: Record<string, ReactNode> = {
   back: <path d="m10 3-5 5 5 5" />,
   undo: <path d="M6 4 2 8l4 4M2 8h8a4 4 0 0 1 0 8" />,
   redo: <path d="m10 4 4 4-4 4M14 8H6a4 4 0 0 0 0 8" />,
+  // The top bar, the Inbox strip and quick review (CO-14).
+  desktop: (
+    <>
+      <rect x="1.5" y="2.5" width="13" height="8.5" rx="1.2" />
+      <path d="M6 14h4M8 11v3" />
+    </>
+  ),
+  mobile: (
+    <>
+      <rect x="4.5" y="1.5" width="7" height="13" rx="1.5" />
+      <path d="M7.25 12.25h1.5" />
+    </>
+  ),
+  eye: (
+    <>
+      <path d="M1.5 8S3.9 3.5 8 3.5 14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8z" />
+      <circle cx="8" cy="8" r="2" />
+    </>
+  ),
+  globe: (
+    <>
+      <circle cx="8" cy="8" r="6.2" />
+      <path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z" />
+    </>
+  ),
+  check: <path d="m3 8.5 3.2 3L13 4.5" />,
+  mail: (
+    <>
+      <rect x="1.5" y="3" width="13" height="10" rx="1.5" />
+      <path d="m2 4.2 6 4.8 6-4.8" />
+    </>
+  ),
+  pencil: <path d="M10.6 2.6a1.5 1.5 0 0 1 2.1 0l.7.7a1.5 1.5 0 0 1 0 2.1L6 12.8l-3.3.6.6-3.3z" />,
+  shield: (
+    <>
+      <path d="M8 1.5 13 3.4v4.2c0 3-2.1 5.4-5 6.5-2.9-1.1-5-3.5-5-6.5V3.4z" />
+      <path d="m5.6 8 1.7 1.7 3.2-3.2" />
+    </>
+  ),
+  comment: <path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z" />,
+  send: <path d="M14.2 1.8 7 9M14.2 1.8l-4.4 12.4-2.8-5.2-5.2-2.8z" />,
+  alignLeft: <path d="M2 4h12M2 8h8M2 12h11" />,
+  alignCenter: <path d="M2 4h12M4 8h8M3 12h10" />,
+  alignRight: <path d="M2 4h12M6 8h8M3 12h11" />,
+  info: (
+    <>
+      <circle cx="8" cy="8" r="6.3" />
+      <path d="M8 7.2v4M8 4.8v.2" />
+    </>
+  ),
 }
 
 export function ToolIcon({ name, size = 14, strokeWidth = 1.8 }: { name: string; size?: number; strokeWidth?: number }) {

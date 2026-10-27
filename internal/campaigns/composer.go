@@ -264,6 +264,9 @@ type ComposerCampaign struct {
 	// composer opens in digest mode (internal/digests).
 	DigestID   string `json:"digestId,omitempty"`
 	DigestRole string `json:"digestRole,omitempty" enum:"template,next,issue,"`
+	// Approval is the campaign's pending or approved request: editing
+	// cancels it, so the composer asks first.
+	Approval *ComposerApproval `json:"approval,omitempty"`
 }
 
 var editableStatuses = map[string]bool{"draft": true, "approval": true, "approved": true, "scheduled": true}
@@ -316,6 +319,9 @@ func (s *Service) DetailIn(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		d.Readiness = &ReadinessSummary{Verdict: run.Verdict, Issues: run.Issues}
 	}
 	d.Access = s.access(ctx, ws, p, r.Status, r.StartedAt)
+	if d.Approval, err = s.openApproval(ctx, s.Q, id); err != nil {
+		return ComposerCampaign{}, err
+	}
 	if src := s.sourceLanguage(ctx, ws, id); src != "" {
 		d.SourceLanguage, d.Language = src, src
 		if lang != "" && lang != src {
@@ -497,8 +503,14 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		label = mVersionCopiedFrom.Text(i18n.Default, i18n.Args{"name": c.Name})
 		source = "duplicate"
 	}
-	if src != "" && html == "" {
-		html = mjml.Compile(src).HTML
+	if src != "" {
+		// A template's or another campaign's HTML is stored only when it shows
+		// and does what its MJML says (CO-3).
+		checked, _, errs := mjml.Checked(src, html)
+		if errs != nil {
+			checked = ""
+		}
+		html = checked
 	}
 	html = accessibility.FinalizeStored(ctx, s.Q, ws.ID, accessibility.OwnerCampaign, uuid.Nil, 0, html)
 	id := uuid.Must(uuid.NewV7())

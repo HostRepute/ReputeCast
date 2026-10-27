@@ -54,6 +54,7 @@ var (
 	mProblemVariantLetter     = msgs.M("problem.variantLetter")
 	mProblemVariantsAB        = msgs.M("problem.variantsAB")
 	mProblemVariantSubject    = msgs.M("problem.variantSubject")
+	mProblemApprovalCancel    = msgs.M("problem.approvalWouldCancel")
 
 	mLabelUntitled        = msgs.M("label.untitled")
 	mLabelCopyOf          = msgs.M("label.copyOf")
@@ -71,6 +72,23 @@ var (
 	mVersionCopiedFrom   = msgs.M("version.copiedFrom")
 	mVersionFromPost     = msgs.M("version.fromPost")
 	mNoteDraftFrom       = msgs.M("note.draftFrom")
+	mVersionKeptYours    = msgs.M("version.keptYours")
+	mVersionLoadedTheirs = msgs.M("version.loadedTheirs")
+
+	// Collaboration (CO-10, CO-11).
+	mVersionMerged          = msgs.M("version.merged")
+	mVersionSynced          = msgs.M("version.synced")
+	mVersionSharedForReview = msgs.M("version.sharedForReview")
+	mCommentEmpty           = msgs.M("problem.commentEmpty")
+	mCommentAnchor          = msgs.M("problem.commentAnchor")
+	mCommentMention         = msgs.M("problem.commentMention")
+	mNotifyMentionTitle     = msgs.M("notify.mentionTitle")
+	mNotifyMentionSummary   = msgs.M("notify.mentionSummary")
+	mNotifyMentionBody      = msgs.M("notify.mentionBody")
+	mReviewLimited          = msgs.M("problem.reviewLimited")
+	mReviewGone             = msgs.M("problem.reviewGone")
+	mReviewName             = msgs.M("problem.reviewName")
+	mDismissNote            = msgs.M("problem.dismissNote")
 )
 
 // PostDraftLabel is the first version's label of a draft made from a
@@ -109,6 +127,8 @@ var (
 	reVersionRestored     = regexp.MustCompile(`^restored v([0-9]+)$`)
 	reVersionCopiedFrom   = regexp.MustCompile(`^copied from “(.*)”$`)
 	reVersionFromPost     = regexp.MustCompile(`^created from the post on ([^\s]+)$`)
+	reVersionKeptYours    = regexp.MustCompile(`^your edits, kept when (.*)'s v([0-9]+) was loaded$`)
+	reVersionLoadedTheirs = regexp.MustCompile(`^loaded (.*)'s v([0-9]+)$`)
 )
 
 // versionLabel is a version's label in a reader's language.
@@ -131,8 +151,25 @@ func versionLabel(l i18n.Lang, label string) string {
 	if m := reVersionFromPost.FindStringSubmatch(label); m != nil {
 		return mVersionFromPost.Text(l, i18n.Args{"site": m[1]})
 	}
+	if m := reVersionKeptYours.FindStringSubmatch(label); m != nil {
+		return mVersionKeptYours.Text(l, i18n.Args{"name": m[1], "version": m[2]})
+	}
+	if m := reVersionLoadedTheirs.FindStringSubmatch(label); m != nil {
+		return mVersionLoadedTheirs.Text(l, i18n.Args{"name": m[1], "version": m[2]})
+	}
+	if m := reVersionMerged.FindStringSubmatch(label); m != nil {
+		return mVersionMerged.Text(l, i18n.Args{"name": m[1], "version": m[2]})
+	}
+	if m := reVersionSynced.FindStringSubmatch(label); m != nil {
+		return mVersionSynced.Text(l, i18n.Args{"kind": strings.ToLower(m[1])})
+	}
 	return label
 }
+
+var (
+	reVersionMerged = regexp.MustCompile(`^merged with (.+)'s v(\d+)$`)
+	reVersionSynced = regexp.MustCompile(`^(Header|Footer) updated in Brand kit$`)
+)
 
 // abNote describes an A/B test that ran: "A/B subject, winner B".
 func abNote(l i18n.Lang, kind, winner string) string {

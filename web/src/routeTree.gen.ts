@@ -16,6 +16,7 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as ResetPasswordTokenRouteImport } from './routes/reset-password.$token'
+import { Route as ReviewTokenRouteImport } from './routes/review.$token'
 import { Route as WWorkspaceRouteRouteImport } from './routes/w/$workspace/route'
 import { Route as WorkspacesNewRouteImport } from './routes/workspaces/new'
 import { Route as WWorkspaceAppRouteRouteImport } from './routes/w/$workspace/_app/route'
@@ -67,6 +68,7 @@ import { Route as WWorkspaceAppProvidersWarmupRouteImport } from './routes/w/$wo
 import { Route as WWorkspaceAppSettingsIndexRouteImport } from './routes/w/$workspace/_app/settings/index'
 import { Route as WWorkspaceAppSettingsApprovalsRouteImport } from './routes/w/$workspace/_app/settings/approvals'
 import { Route as WWorkspaceAppSettingsAuditRouteImport } from './routes/w/$workspace/_app/settings/audit'
+import { Route as WWorkspaceAppSettingsBrandKitRouteImport } from './routes/w/$workspace/_app/settings/brand-kit'
 import { Route as WWorkspaceAppSettingsKeysRouteImport } from './routes/w/$workspace/_app/settings/keys'
 import { Route as WWorkspaceAppSettingsMcpRouteImport } from './routes/w/$workspace/_app/settings/mcp'
 import { Route as WWorkspaceAppSettingsProvidersRouteImport } from './routes/w/$workspace/_app/settings/providers'
@@ -199,6 +201,11 @@ const ResetPasswordTokenRoute = ResetPasswordTokenRouteImport.update({
   id: '/$token',
   path: '/$token',
   getParentRoute: () => ResetPasswordRoute,
+} as any)
+const ReviewTokenRoute = ReviewTokenRouteImport.update({
+  id: '/review/$token',
+  path: '/review/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const WWorkspaceRouteRoute = WWorkspaceRouteRouteImport.update({
   id: '/w/$workspace',
@@ -484,6 +491,12 @@ const WWorkspaceAppSettingsAuditRoute =
   WWorkspaceAppSettingsAuditRouteImport.update({
     id: '/settings/audit',
     path: '/settings/audit',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsBrandKitRoute =
+  WWorkspaceAppSettingsBrandKitRouteImport.update({
+    id: '/settings/brand-kit',
+    path: '/settings/brand-kit',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppSettingsKeysRoute =
@@ -1078,6 +1091,7 @@ export interface FileRoutesByFullPath {
   '/invite/$token': typeof InviteTokenRoute
   '/r/$token': typeof RTokenRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
+  '/review/$token': typeof ReviewTokenRoute
   '/workspaces/new': typeof WorkspacesNewRoute
   '/w/$workspace/agency': typeof WWorkspaceAgencyRouteRouteWithChildren
   '/w/$workspace/account': typeof WWorkspaceAppAccountRoute
@@ -1117,6 +1131,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/providers/warmup': typeof WWorkspaceAppProvidersWarmupRoute
   '/w/$workspace/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
   '/w/$workspace/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
+  '/w/$workspace/settings/brand-kit': typeof WWorkspaceAppSettingsBrandKitRoute
   '/w/$workspace/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
   '/w/$workspace/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
   '/w/$workspace/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
@@ -1234,6 +1249,7 @@ export interface FileRoutesByTo {
   '/invite/$token': typeof InviteTokenRoute
   '/r/$token': typeof RTokenRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
+  '/review/$token': typeof ReviewTokenRoute
   '/workspaces/new': typeof WorkspacesNewRoute
   '/w/$workspace/account': typeof WWorkspaceAppAccountRoute
   '/w/$workspace/notifications': typeof WWorkspaceAppNotificationsRoute
@@ -1271,6 +1287,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/providers/warmup': typeof WWorkspaceAppProvidersWarmupRoute
   '/w/$workspace/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
   '/w/$workspace/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
+  '/w/$workspace/settings/brand-kit': typeof WWorkspaceAppSettingsBrandKitRoute
   '/w/$workspace/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
   '/w/$workspace/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
   '/w/$workspace/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
@@ -1389,6 +1406,7 @@ export interface FileRoutesById {
   '/invite/$token': typeof InviteTokenRoute
   '/r/$token': typeof RTokenRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
+  '/review/$token': typeof ReviewTokenRoute
   '/workspaces/new': typeof WorkspacesNewRoute
   '/w/$workspace/_app': typeof WWorkspaceAppRouteRouteWithChildren
   '/w/$workspace/agency': typeof WWorkspaceAgencyRouteRouteWithChildren
@@ -1429,6 +1447,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/providers/warmup': typeof WWorkspaceAppProvidersWarmupRoute
   '/w/$workspace/_app/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
   '/w/$workspace/_app/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
+  '/w/$workspace/_app/settings/brand-kit': typeof WWorkspaceAppSettingsBrandKitRoute
   '/w/$workspace/_app/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
   '/w/$workspace/_app/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
   '/w/$workspace/_app/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
@@ -1548,6 +1567,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/r/$token'
     | '/reset-password/$token'
+    | '/review/$token'
     | '/workspaces/new'
     | '/w/$workspace/agency'
     | '/w/$workspace/account'
@@ -1587,6 +1607,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/providers/warmup'
     | '/w/$workspace/settings/approvals'
     | '/w/$workspace/settings/audit'
+    | '/w/$workspace/settings/brand-kit'
     | '/w/$workspace/settings/keys'
     | '/w/$workspace/settings/mcp'
     | '/w/$workspace/settings/providers'
@@ -1704,6 +1725,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/r/$token'
     | '/reset-password/$token'
+    | '/review/$token'
     | '/workspaces/new'
     | '/w/$workspace/account'
     | '/w/$workspace/notifications'
@@ -1741,6 +1763,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/providers/warmup'
     | '/w/$workspace/settings/approvals'
     | '/w/$workspace/settings/audit'
+    | '/w/$workspace/settings/brand-kit'
     | '/w/$workspace/settings/keys'
     | '/w/$workspace/settings/mcp'
     | '/w/$workspace/settings/providers'
@@ -1858,6 +1881,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/r/$token'
     | '/reset-password/$token'
+    | '/review/$token'
     | '/workspaces/new'
     | '/w/$workspace/_app'
     | '/w/$workspace/agency'
@@ -1898,6 +1922,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/providers/warmup'
     | '/w/$workspace/_app/settings/approvals'
     | '/w/$workspace/_app/settings/audit'
+    | '/w/$workspace/_app/settings/brand-kit'
     | '/w/$workspace/_app/settings/keys'
     | '/w/$workspace/_app/settings/mcp'
     | '/w/$workspace/_app/settings/providers'
@@ -2015,6 +2040,7 @@ export interface RootRouteChildren {
   WWorkspaceRouteRoute: typeof WWorkspaceRouteRouteWithChildren
   InviteTokenRoute: typeof InviteTokenRoute
   RTokenRoute: typeof RTokenRoute
+  ReviewTokenRoute: typeof ReviewTokenRoute
   WorkspacesNewRoute: typeof WorkspacesNewRoute
 }
 
@@ -2068,6 +2094,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/reset-password/$token'
       preLoaderRoute: typeof ResetPasswordTokenRouteImport
       parentRoute: typeof ResetPasswordRoute
+    }
+    '/review/$token': {
+      id: '/review/$token'
+      path: '/review/$token'
+      fullPath: '/review/$token'
+      preLoaderRoute: typeof ReviewTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/w/$workspace': {
       id: '/w/$workspace'
@@ -2424,6 +2457,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/audit'
       fullPath: '/w/$workspace/settings/audit'
       preLoaderRoute: typeof WWorkspaceAppSettingsAuditRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/brand-kit': {
+      id: '/w/$workspace/_app/settings/brand-kit'
+      path: '/settings/brand-kit'
+      fullPath: '/w/$workspace/settings/brand-kit'
+      preLoaderRoute: typeof WWorkspaceAppSettingsBrandKitRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/settings/keys': {
@@ -3149,6 +3189,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppProvidersWarmupRoute: typeof WWorkspaceAppProvidersWarmupRoute
   WWorkspaceAppSettingsApprovalsRoute: typeof WWorkspaceAppSettingsApprovalsRoute
   WWorkspaceAppSettingsAuditRoute: typeof WWorkspaceAppSettingsAuditRoute
+  WWorkspaceAppSettingsBrandKitRoute: typeof WWorkspaceAppSettingsBrandKitRoute
   WWorkspaceAppSettingsKeysRoute: typeof WWorkspaceAppSettingsKeysRoute
   WWorkspaceAppSettingsMcpRoute: typeof WWorkspaceAppSettingsMcpRoute
   WWorkspaceAppSettingsProvidersRoute: typeof WWorkspaceAppSettingsProvidersRoute
@@ -3267,6 +3308,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppProvidersWarmupRoute: WWorkspaceAppProvidersWarmupRoute,
   WWorkspaceAppSettingsApprovalsRoute: WWorkspaceAppSettingsApprovalsRoute,
   WWorkspaceAppSettingsAuditRoute: WWorkspaceAppSettingsAuditRoute,
+  WWorkspaceAppSettingsBrandKitRoute: WWorkspaceAppSettingsBrandKitRoute,
   WWorkspaceAppSettingsKeysRoute: WWorkspaceAppSettingsKeysRoute,
   WWorkspaceAppSettingsMcpRoute: WWorkspaceAppSettingsMcpRoute,
   WWorkspaceAppSettingsProvidersRoute: WWorkspaceAppSettingsProvidersRoute,
@@ -3518,6 +3560,7 @@ const rootRouteChildren: RootRouteChildren = {
   WWorkspaceRouteRoute: WWorkspaceRouteRouteWithChildren,
   InviteTokenRoute: InviteTokenRoute,
   RTokenRoute: RTokenRoute,
+  ReviewTokenRoute: ReviewTokenRoute,
   WorkspacesNewRoute: WorkspacesNewRoute,
 }
 export const routeTree = rootRouteImport

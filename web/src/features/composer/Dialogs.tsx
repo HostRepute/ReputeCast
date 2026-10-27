@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import type { Component } from 'grapesjs'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Dialog } from '@/components/ui/Dialog'
@@ -10,7 +10,7 @@ import { useComposer, type ComposerDialog } from './context'
 import { diffLines } from './diff'
 import { sectionLabel, sectionOf } from './editor/labels'
 import { formatMjml } from './editor/mjmlDoc'
-import { kb, readText } from './format'
+import { fileSize, kb, readText } from './format'
 import { t as tt, useT, type MessageDescriptor } from '@/i18n'
 import { common } from '@/i18n/common'
 import { sectionWord } from './editor/labels'
@@ -28,23 +28,141 @@ function when(at: string) {
   return sameDay(d, new Date()) ? clock(d) : shortDate(d)
 }
 
+type VersionPage = Schemas['ComposerVersionList']
+
+/** One version of the history: what it is, and restore or name it. */
+function VersionRow({ v, pick, onPick, busy, onRestore, onNamed }: { v: Version; pick: boolean; onPick: () => void; busy: number | null; onRestore: (v: Version) => void; onNamed: () => void }) {
+  const c = useComposer()
+  const t = useT()
+  const [naming, setNaming] = useState(false)
+  const [name, setName] = useState(v.name)
+  const [saving, setSaving] = useState(false)
+  const label = v.source === 'create' && v.label.startsWith('created') ? v.label : v.label || t(md.source, { source: v.source })
+  const submit = async () => {
+    setSaving(true)
+    try {
+      await http.PUT('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}/name', {
+        params: { path: { workspace: c.slug, campaignId: c.campaign.id, version: v.version } },
+        body: { name: name.trim() },
+      })
+      setNaming(false)
+      onNamed()
+    } catch (e) {
+      toast({ kind: 'error', title: t(md.nameFailed), detail: errorMessage(e) })
+    } finally {
+      setSaving(false)
+    }
+  }
+  return (
+    <div className={`ver${v.current ? ' cur' : ''}`}>
+      <input type="checkbox" aria-label={t(md.compareVersion, { version: v.version })} checked={pick} onChange={onPick} />
+      <span className="mono k" style={{ width: 38 }}>
+        v{v.version}
+      </span>
+      {naming ? (
+        <form
+          className="flex min-w-0 flex-[1_1_220px] items-center gap-1.5"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void submit()
+          }}
+        >
+          <input className="in min-w-0 flex-1" aria-label={t(md.versionName, { version: v.version })} value={name} maxLength={120} placeholder={t(md.namePlaceholder)} onChange={(e) => setName(e.target.value)} autoFocus />
+          <button type="submit" className="btn sm pri" aria-busy={saving || undefined} disabled={saving}>
+            {t(md.saveName)}
+          </button>
+          <button type="button" className="btn sm" onClick={() => setNaming(false)}>
+            {t(common.cancel)}
+          </button>
+        </form>
+      ) : (
+        <span className="min-w-0 flex-[1_1_220px]">
+          {v.current ? <b>{t(md.current)}</b> : null}
+          {v.current ? ' · ' : ''}
+          {v.name ? <b className="vname">{v.name}</b> : null}
+          {v.name ? ' · ' : ''}
+          {when(v.savedAt)}
+          {v.savedBy ? ` · ${v.savedBy}` : ''} · {label}
+          <span className="k"> · {kb(v.sizeBytes)}</span>
+        </span>
+      )}
+      {naming ? null : (
+        <span className="flex flex-wrap items-center gap-1.5">
+          {c.canEdit ? (
+            <button
+              type="button"
+              className="btn sm"
+              aria-label={v.name ? t(md.renameVersion, { version: v.version }) : t(md.nameVersion, { version: v.version })}
+              onClick={() => {
+                setName(v.name)
+                setNaming(true)
+              }}
+            >
+              {v.name ? t(md.rename) : t(md.nameButton)}
+            </button>
+          ) : null}
+          {v.current ? (
+            <Badge tone="ok">{t(md.liveDraft)}</Badge>
+          ) : c.canEdit ? (
+            <button type="button" className="btn sm" aria-label={t(md.restoreVersion, { version: v.version })} aria-busy={busy === v.version || undefined} disabled={busy !== null} onClick={() => onRestore(v)}>
+              {t(md.restore)}
+            </button>
+          ) : null}
+        </span>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Version history (ComposerStates · Saved): every version, newest first, a
+ * page at a time, or only the named ones; restore one (unsaved edits are
+ * saved as a version first), name one, or tick two to compare them.
+ */
 function VersionsDialog({ open, onClose, onCompare }: { open: boolean; onClose: () => void; onCompare: (a: number, b: number) => void }) {
   const c = useComposer()
   const t = useT()
   const qc = useQueryClient()
-  const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions', { params: { path: { workspace: c.slug, campaignId: c.campaign.id } } }, { enabled: open })
+  const [named, setNamed] = useState(false)
+  const query = { workspace: c.slug, campaignId: c.campaign.id }
+  const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions', { params: { path: query, query: named ? { named: true } : {} } }, { enabled: open })
+  // Older pages, fetched with "Show older versions" (the first comes from the query).
+  const [older, setOlder] = useState<{ key: string; pages: VersionPage[] }>({ key: '', pages: [] })
+  const key = `${named}:${q.dataUpdatedAt}`
+  const pages = older.key === key ? older.pages : []
+  const [loadingOlder, setLoadingOlder] = useState(false)
   const [busy, setBusy] = useState<number | null>(null)
   const [pick, setPick] = useState<number[]>([])
+  const last = pages.length ? pages[pages.length - 1] : q.data
+  const items = q.data ? [...q.data.items, ...pages.flatMap((p) => p.items)] : []
+  const refresh = () => void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions'] })
+  const loadOlder = async () => {
+    if (!last?.nextBefore) return
+    setLoadingOlder(true)
+    try {
+      const { data } = await http.GET('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions', { params: { path: query, query: { before: last.nextBefore, ...(named ? { named: true } : {}) } } })
+      if (data) setOlder({ key, pages: [...pages, data] })
+    } catch (e) {
+      toast({ kind: 'error', title: t(md.loadVersionsFailed), detail: errorMessage(e) })
+    } finally {
+      setLoadingOlder(false)
+    }
+  }
   const restore = async (v: Version) => {
     setBusy(v.version)
     try {
-      if (c.status.kind === 'dirty') await c.save()
+      // Unsaved edits become a version of their own first, so a restore never drops them.
+      if (c.hasUnsaved?.() && !(await c.save({ manual: true, quiet: true, label: t(md.beforeRestore, { version: v.version }) }))) {
+        toast({ kind: 'error', title: t(md.restoreFailed), detail: t(md.restoreNeedsSave, { version: v.version }) })
+        return
+      }
+      const base = c.currentVersion?.() ?? (c.status.kind === 'new' ? 1 : c.status.version)
       await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}/restore', {
         params: { path: { workspace: c.slug, campaignId: c.campaign.id, version: v.version } },
-        body: { baseVersion: c.status.kind === 'new' ? 0 : c.status.version },
+        body: { baseVersion: base },
       })
       await c.reloadFromServer()
-      void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions'] })
+      refresh()
       toast({ kind: 'success', title: t(md.restored, { version: v.version }), detail: t(md.restoredDetail) })
       onClose()
     } catch (e) {
@@ -52,10 +170,6 @@ function VersionsDialog({ open, onClose, onCompare }: { open: boolean; onClose: 
     } finally {
       setBusy(null)
     }
-  }
-  const label = (v: Version) => {
-    if (v.source === 'create' && v.label.startsWith('created')) return v.label
-    return v.label || t(md.source, { source: v.source })
   }
   const toggle = (n: number) => setPick((p) => (p.includes(n) ? p.filter((x) => x !== n) : [...p.slice(-1), n]))
   return (
@@ -73,35 +187,42 @@ function VersionsDialog({ open, onClose, onCompare }: { open: boolean; onClose: 
         </>
       }
     >
+      <div className="seg mb-2 self-start" role="group" aria-label={t(md.filterLabel)}>
+        <button type="button" aria-pressed={!named} onClick={() => setNamed(false)}>
+          {q.data && !named ? t(md.allVersions, { count: q.data.total }) : t(md.allVersionsBare)}
+        </button>
+        <button type="button" aria-pressed={named} onClick={() => setNamed(true)}>
+          {q.data ? t(md.namedVersions, { count: q.data.named }) : t(md.namedVersionsBare)}
+        </button>
+      </div>
       {q.isPending ? (
-        <p className="k">{t(md.loadingVersions)}</p>
+        <div className="flex flex-col gap-2" aria-busy="true">
+          <span className="vh" role="status">
+            {t(md.loadingVersions)}
+          </span>
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="sk" style={{ height: 36 }} />
+          ))}
+        </div>
       ) : q.isError ? (
-        <p className="k">{t(md.historyFailed, { error: errorMessage(q.error) })}</p>
+        <p className="k" role="alert">
+          {t(md.historyFailed, { error: errorMessage(q.error) })}
+        </p>
+      ) : !items.length ? (
+        <p className="k">{named ? t(md.noNamed) : t(md.noVersions)}</p>
       ) : (
         <div className="-mx-1 flex flex-col">
-          {q.data.items.map((v) => (
-            <div key={v.version} className={`ver${v.current ? ' cur' : ''}`}>
-              <input type="checkbox" aria-label={t(md.compareVersion, { version: v.version })} checked={pick.includes(v.version)} onChange={() => toggle(v.version)} />
-              <span className="mono k" style={{ width: 38 }}>
-                v{v.version}
-              </span>
-              <span className="min-w-0 flex-1">
-                {v.current ? <b>{t(md.current)}</b> : null}
-                {v.current ? ' · ' : ''}
-                {when(v.savedAt)}
-                {v.savedBy ? ` · ${v.savedBy}` : ''} · {label(v)}
-                <span className="k"> · {kb(v.sizeBytes)}</span>
-              </span>
-              {v.current ? (
-                <Badge tone="ok">{t(md.liveDraft)}</Badge>
-              ) : c.canEdit ? (
-                <button type="button" className="btn sm" aria-busy={busy === v.version || undefined} disabled={busy !== null} onClick={() => void restore(v)}>
-                  {t(md.restore)}
-                </button>
-              ) : null}
-            </div>
+          {items.map((v) => (
+            <VersionRow key={v.version} v={v} pick={pick.includes(v.version)} onPick={() => toggle(v.version)} busy={busy} onRestore={(x) => void restore(x)} onNamed={refresh} />
           ))}
-          {q.data.total > q.data.items.length ? <p className="k px-3.5 pt-2">{t(md.showingLatest, { count: q.data.items.length, total: q.data.total })}</p> : null}
+          {last?.nextBefore ? (
+            <div className="flex items-center gap-3 px-3.5 pt-3">
+              <button type="button" className="btn sm" aria-busy={loadingOlder || undefined} disabled={loadingOlder} onClick={() => void loadOlder()}>
+                {t(md.showOlder)}
+              </button>
+              <span className="k">{t(md.showing, { count: items.length, total: named ? q.data.named : q.data.total })}</span>
+            </div>
+          ) : null}
         </div>
       )}
     </Dialog>
@@ -183,6 +304,82 @@ function CompareDialog({ open, onClose, versions }: { open: boolean; onClose: ()
   )
 }
 
+/** What the server did to an upload, in one line ("Resized from 4032×3024 (3.1 MB) for email"); empty when it's stored as uploaded or barely changed. */
+export function optimizedNote(t: ReturnType<typeof useT>, a: Schemas['MediaAsset']): string {
+  const o = a.original
+  if (!o) return ''
+  const size = fileSize(o.sizeBytes)
+  if (o.contentType !== a.contentType) return t(md.convertedFrom, { size, type: o.contentType.replace('image/', '').toUpperCase() })
+  if (o.width !== a.width || o.height !== a.height) return t(md.resizedFrom, { width: o.width, height: o.height, size })
+  return a.sizeBytes < o.sizeBytes * 0.95 ? t(md.compressedFrom, { size }) : ''
+}
+
+type Picked = { src: string; asset?: Schemas['MediaAsset'] }
+
+/**
+ * The alt text prompt after an image is chosen (CO-12, ComposerWrite ·
+ * image block): describe it, or say it's decorative (an empty alt, which
+ * screen readers skip). Either clears the "No alt text" warning.
+ */
+function AltStep({ component, picked, onDone }: { component: Component; picked: Picked; onDone: () => void }) {
+  const t = useT()
+  const id = useId()
+  const before = (component.getAttributes() as Record<string, unknown>).alt
+  const [alt, setAlt] = useState(typeof before === 'string' ? before : '')
+  const name = picked.asset?.fileName ?? (picked.src.split('?')[0]!.split('/').pop() || picked.src)
+  const save = (value: string) => {
+    component.addAttributes({ alt: value })
+    onDone()
+  }
+  const a = picked.asset
+  const note = a ? optimizedNote(t, a) : ''
+  const done = alt.trim().length > 0
+  return (
+    <form
+      className="flex flex-col gap-3"
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (done) save(alt.trim())
+      }}
+    >
+      <div className="flex items-start gap-3">
+        <img
+          src={picked.src}
+          alt=""
+          className="shrink-0 rounded-md border border-line"
+          style={{ width: 120, height: 80, objectFit: 'contain', background: 'repeating-conic-gradient(#F3F4F6 0 25%, #fff 0 50%) 0 0/12px 12px' }}
+        />
+        <div className="flex min-w-0 flex-col items-start gap-1">
+          <span className="max-w-full truncate font-semibold" title={name}>
+            {name}
+          </span>
+          {a ? <span className="k">{t(md.imageMeta, { width: a.width, height: a.height, size: kb(a.sizeBytes) })}</span> : null}
+          {note ? <span className="k">{note}</span> : null}
+          <Badge tone={done ? 'ok' : 'warn'} size="sm">
+            {done ? t(md.altAdded) : t(md.altMissing)}
+          </Badge>
+        </div>
+      </div>
+      <label className="vh" htmlFor={id}>
+        {t(md.altFor, { name })}
+      </label>
+      <input id={id} className="in" autoFocus placeholder={t(md.altPlaceholder)} value={alt} onChange={(e) => setAlt(e.target.value)} />
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" className="btn sm" onClick={() => save('')}>
+          {t(md.altDecorative)}
+        </button>
+        <span className="flex-1" />
+        <button type="button" className="btn" onClick={onDone}>
+          {t(md.altSkip)}
+        </button>
+        <button type="submit" className="btn pri" disabled={!done}>
+          {t(md.altSave)}
+        </button>
+      </div>
+    </form>
+  )
+}
+
 function AssetsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const c = useComposer()
   const t = useT()
@@ -191,15 +388,33 @@ function AssetsDialog({ open, onClose }: { open: boolean; onClose: () => void })
   const [uploading, setUploading] = useState(false)
   const [drag, setDrag] = useState(false)
   const [url, setUrl] = useState('')
+  const [picked, setPicked] = useState<Picked | null>(null)
+  // A prompt left open when the dialog closed doesn't come back next time.
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (!open) setPicked(null)
+  }
   const input = useRef<HTMLInputElement>(null)
   const target = c.assetTarget
-  const choose = (src: string) => {
+  const close = () => {
+    setPicked(null)
+    onClose()
+  }
+  const choose = (src: string, asset?: Schemas['MediaAsset']) => {
     const comp = target?.component as Component | undefined
     if (comp) {
       comp.addAttributes({ [target!.attr]: src })
-      if (target!.attr === 'src') comp.set('src', src)
+      if (target!.attr === 'src') {
+        comp.set('src', src)
+        // An image needs alt text, or to be marked decorative: ask now.
+        if (c.canEdit) {
+          setPicked({ src, asset })
+          return
+        }
+      }
     }
-    onClose()
+    close()
   }
   const upload = async (files: FileList | null) => {
     const file = files?.[0]
@@ -212,8 +427,8 @@ function AssetsDialog({ open, onClose }: { open: boolean; onClose: () => void })
       const body = (await r.json().catch(() => ({}))) as Schemas['MediaAsset'] & { detail?: string; title?: string; errors?: { message?: string }[] }
       if (!r.ok) throw new Error(body.errors?.[0]?.message || body.detail || body.title || t(md.uploadFailedStatus, { status: r.status }))
       void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/media'] })
-      toast({ kind: 'success', title: t(md.uploaded, { name: body.fileName }) })
-      if (target) choose(body.url)
+      toast({ kind: 'success', title: t(md.uploaded, { name: body.fileName }), detail: optimizedNote(t, body) || undefined })
+      if (target) choose(body.url, body)
     } catch (e) {
       toast({ kind: 'error', title: t(md.uploadFailed), detail: e instanceof Error ? e.message : String(e) })
     } finally {
@@ -229,8 +444,15 @@ function AssetsDialog({ open, onClose }: { open: boolean; onClose: () => void })
       toast({ kind: 'error', title: t(md.removeFailed), detail: errorMessage(e) })
     }
   }
+  if (picked && target) {
+    return (
+      <Dialog open={open} onOpenChange={(o) => !o && close()} title={t(md.altTitle)} description={t(md.altLead)}>
+        <AltStep component={target.component as Component} picked={picked} onDone={close} />
+      </Dialog>
+    )
+  }
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()} title={target?.attr === 'background-url' ? t(md.chooseBackground) : t(md.chooseImage)} size="lg" description={t(md.assetsLead)}>
+    <Dialog open={open} onOpenChange={(o) => !o && close()} title={target?.attr === 'background-url' ? t(md.chooseBackground) : t(md.chooseImage)} size="lg" description={t(md.assetsLead)}>
       <div className="flex flex-col gap-3">
         <div
           className="flex flex-col items-center justify-center gap-2 rounded-[10px] border border-dashed text-center"
@@ -276,13 +498,14 @@ function AssetsDialog({ open, onClose }: { open: boolean; onClose: () => void })
           <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))' }}>
             {q.data.items.map((a) => (
               <div key={a.id} className="flex flex-col gap-1.5 rounded-[10px] border border-line bg-surface" style={{ padding: 8 }}>
-                <button type="button" className="overflow-hidden rounded-md border border-line" style={{ height: 90, padding: 0, background: 'repeating-conic-gradient(#F3F4F6 0 25%, #fff 0 50%) 0 0/12px 12px', cursor: 'pointer' }} onClick={() => choose(a.url)} disabled={!target} aria-label={t(md.useImage, { name: a.fileName })}>
+                <button type="button" className="overflow-hidden rounded-md border border-line" style={{ height: 90, padding: 0, background: 'repeating-conic-gradient(#F3F4F6 0 25%, #fff 0 50%) 0 0/12px 12px', cursor: 'pointer' }} onClick={() => choose(a.url, a)} disabled={!target} aria-label={t(md.useImage, { name: a.fileName })}>
                   <img src={a.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} loading="lazy" />
                 </button>
                 <span className="truncate text-[12px] font-semibold" title={a.fileName}>
                   {a.fileName}
                 </span>
                 <span className="k">{t(a.hasAlpha ? md.imageMetaTransparent : md.imageMeta, { width: a.width, height: a.height, size: kb(a.sizeBytes) })}</span>
+                {optimizedNote(t, a) ? <span className="k text-[12px]">{optimizedNote(t, a)}</span> : null}
                 {c.canEdit ? (
                   <button type="button" className="btn sm self-start" onClick={() => void remove(a)}>
                     {t(md.remove)}
@@ -451,10 +674,12 @@ const SHORTCUTS: [string | MessageDescriptor, MessageDescriptor][] = [
   ['⇧⌘Z', md.scRedo],
   ['⌘C · ⌘V', md.scCopy],
   ['Delete', md.scDelete],
+  ['Enter', md.scEnter],
+  ['Esc', md.scEscape],
   [md.keyMove, md.scMove],
+  [md.keyLayers, md.scLayers],
   [md.keyDoubleClick, md.scDoubleClick],
   ['⌘B · ⌘I', md.scBold],
-  ['Esc', md.scEscape],
   ['⌘/', md.scHelp],
 ]
 

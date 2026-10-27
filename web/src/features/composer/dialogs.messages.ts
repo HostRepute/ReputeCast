@@ -11,7 +11,8 @@ export const md = defineMessages('composer.dialogs', {
   restoredDetail: 'It is saved as a new version; nothing was deleted.',
   restoreFailed: "Couldn't restore the version",
   /** A version saved without a description of its changes: how it was saved. */
-  source: '{source, select, autosave {autosave} manual {manual} import {import} template {template} create {create} restore {restore} other {{source}}}',
+  source:
+    '{source, select, autosave {autosave} manual {manual} import {import} template {template} create {create} restore {restore} conflict {kept after a conflict} merge {merged} recovered {recovered from this browser} synced {synced block updated} other {{source}}}',
   compareWith: 'Compare v{a} with v{b}',
   tickTwo: 'Tick two versions to compare them.',
   compareTwo: 'Compare two versions',
@@ -21,7 +22,28 @@ export const md = defineMessages('composer.dialogs', {
   current: 'Current',
   liveDraft: 'Live draft',
   restore: 'Restore',
-  showingLatest: 'Showing the latest {count} of {total} versions.',
+  restoreVersion: 'Restore version {version}',
+  /** The label of the version unsaved edits are saved as before a restore. */
+  beforeRestore: 'edits before restoring v{version}',
+  restoreNeedsSave: "Your unsaved edits couldn't be saved, so v{version} wasn't restored. Check the connection and try again.",
+  filterLabel: 'Which versions',
+  allVersions: 'All · {count}',
+  allVersionsBare: 'All',
+  namedVersions: 'Named · {count}',
+  namedVersionsBare: 'Named',
+  noNamed: 'No named versions yet. Name a version to find it here; named versions are never cleaned up.',
+  noVersions: 'No versions yet.',
+  showOlder: 'Show older versions',
+  showing: 'Showing {count} of {total}',
+  /** The button that names a version ("Sent to legal"). */
+  nameButton: 'Name',
+  rename: 'Rename',
+  nameVersion: 'Name version {version}',
+  renameVersion: 'Rename version {version}',
+  versionName: 'Name of version {version}',
+  namePlaceholder: 'Sent to legal, final copy…',
+  saveName: 'Save',
+  nameFailed: "Couldn't name the version",
 
   // Compare.
   compareTitle: 'Compare versions',
@@ -37,9 +59,26 @@ export const md = defineMessages('composer.dialogs', {
   // Images.
   chooseImage: 'Choose an image',
   chooseBackground: 'Choose a background image',
-  assetsLead: 'PNG, JPEG or GIF up to 5 MB. Images are served from your ReputeCast address, so they load in every inbox.',
+  assetsLead:
+    'PNG or JPEG up to 20 MB, GIF up to 5 MB. Images are resized to 1,200 px wide at most and compressed for email, and served from your ReputeCast address so they load in every inbox.',
   uploadFailedStatus: 'Upload failed ({status})',
   uploaded: '{name} uploaded',
+  /** What the server did to an upload (CO-12): it was wider than 1,200 px. */
+  resizedFrom: 'Resized from {width}×{height} ({size}) for email',
+  /** Same dimensions, fewer bytes. */
+  compressedFrom: 'Compressed from {size} for email',
+  /** A photo uploaded as PNG, stored as JPEG. {type}: PNG. */
+  convertedFrom: 'Saved as JPEG from a {size} {type} for email',
+  // The alt text prompt after choosing an image (CO-12, ComposerWrite · image block).
+  altTitle: 'Describe the image',
+  altLead: 'Outlook and many work inboxes block images by default, so alt text is what shows. Screen readers read it out.',
+  altFor: 'Alt text for {name}',
+  altPlaceholder: 'Describe the image, for example: three runners crossing the finish line',
+  altMissing: 'No alt text',
+  altAdded: 'Alt text added',
+  altDecorative: "It's decorative",
+  altSkip: 'Skip',
+  altSave: 'Save',
   uploadFailed: "Couldn't upload the image",
   removedFromLibrary: '{name} removed from the library',
   removedDetail: 'Emails already sent keep showing it.',
@@ -92,14 +131,17 @@ export const md = defineMessages('composer.dialogs', {
   shortcutsLead: 'Ctrl instead of ⌘ on Windows and Linux.',
   keyMove: '↑ ↓ on Move',
   keyDoubleClick: 'Double-click',
+  keyLayers: '↑ ↓ → ← in Layers',
   scSave: 'Save a version now',
-  scUndo: 'Undo',
+  scUndo: 'Undo, the subject, preheader and A/B test included',
   scRedo: 'Redo',
   scCopy: 'Copy and paste the selected component',
   scDelete: 'Delete the selected component',
   scMove: 'Move the selected component up or down',
   scDoubleClick: 'Edit text on the canvas',
   scBold: 'Bold and italic while editing text',
-  scEscape: 'Stop editing text',
+  scEnter: 'Edit the selected text, or select the first element inside the selection',
+  scEscape: 'Stop editing text, or select the parent',
+  scLayers: 'Move between layers, open and close them',
   scHelp: 'Show these shortcuts',
 })

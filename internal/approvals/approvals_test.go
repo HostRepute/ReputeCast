@@ -235,7 +235,9 @@ func TestReviewAndApprovals(t *testing.T) {
 	toMarcus, toLinh := n.notes("marcus@acme.io", "approval_invalidated"), n.notes("linh@acme.io", "approval_invalidated")
 	newSubject := "November Product Update: faster exports, a new API and self-hosted sending"
 	daniel.Do("PUT", ws+"/campaigns/"+nov+"/content", map[string]any{"baseVersion": full["version"], "subject": newSubject, "preheader": full["preheader"],
-		"mjml": full["mjml"], "html": full["html"], "label": "subject", "source": "manual"}).MustStatus(t, 200)
+		"mjml": full["mjml"], "html": full["html"], "label": "subject", "source": "manual",
+		// The composer asked first: the editor agreed that saving cancels the approval.
+		"cancelApproval": true}).MustStatus(t, 200)
 	r = getReview(t, daniel, nov)
 	if r.Approval.Valid || r.Approval.Request == nil || r.Approval.Request.Status != "invalidated" || r.Approval.Request.InvalidatedReason != "subject changed" {
 		t.Fatalf("invalidated: %+v", r.Approval.Request)
@@ -608,7 +610,9 @@ func TestScheduledSendLosesItsApproval(t *testing.T) {
 	var full map[string]any
 	daniel.Do("GET", ws+"/campaigns/"+nov, nil).MustStatus(t, 200).JSON(t, &full)
 	daniel.Do("PUT", ws+"/campaigns/"+nov+"/content", map[string]any{"baseVersion": full["version"], "subject": "November Product Update: faster exports, a new API and self-hosted sending",
-		"preheader": full["preheader"], "mjml": full["mjml"], "html": full["html"], "label": "subject", "source": "manual"}).MustStatus(t, 200)
+		"preheader": full["preheader"], "mjml": full["mjml"], "html": full["html"], "label": "subject", "source": "manual",
+		// The composer asked first: the editor agreed that saving cancels the approval.
+		"cancelApproval": true}).MustStatus(t, 200)
 	r = getReview(t, daniel, nov)
 	if r.Campaign.Status != "scheduled" || r.Approval.Request == nil || r.Approval.Request.Status != "invalidated" {
 		t.Fatalf("invalidated, still scheduled: %s %+v", r.Campaign.Status, r.Approval.Request)
@@ -754,7 +758,9 @@ func TestApprovalWebhookEvents(t *testing.T) {
 	var full map[string]any
 	daniel.Do("GET", ws+"/campaigns/"+nov, nil).MustStatus(t, 200).JSON(t, &full)
 	daniel.Do("PUT", ws+"/campaigns/"+nov+"/content", map[string]any{"baseVersion": full["version"], "subject": "November Product Update: faster exports and a new API",
-		"preheader": full["preheader"], "mjml": full["mjml"], "html": full["html"], "label": "subject", "source": "manual"}).MustStatus(t, 200)
+		"preheader": full["preheader"], "mjml": full["mjml"], "html": full["html"], "label": "subject", "source": "manual",
+		// The composer asked first: the editor agreed that saving cancels the approval.
+		"cancelApproval": true}).MustStatus(t, 200)
 	if _, err := env.App.Pool.Exec(ctx, `DELETE FROM link_domain_listings WHERE domain = 'acme.io'`); err != nil {
 		t.Fatal(err)
 	}

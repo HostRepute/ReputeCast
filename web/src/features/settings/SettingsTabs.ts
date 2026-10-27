@@ -1,5 +1,6 @@
 import type { NavTab } from '@/components/ui/Tabs'
 import { t } from '@/i18n'
+import { mk } from '@/features/brandkit/messages'
 import { m } from './messages'
 
 /**
@@ -11,6 +12,8 @@ export function settingsTabs(workspace: string): NavTab[] {
   const params = { workspace }
   return [
     { label: t(m.general), to: '/w/$workspace/settings', params, exact: true },
+    // The brand kit (review 2026-10, CO-11; contract C10).
+    { label: t(mk.tab), to: '/w/$workspace/settings/brand-kit', params },
     { label: t(m.senders), to: '/w/$workspace/settings/senders', params },
     { label: t(m.providers), to: '/w/$workspace/settings/providers', params },
     { label: t(m.sendingRules), to: '/w/$workspace/settings/sending-rules', params },

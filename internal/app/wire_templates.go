@@ -8,6 +8,6 @@ import (
 
 func init() {
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
-		templates.Register(h, &templates.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit})
+		templates.Register(h, &templates.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Brand: a.brandKit()})
 	})
 }

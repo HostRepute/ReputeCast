@@ -1,0 +1,22 @@
+<mjml>
+  <mj-body width="600px">
+    <mj-section padding="12px 24px">
+      <mj-column>
+        <mj-navbar align="right">
+          <mj-navbar-link href="https://acme.io/blog" color="#5B6472">Blog</mj-navbar-link>
+          <mj-navbar-link href="https://acme.io/docs" color="#5B6472">Docs</mj-navbar-link>
+          <mj-navbar-link href="https://acme.io/changelog" color="#5B6472">Changelog</mj-navbar-link>
+        </mj-navbar>
+      </mj-column>
+    </mj-section>
+    <mj-section padding="12px 24px">
+      <mj-column>
+        <mj-social font-size="13px" icon-size="20px" mode="horizontal">
+          <mj-social-element name="facebook" href="https://facebook.com/acme">Facebook</mj-social-element>
+          <mj-social-element name="linkedin" href="https://linkedin.com/company/acme">LinkedIn</mj-social-element>
+          <mj-social-element name="github" href="https://github.com/acme" src="https://acme.io/icons/github.png">GitHub</mj-social-element>
+        </mj-social>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

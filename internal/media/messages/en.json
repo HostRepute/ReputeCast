@@ -3,10 +3,13 @@
   "problem.interrupted": "The upload was interrupted. Try again.",
   "problem.empty": "The file is empty.",
   "problem.tooLarge": {"message": "The image is {size} MB; the limit is 5 MB. Email images work best under 200 KB.", "note": "size: the image's size in megabytes with one decimal, 6.2"},
+  "problem.uploadTooLarge": {"message": "The file is {size} MB; the limit is 20 MB. Export the image smaller and retry.", "note": "uploads are resized and compressed before they're stored; size: the file's size in megabytes with one decimal, 23.4"},
+  "problem.gifTooLarge": {"message": "The GIF is {size} MB; GIFs can be up to 5 MB because they're stored as uploaded, so animations keep their frames.", "note": "size: the GIF's size in megabytes with one decimal, 6.2"},
+  "problem.stillTooLarge": {"message": "Even resized and compressed, the image is {size} MB; the limit is 5 MB. Use a smaller image.", "note": "size: the stored image's size in megabytes with one decimal, 5.4"},
   "problem.webp": "WebP images don't display in Outlook and several other email clients. Upload a PNG, JPEG or GIF.",
   "problem.svg": "SVG images don't display in Gmail or Outlook. Upload a PNG, JPEG or GIF.",
   "problem.notImage": "That file isn't an image ReputeCast can use. Upload a PNG, JPEG or GIF.",
   "problem.damaged": "The image is damaged or incomplete and couldn't be read. Export it again and retry.",
-  "problem.dimensions": "The image dimensions are invalid or too large (100 megapixels at most).",
+  "problem.dimensions": {"message": "The image dimensions are invalid or too large (50 megapixels at most).", "note": "a phone's full-resolution photo is about 48 megapixels"},
   "problem.notFound": {"message": "Image not found.", "note": "removing an image from the library that is no longer there"}
 }

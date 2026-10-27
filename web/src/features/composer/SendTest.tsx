@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ApiError, http } from '@/api/client'
+import { DisabledReason } from '@/components/ui/DisabledReason'
 import { Popover } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
 import { useMe } from '@/lib/session'
@@ -23,8 +24,12 @@ function useSend() {
   const run = async (to: string[], language = c.campaign.language) => {
     setBusy(true)
     try {
-      // Tests use the saved content.
-      await c.save()
+      // Tests send the saved email: the latest edits are saved first, and a
+      // save that fails stops the test (it would send an older version).
+      if (c.canEdit && !(await c.save())) {
+        toast({ kind: 'error', title: tt(m.testNeedsSave), detail: tt(m.testNeedsSaveDetail) })
+        return false
+      }
       const r = await sendTest(c.slug, c.campaign.id, to, c.variant, language)
       toast({ kind: 'success', title: tt(m.testSent, { to: r.sent.join(', ') }), detail: r.provider ? tt(m.testVia, { provider: r.provider }) : undefined })
       return true
@@ -42,9 +47,16 @@ function useSend() {
  * "Send test": members with campaigns:send pick recipients (themselves and
  * teammates); everyone else gets "Send test to me".
  */
+/** Why Send test waits: the last save failed, so the saved email isn't the one on screen. */
+export function testBlockedReason(c: ReturnType<typeof useComposer>): string | undefined {
+  const s = c.status.kind
+  return c.canEdit && (s === 'error' || s === 'offline' || s === 'conflict') ? tt(m.testNeedsSave) : undefined
+}
+
 export function SendTestButton({ disabled, toMe }: { disabled?: boolean; toMe?: boolean }) {
   const c = useComposer()
   const t = useT()
+  const blocked = testBlockedReason(c)
   const { data: me } = useMe()
   const email = me?.user.email ?? ''
   const { busy, run } = useSend()
@@ -61,9 +73,11 @@ export function SendTestButton({ disabled, toMe }: { disabled?: boolean; toMe?: 
   }
   if (!c.campaign.access.canSendTestToOthers || toMe) {
     const own = (
-      <button type="button" className="btn" aria-busy={busy || undefined} onClick={() => void run([email])}>
-        {toMe && email ? t(m.sendTestTo, { email }) : t(m.sendTestToMe)}
-      </button>
+      <DisabledReason reason={blocked}>
+        <button type="button" className="btn" aria-busy={busy || undefined} onClick={() => void run([email])}>
+          {toMe && email ? t(m.sendTestTo, { email }) : t(m.sendTestToMe)}
+        </button>
+      </DisabledReason>
     )
     // X14: the menu adds Run a placement test… (not in the preview's row).
     return toMe ? (
@@ -122,6 +136,15 @@ export function SendTestButton({ disabled, toMe }: { disabled?: boolean; toMe?: 
       </div>
     </Popover>
   )
+  // The last save failed: the test waits for one (the popover's trigger can't carry the reason).
+  if (blocked)
+    return (
+      <DisabledReason reason={blocked}>
+        <button type="button" className="btn">
+          {t(m.sendTest)}
+        </button>
+      </DisabledReason>
+    )
   // X14: Send test is a split button; its menu adds Run a placement test….
   return (
     <TestSplit

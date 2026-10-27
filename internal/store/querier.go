@@ -467,6 +467,9 @@ type Querier interface {
 	AutomationUnsubscribeAll(ctx context.Context, contactID uuid.UUID) error
 	// Totals per automation since a day, for the KPI row.
 	AutomationWorkspaceStatsSince(ctx context.Context, arg AutomationWorkspaceStatsSinceParams) ([]AutomationWorkspaceStatsSinceRow, error)
+	// The brand kit and its synced blocks (CO-11).
+	BrandKitGet(ctx context.Context, workspaceID uuid.UUID) (BrandKitGetRow, error)
+	BrandKitUpsert(ctx context.Context, arg BrandKitUpsertParams) error
 	BroadcastDefaultSplit(ctx context.Context, workspaceID uuid.UUID) (json.RawMessage, error)
 	// Adds to one step's counters for a day. Path and provider counts are merged
 	// key by key.
@@ -474,7 +477,17 @@ type Querier interface {
 	BumpChallengeAttempts(ctx context.Context, id uuid.UUID) (int32, error)
 	BumpNotificationEmailAttempts(ctx context.Context, arg BumpNotificationEmailAttemptsParams) error
 	CampaignCostSince(ctx context.Context, arg CampaignCostSinceParams) ([]CampaignCostSinceRow, error)
+	CampaignRenderInsert(ctx context.Context, arg CampaignRenderInsertParams) error
+	// A render of this campaign still running, if any.
+	CampaignRenderPending(ctx context.Context, arg CampaignRenderPendingParams) (uuid.UUID, error)
+	// What the service answered when it was asked again.
+	CampaignRenderUpdate(ctx context.Context, arg CampaignRenderUpdateParams) error
+	CampaignRendersList(ctx context.Context, arg CampaignRendersListParams) ([]CampaignRendersListRow, error)
 	CampaignTotalsSince(ctx context.Context, arg CampaignTotalsSinceParams) (CampaignTotalsSinceRow, error)
+	// Campaigns whose content holds a synced block (an element with
+	// rc-synced="<kind>"), oldest first (CO-11). pattern is
+	// %rc-synced="<kind>"%.
+	CampaignsHoldingSynced(ctx context.Context, arg CampaignsHoldingSyncedParams) ([]CampaignsHoldingSyncedRow, error)
 	// The reason given on the cancel page, for the paid member's timeline.
 	CancelSetReason(ctx context.Context, arg CancelSetReasonParams) error
 	CancelVisitDecide(ctx context.Context, arg CancelVisitDecideParams) error
@@ -521,12 +534,23 @@ type Querier interface {
 	ChanSuppressionRemove(ctx context.Context, arg ChanSuppressionRemoveParams) error
 	// A page of the SMS suppression list, newest first.
 	ChanSuppressions(ctx context.Context, arg ChanSuppressionsParams) ([]ChanSuppressionsRow, error)
+	CheckDismissalDelete(ctx context.Context, arg CheckDismissalDeleteParams) (CheckDismissalDeleteRow, error)
+	CheckDismissalInsert(ctx context.Context, arg CheckDismissalInsertParams) (uuid.UUID, error)
+	// The warnings dismissed in a campaign's composer (CO-14).
+	CheckDismissalsList(ctx context.Context, arg CheckDismissalsListParams) ([]CheckDismissalsListRow, error)
 	ClaimAutomationEvents(ctx context.Context, lim int32) ([]ClaimAutomationEventsRow, error)
 	// Runs ready to move on, in flows that are live (paused flows hold their runs).
 	ClaimDueAutomationRuns(ctx context.Context, arg ClaimDueAutomationRunsParams) ([]ClaimDueAutomationRunsRow, error)
 	ClearSegmentMembers(ctx context.Context, segmentID uuid.UUID) error
 	ClearSignInThrottle(ctx context.Context, email string) error
 	ClearUserLockout(ctx context.Context, id uuid.UUID) error
+	CommentGet(ctx context.Context, arg CommentGetParams) (CommentGetRow, error)
+	CommentInsert(ctx context.Context, arg CommentInsertParams) error
+	CommentResolve(ctx context.Context, arg CommentResolveParams) (int64, error)
+	// What a reviewer sees: the threads started through their link, with the
+	// members' replies to them.
+	CommentsByLink(ctx context.Context, reviewLinkID *uuid.UUID) ([]CommentsByLinkRow, error)
+	CommentsList(ctx context.Context, arg CommentsListParams) ([]CommentsListRow, error)
 	// The skip rule: the contact got an email from an abandoned-cart flow
 	// (one started by abandoned checkouts) since a time.
 	CommerceAbandonedCartEmailedSince(ctx context.Context, arg CommerceAbandonedCartEmailedSinceParams) (bool, error)
@@ -746,20 +770,40 @@ type Querier interface {
 	// kinds it runs, and registry keys must not collide across kinds.
 	CommunityAdapterList(ctx context.Context) ([]CommunityAdapterListRow, error)
 	CompleteInstanceSetup(ctx context.Context, arg CompleteInstanceSetupParams) (InstanceSetting, error)
+	// Who approved a request, in order.
+	ComposerApprovalApprovers(ctx context.Context, requestID uuid.UUID) ([]string, error)
 	// Lists with their subscribed, active contacts (suppressed addresses excluded).
 	ComposerAudienceLists(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceListsRow, error)
 	ComposerAudienceSegments(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceSegmentsRow, error)
+	// The current version number moves on without the content changing
+	// ("Load theirs" keeps your edits in the history underneath).
+	ComposerBumpVersion(ctx context.Context, arg ComposerBumpVersionParams) error
 	// Recipients of lists minus excluded lists and suppressions. A deleted list
 	// (restorable for 30 days) adds nobody; as an exclusion it still excludes.
 	ComposerCountListAudience(ctx context.Context, arg ComposerCountListAudienceParams) (int64, error)
-	// Audience contacts whose first name is empty (they see the fallback).
-	ComposerCountMissingField(ctx context.Context, arg ComposerCountMissingFieldParams) (int64, error)
+	// For each field an email uses, how many of the audience have no value for
+	// it (they see the fallback, or nothing): the contacts of the lists minus
+	// the excluded lists and suppressions, as ComposerCountListAudience counts
+	// them. "first_name" and "last_name" are the contact's own columns; any
+	// other key is a custom field in attributes. Each row also carries the
+	// number counted. An empty audience returns no rows.
+	ComposerCountMissingFields(ctx context.Context, arg ComposerCountMissingFieldsParams) ([]ComposerCountMissingFieldsRow, error)
 	ComposerCustomFields(ctx context.Context, workspaceID uuid.UUID) ([]ComposerCustomFieldsRow, error)
 	ComposerDefaultSender(ctx context.Context, id uuid.UUID) (ComposerDefaultSenderRow, error)
 	ComposerLastSentCampaign(ctx context.Context, workspaceID uuid.UUID) (ComposerLastSentCampaignRow, error)
 	ComposerLatestReadiness(ctx context.Context, campaignID uuid.UUID) (ComposerLatestReadinessRow, error)
 	// Row lock for autosave: the version check and the new version are atomic.
 	ComposerLockCampaign(ctx context.Context, arg ComposerLockCampaignParams) (ComposerLockCampaignRow, error)
+	// The workspace's active people, for @mentions in comments (CO-10).
+	ComposerMentionable(ctx context.Context, workspaceID uuid.UUID) ([]ComposerMentionableRow, error)
+	// Names (or unnames, with '') one version; returns the name it had.
+	ComposerNameVersion(ctx context.Context, arg ComposerNameVersionParams) (string, error)
+	// Names a version only when nobody named it (a review link's version).
+	ComposerNameVersionIfUnnamed(ctx context.Context, arg ComposerNameVersionIfUnnamedParams) (int64, error)
+	ComposerNamedVersionCount(ctx context.Context, campaignID uuid.UUID) (int64, error)
+	// A campaign's pending or approved request: who asked, when it was
+	// decided and the version it covers (editing cancels it).
+	ComposerOpenApproval(ctx context.Context, campaignID *uuid.UUID) (ComposerOpenApprovalRow, error)
 	ComposerPreviewContactByID(ctx context.Context, arg ComposerPreviewContactByIDParams) (ComposerPreviewContactByIDRow, error)
 	// Contacts to preview as: the campaign's audience first, people with a first name first.
 	ComposerPreviewContacts(ctx context.Context, arg ComposerPreviewContactsParams) ([]ComposerPreviewContactsRow, error)
@@ -769,6 +813,9 @@ type Querier interface {
 	ComposerUpdateCampaignMeta(ctx context.Context, arg ComposerUpdateCampaignMetaParams) error
 	// The MJML of recent versions, newest first (to find when a section was removed).
 	ComposerVersionSources(ctx context.Context, arg ComposerVersionSourcesParams) ([]ComposerVersionSourcesRow, error)
+	// One page of the version history, newest first: versions older than
+	// @before (none: from the newest), only named ones when @named_only.
+	ComposerVersionsPage(ctx context.Context, arg ComposerVersionsPageParams) ([]ComposerVersionsPageRow, error)
 	ConfirmInstanceBasics(ctx context.Context) error
 	ConnectActiveContacts(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	ConnectCreateList(ctx context.Context, arg ConnectCreateListParams) error
@@ -1592,6 +1639,8 @@ type Querier interface {
 	InsertEmailTemplate(ctx context.Context, arg InsertEmailTemplateParams) error
 	InsertImportLog(ctx context.Context, arg InsertImportLogParams) error
 	// Uploading the same bytes twice returns the existing asset (and shows it again).
+	// sha256 is the uploaded file's; data may be its resized, compressed copy,
+	// and the original_* columns then say what was uploaded.
 	InsertMediaAsset(ctx context.Context, arg InsertMediaAssetParams) (InsertMediaAssetRow, error)
 	// Notification center, preferences and email delivery (internal/notify).
 	// Stores a notification unless the person turned both in-app and email off
@@ -2390,6 +2439,10 @@ type Querier interface {
 	// The approved request a publish relied on remembers it went out.
 	PostApprovalMarkPublished(ctx context.Context, arg PostApprovalMarkPublishedParams) error
 	PostApprovalPending(ctx context.Context, postID *uuid.UUID) (PostApprovalPendingRow, error)
+	PresenceLeave(ctx context.Context, arg PresenceLeaveParams) error
+	// Who else has a campaign open (seen since a time).
+	PresenceList(ctx context.Context, arg PresenceListParams) ([]PresenceListRow, error)
+	PresenceTouch(ctx context.Context, arg PresenceTouchParams) error
 	// A product, deleted or not (an order's product).
 	ProductAny(ctx context.Context, id uuid.UUID) (Product, error)
 	ProductArchive(ctx context.Context, arg ProductArchiveParams) error
@@ -2577,8 +2630,8 @@ type Querier interface {
 	// Requests through a proxy ReputeCast doesn't trust (review AN-8).
 	// Adds requests from an untrusted proxy since the last write.
 	ProxySeen(ctx context.Context, arg ProxySeenParams) error
-	// Keeps the newest @keep versions; the first version and anything that is
-	// not an autosave (restores, imports, ⌘S) are always kept.
+	// Keeps the newest @keep versions; the first version, named versions and
+	// anything that is not an autosave (restores, imports, ⌘S) are always kept.
 	PruneComposerVersions(ctx context.Context, arg PruneComposerVersionsParams) (int64, error)
 	PublicCampaign(ctx context.Context, arg PublicCampaignParams) (PublicCampaignRow, error)
 	PublicInsertFeedback(ctx context.Context, arg PublicInsertFeedbackParams) error
@@ -2968,6 +3021,12 @@ type Querier interface {
 	RemoteRuntimeSetSecret(ctx context.Context, arg RemoteRuntimeSetSecretParams) error
 	RemoteRuntimeTouch(ctx context.Context, adapterID uuid.UUID) error
 	RenamePasskey(ctx context.Context, arg RenamePasskeyParams) error
+	// A test of the stored key: its outcome, and the clients when it worked.
+	RenderingServiceChecked(ctx context.Context, arg RenderingServiceCheckedParams) error
+	RenderingServiceDelete(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	// Real renders from the workspace's own rendering service (CO-13).
+	RenderingServiceGet(ctx context.Context, workspaceID uuid.UUID) (RenderingServiceGetRow, error)
+	RenderingServiceUpsert(ctx context.Context, arg RenderingServiceUpsertParams) error
 	// A campaign's bounces for the sender's reputation or policy by mailbox
 	// provider and sending provider, with the provider's addresses (the
 	// report's insights, review AN-15).
@@ -3162,6 +3221,12 @@ type Querier interface {
 	// Whether a campaign report shows a Revenue section: the workspace takes
 	// payments or records conversions.
 	RevenueUsesEarn(ctx context.Context, workspaceID uuid.UUID) (bool, error)
+	ReviewLinkByToken(ctx context.Context, tokenHash []byte) (ReviewLinkByTokenRow, error)
+	// Comments through a link since a time: reviewers are limited per hour.
+	ReviewLinkCommentCount(ctx context.Context, arg ReviewLinkCommentCountParams) (int64, error)
+	ReviewLinkInsert(ctx context.Context, arg ReviewLinkInsertParams) error
+	ReviewLinkRevoke(ctx context.Context, arg ReviewLinkRevokeParams) (int64, error)
+	ReviewLinksActive(ctx context.Context, arg ReviewLinksActiveParams) ([]ReviewLinksActiveRow, error)
 	RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) (int64, error)
 	RevokeAPIKeysCreatedBy(ctx context.Context, arg RevokeAPIKeysCreatedByParams) (int64, error)
 	RevokeAllUserSessions(ctx context.Context, userID uuid.UUID) (int64, error)
@@ -3839,6 +3904,11 @@ type Querier interface {
 	SurveySlugTaken(ctx context.Context, arg SurveySlugTakenParams) (bool, error)
 	SurveyUpdate(ctx context.Context, arg SurveyUpdateParams) error
 	SurveysList(ctx context.Context, workspaceID uuid.UUID) ([]SurveysListRow, error)
+	// Locks the block for a change (inside a transaction).
+	SyncedBlockGet(ctx context.Context, arg SyncedBlockGetParams) (SyncedBlockGetRow, error)
+	SyncedBlockInsert(ctx context.Context, arg SyncedBlockInsertParams) error
+	SyncedBlockUpdate(ctx context.Context, arg SyncedBlockUpdateParams) error
+	SyncedBlocksList(ctx context.Context, workspaceID uuid.UUID) ([]SyncedBlocksListRow, error)
 	// A message the system mailer or a setup's test sends (stream system, or
 	// the stream a test goes on).
 	SysmailInsertMessage(ctx context.Context, arg SysmailInsertMessageParams) error
