@@ -2,6 +2,7 @@ package readiness
 
 import (
 	"context"
+	"slices"
 
 	"github.com/google/uuid"
 
@@ -72,6 +73,20 @@ func (b *builder) issueKeys() {
 			c.IssueKeys = keys
 		}
 	}
+}
+
+// contentIssueKeys are the keys of the composer's warnings of a check at an
+// element (mj-body element indices, as accessibility issues locate theirs).
+func (b *builder) contentIssueKeys(id string, path []int) []string {
+	if !b.f.Content.Checked || len(path) == 0 {
+		return nil
+	}
+	for _, is := range b.f.Content.Report.Issues {
+		if is.ID == id && is.Severity == contentcheck.Warn && slices.Equal(is.Path, path) {
+			return []string{campaigns.IssueKey(is, b.f.Campaign.Subject)}
+		}
+	}
+	return nil
 }
 
 // MarkDismissed sets Dismissal on the run's warnings whose every composer

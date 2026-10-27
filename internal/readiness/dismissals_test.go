@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/readiness"
@@ -67,6 +68,32 @@ func TestDismissedInTheComposer(t *testing.T) {
 	readiness.MarkDismissed(&run, nil)
 	if ch := readiness.CheckSendTime(run, conf, digests); !ch.Held() {
 		t.Fatal("undone: the warning nobody confirmed holds the send")
+	}
+}
+
+// When the Accessibility group runs, an image's missing alt text is its
+// check: the composer's alt-text warning for the same element is the one
+// a dismissal names.
+func TestDismissedAltTextInAccessibility(t *testing.T) {
+	f := digest()
+	alt := contentcheck.ContentCheckIssue{ID: "content.alt_text", Severity: contentcheck.Warn, Group: "Content", Title: "Hero image has no alt text", Path: []int{1, 0, 0}}
+	f.Content.Report.Issues = append(f.Content.Report.Issues, alt)
+	f.Accessibility = accessibility.ReadinessFacts{Ran: true, Checked: true, Report: accessibility.AccessibilityReport{Policy: "warn", Serious: 1,
+		Issues: []accessibility.AccessibilityIssue{{ID: "alt_text:1-0-0:0", Kind: accessibility.KindAltText, Severity: "serious", Title: "The hero image has no alt text",
+			Short: "the hero image's alt text", Name: "The hero image", Languages: []string{"en"}, Path: []int{1, 0, 0}}}}}
+	run := readiness.ReadinessRun{ID: "run-1", RanAt: now, ReadinessResult: stored(t, readiness.Assemble(f))}
+	c := find(run, "accessibility.alt_text:1-0-0:0")
+	if c.Status != readiness.Warn || len(c.IssueKeys) != 1 || c.IssueKeys[0] != campaigns.IssueKey(alt, f.Campaign.Subject) {
+		t.Fatalf("alt text: %+v", c)
+	}
+	readiness.MarkDismissed(&run, map[string]campaigns.ComposerDismissal{c.IssueKeys[0]: {ID: "d1", Reason: "decorative", ReasonText: "the image is decorative", By: "Linh Nguyen", At: now}})
+	if d := find(run, "accessibility.alt_text:1-0-0:0").Dismissal; d == nil || d.ReasonText != "the image is decorative" {
+		t.Fatalf("dismissed: %+v", d)
+	}
+	// Under a Block policy nothing is dismissed: blocks never are.
+	f.Accessibility.Report.Policy = "block"
+	if c := find(readiness.ReadinessRun{ReadinessResult: readiness.Assemble(f)}, "accessibility.alt_text:1-0-0:0"); c.Status != readiness.Block || len(c.IssueKeys) != 0 {
+		t.Fatalf("block: %+v", c)
 	}
 }
 

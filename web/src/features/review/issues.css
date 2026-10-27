@@ -423,6 +423,9 @@
     .rv-disc > summary {
       min-height: 44px;
     }
+    .rv-dsm .btn {
+      min-height: 44px;
+    }
     /* On phones the main action sits in the bar at the bottom. */
     .rv-railend {
       display: none;
