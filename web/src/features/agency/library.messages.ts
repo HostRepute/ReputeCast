@@ -4,7 +4,8 @@ import { defineMessages } from '@/i18n'
 export const m = defineMessages('agencyLibrary', {
   subtitle: '{items, plural, one {# shared item} other {# shared items}} · {templates, plural, one {# workspace template} other {# workspace templates}}',
   searchPlaceholder: 'Search the library',
-  readOnly: 'Read-only · without agency:library',
+  // The note's label; the server's reason follows it ("You can't change the library or workspace templates. Ask …").
+  readOnly: 'Read-only',
   templatesTitle: 'Workspace templates · {n}',
   templatesCaption: "Blueprints for setting up a client. Applying one adds what's missing, renames clashes and never overwrites or deletes.",
   templatesFailed: "Couldn't load the workspace templates",
@@ -53,8 +54,6 @@ export const m = defineMessages('agencyLibrary', {
   planRolesAdded: 'The client roles are added',
   planRolesAlready: 'Client roles exist: unchanged',
   planSkipped: "Left out, because your role there doesn't allow it: {parts}.",
-  // One part left out, with the permission it needs: "automations (automations:edit)".
-  skippedPart: '{part} ({permission})',
   partLists: 'lists',
   partForms: 'forms',
   partAutomations: 'automations',

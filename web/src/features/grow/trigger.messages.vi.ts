@@ -17,5 +17,5 @@ export default translate(m, {
     'Bắt đầu khi người giới thiệu đạt mốc, dù mốc đó có tự gửi email hay không. Các biến của mốc thưởng và phần thưởng dùng được trong email của quy trình này.',
   noMilestones: 'Chưa có chương trình giới thiệu nào có mốc thưởng, nên chưa có gì kích hoạt quy trình này.',
   setUp: 'Thiết lập giới thiệu',
-  needs: 'Để chọn trình kích hoạt này, bạn cần quyền automations:edit.',
+  needs: 'Chỉ người có thể sửa tự động hóa mới chọn được trình kích hoạt này.',
 })

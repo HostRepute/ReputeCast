@@ -129,10 +129,10 @@ export const mf = defineMessages('grow.referrers', {
   retried: 'Trying {reward} for {name} again',
   noRewards: 'No rewards yet.',
   footnote: 'Addresses show only to the team. {name}’s hub shows Referral 1 to Referral {count} with dates, never who signed up.',
-  footnoteNoAddresses: 'Addresses show only to members with subscribers:view. {name}’s hub shows the referrals by number, never who signed up.',
+  footnoteNoAddresses: 'Addresses show only to members who can view contacts. {name}’s hub shows the referrals by number, never who signed up.',
   noReferrals: 'No signups through this link yet.',
-  readOnly: 'Pausing links, resending rewards and copying claim links need <mono>grow:review</mono>. Ask {helpers}.',
-  readOnlyNoHelpers: 'Pausing links, resending rewards and copying claim links need <mono>grow:review</mono>.',
+  readOnly: "Your role can't pause links, resend rewards or copy claim links. Ask {helpers}.",
+  readOnlyNoHelpers: "Your role can't pause links, resend rewards or copy claim links.",
   panelError: "Couldn't load this referrer",
   panelLoading: 'Loading the referrer',
   // Pause dialog.

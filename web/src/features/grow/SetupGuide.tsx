@@ -10,7 +10,7 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Select } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { T, formatList, useT } from '@/i18n'
+import { formatList, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { clock, count, shortDate } from '@/lib/format'
 import { useDocumentTitle, useOverflowX } from '@/lib/hooks'
@@ -21,7 +21,7 @@ import { RewardEditor } from './RewardEditor'
 import { rewardLine } from './MilestonesPage'
 import { m } from './messages'
 import { mu } from './setup.messages'
-import { GROW, fileSize, mono, orNames, useGrowRefresh } from './shared'
+import { GROW, fileSize, orNames, useGrowRefresh } from './shared'
 import '@/features/connect/connect.css'
 import './grow.css'
 
@@ -71,7 +71,7 @@ export function SetupGuide({ search, onSearch }: { search: SetupSearch; onSearch
       ) : !canEdit ? (
         <main className="cn-main" id="main">
           <Note tone="neutral">
-            <T msg={list.helpers.edit.length ? mu.needsEdit : mu.needsEditNoHelpers} values={{ helpers: orNames(list.helpers.edit), mono }} />
+            {t(list.helpers.edit.length ? mu.needsEdit : mu.needsEditNoHelpers, { helpers: orNames(list.helpers.edit) })}
           </Note>
           <div>
             <ButtonLink to="/w/$workspace/grow" params={{ workspace: slug }}>

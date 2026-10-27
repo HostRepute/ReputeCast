@@ -17,7 +17,7 @@ import { toast } from '@/components/ui/Toast'
 import { channelIcon } from '@/features/channels/ChannelSwitch'
 import { formatList, T, useT, type MessageDescriptor } from '@/i18n'
 import { ago, clock, count, dayMonthDate, dayMonthYear, inZone, monthName, money } from '@/lib/format'
-import { useMe, useWorkspace } from '@/lib/session'
+import { deniedReason, useMe, useWorkspace } from '@/lib/session'
 import { BudgetMeter, CountryChips, price, providerColor, regionSentence, throwIfForbidden, useRefreshSms } from './common'
 import { m as sm } from './messages'
 import { m } from './review.messages'
@@ -156,9 +156,7 @@ function sendLabel(data: Review, t: ReturnType<typeof useT>): string {
 
 function SendButton({ data, sendable, onSend, big }: { data: Review; sendable: boolean; onSend: () => void; big?: boolean }) {
   const t = useT()
-  const reason = !data.access.canSend
-    ? t(m.needsSend, { perms: formatList(data.access.missing), helpers: data.access.helpers.length ? formatList(data.access.helpers, 'disjunction') : 'none' })
-    : undefined
+  const reason = !data.access.canSend ? deniedReason('sms:send', data.access.helpers, t(m.sendAction)) : undefined
   return (
     <Button
       variant="primary"

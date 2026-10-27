@@ -22,7 +22,7 @@
   "problem.integrationsOff": "This API key belongs to an integration, and integrations aren't available on this server.",
   "problem.integrationKeyRevoked": { "message": "This key was revoked. Reconnect {integration} in Settings › Integrations to get a new key.", "note": "integration: an app's name, such as Zapier" },
   "problem.integrationKeyExpired": { "message": "This key expired on {date, date}. Reconnect {integration} in Settings › Integrations to get a new key.", "note": "date: Oct 22, 2026; integration: an app's name, such as Zapier" },
-  "problem.ownerLeft": { "message": "The member who owns this key left the workspace, so it has lost its permissions. Someone with integrations:manage can take it over in Settings › Integrations › {integration}; the key stays the same.", "note": "integration: an app's name, such as Zapier; integrations:manage is a permission key, never translated" },
+  "problem.ownerLeft": { "message": "The member who owns this key left the workspace, so it has lost its permissions. Someone who can manage integrations can take it over in Settings › Integrations › {integration}; the key stays the same.", "note": "integration: an app's name, such as Zapier" },
 
   "notFound.apiKey": { "message": "API key not found.", "note": "api.NotFound(thing): one per kind of thing; a thing without a message reads in English" },
   "notFound.mcpAgent": "MCP agent not found.",

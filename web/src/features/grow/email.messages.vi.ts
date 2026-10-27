@@ -70,7 +70,7 @@ export default translate(me, {
   cancel: 'Hủy',
   loadError: 'Không mở được email mốc thưởng',
   loading: 'Đang mở email mốc thưởng',
-  readOnly: 'Để thay đổi email mốc thưởng, bạn cần quyền <mono>grow:edit</mono>.',
+  readOnly: 'Vai trò của bạn không thể thay đổi email mốc thưởng.',
   leave: 'Thay đổi của bạn với email mốc thưởng này chưa được lưu.',
   editorFailed: 'Không khởi động được trình soạn thảo',
 })

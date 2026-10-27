@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Icon } from '@/components/icons/Icon'
-import { T, useT, type MessageDescriptor } from '@/i18n'
+import { useT, type MessageDescriptor } from '@/i18n'
 import { dayMonthDate, orList } from '@/lib/format'
 import { useCan, useMe, useWorkspace } from '@/lib/session'
 import { FormsTabs, throwIfForbidden } from '@/features/forms/common'
@@ -172,16 +172,14 @@ export function SavedLine({ at, by }: { at: string; by?: string }) {
 }
 
 /**
- * "Read-only · Aisha Bello, Viewer. You can see every setting. To … you
- * need website:manage. Ask Sofia Rossi, Marcus Chen or Linh Nguyen."
+ * "Read-only · Aisha Bello, Viewer. You can see every setting. Your role
+ * can't … Ask Sofia Rossi, Marcus Chen or Linh Nguyen." `msg` says what
+ * the role can't do in words, never the permission key (review X-1).
  */
-export function ReadOnlyNote({ msg, helpers, perms }: { msg: MessageDescriptor; helpers: string[]; perms: Record<string, string> }) {
+export function ReadOnlyNote({ msg, helpers }: { msg: MessageDescriptor; helpers: string[] }) {
   const t = useT()
   const { me } = useWorkspace()
   const user = useMe().data?.user
-  const code = (p: string) => <code className="mono">{p}</code>
-  const values: Record<string, ReactNode> = {}
-  for (const [k, v] of Object.entries(perms)) values[k] = code(v)
   return (
     <section className="ws-ro" role="status">
       <div className="hd">
@@ -189,7 +187,7 @@ export function ReadOnlyNote({ msg, helpers, perms }: { msg: MessageDescriptor; 
         {t(m.readOnlyTitle, { name: user?.name ?? '', role: me.workspace.roleName })}
       </div>
       <div className="bd">
-        <T msg={msg} values={values} />
+        {t(msg)}
         {helpers.length ? ` ${t(m.askHelpers, { helpers: orList(helpers) })}` : null}
       </div>
     </section>

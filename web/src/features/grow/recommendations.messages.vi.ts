@@ -96,7 +96,7 @@ export default translate(mc, {
   menuChangeLimit: 'Đổi giới hạn',
   menuEnd: 'Kết thúc quan hệ đối tác',
   menuRequests: 'Nhật ký yêu cầu',
-  needsConnect: 'Cần quyền <mono>grow:connect</mono>',
+  needsConnect: 'Chỉ dành cho người có thể quản lý liên kết đối tác',
   // Recommending you.
   recommendingYou: 'Đề xuất bạn · {count}',
   recommendingYouCaption: 'Bản tin trên các hệ thống ReputeCast khác đang đề xuất {list}. 30 ngày qua.',
@@ -153,11 +153,10 @@ export default translate(mc, {
   loadErrorTextNoStatus: 'Không kết nối được máy chủ sau 3 lần thử. Trang xác nhận và email của bạn vẫn hiện đề xuất như trước.',
   loadingLabel: 'Đang tải đề xuất',
   readOnlyText:
-    'Bạn xem được đề xuất, đối tác và số liệu của họ. Để thay đổi một đề xuất, bạn cần quyền <mono>grow:edit</mono>: hãy hỏi {editHelpers}. Liên kết đối tác cần quyền <mono>grow:connect</mono>: hãy hỏi {connectHelpers}.',
-  readOnlyTextNoHelpers:
-    'Bạn xem được đề xuất, đối tác và số liệu của họ. Để thay đổi một đề xuất, bạn cần quyền <mono>grow:edit</mono>; liên kết đối tác cần quyền <mono>grow:connect</mono>.',
-  editorNoConnect: 'Liên kết đối tác cần quyền <mono>grow:connect</mono>. Hãy hỏi {helpers}.',
-  editorNoConnectNoHelpers: 'Liên kết đối tác cần quyền <mono>grow:connect</mono>.',
+    'Bạn xem được đề xuất, đối tác và số liệu của họ. Vai trò của bạn không thể thay đổi đề xuất hay quản lý liên kết đối tác. Về đề xuất, hãy hỏi {editHelpers}; về liên kết đối tác, hãy hỏi {connectHelpers}.',
+  readOnlyTextNoHelpers: 'Bạn xem được đề xuất, đối tác và số liệu của họ. Vai trò của bạn không thể thay đổi đề xuất hay quản lý liên kết đối tác.',
+  editorNoConnect: 'Vai trò của bạn không thể quản lý liên kết đối tác. Hãy hỏi {helpers}.',
+  editorNoConnectNoHelpers: 'Vai trò của bạn không thể quản lý liên kết đối tác.',
   // Add: step one.
   addTitle: 'Thêm đề xuất',
   addEyebrow: 'Tăng trưởng › Đề xuất',
@@ -230,7 +229,7 @@ export default translate(mc, {
   connectInstance: 'Hệ thống',
   connectSecret:
     'Khi kết nối, hai bên thống nhất một khóa bí mật để ký với {instance} qua HTTPS. Khóa được niêm phong ở cả hai phía và không bao giờ hiện ra. Mỗi yêu cầu đăng ký chỉ mang địa chỉ email của người đọc và “{source}” làm nguồn.',
-  connectNeeds: 'Cần quyền <mono>grow:connect</mono> · được ghi vào nhật ký kiểm tra',
+  connectNeeds: 'Chỉ dành cho người có thể quản lý liên kết đối tác · được ghi vào nhật ký kiểm tra',
   connect: 'Kết nối',
   connected: 'Đã kết nối. {name} giờ đã liệt kê {source} trong mục Đề xuất bạn.',
   connectedRow: 'vừa xong · {by}',

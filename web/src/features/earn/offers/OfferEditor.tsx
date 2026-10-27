@@ -28,7 +28,6 @@ type Applies = Schemas['OfferApplies']
 type Kind = 'signup' | 'retention' | 'referral'
 type TT = ReturnType<typeof useT>
 
-const mono = (c: ReactNode) => <span className="mono">{c}</span>
 const bold = (c: ReactNode) => <b className="font-semibold">{c}</b>
 const key = (a: { tierId: string; period: string }) => `${a.tierId}|${a.period}`
 
@@ -277,7 +276,7 @@ function ReadOnlyNote({ helpers }: { helpers: string[] }) {
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
         <span className="font-bold">{t(mof.readOnlyTitle, { name: user?.name || user?.email || '', role })}</span>
         <div>
-          <T msg={helpers.length ? mof.readOnly : mof.readOnlyNoHelpers} values={{ mono, helpers: orList(helpers) }} />
+          <T msg={helpers.length ? mof.readOnly : mof.readOnlyNoHelpers} values={{ helpers: orList(helpers) }} />
         </div>
       </div>
     </div>
@@ -798,7 +797,7 @@ function Codes({ d }: { d: Detail }) {
       </div>
       <div className="of-body">
         <Note tone="neutral">
-          <T msg={mof.codesNote} values={{ tiers: tiersLine(t, d.applies), mono }} />
+          <T msg={mof.codesNote} values={{ tiers: tiersLine(t, d.applies) }} />
         </Note>
       </div>
       {d.codes.length ? (

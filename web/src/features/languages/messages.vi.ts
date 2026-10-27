@@ -52,7 +52,7 @@ const settings = translate(ms, {
   viewNoLanguage: 'Xem liên hệ không có ngôn ngữ',
   readOnlyTitle: 'Chỉ đọc · {name}, {role}',
   readOnly:
-    'Thay đổi ngôn ngữ của không gian làm việc cần quyền <code>workspace:manage</code>.{helpers, select, none {} other { Hãy hỏi {helpers}.}} Bạn có thể thêm phiên bản ngôn ngữ cho một email từ trình soạn thảo.',
+    'Vai trò của bạn không thể thay đổi ngôn ngữ của không gian làm việc.{helpers, select, none {} other { Hãy hỏi {helpers}.}} Bạn có thể thêm phiên bản ngôn ngữ cho một email từ trình soạn thảo.',
   fallbackNote: '{count} liên hệ sẽ nhận {language} ở những email có phiên bản {language}.',
   fallbackNoteDetail:
     'Hiện họ nhận {current}: {none} không có ngôn ngữ và {others} có ngôn ngữ mà {workspace} không cung cấp. Với {language} làm ngôn ngữ dự phòng, họ sẽ nhận {language} ở những email có phiên bản {language}, và bản gốc của email trong các trường hợp khác.',
@@ -169,7 +169,7 @@ const composer = translate(mz, {
   compare: 'So sánh ngôn ngữ',
   add: 'Thêm ngôn ngữ',
   addWorkspace: 'Thêm ngôn ngữ cho không gian làm việc',
-  addWorkspaceNeeds: 'Cần quyền <code>workspace:manage</code>.{helpers, select, none {} other { Hãy hỏi {helpers}.}}',
+  addWorkspaceNeeds: 'Vai trò của bạn không thể thêm ngôn ngữ cho không gian làm việc.{helpers, select, none {} other { Hãy hỏi {helpers}.}}',
   writtenIn: 'Viết bằng {language}',
   writtenInDetail: 'Bản gốc. Chỉ đổi được khi email chỉ có một phiên bản.',
   changeSource: 'Ngôn ngữ viết email',
@@ -209,7 +209,7 @@ const composer = translate(mz, {
   missingTitle: 'Không có phiên bản {language}',
   missingText: '{count, plural, =0 {Người đọc {language} nhận {fallback}.} other {# người đọc {language} nhận {fallback}.}}',
   readOnlyTitle: 'Chỉ đọc · {name}, {role}',
-  readOnlyText: 'Bạn có thể đổi ngôn ngữ và so sánh. Chỉnh sửa cần quyền <code>campaigns:edit</code>.{helpers, select, none {} other { Hãy hỏi {helpers}.}}',
+  readOnlyText: 'Bạn có thể đổi ngôn ngữ và so sánh. Vai trò của bạn không thể sửa chiến dịch.{helpers, select, none {} other { Hãy hỏi {helpers}.}}',
   marked: 'Đã đánh dấu {language} đã cập nhật',
   markedTranslated: 'Đã đánh dấu {language} đã dịch',
   markFailed: 'Không đổi được phiên bản {language}',

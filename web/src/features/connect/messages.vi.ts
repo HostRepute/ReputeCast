@@ -45,6 +45,6 @@ export default translate(m, {
   copyBlocked: 'Trình duyệt đã chặn bộ nhớ tạm. Hãy chọn văn bản và tự sao chép.',
 
   // ── Read-only notes ──────────────────────────────────────────────────
-  readOnlyCatalog: 'Bạn có thể xem danh mục và các thiết lập người khác đã bắt đầu. Để kết nối nhà cung cấp, bạn cần quyền {perm}.',
-  readOnlySetup: 'Bạn có thể theo dõi thiết lập này. Để kết nối hoặc thay đổi nhà cung cấp, bạn cần quyền {perm}.',
+  readOnlyCatalog: 'Bạn có thể xem danh mục và các thiết lập người khác đã bắt đầu. Vai trò của bạn không thể kết nối nhà cung cấp.',
+  readOnlySetup: 'Bạn có thể theo dõi thiết lập này. Vai trò của bạn không thể kết nối hay thay đổi nhà cung cấp.',
 })

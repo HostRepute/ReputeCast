@@ -10,7 +10,7 @@ import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { toast } from '@/components/ui/Toast'
 import { ChannelSwitch } from '@/features/channels/ChannelSwitch'
 import { copyText } from '@/features/push/common'
-import { T, useT } from '@/i18n'
+import { useT } from '@/i18n'
 import { ago, andList, clock, count, dayMonthDate, dayMonthYear, orList } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useCan, useMe, usePermissionReason, useWorkspace } from '@/lib/session'
@@ -159,7 +159,7 @@ export function ReadOnlyNote({ helpers }: { helpers: string[] }) {
       <div className="flex min-w-0 flex-col gap-1">
         <span className="font-bold">{t(m.readOnlyTitle, { name: user?.name ?? '', role: me.workspace.roleName })}</span>
         <div>
-          <T msg={m.readOnlyText} values={{ perm: <span className="mono">{'providers:manage'}</span> }} />
+          {t(m.readOnlyText)}
           {helpers.length ? ` ${t(m.askHelpers, { helpers: orList(helpers) })}` : null}
         </div>
       </div>
@@ -534,7 +534,7 @@ function NotConnected({ data }: { data: Overview }) {
             type="submit"
             loading={connect.isPending}
             busyLabel={t(m.connecting)}
-            disabledReason={canManage ? undefined : t(m.connectNeeds, { perm: 'providers:manage', helpers: orList(data.helpers) })}
+            disabledReason={canManage ? undefined : t(m.connectNeeds, { helpers: orList(data.helpers) })}
             disabled={canManage && Object.values(v).some((x) => !x.trim())}
           >
             {t(m.connect)}

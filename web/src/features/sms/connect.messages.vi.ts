@@ -29,7 +29,7 @@ export default translate(m, {
   manageAdapters: 'Quản lý adapter',
   cancel: 'Hủy',
   connectNamed: 'Kết nối {name}',
-  readOnly: 'Bạn có thể xem danh mục. Kết nối nhà cung cấp cần quyền providers:manage. {helpers, select, none {} other {Hãy hỏi {helpers}.}}',
+  readOnly: 'Bạn có thể xem danh mục. Vai trò của bạn không thể kết nối nhà cung cấp. {helpers, select, none {} other {Hãy hỏi {helpers}.}}',
   // Step 2.
   h2: 'Kết nối {name}',
   lead2Twilio: 'Hãy dùng khóa API thay vì auth token, để bạn có thể thu hồi riêng quyền truy cập của ReputeCast.',

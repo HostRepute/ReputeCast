@@ -84,7 +84,7 @@ export const m = defineMessages('approvals', {
   policyMedianWait: 'Median wait',
   noRules: 'No rule is on: sends never need approval',
   approvalsFrom: '{count} from {approvers}',
-  approvalsFromNobody: '{count} from nobody yet (no member holds campaigns:approve)',
+  approvalsFromNobody: '{count} from nobody yet (no member can approve campaigns)',
   medianWait: '{wait} over the last 30 days',
   medianWaitNone: 'No decisions in the last 30 days',
   loading: 'Loading approval requests',

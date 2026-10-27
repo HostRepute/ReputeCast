@@ -132,7 +132,7 @@ function ReadOnly({ helpers }: { helpers: string[] }) {
           <div>
             <T
               msg={ms.readOnly}
-              values={{ helpers: helpers.length ? formatList(helpers, 'disjunction') : 'none', code: (c) => <span className="mono">{c}</span> }}
+              values={{ helpers: helpers.length ? formatList(helpers, 'disjunction') : 'none' }}
             />
           </div>
         </div>

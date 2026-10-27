@@ -1,7 +1,7 @@
 import { $api, errorMessage } from '@/api/client'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { toast } from '@/components/ui/Toast'
-import { T, useT } from '@/i18n'
+import { useT } from '@/i18n'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { bareHost, useInvalidatePush, type PushSetup } from './common'
 import { m } from './messages'
@@ -64,7 +64,7 @@ export function NotSetUp({ data }: { data: PushSetup }) {
         </ButtonLink>
       </div>
       <span className="k">
-        <T msg={m.turnOnNote} values={{ perm: <span className="mono">{'providers:manage'}</span> }} />
+        {t(m.turnOnNote)}
       </span>
     </section>
   )

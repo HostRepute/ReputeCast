@@ -20,8 +20,8 @@ export const m = defineMessages('team.member', {
   loading: 'Loading the member',
 
   // Why the actions are off.
-  manageNeeds: 'Managing the team needs the team:manage permission.',
-  manageNeedsAsk: 'Managing the team needs the team:manage permission. Ask {helpers}.',
+  manageNeeds: "Your role can't manage the team.",
+  manageNeedsAsk: "Your role can't manage the team. Ask {helpers}.",
   cantDeactivateSelf: 'You can’t deactivate yourself.',
   leaveInstead: 'Leave the workspace from Account & security instead.',
 
@@ -66,7 +66,7 @@ export const m = defineMessages('team.member', {
 
   // API keys they created.
   keysTitle: 'API keys they created',
-  keysNoPermission: "None. Creating API keys needs <mono>apikeys:manage</mono>, which this role doesn't hold.",
+  keysNoPermission: "None. This role can't create API keys.",
   keysNoneYet: 'None yet.',
   mcpAgent: 'MCP agent',
   expired: 'Expired',
@@ -77,7 +77,7 @@ export const m = defineMessages('team.member', {
   givenLast: '{count} · last {campaign} {date}',
   givenLastUnnamed: '{count} · last campaign {date}',
   givenNone: 'None yet',
-  givenCantApprove: "None · can't approve (no campaigns:approve)",
+  givenCantApprove: "None · their role can't approve campaigns",
   requested: 'Requested',
   requestedPending: '{count} pending · <link>{campaign}</link>',
   requestedNonePending: '{count} · none pending',

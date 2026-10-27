@@ -128,7 +128,7 @@ function EditorBody({ editor }: { editor: Editor }) {
           {ro ? (
             <div className="ea-osec">
               <Note tone="neutral">
-                <T msg={editor.helpers.length ? mp.readOnly : mp.readOnlyNoHelpers} values={{ permission: <span className="mono">{'earn:edit'}</span>, helpers: orList(editor.helpers) }} />
+                <T msg={editor.helpers.length ? mp.readOnly : mp.readOnlyNoHelpers} values={{ helpers: orList(editor.helpers) }} />
               </Note>
             </div>
           ) : null}

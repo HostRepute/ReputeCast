@@ -72,8 +72,8 @@ export const cm = defineMessages('commerce', {
   checkAgain: 'Check again',
 
   readOnlyTitle: 'Read-only · {name}, {role}',
-  readOnlyBody: 'You can see the store, its sync, attribution and activity. Connecting, configuring and disconnecting a store need <mono>integrations:manage</mono>. Ask {helpers}.',
-  readOnlyAlone: 'You can see the store, its sync, attribution and activity. Connecting, configuring and disconnecting a store need <mono>integrations:manage</mono>.',
+  readOnlyBody: "You can see the store, its sync, attribution and activity. Your role can't connect, configure or disconnect a store. Ask {helpers}.",
+  readOnlyAlone: "You can see the store, its sync, attribution and activity. Your role can't connect, configure or disconnect a store.",
 
   statOrders: 'Orders · {days} days',
   statOrdersSub: '{amount} in the store',

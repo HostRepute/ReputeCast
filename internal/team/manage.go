@@ -50,11 +50,8 @@ func outranks(p *authz.Principal, roleKey string, builtin bool, perms []string) 
 }
 
 func outrankError(ctx context.Context, name string, missing []authz.Permission) *api.Problem {
-	keys := make([]string, len(missing))
-	for i, m := range missing {
-		keys[i] = string(m)
-	}
-	pr := api.Err(http.StatusForbidden, api.CodeEscalation, mOutrank.Text(i18n.LangFrom(ctx), i18n.Args{"name": name, "permissions": strings.Join(keys, ", ")}))
+	l := i18n.LangFrom(ctx)
+	pr := api.Err(http.StatusForbidden, api.CodeEscalation, mOutrank.Text(l, i18n.Args{"name": name, "permissions": permissionList(l, missing)}))
 	if len(missing) > 0 {
 		pr.Permission = string(missing[0])
 	}

@@ -75,7 +75,7 @@ func (s *Service) Categories(ctx context.Context, ws *store.Workspace, p *authz.
 		out.Items = append(out.Items, TransactionalCategory{ID: r.ID.String(), Name: r.Name, Kind: r.Kind, Description: r.Description, Templates: r.Templates, OptedOut: r.OptedOut})
 	}
 	if !out.CanEdit {
-		out.Reason = deniedMessage(ctx, "categories", authz.TransactionalPublish, s.helpers(ctx, ws.ID, authz.TransactionalPublish, 3))
+		out.Reason = deniedMessage(ctx, "categories", s.helpers(ctx, ws.ID, authz.TransactionalPublish, 3))
 	}
 	return out, nil
 }
@@ -85,7 +85,7 @@ func (s *Service) requireSettings(ctx context.Context, ws *store.Workspace, p *a
 		return nil
 	}
 	pr := api.Forbidden(authz.TransactionalPublish, s.helpers(ctx, ws.ID, authz.TransactionalPublish, 3))
-	pr.Detail = deniedMessage(ctx, "settings", authz.TransactionalPublish, pr.Helpers)
+	pr.Detail = deniedMessage(ctx, "settings", pr.Helpers)
 	return pr
 }
 

@@ -26,7 +26,7 @@ export default translate(me, {
   testBannerText:
     'Hiện chỉ có thanh toán thử nghiệm. Trang thanh toán dùng thẻ thử nghiệm của Stripe và không tính phí. Hội viên trả phí thử nghiệm được gắn nhãn Thử nghiệm và không được tính vào bất kỳ số liệu nào.',
   testBannerAction: 'Kết nối khóa chính thức',
-  forbiddenTitle: 'Kiếm tiền cần quyền earn:view',
+  forbiddenTitle: 'Vai trò của bạn không xem được Kiếm tiền',
   forbiddenBadge: '403 · {role}',
   forbiddenAsk: 'Hãy hỏi {names}.',
   forbiddenDrafts: 'Với vai trò {role}, bạn vẫn có thể thêm khối Tài trợ, khối Nâng cấp và các phần chỉ dành cho hội viên trả phí vào bản nháp.',

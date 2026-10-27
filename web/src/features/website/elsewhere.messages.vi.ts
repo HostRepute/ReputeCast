@@ -67,7 +67,7 @@ export default translate(me, {
   meter: 'Hạn mức đọc',
   meterText: '{used} trên {limit} {limit, plural, other {bài viết}} trả phí miễn phí đã dùng trong {month}',
   signOutEverywhere: 'Đăng xuất trên mọi thiết bị…',
-  signOutHint: 'Cần quyền subscribers:edit · được ghi vào nhật ký kiểm tra',
+  signOutHint: 'Dành cho người có thể sửa liên hệ · được ghi vào nhật ký kiểm tra',
   signOutTitle: 'Đăng xuất {name} trên mọi thiết bị?',
   signOutText: 'Mọi phiên trên {host} kết thúc ngay: {count, plural, other {# trình duyệt}}. Người này có thể đăng nhập lại bằng một liên kết mới.',
   signOutBadge: 'Đăng xuất trên mọi thiết bị',
@@ -101,7 +101,7 @@ export default translate(me, {
 
   // Approvals
   policyPost: 'Xuất bản bài viết hoặc trang cần phê duyệt',
-  policyPostText: 'Tắt theo mặc định. Người phê duyệt là những người phê duyệt của không gian làm việc (campaigns:approve). Phê duyệt bao gồm nội dung, địa chỉ, chế độ hiển thị và thời điểm xuất bản.',
+  policyPostText: 'Tắt theo mặc định. Người phê duyệt là những người phê duyệt của không gian làm việc: những người có thể phê duyệt chiến dịch. Phê duyệt bao gồm nội dung, địa chỉ, chế độ hiển thị và thời điểm xuất bản.',
   policyPostNote: '“Tác giả không có quyền gửi” cũng bao gồm {perm}: tác giả không có quyền này sẽ thấy Yêu cầu phê duyệt thay vì Xuất bản.',
   inboxPost: 'Bài viết',
   inboxPostLine: 'Bài viết · {visibility} · {name} yêu cầu, {date} · bản xem trước trên web',

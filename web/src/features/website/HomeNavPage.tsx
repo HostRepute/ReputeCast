@@ -125,7 +125,7 @@ function HomeNavEditor({ data, overview }: { data: HomeNav; overview: Overview }
   ) : undefined
   return (
     <WebsitePage view="home" overview={overview} actions={actions}>
-      {ro ? <ReadOnlyNote msg={m.readOnlyManage} helpers={overview.helpers.manage} perms={{ perm: 'website:manage' }} /> : null}
+      {ro ? <ReadOnlyNote msg={m.readOnlyManage} helpers={overview.helpers.manage} /> : null}
       {error ? <Note tone="bad">{error}</Note> : null}
       <div className="grid items-start gap-5 min-[1101px]:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
         <div className="flex min-w-0 flex-col gap-5">

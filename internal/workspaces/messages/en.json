@@ -11,8 +11,8 @@
   "problem.confirmName": { "message": "Type {name} exactly to confirm.", "note": "name: the workspace's name, typed to delete it" },
   "problem.section": "Pick Transactional, Grow or Earn.",
 
-  "reason.manage": { "message": "Changing workspace settings needs the workspace:manage permission.", "note": "why Settings › General is read-only; workspace:manage is a permission key, never translated" },
-  "reason.manageAsk": { "message": "Changing workspace settings needs the workspace:manage permission. Ask {helpers}.", "note": "helpers: who can help, “Marcus Chen or Linh Nguyen”" },
+  "reason.manage": { "message": "Your role can't change workspace settings.", "note": "why Settings › General is read-only" },
+  "reason.manageAsk": { "message": "Your role can't change workspace settings. Ask {helpers}.", "note": "helpers: who can help, “Marcus Chen or Linh Nguyen”" },
 
   "rule.audience": { "message": "audience ≥ {n, number}", "note": "Settings › General: when a send needs approval; the rules are joined with ·" },
   "rule.warming": "route includes a Warming-up provider",

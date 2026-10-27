@@ -494,7 +494,11 @@ func TestLibraryCopiesAndNewerVersions(t *testing.T) {
 	var v staffView
 	p["tomas"].Do("GET", "/agency/staff", nil).MustStatus(t, 200).JSON(t, &v)
 	p["tomas"].Do("PATCH", "/agency/staff/"+v.staff(t, "Mei Lin"), map[string]any{"level": "account_manager", "permissions": []string{"agency:view", "agency:usage"}}).MustStatus(t, 204)
-	p["mei"].Do("PATCH", "/agency/library/"+hero, map[string]any{"name": "Holiday hero"}).MustStatus(t, 403)
+	var refused struct{ Detail string }
+	p["mei"].Do("PATCH", "/agency/library/"+hero, map[string]any{"name": "Holiday hero"}).MustStatus(t, 403).JSON(t, &refused)
+	if !strings.HasPrefix(refused.Detail, "You can't change the library or workspace templates.") || strings.Contains(refused.Detail, "agency:") {
+		t.Fatalf("refusal: %q", refused.Detail)
+	}
 	p["mei"].Do("GET", "/agency/library/"+hero, nil).MustStatus(t, 200)
 	// Narrowing never adds: agency:manage isn't an account manager's.
 	p["tomas"].Do("PATCH", "/agency/staff/"+v.staff(t, "Mei Lin"), map[string]any{"level": "account_manager", "permissions": []string{"agency:manage"}}).MustStatus(t, 422)

@@ -142,7 +142,7 @@ export const dc = defineMessages('digestComposer', {
   readOnly: 'Read-only',
   previewNextIssue: 'Preview next issue',
   viewerTitle: '{name} · {role}',
-  viewerBody: "You can preview issues and read the template's settings. Editing it needs campaigns:edit. Ask {names}.",
-  viewerBodyNoOne: "You can preview issues and read the template's settings. Editing it needs campaigns:edit.",
+  viewerBody: "You can preview issues and read the template's settings. Your role can't edit it. Ask {names}.",
+  viewerBodyNoOne: "You can preview issues and read the template's settings. Your role can't edit it.",
   viewerNote: 'The canvas and the previews work. Blocks, the subject and the inspector are disabled.',
 })

@@ -83,8 +83,8 @@ export const m = defineMessages('surveys', {
   tabResults: 'Results · {count}',
   tabResultsEmpty: 'Results',
   sections: 'Survey sections',
-  readOnly: 'Read-only · {name}. Editing, publishing and closing surveys needs forms:edit. Ask {helpers}. You can see the questions and the results, and link to the survey from an email.',
-  readOnlyNoHelpers: 'Read-only · {name}. Editing, publishing and closing surveys needs forms:edit. You can see the questions and the results, and link to the survey from an email.',
+  readOnly: 'Read-only · {name}. Your role can’t edit, publish or close surveys. Ask {helpers}. You can see the questions and the results, and link to the survey from an email.',
+  readOnlyNoHelpers: 'Read-only · {name}. Your role can’t edit, publish or close surveys. You can see the questions and the results, and link to the survey from an email.',
 
   // Questions tab.
   questions: 'Questions · {count}',
@@ -269,7 +269,7 @@ export const m = defineMessages('surveys', {
   notAContact: 'Not a contact',
   aContact: 'A contact',
   noAnswer: 'no answer',
-  showingResponses: 'Showing {shown} of {total} · contacts are shown to people with subscribers:view',
+  showingResponses: 'Showing {shown} of {total} · contacts are shown to people who can view contacts',
   previous: 'Previous',
   next: 'Next',
   noResponses: 'No completed responses yet.',

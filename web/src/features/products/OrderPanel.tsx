@@ -20,7 +20,7 @@ import { ORDER, PRODUCT, invalidateProducts, type OrderDetail } from './api'
 import { bareUrl, day, eventTime, fileSize, filesText, money, orderStatus, orderTime, priceShort, sameDay } from './format'
 import { pm } from './messages'
 import { po } from './order.messages'
-import { Cover, IconNote, PanelChip, mono } from './parts'
+import { Cover, IconNote, PanelChip } from './parts'
 
 type T = ReturnType<typeof useT>
 type Event = Schemas['ProductOrderEvent']
@@ -466,7 +466,7 @@ function Actions({ o }: { o: OrderDetail }) {
     return (
       <div className="pr-opacts">
         <IconNote tone="n">
-          <T msg={o.helpers.length ? po.ordersNoteAsk : po.ordersNote} values={{ mono, helpers: orList(o.helpers) }} />
+          <T msg={o.helpers.length ? po.ordersNoteAsk : po.ordersNote} values={{ helpers: orList(o.helpers) }} />
         </IconNote>
       </div>
     )

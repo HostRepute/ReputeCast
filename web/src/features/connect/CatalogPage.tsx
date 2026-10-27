@@ -61,7 +61,7 @@ export function CatalogPage() {
     <WizardLayout title={t(m.title)} badge={<StepBadge n={1} />}>
       <WizardBody current={1}>
         {data && !data.canConnect ? (
-          <ReadOnlyNote msg={m.readOnlyCatalog} perm="providers:manage" helpers={data.helpers} />
+          <ReadOnlyNote msg={m.readOnlyCatalog} helpers={data.helpers} />
         ) : null}
         <StepHeading title={t(mc.heading)}>{t(mc.lead)}</StepHeading>
         {data ? (

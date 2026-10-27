@@ -283,7 +283,7 @@ function PanelBody({ m, onClose }: { m: Member; onClose: () => void }) {
       ) : (
         <div className="ea-sheet-foot">
           <span className="k">
-            <T msg={m.helpers.length ? mm.manageNeeds : mm.manageNeedsNoHelpers} values={{ permission: <span className="mono">{'earn:manage'}</span>, helpers: orList(m.helpers) }} />
+            <T msg={m.helpers.length ? mm.manageNeeds : mm.manageNeedsNoHelpers} values={{ helpers: orList(m.helpers) }} />
           </span>
         </div>
       )}

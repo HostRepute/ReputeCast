@@ -29,8 +29,6 @@ type TT = ReturnType<typeof useT>
 
 type PageDialog = { kind: 'option'; option?: Option } | { kind: 'delivery'; row: Row }
 
-const mono = (c: ReactNode) => <span className="mono">{c}</span>
-
 /** Copies text; false when the browser refused. */
 async function copy(text: string): Promise<boolean> {
   try {
@@ -196,7 +194,7 @@ function ReadOnlyNote({ v }: { v: View }) {
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
         <span className="font-bold">{t(mg.readOnlyTitle, { name: user?.name || user?.email || '', role })}</span>
         <div>
-          <T msg={msg} values={{ mono, helpers: helpers || t(mg.helpersFallback) }} />
+          <T msg={msg} values={{ helpers: helpers || t(mg.helpersFallback) }} />
         </div>
       </div>
     </div>
@@ -391,7 +389,7 @@ function GiftsTable({ v, setDialog }: { v: View; setDialog: (d: PageDialog) => v
           <h2 className="h2" id="gf-list-h">
             {t(mg.giftsTitle)}
           </h2>
-          <span className="k">{v.canManage ? t(mg.giftsCaption, { host: v.page.host }) : <T msg={mg.giftsCaptionRo} values={{ mono }} />}</span>
+          <span className="k">{v.canManage ? t(mg.giftsCaption, { host: v.page.host }) : t(mg.giftsCaptionRo)}</span>
         </div>
         <label className="gf-search">
           <Icon name="search" size={14} />

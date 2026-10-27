@@ -22,7 +22,7 @@ export default translate(m, {
   days: 'ngày',
   explain:
     'Bắt đầu khi điểm thay đổi do hoạt động và giảm dần. Với những liên hệ vượt ngưỡng chỉ vì một quy tắc chấm điểm thay đổi, bạn sẽ được hỏi khi lưu quy tắc; mặc định là không bắt đầu.',
-  needs: 'Để chọn trình kích hoạt này, bạn cần quyền automations:edit.',
+  needs: 'Chỉ người có thể sửa tự động hóa mới chọn được trình kích hoạt này.',
   noScoring: 'Chấm điểm chưa có quy tắc nào, nên chưa có điểm nào vượt ngưỡng.',
   setUp: 'Thiết lập chấm điểm',
   isOneOf: 'là một trong',

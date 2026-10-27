@@ -21,7 +21,7 @@ export const m = defineMessages('scoring.trigger', {
   days: 'days',
   explain:
     'Starts on changes from activity and decay. Contacts who cross only because a scoring rule changed are asked about when the rule is saved; the default is not to start it.',
-  needs: 'Choosing this trigger needs automations:edit.',
+  needs: 'Only people who can edit automations can choose this trigger.',
   noScoring: 'Scoring has no rules yet, so no score crosses anything.',
   setUp: 'Set up scoring',
   isOneOf: 'is one of',

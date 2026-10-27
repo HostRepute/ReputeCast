@@ -437,8 +437,8 @@ export function PausedCard({ d, onTurnOn }: { d: Digest; onTurnOn: () => void })
       body = p.left
         ? t(m.pausedLeftBody, { owner: d.owner?.name ?? '' })
         : p.from && p.to
-          ? t(m.pausedRoleBody, { owner: d.owner?.name ?? '', from: p.from, to: p.to, date: p.at ? shortDate(p.at) : '', permission: d.mode === 'draft' ? 'campaigns:edit' : 'campaigns:send' })
-          : t(m.pausedLostBody, { owner: d.owner?.name ?? '', permission: d.mode === 'draft' ? 'campaigns:edit' : 'campaigns:send' })
+          ? t(m.pausedRoleBody, { owner: d.owner?.name ?? '', from: p.from, to: p.to, date: p.at ? shortDate(p.at) : '', mode: d.mode })
+          : t(m.pausedLostBody, { owner: d.owner?.name ?? '', mode: d.mode })
       break
     case 'feed':
       title = t(m.pausedFeed)

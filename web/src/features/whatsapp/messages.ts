@@ -144,7 +144,7 @@ export const m = defineMessages('whatsapp', {
   connect: 'Connect and show the webhook',
   connecting: 'Checking with Meta…',
   connectedToast: 'Connected. Paste the webhook in Meta next.',
-  connectNeeds: 'Needs {perm}. Ask {helpers}.',
+  connectNeeds: "Your role can't connect a WhatsApp account. Ask {helpers}.",
 
   // Waiting for verification
   waitingTitle: "Waiting for Meta's verification request",
@@ -208,7 +208,7 @@ export const m = defineMessages('whatsapp', {
 
   // Read-only
   readOnlyTitle: 'Read-only · {name}, {role}',
-  readOnlyText: 'You can see the account, templates and costs. Credentials are never shown, and connecting, syncing or disconnecting needs {perm}.',
+  readOnlyText: "You can see the account, templates and costs. Credentials are never shown, and your role can't connect, sync or disconnect the account.",
   askHelpers: 'Ask {helpers}.',
 
   // Events

@@ -117,8 +117,8 @@ export const m = defineMessages('whatsappCampaign', {
   later: 'later',
   costLine: '{amount} estimated',
   costLineSplit: '{amount} estimated, the same over the two days',
-  approvalOk: 'No rule matches · {name} can send WhatsApp campaigns ({perm})',
-  approvalNeeds: '{name} is a {role}: sending needs {perms}. {helpers} can approve.',
+  approvalOk: 'No rule matches · {name} can send WhatsApp campaigns',
+  approvalNeeds: "{name} is a {role}, which can't send WhatsApp campaigns. {helpers} can approve.",
   estimatedCost: 'Estimated cost',
   costNote: "{n, plural, one {# {category} message} other {# {category} messages}}, charged by Meta when delivered · from Meta's rate card of {date}",
   editRates: 'Edit rates',
@@ -136,7 +136,7 @@ export const m = defineMessages('whatsappCampaign', {
   ratesSave: 'Save rates',
   ratesSaved: 'Rates saved',
   ratesEdited: 'Last edited {date} by {name}',
-  ratesReadOnly: 'Changing the rates needs {perm}.',
+  ratesReadOnly: "Your role can't change the rates.",
   cancel: 'Cancel',
 
   // Test
@@ -174,7 +174,8 @@ export const m = defineMessages('whatsappCampaign', {
   sentSplitToast: 'Sending to {now} now; {later} go {laterDay, select, tomorrow {tomorrow} other {later}}',
   scheduledToast: 'Scheduled for {date}, {time}',
   blockedReason: 'Fix the blocking checks first.',
-  noPermission: 'Sending needs {perms}.',
+  // Send is off without the send permissions (deniedReason, src/lib/session.tsx).
+  sendAction: 'Sending WhatsApp campaigns',
   waitingApproval: 'Waiting for approval · requested {time} by {name}',
   backToEditor: 'Back to editor',
   sendConfirmTitle: 'Send “{name}”?',

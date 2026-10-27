@@ -29,7 +29,7 @@ export const m = defineMessages('smsConnect', {
   manageAdapters: 'Manage adapters',
   cancel: 'Cancel',
   connectNamed: 'Connect {name}',
-  readOnly: 'You can look at the catalog. Connecting a provider needs providers:manage. {helpers, select, none {} other {Ask {helpers}.}}',
+  readOnly: 'You can look at the catalog. Your role can’t connect providers. {helpers, select, none {} other {Ask {helpers}.}}',
   // Step 2.
   h2: 'Connect {name}',
   lead2Twilio: 'Use an API key rather than the auth token, so you can revoke ReputeCast’s access on its own.',

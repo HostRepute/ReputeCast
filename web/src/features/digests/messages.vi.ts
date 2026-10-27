@@ -37,7 +37,7 @@ export default translate(m, {
   anotherFeed: 'Địa chỉ nguồn cấp khác',
   feedOrPage: 'Địa chỉ nguồn cấp hoặc trang',
   feedOrPageHint: 'Với địa chỉ trang, ReputeCast tìm nguồn cấp mà trang đó liên kết đến. Hoặc <link>kết nối một trang WordPress</link> trong Tích hợp.',
-  draftModeHint: 'Bạn có thể tạo và chạy bản tin ở chế độ bản nháp. Để tự động gửi từng số, bạn cần quyền campaigns:send.',
+  draftModeHint: 'Bạn có thể tạo và chạy bản tin ở chế độ bản nháp. Vai trò của bạn không thể bật chế độ gửi tự động.',
   cancel: 'Hủy',
   continue: 'Tiếp tục',
   creating: 'Đang tạo…',
@@ -91,7 +91,7 @@ export default translate(m, {
   design: 'Thiết kế',
   sendTest: 'Gửi thử',
   testTo: 'Gửi đến',
-  testHint: 'Số tiếp theo như khi được tạo ngay lúc này. Ngăn cách các địa chỉ bằng dấu phẩy; nếu không có quyền campaigns:send, thư gửi thử chỉ đến địa chỉ của chính bạn.',
+  testHint: 'Số tiếp theo như khi được tạo ngay lúc này. Ngăn cách các địa chỉ bằng dấu phẩy; nếu vai trò của bạn không thể gửi chiến dịch, thư gửi thử chỉ đến địa chỉ của chính bạn.',
   testSent: '{count, plural, other {Đã gửi thử đến {list}}} qua {provider}',
   previewNext: 'Xem trước số tiếp theo',
   checkNext: 'Kiểm tra số tiếp theo',
@@ -100,7 +100,7 @@ export default translate(m, {
   turnOnOwner: 'Bật và trở thành người phụ trách',
   more: 'Thêm',
   deleteDigest: 'Xóa bản tin định kỳ',
-  readOnly: 'Bạn xem được bản tin định kỳ, các số và báo cáo của chúng. Để tạm dừng, bạn cần quyền campaigns:pause; để thay đổi, bạn cần quyền campaigns:edit. Hãy hỏi {helpers}.',
+  readOnly: 'Bạn xem được bản tin định kỳ, các số và báo cáo của chúng. Vai trò của bạn không thể tạm dừng hay thay đổi bản tin. Hãy hỏi {helpers}.',
   loadFailed: 'Không tải được bản tin định kỳ này',
   loadFailedBody: 'Bản tin định kỳ không bị ảnh hưởng: các số vẫn được chuẩn bị và gửi theo lịch.',
   retry: 'Thử lại',
@@ -171,11 +171,11 @@ export default translate(m, {
   heldRejectedBody: 'Hãy sửa rồi bỏ tạm giữ, hoặc bỏ qua số này. Sẽ không có gì được gửi khi chưa xử lý xong.',
   heldNoApprovers: 'Không ai có thể phê duyệt',
   heldNoApproversBody:
-    'Số này khớp quy tắc phê duyệt, nhưng ngoài người phụ trách thì không ai có thể phê duyệt. Hãy cấp quyền campaigns:approve cho một vai trò khác, hoặc bỏ qua số này.',
+    'Số này khớp quy tắc phê duyệt, nhưng ngoài người phụ trách thì không ai có thể phê duyệt. Hãy cho phép một vai trò khác phê duyệt chiến dịch, hoặc bỏ qua số này.',
   fixes: 'Khắc phục',
   openChecks: 'Mở Kiểm tra và gửi',
   releaseIssue: 'Bỏ tạm giữ số này',
-  releaseHint: 'Sau khi sửa. Để bỏ tạm giữ, bạn cần quyền campaigns:send.',
+  releaseHint: 'Sau khi sửa. Chỉ người có thể gửi chiến dịch mới bỏ tạm giữ được.',
   released: 'Đã bỏ tạm giữ số này. Số này được gửi đúng giờ khi có phê duyệt.',
   rebuild: 'Tạo lại với mẫu hiện tại',
   rebuilt: 'Số này đã được tạo lại và kiểm tra.',
@@ -198,7 +198,7 @@ export default translate(m, {
   draftNotSent: 'chưa gửi',
   draftTitle: 'Chế độ bản nháp',
   draftBody:
-    'Số #{number} là một chiến dịch bản nháp. Không có gì được gửi đi cho đến khi có người dùng Kiểm tra và gửi. Đã báo cho {owner} và các thành viên có quyền campaigns:send. Nếu chưa được gửi trước {deadline}, số này sẽ được đánh dấu Không được gửi.',
+    'Số #{number} là một chiến dịch bản nháp. Không có gì được gửi đi cho đến khi có người dùng Kiểm tra và gửi. Đã báo cho {owner} và các thành viên có thể gửi chiến dịch. Nếu chưa được gửi trước {deadline}, số này sẽ được đánh dấu Không được gửi.',
   reviewAndSend: 'Kiểm tra và gửi',
   openDraft: 'Mở bản nháp',
 
@@ -216,15 +216,15 @@ export default translate(m, {
   // Paused
   pausedByPerson: '{name} đã tạm dừng · {date}, {time}',
   pausedPersonBody:
-    'Không có số mới nào được chuẩn bị trong lúc tạm dừng. Bài viết vẫn tiếp tục đến và được tính là mới. Để bật lại, bạn cần quyền campaigns:send, và sẽ có hộp thoại xác nhận.',
+    'Không có số mới nào được chuẩn bị trong lúc tạm dừng. Bài viết vẫn tiếp tục đến và được tính là mới. Chỉ người có thể gửi chiến dịch mới bật lại được, và khi bật lại sẽ có hộp thoại xác nhận.',
   pausedAuto: 'Tự tạm dừng',
   pausedRoleBody:
-    'Vai trò của {owner} đã đổi từ {from} thành {to} vào {date}, nên họ không còn quyền {permission}. Bản tin định kỳ đã tạm dừng. Bất kỳ ai có quyền {permission} đều có thể bật lại và trở thành người phụ trách.',
+    'Vai trò của {owner} đã đổi từ {from} thành {to} vào {date}, nên họ không còn {mode, select, draft {sửa} other {gửi}} được chiến dịch. Bản tin định kỳ đã tạm dừng. Bất kỳ ai có thể {mode, select, draft {sửa} other {gửi}} chiến dịch đều có thể bật lại và trở thành người phụ trách.',
   pausedLostBody:
-    '{owner} không còn quyền {permission} trong không gian làm việc này. Bản tin định kỳ đã tạm dừng. Bất kỳ ai có quyền {permission} đều có thể bật lại và trở thành người phụ trách.',
+    '{owner} không còn {mode, select, draft {sửa} other {gửi}} được chiến dịch trong không gian làm việc này. Bản tin định kỳ đã tạm dừng. Bất kỳ ai có thể {mode, select, draft {sửa} other {gửi}} chiến dịch đều có thể bật lại và trở thành người phụ trách.',
   pausedLeftBody:
-    '{owner} không còn là thành viên của không gian làm việc này. Bản tin định kỳ đã tạm dừng. Bất kỳ ai có quyền campaigns:send đều có thể bật lại và trở thành người phụ trách.',
-  pausedNotified: 'Đã báo cho mọi người có quyền campaigns:send: {names}.',
+    '{owner} không còn là thành viên của không gian làm việc này. Bản tin định kỳ đã tạm dừng. Bất kỳ ai có thể gửi chiến dịch đều có thể bật lại và trở thành người phụ trách.',
+  pausedNotified: 'Đã báo cho mọi người có thể gửi chiến dịch: {names}.',
   pausedFeed: 'Đã tạm dừng sau ba lần lỗi nguồn cấp',
   pausedFeedBody: 'Ba số liên tiếp đã bị bỏ qua vì lỗi nguồn cấp: {skips}. Bản tin định kỳ đã tạm dừng và báo cho {owner}.',
   pausedFeedSkip: '{date} ({kind, select, invalid {không phải nguồn cấp} other {không truy cập được}})',
@@ -237,7 +237,7 @@ export default translate(m, {
   turnOnAuto:
     'Các số được gửi dưới quyền của bạn, mỗi số đều được kiểm tra Độ sẵn sàng gửi và, khi quy tắc của bạn yêu cầu, được phê duyệt. Số tiếp theo được gửi vào {when}.',
   turnOnDraft: 'Mỗi số trở thành một chiến dịch bản nháp để ai đó gửi qua Kiểm tra và gửi. Số tiếp theo được chuẩn bị để gửi vào {when}.',
-  turnOnBecomesOwner: 'Bạn trở thành người phụ trách. Nếu bạn mất quyền campaigns:send, bản tin sẽ tạm dừng.',
+  turnOnBecomesOwner: 'Bạn trở thành người phụ trách. Nếu bạn không còn gửi được chiến dịch, bản tin sẽ tạm dừng.',
   modeAuto: 'Gửi tự động',
   modeDraft: 'Tạo bản nháp',
   turnOnConfirm: 'Bật',
@@ -374,7 +374,7 @@ export default translate(m, {
   hBuiltOn: '{mode, select, draft {Tạo bản nháp} other {Gửi tự động}} · {name} đã tạo ở chế độ bản nháp vào {date}',
   hPaused: '{name} đã tạm dừng',
   hPausedAuto: 'Tự tạm dừng',
-  hPausedReason: '{reason, select, owner {người phụ trách mất quyền campaigns:send} feed {ba lần lỗi nguồn cấp liên tiếp} other {do một người tạm dừng}}',
+  hPausedReason: '{reason, select, owner {người phụ trách không còn gửi được chiến dịch} feed {ba lần lỗi nguồn cấp liên tiếp} other {do một người tạm dừng}}',
   hCreated: '{name} đã tạo',
   hCreatedMode: '{mode, select, draft {ở chế độ bản nháp} other {để gửi tự động}}',
   historyEmpty: 'Chưa có gì xảy ra.',

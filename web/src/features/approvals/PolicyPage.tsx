@@ -232,7 +232,7 @@ function PolicyForm({ view }: { view: View }) {
                 <Rule on={p.postPublish} disabled={read} onChange={(v) => set({ postPublish: v })} title={t(wm.policyPost)} detail={t(wm.policyPostText)} />
                 <div className="note n mt-2">
                   <div>
-                    <T msg={wm.policyPostNote} values={{ perm: <code className="mono">{'website:publish'}</code> }} />
+                    <T msg={wm.policyPostNote} values={{ perm: t(mp.postPublishing) }} />
                   </div>
                 </div>
               </div>
@@ -257,7 +257,6 @@ function PolicyForm({ view }: { view: View }) {
                   <T
                     msg={mp.approversNote}
                     values={{
-                      mono,
                       has: view.approvers.length ? 'yes' : 'no',
                       list: view.approvers.map((a, i) => (
                         <span key={a.id}>

@@ -53,7 +53,7 @@ func TestGeneralSettingsInVietnamese(t *testing.T) {
 	viewer.SignInDemo("aisha@acme.io")
 	var vs settings
 	viewer.Do("GET", ws+"/settings", nil).MustStatus(t, 200).JSON(t, &vs)
-	if !strings.HasPrefix(vs.Reason, "Muốn thay đổi cài đặt không gian làm việc, bạn cần quyền workspace:manage. Hãy nhờ ") {
+	if !strings.HasPrefix(vs.Reason, "Vai trò của bạn không thể thay đổi cài đặt không gian làm việc. Hãy nhờ ") {
 		t.Errorf("viewer: %q", vs.Reason)
 	}
 

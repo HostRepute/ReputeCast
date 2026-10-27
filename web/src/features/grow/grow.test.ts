@@ -1,8 +1,45 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { setCatalogLoader, setLocale, t, type Catalog, type MessageDescriptor } from '@/i18n'
 import { growBlockDefs, growMarker } from './composer/blocks'
 import { growEvents, withGrow, type GrowEvent } from './contact/ContactGrow'
+import { mo } from './messages'
+import { mm } from './milestones.messages'
 import { trackPos } from './MilestoneTrack'
+import { mc } from './recommendations.messages'
+import { mv } from './review.messages'
 import { tileInitials } from './shared'
+
+// X-1: Grow says what the reader's role can't do, or who can, in words. A
+// permission key (grow:edit, subscribers:view…) never shows.
+const permissionKey = /\b[a-z]+:(?:view|edit|review|connect|export|import|create|delete|manage|send|publish|verify)\b/
+const english = import.meta.glob<Record<string, Record<string, MessageDescriptor>>>('./**/*messages.ts', { eager: true })
+const vietnamese = import.meta.glob<Catalog>('./**/*messages.vi.ts', { eager: true, import: 'default' })
+
+describe("Grow's copy", () => {
+  afterEach(() => setLocale('en'))
+
+  it('names no permission key, in English or Vietnamese', () => {
+    const en = Object.values(english).flatMap((file) => Object.values(file).flatMap((group) => Object.values(group)))
+    const vi = Object.values(vietnamese).flatMap((catalog) => Object.entries(catalog))
+    expect(en.length).toBeGreaterThan(0)
+    expect(vi.length).toBeGreaterThan(0)
+    for (const d of en) expect(d.message, d.id).not.toMatch(permissionKey)
+    for (const [id, text] of vi) expect(text, id).not.toMatch(permissionKey)
+  })
+
+  it('says what the role can’t do, and whom to ask', async () => {
+    expect(t(mo.readOnlyText, { editHelpers: 'Sofia Rossi or Marcus Chen', connectHelpers: 'Linh Nguyen' })).toBe(
+      "You can see results, referrers and recommendations. Your role can't change the program, decide on held referrals or manage partner links. Ask Sofia Rossi or Marcus Chen about the program and held referrals, and Linh Nguyen about partner links.",
+    )
+    expect(t(mv.readOnly, { helpers: 'Sofia Rossi' })).toBe("Your role can't decide on held referrals. Ask Sofia Rossi.")
+    expect(t(mm.couponLocked, { name: 'Sofia Rossi', role: 'Editor' })).toBe("Locked for Sofia Rossi: Editor, which can't change Earn's offers")
+    expect(t(mc.connectNeeds)).toBe('Only for people who can manage partner links · recorded in the audit log')
+    setCatalogLoader('vi', async () => Object.assign({}, ...Object.values(vietnamese)))
+    await setLocale('vi')
+    expect(t(mv.readOnly, { helpers: 'Sofia Rossi' })).toBe('Vai trò của bạn không thể quyết định về lượt giới thiệu bị tạm giữ. Hãy hỏi Sofia Rossi.')
+    expect(t(mm.couponLocked, { name: 'Sofia Rossi', role: 'Biên tập viên' })).toBe('Đã khóa với Sofia Rossi: vai trò Biên tập viên không thể thay đổi ưu đãi trong Kiếm tiền')
+  })
+})
 
 describe('the milestone track', () => {
   // Milestones sit evenly: 1, 3 and 10 at a third, two thirds and the end.

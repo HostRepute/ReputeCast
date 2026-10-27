@@ -273,16 +273,16 @@ export default translate(mr, {
   retry: 'Thử lại',
   roTitle: 'Chỉ xem · {name}, {role}',
   roText:
-    'Bạn có thể xem toàn bộ Kiếm tiền: doanh thu, gói, hội viên trả phí, quà tặng và nhà tài trợ. Thay đổi bất kỳ điều gì cần quyền {perms}. Hãy hỏi {helpers}.',
+    'Bạn có thể xem toàn bộ Kiếm tiền: doanh thu, gói, hội viên trả phí, quà tặng và nhà tài trợ. Vai trò của bạn không thể thay đổi bất kỳ điều gì. Hãy hỏi {helpers}.',
   roTextNoHelpers:
-    'Bạn có thể xem toàn bộ Kiếm tiền: doanh thu, gói, hội viên trả phí, quà tặng và nhà tài trợ. Thay đổi bất kỳ điều gì cần quyền {perms}.',
+    'Bạn có thể xem toàn bộ Kiếm tiền: doanh thu, gói, hội viên trả phí, quà tặng và nhà tài trợ. Vai trò của bạn không thể thay đổi bất kỳ điều gì.',
   canTitle: 'Những gì bạn có thể làm',
   canSee: 'Xem doanh thu, biến động MRR và mọi báo cáo trên trang này',
   canMembers: 'Mở hồ sơ hội viên trả phí và dòng thời gian của họ',
   canPlans: 'Xem gói, ưu đãi, quà tặng và lượt đặt chỗ của nhà tài trợ',
-  canEdit: 'Thay đổi gói, giá hoặc ưu đãi ({perm})',
-  canManage: 'Cấp quyền truy cập hoặc hủy thuê bao ({perm})',
-  canPayments: 'Kết nối hoặc thay đổi {provider} ({perm})',
+  canEdit: 'Vai trò của bạn không thể thay đổi gói, giá hoặc ưu đãi',
+  canManage: 'Vai trò của bạn không thể cấp quyền truy cập hoặc hủy thuê bao',
+  canPayments: 'Vai trò của bạn không thể kết nối hoặc thay đổi {provider}',
   // Conversions only (no payment provider).
   inviteTitle: 'Thu phí người đọc với một gói trả phí',
   inviteText:

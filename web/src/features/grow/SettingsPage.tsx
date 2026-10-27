@@ -150,7 +150,7 @@ function Settings({ p, programId }: { p: Program; programId?: string }) {
       <OffBanner p={p} settings={false} />
       {disabled ? (
         <ReadOnlyNote>
-          <T msg={p.helpers.edit.length ? ms.readOnlyText : ms.readOnlyTextNoHelpers} values={{ helpers: orNames(p.helpers.edit), mono }} />
+          {t(p.helpers.edit.length ? ms.readOnlyText : ms.readOnlyTextNoHelpers, { helpers: orNames(p.helpers.edit) })}
         </ReadOnlyNote>
       ) : null}
       {conflict ? (

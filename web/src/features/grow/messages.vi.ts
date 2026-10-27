@@ -44,7 +44,7 @@ export default {
     none: '–',
     loading: 'Đang tải…',
     forbiddenTitle: 'Bạn không xem được Tăng trưởng',
-    forbiddenText: 'Để xem lượt giới thiệu và đề xuất, bạn cần quyền <mono>grow:view</mono>. Hãy hỏi chủ sở hữu hoặc quản trị viên của không gian làm việc này.',
+    forbiddenText: 'Vai trò của bạn không thể xem lượt giới thiệu và đề xuất. Hãy hỏi chủ sở hữu hoặc quản trị viên của không gian làm việc này.',
     loadErrorDetail: 'Máy chủ trả về {status} sau 3 lần thử. Liên kết vẫn hoạt động và lượt giới thiệu vẫn được tính; chỉ trang này bị ảnh hưởng.',
     loadErrorDetailNoStatus: 'Không kết nối được máy chủ sau 3 lần thử. Liên kết vẫn hoạt động và lượt giới thiệu vẫn được tính; chỉ trang này bị ảnh hưởng.',
     growOverview: 'Tổng quan Tăng trưởng',
@@ -228,9 +228,9 @@ export default {
     loadingProgram: 'Chương trình giới thiệu, đang tải',
     loadingRecs: 'Đề xuất, đang tải',
     readOnlyText:
-      'Bạn xem được kết quả, người giới thiệu và đề xuất. Để thay đổi chương trình, bạn cần quyền <mono>grow:edit</mono>, và để quyết định về lượt giới thiệu bị tạm giữ, bạn cần <mono>grow:review</mono>: hãy hỏi {editHelpers}. Liên kết đối tác cần quyền <mono>grow:connect</mono>: hãy hỏi {connectHelpers}.',
+      'Bạn xem được kết quả, người giới thiệu và đề xuất. Vai trò của bạn không thể thay đổi chương trình, quyết định về lượt giới thiệu bị tạm giữ hay quản lý liên kết đối tác. Về chương trình và lượt giới thiệu bị tạm giữ, hãy hỏi {editHelpers}; về liên kết đối tác, hãy hỏi {connectHelpers}.',
     readOnlyTextNoHelpers:
-      'Bạn xem được kết quả, người giới thiệu và đề xuất. Để thay đổi chương trình, bạn cần quyền <mono>grow:edit</mono>; để quyết định về lượt giới thiệu bị tạm giữ, bạn cần <mono>grow:review</mono>; và để quản lý liên kết đối tác, bạn cần <mono>grow:connect</mono>.',
+      'Bạn xem được kết quả, người giới thiệu và đề xuất. Vai trò của bạn không thể thay đổi chương trình, quyết định về lượt giới thiệu bị tạm giữ hay quản lý liên kết đối tác.',
   }),
   ...translate(mfr, {
     refNote: 'Liên kết giới thiệu có thể trỏ đến trang này. Mã <mono>?ref=</mono> sẽ được ghi nhận.',

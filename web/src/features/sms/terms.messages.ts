@@ -33,7 +33,7 @@ export const m = defineMessages('smsTerms', {
   addressHint: 'Shown at the foot of the page.',
   links: 'Links and contact',
   sections: 'Sections',
-  readOnly: 'You can read the terms. Publishing a new version needs forms:edit.',
+  readOnly: 'You can read the terms. Your role can’t publish a new version.',
   noSms: 'Texting isn’t set up in this workspace, so the page answers 404. It goes live with your first SMS provider.',
   addProvider: 'Add SMS provider',
   loading: 'Loading the text message terms',

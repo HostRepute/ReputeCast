@@ -16,7 +16,7 @@ export const m = defineMessages('senders', {
   documentTitle: 'Senders · Settings',
   ossBadge: 'Open-source edition · every feature included',
   loadFailed: "Couldn't load the senders",
-  readOnlyText: 'You can view the senders, domains and their records. Changing them needs the {perm} permission.',
+  readOnlyText: "You can view the senders, domains and their records. Your role can't change them.",
 
   identitiesTitle: 'Sender identities',
   identitiesLine: 'Verification is per sending provider: each one signs with its own DKIM key.',

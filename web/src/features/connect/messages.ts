@@ -51,7 +51,7 @@ export const m = defineMessages('connect', {
     "{what, select, zone {Couldn't copy the zone file} secret {Couldn't copy the webhook secret} url {Couldn't copy the webhook URL} other {Couldn't copy the {label} value}}",
   copyBlocked: 'Your browser blocked the clipboard. Select the text and copy it instead.',
 
-  // ── Read-only notes (the permission is {perm}) ───────────────────────
-  readOnlyCatalog: 'You can look at the catalog and at setups others started. Connecting a provider needs the {perm} permission.',
-  readOnlySetup: 'You can follow this setup. Connecting or changing a provider needs the {perm} permission.',
+  // ── Read-only notes ──────────────────────────────────────────────────
+  readOnlyCatalog: "You can look at the catalog and at setups others started. Your role can't connect providers.",
+  readOnlySetup: "You can follow this setup. Your role can't connect or change providers.",
 })

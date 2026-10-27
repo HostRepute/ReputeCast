@@ -16,7 +16,7 @@ export default translate(mp, {
 
   readOnly: 'Chỉ đọc',
   readOnlyLead: 'Bạn có thể xem chính sách phê duyệt.',
-  readOnlyReason: 'Muốn thay đổi chính sách cần quyền workspace:manage.',
+  readOnlyReason: 'Vai trò của bạn không thể thay đổi chính sách này.',
 
   // ── When is approval required? ────────────────────────────────────────
   whenTitle: 'Khi nào cần phê duyệt?',
@@ -33,17 +33,18 @@ export default translate(mp, {
   warningsDetail: 'Lần gửi bị chặn không bao giờ bắt đầu; quy tắc này thêm một bước kiểm tra của con người cho các cảnh báo.',
   lacksSendTitle: 'Tác giả không có quyền gửi',
   lacksSendDetail:
-    'Thành viên có quyền campaigns:edit nhưng không có campaigns:send vẫn chuẩn bị được lần gửi và yêu cầu phê duyệt. {who, select, roles {{roles} hiện có: {names}.} members {Thành viên hiện có: {names}.} other {Hiện không có ai trong trường hợp đó.}}',
+    'Thành viên có thể sửa nhưng không thể gửi chiến dịch vẫn chuẩn bị được lần gửi và yêu cầu phê duyệt. {who, select, roles {{roles} hiện có: {names}.} members {Thành viên hiện có: {names}.} other {Hiện không có ai trong trường hợp đó.}}',
   listsTitle: 'Người nhận gồm một danh sách được đánh dấu “Cần phê duyệt”',
   listsDetail:
     '{marked, select, yes {Đang được đánh dấu: {lists}. Đánh dấu thêm trong <link>Người đăng ký → Danh sách</link>.} other {Chưa có danh sách nào được đánh dấu. Hãy đánh dấu danh sách trong <link>Người đăng ký → Danh sách</link>.}}',
   automationTitle: 'Xuất bản một tự động hóa cũng cần phê duyệt',
-  automationDetail: 'Áp dụng cho automations:publish. Khi tắt: việc xuất bản chỉ được ghi nhật ký.',
+  automationDetail: 'Áp dụng cho mọi người có thể xuất bản tự động hóa. Khi tắt: việc xuất bản chỉ được ghi nhật ký.',
+  postPublishing: 'việc xuất bản bài viết và trang',
 
   // ── Approvers ─────────────────────────────────────────────────────────
   approversTitle: 'Người phê duyệt',
   approversNote:
-    'Người phê duyệt là thành viên có quyền <mono>campaigns:approve</mono>. {has, select, yes {Hiện có: {list}.} other {Hiện chưa ai có quyền này: hãy cấp quyền cho một vai trò trong Cài đặt › Vai trò.}} Tác giả không bao giờ tự phê duyệt được chiến dịch của mình.',
+    'Người phê duyệt là những người có vai trò được phép phê duyệt chiến dịch. {has, select, yes {Hiện có: {list}.} other {Hiện chưa ai phê duyệt được: hãy cho phép một vai trò phê duyệt chiến dịch trong Cài đặt › Vai trò.}} Tác giả không bao giờ tự phê duyệt được chiến dịch của mình.',
   approverWithRole: '<b>{name}</b> ({role})',
   approverName: '<b>{name}</b>',
   requiredLegend: 'Số lượt phê duyệt cần có',
@@ -51,7 +52,7 @@ export default translate(mp, {
   oneApprovalDetail: 'Bất kỳ người phê duyệt nào không phải tác giả',
   twoApprovals: '2 lượt phê duyệt',
   twoApprovalsDetail: 'Hai người phê duyệt khác nhau; với {count} người phê duyệt hiện có, một trong hai người không được là tác giả',
-  twoNeeds: 'Cần hai thành viên có quyền campaigns:approve; hiện có {count}.',
+  twoNeeds: 'Cần hai thành viên có thể phê duyệt chiến dịch; hiện có {count}.',
   snapshot: 'Bản chụp',
   snapshotDetail:
     'Một phê duyệt áp dụng cho nội dung và tiêu đề, định nghĩa người nhận, tuyến gửi và lịch gửi. Thay đổi bất kỳ mục nào trong số đó, hoặc số người nhận thay đổi quá 10%, sẽ làm phê duyệt mất hiệu lực; người phê duyệt thấy chính xác những gì đã thay đổi.',

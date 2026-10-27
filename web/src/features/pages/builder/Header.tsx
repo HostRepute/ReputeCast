@@ -1,18 +1,15 @@
 import { Link } from '@tanstack/react-router'
-import { useLayoutEffect, useRef, type ReactNode } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { toast } from '@/components/ui/Toast'
-import { formatList, T, useT } from '@/i18n'
+import { formatList, useT } from '@/i18n'
 import { useMe, useWorkspace } from '@/lib/session'
 import { useBuilder } from './context'
 import { DEVICE_WIDTH, type PageDevice } from './editor/pageEditor'
 import { UiIcon } from './icons'
 import { m } from './messages'
 import { dayTimeText, whenText } from './wording'
-
-const PUBLISH = 'website:publish'
-const EDIT = 'website:edit'
 
 /** The signed-in person's name. */
 export function useMyName(): string {
@@ -128,7 +125,7 @@ function PublishButton() {
   const label = live ? t(m.publishChanges) : t(m.publish)
   if (!b.canPublishPerm) {
     const helpers = p.publish.publishers
-    const reason = helpers.length ? t(m.publishWhy, { permission: PUBLISH, helpers: formatList(helpers, 'disjunction') }) : t(m.publishWhyNoHelpers, { permission: PUBLISH })
+    const reason = helpers.length ? t(m.publishWhy, { helpers: formatList(helpers, 'disjunction') }) : t(m.publishWhyNoHelpers)
     return (
       <Button variant="primary" disabledReason={reason}>
         {label}
@@ -290,7 +287,6 @@ export function PermissionNote() {
   const ws = useWorkspace()
   const me = useMyName()
   const role = ws.me.workspace.roleName
-  const mono = (c: ReactNode[]) => <span className="mono">{c}</span>
   if (!b.canEdit) {
     return (
       <div className="pb-band">
@@ -299,7 +295,7 @@ export function PermissionNote() {
           <div className="flex min-w-0 flex-col gap-1">
             <span className="font-bold">{t(m.readOnlyTitle, { name: me, role })}</span>
             <div>
-              <T msg={m.readOnlyBody} values={{ edit: EDIT, publish: PUBLISH, mono }} />
+              {t(m.readOnlyBody)}
             </div>
           </div>
         </div>
@@ -315,11 +311,7 @@ export function PermissionNote() {
         <div className="flex min-w-0 flex-col gap-1">
           <span className="font-bold">{t(m.cantPublishTitle, { name: me })}</span>
           <div>
-            {helper ? (
-              <T msg={m.cantPublishBody} values={{ permission: PUBLISH, role, helper, mono }} />
-            ) : (
-              <T msg={m.cantPublishBodyNoHelper} values={{ permission: PUBLISH, role, mono }} />
-            )}
+            {helper ? t(m.cantPublishBody, { role, helper }) : t(m.cantPublishBodyNoHelper, { role })}
           </div>
         </div>
       </div>

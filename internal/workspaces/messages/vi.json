@@ -11,8 +11,8 @@
   "problem.confirmName": "Hãy nhập chính xác {name} để xác nhận.",
   "problem.section": "Hãy chọn Giao dịch, Tăng trưởng hoặc Kiếm tiền.",
 
-  "reason.manage": "Muốn thay đổi cài đặt không gian làm việc, bạn cần quyền workspace:manage.",
-  "reason.manageAsk": "Muốn thay đổi cài đặt không gian làm việc, bạn cần quyền workspace:manage. Hãy nhờ {helpers}.",
+  "reason.manage": "Vai trò của bạn không thể thay đổi cài đặt không gian làm việc.",
+  "reason.manageAsk": "Vai trò của bạn không thể thay đổi cài đặt không gian làm việc. Hãy nhờ {helpers}.",
 
   "rule.audience": "người nhận ≥ {n, number}",
   "rule.warming": "tuyến có một nhà cung cấp đang khởi động",

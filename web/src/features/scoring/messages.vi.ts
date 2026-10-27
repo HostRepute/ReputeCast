@@ -184,8 +184,9 @@ export default translate(m, {
 
   // Read-only.
   readOnly: 'Chỉ xem',
-  readOnlyAsk: 'Bạn xem được mọi quy tắc, phân bố điểm và những ai ở từng mức. Để sửa chấm điểm, bạn cần quyền <mono>scoring:edit</mono>. Hãy hỏi {helpers}.',
-  readOnlyNoAsk: 'Bạn xem được mọi quy tắc, phân bố điểm và những ai ở từng mức. Để sửa chấm điểm, bạn cần quyền <mono>scoring:edit</mono>.',
+  readOnlyAsk:
+    'Bạn xem được mọi quy tắc, phân bố điểm và những ai ở từng mức. Vai trò của bạn không thể sửa quy tắc chấm điểm, mức giảm dần hay mức điểm. Hãy hỏi {helpers}.',
+  readOnlyNoAsk: 'Bạn xem được mọi quy tắc, phân bố điểm và những ai ở từng mức. Vai trò của bạn không thể sửa quy tắc chấm điểm, mức giảm dần hay mức điểm.',
 
   // Empty state.
   emptyTitle: 'Chấm điểm liên hệ theo mức độ quan tâm',

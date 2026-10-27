@@ -244,7 +244,7 @@ export function LanguageSwitcher({
             <span className="k">
               <T
                 msg={mz.addWorkspaceNeeds}
-                values={{ helpers: data.workspaceHelpers.length ? formatList(data.workspaceHelpers, 'disjunction') : 'none', code: (c) => <span className="mono">{c}</span> }}
+                values={{ helpers: data.workspaceHelpers.length ? formatList(data.workspaceHelpers, 'disjunction') : 'none' }}
               />
             </span>
           </div>
@@ -535,7 +535,7 @@ function ReadOnlyBanner({ data }: { data: Langs }) {
         <div>
           <T
             msg={mz.readOnlyText}
-            values={{ helpers: data.editHelpers.length ? formatList(data.editHelpers, 'disjunction') : 'none', code: (c) => <span className="mono">{c}</span> }}
+            values={{ helpers: data.editHelpers.length ? formatList(data.editHelpers, 'disjunction') : 'none' }}
           />
         </div>
       </div>

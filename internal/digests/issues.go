@@ -219,10 +219,18 @@ func feedTriesIn(raw json.RawMessage, l i18n.Lang) []DigestFeedTry {
 
 // skipNoteIn is why an issue was skipped, for a reader: what a person
 // wrote stays as written; what a digest wrote when its owner lost a
-// permission is written in the reader's language.
+// permission is written in the reader's language, as what the owner can no
+// longer do, never the permission key (review X-1).
 func skipNoteIn(note string, by *uuid.UUID, l i18n.Lang) string {
 	if perm, ok := strings.CutPrefix(note, ownerLostPrefix); ok && by == nil {
-		return mIssueOwnerLost.Text(l, i18n.Args{"permission": perm})
+		lost := ""
+		switch authz.Permission(perm) {
+		case authz.CampaignsSend:
+			lost = "send"
+		case authz.CampaignsEdit:
+			lost = "edit"
+		}
+		return mIssueOwnerLost.Text(l, i18n.Args{"lost": lost})
 	}
 	return note
 }

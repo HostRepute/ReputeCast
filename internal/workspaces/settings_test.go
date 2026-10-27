@@ -89,7 +89,7 @@ func TestGeneralSettings(t *testing.T) {
 	v := env.Client()
 	v.SignInDemo("aisha@acme.io")
 	v.Do("GET", ws+"/settings", nil).MustStatus(t, 200).JSON(t, &s)
-	if s.CanManage || !strings.Contains(s.Reason, "workspace:manage") {
+	if s.CanManage || !strings.HasPrefix(s.Reason, "Your role can't change workspace settings.") {
 		t.Fatalf("viewer: %+v", s)
 	}
 	v.Do("PUT", ws+"/settings", map[string]any{"name": "Nope", "timezone": "UTC"}).MustStatus(t, 403)

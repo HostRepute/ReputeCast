@@ -1,12 +1,12 @@
 import { translate } from '@/i18n'
 import { m } from './library.messages'
 
-/** The part* words go into skippedPart, inside planSkipped: lower-case nouns. */
+/** The part* words go into planSkipped: lower-case nouns. */
 export default translate(m, {
   subtitle:
     '{items, plural, other {# mục dùng chung}} · {templates, plural, other {# mẫu không gian làm việc}}',
   searchPlaceholder: 'Tìm trong thư viện',
-  readOnly: 'Chỉ xem · không có quyền agency:library',
+  readOnly: 'Chỉ xem',
   templatesTitle: 'Mẫu không gian làm việc · {n}',
   templatesCaption:
     'Bản thiết kế để thiết lập một khách hàng. Áp dụng mẫu sẽ thêm những gì còn thiếu, đổi tên những mục trùng tên, và không bao giờ ghi đè hay xóa.',
@@ -58,7 +58,6 @@ export default translate(m, {
   planRolesAdded: 'Các vai trò khách hàng được thêm',
   planRolesAlready: 'Đã có vai trò khách hàng: không đổi',
   planSkipped: 'Bị bỏ qua vì vai trò của bạn ở đó không cho phép: {parts}.',
-  skippedPart: '{part} ({permission})',
   partLists: 'danh sách',
   partForms: 'biểu mẫu',
   partAutomations: 'tự động hóa',

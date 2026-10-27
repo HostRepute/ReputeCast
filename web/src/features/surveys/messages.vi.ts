@@ -86,9 +86,9 @@ export default translate(m, {
   tabResultsEmpty: 'Kết quả',
   sections: 'Các phần của khảo sát',
   readOnly:
-    'Chỉ xem · {name}. Để sửa, xuất bản và đóng khảo sát, bạn cần quyền forms:edit. Hãy hỏi {helpers}. Bạn vẫn xem được câu hỏi và kết quả, và có thể liên kết đến khảo sát từ một email.',
+    'Chỉ xem · {name}. Vai trò của bạn không thể sửa, xuất bản hay đóng khảo sát. Hãy hỏi {helpers}. Bạn vẫn xem được câu hỏi và kết quả, và có thể liên kết đến khảo sát từ một email.',
   readOnlyNoHelpers:
-    'Chỉ xem · {name}. Để sửa, xuất bản và đóng khảo sát, bạn cần quyền forms:edit. Bạn vẫn xem được câu hỏi và kết quả, và có thể liên kết đến khảo sát từ một email.',
+    'Chỉ xem · {name}. Vai trò của bạn không thể sửa, xuất bản hay đóng khảo sát. Bạn vẫn xem được câu hỏi và kết quả, và có thể liên kết đến khảo sát từ một email.',
 
   // Questions tab.
   questions: 'Câu hỏi · {count}',
@@ -277,7 +277,7 @@ export default translate(m, {
   notAContact: 'Không phải liên hệ',
   aContact: 'Một liên hệ',
   noAnswer: 'không trả lời',
-  showingResponses: 'Hiển thị {shown} trên {total} · chỉ người có quyền subscribers:view mới thấy liên hệ',
+  showingResponses: 'Hiển thị {shown} trên {total} · chỉ người có thể xem liên hệ mới thấy liên hệ',
   previous: 'Trước',
   next: 'Sau',
   noResponses: 'Chưa có lượt trả lời nào hoàn thành.',

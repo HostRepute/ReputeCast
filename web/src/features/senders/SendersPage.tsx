@@ -63,7 +63,7 @@ export function SendersPage() {
         </ErrorPanel>
       ) : (
         <>
-          {data && !data.canManage ? <ReadOnlyNote msg={m.readOnlyText} perm="domains:manage" helpers={data.helpers} /> : null}
+          {data && !data.canManage ? <ReadOnlyNote msg={m.readOnlyText} helpers={data.helpers} /> : null}
           <section className="card" aria-labelledby="senders-h">
             <div className="sec">
               <div className="flex flex-col">

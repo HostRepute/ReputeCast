@@ -170,7 +170,7 @@ export const m = defineMessages('smsComposer', {
   restore: 'Restore',
   restored: 'Version {version} restored',
   close: 'Close',
-  readOnlyText: 'You can read the text, the preview and the cost. Editing needs campaigns:edit; sending also needs sms:send. {helpers, select, none {} other {Ask {helpers}.}}',
+  readOnlyText: 'You can read the text, the preview and the cost. Your role can’t edit the text, and only people who can send SMS campaigns can send it. {helpers, select, none {} other {Ask {helpers}.}}',
   loading: 'Loading the text',
   errorTitle: 'Couldn’t open this SMS campaign',
   retry: 'Retry',

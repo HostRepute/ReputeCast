@@ -372,7 +372,7 @@ function ReadOnly({ helpers }: { helpers: string[] }) {
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
         <span className="font-bold">{t(cm.readOnlyTitle, { name: user?.user.name ?? '', role: me.workspace.roleName })}</span>
         <div>
-          <T msg={helpers.length ? cm.readOnlyBody : cm.readOnlyAlone} values={{ helpers: formatList(helpers, 'disjunction'), mono: (c) => <span className="mono">{c}</span> }} />
+          <T msg={helpers.length ? cm.readOnlyBody : cm.readOnlyAlone} values={{ helpers: formatList(helpers, 'disjunction') }} />
         </div>
       </div>
     </div>

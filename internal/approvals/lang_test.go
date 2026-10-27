@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/readiness"
 )
@@ -128,6 +129,28 @@ func TestInvalidationReadsInTheReadersLanguage(t *testing.T) {
 	}
 	if got := changesFor(vi, json.RawMessage(`[{"field":"audience_count","label":"Audience","before":"15,002","after":"17,110 (+14%)"}]`)); got[0].Label != "Audience" || got[0].After != "17,110 (+14%)" {
 		t.Errorf("old change: %+v", got[0])
+	}
+}
+
+// A flow step its author can't send on names the channel in the reader's
+// words, never the permission key (review X-1), also once stored.
+func TestAutomationLacksNamesTheChannel(t *testing.T) {
+	cases := []struct {
+		perm   authz.Permission
+		en, vi string
+	}{
+		{authz.SMSSend, "The flow has a step that sends text messages, which the author can't send", "Quy trình có một bước gửi tin nhắn SMS, mà tác giả không gửi được"},
+		{authz.PushSend, "The flow has a step that sends push notifications, which the author can't send", "Quy trình có một bước gửi thông báo đẩy, mà tác giả không gửi được"},
+		{authz.WhatsAppSend, "The flow has a step that sends WhatsApp messages, which the author can't send", "Quy trình có một bước gửi tin nhắn WhatsApp, mà tác giả không gửi được"},
+		{authz.CampaignsSend, "The flow has a step the author can't publish", "Quy trình có một bước mà tác giả không xuất bản được"},
+	}
+	for _, c := range cases {
+		m := lacksStepMatch(c.perm)
+		raw, _ := json.Marshal(Snapshot{Rules: []ApprovalRuleMatch{m}})
+		local := localRules(vi, ParseSnapshot(raw).Rules)
+		if m.Key != RuleAuthorLacksSend || m.Label != c.en || local[0].Label != c.vi || local[0].Short != "tác giả không có quyền gửi" {
+			t.Errorf("%s: %q · %+v", c.perm, m.Label, local[0])
+		}
 	}
 }
 

@@ -344,7 +344,7 @@ func (s *Service) LibraryItem(ctx context.Context, id string) (AgencyLibraryDeta
 		}
 		t := AgencyCopyTarget{Workspace: wsRef(w), CanCopy: set.permsIn(w.ID).Has(editPermission(r.Kind))}
 		if !t.CanCopy {
-			t.Reason = mCopyNeeds.Text(l, i18n.Args{"permission": string(editPermission(r.Kind)), "workspace": w.Name})
+			t.Reason = mCopyNeeds.Text(l, i18n.Args{"kind": r.Kind, "workspace": w.Name})
 		}
 		if r.Kind == KindSMS {
 			t.CanCopy, t.Reason = false, mSMSFromComposer.Text(l, nil)
@@ -362,7 +362,7 @@ func (s *Service) canUpdateCopy(l i18n.Lang, kind string, perms authz.Set) (bool
 		return false, mSMSFromComposer.Text(l, nil)
 	}
 	if !perms.Has(editPermission(kind)) {
-		return false, mCopyNeedsHere.Text(l, i18n.Args{"permission": string(editPermission(kind))})
+		return false, mCopyNeedsHere.Text(l, i18n.Args{"kind": kind})
 	}
 	return true, ""
 }
@@ -723,7 +723,7 @@ func (s *Service) copyItem(ctx context.Context, me *Staff, set workspaceSet, w s
 	}
 	perm := editPermission(item.Kind)
 	if !set.permsIn(w.ID).Has(perm) {
-		p := api.Err(http.StatusForbidden, api.CodePermissionDenied, mCopyNeeds.Text(l, i18n.Args{"permission": string(perm), "workspace": w.Name}))
+		p := api.Err(http.StatusForbidden, api.CodePermissionDenied, mCopyNeeds.Text(l, i18n.Args{"kind": item.Kind, "workspace": w.Name}))
 		p.Permission = string(perm)
 		return AgencyCopyResult{}, p
 	}

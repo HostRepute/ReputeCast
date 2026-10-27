@@ -23,7 +23,7 @@ import { ORDERS, PRODUCTS } from './api'
 import { countsLine, day, filesText, money, orderTime, priceCard, priceMain, priceSub } from './format'
 import { pm } from './messages'
 import { OrderPanel } from './OrderPanel'
-import { Cover, DownloadCell, IconNote, OrderStatus, mono } from './parts'
+import { Cover, DownloadCell, IconNote, OrderStatus } from './parts'
 import './products.css'
 
 type Overview = Schemas['ProductsOverview']
@@ -168,7 +168,7 @@ function Banners({ data, viewer }: { data: Overview; viewer: boolean }) {
       ) : null}
       {viewer ? (
         <IconNote tone="n" title={t(pm.readOnlyTitle, { name: user?.name ?? '', role: roleName({ key: me.workspace.roleKey, name: me.workspace.roleName }) })}>
-          <T msg={helpers.length ? pm.readOnlyTextAsk : pm.readOnlyText} values={{ mono, helpers: orList(helpers) }} />
+          <T msg={helpers.length ? pm.readOnlyTextAsk : pm.readOnlyText} values={{ helpers: orList(helpers) }} />
         </IconNote>
       ) : null}
     </>
@@ -481,7 +481,7 @@ function OrdersCard({ data, search, onSearch }: { data: Overview; search: Produc
       {o && o.total > 0 ? (
         <div className="pr-foot">
           <span className="k">
-            <T msg={pm.footer} values={{ shown: o.items.length, total: o.total, mono }} />
+            <T msg={pm.footer} values={{ shown: o.items.length, total: o.total }} />
           </span>
           <div className="flex gap-2">
             <Button size="sm" disabled={page <= 1} onClick={() => onSearch({ ...search, page: page - 1 > 1 ? page - 1 : undefined })}>

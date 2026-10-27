@@ -110,12 +110,9 @@ export function CheckRow({ c, business, split }: { c: Check; business?: { displa
     case 'approval':
       detail =
         c.status === 'pass' ? (
-          <T msg={m.approvalOk} values={{ name: c.author ?? '', perm: <span className="mono">{'whatsapp:send'}</span> }} />
+          <T msg={m.approvalOk} values={{ name: c.author ?? '' }} />
         ) : (
-          <T
-            msg={m.approvalNeeds}
-            values={{ name: c.author ?? '', role: me.workspace.roleName, perms: <span className="mono">{andList(c.missing)}</span>, helpers: orList(c.helpers) }}
-          />
+          <T msg={m.approvalNeeds} values={{ name: c.author ?? '', role: me.workspace.roleName, helpers: orList(c.helpers) }} />
         )
       break
   }
