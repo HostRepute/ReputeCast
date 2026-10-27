@@ -5,6 +5,8 @@
  * and italics) and nothing else, so the email's own styles apply.
  */
 
+import { parseInert } from '../inert'
+
 export interface CleanPaste {
   html: string
   /** Where it came from, when it says so: "Google Docs", "Word". */
@@ -44,8 +46,8 @@ export function textToHtml(text: string): string {
 
 export function cleanPaste(html: string, doc: Document = document): CleanPaste {
   const source = /docs-internal-guid/.test(html) ? 'Google Docs' : /urn:schemas-microsoft-com:office|class="?Mso/i.test(html) ? 'Word' : ''
-  const box = doc.createElement('div')
-  box.innerHTML = html.replace(/<!--[\s\S]*?-->/g, '')
+  // Read in an inert document: a paste from any web page must not load or run anything.
+  const box = parseInert(html.replace(/<!--[\s\S]*?-->/g, ''))
   const out: CleanPaste = { html: '', source, kept: [], removed: 0, images: 0 }
   const kept = new Set<CleanPaste['kept'][number]>()
 

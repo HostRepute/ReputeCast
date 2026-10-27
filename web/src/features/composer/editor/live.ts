@@ -1,4 +1,5 @@
 import type { Component, Editor } from 'grapesjs'
+import { parseInert } from '../inert'
 
 /**
  * The words of a text being typed on the canvas. GrapesJS copies them into
@@ -16,9 +17,9 @@ const CANVAS_ATTR = /^(data-gjs-|contenteditable$|spellcheck$|draggable$)/
  * adds (GrapesJS's data-gjs-* attributes, its gjs-* classes, the editing
  * flags), so it reads as the model would export it.
  */
-export function cleanLiveHtml(html: string, doc: Document = document): string {
-  const box = doc.createElement('div')
-  box.innerHTML = html
+export function cleanLiveHtml(html: string): string {
+  const box = parseInert(html)
+  const doc = box.ownerDocument
   box.querySelectorAll('*').forEach((el) => {
     for (const a of Array.from(el.attributes)) {
       if (CANVAS_ATTR.test(a.name)) el.removeAttribute(a.name)
@@ -64,7 +65,7 @@ export function liveInner(editor: Editor): { component: Component; html: string 
   const view = comp.getView?.() as unknown as ViewWithContainer | undefined
   const el = view?.getChildrenContainer?.() ?? view?.el
   if (!el) return null
-  return { component: comp, html: cleanLiveHtml(el.innerHTML, el.ownerDocument) }
+  return { component: comp, html: cleanLiveHtml(el.innerHTML) }
 }
 
 /**

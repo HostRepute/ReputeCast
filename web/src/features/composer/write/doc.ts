@@ -4,6 +4,7 @@ import { isGrowBlock } from '@/features/grow/composer/blocks'
 import { chipHtml, chipLabelOf, LIQUID_ATTR, splitTokens } from '../editor/liquid'
 import { markerOf, mjChildren, sectionName, tagOf } from '../editor/labels'
 import { SYNCED_ATTR } from '../editor/synced'
+import { parseInert, stripActive } from '../inert'
 
 /**
  * Write mode (CO-9, ComposerWrite board) reads the same email as Design
@@ -128,10 +129,11 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
  * · fallback “there”") that can't be typed into. Tokens in attributes
  * (an href) stay as they are.
  */
-export function toEditable(html: string, editor: Editor | null | undefined, doc: Document = document): string {
-  if (!html.includes('{{')) return html
-  const box = doc.createElement('div')
-  box.innerHTML = html
+export function toEditable(html: string, editor: Editor | null | undefined): string {
+  // The text goes into a live element: parsed inertly, without anything that could run there.
+  const box = parseInert(html)
+  stripActive(box)
+  const doc = box.ownerDocument
   const walker = doc.createTreeWalker(box, 4 /* NodeFilter.SHOW_TEXT */)
   const texts: Text[] = []
   for (let n = walker.nextNode(); n; n = walker.nextNode()) if ((n.textContent ?? '').includes('{{')) texts.push(n as Text)

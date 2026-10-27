@@ -8,6 +8,11 @@ describe('the words of a text being typed', () => {
     expect(cleanLiveHtml(html)).toBe('Hi <b class="strong">there</b>, <a href="https://acme.io">read on</a>')
   })
 
+  it('reads them in an inert document, not the page', () => {
+    expect(cleanLiveHtml('Hi <img src="x" onerror="window.__ranLive = true">')).toBe('Hi <img src="x" onerror="window.__ranLive = true">')
+    expect((window as unknown as { __ranLive?: boolean }).__ranLive).toBeUndefined()
+  })
+
   it('leaves a Liquid chip as its token, not its label', () => {
     const html = 'Hi <span data-rc-liquid="{{ first_name | default: &quot;there&quot; }}" contenteditable="false">First name · fallback “there”</span>'
     expect(cleanLiveHtml(html)).toBe('Hi {{ first_name | default: "there" }}')

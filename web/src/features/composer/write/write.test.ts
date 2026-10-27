@@ -99,6 +99,17 @@ describe('markdown shortcuts', () => {
   })
 })
 
+describe('a text going into the page', () => {
+  it('loses what could run there: handlers, scripts and javascript: links', async () => {
+    const { editor } = await headlessMjmlEditor(email)
+    const out = toEditable('<p><img src="x" onerror="alert(1)"> <a href="javascript:alert(2)" onclick="x()">link</a> {{ first_name }}</p><script>alert(3)</script><iframe srcdoc="<b>x</b>"></iframe>', editor)
+    expect(out).not.toMatch(/onerror|onclick|javascript:|<script|<iframe|srcdoc/)
+    expect(out).toContain('<img src="x">')
+    expect(out).toContain('<a>link</a>')
+    expect(out).toContain('data-rc-liquid="{{ first_name }}"')
+  })
+})
+
 describe('paste cleanup', () => {
   it('keeps headings, links, lists, bold and italics from Google Docs, and drops the styles', () => {
     const gdocs =
@@ -115,6 +126,12 @@ describe('paste cleanup', () => {
       '<h2>What changes</h2><ul><li><p>Requests to v1 return <strong>410 Gone</strong></p></li></ul><p>See the <a href="https://docs.acme.io/migrate-v2">migration guide</a><em> soon</em>.</p>',
     )
     expect(out.html).not.toMatch(/style=|script|img/)
+  })
+
+  it('reads the paste in an inert document, so nothing in it loads or runs', () => {
+    const out = cleanPaste('<p>Hi <img src="x" onerror="window.__ran = true"><b onclick="x()">there</b></p>')
+    expect((window as unknown as { __ran?: boolean }).__ran).toBeUndefined()
+    expect(out.html).toBe('Hi <strong>there</strong>')
   })
 
   it('drops unsafe links and keeps Liquid ones', () => {
