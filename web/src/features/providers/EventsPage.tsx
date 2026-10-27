@@ -349,12 +349,12 @@ function SyncCard() {
                     const st = syncStatus[r.status]
                     return (
                       <tr key={`${r.providerId ?? r.provider}-${r.direction}`}>
-                        <Td className="min-w-[120px] font-semibold">
-                          {/* The name stays whole; a long scope ("enforced before sending") wraps so the status fits the card. */}
+                        <Td className="font-semibold">
+                          {/* The name stays whole; a long scope ("enforced before sending") and direction wrap so the status fits the card. */}
                           <span className="whitespace-nowrap">{r.provider}</span>
                           <div className="k">{r.scope}</div>
                         </Td>
-                        <Td className="whitespace-nowrap">{t(direction[r.direction])}</Td>
+                        <Td>{t(direction[r.direction])}</Td>
                         <Td num>{count(r.pulled)}</Td>
                         <Td num={r.pushed !== undefined}>{r.pushed !== undefined ? count(r.pushed) : '–'}</Td>
                         <Td className="whitespace-nowrap">{when(r.lastSync)}</Td>

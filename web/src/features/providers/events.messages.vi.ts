@@ -47,7 +47,7 @@ export default translate(me, {
   syncLine: '{count, plural, other {# địa chỉ}} · một lần trả thư vĩnh viễn hoặc khiếu nại ở một nhà cung cấp sẽ dừng việc gửi ở mọi nơi',
   pushedLead: 'Đẩy sang các nhà cung cấp:',
   pushedBody: 'các lần trả thư vĩnh viễn và khiếu nại áp dụng cho mọi loại thư ({count}).',
-  keptBody: 'Các lượt hủy đăng ký và những mục chặn chỉ áp dụng cho tiếp thị ({marketing}) được giữ trong ReputeCast để thư đặt lại mật khẩu và biên lai vẫn đến nơi. Các mục thêm thủ công ({manual}) cũng được giữ ở đây, và ReputeCast vẫn chặn chúng cho mọi loại thư.',
+  keptBody: 'Các lượt hủy đăng ký và những mục chặn chỉ áp dụng cho tiếp thị ({marketing}) được giữ trong ReputeCast để thư đặt lại mật khẩu và biên lai vẫn đến nơi. Các mục thêm thủ công và những mục chặn khác áp dụng cho mọi loại thư ({manual}) cũng được giữ ở đây, và ReputeCast vẫn chặn chúng cho mọi loại thư.',
   removalsTenant: 'Việc gỡ khỏi danh sách cũng được đồng bộ. {provider} nhận chúng trên danh sách của tenant thuộc không gian làm việc này, không phải trên toàn bộ tài khoản AWS của bạn.',
   removalsReadOnly: 'Việc gỡ khỏi danh sách cũng được đồng bộ. Danh sách cấp tài khoản của {provider} được mọi ứng dụng trên tài khoản AWS của bạn dùng chung, nên ReputeCast chỉ đọc danh sách đó.',
   removals: 'Việc gỡ khỏi danh sách cũng được đồng bộ.',

@@ -50,7 +50,7 @@ export const me = defineMessages('providers.events', {
   /** What the sync pushes to providers and what stays in ReputeCast (PR-1). {count} is formatted ("1,498"). */
   pushedLead: 'Pushed to providers:',
   pushedBody: 'hard bounces and complaints that apply to all mail ({count}).',
-  keptBody: 'Unsubscribes and other marketing-only suppressions ({marketing}) stay in ReputeCast so password resets and receipts still arrive. Manual entries ({manual}) stay here too, and ReputeCast still blocks them for all mail.',
+  keptBody: 'Unsubscribes and other marketing-only suppressions ({marketing}) stay in ReputeCast so password resets and receipts still arrive. Manual entries and other suppressions that apply to all mail ({manual}) stay here too, and ReputeCast still blocks them for all mail.',
   removalsTenant: "Removals sync too. {provider} gets them on the workspace's tenant list, not your whole AWS account.",
   removalsReadOnly: "Removals sync too. {provider}'s account-level list is shared by every app on your AWS account, so ReputeCast only reads it.",
   removals: 'Removals sync too.',

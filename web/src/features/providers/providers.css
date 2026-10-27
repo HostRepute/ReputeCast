@@ -150,6 +150,13 @@
     border-radius: 3px 3px 0 0;
   }
 
+  /* Warm-up log: the date keeps to one line and the entry wraps beside it */
+  .pv-log-date {
+    flex: none;
+    min-width: 76px;
+    white-space: nowrap;
+  }
+
   /* Warm-up: today's caps by mailbox provider (.mtbl, tr.tot) */
   .tbl.pv-mtbl td,
   .tbl.pv-mtbl th {
@@ -160,10 +167,14 @@
     border-top: 1px solid var(--line);
   }
 
-  /* Table cell spacing that differs per board */
+  /* Table cell spacing that differs per board. The warm-up ramp's cells
+     wrap (except .nw) so the Counted column stays inside its card. */
   .tbl.pv-9 td {
-    padding: 9px 12px;
-    white-space: nowrap;
+    padding: 9px 10px;
+  }
+  .tbl.pv-9 th {
+    padding-left: 10px;
+    padding-right: 10px;
   }
   .tbl.pv-10 td {
     padding: 10px 12px;

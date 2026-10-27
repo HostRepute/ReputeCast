@@ -92,7 +92,7 @@ export function WarmupPage() {
           <PlanSummary plan={plan} />
           <div className="flex flex-wrap items-start gap-5">
             <RampCard plan={plan} />
-            <aside className="flex max-w-[440px] flex-[1_1_340px] flex-col gap-4 max-md:max-w-none max-md:min-w-0" aria-label={t(mw.asideLabel)}>
+            <aside className="flex min-w-0 max-w-[440px] flex-[1_1_340px] flex-col gap-4 max-lg:max-w-none" aria-label={t(mw.asideLabel)}>
               {plan.status !== 'done' ? <MailboxCaps plan={plan} /> : null}
               {plan.status !== 'done' ? <PlanSettings key={plan.id} plan={plan} /> : null}
               <WarmupLog plan={plan} />
@@ -316,7 +316,7 @@ function PlanSummary({ plan }: { plan: WarmupPlan }) {
       {plan.status !== 'done' ? (
         <div className="flex flex-col gap-1.5 rounded-lg border border-line bg-ground-3 px-3.5 py-3">
           <h3 className="m-0 text-[13px] font-semibold">{t(mw.howTitle)}</h3>
-          <ul className="m-0 flex flex-col gap-1 pl-[18px] text-[13px]">
+          <ul className="m-0 flex list-disc flex-col gap-1 pl-[18px] text-[13px]">
             <li>
               {t(mw.howCounts, { share: trimPct(plan.countShare * 100) })} {todayLine ? <strong>{todayLine}</strong> : null}
             </li>
@@ -326,7 +326,7 @@ function PlanSummary({ plan }: { plan: WarmupPlan }) {
           </ul>
         </div>
       ) : null}
-      <div className="grid gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3.5 max-md:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]">
         <Stat
           label={t(mw.todayCap)}
           value={count(plan.todayCap)}
@@ -812,7 +812,7 @@ function WarmupLog({ plan }: { plan: WarmupPlan }) {
       </h2>
       {plan.log.length ? (
         plan.log.map((e, i) => (
-          <div key={i} className="flex gap-2.5 text-[13px] max-md:flex-wrap">
+          <div key={i} className="flex gap-2.5 text-[13px]">
             <span className="pv-log-date mono k">{shortDate(e.at)}</span>
             <span>
               {e.title ? <strong>{e.title}</strong> : null}
