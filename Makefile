@@ -34,7 +34,7 @@ services: ## Start Postgres and Mailpit (docker compose)
 dev: services ## Run the API (air, live reload) and the web app (Vite) together
 	@echo "API  http://localhost:8080   Web  http://localhost:5173   Mail http://localhost:8025"
 	@trap 'kill 0' INT TERM; \
-	  REPUTECAST_DATABASE__URL="$(DEV_DB)" REPUTECAST_HTTP__PUBLIC_URL=http://localhost:5173 \
+	  REPUTECAST_DATABASE__URL="$(DEV_DB)" REPUTECAST_PUBLIC_URL=http://localhost:5173 \
 	  REPUTECAST_AUTH__COOKIE_SECURE=false $(GO) tool air & \
 	  (cd web && $(PNPM) dev) & \
 	  wait

@@ -86,6 +86,9 @@ const (
 	KindWhatsAppTokenFails = "whatsapp_token"      // Meta rejected the WhatsApp access token: sends are held
 	// Comments in the composer (review 2026-10, CO-10).
 	KindCommentMention = "comment_mention" // someone @mentioned the member in a campaign's comments
+	// KindResultsFinal: a campaign report's results are final, for someone
+	// who asked to be emailed then ("Email me when it's final").
+	KindResultsFinal = "results_final"
 )
 
 // Notification is what appears in the notification center.

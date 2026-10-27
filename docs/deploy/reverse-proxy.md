@@ -15,7 +15,7 @@ so; they check DNS, TLS and reachability for you.
 
 | Setting | Value |
 |---|---|
-| `REPUTECAST_HTTP__PUBLIC_URL` (`REPUTECAST_PUBLIC_URL` in the compose `.env`) | The https address the proxy serves, for example `https://news.example.com`. |
+| `REPUTECAST_PUBLIC_URL` | The https address the proxy serves, for example `https://news.example.com`. |
 | `REPUTECAST_HTTP__TRUSTED_PROXIES` | The proxy's address or network, for example `127.0.0.1` on the same host, or `172.16.0.0/12` for a proxy in another Docker container. Only then does ReputeCast read the client IP from `X-Forwarded-For`. Rate limits and the audit log use that IP. |
 
 HTTPS-only cookies and HSTS follow the public URL. Restart ReputeCast after

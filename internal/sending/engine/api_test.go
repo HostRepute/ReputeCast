@@ -158,8 +158,9 @@ func testTracking(t *testing.T, f *sendtest.Fixture) {
 	if err := f.Env.App.Pool.QueryRow(f.Ctx, `SELECT id, contact_id FROM messages WHERE campaign_id = $1 AND sent_at IS NOT NULL ORDER BY id LIMIT 1`, f.Campaign).Scan(&msg, &contact); err != nil {
 		t.Fatal(err)
 	}
-	// Back-date the send so the open isn't "too fast to be a person".
-	f.Exec(`UPDATE messages SET sent_at = now() - interval '20 minutes' WHERE id = $1`, msg)
+	// Back-date the send and the delivery so the open isn't "too fast to be
+	// a person".
+	f.Exec(`UPDATE messages SET sent_at = now() - interval '20 minutes', delivered_at = now() - interval '19 minutes' WHERE id = $1`, msg)
 	links := f.Env.App.Links
 	open := links.Sign(linktoken.Claims{Kind: linktoken.Open, WorkspaceID: f.WS, MessageID: msg, ContactID: contact})
 	click := links.Sign(linktoken.Claims{Kind: linktoken.Click, WorkspaceID: f.WS, MessageID: msg, ContactID: contact, Link: 0})
@@ -182,22 +183,23 @@ func testTracking(t *testing.T, f *sendtest.Fixture) {
 		defer func() { _ = resp.Body.Close() }()
 		return answer{StatusCode: resp.StatusCode, Header: resp.Header}
 	}
-	// Apple Mail Privacy Protection prefetch first: a machine open.
+	// Apple Mail Privacy Protection prefetch first: a privacy-protected
+	// open (whether a person read it can't be measured).
 	if r := get("/t/o/"+open, "Mozilla/5.0"); r.StatusCode != http.StatusOK || r.Header.Get("Content-Type") != "image/gif" || !strings.Contains(r.Header.Get("Cache-Control"), "no-store") {
 		t.Fatalf("pixel %d %s %s", r.StatusCode, r.Header.Get("Content-Type"), r.Header.Get("Cache-Control"))
 	}
 	waitFor(t, func() bool {
-		return f.Count(`SELECT coalesce(sum(opened_machine), 0) FROM campaign_counters WHERE campaign_id = $1`, f.Campaign) == 1
+		return f.Count(`SELECT coalesce(sum(opened_privacy), 0) FROM campaign_counters WHERE campaign_id = $1`, f.Campaign) == 1
 	})
-	// Then the person opens: the open moves from machine to human.
+	// Then the person opens: the open moves from privacy-protected to human.
 	get("/t/o/"+open, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36")
 	waitFor(t, func() bool {
 		return f.Count(`SELECT coalesce(sum(opened_human), 0) FROM campaign_counters WHERE campaign_id = $1`, f.Campaign) == 1 &&
-			f.Count(`SELECT coalesce(sum(opened_machine), 0) FROM campaign_counters WHERE campaign_id = $1`, f.Campaign) == 0
+			f.Count(`SELECT coalesce(sum(opened_privacy + opened_machine), 0) FROM campaign_counters WHERE campaign_id = $1`, f.Campaign) == 0
 	})
 	// The engagement chart moves it too: it adds up to the counters.
 	if h, m := f.Count(`SELECT coalesce(sum(opened_human), 0) FROM campaign_hourly WHERE campaign_id = $1`, f.Campaign),
-		f.Count(`SELECT coalesce(sum(opened_machine), 0) FROM campaign_hourly WHERE campaign_id = $1`, f.Campaign); h != 1 || m != 0 {
+		f.Count(`SELECT coalesce(sum(opened_privacy + opened_machine), 0) FROM campaign_hourly WHERE campaign_id = $1`, f.Campaign); h != 1 || m != 0 {
 		t.Fatalf("hourly opens: %d human, %d machine; want 1 and 0", h, m)
 	}
 	var want string
@@ -205,6 +207,17 @@ func testTracking(t *testing.T, f *sendtest.Fixture) {
 	r := get("/t/c/"+click, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36")
 	if r.StatusCode != http.StatusFound || r.Header.Get("Location") != want {
 		t.Fatalf("click %d to %q, want 302 to %q", r.StatusCode, r.Header.Get("Location"), want)
+	}
+	// A click counts once it settles (bot clicks, review AN-2).
+	waitFor(t, func() bool {
+		return f.Count(`SELECT count(*) FROM delivery_events WHERE message_id = $1 AND type = 'click'`, msg) == 1
+	})
+	if st, ok := f.E.Recorder.(interface {
+		SettleEngagement(context.Context, time.Time) (*time.Time, error)
+	}); ok {
+		if _, err := st.SettleEngagement(f.Ctx, time.Now().Add(2*time.Minute)); err != nil {
+			t.Fatal(err)
+		}
 	}
 	waitFor(t, func() bool {
 		return f.Count(`SELECT coalesce(sum(clicks), 0) FROM campaign_links WHERE campaign_id = $1`, f.Campaign) == 1 &&

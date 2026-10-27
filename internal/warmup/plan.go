@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"math"
 	"slices"
+	"strings"
 )
 
 // Engagement tiers in order of engagement.
@@ -25,18 +26,36 @@ type Day struct {
 	Tiers []string `json:"tiers,omitempty"`
 }
 
-// Result is what happened on a finished day.
+// Result is how one of the workspace's days went: the plan's day on that
+// date, its cap, what went out and how the day was judged (PR-8). A plan
+// day that didn't count appears again on a later date.
 type Result struct {
-	Day       int     `json:"day"`
-	Date      string  `json:"date"`
-	Cap       int64   `json:"cap"`
-	Sent      int64   `json:"sent"`
-	Bounce    float64 `json:"bounce"`
-	Complaint float64 `json:"complaint"`
-	// Slowed: a guard tripped on this day.
-	Slowed bool `json:"slowed,omitempty"`
-	// Held: this day's cap was held at the previous day's level.
-	Held bool `json:"held,omitempty"`
+	Day  int    `json:"day"`
+	Date string `json:"date"`
+	Cap  int64  `json:"cap"`
+	// PlannedCap is the schedule's cap when a slowdown held a lower one.
+	PlannedCap int64 `json:"plannedCap,omitempty"`
+	Sent       int64 `json:"sent"`
+	// Bounced, Complained and Delivered are the day's counts; complaints
+	// and deliveries count only mailbox providers that report complaints.
+	Bounced    int64 `json:"bounced,omitempty"`
+	Complained int64 `json:"complained,omitempty"`
+	Delivered  int64 `json:"delivered,omitempty"`
+	// Bounce and Complaint are percentages; nil when nothing was measured.
+	Bounce    *float64 `json:"bounce,omitempty"`
+	Complaint *float64 `json:"complaint,omitempty"`
+	// Counted: the day moved the plan on. Judged: the guards had enough
+	// messages to judge it. Short: too little of the cap went out.
+	Counted bool `json:"counted"`
+	Judged  bool `json:"judged"`
+	Short   bool `json:"short,omitempty"`
+	// Slowed: a guard tripped on this day (Metric says which).
+	Slowed bool   `json:"slowed,omitempty"`
+	Metric string `json:"metric,omitempty"`
+	// Held: a slowdown held this day's cap; Healthy is the healthy day it
+	// was under the hold (1 of 2, 2 of 2), 0 otherwise.
+	Held    bool `json:"held,omitempty"`
+	Healthy int  `json:"healthy,omitempty"`
 }
 
 // Plan is a parsed schedule with its progress.
@@ -45,13 +64,20 @@ type Plan struct {
 	Progress []Result
 }
 
-// ParsePlan decodes the schedule and progress columns.
+// ParsePlan decodes the schedule and progress columns. Progress rows from
+// before counted days (placeholders without a date) are dropped.
 func ParsePlan(schedule, progress json.RawMessage) Plan {
 	var p Plan
 	_ = json.Unmarshal(schedule, &p.Schedule)
-	_ = json.Unmarshal(progress, &p.Progress)
+	var all []Result
+	_ = json.Unmarshal(progress, &all)
+	for _, r := range all {
+		if r.Date != "" {
+			p.Progress = append(p.Progress, r)
+		}
+	}
 	slices.SortFunc(p.Schedule, func(a, b Day) int { return a.Day - b.Day })
-	slices.SortFunc(p.Progress, func(a, b Result) int { return a.Day - b.Day })
+	slices.SortFunc(p.Progress, func(a, b Result) int { return strings.Compare(a.Date, b.Date) })
 	return p
 }
 
@@ -71,27 +97,45 @@ func (p Plan) day(d int) Day {
 	return p.Schedule[0]
 }
 
-// Result returns the recorded result of a day.
-func (p Plan) Result(d int) (Result, bool) {
+// OnDate returns the result recorded for a date ("2006-01-02").
+func (p Plan) OnDate(date string) (Result, bool) {
 	for _, r := range p.Progress {
-		if r.Day == d {
+		if r.Date == date {
 			return r, true
 		}
 	}
 	return Result{}, false
 }
 
-// Cap is a day's volume cap: the planned volume, or the cap a slowdown set
-// for it (the warm-up job records it when the guard trips).
-func (p Plan) Cap(d int) int64 {
-	if r, ok := p.Result(d); ok && r.Cap > 0 {
-		return r.Cap
+// Counted is how many days have counted.
+func (p Plan) Counted() int {
+	n := 0
+	for _, r := range p.Progress {
+		if r.Counted {
+			n++
+		}
 	}
-	return p.day(d).Volume
+	return n
 }
 
-// PlannedCap is the cap the schedule planned for a day.
+// set records a date's result, replacing an earlier one.
+func (p *Plan) set(r Result) {
+	for i := range p.Progress {
+		if p.Progress[i].Date == r.Date {
+			p.Progress[i] = r
+			return
+		}
+	}
+	p.Progress = append(p.Progress, r)
+}
+
+// PlannedCap is the cap the schedule plans for a day.
 func (p Plan) PlannedCap(d int) int64 { return p.day(d).Volume }
+
+// Cap is the cap the schedule plans for a day. Today's cap (a slowdown's
+// held cap, a pause, the caps per mailbox provider) comes from
+// AllowanceFor.
+func (p Plan) Cap(d int) int64 { return p.PlannedCap(d) }
 
 // Rate is a day's rate limit per second.
 func (p Plan) Rate(d int) float64 {
@@ -99,7 +143,7 @@ func (p Plan) Rate(d int) float64 {
 	if day.Rate > 0 {
 		return day.Rate
 	}
-	return RateFor(p.Cap(d))
+	return RateFor(p.PlannedCap(d))
 }
 
 // Share is the provider's Broadcast share on a day, in percent.

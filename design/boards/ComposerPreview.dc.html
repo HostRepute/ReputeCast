@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Campaign composer, client previews and A/B variants</title>
+<title>Campaign composer, previews and A/B test</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -14,30 +14,45 @@
 body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;line-height:1.45}
 a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
 .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
-.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 12px;border-radius:7px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
 .btn:hover{background:#F3F4F6;color:#0B1220}
 .btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
-.btn.sm{min-height:28px;padding:0 9px;font-size:12px}
 .btn.ic{width:32px;padding:0}
 .badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
-.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
 .dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
 .k{font-size:12px;color:#5B6472;font-weight:500}
-.n{font-weight:600;font-variant-numeric:tabular-nums}
 .in{height:32px;padding:0 9px;border:1px solid #D4D8DF;border-radius:7px;background:#fff;font:inherit;font-size:12.5px;color:#0B1220;box-sizing:border-box;min-width:0}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.grp{padding:10px 12px 4px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5B6472}
+.blk{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;font-size:11.5px;font-weight:500;color:#374151;cursor:grab;text-align:center}
+.blk svg{width:22px;height:22px;stroke:#374151;fill:none;stroke-width:1.5}
+.blk.rc{border-color:#99F6E4;background:#F0FDFA}
 .seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:7px;overflow:hidden}
-.seg button{height:30px;padding:0 10px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#5B6472;cursor:pointer}
+.seg button{height:30px;padding:0 10px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#5B6472;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .seg button.on{background:#0B1220;color:#fff}
-.h2{margin:0;font-size:14px;font-weight:600}
-.ph{display:flex;align-items:center;justify-content:center;background:#E9ECF0;color:#5B6472;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:500;border:1px dashed #C9CED6}
-.mail{font-family:Georgia,'Times New Roman',serif;font-size:12px;line-height:1.5}
-.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+.email{width:600px;background:#fff;box-shadow:0 1px 3px rgba(11,18,32,.12);font-family:Georgia,'Times New Roman',serif;color:#1F2937;flex:none}
+.sec{position:relative;padding:16px 24px}
+.sec:hover{outline:1px dashed #93C5FD;outline-offset:-1px}
+.ph{display:flex;align-items:center;justify-content:center;background:#E9ECF0;color:#5B6472;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:500;border:1px dashed #C9CED6}
+.tb{position:absolute;top:-30px;right:-2px;display:flex;background:#1D4ED8;border-radius:6px 6px 0 0;padding:2px}
+.tb button{width:26px;height:26px;border:0;background:none;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.tb svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:1.8}
+.lab{position:absolute;top:-30px;left:-2px;background:#1D4ED8;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:600;padding:0 8px;height:26px;display:inline-flex;align-items:center;border-radius:6px 6px 0 0;margin-top:2px}
+.prop{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-bottom:1px solid #EEF0F3}
+.prop .t{font-size:12px;font-weight:600}
+.row4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.sw{width:22px;height:22px;border-radius:5px;border:1px solid #D4D8DF;flex:none}
+.bc{display:flex;align-items:center;gap:6px;font-size:12px;color:#5B6472}
+.bc b{color:#0B1220;font-weight:600}
 
 /* responsive shell */
 @media (max-width:1100px){
   .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
-  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .brand-t,.side .ws{display:none}.side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .side .nav a{justify-content:center;padding:0!important;height:44px}
   .side .nav svg{width:20px;height:20px}
   .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
@@ -110,69 +125,282 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
   .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
 }
+/* ===== compact composer chrome: one top bar + one Inbox strip (shared by the composer boards) ===== */
+.cbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 16px;background:#FFFFFF;border-bottom:1px solid #E3E6EB;box-sizing:border-box;position:relative;z-index:30}
+.cbar .btn{min-height:36px;padding:0 12px;font-size:13px;border-radius:8px;white-space:nowrap}
+.cbar .btn.ic{width:36px;padding:0}
+.cbar svg{flex:none}
+.cb-left{display:flex;align-items:center;gap:10px;min-width:0}
+.cb-id{display:flex;align-items:center;gap:8px;min-width:0}
+.cb-name{height:36px;width:164px;min-width:0;padding:0 8px;margin-left:-2px;border:1px solid transparent;border-radius:8px;background:transparent;font:inherit;font-size:15px;font-weight:700;color:#0B1220;box-sizing:border-box;text-overflow:ellipsis}
+.cb-name:hover{border-color:#D4D8DF}
+.cb-name:focus{border-color:#8B94A3;background:#FFFFFF}
+.cb-name::placeholder{color:#5B6472;font-weight:600}
+.stchip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;background:#EEF0F3;color:#4B5563;font-size:12px;font-weight:600;white-space:nowrap;flex:none;box-sizing:border-box}
+.stchip.ok{background:#DCFCE7;color:#166534}.stchip.warn{background:#FEF3C7;color:#92400E}.stchip.bad{background:#FEE2E2;color:#991B1B}
+.cb-pres{display:flex;align-items:center;gap:8px;flex:none;padding-left:10px;border-left:1px solid #E3E6EB;min-height:28px}
+.pav{position:relative;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:#EDE9FE;color:#5B21B6;flex:none}
+.pav i{position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:50%;background:#15803D;border:2px solid #FFFFFF;box-sizing:border-box}
+.cb-pres .pt{font-size:12px;font-weight:500;color:#5B6472;white-space:nowrap}
+.cb-mid{display:flex;align-items:center;gap:8px;margin-left:auto}
+.modes{display:inline-flex;align-items:center;gap:2px;padding:2px;border:1px solid #D4D8DF;border-radius:9px;background:#FFFFFF;flex:none;box-sizing:border-box}
+.modes a,.modes button{border:0;background:transparent;font:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 12px;border-radius:7px;color:#4B5563;font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none;box-sizing:border-box}
+.modes a:hover,.modes button:hover{background:#F3F4F6;color:#0B1220}
+.modes a[aria-selected="true"],.modes button[aria-selected="true"]{background:#0B1220;color:#FFFFFF}
+.devt{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.devt button{width:38px;height:34px;border:0;background:#FFFFFF;color:#4B5563;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.devt button + button{border-left:1px solid #E3E6EB}
+.devt button[aria-pressed="true"]{background:#0B1220;color:#FFFFFF}
+.devt button:disabled{color:#5B6472;opacity:.55;cursor:not-allowed}
+.cb-end{display:flex;align-items:center;gap:8px;margin-left:auto}
+.cb-end .btn .bi{display:none}
+.modes a svg{display:none}
+.langb .ln{color:#5B6472;font-weight:500}
+.cb-go{display:flex;align-items:center}
+.rsend .rs-b{font-weight:600}
+.btn.pri.rs-stop{background:#B91C1C;border-color:#B91C1C;color:#FFFFFF}.btn.pri.rs-stop:hover{background:#991B1B;color:#FFFFFF}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn.sm{min-height:28px;padding:0 10px;font-size:12px}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}.btn.danger:hover{background:#FFF5F5;color:#991B1B}
+.btn.ghost{border-color:transparent;background:transparent}.btn.ghost:hover{background:#F3F4F6}
+.nt-phone{display:none}
+
+/* Inbox strip */
+.istrip{display:flex;align-items:center;gap:10px;min-height:40px;padding:4px 16px;background:#F9FAFB;border-bottom:1px solid #E3E6EB;box-sizing:border-box;font-size:12.5px;position:relative;z-index:20}
+.is-l{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;flex:none}
+.is-sum{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 auto;margin:0;white-space:nowrap;overflow:hidden}
+.is-i{display:inline-flex;align-items:center;gap:5px;min-width:0;overflow:hidden}
+.is-i.sub{flex:0 1 auto;max-width:330px}.is-i.pre{flex:0 1 auto;max-width:280px}.is-i.to,.is-i.via{flex:none}
+.is-k{color:#5B6472;font-weight:500;flex:none}
+.is-v{color:#0B1220;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.is-v.none{color:#5B6472;font-weight:500;font-style:italic}
+.is-sep{color:#5B6472;flex:none}
+.is-flag{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:999px;background:#FEF3C7;color:#92400E;font-size:11.5px;font-weight:600;flex:none}
+.is-edit{flex:none;margin-left:auto}
+.ipanel{display:flex;flex-wrap:wrap;gap:16px 20px;padding:14px 16px 16px;background:#FFFFFF;border-bottom:1px solid #E3E6EB;box-sizing:border-box;position:relative;z-index:19}
+.ip-in{flex:3 1 520px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.ip-row{display:flex;flex-wrap:wrap;gap:10px 14px}
+.ip-row > label,.ip-row > div{flex:1 1 260px;min-width:0}
+.ip-send{flex:1 1 300px;max-width:440px;min-width:0;display:flex;flex-direction:column;gap:10px;padding:12px 14px;border:1px solid #E3E6EB;border-radius:10px;background:#F9FAFB;box-sizing:border-box}
+.ip-h{margin:0;font-size:13px;font-weight:700;color:#0B1220;display:flex;align-items:center;gap:8px}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563;min-width:0}
+.lbl .in{width:100%}
+.lbl .k{font-weight:500}
+.gmail{display:flex;align-items:center;gap:12px;min-height:40px;padding:0 12px;border:1px solid #E3E6EB;border-radius:8px;background:#FFFFFF;font-size:13px;white-space:nowrap;overflow:hidden;box-sizing:border-box}
+.gmail .gf{font-weight:700;flex:none;width:126px;overflow:hidden;text-overflow:ellipsis}
+.gmail .gs{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.gmail .gs b{font-weight:700}
+.gmail .gs span{color:#5B6472}
+.gmail .gt{margin-left:auto;font-size:12px;font-weight:600;color:#5B6472;flex:none}
+.route{display:flex;align-items:center;gap:8px;min-height:36px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#FFFFFF;color:#0B1220;font-size:12.5px;font-weight:600;text-decoration:none;box-sizing:border-box}
+.route:hover{background:#F3F4F6;color:#0B1220}
+.route .rb{display:flex;gap:2px;width:72px;height:8px;flex:none}
+.route .rb i{display:block;height:100%;border-radius:999px}
+
+/* editor body */
+.cwrap{display:flex;flex:1 1 auto;align-items:stretch;min-height:0}
+.lp{flex:0 0 248px;width:248px;background:#FFFFFF;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;min-width:0;box-sizing:border-box}
+.cv{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;background:#E9ECF0;position:relative}
+.rp{flex:0 0 320px;width:320px;background:#FFFFFF;border-left:1px solid #E3E6EB;display:flex;flex-direction:column;min-width:0;box-sizing:border-box}
+.ptab button{padding:0 6px;white-space:nowrap}
+.ptab button .n{font-weight:600;color:#5B6472}
+.ptab button.on .n{color:#0B1220}
+.cfoot{display:flex;align-items:center;gap:6px 16px;flex-wrap:wrap;padding:8px 16px;background:#FFFFFF;border-top:1px solid #E3E6EB;font-size:12px;box-sizing:border-box}
+.cfoot .hint{display:flex;flex-wrap:wrap;gap:4px 12px;color:#5B6472;font-weight:500}
+.kbd{display:inline-flex;align-items:center;height:20px;padding:0 6px;border:1px solid #D4D8DF;border-bottom-width:2px;border-radius:5px;background:#FFFFFF;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;font-weight:500;color:#374151;margin-right:4px}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.h2{margin:0;font-size:15px;font-weight:600}
+.note{display:flex;gap:8px 10px;align-items:flex-start;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.45;box-sizing:border-box}
+.note > :last-child{flex:1 1 auto;min-width:0}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+
+/* tablet: canvas first, panels stack below it */
+@media (max-width:1100px){
+  .cbar{padding:10px 16px}
+  .cb-left{order:1;flex:1 1 calc(100% - 300px)}
+  .cb-go{order:2}
+  .cb-mid{order:3;margin-left:0}
+  .cb-end{order:4;margin-left:auto}
+  .cb-pres .pt{display:none}
+  .is-i.pre{display:none}
+  .is-i.pre + .is-sep{display:none}
+  .ip-send{max-width:none;flex-basis:100%}
+  .cwrap{flex-wrap:wrap}
+  .cv{order:1;flex:1 1 100%}
+  .lp{order:2;flex:1 1 300px;width:auto;border-right:1px solid #E3E6EB;border-top:1px solid #E3E6EB}
+  .rp{order:3;flex:1 1 300px;width:auto;border-left:0;border-top:1px solid #E3E6EB}
+}
+/* phone */
+@media (max-width:767px){
+  .cbar{padding:8px 12px;gap:8px}
+  .cbar .btn{min-height:44px}
+  .cbar .btn.ic{width:44px}
+  .cb-left{flex:1 1 calc(100% - 160px);gap:8px}
+  .cb-id{flex-direction:column;align-items:flex-start;gap:2px}
+  .cb-name{width:100%;height:44px;font-size:15px;padding:0 4px;margin-left:-4px}
+  .stchip{height:auto;min-height:20px;font-size:11.5px;padding:2px 8px;white-space:normal;line-height:1.25;max-width:100%}
+  .cb-id{gap:0}
+  .cb-pres{display:none}
+  .cb-mid{flex:1 1 auto;min-width:0}
+  .modes{flex:1 1 auto;padding:0;gap:0;overflow:hidden}
+  .modes a,.modes button{flex:1 1 0%;height:44px;padding:0 8px;border-radius:0}
+  .modes a svg{display:none}
+  .devt{display:none}
+  .cb-end{margin-left:0;gap:6px;flex-wrap:nowrap}
+  .cb-end .btn{width:44px;padding:0}
+  .cb-end .btn .bi{display:inline}
+  .cb-end .btn .bt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .langb .ln,.langb .chev{display:none}
+  .rsend{flex-direction:column;align-items:flex-start;justify-content:center;gap:0;line-height:1.2;padding:4px 12px!important;white-space:nowrap!important}
+  .rsend .rs-dot{display:none}
+  .rsend .rs-b{font-size:11px;font-weight:600}
+  .nt-phone{display:inline}
+  .istrip{flex-wrap:wrap;padding:8px 12px;gap:6px 10px}
+  .is-sum{flex-wrap:wrap;white-space:normal;flex:1 1 100%;order:3;gap:4px 8px}
+  .is-sep{display:none}
+  .is-i{flex:1 1 100%!important;max-width:100%!important}
+  .is-i.pre{display:inline-flex}
+  .is-edit{min-height:44px!important}
+  .btn.sm{min-height:44px}
+  .ipanel{padding:12px}
+  .ipanel .in,.ipanel select.in{height:44px}
+  .route{min-height:44px}
+  .gmail{flex-wrap:wrap;white-space:normal;padding:8px 12px;gap:2px 10px}
+  .gmail .gf{width:auto}
+  .gmail .gs{flex:1 1 100%;order:3}
+  .cfoot{padding:8px 12px}
+  footer.cfoot a{min-height:44px;display:inline-flex;align-items:center}
+  .in,select.in{height:44px}
+  label.rad{min-height:44px}
+  .ptab button{height:44px}
+  .lp,.rp{flex:1 1 100%}
+}
+
+/* ===== Composer, previews and A/B ===== */
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.h2{margin:0;font-size:14px;font-weight:600}
+.ph{font-size:11px;text-align:center;padding:0 6px;box-sizing:border-box}
+.mail{font-family:Georgia,'Times New Roman',serif;font-size:12px;line-height:1.5}
+.ptop{display:flex;align-items:center;gap:10px 12px;flex-wrap:wrap;padding:10px 16px;background:#FFFFFF;border-bottom:1px solid #E3E6EB}
+.ptop .btn{min-height:36px;font-size:13px}
+.ptop .btn.ic{width:36px}
+.ptools{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;padding:8px 14px;background:#FFFFFF;border-bottom:1px solid #E3E6EB}
+.ptools .lbt{font-size:12px;font-weight:600;color:#4B5563}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button[aria-pressed="true"]{background:#0B1220;color:#FFFFFF}
+.vsw{display:flex;align-items:center;gap:8px}
+.honest{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin:0 14px;padding:9px 12px;border-radius:8px;background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A;font-size:12.5px}
+.honest .t{flex:1 1 360px;min-width:0}
+.honest .t b{font-weight:600}
+.pgrid{flex:1;overflow:auto;padding:16px 24px 24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:20px;align-items:start;align-content:start}
+.chd{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid #E3E6EB}
+.chd .ap{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#4B5563}
+.vtag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;background:#EEF0F3;color:#4B5563;font-size:11px;font-weight:700;margin-left:6px}
+.blank{background:#FEF3C7;color:#92400E;border-radius:3px;padding:0 3px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:10.5px;font-weight:700}
+.dark .blank{background:#92400E;color:#FEF3C7}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.tokr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:baseline;padding:6px 0;border-top:1px solid #EEF0F3;font-size:12.5px}
+.tokr:first-child{border-top:0}
+.tokr code{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;color:#374151;overflow-wrap:anywhere}
+.tokr .w{grid-column:1 / -1;display:flex;flex-direction:column;gap:6px;margin-top:4px;padding:8px 10px;border-radius:8px;background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.tokr .w .btn{align-self:flex-start}
+.rule{display:flex;gap:8px;align-items:flex-start;padding:9px 10px;border-radius:8px;background:#F9FAFB;border:1px solid #EEF0F3;font-size:12.5px;color:#374151}
+.rule svg{margin-top:2px;flex:none}
+@media (max-width:1100px){
+  .pgrid{grid-template-columns:1fr}
+}
+@media (max-width:767px){
+  .ptop{padding:8px 12px}
+  .ptop .btn{min-height:44px}
+  .ptop .btn.ic{width:44px}
+  .ptop .acts{width:100%}
+  .ptop .acts > *{flex:1 1 100%}
+  .ptools{padding:8px 12px}
+  .ptools .seg{display:flex;width:100%}
+  .ptools .seg button{flex:1 1 0%;height:44px;padding:0 6px;white-space:normal;line-height:1.2;justify-content:center;text-align:center}
+  .vsw{flex-wrap:wrap;width:100%}
+  .honest{margin:0 12px}
+  .pgrid{padding:12px;gap:12px}
+  .cpanel .in,.cpanel select.in{height:44px}
+  .ptop select.in{height:44px!important}
+}
 </style>
 </helmet>
-<h1 class="vh">Campaign composer, client previews and A/B variants</h1>
+<h1 class="vh">Campaign composer, previews and A/B test</h1>
 <div style="min-height:100vh;display:flex;flex-direction:column">
   <a href="#main" class="skip">Skip to content</a>
-  <header style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB">
+  <header class="ptop">
     <a href="Composer.dc.html" class="btn ic" aria-label="Back to editor"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a>
     <div style="display:flex;flex-direction:column;min-width:0"><span class="k" style="font-size:11px">Preview</span><span style="font-size:15px;font-weight:700">Weekly Digest #142</span></div>
-    <span class="badge mut">Draft · v15</span>
-    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
-      <label class="k" style="display:flex;align-items:center;gap:6px">Preview as<select class="in"><option>Sam Rivera · sam.rivera@outlook.com · first_name set</option><option>Contact without first_name · fallback "there"</option><option>Random Active contact</option></select></label>
-      <button class="btn">Send test to linh@acme.io</button>
-      <a href="SendReadiness.dc.html" class="btn pri">Review &amp; send</a>
+    <span class="stchip">Draft · v15</span>
+    <div class="acts" style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <label class="k" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">Preview as<select class="in" style="height:36px"><option>Sam Rivera · sam.rivera@outlook.com · first_name set</option><option>Contact without first_name · fallback “there”</option><option>Random Active contact</option></select></label>
+      <button type="button" class="btn">Send test to linh@acme.io</button>
+      <a href="SendReadiness.dc.html" class="btn pri" aria-label="Review and send. Readiness: ready with 3 warnings">Review &amp; send · 3 warnings</a>
     </div>
   </header>
 
   <div style="display:flex;flex-wrap:wrap;flex:1;align-items:stretch">
-    <section role="main" id="main" style="flex:999 1 620px;min-width:0;display:flex;flex-direction:column;background:#E9ECF0">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;background:#fff;border-bottom:1px solid #E3E6EB">
-        <div class="seg" role="group" aria-label="Email client"><button class="on">Gmail · web</button><button>Outlook · Windows</button><button>Apple Mail · iOS</button><button>Yahoo</button></div>
-        <div class="seg" role="group" aria-label="Device"><button class="on">Desktop</button><button>Mobile</button></div>
-        <span class="k">Rendered by the real clients through a screenshot service; Outlook uses Word's engine, so MJML's tables matter there.</span>
+    <main id="main" style="flex:999 1 620px;min-width:0;display:flex;flex-direction:column;background:#E9ECF0;gap:12px;padding-bottom:0">
+      <div class="ptools">
+        <div class="vsw"><span class="lbt" id="vsw-l">Previewing:</span>
+          <div class="seg" role="group" aria-labelledby="vsw-l">
+            <button type="button" aria-pressed="{{isA}}" onClick="{{pickA}}">Subject A</button><button type="button" aria-pressed="{{isB}}" onClick="{{pickB}}">Subject B</button>
+          </div>
+        </div>
+        <div class="seg" role="group" aria-label="Approximate as email client"><button type="button" aria-pressed="true">Gmail · web</button><button type="button" aria-pressed="false">Outlook · Windows</button><button type="button" aria-pressed="false">Apple Mail · iOS</button><button type="button" aria-pressed="false">Yahoo</button></div>
+        <div class="seg" role="group" aria-label="Device"><button type="button" aria-pressed="true">Desktop</button><button type="button" aria-pressed="false">Mobile</button></div>
       </div>
-      <div style="flex:1;overflow:auto;padding:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:20px;align-items:start">
+      <div class="honest" role="note">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" style="flex:none"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v4M8 4.9v.2"></path></svg>
+        <span class="t"><b>Approximated in your browser from the compiled HTML.</b> Real renders need a rendering service (Litmus or Mailgun Inspect).</span>
+        <a href="IntegrationsCatalog.dc.html" class="btn sm">Connect</a>
+      </div>
+      <div class="pgrid">
         <div class="card" style="overflow:hidden">
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid #E3E6EB"><span style="font-weight:600;font-size:12px">Gmail · light</span><span class="k">rendered 09:40</span></div>
-          <div style="padding:12px;background:#fff">
-            <div style="display:flex;flex-direction:column;gap:2px;padding:0 0 10px;border-bottom:1px solid #EEF0F3;margin-bottom:10px"><span style="font-size:15px;font-weight:600">Three launches, one deprecation, and the roadmap for Q4</span><span class="k"><b style="color:#0B1220">Acme Newsletter</b> &lt;digest@news.acme.io&gt; · to me · 9:00 AM</span></div>
+          <div class="chd"><span style="font-weight:600;font-size:12px">Gmail · light<span class="vtag">{{vLabel}}</span></span><span class="ap">Approximated 09:40</span></div>
+          <div style="padding:12px;background:#FFFFFF">
+            <div style="display:flex;flex-direction:column;gap:2px;padding:0 0 10px;border-bottom:1px solid #EEF0F3;margin-bottom:10px"><span style="font-size:15px;font-weight:600">{{subj}}</span><span class="k"><b style="color:#0B1220">Acme Newsletter</b> &lt;digest@news.acme.io&gt; · to me · 9:00 AM</span></div>
             <div class="mail" style="color:#1F2937">
               <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0"><div class="ph" style="width:60px;height:18px">Logo</div><span style="font-family:'IBM Plex Sans',sans-serif;font-size:10px;color:#5B6472">Blog · Docs · Changelog</span></div>
               <div class="ph" style="height:90px;margin:6px 0">Hero image</div>
-              <div style="font-size:16px;font-weight:700;color:#0B1220;margin:4px 0">Three launches, one deprecation, and the roadmap for Q4</div>
-              <div>Hi Sam, here's what shipped this week at Acme, what we're retiring in November, and where the next quarter is headed.</div>
-              <div style="display:flex;gap:10px;margin-top:10px"><div style="flex:1"><div class="ph" style="height:50px"></div><div style="font-weight:700;margin-top:4px;color:#0B1220">Feature flags are generally available</div><span style="display:inline-block;margin-top:4px;padding:5px 8px;background:#0F766E;color:#fff;font-family:'IBM Plex Sans',sans-serif;font-size:10px;font-weight:600;border-radius:4px">Read the docs</span></div><div style="flex:1"><div class="ph" style="height:50px"></div><div style="font-weight:700;margin-top:4px;color:#0B1220">Audit log exports</div><span style="display:inline-block;margin-top:4px;padding:5px 8px;background:#0F766E;color:#fff;font-family:'IBM Plex Sans',sans-serif;font-size:10px;font-weight:600;border-radius:4px">See the changelog</span></div></div>
+              <div style="font-size:16px;font-weight:700;color:#0B1220;margin:4px 0">{{head}}</div>
+              <div>Hi <sc-if value="{{isA}}" hint-placeholder-val="{{true}}">Sam</sc-if><sc-if value="{{isB}}" hint-placeholder-val="{{false}}"><span class="blank" title="frist_name is empty for every contact">empty</span></sc-if>, {{intro}}</div>
+              <div style="display:flex;gap:10px;margin-top:10px"><div style="flex:1"><div class="ph" style="height:50px"></div><div style="font-weight:700;margin-top:4px;color:#0B1220">Feature flags are generally available</div><span style="display:inline-block;margin-top:4px;padding:5px 8px;background:#0F766E;color:#FFFFFF;font-family:'IBM Plex Sans',sans-serif;font-size:10px;font-weight:600;border-radius:4px">Read the docs</span></div><div style="flex:1"><div class="ph" style="height:50px"></div><div style="font-weight:700;margin-top:4px;color:#0B1220">Audit log exports</div><span style="display:inline-block;margin-top:4px;padding:5px 8px;background:#0F766E;color:#FFFFFF;font-family:'IBM Plex Sans',sans-serif;font-size:10px;font-weight:600;border-radius:4px">See the changelog</span></div></div>
               <div style="margin-top:12px;padding:8px;background:#F3F4F6;font-family:'IBM Plex Sans',sans-serif;font-size:9.5px;color:#5B6472;text-align:center">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105 · Unsubscribe · Email preferences</div>
             </div>
           </div>
         </div>
-        <div class="card" style="overflow:hidden;border-color:#374151">
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid #374151;background:#111827;color:#E5E7EB"><span style="font-weight:600;font-size:12px">Gmail · dark mode</span><span style="font-size:12px;color:#9CA3AF">Gmail inverts light backgrounds; buttons keep their color</span></div>
+        <div class="card dark" style="overflow:hidden;border-color:#374151">
+          <div class="chd" style="border-bottom-color:#374151;background:#111827;color:#E5E7EB"><span style="font-weight:600;font-size:12px">Gmail · dark mode<span class="vtag" style="background:#1F2937;color:#E5E7EB">{{vLabel}}</span></span><span style="font-size:12px;color:#C3C2B7">Approximates Gmail's colour inversion</span></div>
           <div style="padding:12px;background:#111827;color:#E5E7EB">
-            <div style="display:flex;flex-direction:column;gap:2px;padding:0 0 10px;border-bottom:1px solid #1F2937;margin-bottom:10px"><span style="font-size:15px;font-weight:600">Three launches, one deprecation, and the roadmap for Q4</span><span style="font-size:12px;color:#9CA3AF"><b style="color:#E5E7EB">Acme Newsletter</b> &lt;digest@news.acme.io&gt; · to me · 9:00 AM</span></div>
+            <div style="display:flex;flex-direction:column;gap:2px;padding:0 0 10px;border-bottom:1px solid #1F2937;margin-bottom:10px"><span style="font-size:15px;font-weight:600">{{subj}}</span><span style="font-size:12px;color:#C3C2B7"><b style="color:#E5E7EB">Acme Newsletter</b> &lt;digest@news.acme.io&gt; · to me · 9:00 AM</span></div>
             <div class="mail" style="color:#D1D5DB">
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0"><div class="ph" style="width:60px;height:18px;background:#1F2937;border-color:#374151;color:#9CA3AF">Logo</div><span style="font-family:'IBM Plex Sans',sans-serif;font-size:10px;color:#9CA3AF">Blog · Docs · Changelog</span></div>
-              <div class="ph" style="height:90px;margin:6px 0;background:#1F2937;border-color:#374151;color:#9CA3AF">Hero image · PNG with transparency survives inversion</div>
-              <div style="font-size:16px;font-weight:700;color:#F9FAFB;margin:4px 0">Three launches, one deprecation, and the roadmap for Q4</div>
-              <div>Hi Sam, here's what shipped this week at Acme, what we're retiring in November, and where the next quarter is headed.</div>
-              <div style="display:flex;gap:10px;margin-top:10px"><div style="flex:1"><div class="ph" style="height:50px;background:#1F2937;border-color:#374151"></div><div style="font-weight:700;margin-top:4px;color:#F9FAFB">Feature flags are generally available</div><span style="display:inline-block;margin-top:4px;padding:5px 8px;background:#0F766E;color:#fff;font-family:'IBM Plex Sans',sans-serif;font-size:10px;font-weight:600;border-radius:4px">Read the docs</span></div><div style="flex:1"><div class="ph" style="height:50px;background:#1F2937;border-color:#374151"></div><div style="font-weight:700;margin-top:4px;color:#F9FAFB">Audit log exports</div><span style="display:inline-block;margin-top:4px;padding:5px 8px;background:#0F766E;color:#fff;font-family:'IBM Plex Sans',sans-serif;font-size:10px;font-weight:600;border-radius:4px">See the changelog</span></div></div>
-              <div style="margin-top:12px;padding:8px;background:#1F2937;font-family:'IBM Plex Sans',sans-serif;font-size:9.5px;color:#9CA3AF;text-align:center">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105 · Unsubscribe · Email preferences</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0"><div class="ph" style="width:60px;height:18px;background:#1F2937;border-color:#374151;color:#C3C2B7">Logo</div><span style="font-family:'IBM Plex Sans',sans-serif;font-size:10px;color:#C3C2B7">Blog · Docs · Changelog</span></div>
+              <div class="ph" style="height:90px;margin:6px 0;background:#1F2937;border-color:#374151;color:#C3C2B7">Hero image · PNG with transparency survives inversion</div>
+              <div style="font-size:16px;font-weight:700;color:#F9FAFB;margin:4px 0">{{head}}</div>
+              <div>Hi <sc-if value="{{isA}}" hint-placeholder-val="{{true}}">Sam</sc-if><sc-if value="{{isB}}" hint-placeholder-val="{{false}}"><span class="blank">empty</span></sc-if>, {{intro}}</div>
+              <div style="display:flex;gap:10px;margin-top:10px"><div style="flex:1"><div class="ph" style="height:50px;background:#1F2937;border-color:#374151"></div><div style="font-weight:700;margin-top:4px;color:#F9FAFB">Feature flags are generally available</div><span style="display:inline-block;margin-top:4px;padding:5px 8px;background:#0F766E;color:#FFFFFF;font-family:'IBM Plex Sans',sans-serif;font-size:10px;font-weight:600;border-radius:4px">Read the docs</span></div><div style="flex:1"><div class="ph" style="height:50px;background:#1F2937;border-color:#374151"></div><div style="font-weight:700;margin-top:4px;color:#F9FAFB">Audit log exports</div><span style="display:inline-block;margin-top:4px;padding:5px 8px;background:#0F766E;color:#FFFFFF;font-family:'IBM Plex Sans',sans-serif;font-size:10px;font-weight:600;border-radius:4px">See the changelog</span></div></div>
+              <div style="margin-top:12px;padding:8px;background:#1F2937;font-family:'IBM Plex Sans',sans-serif;font-size:9.5px;color:#C3C2B7;text-align:center">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105 · Unsubscribe · Email preferences</div>
             </div>
           </div>
         </div>
         <div class="card" style="padding:12px;display:flex;flex-direction:column;gap:8px">
-          <span style="font-weight:600;font-size:12px">Dark-mode checks</span>
+          <span style="font-weight:600;font-size:12px">Dark-mode checks · from the compiled HTML</span>
           <div style="display:flex;gap:8px;align-items:center;font-size:12.5px"><span class="badge ok">Pass</span>Logo is a transparent PNG, readable on dark</div>
-          <div style="display:flex;gap:8px;align-items:center;font-size:12.5px"><span class="badge ok">Pass</span>Button text contrast 7.1:1 on #0F766E in both modes</div>
-          <div style="display:flex;gap:8px;align-items:center;font-size:12.5px"><span class="badge warn">Warn</span>Outlook for Windows ignores dark-mode meta; footer grey #5B6472 drops to 3.9:1 on inverted background</div>
+          <div style="display:flex;gap:8px;align-items:center;font-size:12.5px"><span class="badge ok">Pass</span>Button text 5.5:1 on #0F766E in both modes</div>
+          <div style="display:flex;gap:8px;align-items:center;font-size:12.5px"><span class="badge warn">Warn</span>Outlook for Windows ignores the dark-mode meta tag; footer grey #5B6472 may drop to 3.9:1 if it inverts the background</div>
         </div>
         <div class="card" style="padding:12px;display:flex;flex-direction:column;gap:8px">
-          <span style="font-weight:600;font-size:12px">Plain-text version</span>
-          <pre class="mono" style="margin:0;font-size:11.5px;line-height:1.5;white-space:pre-wrap;color:#374151">THREE LAUNCHES, ONE DEPRECATION, AND THE ROADMAP FOR Q4
+          <span style="font-weight:600;font-size:12px">Plain-text version · variant {{v}}</span>
+          <pre class="mono" style="margin:0;font-size:11.5px;line-height:1.5;white-space:pre-wrap;color:#374151">{{ptHead}}
 
-Hi Sam, here's what shipped this week at Acme, what we're retiring in November, and where the next quarter is headed.
+{{ptIntro}}
 
 FEATURE FLAGS ARE GENERALLY AVAILABLE
 Target rollouts by plan, region or percentage, with an audit trail for every change.
@@ -187,56 +415,81 @@ Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105
 Unsubscribe: https://news.acme.io/u/…  Preferences: https://news.acme.io/p/…</pre>
         </div>
       </div>
-    </section>
+    </main>
 
-    <aside class="cpanel" style="flex:1 1 340px;max-width:380px;background:#fff;border-left:1px solid #E3E6EB;display:flex;flex-direction:column;gap:0">
+    <aside class="cpanel" style="flex:1 1 340px;max-width:380px;background:#FFFFFF;border-left:1px solid #E3E6EB;display:flex;flex-direction:column;gap:0">
       <div style="padding:14px 16px;border-bottom:1px solid #EEF0F3;display:flex;flex-direction:column;gap:8px">
-        <h2 class="h2">Inbox preview</h2>
-        <div style="display:flex;flex-direction:column;gap:4px;padding:10px;border:1px solid #E3E6EB;border-radius:8px;background:#F9FAFB;font-size:12px"><div style="display:flex;justify-content:space-between"><b>Acme Newsletter</b><span class="k">9:00 AM</span></div><span style="font-weight:600">Three launches, one deprecation, and the roadmap for Q4</span><span class="k">Feature flags are GA, audit log exports, and what we're retiring in November.</span></div>
-        <span class="k">Subject 57 characters · preheader 78 · Gmail shows about 70 + 90 on desktop, iPhone about 35 + 80.</span>
+        <h2 class="h2">Inbox preview · variant {{v}}</h2>
+        <div style="display:flex;flex-direction:column;gap:4px;padding:10px;border:1px solid #E3E6EB;border-radius:8px;background:#F9FAFB;font-size:12px"><div style="display:flex;justify-content:space-between"><b>Acme Newsletter</b><span class="k">9:00 AM</span></div><span style="font-weight:600">{{subj}}</span><span class="k">Feature flags are GA, audit log exports, and what we're retiring in November.</span></div>
+        <span class="k">Subject {{subjLen}} characters · preheader 77 · Gmail shows about 70 + 90 on desktop, iPhone about 35 + 80.</span>
       </div>
 
       <div style="padding:14px 16px;border-bottom:1px solid #EEF0F3;display:flex;flex-direction:column;gap:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="h2">Personalization</h2><span class="badge ok">0 missing fields</span></div>
-        <div style="display:flex;flex-direction:column;gap:6px;font-size:12.5px">
-          <div style="display:flex;justify-content:space-between;gap:8px"><span class="mono" style="font-size:12px">{{tok}}</span><span>→ <b>Sam</b></span></div>
-          <div style="display:flex;justify-content:space-between;gap:8px"><span class="mono" style="font-size:12px">{{tokPlan}}</span><span>→ <b>team</b></span></div>
-          <div style="display:flex;justify-content:space-between;gap:8px"><span class="mono" style="font-size:12px">{{unsub}}</span><span>→ <b>per-recipient link</b></span></div>
+        <div class="prow"><h2 class="h2">Personalization</h2><span class="badge warn"><span class="dot"></span>1 unknown field</span></div>
+        <div style="display:flex;flex-direction:column">
+          <div class="tokr"><code>{{tok}}</code><span>→ <b>Sam</b></span></div>
+          <div class="tokr"><code>{{tokPlan}}</code><span>→ <b>team</b></span></div>
+          <div class="tokr"><code>{{unsub}}</code><span>→ <b>per-recipient link</b></span></div>
+          <div class="tokr"><code>{{typo}}</code><span>→ <b>empty</b></span>
+            <div class="w" role="note"><span><b style="font-weight:600">frist_name isn't a contact field</b> (did you mean first_name?). It's in variant B, first paragraph, so everyone who gets B would see “Hi ,”.</span><button type="button" class="btn sm">Replace with first_name</button></div>
+          </div>
         </div>
-        <span class="k">412 recipients have no first_name and will see "there".</span>
+        <span class="k">412 of 31,192 recipients have no first_name and will see “there”.</span>
       </div>
 
       <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="h2">A/B variants</h2><button class="btn sm">Add variant</button></div>
+        <div class="prow"><h2 class="h2">A/B test</h2><button type="button" class="btn sm">Add variant</button></div>
         <div class="card" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px">
-          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600">Subject line</span><span class="badge info">Active</span></div>
-          <label class="lbl">A · 50% of sample<input class="in" value="Three launches, one deprecation, and the roadmap for Q4"></label>
-          <label class="lbl">B · 50% of sample<input class="in" value="What shipped this week, and what we're retiring"></label>
-          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px"><label class="lbl">Sample size<select class="in"><option>20% · 6,320 recipients</option><option>10%</option><option>30%</option></select></label><label class="lbl">Winner by<select class="in"><option>Human opens after 2 h</option><option>Clicks after 2 h</option><option>Manual pick</option></select></label></div>
-          <span class="k">Winner sends to the remaining 25,284 at 11:00. Human opens exclude Apple Mail prefetches, so the winner is real.</span>
+          <div class="prow"><span style="font-weight:600">Subject and intro</span><span class="badge info">Active</span></div>
+          <label class="lbl">A · 50% of the sample<input class="in" value="Three launches, one deprecation, and the roadmap for Q4"></label>
+          <label class="lbl">B · 50% of the sample<input class="in" value="What shipped this week, and what we're retiring"></label>
+          <span class="k">B also changes the headline and the first paragraph. <a href="Composer.dc.html">Edit B on the canvas</a></span>
+          <label class="lbl">Sample size<select class="in"><option>20% · 6,238 recipients</option><option>10% · 3,119 recipients</option><option>30% · 9,357 recipients</option></select></label>
+          <label class="lbl">Test length<select class="in"><option>2 hours</option><option>1 hour</option><option>4 hours</option><option>24 hours</option></select></label>
+          <label class="lbl">Winner by<select class="in"><option>Clicks (recommended)</option><option>Human opens</option><option>Pick by hand</option></select><span class="k">Apple Mail opens every email on download, so opens overstate interest. Clicks don't.</span></label>
+          <div class="rule"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span>ReputeCast picks a winner only when it is significant at 95% with at least 500 recipients per variant; otherwise everyone else gets A.</span></div>
+          <span class="k">3,119 recipients per variant. At 11:00 the winner, or A, goes to the remaining 24,954.</span>
         </div>
         <div class="card" style="padding:10px 12px;display:flex;flex-direction:column;gap:6px;border-style:dashed">
-          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600">Content</span><button class="btn sm">Set up</button></div>
-          <span class="k">Duplicate the body as variant B and edit it on the canvas. Route and audience stay shared.</span>
-        </div>
-        <div class="card" style="padding:10px 12px;display:flex;flex-direction:column;gap:6px;border-style:dashed">
-          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600">Send time</span><button class="btn sm">Set up</button></div>
-          <span class="k">Compare 09:00 against 14:00 recipient-local, or use best time per recipient.</span>
+          <div class="prow"><span style="font-weight:600">Send time</span><button type="button" class="btn sm">Set up</button></div>
+          <span class="k">Compare 09:00 against 14:00 recipient-local, or use the best time per recipient.</span>
         </div>
       </div>
     </aside>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1064}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1362}}'>
 class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { v: 'A' };
+  }
   renderVals() {
+    var self = this;
+    var A = this.state.v === 'A';
     var o = '{' + '{';
     var c = '}' + '}';
+    var subjA = 'Three launches, one deprecation, and the roadmap for Q4';
+    var subjB = 'What shipped this week, and what we\'re retiring';
+    var introA = 'here\'s what shipped this week at Acme, what we\'re retiring in November, and where the next quarter is headed.';
+    var introB = 'three things shipped this week and one is going away: the v1 API retires on 30 November.';
     return {
-      tok: o + ' first_name | "there" ' + c,
-      tokPlan: o + ' plan | "free" ' + c,
-      unsub: o + ' unsubscribe_url ' + c
+      v: A ? 'A' : 'B',
+      vLabel: A ? 'Variant A' : 'Variant B',
+      isA: A, isB: !A,
+      pickA: function () { self.setState({ v: 'A' }); },
+      pickB: function () { self.setState({ v: 'B' }); },
+      subj: A ? subjA : subjB,
+      subjLen: A ? '55' : '47',
+      head: A ? subjA : subjB,
+      intro: A ? introA : introB,
+      ptHead: (A ? subjA : subjB).toUpperCase(),
+      ptIntro: A ? 'Hi Sam, ' + introA : 'Hi , ' + introB,
+      tok: o + ' first_name | default: "there" ' + c,
+      tokPlan: o + ' plan | default: "free" ' + c,
+      unsub: o + ' unsubscribe_url ' + c,
+      typo: o + ' frist_name ' + c
     };
   }
 }

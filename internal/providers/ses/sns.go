@@ -263,11 +263,13 @@ type sesEvent struct {
 	Open *struct {
 		Timestamp string `json:"timestamp"`
 		UserAgent string `json:"userAgent"`
+		IPAddress string `json:"ipAddress"`
 	} `json:"open"`
 	Click *struct {
 		Timestamp string `json:"timestamp"`
 		Link      string `json:"link"`
 		UserAgent string `json:"userAgent"`
+		IPAddress string `json:"ipAddress"`
 	} `json:"click"`
 	Subscription *struct {
 		Timestamp string `json:"timestamp"`
@@ -421,7 +423,7 @@ func normalize(se sesEvent) []providers.Event {
 			ev.OriginalType = "Open"
 			if se.Open != nil {
 				ev.OccurredAt = parseTime(se.Open.Timestamp)
-				ev.UserAgent = se.Open.UserAgent
+				ev.UserAgent, ev.IP = se.Open.UserAgent, se.Open.IPAddress
 			}
 			out = append(out, ev)
 		}
@@ -434,7 +436,7 @@ func normalize(se sesEvent) []providers.Event {
 			if se.Click != nil {
 				ev.OccurredAt = parseTime(se.Click.Timestamp)
 				ev.URL = se.Click.Link
-				ev.UserAgent = se.Click.UserAgent
+				ev.UserAgent, ev.IP = se.Click.UserAgent, se.Click.IPAddress
 			}
 			out = append(out, ev)
 		}

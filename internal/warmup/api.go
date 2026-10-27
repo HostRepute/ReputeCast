@@ -30,6 +30,13 @@ type createInput struct {
 	Body NewPlanInput
 }
 
+type holdInput struct {
+	api.WorkspaceInput
+	PlanID     string `path:"planId" format:"uuid"`
+	CampaignID string `path:"campaignId" format:"uuid"`
+	Body       WarmupHoldDecision
+}
+
 // Register adds the warm-up operations.
 func Register(h huma.API, s *Service) {
 	tags := []string{"Warm-up"}
@@ -54,6 +61,16 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "pause-warmup", Path: "/workspaces/{workspace}/warmup/{planId}/pause", Summary: "Pause a warm-up plan", Tags: tags, Access: manage},
 		func(ctx context.Context, in *planInput) (*api.Body[WarmupPlanView], error) {
 			out, err := s.SetPaused(ctx, api.WorkspaceFrom(ctx), in.PlanID, true)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "decide-warmup-hold", Path: "/workspaces/{workspace}/warmup/{planId}/held/{campaignId}",
+		Summary: "Wait for tomorrow's cap, move or cancel a share held at the warm-up cap",
+		Description: "A share held at a warming provider's daily cap waits for tomorrow's cap by itself. Move sends it through another provider once it passes " +
+			"the same checks as a failover target; cancel drops the held rest of this share only. Cancelling needs campaigns:pause; waiting and moving resume " +
+			"the send and need campaigns:send.",
+		Tags: tags, Access: api.Workspace(authz.CampaignsPause)},
+		func(ctx context.Context, in *holdInput) (*api.Body[WarmupHoldDecisionResult], error) {
+			out, err := s.DecideCapHold(ctx, api.WorkspaceFrom(ctx), in.PlanID, in.CampaignID, in.Body)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "resume-warmup", Path: "/workspaces/{workspace}/warmup/{planId}/resume", Summary: "Resume a paused warm-up plan", Tags: tags, Access: manage},

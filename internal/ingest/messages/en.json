@@ -1,6 +1,6 @@
 {
   "problem.pickProvider": "Pick a sending provider.",
   "provider.bounceMailbox": { "message": "SMTP · bounce mailbox", "note": "the event log's provider column for events read from an SMTP provider's bounce mailbox" },
-  "source.kind": { "message": "{kind, select, double_opt_in {Double opt-in confirmation} preference_link {Preference-center link} invite {Team invite} password_reset {Password reset} api {API · transactional} other {Placement test copy}}", "note": "what sent the message, in the event log's Source column" },
+  "source.kind": { "message": "{kind, select, double_opt_in {Double opt-in confirmation} preference_link {Preference-center link} invite {Team invite} password_reset {Password reset} api {API · transactional} smtp {SMTP relay · transactional} other {Placement test copy}}", "note": "what sent the message, in the event log's Source column" },
   "source.step": { "message": "{automation} · step {step}", "note": "automation: an automation's name, never translated; step: its step number" }
 }

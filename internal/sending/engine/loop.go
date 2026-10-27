@@ -79,6 +79,9 @@ type runRoute struct {
 	carry     float64
 	cooldown  time.Time
 	lastProbe time.Time
+	// warm is today's warm-up allowance of a warming provider (nil
+	// otherwise), as this run spends it (warmup_send.go).
+	warm *warmRoute
 }
 
 // active reports whether the route may send now.
@@ -248,6 +251,7 @@ func (e *Engine) loadRoutes(ctx context.Context, rs *runState, now time.Time) er
 		}
 		r.provider, r.planned, r.status, r.detail = p, row.Planned, row.Status, parseRouteDetail(row.StatusDetail)
 		r.rate = e.rateOf(ctx, e.Q, p, rs.loc, now)
+		r.warm = e.warmRouteFor(ctx, p, now)
 		r.batch = batchSize(p)
 		r.tracked = state.TrackingOf(p).Mode != "provider"
 		if pr := state.PricingOf(p); pr.Model == "metered" {
@@ -421,18 +425,17 @@ func (e *Engine) refill(rs *runState, now time.Time) {
 // tick sends one second's allowance through one route.
 func (e *Engine) tick(ctx context.Context, rs *runState, r *runRoute, now time.Time) (int, error) {
 	rate := r.rate.PerSecond
-	if r.rate.WarmingUp && r.rate.Cap > 0 {
-		left := r.rate.Cap - r.rate.SentToday
-		if left <= 0 {
-			return 0, nil
-		}
+	// Today's warm-up cap (or a paused plan) stops queued mail: overflow
+	// to a warm provider, or hold the share with choices (PR-8).
+	if e.warmStopped(rs, r) {
+		return 0, e.warmCapReached(ctx, rs, r, now)
 	}
 	r.carry += rate
 	want := int(math.Floor(r.carry))
 	if want <= 0 {
 		return 0, nil
 	}
-	alloc := e.allocate(rs, r, want)
+	alloc := e.allocateWarm(rs, r, want)
 	total := 0
 	for _, n := range alloc {
 		total += n
@@ -474,6 +477,7 @@ func (e *Engine) tick(ctx context.Context, rs *runState, r *runRoute, now time.T
 		c.queued = max(c.queued-int64(len(rows)), 0)
 		rs.queue[k] = c
 	}
+	r.warm.sent(claimed)
 	r.carry -= float64(len(claimed))
 	if r.carry < 0 {
 		r.carry = 0
@@ -726,7 +730,7 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 			if res.Err == nil {
 				out.sentIDs = append(out.sentIDs, p.row.ID)
 				out.sentPMID = append(out.sentPMID, res.ProviderMessageID)
-				out.cell(p.row.MailboxProvider, p.row.Variant).sent++
+				out.cell(p.row.MailboxProvider, cellVariant(p.row.Variant, p.row.AbRollout)).sent++
 				out.cost += r.micros
 				if r.sim != nil && !e.QuietDemo {
 					out.sims = append(out.sims, simRows(rs.campaign.WorkspaceID, &rs.campaign.ID, p.row.ID, r.provider.ID, now, r.sim.Plan(p.msg))...)
@@ -738,7 +742,7 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 				continue
 			}
 			out.drop(p.row.ID, "rejected", res.Err.Error())
-			out.cell(p.row.MailboxProvider, p.row.Variant).rejected++
+			out.cell(p.row.MailboxProvider, cellVariant(p.row.Variant, p.row.AbRollout)).rejected++
 		}
 	}
 	// The provider has the batch now: the outcome must be recorded, or the
@@ -874,6 +878,7 @@ func (e *Engine) compose(rs *runState, r *runRoute, m store.SendingClaimRow, ext
 		for _, l := range tpl.Links {
 			links[LinkVar(l.Position)] = e.URLs.Click(sign(linktoken.Click, uint32(off+l.Position)))
 		}
+		links[HoneypotVar] = e.URLs.Honeypot(sign(linktoken.Honeypot, 0))
 	}
 	var attrs map[string]any
 	if len(m.Attributes) > 0 {

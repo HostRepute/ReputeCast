@@ -8,7 +8,7 @@ import { ScrollPre } from '@/components/ui/ScrollPre'
 import { T, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
-import { clock } from '@/lib/format'
+import { clock, clockSeconds } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { mn } from './connection.messages'
 import { m } from './messages'
@@ -64,6 +64,9 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
     return failedKey && (failedKey.field === f.key || (!failedKey.field && f.key === firstSecret)) ? failedKey : undefined
   }
   const extraOpen = extra.some((f) => errorFor(f) || (f.secret ? f.set : Boolean(f.value)))
+  const hook = c.webhook
+  const caption =
+    connected && hook?.mode === 'webhook' ? (hook.canTest ? t(mn.continueTest, { provider: info.short }) : t(mn.continueFirstEvent, { provider: info.short })) : undefined
   return (
     <>
       <StepHeading title={info.heading}>{info.lead}</StepHeading>
@@ -120,6 +123,8 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
             {t(common.back)}
           </ButtonLink>
         }
+        caption={caption}
+        captionId="api-continue-why"
       >
         <Button onClick={saveLater} disabledReason={reason}>
           {t(mn.saveLater)}
@@ -128,6 +133,7 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
           variant="primary"
           className={continueClass}
           onClick={() => go('domain')}
+          aria-describedby={caption ? 'api-continue-why' : undefined}
           disabledReason={c.canContinue ? undefined : connected ? t(mn.webhookFirst) : t(mn.connectFirst, { provider: info.short })}
         >
           {t(mn.continueDomain)}
@@ -203,7 +209,12 @@ function KeyField({
   )
 }
 
-/** How events come back: the endpoint self-test, registration, or polling. */
+/**
+ * How events come back (PR-9): the webhook is registered, then the provider
+ * proves it reaches it with a test webhook (or, when it can't send one on
+ * request, the first event of the test send). ReputeCast never calls its own
+ * URL: an address check only spots addresses no provider can reach.
+ */
 function WebhooksCard({ setup, webhook: w, reason }: { setup: Schemas['ConnectSetup']; webhook: Schemas['ConnectWebhook']; reason?: string }) {
   const t = useT()
   const { slug } = useWorkspace()
@@ -211,15 +222,19 @@ function WebhooksCard({ setup, webhook: w, reason }: { setup: Schemas['ConnectSe
   const info = setup.info
   const name = info.short
   const [tunnel, setTunnel] = useState(w.publicUrl)
-  const test = w.selfTest
-  const unreachable = Boolean(test && !test.ok)
+  const check = w.selfTest
+  const blocked = Boolean(check && !check.ok)
+  const test = w.test
+  const missing = test?.status === 'missing' || test?.status === 'refused'
+  const problem = missing || (blocked && !test)
   const reg = w.registration
+  const connected = setup.connection.status === 'connected'
   const retest = () => {
     a.webhook.mutate(
       { publicUrl: tunnel.trim() || undefined },
       {
         onSuccess: (s) => {
-          if (s?.connection.webhook?.selfTest?.ok) toast({ title: t(mn.endpointAnswered), detail: reg?.status === 'done' ? undefined : t(mn.webhooksRegistered, { provider: name }) })
+          if (s?.connection.webhook?.test?.status === 'arrived') toast({ title: t(mn.endpointAnswered) })
         },
         onError: failed(t(mn.retestFailed), retest),
       },
@@ -233,7 +248,25 @@ function WebhooksCard({ setup, webhook: w, reason }: { setup: Schemas['ConnectSe
         {t(mn.badgePolling)}
       </Badge>
     )
-  else if (unreachable)
+  else if (missing)
+    badge = (
+      <Badge tone="warn" dot>
+        {t(mn.badgeTestMissing)}
+      </Badge>
+    )
+  else if (test?.status === 'arrived')
+    badge = (
+      <Badge tone="ok" dot>
+        {t(mn.badgeTestArrived)}
+      </Badge>
+    )
+  else if (test?.status === 'waiting')
+    badge = (
+      <Badge tone="info" dot>
+        {t(mn.badgeTestWaiting)}
+      </Badge>
+    )
+  else if (blocked)
     badge = (
       <Badge tone="warn" dot>
         {t(mn.badgeUnreachable)}
@@ -242,7 +275,7 @@ function WebhooksCard({ setup, webhook: w, reason }: { setup: Schemas['ConnectSe
   else if (reg?.status === 'done')
     badge = (
       <Badge tone="ok" dot>
-        {t(mn.badgeRegistered)}
+        {w.canTest ? t(mn.badgeRegistered) : t(mn.badgeFirstEvent)}
       </Badge>
     )
   else if (reg?.status === 'manual')
@@ -257,23 +290,44 @@ function WebhooksCard({ setup, webhook: w, reason }: { setup: Schemas['ConnectSe
         {t(mn.badgeRegistrationFailed)}
       </Badge>
     )
+  const url = w.url || '…'
+  let lead = <span className="text-[13px] text-ink-2">{t(mn.callsLead, { provider: name })}</span>
+  if (w.mode === 'polling') lead = <span className="text-[13px] text-ink-2">{t(mn.pollingLead, { provider: name })}</span>
+  else if (missing)
+    lead = (
+      <span className="text-[13px] text-[#78350F]">
+        <T msg={mn.testMissingLead} values={{ provider: name, url, mono }} />
+      </span>
+    )
+  else if (blocked)
+    lead = (
+      <span className="text-[13px] text-[#78350F]">
+        <T msg={mn.unreachableLead} values={{ provider: name, url, mono }} />
+      </span>
+    )
+  else if (test?.status === 'waiting')
+    lead = (
+      <span className="text-[13px] text-ink-2">
+        <T msg={mn.testWaitingLead} values={{ provider: name, url, mono }} />
+      </span>
+    )
+  else if (connected && !w.canTest && reg?.status === 'done')
+    lead = (
+      <span className="text-[13px] text-ink-2">
+        <T msg={mn.firstEventLead} values={{ provider: name, url, mono }} />
+      </span>
+    )
   const org = orgDomain(setup.domain.suggested)
   return (
-    <section className={cn('card flex flex-col', unreachable && 'border-[#FCD34D]')} aria-labelledby="hooks-h">
-      <div className={cn('flex flex-col gap-1 px-5 py-4', unreachable && 'rounded-t-[10px] bg-[#FFFBEB]')}>
+    <section className={cn('card flex flex-col', problem && 'border-[#FCD34D]')} aria-labelledby="hooks-h">
+      <div className={cn('flex flex-col gap-1 px-5 py-4', problem && 'rounded-t-[10px] bg-[#FFFBEB]')}>
         <div className="flex flex-wrap items-center gap-2.5">
           <h3 className="h2" id="hooks-h">
             {t(mn.webhooksTitle)}
           </h3>
           {badge}
         </div>
-        {unreachable ? (
-          <span className="text-[13px] text-[#78350F]">{t(mn.unreachableLead, { provider: name })}</span>
-        ) : w.mode === 'polling' ? (
-          <span className="text-[13px] text-ink-2">{t(mn.pollingLead, { provider: name })}</span>
-        ) : (
-          <span className="text-[13px] text-ink-2">{t(mn.callsLead, { provider: name })}</span>
-        )}
+        {lead}
       </div>
       {w.mode === 'polling' ? (
         <StatusRow
@@ -287,42 +341,36 @@ function WebhooksCard({ setup, webhook: w, reason }: { setup: Schemas['ConnectSe
           {t(mn.pollingRow, { provider: name })}
         </StatusRow>
       ) : (
-        <>
-          <StatusRow
-            className={unreachable ? 'border-t-[#FDE68A]' : undefined}
-            badge={test ? test.ok ? <Badge tone="ok">{t(m.stateDone)}</Badge> : <Badge tone="bad">{t(m.stateFailed)}</Badge> : <Badge tone="neutral">{t(mn.waiting)}</Badge>}
-            aside={
-              test ? (
-                test.ok ? (
-                  <span className="k">{clock(test.at)}</span>
-                ) : (
-                  <span className="mono k text-bad-fg">{[test.code, test.reason].filter(Boolean).join(' · ')}</span>
-                )
-              ) : (
-                <span className="k">{t(mn.afterKey)}</span>
-              )
-            }
-          >
-            <T msg={mn.selfTest} values={{ url: w.url || '…', mono }} />
-          </StatusRow>
-          <RegisterRow name={name} events={info.webhookEvents} reg={reg} url={w.url} reachable={Boolean(test?.ok)} />
-          {reg?.status === 'manual' && w.needsSecret ? <ManualSecret setup={setup} webhook={w} reason={reason} /> : null}
-        </>
+        <ol className="m-0 list-none p-0">
+          <li>
+            <RegisterRow name={name} events={info.webhookEvents} reg={reg} url={w.url} reachable={!blocked} />
+          </li>
+          {reg?.status === 'manual' && w.needsSecret ? (
+            <li>
+              <ManualSecret setup={setup} webhook={w} reason={reason} />
+            </li>
+          ) : null}
+          <li>
+            <TestRow name={name} webhook={w} connected={connected} />
+          </li>
+        </ol>
       )}
-      {unreachable ? (
+      {problem ? (
         <div className="flex flex-col gap-2.5 border-t border-line-2 px-5 py-3.5">
           <span className="text-[13px] font-semibold">{t(mn.howToFix)}</span>
           <div className="cn-fix grid gap-3 max-md:grid-cols-[repeat(auto-fit,minmax(var(--cn-fix-min,140px),1fr))]!" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))' }}>
             <div className="flex flex-col gap-1.5 rounded-lg border border-line px-3.5 py-3">
               <span className="font-semibold">{t(mn.setPublicUrl)}</span>
               <span className="k">
-                <T msg={test?.private ? mn.publicUrlPrivate : mn.publicUrlUnreachable} values={{ env: 'REPUTECAST_PUBLIC_URL', mono }} />
+                <T msg={check?.private ? mn.publicUrlPrivate : mn.publicUrlUnreachable} values={{ env: 'REPUTECAST_PUBLIC_URL', mono }} />
               </span>
               <ScrollPre className="cn-pre" label={t(mn.envLabel)}>{`REPUTECAST_PUBLIC_URL=https://reputecast.${org}`}</ScrollPre>
             </div>
             <div className="flex flex-col gap-1.5 rounded-lg border border-line px-3.5 py-3">
               <span className="font-semibold">{t(mn.tunnelTitle)}</span>
-              <span className="k">{t(mn.tunnelLine)}</span>
+              <span className="k">
+                <T msg={mn.tunnelLine} values={{ provider: name, env: 'REPUTECAST_PUBLIC_URL', mono }} />
+              </span>
               <label className="lbl">
                 {t(mn.publicUrl)}
                 <input className="in mono" placeholder={'https://…'} value={tunnel} onChange={(e) => setTunnel(e.target.value)} disabled={Boolean(reason)} inputMode="url" />
@@ -340,7 +388,7 @@ function WebhooksCard({ setup, webhook: w, reason }: { setup: Schemas['ConnectSe
           </div>
           <div className="flex flex-wrap gap-2.5">
             <Button variant="primary" onClick={retest} loading={a.webhook.isPending} busyLabel={t(mn.testing)} disabledReason={reason}>
-              {t(mn.retest)}
+              {w.canTest && connected ? t(mn.retest, { provider: name }) : t(mn.recheck)}
             </Button>
             <ButtonAnchor href={REVERSE_PROXY_GUIDE}>{t(mn.proxyGuide)}</ButtonAnchor>
           </div>
@@ -358,6 +406,69 @@ function WebhooksCard({ setup, webhook: w, reason }: { setup: Schemas['ConnectSe
         </div>
       ) : null}
     </section>
+  )
+}
+
+/** The provider's test webhook, or what stands in for it. */
+function TestRow({ name, webhook: w, connected }: { name: string; webhook: Schemas['ConnectWebhook']; connected: boolean }) {
+  const t = useT()
+  const check = w.selfTest
+  const cause =
+    check && !check.ok && check.reason ? (
+      <span className="k block">
+        {t(mn.likelyCause)} <Ticks text={check.reason} />
+      </span>
+    ) : null
+  const test = w.test
+  if (!connected || !w.registration || w.registration.status === 'failed' || w.registration.status === 'skipped') {
+    if (check && !check.ok) {
+      return (
+        <StatusRow badge={<Badge tone="bad">{t(m.stateFailed)}</Badge>} aside={<span className="k whitespace-nowrap">{clockSeconds(check.at)}</span>}>
+          <T msg={mn.addressRow} values={{ url: w.url || '…', mono }} />
+          {cause}
+        </StatusRow>
+      )
+    }
+    return (
+      <StatusRow badge={<Badge tone="neutral">{t(mn.waiting)}</Badge>} aside={<span className="k">{t(mn.afterKey)}</span>}>
+        {t(mn.testRow, { provider: name })}
+      </StatusRow>
+    )
+  }
+  if (!w.canTest) {
+    return (
+      <StatusRow
+        badge={check && !check.ok ? <Badge tone="bad">{t(m.stateFailed)}</Badge> : <Badge tone="neutral">{t(mn.waiting)}</Badge>}
+        aside={<span className="k whitespace-nowrap">{t(mn.afterTestSend)}</span>}
+      >
+        <T msg={mn.firstEventRow} values={{ provider: name, url: w.url, mono }} />
+        {cause}
+      </StatusRow>
+    )
+  }
+  if (!test || test.status === 'waiting') {
+    return (
+      <div className="cn-row">
+        <span className="spin" aria-hidden="true" />
+        <span className="cn-row-text min-w-0">{t(mn.testRow, { provider: name })}</span>
+        <span className="cn-row-aside k ml-auto">{t(mn.waitingAside)}</span>
+      </div>
+    )
+  }
+  if (test.status === 'arrived') {
+    return (
+      <StatusRow badge={<Badge tone="ok">{t(m.stateDone)}</Badge>} aside={test.arrivedAt ? <span className="k whitespace-nowrap">{clockSeconds(test.arrivedAt)}</span> : null}>
+        {t(mn.testArrived, { provider: name })}
+      </StatusRow>
+    )
+  }
+  return (
+    <StatusRow className="bg-bad-tint" badge={<Badge tone="bad">{t(m.stateFailed)}</Badge>} aside={<span className="k whitespace-nowrap">{clockSeconds(test.until)}</span>}>
+      {test.status === 'refused'
+        ? t(mn.testRefused, { provider: name, error: test.error ?? '' })
+        : t(mn.testMissing, { provider: name, from: clockSeconds(test.requestedAt), to: clockSeconds(test.until) })}
+      {cause}
+    </StatusRow>
   )
 }
 

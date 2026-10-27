@@ -30,10 +30,14 @@ export const m = defineMessages('connect', {
   /** Under "Streams" while it's the current step; the provider's short name ("SES"). */
   stepStreamsCurrent: 'What {provider} will carry',
   stepStreamsCurrentNoName: 'What it will carry',
-  stepsFoot: 'Most people finish in about 10 minutes. You can add more providers later and send through several at once.',
+  /** Under the stepper: how long setup takes, honestly (PR-15). */
+  stepsFoot:
+    'Most setups take 10–15 minutes; a new AWS account can wait up to 24 hours for production access. You can add more providers later and send through several at once.',
 
   // ── Status badges of a row ───────────────────────────────────────────
   stateDone: 'Done',
+  /** Events arrived (SetupDone, PR-3). */
+  stateVerified: 'Verified',
   stateFailed: 'Failed',
   stateSkipped: 'Skipped',
   statePending: 'Pending',

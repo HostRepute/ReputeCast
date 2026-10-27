@@ -3,7 +3,6 @@ package manage
 import (
 	"context"
 	"log/slog"
-	"net/http"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -26,8 +25,9 @@ type Service struct {
 	Sending func() sending.Starter
 	Log     *slog.Logger
 	Now     func() time.Time
-	// SelfTest posts the endpoint self-test; nil uses an HTTP client.
-	SelfTest func(ctx context.Context, url string, header http.Header) (int, error)
+	// CheckAddress overrides the webhook address check (tests); nil looks
+	// the address up in DNS. ReputeCast never calls its own URL (PR-9).
+	CheckAddress func(ctx context.Context, url string) (AddressProblem, bool)
 	// Community runs installed community adapters; nil when the build has no
 	// runtime for them.
 	Community CommunityRuntime

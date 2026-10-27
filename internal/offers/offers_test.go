@@ -362,3 +362,118 @@ func TestUpgradeBlockOffer(t *testing.T) {
 		}
 	}
 }
+
+// A referral reward's code is a single-use promotion code of a "Referral
+// reward" offer: issued for the referrer with the milestone's validity (the
+// offer's own without one), recorded with whom it went to, applied once by
+// the upgrade link, then used or expired (the page says which). Review item
+// EXT-1: rewards used to wait forever on a stub.
+func TestReferralRewardCodes(t *testing.T) {
+	s := newSample(t)
+	ctx := context.Background()
+	in := map[string]any{"name": "Referral reward · Insider free for 2 months", "kind": "referral", "discountType": "percent", "percentOff": 100,
+		"duration": "months", "months": 2, "applies": []map[string]any{{"tierId": s.insider, "period": "month"}}, "codeDays": 45}
+	var d offers.OfferDetail
+	s.c.Do(http.MethodPost, ws+"/earn/offers", in).MustStatus(t, 201).JSON(t, &d)
+	if d.Sync != "synced" || d.Stripe.Coupon == "" {
+		t.Fatalf("created: %+v", d.Offer)
+	}
+	o := s.env.App.Offers()
+	list, err := o.ReferralOffers(ctx, &s.ws)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var mine *offers.ReferralOffer
+	for i := range list {
+		if list[i].ID.String() == d.ID {
+			mine = &list[i]
+		}
+	}
+	if mine == nil || mine.Discount != "100% off for 2 months" || !strings.HasSuffix(mine.AppliesTo, " · monthly") || mine.Issued != 0 {
+		t.Fatalf("referral offers: %+v", list)
+	}
+	var contact uuid.UUID
+	if err := s.env.App.Pool.QueryRow(ctx, `SELECT id FROM contacts WHERE workspace_id = $1 AND email = 'omar.haddad@gmail.com'`, s.ws.ID).Scan(&contact); err != nil {
+		t.Fatal(err)
+	}
+	offerID := uuid.MustParse(d.ID)
+	code, err := o.IssueReferralCode(ctx, &s.ws, offerID, contact, 30)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(code.Code) != 10 || code.Code[3] != '-' || !strings.HasSuffix(code.ClaimURL, "upgrade?offer="+code.Code) ||
+		code.ExpiresAt.Sub(s.clock.AddDate(0, 0, 30)).Abs() > time.Minute {
+		t.Fatalf("issued: %+v", code)
+	}
+	var promoID, issuedTo string
+	var expires time.Time
+	if err := s.env.App.Pool.QueryRow(ctx, `SELECT stripe->'live'->>'promo', issued_to, expires_at FROM earn_offer_codes WHERE offer_id = $1 AND code = $2 AND contact_id = $3`,
+		offerID, code.Code, contact).Scan(&promoID, &issuedTo, &expires); err != nil {
+		t.Fatal(err)
+	}
+	promo := s.fake.Get(payments.Live, promoID)
+	if promo == nil || promo["code"] != code.Code || fmt.Sprint(promo["max_redemptions"]) != "1" || promo["expires_at"] == nil ||
+		promo["coupon"].(map[string]any)["id"] != d.Stripe.Coupon || issuedTo != "Omar Haddad" {
+		t.Fatalf("promotion code in Stripe: %v (issued to %q)", promo, issuedTo)
+	}
+	// Without the milestone's validity, the offer's 45 days.
+	other, err := o.IssueReferralCode(ctx, &s.ws, offerID, contact, 0)
+	if err != nil || other.Code == code.Code || other.ExpiresAt.Sub(s.clock.AddDate(0, 0, 45)).Abs() > time.Minute {
+		t.Fatalf("second code: %+v, %v", other, err)
+	}
+
+	// The link applies it on the monthly price only.
+	tier := uuid.MustParse(s.insider)
+	if got := o.CheckoutCode(ctx, &s.ws, "live", strings.ToLower(code.Code), tier, "month"); got != promoID {
+		t.Fatalf("checkout code: %q, want %q", got, promoID)
+	}
+	if got := o.CheckoutCode(ctx, &s.ws, "live", code.Code, tier, "year"); got != "" {
+		t.Fatalf("yearly checkout got a code: %q", got)
+	}
+	v, err := s.env.App.Earn().Upgrade(ctx, &s.ws, earn.UpgradeRequest{Offer: code.Code, Lang: earn.PageLang})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.Offer == nil || v.OfferCode != code.Code || v.Period != "month" {
+		t.Fatalf("upgrade page: period %s, code %q, offer %+v", v.Period, v.OfferCode, v.Offer)
+	}
+
+	// A subscription takes it: it's used, and doesn't apply again.
+	tx, err := s.env.App.Pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := o.CodeRedeemed(ctx, tx, &s.ws, strings.ToLower(code.Code), *s.clock); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := o.CheckoutCode(ctx, &s.ws, "live", code.Code, tier, "month"); got != "" {
+		t.Fatalf("a used code still applies: %q", got)
+	}
+	v, err = s.env.App.Earn().Upgrade(ctx, &s.ws, earn.UpgradeRequest{Offer: code.Code, Lang: earn.PageLang})
+	if err != nil || v.Offer != nil || v.Notice == nil || v.Notice.Title != "This code has been used" {
+		t.Fatalf("upgrade page with a used code: %+v, %v", v.Notice, err)
+	}
+	if list, _ := o.ReferralOffers(ctx, &s.ws); len(list) == 0 || func() bool {
+		for _, x := range list {
+			if x.ID == offerID {
+				return x.Issued != 2 || x.Redeemed != 1
+			}
+		}
+		return true
+	}() {
+		t.Fatalf("counts after redeeming: %+v", list)
+	}
+
+	// Past its date the second code no longer applies either.
+	*s.clock = s.clock.AddDate(0, 0, 46)
+	if got := o.CheckoutCode(ctx, &s.ws, "live", other.Code, tier, "month"); got != "" {
+		t.Fatalf("an expired code still applies: %q", got)
+	}
+	v, err = s.env.App.Earn().Upgrade(ctx, &s.ws, earn.UpgradeRequest{Offer: other.Code, Lang: earn.PageLang})
+	if err != nil || v.Notice == nil || v.Notice.Title != "This code has expired" {
+		t.Fatalf("upgrade page with an expired code: %+v, %v", v.Notice, err)
+	}
+}

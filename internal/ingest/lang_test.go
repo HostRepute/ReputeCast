@@ -32,6 +32,9 @@ func TestEventLogInVietnamese(t *testing.T) {
 	seen := map[string]bool{}
 	for i, it := range vl.Items {
 		e := el.Items[i]
+		if e.Source == e.Channel {
+			t.Fatalf("the source names how the event came in (%q), not what sent the message", e.Source)
+		}
 		switch e.Source {
 		case "Double opt-in confirmation":
 			seen["opt-in"] = it.Source == "Thư xác nhận hai bước"

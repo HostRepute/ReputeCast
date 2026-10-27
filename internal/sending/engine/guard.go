@@ -140,6 +140,10 @@ func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.D
 	switch {
 	case queued == 0 && held == 0:
 		return 0, e.finish(ctx, rs, ts, now)
+	case held == 0 && queued > 0 && queued == blocked && e.warmWaiting(rs) == blocked:
+		// Only shares a warm-up cap holds are left: they go on with the next
+		// day's cap (or the plan's resume) by themselves (warmup_send.go).
+		return 30 * time.Second, nil
 	case held == 0 && queued > 0 && queued == blocked:
 		// Only held shares are left: nothing sends until someone decides.
 		return 0, e.waitForDecision(ctx, rs, now)
@@ -743,78 +747,6 @@ func (e *Engine) callLines(k routeKey) []IncidentLogLine {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	return append([]IncidentLogLine(nil), l.lines...)
-}
-
-// checkAB decides an A/B test when its window ends and releases the winner
-// to everyone who waited.
-func (e *Engine) checkAB(ctx context.Context, rs *runState, ts tallies, now time.Time) error {
-	if rs.ab.Phase != "testing" || rs.ab.DecideAt == nil || now.Before(*rs.ab.DecideAt) {
-		return nil
-	}
-	winner, rates := abWinner(rs.ab, ts)
-	return e.decideAB(ctx, rs.campaign, winner, rates, nil, "", now)
-}
-
-// abWinner picks the variant with the best rate on the test's metric.
-func abWinner(ab abState, ts tallies) (string, map[string]float64) {
-	rates := map[string]float64{}
-	best, bestRate := "", -1.0
-	for _, v := range ab.Variants {
-		t := ts.variant[v]
-		r := 0.0
-		if t != nil {
-			if ab.Metric == "clicks" {
-				r = rate(t.clicked, t.delivered)
-			} else {
-				r = rate(t.human, t.delivered)
-			}
-		}
-		rates[v] = round2(r)
-		if r > bestRate {
-			best, bestRate = v, r
-		}
-	}
-	return best, rates
-}
-
-func (e *Engine) decideAB(ctx context.Context, c store.SendingCampaignContextRow, winner string, rates map[string]float64, by *uuid.UUID, byName string, now time.Time) error {
-	err := db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		s, err := q.SendingGetSendForUpdate(ctx, c.ID)
-		if err != nil {
-			return err
-		}
-		ab := parseAB(s.Ab)
-		if ab.Phase != "testing" {
-			return nil
-		}
-		cid := c.ID
-		released, err := q.SendingReleaseHeld(ctx, store.SendingReleaseHeldParams{CampaignID: &cid, Variant: winner})
-		if err != nil {
-			return err
-		}
-		ab.Phase, ab.Winner, ab.DecidedAt, ab.DecidedBy, ab.Rates = "decided", winner, &now, byName, rates
-		b, _ := json.Marshal(ab)
-		if err := q.SendingSetAB(ctx, store.SendingSetABParams{CampaignID: c.ID, Ab: b, At: now}); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `UPDATE campaigns SET ab_test = jsonb_set(coalesce(ab_test, '{}'::jsonb), '{winner}', to_jsonb($2::text)) WHERE id = $1 AND ab_test IS NOT NULL`, c.ID, winner); err != nil {
-			return err
-		}
-		actor := systemActor
-		if by != nil {
-			actor = &audit.Actor{Type: authz.ActorUser, ID: by, Name: byName}
-		}
-		if audit.PrincipalFrom(ctx) != nil {
-			actor = nil
-		}
-		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.ab_winner_picked", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Actor: actor, After: map[string]any{"winner": winner, "rates": rates, "released": released}})
-	})
-	if err == nil {
-		e.kick(ctx, c.ID)
-	}
-	return err
 }
 
 // waitForDecision marks a campaign whose only remaining recipients are on

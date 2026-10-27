@@ -1,4 +1,8 @@
 {
+  "scope.tenant": { "message": "tenant list · {tenant}", "note": "Amazon SES: the workspace's tenant keeps its own suppression list; tenant is the tenant's name (acme-newsletter)" },
+  "scope.accountReadOnly": { "message": "account-level list · read only", "note": "Amazon SES without a tenant: the account's list is shared by every app on the AWS account, so ReputeCast only reads it" },
+  "scope.domain": { "message": "per sending domain", "note": "Mailgun keeps its lists per sending domain" },
+  "detail.accountReadOnly": "Every app on this AWS account shares {provider}'s account-level list, so ReputeCast only reads it. Set up a tenant for this workspace to sync both ways.",
   "scope.account": { "message": "account-level list", "note": "which of a provider's suppression lists the shared list syncs with (SES)" },
   "scope.stream": { "message": "per stream", "note": "Postmark keeps a suppression list per message stream" },
   "scope.enforced": { "message": "enforced before sending", "note": "a provider without a suppression list: ReputeCast checks the shared list itself" },

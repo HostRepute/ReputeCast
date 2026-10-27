@@ -339,11 +339,15 @@ export function SilentAlert({ silent }: { silent: Silent }) {
   const reason = usePermissionReason('providers:manage')
   const path = { workspace: slug, providerId: silent.providerId }
   const test = $api.useMutation('post', '/api/v1/workspaces/{workspace}/providers/{providerId}/webhook/test', {
+    // PR-9: the provider was asked for a test event; it proves the endpoint
+    // reachable by arriving, so the toast says it was asked, not received.
     onSuccess: (r) =>
       toast({
-        kind: r.endpointOk ? 'success' : 'error',
-        title: r.endpointOk ? t(mi.testReceived) : t(mi.testFailed),
-        detail: r.providerTest ? (r.providerTestDetail ?? r.endpointDetail) : r.endpointDetail,
+        kind: r.providerTest ? 'success' : 'error',
+        title: r.providerTest ? t(mi.testRequested) : t(mi.testFailed),
+        detail: [r.providerTest ? t(mi.testRequestedDetail, { provider: silent.short }) : r.providerTestDetail, r.endpointOk ? '' : r.endpointDetail]
+          .filter(Boolean)
+          .join(' '),
       }),
     onError: (e) => toast({ kind: 'error', title: t(mi.testFailed), detail: errorMessage(e) }),
   })
@@ -387,6 +391,14 @@ export function SilentAlert({ silent }: { silent: Silent }) {
           <span className="text-[20px] font-bold tracking-[-0.01em] text-[#78350F]">
             {hours >= 1 ? t(mi.silentForHours, { provider: silent.short, hours }) : t(mi.silentFor, { provider: silent.short, duration: duration(minutes) })}
           </span>
+          {silent.overdue > 0 ? (
+            <span className="flex flex-wrap items-center gap-2 text-[#78350F]">
+              <Badge tone="warn" dot>
+                {t(mi.eventsOverdue)}
+              </Badge>
+              <span className="font-semibold">{t(mi.overdueLine, { count: silent.overdue, hours: Math.max(hours, 6) })}</span>
+            </span>
+          ) : null}
           <span className="text-[#78350F]">
             {t(mi.silentBody, { time: clock(silent.since), provider: silent.short, count: count(silent.accepted), held: silent.broadcastShareHeld ? 'yes' : 'no' })}
           </span>
@@ -433,6 +445,12 @@ export function SilentAlert({ silent }: { silent: Silent }) {
           <ImpactRow k={t(mi.impactUnknown)}>
             <span className="n">{count(silent.accepted)}</span>
           </ImpactRow>
+          <ImpactRow k={t(mi.impactOverdue)} sub>
+            <span className="n">{count(silent.overdue)}</span>
+          </ImpactRow>
+          <ImpactRow k={t(mi.impactInGrace)} sub>
+            <span className="n">{count(silent.inGrace)}</span>
+          </ImpactRow>
           <ImpactRow k={t(mi.impactCampaigns)}>
             <span className="n">
               {silent.campaigns.length}
@@ -452,9 +470,9 @@ export function SilentAlert({ silent }: { silent: Silent }) {
   )
 }
 
-function ImpactRow({ k, children }: { k: string; children: ReactNode }) {
+function ImpactRow({ k, children, sub }: { k: string; children: ReactNode; sub?: boolean }) {
   return (
-    <div className="flex justify-between gap-3 text-[13px] max-md:flex-wrap">
+    <div className={cn('flex justify-between gap-3 text-[13px] max-md:flex-wrap', sub && 'pl-3.5 text-ink-2')}>
       <span>{k}</span>
       {children}
     </div>

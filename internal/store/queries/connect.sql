@@ -87,12 +87,22 @@ SELECT * FROM messages WHERE workspace_id = @workspace_id AND id = @id;
 SELECT * FROM delivery_events WHERE message_id = @message_id ORDER BY occurred_at, received_at;
 
 -- name: ConnectFirstWebhook :one
--- The first webhook payload about a message (its provider message id is in
--- the body) a provider sent in a window after the send: the test send's
--- "event came back" step, with the body to name the event.
-SELECT received_at, body FROM provider_raw_events
-WHERE provider_id = @provider_id AND source = 'webhook' AND received_at >= @since AND received_at < @until
+-- The first event payload about a message (its provider message id is in
+-- the body) a provider sent in a window after the send, by webhook or
+-- through the queue ReputeCast polls (PR-4): the test send's "event came
+-- back" step and the setup's event check (PR-3), with the body to name the
+-- event and how it came.
+SELECT received_at, body, source FROM provider_raw_events
+WHERE provider_id = @provider_id AND source IN ('webhook', 'queue') AND received_at >= @since AND received_at < @until
   AND position(convert_to(@provider_message_id::text, 'UTF8') IN body) > 0
+ORDER BY received_at
+LIMIT 1;
+
+-- name: ConnectFirstEventSince :one
+-- The first event a provider delivered after a time, by webhook or queue:
+-- its endpoint was reached from outside (PR-9).
+SELECT received_at, source FROM provider_raw_events
+WHERE provider_id = @provider_id AND source IN ('webhook', 'queue') AND received_at >= @since
 ORDER BY received_at
 LIMIT 1;
 

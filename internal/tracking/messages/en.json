@@ -4,13 +4,19 @@
   "reason.apple": { "message": "Apple Mail Privacy Protection prefetch", "note": "Apple Mail Privacy Protection is Apple's feature, never translated" },
   "reason.google": "Google image proxy prefetch",
   "reason.yahoo": "Yahoo Mail image proxy prefetch",
-  "reason.fastOpen": "Opened within 2 s of sending, likely a scanner",
-  "reason.fastClick": "Clicked within 10 s of sending, likely a link scanner",
+  "reason.fastOpen": "Opened within 2 s of arriving, likely a scanner",
+  "reason.fastClick": "Clicked within 10 s of arriving, likely a link scanner",
   "reason.burst": "Every link clicked within seconds, likely a link scanner",
+  "reason.honeypot": { "message": "Followed the email's hidden link, a link scanner", "note": "a click on the hidden link of an email, which no person can see" },
+  "reason.privacyProxy": { "message": "Privacy proxy prefetch ({name})", "note": "an open fetched by a privacy proxy; name: the network as the instance admin named it" },
   "reason.securityScanner": { "message": "Security scanner ({kind, select, headless {a headless browser} script {a script} bot {a bot} preview {a link preview} other {{name}}})", "note": "name: the scanner's product (Barracuda, Microsoft Defender), never translated" },
   "reason.linkScanner": "Link scanner ({kind, select, headless {a headless browser} script {a script} bot {a bot} preview {a link preview} other {{name}}})",
   "client.unknown": { "message": "Unknown mail client", "note": "the mail client a person opened or clicked in" },
   "client.anyOn": { "message": "A mail client on {os}", "note": "os: iOS, Android, Windows, macOS, ChromeOS, Linux" },
   "client.on": { "message": "{app} on {os}", "note": "app: a mail client or browser (Chrome, Apple Mail); os: its system (macOS)" },
-  "page.gone": { "message": "This link is no longer valid. If you copied it, check that the whole address came along.", "note": "a plain page for someone who opens a broken tracked link from an email" }
+  "page.gone": { "message": "This link is no longer valid. If you copied it, check that the whole address came along.", "note": "a plain page for someone who opens a broken tracked link from an email" },
+  "problem.networkInvalid": { "message": "Enter an address or a network, such as 203.0.113.0/24 or 2001:db8::/48.", "note": "a problem when an instance admin adds a scanner or privacy-proxy network" },
+  "problem.networkTooWide": "A network this wide would take ordinary readers for machines. Add a /{v4} or narrower network for IPv4, a /{v6} or narrower for IPv6.",
+  "problem.networkListed": "{cidr} is already on the list.",
+  "problem.networkNotRemovable": "{cidr} isn't a network an admin added. Built-in networks come with ReputeCast releases."
 }

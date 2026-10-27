@@ -1,0 +1,6 @@
+{
+  "notify.title": { "message": "Requests come through a proxy ReputeCast doesn't trust", "note": "notification title for instance admins; a proxy is the reverse proxy or load balancer in front of ReputeCast" },
+  "notify.body": { "message": "{peer} forwards requests to ReputeCast with {header}, but {setting} doesn't list it. Every open and click looks like it comes from {peer}, so the bot filter can't see readers' addresses. Add {peer} to {setting} (environment variable {env}) and restart ReputeCast.", "note": "{setting} and {env} are configuration names, never translated; {header} is an HTTP header name" },
+  "advice.none": "No request came through a proxy ReputeCast doesn't trust.",
+  "advice.some": { "message": "Add these addresses to {setting} (environment variable {env}) and restart ReputeCast, so opens, clicks and rate limits see readers' own addresses.", "note": "{setting} and {env} are configuration names, never translated" }
+}

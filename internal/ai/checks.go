@@ -3,7 +3,6 @@ package ai
 import (
 	"html"
 	"regexp"
-	"strconv"
 	"strings"
 	"unicode/utf8"
 )
@@ -16,8 +15,6 @@ var (
 	tagRe   = regexp.MustCompile(`<[^>]*>`)
 	spaceRe = regexp.MustCompile(`\s+`)
 	wordRe  = regexp.MustCompile(`\{\{.*?\}\}|\{%.*?%\}|[^\s]+`)
-	// numberRe finds the numbers of a summary: 47,548 · 99.1% · 1.0%.
-	numberRe = regexp.MustCompile(`\d[\d,]*(?:\.\d+)?%?`)
 )
 
 // tokens returns the Liquid tokens of s, in order.
@@ -269,31 +266,3 @@ func asksAboutReputation(instruction string) bool {
 
 // imageOfRe catches alt text that starts with "Image of".
 var imageOfRe = regexp.MustCompile(`(?i)^\s*(an? )?(image|picture|photo|graphic|screenshot) (of|showing)\b`)
-
-// numbersIn returns the numbers a text mentions, normalized ("47548",
-// "99.1%").
-func numbersIn(s string) []string {
-	out := []string{}
-	for _, m := range numberRe.FindAllString(s, -1) {
-		n := strings.ReplaceAll(m, ",", "")
-		n = strings.TrimSuffix(n, ".")
-		if n == "" {
-			continue
-		}
-		out = append(out, n)
-	}
-	return out
-}
-
-// numberForms adds the ways a summary may write a number: the count, a
-// percentage with one decimal or none.
-func numberForms(set map[string]bool, v float64, percent bool) {
-	if percent {
-		set[strconv.FormatFloat(v, 'f', 1, 64)+"%"] = true
-		set[strconv.FormatFloat(v, 'f', 0, 64)+"%"] = true
-		set[strconv.FormatFloat(v, 'f', 2, 64)+"%"] = true
-		return
-	}
-	set[strconv.FormatFloat(v, 'f', 0, 64)] = true
-	set[strconv.FormatFloat(v, 'f', 1, 64)] = true
-}

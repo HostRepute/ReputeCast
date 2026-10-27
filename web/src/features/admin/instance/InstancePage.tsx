@@ -165,7 +165,7 @@ function InstanceForm({
       </label>
       {s.configPublicUrl && trimSlash(url) !== trimSlash(s.configPublicUrl) ? (
         <Note tone="warn" label={t(m.serverSetting)}>
-          <T msg={m.serverSettingBody} values={{ setting: 'http.public_url', url: s.configPublicUrl, env: 'REPUTECAST_HTTP__PUBLIC_URL', mono }} />
+          <T msg={m.serverSettingBody} values={{ setting: 'http.public_url', url: s.configPublicUrl, env: 'REPUTECAST_PUBLIC_URL', mono }} />
         </Note>
       ) : null}
       {moved && (moved.reregistering > 0 || moved.manual.length > 0) ? <WebhookMove moved={moved} /> : null}

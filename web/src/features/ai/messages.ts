@@ -578,4 +578,10 @@ export const ms = defineMessages('ai.suggest', {
   summarizeInvite: "Write a plain-language summary of these numbers with your workspace's own model. Connect one in Settings › Integrations.",
   summaryOff: 'Report summaries with AI are turned off for this workspace.',
   summaryLabel: 'The summary',
+  numbersMatchReport: 'Every number matches this report',
+  numbersOffReport: 'Not in this report now: {numbers}. Results that kept coming in can change a number.',
+  askTitle: 'Ask about this report',
+  askPlaceholder: 'Why did Outlook bounce more?',
+  askEmpty: 'Type a question first',
+  askNote: 'Sends aggregate numbers only to your model ({model}); every number in an answer is checked against this report.',
 })

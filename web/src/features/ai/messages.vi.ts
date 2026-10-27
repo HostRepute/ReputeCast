@@ -586,5 +586,11 @@ export default {
     summarizeInvite: 'Viết bản tóm tắt dễ hiểu cho các con số này bằng mô hình của chính không gian làm việc của bạn. Hãy kết nối một mô hình trong Cài đặt › Tích hợp.',
     summaryOff: 'Tóm tắt báo cáo bằng AI đã bị tắt cho không gian làm việc này.',
     summaryLabel: 'Bản tóm tắt',
+    numbersMatchReport: 'Mọi con số đều khớp với báo cáo này',
+    numbersOffReport: 'Hiện không có trong báo cáo này: {numbers}. Kết quả tiếp tục về có thể làm thay đổi một con số.',
+    askTitle: 'Hỏi về báo cáo này',
+    askPlaceholder: 'Vì sao Outlook trả lại nhiều hơn?',
+    askEmpty: 'Hãy nhập câu hỏi trước',
+    askNote: 'Chỉ gửi các số liệu tổng hợp đến mô hình của bạn ({model}); mọi con số trong câu trả lời đều được kiểm tra với báo cáo này.',
   }),
 }

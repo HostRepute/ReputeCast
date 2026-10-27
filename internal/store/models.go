@@ -701,6 +701,14 @@ type CampaignCounter struct {
 	OpenedMachine   int64     `json:"openedMachine"`
 	Clicked         int64     `json:"clicked"`
 	Unsubscribed    int64     `json:"unsubscribed"`
+	OpenedPrivacy   int64     `json:"openedPrivacy"`
+}
+
+type CampaignCounterBuild struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	Version    int32     `json:"version"`
+	BuiltAt    time.Time `json:"builtAt"`
+	Skipped    string    `json:"skipped"`
 }
 
 type CampaignHourly struct {
@@ -709,6 +717,7 @@ type CampaignHourly struct {
 	OpenedHuman   int64     `json:"openedHuman"`
 	OpenedMachine int64     `json:"openedMachine"`
 	Clicked       int64     `json:"clicked"`
+	OpenedPrivacy int64     `json:"openedPrivacy"`
 }
 
 type CampaignIncident struct {
@@ -737,6 +746,16 @@ type CampaignLink struct {
 	Position     int32     `json:"position"`
 	Clicks       int64     `json:"clicks"`
 	UniqueClicks int64     `json:"uniqueClicks"`
+	BotClicks    int64     `json:"botClicks"`
+}
+
+type CampaignLinkVariant struct {
+	CampaignID   uuid.UUID `json:"campaignId"`
+	Position     int32     `json:"position"`
+	Variant      string    `json:"variant"`
+	Clicks       int64     `json:"clicks"`
+	UniqueClicks int64     `json:"uniqueClicks"`
+	BotClicks    int64     `json:"botClicks"`
 }
 
 type CampaignPresence struct {
@@ -1206,6 +1225,8 @@ type DeliveryEvent struct {
 	Source            string      `json:"source"`
 	ReceivedAt        time.Time   `json:"receivedAt"`
 	DedupeKey         string      `json:"dedupeKey"`
+	Class             string      `json:"class"`
+	Link              *int32      `json:"link"`
 }
 
 type Digest struct {
@@ -2157,6 +2178,11 @@ type Message struct {
 	ContactLanguage   string          `json:"contactLanguage"`
 	LanguageReason    string          `json:"languageReason"`
 	HiddenBlocks      string          `json:"hiddenBlocks"`
+	DeferredAt        *time.Time      `json:"deferredAt"`
+	SoftBouncedAt     *time.Time      `json:"softBouncedAt"`
+	UnsubscribedAt    *time.Time      `json:"unsubscribedAt"`
+	PrivacyOpenedAt   *time.Time      `json:"privacyOpenedAt"`
+	AbRollout         bool            `json:"abRollout"`
 }
 
 type MxCache struct {
@@ -2892,6 +2918,7 @@ type ProviderCallWindow struct {
 	Calls      int32     `json:"calls"`
 	Errors     int32     `json:"errors"`
 	Messages   int32     `json:"messages"`
+	Rejected   int32     `json:"rejected"`
 }
 
 type ProviderDailyStat struct {
@@ -2935,6 +2962,14 @@ type ProviderSetup struct {
 	FinishedAt  *time.Time      `json:"finishedAt"`
 }
 
+type ProviderSuppressionEntry struct {
+	ProviderID uuid.UUID `json:"providerId"`
+	Email      string    `json:"email"`
+	Origin     string    `json:"origin"`
+	Seq        int64     `json:"seq"`
+	SyncedAt   time.Time `json:"syncedAt"`
+}
+
 type ProviderSuppressionSync struct {
 	ProviderID   uuid.UUID  `json:"providerId"`
 	Mode         string     `json:"mode"`
@@ -2945,6 +2980,9 @@ type ProviderSuppressionSync struct {
 	Pending      int64      `json:"pending"`
 	Status       string     `json:"status"`
 	StatusDetail string     `json:"statusDetail"`
+	Scope        string     `json:"scope"`
+	PushSeq      int64      `json:"pushSeq"`
+	Removed      int64      `json:"removed"`
 }
 
 type PublicPageSetting struct {
@@ -3481,18 +3519,28 @@ type RenderingService struct {
 	CheckedAt   *time.Time      `json:"checkedAt"`
 }
 
+type ReportFinalAlert struct {
+	CampaignID  uuid.UUID `json:"campaignId"`
+	UserID      uuid.UUID `json:"userId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CreatedAt   time.Time `json:"createdAt"`
+}
+
 type ReportShare struct {
-	ID           uuid.UUID  `json:"id"`
-	CampaignID   uuid.UUID  `json:"campaignId"`
-	TokenHash    []byte     `json:"tokenHash"`
-	CreatedBy    *uuid.UUID `json:"createdBy"`
-	CreatedAt    time.Time  `json:"createdAt"`
-	ExpiresAt    *time.Time `json:"expiresAt"`
-	RevokedAt    *time.Time `json:"revokedAt"`
-	TokenSealed  []byte     `json:"tokenSealed"`
-	RevokedBy    *uuid.UUID `json:"revokedBy"`
-	Views        int64      `json:"views"`
-	LastViewedAt *time.Time `json:"lastViewedAt"`
+	ID            uuid.UUID  `json:"id"`
+	CampaignID    uuid.UUID  `json:"campaignId"`
+	TokenHash     []byte     `json:"tokenHash"`
+	CreatedBy     *uuid.UUID `json:"createdBy"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	ExpiresAt     *time.Time `json:"expiresAt"`
+	RevokedAt     *time.Time `json:"revokedAt"`
+	TokenSealed   []byte     `json:"tokenSealed"`
+	RevokedBy     *uuid.UUID `json:"revokedBy"`
+	Views         int64      `json:"views"`
+	LastViewedAt  *time.Time `json:"lastViewedAt"`
+	IncludeCost   bool       `json:"includeCost"`
+	IncludeWarmup bool       `json:"includeWarmup"`
+	IncludeEmail  bool       `json:"includeEmail"`
 }
 
 type Role struct {
@@ -4434,6 +4482,7 @@ type Suppression struct {
 	Context          string          `json:"context"`
 	ImportID         *uuid.UUID      `json:"importId"`
 	Texts            json.RawMessage `json:"texts"`
+	Seq              int64           `json:"seq"`
 }
 
 type Survey struct {
@@ -4507,6 +4556,35 @@ type TrackingLinkClick struct {
 	MessageID uuid.UUID `json:"messageId"`
 	Link      int32     `json:"link"`
 	ClickedAt time.Time `json:"clickedAt"`
+}
+
+type TrackingNetwork struct {
+	Cidr      netip.Prefix `json:"cidr"`
+	Name      string       `json:"name"`
+	Class     string       `json:"class"`
+	Source    string       `json:"source"`
+	Note      string       `json:"note"`
+	CreatedBy *uuid.UUID   `json:"createdBy"`
+	CreatedAt time.Time    `json:"createdAt"`
+}
+
+type TrackingPendingClick struct {
+	EventID   uuid.UUID `json:"eventId"`
+	MessageID uuid.UUID `json:"messageId"`
+	Link      int32     `json:"link"`
+	Url       string    `json:"url"`
+	ClickedAt time.Time `json:"clickedAt"`
+	SettleAt  time.Time `json:"settleAt"`
+}
+
+type TrackingRetry struct {
+	ID        int64           `json:"id"`
+	MessageID uuid.UUID       `json:"messageId"`
+	Event     json.RawMessage `json:"event"`
+	Attempts  int32           `json:"attempts"`
+	NextAt    time.Time       `json:"nextAt"`
+	Error     string          `json:"error"`
+	CreatedAt time.Time       `json:"createdAt"`
 }
 
 type TransactionalAlert struct {
@@ -4755,6 +4833,15 @@ type UnsubscribeFeedback struct {
 	CreatedAt   time.Time  `json:"createdAt"`
 }
 
+type UntrustedProxy struct {
+	Peer       netip.Addr `json:"peer"`
+	Header     string     `json:"header"`
+	Requests   int64      `json:"requests"`
+	FirstSeen  time.Time  `json:"firstSeen"`
+	LastSeen   time.Time  `json:"lastSeen"`
+	NotifiedAt *time.Time `json:"notifiedAt"`
+}
+
 type User struct {
 	ID                   uuid.UUID  `json:"id"`
 	Email                string     `json:"email"`
@@ -4993,6 +5080,14 @@ type WarmupPlan struct {
 	PausedAt          *time.Time      `json:"pausedAt"`
 	UpdatedAt         time.Time       `json:"updatedAt"`
 	Texts             json.RawMessage `json:"texts"`
+	StartedOn         time.Time       `json:"startedOn"`
+	EvaluatedThrough  *time.Time      `json:"evaluatedThrough"`
+	HeldCap           *int64          `json:"heldCap"`
+	HealthyStreak     int32           `json:"healthyStreak"`
+	Overflow          bool            `json:"overflow"`
+	MinSample         int32           `json:"minSample"`
+	Overflowed        int64           `json:"overflowed"`
+	OverflowedOn      *time.Time      `json:"overflowedOn"`
 }
 
 type Webhook struct {

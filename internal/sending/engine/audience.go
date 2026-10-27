@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
-	"math/rand/v2"
 	"slices"
 	"strings"
 	"time"
@@ -128,6 +127,10 @@ type abTest struct {
 	Metric        string      `json:"metric"`
 	DurationHours int         `json:"duration_hours"`
 	Winner        string      `json:"winner"`
+	// The decision rule (ab.go, contract C14): the fewest recipients per
+	// variant and the confidence a winner needs (500 and 0.95 when unset).
+	MinSample  int64   `json:"min_sample,omitempty"`
+	Confidence float64 `json:"confidence,omitempty"`
 }
 
 type abVariant struct {
@@ -154,6 +157,11 @@ type abState struct {
 	Rates map[string]float64 `json:"rates,omitempty"`
 	// Window overrides the test duration, in seconds (demo sends).
 	Window int64 `json:"window,omitempty"`
+	// Rule, Default and Decision are the test's decision rule, its default
+	// variant and what it was decided on (ab.go).
+	Rule     abRule      `json:"rule,omitzero"`
+	Default  string      `json:"default,omitempty"`
+	Decision *abDecision `json:"decision,omitempty"`
 }
 
 func parseAB(raw json.RawMessage) abState {
@@ -271,7 +279,9 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 	if err != nil {
 		return err
 	}
-	sendAt := sendTimes(ab, loc, now)
+	// A send-time test's variants go out at their time of day in each
+	// recipient's own time zone (ab.go).
+	sendAt := newSendTimes(ab, loc, now)
 	var sc schedule
 	_ = json.Unmarshal(cc.Schedule, &sc)
 	bestTime := sc.Mode == "best_time"
@@ -332,7 +342,7 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 				return e.fail(ctx, cc, err.Error(), now)
 			}
 			pid := rt.provider
-			variant, status, next := assignVariant(ab, c.ID, sendAt)
+			variant, status, next := assignVariant(ab, c.ID, sendAt.in(c.Timezone))
 			if h, ok := hours[c.ID]; ok && next == nil {
 				// Best time: the hour the contact usually opens at, within
 				// 24 hours; contacts who never opened go at the start.
@@ -341,8 +351,9 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 				}
 			}
 			// A random send order: the first minutes of the send are a fair
-			// sample of the audience (migration 00652).
-			order := rand.Int32() //nolint:gosec // an order, not a secret
+			// sample of the audience (migration 00652); a warming provider's
+			// share goes most engaged first (warmup_send.go).
+			order := r.sendOrder(ctx, pid, c.Tier)
 			ml := content.pick(chooser, multilingual, c.Language)
 			msgs = append(msgs, []any{newID(), cc.WorkspaceID, "broadcast", &campaignID, &c.ID, c.Email, variant, &pid, mbp, status, now, next, rt.note, rt.failover, order,
 				ml.Language, ml.Contact, ml.Reason, hidden[c.ID]})
@@ -472,26 +483,10 @@ func (e *Engine) finishPrepare(ctx context.Context, cc store.SendingCampaignCont
 	if err != nil {
 		return err
 	}
-	st := parseAB(snd.Ab)
-	if ab != nil && ab.TestPercent > 0 && ab.TestPercent < 100 && len(ab.Variants) >= 2 && ab.Winner == "" {
-		st.Kind, st.Metric, st.TestPercent, st.Phase = ab.Kind, ab.Metric, ab.TestPercent, "testing"
-		if st.Metric == "" {
-			st.Metric = "human_opens"
-		}
-		st.Variants = st.Variants[:0]
-		for _, v := range ab.Variants {
-			st.Variants = append(st.Variants, v.Key)
-		}
-		window := time.Duration(max(ab.DurationHours, 1)) * time.Hour
-		if st.Window > 0 {
-			window = time.Duration(st.Window) * time.Second
-		}
-		if st.Metric != "manual" {
-			at := now.Add(window)
-			st.DecideAt = &at
-		}
-	} else if ab != nil && ab.Winner != "" {
-		st.Kind, st.Phase, st.Winner = ab.Kind, "decided", ab.Winner
+	// The A/B test's rule, default and decision time (ab.go).
+	st, err := e.abStart(ctx, cc, ab, parseAB(snd.Ab), now)
+	if err != nil {
+		return err
 	}
 	abb, _ := json.Marshal(st)
 	err = db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
@@ -724,27 +719,6 @@ func nextAtHour(now time.Time, hour int) time.Time {
 	return t
 }
 
-// sendTimes are the local send times of a send-time test's variants.
-func sendTimes(ab *abTest, loc *time.Location, now time.Time) map[string]*time.Time {
-	out := map[string]*time.Time{}
-	if ab == nil || ab.Kind != "send_time" {
-		return out
-	}
-	local := now.In(loc)
-	for _, v := range ab.Variants {
-		var h, m int
-		if _, err := fmt.Sscanf(v.SendTime, "%d:%d", &h, &m); err != nil {
-			continue
-		}
-		t := time.Date(local.Year(), local.Month(), local.Day(), h, m, 0, 0, loc)
-		if t.Before(now) {
-			t = t.AddDate(0, 0, 1)
-		}
-		out[v.Key] = &t
-	}
-	return out
-}
-
 // snapshotContent captures what the send renders.
 func (e *Engine) snapshotContent(cc store.SendingCampaignContextRow, ab *abTest) (sendContent, error) {
 	tr := Tracking{Opens: true, Clicks: true}
@@ -911,7 +885,10 @@ func (r *router) route(ctx context.Context, c store.SendingAudiencePageRow, mbp 
 	if pr.WarmingUp {
 		allowed := len(pr.Tiers) == 0 || slices.Contains(pr.Tiers, c.Tier)
 		capLeft := pr.Cap <= 0 || pr.SentToday+r.planned[pid] < pr.Cap
-		if !allowed || !capLeft || pr.Paused {
+		// Over today's cap goes to a warm provider only when the plan
+		// allows overflow; otherwise it waits on the warming provider and
+		// the send loop holds it at the cap with choices (PR-8).
+		if !allowed || (!capLeft && pr.Overflow) || pr.Paused {
 			if alt, ok := r.warmAlternative(ctx, d.Rule, pid); ok {
 				ap := r.byID[alt]
 				why := "cap"
