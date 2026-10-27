@@ -24,7 +24,7 @@
   "problem.segmentGone": "Một trong các phân khúc không còn tồn tại. Hãy tải lại rồi chọn lại.",
   "problem.tierGone": "Hạng thành viên đó không còn tồn tại. Hãy chọn hạng khác, hoặc bất kỳ hạng trả phí nào.",
   "problem.notEmail": "“{address}” không phải là địa chỉ email.",
-  "problem.testOwnAddress": "Khi không có quyền campaigns:send, thư gửi thử chỉ có thể gửi đến địa chỉ của chính bạn.",
+  "problem.testOwnAddress": "Vai trò của bạn chưa được gửi chiến dịch, nên thư gửi thử chỉ có thể gửi đến địa chỉ của chính bạn.",
   "problem.noSystemRoute": "Thư gửi thử đi qua tuyến Hệ thống, và chưa có nhà cung cấp gửi thư nào gửi được thư này. Hãy kết nối một nhà cung cấp trong Nhà cung cấp gửi thư, hoặc kiểm tra email trong Xem trước.",
   "problem.testRefused": "Nhà cung cấp gửi thư đã từ chối thư gửi thử: {error}",
   "problem.versionConflict": "{name} đã lưu phiên bản {version} lúc {at, time} trong khi bạn đang sửa.",

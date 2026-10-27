@@ -41,7 +41,7 @@
   "block.rewardMilestone": "A Reward block belongs to a milestone email.",
 
   "test.notEmail": { "message": "“{value}” isn't an email address.", "note": "value: what was typed in To, as typed" },
-  "test.ownAddress": "Without campaigns:send, test emails can only go to your own address.",
+  "test.ownAddress": "Your role can't send campaigns, so test emails can only go to your own address.",
   "test.noProvider": "Test emails go out through the System route, and no sending provider can deliver them yet. Connect one in Sending providers, or check the email in Preview.",
 
   "codes.none": "The upload has no codes. Put one code on each line.",

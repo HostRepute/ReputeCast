@@ -41,7 +41,7 @@
   "block.rewardMilestone": "Khối Phần thưởng chỉ dùng trong email mốc thưởng.",
 
   "test.notEmail": "“{value}” không phải là địa chỉ email.",
-  "test.ownAddress": "Khi không có quyền campaigns:send, thư thử chỉ gửi được đến địa chỉ của chính bạn.",
+  "test.ownAddress": "Vai trò của bạn chưa được gửi chiến dịch, nên thư thử chỉ gửi được đến địa chỉ của chính bạn.",
   "test.noProvider": "Thư thử được gửi qua tuyến Hệ thống, và hiện chưa có nhà cung cấp gửi thư nào gửi được. Hãy kết nối một nhà cung cấp trong Nhà cung cấp gửi thư, hoặc xem email trong phần Xem trước.",
 
   "codes.none": "Tệp tải lên không có mã nào. Hãy đặt mỗi mã trên một dòng.",

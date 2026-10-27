@@ -24,7 +24,7 @@
   "problem.segmentGone": "One of the segments no longer exists. Reload and pick again.",
   "problem.tierGone": { "message": "That tier no longer exists. Pick another one, or any paid tier.", "note": "a paid membership tier (Earn)" },
   "problem.notEmail": { "message": "“{address}” isn't an email address.", "note": "address: what the member typed as a test email's recipient" },
-  "problem.testOwnAddress": { "message": "Without campaigns:send, test emails can only go to your own address.", "note": "campaigns:send is a permission key, never translated" },
+  "problem.testOwnAddress": "Your role can't send campaigns, so test emails can only go to your own address.",
   "problem.noSystemRoute": "Test emails go out through the System route, and no sending provider can deliver them yet. Connect one in Sending providers, or check the email in Preview.",
   "problem.testRefused": { "message": "The sending provider refused the test email: {error}", "note": "error: the provider's own answer, in English" },
   "problem.versionConflict": { "message": "{name} saved version {version} at {at, time} while you were editing.", "note": "name: a member's name; version: a number such as 12" },

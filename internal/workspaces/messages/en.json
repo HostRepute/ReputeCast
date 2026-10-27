@@ -18,7 +18,7 @@
   "rule.warming": "route includes a Warming-up provider",
   "rule.newProvider": "provider connected in the last {days} days",
   "rule.warnings": "Send Readiness has warnings",
-  "rule.lacksSend": { "message": "author lacks campaigns:send", "note": "campaigns:send is a permission key, never translated" },
+  "rule.lacksSend": "author can't send it",
   "rule.lists": "audience includes a list that requires approval",
   "rule.clientSignoff": "every send, for client sign-off",
 

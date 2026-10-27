@@ -45,7 +45,7 @@ func TestRulesReadInTheReadersLanguage(t *testing.T) {
 	want := []string{
 		"Số người nhận 47.912, từ 10.000 trở lên",
 		"Tuyến có Postal, đang khởi động (ngày 9/21)",
-		"Daniel Park không có quyền campaigns:send · Content Writer",
+		"Daniel Park chưa được gửi lần này · Content Writer",
 		"Người nhận gồm Enterprise customers và Beta Program, được đánh dấu “Cần phê duyệt”",
 	}
 	for i, w := range want {

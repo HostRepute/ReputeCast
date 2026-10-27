@@ -24,7 +24,7 @@ func TestGeneralSettingsInVietnamese(t *testing.T) {
 
 	var s settings
 	vi.Do("GET", ws+"/settings", nil).MustStatus(t, 200).JSON(t, &s)
-	if got := strings.Join(s.Approvals.Rules, " · "); got != "người nhận ≥ 10.000 · tuyến có một nhà cung cấp đang khởi động · tác giả không có quyền campaigns:send" {
+	if got := strings.Join(s.Approvals.Rules, " · "); got != "người nhận ≥ 10.000 · tuyến có một nhà cung cấp đang khởi động · tác giả chưa được gửi" {
 		t.Errorf("rules: %q", got)
 	}
 	if !strings.HasPrefix(s.Members.SignIn, "SSO Google Workspace cho ") || !strings.HasSuffix(s.Members.SignIn, " · vẫn cho phép mật khẩu và khóa truy cập") {

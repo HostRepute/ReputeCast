@@ -67,7 +67,7 @@ func TestGeneralSettings(t *testing.T) {
 			t.Fatalf("digest@ verified on %v", sn.VerifiedOn)
 		}
 	}
-	if strings.Join(s.Approvals.Rules, " · ") != "audience ≥ 10,000 · route includes a Warming-up provider · author lacks campaigns:send" ||
+	if strings.Join(s.Approvals.Rules, " · ") != "audience ≥ 10,000 · route includes a Warming-up provider · author can't send it" ||
 		strings.Join(s.Approvals.Approvers, ", ") != "Linh Nguyen, Marcus Chen" {
 		t.Fatalf("approvals: %+v", s.Approvals)
 	}

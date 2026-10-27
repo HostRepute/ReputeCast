@@ -18,7 +18,7 @@
   "rule.warming": "tuyến có một nhà cung cấp đang khởi động",
   "rule.newProvider": "nhà cung cấp được kết nối trong {days} ngày qua",
   "rule.warnings": "Độ sẵn sàng gửi có cảnh báo",
-  "rule.lacksSend": "tác giả không có quyền campaigns:send",
+  "rule.lacksSend": "tác giả chưa được gửi",
   "rule.lists": "người nhận gồm một danh sách cần phê duyệt",
   "rule.clientSignoff": "mọi lần gửi, để có phê duyệt của khách hàng",
 

@@ -85,7 +85,7 @@ func TestApprovalsInVietnamese(t *testing.T) {
 	badges := []string{}
 	for _, rule := range d.Rules {
 		badges = append(badges, rule.Badge)
-		if rule.Key == "author_lacks_send" && !strings.HasPrefix(rule.Label, "Daniel Park không có quyền campaigns:send") {
+		if rule.Key == "author_lacks_send" && !strings.HasPrefix(rule.Label, "Daniel Park chưa được gửi lần này") {
 			t.Errorf("lacks send: %q", rule.Label)
 		}
 	}
