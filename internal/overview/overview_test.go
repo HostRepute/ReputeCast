@@ -151,7 +151,10 @@ func TestOverviewCards(t *testing.T) {
 	}
 
 	var r struct {
-		Items []struct{ Name, Status string }
+		Items []struct {
+			Name, Status string
+			Routes       []struct{ Short string }
+		}
 	}
 	c.Do("GET", base+"/recent-campaigns", nil).MustStatus(t, 200).JSON(t, &r)
 	// The approval inbox's history adds the Beta Program launch invite (sent
@@ -163,6 +166,10 @@ func TestOverviewCards(t *testing.T) {
 	if len(r.Items) != 4 || r.Items[0].Name != "New post: Feature flags at scale" || r.Items[1].Name != "Summit: 8 days to go" ||
 		r.Items[2].Name != "October Product Update" || r.Items[3].Name != "Weekly Digest #141" {
 		t.Fatalf("recent: %+v", r.Items)
+	}
+	// Texts show their SMS providers as on Campaigns, not the Broadcasts route.
+	if len(r.Items[1].Routes) != 2 || r.Items[1].Routes[0].Short != "Twilio" {
+		t.Fatalf("text's providers: %+v", r.Items[1].Routes)
 	}
 
 	// Viewers see every card; a Content Writer only the campaign cards.
