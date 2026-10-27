@@ -526,10 +526,10 @@ func demoSummary(c reportContext) string {
 				mid = (others[len(others)/2-1] + others[len(others)/2]) / 2
 			}
 			if mid > 0 {
-				switch r := math.Round(top / mid); {
-				case r == 2:
+				switch math.Round(top / mid) {
+				case 2:
 					times = "twice"
-				case r == 3:
+				case 3:
 					times = "three times"
 				}
 			}

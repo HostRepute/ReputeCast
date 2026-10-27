@@ -86,7 +86,7 @@ func TestReportGrowth(t *testing.T) {
 	// hash of the address and browser (no cookie); crawlers don't count.
 	view1 := func(ua string) {
 		t.Helper()
-		req, err := http.NewRequestWithContext(f.Ctx, "GET", f.Env.Server.URL+"/p/acme-newsletter/archive/growth-issue", nil)
+		req, err := http.NewRequestWithContext(f.Ctx, http.MethodGet, f.Env.Server.URL+"/p/acme-newsletter/archive/growth-issue", nil)
 		if err != nil {
 			t.Fatal(err)
 		}

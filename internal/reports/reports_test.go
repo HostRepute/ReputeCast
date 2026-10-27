@@ -457,7 +457,7 @@ func TestReportShares(t *testing.T) {
 		Includes  includes
 	}
 	c.Do("POST", base+"/shares", map[string]any{}).MustStatus(t, 201).JSON(t, &link)
-	if link.ExpiresAt == nil || link.ExpiresAt.Sub(time.Now()) < 29*24*time.Hour || link.ExpiresAt.Sub(time.Now()) > 31*24*time.Hour || link.Includes != (includes{}) {
+	if link.ExpiresAt == nil || time.Until(*link.ExpiresAt) < 29*24*time.Hour || time.Until(*link.ExpiresAt) > 31*24*time.Hour || link.Includes != (includes{}) {
 		t.Fatalf("a new link: %+v", link)
 	}
 	c.Do("POST", base+"/shares", map[string]any{"expiresInDays": 365}).MustStatus(t, 422)

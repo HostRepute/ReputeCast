@@ -1,6 +1,7 @@
 package proxycheck
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"net/netip"
 	"testing"
@@ -12,7 +13,7 @@ func TestDetectorTakesDeploymentProxies(t *testing.T) {
 	d := &Detector{Trusted: []netip.Prefix{netip.MustParsePrefix("10.0.0.9/32")}, Now: func() time.Time { return now }}
 	see := func(peer, header string, n int) {
 		for range n {
-			r := httptest.NewRequest("GET", "/t/o/x", nil)
+			r := httptest.NewRequest(http.MethodGet, "/t/o/x", nil)
 			r.RemoteAddr = peer + ":4567"
 			if header != "" {
 				r.Header.Set(header, "198.51.100.7")
