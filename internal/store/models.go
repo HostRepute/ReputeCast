@@ -3584,6 +3584,27 @@ type SendingRateWindow struct {
 	LastGrant  int32     `json:"lastGrant"`
 }
 
+type SendingRule struct {
+	ID                uuid.UUID  `json:"id"`
+	WorkspaceID       uuid.UUID  `json:"workspaceId"`
+	Name              string     `json:"name"`
+	Kind              string     `json:"kind"`
+	Operator          string     `json:"operator"`
+	Value             string     `json:"value"`
+	Severity          string     `json:"severity"`
+	AppliesTo         string     `json:"appliesTo"`
+	Enabled           bool       `json:"enabled"`
+	Message           string     `json:"message"`
+	CreatedBy         *uuid.UUID `json:"createdBy"`
+	CreatedAt         time.Time  `json:"createdAt"`
+	UpdatedAt         time.Time  `json:"updatedAt"`
+	TriggeredAt       *time.Time `json:"triggeredAt"`
+	TriggeredCampaign *uuid.UUID `json:"triggeredCampaign"`
+	TriggeredName     string     `json:"triggeredName"`
+	TriggeredCount    int32      `json:"triggeredCount"`
+	TriggeredFixed    bool       `json:"triggeredFixed"`
+}
+
 type SendingSimEvent struct {
 	ID          int64           `json:"id"`
 	WorkspaceID uuid.UUID       `json:"workspaceId"`
@@ -5429,4 +5450,12 @@ type WorkspaceMember struct {
 	JoinedAt      time.Time       `json:"joinedAt"`
 	DeactivatedAt *time.Time      `json:"deactivatedAt"`
 	LastActiveAt  *time.Time      `json:"lastActiveAt"`
+}
+
+type WorkspaceSendDefault struct {
+	WorkspaceID      uuid.UUID  `json:"workspaceId"`
+	ExcludeUnengaged bool       `json:"excludeUnengaged"`
+	TypedMultiple    float64    `json:"typedMultiple"`
+	UpdatedAt        time.Time  `json:"updatedAt"`
+	UpdatedBy        *uuid.UUID `json:"updatedBy"`
 }

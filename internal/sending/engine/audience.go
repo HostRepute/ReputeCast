@@ -218,7 +218,12 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 		return nil
 	}
 	def := parseAudience(cc.Audience)
-	def.leaveOutUnengaged(true)
+	// The workspace's default for the unengaged (Settings › Sending rules).
+	byDefault := true
+	if d, err := e.Q.SendDefaults(ctx, cc.WorkspaceID); err == nil {
+		byDefault = d.ExcludeUnengaged
+	}
+	def.leaveOutUnengaged(byDefault)
 	if len(def.Lists) == 0 && len(def.Segments) == 0 {
 		return e.fail(ctx, cc, english("fail.noAudience", nil), now)
 	}

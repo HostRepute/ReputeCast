@@ -27,6 +27,15 @@ func TestUnengagedLeftOutByDefault(t *testing.T) {
 			t.Errorf("%s: %q, want %q", raw, got, want)
 		}
 	}
+	// A workspace that includes them by default (Settings › Sending
+	// rules, SR-10) sends to them unless the campaign leaves them out.
+	for raw, want := range map[string]string{`{}`: "", `{"include_unengaged":false}`: "tiers", `{"exclude_tiers":["sunset"]}`: "tiers"} {
+		def := parseAudience(json.RawMessage(raw))
+		def.leaveOutUnengaged(false)
+		if got := eligibility(row, def, false); got != want {
+			t.Errorf("included by default, %s: %q, want %q", raw, got, want)
+		}
+	}
 	active := row
 	active.Tier = "active"
 	def := parseAudience(json.RawMessage(`{}`))

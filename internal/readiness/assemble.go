@@ -89,6 +89,7 @@ func Assemble(f Facts) ReadinessResult {
 	b.paidAudience()
 	b.verification()
 	b.routing()
+	b.rules()
 	b.everyVersion()
 	b.stores()
 	for i := range b.checks {
@@ -2428,6 +2429,8 @@ func (b *builder) caption(g string, grp ReadinessGroup) Text {
 		return b.accessibilityCaption()
 	case GroupConditional:
 		return b.conditionalCaption()
+	case GroupRules:
+		return tx("caption.rules", nil)
 	}
 	return nil
 }
@@ -2505,6 +2508,8 @@ func (b *builder) running(g string) Text {
 		return tx("running.authenticationFor", A{"providers": ArgAnd(shortsOf(b.availableShares()))})
 	case GroupLinks:
 		return tx("running.linksCount", A{"count": len(b.f.Content.Report.LinkList)})
+	case GroupRules:
+		return tx("running.rulesCount", A{"count": len(b.f.Rules)})
 	}
 	return runningText(g)
 }
@@ -2514,7 +2519,8 @@ func RunningText(g string) string { return runningText(g).en() }
 
 func runningText(g string) Text {
 	switch g {
-	case GroupReputation, GroupAuthentication, GroupContent, GroupLinks, GroupCompliance, GroupAudience, GroupRouting, GroupLanguages, GroupAccessibility, GroupConditional:
+	case GroupReputation, GroupAuthentication, GroupContent, GroupLinks, GroupCompliance, GroupAudience, GroupRouting, GroupLanguages, GroupAccessibility, GroupConditional,
+		GroupRules:
 		return tx("running."+g, nil)
 	}
 	return nil

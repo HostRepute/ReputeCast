@@ -156,7 +156,11 @@ func FinalRecipients(ctx context.Context, q *store.Queries, segs SegmentResolver
 	}
 	seen := make(map[string]bool, len(rows))
 	excludeSunset := slices.Contains(a.ExcludeTiers, "sunset")
-	leaveOut := a.leavesOutUnengaged(true)
+	byDefault := true
+	if d, err := q.SendDefaults(ctx, wsID); err == nil {
+		byDefault = d.ExcludeUnengaged
+	}
+	leaveOut := a.leavesOutUnengaged(byDefault)
 	res := make([]*Facts, 0, len(rows))
 	for _, r := range rows {
 		if !keep.Keeps(r.ID) {

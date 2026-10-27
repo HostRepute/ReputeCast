@@ -57,6 +57,7 @@ func pollForReader(ctx context.Context, p ReadinessPoll) ReadinessPoll {
 
 // Register adds the readiness operations.
 func Register(h huma.API, s *Service) {
+	registerRules(h, s)
 	tags := []string{"Review & send"}
 	api.Post(h, api.Op{ID: "run-send-readiness", Path: "/workspaces/{workspace}/campaigns/{campaignId}/readiness", Summary: "Run Send Readiness on a campaign",
 		Description: "Queues a run of every check; a worker runs it in the background and stores the result. Answers 202 with the run waiting or in " +

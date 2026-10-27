@@ -13,6 +13,7 @@ export function settingsTabs(workspace: string): NavTab[] {
     { label: t(m.general), to: '/w/$workspace/settings', params, exact: true },
     { label: t(m.senders), to: '/w/$workspace/settings/senders', params },
     { label: t(m.providers), to: '/w/$workspace/settings/providers', params },
+    { label: t(m.sendingRules), to: '/w/$workspace/settings/sending-rules', params },
     { label: t(m.team), to: '/w/$workspace/settings/team', params },
     { label: t(m.roles), to: '/w/$workspace/settings/roles', params },
     { label: t(m.approvals), to: '/w/$workspace/settings/approvals', params },

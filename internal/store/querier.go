@@ -2629,6 +2629,8 @@ type Querier interface {
 	ReadinessScheduledDue(ctx context.Context, arg ReadinessScheduledDueParams) ([]ReadinessScheduledDueRow, error)
 	ReadinessSegmentNames(ctx context.Context, workspaceID uuid.UUID) ([]ReadinessSegmentNamesRow, error)
 	ReadinessSendConfirmation(ctx context.Context, campaignID uuid.UUID) (CampaignSendConfirmation, error)
+	// The rules a send checks: on, and for its stream (or both).
+	ReadinessSendingRules(ctx context.Context, arg ReadinessSendingRulesParams) ([]ReadinessSendingRulesRow, error)
 	ReadinessSetAudience(ctx context.Context, arg ReadinessSetAudienceParams) error
 	ReadinessSetAudienceCount(ctx context.Context, arg ReadinessSetAudienceCountParams) error
 	ReadinessSetContentSettings(ctx context.Context, arg ReadinessSetContentSettingsParams) error
@@ -3143,6 +3145,9 @@ type Querier interface {
 	// The products the segment builder offers: published first, then the rest
 	// that ever sold.
 	SegmentProductOptions(ctx context.Context, workspaceID uuid.UUID) ([]SegmentProductOptionsRow, error)
+	// A workspace's audience defaults (the defaults when it never saved any).
+	SendDefaults(ctx context.Context, workspaceID uuid.UUID) (SendDefaultsRow, error)
+	SendDefaultsSave(ctx context.Context, arg SendDefaultsSaveParams) error
 	// Campaigns that are not sent yet and use the sender (deleting it clears them).
 	SenderCampaignCount(ctx context.Context, senderID *uuid.UUID) (int64, error)
 	SenderCreate(ctx context.Context, arg SenderCreateParams) (Sender, error)
@@ -3286,6 +3291,17 @@ type Querier interface {
 	SendingRetryLater(ctx context.Context, arg SendingRetryLaterParams) error
 	SendingRetryNow(ctx context.Context, arg SendingRetryNowParams) error
 	SendingRoutes(ctx context.Context, campaignID uuid.UUID) ([]SendingRoutesRow, error)
+	SendingRuleDelete(ctx context.Context, arg SendingRuleDeleteParams) (int64, error)
+	// A later run of the send it last found breaking the rule found it kept.
+	SendingRuleFixed(ctx context.Context, arg SendingRuleFixedParams) error
+	SendingRuleGet(ctx context.Context, arg SendingRuleGetParams) (SendingRule, error)
+	SendingRuleInsert(ctx context.Context, arg SendingRuleInsertParams) error
+	// A run found the send breaking the rule.
+	SendingRuleTriggered(ctx context.Context, arg SendingRuleTriggeredParams) error
+	SendingRuleUpdate(ctx context.Context, arg SendingRuleUpdateParams) (int64, error)
+	// Workspace sending rules and audience defaults (SR-10, Settings ›
+	// Sending rules).
+	SendingRulesList(ctx context.Context, workspaceID uuid.UUID) ([]SendingRulesListRow, error)
 	SendingSavePrepare(ctx context.Context, arg SendingSavePrepareParams) error
 	SendingSegmentNames(ctx context.Context, workspaceID uuid.UUID) ([]SendingSegmentNamesRow, error)
 	SendingSentSince(ctx context.Context, arg SendingSentSinceParams) ([]SendingSentSinceRow, error)

@@ -54,7 +54,7 @@ func seedReadinessImpl(ctx context.Context, s *Seeder) error {
 	if err := r.loadImages(ctx); err != nil {
 		return err
 	}
-	steps := []func(context.Context) error{r.weeklyDigest, r.flashSale, r.november, r.history}
+	steps := []func(context.Context) error{r.sendingRules, r.weeklyDigest, r.flashSale, r.november, r.history}
 	for _, step := range steps {
 		if err := step(ctx); err != nil {
 			return err
@@ -67,6 +67,8 @@ type readinessSeed struct {
 	s      *Seeder
 	ws     store.Workspace
 	images map[string]string
+	// broadcastRules are the workspace rules a Broadcast checks (SR-10).
+	broadcastRules []readiness.RuleFacts
 }
 
 func (r *readinessSeed) loadImages(ctx context.Context) error {
@@ -247,14 +249,18 @@ func (r *readinessSeed) weeklyDigest(ctx context.Context) error {
 		Report: contentcheck.ContentCheckReport{Verdict: readiness.VerdictReady, SizeBytes: 64 * 1024, ClipBytes: contentcheck.ClipBytes, Images: 7, Links: 14,
 			SubjectHeuristics: []string{}, Issues: []contentcheck.ContentCheckIssue{}, Sections: []contentcheck.ContentCheckSection{}, PlainText: strings.Repeat("x", 9*1024),
 			CheckedAt: checked, ImageShare: 0.38, Words: 1140,
+			// Twelve links carry the UTM tags the workspace rule asks for;
+			// the roadmap button and the changelog link miss utm_campaign.
 			LinkList: probed(
-				[3]string{"https://acme.io/changelog", "Changelog", "link"}, [3]string{"https://docs.acme.io", "Docs", "link"}, [3]string{"https://blog.acme.io", "Blog", "link"},
-				[3]string{"https://docs.acme.io/flags", "Read the docs", "button"}, [3]string{"https://docs.acme.io/changelog", "See the changelog", "button"},
-				[3]string{"https://docs.acme.io/migrate-v2", "migration guide", "link"}, [3]string{"https://acme.io/q4", "Q4 roadmap", "image"},
-				[3]string{"https://acme.io/audit-log", "Audit log exports", "link"}, [3]string{"https://status.acme.io", "Status", "link"},
-				[3]string{"https://github.com/acme/flags", "GitHub", "social"}, [3]string{"https://www.youtube.com/@acme", "YouTube", "social"},
-				[3]string{"https://www.linkedin.com/company/acme", "LinkedIn", "social"}, [3]string{"https://docs.acme.io/api/v2", "v2 API", "link"},
-				[3]string{"https://acme.io/blog/flags-ga", "Feature flags are generally available", "link"}),
+				[3]string{"https://acme.io/changelog" + utm, "Changelog", "link"}, [3]string{"https://docs.acme.io/" + utm, "Docs", "link"},
+				[3]string{"https://blog.acme.io/" + utm, "Blog", "link"}, [3]string{"https://docs.acme.io/flags" + utm, "Read the docs", "button"},
+				[3]string{"https://docs.acme.io/changelog?utm_source=newsletter&utm_medium=email", "Full changelog", "link"},
+				[3]string{"https://docs.acme.io/migrate-v2" + utm, "migration guide", "link"},
+				[3]string{"https://acme.io/roadmap?utm_source=newsletter&utm_medium=email", "See the roadmap", "button"},
+				[3]string{"https://acme.io/audit-log" + utm, "Audit log exports", "link"}, [3]string{"https://status.acme.io/" + utm, "Status", "link"},
+				[3]string{"https://github.com/acme/flags" + utm, "GitHub", "social"}, [3]string{"https://www.youtube.com/@acme" + utm, "YouTube", "social"},
+				[3]string{"https://www.linkedin.com/company/acme" + utm, "LinkedIn", "social"}, [3]string{"https://docs.acme.io/api/v2" + utm, "v2 API", "link"},
+				[3]string{"https://acme.io/blog/flags-ga" + utm, "Feature flags are generally available", "link"}),
 			// The board's seven images on the CDN, the largest 182 KB.
 			ImageList: cdnImages("https://cdn.acme.io/digest-142/", 64, 182, 96, 41, 41, 23, 12)},
 		// 67 KB as sent, with the links rewritten for tracking on go.news.acme.io.
@@ -262,6 +268,8 @@ func (r *readinessSeed) weeklyDigest(ctx context.Context) error {
 		// The first-name tag's fallback, and the readers without a first name.
 		Fields: []readiness.FieldUse{{Field: "first_name", HasFallback: true, Fallback: "there"}}}
 	f.Audience.NoFirstName = 1817
+	// The workspace's rules for Broadcasts (SR-10): the UTM rule warns.
+	f.Rules = r.broadcastRules
 	// The estimate is the sending engine's own (SR-5): the route's 90 / 10
 	// split of each mailbox provider, played out from the schedule.
 	f.Route.Estimate = r.estimate(ctx, id, sched, f.Audience.Mailboxes, 0.9)
@@ -279,6 +287,69 @@ func (r *readinessSeed) weeklyDigest(ctx context.Context) error {
 	}
 	return readinessAudit(ctx, s, s.designDay(0, 9, 42), linh, "campaign.scheduled", "campaign", id.String(), "Weekly Digest #142",
 		map[string]any{"status": "scheduled", "scheduled_at": sched}, map[string]any{"recipients": 31192, "schedule": sched.In(state.Location("America/New_York")).Format("Jan 2, 15:04")}, "203.0.113.9")
+}
+
+// utm is the sample's UTM tags on a digest link.
+const utm = "?utm_source=newsletter&utm_medium=email&utm_campaign=weekly-digest-142"
+
+// sendingRules seeds Settings › Sending rules (SettingsSendingRules): four
+// rules Marcus added, three of them triggered once.
+func (r *readinessSeed) sendingRules(ctx context.Context) error {
+	s := r.s
+	marcus := s.Users["marcus@acme.io"]
+	address := "Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105"
+	type trigger struct {
+		at       time.Time
+		campaign *uuid.UUID
+		name     string
+		count    int
+		fixed    bool
+	}
+	digest, ok := s.Campaigns["Weekly Digest #142"]
+	var digestID *uuid.UUID
+	if ok {
+		digestID = &digest
+	}
+	rules := []struct {
+		name, kind, op, value, severity, scope, message string
+		added                                           time.Time
+		trig                                            *trigger
+	}{
+		{"Links need UTM tags", readiness.RuleLinkParam, "on_every", "utm_campaign", "warn", "broadcast", "ReputeCast counts clicks either way; the tag is for your web analytics.",
+			s.designDay(20, 10, 5), &trigger{s.designDay(0, 9, 40), digestID, "Weekly Digest #142", 2, false}},
+		// Warn, not the board's Block: the sample's November Product Update
+		// links through bit.ly on purpose (its approval flows expect it Ready
+		// with warnings, SendReadinessApproval), and a Block rule would stop
+		// every one of them.
+		{"No URL shorteners", readiness.RuleLinkDomain, "not_one_of", readiness.Shorteners, "warn", "both", "",
+			s.designDay(20, 10, 7), &trigger{s.designDay(11, 11, 20), nil, "Feature flags preview", 1, true}},
+		{"Subject under 70 characters", readiness.RuleSubjectLength, "at_most", "70", "warn", "automation", "",
+			s.designDay(20, 10, 9), &trigger{s.designDay(14, 16, 5), nil, "Onboarding · new workspace, email 4", 0, false}},
+		{"Footer must include the postal address", readiness.RuleContainsText, "footer_contains", address, "block", "automation", "",
+			s.designDay(11, 14, 30), nil},
+	}
+	for _, x := range rules {
+		id := ID()
+		if _, err := s.Tx.Exec(ctx, `INSERT INTO sending_rules (id, workspace_id, name, kind, operator, value, severity, applies_to, enabled, message, created_by, created_at, updated_at)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true,$9,$10,$11,$11)`, id, r.ws.ID, x.name, x.kind, x.op, x.value, x.severity, x.scope, x.message, marcus.ID, x.added); err != nil {
+			return err
+		}
+		if t := x.trig; t != nil {
+			if _, err := s.Tx.Exec(ctx, `UPDATE sending_rules SET triggered_at = $2, triggered_campaign = $3, triggered_name = $4, triggered_count = $5, triggered_fixed = $6 WHERE id = $1`,
+				id, t.at, t.campaign, t.name, t.count, t.fixed); err != nil {
+				return err
+			}
+		}
+		if x.scope != "automation" {
+			r.broadcastRules = append(r.broadcastRules, readiness.RuleFacts{ID: id.String(), Name: x.name, Kind: x.kind, Operator: x.op, Value: x.value, Severity: x.severity,
+				AppliesTo: x.scope, Message: x.message, AddedBy: marcus.Name})
+		}
+		if err := readinessAudit(ctx, s, x.added, marcus, "sending_rule.created", "sending_rule", id.String(), x.name,
+			map[string]any{"name": x.name, "kind": x.kind, "operator": x.op, "value": x.value, "severity": x.severity, "applies_to": x.scope, "enabled": true}, nil, "198.51.100.40"); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // readinessAudit writes one audit entry as a person.

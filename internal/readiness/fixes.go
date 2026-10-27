@@ -26,7 +26,7 @@ import (
 
 // ReadinessFixRequest is one fix to apply.
 type ReadinessFixRequest struct {
-	Action string            `json:"action" enum:"exclude_sunset,include_unengaged,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language,accessibility_decorative,accessibility_color,accessibility_one_click,visibility_show_everyone,visibility_hide_block,visibility_remove_condition,poll_close_days,exclude_risky,verify_addresses,sponsor_remove_block,sponsor_refresh_block"`
+	Action string            `json:"action" enum:"rule_add_param,exclude_sunset,include_unengaged,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language,accessibility_decorative,accessibility_color,accessibility_one_click,visibility_show_everyone,visibility_hide_block,visibility_remove_condition,poll_close_days,exclude_risky,verify_addresses,sponsor_remove_block,sponsor_refresh_block"`
 	Params map[string]string `json:"params,omitempty"`
 }
 
@@ -182,6 +182,29 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 			src, content = next, true
 			labels = append(labels, say(ctx, "version.footer", nil))
 			out.Applied = append(out.Applied, say(ctx, "applied.footer", nil))
+		case FixRuleAddParam:
+			// A workspace rule's query parameter on the links missing it
+			// (SR-10), in the MJML or, for an HTML campaign, the HTML.
+			param, value := strings.TrimSpace(fx.Params["param"]), strings.TrimSpace(fx.Params["value"])
+			if param == "" || value == "" {
+				return out, api.Invalid(field, say(ctx, "problem.ruleParam", nil))
+			}
+			body := src
+			if htmlOnly {
+				body = htmlSrc
+			}
+			next, n := AddLinkParam(body, param, value)
+			if n == 0 {
+				return out, api.Invalid(field, say(ctx, "problem.paramThere", A{"param": param}))
+			}
+			if htmlOnly {
+				htmlSrc = next
+			} else {
+				src = next
+			}
+			content = true
+			labels = append(labels, say(ctx, "version.ruleParam", A{"param": param}))
+			out.Applied = append(out.Applied, say(ctx, "applied.addedParam", A{"param": param, "value": value, "count": n}))
 		case FixReplaceLink:
 			from, to := strings.TrimSpace(fx.Params["from"]), strings.TrimSpace(fx.Params["to"])
 			if from == "" || !validLink(to) {
@@ -334,7 +357,7 @@ func (s *Service) excludeSunset(ctx context.Context, ws *store.Workspace, p *aut
 	if def.Empty() {
 		return "", api.Invalid("body.fixes", say(ctx, "problem.pickAudience", nil))
 	}
-	if def.ExcludesSunset() {
+	if def.LeavesOutUnengaged(sendDefaults(ctx, s.Q, ws.ID).ExcludeUnengaged) {
 		return say(ctx, "applied.alreadyExcluded", nil), nil
 	}
 	err := s.setAudience(ctx, ws, p, c, FixExcludeSunset, func(raw map[string]any) {
@@ -356,7 +379,7 @@ func (s *Service) includeUnengaged(ctx context.Context, ws *store.Workspace, p *
 	if def.Empty() {
 		return "", api.Invalid("body.fixes", say(ctx, "problem.pickAudience", nil))
 	}
-	if !def.ExcludesSunset() {
+	if !def.LeavesOutUnengaged(sendDefaults(ctx, s.Q, ws.ID).ExcludeUnengaged) {
 		return say(ctx, "applied.alreadyIncluded", nil), nil
 	}
 	err := s.setAudience(ctx, ws, p, c, FixIncludeUnengaged, func(raw map[string]any) {

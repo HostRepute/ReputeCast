@@ -56516,7 +56516,8 @@
               "audience",
               "routing",
               "accessibility",
-              "conditional"
+              "conditional",
+              "rules"
             ],
             "type": "string"
           },
@@ -56531,6 +56532,12 @@
           },
           "note": {
             "type": "string"
+          },
+          "raw": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "rows": {
             "items": {
@@ -56549,6 +56556,12 @@
               "unknown"
             ],
             "type": "string"
+          },
+          "technical": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessTechRow"
+            },
+            "type": "array"
           },
           "title": {
             "type": "string"
@@ -56655,6 +56668,7 @@
         "properties": {
           "action": {
             "enum": [
+              "rule_add_param",
               "exclude_sunset",
               "route_only",
               "insert_footer",
@@ -56740,6 +56754,7 @@
         "properties": {
           "action": {
             "enum": [
+              "rule_add_param",
               "exclude_sunset",
               "include_unengaged",
               "route_only",
@@ -56811,7 +56826,8 @@
               "audience",
               "routing",
               "accessibility",
-              "conditional"
+              "conditional",
+              "rules"
             ],
             "type": "string"
           },
@@ -57412,6 +57428,22 @@
         "required": [
           "verdict",
           "issues"
+        ],
+        "type": "object"
+      },
+      "ReadinessTechRow": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "value"
         ],
         "type": "object"
       },
@@ -68603,6 +68635,25 @@
         ],
         "type": "object"
       },
+      "SendDefaults": {
+        "additionalProperties": false,
+        "properties": {
+          "excludeUnengaged": {
+            "type": "boolean"
+          },
+          "typedMultiple": {
+            "format": "double",
+            "maximum": 20,
+            "minimum": 1.1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "excludeUnengaged",
+          "typedMultiple"
+        ],
+        "type": "object"
+      },
       "SenderDefaults": {
         "additionalProperties": false,
         "properties": {
@@ -69351,6 +69402,230 @@
           "suggested",
           "target",
           "status"
+        ],
+        "type": "object"
+      },
+      "SendingRule": {
+        "additionalProperties": false,
+        "properties": {
+          "addedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "addedBy": {
+            "type": "string"
+          },
+          "appliesTo": {
+            "enum": [
+              "broadcast",
+              "automation",
+              "both"
+            ],
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "link_param",
+              "link_domain",
+              "subject_length",
+              "contains_text"
+            ],
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "operator": {
+            "enum": [
+              "on_every",
+              "on_none",
+              "not_one_of",
+              "one_of",
+              "at_most",
+              "at_least",
+              "footer_contains",
+              "footer_lacks",
+              "body_contains",
+              "subject_contains"
+            ],
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "warn",
+              "block"
+            ],
+            "type": "string"
+          },
+          "triggered": {
+            "$ref": "#/components/schemas/SendingRuleTrigger"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "operator",
+          "value",
+          "severity",
+          "appliesTo",
+          "enabled",
+          "message",
+          "description",
+          "addedBy",
+          "addedAt"
+        ],
+        "type": "object"
+      },
+      "SendingRuleInput": {
+        "additionalProperties": false,
+        "properties": {
+          "appliesTo": {
+            "enum": [
+              "broadcast",
+              "automation",
+              "both"
+            ],
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "link_param",
+              "link_domain",
+              "subject_length",
+              "contains_text"
+            ],
+            "type": "string"
+          },
+          "message": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "operator": {
+            "enum": [
+              "on_every",
+              "on_none",
+              "not_one_of",
+              "one_of",
+              "at_most",
+              "at_least",
+              "footer_contains",
+              "footer_lacks",
+              "body_contains",
+              "subject_contains"
+            ],
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "warn",
+              "block"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 2000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "operator",
+          "value",
+          "severity",
+          "appliesTo",
+          "enabled"
+        ],
+        "type": "object"
+      },
+      "SendingRuleTrigger": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "campaign": {
+            "type": "string"
+          },
+          "campaignId": {
+            "type": "string"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "fixed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "at",
+          "campaign",
+          "count",
+          "fixed"
+        ],
+        "type": "object"
+      },
+      "SendingRulesView": {
+        "additionalProperties": false,
+        "properties": {
+          "canManage": {
+            "type": "boolean"
+          },
+          "defaults": {
+            "$ref": "#/components/schemas/SendDefaults"
+          },
+          "managers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/SendingRule"
+            },
+            "type": "array"
+          },
+          "sunsetDays": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rules",
+          "defaults",
+          "sunsetDays",
+          "canManage",
+          "managers"
         ],
         "type": "object"
       },
@@ -151345,6 +151620,71 @@
         "x-permission": "subscribers:view"
       }
     },
+    "/api/v1/workspaces/{workspace}/send-defaults": {
+      "put": {
+        "description": "Whether sends leave out the unengaged contacts of the sunset policy, and when a sender types the recipient count.",
+        "operationId": "update-send-defaults",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendDefaults"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendingRulesView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change how every send's audience is counted and confirmed",
+        "tags": [
+          "Sending rules"
+        ],
+        "x-access": "workspace",
+        "x-permission": "workspace:manage"
+      }
+    },
     "/api/v1/workspaces/{workspace}/senders": {
       "get": {
         "description": "Verification is per sending provider: each provider signs with its own DKIM key.",
@@ -151667,6 +152007,254 @@
         ],
         "x-access": "workspace",
         "x-permission": "domains:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/sending-rules": {
+      "get": {
+        "description": "Send Readiness checks every rule that is on for a send's stream, next to its built-in checks.",
+        "operationId": "list-sending-rules",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendingRulesView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The workspace's sending rules and audience defaults",
+        "tags": [
+          "Sending rules"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      },
+      "post": {
+        "operationId": "create-sending-rule",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendingRuleInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendingRule"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Add a sending rule",
+        "tags": [
+          "Sending rules"
+        ],
+        "x-access": "workspace",
+        "x-permission": "workspace:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/sending-rules/{ruleId}": {
+      "delete": {
+        "operationId": "delete-sending-rule",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ruleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove a sending rule",
+        "tags": [
+          "Sending rules"
+        ],
+        "x-access": "workspace",
+        "x-permission": "workspace:manage"
+      },
+      "put": {
+        "description": "Changes apply from the next check; a scheduled send picks them up at its send-time recheck.",
+        "operationId": "update-sending-rule",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ruleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendingRuleInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendingRule"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change a sending rule, its severity, scope or status",
+        "tags": [
+          "Sending rules"
+        ],
+        "x-access": "workspace",
+        "x-permission": "workspace:manage"
       }
     },
     "/api/v1/workspaces/{workspace}/settings": {

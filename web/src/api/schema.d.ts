@@ -12644,6 +12644,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/send-defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change how every send's audience is counted and confirmed
+         * @description Whether sends leave out the unengaged contacts of the sunset policy, and when a sender types the recipient count.
+         */
+        put: operations["update-send-defaults"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/senders": {
         parameters: {
             query?: never;
@@ -12701,6 +12721,48 @@ export interface paths {
         head?: never;
         /** Change a sender's name, reply-to, default streams or providers */
         patch: operations["update-sender"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sending-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The workspace's sending rules and audience defaults
+         * @description Send Readiness checks every rule that is on for a send's stream, next to its built-in checks.
+         */
+        get: operations["list-sending-rules"];
+        put?: never;
+        /** Add a sending rule */
+        post: operations["create-sending-rule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sending-rules/{ruleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change a sending rule, its severity, scope or status
+         * @description Changes apply from the next check; a scheduled send picks them up at its send-time recheck.
+         */
+        put: operations["update-sending-rule"];
+        post?: never;
+        /** Remove a sending rule */
+        delete: operations["delete-sending-rule"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/workspaces/{workspace}/settings": {
@@ -32909,15 +32971,17 @@ export interface components {
             fixes: components["schemas"]["ReadinessFix"][];
             flatTitle: string;
             /** @enum {string} */
-            group: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional";
+            group: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional" | "rules";
             key: string;
             label?: string;
             mono?: boolean;
             note?: string;
+            raw?: string[];
             rows?: components["schemas"]["ReadinessCheckRow"][];
             short?: string;
             /** @enum {string} */
             status: "pass" | "warn" | "block" | "unknown";
+            technical?: components["schemas"]["ReadinessTechRow"][];
             title: string;
         };
         ReadinessCheckRow: {
@@ -32948,7 +33012,7 @@ export interface components {
         };
         ReadinessFix: {
             /** @enum {string} */
-            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses" | "sponsor_remove_block" | "sponsor_refresh_block";
+            action?: "rule_add_param" | "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses" | "sponsor_remove_block" | "sponsor_refresh_block";
             href?: string;
             /** @enum {string} */
             kind: "apply" | "link";
@@ -32967,7 +33031,7 @@ export interface components {
         };
         ReadinessFixRequest: {
             /** @enum {string} */
-            action: "exclude_sunset" | "include_unengaged" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses" | "sponsor_remove_block" | "sponsor_refresh_block";
+            action: "rule_add_param" | "exclude_sunset" | "include_unengaged" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses" | "sponsor_remove_block" | "sponsor_refresh_block";
             params?: {
                 [key: string]: string;
             };
@@ -32978,7 +33042,7 @@ export interface components {
         ReadinessGroup: {
             caption: string;
             /** @enum {string} */
-            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional";
+            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional" | "rules";
             note?: string;
             /** Format: int64 */
             passed: number;
@@ -33148,6 +33212,10 @@ export interface components {
             issues: number;
             /** @enum {string} */
             verdict: "ready" | "warnings" | "blocked";
+        };
+        ReadinessTechRow: {
+            label: string;
+            value: string;
         };
         ReadinessThresholds: {
             /** Format: double */
@@ -36317,6 +36385,11 @@ export interface components {
             /** Format: int64 */
             sunset: number;
         };
+        SendDefaults: {
+            excludeUnengaged: boolean;
+            /** Format: double */
+            typedMultiple: number;
+        };
         SenderDefaults: {
             automationSenderId: string;
             defaultSenderId: string;
@@ -36517,6 +36590,58 @@ export interface components {
             status: "none" | "pending" | "verified" | "wrong_value" | "missing" | "error";
             suggested: string;
             target: string;
+        };
+        SendingRule: {
+            /** Format: date-time */
+            addedAt: string;
+            addedBy: string;
+            /** @enum {string} */
+            appliesTo: "broadcast" | "automation" | "both";
+            description: string;
+            enabled: boolean;
+            id: string;
+            /** @enum {string} */
+            kind: "link_param" | "link_domain" | "subject_length" | "contains_text";
+            message: string;
+            name: string;
+            /** @enum {string} */
+            operator: "on_every" | "on_none" | "not_one_of" | "one_of" | "at_most" | "at_least" | "footer_contains" | "footer_lacks" | "body_contains" | "subject_contains";
+            /** @enum {string} */
+            severity: "warn" | "block";
+            triggered?: components["schemas"]["SendingRuleTrigger"];
+            value: string;
+        };
+        SendingRuleInput: {
+            /** @enum {string} */
+            appliesTo: "broadcast" | "automation" | "both";
+            enabled: boolean;
+            /** @enum {string} */
+            kind: "link_param" | "link_domain" | "subject_length" | "contains_text";
+            message?: string;
+            name: string;
+            /** @enum {string} */
+            operator: "on_every" | "on_none" | "not_one_of" | "one_of" | "at_most" | "at_least" | "footer_contains" | "footer_lacks" | "body_contains" | "subject_contains";
+            /** @enum {string} */
+            severity: "warn" | "block";
+            value: string;
+        };
+        SendingRuleTrigger: {
+            /** Format: date-time */
+            at: string;
+            campaign: string;
+            campaignId?: string;
+            /** Format: int64 */
+            count: number;
+            fixed: boolean;
+        };
+        SendingRulesView: {
+            canManage: boolean;
+            defaults: components["schemas"]["SendDefaults"];
+            managers: string[];
+            reason?: string;
+            rules: components["schemas"]["SendingRule"][];
+            /** Format: int64 */
+            sunsetDays: number;
         };
         SessionTiming: {
             /**
@@ -72687,6 +72812,42 @@ export interface operations {
             };
         };
     };
+    "update-send-defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendDefaults"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendingRulesView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-senders": {
         parameters: {
             query?: never;
@@ -72847,6 +73008,142 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SenderIdentity"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-sending-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendingRulesView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-sending-rule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendingRuleInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendingRule"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-sending-rule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                ruleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendingRuleInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendingRule"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-sending-rule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                ruleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {

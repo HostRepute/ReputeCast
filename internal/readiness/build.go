@@ -1,6 +1,10 @@
 package readiness
 
-import "github.com/hostrepute/reputecast/internal/i18n"
+import (
+	"slices"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
+)
 
 // check is a check as Assemble builds it: its texts are kept messages, and
 // result writes their English into the ReadinessCheck a run stores.
@@ -11,6 +15,8 @@ type check struct {
 	Title, FlatTitle, Detail, Label, Evidence, Short, Ack, Note Text
 	Fixes                                                       []fix
 	Rows                                                        []row
+	Technical                                                   []techRow
+	Raw                                                         []string
 	// every marks the passing links check that names all the links: an
 	// email sent in several languages says they respond "in every version".
 	every bool
@@ -21,6 +27,11 @@ type fix struct {
 	Kind, Action, Tone, Href string
 	Label                    Text
 	Params                   map[string]string
+}
+
+// techRow is a line of a check's technical details (ReadinessTechRow).
+type techRow struct {
+	Label, Value Text
 }
 
 // row is a line of a check's table (ReadinessCheckRow).
@@ -48,6 +59,13 @@ func (c check) result() ReadinessCheck {
 	for _, f := range c.Fixes {
 		out.Fixes = append(out.Fixes, ReadinessFix{Kind: f.Kind, Action: f.Action, Label: f.Label.en(), Tone: f.Tone, Href: f.Href, Params: f.Params})
 		t.Fixes = append(t.Fixes, f.Label)
+	}
+	for _, r := range c.Technical {
+		out.Technical = append(out.Technical, ReadinessTechRow{Label: r.Label.en(), Value: r.Value.en()})
+		t.Technical = append(t.Technical, techTexts(r))
+	}
+	if len(c.Raw) > 0 {
+		out.Raw = slices.Clone(c.Raw)
 	}
 	if len(c.Rows) > 0 {
 		out.Rows = make([]ReadinessCheckRow, 0, len(c.Rows))

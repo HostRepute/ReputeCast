@@ -48,6 +48,9 @@ type Facts struct {
 	MailboxRates map[string]float64
 	// Grow are the Referral and Recommendations blocks' rows (grow.go).
 	Grow []GrowRow
+	// Rules are the workspace's sending rules for the send's stream
+	// (rules.go, SR-10).
+	Rules []RuleFacts
 }
 
 // CampaignFacts describes the campaign being checked.
@@ -377,6 +380,9 @@ type ProviderAuthFacts struct {
 // ContentFacts are the composer's content and link checks.
 type ContentFacts struct {
 	Report contentcheck.ContentCheckReport
+	// FooterText is the text of the email's footer (workspace rules on
+	// what it shows).
+	FooterText string
 	// Checked is false when the content check couldn't run.
 	Checked bool
 	// FooterRemovedAt is when the version without a footer was saved.

@@ -486,6 +486,10 @@ func (s *Service) store(ctx context.Context, ws *store.Workspace, c store.Readin
 		if err := q.ReadinessPruneRuns(ctx, c.ID); err != nil {
 			return err
 		}
+		// The workspace rules it found broken, or kept again (SR-10).
+		if err := noteRules(ctx, q, c, run.ReadinessResult, run.RanAt); err != nil {
+			return err
+		}
 		if run.Trigger != TriggerManual && run.Trigger != TriggerSendTime {
 			return nil
 		}

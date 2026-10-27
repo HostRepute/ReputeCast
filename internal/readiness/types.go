@@ -38,7 +38,8 @@ const (
 )
 
 // Groups lists the check groups in checklist order.
-var Groups = []string{GroupReputation, GroupAuthentication, GroupContent, GroupLanguages, GroupAccessibility, GroupConditional, GroupLinks, GroupCompliance, GroupAudience, GroupRouting}
+var Groups = []string{GroupReputation, GroupAuthentication, GroupContent, GroupLanguages, GroupAccessibility, GroupConditional, GroupLinks, GroupCompliance, GroupAudience, GroupRouting,
+	GroupRules}
 
 // Triggers of a run (readiness_runs.trigger).
 const (
@@ -67,7 +68,7 @@ const (
 // where it's fixed (Kind "link", Href is an app path).
 type ReadinessFix struct {
 	Kind   string            `json:"kind" enum:"apply,link"`
-	Action string            `json:"action,omitempty" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language,accessibility_decorative,accessibility_color,accessibility_one_click,visibility_show_everyone,visibility_hide_block,visibility_remove_condition,poll_close_days,exclude_risky,verify_addresses,sponsor_remove_block,sponsor_refresh_block"`
+	Action string            `json:"action,omitempty" enum:"rule_add_param,exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language,accessibility_decorative,accessibility_color,accessibility_one_click,visibility_show_everyone,visibility_hide_block,visibility_remove_condition,poll_close_days,exclude_risky,verify_addresses,sponsor_remove_block,sponsor_refresh_block"`
 	Label  string            `json:"label"`
 	Tone   string            `json:"tone,omitempty" enum:"primary,danger"`
 	Href   string            `json:"href,omitempty"`
@@ -78,7 +79,7 @@ type ReadinessFix struct {
 type ReadinessCheck struct {
 	// Key identifies the check: "audience.unengaged", "reputation.provider.ses".
 	Key    string `json:"key"`
-	Group  string `json:"group" enum:"reputation,authentication,content,languages,links,compliance,audience,routing,accessibility,conditional"`
+	Group  string `json:"group" enum:"reputation,authentication,content,languages,links,compliance,audience,routing,accessibility,conditional,rules"`
 	Status string `json:"status" enum:"pass,warn,block,unknown"`
 	// Title states the finding; FlatTitle is the same finding prefixed with
 	// its group, for lists ordered by severity ("Links: go.acme-promo.link…").
@@ -105,9 +106,20 @@ type ReadinessCheck struct {
 	// Rows are a small table of the finding ("Recipients per language":
 	// English 26,890 gets English · …).
 	Rows []ReadinessCheckRow `json:"rows,omitempty"`
+	// Technical are the check's technical details (a workspace rule, what
+	// it checks and what broke it; a blocklist and its scope), and Raw the
+	// records, answers or addresses behind them, shown as they are.
+	Technical []ReadinessTechRow `json:"technical,omitempty"`
+	Raw       []string           `json:"raw,omitempty"`
 
 	// texts are the messages the texts above are written from (stored.go).
 	texts *checkTexts
+}
+
+// ReadinessTechRow is a line of a check's technical details.
+type ReadinessTechRow struct {
+	Label string `json:"label"`
+	Value string `json:"value"`
 }
 
 // ReadinessCheckRow is one line of a check's table.
@@ -126,7 +138,7 @@ type ReadinessCheckRow struct {
 // ReadinessGroup is a group heading with its caption and a summary of what
 // passed (the collapsed "Passed" list and the running state show it).
 type ReadinessGroup struct {
-	Key     string `json:"key" enum:"reputation,authentication,content,languages,links,compliance,audience,routing,accessibility,conditional"`
+	Key     string `json:"key" enum:"reputation,authentication,content,languages,links,compliance,audience,routing,accessibility,conditional,rules"`
 	Title   string `json:"title"`
 	Caption string `json:"caption"`
 	Status  string `json:"status" enum:"pass,warn,block,unknown"`

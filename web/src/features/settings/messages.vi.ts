@@ -5,6 +5,7 @@ export default translate(m, {
   general: 'Chung',
   senders: 'Người gửi',
   providers: 'Nhà cung cấp',
+  sendingRules: 'Quy tắc gửi',
   team: 'Nhóm',
   roles: 'Vai trò',
   approvals: 'Phê duyệt',
