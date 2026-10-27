@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/readiness"
+	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -52,7 +54,7 @@ func seedReadinessImpl(ctx context.Context, s *Seeder) error {
 	if err := r.loadImages(ctx); err != nil {
 		return err
 	}
-	steps := []func(context.Context) error{r.weeklyDigest, r.flashSale, r.november, r.history}
+	steps := []func(context.Context) error{r.sendingRules, r.weeklyDigest, r.flashSale, r.november, r.history}
 	for _, step := range steps {
 		if err := step(ctx); err != nil {
 			return err
@@ -65,6 +67,8 @@ type readinessSeed struct {
 	s      *Seeder
 	ws     store.Workspace
 	images map[string]string
+	// broadcastRules are the workspace rules a Broadcast checks (SR-10).
+	broadcastRules []readiness.RuleFacts
 }
 
 func (r *readinessSeed) loadImages(ctx context.Context) error {
@@ -119,13 +123,17 @@ func (r *readinessSeed) postal(n int64, pct float64) readiness.ShareFacts {
 // SES and Postal, and one-click unsubscribe.
 func (r *readinessSeed) baseFacts(checked time.Time) readiness.Facts {
 	loc := state.Location("America/New_York")
+	// UCEPROTECT listed the network on Thu 9 Oct (the board's "listed since").
+	listedSince := r.s.designDay(4, 6, 0)
 	domainSources := []string{"Spamhaus DBL", "SURBL", "URIBL", "Barracuda", "Spamhaus ZRD", "Google Safe Browsing", "Abusix DBL", "Invaluement ivmURI"}
 	ipSources := []string{"Spamhaus ZEN", "Barracuda", "SpamCop", "Mailspike", "UCEPROTECT Level 1", "UCEPROTECT Level 2", "UCEPROTECT Level 3"}
 	return readiness.Facts{
 		Now: r.s.Now, Location: loc, Workspace: r.ws.Slug, MailboxRates: readiness.DefaultMailboxRates,
 		Reputation: readiness.ReputationFacts{Status: readiness.Warn, Via: "hostrepute", Sources: 84, CheckedAt: &checked, DomainSources: domainSources, IPSources: ipSources,
+			// The list's answers, as the technical details show them (SR-13).
 			Listings: []readiness.ListingFacts{{Asset: "203.0.113.25", Type: "ip", Source: "UCEPROTECT Level 3", Impact: "low", Detail: "Network-range listing (/16), low impact",
-				DelistURL: "https://www.uceprotect.net/en/rblcheck.php"}}},
+				DelistURL: "https://www.uceprotect.net/en/rblcheck.php", Since: &listedSince, Answer: "127.0.0.2",
+				TXT: "Your ISP AS64500 is UCEPROTECT-Level3 listed for hosting a total of 41 abusers."}}},
 		Auth: readiness.AuthFacts{Domain: "news.acme.io", Checked: true, CheckedAt: &checked,
 			SPFRecord: "v=spf1 include:amazonses.com include:spf.mta.acme.io -all",
 			SPF:       []readiness.ProviderAuthFacts{{Short: "SES", OK: true}, {Short: "Postal", OK: true}},
@@ -134,8 +142,17 @@ func (r *readinessSeed) baseFacts(checked time.Time) readiness.Facts {
 			MailFrom:    []readiness.ProviderAuthFacts{{Short: "SES", OK: true, Domain: "bounce.news.acme.io"}, {Short: "Postal", OK: true, Domain: "rp.news.acme.io"}},
 			DMARCStatus: "pass", DMARCPolicy: "quarantine", DMARCRecord: "v=DMARC1; p=quarantine; rua=mailto:dmarc@reports.hostrepute.com; adkim=s", DMARCAligned: f64(100),
 			BIMIStatus: "missing"},
-		Compliance: readiness.ComplianceFacts{UnsubscribeURL: "https://news.acme.io/u/{token}", HTTPS: true, ComplaintRate: f64(0.04)},
+		// Gmail Postmaster Tools reports a day late: yesterday, compliant
+		// (SR-12, the board's "Gmail Postmaster: Compliant (yesterday)").
+		Compliance: readiness.ComplianceFacts{UnsubscribeURL: "https://news.acme.io/u/{token}", HTTPS: true, ComplaintRate: f64(0.04),
+			Gmail: &readiness.PostmasterFacts{Domain: "news.acme.io", Day: postmasterDay(checked.In(loc).AddDate(0, 0, -1)), SpamRate: f64(0.05),
+				SPF: f64(100), DKIM: f64(100), DMARC: f64(100), TLS: f64(100)}, PostmasterConnected: true},
 	}
+}
+
+// postmasterDay is the date Gmail Postmaster Tools reports a day under.
+func postmasterDay(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 }
 
 func probed(entries ...[3]string) []contentcheck.ContentCheckLink {
@@ -147,6 +164,34 @@ func probed(entries ...[3]string) []contentcheck.ContentCheckLink {
 			ms = 840
 		}
 		out = append(out, contentcheck.ContentCheckLink{URL: e[0], Host: host, Text: e[1], Kind: e[2], Path: []int{}, Probed: true, Status: 200, Millis: ms})
+	}
+	return out
+}
+
+// estimate asks the sending engine how it would send the sample route: SES
+// takes sesShare of each mailbox provider's recipients, Postal the rest.
+func (r *readinessSeed) estimate(ctx context.Context, id uuid.UUID, start time.Time, mailboxes map[string]int64, sesShare float64) *engine.Estimate {
+	ses, postal := r.s.Providers["ses"], r.s.Providers["postal"]
+	cells := map[uuid.UUID]map[string]int64{ses: {}, postal: {}}
+	for k, n := range mailboxes {
+		viaSES := int64(math.Round(float64(n) * sesShare))
+		cells[ses][k], cells[postal][k] = viaSES, n-viaSES
+	}
+	now := r.s.Now
+	est, err := (&engine.Engine{Q: r.s.Q, Now: func() time.Time { return now }}).Estimate(ctx, id, engine.EstimateOptions{Start: start, Recipients: cells})
+	if err != nil {
+		return nil
+	}
+	return &est
+}
+
+// cdnImages are images on a CDN with their sizes in KB, as Send
+// Readiness requested them.
+func cdnImages(base string, kb ...int) []contentcheck.ContentCheckImage {
+	out := []contentcheck.ContentCheckImage{}
+	for i, k := range kb {
+		out = append(out, contentcheck.ContentCheckImage{URL: base + "image-" + strconv.Itoa(i+1) + ".png", Host: strings.SplitN(strings.TrimPrefix(base, "https://"), "/", 2)[0],
+			Path: []int{}, Probed: true, Status: 200, Bytes: int64(k) * 1024})
 	}
 	return out
 }
@@ -198,23 +243,40 @@ func (r *readinessSeed) weeklyDigest(ctx context.Context) error {
 	f := r.baseFacts(checked)
 	f.Campaign = readiness.CampaignFacts{ID: id.String(), Name: "Weekly Digest #142", Subject: subject, Version: 14, CompiledAt: &compiled, SenderName: "Acme Newsletter",
 		SenderEmail: "digest@news.acme.io", SenderDomain: "news.acme.io", StartAt: sched, ScheduleMode: "at"}
+	// 31,604 − 412 unengaged the send leaves out = 31,192 (SR-11).
 	f.Audience = readiness.AudienceFacts{BaseLabel: "Weekly Digest list", GroupLabel: "Weekly Digest", BaseKind: readiness.BaseList, BaseName: "Weekly Digest", Lists: []string{"Weekly Digest"}, Base: 31988, Suppressed: 331,
-		Role: 27, Duplicates: 26, Final: 31604, Unengaged: 412, UnengagedDays: 180,
-		Mailboxes: map[string]int64{"gmail": 14538, "outlook": 6637, "yahoo": 2844, "icloud": 2528, "other": 5057}}
-	f.Route = readiness.RouteFacts{Stream: "broadcast", Policy: "pause_and_ask", Shares: []readiness.ShareFacts{r.ses(28444, 90), r.postal(3160, 10)}}
+		Role: 27, Duplicates: 26, Final: 31192, SunsetExcluded: 412, UnengagedExcluded: true, UnengagedDays: 180,
+		Mailboxes: map[string]int64{"gmail": 14348, "outlook": 6551, "yahoo": 2807, "icloud": 2495, "other": 4991}}
+	f.Route = readiness.RouteFacts{Stream: "broadcast", Policy: "pause_and_ask", Shares: []readiness.ShareFacts{r.ses(28073, 90), r.postal(3119, 10)}}
 	f.Content = readiness.ContentFacts{Checked: true, Address: "Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105", InlineCSSBytes: 11 * 1024,
 		URIBlocklists: readiness.URIBlocklists, OwnDomain: "acme.io",
 		Report: contentcheck.ContentCheckReport{Verdict: readiness.VerdictReady, SizeBytes: 64 * 1024, ClipBytes: contentcheck.ClipBytes, Images: 7, Links: 14,
 			SubjectHeuristics: []string{}, Issues: []contentcheck.ContentCheckIssue{}, Sections: []contentcheck.ContentCheckSection{}, PlainText: strings.Repeat("x", 9*1024),
 			CheckedAt: checked, ImageShare: 0.38, Words: 1140,
+			// Twelve links carry the UTM tags the workspace rule asks for;
+			// the roadmap button and the changelog link miss utm_campaign.
 			LinkList: probed(
-				[3]string{"https://acme.io/blog", "Blog", "link"}, [3]string{"https://docs.acme.io", "Docs", "link"}, [3]string{"https://acme.io/changelog", "Changelog", "link"},
-				[3]string{"https://docs.acme.io/flags", "Read the docs", "button"}, [3]string{"https://docs.acme.io/changelog", "See the changelog", "button"},
-				[3]string{"https://docs.acme.io/migrate-v2", "migration guide", "link"}, [3]string{"https://acme.io/q4", "Q4 roadmap", "image"},
-				[3]string{"https://acme.io/audit-log", "Audit log exports", "link"}, [3]string{"https://github.com/acme/flags", "GitHub", "social"},
-				[3]string{"https://www.youtube.com/@acme", "YouTube", "social"}, [3]string{"https://acme.io/pricing", "Pricing", "link"},
-				[3]string{"https://docs.acme.io/api/v2", "v2 API", "link"}, [3]string{"https://acme.io/events", "Events", "link"},
-				[3]string{"https://acme.io/blog/flags-ga", "Feature flags are generally available", "link"})}}
+				[3]string{"https://acme.io/changelog" + utm, "Changelog", "link"}, [3]string{"https://docs.acme.io/" + utm, "Docs", "link"},
+				[3]string{"https://blog.acme.io/" + utm, "Blog", "link"}, [3]string{"https://docs.acme.io/flags" + utm, "Read the docs", "button"},
+				[3]string{"https://docs.acme.io/changelog?utm_source=newsletter&utm_medium=email", "Full changelog", "link"},
+				[3]string{"https://docs.acme.io/migrate-v2" + utm, "migration guide", "link"},
+				[3]string{"https://acme.io/roadmap?utm_source=newsletter&utm_medium=email", "See the roadmap", "button"},
+				[3]string{"https://acme.io/audit-log" + utm, "Audit log exports", "link"}, [3]string{"https://status.acme.io/" + utm, "Status", "link"},
+				[3]string{"https://github.com/acme/flags" + utm, "GitHub", "social"}, [3]string{"https://www.youtube.com/@acme" + utm, "YouTube", "social"},
+				[3]string{"https://www.linkedin.com/company/acme" + utm, "LinkedIn", "social"}, [3]string{"https://docs.acme.io/api/v2" + utm, "v2 API", "link"},
+				[3]string{"https://acme.io/blog/flags-ga" + utm, "Feature flags are generally available", "link"}),
+			// The board's seven images on the CDN, the largest 182 KB.
+			ImageList: cdnImages("https://cdn.acme.io/digest-142/", 64, 182, 96, 41, 41, 23, 12)},
+		// 67 KB as sent, with the links rewritten for tracking on go.news.acme.io.
+		TrackedBytes: 67 * 1024, TrackOpens: true, TrackClicks: true, TrackingHost: "go.news.acme.io", TrackingHTTPS: true, TrackingDNS: "ok",
+		// The first-name tag's fallback, and the readers without a first name.
+		Fields: []readiness.FieldUse{{Field: "first_name", HasFallback: true, Fallback: "there"}}}
+	f.Audience.NoFirstName = 1817
+	// The workspace's rules for Broadcasts (SR-10): the UTM rule warns.
+	f.Rules = r.broadcastRules
+	// The estimate is the sending engine's own (SR-5): the route's 90 / 10
+	// split of each mailbox provider, played out from the schedule.
+	f.Route.Estimate = r.estimate(ctx, id, sched, f.Audience.Mailboxes, 0.9)
 	if _, _, err := r.storeRun(ctx, id, f, checked, &linh.ID, readiness.TriggerManual); err != nil {
 		return err
 	}
@@ -228,7 +290,70 @@ func (r *readinessSeed) weeklyDigest(ctx context.Context) error {
 		}
 	}
 	return readinessAudit(ctx, s, s.designDay(0, 9, 42), linh, "campaign.scheduled", "campaign", id.String(), "Weekly Digest #142",
-		map[string]any{"status": "scheduled", "scheduled_at": sched}, map[string]any{"recipients": 31604, "schedule": sched.In(state.Location("America/New_York")).Format("Jan 2, 15:04")}, "203.0.113.9")
+		map[string]any{"status": "scheduled", "scheduled_at": sched}, map[string]any{"recipients": 31192, "schedule": sched.In(state.Location("America/New_York")).Format("Jan 2, 15:04")}, "203.0.113.9")
+}
+
+// utm is the sample's UTM tags on a digest link.
+const utm = "?utm_source=newsletter&utm_medium=email&utm_campaign=weekly-digest-142"
+
+// sendingRules seeds Settings › Sending rules (SettingsSendingRules): four
+// rules Marcus added, three of them triggered once.
+func (r *readinessSeed) sendingRules(ctx context.Context) error {
+	s := r.s
+	marcus := s.Users["marcus@acme.io"]
+	address := "Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105"
+	type trigger struct {
+		at       time.Time
+		campaign *uuid.UUID
+		name     string
+		count    int
+		fixed    bool
+	}
+	digest, ok := s.Campaigns["Weekly Digest #142"]
+	var digestID *uuid.UUID
+	if ok {
+		digestID = &digest
+	}
+	rules := []struct {
+		name, kind, op, value, severity, scope, message string
+		added                                           time.Time
+		trig                                            *trigger
+	}{
+		{"Links need UTM tags", readiness.RuleLinkParam, "on_every", "utm_campaign", "warn", "broadcast", "ReputeCast counts clicks either way; the tag is for your web analytics.",
+			s.designDay(20, 10, 5), &trigger{s.designDay(0, 9, 40), digestID, "Weekly Digest #142", 2, false}},
+		// Warn, not the board's Block: the sample's November Product Update
+		// links through bit.ly on purpose (its approval flows expect it Ready
+		// with warnings, SendReadinessApproval), and a Block rule would stop
+		// every one of them.
+		{"No URL shorteners", readiness.RuleLinkDomain, "not_one_of", readiness.Shorteners, "warn", "both", "",
+			s.designDay(20, 10, 7), &trigger{s.designDay(11, 11, 20), nil, "Feature flags preview", 1, true}},
+		{"Subject under 70 characters", readiness.RuleSubjectLength, "at_most", "70", "warn", "automation", "",
+			s.designDay(20, 10, 9), &trigger{s.designDay(14, 16, 5), nil, "Onboarding · new workspace, email 4", 0, false}},
+		{"Footer must include the postal address", readiness.RuleContainsText, "footer_contains", address, "block", "automation", "",
+			s.designDay(11, 14, 30), nil},
+	}
+	for _, x := range rules {
+		id := ID()
+		if _, err := s.Tx.Exec(ctx, `INSERT INTO sending_rules (id, workspace_id, name, kind, operator, value, severity, applies_to, enabled, message, created_by, created_at, updated_at)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true,$9,$10,$11,$11)`, id, r.ws.ID, x.name, x.kind, x.op, x.value, x.severity, x.scope, x.message, marcus.ID, x.added); err != nil {
+			return err
+		}
+		if t := x.trig; t != nil {
+			if _, err := s.Tx.Exec(ctx, `UPDATE sending_rules SET triggered_at = $2, triggered_campaign = $3, triggered_name = $4, triggered_count = $5, triggered_fixed = $6 WHERE id = $1`,
+				id, t.at, t.campaign, t.name, t.count, t.fixed); err != nil {
+				return err
+			}
+		}
+		if x.scope != "automation" {
+			r.broadcastRules = append(r.broadcastRules, readiness.RuleFacts{ID: id.String(), Name: x.name, Kind: x.kind, Operator: x.op, Value: x.value, Severity: x.severity,
+				AppliesTo: x.scope, Message: x.message, AddedBy: marcus.Name})
+		}
+		if err := readinessAudit(ctx, s, x.added, marcus, "sending_rule.created", "sending_rule", id.String(), x.name,
+			map[string]any{"name": x.name, "kind": x.kind, "operator": x.op, "value": x.value, "severity": x.severity, "applies_to": x.scope, "enabled": true}, nil, "198.51.100.40"); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // readinessAudit writes one audit entry as a person.
@@ -601,11 +726,11 @@ func (r *readinessSeed) history(ctx context.Context) error {
 			return err
 		}
 		requested, decided := s.designDay(2, 13, 40), s.designDay(2, 16, 20)
-		audienceRule.Label = "Audience of 31,604 is at least 10,000"
+		audienceRule.Label = "Audience of 31,192 is at least 10,000"
 		snap := approvals.Snapshot{Version: int(c.Version), ContentHash: c.ContentHash, Subject: c.Subject, Preheader: c.Preheader, From: "Acme Newsletter <digest@news.acme.io>",
-			Links: approvals.Links(c.Mjml, c.Html), Sections: approvals.Sections(c.Mjml), Audience: c.Audience, AudienceLabels: []string{"Weekly Digest"}, AudienceCount: 31604,
+			Links: approvals.Links(c.Mjml, c.Html), Sections: approvals.Sections(c.Mjml), Audience: c.Audience, AudienceLabels: []string{"Weekly Digest"}, AudienceCount: 31192,
 			Suppressed: 331, Role: 27, Schedule: c.Schedule, AuthorRole: "Editor", Rules: []approvals.ApprovalRuleMatch{audienceRule},
-			Route: []approvals.SnapshotShare{sesShare(28444, 90), postalShare(3160, 10, 7)}, Minutes: 34, Cost: 2.84,
+			Route: []approvals.SnapshotShare{sesShare(28073, 90), postalShare(3119, 10, 7)}, Minutes: 34, Cost: 2.81,
 			Thresholds: readiness.ParseThresholds(json.RawMessage(readinessThresholds), nil)}
 		if c.SenderID != nil {
 			snap.SenderID = c.SenderID.String()

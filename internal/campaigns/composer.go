@@ -65,6 +65,10 @@ type dbAudience struct {
 	ExcludeTiers    []string `json:"exclude_tiers,omitempty"`
 	Paid            string   `json:"paid,omitempty"`
 	PaidTier        string   `json:"paid_tier,omitempty"`
+	// IncludeSunset and IncludeUnengaged are set on Review & send (the
+	// sunset policy's override, "Include them"); a save keeps them.
+	IncludeSunset    bool  `json:"include_sunset,omitempty"`
+	IncludeUnengaged *bool `json:"include_unengaged,omitempty"`
 }
 
 func audienceFromDB(raw json.RawMessage) ComposerAudience {

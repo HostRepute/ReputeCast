@@ -193,7 +193,7 @@ func TestComposerDetailOfTheDemo(t *testing.T) {
 	c.SignInDemo("linh@acme.io")
 	var d detail
 	c.Do("GET", ws+"/campaigns/"+campaignID(t, env, "Weekly Digest #142"), nil).MustStatus(t, 200).JSON(t, &d)
-	if d.Version != 14 || d.VersionCount != 14 || d.AudienceLabel != "Weekly Digest" || d.AudienceCount == nil || *d.AudienceCount != 31604 {
+	if d.Version != 14 || d.VersionCount != 14 || d.AudienceLabel != "Weekly Digest" || d.AudienceCount == nil || *d.AudienceCount != 31192 {
 		t.Fatalf("digest: %+v", d)
 	}
 	if d.Subject != "Three launches, one deprecation, and the roadmap for Q4" || !strings.Contains(d.MJML, "mj-section") || d.Sender.Email != "digest@news.acme.io" {
@@ -319,13 +319,15 @@ func TestComposerChecksAndPreview(t *testing.T) {
 			}
 		}
 	}
-	// Exactly the ComposerWarnings board's set: two blocks, alt text, size, subject.
-	for _, id := range []string{"links.blocklist", "compliance.footer", "content.alt_text", "content.size", "subject.spam"} {
+	// The ComposerWarnings board's set: two blocks, alt text, size, subject;
+	// and the image ratio, since the composer and Send Readiness share one
+	// threshold (60%, review SR-7) and the sale is 80% image.
+	for _, id := range []string{"links.blocklist", "compliance.footer", "content.alt_text", "content.size", "subject.spam", "content.image_ratio"} {
 		if !found[id] {
 			t.Fatalf("missing %s in %+v", id, checks.Issues)
 		}
 	}
-	if len(found) != 5 {
+	if len(found) != 6 {
 		t.Fatalf("unexpected issues: %+v", checks.Issues)
 	}
 

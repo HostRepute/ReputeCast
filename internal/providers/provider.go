@@ -66,6 +66,12 @@ type Capabilities struct {
 	// RemovesWebhook is true when the adapter removes the webhook it
 	// registered once the provider is removed (WebhookUnregistrar).
 	RemovesWebhook bool `json:"removesWebhook"`
+	// OneClick is how the provider carries the List-Unsubscribe and
+	// List-Unsubscribe-Post headers ReputeCast adds: "" as given, signed
+	// with the domain's DKIM key; OneClickReplaced when it sets its own;
+	// OneClickUnsigned when its DKIM signature doesn't cover them, so
+	// Gmail and Yahoo may not offer one-click unsubscribe.
+	OneClick string `json:"oneClick,omitempty"`
 	// EventQueue names the queue the adapter can take its events from
 	// instead of webhooks ("SQS", review PR-4); empty for none.
 	EventQueue string `json:"eventQueue,omitempty"`
@@ -83,6 +89,13 @@ type Capabilities struct {
 	// (inferred)"); bounces and complaints still arrive as reports.
 	InfersDelivery bool `json:"infersDelivery,omitempty"`
 }
+
+// How a provider carries the one-click unsubscribe headers
+// (Capabilities.OneClick).
+const (
+	OneClickReplaced = "replaced"
+	OneClickUnsigned = "unsigned"
+)
 
 // Message is one email to one recipient, already rendered and personalized.
 type Message struct {

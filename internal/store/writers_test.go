@@ -13,9 +13,7 @@ import (
 // knownGaps are tables production code reads that only the demo or tests
 // write today, each with the review item that gives it a production writer.
 // Remove an entry when its writer lands; never add one without an ID.
-var knownGaps = map[string]string{
-	"link_domain_listings": "SR-1: link domains are looked up live and cached here",
-}
+var knownGaps = map[string]string{}
 
 var (
 	createTable = regexp.MustCompile(`(?i)CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([a-z_][a-z0-9_]*)`)

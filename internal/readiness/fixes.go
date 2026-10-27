@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"net/http"
 	"net/url"
-	"slices"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
@@ -27,7 +28,7 @@ import (
 
 // ReadinessFixRequest is one fix to apply.
 type ReadinessFixRequest struct {
-	Action string            `json:"action" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language,accessibility_decorative,accessibility_color,accessibility_one_click,visibility_show_everyone,visibility_hide_block,visibility_remove_condition,poll_close_days,exclude_risky,verify_addresses,sponsor_remove_block,sponsor_refresh_block"`
+	Action string            `json:"action" enum:"rule_add_param,exclude_sunset,include_unengaged,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language,accessibility_decorative,accessibility_color,accessibility_one_click,visibility_show_everyone,visibility_hide_block,visibility_remove_condition,poll_close_days,exclude_risky,verify_addresses,sponsor_remove_block,sponsor_refresh_block"`
 	Params map[string]string `json:"params,omitempty"`
 }
 
@@ -105,6 +106,18 @@ func ReplaceLink(src, from, to string) (string, int) {
 	return src, n
 }
 
+// HTMLOnly reports whether a campaign is written in HTML only (the HTML
+// editor, an import): it has no MJML to edit or compile.
+func HTMLOnly(mjmlSrc, html string) bool {
+	return strings.TrimSpace(mjmlSrc) == "" && strings.TrimSpace(html) != ""
+}
+
+// mjmlFixes are the one-click fixes that edit MJML: a campaign written in
+// HTML is fixed in the editor instead.
+var mjmlFixes = map[string]bool{FixInsertFooter: true, FixAccessibilityDecorative: true, FixAccessibilityColor: true, FixAccessibilityOneClick: true,
+	FixVisibilityShowEveryone: true, FixVisibilityHideBlock: true, FixVisibilityRemoveCondition: true, FixPollCloseDays: true,
+	FixSponsorRemove: true, FixSponsorRefresh: true}
+
 func validLink(raw string) bool {
 	u, err := url.Parse(raw)
 	return err == nil && (u.Scheme == "https" || u.Scheme == "http") && u.Host != ""
@@ -122,8 +135,11 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 	if !editable(c.Status) {
 		return out, api.Conflict(say(ctx, "problem.alreadySending", nil))
 	}
-	// Content fixes are applied together as one new version.
-	src, subject, content := c.Mjml, c.Subject, false
+	// Content fixes are applied together as one new version. A campaign
+	// written in HTML (no MJML) keeps its HTML: a fix edits the HTML, and a
+	// fix that only knows MJML is refused (Assemble doesn't offer it).
+	htmlOnly := HTMLOnly(c.Mjml, c.Html)
+	src, htmlSrc, subject, content := c.Mjml, c.Html, c.Subject, false
 	labels := []string{}
 	var a11y []accessibility.FixChange
 	var a11yFixes []ReadinessFixRequest
@@ -132,6 +148,12 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 		switch fx.Action {
 		case FixExcludeSunset:
 			label, err := s.excludeSunset(ctx, ws, p, c)
+			if err != nil {
+				return out, err
+			}
+			out.Applied = append(out.Applied, label)
+		case FixIncludeUnengaged:
+			label, err := s.includeUnengaged(ctx, ws, p, c)
 			if err != nil {
 				return out, err
 			}
@@ -152,7 +174,7 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 			}
 			out.Applied = append(out.Applied, label)
 		case FixInsertFooter:
-			if strings.TrimSpace(src) == "" {
+			if htmlOnly || strings.TrimSpace(src) == "" {
 				return out, api.Invalid(field, say(ctx, "problem.footerInHtml", nil))
 			}
 			next, ok := InsertFooterIn(i18n.LangFrom(ctx), src, templates.WorkspaceAddress(ws))
@@ -162,16 +184,48 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 			src, content = next, true
 			labels = append(labels, say(ctx, "version.footer", nil))
 			out.Applied = append(out.Applied, say(ctx, "applied.footer", nil))
+		case FixRuleAddParam:
+			// A workspace rule's query parameter on the links missing it
+			// (SR-10), in the MJML or, for an HTML campaign, the HTML.
+			param, value := strings.TrimSpace(fx.Params["param"]), strings.TrimSpace(fx.Params["value"])
+			if param == "" || value == "" {
+				return out, api.Invalid(field, say(ctx, "problem.ruleParam", nil))
+			}
+			body := src
+			if htmlOnly {
+				body = htmlSrc
+			}
+			next, n := AddLinkParam(body, param, value)
+			if n == 0 {
+				return out, api.Invalid(field, say(ctx, "problem.paramThere", A{"param": param}))
+			}
+			if htmlOnly {
+				htmlSrc = next
+			} else {
+				src = next
+			}
+			content = true
+			labels = append(labels, say(ctx, "version.ruleParam", A{"param": param}))
+			out.Applied = append(out.Applied, say(ctx, "applied.addedParam", A{"param": param, "value": value, "count": n}))
 		case FixReplaceLink:
 			from, to := strings.TrimSpace(fx.Params["from"]), strings.TrimSpace(fx.Params["to"])
 			if from == "" || !validLink(to) {
 				return out, api.Invalid(field, say(ctx, "problem.replaceLink", nil))
 			}
-			next, n := ReplaceLink(src, from, to)
+			body := src
+			if htmlOnly {
+				body = htmlSrc
+			}
+			next, n := ReplaceLink(body, from, to)
 			if n == 0 {
 				return out, api.Invalid(field, say(ctx, "problem.linkGone", nil))
 			}
-			src, content = next, true
+			if htmlOnly {
+				htmlSrc = next
+			} else {
+				src = next
+			}
+			content = true
 			labels = append(labels, say(ctx, "version.link", nil))
 			out.Applied = append(out.Applied, say(ctx, "applied.replaced", A{"from": displayURL(from), "to": displayURL(to)}))
 		case FixUseSubject:
@@ -204,6 +258,9 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 		case FixAccessibilityDecorative, FixAccessibilityColor, FixAccessibilityOneClick:
 			if s.Accessibility == nil {
 				return out, api.Conflict(say(ctx, "problem.noAccessibility", nil))
+			}
+			if htmlOnly {
+				return out, api.Invalid(field, say(ctx, "problem.htmlEditor", nil))
 			}
 			next, change, err := s.Accessibility.FixMJML(ctx, ws, src, fx.Action, fx.Params)
 			if err != nil {
@@ -257,7 +314,13 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 		if detail, err := s.Campaigns.Detail(ctx, ws, p, id); err == nil {
 			ab = detail.ABTest
 		}
-		saved, err := s.Campaigns.Save(ctx, ws, p, id, campaigns.ComposerSaveContent{BaseVersion: int(c.Version), Subject: subject, Preheader: c.Preheader, MJML: src,
+		// MJML is compiled again on save; HTML-only content is saved as it is
+		// (minified when the campaign asks for it), never left empty.
+		html := ""
+		if htmlOnly {
+			html = htmlSrc
+		}
+		saved, err := s.Campaigns.Save(ctx, ws, p, id, campaigns.ComposerSaveContent{BaseVersion: int(c.Version), Subject: subject, Preheader: c.Preheader, MJML: src, HTML: html,
 			ABTest: ab, Label: say(ctx, "version.fromReview", A{"changes": strings.Join(labels, ", ")}), Source: "manual"})
 		if err != nil {
 			return out, err
@@ -289,31 +352,21 @@ func (s *Service) changed(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	}
 }
 
+// excludeSunset leaves the unengaged contacts out of the campaign again,
+// and with them an override of the sunset policy.
 func (s *Service) excludeSunset(ctx context.Context, ws *store.Workspace, p *authz.Principal, c store.ReadinessCampaignRow) (string, error) {
-	var raw map[string]any
-	if err := json.Unmarshal(c.Audience, &raw); err != nil || raw == nil {
-		raw = map[string]any{}
-	}
 	def := ParseAudience(c.Audience)
 	if def.Empty() {
 		return "", api.Invalid("body.fixes", say(ctx, "problem.pickAudience", nil))
 	}
-	if def.ExcludesSunset() {
+	if def.LeavesOutUnengaged(sendDefaults(ctx, s.Q, ws.ID).ExcludeUnengaged) {
 		return say(ctx, "applied.alreadyExcluded", nil), nil
 	}
-	tiers := append(slices.Clone(def.ExcludeTiers), "sunset")
-	raw["exclude_tiers"] = tiers
-	// Excluding the tier ends an override of the sunset policy.
-	delete(raw, "include_sunset")
-	next, _ := json.Marshal(raw)
-	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		if err := q.ReadinessSetAudience(ctx, store.ReadinessSetAudienceParams{Audience: next, AudienceCount: c.AudienceCount, UpdatedBy: &p.UserID, Now: s.now(), WorkspaceID: ws.ID, ID: c.ID}); err != nil {
-			return err
+	err := s.setAudience(ctx, ws, p, c, FixExcludeSunset, func(raw map[string]any) {
+		raw["include_unengaged"] = false
+		for _, k := range []string{"includeUnengaged", "include_sunset", "includeSunset"} {
+			delete(raw, k)
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.update", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Before: map[string]any{"audience": c.Audience}, After: map[string]any{"audience": json.RawMessage(next)},
-			Metadata: map[string]any{"source": "send_readiness", "fix": FixExcludeSunset}})
 	})
 	if err != nil {
 		return "", err
@@ -321,9 +374,75 @@ func (s *Service) excludeSunset(ctx context.Context, ws *store.Workspace, p *aut
 	return say(ctx, "applied.excludedUnengaged", A{"days": 180}), nil
 }
 
+// includeUnengaged puts back the unengaged contacts a send leaves out
+// ("Include them", SR-11); the check then warns about them.
+func (s *Service) includeUnengaged(ctx context.Context, ws *store.Workspace, p *authz.Principal, c store.ReadinessCampaignRow) (string, error) {
+	def := ParseAudience(c.Audience)
+	if def.Empty() {
+		return "", api.Invalid("body.fixes", say(ctx, "problem.pickAudience", nil))
+	}
+	if !def.LeavesOutUnengaged(sendDefaults(ctx, s.Q, ws.ID).ExcludeUnengaged) {
+		return say(ctx, "applied.alreadyIncluded", nil), nil
+	}
+	err := s.setAudience(ctx, ws, p, c, FixIncludeUnengaged, func(raw map[string]any) {
+		raw["include_unengaged"] = true
+		delete(raw, "includeUnengaged")
+		// An exclusion of the tier would keep them out.
+		for _, k := range []string{"exclude_tiers", "excludeTiers"} {
+			tiers, ok := raw[k].([]any)
+			if !ok {
+				continue
+			}
+			kept := []any{}
+			for _, t := range tiers {
+				if t != "sunset" {
+					kept = append(kept, t)
+				}
+			}
+			if len(kept) == 0 {
+				delete(raw, k)
+			} else {
+				raw[k] = kept
+			}
+		}
+	})
+	if err != nil {
+		return "", err
+	}
+	return say(ctx, "applied.includedUnengaged", nil), nil
+}
+
+// setAudience changes campaigns.audience with edit, on the JSON as stored
+// (keys it doesn't know are kept), and audits the change as the fix.
+func (s *Service) setAudience(ctx context.Context, ws *store.Workspace, p *authz.Principal, c store.ReadinessCampaignRow, fixKind string, edit func(raw map[string]any)) error {
+	var raw map[string]any
+	if err := json.Unmarshal(c.Audience, &raw); err != nil || raw == nil {
+		raw = map[string]any{}
+	}
+	edit(raw)
+	next, _ := json.Marshal(raw)
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if err := q.ReadinessSetAudience(ctx, store.ReadinessSetAudienceParams{Audience: next, AudienceCount: c.AudienceCount, UpdatedBy: &p.UserID, Now: s.now(), WorkspaceID: ws.ID, ID: c.ID}); err != nil {
+			return err
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.update", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+			Before: map[string]any{"audience": c.Audience}, After: map[string]any{"audience": json.RawMessage(next)},
+			Metadata: map[string]any{"source": "send_readiness", "fix": fixKind}})
+	})
+}
+
 func (s *Service) routeOnly(ctx context.Context, ws *store.Workspace, p *authz.Principal, c store.ReadinessCampaignRow, provider, field string) (string, error) {
 	if !p.Can(authz.CampaignsSend) && !p.Can(authz.ProvidersManage) {
-		return "", api.Forbidden(authz.CampaignsSend, nil).WithMeta("reason", say(ctx, "problem.routeNeedsSend", nil))
+		// Who can, by name, never a permission key (SR-13).
+		helpers := access.Helpers(ctx, s.Q, ws.ID, authz.CampaignsSend)
+		names := "none"
+		if len(helpers) > 0 {
+			names = i18n.OrList(i18n.LangFrom(ctx).Locale, helpers)
+		}
+		pr := api.Err(http.StatusForbidden, api.CodePermissionDenied, say(ctx, "problem.routeNeedsSend", A{"names": names}))
+		pr.Permission, pr.Helpers = string(authz.CampaignsSend), helpers
+		return "", pr
 	}
 	pid, err := uuid.Parse(provider)
 	if err != nil {

@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
@@ -52,7 +53,7 @@ func transactionalService(a *App) *transactional.Service {
 		Jobs:    func() *jobs.Client { return a.Jobs },
 		Mailbox: a.mailboxClassifier(),
 		Checker: &contentcheck.Checker{
-			Blocklist: contentcheck.StoreBlocklist{Q: a.Q},
+			Blocklist: linkBlocklist(a, 2*time.Second),
 			Prober:    linkProber(a),
 		},
 		Gate: transactionalGate(a),

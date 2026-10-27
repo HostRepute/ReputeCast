@@ -840,6 +840,22 @@ type CampaignSend struct {
 	WatchUntil    *time.Time      `json:"watchUntil"`
 }
 
+type CampaignSendConfirmation struct {
+	CampaignID    uuid.UUID  `json:"campaignId"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	RunID         *uuid.UUID `json:"runId"`
+	ConfirmedBy   *uuid.UUID `json:"confirmedBy"`
+	ConfirmedAt   time.Time  `json:"confirmedAt"`
+	ScheduledAt   *time.Time `json:"scheduledAt"`
+	Recipients    int64      `json:"recipients"`
+	Acknowledged  []string   `json:"acknowledged"`
+	Unknown       []string   `json:"unknown"`
+	ContentDigest string     `json:"contentDigest"`
+	SenderID      *uuid.UUID `json:"senderId"`
+	RouteDigest   string     `json:"routeDigest"`
+	Canary        string     `json:"canary"`
+}
+
 type CampaignVersion struct {
 	CampaignID uuid.UUID       `json:"campaignId"`
 	Version    int32           `json:"version"`
@@ -3200,6 +3216,8 @@ type ReadinessProgress struct {
 	Groups     json.RawMessage `json:"groups"`
 	Done       int32           `json:"done"`
 	Total      int32           `json:"total"`
+	FailedAt   *time.Time      `json:"failedAt"`
+	Error      string          `json:"error"`
 }
 
 type ReadinessRun struct {
@@ -3728,6 +3746,27 @@ type SendingRateWindow struct {
 	Sec        int64     `json:"sec"`
 	Used       int32     `json:"used"`
 	LastGrant  int32     `json:"lastGrant"`
+}
+
+type SendingRule struct {
+	ID                uuid.UUID  `json:"id"`
+	WorkspaceID       uuid.UUID  `json:"workspaceId"`
+	Name              string     `json:"name"`
+	Kind              string     `json:"kind"`
+	Operator          string     `json:"operator"`
+	Value             string     `json:"value"`
+	Severity          string     `json:"severity"`
+	AppliesTo         string     `json:"appliesTo"`
+	Enabled           bool       `json:"enabled"`
+	Message           string     `json:"message"`
+	CreatedBy         *uuid.UUID `json:"createdBy"`
+	CreatedAt         time.Time  `json:"createdAt"`
+	UpdatedAt         time.Time  `json:"updatedAt"`
+	TriggeredAt       *time.Time `json:"triggeredAt"`
+	TriggeredCampaign *uuid.UUID `json:"triggeredCampaign"`
+	TriggeredName     string     `json:"triggeredName"`
+	TriggeredCount    int32      `json:"triggeredCount"`
+	TriggeredFixed    bool       `json:"triggeredFixed"`
 }
 
 type SendingSimEvent struct {
@@ -5659,4 +5698,12 @@ type WorkspaceMember struct {
 	JoinedAt      time.Time       `json:"joinedAt"`
 	DeactivatedAt *time.Time      `json:"deactivatedAt"`
 	LastActiveAt  *time.Time      `json:"lastActiveAt"`
+}
+
+type WorkspaceSendDefault struct {
+	WorkspaceID      uuid.UUID  `json:"workspaceId"`
+	ExcludeUnengaged bool       `json:"excludeUnengaged"`
+	TypedMultiple    float64    `json:"typedMultiple"`
+	UpdatedAt        time.Time  `json:"updatedAt"`
+	UpdatedBy        *uuid.UUID `json:"updatedBy"`
 }

@@ -30,7 +30,7 @@ func (q *Queries) ReadinessAcceptUnknown(ctx context.Context, arg ReadinessAccep
 
 const readinessCampaign = `-- name: ReadinessCampaign :one
 SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.audience, c.audience_count, c.mjml, c.html, c.version,
-       c.ab_test, c.schedule, c.thresholds, c.route_override, c.content_hash, c.content_settings, c.reply_to,
+       c.ab_test, c.schedule, c.thresholds, c.route_override, c.content_hash, c.content_settings, c.reply_to, c.tracking,
        c.created_by, c.updated_by, c.created_at, c.updated_at, c.autosaved_at, c.scheduled_at, c.started_at, c.sender_id,
        coalesce(s.name, '')::text AS sender_name,
        coalesce(s.email, '')::text AS sender_email,
@@ -67,6 +67,7 @@ type ReadinessCampaignRow struct {
 	ContentHash     string          `json:"contentHash"`
 	ContentSettings json.RawMessage `json:"contentSettings"`
 	ReplyTo         string          `json:"replyTo"`
+	Tracking        json.RawMessage `json:"tracking"`
 	CreatedBy       *uuid.UUID      `json:"createdBy"`
 	UpdatedBy       *uuid.UUID      `json:"updatedBy"`
 	CreatedAt       time.Time       `json:"createdAt"`
@@ -104,6 +105,7 @@ func (q *Queries) ReadinessCampaign(ctx context.Context, arg ReadinessCampaignPa
 		&i.ContentHash,
 		&i.ContentSettings,
 		&i.ReplyTo,
+		&i.Tracking,
 		&i.CreatedBy,
 		&i.UpdatedBy,
 		&i.CreatedAt,
@@ -132,6 +134,86 @@ func (q *Queries) ReadinessCampaignWorkspace(ctx context.Context, id uuid.UUID) 
 	return workspace_id, err
 }
 
+const readinessClaimProgress = `-- name: ReadinessClaimProgress :one
+UPDATE readiness_progress SET updated_at = $1
+WHERE campaign_id = $2 AND run_id = $3 AND failed_at IS NULL
+RETURNING run_id
+`
+
+type ReadinessClaimProgressParams struct {
+	Now        time.Time `json:"now"`
+	CampaignID uuid.UUID `json:"campaignId"`
+	RunID      uuid.UUID `json:"runId"`
+}
+
+// A worker takes up a queued run: it still owns the campaign's row.
+func (q *Queries) ReadinessClaimProgress(ctx context.Context, arg ReadinessClaimProgressParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, readinessClaimProgress, arg.Now, arg.CampaignID, arg.RunID)
+	var run_id uuid.UUID
+	err := row.Scan(&run_id)
+	return run_id, err
+}
+
+const readinessConfirmCanary = `-- name: ReadinessConfirmCanary :exec
+UPDATE campaign_send_confirmations SET canary = $1 WHERE campaign_id = $2
+`
+
+type ReadinessConfirmCanaryParams struct {
+	Canary     string    `json:"canary"`
+	CampaignID uuid.UUID `json:"campaignId"`
+}
+
+// The canary choice confirmed with a send (C1).
+func (q *Queries) ReadinessConfirmCanary(ctx context.Context, arg ReadinessConfirmCanaryParams) error {
+	_, err := q.db.Exec(ctx, readinessConfirmCanary, arg.Canary, arg.CampaignID)
+	return err
+}
+
+const readinessConfirmSend = `-- name: ReadinessConfirmSend :exec
+INSERT INTO campaign_send_confirmations (campaign_id, workspace_id, run_id, confirmed_by, confirmed_at, scheduled_at, recipients, acknowledged, unknown,
+    content_digest, sender_id, route_digest)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8::text[],
+    $9::text[], $10, $11, $12)
+ON CONFLICT (campaign_id) DO UPDATE SET run_id = EXCLUDED.run_id, confirmed_by = EXCLUDED.confirmed_by, confirmed_at = EXCLUDED.confirmed_at,
+    scheduled_at = EXCLUDED.scheduled_at, recipients = EXCLUDED.recipients, acknowledged = EXCLUDED.acknowledged, unknown = EXCLUDED.unknown,
+    content_digest = EXCLUDED.content_digest, sender_id = EXCLUDED.sender_id, route_digest = EXCLUDED.route_digest
+`
+
+type ReadinessConfirmSendParams struct {
+	CampaignID    uuid.UUID  `json:"campaignId"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	RunID         *uuid.UUID `json:"runId"`
+	ConfirmedBy   *uuid.UUID `json:"confirmedBy"`
+	ConfirmedAt   time.Time  `json:"confirmedAt"`
+	ScheduledAt   *time.Time `json:"scheduledAt"`
+	Recipients    int64      `json:"recipients"`
+	Acknowledged  []string   `json:"acknowledged"`
+	Unknown       []string   `json:"unknown"`
+	ContentDigest string     `json:"contentDigest"`
+	SenderID      *uuid.UUID `json:"senderId"`
+	RouteDigest   string     `json:"routeDigest"`
+}
+
+// What a person confirmed as they scheduled or started a send (SR-3): the
+// send-time recheck holds the send on anything they didn't.
+func (q *Queries) ReadinessConfirmSend(ctx context.Context, arg ReadinessConfirmSendParams) error {
+	_, err := q.db.Exec(ctx, readinessConfirmSend,
+		arg.CampaignID,
+		arg.WorkspaceID,
+		arg.RunID,
+		arg.ConfirmedBy,
+		arg.ConfirmedAt,
+		arg.ScheduledAt,
+		arg.Recipients,
+		arg.Acknowledged,
+		arg.Unknown,
+		arg.ContentDigest,
+		arg.SenderID,
+		arg.RouteDigest,
+	)
+	return err
+}
+
 const readinessEndProgress = `-- name: ReadinessEndProgress :exec
 DELETE FROM readiness_progress WHERE campaign_id = $1 AND run_id = $2
 `
@@ -146,8 +228,41 @@ func (q *Queries) ReadinessEndProgress(ctx context.Context, arg ReadinessEndProg
 	return err
 }
 
+const readinessFailProgress = `-- name: ReadinessFailProgress :exec
+UPDATE readiness_progress SET failed_at = $1, error = $2, updated_at = $1
+WHERE campaign_id = $3 AND run_id = $4
+`
+
+type ReadinessFailProgressParams struct {
+	Now        *time.Time `json:"now"`
+	Error      string     `json:"error"`
+	CampaignID uuid.UUID  `json:"campaignId"`
+	RunID      uuid.UUID  `json:"runId"`
+}
+
+// A run stopped on an error: the row says why until the next run.
+func (q *Queries) ReadinessFailProgress(ctx context.Context, arg ReadinessFailProgressParams) error {
+	_, err := q.db.Exec(ctx, readinessFailProgress,
+		arg.Now,
+		arg.Error,
+		arg.CampaignID,
+		arg.RunID,
+	)
+	return err
+}
+
+const readinessForgetConfirmation = `-- name: ReadinessForgetConfirmation :exec
+DELETE FROM campaign_send_confirmations WHERE campaign_id = $1
+`
+
+func (q *Queries) ReadinessForgetConfirmation(ctx context.Context, campaignID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, readinessForgetConfirmation, campaignID)
+	return err
+}
+
 const readinessGetProgress = `-- name: ReadinessGetProgress :one
 SELECT p.campaign_id, p.run_id, p.trigger, p.started_by, p.started_at, p.updated_at, p.groups, p.done, p.total,
+       p.failed_at, p.error,
        coalesce(u.name, '')::text AS started_by_name
 FROM readiness_progress p
 LEFT JOIN users u ON u.id = p.started_by
@@ -164,6 +279,8 @@ type ReadinessGetProgressRow struct {
 	Groups        json.RawMessage `json:"groups"`
 	Done          int32           `json:"done"`
 	Total         int32           `json:"total"`
+	FailedAt      *time.Time      `json:"failedAt"`
+	Error         string          `json:"error"`
 	StartedByName string          `json:"startedByName"`
 }
 
@@ -180,6 +297,8 @@ func (q *Queries) ReadinessGetProgress(ctx context.Context, campaignID uuid.UUID
 		&i.Groups,
 		&i.Done,
 		&i.Total,
+		&i.FailedAt,
+		&i.Error,
 		&i.StartedByName,
 	)
 	return i, err
@@ -356,6 +475,25 @@ func (q *Queries) ReadinessLatestRun(ctx context.Context, campaignID uuid.UUID) 
 	return i, err
 }
 
+const readinessLatestRunRef = `-- name: ReadinessLatestRunRef :one
+SELECT id, ran_at, verdict FROM readiness_runs WHERE campaign_id = $1 ORDER BY ran_at DESC LIMIT 1
+`
+
+type ReadinessLatestRunRefRow struct {
+	ID      uuid.UUID `json:"id"`
+	RanAt   time.Time `json:"ranAt"`
+	Verdict string    `json:"verdict"`
+}
+
+// The latest run's id, time and verdict: what the review screen's poll
+// compares with what it shows.
+func (q *Queries) ReadinessLatestRunRef(ctx context.Context, campaignID uuid.UUID) (ReadinessLatestRunRefRow, error) {
+	row := q.db.QueryRow(ctx, readinessLatestRunRef, campaignID)
+	var i ReadinessLatestRunRefRow
+	err := row.Scan(&i.ID, &i.RanAt, &i.Verdict)
+	return i, err
+}
+
 const readinessListCount = `-- name: ReadinessListCount :one
 SELECT count(*)::bigint FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL
 `
@@ -406,6 +544,112 @@ func (q *Queries) ReadinessListNames(ctx context.Context, workspaceID uuid.UUID)
 	return items, nil
 }
 
+const readinessMediaSizes = `-- name: ReadinessMediaSizes :many
+SELECT id, size_bytes FROM media_assets WHERE workspace_id = $1 AND id = ANY($2::uuid[])
+`
+
+type ReadinessMediaSizesParams struct {
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+	Ids         []uuid.UUID `json:"ids"`
+}
+
+type ReadinessMediaSizesRow struct {
+	ID        uuid.UUID `json:"id"`
+	SizeBytes int32     `json:"sizeBytes"`
+}
+
+// The sizes of the media library's images an email shows.
+func (q *Queries) ReadinessMediaSizes(ctx context.Context, arg ReadinessMediaSizesParams) ([]ReadinessMediaSizesRow, error) {
+	rows, err := q.db.Query(ctx, readinessMediaSizes, arg.WorkspaceID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReadinessMediaSizesRow{}
+	for rows.Next() {
+		var i ReadinessMediaSizesRow
+		if err := rows.Scan(&i.ID, &i.SizeBytes); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const readinessPostmasterConnected = `-- name: ReadinessPostmasterConnected :one
+SELECT EXISTS (SELECT 1 FROM postmaster_daily WHERE workspace_id = $1 AND day >= $2::date)::bool
+`
+
+type ReadinessPostmasterConnectedParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+// Whether Gmail Postmaster Tools data comes in for the workspace at all
+// (recent days for any domain).
+func (q *Queries) ReadinessPostmasterConnected(ctx context.Context, arg ReadinessPostmasterConnectedParams) (bool, error) {
+	row := q.db.QueryRow(ctx, readinessPostmasterConnected, arg.WorkspaceID, arg.Since)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const readinessPostmasterDays = `-- name: ReadinessPostmasterDays :many
+SELECT domain, day, spam_rate, spf_rate, dkim_rate, dmarc_rate, tls_rate
+FROM postmaster_daily
+WHERE workspace_id = $1 AND domain = ANY($2::text[]) AND day >= $3::date
+ORDER BY day DESC, domain
+`
+
+type ReadinessPostmasterDaysParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Domains     []string  `json:"domains"`
+	Since       time.Time `json:"since"`
+}
+
+type ReadinessPostmasterDaysRow struct {
+	Domain    string    `json:"domain"`
+	Day       time.Time `json:"day"`
+	SpamRate  *float64  `json:"spamRate"`
+	SpfRate   *float64  `json:"spfRate"`
+	DkimRate  *float64  `json:"dkimRate"`
+	DmarcRate *float64  `json:"dmarcRate"`
+	TlsRate   *float64  `json:"tlsRate"`
+}
+
+// Gmail Postmaster Tools' last days for a sending domain (or its parent):
+// the spam rate and the authentication and TLS pass rates Google reports.
+func (q *Queries) ReadinessPostmasterDays(ctx context.Context, arg ReadinessPostmasterDaysParams) ([]ReadinessPostmasterDaysRow, error) {
+	rows, err := q.db.Query(ctx, readinessPostmasterDays, arg.WorkspaceID, arg.Domains, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReadinessPostmasterDaysRow{}
+	for rows.Next() {
+		var i ReadinessPostmasterDaysRow
+		if err := rows.Scan(
+			&i.Domain,
+			&i.Day,
+			&i.SpamRate,
+			&i.SpfRate,
+			&i.DkimRate,
+			&i.DmarcRate,
+			&i.TlsRate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const readinessPruneRuns = `-- name: ReadinessPruneRuns :exec
 DELETE FROM readiness_runs r
 WHERE r.campaign_id = $1
@@ -422,6 +666,7 @@ func (q *Queries) ReadinessPruneRuns(ctx context.Context, campaignID uuid.UUID) 
 const readinessRecipients = `-- name: ReadinessRecipients :many
 SELECT c.id, c.email, c.mailbox_provider, c.tier, c.role_address, c.language,
        (c.broadcasts_stopped_at IS NOT NULL)::boolean AS broadcasts_stopped,
+       (btrim(c.first_name) = '')::boolean AS no_first_name,
        coalesce((SELECT array_agg(m.list_id) FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'), '{}')::uuid[] AS list_ids,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email) AS suppressed,
        EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = c.id AND e.type IN ('soft_bounce', 'hard_bounce') AND e.occurred_at > $1::timestamptz) AS bounced
@@ -450,6 +695,7 @@ type ReadinessRecipientsRow struct {
 	RoleAddress       bool        `json:"roleAddress"`
 	Language          string      `json:"language"`
 	BroadcastsStopped bool        `json:"broadcastsStopped"`
+	NoFirstName       bool        `json:"noFirstName"`
 	ListIds           []uuid.UUID `json:"listIds"`
 	Suppressed        bool        `json:"suppressed"`
 	Bounced           bool        `json:"bounced"`
@@ -483,6 +729,7 @@ func (q *Queries) ReadinessRecipients(ctx context.Context, arg ReadinessRecipien
 			&i.RoleAddress,
 			&i.Language,
 			&i.BroadcastsStopped,
+			&i.NoFirstName,
 			&i.ListIds,
 			&i.Suppressed,
 			&i.Bounced,
@@ -580,6 +827,31 @@ func (q *Queries) ReadinessSegmentNames(ctx context.Context, workspaceID uuid.UU
 		return nil, err
 	}
 	return items, nil
+}
+
+const readinessSendConfirmation = `-- name: ReadinessSendConfirmation :one
+SELECT campaign_id, workspace_id, run_id, confirmed_by, confirmed_at, scheduled_at, recipients, acknowledged, unknown, content_digest, sender_id, route_digest, canary FROM campaign_send_confirmations WHERE campaign_id = $1
+`
+
+func (q *Queries) ReadinessSendConfirmation(ctx context.Context, campaignID uuid.UUID) (CampaignSendConfirmation, error) {
+	row := q.db.QueryRow(ctx, readinessSendConfirmation, campaignID)
+	var i CampaignSendConfirmation
+	err := row.Scan(
+		&i.CampaignID,
+		&i.WorkspaceID,
+		&i.RunID,
+		&i.ConfirmedBy,
+		&i.ConfirmedAt,
+		&i.ScheduledAt,
+		&i.Recipients,
+		&i.Acknowledged,
+		&i.Unknown,
+		&i.ContentDigest,
+		&i.SenderID,
+		&i.RouteDigest,
+		&i.Canary,
+	)
+	return i, err
 }
 
 const readinessSetAudience = `-- name: ReadinessSetAudience :exec
@@ -707,8 +979,8 @@ INSERT INTO readiness_progress (campaign_id, run_id, trigger, started_by, starte
 VALUES ($1, $2, $3, $4, $5, $5, $6, 0, $7)
 ON CONFLICT (campaign_id) DO UPDATE
 SET run_id = EXCLUDED.run_id, trigger = EXCLUDED.trigger, started_by = EXCLUDED.started_by, started_at = EXCLUDED.started_at,
-    updated_at = EXCLUDED.updated_at, groups = EXCLUDED.groups, done = 0, total = EXCLUDED.total
-WHERE readiness_progress.updated_at < $8::timestamptz
+    updated_at = EXCLUDED.updated_at, groups = EXCLUDED.groups, done = 0, total = EXCLUDED.total, failed_at = NULL, error = ''
+WHERE readiness_progress.updated_at < $8::timestamptz OR readiness_progress.failed_at IS NOT NULL
 RETURNING run_id
 `
 
@@ -723,8 +995,8 @@ type ReadinessStartProgressParams struct {
 	StaleBefore time.Time       `json:"staleBefore"`
 }
 
-// Starts a run unless one is already running (a run that stopped updating
-// for two minutes is taken over).
+// Starts a run unless one is already waiting or running (a run that stopped
+// updating for two minutes, or failed, is taken over).
 func (q *Queries) ReadinessStartProgress(ctx context.Context, arg ReadinessStartProgressParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, readinessStartProgress,
 		arg.CampaignID,

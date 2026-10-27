@@ -11,6 +11,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/readiness/readinesstest"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/languages"
 )
@@ -243,7 +244,7 @@ func TestReadinessGroupAndBlock(t *testing.T) {
 	id := campaignID(t, linh, "Weekly Digest #143")
 
 	var run readinessRun
-	linh.Do("POST", ws+"/campaigns/"+id+"/readiness", nil).MustStatus(t, 200).JSON(t, &run)
+	readinesstest.Post(t, env, linh, ws+"/campaigns/"+id+"/readiness").MustStatus(t, 200).JSON(t, &run)
 	got := strings.Join(run.group("accessibility"), ", ")
 	if !strings.HasPrefix(got, "warn accessibility.alt_text") || !strings.Contains(got, "warn accessibility.contrast") || !strings.Contains(got, "warn accessibility.moderate") ||
 		!strings.Contains(got, "pass accessibility.lang_dir") || !strings.Contains(got, "pass accessibility.layout_tables") {
@@ -260,7 +261,7 @@ func TestReadinessGroupAndBlock(t *testing.T) {
 
 	// Block: the serious rows block, the verdict turns Blocked and says why.
 	setPolicy(t, linh, "block", 12)
-	linh.Do("POST", ws+"/campaigns/"+id+"/readiness", nil).MustStatus(t, 200).JSON(t, &run)
+	readinesstest.Post(t, env, linh, ws+"/campaigns/"+id+"/readiness").MustStatus(t, 200).JSON(t, &run)
 	if run.Verdict != "blocked" || run.Counts.Blocks != 2 {
 		t.Fatalf("block: %s %+v", run.Verdict, run.Counts)
 	}
@@ -284,7 +285,7 @@ func TestReadinessFixes(t *testing.T) {
 	aisha.SignInDemo("aisha@acme.io")
 	id := campaignID(t, linh, "Weekly Digest #143")
 	fix := func(c *apptest.Client, action string, params map[string]string) *apptest.Response {
-		return c.Do("POST", ws+"/campaigns/"+id+"/readiness/fixes", map[string]any{"fixes": []map[string]any{{"action": action, "params": params}}})
+		return readinesstest.Fix(t, env, c, ws+"/campaigns/"+id+"/readiness/fixes", map[string]any{"fixes": []map[string]any{{"action": action, "params": params}}})
 	}
 	aisha.Do("POST", ws+"/campaigns/"+id+"/readiness/fixes", map[string]any{"fixes": []map[string]any{{"action": "accessibility_one_click"}}}).MustStatus(t, 403)
 
@@ -507,7 +508,7 @@ func TestLanguageVersions(t *testing.T) {
 		Applied []string
 		Run     *readinessRun
 	}
-	linh.Do("POST", ws+"/campaigns/"+id+"/readiness/fixes", map[string]any{"fixes": []map[string]any{{"action": "accessibility_one_click"}}}).MustStatus(t, 200).JSON(t, &out)
+	readinesstest.Fix(t, env, linh, ws+"/campaigns/"+id+"/readiness/fixes", map[string]any{"fixes": []map[string]any{{"action": "accessibility_one_click"}}}).MustStatus(t, 200).JSON(t, &out)
 	if mj, _ := stored(); strings.Count(mj, "<h2") < 2 || strings.Contains(mj, "<h3") {
 		t.Fatalf("the Spanish card titles stay Heading 3: %s", mj)
 	}

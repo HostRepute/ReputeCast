@@ -11,6 +11,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/providers/state"
+	"github.com/hostrepute/reputecast/internal/sending/engine"
 )
 
 // groupTitle is the heading of a check group ("Audience quality").
@@ -74,6 +75,7 @@ func Assemble(f Facts) ReadinessResult {
 	b.reputation()
 	b.authentication()
 	b.content()
+	b.variantRows()
 	b.polls()
 	b.sponsor()
 	b.upgradeOffers()
@@ -87,10 +89,18 @@ func Assemble(f Facts) ReadinessResult {
 	b.paidAudience()
 	b.verification()
 	b.routing()
+	b.rules()
 	b.everyVersion()
+	b.fixEffects()
 	b.stores()
+	b.issueKeys()
 	for i := range b.checks {
 		c := &b.checks[i]
+		if f.Campaign.HTMLOnly {
+			// A campaign written in HTML is fixed in the editor: one-click
+			// fixes that edit MJML would leave its HTML behind (SR-4).
+			c.Fixes = slices.DeleteFunc(c.Fixes, func(x fix) bool { return x.Kind == "apply" && mjmlFixes[x.Action] })
+		}
 		if c.FlatTitle.Empty() {
 			c.FlatTitle = tx("check.flat", A{"group": groupPrefix(c.Group), "title": c.Title})
 		}
@@ -133,6 +143,12 @@ func Assemble(f Facts) ReadinessResult {
 			out.problem = unknownReason(f.Reputation)
 		default:
 			out.problem = tx("problem.someChecks", nil)
+			for _, c := range b.checks {
+				if c.Status == Unknown {
+					out.problem = asSentence(c.Title)
+					break
+				}
+			}
 		}
 		out.Problem = out.problem.en()
 	}
@@ -264,41 +280,7 @@ func (b *builder) reputation() {
 	}
 	deliverability := link(tx("fix.openDeliverability", nil), b.href("/deliverability"))
 	if domain != "" {
-		key := "reputation.domain_blocklists"
-		label := tx("label.domainBlocklists", nil)
-		var listed []ListingFacts
-		for _, l := range r.Listings {
-			if l.Type == "domain" && strings.EqualFold(l.Asset, domain) {
-				listed = append(listed, l)
-			}
-		}
-		switch {
-		case r.Status == Unknown:
-			b.add(check{Key: key, Group: GroupReputation, Status: Unknown,
-				Title:     tx("reputation.domainUnknown", A{"domain": domain}),
-				FlatTitle: tx("reputation.domainUnknownFlat", A{"sources": r.Sources, "via": via}),
-				Detail:    unknownReason(r), Note: unknownNote, Label: label,
-				Fixes: []fix{deliverability}})
-		case len(listed) == 0:
-			b.add(check{Key: key, Group: GroupReputation, Status: Pass,
-				Title:  tx("reputation.domainClean", A{"domain": domain, "sources": r.Sources}),
-				Detail: b.sourcesDetail("domain", checked), Label: label,
-				Short: tx("reputation.domainCleanShort", A{"domain": domain, "sources": r.Sources})})
-		default:
-			status := Warn
-			names := []string{}
-			for _, l := range listed {
-				if l.Impact == "high" {
-					status = Block
-				}
-				names = append(names, l.Source)
-			}
-			b.add(check{Key: key, Group: GroupReputation, Status: status,
-				Title:  tx("reputation.domainListed", A{"domain": domain, "count": len(listed), "sources": r.Sources}),
-				Detail: sentences(listingText(listed[0]), impactText(listed[0].Impact, "domain")), Label: label,
-				Ack:   tx("reputation.domainListedAck", A{"domain": domain, "lists": ArgAnd(names)}),
-				Fixes: []fix{link(tx("fix.requestDelisting", nil), b.href("/deliverability"))}})
-		}
+		b.add(b.domainReputation(domain, via, checked, unknownNote, deliverability))
 	}
 	// Dedicated IPs of the providers carrying the send.
 	shared := []string{}
@@ -324,9 +306,13 @@ func (b *builder) reputation() {
 					FlatTitle: tx("reputation.ipUnknownFlat", A{"ip": ip}),
 					Detail:    unknownReason(r), Note: unknownNote, Label: label})
 			case len(listed) == 0:
+				detail := b.sourcesDetail("ip", checked)
+				if ptr := b.reverseDNSOf(ip); ptr != "" {
+					detail = joined(" · ", []Text{detail, tx("rdns.pass", A{"ptr": ptr})})
+				}
 				b.add(check{Key: key, Group: GroupReputation, Status: Pass,
 					Title:  tx("reputation.ipClean", A{"provider": s.Name, "ip": ip, "sources": r.Sources}),
-					Detail: b.sourcesDetail("ip", checked), Label: label,
+					Detail: detail, Label: label,
 					Short: tx("reputation.ipCleanShort", A{"ip": ip, "sources": r.Sources})})
 			default:
 				status := Warn
@@ -343,18 +329,158 @@ func (b *builder) reputation() {
 				if o := b.otherAvailable(s.ProviderID); o != nil {
 					fixes = append(fixes, routeOnlyFix(o, tx("fix.sendViaOnly", A{"provider": o.Short}), ""))
 				}
+				tech, raw := b.listingDetails(ip, listed)
 				b.add(check{Key: key, Group: GroupReputation, Status: status,
 					Title:  tx("reputation.ipListed", A{"provider": s.Name, "ip": ip, "count": len(listed), "sources": r.Sources}),
 					Detail: detail, Label: label,
 					Ack:   tx("reputation.ipListedAck", A{"provider": s.Name, "list": shortSource(listed[0].Source), "impact": listed[0].Impact}),
-					Fixes: fixes})
+					Fixes: fixes, Technical: tech, Raw: raw})
 			}
 		}
 	}
+	b.reverseDNSRows()
 	// Bounce and complaint rates of each provider against its own limits.
 	for _, s := range b.availableShares() {
 		b.add(b.providerRates(s))
 	}
+}
+
+// uriLists are the URI blocklists domains were looked up on.
+func (b *builder) uriLists() []string {
+	if len(b.f.Content.URIBlocklists) > 0 {
+		return b.f.Content.URIBlocklists
+	}
+	return URIBlocklists
+}
+
+// domainHit is a domain of the send's reputation and the lists it is on.
+type domainHit struct {
+	asset    DomainAssetFacts
+	listings []ListingFacts
+}
+
+// domainReputation is the domain blocklists check (SR-2): the sending
+// domain, its parent domain, the return-path domains and the tracking
+// domain, each on Deliverability's lists or, for the domains it doesn't
+// watch, looked up live on the URI blocklists. A listing of any of them
+// counts: acme.io listed is news.acme.io's problem too.
+func (b *builder) domainReputation(domain, via string, checked any, unknownNote Text, deliverability fix) check {
+	r := b.f.Reputation
+	key, label := "reputation.domain_blocklists", tx("label.domainBlocklists", nil)
+	assets := r.Domains
+	if len(assets) == 0 {
+		assets = []DomainAssetFacts{{Domain: domain, Role: DomainSending}}
+	}
+	var hits []domainHit
+	var unknown []DomainAssetFacts
+	watched := []string{}
+	var live []DomainAssetFacts
+	for _, a := range assets {
+		var ls []ListingFacts
+		for _, l := range r.Listings {
+			if l.Type == "domain" && strings.EqualFold(l.Asset, a.Domain) {
+				ls = append(ls, l)
+			}
+		}
+		for _, name := range a.Lists {
+			if !slices.ContainsFunc(ls, func(l ListingFacts) bool { return l.Source == name }) {
+				ls = append(ls, ListingFacts{Asset: a.Domain, Type: "domain", Source: name, Impact: "high"})
+			}
+		}
+		if len(ls) > 0 {
+			hits = append(hits, domainHit{asset: a, listings: ls})
+		}
+		switch {
+		case a.Live && a.Unknown != "":
+			unknown = append(unknown, a)
+		case a.Live:
+			live = append(live, a)
+		default:
+			watched = append(watched, a.Domain)
+		}
+	}
+	if len(hits) > 0 {
+		status := Warn
+		names := []string{}
+		for _, h := range hits {
+			for _, l := range h.listings {
+				if l.Impact == "high" {
+					status = Block
+				}
+				if !slices.Contains(names, l.Source) {
+					names = append(names, l.Source)
+				}
+			}
+		}
+		first := hits[0]
+		lists := []string{}
+		for _, l := range first.listings {
+			lists = append(lists, l.Source)
+		}
+		args := A{"domain": first.asset.Domain, "sending": domain, "lists": ArgAnd(lists), "providers": ArgAnd(first.asset.Providers),
+			"count": len(first.listings), "sources": r.Sources}
+		var title, why Text
+		switch first.asset.Role {
+		case DomainParent:
+			title, why = tx("reputation.parentListed", args), tx("reputation.parentDetail", args)
+		case DomainReturnPath:
+			title, why = tx("reputation.returnPathListed", args), tx("reputation.returnPathDetail", args)
+		case DomainTracking:
+			title, why = tx("reputation.trackingListed", args), tx("reputation.trackingDetail", nil)
+		default:
+			title = tx("reputation.domainListed", args)
+		}
+		detail := sentences(why, listingText(first.listings[0]), impactText(first.listings[0].Impact, "domain"))
+		if len(hits) > 1 {
+			more := []string{}
+			for _, h := range hits[1:] {
+				more = append(more, h.asset.Domain)
+			}
+			detail = sentences(detail, tx("reputation.moreListed", A{"count": len(more), "domains": ArgAnd(more)}))
+		}
+		listed := []string{}
+		for _, h := range hits {
+			listed = append(listed, h.asset.Domain)
+		}
+		return check{Key: key, Group: GroupReputation, Status: status, Title: title, Detail: detail, Label: label,
+			Ack:   tx("reputation.domainsListedAck", A{"domains": ArgAnd(listed), "count": len(listed), "lists": ArgAnd(names)}),
+			Fixes: []fix{link(tx("fix.requestDelisting", nil), b.href("/deliverability"))}}
+	}
+	if r.Status == Unknown {
+		return check{Key: key, Group: GroupReputation, Status: Unknown,
+			Title:     tx("reputation.domainUnknown", A{"domain": domain}),
+			FlatTitle: tx("reputation.domainUnknownFlat", A{"sources": r.Sources, "via": via}),
+			Detail:    unknownReason(r), Note: unknownNote, Label: label,
+			Fixes: []fix{deliverability}}
+	}
+	if len(unknown) > 0 {
+		names := []string{}
+		for _, a := range unknown {
+			names = append(names, a.Domain)
+		}
+		note := tx("note.notChecked", nil)
+		if unknown[0].Unknown == "timeout" {
+			note = tx("note.timedOut", nil)
+		}
+		return check{Key: key, Group: GroupReputation, Status: Unknown, Label: label, Note: note,
+			Title:  tx("reputation.liveUnknown", A{"domains": ArgAnd(names), "lists": ArgAnd(b.uriLists())}),
+			Detail: tx("reputation.liveUnknownDetail", A{"trouble": unknown[0].Unknown}), Fixes: []fix{deliverability}}
+	}
+	args := A{"domains": ArgAnd(watched), "count": len(watched), "sources": r.Sources}
+	detail := b.sourcesDetail("domain", checked)
+	if len(live) > 0 {
+		parts := []Text{}
+		for _, a := range live {
+			if a.Role == DomainTracking {
+				parts = append(parts, tx("reputation.roleTracking", A{"domain": a.Domain}))
+			} else {
+				parts = append(parts, tx("reputation.roleReturnPath", A{"domain": a.Domain, "providers": ArgAnd(a.Providers)}))
+			}
+		}
+		detail = sentences(detail, tx("reputation.liveClean", A{"domains": ArgAnd(parts), "lists": ArgAnd(b.uriLists())}))
+	}
+	return check{Key: key, Group: GroupReputation, Status: Pass, Title: tx("reputation.domainsClean", args), Detail: detail, Label: label,
+		Short: tx("reputation.domainsCleanShort", args)}
 }
 
 // unknownReason says why the blocklists couldn't be checked: the reason
@@ -504,8 +630,23 @@ func (b *builder) providerRates(s ShareFacts) check {
 	if s.Bounce != nil {
 		bounce = *s.Bounce
 	}
+	// A complaint rate without data reads n/a with the reason, never 0%
+	// (F-3): nothing was delivered at mailbox providers that report
+	// complaints, and Gmail and iCloud never do (F-2, C13).
+	var complaintArg any = tx("rates.complaintNA", nil)
 	if s.Complaint != nil {
 		complaint = *s.Complaint
+		complaintArg = ArgPercent(complaint)
+	} else {
+		c.Detail = tx("rates.complaintNADetail", A{"detail": detail})
+	}
+	if !s.ProviderReported && s.Sent7d > 0 && s.Sent7d < MinRateVolume {
+		// One bounce among three messages isn't a 33% bounce rate: below
+		// the minimum volume the rates don't judge the provider (SR-5).
+		c.Title = tx("rates.tooFew", A{"provider": s.Name, "count": s.Sent7d})
+		c.Detail = tx("rates.tooFewDetail", A{"min": MinRateVolume, "bounce": ArgPercent(bounce), "complaint": complaintArg})
+		c.Short = tx("rates.tooFewShort", A{"provider": s.Short})
+		return c
 	}
 	limits := A{"limits": limitsText(s), "bounce": ArgPercent(l.Bounce.Limit), "complaint": ArgPercent(l.Complaint.Limit)}
 	phrase := tx("rates.inside", limits)
@@ -527,8 +668,8 @@ func (b *builder) providerRates(s ShareFacts) check {
 		phrase = tx("rates.close", limits)
 		c.Fixes = []fix{deliverability}
 	}
-	c.Title = tx("rates.title", A{"provider": s.Name, "bounce": ArgPercent(bounce), "complaint": ArgPercent(complaint), "phrase": phrase})
-	c.Short = tx("rates.short", A{"provider": s.Short, "bounce": ArgPercent(bounce), "complaint": ArgPercent(complaint)})
+	c.Title = tx("rates.title", A{"provider": s.Name, "bounce": ArgPercent(bounce), "complaint": complaintArg, "phrase": phrase})
+	c.Short = tx("rates.short", A{"provider": s.Short, "bounce": ArgPercent(bounce), "complaint": complaintArg})
 	if c.Status == Warn {
 		c.Ack = tx("rates.ack", A{"provider": s.Name})
 	}
@@ -544,6 +685,11 @@ func (b *builder) providerRates(s ShareFacts) check {
 	}
 	return c
 }
+
+// MinRateVolume is how many messages ReputeCast's own 7-day rates need
+// before they can warn about or block a provider (the guard pauses a send
+// on a mailbox provider's rates after 500 messages, too).
+const MinRateVolume = 500
 
 // yes is a select argument: "yes" or "no".
 func yes(b bool) string {
@@ -571,10 +717,14 @@ func (b *builder) authentication() {
 		return
 	}
 	senders := link(tx("fix.openSenders", nil), b.href("/settings/senders"))
-	if bad := failing(a.SPF); len(bad) == 0 && len(a.SPF) > 0 {
+	if unknown := lookupFailing(a.SPF); len(unknown) > 0 && len(failing(a.SPF)) == 0 {
+		b.add(b.lookupUnknown("auth.spf", "SPF", domain, unknown, unknown))
+	} else if bad := failing(a.SPF); len(bad) == 0 && len(a.SPF) > 0 {
 		names := shorts(a.SPF)
 		b.add(check{Key: "auth.spf", Group: GroupAuthentication, Status: Pass,
 			Title: tx("auth.spfPass", A{"count": len(names), "provider": first(names)}), Detail: RawText(a.SPFRecord), Mono: a.SPFRecord != "", Label: RawText("SPF"), Short: RawText("SPF")})
+	} else if len(a.SPF) == 0 && a.SPFRecord == "" && a.SPFError != "" {
+		b.add(b.lookupUnknown("auth.spf", "SPF", domain, nil, []ProviderAuthFacts{{Unknown: true, Trouble: a.SPFError}}))
 	} else if len(a.SPF) == 0 && a.SPFRecord == "" {
 		b.add(check{Key: "auth.spf", Group: GroupAuthentication, Status: Block, Title: tx("auth.spfMissing", A{"domain": domain}),
 			Detail: tx("auth.spfMissingDetail", nil), Label: RawText("SPF"), Fixes: []fix{senders}})
@@ -592,7 +742,9 @@ func (b *builder) authentication() {
 		b.add(check{Key: "auth.spf", Group: GroupAuthentication, Status: Block, Title: tx("auth.spfFails", A{"providers": ArgAnd(bad)}),
 			Detail: detail, Label: RawText("SPF"), Fixes: []fix{senders}})
 	}
-	if bad := failing(a.DKIM); len(bad) == 0 && len(a.DKIM) > 0 {
+	if unknown := lookupFailing(a.DKIM); len(unknown) > 0 && len(failing(a.DKIM)) == 0 {
+		b.add(b.lookupUnknown("auth.dkim", "DKIM", domain, unknown, unknown))
+	} else if bad := failing(a.DKIM); len(bad) == 0 && len(a.DKIM) > 0 {
 		bits := 0
 		parts := []Text{}
 		for _, d := range a.DKIM {
@@ -630,8 +782,19 @@ func (b *builder) authentication() {
 		b.add(check{Key: "auth.dkim", Group: GroupAuthentication, Status: Block, Title: tx("auth.dkimFails", A{"providers": providers}),
 			Detail: detail, Label: RawText("DKIM"), Fixes: []fix{senders}})
 	}
-	switch a.DMARCStatus {
-	case "pass":
+	unaligned := []string{}
+	if a.DMARCStatus == "pass" {
+		unaligned = b.unaligned(domain)
+	}
+	switch {
+	case len(unaligned) > 0:
+		// Mail a provider sends unaligned fails DMARC however the record
+		// reads, and Gmail and Yahoo require alignment of bulk senders.
+		b.add(check{Key: "auth.dmarc", Group: GroupAuthentication, Status: Block, Label: RawText("DMARC"),
+			Title:  tx("auth.dmarcUnaligned", A{"providers": ArgAnd(unaligned), "count": len(unaligned)}),
+			Detail: tx("auth.dmarcUnalignedDetail", A{"domain": domain, "policy": firstNonEmpty(a.DMARCPolicy, "none"), "strict": yes(dmarcMode(a.DMARCRecord, "aspf") == "s")}),
+			Fixes:  []fix{senders}})
+	case a.DMARCStatus == "pass":
 		policy := firstNonEmpty(a.DMARCPolicy, "none")
 		title := tx("auth.dmarcPass", A{"policy": policy, "measured": "no"})
 		status := Pass
@@ -650,14 +813,20 @@ func (b *builder) authentication() {
 			c.Fixes = []fix{link(tx("fix.openDeliverability", nil), b.href("/deliverability"))}
 		}
 		b.add(c)
-	case "missing", "":
+	case a.DMARCStatus == "missing" || a.DMARCStatus == "":
 		b.add(check{Key: "auth.dmarc", Group: GroupAuthentication, Status: Block, Title: tx("auth.dmarcMissing", A{"domain": domain}),
 			Detail: tx("auth.dmarcMissingDetail", nil), Label: RawText("DMARC"), Fixes: []fix{senders}})
+	case a.DMARCStatus == "error":
+		// DNS didn't answer, even when the run asked again: the record's
+		// state is unknown, not invalid.
+		b.add(b.lookupUnknown("auth.dmarc", "DMARC", domain, nil, []ProviderAuthFacts{{Unknown: true, Trouble: a.DMARCError}}))
 	default:
 		b.add(check{Key: "auth.dmarc", Group: GroupAuthentication, Status: Block, Title: tx("auth.dmarcInvalid", A{"domain": domain}),
 			Detail: RawText(a.DMARCRecord), Mono: a.DMARCRecord != "", Label: RawText("DMARC"), Fixes: []fix{senders}})
 	}
-	if bad := failing(a.MailFrom); len(bad) == 0 && len(a.MailFrom) > 0 {
+	if unknown := lookupFailing(a.MailFrom); len(unknown) > 0 && len(failing(a.MailFrom)) == 0 {
+		b.add(b.lookupUnknown("auth.mail_from", "MAIL FROM", domain, unknown, unknown))
+	} else if bad := failing(a.MailFrom); len(bad) == 0 && len(a.MailFrom) > 0 {
 		parts := []string{}
 		for _, m := range a.MailFrom {
 			parts = append(parts, m.Domain+" ("+m.Short+")")
@@ -670,13 +839,25 @@ func (b *builder) authentication() {
 			Detail: tx("auth.mailFromDefaultDetail", nil), Label: RawText("MAIL FROM"),
 			Ack: tx("auth.mailFromDefaultAck", A{"providers": ArgAnd(bad)}), Fixes: []fix{senders}})
 	}
-	if a.BIMIStatus == "pass" {
+	switch a.BIMIStatus {
+	case "pass":
 		detail := RawText(a.BIMILogo)
 		if detail.Empty() {
 			detail = tx("auth.bimiShows", nil)
 		}
 		b.add(check{Key: "auth.bimi", Group: GroupAuthentication, Status: Pass, Title: tx("auth.bimiFound", nil), Detail: detail, Label: RawText("BIMI"), Short: RawText("BIMI")})
-	} else {
+	case "invalid":
+		// A broken record shows no logo and tells mailbox providers the
+		// domain tried: worth fixing, not worth stopping a send.
+		detail := tx("auth.bimiInvalidDetail", nil)
+		if strings.TrimSpace(a.BIMIProblem) != "" {
+			detail = sentences(RawText(sentence(a.BIMIProblem)), detail)
+		}
+		b.add(check{Key: "auth.bimi", Group: GroupAuthentication, Status: Warn, Title: tx("auth.bimiInvalid", A{"domain": domain}), Detail: detail,
+			Label: RawText("BIMI"), Ack: tx("auth.bimiInvalidAck", nil), Fixes: []fix{link(tx("fix.openDeliverability", nil), b.href("/deliverability"))}})
+	case "error":
+		b.add(b.lookupUnknown("auth.bimi", "BIMI", domain, nil, []ProviderAuthFacts{{Unknown: true, Trouble: a.BIMIError}}))
+	default:
 		b.add(check{Key: "auth.bimi", Group: GroupAuthentication, Status: Pass, Title: tx("auth.bimiNotRequired", nil),
 			Detail: tx("auth.bimiOptional", nil), Label: RawText("BIMI"),
 			Fixes: []fix{link(tx("fix.setUpBimi", nil), b.href("/deliverability"))}})
@@ -690,14 +871,48 @@ func first(names []string) string {
 	return names[0]
 }
 
+// failing names the providers whose record is definitely wrong: missing, another value, not
+// aligned. A record DNS didn't answer for is unknown (lookupFailing).
 func failing(list []ProviderAuthFacts) []string {
 	out := []string{}
 	for _, p := range list {
-		if !p.OK {
+		if !p.OK && !p.Unknown {
 			out = append(out, p.Short)
 		}
 	}
 	return out
+}
+
+// lookupFailing are the records DNS didn't answer for, even when the run
+// asked again.
+func lookupFailing(list []ProviderAuthFacts) []ProviderAuthFacts {
+	out := []ProviderAuthFacts{}
+	for _, p := range list {
+		if !p.OK && p.Unknown {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// lookupUnknown is the Unknown check of a record DNS didn't answer for:
+// "Couldn't look up the DMARC record of news.acme.io". Never a Block: a
+// timeout says nothing about the record. The send-time recheck looks again.
+func (b *builder) lookupUnknown(key, record, domain string, providers, unknown []ProviderAuthFacts) check {
+	trouble := TroubleOther
+	for _, p := range unknown {
+		if p.Trouble != "" {
+			trouble = p.Trouble
+			break
+		}
+	}
+	title := tx("auth.lookupFailed", A{"record": record, "domain": domain})
+	if names := shorts(providers); len(names) > 0 {
+		title = tx("auth.lookupFailedFor", A{"record": record, "providers": ArgAnd(names)})
+	}
+	return check{Key: key, Group: GroupAuthentication, Status: Unknown, Title: title, Label: RawText(record),
+		Detail: tx("auth.lookupFailedDetail", A{"trouble": trouble}), Note: tx("note.dnsError", nil),
+		Fixes: []fix{link(tx("fix.openDeliverability", nil), b.href("/deliverability"))}}
 }
 
 func shorts(list []ProviderAuthFacts) []string {
@@ -763,7 +978,6 @@ func (b *builder) content() {
 	}
 	r := ct.Report
 	subject := b.f.Campaign.Subject
-	shortened := issuesOf(r, "links.shortener")
 	spamLabel := tx("label.spamTriggers", nil)
 	if strings.TrimSpace(subject) == "" {
 		b.add(check{Key: "content.spam", Group: GroupContent, Status: Block, Title: tx("content.subjectEmpty", nil),
@@ -779,39 +993,65 @@ func (b *builder) content() {
 			c.Detail = sentences(c.Detail, tx("content.suggested", A{"subject": s}))
 			c.Fixes = []fix{apply(FixUseSubject, tx("fix.useSuggestion", nil), "", map[string]string{"subject": s})}
 		}
+		if others := spamPlaces(r, false); len(others) > 0 {
+			c.Detail = sentences(c.Detail, tx("content.spamAlso", A{"places": joined(" · ", others)}))
+		}
 		b.add(c)
+	} else if places := spamPlaces(r, false); len(places) > 0 {
+		// The preheader shows next to the subject in the inbox, and filters
+		// read the whole body (SR-7).
+		where := []string{}
+		if len(r.PreheaderHeuristics) > 0 {
+			where = append(where, "preheader")
+		}
+		if len(r.BodyHeuristics) > 0 {
+			where = append(where, "body")
+		}
+		b.add(check{Key: "content.spam", Group: GroupContent, Status: Warn, Label: spamLabel,
+			Title:  tx("content.spamIn", A{"where": strings.Join(where, "_")}),
+			Detail: joined(" · ", places), Ack: tx("content.spamInAck", A{"where": strings.Join(where, "_")}),
+			Fixes: []fix{link(tx("fix.openInEditor", nil), b.editor(nil, "settings"))}})
 	} else {
 		b.add(check{Key: "content.spam", Group: GroupContent, Status: Pass, Title: tx("content.noSpam", nil),
-			Detail: tx("content.noSpamDetail", A{"subject": subject, "shortened": len(shortened)}), Label: spamLabel})
+			Detail: b.noSpamDetail(subject), Label: spamLabel})
 	}
 	share := int(math.Round(r.ImageShare * 100))
+	limit := contentcheck.ImageShareLimit * 100
 	ratio := check{Key: "content.image_ratio", Group: GroupContent, Status: Pass, Label: tx("label.imageRatio", nil),
 		Title:  tx("content.imageRatio", A{"share": ArgPercent(float64(share))}),
-		Detail: tx("content.imageRatioDetail", A{"images": r.Images, "words": r.Words, "limit": ArgPercent(60)}),
+		Detail: tx("content.imageRatioDetail", A{"images": r.Images, "words": r.Words, "limit": ArgPercent(limit)}),
 		Short:  tx("content.imageRatioShort", A{"share": ArgPercent(float64(share))})}
-	if share >= 60 {
+	// One threshold for the composer and Send Readiness (SR-7).
+	if r.ImageShare >= contentcheck.ImageShareLimit {
 		ratio.Status = Warn
-		ratio.Title = tx("content.imageRatioHigh", A{"share": ArgPercent(float64(share)), "limit": ArgPercent(60)})
+		ratio.Title = tx("content.imageRatioHigh", A{"share": ArgPercent(float64(share)), "limit": ArgPercent(limit)})
 		ratio.Detail = tx("content.imageRatioHighDetail", A{"images": r.Images, "words": r.Words})
 		ratio.Ack = tx("content.imageRatioAck", A{"share": ArgPercent(float64(share))})
 		ratio.Fixes = []fix{link(tx("fix.openInEditor", nil), b.editor(nil, "deliverability"))}
 	}
 	b.add(ratio)
-	kb := int(math.Round(float64(r.SizeBytes) / 1024))
+	// Gmail clips the HTML it receives: after the send rewrote the links
+	// for tracking and added the open pixel (SR-7).
+	sent := r.SizeBytes
+	if ct.TrackedBytes > sent {
+		sent = ct.TrackedBytes
+	}
+	htmlKB := int(math.Round(float64(r.SizeBytes) / 1024))
 	cssKB := int(math.Round(float64(ct.InlineCSSBytes) / 1024))
 	trackKB := 0
-	if r.Links > 0 {
-		trackKB = int(math.Max(1, math.Round(float64(r.Links*200)/1024)))
+	if ct.TrackedBytes > r.SizeBytes {
+		trackKB = int(math.Max(1, math.Round(float64(ct.TrackedBytes-r.SizeBytes)/1024)))
 	}
-	sizeArgs := A{"kb": kb, "clip": 102, "css": cssKB, "tracking": trackKB}
+	tracked := yes(ct.TrackedBytes > 0)
+	sizeArgs := A{"kb": int(math.Round(float64(sent) / 1024)), "html": htmlKB, "clip": 102, "css": cssKB, "tracking": trackKB, "tracked": tracked}
 	size := check{Key: "content.size", Group: GroupContent, Status: Pass, Label: tx("label.htmlSize", nil),
 		Title:  tx("content.size", sizeArgs),
 		Detail: tx("content.sizeDetail", sizeArgs),
 		Short:  tx("content.sizeShort", sizeArgs)}
-	if r.SizeBytes >= contentcheck.NearClipBytes {
+	if sent >= contentcheck.NearClipBytes {
 		size.Status = Warn
 		size.Title = tx("content.sizeNear", sizeArgs)
-		if r.SizeBytes > contentcheck.ClipBytes {
+		if sent > contentcheck.ClipBytes {
 			size.Title = tx("content.sizeOver", sizeArgs)
 		}
 		size.Detail = tx("content.sizeWarnDetail", sizeArgs)
@@ -866,17 +1106,61 @@ func (b *builder) content() {
 			Detail: tx("content.plainTextEmptyDetail", nil), Label: tx("label.plainText", nil),
 			Ack: tx("content.plainTextEmptyAck", nil), Fixes: []fix{link(tx("fix.openInEditor", nil), b.editor(nil, ""))}})
 	}
+	b.images()
+	b.personalization()
 	b.grow()
+}
+
+// spamPlaces names the spam heuristics the preheader and the body trip
+// ("Preheader: urgency phrasing"), and the subject's too when subject is
+// true.
+func spamPlaces(r contentcheck.ContentCheckReport, subject bool) []Text {
+	out := []Text{}
+	if subject && len(r.SubjectHeuristics) > 0 {
+		out = append(out, tx("content.spamPlace", A{"where": "subject", "list": heuristicsList(r.SubjectHeuristics)}))
+	}
+	if len(r.PreheaderHeuristics) > 0 {
+		out = append(out, tx("content.spamPlace", A{"where": "preheader", "list": heuristicsList(r.PreheaderHeuristics)}))
+	}
+	if len(r.BodyHeuristics) > 0 {
+		out = append(out, tx("content.spamPlace", A{"where": "body", "list": heuristicsList(r.BodyHeuristics)}))
+	}
+	return out
+}
+
+// noSpamDetail is the passing spam row's detail: the subject, or each
+// variant's subject in an A/B subject test.
+func (b *builder) noSpamDetail(subject string) Text {
+	subjects := []string{}
+	for _, v := range b.f.Content.Variants {
+		if v.Subject != subject {
+			subjects = append(subjects, v.Subject)
+		}
+	}
+	if len(subjects) == 0 {
+		return tx("content.noSpamDetail", A{"subject": subject})
+	}
+	parts := []Text{tx("content.variantSubject", A{"variant": "A", "subject": subject})}
+	for _, v := range b.f.Content.Variants {
+		parts = append(parts, tx("content.variantSubject", A{"variant": v.Key, "subject": v.Subject}))
+	}
+	return tx("content.noSpamVariants", A{"subjects": joined(" · ", parts)})
 }
 
 // heuristicsText names the spam heuristics a subject trips: "All caps and
 // urgency phrasing."
 func heuristicsText(hs []string) Text {
+	return tx("content.heuristics", A{"list": argCapital(heuristicsList(hs))})
+}
+
+// heuristicsList is the heuristics as a list argument: "all caps and
+// urgency phrasing".
+func heuristicsList(hs []string) map[string]any {
 	words := make([]any, 0, len(hs))
 	for _, h := range hs {
 		words = append(words, heuristicWord(h))
 	}
-	return tx("content.heuristics", A{"list": argCapital(ArgAnd(words))})
+	return ArgAnd(words)
 }
 
 // heuristicWord names a subject heuristic (contentcheck.SubjectHeuristics).
@@ -892,6 +1176,8 @@ func heuristicWord(h string) any {
 		return tx("heuristic.money", nil)
 	case "click-bait":
 		return tx("heuristic.clickbait", nil)
+	case "spam phrases":
+		return tx("heuristic.phrases", nil)
 	}
 	return h
 }
@@ -966,31 +1252,42 @@ func (b *builder) links() {
 			blocked[h] = true
 		}
 	}
-	total := len(r.LinkList)
-	var considered, probed, broken []contentcheck.ContentCheckLink
-	for _, l := range r.LinkList {
+	// Every distinct link of the email: the campaign's, each language
+	// version's and each content variant's (SR-7).
+	all := b.allLinks()
+	total := len(all)
+	var considered, probed, broken, unverified []contentcheck.ContentCheckLink
+	for _, l := range all {
 		if blocked[l.Host] {
 			continue
 		}
 		considered = append(considered, l)
-		if l.Probed {
+		switch {
+		case !l.Probed:
+		case l.BotBlocked:
+			// The site refused the automated request (LinkedIn's 999): whether
+			// the link works isn't known.
+			unverified = append(unverified, l)
+		default:
 			probed = append(probed, l)
 			if l.Broken {
 				broken = append(broken, l)
 			}
 		}
 	}
+	requested := len(probed) + len(unverified)
+	notRequested := len(considered) - requested
 	respond := check{Key: "links.respond", Group: GroupLinks, Status: Pass, Label: tx("label.linksRespond", nil)}
 	switch {
 	case total == 0:
 		respond.Title, respond.Short = tx("links.none", nil), tx("links.noneShort", nil)
-	case len(probed) == 0:
+	case requested == 0:
 		respond.Title = tx("links.found", A{"count": total})
 		respond.Detail = tx("links.notRequested", nil)
 		respond.Short = respond.Title
 	case len(broken) == 0:
 		all200 := true
-		slow := probed[0]
+		var slow contentcheck.ContentCheckLink
 		for _, l := range probed {
 			if l.Status != 200 {
 				all200 = false
@@ -999,16 +1296,38 @@ func (b *builder) links() {
 				slow = l
 			}
 		}
-		if len(blocked) > 0 {
+		ok := len(probed)
+		switch {
+		case len(unverified) > 0 || notRequested > 0:
+			// Honest counts: links not checked aren't known to work (F-3).
+			respond.Status = Unknown
+			respond.Note = tx("note.notChecked", nil)
+			respond.Title = tx("links.someUnchecked", A{"ok": ok, "total": len(considered), "unchecked": len(unverified) + notRequested})
+			parts := []Text{}
+			for i, l := range unverified {
+				if i == 2 {
+					parts = append(parts, tx("links.brokenMore", A{"count": len(unverified) - 2}))
+					break
+				}
+				parts = append(parts, tx("links.refused", A{"url": displayURL(l.URL), "status": fmt.Sprint(l.Status)}))
+			}
+			if len(unverified) > 0 {
+				parts = append(parts, tx("links.refusedWhy", nil))
+			}
+			if notRequested > 0 {
+				parts = append(parts, tx("links.overLimit", A{"count": notRequested, "max": contentcheck.MaxProbedLinks}))
+			}
+			respond.Detail = sentences(parts...)
+		case len(blocked) > 0:
 			respond.Title = tx("links.respondExceptBlocked", A{"count": len(considered), "total": total, "blocked": len(blockIssues)})
 			respond.Short = respond.Title
-		} else {
-			respond.Title = tx("links.allRespond", A{"count": total, "http200": yes(all200)})
+		default:
+			respond.Title = tx("links.allRespond", A{"count": total})
 			respond.Short = tx("links.allRespondShort", A{"count": total})
 			respond.every = total > 1
 		}
-		if slow.Millis > 0 {
-			respond.Detail = tx("links.slowest", A{"url": displayURL(slow.URL), "ms": slow.Millis})
+		if slow.Millis > 0 && respond.Status == Pass {
+			respond.Detail = tx("links.slowest", A{"url": displayURL(slow.URL), "ms": slow.Millis, "http200": yes(all200)})
 		}
 	default:
 		respond.Status = Warn
@@ -1026,14 +1345,35 @@ func (b *builder) links() {
 			}
 		}
 		respond.Detail = joined(" · ", parts)
+		if n := len(unverified) + notRequested; n > 0 {
+			respond.Detail = sentences(respond.Detail, tx("links.alsoUnchecked", A{"count": n}))
+		}
 		respond.Ack = tx("links.brokenAck", A{"count": len(broken)})
 		respond.Fixes = []fix{link(tx("fix.openInEditor", nil), b.editor(broken[0].Path, "deliverability"))}
 	}
 	b.add(respond)
-	if len(blockIssues) == 0 {
+	if unknown := r.LinkDomainsUnknown; len(unknown) > 0 {
+		// A lookup that failed is unknown, not clean (SR-1).
+		names := make([]string, 0, len(unknown))
+		for _, u := range unknown {
+			names = append(names, u.Domain)
+		}
+		shown := names
+		if len(shown) > 4 {
+			shown = shown[:4]
+		}
+		note := tx("note.notChecked", nil)
+		if unknown[0].Trouble == contentcheck.TroubleTimeout {
+			note = tx("note.timedOut", nil)
+		}
+		b.add(check{Key: "links.blocklists", Group: GroupLinks, Status: Unknown, Label: tx("label.uriBlocklists", nil), Note: note,
+			Title:  tx("links.domainsUnknown", A{"count": len(unknown), "total": max(r.LinkDomains, len(unknown)), "lists": ArgAnd(ct.URIBlocklists)}),
+			Detail: tx("links.domainsUnknownDetail", A{"domains": argJoin(", ", shown), "more": len(names) - len(shown), "trouble": unknown[0].Trouble})})
+	}
+	if len(blockIssues) == 0 && len(r.LinkDomainsUnknown) == 0 {
 		domains := []string{}
 		seen := map[string]bool{}
-		for _, l := range r.LinkList {
+		for _, l := range all {
 			d := contentcheck.RegistrableDomain(l.Host)
 			if l.Host != d && strings.Count(l.Host, ".") == 2 && !strings.HasPrefix(l.Host, "www.") {
 				d = l.Host
@@ -1044,20 +1384,42 @@ func (b *builder) links() {
 				domains = append(domains, d)
 			}
 		}
-		slices.Sort(domains)
-		var detail Text
-		if len(domains) > 0 {
-			shown := domains
-			if len(domains) > 4 {
-				shown = domains[:4]
-				detail = tx("links.domainsMore", A{"lists": argJoin(", ", ct.URIBlocklists), "hasLists": yes(len(ct.URIBlocklists) > 0), "domains": argJoin(", ", shown), "more": len(domains) - 4})
-			} else {
-				detail = tx("links.domains", A{"lists": argJoin(", ", ct.URIBlocklists), "hasLists": yes(len(ct.URIBlocklists) > 0), "domains": argJoin(", ", shown)})
+		// The sender's own domains first, each in the order the email
+		// links to it.
+		slices.SortStableFunc(domains, func(a, b string) int {
+			ownA, ownB := contentcheck.RegistrableDomain(a) == ct.OwnDomain, contentcheck.RegistrableDomain(b) == ct.OwnDomain
+			switch {
+			case ownA && !ownB:
+				return -1
+			case ownB && !ownA:
+				return 1
 			}
-		} else if len(ct.URIBlocklists) > 0 {
-			detail = RawText(strings.Join(ct.URIBlocklists, ", "))
+			return 0
+		})
+		// The tracking domain carries every click: it's looked up too
+		// (SR-2), and named when it resolves (SR-7).
+		tracking := ""
+		if h := ct.TrackingHost; h != "" && (ct.TrackingDNS == "" || ct.TrackingDNS == "ok") && ct.TrackClicks {
+			tracking = h
 		}
-		b.add(check{Key: "links.blocklists", Group: GroupLinks, Status: Pass, Title: tx("links.notListed", nil), Detail: detail, Label: tx("label.uriBlocklists", nil),
+		var detail Text
+		if len(domains) > 0 || tracking != "" {
+			shown := domains
+			if len(domains) > 8 {
+				shown = domains[:8]
+			}
+			count := len(domains)
+			if tracking != "" && !slices.Contains(domains, tracking) {
+				count++
+			}
+			detail = tx("links.domainsAll", A{"count": count, "domains": argJoin(", ", shown), "more": len(domains) - len(shown), "tracking": tracking,
+				"hasTracking": yes(tracking != "")})
+		}
+		title := tx("links.notListed", nil)
+		if len(ct.URIBlocklists) > 0 {
+			title = tx("links.notListedOn", A{"lists": ArgAnd(ct.URIBlocklists)})
+		}
+		b.add(check{Key: "links.blocklists", Group: GroupLinks, Status: Pass, Title: title, Detail: detail, Label: tx("label.uriBlocklists", nil),
 			Short: tx("links.notListedShort", nil)})
 	} else {
 		done := map[string]bool{}
@@ -1115,6 +1477,37 @@ func (b *builder) links() {
 		b.add(check{Key: "links.empty", Group: GroupLinks, Status: Warn, Title: emptyLinkTitle(r, empty[0]), Detail: emptyLinkDetail(empty[0]), Label: tx("label.emptyLink", nil),
 			Ack: tx("links.emptyAck", nil), Fixes: []fix{link(tx("fix.editLink", nil), b.editor(empty[0].Path, "deliverability"))}})
 	}
+	b.trackingDomain()
+}
+
+// allLinks is every distinct link of the email: the campaign's, each
+// language version's and each content variant's, with the response when
+// the run requested it.
+func (b *builder) allLinks() []contentcheck.ContentCheckLink {
+	out := []contentcheck.ContentCheckLink{}
+	seen := map[string]int{}
+	add := func(list []contentcheck.ContentCheckLink) {
+		for _, l := range list {
+			if i, ok := seen[l.URL]; ok {
+				if !out[i].Probed && l.Probed {
+					out[i] = l
+				}
+				continue
+			}
+			seen[l.URL] = len(out)
+			out = append(out, l)
+		}
+	}
+	add(b.f.Content.Report.LinkList)
+	for _, v := range b.f.Content.Versions {
+		add(v.Report.LinkList)
+	}
+	for _, v := range b.f.Content.Variants {
+		if v.Content {
+			add(v.Report.LinkList)
+		}
+	}
+	return out
 }
 
 // replaceLabel is the content check's replace fix ("Replace with
@@ -1206,11 +1599,42 @@ func linkTextFor(r contentcheck.ContentCheckReport, href string) (string, string
 
 func (b *builder) compliance() {
 	cf := b.f.Compliance
-	if cf.HTTPS {
+	// One-click unsubscribe also depends on each provider carrying the
+	// headers signed (SR-7): a provider whose DKIM signature leaves them
+	// out loses it with Gmail and Yahoo.
+	var unsigned, replaced []ShareFacts
+	for _, s := range b.shares() {
+		switch s.OneClick {
+		case "unsigned":
+			unsigned = append(unsigned, s)
+		case "replaced":
+			replaced = append(replaced, s)
+		}
+	}
+	oneClick := cf.HTTPS && len(unsigned) == 0
+	switch {
+	case cf.HTTPS && len(unsigned) > 0:
+		s := unsigned[0]
+		c := check{Key: "compliance.list_unsubscribe", Group: GroupCompliance, Status: Warn, Label: tx("label.oneClick", nil),
+			Title:  tx("compliance.oneClickUnsigned", A{"provider": s.Name}),
+			Detail: tx("compliance.oneClickUnsignedDetail", A{"provider": s.Short, "share": ArgPercent(math.Round(s.Percent))}),
+			Ack:    tx("compliance.oneClickUnsignedAck", A{"provider": s.Name})}
+		if o := b.otherAvailable(s.ProviderID); o != nil && o.OneClick != "unsigned" {
+			c.Fixes = []fix{routeOnlyFix(o, tx("fix.sendViaOnly", A{"provider": o.Short}), "")}
+		}
+		c.Fixes = append(c.Fixes, link(tx("fix.editRoute", nil), b.href("/providers/routing")))
+		b.add(c)
+	case cf.HTTPS:
+		detail := RawText(fmt.Sprintf("List-Unsubscribe: <%s> · List-Unsubscribe-Post: List-Unsubscribe=One-Click", cf.UnsubscribeURL))
+		mono := true
+		if len(replaced) > 0 {
+			detail = sentences(detail, tx("compliance.oneClickReplaced", A{"providers": ArgAnd(shortsOf(replaced)), "count": len(replaced)}))
+			mono = false
+		}
 		b.add(check{Key: "compliance.list_unsubscribe", Group: GroupCompliance, Status: Pass, Title: tx("compliance.oneClick", nil),
-			Detail: RawText(fmt.Sprintf("List-Unsubscribe: <%s> · List-Unsubscribe-Post: List-Unsubscribe=One-Click", cf.UnsubscribeURL)), Mono: true,
+			Detail: detail, Mono: mono,
 			Label: tx("label.oneClick", nil), Short: tx("compliance.oneClickShort", nil)})
-	} else {
+	default:
 		b.add(check{Key: "compliance.list_unsubscribe", Group: GroupCompliance, Status: Warn, Title: tx("compliance.oneClickHttps", nil),
 			Detail: tx("compliance.oneClickHttpsDetail", A{"url": cf.UnsubscribeURL}),
 			Label:  tx("label.oneClick", nil), Ack: tx("compliance.oneClickHttpsAck", nil)})
@@ -1246,19 +1670,27 @@ func (b *builder) compliance() {
 	c := check{Key: "compliance.bulk_sender", Group: GroupCompliance, Status: Pass, Title: tx("compliance.bulk", nil), Label: tx("label.bulkRules", nil),
 		Short: tx("compliance.bulkShort", nil)}
 	parts := []Text{}
+	// rules are ReputeCast's checks of Google's and Yahoo's rules, as the
+	// Postmaster status lists them beside Google's verdict.
+	rules := []Text{}
 	if b.f.Auth.DMARCStatus == "pass" {
 		parts = append(parts, tx("compliance.partDmarc", nil))
+		rules = append(rules, tx("compliance.partDmarc", nil))
 	} else {
 		c.Status = Warn
 		c.Title = tx("compliance.bulkDmarc", nil)
 		c.Ack = tx("compliance.bulkDmarcAck", nil)
 	}
-	if cf.HTTPS {
+	if oneClick {
 		parts = append(parts, tx("compliance.partOneClick", nil))
+		rules = append(rules, tx("compliance.partOneClick", nil))
 	}
 	if cf.ComplaintRate != nil {
 		cr := *cf.ComplaintRate
 		rate := ArgPercent(cr)
+		if cr < 0.3 {
+			rules = append(rules, tx("compliance.ruleComplaints", A{"rate": rate, "limit": ArgPercent(0.3)}))
+		}
 		switch {
 		case cr >= 0.3:
 			c.Status = Block
@@ -1277,14 +1709,99 @@ func (b *builder) compliance() {
 	} else {
 		parts = append(parts, tx("compliance.partNotMeasured", nil))
 	}
+	// Gmail reports its users' spam complaints only to Postmaster Tools,
+	// a day late: the providers' complaint rates don't include them (SR-7).
+	if g := cf.Gmail; g != nil && g.SpamRate != nil {
+		gr := *g.SpamRate
+		day := g.Day
+		if g.SpamDay != nil {
+			day = *g.SpamDay
+		}
+		args := A{"rate": ArgPercent(gr), "day": b.day(day), "limit": ArgPercent(0.3)}
+		switch {
+		case gr >= 0.3:
+			c.Status = Block
+			c.Title = tx("compliance.gmailSpamOver", args)
+			c.Ack = nil
+			c.Fixes = []fix{link(tx("fix.openDeliverability", nil), b.href("/deliverability"))}
+		case gr >= 0.1 && c.Status == Pass:
+			c.Status = Warn
+			c.Title = tx("compliance.gmailSpamHigh", A{"rate": ArgPercent(gr), "day": b.day(day), "limit": ArgPercent(0.1)})
+			c.Ack = tx("compliance.gmailSpamHighAck", A{"limit": ArgPercent(0.1)})
+			c.Fixes = []fix{link(tx("fix.openDeliverability", nil), b.href("/deliverability"))}
+		}
+		parts = append(parts, tx("compliance.partGmailSpam", args))
+	}
 	parts = append(parts, tx("compliance.partUnsubscribes", A{"days": 2}))
 	c.Detail = joined(" · ", parts)
+	b.postmasterStatus(&c, rules, parts)
 	if footerBlocked && c.Status == Pass {
 		// The rules also want a visible unsubscribe link and address in the
 		// body: the footer block says they aren't met, and its fix meets them.
 		return
 	}
 	b.add(c)
+}
+
+// postmasterStatus is Gmail Postmaster's compliance status on the bulk
+// sender check (SR-12). With Postmaster data for the domain, the check is
+// Google's verdict on its latest day, Compliant or Needs work (naming what
+// Google measured short), beside ReputeCast's checks of the same rules,
+// which Yahoo has no report for. Otherwise ReputeCast's checks stand alone
+// and say Postmaster isn't connected, or has no data for the domain yet.
+func (b *builder) postmasterStatus(c *check, rules, parts []Text) {
+	cf := b.f.Compliance
+	g := cf.Gmail
+	switch {
+	case g == nil && cf.PostmasterConnected:
+		c.Detail = joined(" · ", append(parts, tx("compliance.partPostmasterNoData", A{"domain": firstNonEmpty(b.f.Auth.Domain, b.f.Campaign.SenderDomain)})))
+		return
+	case g == nil:
+		c.Detail = joined(" · ", append(parts, tx("compliance.partPostmasterOff", nil)))
+		c.Fixes = append(c.Fixes, link(tx("fix.connectPostmaster", nil), b.href("/deliverability/connect")))
+		return
+	}
+	short := []Text{}
+	for _, r := range []struct {
+		key  string
+		rate *float64
+	}{{"SPF", g.SPF}, {"DKIM", g.DKIM}, {"DMARC", g.DMARC}, {"TLS", g.TLS}} {
+		if r.rate != nil && *r.rate < PostmasterFloor {
+			short = append(short, tx("compliance.postmasterRate", A{"what": r.key, "rate": ArgPercent(*r.rate)}))
+		}
+	}
+	if g.SpamRate != nil && *g.SpamRate >= PostmasterSpamLimit {
+		short = append(short, tx("compliance.postmasterSpam", A{"rate": ArgPercent(*g.SpamRate)}))
+	}
+	when := "other"
+	today := b.f.Now.In(b.loc).Format(time.DateOnly)
+	switch g.Day.Format(time.DateOnly) {
+	case today:
+		when = "today"
+	case b.f.Now.In(b.loc).AddDate(0, 0, -1).Format(time.DateOnly):
+		when = "yesterday"
+	}
+	args := A{"when": when, "day": ArgDay(g.Day)}
+	detail := tx("compliance.postmasterDetail", A{"rules": joined(", ", rules)})
+	if len(rules) == 0 {
+		detail = tx("compliance.postmasterLate", nil)
+	}
+	if len(short) == 0 {
+		if c.Status == Pass {
+			c.Title = tx("compliance.postmasterCompliant", args)
+		}
+		c.Detail = detail
+		return
+	}
+	if c.Status == Pass {
+		c.Status = Warn
+		c.Title = tx("compliance.postmasterNeedsWork", args)
+		c.Ack = tx("compliance.postmasterNeedsWorkAck", A{"domain": g.Domain})
+	}
+	if len(c.Fixes) == 0 {
+		c.Fixes = []fix{link(tx("fix.openDeliverability", nil), b.href("/deliverability"))}
+	}
+	c.Detail = sentences(tx("compliance.postmasterShort", A{"items": ArgAnd(short), "domain": g.Domain}), detail)
 }
 
 func (b *builder) audience() {
@@ -1311,10 +1828,13 @@ func (b *builder) audience() {
 	}
 	un := check{Key: "audience.unengaged", Group: GroupAudience, Status: Pass}
 	switch {
-	case a.Unengaged == 0 && a.UnengagedExcluded:
+	case a.Unengaged == 0 && a.UnengagedExcluded && a.SunsetExcluded > 0:
+		// Left out, as every send leaves them out by default (SR-11);
+		// "Include them" is on the audience's line.
 		un.Title = tx("audience.unengagedExcluded", A{"count": a.SunsetExcluded})
 		un.Detail = tx("audience.unengagedExcludedDetail", A{"days": days})
 		un.Short = tx("audience.unengagedExcludedShort", nil)
+		un.Fixes = []fix{link(tx("fix.sunsetPolicy", nil), b.href("/audience/health"))}
 	case a.Unengaged > 0 && a.SunsetOverride:
 		// The campaign overrides the sunset policy (SendReadinessBlocked).
 		un.Status = Warn
@@ -1478,6 +1998,10 @@ func (b *builder) routing() {
 		c := check{Key: "routing.health", Group: GroupRouting, Status: Pass, Title: tx("routing.healthy", A{"count": len(shares)}), Label: tx("label.routeHealth", nil),
 			Detail: tx("routing.healthyDetail", A{"shares": argJoin(" · ", parts), "policy": policyText(rt.Policy)}), Short: tx("routing.healthyShort", nil),
 			Fixes: []fix{link(tx("fix.editRoute", nil), routes)}}
+		if fb := rt.Fallback; fb != nil && fb.Failed == "" && fb.Name != "" {
+			// The fallback passed the vetting failover runs (C11).
+			c.Detail = tx("routing.healthyDetailFallback", A{"shares": argJoin(" · ", parts), "policy": policyText(rt.Policy), "fallback": fb.Name})
+		}
 		// Quota on the provider's own 24-hour allowance.
 		for _, s := range shares {
 			if s.Quota != nil && s.Quota.Kind == "rolling_24h" && s.Quota.Max > 0 && s.Recipients > s.Quota.Max-s.Quota.Used {
@@ -1554,6 +2078,7 @@ func (b *builder) routing() {
 			Ack:   tx("routing.trackingOnAck", A{"provider": s.Name}),
 			Fixes: []fix{link(tx("fix.turnOff", nil), b.href("/providers"))}})
 	}
+	b.fallbackRow()
 }
 
 // termsText is what a provider's terms say about bulk marketing ("yes, with
@@ -1584,12 +2109,20 @@ func (b *builder) estimates() ReadinessEstimates {
 	t := &estimateTexts{}
 	aud := ReadinessAudience{Rows: []ReadinessAudienceRow{}, Final: a.Final, Lists: a.Lists, Suppressed: a.Suppressed, Role: a.Role, Duplicates: a.Duplicates,
 		Unengaged: a.Unengaged, UnengagedExcluded: a.UnengagedExcluded}
+	if a.UnengagedExcluded {
+		aud.ExcludedUnengaged = a.SunsetExcluded
+	}
 	if aud.Lists == nil {
 		aud.Lists = []string{}
 	}
-	addRow := func(label Text, count int64, kind string) {
+	addRow := func(label Text, count int64, kind string) *ReadinessAudienceRow {
 		aud.Rows = append(aud.Rows, ReadinessAudienceRow{Label: label.en(), Count: count, Kind: kind})
 		t.Rows = append(t.Rows, label)
+		return &aud.Rows[len(aud.Rows)-1]
+	}
+	days := a.UnengagedDays
+	if days <= 0 {
+		days = 180
 	}
 	if !a.Empty {
 		addRow(b.baseLabel(), a.Base, "base")
@@ -1604,8 +2137,12 @@ func (b *builder) estimates() ReadinessEstimates {
 		case a.Stopped > 0:
 			addRow(tx("estimate.sunsetStopped", nil), a.Stopped, "minus")
 		}
+		// The unengaged are left out of every send unless the campaign
+		// includes them (SR-11): "Include them".
 		if a.UnengagedExcluded {
-			addRow(tx("estimate.unengaged", nil), a.SunsetExcluded, "minus")
+			if row := addRow(tx("estimate.unengaged", A{"days": days}), a.SunsetExcluded, "minus"); a.SunsetExcluded > 0 {
+				row.Action = FixIncludeUnengaged
+			}
 		}
 	}
 	out.Audience = aud
@@ -1616,11 +2153,19 @@ func (b *builder) estimates() ReadinessEstimates {
 		Override: rt.Override, Shares: []ReadinessRouteShare{}}
 	pcts := []string{}
 	maxMinutes := 0
+	// The engine's estimate, when there is one: its rates, warm-up days,
+	// quota and timeline (SR-5).
+	planned := map[string]engine.EstimateProvider{}
+	if rt.Estimate != nil {
+		for _, p := range rt.Estimate.Providers {
+			planned[p.ProviderID.String()] = p
+		}
+	}
 	for _, s := range rt.Shares {
 		st := shareTexts{Status: b.shareStatusText(s)}
 		rs := ReadinessRouteShare{ProviderID: s.ProviderID, Name: s.Name, Short: s.Short, Adapter: s.Adapter, Label: s.Label, Color: state.Color(s.Adapter),
 			Percent: math.Round(s.Percent*10) / 10, Recipients: s.Recipients, Status: s.Status, Available: s.Available,
-			WarmupDay: s.WarmupDay, WarmupDays: s.WarmupDays, Rate: s.Rate}
+			WarmupDay: s.WarmupDay, WarmupDays: s.WarmupDays, WarmupCap: s.WarmupCap, Rate: s.Rate}
 		rs.Pricing = pricingModel(s.Pricing.Model)
 		switch rs.Pricing {
 		case "self_hosted":
@@ -1631,7 +2176,16 @@ func (b *builder) estimates() ReadinessEstimates {
 			st.Price = tx("estimate.per1000", A{"price": ArgMoney(s.Pricing.Per1000), "count": 1000})
 			rs.Cost = math.Round(float64(s.Recipients)*s.Pricing.Per1000/1000*100) / 100
 		}
-		if s.Rate > 0 {
+		if p, ok := planned[s.ProviderID]; ok {
+			rs.Rate, rs.RateFrom, rs.OverQuota = p.Rate, p.RateFrom, p.OverQuota
+			if p.Days > 1 {
+				rs.Days = p.Days
+			}
+			st.Rate = tx("estimate.rateFrom", A{"rate": math.Round(p.Rate*10) / 10, "from": p.RateFrom})
+			if p.Seconds > 0 {
+				rs.Minutes = Minutes(p.Seconds)
+			}
+		} else if s.Rate > 0 {
 			st.Rate = tx("estimate.rate", A{"rate": math.Round(s.Rate*10) / 10, "ramp": yes(s.RateRamp)})
 			rs.Minutes = Minutes(float64(s.Recipients) / s.Rate)
 		}
@@ -1663,6 +2217,12 @@ func (b *builder) estimates() ReadinessEstimates {
 		}
 	}
 	route.TotalMinutes = maxMinutes
+	if est := rt.Estimate; est != nil {
+		// From the start to the last message: waits (the A/B winner, the
+		// next warm-up day, the quota) included.
+		route.TotalMinutes = Minutes(est.End.Sub(est.Start).Seconds())
+		route.Timeline, t.Basis = b.timeline(est)
+	}
 	// Moving a held share to the largest available provider.
 	for _, s := range rt.Shares {
 		if s.Available || s.Recipients == 0 {
@@ -1681,8 +2241,73 @@ func (b *builder) estimates() ReadinessEstimates {
 		break
 	}
 	out.Route = route
+	// Only an unusual send asks for a typed confirmation (SR-13).
+	cf, reasons := b.confirm()
+	out.Confirm, t.Confirm = &cf, reasons
+	if r := b.f.Reputation; r.Via != "builtin" && r.CheckedAt != nil {
+		at := *r.CheckedAt
+		out.HourlyAt = &at
+	}
 	out.texts = t
 	return out
+}
+
+// timeline is the estimate's timeline for the API, and the sentence that
+// says what it includes ("The estimate includes each provider's rate
+// limit, Postal's warm-up ramp and today's cap, throttling per mailbox
+// provider and the 2-hour A/B wait").
+func (b *builder) timeline(est *engine.Estimate) (*ReadinessTimeline, Text) {
+	out := &ReadinessTimeline{Start: est.Start, End: est.End, Open: est.Open, BestTime: est.BestTime, Basis: []string{"rate"}}
+	parts := []any{tx("basis.rate", nil)}
+	short := map[string]string{}
+	for _, s := range b.f.Route.Shares {
+		short[s.ProviderID] = s.Short
+	}
+	for _, p := range est.Providers {
+		if p.Recipients == 0 || p.Held {
+			continue
+		}
+		name := short[p.ProviderID.String()]
+		switch {
+		case p.RateFrom == "default":
+			out.Basis = append(out.Basis, "default_rate")
+			parts = append(parts, tx("basis.defaultRate", A{"provider": name, "rate": math.Round(p.Rate*10) / 10}))
+		case p.RateFrom == "warmup" && p.Days > 1:
+			out.Basis = append(out.Basis, "warmup_days")
+			parts = append(parts, tx("basis.warmupDays", A{"provider": name, "days": p.Days}))
+		case p.RateFrom == "warmup" || p.CapLeft != nil:
+			out.Basis = append(out.Basis, "warmup")
+			parts = append(parts, tx("basis.warmup", A{"provider": name}))
+		}
+		if p.OverQuota > 0 {
+			out.Basis = append(out.Basis, "quota")
+			parts = append(parts, tx("basis.quota", A{"provider": name, "count": p.OverQuota}))
+		}
+	}
+	for _, r := range est.Throttles {
+		if r > 0 {
+			out.Basis = append(out.Basis, "throttles")
+			parts = append(parts, tx("basis.throttles", nil))
+			break
+		}
+	}
+	if ab := est.AB; ab != nil {
+		per := ab.Sample
+		if ab.Variants > 0 {
+			per = ab.Sample / int64(ab.Variants)
+		}
+		out.AB = &ReadinessABTimeline{Kind: ab.Kind, TestPercent: ab.TestPercent, Variants: ab.Variants, Sample: ab.Sample, PerVariant: per,
+			SampleEnd: ab.SampleEnd, DecideAt: ab.DecideAt, Hours: ab.Hours}
+		out.Basis = append(out.Basis, "ab_wait")
+		parts = append(parts, tx("basis.abWait", A{"hours": ab.Hours, "manual": yes(ab.DecideAt == nil)}))
+	}
+	if est.BestTime {
+		out.Basis = append(out.Basis, "best_time")
+		parts = append(parts, tx("basis.bestTime", nil))
+	}
+	label := tx("basis.sentence", A{"parts": ArgAnd(parts)})
+	out.BasisLabel = label.en()
+	return out, label
 }
 
 // pricingModel is how a provider is paid for: metered, plan or self_hosted.
@@ -1821,6 +2446,8 @@ func (b *builder) caption(g string, grp ReadinessGroup) Text {
 		return b.accessibilityCaption()
 	case GroupConditional:
 		return b.conditionalCaption()
+	case GroupRules:
+		return tx("caption.rules", nil)
 	}
 	return nil
 }
@@ -1898,6 +2525,8 @@ func (b *builder) running(g string) Text {
 		return tx("running.authenticationFor", A{"providers": ArgAnd(shortsOf(b.availableShares()))})
 	case GroupLinks:
 		return tx("running.linksCount", A{"count": len(b.f.Content.Report.LinkList)})
+	case GroupRules:
+		return tx("running.rulesCount", A{"count": len(b.f.Rules)})
 	}
 	return runningText(g)
 }
@@ -1907,7 +2536,8 @@ func RunningText(g string) string { return runningText(g).en() }
 
 func runningText(g string) Text {
 	switch g {
-	case GroupReputation, GroupAuthentication, GroupContent, GroupLinks, GroupCompliance, GroupAudience, GroupRouting, GroupLanguages, GroupAccessibility, GroupConditional:
+	case GroupReputation, GroupAuthentication, GroupContent, GroupLinks, GroupCompliance, GroupAudience, GroupRouting, GroupLanguages, GroupAccessibility, GroupConditional,
+		GroupRules:
 		return tx("running."+g, nil)
 	}
 	return nil

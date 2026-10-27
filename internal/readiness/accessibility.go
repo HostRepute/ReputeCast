@@ -277,6 +277,12 @@ func (b *builder) accessibility() {
 				fixLabel = tx("fix.writeLinkText", nil)
 			}
 			c.Fixes = append(c.Fixes, link(fixLabel, b.editor(is.Path, "accessibility")))
+			// The composer shows the same image's alt text as a warning of
+			// its own: a dismissal there ("the image is decorative") counts
+			// here too (CO-14).
+			if is.Kind == accessibility.KindAltText && status == Warn {
+				c.IssueKeys = b.contentIssueKeys("content.alt_text", is.Path)
+			}
 			if is.Fix.Decorative {
 				c.Fixes = append(c.Fixes, apply(FixAccessibilityDecorative, tx("fix.markDecorative", nil), "", map[string]string{"path": pathParam(is.Path),
 					"index": fmt.Sprint(is.Element.Index), "name": decorativeName(is)}))

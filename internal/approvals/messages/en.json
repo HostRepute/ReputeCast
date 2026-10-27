@@ -37,12 +37,12 @@
   "problem.pickFuture": "Pick a time in the future, or send now.",
   "problem.readinessChanged": "Send Readiness ran again since you looked. Review the new results and confirm again.",
   "problem.readinessStale": "The campaign changed since the checks ran. Run them again before sending.",
+  "problem.readinessOld": {"message": "The checks ran {minutes, plural, one {# minute} other {# minutes}} ago, so they run again before a send that starts now. Send when they finish.", "note": "minutes: how long ago Send Readiness ran"},
   "problem.sendBlocked": "Sending stays disabled until every block is fixed ({count, plural, one {# block} other {# blocks}}).",
   "problem.readinessIncomplete": "Some checks couldn't run. Retry them, or continue with provider data only.",
   "problem.confirmWarnings": {"message": "Confirm each warning before sending: {warnings}.", "note": "warnings: the titles of the warnings not confirmed yet, from Send Readiness, separated by semicolons"},
   "problem.typeCount": {"message": "Type {count} to confirm the send.", "note": "count: the number of recipients, in digits only, as it has to be typed: 31604"},
   "problem.approvalRequired": {"message": "This send needs approval first ({rules}).", "note": "rules: the rules the send matches, as rule.*Short say them, separated by middle dots"},
-  "problem.blockedAtStart": {"message": "Send Readiness turned Blocked when the send started, so nothing was sent: {reason}.", "note": "reason: the first blocking check, from Send Readiness"},
   "problem.sendingUnavailable": "Sending isn't available yet: the sending engine isn't running in this installation. Nothing was scheduled; the checks, the schedule and the approval are kept.",
   "problem.blockedAsStarted": "Send Readiness blocked the send as it started, so nothing was sent.",
   "problem.blockedAsStartedReason": {"message": "Send Readiness blocked the send as it started, so nothing was sent: {reason}.", "note": "reason: what blocked it, from Send Readiness or the approval"},
@@ -71,6 +71,8 @@
   "reason.requested": "Approval is already requested.",
   "reason.approved": "This version is approved.",
   "reason.noOtherApprover": "Nobody else holds campaigns:approve. An Owner can give it to another role.",
+  "reason.needsEditWho": {"message": "{names, select, none {Your role can't change this campaign, so it can't ask for approval.} other {Your role can't change this campaign, so it can't ask for approval. Ask {names}.}}", "note": "why Request approval is off, on Review & send; names: up to two members who can change campaigns, 'A or B', or none"},
+  "reason.nobodyElseApproves": {"message": "Nobody else in this workspace can approve sends. An Owner can let another role approve them.", "note": "why Request approval is off, on Review & send"},
   "reason.templateNoNeed": {"message": "Publishing doesn't need approval in this workspace.", "note": "a transactional template's publish dialog"},
   "reason.peopleOnly": "Only people can ask for approval.",
   "reason.templateNoApprovers": "Nobody else holds campaigns:approve. Ask an Owner to change Settings › Approvals.",
@@ -248,5 +250,9 @@
   "notify.heldBody": "“{name}” didn't start at {time}: {reason}. It stays held until a recheck passes.",
   "notify.publishFailedTitle": "Approved, but not published",
   "notify.publishFailedSummary": "The automation was approved but couldn't be published: {error}",
-  "notify.publishFailedBody": "The automation was approved but couldn't be published: {error} Publish it again to request a new approval."
+  "notify.publishFailedBody": "The automation was approved but couldn't be published: {error} Publish it again to request a new approval.",
+
+  "notify.expiredTitle": "Held send expired",
+  "notify.expiredSummary": "“{name}” stayed held {hours, plural, one {# hour} other {# hours}} past its time and went back to Draft",
+  "notify.expiredBody": "“{name}” stayed held {hours, plural, one {# hour} other {# hours}} past its time, so it went back to Draft instead of going out late. Its schedule and A/B test are kept: review it again to send."
 }

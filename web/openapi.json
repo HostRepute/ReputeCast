@@ -14622,12 +14622,14 @@
           "campaign": {
             "$ref": "#/components/schemas/ReviewCampaign"
           },
+          "canary": {
+            "$ref": "#/components/schemas/ReviewCanary"
+          },
+          "failed": {
+            "$ref": "#/components/schemas/ReadinessRunFailure"
+          },
           "held": {
             "$ref": "#/components/schemas/ReviewHeld"
-          },
-          "largeSend": {
-            "format": "int64",
-            "type": "integer"
           },
           "pauseSlack": {
             "type": "boolean"
@@ -14644,6 +14646,10 @@
           "scheduled": {
             "$ref": "#/components/schemas/ReviewScheduled"
           },
+          "sendNowWithin": {
+            "format": "int64",
+            "type": "integer"
+          },
           "stale": {
             "type": "boolean"
           },
@@ -14656,21 +14662,30 @@
           "thresholds": {
             "$ref": "#/components/schemas/ReadinessThresholds"
           },
+          "thresholdsOwn": {
+            "type": "boolean"
+          },
           "timezone": {
             "type": "string"
+          },
+          "typed": {
+            "$ref": "#/components/schemas/ReviewTyped"
           }
         },
         "required": [
           "campaign",
           "stale",
+          "sendNowWithin",
           "thresholds",
+          "thresholdsOwn",
           "schedule",
           "testSends",
           "approval",
           "access",
-          "largeSend",
+          "typed",
           "pauseSlack",
-          "timezone"
+          "timezone",
+          "canary"
         ],
         "type": "object"
       },
@@ -17989,6 +18004,12 @@
             "format": "int64",
             "type": "integer"
           },
+          "bodyHeuristics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "checkedAt": {
             "format": "date-time",
             "type": "string"
@@ -18007,11 +18028,21 @@
             "format": "date-time",
             "type": "string"
           },
+          "imageList": {
+            "items": {
+              "$ref": "#/components/schemas/ContentCheckImage"
+            },
+            "type": "array"
+          },
           "imageShare": {
             "format": "double",
             "type": "number"
           },
           "images": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "imagesInsecure": {
             "format": "int64",
             "type": "integer"
           },
@@ -18028,6 +18059,16 @@
           "issues": {
             "items": {
               "$ref": "#/components/schemas/ContentCheckIssue"
+            },
+            "type": "array"
+          },
+          "linkDomains": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "linkDomainsUnknown": {
+            "items": {
+              "$ref": "#/components/schemas/ContentCheckUnknownDomain"
             },
             "type": "array"
           },
@@ -18058,6 +18099,12 @@
           "plainText": {
             "type": "string"
           },
+          "preheaderHeuristics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "sections": {
             "items": {
               "$ref": "#/components/schemas/ContentCheckSection"
@@ -18069,6 +18116,12 @@
             "type": "integer"
           },
           "subjectHeuristics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "uriLists": {
             "items": {
               "type": "string"
             },
@@ -18113,13 +18166,20 @@
           "linksBlocklisted",
           "linksBroken",
           "subjectHeuristics",
+          "preheaderHeuristics",
+          "bodyHeuristics",
           "issues",
           "sections",
           "plainText",
           "checkedAt",
           "imageShare",
           "words",
-          "linkList"
+          "imagesInsecure",
+          "imageList",
+          "linkList",
+          "linkDomains",
+          "uriLists",
+          "linkDomainsUnknown"
         ],
         "type": "object"
       },
@@ -18803,6 +18863,51 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ComposerReadiness": {
+        "additionalProperties": false,
+        "properties": {
+          "checkedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "ranAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reputation": {
+            "$ref": "#/components/schemas/ComposerReadinessGroup"
+          },
+          "rules": {
+            "$ref": "#/components/schemas/ComposerReadinessGroup"
+          }
+        },
+        "type": "object"
+      },
+      "ComposerReadinessGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessCheck"
+            },
+            "type": "array"
+          },
+          "warnings": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "warnings",
+          "blocks",
+          "checks"
+        ],
         "type": "object"
       },
       "ComposerResolveInput": {
@@ -23778,6 +23883,46 @@
         ],
         "type": "object"
       },
+      "ContentCheckImage": {
+        "additionalProperties": false,
+        "properties": {
+          "broken": {
+            "type": "boolean"
+          },
+          "bytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "host": {
+            "type": "string"
+          },
+          "insecure": {
+            "type": "boolean"
+          },
+          "path": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "probed": {
+            "type": "boolean"
+          },
+          "status": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "path"
+        ],
+        "type": "object"
+      },
       "ContentCheckIssue": {
         "additionalProperties": false,
         "properties": {
@@ -23850,6 +23995,9 @@
       "ContentCheckLink": {
         "additionalProperties": false,
         "properties": {
+          "botBlocked": {
+            "type": "boolean"
+          },
           "broken": {
             "type": "boolean"
           },
@@ -23943,6 +24091,27 @@
           "links",
           "linksOk",
           "issues"
+        ],
+        "type": "object"
+      },
+      "ContentCheckUnknownDomain": {
+        "additionalProperties": false,
+        "properties": {
+          "domain": {
+            "type": "string"
+          },
+          "trouble": {
+            "enum": [
+              "timeout",
+              "refused",
+              "other"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "domain",
+          "trouble"
         ],
         "type": "object"
       },
@@ -58597,10 +58766,65 @@
         ],
         "type": "object"
       },
+      "ReadinessABTimeline": {
+        "additionalProperties": false,
+        "properties": {
+          "decideAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "hours": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "subject",
+              "content",
+              "send_time"
+            ],
+            "type": "string"
+          },
+          "perVariant": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sample": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sampleEnd": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "testPercent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "variants": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "testPercent",
+          "variants",
+          "sample",
+          "perVariant",
+          "sampleEnd",
+          "hours"
+        ],
+        "type": "object"
+      },
       "ReadinessAudience": {
         "additionalProperties": false,
         "properties": {
           "duplicates": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "excludedUnengaged": {
             "format": "int64",
             "type": "integer"
           },
@@ -58644,13 +58868,20 @@
           "role",
           "duplicates",
           "unengaged",
-          "unengagedExcluded"
+          "unengagedExcluded",
+          "excludedUnengaged"
         ],
         "type": "object"
       },
       "ReadinessAudienceRow": {
         "additionalProperties": false,
         "properties": {
+          "action": {
+            "enum": [
+              "include_unengaged"
+            ],
+            "type": "string"
+          },
           "count": {
             "format": "int64",
             "type": "integer"
@@ -58686,6 +58917,9 @@
           "detail": {
             "type": "string"
           },
+          "dismissal": {
+            "$ref": "#/components/schemas/ReadinessDismissal"
+          },
           "evidence": {
             "type": "string"
           },
@@ -58709,9 +58943,16 @@
               "audience",
               "routing",
               "accessibility",
-              "conditional"
+              "conditional",
+              "rules"
             ],
             "type": "string"
+          },
+          "issueKeys": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "key": {
             "type": "string"
@@ -58724,6 +58965,12 @@
           },
           "note": {
             "type": "string"
+          },
+          "raw": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "rows": {
             "items": {
@@ -58742,6 +58989,12 @@
               "unknown"
             ],
             "type": "string"
+          },
+          "technical": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessTechRow"
+            },
+            "type": "array"
           },
           "title": {
             "type": "string"
@@ -58787,6 +59040,30 @@
         ],
         "type": "object"
       },
+      "ReadinessConfirm": {
+        "additionalProperties": false,
+        "properties": {
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "typed": {
+            "type": "boolean"
+          },
+          "usual": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "typed",
+          "reasons",
+          "usual"
+        ],
+        "type": "object"
+      },
       "ReadinessCounts": {
         "additionalProperties": false,
         "properties": {
@@ -58820,11 +59097,62 @@
         ],
         "type": "object"
       },
+      "ReadinessDismissal": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "decorative",
+              "size",
+              "subject",
+              "wrong",
+              "other"
+            ],
+            "type": "string"
+          },
+          "reasonText": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "by",
+          "reason",
+          "reasonText",
+          "at",
+          "count"
+        ],
+        "type": "object"
+      },
       "ReadinessEstimates": {
         "additionalProperties": false,
         "properties": {
           "audience": {
             "$ref": "#/components/schemas/ReadinessAudience"
+          },
+          "confirm": {
+            "$ref": "#/components/schemas/ReadinessConfirm"
+          },
+          "hourlyAt": {
+            "format": "date-time",
+            "type": "string"
           },
           "route": {
             "$ref": "#/components/schemas/ReadinessRoute"
@@ -58848,6 +59176,7 @@
         "properties": {
           "action": {
             "enum": [
+              "rule_add_param",
               "exclude_sunset",
               "route_only",
               "insert_footer",
@@ -58872,6 +59201,12 @@
             ],
             "type": "string"
           },
+          "effects": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessTechRow"
+            },
+            "type": "array"
+          },
           "href": {
             "type": "string"
           },
@@ -58883,6 +59218,9 @@
             "type": "string"
           },
           "label": {
+            "type": "string"
+          },
+          "note": {
             "type": "string"
           },
           "params": {
@@ -58914,8 +59252,8 @@
             },
             "type": "array"
           },
-          "run": {
-            "$ref": "#/components/schemas/ReadinessRun"
+          "running": {
+            "$ref": "#/components/schemas/ReadinessProgress"
           },
           "version": {
             "format": "int64",
@@ -58933,7 +59271,9 @@
         "properties": {
           "action": {
             "enum": [
+              "rule_add_param",
               "exclude_sunset",
+              "include_unengaged",
               "route_only",
               "insert_footer",
               "replace_link",
@@ -59003,7 +59343,8 @@
               "audience",
               "routing",
               "accessibility",
-              "conditional"
+              "conditional",
+              "rules"
             ],
             "type": "string"
           },
@@ -59079,6 +59420,21 @@
         ],
         "type": "object"
       },
+      "ReadinessPoll": {
+        "additionalProperties": false,
+        "properties": {
+          "failed": {
+            "$ref": "#/components/schemas/ReadinessRunFailure"
+          },
+          "latest": {
+            "$ref": "#/components/schemas/ReadinessRunRef"
+          },
+          "running": {
+            "$ref": "#/components/schemas/ReadinessProgress"
+          }
+        },
+        "type": "object"
+      },
       "ReadinessProgress": {
         "additionalProperties": false,
         "properties": {
@@ -59091,6 +59447,9 @@
               "$ref": "#/components/schemas/ReadinessProgressGroup"
             },
             "type": "array"
+          },
+          "queued": {
+            "type": "boolean"
           },
           "runId": {
             "type": "string"
@@ -59114,6 +59473,7 @@
           "runId",
           "trigger",
           "startedAt",
+          "queued",
           "done",
           "total",
           "groups"
@@ -59124,6 +59484,10 @@
         "additionalProperties": false,
         "properties": {
           "checked": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "count": {
             "format": "int64",
             "type": "integer"
           },
@@ -59142,9 +59506,14 @@
               "audience",
               "routing",
               "accessibility",
-              "conditional"
+              "conditional",
+              "rules"
             ],
             "type": "string"
+          },
+          "of": {
+            "format": "int64",
+            "type": "integer"
           },
           "status": {
             "enum": [
@@ -59166,6 +59535,14 @@
           "total": {
             "format": "int64",
             "type": "integer"
+          },
+          "unit": {
+            "enum": [
+              "links",
+              "domains",
+              "contacts"
+            ],
+            "type": "string"
           }
         },
         "required": [
@@ -59175,17 +59552,10 @@
           "text",
           "done",
           "total",
-          "checked"
+          "checked",
+          "count",
+          "of"
         ],
-        "type": "object"
-      },
-      "ReadinessProgressView": {
-        "additionalProperties": false,
-        "properties": {
-          "running": {
-            "$ref": "#/components/schemas/ReadinessProgress"
-          }
-        },
         "type": "object"
       },
       "ReadinessRoute": {
@@ -59228,6 +59598,9 @@
           },
           "streamLabel": {
             "type": "string"
+          },
+          "timeline": {
+            "$ref": "#/components/schemas/ReadinessTimeline"
           },
           "totalCost": {
             "format": "double",
@@ -59273,6 +59646,10 @@
             "format": "double",
             "type": "number"
           },
+          "days": {
+            "format": "int64",
+            "type": "integer"
+          },
           "label": {
             "type": "string"
           },
@@ -59282,6 +59659,10 @@
           },
           "name": {
             "type": "string"
+          },
+          "overQuota": {
+            "format": "int64",
+            "type": "integer"
           },
           "percent": {
             "format": "double",
@@ -59305,6 +59686,14 @@
             "format": "double",
             "type": "number"
           },
+          "rateFrom": {
+            "enum": [
+              "published",
+              "default",
+              "warmup"
+            ],
+            "type": "string"
+          },
           "rateLabel": {
             "type": "string"
           },
@@ -59320,6 +59709,10 @@
           },
           "statusLabel": {
             "type": "string"
+          },
+          "warmupCap": {
+            "format": "int64",
+            "type": "integer"
           },
           "warmupDay": {
             "format": "int64",
@@ -59440,6 +59833,53 @@
         ],
         "type": "object"
       },
+      "ReadinessRunFailure": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "runId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "runId",
+          "at",
+          "error"
+        ],
+        "type": "object"
+      },
+      "ReadinessRunRef": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ranAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "verdict": {
+            "enum": [
+              "ready",
+              "warnings",
+              "blocked"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "ranAt",
+          "verdict"
+        ],
+        "type": "object"
+      },
       "ReadinessSchedule": {
         "additionalProperties": false,
         "properties": {
@@ -59505,6 +59945,25 @@
         "required": [
           "verdict",
           "issues"
+        ],
+        "type": "object"
+      },
+      "ReadinessTechRow": {
+        "additionalProperties": false,
+        "properties": {
+          "before": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "value"
         ],
         "type": "object"
       },
@@ -59582,6 +60041,44 @@
           "name",
           "recipients",
           "rate"
+        ],
+        "type": "object"
+      },
+      "ReadinessTimeline": {
+        "additionalProperties": false,
+        "properties": {
+          "ab": {
+            "$ref": "#/components/schemas/ReadinessABTimeline"
+          },
+          "basis": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "basisLabel": {
+            "type": "string"
+          },
+          "bestTime": {
+            "type": "boolean"
+          },
+          "end": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "open": {
+            "type": "boolean"
+          },
+          "start": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "basis",
+          "basisLabel"
         ],
         "type": "object"
       },
@@ -66906,6 +67403,12 @@
           "canSendTestToOthers": {
             "type": "boolean"
           },
+          "editHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "email": {
             "type": "string"
           },
@@ -66931,7 +67434,8 @@
           "isOwner",
           "hasPassword",
           "email",
-          "sendHelpers"
+          "sendHelpers",
+          "editHelpers"
         ],
         "type": "object"
       },
@@ -66950,6 +67454,9 @@
           "canRequest": {
             "type": "boolean"
           },
+          "emergencyBypass": {
+            "type": "boolean"
+          },
           "medianWaitMinutes": {
             "format": "int64",
             "type": "integer"
@@ -66957,6 +67464,12 @@
           "needed": {
             "format": "int64",
             "type": "integer"
+          },
+          "owners": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "policyRules": {
             "items": {
@@ -66991,7 +67504,9 @@
           "valid",
           "canRequest",
           "canBypass",
-          "policyRules"
+          "policyRules",
+          "emergencyBypass",
+          "owners"
         ],
         "type": "object"
       },
@@ -67079,6 +67594,71 @@
         ],
         "type": "object"
       },
+      "ReviewCanary": {
+        "additionalProperties": false,
+        "properties": {
+          "audience": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "auto": {
+            "type": "boolean"
+          },
+          "choice": {
+            "enum": [
+              "auto",
+              "on",
+              "off"
+            ],
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "neverMailed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "planned": {
+            "type": "boolean"
+          },
+          "reasons": {
+            "items": {
+              "enum": [
+                "new_domain",
+                "never_mailed",
+                "over_usual"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "seeds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "size": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "usual": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "choice",
+          "planned",
+          "auto",
+          "reasons",
+          "size",
+          "seeds",
+          "neverMailed",
+          "usual",
+          "audience"
+        ],
+        "type": "object"
+      },
       "ReviewCommentInput": {
         "additionalProperties": false,
         "properties": {
@@ -67104,6 +67684,24 @@
         ],
         "type": "object"
       },
+      "ReviewCount": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "at",
+          "recipients"
+        ],
+        "type": "object"
+      },
       "ReviewHeld": {
         "additionalProperties": false,
         "properties": {
@@ -67113,12 +67711,28 @@
             },
             "type": "array"
           },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
           "held": {
             "format": "int64",
             "type": "integer"
           },
+          "holds": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewHoldReason"
+            },
+            "type": "array"
+          },
           "reason": {
             "type": "string"
+          },
+          "rechecked": {
+            "$ref": "#/components/schemas/ReviewCount"
+          },
+          "reviewed": {
+            "$ref": "#/components/schemas/ReviewCount"
           },
           "since": {
             "format": "date-time",
@@ -67129,7 +67743,31 @@
           "since",
           "reason",
           "held",
-          "blocks"
+          "blocks",
+          "holds"
+        ],
+        "type": "object"
+      },
+      "ReviewHoldReason": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "blocked",
+              "new_warning",
+              "unknown",
+              "audience_change",
+              "edited"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "text"
         ],
         "type": "object"
       },
@@ -67295,6 +67933,25 @@
           "at",
           "by",
           "provider"
+        ],
+        "type": "object"
+      },
+      "ReviewTyped": {
+        "additionalProperties": false,
+        "properties": {
+          "needed": {
+            "type": "boolean"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "needed",
+          "reasons"
         ],
         "type": "object"
       },
@@ -71810,6 +72467,25 @@
         ],
         "type": "object"
       },
+      "SendDefaults": {
+        "additionalProperties": false,
+        "properties": {
+          "excludeUnengaged": {
+            "type": "boolean"
+          },
+          "typedMultiple": {
+            "format": "double",
+            "maximum": 20,
+            "minimum": 1.1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "excludeUnengaged",
+          "typedMultiple"
+        ],
+        "type": "object"
+      },
       "SenderDefaults": {
         "additionalProperties": false,
         "properties": {
@@ -72558,6 +73234,230 @@
           "suggested",
           "target",
           "status"
+        ],
+        "type": "object"
+      },
+      "SendingRule": {
+        "additionalProperties": false,
+        "properties": {
+          "addedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "addedBy": {
+            "type": "string"
+          },
+          "appliesTo": {
+            "enum": [
+              "broadcast",
+              "automation",
+              "both"
+            ],
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "link_param",
+              "link_domain",
+              "subject_length",
+              "contains_text"
+            ],
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "operator": {
+            "enum": [
+              "on_every",
+              "on_none",
+              "not_one_of",
+              "one_of",
+              "at_most",
+              "at_least",
+              "footer_contains",
+              "footer_lacks",
+              "body_contains",
+              "subject_contains"
+            ],
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "warn",
+              "block"
+            ],
+            "type": "string"
+          },
+          "triggered": {
+            "$ref": "#/components/schemas/SendingRuleTrigger"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "operator",
+          "value",
+          "severity",
+          "appliesTo",
+          "enabled",
+          "message",
+          "description",
+          "addedBy",
+          "addedAt"
+        ],
+        "type": "object"
+      },
+      "SendingRuleInput": {
+        "additionalProperties": false,
+        "properties": {
+          "appliesTo": {
+            "enum": [
+              "broadcast",
+              "automation",
+              "both"
+            ],
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "link_param",
+              "link_domain",
+              "subject_length",
+              "contains_text"
+            ],
+            "type": "string"
+          },
+          "message": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "operator": {
+            "enum": [
+              "on_every",
+              "on_none",
+              "not_one_of",
+              "one_of",
+              "at_most",
+              "at_least",
+              "footer_contains",
+              "footer_lacks",
+              "body_contains",
+              "subject_contains"
+            ],
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "warn",
+              "block"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 2000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "operator",
+          "value",
+          "severity",
+          "appliesTo",
+          "enabled"
+        ],
+        "type": "object"
+      },
+      "SendingRuleTrigger": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "campaign": {
+            "type": "string"
+          },
+          "campaignId": {
+            "type": "string"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "fixed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "at",
+          "campaign",
+          "count",
+          "fixed"
+        ],
+        "type": "object"
+      },
+      "SendingRulesView": {
+        "additionalProperties": false,
+        "properties": {
+          "canManage": {
+            "type": "boolean"
+          },
+          "defaults": {
+            "$ref": "#/components/schemas/SendDefaults"
+          },
+          "managers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/SendingRule"
+            },
+            "type": "array"
+          },
+          "sunsetDays": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rules",
+          "defaults",
+          "sunsetDays",
+          "canManage",
+          "managers"
         ],
         "type": "object"
       },
@@ -118290,8 +119190,75 @@
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness": {
       "post": {
-        "description": "Runs every check and stores the result. Fails with 409 readiness_running while a run is in progress; poll …/readiness/progress.",
+        "description": "Queues a run of every check; a worker runs it in the background and stores the result. Answers 202 with the run waiting or in progress; poll …/readiness/progress until running is gone and latest is the new run. Fails with 409 readiness_running while a run waits or runs.",
         "operationId": "run-send-readiness",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessPoll"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Run Send Readiness on a campaign",
+        "tags": [
+          "Review \u0026 send"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/composer": {
+      "get": {
+        "description": "From the campaign's latest Send Readiness run, without running the checks: how the workspace's sending rules and the sender's reputation stand, their warnings and blocks, and when the blocklists were checked.",
+        "operationId": "get-composer-readiness",
         "parameters": [
           {
             "description": "Workspace slug",
@@ -118322,7 +119289,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReadinessRun"
+                  "$ref": "#/components/schemas/ComposerReadiness"
                 }
               }
             },
@@ -118347,12 +119314,12 @@
             "bearer": []
           }
         ],
-        "summary": "Run Send Readiness on a campaign now",
+        "summary": "Workspace rules and sender reputation for the composer's checks",
         "tags": [
           "Review \u0026 send"
         ],
         "x-access": "workspace",
-        "x-permission": "campaigns:edit"
+        "x-permission": "campaigns:view"
       }
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/fixes": {
@@ -118431,6 +119398,7 @@
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/progress": {
       "get": {
+        "description": "Cheap to poll: the run waiting or in progress with each group's progress, the latest stored run's id and verdict, and a run that failed.",
         "operationId": "get-send-readiness-progress",
         "parameters": [
           {
@@ -118462,7 +119430,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReadinessProgressView"
+                  "$ref": "#/components/schemas/ReadinessPoll"
                 }
               }
             },
@@ -118487,7 +119455,7 @@
             "bearer": []
           }
         ],
-        "summary": "The Send Readiness run in progress",
+        "summary": "The Send Readiness run waiting or in progress",
         "tags": [
           "Review \u0026 send"
         ],
@@ -119788,7 +120756,7 @@
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/send": {
       "post": {
-        "description": "Needs a fresh, unblocked Send Readiness run, every warning confirmed, the recipient count typed for large sends, and an approval when the policy asks for one.",
+        "description": "Needs a fresh, unblocked Send Readiness run, every warning confirmed, the recipient count typed for unusual sends (a much larger audience than usual, a first send to a list, from a domain or through a provider, a reputation warning above low impact), and an approval when the policy asks for one.",
         "operationId": "send-campaign",
         "parameters": [
           {
@@ -158319,6 +159287,71 @@
         "x-permission": "subscribers:view"
       }
     },
+    "/api/v1/workspaces/{workspace}/send-defaults": {
+      "put": {
+        "description": "Whether sends leave out the unengaged contacts of the sunset policy, and when a sender types the recipient count.",
+        "operationId": "update-send-defaults",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendDefaults"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendingRulesView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change how every send's audience is counted and confirmed",
+        "tags": [
+          "Sending rules"
+        ],
+        "x-access": "workspace",
+        "x-permission": "workspace:manage"
+      }
+    },
     "/api/v1/workspaces/{workspace}/senders": {
       "get": {
         "description": "Verification is per sending provider: each provider signs with its own DKIM key.",
@@ -158641,6 +159674,254 @@
         ],
         "x-access": "workspace",
         "x-permission": "domains:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/sending-rules": {
+      "get": {
+        "description": "Send Readiness checks every rule that is on for a send's stream, next to its built-in checks.",
+        "operationId": "list-sending-rules",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendingRulesView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The workspace's sending rules and audience defaults",
+        "tags": [
+          "Sending rules"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      },
+      "post": {
+        "operationId": "create-sending-rule",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendingRuleInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendingRule"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Add a sending rule",
+        "tags": [
+          "Sending rules"
+        ],
+        "x-access": "workspace",
+        "x-permission": "workspace:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/sending-rules/{ruleId}": {
+      "delete": {
+        "operationId": "delete-sending-rule",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ruleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove a sending rule",
+        "tags": [
+          "Sending rules"
+        ],
+        "x-access": "workspace",
+        "x-permission": "workspace:manage"
+      },
+      "put": {
+        "description": "Changes apply from the next check; a scheduled send picks them up at its send-time recheck.",
+        "operationId": "update-sending-rule",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ruleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendingRuleInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendingRule"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change a sending rule, its severity, scope or status",
+        "tags": [
+          "Sending rules"
+        ],
+        "x-access": "workspace",
+        "x-permission": "workspace:manage"
       }
     },
     "/api/v1/workspaces/{workspace}/settings": {

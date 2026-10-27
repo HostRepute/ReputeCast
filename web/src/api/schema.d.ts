@@ -4645,10 +4645,30 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Run Send Readiness on a campaign now
-         * @description Runs every check and stores the result. Fails with 409 readiness_running while a run is in progress; poll …/readiness/progress.
+         * Run Send Readiness on a campaign
+         * @description Queues a run of every check; a worker runs it in the background and stores the result. Answers 202 with the run waiting or in progress; poll …/readiness/progress until running is gone and latest is the new run. Fails with 409 readiness_running while a run waits or runs.
          */
         post: operations["run-send-readiness"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/composer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Workspace rules and sender reputation for the composer's checks
+         * @description From the campaign's latest Send Readiness run, without running the checks: how the workspace's sending rules and the sender's reputation stand, their warnings and blocks, and when the blocklists were checked.
+         */
+        get: operations["get-composer-readiness"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4682,7 +4702,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The Send Readiness run in progress */
+        /**
+         * The Send Readiness run waiting or in progress
+         * @description Cheap to poll: the run waiting or in progress with each group's progress, the latest stored run's id and verdict, and a run that failed.
+         */
         get: operations["get-send-readiness-progress"];
         put?: never;
         post?: never;
@@ -4953,7 +4976,7 @@ export interface paths {
         put?: never;
         /**
          * Schedule or start a campaign after Send Readiness
-         * @description Needs a fresh, unblocked Send Readiness run, every warning confirmed, the recipient count typed for large sends, and an approval when the policy asks for one.
+         * @description Needs a fresh, unblocked Send Readiness run, every warning confirmed, the recipient count typed for unusual sends (a much larger audience than usual, a first send to a list, from a domain or through a provider, a reputation warning above low impact), and an approval when the policy asks for one.
          */
         post: operations["send-campaign"];
         delete?: never;
@@ -13245,6 +13268,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/send-defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change how every send's audience is counted and confirmed
+         * @description Whether sends leave out the unengaged contacts of the sunset policy, and when a sender types the recipient count.
+         */
+        put: operations["update-send-defaults"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/senders": {
         parameters: {
             query?: never;
@@ -13302,6 +13345,48 @@ export interface paths {
         head?: never;
         /** Change a sender's name, reply-to, default streams or providers */
         patch: operations["update-sender"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sending-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The workspace's sending rules and audience defaults
+         * @description Send Readiness checks every rule that is on for a send's stream, next to its built-in checks.
+         */
+        get: operations["list-sending-rules"];
+        put?: never;
+        /** Add a sending rule */
+        post: operations["create-sending-rule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sending-rules/{ruleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change a sending rule, its severity, scope or status
+         * @description Changes apply from the next check; a scheduled send picks them up at its send-time recheck.
+         */
+        put: operations["update-sending-rule"];
+        post?: never;
+        /** Remove a sending rule */
+        delete: operations["delete-sending-rule"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/workspaces/{workspace}/settings": {
@@ -21575,18 +21660,22 @@ export interface components {
             access: components["schemas"]["ReviewAccess"];
             approval: components["schemas"]["ReviewApproval"];
             campaign: components["schemas"]["ReviewCampaign"];
+            canary: components["schemas"]["ReviewCanary"];
+            failed?: components["schemas"]["ReadinessRunFailure"];
             held?: components["schemas"]["ReviewHeld"];
-            /** Format: int64 */
-            largeSend: number;
             pauseSlack: boolean;
             run?: components["schemas"]["ReadinessRun"];
             running?: components["schemas"]["ReadinessProgress"];
             schedule: components["schemas"]["ReadinessSchedule"];
             scheduled?: components["schemas"]["ReviewScheduled"];
+            /** Format: int64 */
+            sendNowWithin: number;
             stale: boolean;
             testSends: components["schemas"]["ReviewTestSend"][];
             thresholds: components["schemas"]["ReadinessThresholds"];
+            thresholdsOwn: boolean;
             timezone: string;
+            typed: components["schemas"]["ReviewTyped"];
         };
         CampaignSponsor: {
             booking?: components["schemas"]["SponsorBookingDetail"];
@@ -22530,6 +22619,7 @@ export interface components {
         ComposerChecks: {
             /** Format: int64 */
             blocks: number;
+            bodyHeuristics: string[];
             /** Format: date-time */
             checkedAt: string;
             /** Format: int64 */
@@ -22537,14 +22627,20 @@ export interface components {
             dismissed: components["schemas"]["ComposerDismissedIssue"][];
             /** Format: date-time */
             footerRemovedAt?: string;
+            imageList: components["schemas"]["ContentCheckImage"][];
             /** Format: double */
             imageShare: number;
             /** Format: int64 */
             images: number;
             /** Format: int64 */
+            imagesInsecure: number;
+            /** Format: int64 */
             imagesMissingAlt: number;
             issueKeys: string[];
             issues: components["schemas"]["ContentCheckIssue"][];
+            /** Format: int64 */
+            linkDomains: number;
+            linkDomainsUnknown: components["schemas"]["ContentCheckUnknownDomain"][];
             linkList: components["schemas"]["ContentCheckLink"][];
             /** Format: int64 */
             links: number;
@@ -22554,10 +22650,12 @@ export interface components {
             linksBroken: number;
             lint: components["schemas"]["MJMLProblem"][];
             plainText: string;
+            preheaderHeuristics: string[];
             sections: components["schemas"]["ContentCheckSection"][];
             /** Format: int64 */
             sizeBytes: number;
             subjectHeuristics: string[];
+            uriLists: string[];
             variants: components["schemas"]["ComposerVariantChecks"][];
             /** @enum {string} */
             verdict: "ready" | "warnings" | "blocked";
@@ -22754,6 +22852,21 @@ export interface components {
             subject?: string;
             /** @enum {string} */
             variant?: "A" | "B" | "C";
+        };
+        ComposerReadiness: {
+            /** Format: date-time */
+            checkedAt?: string;
+            /** Format: date-time */
+            ranAt?: string;
+            reputation?: components["schemas"]["ComposerReadinessGroup"];
+            rules?: components["schemas"]["ComposerReadinessGroup"];
+        };
+        ComposerReadinessGroup: {
+            /** Format: int64 */
+            blocks: number;
+            checks: components["schemas"]["ReadinessCheck"][];
+            /** Format: int64 */
+            warnings: number;
         };
         ComposerResolveInput: {
             resolved: boolean;
@@ -24113,6 +24226,18 @@ export interface components {
             path?: number[];
             value?: string;
         };
+        ContentCheckImage: {
+            broken?: boolean;
+            /** Format: int64 */
+            bytes?: number;
+            host?: string;
+            insecure?: boolean;
+            path: number[];
+            probed?: boolean;
+            /** Format: int64 */
+            status?: number;
+            url: string;
+        };
         ContentCheckIssue: {
             detail?: string;
             fixes: components["schemas"]["ContentCheckFix"][];
@@ -24130,6 +24255,7 @@ export interface components {
             url?: string;
         };
         ContentCheckLink: {
+            botBlocked?: boolean;
             broken?: boolean;
             final?: string;
             host: string;
@@ -24158,6 +24284,11 @@ export interface components {
             links: number;
             /** Format: int64 */
             linksOk: number;
+        };
+        ContentCheckUnknownDomain: {
+            domain: string;
+            /** @enum {string} */
+            trouble: "timeout" | "refused" | "other";
         };
         ConversionCredit: {
             id: string;
@@ -34176,9 +34307,29 @@ export interface components {
             until: string;
             zone: string;
         };
+        ReadinessABTimeline: {
+            /** Format: date-time */
+            decideAt?: string;
+            /** Format: int64 */
+            hours: number;
+            /** @enum {string} */
+            kind: "subject" | "content" | "send_time";
+            /** Format: int64 */
+            perVariant: number;
+            /** Format: int64 */
+            sample: number;
+            /** Format: date-time */
+            sampleEnd: string;
+            /** Format: int64 */
+            testPercent: number;
+            /** Format: int64 */
+            variants: number;
+        };
         ReadinessAudience: {
             /** Format: int64 */
             duplicates: number;
+            /** Format: int64 */
+            excludedUnengaged: number;
             /** Format: int64 */
             final: number;
             lists: string[];
@@ -34192,6 +34343,8 @@ export interface components {
             unengagedExcluded: boolean;
         };
         ReadinessAudienceRow: {
+            /** @enum {string} */
+            action?: "include_unengaged";
             /** Format: int64 */
             count: number;
             /** @enum {string} */
@@ -34202,19 +34355,23 @@ export interface components {
             ack?: string;
             ackKey?: string;
             detail?: string;
+            dismissal?: components["schemas"]["ReadinessDismissal"];
             evidence?: string;
             fixes: components["schemas"]["ReadinessFix"][];
             flatTitle: string;
             /** @enum {string} */
-            group: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional";
+            group: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional" | "rules";
+            issueKeys?: string[];
             key: string;
             label?: string;
             mono?: boolean;
             note?: string;
+            raw?: string[];
             rows?: components["schemas"]["ReadinessCheckRow"][];
             short?: string;
             /** @enum {string} */
             status: "pass" | "warn" | "block" | "unknown";
+            technical?: components["schemas"]["ReadinessTechRow"][];
             title: string;
         };
         ReadinessCheckRow: {
@@ -34225,6 +34382,12 @@ export interface components {
             getsName?: string;
             label: string;
             language?: string;
+        };
+        ReadinessConfirm: {
+            reasons: string[];
+            typed: boolean;
+            /** Format: int64 */
+            usual: number;
         };
         ReadinessCounts: {
             /** Format: int64 */
@@ -34238,18 +34401,35 @@ export interface components {
             /** Format: int64 */
             warnings: number;
         };
+        ReadinessDismissal: {
+            /** Format: date-time */
+            at: string;
+            by: string;
+            /** Format: int64 */
+            count: number;
+            id: string;
+            note?: string;
+            /** @enum {string} */
+            reason: "decorative" | "size" | "subject" | "wrong" | "other";
+            reasonText: string;
+        };
         ReadinessEstimates: {
             audience: components["schemas"]["ReadinessAudience"];
+            confirm?: components["schemas"]["ReadinessConfirm"];
+            /** Format: date-time */
+            hourlyAt?: string;
             route: components["schemas"]["ReadinessRoute"];
             throttling: components["schemas"]["ReadinessThrottle"][];
         };
         ReadinessFix: {
             /** @enum {string} */
-            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses" | "sponsor_remove_block" | "sponsor_refresh_block";
+            action?: "rule_add_param" | "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses" | "sponsor_remove_block" | "sponsor_refresh_block";
+            effects?: components["schemas"]["ReadinessTechRow"][];
             href?: string;
             /** @enum {string} */
             kind: "apply" | "link";
             label: string;
+            note?: string;
             params?: {
                 [key: string]: string;
             };
@@ -34258,13 +34438,13 @@ export interface components {
         };
         ReadinessFixOutcome: {
             applied: string[];
-            run?: components["schemas"]["ReadinessRun"];
+            running?: components["schemas"]["ReadinessProgress"];
             /** Format: int64 */
             version: number;
         };
         ReadinessFixRequest: {
             /** @enum {string} */
-            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses" | "sponsor_remove_block" | "sponsor_refresh_block";
+            action: "rule_add_param" | "exclude_sunset" | "include_unengaged" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses" | "sponsor_remove_block" | "sponsor_refresh_block";
             params?: {
                 [key: string]: string;
             };
@@ -34275,7 +34455,7 @@ export interface components {
         ReadinessGroup: {
             caption: string;
             /** @enum {string} */
-            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional";
+            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional" | "rules";
             note?: string;
             /** Format: int64 */
             passed: number;
@@ -34296,10 +34476,16 @@ export interface components {
             to: string;
             toId: string;
         };
+        ReadinessPoll: {
+            failed?: components["schemas"]["ReadinessRunFailure"];
+            latest?: components["schemas"]["ReadinessRunRef"];
+            running?: components["schemas"]["ReadinessProgress"];
+        };
         ReadinessProgress: {
             /** Format: int64 */
             done: number;
             groups: components["schemas"]["ReadinessProgressGroup"][];
+            queued: boolean;
             runId: string;
             /** Format: date-time */
             startedAt: string;
@@ -34312,18 +34498,21 @@ export interface components {
             /** Format: int64 */
             checked: number;
             /** Format: int64 */
+            count: number;
+            /** Format: int64 */
             done: number;
             /** @enum {string} */
-            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional";
+            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional" | "rules";
+            /** Format: int64 */
+            of: number;
             /** @enum {string} */
             status: "queued" | "running" | "pass" | "warn" | "block" | "unknown";
             text: string;
             title: string;
             /** Format: int64 */
             total: number;
-        };
-        ReadinessProgressView: {
-            running?: components["schemas"]["ReadinessProgress"];
+            /** @enum {string} */
+            unit?: "links" | "domains" | "contacts";
         };
         ReadinessRoute: {
             /** Format: int64 */
@@ -34337,6 +34526,7 @@ export interface components {
             /** @enum {string} */
             stream: "broadcast" | "automation" | "system";
             streamLabel: string;
+            timeline?: components["schemas"]["ReadinessTimeline"];
             /** Format: double */
             totalCost: number;
             /** Format: int64 */
@@ -34349,10 +34539,14 @@ export interface components {
             color: "ses" | "postal" | "postmark" | "other";
             /** Format: double */
             cost: number;
+            /** Format: int64 */
+            days?: number;
             label?: string;
             /** Format: int64 */
             minutes: number;
             name: string;
+            /** Format: int64 */
+            overQuota?: number;
             /** Format: double */
             percent: number;
             priceLabel: string;
@@ -34361,12 +34555,16 @@ export interface components {
             providerId: string;
             /** Format: double */
             rate: number;
+            /** @enum {string} */
+            rateFrom?: "published" | "default" | "warmup";
             rateLabel: string;
             /** Format: int64 */
             recipients: number;
             short: string;
             status: string;
             statusLabel: string;
+            /** Format: int64 */
+            warmupCap?: number;
             /** Format: int64 */
             warmupDay?: number;
             /** Format: int64 */
@@ -34396,6 +34594,19 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        ReadinessRunFailure: {
+            /** Format: date-time */
+            at: string;
+            error: string;
+            runId: string;
+        };
+        ReadinessRunRef: {
+            id: string;
+            /** Format: date-time */
+            ranAt: string;
+            /** @enum {string} */
+            verdict: "ready" | "warnings" | "blocked";
+        };
         ReadinessSchedule: {
             /** Format: date-time */
             readonly at?: string;
@@ -34414,6 +34625,11 @@ export interface components {
             issues: number;
             /** @enum {string} */
             verdict: "ready" | "warnings" | "blocked";
+        };
+        ReadinessTechRow: {
+            before?: string;
+            label: string;
+            value: string;
         };
         ReadinessThresholds: {
             /** Format: double */
@@ -34435,6 +34651,17 @@ export interface components {
             rate: number;
             /** Format: int64 */
             recipients: number;
+        };
+        ReadinessTimeline: {
+            ab?: components["schemas"]["ReadinessABTimeline"];
+            basis: string[];
+            basisLabel: string;
+            bestTime?: boolean;
+            /** Format: date-time */
+            end: string;
+            open?: boolean;
+            /** Format: date-time */
+            start: string;
         };
         RecBlockUse: {
             automation: string;
@@ -36632,6 +36859,7 @@ export interface components {
             canManageRouting: boolean;
             canSend: boolean;
             canSendTestToOthers: boolean;
+            editHelpers: string[];
             email: string;
             hasPassword: boolean;
             isOwner: boolean;
@@ -36641,10 +36869,12 @@ export interface components {
             approvers: components["schemas"]["ApprovalPerson"][];
             canBypass: boolean;
             canRequest: boolean;
+            emergencyBypass: boolean;
             /** Format: int64 */
             medianWaitMinutes?: number;
             /** Format: int64 */
             needed: number;
+            owners: string[];
             policyRules: string[];
             request?: components["schemas"]["ApprovalRequestView"];
             requestReason?: string;
@@ -36676,6 +36906,24 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        ReviewCanary: {
+            /** Format: int64 */
+            audience: number;
+            auto: boolean;
+            /** @enum {string} */
+            choice: "auto" | "on" | "off";
+            domain?: string;
+            /** Format: int64 */
+            neverMailed: number;
+            planned: boolean;
+            reasons: ("new_domain" | "never_mailed" | "over_usual")[];
+            /** Format: int64 */
+            seeds: number;
+            /** Format: int64 */
+            size: number;
+            /** Format: int64 */
+            usual: number;
+        };
         ReviewCommentInput: {
             body: string;
             /** @description How the reviewer signs their comment */
@@ -36683,13 +36931,29 @@ export interface components {
             /** Format: uuid */
             threadId?: string;
         };
+        ReviewCount: {
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            recipients: number;
+        };
         ReviewHeld: {
             blocks: components["schemas"]["ReadinessCheck"][];
+            /** Format: date-time */
+            expiresAt?: string;
             /** Format: int64 */
             held: number;
+            holds: components["schemas"]["ReviewHoldReason"][];
             reason: string;
+            rechecked?: components["schemas"]["ReviewCount"];
+            reviewed?: components["schemas"]["ReviewCount"];
             /** Format: date-time */
             since: string;
+        };
+        ReviewHoldReason: {
+            /** @enum {string} */
+            kind: "blocked" | "new_warning" | "unknown" | "audience_change" | "edited";
+            text: string;
         };
         ReviewPage: {
             campaign: string;
@@ -36735,6 +36999,10 @@ export interface components {
             languages?: string[];
             provider: string;
             to: string;
+        };
+        ReviewTyped: {
+            needed: boolean;
+            reasons: string[];
         };
         RewardBlock: {
             button: string;
@@ -37923,6 +38191,11 @@ export interface components {
             /** Format: int64 */
             sunset: number;
         };
+        SendDefaults: {
+            excludeUnengaged: boolean;
+            /** Format: double */
+            typedMultiple: number;
+        };
         SenderDefaults: {
             automationSenderId: string;
             defaultSenderId: string;
@@ -38123,6 +38396,58 @@ export interface components {
             status: "none" | "pending" | "verified" | "wrong_value" | "missing" | "error";
             suggested: string;
             target: string;
+        };
+        SendingRule: {
+            /** Format: date-time */
+            addedAt: string;
+            addedBy: string;
+            /** @enum {string} */
+            appliesTo: "broadcast" | "automation" | "both";
+            description: string;
+            enabled: boolean;
+            id: string;
+            /** @enum {string} */
+            kind: "link_param" | "link_domain" | "subject_length" | "contains_text";
+            message: string;
+            name: string;
+            /** @enum {string} */
+            operator: "on_every" | "on_none" | "not_one_of" | "one_of" | "at_most" | "at_least" | "footer_contains" | "footer_lacks" | "body_contains" | "subject_contains";
+            /** @enum {string} */
+            severity: "warn" | "block";
+            triggered?: components["schemas"]["SendingRuleTrigger"];
+            value: string;
+        };
+        SendingRuleInput: {
+            /** @enum {string} */
+            appliesTo: "broadcast" | "automation" | "both";
+            enabled: boolean;
+            /** @enum {string} */
+            kind: "link_param" | "link_domain" | "subject_length" | "contains_text";
+            message?: string;
+            name: string;
+            /** @enum {string} */
+            operator: "on_every" | "on_none" | "not_one_of" | "one_of" | "at_most" | "at_least" | "footer_contains" | "footer_lacks" | "body_contains" | "subject_contains";
+            /** @enum {string} */
+            severity: "warn" | "block";
+            value: string;
+        };
+        SendingRuleTrigger: {
+            /** Format: date-time */
+            at: string;
+            campaign: string;
+            campaignId?: string;
+            /** Format: int64 */
+            count: number;
+            fixed: boolean;
+        };
+        SendingRulesView: {
+            canManage: boolean;
+            defaults: components["schemas"]["SendDefaults"];
+            managers: string[];
+            reason?: string;
+            rules: components["schemas"]["SendingRule"][];
+            /** Format: int64 */
+            sunsetDays: number;
         };
         SessionTiming: {
             /**
@@ -56165,13 +56490,46 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessPoll"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-composer-readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
             /** @description OK */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ReadinessRun"];
+                    "application/json": components["schemas"]["ComposerReadiness"];
                 };
             };
             /** @description Error */
@@ -56241,7 +56599,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ReadinessProgressView"];
+                    "application/json": components["schemas"]["ReadinessPoll"];
                 };
             };
             /** @description Error */
@@ -76038,6 +76396,42 @@ export interface operations {
             };
         };
     };
+    "update-send-defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendDefaults"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendingRulesView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-senders": {
         parameters: {
             query?: never;
@@ -76198,6 +76592,142 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SenderIdentity"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-sending-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendingRulesView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-sending-rule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendingRuleInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendingRule"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-sending-rule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                ruleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendingRuleInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendingRule"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-sending-rule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                ruleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {

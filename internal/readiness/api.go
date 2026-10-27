@@ -42,47 +42,57 @@ type settingsInput struct {
 	Body ReadinessSendSettings
 }
 
-// ReadinessProgressView is the run in progress, if any.
-type ReadinessProgressView struct {
+// ReadinessFixOutcome is the result of applying fixes and the run they
+// started (in the background: poll …/readiness/progress).
+type ReadinessFixOutcome struct {
+	ReadinessFixResult
 	Running *ReadinessProgress `json:"running,omitempty"`
 }
 
-// ReadinessFixOutcome is the result of applying fixes and the run after them.
-type ReadinessFixOutcome struct {
-	ReadinessFixResult
-	Run *ReadinessRun `json:"run,omitempty"`
+// pollForReader is a poll in the request's language.
+func pollForReader(ctx context.Context, p ReadinessPoll) ReadinessPoll {
+	p.Running = ProgressForReader(ctx, p.Running)
+	return p
 }
 
 // Register adds the readiness operations.
 func Register(h huma.API, s *Service) {
+	registerRules(h, s)
 	tags := []string{"Review & send"}
-	api.Post(h, api.Op{ID: "run-send-readiness", Path: "/workspaces/{workspace}/campaigns/{campaignId}/readiness", Summary: "Run Send Readiness on a campaign now",
-		Description: "Runs every check and stores the result. Fails with 409 readiness_running while a run is in progress; poll …/readiness/progress.",
-		Tags:        tags, Access: api.Workspace(authz.CampaignsEdit)},
-		func(ctx context.Context, in *ReadinessCampaignPath) (*api.Body[ReadinessRun], error) {
+	registerComposer(h, s, tags)
+	api.Post(h, api.Op{ID: "run-send-readiness", Path: "/workspaces/{workspace}/campaigns/{campaignId}/readiness", Summary: "Run Send Readiness on a campaign",
+		Description: "Queues a run of every check; a worker runs it in the background and stores the result. Answers 202 with the run waiting or in " +
+			"progress; poll …/readiness/progress until running is gone and latest is the new run. Fails with 409 readiness_running while a run waits or runs.",
+		Tags: tags, Access: api.Workspace(authz.CampaignsEdit), Status: 202},
+		func(ctx context.Context, in *ReadinessCampaignPath) (*api.Body[ReadinessPoll], error) {
 			id, err := in.ID()
 			if err != nil {
 				return nil, err
 			}
 			p := api.PrincipalFrom(ctx)
-			run, err := s.Run(ctx, api.WorkspaceFrom(ctx), id, RunOptions{Trigger: TriggerManual, By: &p.UserID})
-			if errors.Is(err, ErrRunning) {
-				return nil, runningProblem(ctx)
+			if _, err := s.Start(ctx, api.WorkspaceFrom(ctx), id, RunOptions{Trigger: TriggerManual, By: &p.UserID}); err != nil {
+				if errors.Is(err, ErrRunning) {
+					return nil, runningProblem(ctx)
+				}
+				return nil, err
 			}
-			return api.OK(run.In(i18n.LangFrom(ctx))), err
+			poll, err := s.Poll(ctx, id)
+			return api.OK(pollForReader(ctx, poll)), err
 		})
-	api.Get(h, api.Op{ID: "get-send-readiness-progress", Path: "/workspaces/{workspace}/campaigns/{campaignId}/readiness/progress", Summary: "The Send Readiness run in progress",
-		Tags: tags, Access: api.Workspace(authz.CampaignsView)},
-		func(ctx context.Context, in *ReadinessCampaignPath) (*api.Body[ReadinessProgressView], error) {
+	api.Get(h, api.Op{ID: "get-send-readiness-progress", Path: "/workspaces/{workspace}/campaigns/{campaignId}/readiness/progress", Summary: "The Send Readiness run waiting or in progress",
+		Description: "Cheap to poll: the run waiting or in progress with each group's progress, the latest stored run's id and verdict, and a run that failed.",
+		Tags:        tags, Access: api.Workspace(authz.CampaignsView)},
+		func(ctx context.Context, in *ReadinessCampaignPath) (*api.Body[ReadinessPoll], error) {
 			id, err := in.ID()
 			if err != nil {
 				return nil, err
 			}
-			if _, err := s.Campaign(ctx, api.WorkspaceFrom(ctx), id); err != nil {
-				return nil, err
+			// One indexed read for the campaign's workspace: polling stays cheap.
+			if ws, err := s.Q.ReadinessCampaignWorkspace(ctx, id); err != nil || ws != api.WorkspaceFrom(ctx).ID {
+				return nil, api.NotFound("Campaign")
 			}
-			pr, err := s.Progress(ctx, id)
-			return api.OK(ReadinessProgressView{Running: ProgressForReader(ctx, pr)}), err
+			poll, err := s.Poll(ctx, id)
+			return api.OK(pollForReader(ctx, poll)), err
 		})
 	api.Post(h, api.Op{ID: "accept-unknown-readiness", Path: "/workspaces/{workspace}/campaigns/{campaignId}/readiness/{runId}/accept-unknown",
 		Summary:     "Continue with provider data only",
@@ -113,12 +123,19 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
+			// The checks run again in the background; sending stays locked
+			// until they finish.
 			out := ReadinessFixOutcome{ReadinessFixResult: res}
-			run, err := s.Run(ctx, ws, id, RunOptions{Trigger: TriggerManual, By: &p.UserID})
+			running, err := s.Start(ctx, ws, id, RunOptions{Trigger: TriggerManual, By: &p.UserID})
 			switch {
 			case err == nil:
-				out.Run = ForReader(ctx, &run)
-			case !errors.Is(err, ErrRunning):
+				out.Running = ProgressForReader(ctx, running)
+			case errors.Is(err, ErrRunning):
+				// A run already waits or runs: it reads the campaign as fixed.
+				if pr, err := s.Progress(ctx, id); err == nil {
+					out.Running = ProgressForReader(ctx, pr)
+				}
+			default:
 				return nil, err
 			}
 			return api.OK(out), nil

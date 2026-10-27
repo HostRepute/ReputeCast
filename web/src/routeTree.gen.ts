@@ -73,6 +73,7 @@ import { Route as WWorkspaceAppSettingsBrandKitRouteImport } from './routes/w/$w
 import { Route as WWorkspaceAppSettingsKeysRouteImport } from './routes/w/$workspace/_app/settings/keys'
 import { Route as WWorkspaceAppSettingsMcpRouteImport } from './routes/w/$workspace/_app/settings/mcp'
 import { Route as WWorkspaceAppSettingsProvidersRouteImport } from './routes/w/$workspace/_app/settings/providers'
+import { Route as WWorkspaceAppSettingsSendingRulesRouteImport } from './routes/w/$workspace/_app/settings/sending-rules'
 import { Route as WWorkspaceAppSettingsWebhooksRouteImport } from './routes/w/$workspace/_app/settings/webhooks'
 import { Route as WWorkspaceAppTransactionalIndexRouteImport } from './routes/w/$workspace/_app/transactional/index'
 import { Route as WWorkspaceAppTransactionalImportRouteImport } from './routes/w/$workspace/_app/transactional/import'
@@ -521,6 +522,12 @@ const WWorkspaceAppSettingsProvidersRoute =
   WWorkspaceAppSettingsProvidersRouteImport.update({
     id: '/settings/providers',
     path: '/settings/providers',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsSendingRulesRoute =
+  WWorkspaceAppSettingsSendingRulesRouteImport.update({
+    id: '/settings/sending-rules',
+    path: '/settings/sending-rules',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppSettingsWebhooksRoute =
@@ -1136,6 +1143,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
   '/w/$workspace/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
   '/w/$workspace/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
+  '/w/$workspace/settings/sending-rules': typeof WWorkspaceAppSettingsSendingRulesRoute
   '/w/$workspace/settings/webhooks': typeof WWorkspaceAppSettingsWebhooksRoute
   '/w/$workspace/transactional/import': typeof WWorkspaceAppTransactionalImportRoute
   '/w/$workspace/transactional/settings': typeof WWorkspaceAppTransactionalSettingsRoute
@@ -1292,6 +1300,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
   '/w/$workspace/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
   '/w/$workspace/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
+  '/w/$workspace/settings/sending-rules': typeof WWorkspaceAppSettingsSendingRulesRoute
   '/w/$workspace/settings/webhooks': typeof WWorkspaceAppSettingsWebhooksRoute
   '/w/$workspace/transactional/import': typeof WWorkspaceAppTransactionalImportRoute
   '/w/$workspace/transactional/settings': typeof WWorkspaceAppTransactionalSettingsRoute
@@ -1452,6 +1461,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
   '/w/$workspace/_app/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
   '/w/$workspace/_app/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
+  '/w/$workspace/_app/settings/sending-rules': typeof WWorkspaceAppSettingsSendingRulesRoute
   '/w/$workspace/_app/settings/webhooks': typeof WWorkspaceAppSettingsWebhooksRoute
   '/w/$workspace/_app/transactional/import': typeof WWorkspaceAppTransactionalImportRoute
   '/w/$workspace/_app/transactional/settings': typeof WWorkspaceAppTransactionalSettingsRoute
@@ -1612,6 +1622,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/keys'
     | '/w/$workspace/settings/mcp'
     | '/w/$workspace/settings/providers'
+    | '/w/$workspace/settings/sending-rules'
     | '/w/$workspace/settings/webhooks'
     | '/w/$workspace/transactional/import'
     | '/w/$workspace/transactional/settings'
@@ -1768,6 +1779,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/keys'
     | '/w/$workspace/settings/mcp'
     | '/w/$workspace/settings/providers'
+    | '/w/$workspace/settings/sending-rules'
     | '/w/$workspace/settings/webhooks'
     | '/w/$workspace/transactional/import'
     | '/w/$workspace/transactional/settings'
@@ -1927,6 +1939,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/settings/keys'
     | '/w/$workspace/_app/settings/mcp'
     | '/w/$workspace/_app/settings/providers'
+    | '/w/$workspace/_app/settings/sending-rules'
     | '/w/$workspace/_app/settings/webhooks'
     | '/w/$workspace/_app/transactional/import'
     | '/w/$workspace/_app/transactional/settings'
@@ -2492,6 +2505,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/providers'
       fullPath: '/w/$workspace/settings/providers'
       preLoaderRoute: typeof WWorkspaceAppSettingsProvidersRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/sending-rules': {
+      id: '/w/$workspace/_app/settings/sending-rules'
+      path: '/settings/sending-rules'
+      fullPath: '/w/$workspace/settings/sending-rules'
+      preLoaderRoute: typeof WWorkspaceAppSettingsSendingRulesRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/settings/webhooks': {
@@ -3194,6 +3214,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppSettingsKeysRoute: typeof WWorkspaceAppSettingsKeysRoute
   WWorkspaceAppSettingsMcpRoute: typeof WWorkspaceAppSettingsMcpRoute
   WWorkspaceAppSettingsProvidersRoute: typeof WWorkspaceAppSettingsProvidersRoute
+  WWorkspaceAppSettingsSendingRulesRoute: typeof WWorkspaceAppSettingsSendingRulesRoute
   WWorkspaceAppSettingsWebhooksRoute: typeof WWorkspaceAppSettingsWebhooksRoute
   WWorkspaceAppTransactionalImportRoute: typeof WWorkspaceAppTransactionalImportRoute
   WWorkspaceAppTransactionalSettingsRoute: typeof WWorkspaceAppTransactionalSettingsRoute
@@ -3314,6 +3335,8 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppSettingsKeysRoute: WWorkspaceAppSettingsKeysRoute,
   WWorkspaceAppSettingsMcpRoute: WWorkspaceAppSettingsMcpRoute,
   WWorkspaceAppSettingsProvidersRoute: WWorkspaceAppSettingsProvidersRoute,
+  WWorkspaceAppSettingsSendingRulesRoute:
+    WWorkspaceAppSettingsSendingRulesRoute,
   WWorkspaceAppSettingsWebhooksRoute: WWorkspaceAppSettingsWebhooksRoute,
   WWorkspaceAppTransactionalImportRoute: WWorkspaceAppTransactionalImportRoute,
   WWorkspaceAppTransactionalSettingsRoute:

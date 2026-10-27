@@ -9,20 +9,27 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/rivertype"
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
+	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/publicurl"
+	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -72,6 +79,24 @@ type Service struct {
 	// audience is counted, so throttles and estimates use the mailbox
 	// provider the send will use (internal/mailbox); nil skips it.
 	Mailbox MailboxClassifier
+	// DNS looks up again what Deliverability couldn't (a DNS error is
+	// Unknown, never a wrong record); nil keeps the stored results.
+	DNS dnscheck.Resolver
+	// Links looks domains up live on the URI blocklists (the link domains'
+	// lookups, shared with the composer): the return-path and tracking
+	// domains Deliverability doesn't watch; nil leaves them out.
+	Links contentcheck.BlocklistChecker
+	// Jobs queues runs (Start); a worker runs them (RunWorker).
+	Jobs func() JobInserter
+	// Estimator plays the send out with the sending engine's rules for the
+	// estimates (SR-5, C4); nil keeps the plain arithmetic.
+	Estimator Estimator
+}
+
+// Estimator estimates a send with the sending engine's own rules
+// (engine.Engine).
+type Estimator interface {
+	Estimate(ctx context.Context, campaignID uuid.UUID, o engine.EstimateOptions) (engine.Estimate, error)
 }
 
 func (s *Service) now() time.Time {
@@ -140,18 +165,68 @@ func WithLanguages(fingerprint, digest string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// Run runs every check on a campaign and stores the result. It returns
-// ErrRunning when a run is already in progress.
+// Run runs every check on a campaign now and stores the result. It returns
+// ErrRunning when a run is already waiting or in progress. Jobs use it (the
+// recheck before a scheduled send); requests queue a run with Start.
 func (s *Service) Run(ctx context.Context, ws *store.Workspace, id uuid.UUID, o RunOptions) (ReadinessRun, error) {
-	c, err := s.Campaign(ctx, ws, id)
-	if err != nil {
-		return ReadinessRun{}, err
-	}
 	if o.Trigger == "" {
 		o.Trigger = TriggerManual
 	}
-	started := s.now()
+	if _, err := s.Campaign(ctx, ws, id); err != nil {
+		return ReadinessRun{}, err
+	}
 	runID := uuid.Must(uuid.NewV7())
+	if _, err := s.claim(ctx, s.Q, id, runID, o); err != nil {
+		return ReadinessRun{}, err
+	}
+	return s.execute(ctx, ws, id, runID, o)
+}
+
+// Start queues a run of a campaign's checks (SR-8): the campaign's progress
+// row is claimed at once, so a second start is refused (ErrRunning) while a
+// run waits or runs, and a worker runs the checks in the background. Nothing
+// else is done inside the request.
+func (s *Service) Start(ctx context.Context, ws *store.Workspace, id uuid.UUID, o RunOptions) (*ReadinessProgress, error) {
+	if o.Trigger == "" {
+		o.Trigger = TriggerManual
+	}
+	if _, err := s.Campaign(ctx, ws, id); err != nil {
+		return nil, err
+	}
+	if s.Jobs == nil {
+		return nil, errors.New("send readiness: no job queue in this process")
+	}
+	runID := uuid.Must(uuid.NewV7())
+	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		if _, err := s.claim(ctx, store.New(tx), id, runID, o); err != nil {
+			return err
+		}
+		_, err := s.Jobs().InsertTx(ctx, tx, RunArgs{CampaignID: id, WorkspaceID: ws.ID, RunID: runID, Trigger: o.Trigger, By: o.By}, nil)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return s.Progress(ctx, id)
+}
+
+// claim takes the campaign's progress row for a run, its groups queued.
+func (s *Service) claim(ctx context.Context, q *store.Queries, id, runID uuid.UUID, o RunOptions) ([]ReadinessProgressGroup, error) {
+	started := s.now()
+	groups := s.queuedGroups()
+	gb, _ := json.Marshal(groups)
+	if _, err := q.ReadinessStartProgress(ctx, store.ReadinessStartProgressParams{CampaignID: id, RunID: runID, Trigger: o.Trigger, StartedBy: o.By,
+		Now: started, Groups: gb, Total: 0, StaleBefore: started.Add(-staleAfter)}); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrRunning
+		}
+		return nil, err
+	}
+	return groups, nil
+}
+
+// queuedGroups are the groups of a run before it starts, in run order.
+func (s *Service) queuedGroups() []ReadinessProgressGroup {
 	groups := make([]ReadinessProgressGroup, 0, len(runOrder))
 	for _, g := range runOrder {
 		if g == GroupAccessibility && s.Accessibility == nil {
@@ -163,24 +238,60 @@ func (s *Service) Run(ctx context.Context, ws *store.Workspace, id uuid.UUID, o 
 		t := &progressTexts{Title: groupTitle(g), Text: runningText(g)}
 		groups = append(groups, ReadinessProgressGroup{Key: g, Title: t.Title.en(), Status: "queued", Text: t.Text.en(), texts: t})
 	}
-	groups[0].Status = "running"
-	gb, _ := json.Marshal(groups)
-	if _, err := s.Q.ReadinessStartProgress(ctx, store.ReadinessStartProgressParams{CampaignID: id, RunID: runID, Trigger: o.Trigger, StartedBy: o.By,
-		Now: started, Groups: gb, Total: 26, StaleBefore: started.Add(-staleAfter)}); err != nil {
+	return groups
+}
+
+// errTakenOver means another run took the campaign's progress row: this
+// one stops without storing anything.
+var errTakenOver = errors.New("send readiness: another run took over")
+
+// execute runs the checks of a claimed run and stores the result. The
+// progress row goes when the run is stored, and says why when it fails.
+func (s *Service) execute(ctx context.Context, ws *store.Workspace, id, runID uuid.UUID, o RunOptions) (ReadinessRun, error) {
+	started := s.now()
+	if _, err := s.Q.ReadinessClaimProgress(ctx, store.ReadinessClaimProgressParams{Now: started, CampaignID: id, RunID: runID}); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return ReadinessRun{}, ErrRunning
+			return ReadinessRun{}, errTakenOver
 		}
 		return ReadinessRun{}, err
 	}
-	// The progress row goes whatever happens; a detached context so a
-	// cancelled request still clears it.
-	defer func() {
-		_ = s.Q.ReadinessEndProgress(context.WithoutCancel(ctx), store.ReadinessEndProgressParams{CampaignID: id, RunID: runID})
-	}()
+	run, err := s.runClaimed(ctx, ws, id, runID, o, started)
+	// A detached context, so a cancelled request or job still settles the row.
+	settle := context.WithoutCancel(ctx)
+	if err != nil {
+		now := s.now()
+		_ = s.Q.ReadinessFailProgress(settle, store.ReadinessFailProgressParams{Now: &now, Error: failureText(err), CampaignID: id, RunID: runID})
+		return ReadinessRun{}, err
+	}
+	_ = s.Q.ReadinessEndProgress(settle, store.ReadinessEndProgressParams{CampaignID: id, RunID: runID})
+	return run, nil
+}
+
+// failureText is what a failed run says, in a sentence (its English is
+// shown as it is: it comes from the code, not from a message).
+func failureText(err error) string {
+	msg := strings.TrimSpace(err.Error())
+	if len(msg) > 500 {
+		msg = msg[:500]
+	}
+	return sentence(capitalize(msg))
+}
+
+func (s *Service) runClaimed(ctx context.Context, ws *store.Workspace, id, runID uuid.UUID, o RunOptions, started time.Time) (ReadinessRun, error) {
+	c, err := s.Campaign(ctx, ws, id)
+	if err != nil {
+		return ReadinessRun{}, err
+	}
+	groups := s.queuedGroups()
+	groups[0].Status = "running"
+	pw := &progressWriter{s: s, ctx: ctx, campaign: id, run: runID, groups: groups}
+	pw.write(true)
 	fingerprint := s.CurrentFingerprint(ctx, ws, c)
 	// A run is stored for everyone: what other domains tell it is in
-	// English, whoever started it; its texts keep their messages.
-	facts, err := s.gather(i18n.WithLang(ctx, i18n.Default), ws, c, func(st stage, f Facts) { s.progress(ctx, id, runID, groups, st, f) })
+	// English, whoever started it; its texts keep their messages. Link
+	// probing and lookups tell the progress how far they got.
+	gctx := withCounting(contentcheck.WithProgress(i18n.WithLang(ctx, i18n.Default), pw.step), pw.counting)
+	facts, err := s.gather(gctx, ws, c, pw.stage)
 	if err != nil {
 		return ReadinessRun{}, err
 	}
@@ -198,9 +309,90 @@ func (s *Service) Run(ctx context.Context, ws *store.Workspace, id uuid.UUID, o 
 	return run, nil
 }
 
-// progress records which groups finished after a stage.
-func (s *Service) progress(ctx context.Context, id, runID uuid.UUID, groups []ReadinessProgressGroup, st stage, f Facts) {
+// progressWriter keeps a run's progress row up to date: groups tick in as
+// their stage finishes, and the long steps (counting the audience,
+// requesting links, looking link domains up) say how far they got. Steps
+// report from several goroutines; writes are at most one every 400 ms,
+// except when a stage finishes.
+type progressWriter struct {
+	s        *Service
+	ctx      context.Context
+	campaign uuid.UUID
+	run      uuid.UUID
+
+	mu      sync.Mutex
+	groups  []ReadinessProgressGroup
+	done    int
+	total   int
+	written time.Time
+}
+
+func (p *progressWriter) group(key string) *ReadinessProgressGroup {
+	for i := range p.groups {
+		if p.groups[i].Key == key {
+			return &p.groups[i]
+		}
+	}
+	return nil
+}
+
+// write stores the groups (when forced, or 400 ms after the last write).
+func (p *progressWriter) write(force bool) {
+	now := p.s.now()
+	if !force && now.Sub(p.written) < 400*time.Millisecond {
+		return
+	}
+	p.written = now
+	shown := make([]ReadinessProgressGroup, 0, len(p.groups))
+	for _, g := range p.groups {
+		if !g.hidden {
+			shown = append(shown, g)
+		}
+	}
+	gb, _ := json.Marshal(shown)
+	_ = p.s.Q.ReadinessUpdateProgress(p.ctx, store.ReadinessUpdateProgressParams{Groups: gb, Done: int32(p.done), Total: int32(max(p.total, p.done)), Now: now,
+		CampaignID: p.campaign, RunID: p.run})
+}
+
+// step records how far a long step got (contentcheck.Progress).
+func (p *progressWriter) step(st string, done, total int) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	g := p.group(GroupLinks)
+	if g == nil || g.Status != "running" {
+		return
+	}
+	switch st {
+	case contentcheck.StageLinks:
+		g.Unit, g.Count, g.Of = "links", int64(done), int64(total)
+		g.setText(tx("running.linksFetching", nil).en(), tx("running.linksFetching", nil))
+	case contentcheck.StageLinkDomains:
+		g.Unit, g.Count, g.Of = "domains", int64(done), int64(total)
+		g.setText(tx("running.linkDomains", A{"lists": ArgAnd(URIBlocklists)}).en(), tx("running.linkDomains", A{"lists": ArgAnd(URIBlocklists)}))
+	default:
+		return
+	}
+	p.write(false)
+}
+
+// counting records how many contacts the audience count went through.
+func (p *progressWriter) counting(done, total int64) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	g := p.group(GroupAudience)
+	if g == nil {
+		return
+	}
+	g.Status, g.Unit, g.Count, g.Of = "running", "contacts", done, total
+	g.setText(tx("running.audienceCounting", nil).en(), tx("running.audienceCounting", nil))
+	p.write(done >= total)
+}
+
+// stage records which groups finished after a stage.
+func (p *progressWriter) stage(st stage, f Facts) {
 	res := Assemble(f)
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	byKey := map[string]ReadinessGroup{}
 	for _, g := range res.Groups {
 		byKey[g.Key] = g
@@ -217,9 +409,8 @@ func (s *Service) progress(ctx context.Context, id, runID uuid.UUID, groups []Re
 	}
 	done, total := 0, 0
 	running := false
-	shown := make([]ReadinessProgressGroup, 0, len(groups))
-	for i := range groups {
-		g := &groups[i]
+	for i := range p.groups {
+		g := &p.groups[i]
 		rg, ok := byKey[g.Key]
 		if ok {
 			g.Total = rg.Total
@@ -227,7 +418,7 @@ func (s *Service) progress(ctx context.Context, id, runID uuid.UUID, groups []Re
 		}
 		switch {
 		case doneGroups[g.Key] && ok:
-			g.Status, g.Done = rg.Status, rg.Total
+			g.Status, g.Done, g.Unit, g.Count, g.Of = rg.Status, rg.Total, "", 0, 0
 			gt := rg.texts
 			if gt == nil {
 				gt = &groupTexts{}
@@ -240,22 +431,21 @@ func (s *Service) progress(ctx context.Context, id, runID uuid.UUID, groups []Re
 		case doneGroups[g.Key] && st != stagePrepare:
 			// A group with nothing to check (Languages for an email in one
 			// language) leaves the list once its stage ran.
-			continue
+			g.hidden = true
 		case !running:
 			g.Status, running = "running", true
 			if ok {
 				g.setText(rg.Running, runningOf(rg))
 			}
 		default:
-			g.Status = "queued"
+			g.Status, g.Unit, g.Count, g.Of = "queued", "", 0, 0
 			if ok {
 				g.setText(rg.Running, runningOf(rg))
 			}
 		}
-		shown = append(shown, *g)
 	}
-	gb, _ := json.Marshal(shown)
-	_ = s.Q.ReadinessUpdateProgress(ctx, store.ReadinessUpdateProgressParams{Groups: gb, Done: int32(done), Total: int32(max(total, done)), Now: s.now(), CampaignID: id, RunID: runID})
+	p.done, p.total = done, total
+	p.write(true)
 }
 
 // store saves a finished run, refreshes the campaign's planned route and
@@ -296,6 +486,10 @@ func (s *Service) store(ctx context.Context, ws *store.Workspace, c store.Readin
 		if err := q.ReadinessPruneRuns(ctx, c.ID); err != nil {
 			return err
 		}
+		// The workspace rules it found broken, or kept again (SR-10).
+		if err := noteRules(ctx, q, c, run.ReadinessResult, run.RanAt); err != nil {
+			return err
+		}
 		if run.Trigger != TriggerManual && run.Trigger != TriggerSendTime {
 			return nil
 		}
@@ -304,8 +498,16 @@ func (s *Service) store(ctx context.Context, ws *store.Workspace, c store.Readin
 			action = "readiness.send_time_check"
 		}
 		var actor *audit.Actor
-		if by == nil {
+		switch {
+		case by == nil:
 			actor = &audit.Actor{Type: authz.ActorSystem, Name: "System"}
+		case audit.PrincipalFrom(ctx) == nil:
+			// A run a person asked for, which a worker ran: it is theirs.
+			name := ""
+			if u, err := q.GetUser(ctx, *by); err == nil {
+				name = u.Name
+			}
+			actor = &audit.Actor{Type: authz.ActorUser, ID: by, Name: name}
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: action, TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name, Actor: actor,
 			After:    map[string]any{"verdict": run.Verdict, "passed": run.Counts.Passed, "warnings": run.Counts.Warnings, "blocks": run.Counts.Blocks, "unknown": run.Counts.Unknown},
@@ -438,21 +640,67 @@ func normalizeEstimates(e *ReadinessEstimates) {
 	}
 }
 
-// Progress returns the run in progress, nil when none is.
+// Progress returns the run waiting or in progress, nil when none is.
 func (s *Service) Progress(ctx context.Context, campaignID uuid.UUID) (*ReadinessProgress, error) {
+	p, _, err := s.progressRow(ctx, campaignID)
+	return p, err
+}
+
+// State is the run waiting or in progress, or the run that failed last.
+func (s *Service) State(ctx context.Context, campaignID uuid.UUID) (*ReadinessProgress, *ReadinessRunFailure, error) {
+	return s.progressRow(ctx, campaignID)
+}
+
+// progressRow reads the campaign's progress row: the run waiting or in
+// progress, or the run that failed last.
+func (s *Service) progressRow(ctx context.Context, campaignID uuid.UUID) (*ReadinessProgress, *ReadinessRunFailure, error) {
 	p, err := s.Q.ReadinessGetProgress(ctx, campaignID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
+		return nil, nil, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	if p.FailedAt != nil {
+		return nil, &ReadinessRunFailure{RunID: p.RunID.String(), At: *p.FailedAt, Error: p.Error}, nil
 	}
 	if p.UpdatedAt.Before(s.now().Add(-staleAfter)) {
-		return nil, nil
+		return nil, nil, nil
 	}
 	out := &ReadinessProgress{RunID: p.RunID.String(), Trigger: p.Trigger, StartedAt: p.StartedAt, StartedBy: p.StartedByName, Done: int(p.Done), Total: int(p.Total),
 		Groups: []ReadinessProgressGroup{}}
 	_ = json.Unmarshal(p.Groups, &out.Groups)
+	out.Queued = true
+	for _, g := range out.Groups {
+		if g.Status != "queued" {
+			out.Queued = false
+		}
+	}
+	return out, nil, nil
+}
+
+// ReadinessPoll is what the review screen polls while checks run: the run
+// waiting or in progress, the latest stored run and a run that failed.
+type ReadinessPoll struct {
+	Running *ReadinessProgress   `json:"running,omitempty"`
+	Latest  *ReadinessRunRef     `json:"latest,omitempty"`
+	Failed  *ReadinessRunFailure `json:"failed,omitempty"`
+}
+
+// Poll reads the progress row and the latest run's id: two indexed reads.
+func (s *Service) Poll(ctx context.Context, campaignID uuid.UUID) (ReadinessPoll, error) {
+	var out ReadinessPoll
+	var err error
+	if out.Running, out.Failed, err = s.progressRow(ctx, campaignID); err != nil {
+		return out, err
+	}
+	r, err := s.Q.ReadinessLatestRunRef(ctx, campaignID)
+	switch {
+	case err == nil:
+		out.Latest = &ReadinessRunRef{ID: r.ID.String(), RanAt: r.RanAt, Verdict: r.Verdict}
+	case !errors.Is(err, pgx.ErrNoRows):
+		return out, err
+	}
 	return out, nil
 }
 
@@ -524,6 +772,65 @@ func (g *ReadinessProgressGroup) setText(s string, t Text) {
 		g.texts = &progressTexts{}
 	}
 	g.texts.Text = t
+}
+
+// JobInserter queues jobs in a transaction (River's client).
+type JobInserter interface {
+	InsertTx(ctx context.Context, tx pgx.Tx, args river.JobArgs, opts *river.InsertOpts) (*rivertype.JobInsertResult, error)
+}
+
+// RunArgs is a queued run of a campaign's checks (Start).
+type RunArgs struct {
+	CampaignID  uuid.UUID  `json:"campaign_id"`
+	WorkspaceID uuid.UUID  `json:"workspace_id"`
+	RunID       uuid.UUID  `json:"run_id"`
+	Trigger     string     `json:"trigger"`
+	By          *uuid.UUID `json:"by,omitempty"`
+}
+
+// Kind implements river.JobArgs.
+func (RunArgs) Kind() string { return "readiness.run" }
+
+// InsertOpts implements river.JobArgsWithInsertOpts. A run isn't retried:
+// a failure is recorded and shown, and a person or the schedule starts the
+// next one.
+func (RunArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{Queue: jobs.QueueDefault, MaxAttempts: 1}
+}
+
+// RunWorker runs queued Send Readiness runs.
+type RunWorker struct {
+	river.WorkerDefaults[RunArgs]
+	S *Service
+}
+
+// Work implements river.Worker.
+func (w *RunWorker) Work(ctx context.Context, job *river.Job[RunArgs]) error {
+	return w.S.Work(ctx, job.Args)
+}
+
+// Timeout implements river.Worker: requesting every link of a large email
+// can take a while.
+func (w *RunWorker) Timeout(*river.Job[RunArgs]) time.Duration { return 5 * time.Minute }
+
+// Work runs a queued run. A run another one took over does nothing; a run
+// that fails is recorded on the progress row (not retried).
+func (s *Service) Work(ctx context.Context, a RunArgs) error {
+	ws, err := s.Q.GetWorkspace(ctx, a.WorkspaceID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	_, err = s.execute(ctx, &ws, a.CampaignID, a.RunID, RunOptions{Trigger: a.Trigger, By: a.By})
+	switch {
+	case errors.Is(err, errTakenOver):
+		return nil
+	case err != nil && s.Log != nil:
+		s.Log.WarnContext(ctx, "send readiness run failed", "campaign", a.CampaignID, "run", a.RunID, "err", err)
+	}
+	return nil
 }
 
 // MailboxClassifier is the part of mailbox.Classifier Send Readiness uses.

@@ -53,7 +53,7 @@ func TestOverviewCards(t *testing.T) {
 	}
 	c.Do("GET", base+"/next-campaign", nil).MustStatus(t, 200).JSON(t, &n)
 	nc := n.Campaign
-	if nc == nil || nc.Name != "Weekly Digest #142" || nc.Recipients != 31604 || nc.Cost != 2.84 || nc.DurationMinutes == nil || *nc.DurationMinutes != 34 ||
+	if nc == nil || nc.Name != "Weekly Digest #142" || nc.Recipients != 31192 || nc.Cost != 2.81 || nc.DurationMinutes == nil || *nc.DurationMinutes != 34 ||
 		len(nc.Routes) != 2 || nc.Routes[0].Short != "SES" || nc.Routes[0].Percent != 90 || nc.Readiness == nil || nc.Readiness.Verdict != "warnings" || len(nc.Readiness.Issues) != 2 {
 		t.Fatalf("next campaign: %+v", nc)
 	}

@@ -17,6 +17,7 @@ import { SyncedNotice } from './BrandKit'
 import { syncedSectionOf } from './editor/synced'
 import { AccessibilityPanel } from '@/features/accessibility/composer/Panel'
 import { useAccessibility } from '@/features/accessibility/composer/state'
+import { ReadinessIssues } from '@/features/review/ComposerReadiness'
 import { FeedItemsInspector, isFeedItems, useDigestMode } from '@/features/digests/composer/DigestMode'
 import { isGrowBlock } from '@/features/grow/composer/blocks'
 import { GrowBlockInspector, GrowStyleNote } from '@/features/grow/composer/Panel'
@@ -340,6 +341,7 @@ export function ChecksContent() {
       {sorted.map(({ issue, index }) => (
         <IssueRow key={`${issue.id}-${issue.path.join('.')}-${issue.title}`} issue={issue} index={index} dismissed={dismissed.get(index)} area={t(mh.groupDeliverability)} />
       ))}
+      {c.kind !== 'transactional' ? <ReadinessIssues slug={c.slug} campaignId={c.campaign.id} /> : null}
       <VariantIssues />
       <AccessibilitySection />
       {c.checks ? (

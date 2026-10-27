@@ -3,7 +3,6 @@ package readiness
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -12,7 +11,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/audience"
@@ -24,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
+	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/templates"
 	"github.com/hostrepute/reputecast/internal/warmup"
@@ -36,8 +35,8 @@ type Deliverability interface {
 	Reputation(ctx context.Context, ws *store.Workspace) (deliverability.DeliverabilityReputation, error)
 }
 
-// URIBlocklists are the URI blocklists link domains are checked on.
-var URIBlocklists = []string{"SURBL", "URIBL", "Spamhaus DBL"}
+// URIBlocklists are the URI blocklists link domains are looked up on.
+var URIBlocklists = contentcheck.URIListNames
 
 // stage names the step a run is in; groups tick in as their stage finishes.
 type stage string
@@ -54,10 +53,12 @@ const (
 	stageRouting  stage = GroupRouting
 	stageLang     stage = GroupLanguages
 	stageCond     stage = GroupConditional
+	stageRules    stage = GroupRules
 )
 
 // runOrder is the order groups run (and tick in on the review screen).
-var runOrder = []string{GroupAuthentication, GroupContent, GroupLanguages, GroupAccessibility, GroupConditional, GroupCompliance, GroupReputation, GroupLinks, GroupAudience, GroupRouting}
+var runOrder = []string{GroupAuthentication, GroupContent, GroupLanguages, GroupAccessibility, GroupConditional, GroupCompliance, GroupReputation, GroupLinks, GroupRules,
+	GroupAudience, GroupRouting}
 
 // sunsetDays is the number of days without an open or click after which a
 // contact is unengaged: the last day before the sunset tier of the
@@ -113,7 +114,12 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	sched := ParseSchedule(c.Schedule)
 	f := Facts{Now: now, Location: loc, Workspace: ws.Slug, MailboxRates: DefaultMailboxRates}
 	f.Campaign = CampaignFacts{ID: c.ID.String(), Name: c.Name, Subject: c.Subject, Preheader: c.Preheader, Version: int(c.Version),
-		SenderName: c.SenderName, SenderEmail: c.SenderEmail, SenderDomain: c.SenderDomain, StartAt: sched.StartAt(now), ScheduleMode: sched.Mode}
+		SenderName: c.SenderName, SenderEmail: c.SenderEmail, SenderDomain: c.SenderDomain, StartAt: sched.StartAt(now), ScheduleMode: sched.Mode,
+		HTMLOnly: HTMLOnly(c.Mjml, c.Html)}
+	ab := parseABTest(c.AbTest)
+	if ab != nil {
+		f.Campaign.ABKind = ab.Kind
+	}
 	compiled := c.UpdatedAt
 	if c.AutosavedAt != nil {
 		compiled = *c.AutosavedAt
@@ -143,6 +149,23 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	if f.Route, err = s.route(ctx, g, f); err != nil {
 		return f, fmt.Errorf("route: %w", err)
 	}
+	// What makes the send unusual enough for a typed confirmation (SR-13):
+	// an audience much larger than usual, a first send to a list, from the
+	// sending domain or through a provider.
+	if names, err := s.names(ctx, s.Q, ws.ID); err == nil {
+		refs := []RouteShareRef{}
+		for _, sh := range f.Route.Shares {
+			if id, err := uuid.Parse(sh.ProviderID); err == nil && sh.Recipients > 0 {
+				refs = append(refs, RouteShareRef{ID: id, Short: sh.Short})
+			}
+		}
+		f.Confirm = s.confirmFacts(ctx, s.Q, ws.ID, c.ID, def, names, c.SenderDomain, refs)
+	}
+	if est := f.Route.Estimate; est != nil && est.Throttles != nil {
+		// The throttles the send will use, as the engine reads them (the
+		// defaults and the workspace's), not a copy of them.
+		f.MailboxRates = est.Throttles
+	}
 	done(stagePrepare, f)
 
 	if f.Auth, err = s.auth(ctx, g, f); err != nil {
@@ -157,10 +180,23 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 		if err == nil {
 			f.Content.Report, f.Content.Checked, f.Content.FooterRemovedAt = chk.ContentCheckReport, true, chk.FooterRemovedAt
 			f.Content.InlineCSSBytes = inlineCSS(c.Html)
+			if len(chk.URILists) > 0 {
+				f.Content.URIBlocklists = chk.URILists
+			}
+			// A/B variants B and C are checked like the campaign (SR-7).
+			if ab != nil {
+				f.Content.Variants = s.variants(ctx, ws, c, ab, false)
+			}
 		} else if s.Log != nil {
 			s.Log.WarnContext(ctx, "readiness content check failed", "campaign", c.ID, "err", err)
 		}
 	}
+	// The size Gmail measures is the HTML as sent: links rewritten for
+	// tracking and the open pixel added (SR-7).
+	tracking := campaignTracking(c.Tracking)
+	f.Content.TrackOpens, f.Content.TrackClicks = tracking.Opens, tracking.Clicks
+	f.Content.TrackedBytes = trackedSize(c.Html, tracking, s.URLs, ws.Slug)
+	s.trackingFacts(ctx, &f.Content)
 	if s.Conditional != nil {
 		f.Polls = s.Conditional.PollFacts(ctx, ws, c.ID, c.Mjml)
 	}
@@ -189,10 +225,21 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 				if err != nil {
 					return f, fmt.Errorf("languages: %s content: %w", v.Language, err)
 				}
-				f.Content.Versions = append(f.Content.Versions, VersionReport{Language: v.Language, Report: chk.ContentCheckReport})
+				f.Content.Versions = append(f.Content.Versions, VersionReport{Language: v.Language, Report: chk.ContentCheckReport,
+					TrackedBytes: trackedSize(v.HTML, tracking, s.URLs, ws.Slug)})
 			}
 		}
 	}
+	// The personalization tags of every version and variant, and whether
+	// they have fallbacks.
+	texts := []string{c.Subject, c.Preheader, c.Mjml, c.Html}
+	for _, v := range f.Languages.Versions {
+		texts = append(texts, v.Subject, v.Preheader, v.MJML, v.HTML)
+	}
+	for _, v := range ab.others() {
+		texts = append(texts, v.Subject, v.Preheader, v.MJML, v.HTML)
+	}
+	f.Content.Fields = s.personalizationFields(ctx, ws.ID, texts...)
 	done(stageLang, f)
 
 	// Grow's blocks: who the Referral block shows to, what the
@@ -223,6 +270,8 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	}
 
 	f.Compliance = s.compliance(ws, f)
+	f.Compliance.Gmail = s.postmaster(ctx, ws.ID, firstNonEmpty(f.Auth.Domain, c.SenderDomain), now)
+	f.Compliance.PostmasterConnected = f.Compliance.Gmail != nil || s.postmasterConnected(ctx, ws.ID, now)
 	done(stageComply, f)
 
 	if f.Reputation, err = s.reputation(ctx, g, f); err != nil {
@@ -230,14 +279,34 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	}
 	done(stageReput, f)
 
-	// Links: the content check again, requesting every link.
+	// Links: the content check again, requesting every link (and image),
+	// of the campaign, of every language version and of every content
+	// variant (SR-7). The prober keeps answers for ten minutes, so a link
+	// they share is requested once.
 	if f.Content.Checked && s.Campaigns != nil {
 		chk, err := s.Campaigns.Checks(ctx, ws, c.ID, campaigns.ComposerChecksRequest{Subject: c.Subject, Preheader: c.Preheader, MJML: c.Mjml, HTML: c.Html, ProbeLinks: true})
 		if err == nil {
 			f.Content.Report, f.Content.FooterRemovedAt = chk.ContentCheckReport, chk.FooterRemovedAt
+			s.librarySizes(ctx, ws.ID, f.Content.Report.ImageList)
+		}
+		for i, v := range f.Languages.Versions {
+			if i >= len(f.Content.Versions) || f.Content.Versions[i].Language != v.Language {
+				break
+			}
+			if chk, err := s.Campaigns.Checks(ctx, ws, c.ID, campaigns.ComposerChecksRequest{Subject: v.Subject, Preheader: v.Preheader, MJML: v.MJML, HTML: v.HTML,
+				Language: v.Language, ProbeLinks: true}); err == nil {
+				f.Content.Versions[i].Report = chk.ContentCheckReport
+			}
+		}
+		if ab != nil {
+			f.Content.Variants = s.variants(ctx, ws, c, ab, true)
 		}
 	}
 	done(stageLinks, f)
+	// The workspace's rules (SR-10), on the links as fetched.
+	f.Rules = s.rulesFor(ctx, ws.ID, "broadcast")
+	f.Content.FooterText = footerText(c.Mjml, f.Content.Report.PlainText)
+	done(stageRules, f)
 	// Address checks: the verification results of the final recipients.
 	if s.Verification != nil && !f.Audience.Empty {
 		f.Verification = s.Verification.ReadinessFacts(ctx, ws, c.ID, g.recipients, f.Audience.SuppressedEmails)
@@ -268,7 +337,7 @@ func (s *Service) route(ctx context.Context, g *gathered, f Facts) (RouteFacts, 
 	out.Policy = string(set.Policy(providers.StreamBroadcast))
 	override := ParseRouteOverride(g.c.RouteOverride)
 	out.Override = override != nil
-	counts, order, ok := planRoute(set, override, g.recipients, g.c.SenderDomain)
+	counts, cells, order, ok := planRoute(set, override, g.recipients, g.c.SenderDomain)
 	if !ok {
 		out.NoRoute = true
 		return out, nil
@@ -295,6 +364,23 @@ func (s *Service) route(ctx context.Context, g *gathered, f Facts) (RouteFacts, 
 	if err != nil {
 		return out, err
 	}
+	// The volume behind ReputeCast's own 7-day rates (a few messages
+	// can't judge a provider, SR-5).
+	week := map[uuid.UUID]store.ProvDailyTotalsRow{}
+	if len(provs) > 0 {
+		ids := make([]uuid.UUID, 0, len(provs))
+		for _, p := range provs {
+			ids = append(ids, p.ID)
+		}
+		today := time.Date(f.Now.In(f.Location).Year(), f.Now.In(f.Location).Month(), f.Now.In(f.Location).Day(), 0, 0, 0, 0, time.UTC)
+		rows, err := s.Q.ProvDailyTotals(ctx, store.ProvDailyTotalsParams{ProviderIds: ids, Since: today.AddDate(0, 0, -6), Until: today})
+		if err != nil {
+			return out, err
+		}
+		for _, r := range rows {
+			week[r.ProviderID] = r
+		}
+	}
 	loc := f.Location
 	for _, p := range provs {
 		caps := state.Caps(p)
@@ -304,7 +390,7 @@ func (s *Service) route(ctx context.Context, g *gathered, f Facts) (RouteFacts, 
 			Recipients: counts[p.ID], Status: p.Status, Available: state.Available(p), Pricing: state.PricingOf(p), Limits: state.LimitsOf(p),
 			Account: h.Account, Sandbox: h.Sandbox || p.Status == state.Sandbox, Quota: h.Quota, BulkAllowed: caps.BulkAllowed(), Terms: termsOf(p, caps), TermsKind: termsKind(p, caps),
 			Tracking: state.TrackingOf(p), IPs: p.Ips, ConnectedAt: p.ConnectedAt, Bounce: u.Bounce7d, Complaint: u.Complaint7d,
-			ProviderReported: state.ReputationOf(h, f.Now) != nil}
+			ProviderReported: state.ReputationOf(h, f.Now) != nil, OneClick: caps.OneClick, Sent7d: week[p.ID].Sent, Delivered7d: week[p.ID].Delivered}
 		if p.IpMode != "dedicated" {
 			sh.IPs = nil
 		}
@@ -322,20 +408,35 @@ func (s *Service) route(ctx context.Context, g *gathered, f Facts) (RouteFacts, 
 		if h.Rate != nil && h.Rate.Max > 0 {
 			sh.Rate = h.Rate.Max
 		}
-		if plan, err := s.Q.WarmupActiveForProvider(ctx, p.ID); err == nil {
-			wp := warmup.ParsePlan(plan.Schedule, plan.Progress)
-			day := min(max(state.WarmupDay(plan.StartDate, f.Campaign.StartAt, loc), 1), int(plan.Days))
-			sh.WarmupDay, sh.WarmupDays = day, int(plan.Days)
-			sh.WarmupCap = wp.Cap(day)
+		// The warm-up plan's day and cap when the send starts, counted as
+		// the send loop counts them (warmup.AllowanceFor and DayOn: a paused
+		// plan stays on its day, a slowdown holds the cap).
+		if a, ok, err := warmup.AllowanceFor(ctx, s.Q, p.ID, f.Campaign.StartAt, loc); err != nil {
+			return out, err
+		} else if ok {
+			sh.WarmupDay, sh.WarmupDays = a.Day, a.Days
+			sh.WarmupCap = a.Cap
 			sh.WarmupToday = sameDay(f.Campaign.StartAt, f.Now, loc)
-			sh.Rate, sh.RateRamp = wp.Rate(day), true
+			sh.Rate, sh.RateRamp = a.Rate, true
 			if p.Status == state.Healthy {
 				sh.Status = state.WarmingUp
 			}
-		} else if !errors.Is(err, pgx.ErrNoRows) {
-			return out, err
 		}
 		out.Shares = append(out.Shares, sh)
+	}
+	// The fallback must be able to take the send (C11).
+	if fb := routeFallback(set, override); fb != nil {
+		out.Fallback = s.vetFallback(ctx, g, *fb, f.Audience.Final, f.Now, loc)
+	}
+	// The estimate: the send played out with the engine's own rules (C4).
+	if s.Estimator != nil && len(cells) > 0 {
+		est, err := s.Estimator.Estimate(ctx, g.c.ID, engine.EstimateOptions{Start: f.Campaign.StartAt, Recipients: cells})
+		switch {
+		case err == nil:
+			out.Estimate = &est
+		case s.Log != nil:
+			s.Log.WarnContext(ctx, "readiness estimate", "campaign", g.c.ID, "err", err)
+		}
 	}
 	return out, nil
 }
@@ -398,7 +499,10 @@ func downDetail(p store.Provider, h state.Health, now time.Time, loc *time.Locat
 	return b.downText(ShareFacts{Down: downFacts(p, h)}).en()
 }
 
-// auth reads the stored authentication check of the sending domain.
+// auth reads the stored authentication check of the sending domain. A
+// lookup that failed when Deliverability checked the domain (a DNS timeout,
+// SERVFAIL) proves nothing about the record: the run looks the domain up
+// again, and what still fails is Unknown, never a Block (SR-6).
 func (s *Service) auth(ctx context.Context, g *gathered, f Facts) (AuthFacts, error) {
 	domain := strings.ToLower(g.c.SenderDomain)
 	out := AuthFacts{Domain: domain, SPF: []ProviderAuthFacts{}, DKIM: []ProviderAuthFacts{}, MailFrom: []ProviderAuthFacts{}}
@@ -411,6 +515,7 @@ func (s *Service) auth(ctx context.Context, g *gathered, f Facts) (AuthFacts, er
 	}
 	var auth *dnscheck.DomainAuth
 	var orgDMARC *dnscheck.DMARC
+	var checkedAt *time.Time
 	for _, chk := range checks {
 		var r struct {
 			Auth  *dnscheck.DomainAuth `json:"auth"`
@@ -423,34 +528,98 @@ func (s *Service) auth(ctx context.Context, g *gathered, f Facts) (AuthFacts, er
 		case strings.EqualFold(chk.Asset, domain) && r.Auth != nil:
 			auth = r.Auth
 			t := chk.CheckedAt
-			out.CheckedAt = &t
+			checkedAt = &t
 		case strings.EqualFold(chk.Asset, dnscheck.OrgDomain(domain)) && r.DMARC != nil:
 			orgDMARC = r.DMARC
 		}
 	}
+	if auth != nil && s.DNS != nil && LookupFailed(*auth) {
+		fresh := Relookup(ctx, s.DNS, domain, *auth)
+		auth = &fresh
+		now := s.now()
+		checkedAt = &now
+	}
 	if auth == nil {
 		return out, nil
 	}
-	out.Checked = true
-	out.SPFRecord = auth.SPF.Record
-	dmarc := auth.DMARC
-	if dmarc.Status != dnscheck.StatusPass && orgDMARC != nil && orgDMARC.Status == dnscheck.StatusPass {
-		dmarc = *orgDMARC
-	}
-	out.DMARCStatus, out.DMARCPolicy, out.DMARCRecord = dmarc.Status, dmarc.Policy, dmarc.Record
-	out.BIMIStatus, out.BIMILogo = auth.BIMI.Status, auth.BIMI.Logo
+	var aligned *float64
 	if s.Deliverability != nil {
 		if ov, err := s.Deliverability.Overview(ctx, g.ws); err == nil {
 			for _, a := range ov.Assets {
 				if strings.EqualFold(a.Asset, domain) && a.DMARCAligned != nil {
 					v := *a.DMARCAligned
-					out.DMARCAligned = &v
+					aligned = &v
 				}
 			}
 		}
 	}
-	// Each provider carrying the send: its SPF, DKIM and MAIL FROM records.
-	for _, sh := range carrying(f.Route.Shares) {
+	out = AuthFactsOf(domain, *auth, orgDMARC, carrying(f.Route.Shares))
+	out.CheckedAt, out.DMARCAligned = checkedAt, aligned
+	return out, nil
+}
+
+// Relookup checks a sending domain again, with the records its providers
+// require (those of the stored check), within 20 seconds.
+func Relookup(ctx context.Context, r dnscheck.Resolver, domain string, stored dnscheck.DomainAuth) dnscheck.DomainAuth {
+	reqs := make([]dnscheck.Requirement, 0, len(stored.Records))
+	for _, rc := range stored.Records {
+		reqs = append(reqs, rc.Requirement)
+	}
+	lctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	return dnscheck.CheckDomain(lctx, r, domain, reqs)
+}
+
+// LookupFailed reports whether any lookup of a domain's authentication check
+// failed (DNS didn't answer), as opposed to finding a record missing or wrong.
+func LookupFailed(a dnscheck.DomainAuth) bool {
+	if a.SPF.Status == dnscheck.StatusError || a.DMARC.Status == dnscheck.StatusError || a.BIMI.Status == dnscheck.StatusError {
+		return true
+	}
+	for _, k := range a.DKIM {
+		if k.Status == dnscheck.StatusError {
+			return true
+		}
+	}
+	for _, m := range a.MailFrom {
+		if m.Status == dnscheck.StatusError || m.SPF == dnscheck.StatusError {
+			return true
+		}
+	}
+	for _, r := range a.Records {
+		if r.Status == dnscheck.RecordError {
+			return true
+		}
+	}
+	return false
+}
+
+// AuthFactsOf turns a domain's authentication check into the facts of the
+// providers carrying the send: their SPF, DKIM and MAIL FROM records. A
+// record whose lookup failed is unknown, unless another record of the same
+// kind is definitely wrong.
+func AuthFactsOf(domain string, auth dnscheck.DomainAuth, orgDMARC *dnscheck.DMARC, shares []ShareFacts) AuthFacts {
+	out := AuthFacts{Domain: domain, Checked: true, SPF: []ProviderAuthFacts{}, DKIM: []ProviderAuthFacts{}, MailFrom: []ProviderAuthFacts{}}
+	out.SPFRecord = auth.SPF.Record
+	if auth.SPF.Status == dnscheck.StatusError {
+		out.SPFError = dnsTrouble(auth.SPF.Error)
+	}
+	dmarc := auth.DMARC
+	if dmarc.Status != dnscheck.StatusPass && orgDMARC != nil && orgDMARC.Status == dnscheck.StatusPass {
+		dmarc = *orgDMARC
+	}
+	out.DMARCStatus, out.DMARCPolicy, out.DMARCRecord = dmarc.Status, dmarc.Policy, dmarc.Record
+	if dmarc.Status == dnscheck.StatusError {
+		out.DMARCError = dnsTrouble(dmarc.Error)
+	}
+	out.BIMIStatus, out.BIMILogo = auth.BIMI.Status, auth.BIMI.Logo
+	if auth.BIMI.Status == dnscheck.StatusError {
+		out.BIMIError = dnsTrouble(auth.BIMI.Error)
+	}
+	if auth.BIMI.Status == dnscheck.StatusInvalid {
+		out.BIMIProblem = auth.BIMI.Error
+	}
+	for _, sh := range shares {
 		var spfRecs, dkimRecs, rpRecs []dnscheck.RecordCheck
 		for _, rc := range auth.Records {
 			if rc.ProviderID != sh.ProviderID {
@@ -468,27 +637,43 @@ func (s *Service) auth(ctx context.Context, g *gathered, f Facts) (AuthFacts, er
 		// SPF: the provider's SPF records, or the SPF of its MAIL FROM domain,
 		// or the domain's own record when it has neither.
 		spf := ProviderAuthFacts{Short: sh.Short, OK: auth.SPF.Status == dnscheck.StatusPass}
-		if len(spfRecs) > 0 {
+		switch {
+		case len(spfRecs) > 0:
 			spf.OK = allVerified(spfRecs)
-			if !spf.OK {
+			if failed := lookupErrors(spfRecs); !spf.OK && failed != "" && !definitelyWrong(spfRecs) {
+				spf.Unknown, spf.Trouble = true, failed
+			} else if !spf.OK {
 				spf.DetailKind, spf.Value, spf.Name = AuthSPFAdd, spfRecs[0].Value, spfRecs[0].Name
 				spf.Detail = tx("auth.spfAdd", A{"value": spf.Value, "name": spf.Name}).en()
 			}
-		} else if len(rpRecs) > 0 {
+		case len(rpRecs) > 0:
 			for _, mf := range auth.MailFrom {
 				if strings.EqualFold(mf.Domain, rpRecs[0].Name) {
 					spf.OK = mf.SPF == dnscheck.StatusPass
+					if mf.SPF == dnscheck.StatusError {
+						spf.Unknown, spf.Trouble = true, dnsTrouble(mf.Error)
+					}
 				}
 			}
+		case auth.SPF.Status == dnscheck.StatusError:
+			spf.Unknown, spf.Trouble = true, dnsTrouble(auth.SPF.Error)
 		}
 		out.SPF = append(out.SPF, spf)
 		if len(dkimRecs) > 0 {
 			dk := ProviderAuthFacts{Short: sh.Short, OK: allVerified(dkimRecs)}
+			trouble, wrong := lookupErrors(dkimRecs), definitelyWrong(dkimRecs)
 			for _, k := range auth.DKIM {
 				for _, rc := range dkimRecs {
 					if sel, _, ok := strings.Cut(strings.ToLower(rc.Name), "._domainkey."); ok && strings.EqualFold(k.Selector, sel) {
-						if k.Status != dnscheck.StatusPass {
+						switch k.Status {
+						case dnscheck.StatusPass:
+						case dnscheck.StatusError:
 							dk.OK = false
+							if trouble == "" || trouble == TroubleOther {
+								trouble = dnsTrouble(k.Error)
+							}
+						default:
+							dk.OK, wrong = false, true
 						}
 						if k.KeyBits > 0 && (dk.KeyBits == 0 || k.KeyBits < dk.KeyBits) {
 							dk.KeyBits = k.KeyBits
@@ -497,6 +682,8 @@ func (s *Service) auth(ctx context.Context, g *gathered, f Facts) (AuthFacts, er
 				}
 			}
 			switch {
+			case !dk.OK && trouble != "" && !wrong:
+				dk.Unknown, dk.Trouble = true, trouble
 			case !dk.OK:
 				dk.DetailKind = AuthUnverified
 				dk.Detail = tx("auth.dkimUnverified", nil).en()
@@ -512,15 +699,28 @@ func (s *Service) auth(ctx context.Context, g *gathered, f Facts) (AuthFacts, er
 		}
 		if len(rpRecs) > 0 {
 			mf := ProviderAuthFacts{Short: sh.Short, Domain: strings.ToLower(rpRecs[0].Name), OK: allVerified(rpRecs)}
+			trouble, wrong := lookupErrors(rpRecs), definitelyWrong(rpRecs)
 			for _, m := range auth.MailFrom {
-				if strings.EqualFold(m.Domain, mf.Domain) && !m.Aligned {
-					mf.OK = false
+				if !strings.EqualFold(m.Domain, mf.Domain) {
+					continue
 				}
+				switch {
+				case m.Status == dnscheck.StatusError:
+					mf.OK = false
+					if trouble == "" || trouble == TroubleOther {
+						trouble = dnsTrouble(m.Error)
+					}
+				case !m.Aligned:
+					mf.OK, wrong = false, true
+				}
+			}
+			if !mf.OK && trouble != "" && !wrong {
+				mf.Unknown, mf.Trouble = true, trouble
 			}
 			out.MailFrom = append(out.MailFrom, mf)
 		}
 	}
-	return out, nil
+	return out
 }
 
 func allVerified(rs []dnscheck.RecordCheck) bool {
@@ -530,6 +730,51 @@ func allVerified(rs []dnscheck.RecordCheck) bool {
 		}
 	}
 	return true
+}
+
+// lookupErrors is why the first record whose lookup failed couldn't be
+// read ("" when every lookup answered).
+func lookupErrors(rs []dnscheck.RecordCheck) string {
+	for _, r := range rs {
+		if r.Status == dnscheck.RecordError {
+			return TroubleOther
+		}
+	}
+	return ""
+}
+
+// definitelyWrong reports whether DNS answered that a record is missing or
+// has another value.
+func definitelyWrong(rs []dnscheck.RecordCheck) bool {
+	for _, r := range rs {
+		if r.Status == dnscheck.RecordMissing || r.Status == dnscheck.RecordWrongValue {
+			return true
+		}
+	}
+	return false
+}
+
+// Kinds of DNS trouble (ProviderAuthFacts.Trouble), so the evidence says
+// what happened in each reader's language.
+const (
+	TroubleTimeout  = "timeout"  // no server answered in time
+	TroubleServFail = "servfail" // the server answered SERVFAIL
+	TroubleRefused  = "refused"  // the server refused the query
+	TroubleOther    = "other"    // no usable answer
+)
+
+// dnsTrouble names what went wrong with a lookup from its error.
+func dnsTrouble(err string) string {
+	e := strings.ToLower(err)
+	switch {
+	case strings.Contains(e, "timeout") || strings.Contains(e, "deadline") || strings.Contains(e, "timed out"):
+		return TroubleTimeout
+	case strings.Contains(e, "servfail"):
+		return TroubleServFail
+	case strings.Contains(e, "refused"):
+		return TroubleRefused
+	}
+	return TroubleOther
 }
 
 // reputation reads the blocklist verdict and the lists behind it.
@@ -561,6 +806,12 @@ func (s *Service) reputation(ctx context.Context, g *gathered, f Facts) (Reputat
 			}
 		}
 	}
+	out.Domains = s.reputationDomains(ctx, g, f, checkedAssets(ov))
+	if err == nil {
+		out.ReverseDNS = s.reverseDNS(ctx, f, &ov)
+	} else {
+		out.ReverseDNS = s.reverseDNS(ctx, f, nil)
+	}
 	for _, l := range rep.Listings {
 		typ := "domain"
 		if net4(l.Asset) != "" || strings.Contains(l.Asset, ":") {
@@ -575,6 +826,94 @@ func (s *Service) reputation(ctx context.Context, g *gathered, f Facts) (Reputat
 		out.Listings = append(out.Listings, lf)
 	}
 	return out, nil
+}
+
+// checkedAssets are the assets Deliverability's blocklist checks cover.
+func checkedAssets(ov deliverability.DeliverabilityOverview) map[string]bool {
+	out := map[string]bool{}
+	for _, src := range ov.Blocklists.Results {
+		for _, a := range src.Assets {
+			out[strings.ToLower(a)] = true
+		}
+	}
+	return out
+}
+
+// reputationDomains are the domains the send's reputation rides on (SR-2):
+// the sending domain, its parent (organizational) domain, the return-path
+// domains of the providers carrying the send and the tracking domain.
+// Deliverability watches the sending and parent domains; the others are
+// looked up live on the URI blocklists, as link domains are.
+func (s *Service) reputationDomains(ctx context.Context, g *gathered, f Facts, watched map[string]bool) []DomainAssetFacts {
+	sending := strings.ToLower(firstNonEmpty(f.Auth.Domain, g.c.SenderDomain))
+	if sending == "" {
+		return nil
+	}
+	out := []DomainAssetFacts{}
+	index := map[string]int{}
+	add := func(d DomainAssetFacts) {
+		if i, ok := index[d.Domain]; ok {
+			for _, p := range d.Providers {
+				if !slices.Contains(out[i].Providers, p) {
+					out[i].Providers = append(out[i].Providers, p)
+				}
+			}
+			return
+		}
+		index[d.Domain] = len(out)
+		out = append(out, d)
+	}
+	add(DomainAssetFacts{Domain: sending, Role: DomainSending})
+	if org := dnscheck.OrgDomain(sending); org != sending {
+		add(DomainAssetFacts{Domain: org, Role: DomainParent})
+	}
+	for _, mf := range f.Auth.MailFrom {
+		if d := strings.ToLower(mf.Domain); d != "" {
+			add(DomainAssetFacts{Domain: d, Role: DomainReturnPath, Providers: []string{mf.Short}})
+		}
+	}
+	if host := trackingHost(s.URLs.Base()); host != "" {
+		add(DomainAssetFacts{Domain: host, Role: DomainTracking})
+	}
+	live := []string{}
+	for i, d := range out {
+		if (d.Role == DomainReturnPath || d.Role == DomainTracking) && !watched[d.Domain] && s.Links != nil {
+			out[i].Live = true
+			live = append(live, d.Domain)
+		}
+	}
+	if len(live) == 0 {
+		return out
+	}
+	rep, err := s.Links.Check(ctx, live)
+	for i, d := range out {
+		if !d.Live {
+			continue
+		}
+		switch {
+		case err != nil:
+			out[i].Unknown = contentcheck.TroubleOther
+		case len(rep.Listed[d.Domain]) > 0:
+			out[i].Lists = rep.Listed[d.Domain]
+		case rep.Unknown[d.Domain] != "":
+			out[i].Unknown = rep.Unknown[d.Domain]
+		}
+	}
+	return out
+}
+
+// trackingHost is the domain of the open pixel and the tracked links: the
+// public URL's host, unless it's an address or a local name (development).
+func trackingHost(base string) string {
+	u, err := url.Parse(strings.TrimSpace(base))
+	if err != nil {
+		return ""
+	}
+	h := strings.ToLower(u.Hostname())
+	if h == "" || h == "localhost" || strings.HasSuffix(h, ".localhost") || !strings.Contains(h, ".") || net4(h) != "" || strings.Contains(h, ":") {
+		return ""
+	}
+	return h
 }
 
 var ipv4 = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)

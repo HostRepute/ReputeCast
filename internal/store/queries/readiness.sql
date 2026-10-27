@@ -1,7 +1,7 @@
 -- name: ReadinessCampaign :one
 -- A campaign with its sender and sending domain.
 SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.audience, c.audience_count, c.mjml, c.html, c.version,
-       c.ab_test, c.schedule, c.thresholds, c.route_override, c.content_hash, c.content_settings, c.reply_to,
+       c.ab_test, c.schedule, c.thresholds, c.route_override, c.content_hash, c.content_settings, c.reply_to, c.tracking,
        c.created_by, c.updated_by, c.created_at, c.updated_at, c.autosaved_at, c.scheduled_at, c.started_at, c.sender_id,
        coalesce(s.name, '')::text AS sender_name,
        coalesce(s.email, '')::text AS sender_email,
@@ -20,6 +20,7 @@ WHERE c.workspace_id = @workspace_id AND c.id = @id AND c.deleted_at IS NULL;
 -- (restorable for 30 days) adds nobody; as an exclusion it still excludes.
 SELECT c.id, c.email, c.mailbox_provider, c.tier, c.role_address, c.language,
        (c.broadcasts_stopped_at IS NOT NULL)::boolean AS broadcasts_stopped,
+       (btrim(c.first_name) = '')::boolean AS no_first_name,
        coalesce((SELECT array_agg(m.list_id) FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'), '{}')::uuid[] AS list_ids,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email) AS suppressed,
        EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = c.id AND e.type IN ('soft_bounce', 'hard_bounce') AND e.occurred_at > @bounced_since::timestamptz) AS bounced
@@ -81,15 +82,26 @@ WHERE r.campaign_id = @campaign_id
   AND NOT EXISTS (SELECT 1 FROM approval_requests a WHERE a.readiness_run_id = r.id);
 
 -- name: ReadinessStartProgress :one
--- Starts a run unless one is already running (a run that stopped updating
--- for two minutes is taken over).
+-- Starts a run unless one is already waiting or running (a run that stopped
+-- updating for two minutes, or failed, is taken over).
 INSERT INTO readiness_progress (campaign_id, run_id, trigger, started_by, started_at, updated_at, groups, done, total)
 VALUES (@campaign_id, @run_id, @trigger, sqlc.narg(started_by), @now, @now, @groups, 0, @total)
 ON CONFLICT (campaign_id) DO UPDATE
 SET run_id = EXCLUDED.run_id, trigger = EXCLUDED.trigger, started_by = EXCLUDED.started_by, started_at = EXCLUDED.started_at,
-    updated_at = EXCLUDED.updated_at, groups = EXCLUDED.groups, done = 0, total = EXCLUDED.total
-WHERE readiness_progress.updated_at < @stale_before::timestamptz
+    updated_at = EXCLUDED.updated_at, groups = EXCLUDED.groups, done = 0, total = EXCLUDED.total, failed_at = NULL, error = ''
+WHERE readiness_progress.updated_at < @stale_before::timestamptz OR readiness_progress.failed_at IS NOT NULL
 RETURNING run_id;
+
+-- name: ReadinessClaimProgress :one
+-- A worker takes up a queued run: it still owns the campaign's row.
+UPDATE readiness_progress SET updated_at = @now
+WHERE campaign_id = @campaign_id AND run_id = @run_id AND failed_at IS NULL
+RETURNING run_id;
+
+-- name: ReadinessFailProgress :exec
+-- A run stopped on an error: the row says why until the next run.
+UPDATE readiness_progress SET failed_at = @now, error = @error, updated_at = @now
+WHERE campaign_id = @campaign_id AND run_id = @run_id;
 
 -- name: ReadinessUpdateProgress :exec
 UPDATE readiness_progress SET groups = @groups, done = @done, total = @total, updated_at = @now
@@ -100,6 +112,7 @@ DELETE FROM readiness_progress WHERE campaign_id = @campaign_id AND run_id = @ru
 
 -- name: ReadinessGetProgress :one
 SELECT p.campaign_id, p.run_id, p.trigger, p.started_by, p.started_at, p.updated_at, p.groups, p.done, p.total,
+       p.failed_at, p.error,
        coalesce(u.name, '')::text AS started_by_name
 FROM readiness_progress p
 LEFT JOIN users u ON u.id = p.started_by
@@ -158,3 +171,46 @@ ORDER BY c.scheduled_at;
 -- name: ReadinessCampaignWorkspace :one
 -- The workspace of a campaign (the sending engine asks by campaign id).
 SELECT workspace_id FROM campaigns WHERE id = @id AND deleted_at IS NULL;
+
+-- name: ReadinessLatestRunRef :one
+-- The latest run's id, time and verdict: what the review screen's poll
+-- compares with what it shows.
+SELECT id, ran_at, verdict FROM readiness_runs WHERE campaign_id = @campaign_id ORDER BY ran_at DESC LIMIT 1;
+
+-- name: ReadinessPostmasterDays :many
+-- Gmail Postmaster Tools' last days for a sending domain (or its parent):
+-- the spam rate and the authentication and TLS pass rates Google reports.
+SELECT domain, day, spam_rate, spf_rate, dkim_rate, dmarc_rate, tls_rate
+FROM postmaster_daily
+WHERE workspace_id = @workspace_id AND domain = ANY(@domains::text[]) AND day >= @since::date
+ORDER BY day DESC, domain;
+
+-- name: ReadinessMediaSizes :many
+-- The sizes of the media library's images an email shows.
+SELECT id, size_bytes FROM media_assets WHERE workspace_id = @workspace_id AND id = ANY(@ids::uuid[]);
+
+-- name: ReadinessConfirmSend :exec
+-- What a person confirmed as they scheduled or started a send (SR-3): the
+-- send-time recheck holds the send on anything they didn't.
+INSERT INTO campaign_send_confirmations (campaign_id, workspace_id, run_id, confirmed_by, confirmed_at, scheduled_at, recipients, acknowledged, unknown,
+    content_digest, sender_id, route_digest)
+VALUES (@campaign_id, @workspace_id, sqlc.narg(run_id), sqlc.narg(confirmed_by), @confirmed_at, sqlc.narg(scheduled_at), @recipients, @acknowledged::text[],
+    @unknown::text[], @content_digest, sqlc.narg(sender_id), @route_digest)
+ON CONFLICT (campaign_id) DO UPDATE SET run_id = EXCLUDED.run_id, confirmed_by = EXCLUDED.confirmed_by, confirmed_at = EXCLUDED.confirmed_at,
+    scheduled_at = EXCLUDED.scheduled_at, recipients = EXCLUDED.recipients, acknowledged = EXCLUDED.acknowledged, unknown = EXCLUDED.unknown,
+    content_digest = EXCLUDED.content_digest, sender_id = EXCLUDED.sender_id, route_digest = EXCLUDED.route_digest;
+
+-- name: ReadinessSendConfirmation :one
+SELECT * FROM campaign_send_confirmations WHERE campaign_id = @campaign_id;
+
+-- name: ReadinessForgetConfirmation :exec
+DELETE FROM campaign_send_confirmations WHERE campaign_id = @campaign_id;
+
+-- name: ReadinessPostmasterConnected :one
+-- Whether Gmail Postmaster Tools data comes in for the workspace at all
+-- (recent days for any domain).
+SELECT EXISTS (SELECT 1 FROM postmaster_daily WHERE workspace_id = @workspace_id AND day >= @since::date)::bool;
+
+-- name: ReadinessConfirmCanary :exec
+-- The canary choice confirmed with a send (C1).
+UPDATE campaign_send_confirmations SET canary = @canary WHERE campaign_id = @campaign_id;

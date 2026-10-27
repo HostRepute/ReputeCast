@@ -1,6 +1,6 @@
 import type { Schemas } from '@/api/client'
 import { t } from '@/i18n'
-import { calendarDate, decimal, inZone, money, pct } from '@/lib/format'
+import { calendarDate, count, decimal, inZone, money, pct, timeOfDay } from '@/lib/format'
 import { m } from './messages'
 
 export type Review = Schemas['CampaignReview']
@@ -16,6 +16,13 @@ export type CheckStatus = Check['status']
 
 export function plural(n: number, one: string, many: string): string {
   return n === 1 ? one : many
+}
+
+/** "Ready", "Ready with warnings · 2 to review", "Blocked · 3 to fix" (SR-13). */
+export function verdictShort(run: Run): string {
+  if (run.verdict === 'blocked') return t(m.verdictBlockedCount, { count: run.counts.blocks })
+  if (run.verdict === 'warnings') return t(m.verdictWarningsCount, { count: run.counts.warnings })
+  return t(m.verdictReady)
 }
 
 /** "Ready", "Ready with warnings", "Blocked". */
@@ -84,14 +91,43 @@ export function primaryFix(c: Check): Fix | undefined {
   return c.fixes.find((f) => f.kind === 'apply' && f.action !== 'accessibility_decorative' && f.action !== 'sponsor_remove_block')
 }
 
-/** "Fix both warnings", "Apply all 3 fixes". */
-export function fixAllLabel(kind: 'warn' | 'block', n: number): string {
-  return kind === 'block' ? t(m.fixAllBlocks, { n }) : t(m.fixAllWarnings, { n })
+/** "ET" for America/New_York; the zone itself when it has no short name. */
+export function zoneShort(zone?: string | null): string {
+  if (!zone) return ''
+  if (zone === 'UTC') return 'UTC'
+  try {
+    const name = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'shortGeneric' }).formatToParts(new Date()).find((p) => p.type === 'timeZoneName')?.value
+    if (name && name.length <= 5 && !name.startsWith('GMT')) return name
+  } catch {
+    // An unknown zone reads as it is.
+  }
+  return zone
 }
 
-/** "Schedule send to 31,604 recipients" or "Send to 47,842 recipients". */
-export function sendLabel(mode: Schedule['mode'], recipients: number): string {
-  return mode === 'now' ? t(m.sendNow, { recipients }) : t(m.sendScheduled, { recipients })
+/** "Tue 14 Oct, 09:00 ET". */
+function atWhen(s: Schedule): string {
+  return t(m.ctaWhen, { day: calendarDate(s.date ?? '', 'shortDate'), time: timeOfDay(s.time ?? ''), zone: zoneShort(s.timezone) }).trim()
+}
+
+/** When the send goes out: "Tue 14 Oct, 09:00 ET", "Best time from Tue 14 Oct", "Sends within a minute". */
+export function ctaWhen(s: Schedule): string {
+  if (s.mode === 'now' || !s.date || !s.time) return t(m.ctaWhenNow)
+  return s.mode === 'best_time' ? t(m.ctaWhenBest, { day: calendarDate(s.date, 'shortDate') }) : atWhen(s)
+}
+
+/**
+ * The main action, with the schedule in it (SR-13): "Send now to 31,192",
+ * "Schedule for Tue 14 Oct, 09:00 ET", "Schedule best time from Tue 14 Oct,
+ * 09:00 ET".
+ */
+export function ctaLabel(s: Schedule, recipients: number): string {
+  if (s.mode === 'now' || !s.date || !s.time) return t(m.ctaNow, { count: count(recipients) })
+  return s.mode === 'best_time' ? t(m.ctaBest, { when: atWhen(s) }) : t(m.ctaAt, { when: atWhen(s) })
+}
+
+/** The sticky bar's short label on phones: "Schedule · 31,192", "Send now · 31,192". */
+export function ctaShort(s: Schedule, recipients: number): string {
+  return s.mode === 'now' || !s.date || !s.time ? t(m.ctaShortNow, { count: count(recipients) }) : t(m.ctaShortAt, { count: count(recipients) })
 }
 
 /** "You'll confirm the audience and the two warnings on the next step." */
@@ -296,12 +332,14 @@ export function checksByGroup(run: Run): { group: Group; checks: Check[] }[] {
 
 /**
  * Warnings people confirm before sending (keys and sentences); the ones
- * with a one-click alternative ("Exclude them instead") come first.
+ * with a one-click alternative ("Send via SES only instead") come first.
+ * A warning someone dismissed in the composer, with a reason, is already
+ * confirmed (dismissedWarnings).
  */
-export function acknowledgements(run: Run): { key: string; keys: string[]; text: string; fix?: Fix }[] {
-  const out: { key: string; keys: string[]; text: string; fix?: Fix }[] = []
+export function acknowledgements(run: Run): { key: string; keys: string[]; text: string; check: Check; fix?: Fix }[] {
+  const out: { key: string; keys: string[]; text: string; check: Check; fix?: Fix }[] = []
   const groups = new Map<string, { keys: string[] }>()
-  for (const c of run.checks.filter((x) => x.status === 'warn')) {
+  for (const c of run.checks.filter((x) => x.status === 'warn' && !x.dismissal)) {
     const text = c.ack || t(m.ackDefault, { title: c.title })
     // Warnings confirmed in the same words (the serious accessibility
     // issues) are one checkbox that confirms them all. The server says
@@ -312,11 +350,21 @@ export function acknowledgements(run: Run): { key: string; keys: string[]; text:
       same.keys.push(c.key)
       continue
     }
-    const ack = { key: c.key, keys: [c.key], text, fix: c.fixes.find((f) => f.kind === 'apply' && f.action === 'exclude_sunset') }
+    // A fix with a dialog of its own isn't offered here.
+    const fix = primaryFix(c)
+    const ack = { key: c.key, keys: [c.key], text, check: c, fix: fix && fix.action !== 'verify_addresses' && fix.action !== 'accessibility_one_click' ? fix : undefined }
     groups.set(id, ack)
     out.push(ack)
   }
   return out.sort((a, b) => Number(Boolean(b.fix)) - Number(Boolean(a.fix)))
+}
+
+/**
+ * Warnings someone dismissed in the composer with a reason (CO-14): still
+ * listed as warnings, with who and why, and counted as confirmed.
+ */
+export function dismissedWarnings(run: Run): Check[] {
+  return run.checks.filter((c) => c.status === 'warn' && c.dismissal)
 }
 
 /** The warning keys the checked confirmations cover. */

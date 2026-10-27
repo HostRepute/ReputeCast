@@ -21,16 +21,26 @@ import (
 
 // checkTexts are the messages of a check's texts.
 type checkTexts struct {
-	Title     Text       `json:"title,omitempty"`
-	FlatTitle Text       `json:"flatTitle,omitempty"`
-	Detail    Text       `json:"detail,omitempty"`
-	Label     Text       `json:"label,omitempty"`
-	Evidence  Text       `json:"evidence,omitempty"`
-	Short     Text       `json:"short,omitempty"`
-	Ack       Text       `json:"ack,omitempty"`
-	Note      Text       `json:"note,omitempty"`
-	Fixes     []Text     `json:"fixes,omitempty"`
-	Rows      []rowTexts `json:"rows,omitempty"`
+	Title     Text        `json:"title,omitempty"`
+	FlatTitle Text        `json:"flatTitle,omitempty"`
+	Detail    Text        `json:"detail,omitempty"`
+	Label     Text        `json:"label,omitempty"`
+	Evidence  Text        `json:"evidence,omitempty"`
+	Short     Text        `json:"short,omitempty"`
+	Ack       Text        `json:"ack,omitempty"`
+	Note      Text        `json:"note,omitempty"`
+	Fixes     []Text      `json:"fixes,omitempty"`
+	Rows      []rowTexts  `json:"rows,omitempty"`
+	Technical []techTexts `json:"technical,omitempty"`
+	// FixNotes and FixEffects are the fixes' notes and effects, by fix.
+	FixNotes   []Text        `json:"fixNotes,omitempty"`
+	FixEffects [][]techTexts `json:"fixEffects,omitempty"`
+}
+
+// techTexts are the messages of a line of a check's technical details.
+type techTexts struct {
+	Label Text `json:"label,omitempty"`
+	Value Text `json:"value,omitempty"`
 }
 
 // rowTexts are the messages of a row of a check's table.
@@ -62,6 +72,10 @@ type estimateTexts struct {
 	Split     Text         `json:"split,omitempty"`
 	Shares    []shareTexts `json:"shares,omitempty"`
 	Throttles []Text       `json:"throttles,omitempty"`
+	// Basis says what the estimate includes (Route.Timeline.BasisLabel).
+	Basis Text `json:"basis,omitempty"`
+	// Confirm are the reasons of a typed confirmation (Confirm.Reasons).
+	Confirm []Text `json:"confirm,omitempty"`
 }
 
 type shareTexts struct {
@@ -193,6 +207,9 @@ func (c ReadinessCheck) In(l i18n.Lang) ReadinessCheck {
 	if c.Rows != nil {
 		out.Rows = append(make([]ReadinessCheckRow, 0, len(c.Rows)), c.Rows...)
 	}
+	if c.Technical != nil {
+		out.Technical = append(make([]ReadinessTechRow, 0, len(c.Technical)), c.Technical...)
+	}
 	if c.Status == Warn {
 		out.AckKey = ackKey(c)
 	}
@@ -215,6 +232,25 @@ func (c ReadinessCheck) In(l i18n.Lang) ReadinessCheck {
 	for i := range out.Fixes {
 		if i < len(t.Fixes) {
 			out.Fixes[i].Label = pick(c.Fixes[i].Label, t.Fixes[i], l)
+		}
+		if i < len(t.FixNotes) {
+			out.Fixes[i].Note = pick(c.Fixes[i].Note, t.FixNotes[i], l)
+		}
+		if i < len(t.FixEffects) && len(c.Fixes[i].Effects) > 0 {
+			effects := append(make([]ReadinessTechRow, 0, len(c.Fixes[i].Effects)), c.Fixes[i].Effects...)
+			for j := range effects {
+				if j < len(t.FixEffects[i]) {
+					effects[j].Label = pick(effects[j].Label, t.FixEffects[i][j].Label, l)
+					effects[j].Value = pick(effects[j].Value, t.FixEffects[i][j].Value, l)
+				}
+			}
+			out.Fixes[i].Effects = effects
+		}
+	}
+	for i := range out.Technical {
+		if i < len(t.Technical) {
+			out.Technical[i].Label = pick(c.Technical[i].Label, t.Technical[i].Label, l)
+			out.Technical[i].Value = pick(c.Technical[i].Value, t.Technical[i].Value, l)
 		}
 	}
 	for i := range out.Rows {
@@ -298,6 +334,21 @@ func (e ReadinessEstimates) In(l i18n.Lang) ReadinessEstimates {
 		if i < len(t.Throttles) {
 			out.Throttling[i].Name = pick(e.Throttling[i].Name, t.Throttles[i], l)
 		}
+	}
+	if e.Route.Timeline != nil {
+		tl := *e.Route.Timeline
+		tl.BasisLabel = pick(tl.BasisLabel, t.Basis, l)
+		out.Route.Timeline = &tl
+	}
+	if e.Confirm != nil {
+		cf := *e.Confirm
+		cf.Reasons = append([]string{}, e.Confirm.Reasons...)
+		for i := range cf.Reasons {
+			if i < len(t.Confirm) {
+				cf.Reasons[i] = pick(cf.Reasons[i], t.Confirm[i], l)
+			}
+		}
+		out.Confirm = &cf
 	}
 	return out
 }

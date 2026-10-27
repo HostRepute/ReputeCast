@@ -33,6 +33,11 @@ type AudienceDef struct {
 	// IncludeSunset is the campaign overriding the sunset policy: contacts
 	// whose Broadcasts the policy stopped receive this one anyway.
 	IncludeSunset bool `json:"include_sunset,omitempty"`
+	// IncludeUnengaged includes (true) or leaves out (false) the unengaged
+	// contacts (the sunset tier) for this campaign. Unset, a send leaves
+	// them out unless it overrides the sunset policy (SR-11, C2: "Include
+	// them").
+	IncludeUnengaged *bool `json:"include_unengaged,omitempty"`
 	// Paid is who on the lists gets a paid-only campaign (Earn): paid
 	// members only, at a tier and above, or free subscribers only.
 	Paid paidaccess.Audience `json:"-"`
@@ -42,6 +47,13 @@ type AudienceDef struct {
 func ParseAudience(raw json.RawMessage) AudienceDef {
 	var a AudienceDef
 	_ = json.Unmarshal(raw, &a)
+	if a.IncludeUnengaged == nil {
+		var camel struct {
+			IncludeUnengaged *bool `json:"includeUnengaged"`
+		}
+		_ = json.Unmarshal(raw, &camel)
+		a.IncludeUnengaged = camel.IncludeUnengaged
+	}
 	a.Paid = paidaccess.Parse(raw)
 	return a
 }
@@ -49,8 +61,24 @@ func ParseAudience(raw json.RawMessage) AudienceDef {
 // Empty reports whether the definition selects nobody.
 func (a AudienceDef) Empty() bool { return len(a.Lists) == 0 && len(a.Segments) == 0 }
 
-// ExcludesSunset reports whether the sunset tier is excluded.
-func (a AudienceDef) ExcludesSunset() bool { return slices.Contains(a.ExcludeTiers, "sunset") }
+// ExcludesSunset reports whether the unengaged contacts (the sunset tier)
+// are left out of the send by default (LeavesOutUnengaged).
+func (a AudienceDef) ExcludesSunset() bool { return a.LeavesOutUnengaged(true) }
+
+// LeavesOutUnengaged reports whether the unengaged contacts (the sunset
+// tier) are left out of the send: when the tier is excluded, when the
+// campaign leaves them out, and otherwise as byDefault says unless the
+// campaign overrides the sunset policy (SR-11). The sending engine leaves
+// out the same contacts.
+func (a AudienceDef) LeavesOutUnengaged(byDefault bool) bool {
+	switch {
+	case slices.Contains(a.ExcludeTiers, "sunset"):
+		return true
+	case a.IncludeUnengaged != nil:
+		return !*a.IncludeUnengaged
+	}
+	return byDefault && !a.IncludeSunset
+}
 
 // Recipient is one final recipient, as routing needs it.
 type Recipient struct {
@@ -151,8 +179,9 @@ func (n audienceNames) labels(a AudienceDef, f *AudienceFacts) {
 // computeAudience counts the final recipients of a definition: suppressed,
 // role, duplicate and (when excluded) sunset-tier contacts are removed.
 func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uuid.UUID, def AudienceDef, unengagedDays int, now time.Time) (AudienceFacts, []Recipient, error) {
-	out := AudienceFacts{Mailboxes: map[string]int64{}, Languages: map[string]int64{}, UnengagedDays: unengagedDays, UnengagedExcluded: def.ExcludesSunset(), Lists: []string{},
-		SunsetOverride: def.IncludeSunset && !def.ExcludesSunset()}
+	leaveOut := def.LeavesOutUnengaged(sendDefaults(ctx, q, wsID).ExcludeUnengaged)
+	out := AudienceFacts{Mailboxes: map[string]int64{}, Languages: map[string]int64{}, UnengagedDays: unengagedDays, UnengagedExcluded: leaveOut, Lists: []string{},
+		SunsetOverride: def.IncludeSunset && !leaveOut}
 	names, err := s.names(ctx, q, wsID)
 	if err != nil {
 		return out, nil, err
@@ -222,7 +251,11 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 	seen := make(map[string]bool, len(rows))
 	recipients := make([]Recipient, 0, len(rows))
 	sunset := out.UnengagedExcluded
-	for _, r := range rows {
+	counted := countingFrom(ctx)
+	for i, r := range rows {
+		if i%5000 == 0 {
+			counted(int64(i), int64(len(rows)))
+		}
 		if !keep.Keeps(r.ID) {
 			continue
 		}
@@ -265,6 +298,9 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 		if r.Bounced {
 			out.RecentlyBounced++
 		}
+		if r.NoFirstName {
+			out.NoFirstName++
+		}
 		mbp := r.MailboxProvider
 		if mbp == "" || mbp == routing.Other {
 			mbp = routing.MailboxProvider(r.Email)
@@ -277,7 +313,23 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 		}
 		recipients = append(recipients, Recipient{Email: r.Email, MailboxProvider: mbp, Lists: lists, Tier: r.Tier, Language: r.Language})
 	}
+	counted(int64(len(rows)), int64(len(rows)))
 	return out, recipients, nil
+}
+
+type countingKey struct{}
+
+// withCounting has the audience count of a run report how many contacts it
+// went through (the progress of a run).
+func withCounting(ctx context.Context, fn func(done, total int64)) context.Context {
+	return context.WithValue(ctx, countingKey{}, fn)
+}
+
+func countingFrom(ctx context.Context) func(done, total int64) {
+	if fn, ok := ctx.Value(countingKey{}).(func(done, total int64)); ok && fn != nil {
+		return fn
+	}
+	return func(int64, int64) {}
 }
 
 // RouteOverride is campaigns.route_override: a split that replaces the
@@ -299,16 +351,19 @@ func ParseRouteOverride(raw json.RawMessage) *RouteOverride {
 }
 
 // planRoute decides the provider of every recipient with the stream's rules
-// (or the campaign's override) and counts them per provider. order lists the
-// providers in the order of the default split, then the others.
-func planRoute(set routing.Set, override *RouteOverride, recipients []Recipient, senderDomain string) (counts map[uuid.UUID]int64, order []uuid.UUID, ok bool) {
+// (or the campaign's override) and counts them per provider, and per
+// provider and mailbox provider in cells (what the estimate plays out).
+// order lists the providers in the order of the default split, then the
+// others.
+func planRoute(set routing.Set, override *RouteOverride, recipients []Recipient, senderDomain string) (counts map[uuid.UUID]int64, cells map[uuid.UUID]map[string]int64, order []uuid.UUID, ok bool) {
 	counts = map[uuid.UUID]int64{}
+	cells = map[uuid.UUID]map[string]int64{}
 	if override != nil {
 		set = routing.Set{Rules: []routing.Rule{{Stream: providers.StreamBroadcast, Splits: override.Splits, Enabled: true, Priority: 1}}, Policies: set.Policies}
 	}
 	def, hasDefault := set.Default(providers.StreamBroadcast)
 	if !hasDefault {
-		return counts, order, false
+		return counts, cells, order, false
 	}
 	for _, sp := range def.Splits {
 		if !slices.Contains(order, sp.ProviderID) {
@@ -321,9 +376,13 @@ func planRoute(set routing.Set, override *RouteOverride, recipients []Recipient,
 			continue
 		}
 		counts[d.ProviderID]++
+		if cells[d.ProviderID] == nil {
+			cells[d.ProviderID] = map[string]int64{}
+		}
+		cells[d.ProviderID][r.MailboxProvider]++
 		if !slices.Contains(order, d.ProviderID) {
 			order = append(order, d.ProviderID)
 		}
 	}
-	return counts, order, true
+	return counts, cells, order, true
 }

@@ -2758,15 +2758,41 @@ type Querier interface {
 	ReadinessCampaign(ctx context.Context, arg ReadinessCampaignParams) (ReadinessCampaignRow, error)
 	// The workspace of a campaign (the sending engine asks by campaign id).
 	ReadinessCampaignWorkspace(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
+	// A worker takes up a queued run: it still owns the campaign's row.
+	ReadinessClaimProgress(ctx context.Context, arg ReadinessClaimProgressParams) (uuid.UUID, error)
+	// The canary choice confirmed with a send (C1).
+	ReadinessConfirmCanary(ctx context.Context, arg ReadinessConfirmCanaryParams) error
+	// What a person confirmed as they scheduled or started a send (SR-3): the
+	// send-time recheck holds the send on anything they didn't.
+	ReadinessConfirmSend(ctx context.Context, arg ReadinessConfirmSendParams) error
 	ReadinessEndProgress(ctx context.Context, arg ReadinessEndProgressParams) error
+	// A run stopped on an error: the row says why until the next run.
+	ReadinessFailProgress(ctx context.Context, arg ReadinessFailProgressParams) error
+	ReadinessForgetConfirmation(ctx context.Context, campaignID uuid.UUID) error
 	ReadinessGetProgress(ctx context.Context, campaignID uuid.UUID) (ReadinessGetProgressRow, error)
 	ReadinessGetRun(ctx context.Context, arg ReadinessGetRunParams) (ReadinessGetRunRow, error)
 	ReadinessInsertRoute(ctx context.Context, arg ReadinessInsertRouteParams) error
 	ReadinessInsertRun(ctx context.Context, arg ReadinessInsertRunParams) error
 	ReadinessLatestRun(ctx context.Context, campaignID uuid.UUID) (ReadinessLatestRunRow, error)
+	// The latest run's id, time and verdict: what the review screen's poll
+	// compares with what it shows.
+	ReadinessLatestRunRef(ctx context.Context, campaignID uuid.UUID) (ReadinessLatestRunRefRow, error)
 	// Lists of the workspace, to tell "All subscribers" from a few lists.
 	ReadinessListCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	ReadinessListNames(ctx context.Context, workspaceID uuid.UUID) ([]ReadinessListNamesRow, error)
+	// Which of the lists a send went to before (a first send to a list asks
+	// for a typed confirmation, SR-13).
+	ReadinessListsSentTo(ctx context.Context, arg ReadinessListsSentToParams) ([]string, error)
+	// The sizes of the media library's images an email shows.
+	ReadinessMediaSizes(ctx context.Context, arg ReadinessMediaSizesParams) ([]ReadinessMediaSizesRow, error)
+	// Whether Gmail Postmaster Tools data comes in for the workspace at all
+	// (recent days for any domain).
+	ReadinessPostmasterConnected(ctx context.Context, arg ReadinessPostmasterConnectedParams) (bool, error)
+	// Gmail Postmaster Tools' last days for a sending domain (or its parent):
+	// the spam rate and the authentication and TLS pass rates Google reports.
+	ReadinessPostmasterDays(ctx context.Context, arg ReadinessPostmasterDaysParams) ([]ReadinessPostmasterDaysRow, error)
+	// Which of the providers carried a send before.
+	ReadinessProvidersSentThrough(ctx context.Context, arg ReadinessProvidersSentThroughParams) ([]uuid.UUID, error)
 	// Keeps the 20 latest runs of a campaign and any run an approval refers to.
 	ReadinessPruneRuns(ctx context.Context, campaignID uuid.UUID) error
 	// The audience before suppressions and exclusions by address: active
@@ -2780,6 +2806,11 @@ type Querier interface {
 	// older than the window (checks run again 15 minutes before the send).
 	ReadinessScheduledDue(ctx context.Context, arg ReadinessScheduledDueParams) ([]ReadinessScheduledDueRow, error)
 	ReadinessSegmentNames(ctx context.Context, workspaceID uuid.UUID) ([]ReadinessSegmentNamesRow, error)
+	ReadinessSendConfirmation(ctx context.Context, campaignID uuid.UUID) (CampaignSendConfirmation, error)
+	// The rules a send checks: on, and for its stream (or both).
+	ReadinessSendingRules(ctx context.Context, arg ReadinessSendingRulesParams) ([]ReadinessSendingRulesRow, error)
+	// Whether a send went out from the sending domain before.
+	ReadinessSentFromDomain(ctx context.Context, arg ReadinessSentFromDomainParams) (bool, error)
 	ReadinessSetAudience(ctx context.Context, arg ReadinessSetAudienceParams) error
 	ReadinessSetAudienceCount(ctx context.Context, arg ReadinessSetAudienceCountParams) error
 	ReadinessSetContentSettings(ctx context.Context, arg ReadinessSetContentSettingsParams) error
@@ -2787,12 +2818,15 @@ type Querier interface {
 	ReadinessSetFingerprint(ctx context.Context, arg ReadinessSetFingerprintParams) error
 	ReadinessSetRouteOverride(ctx context.Context, arg ReadinessSetRouteOverrideParams) error
 	ReadinessSetSendSettings(ctx context.Context, arg ReadinessSetSendSettingsParams) error
-	// Starts a run unless one is already running (a run that stopped updating
-	// for two minutes is taken over).
+	// Starts a run unless one is already waiting or running (a run that stopped
+	// updating for two minutes, or failed, is taken over).
 	ReadinessStartProgress(ctx context.Context, arg ReadinessStartProgressParams) (uuid.UUID, error)
 	// The latest test emails of a campaign, from the audit log.
 	ReadinessTestSends(ctx context.Context, arg ReadinessTestSendsParams) ([]ReadinessTestSendsRow, error)
 	ReadinessUpdateProgress(ctx context.Context, arg ReadinessUpdateProgressParams) error
+	// The audiences of the workspace's last sends to any of a campaign's
+	// lists, newest first (the "usual" of a typed confirmation, SR-13).
+	ReadinessUsualAudience(ctx context.Context, arg ReadinessUsualAudienceParams) ([]int64, error)
 	RecByID(ctx context.Context, id uuid.UUID) (Recommendation, error)
 	RecDailyBump(ctx context.Context, arg RecDailyBumpParams) error
 	RecGet(ctx context.Context, arg RecGetParams) (Recommendation, error)
@@ -3368,6 +3402,9 @@ type Querier interface {
 	// The products the segment builder offers: published first, then the rest
 	// that ever sold.
 	SegmentProductOptions(ctx context.Context, workspaceID uuid.UUID) ([]SegmentProductOptionsRow, error)
+	// A workspace's audience defaults (the defaults when it never saved any).
+	SendDefaults(ctx context.Context, workspaceID uuid.UUID) (SendDefaultsRow, error)
+	SendDefaultsSave(ctx context.Context, arg SendDefaultsSaveParams) error
 	// Campaigns that are not sent yet and use the sender (deleting it clears them).
 	SenderCampaignCount(ctx context.Context, senderID *uuid.UUID) (int64, error)
 	SenderCreate(ctx context.Context, arg SenderCreateParams) (Sender, error)
@@ -3620,6 +3657,17 @@ type Querier interface {
 	// is still retrying (no delivery or bounce yet), per mailbox provider.
 	SendingRetrying(ctx context.Context, campaignID *uuid.UUID) ([]SendingRetryingRow, error)
 	SendingRoutes(ctx context.Context, campaignID uuid.UUID) ([]SendingRoutesRow, error)
+	SendingRuleDelete(ctx context.Context, arg SendingRuleDeleteParams) (int64, error)
+	// A later run of the send it last found breaking the rule found it kept.
+	SendingRuleFixed(ctx context.Context, arg SendingRuleFixedParams) error
+	SendingRuleGet(ctx context.Context, arg SendingRuleGetParams) (SendingRule, error)
+	SendingRuleInsert(ctx context.Context, arg SendingRuleInsertParams) error
+	// A run found the send breaking the rule.
+	SendingRuleTriggered(ctx context.Context, arg SendingRuleTriggeredParams) error
+	SendingRuleUpdate(ctx context.Context, arg SendingRuleUpdateParams) (int64, error)
+	// Workspace sending rules and audience defaults (SR-10, Settings ›
+	// Sending rules).
+	SendingRulesList(ctx context.Context, workspaceID uuid.UUID) ([]SendingRulesListRow, error)
 	SendingSavePrepare(ctx context.Context, arg SendingSavePrepareParams) error
 	// How many seed inboxes a workspace connected.
 	SendingSeedCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)

@@ -229,6 +229,11 @@ func (s *Service) SaveIn(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			}
 			in.Source, in.Label = "merge", mVersionMerged.Text(i18n.Default, i18n.Args{"name": merged.With, "version": strconv.Itoa(merged.Version)})
 		}
+		// Saving never empties an email that has a body (a one-click fix
+		// or an API client sending neither MJML nor HTML would wipe it, SR-4).
+		if emptyBody(c.mjml, c.html) && !emptyBody(cur.Mjml, cur.Html) {
+			return api.Invalid("body.html", mProblemEmptyBody.Text(l, nil))
+		}
 		// Editing an approved (or pending) campaign cancels its request: only
 		// once the person said so (CO-7). Load theirs keeps the content as it is.
 		if !in.Stash {
@@ -452,6 +457,11 @@ func (s *Service) stash(ctx context.Context, q *store.Queries, ws *store.Workspa
 		return ComposerSavedContent{}, err
 	}
 	return ComposerSavedContent{Version: int(top), SavedAt: now, ContentHash: cur.ContentHash, SizeBytes: len(cur.Html), PlainText: cur.PlainText, HTML: cur.Html, StashedVersion: int(kept)}, nil
+}
+
+// emptyBody reports content with neither MJML nor HTML.
+func emptyBody(mjmlSrc, html string) bool {
+	return strings.TrimSpace(mjmlSrc) == "" && strings.TrimSpace(html) == ""
 }
 
 func validateAB(l i18n.Lang, t *ComposerABTest) error {

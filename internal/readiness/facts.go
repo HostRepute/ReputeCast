@@ -7,6 +7,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/providers/state"
+	"github.com/hostrepute/reputecast/internal/sending/engine"
 )
 
 // Facts is everything a run looked at. Gather collects them from the other
@@ -47,6 +48,12 @@ type Facts struct {
 	MailboxRates map[string]float64
 	// Grow are the Referral and Recommendations blocks' rows (grow.go).
 	Grow []GrowRow
+	// Rules are the workspace's sending rules for the send's stream
+	// (rules.go, SR-10).
+	Rules []RuleFacts
+	// Confirm is what makes the send unusual enough for a typed
+	// confirmation (confirm.go, SR-13).
+	Confirm ConfirmFacts
 }
 
 // CampaignFacts describes the campaign being checked.
@@ -66,6 +73,13 @@ type CampaignFacts struct {
 	StartAt time.Time
 	// ScheduleMode is now, at or best_time.
 	ScheduleMode string
+	// HTMLOnly is true for a campaign written in HTML (no MJML): fixes
+	// that edit MJML aren't offered.
+	HTMLOnly bool
+	// ABKind is the kind of the campaign's A/B test (subject, content or
+	// send_time), empty without one; the variants' checks are
+	// ContentFacts.Variants.
+	ABKind string
 }
 
 // Kinds of audience a base label names (AudienceFacts.BaseKind).
@@ -113,6 +127,9 @@ type AudienceFacts struct {
 	// RecentlyBounced counts final recipients who bounced in the last 30
 	// days without being suppressed (soft bounces).
 	RecentlyBounced int64
+	// NoFirstName counts final recipients without a first name (what a
+	// first-name tag's fallback is for).
+	NoFirstName int64
 	// Mailboxes counts final recipients per mailbox provider.
 	Mailboxes map[string]int64
 	// Languages counts final recipients per contact language code
@@ -142,6 +159,11 @@ type RouteFacts struct {
 	// NoRoute is true when the stream has no provider.
 	NoRoute bool
 	Shares  []ShareFacts
+	// Fallback is the route's fallback provider, nil without one.
+	Fallback *FallbackFacts
+	// Estimate is the send played out with the sending engine's rules
+	// (SR-5, C4); nil when there is no engine to ask.
+	Estimate *engine.Estimate
 }
 
 // ShareFacts is one provider of the route with what the checks need.
@@ -175,10 +197,14 @@ type ShareFacts struct {
 	RateRamp bool
 	Pricing  state.Pricing
 	// Bounce and Complaint are 7-day rates in percent (nil without volume);
-	// ProviderReported is true when the provider measured them.
+	// ProviderReported is true when the provider measured them. Sent7d and
+	// Delivered7d are the volume ReputeCast's rates count: below
+	// MinRateVolume they can't judge a provider (SR-5).
 	Bounce           *float64
 	Complaint        *float64
 	ProviderReported bool
+	Sent7d           int64
+	Delivered7d      int64
 	Limits           state.Limits
 	// Account is the account standing ("Production · no enforcement").
 	Account string
@@ -194,6 +220,21 @@ type ShareFacts struct {
 	// IPs are the provider's dedicated IPs (empty for shared pools).
 	IPs         []string
 	ConnectedAt time.Time
+	// OneClick is how the provider carries the one-click unsubscribe
+	// headers (providers.Capabilities.OneClick): "" as given, "replaced"
+	// or "unsigned".
+	OneClick string
+}
+
+// FallbackFacts is the provider the route fails over to and what
+// state.Vet found about it taking the whole send (C11).
+type FallbackFacts struct {
+	ProviderID string
+	Name       string
+	// Failed is the first vetting check that failed, empty when the
+	// fallback can take the mail; Text says it in each reader's language.
+	Failed string
+	Text   Text
 }
 
 // DownFacts is why a provider can't take mail: since when, the host or
@@ -226,6 +267,46 @@ type ReputationFacts struct {
 	IPSources     []string
 	// Listings of the campaign's assets.
 	Listings []ListingFacts
+	// Domains are the domains the send's reputation rides on: the sending
+	// domain, its parent (organizational) domain, the providers' return-path
+	// domains and the tracking domain (SR-2). Empty: the sending domain only.
+	Domains []DomainAssetFacts
+	// ReverseDNS is the reverse DNS of the dedicated IPs carrying the send.
+	ReverseDNS []ReverseDNSFacts
+}
+
+// ReverseDNSFacts is the forward-confirmed reverse DNS of a dedicated IP.
+type ReverseDNSFacts struct {
+	IP       string
+	Provider string
+	// PTR is the IP's reverse DNS name; Status is pass (it resolves back to
+	// the IP), fail (it doesn't), missing (no PTR) or error (DNS didn't
+	// answer: Trouble says how, a Trouble* kind).
+	PTR     string
+	Status  string
+	Trouble string
+}
+
+// Roles of the domains a send's reputation rides on (DomainAssetFacts.Role).
+const (
+	DomainSending    = "sending"     // news.acme.io, the From address's domain
+	DomainParent     = "parent"      // acme.io, its organizational domain
+	DomainReturnPath = "return_path" // bounce.news.acme.io, a provider's custom MAIL FROM
+	DomainTracking   = "tracking"    // the domain of the open pixel and the tracked links
+)
+
+// DomainAssetFacts is one domain of a send's reputation.
+type DomainAssetFacts struct {
+	Domain string
+	Role   string
+	// Providers are the providers whose return path the domain is.
+	Providers []string
+	// Live is true when Send Readiness looked the domain up itself on the
+	// URI blocklists (Deliverability doesn't watch it): Lists are the lists
+	// it is on, Unknown why the lookup failed (a contentcheck.Trouble* kind).
+	Live    bool
+	Lists   []string
+	Unknown string
 }
 
 // ListingFacts is one asset on one blocklist.
@@ -237,6 +318,9 @@ type ListingFacts struct {
 	Detail    string
 	DelistURL string
 	Since     *time.Time
+	// Answer and TXT are the list's DNS answers to the lookup when they
+	// are known (the technical details' raw DNS, SR-13).
+	Answer, TXT string
 }
 
 // AuthFacts are the authentication results of the sending domain.
@@ -255,9 +339,17 @@ type AuthFacts struct {
 	DMARCPolicy  string
 	DMARCRecord  string
 	DMARCAligned *float64
-	// BIMIStatus is pass, missing or invalid.
+	// BIMIStatus is pass, missing, invalid or error.
 	BIMIStatus string
 	BIMILogo   string
+	// DMARCError and BIMIError say why a lookup failed (Trouble* kinds):
+	// the record's state is unknown, not wrong. BIMIProblem is what's wrong
+	// with an invalid BIMI record ("l= must be an https URL…").
+	DMARCError string
+	BIMIError  string
+	// SPFError says why the domain's own SPF record couldn't be read.
+	SPFError    string
+	BIMIProblem string
 }
 
 // What a provider's record detail says (ProviderAuthFacts.DetailKind).
@@ -285,11 +377,18 @@ type ProviderAuthFacts struct {
 	Name       string
 	KeyBits    int
 	Domain     string
+	// Unknown is true when DNS didn't answer for the record (even after the
+	// run looked it up again); Trouble says how (Trouble* kinds).
+	Unknown bool
+	Trouble string
 }
 
 // ContentFacts are the composer's content and link checks.
 type ContentFacts struct {
 	Report contentcheck.ContentCheckReport
+	// FooterText is the text of the email's footer (workspace rules on
+	// what it shows).
+	FooterText string
 	// Checked is false when the content check couldn't run.
 	Checked bool
 	// FooterRemovedAt is when the version without a footer was saved.
@@ -305,6 +404,46 @@ type ContentFacts struct {
 	// Versions are the content checks of the language versions that are
 	// sent, besides the source's (Report).
 	Versions []VersionReport
+	// Variants are the content checks of an A/B test's variants B and C
+	// (the campaign itself is variant A).
+	Variants []VariantReport
+	// TrackedBytes is the HTML's size as sent, with the links rewritten for
+	// tracking and the open pixel added (0 when nothing is tracked or the
+	// email couldn't be prepared).
+	TrackedBytes int
+	// TrackOpens and TrackClicks say what the campaign tracks;
+	// TrackingHost is the domain of the open pixel and the tracked links,
+	// TrackingHTTPS whether they use HTTPS, and TrackingDNS whether that
+	// domain resolves: ok, missing, or a Trouble* kind when DNS didn't
+	// answer ("" when it wasn't looked up).
+	TrackOpens, TrackClicks bool
+	TrackingHost            string
+	TrackingHTTPS           bool
+	TrackingDNS             string
+	// LibraryHost is where the media library's images load from (the
+	// public URL), LibraryHTTPS whether over HTTPS.
+	LibraryHost  string
+	LibraryHTTPS bool
+	// Fields are the personalization tags of the email (every version and
+	// variant), each field once.
+	Fields []FieldUse
+}
+
+// FieldUse is a personalization field the email uses, and its fallback.
+type FieldUse struct {
+	Field       string
+	HasFallback bool
+	Fallback    string
+}
+
+// VariantReport is the content check of one A/B variant.
+type VariantReport struct {
+	Key       string
+	Subject   string
+	Preheader string
+	// Content is true for a content test's variant: its own body.
+	Content bool
+	Report  contentcheck.ContentCheckReport
 }
 
 // ComplianceFacts are what the bulk-sender rules need.
@@ -314,4 +453,34 @@ type ComplianceFacts struct {
 	HTTPS          bool
 	// ComplaintRate is the route's 7-day complaint rate in percent.
 	ComplaintRate *float64
+	// Gmail is Gmail Postmaster Tools' latest day for the sending domain
+	// (or its parent), nil when there is none. PostmasterConnected says
+	// Postmaster data comes in for the workspace at all.
+	Gmail               *PostmasterFacts
+	PostmasterConnected bool
 }
+
+// PostmasterFacts is what Gmail Postmaster Tools reported for a domain.
+type PostmasterFacts struct {
+	Domain string
+	// Day is the latest day Google reported; SpamRate is that day's
+	// user-reported spam rate in percent (nil when Google had too little
+	// volume to report one).
+	Day      time.Time
+	SpamRate *float64
+	// SpamDay is the day of SpamRate when it isn't Day (the latest day
+	// with a rate).
+	SpamDay *time.Time
+	// SPF, DKIM, DMARC and TLS are Day's pass rates in percent, nil when
+	// Google didn't report one.
+	SPF, DKIM, DMARC, TLS *float64
+}
+
+// PostmasterFloor is the pass rate (percent) under which Gmail Postmaster's
+// authentication and TLS rates make its compliance status "Needs work",
+// and PostmasterSpamLimit the user-reported spam rate at which it does
+// (Google's bulk-sender rules, SR-12).
+const (
+	PostmasterFloor     = 98.0
+	PostmasterSpamLimit = 0.3
+)

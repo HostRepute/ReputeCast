@@ -1,13 +1,11 @@
 import { useRouter } from '@tanstack/react-router'
 import type { MouseEvent, ReactNode } from 'react'
 import { Badge, type Tone } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
 import { clock, shortDate } from '@/lib/format'
-import { deniedReason } from '@/lib/session'
-import { CodeText, Swatch } from '@/features/accessibility/review'
+import { CodeText } from '@/features/accessibility/review'
 import { CheckRowsGrid } from '@/features/languages/review'
-import { t } from '@/i18n'
+import { formatList, t } from '@/i18n'
 import { statusWord, type Check, type CheckStatus, type Fix } from './logic'
 import { m } from './messages'
 
@@ -43,11 +41,11 @@ export function CheckBadge({ status, className }: { status: CheckStatus; classNa
  * A link to an app path the API handed out ("/w/acme/campaigns/…/edit?panel=…"),
  * navigated by the router; other links open in a new tab.
  */
-export function AppHref({ href, className, children }: { href: string; className?: string; children: ReactNode }) {
+export function AppHref({ href, className, describedBy, children }: { href: string; className?: string; describedBy?: string; children: ReactNode }) {
   const router = useRouter()
   if (!href.startsWith('/')) {
     return (
-      <a href={href} className={className} target="_blank" rel="noopener noreferrer">
+      <a href={href} className={className} aria-describedby={describedBy} target="_blank" rel="noopener noreferrer">
         {children}
       </a>
     )
@@ -58,53 +56,27 @@ export function AppHref({ href, className, children }: { href: string; className
     router.history.push(href)
   }
   return (
-    <a href={href} className={className} onClick={go}>
+    <a href={href} className={className} aria-describedby={describedBy} onClick={go}>
       {children}
     </a>
   )
 }
 
-/** Who may apply a fix: route changes need campaigns:send, the rest campaigns:edit. */
-export function fixReason(f: Fix, can: { edit: boolean; send: boolean; editable: boolean }, helpers: string[]): string | undefined {
-  if (!can.editable) return t(m.alreadySendingNoChange)
-  if (f.action === 'route_only' && !can.send) return deniedReason('campaigns:send', helpers, t(m.routeChange))
-  if (!can.edit) return deniedReason('campaigns:edit', helpers)
-  return undefined
+/**
+ * Why the reader can't send, change the campaign or its route: who can,
+ * by name ("Marcus Chen or Linh Nguyen can send it."), never a permission
+ * key (SR-13).
+ */
+export function whoCan(what: 'send' | 'edit' | 'route', helpers: string[]): string {
+  return t(m.whoCan, { what, names: helpers.length ? formatList(helpers, 'disjunction') : 'none' })
 }
 
-/** The fixes of a check: one-click buttons and links to where it's fixed. */
-export function FixButtons({
-  check,
-  busy,
-  reasonFor,
-  onApply,
-}: {
-  check: Check
-  busy?: string
-  reasonFor: (f: Fix) => string | undefined
-  onApply: (c: Check, f: Fix) => void
-}) {
-  if (!check.fixes.length) return null
-  const buttons = check.fixes.map((f, i) =>
-    f.kind === 'apply' ? (
-      <Button
-        key={i}
-        size="sm"
-        variant={f.tone === 'primary' ? 'primary' : f.tone === 'danger' ? 'danger-primary' : 'default'}
-        disabledReason={reasonFor(f)}
-        loading={busy === `${check.key}:${f.action}`}
-        onClick={() => onApply(check, f)}
-      >
-        {f.action === 'accessibility_color' && f.params?.color ? <Swatch color={f.params.color} /> : null}
-        {f.label}
-      </Button>
-    ) : (
-      <AppHref key={i} href={f.href ?? '#'} className="btn sm">
-        {f.label}
-      </AppHref>
-    ),
-  )
-  return buttons.length === 1 ? buttons[0]! : <div className="rv-fixes">{buttons}</div>
+/** Who may apply a fix: route changes need the right to send, the rest the right to edit. */
+export function fixReason(f: Fix, can: { edit: boolean; send: boolean; editable: boolean }, helpers: { send: string[]; edit: string[] }): string | undefined {
+  if (!can.editable) return t(m.alreadySendingNoChange)
+  if (f.action === 'route_only' && !can.send) return whoCan('route', helpers.send)
+  if (!can.edit) return whoCan('edit', helpers.edit)
+  return undefined
 }
 
 /** One row of the checklist: badge, the finding and its evidence, the fixes. */

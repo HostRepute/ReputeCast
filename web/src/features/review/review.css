@@ -162,6 +162,16 @@
   .rv-card.c-tight {
     gap: 10px;
   }
+  /* The estimate's timeline under the route table (the board's .inset). */
+  .rv-inset {
+    padding: 12px 14px;
+    background: var(--ground-3);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
   .rv-sum {
     display: flex;
     justify-content: space-between;
@@ -170,6 +180,44 @@
   }
   .rv-sum.s-minus {
     color: var(--ink-3);
+  }
+  /* The canary choice in the confirmation (C1). */
+  .rv-confirm .c-canary {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .rv-confirm .c-canary select {
+    max-width: 320px;
+  }
+  /* "Include them" under the sunset policy's line of the audience. */
+  .rv-lnk {
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+    cursor: pointer;
+    min-height: 24px;
+  }
+  .rv-lnk:hover {
+    color: var(--accent-hover);
+  }
+  .rv-lnk:disabled {
+    cursor: progress;
+    opacity: 0.6;
+  }
+  @media (max-width: 767px) {
+    .rv-lnk {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+    }
   }
   .rv-sum.s-final {
     border-top: 1px solid var(--line);
