@@ -41,7 +41,9 @@ func TestApprovalsInVietnamese(t *testing.T) {
 	var full map[string]any
 	daniel.Do("GET", ws+"/campaigns/"+nov, nil).MustStatus(t, 200).JSON(t, &full)
 	daniel.Do("PUT", ws+"/campaigns/"+nov+"/content", map[string]any{"baseVersion": full["version"], "subject": "November Product Update: faster exports and a new API",
-		"preheader": full["preheader"], "mjml": full["mjml"], "html": full["html"], "label": "subject", "source": "manual"}).MustStatus(t, 200)
+		"preheader": full["preheader"], "mjml": full["mjml"], "html": full["html"], "label": "subject", "source": "manual",
+		// The composer asked first: the editor agreed that saving cancels the approval.
+		"cancelApproval": true}).MustStatus(t, 200)
 	if r = getReview(t, daniel, nov); r.Approval.Request.Status != "invalidated" || r.Approval.Request.InvalidatedReason != "subject changed" {
 		t.Fatalf("invalidated, in English: %+v", r.Approval.Request)
 	}

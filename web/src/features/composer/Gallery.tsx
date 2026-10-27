@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { $api, errorMessage, http } from '@/api/client'
 import { toast } from '@/components/ui/Toast'
 import { dayMonthDate } from '@/lib/format'
+import { BrandKitBanner, useDefaultColoursNote } from './BrandKit'
 import { useComposer } from './context'
 import { Thumb } from './Thumb'
 import { GalleryCaption, GalleryResult, galleryTileClass, useGalleryResults } from '@/features/accessibility/composer/Gallery'
@@ -27,6 +28,7 @@ export function EmptyGallery() {
   const [busy, setBusy] = useState<string | null>(null)
   // Each template's accessibility result (the campaign composer's gallery).
   const a11y = useGalleryResults(c.slug, c.kind !== 'transactional')
+  const defaultColours = useDefaultColoursNote()
 
   const applyTemplate = async (id: string, name: string) => {
     if (!c.canEdit) return
@@ -65,6 +67,7 @@ export function EmptyGallery() {
           </div>
           <span className="k">{t(m.galleryLead)}</span>
         </div>
+        <BrandKitBanner />
         {g.isPending ? (
           <div className="tpl-grid grid gap-3" aria-busy="true">
             {Array.from({ length: 6 }, (_, i) => (
@@ -78,7 +81,11 @@ export function EmptyGallery() {
           <p className="k">{t(m.templatesFailed, { error: errorMessage(g.error) })}</p>
         ) : (
           <>
-            <div className="tpl-grid grid gap-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <span className="font-semibold">{t(m.templatesHeading)}</span>
+              {defaultColours ? <span className="k">{defaultColours}</span> : null}
+            </div>
+            <div className="tpl-grid grid gap-3" style={{ marginTop: -10 }}>
               {g.data.starters.map((tpl) => (
                 <button key={tpl.id} type="button" className={galleryTileClass(a11y.byId.get(tpl.id))} disabled={!c.canEdit} aria-busy={busy === tpl.id || undefined} onClick={() => void applyTemplate(tpl.id, tpl.name)}>
                   <Thumb items={tpl.thumb} blank={tpl.id === 'starter:blank'} />

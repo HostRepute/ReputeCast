@@ -1864,6 +1864,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/review/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The email behind a review link (public, rate-limited)
+         * @description One version of one campaign, personalized for a sample reader, and the comments written through the link. Limited per client address.
+         */
+        get: operations["get-review"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/review/{token}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Comment through a review link (public, rate-limited)
+         * @description Signed with the name the reviewer gives. At most 30 comments an hour through one link.
+         */
+        post: operations["add-review-comment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/setup": {
         parameters: {
             query?: never;
@@ -3579,6 +3619,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/brand-kit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The brand kit, its synced blocks and the emails holding them
+         * @description Without a saved kit, the values are ReputeCast's defaults (saved is false).
+         */
+        get: operations["get-brand-kit"];
+        /**
+         * Save the brand kit
+         * @description New emails, templates and blocks start from it; emails already written keep their own styles. The first save creates the synced Header and Footer; a new logo reaches the synced Header and the drafts and scheduled emails holding it.
+         */
+        put: operations["save-brand-kit"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/brand-kit/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Read the logo, colours and fonts from a website
+         * @description Nothing in the kit changes until it's saved. Logos found are added to the media library.
+         */
+        post: operations["import-brand-kit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/brand-kit/synced/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change a synced block (Header or Footer)
+         * @description Drafts and scheduled emails holding the block get the change as a new version; emails in an approval, sending, paused or sent keep theirs.
+         */
+        put: operations["save-synced-block"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns": {
         parameters: {
             query?: never;
@@ -3783,6 +3887,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Comment threads on the campaign, open ones first */
+        get: operations["list-campaign-comments"];
+        put?: never;
+        /**
+         * Comment on a block or the whole email, or reply to a thread
+         * @description Anyone who can view the campaign can comment. The members in mentions get a notification (and an email unless they turned it off) linking to the thread.
+         */
+        post: operations["add-campaign-comment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/comments/{threadId}/resolved": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Resolve a comment thread, or open it again */
+        put: operations["resolve-campaign-comment"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/content": {
         parameters: {
             query?: never;
@@ -3793,11 +3935,48 @@ export interface paths {
         get?: never;
         /**
          * Save the content as a new version (autosave)
-         * @description Fails with 409 version_conflict when someone saved a newer version since baseVersion; the problem's meta says who, when and which sections each side changed. Send force: true to keep yours on top.
+         * @description Fails with 409 version_conflict when someone saved a newer version since baseVersion; the problem's meta says who, when and which sections each side changed. Send force: true to keep yours on top, or stash: true to keep yours in the history under the current version (Load theirs). Saving content that is already the current version stores nothing (unchanged: true). Fails with 409 approval_would_cancel while the campaign has a pending or approved request, since the save cancels it: send cancelApproval: true once the person agreed.
          */
         put: operations["save-campaign-content"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/dismissals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dismiss a warning of the composer's checks, with a reason
+         * @description key is the warning's issueKeys entry from the checks. The warning stays listed with who dismissed it and why, and comes back when it changes. Blocking issues are never dismissed.
+         */
+        post: operations["dismiss-campaign-warning"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/dismissals/{dismissalId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Count a dismissed warning again (Undo) */
+        delete: operations["undismiss-campaign-warning"];
         options?: never;
         head?: never;
         patch?: never;
@@ -4227,6 +4406,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/mentionable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Members who can be @mentioned in the campaign's comments */
+        get: operations["list-mentionable-members"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/poll-test-answers": {
         parameters: {
             query?: never;
@@ -4260,6 +4456,27 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/presence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Say you have the campaign open; returns who else does
+         * @description The composer calls it every 20 seconds while open. Someone not heard from for a minute is gone.
+         */
+        put: operations["campaign-presence"];
+        post?: never;
+        /** Say you closed the campaign */
+        delete: operations["leave-campaign"];
         options?: never;
         head?: never;
         patch?: never;
@@ -4370,6 +4587,30 @@ export interface paths {
          * @description Accepts the checks that couldn't run (HostRepute unreachable). The skipped checks are recorded in the audit log and re-tried during the send.
          */
         post: operations["accept-unknown-readiness"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/renders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A campaign's latest real renders
+         * @description Newest first. Running renders are refreshed from the service at most every few seconds.
+         */
+        get: operations["list-campaign-renders"];
+        put?: never;
+        /**
+         * Render the saved campaign in real email clients
+         * @description Sends the saved version (one A/B variant), personalized for the sample contact, to the connected service. Each client is one preview on the account's plan.
+         */
+        post: operations["render-campaign"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4544,6 +4785,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The campaign's working review links, newest first */
+        get: operations["list-campaign-review-links"];
+        put?: never;
+        /**
+         * Share the saved version for review
+         * @description Anyone with the link sees that version of the email (personalized for a sample reader) and can comment without signing in, for 7 days or until the link is revoked. Nothing about the audience, settings or other campaigns.
+         */
+        post: operations["create-campaign-review-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review-links/{linkId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke a review link */
+        delete: operations["revoke-campaign-review-link"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/send": {
         parameters: {
             query?: never;
@@ -4628,7 +4907,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Version history, newest first */
+        /**
+         * Version history, newest first, one page at a time
+         * @description nextBefore, when present, is the before= of the next (older) page. named=true lists the versions people named.
+         */
         get: operations["list-campaign-versions"];
         put?: never;
         post?: never;
@@ -4648,6 +4930,26 @@ export interface paths {
         /** One version with its content */
         get: operations["get-campaign-version"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}/name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Name a version (or remove its name)
+         * @description Named versions are never pruned from the history.
+         */
+        put: operations["name-campaign-version"];
         post?: never;
         delete?: never;
         options?: never;
@@ -10262,8 +10564,8 @@ export interface paths {
         get: operations["list-media"];
         put?: never;
         /**
-         * Upload an image (PNG, JPEG or GIF, up to 5 MB)
-         * @description The file is validated by its content, not its name. Uploading the same file twice returns the stored image.
+         * Upload an image (PNG or JPEG up to 20 MB, GIF up to 5 MB)
+         * @description The file is validated by its content, not its name. What's stored is made for email: at most 1,200 px wide (same proportions, never enlarged), photos turned upright and compressed (a photo saved as PNG may become a JPEG), and metadata such as location and camera details removed. GIFs keep their frames. `original` describes the file as uploaded when the stored image differs from it. Uploading the same file twice returns the stored image.
          */
         post: operations["upload-media"];
         delete?: never;
@@ -12518,6 +12820,54 @@ export interface paths {
          * @description Reports whether the file was found, its version and its scope.
          */
         post: operations["check-push-site"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/rendering-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The workspace's rendering service (Litmus or Mailgun Inspect)
+         * @description Whether real renders are available, from which service, and its email clients. The API key is never returned.
+         */
+        get: operations["get-rendering-service"];
+        /**
+         * Connect Litmus or Mailgun Inspect with the workspace's own API key
+         * @description The key is tested by listing the account's email clients, then sealed at rest. It is never returned; a new key replaces the old one.
+         */
+        put: operations["connect-rendering-service"];
+        post?: never;
+        /**
+         * Disconnect the rendering service and forget its key
+         * @description Renders already made stay with their campaigns.
+         */
+        delete: operations["disconnect-rendering-service"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/rendering-service/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test the rendering service's key again
+         * @description Lists the account's email clients with the stored key; status and lastError say how it went.
+         */
+        post: operations["test-rendering-service"];
         delete?: never;
         options?: never;
         head?: never;
@@ -20798,6 +21148,97 @@ export interface components {
             soft: string;
             text: string;
         };
+        BrandButtonStyle: {
+            /** @enum {string} */
+            shape: "square" | "rounded" | "pill";
+            /**
+             * Format: int64
+             * @description Text size in px (bold, body font)
+             * @enum {integer}
+             */
+            size: 14 | 15;
+        };
+        BrandColors: {
+            /** @description Behind the 600 px email column */
+            background: string;
+            /** @description Button fill, with white text */
+            button: string;
+            /** @description Links inside text, underlined */
+            link: string;
+            /** @description Paragraphs and headings */
+            text: string;
+        };
+        BrandFont: {
+            /** @description One of the email-safe stacks: Georgia, 'Times New Roman', serif · 'Times New Roman', serif · Arial, Helvetica, sans-serif · Helvetica, Arial, sans-serif · Verdana, Geneva, sans-serif · 'Trebuchet MS', Arial, sans-serif · Tahoma, Geneva, sans-serif */
+            fallback: string;
+            /** @description The web font's family (Inter); empty uses the fallback alone */
+            name: string;
+            /** @description The web font's stylesheet (https) */
+            url?: string;
+        };
+        BrandImportColor: {
+            hex: string;
+            used: boolean;
+        };
+        BrandKit: {
+            body: components["schemas"]["BrandFont"];
+            button: components["schemas"]["BrandButtonStyle"];
+            colors: components["schemas"]["BrandColors"];
+            heading: components["schemas"]["BrandFont"];
+            logoAlt: string;
+            /** @description For dark mode (Apple Mail and Outlook for Mac switch to it) */
+            logoDark?: components["schemas"]["BrandLogo"];
+            /** @description For light backgrounds */
+            logoLight?: components["schemas"]["BrandLogo"];
+            saved: boolean;
+            synced: components["schemas"]["SyncedBlock"][];
+            /** Format: date-time */
+            updatedAt?: string;
+            updatedBy?: string;
+            website: string;
+        };
+        BrandKitImport: {
+            colors: components["schemas"]["BrandImportColor"][];
+            fonts: string[];
+            /** Format: date-time */
+            foundAt: string;
+            logoAlt: string;
+            logoDark?: components["schemas"]["BrandLogo"];
+            logoLight?: components["schemas"]["BrandLogo"];
+            notes: string[];
+            style: components["schemas"]["BrandStyle"];
+            website: string;
+        };
+        BrandKitImportInput: {
+            /** @description acme.io or https://acme.io */
+            website: string;
+        };
+        BrandKitInput: {
+            body: components["schemas"]["BrandFont"];
+            button: components["schemas"]["BrandButtonStyle"];
+            colors: components["schemas"]["BrandColors"];
+            heading: components["schemas"]["BrandFont"];
+            logoAlt: string;
+            logoDarkId?: string;
+            /** @description A media library image id; empty: no logo */
+            logoLightId?: string;
+            website?: string;
+        };
+        BrandLogo: {
+            fileName: string;
+            /** Format: int64 */
+            height: number;
+            mediaId: string;
+            url: string;
+            /** Format: int64 */
+            width: number;
+        };
+        BrandStyle: {
+            body: components["schemas"]["BrandFont"];
+            button: components["schemas"]["BrandButtonStyle"];
+            colors: components["schemas"]["BrandColors"];
+            heading: components["schemas"]["BrandFont"];
+        };
         CallTarget: {
             email?: string;
             endpoint?: string;
@@ -20925,6 +21366,15 @@ export interface components {
             revenueCents: number;
             /** Format: int64 */
             window: number;
+        };
+        CampaignRenderInput: {
+            /** @description Client ids from the connection's clients; each is one preview on the account's plan */
+            clients: string[];
+            /**
+             * @description The A/B variant to render (A by default)
+             * @enum {string}
+             */
+            variant?: "A" | "B" | "C";
         };
         CampaignReport: {
             abTest?: components["schemas"]["ReportABTest"];
@@ -21801,6 +22251,19 @@ export interface components {
             /** @description Members who hold campaigns:send */
             sendHelpers: string[];
         };
+        ComposerApproval: {
+            approvedBy: string[];
+            /** Format: date-time */
+            decidedAt?: string;
+            id: string;
+            /** Format: date-time */
+            requestedAt: string;
+            requestedBy: string;
+            /** @enum {string} */
+            status: "pending" | "approved";
+            /** Format: int64 */
+            version: number;
+        };
         ComposerAudience: {
             excludeLists: string[];
             excludeSegments: string[];
@@ -21837,6 +22300,7 @@ export interface components {
         ComposerCampaign: {
             abTest?: components["schemas"]["ComposerABTest"];
             access: components["schemas"]["ComposerAccess"];
+            approval?: components["schemas"]["ComposerApproval"];
             audience: components["schemas"]["ComposerAudience"];
             /** Format: int64 */
             audienceCount?: number;
@@ -21884,6 +22348,7 @@ export interface components {
             checkedAt: string;
             /** Format: int64 */
             clipBytes: number;
+            dismissed: components["schemas"]["ComposerDismissedIssue"][];
             /** Format: date-time */
             footerRemovedAt?: string;
             /** Format: double */
@@ -21892,6 +22357,7 @@ export interface components {
             images: number;
             /** Format: int64 */
             imagesMissingAlt: number;
+            issueKeys: string[];
             issues: components["schemas"]["ContentCheckIssue"][];
             linkList: components["schemas"]["ContentCheckLink"][];
             /** Format: int64 */
@@ -21906,6 +22372,7 @@ export interface components {
             /** Format: int64 */
             sizeBytes: number;
             subjectHeuristics: string[];
+            variants: components["schemas"]["ComposerVariantChecks"][];
             /** @enum {string} */
             verdict: "ready" | "warnings" | "blocked";
             /** Format: int64 */
@@ -21914,6 +22381,7 @@ export interface components {
             words: number;
         };
         ComposerChecksRequest: {
+            abTest?: components["schemas"]["ComposerABTest"];
             html?: string;
             language?: string;
             mjml?: string;
@@ -21921,6 +22389,32 @@ export interface components {
             /** @description Also request every link (slower; Send Readiness does it) */
             probeLinks?: boolean;
             subject?: string;
+        };
+        ComposerComment: {
+            author: string;
+            authorColor?: string;
+            authorId?: string;
+            body: string;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            /** @description Members it notified (user ids) */
+            mentions: string[];
+            reviewer: boolean;
+            /**
+             * Format: int64
+             * @description The campaign version it was written on
+             */
+            version: number;
+        };
+        ComposerCommentInput: {
+            /** @description The block's rc-comment id; empty for the whole email */
+            anchor?: string;
+            anchorLabel?: string;
+            body: string;
+            mentions?: string[];
+            /** Format: uuid */
+            threadId?: string;
         };
         ComposerCompileRequest: {
             mjml: string;
@@ -21959,8 +22453,79 @@ export interface components {
             /** @description Start from a template (starter:<key> or a saved template id) */
             templateId?: string;
         };
+        ComposerDismissInput: {
+            checkId: string;
+            key: string;
+            note?: string;
+            /** @enum {string} */
+            reason: "decorative" | "size" | "subject" | "wrong" | "other";
+            title?: string;
+        };
+        ComposerDismissal: {
+            /** Format: date-time */
+            at: string;
+            by: string;
+            checkId: string;
+            id: string;
+            key: string;
+            note: string;
+            /** @enum {string} */
+            reason: "decorative" | "size" | "subject" | "wrong" | "other";
+            reasonText: string;
+        };
+        ComposerDismissedIssue: {
+            dismissal: components["schemas"]["ComposerDismissal"];
+            /** Format: int64 */
+            index: number;
+        };
+        ComposerMember: {
+            /** @description Avatar colour */
+            color: string;
+            id: string;
+            name: string;
+            role: string;
+        };
+        ComposerMemberList: {
+            items: components["schemas"]["ComposerMember"][];
+        };
+        ComposerMerged: {
+            head?: string;
+            preheader?: string;
+            /** @description Their sections, at their positions in the email */
+            sections: components["schemas"]["MergedSection"][];
+            subject?: string;
+            /**
+             * Format: int64
+             * @description Their version
+             */
+            version: number;
+            /** @description Who saved the newer version */
+            with: string;
+        };
+        ComposerNameVersion: {
+            /** @description The version's name; empty removes it */
+            name: string;
+        };
+        ComposerPresence: {
+            others: components["schemas"]["ComposerPresent"][];
+        };
+        ComposerPresenceInput: {
+            editing?: boolean;
+        };
+        ComposerPresent: {
+            /** @description Avatar colour */
+            color: string;
+            editing: boolean;
+            name: string;
+            /** Format: date-time */
+            seenAt: string;
+            userId: string;
+        };
         ComposerPreview: {
             contact?: components["schemas"]["ComposerPreviewContact"];
+            /** Format: int64 */
+            counted?: number;
+            countedListsOnly?: boolean;
             fromEmail: string;
             fromName: string;
             html: string;
@@ -21978,9 +22543,11 @@ export interface components {
         };
         ComposerPreviewContact: {
             email: string;
+            firstName: string;
             id?: string;
             label: string;
             language: string;
+            lastName: string;
             name: string;
         };
         ComposerPreviewContactList: {
@@ -22002,9 +22569,30 @@ export interface components {
             /** @enum {string} */
             variant?: "A" | "B" | "C";
         };
+        ComposerResolveInput: {
+            resolved: boolean;
+        };
         ComposerRestoreVersion: {
             /** Format: int64 */
             baseVersion: number;
+        };
+        ComposerReviewLink: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            /** @description Shown to the workspace's members only */
+            url: string;
+            /**
+             * Format: int64
+             * @description The version reviewers see
+             */
+            version: number;
+        };
+        ComposerReviewLinkList: {
+            items: components["schemas"]["ComposerReviewLink"][];
         };
         ComposerRoute: {
             shares: components["schemas"]["RouteShare"][];
@@ -22015,6 +22603,7 @@ export interface components {
             abTest?: components["schemas"]["ComposerABTest"];
             /** Format: int64 */
             baseVersion: number;
+            cancelApproval?: boolean;
             force?: boolean;
             html?: string;
             label?: string;
@@ -22024,17 +22613,23 @@ export interface components {
              * @default autosave
              * @enum {string}
              */
-            source: "autosave" | "manual" | "import" | "template";
+            source: "autosave" | "manual" | "import" | "template" | "recovered";
+            stash?: boolean;
             subject?: string;
         };
         ComposerSavedContent: {
             contentHash: string;
             html: string;
+            merged?: components["schemas"]["ComposerMerged"];
             plainText: string;
+            recompiled?: string;
             /** Format: date-time */
             savedAt: string;
             /** Format: int64 */
             sizeBytes: number;
+            /** Format: int64 */
+            stashedVersion?: number;
+            unchanged?: boolean;
             /** Format: int64 */
             version: number;
         };
@@ -22071,13 +22666,34 @@ export interface components {
             provider: string;
             sent: string[];
         };
+        ComposerThread: {
+            anchor: string;
+            anchorLabel: string;
+            comments: components["schemas"]["ComposerComment"][];
+            id: string;
+            /** Format: date-time */
+            resolvedAt?: string;
+            resolvedBy?: string;
+        };
+        ComposerThreadList: {
+            /** Format: int64 */
+            open: number;
+            /** Format: int64 */
+            resolved: number;
+            threads: components["schemas"]["ComposerThread"][];
+        };
         ComposerTokenValue: {
+            /** Format: int64 */
+            audienceMissing?: number;
             fallbackUsed: boolean;
             key: string;
+            missing: boolean;
             /** @description A link filled in per recipient at send time */
             perRecipient: boolean;
+            suggestion?: string;
             /** @example {{ first_name | default: "there" }} */
             token: string;
+            unknown: boolean;
             value: string;
         };
         ComposerUpdateCampaign: {
@@ -22088,16 +22704,26 @@ export interface components {
             senderId?: string;
             settings?: components["schemas"]["ComposerContentSettings"];
         };
+        ComposerVariantChecks: {
+            /** Format: int64 */
+            blocks: number;
+            issues: components["schemas"]["ContentCheckIssue"][];
+            /** @enum {string} */
+            key: "B" | "C";
+            /** Format: int64 */
+            warnings: number;
+        };
         ComposerVersion: {
             current: boolean;
             label: string;
+            name: string;
             /** Format: date-time */
             savedAt: string;
             savedBy: string;
             /** Format: int64 */
             sizeBytes: number;
             /** @enum {string} */
-            source: "create" | "autosave" | "manual" | "restore" | "template" | "import" | "duplicate" | "api";
+            source: "create" | "autosave" | "manual" | "restore" | "template" | "import" | "duplicate" | "api" | "conflict" | "merge" | "recovered" | "synced";
             /** Format: int64 */
             version: number;
         };
@@ -22107,6 +22733,7 @@ export interface components {
             html: string;
             label: string;
             mjml: string;
+            name: string;
             preheader: string;
             /** Format: date-time */
             savedAt: string;
@@ -22115,13 +22742,17 @@ export interface components {
             /** Format: int64 */
             sizeBytes: number;
             /** @enum {string} */
-            source: "create" | "autosave" | "manual" | "restore" | "template" | "import" | "duplicate" | "api";
+            source: "create" | "autosave" | "manual" | "restore" | "template" | "import" | "duplicate" | "api" | "conflict" | "merge" | "recovered" | "synced";
             subject: string;
             /** Format: int64 */
             version: number;
         };
         ComposerVersionList: {
             items: components["schemas"]["ComposerVersion"][];
+            /** Format: int64 */
+            named: number;
+            /** Format: int64 */
+            nextBefore?: number;
             /** Format: int64 */
             total: number;
         };
@@ -28941,6 +29572,11 @@ export interface components {
             accent?: boolean;
             /** Format: int64 */
             h?: number;
+            /**
+             * @description What the part stands for; empty in thumbnails stored before kinds
+             * @enum {string}
+             */
+            kind?: "header" | "image" | "heading" | "text" | "button" | "footer";
             row?: components["schemas"]["MJMLThumbItem"][];
             /** Format: int64 */
             w?: number;
@@ -29013,6 +29649,8 @@ export interface components {
             /** Format: int64 */
             height: number;
             id: string;
+            /** @description The file as uploaded, when ReputeCast resized or compressed it or removed its metadata */
+            original?: components["schemas"]["MediaOriginal"];
             /** Format: int64 */
             sizeBytes: number;
             /** @description Root-relative URL; emails get the absolute public URL */
@@ -29022,6 +29660,16 @@ export interface components {
         };
         MediaAssetList: {
             items: components["schemas"]["MediaAsset"][];
+        };
+        MediaOriginal: {
+            /** @enum {string} */
+            contentType: "image/png" | "image/jpeg" | "image/gif";
+            /** Format: int64 */
+            height: number;
+            /** Format: int64 */
+            sizeBytes: number;
+            /** Format: int64 */
+            width: number;
         };
         MemberLanguage: {
             /**
@@ -29059,6 +29707,12 @@ export interface components {
             method?: string;
             /** @enum {string} */
             state: "on" | "off" | "idp" | "required";
+        };
+        MergedSection: {
+            /** Format: int64 */
+            index: number;
+            label: string;
+            mjml: string;
         };
         MoveEstimate: {
             /** Format: double */
@@ -34525,6 +35179,79 @@ export interface components {
         "Rename-passkeyRequest": {
             name: string;
         };
+        Render: {
+            /** Format: date-time */
+            completedAt?: string;
+            error?: string;
+            id: string;
+            /** Format: date-time */
+            requestedAt: string;
+            requestedBy: string;
+            results: components["schemas"]["RenderResult"][];
+            /** @enum {string} */
+            service: "litmus" | "mailgun_inspect";
+            /** @enum {string} */
+            status: "pending" | "done" | "failed";
+            /** @enum {string} */
+            variant: "A" | "B" | "C";
+            /**
+             * Format: int64
+             * @description The saved version rendered
+             */
+            version: number;
+        };
+        RenderClient: {
+            default: boolean;
+            id: string;
+            name: string;
+        };
+        RenderList: {
+            items: components["schemas"]["Render"][];
+        };
+        RenderResult: {
+            client: string;
+            /** @description The full screenshot, hosted by the service */
+            imageUrl?: string;
+            name: string;
+            /** @enum {string} */
+            status: "pending" | "done" | "failed";
+            thumbUrl?: string;
+        };
+        RenderingConnectInput: {
+            /** @description Write-only: sealed at rest and never returned */
+            apiKey: string;
+            /**
+             * @description Mailgun Inspect: the account's region (us by default)
+             * @enum {string}
+             */
+            region?: "us" | "eu";
+            /** @enum {string} */
+            service: "litmus" | "mailgun_inspect";
+        };
+        RenderingService: {
+            /** Format: date-time */
+            checkedAt?: string;
+            /** @description The email clients the account can render, as the service last listed them */
+            clients: components["schemas"]["RenderClient"][];
+            connected: boolean;
+            /** Format: date-time */
+            connectedAt?: string;
+            connectedBy?: string;
+            keyHint?: string;
+            lastError?: string;
+            /**
+             * @description Mailgun Inspect: the account's region
+             * @enum {string}
+             */
+            region?: "us" | "eu";
+            /** @enum {string} */
+            service?: "litmus" | "mailgun_inspect";
+            /**
+             * @description failing: the last call was refused or failed (lastError says why)
+             * @enum {string}
+             */
+            status?: "connected" | "failing";
+        };
         ReportABTest: {
             /** Format: double */
             barMax: number;
@@ -35534,6 +36261,13 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        ReviewCommentInput: {
+            body: string;
+            /** @description How the reviewer signs their comment */
+            name: string;
+            /** Format: uuid */
+            threadId?: string;
+        };
         ReviewHeld: {
             blocks: components["schemas"]["ReadinessCheck"][];
             /** Format: int64 */
@@ -35541,6 +36275,20 @@ export interface components {
             reason: string;
             /** Format: date-time */
             since: string;
+        };
+        ReviewPage: {
+            campaign: string;
+            /** Format: date-time */
+            expiresAt: string;
+            fromName: string;
+            html: string;
+            preheader: string;
+            sample: string;
+            subject: string;
+            threads: components["schemas"]["ComposerThread"][];
+            /** Format: int64 */
+            version: number;
+            workspace: string;
         };
         ReviewScheduled: {
             /** Format: date-time */
@@ -39838,6 +40586,36 @@ export interface components {
             questions?: components["schemas"]["SurveyQuestion"][];
             settings?: components["schemas"]["SurveySettings"];
             slug?: string;
+        };
+        SyncedBlock: {
+            /** @enum {string} */
+            kind: "header" | "footer";
+            /** @description One section or wrapper, marked rc-synced */
+            mjml: string;
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy: string;
+            uses: components["schemas"]["SyncedUses"];
+            /** Format: int64 */
+            version: number;
+        };
+        SyncedInput: {
+            /** @description One mj-section or mj-wrapper */
+            mjml: string;
+        };
+        SyncedSaved: {
+            applied: components["schemas"]["SyncedUses"];
+            block: components["schemas"]["SyncedBlock"];
+        };
+        SyncedUses: {
+            /** Format: int64 */
+            drafts: number;
+            /** Format: int64 */
+            held: number;
+            /** Format: int64 */
+            scheduled: number;
+            /** Format: int64 */
+            sent: number;
         };
         TOTPSetup: {
             account: string;
@@ -48495,6 +49273,78 @@ export interface operations {
             };
         };
     };
+    "get-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The token from the review link */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "X-Robots-Tag"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewPage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-review-comment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The token from the review link */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewCommentInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "X-Robots-Tag"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-setup": {
         parameters: {
             query?: never;
@@ -52369,6 +53219,147 @@ export interface operations {
             };
         };
     };
+    "get-brand-kit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandKit"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-brand-kit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrandKitInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandKit"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "import-brand-kit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrandKitImportInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandKitImport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-synced-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                kind: "header" | "footer";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncedInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncedSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-campaigns": {
         parameters: {
             query?: {
@@ -52940,6 +53931,112 @@ export interface operations {
             };
         };
     };
+    "list-campaign-comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerThreadList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-campaign-comment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComposerCommentInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resolve-campaign-comment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                threadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComposerResolveInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "save-campaign-content": {
         parameters: {
             query?: {
@@ -52968,6 +54065,75 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ComposerSavedContent"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "dismiss-campaign-warning": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComposerDismissInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerDismissal"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "undismiss-campaign-warning": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                dismissalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -53902,6 +55068,39 @@ export interface operations {
             };
         };
     };
+    "list-mentionable-members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerMemberList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-campaign-poll-test-answers": {
         parameters: {
             query?: never;
@@ -53992,6 +55191,74 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PollResultsList"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "campaign-presence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComposerPresenceInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerPresence"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "leave-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -54200,6 +55467,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReadinessRun"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-campaign-renders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RenderList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "render-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampaignRenderInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Render"];
                 };
             };
             /** @description Error */
@@ -54630,6 +55967,104 @@ export interface operations {
             };
         };
     };
+    "list-campaign-review-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerReviewLinkList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-campaign-review-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerReviewLink"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "revoke-campaign-review-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                linkId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "send-campaign": {
         parameters: {
             query?: never;
@@ -54774,6 +56209,10 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
+                /** @description List versions older than this version number (the next page) */
+                before?: number;
+                /** @description Named versions only */
+                named?: boolean;
             };
             header?: never;
             path: {
@@ -54826,6 +56265,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ComposerVersionDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "name-campaign-version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComposerNameVersion"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerVersion"];
                 };
             };
             /** @description Error */
@@ -67794,7 +69271,7 @@ export interface operations {
                 "multipart/form-data": {
                     /**
                      * Format: binary
-                     * @description PNG, JPEG or GIF, up to 5 MB
+                     * @description PNG or JPEG up to 20 MB, GIF up to 5 MB
                      */
                     file: string;
                 };
@@ -72856,6 +74333,136 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PushSite"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-rendering-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RenderingService"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-rendering-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenderingConnectInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RenderingService"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "disconnect-rendering-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-rendering-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RenderingService"];
                 };
             };
             /** @description Error */

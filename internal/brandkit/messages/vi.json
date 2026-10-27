@@ -1,0 +1,14 @@
+{
+  "problem.badColor": "Hãy dùng mã màu như #4338CA.",
+  "problem.badFallback": "Hãy chọn một phông chữ dự phòng an toàn cho email.",
+  "problem.badFontUrl": "Hãy dùng liên kết stylesheet https của phông web, kèm tên phông.",
+  "problem.badLogo": "Hình này không có trong thư viện của không gian làm việc. Hãy tải logo lên lại.",
+  "problem.oneSection": "Một khối đồng bộ là một phần: một mj-section hoặc một mj-wrapper.",
+  "problem.compile": "MJML của khối không biên dịch được: {error}",
+  "problem.needsUnsubscribe": "Chân trang cần có liên kết hủy đăng ký: mọi email chứa nó đều phải có liên kết này.",
+  "problem.notSaved": "Hãy lưu bộ nhận diện thương hiệu trước; Đầu trang và Chân trang đồng bộ được tạo từ đó.",
+  "problem.badWebsite": "Hãy nhập địa chỉ website, ví dụ acme.io.",
+  "problem.unreachable": "Không đọc được {site} ({reason}). Hãy kiểm tra địa chỉ rồi thử lại.",
+  "import.linkContrast": "{color} không được dùng cho liên kết. Màu này đạt {ratio}:1 trên nền trắng, dưới mức 4,5:1 mà chữ nhỏ cần. Liên kết dùng màu kế tiếp trên website của bạn.",
+  "import.svgLogo": "Logo trên {site} là tệp SVG, Gmail và Outlook không hiển thị được. Hãy tải lên bản PNG."
+}

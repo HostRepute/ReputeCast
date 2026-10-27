@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { ComposerPage } from '@/features/composer/ComposerPage'
 
 const search = z.object({
-  view: z.enum(['visual', 'mjml', 'html', 'preview', 'compare']).optional().catch(undefined),
+  view: z.enum(['visual', 'write', 'mjml', 'html', 'preview', 'compare']).optional().catch(undefined),
   /** A language version (its code, such as de); none is the source. */
   language: z
     .string()
@@ -19,7 +19,9 @@ const search = z.object({
     .optional()
     .catch(undefined),
   /** Panel to open with it: the inspector tab, and the left panel tab. */
-  panel: z.enum(['style', 'settings', 'deliverability', 'accessibility', 'web']).optional().catch(undefined),
+  panel: z.enum(['style', 'settings', 'deliverability', 'accessibility', 'web', 'comments']).optional().catch(undefined),
+  /** A comment thread to show with panel=comments (a mention's link). */
+  thread: z.string().uuid().optional().catch(undefined),
   left: z.enum(['blocks', 'layers', 'templates']).optional().catch(undefined),
 })
 

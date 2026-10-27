@@ -1,0 +1,12 @@
+{
+  "problem.unknownService": "Hãy chọn Litmus hoặc Mailgun Inspect.",
+  "problem.unknownClient": "{service} không có {client} cho tài khoản này. Hãy kiểm tra lại kết nối để cập nhật danh sách ứng dụng email.",
+  "problem.notConnected": "Không gian làm việc này chưa kết nối dịch vụ hiển thị nào.",
+  "problem.stillRunning": "Một lượt hiển thị của chiến dịch này vẫn đang chạy. Ảnh chụp sẽ hiện ra khi có.",
+  "problem.refused": "{service} từ chối khóa API. Hãy kiểm tra khóa trong tài khoản {service} của bạn rồi dán lại.",
+  "problem.unreachable": "Không kết nối được tới {service} ({reason}). Hãy thử lại sau một phút.",
+  "problem.failed": "{service} trả về lỗi (HTTP {status}). Hãy thử lại sau một phút.",
+  "render.gaveUp": "{service} không hoàn tất trong 15 phút. Hãy hiển thị lại để thử lần nữa.",
+  "render.disconnected": "{service} đã bị ngắt kết nối trước khi có ảnh chụp.",
+  "render.noScreenshots": "{service} không chụp được ứng dụng email nào."
+}

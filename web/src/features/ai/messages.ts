@@ -366,7 +366,7 @@ export const ms = defineMessages('ai.suggest', {
   newTab: '(opens in a new tab)',
   notConfiguredLead: "Subject ideas, rewrites, translations and alt text, with {workspace}'s own AI model. Nothing is sent anywhere until a model is connected, and then only what you ask about.",
   notConfiguredAsk: "{helpers} can connect one. You'll see the suggestions here as soon as they do.",
-  notConfiguredNobody: "Someone with integrations:manage can connect one. You'll see the suggestions here as soon as they do.",
+  notConfiguredNobody: "Someone who can manage integrations can connect one. You'll see the suggestions here as soon as they do.",
   usageDollars: "{model} · {spent} of {cap} this month. Sends only what you're working on, never contact data.",
   usageTokens: "{model} · {spent} of {cap} tokens this month. Sends only what you're working on, never contact data.",
   usageNoCap: "{model} · {spent} this month. Sends only what you're working on, never contact data.",
@@ -381,8 +381,8 @@ export const ms = defineMessages('ai.suggest', {
   altVersion: 'Alt text from an AI suggestion',
 
   // ── The Content Writer's banner, with the assistant ──────────────────
-  bannerAssist: '<b>{name} · {role}.</b> You can edit this campaign and use the assistant. Sending needs <mono>campaigns:send</mono>, so it goes out after {helpers} approve it.',
-  bannerAssistAlone: '<b>{name} · {role}.</b> You can edit this campaign and use the assistant. Sending needs <mono>campaigns:send</mono>, so it goes out after someone who holds it approves it.',
+  bannerAssist: '<b>{name} · {role}.</b> You can edit this campaign and use the assistant. Only people who can send campaigns can send it, so it goes out after {helpers} approve it.',
+  bannerAssistAlone: '<b>{name} · {role}.</b> You can edit this campaign and use the assistant. Only people who can send campaigns can send it, so it goes out after one of them approves it.',
 
   // ── The Assist menu (composer header) ────────────────────────────────
   assist: 'Assist',
@@ -408,9 +408,9 @@ export const ms = defineMessages('ai.suggest', {
   featureOff: 'Turned off for this workspace',
   noImageModel: "The model doesn't read images",
   keyRejectedMenu: "{provider} rejected the workspace's key. {helpers} can replace it in Settings › Integrations · AI assistant.",
-  keyRejectedMenuAlone: "{provider} rejected the workspace's key. Someone with integrations:manage can replace it in Settings › Integrations · AI assistant.",
+  keyRejectedMenuAlone: "{provider} rejected the workspace's key. Someone who can manage integrations can replace it in Settings › Integrations · AI assistant.",
   capMenu: "This month's AI budget is used up. AI features return on {date}, or {helpers} can raise the cap.",
-  capMenuAlone: "This month's AI budget is used up. AI features return on {date}, or someone with integrations:manage can raise the cap.",
+  capMenuAlone: "This month's AI budget is used up. AI features return on {date}, or someone who can manage integrations can raise the cap.",
 
   // ── Subject ideas ───────────────────────────────────────────────────
   ideas: 'Ideas',
@@ -431,7 +431,7 @@ export const ms = defineMessages('ai.suggest', {
   subjectVersion: 'Subject from an AI suggestion: “{subject}”',
   ideasNeed: "<b>Subject ideas need an AI model, connected with the workspace's own key.</b> <a>Connect a model</a>",
   ideasNeedAsk: "<b>Subject ideas need an AI model, connected with the workspace's own key.</b> {helpers} can connect one.",
-  ideasNeedNobody: "<b>Subject ideas need an AI model, connected with the workspace's own key.</b> Someone with integrations:manage can connect one.",
+  ideasNeedNobody: "<b>Subject ideas need an AI model, connected with the workspace's own key.</b> Someone who can manage integrations can connect one.",
 
   // ── Rewrite (the rich-text toolbar) ──────────────────────────────────
   rewriteActions: 'Rewrite with AI',

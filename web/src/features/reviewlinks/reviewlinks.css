@@ -1,0 +1,102 @@
+/* The page behind a review link (CO-10): the email, and comments beside it. */
+.rv-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 1023px) {
+  .rv-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.rv-mail {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(11, 18, 32, 0.12);
+}
+.rv-mail iframe {
+  border: 0;
+  display: block;
+  transform-origin: 0 0;
+}
+.rv-inbox {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 13px;
+}
+.rv-inbox dt {
+  color: var(--ink-3);
+}
+.rv-inbox dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.rv-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+.rv-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rv-form textarea.in {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 9px;
+  resize: vertical;
+  line-height: 1.45;
+}
+.rv-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-2);
+}
+.rv-c {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rv-c.reply {
+  padding-left: 12px;
+  border-left: 2px solid var(--line-2);
+}
+.rv-ch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.rv-ch b {
+  font-weight: 600;
+}
+.rv-tx {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .rv-side .btn,
+  .rv-thread .btn {
+    min-height: 44px;
+  }
+}

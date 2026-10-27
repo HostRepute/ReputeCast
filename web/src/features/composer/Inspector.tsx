@@ -40,6 +40,9 @@ import { FillFromProduct } from '@/features/products/composer'
 import { FillFromStore, StoreBlockStyle, storeSectionOf } from '@/features/commerce/composer'
 import { t as tt, useT, type MessageDescriptor } from '@/i18n'
 import { mi } from './inspector.messages'
+import { mh } from './chrome.messages'
+import { ToolIcon } from './icons'
+import { useCampaignLanguages } from '@/features/languages/composer'
 
 /** A text input that edits a draft and commits on Enter or blur (one undo step per edit). */
 function DraftInput({
@@ -436,10 +439,219 @@ export function describe(c: Component, tab: 'style' | 'settings'): string {
   return tt(mi.descElement, { element: sectionWord(tag.replace('mj-', '')), section: sectionPhrase(sec) })
 }
 
+/** Spacing presets of a section (Composer board): px above and below, and at the sides. */
+const SPACING = { S: [8, 24], M: [16, 24], L: [32, 24] } as const
+type Spacing = keyof typeof SPACING
+
+function SpacingProp({ c }: { c: Component }) {
+  const t = useT()
+  const head = useHead()
+  const id = useId()
+  const [top, right, bottom, left] = effectiveBox(c, 'padding', head).map((v) => Number(pxNumber(v)) || 0)
+  const current = (Object.keys(SPACING) as Spacing[]).find((k) => top === SPACING[k][0] && bottom === SPACING[k][0] && left === SPACING[k][1] && right === SPACING[k][1])
+  const same = top === bottom && left === right
+  return (
+    <Prop title={t(mh.spacing)} id={id}>
+      <div className="seg3">
+        {(Object.keys(SPACING) as Spacing[]).map((k) => (
+          <button key={k} type="button" aria-pressed={current === k} onClick={() => setAttr(c, 'padding', `${SPACING[k][0]}px ${SPACING[k][1]}px`)}>
+            {k}
+          </button>
+        ))}
+      </div>
+      <span className="k">{same ? t(mh.spacingHint, { v: top, h: left }) : t(mh.spacingCustom, { padding: `${top} ${right} ${bottom} ${left}` })}</span>
+    </Prop>
+  )
+}
+
+/** White, grey or the brand's tint, or an image (Composer board). */
+const BACKGROUNDS = [
+  { key: 'white', colour: '#FFFFFF', msg: mh.bgWhite },
+  { key: 'grey', colour: '#F3F4F6', msg: mh.bgGrey },
+  { key: 'tint', colour: '#F0FDFA', msg: mh.bgTint },
+] as const
+
+function BackgroundPresetProp({ c }: { c: Component }) {
+  const t = useT()
+  const head = useHead()
+  const id = useId()
+  const { openDialog, setAssetTarget } = useComposer()
+  const value = (effective(c, 'background-color', head) || '').toUpperCase()
+  const image = ownAttrs(c)['background-url']
+  const known = BACKGROUNDS.some((b) => b.colour === value)
+  return (
+    <Prop title={t(mh.background)} id={id}>
+      <div className="bgr">
+        {BACKGROUNDS.map((b) => (
+          <button key={b.key} type="button" className="bgp" aria-pressed={!image && value === b.colour} onClick={() => {
+            setAttr(c, 'background-color', b.colour)
+            if (image) setAttr(c, 'background-url', '')
+          }}>
+            <span className="chip" style={{ background: b.colour }} aria-hidden="true" />
+            {t(b.msg)}
+          </button>
+        ))}
+        <button
+          type="button"
+          className="bgp"
+          aria-pressed={Boolean(image)}
+          onClick={() => {
+            setAssetTarget({ component: c, attr: 'background-url' })
+            openDialog('assets')
+          }}
+        >
+          {t(mh.bgImage)}
+        </button>
+      </div>
+      {!known && value && !image ? <span className="k">{t(mh.bgOther, { colour: value })}</span> : null}
+    </Prop>
+  )
+}
+
+function AlignmentSegProp({ c, k = 'text-align' }: { c: Component; k?: string }) {
+  const t = useT()
+  const head = useHead()
+  const id = useId()
+  const value = effective(c, k, head) || 'left'
+  const items = [
+    { v: 'left', icon: 'alignLeft', label: t(mh.left) },
+    { v: 'center', icon: 'alignCenter', label: t(mh.center) },
+    { v: 'right', icon: 'alignRight', label: t(mh.right) },
+  ]
+  return (
+    <Prop title={t(mh.alignment)} id={id}>
+      <div className="seg3">
+        {items.map((it) => (
+          <button key={it.v} type="button" aria-pressed={value === it.v} onClick={() => setAttr(c, k, it.v)}>
+            <ToolIcon name={it.icon} size={14} strokeWidth={1.6} />
+            {it.label}
+          </button>
+        ))}
+      </div>
+    </Prop>
+  )
+}
+
+/** Column presets of a two-column section: 50/50, 60/40, 40/60 (Composer board). */
+const SPLITS = [
+  [50, 50],
+  [60, 40],
+  [40, 60],
+] as const
+
+function ColumnsPresetProp({ section }: { section: Component }) {
+  const t = useT()
+  const id = useId()
+  const cols = columnsOf(section)
+  if (cols.length !== 2) return null
+  const widths = cols.map((col) => Math.round(parseFloat(columnWidth(col)) || 50))
+  return (
+    <Prop title={t(mh.columns)} id={id}>
+      <div className="colp">
+        {SPLITS.map(([a, b]) => (
+          <button
+            key={`${a}-${b}`}
+            type="button"
+            aria-pressed={widths[0] === a && widths[1] === b}
+            onClick={() => {
+              setAttr(cols[0]!, 'width', `${a}%`)
+              setAttr(cols[1]!, 'width', `${b}%`)
+            }}
+          >
+            <span className="bars" aria-hidden="true">
+              <i style={{ flex: a }} />
+              <i style={{ flex: b }} />
+            </span>
+            {a}/{b}
+          </button>
+        ))}
+      </div>
+      <span className="k">{t(mh.columnsStack)}</span>
+    </Prop>
+  )
+}
+
+/** The section's body text size: Small, Body or Large, in its font (Composer board). */
+function TextStylePresetProp({ section }: { section: Component }) {
+  const t = useT()
+  const head = useHead()
+  const id = useId()
+  const texts = descendants(section, 'mj-text')
+  if (!texts.length) return null
+  const sample = bodyText(texts)
+  const font = fontLabel(effective(sample, 'font-family', head) || head.tags['mj-all']?.['font-family'] || '')
+  const size = Number(pxNumber(effective(sample, 'font-size', head))) || 13
+  // Fixed sizes, as the board names them; another size shows as it is.
+  const options = [
+    { value: '14', label: t(mh.textBody, { font, size: 14 }) },
+    { value: '13', label: t(mh.textSmall, { font, size: 13 }) },
+    { value: '16', label: t(mh.textLarge, { font, size: 16 }) },
+  ]
+  if (![13, 14, 16].includes(size)) options.unshift({ value: String(size), label: t(mh.textCustom, { font, size }) })
+  return (
+    <Prop title={t(mh.textStyle)} id={id}>
+      <SelectField
+        label={t(mh.textStyle)}
+        value={String(size)}
+        options={options}
+        onChange={(v) => {
+          for (const x of texts) {
+            // Headings keep their own size; body copy follows the choice.
+            if (x === sample || Number(pxNumber(effective(x, 'font-size', head))) === size) setAttr(x, 'font-size', `${v}px`)
+          }
+        }}
+      />
+    </Prop>
+  )
+}
+
+/** "padding 16 24 16 24 · no border · radius 0": what Advanced holds, closed. */
+function advancedSummary(c: Component, head: HeadDefaults): string {
+  const box = effectiveBox(c, 'padding', head).map((v) => pxNumber(v)).join(' ')
+  const b = parseBorder(effective(c, 'border', head))
+  const radius = pxNumber(effective(c, 'border-radius', head) || '0')
+  return tt(mh.advSummary, { padding: box, border: b.style === 'none' || !b.style ? 'none' : `${pxNumber(b.width)} ${b.style}`, radius })
+}
+
+/** Advanced (MJML attributes): the attributes behind the presets, in a disclosure. */
+function Advanced({ c, children }: { c: Component; children: ReactNode }) {
+  const t = useT()
+  const head = useHead()
+  return (
+    <details className="adv">
+      <summary>
+        <span className="font-semibold">{t(mh.advanced)}</span>
+        <span className="k">{advancedSummary(c, head)}</span>
+      </summary>
+      <div className="adv-b">{children}</div>
+    </details>
+  )
+}
+
+/** The campaign's language versions (internal/languages), source included. */
+function useLanguageCount(campaignId: string): number {
+  const q = useCampaignLanguages(campaignId)
+  return (q.data?.versions ?? []).filter((v) => v.status !== 'missing').length
+}
+
+function SharedStyleCount({ campaignId }: { campaignId: string }) {
+  const t = useT()
+  const n = useLanguageCount(campaignId)
+  return n > 1 ? <p className="k m-0 px-3 pt-2">{t(mh.sharedStyle, { count: n })}</p> : null
+}
+
+/** "Style is shared by all 3 language versions." when the campaign has language versions. */
+function SharedStyleNote() {
+  const c = useComposer()
+  return c.kind === 'transactional' ? null : <SharedStyleCount campaignId={c.campaign.id} />
+}
+
 export function StyleFields({ c }: { c: Component }) {
   const t = useT()
   const tag = tagOf(c)
   const head = useHead()
+  // The transactional editor keeps the MJML attributes (its boards predate the presets).
+  const transactional = useComposer().kind === 'transactional'
   // A store's Product grid or card (X20): its settings, wherever in it the selection is.
   const store = storeSectionOf(c)
   if (store) return <StoreBlockStyle key={store.cid} section={store} />
@@ -454,16 +666,38 @@ export function StyleFields({ c }: { c: Component }) {
     case 'mj-section':
     case 'mj-wrapper': {
       const texts = descendants(c, 'mj-text')
+      if (transactional) {
+        return (
+          <>
+            <BackgroundProp c={c} image />
+            <PaddingProp c={c} />
+            <AlignProp c={c} k="text-align" />
+            {tag === 'mj-section' ? <ColumnWidthsProp section={c} /> : null}
+            <BorderProp c={c} />
+            <TextProp c={c} k="border-radius" title={t(mi.borderRadius)} px />
+            {texts.length ? <TypographyProp targets={texts} sample={bodyText(texts)} title={t(mi.typographyInherited)} /> : null}
+          </>
+        )
+      }
+      // Writer-friendly first (CO-14, Composer board); the attributes in Advanced.
       return (
         <>
+          <SharedStyleNote />
           {tag === 'mj-section' ? <FillFromStore section={c} /> : null}
-          <BackgroundProp c={c} image />
-          <PaddingProp c={c} />
-          <AlignProp c={c} k="text-align" />
-          {tag === 'mj-section' ? <ColumnWidthsProp section={c} /> : null}
-          <BorderProp c={c} />
-          <TextProp c={c} k="border-radius" title={t(mi.borderRadius)} px />
-          {texts.length ? <TypographyProp targets={texts} sample={bodyText(texts)} title={t(mi.typographyInherited)} /> : null}
+          <SpacingProp c={c} />
+          <BackgroundPresetProp c={c} />
+          <AlignmentSegProp c={c} />
+          {tag === 'mj-section' ? <ColumnsPresetProp section={c} /> : null}
+          <TextStylePresetProp section={c} />
+          <Advanced c={c}>
+            <PaddingProp c={c} title={t(mh.advPadding, { tag })} />
+            <BackgroundProp c={c} image title={t(mh.advBackground, { tag })} />
+            {tag === 'mj-section' ? <ColumnWidthsProp section={c} /> : null}
+            <BorderProp c={c} />
+            <TextProp c={c} k="border-radius" title={t(mi.borderRadius)} px />
+            <TextProp c={c} k="mj-class" title={t(mh.mjClass)} mono placeholder={t(mh.mjClassNone)} />
+            {texts.length ? <TypographyProp targets={texts} sample={bodyText(texts)} title={t(mi.typographyInherited)} /> : null}
+          </Advanced>
         </>
       )
     }

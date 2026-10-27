@@ -40,10 +40,19 @@ type recipient struct {
 
 // compiledHTML returns the template's HTML: what the editor compiled, or
 // the MJML compiled on the server (gomjml) with the subject and preheader
-// in its head.
+// in its head. The editor's HTML is used only when it shows and does what
+// the MJML says (links, images, text, conditional markers; composer review
+// CO-3); otherwise the server's own compile is.
 func (c content) compiledHTML() (string, error) {
 	if strings.TrimSpace(c.HTML) != "" {
-		return c.HTML, nil
+		if strings.TrimSpace(c.MJML) == "" {
+			return c.HTML, nil
+		}
+		html, _, errs := mjml.Checked(c.MJML, c.HTML)
+		if errs != nil {
+			return "", &mjmlError{detail: errs[0].Message}
+		}
+		return html, nil
 	}
 	if strings.TrimSpace(c.MJML) == "" {
 		return "", nil

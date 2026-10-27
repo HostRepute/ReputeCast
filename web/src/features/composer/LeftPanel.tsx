@@ -1,11 +1,14 @@
 import type { Component } from 'grapesjs'
-import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from 'react'
 import { $api, errorMessage, http } from '@/api/client'
 import { Dialog } from '@/components/ui/Dialog'
 import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
 import { useComposer } from './context'
 import { blockDefs, type BlockDef } from './editor/blocks'
+import { applyBrand } from './editor/brand'
+import { syncedBlockDefs, useBrandKit } from './BrandKit'
+import { focusCanvas } from './editor/keys'
 import { blockAdded, blockContent, componentLabel, mjChildren, sectionOf, tagOf } from './editor/labels'
 import { BlockIcon, ToolIcon } from './icons'
 import { Thumb } from './Thumb'
@@ -16,12 +19,17 @@ import { AddToAgencyLibrary } from '@/features/agency/ComposerLibrary'
 import { PollBlockHint } from '@/features/polls/Block'
 import { GrowBlocksNote, OpenGrowLink } from '@/features/grow/composer/Panel'
 import { mb as growMessages } from '@/features/grow/composer/messages'
-import { t as tt, useT } from '@/i18n'
+import { T, t as tt, useT } from '@/i18n'
 import { useStoreBlockDefs } from '@/features/commerce/composer'
 import { mc } from './canvas.messages'
 import { m } from './messages'
 
-type BlocksAPI = { startDrag(b: unknown, ev?: Event): void; endDrag(cancel?: boolean): void; get(id: string): unknown; add(id: string, p: Record<string, unknown>): unknown }
+type BlocksAPI = {
+  startDrag(b: unknown, ev?: Event): void
+  endDrag(cancel?: boolean): void
+  get(id: string): { get(key: string): unknown; set(key: string, value: unknown): unknown } | null | undefined
+  add(id: string, p: Record<string, unknown>): unknown
+}
 
 function blocksApi(editor: NonNullable<ReturnType<typeof useComposer>['editor']>): BlocksAPI {
   return editor.Blocks as unknown as BlocksAPI
@@ -97,13 +105,20 @@ function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSe
   const sections = $api.useQuery('get', '/api/v1/workspaces/{workspace}/templates', { params: { path: { workspace: c.slug } } }, { staleTime: 60_000 })
   // The Product grid joins the ReputeCast blocks once a store is connected (X20).
   const storeDefs = useStoreBlockDefs(!blocks && c.kind !== 'transactional')
-  const defs = useMemo(() => [...(blocks ?? blockDefs(c.context.postalAddress)), ...storeDefs], [blocks, c.context.postalAddress, storeDefs])
+  // The brand kit: its synced Header and Footer, and its style on new blocks (CO-11).
+  const kit = useBrandKit().data
+  const defs = useMemo(
+    () => [...syncedBlockDefs(blocks ? undefined : kit, t), ...(blocks ?? blockDefs(c.context.postalAddress)).map((d) => ({ ...d, content: applyBrand(d.content, kit) })), ...storeDefs],
+    [blocks, c.context.postalAddress, storeDefs, kit, t],
+  )
   useEffect(() => {
     if (!c.editor) return
     const api = blocksApi(c.editor)
     for (const d of defs) {
       // A drop selects in blockAdded (after the marker is back), not here.
-      if (!api.get(d.id)) api.add(d.id, { label: d.label, content: d.content, category: d.group, select: false, activate: false })
+      const have = api.get(d.id)
+      if (!have) api.add(d.id, { label: d.label, content: d.content, category: d.group, select: false, activate: false })
+      else if (have.get('content') !== d.content) have.set('content', d.content)
     }
   }, [c.editor, defs])
   useEffect(() => {
@@ -150,6 +165,7 @@ function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSe
       <div style={{ padding: '8px 12px' }}>
         <input aria-label={t(mc.searchBlocks)} className="in w-full" placeholder={t(mc.searchBlocks)} value={q} onChange={(e) => setQ(e.target.value)} type="search" />
       </div>
+      {c.canEdit && c.kind !== 'transactional' ? <p className="k m-0 blk-tip">{t(mc.blocksHint)}</p> : null}
       {groups.map((g) => {
         const items = defs.filter((d) => d.group === g.key && match(d))
         const pollHint = g.key === 'reputecast' && items.some((d) => d.id === 'rc-poll')
@@ -206,10 +222,35 @@ function hiddenTag(c: Component): string {
   return ''
 }
 
-function LayersTab() {
+/** A row of the layer tree: a component, or the head (edited in the code view). */
+interface LayerRow {
+  key: string
+  comp?: Component
+  depth: number
+  /** How many rows it holds (the root also holds the head). */
+  kids: number
+  open: boolean
+  /** Key of the row it sits under. */
+  parent?: string
+  /** Position among its siblings, and their number (aria-posinset, aria-setsize). */
+  pos: number
+  size: number
+}
+
+/**
+ * The layer tree (CO-8), a tree in the ARIA sense: one row takes the Tab
+ * key, ↑ ↓ move between rows, → opens a row (or goes into an open one),
+ * ← closes it (or goes up to its parent), Home and End go to the first and
+ * last row, and Enter selects the row's element on the email and moves the
+ * keyboard there (Enter then edits a text, Esc selects the parent). Space
+ * selects without leaving the tree.
+ */
+export function LayersTab() {
   const c = useComposer()
   const t = useT()
   const [open, setOpen] = useState<Set<string>>(() => new Set())
+  const [active, setActive] = useState<string | null>(null)
+  const rowEls = useRef(new Map<string, HTMLDivElement>())
   const root = c.editor?.getWrapper()?.components().filter((x: Component) => tagOf(x) === 'mjml')[0]
   // The selection and its ancestors are open.
   const auto = new Set<string>()
@@ -224,68 +265,145 @@ function LayersTab() {
     if (body) auto.add(body.cid)
   }
   const isOpen = (x: Component) => (open.has(x.cid) ? true : open.has(`-${x.cid}`) ? false : auto.has(x.cid))
-  const toggle = (x: Component) =>
+  const setOpenRow = (x: Component, value: boolean) =>
     setOpen((s) => {
       const n = new Set(s)
-      const was = isOpen(x)
       n.delete(x.cid)
       n.delete(`-${x.cid}`)
-      n.add(was ? `-${x.cid}` : x.cid)
+      n.add(value ? x.cid : `-${x.cid}`)
       return n
     })
+  const toggle = (x: Component) => setOpenRow(x, !isOpen(x))
   if (!root) return <p className="k p-3">{t(mc.layersEmpty)}</p>
-  const rows: ReactNode[] = []
-  const render = (x: Component, depth: number) => {
+
+  const rows: LayerRow[] = []
+  const walk = (x: Component, depth: number, parent: string | undefined, pos: number, size: number) => {
     const kids = mjChildren(x)
-    const o = isOpen(x)
-    const tag = tagOf(x)
-    rows.push(
-      <div key={x.cid} role="treeitem" aria-level={depth + 1} aria-expanded={kids.length ? o : undefined} aria-selected={c.selected === x}>
-        <button
-          type="button"
-          className={`lay${c.selected === x ? ' on' : ''}`}
-          style={{ paddingLeft: 8 + depth * 16 }}
-          onClick={(e) => {
-            if (kids.length && (e.target as HTMLElement).closest('[data-twisty]')) {
-              toggle(x)
-              return
-            }
-            if (tag === 'mjml') {
-              toggle(x)
-              return
-            }
-            c.editor?.select(x)
-            x.getEl()?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-          }}
-          onDoubleClick={() => kids.length && toggle(x)}
-          onMouseEnter={() => (c.editor as unknown as { setHovered?: (c: Component) => void })?.setHovered?.(x)}
-        >
-          <span data-twisty className="inline-flex">
-            <ToolIcon name={layerIcon(tag, o, kids.length > 0)} size={14} strokeWidth={1.6} />
-          </span>
-          <span className="lay-name">{componentLabel(x)}</span>
-          <LayerMark c={x} />
-          {hiddenTag(x) ? <span className="lay-tag">{hiddenTag(x)}</span> : null}
-        </button>
-      </div>,
-    )
-    if (tag === 'mjml' && o) {
-      rows.push(
-        <div key="head" role="treeitem" aria-level={depth + 2} aria-selected={false}>
-          <button type="button" className="lay" style={{ paddingLeft: 8 + (depth + 1) * 16 }} onClick={() => c.setView('mjml')} title={t(mc.headTitle)}>
-            <ToolIcon name="chevronRight" size={14} strokeWidth={1.6} />
-            {'mj-head'}
-          </button>
-        </div>,
-      )
-    }
-    if (o) kids.forEach((k) => render(k, depth + 1))
+    // The root holds the head first (it is edited in the code view).
+    const head = tagOf(x) === 'mjml' ? 1 : 0
+    const o = kids.length + head > 0 && isOpen(x)
+    rows.push({ key: x.cid, comp: x, depth, kids: kids.length + head, open: o, parent, pos, size })
+    if (!o) return
+    if (head) rows.push({ key: 'head', depth: depth + 1, kids: 0, open: false, parent: x.cid, pos: 1, size: kids.length + 1 })
+    kids.forEach((k, i) => walk(k, depth + 1, x.cid, i + 1 + head, kids.length + head))
   }
-  render(root, 0)
+  walk(root, 0, undefined, 1, 1)
+  // The row that takes the Tab key: the one last focused, or the selection, or the first.
+  const tabRow = rows.find((r) => r.key === active) ?? rows.find((r) => r.comp !== undefined && r.comp === c.selected) ?? rows[0]!
+
+  const focusRow = (key: string | undefined) => {
+    if (!key) return
+    setActive(key)
+    rowEls.current.get(key)?.focus()
+  }
+  const pick = (row: LayerRow, toCanvas: boolean) => {
+    setActive(row.key)
+    if (!row.comp) {
+      c.setView('mjml')
+      return
+    }
+    const x = row.comp
+    if (tagOf(x) === 'mjml') {
+      toggle(x)
+      return
+    }
+    c.editor?.select(x)
+    x.getEl()?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    if (toCanvas && c.editor) focusCanvas(c.editor)
+  }
+  const onKey = (e: KeyboardEvent<HTMLDivElement>, row: LayerRow) => {
+    const i = rows.indexOf(row)
+    switch (e.key) {
+      case 'ArrowDown':
+        focusRow(rows[i + 1]?.key)
+        break
+      case 'ArrowUp':
+        focusRow(rows[i - 1]?.key)
+        break
+      case 'Home':
+        focusRow(rows[0]?.key)
+        break
+      case 'End':
+        focusRow(rows[rows.length - 1]?.key)
+        break
+      case 'ArrowRight':
+        if (row.kids && row.comp) {
+          if (!row.open) setOpenRow(row.comp, true)
+          else focusRow(rows[i + 1]?.key)
+        }
+        break
+      case 'ArrowLeft':
+        if (row.kids && row.open && row.comp) setOpenRow(row.comp, false)
+        else focusRow(row.parent)
+        break
+      case 'Enter':
+        pick(row, true)
+        break
+      case ' ':
+        pick(row, false)
+        break
+      default:
+        return
+    }
+    e.preventDefault()
+  }
   return (
     <>
-      <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 1 }} role="tree" aria-label={t(mc.layerTree)}>
-        {rows}
+      <p className="k lay-help">
+        <T msg={mc.layersHelp} values={{ k: (chunks) => <kbd>{chunks}</kbd> }} />
+      </p>
+      <div className="lay-tree" role="tree" aria-label={t(mc.layerTree)}>
+        {rows.map((row) => {
+          const x = row.comp
+          const on = x !== undefined && c.selected === x
+          return (
+            <div
+              key={row.key}
+              ref={(el) => {
+                if (el) rowEls.current.set(row.key, el)
+                else rowEls.current.delete(row.key)
+              }}
+              role="treeitem"
+              tabIndex={row === tabRow ? 0 : -1}
+              aria-level={row.depth + 1}
+              aria-posinset={row.pos}
+              aria-setsize={row.size}
+              aria-expanded={row.kids ? row.open : undefined}
+              aria-selected={on}
+              className={`lay${on ? ' on' : ''}`}
+              style={{ paddingLeft: 8 + row.depth * 16 }}
+              title={x ? undefined : t(mc.headTitle)}
+              onKeyDown={(e) => onKey(e, row)}
+              onFocus={() => setActive(row.key)}
+              onClick={(e) => {
+                if (x && row.kids && (e.target as HTMLElement).closest('[data-twisty]')) {
+                  setActive(row.key)
+                  toggle(x)
+                  return
+                }
+                pick(row, false)
+              }}
+              onDoubleClick={() => x && row.kids && toggle(x)}
+              onMouseEnter={() => x && (c.editor as unknown as { setHovered?: (c: Component) => void })?.setHovered?.(x)}
+            >
+              {x ? (
+                <>
+                  <span data-twisty className="inline-flex">
+                    <ToolIcon name={layerIcon(tagOf(x), row.open, row.kids > 0)} size={14} strokeWidth={1.6} />
+                  </span>
+                  <span className="lay-name">{componentLabel(x)}</span>
+                  <LayerMark c={x} />
+                  {hiddenTag(x) ? <span className="lay-tag">{hiddenTag(x)}</span> : null}
+                </>
+              ) : (
+                <>
+                  <ToolIcon name="chevronRight" size={14} strokeWidth={1.6} />
+                  {'mj-head'}
+                </>
+              )}
+            </div>
+          )
+        })}
       </div>
       <LayersNote />
     </>
