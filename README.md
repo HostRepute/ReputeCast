@@ -33,8 +33,11 @@ seat or workspace limit.
 
 - **Send Readiness.** Every campaign gets a verdict before it goes out (Ready,
   Ready with warnings or Blocked), with evidence and a fix for each finding:
-  blocklists, SPF/DKIM/DMARC, content, links, Gmail and Yahoo bulk-sender
-  rules, audience quality and routing.
+  blocklists (link domains looked up live), SPF/DKIM/DMARC, content, every
+  A/B variant, Liquid, Gmail and Yahoo bulk-sender rules, your workspace's
+  own sending rules, audience quality and routing, with estimates the
+  sending engine keeps. A scheduled send is checked again when it starts,
+  and a placement test runs from the same screen.
 - **Guarded sending.** Live progress per mailbox provider and per sending
   provider, with an ETA for each. The whole send, one mailbox provider or
   one route pauses or slows down when bounces (by type), deferrals or

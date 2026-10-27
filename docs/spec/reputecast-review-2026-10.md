@@ -27,7 +27,7 @@ What M33 built for the others to use:
 - **F-5** `internal/sending/sendtest`: `Suite`, `Fixture`, `ContactSpec` (with `Unclassified` for MX classification), `StartSend`, `Drive`, `Dump`.
 - **GS-5 / PR-7 groundwork** `state.Vet`: one target vetting (available, bulk terms, sandbox, sender domain, quota, warm-up) used by a person's move, the guard's automatic move and the failover while an audience is built, and returned with its sentences (EN, VI) on the provider outage card's alternatives (`checks`, `allowed`). M34 and M35 build their screens and the health job's checks on it.
 
-## Send Readiness (M36) 🚧
+## Send Readiness (M36) ✅
 
 | ID | What | Done when |
 |---|---|---|
