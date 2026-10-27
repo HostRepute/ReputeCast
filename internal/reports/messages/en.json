@@ -27,6 +27,7 @@
 
   "problem.nothingToShare": "There's nothing to share yet: {campaign} hasn't been sent. Share its report once results come in.",
   "problem.tooManyLinks": "This report already has 10 active links. Revoke one you no longer need, then create a new one.",
+  "problem.shareDays": "A read-only link can work for 1 to 90 days. Choose a number of days in that range, or leave it out for 30 days.",
   "problem.sharedRateLimited": "Too many requests for shared reports from your network. Wait a minute and reload.",
   "problem.sharedGone": "This link doesn't work. It may have been revoked, or it expired. Ask the person who shared it for a new one.",
   "problem.unknownBounceType": "Unknown bounce type.",

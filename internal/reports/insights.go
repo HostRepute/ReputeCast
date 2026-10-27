@@ -34,6 +34,10 @@ type ReportInsight struct {
 	Link string `json:"link,omitempty"`
 	// Position is the link's position on the click map (show_link).
 	Position *int `json:"position,omitempty"`
+	// detailNoWarmup is Detail without the sending provider's warm-up day,
+	// for a read-only link that doesn't share the warm-up state (leaveOut);
+	// empty when Detail doesn't mention it.
+	detailNoWarmup string
 }
 
 // Outside tools the insights open.
@@ -95,7 +99,12 @@ func (s *Service) insights(ctx context.Context, l i18n.Lang, ws *store.Workspace
 		if len(top.Ips) == 1 {
 			ip = top.Ips[0]
 		}
-		in.Detail = mInsightBlockedDetail.Text(l, i18n.Args{"all": yesNo(top.N == total), "n": total, "count": formatCount(l, total), "provider": short, "ip": ip, "day": day})
+		detail := i18n.Args{"all": yesNo(top.N == total), "n": total, "count": formatCount(l, total), "provider": short, "ip": ip, "day": day}
+		in.Detail = mInsightBlockedDetail.Text(l, detail)
+		if day != "none" {
+			detail["day"] = "none"
+			in.detailNoWarmup = mInsightBlockedDetail.Text(l, detail)
+		}
 		ins = append(ins, in)
 	}
 	// A mailbox provider bouncing far more than the others.

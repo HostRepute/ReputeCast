@@ -13,8 +13,9 @@ import (
 )
 
 // TestShareCampaignReportTool: an agent holding reports:share makes a
-// read-only link that shares what it chose and expires when it said; an
-// agent without the permission is denied (review AN-14, AN-16).
+// read-only link that shares what it chose and expires when it said, never
+// past 90 days; an agent without the permission is denied (review AN-14,
+// AN-16).
 func TestShareCampaignReportTool(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
@@ -42,7 +43,8 @@ func TestShareCampaignReportTool(t *testing.T) {
 		return res
 	}
 
-	res := share(agent("Sharer", "reports:view", "reports:share", "campaigns:view"))
+	sharer := agent("Sharer", "reports:view", "reports:share", "campaigns:view")
+	res := share(sharer)
 	if res.IsError {
 		t.Fatalf("share: %s", text(res))
 	}
@@ -67,6 +69,23 @@ func TestShareCampaignReportTool(t *testing.T) {
 	env.Client().Do("GET", "/shared-reports/"+token, nil).MustStatus(t, 200).JSON(t, &shared)
 	if !shared.Includes.Email || shared.Report.ClickMap.HTML == "" || len(shared.Report.Providers.Columns) == 0 || shared.Report.Providers.Columns[0].Cost != nil {
 		t.Fatalf("shared: %+v", shared)
+	}
+
+	// No link outlives 90 days, whoever makes it: an agent asking for a
+	// 100-year link gets why instead.
+	for _, days := range []int{36500, 91, -1} {
+		res, err := sharer.CallTool(ctx, &mcp.CallToolParams{Name: "share_campaign_report",
+			Arguments: map[string]any{"campaign": "October Product Update", "expires_in_days": days}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !res.IsError || !strings.Contains(text(res), "1 to 90 days") {
+			t.Fatalf("a %d-day link: %s", days, text(res))
+		}
+	}
+	var longer int
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM report_shares WHERE expires_at IS NULL OR expires_at > now() + interval '90 days 1 hour'`).Scan(&longer); err != nil || longer != 0 {
+		t.Fatalf("links past 90 days: %d, %v", longer, err)
 	}
 
 	// Reading reports isn't sharing them.

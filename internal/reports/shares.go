@@ -37,8 +37,15 @@ func newShareToken() (string, error) {
 func sealAD(id uuid.UUID) string { return "report_share:" + id.String() + ":token" }
 
 // DefaultShareDays is how long a read-only link works unless the person
-// who makes it chooses otherwise (review AN-16).
-const DefaultShareDays = 30
+// who makes it chooses otherwise, and MaxShareDays the longest they can
+// choose (review AN-16).
+const (
+	DefaultShareDays = 30
+	MaxShareDays     = 90
+)
+
+// mShareDays is the problem of a link asked to work outside 1 to 90 days.
+var mShareDays = msgs.M("problem.shareDays")
 
 // ShareInput creates a read-only link. The numbers, charts and tables are
 // always in; the cost per provider, the warm-up state and the email itself
@@ -56,6 +63,15 @@ type ShareInput struct {
 
 // CreateShare makes a read-only link to a campaign's report.
 func (s *Service) CreateShare(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID, in ShareInput) (ReportShareLink, error) {
+	days := in.ExpiresInDays
+	if days == 0 {
+		days = DefaultShareDays
+	}
+	// The API's schema holds the days to 1–90; agents (MCP) and other
+	// callers come here without it, and a link mustn't outlive the limit.
+	if days < 1 || days > MaxShareDays {
+		return ReportShareLink{}, api.Invalid("body.expiresInDays", mShareDays.Text(i18n.LangFrom(ctx), nil))
+	}
 	c, err := s.Q.ReportCampaign(ctx, store.ReportCampaignParams{WorkspaceID: ws.ID, ID: campaignID})
 	if err != nil {
 		return ReportShareLink{}, api.MapError(err, "Campaign")
@@ -79,10 +95,6 @@ func (s *Service) CreateShare(ctx context.Context, ws *store.Workspace, campaign
 	sealed, err := s.Box.SealString(token, sealAD(id))
 	if err != nil {
 		return ReportShareLink{}, err
-	}
-	days := in.ExpiresInDays
-	if days <= 0 {
-		days = DefaultShareDays
 	}
 	t := now.Add(time.Duration(days) * 24 * time.Hour)
 	expires := &t
@@ -210,7 +222,8 @@ func (s *Service) Shared(ctx context.Context, token, client string) (SharedCampa
 }
 
 // leaveOut removes what a link doesn't share: the cost per provider, the
-// warm-up state, the email itself.
+// warm-up state (in the providers' columns and in the insights' words),
+// the email itself.
 func leaveOut(r *CampaignReport, in ReportShareIncludes) {
 	for i := range r.Providers.Columns {
 		if !in.Cost {
@@ -218,6 +231,13 @@ func leaveOut(r *CampaignReport, in ReportShareIncludes) {
 		}
 		if !in.Warmup {
 			r.Providers.Columns[i].WarmupDay, r.Providers.Columns[i].EngagedFirst = nil, false
+		}
+	}
+	if !in.Warmup {
+		for i := range r.Insights {
+			if d := r.Insights[i].detailNoWarmup; d != "" {
+				r.Insights[i].Detail = d
+			}
 		}
 	}
 	if !in.Email {
