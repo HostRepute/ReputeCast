@@ -11,9 +11,9 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/apptest"
-	"github.com/hostrepute/reputecast/internal/readiness/readinesstest"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/languages"
+	"github.com/hostrepute/reputecast/internal/readiness/readinesstest"
 )
 
 const ws = "/workspaces/acme-newsletter"
