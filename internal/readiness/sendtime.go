@@ -190,7 +190,8 @@ func CheckSendTime(run ReadinessRun, conf *Confirmation, now Digests) SendTimeCh
 		case Block:
 			blocks = append(blocks, ch)
 		case Warn:
-			if conf != nil && !slices.Contains(conf.Acknowledged, ch.Key) {
+			// A warning dismissed in the composer is acknowledged (CO-14).
+			if conf != nil && ch.Dismissal == nil && !slices.Contains(conf.Acknowledged, ch.Key) {
 				warnings = append(warnings, ch)
 			}
 		case Unknown:

@@ -15,6 +15,9 @@ type Actions = {
   onApply: (c: Check, f: Fix) => void
   /** "Run again" on a check that couldn't run (the Accessibility group's). */
   onRerun?: () => void
+  /** Undo a warning's dismissal in the composer; undoReason says who can when the person can't. */
+  onUndismiss?: (c: Check) => void
+  undoReason?: string
 }
 
 /**
@@ -97,7 +100,7 @@ function NotChecked({ checks, ...actions }: { checks: Check[] } & Actions) {
   )
 }
 
-function Issue({ check: c, first, busy, reasonFor, onApply, onRerun }: { check: Check; first: boolean } & Actions) {
+function Issue({ check: c, first, busy, reasonFor, onApply, onRerun, onUndismiss, undoReason }: { check: Check; first: boolean } & Actions) {
   const t = useT()
   const rerun = c.status === 'unknown' && newGroups.has(c.group)
   return (
@@ -107,6 +110,7 @@ function Issue({ check: c, first, busy, reasonFor, onApply, onRerun }: { check: 
         <CodeText text={flatTitle(c)} />
         {c.detail ? <span className={cn('k block font-normal', c.mono && 'mono')}>{c.detail}</span> : null}
         {c.rows?.length ? <CheckRowsGrid rows={c.rows} /> : null}
+        {c.dismissal ? <Dismissed check={c} busy={busy === `undo:${c.key}`} reason={undoReason} onUndo={onUndismiss} /> : null}
       </span>
       {c.fixes.length || (rerun && onRerun) ? (
         <div className="rv-sfixes">
@@ -124,6 +128,30 @@ function Issue({ check: c, first, busy, reasonFor, onApply, onRerun }: { check: 
       ) : null}
       {c.technical?.length || c.raw?.length ? <TechDetails check={c} /> : null}
     </div>
+  )
+}
+
+/**
+ * A warning someone dismissed in the composer (CO-14): who, why and their
+ * note for reviewers, as the composer's Checks say it, with Undo. It stays
+ * a warning here, already confirmed.
+ */
+function Dismissed({ check: c, busy, reason, onUndo }: { check: Check; busy?: boolean; reason?: string; onUndo?: (c: Check) => void }) {
+  const t = useT()
+  const d = c.dismissal!
+  return (
+    <span className="rv-dsm">
+      <span className="rv-dsm-by">
+        {t(m.dismissedBy, { name: d.by, reason: d.reasonText })}
+        {d.count > 1 ? ` ${t(m.dismissedMore, { count: d.count })}` : ''}
+      </span>
+      {d.note ? <span className="rv-dsm-note">{t(m.dismissedNote, { note: d.note })}</span> : null}
+      {onUndo ? (
+        <Button size="sm" variant="ghost" aria-label={t(m.undoDismissLabel, { title: c.title })} disabledReason={reason} loading={busy} onClick={() => onUndo(c)}>
+          {t(m.undoDismiss)}
+        </Button>
+      ) : null}
+    </span>
   )
 }
 

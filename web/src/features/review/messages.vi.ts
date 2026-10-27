@@ -485,4 +485,13 @@ export default translate(m, {
   typeToConfirm: 'Nhập số người nhận để xác nhận',
   deliberate: 'Bước này là có chủ đích: lần gửi lớn không thể thu hồi khi đã rời hàng đợi.',
   back: 'Quay lại',
+  // Warnings dismissed in the composer (CO-14), on Review & send.
+  dismissedBy: '{name} đã bỏ qua · {reason}',
+  dismissedNote: '“{note}”',
+  dismissedMore: '{count, plural, other {Cả # mục đã được bỏ qua trong trình soạn thảo.}}',
+  undoDismiss: 'Hoàn tác',
+  undoDismissLabel: 'Hoàn tác việc bỏ qua “{title}”',
+  undoDismissFailed: 'Không hoàn tác được việc bỏ qua',
+  dismissedConfirmed: 'Đã bỏ qua trong trình soạn thảo nên được tính là đã xác nhận:',
+  dismissedLine: '{title} · {name} đã bỏ qua · {reason}',
 })

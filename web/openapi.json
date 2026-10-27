@@ -57983,6 +57983,9 @@
           "detail": {
             "type": "string"
           },
+          "dismissal": {
+            "$ref": "#/components/schemas/ReadinessDismissal"
+          },
           "evidence": {
             "type": "string"
           },
@@ -58010,6 +58013,12 @@
               "rules"
             ],
             "type": "string"
+          },
+          "issueKeys": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "key": {
             "type": "string"
@@ -58151,6 +58160,50 @@
           "blocks",
           "unknown",
           "total"
+        ],
+        "type": "object"
+      },
+      "ReadinessDismissal": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "decorative",
+              "size",
+              "subject",
+              "wrong",
+              "other"
+            ],
+            "type": "string"
+          },
+          "reasonText": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "by",
+          "reason",
+          "reasonText",
+          "at",
+          "count"
         ],
         "type": "object"
       },

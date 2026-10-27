@@ -93,6 +93,7 @@ func Assemble(f Facts) ReadinessResult {
 	b.everyVersion()
 	b.fixEffects()
 	b.stores()
+	b.issueKeys()
 	for i := range b.checks {
 		c := &b.checks[i]
 		if f.Campaign.HTMLOnly {

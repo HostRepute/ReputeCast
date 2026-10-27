@@ -118,9 +118,29 @@ type ReadinessCheck struct {
 	// records, answers or addresses behind them, shown as they are.
 	Technical []ReadinessTechRow `json:"technical,omitempty"`
 	Raw       []string           `json:"raw,omitempty"`
+	// IssueKeys name the composer's warnings this warning is made of (the
+	// content checks' issue keys). Dismissal is set when someone dismissed
+	// every one of them in the composer, with a reason (CO-14): the warning
+	// stays listed and counts as acknowledged.
+	IssueKeys []string            `json:"issueKeys,omitempty"`
+	Dismissal *ReadinessDismissal `json:"dismissal,omitempty"`
 
 	// texts are the messages the texts above are written from (stored.go).
 	texts *checkTexts
+}
+
+// ReadinessDismissal is a warning dismissed in the composer, as the
+// composer's Checks show it: who, why (in the reader's language) and their
+// note for reviewers. ID undoes it (DELETE …/dismissals/{id}); Count is how
+// many of the composer's warnings it covers (all the warning is made of).
+type ReadinessDismissal struct {
+	ID         string    `json:"id"`
+	By         string    `json:"by"`
+	Reason     string    `json:"reason" enum:"decorative,size,subject,wrong,other"`
+	ReasonText string    `json:"reasonText"`
+	Note       string    `json:"note,omitempty"`
+	At         time.Time `json:"at"`
+	Count      int       `json:"count"`
 }
 
 // ReadinessTechRow is a line of a check's technical details.

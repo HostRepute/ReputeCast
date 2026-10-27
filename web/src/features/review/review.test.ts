@@ -7,6 +7,7 @@ import {
   confirmNote,
   countsLine,
   countsShort,
+  dismissedWarnings,
   ctaLabel,
   ctaShort,
   ctaWhen,
@@ -116,6 +117,18 @@ describe('confirmation', () => {
       ],
     } as Run
     expect(acknowledgements(run).map((a) => a.key)).toEqual(['audience.unengaged', 'reputation.ip'])
+  })
+
+  it('counts a warning dismissed in the composer as confirmed, and still lists it (CO-14)', () => {
+    const dismissal = { id: 'd1', by: 'Linh Nguyen', reason: 'decorative', reasonText: 'the image is decorative', at: '2026-10-12T13:00:00Z', count: 1 } as Check['dismissal']
+    const run = {
+      checks: [
+        check({ key: 'content.alt_text', status: 'warn', title: '1 of 7 images has no alt text', dismissal }),
+        check({ key: 'links.shortener', status: 'warn', ack: 'I understand a link goes through bit.ly.' }),
+      ],
+    } as Run
+    expect(acknowledgements(run).map((a) => a.key)).toEqual(['links.shortener'])
+    expect(dismissedWarnings(run).map((c) => c.key)).toEqual(['content.alt_text'])
   })
 
   it('confirms warnings worded the same with one checkbox', () => {

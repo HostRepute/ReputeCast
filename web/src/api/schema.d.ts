@@ -33907,11 +33907,13 @@ export interface components {
             ack?: string;
             ackKey?: string;
             detail?: string;
+            dismissal?: components["schemas"]["ReadinessDismissal"];
             evidence?: string;
             fixes: components["schemas"]["ReadinessFix"][];
             flatTitle: string;
             /** @enum {string} */
             group: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional" | "rules";
+            issueKeys?: string[];
             key: string;
             label?: string;
             mono?: boolean;
@@ -33950,6 +33952,18 @@ export interface components {
             unknown: number;
             /** Format: int64 */
             warnings: number;
+        };
+        ReadinessDismissal: {
+            /** Format: date-time */
+            at: string;
+            by: string;
+            /** Format: int64 */
+            count: number;
+            id: string;
+            note?: string;
+            /** @enum {string} */
+            reason: "decorative" | "size" | "subject" | "wrong" | "other";
+            reasonText: string;
         };
         ReadinessEstimates: {
             audience: components["schemas"]["ReadinessAudience"];

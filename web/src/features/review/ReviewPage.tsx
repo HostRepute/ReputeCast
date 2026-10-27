@@ -401,6 +401,21 @@ function ReviewBody({
     }
   }
 
+  /** Undo a warning's dismissal in the composer (CO-14): it needs confirming again. */
+  const undismiss = async (check: Check) => {
+    const id = check.dismissal?.id
+    if (!id) return
+    setBusy(`undo:${check.key}`)
+    try {
+      await http.DELETE('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/dismissals/{dismissalId}', { params: { path: { ...path, dismissalId: id } } })
+    } catch (e) {
+      fail(t(m.undoDismissFailed))(e)
+    } finally {
+      setBusy(undefined)
+      await refresh()
+    }
+  }
+
   const doUnschedule = async () => {
     await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/unschedule', { params: { path } })
     toast({ kind: 'success', title: t(m.unscheduled, { name: d.campaign.name }), detail: t(m.unscheduledDetail) })
@@ -740,6 +755,8 @@ function ReviewBody({
             reasonFor={reasonFor}
             onApply={apply}
             onRerun={a.canEdit && c.editable ? () => void runChecks() : undefined}
+            onUndismiss={(x) => void undismiss(x)}
+            undoReason={a.canEdit ? undefined : whoCan('edit', editHelpers)}
           />
           <PlacementReviewCard
             campaignId={campaignId}

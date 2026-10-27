@@ -501,4 +501,13 @@ export const m = defineMessages('review', {
   typeToConfirm: 'Type the recipient count to confirm',
   deliberate: "This is deliberate: large sends can't be recalled once they leave the queue.",
   back: 'Back',
+  // Warnings dismissed in the composer (CO-14), on Review & send.
+  dismissedBy: 'Dismissed by {name} · {reason}',
+  dismissedNote: '“{note}”',
+  dismissedMore: '{count, plural, one {} other {All # were dismissed in the composer.}}',
+  undoDismiss: 'Undo',
+  undoDismissLabel: 'Undo the dismissal of “{title}”',
+  undoDismissFailed: "Couldn't undo the dismissal",
+  dismissedConfirmed: 'Dismissed in the composer, so already confirmed:',
+  dismissedLine: '{title} · dismissed by {name} · {reason}',
 })

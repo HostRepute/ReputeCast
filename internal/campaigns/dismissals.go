@@ -95,6 +95,21 @@ func dismissalOf(l i18n.Lang, r store.CheckDismissalsListRow) ComposerDismissal 
 	return ComposerDismissal{ID: r.ID.String(), Key: r.IssueKey, CheckID: r.CheckID, Reason: r.Reason, ReasonText: reasonText(l, r.Reason, r.Note), Note: r.Note, By: r.DismissedByName, At: r.CreatedAt}
 }
 
+// DismissalsOf are a campaign's dismissed warnings by issue key, with the
+// reasons in a reader's language: Send Readiness shows them on Review &
+// send and counts them as acknowledged.
+func DismissalsOf(ctx context.Context, q *store.Queries, l i18n.Lang, wsID, campaignID uuid.UUID) (map[string]ComposerDismissal, error) {
+	rows, err := q.CheckDismissalsList(ctx, store.CheckDismissalsListParams{WorkspaceID: wsID, CampaignID: campaignID})
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]ComposerDismissal, len(rows))
+	for _, r := range rows {
+		out[r.IssueKey] = dismissalOf(l, r)
+	}
+	return out, nil
+}
+
 // markDismissed gives the checks their issue keys and marks the warnings
 // someone dismissed. Blocking issues are never marked.
 func (s *Service) markDismissed(ctx context.Context, ws *store.Workspace, id uuid.UUID, subject string, out *ComposerChecks) error {

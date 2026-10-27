@@ -428,6 +428,30 @@
       display: none;
     }
   }
+  /* A warning dismissed in the composer: who and why, the note, Undo (CO-14). */
+  .rv-dsm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    margin-top: 6px;
+    font-weight: 400;
+  }
+  .rv-dsm-by {
+    color: var(--ink-2);
+    font-size: 12.5px;
+  }
+  .rv-dsm-note {
+    color: var(--ink-2);
+    font-size: 12.5px;
+    font-style: italic;
+  }
+  /* The confirmation's list of warnings dismissed in the composer. */
+  .rv-dsm-list {
+    margin: 4px 0 0;
+    padding-left: 18px;
+    color: var(--ink-2);
+  }
   /* The held send's counts: what changed since it was reviewed. */
   .rv-up {
     color: var(--bad-fg);

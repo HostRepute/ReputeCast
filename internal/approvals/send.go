@@ -217,9 +217,14 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	if run.Incomplete && run.UnknownAcceptedAt == nil {
 		return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_incomplete", say(ctx, mReadinessIncomplete, nil))
 	}
+	// A warning dismissed in the composer, with a reason, is acknowledged (CO-14).
+	if err := s.Readiness.Dismissed(ctx, ws, c.ID, run); err != nil {
+		return ReviewSendResult{}, err
+	}
+	acknowledged := append(slices.Clone(in.Acknowledged), readiness.DismissedKeys(*run)...)
 	missing := []string{}
 	for _, ch := range run.Checks {
-		if ch.Status == readiness.Warn && !slices.Contains(in.Acknowledged, ch.Key) {
+		if ch.Status == readiness.Warn && !slices.Contains(acknowledged, ch.Key) {
 			missing = append(missing, ch.Title)
 		}
 	}
@@ -323,7 +328,7 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		}
 		// What the person confirmed: the send-time recheck holds the send
 		// on anything they didn't (SR-3).
-		if err := s.Readiness.Confirm(ctx, q, ws, c, *run, p.UserID, in.Acknowledged, at, now); err != nil {
+		if err := s.Readiness.Confirm(ctx, q, ws, c, *run, p.UserID, acknowledged, at, now); err != nil {
 			return err
 		}
 		if err := s.Readiness.SetCanary(ctx, q, c.ID, canary); err != nil {
@@ -721,6 +726,10 @@ func (s *Service) sendTimeCheck(ctx context.Context, ws *store.Workspace, campai
 				conf = &approved
 			}
 		}
+	}
+	// Warnings dismissed in the composer since are acknowledged too (CO-14).
+	if err := s.Readiness.Dismissed(ctx, ws, campaignID, &run); err != nil {
+		return readiness.SendTimeCheck{}, err
 	}
 	return readiness.CheckSendTime(run, conf, now), nil
 }

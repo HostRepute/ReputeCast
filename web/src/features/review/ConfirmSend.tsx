@@ -8,7 +8,7 @@ import { clock, count, money } from '@/lib/format'
 import { confirmLanguages } from '@/features/languages/review'
 import { mr } from '@/features/languages/messages'
 import { formatList, useT } from '@/i18n'
-import { acknowledgedKeys, acknowledgements, minutes, scheduleSentence, thresholdsLine, verdictTitle, type Check, type Fix, type Review, type Run } from './logic'
+import { acknowledgedKeys, acknowledgements, dismissedWarnings, minutes, scheduleSentence, thresholdsLine, verdictTitle, type Check, type Fix, type Review, type Run } from './logic'
 import { m } from './messages'
 
 export type Canary = 'auto' | 'on' | 'off'
@@ -46,6 +46,8 @@ export function ConfirmSend({
   const c = review.campaign
   const recipients = run.estimates.audience.final
   const acks = acknowledgements(run)
+  // Warnings dismissed in the composer are already confirmed: listed, not ticked.
+  const dismissed = dismissedWarnings(run)
   // Only an unusual send asks for the count (the server says why).
   const typedNeeded = review.typed.needed
   const [checked, setChecked] = useState<string[]>([])
@@ -203,6 +205,18 @@ export function ConfirmSend({
                     </span>
                   </label>
                 ))}
+              </section>
+            ) : null}
+            {dismissed.length ? (
+              <section className="c-acks" aria-labelledby={`${id}-dsm`}>
+                <span className="k" id={`${id}-dsm`}>
+                  {t(m.dismissedConfirmed)}
+                </span>
+                <ul className="rv-dsm-list">
+                  {dismissed.map((c) => (
+                    <li key={c.key}>{t(m.dismissedLine, { title: c.title, name: c.dismissal!.by, reason: c.dismissal!.reasonText })}</li>
+                  ))}
+                </ul>
               </section>
             ) : null}
             <section className="c-last">

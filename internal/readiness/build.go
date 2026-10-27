@@ -17,6 +17,8 @@ type check struct {
 	Rows                                                        []row
 	Technical                                                   []techRow
 	Raw                                                         []string
+	// IssueKeys are the composer's warnings the check is made of (dismissals.go).
+	IssueKeys []string
 	// every marks the passing links check that names all the links: an
 	// email sent in several languages says they respond "in every version".
 	every bool
@@ -78,6 +80,9 @@ func (c check) result() ReadinessCheck {
 	}
 	if len(c.Raw) > 0 {
 		out.Raw = slices.Clone(c.Raw)
+	}
+	if len(c.IssueKeys) > 0 {
+		out.IssueKeys = slices.Clone(c.IssueKeys)
 	}
 	if len(c.Rows) > 0 {
 		out.Rows = make([]ReadinessCheckRow, 0, len(c.Rows))

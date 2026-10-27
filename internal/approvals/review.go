@@ -247,6 +247,10 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if out.Run, err = s.Readiness.Latest(ctx, c.ID); err != nil {
 		return out, err
 	}
+	// Warnings dismissed in the composer, as they stand now (CO-14).
+	if err = s.Readiness.Dismissed(ctx, ws, c.ID, out.Run); err != nil {
+		return out, err
+	}
 	if out.Run != nil {
 		// Only an unusual send asks for the count to be typed (SR-13).
 		if reasons := s.typedReasons(ctx, c, *out.Run); len(reasons) > 0 {

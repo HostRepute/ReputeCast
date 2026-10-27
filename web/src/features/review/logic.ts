@@ -333,11 +333,13 @@ export function checksByGroup(run: Run): { group: Group; checks: Check[] }[] {
 /**
  * Warnings people confirm before sending (keys and sentences); the ones
  * with a one-click alternative ("Send via SES only instead") come first.
+ * A warning someone dismissed in the composer, with a reason, is already
+ * confirmed (dismissedWarnings).
  */
 export function acknowledgements(run: Run): { key: string; keys: string[]; text: string; check: Check; fix?: Fix }[] {
   const out: { key: string; keys: string[]; text: string; check: Check; fix?: Fix }[] = []
   const groups = new Map<string, { keys: string[] }>()
-  for (const c of run.checks.filter((x) => x.status === 'warn')) {
+  for (const c of run.checks.filter((x) => x.status === 'warn' && !x.dismissal)) {
     const text = c.ack || t(m.ackDefault, { title: c.title })
     // Warnings confirmed in the same words (the serious accessibility
     // issues) are one checkbox that confirms them all. The server says
@@ -355,6 +357,14 @@ export function acknowledgements(run: Run): { key: string; keys: string[]; text:
     out.push(ack)
   }
   return out.sort((a, b) => Number(Boolean(b.fix)) - Number(Boolean(a.fix)))
+}
+
+/**
+ * Warnings someone dismissed in the composer with a reason (CO-14): still
+ * listed as warnings, with who and why, and counted as confirmed.
+ */
+export function dismissedWarnings(run: Run): Check[] {
+  return run.checks.filter((c) => c.status === 'warn' && c.dismissal)
 }
 
 /** The warning keys the checked confirmations cover. */
