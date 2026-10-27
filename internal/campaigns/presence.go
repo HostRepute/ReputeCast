@@ -48,9 +48,10 @@ func (s *Service) Present(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	}
 	now := s.now()
 	me := uuid.Nil
-	if p != nil && p.UserID != uuid.Nil {
+	// Only people are present; an API key or an agent isn't, and doesn't
+	// stand for the person who made it (its UserID): it sees everyone.
+	if p.IsHuman() && p.UserID != uuid.Nil {
 		me = p.UserID
-		// Only people are present; an API key or an agent isn't.
 		if err := s.Q.PresenceTouch(ctx, store.PresenceTouchParams{CampaignID: id, UserID: me, Editing: in.Editing, Now: now}); err != nil {
 			return ComposerPresence{}, err
 		}
@@ -66,9 +67,10 @@ func (s *Service) Present(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	return out, nil
 }
 
-// Leave records that the caller closed the campaign.
+// Leave records that the caller closed the campaign. An API key or agent
+// was never there, and doesn't take the person who made it away.
 func (s *Service) Leave(ctx context.Context, p *authz.Principal, id uuid.UUID) error {
-	if p == nil || p.UserID == uuid.Nil {
+	if !p.IsHuman() || p.UserID == uuid.Nil {
 		return nil
 	}
 	return s.Q.PresenceLeave(ctx, store.PresenceLeaveParams{CampaignID: id, UserID: p.UserID})

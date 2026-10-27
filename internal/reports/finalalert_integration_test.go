@@ -50,6 +50,25 @@ func TestFinalAlert(t *testing.T) {
 	}
 	// Asking twice keeps one request.
 	c.Do("PUT", path, nil).MustStatus(t, 200)
+	// Only people ask: an API key that reads reports doesn't ask, read or
+	// stop the request of the person who made it.
+	var key struct{ Secret string }
+	c.Do("POST", "/workspaces/acme-newsletter/api-keys", map[string]any{"name": "Reports bot", "permissions": []string{"reports:view"}}).MustStatus(t, 201).JSON(t, &key)
+	bot := env.Client()
+	bot.Bearer = key.Secret
+	set := audits("report_final_alert.set")
+	if p := bot.Do("PUT", path, nil).MustStatus(t, 403).Problem(t); p["code"] != "humans_only" {
+		t.Fatalf("an API key asked: %v", p)
+	}
+	bot.Do("DELETE", path, nil).MustStatus(t, 403)
+	bot.Do("GET", path, nil).MustStatus(t, 200).JSON(t, &a)
+	if a.On {
+		t.Fatal("an API key reads the request of the person who made it as its own")
+	}
+	c.Do("GET", path, nil).MustStatus(t, 200).JSON(t, &a)
+	if !a.On || audits("report_final_alert.set") != set || audits("report_final_alert.remove") != 0 {
+		t.Fatalf("after the key's calls: %+v", a)
+	}
 	// A Viewer reads reports, so they can ask too.
 	v := env.Client()
 	v.SignInDemo("aisha@acme.io")

@@ -73,10 +73,12 @@ func liveCanary(cs canaryState, ts tallies, ty typed, sent int64, queue map[queu
 
 // registerCanary adds the canary's decisions to the live monitor (review
 // GS-10): people who can approve sends continue early; people who can
-// send watch longer or stop it.
+// send watch longer or stop it. Continuing releases a send a failed gate
+// holds, a decision like an approval: only a person makes it, never an API
+// key or agent (as decide-approval).
 func registerCanary(h huma.API, e *Engine, base string, tags []string) {
 	api.Post(h, api.Op{ID: "continue-live-canary", Path: base + "/canary/continue", Summary: "Send everyone now instead of when the canary's watch ends",
-		Tags: tags, Access: api.Workspace(authz.CampaignsApprove)},
+		Tags: tags, Access: api.WorkspaceHuman(authz.CampaignsApprove)},
 		func(ctx context.Context, in *liveInput) (*api.Body[LiveActionResult], error) {
 			ctx = ownAPI(ctx)
 			id, by, err := e.actionIDs(ctx, in.CampaignID)

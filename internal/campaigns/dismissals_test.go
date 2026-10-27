@@ -108,6 +108,20 @@ func TestComposerDismissWarnings(t *testing.T) {
 	aisha := env.Client()
 	aisha.SignInDemo("aisha@acme.io")
 	aisha.Do("POST", ws+"/campaigns/"+flash+"/dismissals", map[string]any{"key": r.IssueKeys[alt], "checkId": "content.alt_text", "reason": "decorative"}).MustStatus(t, 403)
+	// Review & send counts a dismissed warning as confirmed: an API key
+	// that edits campaigns can't dismiss one in the name of the person who
+	// made it.
+	var key struct{ Secret string }
+	c.Do("POST", ws+"/api-keys", map[string]any{"name": "Composer bot", "permissions": []string{"campaigns:edit"}}).MustStatus(t, 201).JSON(t, &key)
+	bot := env.Client()
+	bot.Bearer = key.Secret
+	if p := bot.Do("POST", ws+"/campaigns/"+flash+"/dismissals", map[string]any{"key": r.IssueKeys[alt], "checkId": "content.alt_text", "reason": "decorative"}).
+		MustStatus(t, 403).Problem(t); p["code"] != "humans_only" {
+		t.Fatalf("an API key dismissed a warning: %v", p)
+	}
+	if got := check(); len(got.Dismissed) != 0 {
+		t.Fatalf("after the key's try: %+v", got.Dismissed)
+	}
 	c.Header = http.Header{"Accept-Language": []string{"vi"}}
 	var vi struct{ ReasonText string }
 	c.Do("POST", ws+"/campaigns/"+flash+"/dismissals", map[string]any{"key": r.IssueKeys[alt], "checkId": "content.alt_text", "reason": "decorative"}).MustStatus(t, 201).JSON(t, &vi)

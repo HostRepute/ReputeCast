@@ -39,8 +39,10 @@ func (s *Service) FinalAlert(ctx context.Context, ws *store.Workspace, campaignI
 		return ReportFinalAlert{}, api.MapError(err, "Campaign")
 	}
 	out := ReportFinalAlert{FinalAt: finalAt(c)}
+	// An API key or agent never asked; it doesn't read what the person
+	// who made it asked.
 	p := api.PrincipalFrom(ctx)
-	if p == nil || p.UserID == uuid.Nil {
+	if !p.IsHuman() || p.UserID == uuid.Nil {
 		return out, nil
 	}
 	out.On, err = s.Q.ReportFinalAlertIs(ctx, store.ReportFinalAlertIsParams{CampaignID: c.ID, UserID: p.UserID})
@@ -64,8 +66,9 @@ func (s *Service) SetFinalAlert(ctx context.Context, ws *store.Workspace, campai
 	if err != nil {
 		return ReportFinalAlert{}, api.MapError(err, "Campaign")
 	}
+	// A key's UserID is the person who made it: they didn't ask.
 	p := api.PrincipalFrom(ctx)
-	if p == nil || p.UserID == uuid.Nil {
+	if !p.IsHuman() || p.UserID == uuid.Nil {
 		return ReportFinalAlert{}, api.Err(http.StatusForbidden, api.CodeHumansOnly, mFinalAlertPeople.Text(l, nil))
 	}
 	out := ReportFinalAlert{On: on, FinalAt: finalAt(c)}

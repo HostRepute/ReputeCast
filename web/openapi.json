@@ -114290,7 +114290,7 @@
         "x-permission": "campaigns:view"
       },
       "put": {
-        "description": "New emails, templates and blocks start from it; emails already written keep their own styles. The first save creates the synced Header and Footer; a new logo reaches the synced Header and the drafts and scheduled emails holding it.",
+        "description": "New emails, templates and blocks start from it; emails already written keep their own styles. The first save creates the synced Header and Footer; a new logo reaches the synced Header, and the drafts and scheduled emails holding it when the caller also holds campaigns:edit.",
         "operationId": "save-brand-kit",
         "parameters": [
           {
@@ -114358,7 +114358,7 @@
     },
     "/api/v1/workspaces/{workspace}/brand-kit/import": {
       "post": {
-        "description": "Nothing in the kit changes until it's saved. Logos found are added to the media library.",
+        "description": "Nothing in the kit changes until it's saved. Logos found are added to the media library when the caller also holds campaigns:edit, as uploads need; otherwise a note says they weren't.",
         "operationId": "import-brand-kit",
         "parameters": [
           {
@@ -115746,7 +115746,7 @@
         "x-permission": "campaigns:view"
       },
       "post": {
-        "description": "Anyone who can view the campaign can comment. The members in mentions get a notification (and an email unless they turned it off) linking to the thread.",
+        "description": "Anyone who can view the campaign can comment, as a signed-in person (not an API key or agent). The members in mentions get a notification (and an email unless they turned it off) linking to the thread.",
         "operationId": "add-campaign-comment",
         "parameters": [
           {
@@ -115808,9 +115808,6 @@
         "security": [
           {
             "session": []
-          },
-          {
-            "bearer": []
           }
         ],
         "summary": "Comment on a block or the whole email, or reply to a thread",
@@ -115886,9 +115883,6 @@
         "security": [
           {
             "session": []
-          },
-          {
-            "bearer": []
           }
         ],
         "summary": "Resolve a comment thread, or open it again",
@@ -115989,7 +115983,7 @@
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/dismissals": {
       "post": {
-        "description": "key is the warning's issueKeys entry from the checks. The warning stays listed with who dismissed it and why, and comes back when it changes. Blocking issues are never dismissed.",
+        "description": "key is the warning's issueKeys entry from the checks. The warning stays listed with who dismissed it and why, and comes back when it changes. Blocking issues are never dismissed. Review \u0026 send counts a dismissed warning as confirmed, so only a signed-in person can dismiss one, not an API key or agent.",
         "operationId": "dismiss-campaign-warning",
         "parameters": [
           {
@@ -116051,9 +116045,6 @@
         "security": [
           {
             "session": []
-          },
-          {
-            "bearer": []
           }
         ],
         "summary": "Dismiss a warning of the composer's checks, with a reason",
@@ -117714,9 +117705,6 @@
         "security": [
           {
             "session": []
-          },
-          {
-            "bearer": []
           }
         ],
         "summary": "Send everyone now instead of when the canary's watch ends",
@@ -120630,7 +120618,7 @@
         "x-permission": "campaigns:edit"
       },
       "post": {
-        "description": "Anyone with the link sees that version of the email (personalized for a sample reader) and can comment without signing in, for 7 days or until the link is revoked. Nothing about the audience, settings or other campaigns.",
+        "description": "Anyone with the link sees that version of the email (personalized for a sample reader) and can comment without signing in, for 7 days or until the link is revoked. Nothing about the audience, settings or other campaigns. Only a signed-in person shares one, not an API key or agent.",
         "operationId": "create-campaign-review-link",
         "parameters": [
           {
@@ -120682,9 +120670,6 @@
         "security": [
           {
             "session": []
-          },
-          {
-            "bearer": []
           }
         ],
         "summary": "Share the saved version for review",
@@ -120750,9 +120735,6 @@
         "security": [
           {
             "session": []
-          },
-          {
-            "bearer": []
           }
         ],
         "summary": "Revoke a review link",

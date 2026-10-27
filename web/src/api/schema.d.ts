@@ -3633,7 +3633,7 @@ export interface paths {
         get: operations["get-brand-kit"];
         /**
          * Save the brand kit
-         * @description New emails, templates and blocks start from it; emails already written keep their own styles. The first save creates the synced Header and Footer; a new logo reaches the synced Header and the drafts and scheduled emails holding it.
+         * @description New emails, templates and blocks start from it; emails already written keep their own styles. The first save creates the synced Header and Footer; a new logo reaches the synced Header, and the drafts and scheduled emails holding it when the caller also holds campaigns:edit.
          */
         put: operations["save-brand-kit"];
         post?: never;
@@ -3654,7 +3654,7 @@ export interface paths {
         put?: never;
         /**
          * Read the logo, colours and fonts from a website
-         * @description Nothing in the kit changes until it's saved. Logos found are added to the media library.
+         * @description Nothing in the kit changes until it's saved. Logos found are added to the media library when the caller also holds campaigns:edit, as uploads need; otherwise a note says they weren't.
          */
         post: operations["import-brand-kit"];
         delete?: never;
@@ -3899,7 +3899,7 @@ export interface paths {
         put?: never;
         /**
          * Comment on a block or the whole email, or reply to a thread
-         * @description Anyone who can view the campaign can comment. The members in mentions get a notification (and an email unless they turned it off) linking to the thread.
+         * @description Anyone who can view the campaign can comment, as a signed-in person (not an API key or agent). The members in mentions get a notification (and an email unless they turned it off) linking to the thread.
          */
         post: operations["add-campaign-comment"];
         delete?: never;
@@ -3956,7 +3956,7 @@ export interface paths {
         put?: never;
         /**
          * Dismiss a warning of the composer's checks, with a reason
-         * @description key is the warning's issueKeys entry from the checks. The warning stays listed with who dismissed it and why, and comes back when it changes. Blocking issues are never dismissed.
+         * @description key is the warning's issueKeys entry from the checks. The warning stays listed with who dismissed it and why, and comes back when it changes. Blocking issues are never dismissed. Review & send counts a dismissed warning as confirmed, so only a signed-in person can dismiss one, not an API key or agent.
          */
         post: operations["dismiss-campaign-warning"];
         delete?: never;
@@ -4939,7 +4939,7 @@ export interface paths {
         put?: never;
         /**
          * Share the saved version for review
-         * @description Anyone with the link sees that version of the email (personalized for a sample reader) and can comment without signing in, for 7 days or until the link is revoked. Nothing about the audience, settings or other campaigns.
+         * @description Anyone with the link sees that version of the email (personalized for a sample reader) and can comment without signing in, for 7 days or until the link is revoked. Nothing about the audience, settings or other campaigns. Only a signed-in person shares one, not an API key or agent.
          */
         post: operations["create-campaign-review-link"];
         delete?: never;

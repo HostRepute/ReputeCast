@@ -230,6 +230,26 @@ func TestRunsAreBackgroundJobs(t *testing.T) {
 	if poll.Running != nil || poll.Failed != nil {
 		t.Fatalf("a new run clears the failure: %+v", poll)
 	}
+
+	// A run an API key asked for is the key's in the audit log, though a
+	// worker runs it: not the person's who made the key.
+	var key struct {
+		Key    struct{ ID string }
+		Secret string
+	}
+	c.Do("POST", ws+"/api-keys", map[string]any{"name": "Readiness bot", "permissions": []string{"campaigns:edit"}}).MustStatus(t, 201).JSON(t, &key)
+	bot := env.Client()
+	bot.Bearer = key.Secret
+	bot.Do("POST", ws+"/campaigns/"+id+"/readiness", nil).MustStatus(t, 202)
+	if n := readinesstest.Work(t, env); n != 1 {
+		t.Fatalf("worked %d runs", n)
+	}
+	var typ, name, actorID string
+	if err := env.App.Pool.QueryRow(ctx, `SELECT actor_type, actor_name, coalesce(actor_id::text, '') FROM audit_events
+		WHERE action = 'readiness.run' AND target_id = $1 ORDER BY occurred_at DESC LIMIT 1`, id).Scan(&typ, &name, &actorID); err != nil ||
+		typ != "api_key" || name != "Readiness bot" || actorID != key.Key.ID {
+		t.Errorf("the key's run is audited as %s %q (%s), want the key %s: %v", typ, name, actorID, key.Key.ID, err)
+	}
 }
 
 // SR-7: a run gathers what the new checks need: variant B of an A/B

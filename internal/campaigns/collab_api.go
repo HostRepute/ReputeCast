@@ -85,6 +85,10 @@ func parseID(raw, what string) (uuid.UUID, error) {
 
 func registerCollaboration(h huma.API, s *Service, tags []string) {
 	view, edit := api.Workspace(authz.CampaignsView), api.Workspace(authz.CampaignsEdit)
+	// Comments and review links carry who wrote, resolved, shared or
+	// revoked them, and an API key or agent would be recorded as the person
+	// who made it: those are people's actions (security review).
+	viewPerson, editPerson := api.WorkspaceHuman(authz.CampaignsView), api.WorkspaceHuman(authz.CampaignsEdit)
 
 	api.Get(h, api.Op{ID: "list-campaign-comments", Path: "/workspaces/{workspace}/campaigns/{campaignId}/comments", Summary: "Comment threads on the campaign, open ones first",
 		Tags: tags, Access: view},
@@ -97,8 +101,8 @@ func registerCollaboration(h huma.API, s *Service, tags []string) {
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "add-campaign-comment", Path: "/workspaces/{workspace}/campaigns/{campaignId}/comments", Summary: "Comment on a block or the whole email, or reply to a thread",
-		Description: "Anyone who can view the campaign can comment. The members in mentions get a notification (and an email unless they turned it off) linking to the thread.",
-		Tags:        tags, Access: view, Status: http.StatusCreated},
+		Description: "Anyone who can view the campaign can comment, as a signed-in person (not an API key or agent). The members in mentions get a notification (and an email unless they turned it off) linking to the thread.",
+		Tags:        tags, Access: viewPerson, Status: http.StatusCreated},
 		func(ctx context.Context, in *addCommentInput) (*api.Body[ComposerThread], error) {
 			id, err := in.id()
 			if err != nil {
@@ -108,7 +112,7 @@ func registerCollaboration(h huma.API, s *Service, tags []string) {
 			return api.OK(out), err
 		})
 	api.Put(h, api.Op{ID: "resolve-campaign-comment", Path: "/workspaces/{workspace}/campaigns/{campaignId}/comments/{threadId}/resolved", Summary: "Resolve a comment thread, or open it again",
-		Tags: tags, Access: edit},
+		Tags: tags, Access: editPerson},
 		func(ctx context.Context, in *resolveInput) (*api.Empty, error) {
 			id, err := in.id()
 			if err != nil {
@@ -131,8 +135,8 @@ func registerCollaboration(h huma.API, s *Service, tags []string) {
 		})
 
 	api.Post(h, api.Op{ID: "create-campaign-review-link", Path: "/workspaces/{workspace}/campaigns/{campaignId}/review-links", Summary: "Share the saved version for review",
-		Description: "Anyone with the link sees that version of the email (personalized for a sample reader) and can comment without signing in, for 7 days or until the link is revoked. Nothing about the audience, settings or other campaigns.",
-		Tags:        tags, Access: edit, Status: http.StatusCreated},
+		Description: "Anyone with the link sees that version of the email (personalized for a sample reader) and can comment without signing in, for 7 days or until the link is revoked. Nothing about the audience, settings or other campaigns. Only a signed-in person shares one, not an API key or agent.",
+		Tags:        tags, Access: editPerson, Status: http.StatusCreated},
 		func(ctx context.Context, in *CampaignPath) (*api.Body[ComposerReviewLink], error) {
 			id, err := in.id()
 			if err != nil {
@@ -152,7 +156,7 @@ func registerCollaboration(h huma.API, s *Service, tags []string) {
 			return api.OK(out), err
 		})
 	api.Delete(h, api.Op{ID: "revoke-campaign-review-link", Path: "/workspaces/{workspace}/campaigns/{campaignId}/review-links/{linkId}", Summary: "Revoke a review link",
-		Tags: tags, Access: edit},
+		Tags: tags, Access: editPerson},
 		func(ctx context.Context, in *reviewLinkPath) (*api.Empty, error) {
 			id, err := in.id()
 			if err != nil {
@@ -186,9 +190,13 @@ func registerCollaboration(h huma.API, s *Service, tags []string) {
 			return api.NoContent, s.Leave(ctx, api.PrincipalFrom(ctx), id)
 		})
 
+	// Review & send counts a dismissed warning as confirmed, so the person
+	// sending isn't asked about it: dismissing one is a person's judgement,
+	// never an API key's or an agent's.
 	api.Post(h, api.Op{ID: "dismiss-campaign-warning", Path: "/workspaces/{workspace}/campaigns/{campaignId}/dismissals", Summary: "Dismiss a warning of the composer's checks, with a reason",
-		Description: "key is the warning's issueKeys entry from the checks. The warning stays listed with who dismissed it and why, and comes back when it changes. Blocking issues are never dismissed.",
-		Tags:        tags, Access: edit, Status: http.StatusCreated},
+		Description: "key is the warning's issueKeys entry from the checks. The warning stays listed with who dismissed it and why, and comes back when it changes. Blocking issues are never dismissed. " +
+			"Review & send counts a dismissed warning as confirmed, so only a signed-in person can dismiss one, not an API key or agent.",
+		Tags: tags, Access: api.WorkspaceHuman(authz.CampaignsEdit), Status: http.StatusCreated},
 		func(ctx context.Context, in *dismissInput) (*api.Body[ComposerDismissal], error) {
 			id, err := in.id()
 			if err != nil {

@@ -156,6 +156,22 @@ func testCanaryHolds(t *testing.T, f *sendtest.Fixture) {
 	if snap.Incident == nil || snap.Incident.Kind != "canary" || len(snap.Incident.Detail.Options) != 2 {
 		t.Fatalf("decision %+v", snap.Incident)
 	}
+	// Releasing what a failed gate holds is a person's decision, as an
+	// approval is: an API key holding campaigns:approve can't.
+	owner := f.Env.Client()
+	owner.SignInDemo("linh@acme.io")
+	var key struct{ Secret string }
+	owner.Do("POST", "/workspaces/acme-newsletter/api-keys", map[string]any{"name": "Release bot", "permissions": []string{"campaigns:approve"}}).
+		MustStatus(t, 201).JSON(t, &key)
+	bot := f.Env.Client()
+	bot.Bearer = key.Secret
+	live := "/workspaces/acme-newsletter/campaigns/" + f.Campaign.String() + "/live"
+	if p := bot.Do("POST", live+"/canary/continue", map[string]any{}).MustStatus(t, 403).Problem(t); p["code"] != "humans_only" {
+		t.Fatalf("an API key continued the held canary: %v", p)
+	}
+	if c := canaryState(t, f); c["phase"] != "held" {
+		t.Fatalf("canary %v after an API key's continue, want still held", c)
+	}
 	// A plain resume would leave the held recipients waiting: the canary
 	// decides.
 	if err := f.E.Resume(f.Ctx, f.Campaign, f.Sofia); err == nil {
@@ -201,11 +217,12 @@ func testCanaryChoices(t *testing.T, f *sendtest.Fixture) {
 	if _, _, err := f.E.Drive(f.Ctx, f.Campaign, f.Start, time.Minute); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.E.ContinueCanary(f.Ctx, f.Campaign, f.Sofia); err != nil {
-		t.Fatal(err)
-	}
-	if c := canaryState(t, f); c["phase"] != "continued" || c["decidedBy"] == "" {
-		t.Fatalf("canary %v, want continued by Sofia", c)
+	// A person who can approve sends continues from the live monitor.
+	owner := f.Env.Client()
+	owner.SignInDemo("linh@acme.io")
+	owner.Do("POST", "/workspaces/acme-newsletter/campaigns/"+f.Campaign.String()+"/live/canary/continue", map[string]any{}).MustStatus(t, 200)
+	if c := canaryState(t, f); c["phase"] != "continued" || c["decidedBy"] != "Linh Nguyen" {
+		t.Fatalf("canary %v, want continued by Linh", c)
 	}
 	if n := f.Count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND status = 'held'`, f.Campaign); n != 0 {
 		t.Fatalf("%d still held after continuing", n)

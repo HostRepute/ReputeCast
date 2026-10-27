@@ -116,8 +116,13 @@ const staleAfter = 2 * time.Minute
 // RunOptions describe a run.
 type RunOptions struct {
 	Trigger string
-	// By is the person who asked (nil for jobs).
+	// By is the person who asked (nil for jobs); for an API key or an
+	// agent, the person who made it.
 	By *uuid.UUID
+	// Actor is who asked as the audit log names them: the API key or
+	// agent itself, not the person who made it. Start keeps the request's
+	// caller with the queued run, so the worker that runs it logs them.
+	Actor *audit.Actor
 }
 
 // Fingerprint identifies what a run checks: content, sender, audience,
@@ -197,11 +202,22 @@ func (s *Service) Start(ctx context.Context, ws *store.Workspace, id uuid.UUID, 
 		return nil, errors.New("send readiness: no job queue in this process")
 	}
 	runID := uuid.Must(uuid.NewV7())
+	// The worker logs the run as who asked: the request's caller, an API
+	// key or agent as itself (By is the person who made it).
+	args := RunArgs{CampaignID: id, WorkspaceID: ws.ID, RunID: runID, Trigger: o.Trigger, By: o.By}
+	actor := o.Actor
+	if p := audit.PrincipalFrom(ctx); actor == nil && p != nil {
+		pid := p.ID
+		actor = &audit.Actor{Type: p.Type, ID: &pid, Name: p.Name}
+	}
+	if actor != nil {
+		args.ActorType, args.ActorID, args.ActorName = actor.Type, actor.ID, actor.Name
+	}
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		if _, err := s.claim(ctx, store.New(tx), id, runID, o); err != nil {
 			return err
 		}
-		_, err := s.Jobs().InsertTx(ctx, tx, RunArgs{CampaignID: id, WorkspaceID: ws.ID, RunID: runID, Trigger: o.Trigger, By: o.By}, nil)
+		_, err := s.Jobs().InsertTx(ctx, tx, args, nil)
 		return err
 	})
 	if err != nil {
@@ -298,7 +314,7 @@ func (s *Service) runClaimed(ctx context.Context, ws *store.Workspace, id, runID
 	res := Assemble(facts)
 	run := ReadinessRun{ID: runID.String(), CampaignID: id.String(), Trigger: o.Trigger, RanAt: s.now(), Version: int(c.Version), ReadinessResult: res, Fingerprint: fingerprint}
 	run.DurationMs = int(run.RanAt.Sub(started) / time.Millisecond)
-	if err := s.store(ctx, ws, c, run, o.By); err != nil {
+	if err := s.store(ctx, ws, c, run, o); err != nil {
 		return ReadinessRun{}, err
 	}
 	if o.By != nil {
@@ -450,7 +466,8 @@ func (p *progressWriter) stage(st stage, f Facts) {
 
 // store saves a finished run, refreshes the campaign's planned route and
 // audience count, and keeps the history short.
-func (s *Service) store(ctx context.Context, ws *store.Workspace, c store.ReadinessCampaignRow, run ReadinessRun, by *uuid.UUID) error {
+func (s *Service) store(ctx context.Context, ws *store.Workspace, c store.ReadinessCampaignRow, run ReadinessRun, o RunOptions) error {
+	by := o.By
 	checks, est, err := EncodeResult(run.ReadinessResult)
 	if err != nil {
 		return err
@@ -501,8 +518,14 @@ func (s *Service) store(ctx context.Context, ws *store.Workspace, c store.Readin
 		switch {
 		case by == nil:
 			actor = &audit.Actor{Type: authz.ActorSystem, Name: "System"}
-		case audit.PrincipalFrom(ctx) == nil:
-			// A run a person asked for, which a worker ran: it is theirs.
+		case audit.PrincipalFrom(ctx) != nil:
+			// Run inside the request: the caller, as the request says.
+		case o.Actor != nil:
+			// A run someone asked for, which a worker ran: it is theirs, an
+			// API key or agent as itself, not as the person who made it.
+			actor = o.Actor
+		default:
+			// Queued before runs kept who asked: the person's.
 			name := ""
 			if u, err := q.GetUser(ctx, *by); err == nil {
 				name = u.Name
@@ -786,6 +809,11 @@ type RunArgs struct {
 	RunID       uuid.UUID  `json:"run_id"`
 	Trigger     string     `json:"trigger"`
 	By          *uuid.UUID `json:"by,omitempty"`
+	// ActorType, ActorID and ActorName are who asked, as the audit log
+	// names them (RunOptions.Actor): an API key or agent as itself.
+	ActorType authz.ActorType `json:"actor_type,omitempty"`
+	ActorID   *uuid.UUID      `json:"actor_id,omitempty"`
+	ActorName string          `json:"actor_name,omitempty"`
 }
 
 // Kind implements river.JobArgs.
@@ -823,7 +851,11 @@ func (s *Service) Work(ctx context.Context, a RunArgs) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.execute(ctx, &ws, a.CampaignID, a.RunID, RunOptions{Trigger: a.Trigger, By: a.By})
+	o := RunOptions{Trigger: a.Trigger, By: a.By}
+	if a.ActorType != "" {
+		o.Actor = &audit.Actor{Type: a.ActorType, ID: a.ActorID, Name: a.ActorName}
+	}
+	_, err = s.execute(ctx, &ws, a.CampaignID, a.RunID, o)
 	switch {
 	case errors.Is(err, errTakenOver):
 		return nil

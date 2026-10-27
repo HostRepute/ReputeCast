@@ -127,6 +127,20 @@ func TestComposerCommentsAndMentions(t *testing.T) {
 		t.Fatalf("after reopen: %+v", list)
 	}
 
+	// Comments carry their author and resolver: an API key or agent would
+	// be recorded as the person who made it, so only people comment.
+	var key struct{ Secret string }
+	linh.Do("POST", ws+"/api-keys", map[string]any{"name": "Comment bot", "permissions": []string{"campaigns:edit"}}).MustStatus(t, 201).JSON(t, &key)
+	bot := env.Client()
+	bot.Bearer = key.Secret
+	if p := bot.Do("POST", ws+"/campaigns/"+d.ID+"/comments", map[string]any{"body": "From a key"}).MustStatus(t, 403).Problem(t); p["code"] != "humans_only" {
+		t.Fatalf("an API key commented: %v", p)
+	}
+	if p := bot.Do("PUT", ws+"/campaigns/"+d.ID+"/comments/"+th.ID+"/resolved", map[string]any{"resolved": true}).MustStatus(t, 403).Problem(t); p["code"] != "humans_only" {
+		t.Fatalf("an API key resolved a thread: %v", p)
+	}
+	bot.Do("GET", ws+"/campaigns/"+d.ID+"/comments", nil).MustStatus(t, 200)
+
 	// Other workspaces don't see them.
 	linh.Do("GET", "/workspaces/acme-engineering-blog/campaigns/"+d.ID+"/comments", nil).MustStatus(t, 404)
 	linh.Do("POST", "/workspaces/acme-engineering-blog/campaigns/"+d.ID+"/comments", map[string]any{"body": "x"}).MustStatus(t, 404)
@@ -180,6 +194,18 @@ func TestComposerReviewLinks(t *testing.T) {
 	if v2.Name != "Shared for review" {
 		t.Fatalf("version name: %+v", v2)
 	}
+	// A review link records who shared or revoked it: only people do.
+	var key struct{ Secret string }
+	linh.Do("POST", ws+"/api-keys", map[string]any{"name": "Review bot", "permissions": []string{"campaigns:edit"}}).MustStatus(t, 201).JSON(t, &key)
+	bot := env.Client()
+	bot.Bearer = key.Secret
+	if p := bot.Do("POST", ws+"/campaigns/"+d.ID+"/review-links", nil).MustStatus(t, 403).Problem(t); p["code"] != "humans_only" {
+		t.Fatalf("an API key shared a review link: %v", p)
+	}
+	if p := bot.Do("DELETE", ws+"/campaigns/"+d.ID+"/review-links/"+link.ID, nil).MustStatus(t, 403).Problem(t); p["code"] != "humans_only" {
+		t.Fatalf("an API key revoked a review link: %v", p)
+	}
+
 	// Members can copy it again; the token isn't stored in the clear.
 	var links struct{ Items []reviewLink }
 	linh.Do("GET", ws+"/campaigns/"+d.ID+"/review-links", nil).MustStatus(t, 200).JSON(t, &links)
@@ -318,6 +344,27 @@ func TestComposerPresence(t *testing.T) {
 	marcus.Do("PUT", ws+"/campaigns/"+d.ID+"/presence", map[string]any{}).MustStatus(t, 200).JSON(t, &p)
 	if len(p.Others) != 0 {
 		t.Fatalf("stale presence: %+v", p)
+	}
+
+	// An API key isn't someone with the campaign open: it sees who is, but
+	// neither shows the person who made it there nor takes them away.
+	var key struct{ Secret string }
+	linh.Do("POST", ws+"/api-keys", map[string]any{"name": "Presence bot", "permissions": []string{"campaigns:view"}}).MustStatus(t, 201).JSON(t, &key)
+	bot := env.Client()
+	bot.Bearer = key.Secret
+	bot.Do("PUT", ws+"/campaigns/"+d.ID+"/presence", map[string]any{"editing": true}).MustStatus(t, 200).JSON(t, &p)
+	if len(p.Others) != 1 || p.Others[0].Name != "Marcus Chen" {
+		t.Fatalf("the key sees: %+v", p)
+	}
+	marcus.Do("PUT", ws+"/campaigns/"+d.ID+"/presence", map[string]any{}).MustStatus(t, 200).JSON(t, &p)
+	if len(p.Others) != 0 {
+		t.Fatalf("an API key's call shows the person who made it: %+v", p)
+	}
+	linh.Do("PUT", ws+"/campaigns/"+d.ID+"/presence", map[string]any{}).MustStatus(t, 200)
+	bot.Do("DELETE", ws+"/campaigns/"+d.ID+"/presence", nil).MustStatus(t, 204)
+	marcus.Do("PUT", ws+"/campaigns/"+d.ID+"/presence", map[string]any{}).MustStatus(t, 200).JSON(t, &p)
+	if len(p.Others) != 1 || p.Others[0].Name != "Linh Nguyen" {
+		t.Fatalf("an API key's leave took the person who made it away: %+v", p)
 	}
 }
 
