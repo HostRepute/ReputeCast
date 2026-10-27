@@ -2609,6 +2609,9 @@ type Querier interface {
 	ReadinessListNames(ctx context.Context, workspaceID uuid.UUID) ([]ReadinessListNamesRow, error)
 	// The sizes of the media library's images an email shows.
 	ReadinessMediaSizes(ctx context.Context, arg ReadinessMediaSizesParams) ([]ReadinessMediaSizesRow, error)
+	// Whether Gmail Postmaster Tools data comes in for the workspace at all
+	// (recent days for any domain).
+	ReadinessPostmasterConnected(ctx context.Context, arg ReadinessPostmasterConnectedParams) (bool, error)
 	// Gmail Postmaster Tools' last days for a sending domain (or its parent):
 	// the spam rate and the authentication and TLS pass rates Google reports.
 	ReadinessPostmasterDays(ctx context.Context, arg ReadinessPostmasterDaysParams) ([]ReadinessPostmasterDaysRow, error)

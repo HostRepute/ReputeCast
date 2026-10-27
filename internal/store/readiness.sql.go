@@ -564,6 +564,24 @@ func (q *Queries) ReadinessMediaSizes(ctx context.Context, arg ReadinessMediaSiz
 	return items, nil
 }
 
+const readinessPostmasterConnected = `-- name: ReadinessPostmasterConnected :one
+SELECT EXISTS (SELECT 1 FROM postmaster_daily WHERE workspace_id = $1 AND day >= $2::date)::bool
+`
+
+type ReadinessPostmasterConnectedParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+// Whether Gmail Postmaster Tools data comes in for the workspace at all
+// (recent days for any domain).
+func (q *Queries) ReadinessPostmasterConnected(ctx context.Context, arg ReadinessPostmasterConnectedParams) (bool, error) {
+	row := q.db.QueryRow(ctx, readinessPostmasterConnected, arg.WorkspaceID, arg.Since)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const readinessPostmasterDays = `-- name: ReadinessPostmasterDays :many
 SELECT domain, day, spam_rate, spf_rate, dkim_rate, dmarc_rate, tls_rate
 FROM postmaster_daily

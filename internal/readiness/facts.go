@@ -442,8 +442,10 @@ type ComplianceFacts struct {
 	// ComplaintRate is the route's 7-day complaint rate in percent.
 	ComplaintRate *float64
 	// Gmail is Gmail Postmaster Tools' latest day for the sending domain
-	// (or its parent), nil when Postmaster data isn't connected.
-	Gmail *PostmasterFacts
+	// (or its parent), nil when there is none. PostmasterConnected says
+	// Postmaster data comes in for the workspace at all.
+	Gmail               *PostmasterFacts
+	PostmasterConnected bool
 }
 
 // PostmasterFacts is what Gmail Postmaster Tools reported for a domain.
@@ -457,4 +459,16 @@ type PostmasterFacts struct {
 	// SpamDay is the day of SpamRate when it isn't Day (the latest day
 	// with a rate).
 	SpamDay *time.Time
+	// SPF, DKIM, DMARC and TLS are Day's pass rates in percent, nil when
+	// Google didn't report one.
+	SPF, DKIM, DMARC, TLS *float64
 }
+
+// PostmasterFloor is the pass rate (percent) under which Gmail Postmaster's
+// authentication and TLS rates make its compliance status "Needs work",
+// and PostmasterSpamLimit the user-reported spam rate at which it does
+// (Google's bulk-sender rules, SR-12).
+const (
+	PostmasterFloor     = 98.0
+	PostmasterSpamLimit = 0.3
+)

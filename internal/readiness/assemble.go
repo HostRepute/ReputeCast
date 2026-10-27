@@ -1659,8 +1659,12 @@ func (b *builder) compliance() {
 	c := check{Key: "compliance.bulk_sender", Group: GroupCompliance, Status: Pass, Title: tx("compliance.bulk", nil), Label: tx("label.bulkRules", nil),
 		Short: tx("compliance.bulkShort", nil)}
 	parts := []Text{}
+	// rules are ReputeCast's checks of Google's and Yahoo's rules, as the
+	// Postmaster status lists them beside Google's verdict.
+	rules := []Text{}
 	if b.f.Auth.DMARCStatus == "pass" {
 		parts = append(parts, tx("compliance.partDmarc", nil))
+		rules = append(rules, tx("compliance.partDmarc", nil))
 	} else {
 		c.Status = Warn
 		c.Title = tx("compliance.bulkDmarc", nil)
@@ -1668,10 +1672,14 @@ func (b *builder) compliance() {
 	}
 	if oneClick {
 		parts = append(parts, tx("compliance.partOneClick", nil))
+		rules = append(rules, tx("compliance.partOneClick", nil))
 	}
 	if cf.ComplaintRate != nil {
 		cr := *cf.ComplaintRate
 		rate := ArgPercent(cr)
+		if cr < 0.3 {
+			rules = append(rules, tx("compliance.ruleComplaints", A{"rate": rate, "limit": ArgPercent(0.3)}))
+		}
 		switch {
 		case cr >= 0.3:
 			c.Status = Block
@@ -1715,12 +1723,74 @@ func (b *builder) compliance() {
 	}
 	parts = append(parts, tx("compliance.partUnsubscribes", A{"days": 2}))
 	c.Detail = joined(" · ", parts)
+	b.postmasterStatus(&c, rules, parts)
 	if footerBlocked && c.Status == Pass {
 		// The rules also want a visible unsubscribe link and address in the
 		// body: the footer block says they aren't met, and its fix meets them.
 		return
 	}
 	b.add(c)
+}
+
+// postmasterStatus is Gmail Postmaster's compliance status on the bulk
+// sender check (SR-12). With Postmaster data for the domain, the check is
+// Google's verdict on its latest day, Compliant or Needs work (naming what
+// Google measured short), beside ReputeCast's checks of the same rules,
+// which Yahoo has no report for. Otherwise ReputeCast's checks stand alone
+// and say Postmaster isn't connected, or has no data for the domain yet.
+func (b *builder) postmasterStatus(c *check, rules, parts []Text) {
+	cf := b.f.Compliance
+	g := cf.Gmail
+	switch {
+	case g == nil && cf.PostmasterConnected:
+		c.Detail = joined(" · ", append(parts, tx("compliance.partPostmasterNoData", A{"domain": firstNonEmpty(b.f.Auth.Domain, b.f.Campaign.SenderDomain)})))
+		return
+	case g == nil:
+		c.Detail = joined(" · ", append(parts, tx("compliance.partPostmasterOff", nil)))
+		c.Fixes = append(c.Fixes, link(tx("fix.connectPostmaster", nil), b.href("/deliverability/connect")))
+		return
+	}
+	short := []Text{}
+	for _, r := range []struct {
+		key  string
+		rate *float64
+	}{{"SPF", g.SPF}, {"DKIM", g.DKIM}, {"DMARC", g.DMARC}, {"TLS", g.TLS}} {
+		if r.rate != nil && *r.rate < PostmasterFloor {
+			short = append(short, tx("compliance.postmasterRate", A{"what": r.key, "rate": ArgPercent(*r.rate)}))
+		}
+	}
+	if g.SpamRate != nil && *g.SpamRate >= PostmasterSpamLimit {
+		short = append(short, tx("compliance.postmasterSpam", A{"rate": ArgPercent(*g.SpamRate)}))
+	}
+	when := "other"
+	today := b.f.Now.In(b.loc).Format(time.DateOnly)
+	switch g.Day.Format(time.DateOnly) {
+	case today:
+		when = "today"
+	case b.f.Now.In(b.loc).AddDate(0, 0, -1).Format(time.DateOnly):
+		when = "yesterday"
+	}
+	args := A{"when": when, "day": ArgDay(g.Day)}
+	detail := tx("compliance.postmasterDetail", A{"rules": joined(", ", rules)})
+	if len(rules) == 0 {
+		detail = tx("compliance.postmasterLate", nil)
+	}
+	if len(short) == 0 {
+		if c.Status == Pass {
+			c.Title = tx("compliance.postmasterCompliant", args)
+		}
+		c.Detail = detail
+		return
+	}
+	if c.Status == Pass {
+		c.Status = Warn
+		c.Title = tx("compliance.postmasterNeedsWork", args)
+		c.Ack = tx("compliance.postmasterNeedsWorkAck", A{"domain": g.Domain})
+	}
+	if len(c.Fixes) == 0 {
+		c.Fixes = []fix{link(tx("fix.openDeliverability", nil), b.href("/deliverability"))}
+	}
+	c.Detail = sentences(tx("compliance.postmasterShort", A{"items": ArgAnd(short), "domain": g.Domain}), detail)
 }
 
 func (b *builder) audience() {

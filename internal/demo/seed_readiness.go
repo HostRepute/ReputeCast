@@ -136,8 +136,17 @@ func (r *readinessSeed) baseFacts(checked time.Time) readiness.Facts {
 			MailFrom:    []readiness.ProviderAuthFacts{{Short: "SES", OK: true, Domain: "bounce.news.acme.io"}, {Short: "Postal", OK: true, Domain: "rp.news.acme.io"}},
 			DMARCStatus: "pass", DMARCPolicy: "quarantine", DMARCRecord: "v=DMARC1; p=quarantine; rua=mailto:dmarc@reports.hostrepute.com; adkim=s", DMARCAligned: f64(100),
 			BIMIStatus: "missing"},
-		Compliance: readiness.ComplianceFacts{UnsubscribeURL: "https://news.acme.io/u/{token}", HTTPS: true, ComplaintRate: f64(0.04)},
+		// Gmail Postmaster Tools reports a day late: yesterday, compliant
+		// (SR-12, the board's "Gmail Postmaster: Compliant (yesterday)").
+		Compliance: readiness.ComplianceFacts{UnsubscribeURL: "https://news.acme.io/u/{token}", HTTPS: true, ComplaintRate: f64(0.04),
+			Gmail: &readiness.PostmasterFacts{Domain: "news.acme.io", Day: postmasterDay(checked.In(loc).AddDate(0, 0, -1)), SpamRate: f64(0.05),
+				SPF: f64(100), DKIM: f64(100), DMARC: f64(100), TLS: f64(100)}, PostmasterConnected: true},
 	}
+}
+
+// postmasterDay is the date Gmail Postmaster Tools reports a day under.
+func postmasterDay(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 }
 
 func probed(entries ...[3]string) []contentcheck.ContentCheckLink {

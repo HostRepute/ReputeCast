@@ -205,3 +205,8 @@ SELECT * FROM campaign_send_confirmations WHERE campaign_id = @campaign_id;
 
 -- name: ReadinessForgetConfirmation :exec
 DELETE FROM campaign_send_confirmations WHERE campaign_id = @campaign_id;
+
+-- name: ReadinessPostmasterConnected :one
+-- Whether Gmail Postmaster Tools data comes in for the workspace at all
+-- (recent days for any domain).
+SELECT EXISTS (SELECT 1 FROM postmaster_daily WHERE workspace_id = @workspace_id AND day >= @since::date)::bool;

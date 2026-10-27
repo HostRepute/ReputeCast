@@ -259,6 +259,7 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 
 	f.Compliance = s.compliance(ws, f)
 	f.Compliance.Gmail = s.postmaster(ctx, ws.ID, firstNonEmpty(f.Auth.Domain, c.SenderDomain), now)
+	f.Compliance.PostmasterConnected = f.Compliance.Gmail != nil || s.postmasterConnected(ctx, ws.ID, now)
 	done(stageComply, f)
 
 	if f.Reputation, err = s.reputation(ctx, g, f); err != nil {

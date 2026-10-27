@@ -128,7 +128,7 @@ func (s *Service) postmaster(ctx context.Context, wsID uuid.UUID, domain string,
 			continue
 		}
 		if out == nil {
-			out = &PostmasterFacts{Domain: pick, Day: r.Day}
+			out = &PostmasterFacts{Domain: pick, Day: r.Day, SPF: pct(r.SpfRate), DKIM: pct(r.DkimRate), DMARC: pct(r.DmarcRate), TLS: pct(r.TlsRate)}
 		}
 		if r.SpamRate != nil {
 			v := *r.SpamRate * 100
@@ -141,6 +141,22 @@ func (s *Service) postmaster(ctx context.Context, wsID uuid.UUID, domain string,
 		}
 	}
 	return out
+}
+
+// pct is a stored rate (0–1) in percent.
+func pct(v *float64) *float64 {
+	if v == nil {
+		return nil
+	}
+	p := *v * 100
+	return &p
+}
+
+// postmasterConnected says whether Gmail Postmaster data comes in for the
+// workspace at all (a month of any domain).
+func (s *Service) postmasterConnected(ctx context.Context, wsID uuid.UUID, now time.Time) bool {
+	ok, err := s.Q.ReadinessPostmasterConnected(ctx, store.ReadinessPostmasterConnectedParams{WorkspaceID: wsID, Since: now.AddDate(0, 0, -30)})
+	return err == nil && ok
 }
 
 func hasPostmasterDomain(rows []store.ReadinessPostmasterDaysRow, domain string) bool {

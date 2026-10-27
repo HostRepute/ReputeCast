@@ -917,5 +917,18 @@
 
   "fix.sunsetPolicy": { "message": "Sunset policy", "note": "A link to the sunset policy on List health" },
   "applied.includedUnengaged": { "message": "Included the unengaged contacts", "note": "Toast after Include them on the audience of Review & send" },
-  "applied.alreadyIncluded": "Unengaged contacts are already included"
+  "applied.alreadyIncluded": "Unengaged contacts are already included",
+
+  "compliance.ruleComplaints": { "message": "complaint rate {rate} under the {limit} limit", "note": "One of the rules ReputeCast checks itself, in a list after a colon: complaint rate 0.04% under the 0.3% limit" },
+  "compliance.postmasterCompliant": { "message": "Gmail Postmaster: Compliant ({when, select, today {today} yesterday {yesterday} other {{day}}})", "note": "Google's compliance status for the sending domain in Gmail Postmaster Tools, and the day Google reported it" },
+  "compliance.postmasterNeedsWork": { "message": "Gmail Postmaster: Needs work ({when, select, today {today} yesterday {yesterday} other {{day}}})", "note": "Google's compliance status when the domain falls short of Google's bulk-sender rules" },
+  "compliance.postmasterNeedsWorkAck": "I understand Gmail Postmaster says {domain} needs work.",
+  "compliance.postmasterDetail": { "message": "Google reports compliance a day late. Yahoo has no such report, so ReputeCast checks the same rules itself: {rules}.", "note": "rules: DMARC aligned, one-click unsubscribe, complaint rate 0.04% under the 0.3% limit" },
+  "compliance.postmasterLate": "Google reports compliance a day late.",
+  "compliance.postmasterShort": { "message": "Google measured {items} for {domain}, short of its bulk-sender rules.", "note": "items: DMARC 96.2% and TLS 97%" },
+  "compliance.postmasterRate": { "message": "{what} {rate}", "note": "A pass rate Google measured: DMARC 96.2%" },
+  "compliance.postmasterSpam": "a spam rate of {rate}",
+  "compliance.partPostmasterOff": "Gmail Postmaster not connected",
+  "compliance.partPostmasterNoData": { "message": "no Gmail Postmaster data for {domain} yet", "note": "Google reports only domains with enough Gmail volume" },
+  "fix.connectPostmaster": { "message": "Connect Postmaster", "note": "A link to connecting Gmail Postmaster Tools on Deliverability" }
 }

@@ -917,5 +917,18 @@
 
   "fix.sunsetPolicy": "Chính sách ngừng gửi dần",
   "applied.includedUnengaged": "Đã đưa liên hệ không tương tác vào",
-  "applied.alreadyIncluded": "Liên hệ không tương tác đã được đưa vào"
+  "applied.alreadyIncluded": "Liên hệ không tương tác đã được đưa vào",
+
+  "compliance.ruleComplaints": "tỷ lệ khiếu nại {rate} dưới giới hạn {limit}",
+  "compliance.postmasterCompliant": "Gmail Postmaster: Tuân thủ ({when, select, today {hôm nay} yesterday {hôm qua} other {{day}}})",
+  "compliance.postmasterNeedsWork": "Gmail Postmaster: Cần cải thiện ({when, select, today {hôm nay} yesterday {hôm qua} other {{day}}})",
+  "compliance.postmasterNeedsWorkAck": "Tôi hiểu Gmail Postmaster cho biết {domain} cần cải thiện.",
+  "compliance.postmasterDetail": "Google báo cáo việc tuân thủ chậm một ngày. Yahoo không có báo cáo như vậy, nên ReputeCast tự kiểm tra các quy tắc đó: {rules}.",
+  "compliance.postmasterLate": "Google báo cáo việc tuân thủ chậm một ngày.",
+  "compliance.postmasterShort": "Google đo được {items} cho {domain}, chưa đạt quy tắc gửi hàng loạt của Google.",
+  "compliance.postmasterRate": "{what} {rate}",
+  "compliance.postmasterSpam": "tỷ lệ spam {rate}",
+  "compliance.partPostmasterOff": "chưa kết nối Gmail Postmaster",
+  "compliance.partPostmasterNoData": "chưa có dữ liệu Gmail Postmaster cho {domain}",
+  "fix.connectPostmaster": "Kết nối Postmaster"
 }

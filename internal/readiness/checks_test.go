@@ -217,13 +217,14 @@ func TestLinksOfEveryLanguageVersion(t *testing.T) {
 }
 
 // Gmail's spam rate comes from Postmaster Tools: over 0.3% blocks, over
-// 0.1% warns, and it's named in the bulk-sender row.
+// 0.1% warns and is named in the bulk-sender row; under it, the row is
+// Postmaster's compliance status (SR-12).
 func TestGmailPostmasterSpamRate(t *testing.T) {
 	day := time.Date(2026, 10, 12, 0, 0, 0, 0, time.UTC)
 	f := digest()
 	f.Compliance.Gmail = &readiness.PostmasterFacts{Domain: "news.acme.io", Day: day, SpamRate: f64(0.04)}
 	c := mustCheck(t, readiness.Assemble(f), "compliance.bulk_sender")
-	if c.Status != readiness.Pass || !strings.Contains(c.Detail, "Gmail spam rate 0.04%") {
+	if c.Status != readiness.Pass || !strings.HasPrefix(c.Title, "Gmail Postmaster: Compliant") {
 		t.Fatalf("under: %+v", c)
 	}
 	f.Compliance.Gmail.SpamRate = f64(0.18)
