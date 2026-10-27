@@ -359,5 +359,13 @@
     .rv-when {
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     }
+    /* 44 px targets, as the phone boards draw them: every button and field
+       on the page (`rv-page` is its <main>) and in the fix review. */
+    .rv-page .btn,
+    .rv-page select,
+    .rv-page input:not([type='checkbox']):not([type='radio']),
+    .rv-drawer .btn {
+      min-height: 44px;
+    }
   }
 }

@@ -256,6 +256,7 @@ function LiveScreen({
       title={t(m.title)}
       documentTitle={t(m.documentTitle, { name: s.name })}
       breadcrumb={crumbs(slug, s.name)}
+      contentClassName="lv-page"
       subtitle={startedLine(s) || undefined}
       badges={
         <>

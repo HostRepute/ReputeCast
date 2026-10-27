@@ -300,6 +300,10 @@
   .bk .crow .cin {
     grid-column: 2 / -1;
   }
+  .bk .crow .cin {
+    width: 100%;
+    min-width: 0;
+  }
   .bk .bkhead > div:last-child {
     width: 100%;
   }
@@ -311,7 +315,12 @@
     height: 44px;
   }
   .bk .sbrow .btn,
-  .bk .lcell .btn {
+  .bk .lcell .btn,
+  .bk .btn.sm {
     min-height: 44px;
+  }
+  .bk .in,
+  .bk select.in {
+    height: 44px;
   }
 }

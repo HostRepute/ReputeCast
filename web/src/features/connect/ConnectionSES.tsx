@@ -204,7 +204,7 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
           </fieldset>
         </form>
         <details className="text-[13px]">
-          <summary className="cursor-pointer font-semibold">{t(mses.policyToggle)}</summary>
+          <summary className="min-h-6 cursor-pointer font-semibold">{t(mses.policyToggle)}</summary>
           <ScrollPre className="cn-pre mt-2" label={t(mses.policyLabel)}>
             {c.template?.policy}
           </ScrollPre>

@@ -557,10 +557,11 @@
     flex-wrap: wrap;
     overflow: visible;
   }
-  .wt-fmt .btn.tx {
+  /* .cmp: the composer's chrome draws 32 px controls (composer.css). */
+  .cmp .wt-fmt .btn.tx {
     min-height: 44px;
   }
-  .wt-fmt select.in {
+  .cmp .wt-fmt select.in {
     height: 44px;
     width: auto;
     min-width: 0;
@@ -569,7 +570,7 @@
   .wt-fmt .sep {
     display: none;
   }
-  .wt-fmt .btn.ic {
+  .cmp .wt-fmt .btn.ic {
     width: 44px;
     min-height: 44px;
   }
@@ -578,11 +579,11 @@
     margin-left: 0;
     justify-content: space-between;
   }
-  .wt-col .btn,
+  .cmp .wt-col .btn,
   .wsync a,
-  .wsync .btn,
-  .walt .btn,
-  .walt .in {
+  .cmp .wsync .btn,
+  .cmp .walt .btn,
+  .cmp .walt .in {
     min-height: 44px;
   }
   .wline {

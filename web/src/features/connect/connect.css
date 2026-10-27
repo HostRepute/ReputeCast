@@ -336,9 +336,11 @@ details.cn-det[open] summary svg {
   details.cn-det summary {
     min-height: 44px;
   }
-  /* Setup on phones: every button and field is at least 44 px (PR-15). */
+  /* Setup on phones: every button and field is at least 44 px (PR-15), on
+     the done page too (SetupDone). */
   .cn-head .btn,
-  .cn-wiz .btn {
+  .cn-wiz .btn,
+  .cn-done .btn {
     min-height: 44px;
   }
   .cn-wiz input.in,

@@ -104,6 +104,7 @@ export function ReviewPage({ campaignId }: { campaignId: string }) {
         { label: t(m.pageTitle) },
       ]}
       actions={d ? <HeaderActions review={d} running={running} onRun={() => void runChecks()} /> : null}
+      contentClassName="rv-page"
     >
       {review.isPending ? (
         <ReviewSkeleton />
@@ -433,7 +434,7 @@ function ReviewBody({
           hourlyAt={d.run?.estimates.hourlyAt}
           lock={lock === 'fix' || lock === 'send' ? lockText : undefined}
           action={
-            <Button className="rv-off min-h-10" disabledReason={lockText}>
+            <Button className="rv-off min-h-10 max-md:min-h-11" disabledReason={lockText}>
               {d.run ? ctaLabel(d.schedule, recipients) : d.schedule.mode === 'now' ? t(m.send) : t(m.scheduleSend)}
             </Button>
           }

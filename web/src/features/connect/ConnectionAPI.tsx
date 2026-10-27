@@ -83,7 +83,7 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
           </div>
           {extra.length ? (
             <details className="text-[13px]" open={extraOpen || undefined}>
-              <summary className="cursor-pointer font-semibold">{t(mn.moreSettings, { provider: info.short })}</summary>
+              <summary className="min-h-6 cursor-pointer font-semibold">{t(mn.moreSettings, { provider: info.short })}</summary>
               <div className="mt-3 grid items-end gap-3 max-md:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]!" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))' }}>
                 {extra.map((f) => (
                   <KeyField key={f.key} field={f} value={values[f.key] ?? ''} onChange={(v) => change(f.key, v)} error={errorFor(f)} disabled={Boolean(reason)} />
