@@ -3,6 +3,7 @@ package ai_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/demo"
 )
 
 // fakeModel is an OpenAI-compatible server (what Ollama, vLLM and LM Studio
@@ -265,7 +267,7 @@ func TestAIDemoSettings(t *testing.T) {
 		}
 	}
 	c.Do(http.MethodGet, ws+"/campaigns/"+campaignID(t, env, "October Product Update")+"/ai-summary", nil).MustStatus(t, 200).JSON(t, &kept)
-	if kept.Kept == nil || kept.Kept.KeptBy != "Linh Nguyen" || !strings.HasPrefix(kept.Kept.Summary, "October Product Update reached 47,548 inboxes") || kept.Kept.ModelName != "Claude Sonnet 5.5" {
+	if kept.Kept == nil || kept.Kept.KeptBy != "Linh Nguyen" || kept.Kept.Summary != demo.AIOctoberSummary || kept.Kept.ModelName != "Claude Sonnet 5.5" {
 		t.Fatalf("kept summary: %+v", kept.Kept)
 	}
 	// The catalog's AI models group: Anthropic connected with this month's use.
@@ -814,14 +816,26 @@ func TestAITranslationAndSummary(t *testing.T) {
 		NumbersMatch bool
 	}
 	c.Do(http.MethodPost, ws+"/ai/report-summary", map[string]any{"campaignId": oct}).MustStatus(t, 200).JSON(t, &sum)
-	if !strings.HasPrefix(sum.Summary, "October Product Update reached") || !sum.NumbersMatch {
+	// The demo's model writes the Report board's summary; every number is
+	// filled in from the report (review AN-6).
+	if sum.Summary != demo.AIOctoberSummary || !sum.NumbersMatch {
 		t.Fatalf("summary: %+v", sum)
 	}
+	// An edit is checked again before it is kept: a number the report
+	// doesn't have isn't kept.
+	bad := c.Do(http.MethodPut, ws+"/campaigns/"+oct+"/ai-summary", map[string]any{"requestId": sum.RequestID, "edited": true,
+		"summary": strings.Replace(sum.Summary, "99.1%", "99.9%", 1)}).MustStatus(t, 422).Problem(t)
+	if !strings.Contains(fmt.Sprint(bad["detail"]), "99.9%") {
+		t.Fatalf("an edit with a number the report doesn't have: %v", bad)
+	}
 	var kept struct {
-		Kept *struct{ Summary, KeptBy string }
+		Kept *struct {
+			Summary, KeptBy string
+			NumbersMatch    bool
+		}
 	}
 	c.Do(http.MethodPut, ws+"/campaigns/"+oct+"/ai-summary", map[string]any{"requestId": sum.RequestID, "summary": sum.Summary}).MustStatus(t, 200).JSON(t, &kept)
-	if kept.Kept == nil || kept.Kept.KeptBy != "Sofia Rossi" {
+	if kept.Kept == nil || kept.Kept.KeptBy != "Sofia Rossi" || !kept.Kept.NumbersMatch {
 		t.Fatalf("kept: %+v", kept)
 	}
 	var outcome string
@@ -848,6 +862,11 @@ func TestAITranslationAndSummary(t *testing.T) {
 	c.Do(http.MethodGet, ws+"/campaigns/"+oct+"/ai-summary", nil).MustStatus(t, 200).JSON(t, &gone)
 	if gone.Kept != nil {
 		t.Fatal("the summary is still kept")
+	}
+	// Keeping and removing are audited.
+	var audited int
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action IN ('report_summary.keep', 'report_summary.remove') AND target_id = $1`, oct).Scan(&audited); err != nil || audited != 2 {
+		t.Fatalf("summary audit entries: %d %v", audited, err)
 	}
 }
 

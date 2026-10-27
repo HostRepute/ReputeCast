@@ -57,6 +57,7 @@
   "problem.notSent": "This campaign hasn't sent anything yet, so there are no results to summarize.",
   "problem.pickProvider": "Pick one of the providers.",
   "problem.campaignId": { "message": "Name the campaign.", "note": "a request without the campaign it is about" },
+  "problem.numbersUnmatched": { "message": "{count, plural, one {This number isn't in the report: {numbers}. Change it to the report's number before keeping the summary.} other {These numbers aren't in the report: {numbers}. Change them to the report's numbers before keeping the summary.}}", "note": "an edited AI summary with numbers the report doesn't have; numbers: the numbers as written, comma-separated" },
   "problem.suggestionId": { "message": "Name the suggestion.", "note": "a request without the suggestion it keeps or accepts" },
   "activity.newSegment": { "message": "New segment", "note": "the AI activity log's “On” column, for a segment not saved yet" },
   "activity.onField": { "message": "{name} {field, select, subject {subject} other {preheader}}", "note": "the AI activity log's “On” column for a rewrite of a campaign's subject or preheader; name: the campaign's name" },

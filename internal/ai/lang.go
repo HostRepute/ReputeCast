@@ -97,6 +97,7 @@ var (
 	mNotSent              = msgs.M("problem.notSent")
 	mPickProvider         = msgs.M("problem.pickProvider")
 	mCampaignID           = msgs.M("problem.campaignId")
+	mNumbersUnmatched     = msgs.M("problem.numbersUnmatched")
 	mSuggestionID         = msgs.M("problem.suggestionId")
 	mVersionTranslated    = msgs.M("version.translated")
 

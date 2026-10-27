@@ -146,7 +146,7 @@ func seedAIImpl(ctx context.Context, s *Seeder) error {
 }
 
 // AIOctoberSummary is the summary Linh kept on October Product Update.
-const AIOctoberSummary = "October Product Update reached 47,548 inboxes, 99.1% of the 47,980 sent. 41.2% opened it as people; another 18.6% were machine opens, which aren't counted as people. 6.3% clicked, and the feature-flags link drew 38% of the clicks. Subject B, “What shipped in October, and what we're retiring”, won the test with 42.6% human opens against 39.8%. Outlook had the highest bounce rate (1.0%). 112 people unsubscribed, most often for “too many emails”."
+const AIOctoberSummary = "October Product Update was delivered to 47,548 of 47,980 addresses (99.1%). 19,590 people opened it: 41.2% of delivered, and 52.8% of the 37,112 whose opens can be measured. Apple Mail opened another 10,436 automatically, so we can't tell whether those were read, and 1,240 scanner opens are left out. Human clicks came from 2,996 people (6.3%), and the feature-flags link drew 38% of those clicks. Subject B, “What shipped in October, and what we're retiring”, won on clicks with 98% confidence (6.7% against 5.6%). Outlook bounced 1.0%, twice the rate of the other mailbox providers. 112 people unsubscribed, most often for “too many emails”."
 
 // aiRequests builds this month's log: the board's six rows, and the rest of
 // each member's and feature's amounts spread over the month, so the totals
