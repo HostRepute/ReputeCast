@@ -47,6 +47,8 @@ export const entries: Entry[] = [
   { board: 'ComposerWritePhone', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/edit?view=write`, widths: [390] },
   { board: 'BrandKit', path: `${ws}/settings/brand-kit`, widths: [1440] },
   { board: 'BrandKitPhone', path: `${ws}/settings/brand-kit`, widths: [390] },
+  { board: 'SettingsSendingRules', path: `${ws}/settings/sending-rules`, widths: [1440, 834] },
+  { board: 'SettingsSendingRulesPhone', path: `${ws}/settings/sending-rules`, widths: [390] },
   // Daniel Park signs in with SSO only: reproduce by hand (a dev session for daniel@acme.io).
   { board: 'ComposerRequestApproval', manual: true },
   // Weekly Digest #142 is scheduled in the demo (SendReadinessStates · scheduled); SendReadiness is

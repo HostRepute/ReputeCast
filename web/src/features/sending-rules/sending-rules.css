@@ -153,6 +153,13 @@
     .sr-cols {
       grid-template-columns: minmax(0, 1fr);
     }
+    /* 44 px targets on phones, as SettingsSendingRulesPhone draws them. */
+    .sr-page .btn,
+    .sr-page select,
+    .sr-page input:not([type='checkbox']):not([type='radio']),
+    .sr-page .sr-stat {
+      min-height: 44px;
+    }
   }
   .sr-form {
     display: flex;

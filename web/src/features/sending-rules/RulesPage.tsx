@@ -100,7 +100,7 @@ function RulesBody({ view }: { view: View }) {
   const on = view.rules.filter((r) => r.enabled).length
   const names = view.managers.length ? andList(view.managers) : 'none'
   return (
-    <>
+    <div className="sr-page contents">
       <section className="card" aria-labelledby="sr-rules">
         <div className="sec">
           <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-0.5">
@@ -168,7 +168,7 @@ function RulesBody({ view }: { view: View }) {
         />
         <DefaultsCard key={JSON.stringify(view.defaults)} view={view} read={read} reason={reason} onSaved={refresh} />
       </div>
-    </>
+    </div>
   )
 }
 
