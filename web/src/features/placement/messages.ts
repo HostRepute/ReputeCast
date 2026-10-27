@@ -580,8 +580,11 @@ export const m = defineMessages('placement', {
   entryTitle: 'Placement test',
   entryOptional: 'Optional',
   entryNotRun: 'Not run for this campaign',
-  entryLatest: '{time} · {name}',
   entryViewResults: 'View results',
+  entrySeeds:
+    '{count, plural, one {# seed mailbox} other {# seed mailboxes}} ({names}){attention, plural, =0 {} one { · # more needs attention} other { · # more need attention}} · about 3 min',
+  entryNoSeeds: 'No seed mailboxes connected yet',
+  entryLast: 'Last result · {day} · {name}',
   entryFound: '{found, number} of {copies, number} found',
   approvalCaption: 'The campaign’s latest test, for context: {time} · {name} · {through}',
   sendTest: 'Send test',

@@ -88,14 +88,28 @@ function ResultsLink({ row, children }: { row: TestRow; children: ReactNode }) {
   )
 }
 
+/** "SES · Inbox 8 · Tab 2 · Spam 0 · Not arrived 1", or what's found so far while the test runs. */
+function reviewLine(t: ReturnType<typeof useT>, p: TestRow['providers'][number], several: boolean, live: boolean): string {
+  const c = p.counts
+  const parts = live
+    ? [t(m.entryFound, { found: c.found, copies: c.copies })]
+    : [t(m.resInbox, { n: c.inbox }), t(m.resTab, { n: c.tab }), t(m.resSpam, { n: c.spam }), ...(c.notArrived > 0 ? [t(m.resNotArrived, { n: c.notArrived })] : [])]
+  return (several ? [p.short, ...parts] : parts).join(' · ')
+}
+
 /**
- * Review & send: "Not run for this campaign · Run placement test", or the
- * latest result per provider with View results. Optional, and never part
- * of the verdict. A route over several providers compares them.
+ * Review & send's placement card (SR-9, SendReadiness): the seed mailboxes a
+ * test reaches, the campaign's last result per sending provider (Inbox,
+ * Tab, Spam, Not arrived) with View results, and Run placement
+ * test, which starts one for this campaign as scheduled. Optional, and
+ * never part of the verdict; a route over several providers compares them.
  */
 export function PlacementReviewCard({ campaignId, campaignName, providers, className }: { campaignId: string; campaignName: string; providers: string[]; className?: string }) {
   const t = useT()
+  const { slug } = useWorkspace()
+  const canView = useCan('deliverability:view')
   const { q, row } = useLatest('campaign', campaignId)
+  const seeds = $api.useQuery('get', `${base}/seeds`, { params: { path: { workspace: slug } } }, { enabled: canView })
   const reason = useRunReason(q.data)
   const { ref: runRef, open: runOpen, setOpen: setRunOpen, close: closeRun } = useOpener<HTMLButtonElement>()
   if (!q.data) return null
@@ -107,27 +121,49 @@ export function PlacementReviewCard({ campaignId, campaignName, providers, class
     providers: used.length > 1 ? used : undefined,
     from: campaignName,
   }
+  const connected = seeds.data?.seeds.filter((s) => s.status === 'connected') ?? []
+  const names = [...new Set(connected.map((s) => s.providerName))]
+  // A test skips the seeds whose sign-in failed or expired: the caption says so.
+  const attention = seeds.data?.seeds.filter((s) => s.status === 'failed' || s.status === 'expired') ?? []
+  const live = row ? running(row) : false
   return (
-    <section className={cn('card flex flex-col gap-2.5', className)} aria-labelledby="pl-review-card">
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="h2" id="pl-review-card">
-          {t(m.entryTitle)}
-        </h2>
-        <span className="k">{t(m.entryOptional)}</span>
+    <section className={cn('card pl-rv', className)} aria-labelledby="pl-review-card">
+      <div className="pl-rv-h">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <h2 className="h2" id="pl-review-card">
+            {t(m.entryTitle)}
+          </h2>
+          {seeds.data ? (
+            <span className="k">
+              {connected.length ? t(m.entrySeeds, { count: connected.length, names: names.join(', '), attention: attention.length }) : t(m.entryNoSeeds)}
+            </span>
+          ) : null}
+        </div>
+        <span className="badge mut">{t(m.entryOptional)}</span>
       </div>
-      {row ? (
-        <>
-          <ProviderResults row={row} />
-          <span className="k">
-            {t(m.entryLatest, { time: dayTime(row.startedAt), name: row.startedBy })} · <ResultsLink row={row}>{t(m.entryViewResults)}</ResultsLink>
-          </span>
-        </>
-      ) : (
-        <span className="k">{t(m.entryNotRun)}</span>
-      )}
-      <Button ref={runRef} className="self-start" disabledReason={reason} onClick={() => setRunOpen(true)}>
-        {t(m.runTest)}
-      </Button>
+      <div className="pl-rv-b">
+        {row ? (
+          <div className="pl-rv-last">
+            <span className="k">{t(m.entryLast, { day: shortDate(row.startedAt), name: row.contentName })}</span>
+            {row.providers.map((p) => (
+              <div key={p.id} className="flex flex-col gap-1.5">
+                <span className="font-medium">{reviewLine(t, p, row.providers.length > 1, live)}</span>
+                <PBar counts={p.counts} waiting={live} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <span className="k pl-rv-last">{t(m.entryNotRun)}</span>
+        )}
+        {row ? (
+          <ButtonLink to="/w/$workspace/deliverability/placement/$testId" params={{ workspace: slug, testId: row.id }}>
+            {t(m.entryViewResults)}
+          </ButtonLink>
+        ) : null}
+        <Button ref={runRef} disabledReason={reason} onClick={() => setRunOpen(true)}>
+          {t(m.runTest)}
+        </Button>
+      </div>
       {runOpen ? <RunDialog open onOpenChange={(v) => !v && closeRun()} preset={preset} /> : null}
     </section>
   )
