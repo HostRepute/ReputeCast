@@ -32880,7 +32880,10 @@ export interface components {
             cost: components["schemas"]["ProviderCostToDate"];
             credentials: components["schemas"]["ProviderCredentialField"][];
             down?: components["schemas"]["ProviderDownState"];
-            /** Format: double */
+            /**
+             * Format: double
+             * @description Percent of API calls that failed in the last 3 minutes; omitted when there were none
+             */
             errorRate3m?: number;
             /**
              * Format: double
@@ -33070,7 +33073,10 @@ export interface components {
         ProviderOutage: {
             codes: string[];
             down: components["schemas"]["ProviderDownState"];
-            /** Format: double */
+            /**
+             * Format: double
+             * @description Percent of API calls that failed in the last 3 minutes; omitted when there were none
+             */
             errorRate?: number;
             forecasts: components["schemas"]["ProviderQuotaForecast"][];
             incidents: components["schemas"]["ProviderIncidentEntry"][];

@@ -195,11 +195,8 @@
 }
 
 /* A provider fact whose value runs to two lines ("Webhook · SNS · sự kiện
-   gần nhất…") keeps a gap from its key and wraps on the right, as Settings
-   › Providers' .sd-kv does. */
-:root:not([lang='en']) .pv-fact {
-  column-gap: 12px;
-}
+   gần nhất…") wraps on the right, as Settings › Providers' .sd-kv does; the
+   12 px gap from its key is the Fact component's, in every language. */
 :root:not([lang='en']) .pv-fact > .k {
   flex: none;
 }

@@ -162,7 +162,7 @@ type ProviderCard struct {
 	IPs         []string             `json:"ips"`
 	Webhook     ProviderWebhookFeed  `json:"webhook"`
 	ErrorRate7d *float64             `json:"errorRate7d,omitempty" doc:"Percent of API calls that failed"`
-	ErrorRate3m *float64             `json:"errorRate3m,omitempty"`
+	ErrorRate3m *float64             `json:"errorRate3m,omitempty" doc:"Percent of API calls that failed in the last 3 minutes; omitted when there were none"`
 	// AccountKind says how to label Account: "account" ("Account status")
 	// or "server" ("Server", self-hosted).
 	AccountKind string `json:"accountKind" enum:"account,server"`
@@ -299,7 +299,7 @@ type ProviderOutage struct {
 	Short      string                  `json:"short"`
 	Since      time.Time               `json:"since"`
 	Down       ProviderDownState       `json:"down"`
-	ErrorRate  *float64                `json:"errorRate,omitempty"`
+	ErrorRate  *float64                `json:"errorRate,omitempty" doc:"Percent of API calls that failed in the last 3 minutes; omitted when there were none"`
 	Codes      []string                `json:"codes"`
 	Operation  string                  `json:"operation"`
 	Streams    []ProviderOutageStream  `json:"streams"`

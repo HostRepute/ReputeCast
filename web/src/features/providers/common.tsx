@@ -216,7 +216,7 @@ export function limitLabel(kind: 'Bounce' | 'Complaint', l: Schemas['ProviderLim
 /** A key on the left, its value on the right (provider card facts). */
 export function Fact({ k, children, className }: { k: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn('flex justify-between max-md:flex-wrap', className)}>
+    <div className={cn('flex justify-between gap-x-3 max-md:flex-wrap', className)}>
       <span className="k">{k}</span>
       {children}
     </div>

@@ -53676,6 +53676,7 @@
             "$ref": "#/components/schemas/ProviderDownState"
           },
           "errorRate3m": {
+            "description": "Percent of API calls that failed in the last 3 minutes; omitted when there were none",
             "format": "double",
             "type": "number"
           },
@@ -54335,6 +54336,7 @@
             "$ref": "#/components/schemas/ProviderDownState"
           },
           "errorRate": {
+            "description": "Percent of API calls that failed in the last 3 minutes; omitted when there were none",
             "format": "double",
             "type": "number"
           },

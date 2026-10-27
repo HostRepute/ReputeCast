@@ -54,10 +54,18 @@ export default translate(mi, {
   openLive: 'Mở màn hình theo dõi trực tiếp',
   heldLine: '"{name}" đã gửi được {through} phần của {provider} khi {provider} gặp sự cố: {sent} đã gửi, {held} đang tạm giữ.',
   othersKeep: '{count, plural, other {{others} vẫn tiếp tục gửi phần của mình.}}',
+  chooseBelow: 'Chọn cách xử lý những người nhận đang tạm giữ ở bên dưới.',
+  heldTitle:
+    '{count, plural, other {Xử lý # người nhận {stream, select, broadcast {Gửi hàng loạt} automation {Tự động hóa} system {Hệ thống} other {Giao dịch}} đang tạm giữ thế nào}}',
+  checksFirst: 'ReputeCast kiểm tra nhà cung cấp đích trước khi chuyển bất kỳ ai',
   waitAutoResume: 'Chờ {provider}, tự tiếp tục',
+  waitNote:
+    '{recommended, select, yes {Khuyên dùng. } other {}}Tự tiếp tục sau {minutes, plural, other {# phút ổn định}} trên {provider}; không ai phải đổi nhà cung cấp.',
   moveTo: 'Chuyển sang {provider}',
   moveToOverCap: 'Chuyển sang {provider} · vượt giới hạn khởi động, không khuyên dùng',
-  moveToWarming: 'Chuyển sang {provider} · đang khởi động',
+  moveRecommended: 'Khuyên dùng: mọi mục kiểm tra đều đạt.',
+  moveRefused: '{provider} không thể nhận thư này: một mục kiểm tra không đạt.',
+  checksOn: 'Kiểm tra trên {provider}',
   cancelSend: 'Hủy lần gửi',
   moveTitle: '{count, plural, other {Chuyển # người nhận sang {provider}?}}',
   moveOverCap: '{provider} đang khởi động: số này vượt giới hạn hôm nay của nó, và bảo vệ khởi động có thể tạm dừng nó trong vài phút. Chờ {current} là lựa chọn an toàn hơn.',
@@ -90,10 +98,13 @@ export default translate(mi, {
   silentForHours: 'Webhook của {provider} đã im lặng {hours, plural, other {# giờ}}',
   silentFor: 'Webhook của {provider} đã im lặng {duration}',
   silentBody:
-    'Không có sự kiện gửi thành công, trả thư hay khiếu nại nào từ {time}. {provider} đã nhận {count} thư trong thời gian đó, nên việc gửi vẫn hoạt động, nhưng trạng thái của chúng chưa rõ và cơ chế bảo vệ trả thư cho tuyến này không còn tác dụng. Tuyến {provider} được đánh dấu Suy giảm{held, select, yes { và phần Gửi hàng loạt của nó bị tạm giữ đến khi sự kiện trở lại.} other {.}}',
+    'Không có sự kiện gửi thành công, trả thư hay khiếu nại nào từ {time}. {provider} đã nhận {count} thư trong thời gian đó, nên việc gửi vẫn hoạt động, nhưng trạng thái của chúng chưa rõ và cơ chế bảo vệ trả thư cho tuyến này không còn tác dụng. Tuyến {provider} được đánh dấu Suy giảm.',
+  silentNoFailover: 'ReputeCast không chuyển dự phòng chỉ vì webhook im lặng; Gửi hàng loạt trên {provider} chờ đến khi sự kiện về lại hoặc bạn quyết định.',
   sendTestEvent: 'Gửi sự kiện thử',
   reregister: 'Đăng ký lại webhook',
-  backfillFrom: 'Lấy bù từ API {provider}',
+  checkNow: 'Kiểm tra ngay',
+  checkNowNote:
+    '{count, plural, =0 {Kiểm tra ngay sẽ hỏi API thư của {provider} về trạng thái các thư chưa có sự kiện.} other {Kiểm tra ngay sẽ hỏi API thư của {provider} về trạng thái của # thư quá hạn.}}',
   checkedTitle: 'Những gì ReputeCast đã kiểm tra',
   causesTitle: 'Nguyên nhân có thể',
   impactTitle: 'Ảnh hưởng đến nay',
@@ -108,7 +119,7 @@ export default translate(mi, {
   impactShare: 'Phần Gửi hàng loạt của {provider}',
   shareHeld: 'tạm giữ',
   shareNotUsed: 'không dùng',
-  backfillNote: 'Lấy bù sẽ kéo trạng thái thư từ API của {provider} và chuẩn hóa, để báo cáo và danh sách chặn gửi theo kịp.',
+  backfillNote: 'Kiểm tra ngay sẽ kéo trạng thái thư từ API của {provider} và chuẩn hóa, để báo cáo và danh sách chặn gửi theo kịp.',
   noBackfillNote: 'Không thể hỏi {provider} về các sự kiện đã qua; chúng sẽ về khi webhook của nó hoạt động trở lại.',
 
   checkApi: 'API {provider} kết nối được: {ok, select, no {không} other {có}}{hasAt, select, yes {, {time}} other {}}{hasDetail, select, yes { ({detail})} other {}}.',
@@ -144,8 +155,8 @@ export default translate(mi, {
   // ── Rejected credentials ─────────────────────────────────────────────
   authTitle: '{provider} trả về {status} {statusText}: {credential} không còn hợp lệ',
   authEveryCall: 'Mọi lệnh gọi từ {time} đều thất bại.',
-  authFailingOver: 'Luồng {stream} ({mail}) đang tự động chuyển dự phòng sang {fallback};',
-  authFailingOverRerouted: 'Luồng {stream} ({mail}) đang tự động chuyển dự phòng sang {fallback}; đã định tuyến lại {count} thư cho đến nay.',
+  authFailingOver: '{first, select, no {luồng} other {Luồng}} {stream} ({mail}) đang tự động chuyển dự phòng sang {fallback};',
+  authFailingOverRerouted: '{first, select, no {luồng} other {Luồng}} {stream} ({mail}) đang tự động chuyển dự phòng sang {fallback}; đã định tuyến lại {count} thư cho đến nay.',
   streamMail:
     '{stream, select, system {thư xác nhận hai bước, liên kết trung tâm tùy chọn} automation {email do tự động hóa gửi} broadcast {chiến dịch} other {đặt lại mật khẩu, biên nhận và cảnh báo}}',
   authRotated: 'Có thể ai đó đã xoay vòng {credential} trong {provider}.',

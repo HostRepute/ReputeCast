@@ -353,12 +353,27 @@ func TestOutageFailsOverAndRecovers(t *testing.T) {
 	var o struct {
 		Outage *struct {
 			ProviderID string
+			ErrorRate  *float64
 			Streams    []struct{ Stream, State, FallbackShort string }
+		}
+		Providers []struct {
+			ID          string
+			ErrorRate3m *float64
 		}
 	}
 	owner.Do("GET", ws+"/providers", nil).MustStatus(t, 200).JSON(t, &o)
 	if o.Outage == nil || o.Outage.ProviderID != fp.ID.String() {
 		t.Fatalf("overview outage = %+v", o.Outage)
+	}
+	// The failed checks ran half an hour ago: no calls in the last three
+	// minutes is an unknown error rate, not 0% (F-3).
+	if o.Outage.ErrorRate != nil {
+		t.Fatalf("outage error rate = %v, want none without calls", *o.Outage.ErrorRate)
+	}
+	for _, c := range o.Providers {
+		if c.ID == fp.ID.String() && c.ErrorRate3m != nil {
+			t.Fatalf("card error rate = %v, want none without calls", *c.ErrorRate3m)
+		}
 	}
 	foundAuto := false
 	for _, s := range o.Outage.Streams {

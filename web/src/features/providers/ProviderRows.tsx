@@ -308,7 +308,7 @@ export function DownRow({ card, outage }: { card: ProviderCard; outage: Schemas[
         </div>
         <div className="flex flex-col gap-1 text-[13px]">
           <Fact className="pv-fact" k={t(mo.factErrorRate3m)}>
-            <span className="n text-bad-fg">{outage.errorRate !== undefined ? pct(Math.round(outage.errorRate), 0) : '—'}</span>
+            {outage.errorRate !== undefined ? <span className="n text-bad-fg">{pct(Math.round(outage.errorRate), 0)}</span> : <span className="k">{t(mo.errorRateNoCalls)}</span>}
           </Fact>
           <Fact className="pv-fact" k={t(mo.factLastSuccess)}>
             <span>{down.lastSuccessAt ? clockSeconds(down.lastSuccessAt) : t(mo.noneRecorded)}</span>
@@ -358,7 +358,7 @@ export function OutageRow({ card, outage, last }: { card: ProviderCard; outage: 
             <span>{webhookText(card, false)}</span>
           </Fact>
           <Fact className="pv-fact" k={t(mo.factErrorRate3m)}>
-            <span className="n">{pct(card.errorRate3m ?? 0)}</span>
+            {card.errorRate3m !== undefined ? <span className="n">{pct(card.errorRate3m)}</span> : <span className="k">{t(mo.errorRateNoCalls)}</span>}
           </Fact>
         </div>
       </div>

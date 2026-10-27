@@ -150,9 +150,27 @@ function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
     <span className="k">{cfg.savedBy ? t(mr.savedAgoBy, { ago: ago(cfg.savedAt), name: cfg.savedBy }) : t(mr.savedAgo, { ago: ago(cfg.savedAt) })}</span>
   ) : null
 
+  const discard = () => {
+    setEd(startEditing(cfg))
+    setAnnounce(t(mr.discarded))
+  }
+
   if (warningView) {
+    // As ProvidersBulkWarning draws it: the unsaved change and its warning in
+    // the header; Save routing leads to the fix first.
+    const unsavedActions = (
+      <>
+        <Badge tone="warn" dot>
+          {t(mr.unsavedWarnings, { changes, warnings: issues.length })}
+        </Badge>
+        <Button onClick={discard}>{t(mr.discard)}</Button>
+        <Button variant="primary" loading={saving} disabledReason={reason} onClick={trySave}>
+          {t(mr.saveRouting)}
+        </Button>
+      </>
+    )
     return (
-      <Page title={t(m.title)} filters={<ProvidersTabs />} actions={actions} contentClassName="max-w-[1120px]">
+      <Page title={t(m.title)} filters={<ProvidersTabs />} actions={unsavedActions} contentClassName="max-w-[1120px]">
         <BulkWarningView
           cfg={cfg}
           draft={draft}
@@ -223,10 +241,7 @@ function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
           cantSave={problem ? t(mr.weightsNot100, { total: problem.total }) : undefined}
           saving={saving}
           readOnlyReason={reason}
-          onDiscard={() => {
-            setEd(startEditing(cfg))
-            setAnnounce(t(mr.discarded))
-          }}
+          onDiscard={discard}
           onSave={trySave}
         />
       ) : null}

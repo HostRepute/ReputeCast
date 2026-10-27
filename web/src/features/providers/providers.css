@@ -389,6 +389,24 @@
     min-height: 44px;
   }
 }
+/* A held share's choices (ProvidersOutage): one card per way to continue. */
+.pv-dec {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: 12px;
+}
+.pv-dopt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-warn-line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.pv-dopt > .btn {
+  align-self: flex-start;
+}
 /* A failover target's checks: a mark, then the finding. */
 .pv-chk {
   display: flex;
@@ -412,6 +430,23 @@
 }
 .pv-chk li.u svg {
   color: var(--ink-3);
+}
+.pv-chk li.w svg {
+  color: var(--warn-fg);
+}
+/* Listed under a choice, one finding a line. */
+.pv-chk.col {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 3px;
+}
+.pv-chk.col li {
+  align-items: flex-start;
+  gap: 6px;
+}
+.pv-chk.col li svg {
+  flex: none;
+  margin-top: 2px;
 }
 /* The unsaved-changes bar stays at the bottom of the screen while the
    routing scrolls. */

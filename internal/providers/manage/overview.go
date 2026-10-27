@@ -306,12 +306,11 @@ func (s *Service) card(sn *snapshot, p store.Provider) ProviderCard {
 	} else if r, ok := errorRate7dFromHealth(p); ok {
 		c.ErrorRate7d = &r
 	}
+	// No calls in the window is unknown, not 0% (F-3): a provider whose share
+	// is held gets none, and "fails on 0% of calls" would contradict its outage.
 	if w := sn.win3[p.ID]; w.Calls > 0 {
 		v := round1(float64(w.Errors) / float64(w.Calls) * 100)
 		c.ErrorRate3m = &v
-	} else {
-		zero := 0.0
-		c.ErrorRate3m = &zero
 	}
 	lim := state.LimitsOf(p)
 	stale := h.Webhooks != nil && h.Webhooks.SilentSince != nil

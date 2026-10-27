@@ -88,6 +88,11 @@ export const entries: Entry[] = [
   { board: 'ProvidersTrafficRulesPhone', path: `${ws}/providers/traffic-rules`, widths: [390] },
   { board: 'ProvidersEvents', path: `${ws}/providers/events` },
   { board: 'ProvidersAdapters', path: `${ws}/providers/adapters` },
+  // Demo providers keep their seeded state (the health job leaves them alone), so the
+  // postal-outage send holds Postal's share on the live monitor but not on Providers:
+  // set providers.status and health.down (reason outage or auth) or health.webhooks
+  // .silentSince by hand in a dev database. The bulk-terms warning shows once the
+  // Broadcasts fallback is set to Postmark's transactional stream (no save needed).
   { board: 'ProvidersOutage', manual: true },
   { board: 'ProvidersWebhooksSilent', manual: true },
   { board: 'ProvidersBulkWarning', manual: true },

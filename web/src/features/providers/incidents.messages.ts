@@ -63,10 +63,22 @@ export const mi = defineMessages('providers.incidents', {
   heldLine: '"{name}" was {through} through its {provider} share when {provider} failed: {sent} sent, {held} held.',
   /** {others} lists providers with their shares: "Postmark (30%)". */
   othersKeep: '{count, plural, one {{others} keeps sending its share.} other {{others} keep sending their shares.}}',
+  /** Under the held broadcast's line: the choices follow the stream columns. */
+  chooseBelow: 'Choose what happens to the held recipients below.',
+  /** {stream} is the held stream's key. */
+  heldTitle:
+    '{count, plural, one {What happens to the # held {stream, select, broadcast {Broadcast} automation {Automation} system {System} other {Transactional}} recipient} other {What happens to the # held {stream, select, broadcast {Broadcast} automation {Automation} system {System} other {Transactional}} recipients}}',
+  checksFirst: 'ReputeCast checks a target before it moves anyone',
   waitAutoResume: 'Wait for {provider}, auto-resume',
+  /** {recommended} is yes when no target passed every check. */
+  waitNote:
+    '{recommended, select, yes {Recommended. } other {}}Resumes on its own after {minutes, plural, one {# healthy minute} other {# healthy minutes}} on {provider}; nobody changes provider.',
   moveTo: 'Move to {provider}',
   moveToOverCap: 'Move to {provider} · exceeds warm-up cap, not recommended',
-  moveToWarming: 'Move to {provider} · warming up',
+  moveRecommended: 'Recommended: every check passed.',
+  /** Why a target's Move button is off. */
+  moveRefused: "{provider} can't take this mail: one of its checks failed.",
+  checksOn: 'Checks on {provider}',
   cancelSend: 'Cancel send',
   moveTitle: '{count, plural, one {Move # recipient to {provider}?} other {Move # recipients to {provider}?}}',
   moveOverCap: '{provider} is warming up: this is more than its cap for today, and the warm-up guard may pause it within minutes. Waiting for {current} is the safer choice.',
@@ -104,10 +116,15 @@ export const mi = defineMessages('providers.incidents', {
   silentFor: '{provider} webhooks have been silent for {duration}',
   /** {count} is a count of messages. */
   silentBody:
-    'No delivery, bounce or complaint events since {time}. {provider} accepted {count} messages in that time, so sending works, but their status is unknown and bounce protection for this route is blind. The {provider} route is marked Degraded{held, select, yes { and its share of Broadcasts is held until events resume.} other {.}}',
+    'No delivery, bounce or complaint events since {time}. {provider} accepted {count} messages in that time, so sending works, but their status is unknown and bounce protection for this route is blind. The {provider} route is marked Degraded.',
+  /** When the provider has a share of Broadcasts: it's held, and silence alone never fails over (F-6). */
+  silentNoFailover: "ReputeCast doesn't fail over on silence alone; Broadcasts on {provider} wait until events arrive or you decide.",
   sendTestEvent: 'Send test event',
   reregister: 'Re-register webhook',
-  backfillFrom: 'Backfill from {provider} API',
+  /** Polls the provider's message API for the status of messages without an event (a backfill). */
+  checkNow: 'Check now',
+  checkNowNote:
+    "{count, plural, =0 {Check now polls {provider}'s message API for the status of messages without an event.} one {Check now polls {provider}'s message API for the status of the # overdue message.} other {Check now polls {provider}'s message API for the status of the # overdue messages.}}",
   checkedTitle: 'What ReputeCast checked',
   causesTitle: 'Likely causes',
   impactTitle: 'Impact so far',
@@ -124,7 +141,7 @@ export const mi = defineMessages('providers.incidents', {
   impactShare: '{provider} share of Broadcasts',
   shareHeld: 'held',
   shareNotUsed: 'not used',
-  backfillNote: "Backfill pulls message status from {provider}'s API and normalizes it, so reports and the suppression list catch up.",
+  backfillNote: "Check now pulls message status from {provider}'s API and normalizes it, so reports and the suppression list catch up.",
   noBackfillNote: "{provider} can't be asked for past events; they arrive once its webhooks resume.",
 
   // What ReputeCast checked. {ok} is yes or no; {detail} is the server's own words.
@@ -166,9 +183,9 @@ export const mi = defineMessages('providers.incidents', {
   /** {status} is an HTTP status and {statusText} its English name ("401 Unauthorized"); {credential} the credential ("server API token"). */
   authTitle: '{provider} returned {status} {statusText}: the {credential} is no longer valid',
   authEveryCall: 'Every call since {time} has failed.',
-  /** One stream that fails over; the last one also says how many messages moved. */
-  authFailingOver: 'The {stream} stream ({mail}) is failing over to {fallback} automatically;',
-  authFailingOverRerouted: 'The {stream} stream ({mail}) is failing over to {fallback} automatically; {count} messages rerouted so far.',
+  /** One stream that fails over; the last one also says how many messages moved. {first} is no after a semicolon. */
+  authFailingOver: '{first, select, no {the} other {The}} {stream} stream ({mail}) is failing over to {fallback} automatically;',
+  authFailingOverRerouted: '{first, select, no {the} other {The}} {stream} stream ({mail}) is failing over to {fallback} automatically; {count} messages rerouted so far.',
   /** What a stream carries, in the rejected-credentials banner. */
   streamMail:
     '{stream, select, system {double opt-in confirmations, preference-center links} automation {emails sent by flows} broadcast {campaigns} other {password resets, receipts and alerts}}',

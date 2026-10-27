@@ -39,7 +39,7 @@ export default translate(mo, {
 
   emptyTitle: 'Chưa có nhà cung cấp gửi thư nào',
   emptyBody:
-    'Kết nối Amazon SES, Postmark, Mailgun, SendGrid, Resend, SparkPost, Mailjet, Brevo, Azure Communication Services, một máy chủ Postal hoặc bất kỳ máy chủ SMTP nào. Mỗi nhà cung cấp mất khoảng 10 phút, và bạn có thể dùng nhiều nhà cung cấp cùng lúc.',
+    'Kết nối Amazon SES, Postmark, Mailgun, SendGrid, Resend, SparkPost, Mailjet, Brevo, Azure Communication Services, một máy chủ Postal hoặc bất kỳ máy chủ SMTP nào. Phần lớn việc thiết lập mất 10–15 phút; tài khoản AWS mới có thể phải chờ đến 24 giờ để được cấp quyền gửi thật (production). Bạn có thể dùng nhiều nhà cung cấp cùng lúc.',
   connectProvider: 'Kết nối nhà cung cấp',
   browseAdapters: 'Xem các adapter',
   emptyFoot: 'Định tuyến, chuyển dự phòng và khởi động sẽ dùng được khi đã kết nối một nhà cung cấp.',
@@ -95,6 +95,7 @@ export default translate(mo, {
   rateNotReported: 'Gmail và iCloud không báo khiếu nại',
   rateNoData: 'Không có thư nào được giao trong 7 ngày qua',
   rateNoSends: 'Không có thư nào được gửi trong 7 ngày qua',
+  errorRateNoCalls: 'n/a · không có lệnh gọi',
 
   costToDate: 'Chi phí đến nay · {month}',
   costPlan: 'gói {amount}',
