@@ -215,5 +215,7 @@
   "recent.complaint_watch": "{hasMailbox, select, yes {{mailbox} } other {}}complaints reached {valuePct} after the send (limit {limitPct}) · alert",
   "state.replyText": "Enter the reply text to match, for example TSS04.",
   "state.replyRule": "That reply rule doesn't exist any more: reload the page.",
-  "state.levelsOrder": "The first level of a two-level threshold must be lower than the second."
+  "state.levelsOrder": "The first level of a two-level threshold must be lower than the second.",
+  "state.rateMailbox": {"message": "“{key}” isn't a mailbox provider: use gmail, outlook, yahoo, icloud or other.", "note": "a rate set for an unknown mailbox provider key; key: what was sent"},
+  "state.rateRange": {"message": "A rate for {mailbox} must be 0 (the full rate) or between 0.1 /s and {max} /s.", "note": "mailbox: Gmail, Outlook, Yahoo, iCloud or Other; max: messages per second"}
 }

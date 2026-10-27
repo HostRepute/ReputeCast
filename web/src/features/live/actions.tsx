@@ -29,7 +29,8 @@ export function useLiveActions(slug: string, campaignId: string, apply: (s: Snap
   const retryM = $api.useMutation('post', `${base}/retry`)
   const thresholdsM = $api.useMutation('put', `${base}/thresholds`)
   const acknowledgeM = $api.useMutation('post', `${base}/acknowledge`)
-  const pending = pauseM.isPending || resumeM.isPending || cancelM.isPending || moveM.isPending || retryM.isPending || thresholdsM.isPending || acknowledgeM.isPending
+  const ratesM = $api.useMutation('put', `${base}/rates`)
+  const pending = pauseM.isPending || resumeM.isPending || cancelM.isPending || moveM.isPending || retryM.isPending || thresholdsM.isPending || acknowledgeM.isPending || ratesM.isPending
 
   const settle = (r: Result) => {
     apply(r.snapshot)
@@ -86,6 +87,12 @@ export function useLiveActions(slug: string, campaignId: string, apply: (s: Snap
         .mutateAsync({ params: { path }, body })
         .then(settle)
         .catch(fail(tt(m.retryFailed))),
+    /** Changes the rest of the send's rates per mailbox provider (review GS-13). */
+    setRates: (rates: Record<string, number>) =>
+      ratesM
+        .mutateAsync({ params: { path }, body: { rates } })
+        .then(settle)
+        .catch(fail(tt(m.ratesFailed))),
     /** Marks an alert as read: complaints after the send (review GS-6). */
     acknowledge: (body: Schemas['LiveAcknowledgeRequest']) =>
       acknowledgeM
@@ -129,6 +136,7 @@ export function useLivePermissions(helpers: Schemas['LiveHelpers'] | undefined) 
     pause: canPause ? undefined : needs('pause', 'campaigns:pause', helpers?.pause),
     resume: canSend ? undefined : needs('resume', 'campaigns:send', helpers?.send),
     cancel: canSend ? undefined : needs('cancel', 'campaigns:send', helpers?.send),
+    rates: canSend ? undefined : needs('rates', 'campaigns:send', helpers?.send),
     decide: canSend ? undefined : needs('decide', 'campaigns:send', helpers?.send),
   }
 }

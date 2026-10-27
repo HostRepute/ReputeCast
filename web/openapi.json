@@ -41257,6 +41257,24 @@
         ],
         "type": "object"
       },
+      "LiveRatesRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "rates": {
+            "additionalProperties": {
+              "format": "double",
+              "type": "number"
+            },
+            "maxProperties": 5,
+            "minProperties": 1,
+            "type": "object"
+          }
+        },
+        "required": [
+          "rates"
+        ],
+        "type": "object"
+      },
       "LiveResumeRequest": {
         "additionalProperties": false,
         "properties": {
@@ -112395,6 +112413,84 @@
         ],
         "x-access": "workspace",
         "x-permission": "campaigns:pause"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/rates": {
+      "put": {
+        "operationId": "set-live-rates",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Campaign id",
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "description": "Campaign id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveRatesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveActionResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change a running or waiting send's rates per mailbox provider",
+        "tags": [
+          "Live sending"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:send"
       }
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/resume": {

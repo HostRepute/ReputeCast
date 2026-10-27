@@ -200,7 +200,17 @@ function LiveScreen({
           {lostBanner}
           {pausedBanner}
           {incidentBanner}
-          <LiveBody s={s} campaignId={campaignId} streaming={!lost} stale={lost} asOf={asOf} incident={incident} edit={editThresholds} />
+          <LiveBody
+            s={s}
+            campaignId={campaignId}
+            streaming={!lost}
+            stale={lost}
+            asOf={asOf}
+            incident={incident}
+            edit={editThresholds}
+            actions={actions}
+            can={can}
+          />
         </>
       )
   }

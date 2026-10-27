@@ -9,6 +9,122 @@
     min-width: 150px;
   }
 
+  /* The progress card's summary line (.sumline). */
+  .lv-sumline {
+    margin: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink);
+    line-height: 1.45;
+  }
+  .lv-sumline svg {
+    flex: none;
+    margin-top: 2px;
+  }
+
+  /* Adjust rates (.ratep, .rrow, .stp). */
+  .lv-rates {
+    border-bottom: 1px solid var(--line-2);
+    background: var(--ground-2);
+    padding: 14px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .lv-rates-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .lv-rate {
+    display: grid;
+    grid-template-columns: minmax(110px, 150px) minmax(110px, 150px) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px 14px;
+    font-size: 13px;
+    padding: 4px 0;
+  }
+  .lv-rate-name {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-weight: 600;
+  }
+  .lv-rates-held {
+    margin: 0;
+    font-size: 13px;
+  }
+  .lv-stepper {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid #8b94a3;
+    border-radius: 8px;
+    background: var(--surface, #fff);
+    overflow: hidden;
+    flex: none;
+  }
+  .lv-stepper button {
+    width: 36px;
+    height: 36px;
+    border: 0;
+    background: var(--surface, #fff);
+    color: var(--ink);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font: inherit;
+  }
+  .lv-stepper button:hover {
+    background: var(--ground-3);
+  }
+  .lv-stepper button:disabled {
+    color: #9ca3af;
+    cursor: not-allowed;
+    background: var(--surface, #fff);
+  }
+  .lv-stepper output {
+    min-width: 86px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+  }
+  .lv-rates-f {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding-top: 4px;
+  }
+  @media (max-width: 767px) {
+    .lv-rate {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 6px 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--line-2);
+    }
+    .lv-rate-was {
+      grid-column: 1 / -1;
+      order: 3;
+    }
+    .lv-rate-effect {
+      grid-column: 1 / -1;
+      order: 4;
+    }
+    .lv-stepper button {
+      width: 44px;
+      height: 44px;
+    }
+  }
+
   /* A line of the live event feed (.ev on the boards). */
   .lv-ev {
     display: flex;

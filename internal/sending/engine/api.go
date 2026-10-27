@@ -63,6 +63,15 @@ type LiveAcknowledgeRequest struct {
 	IncidentID string `json:"incidentId" format:"uuid"`
 }
 
+// LiveRatesRequest changes a running or waiting send's rates per mailbox
+// provider for the rest of the send, on every route (review GS-13).
+type LiveRatesRequest struct {
+	// Rates in messages per second by mailbox provider (gmail, outlook,
+	// yahoo, icloud, other); 0 is the sending providers' full rate. A
+	// mailbox provider left out keeps its rate.
+	Rates map[string]float64 `json:"rates" minProperties:"1" maxProperties:"5"`
+}
+
 // LiveThresholdsRequest changes a running or waiting send's auto-pause
 // thresholds, in percent; a field left out keeps its value.
 type LiveThresholdsRequest struct {
@@ -235,6 +244,23 @@ func Register(h huma.API, e *Engine) {
 				return nil, err
 			}
 			if err := e.SetThresholds(ctx, id, by, ThresholdChange(in.Body)); err != nil {
+				return nil, mapErr(ctx, err)
+			}
+			return e.result(ctx, id, LiveActionResult{})
+		})
+	api.Put(h, api.Op{ID: "set-live-rates", Path: base + "/rates", Summary: "Change a running or waiting send's rates per mailbox provider", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
+		func(ctx context.Context, in *body[LiveRatesRequest]) (*api.Body[LiveActionResult], error) {
+			ctx = ownAPI(ctx)
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
+			if err != nil {
+				return nil, err
+			}
+			for _, k := range sortedKeys(in.Body.Rates) {
+				if key, args := rateProblem(k, in.Body.Rates[k]); key != "" {
+					return nil, api.Invalid("body.rates."+k, say(ctx, key, args))
+				}
+			}
+			if err := e.SetRates(ctx, id, by, in.Body.Rates); err != nil {
 				return nil, mapErr(ctx, err)
 			}
 			return e.result(ctx, id, LiveActionResult{})

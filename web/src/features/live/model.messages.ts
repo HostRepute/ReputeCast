@@ -33,6 +33,7 @@ export const mm = defineMessages('live.model', {
   needsResume: 'Resuming a send needs the {perm} permission.',
   needsCancel: 'Cancelling a send needs the {perm} permission.',
   needsDecide: 'Deciding how a held send continues needs the {perm} permission.',
+  needsRates: "Changing a send's rates needs the {perm} permission.",
   askHelpers: 'Ask {helpers}.',
 
   // Progress.
@@ -141,7 +142,19 @@ export const mm = defineMessages('live.model', {
   mailboxNearLimit: 'Near limit',
   mailboxOk: 'OK',
   rateHeld: 'held',
-  rateFull: 'full',
+  // The progress card's summary line: the only live region of the live
+  // view; it changes when the send's or a threshold's state does, never on
+  // every count (LiveMonitor).
+  sumSending: 'Sending to everyone; every threshold is inside its limit.',
+  sumCollecting: 'Sending to everyone; every threshold with enough evidence is inside its limit.',
+  sumNear: '{count, plural, one {Sending to everyone; {names} is close to its limit.} other {Sending to everyone; {names} are close to their limits.}}',
+  sumMailboxPaused:
+    '{count, plural, =0 {{who} paused at {time} and waits for your decision.} one {{who} paused at {time} and waits for your decision. {names} is still sending.} other {{who} paused at {time} and waits for your decision. {names} are still sending.}}',
+  sumRouteHeld: '{count, plural, =0 {{who} share held since {time} and waiting for your decision.} other {{who} share held since {time} and waiting for your decision. {names} keeps sending.}}',
+  sumCampaignPaused: 'Every mailbox provider paused at {time} and waits for your decision.',
+  sumPaused: 'Paused at {time}. Nothing goes out until someone resumes.',
+  sumPreparing: 'Preparing the audience; sending starts in a moment.',
+  rateFull: 'full rate',
   providerDownSince: 'Down since {time}',
   providerHeld: 'Held',
   /** A retried share's test messages: {done} of {needed} went through in a row (review GS-3). */

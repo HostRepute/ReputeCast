@@ -185,7 +185,7 @@ export function startedLine(s: Snapshot): string {
   return tt(when ? mm.approvedByAt : mm.approvedBy, v)
 }
 
-const needsMessages = { pause: mm.needsPause, resume: mm.needsResume, cancel: mm.needsCancel, decide: mm.needsDecide }
+const needsMessages = { pause: mm.needsPause, resume: mm.needsResume, cancel: mm.needsCancel, decide: mm.needsDecide, rates: mm.needsRates }
 
 /** Who can help with a permission: "Pausing a send needs the campaigns:pause permission. Ask Marcus Chen or Linh Nguyen." */
 export function needs(action: keyof typeof needsMessages, perm: string, helpers: string[] | undefined): string {
@@ -441,6 +441,40 @@ export function mailboxStatus(m: Mailbox, s: Snapshot, decision: boolean): { ton
 export function mailboxRate(m: Mailbox): string {
   if (m.held) return tt(mm.rateHeld)
   return m.throttle ? wholePerSec(m.throttle) : tt(mm.rateFull)
+}
+
+/**
+ * The progress card's summary line (LiveMonitor): the send's state in a
+ * sentence, with a tone for its icon. It changes only when the send's or a
+ * threshold's state changes, so it can be the screen's one polite live
+ * region.
+ */
+export function summaryLine(s: Snapshot, incident?: Incident): { tone: Tone; text: string } {
+  if (incident && incident.kind === 'provider_outage') {
+    const names = continuingProviders(s, incident).map((p) => p.name)
+    return {
+      tone: 'warn',
+      text: tt(mm.sumRouteHeld, { who: incident.provider || incident.providerShort, time: clockSeconds(incident.trippedAt), count: names.length, names: andList(names) }),
+    }
+  }
+  if (incident) {
+    const time = clockSeconds(incident.trippedAt)
+    if (incident.scope === 'campaign') return { tone: 'bad', text: tt(mm.sumCampaignPaused, { time }) }
+    const names =
+      incident.scope === 'route' ? continuingProviders(s, incident).map((p) => p.name) : mailboxNamesOf(s.continuing.length ? s.continuing : (incident.detail.continuing ?? []))
+    const msg = incident.scope === 'route' ? mm.sumRouteHeld : mm.sumMailboxPaused
+    return { tone: 'bad', text: tt(msg, { who: scopeName(incident), time, count: names.length, names: andList(names) }) }
+  }
+  if (s.state === 'paused') return { tone: 'warn', text: tt(mm.sumPaused, { time: clockSeconds(s.pausedAt ?? s.at) }) }
+  if (s.state === 'preparing') return { tone: 'ok', text: tt(mm.sumPreparing) }
+  const near = s.thresholds.filter((x) => x.state === 'near')
+  const lead = ''
+  if (near.length) {
+    const names = andList(thresholdRows({ ...s, thresholds: near }).map((r) => r.label))
+    return { tone: 'warn', text: lead + tt(mm.sumNear, { count: near.length, names }) }
+  }
+  const collecting = s.thresholds.some((x) => x.state === 'collecting')
+  return { tone: 'ok', text: lead + tt(collecting ? mm.sumCollecting : mm.sumSending) }
 }
 
 /** A sending provider's state word. */

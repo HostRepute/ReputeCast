@@ -62,6 +62,8 @@ func TestGuardedSending(t *testing.T) {
 	// GS-12: mailbox provider response rules; the Traffic rules API.
 	t.Run("ReplyRules", func(t *testing.T) { testReplyRules(t, s.Fixture(t, "GS-12 replies")) })
 	t.Run("TrafficRulesAPI", func(t *testing.T) { testTrafficRulesAPI(t, s.Fixture(t, "GS-12 api")) })
+	// GS-13: rates per mailbox provider during a send.
+	t.Run("RatesDuringSend", func(t *testing.T) { testRatesDuringSend(t, s.Fixture(t, "GS-13 rates")) })
 }
 
 // routeOf is the fixture's route on a provider: its status and detail.

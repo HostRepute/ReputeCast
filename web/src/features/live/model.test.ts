@@ -27,6 +27,7 @@ import {
   sentLine,
   startedLine,
   startingText,
+  summaryLine,
   thresholdRows,
   thresholdSummary,
   tiles,
@@ -38,6 +39,7 @@ import {
   type Snapshot,
   type Threshold,
 } from './model'
+import { currentRates, finishSeconds, nearestLevel } from './RatesPanel'
 
 /*
  * The live monitor's words and numbers, pinned against the LiveMonitor boards
@@ -498,5 +500,40 @@ describe('LiveMonitorStates', () => {
       'Cost $2.84 SES $2.84 · Postal $0',
     ])
     expect(providerResultLines(s)).toEqual(['SES 28,444 · 99.2%', 'Postal 3,160 · 98.7%'])
+  })
+})
+
+// Adjust rates (LiveMonitorStates, review GS-13): live view at 09:38:44.
+describe('Adjust rates', () => {
+  const s = snapshot({
+    at: T('09:38:44'),
+    providers: [
+      { ...ses, remaining: 10438, rate: 14.2 },
+      { ...postal, remaining: 1160, rate: 2 },
+    ],
+    mailboxes: [
+      mailbox({ key: 'gmail', name: 'Gmail', remaining: 5335 }),
+      mailbox({ key: 'outlook', name: 'Outlook', remaining: 2436, throttle: 5 }),
+      mailbox({ key: 'yahoo', name: 'Yahoo', remaining: 1044, throttle: 4 }),
+      mailbox({ key: 'icloud', name: 'iCloud', remaining: 928, throttle: 3 }),
+      mailbox({ key: 'other', name: 'Other', remaining: 1855 }),
+    ],
+  })
+
+  it('works out when the whole send finishes at given rates', () => {
+    expect(currentRates(s)).toEqual({ gmail: 0, outlook: 5, yahoo: 4, icloud: 3, other: 0 })
+    // SES's 10,438 at 14.2 /s outlast Outlook's 2,436 at 5 /s: done about 09:51.
+    expect(Math.round(finishSeconds(s, currentRates(s)))).toBe(735)
+    // At 2 /s Outlook is last: 2,436 / 2 = 1,218 s, about 09:59.
+    expect(Math.round(finishSeconds(s, { ...currentRates(s), outlook: 2 }))).toBe(1218)
+    expect([nearestLevel(2.5), nearestLevel(7), nearestLevel(0), nearestLevel(100)]).toEqual([2, 6, 0, 12])
+  })
+
+  it('says the send state in one line', () => {
+    expect(summaryLine(live).text).toBe('Sending to everyone; every threshold is inside its limit.')
+    expect(summaryLine(paused, outlook).text).toBe(
+      'Outlook paused at 09:21:14 and waits for your decision. Gmail, Yahoo, iCloud and Other are still sending.',
+    )
+    expect(summaryLine(down, outage).text).toBe('Postal share held since 09:17:10 and waiting for your decision. Amazon SES keeps sending.')
   })
 })

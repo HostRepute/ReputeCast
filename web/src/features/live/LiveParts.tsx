@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Icon } from '@/components/icons/Icon'
 import { Badge, Dot } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -10,7 +11,9 @@ import { cn } from '@/lib/cn'
 import { andList, clockSeconds, count, money, pct, shortDate } from '@/lib/format'
 import { useReducedMotion } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
+import type { LiveActions, LivePermissions } from './actions'
 import { m } from './messages'
+import { RatesPanel } from './RatesPanel'
 import {
   abLine,
   barSegments,
@@ -29,13 +32,13 @@ import {
   pct2,
   perSec,
   progressLegend,
-  progressText,
   providerColor,
   providerNote,
   providerStatus,
   scopeLine,
   sentLine,
   sentOfPlanned,
+  summaryLine,
   thresholdRows,
   tiles,
   timingLine,
@@ -91,7 +94,20 @@ export function CardBar({ title, caption }: { title: string; caption?: ReactNode
 }
 
 /** The progress card: percentage, sent line, timing, the per-provider bar and its legend. */
-export function ProgressCard({ s, incident, stale, asOf }: { s: Snapshot; incident?: Incident; stale?: boolean; asOf?: string }) {
+export function ProgressCard({
+  s,
+  incident,
+  stale,
+  asOf,
+  note,
+}: {
+  s: Snapshot
+  incident?: Incident
+  stale?: boolean
+  asOf?: string
+  /** What a person just changed ("Rates changed: …"), shown until the state changes. */
+  note?: string
+}) {
   const t = useT()
   const sentPct = Math.min(99, s.recipients > 0 ? Math.round((s.sent / s.recipients) * 100) : 0)
   const shownPct = useCountUp(s.sent >= s.recipients && s.recipients > 0 ? 100 : sentPct)
@@ -102,9 +118,6 @@ export function ProgressCard({ s, incident, stale, asOf }: { s: Snapshot; incide
     <Card className={cn('flex flex-col gap-3 px-[22px] py-5', stale && 'lv-stale')} aria-label={t(m.progress)}>
       <div className="flex flex-wrap items-baseline gap-3.5">
         <span className="n text-[34px] tracking-[-0.02em]">{pct(Math.round(shownPct), 0)}</span>
-        <span className="vh" aria-live="polite">
-          {t(m.percentSent, { percent: progressText(s) })}
-        </span>
         <span className="text-[15px]">{sentLine(s, incident)}</span>
         {stale ? (
           <Badge tone="neutral" className="ml-auto">
@@ -114,6 +127,7 @@ export function ProgressCard({ s, incident, stale, asOf }: { s: Snapshot; incide
           <span className="k ml-auto">{timingLine(s, incident)}</span>
         )}
       </div>
+      {stale ? null : <SummaryLine s={s} incident={incident} note={note} />}
       <div className="bar flex gap-0.5" style={{ height: 12, borderRadius: 6, background: 'var(--line-2)' }}>
         {segments.map((seg, i) => (
           <i
@@ -139,6 +153,21 @@ export function ProgressCard({ s, incident, stale, asOf }: { s: Snapshot; incide
   )
 }
 
+/**
+ * The send's state in one sentence: the screen's only live region, so it
+ * changes with the state, never with the counts (LiveMonitor).
+ */
+export function SummaryLine({ s, incident, note }: { s: Snapshot; incident?: Incident; note?: string }) {
+  const line = summaryLine(s, incident)
+  const tone = note ? 'ok' : line.tone
+  return (
+    <p className="lv-sumline" aria-live="polite">
+      <Icon name={tone === 'ok' ? 'check' : 'info'} size={16} strokeWidth={2.2} className={tone === 'ok' ? 'text-ok-fg' : tone === 'bad' ? 'text-bad-fg' : 'text-warn-fg'} />
+      <span>{note || line.text}</span>
+    </p>
+  )
+}
+
 /** The five counters (delivered, bounced, complained, opened, clicked). */
 export function Tiles({ tiles, className }: { tiles: Tile[]; className?: string }) {
   return (
@@ -161,13 +190,29 @@ export function TileValue({ tile }: { tile: Tile }) {
   return tile.num === undefined ? <>{tile.value}</> : <CountUp value={tile.num} />
 }
 
+/** The mailbox table's "Adjust rates" button and its panel (review GS-13). */
+export type RatesControl = { open: boolean; toggle: () => void; disabledReason?: string; panel: ReactNode }
+
 /** Per mailbox provider: health in the live view, activity in the decision view. */
-export function MailboxTable({ s, decision }: { s: Snapshot; decision: boolean }) {
+export function MailboxTable({ s, decision, rates }: { s: Snapshot; decision: boolean; rates?: RatesControl }) {
   const t = useT()
   const rows = orderedMailboxes(s, decision)
   return (
     <Card>
-      <CardBar title={t(m.perMailbox)} caption={<span className="k">{decision ? t(m.perMailboxDecision) : t(m.perMailboxLive)}</span>} />
+      {rates ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-[18px] py-3.5">
+          <div className="flex flex-col gap-0.5">
+            <h2 className="h2">{t(m.perMailbox)}</h2>
+            <span className="k">{t(m.perMailboxLive)}</span>
+          </div>
+          <Button size="sm" aria-expanded={rates.open} aria-controls="lv-rates" onClick={rates.toggle} disabledReason={rates.disabledReason}>
+            {t(m.adjustRates)}
+          </Button>
+        </div>
+      ) : (
+        <CardBar title={t(m.perMailbox)} caption={<span className="k">{decision ? t(m.perMailboxDecision) : t(m.perMailboxLive)}</span>} />
+      )}
+      {rates?.open ? rates.panel : null}
       <Table density="compact" className="lv-tbl" phoneWrap>
         <thead>
           <tr>
@@ -504,6 +549,8 @@ export function LiveBody({
   asOf,
   incident,
   edit,
+  actions,
+  can,
 }: {
   s: Snapshot
   campaignId: string
@@ -512,15 +559,45 @@ export function LiveBody({
   asOf?: string
   incident?: Incident
   edit?: ThresholdsEdit
+  actions?: LiveActions
+  can?: LivePermissions
 }) {
+  const [ratesOpen, setRatesOpen] = useState(false)
+  // A note lasts while the state it was written in does.
+  const state = `${s.state}|${incident?.id ?? ''}`
+  const [note, setNote] = useState<{ state: string; text: string }>()
+  const adjustable = !!actions && !stale && ['sending', 'partial', 'paused'].includes(s.state) && s.mailboxes.some((mb) => mb.remaining > 0)
+  const rates: RatesControl | undefined = adjustable
+    ? {
+        open: ratesOpen,
+        toggle: () => setRatesOpen(!ratesOpen),
+        disabledReason: can?.rates,
+        panel: (
+          <RatesPanel
+            s={s}
+            busy={actions.pending}
+            onCancel={() => setRatesOpen(false)}
+            onApply={(r, summary) =>
+              void actions
+                .setRates(r)
+                .then(() => {
+                  setRatesOpen(false)
+                  setNote({ state, text: summary })
+                })
+                .catch(() => undefined)
+            }
+          />
+        ),
+      }
+    : undefined
   return (
     <>
-      <ProgressCard s={s} incident={incident} stale={stale} asOf={asOf} />
+      <ProgressCard s={s} incident={incident} stale={stale} asOf={asOf} note={note?.state === state ? note.text : undefined} />
       <div className={cn('flex flex-col gap-5 max-md:gap-3', stale && 'lv-stale')}>
         <Tiles tiles={tiles(s)} />
         <div className="flex flex-wrap items-start gap-5">
           <div className="flex min-w-0 flex-col gap-5" style={{ flex: '2 1 560px' }}>
-            <MailboxTable s={s} decision={false} />
+            <MailboxTable s={s} decision={false} rates={rates} />
             <EventsCard s={s} streaming={streaming} />
           </div>
           <div className="flex flex-col gap-4 max-md:min-w-0" style={{ flex: '1 1 320px', maxWidth: 400 }}>

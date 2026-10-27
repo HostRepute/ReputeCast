@@ -215,5 +215,7 @@
   "recent.complaint_watch": "{hasMailbox, select, yes {{mailbox}: } other {}}khiếu nại đạt {valuePct} sau lần gửi (ngưỡng {limitPct}) · cảnh báo",
   "state.replyText": "Hãy nhập nội dung phản hồi cần khớp, ví dụ TSS04.",
   "state.replyRule": "Quy tắc phản hồi đó không còn nữa: hãy tải lại trang.",
-  "state.levelsOrder": "Mức thứ nhất của một ngưỡng hai mức phải thấp hơn mức thứ hai."
+  "state.levelsOrder": "Mức thứ nhất của một ngưỡng hai mức phải thấp hơn mức thứ hai.",
+  "state.rateMailbox": "“{key}” không phải là nhà cung cấp hộp thư: dùng gmail, outlook, yahoo, icloud hoặc other.",
+  "state.rateRange": "Tốc độ cho {mailbox} phải là 0 (tốc độ tối đa) hoặc từ 0,1 /s đến {max} /s."
 }
