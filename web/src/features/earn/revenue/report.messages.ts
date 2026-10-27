@@ -57,10 +57,10 @@ export const mrp = defineMessages('earn.report', {
   matchedTokenOn: '{token} by click token on {domains} · {email} by email',
   matched: '{token} by click token · {email} by email',
   window: 'Within {days, plural, one {# day} other {# days}} of a click on this email',
-  // Without earn:view.
+  // Without earn:view: who can see revenue, never the permission key (review X-1).
   lockedTitle: '{name} · {role}',
-  locked: 'Revenue needs <mono>earn:view</mono>. Ask {helpers}.',
-  lockedNoHelpers: 'Revenue needs <mono>earn:view</mono>. Ask a workspace owner.',
+  locked: 'Your role doesn’t show revenue. {helpers} can see it.',
+  lockedNoHelpers: 'Your role doesn’t show revenue. Ask a workspace owner to share it.',
   revError: 'Couldn’t load the revenue',
   retry: 'Retry',
   // The Sponsor section.

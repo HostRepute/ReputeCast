@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { Note } from '@/components/ui/Note'
 import { T, useT } from '@/i18n'
-import { andList, count, dayMonthDate, orList, rate, shortDate } from '@/lib/format'
+import { andList, count, dayMonthDate, rate, shortDate } from '@/lib/format'
 import { roleName } from '@/lib/roles'
 import { useCan, useMe, useWorkspace } from '@/lib/session'
 import { day, money } from '../format'
@@ -20,7 +20,6 @@ type Revenue = Schemas['CampaignRevenue']
 type TT = ReturnType<typeof useT>
 
 const WS = '/api/v1/workspaces/{workspace}' as const
-const mono = (c: ReactNode) => <span className="mono">{c}</span>
 
 /**
  * A sent campaign's Revenue and Sponsor sections (EarnInReport): upgrades,
@@ -106,7 +105,7 @@ function Locked({ r }: { r: Revenue }) {
           <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
             <span className="font-bold">{t(mrp.lockedTitle, { name: user?.name || user?.email || '', role })}</span>
             <div>
-              <T msg={r.helpers.length ? mrp.locked : mrp.lockedNoHelpers} values={{ mono, helpers: orList(r.helpers) }} />
+              <T msg={r.helpers.length ? mrp.locked : mrp.lockedNoHelpers} values={{ helpers: andList(r.helpers) }} />
             </div>
           </div>
         </div>

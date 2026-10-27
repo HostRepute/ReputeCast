@@ -63,8 +63,8 @@ export default translate(mrp, {
   window: 'Trong vòng {days, plural, other {# ngày}} sau một lượt nhấp vào email này',
   // Without earn:view.
   lockedTitle: '{name} · {role}',
-  locked: 'Doanh thu cần quyền <mono>earn:view</mono>. Hãy hỏi {helpers}.',
-  lockedNoHelpers: 'Doanh thu cần quyền <mono>earn:view</mono>. Hãy hỏi chủ sở hữu không gian làm việc.',
+  locked: 'Vai trò của bạn không xem được doanh thu. {helpers} có thể xem.',
+  lockedNoHelpers: 'Vai trò của bạn không xem được doanh thu. Hãy nhờ chủ sở hữu không gian làm việc chia sẻ.',
   revError: 'Không tải được doanh thu',
   retry: 'Thử lại',
   // The Sponsor section.
