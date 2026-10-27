@@ -4655,6 +4655,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/composer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Workspace rules and sender reputation for the composer's checks
+         * @description From the campaign's latest Send Readiness run, without running the checks: how the workspace's sending rules and the sender's reputation stand, their warnings and blocks, and when the blocklists were checked.
+         */
+        get: operations["get-composer-readiness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/fixes": {
         parameters: {
             query?: never;
@@ -22832,6 +22852,21 @@ export interface components {
             subject?: string;
             /** @enum {string} */
             variant?: "A" | "B" | "C";
+        };
+        ComposerReadiness: {
+            /** Format: date-time */
+            checkedAt?: string;
+            /** Format: date-time */
+            ranAt?: string;
+            reputation?: components["schemas"]["ComposerReadinessGroup"];
+            rules?: components["schemas"]["ComposerReadinessGroup"];
+        };
+        ComposerReadinessGroup: {
+            /** Format: int64 */
+            blocks: number;
+            checks: components["schemas"]["ReadinessCheck"][];
+            /** Format: int64 */
+            warnings: number;
         };
         ComposerResolveInput: {
             resolved: boolean;
@@ -56462,6 +56497,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReadinessPoll"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-composer-readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerReadiness"];
                 };
             };
             /** @description Error */

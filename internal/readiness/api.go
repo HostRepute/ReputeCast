@@ -59,6 +59,7 @@ func pollForReader(ctx context.Context, p ReadinessPoll) ReadinessPoll {
 func Register(h huma.API, s *Service) {
 	registerRules(h, s)
 	tags := []string{"Review & send"}
+	registerComposer(h, s, tags)
 	api.Post(h, api.Op{ID: "run-send-readiness", Path: "/workspaces/{workspace}/campaigns/{campaignId}/readiness", Summary: "Run Send Readiness on a campaign",
 		Description: "Queues a run of every check; a worker runs it in the background and stores the result. Answers 202 with the run waiting or in " +
 			"progress; poll …/readiness/progress until running is gone and latest is the new run. Fails with 409 readiness_running while a run waits or runs.",

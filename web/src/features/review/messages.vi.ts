@@ -495,4 +495,10 @@ export default translate(m, {
   undoDismissFailed: 'Không hoàn tác được việc bỏ qua',
   dismissedConfirmed: 'Đã bỏ qua trong trình soạn thảo nên được tính là đã xác nhận:',
   dismissedLine: '{title} · {name} đã bỏ qua · {reason}',
+  // The composer's Checks: Send Readiness's rules and reputation (Composer board).
+  composerRules: 'Quy tắc của không gian làm việc',
+  composerReputation: 'Uy tín người gửi',
+  composerFromReview: 'Từ Kiểm tra và gửi',
+  composerFromReviewAt: 'Từ Kiểm tra và gửi · danh sách chặn được kiểm tra lúc {time}',
+  openInReview: 'Mở trong Kiểm tra và gửi',
 })

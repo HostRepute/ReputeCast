@@ -511,4 +511,10 @@ export const m = defineMessages('review', {
   undoDismissFailed: "Couldn't undo the dismissal",
   dismissedConfirmed: 'Dismissed in the composer, so already confirmed:',
   dismissedLine: '{title} · dismissed by {name} · {reason}',
+  // The composer's Checks: Send Readiness's rules and reputation (Composer board).
+  composerRules: 'Workspace rules',
+  composerReputation: 'Sender reputation',
+  composerFromReview: 'From Review & send',
+  composerFromReviewAt: 'From Review & send · blocklists checked {time}',
+  openInReview: 'Open in Review & send',
 })

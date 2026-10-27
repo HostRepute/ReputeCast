@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/Badge'
 import { toast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
 import { useAccessibility } from '@/features/accessibility/composer/state'
+import { ReadinessRows } from '@/features/review/ComposerReadiness'
 import { useComposer, type Issue } from './context'
 import { kb } from './format'
 import { mh } from './chrome.messages'
@@ -183,6 +184,8 @@ export function ChecksSummary({ onAccessibility }: { onAccessibility?: () => voi
           )}
         </div>
       ) : null}
+      {/* Send Readiness's workspace rules and sender reputation, from its latest run. */}
+      {c.kind !== 'transactional' ? <ReadinessRows slug={c.slug} campaignId={c.campaign.id} /> : null}
     </div>
   )
 }
