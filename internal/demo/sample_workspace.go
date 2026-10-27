@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/rand/v2"
 	"time"
 
 	"github.com/google/uuid"
@@ -89,7 +88,7 @@ func SampleWorkspace(ctx context.Context, tx pgx.Tx, box *secrets.Box, ws store.
 // providers and engagement tiers, subscribed to the lists.
 func sampleContacts(ctx context.Context, s *Seeder, n int) error {
 	ws := s.WS()
-	rng := rand.New(rand.NewPCG(42, 142))
+	rng := audRand(42, 142)
 	domains := []struct{ domain, mbp string }{
 		{"gmail.com", "gmail"}, {"gmail.com", "gmail"}, {"gmail.com", "gmail"}, {"outlook.com", "outlook"}, {"hotmail.com", "outlook"},
 		{"yahoo.com", "yahoo"}, {"icloud.com", "icloud"}, {"example.org", "other"},
