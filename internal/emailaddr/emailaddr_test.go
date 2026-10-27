@@ -50,6 +50,12 @@ func TestClassify(t *testing.T) {
 		"acme-io.mail.protection.outlook.com": HostMicrosoft365, "acme-io.olc.protection.outlook.com": HostOutlookCom,
 		"mx-biz.mail.am0.yahoodns.net": HostYahoo, "mx01.mail.icloud.com": HostICloud,
 		"in1-smtp.messagingengine.com": "Fastmail", "mx.example.net": "",
+		"alt1.aspmx.l.google.com": HostGoogleWorkspace, "aspmx2.googlemail.com": HostGoogleWorkspace, "google.com": HostGoogleWorkspace,
+		"mta5.am0.yahoodns.net": HostYahoo, "mail.protonmail.ch": "Proton", "mx2.zoho.eu": "Zoho Mail", "mx02.mail.icloud.com": HostICloud,
+		// Hosts that only end like a provider's name aren't the provider's:
+		// anyone can name their MX this way.
+		"mx.xyahoodns.net": "", "mx.evilgoogle.com": "", "evilgoogle.com": "", "mx.notgoogle.com.": "", "mx.attacker-outlook.com": "",
+		"acme-io.mail.protection.evil-outlook.com": "", "in1-smtp.notmessagingengine.com": "", "mx.fakeprotonmail.ch": "", "mx.myzoho.com": "",
 	} {
 		if got := HostingFromMX(host); got != want {
 			t.Errorf("HostingFromMX(%s) = %q, want %q", host, got, want)

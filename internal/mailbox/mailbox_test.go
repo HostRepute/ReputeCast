@@ -1,6 +1,10 @@
 package mailbox
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/hostrepute/reputecast/internal/emailaddr"
+)
 
 func TestFromHosting(t *testing.T) {
 	for _, c := range []struct {
@@ -25,6 +29,27 @@ func TestFromHosting(t *testing.T) {
 	}
 	if !(Class{Provider: Gmail, Detail: "Google Workspace"}).Hosted() || (Class{Provider: Gmail}).Hosted() || (Class{Provider: Other, Detail: "Fastmail"}).Hosted() {
 		t.Fatal("Hosted")
+	}
+}
+
+// A domain is filtered by Yahoo or Gmail only when its MX host is theirs: an
+// outsider who names their MX mx.xyahoodns.net stays Other, so the replies
+// they craft can't trip Yahoo's reply rules or guards for the workspace.
+func TestFromHostingOfMX(t *testing.T) {
+	for _, c := range []struct {
+		domain, mx string
+		want       Class
+	}{
+		{"bakery.example", "mta5.am0.yahoodns.net", Class{Provider: Yahoo, Detail: emailaddr.HostYahoo}},
+		{"acme.example", "aspmx.l.google.com", Class{Provider: Gmail, Detail: emailaddr.HostGoogleWorkspace}},
+		{"northwind.example", "northwind-example.mail.protection.outlook.com", Class{Provider: Outlook, Detail: emailaddr.HostMicrosoft365}},
+		{"spoof.example", "mx.xyahoodns.net", Class{Provider: Other}},
+		{"spoof.example", "mx.evilgoogle.com", Class{Provider: Other}},
+		{"spoof.example", "spoof-example.mail.protection.evil-outlook.com", Class{Provider: Other}},
+	} {
+		if got := FromHosting(c.domain, emailaddr.HostingFromMX(c.mx)); got != c.want {
+			t.Errorf("FromHosting(%q, MX %q) = %+v, want %+v", c.domain, c.mx, got, c.want)
+		}
 	}
 }
 

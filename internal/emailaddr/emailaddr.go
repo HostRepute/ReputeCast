@@ -233,29 +233,38 @@ const (
 
 // HostingFromMX names the hosting of a domain from one of its MX hosts:
 // "Google Workspace", "Microsoft 365", "Fastmail", "Proton", "Zoho Mail".
+// A host counts only when it is the provider's domain or one of its
+// subdomains: anyone can name their MX mx.evilgoogle.com or
+// mx.xyahoodns.net, and their domain must not pass for Gmail's or Yahoo's.
 func HostingFromMX(host string) string {
 	h := strings.TrimSuffix(strings.ToLower(host), ".")
 	switch {
-	case strings.HasSuffix(h, "google.com"), strings.HasSuffix(h, "googlemail.com"):
+	case under(h, "google.com"), under(h, "googlemail.com"):
 		return HostGoogleWorkspace
-	case strings.HasSuffix(h, "olc.protection.outlook.com"):
+	case under(h, "olc.protection.outlook.com"):
 		// Outlook.com's consumer filters for a custom domain.
 		return HostOutlookCom
-	case strings.HasSuffix(h, "mail.protection.outlook.com"), strings.HasSuffix(h, "outlook.com"):
+	case under(h, "mail.protection.outlook.com"), under(h, "outlook.com"):
 		return HostMicrosoft365
-	case strings.HasSuffix(h, "yahoodns.net"):
+	case under(h, "yahoodns.net"):
 		return HostYahoo
-	case strings.HasSuffix(h, "messagingengine.com"), strings.HasSuffix(h, "fastmail.com"):
+	case under(h, "messagingengine.com"), under(h, "fastmail.com"):
 		return "Fastmail"
-	case strings.HasSuffix(h, "protonmail.ch"), strings.HasSuffix(h, "proton.me"):
+	case under(h, "protonmail.ch"), under(h, "proton.me"):
 		return "Proton"
-	case strings.HasSuffix(h, "zoho.com"), strings.HasSuffix(h, "zoho.eu"):
+	case under(h, "zoho.com"), under(h, "zoho.eu"):
 		return "Zoho Mail"
-	case strings.HasSuffix(h, "mail.icloud.com"), strings.HasSuffix(h, "mx.icloud.com"):
+	case under(h, "mail.icloud.com"), under(h, "mx.icloud.com"):
 		// mx01.mail.icloud.com: iCloud+ custom email domains.
 		return HostICloud
 	}
 	return ""
+}
+
+// under reports whether host is domain or a subdomain of it, on a label
+// boundary: aspmx.l.google.com is under google.com, mx.evilgoogle.com isn't.
+func under(host, domain string) bool {
+	return host == domain || strings.HasSuffix(host, "."+domain)
 }
 
 // Mask hides most of the local part: "r.walker@outlook.com" → "r.w···@outlook.com".
