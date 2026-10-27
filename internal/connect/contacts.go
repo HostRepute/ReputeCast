@@ -526,7 +526,10 @@ func (s *Service) doneView(ctx context.Context, l i18n.Lang, ws *store.Workspace
 			if cs.Imported != nil && int(*cs.Imported) > 0 {
 				n = int(*cs.Imported)
 			}
-			out.Rows = append(out.Rows, row("done", mDoneSuppressions, nil, ": ", mDoneSuppressionsImported, i18n.Args{"count": n, "short": c.Short}))
+			// With an SES tenant, what bounces and complaints add from now on
+			// lands on the workspace's own list (PR-1, PR-11).
+			out.Rows = append(out.Rows, row("done", mDoneSuppressions, nil, ": ", mDoneSuppressionsImported, i18n.Args{"count": n, "short": c.Short,
+				"tenant": yesNo(stringOf(cfg["tenant"]) != "")}))
 		} else {
 			out.Rows = append(out.Rows, row("skipped", mDoneSuppressions, nil, ": ", mDoneSuppressionsPushed, i18n.Args{"short": c.Short}))
 		}

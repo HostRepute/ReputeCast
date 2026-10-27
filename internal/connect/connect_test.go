@@ -768,7 +768,8 @@ func TestDemoSetupAndSettings(t *testing.T) {
 	if st.Done.Rows[0].Text != " via CloudFormation role `ReputeCastSES`, account 123456789012, region us-east-1 (production, 50,000 per day, 14 per second)" ||
 		st.Done.Rows[1].Status != "verified" || !strings.Contains(st.Done.Rows[1].Text, "from the SES mailbox simulator") ||
 		st.Done.Rows[2].Lead != "Tenant" || st.Done.Rows[2].Text != " `acme-newsletter`: this workspace's own suppression list, reputation policy Standard (pauses this tenant only)" ||
-		st.Done.Rows[4].Text != " news.acme.io: DKIM (3 CNAMEs), MAIL FROM bounce.news.acme.io, SPF and DMARC p=quarantine all verified" {
+		st.Done.Rows[4].Text != " news.acme.io: DKIM (3 CNAMEs), MAIL FROM bounce.news.acme.io, SPF and DMARC p=quarantine all verified" ||
+		st.Done.Rows[6].Lead != "Suppressions" || !strings.HasSuffix(st.Done.Rows[6].Text, "; from now on, hard bounces and complaints go to the tenant's list") {
 		t.Fatalf("rows: %+v", st.Done.Rows)
 	}
 	var test struct {
@@ -906,7 +907,7 @@ func TestSetupReadsInTheReadersLanguage(t *testing.T) {
 		chips = append(chips, ch.Label)
 	}
 	if ses.Terms != "Khuyên dùng" || !strings.HasPrefix(ses.Pricing, "Trả theo mức dùng · 0,10 US$") ||
-		strings.Join(chips, ",") != "Webhook (SNS),Tên miền qua API,Đồng bộ danh sách chặn gửi,Gửi lô 50,IP riêng, trả phí,Phát hiện sandbox,Dò hạn mức" {
+		strings.Join(chips, ",") != "Webhook (SNS) hoặc hàng đợi SQS,Tên miền qua API,Đồng bộ danh sách chặn gửi,Gửi lô 50,IP riêng, trả phí,Phát hiện sandbox,Dò hạn mức,Tenant riêng cho mỗi không gian làm việc" {
 		t.Fatalf("SES card: %+v %v", ses, chips)
 	}
 	for _, b := range cat.Builtin {

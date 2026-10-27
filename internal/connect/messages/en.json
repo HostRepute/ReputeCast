@@ -291,7 +291,7 @@
   "done.streamsText": { "message": "{short} is {roles}", "note": "roles: done.streamsRole, separated by semicolons" },
   "done.streamsRole": "{role, select, primary {primary for {streams}} split {a weighted share of {streams}} other {the fallback for {streams}}}",
   "done.suppressions": "Suppressions",
-  "done.suppressionsImported": "{count, number} addresses imported from the {short} account-level list into the shared suppression list",
+  "done.suppressionsImported": { "message": "{count, number} addresses imported from the {short} account-level list into the shared suppression list{tenant, select, yes {; from now on, hard bounces and complaints go to the tenant's list} other {}}", "note": "tenant: yes when the workspace sends as its own SES tenant (SetupDone)" },
   "done.suppressionsPushed": "not imported; the shared list is pushed to {short}",
   "done.contacts": "Contacts",
   "done.contactsImport": "import from {source} started.",

@@ -291,7 +291,7 @@
   "done.streamsText": "{short} {roles}",
   "done.streamsRole": "{role, select, primary {là nhà cung cấp chính cho {streams}} split {nhận một phần theo tỷ trọng của {streams}} other {là dự phòng cho {streams}}}",
   "done.suppressions": "Danh sách chặn gửi",
-  "done.suppressionsImported": "đã nhập {count, number} địa chỉ từ danh sách cấp tài khoản của {short} vào danh sách chặn gửi dùng chung",
+  "done.suppressionsImported": "đã nhập {count, number} địa chỉ từ danh sách cấp tài khoản của {short} vào danh sách chặn gửi dùng chung{tenant, select, yes {; từ nay, thư trả lại cứng và khiếu nại được đưa vào danh sách của tenant} other {}}",
   "done.suppressionsPushed": "chưa nhập; danh sách dùng chung được đẩy sang {short}",
   "done.contacts": "Liên hệ",
   "done.contactsImport": "đã bắt đầu nhập từ {source}.",
