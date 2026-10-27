@@ -132,7 +132,7 @@ What M33 built for the others to use:
 | X-2 | Every new or changed string in English and Vietnamese; `pnpm i18n:check` passes. | CI. |
 | X-3 | Docs: roadmap, design inventory, README claims. | Updated per milestone. |
 
-M39 checked them across the review's screens: refused actions name who can help (`authz` and each screen's own copy), `pnpm i18n:check` passes with every new string in English and Vietnamese, and the roadmap, `docs/DESIGN_INVENTORY.md` (#517–#554, the deliberate differences from the boards) and the README describe what was built. Screens outside the review (team, verification, Earn, SMS and a few others) still name permission keys in places; an API key's scopes stay named, since that is what the key holds.
+M39 checked them across the review's screens: refused actions name who can help (`authz` and each screen's own copy), `pnpm i18n:check` passes with every new string in English and Vietnamese, and the roadmap, `docs/DESIGN_INVENTORY.md` (#517–#555, the deliberate differences from the boards) and the README describe what was built. Its hardening carried X-1 to every other screen (team, verification, Earn, SMS, push, WhatsApp, Grow, website, products, transactional, digests, agency) and to the server's problems: they say what the role can't do and who can help. API-key scopes, MCP agent permissions and the roles editor keep the keys, since that is what people set there.
 
 ## Found while building the review (outside the five features)
 
