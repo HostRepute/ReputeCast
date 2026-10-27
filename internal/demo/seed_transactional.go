@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/domains"
+	"github.com/hostrepute/reputecast/internal/ingest"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/transactional"
 )
@@ -967,7 +968,7 @@ func (t *txnSeed) add(m *txnMsg) error {
 		return nil
 	}
 	ev := func(typ string, at time.Time, origType, code, diag, class string) {
-		t.events = append(t.events, []any{ID(), ws.ID, m.id, *provider, typ, at, m.mailbox, origType, code, diag, class, m.email, m.pmid, "webhook", at.Add(400 * time.Millisecond),
+		t.events = append(t.events, []any{ID(), ws.ID, m.id, *provider, typ, at, m.mailbox, origType, code, diag, class, m.email, m.pmid, ingest.SourceLabel("", "", nil, kindOf(m.source)), at.Add(400 * time.Millisecond),
 			"demo-txn-" + m.id.String() + "-" + typ + "-" + fmt.Sprint(len(t.events))})
 	}
 	for _, d := range m.deferrals {

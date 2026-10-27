@@ -89,7 +89,7 @@ type Engine struct {
 	// StreamHeartbeat is how often the live stream says it's alive while
 	// nothing changes (15 s when zero; review GS-14).
 	StreamHeartbeat time.Duration
-	// Seeds sends a canary's copies to the workspace's seed inboxes and
+	// Seeds sends a canary's copies to the workspace's seed mailboxes and
 	// reads where they landed (internal/placement; review GS-10); nil
 	// leaves the seed gate out.
 	Seeds SeedChecker
@@ -408,6 +408,12 @@ type providerRate struct {
 	Tiers                 []string
 	WarmingUp             bool
 	Paused                bool
+	// EngagedFirst and Overflow are the warm-up plan's (warmup_send.go).
+	EngagedFirst, Overflow bool
+	// PlanID is the warm-up plan; NextDay when tomorrow's cap starts (the
+	// live monitor's warm-up hold and ETA).
+	PlanID  uuid.UUID
+	NextDay time.Time
 }
 
 func (e *Engine) rateOf(ctx context.Context, q *store.Queries, p store.Provider, loc *time.Location, now time.Time) providerRate {
@@ -419,6 +425,8 @@ func (e *Engine) rateOf(ctx context.Context, q *store.Queries, p store.Provider,
 	if a, ok, err := warmup.AllowanceFor(ctx, q, p.ID, now, loc); err == nil && ok {
 		r.WarmingUp = true
 		r.WarmupDay, r.WarmupDays, r.Cap, r.SentToday, r.Tiers, r.Paused = a.Day, a.Days, a.Cap, a.Sent, a.Tiers, a.Paused
+		r.EngagedFirst, r.Overflow = a.EngagedFirst, a.Overflow
+		r.PlanID, r.NextDay = a.PlanID, a.NextDay
 		if a.Rate > 0 {
 			r.PerSecond = math.Min(r.PerSecond, a.Rate)
 		}

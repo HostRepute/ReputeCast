@@ -209,6 +209,7 @@ SELECT page.id::uuid AS id,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)::boolean AS suppressed,
        coalesce((SELECT p.paused_until > @now::timestamptz FROM contact_preferences p WHERE p.contact_id = c.id), false)::boolean AS paused,
        coalesce(c.language, '')::text AS language,
+       coalesce(c.timezone, '')::text AS timezone,
        (excluded.contact_id IS NOT NULL)::boolean AS excluded_list,
        (excluded_staged.contact_id IS NOT NULL)::boolean AS excluded_segment,
        coalesce(member_lists.lists, '{}'::uuid[])::uuid[] AS lists,
@@ -289,9 +290,9 @@ WITH picked AS (
 ), upd AS (
     UPDATE messages m SET claimed_at = @now::timestamptz, attempts = m.attempts + 1
     FROM picked WHERE m.id = picked.id
-    RETURNING m.id, m.workspace_id, m.contact_id, m.email, m.variant, m.mailbox_provider, m.attempts, m.language, m.hidden_blocks
+    RETURNING m.id, m.workspace_id, m.contact_id, m.email, m.variant, m.ab_rollout, m.mailbox_provider, m.attempts, m.language, m.hidden_blocks
 )
-SELECT upd.id, upd.contact_id, upd.email, upd.variant, upd.mailbox_provider, upd.attempts, upd.language, upd.hidden_blocks,
+SELECT upd.id, upd.contact_id, upd.email, upd.variant, upd.ab_rollout, upd.mailbox_provider, upd.attempts, upd.language, upd.hidden_blocks,
        coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name,
        coalesce(c.attributes, '{}'::jsonb)::jsonb AS attributes, coalesce(c.tier, '')::text AS tier,
        coalesce(c.source, '')::text AS source, (c.last_human_open_at IS NOT NULL)::boolean AS engaged,
@@ -366,8 +367,11 @@ WHERE campaign_id = @campaign_id AND status IN ('queued', 'held', 'in_doubt')
 GROUP BY provider_id, mailbox_provider, status, hold_reason;
 
 -- name: SendingCounters :many
+-- opened_machine is every open no person made: privacy-protected opens
+-- (Apple Mail Privacy Protection) and scanners' (the report shows them
+-- apart, internal/counters).
 SELECT provider_id, mailbox_provider, variant, sent, delivered, deferred, hard_bounced, soft_bounced, complained, rejected,
-       opened_human, opened_machine, clicked, unsubscribed
+       opened_human, (opened_machine + opened_privacy)::bigint AS opened_machine, clicked, unsubscribed
 FROM campaign_counters WHERE campaign_id = @campaign_id;
 
 -- name: SendingSentSince :many
@@ -382,10 +386,6 @@ SELECT provider_id, mailbox_provider, status, count(*)::bigint AS n
 FROM messages
 WHERE campaign_id = @campaign_id AND status IN ('failed', 'cancelled', 'rejected') AND sent_at IS NULL
 GROUP BY provider_id, mailbox_provider, status;
-
--- name: SendingReleaseHeld :execrows
--- The A/B winner goes to everyone who waited for it.
-UPDATE messages SET status = 'queued', variant = @variant WHERE campaign_id = @campaign_id AND status = 'held' AND variant = '' AND hold_reason = '';
 
 -- name: SendingCancelRemaining :execrows
 -- Cancels what is left of a campaign, or of one sending or mailbox provider.

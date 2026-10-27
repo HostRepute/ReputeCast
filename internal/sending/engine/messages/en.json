@@ -234,6 +234,7 @@
   "state.noCanaryWatch": {"message": "\"{name}\"'s canary isn't being watched now.", "note": "Watch 10 more minutes after the watch ended"},
   "state.canaryChoice": {"message": "“{choice}” isn't a canary choice: use auto, on or off.", "note": "choice: what was sent"},
   "state.canaryWaits": {"message": "“{name}” waits for a decision on its canary: continue it or stop it.", "note": "a plain resume of a send whose canary failed a gate; name: the campaign's name"},
+  "state.warmupHold": {"message": "{provider}'s share waits at its warm-up cap: wait for tomorrow's cap, move it to a warm provider or cancel the rest.", "note": "a plain resume of a share the warm-up cap holds; provider: the sending provider's short name"},
 
   "cause.renderLead": {"message": "The template failed for {failed} recipients", "note": "failed: a count of recipients whose own data broke the email's personalization"},
   "cause.render": "Their own data broke the email, for example a field of an unexpected type or a value too long. Each of those messages failed with the error; everyone else keeps getting the email.",

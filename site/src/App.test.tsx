@@ -25,8 +25,8 @@ describe('the prerendered page', () => {
 
   it('renders final values for everything that animates, so readers without JavaScript see the numbers', () => {
     const text = prerendered().textContent ?? ''
-    expect(text).toContain('31,604 recipients')
-    expect(text).toContain('19,594 of 31,604 sent')
+    expect(text).toContain('31,192 recipients')
+    expect(text).toContain('19,594 of 31,192 sent')
     expect(text).toContain('1,284 entered')
     expect(text).toContain('Monthly sending cost at 200,000 emails')
   })

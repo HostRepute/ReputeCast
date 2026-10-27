@@ -8,8 +8,11 @@ export default translate(m, {
   tabProviders: 'Nhà cung cấp',
   tabRouting: 'Định tuyến và chuyển dự phòng',
   tabWarmup: 'Khởi động',
+  tabTraffic: 'Quy tắc lưu lượng',
   tabEvents: 'Sự kiện và đồng bộ',
   tabAdapters: 'Adapter',
+  channelButton: 'Kênh: {channel}. Đổi kênh',
+  channelLabel: 'Kênh',
 
   streamBroadcast: 'Gửi hàng loạt',
   streamAutomation: 'Tự động hóa',

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Campaign composer, mobile preview</title>
+<title>Campaign composer, Design mode, mobile width</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -42,7 +42,7 @@ label.tg{display:flex;gap:10px;align-items:center;font-size:12.5px;cursor:pointe
 /* responsive shell */
 @media (max-width:1100px){
   .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
-  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .brand-t,.side .ws{display:none}.side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .side .nav a{justify-content:center;padding:0!important;height:44px}
   .side .nav svg{width:20px;height:20px}
   .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
@@ -115,62 +115,273 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
   .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
 }
+
+/* ===== compact composer chrome: one top bar + one Inbox strip (shared by the composer boards) ===== */
+.cbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 16px;background:#FFFFFF;border-bottom:1px solid #E3E6EB;box-sizing:border-box;position:relative;z-index:30}
+.cbar .btn{min-height:36px;padding:0 12px;font-size:13px;border-radius:8px;white-space:nowrap}
+.cbar .btn.ic{width:36px;padding:0}
+.cbar svg{flex:none}
+.cb-left{display:flex;align-items:center;gap:10px;min-width:0}
+.cb-id{display:flex;align-items:center;gap:8px;min-width:0}
+.cb-name{height:36px;width:164px;min-width:0;padding:0 8px;margin-left:-2px;border:1px solid transparent;border-radius:8px;background:transparent;font:inherit;font-size:15px;font-weight:700;color:#0B1220;box-sizing:border-box;text-overflow:ellipsis}
+.cb-name:hover{border-color:#D4D8DF}
+.cb-name:focus{border-color:#8B94A3;background:#FFFFFF}
+.cb-name::placeholder{color:#5B6472;font-weight:600}
+.stchip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;background:#EEF0F3;color:#4B5563;font-size:12px;font-weight:600;white-space:nowrap;flex:none;box-sizing:border-box}
+.stchip.ok{background:#DCFCE7;color:#166534}.stchip.warn{background:#FEF3C7;color:#92400E}.stchip.bad{background:#FEE2E2;color:#991B1B}
+.cb-pres{display:flex;align-items:center;gap:8px;flex:none;padding-left:10px;border-left:1px solid #E3E6EB;min-height:28px}
+.pav{position:relative;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:#EDE9FE;color:#5B21B6;flex:none}
+.pav i{position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:50%;background:#15803D;border:2px solid #FFFFFF;box-sizing:border-box}
+.cb-pres .pt{font-size:12px;font-weight:500;color:#5B6472;white-space:nowrap}
+.cb-mid{display:flex;align-items:center;gap:8px;margin-left:auto}
+.modes{display:inline-flex;align-items:center;gap:2px;padding:2px;border:1px solid #D4D8DF;border-radius:9px;background:#FFFFFF;flex:none;box-sizing:border-box}
+.modes a,.modes button{border:0;background:transparent;font:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 12px;border-radius:7px;color:#4B5563;font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none;box-sizing:border-box}
+.modes a:hover,.modes button:hover{background:#F3F4F6;color:#0B1220}
+.modes a[aria-selected="true"],.modes button[aria-selected="true"]{background:#0B1220;color:#FFFFFF}
+.devt{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.devt button{width:38px;height:34px;border:0;background:#FFFFFF;color:#4B5563;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.devt button + button{border-left:1px solid #E3E6EB}
+.devt button[aria-pressed="true"]{background:#0B1220;color:#FFFFFF}
+.devt button:disabled{color:#5B6472;opacity:.55;cursor:not-allowed}
+.cb-end{display:flex;align-items:center;gap:8px;margin-left:auto}
+.cb-end .btn .bi{display:none}
+.modes a svg{display:none}
+.langb .ln{color:#5B6472;font-weight:500}
+.cb-go{display:flex;align-items:center}
+.rsend .rs-b{font-weight:600}
+.btn.pri.rs-stop{background:#B91C1C;border-color:#B91C1C;color:#FFFFFF}.btn.pri.rs-stop:hover{background:#991B1B;color:#FFFFFF}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn.sm{min-height:28px;padding:0 10px;font-size:12px}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}.btn.danger:hover{background:#FFF5F5;color:#991B1B}
+.btn.ghost{border-color:transparent;background:transparent}.btn.ghost:hover{background:#F3F4F6}
+.nt-phone{display:none}
+
+/* Inbox strip */
+.istrip{display:flex;align-items:center;gap:10px;min-height:40px;padding:4px 16px;background:#F9FAFB;border-bottom:1px solid #E3E6EB;box-sizing:border-box;font-size:12.5px;position:relative;z-index:20}
+.is-l{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;flex:none}
+.is-sum{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 auto;margin:0;white-space:nowrap;overflow:hidden}
+.is-i{display:inline-flex;align-items:center;gap:5px;min-width:0;overflow:hidden}
+.is-i.sub{flex:0 1 auto;max-width:330px}.is-i.pre{flex:0 1 auto;max-width:280px}.is-i.to,.is-i.via{flex:none}
+.is-k{color:#5B6472;font-weight:500;flex:none}
+.is-v{color:#0B1220;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.is-v.none{color:#5B6472;font-weight:500;font-style:italic}
+.is-sep{color:#5B6472;flex:none}
+.is-flag{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:999px;background:#FEF3C7;color:#92400E;font-size:11.5px;font-weight:600;flex:none}
+.is-edit{flex:none;margin-left:auto}
+.ipanel{display:flex;flex-wrap:wrap;gap:16px 20px;padding:14px 16px 16px;background:#FFFFFF;border-bottom:1px solid #E3E6EB;box-sizing:border-box;position:relative;z-index:19}
+.ip-in{flex:3 1 520px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.ip-row{display:flex;flex-wrap:wrap;gap:10px 14px}
+.ip-row > label,.ip-row > div{flex:1 1 260px;min-width:0}
+.ip-send{flex:1 1 300px;max-width:440px;min-width:0;display:flex;flex-direction:column;gap:10px;padding:12px 14px;border:1px solid #E3E6EB;border-radius:10px;background:#F9FAFB;box-sizing:border-box}
+.ip-h{margin:0;font-size:13px;font-weight:700;color:#0B1220;display:flex;align-items:center;gap:8px}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563;min-width:0}
+.lbl .in{width:100%}
+.lbl .k{font-weight:500}
+.gmail{display:flex;align-items:center;gap:12px;min-height:40px;padding:0 12px;border:1px solid #E3E6EB;border-radius:8px;background:#FFFFFF;font-size:13px;white-space:nowrap;overflow:hidden;box-sizing:border-box}
+.gmail .gf{font-weight:700;flex:none;width:126px;overflow:hidden;text-overflow:ellipsis}
+.gmail .gs{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.gmail .gs b{font-weight:700}
+.gmail .gs span{color:#5B6472}
+.gmail .gt{margin-left:auto;font-size:12px;font-weight:600;color:#5B6472;flex:none}
+.route{display:flex;align-items:center;gap:8px;min-height:36px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#FFFFFF;color:#0B1220;font-size:12.5px;font-weight:600;text-decoration:none;box-sizing:border-box}
+.route:hover{background:#F3F4F6;color:#0B1220}
+.route .rb{display:flex;gap:2px;width:72px;height:8px;flex:none}
+.route .rb i{display:block;height:100%;border-radius:999px}
+
+/* editor body */
+.cwrap{display:flex;flex:1 1 auto;align-items:stretch;min-height:0}
+.lp{flex:0 0 248px;width:248px;background:#FFFFFF;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;min-width:0;box-sizing:border-box}
+.cv{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;background:#E9ECF0;position:relative}
+.rp{flex:0 0 320px;width:320px;background:#FFFFFF;border-left:1px solid #E3E6EB;display:flex;flex-direction:column;min-width:0;box-sizing:border-box}
+.ptab button{padding:0 6px;white-space:nowrap}
+.ptab button .n{font-weight:600;color:#5B6472}
+.ptab button.on .n{color:#0B1220}
+.cfoot{display:flex;align-items:center;gap:6px 16px;flex-wrap:wrap;padding:8px 16px;background:#FFFFFF;border-top:1px solid #E3E6EB;font-size:12px;box-sizing:border-box}
+.cfoot .hint{display:flex;flex-wrap:wrap;gap:4px 12px;color:#5B6472;font-weight:500}
+.kbd{display:inline-flex;align-items:center;height:20px;padding:0 6px;border:1px solid #D4D8DF;border-bottom-width:2px;border-radius:5px;background:#FFFFFF;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;font-weight:500;color:#374151;margin-right:4px}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.h2{margin:0;font-size:15px;font-weight:600}
+.note{display:flex;gap:8px 10px;align-items:flex-start;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.45;box-sizing:border-box}
+.note > :last-child{flex:1 1 auto;min-width:0}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+
+/* tablet: canvas first, panels stack below it */
+@media (max-width:1100px){
+  .cbar{padding:10px 16px}
+  .cb-left{order:1;flex:1 1 calc(100% - 300px)}
+  .cb-go{order:2}
+  .cb-mid{order:3;margin-left:0}
+  .cb-end{order:4;margin-left:auto}
+  .cb-pres .pt{display:none}
+  .is-i.pre{display:none}
+  .is-i.pre + .is-sep{display:none}
+  .ip-send{max-width:none;flex-basis:100%}
+  .cwrap{flex-wrap:wrap}
+  .cv{order:1;flex:1 1 100%}
+  .lp{order:2;flex:1 1 300px;width:auto;border-right:1px solid #E3E6EB;border-top:1px solid #E3E6EB}
+  .rp{order:3;flex:1 1 300px;width:auto;border-left:0;border-top:1px solid #E3E6EB}
+}
+/* phone */
+@media (max-width:767px){
+  .cbar{padding:8px 12px;gap:8px}
+  .cbar .btn{min-height:44px}
+  .cbar .btn.ic{width:44px}
+  .cb-left{flex:1 1 calc(100% - 160px);gap:8px}
+  .cb-id{flex-direction:column;align-items:flex-start;gap:2px}
+  .cb-name{width:100%;height:44px;font-size:15px;padding:0 4px;margin-left:-4px}
+  .stchip{height:auto;min-height:20px;font-size:11.5px;padding:2px 8px;white-space:normal;line-height:1.25;max-width:100%}
+  .cb-id{gap:0}
+  .cb-pres{display:none}
+  .cb-mid{flex:1 1 auto;min-width:0}
+  .modes{flex:1 1 auto;padding:0;gap:0;overflow:hidden}
+  .modes a,.modes button{flex:1 1 0%;height:44px;padding:0 8px;border-radius:0}
+  .modes a svg{display:none}
+  .devt{display:none}
+  .cb-end{margin-left:0;gap:6px;flex-wrap:nowrap}
+  .cb-end .btn{width:44px;padding:0}
+  .cb-end .btn .bi{display:inline}
+  .cb-end .btn .bt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .langb .ln,.langb .chev{display:none}
+  .rsend{flex-direction:column;align-items:flex-start;justify-content:center;gap:0;line-height:1.2;padding:4px 12px!important;white-space:nowrap!important}
+  .rsend .rs-dot{display:none}
+  .rsend .rs-b{font-size:11px;font-weight:600}
+  .nt-phone{display:inline}
+  .istrip{flex-wrap:wrap;padding:8px 12px;gap:6px 10px}
+  .is-sum{flex-wrap:wrap;white-space:normal;flex:1 1 100%;order:3;gap:4px 8px}
+  .is-sep{display:none}
+  .is-i{flex:1 1 100%!important;max-width:100%!important}
+  .is-i.pre{display:inline-flex}
+  .is-edit{min-height:44px!important}
+  .btn.sm{min-height:44px}
+  .ipanel{padding:12px}
+  .ipanel .in,.ipanel select.in{height:44px}
+  .route{min-height:44px}
+  .gmail{flex-wrap:wrap;white-space:normal;padding:8px 12px;gap:2px 10px}
+  .gmail .gf{width:auto}
+  .gmail .gs{flex:1 1 100%;order:3}
+  .cfoot{padding:8px 12px}
+  footer.cfoot a{min-height:44px;display:inline-flex;align-items:center}
+  .in,select.in{height:44px}
+  label.rad{min-height:44px}
+  .ptab button{height:44px}
+  .lp,.rp{flex:1 1 100%}
+}
+
+/* mobile preview */
+.lq{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 9px;margin:0 1px;border-radius:999px;border:1px solid transparent;background:#E3F1EE;color:#0F766E;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600;line-height:1;vertical-align:1px;white-space:nowrap}
+.lq .fb{font-weight:500;color:#115E59}
+.lhelp{margin:0;padding:8px 12px 4px;line-height:1.6}
+.lay .tk{margin-left:auto;font-size:11px;color:#5B6472;font-weight:500}
+.lay.on .tk{color:#1E40AF}
+@media (max-width:1100px){#main{order:-1}}
+@media (max-width:767px){.cpanel .in,.cpanel select.in{height:44px}.mtools .btn{min-height:44px}.mtools .btn.ic{width:44px}}
 </style>
 </helmet>
+<h1 class="vh">Composer, Design mode at mobile width: Weekly Digest #142, editing column 1 of 2</h1>
 <div style="min-height:100vh;display:flex;flex-direction:column">
   <a href="#main" class="skip">Skip to content</a>
-  <header style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB">
-    <a href="Campaigns.dc.html" class="btn ic" aria-label="Back to campaigns"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a>
-    <div style="display:flex;flex-direction:column;min-width:0"><span class="k" style="font-size:11px">Campaign</span><span style="font-size:15px;font-weight:700">Weekly Digest #142</span></div>
-    <span class="badge mut">Draft · autosaved 09:39 · v15</span>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-left:12px">
-      <button class="btn">Weekly Digest · 31,604</button>
-      <button class="btn">From: Acme Newsletter &lt;digest@news.acme.io&gt;</button>
-      <a href="ProvidersRouting.dc.html" class="btn"><span class="dot" style="color:#4a3aa7"></span>SES 90% <span class="dot" style="color:#e87ba4"></span>Postal 10%</a>
+  <header class="cbar">
+    <div class="cb-left">
+      <a href="Campaigns.dc.html" class="btn ic" aria-label="Back to campaigns"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a>
+      <div class="cb-id">
+        <label class="vh" for="cname">Campaign name</label>
+        <input id="cname" class="cb-name" value="Weekly Digest #142">
+        <span class="stchip" role="status"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Saved 09:38 · v14</span>
+      </div>
+      <div class="cb-pres" role="group" aria-label="Also in this campaign">
+        <span class="pav" role="img" aria-label="Marcus Chen, viewing" title="Marcus Chen · viewing">MC<i></i></span>
+        <span class="pt" aria-hidden="true">Marcus Chen viewing</span>
+      </div>
     </div>
-    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
-      <a href="ComposerPreview.dc.html" class="btn">Preview</a>
-      <button class="btn">Send test</button>
-      <a href="SendReadiness.dc.html" class="btn pri">Review &amp; send</a>
+    <div class="cb-mid">
+      <div class="modes" role="tablist" aria-label="Editing mode">
+        <a role="tab" href="ComposerWrite.dc.html" aria-selected="false" tabindex="-1">Write</a>
+        <a role="tab" href="ComposerMobile.dc.html" aria-selected="true" aria-controls="main">Design</a>
+        <a role="tab" href="ComposerCode.dc.html" aria-selected="false" tabindex="-1">Code</a>
+      </div>
+      <div class="devt" role="group" aria-label="Canvas width">
+        <button type="button" aria-pressed="false" aria-label="Desktop, 600 px" title="Desktop · 600 px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.2"></rect><path d="M5.5 14h5M8 11v3"></path></svg></button>
+        <button type="button" aria-pressed="true" aria-label="Mobile, 375 px" title="Mobile · 375 px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="4.5" y="1.5" width="7" height="13" rx="1.5"></rect><path d="M7.2 12.5h1.6"></path></svg></button>
+      </div>
+    </div>
+    <div class="cb-end">
+      <button type="button" class="btn langb" aria-haspopup="listbox" aria-expanded="false" aria-label="Language: English, the source. 3 of 4 workspace languages have a version. Change language"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg><span class="bt">English</span><span class="ln">· 3 of 4</span><svg class="chev" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+      <a href="ComposerPreview.dc.html" class="btn"><svg class="bi" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"></path><circle cx="8" cy="8" r="2"></circle></svg><span class="bt">Preview</span></a>
+      <button type="button" class="btn"><svg class="bi" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7"></path></svg><span class="bt">Send test</span></button>
+    </div>
+    <div class="cb-go">
+      <a href="SendReadiness.dc.html" class="btn pri rsend" aria-label="Review and send. Readiness: ready with 2 warnings"><span class="rs-a">Review &amp; send</span><span class="rs-dot" aria-hidden="true">·</span><span class="rs-b">2 warnings</span></a>
     </div>
   </header>
 
-  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB">
-    <label style="display:flex;flex-direction:column;gap:2px;flex:2 1 320px"><span class="k" style="font-size:11px">Subject · Variant A</span><input class="in" value="Three launches, one deprecation, and the roadmap for Q4"></label>
-    <label style="display:flex;flex-direction:column;gap:2px;flex:2 1 320px"><span class="k" style="font-size:11px">Preheader</span><input class="in" value="Feature flags are GA, audit log exports, and what we're retiring in November."></label>
-    <div style="flex:3 1 360px;display:flex;flex-direction:column;gap:2px;min-width:0"><span class="k" style="font-size:11px">Inbox preview · iPhone Mail</span>
-      <div style="display:flex;flex-direction:column;justify-content:center;height:32px;padding:0 10px;border:1px solid #E3E6EB;border-radius:7px;background:#F9FAFB;font-size:12px;line-height:1.2;white-space:nowrap;overflow:hidden"><span style="font-weight:700">Acme Newsletter <span class="k" style="float:right">9:00 AM</span></span><span style="overflow:hidden;text-overflow:ellipsis">Three launches, one deprecation, and the roadmap for Q4 · Feature flags are GA, audit log…</span></div>
+  <div class="istrip" role="region" aria-label="Inbox">
+    <span class="is-l"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Inbox</span>
+    <p class="is-sum">
+      <span class="is-i sub"><span class="is-k">Subject:</span><span class="is-v">Three launches, one deprecation, and the roadmap for Q4</span></span>
+      <span class="is-sep" aria-hidden="true">·</span>
+      <span class="is-i pre"><span class="is-k">Preheader:</span><span class="is-v">Feature flags are GA, audit log exports, and what we're retiring in November.</span></span>
+      <span class="is-sep" aria-hidden="true">·</span>
+      <span class="is-i to"><span class="is-k">To</span><span class="is-v">Weekly Digest · 31,192</span></span>
+      <span class="is-sep" aria-hidden="true">·</span>
+      <span class="is-i via"><span class="is-k">via</span><span class="is-v"><span class="dot" style="color:#4a3aa7;margin-right:4px"></span>SES 90% / <span class="dot" style="color:#e87ba4;margin:0 4px 0 2px"></span>Postal 10%</span></span>
+    </p>
+    <button type="button" class="btn sm is-edit" aria-expanded="{{inboxOpen}}" aria-controls="{{ipCtl}}" onClick="{{toggleInbox}}">{{inboxBtn}}</button>
+  </div>
+
+  <sc-if value="{{inboxOpen}}" hint-placeholder-val="{{false}}">
+  <div id="ipanel" class="ipanel" role="region" aria-label="Subject, preheader and recipients">
+    <div class="ip-in">
+      <div class="ip-row">
+        <label class="lbl">Subject · variant A<input class="in" value="Three launches, one deprecation, and the roadmap for Q4"><span class="k">55 characters · Gmail shows about 70 on desktop, 35 on iPhone</span></label>
+        <label class="lbl">Subject · variant B<input class="in" value="What shipped this week, and what we're retiring"><span class="k">A/B test on 20%, winner by clicks after 2 hours · <a href="ComposerPreview.dc.html">Test settings</a></span></label>
+      </div>
+      <label class="lbl">Preheader<input class="in" value="Feature flags are GA, audit log exports, and what we're retiring in November."><span class="k">77 characters · shown after the subject in most inboxes</span></label>
+      <div class="lbl"><span>Inbox preview · Gmail, desktop</span>
+        <div class="gmail"><span class="gf">Acme Newsletter</span><span class="gs"><b>Three launches, one deprecation, and the roadmap for Q4</b><span> - Feature flags are GA, audit log exports, and what we're retiring in November.</span></span><span class="gt">9:00 AM</span></div>
+      </div>
+    </div>
+    <div class="ip-send" role="group" aria-labelledby="sendto">
+      <h2 class="ip-h" id="sendto">Sending to</h2>
+      <label class="lbl">Audience<select class="in"><option>Weekly Digest · 31,192 recipients</option><option>Product Updates</option><option>Beta Program</option><option>All subscribers · 47,842</option></select><span class="k">After suppressions, duplicates and your sunset policy, which leaves out 412 unengaged contacts</span></label>
+      <label class="lbl">From<select class="in"><option>Acme Newsletter &lt;digest@news.acme.io&gt;</option><option>Acme Product &lt;product@news.acme.io&gt;</option></select></label>
+      <div class="lbl"><span id="route-l">Route</span>
+        <a href="ProvidersRouting.dc.html" class="route"><span class="rb" aria-hidden="true"><i style="flex:9;background:#4a3aa7"></i><i style="flex:1;background:#e87ba4"></i></span>Broadcasts · SES 90% / Postal 10%<svg style="margin-left:auto" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 4 4 4-4 4"></path></svg></a>
+        <span class="k">Postal is warming up, day 9 of 21, so it takes 10%.</span>
+      </div>
     </div>
   </div>
+  </sc-if>
 
   <div style="display:flex;flex-wrap:wrap;flex:1;align-items:stretch">
     <aside class="cpanel" style="flex:1 1 272px;max-width:272px;background:#fff;border-right:1px solid #E3E6EB;display:flex;flex-direction:column">
-      <div class="ptab" role="tablist"><button role="tab">Blocks</button><button class="on" role="tab">Layers</button><button role="tab">Templates</button></div>
-      <div style="padding:8px;display:flex;flex-direction:column;gap:1px" role="tree" aria-label="Layer tree">
-        <div class="lay"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg>mjml</div>
-        <div class="lay" style="padding-left:24px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg>mj-head</div>
-        <div class="lay" style="padding-left:24px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"></path></svg>mj-body</div>
-        <div class="lay" style="padding-left:40px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg>mj-section · header</div>
-        <div class="lay" style="padding-left:40px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg>mj-section · hero</div>
-        <div class="lay" style="padding-left:40px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"></path></svg>mj-section · 2 columns</div>
-        <div class="lay on" style="padding-left:56px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"></path></svg>mj-column · 50%</div>
-        <div class="lay" style="padding-left:72px"><svg aria-hidden="true" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="1.5"></rect></svg>mj-image</div>
-        <div class="lay" style="padding-left:72px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="M3 5h10M3 8h10M3 11h6"></path></svg>mj-text</div>
-        <div class="lay" style="padding-left:72px"><svg aria-hidden="true" viewBox="0 0 16 16"><rect x="2" y="5" width="12" height="6" rx="3"></rect></svg>mj-button</div>
-        <div class="lay" style="padding-left:56px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg>mj-column · 50%</div>
-        <div class="lay" style="padding-left:40px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="M2 8h12"></path></svg>mj-divider</div>
-        <div class="lay" style="padding-left:40px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg>mj-section · text</div>
-        <div class="lay" style="padding-left:40px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg>mj-section · footer</div>
+      <div class="ptab" role="tablist" aria-label="Left panel"><button type="button" role="tab" aria-selected="false" tabindex="-1">Blocks</button><button type="button" class="on" role="tab" aria-selected="true">Layers</button><button type="button" role="tab" aria-selected="false" tabindex="-1">Templates</button></div>
+      <p class="k lhelp">Use ↑ ↓ to move between layers, → to open one, ← to close it and Enter to select it on the email.</p>
+      <div style="padding:4px 8px 8px;display:flex;flex-direction:column;gap:1px" role="tree" aria-label="Layers of the email">
+        <div class="lay" role="treeitem" aria-expanded="true" aria-selected="false"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"></path></svg>Email body</div>
+        <div class="lay" role="treeitem" aria-selected="false" style="padding-left:24px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg>Header + logo<span class="tk">Synced</span></div>
+        <div class="lay" role="treeitem" aria-selected="false" style="padding-left:24px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg>Hero</div>
+        <div class="lay" role="treeitem" aria-expanded="true" aria-selected="false" style="padding-left:24px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"></path></svg>Feature highlights<span class="tk">2 columns</span></div>
+        <div class="lay on" role="treeitem" aria-expanded="true" aria-selected="true" tabindex="0" style="padding-left:40px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"></path></svg>Column 1 · Feature flags</div>
+        <div class="lay" role="treeitem" aria-selected="false" style="padding-left:56px"><svg aria-hidden="true" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="1.5"></rect></svg>Image</div>
+        <div class="lay" role="treeitem" aria-selected="false" style="padding-left:56px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="M3 5h10M3 8h10M3 11h6"></path></svg>Text</div>
+        <div class="lay" role="treeitem" aria-selected="false" style="padding-left:56px"><svg aria-hidden="true" viewBox="0 0 16 16"><rect x="2" y="5" width="12" height="6" rx="3"></rect></svg>Button</div>
+        <div class="lay" role="treeitem" aria-selected="false" style="padding-left:40px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg>Column 2 · Audit log</div>
+        <div class="lay" role="treeitem" aria-selected="false" style="padding-left:24px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="M2 8h12"></path></svg>Divider</div>
+        <div class="lay" role="treeitem" aria-selected="false" style="padding-left:24px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg>Retiring the v1 API</div>
+        <div class="lay" role="treeitem" aria-selected="false" style="padding-left:24px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg>Footer + unsubscribe<span class="tk">Synced</span></div>
       </div>
     </aside>
 
     <section role="main" id="main" style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;background:#E9ECF0">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;background:#fff;border-bottom:1px solid #E3E6EB">
-        <div class="seg" role="group" aria-label="Device"><button>Desktop · 600</button><button class="on">Mobile · 375</button></div>
-        <div class="seg" role="group" aria-label="View"><button class="on">Visual</button><button>MJML</button><button>HTML</button></div>
+      <div class="mtools" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;background:#fff;border-bottom:1px solid #E3E6EB">
         <div style="display:flex;gap:4px"><button class="btn ic" aria-label="Undo"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 4 2 8l4 4M2 8h8a4 4 0 0 1 0 8"></path></svg></button><button class="btn ic" aria-label="Redo"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m10 4 4 4-4 4M14 8H6a4 4 0 0 0 0 8"></path></svg></button></div>
-        <span class="badge info">Columns stack below 480 px, as MJML renders them</span>
-        <span class="k" style="margin-left:auto">Dark mode: <button class="btn" style="min-height:26px;padding:0 8px;font-size:11.5px">Off</button></span>
+        <span class="k" style="color:#1E40AF;font-weight:600">Mobile · 375 px: columns stack below 480 px, as MJML renders them</span>
+        <span class="k" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px">Dark mode<button type="button" class="btn" aria-pressed="false" style="padding:0 10px;font-size:12px">Off</button></span>
       </div>
 
       <div style="flex:1;overflow:auto;padding:28px 24px 40px;display:flex;justify-content:center">
@@ -181,20 +392,20 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
           </div>
           <div class="sec">
             <div class="ph" style="height:120px;margin-bottom:12px">Hero image · fluid, 339 wide</div>
-            <h1 style="margin:0 0 8px;font-size:22px;line-height:1.2;font-weight:700;color:#0B1220">Three launches, one deprecation, and the roadmap for Q4</h1>
-            <p style="margin:0;font-size:15px;line-height:1.55">Hi {{tok}}, here's what shipped this week at Acme, what we're retiring in November, and where the next quarter is headed.</p>
+            <h2 style="margin:0 0 8px;font-size:22px;line-height:1.2;font-weight:700;color:#0B1220">Three launches, one deprecation, and the roadmap for Q4</h2>
+            <p style="margin:0;font-size:15px;line-height:1.55">Hi <span class="lq" role="img" aria-label="Personalization: first name, fallback there">First name <span class="fb">· fallback “there”</span></span>, here's what shipped this week at Acme, what we're retiring in November, and where the next quarter is headed.</p>
           </div>
           <div class="sec" style="outline:2px solid #1D4ED8;outline-offset:-2px">
             <div style="display:flex;flex-direction:column;gap:18px">
               <div>
                 <div class="ph" style="height:140px;margin-bottom:10px">Image · fluid</div>
-                <h2 style="margin:0 0 6px;font-size:17px;line-height:1.3;color:#0B1220">Feature flags are generally available</h2>
+                <h3 style="margin:0 0 6px;font-size:17px;line-height:1.3;color:#0B1220">Feature flags are generally available</h3>
                 <p style="margin:0 0 10px;font-size:14px;line-height:1.5;color:#374151">Target rollouts by plan, region or percentage, with an audit trail for every change.</p>
                 <a href="https://docs.acme.io/flags" style="display:block;text-align:center;padding:12px 14px;border-radius:6px;background:#0F766E;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;font-weight:600">Read the docs</a>
               </div>
               <div>
                 <div class="ph" style="height:140px;margin-bottom:10px">Image · fluid</div>
-                <h2 style="margin:0 0 6px;font-size:17px;line-height:1.3;color:#0B1220">Audit log exports</h2>
+                <h3 style="margin:0 0 6px;font-size:17px;line-height:1.3;color:#0B1220">Audit log exports</h3>
                 <p style="margin:0 0 10px;font-size:14px;line-height:1.5;color:#374151">Stream every workspace event to S3 or your SIEM, with 13 months of history.</p>
                 <a href="https://acme.io/changelog" style="display:block;text-align:center;padding:12px 14px;border-radius:6px;background:#0F766E;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;font-weight:600">See the changelog</a>
               </div>
@@ -202,7 +413,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
           </div>
           <div class="sec" style="padding:6px 18px"><div style="border-top:1px solid #E3E6EB"></div></div>
           <div class="sec">
-            <h2 style="margin:0 0 6px;font-size:17px;color:#0B1220">Retiring the v1 API on 30 November</h2>
+            <h3 style="margin:0 0 6px;font-size:17px;color:#0B1220">Retiring the v1 API on 30 November</h3>
             <p style="margin:0;font-size:14px;line-height:1.5;color:#374151">If you still call api.acme.io/v1, the migration guide covers every endpoint.</p>
           </div>
           <div class="sec" style="padding:16px 18px;background:#F3F4F6;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472;text-align:center;line-height:1.7">
@@ -214,11 +425,11 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
     </section>
 
     <aside class="cpanel" style="flex:1 1 300px;max-width:300px;background:#fff;border-left:1px solid #E3E6EB;display:flex;flex-direction:column">
-      <div class="ptab" role="tablist"><button role="tab">Style</button><button class="on" role="tab">Settings</button></div>
-      <div style="padding:10px 12px;border-bottom:1px solid #EEF0F3;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">mj-column</span><span class="k">first column of the 2-column section</span></div>
+      <div class="ptab" role="tablist" aria-label="Column panel"><button type="button" role="tab" aria-selected="false" tabindex="-1">Style</button><button type="button" class="on" role="tab" aria-selected="true">Settings</button><button type="button" role="tab" aria-selected="false" tabindex="-1">Checks</button><button type="button" role="tab" aria-selected="false" tabindex="-1">Comments <span class="n">· 2</span></button></div>
+      <div style="padding:10px 12px;border-bottom:1px solid #EEF0F3;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">Column 1 of 2 · Feature flags</span><span class="k">In the section Feature highlights · MJML: mj-column</span></div>
       <div class="prop"><span class="t">Width</span><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px"><input class="in" value="50%" aria-label="Desktop width"><span class="k" style="align-self:center">stacks to 100% on mobile</span></div></div>
-      <div class="prop"><span class="t">Visibility</span><label class="tg"><input type="checkbox">Hide on mobile</label><label class="tg"><input type="checkbox">Hide on desktop</label><span class="k">Adds the mj-class rule the MJML plugin generates; the layer tree marks hidden components.</span></div>
-      <div class="prop"><span class="t">CSS class</span><input aria-label="CSS class" class="in mono" value="article-card"></div>
+      <div class="prop"><span class="t">Visibility</span><label class="tg"><input type="checkbox">Hide on mobile</label><label class="tg"><input type="checkbox">Hide on desktop</label><span class="k">Hidden columns stay in the email and show as hidden in Layers.</span></div>
+      <div class="prop"><span class="t">CSS class · advanced</span><input aria-label="CSS class" class="in mono" value="article-card"></div>
       <div class="prop"><span class="t">Vertical alignment</span><select aria-label="Vertical alignment" class="in"><option>Top</option><option>Middle</option><option>Bottom</option></select></div>
       <div style="padding:10px 12px;display:flex;flex-direction:column;gap:6px;margin-top:auto;border-top:1px solid #EEF0F3">
         <span class="k">Mobile checks</span>
@@ -227,17 +438,27 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
     </aside>
   </div>
 
-  <footer style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 16px;background:#fff;border-top:1px solid #E3E6EB">
-    <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#5B6472"><span>mjml</span><span>›</span><span>mj-body</span><span>›</span><span>mj-section</span><span>›</span><b style="color:#0B1220">mj-column</b></div>
+  <footer class="cfoot">
+    <nav aria-label="Selection path" style="display:flex;align-items:center;gap:6px;font-size:12px;color:#5B6472"><span>Email</span><span aria-hidden="true">›</span><span>Feature highlights</span><span aria-hidden="true">›</span><b style="color:#0B1220">Column 1</b></nav>
+    <span class="hint"><span><span class="kbd">Enter</span>edits text</span><span><span class="kbd">Esc</span>selects parent</span><span><span class="kbd">⌘Z</span>undo</span><span><span class="kbd">⌘/</span>shortcuts</span></span>
     <span class="k" style="margin-left:auto">64 KB of 102 KB · 7 images, all with alt text · 14 links</span>
     <span class="badge ok"><span class="dot"></span>No warnings</span>
   </footer>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1507}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1414}}'>
 class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { inbox: false };
+  }
   renderVals() {
-    return { tok: '{' + '{ first_name | "there" }' + '}' };
+    return {
+      inboxOpen: this.state.inbox,
+      inboxBtn: this.state.inbox ? 'Done' : 'Edit',
+      ipCtl: this.state.inbox ? 'ipanel' : undefined,
+      toggleInbox: () => this.setState({ inbox: !this.state.inbox })
+    };
   }
 }
 </script>

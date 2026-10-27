@@ -36,16 +36,38 @@ func TestClassifyOpen(t *testing.T) {
 		{"script", Signal{UserAgent: "python-requests/2.32", SinceSend: time.Hour}, true, "Security scanner (a script)"},
 		{"scanner network on arrival", Signal{UserAgent: chromeMac, IP: ip("40.107.22.10"), SinceSend: 30 * time.Second}, true, "Security scanner (Microsoft Defender)"},
 		{"scanner network later is a person", Signal{UserAgent: chromeMac, IP: ip("40.107.22.10"), SinceSend: 3 * time.Hour}, false, "Chrome on macOS"},
-		{"too fast", Signal{UserAgent: chromeMac, SinceSend: time.Second}, true, "Opened within 2 s of sending, likely a scanner"},
+		{"too fast", Signal{UserAgent: chromeMac, SinceSend: time.Second}, true, "Opened within 2 s of arriving, likely a scanner"},
+		// Windows count from delivery when it is known: a scanner opening on
+		// arrival an hour after the send is still a scanner.
+		{"too fast after a late delivery", Signal{UserAgent: chromeMac, SinceSend: time.Hour, SinceDelivery: time.Second, Delivered: true}, true,
+			"Opened within 2 s of arriving, likely a scanner"},
+		{"scanner network on a late arrival", Signal{UserAgent: chromeMac, IP: ip("40.107.22.10"), SinceSend: 3 * time.Hour, SinceDelivery: 20 * time.Second, Delivered: true},
+			true, "Security scanner (Microsoft Defender)"},
+		{"privacy network from the instance list", Signal{UserAgent: chromeMac, IP: ip("203.0.113.9"), SinceSend: time.Hour,
+			Net: &Network{Class: "privacy", Name: "Apple Mail Privacy Protection"}}, true, "Apple Mail Privacy Protection prefetch"},
 		{"empty agent", Signal{SinceSend: time.Hour}, true, "No user agent, likely a scanner"},
 		{"HEAD", Signal{UserAgent: chromeMac, Method: "HEAD", SinceSend: time.Hour}, true, "HEAD request from a link scanner"},
 		{"unknown timing", Signal{UserAgent: chromeMac, SinceSend: -1}, false, "Chrome on macOS"},
+		// "bot" inside a device's name isn't a bot (AN-9).
+		{"CUBOT phone", Signal{UserAgent: "Mozilla/5.0 (Linux; Android 11; CUBOT_X50) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Mobile Safari/537.36",
+			IP: ip("198.51.100.7"), SinceSend: time.Hour}, false, "Chrome on Android"},
+		{"crawler", Signal{UserAgent: "Mozilla/5.0 (compatible; AhrefsBot/7.0; +http://ahrefs.com/robot/)", SinceSend: time.Hour}, true, "Security scanner (a bot)"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			v := ClassifyOpen(tc.sig)
 			if v.Machine != tc.machine {
 				t.Fatalf("machine = %v (%+v), want %v", v.Machine, v, tc.machine)
+			}
+			wantClass := ClassHuman
+			switch {
+			case tc.want == reasonApple:
+				wantClass = ClassPrivacy
+			case tc.machine:
+				wantClass = ClassMachine
+			}
+			if v.Class != wantClass {
+				t.Fatalf("class = %q, want %q", v.Class, wantClass)
 			}
 			got := v.Client
 			if v.Machine {
@@ -72,11 +94,17 @@ func TestClassifyClick(t *testing.T) {
 		{"scanner network on arrival", Signal{UserAgent: chromeMac, IP: ip("148.163.130.2"), SinceSend: 40 * time.Second}, false, true},
 		{"HEAD probe", Signal{UserAgent: chromeMac, Method: "HEAD", SinceSend: time.Hour}, false, true},
 		{"headless browser", Signal{UserAgent: "Mozilla/5.0 HeadlessChrome/120", SinceSend: time.Hour}, false, true},
+		{"person on a CUBOT phone", Signal{UserAgent: "Mozilla/5.0 (Linux; Android 10; CUBOT KING KONG 5 Pro) Chrome/129.0 Mobile", SinceSend: time.Hour}, false, false},
+		{"link preview", Signal{UserAgent: "Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)", SinceSend: time.Hour}, false, true},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			if v := ClassifyClick(tc.sig, tc.burst); v.Machine != tc.machine {
+			v := ClassifyClick(tc.sig, tc.burst)
+			if v.Machine != tc.machine {
 				t.Fatalf("machine = %v (%+v), want %v", v.Machine, v, tc.machine)
+			}
+			if want := map[bool]string{true: ClassBot, false: ClassHuman}[tc.machine]; v.Class != want {
+				t.Fatalf("class = %q, want %q", v.Class, want)
 			}
 		})
 	}

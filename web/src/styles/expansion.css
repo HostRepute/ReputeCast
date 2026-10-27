@@ -217,14 +217,6 @@
   padding-block: 5px;
 }
 
-/* Warm-up log: a date in the region format ("CN, 18 thg 10") is longer than
-   "Sun 18 Oct" and broke over four lines; it stays on one line and the
-   entry wraps beside it. */
-:root:not([lang='en']) .pv-log-date {
-  flex: none;
-  white-space: nowrap;
-}
-
 /* Connect wizard (rule 4): on phones the "How to fix" cards of an
    unreachable webhook endpoint take the whole width, so their buttons
    ("Tạm dùng hỏi định kỳ") keep to one line. English keeps the board's two

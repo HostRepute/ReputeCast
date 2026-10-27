@@ -265,15 +265,17 @@ func (e *Engine) resetDemo(ctx context.Context, id uuid.UUID) error {
 			 UPDATE contacts c SET status = 'active', updated_at = now()
 			 FROM gone WHERE c.workspace_id = gone.workspace_id AND c.email = gone.email
 			   AND c.status = CASE gone.reason WHEN 'hard_bounce' THEN 'bounced' ELSE 'complained' END`,
-			// Moving a held share shifted the warming provider's plan by a day.
+			// Moving a held share noted it in the warming provider's plan (and,
+			// before warm-up plans moved by counted days, shifted it by a day).
 			`WITH shifted AS (
 			     DELETE FROM warmup_events ev USING warmup_plans p, campaigns c
 			     WHERE c.id = $1 AND c.started_at IS NOT NULL AND ev.plan_id = p.id
 			       AND p.provider_id IN (SELECT provider_id FROM campaign_routes WHERE campaign_id = $1)
-			       AND ev.kind = 'settings' AND ev.title = 'Schedule shifted by a day.' AND ev.occurred_at >= c.started_at
-			     RETURNING ev.plan_id
+			       AND ev.kind = 'settings' AND ev.title IN ('Schedule shifted by a day.', 'Share moved during an outage.') AND ev.occurred_at >= c.started_at
+			     RETURNING ev.plan_id, ev.title
 			 )
-			 UPDATE warmup_plans p SET start_date = p.start_date - 1 FROM (SELECT DISTINCT plan_id FROM shifted) s WHERE p.id = s.plan_id`,
+			 UPDATE warmup_plans p SET start_date = p.start_date - 1
+			 FROM (SELECT DISTINCT plan_id FROM shifted WHERE title = 'Schedule shifted by a day.') s WHERE p.id = s.plan_id`,
 			`DELETE FROM sending_sim_events WHERE campaign_id = $1`,
 			`DELETE FROM delivery_events WHERE campaign_id = $1`,
 			`DELETE FROM tracking_link_clicks WHERE message_id IN (SELECT id FROM messages WHERE campaign_id = $1)`,

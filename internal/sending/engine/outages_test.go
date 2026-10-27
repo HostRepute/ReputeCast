@@ -66,7 +66,7 @@ func heldOnFault(t *testing.T, f *sendtest.Fixture, n int) (uuid.UUID, time.Time
 	return pid, at
 }
 
-// seedInbox is the demo workspace's connected seed inbox the test messages
+// seedInbox is the demo workspace's connected seed mailbox the test messages
 // go to.
 func seedInbox(t *testing.T, f *sendtest.Fixture) string {
 	t.Helper()
@@ -146,7 +146,7 @@ func testHealthJobOutage(t *testing.T, f *sendtest.Fixture) {
 }
 
 // testRetryAsksAgain: Retry keeps the share on hold and sends a test message
-// to a seed inbox every minute; with the provider still down a person is
+// to a seed mailbox every minute; with the provider still down a person is
 // asked again after 15 minutes, with the options, never left waiting.
 func testRetryAsksAgain(t *testing.T, f *sendtest.Fixture) {
 	pid, heldAt := heldOnFault(t, f, 200)
@@ -156,7 +156,7 @@ func testRetryAsksAgain(t *testing.T, f *sendtest.Fixture) {
 	}
 	st, d := routeOf(t, f, pid)
 	if st != "held" || !strings.Contains(d, `"decision":"retry"`) || !strings.Contains(d, `"seed":true`) {
-		t.Fatalf("route %s %s, want held and retried with a seed inbox", st, d)
+		t.Fatalf("route %s %s, want held and retried with a seed mailbox", st, d)
 	}
 	snap, err := f.E.Snapshot(f.Ctx, f.WS, f.Campaign)
 	if err != nil {
@@ -167,7 +167,7 @@ func testRetryAsksAgain(t *testing.T, f *sendtest.Fixture) {
 	}
 	for _, p := range snap.Providers {
 		if p.ID == pid.String() && (!p.Retrying || p.ProbesNeeded != 3 || !p.ProbeSeed) {
-			t.Fatalf("provider %+v, want retrying with 3 test messages to a seed inbox", p)
+			t.Fatalf("provider %+v, want retrying with 3 test messages to a seed mailbox", p)
 		}
 	}
 	calls := sendtest.Fault.Calls()
@@ -222,7 +222,7 @@ func testRetryResumes(t *testing.T, f *sendtest.Fixture, seed bool) {
 	sent := f.Count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND status = 'sent'`, f.Campaign)
 	if seed {
 		if n := sendtest.Fault.TookFor(seedInbox(t, f)); n != 2 || sent != 0 {
-			t.Fatalf("%d test messages to the seed inbox, %d sent, want 2 and 0", n, sent)
+			t.Fatalf("%d test messages to the seed mailbox, %d sent, want 2 and 0", n, sent)
 		}
 	} else if sent != 2 {
 		t.Fatalf("%d of the share's messages sent as tests, want 2", sent)

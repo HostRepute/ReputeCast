@@ -139,6 +139,7 @@ func (s *Service) newServer(log *slog.Logger) *mcp.Server {
 		Capabilities: &mcp.ServerCapabilities{},
 	})
 	s.addTools(server)
+	s.addReportTools(server)
 	s.addAccessibilityTools(server)
 	s.addGrowthTools(server)
 	s.addDigestTools(server)

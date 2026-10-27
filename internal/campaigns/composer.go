@@ -115,6 +115,13 @@ type ComposerABTest struct {
 	// BestTime sends each recipient at their usual open time (send-time tests).
 	BestTime bool   `json:"bestTime,omitempty"`
 	Winner   string `json:"winner,omitempty"`
+	// The decision rule (review AN-1): a variant wins only when every
+	// variant reached MinSample recipients (500 when unset) and its lead is
+	// significant at Confidence (0.95 when unset); otherwise the rest get
+	// NoWinner: "default", the first variant (A).
+	MinSample  int     `json:"minSample,omitempty" minimum:"0" maximum:"1000000" doc:"Recipients each variant needs before a winner can be picked (default 500)"`
+	Confidence float64 `json:"confidence,omitempty" minimum:"0" maximum:"0.999" doc:"How sure the test must be (default 0.95)"`
+	NoWinner   string  `json:"noWinner,omitempty" enum:"default" doc:"What the rest get without a clear winner: default, the first variant"`
 }
 
 // dbABTest is the stored shape of campaigns.ab_test.
@@ -126,6 +133,9 @@ type dbABTest struct {
 	DurationHours int             `json:"duration_hours"`
 	BestTime      bool            `json:"best_time,omitempty"`
 	Winner        string          `json:"winner,omitempty"`
+	MinSample     int             `json:"min_sample,omitempty"`
+	Confidence    float64         `json:"confidence,omitempty"`
+	NoWinner      string          `json:"no_winner,omitempty"`
 	Extra         json.RawMessage `json:"-"`
 }
 
@@ -146,7 +156,8 @@ func abFromDB(raw json.RawMessage) *ComposerABTest {
 	if json.Unmarshal(raw, &d) != nil || d.Kind == "" {
 		return nil
 	}
-	out := &ComposerABTest{Kind: d.Kind, TestPercent: d.TestPercent, Metric: d.Metric, DurationHours: d.DurationHours, BestTime: d.BestTime, Winner: d.Winner, Variants: []ComposerABVariant{}}
+	out := &ComposerABTest{Kind: d.Kind, TestPercent: d.TestPercent, Metric: d.Metric, DurationHours: d.DurationHours, BestTime: d.BestTime, Winner: d.Winner,
+		MinSample: d.MinSample, Confidence: d.Confidence, NoWinner: d.NoWinner, Variants: []ComposerABVariant{}}
 	if out.Metric == "" {
 		out.Metric = "human_opens"
 	}
@@ -160,7 +171,8 @@ func (t *ComposerABTest) toDB() json.RawMessage {
 	if t == nil {
 		return nil
 	}
-	d := dbABTest{Kind: t.Kind, TestPercent: t.TestPercent, Metric: t.Metric, DurationHours: t.DurationHours, BestTime: t.BestTime, Winner: t.Winner}
+	d := dbABTest{Kind: t.Kind, TestPercent: t.TestPercent, Metric: t.Metric, DurationHours: t.DurationHours, BestTime: t.BestTime, Winner: t.Winner,
+		MinSample: t.MinSample, Confidence: t.Confidence, NoWinner: t.NoWinner}
 	for _, v := range t.Variants {
 		d.Variants = append(d.Variants, dbABVariant(v))
 	}

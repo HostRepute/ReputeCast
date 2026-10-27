@@ -582,6 +582,12 @@ func (e *Engine) releaseAll(ctx context.Context, q *store.Queries, id uuid.UUID,
 	}
 	for _, r := range routes {
 		if r.Status == "held" || r.Status == "paused" {
+			// A share today's warm-up cap holds waits for tomorrow's cap or
+			// its own choices (warmup.DecideCapHold): resuming the send
+			// would only hit the cap again (review PR-8).
+			if parseRouteDetail(r.StatusDetail).Reason == CapHoldReason {
+				continue
+			}
 			if err := q.SendingSetRouteStatus(ctx, store.SendingSetRouteStatusParams{CampaignID: id, ProviderID: r.ProviderID, Status: "sending", StatusDetail: `{"decision":"resume"}`}); err != nil {
 				return nil, err
 			}
@@ -594,6 +600,9 @@ func (e *Engine) releaseAll(ctx context.Context, q *store.Queries, id uuid.UUID,
 		return nil, err
 	}
 	for _, in := range open {
+		if in.Kind == "throttled" && in.Metric == CapHoldReason {
+			continue
+		}
 		if err := q.SendingResolveIncident(ctx, store.SendingResolveIncidentParams{ID: in.ID, At: &now, Resolution: "resumed", ResolvedBy: by}); err != nil {
 			return nil, err
 		}

@@ -21,6 +21,12 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
+// OfferCodeRedeemer, when the Offers hook has it, marks a single-use offer
+// code (a referral reward's) used once a subscription takes it.
+type OfferCodeRedeemer interface {
+	CodeRedeemed(ctx context.Context, tx pgx.Tx, ws *store.Workspace, code string, at time.Time) error
+}
+
 // OfferHook applies offers on the upgrade page and at checkout.
 type OfferHook interface {
 	// UpgradeOffer shows an offer link's offer (?offer=FALL26) on the

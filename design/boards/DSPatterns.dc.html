@@ -82,12 +82,12 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
     <div class="spec">
       <div class="ex">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><span style="font-weight:700">Weekly Digest #142</span><span class="badge warn"><span class="dot"></span>Ready with 2 warnings</span></div>
-        <div class="row" style="border-top:0"><span class="badge warn">Warn</span><span>412 unengaged contacts (no opens in 180 days) in the audience</span><button class="btn sm fix">Exclude</button></div>
-        <div class="row"><span class="badge warn">Warn</span><span>Postal IP 203.0.113.25 listed on UCEPROTECT L3, a low-impact list</span><a href="DSPatterns.dc.html" class="btn sm fix">Route via SES</a></div>
+        <div class="row" style="border-top:0"><span class="badge warn">Warn</span><span>Postal IP 203.0.113.25 listed on UCEPROTECT L3, a low-impact list</span><a href="DSPatterns.dc.html" class="btn sm fix">Route via SES</a></div>
+        <div class="row"><span class="badge warn">Warn</span><span>Workspace rule: links need UTM tags · 2 of 14 links have no utm_campaign</span><button class="btn sm fix">Add utm_campaign</button></div>
         <div class="row"><span class="badge ok">Pass</span><span>news.acme.io clean on 84 of 84 blocklists</span></div>
         <div class="row"><span class="badge ok">Pass</span><span>SPF, DKIM, DMARC aligned on SES and Postal</span></div>
         <div class="row"><span class="badge ok">Pass</span><span>64 KB, under Gmail's 102 KB clipping limit</span></div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;padding-top:8px;border-top:1px solid #EEF0F3;font-size:13px"><span><b>31,604</b> recipients</span><span><b>$2.84</b> on SES</span><span><b>34 min</b> at 14/s</span></div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;padding-top:8px;border-top:1px solid #EEF0F3;font-size:13px"><span><b>31,192</b> recipients</span><span><b>$2.81</b> on SES</span><span><b>33 min</b> at 14/s</span></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn pri">Schedule send</button><button class="btn">Fix warnings first</button></div>
       </div>
       <div class="ex">
@@ -114,11 +114,11 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
     <div class="spec">
       <div class="ex" style="grid-column:span 2">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-weight:700;display:flex;align-items:center;gap:8px"><span class="dot" style="color:#15803D"></span>Sending · live</span><span class="k">SES 14 /s · Postal 2 /s</span></div>
-        <div class="bar"><i style="width:56%;background:#4a3aa7"></i><i style="width:6%;background:#e87ba4"></i></div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;flex-wrap:wrap;gap:6px"><span><b>19,594</b> of 31,604 sent</span><span class="k">99.0% delivered · 0.60% bounced · 0.03% complaints</span></div>
+        <div class="bar"><i style="width:57%;background:#4a3aa7"></i><i style="width:6%;background:#e87ba4"></i></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;flex-wrap:wrap;gap:6px"><span><b>19,594</b> of 31,192 sent</span><span class="k">99.0% delivered · 0.60% bounced · 0.03% complaints</span></div>
         <div style="display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:10px;border:1px solid #FCA5A5;background:#FFF5F5;flex-wrap:wrap">
           <span class="badge bad"><span class="dot"></span>Auto-paused</span>
-          <div style="flex:1;min-width:240px;display:flex;flex-direction:column;gap:4px;font-size:13.5px"><span><b>Outlook complaints hit 0.18%</b> (limit 0.10%) at 09:47. 2,522 Outlook recipients are held; Gmail, Yahoo and iCloud are still sending.</span><span class="k">ReputeCast paused one route, not the campaign. Resume when you have looked at the content, or route Outlook via Postmark.</span></div>
+          <div style="flex:1;min-width:240px;display:flex;flex-direction:column;gap:4px;font-size:13.5px"><span><b>Outlook complaints hit 0.18%</b> (limit 0.10%) at 09:21. 2,436 Outlook recipients are held; Gmail, Yahoo and iCloud are still sending.</span><span class="k">ReputeCast paused one route, not the campaign. Resume when you have looked at the content, or route Outlook via Postmark.</span></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm pri">Resume Outlook</button><button class="btn sm">Adjust limit</button><button class="btn sm">Fail over</button><button class="btn sm" style="color:#991B1B">Cancel rest</button></div>
         </div>
       </div>
@@ -198,7 +198,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   </section>
 </main>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2508}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2528}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};

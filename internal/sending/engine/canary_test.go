@@ -10,7 +10,7 @@ import (
 )
 
 // canaryFixture is a send of 400 (300 engaged Gmail readers, 100 Yahoo
-// readers who never opened) without the seed inboxes: the seeds' own
+// readers who never opened) without the seed mailboxes: the seeds' own
 // placement test is internal/placement's.
 func canaryFixture(t *testing.T, f *sendtest.Fixture) {
 	t.Helper()

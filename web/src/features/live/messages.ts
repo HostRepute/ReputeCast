@@ -225,4 +225,15 @@ export const m = defineMessages('live', {
   cancelRemainingCount: 'Cancel the remaining {count}',
   cancelRemainingBody: 'Marks the campaign as partially sent. You can send the remainder later as a new campaign.',
   pauseInsteadBody: 'Keeps the queue; resume from the monitor at any time.',
+  // A share today's warm-up cap holds (review PR-8): it waits for
+  // tomorrow's cap by itself; the choices are R03's (warm-up holds).
+  /** {provider} is the sending provider ("Postal"). */
+  warmupHoldTitle: '{provider} share waits at its warm-up cap',
+  warmupWaiting: 'Chosen: wait for the cap.',
+  /** {names} are up to two people, joined ("Linh Nguyen and Marcus Chen"). */
+  warmupWhoMove: '{names} can wait or move it',
+  warmupWhoCancel: '{names} can cancel the rest',
+  warmupWhoAll: '{names} can wait, move it or cancel the rest',
+  warmupCancelTitle: 'Cancel the {count} recipients waiting on {provider}?',
+  warmupKeep: 'Keep waiting',
 })

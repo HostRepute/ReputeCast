@@ -8,7 +8,7 @@ import { Row } from '@/components/ui/Layout'
 import { Menu, MenuItem, MenuSeparator } from '@/components/ui/Menu'
 import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { clock, clockSeconds, count, pct } from '@/lib/format'
+import { clockSeconds, count, pct } from '@/lib/format'
 import { useDocumentTitle } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import type { LiveActions, LivePermissions } from './actions'
@@ -34,6 +34,7 @@ import {
   providerStatus,
   routeDoneLine,
   thresholdRows,
+  whenText,
   whoLine,
   type Incident,
   type Snapshot,
@@ -272,7 +273,7 @@ export function MobileLive({
                   <div className="flex flex-1 flex-col">
                     <span>{p.name}</span>
                     <span className="k">
-                      {t(mm.phoneProvider, { rate: perSec(p.rate), delivered: pct1(p.deliveredRate ?? 0), done: p.doneAt && p.remaining > 0 ? clock(p.doneAt) : 'none' })}
+                      {t(mm.phoneProvider, { rate: perSec(p.rate), delivered: pct1(p.deliveredRate ?? 0), done: p.doneAt && p.remaining > 0 ? whenText(p.doneAt, s.at) : 'none' })}
                     </span>
                   </div>
                   <span className="n">{count(p.sent)}</span>

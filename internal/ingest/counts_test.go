@@ -87,7 +87,8 @@ func TestDeliveredCountsOnce(t *testing.T) {
 }
 
 // A message counts once as deferred however often the mailbox provider
-// asks to retry it, and never after it was delivered (review GS-9).
+// asks to retry it, and a deferral reported after its delivery doesn't
+// count it again (review GS-9; counted from the message's state, AN-3).
 func TestDeferredCountsOnce(t *testing.T) {
 	apply, counts, events := countsFixture(t)
 	for range 3 {

@@ -13,6 +13,7 @@ type Row = Schemas['ConnectDoneRow']
 
 const ROW_BADGE: Record<Row['status'], { tone: 'ok' | 'neutral' | 'bad' | 'warn'; label: MessageDescriptor }> = {
   done: { tone: 'ok', label: m.stateDone },
+  verified: { tone: 'ok', label: m.stateVerified },
   skipped: { tone: 'neutral', label: m.stateSkipped },
   failed: { tone: 'bad', label: m.stateFailed },
   pending: { tone: 'warn', label: m.statePending },
@@ -47,7 +48,9 @@ export function DonePage({ setup }: { setup: Schemas['ConnectSetup'] }) {
           </div>
           {done.rows.map((r) => (
             <div key={r.lead} className="cn-row lg">
-              <Badge tone={ROW_BADGE[r.status].tone}>{t(ROW_BADGE[r.status].label)}</Badge>
+              <Badge tone={ROW_BADGE[r.status].tone} dot>
+                {t(ROW_BADGE[r.status].label)}
+              </Badge>
               <span className="cn-row-text min-w-0">
                 <strong>{r.lead}</strong>
                 <Ticks text={r.text} />

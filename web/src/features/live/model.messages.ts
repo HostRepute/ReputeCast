@@ -198,6 +198,17 @@ export const mm = defineMessages('live.model', {
   providerRetrying: 'Retrying · {done} of {needed} tests passed',
   providerWarmup: 'Warm-up',
   providerWarmupNote: "warm-up day {day} · {sent} of today's {cap} cap",
+  // A share today's warm-up cap (or a paused plan) holds; it goes on by
+  // itself with tomorrow's cap (review PR-8).
+  providerWarmupHeld: "Waits for tomorrow's cap",
+  providerWarmupPaused: 'Waits for the warm-up plan',
+  /** {who} is the sending provider ("Postal"); {time} when tomorrow's cap starts ("00:00"). */
+  sumWarmupHeld:
+    "{paused, select, yes {{who} share waits for its warm-up plan to resume.} other {{who} share waits for tomorrow's warm-up cap from {time}.}}{count, plural, =0 {} one { {names} keeps sending.} other { {names} keep sending.}}",
+  badgeWarmupHeld: '{provider} route waits for the warm-up cap',
+  /** A time on the next day: {time} is "00:12". */
+  tomorrowAt: 'tomorrow {time}',
+  needsWarmupCancel: 'Only people who can pause sends can cancel a share the warm-up cap holds.',
   providerQuotaNote: 'quota {free} free after this send',
   providerLine: '{rate} · {delivered} delivered',
 

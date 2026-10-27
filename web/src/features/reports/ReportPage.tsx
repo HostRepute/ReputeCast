@@ -10,7 +10,7 @@ import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel } from '@/components/ui/Feedback'
 import { toast } from '@/components/ui/Toast'
 import { TableScroll, Th } from '@/components/ui/Table'
-import { andList, clock, count } from '@/lib/format'
+import { andList, clock, count, shortDate } from '@/lib/format'
 import { t as tt, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
@@ -19,7 +19,8 @@ import { ReportBody, type ReportActions } from './ReportBody'
 import { IssueComparison } from '@/features/digests/IssueParts'
 import { useIssueInfo } from '@/features/digests/shared'
 import { ReportSkeleton } from './ReportSkeleton'
-import { copyText, ShareCard, ShareDialog, useShares } from './ShareCard'
+import { copyText, ShareCard, useShares, type ShareCardHandle } from './ShareCard'
+import { StillComing } from './Tiles'
 import { StateAlert } from './StateAlert'
 import { headerCaption, notSentLead, statusBadge, type CampaignReport } from './words'
 import { useReportAI } from '@/features/ai/report'
@@ -126,29 +127,43 @@ function BacklogAlert({ b, onRefresh }: { b: Schemas['ReportIngestBacklog']; onR
   )
 }
 
-/** The Review dialog of a bounce type: what the providers said, then suppress or leave them. */
+/**
+ * The Review dialog of a bounce type: what the providers said, then
+ * suppress or leave them. Blocks for the sender's reputation are
+ * investigated, never suppressed (review AN-7).
+ */
 function ReviewDialog({ row, campaignId, onClose, onSuppress, suppressReason }: { row: BounceRow; campaignId: string; onClose: () => void; onSuppress: () => void; suppressReason?: string }) {
   const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report/bounces/{type}', {
     params: { path: { workspace: slug, campaignId, type: row.type } },
   })
+  const blocked = row.suppression === 'investigate'
   return (
     <Dialog
       open
       onOpenChange={(o) => !o && onClose()}
       title={`${row.label} · ${count(row.count)}`}
-      description={t(m.reviewBody)}
+      description={t(blocked ? m.blockedReview : m.reviewBody)}
       size="lg"
       footer={
-        <>
-          <Button onClick={onClose}>{t(m.leaveThem)}</Button>
-          {row.unsuppressed > 0 ? (
-            <Button variant="primary" disabledReason={suppressReason} onClick={onSuppress}>
-              {t(m.addToSuppression, { count: count(row.unsuppressed) })}
-            </Button>
-          ) : null}
-        </>
+        blocked ? (
+          <>
+            <Button onClick={onClose}>{t(common.close)}</Button>
+            <ButtonLink variant="primary" to="/w/$workspace/deliverability" params={{ workspace: slug }}>
+              {t(m.checkDelisting)}
+            </ButtonLink>
+          </>
+        ) : (
+          <>
+            <Button onClick={onClose}>{t(m.leaveThem)}</Button>
+            {row.unsuppressed > 0 ? (
+              <Button variant="primary" disabledReason={suppressReason} onClick={onSuppress}>
+                {t(m.addToSuppression, { count: count(row.unsuppressed) })}
+              </Button>
+            ) : null}
+          </>
+        )
       }
     >
       {q.isError ? (
@@ -188,6 +203,59 @@ function ReviewDialog({ row, campaignId, onClose, onSuppress, suppressReason }: 
   )
 }
 
+const finalAlertPath = '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report/final-alert' as const
+
+/** How many earlier issues the tiles compare with once the results are final (reports.CompareIssues). */
+const COMPARE_ISSUES = 6
+
+/** The banner's button: ask for the email, or stop asking. */
+function FinalAlertButton({ campaignId }: { campaignId: string }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  const qc = useQueryClient()
+  const path = { params: { path: { workspace: slug, campaignId } } }
+  const q = $api.useQuery('get', finalAlertPath, path)
+  const on = $api.useMutation('put', finalAlertPath)
+  const off = $api.useMutation('delete', finalAlertPath)
+  const busy = on.isPending || off.isPending
+  const set = async (want: boolean) => {
+    try {
+      if (want) {
+        const res = await on.mutateAsync(path)
+        qc.setQueryData(['get', finalAlertPath, path], res)
+        toast({
+          kind: 'success',
+          title: tt(m.finalAlertOn),
+          detail: res.finalAt ? tt(m.finalAlertOnDetail, { day: shortDate(res.finalAt), time: clock(res.finalAt) }) : undefined,
+        })
+      } else {
+        // Stopping answers 204 without a body.
+        await off.mutateAsync(path)
+        qc.setQueryData(['get', finalAlertPath, path], { ...q.data, on: false })
+        toast({ kind: 'info', title: tt(m.finalAlertOff) })
+      }
+      await qc.invalidateQueries({ queryKey: ['get', finalAlertPath] })
+    } catch (e) {
+      toast({ kind: 'error', title: tt(m.finalAlertFailed), detail: errorMessage(e) })
+    }
+  }
+  if (q.data?.on) {
+    return (
+      <span className="flex flex-wrap items-center gap-2">
+        <span className="k">{t(m.emailingWhenFinal)}</span>
+        <Button size="sm" loading={busy} onClick={() => void set(false)}>
+          {t(m.stopEmail)}
+        </Button>
+      </span>
+    )
+  }
+  return (
+    <Button size="sm" loading={busy || q.isPending} onClick={() => void set(true)}>
+      {t(m.emailWhenFinal)}
+    </Button>
+  )
+}
+
 /** 7.7 Campaign report. */
 export function ReportPage({ campaignId }: { campaignId: string }) {
   const t = useT()
@@ -217,11 +285,10 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
   const shares = useShares(campaignId, !shareReason && Boolean(r) && !r?.notSent)
   // The email's polls (design expansion, X11).
   const polls = useCampaignPolls(campaignId, Boolean(r) && !r?.notSent)
-  const [sharing, setSharing] = useState(false)
   const [exporting, setExporting] = useState<'csv' | 'pdf'>()
   const [suppressing, setSuppressing] = useState<BounceRow>()
   const [reviewing, setReviewing] = useState<BounceRow>()
-  const shareCard = useRef<HTMLElement>(null)
+  const shareCard = useRef<ShareCardHandle>(null)
   // Summarize results and the kept summary (features/ai), on a sent campaign.
   const ai = useReportAI(campaignId, Boolean(r && !r.notSent))
   const print = $api.useMutation('post', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report/print')
@@ -257,16 +324,14 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
       setExporting(undefined)
     }
   }
+  // The links are made at the bottom of the report, where what they share is chosen.
   const share = async () => {
     const link = shares.data?.items[0]
-    if (!link) {
-      setSharing(true)
-      return
+    if (link) {
+      const ok = await copyText(link.url)
+      toast(ok ? { kind: 'success', title: tt(m.linkCopied), detail: tt(m.linkAtBottom) } : { kind: 'info', title: tt(m.linkAtBottomTitle) })
     }
-    const ok = await copyText(link.url)
-    toast(ok ? { kind: 'success', title: tt(m.linkCopied), detail: tt(m.linkAtBottom) } : { kind: 'info', title: tt(m.linkAtBottomTitle) })
-    shareCard.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    shareCard.current?.focus({ preventScroll: true })
+    shareCard.current?.focus()
   }
   const actions: ReportActions = {
     suppressReason,
@@ -333,17 +398,21 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
           <ReportBody
             r={r}
             actions={actions}
+            banner={
+              !r.campaign.final && r.campaign.finalAt && r.campaign.status !== 'sending' && r.campaign.status !== 'paused' ? (
+                <StillComing finalAt={r.campaign.finalAt} issues={COMPARE_ISSUES} action={<FinalAlertButton campaignId={campaignId} />} />
+              ) : null
+            }
             polls={{ items: polls.data?.items, error: polls.error ?? undefined, retry: () => void polls.refetch() }}
-            earn={<CampaignEarn campaignId={campaignId} />}
+            earn={<CampaignEarn campaignId={campaignId} conversionsInReport />}
           />
           {/* The website's Web section (features/website): the campaign's post. */}
           <ReportWebSection campaignId={campaignId} />
           {/* Product sales credited to this email (digital products, X19), with products:view. */}
           <ReportProductSales campaignId={campaignId} />
-          <ShareCard ref={shareCard} campaignId={campaignId} onCreate={() => setSharing(true)} />
+          <ShareCard ref={shareCard} r={r} campaignId={campaignId} />
         </>
       )}
-      <ShareDialog open={sharing} onOpenChange={setSharing} campaignId={campaignId} />
       {suppressing ? (
         <ConfirmDialog
           open

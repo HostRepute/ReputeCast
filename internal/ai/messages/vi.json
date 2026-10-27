@@ -57,6 +57,8 @@
   "problem.notSent": "Chiến dịch này chưa gửi gì, nên chưa có kết quả để tóm tắt.",
   "problem.pickProvider": "Hãy chọn một trong các nhà cung cấp.",
   "problem.campaignId": "Hãy cho biết chiến dịch.",
+  "problem.questionEmpty": "Hãy đặt một câu hỏi về báo cáo này.",
+  "problem.numbersUnmatched": "{count, plural, other {Các số này không có trong báo cáo: {numbers}. Hãy sửa thành số của báo cáo trước khi giữ bản tóm tắt.}}",
   "problem.suggestionId": "Hãy cho biết gợi ý.",
   "activity.newSegment": "Phân khúc mới",
   "activity.onField": "{field, select, subject {Tiêu đề} other {Dòng xem trước}} của {name}",

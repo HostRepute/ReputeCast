@@ -90,6 +90,9 @@ const (
 	KindPushWorkerMissing  = "push_worker_missing" // a push site's service worker is missing or unreachable
 	KindWhatsAppAttention  = "whatsapp_attention"  // a WhatsApp template was rejected, or the number's quality dropped
 	KindWhatsAppTokenFails = "whatsapp_token"      // Meta rejected the WhatsApp access token: sends are held
+	// KindResultsFinal: a campaign report's results are final, for someone
+	// who asked to be emailed then ("Email me when it's final").
+	KindResultsFinal = "results_final"
 )
 
 // Notification is what appears in the notification center.

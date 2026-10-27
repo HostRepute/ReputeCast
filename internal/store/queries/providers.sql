@@ -44,18 +44,20 @@ SELECT provider_id,
        coalesce(sum(calls), 0)::bigint    AS calls,
        coalesce(sum(errors), 0)::bigint   AS errors,
        coalesce(sum(messages), 0)::bigint AS messages,
-       coalesce(max(messages), 0)::bigint AS peak_minute
+       coalesce(max(messages), 0)::bigint AS peak_minute,
+       coalesce(sum(rejected), 0)::bigint AS rejected
 FROM provider_call_windows
 WHERE provider_id = ANY(@provider_ids::uuid[]) AND minute >= @since
 GROUP BY provider_id;
 
 -- name: ProvRecordCall :exec
-INSERT INTO provider_call_windows (provider_id, minute, calls, errors, messages)
-VALUES (@provider_id, date_trunc('minute', @at::timestamptz), 1, @errors, @messages)
+INSERT INTO provider_call_windows (provider_id, minute, calls, errors, messages, rejected)
+VALUES (@provider_id, date_trunc('minute', @at::timestamptz), 1, @errors, @messages, @rejected)
 ON CONFLICT (provider_id, minute) DO UPDATE
 SET calls = provider_call_windows.calls + 1,
     errors = provider_call_windows.errors + EXCLUDED.errors,
-    messages = provider_call_windows.messages + EXCLUDED.messages;
+    messages = provider_call_windows.messages + EXCLUDED.messages,
+    rejected = provider_call_windows.rejected + EXCLUDED.rejected;
 
 -- name: ProvRecordDaily :exec
 INSERT INTO provider_daily_stats (provider_id, day, sent, api_calls, api_errors, cost_micros)

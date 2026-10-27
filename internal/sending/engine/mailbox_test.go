@@ -38,10 +38,10 @@ func testMailboxFromMX(t *testing.T, f *sendtest.Fixture) {
 			t.Fatalf("%s: %d messages for %s, want %d", domain, n, want.provider, want.n)
 		}
 	}
-	// Microsoft 365 is Outlook for routing: the demo's condition sends
-	// Outlook and iCloud through SES only.
-	if n := f.Count(`SELECT count(*) FROM messages m JOIN providers p ON p.id = m.provider_id WHERE m.campaign_id = $1 AND m.email LIKE '%@contoso-mail.example' AND p.adapter <> 'ses'`, f.Campaign); n != 0 {
-		t.Fatalf("%d Microsoft 365 recipients routed away from SES", n)
+	// Microsoft 365 is Outlook for routing and warm-up caps: its messages
+	// carry the mailbox provider the routing and Postal's caps read.
+	if n := f.Count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND email LIKE '%@contoso-mail.example' AND mailbox_provider <> 'outlook'`, f.Campaign); n != 0 {
+		t.Fatalf("%d Microsoft 365 recipients not routed as Outlook", n)
 	}
 	if _, done := f.Drive(3 * time.Hour); !done {
 		f.Dump()

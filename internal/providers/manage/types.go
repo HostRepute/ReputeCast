@@ -29,9 +29,12 @@ type ProvidersSummary struct {
 	MonthStart time.Time `json:"monthStart"`
 	CostToDate float64   `json:"costToDate" doc:"Dollars"`
 	// CostPer1000 is the blended cost per 1,000 emails this month.
-	CostPer1000  *float64   `json:"costPer1000,omitempty"`
-	Suppressions int64      `json:"suppressions"`
-	SyncedAt     *time.Time `json:"syncedAt,omitempty"`
+	CostPer1000  *float64 `json:"costPer1000,omitempty"`
+	Suppressions int64    `json:"suppressions"`
+	// Pushed counts the suppressions providers get: hard bounces and
+	// complaints that apply to all mail (review PR-1).
+	Pushed   int64      `json:"pushed"`
+	SyncedAt *time.Time `json:"syncedAt,omitempty"`
 	// InSync is true when every provider that syncs is up to date.
 	InSync bool `json:"inSync"`
 	// CheckedAt is the oldest of the providers' last health checks.
@@ -158,8 +161,10 @@ type ProviderCard struct {
 	ErrorRate3m *float64             `json:"errorRate3m,omitempty"`
 	// AccountKind says how to label Account: "account" ("Account status")
 	// or "server" ("Server", self-hosted).
-	AccountKind  string                    `json:"accountKind" enum:"account,server"`
-	Account      string                    `json:"account"`
+	AccountKind string `json:"accountKind" enum:"account,server"`
+	Account     string `json:"account"`
+	// Tenant is the workspace's own SES tenant (PR-11).
+	Tenant       *ProviderTenant           `json:"tenant,omitempty"`
 	Bounce       ProviderLimitRate         `json:"bounce"`
 	Complaint    ProviderLimitRate         `json:"complaint"`
 	Quota        ProviderQuotaUse          `json:"quota"`
@@ -256,6 +261,11 @@ type ProviderOutageStream struct {
 	Campaign          *ProviderHeldCampaign         `json:"campaign,omitempty"`
 	Alternatives      []ProviderFailoverAlternative `json:"alternatives"`
 	SwitchBackMinutes int                           `json:"switchBackMinutes"`
+	// FallbackChecks are the checks the fallback was vetted with before any
+	// mail moved to it (PR-7): all passed while a failover is active; a
+	// failed one says why the stream waits instead. Each carries its
+	// sentence in the reader's language.
+	FallbackChecks []state.VetCheck `json:"fallbackChecks"`
 }
 
 // ProviderQuotaForecast says when a provider taking failover runs out of quota.
@@ -329,11 +339,15 @@ type ProviderAwaitingMessage struct {
 
 // ProviderWebhooksSilent is the webhooks-silent banner and diagnosis.
 type ProviderWebhooksSilent struct {
-	ProviderID         string                 `json:"providerId"`
-	Provider           string                 `json:"provider"`
-	Short              string                 `json:"short"`
-	Since              time.Time              `json:"since"`
-	Accepted           int64                  `json:"accepted"`
+	ProviderID string    `json:"providerId"`
+	Provider   string    `json:"provider"`
+	Short      string    `json:"short"`
+	Since      time.Time `json:"since"`
+	Accepted   int64     `json:"accepted"`
+	// Overdue messages were sent more than 30 minutes ago and still have no
+	// event; InGrace are still inside those 30 minutes (PR-6).
+	Overdue            int64                  `json:"overdue"`
+	InGrace            int64                  `json:"inGrace"`
 	Campaigns          []ProviderNamedCount   `json:"campaigns"`
 	BroadcastShareHeld bool                   `json:"broadcastShareHeld"`
 	Checks             []ProviderWebhookCheck `json:"checks"`
@@ -369,4 +383,13 @@ type ProviderAuthFailure struct {
 	Down       ProviderDownState      `json:"down"`
 	Rerouted   int64                  `json:"rerouted"`
 	Streams    []ProviderOutageStream `json:"streams"`
+}
+
+// ProviderTenant is the workspace's own SES tenant: its own suppression
+// list and reputation policy.
+type ProviderTenant struct {
+	Name string `json:"name"`
+	// Policy is the reputation policy's name ("Standard"); empty while SES
+	// hasn't said.
+	Policy string `json:"policy,omitempty"`
 }

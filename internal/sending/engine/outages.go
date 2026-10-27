@@ -34,7 +34,7 @@ import (
 // provider must take before the share resumes by itself.
 const probesToResume = 3
 
-// probeHeader marks the test message a retried share sends to a seed inbox.
+// probeHeader marks the test message a retried share sends to a seed mailbox.
 const probeHeader = "X-ReputeCast-Probe"
 
 // HoldShares implements sending.Outages: every running send's share on a
@@ -111,6 +111,10 @@ func (e *Engine) routeIncident(ctx context.Context, q *store.Queries, campaignID
 // engine's analysis and options. A person's earlier choice to wait for
 // the provider is kept.
 func (e *Engine) adoptHold(ctx context.Context, rs *runState, r *runRoute, in *store.CampaignIncident, now time.Time) error {
+	if r.detail.Reason == CapHoldReason {
+		// Today's warm-up cap holds it, with its own choices (review PR-8).
+		return nil
+	}
 	if in == nil {
 		if r.detail.Decision != "" {
 			return nil
@@ -215,7 +219,7 @@ func (e *Engine) retryProbe(ctx context.Context, rs *runState, r *runRoute, now 
 }
 
 // probe sends one test message through a retried share's provider: to a
-// connected seed inbox when the workspace has one, else one of the share's
+// connected seed mailbox when the workspace has one, else one of the share's
 // own messages (it counts as sent when the provider takes it). When
 // nothing of the share can go yet, the provider's API answers instead.
 func (e *Engine) probe(ctx context.Context, rs *runState, r *runRoute, seed bool, now time.Time) (bool, error) {
@@ -235,7 +239,7 @@ func (e *Engine) probe(ctx context.Context, rs *runState, r *runRoute, seed bool
 	return e.probeAPI(ctx, r, now), nil
 }
 
-// seedInbox is a connected seed inbox of the workspace ("" without one).
+// seedInbox is a connected seed mailbox of the workspace ("" without one).
 func (e *Engine) seedInbox(ctx context.Context, ws uuid.UUID) string {
 	rows, err := e.Q.SendingProbeSeed(ctx, ws)
 	if err != nil || len(rows) == 0 {
@@ -244,7 +248,7 @@ func (e *Engine) seedInbox(ctx context.Context, ws uuid.UUID) string {
 	return rows[0]
 }
 
-// probeSeed sends the test message to a seed inbox.
+// probeSeed sends the test message to a seed mailbox.
 func (e *Engine) probeSeed(ctx context.Context, rs *runState, r *runRoute, to string, now time.Time) bool {
 	c := rs.campaign
 	msg := providers.Message{ID: newID(), Stream: providers.StreamBroadcast,

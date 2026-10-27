@@ -21,7 +21,7 @@ import { LiveBody } from './LiveParts'
 import { m } from './messages'
 import { MobileLive } from './Mobile'
 import { ThresholdsDialog } from './ResumeDialog'
-import { freshness, headerBadges, isStarting, lostText, openIncident, openNotices, startedLine, whoLine, type Incident, type Snapshot } from './model'
+import { freshness, headerBadges, isStarting, lostText, openIncident, openNotices, startedLine, warmupHolds, whoLine, type Incident, type Snapshot } from './model'
 import {
   CancelledView,
   ConnectingCard,
@@ -36,6 +36,7 @@ import {
   StaleBanner,
   staleText,
   StreamLostBanner,
+  WarmupHoldBanners,
 } from './States'
 import { MAX_ATTEMPTS, useLiveSend, type StreamState } from './useLiveSend'
 import './live.css'
@@ -140,6 +141,8 @@ function LiveScreen({
     s.state === 'paused' && !incident ? <PausedBanner s={s} can={can} onResume={resume} onCancel={cancelOpen} busy={actions.pending} /> : null
   const incidentBanner = incident && mode !== 'decision' ? <IncidentBanner s={s} incident={incident} onDecide={() => setView(undefined)} /> : null
   const noticeBanners = active && openNotices(s).length ? <NoticeBanners s={s} actions={actions} can={can} /> : null
+  // Shares today's warm-up cap holds, with their choices (review PR-8).
+  const warmupBanners = active && warmupHolds(s).length ? <WarmupHoldBanners s={s} actions={actions} can={can} /> : null
 
   const dialog = (
     <>
@@ -164,13 +167,14 @@ function LiveScreen({
           incident={incident}
           connecting={mode === 'connecting'}
           banner={
-            lostBanner || staleBanner || pausedBanner || incidentBanner || noticeBanners ? (
+            lostBanner || staleBanner || pausedBanner || incidentBanner || noticeBanners || warmupBanners ? (
               <>
                 {lostBanner}
                 {staleBanner}
                 {pausedBanner}
                 {incidentBanner}
                 {noticeBanners}
+                {warmupBanners}
               </>
             ) : null
           }
@@ -230,6 +234,7 @@ function LiveScreen({
           {pausedBanner}
           {incidentBanner}
           {noticeBanners}
+          {warmupBanners}
           <LiveBody
             s={s}
             campaignId={campaignId}

@@ -667,7 +667,7 @@ type moveCheck struct {
 }
 
 // outageOptions are the ways to continue after an outage held a share;
-// seed says Retry's test messages go to a seed inbox (outages.go).
+// seed says Retry's test messages go to a seed mailbox (outages.go).
 func outageOptions(short string, remaining, sent int64, move *MoveEstimate, seed bool) []option {
 	p := i18n.Args{"who": short, "remaining": remaining, "seed": yesNo(seed)}
 	out := []option{{key: "retry", title: keep("opt.retryTitle", with(p, "recommended", "no")), body: keep("opt.retryBody", p), action: keep("opt.retry", p)}}

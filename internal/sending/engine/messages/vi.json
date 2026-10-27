@@ -234,6 +234,7 @@
   "state.noCanaryWatch": "Lần gửi thử của “{name}” hiện không còn được theo dõi.",
   "state.canaryChoice": "“{choice}” không phải là lựa chọn gửi thử hợp lệ: dùng auto, on hoặc off.",
   "state.canaryWaits": "“{name}” đang chờ quyết định về lần gửi thử: hãy tiếp tục hoặc dừng nó.",
+  "state.warmupHold": "Phần của {provider} đang chờ ở giới hạn khởi động: hãy chờ giới hạn của ngày mai, chuyển nó sang một nhà cung cấp đã khởi động xong hoặc hủy phần còn lại.",
 
   "cause.renderLead": "Mẫu email bị lỗi với {failed} người nhận",
   "cause.render": "Dữ liệu riêng của họ làm hỏng email, ví dụ một trường có kiểu không như mong đợi hoặc một giá trị quá dài. Mỗi thư đó đã thất bại kèm lỗi; mọi người khác vẫn tiếp tục nhận email.",

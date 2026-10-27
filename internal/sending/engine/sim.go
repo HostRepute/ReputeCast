@@ -148,17 +148,19 @@ func (e *Engine) PumpSim(ctx context.Context, now time.Time) (int, *time.Time, e
 			e.log().WarnContext(ctx, "simulated engagement", "err", err)
 		}
 	}
+	// Clicks count once they settle (review AN-2), on this pump's clock.
+	settle := e.settleClicks(ctx, now)
 	if n > 0 {
 		return n, nil, nil
 	}
 	next, err := e.Q.SendingNextSimEvent(ctx)
 	if errors.Is(err, pgx.ErrNoRows) || next.IsZero() {
-		return 0, nil, nil
+		return 0, settle, nil
 	}
 	if err != nil {
 		return 0, nil, err
 	}
-	return 0, &next, nil
+	return 0, earliest(&next, settle), nil
 }
 
 // cellBefore orders messages by the campaign counter row they bump.

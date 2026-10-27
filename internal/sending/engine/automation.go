@@ -251,6 +251,13 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 		return 0, nil
 	}
 	want := max(int(math.Floor(r.rate.PerSecond)), 1)
+	// A warming provider's automation mail counts toward its cap; past it
+	// the mail goes through a warm fallback or waits (PR-8).
+	if left, err := e.outboxWarmLeft(ctx, r.provider, now); err != nil || left <= 0 {
+		return 0, err
+	} else if left < int64(want) {
+		want = int(left)
+	}
 	granted, err := e.reserveAfterTransactional(ctx, pid, now.Unix(), want, int(math.Ceil(r.rate.PerSecond)), now)
 	if err != nil || granted <= 0 {
 		return 0, err
@@ -472,6 +479,7 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 		for _, l := range ot.tpl.Links {
 			links[LinkVar(l.Position)] = e.URLs.Click(sign(linktoken.Click, uint32(l.Position)))
 		}
+		links[HoneypotVar] = e.URLs.Honeypot(sign(linktoken.Honeypot, 0))
 	}
 	if e.Store != nil && len(ref.Ctx) > 0 {
 		for k, v := range e.Store.Vars(ctx, ref.Ctx) {

@@ -78,7 +78,7 @@ type routeDetail struct {
 	Incident string     `json:"incident,omitempty"`
 	To       string     `json:"to,omitempty"`
 	// Retry (outages.go): test messages that went through in a row, when
-	// the next one goes and whether they go to a seed inbox.
+	// the next one goes and whether they go to a seed mailbox.
 	Probes    int        `json:"probes,omitempty"`
 	NextProbe *time.Time `json:"nextProbe,omitempty"`
 	Seed      bool       `json:"seed,omitempty"`
@@ -117,6 +117,9 @@ type runRoute struct {
 	// judgedFrom is when the route last started sending again after a hold
 	// (calls before it don't count against it).
 	apiCheckedAt, judgedFrom time.Time
+	// warm is today's warm-up allowance of a warming provider (nil
+	// otherwise), as this run spends it (warmup_send.go).
+	warm *warmRoute
 }
 
 // active reports whether the route may send now.
@@ -317,6 +320,7 @@ func (e *Engine) loadRoutes(ctx context.Context, rs *runState, now time.Time) er
 			// A person slowed this route for the send when resuming it (GS-2).
 			r.rate.PerSecond = v
 		}
+		r.warm = e.warmRouteFor(ctx, p, now)
 		r.batch = batchSize(p)
 		r.tracked = state.TrackingOf(p).Mode != "provider"
 		if pr := state.PricingOf(p); pr.Model == "metered" {
@@ -513,18 +517,17 @@ func (e *Engine) refill(rs *runState, now time.Time) {
 // tick sends one second's allowance through one route.
 func (e *Engine) tick(ctx context.Context, rs *runState, r *runRoute, now time.Time) (int, error) {
 	rate := r.rate.PerSecond * r.slowFactor()
-	if r.rate.WarmingUp && r.rate.Cap > 0 {
-		left := r.rate.Cap - r.rate.SentToday
-		if left <= 0 {
-			return 0, nil
-		}
+	// Today's warm-up cap (or a paused plan) stops queued mail: overflow
+	// to a warm provider, or hold the share with choices (PR-8).
+	if e.warmStopped(rs, r) {
+		return 0, e.warmCapReached(ctx, rs, r, now)
 	}
 	r.carry += rate
 	want := int(math.Floor(r.carry))
 	if want <= 0 {
 		return 0, nil
 	}
-	alloc := e.allocate(rs, r, want)
+	alloc := e.allocateWarm(rs, r, want)
 	// A mailbox provider's throttle is shared by the workspace's sends
 	// going out at once (review GS-8): this send takes its part of each
 	// throttled mailbox provider's window first, and gives back what it
@@ -580,6 +583,7 @@ func (e *Engine) tick(ctx context.Context, rs *runState, r *runRoute, now time.T
 		c.queued = max(c.queued-int64(len(rows)), 0)
 		rs.queue[k] = c
 	}
+	r.warm.sent(claimed)
 	r.carry -= float64(len(claimed))
 	if r.carry < 0 {
 		r.carry = 0
@@ -978,7 +982,7 @@ func (e *Engine) send(ctx context.Context, rs *runState, r *runRoute, claimed []
 			case res.Err == nil:
 				out.sentIDs = append(out.sentIDs, p.row.ID)
 				out.sentPMID = append(out.sentPMID, res.ProviderMessageID)
-				out.cell(p.row.MailboxProvider, p.row.Variant).sent++
+				out.cell(p.row.MailboxProvider, cellVariant(p.row.Variant, p.row.AbRollout)).sent++
 				out.cost += r.micros
 				if r.sim != nil && !e.QuietDemo {
 					out.sims = append(out.sims, simRows(rs.campaign.WorkspaceID, &rs.campaign.ID, p.row.ID, r.provider.ID, now, r.sim.Plan(p.msg))...)
@@ -998,7 +1002,7 @@ func (e *Engine) send(ctx context.Context, rs *runState, r *runRoute, claimed []
 				out.retry(p.row.ID, int(p.row.Attempts), now, res.Err.Error())
 			default:
 				out.drop(p.row.ID, "rejected", res.Err.Error())
-				out.cell(p.row.MailboxProvider, p.row.Variant).rejected++
+				out.cell(p.row.MailboxProvider, cellVariant(p.row.Variant, p.row.AbRollout)).rejected++
 			}
 		}
 		if hold != "" || slowed {
@@ -1150,6 +1154,7 @@ func (e *Engine) compose(rs *runState, r *runRoute, m store.SendingClaimRow, ext
 		for _, l := range tpl.Links {
 			links[LinkVar(l.Position)] = e.URLs.Click(sign(linktoken.Click, uint32(off+l.Position)))
 		}
+		links[HoneypotVar] = e.URLs.Honeypot(sign(linktoken.Honeypot, 0))
 	}
 	var attrs map[string]any
 	if len(m.Attributes) > 0 {

@@ -39,6 +39,8 @@ func (a *App) mcpserver() *mcpserver.Service {
 		// Push and WhatsApp drafts and reports (X22): agents never send.
 		Push:     a.Push(),
 		WhatsApp: a.WhatsApp(),
+		// Campaign reports as the API shows them, and read-only links.
+		Reports: reportsService(a),
 	}
 }
 

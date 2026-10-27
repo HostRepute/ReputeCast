@@ -585,6 +585,10 @@
 }
 
 @media (max-width: 767px) {
+  /* A warm-up hold's target picker: a phone-sized target (review PR-8). */
+  select.lv-warm-target {
+    height: 44px;
+  }
   .lv-rrow {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 6px 12px;

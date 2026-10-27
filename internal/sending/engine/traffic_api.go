@@ -38,7 +38,7 @@ type TrafficRules struct {
 	ReplyRules []TrafficReplyRule `json:"replyRules"`
 	Canary     rules.Canary       `json:"canary"`
 	Watch      rules.Watch        `json:"watch"`
-	// Seeds is how many seed inboxes the workspace connected (the canary
+	// Seeds is how many seed mailboxes the workspace connected (the canary
 	// adds them).
 	Seeds int `json:"seeds"`
 	// Resumers are the people who can resume sends: alerts go to them.
@@ -260,7 +260,7 @@ func recentText(l i18n.Lang, r store.TrafficRecentActionsRow) string {
 	return sentence(l, keep("recent."+r.Kind, args))
 }
 
-// seedCount is how many seed inboxes a workspace connected.
+// seedCount is how many seed mailboxes a workspace connected.
 func (e *Engine) seedCount(ctx context.Context, ws uuid.UUID) int {
 	n, err := e.Q.SendingSeedCount(ctx, ws)
 	if err != nil {

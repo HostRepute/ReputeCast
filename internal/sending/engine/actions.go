@@ -128,6 +128,12 @@ func (e *Engine) ResumeScope(ctx context.Context, campaignID, by uuid.UUID, in R
 			found, tripped := false, false
 			for _, r := range routes {
 				if r.ProviderID == *in.ProviderID && (r.Status == "held" || r.Status == "paused") {
+					// A share today's warm-up cap holds has its own choices
+					// (warmup.DecideCapHold, review PR-8).
+					if parseRouteDetail(r.StatusDetail).Reason == CapHoldReason {
+						p, _ := q.ProvGetAny(ctx, r.ProviderID)
+						return stateErr("state.warmupHold", i18n.Args{"provider": state.Short(p.Name, p.Adapter)})
+					}
 					// "paused": its bounces tripped the threshold; "held": an outage.
 					found, tripped = true, r.Status == "paused"
 				}
@@ -454,9 +460,10 @@ func (e *Engine) MoveShare(ctx context.Context, campaignID, by, from, to uuid.UU
 	return moved, err
 }
 
-// shiftWarmup moves a warming provider's plan by a day when its share of
-// a send was moved away during an outage, so the IP doesn't miss its ramp
-// (once per day).
+// shiftWarmup notes in a warming provider's plan that its share of a send
+// moved away during an outage (once per day). The plan moves by counted
+// days (PR-8): if too little of today's cap goes out, the daily job repeats
+// today's step by itself, so the plan isn't shifted here as well.
 func (e *Engine) shiftWarmup(ctx context.Context, q *store.Queries, tx pgx.Tx, ws uuid.UUID, p store.Provider, now time.Time) error {
 	plan, err := q.WarmupActiveForProvider(ctx, p.ID)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -473,16 +480,13 @@ func (e *Engine) shiftWarmup(ctx context.Context, q *store.Queries, tx pgx.Tx, w
 		plan.ID, now.Add(-24*time.Hour), title).Scan(&shiftedToday); err != nil || shiftedToday {
 		return err
 	}
-	if _, err := tx.Exec(ctx, `UPDATE warmup_plans SET start_date = start_date + 1, updated_at = $2 WHERE id = $1`, plan.ID, now); err != nil {
-		return err
-	}
 	_, err = tx.Exec(ctx, `INSERT INTO warmup_events (id, plan_id, occurred_at, kind, title, body, texts) VALUES ($1, $2, $3, 'settings', $4, $5, $6)`,
 		newID(), plan.ID, now, title, body, texts)
 	return err
 }
 
 // RetryRoute keeps a held share on its provider and tests it (outages.go):
-// one test message every minute, to a seed inbox when the workspace has
+// one test message every minute, to a seed mailbox when the workspace has
 // one; the share resumes by itself after three in a row go through, and a
 // person is asked again if it still fails after 15 minutes.
 func (e *Engine) RetryRoute(ctx context.Context, campaignID, by, provider uuid.UUID) error {

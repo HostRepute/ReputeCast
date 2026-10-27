@@ -43,6 +43,7 @@ import {
   thresholdRows,
   tiles,
   timingLine,
+  whenText,
   type Incident,
   type LiveEvent,
   type Snapshot,
@@ -422,7 +423,7 @@ export function ProviderTable({ s, outage }: { s: Snapshot; outage?: Incident })
                 </Td>
                 {decision ? null : (
                   <Td align="right" num>
-                    {p.doneAt && p.remaining > 0 ? clock(p.doneAt) : '—'}
+                    {p.doneAt && p.remaining > 0 ? whenText(p.doneAt, s.at) : '—'}
                   </Td>
                 )}
                 <Td>

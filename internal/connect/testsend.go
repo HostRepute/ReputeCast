@@ -384,6 +384,21 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 	if webhook != nil && webhook.Mode == "polling" && sent.Status == "waiting" {
 		sent.Detail = mTimelinePolling.Text(l, i18n.Args{"short": c.Short})
 	}
+	// Mail sent and no event after 30 minutes: flagged for every provider
+	// (PR-3), with where to look.
+	if sent.Status == "waiting" && m.SentAt != nil && m.Status != "failed" && s.now().Sub(*m.SentAt) >= 30*time.Minute {
+		how := "webhook"
+		switch {
+		case state.Connection.Events == providers.EventsQueue:
+			how = "queue"
+		case webhook != nil && webhook.Mode == "polling":
+			how = "polling"
+		case webhook != nil && webhook.Mode == "mailbox":
+			how = "mailbox"
+		}
+		sent.Status = "failed"
+		sent.Detail = mTimelineNoEvent.Text(l, i18n.Args{"short": c.Short, "minutes": 30, "clock": clockMs(*m.SentAt), "how": how})
+	}
 	out.Timeline = append(out.Timeline, sent)
 	host := mx
 	if delivered != nil {
@@ -498,7 +513,10 @@ func (s *Service) firstWebhook(ctx context.Context, p store.Provider, m store.Me
 		return nil
 	}
 	via := "webhook"
-	if d.Capabilities.Webhooks == "SNS" {
+	switch {
+	case hook.Source == "queue":
+		via = "SQS"
+	case d.Capabilities.Webhooks == "SNS":
 		via = "SNS"
 	}
 	return &TestEvent{At: hook.ReceivedAt, Name: webhookEventName(hook.Body), Via: via}

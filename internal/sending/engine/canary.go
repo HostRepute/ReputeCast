@@ -29,7 +29,7 @@ import (
 // send asks for one, or by itself (Traffic rules) when the sending domain
 // is new, some recipients never got mail from it, or the audience is over
 // twice the usual: the most engaged few percent, plus the workspace's
-// seed inboxes, get the email first while everyone else waits. After the
+// seed mailboxes, get the email first while everyone else waits. After the
 // last canary message the canary is watched for a while; then every gate
 // with enough evidence must pass (bounces, block/policy bounces,
 // deferrals, complaints per mailbox provider, seeds in spam) and the send
@@ -138,7 +138,7 @@ func (c canaryState) active() bool {
 	return c.Phase == canarySending || c.Phase == canaryWatching || c.Phase == canaryHeld
 }
 
-// SeedChecker sends a campaign's content to the workspace's seed inboxes
+// SeedChecker sends a campaign's content to the workspace's seed mailboxes
 // and reads where the copies landed (the app wires internal/placement): the
 // canary's seed gate.
 type SeedChecker interface {
@@ -295,7 +295,7 @@ func (e *Engine) startCanary(ctx context.Context, q *store.Queries, cc store.Sen
 	return true, saveCanary(ctx, q, cc.ID, cs, now)
 }
 
-// startSeeds sends the canary's copies to the seed inboxes. Without seeds
+// startSeeds sends the canary's copies to the seed mailboxes. Without seeds
 // (none connected, or the test can't start) the seed gate is left out.
 func (e *Engine) startSeeds(ctx context.Context, ws, campaignID uuid.UUID) {
 	if e.Seeds == nil {
@@ -525,8 +525,14 @@ func (e *Engine) releaseCanary(ctx context.Context, campaignID, by uuid.UUID, ph
 		}
 		switch {
 		case ab.Phase == "decided" && ab.Winner != "":
-			// The winner was picked during the canary: its holdouts get it.
-			if _, err := q.SendingReleaseHeld(ctx, store.SendingReleaseHeldParams{CampaignID: &cid, Variant: ab.Winner}); err != nil {
+			// The winner was picked during the canary: its holdouts get it,
+			// as the A/B test releases them (a send-time test keeps each
+			// recipient's time).
+			cc, err := q.SendingCampaignContext(ctx, c.ID)
+			if err != nil {
+				return err
+			}
+			if _, err := e.releaseHeld(ctx, q, cc, ab.Winner, now); err != nil {
 				return err
 			}
 		case ab.Phase == "testing" && ab.DecideAt != nil && cs.Started != nil:

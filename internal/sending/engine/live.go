@@ -224,13 +224,16 @@ type LiveProvider struct {
 	WarmupDays    *int       `json:"warmupDays,omitempty"`
 	WarmupCap     *int64     `json:"warmupCap,omitempty"`
 	WarmupSent    *int64     `json:"warmupSent,omitempty"`
-	Cost          float64    `json:"cost"`
-	PlannedCost   float64    `json:"plannedCost"`
-	Retrying      bool       `json:"retrying"`
-	RetryUntil    *time.Time `json:"retryUntil,omitempty"`
+	// WarmupHold is set while today's warm-up cap (or a paused plan) holds
+	// the route's share (review PR-8).
+	WarmupHold  *LiveWarmupHold `json:"warmupHold,omitempty"`
+	Cost        float64         `json:"cost"`
+	PlannedCost float64         `json:"plannedCost"`
+	Retrying    bool            `json:"retrying"`
+	RetryUntil  *time.Time      `json:"retryUntil,omitempty"`
 	// While a share is retried (review GS-3): the test messages that went
 	// through in a row (it resumes at ProbesNeeded), when the next one goes
-	// and whether they go to a seed inbox.
+	// and whether they go to a seed mailbox.
 	Probes       int        `json:"probes"`
 	ProbesNeeded int        `json:"probesNeeded"`
 	NextProbe    *time.Time `json:"nextProbe,omitempty"`
@@ -257,6 +260,144 @@ type LiveLimits struct {
 	APIErrors        float64 `json:"apiErrors"`
 }
 
+// LiveWarmupHold is a route's share that today's warm-up cap (or a paused
+// plan) holds (review PR-8, warmup_send.go). It goes on by itself with
+// tomorrow's cap, or once the plan resumes, unless someone moves it to a
+// warm provider or cancels the rest (POST warmup/{planId}/held/{campaignId}:
+// waiting and moving need campaigns:send, cancelling campaigns:pause).
+type LiveWarmupHold struct {
+	PlanID string `json:"planId"`
+	// Held is how many recipients wait.
+	Held int64 `json:"held"`
+	// Since is when the cap stopped the share.
+	Since *time.Time `json:"since,omitempty"`
+	// Until is when tomorrow's cap starts and the share goes on; absent
+	// while a paused plan holds it (Paused).
+	Until  *time.Time `json:"until,omitempty"`
+	Paused bool       `json:"paused"`
+	// Decision is "wait" once someone chose to wait for the cap.
+	Decision string `json:"decision,omitempty" enum:"wait"`
+	// Cap is today's cap.
+	Cap int64 `json:"cap"`
+	// Targets are the providers the share could move to, vetted as a move
+	// is (state.Vet); those that can take it come first.
+	Targets []LiveWarmupTarget `json:"targets"`
+}
+
+// LiveWarmupTarget is a provider a held share could move to.
+type LiveWarmupTarget struct {
+	ProviderID string `json:"providerId"`
+	Name       string `json:"name"`
+	Short      string `json:"short"`
+	Allowed    bool   `json:"allowed"`
+	// Reason is why it can't take the share: its first failed check.
+	Reason string `json:"reason,omitempty"`
+
+	reason i18n.Text
+}
+
+// warmETA is a warming route's day for the ETAs (review PR-8): what
+// today's cap leaves, a day's cap and when tomorrow's starts, in the
+// workspace's time zone.
+type warmETA struct {
+	// held: the cap holds the share now; paused: a paused plan does (no
+	// estimate until someone resumes it).
+	held, paused bool
+	left, cap    int64
+	next         time.Time
+	loc          *time.Location
+}
+
+// after is how long until n more messages have gone once today's cap is
+// used: they go from tomorrow's cap on, a day's cap at a time (tomorrow's
+// is at least today's), at rate.
+func (w warmETA) after(n int64, rate float64, now time.Time) float64 {
+	start := w.next
+	if w.cap > 0 {
+		days := 0
+		for n > w.cap {
+			n -= w.cap
+			days++
+		}
+		if days > 0 {
+			loc := w.loc
+			if loc == nil {
+				loc = time.UTC
+			}
+			// Calendar days, so a change of clocks doesn't move midnight.
+			start = start.In(loc).AddDate(0, 0, days)
+		}
+	}
+	return math.Max(start.Sub(now).Seconds(), 0) + float64(n)/rate
+}
+
+// liveWarmupHold is a route's warm-up hold: what waits, until when, and
+// where it could move.
+func (e *Engine) liveWarmupHold(ctx context.Context, cc store.SendingCampaignContextRow, p store.Provider, pr providerRate, raw string,
+	queue map[queueKey]queueCell, loc *time.Location) *LiveWarmupHold {
+	var d struct {
+		Until    *time.Time `json:"until"`
+		Paused   bool       `json:"paused"`
+		Decision string     `json:"decision"`
+	}
+	_ = json.Unmarshal([]byte(raw), &d)
+	h := &LiveWarmupHold{Until: d.Until, Paused: d.Paused, Cap: pr.Cap, Targets: []LiveWarmupTarget{}}
+	if pr.PlanID != uuid.Nil {
+		h.PlanID = pr.PlanID.String()
+	}
+	if d.Paused {
+		h.Until = nil
+	}
+	if d.Decision == "wait" {
+		h.Decision = d.Decision
+	}
+	for k, c := range queue {
+		if k.provider == p.ID {
+			h.Held += c.queued
+		}
+	}
+	provs, err := e.Q.ProvListActive(ctx, cc.WorkspaceID)
+	if err != nil {
+		return h
+	}
+	sender := senderVerification(ctx, e.Q, cc.WorkspaceID, cc.SenderID)
+	for _, o := range provs {
+		if o.ID == p.ID {
+			continue
+		}
+		v := e.vetTarget(ctx, e.Q, sender, o, max(h.Held, 1), loc)
+		failed, bad := v.Failed()
+		// A provider that can't take Broadcasts at all isn't a choice.
+		if bad && (failed.Key == state.VetAvailable || failed.Key == state.VetBulkTerms) {
+			continue
+		}
+		short := state.Short(o.Name, o.Adapter)
+		t := LiveWarmupTarget{ProviderID: o.ID.String(), Name: o.Name, Short: short, Allowed: !bad}
+		if bad {
+			t.reason = failed.Keep(short)
+			t.Reason = t.reason.In(i18n.Default)
+		}
+		h.Targets = append(h.Targets, t)
+	}
+	sort.SliceStable(h.Targets, func(i, j int) bool { return h.Targets[i].Allowed && !h.Targets[j].Allowed })
+	return h
+}
+
+// In is the hold in a reader's language: why a provider can't take it.
+func (h *LiveWarmupHold) In(l i18n.Lang) *LiveWarmupHold {
+	if h == nil {
+		return nil
+	}
+	out := *h
+	out.Targets = slices.Clone(h.Targets)
+	for i := range out.Targets {
+		if t := out.Targets[i].reason; !t.IsZero() {
+			out.Targets[i].Reason = t.In(l)
+		}
+	}
+	return &out
+}
+
 // infersDelivery reports whether a provider's deliveries are inferred
 // from its acceptance (plain SMTP).
 func infersDelivery(p store.Provider) bool {
@@ -268,16 +409,26 @@ func infersDelivery(p store.Provider) bool {
 // rates (review GS-8). A throttled mailbox provider takes its remaining
 // mail over its limit; a route takes its own over its rate, and no less
 // than the throttled mailbox providers it carries; the others share what
-// the throttled ones leave of their routes' rates. It returns when the
-// last one is done (0 without an estimate).
+// the throttled ones leave of their routes' rates. A warming route's mail
+// past today's cap, and a share the cap holds, go from tomorrow's cap on
+// (review PR-8). It returns when the last one is done (0 without an
+// estimate).
 func liveETAs(s *LiveSnapshot, queue map[queueKey]queueCell, holds map[string]hold, heldProviders map[uuid.UUID]bool, throttles map[string]float64,
-	rates map[uuid.UUID]float64, now time.Time) time.Duration {
+	rates map[uuid.UUID]float64, warm map[uuid.UUID]warmETA, now time.Time) time.Duration {
 	left := map[string]int64{}
 	routeLeft := map[uuid.UUID]int64{}
 	cell := map[queueKey]int64{}
+	// What a warm-up cap holds until tomorrow's cap.
+	waits := map[queueKey]int64{}
 	for k, c := range queue {
 		n := c.queued - c.waiting
-		if n <= 0 || heldProviders[k.provider] || holdBlocks(holds, k.mailbox, k.provider) {
+		if n <= 0 || holdBlocks(holds, k.mailbox, k.provider) || warm[k.provider].paused {
+			continue
+		}
+		if heldProviders[k.provider] {
+			if warm[k.provider].held {
+				waits[k] = n
+			}
 			continue
 		}
 		left[k.mailbox] += n
@@ -294,6 +445,8 @@ func liveETAs(s *LiveSnapshot, queue map[queueKey]queueCell, holds map[string]ho
 	// Each route's time, and what its unthrottled mail sends at.
 	routeTime := map[uuid.UUID]float64{}
 	freeTime := map[uuid.UUID]float64{}
+	// Routes whose mail runs into tomorrow's warm-up cap.
+	nextDay := map[uuid.UUID]bool{}
 	for pid, n := range routeLeft {
 		rate := rates[pid]
 		if rate <= 0 {
@@ -313,8 +466,20 @@ func liveETAs(s *LiveSnapshot, queue map[queueKey]queueCell, holds map[string]ho
 				free += c
 			}
 		}
+		if w, ok := warm[pid]; ok && n > w.left {
+			t, nextDay[pid] = math.Max(t, w.after(n-w.left, rate, now)), true
+		}
 		routeTime[pid] = t
 		freeTime[pid] = secs(free, math.Max(rate-throttled, rate*0.1))
+	}
+	waitLeft := map[uuid.UUID]int64{}
+	for k, n := range waits {
+		waitLeft[k.provider] += n
+	}
+	for pid, n := range waitLeft {
+		if rate := rates[pid]; rate > 0 {
+			routeTime[pid], nextDay[pid] = warm[pid].after(n, rate, now), true
+		}
 	}
 	at := func(sec float64) *time.Time {
 		v := now.Add(time.Duration(math.Ceil(sec)) * time.Second)
@@ -330,18 +495,27 @@ func liveETAs(s *LiveSnapshot, queue map[queueKey]queueCell, holds map[string]ho
 	}
 	for i := range s.Mailboxes {
 		k := s.Mailboxes[i].Key
-		if left[k] == 0 {
-			continue
-		}
-		t, ok := mbTime[k]
-		if !ok {
-			for c := range cell {
-				if c.mailbox == k {
-					if ft, has := freeTime[c.provider]; has {
-						t, ok = math.Max(t, ft), true
+		var t float64
+		ok := false
+		if left[k] > 0 {
+			t, ok = mbTime[k]
+			if !ok {
+				for c := range cell {
+					if c.mailbox == k {
+						if ft, has := freeTime[c.provider]; has {
+							t, ok = math.Max(t, ft), true
+						}
 					}
 				}
 			}
+		}
+		// Its mail on a route that waits for tomorrow's cap goes then.
+		for c := range queue {
+			rt, has := routeTime[c.provider]
+			if c.mailbox != k || !has || !nextDay[c.provider] || (cell[c] == 0 && waits[c] == 0) {
+				continue
+			}
+			t, ok = math.Max(t, rt), true
 		}
 		if ok {
 			s.Mailboxes[i].DoneAt = at(t)
@@ -687,6 +861,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	}
 	heldProviders := map[uuid.UUID]bool{}
 	routeRate := map[uuid.UUID]float64{}
+	warm := map[uuid.UUID]warmETA{}
 	var apiRates []LiveThresholdPart
 	via := []viaPart{}
 	routeLabel := []string{}
@@ -752,6 +927,18 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		if pr.WarmingUp {
 			day, days, cp, sent := pr.WarmupDay, pr.WarmupDays, pr.Cap, pr.SentToday
 			lp.WarmupDay, lp.WarmupDays, lp.WarmupCap, lp.WarmupSent = &day, &days, &cp, &sent
+			warm[p.ID] = warmETA{paused: pr.Paused, left: max(pr.Cap-pr.SentToday, 0), cap: pr.Cap, next: pr.NextDay, loc: loc}
+		}
+		// Today's cap (or a paused plan) holds the share (review PR-8): it
+		// goes on with tomorrow's cap unless someone moves it.
+		if r.Status == "held" && d.Reason == CapHoldReason {
+			lp.WarmupHold = e.liveWarmupHold(ctx, cc, p, pr, r.StatusDetail, queue, loc)
+			w := warm[p.ID]
+			w.held, w.paused, w.loc = true, lp.WarmupHold.Paused, loc
+			if lp.WarmupHold.Until != nil {
+				w.next = *lp.WarmupHold.Until
+			}
+			warm[p.ID] = w
 		}
 		// The API error threshold watches the routes this send still uses (a
 		// share moved away or finished doesn't count).
@@ -883,7 +1070,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 				}
 				scratch := s
 				scratch.Providers, scratch.Mailboxes = slices.Clone(s.Providers), slices.Clone(s.Mailboxes)
-				s.Canary.MainSeconds = int64(liveETAs(&scratch, main, holds, heldProviders, throttles, routeRate, now) / time.Second)
+				s.Canary.MainSeconds = int64(liveETAs(&scratch, main, holds, heldProviders, throttles, routeRate, warm, now) / time.Second)
 			}
 		}
 	}
@@ -923,7 +1110,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		s.FinishesAt = &f
 	}
 	if s.State == "sending" || s.State == "partial" {
-		if latest := liveETAs(&s, queue, holds, heldProviders, throttles, routeRate, now); latest > 0 && (s.FinishesAt == nil || now.Add(latest).After(*s.FinishesAt)) {
+		if latest := liveETAs(&s, queue, holds, heldProviders, throttles, routeRate, warm, now); latest > 0 && (s.FinishesAt == nil || now.Add(latest).After(*s.FinishesAt)) {
 			eta := int64(math.Ceil(latest.Seconds()))
 			f := now.Add(time.Duration(eta) * time.Second)
 			s.ETASeconds, s.FinishesAt = &eta, &f
@@ -1058,6 +1245,20 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			break
 		}
 	}
+	// When the warm-up cap stopped a held share: its open incident.
+	for i := range s.Providers {
+		h := s.Providers[i].WarmupHold
+		if h == nil {
+			continue
+		}
+		for _, in := range s.Incidents {
+			if in.ResolvedAt == nil && in.Kind == "throttled" && in.Metric == CapHoldReason && in.ProviderID == s.Providers[i].ID {
+				since := in.TrippedAt
+				h.Since = &since
+				break
+			}
+		}
+	}
 	// Other streams that use a held provider, and those that failed over
 	// on their own.
 	if len(heldProviders) > 0 {
@@ -1107,9 +1308,17 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		t := s.Events[0].At
 		s.LastEventAt = &t
 	}
+	// A share the warm-up cap holds has its own choices; resuming the send
+	// leaves it waiting for the cap (releaseAll).
+	routesHeld := 0
+	for _, lp := range s.Providers {
+		if (lp.RouteStatus == "held" || lp.RouteStatus == "paused") && lp.WarmupHold == nil {
+			routesHeld++
+		}
+	}
 	s.Options = LiveOptions{
 		CanPause:  cc.Status == "sending",
-		CanResume: cc.Status == "paused" || len(s.MailboxesHeld) > 0 || len(s.ProvidersHeld) > 0,
+		CanResume: cc.Status == "paused" || len(s.MailboxesHeld) > 0 || routesHeld > 0,
 		CanCancel: cc.Status == "sending" || cc.Status == "paused",
 	}
 	return s, nil

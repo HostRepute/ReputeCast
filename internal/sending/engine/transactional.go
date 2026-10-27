@@ -284,6 +284,7 @@ func (o *TransactionalOutbox) next(ctx context.Context, q *store.Queries, curren
 	if rs.Fallback != nil {
 		cands = append(cands, *rs.Fallback)
 	}
+	var full *store.Provider
 	for i, id := range cands {
 		if id == uuid.Nil || gaveUp[id.String()] {
 			continue
@@ -303,9 +304,17 @@ func (o *TransactionalOutbox) next(ctx context.Context, q *store.Queries, curren
 		if i > 0 && !state.Vet(p, state.Load{Messages: 1}).Allowed() {
 			continue
 		}
+		// A warming primary at today's cap leaves product mail to the
+		// fallback; with none, it still sends (PR-8).
+		if i == 0 && len(cands) > 1 && o.E.warmFull(ctx, p, o.E.now()) {
+			full = &p
+			continue
+		}
 		return &p, nil
 	}
-	return nil, nil
+	// Product mail never waits for a warm-up: when the fallback can't take
+	// it, the full primary still sends it (and it counts toward the cap).
+	return full, nil
 }
 
 // reroute moves the queues of providers marked down (or removed) to the

@@ -13,6 +13,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
+	"github.com/hostrepute/reputecast/internal/providers/apiclient"
 )
 
 var (
@@ -376,6 +377,18 @@ func (p *Provider) ListSuppressions(ctx context.Context, since time.Time) ([]pro
 func (p *Provider) AddSuppressions(ctx context.Context, emails []string) error {
 	for chunk := range slices.Chunk(emails, 500) {
 		if err := p.api.Do(ctx, "POST /v3/asm/suppressions/global", http.MethodPost, "/v3/asm/suppressions/global", map[string]any{"recipient_emails": chunk}, nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// RemoveSuppressions implements providers.SuppressionRemover: the global
+// suppressions ReputeCast added are taken off one by one.
+func (p *Provider) RemoveSuppressions(ctx context.Context, emails []string) error {
+	for _, e := range emails {
+		err := p.api.Do(ctx, "DELETE /v3/asm/suppressions/global", http.MethodDelete, apiclient.Path("/v3/asm/suppressions/global/%s", e), nil, nil)
+		if err != nil && !apiclient.NotFound(err) {
 			return err
 		}
 	}

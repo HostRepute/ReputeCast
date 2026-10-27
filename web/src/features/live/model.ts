@@ -2,7 +2,7 @@ import type { Schemas } from '@/api/client'
 import { m as pm } from '@/features/providers/messages'
 import { streamName, type Stream } from '@/features/providers/common'
 import { t as tt, type MessageDescriptor } from '@/i18n'
-import { ago, andList, clock, clockSeconds, count, decimal, duration, money, monthDay, orList, pct, rate, shortDate, trimPct } from '@/lib/format'
+import { ago, andList, clock, clockSeconds, count, decimal, duration, longDate, money, monthDay, orList, pct, rate, shortDate, trimPct } from '@/lib/format'
 import { mm } from './model.messages'
 
 /**
@@ -21,6 +21,7 @@ export type LiveEvent = Schemas['LiveEvent']
 export type Threshold = Schemas['LiveThreshold']
 export type IncidentOption = Schemas['IncidentOption']
 export type MoveEstimate = Schemas['MoveEstimate']
+export type WarmupHold = Schemas['LiveWarmupHold']
 export type MailboxKey = Mailbox['key']
 export type Tone = 'ok' | 'warn' | 'bad' | 'info' | 'neutral'
 
@@ -185,7 +186,14 @@ export function startedLine(s: Snapshot): string {
   return tt(when ? mm.approvedByAt : mm.approvedBy, v)
 }
 
-const needsMessages = { pause: mm.needsPause, resume: mm.needsResume, cancel: mm.needsCancel, decide: mm.needsDecide, rates: mm.needsRates }
+const needsMessages = {
+  pause: mm.needsPause,
+  resume: mm.needsResume,
+  cancel: mm.needsCancel,
+  decide: mm.needsDecide,
+  rates: mm.needsRates,
+  warmupCancel: mm.needsWarmupCancel,
+}
 
 /** Who can help with a permission: "Pausing a send needs the campaigns:pause permission. Ask Marcus Chen or Linh Nguyen." */
 export function needs(action: keyof typeof needsMessages, perm: string, helpers: string[] | undefined): string {
@@ -199,7 +207,7 @@ export type Segment = { key: string; value: number; color: string; title: string
 export function progressSegments(s: Snapshot, incident?: Incident): Segment[] {
   const segs: Segment[] = s.providers.filter((p) => p.sent > 0).map((p) => ({ key: p.id, value: p.sent, color: providerColor[p.color], title: p.short }))
   if (s.held > 0) {
-    const route = incident?.kind === 'provider_outage'
+    const route = incident?.kind === 'provider_outage' || (!incident && warmupHolds(s).length > 0)
     segs.push({ key: 'held', value: s.held, color: route ? heldRouteColor : heldMailboxColor, title: tt(mm.held) })
   }
   return segs
@@ -208,6 +216,8 @@ export function progressSegments(s: Snapshot, incident?: Incident): Segment[] {
 /** "19,594 of 31,604 sent", with what's held in the decision views. */
 export function sentLine(s: Snapshot, incident?: Incident): string {
   const v = { sent: count(s.sent), total: count(s.recipients), held: count(s.held) }
+  const warm = warmupHolds(s)
+  if (!incident && warm.length === 1 && s.held > 0) return tt(mm.sentOfHeldOn, { ...v, provider: warm[0]!.short })
   if (!incident || s.held <= 0) return tt(mm.sentOf, v)
   if (incident.kind === 'provider_outage') return tt(mm.sentOfHeldOn, { ...v, provider: incident.providerShort })
   return tt(mm.sentOfHeld, v)
@@ -229,14 +239,14 @@ export function timingLine(s: Snapshot, incident?: Incident): string {
     const others = continuingProviders(s, incident)
     const routes = routeDoneLine({ ...s, providers: others })
     if (routes) parts.push(routes)
-    else if (s.finishesAt && others.length) parts.push(tt(mm.timingProvidersFinish, { providers: andList(others.map((p) => p.short)), time: clock(s.finishesAt) }))
+    else if (s.finishesAt && others.length) parts.push(tt(mm.timingProvidersFinish, { providers: andList(others.map((p) => p.short)), time: whenText(s.finishesAt, s.at) }))
     parts.push(tt(mm.timingHeldSince, { who: incident.providerShort, time: clockSeconds(incident.trippedAt) }))
   } else if (s.state === 'sending' || s.state === 'partial') {
     // When each route is done at current rates, with the per-mailbox limits (review GS-8).
     const routes = routeDoneLine(s)
     if (routes) return tt(mm.timingRoutes, { time: s.startedAt ? clockSeconds(s.startedAt) : '', routes })
     if (eta) parts.push(tt(mm.timingEta, { eta }))
-    if (s.finishesAt) parts.push(tt(mm.timingFinishes, { time: clock(s.finishesAt) }))
+    if (s.finishesAt) parts.push(tt(mm.timingFinishes, { time: whenText(s.finishesAt, s.at) }))
   } else if (s.state === 'paused' && s.pausedAt) {
     parts.push(tt(mm.timingPausedSince, { time: clockSeconds(s.pausedAt) }))
   }
@@ -488,6 +498,17 @@ export function summaryLine(s: Snapshot, incident?: Incident): { tone: Tone; tex
   }
   if (s.state === 'paused') return { tone: 'warn', held: true, text: tt(mm.sumPaused, { time: clockSeconds(s.pausedAt ?? s.at) }) }
   if (s.state === 'preparing') return { tone: 'ok', text: tt(mm.sumPreparing) }
+  // A share today's warm-up cap holds goes on with tomorrow's cap (review PR-8).
+  const warm = warmupHolds(s)[0]
+  if (warm?.warmupHold) {
+    const names = s.providers.filter((p) => !p.warmupHold && (p.routeStatus === 'sending' || p.routeStatus === 'pending') && p.remaining > 0).map((p) => p.name)
+    const h = warm.warmupHold
+    return {
+      tone: 'warn',
+      held: true,
+      text: tt(mm.sumWarmupHeld, { who: warm.name, paused: h.paused ? 'yes' : 'no', time: h.until ? clock(h.until) : '', count: names.length, names: andList(names) }),
+    }
+  }
   const near = s.thresholds.filter((x) => x.state === 'near')
   // "Canary passed at 09:20." first, once it did (LiveMonitor).
   const c = s.canary
@@ -502,6 +523,7 @@ export function summaryLine(s: Snapshot, incident?: Incident): { tone: Tone; tex
 
 /** A sending provider's state word. */
 export function providerStatus(p: Provider, mobile = false): { tone: Tone; text: string } {
+  if (p.warmupHold) return { tone: 'warn', text: tt(p.warmupHold.paused ? mm.providerWarmupPaused : mm.providerWarmupHeld) }
   if (p.retrying && p.routeStatus === 'held') return { tone: 'warn', text: tt(mm.providerRetrying, { done: p.probes, needed: p.probesNeeded }) }
   if (p.downSince && (p.routeStatus === 'held' || p.status === 'down')) return { tone: 'bad', text: tt(mm.providerDownSince, { time: clock(p.downSince) }) }
   if (p.routeStatus === 'held' || p.routeStatus === 'paused') return { tone: 'warn', text: tt(mm.providerHeld) }
@@ -831,6 +853,14 @@ export function headerBadges(s: Snapshot, incident: Incident | undefined): { ton
     if (others.length) out.push({ tone: 'ok', text: tt(mm.badgeStillSending, { providers: andList(others.map((x) => x.short)) }) })
     return out
   }
+  // A share the warm-up cap holds waits for tomorrow's cap while the rest keeps going (review PR-8).
+  const warm = warmupHolds(s)[0]
+  if (!incident && warm && (s.state === 'partial' || s.state === 'sending')) {
+    const out: { tone: Tone; text: string; pulse?: boolean; live?: boolean }[] = [{ tone: 'warn', text: tt(mm.badgeWarmupHeld, { provider: warm.short }) }]
+    const others = s.providers.filter((x) => !x.warmupHold && (x.routeStatus === 'sending' || x.routeStatus === 'pending') && x.remaining > 0)
+    if (others.length) out.push({ tone: 'ok', text: tt(mm.badgeStillSending, { providers: andList(others.map((x) => x.short)) }) })
+    return out
+  }
   // A retried share sends test messages while the rest keeps going (review GS-3).
   const retrying = s.providers.find((x) => x.retrying && x.routeStatus === 'held')
   if (retrying && (s.state === 'partial' || s.state === 'sending')) {
@@ -952,7 +982,7 @@ export function lostText(at: Date, lastUpdate: string | undefined, attempt: numb
 export function mobileEta(s: Snapshot): string {
   if (s.etaSeconds === undefined) return s.state === 'paused' ? tt(mm.mobileEtaPaused) : ''
   const eta = duration(s.etaSeconds / 60)
-  return s.finishesAt ? tt(mm.mobileEta, { eta, time: clock(s.finishesAt) }) : tt(mm.timingEta, { eta })
+  return s.finishesAt ? tt(mm.mobileEta, { eta, time: whenText(s.finishesAt, s.at) }) : tt(mm.timingEta, { eta })
 }
 
 /** The delivered-share legend: whole percents that add up to 100 (largest remainder). */
@@ -980,7 +1010,17 @@ export type LegendItem = { key: string; color: string; text: string }
 
 /** What is still to send now (queued, and waiting for the A/B winner), outside any hold. */
 export function queuedCount(s: Snapshot, incident?: Incident): number {
-  return s.queued + s.waiting + (incident ? 0 : s.held)
+  return s.queued + s.waiting + (incident ? 0 : Math.max(s.held - warmupHeld(s), 0))
+}
+
+/** The routes whose share today's warm-up cap (or a paused plan) holds (review PR-8). */
+export function warmupHolds(s: Snapshot): Provider[] {
+  return s.providers.filter((p) => p.warmupHold)
+}
+
+/** How many recipients wait for a warm-up cap. */
+export function warmupHeld(s: Snapshot): number {
+  return warmupHolds(s).reduce((n, p) => n + (p.warmupHold?.held ?? 0), 0)
 }
 
 /**
@@ -995,6 +1035,10 @@ export function progressLegend(s: Snapshot, incident?: Incident, mobile = false)
       color: providerColor[p.color],
       text: mobile ? `${p.short} ${count(p.sent)}` : tt(mm.legendProvider, { name: p.name, sent: count(p.sent), rate: perSec(p.rate) }),
     }))
+  const warm = warmupHolds(s)
+  if (!incident && warm.length && warmupHeld(s) > 0) {
+    for (const p of warm) items.push({ key: `held-${p.id}`, color: heldRouteColor, text: tt(mm.legendHeldOn, { provider: p.short, count: count(p.warmupHold?.held ?? 0) }) })
+  }
   if (incident && s.held > 0) {
     if (incident.kind === 'provider_outage') {
       items.push({ key: 'held', color: heldRouteColor, text: tt(mm.legendHeldOn, { provider: incident.providerShort, count: count(s.held) }) })
@@ -1085,8 +1129,19 @@ export function whoLine(s: Snapshot, kind: 'live' | 'canary' = 'live'): string {
 export function routeDoneLine(s: Snapshot): string {
   const parts = s.providers
     .filter((p) => p.doneAt && p.remaining > 0)
-    .map((p, i) => tt(i === 0 ? mm.routeDoneFirst : mm.routeDoneNext, { provider: p.short, time: clock(p.doneAt!) }))
+    .map((p, i) => tt(i === 0 ? mm.routeDoneFirst : mm.routeDoneNext, { provider: p.short, time: whenText(p.doneAt!, s.at) }))
   return parts.join(' · ')
+}
+
+/**
+ * A time on the snapshot's day ("09:51"), else with its day: "tomorrow
+ * 00:12" (a share waiting for tomorrow's warm-up cap), "Thu 29 Oct 00:12".
+ */
+export function whenText(d: string, ref: string): string {
+  const day = longDate(d)
+  if (day === longDate(ref)) return clock(d)
+  if (day === longDate(new Date(new Date(ref).getTime() + 86_400_000))) return tt(mm.tomorrowAt, { time: clock(d) })
+  return `${shortDate(d)} ${clock(d)}`
 }
 
 /** API error rates: "0.1%", "0.4%", "100%". */

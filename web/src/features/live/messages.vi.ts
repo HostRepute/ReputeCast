@@ -205,4 +205,11 @@ export default translate(m, {
   cancelRemainingCount: 'Hủy {count} còn lại',
   cancelRemainingBody: 'Đánh dấu chiến dịch là đã gửi một phần. Bạn có thể gửi phần còn lại sau dưới dạng một chiến dịch mới.',
   pauseInsteadBody: 'Giữ hàng đợi; tiếp tục từ màn hình theo dõi bất cứ lúc nào.',
+  warmupHoldTitle: 'Phần của {provider} đang chờ ở giới hạn khởi động',
+  warmupWaiting: 'Đã chọn: chờ giới hạn.',
+  warmupWhoMove: '{names} có thể chờ hoặc chuyển phần này',
+  warmupWhoCancel: '{names} có thể hủy phần còn lại',
+  warmupWhoAll: '{names} có thể chờ, chuyển hoặc hủy phần còn lại',
+  warmupCancelTitle: 'Hủy {count} người nhận đang chờ trên {provider}?',
+  warmupKeep: 'Tiếp tục chờ',
 })

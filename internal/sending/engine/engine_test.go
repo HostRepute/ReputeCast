@@ -171,9 +171,11 @@ func testEndToEnd(t *testing.T, f *sendtest.Fixture) {
 	if n := f.Count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND email LIKE '%+alias@%'`, f.Campaign); n != 0 {
 		t.Fatalf("%d aliases queued; the older contact keeps the mailbox", n)
 	}
-	// Outlook and iCloud go to SES only (the demo's routing condition).
-	if n := f.Count(`SELECT count(*) FROM messages m JOIN providers p ON p.id = m.provider_id WHERE m.campaign_id = $1 AND m.mailbox_provider IN ('outlook','icloud') AND p.adapter <> 'ses'`, f.Campaign); n != 0 {
-		t.Fatalf("%d Outlook/iCloud recipients routed away from SES", n)
+	// No condition matches news.acme.io's mail: every mailbox provider
+	// follows the 90/10 split (strict ones get their own lower caps from
+	// Postal's warm-up instead, PR-8).
+	if n := f.Count(`SELECT count(*) FROM messages m JOIN providers p ON p.id = m.provider_id WHERE m.campaign_id = $1 AND m.mailbox_provider IN ('outlook','icloud') AND p.adapter = 'postal'`, f.Campaign); n == 0 {
+		t.Fatal("no Outlook or iCloud recipients on Postal's share")
 	}
 	if n := f.Count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND route_note LIKE 'Postal share of the 90/10 split, warm-up day %'`, f.Campaign); n == 0 {
 		t.Fatal("no route notes on the Postal share")

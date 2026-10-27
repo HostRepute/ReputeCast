@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useState, type ReactNode } from 'react'
+import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { $api, errorMessage, http, type Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Button } from '@/components/ui/Button'
@@ -14,7 +14,99 @@ import { ConnectButton, HOSTREPUTE_ASSISTANT, Refusal, sendingText, sentText, Sp
 import './ai.css'
 
 type Summary = Schemas['AIReportSummary']
+type Answer = Schemas['AIReportAnswer']
 const keptPath = '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/ai-summary' as const
+
+/** The green tick of "Every number matches this report" (Report board). */
+function Tick() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="flex-none">
+      <path d="m3 8.5 3.2 3L13 4.5" />
+    </svg>
+  )
+}
+
+/** Whether the numbers in a text are the report's: "Every number matches this report", or which aren't. */
+function NumbersCheck({ ok, unmatched }: { ok: boolean; unmatched: string[] }) {
+  const t = useT()
+  return ok ? (
+    <span className="ai-numcheck ok">
+      <Tick />
+      {t(ms.numbersMatchReport)}
+    </span>
+  ) : (
+    <span className="ai-numcheck bad">{t(ms.numbersOffReport, { numbers: unmatched.join(', ') })}</span>
+  )
+}
+
+/**
+ * "Ask about this report" (review AN-14): a question answered by the
+ * workspace's own model from the report's aggregate numbers, each number in
+ * the answer checked against the report.
+ */
+function AskBox({ campaignId, model }: { campaignId: string; model: string }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  const id = useId()
+  const [question, setQuestion] = useState('')
+  const [answer, setAnswer] = useState<Answer>()
+  const [error, setError] = useState<string>()
+  const [busy, setBusy] = useState(false)
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    const q = question.trim()
+    if (!q || busy) return
+    setBusy(true)
+    setError(undefined)
+    try {
+      const { data } = await http.POST(`${aiBase}/report-question`, { params: { path: { workspace: slug } }, body: { campaignId, question: q } })
+      setAnswer(data)
+    } catch (err) {
+      setAnswer(undefined)
+      setError(errorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <form className="ai-ask" onSubmit={(e) => void submit(e)}>
+      <label htmlFor={`${id}-q`} className="text-[13px] font-semibold">
+        {t(ms.askTitle)}
+      </label>
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          id={`${id}-q`}
+          className="in min-w-0 flex-[1_1_320px]"
+          type="text"
+          maxLength={500}
+          value={question}
+          placeholder={t(ms.askPlaceholder)}
+          aria-describedby={`${id}-note`}
+          onChange={(e) => setQuestion(e.target.value)}
+        />
+        <Button type="submit" loading={busy} disabledReason={question.trim() ? undefined : t(ms.askEmpty)}>
+          {t(ms.ask)}
+        </Button>
+      </div>
+      <span id={`${id}-note`} className="k">
+        {t(ms.askNote, { model })}
+      </span>
+      <div aria-live="polite" className="contents">
+        {answer ? (
+          answer.refusal ? (
+            <Refusal model={model} text={answer.refusal} />
+          ) : (
+            <div className="ai-answer">
+              <p className="m-0 text-[14px] leading-relaxed">{answer.answer}</p>
+              <NumbersCheck ok={answer.numbersMatch} unmatched={answer.unmatched} />
+            </div>
+          )
+        ) : null}
+        {error ? <span className="ai-numcheck bad">{error}</span> : null}
+      </div>
+    </form>
+  )
+}
 
 /**
  * Summarize results on a campaign's report (AISegmentReport): the button
@@ -74,7 +166,9 @@ export function useReportAI(campaignId: string, sent: boolean): { button: ReactN
       setBusy(false)
     }
   }
-  const button = assist.can ? (
+  // With a kept summary the header has no button (the Report boards):
+  // removing the summary brings it back.
+  const button = assist.can && !kept.data?.kept ? (
     <Button className="ai-assist" onClick={summarize} disabledReason={off ? t(ms.summaryOff) : s.state.phase === 'working' ? t(m.writing) : undefined}>
       <Sparkle />
       {t(ms.summarize)}
@@ -160,28 +254,41 @@ export function useReportAI(campaignId: string, sent: boolean): { button: ReactN
     />
   )
   const k = kept.data?.kept
+  // Ask about this report: the workspace's model, for people who may use it.
+  const canAsk = assist.can && assist.configured && !off
+  const model = assist.model
   const keptCard = k ? (
-    <section className="card ai-kept" aria-label={t(ms.keptBy, { name: k.keptBy })}>
+    <section className="card ai-kept" aria-labelledby="ai-kept-h">
       <div className="ai-kept-h">
         <Sparkle />
-        <span className="font-semibold">{t(ms.keptBy, { name: k.keptBy })}</span>
-        <span className="k ml-auto">{t(ms.keptMeta, { date: shortDate(k.keptAt), time: clock(k.keptAt), model: k.modelName || k.model })}</span>
+        <h2 className="h2 m-0" id="ai-kept-h">
+          {t(ms.keptBy, { name: k.keptBy })}
+        </h2>
+        <div className="ml-auto flex flex-wrap items-center gap-2.5">
+          <span className="k">{t(ms.keptMeta, { date: shortDate(k.keptAt), time: clock(k.keptAt), model: k.modelName || k.model })}</span>
+          {assist.can ? (
+            <Button size="sm" loading={busy} onClick={() => void remove()}>
+              {t(ms.removeSummary)}
+            </Button>
+          ) : null}
+        </div>
       </div>
-      <p className="m-0 text-[14px] leading-relaxed">{k.summary}</p>
-      <div className="ai-kept-f">
-        {kept.data?.hostRepute ? (
+      <p className="m-0 max-w-[980px] text-[14px] leading-relaxed">{k.summary}</p>
+      <NumbersCheck ok={k.numbersMatch} unmatched={k.unmatched} />
+      {kept.data?.hostRepute ? (
+        <div className="ai-kept-f">
           <a className="ai-kept-hr" href={HOSTREPUTE_ASSISTANT} target="_blank" rel="noreferrer">
             <Icon name="shield" size={14} />
             {t(ms.reputationAsk)}
             <span className="vh">{t(ms.newTab)}</span>
           </a>
-        ) : null}
-        {assist.can ? (
-          <Button size="sm" className="ml-auto" loading={busy} onClick={() => void remove()}>
-            {t(ms.removeSummary)}
-          </Button>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
+      {canAsk ? <AskBox campaignId={campaignId} model={model} /> : null}
+    </section>
+  ) : canAsk && !card ? (
+    <section className="card ai-kept" aria-label={t(ms.askTitle)}>
+      <AskBox campaignId={campaignId} model={model} />
     </section>
   ) : null
   return {

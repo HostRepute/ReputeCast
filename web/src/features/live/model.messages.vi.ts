@@ -175,6 +175,13 @@ export default translate(mm, {
   providerRetrying: 'Đang thử lại · {done}/{needed} lần kiểm tra đạt',
   providerWarmup: 'Khởi động',
   providerWarmupNote: 'khởi động ngày {day} · {sent} trên giới hạn hôm nay {cap}',
+  providerWarmupHeld: 'Chờ giới hạn ngày mai',
+  providerWarmupPaused: 'Chờ kế hoạch khởi động',
+  sumWarmupHeld:
+    '{paused, select, yes {Phần của {who} đang chờ kế hoạch khởi động tiếp tục.} other {Phần của {who} đang chờ giới hạn khởi động của ngày mai từ {time}.}}{count, plural, =0 {} other { {names} vẫn tiếp tục gửi.}}',
+  badgeWarmupHeld: 'Tuyến {provider} đang chờ giới hạn khởi động',
+  tomorrowAt: '{time} ngày mai',
+  needsWarmupCancel: 'Chỉ người có thể tạm dừng lần gửi mới hủy được phần đang chờ ở giới hạn khởi động.',
   providerQuotaNote: 'hạn mức còn trống {free} sau lần gửi này',
   providerLine: '{rate} · {delivered} gửi thành công',
 

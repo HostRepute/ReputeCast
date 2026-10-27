@@ -6,6 +6,7 @@ import { toast } from '@/components/ui/Toast'
 import { t as tt, useT } from '@/i18n'
 import { count, orList } from '@/lib/format'
 import { useCan } from '@/lib/session'
+import { mw } from '@/features/providers/warmup.messages'
 import { mc } from './canary.messages'
 import { m } from './messages'
 import { mailboxName, needs, queuedCount, type Incident, type LiveAction, type Snapshot } from './model'
@@ -34,7 +35,21 @@ export function useLiveActions(slug: string, campaignId: string, apply: (s: Snap
   const canaryContinueM = $api.useMutation('post', `${base}/canary/continue`)
   const canaryExtendM = $api.useMutation('post', `${base}/canary/extend`)
   const canaryStopM = $api.useMutation('post', `${base}/canary/stop`)
-  const pending = pauseM.isPending || resumeM.isPending || cancelM.isPending || moveM.isPending || retryM.isPending || thresholdsM.isPending || acknowledgeM.isPending || ratesM.isPending || canaryContinueM.isPending || canaryExtendM.isPending || canaryStopM.isPending
+  // A share the warm-up cap holds is decided through the warm-up plan (review PR-8).
+  const warmupHoldM = $api.useMutation('post', '/api/v1/workspaces/{workspace}/warmup/{planId}/held/{campaignId}')
+  const pending =
+    pauseM.isPending ||
+    resumeM.isPending ||
+    cancelM.isPending ||
+    moveM.isPending ||
+    retryM.isPending ||
+    thresholdsM.isPending ||
+    acknowledgeM.isPending ||
+    ratesM.isPending ||
+    canaryContinueM.isPending ||
+    canaryExtendM.isPending ||
+    canaryStopM.isPending ||
+    warmupHoldM.isPending
 
   const settle = (r: Result) => {
     apply(r.snapshot)
@@ -125,6 +140,24 @@ export function useLiveActions(slug: string, campaignId: string, apply: (s: Snap
         .mutateAsync({ params: { path }, body: { rates } })
         .then(settle)
         .catch(fail(tt(m.ratesFailed))),
+    /**
+     * A share today's warm-up cap holds (review PR-8): wait for tomorrow's
+     * cap, move it to a warm provider, or cancel the rest. The answer isn't
+     * a snapshot: the monitor asks for a new one.
+     */
+    decideWarmupHold: (planId: string, body: Schemas['WarmupHoldDecision'], target?: string) =>
+      warmupHoldM
+        .mutateAsync({ params: { path: { workspace: slug, planId, campaignId } }, body })
+        .then((r) => {
+          void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live'] })
+          void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns'] })
+          const n = count(r.moved || r.cancelled)
+          const title =
+            body.action === 'move' ? tt(mw.holdMovedToast, { count: n, provider: target ?? '' }) : body.action === 'cancel' ? tt(mw.holdCancelledToast, { count: n }) : tt(mw.holdWaitToast)
+          toast({ kind: body.action === 'cancel' ? 'deleted' : 'success', title })
+          return r
+        })
+        .catch(fail(tt(mw.holdFailed))),
     /** Marks an alert as read: complaints after the send (review GS-6). */
     acknowledge: (body: Schemas['LiveAcknowledgeRequest']) =>
       acknowledgeM
@@ -173,6 +206,8 @@ export function useLivePermissions(helpers: Schemas['LiveHelpers'] | undefined) 
     cancel: canSend ? undefined : needs('cancel', 'campaigns:send', helpers?.send),
     rates: canSend ? undefined : needs('rates', 'campaigns:send', helpers?.send),
     decide: canSend ? undefined : needs('decide', 'campaigns:send', helpers?.send),
+    // Cancelling what the warm-up cap holds needs campaigns:pause (warm-up holds, review PR-8).
+    warmupCancel: canPause ? undefined : needs('warmupCancel', 'campaigns:pause', helpers?.pause),
   }
 }
 

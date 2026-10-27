@@ -377,7 +377,7 @@ Parallel workstreams use their own database and ports (see WORKSTREAMS.md):
 createdb -h localhost -p 5433 -U reputecast reputecast_<ws>
 export REPUTECAST_ENV=development REPUTECAST_DATABASE__URL=postgres://reputecast:reputecast@localhost:5433/reputecast_<ws>?sslmode=disable
 go run ./cmd/reputecast seed
-REPUTECAST_HTTP__ADDR=:81NN REPUTECAST_HTTP__PUBLIC_URL=http://localhost:52NN REPUTECAST_AUTH__COOKIE_SECURE=false go run ./cmd/reputecast serve --auto-migrate &
+REPUTECAST_HTTP__ADDR=:81NN REPUTECAST_PUBLIC_URL=http://localhost:52NN REPUTECAST_AUTH__COOKIE_SECURE=false go run ./cmd/reputecast serve --auto-migrate &
 cd web && WEB_PORT=52NN REPUTECAST_BACKEND=http://localhost:81NN pnpm dev &
 ```
 

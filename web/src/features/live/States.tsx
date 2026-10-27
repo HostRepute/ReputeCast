@@ -1,9 +1,13 @@
+import { useState } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState, Loading, Skeleton } from '@/components/ui/Feedback'
+import { Field, Select } from '@/components/ui/Field'
 import { Grid } from '@/components/ui/Layout'
 import { Banner } from '@/components/ui/Note'
+import { mw } from '@/features/providers/warmup.messages'
 import { t as tr, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { andList, clock, clockSeconds, count, pct, weekdayDate } from '@/lib/format'
@@ -26,9 +30,11 @@ import {
   scheduledLine,
   scopeName,
   startingText,
+  warmupHolds,
   watchRows,
   watchTitle,
   type Incident,
+  type Provider,
   type Snapshot,
 } from './model'
 import { mm } from './model.messages'
@@ -195,6 +201,106 @@ export function NoticeBanners({ s, actions, can }: { s: Snapshot; actions: LiveA
         )
       })}
     </>
+  )
+}
+
+/**
+ * The shares today's warm-up cap holds (review PR-8), each like the other
+ * holds: the route, how many recipients wait and until when, the choices
+ * (wait, move or cancel the rest, through the warm-up plan: waiting and
+ * moving need campaigns:send, cancelling campaigns:pause) and who can
+ * decide. Each goes on by itself with tomorrow's cap, so the send keeps
+ * running instead of waiting for a decision.
+ */
+export function WarmupHoldBanners({ s, actions, can }: { s: Snapshot; actions: LiveActions; can?: LivePermissions }) {
+  const holds = warmupHolds(s)
+  if (!holds.length) return null
+  return (
+    <>
+      {holds.map((p) => (
+        <WarmupHoldBanner key={p.id} s={s} p={p} actions={actions} can={can} />
+      ))}
+    </>
+  )
+}
+
+function WarmupHoldBanner({ s, p, actions, can }: { s: Snapshot; p: Provider; actions: LiveActions; can?: LivePermissions }) {
+  const t = useT()
+  const [target, setTarget] = useState('')
+  const [cancelling, setCancelling] = useState(false)
+  const h = p.warmupHold
+  if (!h) return null
+  const allowed = h.targets.filter((x) => x.allowed)
+  const blocked = h.targets.filter((x) => !x.allowed)
+  const chosen = allowed.find((x) => x.providerId === target) ?? allowed[0]
+  const send = s.helpers?.send ?? []
+  const pause = s.helpers?.pause ?? []
+  const same = send.length > 0 && send.length === pause.length && send.every((n) => pause.includes(n))
+  const who = same
+    ? t(m.warmupWhoAll, { names: andList(send) })
+    : [send.length ? t(m.warmupWhoMove, { names: andList(send) }) : '', pause.length ? t(m.warmupWhoCancel, { names: andList(pause) }) : ''].filter(Boolean).join(' · ')
+  const decide = (action: 'wait' | 'move') => () =>
+    void actions
+      .decideWarmupHold(h.planId, action === 'move' && chosen ? { action, targetProviderId: chosen.providerId } : { action }, chosen?.short)
+      .catch(() => undefined)
+  return (
+    <Banner
+      tone="warn"
+      title={t(m.warmupHoldTitle, { provider: p.name })}
+      actions={
+        h.planId ? (
+          <>
+            {h.decision !== 'wait' ? (
+              <Button disabledReason={can?.decide} loading={actions.pending} onClick={decide('wait')}>
+                {t(mw.holdWait)}
+              </Button>
+            ) : null}
+            {chosen ? (
+              <Button variant="primary" disabledReason={can?.decide} loading={actions.pending} onClick={decide('move')}>
+                {t(mw.holdMove, { provider: chosen.short })}
+              </Button>
+            ) : null}
+            <Button variant="danger" disabledReason={can?.warmupCancel} onClick={() => setCancelling(true)}>
+              {t(mw.holdCancel)}
+            </Button>
+          </>
+        ) : null
+      }
+    >
+      <span>
+        {t(mw.holdBody, { count: h.held, paused: h.paused ? 'yes' : 'no', time: h.until ? clock(h.until) : '' })}
+        {h.decision === 'wait' ? ` ${t(m.warmupWaiting)}` : ''}
+      </span>
+      {allowed.length > 1 ? (
+        <span className="mt-2 flex max-w-[360px] flex-col gap-1">
+          <Field label={t(mw.holdMoveTarget)}>
+            <Select className="lv-warm-target" value={chosen?.providerId ?? ''} onChange={(e) => setTarget(e.target.value)}>
+              {allowed.map((x) => (
+                <option key={x.providerId} value={x.providerId}>
+                  {x.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </span>
+      ) : null}
+      {!allowed.length && blocked.length ? (
+        <span className="mt-1 block">
+          {t(mw.holdNoTarget)} {blocked.map((x) => (x.reason ? `${x.short}: ${x.reason}` : x.short)).join(' · ')}
+        </span>
+      ) : null}
+      {who ? <span className="k mt-1 block">{who}</span> : null}
+      <ConfirmDialog
+        open={cancelling}
+        onOpenChange={setCancelling}
+        badge={t(mw.holdCancel)}
+        title={t(m.warmupCancelTitle, { count: count(h.held), provider: p.short })}
+        description={t(mw.holdCancelBody, { count: h.held, provider: p.short })}
+        confirmLabel={t(mw.holdCancel)}
+        cancelLabel={t(m.warmupKeep)}
+        onConfirm={() => actions.decideWarmupHold(h.planId, { action: 'cancel' })}
+      />
+    </Banner>
   )
 }
 

@@ -30,7 +30,7 @@ type Canary struct {
 	OverUsual bool `json:"overUsual"`
 	// Percent of the audience, the most engaged first.
 	Percent float64 `json:"percent" minimum:"1" maximum:"20"`
-	// Seeds adds the workspace's connected seed inboxes.
+	// Seeds adds the workspace's connected seed mailboxes.
 	Seeds bool `json:"seeds"`
 	// WatchMinutes is how long the canary is watched before the gates.
 	WatchMinutes int         `json:"watchMinutes" enum:"10,20,30,60"`
@@ -38,7 +38,7 @@ type Canary struct {
 }
 
 // CanaryGates are what the canary must stay under, in percent (SeedSpam: a
-// count of seed inboxes).
+// count of seed mailboxes).
 type CanaryGates struct {
 	Bounce      float64 `json:"bounce" minimum:"0.1" maximum:"20"`
 	BlockBounce float64 `json:"blockBounce" minimum:"0.01" maximum:"20"`

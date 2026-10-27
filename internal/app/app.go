@@ -224,6 +224,8 @@ func (a *App) Handler() http.Handler {
 	}
 	r.Use(a.httpMetrics.Middleware)
 	r.Use(middleware.RequestID)
+	// Forwarding headers from proxies that aren't trusted (wire_proxycheck.go).
+	r.Use(proxyDetector(a).Middleware)
 	r.Use(server.RealIP(trustedProxies(a.Cfg.HTTP.TrustedProxies, a.Log)))
 	r.Use(server.RequestLogger(a.Log))
 	r.Use(middleware.Recoverer)

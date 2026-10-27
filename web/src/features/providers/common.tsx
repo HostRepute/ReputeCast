@@ -1,11 +1,11 @@
 import { ApiError, type Schemas } from '@/api/client'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { NavTabs } from '@/components/ui/Tabs'
-import { ChannelSwitch } from '@/features/channels/ChannelSwitch'
 import { T, t as tt, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { ago, decimal, duration, pct, trimPct } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
+import { ChannelMenu } from './ChannelMenu'
 import { m } from './messages'
 import './providers.css'
 
@@ -69,8 +69,8 @@ export function ProvidersTabs() {
   const params = { workspace: slug }
   return (
     <>
-      {/* Email · SMS · …, or "Add a channel" (design expansion phase 8, X21). */}
-      <ChannelSwitch current="email" />
+      {/* One channel button with a listbox: Email, SMS, Push, WhatsApp (Providers board). */}
+      <ChannelMenu current="email" />
       <NavTabs
         label={t(m.sectionsLabel)}
         className="ml-3 max-md:ml-0"
@@ -78,6 +78,7 @@ export function ProvidersTabs() {
           { label: t(m.tabProviders), to: '/w/$workspace/providers', params, exact: true },
           { label: t(m.tabRouting), to: '/w/$workspace/providers/routing', params },
           { label: t(m.tabWarmup), to: '/w/$workspace/providers/warmup', params },
+          { label: t(m.tabTraffic), to: '/w/$workspace/providers/traffic-rules', params },
           { label: t(m.tabEvents), to: '/w/$workspace/providers/events', params },
           { label: t(m.tabAdapters), to: '/w/$workspace/providers/adapters', params },
         ]}
@@ -170,7 +171,7 @@ export function Meter({
     <div className="pv-m">
       <div className="l">
         <span className="k">{label}</span>
-        <span className={cn('n', valueClassName)} style={valueStyle}>
+        <span className={cn('n whitespace-nowrap', valueClassName)} style={valueStyle}>
           {value}
         </span>
       </div>

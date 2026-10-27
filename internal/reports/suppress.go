@@ -50,8 +50,12 @@ func (s *Service) SuppressBounces(ctx context.Context, ws *store.Workspace, camp
 	if !ok {
 		return ReportSuppressResult{}, api.Invalid("path.type", mUnknownBounce.Text(l, nil))
 	}
-	if t.Suppress == "retry" {
+	switch t.Suppress {
+	case "retry":
 		return ReportSuppressResult{}, api.Conflict(mSoftBounces.Text(l, nil))
+	case "never":
+		// A block for the sender's reputation or policy (review AN-7).
+		return ReportSuppressResult{}, api.Conflict(mSenderBlocks.Text(l, nil))
 	}
 	c, err := s.Q.ReportCampaign(ctx, store.ReportCampaignParams{WorkspaceID: ws.ID, ID: campaignID})
 	if err != nil {

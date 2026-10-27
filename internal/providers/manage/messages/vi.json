@@ -26,13 +26,11 @@
   "stream.name": "{stream, select, broadcast {Gửi hàng loạt} automation {Tự động hóa} transactional {Giao dịch} other {Hệ thống}}",
   "label.statusPage": "Trạng thái {provider}",
   "label.kind": "{kind, select, double_opt_in {thư xác nhận hai bước} invite {lời mời vào nhóm} preference_link {liên kết trung tâm tùy chọn} password_reset {thư đặt lại mật khẩu} api {thư API} other {thư khác}}",
-  "label.source": "{kind, select, double_opt_in {Thư xác nhận hai bước} preference_link {Liên kết trung tâm tùy chọn} invite {Lời mời vào nhóm} password_reset {Thư đặt lại mật khẩu} api {API · giao dịch} other {–}}",
+  "label.source": "{kind, select, double_opt_in {Thư xác nhận hai bước} preference_link {Liên kết trung tâm tùy chọn} invite {Lời mời vào nhóm} password_reset {Thư đặt lại mật khẩu} api {API · giao dịch} smtp {SMTP relay · giao dịch} placement {Bản gửi kiểm tra vị trí hộp thư} other {–}}",
+  "label.sourceStep": "{automation} · bước {step}",
 
   "check.responds": "{op} phản hồi",
   "check.authAccepted": "AUTH được chấp nhận",
-  "check.selfTestOK": "200 OK khi tự kiểm tra",
-  "check.selfTestStatus": "{status} khi tự kiểm tra",
-  "test.unreachable": "Không truy cập được {url}: {error}",
 
   "incident.down": "{name}: {hasError, select, yes {{error}} other {lỗi API}}{hasOp, select, yes { ở {op}} other {}} · kiểm tra sức khỏe thất bại.",
   "incident.authDown": "{name} đã từ chối thông tin xác thực: {hasError, select, yes {{error}} other {lỗi API}}{hasOp, select, yes { ở {op}} other {}}.",
@@ -43,6 +41,16 @@
   "incident.silent": "{name}: không có sự kiện webhook nào từ {since, time} trong khi thư vẫn được gửi đi.",
   "incident.resumed": "{name}: sự kiện webhook đã về trở lại.",
 
+  "incident.failoverVetted": "{stream, select, broadcast {Gửi hàng loạt} automation {Tự động hóa} transactional {Giao dịch} other {Hệ thống}}: đã chuyển sang {fallback} sau {count} lần kiểm tra sức khỏe thất bại; {fallback} đã vượt qua các bước kiểm tra trước đó.",
+  "incident.fallbackFailed": "{stream, select, broadcast {Gửi hàng loạt} automation {Tự động hóa} transactional {Giao dịch} other {Hệ thống}}: {fallback} không vượt qua các bước kiểm tra, nên ReputeCast tiếp tục thử lại {name} thay vì chuyển đi.",
+  "incident.rejecting": "{name} đã từ chối {rejected, number} trên {total, number} thư trong {minutes} phút.{hasAnswer, select, yes { Phản hồi gần nhất: {answer}} other {}}",
+  "incident.accepting": "{name} đã nhận thư trở lại.",
+  "notify.rejectingTitle": "{name} đang từ chối thư",
+  "notify.rejectingBody": "Nhà cung cấp đã từ chối {rejected, number} trên {total, number} thư trong {minutes} phút qua.{hasAnswer, select, yes { Phản hồi gần nhất: {answer}.} other {}} Các thư bị từ chối chưa được gửi. Hãy kiểm tra tên miền người gửi và tài khoản tại {name}.",
+  "incident.mailboxFailing": "{name}: không đọc được hộp thư trả lại {mailbox} từ {since, time}: {error}. Thư trả lại từ máy chủ này chưa được xử lý.",
+  "incident.mailboxOK": "{name}: đã đọc được hộp thư trả lại trở lại.",
+  "notify.mailboxTitle": "{name}: không đọc được hộp thư trả lại",
+  "notify.mailboxBody": "ReputeCast không đọc được {mailbox} từ {since, time} ({error}). Cho đến khi đọc được, thư trả lại từ máy chủ này sẽ không vào danh sách chặn gửi. Hãy kiểm tra mật khẩu và cài đặt máy chủ của hộp thư.",
   "notify.downTitle": "{name} đang gián đoạn",
   "notify.authTitle": "{name} đã từ chối thông tin xác thực",
   "notify.downBody": "{hasError, select, yes {{error}} other {Lỗi API}}{hasOp, select, yes { ở {op}} other {}} từ {since, time}.{autoCount, plural, =0 {} other { # luồng đã tự động chuyển dự phòng.}}{heldCount, plural, =0 {} other { # luồng đang chờ bạn quyết định.}}",
@@ -99,5 +107,11 @@
   "adapters.download": "Không tải được manifest: {error}",
   "adapters.status": "URL của manifest đã trả về {status}.",
   "adapters.notJson": "Tệp này không phải manifest adapter hợp lệ (cần JSON).",
-  "adapters.incomplete": "Manifest cần có tên, phiên bản và loại (remote, http hoặc wasm)."
+  "adapters.incomplete": "Manifest cần có tên, phiên bản và loại (remote, http hoặc wasm).",
+  "check.lastReached": "{name} truy cập nó lần cuối lúc {at, time}",
+  "check.addressProblem": "{kind, select, local {{host} chỉ dùng được trên máy này} private {{host} phân giải thành {ip}, một địa chỉ riêng mà không nhà cung cấp nào truy cập được} dns {{host} không phân giải được trong DNS công khai} other {địa chỉ không phải URL hợp lệ}}",
+  "incident.queueFailing": "{name}: không đọc được hàng đợi sự kiện từ {since, time}: {error}. Các sự kiện giao thư, trả lại và khiếu nại đang chờ trong hàng đợi.",
+  "incident.queueOK": "{name}: đã đọc được hàng đợi sự kiện trở lại.",
+  "notify.queueTitle": "{name}: không đọc được hàng đợi sự kiện",
+  "notify.queueBody": "ReputeCast không đọc được hàng đợi SQS của {name} từ {since, time} ({error}). Cho đến khi đọc được, các sự kiện giao thư, trả lại và khiếu nại chờ ở đó (tối đa bốn ngày). Hãy kiểm tra chính sách IAM cho phép sqs:ReceiveMessage."
 }

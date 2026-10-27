@@ -196,7 +196,7 @@ func TestRuntimeEndToEnd(t *testing.T) {
 	p := connect(t, env, "community:fake-esp")
 	svc := &manage.Service{Pool: env.App.Pool, Q: env.App.Q, Audit: env.App.Audit, URLs: env.App.URLs,
 		Factory: &manage.Factory{Box: env.App.Secrets, HTTP: http.DefaultClient}, Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
-		SelfTest: func(context.Context, string, http.Header) (int, error) { return http.StatusOK, nil }}
+		CheckAddress: func(context.Context, string) (manage.AddressProblem, bool) { return manage.AddressProblem{}, true }}
 	checked, err := svc.Check(ctx, p, true)
 	if err != nil {
 		t.Fatal(err)
@@ -331,7 +331,7 @@ func TestAdapterFailuresReachProviderHealth(t *testing.T) {
 	now := time.Now()
 	svc := &manage.Service{Pool: env.App.Pool, Q: env.App.Q, Audit: env.App.Audit, URLs: env.App.URLs,
 		Factory: &manage.Factory{Box: env.App.Secrets, HTTP: http.DefaultClient}, Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
-		SelfTest: func(context.Context, string, http.Header) (int, error) { return http.StatusOK, nil }, Now: func() time.Time { return now }}
+		CheckAddress: func(context.Context, string) (manage.AddressProblem, bool) { return manage.AddressProblem{}, true }, Now: func() time.Time { return now }}
 	check := func(status, detail string) state.Health {
 		t.Helper()
 		now = now.Add(4 * time.Minute)

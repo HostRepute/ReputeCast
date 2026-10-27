@@ -23,6 +23,7 @@ export default translate(mo, {
   costNoMail: 'chưa gửi thư nào trong tháng này',
   tileSuppression: 'Danh sách chặn gửi dùng chung',
   syncedAll: 'đã đồng bộ đến mọi nhà cung cấp lúc {time}',
+  pushedAll: '{count, plural, other {# thư trả lại và khiếu nại đã đẩy đến các nhà cung cấp lúc {time}}}',
   syncing: 'đang đồng bộ · lần hoàn tất gần nhất lúc {time}',
   enforced: 'được áp dụng trước mỗi lần gửi',
 
@@ -59,6 +60,9 @@ export default translate(mo, {
   factErrorRate3m: 'Tỷ lệ lỗi API · 3 phút',
   factServer: 'Máy chủ',
   factAccountStatus: 'Trạng thái tài khoản',
+  factTenant: 'Tenant',
+  tenantLine: 'danh sách chặn gửi riêng · chính sách danh tiếng {policy} (chỉ tạm dừng tenant này)',
+  tenantLineNoPolicy: 'danh sách chặn gửi riêng · danh tiếng riêng (việc tạm dừng chỉ dừng tenant này)',
   factLastSuccess: 'Lần gửi thành công gần nhất',
   noneRecorded: 'chưa ghi nhận',
   webhookBefore: '{webhook} (từ các lần gửi trước {time})',

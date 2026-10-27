@@ -41,6 +41,9 @@ import {
   type Provider,
   type Snapshot,
   type Threshold,
+  queuedCount,
+  warmupHeld,
+  whenText,
   whoLine,
 } from './model'
 import { currentRates, finishSeconds, nearestLevel } from './RatesPanel'
@@ -480,6 +483,52 @@ describe('LiveMonitorOutage', () => {
     expect(providerStatus(retrying.providers[1]!)).toEqual({ tone: 'warn', text: 'Retrying · 1 of 3 tests passed' })
     const again: Incident = { ...outage, detail: { ...outage.detail, retried: true } }
     expect(outageTitle(again)).toBe('Postal is still down after 15 minutes of retrying')
+  })
+})
+
+// Review PR-8 with GS-14: a share today's warm-up cap holds shows like the
+// other holds, and it goes on with tomorrow's cap, which the ETA counts.
+describe('Warm-up hold', () => {
+  const waiting = provider({
+    ...postal,
+    routeStatus: 'held',
+    rate: 0,
+    remaining: 1201,
+    doneAt: '2026-10-15T00:01:00Z',
+    warmupSent: 6000,
+    warmupHold: { planId: 'plan', held: 1201, since: T('09:20:00'), until: '2026-10-15T00:00:00Z', paused: false, cap: 6000, targets: [] },
+  })
+  const s = snapshot({
+    ...live,
+    state: 'partial',
+    queued: 10809,
+    held: 1201,
+    finishesAt: '2026-10-15T00:01:00Z',
+    providers: [{ ...ses, doneAt: T('09:34:00') }, waiting],
+    providersHeld: ['Postal'],
+  })
+
+  it('says which route waits, until when, and that the rest keeps sending', () => {
+    expect(summaryLine(s)).toEqual({ tone: 'warn', held: true, text: "Postal share waits for tomorrow's warm-up cap from 00:00. Amazon SES keeps sending." })
+    expect(headerBadges(s, undefined).map((b) => b.text)).toEqual(['Postal route waits for the warm-up cap', 'SES still sending'])
+    expect(providerStatus(waiting)).toEqual({ tone: 'warn', text: "Waits for tomorrow's cap" })
+    const paused = { ...waiting, warmupHold: { ...waiting.warmupHold!, paused: true, until: undefined } }
+    expect(providerStatus(paused)).toEqual({ tone: 'warn', text: 'Waits for the warm-up plan' })
+    expect(summaryLine({ ...s, providers: [paused] }).text).toBe('Postal share waits for its warm-up plan to resume.')
+  })
+
+  it('counts the wait for tomorrow in when the route is done', () => {
+    expect(routeDoneLine(s)).toBe('SES done about 09:34 · Postal about tomorrow 00:01')
+    expect(whenText('2026-10-14T21:05:00Z', s.at)).toBe('21:05')
+    expect(whenText('2026-10-16T00:01:00Z', s.at)).toBe('Fri 16 Oct 00:01')
+    expect(mobileEta({ ...s, etaSeconds: 52_000 })).toContain('tomorrow 00:01')
+  })
+
+  it('keeps the held recipients out of what is queued now', () => {
+    expect(warmupHeld(s)).toBe(1201)
+    expect(queuedCount(s)).toBe(10809)
+    expect(sentLine(s)).toBe('19,594 of 31,604 sent · 1,201 held on Postal')
+    expect(progressLegend(s).map((l) => l.text)).toEqual(['Amazon SES 17,635 · 14.2 /s', 'Postal 1,959 · 0 /s', 'Held on Postal 1,201', 'Queued 10,809'])
   })
 })
 

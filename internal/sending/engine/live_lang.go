@@ -460,6 +460,10 @@ func (s LiveSnapshot) In(l i18n.Lang) LiveSnapshot {
 	for i := range out.DeliveredMix {
 		out.DeliveredMix[i].Name = mailboxIn(l, out.DeliveredMix[i].Key)
 	}
+	out.Providers = slices.Clone(s.Providers)
+	for i := range out.Providers {
+		out.Providers[i].WarmupHold = out.Providers[i].WarmupHold.In(l)
+	}
 	routes := make([]string, 0, len(s.Routes))
 	for _, r := range s.Routes {
 		routes = append(routes, r.Short+" "+l.Region.Percent(r.Percent, 0))
