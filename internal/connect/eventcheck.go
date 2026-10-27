@@ -51,28 +51,6 @@ func eventRows(adapter providers.Provider) []ProvisionState {
 	return []ProvisionState{send, check}
 }
 
-// eventsVerified reports whether the event check found its event; ok is
-// false for setups without one (other providers, setups from before).
-func eventsVerified(rows []ProvisionState) (verified, ok bool) {
-	for _, r := range rows {
-		if r.Key == eventCheckKey {
-			return r.Status == "done", true
-		}
-	}
-	return false, false
-}
-
-// eventsDeferred reports whether the event check waits for a verified
-// sending domain.
-func eventsDeferred(rows []ProvisionState) bool {
-	for _, r := range rows {
-		if r.Key == eventSendKey && r.Status == statusDeferred {
-			return true
-		}
-	}
-	return false
-}
-
 // eventFound is the event the check found: when it arrived, how (webhook
 // or queue) and when its message went out.
 type eventFound struct {

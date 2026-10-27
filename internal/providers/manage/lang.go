@@ -59,7 +59,6 @@ var (
 
 	mIncidentDown           = msgs.M("incident.down")
 	mIncidentAuthDown       = msgs.M("incident.authDown")
-	mIncidentFailover       = msgs.M("incident.failover")
 	mIncidentHeld           = msgs.M("incident.held")
 	mIncidentFailoverEnded  = msgs.M("incident.failoverEnded")
 	mIncidentRecovered      = msgs.M("incident.recovered")

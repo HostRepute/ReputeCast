@@ -29,8 +29,8 @@ type ProvidersSummary struct {
 	MonthStart time.Time `json:"monthStart"`
 	CostToDate float64   `json:"costToDate" doc:"Dollars"`
 	// CostPer1000 is the blended cost per 1,000 emails this month.
-	CostPer1000  *float64   `json:"costPer1000,omitempty"`
-	Suppressions int64 `json:"suppressions"`
+	CostPer1000  *float64 `json:"costPer1000,omitempty"`
+	Suppressions int64    `json:"suppressions"`
 	// Pushed counts the suppressions providers get: hard bounces and
 	// complaints that apply to all mail (review PR-1).
 	Pushed   int64      `json:"pushed"`

@@ -214,10 +214,10 @@ func Reschedule(sched []Day, today, days int, todayCap int64) ([]Day, error) {
 	}
 	for d := today; d <= days; d++ {
 		vol := roundNice(int64(float64(todayCap) * math.Pow(growth, float64(d-today))))
-		switch {
-		case d == today:
+		switch d {
+		case today:
 			vol = todayCap
-		case d == days:
+		case days:
 			vol = max(last, todayCap)
 		}
 		nd := full[d-1]
