@@ -233,5 +233,11 @@
   "state.noCanary": {"message": "\"{name}\" has no canary running.", "note": "a canary decision on a send without one; name: the campaign's name"},
   "state.noCanaryWatch": {"message": "\"{name}\"'s canary isn't being watched now.", "note": "Watch 10 more minutes after the watch ended"},
   "state.canaryChoice": {"message": "“{choice}” isn't a canary choice: use auto, on or off.", "note": "choice: what was sent"},
-  "state.canaryWaits": {"message": "“{name}” waits for a decision on its canary: continue it or stop it.", "note": "a plain resume of a send whose canary failed a gate; name: the campaign's name"}
+  "state.canaryWaits": {"message": "“{name}” waits for a decision on its canary: continue it or stop it.", "note": "a plain resume of a send whose canary failed a gate; name: the campaign's name"},
+
+  "cause.renderLead": {"message": "The template failed for {failed} recipients", "note": "failed: a count of recipients whose own data broke the email's personalization"},
+  "cause.render": "Their own data broke the email, for example a field of an unexpected type or a value too long. Each of those messages failed with the error; everyone else keeps getting the email.",
+  "rec.render": "Fix the field or the template before the next send; the samples show what failed. Send Readiness checks the template, not each recipient's data.",
+  "notify.renderTitle": {"message": "{name}: the template failed for some recipients", "note": "name: the campaign's name"},
+  "notify.renderBody": {"message": "{failed} recipients didn't get it; the send keeps going to everyone else.", "note": "failed: a count"}
 }

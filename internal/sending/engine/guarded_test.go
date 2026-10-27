@@ -57,6 +57,8 @@ func TestGuardedSending(t *testing.T) {
 	t.Run("SMTPInfersDelivery", func(t *testing.T) { testSMTPInfersDelivery(t, s.Fixture(t, "GS-7 smtp")) })
 	// GS-8: throttles shared by sends going out at once; ETAs.
 	t.Run("SendsShareThrottles", func(t *testing.T) { testSharedThrottles(t, s) })
+	// CO-4: the template fails for one recipient; the others get it.
+	t.Run("RenderErrorNotice", func(t *testing.T) { testRenderErrors(t, s.Fixture(t, "CO-4 render")) })
 	// GS-10: the canary goes first, its gates decide, people continue or stop.
 	t.Run("CanaryPassesThenEveryone", func(t *testing.T) { testCanaryPasses(t, s.Fixture(t, "GS-10 pass")) })
 	t.Run("CanaryGateHoldsThenStop", func(t *testing.T) { testCanaryHolds(t, s.Fixture(t, "GS-10 hold")) })

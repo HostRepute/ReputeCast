@@ -23,7 +23,10 @@ const (
 	KindSendPaused          = "send_paused"
 	// KindComplaintWatch: complaints passed a limit during the watch after a
 	// send (review GS-6); preferences are those of auto-pauses.
-	KindComplaintWatch   = "complaint_watch"
+	KindComplaintWatch = "complaint_watch"
+	// KindRenderFailed: the template failed for some recipients of a send
+	// (review CO-4); preferences are those of auto-pauses.
+	KindRenderFailed     = "render_failed"
 	KindSendBlocked      = "send_blocked" // the send-time recheck turned Blocked
 	KindProviderDown     = "provider_down"
 	KindProviderDegraded = "provider_degraded"

@@ -892,6 +892,7 @@ func (e *Engine) send(ctx context.Context, rs *runState, r *runRoute, claimed []
 		msg providers.Message
 	}
 	var batch []pending
+	var unrendered []renderFailure
 	extra := e.readerVars(ctx, rs, claimed)
 	for _, m := range claimed {
 		switch {
@@ -905,9 +906,17 @@ func (e *Engine) send(ctx context.Context, rs *runState, r *runRoute, claimed []
 		pm, err := e.compose(rs, r, m, extra)
 		if err != nil {
 			out.drop(m.ID, "failed", err.Error())
+			if errors.Is(err, ErrRender) {
+				unrendered = append(unrendered, renderFailure{email: m.Email, err: clip(err.Error(), 300)})
+			}
 			continue
 		}
 		batch = append(batch, pending{m, pm})
+	}
+	// The recipients the template failed for go on the send's notice
+	// (review CO-4); the others go out.
+	if err := e.noteRenderErrors(ctx, rs, unrendered, now); err != nil {
+		e.log().WarnContext(ctx, "render error notice", "campaign", rs.campaign.ID, "err", err)
 	}
 	key := routeKey{rs.campaign.ID, r.provider.ID}
 	// hold is an answer about the route (rejected credentials, an unverified

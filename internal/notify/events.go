@@ -29,7 +29,7 @@ var Events = []EventType{
 	{Key: KindApprovalRequested, Label: "Approval requested", Audience: "Only for approvers", Short: "approval requests", DefaultEmail: true, Kinds: []string{KindApprovalRequested}},
 	{Key: KindApprovalDecided, Label: "Approval approved, rejected or changes requested", Audience: "Only for the author", Short: "approval decisions", DefaultEmail: true, Kinds: []string{KindApprovalDecided}},
 	{Key: KindApprovalInvalidated, Label: "Approval invalidated", Audience: "Author and approvers", Short: "invalidated approvals", DefaultEmail: true, Kinds: []string{KindApprovalInvalidated}},
-	{Key: KindSendPaused, Label: "Send auto-paused", Audience: "People who can send campaigns", Short: "auto-pauses", DefaultEmail: true, Urgent: true, Kinds: []string{KindSendPaused, KindSendBlocked, KindComplaintWatch}},
+	{Key: KindSendPaused, Label: "Send auto-paused", Audience: "People who can send campaigns", Short: "auto-pauses", DefaultEmail: true, Urgent: true, Kinds: []string{KindSendPaused, KindSendBlocked, KindComplaintWatch, KindRenderFailed}},
 	{Key: KindProviderDown, Label: "Provider down or degraded", Audience: "People who can manage sending providers", Short: "provider down", DefaultEmail: true, Urgent: true, Kinds: []string{KindProviderDown, KindProviderDegraded}},
 	{Key: KindWebhooksSilent, Label: "Webhooks silent", Audience: "People who can manage sending providers", Short: "silent webhooks", DefaultEmail: false, Kinds: []string{KindWebhooksSilent}},
 	{Key: KindInviteAccepted, Label: "Invite accepted", Audience: "Inviter only", Short: "invites", DefaultEmail: false, Kinds: []string{KindInviteAccepted, KindInviteRequested}},
