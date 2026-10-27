@@ -548,7 +548,7 @@ func sameAudience(a, b json.RawMessage) bool {
 		return slices.Equal(p, q)
 	}
 	return eq(x.Lists, y.Lists) && eq(x.Segments, y.Segments) && eq(x.ExcludeLists, y.ExcludeLists) && eq(x.ExcludeSegments, y.ExcludeSegments) &&
-		eq(x.ExcludeTiers, y.ExcludeTiers) && x.IncludeSunset == y.IncludeSunset && x.Paid == y.Paid
+		eq(x.ExcludeTiers, y.ExcludeTiers) && x.IncludeSunset == y.IncludeSunset && x.ExcludesSunset() == y.ExcludesSunset() && x.Paid == y.Paid
 }
 
 func sameSchedule(a, b json.RawMessage) bool {

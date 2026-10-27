@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html"
 	"net/url"
-	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -27,7 +26,7 @@ import (
 
 // ReadinessFixRequest is one fix to apply.
 type ReadinessFixRequest struct {
-	Action string            `json:"action" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language,accessibility_decorative,accessibility_color,accessibility_one_click,visibility_show_everyone,visibility_hide_block,visibility_remove_condition,poll_close_days,exclude_risky,verify_addresses,sponsor_remove_block,sponsor_refresh_block"`
+	Action string            `json:"action" enum:"exclude_sunset,include_unengaged,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language,accessibility_decorative,accessibility_color,accessibility_one_click,visibility_show_everyone,visibility_hide_block,visibility_remove_condition,poll_close_days,exclude_risky,verify_addresses,sponsor_remove_block,sponsor_refresh_block"`
 	Params map[string]string `json:"params,omitempty"`
 }
 
@@ -147,6 +146,12 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 		switch fx.Action {
 		case FixExcludeSunset:
 			label, err := s.excludeSunset(ctx, ws, p, c)
+			if err != nil {
+				return out, err
+			}
+			out.Applied = append(out.Applied, label)
+		case FixIncludeUnengaged:
+			label, err := s.includeUnengaged(ctx, ws, p, c)
 			if err != nil {
 				return out, err
 			}
@@ -322,11 +327,9 @@ func (s *Service) changed(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	}
 }
 
+// excludeSunset leaves the unengaged contacts out of the campaign again,
+// and with them an override of the sunset policy.
 func (s *Service) excludeSunset(ctx context.Context, ws *store.Workspace, p *authz.Principal, c store.ReadinessCampaignRow) (string, error) {
-	var raw map[string]any
-	if err := json.Unmarshal(c.Audience, &raw); err != nil || raw == nil {
-		raw = map[string]any{}
-	}
 	def := ParseAudience(c.Audience)
 	if def.Empty() {
 		return "", api.Invalid("body.fixes", say(ctx, "problem.pickAudience", nil))
@@ -334,24 +337,74 @@ func (s *Service) excludeSunset(ctx context.Context, ws *store.Workspace, p *aut
 	if def.ExcludesSunset() {
 		return say(ctx, "applied.alreadyExcluded", nil), nil
 	}
-	tiers := append(slices.Clone(def.ExcludeTiers), "sunset")
-	raw["exclude_tiers"] = tiers
-	// Excluding the tier ends an override of the sunset policy.
-	delete(raw, "include_sunset")
+	err := s.setAudience(ctx, ws, p, c, FixExcludeSunset, func(raw map[string]any) {
+		raw["include_unengaged"] = false
+		for _, k := range []string{"includeUnengaged", "include_sunset", "includeSunset"} {
+			delete(raw, k)
+		}
+	})
+	if err != nil {
+		return "", err
+	}
+	return say(ctx, "applied.excludedUnengaged", A{"days": 180}), nil
+}
+
+// includeUnengaged puts back the unengaged contacts a send leaves out
+// ("Include them", SR-11); the check then warns about them.
+func (s *Service) includeUnengaged(ctx context.Context, ws *store.Workspace, p *authz.Principal, c store.ReadinessCampaignRow) (string, error) {
+	def := ParseAudience(c.Audience)
+	if def.Empty() {
+		return "", api.Invalid("body.fixes", say(ctx, "problem.pickAudience", nil))
+	}
+	if !def.ExcludesSunset() {
+		return say(ctx, "applied.alreadyIncluded", nil), nil
+	}
+	err := s.setAudience(ctx, ws, p, c, FixIncludeUnengaged, func(raw map[string]any) {
+		raw["include_unengaged"] = true
+		delete(raw, "includeUnengaged")
+		// An exclusion of the tier would keep them out.
+		for _, k := range []string{"exclude_tiers", "excludeTiers"} {
+			tiers, ok := raw[k].([]any)
+			if !ok {
+				continue
+			}
+			kept := []any{}
+			for _, t := range tiers {
+				if t != "sunset" {
+					kept = append(kept, t)
+				}
+			}
+			if len(kept) == 0 {
+				delete(raw, k)
+			} else {
+				raw[k] = kept
+			}
+		}
+	})
+	if err != nil {
+		return "", err
+	}
+	return say(ctx, "applied.includedUnengaged", nil), nil
+}
+
+// setAudience changes campaigns.audience with edit, on the JSON as stored
+// (keys it doesn't know are kept), and audits the change as the fix.
+func (s *Service) setAudience(ctx context.Context, ws *store.Workspace, p *authz.Principal, c store.ReadinessCampaignRow, fixKind string, edit func(raw map[string]any)) error {
+	var raw map[string]any
+	if err := json.Unmarshal(c.Audience, &raw); err != nil || raw == nil {
+		raw = map[string]any{}
+	}
+	edit(raw)
 	next, _ := json.Marshal(raw)
-	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.ReadinessSetAudience(ctx, store.ReadinessSetAudienceParams{Audience: next, AudienceCount: c.AudienceCount, UpdatedBy: &p.UserID, Now: s.now(), WorkspaceID: ws.ID, ID: c.ID}); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.update", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
 			Before: map[string]any{"audience": c.Audience}, After: map[string]any{"audience": json.RawMessage(next)},
-			Metadata: map[string]any{"source": "send_readiness", "fix": FixExcludeSunset}})
+			Metadata: map[string]any{"source": "send_readiness", "fix": fixKind}})
 	})
-	if err != nil {
-		return "", err
-	}
-	return say(ctx, "applied.excludedUnengaged", A{"days": 180}), nil
 }
 
 func (s *Service) routeOnly(ctx context.Context, ws *store.Workspace, p *authz.Principal, c store.ReadinessCampaignRow, provider, field string) (string, error) {

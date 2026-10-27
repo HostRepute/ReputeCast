@@ -56400,6 +56400,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "excludedUnengaged": {
+            "format": "int64",
+            "type": "integer"
+          },
           "final": {
             "format": "int64",
             "type": "integer"
@@ -56440,13 +56444,20 @@
           "role",
           "duplicates",
           "unengaged",
-          "unengagedExcluded"
+          "unengagedExcluded",
+          "excludedUnengaged"
         ],
         "type": "object"
       },
       "ReadinessAudienceRow": {
         "additionalProperties": false,
         "properties": {
+          "action": {
+            "enum": [
+              "include_unengaged"
+            ],
+            "type": "string"
+          },
           "count": {
             "format": "int64",
             "type": "integer"
@@ -56730,6 +56741,7 @@
           "action": {
             "enum": [
               "exclude_sunset",
+              "include_unengaged",
               "route_only",
               "insert_footer",
               "replace_link",

@@ -215,12 +215,19 @@ function ReviewBody({
     toast({ kind: 'error', title, detail: errorMessage(e) })
   }
 
-  const applyFixes = async (items: { check: Check; fix: Fix }[], key: string) => {
+  const applyFixes = (items: { check: Check; fix: Fix }[], key: string) =>
+    applyActions(
+      items.map((x) => ({ action: x.fix.action!, params: x.fix.params })),
+      key,
+    )
+
+  /** Applies one-click actions: the checks' fixes, "Include them" on the audience. */
+  const applyActions = async (fixes: Schemas['ReadinessFixRequest'][], key: string) => {
     setBusy(key)
     try {
       const { data } = await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/fixes', {
         params: { path },
-        body: { fixes: items.map((x) => ({ action: x.fix.action!, params: x.fix.params })) },
+        body: { fixes },
       })
       const applied = data?.applied ?? []
       toast({
@@ -232,7 +239,7 @@ function ReviewBody({
       // The checks run again in the background; sending stays locked until they finish.
       if (data?.running) awaitRun()
     } catch (e) {
-      fail(items.length === 1 ? t(m.fixFailed) : t(m.fixesFailed))(e)
+      fail(fixes.length === 1 ? t(m.fixFailed) : t(m.fixesFailed))(e)
     } finally {
       setBusy(undefined)
       await refresh()
@@ -677,7 +684,11 @@ function ReviewBody({
           ) : null}
         </div>
         <aside className="rv-aside" aria-label={t(m.asideLabel)}>
-          <AudienceCard audience={run.estimates.audience}>
+          <AudienceCard
+            audience={run.estimates.audience}
+            including={busy === 'include_unengaged'}
+            onInclude={a.canEdit && c.editable ? () => void applyActions([{ action: 'include_unengaged' }], 'include_unengaged') : undefined}
+          >
             <ByVersion checks={run.checks} />
           </AudienceCard>
           <RouteCard route={run.estimates.route} startAt={startAt} />

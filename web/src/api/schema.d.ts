@@ -32879,6 +32879,8 @@ export interface components {
             /** Format: int64 */
             duplicates: number;
             /** Format: int64 */
+            excludedUnengaged: number;
+            /** Format: int64 */
             final: number;
             lists: string[];
             /** Format: int64 */
@@ -32891,6 +32893,8 @@ export interface components {
             unengagedExcluded: boolean;
         };
         ReadinessAudienceRow: {
+            /** @enum {string} */
+            action?: "include_unengaged";
             /** Format: int64 */
             count: number;
             /** @enum {string} */
@@ -32963,7 +32967,7 @@ export interface components {
         };
         ReadinessFixRequest: {
             /** @enum {string} */
-            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses" | "sponsor_remove_block" | "sponsor_refresh_block";
+            action: "exclude_sunset" | "include_unengaged" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses" | "sponsor_remove_block" | "sponsor_refresh_block";
             params?: {
                 [key: string]: string;
             };

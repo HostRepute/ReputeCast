@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -43,9 +44,26 @@ type audienceDef struct {
 	// whose Broadcasts the policy stopped receive it anyway (Review & send),
 	// unless the sunset tier is excluded.
 	IncludeSunset bool
+	// IncludeUnengaged includes (true) or leaves out (false) the unengaged
+	// contacts (the sunset tier); unset, the default applies (SR-11, C2).
+	IncludeUnengaged *bool
 	// Paid keeps only the paid members of the lists (at a tier and above)
 	// or only the free subscribers: a paid-only campaign (Earn).
 	Paid paidaccess.Audience
+}
+
+// leaveOutUnengaged excludes the sunset tier when the unengaged contacts
+// are left out: as the campaign says, else by default (byDefault) unless
+// it overrides the sunset policy. Send Readiness counts the same contacts
+// (SR-11, C2: the one filter).
+func (d *audienceDef) leaveOutUnengaged(byDefault bool) {
+	out := byDefault && !d.IncludeSunset
+	if d.IncludeUnengaged != nil {
+		out = !*d.IncludeUnengaged
+	}
+	if out && !slices.Contains(d.ExcludeTiers, "sunset") {
+		d.ExcludeTiers = append(d.ExcludeTiers, "sunset")
+	}
 }
 
 // sendsToStopped reports whether contacts the sunset policy stopped receive
@@ -56,16 +74,18 @@ func (d audienceDef) sendsToStopped() bool {
 
 func parseAudience(raw json.RawMessage) audienceDef {
 	var in struct {
-		Lists            []string `json:"lists"`
-		Segments         []string `json:"segments"`
-		ExcludeLists     []string `json:"excludeLists"`
-		ExcludeLists2    []string `json:"exclude_lists"`
-		ExcludeSegments  []string `json:"excludeSegments"`
-		ExcludeSegments2 []string `json:"exclude_segments"`
-		ExcludeTiers     []string `json:"excludeTiers"`
-		ExcludeTiers2    []string `json:"exclude_tiers"`
-		IncludeSunset    bool     `json:"include_sunset"`
-		IncludeSunset2   bool     `json:"includeSunset"`
+		Lists             []string `json:"lists"`
+		Segments          []string `json:"segments"`
+		ExcludeLists      []string `json:"excludeLists"`
+		ExcludeLists2     []string `json:"exclude_lists"`
+		ExcludeSegments   []string `json:"excludeSegments"`
+		ExcludeSegments2  []string `json:"exclude_segments"`
+		ExcludeTiers      []string `json:"excludeTiers"`
+		ExcludeTiers2     []string `json:"exclude_tiers"`
+		IncludeSunset     bool     `json:"include_sunset"`
+		IncludeSunset2    bool     `json:"includeSunset"`
+		IncludeUnengaged  *bool    `json:"include_unengaged"`
+		IncludeUnengaged2 *bool    `json:"includeUnengaged"`
 	}
 	_ = json.Unmarshal(raw, &in)
 	ids := func(parts ...[]string) []uuid.UUID {
@@ -82,7 +102,7 @@ func parseAudience(raw json.RawMessage) audienceDef {
 	tiers := append(append([]string{}, in.ExcludeTiers...), in.ExcludeTiers2...)
 	return audienceDef{Lists: ids(in.Lists), Segments: ids(in.Segments), ExcludeLists: ids(in.ExcludeLists, in.ExcludeLists2),
 		ExcludeSegments: ids(in.ExcludeSegments, in.ExcludeSegments2), ExcludeTiers: tiers, IncludeSunset: in.IncludeSunset || in.IncludeSunset2,
-		Paid: paidaccess.Parse(raw)}
+		IncludeUnengaged: cmp.Or(in.IncludeUnengaged, in.IncludeUnengaged2), Paid: paidaccess.Parse(raw)}
 }
 
 // Excluded counts the contacts of the audience who don't receive the send.
@@ -198,6 +218,7 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 		return nil
 	}
 	def := parseAudience(cc.Audience)
+	def.leaveOutUnengaged(true)
 	if len(def.Lists) == 0 && len(def.Segments) == 0 {
 		return e.fail(ctx, cc, english("fail.noAudience", nil), now)
 	}

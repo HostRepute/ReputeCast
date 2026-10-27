@@ -153,13 +153,13 @@ func TestReviewAndApprovals(t *testing.T) {
 	digest := campaignID(t, linh, "Weekly Digest #142")
 	flash := campaignID(t, linh, "Flash sale: 48 hours only")
 
-	// The sample data: Weekly Digest approved and ready with two warnings,
+	// The sample data: Weekly Digest approved and ready with a warning,
 	// the flash sale blocked, November waiting for Marcus or Linh.
 	r := getReview(t, linh, digest)
-	if r.Run == nil || r.Run.Verdict != "warnings" || r.Run.Counts.Warnings != 2 || r.Stale || !r.Approval.Valid {
+	if r.Run == nil || r.Run.Verdict != "warnings" || r.Run.Counts.Warnings != 1 || r.Stale || !r.Approval.Valid {
 		t.Fatalf("weekly digest: %+v", r)
 	}
-	if r.Run.Estimates.Audience.Final != 31604 {
+	if r.Run.Estimates.Audience.Final != 31192 {
 		t.Fatalf("final recipients: %d", r.Run.Estimates.Audience.Final)
 	}
 	r = getReview(t, linh, flash)

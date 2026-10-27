@@ -320,6 +320,8 @@ export default translate(m, {
   loadingReview: 'Đang tải Kiểm tra và gửi',
 
   audience: 'Người đăng ký',
+  includeThem: 'Vẫn gửi cho họ',
+  includeThemLabel: 'Vẫn gửi cho họ: {count, plural, other {# liên hệ không tương tác}}',
   finalRecipients: 'Người nhận cuối cùng',
   routeBreakdown: 'Phân bổ tuyến',
   routesDown: '{count, plural, other {# tuyến gặp sự cố}}',
@@ -378,6 +380,7 @@ export default translate(m, {
   excludedSuppressed: '{count} bị chặn gửi',
   excludedRole: '{count} địa chỉ chức danh',
   excludedDuplicates: '{count} trùng lặp',
+  excludedUnengaged: '{count} không tương tác',
   rowFrom: 'Người gửi',
   rowReplyTo: 'Địa chỉ trả lời',
   rowSubject: 'Tiêu đề',

@@ -383,8 +383,8 @@
   "audience.nobody": "Không ai sẽ nhận được chiến dịch này",
   "audience.nobodyFlat": "Người nhận: không ai sẽ nhận được chiến dịch này",
   "audience.nobodyDetail": "Mọi liên hệ trong nhóm người nhận đều bị chặn gửi, là địa chỉ chức danh hoặc bị loại.",
-  "audience.unengagedExcluded": "Đã loại {count, number} liên hệ không tương tác",
-  "audience.unengagedExcludedDetail": "Không mở hay nhấp trong {days, number} ngày; nhóm Ngừng gửi dần bị loại khỏi lần gửi này",
+  "audience.unengagedExcluded": "Đã loại {count, number} liên hệ không tương tác theo chính sách ngừng gửi dần của bạn",
+  "audience.unengagedExcludedDetail": "Không có lượt mở hay nhấp của người đọc trong {days, number} ngày trở lên",
   "audience.unengagedExcludedShort": "đã loại liên hệ không tương tác",
   "audience.sunsetIncluded": "Có {count, number} liên hệ thuộc nhóm Ngừng gửi dần",
   "audience.sunsetIncludedFlat": "Người nhận: có {count, number} liên hệ thuộc nhóm Ngừng gửi dần",
@@ -475,7 +475,7 @@
   "estimate.duplicates": "Trùng lặp",
   "estimate.sunsetOverride": "Ghi đè nhóm Ngừng gửi dần",
   "estimate.sunsetStopped": "Chính sách ngừng gửi dần (đã dừng Gửi hàng loạt)",
-  "estimate.unengaged": "Không tương tác (nhóm Ngừng gửi dần)",
+  "estimate.unengaged": "Không tương tác từ {days, number} ngày (chính sách ngừng gửi dần)",
   "estimate.selfHosted": "tự lưu trữ",
   "estimate.plan": "theo gói",
   "estimate.per1000": "{price} mỗi {count, number} thư",
@@ -913,5 +913,9 @@
   "sendHold.edited": "{what} đã thay đổi sau khi lên lịch",
   "sendHold.part.content": "nội dung",
   "sendHold.part.sender": "người gửi",
-  "sendHold.part.route": "tuyến gửi"
+  "sendHold.part.route": "tuyến gửi",
+
+  "fix.sunsetPolicy": "Chính sách ngừng gửi dần",
+  "applied.includedUnengaged": "Đã đưa liên hệ không tương tác vào",
+  "applied.alreadyIncluded": "Liên hệ không tương tác đã được đưa vào"
 }

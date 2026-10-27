@@ -113,7 +113,9 @@ func (l *langSeed) contacts(ctx context.Context) error {
 	if err := s.Tx.QueryRow(ctx, `SELECT coalesce(sunset_policy, '{}'::jsonb) FROM workspaces WHERE id = $1`, l.ws.ID).Scan(&sunset); err != nil {
 		return err
 	}
-	aud, _ := json.Marshal(map[string]any{"lists": []uuid.UUID{digest}})
+	// The Digest's readers with the unengaged a send leaves out by default
+	// (SR-11) among them: each reader keeps the language the boards gave.
+	aud, _ := json.Marshal(map[string]any{"lists": []uuid.UUID{digest}, "include_unengaged": true})
 	recipients, err := readiness.FinalRecipients(ctx, s.Q, l.ws.ID, aud, sunset, s.Now)
 	if err != nil {
 		return err

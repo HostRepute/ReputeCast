@@ -87,6 +87,7 @@ export function ConfirmSend({
     a.suppressed ? t(m.excludedSuppressed, { count: count(a.suppressed) }) : '',
     a.role ? t(m.excludedRole, { count: count(a.role) }) : '',
     a.duplicates ? t(m.excludedDuplicates, { count: count(a.duplicates) }) : '',
+    a.excludedUnengaged ? t(m.excludedUnengaged, { count: count(a.excludedUnengaged) }) : '',
   ]
     .filter(Boolean)
     .join(' · ')

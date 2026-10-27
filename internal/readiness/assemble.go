@@ -1747,10 +1747,13 @@ func (b *builder) audience() {
 	}
 	un := check{Key: "audience.unengaged", Group: GroupAudience, Status: Pass}
 	switch {
-	case a.Unengaged == 0 && a.UnengagedExcluded:
+	case a.Unengaged == 0 && a.UnengagedExcluded && a.SunsetExcluded > 0:
+		// Left out, as every send leaves them out by default (SR-11);
+		// "Include them" is on the audience's line.
 		un.Title = tx("audience.unengagedExcluded", A{"count": a.SunsetExcluded})
 		un.Detail = tx("audience.unengagedExcludedDetail", A{"days": days})
 		un.Short = tx("audience.unengagedExcludedShort", nil)
+		un.Fixes = []fix{link(tx("fix.sunsetPolicy", nil), b.href("/audience/health"))}
 	case a.Unengaged > 0 && a.SunsetOverride:
 		// The campaign overrides the sunset policy (SendReadinessBlocked).
 		un.Status = Warn
@@ -2025,12 +2028,20 @@ func (b *builder) estimates() ReadinessEstimates {
 	t := &estimateTexts{}
 	aud := ReadinessAudience{Rows: []ReadinessAudienceRow{}, Final: a.Final, Lists: a.Lists, Suppressed: a.Suppressed, Role: a.Role, Duplicates: a.Duplicates,
 		Unengaged: a.Unengaged, UnengagedExcluded: a.UnengagedExcluded}
+	if a.UnengagedExcluded {
+		aud.ExcludedUnengaged = a.SunsetExcluded
+	}
 	if aud.Lists == nil {
 		aud.Lists = []string{}
 	}
-	addRow := func(label Text, count int64, kind string) {
+	addRow := func(label Text, count int64, kind string) *ReadinessAudienceRow {
 		aud.Rows = append(aud.Rows, ReadinessAudienceRow{Label: label.en(), Count: count, Kind: kind})
 		t.Rows = append(t.Rows, label)
+		return &aud.Rows[len(aud.Rows)-1]
+	}
+	days := a.UnengagedDays
+	if days <= 0 {
+		days = 180
 	}
 	if !a.Empty {
 		addRow(b.baseLabel(), a.Base, "base")
@@ -2045,8 +2056,12 @@ func (b *builder) estimates() ReadinessEstimates {
 		case a.Stopped > 0:
 			addRow(tx("estimate.sunsetStopped", nil), a.Stopped, "minus")
 		}
+		// The unengaged are left out of every send unless the campaign
+		// includes them (SR-11): "Include them".
 		if a.UnengagedExcluded {
-			addRow(tx("estimate.unengaged", nil), a.SunsetExcluded, "minus")
+			if row := addRow(tx("estimate.unengaged", A{"days": days}), a.SunsetExcluded, "minus"); a.SunsetExcluded > 0 {
+				row.Action = FixIncludeUnengaged
+			}
 		}
 	}
 	out.Audience = aud

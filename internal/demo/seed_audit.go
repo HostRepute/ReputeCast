@@ -91,7 +91,7 @@ func seedAuditImpl(ctx context.Context, s *Seeder) error {
 			ip: "203.0.113.9", ua: uaChromeMac, meta: m("permission", "templates:edit")},
 		// Fri 10 Oct.
 		{at: s.designDay(2, 16, 20), actorType: "user", actor: "marcus@acme.io", action: "campaign.approved", targetType: "campaign", targetID: camp("Weekly Digest #142"), target: "Weekly Digest #142",
-			ip: "198.51.100.40", ua: uaChromeMac, meta: m("summary", "snapshot v6 · 31,604 recipients", "permission", "campaigns:approve")},
+			ip: "198.51.100.40", ua: uaChromeMac, meta: m("summary", "snapshot v6 · 31,192 recipients", "permission", "campaigns:approve")},
 		{at: s.designDay(2, 11, 41), actorType: "user", actor: "linh@acme.io", action: "team.invited", targetType: "invitation", target: "jo@contractor.dev",
 			ip: "203.0.113.9", ua: uaChromeMac, after: map[string]any{"email": "jo@contractor.dev", "role": "Editor", "scope": "Beta Program list only"},
 			meta: m("summary", "role Editor · scope Beta Program · expires Oct 17 · sent via Postmark", "permission", "team:invite")},

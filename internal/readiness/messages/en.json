@@ -383,8 +383,8 @@
   "audience.nobody": "Nobody would receive this campaign",
   "audience.nobodyFlat": "Audience: nobody would receive this campaign",
   "audience.nobodyDetail": "Every contact of the audience is suppressed, a role address or excluded.",
-  "audience.unengagedExcluded": "{count, number} unengaged contacts excluded",
-  "audience.unengagedExcludedDetail": "No open or click in {days, number} days; the sunset tier is excluded from this send",
+  "audience.unengagedExcluded": "{count, number} unengaged excluded by your sunset policy",
+  "audience.unengagedExcludedDetail": "No human open or click in {days, number} days or more",
   "audience.unengagedExcludedShort": "unengaged excluded",
   "audience.sunsetIncluded": "{count, number} Sunset-tier contacts are included",
   "audience.sunsetIncludedFlat": "Audience: {count, number} Sunset-tier contacts included",
@@ -475,7 +475,7 @@
   "estimate.duplicates": "Duplicates",
   "estimate.sunsetOverride": "Sunset-tier override",
   "estimate.sunsetStopped": "Sunset policy (Broadcasts stopped)",
-  "estimate.unengaged": "Unengaged (sunset tier)",
+  "estimate.unengaged": "Unengaged {days, number}+ days (sunset policy)",
   "estimate.selfHosted": "self-hosted",
   "estimate.plan": "plan",
   "estimate.per1000": { "message": "{price} per {count, number}", "note": "a metered price: “$0.10 per 1,000”" },
@@ -913,5 +913,9 @@
   "sendHold.edited": "{what} {count, plural, one {changed} other {changed}} after it was scheduled",
   "sendHold.part.content": "the content",
   "sendHold.part.sender": "the sender",
-  "sendHold.part.route": "the route"
+  "sendHold.part.route": "the route",
+
+  "fix.sunsetPolicy": { "message": "Sunset policy", "note": "A link to the sunset policy on List health" },
+  "applied.includedUnengaged": { "message": "Included the unengaged contacts", "note": "Toast after Include them on the audience of Review & send" },
+  "applied.alreadyIncluded": "Unengaged contacts are already included"
 }

@@ -228,10 +228,11 @@ func (r *readinessSeed) weeklyDigest(ctx context.Context) error {
 	f := r.baseFacts(checked)
 	f.Campaign = readiness.CampaignFacts{ID: id.String(), Name: "Weekly Digest #142", Subject: subject, Version: 14, CompiledAt: &compiled, SenderName: "Acme Newsletter",
 		SenderEmail: "digest@news.acme.io", SenderDomain: "news.acme.io", StartAt: sched, ScheduleMode: "at"}
+	// 31,604 − 412 unengaged the send leaves out = 31,192 (SR-11).
 	f.Audience = readiness.AudienceFacts{BaseLabel: "Weekly Digest list", GroupLabel: "Weekly Digest", BaseKind: readiness.BaseList, BaseName: "Weekly Digest", Lists: []string{"Weekly Digest"}, Base: 31988, Suppressed: 331,
-		Role: 27, Duplicates: 26, Final: 31604, Unengaged: 412, UnengagedDays: 180,
-		Mailboxes: map[string]int64{"gmail": 14538, "outlook": 6637, "yahoo": 2844, "icloud": 2528, "other": 5057}}
-	f.Route = readiness.RouteFacts{Stream: "broadcast", Policy: "pause_and_ask", Shares: []readiness.ShareFacts{r.ses(28444, 90), r.postal(3160, 10)}}
+		Role: 27, Duplicates: 26, Final: 31192, SunsetExcluded: 412, UnengagedExcluded: true, UnengagedDays: 180,
+		Mailboxes: map[string]int64{"gmail": 14348, "outlook": 6551, "yahoo": 2807, "icloud": 2495, "other": 4991}}
+	f.Route = readiness.RouteFacts{Stream: "broadcast", Policy: "pause_and_ask", Shares: []readiness.ShareFacts{r.ses(28073, 90), r.postal(3119, 10)}}
 	f.Content = readiness.ContentFacts{Checked: true, Address: "Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105", InlineCSSBytes: 11 * 1024,
 		URIBlocklists: readiness.URIBlocklists, OwnDomain: "acme.io",
 		Report: contentcheck.ContentCheckReport{Verdict: readiness.VerdictReady, SizeBytes: 64 * 1024, ClipBytes: contentcheck.ClipBytes, Images: 7, Links: 14,
@@ -268,7 +269,7 @@ func (r *readinessSeed) weeklyDigest(ctx context.Context) error {
 		}
 	}
 	return readinessAudit(ctx, s, s.designDay(0, 9, 42), linh, "campaign.scheduled", "campaign", id.String(), "Weekly Digest #142",
-		map[string]any{"status": "scheduled", "scheduled_at": sched}, map[string]any{"recipients": 31604, "schedule": sched.In(state.Location("America/New_York")).Format("Jan 2, 15:04")}, "203.0.113.9")
+		map[string]any{"status": "scheduled", "scheduled_at": sched}, map[string]any{"recipients": 31192, "schedule": sched.In(state.Location("America/New_York")).Format("Jan 2, 15:04")}, "203.0.113.9")
 }
 
 // readinessAudit writes one audit entry as a person.
@@ -641,11 +642,11 @@ func (r *readinessSeed) history(ctx context.Context) error {
 			return err
 		}
 		requested, decided := s.designDay(2, 13, 40), s.designDay(2, 16, 20)
-		audienceRule.Label = "Audience of 31,604 is at least 10,000"
+		audienceRule.Label = "Audience of 31,192 is at least 10,000"
 		snap := approvals.Snapshot{Version: int(c.Version), ContentHash: c.ContentHash, Subject: c.Subject, Preheader: c.Preheader, From: "Acme Newsletter <digest@news.acme.io>",
-			Links: approvals.Links(c.Mjml, c.Html), Sections: approvals.Sections(c.Mjml), Audience: c.Audience, AudienceLabels: []string{"Weekly Digest"}, AudienceCount: 31604,
+			Links: approvals.Links(c.Mjml, c.Html), Sections: approvals.Sections(c.Mjml), Audience: c.Audience, AudienceLabels: []string{"Weekly Digest"}, AudienceCount: 31192,
 			Suppressed: 331, Role: 27, Schedule: c.Schedule, AuthorRole: "Editor", Rules: []approvals.ApprovalRuleMatch{audienceRule},
-			Route: []approvals.SnapshotShare{sesShare(28444, 90), postalShare(3160, 10, 7)}, Minutes: 34, Cost: 2.84,
+			Route: []approvals.SnapshotShare{sesShare(28073, 90), postalShare(3119, 10, 7)}, Minutes: 34, Cost: 2.81,
 			Thresholds: readiness.ParseThresholds(json.RawMessage(readinessThresholds), nil)}
 		if c.SenderID != nil {
 			snap.SenderID = c.SenderID.String()

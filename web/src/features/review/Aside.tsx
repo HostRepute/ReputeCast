@@ -30,8 +30,22 @@ import { m } from './messages'
 import { whenText } from './parts'
 import { EACH, TestLanguageSelect, testLanguages, type SentVersion } from '@/features/languages/review'
 
-/** Audience: the lists, what's excluded and the final count. */
-export function AudienceCard({ audience, children }: { audience: Run['estimates']['audience']; children?: ReactNode }) {
+/**
+ * Audience: the lists, what's excluded and the final count. The sunset
+ * policy's line offers "Include them" (onInclude) when the person can edit
+ * the campaign (SR-11).
+ */
+export function AudienceCard({
+  audience,
+  onInclude,
+  including,
+  children,
+}: {
+  audience: Run['estimates']['audience']
+  onInclude?: () => void
+  including?: boolean
+  children?: ReactNode
+}) {
   const t = useT()
   return (
     <section className="card rv-card" aria-labelledby="rv-audience">
@@ -39,8 +53,24 @@ export function AudienceCard({ audience, children }: { audience: Run['estimates'
         {t(m.audience)}
       </h2>
       {audience.rows.map((r, i) => (
-        <div key={i} className={cn('rv-sum', r.kind !== 'base' && 's-minus')}>
-          <span>{r.label}</span>
+        <div key={i} className={cn('rv-sum', r.kind !== 'base' && 's-minus', r.action && onInclude && 'items-start')}>
+          {r.action === 'include_unengaged' && onInclude ? (
+            <span className="flex flex-col items-start gap-0.5">
+              <span>{r.label}</span>
+              <button
+                type="button"
+                className="rv-lnk"
+                aria-label={t(m.includeThemLabel, { count: r.count })}
+                aria-busy={including || undefined}
+                disabled={including}
+                onClick={onInclude}
+              >
+                {t(m.includeThem)}
+              </button>
+            </span>
+          ) : (
+            <span>{r.label}</span>
+          )}
           <span className="n">{r.kind === 'minus' ? `−${count(r.count)}` : r.kind === 'plus' ? `+${count(r.count)}` : count(r.count)}</span>
         </div>
       ))}

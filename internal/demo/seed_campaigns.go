@@ -81,8 +81,9 @@ func seedCampaignsImpl(ctx context.Context, s *Seeder) error {
 		return id, err
 	}
 
-	// Scheduled: Weekly Digest #142, in 1 day 22 h.
-	n := int64(31604)
+	// Scheduled: Weekly Digest #142, in 1 day 22 h: 31,604 after
+	// suppressions, minus the 412 unengaged a send leaves out (SR-11).
+	n := int64(31192)
 	created := s.Ago(3 * 24 * time.Hour)
 	id, err := insert("Weekly Digest #142", "scheduled", audiences["Weekly Digest"], &n, map[string]any{
 		"subject": "Three launches, one deprecation, and the roadmap for Q4", "preheader": "Feature flags are GA, audit log exports, and what we're retiring in November.", "created": created,

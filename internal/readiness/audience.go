@@ -33,6 +33,11 @@ type AudienceDef struct {
 	// IncludeSunset is the campaign overriding the sunset policy: contacts
 	// whose Broadcasts the policy stopped receive this one anyway.
 	IncludeSunset bool `json:"include_sunset,omitempty"`
+	// IncludeUnengaged includes (true) or leaves out (false) the unengaged
+	// contacts (the sunset tier) for this campaign. Unset, a send leaves
+	// them out unless it overrides the sunset policy (SR-11, C2: "Include
+	// them").
+	IncludeUnengaged *bool `json:"include_unengaged,omitempty"`
 	// Paid is who on the lists gets a paid-only campaign (Earn): paid
 	// members only, at a tier and above, or free subscribers only.
 	Paid paidaccess.Audience `json:"-"`
@@ -42,6 +47,13 @@ type AudienceDef struct {
 func ParseAudience(raw json.RawMessage) AudienceDef {
 	var a AudienceDef
 	_ = json.Unmarshal(raw, &a)
+	if a.IncludeUnengaged == nil {
+		var camel struct {
+			IncludeUnengaged *bool `json:"includeUnengaged"`
+		}
+		_ = json.Unmarshal(raw, &camel)
+		a.IncludeUnengaged = camel.IncludeUnengaged
+	}
 	a.Paid = paidaccess.Parse(raw)
 	return a
 }
@@ -49,8 +61,24 @@ func ParseAudience(raw json.RawMessage) AudienceDef {
 // Empty reports whether the definition selects nobody.
 func (a AudienceDef) Empty() bool { return len(a.Lists) == 0 && len(a.Segments) == 0 }
 
-// ExcludesSunset reports whether the sunset tier is excluded.
-func (a AudienceDef) ExcludesSunset() bool { return slices.Contains(a.ExcludeTiers, "sunset") }
+// ExcludesSunset reports whether the unengaged contacts (the sunset tier)
+// are left out of the send by default (LeavesOutUnengaged).
+func (a AudienceDef) ExcludesSunset() bool { return a.LeavesOutUnengaged(true) }
+
+// LeavesOutUnengaged reports whether the unengaged contacts (the sunset
+// tier) are left out of the send: when the tier is excluded, when the
+// campaign leaves them out, and otherwise as byDefault says unless the
+// campaign overrides the sunset policy (SR-11). The sending engine leaves
+// out the same contacts.
+func (a AudienceDef) LeavesOutUnengaged(byDefault bool) bool {
+	switch {
+	case slices.Contains(a.ExcludeTiers, "sunset"):
+		return true
+	case a.IncludeUnengaged != nil:
+		return !*a.IncludeUnengaged
+	}
+	return byDefault && !a.IncludeSunset
+}
 
 // Recipient is one final recipient, as routing needs it.
 type Recipient struct {

@@ -52,11 +52,14 @@ const (
 // Fix actions applied by POST …/readiness/fixes.
 const (
 	FixExcludeSunset = "exclude_sunset"
-	FixRouteOnly     = "route_only"
-	FixInsertFooter  = "insert_footer"
-	FixReplaceLink   = "replace_link"
-	FixUseSubject    = "use_subject"
-	FixMinify        = "minify"
+	// FixIncludeUnengaged puts back the unengaged contacts a send leaves
+	// out ("Include them" on the audience, SR-11).
+	FixIncludeUnengaged = "include_unengaged"
+	FixRouteOnly        = "route_only"
+	FixInsertFooter     = "insert_footer"
+	FixReplaceLink      = "replace_link"
+	FixUseSubject       = "use_subject"
+	FixMinify           = "minify"
 )
 
 // ReadinessFix is one fix offered with a check: an action ReputeCast applies
@@ -156,6 +159,9 @@ type ReadinessAudienceRow struct {
 	Count int64  `json:"count"`
 	// Kind: base (the lists or segments), minus (excluded), plus (added back).
 	Kind string `json:"kind" enum:"base,minus,plus"`
+	// Action is the fix the line offers: include_unengaged ("Include
+	// them") on the unengaged contacts the send leaves out.
+	Action string `json:"action,omitempty" enum:"include_unengaged"`
 }
 
 // ReadinessAudience is the final count after exclusions.
@@ -170,8 +176,10 @@ type ReadinessAudience struct {
 	Role       int64 `json:"role"`
 	Duplicates int64 `json:"duplicates"`
 	Unengaged  int64 `json:"unengaged"`
-	// UnengagedExcluded is true when the sunset tier is excluded.
-	UnengagedExcluded bool `json:"unengagedExcluded"`
+	// UnengagedExcluded is true when the unengaged (the sunset tier) are
+	// left out, as they are by default, and ExcludedUnengaged counts them.
+	UnengagedExcluded bool  `json:"unengagedExcluded"`
+	ExcludedUnengaged int64 `json:"excludedUnengaged"`
 }
 
 // ReadinessRouteShare is one sending provider's part of the send.

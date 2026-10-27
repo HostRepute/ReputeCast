@@ -334,6 +334,8 @@ export const m = defineMessages('review', {
 
   // The aside's cards.
   audience: 'Audience',
+  includeThem: 'Include them',
+  includeThemLabel: 'Include them: the {count, plural, one {# unengaged contact} other {# unengaged contacts}}',
   finalRecipients: 'Final recipients',
   routeBreakdown: 'Route breakdown',
   routesDown: '{count, plural, one {# route down} other {# routes down}}',
@@ -393,6 +395,7 @@ export const m = defineMessages('review', {
   excludedSuppressed: '{count} suppressed',
   excludedRole: '{count} role',
   excludedDuplicates: '{count} duplicates',
+  excludedUnengaged: '{count} unengaged',
   rowFrom: 'From',
   rowReplyTo: 'Reply-to',
   rowSubject: 'Subject',

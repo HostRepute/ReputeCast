@@ -33,6 +33,10 @@ type Audience struct {
 	ExcludeTiers2   []string `json:"excludeTiers"`
 	IncludeSunset   bool     `json:"include_sunset"`
 	IncludeSunset2  bool     `json:"includeSunset"`
+	// IncludeUnengaged includes or leaves out the unengaged (the sunset
+	// tier); unset, a send leaves them out (SR-11).
+	IncludeUnengaged  *bool `json:"include_unengaged"`
+	IncludeUnengaged2 *bool `json:"includeUnengaged"`
 	// Paid is who on the lists gets a paid-only campaign (Earn).
 	Paid paidaccess.Audience `json:"-"`
 }
@@ -46,7 +50,23 @@ func ParseAudience(raw json.RawMessage) Audience {
 	a.ExcludeSegments = append(a.ExcludeSegments, a.ExcludeSegs2...)
 	a.ExcludeTiers = append(a.ExcludeTiers, a.ExcludeTiers2...)
 	a.IncludeSunset = a.IncludeSunset || a.IncludeSunset2
+	if a.IncludeUnengaged == nil {
+		a.IncludeUnengaged = a.IncludeUnengaged2
+	}
 	return a
+}
+
+// leavesOutUnengaged reports whether a send leaves out the unengaged (the
+// sunset tier): as the campaign says, else by default (byDefault) unless
+// it overrides the sunset policy, as Send Readiness counts them (SR-11).
+func (a Audience) leavesOutUnengaged(byDefault bool) bool {
+	switch {
+	case slices.Contains(a.ExcludeTiers, "sunset"):
+		return true
+	case a.IncludeUnengaged != nil:
+		return !*a.IncludeUnengaged
+	}
+	return byDefault && !a.IncludeSunset
 }
 
 // Empty reports whether the audience selects nobody.
@@ -64,6 +84,13 @@ func (a Audience) hash() string {
 		strings.Join(sorted(a.ExcludeSegments), ","), strings.Join(sorted(a.ExcludeTiers), ",")}
 	if a.IncludeSunset {
 		parts = append(parts, "sunset")
+	}
+	switch {
+	case a.IncludeUnengaged == nil:
+	case *a.IncludeUnengaged:
+		parts = append(parts, "unengaged:in")
+	default:
+		parts = append(parts, "unengaged:out")
 	}
 	if a.Paid.Set() {
 		parts = append(parts, "paid:"+a.Paid.Who+":"+a.Paid.Tier)
@@ -129,6 +156,7 @@ func FinalRecipients(ctx context.Context, q *store.Queries, segs SegmentResolver
 	}
 	seen := make(map[string]bool, len(rows))
 	excludeSunset := slices.Contains(a.ExcludeTiers, "sunset")
+	leaveOut := a.leavesOutUnengaged(true)
 	res := make([]*Facts, 0, len(rows))
 	for _, r := range rows {
 		if !keep.Keeps(r.ID) {
@@ -145,7 +173,7 @@ func FinalRecipients(ctx context.Context, q *store.Queries, segs SegmentResolver
 		if r.BroadcastsStopped && (!a.IncludeSunset || excludeSunset) {
 			continue
 		}
-		if slices.Contains(a.ExcludeTiers, r.Tier) {
+		if slices.Contains(a.ExcludeTiers, r.Tier) || leaveOut && r.Tier == "sunset" {
 			continue
 		}
 		res = append(res, newFacts(r.ID, r.Email, r.FirstName, r.LastName, r.Tier, r.Language, r.Tags, r.Attributes, r.ListIds, ruleSegments))

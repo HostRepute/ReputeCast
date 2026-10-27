@@ -193,7 +193,7 @@ func TestComposerDetailOfTheDemo(t *testing.T) {
 	c.SignInDemo("linh@acme.io")
 	var d detail
 	c.Do("GET", ws+"/campaigns/"+campaignID(t, env, "Weekly Digest #142"), nil).MustStatus(t, 200).JSON(t, &d)
-	if d.Version != 14 || d.VersionCount != 14 || d.AudienceLabel != "Weekly Digest" || d.AudienceCount == nil || *d.AudienceCount != 31604 {
+	if d.Version != 14 || d.VersionCount != 14 || d.AudienceLabel != "Weekly Digest" || d.AudienceCount == nil || *d.AudienceCount != 31192 {
 		t.Fatalf("digest: %+v", d)
 	}
 	if d.Subject != "Three launches, one deprecation, and the roadmap for Q4" || !strings.Contains(d.MJML, "mj-section") || d.Sender.Email != "digest@news.acme.io" {

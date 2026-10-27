@@ -181,6 +181,35 @@
   .rv-sum.s-minus {
     color: var(--ink-3);
   }
+  /* "Include them" under the sunset policy's line of the audience. */
+  .rv-lnk {
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+    cursor: pointer;
+    min-height: 24px;
+  }
+  .rv-lnk:hover {
+    color: var(--accent-hover);
+  }
+  .rv-lnk:disabled {
+    cursor: progress;
+    opacity: 0.6;
+  }
+  @media (max-width: 767px) {
+    .rv-lnk {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+    }
+  }
   .rv-sum.s-final {
     border-top: 1px solid var(--line);
     padding-top: 10px;
