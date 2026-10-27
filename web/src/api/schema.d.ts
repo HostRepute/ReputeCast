@@ -33017,6 +33017,8 @@ export interface components {
             limit: number;
             /** Format: double */
             pause?: number;
+            /** @enum {string} */
+            reason?: "no_data" | "not_reported";
             /** Format: double */
             review?: number;
             stale: boolean;

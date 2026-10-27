@@ -320,16 +320,16 @@ func (s *Service) card(sn *snapshot, p store.Provider) ProviderCard {
 	if week.Sent > 0 {
 		v := round2(float64(week.Bounced) / float64(week.Sent) * 100)
 		c.Bounce.Value = &v
+	} else {
+		c.Bounce.Reason = RateNoData
 	}
-	if week.Delivered > 0 {
-		v := round2(float64(week.Complained) / float64(week.Delivered) * 100)
-		c.Complaint.Value = &v
-	}
+	c.Complaint.Value, c.Complaint.Reason = ComplaintRate(week)
 	// What the provider itself measures wins while it is fresh: its review
 	// and pause levels apply to its own numbers.
 	if r := state.ReputationOf(h, sn.now); r != nil {
 		b, cp := r.Bounce, r.Complaint
 		c.Bounce.Value, c.Complaint.Value = &b, &cp
+		c.Bounce.Reason, c.Complaint.Reason = "", ""
 	}
 	// Quota and rate from the provider's API, the warm-up plan overriding
 	// both while the provider warms up.

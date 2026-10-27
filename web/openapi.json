@@ -54151,6 +54151,13 @@
             "format": "double",
             "type": "number"
           },
+          "reason": {
+            "enum": [
+              "no_data",
+              "not_reported"
+            ],
+            "type": "string"
+          },
           "review": {
             "format": "double",
             "type": "number"

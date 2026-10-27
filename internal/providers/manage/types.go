@@ -56,11 +56,15 @@ type ProviderStreamRole struct {
 
 // ProviderLimitRate is a bounce or complaint rate against the provider's limit.
 type ProviderLimitRate struct {
-	Value  *float64 `json:"value,omitempty" doc:"Percent over the last 7 days"`
-	Limit  float64  `json:"limit"`
-	Review float64  `json:"review,omitempty"`
-	Pause  float64  `json:"pause,omitempty"`
-	Label  string   `json:"label,omitempty"`
+	Value *float64 `json:"value,omitempty" doc:"Percent over the last 7 days"`
+	// Reason says why Value is empty (review F-3): nothing delivered in
+	// the last 7 days, or only to mailbox providers that don't report
+	// complaints (Gmail, iCloud).
+	Reason string  `json:"reason,omitempty" enum:"no_data,not_reported"`
+	Limit  float64 `json:"limit"`
+	Review float64 `json:"review,omitempty"`
+	Pause  float64 `json:"pause,omitempty"`
+	Label  string  `json:"label,omitempty"`
 	// Stale is true while webhooks are silent: the rate stopped updating.
 	Stale bool `json:"stale"`
 }

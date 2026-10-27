@@ -116,6 +116,12 @@ export const mo = defineMessages('providers.overview', {
   rateNowPeak: '{rate} /s now · peak today {peak} /s',
   /** A rate that stopped updating: "0.6% · stale". */
   staleValue: '{value} · stale',
+  /** A rate without data (review F-3): "n/a", never 0%. */
+  rateNA: 'n/a',
+  /** Why a complaint rate is n/a: the last 7 days' mail only went to these. */
+  rateNotReported: "Gmail and iCloud don't report complaints",
+  rateNoData: 'Nothing delivered in the last 7 days',
+  rateNoSends: 'Nothing sent in the last 7 days',
 
   // Cost.
   costToDate: 'Cost to date · {month}',

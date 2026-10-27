@@ -26,6 +26,8 @@ WHERE webhook_token = @webhook_token AND adapter = @adapter AND disconnected_at 
 
 -- name: ProvDailyTotals :many
 -- Totals per provider over [since, until] (dates).
+-- The complaint rate's base (review F-2): complaints and deliveries at
+-- mailbox providers that report complaints, on the days that counted them.
 SELECT provider_id,
        coalesce(sum(sent), 0)::bigint        AS sent,
        coalesce(sum(delivered), 0)::bigint   AS delivered,
@@ -33,7 +35,10 @@ SELECT provider_id,
        coalesce(sum(complained), 0)::bigint  AS complained,
        coalesce(sum(api_calls), 0)::bigint   AS api_calls,
        coalesce(sum(api_errors), 0)::bigint  AS api_errors,
-       coalesce(sum(cost_micros), 0)::bigint AS cost_micros
+       coalesce(sum(cost_micros), 0)::bigint AS cost_micros,
+       coalesce(sum(delivered_reporting), 0)::bigint AS delivered_reporting,
+       coalesce(sum(complained) FILTER (WHERE delivered_reporting IS NOT NULL), 0)::bigint AS complained_reporting,
+       coalesce(sum(delivered) FILTER (WHERE delivered_reporting IS NOT NULL), 0)::bigint AS delivered_counted
 FROM provider_daily_stats
 WHERE provider_id = ANY(@provider_ids::uuid[]) AND day BETWEEN @since::date AND @until::date
 GROUP BY provider_id;
@@ -69,13 +74,16 @@ SET sent = provider_daily_stats.sent + EXCLUDED.sent,
     cost_micros = provider_daily_stats.cost_micros + EXCLUDED.cost_micros;
 
 -- name: ProvRecordOutcome :exec
--- Delivery outcomes counted from normalized events (bounce and complaint rates).
-INSERT INTO provider_daily_stats (provider_id, day, delivered, bounced, complained)
-VALUES (@provider_id, @day::date, @delivered, @bounced, @complained)
+-- Delivery outcomes counted from normalized events (bounce and complaint
+-- rates). delivered_reporting counts the deliveries at mailbox providers
+-- that report complaints; a day counted before it existed stays unknown.
+INSERT INTO provider_daily_stats (provider_id, day, delivered, bounced, complained, delivered_reporting)
+VALUES (@provider_id, @day::date, @delivered, @bounced, @complained, @delivered_reporting::bigint)
 ON CONFLICT (provider_id, day) DO UPDATE
 SET delivered = provider_daily_stats.delivered + EXCLUDED.delivered,
     bounced = provider_daily_stats.bounced + EXCLUDED.bounced,
-    complained = provider_daily_stats.complained + EXCLUDED.complained;
+    complained = provider_daily_stats.complained + EXCLUDED.complained,
+    delivered_reporting = provider_daily_stats.delivered_reporting + EXCLUDED.delivered_reporting;
 
 -- name: ProvPurgeCallWindows :execrows
 DELETE FROM provider_call_windows WHERE minute < @before;

@@ -247,8 +247,10 @@ func (e *Engine) resetDemo(ctx context.Context, id uuid.UUID) error {
 			       WHERE campaign_id = $1 AND sent_at IS NOT NULL AND provider_id IS NOT NULL GROUP BY 1, 2) x
 			 WHERE d.provider_id = x.provider_id AND d.day = x.day`,
 			`UPDATE provider_daily_stats d SET delivered = greatest(d.delivered - x.delivered, 0),
-			     bounced = greatest(d.bounced - x.bounced, 0), complained = greatest(d.complained - x.complained, 0)
+			     bounced = greatest(d.bounced - x.bounced, 0), complained = greatest(d.complained - x.complained, 0),
+			     delivered_reporting = greatest(d.delivered_reporting - x.reporting, 0)
 			 FROM (SELECT provider_id, occurred_at::date AS day, count(*) FILTER (WHERE type = 'delivered') AS delivered,
+			              count(*) FILTER (WHERE type = 'delivered' AND mailbox_provider NOT IN ('gmail', 'icloud')) AS reporting,
 			              count(*) FILTER (WHERE type = 'hard_bounce') AS bounced, count(*) FILTER (WHERE type = 'complaint') AS complained
 			       FROM delivery_events WHERE campaign_id = $1 AND provider_id IS NOT NULL GROUP BY 1, 2) x
 			 WHERE d.provider_id = x.provider_id AND d.day = x.day`,

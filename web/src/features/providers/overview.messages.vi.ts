@@ -91,6 +91,10 @@ export default translate(mo, {
   rateNow: 'hiện {rate}/giây',
   rateNowPeak: 'hiện {rate}/giây · cao nhất hôm nay {peak}/giây',
   staleValue: '{value} · đã cũ',
+  rateNA: 'n/a',
+  rateNotReported: 'Gmail và iCloud không báo khiếu nại',
+  rateNoData: 'Không có thư nào được giao trong 7 ngày qua',
+  rateNoSends: 'Không có thư nào được gửi trong 7 ngày qua',
 
   costToDate: 'Chi phí đến nay · {month}',
   costPlan: 'gói {amount}',

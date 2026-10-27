@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/authn"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/warmup"
@@ -377,7 +378,7 @@ func seedDailyStats(ctx context.Context, s *Seeder, loc *time.Location, sched []
 		for d := weekStart; d.Before(monthStart); d = d.AddDate(0, 0, 1) {
 			rows = append(rows, dailyRow{day: d, sent: sp.month / int64(max(days, 7))})
 		}
-		spreadOutcomes(rows, weekStart, sp.bounce, sp.complaint)
+		spreadOutcomes(rows, weekStart, sp.bounce, sp.complaint, reportingShare())
 		for _, r := range rows {
 			if err := insertDaily(ctx, s, sp.id, r, sp.errRate, sp.perCall); err != nil {
 				return err
@@ -393,7 +394,7 @@ func seedDailyStats(ctx context.Context, s *Seeder, loc *time.Location, sched []
 	for i, d := range postalDays {
 		postalRows = append(postalRows, dailyRow{day: startDay.AddDate(0, 0, i), sent: d.sent})
 	}
-	spreadOutcomes(postalRows, weekStart, 0.9, 0.05)
+	spreadOutcomes(postalRows, weekStart, 0.9, 0.05, warmupReportingShare())
 	for _, r := range postalRows {
 		if err := insertDaily(ctx, s, postal, r, 0.4, 1); err != nil {
 			return err
@@ -403,24 +404,53 @@ func seedDailyStats(ctx context.Context, s *Seeder, loc *time.Location, sched []
 	return nil
 }
 
-// dailyRow is one provider_daily_stats row of the demo.
+// dailyRow is one provider_daily_stats row of the demo. reporting is what
+// was delivered to mailbox providers that report complaints (the sample's
+// mix: everything but Gmail and iCloud), the base of the complaint rate.
 type dailyRow struct {
 	day                       time.Time
 	sent, bounced, complained int64
+	reporting                 int64
 	cost                      int64
+}
+
+// reportingShare is the part of the sample's mail that goes to mailbox
+// providers that report complaints (review F-2): the audience's mix.
+func reportingShare() float64 {
+	var all, reporting int
+	for mbp, n := range audMailboxTotals {
+		all += n
+		if mailbox.ReportsComplaints(mbp) {
+			reporting += n
+		}
+	}
+	return float64(reporting) / float64(all)
+}
+
+// warmupReportingShare is that part for a warming provider that caps each
+// mailbox provider separately (Postal): its days follow the caps' split.
+func warmupReportingShare() float64 {
+	var reporting int
+	for _, sh := range warmup.MailboxShares {
+		if mailbox.ReportsComplaints(sh.Mailbox) {
+			reporting += sh.Percent
+		}
+	}
+	return float64(reporting) / 100
 }
 
 // spreadOutcomes sets bounces and complaints so the rows from weekStart on
 // add up to exactly the given rates (percent); older rows get the same
 // rates rounded per day.
-func spreadOutcomes(rows []dailyRow, weekStart time.Time, bounce, complaint float64) {
+func spreadOutcomes(rows []dailyRow, weekStart time.Time, bounce, complaint, share float64) {
 	var weekSent int64
 	var idx []int
 	var weights []float64
 	for i, r := range rows {
 		if r.day.Before(weekStart) {
 			rows[i].bounced = int64(math.Round(float64(r.sent) * bounce / 100))
-			rows[i].complained = int64(math.Round(float64(r.sent-rows[i].bounced) * complaint / 100))
+			rows[i].reporting = int64(math.Round(float64(r.sent-rows[i].bounced) * share))
+			rows[i].complained = int64(math.Round(float64(rows[i].reporting) * complaint / 100))
 			continue
 		}
 		idx = append(idx, i)
@@ -428,13 +458,15 @@ func spreadOutcomes(rows []dailyRow, weekStart time.Time, bounce, complaint floa
 		weekSent += r.sent
 	}
 	bounced := Split(int64(math.Round(float64(weekSent)*bounce/100)), weights)
-	var weekBounced int64
-	for _, b := range bounced {
-		weekBounced += b
-	}
-	complained := Split(int64(math.Round(float64(weekSent-weekBounced)*complaint/100)), weights)
+	var weekReporting int64
 	for j, i := range idx {
-		rows[i].bounced, rows[i].complained = bounced[j], complained[j]
+		rows[i].bounced = bounced[j]
+		rows[i].reporting = int64(math.Round(float64(rows[i].sent-bounced[j]) * share))
+		weekReporting += rows[i].reporting
+	}
+	complained := Split(int64(math.Round(float64(weekReporting)*complaint/100)), weights)
+	for j, i := range idx {
+		rows[i].complained = complained[j]
 	}
 }
 
@@ -445,11 +477,12 @@ func insertDaily(ctx context.Context, s *Seeder, provider uuid.UUID, r dailyRow,
 		calls = 1
 	}
 	errs := int64(math.Round(float64(calls) * errRate / 100))
-	_, err := s.Tx.Exec(ctx, `INSERT INTO provider_daily_stats (provider_id, day, sent, delivered, bounced, complained, api_calls, api_errors, cost_micros)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+	_, err := s.Tx.Exec(ctx, `INSERT INTO provider_daily_stats (provider_id, day, sent, delivered, bounced, complained, api_calls, api_errors, cost_micros, delivered_reporting)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
 		ON CONFLICT (provider_id, day) DO UPDATE SET sent = EXCLUDED.sent, delivered = EXCLUDED.delivered, bounced = EXCLUDED.bounced,
-		complained = EXCLUDED.complained, api_calls = EXCLUDED.api_calls, api_errors = EXCLUDED.api_errors, cost_micros = EXCLUDED.cost_micros`,
-		provider, r.day, r.sent, delivered, r.bounced, r.complained, calls, errs, r.cost)
+		complained = EXCLUDED.complained, api_calls = EXCLUDED.api_calls, api_errors = EXCLUDED.api_errors, cost_micros = EXCLUDED.cost_micros,
+		delivered_reporting = EXCLUDED.delivered_reporting`,
+		provider, r.day, r.sent, delivered, r.bounced, r.complained, calls, errs, r.cost, r.reporting)
 	return err
 }
 

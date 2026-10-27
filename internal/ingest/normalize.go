@@ -21,6 +21,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/counters"
 	"github.com/hostrepute/reputecast/internal/jobs"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/bounce"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
@@ -267,7 +268,10 @@ type suppression struct {
 	status string
 }
 
-func (e *effects) outcome(provider uuid.UUID, at time.Time, delivered, bounced, complained int64) {
+// outcome counts a provider's delivery outcomes for its day. reporting is
+// the deliveries at mailbox providers that report complaints, the base of
+// the provider's complaint rate (review F-2).
+func (e *effects) outcome(provider uuid.UUID, at time.Time, delivered, bounced, complained, reporting int64) {
 	if delivered+bounced+complained == 0 {
 		return
 	}
@@ -284,6 +288,7 @@ func (e *effects) outcome(provider uuid.UUID, at time.Time, delivered, bounced, 
 	o.Delivered += delivered
 	o.Bounced += bounced
 	o.Complained += complained
+	o.DeliveredReporting += reporting
 }
 
 // flush applies the batch's effects and returns how many addresses were
@@ -381,11 +386,11 @@ func (n *Normalizer) apply(ctx context.Context, tx pgx.Tx, e *effects, p store.P
 		}
 		trusted = msg != nil
 	}
-	mailbox := routing.MailboxProvider(recipient)
+	mbx := routing.MailboxProvider(recipient)
 	label := ""
 	var messageID, campaignID, contactID *uuid.UUID
 	if msg != nil {
-		mailbox = msg.MailboxProvider
+		mbx = msg.MailboxProvider
 		label = SourceLabel(msg.CampaignName, msg.AutomationName, msg.AutomationNode, msg.Kind)
 		mid := msg.ID
 		messageID, campaignID, contactID = &mid, msg.CampaignID, msg.ContactID
@@ -403,7 +408,7 @@ func (n *Normalizer) apply(ctx context.Context, tx pgx.Tx, e *effects, p store.P
 	dedupe := dedupeKey(p.ID, ev, recipient, occurred)
 	id, err := q.IngestInsertEvent(ctx, store.IngestInsertEventParams{
 		ID: newID(), WorkspaceID: p.WorkspaceID, MessageID: messageID, CampaignID: campaignID, ContactID: contactID, ProviderID: &p.ID, RawEventID: rawID,
-		Type: string(ev.Type), OccurredAt: occurred, MailboxProvider: mailbox, OriginalType: clip(ev.OriginalType, 200), OriginalCode: clip(ev.OriginalCode, 100),
+		Type: string(ev.Type), OccurredAt: occurred, MailboxProvider: mbx, OriginalType: clip(ev.OriginalType, 200), OriginalCode: clip(ev.OriginalCode, 100),
 		Diagnostic: clip(ev.Diagnostic, 1000), BounceClass: ev.BounceClass, Url: clip(ev.URL, 2048), UserAgent: clip(ev.UserAgent, 500),
 		Recipient: recipient, ProviderMessageID: clip(ev.ProviderMessageID, 300), Source: label, ReceivedAt: receivedAt, DedupeKey: dedupe,
 	})
@@ -459,7 +464,11 @@ func (n *Normalizer) apply(ctx context.Context, tx pgx.Tx, e *effects, p store.P
 		}
 	}
 	if trusted {
-		e.outcome(p.ID, occurred, outcome.Delivered, outcome.HardBounced, outcome.Complained)
+		var reporting int64
+		if mailbox.ReportsComplaints(mbx) {
+			reporting = outcome.Delivered
+		}
+		e.outcome(p.ID, occurred, outcome.Delivered, outcome.HardBounced, outcome.Complained, reporting)
 	}
 	// A placement test copy went to a seed mailbox the workspace owns: its
 	// bounces and complaints never suppress the seed (internal/placement).

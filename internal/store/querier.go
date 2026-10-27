@@ -2558,6 +2558,8 @@ type Querier interface {
 	ProvCallWindowTotals(ctx context.Context, arg ProvCallWindowTotalsParams) ([]ProvCallWindowTotalsRow, error)
 	ProvCampaignRoutes(ctx context.Context, campaignID uuid.UUID) ([]ProvCampaignRoutesRow, error)
 	// Totals per provider over [since, until] (dates).
+	// The complaint rate's base (review F-2): complaints and deliveries at
+	// mailbox providers that report complaints, on the days that counted them.
 	ProvDailyTotals(ctx context.Context, arg ProvDailyTotalsParams) ([]ProvDailyTotalsRow, error)
 	ProvDisconnect(ctx context.Context, id uuid.UUID) error
 	ProvEndFailovers(ctx context.Context, arg ProvEndFailoversParams) ([]StreamFailover, error)
@@ -2587,7 +2589,9 @@ type Querier interface {
 	ProvRawEventsByHour(ctx context.Context, arg ProvRawEventsByHourParams) ([]ProvRawEventsByHourRow, error)
 	ProvRecordCall(ctx context.Context, arg ProvRecordCallParams) error
 	ProvRecordDaily(ctx context.Context, arg ProvRecordDailyParams) error
-	// Delivery outcomes counted from normalized events (bounce and complaint rates).
+	// Delivery outcomes counted from normalized events (bounce and complaint
+	// rates). delivered_reporting counts the deliveries at mailbox providers
+	// that report complaints; a day counted before it existed stays unknown.
 	ProvRecordOutcome(ctx context.Context, arg ProvRecordOutcomeParams) error
 	// Automation mail sent through a fallback since a time, per automation.
 	ProvReroutedByAutomation(ctx context.Context, arg ProvReroutedByAutomationParams) ([]ProvReroutedByAutomationRow, error)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -23,8 +24,32 @@ type Usage struct {
 	// Bounce7d and Complaint7d are percentages over the last seven days
 	// (today included); nil when nothing was sent or delivered. When the
 	// provider reports its own rates (state.ReputationOf), those are used.
-	Bounce7d    *float64 `json:"bounce7d,omitempty"`
-	Complaint7d *float64 `json:"complaint7d,omitempty"`
+	// Complaint7d counts only mail delivered to mailbox providers that
+	// report complaints (review F-2); ComplaintReason says why it is nil.
+	Bounce7d        *float64 `json:"bounce7d,omitempty"`
+	Complaint7d     *float64 `json:"complaint7d,omitempty"`
+	ComplaintReason string   `json:"complaintReason,omitempty" enum:"no_data,not_reported"`
+}
+
+// Why a complaint rate is empty (review F-3).
+const (
+	RateNoData      = "no_data"
+	RateNotReported = mailbox.NotReported
+)
+
+// ComplaintRate is a provider's complaint rate over days of totals, in
+// percent: complaints over the mail delivered to mailbox providers that
+// report complaints, on the days that counted it (review F-2). Without
+// such mail it is nil, with the reason.
+func ComplaintRate(t store.ProvDailyTotalsRow) (*float64, string) {
+	switch {
+	case t.DeliveredReporting > 0:
+		v := round2(float64(t.ComplainedReporting) / float64(t.DeliveredReporting) * 100)
+		return &v, ""
+	case t.DeliveredCounted > 0:
+		return nil, RateNotReported
+	}
+	return nil, RateNoData
 }
 
 // UsageOf returns the usage of each given provider of a workspace. Providers
@@ -64,13 +89,10 @@ func UsageOf(ctx context.Context, q *store.Queries, ws *store.Workspace, provs [
 			v := round2(float64(w.Bounced) / float64(w.Sent) * 100)
 			u.Bounce7d = &v
 		}
-		if w.Delivered > 0 {
-			v := round2(float64(w.Complained) / float64(w.Delivered) * 100)
-			u.Complaint7d = &v
-		}
+		u.Complaint7d, u.ComplaintReason = ComplaintRate(w)
 		if r := state.ReputationOf(state.HealthOf(p), now); r != nil {
 			b, c := r.Bounce, r.Complaint
-			u.Bounce7d, u.Complaint7d = &b, &c
+			u.Bounce7d, u.Complaint7d, u.ComplaintReason = &b, &c, ""
 		}
 		out[p.ID] = u
 	}

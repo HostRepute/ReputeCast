@@ -141,6 +141,13 @@ function rateMeter(card: ProviderCard, mode: 'normal' | 'outage' = 'normal'): Re
   return <Meter label={label} value={value} percent={r.max > 0 ? (r.now / r.max) * 100 : 0} color="var(--accent)" />
 }
 
+/** Why a provider's complaint rate is n/a (review F-3). */
+function rateReason(reason: Schemas['ProviderLimitRate']['reason']): string | undefined {
+  if (reason === 'not_reported') return tt(mo.rateNotReported)
+  if (reason === 'no_data') return tt(mo.rateNoData)
+  return undefined
+}
+
 function rateMeters(card: ProviderCard, stale = false, short = false) {
   const b = card.bounce
   const c = card.complaint
@@ -149,15 +156,17 @@ function rateMeters(card: ProviderCard, stale = false, short = false) {
     <>
       <Meter
         label={limitLabel('Bounce', b, short)}
-        value={withStale(bouncePct(b.value), b.value !== undefined)}
+        value={b.value !== undefined ? withStale(bouncePct(b.value), true) : b.reason ? tt(mo.rateNA) : bouncePct(b.value)}
+        note={b.value === undefined && b.reason === 'no_data' ? tt(mo.rateNoSends) : undefined}
         percent={b.value !== undefined ? (b.value / b.limit) * 100 : 0}
         color={rateColor(b.value, b.limit, stale)}
       />
       <Meter
         label={limitLabel('Complaint', c, short)}
-        value={withStale(complaintPct(c.value), c.value !== undefined)}
+        value={c.value !== undefined ? withStale(complaintPct(c.value), true) : c.reason ? tt(mo.rateNA) : complaintPct(c.value)}
         percent={c.value !== undefined ? (c.value / c.limit) * 100 : 0}
         color={rateColor(c.value, c.limit, stale)}
+        note={c.value === undefined ? rateReason(c.reason) : undefined}
       />
     </>
   )
@@ -503,7 +512,7 @@ export function CompactRow({ card, silent, last }: { card: ProviderCard; silent:
         {t(mo.compactRates, {
           bounce: bouncePct(card.bounce.value),
           bounceLimit: limitPct(card.bounce.limit),
-          complaint: complaintPct(card.complaint.value),
+          complaint: card.complaint.value !== undefined || !card.complaint.reason ? complaintPct(card.complaint.value) : t(mo.rateNA),
           complaintLimit: limitPct(card.complaint.limit),
           quota: q.kind === 'rolling_24h' ? 'rolling' : q.kind === 'monthly_plan' ? 'plan' : 'none',
           used: count(q.used),

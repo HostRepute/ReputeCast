@@ -2944,15 +2944,16 @@ type ProviderCallWindow struct {
 }
 
 type ProviderDailyStat struct {
-	ProviderID uuid.UUID `json:"providerId"`
-	Day        time.Time `json:"day"`
-	Sent       int64     `json:"sent"`
-	Delivered  int64     `json:"delivered"`
-	Bounced    int64     `json:"bounced"`
-	Complained int64     `json:"complained"`
-	ApiCalls   int64     `json:"apiCalls"`
-	ApiErrors  int64     `json:"apiErrors"`
-	CostMicros int64     `json:"costMicros"`
+	ProviderID         uuid.UUID `json:"providerId"`
+	Day                time.Time `json:"day"`
+	Sent               int64     `json:"sent"`
+	Delivered          int64     `json:"delivered"`
+	Bounced            int64     `json:"bounced"`
+	Complained         int64     `json:"complained"`
+	ApiCalls           int64     `json:"apiCalls"`
+	ApiErrors          int64     `json:"apiErrors"`
+	CostMicros         int64     `json:"costMicros"`
+	DeliveredReporting *int64    `json:"deliveredReporting"`
 }
 
 type ProviderRawEvent struct {

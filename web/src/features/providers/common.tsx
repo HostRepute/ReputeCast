@@ -158,6 +158,7 @@ export function Meter({
   color,
   valueClassName,
   valueStyle,
+  note,
 }: {
   label: string
   value: string
@@ -165,6 +166,8 @@ export function Meter({
   color: string
   valueClassName?: string
   valueStyle?: React.CSSProperties
+  /** Why there is no value ("Gmail and iCloud don't report complaints"). */
+  note?: string
 }) {
   const w = Math.max(0, Math.min(100, percent))
   return (
@@ -178,6 +181,7 @@ export function Meter({
       <div className="bar" aria-hidden="true">
         <i style={{ width: `${w}%`, background: color }} />
       </div>
+      {note ? <span className="k text-[11.5px]">{note}</span> : null}
     </div>
   )
 }

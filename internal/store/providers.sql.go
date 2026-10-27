@@ -340,7 +340,10 @@ SELECT provider_id,
        coalesce(sum(complained), 0)::bigint  AS complained,
        coalesce(sum(api_calls), 0)::bigint   AS api_calls,
        coalesce(sum(api_errors), 0)::bigint  AS api_errors,
-       coalesce(sum(cost_micros), 0)::bigint AS cost_micros
+       coalesce(sum(cost_micros), 0)::bigint AS cost_micros,
+       coalesce(sum(delivered_reporting), 0)::bigint AS delivered_reporting,
+       coalesce(sum(complained) FILTER (WHERE delivered_reporting IS NOT NULL), 0)::bigint AS complained_reporting,
+       coalesce(sum(delivered) FILTER (WHERE delivered_reporting IS NOT NULL), 0)::bigint AS delivered_counted
 FROM provider_daily_stats
 WHERE provider_id = ANY($1::uuid[]) AND day BETWEEN $2::date AND $3::date
 GROUP BY provider_id
@@ -353,17 +356,22 @@ type ProvDailyTotalsParams struct {
 }
 
 type ProvDailyTotalsRow struct {
-	ProviderID uuid.UUID `json:"providerId"`
-	Sent       int64     `json:"sent"`
-	Delivered  int64     `json:"delivered"`
-	Bounced    int64     `json:"bounced"`
-	Complained int64     `json:"complained"`
-	ApiCalls   int64     `json:"apiCalls"`
-	ApiErrors  int64     `json:"apiErrors"`
-	CostMicros int64     `json:"costMicros"`
+	ProviderID          uuid.UUID `json:"providerId"`
+	Sent                int64     `json:"sent"`
+	Delivered           int64     `json:"delivered"`
+	Bounced             int64     `json:"bounced"`
+	Complained          int64     `json:"complained"`
+	ApiCalls            int64     `json:"apiCalls"`
+	ApiErrors           int64     `json:"apiErrors"`
+	CostMicros          int64     `json:"costMicros"`
+	DeliveredReporting  int64     `json:"deliveredReporting"`
+	ComplainedReporting int64     `json:"complainedReporting"`
+	DeliveredCounted    int64     `json:"deliveredCounted"`
 }
 
 // Totals per provider over [since, until] (dates).
+// The complaint rate's base (review F-2): complaints and deliveries at
+// mailbox providers that report complaints, on the days that counted them.
 func (q *Queries) ProvDailyTotals(ctx context.Context, arg ProvDailyTotalsParams) ([]ProvDailyTotalsRow, error) {
 	rows, err := q.db.Query(ctx, provDailyTotals, arg.ProviderIds, arg.Since, arg.Until)
 	if err != nil {
@@ -382,6 +390,9 @@ func (q *Queries) ProvDailyTotals(ctx context.Context, arg ProvDailyTotalsParams
 			&i.ApiCalls,
 			&i.ApiErrors,
 			&i.CostMicros,
+			&i.DeliveredReporting,
+			&i.ComplainedReporting,
+			&i.DeliveredCounted,
 		); err != nil {
 			return nil, err
 		}
@@ -1019,23 +1030,27 @@ func (q *Queries) ProvRecordDaily(ctx context.Context, arg ProvRecordDailyParams
 }
 
 const provRecordOutcome = `-- name: ProvRecordOutcome :exec
-INSERT INTO provider_daily_stats (provider_id, day, delivered, bounced, complained)
-VALUES ($1, $2::date, $3, $4, $5)
+INSERT INTO provider_daily_stats (provider_id, day, delivered, bounced, complained, delivered_reporting)
+VALUES ($1, $2::date, $3, $4, $5, $6::bigint)
 ON CONFLICT (provider_id, day) DO UPDATE
 SET delivered = provider_daily_stats.delivered + EXCLUDED.delivered,
     bounced = provider_daily_stats.bounced + EXCLUDED.bounced,
-    complained = provider_daily_stats.complained + EXCLUDED.complained
+    complained = provider_daily_stats.complained + EXCLUDED.complained,
+    delivered_reporting = provider_daily_stats.delivered_reporting + EXCLUDED.delivered_reporting
 `
 
 type ProvRecordOutcomeParams struct {
-	ProviderID uuid.UUID `json:"providerId"`
-	Day        time.Time `json:"day"`
-	Delivered  int64     `json:"delivered"`
-	Bounced    int64     `json:"bounced"`
-	Complained int64     `json:"complained"`
+	ProviderID         uuid.UUID `json:"providerId"`
+	Day                time.Time `json:"day"`
+	Delivered          int64     `json:"delivered"`
+	Bounced            int64     `json:"bounced"`
+	Complained         int64     `json:"complained"`
+	DeliveredReporting int64     `json:"deliveredReporting"`
 }
 
-// Delivery outcomes counted from normalized events (bounce and complaint rates).
+// Delivery outcomes counted from normalized events (bounce and complaint
+// rates). delivered_reporting counts the deliveries at mailbox providers
+// that report complaints; a day counted before it existed stays unknown.
 func (q *Queries) ProvRecordOutcome(ctx context.Context, arg ProvRecordOutcomeParams) error {
 	_, err := q.db.Exec(ctx, provRecordOutcome,
 		arg.ProviderID,
@@ -1043,6 +1058,7 @@ func (q *Queries) ProvRecordOutcome(ctx context.Context, arg ProvRecordOutcomePa
 		arg.Delivered,
 		arg.Bounced,
 		arg.Complained,
+		arg.DeliveredReporting,
 	)
 	return err
 }
