@@ -446,6 +446,7 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 		for _, l := range ot.tpl.Links {
 			links[LinkVar(l.Position)] = e.URLs.Click(sign(linktoken.Click, uint32(l.Position)))
 		}
+		links[HoneypotVar] = e.URLs.Honeypot(sign(linktoken.Honeypot, 0))
 	}
 	if e.Store != nil && len(ref.Ctx) > 0 {
 		for k, v := range e.Store.Vars(ctx, ref.Ctx) {

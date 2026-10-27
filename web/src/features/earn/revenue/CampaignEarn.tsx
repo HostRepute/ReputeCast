@@ -28,17 +28,21 @@ const mono = (c: ReactNode) => <span className="mono">{c}</span>
  * issue's sponsor with its report. Shown in the report, never on a shared
  * read-only link.
  */
-export function CampaignEarn({ campaignId }: { campaignId: string }) {
+export function CampaignEarn({ campaignId, conversionsInReport }: { campaignId: string; conversionsInReport?: boolean }) {
   const { slug } = useWorkspace()
   const canView = useCan('earn:view')
   const path = { params: { path: { workspace: slug, id: campaignId } } }
   const rev = $api.useQuery('get', `${WS}/campaigns/{id}/revenue`, path)
   const sp = $api.useQuery('get', `${WS}/campaigns/{id}/sponsor`, path, { enabled: canView })
   const booking = sp.data?.booking
-  if (!rev.data?.active && !booking && !rev.error) return null
+  // The report's "Growth & revenue from this issue" shows an email
+  // without upgrade links' conversions (review AN-12); its full Revenue
+  // section stays for upgrades.
+  const shown = rev.data?.active && !(conversionsInReport && !rev.data.locked && !rev.data.hasUpgradeLinks && rev.data.upgrades === 0)
+  if (!shown && !booking && !rev.error) return null
   return (
     <>
-      {rev.error ? <RevenueError error={rev.error} onRetry={() => void rev.refetch()} /> : rev.data?.active ? <RevenueSection r={rev.data} /> : null}
+      {rev.error ? <RevenueError error={rev.error} onRetry={() => void rev.refetch()} /> : shown && rev.data ? <RevenueSection r={rev.data} /> : null}
       {booking ? <SponsorSection b={booking} /> : null}
     </>
   )

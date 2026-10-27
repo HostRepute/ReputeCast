@@ -273,6 +273,7 @@ SELECT page.id::uuid AS id,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)::boolean AS suppressed,
        coalesce((SELECT p.paused_until > $1::timestamptz FROM contact_preferences p WHERE p.contact_id = c.id), false)::boolean AS paused,
        coalesce(c.language, '')::text AS language,
+       coalesce(c.timezone, '')::text AS timezone,
        (excluded.contact_id IS NOT NULL)::boolean AS excluded_list,
        (excluded_staged.contact_id IS NOT NULL)::boolean AS excluded_segment,
        coalesce(member_lists.lists, '{}'::uuid[])::uuid[] AS lists,
@@ -313,6 +314,7 @@ type SendingAudiencePageRow struct {
 	Suppressed      bool            `json:"suppressed"`
 	Paused          bool            `json:"paused"`
 	Language        string          `json:"language"`
+	Timezone        string          `json:"timezone"`
 	ExcludedList    bool            `json:"excludedList"`
 	ExcludedSegment bool            `json:"excludedSegment"`
 	Lists           []uuid.UUID     `json:"lists"`
@@ -361,6 +363,7 @@ func (q *Queries) SendingAudiencePage(ctx context.Context, arg SendingAudiencePa
 			&i.Suppressed,
 			&i.Paused,
 			&i.Language,
+			&i.Timezone,
 			&i.ExcludedList,
 			&i.ExcludedSegment,
 			&i.Lists,
@@ -831,9 +834,9 @@ WITH picked AS (
 ), upd AS (
     UPDATE messages m SET claimed_at = $5::timestamptz, attempts = m.attempts + 1
     FROM picked WHERE m.id = picked.id
-    RETURNING m.id, m.workspace_id, m.contact_id, m.email, m.variant, m.mailbox_provider, m.attempts, m.language, m.hidden_blocks
+    RETURNING m.id, m.workspace_id, m.contact_id, m.email, m.variant, m.ab_rollout, m.mailbox_provider, m.attempts, m.language, m.hidden_blocks
 )
-SELECT upd.id, upd.contact_id, upd.email, upd.variant, upd.mailbox_provider, upd.attempts, upd.language, upd.hidden_blocks,
+SELECT upd.id, upd.contact_id, upd.email, upd.variant, upd.ab_rollout, upd.mailbox_provider, upd.attempts, upd.language, upd.hidden_blocks,
        coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name,
        coalesce(c.attributes, '{}'::jsonb)::jsonb AS attributes, coalesce(c.tier, '')::text AS tier,
        coalesce(c.source, '')::text AS source, (c.last_human_open_at IS NOT NULL)::boolean AS engaged,
@@ -858,6 +861,7 @@ type SendingClaimRow struct {
 	ContactID       *uuid.UUID      `json:"contactId"`
 	Email           string          `json:"email"`
 	Variant         string          `json:"variant"`
+	AbRollout       bool            `json:"abRollout"`
 	MailboxProvider string          `json:"mailboxProvider"`
 	Attempts        int16           `json:"attempts"`
 	Language        string          `json:"language"`
@@ -896,6 +900,7 @@ func (q *Queries) SendingClaim(ctx context.Context, arg SendingClaimParams) ([]S
 			&i.ContactID,
 			&i.Email,
 			&i.Variant,
+			&i.AbRollout,
 			&i.MailboxProvider,
 			&i.Attempts,
 			&i.Language,
@@ -1085,7 +1090,7 @@ func (q *Queries) SendingContactForAutomation(ctx context.Context, id uuid.UUID)
 
 const sendingCounters = `-- name: SendingCounters :many
 SELECT provider_id, mailbox_provider, variant, sent, delivered, deferred, hard_bounced, soft_bounced, complained, rejected,
-       opened_human, opened_machine, clicked, unsubscribed
+       opened_human, (opened_machine + opened_privacy)::bigint AS opened_machine, clicked, unsubscribed
 FROM campaign_counters WHERE campaign_id = $1
 `
 
@@ -1106,6 +1111,9 @@ type SendingCountersRow struct {
 	Unsubscribed    int64     `json:"unsubscribed"`
 }
 
+// opened_machine is every open no person made: privacy-protected opens
+// (Apple Mail Privacy Protection) and scanners' (the report shows them
+// apart, internal/counters).
 func (q *Queries) SendingCounters(ctx context.Context, campaignID uuid.UUID) ([]SendingCountersRow, error) {
 	rows, err := q.db.Query(ctx, sendingCounters, campaignID)
 	if err != nil {
@@ -2184,24 +2192,6 @@ UPDATE messages SET claimed_at = NULL, attempts = greatest(attempts - 1, 0) WHER
 func (q *Queries) SendingRelease(ctx context.Context, ids []uuid.UUID) error {
 	_, err := q.db.Exec(ctx, sendingRelease, ids)
 	return err
-}
-
-const sendingReleaseHeld = `-- name: SendingReleaseHeld :execrows
-UPDATE messages SET status = 'queued', variant = $1 WHERE campaign_id = $2 AND status = 'held' AND variant = ''
-`
-
-type SendingReleaseHeldParams struct {
-	Variant    string     `json:"variant"`
-	CampaignID *uuid.UUID `json:"campaignId"`
-}
-
-// The A/B winner goes to everyone who waited for it.
-func (q *Queries) SendingReleaseHeld(ctx context.Context, arg SendingReleaseHeldParams) (int64, error) {
-	result, err := q.db.Exec(ctx, sendingReleaseHeld, arg.Variant, arg.CampaignID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
 }
 
 const sendingRemainingOn = `-- name: SendingRemainingOn :one

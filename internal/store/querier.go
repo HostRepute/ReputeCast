@@ -7,12 +7,31 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"net/netip"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 type Querier interface {
+	// The recipients waiting for a send-time test, with their time zone.
+	ABHeldZones(ctx context.Context, campaignID *uuid.UUID) ([]ABHeldZonesRow, error)
+	// When the last recipient of the test sample is due (a send-time test's
+	// latest variant time in its recipients' time zones).
+	ABLastSampleDue(ctx context.Context, campaignID *uuid.UUID) (time.Time, error)
+	// A send-time test's rest get the variant at its time of day in their own
+	// time zone.
+	ABReleaseAt(ctx context.Context, arg ABReleaseAtParams) (int64, error)
+	// Everyone who waited for the test gets the variant that goes out (the
+	// winner, or the default when no variant won), counted apart as the
+	// rollout; a best-time send keeps each recipient's time.
+	ABReleaseHeld(ctx context.Context, arg ABReleaseHeldParams) (int64, error)
+	// A/B tests' decisions (review AN-1, internal/sending/engine/ab.go).
+	// The test sample's results per variant; the rollout (variant '', the
+	// recipients who got the winner after the test) is left out.
+	ABSampleCounts(ctx context.Context, campaignID uuid.UUID) ([]ABSampleCountsRow, error)
+	// The decision is kept with the campaign's test, for its report.
+	ABSaveDecision(ctx context.Context, arg ABSaveDecisionParams) error
 	// What the assistant needs about a campaign: its name, content and language.
 	AICampaignBrief(ctx context.Context, arg AICampaignBriefParams) (AICampaignBriefRow, error)
 	// AI assistant (design expansion M22): the workspace's model, the AI
@@ -849,6 +868,74 @@ type Querier interface {
 	CountUsers(ctx context.Context) (int64, error)
 	CountWorkspaceSegments(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	CountWorkspaceSuppressions(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	CountersBuildSave(ctx context.Context, arg CountersBuildSaveParams) error
+	// Adds counter deltas, one row per cell, locking the rows in key order.
+	CountersBump(ctx context.Context, arg CountersBumpParams) error
+	// Adds hourly engagement deltas, locking the rows in key order.
+	CountersBumpHourly(ctx context.Context, arg CountersBumpHourlyParams) error
+	// Adds clicks per link and A/B variant (review AN-5), in key order, after
+	// campaign_links.
+	CountersBumpLinkVariants(ctx context.Context, arg CountersBumpLinkVariantsParams) error
+	// Adds clicks per link (people's clicks, people's first click per link,
+	// bot clicks), locking the links in key order.
+	CountersBumpLinks(ctx context.Context, arg CountersBumpLinksParams) error
+	// Whether a campaign's per-message history is stored, so its counters can
+	// be rebuilt from it: imported history and sample data have counters but
+	// no message per recipient.
+	CountersCampaignHistory(ctx context.Context, id uuid.UUID) (CountersCampaignHistoryRow, error)
+	// Before CountersRebuildLinkVariants; kept when clicks without link
+	// positions are stored (as CountersRebuildLinks).
+	CountersClearLinkVariants(ctx context.Context, campaignID uuid.UUID) error
+	// Campaigns to rebuild: sent from ReputeCast, their results final (72 h
+	// after the send ended), and not rebuilt with the current rules yet.
+	CountersDueRebuilds(ctx context.Context, arg CountersDueRebuildsParams) ([]uuid.UUID, error)
+	// A rebuild takes the campaign's counter rows first, so writers wait for
+	// it (they take the rows after the messages; the rebuild reads messages
+	// without locking them).
+	CountersLockCampaign(ctx context.Context, campaignID uuid.UUID) error
+	// A writer locks the message before anything that refers to it (a
+	// delivery event's foreign key takes a shared lock on it; two writers
+	// holding that shared lock would both wait to move the message).
+	CountersLockMessage(ctx context.Context, id uuid.UUID) error
+	// Campaign counters kept in step with message states (review AN-3,
+	// internal/counters). A writer moves a message (the statement returns its
+	// state before and after), collects the counter changes in a ledger and
+	// applies them at the end of its transaction, in key order: message rows
+	// first (each writer locks them in id order), then campaign_counters, then
+	// campaign_hourly, then campaign_links. Every writer takes its locks in
+	// that one order, so concurrent writers wait for each other instead of
+	// deadlocking.
+	// Moves a message on a delivery event: delivered and deferred are replaced
+	// by bounces and complaints, never the other way round; a soft bounce is
+	// remembered so a later delivery takes it back. kind is the event type
+	// (delivered, deferred, hard_bounce, soft_bounce, complaint, rejected,
+	// unsubscribe).
+	CountersMoveDelivery(ctx context.Context, arg CountersMoveDeliveryParams) (CountersMoveDeliveryRow, error)
+	// Records an open or a person's click on a message. class is how tracking
+	// classified it: human, privacy (Apple Mail Privacy Protection fetched the
+	// images) or machine (a scanner). A click is always a person's (bot clicks
+	// never get here) and is a human open too.
+	CountersMoveEngagement(ctx context.Context, arg CountersMoveEngagementParams) (CountersMoveEngagementRow, error)
+	// Replaces a campaign's counters with what its messages' states add up to
+	// (the same rules as internal/counters State.Flags).
+	CountersRebuildCells(ctx context.Context, campaignID uuid.UUID) error
+	// Replaces a campaign's hourly engagement with its messages' states: a
+	// person's first open, a privacy prefetch or a scanner's first open, and
+	// the first click, in the hour after the send started they happened in.
+	CountersRebuildHourly(ctx context.Context, arg CountersRebuildHourlyParams) error
+	// Clicks per link and A/B variant from the stored clicks: people's and
+	// bots' click events by the variant their message had, people's first
+	// click per link (tracking_link_clicks).
+	CountersRebuildLinkVariants(ctx context.Context, campaignID uuid.UUID) error
+	// Replaces clicks per link with the stored clicks: people's clicks and
+	// bot clicks (click events with the link's position and their class;
+	// clicks still waiting to settle count as neither), people's first click
+	// per link (tracking_link_clicks).
+	CountersRebuildLinks(ctx context.Context, campaignID uuid.UUID) error
+	// Rebuilds the states the status can't tell apart from the stored events:
+	// the first deferral, the first soft bounce, an unsubscribe, a privacy
+	// prefetch. Only fills what is missing.
+	CountersRefreshStates(ctx context.Context, campaignID *uuid.UUID) error
 	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (ApiKey, error)
 	CreateAutomation(ctx context.Context, arg CreateAutomationParams) (Automation, error)
 	CreateAutomationEmail(ctx context.Context, arg CreateAutomationEmailParams) error
@@ -1470,7 +1557,6 @@ type Querier interface {
 	ImportRowsAfter(ctx context.Context, arg ImportRowsAfterParams) ([]ImportRow, error)
 	ImportStatusCounts(ctx context.Context, importID uuid.UUID) ([]ImportStatusCountsRow, error)
 	IngestAddSuppression(ctx context.Context, arg IngestAddSuppressionParams) (uuid.UUID, error)
-	IngestBumpCounters(ctx context.Context, arg IngestBumpCountersParams) error
 	// The provider event log: provider events (not ReputeCast's own opens and
 	// clicks), newest first, retained 90 days.
 	// The message's kind and automation step write its source label in a
@@ -1488,9 +1574,6 @@ type Querier interface {
 	IngestSetContactStatus(ctx context.Context, arg IngestSetContactStatusParams) error
 	// Verified payloads the normalization job never finished (recovery sweep).
 	IngestStaleRaw(ctx context.Context, arg IngestStaleRawParams) ([]uuid.UUID, error)
-	// Moves a message forward: delivered/deferred are replaced by bounces and
-	// complaints, never the other way round.
-	IngestUpdateMessage(ctx context.Context, arg IngestUpdateMessageParams) error
 	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
 	InsertAutomationEmailVersion(ctx context.Context, arg InsertAutomationEmailVersionParams) error
 	InsertAutomationEvent(ctx context.Context, arg InsertAutomationEventParams) error
@@ -2483,10 +2566,20 @@ type Querier interface {
 	ProvUpdateSettings(ctx context.Context, arg ProvUpdateSettingsParams) error
 	ProvUpdateTracking(ctx context.Context, arg ProvUpdateTrackingParams) error
 	ProviderNames(ctx context.Context, workspaceID uuid.UUID) ([]ProviderNamesRow, error)
+	// Proxies seen often enough, recently, whose admins weren't told lately.
+	ProxyDue(ctx context.Context, arg ProxyDueParams) ([]UntrustedProxy, error)
+	// A proxy that is trusted now.
+	ProxyForget(ctx context.Context, peer netip.Addr) error
+	// Proxies not seen for a long time.
+	ProxyForgetOld(ctx context.Context, seenBefore time.Time) error
+	ProxyList(ctx context.Context) ([]UntrustedProxy, error)
+	ProxyNotified(ctx context.Context, arg ProxyNotifiedParams) error
+	// Requests through a proxy ReputeCast doesn't trust (review AN-8).
+	// Adds requests from an untrusted proxy since the last write.
+	ProxySeen(ctx context.Context, arg ProxySeenParams) error
 	// Keeps the newest @keep versions; the first version and anything that is
 	// not an autosave (restores, imports, ⌘S) are always kept.
 	PruneComposerVersions(ctx context.Context, arg PruneComposerVersionsParams) (int64, error)
-	PublicBumpUnsubscribed(ctx context.Context, arg PublicBumpUnsubscribedParams) error
 	PublicCampaign(ctx context.Context, arg PublicCampaignParams) (PublicCampaignRow, error)
 	PublicInsertFeedback(ctx context.Context, arg PublicInsertFeedbackParams) error
 	PublicInsertUnsubscribeEvent(ctx context.Context, arg PublicInsertUnsubscribeEventParams) error
@@ -2841,6 +2934,10 @@ type Querier interface {
 	RemoteRuntimeSetSecret(ctx context.Context, arg RemoteRuntimeSetSecretParams) error
 	RemoteRuntimeTouch(ctx context.Context, adapterID uuid.UUID) error
 	RenamePasskey(ctx context.Context, arg RenamePasskeyParams) error
+	// A campaign's bounces for the sender's reputation or policy by mailbox
+	// provider and sending provider, with the provider's addresses (the
+	// report's insights, review AN-15).
+	ReportBlockedBounces(ctx context.Context, arg ReportBlockedBouncesParams) ([]ReportBlockedBouncesRow, error)
 	// Bounces of a campaign by taxonomy class, sending provider and the
 	// provider's original event and code, with how many of the bounced
 	// addresses are on the shared suppression list now.
@@ -2853,22 +2950,58 @@ type Querier interface {
 	// to suppression"). Never sent to the browser.
 	ReportBounceRecipients(ctx context.Context, arg ReportBounceRecipientsParams) ([]string, error)
 	// Campaign reports (spec 7.7, 5.5) and read-only report links.
+	// send_ab is the send's A/B state (when the test is decided, the decision).
 	ReportCampaign(ctx context.Context, arg ReportCampaignParams) (ReportCampaignRow, error)
 	// Final or live counters per sending provider × mailbox provider × A/B
 	// variant, with the provider's name for the per-provider comparison.
 	ReportCounterCells(ctx context.Context, campaignID uuid.UUID) ([]ReportCounterCellsRow, error)
+	ReportFinalAlertIs(ctx context.Context, arg ReportFinalAlertIsParams) (bool, error)
+	ReportFinalAlertRemove(ctx context.Context, arg ReportFinalAlertRemoveParams) (int64, error)
+	// Someone asked to be emailed when a report's results are final.
+	ReportFinalAlertSet(ctx context.Context, arg ReportFinalAlertSetParams) error
+	// Requests whose campaign's results became final (72 hours after the send
+	// ended), with what the notification says; the oldest first.
+	ReportFinalAlertsDue(ctx context.Context, finalBefore time.Time) ([]ReportFinalAlertsDueRow, error)
+	// Contacts who joined since a campaign started through a form or the
+	// subscribe page, with their first touch's page, referrer and UTM medium
+	// and campaign: the issue's forwards and web-post signups are read from
+	// them (review AN-12).
+	ReportGrowthJoins(ctx context.Context, arg ReportGrowthJoinsParams) ([]ReportGrowthJoinsRow, error)
+	// Referral signups since a campaign started credited to it: it was the
+	// last email their referrer clicked, as a person, in the 7 days before the
+	// signup (the attribution rule upgrades follow, review AN-12).
+	ReportGrowthReferrals(ctx context.Context, arg ReportGrowthReferralsParams) (int64, error)
 	ReportHourly(ctx context.Context, arg ReportHourlyParams) ([]ReportHourlyRow, error)
 	// Provider events received but not normalized yet, per provider: when the
 	// normalization job falls behind, live counts lag by that much.
 	ReportIngestBacklog(ctx context.Context, arg ReportIngestBacklogParams) ([]ReportIngestBacklogRow, error)
+	// Where a campaign is on the web: its archive page and its website post.
+	ReportIssuePages(ctx context.Context, arg ReportIssuePagesParams) (ReportIssuePagesRow, error)
 	ReportLatestReadiness(ctx context.Context, campaignID uuid.UUID) (ReportLatestReadinessRow, error)
 	// The most recent campaign with results, for "See the last report instead".
 	ReportLatestSent(ctx context.Context, arg ReportLatestSentParams) (ReportLatestSentRow, error)
+	// Clicks per link and A/B variant, for each variant's click map (review
+	// AN-5).
+	ReportLinkVariants(ctx context.Context, campaignID uuid.UUID) ([]ReportLinkVariantsRow, error)
+	// Clicks per link: people's clicks, people's first click per link, and
+	// the clicks the bot filter left out.
 	ReportLinks(ctx context.Context, campaignID uuid.UUID) ([]ReportLinksRow, error)
+	// Whether a sending provider reported opens or clicks of a campaign's
+	// messages: its own tracking counted them (review AN-4).
+	ReportProviderTracked(ctx context.Context, arg ReportProviderTrackedParams) (bool, error)
+	// The last issues before a campaign to the same audience (sent email
+	// campaigns, not deleted, to the same lists and segments in any order),
+	// with their counters per mailbox provider, for the tiles' comparison with
+	// the median of the last issues (review AN-11): another list's sends
+	// aren't this newsletter's issues.
+	ReportRecentIssues(ctx context.Context, arg ReportRecentIssuesParams) ([]ReportRecentIssuesRow, error)
 	// Each sending provider's share of the send: what was planned, the cost and
 	// the median time to delivery (stored at completion, else computed from the
-	// route's messages).
+	// route's messages; 0 before anything was delivered).
 	ReportRoutes(ctx context.Context, campaignID uuid.UUID) ([]ReportRoutesRow, error)
+	// The email as the send captured it: each content variant's HTML and the
+	// first link position of each (internal/sending/engine sendContent).
+	ReportSendContent(ctx context.Context, campaignID uuid.UUID) (json.RawMessage, error)
 	// A link by its token hash with its campaign and workspace (the public page).
 	ReportShareByToken(ctx context.Context, tokenHash []byte) (ReportShareByTokenRow, error)
 	ReportShareCreate(ctx context.Context, arg ReportShareCreateParams) (ReportShare, error)
@@ -2878,9 +3011,15 @@ type Querier interface {
 	ReportShareRevoke(ctx context.Context, arg ReportShareRevokeParams) (ReportShare, error)
 	ReportShareTouch(ctx context.Context, arg ReportShareTouchParams) error
 	ReportUnsubscribeReasons(ctx context.Context, arg ReportUnsubscribeReasonsParams) ([]ReportUnsubscribeReasonsRow, error)
+	// Which of these messages are a campaign's (view-online pages a signup
+	// came from).
+	ReportViewedMessages(ctx context.Context, arg ReportViewedMessagesParams) ([]uuid.UUID, error)
 	// Warm-up plans of the campaign's providers (the day each was on when the
 	// campaign was sent).
 	ReportWarmupAt(ctx context.Context, providerIds []uuid.UUID) ([]ReportWarmupAtRow, error)
+	// First-party, cookie-free views of a campaign on the web: its archive
+	// page and its website post (review AN-13).
+	ReportWebViews(ctx context.Context, arg ReportWebViewsParams) (int64, error)
 	ResetUserTwoFactor(ctx context.Context, id uuid.UUID) error
 	ResolveAutomationAlert(ctx context.Context, arg ResolveAutomationAlertParams) (int64, error)
 	RestoreList(ctx context.Context, id uuid.UUID) (List, error)
@@ -3238,6 +3377,9 @@ type Querier interface {
 	// the evidence behind "likely causes".
 	SendingComplaintCohorts(ctx context.Context, arg SendingComplaintCohortsParams) ([]SendingComplaintCohortsRow, error)
 	SendingContactForAutomation(ctx context.Context, id uuid.UUID) (SendingContactForAutomationRow, error)
+	// opened_machine is every open no person made: privacy-protected opens
+	// (Apple Mail Privacy Protection) and scanners' (the report shows them
+	// apart, internal/counters).
 	SendingCounters(ctx context.Context, campaignID uuid.UUID) ([]SendingCountersRow, error)
 	SendingDeferralsSince(ctx context.Context, arg SendingDeferralsSinceParams) (int64, error)
 	SendingDeleteSimEvents(ctx context.Context, ids []int64) error
@@ -3296,8 +3438,6 @@ type Querier interface {
 	// when the next retry is due) and held for the A/B winner.
 	SendingQueueState(ctx context.Context, arg SendingQueueStateParams) ([]SendingQueueStateRow, error)
 	SendingRelease(ctx context.Context, ids []uuid.UUID) error
-	// The A/B winner goes to everyone who waited for it.
-	SendingReleaseHeld(ctx context.Context, arg SendingReleaseHeldParams) (int64, error)
 	SendingRemainingOn(ctx context.Context, arg SendingRemainingOnParams) (int64, error)
 	// Reserves up to want sends in a provider's one-second window of cap (open
 	// it first). No row comes back when the window is full.
@@ -3711,26 +3851,53 @@ type Querier interface {
 	TouchUserActive(ctx context.Context, id uuid.UUID) error
 	TrackingAutomationLinks(ctx context.Context, arg TrackingAutomationLinksParams) ([]TrackingAutomationLinksRow, error)
 	TrackingBumpAutomationLink(ctx context.Context, arg TrackingBumpAutomationLinkParams) error
-	TrackingBumpCounters(ctx context.Context, arg TrackingBumpCountersParams) error
-	TrackingBumpHourly(ctx context.Context, arg TrackingBumpHourlyParams) error
-	TrackingBumpLink(ctx context.Context, arg TrackingBumpLinkParams) error
 	TrackingCampaignLinks(ctx context.Context, campaignID uuid.UUID) ([]TrackingCampaignLinksRow, error)
+	// An open or click the sending provider reported (stored by ingest),
+	// classified in place (review AN-4).
+	TrackingClassifyEvent(ctx context.Context, arg TrackingClassifyEventParams) error
 	TrackingContactVars(ctx context.Context, id uuid.UUID) (TrackingContactVarsRow, error)
+	// Pending clicks due to settle, each message's together and in message
+	// order (the order writers lock messages in), with what the click sent;
+	// reported: the sending provider reported it (review AN-4).
+	TrackingDueClicks(ctx context.Context, arg TrackingDueClicksParams) ([]TrackingDueClicksRow, error)
 	TrackingFirstLinkClick(ctx context.Context, arg TrackingFirstLinkClickParams) (int32, error)
+	// class is how tracking classified the open or click (human, privacy,
+	// machine; human, bot); link the clicked link's position.
 	TrackingInsertEvent(ctx context.Context, arg TrackingInsertEventParams) error
-	// A click counts as a human open too.
-	TrackingMarkClick(ctx context.Context, arg TrackingMarkClickParams) (TrackingMarkClickRow, error)
-	// Records an open on a message and says what changed, so counters move
-	// once per message: the first open, or the first human open after a
-	// machine prefetch (prev_opened_at is when that prefetch was).
-	TrackingMarkOpen(ctx context.Context, arg TrackingMarkOpenParams) (TrackingMarkOpenRow, error)
 	// Open and click tracking (spec 5.5, 7.6).
 	TrackingMessage(ctx context.Context, id uuid.UUID) (TrackingMessageRow, error)
+	// A message's clicks between two times (bursts, the hidden link); link -1
+	// is the hidden link, -2 a link that isn't one of the email's (a provider
+	// reported it, review AN-4).
+	TrackingMessageClicks(ctx context.Context, arg TrackingMessageClicksParams) ([]TrackingMessageClicksRow, error)
+	TrackingNetworkAdd(ctx context.Context, arg TrackingNetworkAddParams) (string, error)
+	// Only networks an admin added can be removed; the built-in ones come with
+	// releases.
+	TrackingNetworkDelete(ctx context.Context, cidr netip.Prefix) (TrackingNetworkDeleteRow, error)
+	// Networks of privacy proxies and mail scanners.
+	TrackingNetworkList(ctx context.Context) ([]TrackingNetworkListRow, error)
+	TrackingNextSettle(ctx context.Context) (time.Time, error)
+	// A click that looks like a person's waits to settle (review AN-2).
+	TrackingPendingClick(ctx context.Context, arg TrackingPendingClickParams) error
+	// Takes due events for one retry: they are put off by the backoff first,
+	// so a worker that dies leaves them for a later run.
+	TrackingRetryClaim(ctx context.Context, arg TrackingRetryClaimParams) ([]TrackingRetryClaimRow, error)
+	TrackingRetryDone(ctx context.Context, ids []int64) error
+	TrackingRetryFailed(ctx context.Context, arg TrackingRetryFailedParams) error
+	// Opens and clicks a batch couldn't record, kept for the tracking.retry job.
+	TrackingRetryPark(ctx context.Context, arg TrackingRetryParkParams) error
+	TrackingRetryPending(ctx context.Context, maxAttempts int32) (int64, error)
+	// Events that kept failing for 30 days are dropped (the error stays in the
+	// log of each attempt).
+	TrackingRetryPurge(ctx context.Context, before time.Time) (int64, error)
+	TrackingSettleEvent(ctx context.Context, arg TrackingSettleEventParams) error
+	TrackingSettled(ctx context.Context, ids []uuid.UUID) error
 	TrackingSourceLabel(ctx context.Context, id uuid.UUID) (string, error)
-	TrackingTouchContactClick(ctx context.Context, arg TrackingTouchContactClickParams) error
-	// last_open_at counts every open, last_human_open_at only people's (tiers
-	// and the sunset policy use it); last_open_machine says what the latest was.
-	TrackingTouchContactOpen(ctx context.Context, arg TrackingTouchContactOpenParams) error
+	// A batch's opens and clicks on contacts, one row per contact in id order
+	// (the last lock a tracking batch takes). opened is the latest open, human
+	// the latest person's open or click, clicked the latest click; machine says
+	// the latest open was a machine's.
+	TrackingTouchContacts(ctx context.Context, arg TrackingTouchContactsParams) error
 	// The domains a template's bounces of the window went to, most first.
 	TxnAlertBounceDomains(ctx context.Context, arg TxnAlertBounceDomainsParams) ([]TxnAlertBounceDomainsRow, error)
 	TxnAlertEnd(ctx context.Context, arg TxnAlertEndParams) (int64, error)

@@ -1,0 +1,6 @@
+{
+  "notify.title": "Yêu cầu đi qua một proxy mà ReputeCast không tin cậy",
+  "notify.body": "{peer} chuyển tiếp yêu cầu đến ReputeCast kèm {header}, nhưng {setting} không có địa chỉ này. Mọi lượt mở và lượt nhấp đều như đến từ {peer}, nên bộ lọc bot không thấy được địa chỉ của người đọc. Hãy thêm {peer} vào {setting} (biến môi trường {env}) rồi khởi động lại ReputeCast.",
+  "advice.none": "Không có yêu cầu nào đi qua proxy mà ReputeCast không tin cậy.",
+  "advice.some": "Hãy thêm các địa chỉ này vào {setting} (biến môi trường {env}) rồi khởi động lại ReputeCast, để lượt mở, lượt nhấp và giới hạn tần suất thấy được địa chỉ thật của người đọc."
+}

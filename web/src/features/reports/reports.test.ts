@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { Schemas } from '@/api/client'
-import { bubbleWidth, placeBubbles, screenRulesForPrint, withFallbacks, type AnchorBox } from './ClickMap'
-import { hourX, seriesPath } from './EngagementChart'
-import { abBadge, abExplanation, bounceLine, clickNote, engagementNote, fewerNote, headerCaption, providerNote, splitCaption, variantLine } from './words'
+import { t } from '@/i18n'
+import { abHow, abLead } from './ABTestCard'
+import { anchorsOf, bubbleWidth, entries, placeBubbles, screenRulesForPrint, withFallbacks, type AnchorBox, type Spot } from './ClickMap'
+import { hourX, seriesPath, tableHours } from './EngagementChart'
+import { linkMeta } from './ShareCard'
+import { abBadge, abExplanation, bounceSub, comparison, engagementNote, fewerNote, headerCaption, niceMax, notReportedLine, providerNote, splitCaption, variantLine } from './words'
 
 const info = (over: Partial<Schemas['ReportCampaignInfo']>): Schemas['ReportCampaignInfo'] => ({
   id: 'c',
@@ -16,101 +19,244 @@ const info = (over: Partial<Schemas['ReportCampaignInfo']>): Schemas['ReportCamp
 
 describe('report words', () => {
   it('captions the header like the board', () => {
+    expect(headerCaption(info({ finalAt: '2026-10-12T16:41:00Z' }))).toMatch(/^All subscribers · A\/B subject, winner B · results final since \w{3} 12 Oct, \d\d:41$/)
     expect(headerCaption(info({}))).toBe('All subscribers · A/B subject, winner B · results final after 72 h')
     expect(headerCaption(info({ final: false, finalAt: '2026-10-12T16:41:00Z' }))).toMatch(/^All subscribers · A\/B subject, winner B · results still coming in · final \w{3} 12 Oct, \d\d:41$/)
     expect(headerCaption(info({ origin: 'brevo', notes: [] }))).toBe('All subscribers · imported from Brevo')
   })
 
-  it('explains bounces that never resolved', () => {
-    const h = { bounceRate: 0.6003, undelivered: 144 } as Schemas['ReportHeadline']
-    expect(bounceLine(h, true)).toBe('0.60% · 144 expired deferrals')
-    expect(bounceLine(h, false)).toBe('0.60% · 144 not delivered yet')
-    expect(bounceLine({ ...h, undelivered: 0 }, true)).toBe('0.60%')
+  it('splits bounces into hard, soft and blocked or other', () => {
+    const h = { bounceRate: 0.6003, bounces: 288, hardBounces: 193, softBounces: 79 } as Schemas['ReportHeadline']
+    expect(bounceSub(h, true)).toBe('0.60% of sent · 193 hard, 79 soft, 16 blocked or other')
+    expect(bounceSub({ ...h, bounces: 272 }, true)).toBe('0.60% of sent · 193 hard, 79 soft')
+    expect(bounceSub(h, false)).toBe('0.60% of sent so far')
   })
 
-  it('describes the split and a warming provider', () => {
+  it('says which mailbox providers do not report complaints', () => {
+    expect(notReportedLine({ notReportedBy: ['Gmail', 'iCloud'] } as unknown as Schemas['ReportHeadline'])).toBe("Gmail and iCloud don't report complaints")
+    expect(notReportedLine({ notReportedBy: ['Gmail'] } as unknown as Schemas['ReportHeadline'])).toBe("Gmail doesn't report complaints")
+    expect(notReportedLine({ notReportedBy: [] } as unknown as Schemas['ReportHeadline'])).toBeNull()
+  })
+
+  it('compares each tile with the median of the last issues', () => {
+    const c: Schemas['ReportComparisons'] = {
+      issues: 6,
+      tiles: [
+        { metric: 'sent', change: 2.4, unit: 'percent', median: 46856, tone: 'neutral' },
+        { metric: 'delivered', change: -0.1, unit: 'points', median: 99.2, tone: 'bad' },
+        { metric: 'humanOpens', change: 2.1, unit: 'points', median: 50.7, tone: 'good' },
+        { metric: 'unsubscribes', change: 0.03, unit: 'points', median: 0.21, tone: 'bad' },
+        { metric: 'complaints', change: -0.01, unit: 'points', median: 0.1, tone: 'good' },
+        { metric: 'bounces', change: 0, unit: 'points', median: 0.6, tone: 'neutral' },
+      ],
+    }
+    expect(comparison(c, 'sent')).toEqual({ arrow: '▲', direction: 'Up', text: '2.4% vs your last 6 issues', tone: 'neu' })
+    expect(comparison(c, 'delivered')).toEqual({ arrow: '▼', direction: 'Down', text: '0.1 pts vs your last 6 issues', tone: 'neg' })
+    expect(comparison(c, 'humanOpens')?.tone).toBe('pos')
+    expect(comparison(c, 'unsubscribes')?.text).toBe('0.03 pts vs your last 6 issues')
+    expect(comparison(c, 'complaints')).toEqual({ arrow: '▼', direction: 'Down', text: '0.01 pts vs your last 6 issues', tone: 'pos' })
+    expect(comparison(c, 'bounces')?.text).toBe('Same as your last 6 issues')
+    expect(comparison(c, 'clicks')).toBeUndefined()
+    expect(comparison({ issues: 1, tiles: [c.tiles[0]!] }, 'sent')?.text).toBe('2.4% vs your last issue')
+  })
+
+  it('describes the split and a warming provider by its gap in human opens of measurable', () => {
     const col = (o: Partial<Schemas['ReportProviderColumn']>) =>
-      ({ providerId: 'p', name: 'Amazon SES', short: 'SES', adapter: 'ses', color: 'ses', sent: 43182, delivered: 1, percent: 90, cost: 0, engagedFirst: false, ...o }) as Schemas['ReportProviderColumn']
-    const t = { split: true, columns: [col({ humanOpenRate: 41.38 }), col({ name: 'Postal', short: 'Postal', percent: 10, sent: 4798, humanOpenRate: 39.56, warmupDay: 6, engagedFirst: true })] }
-    expect(splitCaption(t)).toBe('side by side · the send was split 90 / 10')
-    expect(providerNote(t)).toBe('Postal was on warm-up day 6 and sent to the Active tier only; a 1.8-point open gap on a young IP is normal.')
-    expect(providerNote({ split: false, columns: [t.columns[0]!] })).toBe('All of it went through Amazon SES.')
+      ({
+        providerId: 'p',
+        name: 'Amazon SES',
+        short: 'SES',
+        adapter: 'ses',
+        color: 'ses',
+        sent: 43182,
+        delivered: 1,
+        percent: 90,
+        cost: 0,
+        engagedFirst: false,
+        trackedBy: 'reputecast',
+        deliveryInferred: false,
+        events: 'sns',
+        measurable: 1,
+        ...o,
+      }) as Schemas['ReportProviderColumn']
+    const x = {
+      split: true,
+      columns: [
+        col({ humanOpenRate: 41.38, humanOpenRateMeasurable: 53.0 }),
+        col({ name: 'Postal', short: 'Postal', percent: 10, sent: 4798, humanOpenRate: 39.56, humanOpenRateMeasurable: 50.6, warmupDay: 6, engagedFirst: true }),
+      ],
+    }
+    expect(splitCaption(x)).toBe('side by side · the send was split 90 / 10')
+    expect(providerNote(x)).toBe('Postal was on warm-up day 6 and sent to the Active tier only; a 2.4-point gap in human opens on a young IP is normal.')
+    expect(providerNote({ split: false, columns: [x.columns[0]!] })).toBe('All of it went through Amazon SES.')
   })
 
-  it('writes the engagement and click notes', () => {
+  it('writes the engagement note with the rollout', () => {
     const e = { available: true, hours: 72, delivered: 100, points: [], humanWithin6h: 62.1, rollout: { variant: 'B', at: '2026-10-09T16:00:00Z', hour: 2 } }
-    expect(engagementNote(e, true)).toMatch(/^62% of human opens happened within 6 hours; A\/B winner B went out at \d\d:00, which is the second rise\.$/)
-    expect(engagementNote({ ...e, rollout: undefined }, false)).toBe('So far, 62% of human opens happened within 6 hours.')
-    const m = { html: '', available: true, total: 2996, links: [], threshold: 5, other: { share: 13, links: 9, clicks: 390, labels: ['Email preferences', 'View in browser'] } }
-    expect(clickNote(m)).toBe('Links with under 5% of clicks are grouped: “Other” 13% covers 9 links including email preferences and view in browser.')
+    expect(engagementNote(e, true, '2026-10-09T14:00:00Z', 38384)).toMatch(
+      /^62% of human opens came within 6 hours\. The samples went out at \d\d:00; the steep rise starts at \d\d:00, when B went to the other 38,384\.$/,
+    )
+    expect(engagementNote({ ...e, rollout: undefined }, false)).toBe('So far, 62% of human opens came within 6 hours.')
     expect(fewerNote(28)).toBe('28 people chose “fewer emails” instead of leaving and moved to the monthly frequency.')
     expect(fewerNote(0)).toBeNull()
   })
 
-  it('says honestly when an A/B result is not significant', () => {
-    const t = {
+  it('picks a scale above the largest value', () => {
+    expect(niceMax(41.2)).toEqual({ max: 50, step: 10 })
+    expect(niceMax(6.7)).toEqual({ max: 8, step: 2 })
+    expect(niceMax(0)).toEqual({ max: 1, step: 1 })
+    expect(niceMax(73)).toEqual({ max: 80, step: 20 })
+  })
+
+  it('keeps the testing state of an A/B test', () => {
+    const x = {
       kind: 'subject',
       label: 'subject line',
       metric: 'human_opens',
       windowHours: 2,
-      state: 'decided',
-      winner: 'B',
+      state: 'testing',
+      default: 'A',
       variants: [],
-      lift: 2.8,
-      pValue: 0.0225,
-      confidence: 97.8,
-      significant: true,
-      remaining: 38384,
-      rolloutAt: '2026-10-09T16:00:00Z',
+      significant: false,
+      minSample: 500,
+      threshold: 95,
+      remaining: 0,
+      barMax: 10,
+      decidedAt: '2026-10-09T16:00:00Z',
     } as Schemas['ReportABTest']
-    expect(abBadge(t)).toEqual({ tone: 'ok', text: 'Winner B · 98% confidence' })
-    expect(abExplanation(t)[0]).toBe('Human opens 2 hours after the sample went out, two-proportion z-test, lift +2.8 points, p = 0.02. Machine opens were excluded so Apple Mail prefetches couldn’t decide it.')
-    expect(abExplanation(t)[1]).toMatch(/^The remaining 38,384 recipients got B at \d\d:00\.$/)
-    const weak = { ...t, state: 'no_winner', significant: false, confidence: 81.2, pValue: 0.188, winner: undefined } as Schemas['ReportABTest']
-    expect(abBadge(weak)).toEqual({ tone: 'warn', text: 'Not significant yet · 81% confidence' })
-    expect(abExplanation(weak)[0]).toContain('not significant, so the difference could be chance')
-    expect(abBadge({ ...t, confidence: 99.9 }).text).toBe('Winner B · 99% confidence')
-    expect(variantLine({ key: 'B', label: '', recipients: 4798, samplePercent: 10, winner: true, remaining: 38384 })).toBe('4,798 recipients · 10% sample, then 38,384 remaining')
+    expect(abBadge(x).text).toMatch(/^Testing · decides at \d\d:00$/)
+    expect(abExplanation(x)[0]).toBe('Human opens 2 hours after the sample went out decide it. Machine opens were excluded so Apple Mail prefetches couldn’t decide it.')
+    expect(variantLine({ key: 'B', label: '', recipients: 4798, samplePercent: 10, winner: true, remaining: 38384, default: false, eligible: 0, conversions: 0 })).toBe(
+      '4,798 recipients · 10% sample, then 38,384 remaining',
+    )
+  })
+})
+
+describe('A/B card', () => {
+  const v = (o: Partial<Schemas['ReportABVariant']>) =>
+    ({ key: 'A', label: '', default: false, recipients: 4798, samplePercent: 10, eligible: 4752, conversions: 124, winner: false, remaining: 0, ...o }) as Schemas['ReportABVariant']
+  const won = {
+    kind: 'subject',
+    label: 'subject line',
+    metric: 'clicks',
+    windowHours: 2,
+    decidedAfter: 2,
+    state: 'decided',
+    outcome: 'winner',
+    winner: 'B',
+    default: 'A',
+    leader: 'B',
+    runnerUp: 'A',
+    lift: 0.8,
+    confidence: 97.9,
+    significant: true,
+    minSample: 500,
+    threshold: 95,
+    remaining: 38384,
+    rolloutAt: '2026-10-09T16:00:00Z',
+    decidedAt: '2026-10-09T16:00:00Z',
+    barMax: 10,
+    variants: [v({ key: 'A', default: true, decisionRate: 2.6 }), v({ key: 'B', winner: true, remaining: 38384, decisionRate: 3.4 })],
+  } as Schemas['ReportABTest']
+
+  it('explains how the winner was picked, as the board does', () => {
+    const how = abHow(t, won, true)
+    expect(how[0]).toMatch(
+      /^Two-proportion z-test on human clicks 2 h after the sample went out \(B 3\.4%, A 2\.6%\); at least 500 recipients per variant; the remaining 38,384 got B at \d\d:00\.$/,
+    )
+    expect(how[1]).toBe("Opens couldn't decide it, because Apple Mail opens messages automatically. The bars show human clicks after 72 h, on a 0 to 10% scale.")
+    expect(abLead(t, won)).toBeNull()
+  })
+
+  it('says so when there is no clear winner, and that the default went out', () => {
+    const none = {
+      ...won,
+      state: 'no_winner',
+      outcome: 'not_significant',
+      winner: 'A',
+      lift: 0.4,
+      confidence: 61.3,
+      significant: false,
+      remaining: 25284,
+      decidedAfter: 3,
+      variants: [v({ key: 'A', default: true, winner: true, remaining: 25284, decisionRate: 3.6 }), v({ key: 'B', decisionRate: 4.0 })],
+    } as Schemas['ReportABTest']
+    expect(abLead(t, none)).toBe('B was 0.4 pts ahead at 61% confidence, so everyone else got A (your default).')
+    const how = abHow(t, none, false, '2026-10-24T16:41:00Z')
+    expect(how[0]).toMatch(/A winner needs 95% confidence, so the remaining 25,284 got A, your default, at \d\d:00\.$/)
+    expect(how[1]).toMatch(/^Both versions' final numbers arrive on \w{3} 24 Oct, \d\d:41\. The bars run from 0% to 10%\.$/)
+    expect(abLead(t, { ...none, outcome: 'too_small' })).toBe('Fewer than 500 recipients per variant could be measured, so everyone else got A (your default).')
   })
 })
 
 describe('engagement chart', () => {
-  it('bends the time axis at 6, 24 and 48 hours', () => {
-    expect(hourX(0)).toBe(40)
-    expect(hourX(6)).toBe(205)
-    expect(hourX(24)).toBe(370)
-    expect(hourX(48)).toBe(535)
-    expect(hourX(72)).toBe(700)
-    expect(hourX(3)).toBeCloseTo(122.5)
+  it('runs the time axis evenly over 72 hours', () => {
+    expect(hourX(0)).toBe(0)
+    expect(hourX(2)).toBe(20)
+    expect(hourX(36)).toBe(360)
+    expect(hourX(72)).toBe(720)
+    expect(hourX(80)).toBe(720)
   })
-  it('draws shares of delivered, the top series at 93% of the height', () => {
-    const d = seriesPath(
-      [
-        { hour: 0, humanOpens: 0, machineOpens: 0, clicks: 0 },
-        { hour: 72, humanOpens: 412, machineOpens: 186, clicks: 63 },
+
+  it('draws shares of delivered from the send, on the scale given', () => {
+    const d = seriesPath([{ hour: 72, humanOpens: 412, privacyOpens: 219, machineOpens: 12, clicks: 63 }], 'humanOpens', 1000, 50)
+    expect(d).toBe('M0.0 200.0 L720.0 35.2')
+  })
+
+  it('lists the rollout hour first in the table', () => {
+    const e = { available: true, hours: 72, delivered: 1, points: [], rollout: { variant: 'B', at: '', hour: 2 } }
+    expect(tableHours(e)).toEqual([
+      { hour: 2, rollout: true },
+      { hour: 6, rollout: false },
+      { hour: 24, rollout: false },
+      { hour: 48, rollout: false },
+      { hour: 72, rollout: false },
+    ])
+    expect(tableHours({ ...e, hours: 20, rollout: undefined }).map((x) => x.hour)).toEqual([6])
+  })
+})
+
+describe('click map table', () => {
+  const link = (o: Partial<Schemas['ReportLink']>) =>
+    ({ id: '', url: 'u', label: 'l', position: 0, clicks: 1, uniqueClicks: 1, botClicks: 0, share: 10, grouped: false, hot: false, ...o }) as Schemas['ReportLink']
+  it('orders links by share, then rows, keeping row links out of Other', () => {
+    const s = {
+      threshold: 5,
+      html: '',
+      available: true,
+      total: 3412,
+      botTotal: 1108,
+      links: [
+        link({ position: 0, label: 'Acme', share: 3.1, grouped: true }),
+        link({ position: 1, label: 'Blog', share: 2.4 }),
+        link({ position: 2, label: 'Docs', share: 2.0 }),
+        link({ position: 6, label: 'Read the docs', share: 38 }),
+        link({ position: 9, label: 'Read the guide', share: 19 }),
+        link({ position: 8, label: 'See changelog', share: 24 }),
       ],
-      'humanOpens',
-      1000,
-      41.2 / 0.93,
-    )
-    expect(d).toBe('M40.0 190.0 L700.0 22.6')
+      rows: [{ place: 'header' as const, positions: [1, 2], labels: ['Blog', 'Docs'], clicks: 150, botClicks: 222, share: 4.4 }],
+    }
+    const e = entries(s)
+    expect(e.links.map((l) => l.label)).toEqual(['Read the docs', 'See changelog', 'Read the guide'])
+    expect(e.rows.length).toBe(1)
+    expect(e.grouped.map((l) => l.label)).toEqual(['Acme'])
   })
 })
 
 describe('click map bubbles', () => {
   const box = (o: Partial<AnchorBox>): AnchorBox => ({ top: 0, bottom: 20, right: 100, rowRight: 100, endsLine: false, bandTop: 0, blockRight: 600, button: false, ...o })
-  const link = (o: Partial<Schemas['ReportLink']>) => ({ id: '', url: 'u', label: 'l', position: 0, clicks: 1, uniqueClicks: 1, share: 10, grouped: false, hot: false, ...o }) as Schemas['ReportLink']
+  const spot = (o: Partial<Spot>): Spot => ({ key: '0', label: 'l', text: '10%', anchor: 0, hot: false, ...o })
   it('puts bubbles by buttons, after text links and their row, and Other on the footer', () => {
     const anchors = [box({ top: 10, bottom: 30, right: 200, rowRight: 280 }), box({ top: 300, bottom: 334, right: 120, button: true }), box({ top: 500, bottom: 520, bandTop: 480, blockRight: 600 })]
     const out = placeBubbles(
-      [link({ position: 0, share: 6 }), link({ position: 1, share: 38, hot: true }), link({ position: 2, share: 1.5, grouped: true })],
+      [spot({ key: 'row-0', text: '6%', anchor: 0 }), spot({ key: '1', text: '38%', anchor: 1, hot: true })],
       anchors,
-      { share: 13, links: 9, clicks: 1, labels: [] },
+      { text: '13%', label: 'Other', anchors: [2] },
       0.5,
       300,
     )
     expect(out.map((b) => [b.key, b.left, b.top])).toEqual([
-      ['0', 144, 0 + 2],
+      ['row-0', 144, 0 + 2],
       ['1', 52, 159],
       ['other', 256, 232],
     ])
@@ -118,22 +264,22 @@ describe('click map bubbles', () => {
   })
 
   it('sizes bubbles by their text', () => {
-    expect([bubbleWidth(6), bubbleWidth(38), bubbleWidth(100)]).toEqual([34, 42, 49])
+    expect([bubbleWidth('6%'), bubbleWidth('38%'), bubbleWidth('100%'), bubbleWidth('74'), bubbleWidth('1,108')]).toEqual([34, 42, 49, 31, 49])
   })
 
   it('puts the bubble of a link that ends its line at the right edge of its block, as the board does', () => {
-    const out = placeBubbles([link({ position: 0, share: 19 })], [box({ top: 100, bottom: 120, right: 300, rowRight: 300, endsLine: true, blockRight: 560 })], undefined, 0.5, 300)
+    const out = placeBubbles([spot({ text: '19%' })], [box({ top: 100, bottom: 120, right: 300, rowRight: 300, endsLine: true, blockRight: 560 })], undefined, 0.5, 300)
     expect(out.map((b) => [b.left, b.top])).toEqual([[280 - 42, 44]])
   })
 
   it('keeps a right-aligned navigation row clear: its bubble goes after the row', () => {
     const scale = 340 / 600
-    const out = placeBubbles([link({ position: 0, share: 6 })], [box({ top: 20, bottom: 38, right: 430, rowRight: 518, endsLine: true, blockRight: 518 })], undefined, scale, 340)
+    const out = placeBubbles([spot({ text: '6%' })], [box({ top: 20, bottom: 38, right: 430, rowRight: 518, endsLine: true, blockRight: 518 })], undefined, scale, 340)
     expect(out[0]!.left).toBeCloseTo(518 * scale + 4)
   })
 
   it('puts the bubble of a link that ends its line under it, not over its words', () => {
-    const out = placeBubbles([link({ position: 0, share: 73, hot: true })], [box({ top: 400, bottom: 420, right: 590, rowRight: 590 })], undefined, 0.5, 300)
+    const out = placeBubbles([spot({ text: '73%', hot: true })], [box({ top: 400, bottom: 420, right: 590, rowRight: 590 })], undefined, 0.5, 300)
     expect(out.map((b) => [b.left, b.top])).toEqual([[295 - 42, 212]])
   })
 })
@@ -151,5 +297,34 @@ describe('click map preview', () => {
     expect(screenRulesForPrint('@media screen and (max-width: 479px){a{b:c}}')).toBe('@media (max-width: 479px){a{b:c}}')
     expect(screenRulesForPrint('@media only screen { p { margin:0 } }')).toBe('@media all { p { margin:0 } }')
     expect(screenRulesForPrint('@media print { .x { display:none } }')).toBe('@media print { .x { display:none } }')
+  })
+})
+
+describe('click map links', () => {
+  it('follows the positions the report marks, not its own rule', () => {
+    const doc = new DOMParser().parseFromString(
+      `<a href="mailto:x@y">mail</a><a data-rc-link="1" href="https://acme.io/b">B</a><a href="{{ unsubscribe_url }}">unsub</a><a data-rc-link="0" href="https://acme.io/a">A</a><a data-rc-link="x" href="https://acme.io/c">C</a>`,
+      'text/html',
+    )
+    const anchors = anchorsOf(doc)
+    expect(anchors.length).toBe(2)
+    expect(anchors[0]?.textContent).toBe('A')
+    expect(anchors[1]?.textContent).toBe('B')
+  })
+})
+
+describe('share links', () => {
+  it('say who made them, when they expire and what they include', () => {
+    const s = {
+      id: '1',
+      url: 'https://reputecast.acme.io/r/8f2c1a9d',
+      createdAt: '2026-10-21T10:00:00Z',
+      createdByName: 'Marcus Chen',
+      expiresAt: '2026-11-20T10:00:00Z',
+      views: 0,
+      includes: { cost: true, warmup: false, email: true },
+    }
+    expect(linkMeta(s)).toBe('Created by Marcus Chen on 21 Oct · expires 20 Nov · with the email and cost per provider')
+    expect(linkMeta({ ...s, includes: { cost: false, warmup: false, email: false } })).toBe('Created by Marcus Chen on 21 Oct · expires 20 Nov')
   })
 })

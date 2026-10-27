@@ -151,7 +151,10 @@ type Event struct {
 	BounceClass string
 	URL         string // clicks
 	UserAgent   string
-	Raw         json.RawMessage
+	// IP is the address that opened or clicked, when the provider reports
+	// it (its tracking classifies privacy proxies and scanners by network).
+	IP  string
+	Raw json.RawMessage
 }
 
 // Provider is the contract every adapter implements.

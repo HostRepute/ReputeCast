@@ -18,8 +18,10 @@ type bounceType struct {
 	Tone    string
 	Classes []string
 	// Suppress says what happens to the addresses: auto (suppressed when
-	// they bounce), retry (soft, retried next send) or manual (a person
-	// decides, after a review for unclassified ones).
+	// they bounce), retry (soft, retried next send), never (a block for the
+	// sender's reputation or policy: the addresses are valid, so they are
+	// never suppressed; the block is investigated instead, review AN-7) or
+	// review (a person decides, after a look at the diagnostics).
 	Suppress string
 }
 
@@ -29,7 +31,7 @@ var bounceTypes = []bounceType{
 	{Key: "domain_invalid", Tone: "bad", Classes: []string{bounce.DomainInvalid}, Suppress: "auto"},
 	{Key: "mailbox_full", Tone: "warn", Classes: []string{bounce.MailboxFull}, Suppress: "retry"},
 	{Key: "deferral_expired", Tone: "warn", Classes: []string{bounce.Temporary}, Suppress: "retry"},
-	{Key: "blocked", Tone: "bad", Classes: []string{bounce.PolicyBlock, bounce.SpamBlock, bounce.Reputation}, Suppress: "manual"},
+	{Key: "blocked", Tone: "bad", Classes: []string{bounce.PolicyBlock, bounce.SpamBlock, bounce.Reputation}, Suppress: "never"},
 	{Key: "other", Tone: "neutral", Classes: []string{bounce.Other, ""}, Suppress: "review"},
 }
 
@@ -123,6 +125,8 @@ func suppressionState(t bounceType, recipients, unsuppressed int64) string {
 	switch t.Suppress {
 	case "retry":
 		return "retry"
+	case "never":
+		return "investigate"
 	case "auto":
 		if unsuppressed == 0 {
 			return "auto"

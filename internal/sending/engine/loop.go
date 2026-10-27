@@ -730,7 +730,7 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 			if res.Err == nil {
 				out.sentIDs = append(out.sentIDs, p.row.ID)
 				out.sentPMID = append(out.sentPMID, res.ProviderMessageID)
-				out.cell(p.row.MailboxProvider, p.row.Variant).sent++
+				out.cell(p.row.MailboxProvider, cellVariant(p.row.Variant, p.row.AbRollout)).sent++
 				out.cost += r.micros
 				if r.sim != nil && !e.QuietDemo {
 					out.sims = append(out.sims, simRows(rs.campaign.WorkspaceID, &rs.campaign.ID, p.row.ID, r.provider.ID, now, r.sim.Plan(p.msg))...)
@@ -742,7 +742,7 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 				continue
 			}
 			out.drop(p.row.ID, "rejected", res.Err.Error())
-			out.cell(p.row.MailboxProvider, p.row.Variant).rejected++
+			out.cell(p.row.MailboxProvider, cellVariant(p.row.Variant, p.row.AbRollout)).rejected++
 		}
 	}
 	// The provider has the batch now: the outcome must be recorded, or the
@@ -878,6 +878,7 @@ func (e *Engine) compose(rs *runState, r *runRoute, m store.SendingClaimRow, ext
 		for _, l := range tpl.Links {
 			links[LinkVar(l.Position)] = e.URLs.Click(sign(linktoken.Click, uint32(off+l.Position)))
 		}
+		links[HoneypotVar] = e.URLs.Honeypot(sign(linktoken.Honeypot, 0))
 	}
 	var attrs map[string]any
 	if len(m.Attributes) > 0 {

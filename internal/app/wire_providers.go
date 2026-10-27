@@ -60,7 +60,9 @@ var normalizerHooks []func(*App) ingest.MessageHook
 func (a *App) normalizer() *ingest.Normalizer {
 	sync := a.suppressionSync()
 	n := &ingest.Normalizer{Pool: a.Pool, Q: a.Q, Factory: a.providerFactory(), Log: a.Log,
-		OnSuppressed: func(ctx context.Context, ws uuid.UUID) { sync.Enqueue(ctx, ws) }}
+		OnSuppressed: func(ctx context.Context, ws uuid.UUID) { sync.Enqueue(ctx, ws) },
+		// Provider-reported opens and clicks count (wire_counters.go).
+		Engagement: trackerEngagement{a}}
 	for _, h := range normalizerHooks {
 		n.Hooks = append(n.Hooks, h(a))
 	}

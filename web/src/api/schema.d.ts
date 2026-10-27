@@ -377,6 +377,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/tracking-networks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Networks of privacy proxies and mail scanners whose opens and clicks aren't people's */
+        get: operations["list-tracking-networks"];
+        put?: never;
+        /**
+         * Add a network of a privacy proxy or a mail scanner (audited)
+         * @description Opens from a privacy proxy's network count as privacy-protected; opens and clicks from a scanner's network on a message's arrival count as a machine's.
+         */
+        post: operations["add-tracking-network"];
+        /** Remove a network an admin added (audited) */
+        delete: operations["remove-tracking-network"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/untrusted-proxies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Proxies that forward requests to ReputeCast without being trusted, and the setting that fixes it
+         * @description Requests through a proxy that http.trusted_proxies doesn't list carry the proxy's address instead of the reader's, so the bot filter and rate limits can't see readers.
+         */
+        get: operations["list-untrusted-proxies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/updates": {
         parameters: {
             query?: never;
@@ -2467,6 +2509,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/ai/report-question": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask about this report: an answer from the report's numbers, each one checked
+         * @description Sends the report's aggregate numbers and the question only (no addresses) to the workspace's own model; the answer's numbers are filled in from the report. Needs reports:view.
+         */
+        post: operations["ask-about-report"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/ai/report-summary": {
         parameters: {
             query?: never;
@@ -4383,6 +4445,28 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report/final-alert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether you asked to be emailed when the report's results are final */
+        get: operations["get-campaign-report-final-alert"];
+        /**
+         * Email me when the results are final (72 hours after the send ended)
+         * @description Sends one notification, in the app and by email as your notification preferences say. Only people can ask, not API keys.
+         */
+        put: operations["set-campaign-report-final-alert"];
+        post?: never;
+        /** Stop the email for when the results are final */
+        delete: operations["remove-campaign-report-final-alert"];
         options?: never;
         head?: never;
         patch?: never;
@@ -17067,7 +17151,9 @@ export interface components {
             keptBy: string;
             model: string;
             modelName: string;
+            numbersMatch: boolean;
             summary: string;
+            unmatched: string[];
         };
         AIKeyInput: {
             apiKey: string;
@@ -17180,6 +17266,19 @@ export interface components {
             name: string;
             needsBaseUrl: boolean;
             needsKey: boolean;
+        };
+        AIReportAnswer: {
+            answer: string;
+            numbersMatch: boolean;
+            refusal?: string;
+            requestId?: string;
+            sent: components["schemas"]["AISent"];
+            unmatched: string[];
+        };
+        AIReportQuestionInput: {
+            /** Format: uuid */
+            campaignId: string;
+            question: string;
         };
         AIReportSummary: {
             noCauses: boolean;
@@ -20833,8 +20932,11 @@ export interface components {
             bounces: components["schemas"]["ReportBounceTable"];
             campaign: components["schemas"]["ReportCampaignInfo"];
             clickMap: components["schemas"]["ReportClickMap"];
+            comparisons: components["schemas"]["ReportComparisons"];
             engagement: components["schemas"]["ReportEngagement"];
+            growth: components["schemas"]["ReportGrowth"];
             headline: components["schemas"]["ReportHeadline"];
+            insights: components["schemas"]["ReportInsight"][];
             languages?: components["schemas"]["ReportLanguages"];
             mailboxes: components["schemas"]["ReportMailboxRow"][];
             notSent?: components["schemas"]["ReportNotSent"];
@@ -21644,12 +21746,27 @@ export interface components {
         };
         ComposerABTest: {
             bestTime?: boolean;
+            /**
+             * Format: double
+             * @description How sure the test must be (default 0.95)
+             */
+            confidence?: number;
             /** Format: int64 */
             durationHours: number;
             /** @enum {string} */
             kind: "subject" | "content" | "send_time";
             /** @enum {string} */
             metric: "human_opens" | "clicks" | "manual";
+            /**
+             * Format: int64
+             * @description Recipients each variant needs before a winner can be picked (default 500)
+             */
+            minSample?: number;
+            /**
+             * @description What the rest get without a clear winner: default, the first variant
+             * @enum {string}
+             */
+            noWinner?: "default";
             /**
              * Format: int64
              * @description Share of the audience in the test
@@ -34410,27 +34527,40 @@ export interface components {
         };
         ReportABTest: {
             /** Format: double */
+            barMax: number;
+            /** Format: double */
             confidence?: number;
+            /** Format: double */
+            decidedAfter?: number;
             /** Format: date-time */
             decidedAt?: string;
+            default: string;
             /** @enum {string} */
             kind: "subject" | "content" | "send_time";
             /** @description subject line, content, send time */
             label: string;
+            leader?: string;
             /** Format: double */
             lift?: number;
             /** @enum {string} */
             metric: "human_opens" | "clicks";
+            /** Format: int64 */
+            minSample: number;
+            /** @enum {string} */
+            outcome?: "winner" | "not_significant" | "too_small" | "manual" | "";
             /** Format: double */
             pValue?: number;
             /** Format: int64 */
             remaining: number;
             /** Format: date-time */
             rolloutAt?: string;
-            /** @description p below 0.05 */
+            runnerUp?: string;
+            /** @description Confidence reached the threshold, with enough recipients per variant */
             significant: boolean;
             /** @enum {string} */
             state: "decided" | "testing" | "no_winner";
+            /** Format: double */
+            threshold: number;
             variants: components["schemas"]["ReportABVariant"][];
             /** Format: double */
             windowHours: number;
@@ -34441,11 +34571,20 @@ export interface components {
             clickRate?: number;
             /** Format: double */
             complaintRate?: number;
+            /** Format: int64 */
+            conversions: number;
+            /** Format: double */
+            decisionRate?: number;
+            default: boolean;
+            /** Format: int64 */
+            eligible: number;
             /** Format: double */
             humanOpenRate?: number;
             key: string;
             /** @description The subject line, or what differs */
             label: string;
+            /** Format: double */
+            metricRate?: number;
             /** Format: int64 */
             recipients: number;
             /** Format: int64 */
@@ -34488,7 +34627,7 @@ export interface components {
             count: number;
             label: string;
             /** @enum {string} */
-            suppression: "auto" | "retry" | "add" | "review" | "suppressed";
+            suppression: "auto" | "retry" | "add" | "review" | "suppressed" | "investigate";
             /** @enum {string} */
             tone: "bad" | "warn" | "neutral";
             /** @enum {string} */
@@ -34526,10 +34665,16 @@ export interface components {
         };
         ReportClickMap: {
             available: boolean;
+            /**
+             * Format: int64
+             * @description Clicks the bot filter left out
+             */
+            botTotal: number;
             html: string;
             language?: string;
             links: components["schemas"]["ReportLink"][];
             other?: components["schemas"]["ReportLinkGroup"];
+            rows: components["schemas"]["ReportLinkRow"][];
             /**
              * Format: double
              * @description Links under this share (percent) are grouped as Other
@@ -34537,9 +34682,10 @@ export interface components {
             threshold: number;
             /**
              * Format: int64
-             * @description All link clicks
+             * @description Human clicks on the links, each person once per link
              */
             total: number;
+            variants: components["schemas"]["ReportVariantClickMap"][];
         };
         ReportCodeCount: {
             /** @description SMTP reply or provider code: 550 5.1.1 */
@@ -34550,6 +34696,25 @@ export interface components {
             provider: string;
             /** @description The provider's event name: Permanent/General, HardFail */
             type: string;
+        };
+        ReportComparison: {
+            /** Format: double */
+            change: number;
+            /** Format: double */
+            median: number;
+            /** @enum {string} */
+            metric: "sent" | "delivered" | "humanOpens" | "privacyOpens" | "clicks" | "unsubscribes" | "complaints" | "bounces";
+            /** @enum {string} */
+            tone: "good" | "bad" | "neutral";
+            /** @enum {string} */
+            unit: "percent" | "points";
+        };
+        ReportComparisons: {
+            /** Format: int64 */
+            issues: number;
+            tiles: components["schemas"]["ReportComparison"][];
+            /** @enum {string} */
+            unavailable?: "not_final" | "no_history";
         };
         ReportEngagement: {
             available: boolean;
@@ -34571,8 +34736,31 @@ export interface components {
             humanOpens: number;
             /** Format: int64 */
             machineOpens: number;
+            /** Format: int64 */
+            privacyOpens: number;
+        };
+        ReportFinalAlert: {
+            /** Format: date-time */
+            finalAt?: string;
+            on: boolean;
+        };
+        ReportGrowth: {
+            /** Format: int64 */
+            forwards: number;
+            /** Format: int64 */
+            newSubscribers: number;
+            /** Format: int64 */
+            referrals: number;
+            /** Format: date-time */
+            since?: string;
+            /** Format: int64 */
+            webPost: number;
+            /** Format: int64 */
+            webViews: number;
         };
         ReportHeadline: {
+            /** Format: int64 */
+            botClicks: number;
             /** Format: double */
             bounceRate?: number;
             /** Format: int64 */
@@ -34585,6 +34773,8 @@ export interface components {
             clicks: number;
             /** Format: double */
             complaintRate?: number;
+            /** Format: double */
+            complaintRateReported?: number;
             /** Format: int64 */
             complaints: number;
             /** Format: int64 */
@@ -34595,12 +34785,24 @@ export interface components {
             hardBounces: number;
             /** Format: double */
             humanOpenRate?: number;
+            /** Format: double */
+            humanOpenRateMeasurable?: number;
             /** Format: int64 */
             humanOpens: number;
             /** Format: double */
             machineOpenRate?: number;
-            /** Format: int64 */
+            /**
+             * Format: int64
+             * @description Scanner opens, left out of every rate
+             */
             machineOpens: number;
+            /** Format: int64 */
+            measurable: number;
+            notReportedBy: string[];
+            /** Format: double */
+            privacyOpenRate?: number;
+            /** Format: int64 */
+            privacyOpens: number;
             /** Format: int64 */
             rejected: number;
             /** Format: int64 */
@@ -34627,6 +34829,20 @@ export interface components {
             html?: string;
             mjml?: string;
             recount?: boolean;
+        };
+        ReportInsight: {
+            /** @enum {string} */
+            action?: "check_delisting" | "open_snds" | "open_postmaster" | "show_link";
+            actionLabel?: string;
+            detail: string;
+            /** @enum {string} */
+            kind: "blocked" | "mailbox_bounces" | "top_link";
+            link?: string;
+            /** Format: int64 */
+            position?: number;
+            title: string;
+            /** @enum {string} */
+            tone: "bad" | "warn" | "info";
         };
         ReportLanguageCount: {
             /** Format: int64 */
@@ -34696,6 +34912,8 @@ export interface components {
         };
         ReportLink: {
             /** Format: int64 */
+            botClicks: number;
+            /** Format: int64 */
             clicks: number;
             grouped: boolean;
             hot: boolean;
@@ -34719,6 +34937,21 @@ export interface components {
             /** Format: double */
             share: number;
         };
+        ReportLinkRow: {
+            /** Format: int64 */
+            botClicks: number;
+            /**
+             * Format: int64
+             * @description Human clicks, each person once per link
+             */
+            clicks: number;
+            labels: string[];
+            /** @enum {string} */
+            place: "header" | "footer" | "body";
+            positions: number[];
+            /** Format: double */
+            share: number;
+        };
         ReportMailboxRow: {
             /** Format: double */
             bounceRate?: number;
@@ -34726,17 +34959,25 @@ export interface components {
             clickRate?: number;
             /** Format: double */
             complaintRate?: number;
+            /** @enum {string} */
+            complaintRateNa?: "not_reported";
             /** Format: int64 */
             delivered: number;
             /** Format: double */
             deliveredRate?: number;
             /** Format: double */
             humanOpenRate?: number;
+            /** Format: double */
+            humanOpenRateMeasurable?: number;
             /** @enum {string} */
             key: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
             /** Format: double */
             machineOpenRate?: number;
+            /** Format: int64 */
+            measurable: number;
             name: string;
+            /** Format: double */
+            privacyOpenRate?: number;
             /** Format: int64 */
             sent: number;
             /** Format: double */
@@ -34761,6 +35002,8 @@ export interface components {
             color: "ses" | "postal" | "postmark" | "other";
             /** Format: double */
             complaintRate?: number;
+            /** @enum {string} */
+            complaintRateNa?: "not_reported";
             /**
              * Format: double
              * @description Dollars
@@ -34770,20 +35013,31 @@ export interface components {
             delivered: number;
             /** Format: double */
             deliveredRate?: number;
+            deliveryInferred: boolean;
             engagedFirst: boolean;
+            /** @enum {string} */
+            events: "sns" | "webhook" | "bounce_mailbox" | "none";
             /** Format: double */
             humanOpenRate?: number;
             /** Format: double */
+            humanOpenRateMeasurable?: number;
+            /** Format: double */
             machineOpenRate?: number;
+            /** Format: int64 */
+            measurable: number;
             /** Format: int64 */
             medianDeliveryMs?: number;
             name: string;
             /** Format: double */
             percent: number;
+            /** Format: double */
+            privacyOpenRate?: number;
             providerId: string;
             /** Format: int64 */
             sent: number;
             short: string;
+            /** @enum {string} */
+            trackedBy: "reputecast" | "provider";
             /** Format: double */
             unsubscribeRate?: number;
             /** Format: int64 */
@@ -34806,6 +35060,14 @@ export interface components {
             hour: number;
             variant: string;
         };
+        ReportShareIncludes: {
+            /** @description The cost per sending provider */
+            cost: boolean;
+            /** @description The email as sent, in the click map */
+            email: boolean;
+            /** @description The warm-up day of each sending provider */
+            warmup: boolean;
+        };
         ReportShareLink: {
             /** Format: date-time */
             createdAt: string;
@@ -34813,6 +35075,7 @@ export interface components {
             /** Format: date-time */
             expiresAt?: string;
             id: string;
+            includes: components["schemas"]["ReportShareIncludes"];
             /** Format: date-time */
             lastViewedAt?: string;
             url: string;
@@ -34849,6 +35112,19 @@ export interface components {
             /** Format: int64 */
             choseFewer: number;
             reasons: components["schemas"]["ReportUnsubscribeReason"][];
+            /** Format: int64 */
+            total: number;
+        };
+        ReportVariantClickMap: {
+            available: boolean;
+            /** Format: int64 */
+            botTotal: number;
+            html: string;
+            key: string;
+            links: components["schemas"]["ReportLink"][];
+            other?: components["schemas"]["ReportLinkGroup"];
+            rows: components["schemas"]["ReportLinkRow"][];
+            sameEmail: boolean;
             /** Format: int64 */
             total: number;
         };
@@ -36821,13 +37097,20 @@ export interface components {
         ShareInput: {
             /**
              * Format: int64
-             * @description 0 keeps the link until it is revoked
+             * @description 30 when absent
              */
             expiresInDays?: number;
+            /** @description Show the cost per sending provider */
+            includeCost?: boolean;
+            /** @description Show the email as sent, in the click map */
+            includeEmail?: boolean;
+            /** @description Show the warm-up day of each sending provider */
+            includeWarmup?: boolean;
         };
         SharedCampaignReport: {
             /** Format: date-time */
             expiresAt?: string;
+            includes: components["schemas"]["ReportShareIncludes"];
             report: components["schemas"]["CampaignReport"];
             workspace: string;
         };
@@ -39890,6 +40173,30 @@ export interface components {
             challenge: string;
             code: string;
         };
+        TrackingNetwork: {
+            /** @example 203.0.113.0/24 */
+            cidr: string;
+            /** @enum {string} */
+            class: "privacy" | "scanner";
+            /** Format: date-time */
+            createdAt: string;
+            name: string;
+            note: string;
+            /** @enum {string} */
+            source: "builtin" | "admin";
+        };
+        TrackingNetworkInput: {
+            /** @description An address or a network: 203.0.113.0/24, 2001:db8::/48 */
+            cidr: string;
+            /** @enum {string} */
+            class: "privacy" | "scanner";
+            /** @description Who runs it: Mimecast, our mail gateway */
+            name: string;
+            note?: string;
+        };
+        TrackingNetworkList: {
+            items: components["schemas"]["TrackingNetwork"][];
+        };
         TransactionalAccess: {
             content: boolean;
             edit: boolean;
@@ -41285,6 +41592,33 @@ export interface components {
             oneClick: number;
             /** Format: int64 */
             unsubscribed: number;
+        };
+        UntrustedProxies: {
+            /** @description What to do, in the reader's language */
+            advice: string;
+            /** @description The same setting as an environment variable */
+            env: string;
+            proxies: components["schemas"]["UntrustedProxy"][];
+            /** @description The configuration setting that lists trusted proxies */
+            setting: string;
+            /** @description The proxies trusted now */
+            trusted: string[];
+        };
+        UntrustedProxy: {
+            address: string;
+            /** Format: date-time */
+            firstSeen: string;
+            /** @description The forwarding header it sent */
+            header: string;
+            /** Format: date-time */
+            lastSeen: string;
+            /**
+             * Format: date-time
+             * @description When admins were last told
+             */
+            notifiedAt?: string;
+            /** Format: int64 */
+            requests: number;
         };
         UpdateDomainInput: {
             note?: string;
@@ -45002,6 +45336,127 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SSOTestStart"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-tracking-networks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackingNetworkList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-tracking-network": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackingNetworkInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackingNetwork"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-tracking-network": {
+        parameters: {
+            query: {
+                /** @description The network, as listed: 203.0.113.0/24 */
+                cidr: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-untrusted-proxies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UntrustedProxies"];
                 };
             };
             /** @description Error */
@@ -49403,6 +49858,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "ask-about-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIReportQuestionInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIReportAnswer"];
                 };
             };
             /** @description Error */
@@ -53856,6 +54347,106 @@ export interface operations {
                 content: {
                     "application/json": string;
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-campaign-report-final-alert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportFinalAlert"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-campaign-report-final-alert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportFinalAlert"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-campaign-report-final-alert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {

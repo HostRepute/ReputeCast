@@ -615,8 +615,17 @@
           "modelName": {
             "type": "string"
           },
+          "numbersMatch": {
+            "type": "boolean"
+          },
           "summary": {
             "type": "string"
+          },
+          "unmatched": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -624,7 +633,9 @@
           "model",
           "modelName",
           "keptBy",
-          "keptAt"
+          "keptAt",
+          "numbersMatch",
+          "unmatched"
         ],
         "type": "object"
       },
@@ -997,6 +1008,58 @@
           "needsBaseUrl",
           "capabilities",
           "models"
+        ],
+        "type": "object"
+      },
+      "AIReportAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "answer": {
+            "type": "string"
+          },
+          "numbersMatch": {
+            "type": "boolean"
+          },
+          "refusal": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "sent": {
+            "$ref": "#/components/schemas/AISent"
+          },
+          "unmatched": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "answer",
+          "numbersMatch",
+          "unmatched",
+          "sent"
+        ],
+        "type": "object"
+      },
+      "AIReportQuestionInput": {
+        "additionalProperties": false,
+        "properties": {
+          "campaignId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "campaignId",
+          "question"
         ],
         "type": "object"
       },
@@ -14013,11 +14076,23 @@
           "clickMap": {
             "$ref": "#/components/schemas/ReportClickMap"
           },
+          "comparisons": {
+            "$ref": "#/components/schemas/ReportComparisons"
+          },
           "engagement": {
             "$ref": "#/components/schemas/ReportEngagement"
           },
+          "growth": {
+            "$ref": "#/components/schemas/ReportGrowth"
+          },
           "headline": {
             "$ref": "#/components/schemas/ReportHeadline"
+          },
+          "insights": {
+            "items": {
+              "$ref": "#/components/schemas/ReportInsight"
+            },
+            "type": "array"
           },
           "languages": {
             "$ref": "#/components/schemas/ReportLanguages"
@@ -14041,6 +14116,9 @@
         "required": [
           "campaign",
           "headline",
+          "comparisons",
+          "insights",
+          "growth",
           "engagement",
           "clickMap",
           "mailboxes",
@@ -16890,6 +16968,13 @@
           "bestTime": {
             "type": "boolean"
           },
+          "confidence": {
+            "description": "How sure the test must be (default 0.95)",
+            "format": "double",
+            "maximum": 0.999,
+            "minimum": 0,
+            "type": "number"
+          },
           "durationHours": {
             "format": "int64",
             "maximum": 72,
@@ -16909,6 +16994,20 @@
               "human_opens",
               "clicks",
               "manual"
+            ],
+            "type": "string"
+          },
+          "minSample": {
+            "description": "Recipients each variant needs before a winner can be picked (default 500)",
+            "format": "int64",
+            "maximum": 1000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "noWinner": {
+            "description": "What the rest get without a clear winner: default, the first variant",
+            "enum": [
+              "default"
             ],
             "type": "string"
           },
@@ -61618,12 +61717,23 @@
       "ReportABTest": {
         "additionalProperties": false,
         "properties": {
+          "barMax": {
+            "format": "double",
+            "type": "number"
+          },
           "confidence": {
+            "format": "double",
+            "type": "number"
+          },
+          "decidedAfter": {
             "format": "double",
             "type": "number"
           },
           "decidedAt": {
             "format": "date-time",
+            "type": "string"
+          },
+          "default": {
             "type": "string"
           },
           "kind": {
@@ -61638,6 +61748,9 @@
             "description": "subject line, content, send time",
             "type": "string"
           },
+          "leader": {
+            "type": "string"
+          },
           "lift": {
             "format": "double",
             "type": "number"
@@ -61646,6 +61759,20 @@
             "enum": [
               "human_opens",
               "clicks"
+            ],
+            "type": "string"
+          },
+          "minSample": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "outcome": {
+            "enum": [
+              "winner",
+              "not_significant",
+              "too_small",
+              "manual",
+              ""
             ],
             "type": "string"
           },
@@ -61661,8 +61788,11 @@
             "format": "date-time",
             "type": "string"
           },
+          "runnerUp": {
+            "type": "string"
+          },
           "significant": {
-            "description": "p below 0.05",
+            "description": "Confidence reached the threshold, with enough recipients per variant",
             "type": "boolean"
           },
           "state": {
@@ -61672,6 +61802,10 @@
               "no_winner"
             ],
             "type": "string"
+          },
+          "threshold": {
+            "format": "double",
+            "type": "number"
           },
           "variants": {
             "items": {
@@ -61693,9 +61827,13 @@
           "metric",
           "windowHours",
           "state",
+          "default",
           "variants",
           "significant",
-          "remaining"
+          "minSample",
+          "threshold",
+          "remaining",
+          "barMax"
         ],
         "type": "object"
       },
@@ -61710,6 +61848,21 @@
             "format": "double",
             "type": "number"
           },
+          "conversions": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "decisionRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "default": {
+            "type": "boolean"
+          },
+          "eligible": {
+            "format": "int64",
+            "type": "integer"
+          },
           "humanOpenRate": {
             "format": "double",
             "type": "number"
@@ -61720,6 +61873,10 @@
           "label": {
             "description": "The subject line, or what differs",
             "type": "string"
+          },
+          "metricRate": {
+            "format": "double",
+            "type": "number"
           },
           "recipients": {
             "format": "int64",
@@ -61740,8 +61897,11 @@
         "required": [
           "key",
           "label",
+          "default",
           "recipients",
           "samplePercent",
+          "eligible",
+          "conversions",
           "winner",
           "remaining"
         ],
@@ -61866,7 +62026,8 @@
               "retry",
               "add",
               "review",
-              "suppressed"
+              "suppressed",
+              "investigate"
             ],
             "type": "string"
           },
@@ -62015,6 +62176,11 @@
           "available": {
             "type": "boolean"
           },
+          "botTotal": {
+            "description": "Clicks the bot filter left out",
+            "format": "int64",
+            "type": "integer"
+          },
           "html": {
             "type": "string"
           },
@@ -62030,23 +62196,38 @@
           "other": {
             "$ref": "#/components/schemas/ReportLinkGroup"
           },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLinkRow"
+            },
+            "type": "array"
+          },
           "threshold": {
             "description": "Links under this share (percent) are grouped as Other",
             "format": "double",
             "type": "number"
           },
           "total": {
-            "description": "All link clicks",
+            "description": "Human clicks on the links, each person once per link",
             "format": "int64",
             "type": "integer"
+          },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/ReportVariantClickMap"
+            },
+            "type": "array"
           }
         },
         "required": [
           "html",
           "available",
           "total",
+          "botTotal",
           "links",
-          "threshold"
+          "threshold",
+          "rows",
+          "variants"
         ],
         "type": "object"
       },
@@ -62075,6 +62256,82 @@
           "type",
           "code",
           "count"
+        ],
+        "type": "object"
+      },
+      "ReportComparison": {
+        "additionalProperties": false,
+        "properties": {
+          "change": {
+            "format": "double",
+            "type": "number"
+          },
+          "median": {
+            "format": "double",
+            "type": "number"
+          },
+          "metric": {
+            "enum": [
+              "sent",
+              "delivered",
+              "humanOpens",
+              "privacyOpens",
+              "clicks",
+              "unsubscribes",
+              "complaints",
+              "bounces"
+            ],
+            "type": "string"
+          },
+          "tone": {
+            "enum": [
+              "good",
+              "bad",
+              "neutral"
+            ],
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "percent",
+              "points"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "metric",
+          "change",
+          "unit",
+          "median",
+          "tone"
+        ],
+        "type": "object"
+      },
+      "ReportComparisons": {
+        "additionalProperties": false,
+        "properties": {
+          "issues": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tiles": {
+            "items": {
+              "$ref": "#/components/schemas/ReportComparison"
+            },
+            "type": "array"
+          },
+          "unavailable": {
+            "enum": [
+              "not_final",
+              "no_history"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "issues",
+          "tiles"
         ],
         "type": "object"
       },
@@ -62132,19 +62389,81 @@
           "machineOpens": {
             "format": "int64",
             "type": "integer"
+          },
+          "privacyOpens": {
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
           "hour",
           "humanOpens",
+          "privacyOpens",
           "machineOpens",
           "clicks"
+        ],
+        "type": "object"
+      },
+      "ReportFinalAlert": {
+        "additionalProperties": false,
+        "properties": {
+          "finalAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "on": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "on"
+        ],
+        "type": "object"
+      },
+      "ReportGrowth": {
+        "additionalProperties": false,
+        "properties": {
+          "forwards": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "newSubscribers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "referrals": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "webPost": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "webViews": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "newSubscribers",
+          "forwards",
+          "referrals",
+          "webPost",
+          "webViews"
         ],
         "type": "object"
       },
       "ReportHeadline": {
         "additionalProperties": false,
         "properties": {
+          "botClicks": {
+            "format": "int64",
+            "type": "integer"
+          },
           "bounceRate": {
             "format": "double",
             "type": "number"
@@ -62169,6 +62488,10 @@
             "format": "double",
             "type": "number"
           },
+          "complaintRateReported": {
+            "format": "double",
+            "type": "number"
+          },
           "complaints": {
             "format": "int64",
             "type": "integer"
@@ -62189,6 +62512,10 @@
             "format": "double",
             "type": "number"
           },
+          "humanOpenRateMeasurable": {
+            "format": "double",
+            "type": "number"
+          },
           "humanOpens": {
             "format": "int64",
             "type": "integer"
@@ -62198,6 +62525,25 @@
             "type": "number"
           },
           "machineOpens": {
+            "description": "Scanner opens, left out of every rate",
+            "format": "int64",
+            "type": "integer"
+          },
+          "measurable": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "notReportedBy": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "privacyOpenRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "privacyOpens": {
             "format": "int64",
             "type": "integer"
           },
@@ -62237,10 +62583,14 @@
           "sentBy",
           "delivered",
           "humanOpens",
+          "measurable",
+          "privacyOpens",
           "machineOpens",
           "clicks",
+          "botClicks",
           "unsubscribes",
           "complaints",
+          "notReportedBy",
           "bounces",
           "hardBounces",
           "softBounces",
@@ -62296,6 +62646,59 @@
             "type": "boolean"
           }
         },
+        "type": "object"
+      },
+      "ReportInsight": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "check_delisting",
+              "open_snds",
+              "open_postmaster",
+              "show_link"
+            ],
+            "type": "string"
+          },
+          "actionLabel": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "blocked",
+              "mailbox_bounces",
+              "top_link"
+            ],
+            "type": "string"
+          },
+          "link": {
+            "type": "string"
+          },
+          "position": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "tone": {
+            "enum": [
+              "bad",
+              "warn",
+              "info"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "tone",
+          "title",
+          "detail"
+        ],
         "type": "object"
       },
       "ReportLanguageCount": {
@@ -62525,6 +62928,10 @@
       "ReportLink": {
         "additionalProperties": false,
         "properties": {
+          "botClicks": {
+            "format": "int64",
+            "type": "integer"
+          },
           "clicks": {
             "format": "int64",
             "type": "integer"
@@ -62564,6 +62971,7 @@
           "position",
           "clicks",
           "uniqueClicks",
+          "botClicks",
           "share",
           "grouped",
           "hot"
@@ -62601,6 +63009,54 @@
         ],
         "type": "object"
       },
+      "ReportLinkRow": {
+        "additionalProperties": false,
+        "properties": {
+          "botClicks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "clicks": {
+            "description": "Human clicks, each person once per link",
+            "format": "int64",
+            "type": "integer"
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "place": {
+            "enum": [
+              "header",
+              "footer",
+              "body"
+            ],
+            "type": "string"
+          },
+          "positions": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "share": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "place",
+          "positions",
+          "labels",
+          "clicks",
+          "botClicks",
+          "share"
+        ],
+        "type": "object"
+      },
       "ReportMailboxRow": {
         "additionalProperties": false,
         "properties": {
@@ -62616,6 +63072,12 @@
             "format": "double",
             "type": "number"
           },
+          "complaintRateNa": {
+            "enum": [
+              "not_reported"
+            ],
+            "type": "string"
+          },
           "delivered": {
             "format": "int64",
             "type": "integer"
@@ -62625,6 +63087,10 @@
             "type": "number"
           },
           "humanOpenRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "humanOpenRateMeasurable": {
             "format": "double",
             "type": "number"
           },
@@ -62642,8 +63108,16 @@
             "format": "double",
             "type": "number"
           },
+          "measurable": {
+            "format": "int64",
+            "type": "integer"
+          },
           "name": {
             "type": "string"
+          },
+          "privacyOpenRate": {
+            "format": "double",
+            "type": "number"
           },
           "sent": {
             "format": "int64",
@@ -62658,7 +63132,8 @@
           "key",
           "name",
           "sent",
-          "delivered"
+          "delivered",
+          "measurable"
         ],
         "type": "object"
       },
@@ -62720,6 +63195,12 @@
             "format": "double",
             "type": "number"
           },
+          "complaintRateNa": {
+            "enum": [
+              "not_reported"
+            ],
+            "type": "string"
+          },
           "cost": {
             "description": "Dollars",
             "format": "double",
@@ -62733,16 +63214,36 @@
             "format": "double",
             "type": "number"
           },
+          "deliveryInferred": {
+            "type": "boolean"
+          },
           "engagedFirst": {
             "type": "boolean"
           },
+          "events": {
+            "enum": [
+              "sns",
+              "webhook",
+              "bounce_mailbox",
+              "none"
+            ],
+            "type": "string"
+          },
           "humanOpenRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "humanOpenRateMeasurable": {
             "format": "double",
             "type": "number"
           },
           "machineOpenRate": {
             "format": "double",
             "type": "number"
+          },
+          "measurable": {
+            "format": "int64",
+            "type": "integer"
           },
           "medianDeliveryMs": {
             "format": "int64",
@@ -62755,6 +63256,10 @@
             "format": "double",
             "type": "number"
           },
+          "privacyOpenRate": {
+            "format": "double",
+            "type": "number"
+          },
           "providerId": {
             "type": "string"
           },
@@ -62763,6 +63268,13 @@
             "type": "integer"
           },
           "short": {
+            "type": "string"
+          },
+          "trackedBy": {
+            "enum": [
+              "reputecast",
+              "provider"
+            ],
             "type": "string"
           },
           "unsubscribeRate": {
@@ -62782,8 +63294,12 @@
           "color",
           "percent",
           "engagedFirst",
+          "trackedBy",
+          "deliveryInferred",
+          "events",
           "sent",
-          "delivered"
+          "delivered",
+          "measurable"
         ],
         "type": "object"
       },
@@ -62849,6 +63365,29 @@
         ],
         "type": "object"
       },
+      "ReportShareIncludes": {
+        "additionalProperties": false,
+        "properties": {
+          "cost": {
+            "description": "The cost per sending provider",
+            "type": "boolean"
+          },
+          "email": {
+            "description": "The email as sent, in the click map",
+            "type": "boolean"
+          },
+          "warmup": {
+            "description": "The warm-up day of each sending provider",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cost",
+          "warmup",
+          "email"
+        ],
+        "type": "object"
+      },
       "ReportShareLink": {
         "additionalProperties": false,
         "properties": {
@@ -62865,6 +63404,9 @@
           },
           "id": {
             "type": "string"
+          },
+          "includes": {
+            "$ref": "#/components/schemas/ReportShareIncludes"
           },
           "lastViewedAt": {
             "format": "date-time",
@@ -62883,7 +63425,8 @@
           "url",
           "createdAt",
           "createdByName",
-          "views"
+          "views",
+          "includes"
         ],
         "type": "object"
       },
@@ -62987,6 +63530,57 @@
           "total",
           "reasons",
           "choseFewer"
+        ],
+        "type": "object"
+      },
+      "ReportVariantClickMap": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "botTotal": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "html": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLink"
+            },
+            "type": "array"
+          },
+          "other": {
+            "$ref": "#/components/schemas/ReportLinkGroup"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLinkRow"
+            },
+            "type": "array"
+          },
+          "sameEmail": {
+            "type": "boolean"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "sameEmail",
+          "html",
+          "available",
+          "total",
+          "botTotal",
+          "links",
+          "rows"
         ],
         "type": "object"
       },
@@ -70122,11 +70716,23 @@
         "additionalProperties": false,
         "properties": {
           "expiresInDays": {
-            "description": "0 keeps the link until it is revoked",
+            "description": "30 when absent",
             "format": "int64",
-            "maximum": 365,
-            "minimum": 0,
+            "maximum": 90,
+            "minimum": 1,
             "type": "integer"
+          },
+          "includeCost": {
+            "description": "Show the cost per sending provider",
+            "type": "boolean"
+          },
+          "includeEmail": {
+            "description": "Show the email as sent, in the click map",
+            "type": "boolean"
+          },
+          "includeWarmup": {
+            "description": "Show the warm-up day of each sending provider",
+            "type": "boolean"
           }
         },
         "type": "object"
@@ -70138,6 +70744,9 @@
             "format": "date-time",
             "type": "string"
           },
+          "includes": {
+            "$ref": "#/components/schemas/ReportShareIncludes"
+          },
           "report": {
             "$ref": "#/components/schemas/CampaignReport"
           },
@@ -70147,6 +70756,7 @@
         },
         "required": [
           "workspace",
+          "includes",
           "report"
         ],
         "type": "object"
@@ -81061,6 +81671,99 @@
         ],
         "type": "object"
       },
+      "TrackingNetwork": {
+        "additionalProperties": false,
+        "properties": {
+          "cidr": {
+            "examples": [
+              "203.0.113.0/24"
+            ],
+            "type": "string"
+          },
+          "class": {
+            "enum": [
+              "privacy",
+              "scanner"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "builtin",
+              "admin"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "cidr",
+          "name",
+          "class",
+          "source",
+          "note",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "TrackingNetworkInput": {
+        "additionalProperties": false,
+        "properties": {
+          "cidr": {
+            "description": "An address or a network: 203.0.113.0/24, 2001:db8::/48",
+            "maxLength": 64,
+            "minLength": 3,
+            "type": "string"
+          },
+          "class": {
+            "enum": [
+              "privacy",
+              "scanner"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "description": "Who runs it: Mimecast, our mail gateway",
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 300,
+            "type": "string"
+          }
+        },
+        "required": [
+          "cidr",
+          "name",
+          "class"
+        ],
+        "type": "object"
+      },
+      "TrackingNetworkList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TrackingNetwork"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "TransactionalAccess": {
         "additionalProperties": false,
         "properties": {
@@ -85743,6 +86446,81 @@
           "oneClick",
           "choseFewer",
           "answered"
+        ],
+        "type": "object"
+      },
+      "UntrustedProxies": {
+        "additionalProperties": false,
+        "properties": {
+          "advice": {
+            "description": "What to do, in the reader's language",
+            "type": "string"
+          },
+          "env": {
+            "description": "The same setting as an environment variable",
+            "type": "string"
+          },
+          "proxies": {
+            "items": {
+              "$ref": "#/components/schemas/UntrustedProxy"
+            },
+            "type": "array"
+          },
+          "setting": {
+            "description": "The configuration setting that lists trusted proxies",
+            "type": "string"
+          },
+          "trusted": {
+            "description": "The proxies trusted now",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "proxies",
+          "setting",
+          "env",
+          "trusted",
+          "advice"
+        ],
+        "type": "object"
+      },
+      "UntrustedProxy": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "firstSeen": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "header": {
+            "description": "The forwarding header it sent",
+            "type": "string"
+          },
+          "lastSeen": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "notifiedAt": {
+            "description": "When admins were last told",
+            "format": "date-time",
+            "type": "string"
+          },
+          "requests": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "address",
+          "header",
+          "requests",
+          "firstSeen",
+          "lastSeen"
         ],
         "type": "object"
       },
@@ -97275,6 +98053,169 @@
         "x-access": "instance_admin"
       }
     },
+    "/api/v1/admin/tracking-networks": {
+      "delete": {
+        "operationId": "remove-tracking-network",
+        "parameters": [
+          {
+            "description": "The network, as listed: 203.0.113.0/24",
+            "explode": false,
+            "in": "query",
+            "name": "cidr",
+            "required": true,
+            "schema": {
+              "description": "The network, as listed: 203.0.113.0/24",
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove a network an admin added (audited)",
+        "tags": [
+          "Instance admin · Tracking"
+        ],
+        "x-access": "instance_admin"
+      },
+      "get": {
+        "operationId": "list-tracking-networks",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackingNetworkList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Networks of privacy proxies and mail scanners whose opens and clicks aren't people's",
+        "tags": [
+          "Instance admin · Tracking"
+        ],
+        "x-access": "instance_admin"
+      },
+      "post": {
+        "description": "Opens from a privacy proxy's network count as privacy-protected; opens and clicks from a scanner's network on a message's arrival count as a machine's.",
+        "operationId": "add-tracking-network",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackingNetworkInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackingNetwork"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Add a network of a privacy proxy or a mail scanner (audited)",
+        "tags": [
+          "Instance admin · Tracking"
+        ],
+        "x-access": "instance_admin"
+      }
+    },
+    "/api/v1/admin/untrusted-proxies": {
+      "get": {
+        "description": "Requests through a proxy that http.trusted_proxies doesn't list carry the proxy's address instead of the reader's, so the bot filter and rate limits can't see readers.",
+        "operationId": "list-untrusted-proxies",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UntrustedProxies"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Proxies that forward requests to ReputeCast without being trusted, and the setting that fixes it",
+        "tags": [
+          "Instance admin · Tracking"
+        ],
+        "x-access": "instance_admin"
+      }
+    },
     "/api/v1/admin/updates": {
       "get": {
         "operationId": "get-instance-version",
@@ -104281,6 +105222,71 @@
         ],
         "x-access": "workspace",
         "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/report-question": {
+      "post": {
+        "description": "Sends the report's aggregate numbers and the question only (no addresses) to the workspace's own model; the answer's numbers are filled in from the report. Needs reports:view.",
+        "operationId": "ask-about-report",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIReportQuestionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIReportAnswer"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Ask about this report: an answer from the report's numbers, each one checked",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
       }
     },
     "/api/v1/workspaces/{workspace}/ai/report-summary": {
@@ -113591,6 +114597,200 @@
         ],
         "x-access": "workspace",
         "x-permission": "reports:share"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report/final-alert": {
+      "delete": {
+        "operationId": "remove-campaign-report-final-alert",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Campaign id",
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "description": "Campaign id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stop the email for when the results are final",
+        "tags": [
+          "Reports"
+        ],
+        "x-access": "workspace",
+        "x-permission": "reports:view"
+      },
+      "get": {
+        "operationId": "get-campaign-report-final-alert",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Campaign id",
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "description": "Campaign id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportFinalAlert"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether you asked to be emailed when the report's results are final",
+        "tags": [
+          "Reports"
+        ],
+        "x-access": "workspace",
+        "x-permission": "reports:view"
+      },
+      "put": {
+        "description": "Sends one notification, in the app and by email as your notification preferences say. Only people can ask, not API keys.",
+        "operationId": "set-campaign-report-final-alert",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Campaign id",
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "description": "Campaign id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportFinalAlert"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Email me when the results are final (72 hours after the send ended)",
+        "tags": [
+          "Reports"
+        ],
+        "x-access": "workspace",
+        "x-permission": "reports:view"
       }
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report/print": {

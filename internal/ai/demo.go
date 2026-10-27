@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"regexp"
+	"slices"
 	"strings"
 	"unicode"
 
@@ -66,7 +68,9 @@ func (demoModel) Generate(ctx context.Context, req llm.Request) (llm.Response, e
 	case segmentTask:
 		answer = demoSegment(t)
 	case summaryTask:
-		answer = map[string]any{"summary": demoSummary(t.Numbers)}
+		answer = map[string]any{"summary": demoSummary(t.Report)}
+	case askTask:
+		answer = map[string]any{"answer": demoAnswer(t)}
 	default:
 		return llm.Response{}, &llm.Error{Kind: llm.ErrBadRequest, Status: 400, Code: "invalid_request_error", Message: "the demo model answers the assistant's features only"}
 	}
@@ -448,62 +452,127 @@ func demoSegment(t segmentTask) map[string]any {
 	return map[string]any{"groups": []segments.SegmentGroup{{Match: "all", Conditions: conds}}}
 }
 
-// demoSummary describes a report's numbers in the brief's words.
-func demoSummary(n summaryNumbers) string {
-	pct := func(p *float64) string {
-		if p == nil {
-			return "0.0%"
-		}
-		return fmt.Sprintf("%.1f%%", *p)
-	}
-	num := func(v int64) string { return groupThousands(v) }
+// demoSummary describes a report's numbers in the Report board's words,
+// each number as its key (filled in from the report afterwards).
+func demoSummary(c reportContext) string {
+	has := func(k string) bool { _, ok := c.Numbers[k]; return ok }
 	var b strings.Builder
-	fmt.Fprintf(&b, "%s reached %s inboxes, %s of the %s sent. ", n.Campaign, num(n.Delivered), pct(n.DeliveredRate), num(n.Sent))
-	fmt.Fprintf(&b, "%s opened it as people; another %s were machine opens, which aren't counted as people. ", pct(n.HumanOpenRate), pct(n.MachineOpenRate))
-	if len(n.TopLinks) > 0 {
-		fmt.Fprintf(&b, "%s clicked, and the “%s” link drew %.0f%% of the clicks. ", pct(n.ClickRate), n.TopLinks[0].Label, n.TopLinks[0].Share)
-	} else {
-		fmt.Fprintf(&b, "%s clicked. ", pct(n.ClickRate))
+	fmt.Fprintf(&b, "%s was delivered to {delivered} of {sent} addresses ({deliveredRate}). ", c.Campaign)
+	fmt.Fprintf(&b, "{humanOpens} people opened it: {humanOpenRate} of delivered, and {humanOpenRateMeasurable} of the {measurable} whose opens can be measured. ")
+	if has("privacyOpens") && c.Numbers["privacyOpens"] > 0 {
+		b.WriteString("Apple Mail opened another {privacyOpens} automatically, so we can't tell whether those were read, and {scannerOpens} scanner opens are left out. ")
 	}
-	if ab := n.ABTest; ab != nil && ab.Winner != "" && len(ab.Variants) >= 2 {
-		var win, other summaryVariant
+	if len(c.Links) > 0 {
+		link := "the “" + c.Links[0].Label + "” link"
+		if strings.Contains(c.Links[0].URL, "flags") {
+			link = "the feature-flags link"
+		}
+		fmt.Fprintf(&b, "Human clicks came from {clicks} people ({clickRate}), and %s drew {link1.share} of those clicks. ", link)
+	} else {
+		b.WriteString("Human clicks came from {clicks} people ({clickRate}). ")
+	}
+	if ab := c.ABTest; ab != nil && ab.Winner != "" && len(ab.Variants) >= 2 {
+		other, label := "", ""
 		for _, v := range ab.Variants {
 			if v.Key == ab.Winner {
-				win = v
-			} else if other.Key == "" {
-				other = v
+				label = v.Label
+			} else if other == "" {
+				other = v.Key
 			}
 		}
-		if ab.Kind == "subject" {
-			fmt.Fprintf(&b, "Subject %s, “%s”, won the test with %s human opens against %s. ", win.Key, win.Label, pct(win.HumanOpenRate), pct(other.HumanOpenRate))
-		} else {
-			fmt.Fprintf(&b, "Variant %s won the test with %s human opens against %s. ", win.Key, pct(win.HumanOpenRate), pct(other.HumanOpenRate))
+		metric, rate := "human opens", "humanOpenRate"
+		if ab.Metric == "clicks" {
+			metric, rate = "clicks", "clickRate"
+		}
+		switch {
+		case ab.Outcome == "winner" && ab.Kind == "subject" && has("ab.confidence"):
+			fmt.Fprintf(&b, "Subject %s, “%s”, won on %s with {ab.confidence} confidence ({ab.%s.%s} against {ab.%s.%s}). ", ab.Winner, label, metric, ab.Winner, rate, other, rate)
+		case ab.Outcome == "winner" && has("ab.confidence"):
+			fmt.Fprintf(&b, "Variant %s won on %s with {ab.confidence} confidence ({ab.%s.%s} against {ab.%s.%s}). ", ab.Winner, metric, ab.Winner, rate, other, rate)
+		case ab.Outcome == "not_significant" || ab.Outcome == "too_small":
+			fmt.Fprintf(&b, "The A/B test had no clear winner on %s ({ab.%s.%s} against {ab.%s.%s}), so everyone else got %s, the default. ", metric, other, rate, ab.Winner, rate, ab.Default)
 		}
 	}
-	var worst *summaryMailbox
-	for i := range n.Mailboxes {
-		m := &n.Mailboxes[i]
-		if m.BounceRate != nil && (worst == nil || *m.BounceRate > *worst.BounceRate) {
-			worst = m
+	worst, rates := "", []float64{}
+	for _, m := range c.Mailboxes {
+		v, ok := c.Numbers["mailbox."+m.Key+".bounceRate"]
+		if !ok {
+			continue
+		}
+		rates = append(rates, v)
+		if worst == "" || v > c.Numbers["mailbox."+worst+".bounceRate"] {
+			worst = m.Key
 		}
 	}
-	if worst != nil {
-		fmt.Fprintf(&b, "%s had the highest bounce rate (%s). ", worst.Name, pct(worst.BounceRate))
-	}
-	if n.Unsubscribes > 0 {
-		if len(n.Unsubscribe) > 0 {
-			top := n.Unsubscribe[0]
-			for _, u := range n.Unsubscribe {
-				if u.Count > top.Count {
-					top = u
+	if worst != "" {
+		name := worst
+		for _, m := range c.Mailboxes {
+			if m.Key == worst {
+				name = m.Name
+			}
+		}
+		top := c.Numbers["mailbox."+worst+".bounceRate"]
+		others := []float64{}
+		for _, v := range rates {
+			if v != top {
+				others = append(others, v)
+			}
+		}
+		slices.Sort(others)
+		times := ""
+		if len(others) > 0 {
+			mid := others[len(others)/2]
+			if len(others)%2 == 0 {
+				mid = (others[len(others)/2-1] + others[len(others)/2]) / 2
+			}
+			if mid > 0 {
+				switch math.Round(top / mid) {
+				case 2:
+					times = "twice"
+				case 3:
+					times = "three times"
 				}
 			}
-			fmt.Fprintf(&b, "%s people unsubscribed, most often for “%s”.", num(n.Unsubscribes), strings.ToLower(top.Reason))
+		}
+		if times != "" {
+			fmt.Fprintf(&b, "%s bounced {mailbox.%s.bounceRate}, %s the rate of the other mailbox providers. ", name, worst, times)
 		} else {
-			fmt.Fprintf(&b, "%s people unsubscribed.", num(n.Unsubscribes))
+			fmt.Fprintf(&b, "%s had the highest bounce rate ({mailbox.%s.bounceRate}). ", name, worst)
+		}
+	}
+	if c.Numbers["unsubscribes"] > 0 {
+		if len(c.Reasons) > 0 {
+			top := c.Reasons[0]
+			for _, r := range c.Reasons {
+				if c.Numbers["unsubscribe."+r.Key+".count"] > c.Numbers["unsubscribe."+top.Key+".count"] {
+					top = r
+				}
+			}
+			fmt.Fprintf(&b, "{unsubscribes} people unsubscribed, most often for “%s”.", strings.ToLower(top.Label))
+		} else {
+			b.WriteString("{unsubscribes} people unsubscribed.")
 		}
 	}
 	return strings.TrimSpace(b.String())
+}
+
+// demoAnswer answers a question about a report from its numbers.
+func demoAnswer(t askTask) string {
+	q := strings.ToLower(t.Question)
+	c := t.Report
+	for _, m := range c.Mailboxes {
+		if strings.Contains(q, strings.ToLower(m.Name)) || strings.Contains(q, m.Key) {
+			if _, ok := c.Numbers["mailbox."+m.Key+".bounceRate"]; ok && strings.Contains(q, "bounce") {
+				out := fmt.Sprintf("%s bounced {mailbox.%s.bounceRate} of what it was sent, against {bounceRate} for the whole send.", m.Name, m.Key)
+				if _, ok := c.Numbers["bounce.blocked.count"]; ok {
+					out += " {bounce.blocked.count} of the bounces were blocks for the sending IP's or domain's reputation, not bad addresses."
+				}
+				return out
+			}
+			return fmt.Sprintf("At %s, {mailbox.%s.humanOpenRateMeasurable} of the recipients whose opens can be measured opened it, and {mailbox.%s.clickRate} clicked.", m.Name, m.Key, m.Key)
+		}
+	}
+	return "Of the {delivered} delivered, {humanOpens} people opened it ({humanOpenRateMeasurable} of measurable) and {clicks} clicked ({clickRate})."
 }
 
 // groupThousands writes 47548 as 47,548.
