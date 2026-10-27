@@ -28,6 +28,7 @@ var (
 	mUnreachable      = msgs.M("problem.unreachable")
 	mLinkContrast     = msgs.M("import.linkContrast")
 	mSVGLogo          = msgs.M("import.svgLogo")
+	mLogoNotAdded     = msgs.M("import.logoNotAdded")
 )
 
 func say(ctx context.Context, m i18n.Msg) string { return m.Text(i18n.LangFrom(ctx), nil) }

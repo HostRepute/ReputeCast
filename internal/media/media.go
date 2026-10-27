@@ -224,13 +224,12 @@ func (s *Service) Upload(ctx context.Context, ws *store.Workspace, actor *uuid.U
 	if err != nil {
 		return MediaAsset{}, api.Invalid("body.file", err.Error())
 	}
-	select {
-	case optimizeSlots <- struct{}{}:
-	case <-ctx.Done():
-		return MediaAsset{}, ctx.Err()
+	release, err := DecodeSlot(ctx)
+	if err != nil {
+		return MediaAsset{}, err
 	}
 	o, err := optimize(ctype, data, w, h)
-	<-optimizeSlots
+	release()
 	if err != nil {
 		return MediaAsset{}, api.Invalid("body.file", mDamaged.Text(l, nil))
 	}

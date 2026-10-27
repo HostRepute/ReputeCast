@@ -10,5 +10,6 @@
   "problem.badWebsite": "Enter the website's address, like acme.io.",
   "problem.unreachable": {"message": "{site} couldn't be read ({reason}). Check the address and try again.", "note": "site: the website's host, acme.io; reason: a short technical reason"},
   "import.linkContrast": {"message": "{color} isn't used for links. It's {ratio}:1 on white, under the 4.5:1 that small text needs. Links use the next colour on your site.", "note": "color: #6366F1; ratio: a contrast ratio with two decimals, 4.47"},
-  "import.svgLogo": {"message": "The logo on {site} is an SVG, which Gmail and Outlook don't show. Upload a PNG version.", "note": "site: the website's host, acme.io"}
+  "import.svgLogo": {"message": "The logo on {site} is an SVG, which Gmail and Outlook don't show. Upload a PNG version.", "note": "site: the website's host, acme.io"},
+  "import.logoNotAdded": {"message": "The logo on {site} wasn't added to the media library: only people who edit campaigns can add images. Ask one of them to import it.", "note": "site: the website's host, acme.io"}
 }

@@ -3,6 +3,7 @@ package brandkit_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"image"
 	"image/color"
 	"image/png"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
@@ -296,6 +298,60 @@ func TestImportFromWebsite(t *testing.T) {
 		t.Fatal("an import saves nothing")
 	}
 	linh.Do("POST", eng+"/brand-kit/import", map[string]any{"website": "http://127.0.0.1:1"}).MustStatus(t, 502)
+}
+
+// A page can name hundreds of images "logo" (review 2026-10): an import
+// tries a few of each kind, and downloads a few dozen megabytes at most.
+func TestImportTriesFewLogos(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	linh := env.Client()
+	linh.SignInDemo("linh@acme.io")
+	big := make([]byte, 15<<20)
+	var light, dark atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		var page strings.Builder
+		page.WriteString(`<!doctype html><html><head><title>Acme</title></head><body>`)
+		for i := range 300 {
+			fmt.Fprintf(&page, `<img class="logo" src="/img/logo-%d.png?size=%[2]s"><img class="logo" src="/img/logo-white-%[1]d.png?size=%[2]s">`, i, r.URL.Path[1:])
+		}
+		_, _ = w.Write([]byte(page.String()))
+	})
+	mux.HandleFunc("/img/", func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "white") {
+			dark.Add(1)
+		} else {
+			light.Add(1)
+		}
+		w.Header().Set("Content-Type", "image/png")
+		if r.URL.Query().Get("size") == "big" {
+			_, _ = w.Write(big)
+			return
+		}
+		_, _ = w.Write([]byte("not a picture"))
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	var imp struct {
+		LogoLight, LogoDark *struct{ MediaID string }
+		Notes               []string
+	}
+	linh.Do("POST", eng+"/brand-kit/import", map[string]any{"website": srv.URL + "/small"}).MustStatus(t, 200).JSON(t, &imp)
+	if light.Load() != 4 || dark.Load() != 4 || imp.LogoLight != nil || imp.LogoDark != nil {
+		t.Fatalf("tried %d light and %d dark logos, found %+v %+v", light.Load(), dark.Load(), imp.LogoLight, imp.LogoDark)
+	}
+	if len(imp.Notes) != 1 || !strings.Contains(imp.Notes[0], "isn't an image") {
+		t.Fatalf("the same refusal reads once: %q", imp.Notes)
+	}
+	// 15 MB each: two, and the start of a third, make the import's 40 MB.
+	light.Store(0)
+	dark.Store(0)
+	linh.Do("POST", eng+"/brand-kit/import", map[string]any{"website": srv.URL + "/big"}).MustStatus(t, 200)
+	if n := light.Load() + dark.Load(); n != 3 {
+		t.Fatalf("downloaded %d logos of 15 MB", n)
+	}
 }
 
 func TestContrastAndApply(t *testing.T) {

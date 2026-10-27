@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -58,6 +59,14 @@ const (
 	pageLimit  = 2 << 20
 	cssLimit   = 512 << 10
 	stylesheet = 3
+	// logoTries is how many images an import tries for each logo (light
+	// and dark), and logoBytes what it downloads for them in all: a page
+	// can name thousands of images "logo".
+	logoTries = 4
+	logoBytes = 2 * media.MaxUploadBytes
+	// importTime is the longest an import takes, fetchTime one request.
+	importTime = time.Minute
+	fetchTime  = 10 * time.Second
 )
 
 // normalize turns "acme.io" into https://acme.io/.
@@ -76,10 +85,17 @@ func normalize(raw string) (*url.URL, error) {
 	return u, nil
 }
 
+// client is the imports' HTTP client, built once so they reuse its
+// connections: through the address guard, never following redirects.
+func (s *Service) client() *http.Client {
+	s.clientOnce.Do(func() { s.httpClient = s.Guard.Client(fetchTime) })
+	return s.httpClient
+}
+
 // fetch GETs a URL through the address guard, following up to three
 // redirects (each checked again).
 func (s *Service) fetch(ctx context.Context, u *url.URL, limit int64, accept string) ([]byte, *url.URL, string, error) {
-	client := s.Guard.Client(10 * time.Second)
+	client := s.client()
 	for range 4 {
 		if _, err := s.Guard.ValidateURL(u.String()); err != nil {
 			return nil, u, "", err
@@ -104,13 +120,14 @@ func (s *Service) fetch(ctx context.Context, u *url.URL, limit int64, accept str
 			u = next
 			continue
 		}
+		if res.StatusCode < 200 || res.StatusCode > 299 {
+			_ = res.Body.Close()
+			return nil, u, "", fmt.Errorf("HTTP %d", res.StatusCode)
+		}
 		body, err := io.ReadAll(io.LimitReader(res.Body, limit))
 		_ = res.Body.Close()
 		if err != nil {
 			return nil, u, "", err
-		}
-		if res.StatusCode < 200 || res.StatusCode > 299 {
-			return nil, u, "", fmt.Errorf("HTTP %d", res.StatusCode)
 		}
 		return body, u, res.Header.Get("Content-Type"), nil
 	}
@@ -348,6 +365,9 @@ func fontFor(name string, link *url.URL) BrandFont {
 // Import reads a website's logo, colours and fonts into a kit to check.
 func (s *Service) Import(ctx context.Context, ws *store.Workspace, p *authz.Principal, in BrandKitImportInput) (BrandKitImport, error) {
 	l := i18n.LangFrom(ctx)
+	// A minute at most, however slow the site and however many images it names.
+	ctx, cancel := context.WithTimeout(ctx, importTime)
+	defer cancel()
 	site, err := normalize(in.Website)
 	if err != nil {
 		return BrandKitImport{}, api.Invalid("body.website", mBadWebsite.Text(l, nil))
@@ -479,17 +499,25 @@ func (s *Service) Import(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 
 	// Logos: an image named for the logo, a dark-mode one when there is.
+	// They go to the media library, which only people who edit campaigns
+	// add to (upload-media).
 	out.LogoAlt = pg.title
 	if i := strings.IndexAny(out.LogoAlt, "|–—-·:"); i > 0 {
 		out.LogoAlt = strings.TrimSpace(out.LogoAlt[:i])
 	}
+	if len(pg.logos) > 0 && !p.Can(authz.CampaignsEdit) {
+		out.Notes = append(out.Notes, mLogoNotAdded.Text(l, i18n.Args{"site": host}))
+		pg.logos = nil
+	}
+	left, tried := int64(logoBytes), map[bool]int{}
 	for _, ref := range pg.logos {
-		if (ref.dark && out.LogoDark != nil) || (!ref.dark && out.LogoLight != nil) {
+		if (ref.dark && out.LogoDark != nil) || (!ref.dark && out.LogoLight != nil) || tried[ref.dark] == logoTries || left <= 0 {
 			continue
 		}
-		logo, why := s.storeLogo(ctx, ws, p, ref)
+		tried[ref.dark]++
+		logo, why := s.storeLogo(ctx, ws, p, ref, &left)
 		if logo == nil {
-			if why != "" {
+			if why != "" && !slices.Contains(out.Notes, why) {
 				out.Notes = append(out.Notes, why)
 			}
 			continue
@@ -520,8 +548,9 @@ func removeHex(list []string, h string) []string {
 }
 
 // storeLogo adds a logo found on the site to the media library. why says
-// what was wrong with it otherwise.
-func (s *Service) storeLogo(ctx context.Context, ws *store.Workspace, p *authz.Principal, ref logoRef) (*BrandLogo, string) {
+// what was wrong with it otherwise. left is what the import may still
+// download; the logo's bytes come off it.
+func (s *Service) storeLogo(ctx context.Context, ws *store.Workspace, p *authz.Principal, ref logoRef, left *int64) (*BrandLogo, string) {
 	l := i18n.LangFrom(ctx)
 	if s.Media == nil {
 		return nil, ""
@@ -529,9 +558,11 @@ func (s *Service) storeLogo(ctx context.Context, ws *store.Workspace, p *authz.P
 	if strings.HasSuffix(strings.ToLower(ref.src.Path), ".svg") {
 		return nil, mSVGLogo.Text(l, i18n.Args{"site": strings.TrimPrefix(ref.src.Host, "www.")})
 	}
-	data, _, _, err := s.fetch(ctx, ref.src, media.MaxUploadBytes, "image/png, image/jpeg, image/gif")
-	if err != nil {
-		return nil, ""
+	limit := min(*left, media.MaxUploadBytes)
+	data, _, _, err := s.fetch(ctx, ref.src, limit+1, "image/png, image/jpeg, image/gif")
+	*left -= int64(len(data))
+	if err != nil || int64(len(data)) > limit {
+		return nil, "" // unreachable, or larger than what's left to download
 	}
 	name := path.Base(ref.src.Path)
 	a, err := s.Media.Upload(ctx, ws, actor(p), name, data)

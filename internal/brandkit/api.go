@@ -38,15 +38,16 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Put(h, api.Op{ID: "save-brand-kit", Path: base, Summary: "Save the brand kit",
 		Description: "New emails, templates and blocks start from it; emails already written keep their own styles. The first save creates the synced Header and Footer; " +
-			"a new logo reaches the synced Header and the drafts and scheduled emails holding it.",
+			"a new logo reaches the synced Header, and the drafts and scheduled emails holding it when the caller also holds campaigns:edit.",
 		Tags: tags, Access: api.Workspace(authz.TemplatesEdit)},
 		func(ctx context.Context, in *saveInput) (*api.Body[BrandKit], error) {
 			out, err := s.Save(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "import-brand-kit", Path: base + "/import", Summary: "Read the logo, colours and fonts from a website",
-		Description: "Nothing in the kit changes until it's saved. Logos found are added to the media library.",
-		Tags:        tags, Access: api.Workspace(authz.TemplatesEdit)},
+		Description: "Nothing in the kit changes until it's saved. Logos found are added to the media library when the caller also holds campaigns:edit, as uploads need; " +
+			"otherwise a note says they weren't.",
+		Tags: tags, Access: api.Workspace(authz.TemplatesEdit)},
 		func(ctx context.Context, in *importInput) (*api.Body[BrandKitImport], error) {
 			out, err := s.Import(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
 			return api.OK(out), err

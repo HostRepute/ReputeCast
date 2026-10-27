@@ -61,7 +61,7 @@ func (s *Service) copyImage(ctx context.Context, ws *store.Workspace, raw string
 		return uuid.Nil, "", 0, 0, err
 	}
 	if w > ImageWidth {
-		data, ctype, w, h, err = resize(data, ctype, alpha, ImageWidth)
+		data, ctype, w, h, err = resize(ctx, data, ctype, alpha, ImageWidth)
 		if err != nil {
 			return uuid.Nil, "", 0, 0, err
 		}
@@ -89,8 +89,20 @@ func fileNameOf(raw string) string {
 // of the copy is the mean of the pixels it covers), which keeps photos and
 // screenshots sharp enough at email sizes without an imaging library.
 // Photos are written as JPEG, images with transparency as PNG; a GIF's
-// first frame is kept.
-func resize(data []byte, ctype string, alpha bool, width int) ([]byte, string, int, int, error) {
+// first frame is kept. Like uploads, it decodes one image at a time
+// (media.DecodeSlot), and only one whose decoding and copy fit
+// media.DecodeBudget: a few hundred bytes of header can claim gigabytes.
+func resize(ctx context.Context, data []byte, ctype string, alpha bool, width int) ([]byte, string, int, int, error) {
+	// Decoding, and the NRGBA copy below.
+	cost, w, h, ok := media.DecodeCost(data)
+	if !ok || cost+4*int64(width)*int64(max(1, (h*width+w/2)/w)) > media.DecodeBudget {
+		return nil, "", 0, 0, imageError("the image couldn't be read")
+	}
+	release, err := media.DecodeSlot(ctx)
+	if err != nil {
+		return nil, "", 0, 0, err
+	}
+	defer release()
 	src, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return nil, "", 0, 0, imageError("the image couldn't be read")

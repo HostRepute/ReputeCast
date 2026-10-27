@@ -10,5 +10,6 @@
   "problem.badWebsite": "Hãy nhập địa chỉ website, ví dụ acme.io.",
   "problem.unreachable": "Không đọc được {site} ({reason}). Hãy kiểm tra địa chỉ rồi thử lại.",
   "import.linkContrast": "{color} không được dùng cho liên kết. Màu này đạt {ratio}:1 trên nền trắng, dưới mức 4,5:1 mà chữ nhỏ cần. Liên kết dùng màu kế tiếp trên website của bạn.",
-  "import.svgLogo": "Logo trên {site} là tệp SVG, Gmail và Outlook không hiển thị được. Hãy tải lên bản PNG."
+  "import.svgLogo": "Logo trên {site} là tệp SVG, Gmail và Outlook không hiển thị được. Hãy tải lên bản PNG.",
+  "import.logoNotAdded": "Logo trên {site} chưa được thêm vào thư viện: chỉ người chỉnh sửa chiến dịch mới thêm được hình. Hãy nhờ một người trong số họ nhập logo."
 }

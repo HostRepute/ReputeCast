@@ -33,14 +33,18 @@ const (
 	// reencodeFrom is the size below which an image that needs no resize
 	// isn't re-encoded just to save bytes.
 	reencodeFrom = 100 << 10
-	// decodeBudget is the most memory one decoded image may take; larger
-	// images are only stripped of their metadata.
-	decodeBudget = 256 << 20
+	// DecodeBudget is the most memory decoding one image may take, with the
+	// copies made to resize it (decode.go): larger uploads are only
+	// stripped of their metadata.
+	DecodeBudget = 256 << 20
 )
 
-// optimizeSlots bounds how many uploads are decoded at once: a
+// optimizeSlots bounds how many images are decoded at once (DecodeSlot): a
 // 50-megapixel PNG takes about 200 MB while it's resized.
 var optimizeSlots = make(chan struct{}, 1)
+
+// decodeJPEG is image/jpeg's decoder (tests check when it's called).
+var decodeJPEG = jpeg.Decode
 
 // optimized is what gets stored for an upload.
 type optimized struct {
@@ -85,10 +89,14 @@ func optimizeJPEG(data []byte, w, h int) (optimized, error) {
 	if ok && !turn && !resize && len(stripped) < reencodeFrom {
 		return keep, nil
 	}
+	tw, th := fit(ow, oh)
+	// Decoding takes what the frame says (jpegFrame.memory); scale and
+	// orient then make an RGBA copy each of an image they resize or turn.
+	copies := 4 * tw * th * (btoi(turn || resize) + btoi(turn))
 	var img image.Image
 	var err error = errUnreadable
-	if w*h*4 <= decodeBudget {
-		img, err = jpeg.Decode(bytes.NewReader(data))
+	if f, found := readFrame(data); found && f.memory()+copies <= DecodeBudget {
+		img, err = decodeJPEG(bytes.NewReader(data))
 	}
 	if _, cmyk := img.(*image.CMYK); err == nil && cmyk && ok && !turn && !resize {
 		// Print-ready CMYK: converting its colours here would shift them.
@@ -106,7 +114,6 @@ func optimizeJPEG(data []byte, w, h int) (optimized, error) {
 		}
 		return keep, nil
 	}
-	tw, th := fit(ow, oh)
 	m := img
 	if turn || resize {
 		sw, sh := tw, th
@@ -140,7 +147,7 @@ func optimizePNG(data []byte, w, h int) (optimized, error) {
 	var img image.Image
 	var err error = errUnreadable
 	// 16-bit PNGs decode to 8 bytes a pixel.
-	if bpp := 4 + 4*btoi(len(data) > 24 && data[24] == 16); w*h*bpp <= decodeBudget {
+	if bpp := 4 + 4*btoi(len(data) > 24 && data[24] == 16); w*h*bpp <= DecodeBudget {
 		img, err = png.Decode(bytes.NewReader(data))
 	}
 	if err != nil {
@@ -278,6 +285,124 @@ func keepICC(icc [][]byte, rgb bool) [][]byte {
 		return nil
 	}
 	return icc
+}
+
+// jpegFrame is what a JPEG's start of frame says about decoding it.
+type jpegFrame struct {
+	width, height int
+	progressive   bool
+	// comps is the number of components (1, 3 or 4). An MCU, the unit the
+	// image is coded in, is mcuW×mcuH pixels; blocks counts its 8×8
+	// blocks, all components together.
+	comps, mcuW, mcuH, blocks int
+	// converts is true when the decoder copies the image into an RGBA or
+	// CMYK one: four components, or three that may be RGB.
+	converts bool
+}
+
+// readFrame reads a JPEG's start of frame the way image/jpeg finds it: the
+// first SOF0, SOF1 or SOF2 segment, past stray and fill bytes, restart
+// markers, tables and application data. found is false when the decoder
+// would stop before one (a scan, an unknown marker, the end of the file).
+func readFrame(data []byte) (f jpegFrame, found bool) {
+	if len(data) < 2 || data[0] != 0xFF || data[1] != 0xD8 {
+		return f, false
+	}
+	i := 2
+	for i < len(data) {
+		j := bytes.IndexByte(data[i:], 0xFF)
+		if j < 0 {
+			return f, false
+		}
+		i += j + 1
+		if i < len(data) && data[i] == 0x00 { // "\xFF\x00" is stray data
+			i++
+			continue
+		}
+		for i < len(data) && data[i] == 0xFF { // fill bytes
+			i++
+		}
+		if i+3 > len(data) {
+			return f, false
+		}
+		m := data[i]
+		i++
+		if m >= 0xD0 && m <= 0xD7 { // restart markers have no length
+			continue
+		}
+		n := int(data[i])<<8 | int(data[i+1]) // with its own two bytes
+		if n < 2 || i+n > len(data) {
+			return f, false
+		}
+		switch {
+		case m >= 0xC0 && m <= 0xC2:
+			return parseSOF(data, data[i+2:i+n], m == 0xC2)
+		case m == 0xC4 || m == 0xDB || m == 0xDD || m >= 0xE0 && m <= 0xEF || m == 0xFE:
+			i += n
+		default:
+			return f, false
+		}
+	}
+	return f, false
+}
+
+// parseSOF reads a start of frame's payload p, as image/jpeg checks it.
+func parseSOF(data, p []byte, progressive bool) (f jpegFrame, ok bool) {
+	comps := (len(p) - 6) / 3
+	if len(p) < 6 || len(p) != 6+3*comps || (comps != 1 && comps != 3 && comps != 4) || int(p[5]) != comps {
+		return f, false
+	}
+	f = jpegFrame{height: int(p[1])<<8 | int(p[2]), width: int(p[3])<<8 | int(p[4]), progressive: progressive, comps: comps, mcuW: 8, mcuH: 8}
+	ids := make([]byte, comps)
+	for c := range comps {
+		ids[c] = p[6+3*c]
+		h, v := int(p[7+3*c]>>4), int(p[7+3*c]&0x0F)
+		if h < 1 || h > 4 || v < 1 || v > 4 {
+			return f, false
+		}
+		if comps == 1 { // one component is coded a block at a time
+			h, v = 1, 1
+		}
+		f.mcuW, f.mcuH = max(f.mcuW, 8*h), max(f.mcuH, 8*v)
+		f.blocks += h * v
+	}
+	f.converts = comps == 4 || comps == 3 && (string(ids) == "RGB" || adobeRGB(data))
+	return f, true
+}
+
+// adobeRGB reports whether a JPEG may hold an Adobe segment (APP14) saying
+// its colours aren't transformed, which image/jpeg decodes as RGB. Every
+// "Adobe" counts, wherever it is: the decoder reads the segment anywhere.
+func adobeRGB(data []byte) bool {
+	for i := 0; i < len(data); i++ {
+		j := bytes.Index(data[i:], []byte("Adobe"))
+		if j < 0 {
+			return false
+		}
+		i += j
+		if i+11 < len(data) && data[i+11] == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// memory is about the most memory image/jpeg takes to decode the frame, in
+// bytes: a plane for each component (a byte a pixel, padded to whole
+// MCUs), the RGBA or CMYK copy it converts the image into, and for a
+// progressive JPEG the coefficients of every 8×8 block (256 bytes each).
+// Those it allocates as the first scan starts, before it reads any image
+// data: a file of a few hundred bytes can claim a gigabyte.
+func (f jpegFrame) memory() int {
+	mcus := ((f.width + f.mcuW - 1) / f.mcuW) * ((f.height + f.mcuH - 1) / f.mcuH)
+	n := mcus * f.mcuW * f.mcuH * f.comps
+	if f.converts {
+		n += 4 * f.width * f.height
+	}
+	if f.progressive {
+		n += mcus * f.blocks * 256
+	}
+	return n
 }
 
 // exifOrientation reads the Orientation tag (0x0112) of IFD0 from an APP1

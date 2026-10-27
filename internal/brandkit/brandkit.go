@@ -16,11 +16,13 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/http"
 	"regexp"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -56,6 +58,9 @@ type Service struct {
 	// Guard checks the addresses an import fetches.
 	Guard netguard.Policy
 	Now   func() time.Time
+
+	clientOnce sync.Once
+	httpClient *http.Client
 }
 
 func (s *Service) now() time.Time {
@@ -268,7 +273,8 @@ func parseID(raw string) (*uuid.UUID, bool) {
 }
 
 // Save stores the kit. A new light logo or alt text reaches the synced
-// Header, and through it the drafts and scheduled emails holding it.
+// Header, and through it the drafts and scheduled emails holding it when
+// the caller can edit campaigns.
 func (s *Service) Save(ctx context.Context, ws *store.Workspace, p *authz.Principal, in BrandKitInput) (BrandKit, error) {
 	var saved KitSaved
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -287,8 +293,11 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	if err != nil {
 		return BrandKit{}, err
 	}
-	// The Header's new logo reaches the emails holding it (after the kit is saved).
-	if saved.Header != nil {
+	// The Header's new logo reaches the emails holding it (after the kit is
+	// saved), as a change to the synced block would: the kit needs
+	// templates:edit, changing those emails campaigns:edit. Without it they
+	// keep their Header until someone who can edit them changes it.
+	if saved.Header != nil && p.Can(authz.CampaignsEdit) {
 		if _, err := s.propagate(ctx, ws, p, *saved.Header); err != nil {
 			return BrandKit{}, err
 		}

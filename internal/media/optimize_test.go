@@ -3,6 +3,7 @@ package media
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"hash/crc32"
 	"image"
 	"image/color"
@@ -10,6 +11,7 @@ import (
 	"image/gif"
 	"image/jpeg"
 	"image/png"
+	"io"
 	"math/rand/v2"
 	"testing"
 )
@@ -233,6 +235,142 @@ func TestOptimizeJPEGThatCantBeDecodedKeepsOrientation(t *testing.T) {
 	}
 }
 
+// progressiveJPEG is a progressive JPEG (SOF2) of w×h grey pixels: one DC
+// scan of every component, each block 0. Without the scan's data it's a
+// crafted header of a hundred bytes or so, claiming any size.
+func progressiveJPEG(w, h, comps int, withData bool) []byte {
+	out := append([]byte{0xFF, 0xD8}, segment(0xDB, append([]byte{0}, bytes.Repeat([]byte{1}, 64)...))...)
+	sof := []byte{8, byte(h >> 8), byte(h), byte(w >> 8), byte(w), byte(comps)}
+	sos := []byte{byte(comps)}
+	for c := range comps {
+		sof = append(sof, byte(c+1), 0x11, 0)
+		sos = append(sos, byte(c+1), 0)
+	}
+	out = append(out, segment(0xC2, sof)...)
+	// One Huffman code, 0, one bit long: every DC difference is 0.
+	out = append(out, segment(0xC4, append([]byte{0x00, 1}, make([]byte, 16)...))...)
+	out = append(out, segment(0xDA, append(sos, 0, 0, 0))...)
+	scan := []byte{0, 0}
+	if withData {
+		blocks := (w + 7) / 8 * ((h + 7) / 8) * comps
+		scan = make([]byte, (blocks+7)/8)
+		if r := blocks % 8; r != 0 {
+			scan[len(scan)-1] = 0xFF >> r
+		}
+	}
+	return append(append(out, scan...), 0xFF, 0xD9)
+}
+
+// baselineHeader is a baseline JPEG's start (SOF0, 4:4:4) claiming w×h,
+// with an EXIF orientation, and no image data.
+func baselineHeader(w, h, orientation int) []byte {
+	sof := []byte{8, byte(h >> 8), byte(h), byte(w >> 8), byte(w), 3, 1, 0x11, 0, 2, 0x11, 0, 3, 0x11, 0}
+	out := append([]byte{0xFF, 0xD8}, exifSegment(orientation, "")...)
+	out = append(out, segment(0xC0, sof)...)
+	out = append(out, segment(0xDA, []byte{3, 1, 0, 2, 0, 3, 0, 0, 63, 0})...)
+	return append(out, 0, 0, 0xFF, 0xD9)
+}
+
+// decodes counts the JPEG decodes optimize starts. decode does them; nil
+// fails them, so a crafted header never gets the memory it claims.
+func decodes(t *testing.T, decode func(io.Reader) (image.Image, error)) *int {
+	t.Helper()
+	n, orig := 0, decodeJPEG
+	t.Cleanup(func() { decodeJPEG = orig })
+	decodeJPEG = func(r io.Reader) (image.Image, error) {
+		n++
+		if decode == nil {
+			return nil, errors.New("not decoded in this test")
+		}
+		return decode(r)
+	}
+	return &n
+}
+
+func TestReadFrame(t *testing.T) {
+	// Go writes colour JPEGs as 4:2:0: an MCU of 16×16 pixels holds four
+	// Y blocks, one Cb and one Cr.
+	photo := encJPEG(t, halves(64, 32), 90)
+	f, found := readFrame(photo)
+	if !found || f.width != 64 || f.height != 32 || f.progressive || f.comps != 3 || f.mcuW != 16 || f.blocks != 6 || f.converts || f.memory() != 3*64*32 {
+		t.Fatalf("baseline photo: %+v %v (memory %d)", f, found, f.memory())
+	}
+	// Found the way the decoder finds it: past stray data, "\xFF\x00",
+	// fill bytes and application data.
+	odd := append([]byte{0xFF, 0xD8, 'x', 'y', 0xFF, 0x00, 0xFF, 0xFF}, segment(0xE1, []byte("Exif\x00\x00"))...)
+	odd = append(odd, photo[2:]...)
+	if cfg, err := jpeg.DecodeConfig(bytes.NewReader(odd)); err != nil || cfg.Width != 64 {
+		t.Fatalf("the decoder reads it: %v", err)
+	}
+	if f, found := readFrame(odd); !found || f.width != 64 || f.height != 32 {
+		t.Fatalf("stray bytes: %+v %v", f, found)
+	}
+	// A scan before any frame: the decoder stops there.
+	if _, found := readFrame(append([]byte{0xFF, 0xD8}, segment(0xDA, []byte{1, 1, 0, 0, 63, 0})...)); found {
+		t.Fatal("no frame before the scan")
+	}
+
+	// A progressive four-component header of 135 bytes claiming 7071×7071
+	// pixels (under MaxPixels): image/jpeg would allocate four 50 MB
+	// planes, 4×200 MB of coefficients and a 200 MB CMYK copy.
+	hostile := progressiveJPEG(7071, 7071, 4, false)
+	f, found = readFrame(hostile)
+	if !found || !f.progressive || f.comps != 4 || !f.converts || f.memory() < 1<<30 {
+		t.Fatalf("hostile header (%d bytes): %+v %v, memory %d", len(hostile), f, found, f.memory())
+	}
+	// Three components named R, G and B, or an Adobe segment saying the
+	// colours aren't transformed, are decoded into an RGBA copy.
+	rgb := bytes.Clone(photo)
+	sof := bytes.Index(rgb, []byte{0xFF, 0xC0})
+	rgb[sof+10], rgb[sof+13], rgb[sof+16] = 'R', 'G', 'B'
+	if f, _ := readFrame(rgb); !f.converts {
+		t.Fatalf("RGB components: %+v", f)
+	}
+	if f, _ := readFrame(withSegments(photo, "", segment(0xEE, []byte("Adobe\x00\x64\x00\x00\x00\x00\x00")))); !f.converts {
+		t.Fatal("Adobe RGB")
+	}
+	if f, _ := readFrame(withSegments(photo, "", segment(0xEE, []byte("Adobe\x00\x64\x00\x00\x00\x00\x01")))); f.converts {
+		t.Fatal("Adobe YCbCr isn't copied")
+	}
+}
+
+func TestOptimizeJPEGWithinDecodeBudget(t *testing.T) {
+	t.Run("progressive header claiming a gigabyte", func(t *testing.T) {
+		n := decodes(t, nil)
+		src := progressiveJPEG(7071, 7071, 4, false)
+		o, err := optimize("image/jpeg", src, 7071, 7071)
+		if err != nil || *n != 0 {
+			t.Fatalf("decoded %d times (%v): it must stay undecoded", *n, err)
+		}
+		stripped, _, _, _ := stripJPEG(src)
+		if !bytes.Equal(o.data, stripped) || o.width != 7071 {
+			t.Fatalf("kept %d bytes, %d px wide", len(o.data), o.width)
+		}
+	})
+
+	t.Run("progressive photo", func(t *testing.T) {
+		n := decodes(t, jpeg.Decode)
+		o, err := optimize("image/jpeg", progressiveJPEG(1600, 64, 3, true), 1600, 64)
+		if err != nil || *n != 1 || o.contentType != "image/jpeg" || o.width != 1200 || o.height != 48 {
+			t.Fatalf("%v, %d decodes, %s %d×%d", err, *n, o.contentType, o.width, o.height)
+		}
+	})
+
+	t.Run("tall photo to resize and turn", func(t *testing.T) {
+		// 1,201×25,000 pixels decode to 90 MB, resized to 1,200 px wide
+		// (120 MB): within the budget. Turned upside down, a second copy
+		// is over it.
+		n := decodes(t, nil)
+		if _, err := optimize("image/jpeg", baselineHeader(1201, 25000, 1), 1201, 25000); err != nil || *n != 1 {
+			t.Fatalf("resize: %d decodes (%v)", *n, err)
+		}
+		o, err := optimize("image/jpeg", baselineHeader(1201, 25000, 3), 1201, 25000)
+		if err != nil || *n != 1 || o.width != 1201 || exifOrientation(o.data[6:]) != 3 {
+			t.Fatalf("resize and turn: %d decodes (%v), %d px wide", *n, err, o.width)
+		}
+	})
+}
+
 func TestOptimizePNG(t *testing.T) {
 	t.Run("metadata", func(t *testing.T) {
 		logo := image.NewNRGBA(image.Rect(0, 0, 200, 80))
@@ -434,10 +572,19 @@ func FuzzStrip(f *testing.F) {
 	f.Add([]byte("\x89PNG\r\n\x1a\n\x00\x00\x00\x00IEND\xaeB`\x82"))
 	f.Add([]byte("GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff\x21\xfe\x01x\x00\x3b"))
 	f.Add([]byte("Exif\x00\x00MM\x00\x2a\xff\xff\xff\xf0"))
+	f.Add(progressiveJPEG(7071, 7071, 4, false))
 	f.Fuzz(func(t *testing.T, b []byte) {
 		stripJPEG(b)
 		stripPNG(b)
 		stripGIF(b)
 		exifOrientation(b)
+		// The frame the decoder budget reads is the one image/jpeg uses.
+		fr, found := readFrame(b)
+		if cfg, err := jpeg.DecodeConfig(bytes.NewReader(b)); err == nil && (!found || fr.width != cfg.Width || fr.height != cfg.Height) {
+			t.Fatalf("decoder reads %d×%d, readFrame %+v %v", cfg.Width, cfg.Height, fr, found)
+		}
+		if found && fr.memory() < 0 {
+			t.Fatalf("memory of %+v: %d", fr, fr.memory())
+		}
 	})
 }
