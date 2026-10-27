@@ -1,6 +1,6 @@
 {
-  "denied": {"message": "{action} needs the {permission} permission.", "note": "action is one of the action.* phrases; permission is a key like campaigns:send, never translated"},
-  "deniedAsk": {"message": "{action} needs the {permission} permission. Ask {helpers}.", "note": "helpers: names joined as 'A, B or C'"},
+  "denied": {"message": "{action} needs a permission you don't have.", "note": "action is one of the action.* phrases. People read who can help, never the permission key (review X-1); API clients read the key from the problem's permission field"},
+  "deniedAsk": {"message": "{action} needs a permission you don't have. Ask {helpers}.", "note": "helpers: names joined as 'A, B or C'"},
 
   "action.this": "This",
   "action.campaigns:view": "View campaigns",

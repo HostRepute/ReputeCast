@@ -1,6 +1,6 @@
 {
-  "denied": "Để {action}, bạn cần quyền {permission}.",
-  "deniedAsk": "Để {action}, bạn cần quyền {permission}. Hãy hỏi {helpers}.",
+  "denied": "Bạn chưa có quyền {action}.",
+  "deniedAsk": "Bạn chưa có quyền {action}. Hãy hỏi {helpers}.",
 
   "action.this": "thực hiện thao tác này",
   "action.campaigns:view": "xem chiến dịch",
