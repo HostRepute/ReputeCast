@@ -8,7 +8,7 @@ screen is on the canvas (`design/boards`, updated for this review).
 
 Status: ⏳ planned · 🚧 in progress · ✅ done
 
-## Shared foundations (M33)
+## Shared foundations (M33) ✅
 
 | ID | What | Done when |
 |---|---|---|
@@ -27,7 +27,7 @@ What M33 built for the others to use:
 - **F-5** `internal/sending/sendtest`: `Suite`, `Fixture`, `ContactSpec` (with `Unclassified` for MX classification), `StartSend`, `Drive`, `Dump`.
 - **GS-5 / PR-7 groundwork** `state.Vet`: one target vetting (available, bulk terms, sandbox, sender domain, quota, warm-up) used by a person's move, the guard's automatic move and the failover while an audience is built, and returned with its sentences (EN, VI) on the provider outage card's alternatives (`checks`, `allowed`). M34 and M35 build their screens and the health job's checks on it.
 
-## Send Readiness (M36)
+## Send Readiness (M36) 🚧
 
 | ID | What | Done when |
 |---|---|---|
@@ -39,13 +39,13 @@ What M33 built for the others to use:
 | SR-6 | A DNS lookup error is Unknown (looked up again during the run), never a Block that says the record is invalid. | Test with a failing resolver. |
 | SR-7 | Missing checks: A/B variants B/C, Liquid errors (Block), spam heuristics on subject, preheader and body without the known false positives, one image-ratio threshold, size measured with tracking, honest link counts ("40 of 60 checked"), bot-blocking responses (999) as Unknown, links of every language version, Gmail Postmaster spam rate and compliance, DMARC alignment per provider, one-click unsubscribe per provider capability, PTR for dedicated IPs, tracking domain, invalid BIMI as Warn. | One test per check. |
 | SR-8 | Runs are background jobs with progress; polling is cheap; one run at a time per campaign. | No readiness work inside a request beyond reading the stored run. |
-| SR-9 | Placement test from Review (seed inboxes) with its result card. | Starts a placement test for the campaign and shows Inbox / Promotions / Spam per mailbox provider. |
+| SR-9 | Placement test from Review (seed mailboxes) with its result card. | Starts a placement test for the campaign and shows Inbox / Promotions / Spam per mailbox provider. |
 | SR-10 | Workspace sending rules (link query parameters, link domains, subject length, required text) with Warn or Block, in Settings › Sending rules. | Rules appear as a Send Readiness group. |
 | SR-11 | Unengaged contacts (sunset policy) are excluded by default, shown as a line of the audience waterfall with "Include them". | Audience math and estimates use it. |
 | SR-12 | Gmail Postmaster compliance status is a compliance check when Postmaster data is connected. | Check shows Compliant / Needs work / not connected. |
 | SR-13 | Review & send matches the new boards: issues first, passes collapsed by group, technical details, fix review drawer with consequences and undo through versions, sending locked while checks re-run with real progress, the schedule in the main action, sticky action bar on phones, typed confirmation only for unusual sends, auto-pause summary, "blocklist checks skipped" wording, test sends while blocked, emergency send in a menu. | Visual QA at 1440/834/390 against SendReadiness*, SendReadinessFixes, SettingsSendingRules. |
 
-## Guarded sending and the live monitor (M34)
+## Guarded sending and the live monitor (M34) 🚧
 
 | ID | What | Done when |
 |---|---|---|
@@ -58,13 +58,13 @@ What M33 built for the others to use:
 | GS-7 | SMTP: delivery is inferred from acceptance (DSN success requested when the server supports it) so delivered-based rates work. | SMTP send shows delivered (inferred). |
 | GS-8 | ETA per route and mailbox provider; throttle buckets shared across a workspace's concurrent sends. | Tests. |
 | GS-9 | Deferrals count once per message; a warm-up cap reached mid-send raises a hold with choices; alert preference labels name the right permission. | Tests. |
-| GS-10 | Canary phase: automatic (new sending domain or IP, contacts never mailed from this domain, audience over 2× usual) or chosen in Review; 5% most engaged plus seed inboxes; watch window; gates; continue, extend, stop. | API + LiveMonitorCanary board. |
+| GS-10 | Canary phase: automatic (new sending domain or IP, contacts never mailed from this domain, audience over 2× usual) or chosen in Review; 5% most engaged plus seed mailboxes; watch window; gates; continue, extend, stop. | API + LiveMonitorCanary board. |
 | GS-11 | Thresholds by bounce type (block/policy bounces per mailbox provider) and deferral thresholds (slow down, then pause). | Engine + Traffic rules. |
 | GS-12 | Mailbox provider response rules (reply text → pause or slow a mailbox provider for a time) configurable in Traffic rules. | Engine applies them; tests. |
 | GS-13 | Rates per mailbox provider adjustable during a send. | API + live UI. |
 | GS-14 | Live monitor matches the new boards: collecting-evidence states, n/a for unreported complaints, people instead of permission keys, stale-data detection with a polling fallback, live regions only where they belong, Pause primary on phones. | Visual QA against LiveMonitor*, ProvidersTrafficRules. |
 
-## Bring-your-own providers, routing and warm-up (M35)
+## Bring-your-own providers, routing and warm-up (M35) ✅
 
 | ID | What | Done when |
 |---|---|---|
@@ -84,7 +84,7 @@ What M33 built for the others to use:
 | PR-14 | Routing UI per the new boards: priority list with keyboard moves, impact preview before saving, unsaved-changes bar, campaign simulation in the route tester, failover triggers and target checks. | Visual QA against ProvidersRouting. |
 | PR-15 | Provider screens per the new boards: channel menu, Traffic rules tab, honest setup copy (time, events verified), suppression scope, webhook grace, SES tenant. | Visual QA against Providers*, Setup*, OverviewEmpty. |
 
-## Composer (M38)
+## Composer (M38) 🚧
 
 | ID | What | Done when |
 |---|---|---|
@@ -103,7 +103,7 @@ What M33 built for the others to use:
 | CO-13 | Optional real rendering service (Litmus or Mailgun Inspect, the workspace's own key); built-in previews say they are approximations. | Integration + copy. |
 | CO-14 | Composer matches the new boards: compact chrome, Inbox strip, Sending-to drawer, Liquid chips with a fallback editor, writer-friendly style panel, template thumbnails, brand kit banner, dismissing warnings with a reason, quick-review mode on phones. | Visual QA against Composer*, ComposerWrite, BrandKit. |
 
-## Honest analytics (M37)
+## Honest analytics (M37) ✅
 
 | ID | What | Done when |
 |---|---|---|
@@ -114,7 +114,7 @@ What M33 built for the others to use:
 | AN-5 | Click map per variant; one rule for which links are tracked, shared by engine and UI. | Tests. |
 | AN-6 | AI summary: each number checked against its metric, locale number formats, A/B significance included, edits re-checked, removal audited. | Tests. |
 | AN-7 | Bounces blocked for sender reputation are never suppressed from the report; "Investigate" instead. | Test + UI. |
-| AN-8 | Requests through an untrusted proxy are detected and the admin is told to set `TRUSTED_PROXIES`. | Test + admin notice. |
+| AN-8 | Requests through an untrusted proxy are detected and the admin is told to list it in `http.trusted_proxies` (`REPUTECAST_HTTP__TRUSTED_PROXIES`). | Test + admin notice. |
 | AN-9 | Classifier fixes: no "bot" substring false positives; Apple privacy prefetches counted apart from scanners. | Tests. |
 | AN-10 | Opens in three buckets (human, privacy-protected, machine) and the measurable open rate. | API + UI. |
 | AN-11 | Comparison with the last issues on every tile. | API + UI. |

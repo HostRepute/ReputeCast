@@ -544,7 +544,7 @@ The boards tell these stories, which the screens' demo data follows:
 
 - **Weekly Digest #142** goes to 31,192 recipients: 31,604 in its lists minus 412 unengaged contacts the sunset policy leaves out (SES 28,073 · Postal 3,119, $2.81). Its warnings are the Postal IP listing and the UTM rule. The #143 boards keep 31,604, with no unengaged contacts left out.
 - **Two #142 scenarios:** Review & send plans it with an A/B test (sample 09:00–09:07, winner at 11:00, done about 11:31). The live monitor boards show it without the test: a canary passed at 09:20, the auto-pause at 09:21 holds 2,436 Outlook recipients, and it finishes about 09:51. `ReportLanguages` shows a third, three-language send.
-- **Placement tests** use the demo's 10 seed inboxes; Review & send's card shows #142's test of Sun 12 Oct.
+- **Placement tests** use the demo's 10 seed mailboxes (the boards say "seed inboxes"; the app keeps M24's word); Review & send's card shows #142's test of Sun 12 Oct.
 
 ## Conflicts between the design and the spec
 
