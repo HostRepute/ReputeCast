@@ -10,13 +10,12 @@ const HOURS = [1, 2, 4, 8, 24]
 type Variant = ABTest['variants'][number]
 
 /**
- * The decision rules of an A/B test (C14): R05 adds minSample, confidence
- * and noWinner to the test; until then the engine's defaults apply, and
- * the rule line says so.
+ * The decision rules of an A/B test (C14): minSample, confidence and
+ * noWinner from the test (R05's decision fields); a test saved without
+ * them gets the engine's defaults, which the rule line states.
  */
 export function decisionRules(t: ABTest): { minSample: number; confidence: number; noWinner: string } {
-  const r = t as ABTest & { minSample?: number; confidence?: number; noWinner?: string }
-  return { minSample: r.minSample ?? 500, confidence: r.confidence ?? 0.95, noWinner: r.noWinner ?? 'default' }
+  return { minSample: t.minSample ?? 500, confidence: t.confidence ?? 0.95, noWinner: t.noWinner ?? 'default' }
 }
 
 /** A new test, or a new variant: a subject variant starts from A's subject. */
