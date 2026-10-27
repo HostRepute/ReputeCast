@@ -9,21 +9,25 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState, ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Banner } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { monthDayTime, shortDate } from '@/lib/format'
+import { clock, monthDayTime, shortDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
-import { deniedReason, useMe, useWorkspace } from '@/lib/session'
+import { useMe, useWorkspace } from '@/lib/session'
 import { approverNames, deciderFirst } from '@/features/approvals/parts'
 import { m as am } from '@/features/accessibility/messages'
 import { accessibilityBlock, OneClickDialog } from '@/features/accessibility/review'
 import { t as tx, useT } from '@/i18n'
 import { common } from '@/i18n/common'
+import { MoreMenu, StickyAction } from './Actions'
 import { approvalMode, ApprovedCard, BypassDialog, canRestore, HeldActions, HeldCard, InvalidatedCard, RequiredCard, WaitingCard } from './ApprovalCard'
 import { AudienceCard, finalCount, RouteCard, ScheduleNote, SchedulingCard, TestSendsCard, ThresholdsCard, ThrottlingCard } from './Aside'
-import { Checklist, RunningList, UnknownList } from './Checklist'
+import { RunningList, UnknownList } from './Checklist'
 import { ConfirmSend, type SendIntent } from './ConfirmSend'
-import { campaignWord, confirmNote, fixAllLabel, primaryFix, scheduleSentence, sendLabel, type Check, type Fix, type Review, type Schedule, type Thresholds } from './logic'
+import { FixReview, type FixPick } from './FixReview'
+import { HeldRecheckCard } from './HeldRecheck'
+import { NeedsAttention, PassedCard } from './Issues'
+import { campaignWord, confirmNote, ctaLabel, ctaShort, ctaWhen, primaryFix, scheduleSentence, verdictShort, type Check, type Fix, type Review, type Schedule, type Thresholds } from './logic'
 import { m } from './messages'
-import { fixReason, whenText } from './parts'
+import { fixReason, whenText, whoCan } from './parts'
 import { IncompleteBanner, RunningBanner, ScheduledBanner, ScheduledTiles, StaleBanner, VerdictBanner } from './Verdict'
 import { ByVersion, EACH, languageRows, sentVersions } from '@/features/languages/review'
 import { mr } from '@/features/languages/messages'
@@ -33,10 +37,14 @@ import { dateTime, useIssueInfo } from '@/features/digests/shared'
 import { ReadinessVerifyDialog } from '@/features/verification/HealthEntry'
 import { PlacementReviewCard } from '@/features/placement/EntryPoints'
 import './review.css'
+import './issues.css'
 import { ReviewWebLine } from '@/features/website/elsewhere'
 
 const reviewPath = '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review' as const
 const progressPath = '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/progress' as const
+
+/** Why sending is locked while a run is under way: a fix, a send, or the checks themselves. */
+type Lock = 'fix' | 'send' | 'run'
 
 /** 7.5 Review & send: Send Readiness, estimates, settings, approvals and the send. */
 export function ReviewPage({ campaignId }: { campaignId: string }) {
@@ -57,7 +65,7 @@ export function ReviewPage({ campaignId }: { campaignId: string }) {
   // Runs are background jobs: asking for one answers at once, and the
   // page polls the cheap progress endpoint (not the review) until the run
   // lands or fails, then reads the review again.
-  const [awaiting, setAwaiting] = useState<{ since: number }>()
+  const [awaiting, setAwaiting] = useState<{ since: number; lock: Lock }>()
   // Waiting since a run was asked for here, or since the review showed one.
   const since = awaiting?.since ?? (review.data?.running ? review.dataUpdatedAt : undefined)
   const poll = $api.useQuery('get', progressPath, { params: { path } }, { enabled: since !== undefined, refetchInterval: 1000 })
@@ -73,7 +81,7 @@ export function ReviewPage({ campaignId }: { campaignId: string }) {
   }, [landed, since, poll.data, refresh])
   const runChecks = useCallback(async () => {
     const since = Date.now()
-    setAwaiting({ since })
+    setAwaiting({ since, lock: 'run' })
     try {
       await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness', { params: { path: { workspace: slug, campaignId } } })
     } catch (e) {
@@ -117,7 +125,15 @@ export function ReviewPage({ campaignId }: { campaignId: string }) {
           </ErrorPanel>
         )
       ) : (
-        <ReviewBody review={review.data} running={running} progress={progress} runChecks={runChecks} awaitRun={() => setAwaiting({ since: Date.now() })} refresh={refresh} />
+        <ReviewBody
+          review={review.data}
+          running={running}
+          lock={awaiting?.lock}
+          progress={progress}
+          runChecks={runChecks}
+          awaitRun={(lock: Lock) => setAwaiting({ since: Date.now(), lock })}
+          refresh={refresh}
+        />
       )}
     </Page>
   )
@@ -129,7 +145,7 @@ function HeaderActions({ review, running, onRun }: { review: Review; running: bo
   const now = useNow()
   const c = review.campaign
   const at = c.autosavedAt ?? c.updatedAt
-  const reason = !review.access.canEdit ? deniedReason('campaigns:edit', review.access.sendHelpers) : !c.editable ? t(m.alreadySending) : undefined
+  const reason = !review.access.canEdit ? whoCan('edit', review.access.editHelpers) : !c.editable ? t(m.alreadySending) : undefined
   return (
     <>
       <Badge tone="neutral">{c.editable && at ? t(m.statusAutosaved, { status: campaignWord(c.status), when: relative(at, now) }) : campaignWord(c.status)}</Badge>
@@ -168,6 +184,7 @@ function tooOldToSendNow(d: Review): boolean {
 function ReviewBody({
   review: d,
   running,
+  lock,
   progress,
   runChecks,
   awaitRun,
@@ -175,10 +192,12 @@ function ReviewBody({
 }: {
   review: Review
   running: boolean
+  /** Why the page waits for a run: sending stays locked meanwhile. */
+  lock?: Lock
   progress?: Schemas['ReadinessProgress']
   runChecks: () => Promise<void>
   /** A fix or a send queued a run: the page waits for it. */
-  awaitRun: () => void
+  awaitRun: (lock: Lock) => void
   refresh: () => Promise<unknown>
 }) {
   const { slug } = useWorkspace()
@@ -192,6 +211,15 @@ function ReviewBody({
   const [confirm, setConfirm] = useState<'send' | 'approved' | null>(null)
   const [bypass, setBypass] = useState(false)
   const [unschedule, setUnschedule] = useState(false)
+  // Review the fixes: each one-click fix with what it changes, applied
+  // together. The panel isn't opened by a Radix trigger, so the focus goes
+  // back to "Review N fixes" by hand when it closes.
+  const [reviewing, setReviewing] = useState(false)
+  const reviewRef = useRef<HTMLButtonElement>(null)
+  const closeReview = (open: boolean) => {
+    setReviewing(open)
+    if (!open) window.setTimeout(() => reviewRef.current?.focus(), 0)
+  }
   // "Fix 2 in one click" shows what it changes first.
   const [oneClick, setOneClick] = useState<{ check: Check; fix: Fix }>()
   // A recurring digest's issue: the digest sends it at its time, so Release issue takes Schedule's place.
@@ -237,7 +265,7 @@ function ReviewBody({
         detail: applied.length > 1 ? applied.join(' · ') : t(m.readinessRunsAgain),
       })
       // The checks run again in the background; sending stays locked until they finish.
-      if (data?.running) awaitRun()
+      if (data?.running) awaitRun('fix')
     } catch (e) {
       fail(fixes.length === 1 ? t(m.fixFailed) : t(m.fixesFailed))(e)
     } finally {
@@ -285,7 +313,7 @@ function ReviewBody({
       // the server queued a run; the page shows it and the person sends after.
       if (e instanceof ApiError && (e.code === 'readiness_old' || e.code === 'readiness_running')) {
         setConfirm(null)
-        awaitRun()
+        awaitRun('send')
         toast({ kind: 'info', title: errorMessage(e) })
         return
       }
@@ -379,14 +407,19 @@ function ReviewBody({
     await refresh()
   }
 
+  const recipients = finalCount(d)
   if (running || progress) {
+    // Sending stays locked while the checks run, and says why (SR-13).
+    const lockText = lock === 'fix' ? t(m.lockedAfterFix) : lock === 'send' ? t(m.lockedBeforeSend) : t(m.waitForChecks)
     return (
       <div className="flex flex-col gap-3.5">
         <RunningBanner
           progress={progress}
+          hourlyAt={d.run?.estimates.hourlyAt}
+          lock={lock === 'fix' || lock === 'send' ? lockText : undefined}
           action={
-            <Button className="rv-off min-h-10" disabledReason={t(m.waitForChecks)}>
-              {d.schedule.mode === 'now' ? t(m.send) : t(m.scheduleSend)}
+            <Button className="rv-off min-h-10" disabledReason={lockText}>
+              {d.run ? ctaLabel(d.schedule, recipients) : d.schedule.mode === 'now' ? t(m.send) : t(m.scheduleSend)}
             </Button>
           }
         />
@@ -425,8 +458,9 @@ function ReviewBody({
 
   const c = d.campaign
   const a = d.access
+  // Who can, by name: people who can send, and people who can change the campaign.
   const helpers = a.sendHelpers
-  const recipients = finalCount(d)
+  const editHelpers = a.editHelpers
   const blocked = run.verdict === 'blocked'
   const incomplete = run.incomplete && !run.unknownAcceptedAt
   const scheduled = c.status === 'scheduled'
@@ -434,24 +468,25 @@ function ReviewBody({
   // A scheduled send its approval no longer covers won't start: the approval card leads.
   const showScheduled = scheduled && mode === 'none'
   const can = { edit: a.canEdit, send: a.canSend, editable: c.editable }
-  const reasonFor = (f: Fix) => fixReason(f, can, helpers)
+  const reasonFor = (f: Fix) => fixReason(f, can, { send: helpers, edit: editHelpers })
   const apply = (check: Check, fix: Fix) =>
     fix.action === 'verify_addresses'
       ? setVerifying(true)
       : fix.action === 'accessibility_one_click'
         ? setOneClick({ check, fix })
         : void applyFixes([{ check, fix }], `${check.key}:${fix.action}`)
-  const fixAll = (status: 'warn' | 'block') => {
-    const items = run.checks.filter((x) => x.status === status).flatMap((x) => {
+  // The fixes "Review N fixes" offers: each issue's one-click fix, as the
+  // board lists them (SendReadinessFixes). The ones with a dialog of their
+  // own (verify addresses, the accessibility fixes) stay on their rows.
+  const fixes: FixPick[] = run.checks
+    .filter((x) => x.status === 'block' || x.status === 'warn')
+    .flatMap((x) => {
       const f = primaryFix(x)
-      return f && f.action !== 'verify_addresses' && !reasonFor(f) ? [{ check: x, fix: f }] : []
+      return f && f.action !== 'verify_addresses' && f.action !== 'accessibility_one_click' ? [{ check: x, fix: f }] : []
     })
-    return items
-  }
-  const warnFixes = fixAll('warn')
-  const blockFixes = fixAll('block')
+  const applicable = fixes.filter((x) => !reasonFor(x.fix))
   const sendReason = !a.canSend
-    ? deniedReason('campaigns:send', helpers)
+    ? whoCan('send', helpers)
     : blocked
       ? t(m.fixBlocksFirst, { count: run.counts.blocks })
       : incomplete
@@ -459,12 +494,40 @@ function ReviewBody({
         : d.stale
           ? t(m.changedRunAgain)
           : undefined
-  const label = sendLabel(d.schedule.mode, recipients)
+  const label = ctaLabel(d.schedule, recipients)
   const openSend = () => setConfirm('send')
+  const reviewFixes = applicable.length ? (
+    <Button ref={reviewRef} variant={blocked ? 'primary' : 'default'} onClick={() => setReviewing(true)}>
+      {t(m.reviewFixes, { count: fixes.length })}
+    </Button>
+  ) : null
 
   // The top of the page: what to look at first.
   let top: ReactNode
-  if (d.held) {
+  if (d.held && (d.held.holds?.length ?? 0) > 0 && !(d.approval.request?.status === 'approved' && d.held.blocks.length > 0)) {
+    // Held by the send-time recheck on what nobody confirmed (SR-3).
+    const req = d.approval.request
+    const people = [
+      req ? t(m.heldAuthor, { name: req.requestedBy.name }) : d.scheduled ? t(m.heldAuthor, { name: d.scheduled.by }) : '',
+      d.approval.approvers.length ? t(m.heldApprovers, { names: approverNames(deciderFirst(d.approval.approvers, req?.decidedBy), 'and') }) : '',
+    ]
+      .filter(Boolean)
+      .join(', ')
+    top = (
+      <HeldRecheckCard
+        held={d.held}
+        notified={people ? t(m.heldNotified, { people, time: whenText(d.held.since) }) : undefined}
+        actions={
+          <>
+            <Button variant="primary" disabledReason={sendReason === t(m.changedRunAgain) ? undefined : sendReason} onClick={d.stale ? () => void runChecks() : openSend}>
+              {t(m.reviewAgain)}
+            </Button>
+            {a.canEdit ? <Button onClick={() => setUnschedule(true)}>{t(m.unschedule)}</Button> : null}
+          </>
+        }
+      />
+    )
+  } else if (d.held) {
     const req = d.approval.request
     const people = [
       req ? t(m.heldAuthor, { name: req.requestedBy.name }) : '',
@@ -493,7 +556,7 @@ function ReviewBody({
           review={d}
           actions={
             <>
-              <Button disabledReason={a.canEdit ? undefined : deniedReason('campaigns:edit', helpers)} onClick={() => setUnschedule(true)}>
+              <Button disabledReason={a.canEdit ? undefined : whoCan('edit', editHelpers)} onClick={() => setUnschedule(true)}>
                 {t(m.unschedule)}
               </Button>
               <ButtonLink variant="primary" to="/w/$workspace/campaigns/$campaignId/live" params={{ workspace: slug, campaignId }}>
@@ -533,10 +596,10 @@ function ReviewBody({
           run={run}
           actions={
             <>
-              <Button disabledReason={a.canEdit ? undefined : deniedReason('campaigns:edit', helpers)} onClick={() => void runChecks()}>
+              <Button disabledReason={a.canEdit ? undefined : whoCan('edit', editHelpers)} onClick={() => void runChecks()}>
                 {run.checks.some((x) => x.status === 'unknown' && x.group === 'reputation') ? t(m.retryBlocklist) : t(m.retryChecks)}
               </Button>
-              <Button variant="primary" loading={busy === 'accept'} disabledReason={a.canEdit ? undefined : deniedReason('campaigns:edit', helpers)} onClick={() => void acceptUnknown()}>
+              <Button variant="primary" loading={busy === 'accept'} disabledReason={a.canEdit ? undefined : whoCan('edit', editHelpers)} onClick={() => void acceptUnknown()}>
                 {t(m.continueProvider)}
               </Button>
             </>
@@ -551,7 +614,7 @@ function ReviewBody({
       <StaleBanner
         run={run}
         action={
-          <Button variant="primary" className="rv-big" disabledReason={a.canEdit ? undefined : deniedReason('campaigns:edit', helpers)} onClick={() => void runChecks()}>
+          <Button variant="primary" className="rv-big" disabledReason={a.canEdit ? undefined : whoCan('edit', editHelpers)} onClick={() => void runChecks()}>
             {t(m.runChecksAgain)}
           </Button>
         }
@@ -570,11 +633,9 @@ function ReviewBody({
                 <ButtonLink to="/w/$workspace/campaigns/$campaignId/edit" params={{ workspace: slug, campaignId }} search={{ panel: 'accessibility' }}>
                   {t(am.openInComposer)}
                 </ButtonLink>
-              ) : blockFixes.length ? (
-                <Button variant="danger-primary" loading={busy === 'all'} onClick={() => void applyFixes(blockFixes, 'all')}>
-                  {fixAllLabel('block', blockFixes.length)}
-                </Button>
-              ) : null}
+              ) : (
+                reviewFixes
+              )}
               {digestSends ? null : (
                 <Button variant="primary" className="rv-big rv-off" disabledReason={sendReason}>
                   {label}
@@ -583,11 +644,7 @@ function ReviewBody({
             </>
           ) : (
             <>
-              {warnFixes.length ? (
-                <Button loading={busy === 'all'} onClick={() => void applyFixes(warnFixes, 'all')}>
-                  {fixAllLabel('warn', warnFixes.length)}
-                </Button>
-              ) : null}
+              {reviewFixes}
               {digestSends ? null : (
                 <Button variant="primary" className="rv-big" disabledReason={sendReason} onClick={openSend}>
                   {label}
@@ -601,6 +658,16 @@ function ReviewBody({
   }
 
   const req = d.approval.request
+  const more = (
+    <MoreMenu
+      canBypass={d.approval.canBypass}
+      policyOff={!d.approval.emergencyBypass}
+      owners={d.approval.owners}
+      approvers={d.approval.approvers.filter((p) => p.name !== me?.user.name).map((p) => p.name)}
+      requestId={req?.id}
+      onBypass={() => setBypass(true)}
+    />
+  )
   const approvalCard =
     d.held || showScheduled || incomplete || d.stale || !c.editable ? null : mode === 'required' ? (
       <RequiredCard
@@ -608,7 +675,7 @@ function ReviewBody({
         run={run}
         busy={busy === 'request'}
         onRequest={(note) => void requestApproval(note)}
-        onBypass={d.approval.canBypass ? () => setBypass(true) : undefined}
+        more={more}
         onSaveDraft={() => {
           toast({ kind: 'success', title: t(m.savedDraft, { name: c.name }), detail: t(m.savedDraftDetail) })
           void navigate({ to: '/w/$workspace/campaigns', params: { workspace: slug } })
@@ -621,7 +688,7 @@ function ReviewBody({
         busy={busy === 'remind' || busy === 'cancel' ? busy : undefined}
         onRemind={() => void requestAction('remind', req.id)}
         onCancel={() => void requestAction('cancel', req.id)}
-        onBypass={d.approval.canBypass ? () => setBypass(true) : undefined}
+        more={more}
       />
     ) : mode === 'approved' ? (
       <ApprovedCard review={d} run={run} busy={busy === 'test' ? 'test' : undefined} onTest={() => me?.user.email && void sendTest(me.user.email)} onSchedule={() => setConfirm('approved')} />
@@ -635,11 +702,13 @@ function ReviewBody({
       />
     ) : null
 
-  const editReason = !a.canEdit ? deniedReason('campaigns:edit', helpers) : !c.editable ? t(m.alreadySending) : undefined
+  const editReason = !a.canEdit ? whoCan('edit', editHelpers) : !c.editable ? t(m.alreadySending) : undefined
   const startAt = d.schedule.mode === 'now' ? null : (d.schedule.at ?? null)
   const showCTA = c.editable && !scheduled && !d.held && !approvalCard && !incomplete && !digestSends
-  const scheduleHint =
-    mode === 'waiting' ? t(m.timeRestarts) : mode === 'approved' ? t(m.timeInvalidates) : undefined
+  const scheduleHint = mode === 'waiting' ? t(m.timeRestarts) : mode === 'approved' ? t(m.timeInvalidates) : undefined
+  const hourlyAt = run.estimates.hourlyAt
+  const passedCaption = hourlyAt ? t(m.passedCaptionHourly, { hourly: clock(hourlyAt), checked: clock(run.ranAt) }) : t(m.passedCaption, { checked: whenText(run.ranAt) })
+  const ctaNote = versions.length > 1 ? t(mr.confirmNoteLanguages, { count: run.counts.warnings }) : confirmNote(run.counts.warnings)
 
   return (
     <>
@@ -649,7 +718,7 @@ function ReviewBody({
           tone="bad"
           title={t(m.runStoppedTitle)}
           actions={
-            <Button disabledReason={a.canEdit ? undefined : deniedReason('campaigns:edit', helpers)} onClick={() => void runChecks()}>
+            <Button disabledReason={a.canEdit ? undefined : whoCan('edit', editHelpers)} onClick={() => void runChecks()}>
               {t(m.retryChecks)}
             </Button>
           }
@@ -664,7 +733,20 @@ function ReviewBody({
           {approvalCard}
           {/* The website's Web line (features/website): the post this send also publishes. */}
           <ReviewWebLine campaignId={campaignId} />
-          <Checklist run={run} busy={busy} reasonFor={reasonFor} onApply={apply} onRerun={a.canEdit && c.editable ? () => void runChecks() : undefined} />
+          <NeedsAttention
+            run={run}
+            unknown={!incomplete}
+            busy={busy}
+            reasonFor={reasonFor}
+            onApply={apply}
+            onRerun={a.canEdit && c.editable ? () => void runChecks() : undefined}
+          />
+          <PlacementReviewCard
+            campaignId={campaignId}
+            campaignName={d.campaign.name}
+            providers={run.estimates.route.shares.filter((s) => s.recipients > 0).map((s) => s.providerId)}
+          />
+          <PassedCard run={run} caption={passedCaption} summaries={blocked} />
           {oneClick ? (
             <OneClickDialog
               campaignId={campaignId}
@@ -695,6 +777,8 @@ function ReviewBody({
           <ThrottlingCard throttling={run.estimates.throttling} note={!blocked} />
           <ThresholdsCard
             thresholds={d.thresholds}
+            own={d.thresholdsOwn}
+            campaign={c.name}
             scope={!blocked}
             disabledReason={editReason}
             onSave={(th: Thresholds) => saveSettings({ thresholds: th }, 'thresholds')}
@@ -702,55 +786,72 @@ function ReviewBody({
           {digestSends && issue?.sendAt ? (
             <ScheduleNote text={t(im.scheduleNote, { when: dateTime(issue.sendAt) })} />
           ) : blocked && !scheduled ? (
-            <ScheduleNote text={t(m.availableOnceFixed)} />
+            <ScheduleNote text={t(m.availableOnceFixed)} locked />
           ) : scheduled ? (
             <ScheduleNote text={t(m.scheduledNote, { mode: d.schedule.mode === 'now' ? 'now' : 'at', when: scheduleSentence(d.schedule) || t(m.savedTime) })} />
           ) : (
             <SchedulingCard
               schedule={d.schedule}
               timezone={d.timezone}
+              abHours={c.ab?.durationHours}
               disabledReason={editReason}
               hint={scheduleHint}
               onSave={(s: Schedule) => saveSettings({ schedule: { mode: s.mode, date: s.date, time: s.time, timezone: s.timezone } }, 'schedule')}
             />
           )}
-          {!blocked ? (
-            <TestSendsCard
-              sends={d.testSends}
-              me={a.email}
-              toOthers={a.canSendTestToOthers}
-              disabledReason={c.editable ? undefined : t(m.wentOut)}
-              onSend={sendTest}
-              versions={versions}
-            />
-          ) : null}
-          <PlacementReviewCard
-            className="rv-card c-tight"
-            campaignId={campaignId}
-            campaignName={d.campaign.name}
-            providers={run.estimates.route.shares.filter((s) => s.recipients > 0).map((s) => s.providerId)}
+          {/* Tests go out while the checks block too: they check the fixes before the checks clear. */}
+          <TestSendsCard
+            sends={d.testSends}
+            me={a.email}
+            toOthers={a.canSendTestToOthers}
+            helpers={helpers}
+            note={blocked ? t(m.testWhileBlocked) : undefined}
+            disabledReason={c.editable ? undefined : t(m.wentOut)}
+            onSend={sendTest}
+            versions={versions}
           />
           {showCTA ? (
             blocked ? (
-              <>
+              <div className="rv-railend">
                 <Button variant="primary" className="rv-cta rv-off" disabledReason={sendReason}>
                   {label}
                 </Button>
                 <span className="k text-center">{t(m.disabledBlocks, { count: run.counts.blocks })}</span>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="rv-railend">
                 <Button variant="primary" className="rv-cta" disabledReason={sendReason} onClick={openSend}>
                   {label}
                 </Button>
-                <span className="k text-center">
-                  {versions.length > 1 ? t(mr.confirmNoteLanguages, { count: run.counts.warnings }) : confirmNote(run.counts.warnings)}
-                </span>
-              </>
+                <span className="k text-center">{ctaNote}</span>
+              </div>
             )
           ) : null}
         </aside>
       </div>
+      {showCTA ? (
+        <>
+          <div className="rv-page-pad" aria-hidden="true" />
+          <StickyAction
+            when={ctaWhen(d.schedule)}
+            verdict={verdictShort(run)}
+            label={ctaShort(d.schedule, recipients)}
+            aria={t(m.ctaAria, { label: ctaShort(d.schedule, recipients), when: ctaWhen(d.schedule) })}
+            disabledReason={sendReason}
+            onClick={openSend}
+          />
+        </>
+      ) : null}
+      {reviewing ? (
+        <FixReview
+          open
+          onOpenChange={closeReview}
+          campaign={c.name}
+          fixes={fixes}
+          reasonFor={reasonFor}
+          onApply={(picked) => applyFixes(picked, 'review')}
+        />
+      ) : null}
       {confirm ? (
         <ConfirmSend
           open
@@ -759,12 +860,11 @@ function ReviewBody({
           run={run}
           action={confirm === 'approved' ? (d.schedule.mode === 'now' ? t(m.actionSendNow) : t(m.actionApproved)) : d.schedule.mode === 'now' ? t(m.actionSendNow) : t(m.actionSchedule)}
           onConfirm={sendOrSchedule}
-          onExclude={
+          onFix={
             a.canEdit
-              ? () => {
-                  const x = run.checks.find((k) => k.key === 'audience.unengaged')
-                  const f = x?.fixes.find((ff) => ff.action === 'exclude_sunset')
-                  if (x && f) void applyFixes([{ check: x, fix: f }], `${x.key}:${f.action}`)
+              ? (check: Check, fix: Fix) => {
+                  setConfirm(null)
+                  void applyFixes([{ check, fix }], `${check.key}:${fix.action}`)
                 }
               : undefined
           }
@@ -843,4 +943,3 @@ function ReviewSkeleton() {
     </Loading>
   )
 }
-

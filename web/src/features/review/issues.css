@@ -1,0 +1,440 @@
+/* Review & send per the boards (SR-13): issues first, technical details, the fix
+ * review, scheduling boxes and the action bar on phones. */
+@layer components {
+  /* SR-13: a card's header, Needs attention, technical details, Passed. */
+  .rv-cardh {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line-2);
+    flex-wrap: wrap;
+  }
+  .rv-cardh.h-warn {
+    background: #fffbeb;
+    border-bottom-color: #fcd34d;
+    border-radius: 10px 10px 0 0;
+  }
+  .rv-cardh.h-warn .h2,
+  .rv-cardh.h-warn .rv-cardh-k {
+    color: #78350f;
+  }
+  .rv-cardh.h-warn .h2 {
+    color: #92400e;
+  }
+  .rv-cardh.h-bad {
+    background: var(--bad-tint);
+    border-bottom-color: var(--bad-line);
+    border-radius: 10px 10px 0 0;
+  }
+  .rv-cardh.h-bad .h2,
+  .rv-cardh.h-bad .rv-cardh-k {
+    color: var(--bad-fg);
+  }
+  .rv-srow {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'b t f'
+      'b d d';
+    column-gap: 12px;
+    row-gap: 6px;
+    padding: 14px 16px;
+    border-top: 1px solid var(--line-2);
+    align-items: start;
+  }
+  .rv-srow.s-first {
+    border-top: 0;
+  }
+  /* Blocks and warnings keep the tint of their badge (SendReadinessBlocked). */
+  .rv-srow.s-bad {
+    background: var(--bad-tint);
+  }
+  .rv-srow.s-warn {
+    background: #fffbeb;
+  }
+  .rv-srow:last-child {
+    border-radius: 0 0 10px 10px;
+  }
+  .rv-srow > .badge {
+    grid-area: b;
+    margin-top: 1px;
+  }
+  .rv-srow > .rv-st {
+    grid-area: t;
+    font-weight: 500;
+    min-width: 0;
+  }
+  .rv-srow > .rv-sfixes {
+    grid-area: f;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .rv-srow > .rv-tech {
+    grid-area: d;
+    min-width: 0;
+  }
+  .rv-fix {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+  }
+  .rv-fix .k {
+    font-size: 11.5px;
+  }
+  .rv-tech > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 24px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    border-radius: 6px;
+    cursor: pointer;
+    list-style: none;
+  }
+  .rv-tech > summary::-webkit-details-marker {
+    display: none;
+  }
+  .rv-tech > summary:hover {
+    color: var(--accent-hover);
+  }
+  .rv-tech[open] .rv-chev,
+  .rv-allc[open] > summary .rv-chev {
+    transform: rotate(180deg);
+  }
+  .rv-tpanel {
+    margin-top: 6px;
+    padding: 12px 14px;
+    background: var(--ground-3);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .rv-tdl {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 4px 14px;
+    margin: 0;
+    font-size: 12.5px;
+  }
+  .rv-tdl dt {
+    color: var(--ink-3);
+    font-weight: 500;
+    margin: 0;
+  }
+  .rv-tdl dd {
+    margin: 0;
+    color: var(--ink);
+  }
+  .rv-raw {
+    margin: 0;
+    font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: var(--ink);
+  }
+  .rv-pchips {
+    list-style: none;
+    margin: 0;
+    padding: 14px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .rv-pchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: var(--ground-3);
+    border: 1px solid var(--line);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .rv-allc > summary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 16px;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    border-radius: 0 0 10px 10px;
+    cursor: pointer;
+    list-style: none;
+  }
+  .rv-allc > summary::-webkit-details-marker {
+    display: none;
+  }
+  .rv-allc > summary:hover {
+    background: var(--ground-3);
+    color: var(--accent-hover);
+  }
+  .rv-allc[open] > summary {
+    border-radius: 0;
+  }
+  .rv-allc .rv-grp {
+    border-top: 1px solid var(--line);
+  }
+  @media (max-width: 767px) {
+    .rv-srow {
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-areas:
+        'b t'
+        'b f'
+        'b d';
+      row-gap: 10px;
+    }
+    .rv-srow > .rv-sfixes {
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+    }
+    .rv-fix {
+      align-items: stretch;
+    }
+    .rv-tech > summary {
+      min-height: 44px;
+    }
+    .rv-tdl {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .rv-tdl dd {
+      margin-bottom: 6px;
+    }
+    .rv-pchip {
+      min-height: 32px;
+    }
+  }
+  /* The fix review (SendReadinessFixes): a panel on the right, full screen on phones. */
+  .ovl.rv-drawer-ovl {
+    align-items: stretch;
+    justify-content: flex-end;
+    padding: 0;
+  }
+  .rv-drawer {
+    background: var(--surface);
+    width: min(560px, 100vw);
+    max-width: 100vw;
+    height: 100dvh;
+    margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -8px 0 24px rgb(11 18 32 / 0.12);
+    outline: none;
+  }
+  .rv-drawer-h {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .rv-drawer-h > .btn {
+    flex: none;
+    white-space: nowrap;
+  }
+  .rv-drawer-b {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .rv-drawer-f {
+    border-top: 1px solid var(--line);
+    padding: 14px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .rv-fxr {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .rv-fxr-h {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    cursor: pointer;
+  }
+  .rv-fxr-h input {
+    margin-top: 3px;
+    width: 16px;
+    height: 16px;
+    flex: none;
+  }
+  .rv-fxr-e dd {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-wrap: anywhere;
+  }
+  .rv-del {
+    color: var(--bad-fg);
+    font-size: 12px;
+  }
+  .rv-ins {
+    color: var(--ok-fg);
+    font-size: 12px;
+  }
+  .rv-fxr-next ol {
+    margin: 6px 0 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+  }
+  @media (max-width: 767px) {
+    .rv-drawer {
+      width: 100vw;
+    }
+  }
+  /* The action bar on phones (SendReadinessPhone): above the tab bar. */
+  .rv-actbar {
+    display: none;
+  }
+  @media (max-width: 767px) {
+    .rv-actbar {
+      display: flex;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: calc(57px + env(safe-area-inset-bottom, 0px));
+      z-index: 45;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--surface);
+      border-top: 1px solid var(--line);
+    }
+    .rv-abm {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .rv-actbar .btn {
+      min-height: 44px;
+      flex: none;
+    }
+    /* Room under the page for the bar. */
+    .rv-page-pad {
+      height: 72px;
+    }
+  }
+  /* Scheduling as boxes that frame the choice (SendReadiness). */
+  .rv-radbox {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+  }
+  .rv-radbox.on {
+    border-color: var(--accent);
+    background: var(--accent-tint);
+  }
+  .rv-radl {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    cursor: pointer;
+  }
+  .rv-radl input {
+    margin-top: 3px;
+    flex: none;
+  }
+  .rv-radt {
+    font-weight: 600;
+  }
+  .rv-radt .k {
+    font-weight: 400;
+  }
+  .rv-dt {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 0 12px 12px 38px;
+  }
+  .rv-dt select {
+    grid-column: 1 / -1;
+  }
+  /* "Change for this send" under the auto-pause summary. */
+  .rv-disc > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 24px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    border-radius: 6px;
+    cursor: pointer;
+    list-style: none;
+  }
+  .rv-disc > summary::-webkit-details-marker {
+    display: none;
+  }
+  .rv-disc > summary:hover {
+    color: var(--accent-hover);
+  }
+  .rv-disc[open] > summary .rv-chev {
+    transform: rotate(180deg);
+  }
+  /* The main action at the end of the aside, and its note. */
+  .rv-railend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .rv-confirm .c-acks h3 {
+    margin: 0 0 4px;
+  }
+  @media (max-width: 767px) {
+    .rv-dt {
+      padding-left: 12px;
+    }
+    .rv-disc > summary {
+      min-height: 44px;
+    }
+    /* On phones the main action sits in the bar at the bottom. */
+    .rv-railend {
+      display: none;
+    }
+  }
+  /* The held send's counts: what changed since it was reviewed. */
+  .rv-up {
+    color: var(--bad-fg);
+    font-weight: 600;
+  }
+  .rv-down {
+    color: var(--ink-2);
+    font-weight: 600;
+  }
+}

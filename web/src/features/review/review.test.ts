@@ -7,7 +7,9 @@ import {
   confirmNote,
   countsLine,
   countsShort,
-  fixAllLabel,
+  ctaLabel,
+  ctaShort,
+  ctaWhen,
   linkParts,
   localDateWords,
   minutes,
@@ -15,9 +17,9 @@ import {
   primaryFix,
   scheduleSentence,
   scheduleShort,
-  sendLabel,
   sendsIn,
   thresholdError,
+  verdictShort,
   waitShort,
   waitWords,
   type Check,
@@ -39,19 +41,23 @@ describe('verdict copy', () => {
     const fix = { kind: 'apply', action: 'insert_footer', label: 'Insert footer block' } as Check['fixes'][number]
     const all = [check({ status: 'block', fixes: [fix] }), check({ status: 'block', fixes: [fix] }), check({ status: 'block', fixes: [fix] })]
     const counts = { passed: 17, warnings: 2, blocks: 3, unknown: 0, total: 22 }
-    expect(blockedLine(counts, all)).toBe(
-      '3 blocking issues, 2 warnings, 17 checks passed. Sending stays disabled until every block is fixed. Each one has a one-click fix below.',
-    )
-    expect(blockedLine(counts, [all[0]!, check({ status: 'block' }), check({ status: 'block' })])).toMatch(/1 of them has a one-click fix below\.$/)
-    expect(blockedLine({ ...counts, blocks: 1 }, [all[0]!])).toMatch(/It has a one-click fix below\.$/)
+    expect(blockedLine(counts, all)).toBe('3 blocks · 2 warnings · 17 passed. Sending stays disabled until every block is fixed. Each one has a fix below.')
+    expect(blockedLine(counts, [all[0]!, check({ status: 'block' }), check({ status: 'block' })])).toMatch(/1 of them has a fix below\.$/)
+    expect(blockedLine({ ...counts, blocks: 1 }, [all[0]!])).toMatch(/It has a fix below\.$/)
+    expect(verdictShort({ verdict: 'blocked', counts } as Run)).toBe('Blocked · 3 to fix')
+    expect(verdictShort({ verdict: 'warnings', counts: { ...counts, blocks: 0 } } as Run)).toBe('Ready with warnings · 2 to review')
   })
 
-  it('labels the actions as on the boards', () => {
-    expect(fixAllLabel('warn', 2)).toBe('Fix both warnings')
-    expect(fixAllLabel('block', 3)).toBe('Apply all 3 fixes')
-    expect(fixAllLabel('block', 1)).toBe('Apply the fix')
-    expect(sendLabel('at', 31604)).toBe('Schedule send to 31,604 recipients')
-    expect(sendLabel('now', 47842)).toBe('Send to 47,842 recipients')
+  it('puts the schedule in the main action (SR-13)', () => {
+    const at = { mode: 'at', date: '2026-10-14', time: '09:00', timezone: 'America/New_York' } as Review['schedule']
+    expect(ctaLabel(at, 31192)).toBe('Schedule for Wed 14 Oct, 09:00 ET')
+    expect(ctaLabel({ ...at, mode: 'best_time' }, 31192)).toBe('Schedule best time from Wed 14 Oct, 09:00 ET')
+    expect(ctaLabel({ mode: 'now' } as Review['schedule'], 31192)).toBe('Send now to 31,192')
+    expect(ctaWhen(at)).toBe('Wed 14 Oct, 09:00 ET')
+    expect(ctaWhen({ ...at, mode: 'best_time' })).toBe('Best time from Wed 14 Oct')
+    expect(ctaWhen({ mode: 'now' } as Review['schedule'])).toBe('Sends within a minute')
+    expect(ctaShort(at, 31192)).toBe('Schedule · 31,192')
+    expect(ctaShort({ mode: 'now' } as Review['schedule'], 31192)).toBe('Send now · 31,192')
     expect(confirmNote(2)).toBe("You'll confirm the audience and the two warnings on the next step.")
     expect(confirmNote(0)).toBe("You'll confirm the audience on the next step.")
   })

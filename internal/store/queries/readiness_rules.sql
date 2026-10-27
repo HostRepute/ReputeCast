@@ -56,3 +56,36 @@ INSERT INTO workspace_send_defaults (workspace_id, exclude_unengaged, typed_mult
 VALUES (@workspace_id, @exclude_unengaged, @typed_multiple::float8, @now, sqlc.narg(updated_by))
 ON CONFLICT (workspace_id) DO UPDATE SET exclude_unengaged = EXCLUDED.exclude_unengaged,
     typed_multiple = EXCLUDED.typed_multiple, updated_at = EXCLUDED.updated_at, updated_by = EXCLUDED.updated_by;
+
+-- name: ReadinessUsualAudience :many
+-- The audiences of the workspace's last sends to any of a campaign's
+-- lists, newest first (the "usual" of a typed confirmation, SR-13).
+SELECT coalesce(c.audience_count, 0)::bigint AS recipients
+FROM campaigns c
+WHERE c.workspace_id = @workspace_id AND c.id <> @campaign_id AND c.deleted_at IS NULL AND c.channel = 'email'
+  AND c.started_at IS NOT NULL AND c.status IN ('sending', 'paused', 'sent')
+  AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(coalesce(c.audience->'lists', '[]'::jsonb)) AS l(list) WHERE l.list = ANY(@lists::text[]))
+ORDER BY c.started_at DESC
+LIMIT 5;
+
+-- name: ReadinessListsSentTo :many
+-- Which of the lists a send went to before (a first send to a list asks
+-- for a typed confirmation, SR-13).
+SELECT DISTINCT l.list::text AS list
+FROM campaigns c, jsonb_array_elements_text(coalesce(c.audience->'lists', '[]'::jsonb)) AS l(list)
+WHERE c.workspace_id = @workspace_id AND c.id <> @campaign_id AND c.deleted_at IS NULL AND c.started_at IS NOT NULL
+  AND l.list = ANY(@lists::text[]);
+
+-- name: ReadinessSentFromDomain :one
+-- Whether a send went out from the sending domain before.
+SELECT EXISTS (
+    SELECT 1 FROM campaigns c JOIN senders s ON s.id = c.sender_id
+    WHERE c.workspace_id = @workspace_id AND c.id <> @campaign_id AND c.deleted_at IS NULL AND c.started_at IS NOT NULL
+      AND lower(split_part(s.email, '@', 2)) = lower(@domain::text)
+)::bool;
+
+-- name: ReadinessProvidersSentThrough :many
+-- Which of the providers carried a send before.
+SELECT DISTINCT r.provider_id
+FROM campaign_routes r JOIN campaigns c ON c.id = r.campaign_id
+WHERE c.workspace_id = @workspace_id AND c.id <> @campaign_id AND c.started_at IS NOT NULL AND r.provider_id = ANY(@providers::uuid[]);

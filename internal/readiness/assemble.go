@@ -91,6 +91,7 @@ func Assemble(f Facts) ReadinessResult {
 	b.routing()
 	b.rules()
 	b.everyVersion()
+	b.fixEffects()
 	b.stores()
 	for i := range b.checks {
 		c := &b.checks[i]
@@ -327,11 +328,12 @@ func (b *builder) reputation() {
 				if o := b.otherAvailable(s.ProviderID); o != nil {
 					fixes = append(fixes, routeOnlyFix(o, tx("fix.sendViaOnly", A{"provider": o.Short}), ""))
 				}
+				tech, raw := b.listingDetails(ip, listed)
 				b.add(check{Key: key, Group: GroupReputation, Status: status,
 					Title:  tx("reputation.ipListed", A{"provider": s.Name, "ip": ip, "count": len(listed), "sources": r.Sources}),
 					Detail: detail, Label: label,
 					Ack:   tx("reputation.ipListedAck", A{"provider": s.Name, "list": shortSource(listed[0].Source), "impact": listed[0].Impact}),
-					Fixes: fixes})
+					Fixes: fixes, Technical: tech, Raw: raw})
 			}
 		}
 	}
@@ -2231,6 +2233,13 @@ func (b *builder) estimates() ReadinessEstimates {
 		break
 	}
 	out.Route = route
+	// Only an unusual send asks for a typed confirmation (SR-13).
+	cf, reasons := b.confirm()
+	out.Confirm, t.Confirm = &cf, reasons
+	if r := b.f.Reputation; r.Via != "builtin" && r.CheckedAt != nil {
+		at := *r.CheckedAt
+		out.HourlyAt = &at
+	}
 	out.texts = t
 	return out
 }

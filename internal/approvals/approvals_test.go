@@ -53,7 +53,12 @@ type review struct {
 	}
 	Scheduled *struct{ By string }
 	Stale     bool
-	Run       *struct {
+	// Typed: an unusual send asks for the count to be typed (SR-13).
+	Typed struct {
+		Needed  bool
+		Reasons []string
+	}
+	Run *struct {
 		ID      string
 		Verdict string
 		Counts  struct{ Passed, Warnings, Blocks int }
@@ -261,13 +266,17 @@ func TestReviewAndApprovals(t *testing.T) {
 		t.Fatalf("approve the new version: %+v", dec)
 	}
 
-	// Daniel schedules it as approved: warnings confirmed, the count typed.
+	// Daniel schedules it as approved: warnings confirmed. A routine send
+	// (its lists' usual audience, a domain and providers that sent before)
+	// isn't confirmed by typing the count (SR-13).
 	r = getReview(t, daniel, nov)
 	if r.Stale || r.Run == nil || !r.Approval.Valid {
 		t.Fatalf("approved and fresh after the edit: %+v", r)
 	}
+	if r.Typed.Needed {
+		t.Fatalf("a routine send doesn't ask for the count: %+v", r.Typed)
+	}
 	final := fmt.Sprint(r.Run.Estimates.Audience.Final)
-	daniel.Do("POST", ws+"/approvals/"+dec.ID+"/schedule", map[string]any{"runId": r.Run.ID, "acknowledged": warnings(r)}).MustStatus(t, 422) // the count isn't typed
 	if len(warnings(r)) > 0 {
 		daniel.Do("POST", ws+"/approvals/"+dec.ID+"/schedule", map[string]any{"runId": r.Run.ID, "confirm": final}).MustStatus(t, 422) // warnings not confirmed
 	}

@@ -227,9 +227,9 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		return ReviewSendResult{}, api.Invalid("body.acknowledged", say(ctx, mConfirmWarnings, i18n.Args{"warnings": strings.Join(missing, "; ")}))
 	}
 	recipients := run.Estimates.Audience.Final
-	// Large sends are confirmed by typing the count; a bypass is confirmed
-	// by the written reason and the Owner's password instead.
-	if recipients >= LargeSend && mode.bypass == "" && digits(in.Confirm) != fmt.Sprint(recipients) {
+	// Only an unusual send is confirmed by typing the count (SR-13); a
+	// bypass is confirmed by the written reason and the Owner's password.
+	if mode.bypass == "" && len(s.typedReasons(ctx, c, *run)) > 0 && digits(in.Confirm) != fmt.Sprint(recipients) {
 		return ReviewSendResult{}, api.Invalid("body.confirm", say(ctx, mTypeCount, i18n.Args{"count": fmt.Sprint(recipients)}))
 	}
 	ms, err := s.members(ctx, s.Q, ws.ID)
@@ -352,6 +352,34 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 			Before: map[string]any{"status": c.Status}, After: map[string]any{"status": out.Status, "scheduled_at": at}, Metadata: meta})
 	})
 	return out, err
+}
+
+// typedReasons are why the sender types the recipient count (SR-13): what
+// Send Readiness found unusual about the send, and an audience that
+// changed by more than 10% since it was confirmed (a held send), in the
+// request's language. None for a routine send.
+func (s *Service) typedReasons(ctx context.Context, c store.ReadinessCampaignRow, run readiness.ReadinessRun) []string {
+	out := []string{}
+	if cf := run.In(langOf(ctx)).Estimates.Confirm; cf != nil && cf.Typed {
+		out = append(out, cf.Reasons...)
+	}
+	if c.Status != "scheduled" {
+		return out
+	}
+	h, err := s.Q.ApprovalOpenHold(ctx, c.ID)
+	if err != nil {
+		return out
+	}
+	var d HoldDetail
+	if json.Unmarshal(h.Detail, &d) != nil {
+		return out
+	}
+	for _, x := range d.Holds {
+		if x.Kind == readiness.HoldAudience {
+			out = append(out, x.Text.In(langOf(ctx)))
+		}
+	}
+	return out
 }
 
 // SendNowWithin is how recent the run a person confirms must be for a send

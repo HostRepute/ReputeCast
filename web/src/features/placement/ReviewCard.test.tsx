@@ -104,4 +104,17 @@ describe('Review & send · placement test (SR-9)', () => {
     expect(within(card).getByText('Not run for this campaign')).toBeInTheDocument()
     expect(within(card).queryByRole('link', { name: 'View results' })).not.toBeInTheDocument()
   })
+
+  it('names who can run a test instead of a permission key', async () => {
+    mockApi({
+      'GET /api/v1/workspaces/acme-newsletter/placement/tests': () => json({ ...list, canRun: false, runHelpers: ['Linh Nguyen', 'Marcus Chen'] }),
+      'GET /api/v1/workspaces/acme-newsletter/placement/seeds': () => json(seeds),
+    })
+    const viewer = workspaceMe({ permissions: ['campaigns:view', 'deliverability:view'] })
+    await renderInWorkspace(<PlacementReviewCard campaignId="c142" campaignName="Weekly Digest #142" providers={['p-ses']} />, { me: viewer })
+    const card = await screen.findByRole('region', { name: 'Placement test' })
+    const run = await within(card).findByRole('button', { name: 'Run placement test' })
+    expect(run).toHaveAttribute('aria-disabled', 'true')
+    expect(run).toHaveAccessibleDescription("Your role can't run placement tests: ask Linh Nguyen or Marcus Chen.")
+  })
 })

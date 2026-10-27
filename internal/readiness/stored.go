@@ -32,6 +32,9 @@ type checkTexts struct {
 	Fixes     []Text      `json:"fixes,omitempty"`
 	Rows      []rowTexts  `json:"rows,omitempty"`
 	Technical []techTexts `json:"technical,omitempty"`
+	// FixNotes and FixEffects are the fixes' notes and effects, by fix.
+	FixNotes   []Text        `json:"fixNotes,omitempty"`
+	FixEffects [][]techTexts `json:"fixEffects,omitempty"`
 }
 
 // techTexts are the messages of a line of a check's technical details.
@@ -71,6 +74,8 @@ type estimateTexts struct {
 	Throttles []Text       `json:"throttles,omitempty"`
 	// Basis says what the estimate includes (Route.Timeline.BasisLabel).
 	Basis Text `json:"basis,omitempty"`
+	// Confirm are the reasons of a typed confirmation (Confirm.Reasons).
+	Confirm []Text `json:"confirm,omitempty"`
 }
 
 type shareTexts struct {
@@ -228,6 +233,19 @@ func (c ReadinessCheck) In(l i18n.Lang) ReadinessCheck {
 		if i < len(t.Fixes) {
 			out.Fixes[i].Label = pick(c.Fixes[i].Label, t.Fixes[i], l)
 		}
+		if i < len(t.FixNotes) {
+			out.Fixes[i].Note = pick(c.Fixes[i].Note, t.FixNotes[i], l)
+		}
+		if i < len(t.FixEffects) && len(c.Fixes[i].Effects) > 0 {
+			effects := append(make([]ReadinessTechRow, 0, len(c.Fixes[i].Effects)), c.Fixes[i].Effects...)
+			for j := range effects {
+				if j < len(t.FixEffects[i]) {
+					effects[j].Label = pick(effects[j].Label, t.FixEffects[i][j].Label, l)
+					effects[j].Value = pick(effects[j].Value, t.FixEffects[i][j].Value, l)
+				}
+			}
+			out.Fixes[i].Effects = effects
+		}
 	}
 	for i := range out.Technical {
 		if i < len(t.Technical) {
@@ -321,6 +339,16 @@ func (e ReadinessEstimates) In(l i18n.Lang) ReadinessEstimates {
 		tl := *e.Route.Timeline
 		tl.BasisLabel = pick(tl.BasisLabel, t.Basis, l)
 		out.Route.Timeline = &tl
+	}
+	if e.Confirm != nil {
+		cf := *e.Confirm
+		cf.Reasons = append([]string{}, e.Confirm.Reasons...)
+		for i := range cf.Reasons {
+			if i < len(t.Confirm) {
+				cf.Reasons[i] = pick(cf.Reasons[i], t.Confirm[i], l)
+			}
+		}
+		out.Confirm = &cf
 	}
 	return out
 }

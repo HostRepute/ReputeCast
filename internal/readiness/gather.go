@@ -151,6 +151,18 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	if f.Route, err = s.route(ctx, g, f); err != nil {
 		return f, fmt.Errorf("route: %w", err)
 	}
+	// What makes the send unusual enough for a typed confirmation (SR-13):
+	// an audience much larger than usual, a first send to a list, from the
+	// sending domain or through a provider.
+	if names, err := s.names(ctx, s.Q, ws.ID); err == nil {
+		refs := []RouteShareRef{}
+		for _, sh := range f.Route.Shares {
+			if id, err := uuid.Parse(sh.ProviderID); err == nil && sh.Recipients > 0 {
+				refs = append(refs, RouteShareRef{ID: id, Short: sh.Short})
+			}
+		}
+		f.Confirm = s.confirmFacts(ctx, s.Q, ws.ID, c.ID, def, names, c.SenderDomain, refs)
+	}
 	if est := f.Route.Estimate; est != nil && est.Throttles != nil {
 		// The throttles the send will use, as the engine reads them (the
 		// defaults and the workspace's), not a copy of them.

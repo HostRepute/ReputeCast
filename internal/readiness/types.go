@@ -73,6 +73,13 @@ type ReadinessFix struct {
 	Tone   string            `json:"tone,omitempty" enum:"primary,danger"`
 	Href   string            `json:"href,omitempty"`
 	Params map[string]string `json:"params,omitempty"`
+	// Note says in a few words what applying the fix changes ("+3 min ·
+	// +$0.31", "Changes 2 links · preview first", "No change to this
+	// send"); Effects are what the fix review lists before it is applied
+	// (SR-13): the route, duration and cost it changes, the links it
+	// rewrites (Before and Value).
+	Note    string             `json:"note,omitempty"`
+	Effects []ReadinessTechRow `json:"effects,omitempty"`
 }
 
 // ReadinessCheck is one row of the checklist.
@@ -120,6 +127,8 @@ type ReadinessCheck struct {
 type ReadinessTechRow struct {
 	Label string `json:"label"`
 	Value string `json:"value"`
+	// Before is what Value replaces (a link the fix rewrites).
+	Before string `json:"before,omitempty"`
 }
 
 // ReadinessCheckRow is one line of a check's table.
@@ -312,6 +321,12 @@ type ReadinessEstimates struct {
 	Audience   ReadinessAudience   `json:"audience"`
 	Route      ReadinessRoute      `json:"route"`
 	Throttling []ReadinessThrottle `json:"throttling"`
+	// Confirm says whether the sender types the recipient count, and why
+	// (only unusual sends ask, SR-13).
+	Confirm *ReadinessConfirm `json:"confirm,omitempty"`
+	// HourlyAt is when HostRepute's hourly check found the sender
+	// blocklist results the run used (nil when they were looked up live).
+	HourlyAt *time.Time `json:"hourlyAt,omitempty"`
 
 	texts *estimateTexts
 }

@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
@@ -432,7 +434,15 @@ func (s *Service) setAudience(ctx context.Context, ws *store.Workspace, p *authz
 
 func (s *Service) routeOnly(ctx context.Context, ws *store.Workspace, p *authz.Principal, c store.ReadinessCampaignRow, provider, field string) (string, error) {
 	if !p.Can(authz.CampaignsSend) && !p.Can(authz.ProvidersManage) {
-		return "", api.Forbidden(authz.CampaignsSend, nil).WithMeta("reason", say(ctx, "problem.routeNeedsSend", nil))
+		// Who can, by name, never a permission key (SR-13).
+		helpers := access.Helpers(ctx, s.Q, ws.ID, authz.CampaignsSend)
+		names := "none"
+		if len(helpers) > 0 {
+			names = i18n.OrList(i18n.LangFrom(ctx).Locale, helpers)
+		}
+		pr := api.Err(http.StatusForbidden, api.CodePermissionDenied, say(ctx, "problem.routeNeedsSend", A{"names": names}))
+		pr.Permission, pr.Helpers = string(authz.CampaignsSend), helpers
+		return "", pr
 	}
 	pid, err := uuid.Parse(provider)
 	if err != nil {

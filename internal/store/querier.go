@@ -2609,6 +2609,9 @@ type Querier interface {
 	// Lists of the workspace, to tell "All subscribers" from a few lists.
 	ReadinessListCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	ReadinessListNames(ctx context.Context, workspaceID uuid.UUID) ([]ReadinessListNamesRow, error)
+	// Which of the lists a send went to before (a first send to a list asks
+	// for a typed confirmation, SR-13).
+	ReadinessListsSentTo(ctx context.Context, arg ReadinessListsSentToParams) ([]string, error)
 	// The sizes of the media library's images an email shows.
 	ReadinessMediaSizes(ctx context.Context, arg ReadinessMediaSizesParams) ([]ReadinessMediaSizesRow, error)
 	// Whether Gmail Postmaster Tools data comes in for the workspace at all
@@ -2617,6 +2620,8 @@ type Querier interface {
 	// Gmail Postmaster Tools' last days for a sending domain (or its parent):
 	// the spam rate and the authentication and TLS pass rates Google reports.
 	ReadinessPostmasterDays(ctx context.Context, arg ReadinessPostmasterDaysParams) ([]ReadinessPostmasterDaysRow, error)
+	// Which of the providers carried a send before.
+	ReadinessProvidersSentThrough(ctx context.Context, arg ReadinessProvidersSentThroughParams) ([]uuid.UUID, error)
 	// Keeps the 20 latest runs of a campaign and any run an approval refers to.
 	ReadinessPruneRuns(ctx context.Context, campaignID uuid.UUID) error
 	// The audience before suppressions and exclusions by address: active
@@ -2633,6 +2638,8 @@ type Querier interface {
 	ReadinessSendConfirmation(ctx context.Context, campaignID uuid.UUID) (CampaignSendConfirmation, error)
 	// The rules a send checks: on, and for its stream (or both).
 	ReadinessSendingRules(ctx context.Context, arg ReadinessSendingRulesParams) ([]ReadinessSendingRulesRow, error)
+	// Whether a send went out from the sending domain before.
+	ReadinessSentFromDomain(ctx context.Context, arg ReadinessSentFromDomainParams) (bool, error)
 	ReadinessSetAudience(ctx context.Context, arg ReadinessSetAudienceParams) error
 	ReadinessSetAudienceCount(ctx context.Context, arg ReadinessSetAudienceCountParams) error
 	ReadinessSetContentSettings(ctx context.Context, arg ReadinessSetContentSettingsParams) error
@@ -2646,6 +2653,9 @@ type Querier interface {
 	// The latest test emails of a campaign, from the audit log.
 	ReadinessTestSends(ctx context.Context, arg ReadinessTestSendsParams) ([]ReadinessTestSendsRow, error)
 	ReadinessUpdateProgress(ctx context.Context, arg ReadinessUpdateProgressParams) error
+	// The audiences of the workspace's last sends to any of a campaign's
+	// lists, newest first (the "usual" of a typed confirmation, SR-13).
+	ReadinessUsualAudience(ctx context.Context, arg ReadinessUsualAudienceParams) ([]int64, error)
 	RecByID(ctx context.Context, id uuid.UUID) (Recommendation, error)
 	RecDailyBump(ctx context.Context, arg RecDailyBumpParams) error
 	RecGet(ctx context.Context, arg RecGetParams) (Recommendation, error)

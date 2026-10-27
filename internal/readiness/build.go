@@ -27,11 +27,15 @@ type fix struct {
 	Kind, Action, Tone, Href string
 	Label                    Text
 	Params                   map[string]string
+	// Note and Effects are what applying it changes (effects.go).
+	Note    Text
+	Effects []techRow
 }
 
 // techRow is a line of a check's technical details (ReadinessTechRow).
 type techRow struct {
 	Label, Value Text
+	Before       string
 }
 
 // row is a line of a check's table (ReadinessCheckRow).
@@ -57,12 +61,20 @@ func (c check) result() ReadinessCheck {
 		Label: c.Label.en(), Evidence: c.Evidence.sentencesIn(i18n.Default), Short: c.Short.en(), Ack: c.Ack.en(), Note: c.Note.en(),
 		Fixes: make([]ReadinessFix, 0, len(c.Fixes)), texts: t}
 	for _, f := range c.Fixes {
-		out.Fixes = append(out.Fixes, ReadinessFix{Kind: f.Kind, Action: f.Action, Label: f.Label.en(), Tone: f.Tone, Href: f.Href, Params: f.Params})
+		rf := ReadinessFix{Kind: f.Kind, Action: f.Action, Label: f.Label.en(), Tone: f.Tone, Href: f.Href, Params: f.Params, Note: f.Note.en()}
+		effects := []techTexts{}
+		for _, e := range f.Effects {
+			rf.Effects = append(rf.Effects, ReadinessTechRow{Label: e.Label.en(), Value: e.Value.en(), Before: e.Before})
+			effects = append(effects, techTexts{Label: e.Label, Value: e.Value})
+		}
+		out.Fixes = append(out.Fixes, rf)
 		t.Fixes = append(t.Fixes, f.Label)
+		t.FixNotes = append(t.FixNotes, f.Note)
+		t.FixEffects = append(t.FixEffects, effects)
 	}
 	for _, r := range c.Technical {
-		out.Technical = append(out.Technical, ReadinessTechRow{Label: r.Label.en(), Value: r.Value.en()})
-		t.Technical = append(t.Technical, techTexts(r))
+		out.Technical = append(out.Technical, ReadinessTechRow{Label: r.Label.en(), Value: r.Value.en(), Before: r.Before})
+		t.Technical = append(t.Technical, techTexts{Label: r.Label, Value: r.Value})
 	}
 	if len(c.Raw) > 0 {
 		out.Raw = slices.Clone(c.Raw)

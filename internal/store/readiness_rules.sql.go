@@ -12,6 +12,74 @@ import (
 	"github.com/google/uuid"
 )
 
+const readinessListsSentTo = `-- name: ReadinessListsSentTo :many
+SELECT DISTINCT l.list::text AS list
+FROM campaigns c, jsonb_array_elements_text(coalesce(c.audience->'lists', '[]'::jsonb)) AS l(list)
+WHERE c.workspace_id = $1 AND c.id <> $2 AND c.deleted_at IS NULL AND c.started_at IS NOT NULL
+  AND l.list = ANY($3::text[])
+`
+
+type ReadinessListsSentToParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+	Lists       []string  `json:"lists"`
+}
+
+// Which of the lists a send went to before (a first send to a list asks
+// for a typed confirmation, SR-13).
+func (q *Queries) ReadinessListsSentTo(ctx context.Context, arg ReadinessListsSentToParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, readinessListsSentTo, arg.WorkspaceID, arg.CampaignID, arg.Lists)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var list string
+		if err := rows.Scan(&list); err != nil {
+			return nil, err
+		}
+		items = append(items, list)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const readinessProvidersSentThrough = `-- name: ReadinessProvidersSentThrough :many
+SELECT DISTINCT r.provider_id
+FROM campaign_routes r JOIN campaigns c ON c.id = r.campaign_id
+WHERE c.workspace_id = $1 AND c.id <> $2 AND c.started_at IS NOT NULL AND r.provider_id = ANY($3::uuid[])
+`
+
+type ReadinessProvidersSentThroughParams struct {
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+	CampaignID  uuid.UUID   `json:"campaignId"`
+	Providers   []uuid.UUID `json:"providers"`
+}
+
+// Which of the providers carried a send before.
+func (q *Queries) ReadinessProvidersSentThrough(ctx context.Context, arg ReadinessProvidersSentThroughParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, readinessProvidersSentThrough, arg.WorkspaceID, arg.CampaignID, arg.Providers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var provider_id uuid.UUID
+		if err := rows.Scan(&provider_id); err != nil {
+			return nil, err
+		}
+		items = append(items, provider_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const readinessSendingRules = `-- name: ReadinessSendingRules :many
 SELECT r.id, r.workspace_id, r.name, r.kind, r.operator, r.value, r.severity, r.applies_to, r.enabled, r.message, r.created_by, r.created_at, r.updated_at, r.triggered_at, r.triggered_campaign, r.triggered_name, r.triggered_count, r.triggered_fixed, coalesce(u.name, '')::text AS created_by_name
 FROM sending_rules r
@@ -64,6 +132,66 @@ func (q *Queries) ReadinessSendingRules(ctx context.Context, arg ReadinessSendin
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const readinessSentFromDomain = `-- name: ReadinessSentFromDomain :one
+SELECT EXISTS (
+    SELECT 1 FROM campaigns c JOIN senders s ON s.id = c.sender_id
+    WHERE c.workspace_id = $1 AND c.id <> $2 AND c.deleted_at IS NULL AND c.started_at IS NOT NULL
+      AND lower(split_part(s.email, '@', 2)) = lower($3::text)
+)::bool
+`
+
+type ReadinessSentFromDomainParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+	Domain      string    `json:"domain"`
+}
+
+// Whether a send went out from the sending domain before.
+func (q *Queries) ReadinessSentFromDomain(ctx context.Context, arg ReadinessSentFromDomainParams) (bool, error) {
+	row := q.db.QueryRow(ctx, readinessSentFromDomain, arg.WorkspaceID, arg.CampaignID, arg.Domain)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const readinessUsualAudience = `-- name: ReadinessUsualAudience :many
+SELECT coalesce(c.audience_count, 0)::bigint AS recipients
+FROM campaigns c
+WHERE c.workspace_id = $1 AND c.id <> $2 AND c.deleted_at IS NULL AND c.channel = 'email'
+  AND c.started_at IS NOT NULL AND c.status IN ('sending', 'paused', 'sent')
+  AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(coalesce(c.audience->'lists', '[]'::jsonb)) AS l(list) WHERE l.list = ANY($3::text[]))
+ORDER BY c.started_at DESC
+LIMIT 5
+`
+
+type ReadinessUsualAudienceParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+	Lists       []string  `json:"lists"`
+}
+
+// The audiences of the workspace's last sends to any of a campaign's
+// lists, newest first (the "usual" of a typed confirmation, SR-13).
+func (q *Queries) ReadinessUsualAudience(ctx context.Context, arg ReadinessUsualAudienceParams) ([]int64, error) {
+	rows, err := q.db.Query(ctx, readinessUsualAudience, arg.WorkspaceID, arg.CampaignID, arg.Lists)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []int64{}
+	for rows.Next() {
+		var recipients int64
+		if err := rows.Scan(&recipients); err != nil {
+			return nil, err
+		}
+		items = append(items, recipients)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

@@ -4457,7 +4457,7 @@ export interface paths {
         put?: never;
         /**
          * Schedule or start a campaign after Send Readiness
-         * @description Needs a fresh, unblocked Send Readiness run, every warning confirmed, the recipient count typed for large sends, and an approval when the policy asks for one.
+         * @description Needs a fresh, unblocked Send Readiness run, every warning confirmed, the recipient count typed for unusual sends (a much larger audience than usual, a first send to a list, from a domain or through a provider, a reputation warning above low impact), and an approval when the policy asks for one.
          */
         post: operations["send-campaign"];
         delete?: never;
@@ -20883,8 +20883,6 @@ export interface components {
             canary: components["schemas"]["ReviewCanary"];
             failed?: components["schemas"]["ReadinessRunFailure"];
             held?: components["schemas"]["ReviewHeld"];
-            /** Format: int64 */
-            largeSend: number;
             pauseSlack: boolean;
             run?: components["schemas"]["ReadinessRun"];
             running?: components["schemas"]["ReadinessProgress"];
@@ -20895,7 +20893,9 @@ export interface components {
             stale: boolean;
             testSends: components["schemas"]["ReviewTestSend"][];
             thresholds: components["schemas"]["ReadinessThresholds"];
+            thresholdsOwn: boolean;
             timezone: string;
+            typed: components["schemas"]["ReviewTyped"];
         };
         CampaignSponsor: {
             booking?: components["schemas"]["SponsorBookingDetail"];
@@ -32996,6 +32996,12 @@ export interface components {
             label: string;
             language?: string;
         };
+        ReadinessConfirm: {
+            reasons: string[];
+            typed: boolean;
+            /** Format: int64 */
+            usual: number;
+        };
         ReadinessCounts: {
             /** Format: int64 */
             blocks: number;
@@ -33010,16 +33016,21 @@ export interface components {
         };
         ReadinessEstimates: {
             audience: components["schemas"]["ReadinessAudience"];
+            confirm?: components["schemas"]["ReadinessConfirm"];
+            /** Format: date-time */
+            hourlyAt?: string;
             route: components["schemas"]["ReadinessRoute"];
             throttling: components["schemas"]["ReadinessThrottle"][];
         };
         ReadinessFix: {
             /** @enum {string} */
             action?: "rule_add_param" | "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses" | "sponsor_remove_block" | "sponsor_refresh_block";
+            effects?: components["schemas"]["ReadinessTechRow"][];
             href?: string;
             /** @enum {string} */
             kind: "apply" | "link";
             label: string;
+            note?: string;
             params?: {
                 [key: string]: string;
             };
@@ -33217,6 +33228,7 @@ export interface components {
             verdict: "ready" | "warnings" | "blocked";
         };
         ReadinessTechRow: {
+            before?: string;
             label: string;
             value: string;
         };
@@ -35216,6 +35228,7 @@ export interface components {
             canManageRouting: boolean;
             canSend: boolean;
             canSendTestToOthers: boolean;
+            editHelpers: string[];
             email: string;
             hasPassword: boolean;
             isOwner: boolean;
@@ -35225,10 +35238,12 @@ export interface components {
             approvers: components["schemas"]["ApprovalPerson"][];
             canBypass: boolean;
             canRequest: boolean;
+            emergencyBypass: boolean;
             /** Format: int64 */
             medianWaitMinutes?: number;
             /** Format: int64 */
             needed: number;
+            owners: string[];
             policyRules: string[];
             request?: components["schemas"]["ApprovalRequestView"];
             requestReason?: string;
@@ -35323,6 +35338,10 @@ export interface components {
             languages?: string[];
             provider: string;
             to: string;
+        };
+        ReviewTyped: {
+            needed: boolean;
+            reasons: string[];
         };
         RewardBlock: {
             button: string;

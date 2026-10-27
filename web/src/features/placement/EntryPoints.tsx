@@ -7,7 +7,7 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { Note } from '@/components/ui/Note'
 import { T, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { shortDate } from '@/lib/format'
+import { orList, shortDate } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import { RunDialog, type RunPreset } from './RunDialog'
@@ -110,7 +110,10 @@ export function PlacementReviewCard({ campaignId, campaignName, providers, class
   const canView = useCan('deliverability:view')
   const { q, row } = useLatest('campaign', campaignId)
   const seeds = $api.useQuery('get', `${base}/seeds`, { params: { path: { workspace: slug } } }, { enabled: canView })
-  const reason = useRunReason(q.data)
+  // Who can run a test, by name rather than by permission key.
+  const canRun = useCan('placement:run')
+  const helpers = q.data?.runHelpers ?? []
+  const reason = canRun ? undefined : helpers.length ? t(m.entryCantRun, { helpers: orList(helpers) }) : t(m.entryCantRunNobody)
   const { ref: runRef, open: runOpen, setOpen: setRunOpen, close: closeRun } = useOpener<HTMLButtonElement>()
   if (!q.data) return null
   const used = [...new Set(providers)]

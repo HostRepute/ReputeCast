@@ -584,6 +584,8 @@ export const m = defineMessages('placement', {
   entrySeeds:
     '{count, plural, one {# seed mailbox} other {# seed mailboxes}} ({names}){attention, plural, =0 {} one { · # more needs attention} other { · # more need attention}} · about 3 min',
   entryNoSeeds: 'No seed mailboxes connected yet',
+  entryCantRun: "Your role can't run placement tests: ask {helpers}.",
+  entryCantRunNobody: "Your role can't run placement tests.",
   entryLast: 'Last result · {day} · {name}',
   entryFound: '{found, number} of {copies, number} found',
   approvalCaption: 'The campaign’s latest test, for context: {time} · {name} · {through}',

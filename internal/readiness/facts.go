@@ -51,6 +51,9 @@ type Facts struct {
 	// Rules are the workspace's sending rules for the send's stream
 	// (rules.go, SR-10).
 	Rules []RuleFacts
+	// Confirm is what makes the send unusual enough for a typed
+	// confirmation (confirm.go, SR-13).
+	Confirm ConfirmFacts
 }
 
 // CampaignFacts describes the campaign being checked.
@@ -315,6 +318,9 @@ type ListingFacts struct {
 	Detail    string
 	DelistURL string
 	Since     *time.Time
+	// Answer and TXT are the list's DNS answers to the lookup when they
+	// are known (the technical details' raw DNS, SR-13).
+	Answer, TXT string
 }
 
 // AuthFacts are the authentication results of the sending domain.

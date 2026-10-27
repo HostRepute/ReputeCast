@@ -123,13 +123,17 @@ func (r *readinessSeed) postal(n int64, pct float64) readiness.ShareFacts {
 // SES and Postal, and one-click unsubscribe.
 func (r *readinessSeed) baseFacts(checked time.Time) readiness.Facts {
 	loc := state.Location("America/New_York")
+	// UCEPROTECT listed the network on Thu 9 Oct (the board's "listed since").
+	listedSince := r.s.designDay(4, 6, 0)
 	domainSources := []string{"Spamhaus DBL", "SURBL", "URIBL", "Barracuda", "Spamhaus ZRD", "Google Safe Browsing", "Abusix DBL", "Invaluement ivmURI"}
 	ipSources := []string{"Spamhaus ZEN", "Barracuda", "SpamCop", "Mailspike", "UCEPROTECT Level 1", "UCEPROTECT Level 2", "UCEPROTECT Level 3"}
 	return readiness.Facts{
 		Now: r.s.Now, Location: loc, Workspace: r.ws.Slug, MailboxRates: readiness.DefaultMailboxRates,
 		Reputation: readiness.ReputationFacts{Status: readiness.Warn, Via: "hostrepute", Sources: 84, CheckedAt: &checked, DomainSources: domainSources, IPSources: ipSources,
+			// The list's answers, as the technical details show them (SR-13).
 			Listings: []readiness.ListingFacts{{Asset: "203.0.113.25", Type: "ip", Source: "UCEPROTECT Level 3", Impact: "low", Detail: "Network-range listing (/16), low impact",
-				DelistURL: "https://www.uceprotect.net/en/rblcheck.php"}}},
+				DelistURL: "https://www.uceprotect.net/en/rblcheck.php", Since: &listedSince, Answer: "127.0.0.2",
+				TXT: "Your ISP AS64500 is UCEPROTECT-Level3 listed for hosting a total of 41 abusers."}}},
 		Auth: readiness.AuthFacts{Domain: "news.acme.io", Checked: true, CheckedAt: &checked,
 			SPFRecord: "v=spf1 include:amazonses.com include:spf.mta.acme.io -all",
 			SPF:       []readiness.ProviderAuthFacts{{Short: "SES", OK: true}, {Short: "Postal", OK: true}},

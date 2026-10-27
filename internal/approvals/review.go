@@ -17,6 +17,12 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
+// Why Request approval is off, in people's words rather than permission keys.
+var (
+	mReasonNeedsEditWho       = msgs.M("reason.needsEditWho")
+	mReasonNobodyElseApproves = msgs.M("reason.nobodyElseApproves")
+)
+
 // ReviewAB summarises an A/B test ("Subject test · 2 variants · 20% sample").
 type ReviewAB struct {
 	Kind          string `json:"kind" enum:"subject,content,send_time"`
@@ -98,15 +104,19 @@ type ReviewCount struct {
 
 // ReviewAccess is what the viewer may do.
 type ReviewAccess struct {
-	CanEdit             bool     `json:"canEdit"`
-	CanSend             bool     `json:"canSend"`
-	CanApprove          bool     `json:"canApprove"`
-	CanManageRouting    bool     `json:"canManageRouting"`
-	CanSendTestToOthers bool     `json:"canSendTestToOthers"`
-	IsOwner             bool     `json:"isOwner"`
-	HasPassword         bool     `json:"hasPassword"`
-	Email               string   `json:"email"`
-	SendHelpers         []string `json:"sendHelpers"`
+	CanEdit             bool   `json:"canEdit"`
+	CanSend             bool   `json:"canSend"`
+	CanApprove          bool   `json:"canApprove"`
+	CanManageRouting    bool   `json:"canManageRouting"`
+	CanSendTestToOthers bool   `json:"canSendTestToOthers"`
+	IsOwner             bool   `json:"isOwner"`
+	HasPassword         bool   `json:"hasPassword"`
+	Email               string `json:"email"`
+	// SendHelpers and EditHelpers name up to two other members who can
+	// send or change campaigns: the screen says who can, never a
+	// permission key (X-1).
+	SendHelpers []string `json:"sendHelpers"`
+	EditHelpers []string `json:"editHelpers"`
 }
 
 // ReviewApproval is the approval side of Review & send.
@@ -125,6 +135,11 @@ type ReviewApproval struct {
 	CanBypass         bool     `json:"canBypass"`
 	MedianWaitMinutes *int     `json:"medianWaitMinutes,omitempty"`
 	PolicyRules       []string `json:"policyRules"`
+	// EmergencyBypass says the policy allows the Owners' emergency send;
+	// Owners names the Owners other than the reader, who can use it
+	// (the More menu: "Owners only. Ask Linh Nguyen.").
+	EmergencyBypass bool     `json:"emergencyBypass"`
+	Owners          []string `json:"owners"`
 }
 
 // CampaignReview is the Review & send screen.
@@ -139,14 +154,18 @@ type CampaignReview struct {
 	// starts now (it is that send's check); older, the checks run again.
 	SendNowWithin int                           `json:"sendNowWithin"`
 	Thresholds    readiness.ReadinessThresholds `json:"thresholds"`
-	Schedule      readiness.ReadinessSchedule   `json:"schedule"`
-	TestSends     []ReviewTestSend              `json:"testSends"`
-	Approval      ReviewApproval                `json:"approval"`
-	Held          *ReviewHeld                   `json:"held,omitempty"`
-	Scheduled     *ReviewScheduled              `json:"scheduled,omitempty"`
-	Access        ReviewAccess                  `json:"access"`
-	// LargeSend is the audience size from which sending asks to type the count.
-	LargeSend int64 `json:"largeSend"`
+	// ThresholdsOwn is true when the campaign has thresholds of its own
+	// instead of the workspace's defaults.
+	ThresholdsOwn bool                        `json:"thresholdsOwn"`
+	Schedule      readiness.ReadinessSchedule `json:"schedule"`
+	TestSends     []ReviewTestSend            `json:"testSends"`
+	Approval      ReviewApproval              `json:"approval"`
+	Held          *ReviewHeld                 `json:"held,omitempty"`
+	Scheduled     *ReviewScheduled            `json:"scheduled,omitempty"`
+	Access        ReviewAccess                `json:"access"`
+	// Typed says whether the sender types the recipient count to confirm,
+	// and why: only unusual sends ask for it (SR-13).
+	Typed ReviewTyped `json:"typed"`
 	// PauseSlack is true when a webhook posts campaign.paused to Slack, so a
 	// held send is announced there as well as by email.
 	PauseSlack bool `json:"pauseSlack"`
@@ -155,6 +174,14 @@ type CampaignReview struct {
 	// Canary is the send's canary phase (C1): the choice, and what the
 	// sending engine would do on its own.
 	Canary ReviewCanary `json:"canary"`
+}
+
+// ReviewTyped is why a send asks its sender to type the recipient count
+// ("31,192 is 2.1× your usual 15,000 for this list."); Needed is false for
+// a routine send, confirmed with checkboxes.
+type ReviewTyped struct {
+	Needed  bool     `json:"needed"`
+	Reasons []string `json:"reasons"`
 }
 
 // ReviewCanary is the canary phase of a send (C1, GS-10): the choice
@@ -193,7 +220,7 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if err != nil {
 		return CampaignReview{}, err
 	}
-	out := CampaignReview{TestSends: []ReviewTestSend{}, LargeSend: LargeSend, Timezone: ws.Timezone,
+	out := CampaignReview{TestSends: []ReviewTestSend{}, Typed: ReviewTyped{Reasons: []string{}}, Timezone: ws.Timezone,
 		Canary: ReviewCanary{Choice: sending.CanaryAuto, Reasons: []string{}}}
 	if conf, err := s.Readiness.Confirmed(ctx, campaignID); err == nil && conf != nil && conf.Canary != "" {
 		out.Canary.Choice = conf.Canary
@@ -214,11 +241,17 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		out.Campaign.Editable = true
 	}
 	out.Thresholds = readiness.ParseThresholds(c.Thresholds, ws.SendThresholds)
+	// "Workspace defaults" or this send's own thresholds (SR-13).
+	out.ThresholdsOwn = out.Thresholds != readiness.ParseThresholds(nil, ws.SendThresholds)
 	out.Schedule = readiness.ScheduleView(c.Schedule, ws.Timezone)
 	if out.Run, err = s.Readiness.Latest(ctx, c.ID); err != nil {
 		return out, err
 	}
 	if out.Run != nil {
+		// Only an unusual send asks for the count to be typed (SR-13).
+		if reasons := s.typedReasons(ctx, c, *out.Run); len(reasons) > 0 {
+			out.Typed = ReviewTyped{Needed: true, Reasons: reasons}
+		}
 		out.Stale = out.Run.Fingerprint != s.Readiness.CurrentFingerprint(ctx, ws, c)
 		if len(out.Run.Estimates.Audience.Lists) > 0 {
 			out.Campaign.AudienceLabel = strings.Join(out.Run.Estimates.Audience.Lists, " + ")
@@ -269,7 +302,7 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	out.Access = ReviewAccess{CanEdit: p.Can(authz.CampaignsEdit), CanSend: p.Can(authz.CampaignsSend), CanApprove: p.Can(authz.CampaignsApprove),
 		CanManageRouting: p.Can(authz.ProvidersManage), CanSendTestToOthers: p.Can(authz.CampaignsSend), IsOwner: p.RoleKey == authz.RoleOwner, Email: p.Email,
-		SendHelpers: approverNames(ms, &p.UserID, authz.CampaignsSend)}
+		SendHelpers: approverNames(ms, &p.UserID, authz.CampaignsSend), EditHelpers: approverNames(ms, &p.UserID, authz.CampaignsEdit)}
 	if me := memberByID(ms, &p.UserID); me != nil {
 		out.Access.HasPassword = me.HasPassword
 	}
@@ -283,7 +316,12 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 func (s *Service) reviewApproval(ctx context.Context, ws *store.Workspace, p *authz.Principal, c store.ReadinessCampaignRow, run *readiness.ReadinessRun, ms []member) (ReviewApproval, error) {
 	policy := ParsePolicy(ws.ApprovalPolicy)
 	out := ReviewApproval{Rules: []ApprovalRuleMatch{}, Approvers: []ApprovalPerson{}, Needed: policy.ApprovalsRequired, PolicyRules: policy.RuleLabelsIn(langOf(ctx)),
-		MedianWaitMinutes: s.medianWait(ctx, ws)}
+		MedianWaitMinutes: s.medianWait(ctx, ws), EmergencyBypass: policy.EmergencyBypass, Owners: []string{}}
+	for _, m := range ms {
+		if m.RoleKey == authz.RoleOwner && m.ID != p.UserID {
+			out.Owners = append(out.Owners, m.Name)
+		}
+	}
 	for _, a := range approversOf(ms) {
 		out.Approvers = append(out.Approvers, s.person(langOf(ctx), a))
 	}
@@ -329,7 +367,12 @@ func (s *Service) reviewApproval(ctx context.Context, ws *store.Workspace, p *au
 	}
 	switch {
 	case !p.Can(authz.CampaignsEdit):
-		out.RequestReason = say(ctx, mReasonNeedsEdit, nil)
+		// Who can ask instead, by name (X-1).
+		names := "none"
+		if who := approverNames(ms, &p.UserID, authz.CampaignsEdit); len(who) > 0 {
+			names = i18n.OrList(langOf(ctx).Locale, who)
+		}
+		out.RequestReason = say(ctx, mReasonNeedsEditWho, i18n.Args{"names": names})
 	case !out.Required:
 		out.RequestReason = say(ctx, mReasonNoRule, nil)
 	case run == nil:
@@ -348,7 +391,7 @@ func (s *Service) reviewApproval(ctx context.Context, ws *store.Workspace, p *au
 			}
 		}
 		if others < policy.ApprovalsRequired {
-			out.RequestReason = say(ctx, mReasonNoOtherApprover, nil)
+			out.RequestReason = say(ctx, mReasonNobodyElseApproves, nil)
 		} else {
 			out.CanRequest = true
 		}

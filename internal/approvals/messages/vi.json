@@ -71,6 +71,8 @@
   "reason.requested": "Đã yêu cầu phê duyệt.",
   "reason.approved": "Phiên bản này đã được phê duyệt.",
   "reason.noOtherApprover": "Không ai khác có quyền campaigns:approve. Chủ sở hữu có thể cấp quyền này cho một vai trò khác.",
+  "reason.needsEditWho": "{names, select, none {Vai trò của bạn không sửa được chiến dịch này nên không yêu cầu phê duyệt được.} other {Vai trò của bạn không sửa được chiến dịch này nên không yêu cầu phê duyệt được. Hãy hỏi {names}.}}",
+  "reason.nobodyElseApproves": "Không ai khác trong không gian làm việc này phê duyệt được lần gửi. Chủ sở hữu có thể cho một vai trò khác phê duyệt.",
   "reason.templateNoNeed": "Không gian làm việc này không yêu cầu phê duyệt khi xuất bản.",
   "reason.peopleOnly": "Chỉ con người mới có thể yêu cầu phê duyệt.",
   "reason.templateNoApprovers": "Không ai khác có quyền campaigns:approve. Hãy nhờ Chủ sở hữu thay đổi Cài đặt › Phê duyệt.",

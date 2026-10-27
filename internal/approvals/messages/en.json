@@ -71,6 +71,8 @@
   "reason.requested": "Approval is already requested.",
   "reason.approved": "This version is approved.",
   "reason.noOtherApprover": "Nobody else holds campaigns:approve. An Owner can give it to another role.",
+  "reason.needsEditWho": {"message": "{names, select, none {Your role can't change this campaign, so it can't ask for approval.} other {Your role can't change this campaign, so it can't ask for approval. Ask {names}.}}", "note": "why Request approval is off, on Review & send; names: up to two members who can change campaigns, 'A or B', or none"},
+  "reason.nobodyElseApproves": {"message": "Nobody else in this workspace can approve sends. An Owner can let another role approve them.", "note": "why Request approval is off, on Review & send"},
   "reason.templateNoNeed": {"message": "Publishing doesn't need approval in this workspace.", "note": "a transactional template's publish dialog"},
   "reason.peopleOnly": "Only people can ask for approval.",
   "reason.templateNoApprovers": "Nobody else holds campaigns:approve. Ask an Owner to change Settings › Approvals.",

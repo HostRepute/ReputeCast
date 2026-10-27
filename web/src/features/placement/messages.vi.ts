@@ -619,6 +619,8 @@ export default translate(m, {
   entryNotRun: 'Chưa chạy cho chiến dịch này',
   entrySeeds: '{count, plural, other {# hộp thư thử}} ({names}){attention, plural, =0 {} other { · # hộp thư khác cần chú ý}} · khoảng 3 phút',
   entryNoSeeds: 'Chưa kết nối hộp thư thử nào',
+  entryCantRun: 'Vai trò của bạn không chạy được kiểm tra vị trí thư: hãy hỏi {helpers}.',
+  entryCantRunNobody: 'Vai trò của bạn không chạy được kiểm tra vị trí thư.',
   entryLast: 'Kết quả gần nhất · {day} · {name}',
   entryViewResults: 'Xem kết quả',
   entryFound: 'Tìm thấy {found, number} trên {copies, number}',

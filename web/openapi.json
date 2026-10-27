@@ -14205,10 +14205,6 @@
           "held": {
             "$ref": "#/components/schemas/ReviewHeld"
           },
-          "largeSend": {
-            "format": "int64",
-            "type": "integer"
-          },
           "pauseSlack": {
             "type": "boolean"
           },
@@ -14240,8 +14236,14 @@
           "thresholds": {
             "$ref": "#/components/schemas/ReadinessThresholds"
           },
+          "thresholdsOwn": {
+            "type": "boolean"
+          },
           "timezone": {
             "type": "string"
+          },
+          "typed": {
+            "$ref": "#/components/schemas/ReviewTyped"
           }
         },
         "required": [
@@ -14249,11 +14251,12 @@
           "stale",
           "sendNowWithin",
           "thresholds",
+          "thresholdsOwn",
           "schedule",
           "testSends",
           "approval",
           "access",
-          "largeSend",
+          "typed",
           "pauseSlack",
           "timezone",
           "canary"
@@ -56619,6 +56622,30 @@
         ],
         "type": "object"
       },
+      "ReadinessConfirm": {
+        "additionalProperties": false,
+        "properties": {
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "typed": {
+            "type": "boolean"
+          },
+          "usual": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "typed",
+          "reasons",
+          "usual"
+        ],
+        "type": "object"
+      },
       "ReadinessCounts": {
         "additionalProperties": false,
         "properties": {
@@ -56657,6 +56684,13 @@
         "properties": {
           "audience": {
             "$ref": "#/components/schemas/ReadinessAudience"
+          },
+          "confirm": {
+            "$ref": "#/components/schemas/ReadinessConfirm"
+          },
+          "hourlyAt": {
+            "format": "date-time",
+            "type": "string"
           },
           "route": {
             "$ref": "#/components/schemas/ReadinessRoute"
@@ -56705,6 +56739,12 @@
             ],
             "type": "string"
           },
+          "effects": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessTechRow"
+            },
+            "type": "array"
+          },
           "href": {
             "type": "string"
           },
@@ -56716,6 +56756,9 @@
             "type": "string"
           },
           "label": {
+            "type": "string"
+          },
+          "note": {
             "type": "string"
           },
           "params": {
@@ -57446,6 +57489,9 @@
       "ReadinessTechRow": {
         "additionalProperties": false,
         "properties": {
+          "before": {
+            "type": "string"
+          },
           "label": {
             "type": "string"
           },
@@ -64175,6 +64221,12 @@
           "canSendTestToOthers": {
             "type": "boolean"
           },
+          "editHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "email": {
             "type": "string"
           },
@@ -64200,7 +64252,8 @@
           "isOwner",
           "hasPassword",
           "email",
-          "sendHelpers"
+          "sendHelpers",
+          "editHelpers"
         ],
         "type": "object"
       },
@@ -64219,6 +64272,9 @@
           "canRequest": {
             "type": "boolean"
           },
+          "emergencyBypass": {
+            "type": "boolean"
+          },
           "medianWaitMinutes": {
             "format": "int64",
             "type": "integer"
@@ -64226,6 +64282,12 @@
           "needed": {
             "format": "int64",
             "type": "integer"
+          },
+          "owners": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "policyRules": {
             "items": {
@@ -64260,7 +64322,9 @@
           "valid",
           "canRequest",
           "canBypass",
-          "policyRules"
+          "policyRules",
+          "emergencyBypass",
+          "owners"
         ],
         "type": "object"
       },
@@ -64580,6 +64644,25 @@
           "at",
           "by",
           "provider"
+        ],
+        "type": "object"
+      },
+      "ReviewTyped": {
+        "additionalProperties": false,
+        "properties": {
+          "needed": {
+            "type": "boolean"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "needed",
+          "reasons"
         ],
         "type": "object"
       },
@@ -113630,7 +113713,7 @@
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/send": {
       "post": {
-        "description": "Needs a fresh, unblocked Send Readiness run, every warning confirmed, the recipient count typed for large sends, and an approval when the policy asks for one.",
+        "description": "Needs a fresh, unblocked Send Readiness run, every warning confirmed, the recipient count typed for unusual sends (a much larger audience than usual, a first send to a list, from a domain or through a provider, a reputation warning above low impact), and an approval when the policy asks for one.",
         "operationId": "send-campaign",
         "parameters": [
           {
