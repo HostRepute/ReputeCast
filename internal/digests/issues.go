@@ -177,12 +177,14 @@ func (s *Service) Issues(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 		}
 		prev = it
 	}
+	needs := sync.OnceValue(func() bool {
+		tpl, a := next()
+		return tpl != nil && s.needsApproval(ctx, ws, d.Digest, tpl, a)
+	})
 	for i := range out.Items {
 		switch out.Items[i].Status {
 		case "collecting", "preparing":
-			if tpl, a := next(); tpl != nil {
-				out.Items[i].NeedsApproval = s.needsApproval(ctx, ws, d.Digest, tpl, a)
-			}
+			out.Items[i].NeedsApproval = needs()
 		}
 	}
 	return out, nil
