@@ -5,7 +5,7 @@ import { Grid, Row } from '@/components/ui/Layout'
 import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { runAction, type LiveActions, type LivePermissions } from './actions'
-import { MailboxTable, ProgressCard, ProviderTable, Tiles } from './LiveParts'
+import { MailboxTable, ProgressCard, ProviderTable, Tiles, useRatesControl } from './LiveParts'
 import { m } from './messages'
 import { ResumeDialog } from './ResumeDialog'
 import {
@@ -42,12 +42,14 @@ export function DecisionView({
   onCancelAll: () => void
 }) {
   const outage = incident.kind === 'provider_outage'
+  const [note, setNote] = useState<{ id: string; text: string }>()
+  const rates = useRatesControl(s, actions, can, (text) => setNote({ id: incident.id, text }))
   return (
     <>
       <IncidentPanel s={s} incident={incident} actions={actions} can={can} onCancelAll={onCancelAll} />
-      <ProgressCard s={s} incident={incident} />
+      <ProgressCard s={s} incident={incident} note={note?.id === incident.id ? note.text : undefined} />
       <Tiles tiles={tiles(s, outage ? 'outage' : 'threshold', incident)} />
-      {outage ? <ProviderTable s={s} outage={incident} /> : <MailboxTable s={s} decision />}
+      {outage ? <ProviderTable s={s} outage={incident} /> : <MailboxTable s={s} decision rates={rates} />}
     </>
   )
 }
@@ -115,7 +117,7 @@ function IncidentPanel({ s, incident, actions, can, onCancelAll }: { s: Snapshot
               />
             ))}
           </Grid>
-          <div className="flex flex-wrap justify-end gap-2.5">
+          <div className="lv-dec-acts flex flex-wrap justify-end gap-2.5">
             {s.options.canCancel ? (
               <Button variant="danger" onClick={onCancelAll} disabledReason={can.cancel}>
                 {tr(m.cancelWhole)}

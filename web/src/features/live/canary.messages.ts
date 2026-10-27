@@ -7,19 +7,19 @@ import { defineMessages } from '@/i18n'
  */
 export const mc = defineMessages('live.canary', {
   titleWatching:
-    '{seeds, plural, =0 {Canary · {size} most-engaged recipients ({percent}) · watching until {until} ({left} min left)} other {Canary · {size} most-engaged recipients ({percent}) plus {seeds} seed inboxes · watching until {until} ({left} min left)}}',
+    '{seeds, plural, =0 {Canary · {size} most-engaged recipients ({percent}) · watching until {until} ({left} min left)} other {Canary · {size} most-engaged recipients ({percent}) plus {seeds} seed mailboxes · watching until {until} ({left} min left)}}',
   titleSending:
-    '{seeds, plural, =0 {Canary · sending to {size} most-engaged recipients ({percent})} other {Canary · sending to {size} most-engaged recipients ({percent}) plus {seeds} seed inboxes}}',
+    '{seeds, plural, =0 {Canary · sending to {size} most-engaged recipients ({percent})} other {Canary · sending to {size} most-engaged recipients ({percent}) plus {seeds} seed mailboxes}}',
   titleHeld: 'Canary held: {gate} failed its gate',
   titleStopped:
-    '{seeds, plural, =0 {Canary · stopped at {time} · {size} most-engaged recipients ({percent}) got it} other {Canary · stopped at {time} · {size} most-engaged recipients ({percent}) plus {seeds} seed inboxes got it}}',
+    '{seeds, plural, =0 {Canary · stopped at {time} · {size} most-engaged recipients ({percent}) got it} other {Canary · stopped at {time} · {size} most-engaged recipients ({percent}) plus {seeds} seed mailboxes got it}}',
   sentLine: 'Sent {from} to {to}. {queued} recipients are queued until the canary passes.',
   sendingLine: 'Sending since {from}. {queued} recipients are queued until the canary passes.',
   stoppedLine: 'The {queued} queued recipients were removed from this send. The canary results stay in the report.',
 
   // The summary line: the screen's one polite live region.
   sumGates:
-    '{collecting, plural, =0 {{passing} of {total} gates are passing and none has failed.} one {{passing} of {total} gates are passing and none has failed; {names} is still collecting evidence.} other {{passing} of {total} gates are passing and none has failed; {names} are still collecting evidence.}}',
+    '{collecting, plural, =0 {{passing} of {total} gates are passing and none has failed.} one {{passing} of {total} gates are passing and none has failed; {names} {singular, select, yes {is} other {are}} still collecting evidence.} other {{passing} of {total} gates are passing and none has failed; {names} are still collecting evidence.}}',
   sumWatchingUntil: 'Watching until {until}.',
   sumFailed: 'The {gate} gate failed: the send is held until someone continues or stops it.',
   sumStopped: "Stopped at {time}. The {queued} queued recipients won't get this email.",
@@ -47,14 +47,15 @@ export const mc = defineMessages('live.canary', {
   complaintNeeds: '{base} of {min} delivered to {mailbox} before this can trip',
   seedValue: '{promotions, plural, =0 {Inbox {inbox} · Spam {spam}} other {Inbox {inbox} · Promotions {promotions} · Spam {spam}}}',
   seedPending: '{pending} not found yet',
+  seedMissing: '{missing} never arrived',
   seedsTitle: 'Seed placement by mailbox provider',
-  seedsBar: '{seeds} seed inboxes: {inbox} inbox, {promotions} Promotions tab, {spam} spam',
+  seedsBar: '{seeds} seed mailboxes: {inbox} inbox, {promotions} Promotions tab, {spam} spam',
   seedLegendInbox: 'Inbox {count}',
   seedLegendPromotions: 'Promotions tab {count}',
   seedLegendSpam: 'Spam {count}',
   seedsOf: '{count, plural, one {# seed} other {# seeds}}',
   seedsIncl: '{mailbox, select, gmail {incl. Google Workspace} outlook {incl. Microsoft 365} yahoo {incl. AOL} other {GMX, Web.de}}',
-  seedsNote: 'Seeds are your own test inboxes in <a>Seed inboxes</a>; they show where the mail lands, not how people react.',
+  seedsNote: 'Seeds are your own test mailboxes in <a>Seed mailboxes</a>; they show where the mail lands, not how people react.',
 
   // Decisions.
   choose: 'Choose how to continue',
@@ -86,13 +87,15 @@ export const mc = defineMessages('live.canary', {
   progressLineNow: '{sent} of {total} sent ({percent})',
   barLabel: 'Canary sent: {parts}. {queued} queued.',
   viaProvider: 'Canary via {provider} {count}',
-  queuedLegend: 'Queued {count}',
+  queuedLegend: 'Queued {count}{routes, select, none {} other { · {routes}}}',
   abNote: 'The A/B subject test runs on the main send.',
   progressLabel: 'Canary progress',
 
   // Tiles.
   deliveredSub: '{rate} of the canary{retrying, plural, =0 {} other { · # retrying}}',
   deferredSub: '{rate} of the canary',
+  sinceDelivered: '{count} since delivered',
+  retryingCount: '{count} retrying',
   complainedSub: '{unreported, select, none {from {reported}} other {from {reported} · {unreported} n/a}}',
   tileDeferred: 'Deferred',
 
@@ -101,5 +104,15 @@ export const mc = defineMessages('live.canary', {
   passed: 'Canary {percent} · passed {time}',
   passedEarly: 'Canary {percent} · continued {time}',
   mailboxCaption: 'canary results · rates apply to the main send',
+  // The canary's tables (LiveMonitorCanary).
+  colCanarySent: 'Canary sent',
+  colDeferredOnce: 'Deferred once or more',
+  colMainRate: 'Main-send rate',
+  colThresholds: 'Thresholds',
+  colQueued: 'Queued',
+  deliveredRetrying: '{rate} · {retrying} retrying',
+  noneSoFar: '0 so far',
+  minNote:
+    "{count, plural, =0 {A mailbox provider's thresholds can trip only after {min} delivered to it; in the canary none has that many yet.} one {A mailbox provider's thresholds can trip only after {min} delivered to it; in the canary only {names} has that many.} other {A mailbox provider's thresholds can trip only after {min} delivered to it; in the canary only {names} have that many.}}",
   ratesTimes: 'Times assume the main send starts at {until}.',
 })

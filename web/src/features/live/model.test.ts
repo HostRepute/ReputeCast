@@ -3,15 +3,14 @@ import {
   abLine,
   deliveredMix,
   errorRate,
-  eventsCaption,
   failoverCaption,
   finalTiles,
   finishedText,
+  freshness,
   headerBadges,
   incidentTitle,
   lostText,
   mailboxStatus,
-  mobileCaption,
   mobileEta,
   mobileTiles,
   moveFacts,
@@ -27,7 +26,11 @@ import {
   sentLine,
   startedLine,
   startingText,
+  routeDoneLine,
+  noticeText,
+  openNotices,
   summaryLine,
+  thresholdEvidence,
   thresholdRows,
   thresholdSummary,
   tiles,
@@ -38,6 +41,7 @@ import {
   type Provider,
   type Snapshot,
   type Threshold,
+  whoLine,
 } from './model'
 import { currentRates, finishSeconds, nearestLevel } from './RatesPanel'
 
@@ -89,7 +93,7 @@ function provider(p: Partial<Provider>): Provider {
 }
 
 function mailbox(m: Partial<Mailbox>): Mailbox {
-  return { key: 'gmail', name: 'Gmail', sent: 0, remaining: 0, delivered: 0, bounced: 0, complained: 0, opened: 0, held: false, status: 'ok', ...m }
+  return { key: 'gmail', name: 'Gmail', sent: 0, remaining: 0, delivered: 0, bounced: 0, complained: 0, opened: 0, deferred: 0, retrying: 0, held: false, status: 'ok', ...m }
 }
 
 function snapshot(s: Partial<Snapshot>): Snapshot {
@@ -111,6 +115,7 @@ function snapshot(s: Partial<Snapshot>): Snapshot {
     queued: 0,
     held: 0,
     waiting: 0,
+    retrying: 0,
     unsent: 0,
     percent: 0,
     rate: 0,
@@ -120,7 +125,7 @@ function snapshot(s: Partial<Snapshot>): Snapshot {
     thresholds: [],
     thresholdScope: 'route',
     limits: { bounce: 2, complaint: 0.1, mailboxComplaint: 0.1, deferral: 40, apiErrors: 5 },
-    details: { from: 'digest@news.acme.io', audience: 'Weekly Digest', audienceCount: 31604, route: 'SES 90% · Postal 10%', cost: 1.76, costPlanned: 2.84, scheduledBy: 'Linh Nguyen' },
+    details: { from: 'digest@news.acme.io', audience: 'Weekly Digest', audienceCount: 31604, route: 'SES 90% · Postal 10%', cost: 1.76, costPlanned: 2.84, scheduledBy: 'Linh Nguyen', watchHours: 72 },
     deliveredMix: [],
     incidents: [],
     events: [],
@@ -198,10 +203,30 @@ const live = snapshot({
 describe('LiveMonitor', () => {
   it('writes the header line', () => {
     expect(startedLine(live)).toBe('Started by Sofia Rossi · approved by Marcus Chen, Oct 10 16:20')
-    expect(headerBadges(live, undefined)).toEqual([{ tone: 'ok', text: 'Sending · live', live: true }])
-    expect(eventsCaption(live, new Date(T('09:21:45')), 'live')).toBe(
-      'Events via SNS and Postal webhooks · last 1 s ago · pause needs campaigns:pause, resume needs campaigns:send',
+    expect(headerBadges(live, undefined)).toEqual([{ tone: 'ok', text: 'Sending', live: true }])
+    // People, not permission keys (review GS-14).
+    expect(whoLine({ ...live, helpers: { pause: [], send: ['Linh Nguyen', 'Marcus Chen'], approve: [] } })).toBe(
+      'Anyone who can send can pause · Linh Nguyen and Marcus Chen can resume',
     )
+    expect(whoLine({ ...live, helpers: { pause: [], send: [], approve: ['Linh Nguyen', 'Marcus Chen'] } }, 'canary')).toBe(
+      'Anyone who can send can stop it · Linh Nguyen and Marcus Chen can continue early',
+    )
+    expect(freshness(live, new Date(T('09:21:46')), 'live')).toEqual({ text: 'Live · updated 1 s ago', stale: false })
+    expect(freshness(live, new Date(T('09:23:15')), 'polling')).toEqual({ text: 'Checking every 10 s · updated 90 s ago', stale: true })
+  })
+
+  it("starts a canary's send with who goes first (LiveMonitorStates)", () => {
+    const starting = { ...live, canary: { phase: 'sending', size: 1560, seeds: 10, queued: 29632 } as Snapshot['canary'] }
+    expect(startingText(starting)).toEqual({
+      title: 'Starting the canary · 09:00:04',
+      body: '1,560 most-engaged recipients and 10 seed mailboxes go first; the other 29,632 wait until the canary passes. Delivery events usually arrive within 10 seconds.',
+    })
+  })
+
+  it('says when each route is done at current rates (review GS-8)', () => {
+    const s = { ...live, providers: [{ ...ses, doneAt: T('09:51:10') }, { ...postal, doneAt: T('09:48:00') }] }
+    expect(routeDoneLine(s)).toBe('SES done about 09:51 · Postal about 09:48')
+    expect(timingLine(s)).toBe('Started 09:00:04 · at current rates, SES done about 09:51 · Postal about 09:48')
   })
 
   it('writes the progress card', () => {
@@ -243,6 +268,7 @@ describe('LiveMonitor', () => {
 
   it('rates mailbox providers OK until they near the limit', () => {
     expect(mailboxStatus(mailbox({ key: 'outlook', name: 'Outlook', delivered: 4049, complaintRate: 0.05 }), live, false)).toEqual({ tone: 'ok', text: 'OK' })
+    expect(mailboxStatus(mailbox({ key: 'outlook', name: 'Outlook', delivered: 4049, remaining: 2436, complaintRate: 0.05 }), live, false)).toEqual({ tone: 'ok', text: 'Sending' })
     expect(mailboxStatus(mailbox({ key: 'outlook', name: 'Outlook', delivered: 4049, complaintRate: 0.09 }), live, false)).toEqual({ tone: 'warn', text: 'Near limit' })
     expect(mailboxStatus(mailbox({ key: 'outlook', name: 'Outlook', delivered: 1923, complaintRate: 0.16 }), live, false)).toEqual({ tone: 'warn', text: 'Over limit' })
   })
@@ -264,10 +290,9 @@ describe('LiveMonitorMobile', () => {
       'Clicked 402 2.1% · 14.3% click-to-open',
     ])
     expect(mobileEta(live)).toBe('ETA 13 min · about 09:34')
-    expect(progressLegend(live, undefined, true).map((l) => l.text)).toEqual(['SES 17,635', 'Postal 1,959'])
+    expect(progressLegend(live, undefined, true).map((l) => l.text)).toEqual(['SES 17,635', 'Postal 1,959', 'Queued 12,010'])
     expect(providerLine(ses)).toBe('14.2 /s · 99.1% delivered')
     expect(providerStatus(postal, true).text).toBe('Warm-up')
-    expect(mobileCaption(live, new Date(T('09:21:45')))).toBe('Live · events 1 s ago')
   })
 })
 
@@ -345,15 +370,15 @@ describe('LiveMonitorPaused', () => {
 
   it('writes progress, counters and badges', () => {
     expect(sentLine(paused, outlook)).toBe('22,440 of 31,604 sent · 2,522 held')
-    expect(timingLine(paused, outlook)).toBe('Started 09:00:04 · paused route since 09:21:14 · ETA for the rest 9 min')
+    expect(timingLine(paused, outlook)).toBe('Started 09:00:04 · Outlook held since 09:21:14 · ETA for the rest 9 min')
+    expect(timingLine({ ...paused, providers: paused.providers.map((p) => ({ ...p, doneAt: p.id === 'ses' ? T('09:28:10') : T('09:29:30') })) }, outlook)).toBe(
+      'Started 09:00:04 · Outlook held since 09:21:14 · the rest: SES done about 09:28 · Postal about 09:29',
+    )
     expect(progressLegend(paused, outlook).map((l) => l.text)).toEqual(['Amazon SES 20,196 · 14.1 /s', 'Postal 2,244 · 2.0 /s', 'Held, Outlook 2,522', 'Queued 6,642'])
     const complained = tiles(paused, 'threshold', outlook)[2]!
     expect(`${complained.sub} ${complained.alert}`).toBe('Outlook 7 · Yahoo 1 · Other 1 · Gmail and iCloud n/a true')
     expect(tiles(paused, 'threshold', outlook)[4]!.sub).toBe('2.4%')
     expect(headerBadges(paused, outlook).map((b) => b.text)).toEqual(['Auto-paused · Outlook', 'Other mailbox providers still sending'])
-    expect(eventsCaption(paused, new Date(T('09:21:45')), 'threshold')).toBe(
-      'Events live · last 1 s ago · anyone with campaigns:pause can stop a send; resume needs campaigns:send',
-    )
   })
 
   it('maps each choice to the API', () => {
@@ -431,7 +456,7 @@ describe('LiveMonitorOutage', () => {
 
   it('writes progress, counters, badges and the provider rows', () => {
     expect(sentLine(down, outage)).toBe('23,060 of 31,604 sent · 1,204 held on Postal')
-    expect(timingLine(down, outage)).toBe('Started 09:00:04 · SES finishes about 09:27')
+    expect(timingLine(down, outage)).toBe('Started 09:00:04 · SES finishes about 09:27 · Postal held since 09:17:10')
     expect(progressLegend(down, outage).map((l) => l.text)).toEqual(['Amazon SES 21,104 · 14.0 /s', 'Postal 1,956 · 0 /s', 'Held on Postal 1,204', 'Queued on SES 7,340'])
     expect(tiles(down, 'outage', outage).map((t) => t.sub)).toEqual(['99.0% of sent', '0.60%', '0.07% where reported · Gmail and iCloud n/a', '16.6% · 2,590 human, 1,191 machine', '2.4%'])
     expect(headerBadges(down, outage).map((b) => b.text)).toEqual(['Postal route held · waiting for your decision', 'SES still sending'])
@@ -531,9 +556,72 @@ describe('Adjust rates', () => {
 
   it('says the send state in one line', () => {
     expect(summaryLine(live).text).toBe('Sending to everyone; every threshold is inside its limit.')
+    const passed = { ...live, canary: { phase: 'passed', decidedAt: T('09:20:04') } as Snapshot['canary'] }
+    expect(summaryLine(passed).text).toBe('Canary passed at 09:20. Sending to everyone; every threshold is inside its limit.')
     expect(summaryLine(paused, outlook).text).toBe(
       'Outlook paused at 09:21:14 and waits for your decision. Gmail, Yahoo, iCloud and Other are still sending.',
     )
     expect(summaryLine(down, outage).text).toBe('Postal share held since 09:17:10 and waiting for your decision. Amazon SES keeps sending.')
+  })
+})
+
+// Notices (review GS-11, GS-12, CO-4): acknowledged, not decided.
+describe('Notices', () => {
+  const slowed: Incident = {
+    id: 'n1',
+    kind: 'threshold',
+    scope: 'mailbox_provider',
+    mailbox: 'yahoo',
+    mailboxName: 'Yahoo',
+    metric: 'deferral',
+    provider: '',
+    providerId: '',
+    providerShort: '',
+    resolution: '',
+    held: 0,
+    trippedAt: T('09:30:00'),
+    detail: {
+      succeeded: 0,
+      action: 'slowed',
+      causes: [{ lead: 'Yahoo deferred 18% over 10 minutes', body: 'ReputeCast slowed Yahoo to half rate (2 /s).' }],
+      recommendations: ['Acknowledge once you have seen it.'],
+    },
+  }
+  const render: Incident = {
+    ...slowed,
+    id: 'n2',
+    kind: 'render_error',
+    scope: 'campaign',
+    mailbox: '',
+    mailboxName: '',
+    metric: 'render',
+    detail: {
+      succeeded: 0,
+      action: 'alerted',
+      causes: [{ lead: 'The template failed for 1 recipient', body: 'Their message wasn\'t sent; the others keep getting it.' }],
+      log: [{ at: T('09:31:00'), bad: true, text: 'a···@gmail.com: output over 4 MB' }],
+    },
+  }
+
+  it('lists the open notices with their words', () => {
+    const s = { ...live, incidents: [slowed, render, { ...slowed, id: 'n3', resolvedAt: T('09:40:00') }, { ...slowed, id: 'n4', detail: { succeeded: 0 } }] }
+    expect(openNotices(s).map((i) => i.id)).toEqual(['n1', 'n2'])
+    expect(noticeText(slowed)).toEqual({
+      title: 'Yahoo deferred 18% over 10 minutes',
+      body: 'ReputeCast slowed Yahoo to half rate (2 /s). Acknowledge once you have seen it.',
+      samples: [],
+    })
+    expect(noticeText(render).samples).toEqual(['a···@gmail.com: output over 4 MB'])
+  })
+})
+
+// The thresholds card's reply rule row (LiveMonitor, review GS-12).
+describe('Reply rules on the thresholds card', () => {
+  it('says what the closest rule does at its count', () => {
+    const row = thr('reply_rules', 1, 10, { events: 1, minEvents: 10, minBase: 3, mailbox: 'yahoo', action: 'pause', duration: 120, parts: [{ name: 'TSS04', key: 'yahoo' }] })
+    expect(thresholdRows({ ...live, thresholds: [row] })[0]?.value).toBe('Yahoo TSS04: 1 of 10 replies')
+    expect(thresholdEvidence(row)).toBe('at 10, Yahoo pauses for 2 h')
+    expect(thresholdEvidence({ ...row, action: 'slow', duration: 30 })).toBe('at 10, Yahoo slows to half rate for 30 min')
+    expect(thresholdEvidence({ ...row, action: 'pause_route', duration: 0 })).toBe('at 10, Yahoo pauses on that route')
   })
 })

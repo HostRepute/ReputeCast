@@ -888,6 +888,41 @@ func (q *Queries) SendingResolveInDoubt(ctx context.Context, arg SendingResolveI
 	return result.RowsAffected(), nil
 }
 
+const sendingRetrying = `-- name: SendingRetrying :many
+
+SELECT mailbox_provider, count(*)::bigint AS n FROM messages
+WHERE campaign_id = $1 AND status = 'deferred'
+GROUP BY mailbox_provider
+`
+
+type SendingRetryingRow struct {
+	MailboxProvider string `json:"mailboxProvider"`
+	N               int64  `json:"n"`
+}
+
+// GS-14: the live monitor -----------------------------------------------------
+// A send's messages a mailbox provider deferred that the sending provider
+// is still retrying (no delivery or bounce yet), per mailbox provider.
+func (q *Queries) SendingRetrying(ctx context.Context, campaignID *uuid.UUID) ([]SendingRetryingRow, error) {
+	rows, err := q.db.Query(ctx, sendingRetrying, campaignID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SendingRetryingRow{}
+	for rows.Next() {
+		var i SendingRetryingRow
+		if err := rows.Scan(&i.MailboxProvider, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const sendingSeedCount = `-- name: SendingSeedCount :one
 SELECT count(*)::bigint FROM placement_seeds WHERE workspace_id = $1 AND status = 'connected'
 `

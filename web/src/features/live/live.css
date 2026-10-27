@@ -9,6 +9,104 @@
     min-width: 150px;
   }
 
+  /* A render error notice's masked samples. */
+  .lv-samples {
+    margin: 6px 0 0;
+    padding-left: 18px;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  /* The live view's events beside the send details (LiveMonitor); one
+     column on tablets and phones (LiveMonitorTablet). */
+  .lv-split {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .lv-split-main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex: 2 1 560px;
+    min-width: 0;
+  }
+  .lv-split-side {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex: 1 1 320px;
+    min-width: 0;
+  }
+  @media (min-width: 1100px) {
+    .lv-split-side {
+      max-width: 400px;
+    }
+  }
+  /* A button that reads as a link ("Edit for this send"). */
+  .btn.lv-linkbtn {
+    color: var(--accent);
+    font-weight: 500;
+    padding-inline: 4px;
+  }
+  .btn.lv-linkbtn:hover {
+    color: var(--accent-hover);
+    background: transparent;
+    text-decoration: underline;
+  }
+
+  /* The header's freshness pill (.fresh). */
+  .lv-fresh {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #5b6472;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .lv-fresh .dot {
+    color: var(--ok-strong, #15803d);
+  }
+  .lv-fresh.stale .dot {
+    color: #b45309;
+  }
+
+  /* Phones: Pause and its menu stay above the tab bar (.pbar). */
+  .lv-pbar {
+    display: flex;
+    position: sticky;
+    bottom: var(--tabbar-h, 57px);
+    z-index: 20;
+    gap: 8px;
+    align-items: stretch;
+    padding: 10px 12px;
+    margin: 0 -12px -12px;
+    background: var(--surface, #fff);
+    border-top: 1px solid var(--line);
+  }
+  .lv-pbar .btn {
+    min-height: 44px;
+  }
+  .lv-pbar .btn.icon-only,
+  .lv-pbar .btn[aria-haspopup] {
+    width: 44px;
+    padding: 0;
+  }
+  .lv-m .lv-mrow {
+    align-items: flex-start;
+  }
+
+  /* The canary's share above the progress bar, once it passed. */
+  .lv-canary-mark {
+    height: 8px;
+    border: 2px solid var(--ok-strong, #15803d);
+    border-bottom: 0;
+    border-radius: 3px 3px 0 0;
+    box-sizing: border-box;
+  }
+
   /* The progress card's summary line (.sumline). */
   .lv-sumline {
     margin: 0;
@@ -512,6 +610,22 @@
   .content.lv-m {
     padding: 16px;
     gap: 14px;
+  }
+  /* A decision's actions on phones: the choice first, full width
+     (LiveMonitorPausedPhone). */
+  .lv-dec-acts {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .lv-dec-acts .btn {
+    min-height: 44px;
+  }
+  /* Every action on the phone screens is a 44px target. */
+  .content.lv-m .btn,
+  .lv-pbar .btn,
+  .lv-canary .btn,
+  .lv-tbl ~ .lv-fns a {
+    min-height: 44px;
   }
   /* LiveMonitorMobile is a screen of its own: its header leads back to
      the campaigns, and the shell's tab bar isn't drawn under it. */

@@ -59,6 +59,8 @@ func TestGuardedSending(t *testing.T) {
 	t.Run("SendsShareThrottles", func(t *testing.T) { testSharedThrottles(t, s) })
 	// CO-4: the template fails for one recipient; the others get it.
 	t.Run("RenderErrorNotice", func(t *testing.T) { testRenderErrors(t, s.Fixture(t, "CO-4 render")) })
+	// GS-14: the live stream's heartbeats.
+	t.Run("StreamHeartbeats", func(t *testing.T) { testStreamHeartbeats(t, s.Fixture(t, "GS-14 stream")) })
 	// GS-10: the canary goes first, its gates decide, people continue or stop.
 	t.Run("CanaryPassesThenEveryone", func(t *testing.T) { testCanaryPasses(t, s.Fixture(t, "GS-10 pass")) })
 	t.Run("CanaryGateHoldsThenStop", func(t *testing.T) { testCanaryHolds(t, s.Fixture(t, "GS-10 hold")) })

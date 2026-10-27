@@ -209,7 +209,7 @@ export function CancelSendDialog({
         onOpenChange(o)
       }}
       tone="bad"
-      badge={t(m.cancelSend)}
+      badge={t(m.cancelBadge)}
       title={t(m.cancelTitle, { name: s.name })}
       description={t(m.cancelBody, { sent: count(s.sent), total: count(s.recipients), remaining: count(remaining) })}
       confirmLabel={choice === 'pause' ? t(m.pauseInstead) : t(m.cancelRemaining)}

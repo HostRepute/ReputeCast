@@ -4,15 +4,32 @@ import { Icon } from '@/components/icons/Icon'
 import { Badge, Dot } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { Table, Td, Th } from '@/components/ui/Table'
 import { T, useT } from '@/i18n'
-import { clock, count } from '@/lib/format'
+import { andList, clock, count, shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import type { LiveActions, LivePermissions } from './actions'
-import { canaryProgress, canarySentLine, canarySummary, canaryTiles, canaryTitle, canaryWhy, etaFrom, gateRow, seedRows, untilPlus, type Canary } from './canary'
+import {
+  canaryMailboxRows,
+  canaryMinNote,
+  canaryProgress,
+  canarySentLine,
+  canarySummary,
+  canaryTiles,
+  canaryTitle,
+  canaryWhy,
+  etaFrom,
+  gateRow,
+  seedRows,
+  untilPlus,
+  type Canary,
+} from './canary'
 import { mc } from './canary.messages'
-import { DetailsCard, EventsCard, MailboxTable, ProviderTable, Tiles, type RatesControl } from './LiveParts'
+import { Tiles, type RatesControl } from './LiveParts'
+import { m } from './messages'
 import { RatesPanel } from './RatesPanel'
-import type { Snapshot } from './model'
+import { errorRate, mailboxColor, pct1, pct2, providerColor, providerNote, providerStatus, type Snapshot } from './model'
+import { mm } from './model.messages'
 
 /**
  * The live monitor during a canary (LiveMonitorCanary; review GS-10): why
@@ -26,16 +43,13 @@ export function CanaryView({
   actions,
   can,
   now,
-  streaming,
 }: {
   s: Snapshot
   c: Canary
   actions: LiveActions
   can: LivePermissions
   now: Date
-  streaming: boolean
 }) {
-  const t = useT()
   const [ratesOpen, setRatesOpen] = useState(false)
   const [note, setNote] = useState<{ key: string; text: string }>()
   const key = `${c.phase}|${c.extended}`
@@ -69,16 +83,8 @@ export function CanaryView({
       <CanaryCard s={s} c={c} actions={actions} can={can} now={now} note={note?.key === key ? note.text : undefined} />
       <CanaryProgress s={s} c={c} now={now} />
       <Tiles tiles={canaryTiles(s)} />
-      <div className="flex flex-wrap items-start gap-5">
-        <div className="flex min-w-0 flex-col gap-5" style={{ flex: '2 1 560px' }}>
-          <MailboxTable s={s} decision={false} rates={rates} caption={t(mc.mailboxCaption)} />
-          <EventsCard s={s} streaming={streaming} />
-        </div>
-        <div className="flex flex-col gap-4 max-md:min-w-0" style={{ flex: '1 1 320px', maxWidth: 400 }}>
-          <DetailsCard s={s} />
-        </div>
-      </div>
-      <ProviderTable s={s} />
+      <CanaryMailboxTable s={s} rates={rates} />
+      <CanaryProviderTable s={s} />
     </>
   )
 }
@@ -92,7 +98,7 @@ export function CanaryCard({ s, c, actions, can, now, note }: { s: Snapshot; c: 
   return (
     <Card className="lv-canary" aria-labelledby={`${id}-t`}>
       <div className="lv-cnr-top">
-        <Icon name="shield" size={36} className="flex-none text-ok-fg" />
+        <CanaryIcon phase={c.phase} />
         <div className="flex min-w-0 flex-col gap-1.5" style={{ flex: '1 1 320px' }}>
           <h2 id={`${id}-t`} className="lv-cnr-title">
             {canaryTitle(c, now)}
@@ -298,10 +304,178 @@ function CanaryProgress({ s, c, now }: { s: Snapshot; c: Canary; now: Date }) {
         ))}
         <span className="flex items-center gap-2">
           <Dot color="#c9ced6" />
-          {t(mc.queuedLegend, { count: count(c.queued) })}
+          {p.queued}
         </span>
         {s.ab ? <span className="k ml-auto">{t(mc.abNote)}</span> : null}
       </div>
+    </Card>
+  )
+}
+
+/** The canary card's mark: an eye while it's watched, a warning when held, grey once stopped. */
+function CanaryIcon({ phase }: { phase: Canary['phase'] }) {
+  if (phase === 'held') {
+    return (
+      <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
+        <circle cx="20" cy="20" r="19" fill="#FECACA" />
+        <path d="M20 11v11M20 27v1" stroke="#991B1B" strokeWidth="3" strokeLinecap="round" />
+      </svg>
+    )
+  }
+  const stopped = phase === 'stopped'
+  return (
+    <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
+      <circle cx="20" cy="20" r="19" fill={stopped ? '#E5E7EB' : '#CCFBF1'} />
+      <path d="M10 20s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z" stroke={stopped ? '#4B5563' : '#0F766E'} strokeWidth="2.2" fill="none" strokeLinejoin="round" />
+      <circle cx="20" cy="20" r="2.6" fill={stopped ? '#4B5563' : '#0F766E'} />
+    </svg>
+  )
+}
+
+/** Per mailbox provider during the canary: what it did, the main send's rates, whether thresholds can trip yet. */
+function CanaryMailboxTable({ s, rates }: { s: Snapshot; rates?: RatesControl }) {
+  const t = useT()
+  const rows = canaryMailboxRows(s)
+  const unreported = s.mailboxes.filter((mb) => mb.complaintReason).map((mb) => mb.name)
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-[18px] py-3.5">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="h2">{t(m.perMailbox)}</h2>
+          <span className="k">{t(mc.mailboxCaption)}</span>
+        </div>
+        {rates ? (
+          <Button size="sm" aria-expanded={rates.open} aria-controls="lv-rates" onClick={rates.toggle} disabledReason={rates.disabledReason}>
+            {t(m.adjustRates)}
+          </Button>
+        ) : null}
+      </div>
+      {rates?.open ? rates.panel : null}
+      <Table density="compact" className="lv-tbl" phoneWrap>
+        <thead>
+          <tr>
+            <Th>{t(m.colMailbox)}</Th>
+            <Th align="right">{t(mc.colCanarySent)}</Th>
+            <Th align="right">{t(m.colDelivered)}</Th>
+            <Th align="right">{t(mc.colDeferredOnce)}</Th>
+            <Th align="right">{t(m.colBounce)}</Th>
+            <Th align="right">{t(m.colComplaint)}</Th>
+            <Th align="right">{t(mc.colMainRate)}</Th>
+            <Th>{t(mc.colThresholds)}</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.key}>
+              <Td>
+                <span className="flex items-center gap-2">
+                  <Dot color={mailboxColor[r.key]} />
+                  {r.name}
+                </span>
+              </Td>
+              <Td align="right" num>
+                {r.sent}
+              </Td>
+              <Td align="right" num>
+                {r.delivered}
+              </Td>
+              <Td align="right" num>
+                {r.deferred}
+              </Td>
+              <Td align="right" num>
+                {r.bounce}
+              </Td>
+              {r.na ? (
+                <Td align="right" className="k" aria-describedby="lv-cnr-na">
+                  {r.complaint}
+                </Td>
+              ) : (
+                <Td align="right" num>
+                  {r.complaint}
+                </Td>
+              )}
+              <Td align="right">{r.rate}</Td>
+              <Td>
+                <Badge tone={r.state.tone} dot>
+                  {r.state.text}
+                </Badge>
+              </Td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+      <div className="lv-fns">
+        {unreported.length ? (
+          <p className="lv-fn" id="lv-cnr-na">
+            {[t(mm.naComplaints, { names: andList(unreported) }), s.postmaster ? t(mm.postmasterRate, { rate: pct2(s.postmaster.spamRate), day: shortDate(s.postmaster.day) }) : '']
+              .filter(Boolean)
+              .join(' ')}
+          </p>
+        ) : null}
+        <p className="lv-fn">{`${t(mm.mxNote)} ${canaryMinNote(s)}`}</p>
+      </div>
+    </Card>
+  )
+}
+
+/** Per sending provider during the canary: what each sent and what waits on it. */
+function CanaryProviderTable({ s }: { s: Snapshot }) {
+  const t = useT()
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-[18px] py-3.5">
+        <h2 className="h2">{t(m.perProvider)}</h2>
+        <span className="k">{t(mm.whoDelivers)}</span>
+      </div>
+      <Table density="compact" className="lv-tbl" phoneWrap>
+        <thead>
+          <tr>
+            <Th>{t(m.colProvider)}</Th>
+            <Th align="right">{t(mc.colCanarySent)}</Th>
+            <Th align="right">{t(mc.colQueued)}</Th>
+            <Th align="right">{t(m.colDelivered)}</Th>
+            <Th align="right">{t(m.colBounce)}</Th>
+            <Th align="right">{t(m.colApiErrors)}</Th>
+            <Th>{t(m.colStatus)}</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {s.providers.map((p) => {
+            const st = providerStatus(p)
+            const note = providerNote(p, false)
+            return (
+              <tr key={p.id}>
+                <Td>
+                  <span className="flex items-center gap-2">
+                    <Dot color={providerColor[p.color]} />
+                    {p.name}
+                  </span>
+                  {note ? <div className="k">{note}</div> : null}
+                </Td>
+                <Td align="right" num>
+                  {count(p.sent)}
+                </Td>
+                <Td align="right" num>
+                  {count(p.remaining)}
+                </Td>
+                <Td align="right" num>
+                  {pct1(p.deliveredRate)}
+                  {p.infersDelivery ? <div className="k">{t(m.deliveredInferred)}</div> : null}
+                </Td>
+                <Td align="right" num>
+                  {pct1(p.bounceRate)}
+                </Td>
+                <Td align="right" num>
+                  {errorRate(p.apiErrorRate)}
+                </Td>
+                <Td>
+                  <Badge tone={st.tone}>{st.text}</Badge>
+                </Td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </Table>
     </Card>
   )
 }

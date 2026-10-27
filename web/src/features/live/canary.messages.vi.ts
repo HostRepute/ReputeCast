@@ -44,6 +44,7 @@ export default translate(mc, {
   complaintNeeds: 'đã giao {base} trên {min} thư tới {mailbox} trước khi điều kiện này có thể không đạt',
   seedValue: '{promotions, plural, =0 {Hộp thư đến {inbox} · Thư rác {spam}} other {Hộp thư đến {inbox} · Quảng cáo {promotions} · Thư rác {spam}}}',
   seedPending: '{pending} chưa tìm thấy',
+  seedMissing: '{missing} không đến',
   seedsTitle: 'Vị trí ở hộp thư thử theo nhà cung cấp hộp thư',
   seedsBar: '{seeds} hộp thư thử: {inbox} hộp thư đến, {promotions} thẻ Quảng cáo, {spam} thư rác',
   seedLegendInbox: 'Hộp thư đến {count}',
@@ -81,12 +82,14 @@ export default translate(mc, {
   progressLineNow: 'Đã gửi {sent} trên {total} ({percent})',
   barLabel: 'Đã gửi thử: {parts}. {queued} đang chờ.',
   viaProvider: 'Gửi thử qua {provider} {count}',
-  queuedLegend: 'Đang chờ {count}',
+  queuedLegend: 'Đang chờ {count}{routes, select, none {} other { · {routes}}}',
   abNote: 'Thử nghiệm A/B tiêu đề chạy trên lần gửi chính.',
   progressLabel: 'Tiến độ gửi thử',
 
   deliveredSub: '{rate} của gửi thử{retrying, plural, =0 {} other { · # đang thử lại}}',
   deferredSub: '{rate} của gửi thử',
+  sinceDelivered: '{count} đã giao sau đó',
+  retryingCount: '{count} đang thử lại',
   complainedSub: '{unreported, select, none {từ {reported}} other {từ {reported} · {unreported} không có số liệu}}',
   tileDeferred: 'Hoãn nhận',
 
@@ -94,5 +97,14 @@ export default translate(mc, {
   passed: 'Gửi thử {percent} · đạt lúc {time}',
   passedEarly: 'Gửi thử {percent} · tiếp tục lúc {time}',
   mailboxCaption: 'kết quả gửi thử · tốc độ áp dụng cho lần gửi chính',
+  colCanarySent: 'Đã gửi thử',
+  colDeferredOnce: 'Hoãn nhận ít nhất một lần',
+  colMainRate: 'Tốc độ gửi chính',
+  colThresholds: 'Ngưỡng',
+  colQueued: 'Đang chờ',
+  deliveredRetrying: '{rate} · {retrying} đang thử lại',
+  noneSoFar: 'chưa có',
+  minNote:
+    '{count, plural, =0 {Ngưỡng của một nhà cung cấp hộp thư chỉ có thể bị vượt sau khi đã giao {min} thư tới đó; trong lần gửi thử chưa nhà cung cấp nào đạt số đó.} other {Ngưỡng của một nhà cung cấp hộp thư chỉ có thể bị vượt sau khi đã giao {min} thư tới đó; trong lần gửi thử chỉ {names} đạt số đó.}}',
   ratesTimes: 'Thời gian giả định lần gửi chính bắt đầu lúc {until}.',
 })

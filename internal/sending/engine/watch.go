@@ -159,6 +159,9 @@ func (e *Engine) watchAlert(ctx context.Context, c store.SendingCampaignContextR
 	}
 	words := i18n.Args{"name": quoted(c.Name), "mailbox": tr.mailbox, "who": who, "scope": scope, "valuePct": round2(tr.value), "limitPct": tr.limit,
 		"events": tr.events, "base": tr.base, "watchHours": int64(hours)}
+	// The notification reads them as written ("0.18%"), not through sentence.
+	pctArgs(words, "value", tr.value)
+	pctArgs(words, "limit", tr.limit)
 	d := IncidentDetail{Events: tr.events, Base: tr.base, Delivered: tr.base}
 	d.setNote(keep("note.watch", words))
 	d.addCause(keep("cause.watchLead", words), keep("cause.watch", words))

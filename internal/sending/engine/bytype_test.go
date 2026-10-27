@@ -70,6 +70,18 @@ func testTypedLevels(t *testing.T, f *sendtest.Fixture) {
 	if snap.Incident != nil {
 		t.Fatalf("a slowdown is a notice, not a decision: %+v", snap.Incident)
 	}
+	// The mailbox table's "Deferred · 10 min" (review GS-14).
+	if snap.DeferralWindow != 10 {
+		t.Fatalf("deferral window %d, want the first level's 10 minutes", snap.DeferralWindow)
+	}
+	for _, m := range snap.Mailboxes {
+		if m.Key == "yahoo" && (m.DeferredRate == nil || *m.DeferredRate < 15) {
+			t.Fatalf("Yahoo's deferrals %v, want about 20%% over the window", m.DeferredRate)
+		}
+	}
+	if snap.Details.WatchHours != 72 {
+		t.Fatalf("watch after the send %d h, want Traffic rules' 72", snap.Details.WatchHours)
+	}
 
 	eventsFor("outlook", "hard_bounce", "policy_block", 2)
 	drive(15 * time.Second)

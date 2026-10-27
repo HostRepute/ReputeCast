@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
+	"github.com/hostrepute/reputecast/internal/sending/rules"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -54,9 +55,12 @@ type LiveSnapshot struct {
 	// Queued is still to send now; Held waits for a decision (a mailbox
 	// provider or route on hold); Waiting waits for the A/B winner; Unsent
 	// will never be sent (cancelled, rejected, failed).
-	Queued         int64           `json:"queued"`
-	Held           int64           `json:"held"`
-	Waiting        int64           `json:"waiting"`
+	Queued  int64 `json:"queued"`
+	Held    int64 `json:"held"`
+	Waiting int64 `json:"waiting"`
+	// Retrying are the messages a mailbox provider deferred that the
+	// sending provider is still retrying (review GS-14).
+	Retrying       int64           `json:"retrying"`
 	Unsent         int64           `json:"unsent"`
 	Percent        float64         `json:"percent"`
 	Rate           float64         `json:"rate" doc:"Messages per second now"`
@@ -72,6 +76,9 @@ type LiveSnapshot struct {
 	Limits LiveLimits `json:"limits"`
 	// Watch is the complaint watch after the send (review GS-6).
 	Watch *LiveWatch `json:"watch,omitempty"`
+	// DeferralWindow is the minutes the mailbox providers' deferral rates
+	// count (the first deferral level's window; 0: none).
+	DeferralWindow int `json:"deferralWindow,omitempty"`
 	// Canary is the send's canary (review GS-10), when it has one.
 	Canary *LiveCanary `json:"canary,omitempty"`
 	// Postmaster is Gmail's latest daily spam rate for the sending domain.
@@ -172,7 +179,14 @@ type LiveMailbox struct {
 	// don't report complaints per message (review F-2).
 	ComplaintReason string   `json:"complaintReason,omitempty" enum:"not_reported"`
 	OpenRate        *float64 `json:"openRate,omitempty"`
-	Throttle        *float64 `json:"throttle,omitempty" doc:"Messages per second; absent = the provider's full rate"`
+	// DeferredRate is the share of what went to it within the deferral
+	// window that it asked to retry (review GS-14), in percent.
+	DeferredRate *float64 `json:"deferredRate,omitempty"`
+	// Deferred are its messages deferred once or more; Retrying those still
+	// being retried (the canary's table; review GS-14).
+	Deferred int64    `json:"deferred"`
+	Retrying int64    `json:"retrying"`
+	Throttle *float64 `json:"throttle,omitempty" doc:"Messages per second; absent = the provider's full rate"`
 	// DoneAt is when its mail still to send has gone, at current rates
 	// with its limit (review GS-8); absent while it waits.
 	DoneAt    *time.Time `json:"doneAt,omitempty"`
@@ -385,6 +399,9 @@ type LiveDetails struct {
 	Cost          float64 `json:"cost"`
 	CostPlanned   float64 `json:"costPlanned"`
 	ScheduledBy   string  `json:"scheduledBy"`
+	// WatchHours is how long complaints are watched after the send
+	// (Traffic rules; 0: not watched).
+	WatchHours int `json:"watchHours"`
 }
 
 // LiveShare is one slice of a breakdown.
@@ -766,7 +783,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		if m == nil {
 			m = &tally{}
 		}
-		lm := LiveMailbox{Key: k, Name: mailboxName(k), Sent: m.sent, Delivered: m.delivered, Bounced: m.bounced(), Complained: m.complained, Opened: m.human + m.machine,
+		lm := LiveMailbox{Key: k, Name: mailboxName(k), Sent: m.sent, Delivered: m.delivered, Bounced: m.bounced(), Complained: m.complained, Opened: m.human + m.machine, Deferred: m.deferred,
 			DeliveredRate: ptrRate(m.delivered, m.sent), BounceRate: ptrRate(m.bounced(), m.sent), ComplaintRate: ptrRate(m.complained, m.reported), OpenRate: ptrRate(m.human+m.machine, m.delivered)}
 		if !mailbox.ReportsComplaints(k) {
 			lm.ComplaintRate, lm.ComplaintReason = nil, mailbox.NotReported
@@ -818,6 +835,36 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		}
 	}
 	s.Thresholds = liveThresholds(th, ts, guardOf(snd, hasSend), apiRates, ty)
+	// What the providers are still retrying after a deferral.
+	if hasSend {
+		cid := campaignID
+		rows, err := e.Q.SendingRetrying(ctx, &cid)
+		if err != nil {
+			return s, err
+		}
+		for _, r := range rows {
+			s.Retrying += r.N
+			for i := range s.Mailboxes {
+				if s.Mailboxes[i].Key == r.MailboxProvider {
+					s.Mailboxes[i].Retrying += r.N
+				}
+			}
+		}
+	}
+	// Each mailbox provider's deferrals over the first level's window.
+	for _, w := range []int{th.DeferralSlowWindow, th.DeferralWindow} {
+		if w <= 0 || ty.sent[w] == nil {
+			continue
+		}
+		s.DeferralWindow = w
+		for i := range s.Mailboxes {
+			if n := ty.sent[w][s.Mailboxes[i].Key]; n > 0 {
+				v := round2(rate(ty.deferred[w][s.Mailboxes[i].Key], n))
+				s.Mailboxes[i].DeferredRate = &v
+			}
+		}
+		break
+	}
 	if hasSend {
 		if cs := parseCanary(snd.Canary); cs.Phase != "" {
 			cid := campaignID
@@ -906,6 +953,9 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	s.text.audience = e.audienceLabel(ctx, cc.WorkspaceID, cc.Audience)
 	s.Details.Audience = s.text.audience.in(i18n.Default)
 	s.Details.AudienceCount = s.Recipients
+	if _, w, err := rules.Load(ctx, e.Q, cc.WorkspaceID); err == nil && w.Enabled {
+		s.Details.WatchHours = w.Hours
+	}
 	s.Details.Route = strings.Join(routeLabel, " · ")
 	s.Details.ScheduledBy = s.ScheduledBy
 	if hasSend {

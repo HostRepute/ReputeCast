@@ -112,8 +112,6 @@ export default translate(m, {
   gateSeedsLabel: 'Điều kiện gửi thử, hộp thư thử vào thư rác: tối đa',
   canaryNote:
     'Gửi thử bắt đầu vào giờ đã lên lịch và mọi người khác chờ nó, nên một lần gửi có gửi thử sẽ xong muộn hơn khoảng {minutes} phút. Khi hết thời gian theo dõi và mọi điều kiện có đủ bằng chứng đều đạt, lần gửi tự tiếp tục; nếu một điều kiện không đạt, lần gửi được giữ lại và bạn sẽ được hỏi. Các điều kiện còn đang thu thập bằng chứng không giữ lần gửi; chúng trở thành ngưỡng của lần gửi.',
-  canaryHonest:
-    'Những người đọc tương tác nhiều nhất không cho biết các liên hệ mới nhập sẽ phản ứng ra sao: khiếu nại của họ được theo dõi trong lần gửi chính và sau đó.',
 
   afterTitle: 'Sau khi gửi',
   afterCaption: 'Khiếu nại vẫn tiếp tục đến nhiều ngày sau khi giao thư.',

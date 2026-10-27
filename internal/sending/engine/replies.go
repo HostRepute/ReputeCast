@@ -217,7 +217,7 @@ func (e *Engine) replyAct(ctx context.Context, rs *runState, r rules.ReplyRule, 
 		act.Route = route
 		routeName = rs.routes[*route].shortName()
 	}
-	words := i18n.Args{"name": quoted(c.Name), "mailbox": r.Mailbox, "contains": r.Contains, "count": n, "windowMin": int64(r.WindowMinutes),
+	words := i18n.Args{"name": quoted(c.Name), "mailbox": r.Mailbox, "who": mailboxName(r.Mailbox), "contains": r.Contains, "count": n, "windowMin": int64(r.WindowMinutes),
 		"action": r.Action, "route": routeName, "timed": yesNo(act.Until != nil), "held": held}
 	// The rule's time, as "2 h" or "30 min".
 	d := r.Duration()

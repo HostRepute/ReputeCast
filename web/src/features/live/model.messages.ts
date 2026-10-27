@@ -29,11 +29,11 @@ export const mm = defineMessages('live.model', {
   scheduledApprovedAt: 'Scheduled by {person} · approved by {approver}, {when}',
 
   // Who can help with a permission; {perm} is a permission key.
-  needsPause: 'Pausing a send needs the {perm} permission.',
-  needsResume: 'Resuming a send needs the {perm} permission.',
-  needsCancel: 'Cancelling a send needs the {perm} permission.',
-  needsDecide: 'Deciding how a held send continues needs the {perm} permission.',
-  needsRates: "Changing a send's rates needs the {perm} permission.",
+  needsPause: 'Only people who can pause sends can pause it.',
+  needsResume: 'Only people who can send campaigns can resume it.',
+  needsCancel: 'Only people who can send campaigns can cancel it.',
+  needsDecide: 'Only people who can send campaigns decide how a held send continues.',
+  needsRates: "Only people who can send campaigns change a send's rates.",
   askHelpers: 'Ask {helpers}.',
 
   // Progress.
@@ -42,7 +42,8 @@ export const mm = defineMessages('live.model', {
   sentOfHeld: '{sent} of {total} sent · {held} held',
   sentOfHeldOn: '{sent} of {total} sent · {held} held on {provider}',
   timingStarted: 'Started {time}',
-  timingPausedRoute: 'paused route since {time}',
+  timingHeldSince: '{who} held since {time}',
+  timingTheRest: 'the rest: {routes}',
   timingEtaRest: 'ETA for the rest {eta}',
   timingProvidersFinish: '{providers} finishes about {time}',
   timingEta: 'ETA {eta}',
@@ -127,7 +128,8 @@ export const mm = defineMessages('live.model', {
   thresholdIn: '{unit, select, delivered {{events} in {base} delivered} other {{events} of {base} sent}}',
   thresholdHighestAction:
     '{action, select, slow {highest · at {limit} it slows to half rate} pause_send {highest · at {limit} it pauses the send} warn {highest · at {limit} it warns} other {highest · pauses only that mailbox provider}}',
-  thresholdReplyAction: 'at {limit}, the rule acts on {who}',
+  thresholdReplyAction:
+    '{action, select, slow {at {limit}, {who} slows to half rate} pause_route {at {limit}, {who} pauses on that route} alert {at {limit}, an alert goes out} other {at {limit}, {who} pauses}}{timed, select, yes { for {duration}} other {}}',
   thresholdsFootnote:
     'A threshold trips after at least 5 events and enough evidence that the rate is really above the limit. Until then it shows “Collecting evidence” with a grey bar.',
   scopeCampaign: 'Scope: pause the whole campaign.',
@@ -142,6 +144,40 @@ export const mm = defineMessages('live.model', {
   mailboxNearLimit: 'Near limit',
   mailboxOk: 'OK',
   rateHeld: 'held',
+  // The header (review GS-14): freshness and who can act, in people's words.
+  freshLive: 'Live · updated {ago}',
+  freshPolling: 'Checking every 10 s · updated {ago}',
+  freshReconnecting: 'Reconnecting · updated {ago}',
+  whoPause: 'Anyone who can send can pause',
+  whoResume: '{names} can resume',
+  whoCanaryStop: 'Anyone who can send can stop it',
+  whoCanaryContinue: '{names} can continue early',
+  routeDoneFirst: '{provider} done about {time}',
+  routeDoneNext: '{provider} about {time}',
+  timingRoutes: 'Started {time} · at current rates, {routes}',
+  deliveredRetrying: '{rate} of sent{retrying, plural, =0 {} other { · # deferred, retrying}}',
+  staleTitle: '{seconds, plural, other {No update for # s}}',
+  staleTitleMinutes: '{minutes, plural, one {No update for # minute} other {No update for # minutes}}',
+  staleBody:
+    'A proxy may be buffering the live connection, so ReputeCast switched to checking every 10 s. Sending continues on the server; the counts below are from {time}.',
+  detailCanary: '{seeds, plural, =0 {{size} most engaged · {state}} other {{size} most engaged plus {seeds} seed mailboxes · {state}}}',
+  canaryState: '{phase, select, passed {passed {time}} continued {continued {time}} stopped {stopped {time}} held {held} sending {sending} other {watching until {time}}}',
+  detailAfter: 'complaint watch for {hours, select, 168 {7 days} other {{hours} h}}',
+  colDeferred: 'Deferred · {minutes} min',
+  colDoneAbout: 'Done about',
+  eventsCaption: 'newest first · from {via}',
+  eventsCaptionPlain: 'newest first',
+  pauseUpdates: 'Pause updates',
+  resumeUpdates: 'Resume updates',
+  feedPaused: 'paused',
+  phoneProvider: '{rate} · {delivered} delivered{done, select, none {} other { · done about {done}}}',
+  phoneMailbox: '{delivered} delivered · deferred {deferred} · bounce {bounce} · complaints {complaints} · {rate}',
+  sendActions: 'Send actions',
+  moreActions: 'More actions',
+  mobileDelivered: '{rate}{retrying, plural, =0 {} other { · # retrying}}',
+  noticeTitle: 'Something needs your attention',
+  providerNotes: 'Complaint rates count only mail delivered to mailbox providers that report complaints, so Gmail and iCloud are left out. Done about: at current rates, including the per-mailbox limits.',
+  deferredNote: 'Deferred is the share of delivery attempts in the last {minutes} minutes that the mailbox provider asked to retry.',
   // The progress card's summary line: the only live region of the live
   // view; it changes when the send's or a threshold's state does, never on
   // every count (LiveMonitor).
@@ -154,6 +190,7 @@ export const mm = defineMessages('live.model', {
   sumCampaignPaused: 'Every mailbox provider paused at {time} and waits for your decision.',
   sumPaused: 'Paused at {time}. Nothing goes out until someone resumes.',
   sumPreparing: 'Preparing the audience; sending starts in a moment.',
+  sumCanaryLead: '{phase, select, continued {Canary continued at {time}.} other {Canary passed at {time}.}}',
   rateFull: 'full rate',
   providerDownSince: 'Down since {time}',
   providerHeld: 'Held',
@@ -246,7 +283,6 @@ export const mm = defineMessages('live.model', {
   badgeRouteWaiting: '{provider} route held · waiting for your decision',
   badgeProviderHeld: '{provider} held',
   badgeStarting: 'Starting',
-  badgeSendingLive: 'Sending · live',
   badgeSending: 'Sending',
   badgePausedBy: 'Paused by {name}',
   badgePaused: 'Paused',
@@ -260,6 +296,10 @@ export const mm = defineMessages('live.model', {
   // The states.
   startingTitle: 'Starting send · {time}',
   startingTitleNoTime: 'Starting send',
+  startingCanaryTitle: 'Starting the canary · {time}',
+  startingCanaryTitleNoTime: 'Starting the canary',
+  startingCanary:
+    '{seeds, plural, =0 {{size} most-engaged recipients go first; the other {queued} wait until the canary passes.} other {{size} most-engaged recipients and {seeds} seed mailboxes go first; the other {queued} wait until the canary passes.}} Delivery events usually arrive within 10 seconds.',
   startingBuilding: 'Building the queue for {count} recipients: suppressed, unsubscribed and paused contacts are left out.',
   startingBuildingNoCount: 'Building the queue: suppressed, unsubscribed and paused contacts are left out.',
   startingFirstBatches: "The first batches go to {providers} as soon as it's ready.",
@@ -291,19 +331,6 @@ export const mm = defineMessages('live.model', {
   lostRetrying: 'Reconnecting automatically (attempt {attempt} of {max}).',
   mobileEta: 'ETA {eta} · about {time}',
   mobileEtaPaused: 'Paused',
-
-  // The events line in the top bar. {pause} and {send} are permission keys.
-  eventsReconnecting: 'Reconnecting to the event stream',
-  /** {via} names how events arrive ("SNS and Postal webhooks"). */
-  eventsVia: 'Events via {via}',
-  eventsLive: 'Events live',
-  eventsLast: 'last {ago}',
-  eventsWaiting: 'waiting for the first events',
-  eventsThreshold: 'anyone with {pause} can stop a send; resume needs {send}',
-  eventsPerms: 'pause needs {pause}, resume needs {send}',
-  mobileReconnecting: 'Reconnecting…',
-  mobileLive: 'Live · events {ago}',
-  mobileWaiting: 'Live · waiting for the first events',
 
   complaintHeading: 'Complaint',
   complaintHeadingLimit: 'Complaint · limit {limit}',

@@ -4238,8 +4238,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Server-sent events of a send: a snapshot event at once and on every change, heartbeats as comments
-         * @description Each `snapshot` event carries the whole live state; its id is the snapshot version, so a reconnecting EventSource resumes with Last-Event-ID.
+         * Server-sent events of a send: a snapshot event at once and on every change, a heartbeat event every 15 s
+         * @description Each `snapshot` event carries the whole live state; its id is the snapshot version, so a reconnecting EventSource resumes with Last-Event-ID. A `heartbeat` event every 15 s says the connection is alive while nothing changes: a monitor that hears nothing for longer treats its data as stale.
          */
         get: operations["stream-live-send"];
         put?: never;
@@ -28525,6 +28525,8 @@ export interface components {
             from: string;
             route: string;
             scheduledBy: string;
+            /** Format: int64 */
+            watchHours: number;
         };
         LiveEvent: {
             address: string;
@@ -28563,6 +28565,10 @@ export interface components {
         LiveFailover: {
             stream: string;
             to: string;
+        };
+        LiveHeartbeat: {
+            /** Format: date-time */
+            at: string;
         };
         LiveHelpers: {
             approve: string[];
@@ -28633,6 +28639,10 @@ export interface components {
             /** @enum {string} */
             complaintReason?: "not_reported";
             /** Format: int64 */
+            deferred: number;
+            /** Format: double */
+            deferredRate?: number;
+            /** Format: int64 */
             delivered: number;
             /** Format: double */
             deliveredRate?: number;
@@ -28652,6 +28662,8 @@ export interface components {
             opened: number;
             /** Format: int64 */
             remaining: number;
+            /** Format: int64 */
+            retrying: number;
             /** Format: int64 */
             sent: number;
             /** @enum {string} */
@@ -28789,6 +28801,8 @@ export interface components {
             completedAt?: string;
             continuing: string[];
             cost: components["schemas"]["LiveCostByRoute"];
+            /** Format: int64 */
+            deferralWindow?: number;
             deliveredMix: components["schemas"]["LiveShare"][];
             details: components["schemas"]["LiveDetails"];
             /** Format: int64 */
@@ -28837,6 +28851,8 @@ export interface components {
             /** Format: int64 */
             recipients: number;
             resumed: boolean;
+            /** Format: int64 */
+            retrying: number;
             routes: components["schemas"]["LiveRouteShare"][];
             /** Format: date-time */
             scheduledAt?: string;
@@ -36478,6 +36494,8 @@ export interface components {
             byMailbox: components["schemas"]["SeedMailboxResult"][];
             /** Format: int64 */
             inbox: number;
+            /** Format: int64 */
+            missing: number;
             /** Format: int64 */
             pending: number;
             /** Format: int64 */
@@ -53721,7 +53739,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "text/event-stream": {
+                    "text/event-stream": ({
+                        data: components["schemas"]["LiveHeartbeat"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "heartbeat";
+                        /** @description The event ID. */
+                        id?: number;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    } | {
                         data: components["schemas"]["LiveSnapshot"];
                         /**
                          * @description The event name.
@@ -53732,7 +53761,7 @@ export interface operations {
                         id?: number;
                         /** @description The retry time in milliseconds. */
                         retry?: number;
-                    }[];
+                    })[];
                 };
             };
             /** @description Error */

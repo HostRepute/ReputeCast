@@ -148,11 +148,13 @@ type SeedChecker interface {
 
 // SeedPlacement is where the canary's seed copies landed.
 type SeedPlacement struct {
-	Inbox      int                 `json:"inbox"`
-	Promotions int                 `json:"promotions"`
-	Spam       int                 `json:"spam"`
-	Pending    int                 `json:"pending"`
-	ByMailbox  []SeedMailboxResult `json:"byMailbox"`
+	Inbox      int `json:"inbox"`
+	Promotions int `json:"promotions"`
+	Spam       int `json:"spam"`
+	Pending    int `json:"pending"`
+	// Missing copies never arrived before the test ended.
+	Missing   int                 `json:"missing"`
+	ByMailbox []SeedMailboxResult `json:"byMailbox"`
 }
 
 // SeedMailboxResult is one mailbox provider's seeds.
@@ -309,7 +311,7 @@ func (e *Engine) startSeeds(ctx context.Context, ws, campaignID uuid.UUID) {
 	}
 	check, seeds, err := e.Seeds.StartSeeds(ctx, ws, campaignID)
 	if err != nil {
-		e.log().WarnContext(ctx, "canary seed inboxes", "campaign", campaignID, "err", err)
+		e.log().WarnContext(ctx, "canary seed mailboxes", "campaign", campaignID, "err", err)
 		cs.Seeds = 0
 	} else {
 		cs.SeedCheck, cs.Seeds = check.String(), seeds
@@ -410,7 +412,9 @@ func canaryGates(cs canaryState, ts tallies, ty typed) []CanaryGate {
 			switch {
 			case p.Spam > g.SeedSpam:
 				sg.State = "failing"
-			case p.Pending == 0:
+			case p.Pending == 0 && p.Inbox+p.Promotions+p.Spam > 0:
+				// Every copy found or given up on, and some arrived. When
+				// none did, placement says nothing: it keeps collecting.
 				sg.State = "passing"
 			}
 		}

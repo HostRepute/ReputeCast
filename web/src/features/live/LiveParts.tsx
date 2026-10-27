@@ -8,10 +8,11 @@ import { Grid, Row } from '@/components/ui/Layout'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { andList, clockSeconds, count, money, pct, shortDate } from '@/lib/format'
+import { andList, clock, clockSeconds, count, money, pct, shortDate } from '@/lib/format'
 import { useReducedMotion } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import type { LiveActions, LivePermissions } from './actions'
+import { canaryPassedLine } from './canary'
 import { m } from './messages'
 import { RatesPanel } from './RatesPanel'
 import {
@@ -100,6 +101,7 @@ export function ProgressCard({
   stale,
   asOf,
   note,
+  polling,
 }: {
   s: Snapshot
   incident?: Incident
@@ -107,6 +109,8 @@ export function ProgressCard({
   asOf?: string
   /** What a person just changed ("Rates changed: …"), shown until the state changes. */
   note?: string
+  /** The stream went quiet: "Checking every 10 s · updated 90 s ago" (LiveMonitorStates). */
+  polling?: string
 }) {
   const t = useT()
   const sentPct = Math.min(99, s.recipients > 0 ? Math.round((s.sent / s.recipients) * 100) : 0)
@@ -119,7 +123,12 @@ export function ProgressCard({
       <div className="flex flex-wrap items-baseline gap-3.5">
         <span className="n text-[34px] tracking-[-0.02em]">{pct(Math.round(shownPct), 0)}</span>
         <span className="text-[15px]">{sentLine(s, incident)}</span>
-        {stale ? (
+        {polling ? (
+          <span className="lv-fresh stale ml-auto">
+            <span className="dot" aria-hidden="true" />
+            {polling}
+          </span>
+        ) : stale ? (
           <Badge tone="neutral" className="ml-auto">
             {t(m.asOf, { time: asOf ?? '' })}
           </Badge>
@@ -127,7 +136,16 @@ export function ProgressCard({
           <span className="k ml-auto">{timingLine(s, incident)}</span>
         )}
       </div>
-      {stale ? null : <SummaryLine s={s} incident={incident} note={note} />}
+      {stale || polling ? null : <SummaryLine s={s} incident={incident} note={note} />}
+      {s.canary && canaryPassedLine(s.canary) ? (
+        <div className="flex min-h-[18px] items-end gap-2">
+          <span aria-hidden="true" className="lv-canary-mark" style={{ flex: `0 0 ${Math.max(1, s.canary.percent)}%` }} />
+          <span className="k inline-flex items-center gap-[5px]">
+            <Icon name="check" size={12} strokeWidth={2.4} className="text-ok-fg" />
+            {canaryPassedLine(s.canary)}
+          </span>
+        </div>
+      ) : null}
       <div className="bar flex gap-0.5" style={{ height: 12, borderRadius: 6, background: 'var(--line-2)' }}>
         {segments.map((seg, i) => (
           <i
@@ -162,7 +180,7 @@ export function SummaryLine({ s, incident, note }: { s: Snapshot; incident?: Inc
   const tone = note ? 'ok' : line.tone
   return (
     <p className="lv-sumline" aria-live="polite">
-      <Icon name={tone === 'ok' ? 'check' : 'info'} size={16} strokeWidth={2.2} className={tone === 'ok' ? 'text-ok-fg' : tone === 'bad' ? 'text-bad-fg' : 'text-warn-fg'} />
+      <Icon name={tone === 'ok' ? 'check' : line.held ? 'pause' : 'info'} size={16} strokeWidth={2.2} className={tone === 'ok' ? 'text-ok-fg' : tone === 'bad' ? 'text-bad-fg' : 'text-warn-fg'} />
       <span>{note || line.text}</span>
     </p>
   )
@@ -193,6 +211,37 @@ export function TileValue({ tile }: { tile: Tile }) {
 /** The mailbox table's "Adjust rates" button and its panel (review GS-13). */
 export type RatesControl = { open: boolean; toggle: () => void; disabledReason?: string; panel: ReactNode }
 
+/**
+ * "Adjust rates" while there is mail left to send (running, waiting or
+ * held for a decision); onApplied gets what changed, for the summary line.
+ */
+export function useRatesControl(s: Snapshot, actions: LiveActions | undefined, can: LivePermissions | undefined, onApplied?: (summary: string) => void): RatesControl | undefined {
+  const [open, setOpen] = useState(false)
+  const adjustable = !!actions && ['sending', 'partial', 'paused'].includes(s.state) && s.mailboxes.some((mb) => mb.remaining > 0)
+  if (!adjustable) return undefined
+  return {
+    open,
+    toggle: () => setOpen(!open),
+    disabledReason: can?.rates,
+    panel: (
+      <RatesPanel
+        s={s}
+        busy={actions.pending}
+        onCancel={() => setOpen(false)}
+        onApply={(r, summary) =>
+          void actions
+            .setRates(r)
+            .then(() => {
+              setOpen(false)
+              onApplied?.(summary)
+            })
+            .catch(() => undefined)
+        }
+      />
+    ),
+  }
+}
+
 /** Per mailbox provider: health in the live view, activity in the decision view. */
 export function MailboxTable({ s, decision, rates, caption }: { s: Snapshot; decision: boolean; rates?: RatesControl; caption?: string }) {
   const t = useT()
@@ -203,7 +252,7 @@ export function MailboxTable({ s, decision, rates, caption }: { s: Snapshot; dec
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-[18px] py-3.5">
           <div className="flex flex-col gap-0.5">
             <h2 className="h2">{t(m.perMailbox)}</h2>
-            <span className="k">{caption ?? t(m.perMailboxLive)}</span>
+            <span className="k">{caption ?? (decision ? t(m.perMailboxDecision) : t(m.perMailboxLive))}</span>
           </div>
           <Button size="sm" aria-expanded={rates.open} aria-controls="lv-rates" onClick={rates.toggle} disabledReason={rates.disabledReason}>
             {t(m.adjustRates)}
@@ -220,6 +269,7 @@ export function MailboxTable({ s, decision, rates, caption }: { s: Snapshot; dec
             <Th align="right">{t(m.colSent)}</Th>
             {decision ? <Th align="right">{t(m.colRemaining)}</Th> : null}
             <Th align="right">{t(m.colDelivered)}</Th>
+            {s.deferralWindow ? <Th align="right">{t(mm.colDeferred, { minutes: s.deferralWindow })}</Th> : null}
             <Th align="right">{t(m.colBounce)}</Th>
             <Th align="right">{decision ? complaintHeading(s) : t(m.colComplaint)}</Th>
             {decision ? null : <Th align="right">{t(m.colOpened)}</Th>}
@@ -249,6 +299,11 @@ export function MailboxTable({ s, decision, rates, caption }: { s: Snapshot; dec
                 <Td align="right" num>
                   {pct1(mb.deliveredRate)}
                 </Td>
+                {s.deferralWindow ? (
+                  <Td align="right" num>
+                    {pct1(mb.deferredRate)}
+                  </Td>
+                ) : null}
                 <Td align="right" num>
                   {pct1(mb.bounceRate)}
                 </Td>
@@ -269,7 +324,9 @@ export function MailboxTable({ s, decision, rates, caption }: { s: Snapshot; dec
                 )}
                 <Td align="right">{mailboxRate(mb)}</Td>
                 <Td>
-                  <Badge tone={st.tone}>{st.text}</Badge>
+                  <Badge tone={st.tone} dot>
+                    {st.text}
+                  </Badge>
                 </Td>
               </tr>
             )
@@ -286,7 +343,7 @@ export function MailboxTable({ s, decision, rates, caption }: { s: Snapshot; dec
  * (with Gmail's daily spam rate when Postmaster Tools is connected), and
  * how company domains are counted.
  */
-function MailboxNotes({ s }: { s: Snapshot }) {
+export function MailboxNotes({ s }: { s: Snapshot }) {
   const t = useT()
   const unreported = s.mailboxes.filter((mb) => mb.complaintReason).map((mb) => mailboxName(mb.key))
   return (
@@ -298,7 +355,7 @@ function MailboxNotes({ s }: { s: Snapshot }) {
             .join(' ')}
         </p>
       ) : null}
-      <p className="lv-fn">{t(mm.mxNote)}</p>
+      <p className="lv-fn">{[t(mm.mxNote), s.deferralWindow ? t(mm.deferredNote, { minutes: s.deferralWindow }) : ''].filter(Boolean).join(' ')}</p>
     </div>
   )
 }
@@ -321,6 +378,7 @@ export function ProviderTable({ s, outage }: { s: Snapshot; outage?: Incident })
             <Th align="right">{t(m.colBounce)}</Th>
             {decision ? null : <Th align="right">{t(m.colComplaint)}</Th>}
             <Th align="right">{decision ? t(m.colApiErrors3) : t(m.colApiErrors)}</Th>
+            {decision ? null : <Th align="right">{t(mm.colDoneAbout)}</Th>}
             <Th>{t(m.colStatus)}</Th>
           </tr>
         </thead>
@@ -362,6 +420,11 @@ export function ProviderTable({ s, outage }: { s: Snapshot; outage?: Incident })
                 <Td align="right" num className={held && (p.apiErrorRate ?? 0) >= 50 ? 'text-bad-fg' : undefined}>
                   {errorRate(p.apiErrorRate)}
                 </Td>
+                {decision ? null : (
+                  <Td align="right" num>
+                    {p.doneAt && p.remaining > 0 ? clock(p.doneAt) : '—'}
+                  </Td>
+                )}
                 <Td>
                   <Badge tone={st.tone}>{st.text}</Badge>
                 </Td>
@@ -370,7 +433,10 @@ export function ProviderTable({ s, outage }: { s: Snapshot; outage?: Incident })
           })}
         </tbody>
       </Table>
-      {s.providers.some((p) => p.infersDelivery) ? <p className="lv-fn px-[18px] pb-3">{t(m.inferredNote)}</p> : null}
+      <div className="lv-fns">
+        {decision ? null : <p className="lv-fn">{t(mm.providerNotes)}</p>}
+        {s.providers.some((p) => p.infersDelivery) ? <p className="lv-fn">{t(m.inferredNote)}</p> : null}
+      </div>
     </Card>
   )
 }
@@ -378,13 +444,21 @@ export function ProviderTable({ s, outage }: { s: Snapshot; outage?: Incident })
 /** The live event feed: newest first, addresses masked. */
 export function EventsCard({ s, streaming, limit = 7 }: { s: Snapshot; streaming: boolean; limit?: number }) {
   const t = useT()
-  const events = s.events.slice(0, limit)
+  const [held, setHeld] = useState<Snapshot['events'] | null>(null)
+  const events = (held ?? s.events).slice(0, limit)
   return (
     <Card>
-      <CardBar
-        title={t(m.liveEvents)}
-        caption={
-          streaming ? (
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-[18px] py-3.5">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="h2">{t(m.liveEvents)}</h2>
+          <span className="k">{s.eventsVia ? t(mm.eventsCaption, { via: s.eventsVia }) : t(mm.eventsCaptionPlain)}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {held ? (
+            <Badge tone="neutral" dot>
+              {t(mm.feedPaused)}
+            </Badge>
+          ) : streaming ? (
             <span className="badge ok">
               <span className="dot pulse-live" aria-hidden="true" />
               {t(m.streaming)}
@@ -393,9 +467,12 @@ export function EventsCard({ s, streaming, limit = 7 }: { s: Snapshot; streaming
             <Badge tone="neutral" dot>
               {t(m.reconnecting)}
             </Badge>
-          )
-        }
-      />
+          )}
+          <Button size="sm" aria-pressed={held !== null} onClick={() => setHeld(held ? null : s.events)}>
+            {held ? t(mm.resumeUpdates) : t(mm.pauseUpdates)}
+          </Button>
+        </div>
+      </div>
       {events.length === 0 ? (
         <div className="lv-ev first k">{t(m.eventsEmpty)}</div>
       ) : (
@@ -445,7 +522,7 @@ export function ThresholdsCard({ s, campaignId, edit }: { s: Snapshot; campaignI
             {t(m.workspaceDefaults)}
           </Link>
           {edit ? (
-            <Button size="sm" onClick={edit.onEdit} disabledReason={edit.disabledReason}>
+            <Button variant="ghost" size="sm" className="lv-linkbtn" onClick={edit.onEdit} disabledReason={edit.disabledReason}>
               {t(m.editThresholdsLive)}
             </Button>
           ) : (
@@ -504,7 +581,17 @@ export function DetailsCard({ s }: { s: Snapshot }) {
       <Fact label={t(m.detailFrom)}>{d.from || '—'}</Fact>
       <Fact label={t(m.detailAudience)}>{d.audience ? `${d.audience} · ${count(d.audienceCount)}` : count(d.audienceCount)}</Fact>
       <Fact label={t(m.detailRoute)}>{d.route || '—'}</Fact>
+      {s.canary ? (
+        <Fact label={t(m.detailCanaryLabel)}>
+          {t(mm.detailCanary, {
+            size: count(s.canary.size),
+            seeds: s.canary.seeds,
+            state: t(mm.canaryState, { phase: s.canary.phase, time: clock(s.canary.decidedAt ?? s.canary.until ?? s.at) }),
+          })}
+        </Fact>
+      ) : null}
       <Fact label={t(m.detailCost)}>{t(m.detailCostValue, { cost: money(d.cost), planned: money(d.costPlanned) })}</Fact>
+      {d.watchHours ? <Fact label={t(m.detailAfterLabel)}>{t(mm.detailAfter, { hours: d.watchHours })}</Fact> : null}
       {d.scheduledBy ? <Fact label={t(m.detailScheduledBy)}>{d.scheduledBy}</Fact> : null}
     </Card>
   )
@@ -551,6 +638,7 @@ export function LiveBody({
   edit,
   actions,
   can,
+  polling,
 }: {
   s: Snapshot
   campaignId: string
@@ -561,47 +649,25 @@ export function LiveBody({
   edit?: ThresholdsEdit
   actions?: LiveActions
   can?: LivePermissions
+  /** The freshness label while the monitor checks every 10 s. */
+  polling?: string
 }) {
-  const [ratesOpen, setRatesOpen] = useState(false)
   // A note lasts while the state it was written in does.
   const state = `${s.state}|${incident?.id ?? ''}`
   const [note, setNote] = useState<{ state: string; text: string }>()
-  const adjustable = !!actions && !stale && ['sending', 'partial', 'paused'].includes(s.state) && s.mailboxes.some((mb) => mb.remaining > 0)
-  const rates: RatesControl | undefined = adjustable
-    ? {
-        open: ratesOpen,
-        toggle: () => setRatesOpen(!ratesOpen),
-        disabledReason: can?.rates,
-        panel: (
-          <RatesPanel
-            s={s}
-            busy={actions.pending}
-            onCancel={() => setRatesOpen(false)}
-            onApply={(r, summary) =>
-              void actions
-                .setRates(r)
-                .then(() => {
-                  setRatesOpen(false)
-                  setNote({ state, text: summary })
-                })
-                .catch(() => undefined)
-            }
-          />
-        ),
-      }
-    : undefined
+  const rates = useRatesControl(s, stale ? undefined : actions, can, (text) => setNote({ state, text }))
   return (
     <>
-      <ProgressCard s={s} incident={incident} stale={stale} asOf={asOf} note={note?.state === state ? note.text : undefined} />
+      <ProgressCard s={s} incident={incident} stale={stale} asOf={asOf} polling={polling} note={note?.state === state ? note.text : undefined} />
       <div className={cn('flex flex-col gap-5 max-md:gap-3', stale && 'lv-stale')}>
         <Tiles tiles={tiles(s)} />
-        <div className="flex flex-wrap items-start gap-5">
-          <div className="flex min-w-0 flex-col gap-5" style={{ flex: '2 1 560px' }}>
-            <MailboxTable s={s} decision={false} rates={rates} />
+        <ThresholdsCard s={s} campaignId={campaignId} edit={edit} />
+        <MailboxTable s={s} decision={false} rates={rates} />
+        <div className="lv-split">
+          <div className="lv-split-main">
             <EventsCard s={s} streaming={streaming} />
           </div>
-          <div className="flex flex-col gap-4 max-md:min-w-0" style={{ flex: '1 1 320px', maxWidth: 400 }}>
-            <ThresholdsCard s={s} campaignId={campaignId} edit={edit} />
+          <div className="lv-split-side">
             <DetailsCard s={s} />
             <DeliveredMixCard s={s} />
           </div>

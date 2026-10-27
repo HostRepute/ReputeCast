@@ -20,6 +20,18 @@ func testTrafficRulesAPI(t *testing.T, f *sendtest.Fixture) {
 	if th["blockBounce"] != 0.5 || th["deferralSlowWindow"] != 10.0 || th["complaintAction"] != "pause_mailbox" {
 		t.Fatalf("thresholds %v", th)
 	}
+	// What the rules did, by mailbox provider name and with percentages
+	// (the demo's October Product Update auto-pause).
+	recent, _ := got["recent"].([]any)
+	found := false
+	for _, r := range recent {
+		if r.(map[string]any)["text"] == "Outlook complaints reached 0.18% (limit 0.10%) · paused Outlook" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("recent actions %v, want Outlook's auto-pause in words", recent)
+	}
 	body := map[string]any{
 		"thresholds": map[string]any{"blockBounce": 0.4, "blockAction": "pause_mailbox", "unknownWarn": 3, "unknownWarnAction": "warn", "unknownPause": 5,
 			"unknownPauseAction": "pause_send", "deferralSlow": 15, "deferralSlowWindow": 10, "deferralSlowAction": "slow", "deferral": 40, "deferralWindow": 10,

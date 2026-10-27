@@ -72,6 +72,19 @@ func testCanaryPasses(t *testing.T, f *sendtest.Fixture) {
 	if u := c.Until.Sub(*c.SentAt); u != 20*time.Minute {
 		t.Fatalf("watched %v after the last canary message, want the 20 minutes Traffic rules set", u)
 	}
+	// What the providers still retry after a deferral, in all and per
+	// mailbox provider (the canary's tiles and table; review GS-14).
+	var retrying, deferred int64
+	for _, m := range snap.Mailboxes {
+		retrying += m.Retrying
+		deferred += m.Deferred
+	}
+	if n := f.Count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND status = 'deferred'`, f.Campaign); snap.Retrying != n || retrying != n {
+		t.Fatalf("retrying %d (%d by mailbox provider), want the %d deferred messages", snap.Retrying, retrying, n)
+	}
+	if deferred != snap.Totals.Deferred {
+		t.Fatalf("deferred %d by mailbox provider, %d in all", deferred, snap.Totals.Deferred)
+	}
 	// "Watch 10 more minutes" moves the end; it's audited.
 	if err := f.E.ExtendCanary(f.Ctx, f.Campaign, f.Sofia); err != nil {
 		t.Fatal(err)

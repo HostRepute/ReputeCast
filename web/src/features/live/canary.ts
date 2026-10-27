@@ -3,7 +3,7 @@ import type { Tone } from '@/components/ui/Badge'
 import { t as tt } from '@/i18n'
 import { andList, clock, clockSeconds, count, pct, trimPct } from '@/lib/format'
 import { mc } from './canary.messages'
-import { mailboxName, tiles, type Snapshot, type Tile } from './model'
+import { mailboxName, mailboxRate, pct1, pct2, tiles, type Snapshot, type Tile } from './model'
 import { mm } from './model.messages'
 
 export type Canary = Schemas['LiveCanary']
@@ -70,6 +70,8 @@ export function canarySummary(c: Canary): string {
     total: c.gates.length,
     collecting: collecting.length,
     names: andList(collecting.map((g) => gateName(g.key).toLowerCase())),
+    // "seed placement is", "complaints are".
+    singular: collecting.length === 1 && collecting[0]?.key === 'seeds' ? 'yes' : 'no',
   })
   return c.extended > 0 && c.until ? `${tt(mc.sumWatchingUntil, { until: clock(c.until) })} ${gates}` : gates
 }
@@ -111,7 +113,11 @@ export function gateRow(g: Gate, s: Snapshot): GateRow {
     case 'seeds': {
       const p = g.seeds
       const value = p
-        ? [tt(mc.seedValue, { inbox: p.inbox, promotions: p.promotions, spam: p.spam }), p.pending ? tt(mc.seedPending, { pending: p.pending }) : '']
+        ? [
+            tt(mc.seedValue, { inbox: p.inbox, promotions: p.promotions, spam: p.spam }),
+            p.pending ? tt(mc.seedPending, { pending: p.pending }) : '',
+            p.missing ? tt(mc.seedMissing, { missing: p.missing }) : '',
+          ]
             .filter(Boolean)
             .join(' · ')
         : tt(mc.seedPending, { pending: g.base })
@@ -121,6 +127,13 @@ export function gateRow(g: Gate, s: Snapshot): GateRow {
   const value = g.events === 0 ? count(0) : tt(mc.valueOf, { rate: pct(g.value ?? 0, g.key === 'block_bounce' ? 2 : 1), events: count(g.events), base: count(g.base) })
   void s
   return { ...base, value, limit: tt(mc.limit, { limit: g.key === 'deferral' ? trimPct(g.limit) : pct(g.limit, g.key === 'block_bounce' ? 1 : 1) }) }
+}
+
+/** "4.0% · 46 since delivered, 16 retrying": what became of the deferred. */
+function deferredSub(deferred: number, retrying: number, rate: number): string {
+  const since = Math.max(0, deferred - retrying)
+  const detail = [since > 0 ? tt(mc.sinceDelivered, { count: count(since) }) : '', retrying > 0 ? tt(mc.retryingCount, { count: count(retrying) }) : ''].filter(Boolean)
+  return detail.length ? `${pct(rate, 1)} · ${detail.join(', ')}` : tt(mc.deferredSub, { rate: pct(rate, 1) })
 }
 
 /** When everyone has it if the main send starts at a time. */
@@ -146,7 +159,11 @@ export function seedRows(p: Placement): { key: string; name: string; note: strin
 }
 
 /** The canary's progress: what went, per sending provider, and what waits. */
-export function canaryProgress(c: Canary, s: Snapshot, now: Date): { line: string; sent: number; parts: { key: string; text: string; value: number; color: string }[] } {
+export function canaryProgress(
+  c: Canary,
+  s: Snapshot,
+  now: Date,
+): { line: string; sent: number; parts: { key: string; text: string; value: number; color: string }[]; queued: string } {
   const sentPct = s.recipients > 0 ? (s.sent / s.recipients) * 100 : 0
   const v = { sent: count(s.sent), total: count(s.recipients), percent: pct(sentPct, 1) }
   const line =
@@ -154,7 +171,47 @@ export function canaryProgress(c: Canary, s: Snapshot, now: Date): { line: strin
   const parts = s.providers
     .filter((p) => p.sent > 0)
     .map((p) => ({ key: p.id, text: tt(mc.viaProvider, { provider: p.name, count: count(p.sent) }), value: p.sent, color: `var(--chart-${p.color})` }))
-  return { line, sent: s.sent, parts }
+  // "Queued 29,632 · SES 26,669 · Postal 2,963".
+  const routes = s.providers.filter((p) => p.remaining > 0)
+  const queued = tt(mc.queuedLegend, {
+    count: count(c.queued),
+    routes: routes.length > 1 ? routes.map((p) => `${p.short} ${count(p.remaining)}`).join(' · ') : 'none',
+  })
+  return { line, sent: s.sent, parts, queued }
+}
+
+/** The canary's mailbox provider rows (LiveMonitorCanary): what it did, the main send's rate, whether thresholds can trip yet. */
+export function canaryMailboxRows(s: Snapshot) {
+  const min = canaryMinBase(s)
+  return s.mailboxes
+    .filter((mb) => mb.sent > 0 || mb.remaining > 0)
+    .map((mb) => ({
+      key: mb.key,
+      name: mailboxName(mb.key),
+      sent: count(mb.sent),
+      delivered: mb.retrying > 0 ? tt(mc.deliveredRetrying, { rate: pct1(mb.deliveredRate), retrying: count(mb.retrying) }) : pct1(mb.deliveredRate),
+      deferred: pct1(mb.sent > 0 ? (mb.deferred / mb.sent) * 100 : undefined),
+      bounce: pct1(mb.bounceRate),
+      na: Boolean(mb.complaintReason),
+      complaint: mb.complaintReason ? tt(mm.notAvailable) : mb.complained === 0 ? tt(mc.noneSoFar) : pct2(mb.complaintRate),
+      rate: mailboxRate(mb),
+      state:
+        mb.delivered >= min
+          ? { tone: 'ok' as Tone, text: tt(mm.thresholdState, { state: 'ok' }) }
+          : { tone: 'neutral' as Tone, text: tt(mm.thresholdState, { state: 'collecting' }) },
+    }))
+}
+
+/** What a mailbox provider needs delivered before its thresholds can trip (500). */
+export function canaryMinBase(s: Snapshot): number {
+  return s.thresholds.find((x) => x.key === 'mailbox_complaint')?.minBase || 500
+}
+
+/** "A mailbox provider's thresholds can trip only after 500 delivered to it; in the canary only Gmail has that many." */
+export function canaryMinNote(s: Snapshot): string {
+  const min = canaryMinBase(s)
+  const enough = s.mailboxes.filter((mb) => mb.delivered >= min).map((mb) => mailboxName(mb.key))
+  return tt(mc.minNote, { min: count(min), count: enough.length, names: andList(enough) })
 }
 
 /** The badge after the breadcrumb, and the live view's line once it passed. */
@@ -174,9 +231,9 @@ export function canaryTiles(s: Snapshot): Tile[] {
   const unreported = t.notReported.map(mailboxName)
   const deferredRate = s.sent > 0 ? (t.deferred / s.sent) * 100 : 0
   return [
-    { ...delivered!, sub: tt(mc.deliveredSub, { rate: pct(s.sent > 0 ? (t.delivered / s.sent) * 100 : 0, 1), retrying: s.waiting }) },
+    { ...delivered!, sub: tt(mc.deliveredSub, { rate: pct(s.sent > 0 ? (t.delivered / s.sent) * 100 : 0, 1), retrying: s.retrying }) },
     bounced!,
-    { key: 'deferred', label: tt(mc.tileDeferred), value: count(t.deferred), num: t.deferred, sub: tt(mc.deferredSub, { rate: pct(deferredRate, 1) }) },
+    { key: 'deferred', label: tt(mc.tileDeferred), value: count(t.deferred), num: t.deferred, sub: deferredSub(t.deferred, s.retrying, deferredRate) },
     {
       ...complained!,
       sub: tt(mc.complainedSub, { reported: andList(reported) || tt(mm.notAvailable), unreported: unreported.length ? andList(unreported) : 'none' }),

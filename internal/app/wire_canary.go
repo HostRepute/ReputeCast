@@ -70,6 +70,7 @@ func (s canarySeeds) SeedPlacement(ctx context.Context, ws, check uuid.UUID) (en
 			out.Inbox++
 		case done:
 			// Never arrived: neither inbox nor spam.
+			out.Missing++
 		default:
 			out.Pending++
 		}

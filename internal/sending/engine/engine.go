@@ -86,6 +86,9 @@ type Engine struct {
 	Mailbox MailboxClassifier
 	// CallTimeout bounds one provider call (30 s when zero).
 	CallTimeout time.Duration
+	// StreamHeartbeat is how often the live stream says it's alive while
+	// nothing changes (15 s when zero; review GS-14).
+	StreamHeartbeat time.Duration
 	// Seeds sends a canary's copies to the workspace's seed inboxes and
 	// reads where they landed (internal/placement; review GS-10); nil
 	// leaves the seed gate out.

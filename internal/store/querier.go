@@ -3369,6 +3369,10 @@ type Querier interface {
 	SendingResolveIncident(ctx context.Context, arg SendingResolveIncidentParams) error
 	SendingRetryLater(ctx context.Context, arg SendingRetryLaterParams) error
 	SendingRetryNow(ctx context.Context, arg SendingRetryNowParams) error
+	// GS-14: the live monitor -----------------------------------------------------
+	// A send's messages a mailbox provider deferred that the sending provider
+	// is still retrying (no delivery or bounce yet), per mailbox provider.
+	SendingRetrying(ctx context.Context, campaignID *uuid.UUID) ([]SendingRetryingRow, error)
 	SendingRoutes(ctx context.Context, campaignID uuid.UUID) ([]SendingRoutesRow, error)
 	SendingSavePrepare(ctx context.Context, arg SendingSavePrepareParams) error
 	// How many seed inboxes a workspace connected.

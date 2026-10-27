@@ -4,9 +4,9 @@ import { Card } from '@/components/ui/Card'
 import { EmptyState, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Grid } from '@/components/ui/Layout'
 import { Banner } from '@/components/ui/Note'
-import { useT } from '@/i18n'
+import { t as tr, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { andList, clock, count, pct, weekdayDate } from '@/lib/format'
+import { andList, clock, clockSeconds, count, pct, weekdayDate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import type { LiveActions, LivePermissions } from './actions'
 import { TileValue } from './LiveParts'
@@ -18,6 +18,8 @@ import {
   finalTiles,
   finishedText,
   incidentTitle,
+  noticeText,
+  openNotices,
   pausedText,
   providerColor,
   providerResultLines,
@@ -73,12 +75,12 @@ export function ConnectingCard({ s }: { s: Snapshot }) {
 export function StreamLostBanner({ title, body, onReconnect, busy }: { title: string; body: string; onReconnect: () => void; busy?: boolean }) {
   const t = useT()
   return (
-    <div role="alert" className="flex flex-wrap items-center gap-4 rounded-[12px] border border-bad-line bg-[#FEF2F2] px-5 py-4">
+    <div className="flex flex-wrap items-center gap-4 rounded-[12px] border border-bad-line bg-[#FEF2F2] px-5 py-4">
       <svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
         <circle cx="20" cy="20" r="19" fill="#FECACA" />
         <path d="M20 11v11M20 27v1" stroke="#991B1B" strokeWidth="3" strokeLinecap="round" />
       </svg>
-      <div className="flex flex-col gap-0.5 max-md:min-w-[120px]" style={{ flex: '1 1 300px' }}>
+      <div role="alert" className="flex flex-col gap-0.5 max-md:min-w-[120px]" style={{ flex: '1 1 300px' }}>
         <span className="text-[16px] font-bold text-[#7F1D1D]">{title}</span>
         <span className="text-[13px] text-[#7F1D1D]">{body}</span>
       </div>
@@ -87,6 +89,34 @@ export function StreamLostBanner({ title, body, onReconnect, busy }: { title: st
       </Button>
     </div>
   )
+}
+
+/**
+ * LiveMonitorStates › stale: the stream says nothing although it looks
+ * open (a buffering proxy); the monitor checks every 10 s meanwhile.
+ */
+export function StaleBanner({ title, body, onReconnect }: { title: string; body: string; onReconnect: () => void }) {
+  const t = useT()
+  return (
+    <div className="flex flex-wrap items-center gap-4 rounded-[12px] border border-[#FCD34D] bg-[#FFFBEB] px-5 py-4">
+      <svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
+        <circle cx="20" cy="20" r="19" fill="#FEF3C7" />
+        <path d="M20 12v8l5 3" stroke="#92400E" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      </svg>
+      <div role="status" className="flex flex-col gap-0.5 max-md:min-w-[120px]" style={{ flex: '1 1 300px' }}>
+        <span className="text-[16px] font-bold text-[#78350F]">{title}</span>
+        <span className="text-[13px] text-[#78350F]">{body}</span>
+      </div>
+      <Button onClick={onReconnect}>{t(m.reconnect)}</Button>
+    </div>
+  )
+}
+
+/** "No update for 90 s", and what the monitor does about it. */
+export function staleText(s: Snapshot, heardAt: Date | undefined, now: Date): { title: string; body: string } {
+  const quiet = Math.max(0, Math.round((now.getTime() - (heardAt ?? new Date(s.at)).getTime()) / 1000))
+  const title = quiet < 120 ? tr(mm.staleTitle, { seconds: quiet }) : tr(mm.staleTitleMinutes, { minutes: Math.round(quiet / 60) })
+  return { title, body: tr(mm.staleBody, { time: clockSeconds(s.at) }) }
 }
 
 /** LiveMonitorStates › complete: what the send did, and the way to the report. */
@@ -123,6 +153,47 @@ export function FinishedView({ s, campaignId, actions, can }: { s: Snapshot; cam
       {actions ? <ComplaintAlerts s={s} actions={actions} can={can} /> : null}
       <ComplaintWatchCard s={s} />
       <FinalTiles s={s} />
+    </>
+  )
+}
+
+/**
+ * What the guard did without stopping the send, and the recipients the
+ * template failed for (review GS-11, GS-12, CO-4): one banner each, with
+ * Acknowledge for the people who can send. Only the heading is an alert.
+ */
+export function NoticeBanners({ s, actions, can }: { s: Snapshot; actions: LiveActions; can?: LivePermissions }) {
+  const t = useT()
+  const notices = openNotices(s)
+  if (!notices.length) return null
+  return (
+    <>
+      {notices.map((i) => {
+        const n = noticeText(i)
+        return (
+          <Banner
+            key={i.id}
+            tone="warn"
+            title={<span role="alert">{n.title}</span>}
+            actions={
+              <Button onClick={() => void actions.acknowledge({ incidentId: i.id }).catch(() => undefined)} disabledReason={can?.resume} loading={actions.pending}>
+                {t(m.acknowledge)}
+              </Button>
+            }
+          >
+            {n.body}
+            {n.samples.length ? (
+              <ul className="lv-samples">
+                {n.samples.map((x) => (
+                  <li key={x} className="mono">
+                    {x}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </Banner>
+        )
+      })}
     </>
   )
 }

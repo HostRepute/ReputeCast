@@ -219,12 +219,22 @@ export function timingLine(s: Snapshot, incident?: Incident): string {
   if (s.startedAt) parts.push(tt(mm.timingStarted, { time: clockSeconds(s.startedAt) }))
   const eta = s.etaSeconds !== undefined ? duration(s.etaSeconds / 60) : ''
   if (incident?.kind === 'threshold' && incident.scope !== 'campaign') {
-    parts.push(tt(mm.timingPausedRoute, { time: clockSeconds(incident.trippedAt) }))
-    if (eta) parts.push(tt(mm.timingEtaRest, { eta }))
+    // "Outlook held since 09:21:14 · the rest: SES done about 09:28 · Postal about 09:29".
+    parts.push(tt(mm.timingHeldSince, { who: scopeName(incident), time: clockSeconds(incident.trippedAt) }))
+    const routes = routeDoneLine(s)
+    if (routes) parts.push(tt(mm.timingTheRest, { routes }))
+    else if (eta) parts.push(tt(mm.timingEtaRest, { eta }))
   } else if (incident?.kind === 'provider_outage') {
+    // "SES done about 09:26 · Postal held since 09:17:10".
     const others = continuingProviders(s, incident)
-    if (s.finishesAt && others.length) parts.push(tt(mm.timingProvidersFinish, { providers: andList(others.map((p) => p.short)), time: clock(s.finishesAt) }))
+    const routes = routeDoneLine({ ...s, providers: others })
+    if (routes) parts.push(routes)
+    else if (s.finishesAt && others.length) parts.push(tt(mm.timingProvidersFinish, { providers: andList(others.map((p) => p.short)), time: clock(s.finishesAt) }))
+    parts.push(tt(mm.timingHeldSince, { who: incident.providerShort, time: clockSeconds(incident.trippedAt) }))
   } else if (s.state === 'sending' || s.state === 'partial') {
+    // When each route is done at current rates, with the per-mailbox limits (review GS-8).
+    const routes = routeDoneLine(s)
+    if (routes) return tt(mm.timingRoutes, { time: s.startedAt ? clockSeconds(s.startedAt) : '', routes })
     if (eta) parts.push(tt(mm.timingEta, { eta }))
     if (s.finishesAt) parts.push(tt(mm.timingFinishes, { time: clock(s.finishesAt) }))
   } else if (s.state === 'paused' && s.pausedAt) {
@@ -255,7 +265,7 @@ function countTile(key: string, label: MessageDescriptor, n: number, sub: string
 
 export function tiles(s: Snapshot, variant: TilesVariant = 'live', incident?: Incident): Tile[] {
   const t = s.totals
-  const delivered = countTile('delivered', mm.tileDelivered, t.delivered, tt(mm.deliveredSub, { rate: pct1(share(t.delivered, s.sent)) }))
+  const delivered = countTile('delivered', mm.tileDelivered, t.delivered, tt(mm.deliveredRetrying, { rate: pct1(share(t.delivered, s.sent)), retrying: s.retrying }))
   const bounceRate = rate(share(t.bounced, s.sent) ?? 0)
   const bounced = countTile(
     'bounced',
@@ -413,7 +423,15 @@ export function thresholdEvidence(t: Threshold): string {
     case 'block_bounce':
       return tt(mm.thresholdHighestAction, { action: t.action ?? 'pause_mailbox', limit: t.key === 'deferral' ? trimPct(t.limit) : pct(t.limit, 1) })
     case 'reply_rules':
-      return t.parts?.[0]?.name ? tt(mm.thresholdReplyAction, { who: mailboxName(t.mailbox), limit: count(t.minEvents) }) : ''
+      return t.parts?.[0]?.name
+        ? tt(mm.thresholdReplyAction, {
+            who: mailboxName(t.mailbox),
+            limit: count(t.minEvents),
+            action: t.action ?? 'pause',
+            timed: t.duration ? 'yes' : 'no',
+            duration: t.duration ? duration(t.duration) : '',
+          })
+        : ''
   }
   return tt(mm.thresholdIn, { events: count(t.events), base: count(t.base), unit })
 }
@@ -434,6 +452,8 @@ export function mailboxStatus(m: Mailbox, s: Snapshot, decision: boolean): { ton
   // enough complaints to be sure it isn't chance.
   if (m.complaintRate !== undefined && m.complaintRate > limit && m.delivered >= 500) return { tone: 'warn', text: tt(mm.mailboxOverLimit) }
   if (m.complaintRate !== undefined && m.complaintRate >= limit * 0.8 && m.delivered >= 500) return { tone: 'warn', text: tt(mm.mailboxNearLimit) }
+  // Still going out (LiveMonitor: "Sending").
+  if (m.remaining > 0 && (s.state === 'sending' || s.state === 'partial')) return { tone: 'ok', text: tt(mm.mailboxSending) }
   return { tone: 'ok', text: tt(mm.mailboxOk) }
 }
 
@@ -449,26 +469,29 @@ export function mailboxRate(m: Mailbox): string {
  * threshold's state changes, so it can be the screen's one polite live
  * region.
  */
-export function summaryLine(s: Snapshot, incident?: Incident): { tone: Tone; text: string } {
+export function summaryLine(s: Snapshot, incident?: Incident): { tone: Tone; text: string; held?: boolean } {
   if (incident && incident.kind === 'provider_outage') {
     const names = continuingProviders(s, incident).map((p) => p.name)
     return {
       tone: 'warn',
+      held: true,
       text: tt(mm.sumRouteHeld, { who: incident.provider || incident.providerShort, time: clockSeconds(incident.trippedAt), count: names.length, names: andList(names) }),
     }
   }
   if (incident) {
     const time = clockSeconds(incident.trippedAt)
-    if (incident.scope === 'campaign') return { tone: 'bad', text: tt(mm.sumCampaignPaused, { time }) }
+    if (incident.scope === 'campaign') return { tone: 'bad', held: true, text: tt(mm.sumCampaignPaused, { time }) }
     const names =
       incident.scope === 'route' ? continuingProviders(s, incident).map((p) => p.name) : mailboxNamesOf(s.continuing.length ? s.continuing : (incident.detail.continuing ?? []))
     const msg = incident.scope === 'route' ? mm.sumRouteHeld : mm.sumMailboxPaused
-    return { tone: 'bad', text: tt(msg, { who: scopeName(incident), time, count: names.length, names: andList(names) }) }
+    return { tone: 'bad', held: true, text: tt(msg, { who: scopeName(incident), time, count: names.length, names: andList(names) }) }
   }
-  if (s.state === 'paused') return { tone: 'warn', text: tt(mm.sumPaused, { time: clockSeconds(s.pausedAt ?? s.at) }) }
+  if (s.state === 'paused') return { tone: 'warn', held: true, text: tt(mm.sumPaused, { time: clockSeconds(s.pausedAt ?? s.at) }) }
   if (s.state === 'preparing') return { tone: 'ok', text: tt(mm.sumPreparing) }
   const near = s.thresholds.filter((x) => x.state === 'near')
-  const lead = ''
+  // "Canary passed at 09:20." first, once it did (LiveMonitor).
+  const c = s.canary
+  const lead = c && (c.phase === 'passed' || c.phase === 'continued') ? `${tt(mm.sumCanaryLead, { phase: c.phase, time: clock(c.decidedAt ?? s.at) })} ` : ''
   if (near.length) {
     const names = andList(thresholdRows({ ...s, thresholds: near }).map((r) => r.label))
     return { tone: 'warn', text: lead + tt(mm.sumNear, { count: near.length, names }) }
@@ -821,7 +844,7 @@ export function headerBadges(s: Snapshot, incident: Incident | undefined): { ton
       return [{ tone: 'info', text: tt(mm.badgeStarting) }]
     case 'sending':
     case 'partial':
-      return [{ tone: 'ok', text: tt(mm.badgeSendingLive), live: true }]
+      return [{ tone: 'ok', text: tt(mm.badgeSending), live: true }]
     case 'paused':
       return [{ tone: 'warn', text: s.pausedBy ? tt(mm.badgePausedBy, { name: s.pausedBy }) : tt(mm.badgePaused) }]
     case 'scheduled':
@@ -853,6 +876,14 @@ export function isStarting(s: Snapshot, now: Date): boolean {
 
 /** "Starting send · 09:00:04" and what's happening. */
 export function startingText(s: Snapshot): { title: string; body: string } {
+  const c = s.canary
+  if (c && (c.phase === 'sending' || c.phase === 'watching') && s.state !== 'preparing') {
+    // "Starting the canary · 09:00:04", who goes first and who waits.
+    return {
+      title: s.startedAt ? tt(mm.startingCanaryTitle, { time: clockSeconds(s.startedAt) }) : tt(mm.startingCanaryTitleNoTime),
+      body: tt(mm.startingCanary, { size: count(c.size), seeds: c.seeds, queued: count(c.queued) }),
+    }
+  }
   const title = s.startedAt ? tt(mm.startingTitle, { time: clockSeconds(s.startedAt) }) : tt(mm.startingTitleNoTime)
   const via = andList(s.providers.map((p) => p.short))
   if (s.state === 'preparing') {
@@ -964,7 +995,6 @@ export function progressLegend(s: Snapshot, incident?: Incident, mobile = false)
       color: providerColor[p.color],
       text: mobile ? `${p.short} ${count(p.sent)}` : tt(mm.legendProvider, { name: p.name, sent: count(p.sent), rate: perSec(p.rate) }),
     }))
-  if (mobile) return items
   if (incident && s.held > 0) {
     if (incident.kind === 'provider_outage') {
       items.push({ key: 'held', color: heldRouteColor, text: tt(mm.legendHeldOn, { provider: incident.providerShort, count: count(s.held) }) })
@@ -989,7 +1019,7 @@ export function progressLegend(s: Snapshot, incident?: Incident, mobile = false)
 export function mobileTiles(s: Snapshot): Tile[] {
   const t = s.totals
   return [
-    countTile('delivered', mm.tileDelivered, t.delivered, pct1(share(t.delivered, s.sent) ?? 0)),
+    countTile('delivered', mm.tileDelivered, t.delivered, tt(mm.mobileDelivered, { rate: pct1(share(t.delivered, s.sent) ?? 0), retrying: s.retrying })),
     countTile('bounced', mm.tileBounced, t.bounced, tt(mm.bouncedBlock, { rate: rate(share(t.bounced, s.sent) ?? 0), block: count(t.blockBounced) })),
     countTile('complained', mm.tileComplained, t.complained, t.complaintBase > 0 ? tt(mm.complainedWhereReported, { rate: pct2(share(t.complained, t.complaintBase)) }) : tt(mm.notAvailable)),
     countTile('opened', mm.tileOpenedHuman, t.openedHuman, tt(mm.openedMachine, { n: count(t.openedMachine) })),
@@ -1002,29 +1032,61 @@ export function providerLine(p: Provider): string {
   return tt(mm.providerLine, { rate: perSec(p.rate), delivered: pct1(p.deliveredRate ?? 0) })
 }
 
-export type CaptionKind = 'live' | 'threshold' | 'outage'
-
 /**
- * The top bar's line about events: "Events via SNS and Postal webhooks ·
- * last 1 s ago · pause needs campaigns:pause, resume needs campaigns:send".
+ * The send's open notices (review GS-11, GS-12, CO-4): what the guard did
+ * without stopping the send (a slowdown, a warning, a reply rule's alert)
+ * and the recipients the template failed for. Each is acknowledged, not
+ * decided; complaint alerts after the send have their own banner.
  */
-export function eventsCaption(s: Snapshot, now: Date, kind: CaptionKind, streaming = true): string {
-  const last = s.lastEventAt ? tt(mm.eventsLast, { ago: liveAgo(s.lastEventAt, now) }) : tt(mm.eventsWaiting)
-  const head = !streaming ? tt(mm.eventsReconnecting) : kind === 'live' && s.eventsVia ? tt(mm.eventsVia, { via: s.eventsVia }) : tt(mm.eventsLive)
-  const perms = { pause: 'campaigns:pause', send: 'campaigns:send' }
-  switch (kind) {
-    case 'threshold':
-      return [head, last, tt(mm.eventsThreshold, perms)].join(' · ')
-    case 'outage':
-      return [head, last].join(' · ')
-  }
-  return [head, last, tt(mm.eventsPerms, perms)].join(' · ')
+export function openNotices(s: Snapshot): Incident[] {
+  return s.incidents.filter(
+    (i) =>
+      !i.resolvedAt &&
+      (i.kind === 'render_error' || ((i.kind === 'threshold' || i.kind === 'reply_rule') && (i.detail.action === 'slowed' || i.detail.action === 'warned' || i.detail.action === 'alerted'))),
+  )
 }
 
-/** The phone header's line: "Live · events 1 s ago". */
-export function mobileCaption(s: Snapshot, now: Date, streaming = true): string {
-  if (!streaming) return tt(mm.mobileReconnecting)
-  return s.lastEventAt ? tt(mm.mobileLive, { ago: liveAgo(s.lastEventAt, now) }) : tt(mm.mobileWaiting)
+/** A notice's heading and text, in the reader's language as the server wrote them. */
+export function noticeText(i: Incident): { title: string; body: string; samples: string[] } {
+  const cause = i.detail.causes?.[0]
+  const body = [cause?.body ?? '', ...(i.detail.recommendations ?? [])].filter(Boolean).join(' ')
+  const samples = i.kind === 'render_error' ? (i.detail.log ?? []).map((l) => l.text) : []
+  return { title: cause?.lead || tt(mm.noticeTitle), body, samples }
+}
+
+/**
+ * The header's freshness pill (LiveMonitor, LiveMonitorStates): "Live ·
+ * updated 1 s ago", or "Checking every 10 s · updated 90 s ago" when the
+ * stream went quiet and the monitor polls instead (review GS-14).
+ */
+export function freshness(s: Snapshot, now: Date, mode: 'live' | 'polling' | 'reconnecting'): { text: string; stale: boolean } {
+  // Seconds up to two minutes ("updated 90 s ago", as the stale banner says).
+  const secs = Math.round((now.getTime() - new Date(s.at).getTime()) / 1000)
+  const ago = secs < 120 ? tt(mm.secondsAgo, { n: Math.max(1, secs) }) : liveAgo(s.at, now)
+  if (mode === 'polling') return { text: tt(mm.freshPolling, { ago }), stale: true }
+  if (mode === 'reconnecting') return { text: tt(mm.freshReconnecting, { ago }), stale: true }
+  return { text: tt(mm.freshLive, { ago }), stale: false }
+}
+
+/**
+ * Who can act, in people's words (review GS-14): "Anyone who can send can
+ * pause · Linh Nguyen and Marcus Chen can resume".
+ */
+export function whoLine(s: Snapshot, kind: 'live' | 'canary' = 'live'): string {
+  const send = s.helpers?.send ?? []
+  const approve = s.helpers?.approve ?? []
+  if (kind === 'canary') {
+    return [tt(mm.whoCanaryStop), approve.length ? tt(mm.whoCanaryContinue, { names: andList(approve) }) : ''].filter(Boolean).join(' · ')
+  }
+  return [tt(mm.whoPause), send.length ? tt(mm.whoResume, { names: andList(send) }) : ''].filter(Boolean).join(' · ')
+}
+
+/** "SES done about 09:51 · Postal about 09:48": when each route is done at current rates (review GS-8). */
+export function routeDoneLine(s: Snapshot): string {
+  const parts = s.providers
+    .filter((p) => p.doneAt && p.remaining > 0)
+    .map((p, i) => tt(i === 0 ? mm.routeDoneFirst : mm.routeDoneNext, { provider: p.short, time: clock(p.doneAt!) }))
+  return parts.join(' · ')
 }
 
 /** API error rates: "0.1%", "0.4%", "100%". */

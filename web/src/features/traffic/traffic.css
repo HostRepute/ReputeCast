@@ -188,6 +188,7 @@
   .tr-how {
     margin: 0;
     padding-left: 18px;
+    list-style: decimal;
     display: flex;
     flex-direction: column;
     gap: 8px;

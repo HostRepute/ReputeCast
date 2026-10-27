@@ -63,6 +63,9 @@ export const entries: Entry[] = [
   { board: 'LiveMonitorPaused', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live`, widths: [1440, 834] },
   { board: 'LiveMonitorPausedPhone', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live`, widths: [390] },
   { board: 'LiveMonitorOutage', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live` },
+  // A send starting with a canary (the normal scenario runs one; --elapsed 8m shows its watch).
+  { board: 'LiveMonitorCanary', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live`, widths: [1440, 834] },
+  { board: 'LiveMonitorCanaryPhone', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live`, widths: [390] },
   // Connecting, stream lost and complete: reproduce by hand (see CONTRIBUTING.md).
   { board: 'LiveMonitorStates', manual: true },
   // Marcus Chen signs in with SSO only; Linh is an approver too and sees the same list.
@@ -74,6 +77,8 @@ export const entries: Entry[] = [
   { board: 'Providers', path: `${ws}/providers` },
   { board: 'ProvidersRouting', path: `${ws}/providers/routing` },
   { board: 'ProvidersWarmup', path: `${ws}/providers/warmup` },
+  { board: 'ProvidersTrafficRules', path: `${ws}/providers/traffic-rules`, widths: [1440, 834] },
+  { board: 'ProvidersTrafficRulesPhone', path: `${ws}/providers/traffic-rules`, widths: [390] },
   { board: 'ProvidersEvents', path: `${ws}/providers/events` },
   { board: 'ProvidersAdapters', path: `${ws}/providers/adapters` },
   { board: 'ProvidersOutage', manual: true },

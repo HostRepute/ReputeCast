@@ -9,7 +9,7 @@ import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Checkbox, Input, Select, Toggle } from '@/components/ui/Field'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
-import { count, dayMonthDate, clock, duration, trimPct } from '@/lib/format'
+import { count, dayMonthDate, clock, duration, pct } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { mailboxName } from '@/features/live/model'
 import { ProvidersTabs, throwIfForbidden } from '@/features/providers/common'
@@ -256,13 +256,13 @@ function FieldError({ f, id }: { f: FieldProps; id: string }) {
 function SectionHead({ id, title, caption, badge }: { id: string; title: string; caption: ReactNode; badge?: ReactNode }) {
   return (
     <div className="tr-sech">
-      <div className="flex min-w-0 flex-col gap-0.5">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <h2 className="h2" id={id}>
           {title}
         </h2>
         <span className="k">{caption}</span>
       </div>
-      {badge}
+      {badge ? <span className="flex-none">{badge}</span> : null}
     </div>
   )
 }
@@ -706,7 +706,6 @@ function CanaryCard({
           </div>
         </fieldset>
         <p className="tr-fn">{t(m.canaryNote, { minutes: canaryDelay(c) })}</p>
-        <p className="tr-fn">{t(m.canaryHonest)}</p>
       </div>
     </section>
   )
@@ -753,7 +752,7 @@ function AfterCard({
         <div className="tr-swrow">
           <Toggle
             label={t(m.postmasterTitle)}
-            description={t(m.postmasterBody, { limit: trimPct(form.thresholds.complaint) })}
+            description={t(m.postmasterBody, { limit: pct(form.thresholds.complaint, 2) })}
             checked={w.postmaster}
             disabled={ro}
             onChange={(e) => setWatch('postmaster', e.target.checked)}

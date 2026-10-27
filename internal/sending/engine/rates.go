@@ -84,7 +84,7 @@ func rateProblem(mbp string, v float64) (string, i18n.Args) {
 		return "state.rateMailbox", i18n.Args{"key": mbp}
 	}
 	if math.IsNaN(v) || v < 0 || v > maxRate || (v > 0 && v < 0.1) {
-		return "state.rateRange", i18n.Args{"mailbox": mbp, "max": int64(maxRate)}
+		return "state.rateRange", i18n.Args{"mailbox": mailboxName(mbp), "max": int64(maxRate)}
 	}
 	return "", nil
 }

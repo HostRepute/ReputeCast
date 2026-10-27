@@ -103,7 +103,7 @@ export const m = defineMessages('traffic', {
   reasonOverUsualNone: 'usual: the median of the last 8 sends, once there are some',
   size: 'Size',
   sizeUnit: '% most engaged',
-  seeds: '{count, plural, =0 {Add the seed inboxes} one {Add the seed inbox} other {Add the # seed inboxes}}',
+  seeds: '{count, plural, =0 {Add the seed mailboxes} one {Add the seed mailbox} other {Add the # seed mailboxes}}',
   seedsNone: 'No seed mailboxes connected yet: add them in Deliverability › Placement tests.',
   watchTime: 'Watch time',
   gates: 'Gates',
@@ -114,10 +114,9 @@ export const m = defineMessages('traffic', {
   gateSeeds: 'Seeds in spam, at most',
   gateSeedsOf: 'of {count}',
   gateLabel: 'Canary gate, {gate}: limit in percent',
-  gateSeedsLabel: 'Canary gate, seed inboxes in spam: at most',
+  gateSeedsLabel: 'Canary gate, seed mailboxes in spam: at most',
   canaryNote:
     "The canary starts at the scheduled time and everyone else waits for it, so a send with a canary finishes about {minutes} minutes later. When the watch ends and every gate with enough evidence passes, the send continues by itself; if a gate fails, it stays held and you're asked. Gates still collecting evidence don't hold the send; they become its thresholds.",
-  canaryHonest: "The most engaged readers can't tell how new imports will react: their complaints are watched during the main send and after it.",
 
   // After the send.
   afterTitle: 'After the send',

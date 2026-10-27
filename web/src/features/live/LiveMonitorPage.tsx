@@ -10,6 +10,7 @@ import { t as tt, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { clockSeconds } from '@/lib/format'
 import { useMediaQuery, useNow } from '@/lib/hooks'
+import { cn } from '@/lib/cn'
 import { useWorkspace } from '@/lib/session'
 import { CancelSendDialog, useLiveActions, useLivePermissions, type LiveActions, type LivePermissions } from './actions'
 import { canaryActive } from './canary'
@@ -20,7 +21,7 @@ import { LiveBody } from './LiveParts'
 import { m } from './messages'
 import { MobileLive } from './Mobile'
 import { ThresholdsDialog } from './ResumeDialog'
-import { eventsCaption, headerBadges, isStarting, lostText, openIncident, startedLine, type CaptionKind, type Incident, type Snapshot } from './model'
+import { freshness, headerBadges, isStarting, lostText, openIncident, openNotices, startedLine, whoLine, type Incident, type Snapshot } from './model'
 import {
   CancelledView,
   ConnectingCard,
@@ -30,7 +31,10 @@ import {
   IncidentBanner,
   LiveSkeleton,
   PausedBanner,
+  NoticeBanners,
   ScheduledView,
+  StaleBanner,
+  staleText,
   StreamLostBanner,
 } from './States'
 import { MAX_ATTEMPTS, useLiveSend, type StreamState } from './useLiveSend'
@@ -113,6 +117,10 @@ function LiveScreen({
   const mode = modeOf(s, incident, search.view, now)
   const active = ['preparing', 'sending', 'partial', 'paused'].includes(s.state)
   const lost = active && (stream.status === 'retrying' || stream.status === 'stopped') && stream.lostAt !== undefined
+  // A stream that says nothing for 90 s is stale: the monitor checks every
+  // 10 s and says so (LiveMonitorStates; review GS-14).
+  const stale = active && !lost && stream.status === 'stale'
+  const fresh = freshness(s, now, stale ? 'polling' : lost ? 'reconnecting' : 'live')
   const asOf = clockSeconds(s.at)
   const setView = (view: LiveSearch['view']) =>
     void navigate({ to: '/w/$workspace/campaigns/$campaignId/live', params: { workspace: slug, campaignId }, search: view ? { view } : {}, replace: true })
@@ -127,9 +135,11 @@ function LiveScreen({
         onReconnect={stream.reconnect}
       />
     ) : null
+  const staleBanner = stale ? <StaleBanner {...staleText(s, stream.heardAt, now)} onReconnect={stream.reconnect} /> : null
   const pausedBanner =
     s.state === 'paused' && !incident ? <PausedBanner s={s} can={can} onResume={resume} onCancel={cancelOpen} busy={actions.pending} /> : null
   const incidentBanner = incident && mode !== 'decision' ? <IncidentBanner s={s} incident={incident} onDecide={() => setView(undefined)} /> : null
+  const noticeBanners = active && openNotices(s).length ? <NoticeBanners s={s} actions={actions} can={can} /> : null
 
   const dialog = (
     <>
@@ -140,22 +150,27 @@ function LiveScreen({
   // "Edit for this send" (review GS-2): who can resume can change them.
   const editThresholds = active ? { onEdit: () => setEditing(true), disabledReason: can.resume } : undefined
 
-  const canary = canaryActive(s.canary) && (mode === 'live' || mode === 'connecting' || (mode === 'decision' && incident?.kind === 'canary')) ? s.canary : undefined
+  // The connecting card comes first, a canary's too (LiveMonitorStates › loading).
+  const canary = canaryActive(s.canary) && (mode === 'live' || (mode === 'decision' && incident?.kind === 'canary')) ? s.canary : undefined
   if (phone && !canary && (mode === 'live' || mode === 'connecting')) {
     return (
       <>
         <MobileLive
           s={s}
-          now={now}
-          streaming={!lost}
+          edit={editThresholds}
+          streaming={!lost && !stale}
+          freshness={fresh}
+          actions={actions}
           incident={incident}
           connecting={mode === 'connecting'}
           banner={
-            lostBanner || pausedBanner || incidentBanner ? (
+            lostBanner || staleBanner || pausedBanner || incidentBanner || noticeBanners ? (
               <>
                 {lostBanner}
+                {staleBanner}
                 {pausedBanner}
                 {incidentBanner}
+                {noticeBanners}
               </>
             ) : null
           }
@@ -176,7 +191,8 @@ function LiveScreen({
       body = (
         <>
           {lostBanner}
-          <CanaryView s={s} c={canary!} actions={actions} can={can} now={now} streaming={!lost} />
+          {staleBanner}
+          <CanaryView s={s} c={canary!} actions={actions} can={can} now={now} />
         </>
       )
       break
@@ -210,13 +226,16 @@ function LiveScreen({
       body = (
         <>
           {lostBanner}
+          {staleBanner}
           {pausedBanner}
           {incidentBanner}
+          {noticeBanners}
           <LiveBody
             s={s}
             campaignId={campaignId}
-            streaming={!lost}
+            streaming={!lost && !stale}
             stale={lost}
+            polling={stale ? fresh.text : undefined}
             asOf={asOf}
             incident={incident}
             edit={editThresholds}
@@ -234,19 +253,27 @@ function LiveScreen({
       breadcrumb={crumbs(slug, s.name)}
       subtitle={startedLine(s) || undefined}
       badges={
-        canary ? (
-          <Badge tone={canary.phase === 'held' ? 'bad' : 'info'} dot>
-            {t(mc.badge, { phase: canary.phase })}
-          </Badge>
-        ) : (
-          <HeaderBadges s={s} incident={incident} mode={mode} />
-        )
+        <>
+          {canary ? (
+            <Badge tone={canary.phase === 'held' ? 'bad' : 'info'} dot>
+              {t(mc.badge, { phase: canary.phase })}
+            </Badge>
+          ) : (
+            <HeaderBadges s={s} incident={incident} mode={mode} />
+          )}
+          {active ? (
+            <span className={cn('lv-fresh', fresh.stale && 'stale')}>
+              <span className="dot" aria-hidden="true" />
+              {fresh.text}
+            </span>
+          ) : null}
+        </>
       }
       actions={
         canary ? (
-          <span className="k lv-caption">{eventsCaption(s, now, 'live', !lost)}</span>
+          <span className="k lv-caption">{whoLine(s, 'canary')}</span>
         ) : (
-          <HeaderActions s={s} mode={mode} incident={incident} now={now} lost={lost} can={can} actions={actions} onPause={pause} onCancel={cancelOpen} onBack={() => setView('live')} />
+          <HeaderActions s={s} mode={mode} incident={incident} can={can} actions={actions} onPause={pause} onCancel={cancelOpen} onBack={() => setView('live')} />
         )
       }
     >
@@ -283,8 +310,6 @@ function HeaderActions({
   s,
   mode,
   incident,
-  now,
-  lost,
   can,
   actions,
   onPause,
@@ -294,8 +319,6 @@ function HeaderActions({
   s: Snapshot
   mode: Mode
   incident?: Incident
-  now: Date
-  lost: boolean
   can: LivePermissions
   actions: LiveActions
   onPause: () => void
@@ -304,10 +327,9 @@ function HeaderActions({
 }) {
   const t = useT()
   if (mode === 'decision') {
-    const kind: CaptionKind = incident?.kind === 'provider_outage' ? 'outage' : 'threshold'
     return (
       <>
-        <span className="k lv-caption">{eventsCaption(s, now, kind, !lost)}</span>
+        <span className="k lv-caption">{whoLine(s)}</span>
         <Button onClick={onBack}>{t(m.backToLive)}</Button>
       </>
     )
@@ -316,9 +338,9 @@ function HeaderActions({
   const paused = s.state === 'paused' && !incident
   return (
     <>
-      <span className="k lv-caption">{eventsCaption(s, now, 'live', !lost)}</span>
+      <span className="k lv-caption">{whoLine(s)}</span>
       {s.options.canPause ? (
-        <Button onClick={onPause} disabledReason={can.pause} loading={actions.pending} title={t(m.pauseNeeds, { perm: 'campaigns:pause' })}>
+        <Button onClick={onPause} disabledReason={can.pause} loading={actions.pending}>
           {t(m.pause)}
         </Button>
       ) : null}

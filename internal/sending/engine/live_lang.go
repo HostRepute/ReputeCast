@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/tracking"
 )
 
@@ -17,7 +18,8 @@ import (
 // region. Their values are formatted here rather than by the message: a
 // value's name says how ("…Rate" a rate per second with at most one
 // decimal, "…Pct" a percentage with two decimals below 1% and one above,
-// "…Day" a day without its year, "mailbox" a mailbox provider's key, any
+// "…Day" a day without its year, "mailbox" a mailbox provider's key (it
+// reads as the provider's name: "Outlook", "Other"), any
 // other number a count), which writes the English exactly as the engine
 // always has.
 
@@ -164,6 +166,10 @@ func value(l i18n.Lang, name string, v any) any {
 	r := l.Region
 	switch x := v.(type) {
 	case string:
+		if name == "mailbox" && slices.Contains(routing.MailboxProviders, x) {
+			// A mailbox provider's key reads as its name ("Outlook", "Other").
+			return mailboxIn(l, x)
+		}
 		if strings.HasSuffix(name, "Day") {
 			if t, err := time.Parse(time.RFC3339, x); err == nil {
 				return r.DayMonth(t)

@@ -1,6 +1,7 @@
 package engine_test
 
 import (
+	"regexp"
 	"testing"
 	"time"
 
@@ -75,6 +76,16 @@ func testComplaintWatch(t *testing.T, f *sendtest.Fixture) {
 	}
 	if n := f.Count(`SELECT count(*) FROM notifications WHERE kind = 'complaint_watch' AND data->>'campaignId' = $1`, f.Campaign.String()); n == 0 {
 		t.Fatal("nobody was alerted")
+	}
+	// The alert names the mailbox provider and writes its rates as
+	// percentages.
+	var body string
+	if err := f.Env.App.Pool.QueryRow(f.Ctx, `SELECT body FROM notifications WHERE kind = 'complaint_watch' AND data->>'campaignId' = $1 LIMIT 1`,
+		f.Campaign.String()).Scan(&body); err != nil {
+		t.Fatal(err)
+	}
+	if !regexp.MustCompile(`^Outlook complaints reached \d+\.\d+% \(limit 0\.10%\) after the send ended\.`).MatchString(body) {
+		t.Fatalf("alert %q", body)
 	}
 	if n := f.Count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.complaint_alert'`, f.Campaign.String()); n != 1 {
 		t.Fatalf("%d complaint alert audit entries", n)

@@ -254,8 +254,10 @@ func recentText(l i18n.Lang, r store.TrafficRecentActionsRow) string {
 		if t := d.kept(); len(t.Causes) > 0 {
 			args["lead"] = sentence(l, t.Causes[0].Lead)
 		}
+		args["lead"] = strings.TrimSuffix(args["lead"].(string), ".")
 	}
-	return text(l, "recent."+r.Kind, args)
+	// Through sentence: mailbox providers by name, rates as percentages.
+	return sentence(l, keep("recent."+r.Kind, args))
 }
 
 // seedCount is how many seed inboxes a workspace connected.

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -23,6 +22,12 @@ import (
 type liveInput struct {
 	api.WorkspaceInput
 	CampaignID string `path:"campaignId" format:"uuid" doc:"Campaign id"`
+}
+
+// LiveHeartbeat is the stream's sign of life while nothing changes (review
+// GS-14: stale data detection).
+type LiveHeartbeat struct {
+	At time.Time `json:"at"`
 }
 
 type liveStreamInput struct {
@@ -154,12 +159,12 @@ func Register(h huma.API, e *Engine) {
 		})
 	sse.Register(h, huma.Operation{
 		OperationID: "stream-live-send", Method: http.MethodGet, Path: api.Version + base + "/stream",
-		Summary:     "Server-sent events of a send: a snapshot event at once and on every change, heartbeats as comments",
-		Description: "Each `snapshot` event carries the whole live state; its id is the snapshot version, so a reconnecting EventSource resumes with Last-Event-ID.",
+		Summary:     "Server-sent events of a send: a snapshot event at once and on every change, a heartbeat event every 15 s",
+		Description: "Each `snapshot` event carries the whole live state; its id is the snapshot version, so a reconnecting EventSource resumes with Last-Event-ID. A `heartbeat` event every 15 s says the connection is alive while nothing changes: a monitor that hears nothing for longer treats its data as stale.",
 		Tags:        tags, Security: []map[string][]string{{"session": {}}, {"bearer": {}}},
 		Metadata:   map[string]any{"reputecast.access": api.Workspace(authz.CampaignsView)},
 		Extensions: map[string]any{"x-access": string(api.AccessWorkspace), "x-permission": string(authz.CampaignsView)},
-	}, map[string]any{"snapshot": LiveSnapshot{}}, func(ctx context.Context, in *liveStreamInput, send sse.Sender) {
+	}, map[string]any{"snapshot": LiveSnapshot{}, "heartbeat": LiveHeartbeat{}}, func(ctx context.Context, in *liveStreamInput, send sse.Sender) {
 		id, err := uuid.Parse(in.CampaignID)
 		if err != nil {
 			return
@@ -180,7 +185,11 @@ func Register(h huma.API, e *Engine) {
 		updates, cancel := e.Subscribe(ctx, ws.ID, id)
 		defer cancel()
 		resumed := in.LastEventID != "" || in.LastEventIDQuery != ""
-		heartbeat := time.NewTicker(15 * time.Second)
+		every := e.StreamHeartbeat
+		if every <= 0 {
+			every = 15 * time.Second
+		}
+		heartbeat := time.NewTicker(every)
 		defer heartbeat.Stop()
 		_ = send(sse.Message{Retry: 3000, Comment: "connected"})
 		for {
@@ -195,7 +204,7 @@ func Register(h huma.API, e *Engine) {
 					return
 				}
 			case <-heartbeat.C:
-				if err := send.Comment("heartbeat " + strconv.FormatInt(time.Now().Unix(), 10)); err != nil {
+				if err := send(sse.Message{Data: LiveHeartbeat{At: time.Now().UTC()}}); err != nil {
 					return
 				}
 			}

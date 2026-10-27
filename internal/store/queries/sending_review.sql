@@ -309,3 +309,12 @@ FROM messages WHERE campaign_id = @campaign_id AND canary;
 -- name: SendingSetCampaignCanary :exec
 -- The canary choice a send starts with (Review & send; C1).
 UPDATE campaigns SET canary = @canary WHERE id = @id;
+
+-- GS-14: the live monitor -----------------------------------------------------
+
+-- name: SendingRetrying :many
+-- A send's messages a mailbox provider deferred that the sending provider
+-- is still retrying (no delivery or bounce yet), per mailbox provider.
+SELECT mailbox_provider, count(*)::bigint AS n FROM messages
+WHERE campaign_id = @campaign_id AND status = 'deferred'
+GROUP BY mailbox_provider;
