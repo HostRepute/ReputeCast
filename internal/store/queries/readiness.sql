@@ -210,3 +210,7 @@ DELETE FROM campaign_send_confirmations WHERE campaign_id = @campaign_id;
 -- Whether Gmail Postmaster Tools data comes in for the workspace at all
 -- (recent days for any domain).
 SELECT EXISTS (SELECT 1 FROM postmaster_daily WHERE workspace_id = @workspace_id AND day >= @since::date)::bool;
+
+-- name: ReadinessConfirmCanary :exec
+-- The canary choice confirmed with a send (C1).
+UPDATE campaign_send_confirmations SET canary = @canary WHERE campaign_id = @campaign_id;

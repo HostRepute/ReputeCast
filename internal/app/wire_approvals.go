@@ -130,13 +130,19 @@ var readinessConditional = func(*App) readiness.ConditionalChecker { return nil 
 // verification domain replaces it from its wire file. Nil leaves them out.
 var readinessVerification = func(*App) readiness.VerificationChecker { return nil }
 
+// approvalsCanaryPlanner tells Review & send the sending engine's canary
+// plan (C1: engine.CanaryPlanFor); the engine's wire file sets it. Nil
+// asks the sending starter, when it tells one.
+var approvalsCanaryPlanner = func(*App) sending.CanaryPlanner { return nil }
+
 // newApprovals builds the approvals service with its own Send Readiness.
 func newApprovals(a *App) *approvals.Service {
 	rs := readinessService(a)
 	s := &approvals.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log, Readiness: rs, Campaigns: rs.Campaigns,
-		Languages: rs.Languages,
-		Sending:   func() sending.Starter { return a.Sending },
+		Languages:     rs.Languages,
+		Sending:       func() sending.Starter { return a.Sending },
+		CanaryPlanner: approvalsCanaryPlanner(a),
 		// Publishing an approved automation: the gate already passed.
 		Automations: &automations.Service{
 			Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Log: a.Log,

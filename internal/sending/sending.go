@@ -37,6 +37,48 @@ type Explained interface {
 
 type recheckKey struct{ campaign uuid.UUID }
 
+// The canary choices of a send (C1, GS-10): the sending engine decides
+// (auto: a new sending domain or IP, contacts never mailed from the
+// domain, an audience over 2× usual), or the person asked for one (on) or
+// against one (off) on Review & send.
+const (
+	CanaryAuto = "auto"
+	CanaryOn   = "on"
+	CanaryOff  = "off"
+)
+
+type canaryKey struct{ campaign uuid.UUID }
+
+// WithCanary hands Start the canary choice a person confirmed on Review &
+// send for the campaign (the engine's StartOptions.Canary). A scheduled
+// send keeps it with what was confirmed (readiness.Confirmation.Canary).
+func WithCanary(ctx context.Context, campaignID uuid.UUID, choice string) context.Context {
+	return context.WithValue(ctx, canaryKey{campaignID}, choice)
+}
+
+// CanaryFrom is the choice WithCanary attached for the campaign, "auto"
+// without one.
+func CanaryFrom(ctx context.Context, campaignID uuid.UUID) string {
+	if c, ok := ctx.Value(canaryKey{campaignID}).(string); ok && c != "" {
+		return c
+	}
+	return CanaryAuto
+}
+
+// CanaryPlan is what the sending engine would do about a canary for a
+// campaign (C1: engine.CanaryPlanFor): whether it starts with one on its
+// own, why, and how many recipients the canary holds.
+type CanaryPlan struct {
+	Auto    bool
+	Reasons []string
+	Size    int64
+}
+
+// CanaryPlanner tells Review & send the canary plan of a campaign.
+type CanaryPlanner interface {
+	CanaryPlanFor(ctx context.Context, campaignID uuid.UUID) (CanaryPlan, error)
+}
+
 // WithRecheck hands Start the send-time recheck its caller has just run for
 // the campaign, so Send Readiness doesn't run a second time.
 func WithRecheck(ctx context.Context, campaignID uuid.UUID, rc Recheck) context.Context {

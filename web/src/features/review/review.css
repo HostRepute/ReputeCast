@@ -181,6 +181,15 @@
   .rv-sum.s-minus {
     color: var(--ink-3);
   }
+  /* The canary choice in the confirmation (C1). */
+  .rv-confirm .c-canary {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .rv-confirm .c-canary select {
+    max-width: 320px;
+  }
   /* "Include them" under the sunset policy's line of the audience. */
   .rv-lnk {
     background: none;

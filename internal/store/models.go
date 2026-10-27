@@ -749,6 +749,7 @@ type CampaignSendConfirmation struct {
 	ContentDigest string     `json:"contentDigest"`
 	SenderID      *uuid.UUID `json:"senderId"`
 	RouteDigest   string     `json:"routeDigest"`
+	Canary        string     `json:"canary"`
 }
 
 type CampaignVersion struct {

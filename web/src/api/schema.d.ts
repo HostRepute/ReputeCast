@@ -19048,6 +19048,8 @@ export interface components {
         };
         ApprovalBypassInput: {
             acknowledged?: string[];
+            /** @enum {string} */
+            canary?: "auto" | "on" | "off";
             confirm?: string;
             password?: string;
             reason: string;
@@ -20878,6 +20880,7 @@ export interface components {
             access: components["schemas"]["ReviewAccess"];
             approval: components["schemas"]["ReviewApproval"];
             campaign: components["schemas"]["ReviewCampaign"];
+            canary: components["schemas"]["ReviewCanary"];
             failed?: components["schemas"]["ReadinessRunFailure"];
             held?: components["schemas"]["ReviewHeld"];
             /** Format: int64 */
@@ -35257,6 +35260,15 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        ReviewCanary: {
+            auto: boolean;
+            /** @enum {string} */
+            choice: "auto" | "on" | "off";
+            planned: boolean;
+            reasons: string[];
+            /** Format: int64 */
+            size: number;
+        };
         ReviewCount: {
             /** Format: date-time */
             at: string;
@@ -35288,6 +35300,8 @@ export interface components {
         };
         ReviewSendInput: {
             acknowledged?: string[];
+            /** @enum {string} */
+            canary?: "auto" | "on" | "off";
             confirm?: string;
             /** Format: uuid */
             runId: string;

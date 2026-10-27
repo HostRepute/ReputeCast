@@ -154,6 +154,21 @@ func (q *Queries) ReadinessClaimProgress(ctx context.Context, arg ReadinessClaim
 	return run_id, err
 }
 
+const readinessConfirmCanary = `-- name: ReadinessConfirmCanary :exec
+UPDATE campaign_send_confirmations SET canary = $1 WHERE campaign_id = $2
+`
+
+type ReadinessConfirmCanaryParams struct {
+	Canary     string    `json:"canary"`
+	CampaignID uuid.UUID `json:"campaignId"`
+}
+
+// The canary choice confirmed with a send (C1).
+func (q *Queries) ReadinessConfirmCanary(ctx context.Context, arg ReadinessConfirmCanaryParams) error {
+	_, err := q.db.Exec(ctx, readinessConfirmCanary, arg.Canary, arg.CampaignID)
+	return err
+}
+
 const readinessConfirmSend = `-- name: ReadinessConfirmSend :exec
 INSERT INTO campaign_send_confirmations (campaign_id, workspace_id, run_id, confirmed_by, confirmed_at, scheduled_at, recipients, acknowledged, unknown,
     content_digest, sender_id, route_digest)
@@ -815,7 +830,7 @@ func (q *Queries) ReadinessSegmentNames(ctx context.Context, workspaceID uuid.UU
 }
 
 const readinessSendConfirmation = `-- name: ReadinessSendConfirmation :one
-SELECT campaign_id, workspace_id, run_id, confirmed_by, confirmed_at, scheduled_at, recipients, acknowledged, unknown, content_digest, sender_id, route_digest FROM campaign_send_confirmations WHERE campaign_id = $1
+SELECT campaign_id, workspace_id, run_id, confirmed_by, confirmed_at, scheduled_at, recipients, acknowledged, unknown, content_digest, sender_id, route_digest, canary FROM campaign_send_confirmations WHERE campaign_id = $1
 `
 
 func (q *Queries) ReadinessSendConfirmation(ctx context.Context, campaignID uuid.UUID) (CampaignSendConfirmation, error) {
@@ -834,6 +849,7 @@ func (q *Queries) ReadinessSendConfirmation(ctx context.Context, campaignID uuid
 		&i.ContentDigest,
 		&i.SenderID,
 		&i.RouteDigest,
+		&i.Canary,
 	)
 	return i, err
 }

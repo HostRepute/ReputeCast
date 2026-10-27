@@ -3,6 +3,7 @@ import { useId, useState } from 'react'
 import { ApiError } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { Field, Select } from '@/components/ui/Field'
 import { count, money } from '@/lib/format'
 import { confirmLanguages } from '@/features/languages/review'
 import { mr } from '@/features/languages/messages'
@@ -10,7 +11,9 @@ import { useT } from '@/i18n'
 import { acknowledgedKeys, acknowledgements, minutes, scheduleSentence, thresholdsLine, verdictTitle, type Review, type Run } from './logic'
 import { m } from './messages'
 
-export type SendIntent = { acknowledged: string[]; confirm?: string }
+export type Canary = 'auto' | 'on' | 'off'
+
+export type SendIntent = { acknowledged: string[]; confirm?: string; canary: Canary }
 
 /**
  * The deliberate last step before a send (SendReadinessConfirm): what goes
@@ -45,6 +48,8 @@ export function ConfirmSend({
   const large = recipients >= review.largeSend
   const [checked, setChecked] = useState<string[]>([])
   const [typed, setTyped] = useState('')
+  // The canary phase (C1): the engine decides, or the person asks for one or against one.
+  const [canary, setCanary] = useState<Canary>(review.canary.choice)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   const schedule = review.schedule
@@ -68,7 +73,7 @@ export function ConfirmSend({
     setBusy(true)
     setError(undefined)
     try {
-      await onConfirm({ acknowledged: acknowledgedKeys(acks, checked), confirm: large ? typed : undefined })
+      await onConfirm({ acknowledged: acknowledgedKeys(acks, checked), confirm: large ? typed : undefined, canary })
       setBusy(false)
       close(false)
     } catch (e) {
@@ -91,6 +96,17 @@ export function ConfirmSend({
   ]
     .filter(Boolean)
     .join(' · ')
+  const plan = review.canary
+  const canaryHint =
+    canary === 'on'
+      ? t(m.canaryOnHint)
+      : canary === 'off'
+        ? t(m.canaryOffHint)
+        : !plan.planned
+          ? t(m.canaryPlanUnknown)
+          : plan.auto
+            ? t(m.canaryPlanAuto, { size: count(plan.size), reasons: plan.reasons.join('; ') || t(m.canaryPlanNew) })
+            : t(m.canaryPlanNone)
   const subjectLabel = t(m.rowSubject)
   const rows: [string, string][] = [
     [t(m.rowFrom), c.from || '—'],
@@ -127,6 +143,15 @@ export function ConfirmSend({
                   </div>
                 ))}
               </div>
+            </section>
+            <section className="c-canary">
+              <Field label={t(m.canaryLabel)} hint={canaryHint}>
+                <Select value={canary} disabled={busy} onChange={(e) => setCanary(e.target.value as Canary)}>
+                  <option value="auto">{t(m.canaryAuto)}</option>
+                  <option value="on">{t(m.canaryOn)}</option>
+                  <option value="off">{t(m.canaryOff)}</option>
+                </Select>
+              </Field>
             </section>
             {acks.length ? (
               <section className="c-acks" aria-label={t(m.warningsToConfirm)}>

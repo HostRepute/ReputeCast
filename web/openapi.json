@@ -7753,6 +7753,14 @@
             "maxItems": 60,
             "type": "array"
           },
+          "canary": {
+            "enum": [
+              "auto",
+              "on",
+              "off"
+            ],
+            "type": "string"
+          },
           "confirm": {
             "maxLength": 20,
             "type": "string"
@@ -14188,6 +14196,9 @@
           "campaign": {
             "$ref": "#/components/schemas/ReviewCampaign"
           },
+          "canary": {
+            "$ref": "#/components/schemas/ReviewCanary"
+          },
           "failed": {
             "$ref": "#/components/schemas/ReadinessRunFailure"
           },
@@ -14244,7 +14255,8 @@
           "access",
           "largeSend",
           "pauseSlack",
-          "timezone"
+          "timezone",
+          "canary"
         ],
         "type": "object"
       },
@@ -64336,6 +64348,43 @@
         ],
         "type": "object"
       },
+      "ReviewCanary": {
+        "additionalProperties": false,
+        "properties": {
+          "auto": {
+            "type": "boolean"
+          },
+          "choice": {
+            "enum": [
+              "auto",
+              "on",
+              "off"
+            ],
+            "type": "string"
+          },
+          "planned": {
+            "type": "boolean"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "size": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "choice",
+          "planned",
+          "auto",
+          "reasons",
+          "size"
+        ],
+        "type": "object"
+      },
       "ReviewCount": {
         "additionalProperties": false,
         "properties": {
@@ -64449,6 +64498,14 @@
             },
             "maxItems": 60,
             "type": "array"
+          },
+          "canary": {
+            "enum": [
+              "auto",
+              "on",
+              "off"
+            ],
+            "type": "string"
           },
           "confirm": {
             "maxLength": 20,

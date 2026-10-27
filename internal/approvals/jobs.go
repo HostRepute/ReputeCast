@@ -182,8 +182,13 @@ func (s *Service) Tick(ctx context.Context) error {
 			continue
 		}
 		if h.ScheduledAt != nil && !h.ScheduledAt.After(now) {
-			// The recheck passed after the scheduled time: start the send.
-			if err := s.starter().Start(ctx, h.ID, uuid.Nil); err != nil && !errors.Is(err, sending.ErrUnavailable) {
+			// The recheck passed after the scheduled time: start the send,
+			// with the canary choice confirmed with it (C1).
+			start := ctx
+			if conf, err := s.Readiness.Confirmed(ctx, h.ID); err == nil && conf != nil && conf.Canary != "" {
+				start = sending.WithCanary(ctx, h.ID, conf.Canary)
+			}
+			if err := s.starter().Start(start, h.ID, uuid.Nil); err != nil && !errors.Is(err, sending.ErrUnavailable) {
 				errs = append(errs, err)
 			}
 		}

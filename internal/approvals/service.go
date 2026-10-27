@@ -40,6 +40,10 @@ type Service struct {
 	Campaigns *campaigns.Service
 	// Sending starts and schedules sends (App.Sending, read at call time).
 	Sending func() sending.Starter
+	// CanaryPlanner tells Review & send whether the sending engine would
+	// start a send with a canary on its own (C1: engine.CanaryPlanFor);
+	// nil when the engine doesn't tell.
+	CanaryPlanner sending.CanaryPlanner
 	// Automations publishes an automation once its approval is granted.
 	Automations *automations.Service
 	// Languages snapshots a campaign's language versions; nil leaves them out.
@@ -67,6 +71,19 @@ func (s *Service) now() time.Time {
 		return s.Now()
 	}
 	return time.Now()
+}
+
+// canaryPlanner is the sending engine's canary plan (C1): the
+// CanaryPlanner the app wires (engine.CanaryPlanFor), else the sending
+// starter when it tells one; nil when nothing does.
+func (s *Service) canaryPlanner() sending.CanaryPlanner {
+	if s.CanaryPlanner != nil {
+		return s.CanaryPlanner
+	}
+	if cp, ok := s.starter().(sending.CanaryPlanner); ok {
+		return cp
+	}
+	return nil
 }
 
 func (s *Service) starter() sending.Starter {

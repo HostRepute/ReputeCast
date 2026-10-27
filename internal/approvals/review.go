@@ -13,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/readiness"
+	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -151,6 +152,21 @@ type CampaignReview struct {
 	PauseSlack bool `json:"pauseSlack"`
 	// Timezone is the workspace's.
 	Timezone string `json:"timezone"`
+	// Canary is the send's canary phase (C1): the choice, and what the
+	// sending engine would do on its own.
+	Canary ReviewCanary `json:"canary"`
+}
+
+// ReviewCanary is the canary phase of a send (C1, GS-10): the choice
+// confirmed (auto when none was), and the sending engine's plan when it
+// can tell: whether it starts with a canary on its own (Auto), why, and how
+// many recipients the canary holds.
+type ReviewCanary struct {
+	Choice  string   `json:"choice" enum:"auto,on,off"`
+	Planned bool     `json:"planned"`
+	Auto    bool     `json:"auto"`
+	Reasons []string `json:"reasons"`
+	Size    int64    `json:"size"`
 }
 
 func abSummary(l i18n.Lang, raw json.RawMessage) *ReviewAB {
@@ -177,7 +193,19 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if err != nil {
 		return CampaignReview{}, err
 	}
-	out := CampaignReview{TestSends: []ReviewTestSend{}, LargeSend: LargeSend, Timezone: ws.Timezone}
+	out := CampaignReview{TestSends: []ReviewTestSend{}, LargeSend: LargeSend, Timezone: ws.Timezone,
+		Canary: ReviewCanary{Choice: sending.CanaryAuto, Reasons: []string{}}}
+	if conf, err := s.Readiness.Confirmed(ctx, campaignID); err == nil && conf != nil && conf.Canary != "" {
+		out.Canary.Choice = conf.Canary
+	}
+	if cp := s.canaryPlanner(); cp != nil {
+		if plan, err := cp.CanaryPlanFor(ctx, campaignID); err == nil {
+			out.Canary.Planned, out.Canary.Auto, out.Canary.Size = true, plan.Auto, plan.Size
+			if plan.Reasons != nil {
+				out.Canary.Reasons = plan.Reasons
+			}
+		}
+	}
 	out.Campaign = ReviewCampaign{ID: c.ID.String(), Name: c.Name, Status: c.Status, Subject: c.Subject, Preheader: c.Preheader, From: fromLine(c.SenderName, c.SenderEmail),
 		ReplyTo: c.ReplyTo, Version: int(c.Version), AutosavedAt: c.AutosavedAt, UpdatedAt: c.UpdatedAt, UpdatedBy: c.UpdatedByName, ScheduledAt: c.ScheduledAt,
 		StartedAt: c.StartedAt, AB: abSummary(langOf(ctx), c.AbTest)}

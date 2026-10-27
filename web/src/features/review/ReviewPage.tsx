@@ -273,7 +273,7 @@ function ReviewBody({
   const run = d.run
   const sendOrSchedule = async (intent: SendIntent) => {
     if (!run) return
-    const body = { runId: run.id, acknowledged: intent.acknowledged, confirm: intent.confirm }
+    const body = { runId: run.id, acknowledged: intent.acknowledged, confirm: intent.confirm, canary: intent.canary }
     try {
       const res =
         confirm === 'approved' && d.approval.request

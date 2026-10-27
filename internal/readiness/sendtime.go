@@ -80,6 +80,9 @@ type Confirmation struct {
 	Acknowledged []string
 	Unknown      []string
 	Digests
+	// Canary is the canary choice confirmed with the send (C1): auto, on
+	// or off; the sending engine reads it as the send starts.
+	Canary string
 }
 
 // Confirm keeps what a person confirmed as they schedule (or start) a
@@ -115,6 +118,12 @@ func (s *Service) Confirm(ctx context.Context, q *store.Queries, ws *store.Works
 		RouteDigest: d.Route})
 }
 
+// SetCanary keeps the canary choice confirmed with a send (C1): auto, on
+// or off. q writes in the caller's transaction, after Confirm.
+func (s *Service) SetCanary(ctx context.Context, q *store.Queries, campaignID uuid.UUID, choice string) error {
+	return q.ReadinessConfirmCanary(ctx, store.ReadinessConfirmCanaryParams{Canary: choice, CampaignID: campaignID})
+}
+
 // Confirmed is what was confirmed for a campaign's send; nil when nothing
 // was (a send scheduled through the API before confirmations were kept).
 func (s *Service) Confirmed(ctx context.Context, campaignID uuid.UUID) (*Confirmation, error) {
@@ -126,7 +135,7 @@ func (s *Service) Confirmed(ctx context.Context, campaignID uuid.UUID) (*Confirm
 		return nil, err
 	}
 	out := &Confirmation{ConfirmedBy: r.ConfirmedBy, ConfirmedAt: r.ConfirmedAt, ScheduledAt: r.ScheduledAt, Recipients: r.Recipients,
-		Acknowledged: r.Acknowledged, Unknown: r.Unknown, Digests: Digests{Content: r.ContentDigest, Route: r.RouteDigest}}
+		Acknowledged: r.Acknowledged, Unknown: r.Unknown, Digests: Digests{Content: r.ContentDigest, Route: r.RouteDigest}, Canary: r.Canary}
 	if r.RunID != nil {
 		out.RunID = r.RunID.String()
 	}

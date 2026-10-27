@@ -2589,6 +2589,8 @@ type Querier interface {
 	ReadinessCampaignWorkspace(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
 	// A worker takes up a queued run: it still owns the campaign's row.
 	ReadinessClaimProgress(ctx context.Context, arg ReadinessClaimProgressParams) (uuid.UUID, error)
+	// The canary choice confirmed with a send (C1).
+	ReadinessConfirmCanary(ctx context.Context, arg ReadinessConfirmCanaryParams) error
 	// What a person confirmed as they scheduled or started a send (SR-3): the
 	// send-time recheck holds the send on anything they didn't.
 	ReadinessConfirmSend(ctx context.Context, arg ReadinessConfirmSendParams) error
