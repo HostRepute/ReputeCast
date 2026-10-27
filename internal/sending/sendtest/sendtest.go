@@ -86,6 +86,13 @@ func NewSuite(t *testing.T) *Suite {
 	s.Start = time.Now().Truncate(time.Second)
 	start := s.Start
 	s.E.Now = func() time.Time { return start }
+	// Every scenario starts from the demo's provider history: the bounces
+	// and complaints an earlier scenario's send added would otherwise reach
+	// the next one's Send Readiness recheck (the bulk-sender rule blocks at
+	// 0.3%) and its guard.
+	if _, err := env.App.Pool.Exec(s.Ctx, `CREATE TABLE sendtest_provider_daily_stats AS SELECT * FROM provider_daily_stats`); err != nil {
+		t.Fatal(err)
+	}
 	return s
 }
 
@@ -97,6 +104,8 @@ func (s *Suite) Fixture(t *testing.T, name string) *Fixture {
 	f := &Fixture{Suite: s, T: t, List: uuid.Must(uuid.NewV7()), Campaign: uuid.Must(uuid.NewV7())}
 	f.Exec(`DELETE FROM sending_rate_windows`)
 	f.Exec(`DELETE FROM sending_mailbox_windows`)
+	f.Exec(`DELETE FROM provider_daily_stats`)
+	f.Exec(`INSERT INTO provider_daily_stats SELECT * FROM sendtest_provider_daily_stats`)
 	f.Exec(`DELETE FROM traffic_reply_rules WHERE workspace_id = $1`, s.WS)
 	f.Exec(`INSERT INTO lists (id, workspace_id, name) VALUES ($1, $2, $3)`, f.List, s.WS, "Send test "+name)
 	// The copy starts without a canary unless a test asks for one (GS-10).
