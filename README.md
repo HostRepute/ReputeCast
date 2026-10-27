@@ -46,9 +46,12 @@ seat or workspace limit.
   warm-up enforced as mail goes out, and one shared suppression list that
   pushes only what applies to all mail. Or
   [write an adapter](docs/adapters.md).
-- **Composer.** A drag-and-drop MJML builder with Liquid personalization, a
-  code view, device and inbox previews, A/B variants and inline deliverability
-  warnings.
+- **Composer.** A drag-and-drop MJML builder with a Write mode for people who
+  just want to type, personalization chips with fallbacks, a code view,
+  device and inbox previews (or real renders through your own Litmus or
+  Mailgun Inspect), A/B variants each checked on its own, a brand kit with
+  synced header and footer, comments and review links, autosave that
+  survives a crash, and inline deliverability warnings.
 - **Honest analytics.** Human, privacy-protected (Apple Mail) and machine
   opens counted apart, with the open rate of the opens you can measure;
   clicks settled against security scanners before they count; complaint
