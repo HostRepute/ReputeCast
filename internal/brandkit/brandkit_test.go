@@ -20,7 +20,12 @@ import (
 // CO-11: the brand kit, applying it to starters and blocks, synced blocks
 // reaching drafts and scheduled emails, and importing from a website.
 
-const ws = "/workspaces/acme-newsletter"
+// Acme Newsletter has the demo's kit (internal/demo/seed_brandkit.go); the
+// engineering blog has none, so a first save happens there.
+const (
+	ws  = "/workspaces/acme-newsletter"
+	eng = "/workspaces/acme-engineering-blog"
+)
 
 type kit struct {
 	Saved     bool
@@ -54,7 +59,7 @@ func logoPNG(t *testing.T) []byte {
 	return b.Bytes()
 }
 
-func upload(t *testing.T, c *apptest.Client, name string, data []byte) string {
+func upload(t *testing.T, c *apptest.Client, base, name string, data []byte) string {
 	t.Helper()
 	var body bytes.Buffer
 	mw := multipart.NewWriter(&body)
@@ -62,7 +67,7 @@ func upload(t *testing.T, c *apptest.Client, name string, data []byte) string {
 	_, _ = fw.Write(data)
 	_ = mw.Close()
 	var a struct{ ID string }
-	c.DoRaw("POST", ws+"/media", mw.FormDataContentType(), &body).MustStatus(t, 201).JSON(t, &a)
+	c.DoRaw("POST", base+"/media", mw.FormDataContentType(), &body).MustStatus(t, 201).JSON(t, &a)
 	return a.ID
 }
 
@@ -77,11 +82,11 @@ func input(logo string) map[string]any {
 	}
 }
 
-func campaign(t *testing.T, c *apptest.Client, mjml string) string {
+func campaign(t *testing.T, c *apptest.Client, base, mjml string) string {
 	t.Helper()
 	var d struct{ ID string }
-	c.Do("POST", ws+"/campaigns", map[string]any{}).MustStatus(t, 201).JSON(t, &d)
-	c.Do("PUT", ws+"/campaigns/"+d.ID+"/content", map[string]any{"baseVersion": 1, "subject": "Hello", "mjml": mjml}).MustStatus(t, 200)
+	c.Do("POST", base+"/campaigns", map[string]any{}).MustStatus(t, 201).JSON(t, &d)
+	c.Do("PUT", base+"/campaigns/"+d.ID+"/content", map[string]any{"baseVersion": 1, "subject": "Hello", "mjml": mjml}).MustStatus(t, 200)
 	return d.ID
 }
 
@@ -94,18 +99,24 @@ func TestBrandKit(t *testing.T) {
 	aisha.SignInDemo("aisha@acme.io")
 
 	var k kit
+	// A viewer reads Acme's kit and can't change it.
 	aisha.Do("GET", ws+"/brand-kit", nil).MustStatus(t, 200).JSON(t, &k)
+	if !k.Saved {
+		t.Fatalf("Acme's kit: %+v", k)
+	}
+	aisha.Do("PUT", ws+"/brand-kit", input("")).MustStatus(t, 403)
+	// Without a kit: ReputeCast's defaults, until the first save.
+	linh.Do("GET", eng+"/brand-kit", nil).MustStatus(t, 200).JSON(t, &k)
 	if k.Saved || k.Colors.Button != "#0F766E" || len(k.Synced) != 0 {
 		t.Fatalf("defaults: %+v", k)
 	}
-	aisha.Do("PUT", ws+"/brand-kit", input("")).MustStatus(t, 403)
 	bad := input("")
 	bad["colors"].(map[string]any)["link"] = "indigo"
-	linh.Do("PUT", ws+"/brand-kit", bad).MustStatus(t, 422)
-	linh.Do("PUT", ws+"/brand-kit", input("0192e8f0-0000-7000-8000-000000000000")).MustStatus(t, 422)
+	linh.Do("PUT", eng+"/brand-kit", bad).MustStatus(t, 422)
+	linh.Do("PUT", eng+"/brand-kit", input("0192e8f0-0000-7000-8000-000000000000")).MustStatus(t, 422)
 
-	logo := upload(t, linh, "acme-logo.png", logoPNG(t))
-	linh.Do("PUT", ws+"/brand-kit", input(logo)).MustStatus(t, 200).JSON(t, &k)
+	logo := upload(t, linh, eng, "acme-logo.png", logoPNG(t))
+	linh.Do("PUT", eng+"/brand-kit", input(logo)).MustStatus(t, 200).JSON(t, &k)
 	if !k.Saved || k.Colors.Button != "#4338CA" || k.LogoLight == nil || k.LogoLight.MediaID != logo || k.Button.Shape != "pill" || len(k.Synced) != 2 {
 		t.Fatalf("saved: %+v", k)
 	}
@@ -119,7 +130,7 @@ func TestBrandKit(t *testing.T) {
 
 	// Starters start from the kit: its colours, fonts, button, logo and synced blocks.
 	var tpl struct{ MJML string }
-	linh.Do("GET", ws+"/templates/starter:weekly-digest", nil).MustStatus(t, 200).JSON(t, &tpl)
+	linh.Do("GET", eng+"/templates/starter:weekly-digest", nil).MustStatus(t, 200).JSON(t, &tpl)
 	for _, want := range []string{`background-color="#4338CA"`, `border-radius="999px"`, `font-size="15px"`, `'Inter', Arial, Helvetica, sans-serif`, `<mj-font name="Inter"`,
 		`rc-synced="footer"`, `rc-synced="header"`, k.LogoLight.URL, `background-color="#F5F3FF"`} {
 		if !strings.Contains(tpl.MJML, want) {
@@ -134,23 +145,23 @@ func TestBrandKit(t *testing.T) {
 	doc := func(block string) string {
 		return `<mjml><mj-body><mj-section><mj-column><mj-text>News</mj-text></mj-column></mj-section>` + block + `</mj-body></mjml>`
 	}
-	draft := campaign(t, linh, doc(footer.MJML))
-	sent := campaign(t, linh, doc(footer.MJML))
-	held := campaign(t, linh, doc(footer.MJML))
+	draft := campaign(t, linh, eng, doc(footer.MJML))
+	sent := campaign(t, linh, eng, doc(footer.MJML))
+	held := campaign(t, linh, eng, doc(footer.MJML))
 	if _, err := env.App.Pool.Exec(context.Background(), `UPDATE campaigns SET status = 'sent' WHERE id = $1`, sent); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := env.App.Pool.Exec(context.Background(), `UPDATE campaigns SET status = 'approval' WHERE id = $1`, held); err != nil {
 		t.Fatal(err)
 	}
-	linh.Do("GET", ws+"/brand-kit", nil).MustStatus(t, 200).JSON(t, &k)
+	linh.Do("GET", eng+"/brand-kit", nil).MustStatus(t, 200).JSON(t, &k)
 	if u := k.Synced[0].Uses; u.Drafts != 1 || u.Sent != 1 || u.Held != 1 {
 		t.Fatalf("uses: %+v", u)
 	}
 
 	// The footer needs its unsubscribe link, and is one section.
-	linh.Do("PUT", ws+"/brand-kit/synced/footer", map[string]any{"mjml": `<mj-section><mj-column><mj-text>No way out</mj-text></mj-column></mj-section>`}).MustStatus(t, 422)
-	linh.Do("PUT", ws+"/brand-kit/synced/footer", map[string]any{"mjml": `<mj-text>{{ unsubscribe_url }}</mj-text>`}).MustStatus(t, 422)
+	linh.Do("PUT", eng+"/brand-kit/synced/footer", map[string]any{"mjml": `<mj-section><mj-column><mj-text>No way out</mj-text></mj-column></mj-section>`}).MustStatus(t, 422)
+	linh.Do("PUT", eng+"/brand-kit/synced/footer", map[string]any{"mjml": `<mj-text>{{ unsubscribe_url }}</mj-text>`}).MustStatus(t, 422)
 	aisha.Do("PUT", ws+"/brand-kit/synced/footer", map[string]any{"mjml": footer.MJML}).MustStatus(t, 403)
 
 	next := `<mj-section background-color="#F5F3FF" padding="18px 24px"><mj-column><mj-text align="center">Acme Inc · 77 Harbour Rd<br><a href="{{ unsubscribe_url }}">Unsubscribe</a> · <a href="{{ preferences_url }}">Email preferences</a></mj-text></mj-column></mj-section>`
@@ -158,7 +169,7 @@ func TestBrandKit(t *testing.T) {
 		Block   struct{ Version int }
 		Applied struct{ Drafts, Scheduled, Held, Sent int }
 	}
-	linh.Do("PUT", ws+"/brand-kit/synced/footer", map[string]any{"mjml": next}).MustStatus(t, 200).JSON(t, &saved)
+	linh.Do("PUT", eng+"/brand-kit/synced/footer", map[string]any{"mjml": next}).MustStatus(t, 200).JSON(t, &saved)
 	if saved.Block.Version != 2 || saved.Applied.Drafts != 1 || saved.Applied.Sent != 1 || saved.Applied.Held != 1 {
 		t.Fatalf("saved: %+v", saved)
 	}
@@ -182,11 +193,11 @@ func TestBrandKit(t *testing.T) {
 	}
 
 	// A new logo reaches the synced Header and the drafts holding it.
-	withHeader := campaign(t, linh, doc(header.MJML))
-	logo2 := upload(t, linh, "acme-logo-2.png", append(logoPNG(t), 0)) // other bytes, another image
+	withHeader := campaign(t, linh, eng, doc(header.MJML))
+	logo2 := upload(t, linh, eng, "acme-logo-2.png", append(logoPNG(t), 0)) // other bytes, another image
 	in := input(logo2)
 	in["logoAlt"] = "Acme, Inc."
-	linh.Do("PUT", ws+"/brand-kit", in).MustStatus(t, 200).JSON(t, &k)
+	linh.Do("PUT", eng+"/brand-kit", in).MustStatus(t, 200).JSON(t, &k)
 	if k.Synced[1].Version != 2 || !strings.Contains(k.Synced[1].MJML, k.LogoLight.URL) || !strings.Contains(k.Synced[1].MJML, `alt="Acme, Inc."`) {
 		t.Fatalf("header after the new logo: %s", k.Synced[1].MJML)
 	}
@@ -258,7 +269,7 @@ func TestImportFromWebsite(t *testing.T) {
 		Fonts []string
 		Notes []string
 	}
-	linh.Do("POST", ws+"/brand-kit/import", map[string]any{"website": srv.URL}).MustStatus(t, 200).JSON(t, &imp)
+	linh.Do("POST", eng+"/brand-kit/import", map[string]any{"website": srv.URL}).MustStatus(t, 200).JSON(t, &imp)
 	st := imp.Style
 	if st.Colors.Button != "#4338CA" || st.Colors.Link != "#4338CA" || st.Colors.Text != "#1F2937" || st.Colors.Background != "#F5F3FF" {
 		t.Fatalf("colours: %+v", st.Colors)
@@ -280,11 +291,11 @@ func TestImportFromWebsite(t *testing.T) {
 	}
 	// Nothing saved.
 	var k kit
-	linh.Do("GET", ws+"/brand-kit", nil).MustStatus(t, 200).JSON(t, &k)
+	linh.Do("GET", eng+"/brand-kit", nil).MustStatus(t, 200).JSON(t, &k)
 	if k.Saved {
 		t.Fatal("an import saves nothing")
 	}
-	linh.Do("POST", ws+"/brand-kit/import", map[string]any{"website": "http://127.0.0.1:1"}).MustStatus(t, 502)
+	linh.Do("POST", eng+"/brand-kit/import", map[string]any{"website": "http://127.0.0.1:1"}).MustStatus(t, 502)
 }
 
 func TestContrastAndApply(t *testing.T) {

@@ -15,7 +15,7 @@ import { toast } from '@/components/ui/Toast'
 import { T, formatList, useT } from '@/i18n'
 import { clock, count, dayMonthDate, money, shortDate, weekdayDate } from '@/lib/format'
 import { roleName } from '@/lib/roles'
-import { deniedReason, useMe, useWorkspace } from '@/lib/session'
+import { useMe, useWorkspace } from '@/lib/session'
 import '@/features/integrations/integrations.css'
 import { aiBase, AI_FEATURES, referenceOf, useAISettings, useRefreshAI, type AIConnection, type AIFeature, type AISettings, type AITest } from './api'
 import { AIModelCard, AITile } from './catalog'
@@ -357,7 +357,8 @@ function ReadOnlyNote({ s }: { s: AISettings }) {
 /** Not connected: the invitation and the five providers (AISettings · not connected). */
 function NotConnected({ s, onConnect }: { s: AISettings; onConnect: (p: AIProvider) => void }) {
   const t = useT()
-  const denied = s.canManage ? undefined : deniedReason('integrations:manage', s.helpers)
+  // Who can connect one, in people's words (X-1), not the permission's key.
+  const denied = s.canManage ? undefined : s.helpers.length ? t(m.connectWhoAsk, { helpers: formatList(s.helpers, 'disjunction') }) : t(m.connectWho)
   return (
     <>
       <AINote tone="info">{t(m.notConnectedNote)}</AINote>

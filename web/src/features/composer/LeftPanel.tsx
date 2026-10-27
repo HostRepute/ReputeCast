@@ -93,7 +93,7 @@ function BlockTile({ def, flagged, onSaved }: { def: BlockDef | { id: string; la
     >
       <BlockIcon name={def.icon} />
       {def.label}
-      {'badge' in def && def.badge ? <span className="blk-new">{def.badge}</span> : null}
+      {'badge' in def && def.badge ? <span className={def.id.startsWith('rc-synced-') ? 'blk-syn' : 'blk-new'}>{def.badge}</span> : null}
     </button>
   )
 }
@@ -107,10 +107,13 @@ function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSe
   const storeDefs = useStoreBlockDefs(!blocks && c.kind !== 'transactional')
   // The brand kit: its synced Header and Footer, and its style on new blocks (CO-11).
   const kit = useBrandKit().data
-  const defs = useMemo(
-    () => [...syncedBlockDefs(blocks ? undefined : kit, t), ...(blocks ?? blockDefs(c.context.postalAddress)).map((d) => ({ ...d, content: applyBrand(d.content, kit) })), ...storeDefs],
-    [blocks, c.context.postalAddress, storeDefs, kit, t],
-  )
+  const defs = useMemo(() => {
+    const synced = syncedBlockDefs(blocks ? undefined : kit, t)
+    // The kit's synced Header and Footer take the built-in ones' places (Composer board).
+    const builtIn: Record<string, string> = { 'rc-header': 'rc-synced-header', 'rc-footer': 'rc-synced-footer' }
+    const base = (blocks ?? blockDefs(c.context.postalAddress)).map((d) => synced.find((x) => x.id === builtIn[d.id]) ?? { ...d, content: applyBrand(d.content, kit) })
+    return [...synced.filter((x) => !base.includes(x)), ...base, ...storeDefs]
+  }, [blocks, c.context.postalAddress, storeDefs, kit, t])
   useEffect(() => {
     if (!c.editor) return
     const api = blocksApi(c.editor)
@@ -180,7 +183,7 @@ function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSe
               </div>
               <div className={g.key === 'grow' ? 'blk-grid gw-cmp-grid' : 'blk-grid'}>
                 {items.map((d) => (
-                  <BlockTile key={d.id} def={d} flagged={footerMissing && d.id === 'rc-footer'} />
+                  <BlockTile key={d.id} def={d} flagged={footerMissing && (d.id === 'rc-footer' || d.id === 'rc-synced-footer')} />
                 ))}
                 {showSaved ? (
                   <BlockTile def={{ id: 'rc-saved', label: t(mc.savedSectionsCount, { count: savedCount }), icon: 'saved', group: 'reputecast', kind: 'section', content: '' }} onSaved={onShowSections} />
