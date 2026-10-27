@@ -65,5 +65,11 @@
   "notify.mentionBody": { "message": "{name} mentioned you in a comment on “{campaign}”: “{excerpt}” Open the comment to reply.", "note": "the notification email's text" },
   "problem.reviewLimited": "Too many requests from this address. Try again in a few minutes.",
   "problem.reviewGone": "This review link has expired or was revoked. Ask whoever shared it for a new one.",
-  "problem.reviewName": "Add your name so the team knows who commented."
+  "problem.reviewName": "Add your name so the team knows who commented.",
+  "dismiss.decorative": {"message": "the image is decorative", "note": "why a warning was dismissed, after \"Dismissed by Linh Nguyen ·\""},
+  "dismiss.size": "we'll stay under 102 KB",
+  "dismiss.subject": "sent this subject style to this list before",
+  "dismiss.wrong": "the check is wrong here",
+  "dismiss.other": "another reason",
+  "problem.dismissNote": "Say why in the note, so reviewers know."
 }

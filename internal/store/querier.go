@@ -515,6 +515,10 @@ type Querier interface {
 	ChanSuppressionRemove(ctx context.Context, arg ChanSuppressionRemoveParams) error
 	// A page of the SMS suppression list, newest first.
 	ChanSuppressions(ctx context.Context, arg ChanSuppressionsParams) ([]ChanSuppressionsRow, error)
+	CheckDismissalDelete(ctx context.Context, arg CheckDismissalDeleteParams) (CheckDismissalDeleteRow, error)
+	CheckDismissalInsert(ctx context.Context, arg CheckDismissalInsertParams) (uuid.UUID, error)
+	// The warnings dismissed in a campaign's composer (CO-14).
+	CheckDismissalsList(ctx context.Context, arg CheckDismissalsListParams) ([]CheckDismissalsListRow, error)
 	ClaimAutomationEvents(ctx context.Context, lim int32) ([]ClaimAutomationEventsRow, error)
 	// Runs ready to move on, in flows that are live (paused flows hold their runs).
 	ClaimDueAutomationRuns(ctx context.Context, arg ClaimDueAutomationRunsParams) ([]ClaimDueAutomationRunsRow, error)

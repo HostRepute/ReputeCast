@@ -65,5 +65,11 @@
   "notify.mentionBody": "{name} đã nhắc đến bạn trong một nhận xét về “{campaign}”: “{excerpt}” Mở nhận xét để trả lời.",
   "problem.reviewLimited": "Có quá nhiều yêu cầu từ địa chỉ này. Hãy thử lại sau vài phút.",
   "problem.reviewGone": "Liên kết góp ý này đã hết hạn hoặc bị thu hồi. Hãy xin người đã chia sẻ một liên kết mới.",
-  "problem.reviewName": "Hãy thêm tên của bạn để nhóm biết ai đã nhận xét."
+  "problem.reviewName": "Hãy thêm tên của bạn để nhóm biết ai đã nhận xét.",
+  "dismiss.decorative": "ảnh chỉ để trang trí",
+  "dismiss.size": "email sẽ giữ dưới 102 KB",
+  "dismiss.subject": "đã gửi kiểu tiêu đề này cho danh sách này trước đây",
+  "dismiss.wrong": "kiểm tra này không đúng ở đây",
+  "dismiss.other": "lý do khác",
+  "problem.dismissNote": "Hãy ghi lý do vào ghi chú để người duyệt biết."
 }

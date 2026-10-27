@@ -73,6 +73,7 @@ export const m = defineMessages('composer', {
   backToEditor: 'Back to editor',
   previewLabel: 'Preview',
   campaignLabel: 'Campaign',
+  campaignName: 'Campaign name',
   preview: 'Preview',
   reviewSend: 'Review & send',
   requestApproval: 'Request approval',

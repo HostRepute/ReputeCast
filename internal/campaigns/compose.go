@@ -700,6 +700,10 @@ type ComposerChecks struct {
 	// Variants are what checking each A/B variant (its subject and
 	// preheader, or its content) finds beyond variant A's issues above.
 	Variants []ComposerVariantChecks `json:"variants"`
+	// IssueKeys name each of issues, to dismiss a warning (CO-14).
+	IssueKeys []string `json:"issueKeys"`
+	// Dismissed are the warnings someone dismissed, with why.
+	Dismissed []ComposerDismissedIssue `json:"dismissed"`
 }
 
 // ComposerVariantChecks is what one A/B variant's check finds that variant
@@ -756,6 +760,9 @@ func (s *Service) Checks(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 		if is.ID == "compliance.footer" {
 			out.FooterRemovedAt = s.footerRemovedAt(ctx, id)
 		}
+	}
+	if err := s.markDismissed(ctx, ws, id, in.Subject, &out); err != nil {
+		return ComposerChecks{}, err
 	}
 	return out, nil
 }

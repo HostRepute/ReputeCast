@@ -654,6 +654,19 @@ type CampaignAudienceStage struct {
 	Exclude    bool      `json:"exclude"`
 }
 
+type CampaignCheckDismissal struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	CampaignID  uuid.UUID  `json:"campaignId"`
+	IssueKey    string     `json:"issueKey"`
+	CheckID     string     `json:"checkId"`
+	Title       string     `json:"title"`
+	Reason      string     `json:"reason"`
+	Note        string     `json:"note"`
+	DismissedBy *uuid.UUID `json:"dismissedBy"`
+	CreatedAt   time.Time  `json:"createdAt"`
+}
+
 type CampaignComment struct {
 	ID           uuid.UUID   `json:"id"`
 	WorkspaceID  uuid.UUID   `json:"workspaceId"`

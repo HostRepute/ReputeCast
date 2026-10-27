@@ -17726,6 +17726,12 @@
             "format": "int64",
             "type": "integer"
           },
+          "dismissed": {
+            "items": {
+              "$ref": "#/components/schemas/ComposerDismissedIssue"
+            },
+            "type": "array"
+          },
           "footerRemovedAt": {
             "format": "date-time",
             "type": "string"
@@ -17741,6 +17747,12 @@
           "imagesMissingAlt": {
             "format": "int64",
             "type": "integer"
+          },
+          "issueKeys": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "issues": {
             "items": {
@@ -17817,6 +17829,8 @@
         "required": [
           "lint",
           "variants",
+          "issueKeys",
+          "dismissed",
           "verdict",
           "blocks",
           "warnings",
@@ -18099,6 +18113,111 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ComposerDismissInput": {
+        "additionalProperties": false,
+        "properties": {
+          "checkId": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[a-f0-9]+$",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "decorative",
+              "size",
+              "subject",
+              "wrong",
+              "other"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "checkId",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "ComposerDismissal": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "checkId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "decorative",
+              "size",
+              "subject",
+              "wrong",
+              "other"
+            ],
+            "type": "string"
+          },
+          "reasonText": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "checkId",
+          "reason",
+          "reasonText",
+          "note",
+          "by",
+          "at"
+        ],
+        "type": "object"
+      },
+      "ComposerDismissedIssue": {
+        "additionalProperties": false,
+        "properties": {
+          "dismissal": {
+            "$ref": "#/components/schemas/ComposerDismissal"
+          },
+          "index": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "index",
+          "dismissal"
+        ],
         "type": "object"
       },
       "ComposerMember": {
@@ -111565,6 +111684,151 @@
           }
         ],
         "summary": "Save the content as a new version (autosave)",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/dismissals": {
+      "post": {
+        "description": "key is the warning's issueKeys entry from the checks. The warning stays listed with who dismissed it and why, and comes back when it changes. Blocking issues are never dismissed.",
+        "operationId": "dismiss-campaign-warning",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComposerDismissInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerDismissal"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dismiss a warning of the composer's checks, with a reason",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/dismissals/{dismissalId}": {
+      "delete": {
+        "operationId": "undismiss-campaign-warning",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "dismissalId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Count a dismissed warning again (Undo)",
         "tags": [
           "Campaigns"
         ],

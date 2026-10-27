@@ -170,3 +170,21 @@ DELETE FROM campaign_presence WHERE campaign_id = @campaign_id AND user_id = @us
 -- Names a version only when nobody named it (a review link's version).
 UPDATE campaign_versions SET name = @name
 WHERE campaign_id = @campaign_id AND version = @version AND name = '';
+
+-- name: CheckDismissalsList :many
+-- The warnings dismissed in a campaign's composer (CO-14).
+SELECT d.id, d.issue_key, d.check_id, d.title, d.reason, d.note, coalesce(u.name, '')::text AS dismissed_by_name, d.created_at
+FROM campaign_check_dismissals d
+LEFT JOIN users u ON u.id = d.dismissed_by
+WHERE d.workspace_id = @workspace_id AND d.campaign_id = @campaign_id
+ORDER BY d.created_at;
+
+-- name: CheckDismissalInsert :one
+INSERT INTO campaign_check_dismissals (id, workspace_id, campaign_id, issue_key, check_id, title, reason, note, dismissed_by, created_at)
+VALUES (@id, @workspace_id, @campaign_id, @issue_key, @check_id, @title, @reason, @note, sqlc.narg(dismissed_by), @created_at)
+ON CONFLICT (campaign_id, issue_key) DO UPDATE SET reason = EXCLUDED.reason, note = EXCLUDED.note, dismissed_by = EXCLUDED.dismissed_by, created_at = EXCLUDED.created_at
+RETURNING id;
+
+-- name: CheckDismissalDelete :one
+DELETE FROM campaign_check_dismissals WHERE workspace_id = @workspace_id AND campaign_id = @campaign_id AND id = @id
+RETURNING check_id, title, reason;

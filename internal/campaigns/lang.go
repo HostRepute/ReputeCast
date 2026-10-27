@@ -87,6 +87,7 @@ var (
 	mReviewLimited          = msgs.M("problem.reviewLimited")
 	mReviewGone             = msgs.M("problem.reviewGone")
 	mReviewName             = msgs.M("problem.reviewName")
+	mDismissNote            = msgs.M("problem.dismissNote")
 )
 
 // PostDraftLabel is the first version's label of a draft made from a

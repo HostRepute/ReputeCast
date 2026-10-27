@@ -73,7 +73,6 @@ describe('write mode', () => {
     // Personalization shows as a chip.
     const chip = doc.querySelector('[data-rc-liquid]')!
     expect(chip.textContent).toBe('first_name · “there”')
-    expect(screen.getByText('Write mode edits the same email as Design mode.')).toBeInTheDocument()
   })
 
   it('writes typed text to the email, and keeps the rest as it was', async () => {

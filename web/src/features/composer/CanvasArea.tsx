@@ -23,7 +23,7 @@ import { chipHtml } from './editor/liquid'
 import { componentAt, insertFooter, reveal } from './fixes'
 import { EmptyGallery } from './Gallery'
 import { ToolIcon } from './icons'
-import { canvasIssues, contentIssues } from './RightPanel'
+import { canvasIssues } from './RightPanel'
 import { LiquidPopover } from './LiquidChips'
 import { StateCards } from './StateCards'
 import { AccessibilityOverlays } from '@/features/accessibility/composer/Overlays'
@@ -199,18 +199,22 @@ export function ViewSeg({ dim }: { dim?: boolean }) {
   )
 }
 
-function Toolbar({ zoom }: { zoom: number }) {
+function Toolbar({ zoom, zoomMode, onZoom }: { zoom: number; zoomMode: ZoomMode; onZoom: (z: ZoomMode) => void }) {
   const c = useComposer()
   const t = useT()
   const digest = useDigestMode()
-  const issues = contentIssues(canvasIssues(c))
-  const blocks = issues.filter((i) => i.severity === 'block').length
-  const warns = issues.length - blocks
   const mobile = c.device === 'mobile'
   return (
-    <div className="cmp-tools">
-      <DeviceSeg />
-      <ViewSeg />
+    <div className="cmp-tools float">
+      {/* The board's floating tools: undo, redo and zoom (CO-14). */}
+      <div className="ctools" role="group" aria-label={t(mc.undoZoom)}>
+        <UndoRedo />
+        <select className="in" aria-label={t(mc.zoom)} value={zoomMode} onChange={(e) => onZoom(e.target.value as ZoomMode)}>
+          <option value="1">100%</option>
+          <option value="0.75">75%</option>
+          <option value="fit">{zoomMode === 'fit' && zoom < 1 ? t(mc.zoomFitAt, { pct: Math.round(zoom * 100) }) : t(mc.zoomFit)}</option>
+        </select>
+      </div>
       <EmailWebToggle />
       {digest ? <DigestPreviewWith /> : <CanvasPreviewAs />}
       <GrowPreviewAs editor={c.editor} slug={c.slug} rev={c.rev} campaignId={c.kind === 'transactional' ? undefined : c.campaign.id} />
@@ -220,25 +224,8 @@ function Toolbar({ zoom }: { zoom: number }) {
         <span className="k" style={{ marginLeft: 'auto' }}>
           {tt(dc.zoomWhole, { pct: Math.round(WHOLE_ZOOM * 100) })}
         </span>
-      ) : issues.length ? (
-        <>
-          {blocks ? (
-            <Badge tone="bad" dot>
-              {t(mc.blocking, { count: blocks })}
-            </Badge>
-          ) : null}
-          {warns ? (
-            <Badge tone="warn" dot>
-              {t(mc.warnings, { count: warns })}
-            </Badge>
-          ) : null}
-          <span className="k" style={{ marginLeft: 'auto' }}>
-            {t(mc.warningsNote)}
-          </span>
-        </>
       ) : mobile ? (
         <>
-          <UndoRedo />
           <Badge tone="info">{t(mc.columnsStack)}</Badge>
           <span className="k inline-flex items-center gap-1.5" style={{ marginLeft: 'auto' }}>
             {t(mc.darkMode)}{' '}
@@ -247,15 +234,9 @@ function Toolbar({ zoom }: { zoom: number }) {
             </button>
           </span>
         </>
-      ) : (
-        <>
-          <UndoRedo />
-          {/* A digest's issues have no A/B test: each issue's subject comes from its posts. */}
-          {digest || c.campaign.digestRole ? null : <VariantSeg />}
-          <span className="k" style={{ marginLeft: 'auto' }}>
-            {t(mc.zoomHint, { zoom: Math.round(zoom * 100) })}
-          </span>
-        </>
+      ) : digest || c.campaign.digestRole ? null : (
+        // A digest's issues have no A/B test: each issue's subject comes from its posts.
+        <VariantSeg />
       )}
     </div>
   )
@@ -659,8 +640,10 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
   )
 }
 
-/** Fits the device width into the canvas column (tablet and phone screens). */
-function useZoom(editor: Editor | null, stage: HTMLElement | null, device: DeviceId): number {
+/** 100%, 75%, or Fit: the device width fitted into the canvas column (tablet and phone screens). */
+export type ZoomMode = '1' | '0.75' | 'fit'
+
+function useZoom(editor: Editor | null, stage: HTMLElement | null, device: DeviceId, mode: ZoomMode = 'fit'): number {
   const [zoom, setZoom] = useState(1)
   useLayoutEffect(() => {
     if (!stage) return
@@ -668,13 +651,14 @@ function useZoom(editor: Editor | null, stage: HTMLElement | null, device: Devic
     const measure = () => {
       const cs = getComputedStyle(stage)
       const avail = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
-      setZoom(avail >= width ? 1 : Math.max(0.4, Math.floor((avail / width) * 100) / 100))
+      const fit = avail >= width ? 1 : Math.max(0.4, Math.floor((avail / width) * 100) / 100)
+      setZoom(mode === 'fit' ? fit : Number(mode))
     }
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(stage)
     return () => ro.disconnect()
-  }, [stage, device])
+  }, [stage, device, mode])
   useEffect(() => {
     if (editor && Math.abs(editor.Canvas.getZoom() - zoom * 100) > 0.5) editor.Canvas.setZoom(zoom * 100)
   }, [editor, zoom])
@@ -761,7 +745,8 @@ export function CanvasArea({
   const [host, setHost] = useState<HTMLDivElement | null>(null)
   const [stage, setStage] = useState<HTMLDivElement | null>(null)
   const ed = c.editor
-  const zoom = useZoom(ed, stage, c.device)
+  const [zoomMode, setZoomMode] = useState<ZoomMode>('fit')
+  const zoom = useZoom(ed, stage, c.device, zoomMode)
   const tick = useCanvasTick(ed, host)
   useZoomHeight(ed, zoom, tick, c.device, host)
   useFrameTitle(ed)
@@ -779,17 +764,19 @@ export function CanvasArea({
   if (c.isEmpty) {
     return (
       <>
-        <div className="cmp-tools" style={{ opacity: 0.55 }} aria-hidden="true" inert>
-          <DeviceSeg dim />
-          <ViewSeg dim />
-        </div>
+        {slots?.empty ? (
+          <div className="cmp-tools" style={{ opacity: 0.55 }} aria-hidden="true" inert>
+            <DeviceSeg dim />
+            <ViewSeg dim />
+          </div>
+        ) : null}
         {slots?.empty ?? <EmptyGallery />}
       </>
     )
   }
   return (
     <>
-      {slots?.toolbar ? slots.toolbar(zoom) : <Toolbar zoom={zoom} />}
+      {slots?.toolbar ? slots.toolbar(zoom) : <Toolbar zoom={zoom} zoomMode={zoomMode} onZoom={setZoomMode} />}
       <div ref={canvasRef} className="cmp-canvas" id={c.view === 'visual' ? 'main' : undefined} tabIndex={-1} {...canvasScroll}>
         {whole ? <WholeIssue /> : null}
         <div

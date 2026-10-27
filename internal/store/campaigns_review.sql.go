@@ -54,6 +54,122 @@ func (q *Queries) CampaignsHoldingSynced(ctx context.Context, arg CampaignsHoldi
 	return items, nil
 }
 
+const checkDismissalDelete = `-- name: CheckDismissalDelete :one
+DELETE FROM campaign_check_dismissals WHERE workspace_id = $1 AND campaign_id = $2 AND id = $3
+RETURNING check_id, title, reason
+`
+
+type CheckDismissalDeleteParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+type CheckDismissalDeleteRow struct {
+	CheckID string `json:"checkId"`
+	Title   string `json:"title"`
+	Reason  string `json:"reason"`
+}
+
+func (q *Queries) CheckDismissalDelete(ctx context.Context, arg CheckDismissalDeleteParams) (CheckDismissalDeleteRow, error) {
+	row := q.db.QueryRow(ctx, checkDismissalDelete, arg.WorkspaceID, arg.CampaignID, arg.ID)
+	var i CheckDismissalDeleteRow
+	err := row.Scan(&i.CheckID, &i.Title, &i.Reason)
+	return i, err
+}
+
+const checkDismissalInsert = `-- name: CheckDismissalInsert :one
+INSERT INTO campaign_check_dismissals (id, workspace_id, campaign_id, issue_key, check_id, title, reason, note, dismissed_by, created_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+ON CONFLICT (campaign_id, issue_key) DO UPDATE SET reason = EXCLUDED.reason, note = EXCLUDED.note, dismissed_by = EXCLUDED.dismissed_by, created_at = EXCLUDED.created_at
+RETURNING id
+`
+
+type CheckDismissalInsertParams struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	CampaignID  uuid.UUID  `json:"campaignId"`
+	IssueKey    string     `json:"issueKey"`
+	CheckID     string     `json:"checkId"`
+	Title       string     `json:"title"`
+	Reason      string     `json:"reason"`
+	Note        string     `json:"note"`
+	DismissedBy *uuid.UUID `json:"dismissedBy"`
+	CreatedAt   time.Time  `json:"createdAt"`
+}
+
+func (q *Queries) CheckDismissalInsert(ctx context.Context, arg CheckDismissalInsertParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, checkDismissalInsert,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.CampaignID,
+		arg.IssueKey,
+		arg.CheckID,
+		arg.Title,
+		arg.Reason,
+		arg.Note,
+		arg.DismissedBy,
+		arg.CreatedAt,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const checkDismissalsList = `-- name: CheckDismissalsList :many
+SELECT d.id, d.issue_key, d.check_id, d.title, d.reason, d.note, coalesce(u.name, '')::text AS dismissed_by_name, d.created_at
+FROM campaign_check_dismissals d
+LEFT JOIN users u ON u.id = d.dismissed_by
+WHERE d.workspace_id = $1 AND d.campaign_id = $2
+ORDER BY d.created_at
+`
+
+type CheckDismissalsListParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+}
+
+type CheckDismissalsListRow struct {
+	ID              uuid.UUID `json:"id"`
+	IssueKey        string    `json:"issueKey"`
+	CheckID         string    `json:"checkId"`
+	Title           string    `json:"title"`
+	Reason          string    `json:"reason"`
+	Note            string    `json:"note"`
+	DismissedByName string    `json:"dismissedByName"`
+	CreatedAt       time.Time `json:"createdAt"`
+}
+
+// The warnings dismissed in a campaign's composer (CO-14).
+func (q *Queries) CheckDismissalsList(ctx context.Context, arg CheckDismissalsListParams) ([]CheckDismissalsListRow, error) {
+	rows, err := q.db.Query(ctx, checkDismissalsList, arg.WorkspaceID, arg.CampaignID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CheckDismissalsListRow{}
+	for rows.Next() {
+		var i CheckDismissalsListRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.IssueKey,
+			&i.CheckID,
+			&i.Title,
+			&i.Reason,
+			&i.Note,
+			&i.DismissedByName,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const commentGet = `-- name: CommentGet :one
 SELECT id, thread_id, anchor, anchor_label, resolved_at FROM campaign_comments
 WHERE workspace_id = $1 AND campaign_id = $2 AND id = $3

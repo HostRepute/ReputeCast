@@ -69,6 +69,7 @@ export default translate(m, {
   backToEditor: 'Quay lại trình soạn thảo',
   previewLabel: 'Xem trước',
   campaignLabel: 'Chiến dịch',
+  campaignName: 'Tên chiến dịch',
   preview: 'Xem trước',
   reviewSend: 'Kiểm tra và gửi',
   requestApproval: 'Yêu cầu phê duyệt',

@@ -100,8 +100,6 @@ export default translate(mw, {
   undoPaste: 'Hoàn tác dán',
   pasteUndone: 'Đã hoàn tác thao tác dán',
   pasteUndoneDetail: 'phần đã dán không còn; phần còn lại giữ nguyên',
-  footStrong: 'Chế độ Viết sửa cùng một email với chế độ Thiết kế.',
-  footNote: 'Bố cục, cột và khoảng cách giữ nguyên như trong Thiết kế.',
   empty: 'Email này chưa có nội dung. Gõ / ở dòng bên dưới để thêm khối.',
   readOnly: 'Bạn có thể đọc email ở đây. Người chỉnh sửa chiến dịch có thể thay đổi nó.',
   commentsCount: '{count, plural, =0 {Chưa có nhận xét} other {# nhận xét}}',

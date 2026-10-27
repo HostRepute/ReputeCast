@@ -5,6 +5,10 @@ import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
 import { LanguageBlockPanel } from '@/features/languages/composerParts'
 import { useComposer, type Issue, type RightTab } from './context'
 import { CommentsTab, useCommentsTabLabel } from './Comments'
+import { ChecksSummary, DismissControls, PassedChecks } from './Checks'
+import { useReadiness } from './Header'
+import { mh } from './chrome.messages'
+import type { Schemas } from '@/api/client'
 import { mjChildren, sectionOf, tagOf } from './editor/labels'
 import { applyFix, bodyOf, reveal } from './fixes'
 import { describe, SettingsFields, StyleFields } from './Inspector'
@@ -146,11 +150,11 @@ function NothingSelected() {
   )
 }
 
-function IssueRow({ issue, fixable = true }: { issue: Issue; fixable?: boolean }) {
+function IssueRow({ issue, fixable = true, index, dismissed }: { issue: Issue; fixable?: boolean; index?: number; dismissed?: Schemas['ComposerDismissedIssue'] }) {
   const c = useComposer()
   const t = useT()
   const [alt, setAlt] = useState('')
-  const tone = issue.severity === 'block' ? 'is-block' : issue.group === 'Subject' ? '' : 'is-warn'
+  const tone = dismissed ? 'is-dismissed' : issue.severity === 'block' ? 'is-block' : issue.group === 'Subject' ? '' : 'is-warn'
   const select = () => {
     if (issue.path.length && fixable) reveal(c, issue.path)
   }
@@ -193,6 +197,7 @@ function IssueRow({ issue, fixable = true }: { issue: Issue; fixable?: boolean }
           )}
         </div>
       ) : null}
+      {index !== undefined ? <DismissControls issue={issue} index={index} dismissed={dismissed} /> : null}
     </div>
   )
 }
@@ -279,28 +284,30 @@ export function ChecksRunBar() {
   return null
 }
 
-function DeliverabilityTab() {
+/** The Checks tab's content (also quick review's Checks sheet on phones). */
+export function ChecksContent() {
   const c = useComposer()
   const t = useT()
-  const all = (c.checks?.issues ?? []).filter((i) => i.severity === 'block' || i.severity === 'warn')
-  const rank = (i: Issue) => (i.group === 'Subject' ? 2 : i.severity === 'block' ? 0 : 1)
+  const all = (c.checks?.issues ?? []).map((issue, index) => ({ issue, index })).filter((x) => x.issue.severity === 'block' || x.issue.severity === 'warn')
+  const dismissed = new Map((c.checks?.dismissed ?? []).map((d) => [d.index, d]))
+  const rank = (x: { issue: Issue; index: number }) => (dismissed.has(x.index) ? 3 : x.issue.group === 'Subject' ? 2 : x.issue.severity === 'block' ? 0 : 1)
   const sorted = [...all].sort((a, b) => rank(a) - rank(b))
-  if (!sorted.length && !variantIssueCount(c.checks))
-    return (
-      <>
-        <ChecksRunBar />
-        <div className="k" style={{ padding: '14px 12px' }}>
-          {t(m.noWarningsLong)}
-        </div>
-      </>
-    )
   return (
     <div className="flex flex-col">
       <ChecksRunBar />
-      {sorted.map((i) => (
-        <IssueRow key={`${i.id}-${i.path.join('.')}-${i.title}`} issue={i} />
+      <ChecksSummary onAccessibility={() => c.setRightTab('accessibility')} />
+      {sorted.map(({ issue, index }) => (
+        <IssueRow key={`${issue.id}-${issue.path.join('.')}-${issue.title}`} issue={issue} index={index} dismissed={dismissed.get(index)} />
       ))}
       <VariantIssues />
+      {c.checks ? (
+        <div style={{ padding: '10px 12px 0' }}>
+          <PassedChecks />
+        </div>
+      ) : null}
+      <p className="k m-0" style={{ padding: '10px 12px' }}>
+        {t(mh.checksNote)}
+      </p>
     </div>
   )
 }
@@ -313,14 +320,8 @@ export function RightPanel() {
   const digest = useDigestMode()
   const web = useWebMode()
   const commentsLabel = useCommentsTabLabel()
-  const issues = contentIssues(c.checks?.issues)
-  const variantCount = variantIssueCount(c.checks)
-  // Checks that couldn't run keep their tab, with the stale note and Retry.
-  const stale = Boolean(c.checksFailure)
-  const tab =
-    (c.rightTab === 'deliverability' && !stale && !issues.length && !variantCount && !(c.checks?.issues ?? []).some((i) => i.severity === 'warn' || i.severity === 'block')) || (c.rightTab === 'web' && !web)
-      ? 'style'
-      : c.rightTab
+  const ready = useReadiness()
+  const tab = c.rightTab === 'web' && !web ? 'style' : c.rightTab
   if (c.isEmpty) {
     return (
       <aside className="cpanel right dim" aria-hidden="true" inert>
@@ -345,8 +346,8 @@ export function RightPanel() {
   ]
   // The website's Web tab (features/website), while it's on.
   if (web) items.push({ value: 'web', label: tt(mc.tabWeb) })
-  const allWarn = (c.checks?.issues ?? []).filter((i) => i.severity === 'block' || i.severity === 'warn')
-  if (allWarn.length || variantCount || stale) items.push({ value: 'deliverability', label: t(m.tabDeliverability, { count: (issues.length || allWarn.length) + variantCount }) })
+  // Checks (CO-14): always there, with the count of blocks and warnings not dismissed.
+  items.push({ value: 'deliverability', label: t(mh.tabChecks, { count: ready.blocks + ready.warnings }) })
   const a11yTab = accessibilityTab(a11y)
   if (a11yTab) items.push({ value: 'accessibility', label: a11yTab })
   // Comments (CO-10): campaigns only.
@@ -402,7 +403,7 @@ export function RightPanel() {
           {footer}
         </TabPanel>
         <TabPanel value="deliverability" className="flex flex-1 flex-col" tabIndex={-1}>
-          <DeliverabilityTab />
+          <ChecksContent />
         </TabPanel>
         <TabPanel value="accessibility" className="flex flex-1 flex-col" tabIndex={-1}>
           <AccessibilityPanel />

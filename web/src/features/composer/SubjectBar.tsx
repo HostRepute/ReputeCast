@@ -9,6 +9,7 @@ import { FeedTokensMenu, SubjectPreviews, useDigestMode } from '@/features/diges
 import { dc } from '@/features/digests/composer/messages'
 import { IdeasButton } from '@/features/ai/composer/ideas'
 import { m } from './messages'
+import { mh } from './chrome.messages'
 
 /** Subject of the variant being edited (A is the campaign itself). */
 export function useVariantSubject(): [string, (v: string) => void] {
@@ -24,7 +25,11 @@ export function useVariantSubject(): [string, (v: string) => void] {
   ]
 }
 
-/** Subject and preheader with the inbox preview (Gmail on desktop, iPhone Mail on mobile). */
+/**
+ * Subject and preheader with their lengths, variant B of a subject test,
+ * and the inbox preview (Gmail on desktop, iPhone Mail on mobile): the
+ * Inbox strip's panel (Composer board).
+ */
 export function SubjectBar() {
   const c = useComposer()
   const t = useT()
@@ -40,42 +45,63 @@ export function SubjectBar() {
   const empty = !subject.trim() && !c.preheader.trim()
   const mobile = c.device === 'mobile'
   const language = useVersionName()
+  const ab = c.abTest && c.abTest.kind === 'subject' && !digest && !language ? c.abTest : null
+  const variantB = ab?.variants.find((v) => v.key === 'B')
   const subjectLabel = language
     ? t(mz.subjectIn, { language })
     : digest && !spam
       ? t(dc.subjectLabel)
       : spam
-    ? t(m.subjectSpam, {
-        count: heuristics.length,
-        // The checks name each heuristic in English ("all caps"); the label names it in the app's language.
-        list: heuristics.map((h) => t(m.subjectHeuristic, { h: h.replace(/[^a-z]+/gi, '_').toLowerCase(), name: h })).join(', '),
-      })
-    : c.abTest && c.abTest.kind === 'subject'
-      ? t(m.subjectVariant, { variant: c.variant })
-      : t(m.subject)
+        ? t(m.subjectSpam, {
+            count: heuristics.length,
+            // The checks name each heuristic in English ("all caps"); the label names it in the app's language.
+            list: heuristics.map((h) => t(m.subjectHeuristic, { h: h.replace(/[^a-z]+/gi, '_').toLowerCase(), name: h })).join(', '),
+          })
+        : ab
+          ? t(m.subjectVariant, { variant: 'A' })
+          : t(m.subject)
+  const editingA = !ab || c.variant === 'A'
+  const aValue = ab ? c.subject : subject
+  const setA = ab ? c.setSubject : setSubject
+  const setB = (v: string) => ab && c.setABTest({ ...ab, variants: ab.variants.map((x) => (x.key === 'B' ? { ...x, subject: v } : x)) })
   return (
-    <div className="cmp-subj">
-      <label style={{ flex: digest ? '3 1 380px' : '2 1 320px' }}>
-        <span className="k flex items-center justify-between gap-2" style={spam ? { color: 'var(--warn-fg)' } : undefined}>
-          {subjectLabel}
-          {digest && c.canEdit ? <FeedTokensMenu onInsert={(token) => setSubject(`${subject}${subject && !subject.endsWith(' ') ? ' ' : ''}${token}`)} /> : null}
-        </span>
-        <span className="flex gap-2">
-          <input
-            className={digest ? 'in mono min-w-0 flex-1' : 'in min-w-0 flex-1'}
-            value={subject}
-            placeholder={t(m.subjectPlaceholder)}
-            onChange={(e) => setSubject(e.target.value.replace(/[\r\n]+/g, ' '))}
-            readOnly={!c.canEdit}
-            maxLength={998}
-            aria-invalid={spam || undefined}
-            style={spam ? { borderColor: '#F59E0B', background: '#FFFBEB' } : digest ? { fontSize: 12 } : undefined}
-          />
-          {digest ? null : <IdeasButton />}
-        </span>
-      </label>
-      <label style={{ flex: digest ? '2 1 260px' : '2 1 320px' }}>
-        <span className="k">{language ? t(mz.preheaderIn, { language }) : t(m.preheader)}</span>
+    <div className="ip-in">
+      <div className="ip-row">
+        <label className="lbl">
+          <span className="flex items-center justify-between gap-2" style={spam && editingA ? { color: 'var(--warn-fg)' } : undefined}>
+            {subjectLabel}
+            {digest && c.canEdit ? <FeedTokensMenu onInsert={(token) => setSubject(`${subject}${subject && !subject.endsWith(' ') ? ' ' : ''}${token}`)} /> : null}
+          </span>
+          <span className="flex gap-2">
+            <input
+              className={digest ? 'in mono min-w-0 flex-1' : 'in min-w-0 flex-1'}
+              value={aValue}
+              placeholder={t(m.subjectPlaceholder)}
+              onChange={(e) => setA(e.target.value.replace(/[\r\n]+/g, ' '))}
+              readOnly={!c.canEdit}
+              maxLength={998}
+              aria-invalid={(spam && editingA) || undefined}
+              style={spam && editingA ? { borderColor: '#F59E0B', background: '#FFFBEB' } : digest ? { fontSize: 12 } : undefined}
+            />
+            {digest ? null : <IdeasButton />}
+          </span>
+          {digest ? null : <span className="k">{t(mh.subjectCount, { count: [...aValue].length })}</span>}
+        </label>
+        {ab ? (
+          <label className="lbl">
+            {t(m.subjectVariant, { variant: 'B' })}
+            <input className="in" value={variantB?.subject ?? ''} placeholder={t(m.subjectPlaceholder)} onChange={(e) => setB(e.target.value.replace(/[\r\n]+/g, ' '))} readOnly={!c.canEdit} maxLength={998} />
+            <span className="k">
+              {t(mh.abLine, { pct: ab.testPercent, metric: ab.metric === 'human_opens' ? 'opens' : ab.metric, hours: ab.durationHours })} ·{' '}
+              <button type="button" className="linkish" onClick={() => c.setView('preview')}>
+                {t(mh.testSettings)}
+              </button>
+            </span>
+          </label>
+        ) : null}
+      </div>
+      <label className="lbl">
+        {language ? t(mz.preheaderIn, { language }) : t(m.preheader)}
         <input
           className={digest ? 'in mono' : 'in'}
           style={digest ? { fontSize: 12 } : undefined}
@@ -85,9 +111,10 @@ export function SubjectBar() {
           readOnly={!c.canEdit}
           maxLength={500}
         />
+        {digest ? null : <span className="k">{t(mh.preheaderCount, { count: [...c.preheader].length })}</span>}
       </label>
-      <div style={{ flex: digest ? '3 1 340px' : '3 1 360px' }}>
-        <span className="k" id="inbox-label">
+      <div className="lbl">
+        <span id="inbox-label">
           {language
             ? t(mz.inboxIn, { client: mobile ? 'iPhone Mail' : 'Gmail', language })
             : digest?.render
@@ -97,39 +124,31 @@ export function SubjectBar() {
                 : digest.preview === 'last'
                   ? t(dc.inboxLast, { number: digest.render.number, client: mobile ? 'iPhone Mail' : 'Gmail' })
                   : t(dc.inboxItems, { count: digest.render.count, client: mobile ? 'iPhone Mail' : 'Gmail' })
-              : t(m.inboxPreview, { client: mobile ? 'iPhone Mail' : 'Gmail' })}
+              : t(mh.inboxPreviewOn, { mobile: mobile ? 'yes' : 'no' })}
         </span>
         {empty ? (
-          <div className="cmp-inbox empty" aria-labelledby="inbox-label">
-            <span style={{ fontWeight: 700, width: 120 }}>{sender}</span>
-            <span>{t(m.inboxEmpty)}</span>
-            <span className="k" style={{ marginLeft: 'auto' }}>
-              {time}
-            </span>
+          <div className="gmail empty" aria-labelledby="inbox-label">
+            <span className="gf">{sender}</span>
+            <span className="gs">{t(m.inboxEmpty)}</span>
+            <span className="gt">{time}</span>
           </div>
         ) : mobile ? (
-          <div className="cmp-inbox" style={{ flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', gap: 0, fontSize: 12, lineHeight: 1.2 }} aria-labelledby="inbox-label">
-            <span style={{ fontWeight: 700 }}>
-              {sender}{' '}
-              <span className="k" style={{ float: 'right' }}>
-                {time}
-              </span>
-            </span>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {shown.subject}
-              {shown.preheader ? ` · ${shown.preheader}` : ''}
+          <div className="gmail phone" aria-labelledby="inbox-label">
+            <span className="gf">{sender}</span>
+            <span className="gt">{time}</span>
+            <span className="gs">
+              <b>{shown.subject}</b>
+              {shown.preheader ? <span> · {shown.preheader}</span> : null}
             </span>
           </div>
         ) : (
-          <div className="cmp-inbox" aria-labelledby="inbox-label">
-            <span style={{ fontWeight: 700, width: digest ? 96 : sender.length > 6 ? 120 : 60, overflow: 'hidden', textOverflow: 'ellipsis', flex: digest ? 'none' : undefined }}>{sender}</span>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: digest ? 0 : undefined }}>
-              <b style={{ fontWeight: 600 }}>{shown.subject}</b>
-              {shown.preheader ? <span style={{ color: 'var(--ink-3)' }}> - {shown.preheader}</span> : null}
+          <div className="gmail" aria-labelledby="inbox-label">
+            <span className="gf">{sender}</span>
+            <span className="gs">
+              <b>{shown.subject}</b>
+              {shown.preheader ? <span> - {shown.preheader}</span> : null}
             </span>
-            <span className="k" style={{ marginLeft: 'auto' }}>
-              {time}
-            </span>
+            <span className="gt">{time}</span>
           </div>
         )}
       </div>

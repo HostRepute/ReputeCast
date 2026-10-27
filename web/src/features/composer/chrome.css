@@ -577,3 +577,957 @@
     min-height: 44px;
   }
 }
+
+/* The top bar (CO-14, Composer board): campaign, modes, canvas width, actions. */
+.cmp .cbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  box-sizing: border-box;
+  position: relative;
+  z-index: 30;
+}
+.cmp .cbar .btn {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.cmp .cbar .btn.ic {
+  width: 36px;
+  padding: 0;
+}
+.cmp .cb-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.cmp .cb-id {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.cmp .cb-kind {
+  font-size: 11px;
+}
+.cmp .cb-name {
+  height: 36px;
+  width: 164px;
+  min-width: 0;
+  padding: 0 8px;
+  margin-left: -2px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  box-sizing: border-box;
+  text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.cmp input.cb-name:hover {
+  border-color: var(--line-strong);
+}
+.cmp input.cb-name:focus {
+  border-color: var(--line-input);
+  background: var(--surface);
+}
+.cmp input.cb-name.wide {
+  width: 240px;
+}
+.cmp .stchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: var(--neutral-bg);
+  color: var(--neutral-fg);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: none;
+  box-sizing: border-box;
+}
+.cmp .stchip.warn {
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+}
+.cmp .stchip.bad {
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+}
+.cmp .cb-mid {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.cmp .modes {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: var(--surface);
+  flex: none;
+  box-sizing: border-box;
+}
+.cmp .modes button {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 7px;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.cmp .modes button:hover {
+  background: var(--ground);
+  color: var(--ink);
+}
+.cmp .modes button[aria-selected='true'] {
+  background: var(--ink);
+  color: #ffffff;
+}
+.cmp .devt {
+  display: inline-flex;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  overflow: hidden;
+  flex: none;
+}
+.cmp .devt button {
+  width: 38px;
+  height: 34px;
+  border: 0;
+  background: var(--surface);
+  color: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.cmp .devt button + button {
+  border-left: 1px solid var(--line);
+}
+.cmp .devt button[aria-pressed='true'] {
+  background: var(--ink);
+  color: #ffffff;
+}
+.cmp .devt button[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.cmp .cb-end {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.cmp .cb-end .btn .bi {
+  display: none;
+}
+.cmp .cb-go {
+  display: flex;
+  align-items: center;
+}
+.cmp .rsend .rs-b {
+  font-weight: 600;
+}
+.cmp .rsend {
+  gap: 6px;
+}
+
+/* The Inbox strip: subject, preheader, audience and route; Edit opens them. */
+.cmp .istrip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 4px 16px;
+  background: var(--ground-3);
+  border-bottom: 1px solid var(--line);
+  box-sizing: border-box;
+  font-size: 12.5px;
+  position: relative;
+  z-index: 20;
+}
+.cmp .is-l {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  flex: none;
+}
+.cmp .is-sum {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.cmp .is-i {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+}
+.cmp .is-i.sub {
+  flex: 0 1 auto;
+  max-width: 330px;
+}
+.cmp .is-i.pre {
+  flex: 0 1 auto;
+  max-width: 280px;
+}
+.cmp .is-i.to,
+.cmp .is-i.via {
+  flex: none;
+}
+.cmp .is-k {
+  color: var(--ink-3);
+  font-weight: 500;
+  flex: none;
+}
+.cmp .is-v {
+  color: var(--ink);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.cmp .is-v.none {
+  color: var(--ink-3);
+  font-weight: 500;
+  font-style: italic;
+}
+.cmp .is-sep {
+  color: var(--ink-3);
+  flex: none;
+}
+.cmp .is-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+  font-size: 11.5px;
+  font-weight: 600;
+  flex: none;
+}
+.cmp .is-edit {
+  flex: none;
+  margin-left: auto;
+}
+.cmp .ipanel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 20px;
+  padding: 14px 16px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  box-sizing: border-box;
+  position: relative;
+  z-index: 19;
+}
+.cmp .ipanel .qsheet-h {
+  display: none;
+}
+.cmp .ip-in {
+  flex: 3 1 520px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cmp .ip-send {
+  flex: 1 1 300px;
+  max-width: 440px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--ground-3);
+  box-sizing: border-box;
+}
+.cmp .ip-h {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.cmp .ip-send .lbl {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+  min-width: 0;
+}
+.cmp .ip-send .lbl .k {
+  font-weight: 500;
+}
+.cmp .ip-send .lbl .btn {
+  justify-content: flex-start;
+  width: 100%;
+}
+@media (max-width: 1100px) {
+  .cmp .cb-left {
+    order: 1;
+    flex: 1 1 calc(100% - 300px);
+  }
+  .cmp .cb-go {
+    order: 2;
+  }
+  .cmp .cb-mid {
+    order: 3;
+    margin-left: 0;
+  }
+  .cmp .cb-end {
+    order: 4;
+    margin-left: auto;
+  }
+  .cmp .cb-pres .pt {
+    display: none;
+  }
+  .cmp .is-i.pre {
+    display: none;
+  }
+  .cmp .is-i.pre + .is-sep {
+    display: none;
+  }
+  .cmp .ip-send {
+    max-width: none;
+    flex-basis: 100%;
+  }
+}
+@media (max-width: 767px) {
+  .cmp .cbar {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .cmp .cbar .btn {
+    min-height: 44px;
+  }
+  .cmp .cbar .btn.ic {
+    width: 44px;
+  }
+  .cmp .cb-left {
+    flex: 1 1 calc(100% - 160px);
+    gap: 8px;
+  }
+  .cmp .cb-id {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+  .cmp .cb-name {
+    width: 100%;
+    height: 44px;
+    font-size: 15px;
+    padding: 0 4px;
+    margin-left: -4px;
+  }
+  .cmp .stchip {
+    height: auto;
+    min-height: 20px;
+    font-size: 11.5px;
+    padding: 2px 8px;
+    white-space: normal;
+    line-height: 1.25;
+    max-width: 100%;
+  }
+  .cmp .cb-pres {
+    display: none;
+  }
+  .cmp .cb-mid {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .cmp .modes {
+    flex: 1 1 auto;
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
+  }
+  .cmp .modes button {
+    flex: 1 1 0%;
+    height: 44px;
+    padding: 0 8px;
+    border-radius: 0;
+  }
+  .cmp .devt {
+    display: none;
+  }
+  .cmp .cb-end {
+    margin-left: 0;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  .cmp .cb-end .btn {
+    width: 44px;
+    padding: 0;
+  }
+  .cmp .cb-end .btn .bi {
+    display: inline;
+  }
+  .cmp .cb-end .btn .bt {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .cmp .cb-end .hide-ds {
+    display: none;
+  }
+  .cmp .rsend {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
+    line-height: 1.2;
+    padding: 4px 12px !important;
+    white-space: nowrap !important;
+  }
+  .cmp .rsend .rs-dot {
+    display: none;
+  }
+  .cmp .rsend .rs-b {
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .cmp .istrip {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    gap: 6px 10px;
+  }
+  .cmp .is-sum {
+    flex-wrap: wrap;
+    white-space: normal;
+    flex: 1 1 100%;
+    order: 3;
+    gap: 4px 8px;
+  }
+  .cmp .is-sep {
+    display: none;
+  }
+  .cmp .is-i {
+    flex: 1 1 100% !important;
+    max-width: 100% !important;
+  }
+  .cmp .is-i.pre {
+    display: inline-flex;
+  }
+  .cmp .is-edit {
+    min-height: 44px !important;
+  }
+  .cmp .ipanel {
+    padding: 12px;
+  }
+}
+
+/* The canvas's floating tools (Composer board): undo, redo and zoom at its
+   top left; other tools (Preview as, conditional content) sit beside them. */
+.cmp .cmp-tools.float {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 5;
+  padding: 0;
+  background: none;
+  border: 0;
+  pointer-events: none;
+  align-items: flex-start;
+}
+.cmp .cmp-tools.float > * {
+  pointer-events: auto;
+}
+.cmp .cmp-main {
+  position: relative;
+}
+.cmp .ctools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.cmp .ctools .btn.ic {
+  width: 32px;
+  min-height: 32px;
+  border-color: transparent;
+}
+.cmp .ctools .btn.ic:hover {
+  background: var(--ground);
+}
+.cmp .ctools select.in {
+  height: 30px;
+  border-color: transparent;
+  padding: 0 4px;
+  font-weight: 600;
+  color: var(--ink-nav);
+  width: auto;
+}
+.cmp .cmp-tools.float + .cmp-canvas .cmp-stage {
+  padding-top: 60px;
+}
+@media (min-width: 1101px) {
+  .cmp .cmp-tools.float + .cmp-canvas .cmp-stage {
+    padding-top: 28px;
+  }
+}
+
+/* The Checks tab (CO-14, ComposerWarnings): summary rows, dismissing a warning, what passed. */
+.cmp .cksum {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--line-2);
+}
+.cmp .cksr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+.cmp .cksr + .cksr {
+  border-top: 1px solid var(--line-2);
+}
+.cmp .iss.is-dismissed {
+  background: var(--ground-3);
+}
+.cmp .iss.is-dismissed .t {
+  color: var(--ink-3);
+}
+.cmp .dsm-open {
+  align-self: flex-start;
+}
+.cmp .dsm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.cmp .dsm-h {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.cmp .dsm .rad {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  min-height: 28px;
+}
+.cmp .dsm .lbl {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.cmp .dsm-done {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cmp .dsm-why {
+  font-size: 12px;
+}
+.cmp .ckpass summary {
+  cursor: pointer;
+  list-style: none;
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+}
+.cmp .ckpass summary::-webkit-details-marker {
+  display: none;
+}
+.cmp .ckpass ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+@media (max-width: 767px) {
+  .cmp .dsm .rad {
+    min-height: 44px;
+  }
+}
+
+/* The Style panel's presets (CO-14, Composer board). */
+.cmp .seg3 {
+  display: flex;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.cmp .seg3 button {
+  flex: 1 1 0%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  border: 0;
+  background: var(--surface);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.cmp .seg3 button + button {
+  border-left: 1px solid var(--line);
+}
+.cmp .seg3 button[aria-pressed='true'] {
+  background: var(--ink);
+  color: #ffffff;
+}
+.cmp .swr {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cmp .sw {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 10px 0 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-nav);
+  cursor: pointer;
+}
+.cmp .sw .chip {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: 1px solid var(--line-strong);
+}
+.cmp .sw[aria-pressed='true'] {
+  border: 2px solid var(--accent);
+  padding: 0 9px 0 5px;
+}
+.cmp .colp {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.cmp .colp button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 6px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-nav);
+  cursor: pointer;
+}
+.cmp .colp .bars {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+  height: 18px;
+}
+.cmp .colp .bars i {
+  display: block;
+  border-radius: 3px;
+  background: #d4d8df;
+}
+.cmp .colp button[aria-pressed='true'] {
+  border: 2px solid var(--accent);
+  padding: 7px 5px 5px;
+}
+.cmp .colp button[aria-pressed='true'] .bars i {
+  background: var(--accent);
+}
+.cmp details.adv {
+  border-top: 1px solid var(--line-2);
+}
+.cmp details.adv > summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px 10px 30px;
+  cursor: pointer;
+  list-style: none;
+  position: relative;
+  font-size: 12.5px;
+}
+.cmp details.adv > summary::-webkit-details-marker {
+  display: none;
+}
+.cmp details.adv > summary::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 15px;
+  width: 6px;
+  height: 6px;
+  border-right: 1.6px solid currentColor;
+  border-bottom: 1.6px solid currentColor;
+  transform: rotate(-45deg);
+}
+.cmp details.adv[open] > summary::before {
+  transform: rotate(45deg);
+}
+@media (max-width: 767px) {
+  .cmp .seg3 button,
+  .cmp .sw,
+  .cmp details.adv > summary {
+    min-height: 44px;
+  }
+}
+
+/* The footer's key hints (Composer board) and keys anywhere in the composer. */
+.cmp .kbd {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--surface);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-nav);
+  margin-right: 4px;
+}
+.cmp .cmp-foot .hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--ink-3);
+  font-weight: 500;
+  font-size: 12px;
+}
+.cmp .cmp-foot .bc button {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.cmp .wfootn {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 12.5px;
+}
+.cmp .wfootn b {
+  font-weight: 600;
+}
+@media (max-width: 1100px) {
+  .cmp .cmp-foot .hint {
+    display: none;
+  }
+}
+
+/* Tablets (Composer board at 834): the canvas first, the panels below it. */
+@media (max-width: 1100px) {
+  .cmp.view-visual .cmp-body {
+    flex-wrap: wrap;
+  }
+  .cmp.view-visual .cmp-main {
+    order: 1;
+    flex: 1 1 100%;
+  }
+  .cmp.view-visual .cpanel.left {
+    order: 2;
+    flex: 1 1 300px;
+    max-width: none;
+    border-right: 1px solid var(--line);
+    border-top: 1px solid var(--line);
+  }
+  .cmp.view-visual .cpanel.right {
+    order: 3;
+    flex: 1 1 300px;
+    max-width: none;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+/* Phones (ComposerPhone board): quick review in Design mode. */
+.cmp .qnote {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 10px 12px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.cmp .qnote b {
+  font-weight: 600;
+}
+.cmp .qbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 25;
+  display: flex;
+  justify-content: space-around;
+  gap: 2px;
+  padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.cmp .qbar button {
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 52px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-nav);
+  cursor: pointer;
+  border-radius: 8px;
+}
+.cmp .qbar button[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+.cmp .qbar .qi {
+  position: relative;
+  display: inline-flex;
+}
+.cmp .qbar .qn {
+  position: absolute;
+  top: -6px;
+  right: -10px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+.cmp .qedit {
+  position: sticky;
+  bottom: 61px;
+  z-index: 24;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--ink);
+  color: #ffffff;
+  font-size: 12.5px;
+}
+.cmp .qedit .btn {
+  flex: none;
+  min-height: 44px;
+}
+.dlg.qsheet {
+  padding-bottom: 8px;
+}
+@media (max-width: 767px) {
+  .dlg.qsheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 100%;
+    max-width: none;
+    max-height: 85dvh;
+    margin: 0;
+    border-radius: 14px 14px 0 0;
+    transform: none;
+    overflow: auto;
+  }
+  .cmp.view-visual .cpanel.left,
+  .cmp.view-visual .cpanel.right,
+  .cmp.view-visual .istrip,
+  .cmp.view-visual .ipanel {
+    display: none;
+  }
+  .cmp.view-visual .cb-end .hide-ds {
+    display: none;
+  }
+}

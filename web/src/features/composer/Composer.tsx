@@ -7,7 +7,7 @@ import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
 import { andList, clock } from '@/lib/format'
 import { mn } from './banners.messages'
-import { useDocumentTitle } from '@/lib/hooks'
+import { useDocumentTitle, useMediaQuery } from '@/lib/hooks'
 import { useUnsavedWork } from '@/lib/sessionClock'
 import { runShortcutHandler, useShortcutHandler } from '@/lib/shortcuts'
 import { useCan, useMe, useWorkspace } from '@/lib/session'
@@ -36,7 +36,8 @@ import { WriteView } from './write/WriteView'
 import { RightPanel } from './RightPanel'
 import { forgetRecovered, journalWriter, useJournalKey, useRecoveredJournal, type JournalWriter } from './journal'
 import { serialQueue } from './saveQueue'
-import { SubjectBar } from './SubjectBar'
+import { InboxStrip } from './InboxStrip'
+import { QuickReviewBar, QuickReviewNote } from './QuickReview'
 import { AccessibilityProvider } from '@/features/accessibility/composer/state'
 import { ConditionalProvider } from '@/features/conditional/state'
 import { withoutAltText } from '@/features/accessibility/composer/Status'
@@ -112,6 +113,8 @@ export function Composer({
   const cancelApproval = useRef(false)
   const canEdit = canEditPerm && campaign.access.editable && !missingLanguage && !approvalGate
   const view: View = search.view === 'compare' ? 'visual' : (search.view ?? 'visual')
+  // Phones get quick review in Design mode (ComposerPhone board).
+  const phone = useMediaQuery('(max-width: 767px)')
   // The assistant (features/ai): its panel in the right column, and translating with AI in place of the canvas.
   const assist = useComposerAssistState(campaign.id)
   const comparing = search.view === 'compare' || Boolean(assist.translating)
@@ -946,7 +949,7 @@ export function Composer({
       <AccessibilityProvider>
       <DigestModeProvider>
       <ConditionalProvider>
-      <div className="cmp rc-app">
+      <div className={`cmp rc-app view-${view}`}>
         <a href="#main" className="skip">
           {t(m.skip)}
         </a>
@@ -960,7 +963,9 @@ export function Composer({
         {view === 'preview' ? <PreviewView onReview={goReview} /> : null}
         {/* The canvas stays mounted off screen in the other views: GrapesJS keeps its state and compiles. */}
         <div className={`flex flex-1 flex-col${view === 'preview' ? ' cmp-offstage' : ''}`} inert={view === 'preview' || undefined} aria-hidden={view === 'preview' || undefined}>
-          {view === 'visual' && !comparing && !missingLanguage ? <SubjectBar /> : null}
+          {(view === 'visual' || view === 'write') && !comparing && !missingLanguage ? <InboxStrip /> : null}
+          {/* Quick review on phones (CO-14): Design mode's layout editing waits for a larger screen. */}
+          {phone && view === 'visual' && !comparing && !missingLanguage && !empty ? <QuickReviewNote /> : null}
           <div className="cmp-body">
             {view === 'visual' && !comparing && !missingLanguage ? <LeftPanel {...digestLeftPanel(campaign, context.postalAddress)} /> : null}
             {comparing ? assist.translating ? <AITranslateView /> : <ComposerCompare /> : null}
@@ -982,6 +987,7 @@ export function Composer({
             ) : null}
             {view === 'visual' && !comparing && !missingLanguage ? <AssistRight fallback={<RightPanel />} /> : null}
           </div>
+          {phone && view === 'visual' && !comparing && !missingLanguage && !empty ? <QuickReviewBar /> : null}
           {view === 'preview' || (missingLanguage && !comparing) ? null : assist.translating ? (
             <AITranslateFooter />
           ) : comparing ? (

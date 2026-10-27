@@ -3866,6 +3866,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/dismissals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dismiss a warning of the composer's checks, with a reason
+         * @description key is the warning's issueKeys entry from the checks. The warning stays listed with who dismissed it and why, and comes back when it changes. Blocking issues are never dismissed.
+         */
+        post: operations["dismiss-campaign-warning"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/dismissals/{dismissalId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Count a dismissed warning again (Undo) */
+        delete: operations["undismiss-campaign-warning"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/duplicate": {
         parameters: {
             query?: never;
@@ -22123,6 +22160,7 @@ export interface components {
             checkedAt: string;
             /** Format: int64 */
             clipBytes: number;
+            dismissed: components["schemas"]["ComposerDismissedIssue"][];
             /** Format: date-time */
             footerRemovedAt?: string;
             /** Format: double */
@@ -22131,6 +22169,7 @@ export interface components {
             images: number;
             /** Format: int64 */
             imagesMissingAlt: number;
+            issueKeys: string[];
             issues: components["schemas"]["ContentCheckIssue"][];
             linkList: components["schemas"]["ContentCheckLink"][];
             /** Format: int64 */
@@ -22225,6 +22264,31 @@ export interface components {
             name?: string;
             /** @description Start from a template (starter:<key> or a saved template id) */
             templateId?: string;
+        };
+        ComposerDismissInput: {
+            checkId: string;
+            key: string;
+            note?: string;
+            /** @enum {string} */
+            reason: "decorative" | "size" | "subject" | "wrong" | "other";
+            title?: string;
+        };
+        ComposerDismissal: {
+            /** Format: date-time */
+            at: string;
+            by: string;
+            checkId: string;
+            id: string;
+            key: string;
+            note: string;
+            /** @enum {string} */
+            reason: "decorative" | "size" | "subject" | "wrong" | "other";
+            reasonText: string;
+        };
+        ComposerDismissedIssue: {
+            dismissal: components["schemas"]["ComposerDismissal"];
+            /** Format: int64 */
+            index: number;
         };
         ComposerMember: {
             /** @description Avatar colour */
@@ -53121,6 +53185,75 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ComposerSavedContent"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "dismiss-campaign-warning": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComposerDismissInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerDismissal"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "undismiss-campaign-warning": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                dismissalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {

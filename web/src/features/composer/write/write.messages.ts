@@ -102,8 +102,6 @@ export const mw = defineMessages('composer.write', {
   undoPaste: 'Undo paste',
   pasteUndone: 'Paste undone',
   pasteUndoneDetail: 'what was pasted is gone; the rest stays',
-  footStrong: 'Write mode edits the same email as Design mode.',
-  footNote: 'Layout, columns and spacing stay as set in Design.',
   empty: 'This email has no text yet. Type / on the line below to add a block.',
   readOnly: 'You can read this email here. People who edit campaigns can change it.',
   commentsCount: '{count, plural, =0 {No comments} one {# comment} other {# comments}}',

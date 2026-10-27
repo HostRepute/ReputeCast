@@ -1000,9 +1000,6 @@ export function WriteView() {
             {endAt === items.length && !lineAt ? <div className="wb">{line}</div> : null}
           </article>
         </div>
-        <p className="wnote">
-          <b>{t(mw.footStrong)}</b> <span className="k">{t(mw.footNote)}</span>
-        </p>
       </div>
     </main>
   )

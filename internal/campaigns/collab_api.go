@@ -36,6 +36,16 @@ type reviewLinkPath struct {
 	LinkID string `path:"linkId" format:"uuid"`
 }
 
+type dismissInput struct {
+	CampaignPath
+	Body ComposerDismissInput
+}
+
+type dismissalPath struct {
+	CampaignPath
+	DismissalID string `path:"dismissalId" format:"uuid"`
+}
+
 type presenceInput struct {
 	CampaignPath
 	Body ComposerPresenceInput
@@ -174,6 +184,31 @@ func registerCollaboration(h huma.API, s *Service, tags []string) {
 				return nil, err
 			}
 			return api.NoContent, s.Leave(ctx, api.PrincipalFrom(ctx), id)
+		})
+
+	api.Post(h, api.Op{ID: "dismiss-campaign-warning", Path: "/workspaces/{workspace}/campaigns/{campaignId}/dismissals", Summary: "Dismiss a warning of the composer's checks, with a reason",
+		Description: "key is the warning's issueKeys entry from the checks. The warning stays listed with who dismissed it and why, and comes back when it changes. Blocking issues are never dismissed.",
+		Tags:        tags, Access: edit, Status: http.StatusCreated},
+		func(ctx context.Context, in *dismissInput) (*api.Body[ComposerDismissal], error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.Dismiss(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Body)
+			return api.OK(out), err
+		})
+	api.Delete(h, api.Op{ID: "undismiss-campaign-warning", Path: "/workspaces/{workspace}/campaigns/{campaignId}/dismissals/{dismissalId}", Summary: "Count a dismissed warning again (Undo)",
+		Tags: tags, Access: edit},
+		func(ctx context.Context, in *dismissalPath) (*api.Empty, error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, err
+			}
+			did, err := parseID(in.DismissalID, "Dismissal")
+			if err != nil {
+				return nil, err
+			}
+			return api.NoContent, s.Undismiss(ctx, api.WorkspaceFrom(ctx), id, did)
 		})
 
 	api.Get(h, api.Op{ID: "get-review", Path: "/review/{token}", Summary: "The email behind a review link (public, rate-limited)",
