@@ -124,13 +124,15 @@ What M33 built for the others to use:
 | AN-15 | Report matches the new boards: tile comparisons, y-axis, human/bot click map, insights with actions, honest A/B card, share options. | Visual QA against Report*, ReportStates. |
 | AN-16 | Share links: what is shared is chosen, links expire (30 days by default), several links can be listed and revoked one by one. | Tests. |
 
-## Cross-cutting (every milestone)
+## Cross-cutting (every milestone) ✅
 
 | ID | What | Done when |
 |---|---|---|
 | X-1 | No permission keys in UI copy on these screens; people or roles instead. | Visual QA. |
 | X-2 | Every new or changed string in English and Vietnamese; `pnpm i18n:check` passes. | CI. |
 | X-3 | Docs: roadmap, design inventory, README claims. | Updated per milestone. |
+
+M39 checked them across the review's screens: refused actions name who can help (`authz` and each screen's own copy), `pnpm i18n:check` passes with every new string in English and Vietnamese, and the roadmap, `docs/DESIGN_INVENTORY.md` (#517–#554, the deliberate differences from the boards) and the README describe what was built. Screens outside the review (team, verification, Earn, SMS and a few others) still name permission keys in places; an API key's scopes stay named, since that is what the key holds.
 
 ## Found while building the review (outside the five features)
 
