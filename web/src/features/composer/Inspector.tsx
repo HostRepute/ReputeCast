@@ -650,6 +650,8 @@ export function StyleFields({ c }: { c: Component }) {
   const t = useT()
   const tag = tagOf(c)
   const head = useHead()
+  // The transactional editor keeps the MJML attributes (its boards predate the presets).
+  const transactional = useComposer().kind === 'transactional'
   // A store's Product grid or card (X20): its settings, wherever in it the selection is.
   const store = storeSectionOf(c)
   if (store) return <StoreBlockStyle key={store.cid} section={store} />
@@ -664,6 +666,19 @@ export function StyleFields({ c }: { c: Component }) {
     case 'mj-section':
     case 'mj-wrapper': {
       const texts = descendants(c, 'mj-text')
+      if (transactional) {
+        return (
+          <>
+            <BackgroundProp c={c} image />
+            <PaddingProp c={c} />
+            <AlignProp c={c} k="text-align" />
+            {tag === 'mj-section' ? <ColumnWidthsProp section={c} /> : null}
+            <BorderProp c={c} />
+            <TextProp c={c} k="border-radius" title={t(mi.borderRadius)} px />
+            {texts.length ? <TypographyProp targets={texts} sample={bodyText(texts)} title={t(mi.typographyInherited)} /> : null}
+          </>
+        )
+      }
       // Writer-friendly first (CO-14, Composer board); the attributes in Advanced.
       return (
         <>
