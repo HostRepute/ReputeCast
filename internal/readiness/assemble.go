@@ -629,14 +629,21 @@ func (b *builder) providerRates(s ShareFacts) check {
 	if s.Bounce != nil {
 		bounce = *s.Bounce
 	}
+	// A complaint rate without data reads n/a with the reason, never 0%
+	// (F-3): nothing was delivered at mailbox providers that report
+	// complaints, and Gmail and iCloud never do (F-2, C13).
+	var complaintArg any = tx("rates.complaintNA", nil)
 	if s.Complaint != nil {
 		complaint = *s.Complaint
+		complaintArg = ArgPercent(complaint)
+	} else {
+		c.Detail = tx("rates.complaintNADetail", A{"detail": detail})
 	}
 	if !s.ProviderReported && s.Sent7d > 0 && s.Sent7d < MinRateVolume {
 		// One bounce among three messages isn't a 33% bounce rate: below
 		// the minimum volume the rates don't judge the provider (SR-5).
 		c.Title = tx("rates.tooFew", A{"provider": s.Name, "count": s.Sent7d})
-		c.Detail = tx("rates.tooFewDetail", A{"min": MinRateVolume, "bounce": ArgPercent(bounce), "complaint": ArgPercent(complaint)})
+		c.Detail = tx("rates.tooFewDetail", A{"min": MinRateVolume, "bounce": ArgPercent(bounce), "complaint": complaintArg})
 		c.Short = tx("rates.tooFewShort", A{"provider": s.Short})
 		return c
 	}
@@ -660,8 +667,8 @@ func (b *builder) providerRates(s ShareFacts) check {
 		phrase = tx("rates.close", limits)
 		c.Fixes = []fix{deliverability}
 	}
-	c.Title = tx("rates.title", A{"provider": s.Name, "bounce": ArgPercent(bounce), "complaint": ArgPercent(complaint), "phrase": phrase})
-	c.Short = tx("rates.short", A{"provider": s.Short, "bounce": ArgPercent(bounce), "complaint": ArgPercent(complaint)})
+	c.Title = tx("rates.title", A{"provider": s.Name, "bounce": ArgPercent(bounce), "complaint": complaintArg, "phrase": phrase})
+	c.Short = tx("rates.short", A{"provider": s.Short, "bounce": ArgPercent(bounce), "complaint": complaintArg})
 	if c.Status == Warn {
 		c.Ack = tx("rates.ack", A{"provider": s.Name})
 	}

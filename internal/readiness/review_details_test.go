@@ -95,6 +95,27 @@ func TestListingTechnicalDetails(t *testing.T) {
 	}
 }
 
+// A complaint rate without data reads n/a with the reason, never 0%
+// (F-2, F-3, C13): Gmail and iCloud never report complaints.
+func TestComplaintRateNotReported(t *testing.T) {
+	f := digest()
+	f.Route.Shares[1].Complaint = nil
+	res := stored(t, readiness.Assemble(f))
+	c := check(t, res, "reputation.provider.p-postal")
+	if c.Status != readiness.Pass || !strings.Contains(c.Title, "Postal bounce 0.9% and complaint n/a, ") || !strings.Contains(c.Short, "complaints n/a") ||
+		!strings.HasSuffix(c.Detail, "and Gmail and iCloud never do.") {
+		t.Fatalf("not reported: %+v", c)
+	}
+	if vi := check(t, res.In(i18n.For(i18n.Vietnamese)), "reputation.provider.p-postal"); !strings.Contains(vi.Title, "khiếu nại không có") {
+		t.Errorf("in Vietnamese: %q", vi.Title)
+	}
+	// Too few messages to judge: still n/a, not 0%.
+	f.Route.Shares[1].Sent7d = 3
+	if c := check(t, stored(t, readiness.Assemble(f)), "reputation.provider.p-postal"); !strings.Contains(c.Detail, "complaint n/a so far") {
+		t.Errorf("too few: %q", c.Detail)
+	}
+}
+
 // Only an unusual send asks for the count: much larger than usual, a first
 // send to a list, from a domain or through a provider, a reputation warning
 // above low impact. A routine send is confirmed with checkboxes.

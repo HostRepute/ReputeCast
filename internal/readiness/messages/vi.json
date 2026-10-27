@@ -229,6 +229,8 @@
   "rates.pause": "ở mức tạm dừng của {limits} ({bounce} và {complaint})",
   "rates.title": "{provider}: trả thư {bounce}, khiếu nại {complaint}, {phrase}",
   "rates.short": "{provider}: trả thư {bounce}, khiếu nại {complaint}",
+  "rates.complaintNA": "không có",
+  "rates.complaintNADetail": "{detail} Khiếu nại: không có, vì 7 ngày qua không có thư nào được gửi tới nhà cung cấp hộp thư có báo cáo khiếu nại cho người gửi, còn Gmail và iCloud không bao giờ báo cáo.",
   "rates.ack": "Tôi hiểu tỷ lệ trả thư hoặc khiếu nại của {provider} đang gần chạm giới hạn.",
   "rates.cap": "{provider} gửi được {cap, number} thư vào ngày gửi; lần gửi này định tuyến {count, number} thư qua đó",
   "rates.capDetail": "Phần còn lại chờ giới hạn của ngày hôm sau, nên lần gửi mất nhiều thời gian hơn. Ngày {day, number}/{days, number} của quá trình khởi động.",

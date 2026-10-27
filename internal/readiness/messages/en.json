@@ -229,6 +229,8 @@
   "rates.pause": "at {limits} pause level ({bounce} and {complaint})",
   "rates.title": { "message": "{provider} bounce {bounce} and complaint {complaint}, {phrase}", "note": "phrase: where the rates stand (“inside SES review thresholds (5% and 0.1%)”)" },
   "rates.short": "{provider} bounce {bounce}, complaints {complaint}",
+  "rates.complaintNA": {"message": "n/a", "note": "a complaint rate without data, in place of a percentage (never 0%)"},
+  "rates.complaintNADetail": {"message": "{detail} Complaints are n/a: nothing was delivered in the last 7 days to mailbox providers that report complaints to senders, and Gmail and iCloud never do.", "note": "detail: the check's detail before this sentence"},
   "rates.ack": "I understand {provider}'s bounce or complaint rate is close to its limit.",
   "rates.cap": "{provider} can send {cap, number} on the send day; this send routes {count, number} to it",
   "rates.capDetail": "The rest waits for the next day's cap, so the send takes longer. Day {day, number} of {days, number} of the warm-up.",
