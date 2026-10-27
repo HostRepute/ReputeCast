@@ -69,6 +69,8 @@ func (demoModel) Generate(ctx context.Context, req llm.Request) (llm.Response, e
 		answer = demoSegment(t)
 	case summaryTask:
 		answer = map[string]any{"summary": demoSummary(t.Report)}
+	case askTask:
+		answer = map[string]any{"answer": demoAnswer(t)}
 	default:
 		return llm.Response{}, &llm.Error{Kind: llm.ErrBadRequest, Status: 400, Code: "invalid_request_error", Message: "the demo model answers the assistant's features only"}
 	}
@@ -552,6 +554,25 @@ func demoSummary(c reportContext) string {
 		}
 	}
 	return strings.TrimSpace(b.String())
+}
+
+// demoAnswer answers a question about a report from its numbers.
+func demoAnswer(t askTask) string {
+	q := strings.ToLower(t.Question)
+	c := t.Report
+	for _, m := range c.Mailboxes {
+		if strings.Contains(q, strings.ToLower(m.Name)) || strings.Contains(q, m.Key) {
+			if _, ok := c.Numbers["mailbox."+m.Key+".bounceRate"]; ok && strings.Contains(q, "bounce") {
+				out := fmt.Sprintf("%s bounced {mailbox.%s.bounceRate} of what it was sent, against {bounceRate} for the whole send.", m.Name, m.Key)
+				if _, ok := c.Numbers["bounce.blocked.count"]; ok {
+					out += " {bounce.blocked.count} of the bounces were blocks for the sending IP's or domain's reputation, not bad addresses."
+				}
+				return out
+			}
+			return fmt.Sprintf("At %s, {mailbox.%s.humanOpenRateMeasurable} of the recipients whose opens can be measured opened it, and {mailbox.%s.clickRate} clicked.", m.Name, m.Key, m.Key)
+		}
+	}
+	return "Of the {delivered} delivered, {humanOpens} people opened it ({humanOpenRateMeasurable} of measurable) and {clicks} clicked ({clickRate})."
 }
 
 // groupThousands writes 47548 as 47,548.

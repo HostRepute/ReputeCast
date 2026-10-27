@@ -838,6 +838,17 @@ func TestAITranslationAndSummary(t *testing.T) {
 	if kept.Kept == nil || kept.Kept.KeptBy != "Sofia Rossi" || !kept.Kept.NumbersMatch {
 		t.Fatalf("kept: %+v", kept)
 	}
+	// Ask about this report: the answer's numbers are the report's (review
+	// AN-14).
+	var answer struct {
+		Answer       string
+		NumbersMatch bool
+	}
+	c.Do(http.MethodPost, ws+"/ai/report-question", map[string]any{"campaignId": oct, "question": "Why did Outlook bounce more?"}).MustStatus(t, 200).JSON(t, &answer)
+	if !strings.HasPrefix(answer.Answer, "Outlook bounced 1.0% of what it was sent") || !answer.NumbersMatch {
+		t.Fatalf("answer: %+v", answer)
+	}
+	c.Do(http.MethodPost, ws+"/ai/report-question", map[string]any{"campaignId": oct, "question": " "}).MustStatus(t, 422)
 	var outcome string
 	_ = env.App.Pool.QueryRow(ctx, `SELECT outcome FROM ai_requests WHERE id = $1`, sum.RequestID).Scan(&outcome)
 	if outcome != "kept" {
