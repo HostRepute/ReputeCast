@@ -147,3 +147,15 @@ func (q *Queries) ProxySeen(ctx context.Context, arg ProxySeenParams) error {
 	)
 	return err
 }
+
+const proxyToldSince = `-- name: ProxyToldSince :one
+SELECT count(*) FROM untrusted_proxies WHERE notified_at >= $1::timestamptz
+`
+
+// How many proxies admins were told about since a time (a day's cap).
+func (q *Queries) ProxyToldSince(ctx context.Context, since time.Time) (int64, error) {
+	row := q.db.QueryRow(ctx, proxyToldSince, since)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}

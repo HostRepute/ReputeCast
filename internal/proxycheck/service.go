@@ -3,6 +3,7 @@ package proxycheck
 import (
 	"context"
 	"net/netip"
+	"sort"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -39,8 +40,9 @@ func (s *Service) now() time.Time {
 
 // Notify tells every instance admin about each proxy seen often enough in
 // the last day that they weren't told about this week, and forgets
-// proxies that are trusted now or gone. It returns how many proxies the
-// admins were told about.
+// proxies that are trusted now or gone. It tells about maxTold proxies a
+// run and maxToldDaily a day, those on a private network first. It
+// returns how many proxies the admins were told about.
 func (s *Service) Notify(ctx context.Context) (int, error) {
 	now := s.now()
 	told := 0
@@ -55,10 +57,16 @@ func (s *Service) Notify(ctx context.Context) (int, error) {
 		if err != nil || len(rows) == 0 {
 			return err
 		}
+		today, err := q.ProxyToldSince(ctx, now.Add(-24*time.Hour))
+		if err != nil {
+			return err
+		}
 		admins, err := q.InstanceAdminAdminNames(ctx)
 		if err != nil {
 			return err
 		}
+		// A proxy on a private network is the one to add: it goes first.
+		sort.SliceStable(rows, func(i, j int) bool { return private(rows[i].Peer) && !private(rows[j].Peer) })
 		for _, r := range rows {
 			if trusted(r.Peer, s.Trusted) {
 				if err := q.ProxyForget(ctx, r.Peer); err != nil {
@@ -66,10 +74,19 @@ func (s *Service) Notify(ctx context.Context) (int, error) {
 				}
 				continue
 			}
+			if told >= maxTold || today+int64(told) >= maxToldDaily {
+				continue // a later run
+			}
+			title, body := msgs.M("notify.title"), msgs.M("notify.body")
+			if !private(r.Peer) {
+				// Anyone can send forwarding headers: a public address is
+				// one to check, never one to add.
+				title, body = msgs.M("notify.publicTitle"), msgs.M("notify.publicBody")
+			}
 			args := i18n.Args{"peer": r.Peer.String(), "header": r.Header, "setting": Setting, "env": Env}
 			for _, a := range admins {
 				if err := notify.ToUser(ctx, tx, a.ID, notify.Notification{Kind: KindUntrustedProxy, Severity: "warn",
-					TitleText: msgs.M("notify.title").Keep(nil), BodyText: msgs.M("notify.body").Keep(args), Link: "/admin/instance",
+					TitleText: title.Keep(nil), BodyText: body.Keep(args), Link: "/admin/instance",
 					Data: map[string]any{"peer": r.Peer.String(), "setting": Setting, "env": Env}}); err != nil {
 					return err
 				}
@@ -115,16 +132,22 @@ func (s *Service) List(ctx context.Context) (UntrustedProxies, error) {
 	if err != nil {
 		return out, err
 	}
+	public := false
 	for _, r := range rows {
 		if trusted(r.Peer, s.Trusted) {
 			continue
 		}
+		public = public || !private(r.Peer)
 		out.Proxies = append(out.Proxies, UntrustedProxy{Address: r.Peer.String(), Header: r.Header, Requests: r.Requests, FirstSeen: r.FirstSeen,
 			LastSeen: r.LastSeen, NotifiedAt: r.NotifiedAt})
 	}
-	if len(out.Proxies) == 0 {
+	switch {
+	case len(out.Proxies) == 0:
 		out.Advice = msgs.M("advice.none").Text(l, nil)
-	} else {
+	case public:
+		// Never "add these addresses" when one of them is public.
+		out.Advice = msgs.M("advice.public").Text(l, i18n.Args{"setting": Setting, "env": Env})
+	default:
 		out.Advice = msgs.M("advice.some").Text(l, i18n.Args{"setting": Setting, "env": Env})
 	}
 	return out, nil

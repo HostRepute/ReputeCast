@@ -35,8 +35,12 @@ func RealIP(trusted []netip.Prefix) func(http.Handler) http.Handler {
 }
 
 // forwardedClient walks X-Forwarded-For right to left, skipping trusted hops.
+// Every line of the header counts, in order: a proxy may add its hop as a
+// line of its own (HAProxy's option forwardfor) instead of extending the
+// line the client sent, and the client's lines, which come first, must
+// never win over the hops our proxies added.
 func forwardedClient(r *http.Request, trusted []netip.Prefix) (netip.Addr, bool) {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+	if xff := strings.Join(r.Header.Values("X-Forwarded-For"), ","); xff != "" {
 		hops := strings.Split(xff, ",")
 		for i := len(hops) - 1; i >= 0; i-- {
 			ip, err := netip.ParseAddr(strings.TrimSpace(hops[i]))
@@ -143,10 +147,11 @@ func SecurityHeaders(httpsOnly bool) func(http.Handler) http.Handler {
 }
 
 // secretSegments match paths whose last part is a bearer secret: tracking
-// and email links, shared reports, provider webhooks, invitations,
-// password resets and composer review links (API and app routes).
+// and email links (opens, clicks and the hidden link), shared reports,
+// provider webhooks, invitations, password resets and composer review
+// links (API and app routes).
 var secretSegments = []*regexp.Regexp{
-	regexp.MustCompile(`^(/t/[oc]/)[^/]+`),
+	regexp.MustCompile(`^(/t/[och]/)[^/]+`),
 	regexp.MustCompile(`^(/p/[^/]+/(?:unsubscribe|preferences|confirm|view)/)[^/]+`),
 	regexp.MustCompile(`^(/r/)[^/]+`),
 	regexp.MustCompile(`^(/hooks/[^/]+/)[^/]+`),
@@ -160,6 +165,11 @@ var secretSegments = []*regexp.Regexp{
 	regexp.MustCompile(`^(/p/[^/]+/(?:referrals|rewards|recommends)/)[^/]+`),
 	regexp.MustCompile(`^(/(?:referrals|rewards|recommends)/)[^/]+`),
 	regexp.MustCompile(`^(/p/)[2-9A-Za-z]{4}-[2-9A-Za-z]{4}-[2-9A-Za-z]{4}$`),
+	// The website's sign-in links, a buyer's downloads and lead magnets, a
+	// paid member's billing and cancel links, gift codes and poll answers,
+	// under /p/{workspace}/ and at a custom domain's root.
+	regexp.MustCompile(`^(/p/[^/]+/(?:signin/link|d|l|billing|cancel|gift/redeem|poll)/)[^/]+`),
+	regexp.MustCompile(`^(/(?:signin/link|d|l|billing|cancel|gift/redeem|poll)/)[^/]+`),
 }
 
 // RedactPath replaces the secret part of a path with {token}, so logs never

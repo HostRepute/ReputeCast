@@ -2635,6 +2635,8 @@ type Querier interface {
 	// Requests through a proxy ReputeCast doesn't trust (review AN-8).
 	// Adds requests from an untrusted proxy since the last write.
 	ProxySeen(ctx context.Context, arg ProxySeenParams) error
+	// How many proxies admins were told about since a time (a day's cap).
+	ProxyToldSince(ctx context.Context, since time.Time) (int64, error)
 	// Keeps the newest @keep versions; the first version, named versions and
 	// anything that is not an autosave (restores, imports, ⌘S) are always kept.
 	PruneComposerVersions(ctx context.Context, arg PruneComposerVersionsParams) (int64, error)

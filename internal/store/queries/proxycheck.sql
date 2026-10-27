@@ -31,3 +31,7 @@ DELETE FROM untrusted_proxies WHERE peer = @peer;
 -- name: ProxyForgetOld :exec
 -- Proxies not seen for a long time.
 DELETE FROM untrusted_proxies WHERE last_seen < @seen_before;
+
+-- name: ProxyToldSince :one
+-- How many proxies admins were told about since a time (a day's cap).
+SELECT count(*) FROM untrusted_proxies WHERE notified_at >= @since::timestamptz;
