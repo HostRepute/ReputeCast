@@ -127,6 +127,19 @@ WHERE v.workspace_id = @workspace_id
   AND ((v.page_kind = 'issue' AND v.page_id = @campaign_id)
     OR (v.page_kind = 'post' AND v.page_id IN (SELECT p.id FROM website_posts p WHERE p.campaign_id = @campaign_id)));
 
+-- name: ReportBlockedBounces :many
+-- A campaign's bounces for the sender's reputation or policy by mailbox
+-- provider and sending provider, with the provider's addresses (the
+-- report's insights, review AN-15).
+SELECT e.mailbox_provider, e.provider_id, coalesce(p.name, '')::text AS provider_name, coalesce(p.adapter, '')::text AS adapter,
+       coalesce(p.ips, '{}')::text[] AS ips, count(*)::bigint AS n
+FROM delivery_events e
+LEFT JOIN providers p ON p.id = e.provider_id
+WHERE e.campaign_id = @campaign_id AND e.workspace_id = @workspace_id AND e.type IN ('hard_bounce', 'soft_bounce')
+  AND e.bounce_class IN ('policy_block', 'spam_block', 'reputation')
+GROUP BY e.mailbox_provider, e.provider_id, p.name, p.adapter, p.ips
+ORDER BY n DESC;
+
 -- name: ReportLinkVariants :many
 -- Clicks per link and A/B variant, for each variant's click map (review
 -- AN-5).
@@ -255,3 +268,34 @@ WHERE rs.token_hash = @token_hash;
 
 -- name: ReportShareTouch :exec
 UPDATE report_shares SET views = views + 1, last_viewed_at = @at WHERE id = @id;
+
+-- name: ReportProviderTracked :one
+-- Whether a sending provider reported opens or clicks of a campaign's
+-- messages: its own tracking counted them (review AN-4).
+SELECT EXISTS (
+    SELECT 1 FROM delivery_events
+    WHERE campaign_id = sqlc.arg(campaign_id)::uuid AND provider_id = sqlc.arg(provider_id)::uuid AND type IN ('open', 'click')
+      AND original_type NOT IN ('', 'ReputeCast tracking')
+)::boolean AS reported;
+
+-- name: ReportFinalAlertSet :exec
+-- Someone asked to be emailed when a report's results are final.
+INSERT INTO report_final_alerts (campaign_id, user_id, workspace_id) VALUES (@campaign_id, @user_id, @workspace_id)
+ON CONFLICT (campaign_id, user_id) DO NOTHING;
+
+-- name: ReportFinalAlertRemove :execrows
+DELETE FROM report_final_alerts WHERE campaign_id = @campaign_id AND user_id = @user_id;
+
+-- name: ReportFinalAlertIs :one
+SELECT EXISTS (SELECT 1 FROM report_final_alerts WHERE campaign_id = @campaign_id AND user_id = @user_id)::boolean AS asked;
+
+-- name: ReportFinalAlertsDue :many
+-- Requests whose campaign's results became final (72 hours after the send
+-- ended), with what the notification says; the oldest first.
+SELECT a.campaign_id, a.user_id, a.workspace_id, c.name AS campaign_name, w.slug AS workspace_slug, c.completed_at
+FROM report_final_alerts a
+JOIN campaigns c ON c.id = a.campaign_id
+JOIN workspaces w ON w.id = a.workspace_id
+WHERE c.completed_at IS NOT NULL AND c.completed_at <= sqlc.arg(final_before)::timestamptz
+ORDER BY a.created_at
+LIMIT 500;

@@ -3407,6 +3407,13 @@ type ReferralVisitsDaily struct {
 	Signups   int32     `json:"signups"`
 }
 
+type ReportFinalAlert struct {
+	CampaignID  uuid.UUID `json:"campaignId"`
+	UserID      uuid.UUID `json:"userId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CreatedAt   time.Time `json:"createdAt"`
+}
+
 type ReportShare struct {
 	ID            uuid.UUID  `json:"id"`
 	CampaignID    uuid.UUID  `json:"campaignId"`

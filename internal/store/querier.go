@@ -2910,6 +2910,10 @@ type Querier interface {
 	RemoteRuntimeSetSecret(ctx context.Context, arg RemoteRuntimeSetSecretParams) error
 	RemoteRuntimeTouch(ctx context.Context, adapterID uuid.UUID) error
 	RenamePasskey(ctx context.Context, arg RenamePasskeyParams) error
+	// A campaign's bounces for the sender's reputation or policy by mailbox
+	// provider and sending provider, with the provider's addresses (the
+	// report's insights, review AN-15).
+	ReportBlockedBounces(ctx context.Context, arg ReportBlockedBouncesParams) ([]ReportBlockedBouncesRow, error)
 	// Bounces of a campaign by taxonomy class, sending provider and the
 	// provider's original event and code, with how many of the bounced
 	// addresses are on the shared suppression list now.
@@ -2927,6 +2931,13 @@ type Querier interface {
 	// Final or live counters per sending provider × mailbox provider × A/B
 	// variant, with the provider's name for the per-provider comparison.
 	ReportCounterCells(ctx context.Context, campaignID uuid.UUID) ([]ReportCounterCellsRow, error)
+	ReportFinalAlertIs(ctx context.Context, arg ReportFinalAlertIsParams) (bool, error)
+	ReportFinalAlertRemove(ctx context.Context, arg ReportFinalAlertRemoveParams) (int64, error)
+	// Someone asked to be emailed when a report's results are final.
+	ReportFinalAlertSet(ctx context.Context, arg ReportFinalAlertSetParams) error
+	// Requests whose campaign's results became final (72 hours after the send
+	// ended), with what the notification says; the oldest first.
+	ReportFinalAlertsDue(ctx context.Context, finalBefore time.Time) ([]ReportFinalAlertsDueRow, error)
 	// Contacts who joined since a campaign started through a form or the
 	// subscribe page, with their first touch's page, referrer and UTM medium
 	// and campaign: the issue's forwards and web-post signups are read from
@@ -2951,6 +2962,9 @@ type Querier interface {
 	// Clicks per link: people's clicks, people's first click per link, and
 	// the clicks the bot filter left out.
 	ReportLinks(ctx context.Context, campaignID uuid.UUID) ([]ReportLinksRow, error)
+	// Whether a sending provider reported opens or clicks of a campaign's
+	// messages: its own tracking counted them (review AN-4).
+	ReportProviderTracked(ctx context.Context, arg ReportProviderTrackedParams) (bool, error)
 	// The last issues before a campaign to the same audience (sent email
 	// campaigns, not deleted, to the same lists and segments in any order),
 	// with their counters per mailbox provider, for the tiles' comparison with

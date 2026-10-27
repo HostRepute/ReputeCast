@@ -15,6 +15,9 @@ type CampaignReport struct {
 	// Comparisons are the tiles' changes against the median of the last
 	// issues (review AN-11).
 	Comparisons ReportComparisons `json:"comparisons"`
+	// Insights are worked out from the report's numbers, each with what to
+	// do about it.
+	Insights []ReportInsight `json:"insights"`
 	// Growth is the issue's new subscribers and web views (review AN-12);
 	// its upgrades and revenue are the campaign's revenue (Earn).
 	Growth       ReportGrowth         `json:"growth"`
@@ -281,6 +284,16 @@ type ReportProviderColumn struct {
 	WarmupDay *int `json:"warmupDay,omitempty"`
 	// EngagedFirst is true when the warm-up sent to the most engaged contacts only.
 	EngagedFirst bool `json:"engagedFirst"`
+	// TrackedBy is whose tracking counted the opens and clicks of the
+	// messages sent here: ReputeCast's pixel and links, or the provider's
+	// own, kept in Sending providers (review AN-4).
+	TrackedBy string `json:"trackedBy" enum:"reputecast,provider"`
+	// DeliveryInferred: the provider can't report deliveries (an SMTP
+	// relay), so a message that hasn't bounced within 72 hours counts as
+	// delivered.
+	DeliveryInferred bool `json:"deliveryInferred"`
+	// Events is how the provider's delivery events arrive.
+	Events string `json:"events" enum:"sns,webhook,bounce_mailbox,none"`
 }
 
 // ReportProviderTable is "Results per sending provider".

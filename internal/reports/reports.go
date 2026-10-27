@@ -160,6 +160,7 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 		out.Engagement.Points = []ReportEngagementPoint{}
 		out.ClickMap.Links = []ReportLink{}
 		out.ClickMap.Variants = []ReportVariantClickMap{}
+		out.Insights = []ReportInsight{}
 		out.Providers.Columns = []ReportProviderColumn{}
 		out.Bounces.Rows = []ReportBounceRow{}
 		out.Unsubscribes.Reasons = []ReportUnsubscribeReason{}
@@ -182,6 +183,9 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 		return out, err
 	}
 	if out.Providers, err = s.providerTable(ctx, c, cells, routes, loc); err != nil {
+		return out, err
+	}
+	if err := s.trackingSources(ctx, c, &out.Providers, provs); err != nil {
 		return out, err
 	}
 	hourly, err := s.Q.ReportHourly(ctx, store.ReportHourlyParams{CampaignID: c.ID, MaxHour: 71})
@@ -235,6 +239,9 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 		out.Unsubscribes = ReportUnsubscribes{Total: out.Headline.Unsubscribes, Reasons: []ReportUnsubscribeReason{}}
 	} else {
 		out.Unsubscribes = unsubscribes(l, out.Headline.Unsubscribes, reasons)
+	}
+	if out.Insights, err = s.insights(ctx, l, ws, c, &out); err != nil {
+		return out, err
 	}
 	if ab != nil && len(ab.Variants) >= 2 {
 		t := abResult(l, ab, parseSendAB(c.SendAb), cells, c, now)
@@ -506,6 +513,46 @@ func (s *Service) providerTable(ctx context.Context, c store.ReportCampaignRow, 
 	}
 	out.Split = sent > 1
 	return out, nil
+}
+
+// trackingSources says, for each sending provider of the send, whose
+// tracking counted its opens and clicks and how its deliveries and bounces
+// are known (ReportStates' tracking source notes). A provider whose own
+// tracking is kept counted the send when it reported its opens or clicks.
+func (s *Service) trackingSources(ctx context.Context, c store.ReportCampaignRow, t *ReportProviderTable, provs []store.Provider) error {
+	byID := make(map[string]store.Provider, len(provs))
+	for _, p := range provs {
+		byID[p.ID.String()] = p
+	}
+	for i := range t.Columns {
+		col := &t.Columns[i]
+		col.TrackedBy, col.Events = "reputecast", "none"
+		col.DeliveryInferred = col.Adapter == "smtp"
+		p, ok := byID[col.ProviderID]
+		if !ok {
+			continue
+		}
+		switch provstate.Caps(p).Webhooks {
+		case "SNS":
+			col.Events = "sns"
+		case "Bounce mailbox":
+			col.Events = "bounce_mailbox"
+		case "":
+		default:
+			col.Events = "webhook"
+		}
+		if provstate.TrackingOf(p).Mode != "provider" {
+			continue
+		}
+		reported, err := s.Q.ReportProviderTracked(ctx, store.ReportProviderTrackedParams{CampaignID: c.ID, ProviderID: p.ID})
+		if err != nil {
+			return err
+		}
+		if reported {
+			col.TrackedBy = "provider"
+		}
+	}
+	return nil
 }
 
 // hoursSoFar is how many hours of the 72-hour window have passed.

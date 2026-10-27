@@ -13,6 +13,61 @@ import (
 	"github.com/google/uuid"
 )
 
+const reportBlockedBounces = `-- name: ReportBlockedBounces :many
+SELECT e.mailbox_provider, e.provider_id, coalesce(p.name, '')::text AS provider_name, coalesce(p.adapter, '')::text AS adapter,
+       coalesce(p.ips, '{}')::text[] AS ips, count(*)::bigint AS n
+FROM delivery_events e
+LEFT JOIN providers p ON p.id = e.provider_id
+WHERE e.campaign_id = $1 AND e.workspace_id = $2 AND e.type IN ('hard_bounce', 'soft_bounce')
+  AND e.bounce_class IN ('policy_block', 'spam_block', 'reputation')
+GROUP BY e.mailbox_provider, e.provider_id, p.name, p.adapter, p.ips
+ORDER BY n DESC
+`
+
+type ReportBlockedBouncesParams struct {
+	CampaignID  *uuid.UUID `json:"campaignId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+}
+
+type ReportBlockedBouncesRow struct {
+	MailboxProvider string     `json:"mailboxProvider"`
+	ProviderID      *uuid.UUID `json:"providerId"`
+	ProviderName    string     `json:"providerName"`
+	Adapter         string     `json:"adapter"`
+	Ips             []string   `json:"ips"`
+	N               int64      `json:"n"`
+}
+
+// A campaign's bounces for the sender's reputation or policy by mailbox
+// provider and sending provider, with the provider's addresses (the
+// report's insights, review AN-15).
+func (q *Queries) ReportBlockedBounces(ctx context.Context, arg ReportBlockedBouncesParams) ([]ReportBlockedBouncesRow, error) {
+	rows, err := q.db.Query(ctx, reportBlockedBounces, arg.CampaignID, arg.WorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportBlockedBouncesRow{}
+	for rows.Next() {
+		var i ReportBlockedBouncesRow
+		if err := rows.Scan(
+			&i.MailboxProvider,
+			&i.ProviderID,
+			&i.ProviderName,
+			&i.Adapter,
+			&i.Ips,
+			&i.N,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const reportBounceCodes = `-- name: ReportBounceCodes :many
 SELECT e.bounce_class, e.type, e.provider_id,
        coalesce(p.name, '')::text AS provider_name, coalesce(p.adapter, '')::text AS adapter,
@@ -299,6 +354,104 @@ func (q *Queries) ReportCounterCells(ctx context.Context, campaignID uuid.UUID) 
 			&i.OpenedMachine,
 			&i.Clicked,
 			&i.Unsubscribed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const reportFinalAlertIs = `-- name: ReportFinalAlertIs :one
+SELECT EXISTS (SELECT 1 FROM report_final_alerts WHERE campaign_id = $1 AND user_id = $2)::boolean AS asked
+`
+
+type ReportFinalAlertIsParams struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	UserID     uuid.UUID `json:"userId"`
+}
+
+func (q *Queries) ReportFinalAlertIs(ctx context.Context, arg ReportFinalAlertIsParams) (bool, error) {
+	row := q.db.QueryRow(ctx, reportFinalAlertIs, arg.CampaignID, arg.UserID)
+	var asked bool
+	err := row.Scan(&asked)
+	return asked, err
+}
+
+const reportFinalAlertRemove = `-- name: ReportFinalAlertRemove :execrows
+DELETE FROM report_final_alerts WHERE campaign_id = $1 AND user_id = $2
+`
+
+type ReportFinalAlertRemoveParams struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	UserID     uuid.UUID `json:"userId"`
+}
+
+func (q *Queries) ReportFinalAlertRemove(ctx context.Context, arg ReportFinalAlertRemoveParams) (int64, error) {
+	result, err := q.db.Exec(ctx, reportFinalAlertRemove, arg.CampaignID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const reportFinalAlertSet = `-- name: ReportFinalAlertSet :exec
+INSERT INTO report_final_alerts (campaign_id, user_id, workspace_id) VALUES ($1, $2, $3)
+ON CONFLICT (campaign_id, user_id) DO NOTHING
+`
+
+type ReportFinalAlertSetParams struct {
+	CampaignID  uuid.UUID `json:"campaignId"`
+	UserID      uuid.UUID `json:"userId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+// Someone asked to be emailed when a report's results are final.
+func (q *Queries) ReportFinalAlertSet(ctx context.Context, arg ReportFinalAlertSetParams) error {
+	_, err := q.db.Exec(ctx, reportFinalAlertSet, arg.CampaignID, arg.UserID, arg.WorkspaceID)
+	return err
+}
+
+const reportFinalAlertsDue = `-- name: ReportFinalAlertsDue :many
+SELECT a.campaign_id, a.user_id, a.workspace_id, c.name AS campaign_name, w.slug AS workspace_slug, c.completed_at
+FROM report_final_alerts a
+JOIN campaigns c ON c.id = a.campaign_id
+JOIN workspaces w ON w.id = a.workspace_id
+WHERE c.completed_at IS NOT NULL AND c.completed_at <= $1::timestamptz
+ORDER BY a.created_at
+LIMIT 500
+`
+
+type ReportFinalAlertsDueRow struct {
+	CampaignID    uuid.UUID  `json:"campaignId"`
+	UserID        uuid.UUID  `json:"userId"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	CampaignName  string     `json:"campaignName"`
+	WorkspaceSlug string     `json:"workspaceSlug"`
+	CompletedAt   *time.Time `json:"completedAt"`
+}
+
+// Requests whose campaign's results became final (72 hours after the send
+// ended), with what the notification says; the oldest first.
+func (q *Queries) ReportFinalAlertsDue(ctx context.Context, finalBefore time.Time) ([]ReportFinalAlertsDueRow, error) {
+	rows, err := q.db.Query(ctx, reportFinalAlertsDue, finalBefore)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportFinalAlertsDueRow{}
+	for rows.Next() {
+		var i ReportFinalAlertsDueRow
+		if err := rows.Scan(
+			&i.CampaignID,
+			&i.UserID,
+			&i.WorkspaceID,
+			&i.CampaignName,
+			&i.WorkspaceSlug,
+			&i.CompletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -643,6 +796,28 @@ func (q *Queries) ReportLinks(ctx context.Context, campaignID uuid.UUID) ([]Repo
 		return nil, err
 	}
 	return items, nil
+}
+
+const reportProviderTracked = `-- name: ReportProviderTracked :one
+SELECT EXISTS (
+    SELECT 1 FROM delivery_events
+    WHERE campaign_id = $1::uuid AND provider_id = $2::uuid AND type IN ('open', 'click')
+      AND original_type NOT IN ('', 'ReputeCast tracking')
+)::boolean AS reported
+`
+
+type ReportProviderTrackedParams struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	ProviderID uuid.UUID `json:"providerId"`
+}
+
+// Whether a sending provider reported opens or clicks of a campaign's
+// messages: its own tracking counted them (review AN-4).
+func (q *Queries) ReportProviderTracked(ctx context.Context, arg ReportProviderTrackedParams) (bool, error) {
+	row := q.db.QueryRow(ctx, reportProviderTracked, arg.CampaignID, arg.ProviderID)
+	var reported bool
+	err := row.Scan(&reported)
+	return reported, err
 }
 
 const reportRecentIssues = `-- name: ReportRecentIssues :many

@@ -2,8 +2,10 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/riverqueue/river"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
@@ -28,6 +30,11 @@ func reportsService(a *App) *reports.Service {
 func init() {
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		reports.Register(h, reportsService(a))
+	})
+	// "Email me when it's final": told once the 72 hours are over.
+	jobRegistrars = append(jobRegistrars, func(a *App) {
+		river.AddWorker(a.JobReg.Workers, &reports.FinalAlertsWorker{S: reportsService(a)})
+		a.JobReg.Every(10*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return reports.FinalAlertsArgs{}, nil }, false)
 	})
 }
 
