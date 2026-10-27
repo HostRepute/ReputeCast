@@ -31,6 +31,11 @@ func Open(ctx context.Context, url string, maxConns int32) (*pgxpool.Pool, error
 	}
 	cfg.MaxConnIdleTime = 5 * time.Minute
 	cfg.ConnConfig.RuntimeParams["application_name"] = "reputecast"
+	// Postgres compiles a plan whose estimated cost passes jit_above_cost
+	// with JIT, again on every execution. ReputeCast's queries are short:
+	// counting a 48,000-contact audience for Review & send spent 0.5 s
+	// compiling and 0.1 s running.
+	cfg.ConnConfig.RuntimeParams["jit"] = "off"
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, err
