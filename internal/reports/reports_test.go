@@ -434,18 +434,33 @@ func TestReportShares(t *testing.T) {
 	// Nothing to share before a campaign is sent.
 	c.Do("POST", "/workspaces/acme-newsletter/campaigns/"+campaignID(t, c, "Weekly Digest #142")+"/report/shares", map[string]any{}).MustStatus(t, 409)
 
-	// The demo already shares this report once (the Report board's link).
+	// The demo already shares this report twice (the Report board's links).
+	type includes struct{ Cost, Warmup, Email bool }
 	var list struct {
-		Items []struct{ ID, URL string }
+		Items []struct {
+			ID, URL   string
+			ExpiresAt *time.Time
+			Includes  includes
+		}
 	}
 	c.Do("GET", base+"/shares", nil).MustStatus(t, 200).JSON(t, &list)
 	seeded := len(list.Items)
-	if seeded != 1 || list.Items[0].URL == "" {
+	if seeded != 2 || list.Items[0].URL == "" || !list.Items[0].Includes.Cost || list.Items[1].Includes.Cost || !list.Items[1].Includes.Email {
 		t.Fatalf("seeded links: %+v", list)
 	}
 
-	var link struct{ ID, URL string }
+	// A new link expires after 30 days and shares only the numbers unless
+	// more is chosen (review AN-16).
+	var link struct {
+		ID, URL   string
+		ExpiresAt *time.Time
+		Includes  includes
+	}
 	c.Do("POST", base+"/shares", map[string]any{}).MustStatus(t, 201).JSON(t, &link)
+	if link.ExpiresAt == nil || link.ExpiresAt.Sub(time.Now()) < 29*24*time.Hour || link.ExpiresAt.Sub(time.Now()) > 31*24*time.Hour || link.Includes != (includes{}) {
+		t.Fatalf("a new link: %+v", link)
+	}
+	c.Do("POST", base+"/shares", map[string]any{"expiresInDays": 365}).MustStatus(t, 422)
 	prefix := env.App.URLs.Report("")
 	if !strings.HasPrefix(link.URL, prefix) || len(link.URL)-len(prefix) != 22 {
 		t.Fatalf("link %q", link.URL)
@@ -476,6 +491,18 @@ func TestReportShares(t *testing.T) {
 	if shared.Workspace != "Acme Newsletter" || shared.Report.Campaign.ID != "" || shared.Report.Headline.Sent != 47980 {
 		t.Fatalf("shared: %s %+v", shared.Workspace, shared.Report.Campaign)
 	}
+	if shared.Report.ClickMap.HTML != "" || shared.Report.Providers.Columns[0].Cost != nil {
+		t.Fatalf("a link without the email or the cost shares them: %+v", shared.Report.Providers.Columns[0])
+	}
+	// With the email and the cost per provider, chosen.
+	var full struct{ ID, URL string }
+	c.Do("POST", base+"/shares", map[string]any{"includeEmail": true, "includeCost": true, "expiresInDays": 7}).MustStatus(t, 201).JSON(t, &full)
+	var both struct{ Report report }
+	anon.Do("GET", "/shared-reports/"+strings.TrimPrefix(full.URL, prefix), nil).MustStatus(t, 200).JSON(t, &both)
+	if both.Report.ClickMap.HTML == "" || both.Report.Providers.Columns[0].Cost == nil {
+		t.Fatalf("a link with the email and the cost: %+v", both.Report.Providers.Columns[0])
+	}
+	c.Do("DELETE", base+"/shares/"+full.ID, nil).MustStatus(t, 204)
 	if strings.Contains(string(res.Body), "reader.") || strings.Contains(string(res.Body), "former.reader") || strings.Contains(string(res.Body), oct) {
 		t.Fatal("the shared report leaks addresses or ids")
 	}
@@ -501,7 +528,7 @@ func TestReportShares(t *testing.T) {
 		}
 	}
 	var n int
-	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action IN ('report_share.create', 'report_share.revoke')`).Scan(&n); err != nil || n != 3 {
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action IN ('report_share.create', 'report_share.revoke')`).Scan(&n); err != nil || n != 5 {
 		t.Fatalf("share audit entries: %d %v", n, err)
 	}
 	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE after::text LIKE '%' || $1 || '%' OR metadata::text LIKE '%' || $1 || '%'`, token).Scan(&n); err != nil || n != 0 {

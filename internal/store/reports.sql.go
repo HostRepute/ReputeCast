@@ -805,7 +805,8 @@ func (q *Queries) ReportSendContent(ctx context.Context, campaignID uuid.UUID) (
 }
 
 const reportShareByToken = `-- name: ReportShareByToken :one
-SELECT rs.id, rs.campaign_id, rs.expires_at, rs.revoked_at, c.workspace_id, w.slug AS workspace_slug, w.name AS workspace_name
+SELECT rs.id, rs.campaign_id, rs.expires_at, rs.revoked_at, rs.include_cost, rs.include_warmup, rs.include_email,
+       c.workspace_id, w.slug AS workspace_slug, w.name AS workspace_name
 FROM report_shares rs
 JOIN campaigns c ON c.id = rs.campaign_id AND c.deleted_at IS NULL
 JOIN workspaces w ON w.id = c.workspace_id AND w.deleted_at IS NULL
@@ -817,6 +818,9 @@ type ReportShareByTokenRow struct {
 	CampaignID    uuid.UUID  `json:"campaignId"`
 	ExpiresAt     *time.Time `json:"expiresAt"`
 	RevokedAt     *time.Time `json:"revokedAt"`
+	IncludeCost   bool       `json:"includeCost"`
+	IncludeWarmup bool       `json:"includeWarmup"`
+	IncludeEmail  bool       `json:"includeEmail"`
 	WorkspaceID   uuid.UUID  `json:"workspaceId"`
 	WorkspaceSlug string     `json:"workspaceSlug"`
 	WorkspaceName string     `json:"workspaceName"`
@@ -831,6 +835,9 @@ func (q *Queries) ReportShareByToken(ctx context.Context, tokenHash []byte) (Rep
 		&i.CampaignID,
 		&i.ExpiresAt,
 		&i.RevokedAt,
+		&i.IncludeCost,
+		&i.IncludeWarmup,
+		&i.IncludeEmail,
 		&i.WorkspaceID,
 		&i.WorkspaceSlug,
 		&i.WorkspaceName,
@@ -839,19 +846,22 @@ func (q *Queries) ReportShareByToken(ctx context.Context, tokenHash []byte) (Rep
 }
 
 const reportShareCreate = `-- name: ReportShareCreate :one
-INSERT INTO report_shares (id, campaign_id, token_hash, token_sealed, created_by, created_at, expires_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, campaign_id, token_hash, created_by, created_at, expires_at, revoked_at, token_sealed, revoked_by, views, last_viewed_at
+INSERT INTO report_shares (id, campaign_id, token_hash, token_sealed, created_by, created_at, expires_at, include_cost, include_warmup, include_email)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+RETURNING id, campaign_id, token_hash, created_by, created_at, expires_at, revoked_at, token_sealed, revoked_by, views, last_viewed_at, include_cost, include_warmup, include_email
 `
 
 type ReportShareCreateParams struct {
-	ID          uuid.UUID  `json:"id"`
-	CampaignID  uuid.UUID  `json:"campaignId"`
-	TokenHash   []byte     `json:"tokenHash"`
-	TokenSealed []byte     `json:"tokenSealed"`
-	CreatedBy   *uuid.UUID `json:"createdBy"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	ExpiresAt   *time.Time `json:"expiresAt"`
+	ID            uuid.UUID  `json:"id"`
+	CampaignID    uuid.UUID  `json:"campaignId"`
+	TokenHash     []byte     `json:"tokenHash"`
+	TokenSealed   []byte     `json:"tokenSealed"`
+	CreatedBy     *uuid.UUID `json:"createdBy"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	ExpiresAt     *time.Time `json:"expiresAt"`
+	IncludeCost   bool       `json:"includeCost"`
+	IncludeWarmup bool       `json:"includeWarmup"`
+	IncludeEmail  bool       `json:"includeEmail"`
 }
 
 func (q *Queries) ReportShareCreate(ctx context.Context, arg ReportShareCreateParams) (ReportShare, error) {
@@ -863,6 +873,9 @@ func (q *Queries) ReportShareCreate(ctx context.Context, arg ReportShareCreatePa
 		arg.CreatedBy,
 		arg.CreatedAt,
 		arg.ExpiresAt,
+		arg.IncludeCost,
+		arg.IncludeWarmup,
+		arg.IncludeEmail,
 	)
 	var i ReportShare
 	err := row.Scan(
@@ -877,12 +890,15 @@ func (q *Queries) ReportShareCreate(ctx context.Context, arg ReportShareCreatePa
 		&i.RevokedBy,
 		&i.Views,
 		&i.LastViewedAt,
+		&i.IncludeCost,
+		&i.IncludeWarmup,
+		&i.IncludeEmail,
 	)
 	return i, err
 }
 
 const reportShareGet = `-- name: ReportShareGet :one
-SELECT id, campaign_id, token_hash, created_by, created_at, expires_at, revoked_at, token_sealed, revoked_by, views, last_viewed_at FROM report_shares WHERE id = $1 AND campaign_id = $2
+SELECT id, campaign_id, token_hash, created_by, created_at, expires_at, revoked_at, token_sealed, revoked_by, views, last_viewed_at, include_cost, include_warmup, include_email FROM report_shares WHERE id = $1 AND campaign_id = $2
 `
 
 type ReportShareGetParams struct {
@@ -905,12 +921,15 @@ func (q *Queries) ReportShareGet(ctx context.Context, arg ReportShareGetParams) 
 		&i.RevokedBy,
 		&i.Views,
 		&i.LastViewedAt,
+		&i.IncludeCost,
+		&i.IncludeWarmup,
+		&i.IncludeEmail,
 	)
 	return i, err
 }
 
 const reportShareList = `-- name: ReportShareList :many
-SELECT rs.id, rs.campaign_id, rs.token_hash, rs.created_by, rs.created_at, rs.expires_at, rs.revoked_at, rs.token_sealed, rs.revoked_by, rs.views, rs.last_viewed_at, coalesce(u.name, '')::text AS created_by_name
+SELECT rs.id, rs.campaign_id, rs.token_hash, rs.created_by, rs.created_at, rs.expires_at, rs.revoked_at, rs.token_sealed, rs.revoked_by, rs.views, rs.last_viewed_at, rs.include_cost, rs.include_warmup, rs.include_email, coalesce(u.name, '')::text AS created_by_name
 FROM report_shares rs
 LEFT JOIN users u ON u.id = rs.created_by
 WHERE rs.campaign_id = $1 AND rs.revoked_at IS NULL AND (rs.expires_at IS NULL OR rs.expires_at > $2)
@@ -934,6 +953,9 @@ type ReportShareListRow struct {
 	RevokedBy     *uuid.UUID `json:"revokedBy"`
 	Views         int64      `json:"views"`
 	LastViewedAt  *time.Time `json:"lastViewedAt"`
+	IncludeCost   bool       `json:"includeCost"`
+	IncludeWarmup bool       `json:"includeWarmup"`
+	IncludeEmail  bool       `json:"includeEmail"`
 	CreatedByName string     `json:"createdByName"`
 }
 
@@ -959,6 +981,9 @@ func (q *Queries) ReportShareList(ctx context.Context, arg ReportShareListParams
 			&i.RevokedBy,
 			&i.Views,
 			&i.LastViewedAt,
+			&i.IncludeCost,
+			&i.IncludeWarmup,
+			&i.IncludeEmail,
 			&i.CreatedByName,
 		); err != nil {
 			return nil, err
@@ -974,7 +999,7 @@ func (q *Queries) ReportShareList(ctx context.Context, arg ReportShareListParams
 const reportShareRevoke = `-- name: ReportShareRevoke :one
 UPDATE report_shares SET revoked_at = $1, revoked_by = $2
 WHERE id = $3 AND campaign_id = $4 AND revoked_at IS NULL
-RETURNING id, campaign_id, token_hash, created_by, created_at, expires_at, revoked_at, token_sealed, revoked_by, views, last_viewed_at
+RETURNING id, campaign_id, token_hash, created_by, created_at, expires_at, revoked_at, token_sealed, revoked_by, views, last_viewed_at, include_cost, include_warmup, include_email
 `
 
 type ReportShareRevokeParams struct {
@@ -1004,6 +1029,9 @@ func (q *Queries) ReportShareRevoke(ctx context.Context, arg ReportShareRevokePa
 		&i.RevokedBy,
 		&i.Views,
 		&i.LastViewedAt,
+		&i.IncludeCost,
+		&i.IncludeWarmup,
+		&i.IncludeEmail,
 	)
 	return i, err
 }

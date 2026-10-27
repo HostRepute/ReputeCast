@@ -3408,17 +3408,20 @@ type ReferralVisitsDaily struct {
 }
 
 type ReportShare struct {
-	ID           uuid.UUID  `json:"id"`
-	CampaignID   uuid.UUID  `json:"campaignId"`
-	TokenHash    []byte     `json:"tokenHash"`
-	CreatedBy    *uuid.UUID `json:"createdBy"`
-	CreatedAt    time.Time  `json:"createdAt"`
-	ExpiresAt    *time.Time `json:"expiresAt"`
-	RevokedAt    *time.Time `json:"revokedAt"`
-	TokenSealed  []byte     `json:"tokenSealed"`
-	RevokedBy    *uuid.UUID `json:"revokedBy"`
-	Views        int64      `json:"views"`
-	LastViewedAt *time.Time `json:"lastViewedAt"`
+	ID            uuid.UUID  `json:"id"`
+	CampaignID    uuid.UUID  `json:"campaignId"`
+	TokenHash     []byte     `json:"tokenHash"`
+	CreatedBy     *uuid.UUID `json:"createdBy"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	ExpiresAt     *time.Time `json:"expiresAt"`
+	RevokedAt     *time.Time `json:"revokedAt"`
+	TokenSealed   []byte     `json:"tokenSealed"`
+	RevokedBy     *uuid.UUID `json:"revokedBy"`
+	Views         int64      `json:"views"`
+	LastViewedAt  *time.Time `json:"lastViewedAt"`
+	IncludeCost   bool       `json:"includeCost"`
+	IncludeWarmup bool       `json:"includeWarmup"`
+	IncludeEmail  bool       `json:"includeEmail"`
 }
 
 type Role struct {

@@ -1119,22 +1119,39 @@ func reportOctoberABTest(ctx context.Context, s *Seeder, c *reportCampaignSeed) 
 	return err
 }
 
-// reportShareLink is the read-only link the Report board shows at the
-// bottom of the October Product Update: made by Linh two days ago, opened
-// a few times since. The token is sealed like the app seals it.
+// reportShareLink is the read-only links the Report board shows at the
+// bottom of the October Product Update: made by Linh two days ago and
+// Marcus yesterday, opened a few times since. The tokens are sealed like
+// the app seals them.
 func reportShareLink(ctx context.Context, s *Seeder, c *reportCampaignSeed) error {
-	b := make([]byte, 16)
-	if _, err := rand.Read(b); err != nil {
-		return err
+	// The board's two active links: Linh's with the email, Marcus's with
+	// the email and the cost per provider; both expire after 30 days.
+	for _, l := range []struct {
+		who         string
+		ago         time.Duration
+		views       int
+		cost, email bool
+	}{
+		{"linh@acme.io", 46 * time.Hour, 14, false, true},
+		{"marcus@acme.io", 22 * time.Hour, 3, true, true},
+	} {
+		b := make([]byte, 16)
+		if _, err := rand.Read(b); err != nil {
+			return err
+		}
+		token := base64.RawURLEncoding.EncodeToString(b)
+		id := ID()
+		sealed, err := s.Box.SealString(token, "report_share:"+id.String()+":token")
+		if err != nil {
+			return err
+		}
+		created := s.Ago(l.ago)
+		if _, err := s.Tx.Exec(ctx, `INSERT INTO report_shares (id, campaign_id, token_hash, token_sealed, created_by, created_at, expires_at, views, last_viewed_at,
+			include_cost, include_warmup, include_email)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,false,$11)`, id, c.id, authn.HashToken(token), sealed, s.Users[l.who].ID, created, created.AddDate(0, 0, 30),
+			l.views, s.Ago(3*time.Hour), l.cost, l.email); err != nil {
+			return err
+		}
 	}
-	token := base64.RawURLEncoding.EncodeToString(b)
-	id := ID()
-	sealed, err := s.Box.SealString(token, "report_share:"+id.String()+":token")
-	if err != nil {
-		return err
-	}
-	linh := s.Users["linh@acme.io"]
-	_, err = s.Tx.Exec(ctx, `INSERT INTO report_shares (id, campaign_id, token_hash, token_sealed, created_by, created_at, views, last_viewed_at)
-		VALUES ($1,$2,$3,$4,$5,$6,14,$7)`, id, c.id, authn.HashToken(token), sealed, linh.ID, s.Ago(46*time.Hour), s.Ago(3*time.Hour))
-	return err
+	return nil
 }

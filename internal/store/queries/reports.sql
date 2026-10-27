@@ -224,8 +224,8 @@ LIMIT 1;
 SELECT verdict, ran_at FROM readiness_runs WHERE campaign_id = @campaign_id ORDER BY ran_at DESC LIMIT 1;
 
 -- name: ReportShareCreate :one
-INSERT INTO report_shares (id, campaign_id, token_hash, token_sealed, created_by, created_at, expires_at)
-VALUES (@id, @campaign_id, @token_hash, @token_sealed, @created_by, @created_at, @expires_at)
+INSERT INTO report_shares (id, campaign_id, token_hash, token_sealed, created_by, created_at, expires_at, include_cost, include_warmup, include_email)
+VALUES (@id, @campaign_id, @token_hash, @token_sealed, @created_by, @created_at, @expires_at, @include_cost, @include_warmup, @include_email)
 RETURNING *;
 
 -- name: ReportShareList :many
@@ -246,7 +246,8 @@ RETURNING *;
 
 -- name: ReportShareByToken :one
 -- A link by its token hash with its campaign and workspace (the public page).
-SELECT rs.id, rs.campaign_id, rs.expires_at, rs.revoked_at, c.workspace_id, w.slug AS workspace_slug, w.name AS workspace_name
+SELECT rs.id, rs.campaign_id, rs.expires_at, rs.revoked_at, rs.include_cost, rs.include_warmup, rs.include_email,
+       c.workspace_id, w.slug AS workspace_slug, w.name AS workspace_name
 FROM report_shares rs
 JOIN campaigns c ON c.id = rs.campaign_id AND c.deleted_at IS NULL
 JOIN workspaces w ON w.id = c.workspace_id AND w.deleted_at IS NULL

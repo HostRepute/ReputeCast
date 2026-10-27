@@ -464,6 +464,16 @@ type ReportShareLink struct {
 	ExpiresAt     *time.Time `json:"expiresAt,omitempty"`
 	Views         int64      `json:"views"`
 	LastViewedAt  *time.Time `json:"lastViewedAt,omitempty"`
+	// Includes is what the link shares beyond the numbers.
+	Includes ReportShareIncludes `json:"includes"`
+}
+
+// ReportShareIncludes is what a read-only link shares beyond the numbers,
+// charts and tables (review AN-16).
+type ReportShareIncludes struct {
+	Cost   bool `json:"cost" doc:"The cost per sending provider"`
+	Warmup bool `json:"warmup" doc:"The warm-up day of each sending provider"`
+	Email  bool `json:"email" doc:"The email as sent, in the click map"`
 }
 
 // ReportShareList lists a campaign's active links.
@@ -474,9 +484,10 @@ type ReportShareList struct {
 // SharedCampaignReport is what a read-only link shows: the report of one
 // campaign and the workspace it belongs to, nothing else.
 type SharedCampaignReport struct {
-	Workspace string         `json:"workspace"`
-	ExpiresAt *time.Time     `json:"expiresAt,omitempty"`
-	Report    CampaignReport `json:"report"`
+	Workspace string              `json:"workspace"`
+	ExpiresAt *time.Time          `json:"expiresAt,omitempty"`
+	Includes  ReportShareIncludes `json:"includes"`
+	Report    CampaignReport      `json:"report"`
 }
 
 // ReportBounceDiagnostic is one provider message behind a bounce type.
