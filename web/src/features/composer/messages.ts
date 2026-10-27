@@ -69,7 +69,7 @@ export const m = defineMessages('composer', {
   routeNotSetUp: 'Broadcasts route · not set up',
   routeReadOnly: '{route} · read-only',
   routeOpen: '{route}: open routing',
-  routeNeedsPermission: 'Routing needs providers:manage',
+  routeNeedsPermission: 'People who manage providers can change the route.',
   backToEditor: 'Back to editor',
   previewLabel: 'Preview',
   campaignLabel: 'Campaign',
@@ -78,7 +78,7 @@ export const m = defineMessages('composer', {
   requestApproval: 'Request approval',
   reviewBlocks: '{action, select, send {Review & send} other {Request approval}} · {count, plural, one {# block} other {# blocks}}',
   permissionBanner:
-    '<b>{name} · {role}.</b> You can edit this campaign and request approval. Sending needs the <mono>campaigns:send</mono> permission{hasHelpers, select, yes {: ask {helpers}} other {}}. {routing, select, yes {Scheduling, test sends to the whole team and route changes are hidden for your role.} other {Scheduling and test sends to the whole team are hidden for your role.}}',
+    '<b>{name} · {role}.</b> You can edit this campaign and request approval. Only people who can send campaigns can send it{hasHelpers, select, yes {: ask {helpers}} other {}}. {routing, select, yes {Scheduling, test sends to the whole team and route changes are hidden for your role.} other {Scheduling and test sends to the whole team are hidden for your role.}}',
   whatApprovalCovers: 'What approval covers',
 
   // Audience and sender pickers.

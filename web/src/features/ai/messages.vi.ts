@@ -368,7 +368,7 @@ export default {
     notConfiguredLead:
       'Gợi ý tiêu đề, viết lại, dịch và văn bản thay thế, bằng mô hình AI của chính {workspace}. Không có gì được gửi đi cho đến khi có mô hình được kết nối, và khi đó chỉ gửi những gì bạn hỏi.',
     notConfiguredAsk: '{helpers} có thể kết nối một mô hình. Bạn sẽ thấy gợi ý ở đây ngay khi họ kết nối.',
-    notConfiguredNobody: 'Người có quyền integrations:manage có thể kết nối một mô hình. Bạn sẽ thấy gợi ý ở đây ngay khi họ kết nối.',
+    notConfiguredNobody: 'Người quản lý tích hợp có thể kết nối một mô hình. Bạn sẽ thấy gợi ý ở đây ngay khi họ kết nối.',
     usageDollars: '{model} · {spent} trên {cap} tháng này. Chỉ gửi những gì bạn đang làm, không bao giờ gửi dữ liệu liên hệ.',
     usageTokens: '{model} · {spent} trên {cap} token tháng này. Chỉ gửi những gì bạn đang làm, không bao giờ gửi dữ liệu liên hệ.',
     usageNoCap: '{model} · {spent} tháng này. Chỉ gửi những gì bạn đang làm, không bao giờ gửi dữ liệu liên hệ.',
@@ -385,9 +385,9 @@ export default {
 
     // ── The Content Writer's banner, with the assistant ──────────────────
     bannerAssist:
-      '<b>{name} · {role}.</b> Bạn có thể sửa chiến dịch này và dùng trợ lý. Gửi cần quyền <mono>campaigns:send</mono>, nên chiến dịch sẽ được gửi sau khi {helpers} phê duyệt.',
+      '<b>{name} · {role}.</b> Bạn có thể sửa chiến dịch này và dùng trợ lý. Chỉ người có thể gửi chiến dịch mới gửi được, nên chiến dịch sẽ được gửi sau khi {helpers} phê duyệt.',
     bannerAssistAlone:
-      '<b>{name} · {role}.</b> Bạn có thể sửa chiến dịch này và dùng trợ lý. Gửi cần quyền <mono>campaigns:send</mono>, nên chiến dịch sẽ được gửi sau khi một người có quyền này phê duyệt.',
+      '<b>{name} · {role}.</b> Bạn có thể sửa chiến dịch này và dùng trợ lý. Chỉ người có thể gửi chiến dịch mới gửi được, nên chiến dịch sẽ được gửi sau khi một trong số họ phê duyệt.',
 
     // ── The Assist menu (composer header) ────────────────────────────────
     assist: 'Trợ lý',
@@ -413,9 +413,9 @@ export default {
     featureOff: 'Đã tắt cho không gian làm việc này',
     noImageModel: 'Mô hình không đọc được hình ảnh',
     keyRejectedMenu: '{provider} đã từ chối khóa của không gian làm việc. {helpers} có thể thay khóa trong Cài đặt › Tích hợp · Trợ lý AI.',
-    keyRejectedMenuAlone: '{provider} đã từ chối khóa của không gian làm việc. Người có quyền integrations:manage có thể thay khóa trong Cài đặt › Tích hợp · Trợ lý AI.',
+    keyRejectedMenuAlone: '{provider} đã từ chối khóa của không gian làm việc. Người quản lý tích hợp có thể thay khóa trong Cài đặt › Tích hợp · Trợ lý AI.',
     capMenu: 'Ngân sách AI tháng này đã dùng hết. Các tính năng AI sẽ trở lại vào {date}, hoặc {helpers} có thể tăng hạn mức.',
-    capMenuAlone: 'Ngân sách AI tháng này đã dùng hết. Các tính năng AI sẽ trở lại vào {date}, hoặc người có quyền integrations:manage có thể tăng hạn mức.',
+    capMenuAlone: 'Ngân sách AI tháng này đã dùng hết. Các tính năng AI sẽ trở lại vào {date}, hoặc người quản lý tích hợp có thể tăng hạn mức.',
 
     // ── Subject ideas ───────────────────────────────────────────────────
     ideas: 'Gợi ý',
@@ -437,7 +437,7 @@ export default {
     subjectVersion: 'Tiêu đề theo gợi ý của AI: “{subject}”',
     ideasNeed: '<b>Gợi ý tiêu đề cần một mô hình AI, được kết nối bằng khóa của chính không gian làm việc.</b> <a>Kết nối mô hình</a>',
     ideasNeedAsk: '<b>Gợi ý tiêu đề cần một mô hình AI, được kết nối bằng khóa của chính không gian làm việc.</b> {helpers} có thể kết nối một mô hình.',
-    ideasNeedNobody: '<b>Gợi ý tiêu đề cần một mô hình AI, được kết nối bằng khóa của chính không gian làm việc.</b> Người có quyền integrations:manage có thể kết nối một mô hình.',
+    ideasNeedNobody: '<b>Gợi ý tiêu đề cần một mô hình AI, được kết nối bằng khóa của chính không gian làm việc.</b> Người quản lý tích hợp có thể kết nối một mô hình.',
 
     // ── Rewrite (the rich-text toolbar) ──────────────────────────────────
     rewriteActions: 'Viết lại bằng AI',

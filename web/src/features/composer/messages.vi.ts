@@ -65,7 +65,7 @@ export default translate(m, {
   routeNotSetUp: 'Tuyến Gửi hàng loạt · chưa thiết lập',
   routeReadOnly: '{route} · chỉ đọc',
   routeOpen: '{route}: mở định tuyến',
-  routeNeedsPermission: 'Định tuyến cần quyền providers:manage',
+  routeNeedsPermission: 'Người quản lý nhà cung cấp có thể đổi tuyến gửi.',
   backToEditor: 'Quay lại trình soạn thảo',
   previewLabel: 'Xem trước',
   campaignLabel: 'Chiến dịch',
@@ -74,7 +74,7 @@ export default translate(m, {
   requestApproval: 'Yêu cầu phê duyệt',
   reviewBlocks: '{action, select, send {Kiểm tra và gửi} other {Yêu cầu phê duyệt}} · {count} mục chặn',
   permissionBanner:
-    '<b>{name} · {role}.</b> Bạn có thể sửa chiến dịch này và yêu cầu phê duyệt. Việc gửi cần quyền <mono>campaigns:send</mono>{hasHelpers, select, yes {: hãy nhờ {helpers}} other {}}. {routing, select, yes {Lên lịch, gửi thử cho cả nhóm và thay đổi tuyến được ẩn với vai trò của bạn.} other {Lên lịch và gửi thử cho cả nhóm được ẩn với vai trò của bạn.}}',
+    '<b>{name} · {role}.</b> Bạn có thể sửa chiến dịch này và yêu cầu phê duyệt. Chỉ người có thể gửi chiến dịch mới gửi được{hasHelpers, select, yes {: hãy nhờ {helpers}} other {}}. {routing, select, yes {Lên lịch, gửi thử cho cả nhóm và thay đổi tuyến được ẩn với vai trò của bạn.} other {Lên lịch và gửi thử cho cả nhóm được ẩn với vai trò của bạn.}}',
   whatApprovalCovers: 'Phê duyệt áp dụng cho những gì',
 
   changeFailed: 'Không thay đổi được chiến dịch',
