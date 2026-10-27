@@ -32,6 +32,7 @@ import { Footer, VersionLink } from './Footer'
 import { Header, PermissionBanner } from './Header'
 import { LeftPanel } from './LeftPanel'
 import { PreviewView } from './PreviewView'
+import { WriteView } from './write/WriteView'
 import { RightPanel } from './RightPanel'
 import { forgetRecovered, journalWriter, useJournalKey, useRecoveredJournal, type JournalWriter } from './journal'
 import { serialQueue } from './saveQueue'
@@ -973,6 +974,7 @@ export function Composer({
               {/* The website's Web view of the canvas (features/website). */}
               <WebCanvasView />
             </div>
+            {view === 'write' && !comparing && !missingLanguage ? <WriteView /> : null}
             {view === 'mjml' || view === 'html' ? (
               <Suspense fallback={<div className="cmp-main" style={{ alignItems: 'center', justifyContent: 'center' }} aria-busy="true"><span className="spin" aria-hidden="true" /></div>}>
                 <CodeView />

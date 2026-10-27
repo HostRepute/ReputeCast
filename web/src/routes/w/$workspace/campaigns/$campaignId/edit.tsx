@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { ComposerPage } from '@/features/composer/ComposerPage'
 
 const search = z.object({
-  view: z.enum(['visual', 'mjml', 'html', 'preview', 'compare']).optional().catch(undefined),
+  view: z.enum(['visual', 'write', 'mjml', 'html', 'preview', 'compare']).optional().catch(undefined),
   /** A language version (its code, such as de); none is the source. */
   language: z
     .string()

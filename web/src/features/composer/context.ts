@@ -8,7 +8,8 @@ export type ComposerCtxData = Schemas['ComposerContext']
 export type Checks = Schemas['ComposerChecks']
 export type Issue = Schemas['ContentCheckIssue']
 export type ABTest = Schemas['ComposerABTest']
-export type View = 'visual' | 'mjml' | 'html' | 'preview'
+/** Write is the document mode (CO-9); visual is Design; mjml and html are Code. */
+export type View = 'visual' | 'write' | 'mjml' | 'html' | 'preview'
 
 export type SaveStatus =
   | { kind: 'new' }

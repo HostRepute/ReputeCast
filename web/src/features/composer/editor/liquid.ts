@@ -98,6 +98,11 @@ function labelOf(editor: Editor | undefined, token: string): ChipLabel {
   return fn ? fn(p) : { label: p.key, fallback: p.fallback, unknown: false }
 }
 
+/** How a token's chip reads in this editor (Write mode draws the same chips, CO-9). */
+export function chipLabelOf(editor: Editor | null | undefined, token: string): ChipLabel {
+  return labelOf(editor ?? undefined, token)
+}
+
 /** Components whose words may print tokens (raw HTML and tables stay as they are). */
 const TEXT_TAGS = new Set(['mj-text', 'mj-button', 'mj-navbar-link', 'mj-social-element', 'mj-accordion-title', 'mj-accordion-text'])
 

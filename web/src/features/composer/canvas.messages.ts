@@ -25,6 +25,7 @@ export const mc = defineMessages('composer.canvas', {
   mobile: 'Mobile · 375',
   view: 'View',
   viewVisual: 'Visual',
+  viewWrite: 'Write',
   zoomHint: 'Zoom {zoom}% · Enter edits text · Esc selects parent · ⌘Z undo · ⌘/ shortcuts',
   blocking: '{count} blocking',
   warnings: '{count, plural, one {# warning} other {# warnings}}',

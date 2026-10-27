@@ -340,29 +340,29 @@
 }
 
 /* Comments (CO-10, the Composer board's Comments tab). */
-.cm {
+.cthr {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 12px;
   border-bottom: 1px solid var(--line-2);
 }
-.cm.on {
+.cthr.on {
   background: var(--accent-tint, #f0fdfa);
 }
-.cm.done {
+.cthr.done {
   opacity: 0.85;
 }
-.cm .ch {
+.cthr .ch {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
-.cm .ch b {
+.cthr .ch b {
   font-weight: 600;
 }
-.cm .anc {
+.cthr .anc {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -378,27 +378,27 @@
   color: #4b5563;
   text-align: left;
 }
-.cm button.anc {
+.cthr button.anc {
   cursor: pointer;
 }
-.cm button.anc:hover {
+.cthr button.anc:hover {
   background: #e5e7eb;
 }
-.cm .tx {
+.cthr .tx {
   margin: 0;
   font-size: 13px;
   line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.cm .cr {
+.cthr .cr {
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding-left: 12px;
   border-left: 2px solid var(--line-2);
 }
-.cm textarea.in {
+.cthr textarea.in {
   height: auto;
   min-height: 64px;
   padding: 8px 9px;

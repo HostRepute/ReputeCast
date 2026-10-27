@@ -249,7 +249,8 @@ function CommentHead({ author, color, at, reviewer }: { author: string; color?: 
   )
 }
 
-function ThreadCard({ thread, members, focused, canResolve }: { thread: Thread; members: Member[]; focused: boolean; canResolve: boolean }) {
+/** A thread: its comments, Reply and Resolve. `compact` is Write mode's, beside its block (no "On …" line). */
+export function ThreadCard({ thread, members, focused, canResolve, compact }: { thread: Thread; members: Member[]; focused: boolean; canResolve: boolean; compact?: boolean }) {
   const c = useComposer()
   const t = useT()
   const invalidate = useInvalidate()
@@ -294,12 +295,12 @@ function ThreadCard({ thread, members, focused, canResolve }: { thread: Thread; 
       setBusy(false)
     }
   }
-  const anchor = thread.anchorLabel ? t(mx.onAnchor, { label: thread.anchorLabel }) : thread.anchor ? '' : t(mx.onEmail)
+  const anchor = compact ? '' : thread.anchorLabel ? t(mx.onAnchor, { label: thread.anchorLabel }) : thread.anchor ? '' : t(mx.onEmail)
   return (
     <article
       ref={ref}
       id={`thread-${thread.id}`}
-      className={`cm${focused ? ' on' : ''}${thread.resolvedAt ? ' done' : ''}`}
+      className={`cthr${focused ? ' on' : ''}${thread.resolvedAt ? ' done' : ''}`}
       aria-label={thread.anchorLabel ? t(mx.threadOn, { label: thread.anchorLabel }) : t(mx.threadOnEmail)}
       tabIndex={-1}
     >
@@ -374,15 +375,25 @@ function ThreadCard({ thread, members, focused, canResolve }: { thread: Thread; 
   )
 }
 
-/** A new thread: on the selected block, or the whole email. */
-function NewComment({ members }: { members: Member[] }) {
+/** The people who can be @mentioned. */
+export function useMentionable(): Member[] {
+  return useMembers(true).data?.items ?? []
+}
+
+/** A new thread on a block of Write mode (its Comment button). */
+export function NewCommentBox({ target, members, onDone }: { target: Component; members: Member[]; onDone: () => void }) {
+  return <NewComment members={members} target={target} onDone={onDone} />
+}
+
+/** A new thread: on the selected block (or `target`), or the whole email. */
+function NewComment({ members, target, onDone }: { members: Member[]; target?: Component; onDone?: () => void }) {
   const c = useComposer()
   const t = useT()
   const invalidate = useInvalidate()
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [picked] = useState(() => new Map<string, string>())
-  const sel = c.selected && tagOf(c.selected) && tagOf(c.selected) !== 'mj-body' ? c.selected : null
+  const sel = target ?? (c.selected && tagOf(c.selected) && tagOf(c.selected) !== 'mj-body' ? c.selected : null)
   const label = sel ? anchorLabelOf(sel) : ''
   const post = async () => {
     setBusy(true)
@@ -403,6 +414,7 @@ function NewComment({ members }: { members: Member[] }) {
       picked.clear()
       await invalidate()
       if (anchor) void c.save({ background: true })
+      onDone?.()
     } catch (e) {
       toast({ kind: 'error', title: t(mx.commentFailed), detail: errorMessage(e) })
     } finally {
@@ -410,9 +422,9 @@ function NewComment({ members }: { members: Member[] }) {
     }
   }
   return (
-    <div className="cm new">
+    <div className="cthr new">
       <span className="anc">{sel ? t(mx.onAnchor, { label }) : t(mx.onEmail)}</span>
-      <MentionBox label={t(mx.newLabel)} hiddenLabel placeholder={t(mx.newPlaceholder)} value={text} onChange={setText} picked={picked} members={members} />
+      <MentionBox label={t(mx.newLabel)} hiddenLabel placeholder={t(mx.newPlaceholder)} value={text} onChange={setText} picked={picked} members={members} autoFocus={Boolean(target)} />
       <div className="flex flex-wrap items-center gap-2">
         <span className="k" style={{ flex: '1 1 140px' }}>
           {t(mx.mentionsNote)}

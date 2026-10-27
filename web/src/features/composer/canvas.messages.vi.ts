@@ -25,6 +25,7 @@ export default translate(mc, {
   mobile: 'Di động · 375',
   view: 'Chế độ xem',
   viewVisual: 'Trực quan',
+  viewWrite: 'Viết',
   zoomHint: 'Thu phóng {zoom}% · Enter sửa văn bản · Esc chọn thành phần cha · ⌘Z hoàn tác · ⌘/ phím tắt',
   blocking: '{count} mục chặn',
   warnings: '{count} cảnh báo',

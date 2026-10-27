@@ -181,7 +181,9 @@ export function ViewSeg({ dim }: { dim?: boolean }) {
       </div>
     )
   }
-  const items: { v: 'visual' | 'mjml' | 'html'; label: string }[] = [
+  const items: { v: 'visual' | 'write' | 'mjml' | 'html'; label: string }[] = [
+    // Write mode (CO-9): the email as a document.
+    ...(c.kind === 'transactional' ? [] : [{ v: 'write' as const, label: t(mc.viewWrite) }]),
     { v: 'visual', label: t(mc.viewVisual) },
     { v: 'mjml', label: 'MJML' },
     { v: 'html', label: 'HTML' },
