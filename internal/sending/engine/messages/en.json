@@ -217,5 +217,21 @@
   "state.replyRule": "That reply rule doesn't exist any more: reload the page.",
   "state.levelsOrder": "The first level of a two-level threshold must be lower than the second.",
   "state.rateMailbox": {"message": "“{key}” isn't a mailbox provider: use gmail, outlook, yahoo, icloud or other.", "note": "a rate set for an unknown mailbox provider key; key: what was sent"},
-  "state.rateRange": {"message": "A rate for {mailbox} must be 0 (the full rate) or between 0.1 /s and {max} /s.", "note": "mailbox: Gmail, Outlook, Yahoo, iCloud or Other; max: messages per second"}
+  "state.rateRange": {"message": "A rate for {mailbox} must be 0 (the full rate) or between 0.1 /s and {max} /s.", "note": "mailbox: Gmail, Outlook, Yahoo, iCloud or Other; max: messages per second"},
+
+  "cause.canaryLead": {"message": "{gate, select, bounce {The canary's bounces passed their gate} block_bounce {The canary's block/policy bounces passed their gate} deferral {The canary's deferrals passed their gate} complaint {{mailbox}'s complaints in the canary passed their gate} other {The seed inboxes put the canary in spam}}", "note": "a canary gate failed; mailbox: Gmail, Outlook, Yahoo, iCloud or Other"},
+  "cause.canary": {"message": "{gate, select, seeds {{spam} of {seeds} seed inboxes got it in spam; the gate allows {allowed}.} other {{events} in {base}: {valuePct}, over the {limitPct} gate, with enough evidence that it's really over.}}", "note": "spam, seeds, allowed, events, base: counts"},
+  "rec.canary": "Stop the send and look at what the canary found, or continue if you know why it happened. The thresholds stay armed for the main send either way.",
+  "opt.canaryStopTitle": "Stop the send",
+  "opt.canaryStop": {"message": "The {held} recipients the canary held won't get this email. The {canary} canary recipients already have it; their results stay in the report.", "note": "held, canary: counts"},
+  "opt.canaryStopAction": "Stop the send",
+  "opt.canaryContinueTitle": "Continue to everyone",
+  "opt.canaryContinue": {"message": "Send to the {held} recipients the canary held. Every threshold stays armed for the main send.", "note": "held: a count"},
+  "opt.canaryContinueAction": "Continue to everyone",
+  "notify.canaryTitle": {"message": "{name}'s canary failed a gate", "note": "name: the campaign's name"},
+  "notify.canaryBody": {"message": "{held} recipients are held until someone continues or stops the send.", "note": "held: a count"},
+  "state.noCanary": {"message": "\"{name}\" has no canary running.", "note": "a canary decision on a send without one; name: the campaign's name"},
+  "state.noCanaryWatch": {"message": "\"{name}\"'s canary isn't being watched now.", "note": "Watch 10 more minutes after the watch ended"},
+  "state.canaryChoice": {"message": "“{choice}” isn't a canary choice: use auto, on or off.", "note": "choice: what was sent"},
+  "state.canaryWaits": {"message": "“{name}” waits for a decision on its canary: continue it or stop it.", "note": "a plain resume of a send whose canary failed a gate; name: the campaign's name"}
 }

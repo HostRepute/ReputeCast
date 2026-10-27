@@ -635,6 +635,7 @@ type Campaign struct {
 	DigestID        *uuid.UUID      `json:"digestId"`
 	DigestRole      string          `json:"digestRole"`
 	Channel         string          `json:"channel"`
+	Canary          string          `json:"canary"`
 }
 
 type CampaignAudienceStage struct {

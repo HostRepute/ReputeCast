@@ -148,7 +148,8 @@ func Register(h huma.API, e *Engine) {
 			if err != nil {
 				return nil, mapErr(ctx, err)
 			}
-			s.Helpers = &LiveHelpers{Pause: access.Helpers(ctx, e.Q, ws.ID, authz.CampaignsPause), Send: access.Helpers(ctx, e.Q, ws.ID, authz.CampaignsSend)}
+			s.Helpers = &LiveHelpers{Pause: access.Helpers(ctx, e.Q, ws.ID, authz.CampaignsPause), Send: access.Helpers(ctx, e.Q, ws.ID, authz.CampaignsSend),
+				Approve: access.Helpers(ctx, e.Q, ws.ID, authz.CampaignsApprove)}
 			return api.OK(s.In(i18n.LangFrom(ctx))), nil
 		})
 	sse.Register(h, huma.Operation{
@@ -265,6 +266,7 @@ func Register(h huma.API, e *Engine) {
 			}
 			return e.result(ctx, id, LiveActionResult{})
 		})
+	registerCanary(h, e, base, tags)
 	api.Post(h, api.Op{ID: "acknowledge-live-alert", Path: base + "/acknowledge", Summary: "Mark an alert of a send as read (complaints after the send)", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
 		func(ctx context.Context, in *body[LiveAcknowledgeRequest]) (*api.Body[LiveActionResult], error) {
 			ctx = ownAPI(ctx)

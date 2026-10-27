@@ -217,5 +217,21 @@
   "state.replyRule": "Quy tắc phản hồi đó không còn nữa: hãy tải lại trang.",
   "state.levelsOrder": "Mức thứ nhất của một ngưỡng hai mức phải thấp hơn mức thứ hai.",
   "state.rateMailbox": "“{key}” không phải là nhà cung cấp hộp thư: dùng gmail, outlook, yahoo, icloud hoặc other.",
-  "state.rateRange": "Tốc độ cho {mailbox} phải là 0 (tốc độ tối đa) hoặc từ 0,1 /s đến {max} /s."
+  "state.rateRange": "Tốc độ cho {mailbox} phải là 0 (tốc độ tối đa) hoặc từ 0,1 /s đến {max} /s.",
+
+  "cause.canaryLead": "{gate, select, bounce {Thư trả lại của lần gửi thử vượt điều kiện} block_bounce {Thư trả lại do chặn/chính sách của lần gửi thử vượt điều kiện} deferral {Thư hoãn nhận của lần gửi thử vượt điều kiện} complaint {Khiếu nại ở {mailbox} trong lần gửi thử vượt điều kiện} other {Các hộp thư thử nhận lần gửi thử trong thư rác}}",
+  "cause.canary": "{gate, select, seeds {{spam} trên {seeds} hộp thư thử nhận thư trong thư rác; điều kiện cho phép {allowed}.} other {{events} trên {base}: {valuePct}, vượt điều kiện {limitPct}, với đủ bằng chứng rằng tỷ lệ thật sự cao hơn.}}",
+  "rec.canary": "Hãy dừng lần gửi và xem lần gửi thử phát hiện gì, hoặc tiếp tục nếu bạn biết vì sao. Dù chọn cách nào, các ngưỡng vẫn được bật cho lần gửi chính.",
+  "opt.canaryStopTitle": "Dừng lần gửi",
+  "opt.canaryStop": "{held} người nhận đang chờ sẽ không nhận được email này. {canary} người nhận của lần gửi thử đã nhận được; kết quả của họ vẫn ở trong báo cáo.",
+  "opt.canaryStopAction": "Dừng lần gửi",
+  "opt.canaryContinueTitle": "Tiếp tục gửi tới mọi người",
+  "opt.canaryContinue": "Gửi tới {held} người nhận đang chờ. Mọi ngưỡng vẫn được bật cho lần gửi chính.",
+  "opt.canaryContinueAction": "Tiếp tục gửi tới mọi người",
+  "notify.canaryTitle": "Lần gửi thử của {name} không đạt một điều kiện",
+  "notify.canaryBody": "{held} người nhận đang được giữ lại cho đến khi có người tiếp tục hoặc dừng lần gửi.",
+  "state.noCanary": "“{name}” không có lần gửi thử nào đang chạy.",
+  "state.noCanaryWatch": "Lần gửi thử của “{name}” hiện không còn được theo dõi.",
+  "state.canaryChoice": "“{choice}” không phải là lựa chọn gửi thử hợp lệ: dùng auto, on hoặc off.",
+  "state.canaryWaits": "“{name}” đang chờ quyết định về lần gửi thử: hãy tiếp tục hoặc dừng nó."
 }

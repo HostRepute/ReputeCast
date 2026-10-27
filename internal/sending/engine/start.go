@@ -49,6 +49,9 @@ type StartOptions struct {
 	// Scheduled is the scheduled start at its time (the start job): the
 	// system starts it, on behalf of who scheduled it.
 	Scheduled bool
+	// Canary is the canary choice (review GS-10, C1): auto (Traffic rules
+	// decide), on or off; "" keeps the campaign's (Review & send's).
+	Canary string
 }
 
 // schedule is campaigns.schedule.
@@ -99,6 +102,19 @@ func (e *Engine) StartWith(ctx context.Context, campaignID uuid.UUID, o StartOpt
 	// (internal/texting): an email send never takes them.
 	if c.Channel != "" && c.Channel != "email" {
 		return stateErr("state.notEmail", campaignArgs(c.Name, c.Status))
+	}
+	// The canary choice is kept on the campaign, so a scheduled send
+	// starts with it at its time (review GS-10).
+	if choice := firstNonEmpty(o.Canary, sending.CanaryFrom(ctx, campaignID)); choice != "" && choice != c.Canary {
+		switch choice {
+		case CanaryAuto, CanaryOn, CanaryOff:
+		default:
+			return stateErr("state.canaryChoice", i18n.Args{"choice": choice})
+		}
+		if err := e.Q.SendingSetCampaignCanary(ctx, store.SendingSetCampaignCanaryParams{ID: c.ID, Canary: choice}); err != nil {
+			return err
+		}
+		c.Canary = choice
 	}
 	var sc schedule
 	_ = json.Unmarshal(c.Schedule, &sc)
@@ -167,6 +183,10 @@ func (e *Engine) StartWith(ctx context.Context, campaignID uuid.UUID, o StartOpt
 			CampaignID: c.ID, WorkspaceID: c.WorkspaceID, StartedBy: by, StartedByName: byName, ApprovedBy: approvedBy, ApprovedAt: approvedAt,
 			ScheduledBy: scheduledBy, Throttles: tb, Thresholds: th, Scenario: o.Scenario, At: now,
 		}); err != nil {
+			return err
+		}
+		cb, _ := json.Marshal(canaryState{Choice: firstNonEmpty(c.Canary, CanaryAuto)})
+		if err := q.SendingSetCanary(ctx, store.SendingSetCanaryParams{CampaignID: c.ID, Canary: cb, At: now}); err != nil {
 			return err
 		}
 		if o.ABWindow > 0 {
@@ -448,6 +468,11 @@ func (e *Engine) resumeCampaign(ctx context.Context, campaignID, by uuid.UUID, i
 		}
 		if c.Status != "paused" && c.Status != "sending" {
 			return stateErr("state.notPaused", campaignArgs(c.Name, c.Status))
+		}
+		// A canary that failed a gate waits for its own decision: resuming
+		// would leave the recipients it holds waiting (review GS-10).
+		if snd, err := q.SendingGetSendForUpdate(ctx, c.ID); err == nil && parseCanary(snd.Canary).Phase == canaryHeld {
+			return stateErr("state.canaryWaits", campaignArgs(c.Name, c.Status))
 		}
 		ref, name := e.actorRef(ctx, q, by)
 		tripped, err := trippedScopes(ctx, q, c.ID)

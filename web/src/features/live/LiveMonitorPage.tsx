@@ -12,6 +12,9 @@ import { clockSeconds } from '@/lib/format'
 import { useMediaQuery, useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { CancelSendDialog, useLiveActions, useLivePermissions, type LiveActions, type LivePermissions } from './actions'
+import { canaryActive } from './canary'
+import { mc } from './canary.messages'
+import { CanaryView } from './Canary'
 import { DecisionView } from './Decision'
 import { LiveBody } from './LiveParts'
 import { m } from './messages'
@@ -137,7 +140,8 @@ function LiveScreen({
   // "Edit for this send" (review GS-2): who can resume can change them.
   const editThresholds = active ? { onEdit: () => setEditing(true), disabledReason: can.resume } : undefined
 
-  if (phone && (mode === 'live' || mode === 'connecting')) {
+  const canary = canaryActive(s.canary) && (mode === 'live' || mode === 'connecting' || (mode === 'decision' && incident?.kind === 'canary')) ? s.canary : undefined
+  if (phone && !canary && (mode === 'live' || mode === 'connecting')) {
     return (
       <>
         <MobileLive
@@ -167,7 +171,15 @@ function LiveScreen({
   }
 
   let body: ReactNode
-  switch (mode) {
+  switch (canary ? 'canary' : mode) {
+    case 'canary':
+      body = (
+        <>
+          {lostBanner}
+          <CanaryView s={s} c={canary!} actions={actions} can={can} now={now} streaming={!lost} />
+        </>
+      )
+      break
     case 'decision':
       body = <DecisionView s={s} incident={incident!} actions={actions} can={can} onCancelAll={cancelOpen} />
       break
@@ -221,8 +233,22 @@ function LiveScreen({
       documentTitle={t(m.documentTitle, { name: s.name })}
       breadcrumb={crumbs(slug, s.name)}
       subtitle={startedLine(s) || undefined}
-      badges={<HeaderBadges s={s} incident={incident} mode={mode} />}
-      actions={<HeaderActions s={s} mode={mode} incident={incident} now={now} lost={lost} can={can} actions={actions} onPause={pause} onCancel={cancelOpen} onBack={() => setView('live')} />}
+      badges={
+        canary ? (
+          <Badge tone={canary.phase === 'held' ? 'bad' : 'info'} dot>
+            {t(mc.badge, { phase: canary.phase })}
+          </Badge>
+        ) : (
+          <HeaderBadges s={s} incident={incident} mode={mode} />
+        )
+      }
+      actions={
+        canary ? (
+          <span className="k lv-caption">{eventsCaption(s, now, 'live', !lost)}</span>
+        ) : (
+          <HeaderActions s={s} mode={mode} incident={incident} now={now} lost={lost} can={can} actions={actions} onPause={pause} onCancel={cancelOpen} onBack={() => setView('live')} />
+        )
+      }
     >
       {body}
       {dialog}

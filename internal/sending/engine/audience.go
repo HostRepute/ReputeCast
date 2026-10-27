@@ -494,6 +494,7 @@ func (e *Engine) finishPrepare(ctx context.Context, cc store.SendingCampaignCont
 		st.Kind, st.Phase, st.Winner = ab.Kind, "decided", ab.Winner
 	}
 	abb, _ := json.Marshal(st)
+	canary := false
 	err = db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.SendingFinishPrepare(ctx, store.SendingFinishPrepareParams{CampaignID: cc.ID, Ab: abb, At: now}); err != nil {
@@ -507,10 +508,17 @@ func (e *Engine) finishPrepare(ctx context.Context, cc store.SendingCampaignCont
 		if err := q.SendingSetAudienceCount(ctx, store.SendingSetAudienceCountParams{ID: cc.ID, N: &n}); err != nil {
 			return err
 		}
+		// The canary (review GS-10): the most engaged go first.
+		if canary, err = e.startCanary(ctx, q, cc, s, now); err != nil {
+			return err
+		}
 		return q.SendingStageClear(ctx, cc.ID)
 	})
 	if err != nil {
 		return err
+	}
+	if canary {
+		e.startSeeds(ctx, cc.WorkspaceID, cc.ID)
 	}
 	e.kick(ctx, cc.ID)
 	return nil

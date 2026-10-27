@@ -537,7 +537,7 @@ func (q *Queries) SendingBumpCounters(ctx context.Context, arg SendingBumpCounte
 }
 
 const sendingCampaign = `-- name: SendingCampaign :one
-SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings, digest_id, digest_role, channel FROM campaigns WHERE id = $1 AND deleted_at IS NULL
+SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings, digest_id, digest_role, channel, canary FROM campaigns WHERE id = $1 AND deleted_at IS NULL
 `
 
 func (q *Queries) SendingCampaign(ctx context.Context, id uuid.UUID) (Campaign, error) {
@@ -581,6 +581,7 @@ func (q *Queries) SendingCampaign(ctx context.Context, id uuid.UUID) (Campaign, 
 		&i.DigestID,
 		&i.DigestRole,
 		&i.Channel,
+		&i.Canary,
 	)
 	return i, err
 }
@@ -676,7 +677,7 @@ func (q *Queries) SendingCampaignContext(ctx context.Context, id uuid.UUID) (Sen
 
 const sendingCampaignForUpdate = `-- name: SendingCampaignForUpdate :one
 
-SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings, digest_id, digest_role, channel FROM campaigns WHERE id = $1 AND deleted_at IS NULL FOR UPDATE
+SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings, digest_id, digest_role, channel, canary FROM campaigns WHERE id = $1 AND deleted_at IS NULL FOR UPDATE
 `
 
 // Sending engine and live monitor (spec 5.3, 7.6).
@@ -721,12 +722,13 @@ func (q *Queries) SendingCampaignForUpdate(ctx context.Context, id uuid.UUID) (C
 		&i.DigestID,
 		&i.DigestRole,
 		&i.Channel,
+		&i.Canary,
 	)
 	return i, err
 }
 
 const sendingCampaignInWorkspace = `-- name: SendingCampaignInWorkspace :one
-SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings, digest_id, digest_role, channel FROM campaigns WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
+SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings, digest_id, digest_role, channel, canary FROM campaigns WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type SendingCampaignInWorkspaceParams struct {
@@ -775,6 +777,7 @@ func (q *Queries) SendingCampaignInWorkspace(ctx context.Context, arg SendingCam
 		&i.DigestID,
 		&i.DigestRole,
 		&i.Channel,
+		&i.Canary,
 	)
 	return i, err
 }
@@ -2195,7 +2198,7 @@ func (q *Queries) SendingRelease(ctx context.Context, ids []uuid.UUID) error {
 }
 
 const sendingReleaseHeld = `-- name: SendingReleaseHeld :execrows
-UPDATE messages SET status = 'queued', variant = $1 WHERE campaign_id = $2 AND status = 'held' AND variant = ''
+UPDATE messages SET status = 'queued', variant = $1 WHERE campaign_id = $2 AND status = 'held' AND variant = '' AND hold_reason = ''
 `
 
 type SendingReleaseHeldParams struct {

@@ -18,9 +18,9 @@ func newDemoCmd(o *rootOpts) *cobra.Command {
 		Short: "Development helpers for the Acme demo (REPUTECAST_ENV=development only)",
 	}
 	var (
-		scenario, workspace string
-		elapsed, abWindow   time.Duration
-		reset               bool
+		scenario, workspace, canary string
+		elapsed, abWindow           time.Duration
+		reset                       bool
 	)
 	send := &cobra.Command{
 		Use:   `send "<campaign>"`,
@@ -54,7 +54,7 @@ func newDemoCmd(o *rootOpts) *cobra.Command {
 			}
 			defer a.Close()
 			res, err := a.SendingEngine().DemoSend(cmd.Context(), engine.DemoSendOptions{
-				Workspace: workspace, Campaign: args[0], Scenario: scenario, Elapsed: elapsed, ABWindow: abWindow, Reset: reset,
+				Workspace: workspace, Campaign: args[0], Scenario: scenario, Elapsed: elapsed, ABWindow: abWindow, Reset: reset, Canary: canary,
 			})
 			if err != nil {
 				return err
@@ -73,6 +73,7 @@ func newDemoCmd(o *rootOpts) *cobra.Command {
 	send.Flags().DurationVar(&elapsed, "elapsed", 0, "start the send this long ago and fast-forward to now (e.g. 21m)")
 	send.Flags().DurationVar(&abWindow, "ab-window", engine.DemoABWindow, "how long the A/B test runs before the winner goes to the rest")
 	send.Flags().BoolVar(&reset, "reset", false, "clear an earlier send of the campaign first")
+	send.Flags().StringVar(&canary, "canary", "", "auto, on or off (default: on in the normal scenario, off in the others)")
 	cmd.AddCommand(send)
 	return cmd
 }

@@ -23,6 +23,8 @@ type fakeStarter struct {
 	canceled []uuid.UUID
 	// rechecks are the send-time rechecks handed over with each start.
 	rechecks []sending.Recheck
+	// canaries are the canary choices Review & send handed over (C1).
+	canaries []string
 }
 
 func (f *fakeStarter) Start(ctx context.Context, id, _ uuid.UUID) error {
@@ -32,6 +34,7 @@ func (f *fakeStarter) Start(ctx context.Context, id, _ uuid.UUID) error {
 	if rc, ok := sending.RecheckFrom(ctx, id); ok {
 		f.rechecks = append(f.rechecks, rc)
 	}
+	f.canaries = append(f.canaries, sending.CanaryFrom(ctx, id))
 	return nil
 }
 func (f *fakeStarter) Pause(context.Context, uuid.UUID, uuid.UUID, string) error { return nil }
@@ -265,9 +268,14 @@ func TestReviewAndApprovals(t *testing.T) {
 	}
 	scheduled := n.audit("campaign.scheduled", nov)
 	var sent struct{ Status string }
-	daniel.Do("POST", ws+"/approvals/"+dec.ID+"/schedule", map[string]any{"runId": r.Run.ID, "acknowledged": warnings(r), "confirm": final}).MustStatus(t, 200).JSON(t, &sent)
+	daniel.Do("POST", ws+"/approvals/"+dec.ID+"/schedule", map[string]any{"runId": r.Run.ID, "acknowledged": warnings(r), "confirm": final, "canary": "maybe"}).MustStatus(t, 422)
+	// The canary choice (review GS-10, C1) goes to the sending engine with the start.
+	daniel.Do("POST", ws+"/approvals/"+dec.ID+"/schedule", map[string]any{"runId": r.Run.ID, "acknowledged": warnings(r), "confirm": final, "canary": "on"}).MustStatus(t, 200).JSON(t, &sent)
 	if sent.Status != "scheduled" || len(starter.started) != 1 || n.audit("campaign.scheduled", nov) != scheduled+1 {
 		t.Fatalf("scheduled: %+v %v", sent, starter.started)
+	}
+	if !slices.Equal(starter.canaries, []string{"on"}) {
+		t.Fatalf("canary choices %q, want the review's", starter.canaries)
 	}
 	if r = getReview(t, daniel, nov); r.Campaign.Status != "scheduled" || r.Scheduled == nil || r.Stale {
 		t.Fatalf("the review shows the scheduled send: %+v", r.Campaign)

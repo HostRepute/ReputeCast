@@ -3185,6 +3185,10 @@ type Querier interface {
 	SendingCampaignForUpdate(ctx context.Context, id uuid.UUID) (Campaign, error)
 	SendingCampaignInWorkspace(ctx context.Context, arg SendingCampaignInWorkspaceParams) (Campaign, error)
 	SendingCampaignWorkspace(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
+	// A send's recipients that never got mail from its sending domain.
+	SendingCanaryNeverMailed(ctx context.Context, arg SendingCanaryNeverMailedParams) (int64, error)
+	// What the canary sent so far.
+	SendingCanaryTotals(ctx context.Context, campaignID *uuid.UUID) (SendingCanaryTotalsRow, error)
 	// Cancels what is left of a campaign, or of one sending or mailbox provider.
 	SendingCancelRemaining(ctx context.Context, arg SendingCancelRemainingParams) (int64, error)
 	// Claims up to lim queued messages of one sending provider and mailbox
@@ -3211,12 +3215,22 @@ type Querier interface {
 	// the evidence behind "likely causes".
 	SendingComplaintCohorts(ctx context.Context, arg SendingComplaintCohortsParams) ([]SendingComplaintCohortsRow, error)
 	SendingContactForAutomation(ctx context.Context, id uuid.UUID) (SendingContactForAutomationRow, error)
+	// Contacts added since a time that can get Broadcasts: before a send's
+	// audience is built, the ones that never had mail from its domain.
+	SendingContactsAddedSince(ctx context.Context, arg SendingContactsAddedSinceParams) (int64, error)
 	SendingCounters(ctx context.Context, campaignID uuid.UUID) ([]SendingCountersRow, error)
 	SendingDeferralsSince(ctx context.Context, arg SendingDeferralsSinceParams) (int64, error)
 	// The messages each mailbox provider deferred, or bounced softly, since a
 	// time (each message once).
 	SendingDeferredSince(ctx context.Context, arg SendingDeferredSinceParams) ([]SendingDeferredSinceRow, error)
 	SendingDeleteSimEvents(ctx context.Context, ids []int64) error
+	// GS-10: the canary ----------------------------------------------------------
+	// When the workspace first started a send from a sending domain, other
+	// than this campaign (epoch: never).
+	SendingDomainFirstSend(ctx context.Context, arg SendingDomainFirstSendParams) (time.Time, error)
+	// When the workspace last started a send from a sending domain, other than
+	// this campaign (epoch: never).
+	SendingDomainLastSend(ctx context.Context, arg SendingDomainLastSendParams) (time.Time, error)
 	// Scheduled campaigns whose time has come (the watchdog starts any whose
 	// start job was lost). One held by a Blocked send-time recheck is left to
 	// Review & send, which rechecks it every 15 minutes.
@@ -3243,6 +3257,8 @@ type Querier interface {
 	// A group's recipients in this send (optionally of one mailbox provider),
 	// and how many of them are still to send.
 	SendingGroupSize(ctx context.Context, arg SendingGroupSizeParams) (SendingGroupSizeRow, error)
+	// Everyone but the canary waits for it to pass.
+	SendingHoldForCanary(ctx context.Context, campaignID *uuid.UUID) (int64, error)
 	// The most recent import from a source ("the Mailchimp import on 18 Sep").
 	SendingImportOf(ctx context.Context, arg SendingImportOfParams) (SendingImportOfRow, error)
 	// A campaign's messages in doubt per sending provider, with the oldest.
@@ -3266,6 +3282,9 @@ type Querier interface {
 	SendingMailboxReserve(ctx context.Context, arg SendingMailboxReserveParams) (int32, error)
 	// How many sends took part of a mailbox provider's window in a slot.
 	SendingMailboxSenders(ctx context.Context, arg SendingMailboxSendersParams) (int32, error)
+	// The canary: the most engaged of a send's queued recipients go first
+	// (active contacts who opened lately, then the rest in send order).
+	SendingMarkCanary(ctx context.Context, arg SendingMarkCanaryParams) (int64, error)
 	SendingMarkCompleted(ctx context.Context, arg SendingMarkCompletedParams) error
 	// The other stale claims: the call that took them ended without a recorded
 	// answer, so nobody knows whether the provider has them. They are in doubt
@@ -3320,7 +3339,13 @@ type Querier interface {
 	// when the next retry is due), held for the A/B winner or the canary
 	// (hold_reason), and in doubt.
 	SendingQueueState(ctx context.Context, arg SendingQueueStateParams) ([]SendingQueueStateRow, error)
+	// The audiences of the workspace's last 8 sends that went out, other than
+	// this campaign: the canary's usual size is their median.
+	SendingRecentAudiences(ctx context.Context, arg SendingRecentAudiencesParams) ([]int64, error)
 	SendingRelease(ctx context.Context, ids []uuid.UUID) error
+	// The canary passed (or a person continued): everyone it held goes out,
+	// the A/B test's holdouts back to waiting for the winner.
+	SendingReleaseCanary(ctx context.Context, arg SendingReleaseCanaryParams) (int64, error)
 	// The A/B winner goes to everyone who waited for it.
 	SendingReleaseHeld(ctx context.Context, arg SendingReleaseHeldParams) (int64, error)
 	SendingRemainingOn(ctx context.Context, arg SendingRemainingOnParams) (int64, error)
@@ -3354,7 +3379,10 @@ type Querier interface {
 	SendingSentSinceByMailbox(ctx context.Context, arg SendingSentSinceByMailboxParams) ([]SendingSentSinceByMailboxRow, error)
 	SendingSetAB(ctx context.Context, arg SendingSetABParams) error
 	SendingSetAudienceCount(ctx context.Context, arg SendingSetAudienceCountParams) error
+	// The canary choice a send starts with (Review & send; C1).
+	SendingSetCampaignCanary(ctx context.Context, arg SendingSetCampaignCanaryParams) error
 	SendingSetCampaignStatus(ctx context.Context, arg SendingSetCampaignStatusParams) error
+	SendingSetCanary(ctx context.Context, arg SendingSetCanaryParams) error
 	SendingSetChanges(ctx context.Context, arg SendingSetChangesParams) error
 	SendingSetContent(ctx context.Context, arg SendingSetContentParams) error
 	// The median time from handing a message to the provider to its delivery

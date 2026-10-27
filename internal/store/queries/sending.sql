@@ -385,7 +385,7 @@ GROUP BY provider_id, mailbox_provider, status;
 
 -- name: SendingReleaseHeld :execrows
 -- The A/B winner goes to everyone who waited for it.
-UPDATE messages SET status = 'queued', variant = @variant WHERE campaign_id = @campaign_id AND status = 'held' AND variant = '';
+UPDATE messages SET status = 'queued', variant = @variant WHERE campaign_id = @campaign_id AND status = 'held' AND variant = '' AND hold_reason = '';
 
 -- name: SendingCancelRemaining :execrows
 -- Cancels what is left of a campaign, or of one sending or mailbox provider.

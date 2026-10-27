@@ -125,6 +125,146 @@
     }
   }
 
+  /* The canary (LiveMonitorCanary: .cnr-top, .gate, .seeds, .act). */
+  .lv-canary {
+    display: flex;
+    flex-direction: column;
+    border-color: #99f6e4;
+  }
+  .lv-cnr-top {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 20px 22px;
+    background: #f0fdfa;
+    border-radius: 10px 10px 0 0;
+    border-bottom: 1px solid #99f6e4;
+    flex-wrap: wrap;
+  }
+  .lv-cnr-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .lv-cnr-dec {
+    flex: 2 1 300px;
+    min-width: 0;
+    padding: 16px 22px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-left: 1px solid var(--line-2);
+  }
+  .lv-gate {
+    display: grid;
+    grid-template-columns: minmax(120px, 160px) minmax(0, 1fr) minmax(96px, 130px) 148px;
+    gap: 4px 16px;
+    align-items: center;
+    padding: 11px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+  }
+  .lv-gn {
+    font-weight: 600;
+  }
+  .lv-gv {
+    font-variant-numeric: tabular-nums;
+    min-width: 0;
+  }
+  .lv-gl {
+    font-size: 12.5px;
+  }
+  .lv-gate .lv-gs {
+    justify-self: end;
+  }
+  details.lv-seeds {
+    border-top: 1px solid var(--line-2);
+    padding-top: 10px;
+  }
+  details.lv-seeds summary {
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f766e;
+    min-height: 24px;
+  }
+  .lv-seedbar {
+    display: flex;
+    height: 12px;
+    gap: 2px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--line-2);
+  }
+  .lv-seedbar i {
+    display: block;
+    height: 100%;
+  }
+  .lv-seedrow {
+    display: flex;
+    justify-content: space-between;
+    gap: 2px 12px;
+    flex-wrap: wrap;
+    padding: 7px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 12.5px;
+  }
+  .lv-act {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 0;
+    border-top: 1px solid var(--line-2);
+  }
+  .lv-act:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .lv-act .btn {
+    width: 100%;
+    min-height: 40px;
+  }
+  .lv-stop {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid #fca5a5;
+    border-radius: 10px;
+    background: #fff5f5;
+    margin-top: 6px;
+  }
+  @media (max-width: 1100px) {
+    .lv-cnr-dec {
+      border-left: 0;
+      border-top: 1px solid var(--line-2);
+    }
+  }
+  @media (max-width: 767px) {
+    .lv-gate {
+      grid-template-columns: minmax(0, 1fr) auto;
+      padding: 12px 0;
+    }
+    .lv-gv,
+    .lv-gl {
+      grid-column: 1 / -1;
+    }
+    .lv-gate .lv-gs {
+      grid-row: 1;
+      grid-column: 2;
+    }
+    .lv-act .btn {
+      min-height: 44px;
+    }
+    details.lv-seeds summary {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
+  }
+
   /* A line of the live event feed (.ev on the boards). */
   .lv-ev {
     display: flex;

@@ -141,6 +141,14 @@ func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.D
 	if err := e.checkAB(ctx, rs, ts, now); err != nil {
 		return 0, err
 	}
+	// The canary (review GS-10): its watch, then its gates.
+	canaryWait, canaryHeld, err := e.checkCanary(ctx, rs, ts, now)
+	if err != nil {
+		return 0, err
+	}
+	if canaryHeld {
+		return 0, errStopped
+	}
 	var queued, held, waiting, blocked, doubt, probing int64
 	var next *time.Time
 	for k, c := range rs.queue {
@@ -160,6 +168,9 @@ func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.D
 			t := *c.nextAt
 			next = &t
 		}
+	}
+	if canaryWait > 0 && queued-blocked <= 0 {
+		return canaryWait, nil
 	}
 	switch {
 	case queued == 0 && held == 0 && doubt == 0:

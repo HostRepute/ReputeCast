@@ -31,6 +31,10 @@ type DemoSendOptions struct {
 	ABWindow time.Duration
 	// Reset clears an earlier send of the campaign first.
 	Reset bool
+	// Canary is the canary choice (auto, on, off); "" runs one in the
+	// normal scenario, as on the LiveMonitor and LiveMonitorCanary boards,
+	// and none in the others.
+	Canary string
 }
 
 // DemoSendResult describes the started send.
@@ -157,7 +161,15 @@ func (e *Engine) DemoSend(ctx context.Context, o DemoSendOptions) (DemoSendResul
 	}
 	prev := e.Now
 	e.Now = func() time.Time { return start }
-	err = e.StartWith(ctx, c.ID, StartOptions{By: sofia, Now: true, Scenario: o.Scenario, ABWindow: o.ABWindow, ApprovedBy: &marcus, ApprovedAt: &approvedAt, ScheduledBy: &linh})
+	canary := o.Canary
+	if canary == "" {
+		canary = CanaryOff
+		if o.Scenario == "" || o.Scenario == "normal" {
+			canary = CanaryOn
+		}
+	}
+	err = e.StartWith(ctx, c.ID, StartOptions{By: sofia, Now: true, Scenario: o.Scenario, ABWindow: o.ABWindow, ApprovedBy: &marcus, ApprovedAt: &approvedAt,
+		ScheduledBy: &linh, Canary: canary})
 	e.Now = prev
 	if err == nil {
 		err = e.prepare(ctx, c.ID, start)

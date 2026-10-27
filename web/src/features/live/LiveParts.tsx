@@ -194,7 +194,7 @@ export function TileValue({ tile }: { tile: Tile }) {
 export type RatesControl = { open: boolean; toggle: () => void; disabledReason?: string; panel: ReactNode }
 
 /** Per mailbox provider: health in the live view, activity in the decision view. */
-export function MailboxTable({ s, decision, rates }: { s: Snapshot; decision: boolean; rates?: RatesControl }) {
+export function MailboxTable({ s, decision, rates, caption }: { s: Snapshot; decision: boolean; rates?: RatesControl; caption?: string }) {
   const t = useT()
   const rows = orderedMailboxes(s, decision)
   return (
@@ -203,7 +203,7 @@ export function MailboxTable({ s, decision, rates }: { s: Snapshot; decision: bo
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-[18px] py-3.5">
           <div className="flex flex-col gap-0.5">
             <h2 className="h2">{t(m.perMailbox)}</h2>
-            <span className="k">{t(m.perMailboxLive)}</span>
+            <span className="k">{caption ?? t(m.perMailboxLive)}</span>
           </div>
           <Button size="sm" aria-expanded={rates.open} aria-controls="lv-rates" onClick={rates.toggle} disabledReason={rates.disabledReason}>
             {t(m.adjustRates)}

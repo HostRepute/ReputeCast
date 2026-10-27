@@ -72,6 +72,8 @@ type LiveSnapshot struct {
 	Limits LiveLimits `json:"limits"`
 	// Watch is the complaint watch after the send (review GS-6).
 	Watch *LiveWatch `json:"watch,omitempty"`
+	// Canary is the send's canary (review GS-10), when it has one.
+	Canary *LiveCanary `json:"canary,omitempty"`
 	// Postmaster is Gmail's latest daily spam rate for the sending domain.
 	Postmaster   *LivePostmaster `json:"postmaster,omitempty"`
 	Details      LiveDetails     `json:"details"`
@@ -123,6 +125,8 @@ type LiveInDoubt struct {
 type LiveHelpers struct {
 	Pause []string `json:"pause"`
 	Send  []string `json:"send"`
+	// Approve can continue a canary early (review GS-10).
+	Approve []string `json:"approve"`
 }
 
 // LiveTotals are the campaign's counts.
@@ -814,6 +818,28 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		}
 	}
 	s.Thresholds = liveThresholds(th, ts, guardOf(snd, hasSend), apiRates, ty)
+	if hasSend {
+		if cs := parseCanary(snd.Canary); cs.Phase != "" {
+			cid := campaignID
+			ct, err := e.Q.SendingCanaryTotals(ctx, &cid)
+			if err != nil {
+				return s, err
+			}
+			s.Canary = liveCanary(cs, ts, ty, ct.Sent, queue, now)
+			if cs.active() {
+				// When everyone has it once the main send starts: what the
+				// canary holds, at the routes' and mailbox providers' rates.
+				main := map[queueKey]queueCell{}
+				for k, c := range queue {
+					c.queued += c.canary
+					main[k] = c
+				}
+				scratch := s
+				scratch.Providers, scratch.Mailboxes = slices.Clone(s.Providers), slices.Clone(s.Mailboxes)
+				s.Canary.MainSeconds = int64(liveETAs(&scratch, main, holds, heldProviders, throttles, routeRate, now) / time.Second)
+			}
+		}
+	}
 	if row, ok := e.replyRow(ctx, cc.WorkspaceID, guardOf(snd, hasSend)); ok {
 		s.Thresholds = append(s.Thresholds[:len(s.Thresholds)-1], row, s.Thresholds[len(s.Thresholds)-1])
 	}
@@ -951,7 +977,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			li.Since = sinceTrip(ts, in, li.Detail)
 		}
 		s.Incidents = append(s.Incidents, li)
-		if in.ResolvedAt == nil && s.Incident == nil && (in.Kind == "threshold" || in.Kind == "provider_outage" || in.Kind == "reply_rule") && !isNotice(in) {
+		if in.ResolvedAt == nil && s.Incident == nil && (in.Kind == "threshold" || in.Kind == "provider_outage" || in.Kind == "reply_rule" || in.Kind == "canary") && !isNotice(in) {
 			c := li
 			s.Incident = &c
 		}

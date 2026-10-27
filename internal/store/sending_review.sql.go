@@ -77,6 +77,49 @@ func (q *Queries) SendingCallWindow(ctx context.Context, arg SendingCallWindowPa
 	return i, err
 }
 
+const sendingCanaryNeverMailed = `-- name: SendingCanaryNeverMailed :one
+SELECT count(*)::bigint FROM messages m
+WHERE m.campaign_id = $1 AND m.status IN ('queued', 'held')
+  AND NOT EXISTS (
+    SELECT 1 FROM messages p
+    JOIN campaigns pc ON pc.id = p.campaign_id
+    JOIN senders s ON s.id = pc.sender_id
+    WHERE p.contact_id = m.contact_id AND p.campaign_id <> m.campaign_id AND p.sent_at IS NOT NULL
+      AND lower(split_part(s.email, '@', 2)) = lower($2::text))
+`
+
+type SendingCanaryNeverMailedParams struct {
+	CampaignID *uuid.UUID `json:"campaignId"`
+	Domain     string     `json:"domain"`
+}
+
+// A send's recipients that never got mail from its sending domain.
+func (q *Queries) SendingCanaryNeverMailed(ctx context.Context, arg SendingCanaryNeverMailedParams) (int64, error) {
+	row := q.db.QueryRow(ctx, sendingCanaryNeverMailed, arg.CampaignID, arg.Domain)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const sendingCanaryTotals = `-- name: SendingCanaryTotals :one
+SELECT count(*) FILTER (WHERE sent_at IS NOT NULL)::bigint AS sent,
+       count(*)::bigint AS size
+FROM messages WHERE campaign_id = $1 AND canary
+`
+
+type SendingCanaryTotalsRow struct {
+	Sent int64 `json:"sent"`
+	Size int64 `json:"size"`
+}
+
+// What the canary sent so far.
+func (q *Queries) SendingCanaryTotals(ctx context.Context, campaignID *uuid.UUID) (SendingCanaryTotalsRow, error) {
+	row := q.db.QueryRow(ctx, sendingCanaryTotals, campaignID)
+	var i SendingCanaryTotalsRow
+	err := row.Scan(&i.Sent, &i.Size)
+	return i, err
+}
+
 const sendingClearMailboxWindows = `-- name: SendingClearMailboxWindows :exec
 DELETE FROM sending_mailbox_windows WHERE workspace_id = $1 AND slot BETWEEN $2 AND $3
 `
@@ -92,6 +135,25 @@ type SendingClearMailboxWindowsParams struct {
 func (q *Queries) SendingClearMailboxWindows(ctx context.Context, arg SendingClearMailboxWindowsParams) error {
 	_, err := q.db.Exec(ctx, sendingClearMailboxWindows, arg.WorkspaceID, arg.FromSec, arg.ToSec)
 	return err
+}
+
+const sendingContactsAddedSince = `-- name: SendingContactsAddedSince :one
+SELECT count(*)::bigint FROM contacts
+WHERE workspace_id = $1 AND created_at > $2::timestamptz AND status = 'active'
+`
+
+type SendingContactsAddedSinceParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+// Contacts added since a time that can get Broadcasts: before a send's
+// audience is built, the ones that never had mail from its domain.
+func (q *Queries) SendingContactsAddedSince(ctx context.Context, arg SendingContactsAddedSinceParams) (int64, error) {
+	row := q.db.QueryRow(ctx, sendingContactsAddedSince, arg.WorkspaceID, arg.Since)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const sendingDeferredSince = `-- name: SendingDeferredSince :many
@@ -130,6 +192,52 @@ func (q *Queries) SendingDeferredSince(ctx context.Context, arg SendingDeferredS
 		return nil, err
 	}
 	return items, nil
+}
+
+const sendingDomainFirstSend = `-- name: SendingDomainFirstSend :one
+
+SELECT coalesce(min(c.started_at), 'epoch'::timestamptz)::timestamptz AS first_at
+FROM campaigns c JOIN senders s ON s.id = c.sender_id
+WHERE c.workspace_id = $1 AND c.id <> $2 AND c.started_at IS NOT NULL
+  AND lower(split_part(s.email, '@', 2)) = lower($3::text)
+`
+
+type SendingDomainFirstSendParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+	Domain      string    `json:"domain"`
+}
+
+// GS-10: the canary ----------------------------------------------------------
+// When the workspace first started a send from a sending domain, other
+// than this campaign (epoch: never).
+func (q *Queries) SendingDomainFirstSend(ctx context.Context, arg SendingDomainFirstSendParams) (time.Time, error) {
+	row := q.db.QueryRow(ctx, sendingDomainFirstSend, arg.WorkspaceID, arg.CampaignID, arg.Domain)
+	var first_at time.Time
+	err := row.Scan(&first_at)
+	return first_at, err
+}
+
+const sendingDomainLastSend = `-- name: SendingDomainLastSend :one
+SELECT coalesce(max(c.started_at), 'epoch'::timestamptz)::timestamptz AS last_at
+FROM campaigns c JOIN senders s ON s.id = c.sender_id
+WHERE c.workspace_id = $1 AND c.id <> $2 AND c.started_at IS NOT NULL
+  AND lower(split_part(s.email, '@', 2)) = lower($3::text)
+`
+
+type SendingDomainLastSendParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+	Domain      string    `json:"domain"`
+}
+
+// When the workspace last started a send from a sending domain, other than
+// this campaign (epoch: never).
+func (q *Queries) SendingDomainLastSend(ctx context.Context, arg SendingDomainLastSendParams) (time.Time, error) {
+	row := q.db.QueryRow(ctx, sendingDomainLastSend, arg.WorkspaceID, arg.CampaignID, arg.Domain)
+	var last_at time.Time
+	err := row.Scan(&last_at)
+	return last_at, err
 }
 
 const sendingEndWatches = `-- name: SendingEndWatches :exec
@@ -188,6 +296,20 @@ func (q *Queries) SendingExcludeGroupOn(ctx context.Context, arg SendingExcludeG
 		return nil, err
 	}
 	return items, nil
+}
+
+const sendingHoldForCanary = `-- name: SendingHoldForCanary :execrows
+UPDATE messages SET status = 'held', hold_reason = 'canary'
+WHERE campaign_id = $1 AND status IN ('queued', 'held') AND NOT canary
+`
+
+// Everyone but the canary waits for it to pass.
+func (q *Queries) SendingHoldForCanary(ctx context.Context, campaignID *uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, sendingHoldForCanary, campaignID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const sendingInDoubtByProvider = `-- name: SendingInDoubtByProvider :many
@@ -349,6 +471,31 @@ func (q *Queries) SendingMailboxSenders(ctx context.Context, arg SendingMailboxS
 	var column_1 int32
 	err := row.Scan(&column_1)
 	return column_1, err
+}
+
+const sendingMarkCanary = `-- name: SendingMarkCanary :execrows
+UPDATE messages SET canary = true
+WHERE id IN (
+  SELECT m.id FROM messages m LEFT JOIN contacts c ON c.id = m.contact_id
+  WHERE m.campaign_id = $1 AND m.status = 'queued'
+  ORDER BY CASE c.tier WHEN 'active' THEN 0 WHEN 'cooling' THEN 1 WHEN 'at_risk' THEN 2 ELSE 3 END,
+           c.last_human_open_at DESC NULLS LAST, c.last_activity_at DESC NULLS LAST, m.send_order, m.id
+  LIMIT $2)
+`
+
+type SendingMarkCanaryParams struct {
+	CampaignID *uuid.UUID `json:"campaignId"`
+	N          int32      `json:"n"`
+}
+
+// The canary: the most engaged of a send's queued recipients go first
+// (active contacts who opened lately, then the rest in send order).
+func (q *Queries) SendingMarkCanary(ctx context.Context, arg SendingMarkCanaryParams) (int64, error) {
+	result, err := q.db.Exec(ctx, sendingMarkCanary, arg.CampaignID, arg.N)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const sendingMarkInDoubt = `-- name: SendingMarkInDoubt :many
@@ -573,6 +720,59 @@ func (q *Queries) SendingPurgeMailboxWindows(ctx context.Context, before int64) 
 	return err
 }
 
+const sendingRecentAudiences = `-- name: SendingRecentAudiences :many
+SELECT recipients FROM campaign_sends
+WHERE workspace_id = $1 AND campaign_id <> $2 AND recipients > 0 AND phase IN ('sending', 'finished')
+ORDER BY created_at DESC LIMIT 8
+`
+
+type SendingRecentAudiencesParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+}
+
+// The audiences of the workspace's last 8 sends that went out, other than
+// this campaign: the canary's usual size is their median.
+func (q *Queries) SendingRecentAudiences(ctx context.Context, arg SendingRecentAudiencesParams) ([]int64, error) {
+	rows, err := q.db.Query(ctx, sendingRecentAudiences, arg.WorkspaceID, arg.CampaignID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []int64{}
+	for rows.Next() {
+		var recipients int64
+		if err := rows.Scan(&recipients); err != nil {
+			return nil, err
+		}
+		items = append(items, recipients)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const sendingReleaseCanary = `-- name: SendingReleaseCanary :execrows
+UPDATE messages SET status = CASE WHEN $1::boolean AND variant = '' THEN 'held' ELSE 'queued' END, hold_reason = ''
+WHERE campaign_id = $2 AND status = 'held' AND hold_reason = 'canary'
+`
+
+type SendingReleaseCanaryParams struct {
+	AbHoldouts bool       `json:"abHoldouts"`
+	CampaignID *uuid.UUID `json:"campaignId"`
+}
+
+// The canary passed (or a person continued): everyone it held goes out,
+// the A/B test's holdouts back to waiting for the winner.
+func (q *Queries) SendingReleaseCanary(ctx context.Context, arg SendingReleaseCanaryParams) (int64, error) {
+	result, err := q.db.Exec(ctx, sendingReleaseCanary, arg.AbHoldouts, arg.CampaignID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const sendingReplyMatches = `-- name: SendingReplyMatches :many
 
 SELECT provider_id, count(*)::bigint AS n FROM delivery_events
@@ -735,6 +935,36 @@ func (q *Queries) SendingSentSinceByMailbox(ctx context.Context, arg SendingSent
 		return nil, err
 	}
 	return items, nil
+}
+
+const sendingSetCampaignCanary = `-- name: SendingSetCampaignCanary :exec
+UPDATE campaigns SET canary = $1 WHERE id = $2
+`
+
+type SendingSetCampaignCanaryParams struct {
+	Canary string    `json:"canary"`
+	ID     uuid.UUID `json:"id"`
+}
+
+// The canary choice a send starts with (Review & send; C1).
+func (q *Queries) SendingSetCampaignCanary(ctx context.Context, arg SendingSetCampaignCanaryParams) error {
+	_, err := q.db.Exec(ctx, sendingSetCampaignCanary, arg.Canary, arg.ID)
+	return err
+}
+
+const sendingSetCanary = `-- name: SendingSetCanary :exec
+UPDATE campaign_sends SET canary = $1, updated_at = $2 WHERE campaign_id = $3
+`
+
+type SendingSetCanaryParams struct {
+	Canary     json.RawMessage `json:"canary"`
+	At         time.Time       `json:"at"`
+	CampaignID uuid.UUID       `json:"campaignId"`
+}
+
+func (q *Queries) SendingSetCanary(ctx context.Context, arg SendingSetCanaryParams) error {
+	_, err := q.db.Exec(ctx, sendingSetCanary, arg.Canary, arg.At, arg.CampaignID)
+	return err
 }
 
 const sendingSetGuard = `-- name: SendingSetGuard :exec

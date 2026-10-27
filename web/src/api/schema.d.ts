@@ -4060,6 +4060,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/canary/continue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send everyone now instead of when the canary's watch ends */
+        post: operations["continue-live-canary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/canary/extend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Watch the canary 10 more minutes */
+        post: operations["extend-live-canary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/canary/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop the send after its canary: the recipients it held don't get it */
+        post: operations["stop-live-canary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/cancel": {
         parameters: {
             query?: never;
@@ -19069,6 +19120,8 @@ export interface components {
         };
         ApprovalBypassInput: {
             acknowledged?: string[];
+            /** @enum {string} */
+            canary?: "auto" | "on" | "off" | "";
             confirm?: string;
             password?: string;
             reason: string;
@@ -20976,6 +21029,26 @@ export interface components {
              * @enum {integer}
              */
             watchMinutes: 10 | 20 | 30 | 60;
+        };
+        CanaryGate: {
+            /** Format: int64 */
+            base: number;
+            /** Format: int64 */
+            events: number;
+            /** @enum {string} */
+            key: "bounce" | "block_bounce" | "deferral" | "complaint" | "seeds";
+            /** Format: double */
+            limit: number;
+            mailbox?: string;
+            /** Format: int64 */
+            minBase: number;
+            notReported?: string[];
+            reported?: string[];
+            seeds?: components["schemas"]["SeedPlacement"];
+            /** @enum {string} */
+            state: "passing" | "failing" | "collecting";
+            /** Format: double */
+            value?: number;
         };
         CanaryGates: {
             /** Format: double */
@@ -28391,6 +28464,44 @@ export interface components {
             moved: number;
             snapshot: components["schemas"]["LiveSnapshot"];
         };
+        LiveCanary: {
+            chosen: boolean;
+            /** Format: date-time */
+            decidedAt?: string;
+            decidedBy?: string;
+            domain: string;
+            /** Format: int64 */
+            extended: number;
+            gates: components["schemas"]["CanaryGate"][];
+            /** Format: int64 */
+            mainSeconds: number;
+            /** Format: int64 */
+            neverMailed: number;
+            /** Format: double */
+            percent: number;
+            /** @enum {string} */
+            phase: "sending" | "watching" | "held" | "passed" | "continued" | "stopped";
+            placement?: components["schemas"]["SeedPlacement"];
+            /** Format: int64 */
+            queued: number;
+            reasons: string[];
+            /** Format: int64 */
+            seeds: number;
+            /** Format: int64 */
+            sent: number;
+            /** Format: date-time */
+            sentAt?: string;
+            /** Format: int64 */
+            size: number;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            until?: string;
+            /** Format: int64 */
+            usual: number;
+            /** Format: int64 */
+            watchMinutes: number;
+        };
         LiveCancelRequest: {
             /** @enum {string} */
             mailbox?: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
@@ -28454,6 +28565,7 @@ export interface components {
             to: string;
         };
         LiveHelpers: {
+            approve: string[];
             pause: string[];
             send: string[];
         };
@@ -28672,6 +28784,7 @@ export interface components {
             /** Format: date-time */
             at: string;
             campaignId: string;
+            canary?: components["schemas"]["LiveCanary"];
             /** Format: date-time */
             completedAt?: string;
             continuing: string[];
@@ -35370,6 +35483,8 @@ export interface components {
         };
         ReviewSendInput: {
             acknowledged?: string[];
+            /** @enum {string} */
+            canary?: "auto" | "on" | "off" | "";
             confirm?: string;
             /** Format: uuid */
             runId: string;
@@ -36346,6 +36461,29 @@ export interface components {
             /** Format: int64 */
             threshold?: number;
             where?: string;
+        };
+        SeedMailboxResult: {
+            /** Format: int64 */
+            inbox: number;
+            /** @enum {string} */
+            mailbox: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
+            /** Format: int64 */
+            promotions: number;
+            /** Format: int64 */
+            seeds: number;
+            /** Format: int64 */
+            spam: number;
+        };
+        SeedPlacement: {
+            byMailbox: components["schemas"]["SeedMailboxResult"][];
+            /** Format: int64 */
+            inbox: number;
+            /** Format: int64 */
+            pending: number;
+            /** Format: int64 */
+            promotions: number;
+            /** Format: int64 */
+            spam: number;
         };
         SegmentCatalog: {
             fields: components["schemas"]["SegmentCatalogField"][];
@@ -53166,6 +53304,108 @@ export interface operations {
                 "application/json": components["schemas"]["LiveAcknowledgeRequest"];
             };
         };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "continue-live-canary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "extend-live-canary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "stop-live-canary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {

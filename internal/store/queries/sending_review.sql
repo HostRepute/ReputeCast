@@ -232,3 +232,80 @@ GROUP BY provider_id;
 -- name: SendingSeedCount :one
 -- How many seed inboxes a workspace connected.
 SELECT count(*)::bigint FROM placement_seeds WHERE workspace_id = @workspace_id AND status = 'connected';
+
+-- GS-10: the canary ----------------------------------------------------------
+
+-- name: SendingDomainFirstSend :one
+-- When the workspace first started a send from a sending domain, other
+-- than this campaign (epoch: never).
+SELECT coalesce(min(c.started_at), 'epoch'::timestamptz)::timestamptz AS first_at
+FROM campaigns c JOIN senders s ON s.id = c.sender_id
+WHERE c.workspace_id = @workspace_id AND c.id <> @campaign_id AND c.started_at IS NOT NULL
+  AND lower(split_part(s.email, '@', 2)) = lower(@domain::text);
+
+-- name: SendingDomainLastSend :one
+-- When the workspace last started a send from a sending domain, other than
+-- this campaign (epoch: never).
+SELECT coalesce(max(c.started_at), 'epoch'::timestamptz)::timestamptz AS last_at
+FROM campaigns c JOIN senders s ON s.id = c.sender_id
+WHERE c.workspace_id = @workspace_id AND c.id <> @campaign_id AND c.started_at IS NOT NULL
+  AND lower(split_part(s.email, '@', 2)) = lower(@domain::text);
+
+-- name: SendingCanaryNeverMailed :one
+-- A send's recipients that never got mail from its sending domain.
+SELECT count(*)::bigint FROM messages m
+WHERE m.campaign_id = @campaign_id AND m.status IN ('queued', 'held')
+  AND NOT EXISTS (
+    SELECT 1 FROM messages p
+    JOIN campaigns pc ON pc.id = p.campaign_id
+    JOIN senders s ON s.id = pc.sender_id
+    WHERE p.contact_id = m.contact_id AND p.campaign_id <> m.campaign_id AND p.sent_at IS NOT NULL
+      AND lower(split_part(s.email, '@', 2)) = lower(@domain::text));
+
+-- name: SendingContactsAddedSince :one
+-- Contacts added since a time that can get Broadcasts: before a send's
+-- audience is built, the ones that never had mail from its domain.
+SELECT count(*)::bigint FROM contacts
+WHERE workspace_id = @workspace_id AND created_at > @since::timestamptz AND status = 'active';
+
+-- name: SendingRecentAudiences :many
+-- The audiences of the workspace's last 8 sends that went out, other than
+-- this campaign: the canary's usual size is their median.
+SELECT recipients FROM campaign_sends
+WHERE workspace_id = @workspace_id AND campaign_id <> @campaign_id AND recipients > 0 AND phase IN ('sending', 'finished')
+ORDER BY created_at DESC LIMIT 8;
+
+-- name: SendingMarkCanary :execrows
+-- The canary: the most engaged of a send's queued recipients go first
+-- (active contacts who opened lately, then the rest in send order).
+UPDATE messages SET canary = true
+WHERE id IN (
+  SELECT m.id FROM messages m LEFT JOIN contacts c ON c.id = m.contact_id
+  WHERE m.campaign_id = @campaign_id AND m.status = 'queued'
+  ORDER BY CASE c.tier WHEN 'active' THEN 0 WHEN 'cooling' THEN 1 WHEN 'at_risk' THEN 2 ELSE 3 END,
+           c.last_human_open_at DESC NULLS LAST, c.last_activity_at DESC NULLS LAST, m.send_order, m.id
+  LIMIT @n);
+
+-- name: SendingHoldForCanary :execrows
+-- Everyone but the canary waits for it to pass.
+UPDATE messages SET status = 'held', hold_reason = 'canary'
+WHERE campaign_id = @campaign_id AND status IN ('queued', 'held') AND NOT canary;
+
+-- name: SendingReleaseCanary :execrows
+-- The canary passed (or a person continued): everyone it held goes out,
+-- the A/B test's holdouts back to waiting for the winner.
+UPDATE messages SET status = CASE WHEN @ab_holdouts::boolean AND variant = '' THEN 'held' ELSE 'queued' END, hold_reason = ''
+WHERE campaign_id = @campaign_id AND status = 'held' AND hold_reason = 'canary';
+
+-- name: SendingSetCanary :exec
+UPDATE campaign_sends SET canary = @canary, updated_at = @at WHERE campaign_id = @campaign_id;
+
+-- name: SendingCanaryTotals :one
+-- What the canary sent so far.
+SELECT count(*) FILTER (WHERE sent_at IS NOT NULL)::bigint AS sent,
+       count(*)::bigint AS size
+FROM messages WHERE campaign_id = @campaign_id AND canary;
+
+-- name: SendingSetCampaignCanary :exec
+-- The canary choice a send starts with (Review & send; C1).
+UPDATE campaigns SET canary = @canary WHERE id = @id;

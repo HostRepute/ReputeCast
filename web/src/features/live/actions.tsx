@@ -4,8 +4,9 @@ import { $api, errorMessage, type Schemas } from '@/api/client'
 import { ConfirmDialog, DialogOption } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
 import { t as tt, useT } from '@/i18n'
-import { count } from '@/lib/format'
+import { count, orList } from '@/lib/format'
 import { useCan } from '@/lib/session'
+import { mc } from './canary.messages'
 import { m } from './messages'
 import { mailboxName, needs, queuedCount, type Incident, type LiveAction, type Snapshot } from './model'
 
@@ -30,7 +31,10 @@ export function useLiveActions(slug: string, campaignId: string, apply: (s: Snap
   const thresholdsM = $api.useMutation('put', `${base}/thresholds`)
   const acknowledgeM = $api.useMutation('post', `${base}/acknowledge`)
   const ratesM = $api.useMutation('put', `${base}/rates`)
-  const pending = pauseM.isPending || resumeM.isPending || cancelM.isPending || moveM.isPending || retryM.isPending || thresholdsM.isPending || acknowledgeM.isPending || ratesM.isPending
+  const canaryContinueM = $api.useMutation('post', `${base}/canary/continue`)
+  const canaryExtendM = $api.useMutation('post', `${base}/canary/extend`)
+  const canaryStopM = $api.useMutation('post', `${base}/canary/stop`)
+  const pending = pauseM.isPending || resumeM.isPending || cancelM.isPending || moveM.isPending || retryM.isPending || thresholdsM.isPending || acknowledgeM.isPending || ratesM.isPending || canaryContinueM.isPending || canaryExtendM.isPending || canaryStopM.isPending
 
   const settle = (r: Result) => {
     apply(r.snapshot)
@@ -87,6 +91,34 @@ export function useLiveActions(slug: string, campaignId: string, apply: (s: Snap
         .mutateAsync({ params: { path }, body })
         .then(settle)
         .catch(fail(tt(m.retryFailed))),
+    /** The canary (review GS-10): everyone now, 10 more minutes, or stop. */
+    continueCanary: () =>
+      canaryContinueM
+        .mutateAsync({ params: { path } })
+        .then(settle)
+        .then((r) => {
+          toast({ kind: 'success', title: tt(mc.continued) })
+          return r
+        })
+        .catch(fail(tt(mc.decideFailed))),
+    extendCanary: () =>
+      canaryExtendM
+        .mutateAsync({ params: { path } })
+        .then(settle)
+        .then((r) => {
+          toast({ kind: 'success', title: tt(mc.watched) })
+          return r
+        })
+        .catch(fail(tt(mc.decideFailed))),
+    stopCanary: () =>
+      canaryStopM
+        .mutateAsync({ params: { path } })
+        .then(settle)
+        .then((r) => {
+          toast({ kind: 'success', title: tt(mc.stopped) })
+          return r
+        })
+        .catch(fail(tt(mc.decideFailed))),
     /** Changes the rest of the send's rates per mailbox provider (review GS-13). */
     setRates: (rates: Record<string, number>) =>
       ratesM
@@ -132,7 +164,10 @@ export function runAction(actions: LiveActions, a: LiveAction, target?: string):
 export function useLivePermissions(helpers: Schemas['LiveHelpers'] | undefined) {
   const canPause = useCan('campaigns:pause')
   const canSend = useCan('campaigns:send')
+  const canApprove = useCan('campaigns:approve')
   return {
+    // Continuing a canary early needs someone who can approve sends (review GS-10).
+    approve: canApprove ? undefined : tt(mc.needsApprove, { helpers: helpers?.approve?.length ? orList(helpers.approve) : 'none' }),
     pause: canPause ? undefined : needs('pause', 'campaigns:pause', helpers?.pause),
     resume: canSend ? undefined : needs('resume', 'campaigns:send', helpers?.send),
     cancel: canSend ? undefined : needs('cancel', 'campaigns:send', helpers?.send),

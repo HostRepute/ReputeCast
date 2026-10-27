@@ -119,6 +119,8 @@ func sendingEngine(a *App) *engine.Engine {
 		Store: sendingStore(a),
 		// Company domains go out as their mailbox provider (MX records).
 		Mailbox: a.mailboxClassifier(),
+		// A canary's copies go to the seed inboxes as a placement test.
+		Seeds: canarySeeds{a: a},
 	}
 	v, _ := sendingEngines.LoadOrStore(a, e)
 	return v.(*engine.Engine)

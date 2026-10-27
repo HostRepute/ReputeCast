@@ -49,6 +49,23 @@ func RecheckFrom(ctx context.Context, campaignID uuid.UUID) (Recheck, bool) {
 	return rc, ok
 }
 
+type canaryKey struct{ id uuid.UUID }
+
+// WithCanary hands Start the canary choice Review & send made for the
+// campaign: auto (Traffic rules decide), on or off (review GS-10, C1).
+func WithCanary(ctx context.Context, campaignID uuid.UUID, choice string) context.Context {
+	if choice == "" {
+		return ctx
+	}
+	return context.WithValue(ctx, canaryKey{campaignID}, choice)
+}
+
+// CanaryFrom returns the canary choice WithCanary attached ("" for none).
+func CanaryFrom(ctx context.Context, campaignID uuid.UUID) string {
+	c, _ := ctx.Value(canaryKey{campaignID}).(string)
+	return c
+}
+
 // Starter starts or schedules a campaign send. The review & send screen
 // calls it after confirmation (and after approval, when required).
 type Starter interface {
