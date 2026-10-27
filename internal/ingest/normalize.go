@@ -386,7 +386,7 @@ func (n *Normalizer) apply(ctx context.Context, tx pgx.Tx, e *effects, p store.P
 	var messageID, campaignID, contactID *uuid.UUID
 	if msg != nil {
 		mailbox = msg.MailboxProvider
-		label = sourceLabel(msg.CampaignName, msg.AutomationName, msg.AutomationNode, msg.Kind)
+		label = SourceLabel(msg.CampaignName, msg.AutomationName, msg.AutomationNode, msg.Kind)
 		mid := msg.ID
 		messageID, campaignID, contactID = &mid, msg.CampaignID, msg.ContactID
 	}
@@ -539,8 +539,9 @@ func clip(s string, n int) string {
 	return s[:n]
 }
 
-// sourceLabel names what sent a message, for the event log.
-func sourceLabel(campaign, automation string, node *string, kind string) string {
+// SourceLabel names what sent a message, for the event log, in English
+// (sourceIn reads it in a reader's language).
+func SourceLabel(campaign, automation string, node *string, kind string) string {
 	switch {
 	case campaign != "":
 		return campaign
@@ -565,6 +566,8 @@ func sourceLabel(campaign, automation string, node *string, kind string) string 
 		return "Password reset"
 	case "api":
 		return "API · transactional"
+	case "smtp":
+		return "SMTP relay · transactional"
 	case "placement":
 		return "Placement test copy"
 	}

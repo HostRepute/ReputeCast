@@ -31836,7 +31836,7 @@ export interface components {
             bounceClass: string;
             campaignId?: string;
             /** @enum {string} */
-            channel: "webhook" | "bounce_mailbox" | "backfill" | "test" | "internal";
+            channel: "webhook" | "bounce_mailbox" | "queue" | "backfill" | "test" | "internal";
             code: string;
             diagnostic: string;
             id: string;

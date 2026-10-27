@@ -26,7 +26,8 @@
   "stream.name": "{stream, select, broadcast {Gửi hàng loạt} automation {Tự động hóa} transactional {Giao dịch} other {Hệ thống}}",
   "label.statusPage": "Trạng thái {provider}",
   "label.kind": "{kind, select, double_opt_in {thư xác nhận hai bước} invite {lời mời vào nhóm} preference_link {liên kết trung tâm tùy chọn} password_reset {thư đặt lại mật khẩu} api {thư API} other {thư khác}}",
-  "label.source": "{kind, select, double_opt_in {Thư xác nhận hai bước} preference_link {Liên kết trung tâm tùy chọn} invite {Lời mời vào nhóm} password_reset {Thư đặt lại mật khẩu} api {API · giao dịch} other {–}}",
+  "label.source": "{kind, select, double_opt_in {Thư xác nhận hai bước} preference_link {Liên kết trung tâm tùy chọn} invite {Lời mời vào nhóm} password_reset {Thư đặt lại mật khẩu} api {API · giao dịch} smtp {SMTP relay · giao dịch} placement {Bản gửi kiểm tra vị trí hộp thư} other {–}}",
+  "label.sourceStep": "{automation} · bước {step}",
 
   "check.responds": "{op} phản hồi",
   "check.authAccepted": "AUTH được chấp nhận",

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -448,10 +449,13 @@ func sourceLabel(l i18n.Lang, campaign, automation string, node *string, kind st
 	case campaign != "":
 		return campaign
 	case automation != "":
-		if node != nil && *node != "" {
-			return automation + " · " + *node
+		if node == nil || *node == "" {
+			return automation
 		}
-		return automation
+		if _, err := strconv.Atoi(*node); err == nil {
+			return mSourceStep.Text(l, i18n.Args{"automation": automation, "step": *node})
+		}
+		return automation + " · " + *node
 	}
 	return mSource.Text(l, i18n.Args{"kind": kind})
 }

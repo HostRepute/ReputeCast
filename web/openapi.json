@@ -52088,6 +52088,7 @@
             "enum": [
               "webhook",
               "bounce_mailbox",
+              "queue",
               "backfill",
               "test",
               "internal"

@@ -51,6 +51,7 @@ var (
 	mStatusPage = msgs.M("label.statusPage")
 	mKindLabel  = msgs.M("label.kind")
 	mSource     = msgs.M("label.source")
+	mSourceStep = msgs.M("label.sourceStep")
 
 	mCheckResponds       = msgs.M("check.responds")
 	mCheckAuthAccepted   = msgs.M("check.authAccepted")
