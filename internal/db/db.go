@@ -34,8 +34,13 @@ func Open(ctx context.Context, url string, maxConns int32) (*pgxpool.Pool, error
 	// Postgres compiles a plan whose estimated cost passes jit_above_cost
 	// with JIT, again on every execution. ReputeCast's queries are short:
 	// counting a 48,000-contact audience for Review & send spent 0.5 s
-	// compiling and 0.1 s running.
-	cfg.ConnConfig.RuntimeParams["jit"] = "off"
+	// compiling and 0.1 s running. It is set once connected rather than in
+	// the startup packet, which poolers such as PgBouncer refuse for
+	// settings they don't know.
+	cfg.AfterConnect = func(ctx context.Context, c *pgx.Conn) error {
+		_, err := c.Exec(ctx, "SET jit = off")
+		return err
+	}
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, err
