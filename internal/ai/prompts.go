@@ -151,14 +151,14 @@ func segmentPrompt(t segmentTask) llm.Request {
 
 // summaryPrompt asks for the plain-language summary of a report.
 func summaryPrompt(t summaryTask) llm.Request {
-	numbers, _ := json.Marshal(t.Numbers)
+	report, _ := json.Marshal(t.Report)
 	req := userRequest(systemPrompt, textPart(
-		fmt.Sprintf("Write a plain-language summary of this campaign's results in %s, in four to six sentences: how many were sent and delivered, human opens (machine opens aren't people), clicks and the most-clicked link, the A/B test's result when there was one, the mailbox provider with the highest bounce rate, and the unsubscribes with their most common reason.", t.LanguageName),
-		"Use only the numbers below, written as they are, with percentages to one decimal. Describe the numbers: don't explain causes and don't give advice.",
+		fmt.Sprintf("Write a plain-language summary of this campaign's results in %s, in four to seven sentences: how many were sent and delivered; the people who opened it (of delivered and of the recipients whose opens can be measured), the privacy-protected opens Apple Mail made automatically and the scanner opens left out; the people who clicked and the most-clicked link; the A/B test's result with its confidence, saying so when it had no clear winner; the mailbox provider with the highest bounce rate; and the unsubscribes with their most common reason.", t.LanguageName),
+		numbersRule,
 		`Answer {"summary": "…"}.`,
-		tag("numbers", string(numbers)),
+		tag("report", string(report)),
 	))
-	req.MaxTokens = 700
+	req.MaxTokens = 800
 	req.Task = t
 	return req
 }

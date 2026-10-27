@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -33,6 +32,13 @@ import (
 const (
 	// SilentAfter is how long webhooks may be quiet while mail goes out.
 	SilentAfter = 6 * time.Hour
+	// EventGrace is how long a message may wait for its first event before
+	// it counts as overdue (PR-6): providers report most deliveries within
+	// seconds, a deferral within minutes.
+	EventGrace = 30 * time.Minute
+	// SilentMinOverdue is how many overdue messages make quiet webhooks
+	// "silent": one welcome email after a quiet night is never an alarm.
+	SilentMinOverdue = 10
 	// CheckEvery is how often a healthy provider's API is checked.
 	CheckEvery = 5 * time.Minute
 	// OutageCalls and OutageRate: at least this many calls in three
@@ -294,11 +300,13 @@ func (s *Service) Check(ctx context.Context, p store.Provider, probe bool) (stor
 			resumed = true
 			h.Webhooks = &state.WebhookState{}
 		} else if now.Sub(*p.LastEventAt) >= SilentAfter {
-			rows, err := s.Q.ProvSentSince(ctx, store.ProvSentSinceParams{ProviderIds: []uuid.UUID{p.ID}, Since: p.LastEventAt})
+			// Silent only with enough mail past its grace and no event: the
+			// messages sent after a quiet period get their 30 minutes first.
+			od, err := s.Q.ProvEventsOverdue(ctx, store.ProvEventsOverdueParams{ProviderID: &p.ID, Since: *p.LastEventAt, GraceBefore: now.Add(-EventGrace)})
 			if err != nil {
 				return p, err
 			}
-			if len(rows) == 1 && rows[0].SinceLastEvent > 0 {
+			if od.Overdue >= SilentMinOverdue {
 				if h.Webhooks == nil || h.Webhooks.SilentSince == nil {
 					silentNow = true
 					t := *p.LastEventAt
@@ -309,6 +317,11 @@ func (s *Service) Check(ctx context.Context, p store.Provider, probe bool) (stor
 				}
 			}
 		}
+	}
+	// Messages refused for good (PR-7): watched over the last ten minutes.
+	rejectStarted, rejectEnded, err := s.watchRejections(ctx, p, &h, now)
+	if err != nil {
+		return p, err
 	}
 	status := s.baseStatus(ctx, p, h)
 	detail := ""
@@ -321,6 +334,10 @@ func (s *Service) Check(ctx context.Context, p store.Provider, probe bool) (stor
 		}
 	case h.Webhooks != nil && h.Webhooks.SilentSince != nil:
 		status, detail = state.Degraded, state.DetailWebhooksSilent
+	case h.Rejecting != nil:
+		status, detail = state.Degraded, state.DetailRejecting
+	case h.MailboxFailing(now):
+		status, detail = state.Degraded, state.DetailMailboxFailing
 	}
 	if probed && callErr == nil && adapter != nil {
 		snap := state.Snapshot{Capabilities: adapter.Capabilities(), BroadcastStream: caps.BroadcastStream}
@@ -358,6 +375,16 @@ func (s *Service) Check(ctx context.Context, p store.Provider, probe bool) (stor
 		}
 		if resumed {
 			if err := s.onResumed(ctx, tx, ws, p, before, now); err != nil {
+				return err
+			}
+		}
+		if rejectStarted {
+			if err := s.onRejecting(ctx, tx, ws, p, h.Rejecting); err != nil {
+				return err
+			}
+		}
+		if rejectEnded {
+			if err := s.onRejectingEnded(ctx, tx, ws, p, now); err != nil {
 				return err
 			}
 		}
@@ -428,18 +455,22 @@ func (s *Service) diagnose(ctx context.Context, p store.Provider, adapter provid
 		}
 	}
 	checks = append(checks, reg)
-	code, err := s.selfTest(ctx, p)
+	// The endpoint (PR-9): its address must be a public one; the provider
+	// calling it is what proves it reachable, so the check says when it
+	// last did.
 	end := state.WebhookCheck{Key: "endpoint"}
-	if err == nil && code == http.StatusOK {
+	if bad, ok := s.checkAddress(ctx, url); ok {
 		end.OK = &yes
-		end.Detail, end.DetailText = keep(mCheckSelfTestOK, nil)
+		if p.LastEventAt != nil {
+			loc := time.UTC
+			if ws, err := s.Q.GetWorkspace(ctx, p.WorkspaceID); err == nil {
+				loc = state.Location(ws.Timezone)
+			}
+			end.Detail, end.DetailText = keep(mCheckLastReached, i18n.Args{"name": state.Short(p.Name, p.Adapter), "at": p.LastEventAt.In(loc)})
+		}
 	} else {
 		end.OK = &no
-		if err != nil {
-			end.Detail = err.Error()
-		} else {
-			end.Detail, end.DetailText = keep(mCheckSelfTest, i18n.Args{"status": strconv.Itoa(code)})
-		}
+		end.Detail, end.DetailText = keep(mCheckAddressProblem, i18n.Args{"kind": bad.Kind, "host": bad.Host, "ip": bad.IP})
 	}
 	checks = append(checks, end)
 	var got int64
@@ -498,29 +529,17 @@ func VerifySelfTest(token, header string, now time.Time) bool {
 	return hmac.Equal([]byte(SelfTestSignature(token, n)), []byte(header))
 }
 
-// selfTest posts to the provider's public webhook URL, through whatever
-// proxy and TLS the instance sits behind, and expects 200.
-func (s *Service) selfTest(ctx context.Context, p store.Provider) (int, error) {
-	url := WebhookURL(s.URLs, p)
-	hdr := http.Header{}
-	hdr.Set(SelfTestHeader, SelfTestSignature(p.WebhookToken, s.now().Unix()))
-	hdr.Set("Content-Type", "application/json")
-	if s.SelfTest != nil {
-		return s.SelfTest(ctx, url, hdr)
+// checkAddress looks at a webhook address without calling it.
+func (s *Service) checkAddress(ctx context.Context, url string) (AddressProblem, bool) {
+	if s.CheckAddress != nil {
+		return s.CheckAddress(ctx, url)
 	}
-	cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	req, err := http.NewRequestWithContext(cctx, http.MethodPost, url, strings.NewReader(`{"selfTest":true}`))
-	if err != nil {
-		return 0, err
-	}
-	req.Header = hdr
-	resp, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
-	if err != nil {
-		return 0, err
-	}
-	_ = resp.Body.Close()
-	return resp.StatusCode, nil
+	return CheckAddress(ctx, url)
+}
+
+// addressText says why no provider can reach an address.
+func addressText(l i18n.Lang, a AddressProblem) string {
+	return mCheckAddressProblem.Text(l, i18n.Args{"kind": a.Kind, "host": a.Host, "ip": a.IP})
 }
 
 func streamLabel(s string) string {
@@ -594,32 +613,40 @@ func (s *Service) onDown(ctx context.Context, tx pgx.Tx, ws store.Workspace, p s
 		if !ok || !inSplit(def, p.ID) {
 			continue
 		}
-		target, hold := routing.Failover(set.Policy(stream), def.Fallback, func(id uuid.UUID) routing.ProviderState {
-			fp, ok := byID[id]
-			if !ok {
-				return routing.ProviderState{}
-			}
-			wu, _ := q.WarmupActiveForProvider(ctx, id)
-			return routing.ProviderState{Available: state.Available(fp) && id != p.ID, WarmingUp: wu.Status != "" && wu.Status != "done"}
-		})
+		// The fallback is vetted before any mail moves (PR-7): sending
+		// domain verified, quota free, not in sandbox, warm, bulk terms.
+		policy := set.Policy(stream)
+		target, vetting := s.vetFailover(ctx, q, ws, p, stream, policy, def.Fallback, byID, now)
+		hold := target == nil
 		mode := "automatic"
 		if hold {
-			mode, target = "held", nil
+			mode = "held"
 		}
 		if err := q.ProvStartFailover(ctx, store.ProvStartFailoverParams{ID: newID(), WorkspaceID: ws.ID, Stream: string(stream), ProviderID: p.ID,
-			FallbackProviderID: target, Mode: mode, StartedAt: now, Detail: json.RawMessage(`{}`)}); err != nil {
+			FallbackProviderID: target, Mode: mode, StartedAt: now, Detail: failoverDetailJSON(def.Fallback, vetting)}); err != nil {
 			return err
 		}
 		if !hold {
 			fb := byID[*target]
 			auto = append(auto, streamLabel(string(stream)))
 			failures := max(h.ConsecutiveFailures, 1)
+			fbShort := state.Short(fb.Name, fb.Adapter)
 			if err := s.incident(ctx, q, ws.ID, now, "failover", "ok",
-				fmt.Sprintf("%s: switched to %s after %d failed health checks.", streamLabel(string(stream)), state.Short(fb.Name, fb.Adapter), failures),
-				mIncidentFailover.Keep(i18n.Args{"stream": string(stream), "fallback": state.Short(fb.Name, fb.Adapter), "count": failures}), &p.ID, nil); err != nil {
+				fmt.Sprintf("%s: switched to %s after %d failed health checks; %s passed its checks first.", streamLabel(string(stream)), fbShort, failures, fbShort),
+				mIncidentVetted.Keep(i18n.Args{"stream": string(stream), "fallback": fbShort, "count": failures}), &p.ID, nil); err != nil {
 				return err
 			}
 			continue
+		}
+		if vetting != nil && policy != routing.PauseAndAsk && stream != providers.StreamBroadcast {
+			// The fallback would have taken over, but it can't take the mail.
+			fb := byID[*def.Fallback]
+			fbShort := state.Short(fb.Name, fb.Adapter)
+			if err := s.incident(ctx, q, ws.ID, now, "fallback_failed", "warn",
+				fmt.Sprintf("%s: %s didn't pass its checks, so ReputeCast keeps retrying %s instead of switching.", streamLabel(string(stream)), fbShort, p.Name),
+				mIncidentFallbackFail.Keep(i18n.Args{"stream": string(stream), "fallback": fbShort, "name": p.Name}), &p.ID, nil); err != nil {
+				return err
+			}
 		}
 		held = append(held, streamLabel(string(stream)))
 		if stream != providers.StreamBroadcast {

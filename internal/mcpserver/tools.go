@@ -206,6 +206,14 @@ func (s *Service) addTools(srv *mcp.Server) {
 			return nil, e, err
 		}
 		e.targetID, e.targetName = cp.ID.String(), cp.Name
+		if s.Reports != nil {
+			// The report the app and the API show (review AN-14).
+			r, err := s.Reports.Report(ctx, &c.Workspace, cp.ID)
+			if err != nil {
+				return nil, e, err
+			}
+			return reportOut(r), e, nil
+		}
 		t, err := s.Q.McpCampaignTotals(ctx, cp.ID)
 		if err != nil {
 			return nil, e, err

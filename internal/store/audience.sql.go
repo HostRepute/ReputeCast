@@ -773,7 +773,7 @@ func (q *Queries) GetSavedView(ctx context.Context, arg GetSavedViewParams) (Sav
 }
 
 const getSuppression = `-- name: GetSuppression :one
-SELECT id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id, texts FROM suppressions WHERE workspace_id = $1 AND id = $2
+SELECT id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id, texts, seq FROM suppressions WHERE workspace_id = $1 AND id = $2
 `
 
 type GetSuppressionParams struct {
@@ -802,12 +802,13 @@ func (q *Queries) GetSuppression(ctx context.Context, arg GetSuppressionParams) 
 		&i.Context,
 		&i.ImportID,
 		&i.Texts,
+		&i.Seq,
 	)
 	return i, err
 }
 
 const getSuppressionByEmail = `-- name: GetSuppressionByEmail :one
-SELECT id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id, texts FROM suppressions WHERE workspace_id = $1 AND email = $2
+SELECT id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id, texts, seq FROM suppressions WHERE workspace_id = $1 AND email = $2
 `
 
 type GetSuppressionByEmailParams struct {
@@ -836,6 +837,7 @@ func (q *Queries) GetSuppressionByEmail(ctx context.Context, arg GetSuppressionB
 		&i.Context,
 		&i.ImportID,
 		&i.Texts,
+		&i.Seq,
 	)
 	return i, err
 }
@@ -923,7 +925,7 @@ INSERT INTO suppressions (id, workspace_id, email, reason, source, source_provid
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
         $10, $11, $12, $13, $14, $15, $16, coalesce($17::jsonb, '{}'))
 ON CONFLICT (workspace_id, email) DO NOTHING
-RETURNING id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id, texts
+RETURNING id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id, texts, seq
 `
 
 type InsertSuppressionParams struct {
@@ -985,6 +987,7 @@ func (q *Queries) InsertSuppression(ctx context.Context, arg InsertSuppressionPa
 		&i.Context,
 		&i.ImportID,
 		&i.Texts,
+		&i.Seq,
 	)
 	return i, err
 }

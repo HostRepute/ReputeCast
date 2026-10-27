@@ -12,6 +12,7 @@ import { common } from '@/i18n/common'
 import { m } from './messages'
 import { ReportBody } from './ReportBody'
 import { ReportSkeleton } from './ReportSkeleton'
+import { StillComing } from './Tiles'
 import { headerCaption, statusBadge } from './words'
 import './reports.css'
 
@@ -73,7 +74,7 @@ export function SharedReportPage({ token }: { token: string }) {
         </div>
       </header>
       {/* As wide as the report inside the app at 1440 px, so the tiles and cards fall the same way. */}
-      <main className="content mx-auto max-w-[1152px]" id="main" tabIndex={-1}>
+      <main className="content rep-shared mx-auto max-w-[1152px]" id="main" tabIndex={-1}>
         {q.isPending ? (
           <ReportSkeleton />
         ) : gone || limited || q.isError ? (
@@ -99,7 +100,11 @@ export function SharedReportPage({ token }: { token: string }) {
               ) : null}
               {caption ? <span className="k">{caption}</span> : null}
             </div>
-            <ReportBody r={r} />
+            <ReportBody
+              r={r}
+              email={q.data!.includes.email}
+              banner={!r.campaign.final && r.campaign.finalAt ? <StillComing finalAt={r.campaign.finalAt} issues={6} /> : null}
+            />
             <p className="k m-0">
               {[t(m.aggregateOnly), ...(q.data!.expiresAt ? [t(m.stopsOn, { date: shortDate(q.data!.expiresAt) })] : []), t(m.madeWith)].join(' ')}
             </p>

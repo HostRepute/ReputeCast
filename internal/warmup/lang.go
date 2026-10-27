@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"math"
 	"strconv"
+	"time"
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/i18n"
@@ -127,4 +128,13 @@ func mailboxArg(key, name string) string {
 func ShiftedEvent(provider string) (title, body string, texts []byte) {
 	t, b := keep("log.shiftedTitle", nil), keep("log.shifted", i18n.Args{"provider": provider})
 	return t.English, b.English, textsJSON(map[string]i18n.Text{"title": t.Text, "body": b.Text})
+}
+
+// CapHoldNotice is the notification a campaign's members get when today's
+// warm-up cap (or a paused plan) holds its share on a warming provider
+// (PR-8): kept texts, read in each member's language. reason is cap or
+// paused; resume is when tomorrow's cap starts, in the workspace's zone.
+func CapHoldNotice(campaign, provider string, held int64, reason string, resume time.Time) (title, body i18n.Text) {
+	args := i18n.Args{"campaign": campaign, "provider": provider, "count": held, "reason": reason, "resume": resume}
+	return msgs.M("notify.capHoldTitle").Keep(args), msgs.M("notify.capHoldBody").Keep(args)
 }

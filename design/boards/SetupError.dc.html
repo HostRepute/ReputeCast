@@ -77,6 +77,17 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
   .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
 }
+/* review: rows and buttons on touch widths */
+.row .badge{flex:none}
+@media (max-width:767px){
+  .wiz .btn,header .btn{min-height:44px}
+  .wiz .in{height:44px}
+  .wiz main [style*="minmax(280px"],.wiz main [style*="minmax(260px"]{grid-template-columns:1fr!important}
+  .row{display:grid!important;grid-template-columns:auto minmax(0,1fr);column-gap:10px;row-gap:2px;align-items:start;padding:10px 12px}
+  .row > .k{grid-column:2;margin-left:0!important}
+  #cont-why{text-align:left!important}
+  .wiz main label[style*="span 2"]{grid-column:auto!important}
+}
 </style>
 </helmet>
 <div style="min-height:100vh;display:flex;flex-direction:column">
@@ -113,40 +124,43 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
           <label class="lbl" style="grid-column:span 2;color:#991B1B">Private API key<input class="in mono" type="password" value="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-xxxxxxxx-xxxxxxxx" aria-invalid="true" aria-describedby="key-err" style="border-color:#DC2626;background:#FFF5F5"><span id="key-err" role="alert" style="display:flex;gap:8px;align-items:flex-start;font-weight:500;color:#991B1B;margin-top:4px"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#B91C1C" stroke-width="1.8" aria-hidden="true" style="flex:none;margin-top:1px"><circle cx="10" cy="10" r="8"></circle><path d="M10 6v5M10 13.5v.5" stroke-linecap="round"></path></svg><span>Mailgun rejected this key: <span class="mono">401 Unauthorized · Forbidden</span>. Check that it's a Private API key (not a Sending key or the HTTP webhook signing key) and that it belongs to the region selected below.</span></span></label>
           <label class="lbl">Region<select class="in"><option>US · api.mailgun.net</option><option>EU · api.eu.mailgun.net</option></select></label>
         </div>
+        <p style="margin:0;font-size:13px;padding:10px 12px;border-radius:8px;background:#F9FAFB;border:1px solid #E3E6EB">The key saved at 09:12 still works: ReputeCast used it to register the webhooks below. The webhook problem isn't caused by the key, so you can keep the saved one.</p>
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
           <button class="btn pri">Try again</button>
+          <button class="btn">Keep the saved key</button>
           <a href="https://app.mailgun.com/settings/api_security" class="btn">Open Mailgun API keys</a>
           <span class="k">Keys are checked with a read-only call (GET /v3/domains) and stored encrypted.</span>
         </div>
       </section>
 
-      <section class="card" style="display:flex;flex-direction:column;border-color:#FCD34D">
+      <section class="card" style="display:flex;flex-direction:column;border-color:#FCD34D" aria-labelledby="wh-h">
         <div style="padding:16px 20px;display:flex;flex-direction:column;gap:4px;background:#FFFBEB;border-radius:10px 10px 0 0">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h3 class="h2">2. Webhooks</h3><span class="badge warn"><span class="dot"></span>Endpoint not reachable from the internet</span></div>
-          <span style="font-size:13px;color:#78350F">Mailgun has to call ReputeCast to report deliveries, bounces and complaints. ReputeCast tried to reach its own public URL the way Mailgun would, and failed.</span>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h3 class="h2" id="wh-h">2. Webhooks</h3><span class="badge warn"><span class="dot"></span>Test webhook didn't arrive</span></div>
+          <span style="font-size:13px;color:#78350F">ReputeCast asked Mailgun to send a test webhook to <span class="mono" style="overflow-wrap:anywhere">https://reputecast.acme.io/hooks/mailgun/2b7e</span> and nothing arrived in 60 s. Mailgun has to reach that address to report deliveries, bounces and complaints.</span>
         </div>
-        <div class="row" style="border-top:1px solid #FDE68A"><span class="badge bad">Failed</span><span>Self-test of <span class="mono">https://reputecast.acme.io/hooks/mailgun/2b7e</span></span><span class="mono k" style="margin-left:auto;color:#991B1B">ECONNREFUSED · DNS resolves to 10.0.4.18, a private address</span></div>
-        <div class="row"><span class="badge mut">Skipped</span><span>Register webhooks: delivered, permanent_fail, temporary_fail, complained, unsubscribed</span><span class="k" style="margin-left:auto">after the endpoint is reachable</span></div>
+        <div class="row" style="border-top:1px solid #FDE68A"><span class="badge ok"><span class="dot"></span>Done</span><span style="min-width:0">Registered webhooks: delivered, permanent_fail, temporary_fail, complained, unsubscribed</span><span class="k" style="margin-left:auto;white-space:nowrap">09:12:04</span></div>
+        <div class="row"><span class="badge bad"><span class="dot"></span>Failed</span><span style="min-width:0">Test webhook from Mailgun: nothing arrived between 09:12:05 and 09:13:05<span class="k" style="display:block">Likely cause: <span class="mono">reputecast.acme.io</span> resolves to 10.0.4.18, a private address Mailgun can't reach.</span></span><span class="k" style="margin-left:auto;white-space:nowrap">09:13:05</span></div>
         <div style="padding:14px 20px;display:flex;flex-direction:column;gap:10px;border-top:1px solid #EEF0F3">
-          <span style="font-weight:600;font-size:13px">How to fix</span>
+          <h4 style="margin:0;font-weight:600;font-size:13px">How to fix</h4>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
-            <div style="display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid #E3E6EB;border-radius:8px"><span style="font-weight:600">Set a public URL</span><span class="k">ReputeCast is running at a private address. Set <span class="mono">PUBLIC_URL</span> in your docker compose .env to the HTTPS address your reverse proxy exposes, then restart.</span><pre>PUBLIC_URL=https://reputecast.acme.io</pre></div>
-            <div style="display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid #E3E6EB;border-radius:8px"><span style="font-weight:600">Or use a tunnel while testing</span><span class="k">For a laptop or staging box, expose port 8080 with Cloudflare Tunnel or ngrok and paste the URL here.</span><label class="lbl">Public URL<input class="in mono" placeholder="https://…"></label></div>
-            <div style="display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid #E3E6EB;border-radius:8px"><span style="font-weight:600">Or poll instead of webhooks</span><span class="k">Mailgun keeps an events API. ReputeCast can poll it every minute. Slower, and bounce protection during a send lags by up to a minute.</span><button class="btn sm" style="align-self:flex-start">Use polling for now</button></div>
+            <div style="display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid #E3E6EB;border-radius:8px;min-width:0"><span style="font-weight:600">Set a public URL</span><span class="k">ReputeCast is running at a private address. Set <span class="mono">REPUTECAST_PUBLIC_URL</span> in your docker compose .env to the HTTPS address your reverse proxy exposes, then restart.</span><pre style="white-space:pre-wrap;overflow-wrap:anywhere">REPUTECAST_PUBLIC_URL=https://reputecast.acme.io</pre></div>
+            <div style="display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid #E3E6EB;border-radius:8px;min-width:0"><span style="font-weight:600">Or use a tunnel while testing</span><span class="k">For a laptop or staging box, expose port 8080 with Cloudflare Tunnel or ngrok and paste the URL here. Mailgun's webhooks use it instead of <span class="mono">REPUTECAST_PUBLIC_URL</span> until you remove it.</span><label class="lbl">Public URL<input class="in mono" placeholder="https://…"></label></div>
+            <div style="display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid #E3E6EB;border-radius:8px;min-width:0"><span style="font-weight:600">Or poll instead of webhooks</span><span class="k">Mailgun keeps an events API. ReputeCast can poll it every minute. Slower, and bounce protection during a send lags by up to a minute.</span><button class="btn sm" style="align-self:flex-start">Use polling for now</button></div>
           </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn pri">Re-test endpoint</button><a href="https://github.com/hostrepute/reputecast/blob/main/docs/deploy/reverse-proxy.md" class="btn">Reverse-proxy guide</a></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn pri">Ask Mailgun for another test</button><a href="https://github.com/hostrepute/reputecast/blob/main/docs/deploy/reverse-proxy.md" class="btn">Reverse-proxy guide</a></div>
         </div>
       </section>
 
       <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
         <a href="SetupCatalog.dc.html" class="btn">Back</a>
-        <div style="display:flex;gap:10px"><button class="btn">Save and finish later</button><button class="btn pri" disabled style="opacity:.45;cursor:not-allowed;min-height:40px;padding:0 18px">Continue to domain verification</button></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn">Save and finish later</button><button class="btn pri" disabled aria-disabled="true" aria-describedby="cont-why" title="Continue unlocks when a test webhook from Mailgun arrives, or when you switch to polling" style="opacity:.45;cursor:not-allowed;min-height:40px;padding:0 18px">Continue to domain verification</button></div>
       </div>
+      <p class="k" id="cont-why" style="margin:-8px 0 0;text-align:right">Continue unlocks when a test webhook from Mailgun arrives, or when you switch to polling.</p>
     </main>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":938}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1091}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};

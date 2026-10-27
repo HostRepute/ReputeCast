@@ -427,6 +427,21 @@ func (p *Provider) AddSuppressions(ctx context.Context, emails []string) error {
 	return nil
 }
 
+// RemoveSuppressions implements providers.SuppressionRemover: the contacts
+// are no longer excluded from campaigns.
+func (p *Provider) RemoveSuppressions(ctx context.Context, emails []string) error {
+	for chunk := range slices.Chunk(emails, 500) {
+		contacts := make([]map[string]any, len(chunk))
+		for i, e := range chunk {
+			contacts[i] = map[string]any{"Email": e, "IsExcludedFromCampaigns": false}
+		}
+		if err := p.api.Do(ctx, "POST /v3/REST/contact/managemanycontacts", http.MethodPost, "/v3/REST/contact/managemanycontacts", map[string]any{"Contacts": contacts}, nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Tracking implements providers.TrackingManager. Mailjet's account
 // tracking setting has no API, but ReputeCast sends every message with
 // TrackOpens and TrackClicks disabled, so Mailjet never tracks its mail.

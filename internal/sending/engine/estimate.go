@@ -190,15 +190,26 @@ func (e *Engine) simRouteOf(ctx context.Context, p store.Provider, cells map[str
 		if a, ok, err := warmup.AllowanceFor(ctx, e.Q, p.ID, start, loc); err == nil && ok && a.Rate > 0 && a.Rate <= r.rate {
 			r.rateFrom = "warmup"
 		}
+		// The plan's cap on each local day the send runs over: AllowanceFor
+		// counts the plan's day as the send loop does (warmup.DayOn: a
+		// paused plan stays on its day, a slowdown holds the cap), less
+		// what went out already on the first day. Read once a day, not
+		// once a tick.
+		caps := map[string]int64{}
 		r.allowance = func(t time.Time) int64 {
-			a, ok, err := warmup.AllowanceFor(ctx, e.Q, p.ID, t, loc)
-			if err != nil || !ok || a.Paused {
-				return 0
+			k := dayKey(t, loc)
+			if v, ok := caps[k]; ok {
+				return v
 			}
-			if dayKey(t, loc) == dayKey(start, loc) {
-				return max(a.Cap-a.Sent, 0)
+			var v int64
+			if a, ok, err := warmup.AllowanceFor(ctx, e.Q, p.ID, t, loc); err == nil && ok && !a.Paused {
+				v = a.Cap
+				if k == dayKey(start, loc) {
+					v = max(a.Cap-a.Sent, 0)
+				}
 			}
-			return a.Cap
+			caps[k] = v
+			return v
 		}
 		capLeft := r.allowance(start)
 		r.out.CapLeft = &capLeft

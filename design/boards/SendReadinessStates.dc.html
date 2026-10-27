@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Review and send, running, error and scheduled states</title>
+<title>Review and send states</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -57,7 +57,7 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
 /* responsive shell */
 @media (max-width:1100px){
   .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
-  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .brand-t,.side .ws{display:none}.side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .side .nav a{justify-content:center;padding:0!important;height:44px}
   .side .nav svg{width:20px;height:20px}
   .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
@@ -142,9 +142,62 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 .ws .av{font-weight:700}
 /* switches: a disabled switch looks disabled */
 .tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+/* states rework: real progress, re-run lock, skipped checks, held send, unusual-send confirm */
+.btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+.in{height:36px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box;min-width:0}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+.vb{display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:12px;flex-wrap:wrap}
+.vb .vtx{display:flex;flex-direction:column;gap:4px;flex:1 1 300px;min-width:0}
+.vb .vt{margin:0;font-size:18px;font-weight:700;letter-spacing:-.01em;line-height:1.3}
+.vb .vacts{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.vb .why{font-size:12px;font-weight:500}
+.vb.neu{background:#FFFFFF;border:1px solid #E3E6EB}
+.vb.okb{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.vb.badb{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.prow{display:flex;gap:12px;align-items:center;padding:10px 16px;border-top:1px solid #EEF0F3;font-size:13px;flex-wrap:wrap}
+.prow:first-child{border-top:0}
+.prow > .badge{min-width:84px;justify-content:center;box-sizing:border-box}
+.prow .pt{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.prow .pg{display:flex;flex-direction:column;gap:4px;flex:0 1 200px;min-width:140px}
+.prow .pg .bar{height:6px}
+.prow .pg .k{text-align:right}
+.srcnote{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-radius:8px;background:#F9FAFB;border:1px solid #E3E6EB;font-size:13px;color:#374151}
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.cmp .tile{padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 16px;margin:0;font-size:13px}
+.kv dt{color:#5B6472;font-weight:500;margin:0}.kv dd{margin:0}
+.dlgc{max-width:640px;width:100%;display:flex;flex-direction:column;border-radius:12px;box-shadow:0 14px 30px rgba(11,18,32,.08)}
+.dlgc .dsec{padding:16px 24px;display:flex;flex-direction:column;gap:10px;border-top:1px solid #EEF0F3}
+.dlgc .dsec:first-child{border-top:0;padding-top:22px}
+.whybox{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:8px;background:#FFFBEB;border:1px solid #FCD34D;color:#78350F;font-size:13px}
+.sgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 24px}
+label.chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;cursor:pointer}
+label.chk input{margin-top:3px;flex:none}
+.err{color:#991B1B;font-size:12px;font-weight:500}
+.in.bad{border-color:#DC2626}
+@media (max-width:767px){
+  .vb{padding:16px;gap:12px}
+  .vb .vacts{width:100%}
+  .vb .vacts .btn{flex:1 1 auto;min-height:44px}
+  .vb .vacts{align-items:stretch!important}
+  .vb .vacts .k{text-align:center}
+  .prow .pg{flex:1 1 100%;min-width:0}
+  .prow .pg .k{text-align:left}
+  .content .btn{min-height:44px}
+  .content .in{min-height:44px}
+  .kv{grid-template-columns:minmax(0,1fr)}
+  .kv dd{margin-bottom:6px}
+  .sgrid{grid-template-columns:minmax(0,1fr)}
+  .dlgc .dsec{padding-left:16px;padding-right:16px}
+  .dlgc .dacts{flex-direction:column-reverse;align-items:stretch!important}
+  label.chk{min-height:44px}
+}
+
+/* phones: every top-bar target is at least 44px (tabs, links, fields, buttons, the bell and the account menu) */
+@media (max-width:767px){.top .tabs a{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box}.top a:not(.btn){min-height:44px}.top .btn,.top .in,.top select,.top input{min-height:44px;box-sizing:border-box}.top .ibtn{width:44px;height:44px;box-sizing:border-box}.top .ubtn{min-height:44px;box-sizing:border-box}.top nav[aria-label="Breadcrumb"] a{min-width:44px;justify-content:center}.top .chsw a{min-height:44px!important}}
 </style>
 </helmet>
-<h1 class="vh">Review and send, running, error and scheduled states</h1>
+<h1 class="vh">Review and send states: running, re-running, error, skipped checks, scheduled, held and the unusual-send confirm</h1>
 <div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh">
   <a href="#main" class="skip">Skip to content</a>
   <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
@@ -152,19 +205,19 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
       <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
       <span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span>
     </a>
-    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Acme Newsletter, your role Owner"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Acme Newsletter, Owner, switch workspace"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
     <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px" aria-label="Main">
-      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
-      <a href="Campaigns.dc.html" class="on" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
-      <a href="AutomationsList.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
-      <a href="Transactional.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
-      <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
-      <a href="GrowOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
-      <a href="EarnOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
-      <a href="FormBuilder.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
-      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
-      <a href="Providers.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
-      <a href="WorkspaceSettings.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="Main.dc.html" title="Overview"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html" class="on" aria-current="page" title="Campaigns"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html" class="xm" title="Automations"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Transactional.dc.html" class="xm" title="Transactional"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
+      <a href="Contacts.dc.html" title="Audience"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="GrowOverview.dc.html" class="xm" title="Grow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
+      <a href="EarnOverview.dc.html" class="xm" title="Earn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
+      <a href="FormBuilder.dc.html" class="xm" title="Forms &amp; pages"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html" title="Deliverability"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html" class="xm" title="Sending providers"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html" class="xm" title="Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
       <a href="ShellMore.dc.html" class="more" aria-label="More: Automations, Transactional, Grow, Earn, Forms & pages, Sending providers, Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">More</span></a>
     </nav>
   </aside>
@@ -176,83 +229,210 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
         <a href="Composer.dc.html" style="color:#5B6472">Weekly Digest #142</a><span class="k">/</span>
         <span style="font-weight:600">Review &amp; send</span>
       </nav>
-          <div class="tools" style="margin-left:auto"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div>
+          <div class="tools" style="margin-left:auto"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Linh Nguyen, account menu"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div>
     </header>
 
     <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:28px">
 
-      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Checks running">
-        <div class="strip"><span class="dot" style="color:#6B7280"></span>Loading · checks running</div>
-        <div style="display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:12px;background:#fff;border:1px solid #E3E6EB;flex-wrap:wrap">
+      <section style="display:flex;flex-direction:column;gap:14px" aria-labelledby="st-run">
+        <div class="strip"><span class="dot" style="color:#9CA3AF"></span>Loading · checks running</div>
+        <div class="vb neu">
           <span class="spin" style="width:36px;height:36px;border-width:3px"></span>
-          <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 300px">
-            <span style="font-size:18px;font-weight:700">Running Send Readiness · 19 of 31 checks done</span>
-            <div class="bar" style="height:8px"><i style="width:61%;background:#0F766E"></i></div>
-            <span class="k">Blocklist lookups across 84 sources take the longest, usually 8 to 12 seconds.</span>
+          <div class="vtx">
+            <h2 class="vt" id="st-run">Checking · 17 of 29 checks done</h2>
+            <div class="bar" style="height:8px" aria-hidden="true"><i style="width:58.6%;background:#0F766E"></i></div>
+            <span class="k">Each group below shows its own progress. Sender blocklists aren't checked live: their results come from HostRepute's hourly check at 09:00 (84 sources), and the next one runs at 10:00.</span>
           </div>
-          <button class="btn" disabled style="opacity:.45;cursor:not-allowed;min-height:40px">Schedule send</button>
+          <div class="vacts" style="flex-direction:column;align-items:flex-end;gap:4px">
+            <button type="button" class="btn pri" aria-disabled="true" aria-describedby="run-why" style="min-height:40px">Schedule for Tue 14 Oct, 09:00 ET</button>
+            <span class="k" id="run-why">Available when the checks finish</span>
+          </div>
         </div>
-        <div class="card" style="display:flex;flex-direction:column">
-          <div class="row" style="border-top:0"><span class="badge ok">Pass</span><span>Authentication · SPF, DKIM, DMARC, MAIL FROM verified for SES and Postal</span></div>
-          <div class="row"><span class="badge ok">Pass</span><span>Content · 64 KB, image ratio 38%, alt text on 7 of 7 images, plain-text generated</span></div>
-          <div class="row"><span class="badge ok">Pass</span><span>Compliance · one-click unsubscribe headers, footer address, bulk-sender rules</span></div>
-          <div class="row"><span class="spin"></span><span>Sender reputation · checking 203.0.113.25 and news.acme.io on 84 sources</span><span class="k" style="margin-left:auto">52 of 84</span></div>
-          <div class="row"><span class="spin"></span><span>Links · fetching 14 URLs and checking URI blocklists</span><span class="k" style="margin-left:auto">9 of 14</span></div>
-          <div class="row" style="color:#6B7280"><span class="badge mut">Queued</span><span>Audience quality · unengaged, recently bounced and role addresses</span></div>
-          <div class="row" style="color:#6B7280"><span class="badge mut">Queued</span><span>Routing · provider health, terms and tracking settings</span></div>
+        <div class="card" aria-busy="true" aria-label="Checks in progress" style="display:flex;flex-direction:column">
+          <div class="prow"><span class="badge info"><span class="dot"></span>Running</span><div class="pt"><span style="font-weight:500">Links · fetching each URL</span><span class="k">Redirects followed, HTTP status recorded</span></div><div class="pg"><div class="bar"><i style="width:64.3%;background:#0F766E"></i></div><span class="k">9 of 14 links</span></div></div>
+          <div class="prow"><span class="badge info"><span class="dot"></span>Running</span><div class="pt"><span style="font-weight:500">Link domains · live lookups on Spamhaus DBL and SURBL</span><span class="k">acme.io, docs.acme.io, github.com and 5 more</span></div><div class="pg"><div class="bar"><i style="width:62.5%;background:#0F766E"></i></div><span class="k">5 of 8 domains</span></div></div>
+          <div class="prow"><span class="badge info"><span class="dot"></span>Running</span><div class="pt"><span style="font-weight:500">Authentication · DNS records for news.acme.io</span><span class="k">SPF, 4 DKIM keys, DMARC, 3 MAIL FROM records</span></div><div class="pg"><div class="bar"><i style="width:66.7%;background:#0F766E"></i></div><span class="k">6 of 9 records</span></div></div>
+          <div class="prow"><span class="badge info"><span class="dot"></span>Running</span><div class="pt"><span style="font-weight:500">Audience · counting after suppressions and the sunset policy</span><span class="k">Weekly Digest list</span></div><div class="pg"><div class="bar"><i style="width:76%;background:#0F766E"></i></div><span class="k">24,310 of 31,988 contacts</span></div></div>
+          <div class="prow"><span class="badge mut"><span class="dot"></span>Queued</span><div class="pt"><span style="font-weight:500">Workspace rules · 2 rules</span><span class="k">Starts when the links are fetched</span></div></div>
+          <div class="prow"><span class="badge ok"><span class="dot"></span>Done</span><div class="pt"><span style="font-weight:500">Sender reputation · 4 checks, 1 warning</span><span class="k">Blocklists from HostRepute's hourly check at 09:00 · SES and Postal rates from their APIs at 09:40</span></div></div>
+          <div class="prow"><span class="badge ok"><span class="dot"></span>Done</span><div class="pt"><span style="font-weight:500">Content, compliance, routing and accessibility · 13 checks passed</span></div></div>
         </div>
       </section>
 
-      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Error state">
+      <section style="display:flex;flex-direction:column;gap:14px" aria-labelledby="st-rerun">
+        <div class="strip"><span class="dot" style="color:#9CA3AF"></span>Loading · re-running after a fix</div>
+        <div class="vb neu">
+          <span class="spin" style="width:36px;height:36px;border-width:3px"></span>
+          <div class="vtx">
+            <h2 class="vt" id="st-rerun">Re-running checks after your fixes · 7 of 11 done</h2>
+            <span style="font-size:13px">You applied 2 fixes at 09:46, saved as version 15: Send via SES only, and utm_campaign on 2 links. Only the checks they touch run again.</span>
+            <a href="SendReadinessFixes.dc.html" style="font-size:12px;font-weight:600;align-self:flex-start">Undo from Version history</a>
+          </div>
+          <div class="vacts" style="flex-direction:column;align-items:flex-end;gap:4px">
+            <button type="button" class="btn pri" aria-disabled="true" aria-describedby="rerun-why" style="min-height:40px">Schedule for Tue 14 Oct, 09:00 ET</button>
+            <span class="k" id="rerun-why">Checks are re-running after your fix</span>
+          </div>
+        </div>
+        <div class="card" aria-busy="true" aria-label="Checks re-running" style="display:flex;flex-direction:column">
+          <div class="prow"><span class="badge ok"><span class="dot"></span>Done</span><div class="pt"><span style="font-weight:500">Routing · 3 checks passed</span><span class="k">Amazon SES 100%, Healthy · Postal is no longer in this send's route</span></div></div>
+          <div class="prow"><span class="badge ok"><span class="dot"></span>Done</span><div class="pt"><span style="font-weight:500">Sender reputation · 4 checks done</span><span class="k">2 passed · the 2 Postal checks, including the IP listing, no longer apply because Postal isn't in this send's route</span></div></div>
+          <div class="prow"><span class="badge info"><span class="dot"></span>Running</span><div class="pt"><span style="font-weight:500">Links · fetching the 2 changed links</span></div><div class="pg"><div class="bar"><i style="width:50%;background:#0F766E"></i></div><span class="k">1 of 2 links</span></div></div>
+          <div class="prow"><span class="badge mut"><span class="dot"></span>Queued</span><div class="pt"><span style="font-weight:500">Workspace rules · 2 rules</span><span class="k">Starts when the links are fetched</span></div></div>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-labelledby="st-err">
         <div class="strip"><span class="dot" style="color:#F87171"></span>Error · a check could not run</div>
-        <div role="alert" style="display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:12px;background:#FEF2F2;border:1px solid #FCA5A5;flex-wrap:wrap">
+        <div class="vb badb" role="alert">
           <svg width="36" height="36" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#FECACA"></circle><path d="M20 11v11M20 27v1" stroke="#991B1B" stroke-width="3" stroke-linecap="round"></path></svg>
-          <div style="display:flex;flex-direction:column;gap:2px;flex:1 1 300px">
-            <span style="font-size:18px;font-weight:700;color:#7F1D1D">Couldn't finish: HostRepute didn't respond</span>
-            <span style="color:#7F1D1D;font-size:13px">api.hostrepute.com timed out after 30 s (3 attempts, 09:40 to 09:41). 27 checks passed, 2 warnings. The 4 blocklist checks are unknown, so the verdict can't be Ready yet.</span>
+          <div class="vtx">
+            <h2 class="vt" id="st-err">Couldn't finish: HostRepute didn't respond</h2>
+            <span style="font-size:13px">api.hostrepute.com timed out after 30 s (3 attempts, 09:40 to 09:41) while ReputeCast fetched the 09:00 hourly results; the last results it holds are more than 2 hours old. 27 checks passed; the 2 sender blocklist checks are unknown, so the verdict can't be Ready yet.</span>
           </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn">Retry blocklist checks</button>
-            <button class="btn pri">Continue with provider data only</button>
+          <div class="vacts">
+            <button type="button" class="btn">Retry blocklist checks</button>
+            <button type="button" class="btn pri">Continue with provider data only</button>
           </div>
         </div>
         <div class="card" style="display:flex;flex-direction:column">
-          <div class="row" style="border-top:0"><span class="badge mut">Unknown</span><span>Sender reputation · domain blocklists (84 sources via HostRepute)</span><span class="k" style="margin-left:auto">timed out</span></div>
-          <div class="row"><span class="badge mut">Unknown</span><span>Sender reputation · IP blocklists for 203.0.113.25</span><span class="k" style="margin-left:auto">timed out</span></div>
-          <div class="row"><span class="badge ok">Pass</span><span>Sender reputation · SES bounce 0.6% and complaint 0.04% (from the SES API, unaffected)</span></div>
-          <div class="row"><span class="badge ok">Pass</span><span>Sender reputation · Postal bounce 0.9% and complaint 0.05% (from Postal, unaffected)</span></div>
+          <div class="prow"><span class="badge mut"><span class="dot"></span>Unknown</span><div class="pt"><span style="font-weight:500">Sender reputation · domain blocklists for news.acme.io and acme.io (84 sources via HostRepute)</span></div><span class="k">timed out</span></div>
+          <div class="prow"><span class="badge mut"><span class="dot"></span>Unknown</span><div class="pt"><span style="font-weight:500">Sender reputation · IP blocklists for 203.0.113.25</span></div><span class="k">timed out</span></div>
+          <div class="prow"><span class="badge ok"><span class="dot"></span>Pass</span><div class="pt"><span style="font-weight:500">Sender reputation · SES bounce 0.6% and complaint 0.04% (from the SES API, unaffected)</span></div></div>
+          <div class="prow"><span class="badge ok"><span class="dot"></span>Pass</span><div class="pt"><span style="font-weight:500">Sender reputation · Postal bounce 0.9% and complaint 0.05% (from Postal, unaffected)</span></div></div>
         </div>
-        <span class="k">"Continue with provider data only" records the skipped checks in the campaign's audit trail and re-tries them during the send.</span>
+        <span class="k">"Continue with provider data only" records who accepted the skipped checks in the campaign's audit trail, and they run again at the send-time recheck.</span>
       </section>
 
-      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Scheduled state">
-        <div class="strip"><span class="dot" style="color:#4ADE80"></span>Success · scheduled</div>
-        <div style="display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:12px;background:#F0FDF4;border:1px solid #86EFAC;flex-wrap:wrap">
+      <section style="display:flex;flex-direction:column;gap:14px" aria-labelledby="st-skip">
+        <div class="strip"><span class="dot" style="color:#4ADE80"></span>Ready · blocklist checks skipped</div>
+        <div class="vb okb">
           <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#BBF7D0"></circle><path d="m12 20.5 5.5 5.5L28 15" stroke="#166534" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg>
-          <div style="display:flex;flex-direction:column;gap:2px;flex:1 1 300px">
-            <span style="font-size:20px;font-weight:700;letter-spacing:-.01em;color:#14532D">Weekly Digest #142 is scheduled</span>
-            <span style="color:#14532D">Tuesday 14 Oct 2026 at 09:00 America/New_York, to 31,604 recipients via SES and Postal. Checks run again at 08:45; if anything turns to Block, the send pauses and you get an email and a Slack message.</span>
+          <div class="vtx">
+            <h2 class="vt" id="st-skip" style="font-size:20px">Ready · blocklist checks skipped</h2>
+            <span>27 passed · 2 skipped · 0 warnings · 0 blocks · Linh Nguyen accepted the skipped checks at 09:44</span>
           </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn">Unschedule</button>
+          <div class="vacts">
+            <button type="button" class="btn">Retry blocklist checks</button>
+            <a href="SendReadinessConfirm.dc.html" class="btn pri" style="min-height:40px;padding:0 18px">Schedule for Tue 14 Oct, 09:00 ET</a>
+          </div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column">
+          <div class="prow"><span class="badge mut"><span class="dot"></span>Skipped</span><div class="pt"><span style="font-weight:500">Sender reputation · domain blocklists for news.acme.io and acme.io</span><span class="k">HostRepute timed out at 09:41 · result not known</span></div></div>
+          <div class="prow"><span class="badge mut"><span class="dot"></span>Skipped</span><div class="pt"><span style="font-weight:500">Sender reputation · IP blocklists for 203.0.113.25</span><span class="k">HostRepute timed out at 09:41 · result not known</span></div></div>
+        </div>
+        <div class="srcnote"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.6" aria-hidden="true" style="flex:none;margin-top:2px"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><span>The skipped checks run again at the send-time recheck at 08:45. If either one finds a listing, the send is held for review. Recorded in the audit trail: accepted by Linh Nguyen (Owner), Mon 13 Oct 09:44.</span></div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-labelledby="st-sched">
+        <div class="strip"><span class="dot" style="color:#4ADE80"></span>Success · scheduled</div>
+        <div class="vb okb">
+          <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#BBF7D0"></circle><path d="m12 20.5 5.5 5.5L28 15" stroke="#166534" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg>
+          <div class="vtx">
+            <h2 class="vt" id="st-sched" style="font-size:20px">Weekly Digest #142 is scheduled</h2>
+            <span>Tue 14 Oct 2026 at 09:00 America/New_York, to 31,192 recipients via SES and Postal. Checks run again at 08:45; if anything turns to Block or the audience changes by more than 10%, the send is held and you get an email and a Slack message.</span>
+          </div>
+          <div class="vacts">
+            <button type="button" class="btn">Unschedule</button>
             <a href="LiveMonitor.dc.html" class="btn pri">Open live monitor</a>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">
-          <div class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:4px"><span class="k">Sends in</span><span class="n" style="font-size:22px">1 d 22 h 19 m</span></div>
+          <div class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:4px"><span class="k">Sends in</span><span class="n" style="font-size:22px">23 h 18 min</span></div>
           <div class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:4px"><span class="k">A/B subject test</span><span class="n" style="font-size:22px">20% sample · winner at 11:00</span></div>
           <div class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:4px"><span class="k">Auto-pause</span><span class="n" style="font-size:22px">bounce 2.0% · complaint 0.10%</span></div>
-          <div class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:4px"><span class="k">Scheduled by</span><span class="n" style="font-size:22px">Linh Nguyen · 09:42</span></div>
+          <div class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:4px"><span class="k">Scheduled by</span><span class="n" style="font-size:22px">Linh Nguyen · Mon 09:42</span></div>
         </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-labelledby="st-held">
+        <div class="strip"><span class="dot" style="color:#F87171"></span>Held · the send-time recheck stopped the send</div>
+        <div class="vb badb" role="status">
+          <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#FECACA"></circle><path d="M16 13v14M24 13v14" stroke="#991B1B" stroke-width="3" stroke-linecap="round"></path></svg>
+          <div class="vtx">
+            <h2 class="vt" id="st-held">Held at 08:45: the audience grew to 44,010 (+41% since you reviewed). Review again to send.</h2>
+            <span style="font-size:13px">A held send expires at 12:00 if nobody reviews it.</span>
+          </div>
+          <div class="vacts">
+            <button type="button" class="btn">Cancel send</button>
+            <a href="SendReadiness.dc.html" class="btn pri" style="min-height:40px;padding:0 18px">Review again</a>
+          </div>
+        </div>
+        <div class="cmp">
+          <div class="card tile"><span class="k">You reviewed · Mon 13 Oct, 09:40</span><span class="n" style="font-size:22px">31,192</span><span class="k">recipients</span></div>
+          <div class="card tile"><span class="k">Send-time recheck · Tue 14 Oct, 08:45</span><span class="n" style="font-size:22px">44,010</span><span class="k" style="color:#991B1B">▲ 12,818 more (+41.1%)</span></div>
+        </div>
+        <div class="card" style="padding:16px 18px">
+          <dl class="kv">
+            <dt>What changed</dt><dd>Sofia Rossi imported webinar-signups.csv into the Weekly Digest list on Mon 13 Oct at 16:20 (12,818 new contacts).</dd>
+            <dt>Why it's held</dt><dd>A send is held when its audience changes by more than 10% after review. Nothing has been sent.</dd>
+            <dt>Notified</dt><dd>Linh Nguyen, who scheduled it, and Marcus Chen · email and in-app at 08:45</dd>
+            <dt>If nobody reviews</dt><dd>At 12:00 the send expires and goes back to Draft. The A/B test and schedule are kept for the next attempt.</dd>
+          </dl>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-labelledby="st-typed">
+        <div class="strip"><span class="dot" style="color:#FBBF24"></span>Confirm · unusual send asks for the typed count</div>
+        <div class="card dlgc" role="dialog" aria-modal="false" aria-labelledby="st-typed" aria-describedby="typed-why">
+          <div class="dsec">
+            <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge warn"><span class="dot"></span>Ready with warnings</span><span class="badge warn"><span class="dot"></span>Unusual send</span></div>
+            <h2 id="st-typed" style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em">Schedule "Weekly Digest #142" for 31,192 people?</h2>
+            <span style="color:#4B5563">Tue 14 Oct 2026 at 09:00 America/New_York · SES 28,073 · Postal 3,119 · $2.81 · done about 11:31</span>
+            <div class="whybox" id="typed-why"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#92400E" stroke-width="1.6" aria-hidden="true" style="flex:none;margin-top:2px"><path d="M8 1.8 15 14H1z" stroke-linejoin="round"></path><path d="M8 6.2v3.6M8 11.6v.1"></path></svg><span><b>Why we ask:</b> 31,192 is 2.1× your usual 15,000 for this list.</span></div>
+          </div>
+          <fieldset class="dsec" style="margin:0;border-left:0;border-right:0;border-bottom:0;min-width:0">
+            <legend class="vh">Confirm each warning</legend>
+            <span style="font-size:13px;font-weight:600">Confirm the 2 warnings</span>
+            <label class="chk"><input type="checkbox" checked="{{ack1}}" onChange="{{toggle1}}"><span>I understand the Postal IP 203.0.113.25 is listed on UCEPROTECT L3, a low-impact list.</span></label>
+            <label class="chk"><input type="checkbox" checked="{{ack2}}" onChange="{{toggle2}}"><span>I understand 2 of 14 links have no utm_campaign, which the workspace rule asks for.</span></label>
+          </fieldset>
+          <div class="dsec" style="padding-bottom:22px">
+            <label class="lbl" for="typed-count" style="font-size:13px;color:#0B1220">Type the recipient count to confirm</label>
+            <input id="typed-count" class="{{typedCls}}" inputmode="numeric" autocomplete="off" value="{{typed}}" onChange="{{onTyped}}" aria-invalid="{{typedBad}}" aria-describedby="typed-err typed-help" style="height:44px;font-size:16px;letter-spacing:.06em;font-family:'IBM Plex Mono',ui-monospace,monospace;max-width:260px">
+            <sc-if value="{{typedBad}}" hint-placeholder-val="{{false}}"><span class="err" id="typed-err">That doesn't match 31,192. Check the audience before you schedule.</span></sc-if>
+            <span class="k" id="typed-help">With or without the comma. This is deliberate: a large send can't be recalled once it leaves the queue.</span>
+            <div class="dacts" style="display:flex;gap:10px;justify-content:flex-end;align-items:center;flex-wrap:wrap;margin-top:4px">
+              <sc-if value="{{notReady}}" hint-placeholder-val="{{true}}"><span class="k" id="typed-off" style="margin-right:auto">{{offReason}}</span></sc-if>
+              <a href="SendReadiness.dc.html" class="btn" style="min-height:44px">Back</a>
+              <sc-if value="{{ready}}" hint-placeholder-val="{{false}}"><a href="SendReadinessStates.dc.html" class="btn pri" style="min-height:44px;padding:0 20px;font-size:14px">Schedule send</a></sc-if>
+              <sc-if value="{{notReady}}" hint-placeholder-val="{{true}}"><button type="button" class="btn pri" aria-disabled="true" aria-describedby="typed-off" style="min-height:44px;padding:0 20px;font-size:14px">Schedule send</button></sc-if>
+            </div>
+          </div>
+        </div>
+        <span class="k">The routine confirm (no typed count) is on the Confirm send board. Triggers for the typed count live in <a href="SettingsSendingRules.dc.html">Settings › Sending rules</a>, under Audience defaults.</span>
       </section>
     </main>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1291}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3308}}'>
 class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { ack1: false, ack2: false, typed: '' };
+  }
   renderVals() {
-    return {};
+    var self = this;
+    var s = this.state;
+    var digits = (s.typed || '').replace(/[\s,.]/g, '');
+    var typedOk = digits === '31192';
+    var typedBad = digits.length >= 5 && !typedOk;
+    var acks = s.ack1 && s.ack2;
+    var ready = acks && typedOk;
+    var reason = !acks && !typedOk ? 'Tick both warnings and type the count to schedule.' : !acks ? 'Tick both warnings to schedule.' : 'Type the recipient count to schedule.';
+    return {
+      ack1: s.ack1,
+      ack2: s.ack2,
+      toggle1: function () { self.setState({ ack1: !self.state.ack1 }); },
+      toggle2: function () { self.setState({ ack2: !self.state.ack2 }); },
+      typed: s.typed,
+      onTyped: function (e) { self.setState({ typed: e.target.value }); },
+      typedBad: typedBad,
+      typedCls: typedBad ? 'in bad' : 'in',
+      ready: ready,
+      notReady: !ready,
+      offReason: reason
+    };
   }
 }
 </script>

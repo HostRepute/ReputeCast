@@ -22,6 +22,7 @@ import (
 var (
 	_ earn.OfferHook         = (*Service)(nil)
 	_ earn.ComposerOfferHook = (*Service)(nil)
+	_ earn.OfferCodeRedeemer = (*Service)(nil)
 )
 
 func moneyOf(cents int64, currency string) string { return earn.Money(cents, currency) }
@@ -71,7 +72,9 @@ func (s *Service) byCode(ctx context.Context, ws *store.Workspace, code string) 
 func (s *Service) PeriodFor(ctx context.Context, ws *store.Workspace, code string) string {
 	r, ok := s.byCode(ctx, ws, code)
 	if !ok {
-		return ""
+		if _, r, ok = s.singleUse(ctx, ws, code); !ok {
+			return ""
+		}
 	}
 	periods := []string{}
 	for _, a := range parseApplies(r.Applies) {
@@ -85,13 +88,23 @@ func (s *Service) PeriodFor(ctx context.Context, ws *store.Workspace, code strin
 	return ""
 }
 
-// CheckoutCode implements earn.OfferHook.
+// CheckoutCode implements earn.OfferHook: a signup offer's code, or a
+// referral reward's single-use code while it's unused and unexpired.
 func (s *Service) CheckoutCode(ctx context.Context, ws *store.Workspace, mode, code string, tier uuid.UUID, period string) string {
-	r, ok := s.byCode(ctx, ws, code)
-	if !ok || !s.live(ctx, ws, r, mode) || !applies(r, tier.String(), period) {
+	if r, ok := s.byCode(ctx, ws, code); ok {
+		if !s.live(ctx, ws, r, mode) || !applies(r, tier.String(), period) {
+			return ""
+		}
+		return parseStripe(r.Stripe)[mode].Promo
+	}
+	c, r, ok := s.singleUse(ctx, ws, code)
+	if !ok || !s.usable(c) || !s.live(ctx, ws, r, mode) || !applies(r, tier.String(), period) {
 		return ""
 	}
-	return parseStripe(r.Stripe)[mode].Promo
+	if sm := parseStripe(c.Stripe)[mode]; sm != nil {
+		return sm.Promo
+	}
+	return ""
 }
 
 func applies(r store.OfferGetRow, tier, period string) bool {
@@ -111,12 +124,27 @@ func dateOf(l i18n.Lang, t time.Time, ws *store.Workspace) string {
 // UpgradeOffer implements earn.OfferHook: the offer's lines in the page's
 // language (the view's).
 func (s *Service) UpgradeOffer(ctx context.Context, ws *store.Workspace, mode, code string, v *earn.UpgradeView) error {
-	r, ok := s.byCode(ctx, ws, code)
-	if !ok {
-		return nil
-	}
 	l := v.Lang
 	pg := func(key string, args i18n.Args) string { return msgs.M(key).Text(l, args) }
+	// offerCode is what checkout applies: the offer's code, or a referral
+	// reward's single-use code.
+	r, ok := s.byCode(ctx, ws, code)
+	offerCode := r.Code
+	if !ok {
+		c, rr, found := s.singleUse(ctx, ws, code)
+		if !found {
+			return nil
+		}
+		if !s.usable(c) {
+			key := "page.codeExpired"
+			if c.RedeemedAt != nil {
+				key = "page.codeUsed"
+			}
+			v.Notice = &earn.PageNotice{Tone: "info", Title: pg(key+"Title", nil), Text: pg(key+"Text", i18n.Args{"offer": rr.Name})}
+			return nil
+		}
+		r, offerCode = rr, c.Code
+	}
 	loc := location(ws)
 	if !s.live(ctx, ws, r, mode) {
 		args := i18n.Args{"offer": r.Name}
@@ -181,7 +209,7 @@ func (s *Service) UpgradeOffer(ctx context.Context, ws *store.Workspace, mode, c
 		}
 	}
 	if v.Offer != nil {
-		v.OfferCode = r.Code
+		v.OfferCode = offerCode
 	}
 	return nil
 }

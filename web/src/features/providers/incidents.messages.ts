@@ -84,8 +84,10 @@ export const mi = defineMessages('providers.incidents', {
     '{kind, select, broadcast_held {waiting} failover {failover} failover_ended {switched back} provider_down {down} provider_recovered {recovered} campaign_started {started} webhooks_silent {silent} webhooks_resumed {resumed} other {{raw}}}',
 
   // ── Silent webhooks ──────────────────────────────────────────────────
-  testReceived: 'Test event received',
-  testFailed: 'Test event failed',
+  /** PR-9: the provider was asked to send a test event; its arrival is what proves the endpoint reachable. */
+  testRequested: 'Test event requested',
+  testRequestedDetail: '{provider} sends it to the webhook; it shows in the event log, and the banner clears once events arrive.',
+  testFailed: "Couldn't ask for a test event",
   registered: 'Webhook registered again',
   registeredDetail: '{provider} now posts events to {url}.',
   registerFailed: "Couldn't re-register the webhook",
@@ -110,6 +112,12 @@ export const mi = defineMessages('providers.incidents', {
   causesTitle: 'Likely causes',
   impactTitle: 'Impact so far',
   impactUnknown: 'Messages with unknown status',
+  /** PR-6: messages past the 30-minute grace and those still inside it. */
+  impactOverdue: 'overdue · sent more than 30 min ago',
+  impactInGrace: 'still inside the 30-min grace period',
+  eventsOverdue: 'Events overdue',
+  /** {hours} is how long no event arrived. */
+  overdueLine: '{count, plural, one {# message} other {# messages}} sent more than 30 min ago and no event for {hours} h',
   impactCampaigns: 'Campaigns affected',
   impactBounces: 'Bounces not yet suppressed',
   unknown: 'unknown',
@@ -123,7 +131,8 @@ export const mi = defineMessages('providers.incidents', {
   checkApi: '{provider} API reachable: {ok, select, no {no} other {yes}}{hasAt, select, yes {, {time}} other {}}{hasDetail, select, yes { ({detail})} other {}}.',
   checkRegisteredNo: 'Webhook registered in {provider}: no{hasDetail, select, yes {, {detail}} other {}}.',
   checkRegisteredYes: 'Webhook registered in {provider}: yes{hasId, select, yes {, id {id}} other {}}, pointing at <mono>{url}</mono>.',
-  checkEndpoint: 'Our endpoint reachable from the internet: {ok, select, no {no} other {yes}}{hasDetail, select, yes {, {detail}} other {}}.',
+  /** PR-9: ReputeCast never calls its own URL; it checks the address, and the provider's deliveries prove the rest. */
+  checkEndpoint: 'Our webhook address: {ok, select, no {no provider can reach it} other {a public address}}{hasDetail, select, yes {; {detail}} other {}}.',
   checkProviderLog:
     "Events delivered by {provider} in the last 6 h: {count}{hasQueued, select, yes { ({provider}'s own webhook log shows {queued} queued, {count} sent)} other {}}.",
 

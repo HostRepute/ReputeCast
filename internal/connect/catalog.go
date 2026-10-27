@@ -38,6 +38,19 @@ type ConnectCatalogEntry struct {
 	DedicatedIPs bool `json:"dedicatedIps"`
 	// Connected counts this workspace's connections of the adapter.
 	Connected int `json:"connected"`
+	// Help me choose (PR-13): the bulk-marketing terms as a line, the
+	// honest setup time, the price list the card prices from, and what the
+	// ranking compares (terms: 2 allowed, 1 limited, 0 not allowed; the
+	// capabilities ReputeCast uses, out of CapabilityMax).
+	Bulk string `json:"bulk"`
+	// BulkMark is the mark beside Bulk: yes (allowed), limited (some
+	// streams, or up to the server) or no.
+	BulkMark        string            `json:"bulkMark" enum:"yes,limited,no"`
+	Setup           string            `json:"setup"`
+	PriceList       *ConnectPriceList `json:"priceList,omitempty"`
+	BulkRank        int               `json:"bulkRank"`
+	CapabilityScore int               `json:"capabilityScore"`
+	CapabilityMax   int               `json:"capabilityMax"`
 }
 
 // ConnectCommunityEntry is an installed community adapter.
@@ -122,7 +135,8 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (ConnectCata
 		e := ConnectCatalogEntry{Adapter: d.Adapter, Name: c.Display, Short: c.Short, Kind: d.Kind, Recommended: c.Recommended, Terms: terms, TermsTone: tone,
 			Pricing: c.Pricing, Chips: chips(l, d, c), BulkAllowed: d.Capabilities.Bulk != providers.BulkForbidden,
 			Webhooks: d.Capabilities.Webhooks != "" && d.Capabilities.Webhooks != "Bounce mailbox", DedicatedIPs: d.Capabilities.DedicatedIPs != "" || d.Kind == "self_hosted",
-			Connected: connected[d.Adapter]}
+			Connected: connected[d.Adapter], Bulk: bulkLine(l, d, c), BulkMark: bulkMark(d), Setup: setupLine(l, d), PriceList: priceListOf(d.Adapter), BulkRank: bulkRank(d, tone),
+			CapabilityScore: capabilityScore(d), CapabilityMax: capabilityMax}
 		if e.Kind == "" {
 			e.Kind = "api"
 		}
@@ -250,4 +264,57 @@ func manifestCapabilities(manifest []byte) []string {
 		}
 	}
 	return out
+}
+
+// bulkLine is a card's "Bulk marketing" line: the adapter's own terms
+// when they say more than allowed or not ("Allowed after production
+// access"), else the terms badge.
+func bulkLine(l i18n.Lang, d providers.Descriptor, c adapterCopy) string {
+	if m, ok := bulkLines[d.Adapter]; ok {
+		return m.Text(l, nil)
+	}
+	// After "Bulk marketing", the policy reads short; an adapter's own
+	// terms label stands for the policies these don't name.
+	switch d.Capabilities.Bulk {
+	case providers.BulkAllowed:
+		return mCatalogBulkAllowed.Text(l, nil)
+	case providers.BulkBroadcastStreams:
+		return mCatalogBulkBroadcastOnly.Text(l, nil)
+	case providers.BulkForbidden:
+		return mCatalogBulkNotAllowed.Text(l, nil)
+	}
+	c.Recommended = false
+	t, _ := termsBadge(l, d, c)
+	return t
+}
+
+// bulkMark is the mark a card shows beside its bulk-marketing line.
+func bulkMark(d providers.Descriptor) string {
+	switch {
+	case d.Capabilities.Bulk == providers.BulkForbidden:
+		return "no"
+	case d.Capabilities.Bulk == providers.BulkAllowed || d.Capabilities.Bulk == providers.BulkYourPolicy && d.Kind != "smtp":
+		return "yes"
+	}
+	return "limited"
+}
+
+// setupLine is how long setting an adapter up takes, honestly (PR-15).
+func setupLine(l i18n.Lang, d providers.Descriptor) string {
+	key := "default"
+	switch {
+	case d.Adapter == "ses":
+		key = "ses"
+	case d.Adapter == "postmark":
+		key = "postmark"
+	case d.Adapter == "azureacs":
+		key = "azure"
+	case d.Adapter == "postal":
+		key = "postal"
+	case d.Kind == "smtp":
+		key = "smtp"
+	case d.Adapter == "mailjet":
+		key = "keySecret"
+	}
+	return mCatalogSetup.Text(l, i18n.Args{"kind": key})
 }

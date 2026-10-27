@@ -698,7 +698,7 @@ func (q *Queries) SignupSetMembership(ctx context.Context, arg SignupSetMembersh
 }
 
 const signupSuppression = `-- name: SignupSuppression :one
-SELECT id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id, texts FROM suppressions WHERE workspace_id = $1 AND email = $2
+SELECT id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id, texts, seq FROM suppressions WHERE workspace_id = $1 AND email = $2
 `
 
 type SignupSuppressionParams struct {
@@ -727,6 +727,7 @@ func (q *Queries) SignupSuppression(ctx context.Context, arg SignupSuppressionPa
 		&i.Context,
 		&i.ImportID,
 		&i.Texts,
+		&i.Seq,
 	)
 	return i, err
 }

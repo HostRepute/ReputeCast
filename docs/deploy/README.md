@@ -62,7 +62,7 @@ point it at Postgres and run:
 
 ```bash
 export REPUTECAST_DATABASE__URL=postgres://reputecast:secret@localhost:5432/reputecast?sslmode=disable
-export REPUTECAST_HTTP__PUBLIC_URL=https://news.example.com
+export REPUTECAST_PUBLIC_URL=https://news.example.com
 reputecast install --email you@example.com --name "Your Name"   # migrates and creates the first Owner
 reputecast serve
 ```

@@ -234,7 +234,8 @@ SELECT provider_id,
        coalesce(sum(calls), 0)::bigint    AS calls,
        coalesce(sum(errors), 0)::bigint   AS errors,
        coalesce(sum(messages), 0)::bigint AS messages,
-       coalesce(max(messages), 0)::bigint AS peak_minute
+       coalesce(max(messages), 0)::bigint AS peak_minute,
+       coalesce(sum(rejected), 0)::bigint AS rejected
 FROM provider_call_windows
 WHERE provider_id = ANY($1::uuid[]) AND minute >= $2
 GROUP BY provider_id
@@ -251,6 +252,7 @@ type ProvCallWindowTotalsRow struct {
 	Errors     int64     `json:"errors"`
 	Messages   int64     `json:"messages"`
 	PeakMinute int64     `json:"peakMinute"`
+	Rejected   int64     `json:"rejected"`
 }
 
 // API calls, failures and messages per provider since a time (rolling windows).
@@ -269,6 +271,7 @@ func (q *Queries) ProvCallWindowTotals(ctx context.Context, arg ProvCallWindowTo
 			&i.Errors,
 			&i.Messages,
 			&i.PeakMinute,
+			&i.Rejected,
 		); err != nil {
 			return nil, err
 		}
@@ -958,12 +961,13 @@ func (q *Queries) ProvRawEventsByHour(ctx context.Context, arg ProvRawEventsByHo
 }
 
 const provRecordCall = `-- name: ProvRecordCall :exec
-INSERT INTO provider_call_windows (provider_id, minute, calls, errors, messages)
-VALUES ($1, date_trunc('minute', $2::timestamptz), 1, $3, $4)
+INSERT INTO provider_call_windows (provider_id, minute, calls, errors, messages, rejected)
+VALUES ($1, date_trunc('minute', $2::timestamptz), 1, $3, $4, $5)
 ON CONFLICT (provider_id, minute) DO UPDATE
 SET calls = provider_call_windows.calls + 1,
     errors = provider_call_windows.errors + EXCLUDED.errors,
-    messages = provider_call_windows.messages + EXCLUDED.messages
+    messages = provider_call_windows.messages + EXCLUDED.messages,
+    rejected = provider_call_windows.rejected + EXCLUDED.rejected
 `
 
 type ProvRecordCallParams struct {
@@ -971,6 +975,7 @@ type ProvRecordCallParams struct {
 	At         time.Time `json:"at"`
 	Errors     int32     `json:"errors"`
 	Messages   int32     `json:"messages"`
+	Rejected   int32     `json:"rejected"`
 }
 
 func (q *Queries) ProvRecordCall(ctx context.Context, arg ProvRecordCallParams) error {
@@ -979,6 +984,7 @@ func (q *Queries) ProvRecordCall(ctx context.Context, arg ProvRecordCallParams) 
 		arg.At,
 		arg.Errors,
 		arg.Messages,
+		arg.Rejected,
 	)
 	return err
 }

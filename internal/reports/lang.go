@@ -32,7 +32,26 @@ var (
 	mSharedGone     = msgs.M("problem.sharedGone")
 	mUnknownBounce  = msgs.M("problem.unknownBounceType")
 	mSoftBounces    = msgs.M("problem.softBounces")
-	mAllSuppressed  = msgs.M("problem.allSuppressed")
+	mSenderBlocks   = msgs.M("problem.senderBlocks")
+
+	mInsightBlocked              = msgs.M("insight.blocked")
+	mInsightBlockedDetail        = msgs.M("insight.blockedDetail")
+	mInsightCheckDelisting       = msgs.M("insight.checkDelisting")
+	mInsightMailboxBounces       = msgs.M("insight.mailboxBounces")
+	mInsightMailboxBouncesDetail = msgs.M("insight.mailboxBouncesDetail")
+	mInsightOpenSNDS             = msgs.M("insight.openSnds")
+	mInsightSNDSDetail           = msgs.M("insight.sndsDetail")
+	mInsightOpenPostmaster       = msgs.M("insight.openPostmaster")
+	mInsightTopLink              = msgs.M("insight.topLink")
+	mInsightTopLinkDetail        = msgs.M("insight.topLinkDetail")
+	mInsightShowLink             = msgs.M("insight.showLink")
+	mAllSuppressed               = msgs.M("problem.allSuppressed")
+
+	mFinalAlertPeople  = msgs.M("problem.finalAlertPeople")
+	mFinalAlertNotSent = msgs.M("problem.finalAlertNotSent")
+	mFinalAlertFinal   = msgs.M("problem.finalAlertFinal")
+	mFinalAlertTitle   = msgs.M("notify.finalTitle")
+	mFinalAlertBody    = msgs.M("notify.finalBody")
 )
 
 // bounceLabel is a bounce type in a reader's language: "Hard · unknown user".

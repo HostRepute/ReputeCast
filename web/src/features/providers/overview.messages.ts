@@ -30,6 +30,8 @@ export const mo = defineMessages('providers.overview', {
   costNoMail: 'no mail sent yet this month',
   tileSuppression: 'Shared suppression list',
   syncedAll: 'synced to all providers {time}',
+  /** {count}: hard bounces and complaints that apply to all mail, which providers get (PR-1). */
+  pushedAll: '{count, plural, one {# bounce or complaint pushed to providers {time}} other {# bounces and complaints pushed to providers {time}}}',
   syncing: 'syncing · last complete {time}',
   enforced: 'enforced before every send',
 
@@ -78,6 +80,10 @@ export const mo = defineMessages('providers.overview', {
   factErrorRate3m: 'API error rate · 3 min',
   factServer: 'Server',
   factAccountStatus: 'Account status',
+  /** The SES tenant row (PR-11); {policy} is the reputation policy's name ("Standard"). */
+  factTenant: 'Tenant',
+  tenantLine: 'own suppression list · reputation policy {policy} (pauses this tenant only)',
+  tenantLineNoPolicy: 'own suppression list · its own reputation (a pause stops this tenant only)',
   factLastSuccess: 'Last successful send',
   noneRecorded: 'none recorded',
   /** {webhook} is the webhook line ("SNS · last event 2 min ago"). */

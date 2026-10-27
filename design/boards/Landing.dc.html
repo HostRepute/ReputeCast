@@ -274,17 +274,17 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
           <div class="row chk c1" style="border-top:0"><span class="badge ok">Pass</span><span>news.acme.io clean on 84 of 84 blocklists</span></div>
           <div class="row chk c2"><span class="badge ok">Pass</span><span>SPF, DKIM, DMARC aligned on SES and Postal</span></div>
           <div class="row chk c3"><span class="badge ok">Pass</span><span>64 KB, under Gmail's 102 KB clipping limit</span></div>
-          <div class="row chk c4"><span class="badge warn">Warn</span><span>412 unengaged contacts in the audience</span><button class="btn" style="min-height:30px;padding:0 10px;font-size:12.5px;margin-left:auto">Exclude</button></div>
+          <div class="row chk c4"><span class="badge warn">Warn</span><span>2 of 14 links have no utm_campaign tag</span><button class="btn" style="min-height:30px;padding:0 10px;font-size:12.5px;margin-left:auto">Add it</button></div>
           <div class="row chk c5"><span class="badge ok">Pass</span><span>Route SES 90% / Postal 10%, both healthy</span></div>
-          <div style="display:flex;gap:16px;flex-wrap:wrap;padding-top:6px;border-top:1px solid #EEF0F3;font-size:13.5px"><span><b class="n">{{countFmt}}</b> recipients</span><span><b class="n">$2.84</b> on SES</span><span><b class="n">34 min</b> at 14/s</span></div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;padding-top:6px;border-top:1px solid #EEF0F3;font-size:13.5px"><span><b class="n">{{countFmt}}</b> recipients</span><span><b class="n">$2.81</b> on SES</span><span><b class="n">33 min</b> at 14/s</span></div>
         </div>
         <div class="card live" style="padding:14px 18px;display:flex;flex-direction:column;gap:8px">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13.5px"><span style="font-weight:700;display:flex;align-items:center;gap:8px"><span class="dot" style="color:#15803D"></span>Sending · live</span><span class="k">SES 14 /s · Postal 2 /s</span></div>
           <div class="bar" style="display:flex;gap:2px"><i style="width:{{sesPct}};background:#4a3aa7;border-radius:5px 0 0 5px"></i><i style="width:{{postalPct}};background:#e87ba4;border-radius:0"></i></div>
-          <div style="display:flex;justify-content:space-between;font-size:13px;flex-wrap:wrap;gap:6px"><span><b class="n">{{sentFmt}}</b> of 31,604 sent</span><span class="k">99.0% delivered · 0.60% bounced · 0.03% complaints</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;flex-wrap:wrap;gap:6px"><span><b class="n">{{sentFmt}}</b> of 31,192 sent</span><span class="k">99.0% delivered · 0.60% bounced · 0.03% complaints</span></div>
         </div>
         <div class="card paused" style="padding:14px 18px;display:flex;align-items:center;gap:12px;border-color:#FCA5A5;background:#FFF5F5">
-          <span class="badge bad"><span class="dot pulse" style="border-radius:50%"></span>Auto-paused</span><span style="font-size:14px">Outlook complaints hit 0.18% (limit 0.10%). 2,522 held, everything else still sending.</span>
+          <span class="badge bad"><span class="dot pulse" style="border-radius:50%"></span>Auto-paused</span><span style="font-size:14px">Outlook complaints hit 0.18% (limit 0.10%). 2,436 held, everything else still sending.</span>
         </div>
       </div>
     </div>
@@ -511,7 +511,7 @@ class Component extends DCLogic {
       self._timer2 = setTimeout(function () { self._raf2 = requestAnimationFrame(fstep); }, 900);
     }
     if (reduce) {
-      this.setState({ count: 31604, sent: 19594, flowOn: true, ft: 1 });
+      this.setState({ count: 31192, sent: 19594, flowOn: true, ft: 1 });
       return;
     }
     if (wrap && 'IntersectionObserver' in window) {
@@ -528,7 +528,7 @@ class Component extends DCLogic {
       if (start === null) start = ts;
       var p = Math.min(1, (ts - start) / dur);
       var e = 1 - Math.pow(1 - p, 3);
-      self.setState({ count: Math.round(31604 * e), sent: Math.round(19594 * e) });
+      self.setState({ count: Math.round(31192 * e), sent: Math.round(19594 * e) });
       if (p < 1) self._raf = requestAnimationFrame(step);
     }
     this._timer = setTimeout(function () { self._raf = requestAnimationFrame(step); }, 2500);
@@ -566,7 +566,7 @@ class Component extends DCLogic {
       return { name: r.name, color: r.color, note: r.note, cost: money(r.value), pct: (max > 0 ? Math.max(2, Math.round(r.value / max * 100)) : 0) + '%' };
     });
     function setter(key) { return function (e) { var o = {}; o[key] = e.target.value; self.setState(o); }; }
-    var frac = s.sent / 31604;
+    var frac = s.sent / 31192;
     var t = s.ft;
     function fn(x) { return Math.round(x * t).toLocaleString('en-US'); }
     function fpc(x) { return Math.round(x * t) + '%'; }

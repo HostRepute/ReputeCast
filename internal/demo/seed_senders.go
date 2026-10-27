@@ -297,6 +297,10 @@ func seedSendersSetup(ctx context.Context, s *Seeder) error {
 	done := func(key, label, text string, t time.Time) connect.ProvisionState {
 		return connect.ProvisionState{Key: key, Label: label, Text: text, Status: "done", At: &t}
 	}
+	withNote := func(r connect.ProvisionState, note string) connect.ProvisionState {
+		r.Note = note
+		return r
+	}
 	connected := at(9, 13, 20, 0)
 	state := connect.State{
 		Connection: connect.Connection{
@@ -311,11 +315,20 @@ func seedSendersSetup(ctx context.Context, s *Seeder) error {
 			Provisioning: []connect.ProvisionState{
 				done("verify", "Verify credentials and permissions", "Verified credentials and permissions", at(9, 13, 20, 0)),
 				done("account", "Read the account", "Read account: production access, 50,000 per 24 h, 14 per second", at(9, 13, 21, 0)),
+				// The workspace's own tenant (PR-11).
+				withNote(done("tenant", "Create tenant `acme-newsletter`", "Created tenant `acme-newsletter`", at(9, 13, 22, 0)),
+					"This workspace's own suppression list and reputation policy Standard, which pauses this tenant only"),
 				done("sns_topic", "Create SNS topic `reputecast-events` and subscribe `"+hook+"`", "Created SNS topic `reputecast-events` and subscribed `"+hook+"`", at(9, 13, 23, 0)),
 				done("sns_confirm", "Confirm SNS subscription (handshake)", "Confirmed SNS subscription (handshake received)", at(9, 13, 24, 0)),
 				done("config_set:broadcast", "Create configuration set `rc-broadcasts`", "Created configuration set `rc-broadcasts` with event destination, tracking off", at(9, 13, 26, 0)),
 				done("config_set:automation", "Create configuration set `rc-automations`", "Created configuration set `rc-automations` with event destination, tracking off", at(9, 13, 27, 0)),
 				done("config_set:system", "Create configuration set `rc-system`", "Created configuration set `rc-system` with event destination, tracking off", at(9, 13, 28, 0)),
+				// The event check (PR-3): a test to the mailbox simulator, and
+				// its delivery event back through the webhook.
+				withNote(done("event_send", "Send a test to `success@simulator.amazonses.com`", "Sent a test to `success@simulator.amazonses.com`", at(9, 13, 29, 0)),
+					"the SES mailbox simulator; it doesn't affect your bounce or complaint rates"),
+				withNote(done("event_check", "Wait for its delivery event", "Delivery event received 09:13:31 · events verified", at(9, 13, 31, 0)),
+					"through the webhook, 2 s after sending"),
 			},
 		},
 	}

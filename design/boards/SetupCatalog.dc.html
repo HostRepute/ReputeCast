@@ -81,6 +81,28 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
   .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
 }
+/* review: help me choose, three key facts per provider, details disclosure */
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+.prov .nm{margin:0}
+.facts{margin:0;display:flex;flex-direction:column;gap:6px}
+.facts > div{display:flex;flex-direction:column;gap:1px;font-size:13px}
+.facts dt{font-size:12px;color:#5B6472;font-weight:500}
+.facts dd{margin:0}
+.facts dd.bk{display:flex;gap:6px;align-items:flex-start}
+.facts dd.bk svg{flex:none;margin-top:2px}
+details.det{border-top:1px solid #EEF0F3;padding-top:4px}
+details.det summary{display:inline-flex;align-items:center;gap:6px;min-height:30px;cursor:pointer;font-size:13px;font-weight:600;color:#0F766E;list-style:none}
+details.det summary::-webkit-details-marker{display:none}
+details.det[open] summary svg{transform:rotate(180deg)}
+details.det .caps{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.rec{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:8px;background:#F0FDFA;border:1px solid #99F6E4}
+@media (max-width:767px){
+  details.det summary{min-height:44px}
+  .wiz .btn,header .btn{min-height:44px}
+  .wiz .in{height:44px}
+  .wiz main .hgrid,.wiz main .pgrid{grid-template-columns:1fr!important}
+  .wiz main .srch{flex-direction:column;align-items:stretch!important;gap:4px!important;width:100%}
+}
 </style>
 </helmet>
 <div style="min-height:100vh;display:flex;flex-direction:column">
@@ -103,87 +125,153 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
       <div class="step"><span class="num">4</span><div><div style="font-weight:600">Test send</div><div class="k">Watch the event arrive</div></div></div>
       <div class="step"><span class="num">5</span><div><div style="font-weight:600">Streams</div><div class="k">Broadcasts, Automations, System</div></div></div>
       <div class="step"><span class="num">6</span><div><div style="font-weight:600">Contacts</div><div class="k">Import or start empty</div></div></div>
-      <div style="margin-top:10px;padding-top:12px;border-top:1px solid #EEF0F3" class="k">Most people finish in about 10 minutes. You can add more providers later and send through several at once.</div>
+      <div style="margin-top:10px;padding-top:12px;border-top:1px solid #EEF0F3" class="k">Most setups take 10–15 minutes; a new AWS account can wait up to 24 hours for production access. You can add more providers later and send through several at once.</div>
     </nav>
 
     <main style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:18px">
       <div style="display:flex;flex-direction:column;gap:6px">
         <h2 style="margin:0;font-size:24px;font-weight:700;letter-spacing:-.02em">Which provider delivers your mail?</h2>
-        <span style="color:#4B5563">Every adapter reports what it can do. Badges come from each adapter's manifest; terms are reviewed quarterly.</span>
+        <span style="color:#4B5563">Every adapter reports what it can do. Facts come from each adapter's manifest; terms and prices are reviewed quarterly.</span>
       </div>
+
+      <section class="card" style="display:flex;flex-direction:column" aria-labelledby="hmc-h">
+        <div style="padding:16px 20px;border-bottom:1px solid #EEF0F3;display:flex;flex-direction:column;gap:2px">
+          <h3 class="h2" id="hmc-h">Help me choose</h3>
+          <span class="k">Answer three questions; every card below then shows its price at your volume.</span>
+        </div>
+        <div style="padding:16px 20px 18px;display:flex;flex-direction:column;gap:14px">
+          <div class="hgrid" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end">
+            <label class="lbl">Emails per month<input class="in" type="text" inputmode="numeric" value="{{vol}}" onChange="{{onVol}}"></label>
+            <label class="lbl">I already have an account with<select class="in" value="{{acct}}" onChange="{{onAcct}}"><option>None</option><option>Amazon Web Services</option><option>Postmark</option><option>Mailgun</option><option>SendGrid</option><option>Resend</option><option>SparkPost</option><option>Mailjet</option><option>Brevo</option><option>Microsoft Azure</option><option>My own Postal server</option></select></label>
+            <label class="lbl">Need a dedicated IP?<select class="in" value="{{ded}}" onChange="{{onDed}}"><option>No</option><option>Yes</option></select></label>
+          </div>
+          <div class="rec">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span class="badge ok"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"></path></svg>Recommended</span><span style="font-weight:700;font-size:17px">Amazon SES</span></div>
+            <p style="margin:0;font-size:13px">{{sesRec}}</p>
+            <sc-if value="{{hasAcctNote}}" hint-placeholder-val="{{false}}"><p style="margin:0;font-size:13px;color:#4B5563">{{acctNote}}</p></sc-if>
+            <div style="display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap"><a href="SetupSES.dc.html" class="btn pri">Connect SES</a><span class="k">Ranked by bulk-marketing terms, then the capabilities ReputeCast uses, then price at your volume.</span></div>
+            <div style="border-top:1px solid #99F6E4;padding-top:10px;display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;font-size:13px"><span class="k" style="font-weight:600">Runner-up</span><span style="flex:1 1 260px;min-width:0"><span style="font-weight:600">Mailgun</span> · {{mgRec}}</span><a href="SetupError.dc.html" class="btn sm">Connect Mailgun</a></div>
+          </div>
+        </div>
+      </section>
+
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <label class="k" style="display:flex;align-items:center;gap:8px">Search<input class="in" placeholder="Provider name" style="width:220px"></label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" checked>Allows bulk marketing</label>
+        <label class="k srch" style="display:flex;align-items:center;gap:8px">Search<input class="in" placeholder="Provider name" style="width:220px"></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox">Allows bulk marketing</label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox">Has bounce webhooks</label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox">Dedicated IPs</label>
         <span class="k" style="margin-left:auto">11 built-in · 3 community</span>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">
-        <article class="card prov" style="border-color:#0F766E;box-shadow:0 0 0 3px #CCFBF1">
-          <div class="t"><span class="nm">Amazon SES</span><span class="badge ok">Recommended</span></div>
-          <span class="k">Pay as you go · $0.10 per 1,000 · bulk marketing allowed with production access</span>
-          <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="cap y">Webhooks (SNS)</span><span class="cap y">Domain via API</span><span class="cap y">Suppression sync</span><span class="cap y">Batch 50</span><span class="cap p">Dedicated IPs, paid</span><span class="cap y">Sandbox detection</span><span class="cap y">Quota discovery</span></div>
+      <div class="pgrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">
+        <article class="card prov" style="border-color:#0F766E;box-shadow:0 0 0 3px #CCFBF1" aria-labelledby="pv-ses">
+          <div class="t"><h3 class="nm" id="pv-ses">Amazon SES</h3><span class="badge ok"><span class="dot"></span>Recommended</span></div>
+          <dl class="facts">
+            <div><dt>Bulk marketing</dt><dd class="bk"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"></path></svg><span>Allowed after production access</span></dd></div>
+            <div><dt>At {{volLabel}} a month</dt><dd><span class="n">{{price.ses.amt}}</span>{{price.ses.note}}</dd></div>
+            <div><dt>Setup</dt><dd>10–15 min, plus up to 24 h for production access on a new AWS account</dd></div>
+          </dl>
+          <details class="det"><summary>Details<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></summary><div class="caps"><span class="cap y">Webhooks (SNS) or SQS queue</span><span class="cap y">Domain via API</span><span class="cap y">Suppression sync</span><span class="cap y">Batch 50</span><span class="cap p">Dedicated IPs, paid</span><span class="cap y">Sandbox detection</span><span class="cap y">Quota discovery</span><span class="cap y">Tenant per workspace</span></div><p class="k" style="margin:8px 0 0">Pay as you go, $0.10 per 1,000 · dedicated IPs optional, $24.95 per IP per month</p></details>
           <a href="SetupSES.dc.html" class="btn pri">Connect SES</a>
         </article>
-        <article class="card prov">
-          <div class="t"><span class="nm">Postmark</span><span class="badge ok">Bulk on Broadcast streams</span></div>
-          <span class="k">Plans from $15 per month for 10,000 · Transactional streams are one-to-one only</span>
-          <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="cap y">Webhooks</span><span class="cap y">Domain via API</span><span class="cap y">Suppression sync</span><span class="cap y">Batch 500</span><span class="cap p">Dedicated IPs, 300k+</span><span class="cap y">Sandbox token</span><span class="cap y">Quota discovery</span></div>
+        <article class="card prov" aria-labelledby="pv-postmark">
+          <div class="t"><h3 class="nm" id="pv-postmark">Postmark</h3></div>
+          <dl class="facts">
+            <div><dt>Bulk marketing</dt><dd class="bk"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#92400E" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6"></circle><path d="M8 5v3.5M8 11v.2"></path></svg><span>Broadcast streams only</span></dd></div>
+            <div><dt>At {{volLabel}} a month</dt><dd><span class="n">{{price.postmark.amt}}</span>{{price.postmark.note}}</dd></div>
+            <div><dt>Setup</dt><dd>10–15 min · server token and DNS records; bulk mail needs a Broadcast stream</dd></div>
+          </dl>
+          <details class="det"><summary>Details<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></summary><div class="caps"><span class="cap y">Webhooks</span><span class="cap y">Domain via API</span><span class="cap y">Suppression sync</span><span class="cap y">Batch 500</span><span class="cap p">Dedicated IPs, 300k+</span><span class="cap y">Sandbox token</span><span class="cap y">Quota discovery</span></div><p class="k" style="margin:8px 0 0">Plans from $15 per month for 10,000 · Transactional streams are one-to-one only</p></details>
           <a href="SetupError.dc.html" class="btn">Connect Postmark</a>
         </article>
-        <article class="card prov">
-          <div class="t"><span class="nm">Mailgun</span><span class="badge ok">Bulk marketing allowed</span></div>
-          <span class="k">Plans from $15 per month for 10,000, then per 1,000</span>
-          <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="cap y">Webhooks</span><span class="cap y">Domain via API</span><span class="cap y">Suppression sync</span><span class="cap y">Batch 1,000</span><span class="cap p">Dedicated IPs, paid</span><span class="cap y">Sandbox domain</span><span class="cap y">Quota discovery</span></div>
+        <article class="card prov" aria-labelledby="pv-mailgun">
+          <div class="t"><h3 class="nm" id="pv-mailgun">Mailgun</h3><span class="badge mut"><span class="dot"></span>Runner-up</span></div>
+          <dl class="facts">
+            <div><dt>Bulk marketing</dt><dd class="bk"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"></path></svg><span>Allowed</span></dd></div>
+            <div><dt>At {{volLabel}} a month</dt><dd><span class="n">{{price.mailgun.amt}}</span>{{price.mailgun.note}}</dd></div>
+            <div><dt>Setup</dt><dd>10–15 min · API key; webhooks and DNS records through the API</dd></div>
+          </dl>
+          <details class="det"><summary>Details<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></summary><div class="caps"><span class="cap y">Webhooks</span><span class="cap y">Domain via API</span><span class="cap y">Suppression sync</span><span class="cap y">Batch 1,000</span><span class="cap p">Dedicated IPs, Scale plan</span><span class="cap y">Sandbox domain</span><span class="cap y">Quota discovery</span></div><p class="k" style="margin:8px 0 0">Free 100 a day, then plans from $15 per month for 10,000 · Scale plan includes one dedicated IP</p></details>
           <a href="SetupError.dc.html" class="btn">Connect Mailgun</a>
         </article>
-        <article class="card prov">
-          <div class="t"><span class="nm">SendGrid</span><span class="badge ok">Bulk marketing allowed</span></div>
-          <span class="k">Free tier, then plans from $19.95 per month</span>
-          <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="cap y">Event webhook</span><span class="cap y">Domain via API</span><span class="cap y">Suppression sync</span><span class="cap y">Batch 1,000</span><span class="cap p">Dedicated IPs, Pro plan</span><span class="cap y">Sandbox mode</span><span class="cap p">Quota, plan only</span></div>
+        <article class="card prov" aria-labelledby="pv-sendgrid">
+          <div class="t"><h3 class="nm" id="pv-sendgrid">SendGrid</h3></div>
+          <dl class="facts">
+            <div><dt>Bulk marketing</dt><dd class="bk"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"></path></svg><span>Allowed</span></dd></div>
+            <div><dt>At {{volLabel}} a month</dt><dd><span class="n">{{price.sendgrid.amt}}</span>{{price.sendgrid.note}}</dd></div>
+            <div><dt>Setup</dt><dd>10–15 min · API key; event webhook and DNS records through the API</dd></div>
+          </dl>
+          <details class="det"><summary>Details<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></summary><div class="caps"><span class="cap y">Event webhook</span><span class="cap y">Domain via API</span><span class="cap y">Suppression sync</span><span class="cap y">Batch 1,000</span><span class="cap p">Dedicated IPs, Pro plan</span><span class="cap y">Sandbox mode</span><span class="cap p">Quota, plan only</span></div><p class="k" style="margin:8px 0 0">Plans from $19.95 per month</p></details>
           <a href="SetupError.dc.html" class="btn">Connect SendGrid</a>
         </article>
-        <article class="card prov">
-          <div class="t"><span class="nm">Resend</span><span class="badge ok">Bulk via Broadcasts API</span></div>
-          <span class="k">Free 3,000 per month, then $20 per month for 50,000</span>
-          <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="cap y">Webhooks</span><span class="cap y">Domain via API</span><span class="cap p">Suppression, pull only</span><span class="cap y">Batch 100</span><span class="cap p">Dedicated IPs, Scale plan</span><span class="cap n">Sandbox</span><span class="cap p">Quota, plan only</span></div>
+        <article class="card prov" aria-labelledby="pv-resend">
+          <div class="t"><h3 class="nm" id="pv-resend">Resend</h3></div>
+          <dl class="facts">
+            <div><dt>Bulk marketing</dt><dd class="bk"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"></path></svg><span>Allowed through the Broadcasts API</span></dd></div>
+            <div><dt>At {{volLabel}} a month</dt><dd><span class="n">{{price.resend.amt}}</span>{{price.resend.note}}</dd></div>
+            <div><dt>Setup</dt><dd>10–15 min · API key; webhooks and DNS records through the API</dd></div>
+          </dl>
+          <details class="det"><summary>Details<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></summary><div class="caps"><span class="cap y">Webhooks</span><span class="cap y">Domain via API</span><span class="cap p">Suppression, pull only</span><span class="cap y">Batch 100</span><span class="cap p">Dedicated IPs, Scale plan</span><span class="cap n">Sandbox</span><span class="cap p">Quota, plan only</span></div><p class="k" style="margin:8px 0 0">Free 3,000 per month, then $20 per month for 50,000</p></details>
           <a href="SetupError.dc.html" class="btn">Connect Resend</a>
         </article>
-        <article class="card prov">
-          <div class="t"><span class="nm">SparkPost</span><span class="badge ok">Bulk marketing allowed</span></div>
-          <span class="k">Plans from $20 per month for 50,000</span>
-          <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="cap y">Webhooks</span><span class="cap y">Domain via API</span><span class="cap y">Suppression sync</span><span class="cap y">Batch 2,000</span><span class="cap p">Dedicated IPs, paid</span><span class="cap y">Sandbox domain</span><span class="cap y">Quota discovery</span></div>
+        <article class="card prov" aria-labelledby="pv-sparkpost">
+          <div class="t"><h3 class="nm" id="pv-sparkpost">SparkPost</h3></div>
+          <dl class="facts">
+            <div><dt>Bulk marketing</dt><dd class="bk"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"></path></svg><span>Allowed</span></dd></div>
+            <div><dt>At {{volLabel}} a month</dt><dd><span class="n">{{price.sparkpost.amt}}</span>{{price.sparkpost.note}}</dd></div>
+            <div><dt>Setup</dt><dd>10–15 min · API key; webhooks and DNS records through the API</dd></div>
+          </dl>
+          <details class="det"><summary>Details<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></summary><div class="caps"><span class="cap y">Webhooks</span><span class="cap y">Domain via API</span><span class="cap y">Suppression sync</span><span class="cap y">Batch 2,000</span><span class="cap p">Dedicated IPs, paid</span><span class="cap y">Sandbox domain</span><span class="cap y">Quota discovery</span></div><p class="k" style="margin:8px 0 0">Price set by your SparkPost contract</p></details>
           <a href="SetupError.dc.html" class="btn">Connect SparkPost</a>
         </article>
-        <article class="card prov">
-          <div class="t"><span class="nm">Mailjet</span><span class="badge ok">Bulk marketing allowed</span></div>
-          <span class="k">Free 6,000 per month, then plans from $17 per month</span>
-          <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="cap y">Webhooks</span><span class="cap y">Domain via API</span><span class="cap y">Suppression sync</span><span class="cap y">Batch 50</span><span class="cap p">Dedicated IPs, paid</span><span class="cap n">Sandbox</span><span class="cap y">Quota discovery</span></div>
+        <article class="card prov" aria-labelledby="pv-mailjet">
+          <div class="t"><h3 class="nm" id="pv-mailjet">Mailjet</h3></div>
+          <dl class="facts">
+            <div><dt>Bulk marketing</dt><dd class="bk"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"></path></svg><span>Allowed</span></dd></div>
+            <div><dt>At {{volLabel}} a month</dt><dd><span class="n">{{price.mailjet.amt}}</span>{{price.mailjet.note}}</dd></div>
+            <div><dt>Setup</dt><dd>10–15 min · API key and secret; webhooks through the API</dd></div>
+          </dl>
+          <details class="det"><summary>Details<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></summary><div class="caps"><span class="cap y">Webhooks</span><span class="cap y">Domain via API</span><span class="cap y">Suppression sync</span><span class="cap y">Batch 50</span><span class="cap p">Dedicated IPs, paid</span><span class="cap n">Sandbox</span><span class="cap y">Quota discovery</span></div><p class="k" style="margin:8px 0 0">Free 6,000 per month, then plans from $17 per month</p></details>
           <a href="SetupError.dc.html" class="btn">Connect Mailjet</a>
         </article>
-        <article class="card prov">
-          <div class="t"><span class="nm">Brevo</span><span class="badge ok">Bulk marketing allowed</span></div>
-          <span class="k">Transactional API, plans from $15 per month for 20,000</span>
-          <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="cap y">Webhooks</span><span class="cap y">Domain via API</span><span class="cap y">Suppression sync</span><span class="cap y">Batch 1,000</span><span class="cap p">Dedicated IPs, paid</span><span class="cap n">Sandbox</span><span class="cap y">Quota discovery</span></div>
+        <article class="card prov" aria-labelledby="pv-brevo">
+          <div class="t"><h3 class="nm" id="pv-brevo">Brevo</h3></div>
+          <dl class="facts">
+            <div><dt>Bulk marketing</dt><dd class="bk"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"></path></svg><span>Allowed</span></dd></div>
+            <div><dt>At {{volLabel}} a month</dt><dd><span class="n">{{price.brevo.amt}}</span>{{price.brevo.note}}</dd></div>
+            <div><dt>Setup</dt><dd>10–15 min · API key; webhooks through the API</dd></div>
+          </dl>
+          <details class="det"><summary>Details<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></summary><div class="caps"><span class="cap y">Webhooks</span><span class="cap y">Domain via API</span><span class="cap y">Suppression sync</span><span class="cap y">Batch 1,000</span><span class="cap p">Dedicated IPs, paid</span><span class="cap n">Sandbox</span><span class="cap y">Quota discovery</span></div><p class="k" style="margin:8px 0 0">Transactional API, plans from $15 per month for 20,000</p></details>
           <a href="SetupError.dc.html" class="btn">Connect Brevo</a>
         </article>
-        <article class="card prov">
-          <div class="t"><span class="nm">Azure Communication Services</span><span class="badge warn">Transactional only</span></div>
-          <span class="k">Pay as you go · its policy excludes bulk marketing, so it can serve Automations and System only</span>
-          <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="cap y">Event Grid</span><span class="cap p">Domain, manual DNS</span><span class="cap p">Suppression, pull only</span><span class="cap n">Batch</span><span class="cap n">Dedicated IPs</span><span class="cap n">Sandbox</span><span class="cap y">Quota discovery</span></div>
+        <article class="card prov" aria-labelledby="pv-azure">
+          <div class="t"><h3 class="nm" id="pv-azure">Azure Communication Services</h3></div>
+          <dl class="facts">
+            <div><dt>Bulk marketing</dt><dd class="bk"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#991B1B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4.5 4.5 7 7M11.5 4.5l-7 7"></path></svg><span>Not allowed · transactional only, so Automations and System</span></dd></div>
+            <div><dt>At {{volLabel}} a month</dt><dd><span class="n">{{price.azure.amt}}</span>{{price.azure.note}}</dd></div>
+            <div><dt>Setup</dt><dd>20–30 min · Azure resource, Event Grid and DNS records by hand</dd></div>
+          </dl>
+          <details class="det"><summary>Details<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></summary><div class="caps"><span class="cap y">Event Grid</span><span class="cap p">Domain, manual DNS</span><span class="cap p">Suppression, pull only</span><span class="cap n">Batch</span><span class="cap n">Dedicated IPs</span><span class="cap n">Sandbox</span><span class="cap y">Quota discovery</span></div><p class="k" style="margin:8px 0 0">Pay as you go, per email and per MB</p></details>
           <a href="SetupError.dc.html" class="btn">Connect Azure</a>
         </article>
-        <article class="card prov">
-          <div class="t"><span class="nm">Postal (self-hosted)</span><span class="badge ok">Your own policy</span></div>
-          <span class="k">Free software, your server · needs a warm-up for a new IP</span>
-          <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="cap y">Webhooks</span><span class="cap p">DKIM via API</span><span class="cap y">Suppression sync</span><span class="cap n">Batch</span><span class="cap y">Dedicated IP</span><span class="cap n">Sandbox</span><span class="cap p">Quota, set manually</span></div>
+        <article class="card prov" aria-labelledby="pv-postal">
+          <div class="t"><h3 class="nm" id="pv-postal">Postal (self-hosted)</h3></div>
+          <dl class="facts">
+            <div><dt>Bulk marketing</dt><dd class="bk"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"></path></svg><span>Your own policy</span></dd></div>
+            <div><dt>At {{volLabel}} a month</dt><dd><span class="n">{{price.postal.amt}}</span>{{price.postal.note}}</dd></div>
+            <div><dt>Setup</dt><dd>15–20 min with your server running, plus about 3 weeks of warm-up for a new IP</dd></div>
+          </dl>
+          <details class="det"><summary>Details<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></summary><div class="caps"><span class="cap y">Webhooks</span><span class="cap p">DKIM via API</span><span class="cap y">Suppression sync</span><span class="cap n">Batch</span><span class="cap y">Dedicated IP</span><span class="cap n">Sandbox</span><span class="cap p">Quota, set manually</span></div><p class="k" style="margin:8px 0 0">Free software on your own server</p></details>
           <a href="SetupSMTP.dc.html" class="btn">Connect Postal</a>
         </article>
-        <article class="card prov">
-          <div class="t"><span class="nm">Any SMTP server</span><span class="badge mut">Depends on the server</span></div>
-          <span class="k">No webhooks, so bounces come from a bounce mailbox you connect over IMAP or POP3</span>
-          <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="cap p">Bounce mailbox</span><span class="cap p">Domain, manual DNS</span><span class="cap p">Suppression, local</span><span class="cap n">Batch</span><span class="cap p">Dedicated IP, depends</span><span class="cap n">Sandbox</span><span class="cap p">Quota, set manually</span></div>
+        <article class="card prov" aria-labelledby="pv-smtp">
+          <div class="t"><h3 class="nm" id="pv-smtp">Any SMTP server</h3></div>
+          <dl class="facts">
+            <div><dt>Bulk marketing</dt><dd class="bk"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#92400E" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6"></circle><path d="M8 5v3.5M8 11v.2"></path></svg><span>Depends on the server</span></dd></div>
+            <div><dt>At {{volLabel}} a month</dt><dd><span class="n">{{price.smtp.amt}}</span>{{price.smtp.note}}</dd></div>
+            <div><dt>Setup</dt><dd>15–20 min · host, credentials and a bounce mailbox over IMAP or POP3</dd></div>
+          </dl>
+          <details class="det"><summary>Details<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></summary><div class="caps"><span class="cap p">Bounce mailbox</span><span class="cap p">Domain, manual DNS</span><span class="cap p">Suppression, local</span><span class="cap n">Batch</span><span class="cap p">Dedicated IP, depends</span><span class="cap n">Sandbox</span><span class="cap p">Quota, set manually</span></div><p class="k" style="margin:8px 0 0">No webhooks, so bounces come from a bounce mailbox you connect</p></details>
           <a href="SetupSMTP.dc.html" class="btn">Connect SMTP</a>
         </article>
       </div>
@@ -200,10 +288,67 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1595}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2124}}'>
 class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { vol: '50,000', acct: 'None', ded: 'No' };
+  }
   renderVals() {
-    return {};
+    var s = this.state;
+    var self = this;
+    var v = parseInt(String(s.vol).replace(/[^0-9]/g, ''), 10);
+    if (isNaN(v)) v = 0;
+    var ded = s.ded === 'Yes';
+    var fmt = function (n) { return n.toLocaleString('en-US'); };
+    var money = function (n) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+    var pick = function (tiers) { for (var i = 0; i < tiers.length; i++) { if (v <= tiers[i][0]) return tiers[i]; } return null; };
+    var none = '–';
+    var over = 'n/a · above the plans in the adapter’s price list';
+    var sesCost = v * 0.0001 + (ded ? 24.95 : 0);
+    var mgTiers = ded ? [[100000, 90, 'Scale plan, 100,000 and one dedicated IP included']]
+      : [[3000, 0, 'free plan, 100 a day'], [10000, 15, 'Basic plan, 10,000 included'], [50000, 35, 'Foundation plan, 50,000 included'], [100000, 90, 'Scale plan, 100,000 included']];
+    var mg = pick(mgTiers);
+    var pm = pick([[10000, 15, 'plan for up to 10,000'], [50000, 55, 'plan for up to 50,000'], [125000, 115, 'plan for up to 125,000'], [300000, 245, 'plan for up to 300,000']]);
+    var sg = pick([[50000, 19.95, 'Essentials plan, up to 50,000'], [100000, 34.95, 'Essentials plan, up to 100,000']]);
+    var rs = pick([[3000, 0, 'free plan, 3,000 included'], [50000, 20, 'Pro plan, 50,000 included'], [100000, 35, 'Pro plan, 100,000 included']]);
+    var tierText = function (t) { return v <= 0 ? none : t ? money(t[1]) + ' · ' + t[2] : over; };
+    var split = function (txt) { var i = txt.indexOf(' · '); return i < 0 ? { amt: txt, note: '' } : { amt: txt.slice(0, i), note: ' · ' + txt.slice(i + 3) }; };
+    var price = {
+      ses: v <= 0 ? none : 'about ' + money(sesCost) + (ded ? ' · with one dedicated IP' : ' · $0.10 per 1,000'),
+      postmark: tierText(pm),
+      mailgun: tierText(mg),
+      sendgrid: tierText(sg),
+      resend: tierText(rs),
+      sparkpost: 'n/a · set by your SparkPost contract',
+      mailjet: v <= 0 ? none : v <= 6000 ? '$0.00 · free plan, 6,000 included' : 'n/a · not in the adapter’s price list; plans from $17',
+      brevo: v <= 0 ? none : v <= 9000 ? '$0.00 · free plan, 300 a day' : 'n/a · not in the adapter’s price list; plans from $15',
+      azure: v <= 0 ? none : 'about ' + money(v * 0.00025) + ' · plus data at $0.00012 per MB',
+      postal: '$0 metered · you pay for your server',
+      smtp: 'n/a · set by your server or relay'
+    };
+    var sesRec = v <= 0 ? 'Enter your monthly volume to see prices.' :
+      'about ' + money(sesCost) + ' a month at ' + fmt(v) + (ded ? ' with one dedicated IP' : '') + ' · bulk marketing allowed after production access · setup 10–15 min, plus up to 24 h for production access on a new AWS account';
+    var mgRec = v <= 0 ? 'enter a volume' : mg ? money(mg[1]) + ' a month · ' + mg[2] + ' · every capability ReputeCast uses' : over;
+    var acctNote = '';
+    if (s.acct === 'Amazon Web Services') acctNote = 'Your AWS account may already have SES production access in a region. ReputeCast checks when you connect; if it does, there’s no 24 h wait.';
+    else if (s.acct === 'My own Postal server') acctNote = 'You already run Postal: connect it below for a weighted split, and plan about 3 weeks of warm-up for a new IP.';
+    else if (s.acct === 'Microsoft Azure') acctNote = 'You already use Azure: Azure Communication Services can carry Automations and System mail, but its terms exclude Broadcasts.';
+    else if (s.acct !== 'None') acctNote = 'You already have ' + s.acct + ': connecting it skips creating an account. Its card is below.';
+    return {
+      vol: s.vol,
+      acct: s.acct,
+      ded: s.ded,
+      volLabel: v > 0 ? fmt(v) : 'your volume',
+      price: Object.keys(price).reduce(function (o, k) { o[k] = split(price[k]); return o; }, {}),
+      sesRec: sesRec,
+      mgRec: mgRec,
+      hasAcctNote: acctNote !== '',
+      acctNote: acctNote,
+      onVol: function (e) { self.setState({ vol: e.target.value }); },
+      onAcct: function (e) { self.setState({ acct: e.target.value }); },
+      onDed: function (e) { self.setState({ ded: e.target.value }); }
+    };
   }
 }
 </script>

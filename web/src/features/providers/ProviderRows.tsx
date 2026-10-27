@@ -236,6 +236,13 @@ export function ProviderRow({ card, monthStart, last, onSettings }: { card: Prov
           <Fact className="pv-fact" k={card.accountKind === 'server' ? t(mo.factServer) : t(mo.factAccountStatus)}>
             <span>{card.account || '—'}</span>
           </Fact>
+          {card.tenant ? (
+            // PR-11: the workspace sends as its own SES tenant.
+            <p className="m-0 mt-0.5 rounded-[8px] border border-line bg-ground-3 px-2.5 py-2">
+              <span className="k">{t(mo.factTenant)}</span> <span className="font-semibold">{card.tenant.name}</span> ·{' '}
+              {card.tenant.policy ? t(mo.tenantLine, { policy: card.tenant.policy }) : t(mo.tenantLineNoPolicy)}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
           {card.warmup ? (

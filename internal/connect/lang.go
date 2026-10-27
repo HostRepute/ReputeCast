@@ -49,6 +49,8 @@ var (
 	mTermsOwnPolicy              = msgs.M("terms.ownPolicy")
 	mChipWebhooks                = msgs.M("chip.webhooks")
 	mChipWebhooksVia             = msgs.M("chip.webhooksVia")
+	mChipWebhooksOrQueue         = msgs.M("chip.webhooksOrQueue")
+	mChipTenant                  = msgs.M("chip.tenant")
 	mChipEventWebhook            = msgs.M("chip.eventWebhook")
 	mChipEventGrid               = msgs.M("chip.eventGrid")
 	mChipBounceMailbox           = msgs.M("chip.bounceMailbox")
@@ -140,6 +142,25 @@ var (
 	mProvisionHintSNS            = msgs.M("provision.hintSNS")
 	mProvisionHintIAMUser        = msgs.M("provision.hintIAMUser")
 	mProvisionHintRolePolicy     = msgs.M("provision.hintRolePolicy")
+	mProvisionEventSend          = msgs.M("provision.eventSend")
+	mProvisionEventSent          = msgs.M("provision.eventSent")
+	mProvisionEventSentNote      = msgs.M("provision.eventSentNote")
+	mProvisionEventDeferred      = msgs.M("provision.eventDeferred")
+	mProvisionEventCheck         = msgs.M("provision.eventCheck")
+	mProvisionEventReceived      = msgs.M("provision.eventReceived")
+	mProvisionEventVia           = msgs.M("provision.eventVia")
+	mProvisionNoEvent            = msgs.M("provision.noEvent")
+	mProvisionHintEventWebhook   = msgs.M("provision.hintEventWebhook")
+	mProvisionHintEventQueue     = msgs.M("provision.hintEventQueue")
+	mEventCheckSubject           = msgs.M("eventCheck.subject")
+	mEventCheckBody              = msgs.M("eventCheck.body")
+	mProblemRoleNeedsKeys        = msgs.M("problem.roleNeedsKeys")
+	mCatalogSetup                = msgs.M("catalog.setup")
+	mCatalogBulkAllowed          = msgs.M("catalog.bulkAllowed")
+	mCatalogBulkBroadcastOnly    = msgs.M("catalog.bulkBroadcastOnly")
+	mCatalogBulkNotAllowed       = msgs.M("catalog.bulkNotAllowed")
+	mProblemEventsUnverified     = msgs.M("problem.eventsUnverified")
+	mProblemEventsMode           = msgs.M("problem.eventsMode")
 	mTrackingConfigSets          = msgs.M("tracking.configSets")
 	mProblemSetupNotFound        = msgs.M("problem.setupNotFound")
 	mProblemNoAdapter            = msgs.M("problem.noAdapter")
@@ -220,6 +241,10 @@ var (
 	mDoneAWSAccessText           = msgs.M("done.awsAccessText")
 	mDoneEvents                  = msgs.M("done.events")
 	mDoneEventsSNS               = msgs.M("done.eventsSNS")
+	mDoneEventsVerified          = msgs.M("done.eventsVerified")
+	mDoneTenant                  = msgs.M("done.tenant")
+	mDoneTenantText              = msgs.M("done.tenantText")
+	mTimelineNoEvent             = msgs.M("timeline.noEvent")
 	mDoneEventsUnfinished        = msgs.M("done.eventsUnfinished")
 	mDoneConfigSets              = msgs.M("done.configSets")
 	mDoneConfigSetsText          = msgs.M("done.configSetsText")
@@ -324,4 +349,12 @@ func yesNo(b bool) string {
 		return "yes"
 	}
 	return "no"
+}
+
+// bulkLines are the adapters whose bulk-marketing terms say more than a
+// badge (SetupCatalog cards).
+var bulkLines = map[string]i18n.Msg{
+	"ses":      msgs.M("catalog.bulkSES"),
+	"resend":   msgs.M("catalog.bulkResend"),
+	"azureacs": msgs.M("catalog.bulkAzure"),
 }

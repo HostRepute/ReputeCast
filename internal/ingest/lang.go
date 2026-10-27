@@ -23,8 +23,8 @@ var messagesFS embed.FS
 
 var msgs = i18n.MustLoad(messagesFS, "ingest")
 
-// systemKinds are the kinds of system mail sourceLabel names.
-var systemKinds = map[string]bool{"double_opt_in": true, "preference_link": true, "invite": true, "password_reset": true, "api": true, "placement": true}
+// systemKinds are the kinds of system mail SourceLabel names.
+var systemKinds = map[string]bool{"double_opt_in": true, "preference_link": true, "invite": true, "password_reset": true, "api": true, "smtp": true, "placement": true}
 
 // sourceIn writes an event's source label in a reader's language: the
 // label of system mail, and an automation's step; a campaign's or an
@@ -44,13 +44,13 @@ func sourceIn(l i18n.Lang, r store.IngestEventLogRow) string {
 			}
 		}
 		return r.Source
-	case systemKinds[r.MessageKind] && r.Source == sourceLabel("", "", nil, r.MessageKind):
+	case systemKinds[r.MessageKind] && r.Source == SourceLabel("", "", nil, r.MessageKind):
 		return msgs.M("source.kind").Text(l, i18n.Args{"kind": r.MessageKind})
 	case r.MessageKind == "":
 		// The message is gone (or never was, as in the sample data): a
 		// system mail's label is still known by its English.
 		for kind := range systemKinds {
-			if r.Source == sourceLabel("", "", nil, kind) {
+			if r.Source == SourceLabel("", "", nil, kind) {
 				return msgs.M("source.kind").Text(l, i18n.Args{"kind": kind})
 			}
 		}

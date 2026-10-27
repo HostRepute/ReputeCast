@@ -61,7 +61,7 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
 /* responsive shell */
 @media (max-width:1100px){
   .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
-  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .brand-t,.side .ws{display:none}.side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .side .nav a{justify-content:center;padding:0!important;height:44px}
   .side .nav svg{width:20px;height:20px}
   .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
@@ -146,6 +146,62 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 .ws .av{font-weight:700}
 /* switches: a disabled switch looks disabled */
 .tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+
+/* live monitor: freshness, live summary, threshold states, footnotes, rate steppers */
+.fresh{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5B6472;font-weight:500;white-space:nowrap}
+.fresh .dot{color:#15803D}
+.fresh.stale .dot{color:#B45309}
+.sumline{margin:0;display:flex;align-items:flex-start;gap:8px;font-size:13px;color:#0B1220;line-height:1.45}
+.sumline svg{flex:none;margin-top:2px}
+.thr{display:flex;flex-direction:column;gap:6px}
+.thr-h{display:flex;justify-content:space-between;align-items:center;gap:6px 12px;flex-wrap:wrap;font-size:13px}
+.thr-h > span:first-child{display:flex;flex-direction:column;gap:1px;min-width:0}
+.thr-h b{font-weight:600}
+.thr-v{display:flex;flex-wrap:wrap;gap:2px 8px;font-size:12.5px;color:#4B5563}
+.thr-v .n{color:#0B1220}
+.fn{margin:0;font-size:12px;color:#5B6472;font-weight:500;line-height:1.45}
+.fns{display:flex;flex-direction:column;gap:4px;padding:12px 18px;border-top:1px solid #EEF0F3}
+.ratep{border-top:1px solid #EEF0F3;background:#F9FAFB;padding:14px 18px 16px;display:flex;flex-direction:column;gap:10px}
+.rrow{display:grid;grid-template-columns:minmax(110px,150px) minmax(110px,150px) auto minmax(0,1fr);align-items:center;gap:8px 14px;font-size:13px;padding:4px 0}
+.rrow .nm{display:flex;gap:8px;align-items:center;font-weight:600}
+.stp{display:inline-flex;align-items:stretch;border:1px solid #8B94A3;border-radius:8px;background:#FFFFFF;overflow:hidden;flex:none}
+.stp button{width:36px;height:36px;border:0;background:#FFFFFF;color:#0B1220;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;font:inherit}
+.stp button:hover{background:#F3F4F6}
+.stp button:disabled{color:#9CA3AF;cursor:not-allowed;background:#FFFFFF}
+.stp output{min-width:86px;display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-variant-numeric:tabular-nums;font-size:13px;border-left:1px solid #E3E6EB;border-right:1px solid #E3E6EB}
+.chg{font-weight:600;color:#0B1220}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+@media (max-width:767px){
+  .rrow{grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:8px 0;border-bottom:1px solid #EEF0F3}
+  .rrow .was{grid-column:1 / -1;order:3}
+  .rrow .eff{grid-column:1 / -1;order:4}
+  .stp button{width:44px;height:44px}
+  .sc-host .fresh{white-space:normal}
+}
+/* phone: events wrap by field, never inside a timestamp */
+@media (max-width:767px){
+  .ev{flex-wrap:wrap;gap:4px 10px;padding:10px 12px}
+  .sc-host .ev .mono{overflow-wrap:normal;white-space:nowrap}
+  .ev > span:last-child{flex:1 1 100%}
+}
+/* phone: the header's Pause / Cancel move into a sticky bar above the tab bar */
+.pbar{display:none}
+@media (max-width:767px){
+  .top .hdr-act{display:none!important}
+  .pbar{display:flex;position:sticky;bottom:57px;z-index:20;gap:8px;align-items:stretch;padding:10px 12px;margin:0 -12px -12px;background:#FFFFFF;border-top:1px solid #E3E6EB}
+  .pbar .btn{min-height:44px}
+  .pbar .menu{bottom:52px;right:0;min-width:220px}
+}
+/* phone: small buttons and menu items still give a 44px target */
+@media (max-width:767px){
+  .btn.sm{min-height:44px!important}
+  .content .btn,.top .btn{min-height:44px}
+  .content .thr-links a{min-height:44px!important}
+  .pbar .menu a,.pbar .menu button{min-height:44px}
+}
+
+/* phones: every top-bar target is at least 44px (tabs, links, fields, buttons, the bell and the account menu) */
+@media (max-width:767px){.top .tabs a{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box}.top a:not(.btn){min-height:44px}.top .btn,.top .in,.top select,.top input{min-height:44px;box-sizing:border-box}.top .ibtn{width:44px;height:44px;box-sizing:border-box}.top .ubtn{min-height:44px;box-sizing:border-box}.top nav[aria-label="Breadcrumb"] a{min-width:44px;justify-content:center}.top .chsw a{min-height:44px!important}}
 </style>
 </helmet>
 <h1 class="vh">Live sending monitor</h1>
@@ -156,19 +212,19 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
       <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
       <span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span>
     </a>
-    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Acme Newsletter, your role Owner"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Acme Newsletter, Owner, switch workspace"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
     <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px" aria-label="Main">
-      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
-      <a href="Campaigns.dc.html" class="on" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
-      <a href="AutomationsList.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
-      <a href="Transactional.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
-      <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
-      <a href="GrowOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
-      <a href="EarnOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
-      <a href="FormBuilder.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
-      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
-      <a href="Providers.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
-      <a href="WorkspaceSettings.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="Main.dc.html" title="Overview"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html" class="on" aria-current="page" title="Campaigns"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html" class="xm" title="Automations"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Transactional.dc.html" class="xm" title="Transactional"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
+      <a href="Contacts.dc.html" title="Audience"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="GrowOverview.dc.html" class="xm" title="Grow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
+      <a href="EarnOverview.dc.html" class="xm" title="Earn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
+      <a href="FormBuilder.dc.html" class="xm" title="Forms &amp; pages"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html" title="Deliverability"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html" class="xm" title="Sending providers"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html" class="xm" title="Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
       <a href="ShellMore.dc.html" class="more" aria-label="More: Automations, Transactional, Grow, Earn, Forms & pages, Sending providers, Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">More</span></a>
     </nav>
   </aside>
@@ -180,89 +236,169 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
         <span style="font-weight:600">Weekly Digest #142</span>
       </nav>
       <span class="k">Started by Sofia Rossi · approved by Marcus Chen, Oct 10 16:20</span>
-      <span class="badge ok"><span class="dot"></span>Sending · live</span>
+      <span class="badge ok"><span class="dot"></span>Sending</span>
+      <span class="fresh"><span class="dot"></span>Live · updated 1 s ago</span>
       <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <span class="k">Events via SNS and Postal webhooks · last 1 s ago · pause needs campaigns:pause, resume needs campaigns:send</span>
-        <a href="LiveMonitorPaused.dc.html" class="btn" title="Pausing needs campaigns:pause">Pause</a>
-        <button class="btn" style="color:#991B1B;border-color:#FCA5A5">Cancel send</button>
-      <div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
+        <span class="k">Anyone who can send can pause · Linh Nguyen and Marcus Chen can resume</span>
+        <a href="LiveMonitorPaused.dc.html" class="btn hdr-act">Pause</a>
+        <button class="btn hdr-act" type="button" style="color:#991B1B;border-color:#FCA5A5">Cancel send…</button>
+      <div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Linh Nguyen, account menu"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
     </header>
 
     <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
-      <section class="card" style="padding:20px 22px;display:flex;flex-direction:column;gap:12px">
+      <section class="card" style="padding:20px 22px;display:flex;flex-direction:column;gap:12px" aria-label="Progress">
         <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
-          <span class="n" style="font-size:34px;letter-spacing:-.02em">62%</span>
-          <span style="font-size:15px">19,594 of 31,604 sent</span>
-          <span class="k" style="margin-left:auto">Started 09:00:04 · ETA 13 min · finishes about 09:34</span>
+          <span class="n" style="font-size:34px;letter-spacing:-.02em">63%</span>
+          <span style="font-size:15px">19,594 of 31,192 sent</span>
+          <span class="k" style="margin-left:auto">Started 09:00:04 · at current rates, SES done about {{sesDone}} · Postal about {{postalDone}}</span>
         </div>
-        <div class="bar" style="height:12px;border-radius:6px;display:flex;gap:2px;background:#EEF0F3">
-          <i style="width:55.8%;background:#4a3aa7;border-radius:6px 0 0 6px" title="SES"></i>
-          <i style="width:6.2%;background:#e87ba4;border-radius:0" title="Postal"></i>
+        <!-- The only live region on this screen. Engineers: change this text only when the send's state or a threshold's state changes (canary passed, rate changed, slowed, paused), never on every count. -->
+        <p class="sumline" aria-live="polite"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg><span>{{summary}}</span></p>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;align-items:flex-end;gap:8px;min-height:18px">
+            <span aria-hidden="true" style="flex:0 0 5%;height:8px;border:2px solid #15803D;border-bottom:0;border-radius:3px 3px 0 0;box-sizing:border-box"></span>
+            <span class="k" style="display:inline-flex;align-items:center;gap:5px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Canary 5% · passed 09:20</span>
+          </div>
+          <div class="bar" style="height:12px;border-radius:6px;display:flex;gap:2px;background:#EEF0F3" role="img" aria-label="Sent so far: Amazon SES 17,635 and Postal 1,959, including the 1,560 canary recipients. 11,598 queued.">
+            <i style="width:56.5%;background:#4a3aa7;border-radius:6px 0 0 6px"></i>
+            <i style="width:6.3%;background:#e87ba4;border-radius:0"></i>
+          </div>
         </div>
-        <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13px">
+        <div style="display:flex;gap:8px 18px;flex-wrap:wrap;font-size:13px">
           <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#4a3aa7"></span>Amazon SES 17,635 · 14.2 /s</span>
           <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#e87ba4"></span>Postal 1,959 · 2.0 /s</span>
-          <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#C9CED6"></span>Queued 12,010</span>
+          <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#C9CED6"></span>Queued 11,598</span>
           <span class="k" style="margin-left:auto">A/B subject test: variant B leading, 15.1% vs 13.2% opens on the 20% sample</span>
         </div>
       </section>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
-        <div class="card tile"><span class="k">Delivered</span><span class="n" style="font-size:26px">19,402</span><span class="k">99.0% of sent</span></div>
-        <div class="card tile"><span class="k">Bounced</span><span class="n" style="font-size:26px">118</span><span class="k">0.60% · 94 hard, 24 soft</span></div>
-        <div class="card tile"><span class="k">Complained</span><span class="n" style="font-size:26px">6</span><span class="k">0.03% of delivered</span></div>
+        <div class="card tile"><span class="k">Delivered</span><span class="n" style="font-size:26px">19,402</span><span class="k">99.0% of sent · 74 deferred, retrying</span></div>
+        <div class="card tile"><span class="k">Bounced</span><span class="n" style="font-size:26px">118</span><span class="k">0.60% · 86 unknown user, 8 block/policy, 24 soft</span></div>
+        <div class="card tile"><span class="k">Complained</span><span class="n" style="font-size:26px">4</span><span class="k">0.04% of 8,895 delivered where complaints are reported</span></div>
         <div class="card tile"><span class="k">Opened</span><span class="n" style="font-size:26px">2,811</span><span class="k">14.5% · 1,920 human, 891 machine</span></div>
         <div class="card tile"><span class="k">Clicked</span><span class="n" style="font-size:26px">402</span><span class="k">2.1% · 14.3% click-to-open</span></div>
       </div>
 
+      <section class="card" aria-labelledby="lm-thr-h">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;flex-direction:column;gap:2px"><h2 class="h2" id="lm-thr-h">Auto-pause thresholds</h2><span class="k">Scope: pause only the affected route or mailbox provider</span></div>
+          <div class="thr-links" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:13px"><a href="ProvidersTrafficRules.dc.html">Workspace defaults</a><a href="SendReadiness.dc.html">Edit for this send</a></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px 28px;padding:16px 18px 18px">
+          <div class="thr">
+            <div class="thr-h"><span><b>Bounces</b><span class="k">whole send</span></span><span class="badge ok"><span class="dot"></span>Watching</span></div>
+            <div class="bar" aria-hidden="true"><i style="width:30%;background:#15803D"></i></div>
+            <div class="thr-v"><span class="n">0.60% of 2.0%</span><span>118 of 19,594 sent</span></div>
+          </div>
+          <div class="thr">
+            <div class="thr-h"><span><b>Block/policy bounces</b><span class="k">per mailbox provider</span></span><span class="badge ok"><span class="dot"></span>Watching</span></div>
+            <div class="bar" aria-hidden="true"><i style="width:14%;background:#15803D"></i></div>
+            <div class="thr-v"><span class="n">Outlook 0.07% of 0.5%</span><span>highest · pauses only that mailbox provider</span></div>
+          </div>
+          <div class="thr">
+            <div class="thr-h"><span><b>Deferrals</b><span class="k">per mailbox provider, over 10 min</span></span><span class="badge ok"><span class="dot"></span>Watching</span></div>
+            <div class="bar" aria-hidden="true"><i style="width:21%;background:#15803D"></i></div>
+            <div class="thr-v"><span class="n">Yahoo 3.1% of 15%</span><span>highest · at 15% it slows to half rate</span></div>
+          </div>
+          <div class="thr">
+            <div class="thr-h"><span><b>Complaints</b><span class="k">whole send, where reported</span></span><span class="badge ok"><span class="dot"></span>Watching</span></div>
+            <div class="bar" aria-hidden="true"><i style="width:45%;background:#15803D"></i></div>
+            <div class="thr-v"><span class="n">0.04% of 0.10%</span><span>4 in 8,895 delivered to Outlook, Yahoo and Other</span></div>
+          </div>
+          <div class="thr">
+            <div class="thr-h"><span><b>Outlook complaints</b><span class="k">highest mailbox provider</span></span><span class="badge ok"><span class="dot"></span>Watching</span></div>
+            <div class="bar" aria-hidden="true"><i style="width:50%;background:#15803D"></i></div>
+            <div class="thr-v"><span class="n">0.05% of 0.10%</span><span>2 in 4,049 delivered</span></div>
+          </div>
+          <div class="thr">
+            <div class="thr-h"><span><b>Mailbox provider replies</b><span class="k">3 reply rules, over 10 min</span></span><span class="badge ok"><span class="dot"></span>Watching</span></div>
+            <div class="bar" aria-hidden="true"><i style="width:10%;background:#15803D"></i></div>
+            <div class="thr-v"><span class="n">Yahoo TSS04: 1 of 10 replies</span><span>at 10, Yahoo pauses for 2 h</span></div>
+          </div>
+          <div class="thr">
+            <div class="thr-h"><span><b>Sending provider API errors</b><span class="k">over 3 min</span></span><span class="badge ok"><span class="dot"></span>Watching</span></div>
+            <div class="bar" aria-hidden="true"><i style="width:4%;background:#15803D"></i></div>
+            <div class="thr-v"><span class="n">0.2% of 5%</span><span>Postal 0.4%, SES 0.1%</span></div>
+          </div>
+          <div style="display:flex;align-items:center;padding:10px 12px;border-radius:8px;background:#F9FAFB;border:1px solid #E3E6EB">
+            <p class="fn">A threshold trips after at least 5 events and enough evidence that the rate is really above the limit. Until then it shows “Collecting evidence” with a grey bar.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="lm-mbx">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;flex-direction:column;gap:2px"><h2 class="h2">Per mailbox provider</h2><span class="k">where recipients read the mail</span></div>
+          <button class="btn sm" type="button" aria-expanded="{{ratesOpen}}" aria-controls="lm-rates" onClick="{{toggleRates}}">Adjust rates</button>
+        </div>
+        <sc-if value="{{ratesOpen}}" hint-placeholder-val="{{false}}">
+          <div class="ratep" id="lm-rates">
+            <div style="display:flex;flex-direction:column;gap:2px"><h3 class="h2" style="font-size:14px">Rates per mailbox provider</h3><span class="k">For the rest of this send, on every route. Lower a rate to ease off one mailbox provider; the others keep their pace.</span></div>
+            <div class="rrow"><span class="nm"><span class="dot" style="color:#2a78d6"></span>Gmail</span><span class="k was">{{r.gmail.was}}</span><div class="stp" role="group" aria-label="Gmail rate"><button type="button" aria-label="Lower Gmail rate" onClick="{{r.gmail.dec}}" disabled="{{r.gmail.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.gmail.label}}</output><button type="button" aria-label="Raise Gmail rate" onClick="{{r.gmail.inc}}" disabled="{{r.gmail.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.gmail.effect}}</span></div>
+            <div class="rrow"><span class="nm"><span class="dot" style="color:#eb6834"></span>Outlook</span><span class="k was">{{r.outlook.was}}</span><div class="stp" role="group" aria-label="Outlook rate"><button type="button" aria-label="Lower Outlook rate" onClick="{{r.outlook.dec}}" disabled="{{r.outlook.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.outlook.label}}</output><button type="button" aria-label="Raise Outlook rate" onClick="{{r.outlook.inc}}" disabled="{{r.outlook.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.outlook.effect}}</span></div>
+            <div class="rrow"><span class="nm"><span class="dot" style="color:#1baf7a"></span>Yahoo</span><span class="k was">{{r.yahoo.was}}</span><div class="stp" role="group" aria-label="Yahoo rate"><button type="button" aria-label="Lower Yahoo rate" onClick="{{r.yahoo.dec}}" disabled="{{r.yahoo.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.yahoo.label}}</output><button type="button" aria-label="Raise Yahoo rate" onClick="{{r.yahoo.inc}}" disabled="{{r.yahoo.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.yahoo.effect}}</span></div>
+            <div class="rrow"><span class="nm"><span class="dot" style="color:#eda100"></span>iCloud</span><span class="k was">{{r.icloud.was}}</span><div class="stp" role="group" aria-label="iCloud rate"><button type="button" aria-label="Lower iCloud rate" onClick="{{r.icloud.dec}}" disabled="{{r.icloud.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.icloud.label}}</output><button type="button" aria-label="Raise iCloud rate" onClick="{{r.icloud.inc}}" disabled="{{r.icloud.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.icloud.effect}}</span></div>
+            <div class="rrow"><span class="nm"><span class="dot" style="color:#8b94a3"></span>Other</span><span class="k was">{{r.other.was}}</span><div class="stp" role="group" aria-label="Other rate"><button type="button" aria-label="Lower Other rate" onClick="{{r.other.dec}}" disabled="{{r.other.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.other.label}}</output><button type="button" aria-label="Raise Other rate" onClick="{{r.other.inc}}" disabled="{{r.other.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.other.effect}}</span></div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:4px">
+              <span style="font-size:13px"><span class="k">Whole send: </span><span class="n">{{wholeEffect}}</span></span>
+              <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn" type="button" onClick="{{cancelRates}}">Cancel</button>
+                <button class="btn pri" type="button" onClick="{{applyRates}}" disabled="{{noChange}}">Apply</button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+        <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Per mailbox provider table, scrolls sideways on small screens">
+          <table class="tbl">
+            <thead><tr><th scope="col">Mailbox provider</th><th scope="col" class="r">Sent</th><th scope="col" class="r">Delivered</th><th scope="col" class="r">Deferred · 10 min</th><th scope="col" class="r">Bounce</th><th scope="col" class="r">Complaint</th><th scope="col" class="r">Opened</th><th scope="col" class="r">Rate</th><th scope="col">Status</th></tr></thead>
+            <tbody>
+              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#2a78d6"></span>Gmail</span></td><td class="r n">9,013</td><td class="r n">99.3%</td><td class="r n">0.4%</td><td class="r n">0.4%</td><td class="r k" aria-describedby="lm-fn-cmp">n/a</td><td class="r n">16.1%</td><td class="r">{{rates.gmail}}</td><td><span class="badge ok"><span class="dot"></span>Sending</span></td></tr>
+              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#eb6834"></span>Outlook</span></td><td class="r n">4,115</td><td class="r n">98.4%</td><td class="r n">0.0%</td><td class="r n">1.1%</td><td class="r n">0.05%</td><td class="r n">11.2%</td><td class="r">{{rates.outlook}}</td><td><span class="badge ok"><span class="dot"></span>Sending</span></td></tr>
+              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#1baf7a"></span>Yahoo</span></td><td class="r n">1,763</td><td class="r n">99.0%</td><td class="r n">3.1%</td><td class="r n">0.7%</td><td class="r n">0.06%</td><td class="r n">13.8%</td><td class="r">{{rates.yahoo}}</td><td><span class="badge ok"><span class="dot"></span>Sending</span></td></tr>
+              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#eda100"></span>iCloud</span></td><td class="r n">1,567</td><td class="r n">99.4%</td><td class="r n">0.2%</td><td class="r n">0.4%</td><td class="r k" aria-describedby="lm-fn-cmp">n/a</td><td class="r n">9.6%</td><td class="r">{{rates.icloud}}</td><td><span class="badge ok"><span class="dot"></span>Sending</span></td></tr>
+              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#8b94a3"></span>Other</span></td><td class="r n">3,136</td><td class="r n">98.9%</td><td class="r n">0.6%</td><td class="r n">0.8%</td><td class="r n">0.03%</td><td class="r n">12.0%</td><td class="r">{{rates.other}}</td><td><span class="badge ok"><span class="dot"></span>Sending</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="fns">
+          <p class="fn" id="lm-fn-cmp">n/a: Gmail and iCloud don't report complaints per message. Gmail's spam rate from Postmaster Tools: 0.04% yesterday.</p>
+          <p class="fn">Gmail includes Google Workspace and Outlook includes Microsoft 365 recipients (found from MX records). Deferred is the share of delivery attempts in the last 10 minutes that the mailbox provider asked to retry later.</p>
+        </div>
+      </section>
+
       <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
         <div style="flex:2 1 560px;min-width:0;display:flex;flex-direction:column;gap:20px">
+
           <section class="card">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px"><h2 class="h2">Per mailbox provider</h2><span class="k">where recipients read the mail</span></div>
-            <div style="overflow-x:auto">
-              <table class="tbl">
-                <thead><tr><th scope="col">Mailbox provider</th><th scope="col" class="r">Sent</th><th scope="col" class="r">Delivered</th><th scope="col" class="r">Bounce</th><th scope="col" class="r">Complaint</th><th scope="col" class="r">Opened</th><th scope="col" class="r">Rate</th><th scope="col">Status</th></tr></thead>
-                <tbody>
-                  <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#2a78d6"></span>Gmail</span></td><td class="r n">9,013</td><td class="r n">99.3%</td><td class="r n">0.4%</td><td class="r n">0.02%</td><td class="r n">16.1%</td><td class="r">full</td><td><span class="badge ok">OK</span></td></tr>
-                  <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#eb6834"></span>Outlook</span></td><td class="r n">4,115</td><td class="r n">98.4%</td><td class="r n">1.1%</td><td class="r n">0.05%</td><td class="r n">11.2%</td><td class="r">5 /s</td><td><span class="badge ok">OK</span></td></tr>
-                  <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#1baf7a"></span>Yahoo</span></td><td class="r n">1,763</td><td class="r n">99.0%</td><td class="r n">0.7%</td><td class="r n">0.03%</td><td class="r n">13.8%</td><td class="r">4 /s</td><td><span class="badge ok">OK</span></td></tr>
-                  <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#eda100"></span>iCloud</span></td><td class="r n">1,567</td><td class="r n">99.4%</td><td class="r n">0.4%</td><td class="r n">0.00%</td><td class="r n">9.6%</td><td class="r">3 /s</td><td><span class="badge ok">OK</span></td></tr>
-                  <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#8b94a3"></span>Other</span></td><td class="r n">3,136</td><td class="r n">98.9%</td><td class="r n">0.8%</td><td class="r n">0.03%</td><td class="r n">12.0%</td><td class="r">full</td><td><span class="badge ok">OK</span></td></tr>
-                </tbody>
-              </table>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px">
+              <div style="display:flex;flex-direction:column;gap:2px"><h2 class="h2">Live events</h2><span class="k">newest first · from SNS and Postal webhooks</span></div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <sc-if value="{{streamPaused}}" hint-placeholder-val="{{false}}"><span class="badge mut"><span class="dot"></span>paused</span></sc-if>
+                <sc-if value="{{streamLive}}" hint-placeholder-val="{{true}}"><span class="badge ok"><span class="dot"></span>streaming</span></sc-if>
+                <button class="btn sm" type="button" aria-pressed="{{streamPaused}}" onClick="{{toggleStream}}">{{streamBtn}}</button>
+              </div>
             </div>
-          </section>
-
-          
-
-          <section class="card">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px"><h2 class="h2">Live events</h2><span class="badge ok"><span class="dot"></span>streaming</span></div>
-            <div class="ev" style="border-top:0"><span class="mono k">09:21:44</span><span class="badge ok">delivered</span><span class="mono">a.k···@gmail.com</span><span class="k">SES · 250 2.0.0 OK</span></div>
-            <div class="ev"><span class="mono k">09:21:44</span><span class="badge bad">hard bounce</span><span class="mono">r.w···@outlook.com</span><span class="k">SES · 550 5.1.1 user unknown · added to suppression list</span></div>
-            <div class="ev"><span class="mono k">09:21:43</span><span class="badge ok">delivered</span><span class="mono">m.t···@acme-partner.co</span><span class="k">Postal · 250 OK</span></div>
-            <div class="ev"><span class="mono k">09:21:43</span><span class="badge info">opened · human</span><span class="mono">s.p···@gmail.com</span><span class="k">Chrome on macOS · variant B</span></div>
-            <div class="ev"><span class="mono k">09:21:42</span><span class="badge mut">opened · machine</span><span class="mono">d.l···@icloud.com</span><span class="k">Apple Mail Privacy Protection prefetch</span></div>
-            <div class="ev"><span class="mono k">09:21:42</span><span class="badge warn">deferred</span><span class="mono">h.b···@yahoo.com</span><span class="k">SES · 421 4.7.0 TSS04 · retry in 5 min</span></div>
-            <div class="ev"><span class="mono k">09:21:41</span><span class="badge ok">clicked</span><span class="mono">e.n···@gmail.com</span><span class="k">docs.acme.io/changelog</span></div>
+            <div class="ev" style="border-top:0"><span class="mono k">09:38:44</span><span class="badge ok">delivered</span><span class="mono">a.k···@gmail.com</span><span class="k">SES · 250 2.0.0 OK</span></div>
+            <div class="ev"><span class="mono k">09:38:44</span><span class="badge bad">hard bounce</span><span class="mono">r.w···@outlook.com</span><span class="k">SES · 550 5.1.1 user unknown · added to suppression list</span></div>
+            <div class="ev"><span class="mono k">09:38:43</span><span class="badge ok">delivered</span><span class="mono">m.t···@acme-partner.co</span><span class="k">Postal · 250 OK</span></div>
+            <div class="ev"><span class="mono k">09:38:43</span><span class="badge info">opened · human</span><span class="mono">s.p···@gmail.com</span><span class="k">Chrome on macOS · variant B</span></div>
+            <div class="ev"><span class="mono k">09:38:42</span><span class="badge mut">opened · machine</span><span class="mono">d.l···@icloud.com</span><span class="k">Apple Mail Privacy Protection prefetch</span></div>
+            <div class="ev"><span class="mono k">09:38:42</span><span class="badge warn">deferred</span><span class="mono">h.b···@yahoo.com</span><span class="k">SES · 421 4.7.0 TSS04 · retry in 5 min</span></div>
+            <div class="ev"><span class="mono k">09:38:41</span><span class="badge ok">clicked</span><span class="mono">e.n···@gmail.com</span><span class="k">docs.acme.io/changelog</span></div>
           </section>
         </div>
 
-        <aside style="flex:1 1 320px;max-width:400px;display:flex;flex-direction:column;gap:16px">
-          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:14px">
-            <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="h2">Auto-pause thresholds</h2><a href="SendReadiness.dc.html" class="k">Edit</a></div>
-            <div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Bounce rate</span><span class="n">0.60% of 2.0%</span></div><div class="bar"><i style="width:30%;background:#15803D"></i></div></div>
-            <div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Complaint rate</span><span class="n">0.03% of 0.10%</span></div><div class="bar"><i style="width:30%;background:#15803D"></i></div></div>
-            <div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Outlook complaints (highest mailbox provider)</span><span class="n">0.05% of 0.10%</span></div><div class="bar"><i style="width:50%;background:#B45309"></i></div></div>
-            <div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Provider API errors, 3 min</span><span class="n">0.2% of 5%</span></div><div class="bar"><i style="width:4%;background:#15803D"></i></div></div>
-            <span class="k">Scope: pause only the affected route or mailbox provider.</span>
-          </section>
+        <aside class="cpanel" style="flex:1 1 320px;max-width:400px;display:flex;flex-direction:column;gap:16px" aria-label="Send details">
 
           <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
             <h2 class="h2">Send details</h2>
             <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span class="k">From</span><span class="n">digest@news.acme.io</span></div>
-            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span class="k">Audience</span><span class="n">Weekly Digest · 31,604</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span class="k">Audience</span><span class="n">Weekly Digest · 31,192</span></div>
             <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span class="k">Route</span><span class="n">SES 90% · Postal 10%</span></div>
-            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span class="k">Cost so far</span><span class="n">$1.76 of $2.84</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span class="k">Canary</span><span class="n" style="text-align:right">1,560 most engaged plus 10 seed inboxes · passed 09:20</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span class="k">Cost so far</span><span class="n">$1.76 of $2.81</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span class="k">After the send</span><span class="n" style="text-align:right">complaint watch for 72 h</span></div>
             <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span class="k">Scheduled by</span><span class="n">Linh Nguyen</span></div>
           </section>
 
@@ -281,26 +417,144 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
           </section>
         </aside>
       </div>
-    <section class="card">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px"><h2 class="h2">Per sending provider</h2><span class="k">who delivers the mail</span></div>
-            <div style="overflow-x:auto">
-              <table class="tbl">
-                <thead><tr><th scope="col">Sending provider</th><th scope="col" class="r">Sent</th><th scope="col" class="r">Share</th><th scope="col" class="r">Rate</th><th scope="col" class="r">Delivered</th><th scope="col" class="r">Bounce</th><th scope="col" class="r">Complaint</th><th scope="col" class="r">API errors</th><th scope="col">Status</th></tr></thead>
-                <tbody>
-                  <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#4a3aa7"></span>Amazon SES</span><div class="k">quota 19,416 free after this send</div></td><td class="r n">17,635 / 28,444</td><td class="r n">90%</td><td class="r n">14.2 /s</td><td class="r n">99.1%</td><td class="r n">0.6%</td><td class="r n">0.03%</td><td class="r n">0.1%</td><td><span class="badge ok">Healthy</span></td></tr>
-                  <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#e87ba4"></span>Postal</span><div class="k">warm-up day 9 · 1,959 of today's 6,000 cap</div></td><td class="r n">1,959 / 3,160</td><td class="r n">10%</td><td class="r n">2.0 /s</td><td class="r n">98.6%</td><td class="r n">0.9%</td><td class="r n">0.05%</td><td class="r n">0.4%</td><td><span class="badge info">Warming up</span></td></tr>
-                </tbody>
-              </table>
+
+      <section class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px"><h2 class="h2">Per sending provider</h2><span class="k">who delivers the mail</span></div>
+        <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Per sending provider table, scrolls sideways on small screens">
+          <table class="tbl">
+            <thead><tr><th scope="col">Sending provider</th><th scope="col" class="r">Sent</th><th scope="col" class="r">Share</th><th scope="col" class="r">Rate</th><th scope="col" class="r">Delivered</th><th scope="col" class="r">Bounce</th><th scope="col" class="r">Complaint</th><th scope="col" class="r">API errors</th><th scope="col" class="r">Done about</th><th scope="col">Status</th></tr></thead>
+            <tbody>
+              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#4a3aa7"></span>Amazon SES</span><div class="k">quota 19,787 free after this send</div></td><td class="r n">17,635 / 28,073</td><td class="r n">90%</td><td class="r n">14.2 /s</td><td class="r n">99.1%</td><td class="r n">0.6%</td><td class="r n">0.05%</td><td class="r n">0.1%</td><td class="r n">{{sesDone}}</td><td><span class="badge ok">Healthy</span></td></tr>
+              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#e87ba4"></span>Postal</span><div class="k">warm-up day 9 · 1,959 of today's 6,000 cap</div></td><td class="r n">1,959 / 3,119</td><td class="r n">10%</td><td class="r n">2.0 /s</td><td class="r n">98.6%</td><td class="r n">0.9%</td><td class="r n">0.00%</td><td class="r n">0.4%</td><td class="r n">{{postalDone}}</td><td><span class="badge info">Warming up</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="fns">
+          <p class="fn">Complaint rates count only mail delivered to mailbox providers that report complaints, so Gmail and iCloud are left out. Done about: at current rates, including the per-mailbox limits.</p>
+        </div>
+      </section>
+
+      <div class="pbar" role="group" aria-label="Send actions">
+        <a href="LiveMonitorPaused.dc.html" class="btn pri" style="flex:1 1 auto">Pause</a>
+        <div style="position:relative;flex:none">
+          <button class="btn" type="button" style="width:44px;padding:0" aria-label="More actions" aria-haspopup="menu" aria-expanded="{{moreOpen}}" onClick="{{toggleMore}}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg></button>
+          <sc-if value="{{moreOpen}}" hint-placeholder-val="{{false}}">
+            <div class="menu" role="menu" aria-label="More actions">
+              <a role="menuitem" href="#lm-mbx" onClick="{{openRatesFromMenu}}">Adjust rates</a>
+              <hr>
+              <button role="menuitem" type="button" style="color:#991B1B">Cancel send…</button>
             </div>
-          </section>
+          </sc-if>
+        </div>
+      </div>
     </main>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1361}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2083}}'>
 class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { ratesOpen: false, applied: null, draft: null, note: '', streamPaused: false, moreOpen: false };
+  }
+  cfg() {
+    // Live view at 09:38:44. Remaining recipients per mailbox provider add up to the 11,598 queued.
+    return {
+      now: 9 * 3600 + 38 * 60 + 44,
+      mailboxes: [
+        { key: 'gmail', name: 'Gmail', left: 5335, rate: 0 },
+        { key: 'outlook', name: 'Outlook', left: 2436, rate: 5 },
+        { key: 'yahoo', name: 'Yahoo', left: 1044, rate: 4 },
+        { key: 'icloud', name: 'iCloud', left: 928, rate: 3 },
+        { key: 'other', name: 'Other', left: 1855, rate: 0 }
+      ],
+      ses: { left: 10438, rate: 14.2 },
+      postal: { left: 1160, rate: 2.0 },
+      summary: 'Canary passed at 09:20. Sending to everyone; every threshold is inside its limit.'
+    };
+  }
   renderVals() {
-    return {};
+    var self = this;
+    var s = this.state;
+    var c = this.cfg();
+    var LEVELS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 0];
+    var base = {};
+    c.mailboxes.forEach(function (m) { base[m.key] = m.rate; });
+    var applied = s.applied || base;
+    var draft = s.draft || applied;
+    function lab(v) { return v === 0 ? 'full rate' : v + ' /s'; }
+    function clock(sec) {
+      var m = Math.round((c.now + sec) / 60);
+      var h = Math.floor(m / 60), mm = m % 60;
+      return (h < 10 ? '0' : '') + h + ':' + (mm < 10 ? '0' : '') + mm;
+    }
+    function mbTime(m, rates) { var v = rates[m.key]; return v > 0 ? m.left / v : 0; }
+    function sesTime(rates) {
+      var t = c.ses.left / c.ses.rate;
+      c.mailboxes.forEach(function (m) { t = Math.max(t, mbTime(m, rates)); });
+      return t;
+    }
+    function postalTime() { return c.postal.left / c.postal.rate; }
+    function whole(rates) { return Math.max(sesTime(rates), postalTime()); }
+    var r = {};
+    var changed = [];
+    var rates = {};
+    c.mailboxes.forEach(function (m) {
+      var v = draft[m.key];
+      var was = applied[m.key];
+      var i = LEVELS.indexOf(v);
+      var isChanged = v !== was;
+      if (isChanged) changed.push(m.name + ' ' + lab(v));
+      var effect = '';
+      if (isChanged) {
+        var t0 = mbTime(m, applied), t1 = mbTime(m, draft);
+        if (t1 && t0) effect = 'finishes about ' + clock(t1) + ' instead of ' + clock(t0);
+        else if (t1) effect = 'finishes about ' + clock(t1);
+        else effect = 'limited only by the sending provider';
+      }
+      rates[m.key] = lab(was);
+      r[m.key] = {
+        label: lab(v),
+        was: isChanged ? 'was ' + lab(was) : 'now ' + lab(was),
+        effect: effect,
+        atMin: i === 0,
+        atMax: v === 0,
+        dec: function () { var d = Object.assign({}, draft); d[m.key] = LEVELS[Math.max(0, i - 1)]; self.setState({ draft: d }); },
+        inc: function () { var d = Object.assign({}, draft); d[m.key] = LEVELS[Math.min(LEVELS.length - 1, i + 1)]; self.setState({ draft: d }); }
+      };
+    });
+    var w0 = whole(applied), w1 = whole(draft);
+    var diff = Math.round((c.now + w1) / 60) - Math.round((c.now + w0) / 60);
+    var wholeEffect = changed.length === 0 ? 'about ' + clock(w0) + ' (no change yet)'
+      : 'about ' + clock(w0) + ' → about ' + clock(w1) + (diff > 0 ? ' (' + diff + ' min later)' : diff < 0 ? ' (' + (-diff) + ' min sooner)' : ' (same minute)');
+    return {
+      r: r,
+      rates: rates,
+      wholeEffect: wholeEffect,
+      noChange: changed.length === 0,
+      ratesOpen: !!s.ratesOpen,
+      summary: s.note || c.summary,
+      sesDone: clock(sesTime(applied)),
+      postalDone: clock(postalTime()),
+      streamPaused: !!s.streamPaused,
+      streamLive: !s.streamPaused,
+      streamBtn: s.streamPaused ? 'Resume updates' : 'Pause updates',
+      moreOpen: !!s.moreOpen,
+      toggleMore: function () { self.setState({ moreOpen: !s.moreOpen }); },
+      openRatesFromMenu: function () { self.setState({ moreOpen: false, ratesOpen: true, draft: Object.assign({}, applied) }); },
+      toggleStream: function () { self.setState({ streamPaused: !s.streamPaused }); },
+      toggleRates: function () { self.setState({ ratesOpen: !s.ratesOpen, draft: s.ratesOpen ? null : Object.assign({}, applied) }); },
+      cancelRates: function () { self.setState({ ratesOpen: false, draft: null }); },
+      applyRates: function () {
+        if (!changed.length) return;
+        self.setState({
+          applied: Object.assign({}, draft),
+          draft: null,
+          ratesOpen: false,
+          note: 'Rates changed: ' + changed.join(', ') + '. The whole send now finishes about ' + clock(w1) + '.'
+        });
+      }
+    };
   }
 }
 </script>

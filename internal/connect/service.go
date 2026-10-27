@@ -76,8 +76,11 @@ type Service struct {
 	// OnRoutingChange is called after the streams step saved routing (the
 	// system mailer forgets its cached availability).
 	OnRoutingChange func()
-	Log             *slog.Logger
-	Now             func() time.Time
+	// Host finds out whether ReputeCast runs on AWS (the SES access it
+	// recommends, PR-5); nil checks this process's host.
+	Host *HostDetector
+	Log  *slog.Logger
+	Now  func() time.Time
 }
 
 func (s *Service) now() time.Time {
@@ -85,6 +88,17 @@ func (s *Service) now() time.Time {
 		return s.Now()
 	}
 	return time.Now()
+}
+
+// defaultHost checks this process's own host.
+var defaultHost = &HostDetector{}
+
+// host is where ReputeCast runs.
+func (s *Service) host(ctx context.Context) HostInfo {
+	if s.Host != nil {
+		return s.Host.Detect(ctx)
+	}
+	return defaultHost.Detect(ctx)
 }
 
 func (s *Service) log() *slog.Logger {
@@ -328,6 +342,11 @@ func (s *Service) SetStep(ctx context.Context, ws *store.Workspace, rawID string
 	})
 	if err != nil {
 		return ConnectSetup{}, err
+	}
+	if in.Step != "connection" && in.Step != "domain" {
+		// Past the domain step a sending domain may be verified: the event
+		// check that waited for one goes out (PR-3).
+		s.resumeEventCheck(ctx, st.ID)
 	}
 	return s.View(ctx, ws, st)
 }

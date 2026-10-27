@@ -13,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/forms"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/offers"
 	"github.com/hostrepute/reputecast/internal/referrals"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -39,8 +40,8 @@ func (a *App) referrals() *referrals.Service {
 		// Milestone emails go out on the Automations stream through the
 		// sending engine, outside any flow.
 		Emails: func() referrals.MilestoneSender { return milestoneMailer{a: a} },
-		// Stripe coupons: Earn's Stripe connection (M26); offers of the
-		// kind "Referral reward" come with Earn's offers (M27).
+		// Stripe coupons: Earn's Stripe connection and its offers of the
+		// kind "Referral reward".
 		Coupons:      referralCoupons(a),
 		AllowPrivate: func() bool { return a.Cfg != nil && a.Cfg.Webhooks.AllowPrivateNetworks },
 		Jobs: func() referrals.Inserter {
@@ -55,17 +56,19 @@ func (a *App) referrals() *referrals.Service {
 	return s
 }
 
-// referralCoupons is the Stripe coupon seam of rewards. By default it reads
-// Earn's Stripe connection (M26) and has no offers to issue yet; Earn's
-// offers (M27) replace it from their wire file's init. A nil seam shows
-// "Connect Stripe".
-var referralCoupons = func(a *App) func() referrals.Coupons {
-	return func() referrals.Coupons { return earnCoupons{a: a} }
+// referralCoupons is the Stripe coupon seam of rewards: Earn's "Referral
+// reward" offers issue the codes. It's set in init, because Earn's service
+// reaches the referrals service (an initializer would be a cycle). A nil
+// seam shows "Connect Stripe".
+var referralCoupons func(a *App) func() referrals.Coupons
+
+func init() {
+	referralCoupons = func(a *App) func() referrals.Coupons {
+		return func() referrals.Coupons { return offerCoupons{earnCoupons: earnCoupons{a: a}, s: offerService(a)} }
+	}
 }
 
-// earnCoupons is the coupon reward's view of Earn before its offers exist:
-// whether Stripe is connected, no "Referral reward" offers, nothing to
-// issue (rewards wait and retry).
+// earnCoupons is whether Earn's Stripe connection can issue coupons.
 type earnCoupons struct{ a *App }
 
 // Status implements referrals.Coupons: a connected Stripe account whose key
@@ -83,17 +86,38 @@ func (c earnCoupons) Status(ctx context.Context, ws *store.Workspace) (referrals
 	return referrals.CouponStatus{Connected: true, Account: name}, nil
 }
 
-// Offers implements referrals.Coupons: none until Earn's offers.
-func (earnCoupons) Offers(context.Context, *store.Workspace) ([]referrals.CouponOffer, error) {
-	return nil, nil
+// offerCoupons issues a coupon reward's single-use code from one of
+// Earn's live "Referral reward" offers.
+type offerCoupons struct {
+	earnCoupons
+	s *offers.Service
 }
 
-// errNoCouponOffers: a coupon can't be issued without Earn's offers.
-var errNoCouponOffers = errors.New("no Referral reward offer can issue a coupon yet: offers come with Earn's offers")
+// Offers implements referrals.Coupons.
+func (c offerCoupons) Offers(ctx context.Context, ws *store.Workspace) ([]referrals.CouponOffer, error) {
+	list, err := c.s.ReferralOffers(ctx, ws)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]referrals.CouponOffer, 0, len(list))
+	for _, o := range list {
+		out = append(out, referrals.CouponOffer{ID: o.ID.String(), Name: o.Name, Discount: o.Discount, AppliesTo: o.AppliesTo, Issued: o.Issued, Redeemed: o.Redeemed})
+	}
+	return out, nil
+}
 
-// Issue implements referrals.Coupons: the reward waits and tries again.
-func (earnCoupons) Issue(context.Context, *store.Workspace, string, uuid.UUID, int) (referrals.IssuedCoupon, error) {
-	return referrals.IssuedCoupon{}, errNoCouponOffers
+// Issue implements referrals.Coupons; an error leaves the reward waiting
+// to try again.
+func (c offerCoupons) Issue(ctx context.Context, ws *store.Workspace, offerID string, contact uuid.UUID, validDays int) (referrals.IssuedCoupon, error) {
+	id, err := uuid.Parse(offerID)
+	if err != nil {
+		return referrals.IssuedCoupon{}, err
+	}
+	code, err := c.s.IssueReferralCode(ctx, ws, id, contact, validDays)
+	if err != nil {
+		return referrals.IssuedCoupon{}, err
+	}
+	return referrals.IssuedCoupon{Code: code.Code, ClaimURL: code.ClaimURL, ExpiresAt: code.ExpiresAt}, nil
 }
 
 // growPages are a workspace's public page links (its custom domain's when

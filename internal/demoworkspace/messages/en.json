@@ -1,0 +1,4 @@
+{
+  "problem.signIn": "Sign in first.",
+  "problem.setupIncomplete": { "message": "Finish setting up the instance first: create your first workspace, then load the demo next to it.", "note": "an instance admin who hasn't finished the first sign-in setup asked for a demo workspace" }
+}

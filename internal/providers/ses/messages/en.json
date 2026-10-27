@@ -2,7 +2,7 @@
   "pricing": { "message": "$0.10 per 1,000", "note": "Amazon SES's price per 1,000 emails, on a capability chip: Pricing · $0.10 per 1,000" },
   "dedicatedIps": { "message": "optional, $24.95 per IP per month", "note": "the dedicated-IP option on a capability chip: Dedicated IPs · optional, $24.95 per IP per month" },
   "terms.0.note": { "message": "Production access required; the account must stay under SES bounce and complaint thresholds.", "note": "what SES's terms allow, on Routing" },
-  "events": { "message": "SNS webhooks", "note": "Sending providers › Adapters: how events come back" },
+  "events": { "message": "SNS webhooks or an SQS queue", "note": "Sending providers › Adapters: how events come back" },
   "domainSetup": { "message": "API", "note": "Sending providers › Adapters: how a sending domain is set up" },
   "suppressionMode": { "message": "Two-way", "note": "Sending providers › Adapters: the suppression sync" },
   "field.region.label": "Region",
@@ -31,6 +31,14 @@
   "provision.topicDone": "Created SNS topic `{topic}` and subscribed `{url}`",
   "provision.confirmDone": "Confirmed SNS subscription (handshake received)",
   "provision.configSetDone": "Created configuration set `{name}` with event destination, tracking off",
+
+  "provision.tenant": {"message": "Create tenant `{tenant}`", "note": "PR-11: a provisioning row; tenant: the workspace's SES tenant, named after the workspace"},
+  "provision.tenantDone": "Created tenant `{tenant}`",
+  "provision.tenantNote": {"message": "This workspace's own suppression list and reputation{hasPolicy, select, yes { policy {policy}} other {}}, which pauses this tenant only", "note": "PR-11: under the tenant row; policy: SES's reputation policy name, such as Standard"},
+  "provision.queue": {"message": "Create SNS topic `{topic}` and an SQS queue subscribed to it", "note": "PR-4: a provisioning row of the queue path"},
+  "provision.queueDone": "Created SNS topic `{topic}` and an SQS queue subscribed to it: `{queue}`",
+  "provision.queuePolicy": "Limit the queue to that topic and start polling every {seconds} s",
+  "provision.queuePolicyDone": "Limited the queue to that topic and started polling every {seconds} s",
 
   "status.incident": { "message": "AWS reports an SES incident in {region}.", "note": "from the AWS status page, during an outage; region: us-east-1" }
 }

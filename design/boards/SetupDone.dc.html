@@ -70,6 +70,9 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
   .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
 }
+/* review: rows and buttons on touch widths */
+.row .badge{flex:none}
+@media (max-width:767px){main .btn{min-height:44px}}
 </style>
 </helmet>
 <div style="min-height:100vh;display:flex;flex-direction:column">
@@ -94,13 +97,14 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 
     <section class="card" style="display:flex;flex-direction:column">
       <div style="padding:14px 18px;display:flex;justify-content:space-between;align-items:center"><h3 class="h2">What was configured</h3><span class="k">all reversible from Sending providers</span></div>
-      <div class="row"><span class="badge ok">Done</span><span><strong>AWS access</strong> via CloudFormation role <span class="mono">ReputeCastSES</span>, account 123456789012, region us-east-1 (production, 50,000 per day, 14 per second)</span></div>
-      <div class="row"><span class="badge ok">Done</span><span><strong>Events</strong>: SNS topic <span class="mono">reputecast-events</span> subscribed to <span class="mono">https://reputecast.acme.io/hooks/ses/7d1a</span>; first delivery event received at 09:21</span></div>
-      <div class="row"><span class="badge ok">Done</span><span><strong>Configuration sets</strong> <span class="mono">rc-broadcasts</span>, <span class="mono">rc-automations</span>, <span class="mono">rc-system</span>, provider-side tracking off</span></div>
-      <div class="row"><span class="badge ok">Done</span><span><strong>Domain</strong> news.acme.io: DKIM (3 CNAMEs), MAIL FROM bounce.news.acme.io, SPF and DMARC p=quarantine all verified</span></div>
-      <div class="row"><span class="badge ok">Done</span><span><strong>Streams</strong>: SES is primary for Broadcasts, Automations and System</span></div>
-      <div class="row"><span class="badge ok">Done</span><span><strong>Suppressions</strong>: 612 addresses imported from the SES account-level list into the shared suppression list</span></div>
-      <div class="row"><span class="badge mut">Skipped</span><span><strong>Contacts</strong>: started empty with three lists. <a href="MigrationSource.dc.html">Import now</a></span></div>
+      <div class="row"><span class="badge ok"><span class="dot"></span>Done</span><span><strong>AWS access</strong> via IAM access key <span class="mono">AKIA…7QXP</span> (user <span class="mono">reputecast-ses</span>), account 123456789012, region us-east-1 (production, 50,000 per day, 14 per second)</span></div>
+      <div class="row"><span class="badge ok"><span class="dot"></span>Verified</span><span><strong>Events</strong>: first delivery event 09:08:31 from the SES mailbox simulator · SNS topic <span class="mono">reputecast-events</span> calls <span class="mono">https://reputecast.acme.io/hooks/ses/7d1a</span></span></div>
+      <div class="row"><span class="badge ok"><span class="dot"></span>Done</span><span><strong>Tenant</strong> <span class="mono">acme-newsletter</span>: this workspace's own suppression list, reputation policy Standard (pauses this tenant only)</span></div>
+      <div class="row"><span class="badge ok"><span class="dot"></span>Done</span><span><strong>Configuration sets</strong> <span class="mono">rc-broadcasts</span>, <span class="mono">rc-automations</span>, <span class="mono">rc-system</span>, provider-side tracking off</span></div>
+      <div class="row"><span class="badge ok"><span class="dot"></span>Done</span><span><strong>Domain</strong> news.acme.io: DKIM (3 CNAMEs), MAIL FROM bounce.news.acme.io, SPF and DMARC p=quarantine all verified</span></div>
+      <div class="row"><span class="badge ok"><span class="dot"></span>Done</span><span><strong>Streams</strong>: SES is primary for Broadcasts, Automations and System</span></div>
+      <div class="row"><span class="badge ok"><span class="dot"></span>Done</span><span><strong>Suppressions</strong>: 612 addresses imported from the SES account-level list into the shared suppression list; from now on, hard bounces and complaints go to the tenant's list</span></div>
+      <div class="row"><span class="badge mut"><span class="dot"></span>Skipped</span><span><strong>Contacts</strong>: started empty with three lists. <a href="MigrationSource.dc.html">Import now</a></span></div>
     </section>
 
     <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
@@ -119,7 +123,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":901}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":978}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};

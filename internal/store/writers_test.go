@@ -13,9 +13,7 @@ import (
 // knownGaps are tables production code reads that only the demo or tests
 // write today, each with the review item that gives it a production writer.
 // Remove an entry when its writer lands; never add one without an ID.
-var knownGaps = map[string]string{
-	"earn_offer_codes": "EXT-1: referral coupon rewards still use the pre-offers stub (internal/app/wire_referrals.go), so no code is ever issued",
-}
+var knownGaps = map[string]string{}
 
 var (
 	createTable = regexp.MustCompile(`(?i)CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([a-z_][a-z0-9_]*)`)

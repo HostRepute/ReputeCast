@@ -13,12 +13,13 @@
 <style>
 body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;line-height:1.45}
 a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 12px;border-radius:7px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
 .btn:hover{background:#F3F4F6;color:#0B1220}
 .btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
 .btn.ic{width:32px;padding:0}
 .badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
-.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
 .dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
 .k{font-size:12px;color:#5B6472;font-weight:500}
 .in{height:32px;padding:0 9px;border:1px solid #D4D8DF;border-radius:7px;background:#fff;font:inherit;font-size:12.5px;color:#0B1220;box-sizing:border-box;min-width:0}
@@ -26,20 +27,32 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
 .ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent}
 .ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
 .grp{padding:10px 12px 4px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5B6472}
-.blk{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;font-size:11.5px;font-weight:500;color:#374151;text-align:center}
+.blk{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;font-size:11.5px;font-weight:500;color:#374151;cursor:grab;text-align:center}
 .blk svg{width:22px;height:22px;stroke:#374151;fill:none;stroke-width:1.5}
+.blk.rc{border-color:#99F6E4;background:#F0FDFA}
 .seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:7px;overflow:hidden}
-.seg button{height:30px;padding:0 10px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#5B6472;cursor:pointer}
+.seg button{height:30px;padding:0 10px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#5B6472;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .seg button.on{background:#0B1220;color:#fff}
-.tpl{display:flex;flex-direction:column;gap:8px;padding:10px;border:1px solid #E3E6EB;border-radius:10px;background:#fff;cursor:pointer;text-align:left;font:inherit;color:#0B1220}
-.tpl:hover{border-color:#0F766E}
-.thumb{height:120px;border-radius:6px;background:#F3F4F6;border:1px solid #E3E6EB;display:flex;flex-direction:column;gap:6px;padding:10px;box-sizing:border-box}
-.thumb i{display:block;border-radius:2px;background:#D4D8DF}
+.email{width:600px;background:#fff;box-shadow:0 1px 3px rgba(11,18,32,.12);font-family:Georgia,'Times New Roman',serif;color:#1F2937;flex:none}
+.sec{position:relative;padding:16px 24px}
+.sec:hover{outline:1px dashed #93C5FD;outline-offset:-1px}
+.ph{display:flex;align-items:center;justify-content:center;background:#E9ECF0;color:#5B6472;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:500;border:1px dashed #C9CED6}
+.tb{position:absolute;top:-30px;right:-2px;display:flex;background:#1D4ED8;border-radius:6px 6px 0 0;padding:2px}
+.tb button{width:26px;height:26px;border:0;background:none;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.tb svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:1.8}
+.lab{position:absolute;top:-30px;left:-2px;background:#1D4ED8;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:600;padding:0 8px;height:26px;display:inline-flex;align-items:center;border-radius:6px 6px 0 0;margin-top:2px}
+.prop{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-bottom:1px solid #EEF0F3}
+.prop .t{font-size:12px;font-weight:600}
+.row4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.sw{width:22px;height:22px;border-radius:5px;border:1px solid #D4D8DF;flex:none}
+.bc{display:flex;align-items:center;gap:6px;font-size:12px;color:#5B6472}
+.bc b{color:#0B1220;font-weight:600}
 
 /* responsive shell */
 @media (max-width:1100px){
   .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
-  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .brand-t,.side .ws{display:none}.side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .side .nav a{justify-content:center;padding:0!important;height:44px}
   .side .nav svg{width:20px;height:20px}
   .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
@@ -112,50 +125,292 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
   .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
 }
+/* ===== compact composer chrome: one top bar + one Inbox strip (shared by the composer boards) ===== */
+.cbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 16px;background:#FFFFFF;border-bottom:1px solid #E3E6EB;box-sizing:border-box;position:relative;z-index:30}
+.cbar .btn{min-height:36px;padding:0 12px;font-size:13px;border-radius:8px;white-space:nowrap}
+.cbar .btn.ic{width:36px;padding:0}
+.cbar svg{flex:none}
+.cb-left{display:flex;align-items:center;gap:10px;min-width:0}
+.cb-id{display:flex;align-items:center;gap:8px;min-width:0}
+.cb-name{height:36px;width:164px;min-width:0;padding:0 8px;margin-left:-2px;border:1px solid transparent;border-radius:8px;background:transparent;font:inherit;font-size:15px;font-weight:700;color:#0B1220;box-sizing:border-box;text-overflow:ellipsis}
+.cb-name:hover{border-color:#D4D8DF}
+.cb-name:focus{border-color:#8B94A3;background:#FFFFFF}
+.cb-name::placeholder{color:#5B6472;font-weight:600}
+.stchip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;background:#EEF0F3;color:#4B5563;font-size:12px;font-weight:600;white-space:nowrap;flex:none;box-sizing:border-box}
+.stchip.ok{background:#DCFCE7;color:#166534}.stchip.warn{background:#FEF3C7;color:#92400E}.stchip.bad{background:#FEE2E2;color:#991B1B}
+.cb-pres{display:flex;align-items:center;gap:8px;flex:none;padding-left:10px;border-left:1px solid #E3E6EB;min-height:28px}
+.pav{position:relative;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:#EDE9FE;color:#5B21B6;flex:none}
+.pav i{position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:50%;background:#15803D;border:2px solid #FFFFFF;box-sizing:border-box}
+.cb-pres .pt{font-size:12px;font-weight:500;color:#5B6472;white-space:nowrap}
+.cb-mid{display:flex;align-items:center;gap:8px;margin-left:auto}
+.modes{display:inline-flex;align-items:center;gap:2px;padding:2px;border:1px solid #D4D8DF;border-radius:9px;background:#FFFFFF;flex:none;box-sizing:border-box}
+.modes a,.modes button{border:0;background:transparent;font:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 12px;border-radius:7px;color:#4B5563;font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none;box-sizing:border-box}
+.modes a:hover,.modes button:hover{background:#F3F4F6;color:#0B1220}
+.modes a[aria-selected="true"],.modes button[aria-selected="true"]{background:#0B1220;color:#FFFFFF}
+.devt{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.devt button{width:38px;height:34px;border:0;background:#FFFFFF;color:#4B5563;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.devt button + button{border-left:1px solid #E3E6EB}
+.devt button[aria-pressed="true"]{background:#0B1220;color:#FFFFFF}
+.devt button:disabled{color:#5B6472;opacity:.55;cursor:not-allowed}
+.cb-end{display:flex;align-items:center;gap:8px;margin-left:auto}
+.cb-end .btn .bi{display:none}
+.modes a svg{display:none}
+.langb .ln{color:#5B6472;font-weight:500}
+.cb-go{display:flex;align-items:center}
+.rsend .rs-b{font-weight:600}
+.btn.pri.rs-stop{background:#B91C1C;border-color:#B91C1C;color:#FFFFFF}.btn.pri.rs-stop:hover{background:#991B1B;color:#FFFFFF}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn.sm{min-height:28px;padding:0 10px;font-size:12px}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}.btn.danger:hover{background:#FFF5F5;color:#991B1B}
+.btn.ghost{border-color:transparent;background:transparent}.btn.ghost:hover{background:#F3F4F6}
+.nt-phone{display:none}
+
+/* Inbox strip */
+.istrip{display:flex;align-items:center;gap:10px;min-height:40px;padding:4px 16px;background:#F9FAFB;border-bottom:1px solid #E3E6EB;box-sizing:border-box;font-size:12.5px;position:relative;z-index:20}
+.is-l{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;flex:none}
+.is-sum{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 auto;margin:0;white-space:nowrap;overflow:hidden}
+.is-i{display:inline-flex;align-items:center;gap:5px;min-width:0;overflow:hidden}
+.is-i.sub{flex:0 1 auto;max-width:330px}.is-i.pre{flex:0 1 auto;max-width:280px}.is-i.to,.is-i.via{flex:none}
+.is-k{color:#5B6472;font-weight:500;flex:none}
+.is-v{color:#0B1220;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.is-v.none{color:#5B6472;font-weight:500;font-style:italic}
+.is-sep{color:#5B6472;flex:none}
+.is-flag{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:999px;background:#FEF3C7;color:#92400E;font-size:11.5px;font-weight:600;flex:none}
+.is-edit{flex:none;margin-left:auto}
+.ipanel{display:flex;flex-wrap:wrap;gap:16px 20px;padding:14px 16px 16px;background:#FFFFFF;border-bottom:1px solid #E3E6EB;box-sizing:border-box;position:relative;z-index:19}
+.ip-in{flex:3 1 520px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.ip-row{display:flex;flex-wrap:wrap;gap:10px 14px}
+.ip-row > label,.ip-row > div{flex:1 1 260px;min-width:0}
+.ip-send{flex:1 1 300px;max-width:440px;min-width:0;display:flex;flex-direction:column;gap:10px;padding:12px 14px;border:1px solid #E3E6EB;border-radius:10px;background:#F9FAFB;box-sizing:border-box}
+.ip-h{margin:0;font-size:13px;font-weight:700;color:#0B1220;display:flex;align-items:center;gap:8px}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563;min-width:0}
+.lbl .in{width:100%}
+.lbl .k{font-weight:500}
+.gmail{display:flex;align-items:center;gap:12px;min-height:40px;padding:0 12px;border:1px solid #E3E6EB;border-radius:8px;background:#FFFFFF;font-size:13px;white-space:nowrap;overflow:hidden;box-sizing:border-box}
+.gmail .gf{font-weight:700;flex:none;width:126px;overflow:hidden;text-overflow:ellipsis}
+.gmail .gs{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.gmail .gs b{font-weight:700}
+.gmail .gs span{color:#5B6472}
+.gmail .gt{margin-left:auto;font-size:12px;font-weight:600;color:#5B6472;flex:none}
+.route{display:flex;align-items:center;gap:8px;min-height:36px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#FFFFFF;color:#0B1220;font-size:12.5px;font-weight:600;text-decoration:none;box-sizing:border-box}
+.route:hover{background:#F3F4F6;color:#0B1220}
+.route .rb{display:flex;gap:2px;width:72px;height:8px;flex:none}
+.route .rb i{display:block;height:100%;border-radius:999px}
+
+/* editor body */
+.cwrap{display:flex;flex:1 1 auto;align-items:stretch;min-height:0}
+.lp{flex:0 0 248px;width:248px;background:#FFFFFF;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;min-width:0;box-sizing:border-box}
+.cv{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;background:#E9ECF0;position:relative}
+.rp{flex:0 0 320px;width:320px;background:#FFFFFF;border-left:1px solid #E3E6EB;display:flex;flex-direction:column;min-width:0;box-sizing:border-box}
+.ptab button{padding:0 6px;white-space:nowrap}
+.ptab button .n{font-weight:600;color:#5B6472}
+.ptab button.on .n{color:#0B1220}
+.cfoot{display:flex;align-items:center;gap:6px 16px;flex-wrap:wrap;padding:8px 16px;background:#FFFFFF;border-top:1px solid #E3E6EB;font-size:12px;box-sizing:border-box}
+.cfoot .hint{display:flex;flex-wrap:wrap;gap:4px 12px;color:#5B6472;font-weight:500}
+.kbd{display:inline-flex;align-items:center;height:20px;padding:0 6px;border:1px solid #D4D8DF;border-bottom-width:2px;border-radius:5px;background:#FFFFFF;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;font-weight:500;color:#374151;margin-right:4px}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.h2{margin:0;font-size:15px;font-weight:600}
+.note{display:flex;gap:8px 10px;align-items:flex-start;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.45;box-sizing:border-box}
+.note > :last-child{flex:1 1 auto;min-width:0}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+
+/* tablet: canvas first, panels stack below it */
+@media (max-width:1100px){
+  .cbar{padding:10px 16px}
+  .cb-left{order:1;flex:1 1 calc(100% - 300px)}
+  .cb-go{order:2}
+  .cb-mid{order:3;margin-left:0}
+  .cb-end{order:4;margin-left:auto}
+  .cb-pres .pt{display:none}
+  .is-i.pre{display:none}
+  .is-i.pre + .is-sep{display:none}
+  .ip-send{max-width:none;flex-basis:100%}
+  .cwrap{flex-wrap:wrap}
+  .cv{order:1;flex:1 1 100%}
+  .lp{order:2;flex:1 1 300px;width:auto;border-right:1px solid #E3E6EB;border-top:1px solid #E3E6EB}
+  .rp{order:3;flex:1 1 300px;width:auto;border-left:0;border-top:1px solid #E3E6EB}
+}
+/* phone */
+@media (max-width:767px){
+  .cbar{padding:8px 12px;gap:8px}
+  .cbar .btn{min-height:44px}
+  .cbar .btn.ic{width:44px}
+  .cb-left{flex:1 1 calc(100% - 160px);gap:8px}
+  .cb-id{flex-direction:column;align-items:flex-start;gap:2px}
+  .cb-name{width:100%;height:44px;font-size:15px;padding:0 4px;margin-left:-4px}
+  .stchip{height:auto;min-height:20px;font-size:11.5px;padding:2px 8px;white-space:normal;line-height:1.25;max-width:100%}
+  .cb-id{gap:0}
+  .cb-pres{display:none}
+  .cb-mid{flex:1 1 auto;min-width:0}
+  .modes{flex:1 1 auto;padding:0;gap:0;overflow:hidden}
+  .modes a,.modes button{flex:1 1 0%;height:44px;padding:0 8px;border-radius:0}
+  .modes a svg{display:none}
+  .devt{display:none}
+  .cb-end{margin-left:0;gap:6px;flex-wrap:nowrap}
+  .cb-end .btn{width:44px;padding:0}
+  .cb-end .btn .bi{display:inline}
+  .cb-end .btn .bt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .langb .ln,.langb .chev{display:none}
+  .rsend{flex-direction:column;align-items:flex-start;justify-content:center;gap:0;line-height:1.2;padding:4px 12px!important;white-space:nowrap!important}
+  .rsend .rs-dot{display:none}
+  .rsend .rs-b{font-size:11px;font-weight:600}
+  .nt-phone{display:inline}
+  .istrip{flex-wrap:wrap;padding:8px 12px;gap:6px 10px}
+  .is-sum{flex-wrap:wrap;white-space:normal;flex:1 1 100%;order:3;gap:4px 8px}
+  .is-sep{display:none}
+  .is-i{flex:1 1 100%!important;max-width:100%!important}
+  .is-i.pre{display:inline-flex}
+  .is-edit{min-height:44px!important}
+  .btn.sm{min-height:44px}
+  .ipanel{padding:12px}
+  .ipanel .in,.ipanel select.in{height:44px}
+  .route{min-height:44px}
+  .gmail{flex-wrap:wrap;white-space:normal;padding:8px 12px;gap:2px 10px}
+  .gmail .gf{width:auto}
+  .gmail .gs{flex:1 1 100%;order:3}
+  .cfoot{padding:8px 12px}
+  footer.cfoot a{min-height:44px;display:inline-flex;align-items:center}
+  .in,select.in{height:44px}
+  label.rad{min-height:44px}
+  .ptab button{height:44px}
+  .lp,.rp{flex:1 1 100%}
+}
+
+/* ===== Composer, empty canvas: template gallery ===== */
+.cvs{flex:1 1 auto;display:flex;align-items:flex-start;justify-content:center;padding:28px 24px 40px}
+.gal{width:100%;max-width:880px;background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px;padding:24px;display:flex;flex-direction:column;gap:18px;box-sizing:border-box}
+.gal h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em}
+.bk{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;padding:12px 14px;border-radius:10px;background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.bk .bki{width:36px;height:36px;border-radius:9px;background:#FFFFFF;border:1px solid #BFDBFE;display:inline-flex;align-items:center;justify-content:center;flex:none;color:#1E40AF}
+.bk .bkt{flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.bk .bkt b{font-weight:600;color:#0B1220}
+.bk .sw3{display:flex;gap:4px;flex:none}
+.bk .sw3 i{width:14px;height:14px;border-radius:4px;border:1px solid #BFDBFE;background:#FFFFFF;display:block}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.tpl{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid #E3E6EB;border-radius:10px;background:#FFFFFF;cursor:pointer;text-align:left;font:inherit;color:#0B1220;box-sizing:border-box}
+.tpl:hover{border-color:#0F766E;color:#0B1220}
+.tpl.cur{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E}
+.tpl .nm{font-weight:600;margin-top:4px}
+.thumb{height:156px;border-radius:7px;background:#F3F4F6;border:1px solid #E3E6EB;display:flex;justify-content:center;align-items:flex-start;padding:10px 14px 0;box-sizing:border-box;overflow:hidden}
+.mt{width:100%;max-width:132px;height:146px;overflow:hidden;background:#FFFFFF;border-radius:3px 3px 0 0;box-shadow:0 1px 2px rgba(11,18,32,0.06),0 0 0 1px #E3E6EB;display:flex;flex-direction:column;gap:5px;padding:7px 8px 0;box-sizing:border-box}
+.mt i{display:block;flex:none}
+.mt .hd{display:flex;align-items:center;justify-content:space-between;padding-bottom:5px;border-bottom:1px solid #EEF0F3}
+.mt .lg{width:20px;height:6px;border-radius:2px;background:#0B1220}
+.mt .nv{display:flex;gap:3px}
+.mt .nv i{width:8px;height:3px;border-radius:2px;background:#C9CED6}
+.mt .im{height:30px;border-radius:2px;background:#E3E6EB;position:relative;overflow:hidden}
+.mt .im::after{content:"";position:absolute;left:18%;bottom:-6px;width:40%;height:16px;background:#D4D8DF;transform:rotate(45deg)}
+.mt .h{height:5px;border-radius:2px;background:#4B5563}
+.mt .l{height:3px;border-radius:2px;background:#D4D8DF}
+.mt .bt{width:30px;height:7px;border-radius:3px;background:#0F766E}
+.mt .row{display:flex;gap:5px}
+.mt .row > div{flex:1 1 0%;min-width:0;display:flex;flex-direction:column;gap:3px}
+.mt .ft{margin:auto -8px 0;padding:5px 8px;background:#F3F4F6;display:flex;flex-direction:column;align-items:center;gap:2px}
+.mt .ft i{height:2px;border-radius:2px;background:#C9CED6}
+.mt .em{flex:1 1 auto;min-height:56px;border:1px dashed #C9CED6;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600;color:#5B6472}
+.imp{border-style:dashed;align-items:center;justify-content:center;text-align:center;min-height:230px}
+.dim{opacity:.55}
+@media (max-width:1100px){
+  .lp,.rp{display:none}
+}
+@media (max-width:767px){
+  .cvs{padding:12px 8px 24px}
+  .gal{padding:16px;gap:14px}
+  .gal h2{font-size:18px}
+  .tgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .thumb{height:140px;padding:8px 10px 0}
+  .mt{height:132px}
+  .tpl{min-height:44px}
+  .bk .btn{min-height:44px;flex:1 1 100%}
+  .cb-end .btn,.cbar .devt{display:none}
+  .cb-end .langb{display:inline-flex}
+}
 </style>
 </helmet>
-<h1 class="vh">Campaign composer, empty canvas</h1>
 <div style="min-height:100vh;display:flex;flex-direction:column">
-  <a href="#main" class="skip">Skip to content</a>
-  <header style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB">
-    <a href="Campaigns.dc.html" class="btn ic" aria-label="Back to campaigns"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a>
-    <div style="display:flex;flex-direction:column;min-width:0">
-      <label class="k" for="cname" style="font-size:11px">Campaign</label>
-      <input aria-label="Untitled campaign" id="cname" placeholder="Untitled campaign" style="border:0;padding:0;min-height:28px;font:inherit;font-size:15px;font-weight:700;color:#0B1220;background:none;min-width:220px">
+  <a href="#main" class="skip">Skip to templates</a>
+  <h1 class="vh">Composer: new campaign, choose a template</h1>
+
+  <header class="cbar">
+    <div class="cb-left">
+      <a href="Campaigns.dc.html" class="btn ic" aria-label="Back to campaigns"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a>
+      <div class="cb-id">
+        <label class="vh" for="cname">Campaign name</label>
+        <input id="cname" class="cb-name" placeholder="Untitled campaign">
+        <span class="stchip" role="status">New draft · not saved yet</span>
+      </div>
     </div>
-    <span class="badge mut">New draft · not saved yet</span>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-left:12px">
-      <button class="btn" style="border-style:dashed">Choose audience</button>
-      <button class="btn">From: Acme Newsletter &lt;digest@news.acme.io&gt;</button>
-      <a href="ProvidersRouting.dc.html" class="btn"><span class="dot" style="color:#4a3aa7"></span>Broadcasts route · SES 90 / Postal 10</a>
+    <div class="cb-mid">
+      <div class="modes" role="tablist" aria-label="Editing mode">
+        <button type="button" role="tab" aria-selected="false" tabindex="-1">Write</button>
+        <button type="button" role="tab" aria-selected="true" aria-controls="main">Design</button>
+        <button type="button" role="tab" aria-selected="false" tabindex="-1">Code</button>
+      </div>
+      <div class="devt" role="group" aria-label="Canvas width">
+        <button type="button" aria-pressed="true" aria-label="Desktop, 600 px" title="Desktop · 600 px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.2"></rect><path d="M5.5 14h5M8 11v3"></path></svg></button>
+        <button type="button" aria-pressed="false" aria-label="Mobile, 375 px" title="Mobile · 375 px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="4.5" y="1.5" width="7" height="13" rx="1.5"></rect><path d="M7.2 12.5h1.6"></path></svg></button>
+      </div>
     </div>
-    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn" disabled style="opacity:.5">Preview</button>
-      <button class="btn" disabled style="opacity:.5">Send test</button>
-      <button class="btn pri" disabled style="opacity:.5">Review &amp; send</button>
+    <div class="cb-end">
+      <button type="button" class="btn langb" aria-haspopup="listbox" aria-expanded="false" aria-label="Language: English, the source. 1 of 4 workspace languages has a version. Change language"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg><span class="bt">English</span><span class="ln">· 1 of 4</span><svg class="chev" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+      <button type="button" class="btn" aria-disabled="true" title="Add content to preview it"><span class="bt">Preview</span></button>
+      <button type="button" class="btn" aria-disabled="true" title="Add content to send a test"><span class="bt">Send test</span></button>
+    </div>
+    <div class="cb-go">
+      <button type="button" class="btn pri rsend" aria-disabled="true" aria-describedby="rs-why" title="Needs a subject, an audience and content"><span class="rs-a">Review &amp; send</span><span class="rs-dot" aria-hidden="true">·</span><span class="rs-b">3 missing</span></button>
+      <span id="rs-why" class="vh">Review and send needs a subject, an audience and content first.</span>
     </div>
   </header>
 
-  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB">
-    <label style="display:flex;flex-direction:column;gap:2px;flex:2 1 320px"><span class="k" style="font-size:11px">Subject</span><input class="in" placeholder="What is this email about?"></label>
-    <label style="display:flex;flex-direction:column;gap:2px;flex:2 1 320px"><span class="k" style="font-size:11px">Preheader</span><input class="in" placeholder="Shown after the subject in most inboxes"></label>
-    <div style="flex:3 1 360px;display:flex;flex-direction:column;gap:2px;min-width:0"><span class="k" style="font-size:11px">Inbox preview · Gmail</span>
-      <div style="display:flex;gap:10px;align-items:center;height:32px;padding:0 10px;border:1px dashed #D4D8DF;border-radius:7px;background:#F9FAFB;font-size:12.5px;color:#6B7280">
-        <span style="font-weight:700;width:120px">Acme Newsletter</span><span>Subject and preheader appear here as you type</span><span class="k" style="margin-left:auto">9:00 AM</span>
+  <div class="istrip" role="region" aria-label="Inbox">
+    <span class="is-l"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Inbox</span>
+    <p class="is-sum">
+      <span class="is-i sub"><span class="is-k">Subject:</span><span class="is-v none">not set</span></span>
+      <span class="is-sep" aria-hidden="true">·</span>
+      <span class="is-i pre"><span class="is-k">Preheader:</span><span class="is-v none">not set</span></span>
+      <span class="is-sep" aria-hidden="true">·</span>
+      <span class="is-i to"><span class="is-k">To</span><span class="is-v none">no audience yet</span></span>
+      <span class="is-sep" aria-hidden="true">·</span>
+      <span class="is-i via"><span class="is-k">via</span><span class="is-v"><span class="dot" style="color:#4a3aa7;margin-right:4px"></span>SES 90% / <span class="dot" style="color:#e87ba4;margin:0 4px 0 2px"></span>Postal 10%</span></span>
+    </p>
+    <button type="button" class="btn sm is-edit" aria-expanded="{{inboxOpen}}" aria-controls="{{ipCtl}}" onClick="{{toggleInbox}}">{{inboxBtn}}</button>
+  </div>
+
+  <sc-if value="{{inboxOpen}}" hint-placeholder-val="{{false}}">
+  <div id="ipanel" class="ipanel" role="region" aria-label="Subject, preheader and recipients">
+    <div class="ip-in">
+      <label class="lbl">Subject<input class="in" placeholder="What is this email about?"></label>
+      <label class="lbl">Preheader<input class="in" placeholder="Shown after the subject in most inboxes"></label>
+      <div class="lbl"><span>Inbox preview · Gmail, desktop</span>
+        <div class="gmail" style="border-style:dashed"><span class="gf">Acme Newsletter</span><span class="gs"><span>Subject and preheader show here as you type</span></span><span class="gt">9:00 AM</span></div>
+      </div>
+    </div>
+    <div class="ip-send" role="group" aria-labelledby="sendto">
+      <h2 class="ip-h" id="sendto">Sending to</h2>
+      <label class="lbl">Audience<select class="in"><option>Choose an audience</option><option>Weekly Digest · 31,192</option><option>Product Updates</option><option>Beta Program</option></select></label>
+      <label class="lbl">From<select class="in"><option>Acme Newsletter &lt;digest@news.acme.io&gt;</option></select><span class="k">The workspace default sender</span></label>
+      <div class="lbl"><span>Route</span>
+        <a href="ProvidersRouting.dc.html" class="route"><span class="rb" aria-hidden="true"><i style="flex:9;background:#4a3aa7"></i><i style="flex:1;background:#e87ba4"></i></span>Broadcasts · SES 90% / Postal 10%<svg style="margin-left:auto" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 4 4 4-4 4"></path></svg></a>
       </div>
     </div>
   </div>
+  </sc-if>
 
-  <div style="display:flex;flex-wrap:wrap;flex:1;align-items:stretch">
-    <aside class="cpanel" style="flex:1 1 272px;max-width:272px;background:#fff;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;opacity:.55" aria-hidden="true">
-      <div class="ptab"><button class="on">Blocks</button><button>Layers</button><button>Templates</button></div>
-      <div class="grp">Layout · MJML</div>
+  <div class="cwrap">
+    <aside class="lp dim" aria-hidden="true">
+      <div class="ptab"><button type="button" class="on" tabindex="-1">Blocks</button><button type="button" tabindex="-1">Layers</button><button type="button" tabindex="-1">Templates</button></div>
+      <div class="grp">Layout</div>
       <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px">
         <div class="blk"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect></svg>1 column</div>
         <div class="blk"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="8" height="14" rx="2"></rect><rect x="13" y="5" width="8" height="14" rx="2"></rect></svg>2 columns</div>
         <div class="blk"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="2" y="5" width="6" height="14" rx="1.5"></rect><rect x="9" y="5" width="6" height="14" rx="1.5"></rect><rect x="16" y="5" width="6" height="14" rx="1.5"></rect></svg>3 columns</div>
       </div>
-      <div class="grp">Content · MJML</div>
+      <div class="grp">Content</div>
       <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px">
         <div class="blk"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>Text</div>
         <div class="blk"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m3 16 5-5 4 4 3-3 6 6"></path></svg>Image</div>
@@ -163,53 +418,98 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
       </div>
     </aside>
 
-    <section role="main" id="main" style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;background:#E9ECF0">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;background:#fff;border-bottom:1px solid #E3E6EB;opacity:.55" aria-hidden="true">
-        <div class="seg"><button class="on">Desktop · 600</button><button>Mobile · 375</button></div>
-        <div class="seg"><button class="on">Visual</button><button>MJML</button><button>HTML</button></div>
-      </div>
-      <div style="flex:1;display:flex;align-items:flex-start;justify-content:center;padding:32px 24px">
-        <div style="width:100%;max-width:860px;background:#fff;border:1px solid #E3E6EB;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:18px;box-sizing:border-box">
+    <main id="main" class="cv" tabindex="-1">
+      <div class="cvs">
+        <div class="gal">
           <div style="display:flex;flex-direction:column;gap:4px">
-            <h2 style="margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em">Start from a template or a blank canvas</h2>
-            <span class="k">Templates are MJML, so everything stays editable. Your saved sections and the last campaign are here too.</span>
+            <h2>Start from a template or a blank email</h2>
+            <span class="k">Templates are MJML, so every part stays editable in Write, Design and Code.</span>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
-            <a href="Composer.dc.html" class="tpl"><div class="thumb" style="border-style:dashed;align-items:center;justify-content:center;color:#5B6472;font-size:12px">Empty mj-body</div><span style="font-weight:600">Blank</span><span class="k">Just a body and a footer block</span></a>
-            <a href="Composer.dc.html" class="tpl" style="border-color:#0F766E"><div class="thumb"><i style="height:10px;width:40%"></i><i style="height:34px"></i><div style="display:flex;gap:6px"><i style="height:28px;flex:1"></i><i style="height:28px;flex:1"></i></div><i style="height:8px"></i></div><span style="font-weight:600">Weekly digest</span><span class="k">Hero, two article cards, footer</span></a>
-            <a href="Composer.dc.html" class="tpl"><div class="thumb"><i style="height:10px;width:40%"></i><i style="height:40px"></i><i style="height:8px;width:70%"></i><i style="height:14px;width:35%;border-radius:7px;background:#0F766E"></i></div><span style="font-weight:600">Product update</span><span class="k">One announcement, one button</span></a>
-            <a href="Composer.dc.html" class="tpl"><div class="thumb"><i style="height:8px;width:90%"></i><i style="height:8px;width:85%"></i><i style="height:8px;width:88%"></i><i style="height:8px;width:60%"></i></div><span style="font-weight:600">Plain text</span><span class="k">Personal note, no images</span></a>
-            <a href="Composer.dc.html" class="tpl"><div class="thumb"><i style="height:48px"></i><i style="height:10px;width:60%"></i><i style="height:8px;width:80%"></i></div><span style="font-weight:600">Announcement</span><span class="k">Full-width hero</span></a>
-            <a href="Composer.dc.html" class="tpl"><div class="thumb"><div style="display:flex;gap:6px"><i style="height:30px;flex:1"></i><i style="height:30px;flex:1"></i><i style="height:30px;flex:1"></i></div><i style="height:8px;width:70%"></i><div style="display:flex;gap:6px"><i style="height:30px;flex:1"></i><i style="height:30px;flex:1"></i><i style="height:30px;flex:1"></i></div></div><span style="font-weight:600">Product grid</span><span class="k">Three product cards per row</span></a>
+
+          <div class="bk">
+            <span class="bki" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.8a6.2 6.2 0 1 0 0 12.4c.9 0 1.3-.6 1.3-1.2 0-.8-.6-1.1-.6-1.8 0-.7.6-1.1 1.3-1.1h1.3a2.9 2.9 0 0 0 2.9-2.9C14.2 4.4 11.4 1.8 8 1.8z"></path><circle cx="5" cy="7" r=".8"></circle><circle cx="7.6" cy="4.6" r=".8"></circle><circle cx="10.6" cy="5.4" r=".8"></circle></svg></span>
+            <span class="bkt"><b>Start from your brand kit</b><span>Logo, colours and fonts from acme.io, applied to every template and new block.</span></span>
+            <a href="BrandKit.dc.html" class="btn">Set up brand kit</a>
           </div>
+
           <div style="display:flex;flex-direction:column;gap:8px">
-            <span style="font-weight:600">Yours</span>
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
-              <a href="Composer.dc.html" class="tpl"><div class="thumb"><i style="height:10px;width:40%"></i><i style="height:34px"></i><div style="display:flex;gap:6px"><i style="height:28px;flex:1"></i><i style="height:28px;flex:1"></i></div></div><span style="font-weight:600">Acme digest v3</span><span class="k">Saved template · edited 7 Oct</span></a>
-              <a href="Composer.dc.html" class="tpl"><div class="thumb"><i style="height:10px;width:40%"></i><i style="height:34px"></i><i style="height:8px;width:70%"></i><i style="height:8px;width:50%"></i></div><span style="font-weight:600">Copy of October Product Update</span><span class="k">Last sent campaign · 9 Oct</span></a>
-              <button class="tpl" style="border-style:dashed;align-items:center;justify-content:center"><span style="font-weight:600">Import MJML or HTML</span><span class="k">Paste or upload a file</span></button>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap"><h3 style="margin:0;font-size:14px;font-weight:600">Templates</h3><span class="k">Shown in default colours until you set up the brand kit</span></div>
+            <div class="tgrid">
+              <a href="Composer.dc.html" class="tpl">
+                <div class="thumb" aria-hidden="true"><div class="mt"><div class="hd"><i class="lg"></i><span class="nv"><i></i><i></i></span></div><div class="em">Empty</div><div class="ft"><i style="width:70%"></i><i style="width:45%"></i></div></div></div>
+                <span class="nm">Blank</span><span class="k">Header, an empty body and the footer</span>
+              </a>
+              <a href="Composer.dc.html" class="tpl">
+                <div class="thumb" aria-hidden="true"><div class="mt"><div class="hd"><i class="lg"></i><span class="nv"><i></i><i></i><i></i></span></div><i class="im" style="height:28px"></i><i class="h" style="width:92%"></i><i class="h" style="width:60%"></i><i class="l" style="width:96%"></i><div class="row"><div><i class="im" style="height:16px"></i><i class="l" style="width:90%"></i><i class="l" style="width:70%"></i><i class="bt" style="width:22px;height:5px"></i></div><div><i class="im" style="height:16px"></i><i class="l" style="width:90%"></i><i class="l" style="width:64%"></i><i class="bt" style="width:22px;height:5px"></i></div></div><div class="ft"><i style="width:70%"></i><i style="width:45%"></i></div></div></div>
+                <span class="nm">Weekly digest</span><span class="k">Hero, two article cards, footer</span>
+              </a>
+              <a href="Composer.dc.html" class="tpl">
+                <div class="thumb" aria-hidden="true"><div class="mt"><div class="hd"><i class="lg"></i><span class="nv"><i></i><i></i></span></div><i class="h" style="width:88%"></i><i class="h" style="width:52%"></i><i class="im" style="height:34px"></i><i class="l" style="width:96%"></i><i class="l" style="width:92%"></i><i class="l" style="width:70%"></i><i class="bt" style="align-self:center;width:36px"></i><div class="ft"><i style="width:70%"></i><i style="width:45%"></i></div></div></div>
+                <span class="nm">Product update</span><span class="k">One announcement, one button</span>
+              </a>
+              <a href="Composer.dc.html" class="tpl">
+                <div class="thumb" aria-hidden="true"><div class="mt"><i class="lg" style="width:16px;height:5px;margin-bottom:4px"></i><i class="l" style="width:40%;background:#9CA3AF"></i><i class="l" style="width:96%"></i><i class="l" style="width:92%"></i><i class="l" style="width:98%"></i><i class="l" style="width:60%"></i><i class="l" style="width:94%;margin-top:3px"></i><i class="l" style="width:88%"></i><i class="l" style="width:50%"></i><i class="l" style="width:34%;margin-top:4px;background:#9CA3AF"></i><div class="ft"><i style="width:70%"></i><i style="width:45%"></i></div></div></div>
+                <span class="nm">Plain text</span><span class="k">A personal note, no images</span>
+              </a>
+              <a href="Composer.dc.html" class="tpl">
+                <div class="thumb" aria-hidden="true"><div class="mt" style="padding-top:0"><div style="margin:0 -8px;height:52px;background:#4B5563;border-radius:3px 3px 0 0;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;padding:6px 8px"><i class="lg" style="background:#FFFFFF;width:16px;height:5px;margin-bottom:auto"></i><i style="height:5px;width:86%;border-radius:2px;background:#FFFFFF"></i><i style="height:5px;width:54%;border-radius:2px;background:#FFFFFF"></i></div><i class="l" style="width:96%;margin-top:3px"></i><i class="l" style="width:90%"></i><i class="l" style="width:66%"></i><i class="bt" style="width:44px;height:8px"></i><div class="ft"><i style="width:70%"></i><i style="width:45%"></i></div></div></div>
+                <span class="nm">Announcement</span><span class="k">Full-width hero with the headline on it</span>
+              </a>
+              <a href="Composer.dc.html" class="tpl">
+                <div class="thumb" aria-hidden="true"><div class="mt"><div class="hd"><i class="lg"></i><span class="nv"><i></i><i></i></span></div><i class="h" style="width:70%;align-self:center"></i><div class="row"><div><i class="im" style="height:16px"></i><i class="l" style="width:80%"></i></div><div><i class="im" style="height:16px"></i><i class="l" style="width:70%"></i></div><div><i class="im" style="height:16px"></i><i class="l" style="width:76%"></i></div></div><div class="row"><div><i class="im" style="height:16px"></i><i class="l" style="width:72%"></i></div><div><i class="im" style="height:16px"></i><i class="l" style="width:80%"></i></div><div><i class="im" style="height:16px"></i><i class="l" style="width:66%"></i></div></div><i class="bt" style="align-self:center;width:40px"></i><div class="ft"><i style="width:70%"></i><i style="width:45%"></i></div></div></div>
+                <span class="nm">Product grid</span><span class="k">Three product cards per row</span>
+              </a>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <h3 style="margin:0;font-size:14px;font-weight:600">Yours</h3>
+            <div class="tgrid">
+              <a href="Composer.dc.html" class="tpl cur">
+                <div class="thumb" aria-hidden="true"><div class="mt"><div class="hd"><i class="lg"></i><span class="nv"><i></i><i></i><i></i></span></div><i class="h" style="width:84%"></i><i class="l" style="width:96%"></i><i class="l" style="width:72%"></i><div class="row"><div><i class="im" style="height:18px"></i><i class="l" style="width:88%"></i><i class="bt" style="width:22px;height:5px"></i></div><div><i class="im" style="height:18px"></i><i class="l" style="width:80%"></i><i class="bt" style="width:22px;height:5px"></i></div></div><i class="l" style="width:94%"></i><div class="ft"><i style="width:70%"></i><i style="width:45%"></i></div></div></div>
+                <span class="nm">Acme digest v3</span><span class="k">Saved template · edited 7 Oct</span><span class="k" style="color:#0F766E;font-weight:600">Weekly Digest #142 started from it</span>
+              </a>
+              <a href="Composer.dc.html" class="tpl">
+                <div class="thumb" aria-hidden="true"><div class="mt"><div class="hd"><i class="lg"></i><span class="nv"><i></i><i></i></span></div><i class="im" style="height:30px"></i><i class="h" style="width:90%"></i><i class="l" style="width:96%"></i><i class="l" style="width:84%"></i><i class="l" style="width:60%"></i><i class="bt" style="width:36px"></i><div class="ft"><i style="width:70%"></i><i style="width:45%"></i></div></div></div>
+                <span class="nm">Copy of October Product Update</span><span class="k">Last sent campaign · 9 Oct</span>
+              </a>
+              <button type="button" class="tpl imp">
+                <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 11V3M4.5 6.5 8 3l3.5 3.5M2 13h12"></path></svg>
+                <span class="nm">Import MJML or HTML</span><span class="k">Paste code or upload a file. HTML becomes one Raw HTML block until you rebuild it.</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
-    </section>
+    </main>
 
-    <aside class="cpanel" style="flex:1 1 300px;max-width:300px;background:#fff;border-left:1px solid #E3E6EB;display:flex;flex-direction:column;opacity:.55" aria-hidden="true">
-      <div class="ptab"><button class="on">Style</button><button>Settings</button></div>
-      <div style="padding:14px 12px" class="k">Select a component on the canvas to edit its MJML attributes.</div>
+    <aside class="rp dim" aria-hidden="true">
+      <div class="ptab"><button type="button" class="on" tabindex="-1">Style</button><button type="button" tabindex="-1">Settings</button><button type="button" tabindex="-1">Checks</button><button type="button" tabindex="-1">Comments</button></div>
+      <div style="padding:14px 12px" class="k">Select something on the email to style it.</div>
     </aside>
   </div>
 
-  <footer style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 16px;background:#fff;border-top:1px solid #E3E6EB">
-    <span class="k">Nothing on the canvas yet</span>
+  <footer class="cfoot">
+    <span class="k">Nothing on the email yet</span>
     <span class="k" style="margin-left:auto">0 KB of 102 KB</span>
   </footer>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1123}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1272}}'>
 class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { inbox: false };
+  }
   renderVals() {
-    return {};
+    var self = this;
+    var s = this.state;
+    return {
+      inboxOpen: s.inbox,
+      ipCtl: s.inbox ? 'ipanel' : undefined,
+      inboxBtn: s.inbox ? 'Done' : 'Edit',
+      toggleInbox: function () { self.setState({ inbox: !s.inbox }); }
+    };
   }
 }
 </script>

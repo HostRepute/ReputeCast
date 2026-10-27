@@ -3,7 +3,6 @@ package readiness
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -12,7 +11,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/audience"
@@ -410,18 +408,19 @@ func (s *Service) route(ctx context.Context, g *gathered, f Facts) (RouteFacts, 
 		if h.Rate != nil && h.Rate.Max > 0 {
 			sh.Rate = h.Rate.Max
 		}
-		if plan, err := s.Q.WarmupActiveForProvider(ctx, p.ID); err == nil {
-			wp := warmup.ParsePlan(plan.Schedule, plan.Progress)
-			day := min(max(state.WarmupDay(plan.StartDate, f.Campaign.StartAt, loc), 1), int(plan.Days))
-			sh.WarmupDay, sh.WarmupDays = day, int(plan.Days)
-			sh.WarmupCap = wp.Cap(day)
+		// The warm-up plan's day and cap when the send starts, counted as
+		// the send loop counts them (warmup.AllowanceFor and DayOn: a paused
+		// plan stays on its day, a slowdown holds the cap).
+		if a, ok, err := warmup.AllowanceFor(ctx, s.Q, p.ID, f.Campaign.StartAt, loc); err != nil {
+			return out, err
+		} else if ok {
+			sh.WarmupDay, sh.WarmupDays = a.Day, a.Days
+			sh.WarmupCap = a.Cap
 			sh.WarmupToday = sameDay(f.Campaign.StartAt, f.Now, loc)
-			sh.Rate, sh.RateRamp = wp.Rate(day), true
+			sh.Rate, sh.RateRamp = a.Rate, true
 			if p.Status == state.Healthy {
 				sh.Status = state.WarmingUp
 			}
-		} else if !errors.Is(err, pgx.ErrNoRows) {
-			return out, err
 		}
 		out.Shares = append(out.Shares, sh)
 	}

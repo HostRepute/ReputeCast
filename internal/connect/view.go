@@ -106,11 +106,40 @@ type ConnectRegion struct {
 type ConnectProvisionRow struct {
 	Key string `json:"key"`
 	// Text is the label or, once done, what was done; `backticks` mark code.
-	Text   string     `json:"text"`
-	Status string     `json:"status" enum:"waiting,running,done,failed"`
+	Text string `json:"text"`
+	// Status deferred: the event check waits for a verified sending domain.
+	Status string     `json:"status" enum:"waiting,running,done,failed,deferred"`
 	At     *time.Time `json:"at,omitempty"`
 	Error  string     `json:"error,omitempty"`
 	Hint   string     `json:"hint,omitempty"`
+	// Note qualifies what was done ("the SES mailbox simulator; it doesn't
+	// affect your bounce or complaint rates").
+	Note string `json:"note,omitempty"`
+}
+
+// ConnectHost is where ReputeCast runs, which decides the SES access it
+// recommends (PR-5).
+type ConnectHost struct {
+	OnAWS bool `json:"onAws"`
+	// Kind is ec2, ecs, eks or lambda on AWS.
+	Kind string `json:"kind"`
+	// BaseCredentials: this server has AWS credentials of its own to assume
+	// the stack's role with.
+	BaseCredentials bool      `json:"baseCredentials"`
+	CheckedAt       time.Time `json:"checkedAt"`
+	Recommended     string    `json:"recommended" enum:"role,keys"`
+}
+
+// ConnectWebhookTest is the provider's test webhook (PR-9): ReputeCast asks
+// the provider to call the endpoint and waits a minute for it.
+type ConnectWebhookTest struct {
+	// Status: waiting (asked, within the minute), arrived, missing (nothing
+	// within the minute) or refused (the provider wouldn't send one).
+	Status      string     `json:"status" enum:"waiting,arrived,missing,refused"`
+	RequestedAt time.Time  `json:"requestedAt"`
+	Until       time.Time  `json:"until"`
+	ArrivedAt   *time.Time `json:"arrivedAt,omitempty"`
+	Error       string     `json:"error,omitempty"`
 }
 
 // ConnectSandbox is the sandbox card and its production-access request.
@@ -166,7 +195,9 @@ type ConnectSMTPForm struct {
 	AfterProcessing string `json:"afterProcessing" enum:"move,delete,leave"`
 }
 
-// ConnectSelfTest is the webhook endpoint self-test.
+// ConnectSelfTest is the webhook address check: localhost, private
+// addresses and names that don't resolve fail it. ReputeCast never calls
+// its own URL; only the provider calling it proves it reachable (PR-9).
 type ConnectSelfTest struct {
 	OK      bool      `json:"ok"`
 	At      time.Time `json:"at"`
@@ -193,6 +224,10 @@ type ConnectWebhook struct {
 	SecretHeader string               `json:"secretHeader,omitempty"`
 	SelfTest     *ConnectSelfTest     `json:"selfTest,omitempty"`
 	Registration *ConnectRegistration `json:"registration,omitempty"`
+	// CanTest: the provider sends a test webhook on request; without it the
+	// test send's first event confirms the endpoint.
+	CanTest bool                `json:"canTest"`
+	Test    *ConnectWebhookTest `json:"test,omitempty"`
 }
 
 // ConnectConnection is step 2.
@@ -206,7 +241,21 @@ type ConnectConnection struct {
 	// Fields are the generic form (api flow).
 	Fields []ConnectField `json:"fields"`
 	// SES
-	Access         string                `json:"access" enum:"role,keys"`
+	Access string `json:"access" enum:"role,keys"`
+	// AccessKey is the saved access key id, masked ("AKIA••••••••7QXP");
+	// IAMUser the IAM user it belongs to.
+	AccessKey string       `json:"accessKey"`
+	IAMUser   string       `json:"iamUser"`
+	Host      *ConnectHost `json:"host,omitempty"`
+	// Events is how SES events come back (PR-4); EventsURL the webhook SNS
+	// calls in the webhook mode.
+	Events    string `json:"events" enum:"webhook,queue"`
+	EventsURL string `json:"eventsUrl"`
+	// EventsCheck is the setup's event check (PR-3): none (no check for
+	// this setup), waiting, deferred (waits for a verified domain), verified
+	// (EventsAt is when the event arrived) or failed.
+	EventsCheck    string                `json:"eventsCheck" enum:"none,waiting,deferred,verified,failed"`
+	EventsAt       *time.Time            `json:"eventsAt,omitempty"`
 	ExternalID     string                `json:"externalId"`
 	RoleARN        string                `json:"roleArn"`
 	Region         string                `json:"region"`
@@ -539,10 +588,8 @@ func (s *Service) connectionView(ctx context.Context, l i18n.Lang, ws *store.Wor
 	cn := state.Connection
 	out := ConnectConnection{Status: "none", At: cn.At, Account: textIn(cn.Account, cn.AccountText, l), AccountID: cn.AccountID,
 		Summary: connectionSummaryIn(l, flowOf(d), cn), Fields: []ConnectField{},
-		Access: cn.Access, ExternalID: cn.ExternalID, RoleARN: cn.RoleARN, Region: cn.Region, Regions: []ConnectRegion{}, Provisioning: []ConnectProvisionRow{}}
-	if out.Access == "" {
-		out.Access = "role"
-	}
+		Access: cn.Access, ExternalID: cn.ExternalID, RoleARN: cn.RoleARN, Region: cn.Region, Regions: []ConnectRegion{}, Provisioning: []ConnectProvisionRow{},
+		Events: "webhook", EventsCheck: "none"}
 	switch cn.Status {
 	case "connected":
 		out.Status = "connected"
@@ -554,6 +601,21 @@ func (s *Service) connectionView(ctx context.Context, l i18n.Lang, ws *store.Wor
 	}
 	flow := flowOf(d)
 	if flow == "ses" {
+		h := s.host(ctx)
+		out.Host = &ConnectHost{OnAWS: h.OnAWS, Kind: h.Kind, BaseCredentials: h.BaseCredentials, CheckedAt: h.CheckedAt, Recommended: h.RecommendedAccess()}
+		if out.Access == "" {
+			out.Access = h.RecommendedAccess()
+		}
+		if cn.Events == providers.EventsQueue {
+			out.Events = providers.EventsQueue
+		}
+		if prov != nil {
+			out.EventsURL = s.webhookURL(*prov, "")
+		} else {
+			out.EventsURL = s.webhookBase("") + "/hooks/" + d.Adapter + "/…"
+		}
+		out.AccessKey, out.IAMUser = cn.Settings["access_key_hint"], cn.Settings["iam_user"]
+		out.EventsCheck, out.EventsAt = eventsCheckOf(cn.Provisioning)
 		regions := slices.Clone(cn.Regions)
 		if len(regions) == 0 && cn.Region != "" {
 			regions = []RegionState{{Region: cn.Region, Name: regionName(cn.Region), Production: !strings.Contains(strings.ToLower(cn.Account), "sandbox") && cn.Status == "connected"}}
@@ -578,6 +640,12 @@ func (s *Service) connectionView(ctx context.Context, l i18n.Lang, ws *store.Wor
 				if p.Text != "" {
 					row.Text = p.in(l, "text", p.Text)
 				}
+				if p.Note != "" {
+					row.Note = p.in(l, "note", p.Note)
+				}
+			}
+			if p.Status == statusDeferred && p.Text != "" {
+				row.Text = p.in(l, "text", p.Text)
 			}
 			if p.Status == "running" || p.Status == "waiting" {
 				out.Working = true
@@ -601,7 +669,7 @@ func (s *Service) connectionView(ctx context.Context, l i18n.Lang, ws *store.Wor
 	}
 	if cn.Webhook != nil {
 		w := cn.Webhook
-		out.Webhook = &ConnectWebhook{Mode: w.Mode, URL: w.URL, PublicURL: w.PublicURL, NeedsSecret: w.NeedsSecret, SecretHeader: w.SecretHeader}
+		out.Webhook = &ConnectWebhook{Mode: w.Mode, URL: w.URL, PublicURL: w.PublicURL, NeedsSecret: w.NeedsSecret, SecretHeader: w.SecretHeader, CanTest: w.CanTest}
 		if w.SelfTest != nil {
 			out.Webhook.SelfTest = &ConnectSelfTest{OK: w.SelfTest.OK, At: w.SelfTest.At, Code: w.SelfTest.Code, Reason: textIn(w.SelfTest.Reason, w.SelfTest.ReasonText, l),
 				Private: w.SelfTest.Private}
@@ -609,9 +677,78 @@ func (s *Service) connectionView(ctx context.Context, l i18n.Lang, ws *store.Wor
 		if w.Registration != nil {
 			out.Webhook.Registration = &ConnectRegistration{Status: w.Registration.Status, Detail: textIn(w.Registration.Detail, w.Registration.DetailText, l), At: w.Registration.At}
 		}
+		if prov != nil && w.Mode == "webhook" {
+			// The test webhook arrived when the provider delivered anything
+			// since it was asked for one.
+			s.webhookTestArrival(ctx, *prov, w)
+		}
+		if w.TestEventAt != nil {
+			out.Webhook.Test = webhookTestView(w, s.now())
+			if out.Webhook.Test.Status == "waiting" {
+				out.Working = true
+			}
+		}
 	}
 	out.CanContinue = canContinue(flow, cn, prov)
 	return out
+}
+
+// eventsCheckOf is the state of a setup's event check (PR-3).
+func eventsCheckOf(rows []ProvisionState) (string, *time.Time) {
+	for _, r := range rows {
+		if r.Key == eventSendKey && r.Status == statusDeferred {
+			return "deferred", nil
+		}
+		if r.Key != eventCheckKey {
+			continue
+		}
+		switch r.Status {
+		case "done":
+			return "verified", r.At
+		case "failed":
+			return "failed", nil
+		}
+		return "waiting", nil
+	}
+	for _, r := range rows {
+		if r.Key == eventSendKey && r.Status == "failed" {
+			return "failed", nil
+		}
+	}
+	return "none", nil
+}
+
+// webhookTestWait is how long the provider's test webhook may take.
+const webhookTestWait = 60 * time.Second
+
+// webhookTestView is the provider's test webhook as the wizard shows it.
+func webhookTestView(w *WebhookState, now time.Time) *ConnectWebhookTest {
+	t := &ConnectWebhookTest{RequestedAt: *w.TestEventAt, Until: w.TestEventAt.Add(webhookTestWait), Status: "waiting"}
+	switch {
+	case w.TestEventErr != "":
+		t.Status, t.Error, t.Until = "refused", w.TestEventErr, *w.TestEventAt
+	case w.TestArrivedAt != nil:
+		t.Status, t.ArrivedAt = "arrived", w.TestArrivedAt
+	case !now.Before(t.Until):
+		t.Status = "missing"
+	}
+	return t
+}
+
+// webhookTestArrival notes when the provider's first event after the test
+// request arrived (in w; the caller saves it when it should last).
+func (s *Service) webhookTestArrival(ctx context.Context, p store.Provider, w *WebhookState) {
+	if w.TestEventAt == nil || w.TestArrivedAt != nil || w.TestEventErr != "" {
+		return
+	}
+	// A little slack before the request: the provider may answer while
+	// ReputeCast still waits for the request's own reply.
+	ev, err := s.Q.ConnectFirstEventSince(ctx, store.ConnectFirstEventSinceParams{ProviderID: p.ID, Since: w.TestEventAt.Add(-10 * time.Second)})
+	if err != nil {
+		return
+	}
+	at := ev.ReceivedAt
+	w.TestArrivedAt = &at
 }
 
 func regionKey(r RegionState, selected string) int {
@@ -673,7 +810,14 @@ func canContinue(flow string, cn Connection, prov *store.Provider) bool {
 	}
 	switch flow {
 	case "ses":
-		return true
+		// Events must be verified (PR-3); a check that waits for a verified
+		// domain lets the setup go on to the domain step. Setups from before
+		// the check have no event rows.
+		switch check, _ := eventsCheckOf(cn.Provisioning); check {
+		case "verified", "deferred", "none":
+			return true
+		}
+		return false
 	case "smtp":
 		return cn.SMTP != nil && cn.SMTP.OK && cn.Mailbox != nil && cn.Mailbox.OK
 	}
@@ -685,7 +829,16 @@ func canContinue(flow string, cn Connection, prov *store.Provider) bool {
 	case "polling", "none", "mailbox":
 		return true
 	}
-	return w.SelfTest != nil && w.SelfTest.OK && (w.Registration == nil || w.Registration.Status != "failed")
+	if w.Registration == nil || w.Registration.Status == "failed" || w.Registration.Status == "skipped" {
+		return false
+	}
+	if w.CanTest {
+		// The provider proved it reaches the endpoint (PR-9).
+		return w.TestArrivedAt != nil
+	}
+	// Without a test on request, the test send's first event confirms the
+	// endpoint; an address no provider can reach stops here.
+	return w.SelfTest == nil || w.SelfTest.OK
 }
 
 // sandboxView is the sandbox card: the selected region when it is in the

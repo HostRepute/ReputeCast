@@ -30,8 +30,12 @@ var reasons = map[string]string{
 	reasonYahoo:     "reason.yahoo",
 	reasonFastOpen:  "reason.fastOpen",
 	reasonFastClick: "reason.fastClick",
-	reasonBurst:     "reason.burst",
-	clientUnknown:   "client.unknown",
+	// Before the windows were measured from delivery.
+	"Opened within 2 s of sending, likely a scanner":        "reason.fastOpen",
+	"Clicked within 10 s of sending, likely a link scanner": "reason.fastClick",
+	reasonBurst:    "reason.burst",
+	reasonHoneypot: "reason.honeypot",
+	clientUnknown:  "client.unknown",
 }
 
 // The verdicts' English, as diagnostic stores it.
@@ -41,9 +45,10 @@ const (
 	reasonApple     = "Apple Mail Privacy Protection prefetch"
 	reasonGoogle    = "Google image proxy prefetch"
 	reasonYahoo     = "Yahoo Mail image proxy prefetch"
-	reasonFastOpen  = "Opened within 2 s of sending, likely a scanner"
-	reasonFastClick = "Clicked within 10 s of sending, likely a link scanner"
+	reasonFastOpen  = "Opened within 2 s of arriving, likely a scanner"
+	reasonFastClick = "Clicked within 10 s of arriving, likely a link scanner"
 	reasonBurst     = "Every link clicked within seconds, likely a link scanner"
+	reasonHoneypot  = "Followed the email's hidden link, a link scanner"
 	clientUnknown   = "Unknown mail client"
 )
 
@@ -56,6 +61,7 @@ var scannerKinds = map[string]string{
 }
 
 var (
+	reProxy    = regexp.MustCompile(`^Privacy proxy prefetch \((.+)\)$`)
 	reScanner  = regexp.MustCompile(`^(Security|Link) scanner \((.+)\)$`)
 	reAnyOn    = regexp.MustCompile(`^A mail client on (iOS|Android|Windows|macOS|ChromeOS|Linux)$`)
 	reClientOn = regexp.MustCompile(`^(Outlook|Thunderbird|Edge|Firefox|Chrome|Safari|Apple Mail) on (iOS|Android|Windows|macOS|ChromeOS|Linux)$`)
@@ -70,6 +76,9 @@ func DiagnosticIn(l i18n.Lang, s string) string {
 	}
 	if key, ok := reasons[s]; ok {
 		return msgs.M(key).Text(l, nil)
+	}
+	if m := reProxy.FindStringSubmatch(s); m != nil {
+		return msgs.M("reason.privacyProxy").Text(l, i18n.Args{"name": m[1]})
 	}
 	if m := reScanner.FindStringSubmatch(s); m != nil {
 		args := i18n.Args{"kind": "product", "name": m[2]}

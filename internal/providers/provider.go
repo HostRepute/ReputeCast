@@ -72,6 +72,12 @@ type Capabilities struct {
 	// OneClickUnsigned when its DKIM signature doesn't cover them, so
 	// Gmail and Yahoo may not offer one-click unsubscribe.
 	OneClick string `json:"oneClick,omitempty"`
+	// EventQueue names the queue the adapter can take its events from
+	// instead of webhooks ("SQS", review PR-4); empty for none.
+	EventQueue string `json:"eventQueue,omitempty"`
+	// Tenants is true when each workspace sends as its own tenant at the
+	// provider, with its own suppression list and reputation (SES, PR-11).
+	Tenants bool `json:"tenants,omitempty"`
 	// PricingText and DedicatedIPsText are the messages Pricing and
 	// DedicatedIPs come from (text.go). They are kept with the capability
 	// snapshot of a connected provider, so it reads in each reader's
@@ -158,7 +164,10 @@ type Event struct {
 	BounceClass string
 	URL         string // clicks
 	UserAgent   string
-	Raw         json.RawMessage
+	// IP is the address that opened or clicked, when the provider reports
+	// it (its tracking classifies privacy proxies and scanners by network).
+	IP  string
+	Raw json.RawMessage
 }
 
 // Provider is the contract every adapter implements.
@@ -236,9 +245,48 @@ type Suppression struct {
 }
 
 // SuppressionSyncer is implemented by providers with a suppression list API.
+// ReputeCast pushes only hard bounces and complaints that apply to all mail
+// (never unsubscribes: those stop marketing, not a password reset).
 type SuppressionSyncer interface {
 	ListSuppressions(ctx context.Context, since time.Time) ([]Suppression, error)
 	AddSuppressions(ctx context.Context, emails []string) error
+}
+
+// SuppressionReasonAdder is implemented by providers whose suppression list
+// keeps a reason (Amazon SES: BOUNCE or COMPLAINT): the sync uses it instead
+// of AddSuppressions so a complaint is pushed as a complaint.
+type SuppressionReasonAdder interface {
+	AddSuppressionsWithReason(ctx context.Context, list []Suppression) error
+}
+
+// SuppressionRemover is implemented by providers whose suppression list API
+// can take an address off: the sync removes there what left the shared list.
+type SuppressionRemover interface {
+	RemoveSuppressions(ctx context.Context, emails []string) error
+}
+
+// Suppression list scopes: where a provider's list lives.
+const (
+	SuppressionScopeAccount = "account" // the provider account's own list
+	SuppressionScopeTenant  = "tenant"  // an Amazon SES tenant's own list (one per workspace)
+	SuppressionScopeStream  = "stream"  // per message stream (Postmark)
+	SuppressionScopeDomain  = "domain"  // per sending domain (Mailgun)
+)
+
+// SuppressionScope says where a provider's suppression list lives and
+// whether ReputeCast may write to it.
+type SuppressionScope struct {
+	Scope string
+	// Writable is false for a list shared with mail ReputeCast doesn't send
+	// (an Amazon SES account-level list without a tenant): the sync only
+	// reads it, so other apps on that account are never affected.
+	Writable bool
+}
+
+// SuppressionScoper is implemented by providers whose list scope depends on
+// the connection; others are a writable account-level list.
+type SuppressionScoper interface {
+	SuppressionScope() SuppressionScope
 }
 
 // Verifier is implemented by adapters that can check credentials at connect time.

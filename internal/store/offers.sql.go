@@ -188,6 +188,35 @@ func (q *Queries) OfferByCode(ctx context.Context, arg OfferByCodeParams) (EarnO
 	return i, err
 }
 
+const offerCodeByCode = `-- name: OfferCodeByCode :one
+SELECT id, workspace_id, offer_id, code, contact_id, issued_to, issued_at, expires_at, stripe, redeemed_at, source FROM earn_offer_codes WHERE workspace_id = $1 AND upper(code) = upper($2::text)
+`
+
+type OfferCodeByCodeParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Code        string    `json:"code"`
+}
+
+// A referral reward's single-use code, by the code a reader brings.
+func (q *Queries) OfferCodeByCode(ctx context.Context, arg OfferCodeByCodeParams) (EarnOfferCode, error) {
+	row := q.db.QueryRow(ctx, offerCodeByCode, arg.WorkspaceID, arg.Code)
+	var i EarnOfferCode
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.OfferID,
+		&i.Code,
+		&i.ContactID,
+		&i.IssuedTo,
+		&i.IssuedAt,
+		&i.ExpiresAt,
+		&i.Stripe,
+		&i.RedeemedAt,
+		&i.Source,
+	)
+	return i, err
+}
+
 const offerCodeInsert = `-- name: OfferCodeInsert :exec
 INSERT INTO earn_offer_codes (id, workspace_id, offer_id, code, contact_id, issued_to, issued_at, expires_at, stripe, source)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -220,6 +249,25 @@ func (q *Queries) OfferCodeInsert(ctx context.Context, arg OfferCodeInsertParams
 		arg.Source,
 	)
 	return err
+}
+
+const offerCodeRedeem = `-- name: OfferCodeRedeem :execrows
+UPDATE earn_offer_codes SET redeemed_at = $1::timestamptz WHERE workspace_id = $2 AND upper(code) = upper($3::text) AND redeemed_at IS NULL
+`
+
+type OfferCodeRedeemParams struct {
+	At          time.Time `json:"at"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Code        string    `json:"code"`
+}
+
+// A subscription took a single-use code.
+func (q *Queries) OfferCodeRedeem(ctx context.Context, arg OfferCodeRedeemParams) (int64, error) {
+	result, err := q.db.Exec(ctx, offerCodeRedeem, arg.At, arg.WorkspaceID, arg.Code)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const offerCodeTaken = `-- name: OfferCodeTaken :one
@@ -602,6 +650,63 @@ func (q *Queries) OfferRedemptions(ctx context.Context, arg OfferRedemptionsPara
 	var i OfferRedemptionsRow
 	err := row.Scan(&i.Redemptions, &i.NewMembers, &i.Arr)
 	return i, err
+}
+
+const offerReferralOffers = `-- name: OfferReferralOffers :many
+SELECT o.id, o.name, o.applies, o.discount_type, o.percent_off, o.amount_off, o.currency, o.duration, o.duration_months,
+       (SELECT count(*) FROM earn_offer_codes c WHERE c.offer_id = o.id)::bigint AS issued,
+       (SELECT count(*) FROM earn_offer_codes c WHERE c.offer_id = o.id AND c.redeemed_at IS NOT NULL)::bigint AS redeemed
+FROM earn_offers o
+WHERE o.workspace_id = $1 AND o.kind = 'referral' AND o.status = 'live' AND o.deleted_at IS NULL
+ORDER BY o.started_at, o.name
+`
+
+type OfferReferralOffersRow struct {
+	ID             uuid.UUID       `json:"id"`
+	Name           string          `json:"name"`
+	Applies        json.RawMessage `json:"applies"`
+	DiscountType   string          `json:"discountType"`
+	PercentOff     *int32          `json:"percentOff"`
+	AmountOff      *int64          `json:"amountOff"`
+	Currency       string          `json:"currency"`
+	Duration       string          `json:"duration"`
+	DurationMonths *int32          `json:"durationMonths"`
+	Issued         int64           `json:"issued"`
+	Redeemed       int64           `json:"redeemed"`
+}
+
+// Live "Referral reward" offers with the codes they issued and those
+// redeemed, for a milestone's coupon reward.
+func (q *Queries) OfferReferralOffers(ctx context.Context, workspaceID uuid.UUID) ([]OfferReferralOffersRow, error) {
+	rows, err := q.db.Query(ctx, offerReferralOffers, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []OfferReferralOffersRow{}
+	for rows.Next() {
+		var i OfferReferralOffersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Applies,
+			&i.DiscountType,
+			&i.PercentOff,
+			&i.AmountOff,
+			&i.Currency,
+			&i.Duration,
+			&i.DurationMonths,
+			&i.Issued,
+			&i.Redeemed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const offerReopen = `-- name: OfferReopen :exec

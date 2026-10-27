@@ -18,88 +18,21 @@ SELECT position, url FROM automation_email_links WHERE email_id = @email_id AND 
 -- name: TrackingContactVars :one
 SELECT email, first_name, last_name, attributes FROM contacts WHERE id = @id;
 
--- name: TrackingMarkOpen :one
--- Records an open on a message and says what changed, so counters move
--- once per message: the first open, or the first human open after a
--- machine prefetch (prev_opened_at is when that prefetch was).
-WITH old AS (SELECT opened_at, human_opened_at FROM messages WHERE id = @id FOR UPDATE)
-UPDATE messages m
-SET opened_at = coalesce(m.opened_at, @at::timestamptz),
-    human_opened_at = CASE WHEN @human::boolean THEN coalesce(m.human_opened_at, @at::timestamptz) ELSE m.human_opened_at END
-FROM old
-WHERE m.id = @id
-RETURNING (old.opened_at IS NULL)::boolean AS first_open,
-          (old.human_opened_at IS NULL AND @human::boolean)::boolean AS first_human,
-          old.opened_at AS prev_opened_at;
-
--- name: TrackingMarkClick :one
--- A click counts as a human open too.
-WITH old AS (SELECT opened_at, human_opened_at, clicked_at FROM messages WHERE id = @id FOR UPDATE)
-UPDATE messages m
-SET clicked_at = coalesce(m.clicked_at, @at::timestamptz),
-    opened_at = coalesce(m.opened_at, @at::timestamptz),
-    human_opened_at = coalesce(m.human_opened_at, @at::timestamptz)
-FROM old
-WHERE m.id = @id
-RETURNING (old.clicked_at IS NULL)::boolean AS first_click,
-          (old.opened_at IS NULL)::boolean AS first_open,
-          (old.human_opened_at IS NULL)::boolean AS first_human,
-          old.opened_at AS prev_opened_at;
-
 -- name: TrackingFirstLinkClick :one
 INSERT INTO tracking_link_clicks (message_id, link, clicked_at) VALUES (@message_id, @link, @at)
 ON CONFLICT DO NOTHING
 RETURNING link;
 
--- name: TrackingBumpLink :exec
-UPDATE campaign_links SET clicks = clicks + 1, unique_clicks = unique_clicks + @unique_clicks
-WHERE campaign_id = @campaign_id AND position = @position;
-
 -- name: TrackingBumpAutomationLink :exec
 UPDATE automation_email_links SET clicks = clicks + 1 WHERE email_id = @email_id AND version = @version AND language = @language AND position = @position;
 
--- name: TrackingBumpCounters :exec
-INSERT INTO campaign_counters (campaign_id, provider_id, mailbox_provider, variant, opened_human, opened_machine, clicked)
-VALUES (@campaign_id, @provider_id, @mailbox_provider, @variant, @opened_human, @opened_machine, @clicked)
-ON CONFLICT (campaign_id, provider_id, mailbox_provider, variant) DO UPDATE
-SET opened_human = campaign_counters.opened_human + EXCLUDED.opened_human,
-    opened_machine = campaign_counters.opened_machine + EXCLUDED.opened_machine,
-    clicked = campaign_counters.clicked + EXCLUDED.clicked;
-
--- name: TrackingBumpHourly :exec
-INSERT INTO campaign_hourly (campaign_id, hour, opened_human, opened_machine, clicked)
-VALUES (@campaign_id, @hour, @opened_human, @opened_machine, @clicked)
-ON CONFLICT (campaign_id, hour) DO UPDATE
-SET opened_human = campaign_hourly.opened_human + EXCLUDED.opened_human,
-    opened_machine = campaign_hourly.opened_machine + EXCLUDED.opened_machine,
-    clicked = campaign_hourly.clicked + EXCLUDED.clicked;
-
 -- name: TrackingInsertEvent :exec
+-- class is how tracking classified the open or click (human, privacy,
+-- machine; human, bot); link the clicked link's position.
 INSERT INTO delivery_events (id, workspace_id, message_id, campaign_id, contact_id, provider_id, type, occurred_at, received_at,
-                             mailbox_provider, original_type, diagnostic, machine, url, user_agent, ip, recipient, source)
+                             mailbox_provider, original_type, diagnostic, machine, url, user_agent, ip, recipient, source, class, link)
 VALUES (@id, @workspace_id, @message_id, sqlc.narg(campaign_id), sqlc.narg(contact_id), sqlc.narg(provider_id), @type, @occurred_at, @received_at,
-        @mailbox_provider, @original_type, @diagnostic, @machine, @url, @user_agent, sqlc.narg(ip), @recipient, @source);
-
--- name: TrackingTouchContactOpen :exec
--- last_open_at counts every open, last_human_open_at only people's (tiers
--- and the sunset policy use it); last_open_machine says what the latest was.
-UPDATE contacts
-SET last_open_at = greatest(coalesce(last_open_at, @at::timestamptz), @at::timestamptz),
-    last_human_open_at = CASE WHEN @human::boolean THEN greatest(coalesce(last_human_open_at, @at::timestamptz), @at::timestamptz) ELSE last_human_open_at END,
-    last_open_machine = CASE WHEN last_open_at IS NULL OR @at::timestamptz >= last_open_at THEN NOT @human::boolean ELSE last_open_machine END,
-    last_activity_at = greatest(coalesce(last_activity_at, @at::timestamptz), @at::timestamptz),
-    updated_at = now()
-WHERE id = @id;
-
--- name: TrackingTouchContactClick :exec
-UPDATE contacts
-SET last_click_at = greatest(coalesce(last_click_at, @at::timestamptz), @at::timestamptz),
-    last_open_at = greatest(coalesce(last_open_at, @at::timestamptz), @at::timestamptz),
-    last_human_open_at = greatest(coalesce(last_human_open_at, @at::timestamptz), @at::timestamptz),
-    last_open_machine = false,
-    last_activity_at = greatest(coalesce(last_activity_at, @at::timestamptz), @at::timestamptz),
-    updated_at = now()
-WHERE id = @id;
+        @mailbox_provider, @original_type, @diagnostic, @machine, @url, @user_agent, sqlc.narg(ip), @recipient, @source, @class, sqlc.narg(link));
 
 -- name: TrackingSourceLabel :one
 SELECT coalesce(c.name, a.name, '')::text
@@ -107,3 +40,111 @@ FROM messages m
 LEFT JOIN campaigns c ON c.id = m.campaign_id
 LEFT JOIN automations a ON a.id = m.automation_id
 WHERE m.id = @id;
+
+-- name: TrackingTouchContacts :exec
+-- A batch's opens and clicks on contacts, one row per contact in id order
+-- (the last lock a tracking batch takes). opened is the latest open, human
+-- the latest person's open or click, clicked the latest click; machine says
+-- the latest open was a machine's.
+UPDATE contacts c
+SET last_open_at = CASE WHEN x.opened IS NULL THEN c.last_open_at ELSE greatest(coalesce(c.last_open_at, x.opened), x.opened) END,
+    last_human_open_at = CASE WHEN x.human IS NULL THEN c.last_human_open_at ELSE greatest(coalesce(c.last_human_open_at, x.human), x.human) END,
+    last_click_at = CASE WHEN x.clicked IS NULL THEN c.last_click_at ELSE greatest(coalesce(c.last_click_at, x.clicked), x.clicked) END,
+    last_open_machine = CASE WHEN x.opened IS NOT NULL AND (c.last_open_at IS NULL OR x.opened >= c.last_open_at) THEN x.machine ELSE c.last_open_machine END,
+    last_activity_at = greatest(coalesce(c.last_activity_at, x.activity), x.activity),
+    updated_at = now()
+FROM (
+    -- 'epoch' stands for "none" in the time arrays.
+    SELECT unnest(@ids::uuid[]) AS id, nullif(unnest(@opened::timestamptz[]), 'epoch') AS opened, nullif(unnest(@human::timestamptz[]), 'epoch') AS human,
+           nullif(unnest(@clicked::timestamptz[]), 'epoch') AS clicked, unnest(@machine::boolean[]) AS machine, unnest(@activity::timestamptz[]) AS activity
+) x
+WHERE c.id = x.id AND c.id IN (SELECT cc.id FROM contacts cc WHERE cc.id = ANY(@ids::uuid[]) ORDER BY cc.id FOR UPDATE);
+
+-- name: TrackingRetryPark :exec
+-- Opens and clicks a batch couldn't record, kept for the tracking.retry job.
+INSERT INTO tracking_retry (message_id, event, next_at, error)
+SELECT unnest(@message_ids::uuid[]), unnest(@events::jsonb[]), @next_at, @error;
+
+-- name: TrackingRetryClaim :many
+-- Takes due events for one retry: they are put off by the backoff first,
+-- so a worker that dies leaves them for a later run.
+UPDATE tracking_retry r
+SET attempts = r.attempts + 1, next_at = @next_at
+WHERE r.id IN (SELECT t.id FROM tracking_retry t WHERE t.next_at <= @now AND t.attempts < @max_attempts ORDER BY t.next_at, t.id LIMIT @lim FOR UPDATE SKIP LOCKED)
+RETURNING r.id, r.message_id, r.event, r.attempts;
+
+-- name: TrackingRetryDone :exec
+DELETE FROM tracking_retry WHERE id = ANY(@ids::bigint[]);
+
+-- name: TrackingRetryFailed :exec
+UPDATE tracking_retry SET error = @error WHERE id = ANY(@ids::bigint[]);
+
+-- name: TrackingRetryPurge :execrows
+-- Events that kept failing for 30 days are dropped (the error stays in the
+-- log of each attempt).
+DELETE FROM tracking_retry WHERE created_at < @before;
+
+-- name: TrackingRetryPending :one
+SELECT count(*)::bigint FROM tracking_retry WHERE attempts < @max_attempts;
+
+-- name: TrackingPendingClick :exec
+-- A click that looks like a person's waits to settle (review AN-2).
+INSERT INTO tracking_pending_clicks (event_id, message_id, link, url, clicked_at, settle_at)
+VALUES (@event_id, @message_id, @link, @url, @clicked_at, @settle_at);
+
+-- name: TrackingDueClicks :many
+-- Pending clicks due to settle, each message's together and in message
+-- order (the order writers lock messages in), with what the click sent;
+-- reported: the sending provider reported it (review AN-4).
+SELECT p.event_id, p.message_id, p.link, p.url, p.clicked_at,
+       coalesce(e.user_agent, '')::text AS user_agent, e.ip,
+       (coalesce(e.original_type, 'ReputeCast tracking') <> 'ReputeCast tracking')::boolean AS reported
+FROM tracking_pending_clicks p
+LEFT JOIN delivery_events e ON e.id = p.event_id
+WHERE p.settle_at <= @now
+ORDER BY p.message_id, p.clicked_at, p.event_id
+LIMIT @lim
+FOR UPDATE OF p SKIP LOCKED;
+
+-- name: TrackingNextSettle :one
+SELECT coalesce(min(settle_at), 'epoch'::timestamptz)::timestamptz FROM tracking_pending_clicks;
+
+-- name: TrackingMessageClicks :many
+-- A message's clicks between two times (bursts, the hidden link); link -1
+-- is the hidden link, -2 a link that isn't one of the email's (a provider
+-- reported it, review AN-4).
+SELECT occurred_at, coalesce(link, -2)::integer AS link, class, url
+FROM delivery_events
+WHERE message_id = @message_id AND type = 'click' AND occurred_at BETWEEN @from_at AND @until_at
+ORDER BY occurred_at;
+
+-- name: TrackingSettleEvent :exec
+UPDATE delivery_events SET class = @class, machine = @machine, diagnostic = @diagnostic WHERE id = @id;
+
+-- name: TrackingClassifyEvent :exec
+-- An open or click the sending provider reported (stored by ingest),
+-- classified in place (review AN-4).
+UPDATE delivery_events
+SET class = @class, machine = @machine, diagnostic = @diagnostic, link = sqlc.narg(link), ip = sqlc.narg(ip)
+WHERE id = @id;
+
+-- name: TrackingSettled :exec
+DELETE FROM tracking_pending_clicks WHERE event_id = ANY(@ids::uuid[]);
+
+-- name: TrackingNetworkList :many
+-- Networks of privacy proxies and mail scanners.
+SELECT cidr::text AS cidr, name, class, source, note, created_at
+FROM tracking_networks
+ORDER BY class, name, cidr;
+
+-- name: TrackingNetworkAdd :one
+INSERT INTO tracking_networks (cidr, name, class, source, note, created_by)
+VALUES (@cidr::cidr, @name, @class, 'admin', @note, sqlc.narg(created_by))
+ON CONFLICT (cidr) DO NOTHING
+RETURNING cidr::text AS cidr;
+
+-- name: TrackingNetworkDelete :one
+-- Only networks an admin added can be removed; the built-in ones come with
+-- releases.
+DELETE FROM tracking_networks WHERE cidr = @cidr::cidr AND source = 'admin'
+RETURNING cidr::text AS cidr, name, class, note;
