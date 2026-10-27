@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/payments"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -18,9 +20,12 @@ import (
 
 // Referral rewards (Grow › Referrals): a milestone's coupon reward issues
 // the referrer a single-use promotion code of a live "Referral reward"
-// offer. The code works on the upgrade page like an offer link
-// (upgrade?offer=INS-OH7K2Q), once and until it expires; the subscription
-// that uses it marks it redeemed.
+// offer. The code works on the upgrade page like an offer link, through
+// the referrer's own personal link (upgrade?r=…&offer=INS-…), once and
+// until it expires; the subscription that uses it marks it redeemed. For
+// anyone else the code is unknown: it can't be guessed (12 random
+// characters), tried (an address that keeps trying finds none for a
+// while) or used by whoever gets hold of it.
 
 // ReferralOffer is a live referral offer a milestone can reward with.
 type ReferralOffer struct {
@@ -34,7 +39,8 @@ type ReferralOffer struct {
 	Redeemed  int64
 }
 
-// ReferralCode is an issued single-use code and the link that applies it.
+// ReferralCode is an issued single-use code and the link that applies it:
+// the referrer's own upgrade link, the only one the code works with.
 type ReferralCode struct {
 	Code      string
 	ClaimURL  string
@@ -48,6 +54,11 @@ var errNotIssuable = errors.New("offers: this referral offer can't issue a code 
 
 // codeAlphabet leaves out characters people confuse (0/O, 1/I/L).
 const codeAlphabet = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"
+
+// codeLength is how many random characters follow a code's prefix: 12 of
+// codeAlphabet's 31 are about 59 bits, so a code can't be found by trying
+// codes, on the upgrade page or in the provider's checkout.
+const codeLength = 12
 
 // ReferralOffers lists the workspace's live referral offers.
 func (s *Service) ReferralOffers(ctx context.Context, ws *store.Workspace) ([]ReferralOffer, error) {
@@ -117,7 +128,7 @@ func (s *Service) IssueReferralCode(ctx context.Context, ws *store.Workspace, of
 	prefix := s.codePrefix(ctx, ws, r)
 	// A code someone already holds (here or in the provider) is drawn again.
 	for range 5 {
-		code := prefix + "-" + randomCode(6)
+		code := prefix + "-" + randomCode(codeLength)
 		if _, err := s.Q.OfferCodeByCode(ctx, store.OfferCodeByCodeParams{WorkspaceID: ws.ID, Code: code}); err == nil {
 			continue
 		} else if !errors.Is(err, pgx.ErrNoRows) {
@@ -143,7 +154,9 @@ func (s *Service) IssueReferralCode(ctx context.Context, ws *store.Workspace, of
 			_ = off.SetPromotionCodeActive(context.WithoutCancel(ctx), pc.ID, false)
 			return ReferralCode{}, err
 		}
-		return ReferralCode{Code: code, ClaimURL: s.Earn.PageURL(ctx, ws, "upgrade?offer="+code), ExpiresAt: expires}, nil
+		// The referrer's personal link: the code applies only for them.
+		claim := s.Earn.UpgradeURL(ctx, ws, contactID, uuid.Nil) + "&offer=" + code
+		return ReferralCode{Code: code, ClaimURL: claim, ExpiresAt: expires}, nil
 	}
 	return ReferralCode{}, errors.New("offers: no free referral code after 5 tries")
 }
@@ -173,25 +186,108 @@ func (s *Service) codePrefix(ctx context.Context, ws *store.Workspace, r store.O
 	return "REF"
 }
 
-// randomCode is n characters of codeAlphabet from crypto/rand.
+// randomCode is n characters of codeAlphabet from crypto/rand, each as
+// likely as the others.
 func randomCode(n int) string {
-	b := make([]byte, n)
-	_, _ = rand.Read(b)
-	for i := range b {
-		b[i] = codeAlphabet[int(b[i])%len(codeAlphabet)]
+	// 256 isn't a multiple of 31: bytes from 248 up are drawn again rather
+	// than make the first characters likelier.
+	const unbiased = 256 - 256%len(codeAlphabet)
+	out := make([]byte, 0, n)
+	buf := make([]byte, n)
+	for len(out) < n {
+		_, _ = rand.Read(buf)
+		for _, b := range buf {
+			if int(b) < unbiased && len(out) < n {
+				out = append(out, codeAlphabet[int(b)%len(codeAlphabet)])
+			}
+		}
 	}
-	return string(b)
+	return string(out)
 }
 
 // singleUse is a referral reward's code by the code a reader brings, with
-// its offer.
-func (s *Service) singleUse(ctx context.Context, ws *store.Workspace, code string) (store.EarnOfferCode, store.OfferGetRow, bool) {
+// its offer, when it was issued to reader (the contact of the page's
+// personal link). A code issued to someone else, or to no one, is as
+// unknown as a code that doesn't exist; so is every code for an address
+// that tried too many (codeMisses).
+func (s *Service) singleUse(ctx context.Context, ws *store.Workspace, code string, reader uuid.UUID) (store.EarnOfferCode, store.OfferGetRow, bool) {
+	if reader == uuid.Nil || !s.codeMisses.allow(clientOf(ctx), s.now()) {
+		return store.EarnOfferCode{}, store.OfferGetRow{}, false
+	}
 	c, err := s.Q.OfferCodeByCode(ctx, store.OfferCodeByCodeParams{WorkspaceID: ws.ID, Code: code})
-	if err != nil {
+	if err != nil || c.ContactID == nil || *c.ContactID != reader {
 		return store.EarnOfferCode{}, store.OfferGetRow{}, false
 	}
 	r, err := s.Q.OfferGet(ctx, store.OfferGetParams{ID: c.OfferID, WorkspaceID: ws.ID})
 	return c, r, err == nil
+}
+
+// missed counts a code that was neither an offer's nor one of the reader's
+// single-use codes against the request's address.
+func (s *Service) missed(ctx context.Context) {
+	s.codeMisses.miss(clientOf(ctx), s.now())
+}
+
+// clientOf is the address a request came from (the public pages'), for
+// the miss limit.
+func clientOf(ctx context.Context) string {
+	if ip := audit.RequestFrom(ctx).IP; ip != nil {
+		return ip.String()
+	}
+	return "unknown"
+}
+
+// Failed lookups of single-use codes per address: after missLimit in
+// missWindow the address finds none until the window is over, the limit
+// of the read-only report links' unknown links (reports.Limiter).
+const (
+	missLimit  = 20
+	missWindow = 10 * time.Minute
+)
+
+// misses counts each address's failed single-use code lookups in a fixed
+// window. The zero value is ready to use.
+type misses struct {
+	mu    sync.Mutex
+	by    map[string]*missCount
+	sweep time.Time
+}
+
+type missCount struct {
+	start time.Time
+	n     int
+}
+
+// allow reports whether an address may still look single-use codes up.
+func (m *misses) allow(addr string, now time.Time) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	w := m.by[addr]
+	return w == nil || now.Sub(w.start) >= missWindow || w.n < missLimit
+}
+
+// miss counts a failed lookup from an address.
+func (m *misses) miss(addr string, now time.Time) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.by == nil {
+		m.by = map[string]*missCount{}
+	}
+	if now.Sub(m.sweep) >= missWindow {
+		// Windows that are over are forgotten, so the map stays small.
+		m.sweep = now
+		for k, w := range m.by {
+			if now.Sub(w.start) >= missWindow {
+				delete(m.by, k)
+			}
+		}
+	}
+	w := m.by[addr]
+	if w == nil || now.Sub(w.start) >= missWindow {
+		w = &missCount{start: now}
+		m.by[addr] = w
+	}
+	w.n++
 }
 
 // usable reports whether a single-use code can still be applied.

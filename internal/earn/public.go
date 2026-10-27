@@ -249,8 +249,15 @@ func hasAccess(status string, paused bool) bool {
 // Upgrade builds the upgrade page.
 func (s *Service) Upgrade(ctx context.Context, ws *store.Workspace, r UpgradeRequest) (UpgradeView, error) {
 	l := r.Lang
+	// The reader of a personal link; offerReader is whom a single-use offer
+	// code must have been issued to (never the editor's preview reader).
+	var reader *store.EarnContactBriefRow
+	offerReader := uuid.Nil
+	if ct, _, ok := s.readerOf(ctx, ws, r.Token); ok {
+		reader, offerReader = &ct, ct.ID
+	}
 	if r.Offer != "" && r.Period == "" && s.Offers != nil {
-		r.Period = s.Offers.PeriodFor(ctx, ws, r.Offer)
+		r.Period = s.Offers.PeriodFor(ctx, ws, r.Offer, offerReader)
 	}
 	conns, err := s.connections(ctx, ws.ID)
 	if err != nil {
@@ -295,11 +302,6 @@ func (s *Service) Upgrade(ctx context.Context, ws *store.Workspace, r UpgradeReq
 		}
 	}
 	cur := st.Currency
-	// The reader of a personal link.
-	var reader *store.EarnContactBriefRow
-	if ct, _, ok := s.readerOf(ctx, ws, r.Token); ok {
-		reader = &ct
-	}
 	if r.Preview && (r.As == "free" || r.As == "paid") {
 		reader = s.previewReader(ctx, ws, r.As)
 	}
@@ -382,7 +384,7 @@ func (s *Service) Upgrade(ctx context.Context, ws *store.Workspace, r UpgradeReq
 		v.TaxNote = s.t(l, key, i18n.Args{"currency": currencyNameIn(l, cn)})
 	}
 	if r.Offer != "" && s.Offers != nil && len(v.Cards) > 0 {
-		if err := s.Offers.UpgradeOffer(ctx, ws, mode, r.Offer, &v); err != nil {
+		if err := s.Offers.UpgradeOffer(ctx, ws, mode, r.Offer, offerReader, &v); err != nil {
 			s.log().WarnContext(ctx, "earn: the offer on the upgrade page", "offer", r.Offer, "err", err)
 		}
 	}
@@ -666,10 +668,15 @@ func (s *Service) StartCheckout(ctx context.Context, ws *store.Workspace, r Chec
 	}
 	req.TrialDays = trial
 	// An offer link applies its promotion code: the offer's price is paid
-	// at once, without a trial (X17).
+	// at once, without a trial (X17). A single-use code applies only for
+	// the reader of the personal link it was issued to.
 	offer := ""
 	if r.Offer != "" && s.Offers != nil {
-		if code := s.Offers.CheckoutCode(ctx, ws, conn.Mode, r.Offer, t.ID, period); code != "" {
+		reader := uuid.Nil
+		if contact != nil {
+			reader = *contact
+		}
+		if code := s.Offers.CheckoutCode(ctx, ws, conn.Mode, r.Offer, reader, t.ID, period); code != "" {
 			req.PromotionCode, req.AllowCodes, req.TrialDays, offer = code, false, 0, r.Offer
 			trial = 0
 		}

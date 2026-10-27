@@ -68,11 +68,12 @@ func (s *Service) byCode(ctx context.Context, ws *store.Workspace, code string) 
 }
 
 // PeriodFor is the period an offer link opens the page on: the one it
-// applies to, when it applies to one.
-func (s *Service) PeriodFor(ctx context.Context, ws *store.Workspace, code string) string {
+// applies to, when it applies to one. A code that isn't one counts against
+// the address in UpgradeOffer, once per page, rather than here.
+func (s *Service) PeriodFor(ctx context.Context, ws *store.Workspace, code string, reader uuid.UUID) string {
 	r, ok := s.byCode(ctx, ws, code)
 	if !ok {
-		if _, r, ok = s.singleUse(ctx, ws, code); !ok {
+		if _, r, ok = s.singleUse(ctx, ws, code, reader); !ok {
 			return ""
 		}
 	}
@@ -89,16 +90,21 @@ func (s *Service) PeriodFor(ctx context.Context, ws *store.Workspace, code strin
 }
 
 // CheckoutCode implements earn.OfferHook: a signup offer's code, or a
-// referral reward's single-use code while it's unused and unexpired.
-func (s *Service) CheckoutCode(ctx context.Context, ws *store.Workspace, mode, code string, tier uuid.UUID, period string) string {
+// referral reward's single-use code while it's unused and unexpired, for
+// the reader it was issued to.
+func (s *Service) CheckoutCode(ctx context.Context, ws *store.Workspace, mode, code string, reader, tier uuid.UUID, period string) string {
 	if r, ok := s.byCode(ctx, ws, code); ok {
 		if !s.live(ctx, ws, r, mode) || !applies(r, tier.String(), period) {
 			return ""
 		}
 		return parseStripe(r.Stripe)[mode].Promo
 	}
-	c, r, ok := s.singleUse(ctx, ws, code)
-	if !ok || !s.usable(c) || !s.live(ctx, ws, r, mode) || !applies(r, tier.String(), period) {
+	c, r, ok := s.singleUse(ctx, ws, code, reader)
+	if !ok {
+		s.missed(ctx)
+		return ""
+	}
+	if !s.usable(c) || !s.live(ctx, ws, r, mode) || !applies(r, tier.String(), period) {
 		return ""
 	}
 	if sm := parseStripe(c.Stripe)[mode]; sm != nil {
@@ -123,7 +129,7 @@ func dateOf(l i18n.Lang, t time.Time, ws *store.Workspace) string {
 
 // UpgradeOffer implements earn.OfferHook: the offer's lines in the page's
 // language (the view's).
-func (s *Service) UpgradeOffer(ctx context.Context, ws *store.Workspace, mode, code string, v *earn.UpgradeView) error {
+func (s *Service) UpgradeOffer(ctx context.Context, ws *store.Workspace, mode, code string, reader uuid.UUID, v *earn.UpgradeView) error {
 	l := v.Lang
 	pg := func(key string, args i18n.Args) string { return msgs.M(key).Text(l, args) }
 	// offerCode is what checkout applies: the offer's code, or a referral
@@ -131,11 +137,16 @@ func (s *Service) UpgradeOffer(ctx context.Context, ws *store.Workspace, mode, c
 	r, ok := s.byCode(ctx, ws, code)
 	offerCode := r.Code
 	if !ok {
-		c, rr, found := s.singleUse(ctx, ws, code)
+		// A single-use code shows only on its reader's own page. To anyone
+		// else a live, used, expired or unknown code looks the same: the
+		// normal prices, with nothing to tell them apart.
+		c, rr, found := s.singleUse(ctx, ws, code, reader)
 		if !found {
+			s.missed(ctx)
 			return nil
 		}
 		if !s.usable(c) {
+			// Its reader learns why it no longer applies.
 			key := "page.codeExpired"
 			if c.RedeemedAt != nil {
 				key = "page.codeUsed"
