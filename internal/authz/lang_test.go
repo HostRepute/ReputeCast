@@ -40,19 +40,20 @@ func TestCatalogueInVietnamese(t *testing.T) {
 	}
 }
 
-// "Who can help" reads in the reader's language; the English is as before.
+// "Who can help" reads in the reader's language, never the permission key
+// (review X-1): API clients read the key from the problem's permission field.
 func TestDeniedText(t *testing.T) {
 	helpers := []string{"Marcus Chen", "Linh Nguyen"}
-	if got := DeniedMessage(CampaignsSend, helpers); got != "Sending needs the campaigns:send permission. Ask Marcus Chen or Linh Nguyen." {
+	if got := DeniedMessage(CampaignsSend, helpers); got != "Sending needs a permission you don't have. Ask Marcus Chen or Linh Nguyen." {
 		t.Errorf("English: %q", got)
 	}
-	if got := DeniedMessage(CampaignsView, nil); got != "View campaigns needs the campaigns:view permission." {
+	if got := DeniedMessage(CampaignsView, nil); got != "View campaigns needs a permission you don't have." {
 		t.Errorf("English, no helpers: %q", got)
 	}
-	if got := DeniedMessage(AgencyView, nil); got != "This needs the agency:view permission." {
+	if got := DeniedMessage(AgencyView, nil); got != "This needs a permission you don't have." {
 		t.Errorf("English, agency: %q", got)
 	}
-	if got := DeniedText(i18n.For(i18n.Vietnamese), CampaignsSend, helpers); got != "Để gửi chiến dịch, bạn cần quyền campaigns:send. Hãy hỏi Marcus Chen hoặc Linh Nguyen." {
+	if got := DeniedText(i18n.For(i18n.Vietnamese), CampaignsSend, helpers); got != "Bạn chưa có quyền gửi chiến dịch. Hãy hỏi Marcus Chen hoặc Linh Nguyen." {
 		t.Errorf("Vietnamese: %q", got)
 	}
 }

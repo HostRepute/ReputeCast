@@ -2,8 +2,8 @@ import { translate } from '@/i18n'
 import { m } from './session.messages'
 
 export default translate(m, {
-  denied: 'Để {action}, bạn cần quyền {permission}.',
-  deniedAsk: 'Để {action}, bạn cần quyền {permission}. Hãy hỏi {helpers}.',
+  denied: 'Bạn chưa có quyền {action}.',
+  deniedAsk: 'Bạn chưa có quyền {action}. Hãy hỏi {helpers}.',
   this: 'thực hiện thao tác này',
   'campaigns:send': 'gửi chiến dịch',
   'campaigns:pause': 'tạm dừng lần gửi',

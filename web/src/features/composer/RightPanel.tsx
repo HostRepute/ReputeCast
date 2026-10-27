@@ -136,10 +136,16 @@ function MobileChecks({ selected }: { selected: Component | null }) {
 function InspectorHead({ c, tab }: { c: Component; tab: 'style' | 'settings' }) {
   const label = friendlyLabel(c)
   // A section reads as the board's "Section · 2 columns  Feature highlights".
-  if (label.name !== undefined) {
+  if (label.section) {
     return (
       <div className="ihead border-b border-line-2">
-        <span className="font-semibold">{label.head}</span> <span className="k">{label.name}</span>
+        <span className="font-semibold">{label.head}</span>
+        {label.name ? (
+          <>
+            {' '}
+            <span className="k">{label.name}</span>
+          </>
+        ) : null}
       </div>
     )
   }

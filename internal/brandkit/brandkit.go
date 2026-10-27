@@ -270,66 +270,98 @@ func parseID(raw string) (*uuid.UUID, bool) {
 // Save stores the kit. A new light logo or alt text reaches the synced
 // Header, and through it the drafts and scheduled emails holding it.
 func (s *Service) Save(ctx context.Context, ws *store.Workspace, p *authz.Principal, in BrandKitInput) (BrandKit, error) {
-	if err := s.validate(ctx, &in); err != nil {
-		return BrandKit{}, err
-	}
-	light, ok := parseID(in.LogoLightID)
-	if !ok {
-		return BrandKit{}, api.Invalid("body.logoLightId", say(ctx, mBadLogo))
-	}
-	dark, ok := parseID(in.LogoDarkID)
-	if !ok {
-		return BrandKit{}, api.Invalid("body.logoDarkId", say(ctx, mBadLogo))
-	}
-	var before BrandKit
-	var header *SyncedBlock
+	var saved KitSaved
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		var err error
-		if before, err = s.kit(ctx, q, ws); err != nil {
+		if saved, err = s.SaveIn(ctx, q, ws, p, in); err != nil {
 			return err
 		}
-		for field, id := range map[string]*uuid.UUID{"logoLightId": light, "logoDarkId": dark} {
-			if id == nil {
-				continue
-			}
-			if l, err := s.logo(ctx, q, ws, id); err != nil {
-				return err
-			} else if l == nil {
-				return api.Invalid("body."+field, say(ctx, mBadLogo))
-			}
-		}
-		style, _ := json.Marshal(in.BrandStyle)
-		if err := q.BrandKitUpsert(ctx, store.BrandKitUpsertParams{WorkspaceID: ws.ID, LogoLightID: light, LogoDarkID: dark, LogoAlt: in.LogoAlt, Style: style,
-			Website: in.Website, UpdatedBy: actor(p), UpdatedAt: s.now()}); err != nil {
-			return err
-		}
-		after, err := s.kit(ctx, q, ws)
-		if err != nil {
-			return err
-		}
-		// First save: the synced Header and Footer start from the kit.
-		if err := s.ensureSynced(ctx, q, ws, p, after); err != nil {
-			return err
-		}
-		if logoURL(before.LogoLight) != logoURL(after.LogoLight) || before.LogoAlt != after.LogoAlt {
-			if header, err = s.relogo(ctx, q, ws, p, after); err != nil {
+		for _, e := range saved.Audit {
+			if err := s.Audit.LogWith(ctx, q, e); err != nil {
 				return err
 			}
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "brand_kit.save", TargetType: "brand_kit", TargetID: ws.ID.String(), TargetName: ws.Name,
-			Before: kitAudit(before), After: kitAudit(after)})
+		return nil
 	})
 	if err != nil {
 		return BrandKit{}, err
 	}
 	// The Header's new logo reaches the emails holding it (after the kit is saved).
-	if header != nil {
-		if _, err := s.propagate(ctx, ws, p, *header); err != nil {
+	if saved.Header != nil {
+		if _, err := s.propagate(ctx, ws, p, *saved.Header); err != nil {
 			return BrandKit{}, err
 		}
 	}
 	return s.Get(ctx, ws)
+}
+
+// KitSaved is what saving the kit did.
+type KitSaved struct {
+	Before, After BrandKit
+	// Header is the synced Header when the kit's logo changed it, for the
+	// emails holding it once the kit's transaction commits.
+	Header *SyncedBlock
+	// Audit are the entries the save makes, for the caller to write.
+	Audit []audit.Event
+}
+
+// SaveIn is Save's work in the caller's transaction (q): it checks and
+// stores the kit, creates the synced Header and Footer on the first save,
+// and puts a new light logo or alt text in the Header. It leaves the
+// audit entries and the emails holding the Header to the caller (Save;
+// internal/demo seeds the Acme kit through it).
+func (s *Service) SaveIn(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, in BrandKitInput) (KitSaved, error) {
+	var out KitSaved
+	if err := s.validate(ctx, &in); err != nil {
+		return out, err
+	}
+	light, ok := parseID(in.LogoLightID)
+	if !ok {
+		return out, api.Invalid("body.logoLightId", say(ctx, mBadLogo))
+	}
+	dark, ok := parseID(in.LogoDarkID)
+	if !ok {
+		return out, api.Invalid("body.logoDarkId", say(ctx, mBadLogo))
+	}
+	var err error
+	if out.Before, err = s.kit(ctx, q, ws); err != nil {
+		return out, err
+	}
+	for field, id := range map[string]*uuid.UUID{"logoLightId": light, "logoDarkId": dark} {
+		if id == nil {
+			continue
+		}
+		if l, err := s.logo(ctx, q, ws, id); err != nil {
+			return out, err
+		} else if l == nil {
+			return out, api.Invalid("body."+field, say(ctx, mBadLogo))
+		}
+	}
+	style, _ := json.Marshal(in.BrandStyle)
+	if err := q.BrandKitUpsert(ctx, store.BrandKitUpsertParams{WorkspaceID: ws.ID, LogoLightID: light, LogoDarkID: dark, LogoAlt: in.LogoAlt, Style: style,
+		Website: in.Website, UpdatedBy: actor(p), UpdatedAt: s.now()}); err != nil {
+		return out, err
+	}
+	if out.After, err = s.kit(ctx, q, ws); err != nil {
+		return out, err
+	}
+	// First save: the synced Header and Footer start from the kit.
+	if err := s.ensureSynced(ctx, q, ws, p, out.After); err != nil {
+		return out, err
+	}
+	if logoURL(out.Before.LogoLight) != logoURL(out.After.LogoLight) || out.Before.LogoAlt != out.After.LogoAlt {
+		var e *audit.Event
+		if out.Header, e, err = s.relogo(ctx, q, ws, p, out.After); err != nil {
+			return out, err
+		}
+		if e != nil {
+			out.Audit = append(out.Audit, *e)
+		}
+	}
+	out.Audit = append(out.Audit, audit.Event{WorkspaceID: &ws.ID, Action: "brand_kit.save", TargetType: "brand_kit", TargetID: ws.ID.String(), TargetName: ws.Name,
+		Before: kitAudit(out.Before), After: kitAudit(out.After)})
+	return out, nil
 }
 
 func logoURL(l *BrandLogo) string {

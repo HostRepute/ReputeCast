@@ -133,7 +133,7 @@ func Require(p *Principal, perm Permission) error {
 	return &DeniedError{Permission: perm, Message: DeniedMessage(perm, nil)}
 }
 
-// DeniedMessage builds "Sending needs the campaigns:send permission. Ask Marcus
+// DeniedMessage builds "Sending needs a permission you don't have. Ask Marcus
 // Chen or Linh Nguyen." in English; DeniedText writes it in a language.
 func DeniedMessage(perm Permission, helpers []string) string {
 	return DeniedText(i18n.Default, perm, helpers)

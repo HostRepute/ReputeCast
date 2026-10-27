@@ -175,48 +175,51 @@ func (s *Service) ensureSynced(ctx context.Context, q *store.Queries, ws *store.
 }
 
 // relogo puts the kit's light logo and its alt text in the synced Header's
-// logo image. It returns the Header when it changed.
-func (s *Service) relogo(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, k BrandKit) (*SyncedBlock, error) {
+// logo image. It returns the Header and its audit entry when it changed.
+func (s *Service) relogo(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, k BrandKit) (*SyncedBlock, *audit.Event, error) {
 	r, err := q.SyncedBlockGet(ctx, store.SyncedBlockGetParams{WorkspaceID: ws.ID, Kind: KindHeader})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
+		return nil, nil, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	doc := mjml.WrapFragment(r.Mjml)
 	img := logoImage(doc)
 	if img == nil || k.LogoLight == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 	// The element starts where it did after each change of its opening tag.
 	doc, _ = mjml.SetAttrRaw(doc, img, "alt", k.LogoAlt)
 	if img = logoImage(doc); img == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 	doc, _ = mjml.SetAttr(doc, img, "src", k.LogoLight.URL)
 	src := mjml.UnwrapFragment(doc)
 	if src == r.Mjml {
-		return nil, nil
+		return nil, nil, nil
 	}
-	return s.storeSynced(ctx, q, ws, p, KindHeader, r.Version, src)
+	b, e, err := s.storeSynced(ctx, q, ws, p, KindHeader, r.Version, src)
+	if err != nil {
+		return nil, nil, err
+	}
+	return b, &e, nil
 }
 
-// storeSynced saves a synced block's next version, audited.
-func (s *Service) storeSynced(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, kind string, prev int32, src string) (*SyncedBlock, error) {
+// storeSynced saves a synced block's next version and returns its audit
+// entry for the caller to write.
+func (s *Service) storeSynced(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, kind string, prev int32, src string) (*SyncedBlock, audit.Event, error) {
 	now := s.now()
 	if err := q.SyncedBlockUpdate(ctx, store.SyncedBlockUpdateParams{WorkspaceID: ws.ID, Kind: kind, Mjml: src, UpdatedBy: actor(p), Now: now}); err != nil {
-		return nil, err
+		return nil, audit.Event{}, err
 	}
-	if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "synced_block.save", TargetType: "synced_block", TargetID: ws.ID.String() + ":" + kind,
-		TargetName: kind, Before: map[string]any{"version": prev}, After: map[string]any{"version": prev + 1, "sizeBytes": len(src)}}); err != nil {
-		return nil, err
-	}
+	e := audit.Event{WorkspaceID: &ws.ID, Action: "synced_block.save", TargetType: "synced_block", TargetID: ws.ID.String() + ":" + kind,
+		TargetName: kind, Before: map[string]any{"version": prev}, After: map[string]any{"version": prev + 1, "sizeBytes": len(src)}}
 	name := ""
 	if p != nil {
 		name = p.Name
 	}
-	return &SyncedBlock{Kind: kind, MJML: src, Version: int(prev + 1), UpdatedBy: name, UpdatedAt: now}, nil
+	return &SyncedBlock{Kind: kind, MJML: src, Version: int(prev + 1), UpdatedBy: name, UpdatedAt: now}, e, nil
 }
 
 // propagate puts a synced block's new version into the emails holding it.
@@ -234,36 +237,20 @@ var unsubscribeToken = regexp.MustCompile(`\{\{-?\s*unsubscribe_url\s*-?\}\}`)
 // get the change as a new version; emails in an approval, sending, paused
 // or sent keep theirs.
 func (s *Service) SaveSynced(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind string, in SyncedInput) (SyncedSaved, error) {
-	l := i18n.LangFrom(ctx)
-	if kind != KindHeader && kind != KindFooter {
-		return SyncedSaved{}, api.NotFound("Synced block")
-	}
-	block, ok := mjml.MarkSynced(in.MJML, kind)
-	if !ok {
-		return SyncedSaved{}, api.Invalid("body.mjml", mOneSection.Text(l, nil))
-	}
-	if res := mjml.CompileIn(l, "<mjml><mj-body>"+block+"</mj-body></mjml>"); len(res.Errors) > 0 {
-		return SyncedSaved{}, api.Invalid("body.mjml", mCompile.Text(l, i18n.Args{"error": res.Errors[0].Message}))
-	}
-	if kind == KindFooter && !unsubscribeToken.MatchString(block) {
-		return SyncedSaved{}, api.Invalid("body.mjml", mNeedsUnsubscribe.Text(l, nil))
-	}
 	var saved *SyncedBlock
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		r, err := q.SyncedBlockGet(ctx, store.SyncedBlockGetParams{WorkspaceID: ws.ID, Kind: kind})
-		if errors.Is(err, pgx.ErrNoRows) {
-			return api.Err(409, "brand_kit_not_saved", mNotSaved.Text(l, nil))
-		}
+		b, events, err := s.SaveSyncedIn(ctx, q, ws, p, kind, in)
 		if err != nil {
 			return err
 		}
-		if r.Mjml == block {
-			saved = &SyncedBlock{Kind: kind, MJML: r.Mjml, Version: int(r.Version), UpdatedBy: r.UpdatedByName, UpdatedAt: r.UpdatedAt}
-			return nil
+		saved = b
+		for _, e := range events {
+			if err := s.Audit.LogWith(ctx, q, e); err != nil {
+				return err
+			}
 		}
-		saved, err = s.storeSynced(ctx, q, ws, p, kind, r.Version, block)
-		return err
+		return nil
 	})
 	if err != nil {
 		return SyncedSaved{}, err
@@ -278,6 +265,43 @@ func (s *Service) SaveSynced(ctx context.Context, ws *store.Workspace, p *authz.
 		}
 	}
 	return SyncedSaved{Block: *saved, Applied: applied}, nil
+}
+
+// SaveSyncedIn is SaveSynced's work in the caller's transaction (q): it
+// checks the block (one section or wrapper that compiles; the footer with
+// its unsubscribe link) and stores its next version. It leaves the audit
+// entries and the emails holding the block to the caller (SaveSynced;
+// internal/demo seeds the Acme blocks through it).
+func (s *Service) SaveSyncedIn(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, kind string, in SyncedInput) (*SyncedBlock, []audit.Event, error) {
+	l := i18n.LangFrom(ctx)
+	if kind != KindHeader && kind != KindFooter {
+		return nil, nil, api.NotFound("Synced block")
+	}
+	block, ok := mjml.MarkSynced(in.MJML, kind)
+	if !ok {
+		return nil, nil, api.Invalid("body.mjml", mOneSection.Text(l, nil))
+	}
+	if res := mjml.CompileIn(l, "<mjml><mj-body>"+block+"</mj-body></mjml>"); len(res.Errors) > 0 {
+		return nil, nil, api.Invalid("body.mjml", mCompile.Text(l, i18n.Args{"error": res.Errors[0].Message}))
+	}
+	if kind == KindFooter && !unsubscribeToken.MatchString(block) {
+		return nil, nil, api.Invalid("body.mjml", mNeedsUnsubscribe.Text(l, nil))
+	}
+	r, err := q.SyncedBlockGet(ctx, store.SyncedBlockGetParams{WorkspaceID: ws.ID, Kind: kind})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil, api.Err(409, "brand_kit_not_saved", mNotSaved.Text(l, nil))
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	if r.Mjml == block {
+		return &SyncedBlock{Kind: kind, MJML: r.Mjml, Version: int(r.Version), UpdatedBy: r.UpdatedByName, UpdatedAt: r.UpdatedAt}, nil, nil
+	}
+	saved, e, err := s.storeSynced(ctx, q, ws, p, kind, r.Version, block)
+	if err != nil {
+		return nil, nil, err
+	}
+	return saved, []audit.Event{e}, nil
 }
 
 // Starter puts the workspace's kit on a starter template: its style and

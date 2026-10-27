@@ -154,6 +154,7 @@ func Seed(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secr
 		{"pages and products", seedPagesProducts},
 		{"stores", seedStores},
 		{"agency", seedAgency},
+		{"brand kit", seedBrandKit},
 	}
 	for _, st := range steps {
 		if err := st.fn(ctx, s); err != nil {

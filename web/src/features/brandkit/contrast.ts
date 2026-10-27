@@ -26,7 +26,16 @@ export function grade(ratio: number): 'AAA' | 'AA' | 'low' {
   return ratio >= 7 ? 'AAA' : ratio >= 4.5 ? 'AA' : 'low'
 }
 
-/** A ratio as people read it, in their number format: one decimal, cut rather than rounded up (4.47 reads 4.4, not 4.5). */
+/** The ratios WCAG grades at (large text, AA, AAA): a shown ratio never rounds up past one. */
+const THRESHOLDS = [3, 4.5, 7]
+
+/**
+ * A ratio as people read it, in their number format, to one decimal:
+ * rounded (14.68 reads 14.7, as on the BrandKit board), but cut where
+ * rounding would cross a threshold (4.47 reads 4.4, not a passing 4.5).
+ */
 export function ratioText(ratio: number): string {
-  return decimal(Math.floor(ratio * 10) / 10, 1)
+  let r = Math.round(ratio * 10) / 10
+  if (THRESHOLDS.some((th) => ratio < th && r >= th)) r = Math.floor(ratio * 10) / 10
+  return decimal(r, 1)
 }

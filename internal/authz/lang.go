@@ -97,9 +97,10 @@ func ActionIn(l i18n.Lang, perm Permission) string {
 	return action.Text(l, nil)
 }
 
-// DeniedText explains a missing permission in a language: "Sending needs
-// the campaigns:send permission. Ask Marcus Chen or Linh Nguyen." Helpers
-// are the names of members who hold it.
+// DeniedText explains a missing permission in a language: "Sending needs a
+// permission you don't have. Ask Marcus Chen or Linh Nguyen." Helpers are
+// the names of members who hold it; the key itself is the problem's
+// permission field, for API clients.
 func DeniedText(l i18n.Lang, perm Permission, helpers []string) string {
 	args := i18n.Args{"action": ActionIn(l, perm), "permission": string(perm)}
 	if len(helpers) > 0 {
