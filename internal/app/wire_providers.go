@@ -9,10 +9,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/riverqueue/river"
 
+	"github.com/hostrepute/reputecast/internal/demoworkspace"
 	"github.com/hostrepute/reputecast/internal/ingest"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/netguard"
+	"github.com/hostrepute/reputecast/internal/providers/eventqueue"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
+	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -67,7 +70,19 @@ func (a *App) normalizer() *ingest.Normalizer {
 func init() {
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		manage.Register(h, a.providersService())
-		routing.Register(h, &routing.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Mailbox: a.mailboxClassifier()})
+		routing.Register(h, &routing.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Mailbox: a.mailboxClassifier(),
+			// Warm-up imports routing: its allowance comes in as functions.
+			WarmupToday: func(ctx context.Context, id uuid.UUID) *state.WarmupToday {
+				return warmup.Today(ctx, a.Q, id, time.Now(), nil)
+			},
+			WarmCap: func(ctx context.Context, id uuid.UUID, at time.Time) (routing.WarmCap, bool) {
+				al, ok, err := warmup.AllowanceFor(ctx, a.Q, id, at, nil)
+				if err != nil || !ok {
+					return routing.WarmCap{}, false
+				}
+				return routing.WarmCap{Cap: al.Cap, Day: al.Day, Days: al.Days, Overflow: al.Overflow}, true
+			}})
+		demoworkspace.Register(h, &demoworkspace.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets})
 		warmup.Register(h, &warmup.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit})
 		suppressions.Register(h, a.suppressionSync())
 		ingest.RegisterLog(h, &ingest.EventLog{Pool: a.Pool, Q: a.Q, Audit: a.Audit})
@@ -85,16 +100,21 @@ func init() {
 		river.AddWorker(a.JobReg.Workers, &manage.MoveWebhooksWorker{S: svc, PublicURL: a.currentPublicURL})
 		river.AddWorker(a.JobReg.Workers, &ingest.NormalizeWorker{N: n})
 		river.AddWorker(a.JobReg.Workers, &ingest.SweepWorker{N: n, Jobs: jobsFn})
-		river.AddWorker(a.JobReg.Workers, &ingest.MailboxWorker{N: n, Jobs: jobsFn})
+		river.AddWorker(a.JobReg.Workers, &ingest.MailboxWorker{N: n, Jobs: jobsFn, OnPoll: svc.RecordMailboxPoll})
+		// SES events through an SQS queue ReputeCast polls (PR-4).
+		river.AddWorker(a.JobReg.Workers, &eventqueue.Worker{Pool: a.Pool, Q: a.Q, Factory: a.providerFactory(), Jobs: jobsFn, Log: a.Log, OnPoll: svc.RecordQueuePoll})
 		river.AddWorker(a.JobReg.Workers, &ingest.BackfillWorker{N: n})
 		river.AddWorker(a.JobReg.Workers, &suppressions.SyncWorker{S: a.suppressionSync()})
 		river.AddWorker(a.JobReg.Workers, &warmup.DailyWorker{S: &warmup.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit}, Log: a.Log,
 			Skip: func(p store.Provider) bool { return manage.IsDemo(p) }})
+		river.AddWorker(a.JobReg.Workers, &warmup.ResumeWorker{S: &warmup.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit}})
 		a.JobReg.Every(time.Minute, func() (river.JobArgs, *river.InsertOpts) { return manage.HealthArgs{}, nil }, true)
 		a.JobReg.Every(time.Minute, func() (river.JobArgs, *river.InsertOpts) { return ingest.MailboxArgs{}, nil }, false)
+		a.JobReg.Every(time.Minute, func() (river.JobArgs, *river.InsertOpts) { return eventqueue.PollArgs{}, nil }, false)
 		a.JobReg.Every(5*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return ingest.SweepArgs{}, nil }, false)
 		a.JobReg.Every(15*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return suppressions.SyncArgs{}, nil }, false)
 		a.JobReg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return warmup.DailyArgs{}, nil }, true)
+		a.JobReg.Every(5*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return warmup.ResumeArgs{}, nil }, false)
 		a.JobReg.Every(24*time.Hour, func() (river.JobArgs, *river.InsertOpts) { return manage.TrackingArgs{}, nil }, true)
 	})
 }

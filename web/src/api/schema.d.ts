@@ -1270,6 +1270,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/demo-workspace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Load the Acme sample into a separate demo workspace you own; nothing is sent */
+        post: operations["create-demo-workspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/integration": {
         parameters: {
             query?: never;
@@ -4973,6 +4990,23 @@ export interface paths {
          * @description Adding a new domain needs domains:manage.
          */
         post: operations["choose-setup-domain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/connect/setups/{setupId}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Choose how SES events reach ReputeCast: webhook or SQS queue */
+        put: operations["set-provider-events"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -12498,6 +12532,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/routing/test-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Where the next broadcast's recipients go, on the saved routing and an unsaved one */
+        post: operations["test-route-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/scoring": {
         parameters: {
             query?: never;
@@ -15731,6 +15782,26 @@ export interface paths {
         /** Change a plan's length, ordering and guards */
         put: operations["update-warmup"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/warmup/{planId}/held/{campaignId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Wait for tomorrow's cap, move or cancel a share held at the warm-up cap
+         * @description A share held at a warming provider's daily cap waits for tomorrow's cap by itself. Move sends it through another provider once it passes the same checks as a failover target; cancel drops the held rest of this share only. Cancelling needs campaigns:pause; waiting and moving resume the send and need campaigns:send.
+         */
+        post: operations["decide-warmup-hold"];
         delete?: never;
         options?: never;
         head?: never;
@@ -22000,7 +22071,16 @@ export interface components {
         };
         ConnectCatalogEntry: {
             adapter: string;
+            bulk: string;
             bulkAllowed: boolean;
+            /** @enum {string} */
+            bulkMark: "yes" | "limited" | "no";
+            /** Format: int64 */
+            bulkRank: number;
+            /** Format: int64 */
+            capabilityMax: number;
+            /** Format: int64 */
+            capabilityScore: number;
             chips: components["schemas"]["ConnectChip"][];
             /** Format: int64 */
             connected: number;
@@ -22008,8 +22088,10 @@ export interface components {
             /** @enum {string} */
             kind: "api" | "smtp" | "self_hosted" | "community";
             name: string;
+            priceList?: components["schemas"]["ConnectPriceList"];
             pricing: string;
             recommended: boolean;
+            setup: string;
             short: string;
             terms: string;
             /** @enum {string} */
@@ -22034,14 +22116,24 @@ export interface components {
         ConnectConnection: {
             /** @enum {string} */
             access: "role" | "keys";
+            accessKey: string;
             account: string;
             accountId: string;
             /** Format: date-time */
             at?: string;
             canContinue: boolean;
             error?: components["schemas"]["ConnectError"];
+            /** @enum {string} */
+            events: "webhook" | "queue";
+            /** Format: date-time */
+            eventsAt?: string;
+            /** @enum {string} */
+            eventsCheck: "none" | "waiting" | "deferred" | "verified" | "failed";
+            eventsUrl: string;
             externalId: string;
             fields: components["schemas"]["ConnectField"][];
+            host?: components["schemas"]["ConnectHost"];
+            iamUser: string;
             mailbox?: components["schemas"]["ConnectProbe"];
             /** Format: int64 */
             provisionDone: number;
@@ -22090,7 +22182,7 @@ export interface components {
             importLink: boolean;
             lead: string;
             /** @enum {string} */
-            status: "done" | "skipped" | "failed" | "pending";
+            status: "done" | "verified" | "skipped" | "failed" | "pending";
             text: string;
         };
         ConnectError: {
@@ -22098,6 +22190,10 @@ export interface components {
             detail?: string;
             field?: string;
             message: string;
+        };
+        ConnectEventsInput: {
+            /** @enum {string} */
+            events: "webhook" | "queue";
         };
         ConnectField: {
             help?: string;
@@ -22116,6 +22212,15 @@ export interface components {
             /** @enum {string} */
             source?: "brevo" | "mailchimp" | "mailerlite" | "listmonk" | "keila" | "csv";
             startEmpty: boolean;
+        };
+        ConnectHost: {
+            baseCredentials: boolean;
+            /** Format: date-time */
+            checkedAt: string;
+            kind: string;
+            onAws: boolean;
+            /** @enum {string} */
+            recommended: "role" | "keys";
         };
         ConnectImportSource: {
             badge: string;
@@ -22163,6 +22268,32 @@ export interface components {
             label: string;
             value: string;
         };
+        ConnectPriceList: {
+            /** Format: double */
+            dataPerMb?: number;
+            /** Format: double */
+            dedicatedIp?: number;
+            dedicatedPlans?: components["schemas"]["ConnectPricePlan"][];
+            /** Format: double */
+            from?: number;
+            /** @enum {string} */
+            kind: "metered" | "plans" | "contract" | "self_hosted" | "relay";
+            /** Format: double */
+            perThousand?: number;
+            plans?: components["schemas"]["ConnectPricePlan"][];
+        };
+        ConnectPricePlan: {
+            dedicated?: boolean;
+            free?: boolean;
+            name?: string;
+            /** Format: int64 */
+            perDay?: number;
+            /** Format: double */
+            price: number;
+            upTo?: boolean;
+            /** Format: int64 */
+            upto: number;
+        };
         ConnectProbe: {
             /** Format: date-time */
             at: string;
@@ -22189,8 +22320,9 @@ export interface components {
             error?: string;
             hint?: string;
             key: string;
+            note?: string;
             /** @enum {string} */
-            status: "waiting" | "running" | "done" | "failed";
+            status: "waiting" | "running" | "done" | "failed" | "deferred";
             text: string;
         };
         ConnectRegion: {
@@ -22218,6 +22350,8 @@ export interface components {
             /** @enum {string} */
             access: "role" | "keys";
             accessKeyId?: string;
+            /** @enum {string} */
+            events?: "webhook" | "queue";
             region?: string;
             roleArn?: string;
             secretAccessKey?: string;
@@ -22430,6 +22564,7 @@ export interface components {
             title: string;
         };
         ConnectWebhook: {
+            canTest: boolean;
             /** @enum {string} */
             mode: "webhook" | "polling" | "mailbox" | "none";
             needsSecret: boolean;
@@ -22437,6 +22572,7 @@ export interface components {
             registration?: components["schemas"]["ConnectRegistration"];
             secretHeader?: string;
             selfTest?: components["schemas"]["ConnectSelfTest"];
+            test?: components["schemas"]["ConnectWebhookTest"];
             url: string;
         };
         ConnectWebhookInput: {
@@ -22446,6 +22582,17 @@ export interface components {
             header?: string;
             secret: string;
             url: string;
+        };
+        ConnectWebhookTest: {
+            /** Format: date-time */
+            arrivedAt?: string;
+            error?: string;
+            /** Format: date-time */
+            requestedAt: string;
+            /** @enum {string} */
+            status: "waiting" | "arrived" | "missing" | "refused";
+            /** Format: date-time */
+            until: string;
         };
         ContactActivityItem: {
             actor?: string;
@@ -23632,6 +23779,12 @@ export interface components {
             day: number;
             /** Format: int64 */
             days: number;
+        };
+        DemoWorkspace: {
+            created: boolean;
+            id: string;
+            name: string;
+            slug: string;
         };
         DiffLine: {
             /** @enum {string} */
@@ -28841,6 +28994,7 @@ export interface components {
             /** Format: double */
             guardComplaint: number;
             ip?: string;
+            overflow?: boolean;
             /** Format: uuid */
             providerId: string;
             spreadMailbox: boolean;
@@ -31429,6 +31583,7 @@ export interface components {
             /** @enum {string} */
             status: "healthy" | "degraded" | "down" | "sandbox" | "warming_up" | "paused";
             takingFailover: string[];
+            tenant?: components["schemas"]["ProviderTenant"];
             warmup?: components["schemas"]["ProviderWarmupBrief"];
             webhook: components["schemas"]["ProviderWebhookFeed"];
         };
@@ -31613,6 +31768,7 @@ export interface components {
             alternatives: components["schemas"]["ProviderFailoverAlternative"][];
             campaign?: components["schemas"]["ProviderHeldCampaign"];
             fallback?: string;
+            fallbackChecks: components["schemas"]["VetCheck"][];
             fallbackShort?: string;
             /** @enum {string} */
             policy: "automatic" | "pause_and_ask" | "warm_only";
@@ -31720,6 +31876,10 @@ export interface components {
             /** @enum {string} */
             stream: "broadcast" | "automation" | "system" | "transactional";
         };
+        ProviderTenant: {
+            name: string;
+            policy?: string;
+        };
         ProviderTrackingActionInput: {
             /** @enum {string} */
             action: "disable" | "keep_provider" | "use_reputecast" | "recheck";
@@ -31804,6 +31964,10 @@ export interface components {
             hourly: number[];
             /** Format: date-time */
             hourlyFrom: string;
+            /** Format: int64 */
+            inGrace: number;
+            /** Format: int64 */
+            overdue: number;
             provider: string;
             providerId: string;
             short: string;
@@ -31848,6 +32012,8 @@ export interface components {
             inSync: boolean;
             /** Format: date-time */
             monthStart: string;
+            /** Format: int64 */
+            pushed: number;
             sentBy: components["schemas"]["ProviderMonthAmount"][];
             /** Format: int64 */
             sentThisMonth: number;
@@ -35251,6 +35417,66 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        RouteCampaignCondition: {
+            /** Format: int64 */
+            count: number;
+            field: string;
+            values: string[];
+        };
+        RouteCampaignDraft: {
+            /** Format: int64 */
+            moved: number;
+            shares: components["schemas"]["RouteCampaignShare"][];
+        };
+        RouteCampaignInput: {
+            draft?: components["schemas"]["RoutingSaveInput"];
+        };
+        RouteCampaignOverflow: {
+            /** Format: int64 */
+            cap: number;
+            /** Format: int64 */
+            count: number;
+            /** Format: date-time */
+            date: string;
+            /** Format: int64 */
+            day: number;
+            provider: string;
+            providerId: string;
+            to: string;
+        };
+        RouteCampaignResult: {
+            campaignId: string;
+            conditions: components["schemas"]["RouteCampaignCondition"][];
+            domain: string;
+            draft?: components["schemas"]["RouteCampaignDraft"];
+            estimated: boolean;
+            lists: string[];
+            name: string;
+            none: boolean;
+            overflow: components["schemas"]["RouteCampaignOverflow"][];
+            /** Format: date-time */
+            scheduledAt?: string;
+            shares: components["schemas"]["RouteCampaignShare"][];
+            /** Format: int64 */
+            simulated: number;
+            /** Format: int64 */
+            sunset: number;
+            timezone: string;
+            /** Format: int64 */
+            total: number;
+        };
+        RouteCampaignShare: {
+            /** @enum {string} */
+            color: "ses" | "postal" | "postmark" | "other";
+            /** Format: int64 */
+            count: number;
+            fallback?: string;
+            /** @enum {string} */
+            policy: "automatic" | "pause_and_ask" | "warm_only";
+            provider: string;
+            providerId: string;
+            short: string;
+        };
         RouteShare: {
             /** @example ses */
             adapter: string;
@@ -35298,6 +35524,7 @@ export interface components {
             held: boolean;
             mailboxDetail?: string;
             mailboxProvider: string;
+            mx?: string;
             provider: string;
             providerId: string;
             short: string;
@@ -35311,7 +35538,7 @@ export interface components {
         };
         RouteTestStep: {
             /** Format: int64 */
-            bucket: number;
+            bucket?: number;
             /** Format: int64 */
             conditions: number;
             email?: string;
@@ -35334,7 +35561,8 @@ export interface components {
             field: "mailbox_provider" | "list" | "sender_domain" | "category";
             note?: string;
             /** Format: uuid */
-            providerId: string;
+            providerId?: string;
+            splits?: components["schemas"]["RoutingSplit"][];
             values: string[];
         };
         RoutingConditionView: {
@@ -35345,7 +35573,8 @@ export interface components {
             field: "mailbox_provider" | "list" | "sender_domain" | "category";
             note?: string;
             /** Format: uuid */
-            providerId: string;
+            providerId?: string;
+            splits?: components["schemas"]["RoutingSplit"][];
             valueLabels: string[];
             values: string[];
         };
@@ -35408,6 +35637,8 @@ export interface components {
         };
         RoutingShared: {
             /** Format: int64 */
+            pushed: number;
+            /** Format: int64 */
             suppressions: number;
             /** Format: date-time */
             syncedAt?: string;
@@ -35419,6 +35650,7 @@ export interface components {
             weight: number;
         };
         RoutingStreamInput: {
+            baseVersion?: string;
             conditions: components["schemas"]["RoutingCondition"][];
             /** @enum {string} */
             failover: "automatic" | "pause_and_ask" | "warm_only";
@@ -35435,13 +35667,24 @@ export interface components {
             conditions: components["schemas"]["RoutingConditionView"][];
             /** @enum {string} */
             failover: "automatic" | "pause_and_ask" | "warm_only";
+            failoverVet?: components["schemas"]["RoutingTargetVet"];
             fallback: string;
             priority?: boolean;
             senderDomains?: string[];
             splits: components["schemas"]["RoutingSplit"][];
             /** @enum {string} */
             stream: "broadcast" | "automation" | "system" | "transactional";
+            version: string;
             volume?: components["schemas"]["RoutingVolume"];
+        };
+        RoutingTargetVet: {
+            checks: components["schemas"]["RoutingVetCheck"][];
+            provider: string;
+            providerId: string;
+            /** Format: int64 */
+            warmupDay?: number;
+            /** Format: int64 */
+            warmupDays?: number;
         };
         RoutingTerms: {
             active: boolean;
@@ -35451,6 +35694,16 @@ export interface components {
             note: string;
             streams: string[];
             variant: string;
+        };
+        RoutingVetCheck: {
+            /** @enum {string} */
+            key: "available" | "bulk_terms" | "sandbox" | "domain" | "quota" | "warm";
+            /** Format: int64 */
+            left?: number;
+            /** @enum {string} */
+            period?: "day" | "month";
+            /** @enum {string} */
+            result: "pass" | "warn" | "fail" | "unknown";
         };
         RoutingVolume: {
             /** Format: int64 */
@@ -39097,15 +39350,25 @@ export interface components {
             pulled: number;
             /** Format: int64 */
             pushed?: number;
+            readOnly: boolean;
             scope: string;
             /** @enum {string} */
             status: "in_sync" | "syncing" | "error" | "local" | "done" | "off";
+            tenant?: string;
         };
         SuppressionSyncRun: {
             /** Format: int64 */
             queued: number;
         };
         SuppressionSyncStatus: {
+            kept: components["schemas"]["SuppressionReasonCount"][];
+            /** Format: int64 */
+            keptAllMail: number;
+            /** Format: int64 */
+            marketingOnly: number;
+            pushed: components["schemas"]["SuppressionReasonCount"][];
+            /** Format: int64 */
+            pushedTotal: number;
             reasons: components["schemas"]["SuppressionReasonCount"][];
             rows: components["schemas"]["SuppressionSyncRow"][];
             /** Format: int64 */
@@ -41634,30 +41897,36 @@ export interface components {
             name: string;
             providerId: string;
         };
-        WarmupDay: {
-            /** Format: double */
-            bounce?: number;
+        WarmupCapHold: {
+            alternatives: components["schemas"]["WarmupHoldAlternative"][];
+            campaign: string;
+            campaignId: string;
+            decision?: string;
             /** Format: int64 */
-            cap: number;
-            /** Format: double */
-            complaint?: number;
+            held: number;
+            paused: boolean;
             /** Format: date-time */
-            date: string;
-            /** Format: int64 */
-            day: number;
-            eligible: boolean;
-            held: boolean;
-            /** Format: int64 */
-            plannedCap: number;
-            /** Format: int64 */
-            sent?: number;
-            /** Format: int64 */
-            share: number;
-            shareChange: boolean;
+            resumeAt?: string;
+        };
+        WarmupHoldAlternative: {
+            allowed: boolean;
+            checks: components["schemas"]["VetCheck"][];
+            name: string;
+            providerId: string;
+            short: string;
+        };
+        WarmupHoldDecision: {
             /** @enum {string} */
-            status: "done" | "slowdown" | "resumed" | "today" | "planned";
-            tiers: string[];
-            uses: components["schemas"]["WarmupCampaignUse"][];
+            action: "wait" | "move" | "cancel";
+            /** Format: uuid */
+            targetProviderId?: string;
+        };
+        WarmupHoldDecisionResult: {
+            action: string;
+            /** Format: int64 */
+            cancelled: number;
+            /** Format: int64 */
+            moved: number;
         };
         WarmupLogEntry: {
             /** Format: date-time */
@@ -41666,6 +41935,15 @@ export interface components {
             kind: string;
             title: string;
         };
+        WarmupMailboxCap: {
+            /** Format: int64 */
+            cap: number;
+            mailbox: string;
+            /** Format: int64 */
+            percent: number;
+            /** Format: int64 */
+            sent: number;
+        };
         WarmupOverview: {
             candidates: components["schemas"]["WarmupCandidate"][];
             plans: components["schemas"]["WarmupPlanView"][];
@@ -41673,32 +41951,55 @@ export interface components {
         WarmupPlanView: {
             /** Format: double */
             bounceRate?: number;
+            /** Format: int64 */
+            calendarDays: number;
             /** Format: double */
             complaintRate?: number;
+            /** Format: double */
+            countShare: number;
+            /** Format: int64 */
+            counted: number;
             createdBy: string;
             /** Format: int64 */
             day: number;
             /** Format: int64 */
             days: number;
             /** Format: date-time */
-            endDate: string;
+            finishesOn: string;
+            /** Format: int64 */
+            healthyDays: number;
+            /** Format: int64 */
+            healthyStreak: number;
+            /** Format: int64 */
+            held?: number;
+            holds: components["schemas"]["WarmupCapHold"][];
             id: string;
             ip: string;
             lastSlowdown?: components["schemas"]["WarmupSlowdown"];
             log: components["schemas"]["WarmupLogEntry"][];
-            nextRate?: components["schemas"]["WarmupStep"];
+            mailboxCaps: components["schemas"]["WarmupMailboxCap"][];
             /** Format: int64 */
-            plannedToDate: number;
+            minSample: number;
+            /** Format: int64 */
+            needToday: number;
+            nextRate?: components["schemas"]["WarmupStep"];
+            overflowTo?: string;
+            /** Format: int64 */
+            overflowToday: number;
             /**
              * Format: double
-             * @description Percent of the plan's days
+             * @description Percent of the plan's days counted
              */
             progress: number;
             provider: string;
             providerId: string;
+            ramp: components["schemas"]["WarmupRampDay"][];
             /** Format: double */
             rateToday: number;
-            schedule: components["schemas"]["WarmupDay"][];
+            repeatsTomorrow: boolean;
+            rows: components["schemas"]["WarmupRow"][];
+            /** Format: int64 */
+            scheduledToday: number;
             /** Format: int64 */
             sentToday: number;
             /** Format: int64 */
@@ -41708,12 +42009,63 @@ export interface components {
             /** Format: int64 */
             slowdowns: number;
             /** Format: date-time */
-            startDate: string;
+            startedOn: string;
             /** @enum {string} */
             status: "active" | "slowed" | "paused" | "done";
             statusDetail: string;
             /** Format: int64 */
             todayCap: number;
+        };
+        WarmupRampDay: {
+            /** Format: int64 */
+            day: number;
+            /** Format: int64 */
+            plannedCap: number;
+            /** Format: int64 */
+            sent?: number;
+            slowed: boolean;
+            today: boolean;
+        };
+        WarmupRow: {
+            /** Format: double */
+            bounce?: number;
+            /** Format: int64 */
+            bounced: number;
+            /** Format: int64 */
+            cap: number;
+            /** Format: int64 */
+            complained: number;
+            /** Format: double */
+            complaint?: number;
+            /** Format: date-time */
+            date: string;
+            /** Format: int64 */
+            day: number;
+            /** Format: int64 */
+            delivered: number;
+            eligible: boolean;
+            /** Format: int64 */
+            healthy?: number;
+            held: boolean;
+            judged: boolean;
+            /** @enum {string} */
+            metric?: "bounce" | "complaint";
+            /** Format: int64 */
+            need: number;
+            /** Format: int64 */
+            plannedCap?: number;
+            /** @enum {string} */
+            reason?: "short" | "guard";
+            repeat: boolean;
+            /** Format: int64 */
+            sent?: number;
+            /** Format: int64 */
+            share: number;
+            shareChange: boolean;
+            /** @enum {string} */
+            status: "counted" | "not_counted" | "today" | "planned";
+            tiers: string[];
+            uses: components["schemas"]["WarmupCampaignUse"][];
         };
         WarmupSettings: {
             /**
@@ -41728,13 +42080,16 @@ export interface components {
             guardBounce: number;
             /** Format: double */
             guardComplaint: number;
+            overflow?: boolean;
             spreadMailbox: boolean;
         };
         WarmupSlowdown: {
-            /** Format: double */
-            bounce: number;
             /** Format: int64 */
             day: number;
+            /** @enum {string} */
+            metric: "bounce" | "complaint";
+            /** Format: double */
+            rate?: number;
         };
         WarmupStep: {
             /** Format: int64 */
@@ -46601,6 +46956,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PasskeyOptions"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-demo-workspace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoWorkspace"];
                 };
             };
             /** @description Error */
@@ -54775,6 +55159,43 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ConnectDomainInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-provider-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                setupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectEventsInput"];
             };
         };
         responses: {
@@ -72164,6 +72585,42 @@ export interface operations {
             };
         };
     };
+    "test-route-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RouteCampaignInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouteCampaignResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-scoring": {
         parameters: {
             query?: never;
@@ -79884,6 +80341,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WarmupPlanView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "decide-warmup-hold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                planId: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarmupHoldDecision"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarmupHoldDecisionResult"];
                 };
             };
             /** @description Error */

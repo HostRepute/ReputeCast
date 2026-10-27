@@ -227,6 +227,57 @@ const reasonBadge: Record<string, { tone: Tone; text: MessageDescriptor }> = {
   complaint: { tone: 'bad', text: me.reasonComplaint },
   unsubscribe: { tone: 'neutral', text: me.reasonUnsubscribed },
   manual: { tone: 'neutral', text: me.reasonManual },
+  role: { tone: 'neutral', text: me.reasonRole },
+  imported: { tone: 'neutral', text: me.reasonImported },
+  spam_trap: { tone: 'neutral', text: me.reasonSpamTrap },
+  invalid: { tone: 'neutral', text: me.reasonInvalid },
+}
+
+/** A line of reason chips with their counts ("hard bounce 1,402"). */
+function ReasonChips({ label, reasons }: { label: string; reasons: Schemas['SuppressionReasonCount'][] }) {
+  const t = useT()
+  const shown = reasons.filter((r) => reasonBadge[r.reason])
+  if (!shown.length) return null
+  return (
+    <>
+      <span className="k font-semibold">{label}</span>
+      {shown.map((r) => (
+        <span key={r.reason}>
+          <Badge tone={reasonBadge[r.reason]!.tone} className="h-5">
+            {t(reasonBadge[r.reason]!.text)}
+          </Badge>{' '}
+          {count(r.count)}
+        </span>
+      ))}
+    </>
+  )
+}
+
+/** What goes to providers, what stays in ReputeCast, and where SES keeps it (PR-1). */
+function PushNote({ data }: { data: Schemas['SuppressionSyncStatus'] }) {
+  const t = useT()
+  const tenant = data.rows.find((r) => r.tenant)
+  const readOnly = data.rows.find((r) => r.readOnly)
+  return (
+    <div className="mx-5 mt-3.5 mb-1 flex flex-col gap-1.5 rounded-[8px] border border-line bg-ground-3 px-3.5 py-3 text-[13px]">
+      <p className="m-0">
+        <span className="font-semibold">{t(me.pushedLead)}</span> {t(me.pushedBody, { count: count(data.pushedTotal) })}
+      </p>
+      <p className="m-0">{t(me.keptBody, { marketing: count(data.marketingOnly), manual: count(data.keptAllMail) })}</p>
+      <p className="m-0">
+        {tenant
+          ? t(me.removalsTenant, { provider: shortName(tenant.provider) })
+          : readOnly
+            ? t(me.removalsReadOnly, { provider: shortName(readOnly.provider) })
+            : t(me.removals)}
+      </p>
+    </div>
+  )
+}
+
+/** "SES" for Amazon SES, as the board writes it in running text. */
+function shortName(name: string): string {
+  return name === 'Amazon SES' ? 'SES' : name
 }
 
 /** The shared suppression list and how each provider stays in sync with it. */
@@ -270,67 +321,66 @@ function SyncCard() {
           </ErrorPanel>
         </div>
       ) : (
-        <Table className="pv-10 pv-top" phoneWrap fit>
-          <thead>
-            <tr>
-              <Th>{t(me.colProvider)}</Th>
-              <Th>{t(me.colDirection)}</Th>
-              <Th>{t(me.colPulled)}</Th>
-              <Th>{t(me.colPushed)}</Th>
-              <Th>{t(me.colLastSync)}</Th>
-              <Th>{t(me.colStatus)}</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {!data
-              ? Array.from({ length: 3 }, (_, i) => (
-                  <tr key={i}>
-                    {[120, 60, 40, 40, 40, 60].map((w, j) => (
-                      <Td key={j}>
-                        <Skeleton w={w} />
-                      </Td>
-                    ))}
-                  </tr>
-                ))
-              : data.rows.map((r) => {
-                  const st = syncStatus[r.status]
-                  return (
-                    <tr key={`${r.providerId ?? r.provider}-${r.direction}`}>
-                      <Td className="font-semibold">
-                        {/* The name stays whole; a long scope ("enforced before sending") wraps so the status fits the card. */}
-                        <span className="whitespace-nowrap">{r.provider}</span>
-                        <div className="k">{r.scope}</div>
-                      </Td>
-                      <Td className="whitespace-nowrap">{t(direction[r.direction])}</Td>
-                      <Td num>{count(r.pulled)}</Td>
-                      <Td num={r.pushed !== undefined}>{r.pushed !== undefined ? count(r.pushed) : '–'}</Td>
-                      <Td className="whitespace-nowrap">{when(r.lastSync)}</Td>
-                      <Td>
-                        <Badge tone={st.tone} title={r.detail}>
-                          {t(st.text)}
-                        </Badge>
-                      </Td>
+        <>
+          {data ? <PushNote data={data} /> : null}
+          <Table className="pv-10 pv-top" phoneWrap fit caption={t(me.syncCaption)}>
+            <thead>
+              <tr>
+                <Th>{t(me.colProvider)}</Th>
+                <Th>{t(me.colDirection)}</Th>
+                <Th>{t(me.colPulled)}</Th>
+                <Th>{t(me.colPushed)}</Th>
+                <Th>{t(me.colLastSync)}</Th>
+                <Th>{t(me.colStatus)}</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {!data
+                ? Array.from({ length: 3 }, (_, i) => (
+                    <tr key={i}>
+                      {[120, 60, 40, 40, 40, 60].map((w, j) => (
+                        <Td key={j}>
+                          <Skeleton w={w} />
+                        </Td>
+                      ))}
                     </tr>
-                  )
-                })}
-          </tbody>
-        </Table>
+                  ))
+                : data.rows.map((r) => {
+                    const st = syncStatus[r.status]
+                    return (
+                      <tr key={`${r.providerId ?? r.provider}-${r.direction}`}>
+                        <Td className="min-w-[120px] font-semibold">
+                          {/* The name stays whole; a long scope ("enforced before sending") wraps so the status fits the card. */}
+                          <span className="whitespace-nowrap">{r.provider}</span>
+                          <div className="k">{r.scope}</div>
+                        </Td>
+                        <Td className="whitespace-nowrap">{t(direction[r.direction])}</Td>
+                        <Td num>{count(r.pulled)}</Td>
+                        <Td num={r.pushed !== undefined}>{r.pushed !== undefined ? count(r.pushed) : '–'}</Td>
+                        <Td className="whitespace-nowrap">{when(r.lastSync)}</Td>
+                        <Td>
+                          <Badge tone={st.tone} title={r.detail} dot>
+                            {t(st.text)}
+                          </Badge>
+                          {r.pending > 0 ? <div className="k">{t(me.pending, { count: r.pending })}</div> : null}
+                        </Td>
+                      </tr>
+                    )
+                  })}
+            </tbody>
+          </Table>
+        </>
       )}
-      <div className="flex flex-wrap gap-4 border-t border-line-2 px-5 py-3 text-[12.5px]">
-        {data?.reasons
-          .filter((r) => reasonBadge[r.reason])
-          .sort((a, b) => Object.keys(reasonBadge).indexOf(a.reason) - Object.keys(reasonBadge).indexOf(b.reason))
-          .map((r) => (
-            <span key={r.reason}>
-              <Badge tone={reasonBadge[r.reason]!.tone} className="h-5">
-                {t(reasonBadge[r.reason]!.text)}
-              </Badge>{' '}
-              {count(r.count)}
-            </span>
-          ))}
-        <Link to="/w/$workspace/audience/suppressions" params={{ workspace: slug }} className="ml-auto font-medium">
-          {t(me.openSuppressions)}
-        </Link>
+      <div className="flex flex-col gap-2 border-t border-line-2 px-5 py-3 text-[12.5px]">
+        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
+          <ReasonChips label={t(me.pushedChips)} reasons={data?.pushed ?? []} />
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
+          <ReasonChips label={t(me.keptChips)} reasons={data?.kept ?? []} />
+          <Link to="/w/$workspace/audience/suppressions" params={{ workspace: slug }} className="ml-auto font-medium">
+            {t(me.openSuppressions)}
+          </Link>
+        </div>
       </div>
     </section>
   )

@@ -753,9 +753,14 @@ type Querier interface {
 	ConfirmInstanceBasics(ctx context.Context) error
 	ConnectActiveContacts(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	ConnectCreateList(ctx context.Context, arg ConnectCreateListParams) error
-	// The first webhook payload about a message (its provider message id is in
-	// the body) a provider sent in a window after the send: the test send's
-	// "event came back" step, with the body to name the event.
+	// The first event a provider delivered after a time, by webhook or queue:
+	// its endpoint was reached from outside (PR-9).
+	ConnectFirstEventSince(ctx context.Context, arg ConnectFirstEventSinceParams) (ConnectFirstEventSinceRow, error)
+	// The first event payload about a message (its provider message id is in
+	// the body) a provider sent in a window after the send, by webhook or
+	// through the queue ReputeCast polls (PR-4): the test send's "event came
+	// back" step and the setup's event check (PR-3), with the body to name the
+	// event and how it came.
 	ConnectFirstWebhook(ctx context.Context, arg ConnectFirstWebhookParams) (ConnectFirstWebhookRow, error)
 	ConnectInsertProvider(ctx context.Context, arg ConnectInsertProviderParams) (Provider, error)
 	ConnectListNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
@@ -2419,6 +2424,11 @@ type Querier interface {
 	ProvDailyTotals(ctx context.Context, arg ProvDailyTotalsParams) ([]ProvDailyTotalsRow, error)
 	ProvDisconnect(ctx context.Context, id uuid.UUID) error
 	ProvEndFailovers(ctx context.Context, arg ProvEndFailoversParams) ([]StreamFailover, error)
+	// Review 2026-10 (M35, R03): sending providers.
+	// PR-6: messages a provider accepted since a time (its last event) that
+	// have no event yet, split at the 30-minute grace a message gets for its
+	// first event: overdue (sent before grace_before) and still in grace.
+	ProvEventsOverdue(ctx context.Context, arg ProvEventsOverdueParams) (ProvEventsOverdueRow, error)
 	ProvGet(ctx context.Context, arg ProvGetParams) (Provider, error)
 	ProvGetAny(ctx context.Context, id uuid.UUID) (Provider, error)
 	ProvGetByWebhookToken(ctx context.Context, arg ProvGetByWebhookTokenParams) (Provider, error)
@@ -2456,6 +2466,13 @@ type Querier interface {
 	ProvSentThroughSince(ctx context.Context, arg ProvSentThroughSinceParams) (int64, error)
 	ProvSetRouteStatus(ctx context.Context, arg ProvSetRouteStatusParams) (int64, error)
 	ProvStartFailover(ctx context.Context, arg ProvStartFailoverParams) error
+	// PR-7: messages of a stream a provider took in the last hour (what a
+	// failover would move per hour).
+	ProvStreamRecentVolume(ctx context.Context, arg ProvStreamRecentVolumeParams) (int64, error)
+	// PR-7: the verification per provider of the senders a stream uses (its
+	// default sender, and for Broadcasts the senders of the campaigns sending
+	// now), to vet a failover target's domain.
+	ProvStreamSenderVerification(ctx context.Context, arg ProvStreamSenderVerificationParams) ([]json.RawMessage, error)
 	// Messages per stream over a window (volume estimates on the routing screen).
 	ProvStreamVolume(ctx context.Context, arg ProvStreamVolumeParams) ([]ProvStreamVolumeRow, error)
 	ProvTouchLastEvent(ctx context.Context, arg ProvTouchLastEventParams) error
@@ -2994,14 +3011,30 @@ type Querier interface {
 	// Smallest and largest broadcast audience over a window ("31,988 to 48,213
 	// recipients per send").
 	RoutingBroadcastSizes(ctx context.Context, arg RoutingBroadcastSizesParams) (RoutingBroadcastSizesRow, error)
+	// A page of a campaign's list audience for the route tester: subscribed,
+	// not suppressed, not on an excluded list, with each contact's mailbox
+	// provider, tier and lists.
+	RoutingCampaignAudience(ctx context.Context, arg RoutingCampaignAudienceParams) ([]RoutingCampaignAudienceRow, error)
+	// How many recipients the route tester's audience has, the sunset tier
+	// apart: a simulation of the first recipients is scaled to it.
+	RoutingCampaignAudienceSize(ctx context.Context, arg RoutingCampaignAudienceSizeParams) (RoutingCampaignAudienceSizeRow, error)
 	RoutingContact(ctx context.Context, arg RoutingContactParams) (RoutingContactRow, error)
-	RoutingDeleteRules(ctx context.Context, workspaceID uuid.UUID) error
+	// The default sender's verification per provider: a failover target must
+	// be able to sign for it (PR-14 target checks).
+	RoutingDefaultSenderVerification(ctx context.Context, workspaceID uuid.UUID) (json.RawMessage, error)
+	// A save replaces only the streams it changes.
+	RoutingDeleteStreamRules(ctx context.Context, arg RoutingDeleteStreamRulesParams) error
 	RoutingInsertRule(ctx context.Context, arg RoutingInsertRuleParams) error
 	RoutingIsSuppressed(ctx context.Context, arg RoutingIsSuppressedParams) (bool, error)
 	RoutingListPolicies(ctx context.Context, workspaceID uuid.UUID) ([]StreamPolicy, error)
 	// Routing rules, failover policies and the route tester.
 	RoutingListRules(ctx context.Context, workspaceID uuid.UUID) ([]RoutingRule, error)
 	RoutingLists(ctx context.Context, workspaceID uuid.UUID) ([]RoutingListsRow, error)
+	// Serializes routing saves of a workspace (the version check and the write).
+	RoutingLock(ctx context.Context, workspaceID uuid.UUID) error
+	// The broadcast the route tester's Campaign tab simulates (PR-14): the next
+	// scheduled one, else the draft edited last.
+	RoutingNextBroadcast(ctx context.Context, workspaceID uuid.UUID) (RoutingNextBroadcastRow, error)
 	// When the routing was last saved and by whom.
 	RoutingSaved(ctx context.Context, workspaceID uuid.UUID) (RoutingSavedRow, error)
 	RoutingSenderDomains(ctx context.Context, workspaceID uuid.UUID) ([]RoutingSenderDomainsRow, error)
@@ -3561,19 +3594,38 @@ type Querier interface {
 	// list (the "pulled in" count of providers without a suppression API).
 	SuppAddedByProvider(ctx context.Context, workspaceID uuid.UUID) ([]SuppAddedByProviderRow, error)
 	SuppCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	// Records addresses a provider's list now holds. A pulled address that was
+	// pushed before stays "pushed".
+	SuppEntriesAdd(ctx context.Context, arg SuppEntriesAddParams) error
+	SuppEntriesDelete(ctx context.Context, arg SuppEntriesDeleteParams) error
+	// Which of these addresses a provider's list already holds as far as
+	// ReputeCast knows (pushed there, or pulled before): a pull skips them, so
+	// an address a person removed from the shared list isn't pulled back in
+	// before its removal reaches the provider.
+	SuppEntriesKnown(ctx context.Context, arg SuppEntriesKnownParams) ([]string, error)
 	// Suppressions brought in by imports ("Brevo (import)"), per source.
 	SuppImportSources(ctx context.Context, workspaceID uuid.UUID) ([]SuppImportSourcesRow, error)
-	SuppLatestCreated(ctx context.Context, workspaceID uuid.UUID) (time.Time, error)
+	// What a sync still has to do for a provider: suppressions to push plus
+	// entries to remove.
 	SuppPendingCount(ctx context.Context, arg SuppPendingCountParams) (int64, error)
+	// The shared list by reason and scope, and whether providers get it (PR-1:
+	// hard bounces and complaints that apply to all mail).
+	SuppPushSummary(ctx context.Context, workspaceID uuid.UUID) ([]SuppPushSummaryRow, error)
 	SuppReasonCounts(ctx context.Context, workspaceID uuid.UUID) ([]SuppReasonCountsRow, error)
 	SuppSyncGet(ctx context.Context, providerID uuid.UUID) (ProviderSuppressionSync, error)
 	// Sync of the shared suppression list with each provider. The list
 	// itself (screens, manual adds, imports) belongs to the audience domain.
 	SuppSyncList(ctx context.Context, providerIds []uuid.UUID) ([]ProviderSuppressionSync, error)
 	SuppSyncUpsert(ctx context.Context, arg SuppSyncUpsertParams) error
-	// Addresses of the shared list created after a time that didn't come from
-	// the provider being pushed to (no point echoing its own list back).
+	// PR-1: suppressions a provider's list should hold and doesn't yet, in
+	// insert order: hard bounces and complaints that apply to all mail (never
+	// unsubscribes, role addresses or manual marketing-only entries, which
+	// would stop a password reset), not the provider's own (no echo).
 	SuppToPush(ctx context.Context, arg SuppToPushParams) ([]SuppToPushRow, error)
+	// Entries of a provider's list that left the shared list: a pushed one
+	// whose suppression is gone (or no longer applies to all mail), a pulled
+	// one someone removed from the shared list.
+	SuppToRemove(ctx context.Context, arg SuppToRemoveParams) ([]SuppToRemoveRow, error)
 	SuppressionCounts(ctx context.Context, workspaceID uuid.UUID) (SuppressionCountsRow, error)
 	// One row per connected provider with its suppression sync state (kept by
 	// the providers domain) and, for providers without a suppression API, the
@@ -4037,16 +4089,41 @@ type Querier interface {
 	WarmupActivePlans(ctx context.Context) ([]WarmupActivePlansRow, error)
 	// texts keeps the title's and body's messages for later readers.
 	WarmupAddEvent(ctx context.Context, arg WarmupAddEventParams) error
+	// Messages over today's cap that went through a warm provider (PR-8).
+	WarmupAddOverflow(ctx context.Context, arg WarmupAddOverflowParams) error
+	// The running plan of a provider with its workspace's time zone: warm-up
+	// caps count the workspace's day, whatever the caller's clock (PR-8).
+	WarmupAllowancePlan(ctx context.Context, providerID uuid.UUID) (WarmupAllowancePlanRow, error)
+	// PR-8: campaign shares today's warm-up cap holds on a provider (route
+	// held with reason warmup_cap), with what still waits.
+	WarmupCapHolds(ctx context.Context, providerID uuid.UUID) ([]WarmupCapHoldsRow, error)
+	// Shares a warm-up cap held whose provider's new day has started (the
+	// daily job sends them on), across workspaces.
+	WarmupCapHoldsDue(ctx context.Context) ([]WarmupCapHoldsDueRow, error)
 	WarmupDailyStats(ctx context.Context, arg WarmupDailyStatsParams) ([]WarmupDailyStatsRow, error)
+	// One day of a warming provider (the workspace's day): sent, bounced,
+	// complained and delivered per mailbox provider.
+	WarmupDayStats(ctx context.Context, arg WarmupDayStatsParams) ([]WarmupDayStatsRow, error)
 	WarmupGetPlan(ctx context.Context, arg WarmupGetPlanParams) (WarmupGetPlanRow, error)
 	WarmupInsertPlan(ctx context.Context, arg WarmupInsertPlanParams) error
 	// Warm-up plans for new providers and dedicated IPs.
 	// Plans of a workspace's providers, current first.
 	WarmupListPlans(ctx context.Context, workspaceID uuid.UUID) ([]WarmupListPlansRow, error)
 	WarmupLog(ctx context.Context, arg WarmupLogParams) ([]WarmupEvent, error)
+	// PR-8: where the plan stands after the daily job judged its days: the
+	// day that counts as day 1 now (start_date), the last day judged and a
+	// slowdown's hold.
+	WarmupMove(ctx context.Context, arg WarmupMoveParams) error
 	// Scheduled campaigns with a share on the provider (the plan table shows
 	// "Weekly Digest #142 uses 3,160").
 	WarmupPlannedCampaignUse(ctx context.Context, arg WarmupPlannedCampaignUseParams) ([]WarmupPlannedCampaignUseRow, error)
+	WarmupResolveCapHold(ctx context.Context, arg WarmupResolveCapHoldParams) error
+	// PR-8: a paused plan resumes on the day it stopped: its days move on by
+	// the days it was paused, which are never judged.
+	WarmupResume(ctx context.Context, arg WarmupResumeParams) error
+	// What a provider sent since a time (the start of the workspace's day),
+	// per mailbox provider: every stream counts toward the warm-up cap.
+	WarmupSentSince(ctx context.Context, arg WarmupSentSinceParams) ([]WarmupSentSinceRow, error)
 	// texts keeps the status detail's message for later readers ({} without one).
 	WarmupSetProgress(ctx context.Context, arg WarmupSetProgressParams) error
 	// texts keeps the status detail's message for later readers ({} without one).

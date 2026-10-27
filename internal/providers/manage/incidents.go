@@ -120,7 +120,8 @@ func (s *Service) outage(ctx context.Context, sn *snapshot, p store.Provider, ca
 func (s *Service) outageStream(ctx context.Context, sn *snapshot, p store.Provider, stream providers.Stream, role string, since time.Time) (ProviderOutageStream, error) {
 	def, _ := sn.set.Default(stream)
 	policy := sn.set.Policy(stream)
-	st := ProviderOutageStream{Stream: string(stream), Role: role, Policy: string(policy), Since: since, ReroutedBy: []ProviderNamedCount{}, Alternatives: []ProviderFailoverAlternative{}, SwitchBackMinutes: SwitchBackMinutes}
+	st := ProviderOutageStream{Stream: string(stream), Role: role, Policy: string(policy), Since: since, ReroutedBy: []ProviderNamedCount{}, Alternatives: []ProviderFailoverAlternative{},
+		SwitchBackMinutes: SwitchBackMinutes, FallbackChecks: []state.VetCheck{}}
 	var fo *store.StreamFailover
 	for i, f := range sn.failovers {
 		if f.Stream == string(stream) && f.ProviderID == p.ID {
@@ -170,12 +171,21 @@ func (s *Service) outageStream(ctx context.Context, sn *snapshot, p store.Provid
 		}
 	}
 	automatic := fo != nil && fo.Mode == "automatic" && fallback != nil
+	// The checks the fallback was vetted with (PR-7): those the health job
+	// kept with the failover, or the same vetting now when it has none yet.
+	var vetted *state.Vetting
+	if fo != nil {
+		var d failoverDetail
+		if json.Unmarshal(fo.Detail, &d) == nil && len(d.Checks) > 0 {
+			vetted = &state.Vetting{Checks: d.Checks}
+		}
+	}
 	if fo == nil && fallback != nil {
-		_, hold := routing.Failover(policy, &fallback.ID, func(id uuid.UUID) routing.ProviderState {
-			fp := sn.byID[id]
-			return routing.ProviderState{Available: state.Available(fp), WarmingUp: warmupBrief(sn, fp) != nil}
-		})
-		automatic = !hold
+		target, v := s.vetFailover(ctx, s.Q, *sn.ws, p, stream, policy, &fallback.ID, sn.byID, sn.now)
+		automatic, vetted = target != nil, v
+	}
+	if vetted != nil && fallback != nil {
+		st.FallbackChecks = vetted.In(sn.lang, state.Short(fallback.Name, fallback.Adapter)).Checks
 	}
 	if automatic {
 		st.State = "failover_active"
@@ -332,6 +342,11 @@ func (s *Service) silent(ctx context.Context, sn *snapshot, p store.Provider) (*
 		return nil, err
 	}
 	out.Accepted = cnt.Total
+	od, err := s.Q.ProvEventsOverdue(ctx, store.ProvEventsOverdueParams{ProviderID: &p.ID, Since: since, GraceBefore: sn.now.Add(-EventGrace)})
+	if err != nil {
+		return nil, err
+	}
+	out.Overdue, out.InGrace = od.Overdue, od.InGrace
 	camps, err := s.Q.ProvAwaitingCampaigns(ctx, store.ProvAwaitingCampaignsParams{ProviderID: &p.ID, Since: &since})
 	if err != nil {
 		return nil, err

@@ -31,7 +31,7 @@ func TestLogMessages(t *testing.T) {
 		{"log.shareRaised", i18n.Args{"share": 15.0 / 100, "day": 6},
 			"Broadcast share raised to 15% on day 6.", "Tỷ trọng Gửi hàng loạt tăng lên 15% vào ngày 6."},
 		{"log.started", i18n.Args{"named": "yes", "name": "Linh Nguyen", "days": 21, "order": "engaged"},
-			"Plan started by Linh Nguyen: 21 days, engaged-first.", "Linh Nguyen đã bắt đầu kế hoạch: 21 ngày, liên hệ tương tác nhiều nhất trước."},
+			"Plan started by Linh Nguyen: 21 counted days, engaged-first.", "Linh Nguyen đã bắt đầu kế hoạch: 21 ngày được tính, liên hệ tương tác nhiều nhất trước."},
 		{"log.settings", i18n.Args{"named": "no", "name": ""}, "Plan settings changed by someone.", "Ai đó đã đổi cài đặt kế hoạch."},
 	}
 	for _, c := range cases {

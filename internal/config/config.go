@@ -288,6 +288,12 @@ func Load(configFile string, flags *pflag.FlagSet) (*Config, error) {
 	if err := k.Load(envProvider, nil); err != nil {
 		return nil, fmt.Errorf("config env: %w", err)
 	}
+	// REPUTECAST_PUBLIC_URL is the public URL's one name everywhere (docs,
+	// compose, the setup screens); REPUTECAST_HTTP__PUBLIC_URL, its earlier
+	// name, still works when it isn't set.
+	if v := os.Getenv(EnvPrefix + "PUBLIC_URL"); v != "" {
+		_ = k.Set("http.public_url", v)
+	}
 	// DATABASE_URL is the de-facto standard; honour it when the specific key is unset.
 	if v := os.Getenv("DATABASE_URL"); v != "" && os.Getenv(EnvPrefix+"DATABASE__URL") == "" {
 		_ = k.Set("database.url", v)

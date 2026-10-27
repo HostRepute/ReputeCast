@@ -45,9 +45,35 @@ func (q *Queries) ConnectCreateList(ctx context.Context, arg ConnectCreateListPa
 	return err
 }
 
+const connectFirstEventSince = `-- name: ConnectFirstEventSince :one
+SELECT received_at, source FROM provider_raw_events
+WHERE provider_id = $1 AND source IN ('webhook', 'queue') AND received_at >= $2
+ORDER BY received_at
+LIMIT 1
+`
+
+type ConnectFirstEventSinceParams struct {
+	ProviderID uuid.UUID `json:"providerId"`
+	Since      time.Time `json:"since"`
+}
+
+type ConnectFirstEventSinceRow struct {
+	ReceivedAt time.Time `json:"receivedAt"`
+	Source     string    `json:"source"`
+}
+
+// The first event a provider delivered after a time, by webhook or queue:
+// its endpoint was reached from outside (PR-9).
+func (q *Queries) ConnectFirstEventSince(ctx context.Context, arg ConnectFirstEventSinceParams) (ConnectFirstEventSinceRow, error) {
+	row := q.db.QueryRow(ctx, connectFirstEventSince, arg.ProviderID, arg.Since)
+	var i ConnectFirstEventSinceRow
+	err := row.Scan(&i.ReceivedAt, &i.Source)
+	return i, err
+}
+
 const connectFirstWebhook = `-- name: ConnectFirstWebhook :one
-SELECT received_at, body FROM provider_raw_events
-WHERE provider_id = $1 AND source = 'webhook' AND received_at >= $2 AND received_at < $3
+SELECT received_at, body, source FROM provider_raw_events
+WHERE provider_id = $1 AND source IN ('webhook', 'queue') AND received_at >= $2 AND received_at < $3
   AND position(convert_to($4::text, 'UTF8') IN body) > 0
 ORDER BY received_at
 LIMIT 1
@@ -63,11 +89,14 @@ type ConnectFirstWebhookParams struct {
 type ConnectFirstWebhookRow struct {
 	ReceivedAt time.Time `json:"receivedAt"`
 	Body       []byte    `json:"body"`
+	Source     string    `json:"source"`
 }
 
-// The first webhook payload about a message (its provider message id is in
-// the body) a provider sent in a window after the send: the test send's
-// "event came back" step, with the body to name the event.
+// The first event payload about a message (its provider message id is in
+// the body) a provider sent in a window after the send, by webhook or
+// through the queue ReputeCast polls (PR-4): the test send's "event came
+// back" step and the setup's event check (PR-3), with the body to name the
+// event and how it came.
 func (q *Queries) ConnectFirstWebhook(ctx context.Context, arg ConnectFirstWebhookParams) (ConnectFirstWebhookRow, error) {
 	row := q.db.QueryRow(ctx, connectFirstWebhook,
 		arg.ProviderID,
@@ -76,7 +105,7 @@ func (q *Queries) ConnectFirstWebhook(ctx context.Context, arg ConnectFirstWebho
 		arg.ProviderMessageID,
 	)
 	var i ConnectFirstWebhookRow
-	err := row.Scan(&i.ReceivedAt, &i.Body)
+	err := row.Scan(&i.ReceivedAt, &i.Body, &i.Source)
 	return i, err
 }
 

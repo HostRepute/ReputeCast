@@ -169,21 +169,35 @@ export function Stepper({ current, setup }: { current: number; setup?: Setup }) 
   )
 }
 
-export function StepHeading({ title, children }: { title: ReactNode; children?: ReactNode }) {
+export function StepHeading({ title, children, note }: { title: ReactNode; children?: ReactNode; note?: ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
       <h2 className="m-0 text-[24px] font-bold tracking-[-0.02em]">{title}</h2>
       {children ? <span className="text-ink-2">{children}</span> : null}
+      {note ? <span className="k">{note}</span> : null}
     </div>
   )
 }
 
-/** Back on the left; later actions and the primary one on the right. */
-export function WizardFooter({ back, children }: { back?: ReactNode; children?: ReactNode }) {
-  return (
+/**
+ * Back on the left; later actions and the primary one on the right. A
+ * caption under them says why the primary action is (un)available; give it
+ * `captionId` and point the action's aria-describedby at it.
+ */
+export function WizardFooter({ back, children, caption, captionId }: { back?: ReactNode; children?: ReactNode; caption?: ReactNode; captionId?: string }) {
+  const row = (
     <div className="flex flex-wrap justify-between gap-2.5">
       {back ?? <span />}
       {children ? <Row gap={10}>{children}</Row> : null}
+    </div>
+  )
+  if (!caption) return row
+  return (
+    <div className="flex flex-col gap-2">
+      {row}
+      <p className="k m-0 text-right max-md:text-left" id={captionId}>
+        {caption}
+      </p>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 package warmup
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -17,7 +18,9 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
+	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -38,12 +41,16 @@ func (s *Service) now() time.Time {
 
 // WarmupSettings are a plan's editable settings.
 type WarmupSettings struct {
+	// Days is the plan's length in counted days.
 	Days           int     `json:"days" enum:"14,21,30"`
 	EngagedFirst   bool    `json:"engagedFirst"`
 	GuardBounce    float64 `json:"guardBounce" minimum:"0.5" maximum:"10"`
 	GuardComplaint float64 `json:"guardComplaint" minimum:"0.01" maximum:"1"`
 	GuardAction    string  `json:"guardAction" enum:"hold,step_back,pause"`
 	SpreadMailbox  bool    `json:"spreadMailbox"`
+	// Overflow sends what's over today's cap through a warm provider of
+	// the same route instead of waiting for tomorrow's cap.
+	Overflow *bool `json:"overflow,omitempty"`
 }
 
 // WarmupCampaignUse is a scheduled campaign's share on a planned day.
@@ -52,25 +59,64 @@ type WarmupCampaignUse struct {
 	Count int64  `json:"count"`
 }
 
-// WarmupDay is one day of the ramp.
-type WarmupDay struct {
-	Day        int       `json:"day"`
-	Date       time.Time `json:"date"`
-	Cap        int64     `json:"cap"`
-	PlannedCap int64     `json:"plannedCap"`
-	Held       bool      `json:"held"`
-	Sent       *int64    `json:"sent,omitempty"`
-	Bounce     *float64  `json:"bounce,omitempty"`
-	Complaint  *float64  `json:"complaint,omitempty"`
-	Tiers      []string  `json:"tiers"`
-	Share      int       `json:"share"`
+// WarmupRow is one date of the plan table: a day that was judged, today,
+// or a planned day (dates ahead assume every day counts).
+type WarmupRow struct {
+	Day  int       `json:"day"`
+	Date time.Time `json:"date"`
+	Cap  int64     `json:"cap"`
+	// PlannedCap is the schedule's cap when a slowdown holds a lower one.
+	PlannedCap int64    `json:"plannedCap,omitempty"`
+	Sent       *int64   `json:"sent,omitempty"`
+	Bounce     *float64 `json:"bounce,omitempty"`
+	Complaint  *float64 `json:"complaint,omitempty"`
+	Tiers      []string `json:"tiers"`
+	Share      int      `json:"share"`
 	// ShareChange is true on the day the Broadcast share steps up.
 	ShareChange bool                `json:"shareChange"`
 	Uses        []WarmupCampaignUse `json:"uses"`
-	// Status: done, slowdown, resumed, today, planned.
-	Status string `json:"status" enum:"done,slowdown,resumed,today,planned"`
-	// Eligible marks the day the provider becomes a Broadcast failover target.
+	// Status: counted, not_counted, today, planned.
+	Status string `json:"status" enum:"counted,not_counted,today,planned"`
+	// Why a day didn't count: short (under 80% of its cap went out) or
+	// guard (a guard tripped; Metric says which).
+	Reason string `json:"reason,omitempty" enum:"short,guard"`
+	Metric string `json:"metric,omitempty" enum:"bounce,complaint"`
+	// Judged: the guards had enough messages to judge the day.
+	Judged bool `json:"judged"`
+	// Bounced, Complained and Delivered are the day's counts (complaints
+	// and deliveries at mailbox providers that report complaints), so
+	// several days add up exactly.
+	Bounced    int64 `json:"bounced"`
+	Complained int64 `json:"complained"`
+	Delivered  int64 `json:"delivered"`
+	// Need is how many messages the day needs to count.
+	Need int64 `json:"need"`
+	// Held: a slowdown held the day's cap; Healthy is the healthy day it
+	// was under the hold (1 of HealthyDays…).
+	Held    bool `json:"held"`
+	Healthy int  `json:"healthy,omitempty"`
+	// Repeat marks a planned day that repeats a day that didn't count.
+	Repeat bool `json:"repeat"`
+	// Eligible marks the last day: the provider then becomes a Broadcast
+	// failover target.
 	Eligible bool `json:"eligible"`
+}
+
+// WarmupRampDay is one day of the volume ramp (the chart).
+type WarmupRampDay struct {
+	Day        int    `json:"day"`
+	PlannedCap int64  `json:"plannedCap"`
+	Sent       *int64 `json:"sent,omitempty"`
+	Slowed     bool   `json:"slowed"`
+	Today      bool   `json:"today"`
+}
+
+// WarmupMailboxCap is today's cap and sends of one mailbox provider.
+type WarmupMailboxCap struct {
+	Mailbox string `json:"mailbox"`
+	Percent int    `json:"percent"`
+	Cap     int64  `json:"cap"`
+	Sent    int64  `json:"sent"`
 }
 
 // WarmupLogEntry is one line of the warm-up log.
@@ -87,40 +133,70 @@ type WarmupStep struct {
 	Value float64 `json:"value"`
 }
 
-// WarmupSlowdown summarizes the last slowdown ("day 6 held, bounces 2.3%").
+// WarmupSlowdown summarizes the last slowdown ("day 6, bounces 2.3%").
 type WarmupSlowdown struct {
-	Day    int     `json:"day"`
-	Bounce float64 `json:"bounce"`
+	Day    int      `json:"day"`
+	Metric string   `json:"metric" enum:"bounce,complaint"`
+	Rate   *float64 `json:"rate,omitempty"`
 }
 
-// WarmupPlanView is a warm-up plan with its progress.
+// WarmupPlanView is a warm-up plan with its progress (ProvidersWarmup).
 type WarmupPlanView struct {
-	ID            string           `json:"id"`
-	ProviderID    string           `json:"providerId"`
-	Provider      string           `json:"provider"`
-	Short         string           `json:"short"`
-	IP            string           `json:"ip"`
-	Status        string           `json:"status" enum:"active,slowed,paused,done"`
-	StatusDetail  string           `json:"statusDetail"`
-	Day           int              `json:"day"`
-	Days          int              `json:"days"`
-	StartDate     time.Time        `json:"startDate"`
-	EndDate       time.Time        `json:"endDate"`
-	Progress      float64          `json:"progress" doc:"Percent of the plan's days"`
-	TodayCap      int64            `json:"todayCap"`
-	SentToday     int64            `json:"sentToday"`
-	SentTotal     int64            `json:"sentTotal"`
-	PlannedToDate int64            `json:"plannedToDate"`
-	BounceRate    *float64         `json:"bounceRate,omitempty"`
-	ComplaintRate *float64         `json:"complaintRate,omitempty"`
-	Slowdowns     int              `json:"slowdowns"`
-	LastSlowdown  *WarmupSlowdown  `json:"lastSlowdown,omitempty"`
-	RateToday     float64          `json:"rateToday"`
-	NextRate      *WarmupStep      `json:"nextRate,omitempty"`
-	Schedule      []WarmupDay      `json:"schedule"`
-	Settings      WarmupSettings   `json:"settings"`
-	Log           []WarmupLogEntry `json:"log"`
-	CreatedBy     string           `json:"createdBy"`
+	ID           string `json:"id"`
+	ProviderID   string `json:"providerId"`
+	Provider     string `json:"provider"`
+	Short        string `json:"short"`
+	IP           string `json:"ip"`
+	Status       string `json:"status" enum:"active,slowed,paused,done"`
+	StatusDetail string `json:"statusDetail"`
+	// Day is today's plan day; Counted the days that counted so far, of
+	// Days; CalendarDays the days since the plan started (today excluded).
+	Day          int `json:"day"`
+	Days         int `json:"days"`
+	Counted      int `json:"counted"`
+	CalendarDays int `json:"calendarDays"`
+	// StartedOn is the day the plan began; FinishesOn the earliest day it
+	// can finish (every day from today counting).
+	StartedOn  time.Time `json:"startedOn"`
+	FinishesOn time.Time `json:"finishesOn"`
+	Progress   float64   `json:"progress" doc:"Percent of the plan's days counted"`
+	TodayCap   int64     `json:"todayCap"`
+	SentToday  int64     `json:"sentToday"`
+	// NeedToday is what today needs to count; RepeatsTomorrow is true when
+	// today can't count any more (nothing scheduled and too little sent).
+	NeedToday       int64 `json:"needToday"`
+	RepeatsTomorrow bool  `json:"repeatsTomorrow"`
+	// ScheduledToday is how many campaigns use the provider today.
+	ScheduledToday int   `json:"scheduledToday"`
+	SentTotal      int64 `json:"sentTotal"`
+	// BounceRate and ComplaintRate cover the last seven days; nil when
+	// nothing was measured (complaints count only mailbox providers that
+	// report them).
+	BounceRate    *float64        `json:"bounceRate,omitempty"`
+	ComplaintRate *float64        `json:"complaintRate,omitempty"`
+	Slowdowns     int             `json:"slowdowns"`
+	LastSlowdown  *WarmupSlowdown `json:"lastSlowdown,omitempty"`
+	RateToday     float64         `json:"rateToday"`
+	NextRate      *WarmupStep     `json:"nextRate,omitempty"`
+	// Held is the cap a slowdown holds and HealthyStreak the healthy days so far.
+	Held          *int64             `json:"held,omitempty"`
+	HealthyStreak int                `json:"healthyStreak"`
+	HealthyDays   int                `json:"healthyDays"`
+	MinSample     int                `json:"minSample"`
+	CountShare    float64            `json:"countShare"`
+	Rows          []WarmupRow        `json:"rows"`
+	Ramp          []WarmupRampDay    `json:"ramp"`
+	MailboxCaps   []WarmupMailboxCap `json:"mailboxCaps"`
+	// OverflowTo is the warm provider over-cap mail goes through (the
+	// largest share of the Broadcasts split that isn't warming up), empty
+	// when there is none; OverflowToday what went through it today.
+	OverflowTo    string         `json:"overflowTo,omitempty"`
+	OverflowToday int64          `json:"overflowToday"`
+	Settings      WarmupSettings `json:"settings"`
+	// Holds are campaigns' shares waiting at today's cap, with choices.
+	Holds     []WarmupCapHold  `json:"holds"`
+	Log       []WarmupLogEntry `json:"log"`
+	CreatedBy string           `json:"createdBy"`
 }
 
 // WarmupCandidate is a provider that could start a warm-up plan.
@@ -176,126 +252,242 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (WarmupOver
 	return out, nil
 }
 
+func settingsOf(r store.WarmupListPlansRow) WarmupSettings {
+	overflow := r.Overflow
+	return WarmupSettings{Days: int(r.Days), EngagedFirst: r.EngagedFirst, GuardBounce: r.SlowdownBounce, GuardComplaint: r.SlowdownComplaint,
+		GuardAction: r.GuardAction, SpreadMailbox: r.SpreadMailbox, Overflow: &overflow}
+}
+
 func (s *Service) view(ctx context.Context, ws *store.Workspace, r store.WarmupListPlansRow) (WarmupPlanView, error) {
 	loc := state.Location(ws.Timezone)
 	now := s.now()
+	today := dateIn(now, loc)
 	plan := ParsePlan(r.Schedule, r.Progress)
-	start := time.Date(r.StartDate.Year(), r.StartDate.Month(), r.StartDate.Day(), 0, 0, 0, 0, loc)
-	day := state.WarmupDay(r.StartDate, now, loc)
+	started := localDate(r.StartedOn, loc)
 	days := int(r.Days)
+	// A paused plan stays on the day it stopped.
+	day := min(max(DayOn(r.StartDate, pausedAt(r.Status, r.PausedAt), now, loc), 1), days)
 	l := i18n.LangFrom(ctx)
 	v := WarmupPlanView{ID: r.ID.String(), ProviderID: r.ProviderID.String(), Provider: r.ProviderName, Short: state.Short(r.ProviderName, r.Adapter), IP: r.Ip,
-		Status: r.Status, StatusDetail: textIn(l, r.Texts, "status_detail", r.StatusDetail), Day: min(max(day, 1), days), Days: days, StartDate: start, EndDate: start.AddDate(0, 0, days-1),
-		Schedule: []WarmupDay{}, Log: []WarmupLogEntry{}, CreatedBy: r.CreatedByName,
-		Settings: WarmupSettings{Days: days, EngagedFirst: r.EngagedFirst, GuardBounce: r.SlowdownBounce, GuardComplaint: r.SlowdownComplaint, GuardAction: r.GuardAction, SpreadMailbox: r.SpreadMailbox}}
+		Status: r.Status, StatusDetail: textIn(l, r.Texts, "status_detail", r.StatusDetail), Day: day, Days: days, Counted: plan.Counted(),
+		StartedOn: started, Rows: []WarmupRow{}, Ramp: []WarmupRampDay{}, MailboxCaps: []WarmupMailboxCap{}, Holds: []WarmupCapHold{}, Log: []WarmupLogEntry{}, CreatedBy: r.CreatedByName,
+		Settings: settingsOf(r), HealthyStreak: int(r.HealthyStreak), HealthyDays: HealthyDays, MinSample: int(r.MinSample), CountShare: CountShare, Held: r.HeldCap}
 	if r.Status == "done" {
-		v.Day = days
+		v.Day, v.Counted = days, max(v.Counted, days)
 	}
-	v.Progress = math.Round(float64(v.Day)/float64(days)*1000) / 10
-	today := dateIn(now, loc)
-	stats, err := s.Q.WarmupDailyStats(ctx, store.WarmupDailyStatsParams{ProviderID: r.ProviderID, Since: dayUTC(start), Until: dayUTC(today)})
+	v.CalendarDays = max(int(today.Sub(started).Hours()/24+0.5), 0)
+	v.Progress = math.Round(float64(min(v.Counted, days))/float64(days)*1000) / 10
+	v.FinishesOn = today.AddDate(0, 0, days-day)
+	hold := Hold{Cap: r.HeldCap}
+	v.TodayCap = hold.CapFor(plan.PlannedCap(day))
+	v.NeedToday = int64(math.Ceil(float64(v.TodayCap) * CountShare))
+
+	// Today's sends per mailbox provider (every stream counts).
+	sent, err := s.Q.WarmupSentSince(ctx, store.WarmupSentSinceParams{ProviderID: &r.ProviderID, Since: today})
 	if err != nil {
 		return v, err
 	}
-	byDate := map[string]store.WarmupDailyStatsRow{}
-	for _, st := range stats {
-		byDate[st.Day.Format("2006-01-02")] = st
+	byMailbox := map[string]int64{}
+	for _, x := range sent {
+		byMailbox[MailboxOf(x.MailboxProvider)] += x.N
+		v.SentToday += x.N
 	}
-	endAt := start.AddDate(0, 0, days)
+	caps := MailboxCaps(v.TodayCap)
+	for _, sh := range MailboxShares {
+		v.MailboxCaps = append(v.MailboxCaps, WarmupMailboxCap{Mailbox: sh.Mailbox, Percent: sh.Percent, Cap: caps[sh.Mailbox], Sent: byMailbox[sh.Mailbox]})
+	}
+	if r.OverflowedOn != nil && localDate(*r.OverflowedOn, loc).Equal(today) {
+		v.OverflowToday = r.Overflowed
+	}
+	v.OverflowTo = s.overflowTarget(ctx, ws, r.ProviderID)
+	if v.Holds, err = s.capHolds(ctx, ws, r.ProviderID); err != nil {
+		return v, err
+	}
+
+	// Campaigns that use the provider on the days ahead.
+	endAt := today.AddDate(0, 0, days-day+2)
 	uses, err := s.Q.WarmupPlannedCampaignUse(ctx, store.WarmupPlannedCampaignUseParams{ProviderID: r.ProviderID, Since: &today, Until: &endAt})
 	if err != nil {
 		return v, err
 	}
-	var weekSent, weekBounced, weekDelivered, weekComplained int64
-	prevShare := 0
-	for d := 1; d <= days; d++ {
-		date := start.AddDate(0, 0, d-1)
-		wd := WarmupDay{Day: d, Date: date, Cap: plan.Cap(d), PlannedCap: plan.PlannedCap(d), Tiers: plan.TiersOn(d), Share: plan.Share(d), Uses: []WarmupCampaignUse{}}
-		wd.ShareChange = d > 1 && wd.Share != prevShare
-		prevShare = wd.Share
-		wd.Eligible = d == days
-		res, has := plan.Result(d)
-		wd.Held = has && res.Held
-		switch {
-		case date.Before(today) && has && res.Sent > 0 || date.Before(today) && has && !res.Held:
-			sent, b, c := res.Sent, res.Bounce, res.Complaint
-			wd.Sent, wd.Bounce, wd.Complaint = &sent, &b, &c
-			wd.Status = "done"
-			if res.Slowed {
-				wd.Status = "slowdown"
-			} else if res.Held {
-				wd.Status = "resumed"
-			}
-		case date.Before(today):
-			st := byDate[date.Format("2006-01-02")]
-			sent := st.Sent
-			wd.Sent = &sent
-			if st.Sent > 0 {
-				b := round1(float64(st.Bounced) / float64(st.Sent) * 100)
-				wd.Bounce = &b
-			}
-			if st.Delivered > 0 {
-				c := round2(float64(st.Complained) / float64(st.Delivered) * 100)
-				wd.Complaint = &c
-			}
-			wd.Status = "done"
-		case date.Equal(today):
-			st := byDate[date.Format("2006-01-02")]
-			sent := st.Sent
-			wd.Sent = &sent
-			wd.Status = "today"
-			v.TodayCap, v.SentToday = wd.Cap, st.Sent
-		default:
-			wd.Status = "planned"
-		}
-		if wd.Status == "slowdown" {
-			v.Slowdowns++
-			v.LastSlowdown = &WarmupSlowdown{Day: d, Bounce: *wd.Bounce}
-		}
-		if date.Before(today) {
-			if wd.Sent != nil {
-				v.SentTotal += *wd.Sent
-			}
-			v.PlannedToDate += wd.Cap
-		}
-		// The last seven days, today included, as on Sending providers.
-		if !date.Before(today.AddDate(0, 0, -6)) && !date.After(today) {
-			st := byDate[date.Format("2006-01-02")]
-			weekSent += st.Sent
-			weekBounced += st.Bounced
-			weekDelivered += st.Delivered
-			weekComplained += st.Complained
-		}
+	usesOn := func(date time.Time) []WarmupCampaignUse {
+		out := []WarmupCampaignUse{}
 		for _, u := range uses {
 			if u.ScheduledAt != nil && dateIn(*u.ScheduledAt, loc).Equal(date) {
-				wd.Uses = append(wd.Uses, WarmupCampaignUse{Name: u.Name, Count: u.Planned})
+				out = append(out, WarmupCampaignUse{Name: u.Name, Count: u.Planned})
 			}
 		}
-		v.Schedule = append(v.Schedule, wd)
+		return out
 	}
-	if weekSent > 0 {
-		b := round1(float64(weekBounced) / float64(weekSent) * 100)
+
+	// Judged days, as they happened; the last seven days' rates add up
+	// their counts and today's (complaints count only mailbox providers that
+	// report them).
+	var week DayStats
+	for _, res := range plan.Progress {
+		date, err := time.ParseInLocation("2006-01-02", res.Date, loc)
+		if err != nil || !date.Before(today) {
+			continue
+		}
+		sentN := res.Sent
+		row := WarmupRow{Day: res.Day, Date: date, Cap: res.Cap, PlannedCap: res.PlannedCap, Sent: &sentN, Bounce: res.Bounce, Complaint: res.Complaint,
+			Tiers: plan.TiersOn(res.Day), Share: plan.Share(res.Day), Uses: []WarmupCampaignUse{}, Status: "counted", Judged: res.Judged,
+			Need: int64(math.Ceil(float64(res.Cap) * CountShare)), Held: res.Held, Healthy: res.Healthy, Bounced: res.Bounced, Complained: res.Complained, Delivered: res.Delivered}
+		if !res.Counted {
+			row.Status = "not_counted"
+			row.Reason = "short"
+			if res.Slowed {
+				row.Reason, row.Metric = "guard", res.Metric
+			}
+		}
+		if res.Slowed {
+			v.Slowdowns++
+			rate := res.Bounce
+			if res.Metric == "complaint" {
+				rate = res.Complaint
+			}
+			v.LastSlowdown = &WarmupSlowdown{Day: res.Day, Metric: cmp.Or(res.Metric, "bounce"), Rate: rate}
+		}
+		v.SentTotal += res.Sent
+		if !date.Before(today.AddDate(0, 0, -6)) {
+			week.Sent += res.Sent
+			week.Bounced += res.Bounced
+			week.Complained += res.Complained
+			week.Delivered += res.Delivered
+		}
+		v.Rows = append(v.Rows, row)
+	}
+	v.SentTotal += v.SentToday
+	todayStats, err := dayStats(ctx, s.Q, r.ProviderID, today, today.AddDate(0, 0, 1))
+	if err != nil {
+		return v, err
+	}
+	week.Sent += todayStats.Sent
+	week.Bounced += todayStats.Bounced
+	week.Complained += todayStats.Complained
+	week.Delivered += todayStats.Delivered
+	if week.Sent > 0 {
+		b := round1(float64(week.Bounced) / float64(week.Sent) * 100)
 		v.BounceRate = &b
 	}
-	if weekDelivered > 0 {
-		c := round2(float64(weekComplained) / float64(weekDelivered) * 100)
+	if week.Delivered > 0 {
+		c := round2(float64(week.Complained) / float64(week.Delivered) * 100)
 		v.ComplaintRate = &c
 	}
-	v.RateToday = plan.Rate(v.Day)
-	for d := v.Day + 1; d <= days; d++ {
-		if r := plan.Rate(d); r > v.RateToday {
-			v.NextRate = &WarmupStep{Day: d, Value: r}
+	if r.Status == "done" {
+		return s.finishView(ctx, r, v, l)
+	}
+
+	// Today, then the days ahead (every one of them counting).
+	todayUses := usesOn(today)
+	v.ScheduledToday = len(todayUses)
+	v.RepeatsTomorrow = v.SentToday < v.NeedToday && len(todayUses) == 0 && r.Status != "paused"
+	sentToday := v.SentToday
+	// Today so far, judged as the daily job will once enough went out.
+	tv := Judge(todayStats, v.TodayCap, Guards{Bounce: r.SlowdownBounce, Complaint: r.SlowdownComplaint, MinSample: int64(r.MinSample)})
+	todayRow := WarmupRow{Day: day, Date: today, Cap: v.TodayCap, Sent: &sentToday, Tiers: plan.TiersOn(day), Share: plan.Share(day), Uses: todayUses, Status: "today",
+		Need: v.NeedToday, Held: r.HeldCap != nil, Eligible: day == days, Judged: tv.Judged, Bounce: tv.Bounce, Complaint: tv.Complaint,
+		Bounced: todayStats.Bounced, Complained: todayStats.Complained, Delivered: todayStats.Delivered}
+	if r.HeldCap != nil && plan.PlannedCap(day) != v.TodayCap {
+		todayRow.PlannedCap = plan.PlannedCap(day)
+	}
+	v.Rows = append(v.Rows, todayRow)
+	date := today
+	next := day
+	if v.RepeatsTomorrow {
+		// Today can't count any more: tomorrow repeats today's day.
+		date = date.AddDate(0, 0, 1)
+		v.Rows = append(v.Rows, WarmupRow{Day: day, Date: date, Cap: v.TodayCap, Tiers: plan.TiersOn(day), Share: plan.Share(day), Uses: usesOn(date), Status: "planned",
+			Need: v.NeedToday, Repeat: true, Eligible: day == days})
+	}
+	prevShare := plan.Share(day)
+	for d := next + 1; d <= days; d++ {
+		date = date.AddDate(0, 0, 1)
+		row := WarmupRow{Day: d, Date: date, Cap: plan.PlannedCap(d), Tiers: plan.TiersOn(d), Share: plan.Share(d), Uses: usesOn(date), Status: "planned",
+			Need: int64(math.Ceil(float64(plan.PlannedCap(d)) * CountShare)), Eligible: d == days}
+		row.ShareChange = row.Share != prevShare
+		prevShare = row.Share
+		v.Rows = append(v.Rows, row)
+	}
+	v.FinishesOn = date
+
+	// The ramp: each plan day's planned cap and what its counted (or last)
+	// date sent.
+	for d := 1; d <= days; d++ {
+		rd := WarmupRampDay{Day: d, PlannedCap: plan.PlannedCap(d), Today: d == day}
+		for _, res := range plan.Progress {
+			if res.Day != d {
+				continue
+			}
+			sentN := res.Sent
+			rd.Sent = &sentN
+			rd.Slowed = rd.Slowed || res.Slowed
+		}
+		if d == day {
+			rd.Sent = &sentToday
+		}
+		v.Ramp = append(v.Ramp, rd)
+	}
+	v.RateToday = RateFor(v.TodayCap)
+	if r.HeldCap == nil {
+		v.RateToday = plan.Rate(day)
+	}
+	for d := day + 1; d <= days; d++ {
+		if rt := plan.Rate(d); rt > v.RateToday {
+			v.NextRate = &WarmupStep{Day: d, Value: rt}
 			break
 		}
 	}
+	return s.finishView(ctx, r, v, l)
+}
+
+// finishView adds the log: today's line while nothing more is scheduled
+// and today can't count, then what the plan recorded.
+func (s *Service) finishView(ctx context.Context, r store.WarmupListPlansRow, v WarmupPlanView, l i18n.Lang) (WarmupPlanView, error) {
 	log, err := s.Q.WarmupLog(ctx, store.WarmupLogParams{PlanID: r.ID, Lim: 20})
 	if err != nil {
 		return v, err
+	}
+	if v.RepeatsTomorrow {
+		v.Log = append(v.Log, WarmupLogEntry{At: s.now(), Kind: "today",
+			Body: msgs.M("log.todayRepeats").Text(l, i18n.Args{"day": v.Day, "sent": v.SentToday, "need": v.NeedToday})})
 	}
 	for _, e := range log {
 		v.Log = append(v.Log, WarmupLogEntry{At: e.OccurredAt, Kind: e.Kind, Title: textIn(l, e.Texts, "title", e.Title), Body: textIn(l, e.Texts, "body", e.Body)})
 	}
 	return v, nil
+}
+
+// overflowTarget names the warm provider over-cap Broadcasts go through:
+// the largest share of the Broadcasts split that isn't warming up.
+func (s *Service) overflowTarget(ctx context.Context, ws *store.Workspace, providerID uuid.UUID) string {
+	set, err := routing.Load(ctx, s.Q, ws.ID)
+	if err != nil {
+		return ""
+	}
+	def, ok := set.Default(providers.StreamBroadcast)
+	if !ok {
+		return ""
+	}
+	provs, err := s.Q.ProvListActive(ctx, ws.ID)
+	if err != nil {
+		return ""
+	}
+	byID := map[uuid.UUID]store.Provider{}
+	for _, p := range provs {
+		byID[p.ID] = p
+	}
+	best, bestW := "", -1
+	for _, sp := range def.Splits {
+		p, ok := byID[sp.ProviderID]
+		if !ok || sp.ProviderID == providerID || p.Status == state.WarmingUp || !state.Caps(p).BulkAllowed() {
+			continue
+		}
+		if sp.Weight > bestW {
+			best, bestW = p.Name, sp.Weight
+		}
+	}
+	return best
 }
 
 func dayUTC(t time.Time) time.Time {
@@ -334,9 +526,10 @@ func lastVolume(sched []Day) int64 {
 	return sched[len(sched)-1].Volume
 }
 
-// UpdateSettings changes a plan's length, ordering and guards. A new length
-// rebuilds the schedule from the same first and last volumes; days already
-// sent keep their results.
+// UpdateSettings changes a plan's length, ordering, guards, mailbox caps
+// and overflow. A new length rebuilds the days ahead from today's cap to the
+// same last volume, so shortening a plan never makes today's cap jump
+// (PR-8); a plan can't get shorter than the days it already counted.
 func (s *Service) UpdateSettings(ctx context.Context, ws *store.Workspace, id string, in WarmupSettings) (WarmupPlanView, error) {
 	r, err := s.plan(ctx, ws, id)
 	if err != nil {
@@ -345,21 +538,34 @@ func (s *Service) UpdateSettings(ctx context.Context, ws *store.Workspace, id st
 	if r.Status == "done" {
 		return WarmupPlanView{}, api.Conflict(say(ctx, "problem.complete", nil))
 	}
+	loc := state.Location(ws.Timezone)
 	plan := ParsePlan(r.Schedule, r.Progress)
 	sched := plan.Schedule
+	day := max(DayOn(r.StartDate, pausedAt(r.Status, r.PausedAt), s.now(), loc), 1)
 	if in.Days != int(r.Days) {
-		first := int64(200)
-		if len(sched) > 0 {
-			first = sched[0].Volume
+		todayCap := Hold{Cap: r.HeldCap}.CapFor(plan.PlannedCap(day))
+		next, err := Reschedule(sched, day, in.Days, todayCap)
+		if errors.Is(err, ErrTooShort) {
+			return WarmupPlanView{}, api.Invalid("body.days", say(ctx, "problem.tooShort", i18n.Args{"counted": plan.Counted(), "day": day}))
 		}
-		sched = Ramp(in.Days, first, lastVolume(sched))
+		if err != nil {
+			return WarmupPlanView{}, err
+		}
+		sched = next
 	}
+	overflow := r.Overflow
+	if in.Overflow != nil {
+		overflow = *in.Overflow
+	}
+	in.Overflow = &overflow
 	sb, _ := json.Marshal(sched)
-	before := WarmupSettings{Days: int(r.Days), EngagedFirst: r.EngagedFirst, GuardBounce: r.SlowdownBounce, GuardComplaint: r.SlowdownComplaint, GuardAction: r.GuardAction, SpreadMailbox: r.SpreadMailbox}
+	beforeOverflow := r.Overflow
+	before := WarmupSettings{Days: int(r.Days), EngagedFirst: r.EngagedFirst, GuardBounce: r.SlowdownBounce, GuardComplaint: r.SlowdownComplaint, GuardAction: r.GuardAction,
+		SpreadMailbox: r.SpreadMailbox, Overflow: &beforeOverflow}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.WarmupUpdateSettings(ctx, store.WarmupUpdateSettingsParams{ID: r.ID, Days: int32(in.Days), Schedule: sb, EngagedFirst: in.EngagedFirst,
-			SlowdownBounce: in.GuardBounce, SlowdownComplaint: in.GuardComplaint, GuardAction: in.GuardAction, SpreadMailbox: in.SpreadMailbox}); err != nil {
+			SlowdownBounce: in.GuardBounce, SlowdownComplaint: in.GuardComplaint, GuardAction: in.GuardAction, SpreadMailbox: in.SpreadMailbox, Overflow: overflow}); err != nil {
 			return err
 		}
 		body := keep("log.settings", actor(ctx))
@@ -378,7 +584,9 @@ func (s *Service) UpdateSettings(ctx context.Context, ws *store.Workspace, id st
 
 func newID() uuid.UUID { return uuid.Must(uuid.NewV7()) }
 
-// SetPaused pauses or resumes a plan.
+// SetPaused pauses or resumes a plan. A pause freezes the plan (PR-8):
+// no mail goes to the provider through it, its days aren't judged, and it
+// resumes on the day it stopped.
 func (s *Service) SetPaused(ctx context.Context, ws *store.Workspace, id string, paused bool) (WarmupPlanView, error) {
 	r, err := s.plan(ctx, ws, id)
 	if err != nil {
@@ -387,33 +595,66 @@ func (s *Service) SetPaused(ctx context.Context, ws *store.Workspace, id string,
 	if r.Status == "done" {
 		return WarmupPlanView{}, api.Conflict(say(ctx, "problem.completeShort", nil))
 	}
-	who := actor(ctx)
-	status, detail, kind, body := "active", kept{}, "resumed", keep("log.resumed", who)
-	var at *time.Time
-	if paused {
-		now := s.now()
-		status, detail, kind, body, at = "paused", keep("status.pausedBy", who), "paused", keep("log.paused", with(who, "provider", r.ProviderName)), &now
+	if (r.Status == "paused") == paused {
+		return s.planView(ctx, ws, r.ID)
 	}
+	who := actor(ctx)
+	now := s.now()
+	loc := state.Location(ws.Timezone)
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if err := q.WarmupSetStatus(ctx, store.WarmupSetStatusParams{ID: r.ID, Status: status, StatusDetail: detail.English, PausedAt: at,
-			Texts: textsJSON(map[string]i18n.Text{"status_detail": detail.Text})}); err != nil {
-			return err
+		var kind string
+		var body kept
+		if paused {
+			detail := keep("status.pausedBy", who)
+			kind, body = "paused", keep("log.paused", with(who, "provider", r.ProviderName))
+			if err := q.WarmupSetStatus(ctx, store.WarmupSetStatusParams{ID: r.ID, Status: "paused", StatusDetail: detail.English, PausedAt: &now,
+				Texts: textsJSON(map[string]i18n.Text{"status_detail": detail.Text})}); err != nil {
+				return err
+			}
+		} else {
+			// The days spent paused don't count and aren't judged: the
+			// plan's day 1 moves on by them, so today is the day it stopped.
+			today := dateIn(now, loc)
+			pausedOn := today
+			if r.PausedAt != nil {
+				pausedOn = dateIn(*r.PausedAt, loc)
+			}
+			skipped := max(int(today.Sub(pausedOn).Hours()/24+0.5), 0)
+			start := localDate(r.StartDate, loc).AddDate(0, 0, skipped)
+			through := r.EvaluatedThrough
+			if skipped > 0 {
+				t := dayUTC(today.AddDate(0, 0, -1))
+				through = &t
+			}
+			status := "active"
+			if r.HeldCap != nil {
+				status = "slowed"
+			}
+			kind, body = "resumed", keep("log.resumedOn", with(who, "day", dayNumber(start, today), "skipped", skipped))
+			if err := q.WarmupResume(ctx, store.WarmupResumeParams{ID: r.ID, Status: status, StatusDetail: "", StartDate: dayUTC(start), EvaluatedThrough: through}); err != nil {
+				return err
+			}
 		}
-		if err := q.WarmupAddEvent(ctx, store.WarmupAddEventParams{ID: newID(), PlanID: r.ID, OccurredAt: s.now(), Kind: kind, Body: body.English,
+		if err := q.WarmupAddEvent(ctx, store.WarmupAddEventParams{ID: newID(), PlanID: r.ID, OccurredAt: now, Kind: kind, Body: body.English,
 			Texts: textsJSON(map[string]i18n.Text{"body": body.Text})}); err != nil {
 			return err
 		}
 		wsID := ws.ID
-		action := "warmup.resume"
+		action, status := "warmup.resume", "active"
 		if paused {
-			action = "warmup.pause"
+			action, status = "warmup.pause", "paused"
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: action, TargetType: "warmup_plan", TargetID: r.ID.String(), TargetName: r.ProviderName,
 			Before: map[string]string{"status": r.Status}, After: map[string]string{"status": status}})
 	})
 	if err != nil {
 		return WarmupPlanView{}, err
+	}
+	if !paused {
+		// Shares the pause held go on now; the hold job would resume them
+		// within five minutes anyway.
+		_ = s.resumeCapHolds(ctx, r.ProviderID)
 	}
 	return s.planView(ctx, ws, r.ID)
 }
@@ -467,10 +708,18 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, in NewPlanInp
 	id := newID()
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
+		overflow := in.Overflow == nil || *in.Overflow
 		if err := q.WarmupInsertPlan(ctx, store.WarmupInsertPlanParams{ID: id, ProviderID: p.ID, Ip: ip, StartDate: start, Days: int32(in.Days), Schedule: sb,
 			EngagedFirst: in.EngagedFirst, SlowdownBounce: in.GuardBounce, SlowdownComplaint: in.GuardComplaint, GuardAction: in.GuardAction,
-			SpreadMailbox: in.SpreadMailbox, CreatedBy: by, CreatedAt: s.now()}); err != nil {
+			SpreadMailbox: in.SpreadMailbox, Overflow: overflow, CreatedBy: by, CreatedAt: s.now()}); err != nil {
 			return err
+		}
+		// The provider's Broadcast share starts where day 1 puts it (10%),
+		// as the plan promises, when it already shares the route.
+		if share := sched[0].Share; share > 0 {
+			if _, err := s.raiseShare(ctx, tx, *ws, p.ID, share); err != nil {
+				return err
+			}
 		}
 		order := "engaged"
 		if !in.EngagedFirst {
@@ -494,18 +743,51 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, in NewPlanInp
 	return s.planView(ctx, ws, id)
 }
 
-// Allowance is what a warming provider may send today. The sending
-// pipeline sends no more than Cap-Sent messages at Rate per second, to the
-// listed engagement tiers, spread across mailbox providers when Spread.
+// Allowance is what a warming provider may send today: the workspace's
+// day, whatever clock the caller keeps (PR-8). The sending pipeline sends
+// no more than Cap-Sent messages (per mailbox provider when Spread) at Rate
+// per second, to the listed engagement tiers, and nothing while Paused.
+// Every stream counts toward the cap.
 type Allowance struct {
+	PlanID uuid.UUID
 	Cap    int64
 	Sent   int64
 	Rate   float64
 	Tiers  []string
 	Spread bool
-	Paused bool
-	Day    int
-	Days   int
+	// MailboxCaps and MailboxSent are today's cap and sends per mailbox
+	// provider (gmail, outlook, yahoo, icloud, other) when Spread.
+	MailboxCaps map[string]int64
+	MailboxSent map[string]int64
+	// Overflow: what's over the cap goes through a warm provider.
+	Overflow     bool
+	EngagedFirst bool
+	Paused       bool
+	Held         bool
+	Day          int
+	Days         int
+	// NextDay is when the workspace's next day starts (a share held at
+	// the cap resumes then).
+	NextDay time.Time
+}
+
+// Left is what the provider may still send today, overall.
+func (a Allowance) Left() int64 {
+	if a.Paused {
+		return 0
+	}
+	return max(a.Cap-a.Sent, 0)
+}
+
+// MailboxLeft is what the provider may still send today to one mailbox
+// provider (the overall room when the plan doesn't spread the cap).
+func (a Allowance) MailboxLeft(mbp string) int64 {
+	left := a.Left()
+	if !a.Spread || a.MailboxCaps == nil {
+		return left
+	}
+	k := MailboxOf(mbp)
+	return min(left, max(a.MailboxCaps[k]-a.MailboxSent[k], 0))
 }
 
 // Today is a provider's warm-up allowance today for vetting it as a
@@ -519,25 +801,40 @@ func Today(ctx context.Context, q *store.Queries, providerID uuid.UUID, now time
 }
 
 // AllowanceFor returns a provider's warm-up allowance; ok is false when the
-// provider has no running plan.
-func AllowanceFor(ctx context.Context, q *store.Queries, providerID uuid.UUID, now time.Time, loc *time.Location) (Allowance, bool, error) {
-	r, err := q.WarmupActiveForProvider(ctx, providerID)
+// provider has no running plan. The day is the workspace's: loc is ignored
+// and kept for callers that pass theirs.
+func AllowanceFor(ctx context.Context, q *store.Queries, providerID uuid.UUID, now time.Time, _ *time.Location) (Allowance, bool, error) {
+	r, err := q.WarmupAllowancePlan(ctx, providerID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Allowance{}, false, nil
 	}
 	if err != nil {
 		return Allowance{}, false, err
 	}
+	loc := state.Location(r.WorkspaceTimezone)
+	today := dateIn(now, loc)
 	plan := ParsePlan(r.Schedule, r.Progress)
-	day := min(max(state.WarmupDay(r.StartDate, now, loc), 1), int(r.Days))
-	a := Allowance{Cap: plan.Cap(day), Rate: plan.Rate(day), Tiers: plan.TiersOn(day), Spread: r.SpreadMailbox, Paused: r.Status == "paused", Day: day, Days: int(r.Days)}
+	day := min(max(DayOn(r.StartDate, pausedAt(r.Status, r.PausedAt), now, loc), 1), int(r.Days))
+	capToday := Hold{Cap: r.HeldCap}.CapFor(plan.PlannedCap(day))
+	a := Allowance{PlanID: r.ID, Cap: capToday, Rate: plan.Rate(day), Tiers: plan.TiersOn(day), Spread: r.SpreadMailbox, Overflow: r.Overflow,
+		EngagedFirst: r.EngagedFirst, Paused: r.Status == "paused", Held: r.HeldCap != nil, Day: day, Days: int(r.Days), NextDay: today.AddDate(0, 0, 1)}
+	if r.HeldCap != nil {
+		a.Rate = RateFor(capToday)
+	}
 	if !r.EngagedFirst {
 		a.Tiers = Tiers
 	}
-	today := dayUTC(dateIn(now, loc))
-	stats, err := q.WarmupDailyStats(ctx, store.WarmupDailyStatsParams{ProviderID: providerID, Since: today, Until: today})
-	if err == nil && len(stats) == 1 {
-		a.Sent = stats[0].Sent
+	sent, err := q.WarmupSentSince(ctx, store.WarmupSentSinceParams{ProviderID: &providerID, Since: today})
+	if err != nil {
+		return a, true, err
+	}
+	a.MailboxSent = map[string]int64{}
+	for _, x := range sent {
+		a.MailboxSent[MailboxOf(x.MailboxProvider)] += x.N
+		a.Sent += x.N
+	}
+	if a.Spread {
+		a.MailboxCaps = MailboxCaps(capToday)
 	}
 	return a, true, nil
 }

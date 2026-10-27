@@ -184,6 +184,7 @@ func TestCatalog(t *testing.T) {
 	var cat struct {
 		Builtin []struct {
 			Adapter, Name, Short, Terms, TermsTone, Pricing string
+			Bulk, BulkMark, Setup                           string
 			Recommended, BulkAllowed                        bool
 			Chips                                           []struct{ Label, Kind string }
 			Connected                                       int
@@ -207,7 +208,7 @@ func TestCatalog(t *testing.T) {
 	for _, ch := range first.Chips {
 		labels = append(labels, ch.Kind+":"+ch.Label)
 	}
-	if got := strings.Join(labels, ","); got != "yes:Webhooks (SNS),yes:Domain via API,yes:Suppression sync,yes:Batch 50,partial:Dedicated IPs, paid,yes:Sandbox detection,yes:Quota discovery" {
+	if got := strings.Join(labels, ","); got != "yes:Webhooks (SNS) or SQS queue,yes:Domain via API,yes:Suppression sync,yes:Batch 50,partial:Dedicated IPs, paid,yes:Sandbox detection,yes:Quota discovery,yes:Tenant per workspace" {
 		t.Fatalf("SES chips: %s", got)
 	}
 	names := map[string]string{}
@@ -216,6 +217,21 @@ func TestCatalog(t *testing.T) {
 	}
 	if names["smtp"] != "Any SMTP server|Depends on the server" || names["postal"] != "Postal (self-hosted)|Your own policy" || names["fakeesp"] != "Fake ESP|Bulk marketing allowed" {
 		t.Fatalf("names: %v", names)
+	}
+	// Help me choose (PR-13): each card's bulk-marketing line and mark,
+	// and an honest setup time.
+	bulk := map[string]string{}
+	for _, b := range cat.Builtin {
+		bulk[b.Adapter] = b.BulkMark + ":" + b.Bulk
+	}
+	for adapter, want := range map[string]string{"ses": "yes:Allowed after production access", "postmark": "limited:Broadcast streams only", "mailgun": "yes:Allowed",
+		"postal": "yes:Your own policy", "smtp": "limited:Depends on the server"} {
+		if bulk[adapter] != want {
+			t.Errorf("%s bulk line %q, want %q", adapter, bulk[adapter], want)
+		}
+	}
+	if !strings.HasPrefix(first.Setup, "10–15 min, plus up to 24 h") {
+		t.Errorf("SES setup time %q", first.Setup)
 	}
 	// Installed community adapters show (the unmaintained one doesn't), then
 	// the generic HTTP adapter, configured on the Adapters page.
@@ -375,6 +391,21 @@ func TestConnectAPIProvider(t *testing.T) {
 	if test.Timeline[2].Status != "waiting" {
 		t.Fatalf("another message's webhook counted: %+v", test.Timeline[2])
 	}
+	// Mail sent and still no event 30 minutes later is flagged, with where
+	// to look (PR-3).
+	age := func(by string) {
+		t.Helper()
+		if _, err := env.App.Pool.Exec(context.Background(), `UPDATE messages SET sent_at = sent_at + $2::interval WHERE id = $1`, mid, by); err != nil {
+			t.Fatal(err)
+		}
+	}
+	age("-31 minutes")
+	c.Do("GET", base+"/test", nil).MustStatus(t, 200).JSON(t, &test)
+	if test.Timeline[2].Status != "failed" || !strings.Contains(test.Timeline[2].Detail, "No event from Fake ESP 30 minutes after sending") ||
+		!strings.Contains(test.Timeline[2].Detail, "Check that Fake ESP can reach the webhook") {
+		t.Fatalf("no event after 30 minutes: %+v", test.Timeline[2])
+	}
+	age("31 minutes")
 	raw(`{"event":"Processed","message_id":"fake-`+test.MessageID+`"}`, 900*time.Millisecond)
 	c.Do("GET", base+"/test", nil).MustStatus(t, 200).JSON(t, &test)
 	if test.Timeline[2].Status != "done" || !strings.Contains(test.Timeline[2].Detail, `"Processed" event via webhook · 900 ms after accept`) {
@@ -719,7 +750,7 @@ func TestDemoSetupAndSettings(t *testing.T) {
 	}
 	c.Do("GET", ws+"/connect/setups/"+setupID, nil).MustStatus(t, 200).JSON(t, &st)
 	if st.Status != "finished" || st.Summaries.Connection != "us-east-1 · production" || st.Summaries.Domain != "news.acme.io · 7 of 7" || st.Summaries.Test != "delivered in 2.4 s" ||
-		st.Summaries.Streams != "Broadcasts, Automations, System" || st.Connection.ProvisionDone != 7 || st.Connection.ProvisionTotal != 7 {
+		st.Summaries.Streams != "Broadcasts, Automations, System" || st.Connection.ProvisionDone != 10 || st.Connection.ProvisionTotal != 10 {
 		t.Fatalf("demo setup: %+v %+v", st.Summaries, st.Connection)
 	}
 	if len(st.Connection.Regions) != 3 || st.Connection.Regions[0].Label != "us-east-1 · N. Virginia · production access, quota 50,000 per day" ||
@@ -729,11 +760,16 @@ func TestDemoSetupAndSettings(t *testing.T) {
 	if st.Connection.Template == nil || !strings.Contains(st.Connection.Template.LaunchURL, "quickcreate") || !strings.Contains(st.Connection.Template.Policy, "ses:SendRawEmail") {
 		t.Fatalf("template: %+v", st.Connection.Template)
 	}
-	if st.Done == nil || st.Done.Title != "Amazon SES is connected" || st.Done.Minutes != 9 || len(st.Done.Rows) != 7 {
+	if st.Done == nil || st.Done.Title != "Amazon SES is connected" || st.Done.Minutes != 9 || len(st.Done.Rows) != 8 {
 		t.Fatalf("done: %+v", st.Done)
 	}
+	// SetupDone: events verified by the simulator's delivery (PR-3), the
+	// workspace's tenant (PR-11).
 	if st.Done.Rows[0].Text != " via CloudFormation role `ReputeCastSES`, account 123456789012, region us-east-1 (production, 50,000 per day, 14 per second)" ||
-		st.Done.Rows[3].Text != " news.acme.io: DKIM (3 CNAMEs), MAIL FROM bounce.news.acme.io, SPF and DMARC p=quarantine all verified" {
+		st.Done.Rows[1].Status != "verified" || !strings.Contains(st.Done.Rows[1].Text, "from the SES mailbox simulator") ||
+		st.Done.Rows[2].Lead != "Tenant" || st.Done.Rows[2].Text != " `acme-newsletter`: this workspace's own suppression list, reputation policy Standard (pauses this tenant only)" ||
+		st.Done.Rows[4].Text != " news.acme.io: DKIM (3 CNAMEs), MAIL FROM bounce.news.acme.io, SPF and DMARC p=quarantine all verified" ||
+		st.Done.Rows[6].Lead != "Suppressions" || !strings.HasSuffix(st.Done.Rows[6].Text, "; from now on, hard bounces and complaints go to the tenant's list") {
 		t.Fatalf("rows: %+v", st.Done.Rows)
 	}
 	var test struct {
@@ -871,7 +907,7 @@ func TestSetupReadsInTheReadersLanguage(t *testing.T) {
 		chips = append(chips, ch.Label)
 	}
 	if ses.Terms != "Khuyên dùng" || !strings.HasPrefix(ses.Pricing, "Trả theo mức dùng · 0,10 US$") ||
-		strings.Join(chips, ",") != "Webhook (SNS),Tên miền qua API,Đồng bộ danh sách chặn gửi,Gửi lô 50,IP riêng, trả phí,Phát hiện sandbox,Dò hạn mức" {
+		strings.Join(chips, ",") != "Webhook (SNS) hoặc hàng đợi SQS,Tên miền qua API,Đồng bộ danh sách chặn gửi,Gửi lô 50,IP riêng, trả phí,Phát hiện sandbox,Dò hạn mức,Tenant riêng cho mỗi không gian làm việc" {
 		t.Fatalf("SES card: %+v %v", ses, chips)
 	}
 	for _, b := range cat.Builtin {
@@ -939,7 +975,8 @@ func TestSetupReadsInTheReadersLanguage(t *testing.T) {
 	}
 	if demo.Done == nil || demo.Done.Title != "Đã kết nối Amazon SES" || demo.Done.Rows[0].Lead != "Quyền truy cập AWS" ||
 		demo.Done.Rows[0].Text != " qua vai trò CloudFormation `ReputeCastSES`, tài khoản 123456789012, khu vực us-east-1 (gửi chính thức, 50.000 mỗi ngày, 14 mỗi giây)" ||
-		demo.Done.Rows[3].Text != " news.acme.io: DKIM (3 CNAME), MAIL FROM bounce.news.acme.io, SPF và DMARC p=quarantine, đã xác minh tất cả" {
+		!strings.Contains(demo.Done.Rows[2].Text, "danh sách chặn gửi riêng của không gian làm việc này") ||
+		demo.Done.Rows[4].Text != " news.acme.io: DKIM (3 CNAME), MAIL FROM bounce.news.acme.io, SPF và DMARC p=quarantine, đã xác minh tất cả" {
 		t.Fatalf("done: %+v", demo.Done)
 	}
 	var test struct {

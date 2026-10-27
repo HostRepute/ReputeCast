@@ -32,36 +32,157 @@ export function toDraft(cfg: RoutingConfig): Draft {
       splits: v ? v.splits.map((x) => ({ providerId: x.providerId, weight: x.weight })) : [],
       fallback: v?.fallback ?? '',
       failover: (v?.failover ?? (s === 'broadcast' ? 'pause_and_ask' : 'automatic')) as FailoverPolicy,
-      conditions: v ? v.conditions.map((c) => ({ field: c.field, values: [...c.values], providerId: c.providerId, note: c.note, valueLabels: c.valueLabels })) : [],
+      conditions: v
+        ? v.conditions.map((c) => ({
+            field: c.field,
+            values: [...c.values],
+            providerId: c.providerId,
+            splits: c.splits?.map((x) => ({ providerId: x.providerId, weight: x.weight })),
+            note: c.note,
+            valueLabels: c.valueLabels,
+          }))
+        : [],
       priority: v?.priority ?? true,
     }
   }
   return out
 }
 
-/** The save body for a draft. */
-export function toInput(d: Draft, acknowledgeBulkTerms = false): Schemas['RoutingSaveInput'] {
+type StreamInput = Schemas['RoutingStreamInput']
+
+/** One stream of a draft as the API takes it. */
+function streamInput(d: Draft, s: Stream): StreamInput {
   return {
-    acknowledgeBulkTerms: acknowledgeBulkTerms || undefined,
-    streams: streams.map((s) => ({
-      stream: s,
-      splits: d[s].splits.filter((x) => x.weight > 0),
-      fallback: d[s].fallback || undefined,
-      failover: d[s].failover,
-      conditions: d[s].conditions.map((c) => ({ field: c.field, values: c.values, providerId: c.providerId, note: c.note || undefined })),
-      priority: s === 'transactional' ? d[s].priority : undefined,
-    })),
+    stream: s,
+    splits: d[s].splits.filter((x) => x.weight > 0),
+    fallback: d[s].fallback || undefined,
+    failover: d[s].failover,
+    conditions: d[s].conditions.map(conditionInput),
+    priority: s === 'transactional' ? d[s].priority : undefined,
   }
+}
+
+/** A condition as the API takes it: one provider, or a split by weight (PR-12). */
+function conditionInput(c: Condition): Schemas['RoutingCondition'] {
+  const splits = (c.splits ?? []).filter((x) => x.weight > 0)
+  if (splits.length > 1) return { field: c.field, values: c.values, splits, note: c.note || undefined }
+  return { field: c.field, values: c.values, providerId: splits[0]?.providerId ?? c.providerId, note: c.note || undefined }
+}
+
+/** The providers a condition sends to: its one provider, or its split's. */
+export function conditionProviders(c: Pick<Condition, 'providerId' | 'splits'>): string[] {
+  const splits = (c.splits ?? []).filter((x) => x.weight > 0)
+  if (splits.length) return splits.map((x) => x.providerId)
+  return c.providerId ? [c.providerId] : []
+}
+
+/** The whole draft as a save body (the route tester's unsaved routing). */
+export function toInput(d: Draft, acknowledgeBulkTerms = false): Schemas['RoutingSaveInput'] {
+  return { acknowledgeBulkTerms: acknowledgeBulkTerms || undefined, streams: streams.map((s) => streamInput(d, s)) }
+}
+
+/** Whether a stream routes the same way in two drafts. */
+export function sameStream(a: Draft, b: Draft, s: Stream): boolean {
+  return JSON.stringify(streamInput(a, s)) === JSON.stringify(streamInput(b, s))
 }
 
 /** Whether two drafts route the same way. */
 export function sameDraft(a: Draft, b: Draft): boolean {
-  return JSON.stringify(toInput(a)) === JSON.stringify(toInput(b))
+  return streams.every((s) => sameStream(a, b, s))
 }
 
-/** Changes of the draft compared to what is saved, counted per stream. */
+/** The streams the draft changes compared to what is saved. */
 export function changedStreams(d: Draft, saved: Draft): Stream[] {
-  return streams.filter((s) => JSON.stringify(toInput({ ...saved, [s]: d[s] }).streams) !== JSON.stringify(toInput(saved).streams))
+  return streams.filter((s) => !sameStream(d, saved, s))
+}
+
+/**
+ * Routing being edited: the draft, the saved routing each stream's edits
+ * started from and that stream's version. A save sends only the changed
+ * streams with their versions, so a stream someone else changed meanwhile
+ * is refused instead of overwritten, and a change to another stream never
+ * trips it.
+ */
+export interface Editing {
+  draft: Draft
+  base: Draft
+  versions: Record<Stream, string>
+}
+
+function versionsOf(cfg: RoutingConfig): Record<Stream, string> {
+  const out = {} as Record<Stream, string>
+  for (const s of streams) out[s] = cfg.streams.find((x) => x.stream === s)?.version ?? ''
+  return out
+}
+
+export function startEditing(cfg: RoutingConfig): Editing {
+  const saved = toDraft(cfg)
+  return { draft: saved, base: saved, versions: versionsOf(cfg) }
+}
+
+/**
+ * The saved routing changed (a refetch after someone saved, or the warm-up
+ * planner raised a share): streams without edits follow it; edited streams
+ * keep the edits and the version they started from.
+ */
+export function rebase(e: Editing, cfg: RoutingConfig): Editing {
+  const next = toDraft(cfg)
+  const v = versionsOf(cfg)
+  const out: Editing = { draft: { ...e.draft }, base: { ...e.base }, versions: { ...e.versions } }
+  for (const s of streams) {
+    if (sameStream(e.draft, e.base, s)) {
+      out.draft[s] = next[s]
+      out.base[s] = next[s]
+      out.versions[s] = v[s]
+    }
+  }
+  return out
+}
+
+/** After a save: the saved streams are what the server answered, the others follow it unless edited. */
+export function afterSave(e: Editing, cfg: RoutingConfig, saved: Stream[]): Editing {
+  const next = toDraft(cfg)
+  const v = versionsOf(cfg)
+  const out = rebase(e, cfg)
+  for (const s of saved) {
+    out.draft[s] = next[s]
+    out.base[s] = next[s]
+    out.versions[s] = v[s]
+  }
+  return out
+}
+
+/** Drops the edits of some streams: they show the latest routing. */
+export function discardStreams(e: Editing, cfg: RoutingConfig, which: Stream[]): Editing {
+  const next = toDraft(cfg)
+  const v = versionsOf(cfg)
+  const out: Editing = { draft: { ...e.draft }, base: { ...e.base }, versions: { ...e.versions } }
+  for (const s of which) {
+    out.draft[s] = next[s]
+    out.base[s] = next[s]
+    out.versions[s] = v[s]
+  }
+  return out
+}
+
+/** Keeps the edits of some streams but bases them on the latest routing: the next save replaces it. */
+export function keepEditsOnLatest(e: Editing, cfg: RoutingConfig, which: Stream[]): Editing {
+  const next = toDraft(cfg)
+  const v = versionsOf(cfg)
+  const out: Editing = { draft: { ...e.draft }, base: { ...e.base }, versions: { ...e.versions } }
+  for (const s of which) {
+    out.base[s] = next[s]
+    out.versions[s] = v[s]
+  }
+  return out
+}
+
+/** The save body: only the streams the draft changes, each with the version its edits started from. */
+export function toSaveInput(e: Editing, draft: Draft = e.draft, acknowledgeBulkTerms = false): Schemas['RoutingSaveInput'] {
+  return {
+    acknowledgeBulkTerms: acknowledgeBulkTerms || undefined,
+    streams: changedStreams(draft, e.base).map((s) => ({ ...streamInput(draft, s), baseVersion: e.versions[s] || undefined })),
+  }
 }
 
 /**
@@ -105,7 +226,7 @@ export function bulkIssues(d: Draft, providers: RoutingProvider[]): BulkIssue[] 
   const b = d.broadcast
   if (b.fallback && bad(b.fallback)) out.push({ stream: 'broadcast', providerId: b.fallback, where: 'fallback' })
   for (const s of b.splits) if (s.weight > 0 && bad(s.providerId)) out.push({ stream: 'broadcast', providerId: s.providerId, where: 'split' })
-  for (const c of b.conditions) if (bad(c.providerId)) out.push({ stream: 'broadcast', providerId: c.providerId, where: 'condition' })
+  for (const c of b.conditions) for (const id of conditionProviders(c)) if (bad(id)) out.push({ stream: 'broadcast', providerId: id, where: 'condition' })
   return out
 }
 
@@ -155,7 +276,10 @@ export function stepText(st: Schemas['RouteTestStep'], stream: Stream, hasCondit
           ? t(mr.stepStreamPrimary, { stream: name, provider: st.provider })
           : t(mr.stepStreamNoPrimary, { stream: name })
     case 'condition': {
-      const matched = t(mr.stepCondition, { field: st.field ?? 'mailbox_provider', value: st.value ?? '', provider: st.provider ?? '' })
+      const args = { field: st.field ?? 'mailbox_provider', value: st.value ?? '', provider: st.provider ?? '' }
+      const matched = st.splits?.length
+        ? t(mr.stepConditionSplit, { ...args, split: st.splits.map((x) => `${x.short} ${x.weight}`).join(' / ') })
+        : t(mr.stepCondition, args)
       return st.warming ? `${matched} ${t(mr.stepStillWarming, { provider: st.warming })}` : matched
     }
     case 'split': {
@@ -210,7 +334,7 @@ export function providerUses(d: Draft, id: string): ProviderUse[] {
     const share = splits.slice(1).find((x) => x.providerId === id)
     if (share) out.push({ kind: 'share', stream: s, weight: share.weight })
     if (sd.fallback === id) out.push({ kind: 'failover', stream: s })
-    for (const c of sd.conditions) if (c.providerId === id) out.push({ kind: 'condition', stream: s, values: (c.valueLabels ?? c.values).join(', ') })
+    for (const c of sd.conditions) if (conditionProviders(c).includes(id)) out.push({ kind: 'condition', stream: s, values: (c.valueLabels ?? c.values).join(', ') })
   }
   return out.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind))
 }
@@ -230,5 +354,125 @@ export function withoutProvider(sd: StreamDraft, id: string, primary: string, fa
   let fb = sd.fallback === id ? fallback : sd.fallback
   // A stream never fails over to its own primary.
   if (fb && fb === splits[0]?.providerId) fb = ''
-  return { ...sd, splits, fallback: fb, conditions: sd.conditions.filter((c) => c.providerId !== id) }
+  return { ...sd, splits, fallback: fb, conditions: sd.conditions.flatMap((c) => conditionWithout(c, id)) }
+}
+
+/**
+ * A condition without a removed provider: a split gives the provider's
+ * weight to its first remaining provider (a split of one is one provider
+ * again); a condition left without providers goes.
+ */
+export function conditionWithout(c: Condition, id: string): Condition[] {
+  const splits = (c.splits ?? []).filter((x) => x.weight > 0)
+  if (splits.length < 2) return conditionProviders(c).includes(id) ? [] : [c]
+  const gone = splits.find((x) => x.providerId === id)
+  if (!gone) return [c]
+  const rest = splits.filter((x) => x.providerId !== id)
+  if (rest.length === 1) return [{ ...c, providerId: rest[0]!.providerId, splits: undefined }]
+  rest[0] = { ...rest[0]!, weight: rest[0]!.weight + gone.weight }
+  return [{ ...c, providerId: rest[0]!.providerId, splits: rest }]
+}
+
+// ── The ordered split (PR-14) ─────────────────────────────────────────
+
+/** What a split's weights add up to. */
+export function splitTotal(sd: Pick<StreamDraft, 'splits'>): number {
+  return sd.splits.reduce((n, x) => n + x.weight, 0)
+}
+
+/** Moves a row of the split: the order only changes how the bar reads, never who goes where. */
+export function moveSplit(sd: StreamDraft, from: number, to: number): StreamDraft {
+  if (from === to || from < 0 || to < 0 || from >= sd.splits.length || to >= sd.splits.length) return sd
+  const splits = [...sd.splits]
+  const [row] = splits.splice(from, 1)
+  splits.splice(to, 0, row!)
+  return { ...sd, splits }
+}
+
+/** Sets one provider's weight; the others keep theirs, so the total may need fixing before a save. */
+export function setWeight(sd: StreamDraft, providerId: string, weight: number): StreamDraft {
+  const w = Math.max(0, Math.min(100, Math.round(weight)))
+  return { ...sd, splits: sd.splits.map((x) => (x.providerId === providerId ? { ...x, weight: w } : x)) }
+}
+
+/** Adds a provider to the split at 0%: its share comes from the others. */
+export function addToSplit(sd: StreamDraft, providerId: string): StreamDraft {
+  if (sd.splits.some((x) => x.providerId === providerId)) return sd
+  return { ...sd, splits: [...sd.splits, { providerId, weight: sd.splits.length ? 0 : 100 }], fallback: sd.fallback === providerId ? '' : sd.fallback }
+}
+
+/** Takes a provider out of the split; its weight goes to the first remaining row. */
+export function removeFromSplit(sd: StreamDraft, providerId: string): StreamDraft {
+  const gone = sd.splits.find((x) => x.providerId === providerId)
+  const rest = sd.splits.filter((x) => x.providerId !== providerId)
+  if (!gone || !rest.length) return sd
+  rest[0] = { ...rest[0]!, weight: rest[0]!.weight + gone.weight }
+  return { ...sd, splits: rest }
+}
+
+/** The first split of a draft (a stream's or a condition's) whose weights don't add up to 100. */
+export function weightsProblem(d: Draft): { stream: Stream; total: number } | undefined {
+  for (const s of streams) {
+    const sd = d[s]
+    if (sd.splits.length > 1 && splitTotal(sd) !== 100) return { stream: s, total: splitTotal(sd) }
+    for (const c of sd.conditions) {
+      const splits = c.splits ?? []
+      if (splits.length > 1) {
+        const total = splits.reduce((n, x) => n + x.weight, 0)
+        if (total !== 100) return { stream: s, total }
+      }
+    }
+  }
+  return undefined
+}
+
+/** "90/10": a split's weights in its order. */
+export function splitPair(sd: Pick<StreamDraft, 'splits'>): string {
+  return sd.splits.map((x) => x.weight).join('/')
+}
+
+/** Whether only the order of a stream's split changed: same providers, same weights, same everything else. */
+export function onlyOrderChanged(a: StreamDraft, b: StreamDraft): boolean {
+  if (a.splits.length !== b.splits.length) return false
+  const rows = (sd: StreamDraft) =>
+    sd.splits
+      .map((x) => `${x.providerId}:${x.weight}`)
+      .sort()
+      .join(',')
+  const rest = (sd: StreamDraft) => JSON.stringify({ f: sd.fallback, p: sd.failover, pr: sd.priority, c: sd.conditions })
+  const order = (sd: StreamDraft) => sd.splits.map((x) => x.providerId).join(',')
+  return rows(a) === rows(b) && rest(a) === rest(b) && order(a) !== order(b)
+}
+
+/**
+ * The unsaved-changes bar's sentence: what saving would change, with the
+ * recipients that move when the campaign simulation says so ("Broadcasts
+ * split 90/10 → 85/15 · about 1,600 Broadcast recipients move from Postal
+ * to SES; nobody else changes provider").
+ */
+export function changeText(d: Draft, saved: Draft, providers: RoutingProvider[], impact?: { moved: number; toward?: string; from?: string }): string {
+  const problem = weightsProblem(d)
+  if (problem) return t(mr.weightsNot100, { total: problem.total })
+  const changed = changedStreams(d, saved)
+  const byId = new Map(providers.map((p) => [p.id, p]))
+  if (changed.length === 1 && changed[0] === 'broadcast') {
+    const a = d.broadcast
+    const b = saved.broadcast
+    if (onlyOrderChanged(a, b)) {
+      return t(mr.orderChanged, { order: a.splits.map((x) => byId.get(x.providerId)?.short ?? t(mr.unknown)).join(', ') })
+    }
+    if (JSON.stringify(a.conditions) === JSON.stringify(b.conditions) && a.fallback === b.fallback && a.failover === b.failover && splitPair(a) !== splitPair(b)) {
+      const base = t(mr.splitChanged, { before: splitPair(b), after: splitPair(a) })
+      if (!impact) return `${base} · ${t(mr.onlyDifferenceMoves)}`
+      if (impact.moved === 0) return `${base} · ${t(mr.nobodyMoves)}`
+      return `${base} · ${t(mr.recipientsMove, { about: aboutCount(impact.moved), from: impact.from ?? '', to: impact.toward ?? '' })}`
+    }
+  }
+  return t(mr.streamsChanged, { count: changed.length, streams: changed.map((s) => streamName[s]).join(', ') })
+}
+
+/** "about 1,600", or "fewer than 100" for a small number. */
+export function aboutCount(n: number): string {
+  if (n < 50) return t(mr.fewerThan100)
+  return t(mr.aboutN, { n: count(Math.round(n / 100) * 100) })
 }

@@ -73,8 +73,9 @@ export default translate(mi, {
     '{kind, select, broadcast_held {đang chờ} failover {chuyển dự phòng} failover_ended {đã chuyển lại} provider_down {gián đoạn} provider_recovered {đã hồi phục} campaign_started {đã bắt đầu} webhooks_silent {im lặng} webhooks_resumed {đã hoạt động lại} other {{raw}}}',
 
   // ── Silent webhooks ──────────────────────────────────────────────────
-  testReceived: 'Đã nhận sự kiện thử',
-  testFailed: 'Sự kiện thử thất bại',
+  testRequested: 'Đã yêu cầu sự kiện thử',
+  testRequestedDetail: '{provider} gửi nó đến webhook; nó hiện trong nhật ký sự kiện, và biểu ngữ biến mất khi sự kiện đến.',
+  testFailed: 'Không yêu cầu được sự kiện thử',
   registered: 'Đã đăng ký lại webhook',
   registeredDetail: '{provider} giờ gửi sự kiện đến {url}.',
   registerFailed: 'Không đăng ký lại được webhook',
@@ -97,6 +98,10 @@ export default translate(mi, {
   causesTitle: 'Nguyên nhân có thể',
   impactTitle: 'Ảnh hưởng đến nay',
   impactUnknown: 'Thư chưa rõ trạng thái',
+  impactOverdue: 'quá hạn · đã gửi hơn 30 phút trước',
+  impactInGrace: 'vẫn trong 30 phút chờ',
+  eventsOverdue: 'Sự kiện quá hạn',
+  overdueLine: '{count, plural, other {# thư}} đã gửi hơn 30 phút trước và không có sự kiện trong {hours} giờ',
   impactCampaigns: 'Chiến dịch bị ảnh hưởng',
   impactBounces: 'Thư trả lại chưa được chặn gửi',
   unknown: 'chưa rõ',
@@ -109,7 +114,7 @@ export default translate(mi, {
   checkApi: 'API {provider} kết nối được: {ok, select, no {không} other {có}}{hasAt, select, yes {, {time}} other {}}{hasDetail, select, yes { ({detail})} other {}}.',
   checkRegisteredNo: 'Webhook đã đăng ký trong {provider}: không{hasDetail, select, yes {, {detail}} other {}}.',
   checkRegisteredYes: 'Webhook đã đăng ký trong {provider}: có{hasId, select, yes {, id {id}} other {}}, trỏ đến <mono>{url}</mono>.',
-  checkEndpoint: 'Endpoint của chúng tôi truy cập được từ internet: {ok, select, no {không} other {có}}{hasDetail, select, yes {, {detail}} other {}}.',
+  checkEndpoint: 'Địa chỉ webhook của chúng tôi: {ok, select, no {không nhà cung cấp nào truy cập được} other {một địa chỉ công khai}}{hasDetail, select, yes {; {detail}} other {}}.',
   checkProviderLog:
     'Sự kiện {provider} đã gửi trong 6 giờ qua: {count}{hasQueued, select, yes { (nhật ký webhook của chính {provider} cho thấy {queued} đang chờ, {count} đã gửi)} other {}}.',
 

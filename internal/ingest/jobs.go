@@ -81,6 +81,9 @@ type MailboxWorker struct {
 	Jobs func() *jobs.Client
 	// Open overrides bouncebox.Open (tests).
 	Open func(ctx context.Context, c bouncebox.Config) (bouncebox.Box, error)
+	// OnPoll is told how each read of a bounce mailbox went, so a mailbox
+	// that can't be read reaches the provider's health (PR-10).
+	OnPoll func(ctx context.Context, p store.Provider, err error)
 }
 
 // Timeout bounds one poll.
@@ -106,7 +109,7 @@ func (w *MailboxWorker) Work(ctx context.Context, _ *river.Job[MailboxArgs]) err
 
 // Poll reads up to 200 new reports from a provider's bounce mailbox, stores
 // each as a raw event and queues its normalization.
-func (w *MailboxWorker) Poll(ctx context.Context, p store.Provider) (int, error) {
+func (w *MailboxWorker) Poll(ctx context.Context, p store.Provider) (n int, err error) {
 	prov, err := w.N.Factory.Open(ctx, p)
 	if err != nil {
 		return 0, err
@@ -114,6 +117,9 @@ func (w *MailboxWorker) Poll(ctx context.Context, p store.Provider) (int, error)
 	sp, ok := prov.(*smtp.Provider)
 	if !ok || sp.BounceMailbox() == nil {
 		return 0, nil
+	}
+	if w.OnPoll != nil {
+		defer func() { w.OnPoll(ctx, p, err) }()
 	}
 	open := w.Open
 	if open == nil {
@@ -186,6 +192,11 @@ func (n *Normalizer) Backfill(ctx context.Context, providerID uuid.UUID) (int, e
 	if !ok {
 		return 0, nil
 	}
+	var cfg struct {
+		Events string `json:"events"`
+	}
+	_ = json.Unmarshal(p.Config, &cfg)
+	polled := cfg.Events == "polling"
 	since := n.now().AddDate(0, 0, -7)
 	if h := state.HealthOf(p); h.Webhooks != nil && h.Webhooks.SilentSince != nil {
 		since = *h.Webhooks.SilentSince
@@ -210,6 +221,14 @@ func (n *Normalizer) Backfill(ctx context.Context, providerID uuid.UUID) (int, e
 		err = db.Tx(ctx, n.Pool, func(tx pgx.Tx) error {
 			q := store.New(tx)
 			now := n.now()
+			// A provider whose events come by polling ("Use polling for
+			// now") gets its freshness from the poll (PR-6); "Check now" on a
+			// silent webhook doesn't make its webhooks fresh.
+			if polled {
+				if err := q.ProvTouchLastEvent(ctx, store.ProvTouchLastEventParams{ID: p.ID, At: now}); err != nil {
+					return err
+				}
+			}
 			for _, ev := range events {
 				rawID := newID()
 				body := []byte(ev.Raw)

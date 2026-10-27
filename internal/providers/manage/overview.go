@@ -26,19 +26,22 @@ const SwitchBackMinutes = 10
 type snapshot struct {
 	ws *store.Workspace
 	// lang is how the reader reads (i18n.LangFrom).
-	lang      i18n.Lang
-	loc       *time.Location
-	now       time.Time
-	provs     []store.Provider
-	byID      map[uuid.UUID]store.Provider
-	month     map[uuid.UUID]store.ProvDailyTotalsRow
-	week      map[uuid.UUID]store.ProvDailyTotalsRow
-	today     map[uuid.UUID]store.ProvDailyTotalsRow
-	win3      map[uuid.UUID]store.ProvCallWindowTotalsRow
-	winNow    map[uuid.UUID]store.ProvCallWindowTotalsRow
-	winToday  map[uuid.UUID]store.ProvCallWindowTotalsRow
-	set       routing.Set
-	plans     []store.WarmupListPlansRow
+	lang     i18n.Lang
+	loc      *time.Location
+	now      time.Time
+	provs    []store.Provider
+	byID     map[uuid.UUID]store.Provider
+	month    map[uuid.UUID]store.ProvDailyTotalsRow
+	week     map[uuid.UUID]store.ProvDailyTotalsRow
+	today    map[uuid.UUID]store.ProvDailyTotalsRow
+	win3     map[uuid.UUID]store.ProvCallWindowTotalsRow
+	winNow   map[uuid.UUID]store.ProvCallWindowTotalsRow
+	winToday map[uuid.UUID]store.ProvCallWindowTotalsRow
+	set      routing.Set
+	plans    []store.WarmupListPlansRow
+	// warmSent is what each warming provider sent today, the workspace's
+	// day, as its warm-up cap counts it (every stream).
+	warmSent  map[uuid.UUID]int64
 	failovers []store.StreamFailover
 	sync      map[uuid.UUID]store.ProviderSuppressionSync
 	// fromFailover is mail a provider sent for streams failed over to it.
@@ -119,6 +122,15 @@ func (s *Service) load(ctx context.Context, ws *store.Workspace) (*snapshot, err
 	}
 	if sn.plans, err = s.Q.WarmupListPlans(ctx, ws.ID); err != nil {
 		return nil, err
+	}
+	sn.warmSent = map[uuid.UUID]int64{}
+	for _, w := range sn.plans {
+		if w.Status == "done" {
+			continue
+		}
+		if a, ok, err := warmup.AllowanceFor(ctx, s.Q, w.ProviderID, sn.now, sn.loc); err == nil && ok {
+			sn.warmSent[w.ProviderID] = a.Sent
+		}
 	}
 	if sn.failovers, err = s.Q.ProvActiveFailovers(ctx, ws.ID); err != nil {
 		return nil, err
@@ -217,6 +229,13 @@ func (s *Service) summary(ctx context.Context, sn *snapshot) ProvidersSummary {
 		sum.CostPer1000 = &v
 	}
 	sum.Suppressions, _ = s.Q.SuppCount(ctx, sn.ws.ID)
+	if pushed, err := s.Q.SuppPushSummary(ctx, sn.ws.ID); err == nil {
+		for _, r := range pushed {
+			if r.Pushed {
+				sum.Pushed += r.N
+			}
+		}
+	}
 	sum.InSync = true
 	for _, p := range sn.provs {
 		if !state.Caps(p).SuppressionSync {
@@ -265,6 +284,16 @@ func (s *Service) card(sn *snapshot, p store.Provider) ProviderCard {
 	}
 	if c.Account == "" && h.Version != "" {
 		c.Account = h.Version
+	}
+	if p.Adapter == "ses" {
+		var tc struct {
+			Tenant string `json:"tenant"`
+			Policy string `json:"tenant_reputation_policy"`
+		}
+		_ = json.Unmarshal(p.Config, &tc)
+		if tc.Tenant != "" {
+			c.Tenant = &ProviderTenant{Name: tc.Tenant, Policy: policyWord(tc.Policy)}
+		}
 	}
 	c.Webhook = ProviderWebhookFeed{Kind: caps.Webhooks, LastEventAt: p.LastEventAt}
 	if h.Webhooks != nil {
@@ -418,10 +447,19 @@ func warmupBrief(sn *snapshot, p store.Provider) *ProviderWarmupBrief {
 		if w.ProviderID != p.ID || w.Status == "done" {
 			continue
 		}
-		day := min(max(state.WarmupDay(w.StartDate, sn.now, sn.loc), 1), int(w.Days))
+		// The plan's day moves by counted days; a paused plan stays on the
+		// day it stopped (PR-8).
+		var paused *time.Time
+		if w.Status == "paused" {
+			paused = w.PausedAt
+		}
+		day := min(max(warmup.DayOn(w.StartDate, paused, sn.now, sn.loc), 1), int(w.Days))
 		plan := warmup.ParsePlan(w.Schedule, w.Progress)
-		cap, rate, share := plan.Cap(day), plan.Rate(day), plan.Share(day)
-		return &ProviderWarmupBrief{PlanID: w.ID.String(), Day: day, Days: int(w.Days), Status: w.Status, TodayCap: cap, SentToday: sn.today[p.ID].Sent, Rate: rate, Share: share}
+		cap, rate, share := plan.PlannedCap(day), plan.Rate(day), plan.Share(day)
+		if w.HeldCap != nil {
+			cap, rate = *w.HeldCap, warmup.RateFor(*w.HeldCap)
+		}
+		return &ProviderWarmupBrief{PlanID: w.ID.String(), Day: day, Days: int(w.Days), Status: w.Status, TodayCap: cap, SentToday: sn.warmSent[p.ID], Rate: rate, Share: share}
 	}
 	return nil
 }
@@ -452,8 +490,19 @@ func roles(sn *snapshot, id uuid.UUID) []ProviderStreamRole {
 			out = append(out, r)
 		}
 		if !inSplit {
+			// A condition sends to the provider alone or as part of its own
+			// split (PR-12).
+			found := false
 			for _, r := range sn.set.StreamRules(stream) {
-				if !r.Conditions.Empty() && len(r.Splits) == 1 && r.Splits[0].ProviderID == id {
+				if r.Conditions.Empty() {
+					continue
+				}
+				for _, sp := range r.Splits {
+					if sp.ProviderID == id && sp.Weight > 0 {
+						found = true
+					}
+				}
+				if found {
 					out = append(out, ProviderStreamRole{Stream: string(stream), Role: "condition"})
 					break
 				}
@@ -526,4 +575,16 @@ func kindLabel(l i18n.Lang, kind string, n int64) string {
 		return mKindLabel.Text(l, i18n.Args{"kind": kind, "count": n})
 	}
 	return strings.ReplaceAll(kind, "_", " ")
+}
+
+// policyWord is a reputation policy's name as people read it ("standard" →
+// "Standard").
+func policyWord(p string) string {
+	if i := strings.LastIndexAny(p, "/:"); i >= 0 {
+		p = p[i+1:]
+	}
+	if p == "" {
+		return ""
+	}
+	return strings.ToUpper(p[:1]) + p[1:]
 }

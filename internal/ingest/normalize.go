@@ -125,10 +125,15 @@ func (n *Normalizer) Normalize(ctx context.Context, rawID uuid.UUID) error {
 			}
 			suppressed += added
 		}
-		if raw.Source == "webhook" {
+		// Event freshness (PR-6): the provider's event feed delivered
+		// something, by webhook, from its bounce mailbox or through the
+		// queue ReputeCast polls (PR-4).
+		if raw.Source == "webhook" || raw.Source == "bounce_mailbox" || raw.Source == "queue" {
 			if err := q.ProvTouchLastEvent(ctx, store.ProvTouchLastEventParams{ID: p.ID, At: raw.ReceivedAt}); err != nil {
 				return err
 			}
+		}
+		if raw.Source == "webhook" {
 			if m := postalUA.FindStringSubmatch(headerValue(raw, "User-Agent")); m != nil && p.Adapter == "postal" {
 				if _, err := tx.Exec(ctx, `UPDATE providers SET health = jsonb_set(coalesce(health, '{}'::jsonb), '{version}', to_jsonb($2::text)) WHERE id = $1`, p.ID, m[1]); err != nil {
 					return err

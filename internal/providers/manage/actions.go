@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -469,15 +468,12 @@ func (s *Service) TestWebhook(ctx context.Context, ws *store.Workspace, id strin
 	}
 	out := ProviderWebhookTestResult{}
 	l := i18n.LangFrom(ctx)
-	code, err := s.selfTest(ctx, p)
-	out.EndpointStatus = code
-	switch {
-	case err != nil:
-		out.EndpointDetail = mTestUnreachable.Text(l, i18n.Args{"url": WebhookURL(s.URLs, p), "error": err.Error()})
-	case code == http.StatusOK:
-		out.EndpointOK, out.EndpointDetail = true, mCheckSelfTestOK.Text(l, nil)
-	default:
-		out.EndpointDetail = mCheckSelfTest.Text(l, i18n.Args{"status": strconv.Itoa(code)})
+	// PR-9: the address is checked without calling it; the provider's test
+	// event, arriving, is what proves the endpoint reachable.
+	if bad, ok := s.checkAddress(ctx, WebhookURL(s.URLs, p)); ok {
+		out.EndpointOK = true
+	} else {
+		out.EndpointDetail = addressText(l, bad)
 	}
 	if !IsDemo(p) {
 		if adapter, err := s.Factory.Open(ctx, p); err == nil {

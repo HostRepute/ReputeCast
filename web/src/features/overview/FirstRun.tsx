@@ -1,6 +1,9 @@
+import { useNavigate } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
+import { $api, errorMessage } from '@/api/client'
 import { useInstanceMeta } from '@/components/shell/AuthLayout'
-import { ButtonLink } from '@/components/ui/Button'
+import { Button, ButtonLink } from '@/components/ui/Button'
+import { toast } from '@/components/ui/Toast'
 import { Grid } from '@/components/ui/Layout'
 import { cn } from '@/lib/cn'
 import { count } from '@/lib/format'
@@ -50,14 +53,16 @@ export function FirstRun({ audience }: { audience?: Schemas['OverviewAudience'] 
             {t(m.welcome, { name: me.workspace.name })}
           </h2>
           <p className="m-0 max-w-[620px] text-ink-2">{t(m.welcomeLead)}</p>
+          <ExploreDemo />
         </div>
         <Step n={1} current title={t(m.stepConnect)}>
           <span className="text-ink-2">{t(m.stepConnectLine)}</span>
+          <span className="text-ink-2">{t(m.writeFirst)}</span>
           <div className="mt-1.5 flex flex-wrap gap-2.5">
-            <ButtonLink variant="primary" to="/w/$workspace/providers/connect" params={params}>
+            <ButtonLink variant="primary" className="max-md:min-h-11" to="/w/$workspace/providers/connect" params={params}>
               {t(m.chooseProvider)}
             </ButtonLink>
-            <ButtonLink to="/w/$workspace/providers/adapters" params={params}>
+            <ButtonLink className="max-md:min-h-11" to="/w/$workspace/providers/adapters" params={params}>
               {t(m.browseAdapters)}
             </ButtonLink>
           </div>
@@ -69,7 +74,7 @@ export function FirstRun({ audience }: { audience?: Schemas['OverviewAudience'] 
           n={3}
           title={t(m.stepImport)}
           action={
-            <ButtonLink size="sm" to="/w/$workspace/import" params={params}>
+            <ButtonLink size="sm" className="max-md:min-h-11" to="/w/$workspace/import" params={params}>
               {t(m.importNow)}
             </ButtonLink>
           }
@@ -95,3 +100,26 @@ export function FirstRun({ audience }: { audience?: Schemas['OverviewAudience'] 
     </>
   )
 }
+
+/**
+ * "Explore with demo data" (PR-13): loads the Acme sample into a separate
+ * demo workspace the person owns, and opens it. Its providers are demo
+ * connections, so nothing is sent.
+ */
+function ExploreDemo() {
+  const t = useT()
+  const navigate = useNavigate()
+  const load = $api.useMutation('post', '/api/v1/demo-workspace', {
+    onSuccess: (r) => void navigate({ to: '/w/$workspace', params: { workspace: r.slug } }),
+    onError: (e) => toast({ kind: 'error', title: t(m.exploreDemoFailed), detail: errorMessage(e) }),
+  })
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-3">
+      <Button className="max-md:min-h-11" onClick={() => load.mutate({})} loading={load.isPending} busyLabel={t(m.exploreDemoBusy)}>
+        {t(m.exploreDemo)}
+      </Button>
+      <span className="k">{t(m.exploreDemoLine)}</span>
+    </div>
+  )
+}
+
