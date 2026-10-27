@@ -40,15 +40,22 @@ seat or workspace limit.
   complaints cross your thresholds.
 - **Bring your own providers.** Amazon SES, Mailgun, SendGrid, Postmark,
   Resend, SparkPost, Mailjet, Brevo, Azure Communication Services, Postal and
-  any SMTP server, several at once: routing per stream and mailbox provider,
-  weighted splits, failover, warm-up and one shared suppression list. Or
+  any SMTP server, several at once: routing per stream and mailbox provider
+  (found from MX records, so Google Workspace counts as Gmail), sticky
+  weighted splits, failover only to a provider that passes its checks,
+  warm-up enforced as mail goes out, and one shared suppression list that
+  pushes only what applies to all mail. Or
   [write an adapter](docs/adapters.md).
 - **Composer.** A drag-and-drop MJML builder with Liquid personalization, a
   code view, device and inbox previews, A/B variants and inline deliverability
   warnings.
-- **Honest analytics.** Human opens counted apart from machine opens (Apple
-  Mail Privacy Protection), a click map, and results per mailbox provider and
-  per sending provider.
+- **Honest analytics.** Human, privacy-protected (Apple Mail) and machine
+  opens counted apart, with the open rate of the opens you can measure;
+  clicks settled against security scanners before they count; complaint
+  rates only where mailbox providers report them; A/B winners decided by
+  sample size and significance; a click map per variant; each number
+  compared with your last issues; results per mailbox provider and per
+  sending provider.
 - **Transactional email.** Templates written in the composer, a send, batch
   and render API with idempotency keys, an SMTP relay, a message log,
   category unsubscribes and delivery alerts, on a stream that fails over
