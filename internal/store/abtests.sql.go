@@ -17,7 +17,7 @@ const aBHeldZones = `-- name: ABHeldZones :many
 SELECT m.id, coalesce(c.timezone, '')::text AS timezone
 FROM messages m
 LEFT JOIN contacts c ON c.id = m.contact_id
-WHERE m.campaign_id = $1 AND m.status = 'held' AND m.variant = ''
+WHERE m.campaign_id = $1 AND m.status = 'held' AND m.variant = '' AND m.hold_reason = ''
 ORDER BY m.id
 `
 
@@ -88,7 +88,7 @@ func (q *Queries) ABReleaseAt(ctx context.Context, arg ABReleaseAtParams) (int64
 const aBReleaseHeld = `-- name: ABReleaseHeld :execrows
 UPDATE messages
 SET status = 'queued', variant = $1, ab_rollout = true, claimed_at = NULL
-WHERE campaign_id = $2 AND status = 'held' AND variant = ''
+WHERE campaign_id = $2 AND status = 'held' AND variant = '' AND hold_reason = ''
 `
 
 type ABReleaseHeldParams struct {
@@ -98,7 +98,8 @@ type ABReleaseHeldParams struct {
 
 // Everyone who waited for the test gets the variant that goes out (the
 // winner, or the default when no variant won), counted apart as the
-// rollout; a best-time send keeps each recipient's time.
+// rollout; a best-time send keeps each recipient's time. Recipients a
+// canary still holds (hold_reason 'canary') wait for it (review GS-10).
 func (q *Queries) ABReleaseHeld(ctx context.Context, arg ABReleaseHeldParams) (int64, error) {
 	result, err := q.db.Exec(ctx, aBReleaseHeld, arg.Variant, arg.CampaignID)
 	if err != nil {

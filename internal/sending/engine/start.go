@@ -49,6 +49,9 @@ type StartOptions struct {
 	// Scheduled is the scheduled start at its time (the start job): the
 	// system starts it, on behalf of who scheduled it.
 	Scheduled bool
+	// Canary is the canary choice (review GS-10, C1): auto (Traffic rules
+	// decide), on or off; "" keeps the campaign's (Review & send's).
+	Canary string
 }
 
 // schedule is campaigns.schedule.
@@ -99,6 +102,19 @@ func (e *Engine) StartWith(ctx context.Context, campaignID uuid.UUID, o StartOpt
 	// (internal/texting): an email send never takes them.
 	if c.Channel != "" && c.Channel != "email" {
 		return stateErr("state.notEmail", campaignArgs(c.Name, c.Status))
+	}
+	// The canary choice is kept on the campaign, so a scheduled send
+	// starts with it at its time (review GS-10).
+	if choice := firstNonEmpty(o.Canary, sending.CanaryFrom(ctx, campaignID)); choice != "" && choice != c.Canary {
+		switch choice {
+		case CanaryAuto, CanaryOn, CanaryOff:
+		default:
+			return stateErr("state.canaryChoice", i18n.Args{"choice": choice})
+		}
+		if err := e.Q.SendingSetCampaignCanary(ctx, store.SendingSetCampaignCanaryParams{ID: c.ID, Canary: choice}); err != nil {
+			return err
+		}
+		c.Canary = choice
 	}
 	var sc schedule
 	_ = json.Unmarshal(c.Schedule, &sc)
@@ -167,6 +183,10 @@ func (e *Engine) StartWith(ctx context.Context, campaignID uuid.UUID, o StartOpt
 			CampaignID: c.ID, WorkspaceID: c.WorkspaceID, StartedBy: by, StartedByName: byName, ApprovedBy: approvedBy, ApprovedAt: approvedAt,
 			ScheduledBy: scheduledBy, Throttles: tb, Thresholds: th, Scenario: o.Scenario, At: now,
 		}); err != nil {
+			return err
+		}
+		cb, _ := json.Marshal(canaryState{Choice: firstNonEmpty(c.Canary, CanaryAuto)})
+		if err := q.SendingSetCanary(ctx, store.SendingSetCanaryParams{CampaignID: c.ID, Canary: cb, At: now}); err != nil {
 			return err
 		}
 		if o.ABWindow > 0 {
@@ -391,13 +411,22 @@ func (e *Engine) Pause(ctx context.Context, campaignID, by uuid.UUID, reason str
 		}
 		switch c.Status {
 		case "paused":
-			return nil
+			// Already waiting (for a decision on a held share, say): the
+			// person's pause is recorded all the same, so deciding on the
+			// share doesn't send the campaign again (review GS-5).
+			snd, err := q.SendingGetSend(ctx, c.ID)
+			if errors.Is(err, pgx.ErrNoRows) {
+				return nil
+			}
+			if err != nil || snd.PausedAt != nil {
+				return err
+			}
 		case "sending":
+			if err := q.SendingSetCampaignStatus(ctx, store.SendingSetCampaignStatusParams{ID: c.ID, Status: "paused", At: now}); err != nil {
+				return err
+			}
 		default:
 			return stateErr("state.notSending", campaignArgs(c.Name, c.Status))
-		}
-		if err := q.SendingSetCampaignStatus(ctx, store.SendingSetCampaignStatusParams{ID: c.ID, Status: "paused", At: now}); err != nil {
-			return err
 		}
 		ref, name := e.actorRef(ctx, q, by)
 		if err := q.SendingSetPaused(ctx, store.SendingSetPausedParams{CampaignID: c.ID, PausedAt: &now, PausedByName: firstNonEmpty(name, "System"), PauseReason: clip(strings.TrimSpace(reason), 500)}); err != nil {
@@ -410,14 +439,24 @@ func (e *Engine) Pause(ctx context.Context, campaignID, by uuid.UUID, reason str
 			return nil
 		}
 		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.paused", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Reason: strings.TrimSpace(reason), Before: map[string]any{"status": "sending"}, After: map[string]any{"status": "paused"}, Actor: e.actorFor(ctx, ref, name)})
+			Reason: strings.TrimSpace(reason), Before: map[string]any{"status": c.Status}, After: map[string]any{"status": "paused"}, Actor: e.actorFor(ctx, ref, name)})
 	})
 }
 
 // Resume implements Starter: a paused campaign sends again, and every
-// mailbox provider or route on hold is released.
+// mailbox provider or route on hold is released. Every threshold that
+// tripped re-arms from the current counts (review GS-2).
 func (e *Engine) Resume(ctx context.Context, campaignID, by uuid.UUID) error {
+	_, err := e.resumeCampaign(ctx, campaignID, by, ResumeRequest{})
+	return err
+}
+
+// resumeCampaign is Resume with a person's choices: the campaign-wide
+// incident's recommended changes, and a raised limit for the metric that
+// tripped.
+func (e *Engine) resumeCampaign(ctx context.Context, campaignID, by uuid.UUID, in ResumeRequest) (ResumeResult, error) {
 	now := e.now()
+	var out ResumeResult
 	err := db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		c, err := q.SendingCampaignForUpdate(ctx, campaignID)
@@ -430,7 +469,59 @@ func (e *Engine) Resume(ctx context.Context, campaignID, by uuid.UUID) error {
 		if c.Status != "paused" && c.Status != "sending" {
 			return stateErr("state.notPaused", campaignArgs(c.Name, c.Status))
 		}
+		// A canary that failed a gate waits for its own decision: resuming
+		// would leave the recipients it holds waiting (review GS-10).
+		if snd, err := q.SendingGetSendForUpdate(ctx, c.ID); err == nil && parseCanary(snd.Canary).Phase == canaryHeld {
+			return stateErr("state.canaryWaits", campaignArgs(c.Name, c.Status))
+		}
 		ref, name := e.actorRef(ctx, q, by)
+		tripped, err := trippedScopes(ctx, q, c.ID)
+		if err != nil {
+			return err
+		}
+		var incident *store.CampaignIncident
+		open, err := q.SendingOpenIncidents(ctx, c.ID)
+		if err != nil {
+			return err
+		}
+		for i := range open {
+			if open[i].Kind == "threshold" && open[i].Scope == "campaign" {
+				incident = &open[i]
+				break
+			}
+		}
+		withChanges := false
+		if ch := in.Changes; in.WithChanges || ch != nil {
+			if ch == nil && incident != nil {
+				ch = parseDetail(incident.Detail).Changes
+			}
+			if ch != nil {
+				snd, err := q.SendingGetSendForUpdate(ctx, c.ID)
+				if err != nil {
+					return err
+				}
+				if err := e.applyChanges(ctx, q, tx, c, snd, "", nil, ch, &out, now); err != nil {
+					return err
+				}
+				withChanges = true
+			}
+		}
+		meta := map[string]any{}
+		if in.Limit != nil {
+			if incident == nil {
+				return stateErr("state.nothingTripped", campaignArgs(c.Name, c.Status))
+			}
+			before, after, err := changeThresholds(ctx, q, c, limitChange(*incident, *in.Limit), now)
+			if err != nil {
+				return err
+			}
+			meta["thresholds_before"], meta["thresholds_after"] = before, after
+		}
+		if incident != nil && withChanges {
+			if err := q.SendingResolveIncident(ctx, store.SendingResolveIncidentParams{ID: incident.ID, At: &now, Resolution: "resumed_with_changes", ResolvedBy: ref}); err != nil {
+				return err
+			}
+		}
 		if err := q.SendingSetCampaignStatus(ctx, store.SendingSetCampaignStatusParams{ID: c.ID, Status: "sending", At: now}); err != nil {
 			return err
 		}
@@ -438,22 +529,34 @@ func (e *Engine) Resume(ctx context.Context, campaignID, by uuid.UUID) error {
 		if err != nil {
 			return err
 		}
+		if err := e.rearmScopes(ctx, q, c.ID, tripped, now); err != nil {
+			return err
+		}
 		if err := q.SendingSetPaused(ctx, store.SendingSetPausedParams{CampaignID: c.ID}); err != nil {
 			return err
 		}
-		if err := emit(ctx, tx, c.WorkspaceID, "campaign.resumed", campaignData(c.ID, c.Name, "resumed_by", firstNonEmpty(name, "System"), "scope", "campaign")); err != nil {
+		data := campaignData(c.ID, c.Name, "resumed_by", firstNonEmpty(name, "System"), "scope", "campaign")
+		if withChanges {
+			data["with_changes"], data["excluded"] = true, out.Excluded
+		}
+		if err := emit(ctx, tx, c.WorkspaceID, "campaign.resumed", data); err != nil {
 			return err
 		}
 		if !records(ctx) {
 			return nil
 		}
+		meta["released"] = released
+		if withChanges {
+			meta["summary"] = fmt.Sprintf("Resumed with changes · %s left out", countText(out.Excluded))
+		}
 		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.resumed", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Before: map[string]any{"status": c.Status}, After: map[string]any{"status": "sending"}, Metadata: map[string]any{"released": released}, Actor: e.actorFor(ctx, ref, name)})
+			Before: map[string]any{"status": c.Status}, After: map[string]any{"status": "sending", "with_changes": withChanges, "excluded": out.Excluded},
+			Metadata: meta, Actor: e.actorFor(ctx, ref, name)})
 	})
 	if err == nil {
 		e.kick(ctx, campaignID)
 	}
-	return err
+	return out, err
 }
 
 // releaseAll lifts every hold of a campaign and resolves the incidents.
@@ -479,6 +582,12 @@ func (e *Engine) releaseAll(ctx context.Context, q *store.Queries, id uuid.UUID,
 	}
 	for _, r := range routes {
 		if r.Status == "held" || r.Status == "paused" {
+			// A share today's warm-up cap holds waits for tomorrow's cap or
+			// its own choices (warmup.DecideCapHold): resuming the send
+			// would only hit the cap again (review PR-8).
+			if parseRouteDetail(r.StatusDetail).Reason == CapHoldReason {
+				continue
+			}
 			if err := q.SendingSetRouteStatus(ctx, store.SendingSetRouteStatusParams{CampaignID: id, ProviderID: r.ProviderID, Status: "sending", StatusDetail: `{"decision":"resume"}`}); err != nil {
 				return nil, err
 			}
@@ -491,6 +600,9 @@ func (e *Engine) releaseAll(ctx context.Context, q *store.Queries, id uuid.UUID,
 		return nil, err
 	}
 	for _, in := range open {
+		if in.Kind == "throttled" && in.Metric == CapHoldReason {
+			continue
+		}
 		if err := q.SendingResolveIncident(ctx, store.SendingResolveIncidentParams{ID: in.ID, At: &now, Resolution: "resumed", ResolvedBy: by}); err != nil {
 			return nil, err
 		}

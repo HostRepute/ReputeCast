@@ -1,6 +1,5 @@
 import { ApiError, type Schemas } from '@/api/client'
 import { Badge, type Tone } from '@/components/ui/Badge'
-import type { LinkProps } from '@tanstack/react-router'
 import { NavTabs } from '@/components/ui/Tabs'
 import { T, t as tt, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
@@ -79,8 +78,7 @@ export function ProvidersTabs() {
           { label: t(m.tabProviders), to: '/w/$workspace/providers', params, exact: true },
           { label: t(m.tabRouting), to: '/w/$workspace/providers/routing', params },
           { label: t(m.tabWarmup), to: '/w/$workspace/providers/warmup', params },
-          // The Traffic rules screen and its route are R02's (contract C9).
-          { label: t(m.tabTraffic), to: '/w/$workspace/providers/traffic-rules' as LinkProps['to'], params },
+          { label: t(m.tabTraffic), to: '/w/$workspace/providers/traffic-rules', params },
           { label: t(m.tabEvents), to: '/w/$workspace/providers/events', params },
           { label: t(m.tabAdapters), to: '/w/$workspace/providers/adapters', params },
         ]}

@@ -4,8 +4,10 @@ import { $api, errorMessage, type Schemas } from '@/api/client'
 import { ConfirmDialog, DialogOption } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
 import { t as tt, useT } from '@/i18n'
-import { count } from '@/lib/format'
+import { count, orList } from '@/lib/format'
 import { useCan } from '@/lib/session'
+import { mw } from '@/features/providers/warmup.messages'
+import { mc } from './canary.messages'
 import { m } from './messages'
 import { mailboxName, needs, queuedCount, type Incident, type LiveAction, type Snapshot } from './model'
 
@@ -27,7 +29,27 @@ export function useLiveActions(slug: string, campaignId: string, apply: (s: Snap
   const cancelM = $api.useMutation('post', `${base}/cancel`)
   const moveM = $api.useMutation('post', `${base}/move`)
   const retryM = $api.useMutation('post', `${base}/retry`)
-  const pending = pauseM.isPending || resumeM.isPending || cancelM.isPending || moveM.isPending || retryM.isPending
+  const thresholdsM = $api.useMutation('put', `${base}/thresholds`)
+  const acknowledgeM = $api.useMutation('post', `${base}/acknowledge`)
+  const ratesM = $api.useMutation('put', `${base}/rates`)
+  const canaryContinueM = $api.useMutation('post', `${base}/canary/continue`)
+  const canaryExtendM = $api.useMutation('post', `${base}/canary/extend`)
+  const canaryStopM = $api.useMutation('post', `${base}/canary/stop`)
+  // A share the warm-up cap holds is decided through the warm-up plan (review PR-8).
+  const warmupHoldM = $api.useMutation('post', '/api/v1/workspaces/{workspace}/warmup/{planId}/held/{campaignId}')
+  const pending =
+    pauseM.isPending ||
+    resumeM.isPending ||
+    cancelM.isPending ||
+    moveM.isPending ||
+    retryM.isPending ||
+    thresholdsM.isPending ||
+    acknowledgeM.isPending ||
+    ratesM.isPending ||
+    canaryContinueM.isPending ||
+    canaryExtendM.isPending ||
+    canaryStopM.isPending ||
+    warmupHoldM.isPending
 
   const settle = (r: Result) => {
     apply(r.snapshot)
@@ -84,6 +106,74 @@ export function useLiveActions(slug: string, campaignId: string, apply: (s: Snap
         .mutateAsync({ params: { path }, body })
         .then(settle)
         .catch(fail(tt(m.retryFailed))),
+    /** The canary (review GS-10): everyone now, 10 more minutes, or stop. */
+    continueCanary: () =>
+      canaryContinueM
+        .mutateAsync({ params: { path } })
+        .then(settle)
+        .then((r) => {
+          toast({ kind: 'success', title: tt(mc.continued) })
+          return r
+        })
+        .catch(fail(tt(mc.decideFailed))),
+    extendCanary: () =>
+      canaryExtendM
+        .mutateAsync({ params: { path } })
+        .then(settle)
+        .then((r) => {
+          toast({ kind: 'success', title: tt(mc.watched) })
+          return r
+        })
+        .catch(fail(tt(mc.decideFailed))),
+    stopCanary: () =>
+      canaryStopM
+        .mutateAsync({ params: { path } })
+        .then(settle)
+        .then((r) => {
+          toast({ kind: 'success', title: tt(mc.stopped) })
+          return r
+        })
+        .catch(fail(tt(mc.decideFailed))),
+    /** Changes the rest of the send's rates per mailbox provider (review GS-13). */
+    setRates: (rates: Record<string, number>) =>
+      ratesM
+        .mutateAsync({ params: { path }, body: { rates } })
+        .then(settle)
+        .catch(fail(tt(m.ratesFailed))),
+    /**
+     * A share today's warm-up cap holds (review PR-8): wait for tomorrow's
+     * cap, move it to a warm provider, or cancel the rest. The answer isn't
+     * a snapshot: the monitor asks for a new one.
+     */
+    decideWarmupHold: (planId: string, body: Schemas['WarmupHoldDecision'], target?: string) =>
+      warmupHoldM
+        .mutateAsync({ params: { path: { workspace: slug, planId, campaignId } }, body })
+        .then((r) => {
+          void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live'] })
+          void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns'] })
+          const n = count(r.moved || r.cancelled)
+          const title =
+            body.action === 'move' ? tt(mw.holdMovedToast, { count: n, provider: target ?? '' }) : body.action === 'cancel' ? tt(mw.holdCancelledToast, { count: n }) : tt(mw.holdWaitToast)
+          toast({ kind: body.action === 'cancel' ? 'deleted' : 'success', title })
+          return r
+        })
+        .catch(fail(tt(mw.holdFailed))),
+    /** Marks an alert as read: complaints after the send (review GS-6). */
+    acknowledge: (body: Schemas['LiveAcknowledgeRequest']) =>
+      acknowledgeM
+        .mutateAsync({ params: { path }, body })
+        .then(settle)
+        .catch(fail(tt(m.acknowledgeFailed))),
+    /** Changes the send's auto-pause thresholds while it sends or waits (review GS-2). */
+    setThresholds: (body: Schemas['LiveThresholdsRequest']) =>
+      thresholdsM
+        .mutateAsync({ params: { path }, body })
+        .then(settle)
+        .then((r) => {
+          toast({ kind: 'success', title: tt(m.thresholdsSaved), detail: tt(m.thresholdsSavedDetail) })
+          return r
+        })
+        .catch(fail(tt(m.thresholdsFailed))),
   }
 }
 
@@ -107,11 +197,17 @@ export function runAction(actions: LiveActions, a: LiveAction, target?: string):
 export function useLivePermissions(helpers: Schemas['LiveHelpers'] | undefined) {
   const canPause = useCan('campaigns:pause')
   const canSend = useCan('campaigns:send')
+  const canApprove = useCan('campaigns:approve')
   return {
+    // Continuing a canary early needs someone who can approve sends (review GS-10).
+    approve: canApprove ? undefined : tt(mc.needsApprove, { helpers: helpers?.approve?.length ? orList(helpers.approve) : 'none' }),
     pause: canPause ? undefined : needs('pause', 'campaigns:pause', helpers?.pause),
     resume: canSend ? undefined : needs('resume', 'campaigns:send', helpers?.send),
     cancel: canSend ? undefined : needs('cancel', 'campaigns:send', helpers?.send),
+    rates: canSend ? undefined : needs('rates', 'campaigns:send', helpers?.send),
     decide: canSend ? undefined : needs('decide', 'campaigns:send', helpers?.send),
+    // Cancelling what the warm-up cap holds needs campaigns:pause (warm-up holds, review PR-8).
+    warmupCancel: canPause ? undefined : needs('warmupCancel', 'campaigns:pause', helpers?.pause),
   }
 }
 
@@ -148,7 +244,7 @@ export function CancelSendDialog({
         onOpenChange(o)
       }}
       tone="bad"
-      badge={t(m.cancelSend)}
+      badge={t(m.cancelBadge)}
       title={t(m.cancelTitle, { name: s.name })}
       description={t(m.cancelBody, { sent: count(s.sent), total: count(s.recipients), remaining: count(remaining) })}
       confirmLabel={choice === 'pause' ? t(m.pauseInstead) : t(m.cancelRemaining)}

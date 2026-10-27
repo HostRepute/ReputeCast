@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -24,7 +23,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
-	"github.com/hostrepute/reputecast/internal/warmup"
 )
 
 func (s *Service) provider(ctx context.Context, ws *store.Workspace, id string) (store.Provider, error) {
@@ -692,18 +690,47 @@ func (s *Service) DecideHeld(ctx context.Context, ws *store.Workspace, providerI
 	}
 	now := s.now()
 	out := ProviderHeldDecisionResult{Action: in.Action}
-	if in.Action == "cancel" {
-		var by uuid.UUID
-		if pr != nil {
-			by = pr.UserID
+	var by uuid.UUID
+	if pr != nil {
+		by = pr.UserID
+	}
+	if in.Action == "cancel" && s.Sending != nil {
+		if err := s.Sending().Cancel(ctx, cid, by); err == nil {
+			return out, s.audit(ctx, s.Q, ws, p, "campaign.held_cancel", nil, nil, map[string]any{"campaign_id": cid.String()})
+		} else if !errors.Is(err, sending.ErrUnavailable) {
+			return out, err
 		}
+	}
+	if in.Action == "move" {
+		// The sending engine moves the share (review GS-5): the target is
+		// vetted, A/B and canary holdouts stay held, the incident resolves
+		// and a person's pause stays. The move is audited here, as the
+		// providers screen's decision.
+		tid, err := uuid.Parse(in.TargetID)
+		if err != nil {
+			return out, api.Invalid("body.targetProviderId", mPickTarget.Text(l, nil))
+		}
+		if _, err := s.Q.ProvGet(ctx, store.ProvGetParams{WorkspaceID: ws.ID, ID: tid}); err != nil {
+			return out, api.Invalid("body.targetProviderId", mTargetMissing.Text(l, nil))
+		}
+		var mover sending.ShareMover
 		if s.Sending != nil {
-			if err := s.Sending().Cancel(ctx, cid, by); err == nil {
-				return out, s.audit(ctx, s.Q, ws, p, "campaign.held_cancel", nil, nil, map[string]any{"campaign_id": cid.String()})
-			} else if !errors.Is(err, sending.ErrUnavailable) {
-				return out, err
-			}
+			mover, _ = s.Sending().(sending.ShareMover)
 		}
+		if mover == nil {
+			return out, sending.ErrUnavailable
+		}
+		moved, err := mover.MoveShare(ctx, cid, by, p.ID, tid)
+		if err != nil {
+			var ex sending.Explained
+			if errors.As(err, &ex) {
+				return out, api.Conflict(ex.In(l))
+			}
+			return out, err
+		}
+		out.Moved = moved
+		return out, s.audit(ctx, s.Q, ws, p, "campaign.held_move", nil, nil, map[string]any{"campaign_id": cid.String(), "campaign": route.CampaignName,
+			"target": in.TargetID, "moved": moved})
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -712,37 +739,6 @@ func (s *Service) DecideHeld(ctx context.Context, ws *store.Workspace, providerI
 			if _, err := q.ProvSetRouteStatus(ctx, store.ProvSetRouteStatusParams{CampaignID: cid, ProviderID: p.ID, Status: "held", StatusDetail: `{"decision":"wait"}`}); err != nil {
 				return err
 			}
-		case "move":
-			tid, err := uuid.Parse(in.TargetID)
-			if err != nil {
-				return api.Invalid("body.targetProviderId", mPickTarget.Text(l, nil))
-			}
-			target, err := q.ProvGet(ctx, store.ProvGetParams{WorkspaceID: ws.ID, ID: tid})
-			if err != nil {
-				return api.Invalid("body.targetProviderId", mTargetMissing.Text(l, nil))
-			}
-			if target.ID == p.ID {
-				return api.Conflict(mTargetUnavailable.Text(l, i18n.Args{"name": target.Name}))
-			}
-			moved := max(route.Planned-route.Sent, 0)
-			vet := state.Vet(target, state.Load{Broadcast: true, Messages: moved, Sender: campaignSender(ctx, q, ws.ID, cid),
-				Warmup: warmup.Today(ctx, q, target.ID, now, state.Location(ws.Timezone))})
-			if failed, ok := vet.Failed(); ok {
-				return api.Conflict(failed.In(l, target.Name))
-			}
-			if _, err := tx.Exec(ctx, `INSERT INTO campaign_routes (campaign_id, provider_id, planned, status) VALUES ($1, $2, $3, 'pending')
-				ON CONFLICT (campaign_id, provider_id) DO UPDATE SET planned = campaign_routes.planned + EXCLUDED.planned,
-				status = CASE WHEN campaign_routes.status = 'done' THEN 'pending' ELSE campaign_routes.status END`, cid, target.ID, moved); err != nil {
-				return err
-			}
-			if _, err := tx.Exec(ctx, `UPDATE campaign_routes SET planned = $3, status = 'done', status_detail = $4 WHERE campaign_id = $1 AND provider_id = $2`,
-				cid, p.ID, route.Sent, fmt.Sprintf(`{"decision":"move","to":%q}`, target.Name)); err != nil {
-				return err
-			}
-			if _, err := tx.Exec(ctx, `UPDATE messages SET provider_id = $3, status = 'queued' WHERE campaign_id = $1 AND provider_id = $2 AND status IN ('held', 'queued')`, cid, p.ID, target.ID); err != nil {
-				return err
-			}
-			out.Moved = moved
 		case "cancel":
 			if _, err := tx.Exec(ctx, `UPDATE campaigns SET status = 'cancelled', completed_at = $2, updated_at = $2 WHERE id = $1 AND status IN ('sending', 'paused', 'scheduled')`, cid, now); err != nil {
 				return err
@@ -754,7 +750,7 @@ func (s *Service) DecideHeld(ctx context.Context, ws *store.Workspace, providerI
 				return err
 			}
 		}
-		resolution := map[string]string{"move": "moved", "cancel": "cancelled"}[in.Action]
+		resolution := map[string]string{"cancel": "cancelled"}[in.Action]
 		if resolution != "" {
 			var by *uuid.UUID
 			if pr != nil && pr.UserID != uuid.Nil {

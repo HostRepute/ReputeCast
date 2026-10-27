@@ -25,6 +25,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
+	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -393,7 +394,28 @@ func (s *Service) Check(ctx context.Context, p store.Provider, probe bool) (stor
 	if err != nil {
 		return p, err
 	}
+	if went {
+		s.holdShares(ctx, p, h.Down.Reason)
+	}
 	return s.Q.ProvGetAny(ctx, p.ID)
+}
+
+// holdShares hands an outage to the sending engine (review GS-3): every
+// running send's share on the provider goes through the engine's outage
+// path, held with its analysis and ways to continue (or moved when the
+// Broadcast failover policy allows it), the same as an outage a send finds
+// itself. Without the engine in this process the sends find it themselves.
+func (s *Service) holdShares(ctx context.Context, p store.Provider, reason string) {
+	if s.Sending == nil {
+		return
+	}
+	o, ok := s.Sending().(sending.Outages)
+	if !ok {
+		return
+	}
+	if err := o.HoldShares(ctx, p.ID, reason); err != nil {
+		s.log().WarnContext(ctx, "hold the running sends' shares", "provider", p.ID, "err", err)
+	}
 }
 
 // streakStart is when the current run of failures began.
@@ -582,7 +604,6 @@ func (s *Service) onDown(ctx context.Context, tx pgx.Tx, ws store.Workspace, p s
 	for _, x := range provs {
 		byID[x.ID] = x
 	}
-	short := state.Short(p.Name, p.Adapter)
 	// "503 ServiceUnavailable on SendEmail", "API errors" without one.
 	errText := "API errors"
 	failed := i18n.Args{"name": p.Name, "hasError": "no", "error": "", "hasOp": "no", "op": ""}
@@ -648,43 +669,9 @@ func (s *Service) onDown(ctx context.Context, tx pgx.Tx, ws store.Workspace, p s
 				return err
 			}
 		}
+		// The running sends' shares on the provider go through the sending
+		// engine's outage path once this is recorded (holdShares).
 		held = append(held, streamLabel(string(stream)))
-		if stream != providers.StreamBroadcast {
-			continue
-		}
-		camps, err := q.ProvSendingCampaignsOn(ctx, store.ProvSendingCampaignsOnParams{WorkspaceID: ws.ID, ProviderID: p.ID})
-		if err != nil {
-			return err
-		}
-		for _, c := range camps {
-			detail, _ := json.Marshal(map[string]string{"reason": "provider_down", "provider": p.Name})
-			if _, err := q.ProvSetRouteStatus(ctx, store.ProvSetRouteStatusParams{CampaignID: c.ID, ProviderID: p.ID, Status: "held", StatusDetail: string(detail)}); err != nil {
-				return err
-			}
-			var planned, sent int64
-			_ = tx.QueryRow(ctx, `SELECT cr.planned, coalesce((SELECT sum(cc.sent) FROM campaign_counters cc WHERE cc.campaign_id = cr.campaign_id AND cc.provider_id = cr.provider_id), 0)
-				FROM campaign_routes cr WHERE cr.campaign_id = $1 AND cr.provider_id = $2`, c.ID, p.ID).Scan(&planned, &sent)
-			heldN := max(planned-sent, 0)
-			if _, err := tx.Exec(ctx, `INSERT INTO campaign_incidents (id, campaign_id, kind, scope, provider_id, metric, held, detail, tripped_at)
-				VALUES ($1, $2, 'provider_outage', 'route', $3, 'api_errors', $4, $5, $6)`, newID(), c.ID, p.ID, heldN, json.RawMessage(`{}`), now); err != nil {
-				return err
-			}
-			cid := c.ID
-			if err := s.incident(ctx, q, ws.ID, now, "broadcast_held", "warn",
-				fmt.Sprintf("Broadcasts: %q %s share held, %d recipients. Decision requested.", c.Name, short, heldN),
-				mIncidentHeld.Keep(i18n.Args{"campaign": fmt.Sprintf("%q", c.Name), "short": short, "count": heldN}), &p.ID, &cid); err != nil {
-				return err
-			}
-			// Each member reads it in their own language (notify's kept text).
-			title, titleText := keep(mNotifyHeldTitle, i18n.Args{"campaign": fmt.Sprintf("%q", c.Name)})
-			body, bodyText := keep(mNotifyHeldBody, i18n.Args{"name": p.Name, "count": heldN, "countText": strconv.FormatInt(heldN, 10)})
-			if err := notify.ToMembersWith(ctx, tx, ws.ID, authz.CampaignsSend, notify.Notification{
-				Kind: notify.KindSendPaused, Severity: "bad", Title: title, TitleText: titleText, Body: body, BodyText: bodyText,
-				Link: "/w/" + ws.Slug + "/providers", Data: map[string]any{"campaignId": c.ID.String(), "providerId": p.ID.String()},
-			}); err != nil {
-				return err
-			}
-		}
 	}
 	// "503 ServiceUnavailable on SendEmail since 14:02. Automations failed
 	// over automatically. Broadcasts wait for you."

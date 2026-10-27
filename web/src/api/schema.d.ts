@@ -4301,6 +4301,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark an alert of a send as read (complaints after the send) */
+        post: operations["acknowledge-live-alert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/canary/continue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send everyone now instead of when the canary's watch ends */
+        post: operations["continue-live-canary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/canary/extend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Watch the canary 10 more minutes */
+        post: operations["extend-live-canary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/canary/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop the send after its canary: the recipients it held don't get it */
+        post: operations["stop-live-canary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/cancel": {
         parameters: {
             query?: never;
@@ -4312,6 +4380,23 @@ export interface paths {
         put?: never;
         /** Cancel a send, or one mailbox provider's or sending provider's share */
         post: operations["cancel-live-send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/in-doubt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send the messages in doubt again, or leave them out */
+        post: operations["resolve-live-in-doubt"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4346,6 +4431,23 @@ export interface paths {
         put?: never;
         /** Pause a running send */
         post: operations["pause-live-send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a running or waiting send's rates per mailbox provider */
+        put: operations["set-live-rates"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4394,11 +4496,28 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Server-sent events of a send: a snapshot event at once and on every change, heartbeats as comments
-         * @description Each `snapshot` event carries the whole live state; its id is the snapshot version, so a reconnecting EventSource resumes with Last-Event-ID.
+         * Server-sent events of a send: a snapshot event at once and on every change, a heartbeat event every 15 s
+         * @description Each `snapshot` event carries the whole live state; its id is the snapshot version, so a reconnecting EventSource resumes with Last-Event-ID. A `heartbeat` event every 15 s says the connection is alive while nothing changes: a monitor that hears nothing for longer treats its data as stale.
          */
         get: operations["stream-live-send"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/thresholds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a running or waiting send's auto-pause thresholds */
+        put: operations["set-live-thresholds"];
         post?: never;
         delete?: never;
         options?: never;
@@ -15164,6 +15283,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/traffic-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A workspace's traffic rules: thresholds by bounce type, reply rules, canary, complaint watch */
+        get: operations["get-traffic-rules"];
+        /** Save a workspace's traffic rules (audited) */
+        put: operations["save-traffic-rules"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/transactional/alerts/{alertId}/seen": {
         parameters: {
             query?: never;
@@ -19503,6 +19640,8 @@ export interface components {
         };
         ApprovalBypassInput: {
             acknowledged?: string[];
+            /** @enum {string} */
+            canary?: "auto" | "on" | "off" | "";
             confirm?: string;
             password?: string;
             reason: string;
@@ -21498,6 +21637,53 @@ export interface components {
             offer?: string;
             period: string;
             tier: string;
+        };
+        Canary: {
+            enabled: boolean;
+            gates: components["schemas"]["CanaryGates"];
+            neverMailed: boolean;
+            newDomain: boolean;
+            overUsual: boolean;
+            /** Format: double */
+            percent: number;
+            seeds: boolean;
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            watchMinutes: 10 | 20 | 30 | 60;
+        };
+        CanaryGate: {
+            /** Format: int64 */
+            base: number;
+            /** Format: int64 */
+            events: number;
+            /** @enum {string} */
+            key: "bounce" | "block_bounce" | "deferral" | "complaint" | "seeds";
+            /** Format: double */
+            limit: number;
+            mailbox?: string;
+            /** Format: int64 */
+            minBase: number;
+            notReported?: string[];
+            reported?: string[];
+            seeds?: components["schemas"]["SeedPlacement"];
+            /** @enum {string} */
+            state: "passing" | "failing" | "collecting";
+            /** Format: double */
+            value?: number;
+        };
+        CanaryGates: {
+            /** Format: double */
+            blockBounce: number;
+            /** Format: double */
+            bounce: number;
+            /** Format: double */
+            complaint: number;
+            /** Format: double */
+            deferral: number;
+            /** Format: int64 */
+            seedSpam: number;
         };
         CancelInput: {
             reason?: string;
@@ -27678,11 +27864,23 @@ export interface components {
             serviceName: string;
             status: string;
         };
+        InDoubtShare: {
+            /** Format: int64 */
+            count: number;
+            idempotent: boolean;
+            provider: string;
+            providerId: string;
+            short: string;
+            /** Format: date-time */
+            since: string;
+        };
         IncidentCause: {
             body: string;
             lead: string;
         };
         IncidentDetail: {
+            /** @enum {string} */
+            action?: "slowed" | "warned" | "alerted" | "";
             /** Format: int64 */
             attempts?: number;
             /** Format: int64 */
@@ -27701,6 +27899,7 @@ export interface components {
             /** Format: date-time */
             from?: string;
             host?: string;
+            inDoubt?: components["schemas"]["InDoubtShare"][];
             log?: components["schemas"]["IncidentLogLine"][];
             move?: components["schemas"]["MoveEstimate"];
             note?: string;
@@ -27711,11 +27910,14 @@ export interface components {
             recommendations?: string[];
             /** Format: int64 */
             remaining?: number;
+            retried?: boolean;
             secondary?: components["schemas"]["IncidentRate"];
             /** Format: int64 */
             sent?: number;
             /** Format: int64 */
             sentOnRoute?: number;
+            /** Format: double */
+            slowedTo?: number;
             /** Format: int64 */
             succeeded: number;
             /** Format: double */
@@ -27725,6 +27927,8 @@ export interface components {
             /** Format: int64 */
             total?: number;
             warmupNote?: string;
+            /** Format: int64 */
+            window?: number;
         };
         IncidentLogLine: {
             /** Format: date-time */
@@ -29146,14 +29350,58 @@ export interface components {
             /** Format: int64 */
             sent: number;
         };
+        LiveAcknowledgeRequest: {
+            /** Format: uuid */
+            incidentId: string;
+        };
         LiveActionResult: {
             /** Format: int64 */
             cancelled: number;
+            /** Format: int64 */
+            decided: number;
             /** Format: int64 */
             excluded: number;
             /** Format: int64 */
             moved: number;
             snapshot: components["schemas"]["LiveSnapshot"];
+        };
+        LiveCanary: {
+            chosen: boolean;
+            /** Format: date-time */
+            decidedAt?: string;
+            decidedBy?: string;
+            domain: string;
+            /** Format: int64 */
+            extended: number;
+            gates: components["schemas"]["CanaryGate"][];
+            /** Format: int64 */
+            mainSeconds: number;
+            /** Format: int64 */
+            neverMailed: number;
+            /** Format: double */
+            percent: number;
+            /** @enum {string} */
+            phase: "sending" | "watching" | "held" | "passed" | "continued" | "stopped";
+            placement?: components["schemas"]["SeedPlacement"];
+            /** Format: int64 */
+            queued: number;
+            reasons: string[];
+            /** Format: int64 */
+            seeds: number;
+            /** Format: int64 */
+            sent: number;
+            /** Format: date-time */
+            sentAt?: string;
+            /** Format: int64 */
+            size: number;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            until?: string;
+            /** Format: int64 */
+            usual: number;
+            /** Format: int64 */
+            watchMinutes: number;
         };
         LiveCancelRequest: {
             /** @enum {string} */
@@ -29178,6 +29426,8 @@ export interface components {
             from: string;
             route: string;
             scheduledBy: string;
+            /** Format: int64 */
+            watchHours: number;
         };
         LiveEvent: {
             address: string;
@@ -29217,9 +29467,28 @@ export interface components {
             stream: string;
             to: string;
         };
+        LiveHeartbeat: {
+            /** Format: date-time */
+            at: string;
+        };
         LiveHelpers: {
+            approve: string[];
             pause: string[];
             send: string[];
+        };
+        LiveInDoubt: {
+            /** Format: int64 */
+            count: number;
+            providers: components["schemas"]["InDoubtShare"][];
+            safe: boolean;
+            /** Format: date-time */
+            since: string;
+        };
+        LiveInDoubtRequest: {
+            /** @enum {string} */
+            action: "resend" | "leave_out";
+            /** Format: uuid */
+            providerId?: string;
         };
         LiveIncident: {
             detail: components["schemas"]["IncidentDetail"];
@@ -29227,7 +29496,7 @@ export interface components {
             held: number;
             id: string;
             /** @enum {string} */
-            kind: "threshold" | "provider_outage" | "throttled" | "recheck_blocked";
+            kind: "threshold" | "provider_outage" | "throttled" | "recheck_blocked" | "reply_rule" | "canary" | "render_error" | "complaint_watch" | "in_doubt";
             /** Format: double */
             limit?: number;
             mailbox: string;
@@ -29241,10 +29510,23 @@ export interface components {
             resolvedAt?: string;
             /** @enum {string} */
             scope: "campaign" | "route" | "mailbox_provider";
+            since?: components["schemas"]["IncidentRate"];
             /** Format: date-time */
             trippedAt: string;
             /** Format: double */
             value?: number;
+        };
+        LiveLimits: {
+            /** Format: double */
+            apiErrors: number;
+            /** Format: double */
+            bounce: number;
+            /** Format: double */
+            complaint: number;
+            /** Format: double */
+            deferral: number;
+            /** Format: double */
+            mailboxComplaint: number;
         };
         LiveMailbox: {
             /** Format: double */
@@ -29255,13 +29537,23 @@ export interface components {
             complained: number;
             /** Format: double */
             complaintRate?: number;
+            /** @enum {string} */
+            complaintReason?: "not_reported";
+            /** Format: int64 */
+            deferred: number;
+            /** Format: double */
+            deferredRate?: number;
             /** Format: int64 */
             delivered: number;
             /** Format: double */
             deliveredRate?: number;
+            /** Format: date-time */
+            doneAt?: string;
             held: boolean;
             /** Format: date-time */
             heldSince?: string;
+            /** Format: date-time */
+            heldUntil?: string;
             /** @enum {string} */
             key: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
             name: string;
@@ -29271,6 +29563,8 @@ export interface components {
             opened: number;
             /** Format: int64 */
             remaining: number;
+            /** Format: int64 */
+            retrying: number;
             /** Format: int64 */
             sent: number;
             /** @enum {string} */
@@ -29295,6 +29589,12 @@ export interface components {
         LivePauseRequest: {
             reason?: string;
         };
+        LivePostmaster: {
+            /** Format: date */
+            day: string;
+            /** Format: double */
+            spamRate: number;
+        };
         LiveProvider: {
             adapter: string;
             /** Format: double */
@@ -29310,15 +29610,26 @@ export interface components {
             /** Format: double */
             deliveredRate?: number;
             /** Format: date-time */
+            doneAt?: string;
+            /** Format: date-time */
             downSince?: string;
             host: string;
             id: string;
+            idempotent: boolean;
+            infersDelivery: boolean;
             ip: string;
             name: string;
+            /** Format: date-time */
+            nextProbe?: string;
             /** Format: int64 */
             planned: number;
             /** Format: double */
             plannedCost: number;
+            probeSeed: boolean;
+            /** Format: int64 */
+            probes: number;
+            /** Format: int64 */
+            probesNeeded: number;
             /** Format: int64 */
             quotaFree?: number;
             /** Format: int64 */
@@ -29344,14 +29655,24 @@ export interface components {
             warmupDay?: number;
             /** Format: int64 */
             warmupDays?: number;
+            warmupHold?: components["schemas"]["LiveWarmupHold"];
             /** Format: int64 */
             warmupSent?: number;
         };
+        LiveRatesRequest: {
+            rates: {
+                [key: string]: number;
+            };
+        };
         LiveResumeRequest: {
+            /** Format: double */
+            limit?: number;
             /** @enum {string} */
             mailbox?: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
             /** Format: uuid */
             providerId?: string;
+            /** Format: double */
+            rate?: number;
             withChanges?: boolean;
         };
         LiveRetryRequest: {
@@ -29377,10 +29698,13 @@ export interface components {
             /** Format: date-time */
             at: string;
             campaignId: string;
+            canary?: components["schemas"]["LiveCanary"];
             /** Format: date-time */
             completedAt?: string;
             continuing: string[];
             cost: components["schemas"]["LiveCostByRoute"];
+            /** Format: int64 */
+            deferralWindow?: number;
             deliveredMix: components["schemas"]["LiveShare"][];
             details: components["schemas"]["LiveDetails"];
             /** Format: int64 */
@@ -29397,10 +29721,12 @@ export interface components {
             /** Format: int64 */
             held: number;
             helpers?: components["schemas"]["LiveHelpers"];
+            inDoubt?: components["schemas"]["LiveInDoubt"];
             incident?: components["schemas"]["LiveIncident"];
             incidents: components["schemas"]["LiveIncident"][];
             /** Format: date-time */
             lastEventAt?: string;
+            limits: components["schemas"]["LiveLimits"];
             mailboxes: components["schemas"]["LiveMailbox"][];
             mailboxesHeld: string[];
             name: string;
@@ -29412,6 +29738,7 @@ export interface components {
             pausedBy: string;
             /** Format: double */
             percent: number;
+            postmaster?: components["schemas"]["LivePostmaster"];
             /** Format: date-time */
             preparedAt?: string;
             providers: components["schemas"]["LiveProvider"][];
@@ -29426,6 +29753,8 @@ export interface components {
             /** Format: int64 */
             recipients: number;
             resumed: boolean;
+            /** Format: int64 */
+            retrying: number;
             routes: components["schemas"]["LiveRouteShare"][];
             /** Format: date-time */
             scheduledAt?: string;
@@ -29454,15 +29783,54 @@ export interface components {
             version: number;
             /** Format: int64 */
             waiting: number;
+            watch?: components["schemas"]["LiveWatch"];
         };
         LiveThreshold: {
+            action?: string;
+            /** Format: int64 */
+            base: number;
+            /** Format: int64 */
+            duration?: number;
+            /** Format: int64 */
+            events: number;
             /** @enum {string} */
-            key: "bounce" | "complaint" | "mailbox_complaint" | "api_errors";
+            key: "bounce" | "block_bounce" | "deferral" | "complaint" | "mailbox_complaint" | "reply_rules" | "api_errors";
             /** Format: double */
             limit: number;
             mailbox?: string;
+            /** Format: int64 */
+            minBase: number;
+            /** Format: int64 */
+            minEvents: number;
+            parts?: components["schemas"]["LiveThresholdPart"][];
+            /** @enum {string} */
+            reason?: "no_data" | "not_reported";
+            /** @enum {string} */
+            state: "ok" | "near" | "collecting" | "tripped" | "na";
             /** Format: double */
-            value: number;
+            value?: number;
+            /** Format: int64 */
+            window?: number;
+        };
+        LiveThresholdPart: {
+            key?: string;
+            name: string;
+            /** Format: double */
+            value?: number;
+        };
+        LiveThresholdsRequest: {
+            /** Format: double */
+            apiErrors?: number;
+            /** Format: double */
+            bounce?: number;
+            /** Format: double */
+            complaint?: number;
+            /** Format: double */
+            deferral?: number;
+            /** Format: double */
+            mailboxComplaint?: number;
+            /** @enum {string} */
+            scope?: "route" | "campaign";
         };
         LiveThrottle: {
             mailbox: string;
@@ -29471,17 +29839,22 @@ export interface components {
         };
         LiveTotals: {
             /** Format: int64 */
+            blockBounced: number;
+            /** Format: int64 */
             bounced: number;
             /** Format: int64 */
             clicked: number;
             /** Format: int64 */
             complained: number;
             /** Format: int64 */
+            complaintBase: number;
+            /** Format: int64 */
             deferred: number;
             /** Format: int64 */
             delivered: number;
             /** Format: int64 */
             hardBounced: number;
+            notReported: string[];
             /** Format: int64 */
             opened: number;
             /** Format: int64 */
@@ -29493,7 +29866,42 @@ export interface components {
             /** Format: int64 */
             softBounced: number;
             /** Format: int64 */
+            unknownBounced: number;
+            /** Format: int64 */
             unsubscribed: number;
+        };
+        LiveWarmupHold: {
+            /** Format: int64 */
+            cap: number;
+            /** @enum {string} */
+            decision?: "wait";
+            /** Format: int64 */
+            held: number;
+            paused: boolean;
+            planId: string;
+            /** Format: date-time */
+            since?: string;
+            targets: components["schemas"]["LiveWarmupTarget"][];
+            /** Format: date-time */
+            until?: string;
+        };
+        LiveWarmupTarget: {
+            allowed: boolean;
+            name: string;
+            providerId: string;
+            reason?: string;
+            short: string;
+        };
+        LiveWatch: {
+            active: boolean;
+            alert: boolean;
+            /** Format: int64 */
+            hours: number;
+            /** Format: double */
+            limit: number;
+            rows: components["schemas"]["LiveThreshold"][];
+            /** Format: date-time */
+            until: string;
         };
         LiveWinnerRequest: {
             /** @enum {string} */
@@ -29714,7 +30122,14 @@ export interface components {
             label: string;
             mjml: string;
         };
+        MoveCheck: {
+            key: string;
+            /** @enum {string} */
+            result: "pass" | "warn" | "unknown";
+            text: string;
+        };
         MoveEstimate: {
+            checks?: components["schemas"]["MoveCheck"][];
             /** Format: double */
             extraCost: number;
             /** Format: int64 */
@@ -36297,6 +36712,8 @@ export interface components {
         };
         ReviewSendInput: {
             acknowledged?: string[];
+            /** @enum {string} */
+            canary?: "auto" | "on" | "off" | "";
             confirm?: string;
             /** Format: uuid */
             runId: string;
@@ -37360,6 +37777,31 @@ export interface components {
             /** Format: int64 */
             threshold?: number;
             where?: string;
+        };
+        SeedMailboxResult: {
+            /** Format: int64 */
+            inbox: number;
+            /** @enum {string} */
+            mailbox: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
+            /** Format: int64 */
+            promotions: number;
+            /** Format: int64 */
+            seeds: number;
+            /** Format: int64 */
+            spam: number;
+        };
+        SeedPlacement: {
+            byMailbox: components["schemas"]["SeedMailboxResult"][];
+            /** Format: int64 */
+            inbox: number;
+            /** Format: int64 */
+            missing: number;
+            /** Format: int64 */
+            pending: number;
+            /** Format: int64 */
+            promotions: number;
+            /** Format: int64 */
+            spam: number;
         };
         SegmentCatalog: {
             fields: components["schemas"]["SegmentCatalogField"][];
@@ -40975,6 +41417,98 @@ export interface components {
         TrackingNetworkList: {
             items: components["schemas"]["TrackingNetwork"][];
         };
+        TrafficAction: {
+            /** Format: date-time */
+            at: string;
+            campaign: string;
+            campaignId: string;
+            /** @enum {string} */
+            kind: "threshold" | "reply_rule" | "canary" | "complaint_watch";
+            text: string;
+        };
+        TrafficReplyRule: {
+            /** @enum {string} */
+            action: "slow" | "pause" | "pause_route" | "alert";
+            /** @description Matched as plain text, not case-sensitive, anywhere in the reply */
+            contains: string;
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            durationMinutes: number;
+            enabled: boolean;
+            id?: string;
+            readonly lastCampaign?: string;
+            /** Format: date-time */
+            readonly lastMatchedAt?: string;
+            /** @enum {string} */
+            mailbox: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
+            readonly means?: string;
+            /** @description What the reply means, in the rule's own words */
+            note?: string;
+            /** Format: int64 */
+            windowMinutes: number;
+        };
+        TrafficRules: {
+            canManage: boolean;
+            canary: components["schemas"]["Canary"];
+            recent: components["schemas"]["TrafficAction"][];
+            replyRules: components["schemas"]["TrafficReplyRule"][];
+            resumers: string[];
+            /** Format: date-time */
+            savedAt?: string;
+            savedBy?: string;
+            /** Format: int64 */
+            seeds: number;
+            thresholds: components["schemas"]["TrafficThresholds"];
+            /** Format: int64 */
+            usual: number;
+            watch: components["schemas"]["Watch"];
+        };
+        TrafficRulesInput: {
+            canary: components["schemas"]["Canary"];
+            replyRules: components["schemas"]["TrafficReplyRule"][];
+            thresholds: components["schemas"]["TrafficThresholds"];
+            watch: components["schemas"]["Watch"];
+        };
+        TrafficThresholds: {
+            /** @enum {string} */
+            blockAction: "pause_mailbox" | "slow" | "pause_send" | "warn";
+            /** Format: double */
+            blockBounce: number;
+            /**
+             * Format: double
+             * @description Complaints per mailbox provider, where they're reported
+             */
+            complaint: number;
+            /** @enum {string} */
+            complaintAction: "pause_mailbox" | "pause_send" | "warn";
+            /** Format: double */
+            deferral: number;
+            /** @enum {string} */
+            deferralAction: "pause_mailbox" | "slow" | "warn";
+            /** Format: double */
+            deferralSlow: number;
+            /** @enum {string} */
+            deferralSlowAction: "slow" | "pause_mailbox" | "warn";
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            deferralSlowWindow: 5 | 10 | 15 | 30;
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            deferralWindow: 5 | 10 | 15 | 30;
+            /** Format: double */
+            unknownPause: number;
+            /** @enum {string} */
+            unknownPauseAction: "pause_send" | "warn" | "slow";
+            /** Format: double */
+            unknownWarn: number;
+            /** @enum {string} */
+            unknownWarnAction: "warn" | "slow" | "pause_send";
+        };
         TransactionalAccess: {
             content: boolean;
             edit: boolean;
@@ -43208,6 +43742,16 @@ export interface components {
             day: number;
             /** Format: double */
             value: number;
+        };
+        Watch: {
+            alert: boolean;
+            enabled: boolean;
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            hours: 24 | 48 | 72 | 168;
+            postmaster: boolean;
         };
         WebhookCreated: {
             /** @description The signing secret. Shown only in this response. */
@@ -54825,6 +55369,146 @@ export interface operations {
             };
         };
     };
+    "acknowledge-live-alert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveAcknowledgeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "continue-live-canary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "extend-live-canary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "stop-live-canary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "cancel-live-send": {
         parameters: {
             query?: never;
@@ -54840,6 +55524,44 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["LiveCancelRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resolve-live-in-doubt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveInDoubtRequest"];
             };
         };
         responses: {
@@ -54916,6 +55638,44 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["LivePauseRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-live-rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveRatesRequest"];
             };
         };
         responses: {
@@ -55043,7 +55803,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "text/event-stream": {
+                    "text/event-stream": ({
+                        data: components["schemas"]["LiveHeartbeat"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "heartbeat";
+                        /** @description The event ID. */
+                        id?: number;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    } | {
                         data: components["schemas"]["LiveSnapshot"];
                         /**
                          * @description The event name.
@@ -55054,7 +55825,45 @@ export interface operations {
                         id?: number;
                         /** @description The retry time in milliseconds. */
                         retry?: number;
-                    }[];
+                    })[];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-live-thresholds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveThresholdsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
                 };
             };
             /** @description Error */
@@ -79997,6 +80806,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProviderTrackingChecks"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-traffic-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrafficRules"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-traffic-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrafficRulesInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrafficRules"];
                 };
             };
             /** @description Error */

@@ -34,23 +34,36 @@ type IncidentDetail struct {
 	Note       string        `json:"note,omitempty"`
 	Continuing []string      `json:"continuing,omitempty"`
 	Throttle   float64       `json:"throttle,omitempty"`
+	// Action is what a level that didn't pause did (GS-11, GS-12):
+	// slowed (to SlowedTo messages per second), warned or alerted. Such an
+	// incident is a notice to acknowledge, not a decision. Window is a
+	// deferral level's window, in minutes.
+	Action   string  `json:"action,omitempty" enum:"slowed,warned,alerted,"`
+	SlowedTo float64 `json:"slowedTo,omitempty"`
+	Window   int     `json:"window,omitempty"`
 
 	// Outages.
-	Reason      string            `json:"reason,omitempty"`
-	ErrorKind   string            `json:"errorKind,omitempty"`
-	From        *time.Time        `json:"from,omitempty"`
-	To          *time.Time        `json:"to,omitempty"`
-	Attempts    int               `json:"attempts,omitempty"`
-	Succeeded   int               `json:"succeeded"`
-	Host        string            `json:"host,omitempty"`
-	Policy      string            `json:"policy,omitempty"`
-	Log         []IncidentLogLine `json:"log,omitempty"`
-	Probed      bool              `json:"probed,omitempty"`
-	ErrorRate   float64           `json:"errorRate,omitempty"`
-	SentOnRoute int64             `json:"sentOnRoute,omitempty"`
-	Remaining   int64             `json:"remaining,omitempty"`
-	Move        *MoveEstimate     `json:"move,omitempty"`
-	WarmupNote  string            `json:"warmupNote,omitempty"`
+	Reason    string            `json:"reason,omitempty"`
+	ErrorKind string            `json:"errorKind,omitempty"`
+	From      *time.Time        `json:"from,omitempty"`
+	To        *time.Time        `json:"to,omitempty"`
+	Attempts  int               `json:"attempts,omitempty"`
+	Succeeded int               `json:"succeeded"`
+	Host      string            `json:"host,omitempty"`
+	Policy    string            `json:"policy,omitempty"`
+	Log       []IncidentLogLine `json:"log,omitempty"`
+	Probed    bool              `json:"probed,omitempty"`
+	// Retried: the share was retried for 15 minutes and still failed, so a
+	// person is asked again (outages.go).
+	Retried     bool          `json:"retried,omitempty"`
+	ErrorRate   float64       `json:"errorRate,omitempty"`
+	SentOnRoute int64         `json:"sentOnRoute,omitempty"`
+	Remaining   int64         `json:"remaining,omitempty"`
+	Move        *MoveEstimate `json:"move,omitempty"`
+	WarmupNote  string        `json:"warmupNote,omitempty"`
+
+	// Messages in doubt (doubt.go), per sending provider.
+	InDoubt []InDoubtShare `json:"inDoubt,omitempty"`
 
 	Causes          []IncidentCause  `json:"causes,omitempty"`
 	Recommendations []string         `json:"recommendations,omitempty"`
@@ -116,6 +129,18 @@ type MoveEstimate struct {
 	QuotaMax  *int64  `json:"quotaMax,omitempty"`
 	Risk      string  `json:"risk"` // low, high
 	RiskText  string  `json:"riskText"`
+	// Checks are what ReputeCast checked on the target before offering
+	// it (review GS-5): the sender's domain, its quota, its warm-up, and
+	// what happens to the recipients held for the A/B test or the canary.
+	Checks []MoveCheck `json:"checks,omitempty"`
+}
+
+// MoveCheck is one check a move's target passed ("pass") or that couldn't
+// be told ("unknown"), as a sentence.
+type MoveCheck struct {
+	Key    string `json:"key"`
+	Result string `json:"result" enum:"pass,warn,unknown"`
+	Text   string `json:"text"`
 }
 
 // analyzeThreshold explains a threshold trip with the send's own data.
@@ -144,11 +169,11 @@ func (e *Engine) analyzeThreshold(ctx context.Context, rs *runState, ts tallies,
 	all := ts.total
 	switch tr.metric {
 	case "complaint":
-		d.Campaign = &IncidentRate{Metric: "complaint", Events: all.complained, Base: all.delivered, Value: round2(rate(all.complained, all.delivered)), Limit: rs.thresholds.Complaint}
+		d.Campaign = &IncidentRate{Metric: "complaint", Events: all.complained, Base: all.reported, Value: round2(all.complaintRate()), Limit: rs.thresholds.Complaint}
 		d.Secondary = &IncidentRate{Metric: "bounce", Events: scope.bounced(), Base: scope.sent, Value: round2(rate(scope.bounced(), scope.sent)), Limit: rs.thresholds.Bounce}
-	case "bounce":
+	case "bounce", "block_bounce", "unknown_user":
 		d.Campaign = &IncidentRate{Metric: "bounce", Events: all.bounced(), Base: all.sent, Value: round2(rate(all.bounced(), all.sent)), Limit: rs.thresholds.Bounce}
-		d.Secondary = &IncidentRate{Metric: "complaint", Events: scope.complained, Base: scope.delivered, Value: round2(rate(scope.complained, scope.delivered)), Limit: rs.thresholds.MailboxComplaint}
+		d.Secondary = &IncidentRate{Metric: "complaint", Events: scope.complained, Base: scope.reported, Value: round2(scope.complaintRate()), Limit: rs.thresholds.MailboxComplaint}
 	case "deferral":
 		d.Campaign = &IncidentRate{Metric: "deferral", Events: all.deferred, Base: all.sent, Value: round2(rate(all.deferred, all.sent)), Limit: rs.thresholds.Deferral}
 		d.Secondary = &IncidentRate{Metric: "bounce", Events: scope.bounced(), Base: scope.sent, Value: round2(rate(scope.bounced(), scope.sent)), Limit: rs.thresholds.Bounce}
@@ -252,37 +277,45 @@ func thresholdOptions(tr trip, sc i18n.Args, held int64, ch *ResumeChanges) []op
 	if metric != "complaint" && metric != "bounce" && metric != "deferral" {
 		metric = "none"
 	}
+	// Resuming as is re-arms the threshold from the current counts (review
+	// GS-2): what today's rate would bring in the rest.
+	expect := int64(math.Round(float64(held) * tr.value / 100))
+	resume := i18n.Args{"held": held, "metric": metric, "ratePct": round2(tr.value), "expect": expect, "more": yesNo(expect > 0)}
+	body := keep("opt.resumeScoped", with(sc, "held", held, "metric", metric, "ratePct", resume["ratePct"], "expect", expect, "more", resume["more"]))
 	if tr.scope == "campaign" {
-		return []option{
-			{key: "resume", title: keep("opt.resumeTitle", i18n.Args{"recommended": "no"}), body: keep("opt.resumeAll", i18n.Args{"held": held, "metric": metric}),
-				action: keep("opt.resumeAction", nil)},
-			{key: "cancel", title: keep("opt.cancelCampaign", nil), body: keep("opt.cancelCampaignBody", i18n.Args{"held": held}), action: keep("opt.cancelCampaign", nil)},
-		}
+		body = keep("opt.resumeAll", resume)
 	}
-	out := []option{
-		{key: "resume", title: keep("opt.resumeTitle", i18n.Args{"recommended": "no"}), body: keep("opt.resumeScoped", with(sc, "held", held, "metric", metric)),
-			action: keep("opt.resumeAction", nil)},
+	out := []option{{key: "resume", title: keep("opt.resumeTitle", i18n.Args{"recommended": "no"}), body: body, action: keep("opt.resumeAction", nil)}}
+	// A campaign-wide resume takes a group out; a mailbox provider's or a
+	// route's also slows down.
+	rate := 0.0
+	if ch != nil && tr.scope != "campaign" {
+		rate = ch.Rate
 	}
-	if ch != nil && (ch.Exclude > 0 || ch.Rate > 0) {
+	if ch != nil && (ch.Exclude > 0 || rate > 0) {
 		// What resuming with changes does: exclude a group, slow down, hand
 		// the excluded contacts to a flow.
 		combo := "rate"
 		switch {
-		case ch.Exclude > 0 && ch.Rate > 0 && ch.Automation != "":
+		case ch.Exclude > 0 && rate > 0 && ch.Automation != "":
 			combo = "all"
-		case ch.Exclude > 0 && ch.Rate > 0:
+		case ch.Exclude > 0 && rate > 0:
 			combo = "excludeRate"
 		case ch.Exclude > 0 && ch.Automation != "":
 			combo = "excludeFlow"
 		case ch.Exclude > 0:
 			combo = "exclude"
 		}
-		args := i18n.Args{"combo": combo, "exclude": ch.Exclude, "group": ch.group(), "rest": max(held-ch.Exclude, 0), "changeRate": ch.Rate, "automation": ch.Automation}
+		args := i18n.Args{"combo": combo, "exclude": ch.Exclude, "group": ch.group(), "rest": max(held-ch.Exclude, 0), "changeRate": rate, "automation": ch.Automation}
 		out = append(out, option{key: "resume_with_changes", recommended: true, title: keep("opt.changesTitle", nil), body: keep("opt.changes", args),
 			action: keep("opt.changesAction", nil)})
 	}
-	out = append(out, option{key: "cancel_share", title: keep("opt.cancelShare", sc), body: keep("opt.cancelShareBody", with(sc, "held", held)),
-		action: keep("opt.cancelShare", sc)})
+	if tr.scope == "campaign" {
+		out = append(out, option{key: "cancel", title: keep("opt.cancelCampaign", nil), body: keep("opt.cancelCampaignBody", i18n.Args{"held": held}), action: keep("opt.cancelCampaign", nil)})
+	} else {
+		out = append(out, option{key: "cancel_share", title: keep("opt.cancelShare", sc), body: keep("opt.cancelShareBody", with(sc, "held", held)),
+			action: keep("opt.cancelShare", sc)})
+	}
 	if len(out) == 2 {
 		out[0].recommended = true
 		out[0].title = keep("opt.resumeTitle", i18n.Args{"recommended": "yes"})
@@ -442,6 +475,11 @@ func (e *Engine) analyzeOutage(ctx context.Context, rs *runState, r *runRoute, r
 	first, last, failures := l.firstFailure, l.lastFailure, l.failures
 	lines := append([]IncidentLogLine(nil), l.lines...)
 	e.mu.Unlock()
+	if len(lines) == 0 {
+		// The provider health job found the outage, or another process
+		// sent: what the provider answered comes from its health record.
+		lines, first, last = healthLines(r.provider, now)
+	}
 	d := IncidentDetail{Reason: reason, Attempts: failures, Remaining: remaining, Log: lines}
 	if !first.IsZero() {
 		f, t := first, last
@@ -473,6 +511,26 @@ func (e *Engine) analyzeOutage(ctx context.Context, rs *runState, r *runRoute, r
 	case reason == "auth":
 		d.ErrorKind = "rejected credentials"
 		d.addCause(keep("cause.authLead", p), keep("cause.auth", nil))
+	case reason == "identity":
+		// The provider refuses the sender or its domain: nothing sends
+		// until it is verified there (review PR-7).
+		d.ErrorKind = "unverified sender"
+		domain := domainOf(rs.content.FromEmail)
+		d.addCause(keep("cause.identityLead", i18n.Args{"name": name, "domain": firstNonEmpty(domain, "none")}),
+			keep("cause.identity", i18n.Args{"name": name, "sender": firstNonEmpty(rs.content.FromEmail, "none")}))
+	case reason == "quota":
+		d.ErrorKind = "quota"
+		args := i18n.Args{"name": name, "known": "no", "used": int64(0), "max": int64(0)}
+		if h := state.HealthOf(r.provider); h.Quota != nil && h.Quota.Max > 0 {
+			args["known"], args["used"], args["max"] = "yes", h.Quota.Used, h.Quota.Max
+		}
+		d.addCause(keep("cause.quotaLead", p), keep("cause.quotaUsedUp", args))
+	case reason == "api_errors":
+		d.ErrorKind = "API errors"
+		d.addCause(keep("cause.apiErrorsLead", p), keep("cause.apiErrors", i18n.Args{"name": name, "errorPct": d.ErrorRate, "limitPct": rs.thresholds.APIErrors}))
+	case reason == "throttled":
+		d.ErrorKind = "throttling errors"
+		d.addCause(keep("cause.throttlingLead", p), keep("cause.throttledLong", p))
 	case strings.Contains(joined, "econnrefused") || strings.Contains(joined, "connection refused") || strings.Contains(joined, "timeout") || strings.Contains(joined, "dial "):
 		d.ErrorKind = "connection errors"
 		if isSelfHosted(r.provider) {
@@ -501,7 +559,7 @@ func (e *Engine) analyzeOutage(ctx context.Context, rs *runState, r *runRoute, r
 		// Today's count already has what this send handed to the provider.
 		d.addCause(i18n.Text{}, keep("cause.warmupCap", i18n.Args{"sentToday": r.rate.SentToday, "cap": r.rate.Cap, "perSecondRate": r.rate.PerSecond}))
 		d.setWarmupNote(keep("note.warmupShift", i18n.Args{"who": short}))
-	} else if h := state.HealthOf(r.provider); h.Quota != nil && h.Quota.Max > 0 {
+	} else if h := state.HealthOf(r.provider); h.Quota != nil && h.Quota.Max > 0 && reason != "quota" {
 		d.addCause(i18n.Text{}, keep("cause.quota", i18n.Args{"used": h.Quota.Used, "max": h.Quota.Max}))
 	}
 	set, _ := routing.Load(ctx, e.Q, rs.campaign.WorkspaceID)
@@ -514,9 +572,37 @@ func (e *Engine) analyzeOutage(ctx context.Context, rs *runState, r *runRoute, r
 			risk = "high"
 		}
 		d.setRisk(risk, keep("risk."+risk, i18n.Args{"target": d.Move.TargetShort}))
+		sender := senderVerification(ctx, e.Q, rs.campaign.WorkspaceID, rs.campaign.SenderID)
+		d.setMoveChecks(moveChecks(rs, e.vetTarget(ctx, e.Q, sender, *target, remaining, rs.loc), d.Move, remaining))
 	}
-	d.setOptions(outageOptions(short, remaining, d.SentOnRoute, d.Move))
+	d.setOptions(outageOptions(short, remaining, d.SentOnRoute, d.Move, e.seedInbox(ctx, rs.campaign.WorkspaceID) != ""))
 	return d
+}
+
+// healthLines are a provider's recent failed calls as an outage's log
+// (oldest first, within the last 15 minutes, at most 6), with the first
+// and last one's time.
+func healthLines(p store.Provider, now time.Time) (lines []IncidentLogLine, first, last time.Time) {
+	h := state.HealthOf(p)
+	for i := len(h.RecentErrors) - 1; i >= 0; i-- {
+		rec := h.RecentErrors[i]
+		if now.Sub(rec.At) > 15*time.Minute || rec.At.After(now) {
+			continue
+		}
+		text := callText(&providers.CallError{Op: rec.Op, Status: rec.Status, Code: rec.Code, Message: rec.Message})
+		if n := len(lines); n > 0 && lines[n-1].Text == text && rec.At.Sub(lines[n-1].At) < time.Minute {
+			continue
+		}
+		lines = append(lines, IncidentLogLine{At: rec.At, Text: text, Bad: true})
+		if first.IsZero() {
+			first = rec.At
+		}
+		last = rec.At
+	}
+	if len(lines) > 6 {
+		lines = lines[len(lines)-6:]
+	}
+	return lines, first, last
 }
 
 // moveEstimate is what moving n recipients to target costs, and whether
@@ -541,9 +627,49 @@ func (e *Engine) moveEstimate(ctx context.Context, rs *runState, target store.Pr
 	return m, tr.WarmingUp
 }
 
-// outageOptions are the ways to continue after an outage held a share.
-func outageOptions(short string, remaining, sent int64, move *MoveEstimate) []option {
-	p := i18n.Args{"who": short, "remaining": remaining}
+// moveChecks are the checks a move's target passed, as the outage card
+// lists them (the target passed every check that could fail: it was
+// chosen by moveTarget), and what happens to the recipients the A/B test
+// or the canary holds.
+func moveChecks(rs *runState, v state.Vetting, m *MoveEstimate, n int64) []moveCheck {
+	var out []moveCheck
+	domain := domainOf(rs.content.FromEmail)
+	for _, c := range v.Checks {
+		args := i18n.Args{"target": m.TargetShort, "domain": firstNonEmpty(domain, "none")}
+		switch {
+		case c.Key == state.VetDomain && c.Result == state.VetPass:
+			out = append(out, moveCheck{c.Key, "pass", keep("check.domain", args)})
+		case c.Key == state.VetDomain:
+			out = append(out, moveCheck{c.Key, "unknown", keep("check.domainUnknown", args)})
+		case c.Key == state.VetQuota && c.Result == state.VetPass && c.Left != nil && m.QuotaMax != nil:
+			args["free"], args["max"], args["kind"] = max(*c.Left-n, 0), *m.QuotaMax, c.Detail
+			out = append(out, moveCheck{c.Key, "pass", keep("check.quota", args)})
+		case c.Key == state.VetQuota && c.Result == state.VetUnknown:
+			out = append(out, moveCheck{c.Key, "unknown", keep("check.quotaUnknown", args)})
+		case c.Key == state.VetWarm && c.Result == state.VetPass:
+			out = append(out, moveCheck{c.Key, "pass", keep("check.warm", args)})
+		case c.Key == state.VetWarm:
+			out = append(out, moveCheck{c.Key, "warn", keep("check.warming", args)})
+		}
+	}
+	switch {
+	case rs.ab.Phase == "testing":
+		out = append(out, moveCheck{"holdouts", "pass", keep("check.abHoldouts", nil)})
+	case rs.canaryHolds():
+		out = append(out, moveCheck{"holdouts", "pass", keep("check.canaryHoldouts", nil)})
+	}
+	return out
+}
+
+type moveCheck struct {
+	key, result string
+	text        i18n.Text
+}
+
+// outageOptions are the ways to continue after an outage held a share;
+// seed says Retry's test messages go to a seed mailbox (outages.go).
+func outageOptions(short string, remaining, sent int64, move *MoveEstimate, seed bool) []option {
+	p := i18n.Args{"who": short, "remaining": remaining, "seed": yesNo(seed)}
 	out := []option{{key: "retry", title: keep("opt.retryTitle", with(p, "recommended", "no")), body: keep("opt.retryBody", p), action: keep("opt.retry", p)}}
 	if move != nil {
 		mv := with(p, "target", move.TargetShort, "sent", sent)
@@ -568,15 +694,26 @@ func outageArgs(d IncidentDetail, name string) i18n.Args {
 		kind = "api"
 	}
 	reason := "errors"
-	if d.Reason == "auth" {
-		reason = "auth"
+	switch d.Reason {
+	case "auth", "identity", "quota", "throttled", "api_errors":
+		reason = d.Reason
 	}
-	return i18n.Args{"provider": name, "reason": reason, "errorKind": kind, "mins": mins}
+	return i18n.Args{"provider": name, "reason": reason, "errorKind": kind, "mins": mins, "errorPct": d.ErrorRate}
 }
 
 func outageHeadline(d IncidentDetail, name string) string {
-	if d.Reason == "auth" {
+	if d.Retried {
+		return name + " is still down after 15 minutes of retrying"
+	}
+	switch d.Reason {
+	case "auth":
 		return name + " rejected the credentials"
+	case "identity":
+		return name + " refused the sender: it isn't verified there"
+	case "quota":
+		return name + "'s sending quota is used up"
+	case "api_errors":
+		return fmt.Sprintf("%s failed %s of its calls over 3 minutes", name, fmtRate(d.ErrorRate))
 	}
 	mins := 3
 	if d.From != nil && d.To != nil {

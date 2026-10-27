@@ -98,7 +98,8 @@ func testDemoReset(t *testing.T, f *sendtest.Fixture) {
 		return f.Count(`SELECT count(*) FROM contacts c JOIN list_memberships m ON m.contact_id = c.id WHERE m.list_id = $1 AND c.status <> 'active'`, f.List)
 	}
 	baseStats, baseSuppressed := stats(), suppressed()
-	res, err := f.E.DemoSend(f.Ctx, engine.DemoSendOptions{Campaign: "Demo reset", Elapsed: 3 * time.Minute})
+	// Without a canary, so three minutes send to everyone (bounces included).
+	res, err := f.E.DemoSend(f.Ctx, engine.DemoSendOptions{Campaign: "Demo reset", Elapsed: 3 * time.Minute, Canary: engine.CanaryOff})
 	if err != nil {
 		t.Fatal(err)
 	}

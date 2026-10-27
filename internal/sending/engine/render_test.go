@@ -135,7 +135,7 @@ func TestMaskAddress(t *testing.T) {
 
 func TestParseThresholds(t *testing.T) {
 	th := ParseThresholds(json.RawMessage(`{"bounce":1.5,"complaint":0.08,"scope":"campaign"}`), nil)
-	if th.Bounce != 1.5 || th.Complaint != 0.08 || th.MailboxComplaint != 0.08 || th.Deferral != 5 || th.APIErrors != 5 || th.Scope != "campaign" {
+	if th.Bounce != 1.5 || th.Complaint != 0.08 || th.MailboxComplaint != 0.08 || th.Deferral != 40 || th.APIErrors != 5 || th.Scope != "campaign" {
 		t.Fatalf("%+v", th)
 	}
 	if d := ParseThresholds(nil, nil); d != DefaultThresholds {

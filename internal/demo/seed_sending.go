@@ -82,5 +82,6 @@ func seedSendingImpl(ctx context.Context, s *Seeder) error {
 			return err
 		}
 	}
-	return nil
+	// The Traffic rules board's reply rules and what they did (GS-12).
+	return seedTrafficRules(ctx, s)
 }

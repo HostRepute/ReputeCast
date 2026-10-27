@@ -3,7 +3,6 @@ package engine
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math"
 	"sort"
@@ -18,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -28,7 +28,13 @@ import (
 // tally sums counters for one scope.
 type tally struct {
 	sent, delivered, deferred, hard, soft, complained, rejected, human, machine, clicked, unsubscribed int64
+	// reported is what was delivered at mailbox providers that report
+	// complaints: the base of a complaint rate (review F-2, GS-6).
+	reported int64
 }
+
+// complaintRate is the complaint rate where complaints are reported.
+func (t tally) complaintRate() float64 { return rate(t.complained, t.reported) }
 
 func (t tally) bounced() int64 { return t.hard + t.soft }
 
@@ -44,6 +50,9 @@ func (t *tally) add(r store.SendingCountersRow) {
 	t.machine += r.OpenedMachine
 	t.clicked += r.Clicked
 	t.unsubscribed += r.Unsubscribed
+	if mailbox.ReportsComplaints(r.MailboxProvider) {
+		t.reported += r.Delivered
+	}
 }
 
 // tallies are a campaign's counters by scope.
@@ -98,6 +107,17 @@ func rate(n, d int64) float64 {
 // guard checks thresholds, outages, the A/B test and completion. It returns
 // how long nothing can be sent, or errStopped when the loop should end.
 func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.Duration, error) {
+	if err := e.settleStale(ctx, rs, now); err != nil {
+		return 0, err
+	}
+	if err := e.readTyped(ctx, rs, now); err != nil {
+		return 0, err
+	}
+	// Reply rules act as soon as their count is reached, before any rate
+	// threshold (GS-12).
+	if err := e.checkReplies(ctx, rs, now); err != nil {
+		return 0, err
+	}
 	if now.Sub(rs.queueAt) >= time.Second {
 		if err := e.refreshQueue(ctx, rs, now); err != nil {
 			return 0, err
@@ -121,25 +141,48 @@ func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.D
 	if err := e.checkAB(ctx, rs, ts, now); err != nil {
 		return 0, err
 	}
-	var queued, held, waiting, blocked int64
+	// The canary (review GS-10): its watch, then its gates.
+	canaryWait, canaryHeld, err := e.checkCanary(ctx, rs, ts, now)
+	if err != nil {
+		return 0, err
+	}
+	if canaryHeld {
+		return 0, errStopped
+	}
+	var queued, held, waiting, blocked, doubt, probing int64
 	var next *time.Time
 	for k, c := range rs.queue {
 		queued += c.queued
 		held += c.held
 		waiting += c.waiting
+		doubt += c.doubt
 		r := rs.routes[k.provider]
-		h, onHold := rs.holds[k.mailbox]
-		if r == nil || (onHold && !h.Resumed) || !r.open() {
+		held := holdBlocks(rs.holds, k.mailbox, k.provider)
+		if r == nil || held || !r.open() {
 			blocked += c.queued
+			if r != nil && !held && r.retrying() {
+				probing += c.queued
+			}
 		}
 		if c.nextAt != nil && (next == nil || c.nextAt.Before(*next)) {
 			t := *c.nextAt
 			next = &t
 		}
 	}
+	if canaryWait > 0 && queued-blocked <= 0 {
+		return canaryWait, nil
+	}
 	switch {
-	case queued == 0 && held == 0:
+	case queued == 0 && held == 0 && doubt == 0:
 		return 0, e.finish(ctx, rs, ts, now)
+	case queued == 0 && held == 0:
+		// Only messages in doubt are left: the send waits for someone to
+		// send them again or leave them out (doubt.go).
+		return 0, e.waitForDecision(ctx, rs, now)
+	case held == 0 && queued > 0 && queued == blocked && probing > 0:
+		// Only retried shares are left: the loop stays to send their test
+		// messages (outages.go).
+		return rs.untilProbe(now), nil
 	case held == 0 && queued > 0 && queued == blocked && e.warmWaiting(rs) == blocked:
 		// Only shares a warm-up cap holds are left: they go on with the next
 		// day's cap (or the plan's resume) by themselves (warmup_send.go).
@@ -150,11 +193,31 @@ func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.D
 	case queued-blocked > 0 && queued-blocked == waiting && next != nil:
 		return max(next.Sub(now), time.Second), nil
 	case queued-blocked <= 0 && held > 0 && rs.ab.DecideAt != nil:
-		return max(rs.ab.DecideAt.Sub(now), time.Second), nil
+		return min(max(rs.ab.DecideAt.Sub(now), time.Second), rs.untilProbe(now)), nil
 	case queued-blocked <= 0 && held > 0:
-		return 30 * time.Second, nil
+		return min(30*time.Second, rs.untilProbe(now)), nil
 	}
 	return 0, nil
+}
+
+// retrying reports whether a route is a retried share sending test
+// messages (outages.go).
+func (r *runRoute) retrying() bool { return r.status == "held" && r.detail.Decision == "retry" }
+
+// untilProbe is how long until a retried share's next test message (a
+// minute when none is retried).
+func (rs *runState) untilProbe(now time.Time) time.Duration {
+	wait := retryEvery
+	for _, r := range rs.routes {
+		if !r.retrying() {
+			continue
+		}
+		if r.detail.NextProbe == nil || !now.Before(*r.detail.NextProbe) {
+			return time.Second
+		}
+		wait = min(wait, r.detail.NextProbe.Sub(now))
+	}
+	return max(wait, time.Second)
 }
 
 // trip is one threshold that tripped.
@@ -162,11 +225,13 @@ type trip struct {
 	scope    string // campaign, mailbox_provider, route
 	mailbox  string
 	provider uuid.UUID
-	metric   string // bounce, complaint, deferral
+	metric   string // bounce, complaint, deferral, block_bounce, unknown_user
 	value    float64
 	limit    float64
 	events   int64
 	base     int64
+	// window is a deferral level's window in minutes (GS-11).
+	window int
 }
 
 // checkThresholds pauses a mailbox provider, a route or the whole campaign
@@ -178,26 +243,32 @@ type trip struct {
 // whole campaign paused.
 func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, now time.Time) (bool, error) {
 	th := rs.thresholds
+	// Thresholds by bounce type and deferral levels act first, each with
+	// its own action (review GS-11, bytype.go).
+	if tt := e.checkTyped(rs, ts, now); tt != nil {
+		return e.typedAct(ctx, rs, ts, *tt, now)
+	}
 	var trips []trip
 	for _, mbp := range sortedKeys(ts.mailbox) {
-		m := ts.mailbox[mbp]
 		h, onHold := rs.holds[mbp]
-		if onHold && !h.Resumed {
+		if onHold && h.whole() {
 			continue
 		}
-		armed := func(metric string, n int64) bool {
-			if !onHold || h.Rearm == nil {
-				return true
-			}
-			base, ok := h.Rearm[metric]
-			return !ok || n > base
+		// A scope a person resumed is judged on what happened since, with
+		// the evidence a fresh one needs: old events never pause it again
+		// (review GS-2).
+		m := rs.guard.judged(rearmMailbox(mbp), *ts.mailbox[mbp])
+		if _, rearmed := rs.guard.Rearm[rearmMailbox(mbp)]; !rearmed && onHold && h.Rearm != nil {
+			// A resume recorded before the guard kept its counts.
+			m = m.since(counts{Complained: h.Rearm["complaint"], Hard: h.Rearm["bounce"], Deferred: h.Rearm["deferral"]})
 		}
 		switch {
-		case m.delivered >= minSampleScoped && over(m.complained, m.delivered, th.MailboxComplaint, minEvents) && armed("complaint", m.complained):
-			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "complaint", value: rate(m.complained, m.delivered), limit: th.MailboxComplaint, events: m.complained, base: m.delivered})
-		case m.sent >= minSampleScoped && over(m.bounced(), m.sent, th.Bounce, minEvents) && armed("bounce", m.bounced()):
+		case m.reported >= minSampleScoped && over(m.complained, m.reported, th.MailboxComplaint, minEvents) &&
+			(th.ComplaintAction != actWarn || !rs.guard.acted("complaint", mbp)):
+			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "complaint", value: m.complaintRate(), limit: th.MailboxComplaint, events: m.complained, base: m.reported})
+		case m.sent >= minSampleScoped && over(m.bounced(), m.sent, th.Bounce, minEvents):
 			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "bounce", value: rate(m.bounced(), m.sent), limit: th.Bounce, events: m.bounced(), base: m.sent})
-		case m.sent >= minSampleScoped && over(m.deferred, m.sent, th.Deferral, minDeferrals) && armed("deferral", m.deferred):
+		case th.DeferralWindow == 0 && m.sent >= minSampleScoped && over(m.deferred, m.sent, th.Deferral, minDeferrals):
 			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "deferral", value: rate(m.deferred, m.sent), limit: th.Deferral, events: m.deferred, base: m.sent})
 		}
 		if len(trips) > 0 {
@@ -212,10 +283,11 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 		// would hold a whole provider for one mailbox provider's readers.
 		for _, pid := range rs.order {
 			r := rs.routes[pid]
-			p := ts.provider[pid]
-			if p == nil || !r.open() {
+			pt := ts.provider[pid]
+			if pt == nil || !r.open() {
 				continue
 			}
+			p := rs.guard.judged(rearmRoute(pid), *pt)
 			if p.sent >= minSampleScoped && over(p.bounced(), p.sent, th.Bounce, minEvents) {
 				trips = append(trips, trip{scope: "route", provider: pid, metric: "bounce", value: rate(p.bounced(), p.sent), limit: th.Bounce, events: p.bounced(), base: p.sent})
 				break
@@ -226,10 +298,10 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 		// Campaign-wide, on the mailbox providers and routes still sending.
 		t := tally{}
 		for mbp, m := range ts.mailbox {
-			if h, onHold := rs.holds[mbp]; onHold && !h.Resumed {
+			if h, onHold := rs.holds[mbp]; onHold && h.whole() {
 				continue
 			}
-			t.add(store.SendingCountersRow{Sent: m.sent, Delivered: m.delivered, Deferred: m.deferred, HardBounced: m.hard, SoftBounced: m.soft, Complained: m.complained})
+			t.add(store.SendingCountersRow{MailboxProvider: mbp, Sent: m.sent, Delivered: m.delivered, Deferred: m.deferred, HardBounced: m.hard, SoftBounced: m.soft, Complained: m.complained})
 		}
 		for pid, p := range ts.provider {
 			if r := rs.routes[pid]; r != nil && (r.status == "held" || r.status == "paused") {
@@ -238,19 +310,33 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 				t.hard -= p.hard
 				t.soft -= p.soft
 				t.complained -= p.complained
+				t.reported -= p.reported
 			}
 		}
+		t = rs.guard.judged(rearmCampaign, t)
 		if t.sent >= minSampleCampaign && over(t.bounced(), t.sent, th.Bounce, minEvents) {
 			trips = append(trips, trip{scope: "campaign", metric: "bounce", value: rate(t.bounced(), t.sent), limit: th.Bounce, events: t.bounced(), base: t.sent})
 		}
-		if t.delivered >= minSampleCampaign && over(t.complained, t.delivered, th.Complaint, minEvents) {
-			trips = append(trips, trip{scope: "campaign", metric: "complaint", value: rate(t.complained, t.delivered), limit: th.Complaint, events: t.complained, base: t.delivered})
+		// Complaints count only where mailbox providers report them: Gmail's
+		// and iCloud's delivered mail would dilute the rate (review F-2).
+		if t.reported >= minSampleCampaign && over(t.complained, t.reported, th.Complaint, minEvents) {
+			trips = append(trips, trip{scope: "campaign", metric: "complaint", value: t.complaintRate(), limit: th.Complaint, events: t.complained, base: t.reported})
 		}
 	}
 	if len(trips) == 0 {
 		return false, nil
 	}
 	tr := trips[0]
+	if tr.scope == "mailbox_provider" && tr.metric == "complaint" {
+		// What the complaint limit per mailbox provider does (Traffic
+		// rules): pause it (the default), pause the send, or warn.
+		switch th.ComplaintAction {
+		case actWarn:
+			return e.typedAct(ctx, rs, ts, typedTrip{tr, "complaint", actWarn}, now)
+		case actPauseSend:
+			tr.scope = "campaign"
+		}
+	}
 	if th.Scope == "campaign" {
 		tr.scope = "campaign"
 	}
@@ -395,7 +481,8 @@ func liveLink(slug string, id uuid.UUID) string {
 
 // metricName names a threshold's metric ("complaint rate").
 func metricName(metric string) string {
-	return map[string]string{"bounce": "bounce rate", "complaint": "complaint rate", "deferral": "deferral rate", "api_errors": "API error rate"}[metric]
+	return map[string]string{"bounce": "bounce rate", "complaint": "complaint rate", "deferral": "deferral rate", "api_errors": "API error rate",
+		"block_bounce": "block/policy bounce rate", "unknown_user": "unknown-user rate"}[metric]
 }
 
 func thresholdHeadline(tr trip, scopeName string) string {
@@ -431,27 +518,43 @@ func (e *Engine) checkOutage(ctx context.Context, rs *runState, r *runRoute, now
 	l := e.callLogFor(key)
 	e.mu.Lock()
 	first, failures, lastOK := l.firstFailure, l.failures, l.lastSuccess
+	throttledSince, throttles := l.firstThrottle, l.throttles
 	e.mu.Unlock()
-	if !first.IsZero() && !rs.started.IsZero() && first.Before(rs.started) {
+	if (!first.IsZero() && !rs.started.IsZero() && first.Before(rs.started)) || (!throttledSince.IsZero() && !rs.started.IsZero() && throttledSince.Before(rs.started)) {
 		// Failures of an earlier send of this campaign (started again).
 		e.resetCalls(key)
-		first, failures, lastOK = time.Time{}, 0, time.Time{}
+		first, failures, lastOK, throttledSince, throttles = time.Time{}, 0, time.Time{}, time.Time{}, 0
 	}
 	if r.status == "held" {
+		// A share today's warm-up cap holds isn't an outage: it goes on with
+		// tomorrow's cap or its own choices (warmup_send.go, review PR-8).
+		if r.detail.Reason == CapHoldReason {
+			return nil
+		}
 		return e.probeHeld(ctx, rs, r, now)
 	}
 	if r.status != "pending" && r.status != "sending" {
 		return nil
 	}
-	if r.detail.Decision == "retry" {
-		switch {
-		case !lastOK.IsZero() && lastOK.After(first) && first.IsZero():
-			// The provider answers again: back to normal.
-			return e.setRouteDetail(ctx, rs, r, routeDetail{}, "sending")
-		case r.detail.Until != nil && now.After(*r.detail.Until) && !first.IsZero():
-			return e.outage(ctx, rs, r, "outage", now, true)
+	// The provider kept throttling the account for three minutes, or the
+	// share of its failed calls passed the send's limit (review GS-4).
+	if !throttledSince.IsZero() && now.Sub(throttledSince) >= outageAfter && throttles >= outageMinCalls && (lastOK.IsZero() || lastOK.Before(throttledSince)) {
+		return e.outage(ctx, rs, r, "throttled", now, false)
+	}
+	// The API error threshold judges a provider that fails part of its
+	// calls. One that fails every call in a row is an outage, judged below
+	// after three minutes; one that only throttles is judged above.
+	onlyThrottled := !throttledSince.IsZero() && first.IsZero()
+	streak := !first.IsZero() && failures >= outageMinCalls && (lastOK.IsZero() || lastOK.Before(first))
+	if !onlyThrottled && !streak && now.Sub(r.apiCheckedAt) >= settleEvery {
+		r.apiCheckedAt = now
+		trip, _, err := e.apiErrorTrip(ctx, rs, r, now)
+		if err != nil {
+			return err
 		}
-		return nil
+		if trip {
+			return e.outage(ctx, rs, r, "api_errors", now, false)
+		}
 	}
 	down := r.provider.Status == state.Down
 	failing := !first.IsZero() && now.Sub(first) >= outageAfter && failures >= outageMinCalls && (lastOK.IsZero() || lastOK.Before(first))
@@ -483,7 +586,8 @@ func (e *Engine) setRouteDetail(ctx context.Context, rs *runState, r *runRoute, 
 
 // outage handles a failing route: an automatic move to a warmed-up
 // provider when the Broadcast policy allows it, otherwise a hold that waits
-// for a person.
+// for a person. again is a retried share still failing after 15 minutes
+// (outages.go): the person is asked again.
 func (e *Engine) outage(ctx context.Context, rs *runState, r *runRoute, reason string, now time.Time, again bool) error {
 	set, err := routing.Load(ctx, e.Q, rs.campaign.WorkspaceID)
 	if err != nil {
@@ -494,7 +598,7 @@ func (e *Engine) outage(ctx context.Context, rs *runState, r *runRoute, reason s
 	if target != nil && policy != routing.PauseAndAsk && reason != "auth" {
 		return e.autoMove(ctx, rs, r, target, reason, policy, now)
 	}
-	return e.holdRoute(ctx, rs, r, reason, now)
+	return e.holdOutage(ctx, rs, r, reason, again, now)
 }
 
 // moveTarget is where a held share would go: the stream's fallback, else
@@ -546,6 +650,15 @@ func (e *Engine) moveTarget(ctx context.Context, rs *runState, r *runRoute, set 
 
 // holdRoute puts a route on hold and asks a person what to do.
 func (e *Engine) holdRoute(ctx context.Context, rs *runState, r *runRoute, reason string, now time.Time) error {
+	return e.holdOutage(ctx, rs, r, reason, false, now)
+}
+
+// holdOutage puts a route on hold with the engine's analysis and options and
+// asks a person what to do; again says the share was retried for 15
+// minutes and still fails. The campaign's row is locked and the route read
+// again first, so a person's decision taken meanwhile (a move, a cancel, a
+// retry) is never overwritten.
+func (e *Engine) holdOutage(ctx context.Context, rs *runState, r *runRoute, reason string, again bool, now time.Time) error {
 	c := rs.campaign
 	cid := c.ID
 	remaining, err := e.Q.SendingRemainingOn(ctx, store.SendingRemainingOnParams{CampaignID: &cid, ProviderID: &r.provider.ID})
@@ -553,14 +666,30 @@ func (e *Engine) holdRoute(ctx context.Context, rs *runState, r *runRoute, reaso
 		return err
 	}
 	detail := e.analyzeOutage(ctx, rs, r, reason, remaining, now)
+	if again {
+		detail.retried(r.shortName())
+	}
 	b := detail.stored()
 	id := newID()
 	short := r.shortName()
 	headline := outageHeadline(detail, r.provider.Name)
 	words := outageArgs(detail, r.provider.Name)
 	words["name"], words["who"], words["remaining"] = quoted(c.Name), short, remaining
+	skipped := false
 	err = db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
+		cur, err := q.SendingCampaignForUpdate(ctx, c.ID)
+		if err != nil {
+			return err
+		}
+		rt, err := routeOf(ctx, q, c.ID, r.provider.ID)
+		if err != nil {
+			return err
+		}
+		if cur.Status != "sending" && cur.Status != "paused" || rt == nil || !holdable(*rt, again) {
+			skipped = true
+			return nil
+		}
 		// The provider health job may have held it already: one open incident per route.
 		open, err := q.SendingOpenIncidents(ctx, c.ID)
 		if err != nil {
@@ -590,8 +719,12 @@ func (e *Engine) holdRoute(ctx context.Context, rs *runState, r *runRoute, reaso
 			Title: title.In(i18n.Default), CampaignID: &cid, ProviderID: &pid, Texts: titleTexts(title)}); err != nil {
 			return err
 		}
+		titleKey, bodyKey := "notify.decisionTitle", "notify.decisionBody"
+		if again {
+			titleKey, bodyKey = "notify.askAgainTitle", "notify.askAgainBody"
+		}
 		if err := notify.ToMembersWith(ctx, tx, c.WorkspaceID, authz.CampaignsSend, notify.Notification{
-			Kind: notify.KindSendPaused, Severity: "bad", TitleText: keep("notify.decisionTitle", words), BodyText: keep("notify.decisionBody", words),
+			Kind: notify.KindSendPaused, Severity: "bad", TitleText: keep(titleKey, words), BodyText: keep(bodyKey, words),
 			Link: liveLink(c.WorkspaceSlug, c.ID), Data: map[string]any{"campaignId": c.ID.String(), "providerId": pid.String(), "incidentId": id.String()},
 		}); err != nil {
 			return err
@@ -603,9 +736,25 @@ func (e *Engine) holdRoute(ctx context.Context, rs *runState, r *runRoute, reaso
 		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.share_held", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
 			Reason: headline, Actor: systemActor, Metadata: map[string]any{"provider": r.provider.Name, "reason": reason, "held": remaining, "policy": detail.Policy,
 				"summary": fmt.Sprintf("%s · %s recipients held, decision requested", headline, countText(remaining)), "target": c.Name + " · " + short + " share",
-				"source": "guard", "via": "provider outage"}})
+				"source": "guard", "via": "provider outage", "asked_again": again}})
 	})
+	if err == nil && skipped {
+		// Someone decided in the meantime: read the routes again.
+		rs.loadedAt = time.Time{}
+	}
 	return err
+}
+
+// holdable reports whether a route may be put on hold now: it still sends,
+// or it is held and either waits for a decision or (again) was retried.
+func holdable(rt store.SendingRoutesRow, again bool) bool {
+	switch rt.Status {
+	case "pending", "sending":
+		return true
+	case "held":
+		return again || parseRouteDetail(rt.StatusDetail).Decision != "retry"
+	}
+	return false
 }
 
 func (e *Engine) markHeld(ctx context.Context, q *store.Queries, rs *runState, r *runRoute, reason string, incident uuid.UUID) error {
@@ -624,6 +773,19 @@ func (e *Engine) autoMove(ctx context.Context, rs *runState, r *runRoute, target
 	cid := c.ID
 	return db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
+		cur, err := q.SendingCampaignForUpdate(ctx, cid)
+		if err != nil {
+			return err
+		}
+		rt, err := routeOf(ctx, q, cid, r.provider.ID)
+		if err != nil {
+			return err
+		}
+		if cur.Status != "sending" && cur.Status != "paused" || rt == nil || (rt.Status != "pending" && rt.Status != "sending" && rt.Status != "held") {
+			// Someone decided in the meantime.
+			rs.loadedAt = time.Time{}
+			return nil
+		}
 		moved, err := e.moveShare(ctx, q, cid, r.provider.ID, target.ID)
 		if err != nil {
 			return err
@@ -689,59 +851,6 @@ func (e *Engine) adjustPlanned(ctx context.Context, q *store.Queries, campaign, 
 	return q.SendingAddPlanned(ctx, store.SendingAddPlannedParams{CampaignID: campaign, ProviderID: provider, Planned: by})
 }
 
-// probeHeld checks a held route's provider once after it was held and adds
-// what it found to the incident ("health check · still failing").
-func (e *Engine) probeHeld(ctx context.Context, rs *runState, r *runRoute, now time.Time) error {
-	if r.detail.Incident == "" || now.Sub(r.lastProbe) < 30*time.Second {
-		return nil
-	}
-	r.lastProbe = now
-	id, ok := parseID(r.detail.Incident)
-	if !ok {
-		return nil // no incident to report to
-	}
-	var raw json.RawMessage
-	var tripped time.Time
-	var held int64
-	err := e.Pool.QueryRow(ctx, `SELECT detail, tripped_at, held FROM campaign_incidents WHERE id = $1 AND resolved_at IS NULL`, id).Scan(&raw, &tripped, &held)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil // decided since
-	}
-	if err != nil {
-		return err
-	}
-	if now.Sub(tripped) < 30*time.Second {
-		return nil
-	}
-	d := parseDetail(raw)
-	if d.Probed {
-		return nil
-	}
-	failing := r.provider.Status == state.Down
-	switch {
-	case r.sim != nil:
-		failing = r.sim.Outage(now)
-	case r.transport != nil:
-		cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-		switch a := r.transport.(type) {
-		case providers.QuotaReporter:
-			_, err := a.Quota(cctx)
-			failing = err != nil
-		case providers.Verifier:
-			_, err := a.Verify(cctx)
-			failing = err != nil
-		}
-		cancel()
-	}
-	line := english("probe.failing", nil)
-	if !failing {
-		line = english("probe.answering", nil)
-	}
-	d.Log = append(d.Log, IncidentLogLine{At: now, Text: line, Bad: false})
-	d.Probed = true
-	return e.Q.SendingUpdateIncidentDetail(ctx, store.SendingUpdateIncidentDetailParams{ID: id, Detail: d.stored(), Held: held})
-}
-
 func (e *Engine) callLines(k routeKey) []IncidentLogLine {
 	l := e.callLogFor(k)
 	e.mu.Lock()
@@ -784,6 +893,10 @@ func (e *Engine) finish(ctx context.Context, rs *runState, ts tallies, now time.
 			return err
 		}
 		if err := q.SendingSetPhase(ctx, store.SendingSetPhaseParams{CampaignID: c.ID, Phase: "finished", FinishedAt: &now, At: now}); err != nil {
+			return err
+		}
+		// Complaints keep arriving for days: they're watched (review GS-6).
+		if err := startWatch(ctx, q, c, now); err != nil {
 			return err
 		}
 		t := ts.total

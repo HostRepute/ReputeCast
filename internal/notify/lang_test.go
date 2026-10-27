@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -112,10 +113,10 @@ func TestPreferencesInVietnamese(t *testing.T) {
 		m := e.(map[string]any)
 		byType[m["type"].(string)] = m
 	}
-	if e := byType["send_paused"]; e["label"] != "Đợt gửi tự tạm dừng" || e["audience"] != "Mọi người có quyền campaigns:pause" {
+	if e := byType["send_paused"]; e["label"] != "Đợt gửi tự tạm dừng" || e["audience"] != "Những người có thể gửi chiến dịch" {
 		t.Fatalf("send_paused: %v", e)
 	}
-	if e := byType["webhooks_silent"]; e["label"] != "Webhook im lặng" || e["audience"] != nil {
+	if e := byType["webhooks_silent"]; e["label"] != "Webhook im lặng" || e["audience"] != "Những người có thể quản lý nhà cung cấp gửi thư" {
 		t.Fatalf("webhooks_silent: %v", e)
 	}
 	var p map[string]any
@@ -126,6 +127,17 @@ func TestPreferencesInVietnamese(t *testing.T) {
 	c.Do("PUT", "/me/notification-preferences", map[string]any{"events": []any{}, "quietHours": map[string]any{"start": "22:00", "end": "22:00"}, "digest": "immediate"}).MustStatus(t, 422).JSON(t, &p)
 	if p["detail"] != "Giờ yên lặng cần giờ bắt đầu và giờ kết thúc khác nhau." {
 		t.Fatalf("problem: %v", p)
+	}
+}
+
+// Alert preferences say who gets each alert in people's words, never a
+// permission key (review GS-9).
+func TestAudiencesNameWho(t *testing.T) {
+	key := regexp.MustCompile(`\b[a-z]+:[a-z]+\b`)
+	for _, e := range notify.Events {
+		if key.MatchString(e.Audience) {
+			t.Errorf("%s: %q names a permission key", e.Key, e.Audience)
+		}
 	}
 }
 
