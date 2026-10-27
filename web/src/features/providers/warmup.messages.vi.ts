@@ -164,7 +164,7 @@ export default translate(mw, {
   holdTitle: '"{campaign}" đang chờ ở giới hạn khởi động của {provider}',
   holdBody:
     '{count, plural, other {# người nhận đang chờ}}. {paused, select, yes {Họ sẽ nhận thư khi quá trình khởi động tiếp tục} other {Họ sẽ nhận thư với giới hạn của ngày mai từ {time}}}, trừ khi bạn chuyển họ sang một nhà cung cấp đã khởi động xong hoặc hủy phần còn lại.',
-  holdWaiting: 'Bạn đã chọn chờ.',
+  holdWaiting: 'Đã chọn: chờ giới hạn.',
   holdWait: 'Chờ',
   holdMove: 'Chuyển sang {provider}',
   holdMoveTarget: 'Chuyển người nhận đang chờ sang',

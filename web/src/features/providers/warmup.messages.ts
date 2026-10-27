@@ -202,7 +202,7 @@ export const mw = defineMessages('providers.warmup', {
   /** {time} is when tomorrow's cap starts ("00:00"). */
   holdBody:
     "{count, plural, one {# recipient waits} other {# recipients wait}}. {paused, select, yes {They go out when the warm-up resumes} other {They go out with tomorrow's cap from {time}}}, unless you move them to a warm provider or cancel the rest.",
-  holdWaiting: 'You chose to wait.',
+  holdWaiting: 'Chosen: wait for the cap.',
   holdWait: 'Wait',
   /** {provider} is the provider the held share would move to. */
   holdMove: 'Move to {provider}',
