@@ -50,3 +50,23 @@ func TestExploreWithDemoData(t *testing.T) {
 		t.Fatalf("second demo workspace %+v", again)
 	}
 }
+
+// The demo isn't a way around the first sign-in setup: the instance admin
+// who hasn't finished it is sent back to it, as for the first workspace.
+func TestDemoWaitsForTheFirstSetup(t *testing.T) {
+	env := apptest.New(t)
+	ctx := context.Background()
+	env.CreateUser(apptest.UserOpts{Email: "first.admin@example.com", Name: "First Admin", InstanceAdmin: true})
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE instance_settings SET setup_completed_at = NULL`); err != nil {
+		t.Fatal(err)
+	}
+	c := env.Client()
+	c.SignIn("first.admin@example.com", "correct horse battery staple")
+	if pr := c.Do("POST", "/api/v1/demo-workspace", nil).MustStatus(t, 409).Problem(t); pr["code"] != "setup_incomplete" {
+		t.Fatalf("problem %v", pr)
+	}
+	var n int
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM workspaces`).Scan(&n); err != nil || n != 0 {
+		t.Fatalf("workspaces: %d, %v", n, err)
+	}
+}

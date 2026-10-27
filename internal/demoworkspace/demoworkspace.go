@@ -4,6 +4,7 @@ package demoworkspace
 
 import (
 	"context"
+	"embed"
 	"errors"
 	"net/http"
 	"time"
@@ -16,10 +17,21 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/demo"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/workspaces"
 )
+
+//go:embed messages/*.json
+var messagesFS embed.FS
+
+var msgs = i18n.MustLoad(messagesFS, "demoworkspace")
+
+// say writes a message in the request's language.
+func say(ctx context.Context, key string) string {
+	return msgs.M(key).Text(i18n.LangFrom(ctx), nil)
+}
 
 // Service creates sample workspaces.
 type Service struct {
@@ -47,7 +59,12 @@ const Name = "Acme Newsletter (demo)"
 func (s *Service) Create(ctx context.Context) (DemoWorkspace, error) {
 	u := api.UserFrom(ctx)
 	if u == nil {
-		return DemoWorkspace{}, api.Err(http.StatusUnauthorized, "unauthorized", "Sign in first.")
+		return DemoWorkspace{}, api.Err(http.StatusUnauthorized, "unauthorized", say(ctx, "problem.signIn"))
+	}
+	// Like the first workspace, the demo waits for the first sign-in setup
+	// (a second factor, the instance basics): it isn't a way around it.
+	if st, err := s.Q.GetInstanceSettings(ctx); err == nil && u.IsInstanceAdmin && st.SetupCompletedAt == nil {
+		return DemoWorkspace{}, api.Err(http.StatusConflict, "setup_incomplete", say(ctx, "problem.setupIncomplete"))
 	}
 	now := time.Now()
 	if s.Now != nil {
