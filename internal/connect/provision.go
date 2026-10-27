@@ -668,11 +668,12 @@ func (s *Service) SetEvents(ctx context.Context, ws *store.Workspace, rawID stri
 		delete(cfg, "queue_arn")
 	}
 	cb, _ := json.Marshal(cfg)
-	if err := s.Q.ConnectSetProviderConfig(ctx, store.ConnectSetProviderConfigParams{ID: p.ID, Config: cb}); err != nil {
-		return ConnectSetup{}, err
-	}
 	p.Config = cb
-	st, err := s.update(ctx, ws, cur.ID, "provider.events_mode", map[string]any{"before": before, "after": in.Events}, func(_ *store.ProviderSetup, state *State) error {
+	st, err := s.updateWith(ctx, ws, cur.ID, "provider.events_mode", map[string]any{"before": before, "after": in.Events}, func(q *store.Queries, _ *store.ProviderSetup, state *State) error {
+		// The provider's settings change with the setup and its audit entry.
+		if err := q.ConnectSetProviderConfig(ctx, store.ConnectSetProviderConfigParams{ID: p.ID, Config: cb}); err != nil {
+			return err
+		}
 		state.Connection.Events = in.Events
 		var adapter providers.Provider
 		if a, err := s.Factory.Open(ctx, p); err == nil {

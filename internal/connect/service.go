@@ -197,6 +197,13 @@ func (s *Service) save(ctx context.Context, q *store.Queries, st store.ProviderS
 // update loads a setup for update, lets fn change it, and saves it with an
 // audit entry when action is set.
 func (s *Service) update(ctx context.Context, ws *store.Workspace, id uuid.UUID, action string, meta map[string]any, fn func(st *store.ProviderSetup, state *State) error) (store.ProviderSetup, error) {
+	return s.updateWith(ctx, ws, id, action, meta, func(_ *store.Queries, st *store.ProviderSetup, state *State) error { return fn(st, state) })
+}
+
+// updateWith is update for changes beyond the setup (the provider's
+// settings): fn writes them through q, in the transaction that saves the
+// setup and its audit entry.
+func (s *Service) updateWith(ctx context.Context, ws *store.Workspace, id uuid.UUID, action string, meta map[string]any, fn func(q *store.Queries, st *store.ProviderSetup, state *State) error) (store.ProviderSetup, error) {
 	var out store.ProviderSetup
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -208,7 +215,7 @@ func (s *Service) update(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 			return setupNotFound(ctx)
 		}
 		state := decodeState(st.State)
-		if err := fn(&st, &state); err != nil {
+		if err := fn(q, &st, &state); err != nil {
 			return err
 		}
 		if out, err = s.save(ctx, q, st, state); err != nil {
