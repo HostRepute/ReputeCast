@@ -42,6 +42,11 @@ export const entries: Entry[] = [
   { board: 'ComposerWarnings', path: `${ws}/campaigns/{campaign:Flash sale: 48 hours only}/edit?select=1&panel=deliverability` },
   { board: 'ComposerCode', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/edit?view=mjml` },
   { board: 'ComposerPreview', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/edit?view=preview` },
+  // Write mode and the brand kit (review 2026-10, CO-9, CO-11).
+  { board: 'ComposerWrite', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/edit?view=write`, widths: [1440] },
+  { board: 'ComposerWritePhone', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/edit?view=write`, widths: [390] },
+  { board: 'BrandKit', path: `${ws}/settings/brand-kit`, widths: [1440] },
+  { board: 'BrandKitPhone', path: `${ws}/settings/brand-kit`, widths: [390] },
   // Daniel Park signs in with SSO only: reproduce by hand (a dev session for daniel@acme.io).
   { board: 'ComposerRequestApproval', manual: true },
   // Weekly Digest #142 is scheduled in the demo (SendReadinessStates · scheduled); SendReadiness is

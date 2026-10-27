@@ -165,6 +165,7 @@ function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSe
       <div style={{ padding: '8px 12px' }}>
         <input aria-label={t(mc.searchBlocks)} className="in w-full" placeholder={t(mc.searchBlocks)} value={q} onChange={(e) => setQ(e.target.value)} type="search" />
       </div>
+      {c.canEdit && c.kind !== 'transactional' ? <p className="k m-0 blk-tip">{t(mc.blocksHint)}</p> : null}
       {groups.map((g) => {
         const items = defs.filter((d) => d.group === g.key && match(d))
         const pollHint = g.key === 'reputecast' && items.some((d) => d.id === 'rc-poll')

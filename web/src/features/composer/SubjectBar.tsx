@@ -9,6 +9,7 @@ import { FeedTokensMenu, SubjectPreviews, useDigestMode } from '@/features/diges
 import { dc } from '@/features/digests/composer/messages'
 import { IdeasButton } from '@/features/ai/composer/ideas'
 import { m } from './messages'
+import { newTest } from './ABPanel'
 import { mh } from './chrome.messages'
 
 /** Subject of the variant being edited (A is the campaign itself). */
@@ -85,7 +86,20 @@ export function SubjectBar() {
             />
             {digest ? null : <IdeasButton />}
           </span>
-          {digest ? null : <span className="k">{t(mh.subjectCount, { count: [...aValue].length })}</span>}
+          {digest ? null : (
+            <span className="k">
+              {t(mh.subjectCount, { count: [...aValue].length })}
+              {/* A subject test starts from A's subject (CO-6); content and send-time tests start in Preview. */}
+              {!ab && !c.abTest && !language && c.canEdit && c.kind !== 'transactional' ? (
+                <>
+                  {' · '}
+                  <button type="button" className="linkish" onClick={() => c.setABTest(newTest('subject', c.subject, c.currentMjml))}>
+                    {t(mh.abStart)}
+                  </button>
+                </>
+              ) : null}
+            </span>
+          )}
         </label>
         {ab ? (
           <label className="lbl">

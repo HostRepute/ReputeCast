@@ -36,7 +36,7 @@ describe('tokens', () => {
     const html = chipHtml('{{ first_name | default: "there" }}', { label: 'First name', fallback: 'there', unknown: false })
     expect(html).toContain('data-rc-liquid="{{ first_name | default: &quot;there&quot; }}"')
     expect(html).toContain('contenteditable="false"')
-    expect(html).toContain('aria-label="Personalization: First name, fallback there. Edit"')
+    expect(html).toContain('aria-label="First name · fallback “there”: personalization. Edit"')
   })
 })
 

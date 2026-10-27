@@ -25,8 +25,6 @@ export default translate(mh, {
   widthInDesignTitle: 'Xem trước độ rộng có trong chế độ Thiết kế',
   readinessAction: '{action, select, send {Kiểm tra và gửi} other {Yêu cầu phê duyệt}}',
   readinessCount: '{blocks, plural, =0 {{warnings} cảnh báo} other {{blocks} lỗi chặn gửi}}',
-  readinessLabel:
-    '{action, select, send {Kiểm tra và gửi} other {Yêu cầu phê duyệt}}. Mức sẵn sàng: {blocks, plural, =0 {{warnings, plural, =0 {sẵn sàng} other {sẵn sàng, có {warnings} cảnh báo}}} other {bị chặn bởi {blocks} lỗi}}',
 
   inbox: 'Hộp thư',
   inboxSubject: 'Tiêu đề:',
@@ -43,6 +41,7 @@ export default translate(mh, {
   preheaderCount: '{count} ký tự · hiện sau tiêu đề ở hầu hết hộp thư',
   abLine: 'Thử nghiệm A/B trên {pct}%, chọn phiên bản thắng theo {metric, select, opens {lượt mở} clicks {lượt nhấp} other {{metric}}} sau {hours} giờ',
   testSettings: 'Cài đặt thử nghiệm',
+  abStart: 'Thử nghiệm A/B tiêu đề',
   sendingTo: 'Gửi đến',
   audience: 'Người nhận',
   from: 'Người gửi',
@@ -115,6 +114,7 @@ export default translate(mh, {
   passLiquid: 'Mọi trường cá nhân hóa đều tồn tại',
 
   selectionPath: 'Đường dẫn vùng chọn',
+  headSection: '{tag, select, mj_wrapper {Khung bao} mj_hero {Ảnh bìa} other {Phần}}{count, plural, =0 {} other { · # cột}}',
   crumbEmail: 'Email',
   crumbBody: 'Thân',
   crumbColumns: '{name} · {count} cột',

@@ -647,6 +647,25 @@
 .cmp input.cb-name.wide {
   width: 240px;
 }
+@supports (field-sizing: content) {
+  .cmp input.cb-name {
+    field-sizing: content;
+    width: auto;
+    min-width: 120px;
+    max-width: 280px;
+  }
+  .cmp input.cb-name.wide {
+    min-width: 240px;
+  }
+  @media (max-width: 767px) {
+    .cmp input.cb-name {
+      field-sizing: fixed;
+      width: 100%;
+      max-width: none;
+      min-width: 0;
+    }
+  }
+}
 .cmp .stchip {
   display: inline-flex;
   align-items: center;
@@ -759,6 +778,34 @@
 }
 .cmp .rsend {
   gap: 6px;
+}
+
+/* Parts other features put in the top bar, compact so it stays on one
+   line at 1440 (Composer board): "English · 3 of 4", and the web version's
+   state as its dot (the chip's name still says it; the Web tab has it all). */
+.cmp .cbar .lng-n {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.cmp .cbar .wchip .wcs {
+  font-size: 0;
+  gap: 0;
+  padding-left: 7px;
+}
+@media (min-width: 1680px) {
+  .cmp .cbar .wchip .wcs {
+    font-size: 12.5px;
+    gap: 6px;
+    padding-left: 8px;
+  }
+}
+/* The assistant's menu as its sparkle (its title and name say Assist). */
+@media (max-width: 1599px) {
+  .cmp .cbar .btn.ai-assist {
+    font-size: 0;
+    gap: 2px;
+    padding: 0 8px;
+  }
 }
 
 /* The Inbox strip: subject, preheader, audience and route; Edit opens them. */
@@ -875,6 +922,67 @@
   flex-direction: column;
   gap: 10px;
 }
+/* The inbox preview: Gmail on desktop (sender, subject - preheader, time),
+   iPhone Mail on mobile (sender and time, then the subject and preheader). */
+.cmp .gmail {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.cmp .gmail .gf {
+  flex: 0 0 120px;
+  font-weight: 700;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cmp .gmail .gs {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink-3);
+}
+.cmp .gmail .gs b {
+  color: var(--ink);
+}
+.cmp .gmail .gt {
+  flex: none;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.cmp .gmail.empty {
+  border-style: dashed;
+  border-color: var(--line-strong);
+  white-space: normal;
+}
+.cmp .gmail.phone {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 10px;
+  padding: 8px 12px;
+  white-space: normal;
+}
+.cmp .gmail.phone .gf {
+  flex: none;
+}
+.cmp .gmail.phone .gs {
+  grid-column: 1 / -1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+}
 .cmp .ip-send {
   flex: 1 1 300px;
   max-width: 440px;
@@ -938,6 +1046,10 @@
   .cmp .ip-send {
     max-width: none;
     flex-basis: 100%;
+  }
+  .cmp .cbar .wchip {
+    font-size: 0;
+    gap: 6px;
   }
 }
 @media (max-width: 767px) {
@@ -1067,6 +1179,40 @@
   }
 }
 
+/* The canvas's selection badge: "Section · 2 columns  Feature highlights". */
+.cmp-sel .lab .lab-n {
+  margin-left: 6px;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+/* The inspector's head for a section: "Section · 2 columns  Feature highlights". */
+.cmp .ihead {
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* The Blocks tab's hint, under the search (Composer board). */
+.cmp .blk-tip {
+  padding: 0 12px 6px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Panels as wide as on the Composer board: Blocks 248 px, the inspector
+   320 px (360 with four tabs, see accessibility.css). */
+@media (min-width: 1101px) {
+  .cmp:not(.txe) .cpanel.left {
+    flex-basis: 248px;
+    max-width: 248px;
+  }
+  .cmp:not(.txe) .cpanel.right:not(.a11y-wide) {
+    flex-basis: 320px;
+    max-width: 320px;
+  }
+}
+
 /* The canvas's floating tools (Composer board): undo, redo and zoom at its
    top left; other tools (Preview as, conditional content) sit beside them. */
 .cmp .cmp-tools.float {
@@ -1120,8 +1266,39 @@
     padding-top: 28px;
   }
 }
+/* Other tools beside undo and zoom: the email starts below their row. */
+.cmp .cmp-tools.float[data-extra] + .cmp-canvas .cmp-stage {
+  padding-top: calc(var(--tools-h, 36px) + 24px);
+}
 
 /* The Checks tab (CO-14, ComposerWarnings): summary rows, dismissing a warning, what passed. */
+.cmp .iss-area {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.cmp .ck-a11y {
+  border-top: 1px solid var(--line-2);
+  scroll-margin-top: 8px;
+}
+.cmp .ck-a11y:focus {
+  outline: none;
+}
+.cmp .ck-a11y:focus-visible {
+  outline: 2px solid var(--focus, #2563eb);
+  outline-offset: -2px;
+}
+.cmp .ck-h {
+  margin: 0;
+  padding: 12px 12px 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
 .cmp .cksum {
   display: flex;
   flex-direction: column;
@@ -1239,12 +1416,12 @@
   background: var(--ink);
   color: #ffffff;
 }
-.cmp .swr {
+.cmp .bgr {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
-.cmp .sw {
+.cmp .bgp {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1259,13 +1436,13 @@
   color: var(--ink-nav);
   cursor: pointer;
 }
-.cmp .sw .chip {
+.cmp .bgp .chip {
   width: 20px;
   height: 20px;
   border-radius: 5px;
   border: 1px solid var(--line-strong);
 }
-.cmp .sw[aria-pressed='true'] {
+.cmp .bgp[aria-pressed='true'] {
   border: 2px solid var(--accent);
   padding: 0 9px 0 5px;
 }
@@ -1339,7 +1516,7 @@
 }
 @media (max-width: 767px) {
   .cmp .seg3 button,
-  .cmp .sw,
+  .cmp .bgp,
   .cmp details.adv > summary {
     min-height: 44px;
   }
@@ -1470,6 +1647,9 @@
   position: relative;
   display: inline-flex;
 }
+.cmp .qbar .qn::after {
+  content: attr(data-n);
+}
 .cmp .qbar .qn {
   position: absolute;
   top: -6px;
@@ -1528,6 +1708,34 @@
     display: none;
   }
   .cmp.view-visual .cb-end .hide-ds {
+    display: none;
+  }
+  /* The top bar on phones (ComposerPhone, ComposerWritePhone): the modes,
+     then the language as its globe and Preview as its eye on the same row;
+     the web version and the assistant wait for a larger screen. */
+  .cmp .cbar .lng-sw {
+    justify-content: center;
+    font-size: 0;
+  }
+  .cmp .cbar .lng-sw > :not(:first-child) {
+    display: none;
+  }
+  .cmp .cbar .wchip,
+  .cmp .cbar .ai-assist {
+    display: none;
+  }
+  .cmp .cb-end {
+    flex: none;
+  }
+  /* Quick review: no layout tools over the email, and no status bar. */
+  .cmp.view-visual .cmp-tools.float {
+    display: none;
+  }
+  .cmp.view-visual .cmp-tools.float + .cmp-canvas .cmp-stage,
+  .cmp.view-visual .cmp-tools.float[data-extra] + .cmp-canvas .cmp-stage {
+    padding-top: 12px;
+  }
+  .cmp.view-visual .cmp-foot {
     display: none;
   }
 }

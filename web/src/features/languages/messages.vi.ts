@@ -156,6 +156,8 @@ const composer = translate(mz, {
   switcherLabel: 'Phiên bản ngôn ngữ: {language}, {status}. Đổi ngôn ngữ',
   switcherSourceLabel: 'Phiên bản ngôn ngữ: {language}, Bản gốc · {have} trên {total, plural, other {# ngôn ngữ}} có phiên bản. Đổi ngôn ngữ',
   sourceChip: 'Bản gốc · {have} trên {total, plural, other {# ngôn ngữ}}',
+  sourceShort: '· {have} trên {total}',
+  switcherShortLabel: '{language} · {have} trên {total, plural, other {# ngôn ngữ}} có phiên bản. Đổi ngôn ngữ',
   listLabel: 'Các phiên bản ngôn ngữ của {name}',
   versions: 'Phiên bản ngôn ngữ',
   readers: 'Người đọc',

@@ -101,7 +101,7 @@ export function useVersionName(): string | undefined {
  * the template editor's too, where a language without a version opens Add
  * a language version instead).
  */
-export function ComposerLanguageSwitcher() {
+export function ComposerLanguageSwitcher({ compact }: { compact?: boolean } = {}) {
   const c = useComposer()
   const owner = useLanguageOwner()
   const q = useEmailLanguages(owner)
@@ -130,6 +130,7 @@ export function ComposerLanguageSwitcher() {
         onAdd={() => setAdding('')}
         aiItems={campaign ? (close) => <TranslateMenuItems data={data} current={current} close={close} /> : undefined}
         aiMarked={campaign ? { languages: marks.filter((x) => !x.reviewed).map((x) => x.language), label: t(ms.aiNotReviewed) } : undefined}
+        compact={compact}
       />
       {adding !== false ? (
         <AddVersionDialog

@@ -72,7 +72,7 @@ describe('write mode', () => {
     expect(within(doc).getByRole('button', { name: 'Edit in Design' })).toBeInTheDocument()
     // Personalization shows as a chip.
     const chip = doc.querySelector('[data-rc-liquid]')!
-    expect(chip.textContent).toBe('first_name · “there”')
+    expect(chip.textContent).toBe('first_name · fallback “there”')
   })
 
   it('writes typed text to the email, and keeps the rest as it was', async () => {

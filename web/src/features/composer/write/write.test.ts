@@ -39,7 +39,7 @@ describe('write mode document', () => {
     // The token shows as a chip that can't be typed into…
     const chip = el.querySelector('[data-rc-liquid]')!
     expect(chip.getAttribute('contenteditable')).toBe('false')
-    expect(chip.textContent).toBe('first_name · “there”')
+    expect(chip.textContent).toBe('first_name · fallback “there”')
     // …and goes back as the same Liquid.
     expect(fromEditable(el)).toBe(html)
     // Nothing edited: the email is the same.

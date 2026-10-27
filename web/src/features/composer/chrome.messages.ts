@@ -26,8 +26,6 @@ export const mh = defineMessages('composer.chrome', {
   /** The top bar's main button: "Review & send · 2 warnings". */
   readinessAction: '{action, select, send {Review & send} other {Request approval}}',
   readinessCount: '{blocks, plural, =0 {{warnings, plural, one {# warning} other {# warnings}}} one {# block} other {# blocks}}',
-  readinessLabel:
-    '{action, select, send {Review and send} other {Request approval}}. Readiness: {blocks, plural, =0 {{warnings, plural, =0 {ready} one {ready with # warning} other {ready with # warnings}}} one {blocked by # issue} other {blocked by # issues}}',
 
   /** The Inbox strip. */
   inbox: 'Inbox',
@@ -45,6 +43,7 @@ export const mh = defineMessages('composer.chrome', {
   preheaderCount: '{count, plural, one {# character} other {# characters}} · shown after the subject in most inboxes',
   abLine: 'A/B test on {pct}%, winner by {metric, select, opens {opens} clicks {clicks} other {{metric}}} after {hours, plural, one {# hour} other {# hours}}',
   testSettings: 'Test settings',
+  abStart: 'A/B test the subject',
   sendingTo: 'Sending to',
   audience: 'Audience',
   from: 'From',
@@ -120,6 +119,7 @@ export const mh = defineMessages('composer.chrome', {
 
   /** The footer (Composer board). */
   selectionPath: 'Selection path',
+  headSection: '{tag, select, mj_wrapper {Wrapper} mj_hero {Hero} other {Section}}{count, plural, =0 {} one { · # column} other { · # columns}}',
   crumbEmail: 'Email',
   crumbBody: 'Body',
   crumbColumns: '{name} · {count} columns',

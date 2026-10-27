@@ -174,7 +174,7 @@ export function loadLiquidChips(editor: Editor) {
         if (l.fallback) {
           const fb = el.ownerDocument.createElement('span')
           fb.className = 'fb'
-          fb.textContent = ` · “${l.fallback}”`
+          fb.textContent = ` · ${tt(mc.chipFallback, { fallback: l.fallback })}`
           el.appendChild(fb)
         }
       },
@@ -222,11 +222,12 @@ export function setChipLabels(editor: Editor, fn: LabelFn) {
     .getWrapper()
     ?.findType('rc-liquid')
     .forEach((c: Component) => c.view?.render())
+  editor.trigger('rc:liquid:labels')
 }
 
 /** The canvas HTML a chip is inserted as while text is being edited (the RTE parses it back into a chip). */
 export function chipHtml(token: string, label: ChipLabel): string {
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
   const aria = label.fallback ? tt(mc.chipAriaFallback, { label: label.label, fallback: label.fallback }) : tt(mc.chipAria, { label: label.label })
-  return `<span ${LIQUID_ATTR}="${esc(token)}" contenteditable="false" role="button" tabindex="0" aria-label="${esc(aria)}" class="rc-lq${label.unknown ? ' unknown' : ''}">${esc(label.label)}${label.fallback ? `<span class="fb"> · “${esc(label.fallback)}”</span>` : ''}</span>`
+  return `<span ${LIQUID_ATTR}="${esc(token)}" contenteditable="false" role="button" tabindex="0" aria-label="${esc(aria)}" class="rc-lq${label.unknown ? ' unknown' : ''}">${esc(label.label)}${label.fallback ? `<span class="fb"> · ${esc(tt(mc.chipFallback, { fallback: label.fallback }))}</span>` : ''}</span>`
 }

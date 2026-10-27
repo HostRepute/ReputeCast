@@ -18,7 +18,7 @@ body { -webkit-font-smoothing: antialiased; }
 .gjs-no-pointer { pointer-events: none; }
 .gjs-grabbing, .gjs-grabbing * { cursor: grabbing !important; }
 [data-rc-warning] { outline: 2px solid currentColor; }
-/* Personalization tokens as chips (CO-4): "First name · “there”"; they export as their Liquid. */
+/* Personalization tokens as chips (CO-4): "First name · fallback “there”"; they export as their Liquid. */
 .rc-lq { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; margin: 0 1px; border-radius: 999px; border: 1px solid transparent; background: #E3F1EE; color: #0F766E; font: 600 13px/1 'IBM Plex Sans', system-ui, sans-serif; vertical-align: 1px; cursor: pointer; white-space: nowrap; text-decoration: none; }
 .rc-lq .fb { font-weight: 500; color: #115E59; }
 .rc-lq:hover, .rc-lq:focus-visible { border-color: #0F766E; outline: none; }

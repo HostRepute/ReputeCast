@@ -281,7 +281,8 @@ export function Composer({
         })
         ed.on('component:toggled', () => setSelected(ed.getSelected() ?? null))
         ed.on('component:remove', () => setSelected(ed.getSelected() ?? null))
-        ed.on('undo redo', () => setRev((r) => r + 1))
+        // Chips read the workspace's fields once they load: Write mode redraws them too.
+        ed.on('undo redo rc:liquid:labels', () => setRev((r) => r + 1))
         // Read-only: no dragging, no text editing (given back if editing is agreed to later).
         if (!canEdit) locked.current = lockCanvas(ed)
         setGe(inst)

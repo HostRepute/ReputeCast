@@ -64,8 +64,11 @@ export const mc = defineMessages('composer.canvas', {
   linkHint: 'Leave it empty to remove the link. Tokens like {token} work too.',
   insertToken: 'Insert a personalization token',
   // ── Liquid chips and their fallback editor (Composer board) ──────────
-  chipAria: 'Personalization: {label}. Edit',
-  chipAriaFallback: 'Personalization: {label}, fallback {fallback}. Edit',
+  /** Starts with what the chip shows (WCAG 2.5.3, label in name). */
+  chipAria: '{label}: personalization. Edit',
+  chipAriaFallback: '{label} · fallback “{fallback}”: personalization. Edit',
+  /** After a chip's field: "First name · fallback “there”" (Composer board). */
+  chipFallback: 'fallback “{fallback}”',
   liquidTitle: 'Personalization',
   liquidSaved: 'Saved as Liquid',
   liquidField: 'Field',
@@ -102,9 +105,10 @@ export const mc = defineMessages('composer.canvas', {
   showSaved: 'Show saved sections',
   dragSection: 'Drag onto the canvas, or click to insert after the selected section',
   dragContent: 'Drag onto the canvas, or click to insert into the selected column',
-  groupReputecast: 'ReputeCast blocks',
-  groupContent: 'Content · MJML',
-  groupLayout: 'Layout · MJML',
+  groupReputecast: 'Your blocks',
+  groupContent: 'Content',
+  groupLayout: 'Layout',
+  blocksHint: 'Drag a block onto the email, or select it and press Enter to add it under the selected section.',
   groupEarn: 'Earn',
   searchBlocks: 'Search blocks',
   savedSections: 'Saved sections',

@@ -309,6 +309,8 @@ function WriteImage({ comp, hero, w }: { comp: Component; hero: boolean; w: Writ
   const [draft, setDraft] = useState(alt)
   const [state, setState] = useState<'none' | 'added' | 'decorative'>(alt ? 'added' : decorative ? 'decorative' : 'none')
   const width = parseInt(a.width ?? '', 10)
+  // A logo or an icon keeps its own size: a 96 px logo isn't a 150 px block.
+  const small = !hero && width > 0 && width < 240
   const word = hero ? t(mw.imageHero) : name
   const label = alt ? t(mw.imageAlt, { name: hero ? t(mw.imageHero) : t(mw.imageWord), alt }) : width ? t(mw.imageSize, { name: word, width }) : word
   const needsAlt = !alt && !decorative
@@ -322,7 +324,7 @@ function WriteImage({ comp, hero, w }: { comp: Component; hero: boolean; w: Writ
   }
   return (
     <>
-      <div className={`wimg${state === 'none' ? ' nalt' : ''}`} style={{ height: hero ? 180 : 150, position: 'relative' }}>
+      <div className={`wimg${state === 'none' ? ' nalt' : ''}${small ? ' small' : ''}`} style={small ? { width, height: Math.max(parseInt(a.height ?? '', 10) || 28, 28), position: 'relative' } : { height: hero ? 180 : 150, position: 'relative' }}>
         {label}
         {asked ? <span className={`wbadge${state === 'none' ? '' : ' ok'}`}>{state === 'none' ? t(mw.noAlt) : state === 'decorative' ? t(mw.decorativeDone) : t(mw.altAdded)}</span> : null}
       </div>
@@ -766,14 +768,14 @@ function Toolbar({ w }: { w: WriteState }) {
           </svg>
         </button>
         <span className="sep" aria-hidden="true" />
-        <button type="button" className="btn tx" aria-label={t(mw.personalizeLabel)} aria-expanded={fields} disabled={disabled} onMouseDown={(e) => e.preventDefault()} onClick={() => setFields((f) => !f)}>
+        <button type="button" className="btn tx" title={t(mw.personalizeLabel)} aria-expanded={fields} disabled={disabled} onMouseDown={(e) => e.preventDefault()} onClick={() => setFields((f) => !f)}>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
             <circle cx="8" cy="5.5" r="2.5" />
             <path d="M3 14a5 5 0 0 1 10 0" />
           </svg>
           {t(mw.personalize)}
         </button>
-        <button type="button" className="btn tx" aria-label={t(mw.commentLabel)} disabled={!w.active} onClick={() => w.setCommentFor(w.active)}>
+        <button type="button" className="btn tx" title={t(mw.commentLabel)} disabled={!w.active} onClick={() => w.setCommentFor(w.active)}>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden="true">
             <path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z" />
           </svg>

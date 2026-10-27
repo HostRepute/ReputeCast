@@ -17,6 +17,7 @@ import { m } from './messages'
 import { useComposer, type Issue } from './context'
 import { DEVICES, EMAIL_DEVICES, type DeviceId } from './editor/grapes'
 import { componentLabel, mjChildren, tagOf } from './editor/labels'
+import { friendlyLabel } from './friendly'
 import { headCss } from './editor/mjmlDoc'
 import { applyTextStyle, currentTextStyle, TEXT_STYLES, type TextEditing, type TextStyle } from './editor/textStyle'
 import { chipHtml } from './editor/liquid'
@@ -199,13 +200,51 @@ export function ViewSeg({ dim }: { dim?: boolean }) {
   )
 }
 
+/**
+ * Undo, redo and zoom float at the canvas's top left (Composer board). When
+ * other tools sit beside them (Email · Web, Preview as, conditional
+ * content, variants), the email starts below the row instead of under it.
+ */
+function useFloatingTools(): RefObject<HTMLDivElement | null> {
+  const ref = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    const host = el?.parentElement
+    if (!el || !host) return
+    const update = () => {
+      const extra = el.children.length > 1
+      if (extra) {
+        el.dataset.extra = ''
+        host.style.setProperty('--tools-h', `${el.offsetHeight}px`)
+      } else {
+        delete el.dataset.extra
+        host.style.removeProperty('--tools-h')
+      }
+    }
+    update()
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update)
+    ro?.observe(el)
+    const mo = new MutationObserver(update)
+    mo.observe(el, { childList: true })
+    return () => {
+      ro?.disconnect()
+      mo.disconnect()
+    }
+  }, [])
+  return ref
+}
+
 function Toolbar({ zoom, zoomMode, onZoom }: { zoom: number; zoomMode: ZoomMode; onZoom: (z: ZoomMode) => void }) {
   const c = useComposer()
   const t = useT()
   const digest = useDigestMode()
   const mobile = c.device === 'mobile'
+  const ref = useFloatingTools()
+  // Subject and send-time variants don't change the canvas: the Inbox strip
+  // edits them (Composer board). Content variants switch here.
+  const contentTest = c.abTest?.kind === 'content'
   return (
-    <div className="cmp-tools float">
+    <div ref={ref} className="cmp-tools float">
       {/* The board's floating tools: undo, redo and zoom (CO-14). */}
       <div className="ctools" role="group" aria-label={t(mc.undoZoom)}>
         <UndoRedo />
@@ -234,11 +273,23 @@ function Toolbar({ zoom, zoomMode, onZoom }: { zoom: number; zoomMode: ZoomMode;
             </button>
           </span>
         </>
-      ) : digest || c.campaign.digestRole ? null : (
+      ) : digest || c.campaign.digestRole || !contentTest ? null : (
         // A digest's issues have no A/B test: each issue's subject comes from its posts.
         <VariantSeg />
       )}
     </div>
+  )
+}
+
+/** The selection's badge: "Section · 2 columns  Feature highlights", "Image" (Composer board). */
+function SelectionLabel({ sel }: { sel: Component }) {
+  const label = friendlyLabel(sel)
+  if (!label.head) return <span className="lab">{componentLabel(sel)}</span>
+  return (
+    <span className="lab">
+      {label.head}
+      {label.name ? <span className="lab-n">{label.name}</span> : null}
+    </span>
   )
 }
 
@@ -289,7 +340,7 @@ function SelectionOverlay({ host, tick }: { host: HTMLElement | null; tick: numb
       ))}
       <div className="cmp-sel" style={{ top: box.top, left: box.left, width: box.width, height: box.height }}>
         <div className="cmp-sel-box" aria-hidden="true" />
-        {rte ? null : <span className="lab">{componentLabel(sel)}</span>}
+        {rte ? null : <SelectionLabel sel={sel} />}
         {c.canEdit && !rte ? (
           <div className="tb" role="toolbar" aria-label={t(mc.componentTools)}>
             {canParent ? (

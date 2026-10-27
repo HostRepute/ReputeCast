@@ -1,5 +1,5 @@
 import type { Component } from 'grapesjs'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
 import { LanguageBlockPanel } from '@/features/languages/composerParts'
@@ -10,13 +10,13 @@ import { useReadiness } from './Header'
 import { mh } from './chrome.messages'
 import type { Schemas } from '@/api/client'
 import { mjChildren, sectionOf, tagOf } from './editor/labels'
+import { friendlyLabel } from './friendly'
 import { applyFix, bodyOf, reveal } from './fixes'
 import { describe, SettingsFields, StyleFields } from './Inspector'
 import { SyncedNotice } from './BrandKit'
 import { syncedSectionOf } from './editor/synced'
 import { AccessibilityPanel } from '@/features/accessibility/composer/Panel'
 import { useAccessibility } from '@/features/accessibility/composer/state'
-import { accessibilityTab } from '@/features/accessibility/composer/Status'
 import { FeedItemsInspector, isFeedItems, useDigestMode } from '@/features/digests/composer/DigestMode'
 import { isGrowBlock } from '@/features/grow/composer/blocks'
 import { GrowBlockInspector, GrowStyleNote } from '@/features/grow/composer/Panel'
@@ -133,9 +133,18 @@ function MobileChecks({ selected }: { selected: Component | null }) {
 }
 
 function InspectorHead({ c, tab }: { c: Component; tab: 'style' | 'settings' }) {
+  const label = friendlyLabel(c)
+  // A section reads as the board's "Section · 2 columns  Feature highlights".
+  if (label.name !== undefined) {
+    return (
+      <div className="ihead border-b border-line-2">
+        <span className="font-semibold">{label.head}</span> <span className="k">{label.name}</span>
+      </div>
+    )
+  }
   return (
     <div className="flex flex-col gap-0.5 border-b border-line-2" style={{ padding: '10px 12px' }}>
-      <span className="font-semibold">{tagOf(c) || tt(canvasMessages.element)}</span>
+      <span className="font-semibold">{label.head || tt(canvasMessages.element)}</span>
       <span className="k">{describe(c, tab)}</span>
     </div>
   )
@@ -150,7 +159,7 @@ function NothingSelected() {
   )
 }
 
-function IssueRow({ issue, fixable = true, index, dismissed }: { issue: Issue; fixable?: boolean; index?: number; dismissed?: Schemas['ComposerDismissedIssue'] }) {
+function IssueRow({ issue, fixable = true, index, dismissed, area }: { issue: Issue; fixable?: boolean; index?: number; dismissed?: Schemas['ComposerDismissedIssue']; area?: string }) {
   const c = useComposer()
   const t = useT()
   const [alt, setAlt] = useState('')
@@ -160,6 +169,7 @@ function IssueRow({ issue, fixable = true, index, dismissed }: { issue: Issue; f
   }
   return (
     <div className={`iss ${tone}`}>
+      {area ? <span className="iss-area">{area}</span> : null}
       <div className="t">
         <Badge tone={issue.severity === 'block' ? 'bad' : 'warn'}>{issue.severity === 'block' ? t(m.severityBlock) : t(m.severityWarn)}</Badge>
         {issue.path.length && fixable ? (
@@ -284,6 +294,31 @@ export function ChecksRunBar() {
   return null
 }
 
+/**
+ * The accessibility checks, inside Checks (ComposerWarnings board: one list
+ * for deliverability and accessibility). The status bar, the canvas badges
+ * and the Assist menu open it with setRightTab('accessibility').
+ */
+function AccessibilitySection() {
+  const c = useComposer()
+  const t = useT()
+  const a11y = useAccessibility()
+  const ref = useRef<HTMLElement>(null)
+  const asked = c.rightTab === 'accessibility'
+  useEffect(() => {
+    if (asked) ref.current?.scrollIntoView?.({ block: 'start' })
+  }, [asked])
+  if (!a11y?.enabled) return null
+  return (
+    <section ref={ref} id="checks-a11y" className="ck-a11y" aria-labelledby="checks-a11y-h" tabIndex={-1}>
+      <h2 id="checks-a11y-h" className="ck-h">
+        {t(mh.groupAccessibility)}
+      </h2>
+      <AccessibilityPanel />
+    </section>
+  )
+}
+
 /** The Checks tab's content (also quick review's Checks sheet on phones). */
 export function ChecksContent() {
   const c = useComposer()
@@ -295,11 +330,12 @@ export function ChecksContent() {
   return (
     <div className="flex flex-col">
       <ChecksRunBar />
-      <ChecksSummary onAccessibility={() => c.setRightTab('accessibility')} />
+      <ChecksSummary onAccessibility={() => document.getElementById('checks-a11y')?.focus()} />
       {sorted.map(({ issue, index }) => (
-        <IssueRow key={`${issue.id}-${issue.path.join('.')}-${issue.title}`} issue={issue} index={index} dismissed={dismissed.get(index)} />
+        <IssueRow key={`${issue.id}-${issue.path.join('.')}-${issue.title}`} issue={issue} index={index} dismissed={dismissed.get(index)} area={t(mh.groupDeliverability)} />
       ))}
       <VariantIssues />
+      <AccessibilitySection />
       {c.checks ? (
         <div style={{ padding: '10px 12px 0' }}>
           <PassedChecks />
@@ -316,12 +352,12 @@ export function ChecksContent() {
 export function RightPanel() {
   const c = useComposer()
   const t = useT()
-  const a11y = useAccessibility()
   const digest = useDigestMode()
   const web = useWebMode()
   const commentsLabel = useCommentsTabLabel()
   const ready = useReadiness()
-  const tab = c.rightTab === 'web' && !web ? 'style' : c.rightTab
+  // Accessibility lives in Checks now (ComposerWarnings board).
+  const tab = c.rightTab === 'web' && !web ? 'style' : c.rightTab === 'accessibility' ? 'deliverability' : c.rightTab
   if (c.isEmpty) {
     return (
       <aside className="cpanel right dim" aria-hidden="true" inert>
@@ -346,15 +382,14 @@ export function RightPanel() {
   ]
   // The website's Web tab (features/website), while it's on.
   if (web) items.push({ value: 'web', label: tt(mc.tabWeb) })
-  // Checks (CO-14): always there, with the count of blocks and warnings not dismissed.
+  // Checks (CO-14): always there, with the count of blocks and warnings not
+  // dismissed, accessibility included.
   items.push({ value: 'deliverability', label: t(mh.tabChecks, { count: ready.blocks + ready.warnings }) })
-  const a11yTab = accessibilityTab(a11y)
-  if (a11yTab) items.push({ value: 'accessibility', label: a11yTab })
   // Comments (CO-10): campaigns only.
   if (c.kind !== 'transactional') items.push({ value: 'comments', label: commentsLabel })
   return (
     // Digest mode keeps the wide panel: the Feed items settings need the room.
-    <aside className={tab === 'accessibility' || items.filter((i) => i.value !== 'comments').length > 3 || digest ? 'cpanel right a11y-wide' : 'cpanel right'} aria-label={t(m.rightPanelLabel)}>
+    <aside className={items.filter((i) => i.value !== 'comments').length > 3 || digest ? 'cpanel right a11y-wide' : 'cpanel right'} aria-label={t(m.rightPanelLabel)}>
       <PanelTabs value={tab} onChange={c.setRightTab} label={t(m.inspector)} items={items} className="flex flex-1 flex-col">
         <TabPanel value="style" className="flex flex-1 flex-col" tabIndex={-1}>
           {sel && isFeedItems(sel) ? (
@@ -404,9 +439,6 @@ export function RightPanel() {
         </TabPanel>
         <TabPanel value="deliverability" className="flex flex-1 flex-col" tabIndex={-1}>
           <ChecksContent />
-        </TabPanel>
-        <TabPanel value="accessibility" className="flex flex-1 flex-col" tabIndex={-1}>
-          <AccessibilityPanel />
         </TabPanel>
         <TabPanel value="web" className="flex flex-1 flex-col overflow-y-auto" tabIndex={-1}>
           <WebTabPanel />

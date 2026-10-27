@@ -65,7 +65,8 @@ export function QuickReviewBar() {
     <button type="button" aria-label={aria} aria-pressed={key === 'edit' ? editing : undefined} onClick={() => (key === 'edit' ? setEditing((e) => !e) : setSheet(key))}>
       <span className="qi" aria-hidden="true">
         <ToolIcon name={icon} size={18} strokeWidth={1.6} />
-        {badge ? <span className="qn">{badge}</span> : null}
+        {/* Drawn from data-n, so the button's name (its aria-label) contains all of its text (WCAG 2.5.3). */}
+        {badge ? <span className="qn" data-n={badge} /> : null}
       </span>
       {label}
     </button>

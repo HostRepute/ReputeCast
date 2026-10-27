@@ -19,6 +19,7 @@ import { useAssistBanner } from '@/features/ai/composer/panel'
 import { AssistMenu } from '@/features/ai/composer/assistMenu'
 import { WebChip } from '@/features/website/composer/campaign'
 import { PresenceChip } from './Collab'
+import { useAccessibility } from '@/features/accessibility/composer/state'
 import { mh } from './chrome.messages'
 
 const routeColors: Record<string, string> = { ses: 'var(--chart-ses)', postal: 'var(--chart-postal)', postmark: 'var(--chart-postmark)' }
@@ -185,6 +186,7 @@ export function DeviceToggle() {
 /** Blocks and warnings the checks found (dismissed warnings aside), A/B variants included. */
 export function useReadiness(): { blocks: number; warnings: number } {
   const c = useComposer()
+  const a11y = useAccessibility()
   const issues = c.checks?.issues ?? []
   const dismissed = new Set((c.checks?.dismissed ?? []).map((d) => d.index))
   let blocks = 0
@@ -196,6 +198,13 @@ export function useReadiness(): { blocks: number; warnings: number } {
   for (const v of c.checks?.variants ?? []) {
     blocks += v.blocks
     warnings += v.warnings
+  }
+  // Accessibility counts in Checks too (ComposerWarnings): serious issues
+  // block when the workspace's policy says so.
+  const report = a11y?.enabled && !a11y.error ? a11y.report : undefined
+  for (const i of report?.issues ?? []) {
+    if (i.severity === 'serious' && report?.policy === 'block') blocks++
+    else warnings++
   }
   return { blocks, warnings }
 }
@@ -292,7 +301,7 @@ export function Header({ onReview }: { onReview: () => void }) {
         </div>
       )}
       <div className="cb-end">
-        {preview || digest || issue ? null : <ComposerLanguageSwitcher />}
+        {preview || digest || issue ? null : <ComposerLanguageSwitcher compact />}
         <WebChip />
         {preview ? (
           // The preview fills this with "Preview as", the test button and Review & send.
@@ -328,7 +337,6 @@ export function Header({ onReview }: { onReview: () => void }) {
             className={`btn pri rsend${ready.blocks ? ' bad-pri' : ''}`}
             disabled={empty}
             style={empty ? { opacity: 0.5 } : undefined}
-            aria-label={t(mh.readinessLabel, { action, blocks: ready.blocks, warnings: ready.warnings })}
             aria-describedby={campaign.access.canSend ? undefined : 'perm-hint'}
             onClick={onReview}
           >

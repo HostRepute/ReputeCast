@@ -481,9 +481,9 @@ function BackgroundPresetProp({ c }: { c: Component }) {
   const known = BACKGROUNDS.some((b) => b.colour === value)
   return (
     <Prop title={t(mh.background)} id={id}>
-      <div className="swr">
+      <div className="bgr">
         {BACKGROUNDS.map((b) => (
-          <button key={b.key} type="button" className="sw" aria-pressed={!image && value === b.colour} onClick={() => {
+          <button key={b.key} type="button" className="bgp" aria-pressed={!image && value === b.colour} onClick={() => {
             setAttr(c, 'background-color', b.colour)
             if (image) setAttr(c, 'background-url', '')
           }}>
@@ -493,7 +493,7 @@ function BackgroundPresetProp({ c }: { c: Component }) {
         ))}
         <button
           type="button"
-          className="sw"
+          className="bgp"
           aria-pressed={Boolean(image)}
           onClick={() => {
             setAssetTarget({ component: c, attr: 'background-url' })

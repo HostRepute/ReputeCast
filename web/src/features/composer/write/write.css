@@ -289,6 +289,14 @@
   color: var(--ink-3);
   box-sizing: border-box;
 }
+.wimg.small {
+  font-size: 10.5px;
+  padding: 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  justify-content: flex-start;
+}
 .wimg.nalt {
   background: #fffbeb;
   border-color: #fcd34d;

@@ -104,10 +104,22 @@ describe('inbox strip', () => {
     expect(strip).toHaveTextContent('via SES 90% / Postal 10%')
     fireEvent.click(within(strip).getByRole('button', { name: 'Edit' }))
     const panel = screen.getByRole('region', { name: 'Subject, preheader and recipients' })
-    expect(within(panel).getByText('55 characters · Gmail shows about 70 on desktop, 35 on iPhone')).toBeInTheDocument()
+    expect(within(panel).getByText(/^55 characters · Gmail shows about 70 on desktop, 35 on iPhone/)).toBeInTheDocument()
     expect(within(panel).getByText('77 characters · shown after the subject in most inboxes')).toBeInTheDocument()
     expect(within(panel).getByRole('group', { name: 'Sending to' })).toBeInTheDocument()
     expect(within(strip).getByRole('button', { name: 'Done' })).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('starts a subject test from the subject, with B starting as A (CO-6)', async () => {
+    const setABTest = vi.fn()
+    await renderInWorkspace(
+      <ComposerCtx.Provider value={testComposer({ setABTest })}>
+        <InboxStrip phoneSheet />
+      </ComposerCtx.Provider>,
+      { me: editor },
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'A/B test the subject' }))
+    expect(setABTest).toHaveBeenCalledWith(expect.objectContaining({ kind: 'subject', variants: [{ key: 'A' }, { key: 'B', subject: 'Three launches, one deprecation, and the roadmap for Q4' }] }))
   })
 })
 
