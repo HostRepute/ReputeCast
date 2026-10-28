@@ -85068,6 +85068,9 @@
             "format": "date-time",
             "type": "string"
           },
+          "createdByName": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -85132,6 +85135,105 @@
           "items": {
             "items": {
               "$ref": "#/components/schemas/TrackingNetwork"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "TrackingUserAgent": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdByName": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "scanner",
+              "script",
+              "headless",
+              "preview",
+              "person"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "pattern": {
+            "examples": [
+              "acmegate-linkcheck"
+            ],
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "builtin",
+              "admin"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "pattern",
+          "kind",
+          "name",
+          "source",
+          "note",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "TrackingUserAgentInput": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "scanner",
+              "person"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "description": "Who or what it is: our mail gateway, lobby kiosks",
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "pattern": {
+            "description": "Text found in the user agent: AcmeGate-LinkCheck. A person's device: one word, KioskBot",
+            "maxLength": 80,
+            "minLength": 3,
+            "type": "string"
+          }
+        },
+        "required": [
+          "pattern",
+          "kind",
+          "name"
+        ],
+        "type": "object"
+      },
+      "TrackingUserAgentList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TrackingUserAgent"
             },
             "type": "array"
           }
@@ -101915,6 +102017,131 @@
           }
         ],
         "summary": "Add a network of a privacy proxy or a mail scanner (audited)",
+        "tags": [
+          "Instance admin · Tracking"
+        ],
+        "x-access": "instance_admin"
+      }
+    },
+    "/api/v1/admin/tracking-user-agents": {
+      "delete": {
+        "operationId": "remove-tracking-user-agent",
+        "parameters": [
+          {
+            "description": "The pattern, as listed: acmegate-linkcheck",
+            "explode": false,
+            "in": "query",
+            "name": "pattern",
+            "required": true,
+            "schema": {
+              "description": "The pattern, as listed: acmegate-linkcheck",
+              "maxLength": 80,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove a user agent an admin added (audited)",
+        "tags": [
+          "Instance admin · Tracking"
+        ],
+        "x-access": "instance_admin"
+      },
+      "get": {
+        "operationId": "list-tracking-user-agents",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackingUserAgentList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "User agents of machines whose opens and clicks aren't people's",
+        "tags": [
+          "Instance admin · Tracking"
+        ],
+        "x-access": "instance_admin"
+      },
+      "post": {
+        "description": "A machine's pattern is found anywhere in a user agent: its opens and clicks count as a machine's. A person's is one word of a device's user agent that a rule would take for a machine's (a word ending in “bot”): its opens and clicks count as a person's again.",
+        "operationId": "add-tracking-user-agent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackingUserAgentInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackingUserAgent"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Add the user agent of a machine, or of a person's device a rule takes for one (audited)",
         "tags": [
           "Instance admin · Tracking"
         ],

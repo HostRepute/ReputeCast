@@ -4646,6 +4646,16 @@ type TrackingRetry struct {
 	CreatedAt time.Time       `json:"createdAt"`
 }
 
+type TrackingUserAgent struct {
+	Pattern   string     `json:"pattern"`
+	Kind      string     `json:"kind"`
+	Name      string     `json:"name"`
+	Source    string     `json:"source"`
+	Note      string     `json:"note"`
+	CreatedBy *uuid.UUID `json:"createdBy"`
+	CreatedAt time.Time  `json:"createdAt"`
+}
+
 type TrafficReplyRule struct {
 	ID              uuid.UUID  `json:"id"`
 	WorkspaceID     uuid.UUID  `json:"workspaceId"`

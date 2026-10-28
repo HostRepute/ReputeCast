@@ -35,6 +35,7 @@ import { Route as WWorkspaceImportIndexRouteImport } from './routes/w/$workspace
 import { Route as WWorkspaceTransactionalGuideRouteImport } from './routes/w/$workspace/transactional/guide'
 import { Route as WWorkspaceAppAdminAuditRouteImport } from './routes/w/$workspace/_app/admin/audit'
 import { Route as WWorkspaceAppAdminAuthenticationRouteImport } from './routes/w/$workspace/_app/admin/authentication'
+import { Route as WWorkspaceAppAdminBotFilterRouteImport } from './routes/w/$workspace/_app/admin/bot-filter'
 import { Route as WWorkspaceAppAdminInstanceRouteImport } from './routes/w/$workspace/_app/admin/instance'
 import { Route as WWorkspaceAppAdminUsersRouteImport } from './routes/w/$workspace/_app/admin/users'
 import { Route as WWorkspaceAppAdminWorkspacesRouteImport } from './routes/w/$workspace/_app/admin/workspaces'
@@ -299,6 +300,12 @@ const WWorkspaceAppAdminAuthenticationRoute =
   WWorkspaceAppAdminAuthenticationRouteImport.update({
     id: '/admin/authentication',
     path: '/admin/authentication',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppAdminBotFilterRoute =
+  WWorkspaceAppAdminBotFilterRouteImport.update({
+    id: '/admin/bot-filter',
+    path: '/admin/bot-filter',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppAdminInstanceRoute =
@@ -1115,6 +1122,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/import/': typeof WWorkspaceImportIndexRoute
   '/w/$workspace/admin/audit': typeof WWorkspaceAppAdminAuditRoute
   '/w/$workspace/admin/authentication': typeof WWorkspaceAppAdminAuthenticationRoute
+  '/w/$workspace/admin/bot-filter': typeof WWorkspaceAppAdminBotFilterRoute
   '/w/$workspace/admin/instance': typeof WWorkspaceAppAdminInstanceRoute
   '/w/$workspace/admin/users': typeof WWorkspaceAppAdminUsersRoute
   '/w/$workspace/admin/workspaces': typeof WWorkspaceAppAdminWorkspacesRoute
@@ -1272,6 +1280,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/import': typeof WWorkspaceImportIndexRoute
   '/w/$workspace/admin/audit': typeof WWorkspaceAppAdminAuditRoute
   '/w/$workspace/admin/authentication': typeof WWorkspaceAppAdminAuthenticationRoute
+  '/w/$workspace/admin/bot-filter': typeof WWorkspaceAppAdminBotFilterRoute
   '/w/$workspace/admin/instance': typeof WWorkspaceAppAdminInstanceRoute
   '/w/$workspace/admin/users': typeof WWorkspaceAppAdminUsersRoute
   '/w/$workspace/admin/workspaces': typeof WWorkspaceAppAdminWorkspacesRoute
@@ -1433,6 +1442,7 @@ export interface FileRoutesById {
   '/w/$workspace/import/': typeof WWorkspaceImportIndexRoute
   '/w/$workspace/_app/admin/audit': typeof WWorkspaceAppAdminAuditRoute
   '/w/$workspace/_app/admin/authentication': typeof WWorkspaceAppAdminAuthenticationRoute
+  '/w/$workspace/_app/admin/bot-filter': typeof WWorkspaceAppAdminBotFilterRoute
   '/w/$workspace/_app/admin/instance': typeof WWorkspaceAppAdminInstanceRoute
   '/w/$workspace/_app/admin/users': typeof WWorkspaceAppAdminUsersRoute
   '/w/$workspace/_app/admin/workspaces': typeof WWorkspaceAppAdminWorkspacesRoute
@@ -1594,6 +1604,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/import/'
     | '/w/$workspace/admin/audit'
     | '/w/$workspace/admin/authentication'
+    | '/w/$workspace/admin/bot-filter'
     | '/w/$workspace/admin/instance'
     | '/w/$workspace/admin/users'
     | '/w/$workspace/admin/workspaces'
@@ -1751,6 +1762,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/import'
     | '/w/$workspace/admin/audit'
     | '/w/$workspace/admin/authentication'
+    | '/w/$workspace/admin/bot-filter'
     | '/w/$workspace/admin/instance'
     | '/w/$workspace/admin/users'
     | '/w/$workspace/admin/workspaces'
@@ -1911,6 +1923,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/import/'
     | '/w/$workspace/_app/admin/audit'
     | '/w/$workspace/_app/admin/authentication'
+    | '/w/$workspace/_app/admin/bot-filter'
     | '/w/$workspace/_app/admin/instance'
     | '/w/$workspace/_app/admin/users'
     | '/w/$workspace/_app/admin/workspaces'
@@ -2239,6 +2252,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/authentication'
       fullPath: '/w/$workspace/admin/authentication'
       preLoaderRoute: typeof WWorkspaceAppAdminAuthenticationRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/admin/bot-filter': {
+      id: '/w/$workspace/_app/admin/bot-filter'
+      path: '/admin/bot-filter'
+      fullPath: '/w/$workspace/admin/bot-filter'
+      preLoaderRoute: typeof WWorkspaceAppAdminBotFilterRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/admin/instance': {
@@ -3186,6 +3206,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppIndexRoute: typeof WWorkspaceAppIndexRoute
   WWorkspaceAppAdminAuditRoute: typeof WWorkspaceAppAdminAuditRoute
   WWorkspaceAppAdminAuthenticationRoute: typeof WWorkspaceAppAdminAuthenticationRoute
+  WWorkspaceAppAdminBotFilterRoute: typeof WWorkspaceAppAdminBotFilterRoute
   WWorkspaceAppAdminInstanceRoute: typeof WWorkspaceAppAdminInstanceRoute
   WWorkspaceAppAdminUsersRoute: typeof WWorkspaceAppAdminUsersRoute
   WWorkspaceAppAdminWorkspacesRoute: typeof WWorkspaceAppAdminWorkspacesRoute
@@ -3304,6 +3325,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppIndexRoute: WWorkspaceAppIndexRoute,
   WWorkspaceAppAdminAuditRoute: WWorkspaceAppAdminAuditRoute,
   WWorkspaceAppAdminAuthenticationRoute: WWorkspaceAppAdminAuthenticationRoute,
+  WWorkspaceAppAdminBotFilterRoute: WWorkspaceAppAdminBotFilterRoute,
   WWorkspaceAppAdminInstanceRoute: WWorkspaceAppAdminInstanceRoute,
   WWorkspaceAppAdminUsersRoute: WWorkspaceAppAdminUsersRoute,
   WWorkspaceAppAdminWorkspacesRoute: WWorkspaceAppAdminWorkspacesRoute,

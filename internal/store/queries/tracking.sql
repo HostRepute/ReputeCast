@@ -132,10 +132,12 @@ WHERE id = @id;
 DELETE FROM tracking_pending_clicks WHERE event_id = ANY(@ids::uuid[]);
 
 -- name: TrackingNetworkList :many
--- Networks of privacy proxies and mail scanners.
-SELECT cidr::text AS cidr, name, class, source, note, created_at
-FROM tracking_networks
-ORDER BY class, name, cidr;
+-- Networks of privacy proxies and mail scanners, the ones admins added
+-- first, with who added them.
+SELECT n.cidr::text AS cidr, n.name, n.class, n.source, n.note, n.created_at, coalesce(u.name, '')::text AS created_by_name
+FROM tracking_networks n
+LEFT JOIN users u ON u.id = n.created_by
+ORDER BY (n.source = 'admin') DESC, n.class, n.name, n.cidr;
 
 -- name: TrackingNetworkAdd :one
 INSERT INTO tracking_networks (cidr, name, class, source, note, created_by)
@@ -148,3 +150,24 @@ RETURNING cidr::text AS cidr;
 -- releases.
 DELETE FROM tracking_networks WHERE cidr = @cidr::cidr AND source = 'admin'
 RETURNING cidr::text AS cidr, name, class, note;
+
+-- name: TrackingUserAgentList :many
+-- The user agents of machines, and the words of people's devices a rule
+-- takes for machines (review AN-2): admins' first, then the longest, so the
+-- most specific pattern names a user agent.
+SELECT a.pattern, a.kind, a.name, a.source, a.note, a.created_at, coalesce(u.name, '')::text AS created_by_name
+FROM tracking_user_agents a
+LEFT JOIN users u ON u.id = a.created_by
+ORDER BY (a.source = 'admin') DESC, char_length(a.pattern) DESC, a.pattern;
+
+-- name: TrackingUserAgentAdd :one
+INSERT INTO tracking_user_agents (pattern, kind, name, source, note, created_by)
+VALUES (@pattern, @kind, @name, 'admin', @note, sqlc.narg(created_by))
+ON CONFLICT (pattern) DO NOTHING
+RETURNING pattern, created_at;
+
+-- name: TrackingUserAgentDelete :one
+-- Only user agents an admin added can be removed; the built-in ones come
+-- with releases.
+DELETE FROM tracking_user_agents WHERE pattern = @pattern AND source = 'admin'
+RETURNING pattern, kind, name, note;

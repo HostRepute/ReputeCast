@@ -4147,7 +4147,8 @@ type Querier interface {
 	// Only networks an admin added can be removed; the built-in ones come with
 	// releases.
 	TrackingNetworkDelete(ctx context.Context, cidr netip.Prefix) (TrackingNetworkDeleteRow, error)
-	// Networks of privacy proxies and mail scanners.
+	// Networks of privacy proxies and mail scanners, the ones admins added
+	// first, with who added them.
 	TrackingNetworkList(ctx context.Context) ([]TrackingNetworkListRow, error)
 	TrackingNextSettle(ctx context.Context) (time.Time, error)
 	// A click that looks like a person's waits to settle (review AN-2).
@@ -4171,6 +4172,14 @@ type Querier interface {
 	// the latest person's open or click, clicked the latest click; machine says
 	// the latest open was a machine's.
 	TrackingTouchContacts(ctx context.Context, arg TrackingTouchContactsParams) error
+	TrackingUserAgentAdd(ctx context.Context, arg TrackingUserAgentAddParams) (TrackingUserAgentAddRow, error)
+	// Only user agents an admin added can be removed; the built-in ones come
+	// with releases.
+	TrackingUserAgentDelete(ctx context.Context, pattern string) (TrackingUserAgentDeleteRow, error)
+	// The user agents of machines, and the words of people's devices a rule
+	// takes for machines (review AN-2): admins' first, then the longest, so the
+	// most specific pattern names a user agent.
+	TrackingUserAgentList(ctx context.Context) ([]TrackingUserAgentListRow, error)
 	// What the traffic rules did lately in a workspace: auto-pauses,
 	// slowdowns, reply rules, canaries and complaint alerts, newest first.
 	TrafficRecentActions(ctx context.Context, arg TrafficRecentActionsParams) ([]TrafficRecentActionsRow, error)

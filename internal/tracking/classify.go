@@ -26,6 +26,9 @@ type Signal struct {
 	// Net is the machine network the address belongs to, from the
 	// instance's list (tracking_networks); nil checks the built-in ranges.
 	Net *Network
+	// Agents is the instance's list of machines' user agents
+	// (tracking_user_agents); nil is the built-in list.
+	Agents *useragent.List
 	// Reported: the sending provider reported the open or click (the
 	// workspace keeps the provider's tracking, review AN-4). A provider
 	// that doesn't pass the user agent on says nothing about the request,
@@ -165,7 +168,7 @@ func ClassifyOpen(s Signal) Verdict {
 		}
 		return person("Yahoo Mail")
 	}
-	if name := scannerAgent(ua); name != "" {
+	if name := scannerAgent(s, ua); name != "" {
 		return machine("Security scanner (" + name + ")")
 	}
 	if name := scannerNet(s); name != "" && known(s) && s.since() < scannerWindow {
@@ -194,7 +197,7 @@ func ClassifyClick(s Signal, burst bool) Verdict {
 	case ua == "" && !s.Reported:
 		return bot(reasonNoAgent)
 	}
-	if name := scannerAgent(ua); name != "" {
+	if name := scannerAgent(s, ua); name != "" {
 		return bot("Link scanner (" + name + ")")
 	}
 	if name := scannerNet(s); name != "" && known(s) && s.since() < scannerWindow {
@@ -244,9 +247,10 @@ const (
 	appleName  = "Apple Mail Privacy Protection"
 )
 
-// scannerAgent names the machine a user agent belongs to (whole product
-// tokens, so "CUBOT" phones aren't bots), or "".
-func scannerAgent(ua string) string { return useragent.Bot(ua) }
+// scannerAgent names the machine a user agent belongs to, by the
+// instance's list or else the built-in one (whole product tokens, so
+// "CUBOT" phones aren't bots), or "".
+func scannerAgent(s Signal, ua string) string { return s.Agents.Bot(ua) }
 
 func scannerNet(s Signal) string {
 	if class, name := netOf(s); class == netScanner {

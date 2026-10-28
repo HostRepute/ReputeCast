@@ -18,5 +18,11 @@
   "problem.networkInvalid": "Nhập một địa chỉ hoặc một dải mạng, ví dụ 203.0.113.0/24 hoặc 2001:db8::/48.",
   "problem.networkTooWide": "Một dải mạng rộng như vậy sẽ coi người đọc bình thường là máy. Hãy thêm dải /{v4} hoặc hẹp hơn với IPv4, /{v6} hoặc hẹp hơn với IPv6.",
   "problem.networkListed": "{cidr} đã có trong danh sách.",
+  "problem.agentShort": "Nhập ít nhất 3 ký tự của user agent, ví dụ AcmeGate-LinkCheck.",
+  "problem.agentWord": "Thiết bị của một người là một từ trong user agent của nó, chỉ gồm chữ và số, ví dụ KioskBot.",
+  "problem.agentPeople": "“{pattern}” có trong user agent của các trình duyệt và ứng dụng thư mà mọi người dùng để đọc email, nên sẽ coi họ là máy. Hãy nhập một từ chỉ user agent của máy đó có.",
+  "problem.agentName": "Hãy cho biết đó là ai hoặc là gì, ví dụ “cổng thư của chúng tôi”.",
+  "problem.agentListed": "“{pattern}” đã có trong danh sách.",
+  "problem.agentNotRemovable": "“{pattern}” không phải user agent do quản trị viên thêm. Các user agent có sẵn đi kèm các bản phát hành của ReputeCast.",
   "problem.networkNotRemovable": "{cidr} không phải dải mạng do quản trị viên thêm. Các dải mạng có sẵn đi kèm các bản phát hành của ReputeCast."
 }

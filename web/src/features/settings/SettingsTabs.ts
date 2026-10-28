@@ -36,6 +36,8 @@ export function adminTabs(workspace: string): NavTab[] {
     { label: t(m.authentication), to: '/w/$workspace/admin/authentication', params },
     { label: t(m.sso), to: '/w/$workspace/admin/sso', params },
     { label: t(m.instance), to: '/w/$workspace/admin/instance', params },
+    // The bot filter's networks and user agents (review AN-2).
+    { label: t(m.botFilter), to: '/w/$workspace/admin/bot-filter', params },
     { label: t(m.instanceAudit), to: '/w/$workspace/admin/audit', params },
   ]
 }

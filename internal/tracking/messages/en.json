@@ -18,5 +18,11 @@
   "problem.networkInvalid": { "message": "Enter an address or a network, such as 203.0.113.0/24 or 2001:db8::/48.", "note": "a problem when an instance admin adds a scanner or privacy-proxy network" },
   "problem.networkTooWide": "A network this wide would take ordinary readers for machines. Add a /{v4} or narrower network for IPv4, a /{v6} or narrower for IPv6.",
   "problem.networkListed": "{cidr} is already on the list.",
+  "problem.agentShort": {"message": "Enter at least 3 characters of the user agent, such as AcmeGate-LinkCheck.", "note": "a problem when an instance admin adds a machine's user agent to the bot filter"},
+  "problem.agentWord": "A person's device is one word of its user agent, letters and digits only, such as KioskBot.",
+  "problem.agentPeople": {"message": "“{pattern}” is in the user agents of browsers and mail clients people read email with, so it would take them for machines. Enter a word only the machine's user agent has.", "note": "pattern: what the admin typed, never translated"},
+  "problem.agentName": "Say who or what it is, such as “our mail gateway”.",
+  "problem.agentListed": "“{pattern}” is already on the list.",
+  "problem.agentNotRemovable": "“{pattern}” isn't a user agent an admin added. Built-in user agents come with ReputeCast releases.",
   "problem.networkNotRemovable": "{cidr} isn't a network an admin added. Built-in networks come with ReputeCast releases."
 }

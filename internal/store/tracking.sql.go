@@ -450,21 +450,24 @@ func (q *Queries) TrackingNetworkDelete(ctx context.Context, cidr netip.Prefix) 
 }
 
 const trackingNetworkList = `-- name: TrackingNetworkList :many
-SELECT cidr::text AS cidr, name, class, source, note, created_at
-FROM tracking_networks
-ORDER BY class, name, cidr
+SELECT n.cidr::text AS cidr, n.name, n.class, n.source, n.note, n.created_at, coalesce(u.name, '')::text AS created_by_name
+FROM tracking_networks n
+LEFT JOIN users u ON u.id = n.created_by
+ORDER BY (n.source = 'admin') DESC, n.class, n.name, n.cidr
 `
 
 type TrackingNetworkListRow struct {
-	Cidr      string    `json:"cidr"`
-	Name      string    `json:"name"`
-	Class     string    `json:"class"`
-	Source    string    `json:"source"`
-	Note      string    `json:"note"`
-	CreatedAt time.Time `json:"createdAt"`
+	Cidr          string    `json:"cidr"`
+	Name          string    `json:"name"`
+	Class         string    `json:"class"`
+	Source        string    `json:"source"`
+	Note          string    `json:"note"`
+	CreatedAt     time.Time `json:"createdAt"`
+	CreatedByName string    `json:"createdByName"`
 }
 
-// Networks of privacy proxies and mail scanners.
+// Networks of privacy proxies and mail scanners, the ones admins added
+// first, with who added them.
 func (q *Queries) TrackingNetworkList(ctx context.Context) ([]TrackingNetworkListRow, error) {
 	rows, err := q.db.Query(ctx, trackingNetworkList)
 	if err != nil {
@@ -481,6 +484,7 @@ func (q *Queries) TrackingNetworkList(ctx context.Context) ([]TrackingNetworkLis
 			&i.Source,
 			&i.Note,
 			&i.CreatedAt,
+			&i.CreatedByName,
 		); err != nil {
 			return nil, err
 		}
@@ -738,4 +742,111 @@ func (q *Queries) TrackingTouchContacts(ctx context.Context, arg TrackingTouchCo
 		arg.Activity,
 	)
 	return err
+}
+
+const trackingUserAgentAdd = `-- name: TrackingUserAgentAdd :one
+INSERT INTO tracking_user_agents (pattern, kind, name, source, note, created_by)
+VALUES ($1, $2, $3, 'admin', $4, $5)
+ON CONFLICT (pattern) DO NOTHING
+RETURNING pattern, created_at
+`
+
+type TrackingUserAgentAddParams struct {
+	Pattern   string     `json:"pattern"`
+	Kind      string     `json:"kind"`
+	Name      string     `json:"name"`
+	Note      string     `json:"note"`
+	CreatedBy *uuid.UUID `json:"createdBy"`
+}
+
+type TrackingUserAgentAddRow struct {
+	Pattern   string    `json:"pattern"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+func (q *Queries) TrackingUserAgentAdd(ctx context.Context, arg TrackingUserAgentAddParams) (TrackingUserAgentAddRow, error) {
+	row := q.db.QueryRow(ctx, trackingUserAgentAdd,
+		arg.Pattern,
+		arg.Kind,
+		arg.Name,
+		arg.Note,
+		arg.CreatedBy,
+	)
+	var i TrackingUserAgentAddRow
+	err := row.Scan(&i.Pattern, &i.CreatedAt)
+	return i, err
+}
+
+const trackingUserAgentDelete = `-- name: TrackingUserAgentDelete :one
+DELETE FROM tracking_user_agents WHERE pattern = $1 AND source = 'admin'
+RETURNING pattern, kind, name, note
+`
+
+type TrackingUserAgentDeleteRow struct {
+	Pattern string `json:"pattern"`
+	Kind    string `json:"kind"`
+	Name    string `json:"name"`
+	Note    string `json:"note"`
+}
+
+// Only user agents an admin added can be removed; the built-in ones come
+// with releases.
+func (q *Queries) TrackingUserAgentDelete(ctx context.Context, pattern string) (TrackingUserAgentDeleteRow, error) {
+	row := q.db.QueryRow(ctx, trackingUserAgentDelete, pattern)
+	var i TrackingUserAgentDeleteRow
+	err := row.Scan(
+		&i.Pattern,
+		&i.Kind,
+		&i.Name,
+		&i.Note,
+	)
+	return i, err
+}
+
+const trackingUserAgentList = `-- name: TrackingUserAgentList :many
+SELECT a.pattern, a.kind, a.name, a.source, a.note, a.created_at, coalesce(u.name, '')::text AS created_by_name
+FROM tracking_user_agents a
+LEFT JOIN users u ON u.id = a.created_by
+ORDER BY (a.source = 'admin') DESC, char_length(a.pattern) DESC, a.pattern
+`
+
+type TrackingUserAgentListRow struct {
+	Pattern       string    `json:"pattern"`
+	Kind          string    `json:"kind"`
+	Name          string    `json:"name"`
+	Source        string    `json:"source"`
+	Note          string    `json:"note"`
+	CreatedAt     time.Time `json:"createdAt"`
+	CreatedByName string    `json:"createdByName"`
+}
+
+// The user agents of machines, and the words of people's devices a rule
+// takes for machines (review AN-2): admins' first, then the longest, so the
+// most specific pattern names a user agent.
+func (q *Queries) TrackingUserAgentList(ctx context.Context) ([]TrackingUserAgentListRow, error) {
+	rows, err := q.db.Query(ctx, trackingUserAgentList)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TrackingUserAgentListRow{}
+	for rows.Next() {
+		var i TrackingUserAgentListRow
+		if err := rows.Scan(
+			&i.Pattern,
+			&i.Kind,
+			&i.Name,
+			&i.Source,
+			&i.Note,
+			&i.CreatedAt,
+			&i.CreatedByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

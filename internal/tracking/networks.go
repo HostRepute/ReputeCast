@@ -109,9 +109,10 @@ type TrackingNetwork struct {
 	// and clicks on arrival are a machine's).
 	Class string `json:"class" enum:"privacy,scanner"`
 	// Source: builtin (comes with ReputeCast) or admin (added here).
-	Source    string    `json:"source" enum:"builtin,admin"`
-	Note      string    `json:"note"`
-	CreatedAt time.Time `json:"createdAt"`
+	Source        string    `json:"source" enum:"builtin,admin"`
+	Note          string    `json:"note"`
+	CreatedAt     time.Time `json:"createdAt"`
+	CreatedByName string    `json:"createdByName,omitempty"`
 }
 
 // TrackingNetworkList lists the networks.
@@ -161,7 +162,8 @@ func (s *Service) Networks(ctx context.Context) (TrackingNetworkList, error) {
 	}
 	out := TrackingNetworkList{Items: make([]TrackingNetwork, 0, len(rows))}
 	for _, r := range rows {
-		out.Items = append(out.Items, TrackingNetwork{CIDR: r.Cidr, Name: r.Name, Class: r.Class, Source: r.Source, Note: r.Note, CreatedAt: r.CreatedAt})
+		out.Items = append(out.Items, TrackingNetwork{CIDR: r.Cidr, Name: r.Name, Class: r.Class, Source: r.Source, Note: r.Note, CreatedAt: r.CreatedAt,
+			CreatedByName: r.CreatedByName})
 	}
 	return out, nil
 }
@@ -193,6 +195,9 @@ func (s *Service) AddNetwork(ctx context.Context, in TrackingNetworkInput) (Trac
 			return err
 		}
 		out = TrackingNetwork{CIDR: cidr, Name: name, Class: in.Class, Source: "admin", Note: note, CreatedAt: s.now()}
+		if p := api.PrincipalFrom(ctx); p != nil {
+			out.CreatedByName = p.Name
+		}
 		return s.Audit.LogWith(ctx, q, audit.Event{Action: "tracking_network.create", TargetType: "tracking_network", TargetID: cidr, TargetName: name,
 			After: map[string]any{"cidr": cidr, "name": name, "class": in.Class, "note": note}})
 	})
@@ -229,9 +234,11 @@ func (s *Service) RemoveNetwork(ctx context.Context, cidr string) error {
 	return nil
 }
 
-// RegisterNetworks adds the instance admin's operations on the networks.
+// RegisterNetworks adds the instance admin's operations on the bot filter's
+// lists: the networks and the user agents (agents.go).
 func RegisterNetworks(h huma.API, s *Service) {
 	tags := []string{"Instance admin · Tracking"}
+	registerUserAgents(h, s, tags)
 	base := "/admin/tracking-networks"
 	api.Get(h, api.Op{ID: "list-tracking-networks", Path: base, Summary: "Networks of privacy proxies and mail scanners whose opens and clicks aren't people's",
 		Tags: tags, Access: api.InstanceAdmin},

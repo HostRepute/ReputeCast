@@ -639,6 +639,44 @@
    "x": 3120,
    "y": 0
   },
+  "InstanceBotFilter.dc.html": {
+   "expand": "fill",
+   "h": 1098,
+   "is_interactive": true,
+   "page": "instance",
+   "title": "Instance admin · bot filter",
+   "w": 1440,
+   "x": 10920,
+   "y": 0
+  },
+  "InstanceBotFilterDialogs.dc.html": {
+   "expand": "fill",
+   "h": 1370,
+   "is_interactive": true,
+   "page": "instance",
+   "title": "Instance admin · bot filter · add a network or user agent, remove one",
+   "w": 1440,
+   "x": 12480,
+   "y": 0
+  },
+  "InstanceBotFilterTablet.dc.html": {
+   "h": 1351,
+   "is_interactive": true,
+   "page": "instance",
+   "title": "Instance admin · bot filter · tablet",
+   "w": 834,
+   "x": 1908,
+   "y": 2700
+  },
+  "InstanceBotFilterPhone.dc.html": {
+   "h": 1953,
+   "is_interactive": true,
+   "page": "instance",
+   "title": "Instance admin · bot filter · phone",
+   "w": 390,
+   "x": 1020,
+   "y": 5775
+  },
   "InstanceSettings.dc.html": {
    "expand": "fill",
    "h": 1346,
@@ -5500,11 +5538,15 @@
   "InstanceSettings.dc.html",
   "SSOSetup.dc.html",
   "SSOStates.dc.html",
+  "InstanceBotFilter.dc.html",
+  "InstanceBotFilterDialogs.dc.html",
   "AuditInstance.dc.html",
   "InstanceUsersTablet.dc.html",
   "SSOSetupTablet.dc.html",
+  "InstanceBotFilterTablet.dc.html",
   "InstanceUsersPhone.dc.html",
   "SSOSetupPhone.dc.html",
+  "InstanceBotFilterPhone.dc.html",
   "ApprovalPolicy.dc.html",
   "ApprovalReview.dc.html",
   "ApprovalInbox.dc.html",

@@ -19,5 +19,6 @@ export const m = defineMessages('settings', {
   authentication: 'Authentication',
   sso: 'SSO providers',
   instance: 'Instance & updates',
+  botFilter: 'Bot filter',
   instanceAudit: 'Audit log',
 })

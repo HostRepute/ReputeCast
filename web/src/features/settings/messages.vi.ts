@@ -19,5 +19,6 @@ export default translate(m, {
   authentication: 'Xác thực',
   sso: 'Nhà cung cấp SSO',
   instance: 'Hệ thống và cập nhật',
+  botFilter: 'Bộ lọc bot',
   instanceAudit: 'Nhật ký kiểm tra',
 })

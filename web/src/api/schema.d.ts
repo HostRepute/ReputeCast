@@ -399,6 +399,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/tracking-user-agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** User agents of machines whose opens and clicks aren't people's */
+        get: operations["list-tracking-user-agents"];
+        put?: never;
+        /**
+         * Add the user agent of a machine, or of a person's device a rule takes for one (audited)
+         * @description A machine's pattern is found anywhere in a user agent: its opens and clicks count as a machine's. A person's is one word of a device's user agent that a rule would take for a machine's (a word ending in “bot”): its opens and clicks count as a person's again.
+         */
+        post: operations["add-tracking-user-agent"];
+        /** Remove a user agent an admin added (audited) */
+        delete: operations["remove-tracking-user-agent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/untrusted-proxies": {
         parameters: {
             query?: never;
@@ -41740,6 +41762,7 @@ export interface components {
             class: "privacy" | "scanner";
             /** Format: date-time */
             createdAt: string;
+            createdByName?: string;
             name: string;
             note: string;
             /** @enum {string} */
@@ -41756,6 +41779,31 @@ export interface components {
         };
         TrackingNetworkList: {
             items: components["schemas"]["TrackingNetwork"][];
+        };
+        TrackingUserAgent: {
+            /** Format: date-time */
+            createdAt: string;
+            createdByName?: string;
+            /** @enum {string} */
+            kind: "scanner" | "script" | "headless" | "preview" | "person";
+            name: string;
+            note: string;
+            /** @example acmegate-linkcheck */
+            pattern: string;
+            /** @enum {string} */
+            source: "builtin" | "admin";
+        };
+        TrackingUserAgentInput: {
+            /** @enum {string} */
+            kind: "scanner" | "person";
+            /** @description Who or what it is: our mail gateway, lobby kiosks */
+            name: string;
+            note?: string;
+            /** @description Text found in the user agent: AcmeGate-LinkCheck. A person's device: one word, KioskBot */
+            pattern: string;
+        };
+        TrackingUserAgentList: {
+            items: components["schemas"]["TrackingUserAgent"][];
         };
         TrafficAction: {
             /** Format: date-time */
@@ -47078,6 +47126,98 @@ export interface operations {
             query: {
                 /** @description The network, as listed: 203.0.113.0/24 */
                 cidr: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-tracking-user-agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackingUserAgentList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-tracking-user-agent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackingUserAgentInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackingUserAgent"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-tracking-user-agent": {
+        parameters: {
+            query: {
+                /** @description The pattern, as listed: acmegate-linkcheck */
+                pattern: string;
             };
             header?: never;
             path?: never;

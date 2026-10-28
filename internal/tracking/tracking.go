@@ -89,6 +89,7 @@ type Service struct {
 	mu    sync.Mutex
 	links map[uuid.UUID]linkSet
 	nets  netCache
+	uas   agentCache
 	// backlog holds opens and clicks that couldn't be recorded nor kept
 	// for a retry (the database was unreachable); the writer tries them
 	// again.

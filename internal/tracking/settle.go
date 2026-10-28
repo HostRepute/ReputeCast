@@ -173,6 +173,7 @@ func (s *Service) signal(ctx context.Context, m store.TrackingMessageRow, ua str
 		sig.SinceDelivery, sig.Delivered = at.Sub(*m.DeliveredAt), true
 	}
 	sig.Net = s.networkOf(ctx, sig.IP)
+	sig.Agents = s.agents(ctx)
 	return sig
 }
 
