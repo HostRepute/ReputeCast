@@ -841,9 +841,11 @@ func checkedAssets(ov deliverability.DeliverabilityOverview) map[string]bool {
 
 // reputationDomains are the domains the send's reputation rides on (SR-2):
 // the sending domain, its parent (organizational) domain, the return-path
-// domains of the providers carrying the send and the tracking domain.
-// Deliverability watches the sending and parent domains; the others are
-// looked up live on the URI blocklists, as link domains are.
+// domains of the providers carrying the send and the tracking domain. Those
+// Deliverability's blocklist checks cover come from there; every other one
+// is looked up live on the URI blocklists, as link domains are, so a domain
+// HostRepute hasn't checked yet (often the parent) is never taken for
+// clean (R1.L2, F-3). Without live lookups it is unknown, with that reason.
 func (s *Service) reputationDomains(ctx context.Context, g *gathered, f Facts, watched map[string]bool) []DomainAssetFacts {
 	sending := strings.ToLower(firstNonEmpty(f.Auth.Domain, g.c.SenderDomain))
 	if sending == "" {
@@ -877,17 +879,22 @@ func (s *Service) reputationDomains(ctx context.Context, g *gathered, f Facts, w
 	}
 	live := []string{}
 	for i, d := range out {
-		if (d.Role == DomainReturnPath || d.Role == DomainTracking) && !watched[d.Domain] && s.Links != nil {
-			out[i].Live = true
-			live = append(live, d.Domain)
+		if watched[d.Domain] {
+			continue
 		}
+		out[i].Live = true
+		if s.Links == nil {
+			out[i].Unknown = UnknownUnchecked
+			continue
+		}
+		live = append(live, d.Domain)
 	}
 	if len(live) == 0 {
 		return out
 	}
 	rep, err := s.Links.Check(ctx, live)
 	for i, d := range out {
-		if !d.Live {
+		if !d.Live || d.Unknown != "" {
 			continue
 		}
 		switch {

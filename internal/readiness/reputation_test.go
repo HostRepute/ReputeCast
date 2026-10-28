@@ -75,3 +75,46 @@ func TestReputationCoversEveryDomain(t *testing.T) {
 		t.Errorf("unknown: %s %q %q", c.Status, c.Title, c.Note)
 	}
 }
+
+// R1.L2, F-3: a domain Deliverability doesn't watch (HostRepute hasn't
+// checked the parent domain yet) is looked up live and never taken for
+// clean: listed, it blocks; when nothing could look it up, it is unknown
+// with why.
+func TestUnwatchedParentDomainIsLookedUp(t *testing.T) {
+	f := digestDomains()
+	f.Reputation.Domains[1].Live = true // acme.io: HostRepute hasn't checked it
+	c := byKey(readiness.Assemble(f))["reputation.domain_blocklists"]
+	if c.Status != readiness.Pass || c.Title != "news.acme.io is clean on 84 of 84 domain blocklists" ||
+		!strings.Contains(c.Detail, "acme.io (parent domain), bounce.news.acme.io (SES return path), rp.news.acme.io (Postal return path) and links.acme.io (tracking domain): clean on Spamhaus DBL and SURBL, looked up live.") {
+		t.Errorf("parent looked up live, clean: %s %q %q", c.Status, c.Title, c.Detail)
+	}
+
+	f.Reputation.Domains[1].Lists = []string{"Spamhaus DBL"}
+	c = byKey(readiness.Assemble(f))["reputation.domain_blocklists"]
+	if c.Status != readiness.Block || c.Title != "acme.io, the parent domain of news.acme.io, is listed on Spamhaus DBL" {
+		t.Errorf("parent listed, looked up live: %s %q", c.Status, c.Title)
+	}
+
+	f = digestDomains()
+	f.Reputation.Domains[1].Live, f.Reputation.Domains[1].Unknown = true, readiness.UnknownUnchecked
+	res := readiness.Assemble(f)
+	c = byKey(res)["reputation.domain_blocklists"]
+	if c.Status != readiness.Unknown || c.Title != "Couldn't check acme.io on Spamhaus DBL and SURBL" ||
+		!strings.HasPrefix(c.Detail, "Deliverability's blocklist checks don't cover it yet, and this server can't look it up itself.") || c.Note != "not checked" {
+		t.Errorf("nobody checked the parent: %s %q %q %q", c.Status, c.Title, c.Detail, c.Note)
+	}
+	if !res.Incomplete || res.Verdict == readiness.VerdictReady && res.Counts.Unknown == 0 {
+		t.Errorf("an unknown domain leaves the run incomplete: %+v", res.Counts)
+	}
+
+	// Deliverability watches none of them yet: every domain was looked up live.
+	f = digestDomains()
+	for i := range f.Reputation.Domains {
+		f.Reputation.Domains[i].Live = true
+	}
+	c = byKey(readiness.Assemble(f))["reputation.domain_blocklists"]
+	if c.Status != readiness.Pass || c.Title != "news.acme.io, acme.io, bounce.news.acme.io, rp.news.acme.io and links.acme.io are clean on Spamhaus DBL and SURBL" ||
+		!strings.HasPrefix(c.Detail, "news.acme.io (sending domain), acme.io (parent domain), ") || strings.Contains(c.Detail, "84") {
+		t.Errorf("all live: %q %q", c.Title, c.Detail)
+	}
+}

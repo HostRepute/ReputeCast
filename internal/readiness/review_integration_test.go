@@ -96,6 +96,49 @@ func TestParentDomainListingShows(t *testing.T) {
 	}
 }
 
+// R1.L2, F-3: a parent domain HostRepute hasn't checked yet is looked up
+// live on Spamhaus DBL and SURBL, as link domains are: listed, it blocks;
+// clean, the check says it was looked up live. It is never taken for clean
+// unchecked.
+func TestUncheckedParentDomainIsLookedUpLive(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	// HostRepute's results don't cover acme.io (not checked yet).
+	tag, err := env.App.Pool.Exec(ctx, `DELETE FROM blocklist_results WHERE asset = 'acme.io' AND workspace_id = (SELECT id FROM workspaces WHERE slug = 'acme-newsletter')`)
+	if err != nil || tag.RowsAffected() == 0 {
+		t.Fatalf("forgetting acme.io: %v (%d rows)", err, tag.RowsAffected())
+	}
+	// A fresh live answer: acme.io is on Spamhaus DBL.
+	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO link_domain_listings (domain, lists, source, checked_at) VALUES ('acme.io', '{Spamhaus DBL}', 'dns', now())
+		ON CONFLICT (domain) DO UPDATE SET lists = EXCLUDED.lists, source = EXCLUDED.source, checked_at = EXCLUDED.checked_at`); err != nil {
+		t.Fatal(err)
+	}
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	id := campaignID(t, c, "Weekly Digest #143")
+	run := runChecks(t, env, c, id)
+	ch, _ := checkOf(run, "reputation.domain_blocklists")
+	if ch.Status != readiness.Block || ch.Title != "acme.io, the parent domain of news.acme.io, is listed on Spamhaus DBL" {
+		t.Fatalf("parent listed, looked up live: %s %q", ch.Status, ch.Title)
+	}
+
+	// No answer kept: the run looks it up (the demo's lists don't list it).
+	if _, err := env.App.Pool.Exec(ctx, `DELETE FROM link_domain_listings WHERE domain = 'acme.io'`); err != nil {
+		t.Fatal(err)
+	}
+	run = runChecks(t, env, c, id)
+	ch, _ = checkOf(run, "reputation.domain_blocklists")
+	if ch.Status != readiness.Pass || !strings.Contains(ch.Detail, "acme.io (parent domain)") || !strings.Contains(ch.Detail, "looked up live") ||
+		strings.Contains(ch.Title, " and acme.io ") {
+		t.Fatalf("parent looked up live, clean: %s %q %q", ch.Status, ch.Title, ch.Detail)
+	}
+	var lists []string
+	if err := env.App.Pool.QueryRow(ctx, `SELECT lists FROM link_domain_listings WHERE domain = 'acme.io'`).Scan(&lists); err != nil || len(lists) != 0 {
+		t.Errorf("the live answer is kept: %v %v", lists, err)
+	}
+}
+
 type composerContent struct {
 	ID, Subject, MJML, HTML string
 	Version                 int

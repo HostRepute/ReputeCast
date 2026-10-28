@@ -468,20 +468,37 @@ func (b *builder) domainReputation(domain, via string, checked any, unknownNote 
 			Detail: tx("reputation.liveUnknownDetail", A{"trouble": unknown[0].Unknown}), Fixes: []fix{deliverability}}
 	}
 	args := A{"domains": ArgAnd(watched), "count": len(watched), "sources": r.Sources}
-	detail := b.sourcesDetail("domain", checked)
+	title, short := tx("reputation.domainsClean", args), tx("reputation.domainsCleanShort", args)
+	var detail Text
+	if len(watched) > 0 {
+		detail = b.sourcesDetail("domain", checked)
+	}
 	if len(live) > 0 {
 		parts := []Text{}
 		for _, a := range live {
-			if a.Role == DomainTracking {
+			switch a.Role {
+			case DomainTracking:
 				parts = append(parts, tx("reputation.roleTracking", A{"domain": a.Domain}))
-			} else {
+			case DomainParent:
+				parts = append(parts, tx("reputation.roleParent", A{"domain": a.Domain}))
+			case DomainSending:
+				parts = append(parts, tx("reputation.roleSending", A{"domain": a.Domain}))
+			default:
 				parts = append(parts, tx("reputation.roleReturnPath", A{"domain": a.Domain, "providers": ArgAnd(a.Providers)}))
 			}
 		}
 		detail = sentences(detail, tx("reputation.liveClean", A{"domains": ArgAnd(parts), "lists": ArgAnd(b.uriLists())}))
 	}
-	return check{Key: key, Group: GroupReputation, Status: Pass, Title: tx("reputation.domainsClean", args), Detail: detail, Label: label,
-		Short: tx("reputation.domainsCleanShort", args)}
+	if len(watched) == 0 {
+		// Deliverability watches none of them yet: every one was looked up live.
+		names := []string{}
+		for _, a := range live {
+			names = append(names, a.Domain)
+		}
+		live := A{"domains": ArgAnd(names), "count": len(names), "lists": ArgAnd(b.uriLists())}
+		title, short = tx("reputation.liveDomainsClean", live), tx("reputation.liveDomainsCleanShort", live)
+	}
+	return check{Key: key, Group: GroupReputation, Status: Pass, Title: title, Detail: detail, Label: label, Short: short}
 }
 
 // unknownReason says why the blocklists couldn't be checked: the reason

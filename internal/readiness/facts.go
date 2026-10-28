@@ -314,11 +314,16 @@ type DomainAssetFacts struct {
 	Providers []string
 	// Live is true when Send Readiness looked the domain up itself on the
 	// URI blocklists (Deliverability doesn't watch it): Lists are the lists
-	// it is on, Unknown why the lookup failed (a contentcheck.Trouble* kind).
+	// it is on, Unknown why it isn't known (a contentcheck.Trouble* kind, or
+	// UnknownUnchecked when nothing could look it up).
 	Live    bool
 	Lists   []string
 	Unknown string
 }
+
+// UnknownUnchecked is why a domain of the send's reputation is unknown when
+// Deliverability doesn't watch it and the run can't look it up live.
+const UnknownUnchecked = "unchecked"
 
 // ListingFacts is one asset on one blocklist.
 type ListingFacts struct {
