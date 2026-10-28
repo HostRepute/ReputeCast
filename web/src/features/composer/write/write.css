@@ -142,15 +142,17 @@
   position: relative;
   margin: 0 0 14px;
 }
+/* The block's gutter: Add below and the move handle, 24 px targets (WCAG 2.2
+   target size) in the page's 56 px margin. */
 .gut {
   position: absolute;
-  left: -44px;
+  left: -52px;
   top: 0;
   display: flex;
   gap: 2px;
 }
 .gut button {
-  width: 20px;
+  width: 24px;
   height: 24px;
   border: 0;
   border-radius: 5px;
@@ -579,10 +581,15 @@
     margin-left: 0;
     justify-content: space-between;
   }
+  /* .btn.sm too: composer.css draws small buttons at 28 px with the same
+     weight, and may come later in the bundle. */
   .cmp .wt-col .btn,
+  .cmp .wt-col .btn.sm,
   .wsync a,
   .cmp .wsync .btn,
+  .cmp .wsync .btn.sm,
   .cmp .walt .btn,
+  .cmp .walt .btn.sm,
   .cmp .walt .in {
     min-height: 44px;
   }
