@@ -1293,7 +1293,7 @@
    "y": 0
   },
   "ReportPhone.dc.html": {
-   "h": 8410,
+   "h": 8470,
    "is_interactive": true,
    "page": "report",
    "title": "Campaign report · phone",
@@ -1303,10 +1303,10 @@
   },
   "ReportStates.dc.html": {
    "expand": "fill",
-   "h": 2526,
+   "h": 3855,
    "is_interactive": true,
    "page": "report",
-   "title": "Report · loading / empty / error",
+   "title": "Report · loading / empty / error / retry / A/B states",
    "w": 1440,
    "x": 3040,
    "y": 0
