@@ -204,7 +204,7 @@ func (s *Service) excludeRisky(ctx context.Context, ws *store.Workspace, p *auth
 	if s.Verification == nil {
 		return "", api.Conflict(say(ctx, "problem.noAddressChecks", nil))
 	}
-	aud, recipients, err := s.computeAudience(ctx, s.Q, ws.ID, ParseAudience(c.Audience), sunsetDays(ws.SunsetPolicy), s.now())
+	aud, recipients, err := s.computeAudience(ctx, s.Q, ws.ID, ParseAudience(c.Audience), sunsetDays(ws.SunsetPolicy), s.now(), true)
 	if err != nil {
 		return "", err
 	}

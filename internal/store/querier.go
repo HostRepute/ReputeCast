@@ -2809,6 +2809,8 @@ type Querier interface {
 	// contacts subscribed to the lists (or in the segments), minus excluded lists
 	// and segments, with what the counts need per contact. A deleted list
 	// (restorable for 30 days) adds nobody; as an exclusion it still excludes.
+	// Each contact's lists are read only with with_lists (routing needs them,
+	// counts don't).
 	ReadinessRecipients(ctx context.Context, arg ReadinessRecipientsParams) ([]ReadinessRecipientsRow, error)
 	// The planned split of an unsent campaign, refreshed by each run.
 	ReadinessReplaceRoutes(ctx context.Context, campaignID uuid.UUID) error

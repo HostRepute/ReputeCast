@@ -135,7 +135,7 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 		}
 	}
 	def := ParseAudience(c.Audience)
-	aud, recipients, err := s.computeAudience(ctx, s.Q, ws.ID, def, sunsetDays(ws.SunsetPolicy), now)
+	aud, recipients, err := s.computeAudience(ctx, s.Q, ws.ID, def, sunsetDays(ws.SunsetPolicy), now, true)
 	if err != nil {
 		return f, fmt.Errorf("audience: %w", err)
 	}

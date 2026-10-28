@@ -177,8 +177,10 @@ func (n audienceNames) labels(a AudienceDef, f *AudienceFacts) {
 }
 
 // computeAudience counts the final recipients of a definition: suppressed,
-// role, duplicate and (when excluded) sunset-tier contacts are removed.
-func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uuid.UUID, def AudienceDef, unengagedDays int, now time.Time) (AudienceFacts, []Recipient, error) {
+// role, duplicate and (when excluded) sunset-tier contacts are removed. With
+// withRecipients it returns them too, each with their lists, for routing;
+// counts alone (Audience) don't read the lists.
+func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uuid.UUID, def AudienceDef, unengagedDays int, now time.Time, withRecipients bool) (AudienceFacts, []Recipient, error) {
 	leaveOut := def.LeavesOutUnengaged(sendDefaults(ctx, q, wsID).ExcludeUnengaged)
 	out := AudienceFacts{Mailboxes: map[string]int64{}, Languages: map[string]int64{}, UnengagedDays: unengagedDays, UnengagedExcluded: leaveOut, Lists: []string{},
 		SunsetOverride: def.IncludeSunset && !leaveOut}
@@ -222,7 +224,7 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 		}
 	}
 	rows, err := q.ReadinessRecipients(ctx, store.ReadinessRecipientsParams{
-		BouncedSince: now.AddDate(0, 0, -30), WorkspaceID: wsID, Lists: ids(def.Lists), Contacts: contacts,
+		WithLists: withRecipients, BouncedSince: now.AddDate(0, 0, -30), WorkspaceID: wsID, Lists: ids(def.Lists), Contacts: contacts,
 		ExcludeLists: ids(def.ExcludeLists), ExcludeContacts: exclude,
 	})
 	if err != nil {
@@ -249,7 +251,10 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 		}
 	}
 	seen := make(map[string]bool, len(rows))
-	recipients := make([]Recipient, 0, len(rows))
+	var recipients []Recipient
+	if withRecipients {
+		recipients = make([]Recipient, 0, len(rows))
+	}
 	sunset := out.UnengagedExcluded
 	counted := countingFrom(ctx)
 	for i, r := range rows {
@@ -307,6 +312,9 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 		}
 		out.Mailboxes[mbp]++
 		out.Languages[strings.ToLower(strings.TrimSpace(r.Language))]++
+		if !withRecipients {
+			continue
+		}
 		lists := make([]string, len(r.ListIds))
 		for i, l := range r.ListIds {
 			lists[i] = l.String()

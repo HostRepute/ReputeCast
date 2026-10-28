@@ -18,10 +18,14 @@ WHERE c.workspace_id = @workspace_id AND c.id = @id AND c.deleted_at IS NULL;
 -- contacts subscribed to the lists (or in the segments), minus excluded lists
 -- and segments, with what the counts need per contact. A deleted list
 -- (restorable for 30 days) adds nobody; as an exclusion it still excludes.
+-- Each contact's lists are read only with with_lists (routing needs them,
+-- counts don't).
 SELECT c.id, c.email, c.mailbox_provider, c.tier, c.role_address, c.language,
        (c.broadcasts_stopped_at IS NOT NULL)::boolean AS broadcasts_stopped,
        (btrim(c.first_name) = '')::boolean AS no_first_name,
-       coalesce((SELECT array_agg(m.list_id) FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'), '{}')::uuid[] AS list_ids,
+       (CASE WHEN @with_lists::boolean
+             THEN coalesce((SELECT array_agg(m.list_id) FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'), '{}')
+             ELSE '{}' END)::uuid[] AS list_ids,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email) AS suppressed,
        EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = c.id AND e.type IN ('soft_bounce', 'hard_bounce') AND e.occurred_at > @bounced_since::timestamptz) AS bounced
 FROM contacts c

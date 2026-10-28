@@ -37,7 +37,7 @@ const (
 // read with q (the demo gives the Weekly Digest's readers their languages
 // inside its transaction).
 func FinalRecipients(ctx context.Context, q *store.Queries, wsID uuid.UUID, audience, sunsetPolicy json.RawMessage, now time.Time) ([]Recipient, error) {
-	_, out, err := (&Service{}).computeAudience(ctx, q, wsID, ParseAudience(audience), sunsetDays(sunsetPolicy), now)
+	_, out, err := (&Service{}).computeAudience(ctx, q, wsID, ParseAudience(audience), sunsetDays(sunsetPolicy), now, true)
 	return out, err
 }
 
