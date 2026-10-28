@@ -27,6 +27,17 @@ describe('write mode document', () => {
     expect(items[11]).toMatchObject({ kind: 'synced', synced: 'footer' })
   })
 
+  // R4.A3: a section saved as a named synced block reads as one synced
+  // card too; its words change in the brand kit, not here.
+  it('reads a named synced block as one synced card, not texts to edit', async () => {
+    const { editor } = await headlessMjmlEditor(
+      email.replace('<mj-section rc-name="Feature highlights">', '<mj-section rc-name="Feature highlights" rc-synced="b-0123456789ab">'),
+    )
+    const items = docItems(editor)
+    expect(items.map((x) => x.kind)).toEqual(['synced', 'image', 'text', 'synced', 'divider', 'other', 'synced'])
+    expect(items[3]).toMatchObject({ kind: 'synced', synced: 'b-0123456789ab' })
+  })
+
   it('edits a text through chips and back without touching anything else', async () => {
     const { editor } = await headlessMjmlEditor(email)
     const before = editor.getHtml()

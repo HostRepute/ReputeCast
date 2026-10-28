@@ -45,3 +45,28 @@ func TestSyncedBlocks(t *testing.T) {
 		t.Fatal("a text isn't a section")
 	}
 }
+
+// R4.A3: a named synced block that is deleted leaves its content in the
+// emails, unlinked.
+func TestUnmarkSynced(t *testing.T) {
+	doc := `<mjml><mj-body>
+<mj-section rc-synced="b-0123456789ab" padding="0px"><mj-column><mj-text>Webinar</mj-text></mj-column></mj-section>
+<mj-section rc-synced="footer"><mj-column><mj-text>{{ unsubscribe_url }}</mj-text></mj-column></mj-section>
+<mj-wrapper rc-synced="b-0123456789ab"><mj-section><mj-column><mj-text>Again</mj-text></mj-column></mj-section></mj-wrapper>
+</mj-body></mjml>`
+	out, ok := UnmarkSynced(doc, "b-0123456789ab")
+	if !ok || strings.Contains(out, `rc-synced="b-0123456789ab"`) {
+		t.Fatalf("unmark: %v\n%s", ok, out)
+	}
+	for _, kept := range []string{`<mj-section padding="0px">`, "Webinar", "<mj-wrapper>", "Again", `rc-synced="footer"`} {
+		if !strings.Contains(out, kept) {
+			t.Fatalf("%q is gone:\n%s", kept, out)
+		}
+	}
+	if got := SyncedKinds(out); strings.Join(got, ",") != "footer" {
+		t.Fatalf("kinds after: %v", got)
+	}
+	if again, ok := UnmarkSynced(out, "b-0123456789ab"); ok || again != out {
+		t.Fatal("nothing left to unlink")
+	}
+}

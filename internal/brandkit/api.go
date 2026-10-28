@@ -2,6 +2,7 @@ package brandkit
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -21,8 +22,18 @@ type importInput struct {
 
 type syncedInput struct {
 	api.WorkspaceInput
-	Kind string `path:"kind" enum:"header,footer"`
+	Kind string `path:"kind" pattern:"^(header|footer|b-[0-9a-f]{12})$" doc:"header, footer, or a named block's key"`
 	Body SyncedInput
+}
+
+type syncedCreateInput struct {
+	api.WorkspaceInput
+	Body SyncedCreateInput
+}
+
+type syncedKindInput struct {
+	api.WorkspaceInput
+	Kind string `path:"kind" pattern:"^(header|footer|b-[0-9a-f]{12})$" doc:"A named block's key (the Header and Footer can't be deleted)"`
 }
 
 // Register adds the brand kit operations.
@@ -52,9 +63,26 @@ func Register(h huma.API, s *Service) {
 			out, err := s.Import(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
 			return api.OK(out), err
 		})
-	api.Put(h, api.Op{ID: "save-synced-block", Path: base + "/synced/{kind}", Summary: "Change a synced block (Header or Footer)",
-		Description: "Drafts and scheduled emails holding the block get the change as a new version; emails in an approval, sending, paused or sent keep theirs.",
-		Tags:        tags, Access: api.Workspace(authz.CampaignsEdit)},
+	api.Post(h, api.Op{ID: "create-synced-block", Path: base + "/synced", Summary: "Save a section as a named synced block",
+		Description: "The block comes back marked with its key (rc-synced): the composer puts it in place of the section it came from. " +
+			"A section that is, or holds, a synced block already is refused.",
+		Tags: tags, Access: api.Workspace(authz.CampaignsEdit)},
+		func(ctx context.Context, in *syncedCreateInput) (*api.Body[SyncedBlock], error) {
+			out, err := s.CreateSynced(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
+			return api.OK(out), err
+		})
+	api.Delete(h, api.Op{ID: "delete-synced-block", Path: base + "/synced/{kind}", Status: http.StatusOK, Summary: "Delete a named synced block",
+		Description: "Drafts and scheduled emails holding it keep its content as ordinary sections, in a new version; emails in an approval, sending, paused or sent keep theirs. " +
+			"The Header and Footer can't be deleted.",
+		Tags: tags, Access: api.Workspace(authz.CampaignsEdit)},
+		func(ctx context.Context, in *syncedKindInput) (*api.Body[SyncedDeleted], error) {
+			out, err := s.DeleteSynced(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Kind)
+			return api.OK(out), err
+		})
+	api.Put(h, api.Op{ID: "save-synced-block", Path: base + "/synced/{kind}", Summary: "Change a synced block (the Header, the Footer or a named block)",
+		Description: "Drafts and scheduled emails holding the block get the change as a new version; emails in an approval, sending, paused or sent keep theirs. " +
+			"A named block can be renamed with it.",
+		Tags: tags, Access: api.Workspace(authz.CampaignsEdit)},
 		func(ctx context.Context, in *syncedInput) (*api.Body[SyncedSaved], error) {
 			out, err := s.SaveSynced(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Kind, in.Body)
 			return api.OK(out), err

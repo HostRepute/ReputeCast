@@ -13,7 +13,7 @@ import { mjChildren, sectionOf, tagOf } from './editor/labels'
 import { friendlyLabel } from './friendly'
 import { applyFix, bodyOf, reveal } from './fixes'
 import { describe, SettingsFields, StyleFields } from './Inspector'
-import { SyncedNotice } from './BrandKit'
+import { SaveAsSynced, SyncedNotice } from './BrandKit'
 import { syncedSectionOf } from './editor/synced'
 import { AccessibilityPanel } from '@/features/accessibility/composer/Panel'
 import { useAccessibility } from '@/features/accessibility/composer/state'
@@ -436,6 +436,8 @@ export function RightPanel() {
               <fieldset disabled={!c.canEdit || !!syncedSectionOf(sel)} className="contents">
                 <SettingsFields key={sel.cid} c={sel} />
               </fieldset>
+              {/* Any section can become a synced block (R4.A3). */}
+              <SaveAsSynced component={sel} />
               <div className="px-3 pb-3">
                 <LanguageBlockPanel />
               </div>

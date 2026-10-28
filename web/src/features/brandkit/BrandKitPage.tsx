@@ -5,7 +5,7 @@ import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { CardSection } from '@/components/ui/Card'
-import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
+import { ConfirmDialog, UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { toast } from '@/components/ui/Toast'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
@@ -539,23 +539,44 @@ function ButtonCard({ draft, set, canEdit }: { draft: Draft; set: (p: Partial<Dr
   )
 }
 
+/** A named synced block (R4.A3), saved from a section in the composer. */
+const isNamed = (kind: string) => /^b-[0-9a-f]{12}$/.test(kind)
+
 function SyncedCard({ kit }: { kit: Kit }) {
   const t = useT()
   const id = useId()
+  const qc = useQueryClient()
+  const { slug } = useWorkspace()
   const canEdit = useCan('campaigns:edit')
   const [editing, setEditing] = useState<Schemas['SyncedBlock'] | null>(null)
+  const [deleting, setDeleting] = useState<Schemas['SyncedBlock'] | null>(null)
+  const builtIn = kit.synced.filter((b) => !isNamed(b.kind))
+  const remove = async (b: Schemas['SyncedBlock']) => {
+    const { data } = await http.DELETE('/api/v1/workspaces/{workspace}/brand-kit/synced/{kind}', { params: { path: { workspace: slug, kind: b.kind } } })
+    await qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/brand-kit'] })
+    const a = data?.applied
+    toast({ kind: 'success', title: t(mk.namedDeleted, { name: b.name }), detail: a ? t(mk.namedDeletedDetail, { changed: a.drafts + a.scheduled, kept: a.held + a.sent }) : undefined })
+    setDeleting(null)
+  }
   return (
     <section className="card" aria-labelledby={`${id}-h`}>
       <CardSection title={<span id={`${id}-h`}>{t(mk.synced)}</span>} caption={t(mk.syncedLead)} />
       <div className="pad flex flex-col">
-        {!kit.synced.length ? <p className="k m-0">{t(mk.syncedNone)}</p> : null}
+        {!builtIn.length ? <p className="k m-0">{t(mk.syncedNone)}</p> : null}
         {kit.synced.map((b) => {
           const u = b.uses
           const total = u.drafts + u.scheduled + u.held + u.sent
+          const named = isNamed(b.kind)
           return (
             <div key={b.kind} className="sbrow">
               <span className="sbt" aria-hidden="true">
-                {b.kind === 'header' ? (
+                {named ? (
+                  <>
+                    <i style={{ height: 14, width: '80%', background: '#E3E6EB' }} />
+                    <i style={{ height: 3, width: '70%', background: '#D4D8DF' }} />
+                    <i style={{ height: 5, width: 22, background: kit.colors.button }} />
+                  </>
+                ) : b.kind === 'header' ? (
                   <span className="flex w-full items-center justify-between">
                     <i style={{ height: 6, width: 22, background: kit.colors.button }} />
                     <i style={{ height: 3, width: 30, background: '#D4D8DF' }} />
@@ -570,27 +591,48 @@ function SyncedCard({ kit }: { kit: Kit }) {
               </span>
               <span className="flex min-w-0 flex-col gap-0.5" style={{ flex: '1 1 260px' }}>
                 <span className="flex flex-wrap items-baseline gap-2">
-                  <b>{b.kind === 'header' ? t(mk.header) : t(mk.footer)}</b>
+                  <b>{named ? b.name : b.kind === 'header' ? t(mk.header) : t(mk.footer)}</b>
                   <span className="k">{t(mk.usedIn, { count: total })}</span>
                 </span>
                 <span className="k">
-                  {b.kind === 'header' ? t(mk.headerWhat) : t(mk.footerWhat)} ·{' '}
+                  {named ? t(mk.namedWhat) : b.kind === 'header' ? t(mk.headerWhat) : t(mk.footerWhat)} ·{' '}
                   {b.updatedBy ? t(mk.edited, { date: dayMonthDate(b.updatedAt), name: b.updatedBy }) : t(mk.editedAnon, { date: dayMonthDate(b.updatedAt) })}
                 </span>
                 <span className="k">{t(mk.onSave, { drafts: u.drafts, scheduled: u.scheduled, sent: u.sent })}</span>
                 {u.held ? <span className="k">{t(mk.onSaveHeld, { held: u.held })}</span> : null}
               </span>
               {canEdit ? (
-                <Button size="sm" onClick={() => setEditing(b)}>
-                  {t(mk.edit)}
-                </Button>
+                <span className="flex gap-2">
+                  <Button size="sm" onClick={() => setEditing(b)} aria-label={named ? t(mk.editNamed, { name: b.name }) : undefined}>
+                    {t(mk.edit)}
+                  </Button>
+                  {named ? (
+                    <Button size="sm" onClick={() => setDeleting(b)} aria-label={t(mk.deleteNamed, { name: b.name })}>
+                      {t(common.delete)}
+                    </Button>
+                  ) : null}
+                </span>
               ) : null}
             </div>
           )
         })}
+        <p className="k m-0 mt-2">{t(mk.namedHow)}</p>
         {kit.synced.length && !canEdit ? <p className="k m-0 mt-2">{t(mk.whoEditsSynced)}</p> : null}
       </div>
       {editing ? <SyncedBlockDialog block={editing} onClose={() => setEditing(null)} /> : null}
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(o) => !o && setDeleting(null)}
+        badge={t(mk.deleteBadge)}
+        title={t(mk.deleteTitle, { name: deleting?.name ?? '' })}
+        description={t(mk.deleteBody, {
+          changed: (deleting?.uses.drafts ?? 0) + (deleting?.uses.scheduled ?? 0),
+          kept: (deleting?.uses.held ?? 0) + (deleting?.uses.sent ?? 0),
+        })}
+        confirmLabel={t(mk.deleteConfirm)}
+        busyLabel={t(mk.deleting)}
+        onConfirm={() => (deleting ? remove(deleting) : undefined)}
+      />
     </section>
   )
 }

@@ -34,6 +34,8 @@ export const mw = defineMessages('composer.write', {
   /** Before a column's blocks: "Feature highlights · column 1 of 2 in Design". */
   column: '{section} · column {n} of {count} in Design',
   synced: '<b>{kind, select, header {Header} other {Footer}}</b> · synced block, {kind, select, header {logo and links} other {postal address and unsubscribe link}}',
+  syncedNamed: '<b>{name}</b> · synced block, the same in every email holding it',
+  syncedBlock: 'Synced block',
   editInBrandKit: 'Edit in Brand kit',
   other: '<b>{block}</b> · edit it in Design',
   editInDesign: 'Edit in Design',

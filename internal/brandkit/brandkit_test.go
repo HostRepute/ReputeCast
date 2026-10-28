@@ -41,9 +41,9 @@ type kit struct {
 		Size  int
 	}
 	Synced []struct {
-		Kind, MJML string
-		Version    int
-		Uses       struct{ Drafts, Scheduled, Held, Sent int }
+		Kind, Name, MJML string
+		Version          int
+		Uses             struct{ Drafts, Scheduled, Held, Sent int }
 	}
 }
 
@@ -210,6 +210,133 @@ func TestBrandKit(t *testing.T) {
 	for action, want := range map[string]int{"brand_kit.save": 2, "synced_block.save": 2} {
 		var n int
 		if err := env.App.Pool.QueryRow(context.Background(), `SELECT count(*) FROM audit_events WHERE action = $1`, action).Scan(&n); err != nil || n != want {
+			t.Fatalf("audit %s: %d, want %d (%v)", action, n, want, err)
+		}
+	}
+}
+
+// R4.A3: any section saved as a named synced block. The email it came
+// from and others hold it; one edit (and a new name) reaches every draft
+// holding it while a sent email keeps its own; deleting it leaves the
+// drafts its content, unlinked.
+func TestNamedSyncedBlocks(t *testing.T) {
+	env := apptest.New(t)
+	owner := env.CreateUser(apptest.UserOpts{Email: "mia@synced.test", Name: "Mia Ortega"})
+	viewer := env.CreateUser(apptest.UserOpts{Email: "vic@synced.test", Name: "Vic Hale"})
+	w := env.CreateWorkspace("Synced Letter", owner.ID)
+	env.AddMember(w, viewer.ID, "viewer")
+	base := "/workspaces/" + w.Slug
+	mia := env.Client()
+	mia.SignIn("mia@synced.test", "")
+	vic := env.Client()
+	vic.SignIn("vic@synced.test", "")
+	ctx := context.Background()
+	doc := func(block string) string {
+		return `<mjml><mj-body><mj-section><mj-column><mj-text>News</mj-text></mj-column></mj-section>` + block + `</mj-body></mjml>`
+	}
+	content := func(id string) (mjml, html string) {
+		if err := env.App.Pool.QueryRow(ctx, `SELECT mjml, html FROM campaigns WHERE id = $1`, id).Scan(&mjml, &html); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+	lastLabel := func(id string) (source, label string) {
+		if err := env.App.Pool.QueryRow(ctx, `SELECT source, label FROM campaign_versions WHERE campaign_id = $1 ORDER BY version DESC LIMIT 1`, id).Scan(&source, &label); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+
+	section := `<mj-section padding="16px 24px"><mj-column><mj-text>Join the webinar on 12 November</mj-text><mj-button href="https://acme.io/webinar">Save a seat</mj-button></mj-column></mj-section>`
+	from := campaign(t, mia, base, doc(section))
+
+	// Saving one takes campaigns:edit, a name and one section that isn't a
+	// synced block already.
+	vic.Do("POST", base+"/brand-kit/synced", map[string]any{"name": "Webinar", "mjml": section}).MustStatus(t, 403)
+	mia.Do("POST", base+"/brand-kit/synced", map[string]any{"name": "   ", "mjml": section}).MustStatus(t, 422)
+	mia.Do("POST", base+"/brand-kit/synced", map[string]any{"name": "Two", "mjml": section + section}).MustStatus(t, 422)
+	mia.Do("POST", base+"/brand-kit/synced", map[string]any{"name": "Footer again", "mjml": `<mj-section rc-synced="footer"><mj-column><mj-text>{{ unsubscribe_url }}</mj-text></mj-column></mj-section>`}).MustStatus(t, 422)
+
+	var b struct {
+		Kind, Name, MJML string
+		Version          int
+	}
+	mia.Do("POST", base+"/brand-kit/synced", map[string]any{"name": " Webinar banner ", "mjml": section}).MustStatus(t, 200).JSON(t, &b)
+	if !brandkit.Named(b.Kind) || b.Name != "Webinar banner" || b.Version != 1 || !strings.HasPrefix(b.MJML, `<mj-section rc-synced="`+b.Kind+`" padding="16px 24px">`) {
+		t.Fatalf("created: %+v", b)
+	}
+	// The composer puts the block in place of the section it came from;
+	// other emails insert it from the blocks panel.
+	mia.Do("PUT", base+"/campaigns/"+from+"/content", map[string]any{"baseVersion": 2, "subject": "Hello", "mjml": doc(b.MJML)}).MustStatus(t, 200)
+	other := campaign(t, mia, base, doc(b.MJML))
+	sent := campaign(t, mia, base, doc(b.MJML))
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE campaigns SET status = 'sent' WHERE id = $1`, sent); err != nil {
+		t.Fatal(err)
+	}
+
+	// Listed in the kit (no Header or Footer before the kit is saved), with the emails holding it.
+	var k kit
+	vic.Do("GET", base+"/brand-kit", nil).MustStatus(t, 200).JSON(t, &k)
+	if len(k.Synced) != 1 || k.Synced[0].Kind != b.Kind || k.Synced[0].Name != "Webinar banner" || k.Synced[0].Uses.Drafts != 2 || k.Synced[0].Uses.Sent != 1 {
+		t.Fatalf("kit: %+v", k.Synced)
+	}
+
+	// Edit once, with a new name: both drafts get it, the sent one keeps its own.
+	next := `<mj-section padding="16px 24px"><mj-column><mj-text>The webinar moved to 19 November</mj-text></mj-column></mj-section>`
+	vic.Do("PUT", base+"/brand-kit/synced/"+b.Kind, map[string]any{"mjml": next}).MustStatus(t, 403)
+	var saved struct {
+		Block struct {
+			Name    string
+			Version int
+		}
+		Applied struct{ Drafts, Scheduled, Held, Sent int }
+	}
+	mia.Do("PUT", base+"/brand-kit/synced/"+b.Kind, map[string]any{"mjml": next, "name": "Webinar (moved)"}).MustStatus(t, 200).JSON(t, &saved)
+	if saved.Block.Version != 2 || saved.Block.Name != "Webinar (moved)" || saved.Applied.Drafts != 2 || saved.Applied.Sent != 1 {
+		t.Fatalf("saved: %+v", saved)
+	}
+	for _, id := range []string{from, other} {
+		if m, h := content(id); !strings.Contains(m, "19 November") || strings.Contains(m, "12 November") || !strings.Contains(m, `rc-synced="`+b.Kind+`"`) || !strings.Contains(h, "19 November") || strings.Contains(h, "rc-synced") {
+			t.Fatalf("draft %s: %s", id, m)
+		}
+	}
+	if m, _ := content(sent); !strings.Contains(m, "12 November") {
+		t.Fatalf("the sent email changed: %s", m)
+	}
+	if source, label := lastLabel(other); source != "synced" || label != "Synced block “Webinar (moved)” updated in Brand kit" {
+		t.Fatalf("version: %s %q", source, label)
+	}
+
+	// The Header and Footer stay; a block that isn't there is not found.
+	mia.Do("DELETE", base+"/brand-kit/synced/footer", nil).MustStatus(t, 409)
+	mia.Do("DELETE", base+"/brand-kit/synced/b-000000000000", nil).MustStatus(t, 404)
+	vic.Do("DELETE", base+"/brand-kit/synced/"+b.Kind, nil).MustStatus(t, 403)
+
+	// Deleting it: the drafts keep its content as an ordinary section.
+	var del struct {
+		Applied struct{ Drafts, Scheduled, Held, Sent int }
+	}
+	mia.Do("DELETE", base+"/brand-kit/synced/"+b.Kind, nil).MustStatus(t, 200).JSON(t, &del)
+	if del.Applied.Drafts != 2 || del.Applied.Sent != 1 {
+		t.Fatalf("deleted: %+v", del)
+	}
+	for _, id := range []string{from, other} {
+		if m, _ := content(id); !strings.Contains(m, "19 November") || strings.Contains(m, "rc-synced") {
+			t.Fatalf("draft %s after the delete: %s", id, m)
+		}
+	}
+	if source, label := lastLabel(from); source != "synced" || label != "Synced block “Webinar (moved)” deleted in Brand kit" {
+		t.Fatalf("version after the delete: %s %q", source, label)
+	}
+	mia.Do("GET", base+"/brand-kit", nil).MustStatus(t, 200).JSON(t, &k)
+	if len(k.Synced) != 0 {
+		t.Fatalf("still listed: %+v", k.Synced)
+	}
+	mia.Do("PUT", base+"/brand-kit/synced/"+b.Kind, map[string]any{"mjml": next}).MustStatus(t, 404)
+
+	for action, want := range map[string]int{"synced_block.create": 1, "synced_block.save": 1, "synced_block.delete": 1} {
+		var n int
+		if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE workspace_id = $1 AND action = $2`, w.ID, action).Scan(&n); err != nil || n != want {
 			t.Fatalf("audit %s: %d, want %d (%v)", action, n, want, err)
 		}
 	}

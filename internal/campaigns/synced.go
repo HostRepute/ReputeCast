@@ -69,6 +69,21 @@ func (u *SyncedUses) add(status string, inApproval bool) {
 // counts say how many of each there were, and changed lists the campaigns
 // that got the block.
 func (s *Service) ApplySynced(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind, block, label string) (SyncedUses, []uuid.UUID, error) {
+	return s.changeSynced(ctx, ws, p, kind, label, func(src string) (string, bool) { return mjml.ReplaceSynced(src, kind, block) })
+}
+
+// UnlinkSynced unlinks a deleted synced block (R4.A3) in every draft and
+// scheduled campaign holding it: its sections stay as ordinary content, in
+// a new version saved by p (source "synced", label). Campaigns in an
+// approval, sending or paused, and sent ones, keep theirs; the composer
+// offers to unlink a block that's gone.
+func (s *Service) UnlinkSynced(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind, label string) (SyncedUses, []uuid.UUID, error) {
+	return s.changeSynced(ctx, ws, p, kind, label, func(src string) (string, bool) { return mjml.UnmarkSynced(src, kind) })
+}
+
+// changeSynced makes change to the content of every draft and scheduled
+// campaign holding a kind of synced block, A/B variants included.
+func (s *Service) changeSynced(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind, label string, change func(src string) (string, bool)) (SyncedUses, []uuid.UUID, error) {
 	rows, err := s.Q.CampaignsHoldingSynced(ctx, store.CampaignsHoldingSyncedParams{WorkspaceID: ws.ID, Pattern: syncedPattern(kind)})
 	if err != nil {
 		return SyncedUses{}, nil, err
@@ -96,11 +111,11 @@ func (s *Service) ApplySynced(ctx context.Context, ws *store.Workspace, p *authz
 				uses.add(cur.Status, a != nil)
 				return nil
 			}
-			next, ok := mjml.ReplaceSynced(cur.Mjml, kind, block)
+			next, ok := change(cur.Mjml)
 			ab := abFromDB(cur.AbTest)
 			if ab != nil {
 				for i, v := range ab.Variants {
-					if m, vok := mjml.ReplaceSynced(v.MJML, kind, block); vok {
+					if m, vok := change(v.MJML); vok {
 						ab.Variants[i].MJML, ab.Variants[i].HTML, ok = m, "", true
 					}
 				}
@@ -141,4 +156,16 @@ func SyncedLabel(kind string) string {
 		return "Synced block updated in Brand kit"
 	}
 	return strings.ToUpper(kind[:1]) + kind[1:] + " updated in Brand kit"
+}
+
+// SyncedNamedLabel is the version label of a named synced block's change
+// (R4.A3): "Synced block “Webinar banner” updated in Brand kit", like other stored labels.
+func SyncedNamedLabel(name string) string {
+	return "Synced block “" + name + "” updated in Brand kit"
+}
+
+// SyncedDeletedLabel is the version label of unlinking a named synced
+// block that was deleted: "Synced block “Webinar banner” deleted in Brand kit".
+func SyncedDeletedLabel(name string) string {
+	return "Synced block “" + name + "” deleted in Brand kit"
 }

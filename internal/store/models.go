@@ -4616,6 +4616,7 @@ type SyncedBlock struct {
 	UpdatedBy   *uuid.UUID `json:"updatedBy"`
 	UpdatedAt   time.Time  `json:"updatedAt"`
 	CreatedAt   time.Time  `json:"createdAt"`
+	Name        string     `json:"name"`
 }
 
 type Template struct {

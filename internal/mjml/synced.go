@@ -4,7 +4,8 @@ import "strings"
 
 // AttrSynced marks a synced block in an email (review 2026-10, CO-11): the
 // element, a section or a wrapper, is the workspace's synced block of that
-// kind ("header", "footer"), and is replaced whenever the block changes
+// kind ("header", "footer", or a named block's key such as
+// "b-0123456789ab", R4.A3), and is replaced whenever the block changes
 // (internal/brandkit). Like every rc-* attribute it is left out of the
 // compiled HTML.
 const AttrSynced = "rc-synced"
@@ -71,6 +72,34 @@ func ReplaceSynced(src, kind, block string) (string, bool) {
 	b.WriteString(src[last:])
 	out := b.String()
 	return out, out != src
+}
+
+// UnmarkSynced unlinks the elements marked rc-synced="kind": they keep
+// their content as ordinary sections and no longer follow the block (it
+// was deleted, R4.A3). It returns the document unchanged, and false, when
+// nothing is marked or the document doesn't parse.
+func UnmarkSynced(src, kind string) (string, bool) {
+	if kind == "" || !strings.Contains(src, AttrSynced) {
+		return src, false
+	}
+	root, err := Parse(src)
+	if err != nil {
+		return src, false
+	}
+	var marked []*Node
+	root.Walk(func(n *Node, _ []int) {
+		if v, ok := n.Get(AttrSynced); ok && v == kind {
+			marked = append(marked, n)
+		}
+	})
+	// From the last: taking an attribute out moves only what follows it.
+	changed := false
+	for i := len(marked) - 1; i >= 0; i-- {
+		if next, ok := RemoveAttr(src, marked[i], AttrSynced); ok {
+			src, changed = next, true
+		}
+	}
+	return src, changed
 }
 
 const fragPre, fragPost = "<mjml><mj-body>", "</mj-body></mjml>"

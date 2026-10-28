@@ -43,3 +43,7 @@ func (b brandCampaigns) CountSynced(ctx context.Context, ws *store.Workspace, ki
 func (b brandCampaigns) ApplySynced(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind, block, label string) (campaigns.SyncedUses, []uuid.UUID, error) {
 	return b.a.campaigns().ApplySynced(ctx, ws, p, kind, block, label)
 }
+
+func (b brandCampaigns) UnlinkSynced(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind, label string) (campaigns.SyncedUses, []uuid.UUID, error) {
+	return b.a.campaigns().UnlinkSynced(ctx, ws, p, kind, label)
+}

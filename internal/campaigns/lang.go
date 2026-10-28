@@ -83,6 +83,8 @@ var (
 	// Collaboration (CO-10, CO-11).
 	mVersionMerged          = msgs.M("version.merged")
 	mVersionSynced          = msgs.M("version.synced")
+	mVersionSyncedNamed     = msgs.M("version.syncedNamed")
+	mVersionSyncedDeleted   = msgs.M("version.syncedDeleted")
 	mVersionSharedForReview = msgs.M("version.sharedForReview")
 	mVersionAgent           = msgs.M("version.agent")
 	mVersionAgentCreated    = msgs.M("version.agentCreated")
@@ -173,12 +175,20 @@ func versionLabel(l i18n.Lang, label string) string {
 	if m := reVersionSynced.FindStringSubmatch(label); m != nil {
 		return mVersionSynced.Text(l, i18n.Args{"kind": strings.ToLower(m[1])})
 	}
+	if m := reVersionSyncedNamed.FindStringSubmatch(label); m != nil {
+		if m[2] == "deleted" {
+			return mVersionSyncedDeleted.Text(l, i18n.Args{"name": m[1]})
+		}
+		return mVersionSyncedNamed.Text(l, i18n.Args{"name": m[1]})
+	}
 	return label
 }
 
 var (
 	reVersionMerged = regexp.MustCompile(`^merged with (.+)'s v(\d+)$`)
 	reVersionSynced = regexp.MustCompile(`^(Header|Footer) updated in Brand kit$`)
+	// SyncedNamedLabel and SyncedDeletedLabel (R4.A3).
+	reVersionSyncedNamed = regexp.MustCompile(`^Synced block “(.+)” (updated|deleted) in Brand kit$`)
 )
 
 // abNote describes an A/B test that ran: "A/B subject, winner B".

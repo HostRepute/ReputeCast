@@ -83,8 +83,26 @@ func (q *Queries) BrandKitUpsert(ctx context.Context, arg BrandKitUpsertParams) 
 	return err
 }
 
+const syncedBlockDelete = `-- name: SyncedBlockDelete :execrows
+DELETE FROM synced_blocks WHERE workspace_id = $1 AND kind = $2 AND kind NOT IN ('header', 'footer')
+`
+
+type SyncedBlockDeleteParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Kind        string    `json:"kind"`
+}
+
+// A named block (R4.A3); the Header and Footer stay.
+func (q *Queries) SyncedBlockDelete(ctx context.Context, arg SyncedBlockDeleteParams) (int64, error) {
+	result, err := q.db.Exec(ctx, syncedBlockDelete, arg.WorkspaceID, arg.Kind)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const syncedBlockGet = `-- name: SyncedBlockGet :one
-SELECT b.kind, b.mjml, b.version, b.updated_at, coalesce(u.name, '')::text AS updated_by_name
+SELECT b.kind, b.name, b.mjml, b.version, b.updated_at, coalesce(u.name, '')::text AS updated_by_name
 FROM synced_blocks b
 LEFT JOIN users u ON u.id = b.updated_by
 WHERE b.workspace_id = $1 AND b.kind = $2
@@ -98,6 +116,7 @@ type SyncedBlockGetParams struct {
 
 type SyncedBlockGetRow struct {
 	Kind          string    `json:"kind"`
+	Name          string    `json:"name"`
 	Mjml          string    `json:"mjml"`
 	Version       int32     `json:"version"`
 	UpdatedAt     time.Time `json:"updatedAt"`
@@ -110,6 +129,7 @@ func (q *Queries) SyncedBlockGet(ctx context.Context, arg SyncedBlockGetParams) 
 	var i SyncedBlockGetRow
 	err := row.Scan(
 		&i.Kind,
+		&i.Name,
 		&i.Mjml,
 		&i.Version,
 		&i.UpdatedAt,
@@ -119,14 +139,15 @@ func (q *Queries) SyncedBlockGet(ctx context.Context, arg SyncedBlockGetParams) 
 }
 
 const syncedBlockInsert = `-- name: SyncedBlockInsert :exec
-INSERT INTO synced_blocks (id, workspace_id, kind, mjml, version, updated_by, updated_at, created_at)
-VALUES ($1, $2, $3, $4, 1, $5, $6, $6)
+INSERT INTO synced_blocks (id, workspace_id, kind, name, mjml, version, updated_by, updated_at, created_at)
+VALUES ($1, $2, $3, $4, $5, 1, $6, $7, $7)
 `
 
 type SyncedBlockInsertParams struct {
 	ID          uuid.UUID  `json:"id"`
 	WorkspaceID uuid.UUID  `json:"workspaceId"`
 	Kind        string     `json:"kind"`
+	Name        string     `json:"name"`
 	Mjml        string     `json:"mjml"`
 	UpdatedBy   *uuid.UUID `json:"updatedBy"`
 	Now         time.Time  `json:"now"`
@@ -137,6 +158,7 @@ func (q *Queries) SyncedBlockInsert(ctx context.Context, arg SyncedBlockInsertPa
 		arg.ID,
 		arg.WorkspaceID,
 		arg.Kind,
+		arg.Name,
 		arg.Mjml,
 		arg.UpdatedBy,
 		arg.Now,
@@ -145,12 +167,13 @@ func (q *Queries) SyncedBlockInsert(ctx context.Context, arg SyncedBlockInsertPa
 }
 
 const syncedBlockUpdate = `-- name: SyncedBlockUpdate :exec
-UPDATE synced_blocks SET mjml = $1, version = version + 1, updated_by = $2, updated_at = $3
-WHERE workspace_id = $4 AND kind = $5
+UPDATE synced_blocks SET mjml = $1, name = $2, version = version + 1, updated_by = $3, updated_at = $4
+WHERE workspace_id = $5 AND kind = $6
 `
 
 type SyncedBlockUpdateParams struct {
 	Mjml        string     `json:"mjml"`
+	Name        string     `json:"name"`
 	UpdatedBy   *uuid.UUID `json:"updatedBy"`
 	Now         time.Time  `json:"now"`
 	WorkspaceID uuid.UUID  `json:"workspaceId"`
@@ -160,6 +183,7 @@ type SyncedBlockUpdateParams struct {
 func (q *Queries) SyncedBlockUpdate(ctx context.Context, arg SyncedBlockUpdateParams) error {
 	_, err := q.db.Exec(ctx, syncedBlockUpdate,
 		arg.Mjml,
+		arg.Name,
 		arg.UpdatedBy,
 		arg.Now,
 		arg.WorkspaceID,
@@ -169,21 +193,23 @@ func (q *Queries) SyncedBlockUpdate(ctx context.Context, arg SyncedBlockUpdatePa
 }
 
 const syncedBlocksList = `-- name: SyncedBlocksList :many
-SELECT b.kind, b.mjml, b.version, b.updated_at, coalesce(u.name, '')::text AS updated_by_name
+SELECT b.kind, b.name, b.mjml, b.version, b.updated_at, coalesce(u.name, '')::text AS updated_by_name
 FROM synced_blocks b
 LEFT JOIN users u ON u.id = b.updated_by
 WHERE b.workspace_id = $1
-ORDER BY b.kind
+ORDER BY b.created_at, b.kind
 `
 
 type SyncedBlocksListRow struct {
 	Kind          string    `json:"kind"`
+	Name          string    `json:"name"`
 	Mjml          string    `json:"mjml"`
 	Version       int32     `json:"version"`
 	UpdatedAt     time.Time `json:"updatedAt"`
 	UpdatedByName string    `json:"updatedByName"`
 }
 
+// The Header, the Footer and the named blocks (R4.A3), oldest first.
 func (q *Queries) SyncedBlocksList(ctx context.Context, workspaceID uuid.UUID) ([]SyncedBlocksListRow, error) {
 	rows, err := q.db.Query(ctx, syncedBlocksList, workspaceID)
 	if err != nil {
@@ -195,6 +221,7 @@ func (q *Queries) SyncedBlocksList(ctx context.Context, workspaceID uuid.UUID) (
 		var i SyncedBlocksListRow
 		if err := rows.Scan(
 			&i.Kind,
+			&i.Name,
 			&i.Mjml,
 			&i.Version,
 			&i.UpdatedAt,

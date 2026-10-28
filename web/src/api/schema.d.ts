@@ -3685,6 +3685,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/brand-kit/synced": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Save a section as a named synced block
+         * @description The block comes back marked with its key (rc-synced): the composer puts it in place of the section it came from. A section that is, or holds, a synced block already is refused.
+         */
+        post: operations["create-synced-block"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/brand-kit/synced/{kind}": {
         parameters: {
             query?: never;
@@ -3694,12 +3714,16 @@ export interface paths {
         };
         get?: never;
         /**
-         * Change a synced block (Header or Footer)
-         * @description Drafts and scheduled emails holding the block get the change as a new version; emails in an approval, sending, paused or sent keep theirs.
+         * Change a synced block (the Header, the Footer or a named block)
+         * @description Drafts and scheduled emails holding the block get the change as a new version; emails in an approval, sending, paused or sent keep theirs. A named block can be renamed with it.
          */
         put: operations["save-synced-block"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete a named synced block
+         * @description Drafts and scheduled emails holding it keep its content as ordinary sections, in a new version; emails in an approval, sending, paused or sent keep theirs. The Header and Footer can't be deleted.
+         */
+        delete: operations["delete-synced-block"];
         options?: never;
         head?: never;
         patch?: never;
@@ -41563,10 +41587,11 @@ export interface components {
             slug?: string;
         };
         SyncedBlock: {
-            /** @enum {string} */
-            kind: "header" | "footer";
+            /** @description header, footer, or a named block's key (R4.A3) */
+            kind: string;
             /** @description One section or wrapper, marked rc-synced */
             mjml: string;
+            name: string;
             /** Format: date-time */
             updatedAt: string;
             updatedBy: string;
@@ -41574,9 +41599,20 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        SyncedCreateInput: {
+            /** @description One mj-section or mj-wrapper, from the email it is saved from */
+            mjml: string;
+            /** @description What the block is called in the blocks panel and the brand kit */
+            name: string;
+        };
+        SyncedDeleted: {
+            applied: components["schemas"]["SyncedUses"];
+        };
         SyncedInput: {
             /** @description One mj-section or mj-wrapper */
             mjml: string;
+            /** @description A named block's new name */
+            name?: string;
         };
         SyncedSaved: {
             applied: components["schemas"]["SyncedUses"];
@@ -54520,6 +54556,42 @@ export interface operations {
             };
         };
     };
+    "create-synced-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncedCreateInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncedBlock"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "save-synced-block": {
         parameters: {
             query?: never;
@@ -54527,7 +54599,8 @@ export interface operations {
             path: {
                 /** @description Workspace slug */
                 workspace: string;
-                kind: "header" | "footer";
+                /** @description header, footer, or a named block's key */
+                kind: string;
             };
             cookie?: never;
         };
@@ -54544,6 +54617,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SyncedSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-synced-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description A named block's key (the Header and Footer can't be deleted) */
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncedDeleted"];
                 };
             };
             /** @description Error */

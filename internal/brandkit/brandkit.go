@@ -5,9 +5,10 @@
 // be filled in from the workspace's website (import.go). Emails already
 // written keep their own styles.
 //
-// Synced blocks (synced.go) are the Header and Footer every email can hold:
-// edit once, and the drafts and scheduled emails holding the block get the
-// change; sent emails keep what they went out with.
+// Synced blocks (synced.go) are the Header and Footer every email can hold,
+// and any section saved as a named synced block (R4.A3): edit once, and the
+// drafts and scheduled emails holding the block get the change; sent emails
+// keep what they went out with.
 package brandkit
 
 import (
@@ -45,6 +46,7 @@ import (
 type Campaigns interface {
 	CountSynced(ctx context.Context, ws *store.Workspace, kind string) (campaigns.SyncedUses, error)
 	ApplySynced(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind, block, label string) (campaigns.SyncedUses, []uuid.UUID, error)
+	UnlinkSynced(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind, label string) (campaigns.SyncedUses, []uuid.UUID, error)
 }
 
 // Service is the brand kit domain.

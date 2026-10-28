@@ -15,7 +15,8 @@ import { parseInert, stripActive } from '../inert'
  */
 
 export type DocItem =
-  | { kind: 'synced'; key: string; comp: Component; synced: 'header' | 'footer' }
+  // synced: "header", "footer" or a named block's key (R4.A3).
+  | { kind: 'synced'; key: string; comp: Component; synced: string }
   | { kind: 'column'; key: string; section: string; n: number; count: number }
   | { kind: 'text'; key: string; comp: Component }
   | { kind: 'image'; key: string; comp: Component; hero: boolean }
@@ -73,7 +74,8 @@ function columnsOf(section: Component): Component[] {
 function sectionItems(section: Component, out: DocItem[], first: boolean) {
   const tag = tagOf(section)
   const synced = String((section.getAttributes() as Record<string, unknown>)[SYNCED_ATTR] ?? '')
-  if (synced === 'header' || synced === 'footer') {
+  // Any synced block, named ones too (R4.A3): it changes in the brand kit only.
+  if (synced) {
     out.push({ kind: 'synced', key: section.cid, comp: section, synced })
     return
   }

@@ -33,6 +33,9 @@ func TestListNotesInTheReadersLanguage(t *testing.T) {
 		{"restored v12", "khôi phục v12"},
 		{"copied from “Weekly Digest #141”", "sao chép từ “Weekly Digest #141”"},
 		{PostDraftLabel("blog.acme.io"), "tạo từ bài viết trên blog.acme.io"},
+		{SyncedLabel("footer"), "Chân trang được cập nhật trong Bộ nhận diện"},
+		{SyncedNamedLabel("Webinar banner"), "Khối đồng bộ “Webinar banner” được cập nhật trong Bộ nhận diện"},
+		{SyncedDeletedLabel("Webinar banner"), "Khối đồng bộ “Webinar banner” đã bị xóa trong Bộ nhận diện"},
 		{"link replaced from Review & send", "link replaced from Review & send"},
 		{"Before the redesign", "Before the redesign"},
 	} {

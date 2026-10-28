@@ -84034,14 +84034,15 @@
         "additionalProperties": false,
         "properties": {
           "kind": {
-            "enum": [
-              "header",
-              "footer"
-            ],
+            "description": "header, footer, or a named block's key (R4.A3)",
+            "pattern": "^(header|footer|b-[0-9a-f]{12})$",
             "type": "string"
           },
           "mjml": {
             "description": "One section or wrapper, marked rc-synced",
+            "type": "string"
+          },
+          "name": {
             "type": "string"
           },
           "updatedAt": {
@@ -84061,11 +84062,46 @@
         },
         "required": [
           "kind",
+          "name",
           "mjml",
           "version",
           "updatedBy",
           "updatedAt",
           "uses"
+        ],
+        "type": "object"
+      },
+      "SyncedCreateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "mjml": {
+            "description": "One mj-section or mj-wrapper, from the email it is saved from",
+            "maxLength": 200000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "description": "What the block is called in the blocks panel and the brand kit",
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "mjml"
+        ],
+        "type": "object"
+      },
+      "SyncedDeleted": {
+        "additionalProperties": false,
+        "properties": {
+          "applied": {
+            "$ref": "#/components/schemas/SyncedUses"
+          }
+        },
+        "required": [
+          "applied"
         ],
         "type": "object"
       },
@@ -84076,6 +84112,11 @@
             "description": "One mj-section or mj-wrapper",
             "maxLength": 200000,
             "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "description": "A named block's new name",
+            "maxLength": 80,
             "type": "string"
           }
         },
@@ -115048,9 +115089,144 @@
         "x-permission": "templates:edit"
       }
     },
+    "/api/v1/workspaces/{workspace}/brand-kit/synced": {
+      "post": {
+        "description": "The block comes back marked with its key (rc-synced): the composer puts it in place of the section it came from. A section that is, or holds, a synced block already is refused.",
+        "operationId": "create-synced-block",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncedCreateInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncedBlock"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save a section as a named synced block",
+        "tags": [
+          "Brand kit"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
     "/api/v1/workspaces/{workspace}/brand-kit/synced/{kind}": {
+      "delete": {
+        "description": "Drafts and scheduled emails holding it keep its content as ordinary sections, in a new version; emails in an approval, sending, paused or sent keep theirs. The Header and Footer can't be deleted.",
+        "operationId": "delete-synced-block",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "A named block's key (the Header and Footer can't be deleted)",
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "description": "A named block's key (the Header and Footer can't be deleted)",
+              "pattern": "^(header|footer|b-[0-9a-f]{12})$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncedDeleted"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a named synced block",
+        "tags": [
+          "Brand kit"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      },
       "put": {
-        "description": "Drafts and scheduled emails holding the block get the change as a new version; emails in an approval, sending, paused or sent keep theirs.",
+        "description": "Drafts and scheduled emails holding the block get the change as a new version; emails in an approval, sending, paused or sent keep theirs. A named block can be renamed with it.",
         "operationId": "save-synced-block",
         "parameters": [
           {
@@ -115068,14 +115244,13 @@
             }
           },
           {
+            "description": "header, footer, or a named block's key",
             "in": "path",
             "name": "kind",
             "required": true,
             "schema": {
-              "enum": [
-                "header",
-                "footer"
-              ],
+              "description": "header, footer, or a named block's key",
+              "pattern": "^(header|footer|b-[0-9a-f]{12})$",
               "type": "string"
             }
           }
@@ -115120,7 +115295,7 @@
             "bearer": []
           }
         ],
-        "summary": "Change a synced block (Header or Footer)",
+        "summary": "Change a synced block (the Header, the Footer or a named block)",
         "tags": [
           "Brand kit"
         ],

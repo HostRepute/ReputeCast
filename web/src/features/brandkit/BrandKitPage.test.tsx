@@ -127,6 +127,54 @@ describe('brand kit', () => {
     expect(await screen.findByRole('dialog', { name: 'Edit the synced Footer' })).toBeInTheDocument()
   })
 
+  // R4.A3: sections saved as synced blocks, listed after the Header and
+  // Footer, edited (and renamed) once for every email, or deleted.
+  it('lists the named synced blocks, edits one with its name and deletes one', async () => {
+    const kind = 'b-0123456789ab'
+    const named = { kind, name: 'Webinar banner', mjml: `<mj-section rc-synced="${kind}"><mj-column><mj-text>Join</mj-text></mj-column></mj-section>`, version: 2, updatedBy: 'Linh Nguyen', updatedAt: '2026-10-20T09:00:00Z', uses: { drafts: 2, scheduled: 1, held: 1, sent: 4 } }
+    const footer = { kind: 'footer', name: '', mjml: '<mj-section rc-synced="footer"></mj-section>', version: 3, updatedBy: 'Linh Nguyen', updatedAt: '2026-10-07T09:00:00Z', uses: { drafts: 3, scheduled: 1, held: 0, sent: 10 } }
+    let blocks: unknown[] = [footer, named]
+    const puts: unknown[] = []
+    let deleted = 0
+    unmock = mockApi({
+      [`GET ${base}`]: () => json({ ...defaults, saved: true, updatedAt: '2026-10-07T09:00:00Z', synced: blocks }),
+      'POST /api/v1/workspaces/acme-newsletter/mjml/compile': () => json({ html: '<p>Join</p>', errors: [], warnings: [], sizeBytes: 12, durationMs: 1 }),
+      [`PUT ${base}/synced/${kind}`]: async (r) => {
+        puts.push(await r.json())
+        return json({ block: { ...named, name: 'Webinar (moved)', version: 3 }, applied: { drafts: 2, scheduled: 1, held: 1, sent: 4 } })
+      },
+      [`DELETE ${base}/synced/${kind}`]: () => {
+        deleted++
+        blocks = [footer]
+        return json({ applied: { drafts: 2, scheduled: 1, held: 1, sent: 4 } })
+      },
+    })
+    await renderInWorkspace(<BrandKitPage />, { me: editor })
+    const card = (await screen.findByRole('heading', { name: 'Synced blocks' })).closest('section') as HTMLElement
+    expect(card).toHaveTextContent('Webinar banner')
+    expect(card).toHaveTextContent('Used in 8 emails')
+    expect(card).toHaveTextContent('Saved from a section in the composer')
+    expect(card).toHaveTextContent('Any section can be a synced block: select it in the composer, then Settings › Save as synced block.')
+    // The Footer can't be deleted; the named block can.
+    expect(within(card).getAllByRole('button', { name: /^Delete/ })).toHaveLength(1)
+
+    fireEvent.click(within(card).getByRole('button', { name: 'Edit Webinar banner' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Edit the synced block “Webinar banner”' })
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name' }), { target: { value: 'Webinar (moved)' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save and update emails' }))
+    await waitFor(() => expect(puts).toEqual([{ mjml: named.mjml, name: 'Webinar (moved)' }]))
+    expect(await screen.findByText('“Webinar (moved)” saved')).toBeInTheDocument()
+
+    fireEvent.click(within(card).getByRole('button', { name: 'Delete Webinar banner' }))
+    const confirm = await screen.findByRole('dialog', { name: 'Delete “Webinar banner”?' })
+    expect(confirm).toHaveTextContent('The 3 drafts and scheduled emails holding it keep its content as ordinary sections.')
+    expect(confirm).toHaveTextContent('5 emails in an approval, sending or sent keep it as they are.')
+    fireEvent.click(within(confirm).getByRole('button', { name: 'Delete synced block' }))
+    await waitFor(() => expect(deleted).toBe(1))
+    expect(await screen.findByText('“Webinar banner” deleted')).toBeInTheDocument()
+    await waitFor(() => expect(card).not.toHaveTextContent('Webinar banner'))
+  })
+
   it('is read-only for people who can’t edit templates, and says who can', async () => {
     unmock = mockApi({ [`GET ${base}`]: () => json(defaults) })
     await renderInWorkspace(<BrandKitPage />, { me: viewer })

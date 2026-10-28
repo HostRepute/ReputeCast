@@ -4109,10 +4109,13 @@ type Querier interface {
 	SurveySlugTaken(ctx context.Context, arg SurveySlugTakenParams) (bool, error)
 	SurveyUpdate(ctx context.Context, arg SurveyUpdateParams) error
 	SurveysList(ctx context.Context, workspaceID uuid.UUID) ([]SurveysListRow, error)
+	// A named block (R4.A3); the Header and Footer stay.
+	SyncedBlockDelete(ctx context.Context, arg SyncedBlockDeleteParams) (int64, error)
 	// Locks the block for a change (inside a transaction).
 	SyncedBlockGet(ctx context.Context, arg SyncedBlockGetParams) (SyncedBlockGetRow, error)
 	SyncedBlockInsert(ctx context.Context, arg SyncedBlockInsertParams) error
 	SyncedBlockUpdate(ctx context.Context, arg SyncedBlockUpdateParams) error
+	// The Header, the Footer and the named blocks (R4.A3), oldest first.
 	SyncedBlocksList(ctx context.Context, workspaceID uuid.UUID) ([]SyncedBlocksListRow, error)
 	// A message the system mailer or a setup's test sends (stream system, or
 	// the stream a test goes on).

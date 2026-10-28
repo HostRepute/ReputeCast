@@ -62,6 +62,8 @@
   "version.loadedTheirs": "đã mở v{version} của {name}",
   "version.merged": "đã gộp với v{version} của {name}",
   "version.synced": "{kind, select, header {Đầu trang} other {Chân trang}} được cập nhật trong Bộ nhận diện",
+  "version.syncedNamed": "Khối đồng bộ “{name}” được cập nhật trong Bộ nhận diện",
+  "version.syncedDeleted": "Khối đồng bộ “{name}” đã bị xóa trong Bộ nhận diện",
   "version.sharedForReview": "Đã chia sẻ để góp ý",
   "version.agent": "do tác tử thay đổi",
   "version.agentCreated": "do tác tử tạo",

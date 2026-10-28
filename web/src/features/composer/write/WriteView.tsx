@@ -12,7 +12,8 @@ import { encodeTables } from '../editor/components'
 import { buildToken, chipHtml, chipLabelOf, parseToken } from '../editor/liquid'
 import { blockContent, mjChildren, sectionOf, tagOf, textContent } from '../editor/labels'
 import { applyTextStyle, currentTextStyle, TEXT_STYLES, type TextEditing, type TextStyle } from '../editor/textStyle'
-import { SYNCED_ATTR } from '../editor/synced'
+import { isNamedSynced, SYNCED_ATTR } from '../editor/synced'
+import { useBrandKit } from '../BrandKit'
 import { bodyOf, docItems, fromEditable, isBlank, textHtml, toEditable, type DocItem } from './doc'
 import { applyBold, applyShortcut, caretToEnd, isDividerLine, paragraphOf } from './markdown'
 import { cleanPaste, textToHtml } from './paste'
@@ -829,10 +830,13 @@ function Toolbar({ w }: { w: WriteState }) {
   )
 }
 
-/** The synced Header or Footer: changes in the brand kit only. */
-function SyncedCard({ kind }: { kind: 'header' | 'footer' }) {
+/** A synced block (the Header, the Footer or a named one): changes in the brand kit only. */
+function SyncedCard({ kind }: { kind: string }) {
   const c = useComposer()
   const t = useT()
+  const kit = useBrandKit().data
+  const named = isNamedSynced(kind)
+  const name = named ? (kit?.synced.find((b) => b.kind === kind)?.name ?? t(mw.syncedBlock)) : ''
   return (
     <div className="wsync">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -840,7 +844,11 @@ function SyncedCard({ kind }: { kind: 'header' | 'footer' }) {
         <path d="M13.5 2.5v4h-4M2.5 13.5v-4h4" />
       </svg>
       <span>
-        <T msg={mw.synced} values={{ kind, b: (chunks: ReactNode[]) => <b>{chunks}</b> }} />
+        {named ? (
+          <T msg={mw.syncedNamed} values={{ name, b: (chunks: ReactNode[]) => <b>{chunks}</b> }} />
+        ) : (
+          <T msg={mw.synced} values={{ kind, b: (chunks: ReactNode[]) => <b>{chunks}</b> }} />
+        )}
       </span>
       <Link to="/w/$workspace/settings/brand-kit" params={{ workspace: c.slug }}>
         {t(mw.editInBrandKit)}

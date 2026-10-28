@@ -19,6 +19,9 @@ export function SyncedBlockDialog({ block, onClose }: { block: Schemas['SyncedBl
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const id = useId()
+  // A named block (R4.A3) can be renamed here too.
+  const named = /^b-[0-9a-f]{12}$/.test(block.kind)
+  const [name, setName] = useState(block.name)
   const [src, setSrc] = useState(block.mjml)
   const [html, setHtml] = useState('')
   const [problem, setProblem] = useState('')
@@ -47,14 +50,14 @@ export function SyncedBlockDialog({ block, onClose }: { block: Schemas['SyncedBl
     setError('')
     try {
       const { data } = await http.PUT('/api/v1/workspaces/{workspace}/brand-kit/synced/{kind}', {
-        params: { path: { workspace: slug, kind: block.kind as 'header' | 'footer' } },
-        body: { mjml: src },
+        params: { path: { workspace: slug, kind: block.kind } },
+        body: named ? { mjml: src, name: name.trim() } : { mjml: src },
       })
       await qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/brand-kit'] })
       const a = data?.applied
       toast({
         kind: 'success',
-        title: t(mk.blockSaved, { kind: block.kind }),
+        title: named ? t(mk.namedSaved, { name: name.trim() }) : t(mk.blockSaved, { kind: block.kind }),
         detail: a ? t(mk.blockSavedDetail, { changed: a.drafts + a.scheduled, sent: a.sent }) : undefined,
       })
       onClose()
@@ -68,7 +71,7 @@ export function SyncedBlockDialog({ block, onClose }: { block: Schemas['SyncedBl
     <Dialog
       open
       onOpenChange={(o) => !o && !busy && onClose()}
-      title={t(mk.syncedEditTitle, { kind: block.kind })}
+      title={named ? t(mk.namedEditTitle, { name: block.name }) : t(mk.syncedEditTitle, { kind: block.kind })}
       description={t(mk.syncedEditLead)}
       size="lg"
       footer={
@@ -76,12 +79,18 @@ export function SyncedBlockDialog({ block, onClose }: { block: Schemas['SyncedBl
           <Button onClick={onClose} disabled={busy}>
             {t(common.cancel)}
           </Button>
-          <Button variant="primary" onClick={() => void save()} disabled={busy || !src.trim()} aria-busy={busy || undefined}>
+          <Button variant="primary" onClick={() => void save()} disabled={busy || !src.trim() || (named && !name.trim())} aria-busy={busy || undefined}>
             {busy ? t(mk.savingBlock) : t(mk.saveBlock)}
           </Button>
         </>
       }
     >
+      {named ? (
+        <label className="lbl mb-3" htmlFor={`${id}-name`}>
+          {t(mk.namedName)}
+          <input id={`${id}-name`} className="in" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} />
+        </label>
+      ) : null}
       <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(300px,100%),1fr))' }}>
         <label className="lbl" htmlFor={`${id}-src`}>
           {t(mk.mjml)}

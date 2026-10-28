@@ -34,6 +34,8 @@ export default translate(mw, {
   hint: 'Gõ <k>#</k>để tạo đề mục, <k>-</k>để tạo danh sách, <k>**</k>để in đậm, <k>/</k>để chèn khối',
   column: '{section} · cột {n}/{count} trong chế độ Thiết kế',
   synced: '<b>{kind, select, header {Đầu trang} other {Chân trang}}</b> · khối đồng bộ, {kind, select, header {logo và liên kết} other {địa chỉ bưu chính và liên kết hủy đăng ký}}',
+  syncedNamed: '<b>{name}</b> · khối đồng bộ, giống nhau trong mọi email chứa nó',
+  syncedBlock: 'Khối đồng bộ',
   editInBrandKit: 'Sửa trong Bộ nhận diện',
   other: '<b>{block}</b> · sửa trong chế độ Thiết kế',
   editInDesign: 'Sửa trong Thiết kế',
