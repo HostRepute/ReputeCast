@@ -962,7 +962,9 @@ export function pausedText(s: Snapshot): { title: string; body: string } {
   const name = s.pausedBy
   const time = s.pausedAt ? clockSeconds(s.pausedAt) : ''
   const title = name ? tt(time ? mm.pausedByAt : mm.pausedBy, { name, time }) : time ? tt(mm.pausedAt, { time }) : tt(mm.paused)
-  const v = { count: count(s.held + s.queued + s.waiting), perm: 'campaigns:send', reason: s.pauseReason }
+  // People, not a permission key (review GS-14, X-1): the ones who can resume.
+  const send = s.helpers?.send ?? []
+  const v = { count: count(s.held + s.queued + s.waiting), who: send.length ? orList(send) : tt(mm.pausedWhoAnyone), reason: s.pauseReason }
   return { title, body: s.pauseReason ? tt(mm.pausedBodyReason, v) : tt(mm.pausedBody, v) }
 }
 

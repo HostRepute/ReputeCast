@@ -17,6 +17,7 @@ import {
   optionAction,
   outageSummary,
   outageTitle,
+  pausedText,
   progressLegend,
   progressText,
   providerLine,
@@ -539,6 +540,19 @@ describe('LiveMonitorStates', () => {
       title: 'Starting send · 09:00:04',
       body: 'Queue built for 31,604 recipients. Handing the first batches to SES and Postal; delivery events usually arrive within 10 seconds.',
     })
+  })
+
+  it('names who can resume a paused send, never a permission key (GS-14, X-1)', () => {
+    const s = snapshot({ state: 'paused', pausedBy: 'Sofia Rossi', pausedAt: T('09:21:10'), held: 0, queued: 18000, waiting: 0 })
+    expect(pausedText({ ...s, helpers: { send: ['Linh Nguyen', 'Marcus Chen'], approve: [], pause: [] } })).toEqual({
+      title: 'Paused by Sofia Rossi at 09:21:10',
+      body: '18,000 recipients are waiting. Nothing more is sent until Linh Nguyen or Marcus Chen resumes it; what was already sent keeps reporting opens and clicks.',
+    })
+    const anyone = pausedText({ ...s, helpers: undefined, pauseReason: 'Checking a broken link.' })
+    expect(anyone.body).toBe(
+      '"Checking a broken link." 18,000 recipients are waiting. Nothing more is sent until someone who can send resumes it; what was already sent keeps reporting opens and clicks.',
+    )
+    expect(anyone.body).not.toMatch(/campaigns:/)
   })
 
   it('writes the stream-lost state', () => {

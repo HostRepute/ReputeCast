@@ -295,8 +295,9 @@ export default translate(mm, {
   pausedAt: 'Đã tạm dừng lúc {time}',
   paused: 'Đã tạm dừng',
   pausedBodyReason:
-    '"{reason}" {count} người nhận đang chờ. Không gửi thêm gì cho đến khi người có quyền {perm} tiếp tục; những gì đã gửi vẫn báo cáo lượt mở và lượt nhấp.',
-  pausedBody: '{count} người nhận đang chờ. Không gửi thêm gì cho đến khi người có quyền {perm} tiếp tục; những gì đã gửi vẫn báo cáo lượt mở và lượt nhấp.',
+    '"{reason}" {count} người nhận đang chờ. Không gửi thêm gì cho đến khi {who} tiếp tục; những gì đã gửi vẫn báo cáo lượt mở và lượt nhấp.',
+  pausedBody: '{count} người nhận đang chờ. Không gửi thêm gì cho đến khi {who} tiếp tục; những gì đã gửi vẫn báo cáo lượt mở và lượt nhấp.',
+  pausedWhoAnyone: 'một người có quyền gửi',
   lostTitle: 'Mất luồng sự kiện trực tiếp lúc {time}',
   lostBody:
     'Kết nối của trình duyệt đến ReputeCast đã bị ngắt. Việc gửi vẫn tiếp tục trên máy chủ; số liệu bên dưới tính đến {asOf} và có thể chậm tối đa {behind, plural, other {# phút}}.',

@@ -333,8 +333,10 @@ export const mm = defineMessages('live.model', {
   paused: 'Paused',
   /** {reason} is the pause's reason, as the person wrote it. */
   pausedBodyReason:
-    '"{reason}" {count} recipients are waiting. Nothing more is sent until someone with {perm} resumes it; what was already sent keeps reporting opens and clicks.',
-  pausedBody: '{count} recipients are waiting. Nothing more is sent until someone with {perm} resumes it; what was already sent keeps reporting opens and clicks.',
+    '"{reason}" {count} recipients are waiting. Nothing more is sent until {who} resumes it; what was already sent keeps reporting opens and clicks.',
+  pausedBody: '{count} recipients are waiting. Nothing more is sent until {who} resumes it; what was already sent keeps reporting opens and clicks.',
+  /** {who} in pausedBody when no one is named. */
+  pausedWhoAnyone: 'someone who can send',
   lostTitle: 'Lost the live event stream at {time}',
   lostBody:
     "The browser's connection to ReputeCast dropped. Sending continues on the server; the counts below are from {asOf} and may be up to {behind, plural, one {# minute} other {# minutes}} behind.",

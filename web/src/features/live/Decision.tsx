@@ -87,11 +87,13 @@ function IncidentPanel({ s, incident, actions, can, onCancelAll }: { s: Snapshot
     }
   }
   return (
-    <section role="alert" className={cn('card flex flex-col', t.border)} aria-labelledby={`incident-${incident.id}`}>
+    <section className={cn('card flex flex-col', t.border)} aria-labelledby={`incident-${incident.id}`}>
       <div className={cn('flex flex-wrap items-start gap-[18px] rounded-t-[10px] px-[22px] py-5', t.head)}>
         {outage ? <OutageIcon /> : <PauseIcon />}
         <div className="flex flex-col gap-1 max-md:min-w-[120px]" style={{ flex: '1 1 320px' }}>
-          <span id={`incident-${incident.id}`} className={cn('text-[20px] font-bold tracking-[-0.01em]', t.text)}>
+          {/* Only the title is an alert (LiveMonitorPaused, LiveMonitorOutage): the summary
+              under it changes with every snapshot and isn't announced again (review GS-14). */}
+          <span id={`incident-${incident.id}`} role="alert" className={cn('text-[20px] font-bold tracking-[-0.01em]', t.text)}>
             {incidentTitle(incident)}
           </span>
           <span className={t.text}>{outage ? outageSummary(incident, s) : thresholdSummary(incident, s)}</span>
