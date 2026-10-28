@@ -280,7 +280,7 @@ var postalDays = []struct {
 	{day: 6, cap: 2600, sent: 2600, bounce: 2.3, complaint: 0.04, delivered: 2500, complained: 1, slowed: true},
 	{day: 6, cap: 2600, sent: 2600, bounce: 0.2, complaint: 0.04, delivered: 2500, complained: 1, held: true, healthy: 1},
 	{day: 6, cap: 2600, sent: 2600, bounce: 0.8, complaint: 0.04, delivered: 2500, complained: 1, counted: true, held: true, healthy: 2},
-	{day: 7, cap: 3600, sent: 3600, bounce: 0.7, complaint: 0.04, delivered: 2400, complained: 1, counted: true},
+	{day: 7, cap: 3600, sent: 3500, bounce: 0.7, complaint: 0.04, delivered: 2400, complained: 1, counted: true},
 	{day: 8, cap: 4800, sent: 4798, bounce: 0.9, complaint: 0.06, delivered: 3333, complained: 2, counted: true},
 }
 
