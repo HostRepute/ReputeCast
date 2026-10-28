@@ -1,4 +1,4 @@
-import { addToSplit, aboutCount, changeText, moveSplit, onlyOrderChanged, removeFromSplit, setWeight, splitPair, splitTotal, weightsProblem, type Draft, type StreamDraft } from './routing-model'
+import { addToSplit, aboutCount, changeText, moveSplit, onlyOrderChanged, removeFromSplit, setWeight, splitPair, splitTotal, weightsProblem, type Draft, type StreamDraft, type StreamImpact } from './routing-model'
 
 const ses = 'ses-0000-0000-0000-000000000001'
 const postal = 'po-00-0000-0000-0000-000000000003'
@@ -63,5 +63,34 @@ describe('the ordered split (PR-14)', () => {
     expect(changeText(draft(moveSplit(saved, 1, 0)), before, providers)).toBe('Broadcasts order changed to Postal, SES · nobody changes provider')
     expect(changeText(draft(setWeight(saved, postal, 20)), before, providers)).toBe('Weights add up to 110%. Make them 100% to save.')
     expect(aboutCount(30)).toBe('fewer than 100')
+  })
+
+  // R3.U4a: every stream's change says who moves, not just a Broadcasts split.
+  it('says who moves in every stream the edits change', () => {
+    const before = draft(saved)
+    const after: Draft = {
+      ...draft(setWeight(setWeight(saved, ses, 85), postal, 15)),
+      automation: stream([{ providerId: postmark, weight: 100 }], { fallback: ses, failover: 'automatic' }),
+      system: stream([{ providerId: postmark, weight: 100 }], { fallback: postal, failover: 'automatic' }),
+    }
+    const others: StreamImpact[] = [
+      { stream: 'automation', basis: 'recent', addresses: 2400, moved: 288, from: 'SES', to: 'Postmark' },
+      { stream: 'system', basis: 'recent', addresses: 950, moved: 0 },
+    ]
+    expect(changeText(after, before, providers, { moved: 1560, from: 'SES', toward: 'Postal' }, others)).toBe(
+      'Broadcasts split 90/10 → 85/15 · about 1,600 Broadcast recipients move from SES to Postal · Automations: 12% of the addresses it mailed in the last 30 days move to Postmark · System: nobody changes provider',
+    )
+    // Until the simulation answers, a stream only says it changed, and
+    // Broadcasts no longer claims that nobody else moves.
+    expect(changeText(after, before, providers)).toBe('Broadcasts split 90/10 → 85/15 · only the difference moves · Automations changed · System changed')
+    // Without recent mail the stream's contacts stand in; a sliver reads "under 1%".
+    const onlyAutomation: Draft = { ...before, automation: after.automation }
+    expect(changeText(onlyAutomation, before, providers, undefined, [{ stream: 'automation', basis: 'contacts', addresses: 48213, moved: 120, to: 'Postmark' }])).toBe(
+      "Automations: under 1% of your contacts' addresses move to Postmark",
+    )
+    const reordered: Draft = { ...draft(moveSplit(saved, 1, 0)), automation: after.automation }
+    expect(changeText(reordered, before, providers, undefined, others)).toBe(
+      'Broadcasts order changed to Postal, SES · no Broadcast recipient changes provider · Automations: 12% of the addresses it mailed in the last 30 days move to Postmark',
+    )
   })
 })

@@ -37265,6 +37265,17 @@ export interface components {
             field: string;
             values: string[];
         };
+        RouteCampaignDown: {
+            checks: string[];
+            /** Format: int64 */
+            held: number;
+            /** Format: int64 */
+            moved: number;
+            /** @enum {string} */
+            reason?: "pause_and_ask" | "no_fallback" | "warming" | "checks";
+            status: string;
+            to?: string;
+        };
         RouteCampaignDraft: {
             /** Format: int64 */
             moved: number;
@@ -37273,18 +37284,16 @@ export interface components {
         RouteCampaignInput: {
             draft?: components["schemas"]["RoutingSaveInput"];
         };
-        RouteCampaignOverflow: {
+        RouteCampaignMailboxCap: {
             /** Format: int64 */
             cap: number;
             /** Format: int64 */
-            count: number;
-            /** Format: date-time */
-            date: string;
+            left: number;
+            mailbox: string;
             /** Format: int64 */
-            day: number;
-            provider: string;
-            providerId: string;
-            to: string;
+            over: number;
+            /** Format: int64 */
+            recipients: number;
         };
         RouteCampaignResult: {
             campaignId: string;
@@ -37292,10 +37301,10 @@ export interface components {
             domain: string;
             draft?: components["schemas"]["RouteCampaignDraft"];
             estimated: boolean;
+            impact: components["schemas"]["RouteStreamImpact"][];
             lists: string[];
             name: string;
             none: boolean;
-            overflow: components["schemas"]["RouteCampaignOverflow"][];
             /** Format: date-time */
             scheduledAt?: string;
             shares: components["schemas"]["RouteCampaignShare"][];
@@ -37306,18 +37315,43 @@ export interface components {
             timezone: string;
             /** Format: int64 */
             total: number;
+            warmup: components["schemas"]["RouteCampaignWarmup"][];
         };
         RouteCampaignShare: {
             /** @enum {string} */
             color: "ses" | "postal" | "postmark" | "other";
             /** Format: int64 */
             count: number;
+            down?: components["schemas"]["RouteCampaignDown"];
             fallback?: string;
             /** @enum {string} */
             policy: "automatic" | "pause_and_ask" | "warm_only";
             provider: string;
             providerId: string;
             short: string;
+        };
+        RouteCampaignWarmup: {
+            /** Format: int64 */
+            cap: number;
+            /** Format: date-time */
+            date: string;
+            /** Format: int64 */
+            day: number;
+            /** Format: int64 */
+            left: number;
+            mailboxCaps: components["schemas"]["RouteCampaignMailboxCap"][];
+            /** Format: int64 */
+            over: number;
+            paused: boolean;
+            provider: string;
+            providerId: string;
+            /** Format: date-time */
+            resumes?: string;
+            spread: boolean;
+            /** Format: int64 */
+            tier: number;
+            tierTo?: string;
+            to?: string;
         };
         RouteShare: {
             /** @example ses */
@@ -37333,6 +37367,18 @@ export interface components {
             sent: number;
             /** @example SES */
             short: string;
+        };
+        RouteStreamImpact: {
+            /** Format: int64 */
+            addresses: number;
+            /** @enum {string} */
+            basis: "recent" | "contacts";
+            from?: string;
+            /** Format: int64 */
+            moved: number;
+            /** @enum {string} */
+            stream: "automation" | "system" | "transactional";
+            to?: string;
         };
         RouteTestCost: {
             /** @enum {string} */

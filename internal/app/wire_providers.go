@@ -82,7 +82,15 @@ func init() {
 				if err != nil || !ok {
 					return routing.WarmCap{}, false
 				}
-				return routing.WarmCap{Cap: al.Cap, Day: al.Day, Days: al.Days, Overflow: al.Overflow}, true
+				wc := routing.WarmCap{Cap: al.Cap, Left: al.Left(), Day: al.Day, Days: al.Days, Overflow: al.Overflow, Paused: al.Paused,
+					Tiers: al.Tiers, NextDay: al.NextDay}
+				if al.Spread {
+					wc.MailboxCaps, wc.MailboxLeft = map[string]int64{}, map[string]int64{}
+					for _, sh := range warmup.MailboxShares {
+						wc.MailboxCaps[sh.Mailbox], wc.MailboxLeft[sh.Mailbox] = al.MailboxCaps[sh.Mailbox], al.MailboxLeft(sh.Mailbox)
+					}
+				}
+				return wc, true
 			}})
 		demoworkspace.Register(h, &demoworkspace.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets})
 		warmup.Register(h, &warmup.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit})

@@ -32,6 +32,13 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
 .n{font-weight:600;font-variant-numeric:tabular-nums}
 .h2{margin:0;font-size:15px;font-weight:600}
 .strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+/* route tester and routing banners (ProvidersRouting, review R3.U4b/c) */
+.sbar{display:flex;height:12px;gap:2px;border-radius:999px;overflow:hidden;background:#EEF0F3}
+.sbar i{display:block;height:100%}
+.sum{display:flex;justify-content:space-between;gap:12px;font-size:13px}
+.rbn{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding:16px 20px;border-radius:10px;background:#FFFBEB;border:1px solid #FDE68A}
+.rbn .t{font-size:15px;font-weight:600}
+.rbn .b{font-size:13px;color:#4B5563}
 .sk{background:#E9ECF0;border-radius:6px;display:inline-block}
 .bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
 
@@ -275,11 +282,58 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
           </div>
         </div>
       </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Route tester, warm-up cap without overflow">
+        <div class="strip"><span class="dot" style="color:#FBBF24"></span>Route tester · Campaign · Postal at its warm-up cap, no overflow</div>
+        <div class="card" style="padding:18px 20px;max-width:460px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:4px 10px;flex-wrap:wrap"><span class="n" style="font-size:18px;font-weight:700">48,213 recipients</span><span class="k">Weekly Digest list · news.acme.io · 412 unengaged excluded by the sunset policy</span></div>
+          <div class="sbar" aria-hidden="true"><i style="width:90%;background:#4a3aa7"></i><i style="width:10%;background:#e87ba4"></i></div>
+          <div class="sum"><span style="display:flex;align-items:center;gap:8px"><span class="dot" style="color:#4a3aa7"></span>Amazon SES</span><span class="n">43,392</span></div>
+          <div class="sum"><span style="display:flex;align-items:center;gap:8px"><span class="dot" style="color:#e87ba4"></span>Postal</span><span class="n">4,821</span></div>
+          <div class="sum" style="border-top:1px solid #E3E6EB;padding-top:10px"><span class="k">Conditions matched</span><span>none</span></div>
+          <div class="sum"><span class="k">Outside day 10's engagement tiers, to Amazon SES</span><span class="n">1,180</span></div>
+          <div class="sum"><span class="k">Held by Postal's warm-up cap</span><span class="n">1,321</span></div>
+          <span class="k" style="margin-top:-6px">Postal's cap on Tue 14 Oct (day 10) is 7,500, split by mailbox provider. Over its part at Gmail (1,812 for 1,040). They go out from Wed 15 Oct, when the next day's cap starts.</span>
+          <div class="sum" style="border-top:1px solid #E3E6EB;padding-top:10px"><span class="k">If Postal fails</span><span>pause and ask</span></div>
+          <div class="sum"><span class="k">If Amazon SES fails</span><span>pause and ask</span></div>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Route tester, a provider that can't send now">
+        <div class="strip"><span class="dot" style="color:#F87171"></span>Route tester · Campaign · Postal down, automatic failover</div>
+        <div class="card" style="padding:18px 20px;max-width:460px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:4px 10px;flex-wrap:wrap"><span class="n" style="font-size:18px;font-weight:700">48,213 recipients</span><span class="k">Weekly Digest list · news.acme.io · 412 unengaged excluded by the sunset policy</span></div>
+          <div class="sbar" aria-hidden="true"><i style="width:90%;background:#4a3aa7"></i><i style="width:10%;background:#e87ba4"></i></div>
+          <div class="sum"><span style="display:flex;align-items:center;gap:8px"><span class="dot" style="color:#4a3aa7"></span>Amazon SES</span><span class="n">43,392</span></div>
+          <div class="sum"><span style="display:flex;align-items:center;gap:8px"><span class="dot" style="color:#e87ba4"></span>Postal</span><span class="n">4,821</span></div>
+          <div class="sum" style="border-top:1px solid #E3E6EB;padding-top:10px"><span class="k">Conditions matched</span><span>none</span></div>
+          <span class="k">Postal's cap on Tue 14 Oct (day 10) is 7,500, split by mailbox provider.</span>
+          <div class="sum" style="border-top:1px solid #E3E6EB;padding-top:10px"><span class="k">If Postal fails</span><span style="text-align:right">fail over to Amazon SES</span></div>
+          <div style="display:flex;flex-direction:column;gap:2px;font-size:12.5px;color:#92400E"><span>Postal can't send now: 4,821 recipients go through Amazon SES instead.</span></div>
+          <div class="sum"><span class="k">If Amazon SES fails</span><span>fail over</span></div>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Routing, a refresh that failed">
+        <div class="strip"><span class="dot" style="color:#FBBF24"></span>Routing · a background refresh failed; the editor and its edits stay</div>
+        <section class="rbn" role="status">
+          <div style="display:flex;flex-direction:column;gap:4px;flex:1 1 420px;min-width:0"><div class="t">Couldn't refresh the routing</div><div class="b">The server didn't answer. Your edits are still here, and mail keeps going out on the saved routing.</div></div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px"><button type="button" class="btn sm">Retry</button></div>
+        </section>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Routing, a save refused in the bulk-terms warning">
+        <div class="strip"><span class="dot" style="color:#FBBF24"></span>Bulk-terms warning · save refused: Broadcasts changed meanwhile; leaving still asks first</div>
+        <section class="rbn" role="status">
+          <div style="display:flex;flex-direction:column;gap:4px;flex:1 1 420px;min-width:0"><div class="t">Broadcasts changed while you were editing</div><div class="b">Someone saved the routing, or the warm-up planner raised a share. Nothing was saved, and your edits are still here.</div></div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px"><button type="button" class="btn sm">Show the latest routing</button><button type="button" class="btn sm">Keep my edits and replace it</button></div>
+        </section>
+      </section>
     </main>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1194}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2520}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);

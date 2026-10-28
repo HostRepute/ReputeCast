@@ -8,6 +8,9 @@ import { defineMessages } from '@/i18n'
 export const mr = defineMessages('providers.routing', {
   loadFailed: "Couldn't load the routing",
   loadFailedBody: 'Mail keeps going out on the saved routing.',
+  /** R3.U4b: a background refresh failed; the editor and its unsaved edits stay. */
+  refreshFailed: "Couldn't refresh the routing",
+  refreshFailedBody: 'Your edits are still here, and mail keeps going out on the saved routing.',
   loading: 'Loading the routing',
   saved: 'Routing saved',
   savedDetail: 'New sends use it right away; sends in progress keep their route.',
@@ -221,15 +224,22 @@ export const mr = defineMessages('providers.routing', {
   unsavedTitle: 'Unsaved changes',
   unsavedBadge: 'Unsaved change',
   weightsNot100: 'Weights add up to {total}%. Make them 100% to save.',
-  /** {order} lists short provider names ("SES, Postal"). */
-  orderChanged: 'Broadcasts order changed to {order} · nobody changes provider',
+  /** {order} lists short provider names ("SES, Postal"); alone is yes when no other stream changed. */
+  orderChanged: 'Broadcasts order changed to {order} · {alone, select, yes {nobody changes provider} other {no Broadcast recipient changes provider}}',
   /** {before} and {after} are splits like "90/10". */
   splitChanged: 'Broadcasts split {before} → {after}',
-  onlyDifferenceMoves: 'only the difference moves; nobody else changes provider',
-  nobodyMoves: 'nobody changes provider',
-  /** {about} is "about 1,600"; {from} and {to} are short provider names. */
-  recipientsMove: '{about} Broadcast recipients move from {from} to {to}; nobody else changes provider',
-  streamsChanged: '{count, plural, one {# stream changed} other {# streams changed}}: {streams}',
+  /** alone is yes when no other stream changed: then nobody else moves. */
+  onlyDifferenceMoves: 'only the difference moves{alone, select, yes {; nobody else changes provider} other {}}',
+  nobodyMoves: '{alone, select, yes {nobody changes provider} other {no Broadcast recipient changes provider}}',
+  /** {about} is "about 1,600"; {from} and {to} are short provider names; alone as above. */
+  recipientsMove: '{about} Broadcast recipients move from {from} to {to}{alone, select, yes {; nobody else changes provider} other {}}',
+  /** A stream whose change the simulation hasn't counted yet; {stream} is its name ("Automations"). */
+  streamChanged: '{stream} changed',
+  /** R3.U4a: a stream other than Broadcasts; {share} is a percentage ("12%"), {to} the provider most of them move to. */
+  impactMoves:
+    "{stream}: {basis, select, contacts {{share} of your contacts' addresses} other {{share} of the addresses it mailed in the last 30 days}} move to {to}",
+  impactNobody: '{stream}: nobody changes provider',
+  underOnePercent: 'under 1%',
   fewerThan100: 'fewer than 100',
   aboutN: 'about {n}',
   failWhen: 'Fail over when:',
@@ -291,8 +301,25 @@ export const mr = defineMessages('providers.routing', {
   /** {count} recipients a condition matched. */
   conditionMatchedLine: '{field} is {values} · {count}',
   overflowTo: 'Warm-up overflow to {provider}',
-  /** {provider}'s cap on {date} (day {day}) is {cap}. */
-  overflowCap: "{provider}'s cap on {date} (day {day}) is {cap}, split by mailbox provider.",
+  /** {provider}'s cap on {date} (day {day}) is {cap}; spread is yes when the plan caps each mailbox provider separately. */
+  overflowCap: "{provider}'s cap on {date} (day {day}) is {cap}{spread, select, yes {, split by mailbox provider} other {}}.",
+  /** R3.U4c: recipients outside a warming provider's engagement tiers on the send day go through a warm provider. */
+  tierTo: "Outside day {day}'s engagement tiers, to {provider}",
+  /** R3.U4c: what's over a warming provider's cap without overflow waits. */
+  heldByCap: "Held by {provider}'s warm-up cap",
+  /** {date} is a short date ("Wed 15 Oct"). */
+  heldUntil: "They go out from {date}, when the next day's cap starts.",
+  heldByPause: "Held while {provider}'s warm-up is paused",
+  capPaused: "{provider}'s warm-up is paused: its recipients wait until someone resumes it.",
+  /** The plan sends what it can't over a warm provider ({to}) while paused. */
+  capPausedOverflow: "{provider}'s warm-up is paused, so its whole share goes through {to}.",
+  /** {parts} lists the mailbox providers over their part ("Gmail (3,312 for 3,000) and Yahoo (912 for 900)"). */
+  overParts: 'Over its part at {parts}.',
+  overPart: '{mailbox} ({recipients} for {cap})',
+  /** R3.U4c: a provider that can't take mail now, and where its share goes. */
+  downMoves: "{provider} can't send now: {count} recipients go through {to} instead.",
+  downWaits:
+    "{provider} can't send now: {count} recipients wait {reason, select, no_fallback {because Broadcasts has no fallback} warming {because the fallback is still warming up} checks {because the fallback didn't pass its checks} other {for someone to decide (pause and ask)}}.",
   ifProviderFails: 'If {provider} fails',
   policyText: '{policy, select, pause_and_ask {pause and ask} warm_only {fail over to a warmed-up provider} other {{hasFallback, select, yes {fail over to {fallback}} other {fail over}}}}',
   /** {shares} lists the unsaved split's counts ("Amazon SES 26,513 · Postal 4,679"). */

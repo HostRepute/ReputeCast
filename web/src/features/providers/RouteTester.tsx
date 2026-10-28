@@ -1,9 +1,9 @@
 import { keepPreviousData } from '@tanstack/react-query'
-import { useEffect, useState, type ReactNode } from 'react'
-import { $api, errorMessage } from '@/api/client'
+import { Fragment, useEffect, useState, type ReactNode } from 'react'
+import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { Segmented } from '@/components/ui/Tabs'
-import { useT } from '@/i18n'
+import { formatList, useT } from '@/i18n'
 import { clock, count, shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { providerColor, streamName, type Stream } from './common'
@@ -265,22 +265,18 @@ function CampaignTester({ cfg, draft }: { cfg: RoutingConfig; draft?: Draft }) {
               : t(mr.conditionsNone)}
           </span>
         </Row>
-        {r.overflow.map((o) => (
-          <Row key={o.providerId} k={t(mr.overflowTo, { provider: o.to })}>
-            <span className="n">{count(o.count)}</span>
-          </Row>
-        ))}
-        {r.overflow.map((o) => (
-          <span key={`${o.providerId}-cap`} className="k">
-            {t(mr.overflowCap, { provider: o.provider, date: shortDate(o.date), day: o.day, cap: count(o.cap) })}
-          </span>
+        {r.warmup.map((w) => (
+          <WarmupRows key={w.providerId} w={w} />
         ))}
       </div>
       <div className="flex flex-col gap-1.5 border-t border-line pt-2.5">
         {r.shares.map((x) => (
-          <Row key={`${x.providerId}-fails`} k={t(mr.ifProviderFails, { provider: x.provider })}>
-            <span className="text-right text-[13px]">{t(mr.policyText, { policy: x.policy, hasFallback: x.fallback ? 'yes' : 'no', fallback: x.fallback ?? '' })}</span>
-          </Row>
+          <Fragment key={`${x.providerId}-fails`}>
+            <Row k={t(mr.ifProviderFails, { provider: x.provider })}>
+              <span className="text-right text-[13px]">{t(mr.policyText, { policy: x.policy, hasFallback: x.fallback ? 'yes' : 'no', fallback: x.fallback ?? '' })}</span>
+            </Row>
+            {x.down ? <DownNow provider={x.provider} down={x.down} /> : null}
+          </Fragment>
         ))}
       </div>
       {draft && r.draft ? (
@@ -289,6 +285,59 @@ function CampaignTester({ cfg, draft }: { cfg: RoutingConfig; draft?: Draft }) {
           {t(mr.campaignDraft, { shares: r.draft.shares.map((x) => `${x.provider} ${count(x.count)}`).join(' · '), moved: count(r.draft.moved) })}
         </div>
       ) : null}
+    </div>
+  )
+}
+
+/**
+ * What a warming provider's plan does to its share on the send day
+ * (R3.U4c): recipients outside the day's tiers go to a warm provider, what's
+ * over the cap (per mailbox provider when the plan splits it) overflows to
+ * a warm provider or waits for the next day's cap, all of it while the plan
+ * is paused.
+ */
+function WarmupRows({ w }: { w: Schemas['RouteCampaignWarmup'] }) {
+  const t = useT()
+  const over = w.mailboxCaps.filter((p) => p.over > 0)
+  return (
+    <>
+      {w.tier > 0 && w.tierTo ? (
+        <Row k={t(mr.tierTo, { day: w.day, provider: w.tierTo })}>
+          <span className="n">{count(w.tier)}</span>
+        </Row>
+      ) : null}
+      {w.to ? (
+        <Row k={t(mr.overflowTo, { provider: w.to })}>
+          <span className="n">{count(w.over)}</span>
+        </Row>
+      ) : w.over > 0 ? (
+        <Row k={t(w.paused ? mr.heldByPause : mr.heldByCap, { provider: w.provider })}>
+          <span className="n">{count(w.over)}</span>
+        </Row>
+      ) : null}
+      <span className="k">
+        {w.paused
+          ? w.to
+            ? t(mr.capPausedOverflow, { provider: w.provider, to: w.to })
+            : t(mr.capPaused, { provider: w.provider })
+          : t(mr.overflowCap, { provider: w.provider, date: shortDate(w.date), day: w.day, cap: count(w.cap), spread: w.spread ? 'yes' : 'no' })}
+        {over.length && !w.paused
+          ? ` ${t(mr.overParts, { parts: formatList(over.map((p) => t(mr.overPart, { mailbox: mailboxName[p.mailbox] ?? p.mailbox, recipients: count(p.recipients), cap: count(p.left) }))) })}`
+          : ''}
+        {w.over > 0 && !w.to && w.resumes ? ` ${t(mr.heldUntil, { date: shortDate(w.resumes) })}` : ''}
+      </span>
+    </>
+  )
+}
+
+/** Where a provider that can't send now sends its share, as the send would decide it (R3.U4c). */
+function DownNow({ provider, down }: { provider: string; down: Schemas['RouteCampaignDown'] }) {
+  const t = useT()
+  return (
+    <div className="flex flex-col gap-0.5 text-[12.5px] text-warn-fg">
+      {down.moved > 0 ? <span>{t(mr.downMoves, { provider, count: count(down.moved), to: down.to ?? '' })}</span> : null}
+      {down.held > 0 ? <span>{t(mr.downWaits, { provider, count: count(down.held), reason: down.reason ?? 'pause_and_ask' })}</span> : null}
+      {down.checks.length ? <span className="k">{down.checks.join(' ')}</span> : null}
     </div>
   )
 }

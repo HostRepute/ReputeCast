@@ -1,6 +1,6 @@
 import type { Schemas } from '@/api/client'
 import { t } from '@/i18n'
-import { count, money } from '@/lib/format'
+import { count, money, pct } from '@/lib/format'
 import { streamName, type FailoverPolicy, type Stream } from './common'
 import { mr } from './routing.messages'
 
@@ -444,31 +444,61 @@ export function onlyOrderChanged(a: StreamDraft, b: StreamDraft): boolean {
   return rows(a) === rows(b) && rest(a) === rest(b) && order(a) !== order(b)
 }
 
+/** Who the unsaved routing moves in the next broadcast (the campaign simulation). */
+export interface BroadcastImpact {
+  moved: number
+  toward?: string
+  from?: string
+}
+
+/** Who the unsaved routing moves in a stream other than Broadcasts (R3.U4a). */
+export type StreamImpact = Schemas['RouteStreamImpact']
+
 /**
- * The unsaved-changes bar's sentence: what saving would change, with the
- * recipients that move when the campaign simulation says so ("Broadcasts
- * split 90/10 → 85/15 · about 1,600 Broadcast recipients move from Postal
- * to SES; nobody else changes provider").
+ * The unsaved-changes bar's sentence: what saving changes in each stream,
+ * with who moves (R3.U4a). Broadcasts count the next campaign's recipients
+ * ("Broadcasts split 90/10 → 85/15 · about 1,600 Broadcast recipients move
+ * from Postal to SES; nobody else changes provider"); the other streams the
+ * addresses they mailed in the last 30 days ("Automations: 12% of the
+ * addresses it mailed in the last 30 days move to Postmark"). Without the
+ * simulation yet, a stream just says it changed.
  */
-export function changeText(d: Draft, saved: Draft, providers: RoutingProvider[], impact?: { moved: number; toward?: string; from?: string }): string {
+export function changeText(d: Draft, saved: Draft, providers: RoutingProvider[], impact?: BroadcastImpact, others?: StreamImpact[]): string {
   const problem = weightsProblem(d)
   if (problem) return t(mr.weightsNot100, { total: problem.total })
-  const changed = changedStreams(d, saved)
   const byId = new Map(providers.map((p) => [p.id, p]))
-  if (changed.length === 1 && changed[0] === 'broadcast') {
-    const a = d.broadcast
-    const b = saved.broadcast
-    if (onlyOrderChanged(a, b)) {
-      return t(mr.orderChanged, { order: a.splits.map((x) => byId.get(x.providerId)?.short ?? t(mr.unknown)).join(', ') })
-    }
-    if (JSON.stringify(a.conditions) === JSON.stringify(b.conditions) && a.fallback === b.fallback && a.failover === b.failover && splitPair(a) !== splitPair(b)) {
-      const base = t(mr.splitChanged, { before: splitPair(b), after: splitPair(a) })
-      if (!impact) return `${base} · ${t(mr.onlyDifferenceMoves)}`
-      if (impact.moved === 0) return `${base} · ${t(mr.nobodyMoves)}`
-      return `${base} · ${t(mr.recipientsMove, { about: aboutCount(impact.moved), from: impact.from ?? '', to: impact.toward ?? '' })}`
-    }
+  const changed = changedStreams(d, saved)
+  // "Nobody else changes provider" holds only when Broadcasts changed alone.
+  const alone = changed.length === 1 ? 'yes' : 'no'
+  return changed.map((s) => (s === 'broadcast' ? broadcastChange(d.broadcast, saved.broadcast, byId, alone, impact) : streamChange(s, others))).join(' · ')
+}
+
+/** What a Broadcasts change does to the next campaign's recipients. */
+function broadcastChange(a: StreamDraft, b: StreamDraft, byId: Map<string, RoutingProvider>, alone: 'yes' | 'no', impact?: BroadcastImpact): string {
+  if (onlyOrderChanged(a, b)) {
+    return t(mr.orderChanged, { order: a.splits.map((x) => byId.get(x.providerId)?.short ?? t(mr.unknown)).join(', '), alone })
   }
-  return t(mr.streamsChanged, { count: changed.length, streams: changed.map((s) => streamName[s]).join(', ') })
+  const splitOnly =
+    JSON.stringify(a.conditions) === JSON.stringify(b.conditions) && a.fallback === b.fallback && a.failover === b.failover && splitPair(a) !== splitPair(b)
+  const base = splitOnly ? t(mr.splitChanged, { before: splitPair(b), after: splitPair(a) }) : t(mr.streamChanged, { stream: streamName.broadcast })
+  if (!impact) return splitOnly ? `${base} · ${t(mr.onlyDifferenceMoves, { alone })}` : base
+  if (impact.moved === 0) return `${base} · ${t(mr.nobodyMoves, { alone })}`
+  return `${base} · ${t(mr.recipientsMove, { about: aboutCount(impact.moved), from: impact.from ?? '', to: impact.toward ?? '', alone })}`
+}
+
+/**
+ * What a change does to another stream's addresses: the share that moves
+ * and where most of them go. The simulation runs every stream whose
+ * routing changed, so a changed stream it leaves out (only "first in line"
+ * changed) moves nobody.
+ */
+function streamChange(s: Stream, others?: StreamImpact[]): string {
+  const stream = streamName[s]
+  if (!others) return t(mr.streamChanged, { stream })
+  const imp = others.find((x) => x.stream === s)
+  if (!imp || imp.moved === 0 || imp.addresses === 0) return t(mr.impactNobody, { stream })
+  const share = (imp.moved / imp.addresses) * 100
+  return t(mr.impactMoves, { stream, basis: imp.basis, share: share < 1 ? t(mr.underOnePercent) : pct(Math.round(share), 0), to: imp.to ?? t(mr.unknown) })
 }
 
 /** "about 1,600", or "fewer than 100" for a small number. */

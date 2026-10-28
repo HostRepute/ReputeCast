@@ -68713,6 +68713,47 @@
         ],
         "type": "object"
       },
+      "RouteCampaignDown": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "held": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "moved": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reason": {
+            "enum": [
+              "pause_and_ask",
+              "no_fallback",
+              "warming",
+              "checks"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "moved",
+          "held",
+          "checks"
+        ],
+        "type": "object"
+      },
       "RouteCampaignDraft": {
         "additionalProperties": false,
         "properties": {
@@ -68742,43 +68783,35 @@
         },
         "type": "object"
       },
-      "RouteCampaignOverflow": {
+      "RouteCampaignMailboxCap": {
         "additionalProperties": false,
         "properties": {
           "cap": {
             "format": "int64",
             "type": "integer"
           },
-          "count": {
+          "left": {
             "format": "int64",
             "type": "integer"
           },
-          "date": {
-            "format": "date-time",
+          "mailbox": {
             "type": "string"
           },
-          "day": {
+          "over": {
             "format": "int64",
             "type": "integer"
           },
-          "provider": {
-            "type": "string"
-          },
-          "providerId": {
-            "type": "string"
-          },
-          "to": {
-            "type": "string"
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
-          "providerId",
-          "provider",
-          "to",
-          "count",
+          "mailbox",
           "cap",
-          "day",
-          "date"
+          "left",
+          "recipients",
+          "over"
         ],
         "type": "object"
       },
@@ -68803,6 +68836,12 @@
           "estimated": {
             "type": "boolean"
           },
+          "impact": {
+            "items": {
+              "$ref": "#/components/schemas/RouteStreamImpact"
+            },
+            "type": "array"
+          },
           "lists": {
             "items": {
               "type": "string"
@@ -68814,12 +68853,6 @@
           },
           "none": {
             "type": "boolean"
-          },
-          "overflow": {
-            "items": {
-              "$ref": "#/components/schemas/RouteCampaignOverflow"
-            },
-            "type": "array"
           },
           "scheduledAt": {
             "format": "date-time",
@@ -68845,6 +68878,12 @@
           "total": {
             "format": "int64",
             "type": "integer"
+          },
+          "warmup": {
+            "items": {
+              "$ref": "#/components/schemas/RouteCampaignWarmup"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -68858,7 +68897,8 @@
           "sunset",
           "shares",
           "conditions",
-          "overflow",
+          "warmup",
+          "impact",
           "estimated",
           "simulated"
         ],
@@ -68879,6 +68919,9 @@
           "count": {
             "format": "int64",
             "type": "integer"
+          },
+          "down": {
+            "$ref": "#/components/schemas/RouteCampaignDown"
           },
           "fallback": {
             "type": "string"
@@ -68908,6 +68951,77 @@
           "color",
           "count",
           "policy"
+        ],
+        "type": "object"
+      },
+      "RouteCampaignWarmup": {
+        "additionalProperties": false,
+        "properties": {
+          "cap": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "day": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "left": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "mailboxCaps": {
+            "items": {
+              "$ref": "#/components/schemas/RouteCampaignMailboxCap"
+            },
+            "type": "array"
+          },
+          "over": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "resumes": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "spread": {
+            "type": "boolean"
+          },
+          "tier": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tierTo": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerId",
+          "provider",
+          "day",
+          "date",
+          "cap",
+          "left",
+          "spread",
+          "mailboxCaps",
+          "paused",
+          "tier",
+          "over"
         ],
         "type": "object"
       },
@@ -68956,6 +69070,47 @@
           "percent",
           "planned",
           "sent"
+        ],
+        "type": "object"
+      },
+      "RouteStreamImpact": {
+        "additionalProperties": false,
+        "properties": {
+          "addresses": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "basis": {
+            "enum": [
+              "recent",
+              "contacts"
+            ],
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "moved": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "stream": {
+            "enum": [
+              "automation",
+              "system",
+              "transactional"
+            ],
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "stream",
+          "basis",
+          "addresses",
+          "moved"
         ],
         "type": "object"
       },

@@ -61,7 +61,9 @@ export function RoutingPage() {
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/routing', { params: { path: { workspace: slug } } })
   throwIfForbidden(q.error)
-  if (q.isError || q.isPending) {
+  // Only a first load that fails takes the editor's place: a background
+  // refresh that fails keeps the editor and its unsaved edits (R3.U4b).
+  if (!q.data) {
     return (
       <Page title={t(m.title)} filters={<ProvidersTabs />}>
         {q.isError ? (
@@ -74,10 +76,10 @@ export function RoutingPage() {
       </Page>
     )
   }
-  return <RoutingEditor cfg={q.data} />
+  return <RoutingEditor cfg={q.data} refreshError={q.isError ? q.error : undefined} onRetry={() => void q.refetch()} />
 }
 
-function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
+function RoutingEditor({ cfg, refreshError, onRetry }: { cfg: RoutingConfig; refreshError?: unknown; onRetry: () => void }) {
   const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
@@ -131,8 +133,9 @@ function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
     }
   }
 
-  // The impact of the unsaved routing on the next broadcast (PR-14): the
-  // campaign simulation runs the same audience through both.
+  // The impact of the unsaved routing (PR-14, R3.U4a): the simulation runs
+  // the next broadcast's audience, and each other stream's recent
+  // addresses, through both.
   const sim = useCampaignSimulation(dirty ? draft : undefined, !weightsProblem(draft))
   const impact = sim.data?.draft
     ? movedAcross(sim.data, cfg)
@@ -155,6 +158,56 @@ function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
     setAnnounce(t(mr.discarded))
   }
 
+  // Both views keep the edits safe (R3.U4b): leaving asks first, a refused
+  // save says why and offers the latest routing, and a failed refresh says
+  // the edits are still here.
+  const leaveGuard = (canSave: boolean) => (
+    <UnsavedChangesGuard
+      dirty={dirty}
+      title={t(mr.leaveTitle)}
+      description={t(mr.leaveBody, { streams: formatList(changedList.map((s) => streamName[s])), count: changes })}
+      saveLabel={t(mr.saveAndLeave)}
+      onSave={
+        canSave
+          ? async () => {
+              if (!(await save(draft))) throw new Error(t(mr.saveFailed))
+            }
+          : undefined
+      }
+    />
+  )
+  const notices = (
+    <>
+      {refreshError ? (
+        <Banner
+          tone="warn"
+          className="mb-4"
+          title={t(mr.refreshFailed)}
+          actions={
+            <Button size="sm" onClick={onRetry}>
+              {t(common.retry)}
+            </Button>
+          }
+        >
+          {errorMessage(refreshError)} {t(mr.refreshFailedBody)}
+        </Banner>
+      ) : null}
+      {conflict.length ? (
+        <ConflictNote
+          streams={conflict}
+          onDiscard={() => {
+            setEd((e) => discardStreams(e, cfg, conflict))
+            setConflict([])
+          }}
+          onKeep={() => {
+            setEd((e) => keepEditsOnLatest(e, cfg, conflict))
+            setConflict([])
+          }}
+        />
+      ) : null}
+    </>
+  )
+
   if (warningView) {
     // As ProvidersBulkWarning draws it: the unsaved change and its warning in
     // the header; Save routing leads to the fix first.
@@ -171,6 +224,9 @@ function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
     )
     return (
       <Page title={t(m.title)} filters={<ProvidersTabs />} actions={unsavedActions} contentClassName="max-w-[1120px]">
+        {/* The bulk-terms warning is fixed before a save, so leaving offers no save here. */}
+        {leaveGuard(false)}
+        {notices}
         <BulkWarningView
           cfg={cfg}
           draft={draft}
@@ -189,28 +245,8 @@ function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
 
   return (
     <Page title={t(m.title)} filters={<ProvidersTabs />} actions={actions}>
-      <UnsavedChangesGuard
-        dirty={dirty}
-        title={t(mr.leaveTitle)}
-        description={t(mr.leaveBody, { streams: formatList(changedList.map((s) => streamName[s])), count: changes })}
-        saveLabel={t(mr.saveAndLeave)}
-        onSave={async () => {
-          if (!(await save(draft))) throw new Error(t(mr.saveFailed))
-        }}
-      />
-      {conflict.length ? (
-        <ConflictNote
-          streams={conflict}
-          onDiscard={() => {
-            setEd((e) => discardStreams(e, cfg, conflict))
-            setConflict([])
-          }}
-          onKeep={() => {
-            setEd((e) => keepEditsOnLatest(e, cfg, conflict))
-            setConflict([])
-          }}
-        />
-      ) : null}
+      {leaveGuard(true)}
+      {notices}
       <div className="flex flex-wrap items-start gap-5">
         <div className="flex min-w-0 flex-[2_1_600px] flex-col gap-4">
           {(['broadcast', 'automation', 'system', 'transactional'] as Stream[]).map((st) => (
@@ -237,7 +273,7 @@ function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
       </span>
       {dirty ? (
         <UnsavedBar
-          text={changeText(draft, saved, cfg.providers, impact)}
+          text={changeText(draft, saved, cfg.providers, impact, sim.data?.impact)}
           cantSave={problem ? t(mr.weightsNot100, { total: problem.total }) : undefined}
           saving={saving}
           readOnlyReason={reason}
