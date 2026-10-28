@@ -175,7 +175,10 @@ func viaKey(queue bool) string {
 	return "webhook"
 }
 
-// eventFor finds the provider's first event about the check's message.
+// eventFor finds the delivery event of the check's message (PR-3, review
+// R3.A1): SES publishes a Send event as soon as it accepts the message, but
+// only the mailbox simulator's Delivery event, normalized like any other,
+// shows that the events a bounce or a complaint needs make it back.
 func (s *Service) eventFor(ctx context.Context, p store.Provider, rows []ProvisionState) (eventFound, bool) {
 	id := ""
 	for _, r := range rows {
@@ -191,12 +194,12 @@ func (s *Service) eventFor(ctx context.Context, p store.Provider, rows []Provisi
 	if pmid == "" {
 		return eventFound{}, false
 	}
-	hook, err := s.Q.ConnectFirstWebhook(ctx, store.ConnectFirstWebhookParams{ProviderID: p.ID, Since: m.SentAt.Add(-time.Minute), Until: m.SentAt.Add(30 * time.Minute),
-		ProviderMessageID: pmid})
+	ev, err := s.Q.ConnectDeliveryEvent(ctx, store.ConnectDeliveryEventParams{ProviderID: p.ID, MessageID: m.ID, ProviderMessageID: pmid, Recipient: m.Email,
+		Since: m.SentAt.Add(-time.Minute), Until: m.SentAt.Add(30 * time.Minute)})
 	if err != nil {
 		return eventFound{}, false
 	}
-	return eventFound{at: hook.ReceivedAt, source: hook.Source, sent: *m.SentAt}, true
+	return eventFound{at: ev.ReceivedAt, source: ev.Source, sent: *m.SentAt}, true
 }
 
 // senderCandidates are the workspace's sender addresses, the default first.

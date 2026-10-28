@@ -4,16 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
 	"github.com/hostrepute/reputecast/internal/connect"
+	"github.com/hostrepute/reputecast/internal/ingest"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/systemmail"
@@ -21,8 +24,9 @@ import (
 
 // PR-3: an SES setup finishes only once a real event came back. ReputeCast
 // sends a message to the SES mailbox simulator from a verified identity and
-// waits for that message's event; until then Finish is refused. Without a
-// verified identity yet, the check waits for the domain step.
+// waits for that message's Delivery event from the simulator (review R3.A1:
+// not the Send event SES publishes first); until then Finish is refused.
+// Without a verified identity yet, the check waits for the domain step.
 func TestSESEventCheckGatesFinish(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
@@ -146,21 +150,50 @@ func TestSESEventCheckGatesFinish(t *testing.T) {
 	}
 	refused("waiting for the event")
 
-	// An event about another message isn't the check's; the one naming
-	// the check's message is.
-	raw := func(body string) {
+	// SES's events come back through the webhook as it publishes them and
+	// are normalized like any other. Only the Delivery event of the check's
+	// message, for the simulator's address, verifies the events: not
+	// another message's, and not the Send event SES publishes first.
+	norm := &ingest.Normalizer{Pool: env.App.Pool, Q: env.App.Q, Factory: &manage.Factory{Box: env.App.Secrets}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	raw := func(eventType, messageID string, after time.Duration) {
 		t.Helper()
+		var sent time.Time
+		if err := env.App.Pool.QueryRow(ctx, `SELECT sent_at FROM messages WHERE provider_id = $1 AND kind = 'event_check'`, pid).Scan(&sent); err != nil {
+			t.Fatal(err)
+		}
+		at := sent.Add(after).UTC().Format("2006-01-02T15:04:05.000Z")
+		ev := map[string]any{"eventType": eventType, "mail": map[string]any{"timestamp": sent.UTC().Format("2006-01-02T15:04:05.000Z"), "source": "reputecast-check@news.acme.io",
+			"messageId": messageID, "destination": []string{"success@simulator.amazonses.com"}}}
+		if eventType == "Delivery" {
+			ev["delivery"] = map[string]any{"timestamp": at, "processingTimeMillis": 412, "recipients": []string{"success@simulator.amazonses.com"},
+				"smtpResponse": "250 2.6.0 Message received", "reportingMTA": "a8-50.smtp-out.amazonses.com"}
+		}
+		inner, _ := json.Marshal(ev)
+		body, _ := json.Marshal(map[string]any{"Type": "Notification", "MessageId": uuid.NewString(), "TopicArn": "arn:aws:sns:us-east-1:123456789012:reputecast-events",
+			"Message": string(inner), "Timestamp": at})
+		id := uuid.Must(uuid.NewV7())
 		if _, err := env.App.Pool.Exec(ctx, `INSERT INTO provider_raw_events (id, workspace_id, provider_id, received_at, content_type, body, signature_ok, source, events)
-			SELECT $1, workspace_id, provider_id, sent_at + interval '2 seconds', 'text/plain', $2, true, 'webhook', 1 FROM messages WHERE provider_id = $3 AND kind = 'event_check'`,
-			uuid.Must(uuid.NewV7()), []byte(body), pid); err != nil {
+			SELECT $1, workspace_id, provider_id, sent_at + $4::interval, 'text/plain', $2, true, 'webhook', 1 FROM messages WHERE provider_id = $3 AND kind = 'event_check'`,
+			id, body, pid, after.String()); err != nil {
+			t.Fatal(err)
+		}
+		if err := norm.Normalize(ctx, id); err != nil {
 			t.Fatal(err)
 		}
 	}
-	raw(`{"Type":"Notification","Message":"{\"eventType\":\"Delivery\",\"mail\":{\"messageId\":\"0100019a-someone-else\"}}"}`)
+	raw("Delivery", "0100019a-someone-else", 2*time.Second)
 	if again, err := svc.RunProvisioning(ctx, setupID); err != nil || !again {
 		t.Fatalf("another message's event counted: again %v, %v", again, err)
 	}
-	raw(`{"Type":"Notification","Message":"{\"eventType\":\"Delivery\",\"mail\":{\"messageId\":\"0100019a-sim-check-0001\"}}"}`)
+	raw("Send", "0100019a-sim-check-0001", time.Second)
+	if again, err := svc.RunProvisioning(ctx, setupID); err != nil || !again {
+		t.Fatalf("the Send event counted as the delivery: again %v, %v", again, err)
+	}
+	c.Do("GET", base, nil).MustStatus(t, 200).JSON(t, &st)
+	if st.Connection.EventsCheck != "waiting" || st.Connection.CanContinue {
+		t.Fatalf("after the Send event: %+v\n%s", st.Connection, rows())
+	}
+	raw("Delivery", "0100019a-sim-check-0001", 3*time.Second)
 	if again, err := svc.RunProvisioning(ctx, setupID); err != nil || again {
 		t.Fatalf("verified run: again %v, %v", again, err)
 	}
