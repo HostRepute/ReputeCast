@@ -9,6 +9,7 @@ import { ComposerCtx, type Campaign, type Checks } from './context'
 import type * as Grapes from './editor/grapes'
 import { lockCanvas, unlockCanvas } from './editor/lock'
 import { headlessMjmlEditor } from './editor/testEditor'
+import { QuickReviewBar } from './QuickReview'
 import { ChecksRunBar } from './RightPanel'
 import { SendTestButton, testBlockedReason } from './SendTest'
 import { renderComposerPage, workspaceBase } from './testPage'
@@ -60,6 +61,73 @@ describe('an approved campaign', () => {
     render(<ApprovalDialog approval={{ ...approved, status: 'pending', approvedBy: [], decidedAt: undefined }} open onOpenChange={() => {}} onEdit={() => {}} />)
     const dialog = screen.getByRole('dialog', { name: 'Edit a campaign waiting for approval?' })
     expect(dialog).toHaveTextContent('Editing withdraws the approval request Daniel Park sent.')
+  })
+})
+
+// R4.U6: on a phone, quick review offers Approve while a request waits for
+// this person's decision, by the approval page's rules, and decides there.
+describe('quick review on a phone', () => {
+  let unmock: (() => void) | undefined
+  afterEach(() => unmock?.())
+  const pending: Approval = { ...approved, status: 'pending', approvedBy: [], decidedAt: undefined }
+  const campaign = testCampaign({ status: 'approval', approval: pending })
+  const approvalPath = `/api/v1/workspaces/acme-newsletter/approvals/${pending.id}`
+  const detail = (can: { decide: boolean; decideReason?: string }) => ({
+    id: pending.id,
+    name: campaign.name,
+    status: 'pending',
+    version: 16,
+    requestedAt: '2026-10-25T09:30:00Z',
+    author: { id: 'u-daniel', name: 'Daniel Park', initials: 'DP', color: 'info' },
+    needed: 2,
+    given: 1,
+    can: { comment: true, cancel: false, remind: false, ...can },
+  })
+  const approver = workspaceMe({ permissions: ['campaigns:view', 'campaigns:edit', 'campaigns:approve'] })
+  const show = async (me: typeof approver, routes: Record<string, (r: Request) => Response | Promise<Response>>) => {
+    unmock = mockApi(new Proxy(routes, { get: (t, k: string) => t[k] ?? (() => json({ title: 'Not Found', status: 404, detail: 'Not in this test.' }, 404)) }))
+    return renderInWorkspace(
+      <ComposerCtx.Provider value={testComposer({ campaign })}>
+        <QuickReviewBar />
+      </ComposerCtx.Provider>,
+      { me },
+    )
+  }
+
+  it('lets an approver approve, with the approval page’s note, and says how many approvals are left', async () => {
+    const decisions: unknown[] = []
+    await show(approver, {
+      [`GET ${approvalPath}`]: () => json(detail({ decide: true })),
+      [`POST ${approvalPath}/decision`]: async (r) => {
+        decisions.push(await r.json())
+        return json({ ...detail({ decide: false }), given: 2, needed: 2, status: 'approved' })
+      },
+    })
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Approve “Weekly Digest #142”?' })
+    expect(sheet).toHaveTextContent(/Daniel Park asked for approval of v16 at \d\d:\d\d\./)
+    expect(sheet).toHaveTextContent('Needed1 of 2')
+    expect(sheet).toHaveTextContent('Approving covers this exact snapshot. If Daniel edits the content')
+    expect(within(sheet).getByRole('link', { name: 'Review request' })).toHaveAttribute('href', `/w/acme-newsletter/approvals/${pending.id}`)
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Approve' }))
+    await waitFor(() => expect(decisions).toEqual([{ decision: 'approve' }]))
+    expect(await screen.findByText(/Approved · Weekly Digest #142/)).toBeInTheDocument()
+    expect(screen.getByText(/Daniel Park was notified\./)).toBeInTheDocument()
+  })
+
+  it('offers nothing to the request’s author or to people who don’t approve', async () => {
+    const asked = vi.fn(() => json(detail({ decide: false, decideReason: "You asked for this approval; someone else decides." })))
+    await show(approver, { [`GET ${approvalPath}`]: asked })
+    await waitFor(() => expect(asked).toHaveBeenCalled())
+    expect(screen.getByRole('group', { name: 'Quick review' })).not.toHaveTextContent('Approve')
+    unmock?.()
+    document.body.innerHTML = ''
+
+    const viewerAsked = vi.fn(() => json(detail({ decide: true })))
+    await show(workspaceMe({ permissions: ['campaigns:view', 'campaigns:edit'] }), { [`GET ${approvalPath}`]: viewerAsked })
+    expect(await screen.findByRole('button', { name: 'Send test' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull()
+    expect(viewerAsked).not.toHaveBeenCalled()
   })
 })
 

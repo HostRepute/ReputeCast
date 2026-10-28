@@ -420,6 +420,9 @@ input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:check
   .ds .qbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:63;gap:2px;padding:6px;background:#FFFFFF;border-top:1px solid #E3E6EB;box-sizing:border-box}
   .ds .qbar button{flex:1 1 0%;min-width:0;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;border-radius:10px;background:none;color:#4B5563;font:inherit;font-size:11px;font-weight:600;cursor:pointer;position:relative;padding:0 2px}
   .ds .qbar button[aria-expanded="true"],.ds .qbar button[aria-pressed="true"]{background:#E3F1EE;color:#0F766E}
+  .ds .qbar button.qap{color:#0F766E}
+  .ds .ts .kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;font-size:12.5px;margin:0}
+  .ds .ts .kv dt{color:#5B6472;font-weight:500;margin:0}.ds .ts .kv dd{margin:0}
   .ds .qbar .qn{position:absolute;top:4px;right:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#FEF3C7;color:#92400E;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
   .ds .qbar .qn.c{background:#EEF0F3;color:#4B5563}
   .ds.edittext .e-p,.ds.edittext .e-h1,.ds.edittext .e-h2{outline:1px dashed #0F766E;outline-offset:3px;border-radius:2px}
@@ -807,6 +810,18 @@ input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:check
     <div class="tsb"><span>Tap any outlined text on the email to change it. Bold, italic, links and personalization work here; layout stays as it is.</span></div>
   </div>
   </sc-if>
+  <sc-if value="{{sheetApprove}}" hint-placeholder-val="{{false}}">
+  <div class="ts on" role="dialog" aria-labelledby="ap-h">
+    <div class="qsheet-h"><h2 id="ap-h">Approve “Weekly Digest #142”?</h2><button type="button" class="btn ic" aria-label="Close" onClick="{{closeSheet}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"></path></svg></button></div>
+    <div class="tsb">
+      <span>Daniel Park asked for approval of v16 at 09:30.</span>
+      <dl class="kv"><dt>Needed</dt><dd>1 of 2</dd></dl>
+      <div class="note n"><span>Approving covers this exact snapshot. If Daniel edits the content, audience, route or schedule, or the audience moves more than 10%, the approval is invalidated and you see the diff.</span></div>
+      <button type="button" class="btn pri" style="min-height:44px">Approve</button>
+      <a href="ApprovalReview.dc.html" class="btn" style="min-height:44px">Review request</a>
+    </div>
+  </div>
+  </sc-if>
 
   <div class="qbar" role="group" aria-label="Quick review">
     <button type="button" aria-pressed="{{qText}}" onClick="{{openText}}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M11 2.5 13.5 5 6 12.5l-3.5 1 1-3.5z"></path></svg>Edit text</button>
@@ -814,6 +829,10 @@ input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:check
     <button type="button" aria-expanded="{{qChecks}}" onClick="{{openChecks}}" aria-label="Checks, 2 warnings"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg>Checks<span class="qn" aria-hidden="true">2</span></button>
     <button type="button" aria-expanded="{{qComments}}" onClick="{{openComments}}" aria-label="Comments, 2 open"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z"></path></svg>Comments<span class="qn c" aria-hidden="true">2</span></button>
     <button type="button" aria-expanded="{{qTest}}" onClick="{{openTest}}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7"></path></svg>Send test</button>
+    <!-- While a request waits for this person's decision (an approver who didn't ask for it): Approve. ComposerStates draws it. -->
+    <sc-if value="{{waiting}}" hint-placeholder-val="{{false}}">
+    <button type="button" class="qap" aria-expanded="{{qApprove}}" onClick="{{openApprove}}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Approve</button>
+    </sc-if>
   </div>
 </div>
 </x-dc>
@@ -821,7 +840,8 @@ input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:check
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { inbox: false, dev: 'desktop', ltab: 'blocks', rtab: 'style', pop: true, space: 'M', bg: 'white', align: 'left', cols: '50', sheet: null, reply: '' };
+    // waiting: a request waits for this person's decision (quick review's Approve, R4.U6).
+    this.state = { inbox: false, dev: 'desktop', ltab: 'blocks', rtab: 'style', pop: true, space: 'M', bg: 'white', align: 'left', cols: '50', sheet: null, reply: '', waiting: false };
   }
   tabKey(order, key, prefix) {
     var self = this;
@@ -846,7 +866,7 @@ class Component extends DCLogic {
     var pads = { S: '8px', M: '16px', L: '28px' };
     var bgs = { white: '#FFFFFF', grey: '#F3F4F6', tint: '#F0FDFA' };
     var flex = { '50': ['1 1 0%', '1 1 0%'], '60': ['3 1 0%', '2 1 0%'], '40': ['2 1 0%', '3 1 0%'] };
-    var sheetTitles = { checks: 'Checks', comments: 'Comments', inbox: 'Inbox', test: 'Send a test', text: 'Edit text' };
+    var sheetTitles = { checks: 'Checks', comments: 'Comments', inbox: 'Inbox', test: 'Send a test', text: 'Edit text', approve: 'Approve' };
     var o = '{' + '{', c = '}' + '}';
     var team = [
       { name: 'Linh Nguyen', ini: 'LN', role: 'Owner', avStyle: 'background:#DBEAFE;color:#1E40AF' },
@@ -911,8 +931,10 @@ class Component extends DCLogic {
       mentions: mentions,
       scrimCls: 'qscrim' + (s.sheet && s.sheet !== 'text' ? ' on' : ''),
       closeSheet: function () { self.setState({ sheet: null, inbox: s.sheet === 'inbox' ? false : s.inbox }); },
-      sheetTest: s.sheet === 'test', sheetText: s.sheet === 'text',
-      qText: s.sheet === 'text', qInbox: s.sheet === 'inbox', qChecks: s.sheet === 'checks', qComments: s.sheet === 'comments', qTest: s.sheet === 'test',
+      sheetTest: s.sheet === 'test', sheetText: s.sheet === 'text', sheetApprove: s.sheet === 'approve',
+      qText: s.sheet === 'text', qInbox: s.sheet === 'inbox', qChecks: s.sheet === 'checks', qComments: s.sheet === 'comments', qTest: s.sheet === 'test', qApprove: s.sheet === 'approve',
+      waiting: s.waiting,
+      openApprove: function () { self.setState({ sheet: s.sheet === 'approve' ? null : 'approve' }); },
       openText: function () { self.setState({ sheet: s.sheet === 'text' ? null : 'text' }); },
       openInbox: function () { self.setState(s.sheet === 'inbox' ? { sheet: null, inbox: false } : { sheet: 'inbox', inbox: true }); },
       openChecks: function () { self.setState(s.sheet === 'checks' ? { sheet: null } : { sheet: 'checks', rtab: 'checks' }); },

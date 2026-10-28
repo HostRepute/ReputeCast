@@ -148,4 +148,9 @@ export const mh = defineMessages('composer.chrome', {
   sendTest: 'Send test',
   sheetChecks: '{blocks, plural, =0 {{warnings, plural, =0 {Checks, all passed} one {Checks, # warning} other {Checks, # warnings}}} other {Checks, {blocks} blocking and {warnings, plural, one {# warning} other {# warnings}}}}',
   sheetComments: '{count, plural, =0 {Comments} one {Comments, # open} other {Comments, # open}}',
+  /** A request waiting for this person's decision (R4.U6). */
+  approve: 'Approve',
+  approveTitle: 'Approve “{name}”?',
+  approveAsked: '{name} asked for approval of v{version} at {time}.',
+  reviewRequest: 'Review request',
 })

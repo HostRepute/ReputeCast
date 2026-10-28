@@ -313,6 +313,22 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 .df{padding:14px 22px 18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid #EEF0F3;align-items:center}
 .pop.sv{top:62px;left:240px;width:310px}
 .pop.tt{top:62px;right:200px}
+/* quick review on a phone: the Composer board's phone rules, in a 390 px frame */
+.mfp{width:390px;max-width:100%;min-height:680px;align-self:flex-start}
+.mfp .mf-cv{height:auto;flex:1;padding:12px 8px 96px}
+.mfp .mf-cv .email{width:100%}
+.mfp .qscrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:61}
+.mfp .ts{display:flex;flex-direction:column;position:absolute;left:0;right:0;bottom:65px;max-height:72%;overflow:auto;z-index:62;border:1px solid #E3E6EB;border-bottom:0;border-radius:10px 10px 0 0;box-shadow:0 -12px 32px rgba(11,18,32,.16);background:#FFFFFF}
+.mfp .qsheet-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px 6px 12px;border-bottom:1px solid #EEF0F3}
+.mfp .qsheet-h h3{margin:0;font-size:15px;font-weight:600}
+.mfp .qsheet-h .btn.ic{width:44px;min-height:44px;border-color:transparent}
+.mfp .tsb{display:flex;flex-direction:column;gap:12px;padding:12px}
+.mfp .qbar{display:flex;position:absolute;left:0;right:0;bottom:0;z-index:63;gap:2px;padding:6px;background:#FFFFFF;border-top:1px solid #E3E6EB;box-sizing:border-box}
+.mfp .qbar button{flex:1 1 0%;min-width:0;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;border-radius:10px;background:none;color:#4B5563;font:inherit;font-size:11px;font-weight:600;cursor:pointer;position:relative;padding:0 2px}
+.mfp .qbar button[aria-expanded="true"]{background:#E3F1EE;color:#0F766E}
+.mfp .qbar button.qap{color:#0F766E}
+.mfp .qbar .qn{position:absolute;top:4px;right:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#FEF3C7;color:#92400E;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.mfp .qbar .qn.c{background:#EEF0F3;color:#4B5563}
 .kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;font-size:12.5px;margin:0}
 .kv dt{color:#5B6472;font-weight:500;margin:0}.kv dd{margin:0;min-width:0}
 @media (max-width:1100px){
@@ -336,7 +352,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 }
 </style>
 </helmet>
-<h1 class="vh">Composer states: loading, recovered edits, conflict, approval, save failed, MJML error and saved</h1>
+<h1 class="vh">Composer states: loading, recovered edits, conflict, approval, approving on a phone, save failed, MJML error and saved</h1>
 <div class="stw" style="min-height:100vh;display:flex;flex-direction:column;gap:24px;padding:24px 28px;box-sizing:border-box">
 
   <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="s-load">
@@ -423,6 +439,38 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
         </div>
       </div>
     </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="s-appr-ph">
+    <h2 class="strip" id="s-appr-ph"><span class="dot" style="color:#FBBF24"></span>Approval · on a phone, a request waiting for your decision</h2>
+    <div class="mf mfp">
+      <div class="bnr w">
+        <svg class="bi" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="m5.2 8.3 1.9 1.8L10.9 6"></path></svg>
+        <span class="bt"><b>Waiting for approval since 09:30 · v16, requested by Daniel Park.</b><span>Editing withdraws the request; the campaign then needs approval again.</span></span>
+        <span class="ba"><span class="btn" aria-hidden="true" style="min-height:44px">Edit</span></span>
+      </div>
+      <div class="mf-cv" aria-hidden="true"><div class="email"><div class="sec" style="display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid #EEF0F3"><div class="ph" style="width:96px;height:28px">Logo</div></div><div class="sec" style="padding:16px"><div class="ph" style="height:150px">Hero image</div></div></div></div>
+      <div class="qscrim"></div>
+      <div class="ts" role="dialog" aria-labelledby="ap-ph-h">
+        <div class="qsheet-h"><h3 id="ap-ph-h">Approve “Weekly Digest #142”?</h3><span class="btn ic" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m4 4 8 8M12 4l-8 8"></path></svg></span></div>
+        <div class="tsb">
+          <span>Daniel Park asked for approval of v16 at 09:30.</span>
+          <dl class="kv"><dt>Needed</dt><dd>1 of 2</dd></dl>
+          <div class="note n"><span>Approving covers this exact snapshot. If Daniel edits the content, audience, route or schedule, or the audience moves more than 10%, the approval is invalidated and you see the diff.</span></div>
+          <button type="button" class="btn pri" style="min-height:44px">Approve</button>
+          <a href="ApprovalReview.dc.html" class="btn" style="min-height:44px">Review request</a>
+        </div>
+      </div>
+      <div class="qbar" role="group" aria-label="Quick review">
+        <button type="button"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M11 2.5 13.5 5 6 12.5l-3.5 1 1-3.5z"></path></svg>Edit text</button>
+        <button type="button" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Inbox</button>
+        <button type="button" aria-expanded="false" aria-label="Checks, 2 warnings"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg>Checks<span class="qn" aria-hidden="true">2</span></button>
+        <button type="button" aria-expanded="false" aria-label="Comments, 2 open"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z"></path></svg>Comments<span class="qn c" aria-hidden="true">2</span></button>
+        <button type="button" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7"></path></svg>Send test</button>
+        <button type="button" class="qap" aria-expanded="true"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Approve</button>
+      </div>
+    </div>
+    <p class="k" style="margin:0;max-width:720px">Approve shows only to an approver who didn't ask for the request and hasn't decided yet, the approval page's own rules. It decides as the page does; Review request opens the page, with Request changes and Reject.</p>
   </section>
 
   <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="s-err">

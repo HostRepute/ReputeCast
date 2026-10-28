@@ -141,4 +141,8 @@ export default translate(mh, {
   sendTest: 'Gửi thử',
   sheetChecks: '{blocks, plural, =0 {{warnings, plural, =0 {Kiểm tra, tất cả đều đạt} other {Kiểm tra, {warnings} cảnh báo}}} other {Kiểm tra, {blocks} lỗi chặn gửi và {warnings} cảnh báo}}',
   sheetComments: '{count, plural, =0 {Nhận xét} other {Nhận xét, {count} đang mở}}',
+  approve: 'Phê duyệt',
+  approveTitle: 'Phê duyệt “{name}”?',
+  approveAsked: '{name} đã yêu cầu phê duyệt v{version} lúc {time}.',
+  reviewRequest: 'Xem yêu cầu',
 })

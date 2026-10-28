@@ -1644,6 +1644,10 @@
   background: var(--accent-soft);
   color: var(--accent-hover);
 }
+/* Approve, while a request waits for this person (ComposerStates · on a phone). */
+.cmp .qbar button.qapprove {
+  color: var(--accent);
+}
 .cmp .qbar .qi {
   position: relative;
   display: inline-flex;
