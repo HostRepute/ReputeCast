@@ -50,7 +50,6 @@ export const mr = defineMessages('providers.routing', {
   none: 'None',
   failoverBadge: '{policy, select, pause_and_ask {Failover: pause and ask} warm_only {Failover: warmed-up only} other {Failover: automatic}}',
   systemNote: 'System mail must always go out; it never waits for a decision. Same trigger as Automations.',
-  automationNote: 'switches after 3 consecutive failed sends or 2 failed health checks; returns to the primary after 10 healthy minutes',
 
   // Transactional.
   firstInLine: 'First in line on shared providers',

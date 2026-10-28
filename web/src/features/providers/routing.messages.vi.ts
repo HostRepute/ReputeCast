@@ -44,7 +44,6 @@ export default translate(mr, {
   failoverBadge:
     '{policy, select, pause_and_ask {Chuyển dự phòng: tạm dừng và hỏi} warm_only {Chuyển dự phòng: chỉ sang nhà cung cấp đã khởi động xong} other {Chuyển dự phòng: tự động}}',
   systemNote: 'Thư hệ thống luôn phải được gửi đi; nó không bao giờ chờ quyết định. Cùng điều kiện kích hoạt với Tự động hóa.',
-  automationNote: 'chuyển sau 3 lần gửi thất bại liên tiếp hoặc 2 lần kiểm tra tình trạng thất bại; quay lại nhà cung cấp chính sau 10 phút ổn định',
 
   firstInLine: 'Ưu tiên trên các nhà cung cấp dùng chung',
   firstInLineShared: 'Khi {provider} cũng đang gửi một chiến dịch, thư giao dịch được gửi trước',

@@ -477,6 +477,11 @@
   .pv-fsel {
     grid-template-columns: 1fr;
   }
+  /* Standalone choices (the failover policy, a condition's "then") are
+     44 px tall on phones, as ProvidersRoutingPhone draws its controls. */
+  label.pv-tg {
+    min-height: 44px;
+  }
   .pv-ib {
     width: 44px;
     height: 44px;
