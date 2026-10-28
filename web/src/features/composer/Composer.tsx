@@ -457,6 +457,30 @@ export function Composer({
     [setHead],
   )
 
+  /**
+   * The campaign's status and approval as the server has them, after a save
+   * that cancelled the approval: the canvas and the edits stay as they are.
+   * Once the approval is gone, later saves ask again if someone requests
+   * and gets a new one meanwhile.
+   */
+  const refreshCampaign = useCallback(async () => {
+    try {
+      const { data } = await http.GET('/api/v1/workspaces/{workspace}/campaigns/{campaignId}', {
+        params: { path: { workspace: slug, campaignId: campaign.id }, query: language ? { language } : {} },
+      })
+      if (!data) return
+      // Every open copy of this campaign (each language version's) takes the
+      // shared status, approval and access; their content stays.
+      qc.setQueriesData<Campaign>({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}'] }, (old) =>
+        old && old.id === data.id ? { ...old, status: data.status, approval: data.approval, access: data.access } : old,
+      )
+      setApprovalInfo(data.approval ?? null)
+      if (!data.approval) cancelApproval.current = false
+    } catch {
+      // The next save or reload brings it; the save itself went through.
+    }
+  }, [slug, campaign.id, language, qc])
+
   /** Saves run one after another: each reads what is on screen when its turn comes. */
   const [enqueueSave] = useState(serialQueue)
   const save = useCallback(
@@ -474,6 +498,7 @@ export function Composer({
         const compiled = mjml && geRef.current ? geRef.current.compile(mjml) : null
         const label = opts.label ?? pending?.label ?? (opts.stash ? '' : (tracker.current?.take() ?? ''))
         const source = opts.source ?? (pending ? (pending.source === 'restore' || pending.source === 'code' ? 'manual' : pending.source) : opts.manual ? 'manual' : 'autosave')
+        const cancelling = cancelApproval.current
         setStatus({ kind: 'saving', version: version.current })
         try {
           const { data } = await http.PUT('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/content', {
@@ -489,7 +514,7 @@ export function Composer({
               source,
               force: opts.force || undefined,
               stash: opts.stash || undefined,
-              cancelApproval: cancelApproval.current || undefined,
+              cancelApproval: cancelling || undefined,
             },
           })
           version.current = data!.version
@@ -506,6 +531,10 @@ export function Composer({
           if (!opts.stash) savedMjml.current = data!.merged ? currentMjml() : mjml
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns'] })
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions'] })
+          // This save cancelled the approval, as the person agreed to: the
+          // campaign is as the server now has it (a draft, no approval), so
+          // the header stops saying "Approved" (CO-7, R4.L7).
+          if (cancelling && !opts.stash && !data!.unchanged) void refreshCampaign()
           return true
         } catch (e) {
           if (e instanceof ApiError && e.status === 409 && e.code === 'approval_would_cancel') {
@@ -539,7 +568,7 @@ export function Composer({
       }
       return enqueueSave(run)
     },
-    [canEdit, currentMjml, abForSave, slug, campaign.id, qc, language, afterSourceSave, enqueueSave, applyMerged],
+    [canEdit, currentMjml, abForSave, slug, campaign.id, qc, language, afterSourceSave, enqueueSave, applyMerged, refreshCampaign],
   )
 
   const saveRef = useRef(save)

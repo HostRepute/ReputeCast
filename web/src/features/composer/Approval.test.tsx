@@ -1,15 +1,24 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { Editor } from 'grapesjs'
+import { runShortcutHandler } from '@/lib/shortcuts'
 import { json, mockApi } from '@/test/api'
 import { renderInWorkspace, workspaceMe } from '@/test/app'
 import { ApprovalBanner, ApprovalDialog, type Approval } from './Approval'
-import { ComposerCtx, type Checks } from './context'
+import { ComposerCtx, type Campaign, type Checks } from './context'
+import type * as Grapes from './editor/grapes'
 import { lockCanvas, unlockCanvas } from './editor/lock'
 import { headlessMjmlEditor } from './editor/testEditor'
 import { ChecksRunBar } from './RightPanel'
 import { SendTestButton, testBlockedReason } from './SendTest'
+import { renderComposerPage, workspaceBase } from './testPage'
 import { testCampaign, testComposer } from './testing'
+
+// The whole composer renders on a headless editor (testPage.tsx).
+vi.mock('./editor/grapes', async (importOriginal) => ({
+  ...(await importOriginal<typeof Grapes>()),
+  createComposerEditor: (await import('./editor/testEditor')).headlessComposerEditor,
+}))
 
 // CO-7: editing an approved campaign asks first; Send test waits for a
 // successful save; checks that couldn't run show as stale with a Retry.
@@ -51,6 +60,54 @@ describe('an approved campaign', () => {
     render(<ApprovalDialog approval={{ ...approved, status: 'pending', approvedBy: [], decidedAt: undefined }} open onOpenChange={() => {}} onEdit={() => {}} />)
     const dialog = screen.getByRole('dialog', { name: 'Edit a campaign waiting for approval?' })
     expect(dialog).toHaveTextContent('Editing withdraws the approval request Daniel Park sent.')
+  })
+})
+
+// R4.L7: after "Edit anyway", the save that cancels the approval brings the
+// campaign back as the server has it, so the header stops saying "Approved";
+// a later approval is asked about again.
+describe('editing an approved campaign in the composer', () => {
+  let unmock: (() => void) | undefined
+  afterEach(() => unmock?.())
+
+  it('stops saying "Approved" once the first save cancels the approval', async () => {
+    const draft = testCampaign()
+    let server: Campaign = { ...draft, status: 'approved', approval: approved }
+    const saves: Record<string, unknown>[] = []
+    const page = await renderComposerPage(() => server, {
+      routes: {
+        [`PUT ${workspaceBase}/campaigns/${draft.id}/content`]: async (r) => {
+          const body = (await r.json()) as Record<string, unknown>
+          saves.push(body)
+          const version = 14 + saves.length
+          // The server cancels the approval the person agreed to cancel.
+          if (body.cancelApproval) server = { ...server, status: 'draft', approval: undefined }
+          server = { ...server, version, subject: String(body.subject) }
+          return json({ version, savedAt: '2026-10-25T09:40:00Z', contentHash: `h${version}`, sizeBytes: 1200, plainText: 'Hi', html: '<p>Hi</p>' })
+        },
+      },
+    })
+    unmock = page.unmock
+    const chip = () => document.getElementById('cstatus')!
+    await waitFor(() => expect(chip()).toHaveTextContent('Approved · saved 09:38 · v14'))
+
+    const banner = (await screen.findByText(/^Approved by Marcus Chen/)).closest<HTMLElement>('[role="status"]')!
+    fireEvent.click(within(banner).getByRole('button', { name: 'Edit' }))
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Edit an approved campaign?' })).getByRole('button', { name: 'Edit anyway' }))
+    // An edit, saved with ⌘S: the save says the approval may go.
+    fireEvent.click(within(screen.getByRole('region', { name: 'Inbox' })).getByRole('button', { name: 'Edit' }))
+    fireEvent.change(await screen.findByRole('textbox', { name: /^Subject/ }), { target: { value: 'Three launches and a deprecation' } })
+    act(() => void runShortcutHandler('save'))
+    await waitFor(() => expect(saves).toHaveLength(1))
+    expect(saves[0]).toMatchObject({ cancelApproval: true, subject: 'Three launches and a deprecation' })
+    await waitFor(() => expect(chip()).toHaveTextContent('Saved 09:40 · v15'))
+    expect(chip()).not.toHaveTextContent('Approved')
+
+    // The approval is gone: the next save doesn't cancel whatever comes next.
+    fireEvent.change(screen.getByRole('textbox', { name: /^Subject/ }), { target: { value: 'Three launches, one deprecation' } })
+    act(() => void runShortcutHandler('save'))
+    await waitFor(() => expect(saves).toHaveLength(2))
+    expect(saves[1]).not.toHaveProperty('cancelApproval')
   })
 })
 
