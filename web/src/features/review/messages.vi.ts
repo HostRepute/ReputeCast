@@ -362,7 +362,7 @@ export default translate(m, {
   ctaShortAt: 'Lên lịch · {count}',
   ctaWhenNow: 'Gửi trong vòng một phút',
   ctaAria: '{label} người nhận, {when}',
-  moreActions: 'Thao tác khác',
+  moreActions: 'Thêm thao tác',
   emergencySend: 'Gửi khẩn cấp không cần phê duyệt…',
   emergencyOwnersOnly: '{names, select, none {Chỉ Chủ sở hữu.} other {Chỉ Chủ sở hữu. Hãy hỏi {names}.}}',
   emergencyOff: 'Đang tắt trong Cài đặt › Phê duyệt.',
@@ -377,7 +377,8 @@ export default translate(m, {
   changeForThisSend: 'Đổi cho lần gửi này',
   changeForThisSendNote: 'Thay đổi chỉ áp dụng cho {name} và được ghi vào lịch sử của nó.',
   testWhileBlocked: 'Gửi thư thử để kiểm tra bản sửa trước khi các mục kiểm tra đạt.',
-  skippedTitle: 'Sẵn sàng · đã bỏ qua kiểm tra danh sách chặn',
+  skippedTitle:
+    '{warnings, select, yes {Sẵn sàng, có cảnh báo} other {Sẵn sàng}} · {blocklists, select, yes {đã bỏ qua kiểm tra danh sách chặn} other {đã bỏ qua {count} mục kiểm tra}}',
   skippedLine:
     '{passed} đạt · {skipped} bỏ qua · {warnings, plural, other {# cảnh báo}} · {blocks, plural, other {# mục chặn}} · {name} đã chấp nhận bỏ qua lúc {time}',
   runningHourly:

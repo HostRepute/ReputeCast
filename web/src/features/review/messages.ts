@@ -393,7 +393,8 @@ export const m = defineMessages('review', {
   changeForThisSend: 'Change for this send',
   changeForThisSendNote: 'Changes apply to {name} only and are recorded in its history.',
   testWhileBlocked: 'Send a test to check your fixes before the checks clear.',
-  skippedTitle: 'Ready · blocklist checks skipped',
+  skippedTitle:
+    '{warnings, select, yes {Ready with warnings} other {Ready}} · {blocklists, select, yes {blocklist checks skipped} other {{count, plural, one {# check skipped} other {# checks skipped}}}}',
   skippedLine:
     '{passed} passed · {skipped} skipped · {warnings, plural, one {# warning} other {# warnings}} · {blocks, plural, one {# block} other {# blocks}} · {name} accepted the skipped checks at {time}',
   runningHourly: "Each group below shows its own progress. Sender blocklist results come from HostRepute's hourly check at {time}, not from this run.",

@@ -25,6 +25,26 @@ export function verdictShort(run: Run): string {
   return t(m.verdictReady)
 }
 
+/** Checks whose result comes from a blocklist lookup: link domains, sender domains and IPs. */
+const blocklistKey = /^(links\.blocklists?|reputation\.(domain|ip)_blocklists)(\.|$)/
+
+/**
+ * The verdict banner's title (SR-13): verdictShort, or, once someone accepted
+ * the checks that couldn't run, "Ready · blocklist checks skipped" ("Ready
+ * with warnings · 2 checks skipped" when other checks were skipped too).
+ * Accepting skipped checks never readies a blocked send: it stays "Blocked ·
+ * 1 to fix".
+ */
+export function verdictHeading(run: Run): string {
+  const skipped = run.unknownAcceptedAt ? run.checks.filter((c) => c.status === 'unknown') : []
+  if (run.verdict === 'blocked' || skipped.length === 0) return verdictShort(run)
+  return t(m.skippedTitle, {
+    warnings: run.verdict === 'warnings' ? 'yes' : 'no',
+    blocklists: skipped.every((c) => blocklistKey.test(c.key)) ? 'yes' : 'no',
+    count: skipped.length,
+  })
+}
+
 /** "Ready", "Ready with warnings", "Blocked". */
 export function verdictTitle(v: Verdict): string {
   return v === 'blocked' ? t(m.verdictBlocked) : v === 'warnings' ? t(m.verdictWarnings) : t(m.verdictReady)

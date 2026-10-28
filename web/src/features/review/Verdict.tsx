@@ -8,7 +8,7 @@ import { useNow } from '@/lib/hooks'
 import { m as am } from '@/features/accessibility/messages'
 import { accessibilityBlock } from '@/features/accessibility/review'
 import { formatList, useT } from '@/i18n'
-import { blockedLine, countsLine, scheduleSentence, sendsIn, thresholdsLine, verdictShort, type Review, type Run } from './logic'
+import { blockedLine, countsLine, scheduleSentence, sendsIn, thresholdsLine, verdictHeading, type Review, type Run } from './logic'
 import { m } from './messages'
 import { VerdictIcon, whenText } from './parts'
 
@@ -16,7 +16,8 @@ import { VerdictIcon, whenText } from './parts'
  * Ready, Ready with warnings or Blocked, with the banner's actions
  * (SendReadiness, SendReadinessBlocked): "Ready with warnings · 2 to
  * review", "Blocked · 3 to fix", and "Ready · blocklist checks skipped"
- * once someone chose to send without the checks that couldn't run.
+ * once someone chose to send without the checks that couldn't run
+ * (verdictHeading).
  */
 export function VerdictBanner({ run, mode, actions }: { run: Run; mode: Review['schedule']['mode']; actions?: ReactNode }) {
   const now = useNow()
@@ -50,7 +51,7 @@ export function VerdictBanner({ run, mode, actions }: { run: Run; mode: Review['
     <section className={cn('rv-verdict rise', `v-${kind}`)} role={blocked ? 'alert' : 'status'}>
       <VerdictIcon kind={kind} />
       <div className="rv-vtext">
-        <span className="rv-vtitle">{a11y ? t(am.blockedTitle, { count: a11y.count }) : skipped ? t(m.skippedTitle) : verdictShort(run)}</span>
+        <span className="rv-vtitle">{a11y ? t(am.blockedTitle, { count: a11y.count }) : verdictHeading(run)}</span>
         <span>{line}</span>
       </div>
       {actions ? <div className="rv-vacts">{actions}</div> : null}

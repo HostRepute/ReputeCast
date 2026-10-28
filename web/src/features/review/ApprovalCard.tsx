@@ -576,6 +576,7 @@ export function BypassDialog({
       onOpenChange={close}
       dismissible={false}
       hideClose
+      className="rv-bypass"
       eyebrow={<span className="k">{t(m.bypassEyebrow)}</span>}
       title={t(m.bypassTitle)}
       description={

@@ -20,6 +20,7 @@ import {
   scheduleShort,
   sendsIn,
   thresholdError,
+  verdictHeading,
   verdictShort,
   waitShort,
   waitWords,
@@ -47,6 +48,23 @@ describe('verdict copy', () => {
     expect(blockedLine({ ...counts, blocks: 1 }, [all[0]!])).toMatch(/It has a fix below\.$/)
     expect(verdictShort({ verdict: 'blocked', counts } as Run)).toBe('Blocked · 3 to fix')
     expect(verdictShort({ verdict: 'warnings', counts: { ...counts, blocks: 0 } } as Run)).toBe('Ready with warnings · 2 to review')
+  })
+
+  it('says which skipped checks were accepted, and never calls a blocked send ready (SR-13)', () => {
+    const counts = { passed: 27, warnings: 0, blocks: 0, unknown: 2, total: 29 }
+    const skipped = (key: string) => check({ key, status: 'unknown' })
+    const ready = {
+      verdict: 'ready',
+      counts,
+      checks: [skipped('reputation.domain_blocklists'), skipped('reputation.ip_blocklists.203.0.113.25'), check({})],
+      unknownAcceptedAt: '2026-10-14T13:44:00Z',
+    } as Run
+    expect(verdictHeading(ready)).toBe('Ready · blocklist checks skipped')
+    expect(verdictHeading({ ...ready, unknownAcceptedAt: undefined })).toBe('Ready')
+    expect(verdictHeading({ ...ready, verdict: 'warnings', counts: { ...counts, warnings: 2 } })).toBe('Ready with warnings · blocklist checks skipped')
+    expect(verdictHeading({ ...ready, checks: [skipped('links.blocklists'), skipped('content.compile')] })).toBe('Ready · 2 checks skipped')
+    expect(verdictHeading({ ...ready, checks: [skipped('accessibility.run')] })).toBe('Ready · 1 check skipped')
+    expect(verdictHeading({ ...ready, verdict: 'blocked', counts: { ...counts, blocks: 1 } })).toBe('Blocked · 1 to fix')
   })
 
   it('puts the schedule in the main action (SR-13)', () => {

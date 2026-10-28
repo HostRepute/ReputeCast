@@ -367,5 +367,19 @@
     .rv-drawer .btn {
       min-height: 44px;
     }
+    /* A one-line scheduling option (shorter wording, as in Vietnamese) is
+       tapped through its card: 44 px too. */
+    label.rv-rad {
+      min-height: 44px;
+    }
+    /* The confirmation and the emergency send, as SendReadinessConfirm draws
+       them on a phone: 44 px fields, buttons and confirmations. */
+    .rv-confirm select,
+    .rv-confirm .btn,
+    .rv-bypass .in,
+    .rv-bypass .btn,
+    label.rv-chk {
+      min-height: 44px;
+    }
   }
 }
