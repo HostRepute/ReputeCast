@@ -107,6 +107,13 @@ func TestSendTimeRecheckHolds(t *testing.T) {
 	if n.notes("linh@acme.io", "send_blocked") != told+1 {
 		t.Fatal("linh wasn't told about the hold")
 	}
+	// The notification says when a hold nobody reviews expires.
+	var body string
+	if err := env.App.Pool.QueryRow(ctx, `SELECT n.body FROM notifications n JOIN users u ON u.id = n.user_id WHERE u.email = 'linh@acme.io' AND n.kind = 'send_blocked'
+		ORDER BY n.created_at DESC LIMIT 1`).Scan(&body); err != nil || !strings.Contains(body, "and goes back to Draft if it's still held at ") ||
+		!strings.HasSuffix(body, ", 3 hours after its time.") {
+		t.Fatalf("the hold notification says when it expires: %q (%v)", body, err)
+	}
 	var rv struct {
 		Held *struct {
 			Reason    string
@@ -148,6 +155,23 @@ func TestSendTimeRecheckHolds(t *testing.T) {
 		WHERE id = $1`, id)
 	if h := holds(); len(h) == 0 || !strings.Contains(strings.Join(h, " | "), "The sender changed after it was scheduled") {
 		t.Fatalf("sender edit: %v", h)
+	}
+
+	// The audience edited after scheduling (R1.L3c): an exclusion in the
+	// composer holds the send even when it moves the count by nothing.
+	linh.Do("POST", ws+"/campaigns/"+digest+"/unschedule", nil).MustStatus(t, 204)
+	readinesstest.Post(t, env, linh, ws+"/campaigns/"+digest+"/readiness").MustStatus(t, 200)
+	r = getReview(t, linh, digest)
+	schedule(r, r.Run.Estimates.Audience.Final).MustStatus(t, 200)
+	if h := holds(); h != nil {
+		t.Fatalf("confirmed with the new sender: %v", h)
+	}
+	var partners struct{ ID string }
+	linh.Do("POST", ws+"/lists", map[string]any{"name": "Partners (excluded)"}).MustStatus(t, 201).JSON(t, &partners)
+	linh.Do("PATCH", ws+"/campaigns/"+digest, map[string]any{"audience": map[string]any{"lists": []string{list.String()}, "excludeLists": []string{partners.ID}}}).
+		MustStatus(t, 200)
+	if h := holds(); len(h) != 1 || h[0] != "The audience changed after it was scheduled" {
+		t.Fatalf("audience edit: %v", h)
 	}
 
 	// Nobody reviews the hold: three hours after its time it expires back

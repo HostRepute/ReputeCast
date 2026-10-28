@@ -884,7 +884,7 @@ func (s *Service) hold(ctx context.Context, ws *store.Workspace, c store.Readine
 		at := now.In(state.Location(ws.Timezone)).Format("15:04")
 		n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindSendBlocked, Severity: "bad", Title: "Send held",
 			Summary: fmt.Sprintf("“%s” didn't start at %s: %s", c.Name, at, reason),
-			Body:    fmt.Sprintf("“%s” didn't start at %s: %s. It stays held until a recheck passes.", c.Name, at, reason),
+			Body:    english(mNotifyHeldBody, heldArgs(i18n.Default, ws, c, now, reason)),
 			Link:    "/w/" + ws.Slug + "/campaigns/" + c.ID.String() + "/review", Data: map[string]any{"campaign_id": c.ID.String()}}
 		seen := map[uuid.UUID]bool{}
 		n.TitleText = mNotifyHeldTitle.Keep(nil)
@@ -899,7 +899,7 @@ func (s *Service) hold(ctx context.Context, ws *store.Workspace, c store.Readine
 			if check != nil && len(check.Holds) > 0 {
 				why = check.Holds[0].Text.In(rl)
 			}
-			args := i18n.Args{"name": c.Name, "time": rl.Region.Time(now.In(state.Location(ws.Timezone)), ""), "reason": why}
+			args := heldArgs(rl, ws, c, now, why)
 			n.SummaryText, n.BodyText = mNotifyHeldSummary.Keep(args), mNotifyHeldBody.Keep(args)
 			if err := notify.ToUser(ctx, tx, id, n); err != nil {
 				return err
@@ -907,6 +907,23 @@ func (s *Service) hold(ctx context.Context, ws *store.Workspace, c store.Readine
 		}
 		return nil
 	})
+}
+
+// heldArgs are the hold notification's words for a reader: when the send
+// didn't start, why, and when it goes back to Draft if nobody reviews it
+// (HeldExpiry after its time, SR-3), with the day when that isn't today.
+func heldArgs(l i18n.Lang, ws *store.Workspace, c store.ReadinessCampaignRow, now time.Time, reason string) i18n.Args {
+	loc := state.Location(ws.Timezone)
+	args := i18n.Args{"name": c.Name, "time": clock(l, now.In(loc)), "reason": reason, "hasExpiry": "no", "hours": int(readiness.HeldExpiry / time.Hour)}
+	if c.ScheduledAt != nil {
+		e, today := c.ScheduledAt.Add(readiness.HeldExpiry).In(loc), now.In(loc)
+		when := clock(l, e)
+		if e.Year() != today.Year() || e.YearDay() != today.YearDay() {
+			when = monthDayTime(l, e)
+		}
+		args["hasExpiry"], args["expires"] = "yes", when
+	}
+	return args
 }
 
 // startProblem is why the engine couldn't start a send, as the API answers

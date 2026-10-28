@@ -923,6 +923,7 @@
   "sendHold.audience": "Người nhận {grew, select, yes {tăng lên} other {giảm còn}} {count, number} ({grew, select, yes {+} other {−}}{pct} so với lúc bạn xem lại)",
   "sendHold.edited": "{what} đã thay đổi sau khi lên lịch",
   "sendHold.part.content": "nội dung",
+  "sendHold.part.audience": "người nhận",
   "sendHold.part.sender": "người gửi",
   "sendHold.part.route": "tuyến gửi",
 

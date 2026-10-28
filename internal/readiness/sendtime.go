@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"math"
 	"slices"
@@ -21,9 +22,10 @@ import (
 // as it was. Before the send starts, Send Readiness runs again and the send
 // is held for a person when the fresh run blocks, finds a warning or an
 // unknown check nobody confirmed, counts an audience more than 10% larger
-// or smaller, or when the content, the sender or the route changed after
-// scheduling. A held send waits for a person until HeldExpiry after its
-// time, then goes back to Draft.
+// or smaller, or when the content, the audience (its lists, segments and
+// exclusions), the sender or the route changed after scheduling. A held send
+// waits for a person until HeldExpiry after its time, then goes back to
+// Draft.
 
 // Why a send is held (SendHold.Kind).
 const (
@@ -31,7 +33,7 @@ const (
 	HoldNewWarning = "new_warning"     // a warning nobody confirmed
 	HoldUnknown    = "unknown"         // a check couldn't run, and nobody chose to send without it
 	HoldAudience   = "audience_change" // the audience changed by more than AudienceChangeLimit
-	HoldEdited     = "edited"          // the content, sender or route changed after scheduling
+	HoldEdited     = "edited"          // the content, audience, sender or route changed after scheduling
 )
 
 // AudienceChangeLimit is how much the audience may grow or shrink after a
@@ -43,12 +45,36 @@ const AudienceChangeLimit = 0.10
 const HeldExpiry = 3 * time.Hour
 
 // Digests identify the campaign a person confirmed: its content (with its
-// language versions), its sender and its route (the campaign's override
-// and the Broadcasts rules).
+// language versions), its audience as defined (AudienceDigest), its sender
+// and its route (the campaign's override and the Broadcasts rules).
 type Digests struct {
-	Content string `json:"content"`
-	Sender  string `json:"sender"`
-	Route   string `json:"route"`
+	Content  string `json:"content"`
+	Audience string `json:"audience"`
+	Sender   string `json:"sender"`
+	Route    string `json:"route"`
+}
+
+// AudienceDigest identifies who a campaign goes to as it is defined: its
+// lists and segments, the lists and segments it excludes, whether it leaves
+// out the unengaged, and who on the lists gets it (Earn's paid audience).
+// The order lists were picked in doesn't count; contacts joining or leaving
+// the lists do not change it (the recipient count does).
+func AudienceDigest(raw json.RawMessage) string {
+	a := ParseAudience(raw)
+	set := func(s []string) []string {
+		out := slices.Clone(s)
+		slices.Sort(out)
+		return slices.Compact(out)
+	}
+	canon := struct {
+		Lists, Segments, ExcludeLists, ExcludeSegments, ExcludeTiers []string
+		IncludeSunset                                                bool
+		IncludeUnengaged                                             *bool
+		Paid, PaidTier                                               string
+	}{set(a.Lists), set(a.Segments), set(a.ExcludeLists), set(a.ExcludeSegments), set(a.ExcludeTiers), a.IncludeSunset, a.IncludeUnengaged, a.Paid.Who, a.Paid.Tier}
+	b, _ := json.Marshal(canon)
+	sum := sha256.Sum256(b)
+	return hex.EncodeToString(sum[:])[:32]
 }
 
 // Digests are the campaign's as it stands.
@@ -65,7 +91,7 @@ func (s *Service) Digests(ctx context.Context, ws *store.Workspace, c store.Read
 	h.Write(c.RouteOverride)
 	h.Write([]byte{0})
 	h.Write(RoutingKey(ctx, s.Q, ws.ID))
-	return Digests{Content: content, Sender: sender, Route: hex.EncodeToString(h.Sum(nil))[:32]}
+	return Digests{Content: content, Audience: AudienceDigest(c.Audience), Sender: sender, Route: hex.EncodeToString(h.Sum(nil))[:32]}
 }
 
 // Confirmation is what a person confirmed when they scheduled a send.
@@ -115,7 +141,7 @@ func (s *Service) Confirm(ctx context.Context, q *store.Queries, ws *store.Works
 	}
 	return q.ReadinessConfirmSend(ctx, store.ReadinessConfirmSendParams{CampaignID: c.ID, WorkspaceID: ws.ID, RunID: runID, ConfirmedBy: &by, ConfirmedAt: now,
 		ScheduledAt: scheduledAt, Recipients: run.Estimates.Audience.Final, Acknowledged: acks, Unknown: unknown, ContentDigest: d.Content, SenderID: sender,
-		RouteDigest: d.Route})
+		RouteDigest: d.Route, AudienceDigest: d.Audience})
 }
 
 // SetCanary keeps the canary choice confirmed with a send (C1): auto, on
@@ -135,7 +161,7 @@ func (s *Service) Confirmed(ctx context.Context, campaignID uuid.UUID) (*Confirm
 		return nil, err
 	}
 	out := &Confirmation{ConfirmedBy: r.ConfirmedBy, ConfirmedAt: r.ConfirmedAt, ScheduledAt: r.ScheduledAt, Recipients: r.Recipients,
-		Acknowledged: r.Acknowledged, Unknown: r.Unknown, Digests: Digests{Content: r.ContentDigest, Route: r.RouteDigest}, Canary: r.Canary}
+		Acknowledged: r.Acknowledged, Unknown: r.Unknown, Digests: Digests{Content: r.ContentDigest, Audience: r.AudienceDigest, Route: r.RouteDigest}, Canary: r.Canary}
 	if r.RunID != nil {
 		out.RunID = r.RunID.String()
 	}
@@ -168,7 +194,7 @@ func (c SendTimeCheck) Held() bool { return len(c.Holds) > 0 }
 type SendHold struct {
 	Kind string `json:"kind" enum:"blocked,new_warning,unknown,audience_change,edited"`
 	// Keys are the checks behind it (blocks, new warnings, unknown checks)
-	// or what changed (content, sender, route).
+	// or what changed (content, audience, sender, route).
 	Keys []string `json:"keys"`
 	// Text is the hold's sentence ("The audience grew to 44,010 (+41.1%
 	// since you reviewed)"), kept so it reads in each reader's language.
@@ -227,6 +253,11 @@ func CheckSendTime(run ReadinessRun, conf *Confirmation, now Digests) SendTimeCh
 	edited := []string{}
 	if now.Content != conf.Content {
 		edited = append(edited, "content")
+	}
+	// A confirmation kept before audiences were part of it has no digest:
+	// only the count speaks for its audience.
+	if conf.Audience != "" && now.Audience != conf.Audience {
+		edited = append(edited, "audience")
 	}
 	if now.Sender != conf.Sender {
 		edited = append(edited, "sender")

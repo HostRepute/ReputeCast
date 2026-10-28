@@ -247,7 +247,7 @@
   "notify.bypassBody": "{author} đã dùng bỏ qua khẩn cấp cho “{name}” · {count, number} người nhận. Lý do: {reason}",
   "notify.heldTitle": "Lần gửi bị tạm giữ",
   "notify.heldSummary": "“{name}” không bắt đầu lúc {time}: {reason}",
-  "notify.heldBody": "“{name}” không bắt đầu lúc {time}: {reason}. Lần gửi được tạm giữ cho đến khi kiểm tra lại đạt.",
+  "notify.heldBody": "“{name}” không bắt đầu lúc {time}: {reason}. Lần gửi được tạm giữ cho đến khi kiểm tra lại đạt{hasExpiry, select, yes {, và sẽ trở về bản nháp nếu đến {expires} ({hours, number} giờ sau giờ gửi) vẫn còn bị tạm giữ} other {}}.",
   "notify.publishFailedTitle": "Đã phê duyệt nhưng chưa xuất bản",
   "notify.publishFailedSummary": "Tự động hóa đã được phê duyệt nhưng không xuất bản được: {error}",
   "notify.publishFailedBody": "Tự động hóa đã được phê duyệt nhưng không xuất bản được: {error} Hãy xuất bản lại để yêu cầu phê duyệt mới.",

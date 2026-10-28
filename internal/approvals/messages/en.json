@@ -247,7 +247,7 @@
   "notify.bypassBody": "{author} used the emergency bypass for “{name}” · {count, number} recipients. Reason: {reason}",
   "notify.heldTitle": "Send held",
   "notify.heldSummary": "“{name}” didn't start at {time}: {reason}",
-  "notify.heldBody": "“{name}” didn't start at {time}: {reason}. It stays held until a recheck passes.",
+  "notify.heldBody": {"message": "“{name}” didn't start at {time}: {reason}. It stays held until a recheck passes{hasExpiry, select, yes {, and goes back to Draft if it's still held at {expires}, {hours, plural, one {# hour} other {# hours}} after its time} other {}}.", "note": "expires: when a held send nobody reviewed goes back to Draft (09:00 today, or Oct 15, 02:00)"},
   "notify.publishFailedTitle": "Approved, but not published",
   "notify.publishFailedSummary": "The automation was approved but couldn't be published: {error}",
   "notify.publishFailedBody": "The automation was approved but couldn't be published: {error} Publish it again to request a new approval.",

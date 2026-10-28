@@ -357,7 +357,7 @@ export const m = defineMessages('review', {
   heldDiff: '{sign, select, up {▲ {count} more} other {▼ {count} fewer}} ({sign, select, up {+} other {−}}{pct}%)',
   heldWhy: "Why it's held",
   heldWhyText:
-    "{kind, select, audience_change {A send is held when its audience changes by more than 10% after review. Nothing has been sent.} edited {A send is held when its content, sender or route changes after it was scheduled. Nothing has been sent.} new_warning {A send is held on a warning nobody confirmed. Nothing has been sent.} unknown {A send is held when a check couldn't run and nobody chose to send without it. Nothing has been sent.} other {A send is held when a check turns to Block. Nothing has been sent.}}",
+    "{kind, select, audience_change {A send is held when its audience changes by more than 10% after review. Nothing has been sent.} edited {A send is held when its content, audience, sender or route changes after it was scheduled. Nothing has been sent.} new_warning {A send is held on a warning nobody confirmed. Nothing has been sent.} unknown {A send is held when a check couldn't run and nobody chose to send without it. Nothing has been sent.} other {A send is held when a check turns to Block. Nothing has been sent.}}",
   heldIfNobody: 'If nobody reviews',
   heldIfNobodyText: 'At {time} the send expires and goes back to Draft. The A/B test and schedule are kept for the next attempt.',
   reviewAgain: 'Review again',

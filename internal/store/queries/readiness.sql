@@ -201,12 +201,12 @@ SELECT id, size_bytes FROM media_assets WHERE workspace_id = @workspace_id AND i
 -- What a person confirmed as they scheduled or started a send (SR-3): the
 -- send-time recheck holds the send on anything they didn't.
 INSERT INTO campaign_send_confirmations (campaign_id, workspace_id, run_id, confirmed_by, confirmed_at, scheduled_at, recipients, acknowledged, unknown,
-    content_digest, sender_id, route_digest)
+    content_digest, sender_id, route_digest, audience_digest)
 VALUES (@campaign_id, @workspace_id, sqlc.narg(run_id), sqlc.narg(confirmed_by), @confirmed_at, sqlc.narg(scheduled_at), @recipients, @acknowledged::text[],
-    @unknown::text[], @content_digest, sqlc.narg(sender_id), @route_digest)
+    @unknown::text[], @content_digest, sqlc.narg(sender_id), @route_digest, @audience_digest)
 ON CONFLICT (campaign_id) DO UPDATE SET run_id = EXCLUDED.run_id, confirmed_by = EXCLUDED.confirmed_by, confirmed_at = EXCLUDED.confirmed_at,
     scheduled_at = EXCLUDED.scheduled_at, recipients = EXCLUDED.recipients, acknowledged = EXCLUDED.acknowledged, unknown = EXCLUDED.unknown,
-    content_digest = EXCLUDED.content_digest, sender_id = EXCLUDED.sender_id, route_digest = EXCLUDED.route_digest;
+    content_digest = EXCLUDED.content_digest, sender_id = EXCLUDED.sender_id, route_digest = EXCLUDED.route_digest, audience_digest = EXCLUDED.audience_digest;
 
 -- name: ReadinessSendConfirmation :one
 SELECT * FROM campaign_send_confirmations WHERE campaign_id = @campaign_id;

@@ -923,6 +923,7 @@
   "sendHold.audience": "The audience {grew, select, yes {grew} other {shrank}} to {count, number} ({grew, select, yes {+} other {−}}{pct} since you reviewed)",
   "sendHold.edited": "{what} {count, plural, one {changed} other {changed}} after it was scheduled",
   "sendHold.part.content": "the content",
+  "sendHold.part.audience": "the audience",
   "sendHold.part.sender": "the sender",
   "sendHold.part.route": "the route",
 

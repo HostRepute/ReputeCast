@@ -341,7 +341,7 @@ export default translate(m, {
   heldDiff: '{sign, select, up {▲ thêm {count}} other {▼ bớt {count}}} ({sign, select, up {+} other {−}}{pct}%)',
   heldWhy: 'Lý do tạm giữ',
   heldWhyText:
-    '{kind, select, audience_change {Lần gửi bị tạm giữ khi số người nhận thay đổi hơn 10% sau khi xem. Chưa có thư nào được gửi.} edited {Lần gửi bị tạm giữ khi nội dung, người gửi hoặc tuyến thay đổi sau khi lên lịch. Chưa có thư nào được gửi.} new_warning {Lần gửi bị tạm giữ khi có cảnh báo chưa ai xác nhận. Chưa có thư nào được gửi.} unknown {Lần gửi bị tạm giữ khi có mục kiểm tra không chạy được và chưa ai chọn gửi mà không có nó. Chưa có thư nào được gửi.} other {Lần gửi bị tạm giữ khi có mục kiểm tra chuyển sang Chặn. Chưa có thư nào được gửi.}}',
+    '{kind, select, audience_change {Lần gửi bị tạm giữ khi số người nhận thay đổi hơn 10% sau khi xem. Chưa có thư nào được gửi.} edited {Lần gửi bị tạm giữ khi nội dung, người nhận, người gửi hoặc tuyến thay đổi sau khi lên lịch. Chưa có thư nào được gửi.} new_warning {Lần gửi bị tạm giữ khi có cảnh báo chưa ai xác nhận. Chưa có thư nào được gửi.} unknown {Lần gửi bị tạm giữ khi có mục kiểm tra không chạy được và chưa ai chọn gửi mà không có nó. Chưa có thư nào được gửi.} other {Lần gửi bị tạm giữ khi có mục kiểm tra chuyển sang Chặn. Chưa có thư nào được gửi.}}',
   heldIfNobody: 'Nếu không ai xem lại',
   heldIfNobodyText: 'Lúc {time} lần gửi hết hạn và trở về Bản nháp. Thử nghiệm A/B và lịch gửi được giữ cho lần sau.',
   reviewAgain: 'Xem lại',

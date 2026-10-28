@@ -1,6 +1,7 @@
 package readiness_test
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -22,7 +23,7 @@ func confirmedRun(t *testing.T) (readiness.ReadinessRun, *readiness.Confirmation
 			acks = append(acks, c.Key)
 		}
 	}
-	d := readiness.Digests{Content: "content-1", Sender: "sender-1", Route: "route-1"}
+	d := readiness.Digests{Content: "content-1", Audience: "audience-1", Sender: "sender-1", Route: "route-1"}
 	conf := &readiness.Confirmation{RunID: run.ID, ConfirmedAt: now.Add(-23 * time.Hour), Recipients: run.Estimates.Audience.Final, Acknowledged: acks, Digests: d}
 	return run, conf, d
 }
@@ -109,22 +110,61 @@ func TestSendTimeHoldsOnAudienceChange(t *testing.T) {
 	}
 }
 
-// The content, sender or route edited after scheduling holds the send.
+// The content, audience, sender or route edited after scheduling holds the
+// send.
 func TestSendTimeHoldsOnEdits(t *testing.T) {
 	run, conf, d := confirmedRun(t)
 	for _, tc := range []struct {
 		edit func(*readiness.Digests)
 		want string
+		keys string
 	}{
-		{func(x *readiness.Digests) { x.Content = "content-2" }, "The content changed after it was scheduled"},
-		{func(x *readiness.Digests) { x.Sender = "sender-2" }, "The sender changed after it was scheduled"},
-		{func(x *readiness.Digests) { x.Route = "route-2"; x.Content = "content-2" }, "The content and the route changed after it was scheduled"},
+		{func(x *readiness.Digests) { x.Content = "content-2" }, "The content changed after it was scheduled", "content"},
+		{func(x *readiness.Digests) { x.Sender = "sender-2" }, "The sender changed after it was scheduled", "sender"},
+		{func(x *readiness.Digests) { x.Route = "route-2"; x.Content = "content-2" }, "The content and the route changed after it was scheduled", "content,route"},
+		// R1.L3c: lists, segments or exclusions edited after scheduling.
+		{func(x *readiness.Digests) { x.Audience = "audience-2" }, "The audience changed after it was scheduled", "audience"},
+		{func(x *readiness.Digests) { x.Audience = "audience-2"; x.Content = "content-2" }, "The content and the audience changed after it was scheduled", "content,audience"},
 	} {
 		now := d
 		tc.edit(&now)
 		c := readiness.CheckSendTime(run, conf, now)
-		if len(c.Holds) != 1 || c.Holds[0].Kind != readiness.HoldEdited || c.Holds[0].English() != tc.want {
+		if len(c.Holds) != 1 || c.Holds[0].Kind != readiness.HoldEdited || c.Holds[0].English() != tc.want || strings.Join(c.Holds[0].Keys, ",") != tc.keys {
 			t.Errorf("edit: %+v, want %q", c.Holds, tc.want)
+		}
+	}
+	now := d
+	now.Audience = "audience-2"
+	if vi := readiness.CheckSendTime(run, conf, now).Holds[0].Text.In(i18n.For(i18n.Vietnamese)); vi != "Người nhận đã thay đổi sau khi lên lịch" {
+		t.Errorf("in Vietnamese: %q", vi)
+	}
+	// A confirmation kept before audiences were part of it is judged on the
+	// count alone.
+	old := *conf
+	old.Audience = ""
+	if c := readiness.CheckSendTime(run, &old, now); c.Held() {
+		t.Errorf("an older confirmation: %+v", c.Holds)
+	}
+}
+
+// The audience digest is the audience as defined: the lists picked in
+// another order are the same audience; an exclusion, a list, "Include them"
+// and Earn's paid audience are another.
+func TestAudienceDigest(t *testing.T) {
+	base := readiness.AudienceDigest(json.RawMessage(`{"lists": ["l1", "l2"], "segments": ["s1"]}`))
+	if got := readiness.AudienceDigest(json.RawMessage(`{"segments": ["s1"], "lists": ["l2", "l1", "l2"]}`)); got != base {
+		t.Errorf("order and repeats count: %s != %s", got, base)
+	}
+	for _, other := range []string{
+		`{"lists": ["l1", "l2", "l3"], "segments": ["s1"]}`,
+		`{"lists": ["l1", "l2"], "segments": ["s1"], "exclude_lists": ["l9"]}`,
+		`{"lists": ["l1", "l2"], "segments": ["s1"], "exclude_segments": ["s9"]}`,
+		`{"lists": ["l1", "l2"], "segments": ["s1"], "include_unengaged": true}`,
+		`{"lists": ["l1", "l2"], "segments": ["s1"], "include_unengaged": false}`,
+		`{"lists": ["l1", "l2"], "segments": ["s1"], "paid": "paid", "paid_tier": "insider"}`,
+	} {
+		if readiness.AudienceDigest(json.RawMessage(other)) == base {
+			t.Errorf("%s is another audience", other)
 		}
 	}
 }

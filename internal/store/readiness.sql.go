@@ -171,27 +171,28 @@ func (q *Queries) ReadinessConfirmCanary(ctx context.Context, arg ReadinessConfi
 
 const readinessConfirmSend = `-- name: ReadinessConfirmSend :exec
 INSERT INTO campaign_send_confirmations (campaign_id, workspace_id, run_id, confirmed_by, confirmed_at, scheduled_at, recipients, acknowledged, unknown,
-    content_digest, sender_id, route_digest)
+    content_digest, sender_id, route_digest, audience_digest)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8::text[],
-    $9::text[], $10, $11, $12)
+    $9::text[], $10, $11, $12, $13)
 ON CONFLICT (campaign_id) DO UPDATE SET run_id = EXCLUDED.run_id, confirmed_by = EXCLUDED.confirmed_by, confirmed_at = EXCLUDED.confirmed_at,
     scheduled_at = EXCLUDED.scheduled_at, recipients = EXCLUDED.recipients, acknowledged = EXCLUDED.acknowledged, unknown = EXCLUDED.unknown,
-    content_digest = EXCLUDED.content_digest, sender_id = EXCLUDED.sender_id, route_digest = EXCLUDED.route_digest
+    content_digest = EXCLUDED.content_digest, sender_id = EXCLUDED.sender_id, route_digest = EXCLUDED.route_digest, audience_digest = EXCLUDED.audience_digest
 `
 
 type ReadinessConfirmSendParams struct {
-	CampaignID    uuid.UUID  `json:"campaignId"`
-	WorkspaceID   uuid.UUID  `json:"workspaceId"`
-	RunID         *uuid.UUID `json:"runId"`
-	ConfirmedBy   *uuid.UUID `json:"confirmedBy"`
-	ConfirmedAt   time.Time  `json:"confirmedAt"`
-	ScheduledAt   *time.Time `json:"scheduledAt"`
-	Recipients    int64      `json:"recipients"`
-	Acknowledged  []string   `json:"acknowledged"`
-	Unknown       []string   `json:"unknown"`
-	ContentDigest string     `json:"contentDigest"`
-	SenderID      *uuid.UUID `json:"senderId"`
-	RouteDigest   string     `json:"routeDigest"`
+	CampaignID     uuid.UUID  `json:"campaignId"`
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	RunID          *uuid.UUID `json:"runId"`
+	ConfirmedBy    *uuid.UUID `json:"confirmedBy"`
+	ConfirmedAt    time.Time  `json:"confirmedAt"`
+	ScheduledAt    *time.Time `json:"scheduledAt"`
+	Recipients     int64      `json:"recipients"`
+	Acknowledged   []string   `json:"acknowledged"`
+	Unknown        []string   `json:"unknown"`
+	ContentDigest  string     `json:"contentDigest"`
+	SenderID       *uuid.UUID `json:"senderId"`
+	RouteDigest    string     `json:"routeDigest"`
+	AudienceDigest string     `json:"audienceDigest"`
 }
 
 // What a person confirmed as they scheduled or started a send (SR-3): the
@@ -210,6 +211,7 @@ func (q *Queries) ReadinessConfirmSend(ctx context.Context, arg ReadinessConfirm
 		arg.ContentDigest,
 		arg.SenderID,
 		arg.RouteDigest,
+		arg.AudienceDigest,
 	)
 	return err
 }
@@ -849,7 +851,7 @@ func (q *Queries) ReadinessSegmentNames(ctx context.Context, workspaceID uuid.UU
 }
 
 const readinessSendConfirmation = `-- name: ReadinessSendConfirmation :one
-SELECT campaign_id, workspace_id, run_id, confirmed_by, confirmed_at, scheduled_at, recipients, acknowledged, unknown, content_digest, sender_id, route_digest, canary FROM campaign_send_confirmations WHERE campaign_id = $1
+SELECT campaign_id, workspace_id, run_id, confirmed_by, confirmed_at, scheduled_at, recipients, acknowledged, unknown, content_digest, sender_id, route_digest, canary, audience_digest FROM campaign_send_confirmations WHERE campaign_id = $1
 `
 
 func (q *Queries) ReadinessSendConfirmation(ctx context.Context, campaignID uuid.UUID) (CampaignSendConfirmation, error) {
@@ -869,6 +871,7 @@ func (q *Queries) ReadinessSendConfirmation(ctx context.Context, campaignID uuid
 		&i.SenderID,
 		&i.RouteDigest,
 		&i.Canary,
+		&i.AudienceDigest,
 	)
 	return i, err
 }
