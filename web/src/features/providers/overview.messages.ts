@@ -52,7 +52,7 @@ export const mo = defineMessages('providers.overview', {
   // No provider yet.
   emptyTitle: 'No sending providers yet',
   emptyBody:
-    'Connect Amazon SES, Postmark, Mailgun, SendGrid, Resend, SparkPost, Mailjet, Brevo, Azure Communication Services, a Postal server or any SMTP server. Most setups take 10–15 minutes; a new AWS account can wait up to 24 hours for production access. You can run several at once.',
+    "Connect Amazon SES, Postmark, Mailgun, SendGrid, Resend, SparkPost, Mailjet, Brevo, Azure Communication Services, a Postal server or any SMTP server. Most setups take 10–15 minutes; Amazon SES takes longer when ReputeCast doesn't run on AWS, and a new AWS account can wait up to 24 hours for production access. You can run several at once.",
   connectProvider: 'Connect a provider',
   browseAdapters: 'Browse adapters',
   emptyFoot: 'Routing, failover and warm-up become available once a provider is connected.',

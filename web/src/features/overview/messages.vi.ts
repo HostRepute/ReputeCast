@@ -139,7 +139,8 @@ export default translate(m, {
   welcomeLead:
     'ReputeCast gửi thư qua một nhà cung cấp gửi thư do bạn kiểm soát. Hãy kết nối một nhà cung cấp ngay, trang này sẽ hiện sức khỏe người gửi, giới hạn của nhà cung cấp và độ sẵn sàng của chiến dịch đầu tiên.',
   stepConnect: 'Kết nối một nhà cung cấp gửi thư',
-  stepConnectLine: 'Amazon SES, Postmark, Mailgun, SendGrid, Resend, Brevo, máy chủ Postal của riêng bạn hoặc bất kỳ máy chủ SMTP nào. Phần lớn mất 10–15 phút.',
+  stepConnectLine:
+    'Amazon SES, Postmark, Mailgun, SendGrid, Resend, Brevo, máy chủ Postal của riêng bạn hoặc bất kỳ máy chủ SMTP nào. Phần lớn việc thiết lập mất 10–15 phút; Amazon SES mất lâu hơn khi ReputeCast không chạy trên AWS, và một tài khoản AWS mới có thể phải chờ đến 24 giờ để có quyền gửi chính thức.',
   writeFirst: 'Hãy viết chiến dịch đầu tiên ngay; việc gửi sẽ mở khi đã kết nối một nhà cung cấp.',
   exploreDemo: 'Khám phá với dữ liệu mẫu',
   exploreDemoLine: 'Tải dữ liệu mẫu Acme vào một không gian làm việc demo riêng. Không có thư nào được gửi.',

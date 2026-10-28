@@ -125,7 +125,7 @@ details.det .caps{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
       <div class="step"><span class="num">4</span><div><div style="font-weight:600">Test send</div><div class="k">Watch the event arrive</div></div></div>
       <div class="step"><span class="num">5</span><div><div style="font-weight:600">Streams</div><div class="k">Broadcasts, Automations, System</div></div></div>
       <div class="step"><span class="num">6</span><div><div style="font-weight:600">Contacts</div><div class="k">Import or start empty</div></div></div>
-      <div style="margin-top:10px;padding-top:12px;border-top:1px solid #EEF0F3" class="k">Most setups take 10–15 minutes; a new AWS account can wait up to 24 hours for production access. You can add more providers later and send through several at once.</div>
+      <div style="margin-top:10px;padding-top:12px;border-top:1px solid #EEF0F3" class="k">Most setups take 10–15 minutes; Amazon SES takes longer when ReputeCast doesn't run on AWS, and a new AWS account can wait up to 24 hours for production access. You can add more providers later and send through several at once.</div>
     </nav>
 
     <main style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:18px">
@@ -169,7 +169,7 @@ details.det .caps{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
           <dl class="facts">
             <div><dt>Bulk marketing</dt><dd class="bk"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"></path></svg><span>Allowed after production access</span></dd></div>
             <div><dt>At {{volLabel}} a month</dt><dd><span class="n">{{price.ses.amt}}</span>{{price.ses.note}}</dd></div>
-            <div><dt>Setup</dt><dd>10–15 min, plus up to 24 h for production access on a new AWS account</dd></div>
+            <div><dt>Setup</dt><dd>10–15 min on AWS, longer elsewhere (IAM keys by hand), plus up to 24 h for production access on a new AWS account</dd></div>
           </dl>
           <details class="det"><summary>Details<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></summary><div class="caps"><span class="cap y">Webhooks (SNS) or SQS queue</span><span class="cap y">Domain via API</span><span class="cap y">Suppression sync</span><span class="cap y">Batch 50</span><span class="cap p">Dedicated IPs, paid</span><span class="cap y">Sandbox detection</span><span class="cap y">Quota discovery</span><span class="cap y">Tenant per workspace</span></div><p class="k" style="margin:8px 0 0">Pay as you go, $0.10 per 1,000 · dedicated IPs optional, $24.95 per IP per month</p></details>
           <a href="SetupSES.dc.html" class="btn pri">Connect SES</a>
@@ -328,7 +328,7 @@ class Component extends DCLogic {
       smtp: 'n/a · set by your server or relay'
     };
     var sesRec = v <= 0 ? 'Enter your monthly volume to see prices.' :
-      'about ' + money(sesCost) + ' a month at ' + fmt(v) + (ded ? ' with one dedicated IP' : '') + ' · bulk marketing allowed after production access · setup 10–15 min, plus up to 24 h for production access on a new AWS account';
+      'about ' + money(sesCost) + ' a month at ' + fmt(v) + (ded ? ' with one dedicated IP' : '') + ' · bulk marketing allowed after production access · setup 10–15 min on AWS, longer elsewhere (IAM keys by hand), plus up to 24 h for production access on a new AWS account';
     var mgRec = v <= 0 ? 'enter a volume' : mg ? money(mg[1]) + ' a month · ' + mg[2] + ' · every capability ReputeCast uses' : over;
     var acctNote = '';
     if (s.acct === 'Amazon Web Services') acctNote = 'Your AWS account may already have SES production access in a region. ReputeCast checks when you connect; if it does, there’s no 24 h wait.';

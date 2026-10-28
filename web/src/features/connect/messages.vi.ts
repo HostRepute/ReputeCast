@@ -26,7 +26,7 @@ export default translate(m, {
   stepStreamsCurrent: '{provider} sẽ gửi những gì',
   stepStreamsCurrentNoName: 'Nhà cung cấp sẽ gửi những gì',
   stepsFoot:
-    'Phần lớn việc thiết lập mất 10–15 phút; một tài khoản AWS mới có thể phải chờ đến 24 giờ để có quyền gửi chính thức. Bạn có thể thêm nhà cung cấp sau và gửi qua nhiều nhà cung cấp cùng lúc.',
+    'Phần lớn việc thiết lập mất 10–15 phút; Amazon SES mất lâu hơn khi ReputeCast không chạy trên AWS, và một tài khoản AWS mới có thể phải chờ đến 24 giờ để có quyền gửi chính thức. Bạn có thể thêm nhà cung cấp sau và gửi qua nhiều nhà cung cấp cùng lúc.',
 
   // ── Status badges of a row ───────────────────────────────────────────
   stateDone: 'Xong',

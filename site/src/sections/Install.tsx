@@ -22,7 +22,10 @@ export function Install() {
           <ol className="m-0 flex flex-col gap-1.5 pl-5 text-[15px] text-dark-text">
             <li>Run the compose command.</li>
             <li>Open localhost:8080 and create the owner account.</li>
-            <li>Connect a sending provider: 10–15 minutes with access to your DNS. A new Amazon SES account also waits about a day for production access.</li>
+            <li>
+              Connect a sending provider: most take 10–15 minutes, DNS included. Amazon SES takes longer when ReputeCast doesn&apos;t run on AWS, and a new AWS
+              account can wait up to 24 hours for production access.
+            </li>
             <li>Import contacts with consent intact, send a test, go.</li>
           </ol>
         </div>

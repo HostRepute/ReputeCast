@@ -145,7 +145,8 @@ export const m = defineMessages('overview', {
   welcomeLead:
     "ReputeCast sends through a sending provider you control. Connect one now, and this page fills up with sender health, provider limits and your first campaign's readiness.",
   stepConnect: 'Connect a sending provider',
-  stepConnectLine: 'Amazon SES, Postmark, Mailgun, SendGrid, Resend, Brevo, your own Postal server or any SMTP server. Most take 10–15 minutes.',
+  stepConnectLine:
+    "Amazon SES, Postmark, Mailgun, SendGrid, Resend, Brevo, your own Postal server or any SMTP server. Most setups take 10–15 minutes; Amazon SES takes longer when ReputeCast doesn't run on AWS, and a new AWS account can wait up to 24 hours for production access.",
   /** PR-13: campaigns can be written before a provider is connected. */
   writeFirst: 'Write your first campaign now; sending unlocks once a provider is connected.',
   /** PR-13: the first-run screen loads the demo into its own workspace. */

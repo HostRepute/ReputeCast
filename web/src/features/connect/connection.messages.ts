@@ -121,7 +121,7 @@ export const mses = defineMessages('connect.connection.ses', {
   regionFailed: "Couldn't move to that region",
   eventsFailed: "Couldn't change how SES events arrive",
   /** Under the step's lead: how long setup takes, honestly. */
-  setupTime: 'Most setups take 10–15 minutes; a new AWS account can wait up to 24 hours for production access.',
+  setupTime: "Most setups take 10–15 minutes; Amazon SES takes longer when ReputeCast doesn't run on AWS, and a new AWS account can wait up to 24 hours for production access.",
   grantTitle: '1. How to grant access',
   grantLegend: 'How to grant access',
   /** Where ReputeCast runs decides the access it recommends. */

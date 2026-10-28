@@ -32,7 +32,7 @@ export const m = defineMessages('connect', {
   stepStreamsCurrentNoName: 'What it will carry',
   /** Under the stepper: how long setup takes, honestly (PR-15). */
   stepsFoot:
-    'Most setups take 10–15 minutes; a new AWS account can wait up to 24 hours for production access. You can add more providers later and send through several at once.',
+    "Most setups take 10–15 minutes; Amazon SES takes longer when ReputeCast doesn't run on AWS, and a new AWS account can wait up to 24 hours for production access. You can add more providers later and send through several at once.",
 
   // ── Status badges of a row ───────────────────────────────────────────
   stateDone: 'Done',

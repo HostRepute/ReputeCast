@@ -104,7 +104,7 @@ export default {
     accessFailed: 'Không kiểm tra được quyền truy cập AWS',
     regionFailed: 'Không chuyển được sang khu vực đó',
     eventsFailed: 'Không đổi được cách sự kiện SES được gửi về',
-    setupTime: 'Phần lớn việc thiết lập mất 10–15 phút; một tài khoản AWS mới có thể phải chờ đến 24 giờ để có quyền gửi chính thức.',
+    setupTime: 'Phần lớn việc thiết lập mất 10–15 phút; Amazon SES mất lâu hơn khi ReputeCast không chạy trên AWS, và một tài khoản AWS mới có thể phải chờ đến 24 giờ để có quyền gửi chính thức.',
     grantTitle: '1. Cách cấp quyền truy cập',
     grantLegend: 'Cách cấp quyền truy cập',
     hostOffAws: 'ReputeCast không chạy trên AWS, nên CloudFormation vẫn sẽ cần khóa. Ở đây nên dùng khóa truy cập IAM.',

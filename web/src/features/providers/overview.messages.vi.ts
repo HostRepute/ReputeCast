@@ -39,7 +39,7 @@ export default translate(mo, {
 
   emptyTitle: 'Chưa có nhà cung cấp gửi thư nào',
   emptyBody:
-    'Kết nối Amazon SES, Postmark, Mailgun, SendGrid, Resend, SparkPost, Mailjet, Brevo, Azure Communication Services, một máy chủ Postal hoặc bất kỳ máy chủ SMTP nào. Phần lớn việc thiết lập mất 10–15 phút; tài khoản AWS mới có thể phải chờ đến 24 giờ để được cấp quyền gửi thật (production). Bạn có thể dùng nhiều nhà cung cấp cùng lúc.',
+    'Kết nối Amazon SES, Postmark, Mailgun, SendGrid, Resend, SparkPost, Mailjet, Brevo, Azure Communication Services, một máy chủ Postal hoặc bất kỳ máy chủ SMTP nào. Phần lớn việc thiết lập mất 10–15 phút; Amazon SES mất lâu hơn khi ReputeCast không chạy trên AWS, và một tài khoản AWS mới có thể phải chờ đến 24 giờ để có quyền gửi chính thức. Bạn có thể dùng nhiều nhà cung cấp cùng lúc.',
   connectProvider: 'Kết nối nhà cung cấp',
   browseAdapters: 'Xem các adapter',
   emptyFoot: 'Định tuyến, chuyển dự phòng và khởi động sẽ dùng được khi đã kết nối một nhà cung cấp.',

@@ -230,7 +230,10 @@ func TestCatalog(t *testing.T) {
 			t.Errorf("%s bulk line %q, want %q", adapter, bulk[adapter], want)
 		}
 	}
-	if !strings.HasPrefix(first.Setup, "10–15 min, plus up to 24 h") {
+	// The honest setup time (R3.U6, F-6): longer off AWS, where the wizard
+	// recommends IAM keys made by hand, and AWS's own wait for production
+	// access on a new account.
+	if first.Setup != "10–15 min on AWS, longer elsewhere (IAM keys by hand), plus up to 24 h for production access on a new AWS account" {
 		t.Errorf("SES setup time %q", first.Setup)
 	}
 	// Installed community adapters show (the unmaintained one doesn't), then

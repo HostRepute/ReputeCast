@@ -52,7 +52,7 @@ export function Hero() {
               <span className="typed">docker compose -f {links.composeUrl} up -d</span>
               <span className="cursor" aria-hidden="true" />
             </pre>
-            <span className="k">One command. Postgres and the app. Then open localhost:8080 and connect the sending provider you already use: 10–15 minutes with access to your DNS.</span>
+            <span className="k">One command. Postgres and the app. Then open localhost:8080 and connect a provider: most take 10–15 minutes.</span>
           </div>
           <div className="rise d5 flex flex-wrap gap-2.5">
             <a href={links.repo} className="btn pri">
