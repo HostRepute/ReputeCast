@@ -106,6 +106,9 @@ type runRoute struct {
 	carry     float64
 	cooldown  time.Time
 	lastProbe time.Time
+	// probe is set while one of the share's own messages goes as a held
+	// share's test message (outages.go).
+	probe bool
 	// slow is the share of its rate a throttled route sends at (0 = full),
 	// calmFrom since when it has been answered normally (routeerrors.go).
 	slow     float64
@@ -927,6 +930,16 @@ func (e *Engine) send(ctx context.Context, rs *runState, r *runRoute, claimed []
 	// sender, a used-up quota), acted on once the batch is recorded; slowed
 	// means the provider paced the account (routeerrors.go).
 	hold, slowed := "", false
+	// A held share's test message (outages.go) that its provider refused
+	// goes back to the queue without using an attempt: a long outage tests
+	// once a minute and must never use up a reader's attempts.
+	retry := func(id uuid.UUID, attempts int16, msg string) {
+		if r.probe {
+			out.release = append(out.release, id)
+			return
+		}
+		out.retry(id, int(attempts), now, msg)
+	}
 	for len(batch) > 0 {
 		n := min(len(batch), max(r.batch, 1))
 		chunk := batch[:n]
@@ -964,7 +977,7 @@ func (e *Engine) send(ctx context.Context, rs *runState, r *runRoute, claimed []
 					out.doubt(p.row.ID)
 					continue
 				}
-				out.retry(p.row.ID, int(p.row.Attempts), now, callText(callErr))
+				retry(p.row.ID, p.row.Attempts, callText(callErr))
 			}
 			// Back off the whole route briefly; the rest of this second's
 			// batch goes back to the queue.
@@ -999,7 +1012,7 @@ func (e *Engine) send(ctx context.Context, rs *runState, r *runRoute, claimed []
 			case sendErrUnknown(res.Err) && idempotency(r.transport) == 0:
 				out.doubt(p.row.ID)
 			case res.Err.Temporary:
-				out.retry(p.row.ID, int(p.row.Attempts), now, res.Err.Error())
+				retry(p.row.ID, p.row.Attempts, res.Err.Error())
 			default:
 				out.drop(p.row.ID, "rejected", res.Err.Error())
 				out.cell(p.row.MailboxProvider, cellVariant(p.row.Variant, p.row.AbRollout)).rejected++

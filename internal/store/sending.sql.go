@@ -1865,7 +1865,8 @@ func (q *Queries) SendingMarkStarted(ctx context.Context, arg SendingMarkStarted
 }
 
 const sendingMarkUnsent = `-- name: SendingMarkUnsent :exec
-UPDATE messages m SET status = x.status, claimed_at = NULL, next_attempt_at = NULL, error = x.err
+UPDATE messages m SET status = x.status, claimed_at = NULL, next_attempt_at = NULL, error = x.err,
+    doubt_at = CASE WHEN x.status = 'in_doubt' THEN coalesce(m.claimed_at, now()) ELSE m.doubt_at END
 FROM (SELECT unnest($1::uuid[]) AS id, unnest($2::text[]) AS status, unnest($3::text[]) AS err) AS x
 WHERE m.id = x.id
 `
@@ -1877,7 +1878,9 @@ type SendingMarkUnsentParams struct {
 }
 
 // Messages that will never be sent: rejected by the provider, failed after
-// every retry, or dropped (suppressed during the send, contact erased).
+// every retry, or dropped (suppressed during the send, contact erased); or
+// in doubt, when the call that handed them over may have reached the
+// provider: doubt_at keeps that call's time (its claim).
 func (q *Queries) SendingMarkUnsent(ctx context.Context, arg SendingMarkUnsentParams) error {
 	_, err := q.db.Exec(ctx, sendingMarkUnsent, arg.Ids, arg.Statuses, arg.Errors)
 	return err

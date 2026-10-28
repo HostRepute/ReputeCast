@@ -316,8 +316,11 @@ WHERE m.id = x.id;
 
 -- name: SendingMarkUnsent :exec
 -- Messages that will never be sent: rejected by the provider, failed after
--- every retry, or dropped (suppressed during the send, contact erased).
-UPDATE messages m SET status = x.status, claimed_at = NULL, next_attempt_at = NULL, error = x.err
+-- every retry, or dropped (suppressed during the send, contact erased); or
+-- in doubt, when the call that handed them over may have reached the
+-- provider: doubt_at keeps that call's time (its claim).
+UPDATE messages m SET status = x.status, claimed_at = NULL, next_attempt_at = NULL, error = x.err,
+    doubt_at = CASE WHEN x.status = 'in_doubt' THEN coalesce(m.claimed_at, now()) ELSE m.doubt_at END
 FROM (SELECT unnest(@ids::uuid[]) AS id, unnest(@statuses::text[]) AS status, unnest(@errors::text[]) AS err) AS x
 WHERE m.id = x.id;
 

@@ -224,6 +224,12 @@ FROM warmup_plans w
 WHERE w.provider_id = ANY(@provider_ids::uuid[])
 ORDER BY w.created_at DESC;
 
+-- name: ReportLeftOutInDoubt :one
+-- A campaign's messages left out while in doubt (review GS-1): nobody knew
+-- whether their provider took them, and a person chose not to send them
+-- again. The report says so in its header ("not sent, in doubt").
+SELECT count(*)::bigint FROM messages WHERE campaign_id = @campaign_id AND doubt_at IS NOT NULL AND status = 'cancelled';
+
 -- name: ReportLatestSent :one
 -- The most recent campaign with results, for "See the last report instead".
 SELECT c.id, c.name

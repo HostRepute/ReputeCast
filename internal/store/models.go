@@ -2206,6 +2206,7 @@ type Message struct {
 	UnsubscribedAt    *time.Time      `json:"unsubscribedAt"`
 	PrivacyOpenedAt   *time.Time      `json:"privacyOpenedAt"`
 	AbRollout         bool            `json:"abRollout"`
+	DoubtAt           *time.Time      `json:"doubtAt"`
 }
 
 type MxCache struct {

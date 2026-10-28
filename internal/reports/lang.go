@@ -23,6 +23,7 @@ var (
 	mAudienceSegments = msgs.M("audience.segments")
 	mNoteAB           = msgs.M("note.ab")
 	mNoteABWinner     = msgs.M("note.abWinner")
+	mNoteInDoubt      = msgs.M("note.leftOutInDoubt")
 	mReferralLinks    = msgs.M("label.referralLinks")
 	mBounceNote       = msgs.M("note.bounceSuppressed")
 

@@ -26,6 +26,9 @@ func TestGuardedSending(t *testing.T) {
 	t.Run("DatabaseErrorWithIdempotentProvider", func(t *testing.T) { testDBErrorInDoubt(t, s.Fixture(t, "GS-1 db error idem"), true) })
 	t.Run("SendInDoubtAgain", func(t *testing.T) { testResendInDoubt(t, s.Fixture(t, "GS-1 resend")) })
 	t.Run("EventSettlesInDoubt", func(t *testing.T) { testEventSettlesInDoubt(t, s.Fixture(t, "GS-1 event")) })
+	t.Run("InDoubtDecision", func(t *testing.T) { testInDoubtDecision(t, s.Fixture(t, "GS-1 decision")) })
+	t.Run("InDoubtAfterTheWindow", func(t *testing.T) { testInDoubtWindowPassed(t, s.Fixture(t, "GS-1 window")) })
+	t.Run("CancelLeavesInDoubtOut", func(t *testing.T) { testCancelLeavesInDoubtOut(t, s.Fixture(t, "GS-1 cancel")) })
 	t.Run("StuckJobsRescued", func(t *testing.T) { testRescueStuckJobs(t, s.Fixture(t, "GS-1 rescue")) })
 	// GS-4: the provider-errors threshold; throttling and quota are outages.
 	t.Run("APIErrorThresholdHoldsRoute", func(t *testing.T) {
@@ -44,6 +47,9 @@ func TestGuardedSending(t *testing.T) {
 	t.Run("RetryAsksAgainWhileDown", func(t *testing.T) { testRetryAsksAgain(t, s.Fixture(t, "GS-3 ask again")) })
 	t.Run("RetryResumesAfterThreeTests", func(t *testing.T) { testRetryResumes(t, s.Fixture(t, "GS-3 resume seed"), true) })
 	t.Run("RetryTestsWithTheShareWithoutSeeds", func(t *testing.T) { testRetryResumes(t, s.Fixture(t, "GS-3 resume own"), false) })
+	t.Run("HeldShareTestsItsProviderOnItsOwn", func(t *testing.T) { testAutoProbe(t, s.Fixture(t, "GS-3 probe seed"), true) })
+	t.Run("HeldShareTestsWithItsOwnMessages", func(t *testing.T) { testAutoProbe(t, s.Fixture(t, "GS-3 probe own"), false) })
+	t.Run("DecisionEndsTheTests", func(t *testing.T) { testAutoProbeDecisionWins(t, s.Fixture(t, "GS-3 probe decision")) })
 	// GS-5: moves are vetted, holdouts stay held, a person's pause stays.
 	t.Run("MoveKeepsHoldoutsAndPause", func(t *testing.T) { testMoveKeepsHoldouts(t, s.Fixture(t, "GS-5 move")) })
 	// GS-2: resuming re-arms; changes at every scope; thresholds while paused.

@@ -313,7 +313,7 @@ func (q *Queries) SendingHoldForCanary(ctx context.Context, campaignID *uuid.UUI
 }
 
 const sendingInDoubtByProvider = `-- name: SendingInDoubtByProvider :many
-SELECT provider_id, count(*)::bigint AS n, min(coalesce(claimed_at, queued_at))::timestamptz AS since
+SELECT provider_id, count(*)::bigint AS n, min(coalesce(doubt_at, claimed_at, queued_at))::timestamptz AS since
 FROM messages
 WHERE campaign_id = $1 AND status = 'in_doubt'
 GROUP BY provider_id
@@ -325,7 +325,8 @@ type SendingInDoubtByProviderRow struct {
 	Since      time.Time  `json:"since"`
 }
 
-// A campaign's messages in doubt per sending provider, with the oldest.
+// A campaign's messages in doubt per sending provider, with the oldest call
+// that handed them over.
 func (q *Queries) SendingInDoubtByProvider(ctx context.Context, campaignID *uuid.UUID) ([]SendingInDoubtByProviderRow, error) {
 	rows, err := q.db.Query(ctx, sendingInDoubtByProvider, campaignID)
 	if err != nil {
@@ -391,6 +392,26 @@ func (q *Queries) SendingIncidentsOfKind(ctx context.Context, arg SendingInciden
 		return nil, err
 	}
 	return items, nil
+}
+
+const sendingLeftToSend = `-- name: SendingLeftToSend :one
+SELECT count(*) FILTER (WHERE status IN ('queued', 'held'))::bigint AS to_send,
+       count(*) FILTER (WHERE status = 'in_doubt')::bigint AS in_doubt
+FROM messages
+WHERE campaign_id = $1 AND status IN ('queued', 'held', 'in_doubt')
+`
+
+type SendingLeftToSendRow struct {
+	ToSend  int64 `json:"toSend"`
+	InDoubt int64 `json:"inDoubt"`
+}
+
+// What a campaign still has to send (queued or held) and what is in doubt.
+func (q *Queries) SendingLeftToSend(ctx context.Context, campaignID *uuid.UUID) (SendingLeftToSendRow, error) {
+	row := q.db.QueryRow(ctx, sendingLeftToSend, campaignID)
+	var i SendingLeftToSendRow
+	err := row.Scan(&i.ToSend, &i.InDoubt)
+	return i, err
 }
 
 const sendingMailboxRelease = `-- name: SendingMailboxRelease :exec
@@ -499,7 +520,7 @@ func (q *Queries) SendingMarkCanary(ctx context.Context, arg SendingMarkCanaryPa
 }
 
 const sendingMarkInDoubt = `-- name: SendingMarkInDoubt :many
-UPDATE messages m SET status = 'in_doubt', error = $1
+UPDATE messages m SET status = 'in_doubt', error = $1, doubt_at = m.claimed_at
 WHERE m.status = 'queued' AND m.claimed_at IS NOT NULL AND m.claimed_at < $2::timestamptz AND m.campaign_id = $3
 RETURNING m.id, m.provider_id
 `
@@ -517,7 +538,7 @@ type SendingMarkInDoubtRow struct {
 
 // The other stale claims: the call that took them ended without a recorded
 // answer, so nobody knows whether the provider has them. They are in doubt
-// and never sent again on a guess.
+// and never sent again on a guess; doubt_at keeps the call's time.
 func (q *Queries) SendingMarkInDoubt(ctx context.Context, arg SendingMarkInDoubtParams) ([]SendingMarkInDoubtRow, error) {
 	rows, err := q.db.Query(ctx, sendingMarkInDoubt, arg.Reason, arg.Stale, arg.CampaignID)
 	if err != nil {
@@ -559,7 +580,7 @@ func (q *Queries) SendingOpenMailboxWindow(ctx context.Context, arg SendingOpenM
 }
 
 const sendingOutboxMarkInDoubt = `-- name: SendingOutboxMarkInDoubt :execrows
-UPDATE messages m SET status = 'in_doubt', error = $1
+UPDATE messages m SET status = 'in_doubt', error = $1, doubt_at = m.claimed_at
 WHERE m.status = 'queued' AND m.claimed_at IS NOT NULL AND m.claimed_at < $2::timestamptz
   AND m.campaign_id IS NULL AND m.stream = 'automation'
 `
@@ -861,7 +882,8 @@ const sendingResolveInDoubt = `-- name: SendingResolveInDoubt :execrows
 UPDATE messages
 SET status = CASE WHEN $1::boolean THEN 'queued' ELSE 'cancelled' END,
     claimed_at = NULL, next_attempt_at = NULL,
-    error = CASE WHEN $1::boolean THEN '' ELSE $2::text END
+    error = CASE WHEN $1::boolean THEN '' ELSE $2::text END,
+    doubt_at = CASE WHEN $1::boolean THEN NULL ELSE doubt_at END
 WHERE campaign_id = $3 AND status = 'in_doubt'
   AND ($4::uuid IS NULL OR provider_id = $4::uuid)
 `
@@ -874,7 +896,9 @@ type SendingResolveInDoubtParams struct {
 }
 
 // A person's decision on a campaign's messages in doubt: send them again
-// (back in the queue) or leave them out (cancelled, with why).
+// (back in the queue, no longer in doubt) or leave them out (cancelled,
+// with why; doubt_at stays, so the report counts them as "not sent, in
+// doubt" and a later event from the provider still counts one as sent).
 func (q *Queries) SendingResolveInDoubt(ctx context.Context, arg SendingResolveInDoubtParams) (int64, error) {
 	result, err := q.db.Exec(ctx, sendingResolveInDoubt,
 		arg.Resend,
@@ -1082,10 +1106,12 @@ func (q *Queries) SendingSetWatch(ctx context.Context, arg SendingSetWatchParams
 
 const sendingSettleInDoubt = `-- name: SendingSettleInDoubt :one
 UPDATE messages
-SET status = $1, sent_at = coalesce(sent_at, $2::timestamptz), claimed_at = NULL, error = '',
+SET status = CASE WHEN status IN ('in_doubt', 'cancelled') THEN $1 ELSE status END,
+    error = CASE WHEN status IN ('in_doubt', 'cancelled') THEN '' ELSE error END,
+    sent_at = coalesce(sent_at, $2::timestamptz), claimed_at = NULL,
     delivered_at = CASE WHEN $1::text = 'delivered' THEN coalesce(delivered_at, $2::timestamptz) ELSE delivered_at END
-WHERE id = $3 AND status = 'in_doubt'
-RETURNING campaign_id, provider_id, mailbox_provider, variant
+WHERE id = $3 AND doubt_at IS NOT NULL AND sent_at IS NULL AND status IN ('in_doubt', 'cancelled', 'bounced', 'complained')
+RETURNING campaign_id, provider_id, mailbox_provider, variant, status
 `
 
 type SendingSettleInDoubtParams struct {
@@ -1099,10 +1125,13 @@ type SendingSettleInDoubtRow struct {
 	ProviderID      *uuid.UUID `json:"providerId"`
 	MailboxProvider string     `json:"mailboxProvider"`
 	Variant         string     `json:"variant"`
+	Status          string     `json:"status"`
 }
 
-// A provider reported an event for a message in doubt: it took the message
-// after all. The message counts as sent from the event on.
+// A provider reported an event for a message in doubt, or for one left out
+// while in doubt: it took the message after all, so the message counts as
+// sent from the event on. A bounce or complaint already moved its status
+// (CountersMoveDelivery); it keeps that one.
 func (q *Queries) SendingSettleInDoubt(ctx context.Context, arg SendingSettleInDoubtParams) (SendingSettleInDoubtRow, error) {
 	row := q.db.QueryRow(ctx, sendingSettleInDoubt, arg.Status, arg.At, arg.ID)
 	var i SendingSettleInDoubtRow
@@ -1111,6 +1140,7 @@ func (q *Queries) SendingSettleInDoubt(ctx context.Context, arg SendingSettleInD
 		&i.ProviderID,
 		&i.MailboxProvider,
 		&i.Variant,
+		&i.Status,
 	)
 	return i, err
 }

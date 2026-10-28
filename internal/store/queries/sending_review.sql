@@ -14,8 +14,8 @@ WHERE m.status = 'queued' AND m.claimed_at IS NOT NULL AND m.claimed_at < @stale
 -- name: SendingMarkInDoubt :many
 -- The other stale claims: the call that took them ended without a recorded
 -- answer, so nobody knows whether the provider has them. They are in doubt
--- and never sent again on a guess.
-UPDATE messages m SET status = 'in_doubt', error = @reason
+-- and never sent again on a guess; doubt_at keeps the call's time.
+UPDATE messages m SET status = 'in_doubt', error = @reason, doubt_at = m.claimed_at
 WHERE m.status = 'queued' AND m.claimed_at IS NOT NULL AND m.claimed_at < @stale::timestamptz AND m.campaign_id = @campaign_id
 RETURNING m.id, m.provider_id;
 
@@ -29,7 +29,7 @@ WHERE m.status = 'queued' AND m.claimed_at IS NOT NULL AND m.claimed_at < @stale
 
 -- name: SendingOutboxMarkInDoubt :execrows
 -- The automation outbox's other stale claims become in doubt.
-UPDATE messages m SET status = 'in_doubt', error = @reason
+UPDATE messages m SET status = 'in_doubt', error = @reason, doubt_at = m.claimed_at
 WHERE m.status = 'queued' AND m.claimed_at IS NOT NULL AND m.claimed_at < @stale::timestamptz
   AND m.campaign_id IS NULL AND m.stream = 'automation';
 
@@ -40,30 +40,45 @@ WHERE status = 'queued' AND claimed_at IS NOT NULL AND claimed_at < @stale::time
   AND campaign_id IS NULL AND stream = 'automation' AND provider_id IS NOT NULL;
 
 -- name: SendingInDoubtByProvider :many
--- A campaign's messages in doubt per sending provider, with the oldest.
-SELECT provider_id, count(*)::bigint AS n, min(coalesce(claimed_at, queued_at))::timestamptz AS since
+-- A campaign's messages in doubt per sending provider, with the oldest call
+-- that handed them over.
+SELECT provider_id, count(*)::bigint AS n, min(coalesce(doubt_at, claimed_at, queued_at))::timestamptz AS since
 FROM messages
 WHERE campaign_id = @campaign_id AND status = 'in_doubt'
 GROUP BY provider_id;
 
+-- name: SendingLeftToSend :one
+-- What a campaign still has to send (queued or held) and what is in doubt.
+SELECT count(*) FILTER (WHERE status IN ('queued', 'held'))::bigint AS to_send,
+       count(*) FILTER (WHERE status = 'in_doubt')::bigint AS in_doubt
+FROM messages
+WHERE campaign_id = @campaign_id AND status IN ('queued', 'held', 'in_doubt');
+
 -- name: SendingResolveInDoubt :execrows
 -- A person's decision on a campaign's messages in doubt: send them again
--- (back in the queue) or leave them out (cancelled, with why).
+-- (back in the queue, no longer in doubt) or leave them out (cancelled,
+-- with why; doubt_at stays, so the report counts them as "not sent, in
+-- doubt" and a later event from the provider still counts one as sent).
 UPDATE messages
 SET status = CASE WHEN @resend::boolean THEN 'queued' ELSE 'cancelled' END,
     claimed_at = NULL, next_attempt_at = NULL,
-    error = CASE WHEN @resend::boolean THEN '' ELSE @reason::text END
+    error = CASE WHEN @resend::boolean THEN '' ELSE @reason::text END,
+    doubt_at = CASE WHEN @resend::boolean THEN NULL ELSE doubt_at END
 WHERE campaign_id = @campaign_id AND status = 'in_doubt'
   AND (sqlc.narg(provider_id)::uuid IS NULL OR provider_id = sqlc.narg(provider_id)::uuid);
 
 -- name: SendingSettleInDoubt :one
--- A provider reported an event for a message in doubt: it took the message
--- after all. The message counts as sent from the event on.
+-- A provider reported an event for a message in doubt, or for one left out
+-- while in doubt: it took the message after all, so the message counts as
+-- sent from the event on. A bounce or complaint already moved its status
+-- (CountersMoveDelivery); it keeps that one.
 UPDATE messages
-SET status = @status, sent_at = coalesce(sent_at, @at::timestamptz), claimed_at = NULL, error = '',
+SET status = CASE WHEN status IN ('in_doubt', 'cancelled') THEN @status ELSE status END,
+    error = CASE WHEN status IN ('in_doubt', 'cancelled') THEN '' ELSE error END,
+    sent_at = coalesce(sent_at, @at::timestamptz), claimed_at = NULL,
     delivered_at = CASE WHEN @status::text = 'delivered' THEN coalesce(delivered_at, @at::timestamptz) ELSE delivered_at END
-WHERE id = @id AND status = 'in_doubt'
-RETURNING campaign_id, provider_id, mailbox_provider, variant;
+WHERE id = @id AND doubt_at IS NOT NULL AND sent_at IS NULL AND status IN ('in_doubt', 'cancelled', 'bounced', 'complained')
+RETURNING campaign_id, provider_id, mailbox_provider, variant, status;
 
 -- GS-4: the provider errors threshold ---------------------------------------
 

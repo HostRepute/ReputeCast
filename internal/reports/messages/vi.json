@@ -3,6 +3,7 @@
   "audience.segments": "{count, plural, other {# phân khúc}}",
   "note.ab": "A/B {kind, select, subject {tiêu đề} content {nội dung} send_time {giờ gửi} other {{kindName}}}",
   "note.abWinner": "A/B {kind, select, subject {tiêu đề} content {nội dung} send_time {giờ gửi} other {{kindName}}}, {winner} thắng",
+  "note.leftOutInDoubt": "{count, plural, other {# thư}} chưa gửi, chưa rõ trạng thái",
   "note.bounceSuppressed": "{type, select, unknown_user {Trả thư vĩnh viễn · người nhận không tồn tại, trong {campaign}} domain_invalid {Trả thư vĩnh viễn · không tìm thấy tên miền, trong {campaign}} mailbox_full {Trả thư tạm thời · hộp thư đầy, trong {campaign}} deferral_expired {Trả thư tạm thời · hoãn nhận đã hết hạn, trong {campaign}} blocked {Bị chặn · chính sách hoặc uy tín, trong {campaign}} other {Thư trả lại khác, trong {campaign}}}",
 
   "label.referralLinks": "Liên kết giới thiệu (cá nhân)",

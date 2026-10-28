@@ -123,9 +123,16 @@ type LiveInDoubt struct {
 	Count     int64          `json:"count"`
 	Since     time.Time      `json:"since"`
 	Providers []InDoubtShare `json:"providers"`
-	// Safe: every provider involved dedupes by message, so sending them
-	// again can't deliver anything twice.
+	// Safe: every provider involved still recognizes the messages it took
+	// (inside its idempotency window), so sending them again now can't
+	// deliver anything twice.
 	Safe bool `json:"safe"`
+	// Waiting: nothing else is left to send, so the send waits for this
+	// decision (resuming can't send anything; the decision is what goes
+	// on).
+	Waiting bool `json:"waiting"`
+	// IncidentID is the open in-doubt incident with the ways to continue.
+	IncidentID string `json:"incidentId,omitempty"`
 }
 
 // LiveHelpers are up to two members who hold each action's permission.
@@ -231,7 +238,11 @@ type LiveProvider struct {
 	PlannedCost float64         `json:"plannedCost"`
 	Retrying    bool            `json:"retrying"`
 	RetryUntil  *time.Time      `json:"retryUntil,omitempty"`
-	// While a share is retried (review GS-3): the test messages that went
+	// Probing: the share is held for an outage nobody decided on yet and
+	// tests its provider on its own (review GS-3); a person's decision
+	// still wins.
+	Probing bool `json:"probing"`
+	// While a share is retried or probing: the test messages that went
 	// through in a row (it resumes at ProbesNeeded), when the next one goes
 	// and whether they go to a seed mailbox.
 	Probes       int        `json:"probes"`
@@ -243,8 +254,10 @@ type LiveProvider struct {
 	// GS-7: "delivered (inferred)").
 	InfersDelivery bool `json:"infersDelivery"`
 	// Idempotent: the provider recognizes a message it already took, so a
-	// retry after a lost answer never delivers it twice (review GS-1).
-	Idempotent bool `json:"idempotent"`
+	// retry after a lost answer never delivers it twice (review GS-1), for
+	// IdempotencySeconds after the first try.
+	Idempotent         bool  `json:"idempotent"`
+	IdempotencySeconds int64 `json:"idempotencySeconds,omitempty"`
 	// DoneAt is when its share is done at current rates, including the
 	// per-mailbox limits (review GS-8: "Done about"); absent while it
 	// waits.
@@ -878,7 +891,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		lp := LiveProvider{ID: p.ID.String(), Name: p.Name, Short: short, Adapter: p.Adapter, Color: state.Color(p.Adapter), Sent: pt.sent, Planned: r.Planned,
 			Rate: math.Round(rateBy[p.ID]*10) / 10, DeliveredRate: ptrRate(pt.delivered, pt.sent), BounceRate: ptrRate(pt.bounced(), pt.sent),
 			ComplaintRate: ptrRate(pt.complained, pt.reported), APIErrorRate: apiErr[p.ID], Status: p.Status, RouteStatus: r.Status,
-			Host: hostOf(p), Cost: float64(r.CostMicros) / 1e6, Idempotent: dedupes(p),
+			Host: hostOf(p), Cost: float64(r.CostMicros) / 1e6, Idempotent: dedupes(p), IdempotencySeconds: int64(window(p) / time.Second),
 			InfersDelivery: infersDelivery(p)}
 		if len(p.Ips) > 0 {
 			lp.IP = p.Ips[0]
@@ -909,8 +922,13 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 				}
 			}
 		}
-		if d.Decision == "retry" && r.Status == "held" {
+		switch {
+		case r.Status != "held":
+		case d.Decision == "retry":
 			lp.Retrying, lp.RetryUntil = true, d.Until
+			lp.Probes, lp.NextProbe, lp.ProbeSeed = d.Probes, d.NextProbe, d.Seed
+		case d.Decision == "" && d.Reason != CapHoldReason && d.NextProbe != nil:
+			lp.Probing = true
 			lp.Probes, lp.NextProbe, lp.ProbeSeed = d.Probes, d.NextProbe, d.Seed
 		}
 		lp.ProbesNeeded = probesToResume
@@ -1173,20 +1191,25 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			s.AB = la
 		}
 	}
+	// Messages in doubt (review GS-1): whether sending them again is safe
+	// changes with time, so the incident's ways to continue are worked out
+	// again for this snapshot.
+	var doubtDetail *IncidentDetail
 	if hasSend {
-		shares, total, err := e.inDoubtShares(ctx, e.Q, campaignID)
+		shares, total, err := e.inDoubtShares(ctx, e.Q, campaignID, now)
 		if err != nil {
 			return s, err
 		}
 		if total > 0 {
-			d := &LiveInDoubt{Count: total, Providers: shares, Safe: true}
+			d := &LiveInDoubt{Count: total, Providers: shares, Safe: inDoubtSafety(shares) == "yes"}
 			for _, sh := range shares {
 				if d.Since.IsZero() || sh.Since.Before(d.Since) {
 					d.Since = sh.Since
 				}
-				d.Safe = d.Safe && sh.Idempotent
 			}
 			s.InDoubt = d
+			dd := inDoubtDetail(shares, total)
+			doubtDetail = &dd
 		}
 	}
 	incs, err := e.Q.SendingIncidents(ctx, campaignID)
@@ -1212,6 +1235,10 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		li.Detail = parseDetail(in.Detail)
 		if in.Kind == "threshold" && in.ResolvedAt == nil {
 			li.Since = sinceTrip(ts, in, li.Detail)
+		}
+		if in.Kind == "in_doubt" && in.ResolvedAt == nil && doubtDetail != nil {
+			li.Detail, li.Held = *doubtDetail, s.InDoubt.Count
+			s.InDoubt.IncidentID = li.ID
 		}
 		s.Incidents = append(s.Incidents, li)
 		if in.ResolvedAt == nil && s.Incident == nil && (in.Kind == "threshold" || in.Kind == "provider_outage" || in.Kind == "reply_rule" || in.Kind == "canary") && !isNotice(in) {
@@ -1316,9 +1343,14 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			routesHeld++
 		}
 	}
+	// Only messages in doubt are left and nobody paused the send: it waits
+	// for the decision on them, and resuming couldn't send anything.
+	if s.InDoubt != nil && cc.Status == "paused" && s.PausedAt == nil && s.Held == 0 && s.Waiting == 0 && s.Queued == 0 {
+		s.InDoubt.Waiting = true
+	}
 	s.Options = LiveOptions{
 		CanPause:  cc.Status == "sending",
-		CanResume: cc.Status == "paused" || len(s.MailboxesHeld) > 0 || routesHeld > 0,
+		CanResume: (cc.Status == "paused" && (s.InDoubt == nil || !s.InDoubt.Waiting)) || len(s.MailboxesHeld) > 0 || routesHeld > 0,
 		CanCancel: cc.Status == "sending" || cc.Status == "paused",
 	}
 	return s, nil

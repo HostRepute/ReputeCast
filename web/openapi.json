@@ -36937,12 +36937,23 @@
           "providerId": {
             "type": "string"
           },
+          "safe": {
+            "type": "boolean"
+          },
+          "safeUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
           "short": {
             "type": "string"
           },
           "since": {
             "format": "date-time",
             "type": "string"
+          },
+          "windowSeconds": {
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
@@ -36951,7 +36962,8 @@
           "short",
           "count",
           "since",
-          "idempotent"
+          "idempotent",
+          "safe"
         ],
         "type": "object"
       },
@@ -42521,6 +42533,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "incidentId": {
+            "type": "string"
+          },
           "providers": {
             "items": {
               "$ref": "#/components/schemas/InDoubtShare"
@@ -42533,13 +42548,17 @@
           "since": {
             "format": "date-time",
             "type": "string"
+          },
+          "waiting": {
+            "type": "boolean"
           }
         },
         "required": [
           "count",
           "since",
           "providers",
-          "safe"
+          "safe",
+          "waiting"
         ],
         "type": "object"
       },
@@ -42924,6 +42943,10 @@
           "id": {
             "type": "string"
           },
+          "idempotencySeconds": {
+            "format": "int64",
+            "type": "integer"
+          },
           "idempotent": {
             "type": "boolean"
           },
@@ -42958,6 +42981,9 @@
           "probesNeeded": {
             "format": "int64",
             "type": "integer"
+          },
+          "probing": {
+            "type": "boolean"
           },
           "quotaFree": {
             "format": "int64",
@@ -43045,6 +43071,7 @@
           "cost",
           "plannedCost",
           "retrying",
+          "probing",
           "probes",
           "probesNeeded",
           "probeSeed",

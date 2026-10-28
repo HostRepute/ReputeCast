@@ -3108,6 +3108,10 @@ type Querier interface {
 	ReportLatestReadiness(ctx context.Context, campaignID uuid.UUID) (ReportLatestReadinessRow, error)
 	// The most recent campaign with results, for "See the last report instead".
 	ReportLatestSent(ctx context.Context, arg ReportLatestSentParams) (ReportLatestSentRow, error)
+	// A campaign's messages left out while in doubt (review GS-1): nobody knew
+	// whether their provider took them, and a person chose not to send them
+	// again. The report says so in its header ("not sent, in doubt").
+	ReportLeftOutInDoubt(ctx context.Context, campaignID *uuid.UUID) (int64, error)
 	// Clicks per link and A/B variant, for each variant's click map (review
 	// AN-5).
 	ReportLinkVariants(ctx context.Context, campaignID uuid.UUID) ([]ReportLinkVariantsRow, error)
@@ -3612,7 +3616,8 @@ type Querier interface {
 	SendingHoldForCanary(ctx context.Context, campaignID *uuid.UUID) (int64, error)
 	// The most recent import from a source ("the Mailchimp import on 18 Sep").
 	SendingImportOf(ctx context.Context, arg SendingImportOfParams) (SendingImportOfRow, error)
-	// A campaign's messages in doubt per sending provider, with the oldest.
+	// A campaign's messages in doubt per sending provider, with the oldest call
+	// that handed them over.
 	SendingInDoubtByProvider(ctx context.Context, campaignID *uuid.UUID) ([]SendingInDoubtByProviderRow, error)
 	SendingIncidents(ctx context.Context, campaignID uuid.UUID) ([]CampaignIncident, error)
 	// A campaign's incidents of one kind, open or not (an alert is raised once
@@ -3623,6 +3628,8 @@ type Querier interface {
 	SendingInsertIncident(ctx context.Context, arg SendingInsertIncidentParams) error
 	SendingInsertLink(ctx context.Context, arg SendingInsertLinkParams) error
 	SendingInsertSend(ctx context.Context, arg SendingInsertSendParams) error
+	// What a campaign still has to send (queued or held) and what is in doubt.
+	SendingLeftToSend(ctx context.Context, campaignID *uuid.UUID) (SendingLeftToSendRow, error)
 	SendingListNames(ctx context.Context, workspaceID uuid.UUID) ([]SendingListNamesRow, error)
 	// Gives back what a send took from a window and didn't send.
 	SendingMailboxRelease(ctx context.Context, arg SendingMailboxReleaseParams) error
@@ -3639,13 +3646,15 @@ type Querier interface {
 	SendingMarkCompleted(ctx context.Context, arg SendingMarkCompletedParams) error
 	// The other stale claims: the call that took them ended without a recorded
 	// answer, so nobody knows whether the provider has them. They are in doubt
-	// and never sent again on a guess.
+	// and never sent again on a guess; doubt_at keeps the call's time.
 	SendingMarkInDoubt(ctx context.Context, arg SendingMarkInDoubtParams) ([]SendingMarkInDoubtRow, error)
 	SendingMarkScheduled(ctx context.Context, arg SendingMarkScheduledParams) error
 	SendingMarkSent(ctx context.Context, arg SendingMarkSentParams) error
 	SendingMarkStarted(ctx context.Context, arg SendingMarkStartedParams) error
 	// Messages that will never be sent: rejected by the provider, failed after
-	// every retry, or dropped (suppressed during the send, contact erased).
+	// every retry, or dropped (suppressed during the send, contact erased); or
+	// in doubt, when the call that handed them over may have reached the
+	// provider: doubt_at keeps that call's time (its claim).
 	SendingMarkUnsent(ctx context.Context, arg SendingMarkUnsentParams) error
 	// A queued automation email whose language version stopped being sent (its
 	// language was removed) goes out in the source instead.
@@ -3716,7 +3725,9 @@ type Querier interface {
 	// it first). No row comes back when the window is full.
 	SendingReserve(ctx context.Context, arg SendingReserveParams) (int32, error)
 	// A person's decision on a campaign's messages in doubt: send them again
-	// (back in the queue) or leave them out (cancelled, with why).
+	// (back in the queue, no longer in doubt) or leave them out (cancelled,
+	// with why; doubt_at stays, so the report counts them as "not sent, in
+	// doubt" and a later event from the provider still counts one as sent).
 	SendingResolveInDoubt(ctx context.Context, arg SendingResolveInDoubtParams) (int64, error)
 	SendingResolveIncident(ctx context.Context, arg SendingResolveIncidentParams) error
 	SendingRetryLater(ctx context.Context, arg SendingRetryLaterParams) error
@@ -3772,8 +3783,10 @@ type Querier interface {
 	// GS-6: the complaint watch after a send ----------------------------------
 	// How long complaints are watched after the send ended.
 	SendingSetWatch(ctx context.Context, arg SendingSetWatchParams) error
-	// A provider reported an event for a message in doubt: it took the message
-	// after all. The message counts as sent from the event on.
+	// A provider reported an event for a message in doubt, or for one left out
+	// while in doubt: it took the message after all, so the message counts as
+	// sent from the event on. A bounce or complaint already moved its status
+	// (CountersMoveDelivery); it keeps that one.
 	SendingSettleInDoubt(ctx context.Context, arg SendingSettleInDoubtParams) (SendingSettleInDoubtRow, error)
 	// GS-3: one outage path ---------------------------------------------------
 	// The running sends with an open or held share on a provider: an outage

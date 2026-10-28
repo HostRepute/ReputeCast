@@ -171,17 +171,16 @@ func testRetryAsksAgain(t *testing.T, f *sendtest.Fixture) {
 		}
 	}
 	calls := sendtest.Fault.Calls()
-	end, _, err := f.E.Drive(f.Ctx, f.Campaign, heldAt, 30*time.Minute)
-	if err != nil {
+	if _, _, err := f.E.Drive(f.Ctx, f.Campaign, heldAt, 15*time.Minute+30*time.Second); err != nil {
 		t.Fatal(err)
 	}
 	if probes := sendtest.Fault.Calls() - calls; probes < 15 || probes > 17 {
 		t.Fatalf("%d test messages in 15 minutes, want one a minute", probes)
 	}
-	if asked := end.Sub(heldAt); asked < 15*time.Minute || asked > 17*time.Minute {
+	in := outageIncident(t, f)
+	if asked := in.TrippedAt.Sub(heldAt); asked < 15*time.Minute || asked > 17*time.Minute {
 		t.Fatalf("asked again after %s, want 15 minutes", asked)
 	}
-	in := outageIncident(t, f)
 	if !in.Detail.Retried || len(in.Detail.Causes) == 0 || in.Detail.Causes[0].Lead != "Retried for 15 minutes." {
 		t.Fatalf("incident %+v, want asked again", in.Detail)
 	}
@@ -246,5 +245,97 @@ func testRetryResumes(t *testing.T, f *sendtest.Fixture, seed bool) {
 	}
 	if n := f.Count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.share_retried'`, f.Campaign.String()); n != 1 {
 		t.Fatalf("%d share_retried audit entries", n)
+	}
+}
+
+// testAutoProbe: a share held for an outage tests its provider on its own
+// while nobody decides (review GS-3): one test message a minute, to a seed
+// mailbox when the workspace has one, else one of the share's own messages.
+// The monitor says it's testing, failed tests use up no reader's attempts,
+// and three in a row that go through resume the share and close its
+// incident.
+func testAutoProbe(t *testing.T, f *sendtest.Fixture, seed bool) {
+	if !seed {
+		f.Exec(`UPDATE placement_seeds SET status = 'unchecked' WHERE workspace_id = $1 AND status = 'connected'`, f.WS)
+		t.Cleanup(func() {
+			f.Exec(`UPDATE placement_seeds SET status = 'connected' WHERE workspace_id = $1 AND status = 'unchecked'`, f.WS)
+		})
+	}
+	pid, heldAt := heldOnFault(t, f, 200)
+	snap, err := f.E.Snapshot(f.Ctx, f.WS, f.Campaign)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range snap.Providers {
+		if p.ID == pid.String() && (!p.Probing || p.Retrying || p.ProbesNeeded != 3 || p.NextProbe == nil || p.ProbeSeed != seed) {
+			t.Fatalf("provider %+v, want testing on its own with 3 test messages needed", p)
+		}
+	}
+	// Nobody decided: the decision is still asked for, with its options.
+	outageIncident(t, f)
+	if s := f.Status(); s != "sending" {
+		t.Fatalf("campaign %s: the loop stays to send the test messages", s)
+	}
+	// Tests that fail (the provider still refuses) use up nothing.
+	attempts := f.Count(`SELECT coalesce(sum(attempts), 0) FROM messages WHERE campaign_id = $1`, f.Campaign)
+	calls := sendtest.Fault.Calls()
+	at, _, err := f.E.Drive(f.Ctx, f.Campaign, heldAt, 5*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if probes := sendtest.Fault.Calls() - calls; probes < 4 || probes > 6 {
+		t.Fatalf("%d test messages in 5 minutes, want one a minute", probes)
+	}
+	if n := f.Count(`SELECT coalesce(sum(attempts), 0) FROM messages WHERE campaign_id = $1`, f.Campaign); n != attempts {
+		t.Fatalf("failed tests used %d attempts of the share's messages", n-attempts)
+	}
+	if st, _ := routeOf(t, f, pid); st != "held" {
+		t.Fatalf("route %s while the provider still refuses, want held", st)
+	}
+	// The provider recovers: three tests in a row, then the rest goes out.
+	sendtest.Fault.SetMode(sendtest.FaultOK)
+	if _, _, err := f.E.Drive(f.Ctx, f.Campaign, at, 10*time.Minute); err != nil {
+		t.Fatal(err)
+	}
+	if s := f.Status(); s != "sent" {
+		f.Dump()
+		t.Fatalf("campaign %s, want sent once the share resumed by itself", s)
+	}
+	if seed {
+		if n := sendtest.Fault.TookFor(seedInbox(t, f)); n != 3 {
+			t.Fatalf("%d test messages to the seed mailbox went through, want 3", n)
+		}
+	}
+	if n := f.Count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND status = 'sent'`, f.Campaign); n != 200 {
+		t.Fatalf("%d sent, want 200", n)
+	}
+	if n := tookTwice(); n != 0 {
+		t.Fatalf("%d messages delivered twice", n)
+	}
+	if n := f.Count(`SELECT count(*) FROM campaign_incidents WHERE campaign_id = $1 AND kind = 'provider_outage' AND resolution = 'auto_recovered'`, f.Campaign); n != 1 {
+		t.Fatal("the outage's incident wasn't closed when the provider recovered")
+	}
+	if n := f.Count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.share_resumed' AND metadata->>'via' = 'probe'`, f.Campaign.String()); n != 1 {
+		t.Fatalf("%d audit entries for the share resuming by itself", n)
+	}
+}
+
+// testAutoProbeDecisionWins: a person's decision ends the automatic tests;
+// a cancelled share sends no more test messages.
+func testAutoProbeDecisionWins(t *testing.T, f *sendtest.Fixture) {
+	pid, heldAt := heldOnFault(t, f, 200)
+	setClock(t, f, heldAt)
+	if _, err := f.E.CancelShare(f.Ctx, f.Campaign, f.Sofia, "", &pid); err != nil {
+		t.Fatal(err)
+	}
+	calls := sendtest.Fault.Calls()
+	if _, _, err := f.E.Drive(f.Ctx, f.Campaign, heldAt, 5*time.Minute); err != nil {
+		t.Fatal(err)
+	}
+	if n := sendtest.Fault.Calls() - calls; n != 0 {
+		t.Fatalf("%d test messages after the share was cancelled", n)
+	}
+	if n := f.Count(`SELECT count(*) FROM campaign_incidents WHERE campaign_id = $1 AND resolution = 'auto_recovered'`, f.Campaign); n != 0 {
+		t.Fatal("a cancelled share's incident was closed as recovered")
 	}
 }

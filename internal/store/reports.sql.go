@@ -708,6 +708,20 @@ func (q *Queries) ReportLatestSent(ctx context.Context, arg ReportLatestSentPara
 	return i, err
 }
 
+const reportLeftOutInDoubt = `-- name: ReportLeftOutInDoubt :one
+SELECT count(*)::bigint FROM messages WHERE campaign_id = $1 AND doubt_at IS NOT NULL AND status = 'cancelled'
+`
+
+// A campaign's messages left out while in doubt (review GS-1): nobody knew
+// whether their provider took them, and a person chose not to send them
+// again. The report says so in its header ("not sent, in doubt").
+func (q *Queries) ReportLeftOutInDoubt(ctx context.Context, campaignID *uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, reportLeftOutInDoubt, campaignID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const reportLinkVariants = `-- name: ReportLinkVariants :many
 SELECT position, variant, clicks, unique_clicks, bot_clicks
 FROM campaign_link_variants

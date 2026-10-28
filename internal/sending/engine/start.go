@@ -469,10 +469,28 @@ func (e *Engine) resumeCampaign(ctx context.Context, campaignID, by uuid.UUID, i
 		if c.Status != "paused" && c.Status != "sending" {
 			return stateErr("state.notPaused", campaignArgs(c.Name, c.Status))
 		}
-		// A canary that failed a gate waits for its own decision: resuming
-		// would leave the recipients it holds waiting (review GS-10).
-		if snd, err := q.SendingGetSendForUpdate(ctx, c.ID); err == nil && parseCanary(snd.Canary).Phase == canaryHeld {
-			return stateErr("state.canaryWaits", campaignArgs(c.Name, c.Status))
+		if snd, err := q.SendingGetSendForUpdate(ctx, c.ID); err == nil {
+			// A canary that failed a gate waits for its own decision:
+			// resuming would leave the recipients it holds waiting (review
+			// GS-10).
+			if parseCanary(snd.Canary).Phase == canaryHeld {
+				return stateErr("state.canaryWaits", campaignArgs(c.Name, c.Status))
+			}
+			// The send waits only for a decision on its messages in doubt:
+			// resuming couldn't send anything (review GS-1).
+			if c.Status == "paused" && snd.PausedAt == nil {
+				left, err := q.SendingLeftToSend(ctx, &c.ID)
+				if err != nil {
+					return err
+				}
+				if left.ToSend == 0 && left.InDoubt > 0 {
+					args := campaignArgs(c.Name, c.Status)
+					args["count"] = left.InDoubt
+					return stateErr("state.onlyInDoubt", args)
+				}
+			}
+		} else if !errors.Is(err, pgx.ErrNoRows) {
+			return err
 		}
 		ref, name := e.actorRef(ctx, q, by)
 		tripped, err := trippedScopes(ctx, q, c.ID)
@@ -600,7 +618,10 @@ func (e *Engine) releaseAll(ctx context.Context, q *store.Queries, id uuid.UUID,
 		return nil, err
 	}
 	for _, in := range open {
-		if in.Kind == "throttled" && in.Metric == CapHoldReason {
+		// Messages in doubt still wait for their own decision (send them
+		// again or leave them out): resuming the send doesn't decide it,
+		// and their incident stays open (review GS-1).
+		if (in.Kind == "throttled" && in.Metric == CapHoldReason) || in.Kind == "in_doubt" {
 			continue
 		}
 		if err := q.SendingResolveIncident(ctx, store.SendingResolveIncidentParams{ID: in.ID, At: &now, Resolution: "resumed", ResolvedBy: by}); err != nil {
@@ -659,6 +680,14 @@ func (e *Engine) Cancel(ctx context.Context, campaignID, by uuid.UUID) error {
 		if err != nil {
 			return err
 		}
+		// Messages in doubt aren't sent again either: they are left out, as
+		// "Leave them out" does (review GS-1), so none stays in doubt after
+		// the send.
+		doubt, err := q.SendingResolveInDoubt(ctx, store.SendingResolveInDoubtParams{Resend: false, CampaignID: &cid,
+			Reason: "Left out when " + who + " cancelled the send: in doubt after its provider call ended without a recorded answer."})
+		if err != nil {
+			return err
+		}
 		if err := q.SendingMarkCompleted(ctx, store.SendingMarkCompletedParams{ID: c.ID, Status: "cancelled", At: now}); err != nil {
 			return err
 		}
@@ -680,15 +709,19 @@ func (e *Engine) Cancel(ctx context.Context, campaignID, by uuid.UUID) error {
 				return err
 			}
 		}
-		if err := emit(ctx, tx, c.WorkspaceID, "campaign.completed", campaignData(c.ID, c.Name, "status", "cancelled", "cancelled_by", who, "not_sent", n)); err != nil {
+		if err := emit(ctx, tx, c.WorkspaceID, "campaign.completed", campaignData(c.ID, c.Name, "status", "cancelled", "cancelled_by", who, "not_sent", n+doubt)); err != nil {
 			return err
 		}
 		if !records(ctx) {
 			return nil
 		}
+		summary := countText(n) + " not sent"
+		if doubt > 0 {
+			summary += " · " + countText(doubt) + " in doubt left out"
+		}
 		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.cancelled", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Before: map[string]any{"status": c.Status}, After: map[string]any{"status": "cancelled", "not_sent": n}, Actor: e.actorFor(ctx, ref, name),
-			Metadata: map[string]any{"summary": countText(n) + " not sent"}})
+			Before: map[string]any{"status": c.Status}, After: map[string]any{"status": "cancelled", "not_sent": n, "in_doubt_left_out": doubt}, Actor: e.actorFor(ctx, ref, name),
+			Metadata: map[string]any{"summary": summary}})
 	})
 }
 

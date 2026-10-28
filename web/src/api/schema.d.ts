@@ -28119,9 +28119,14 @@ export interface components {
             idempotent: boolean;
             provider: string;
             providerId: string;
+            safe: boolean;
+            /** Format: date-time */
+            safeUntil?: string;
             short: string;
             /** Format: date-time */
             since: string;
+            /** Format: int64 */
+            windowSeconds?: number;
         };
         IncidentCause: {
             body: string;
@@ -29728,10 +29733,12 @@ export interface components {
         LiveInDoubt: {
             /** Format: int64 */
             count: number;
+            incidentId?: string;
             providers: components["schemas"]["InDoubtShare"][];
             safe: boolean;
             /** Format: date-time */
             since: string;
+            waiting: boolean;
         };
         LiveInDoubtRequest: {
             /** @enum {string} */
@@ -29864,6 +29871,8 @@ export interface components {
             downSince?: string;
             host: string;
             id: string;
+            /** Format: int64 */
+            idempotencySeconds?: number;
             idempotent: boolean;
             infersDelivery: boolean;
             ip: string;
@@ -29879,6 +29888,7 @@ export interface components {
             probes: number;
             /** Format: int64 */
             probesNeeded: number;
+            probing: boolean;
             /** Format: int64 */
             quotaFree?: number;
             /** Format: int64 */

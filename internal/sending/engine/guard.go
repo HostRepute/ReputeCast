@@ -160,7 +160,7 @@ func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.D
 		held := holdBlocks(rs.holds, k.mailbox, k.provider)
 		if r == nil || held || !r.open() {
 			blocked += c.queued
-			if r != nil && !held && r.retrying() {
+			if r != nil && !held && r.probing() {
 				probing += c.queued
 			}
 		}
@@ -180,8 +180,10 @@ func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.D
 		// send them again or leave them out (doubt.go).
 		return 0, e.waitForDecision(ctx, rs, now)
 	case held == 0 && queued > 0 && queued == blocked && probing > 0:
-		// Only retried shares are left: the loop stays to send their test
-		// messages (outages.go).
+		// Only held shares are left and one tests its provider (while
+		// nobody decided, or after a Retry): the loop stays to send the
+		// test messages, so the share resumes once its provider takes
+		// them (outages.go).
 		return rs.untilProbe(now), nil
 	case held == 0 && queued > 0 && queued == blocked && e.warmWaiting(rs) == blocked:
 		// Only shares a warm-up cap holds are left: they go on with the next
@@ -200,16 +202,12 @@ func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.D
 	return 0, nil
 }
 
-// retrying reports whether a route is a retried share sending test
-// messages (outages.go).
-func (r *runRoute) retrying() bool { return r.status == "held" && r.detail.Decision == "retry" }
-
-// untilProbe is how long until a retried share's next test message (a
-// minute when none is retried).
+// untilProbe is how long until a held share's next test message (a minute
+// when none tests its provider).
 func (rs *runState) untilProbe(now time.Time) time.Duration {
 	wait := retryEvery
 	for _, r := range rs.routes {
-		if !r.retrying() {
+		if !r.probing() {
 			continue
 		}
 		if r.detail.NextProbe == nil || !now.Before(*r.detail.NextProbe) {
@@ -701,7 +699,7 @@ func (e *Engine) holdOutage(ctx context.Context, rs *runState, r *runRoute, reas
 				if err := q.SendingUpdateIncidentDetail(ctx, store.SendingUpdateIncidentDetailParams{ID: in.ID, Detail: b, Held: remaining}); err != nil {
 					return err
 				}
-				return e.markHeld(ctx, q, rs, r, reason, id)
+				return e.markHeld(ctx, q, rs, r, reason, id, now)
 			}
 		}
 		pid := r.provider.ID
@@ -711,7 +709,7 @@ func (e *Engine) holdOutage(ctx context.Context, rs *runState, r *runRoute, reas
 			Metric: "api_errors", Value: &apiErr, Threshold: &limit, Held: remaining, Detail: b, TrippedAt: now}); err != nil {
 			return err
 		}
-		if err := e.markHeld(ctx, q, rs, r, reason, id); err != nil {
+		if err := e.markHeld(ctx, q, rs, r, reason, id, now); err != nil {
 			return err
 		}
 		title := keep("incident.broadcastHeld", words)
@@ -757,12 +755,16 @@ func holdable(rt store.SendingRoutesRow, again bool) bool {
 	return false
 }
 
-func (e *Engine) markHeld(ctx context.Context, q *store.Queries, rs *runState, r *runRoute, reason string, incident uuid.UUID) error {
-	d, _ := json.Marshal(routeDetail{Reason: reason, Incident: incident.String()})
-	if err := q.SendingSetRouteStatus(ctx, store.SendingSetRouteStatusParams{CampaignID: rs.campaign.ID, ProviderID: r.provider.ID, Status: "held", StatusDetail: string(d)}); err != nil {
+// markHeld holds a route for an outage. Until someone decides, the share
+// tests its provider on its own: its first test message goes a minute
+// later (outages.go).
+func (e *Engine) markHeld(ctx context.Context, q *store.Queries, rs *runState, r *runRoute, reason string, incident uuid.UUID, now time.Time) error {
+	next := now.Add(retryEvery)
+	detail := routeDetail{Reason: reason, Incident: incident.String(), NextProbe: &next, Seed: e.seedInbox(ctx, rs.campaign.WorkspaceID) != ""}
+	if err := q.SendingSetRouteStatus(ctx, store.SendingSetRouteStatusParams{CampaignID: rs.campaign.ID, ProviderID: r.provider.ID, Status: "held", StatusDetail: rawRouteDetail(detail)}); err != nil {
 		return err
 	}
-	r.status, r.detail = "held", routeDetail{Reason: reason, Incident: incident.String()}
+	r.status, r.detail = "held", detail
 	return nil
 }
 

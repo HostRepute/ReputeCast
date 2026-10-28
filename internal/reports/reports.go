@@ -126,6 +126,15 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 	if c.Note != "" {
 		info.Notes = append(info.Notes, c.Note)
 	}
+	// Messages left out while in doubt (review GS-1): the live monitor's
+	// "Leave them out" says the report shows them as not sent, in doubt.
+	leftOut, err := s.Q.ReportLeftOutInDoubt(ctx, &c.ID)
+	if err != nil {
+		return out, err
+	}
+	if leftOut > 0 {
+		info.Notes = append(info.Notes, mNoteInDoubt.Text(l, i18n.Args{"count": leftOut}))
+	}
 	if c.CompletedAt != nil {
 		fa := c.CompletedAt.Add(FinalAfter)
 		info.FinalAt = &fa

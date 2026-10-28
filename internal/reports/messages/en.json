@@ -3,6 +3,7 @@
   "audience.segments": "{count, plural, one {# segment} other {# segments}}",
   "note.ab": { "message": "A/B {kind, select, subject {subject} content {content} send_time {send time} other {{kindName}}}", "note": "an A/B test that ran, in the report's header: A/B subject" },
   "note.abWinner": { "message": "A/B {kind, select, subject {subject} content {content} send_time {send time} other {{kindName}}}, winner {winner}", "note": "winner: A or B" },
+  "note.leftOutInDoubt": { "message": "{count, plural, one {# message} other {# messages}} not sent, in doubt", "note": "in the report's header: messages left out of the send because nobody knew whether their provider had taken them (the call that handed them over ended without an answer)" },
   "note.bounceSuppressed": { "message": "{type, select, unknown_user {Hard · unknown user bounces on {campaign}} domain_invalid {Hard · domain not found bounces on {campaign}} mailbox_full {Soft · mailbox full bounces on {campaign}} deferral_expired {Soft · deferral expired bounces on {campaign}} blocked {Blocked · policy or reputation bounces on {campaign}} other {Other bounces on {campaign}}}", "note": "the note on addresses a report suppressed, shown in the suppression list; type: the bounce type (as bounce.*); campaign: the campaign's name" },
 
   "label.referralLinks": { "message": "Referral links (personal)", "note": "the click map's entry for every reader's own referral links" },

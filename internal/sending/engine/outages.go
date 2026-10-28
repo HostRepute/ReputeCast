@@ -25,10 +25,14 @@ import (
 // (checkOutage) or the provider health job (HoldShares), the share goes
 // through the same path: moved when the Broadcast failover policy allows it
 // and a vetted provider can take it, otherwise held with the engine's
-// analysis and its ways to continue. A person's Retry keeps the share on
-// hold and sends one test message every minute; three that go through in a
-// row resume the share by itself, and one that fails after 15 minutes asks
-// a person again.
+// analysis and its ways to continue. While nobody has decided, the held
+// share tests its provider on its own: one test message every minute (to a
+// seed mailbox when the workspace has one, else one of the share's own
+// messages, which counts as sent when the provider takes it), and three in
+// a row that go through resume the share by itself. A person's decision
+// wins at any time: Move and Cancel end the tests; Retry keeps them going
+// and asks again if the provider still fails after 15 minutes. A test that
+// fails never uses up the attempts of the share's message it tried.
 
 // probesToResume is how many test messages in a row a retried share's
 // provider must take before the share resumes by itself.
@@ -145,47 +149,50 @@ func (e *Engine) adoptHold(ctx context.Context, rs *runState, r *runRoute, in *s
 	return nil
 }
 
-// probeHeld looks after a held route: a retried share's test messages,
-// otherwise its incident (options for one that has none, and one health
-// check after the hold: "health check · still failing").
-func (e *Engine) probeHeld(ctx context.Context, rs *runState, r *runRoute, now time.Time) error {
-	if r.detail.Decision == "retry" {
-		return e.retryProbe(ctx, rs, r, now)
-	}
-	if now.Sub(r.lastProbe) < 30*time.Second {
-		return nil
-	}
-	r.lastProbe = now
-	in, err := e.routeIncident(ctx, e.Q, rs.campaign.ID, r.provider.ID)
-	if err != nil {
-		return err
-	}
-	if in == nil || len(parseDetail(in.Detail).Options) == 0 {
-		return e.adoptHold(ctx, rs, r, in, now)
-	}
-	if now.Sub(in.TrippedAt) < 30*time.Second {
-		return nil
-	}
-	d := parseDetail(in.Detail)
-	if d.Probed {
-		return nil
-	}
-	line := english("probe.failing", nil)
-	if e.probeAPI(ctx, r, now) {
-		line = english("probe.answering", nil)
-	}
-	d.Log = append(d.Log, IncidentLogLine{At: now, Text: line})
-	d.Probed = true
-	return e.Q.SendingUpdateIncidentDetail(ctx, store.SendingUpdateIncidentDetailParams{ID: in.ID, Detail: d.stored(), Held: in.Held})
+// probing reports whether a held route tests its provider: an outage hold
+// nobody decided on yet (automatic), or one a person chose to retry. A
+// share today's warm-up cap holds isn't an outage (warmup_send.go).
+func (r *runRoute) probing() bool {
+	return r.status == "held" && r.detail.Reason != CapHoldReason && (r.detail.Decision == "" || r.detail.Decision == "retry")
 }
 
-// retryProbe sends a retried share's test message when it is due. Three
-// in a row that go through resume the share; a failure once the 15 minutes
-// are over asks a person again (or moves the share when the failover
-// policy allows it).
+// probeHeld looks after a held route: an incident with its ways to continue
+// for a hold that has none (one nobody was asked about, or from before),
+// then its test messages.
+func (e *Engine) probeHeld(ctx context.Context, rs *runState, r *runRoute, now time.Time) error {
+	if !r.probing() {
+		return nil
+	}
+	if r.detail.Decision == "" && now.Sub(r.lastProbe) >= 30*time.Second {
+		r.lastProbe = now
+		in, err := e.routeIncident(ctx, e.Q, rs.campaign.ID, r.provider.ID)
+		if err != nil {
+			return err
+		}
+		if in == nil || len(parseDetail(in.Detail).Options) == 0 {
+			if err := e.adoptHold(ctx, rs, r, in, now); err != nil {
+				return err
+			}
+		}
+	}
+	return e.retryProbe(ctx, rs, r, now)
+}
+
+// retryProbe sends a held share's test message when it is due. Three in a
+// row that go through resume the share. A failure after a person's Retry
+// once its 15 minutes are over asks a person again (or moves the share
+// when the failover policy allows it); without a decision the tests go on
+// while the person who is asked decides.
 func (e *Engine) retryProbe(ctx context.Context, rs *runState, r *runRoute, now time.Time) error {
 	d := r.detail
-	if d.NextProbe != nil && now.Before(*d.NextProbe) {
+	if d.NextProbe == nil {
+		// A hold from before the tests started on their own: the first
+		// test in a minute.
+		next := now.Add(retryEvery)
+		d.NextProbe, d.Seed = &next, e.seedInbox(ctx, rs.campaign.WorkspaceID) != ""
+		return e.saveProbe(ctx, rs, r, d)
+	}
+	if now.Before(*d.NextProbe) {
 		return nil
 	}
 	ok, err := e.probe(ctx, rs, r, d.Seed, now)
@@ -199,12 +206,18 @@ func (e *Engine) retryProbe(ctx context.Context, rs *runState, r *runRoute, now 
 		}
 	} else {
 		d.Probes = 0
-		if d.Until != nil && !now.Before(*d.Until) {
+		if d.Decision == "retry" && d.Until != nil && !now.Before(*d.Until) {
 			return e.outage(ctx, rs, r, firstNonEmpty(d.Reason, "outage"), now, true)
 		}
 	}
 	next := now.Add(retryEvery)
 	d.NextProbe = &next
+	return e.saveProbe(ctx, rs, r, d)
+}
+
+// saveProbe writes a held share's test messages so far, unless a person
+// decided in the meantime: their decision wins.
+func (e *Engine) saveProbe(ctx context.Context, rs *runState, r *runRoute, d routeDetail) error {
 	n, err := e.Q.SendingSetProbe(ctx, store.SendingSetProbeParams{CampaignID: rs.campaign.ID, ProviderID: r.provider.ID, Old: rawRouteDetail(r.detail), New: rawRouteDetail(d)})
 	if err != nil {
 		return err
@@ -300,7 +313,9 @@ func (e *Engine) probeMessage(ctx context.Context, rs *runState, r *runRoute, no
 			continue
 		}
 		rs.queueAt = time.Time{}
+		r.probe = true
 		res, err := e.send(ctx, rs, r, rows, now)
+		r.probe = false
 		return res.sent > 0, true, err
 	}
 	return false, false, nil
@@ -329,8 +344,9 @@ func (e *Engine) probeAPI(ctx context.Context, r *runRoute, now time.Time) bool 
 	return false
 }
 
-// resumeProbed sends a retried share again after its provider took three
-// test messages in a row.
+// resumeProbed sends a held share again after its provider took three test
+// messages in a row. Without a person's decision, the outage's incident is
+// closed: the provider recovered.
 func (e *Engine) resumeProbed(ctx context.Context, rs *runState, r *runRoute, now time.Time) error {
 	c := rs.campaign
 	pid := r.provider.ID
@@ -345,21 +361,33 @@ func (e *Engine) resumeProbed(ctx context.Context, rs *runState, r *runRoute, no
 			return nil
 		}
 		rt, err := routeOf(ctx, q, c.ID, pid)
-		if err != nil || rt == nil || rt.Status != "held" || parseRouteDetail(rt.StatusDetail).Decision != "retry" {
+		if err != nil || rt == nil || rt.Status != "held" || rt.StatusDetail != rawRouteDetail(r.detail) {
+			// A person decided in the meantime: their decision stands.
 			return err
 		}
 		if err := q.SendingSetRouteStatus(ctx, store.SendingSetRouteStatusParams{CampaignID: c.ID, ProviderID: pid, Status: "sending", StatusDetail: `{"decision":"resume"}`}); err != nil {
 			return err
 		}
 		resumed = true
+		decision := r.detail.Decision
+		if decision == "" {
+			decision = "probe"
+			if _, err := tx.Exec(ctx, `UPDATE campaign_incidents SET resolved_at = $3, resolution = 'auto_recovered'
+				WHERE campaign_id = $1 AND provider_id = $2 AND kind = 'provider_outage' AND resolved_at IS NULL`, c.ID, pid, now); err != nil {
+				return err
+			}
+			if err := e.unpause(ctx, q, cur, now); err != nil {
+				return err
+			}
+		}
 		if err := emit(ctx, tx, c.WorkspaceID, "campaign.resumed", campaignData(c.ID, c.Name, "resumed_by", "System", "scope", "route",
-			"provider_id", pid.String(), "provider", r.provider.Name, "decision", "retry")); err != nil {
+			"provider_id", pid.String(), "provider", r.provider.Name, "decision", decision)); err != nil {
 			return err
 		}
 		summary := english("audit.shareProbed", i18n.Args{"who": r.shortName(), "count": probesToResume})
 		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.share_resumed", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
 			Actor: systemActor, Before: map[string]any{"route": "held"}, After: map[string]any{"route": "sending", "probes": probesToResume},
-			Metadata: map[string]any{"summary": summary, "provider": r.provider.Name, "source": "guard", "via": "retry"}})
+			Metadata: map[string]any{"summary": summary, "provider": r.provider.Name, "source": "guard", "via": map[bool]string{true: "probe", false: "retry"}[r.detail.Decision == ""]}})
 	})
 	if err != nil || !resumed {
 		return err
