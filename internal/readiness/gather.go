@@ -360,26 +360,11 @@ func (s *Service) route(ctx context.Context, g *gathered, f Facts) (RouteFacts, 
 		weights[sp.ProviderID] += max(sp.Weight, 0)
 		totalWeight += max(sp.Weight, 0)
 	}
+	// The 7-day rates and the volume behind them (a few messages can't
+	// judge a provider, SR-5).
 	usage, err := manage.UsageOf(ctx, s.Q, g.ws, provs, f.Now)
 	if err != nil {
 		return out, err
-	}
-	// The volume behind ReputeCast's own 7-day rates (a few messages
-	// can't judge a provider, SR-5).
-	week := map[uuid.UUID]store.ProvDailyTotalsRow{}
-	if len(provs) > 0 {
-		ids := make([]uuid.UUID, 0, len(provs))
-		for _, p := range provs {
-			ids = append(ids, p.ID)
-		}
-		today := time.Date(f.Now.In(f.Location).Year(), f.Now.In(f.Location).Month(), f.Now.In(f.Location).Day(), 0, 0, 0, 0, time.UTC)
-		rows, err := s.Q.ProvDailyTotals(ctx, store.ProvDailyTotalsParams{ProviderIds: ids, Since: today.AddDate(0, 0, -6), Until: today})
-		if err != nil {
-			return out, err
-		}
-		for _, r := range rows {
-			week[r.ProviderID] = r
-		}
 	}
 	loc := f.Location
 	for _, p := range provs {
@@ -390,7 +375,7 @@ func (s *Service) route(ctx context.Context, g *gathered, f Facts) (RouteFacts, 
 			Recipients: counts[p.ID], Status: p.Status, Available: state.Available(p), Pricing: state.PricingOf(p), Limits: state.LimitsOf(p),
 			Account: h.Account, Sandbox: h.Sandbox || p.Status == state.Sandbox, Quota: h.Quota, BulkAllowed: caps.BulkAllowed(), Terms: termsOf(p, caps), TermsKind: termsKind(p, caps),
 			Tracking: state.TrackingOf(p), IPs: p.Ips, ConnectedAt: p.ConnectedAt, Bounce: u.Bounce7d, Complaint: u.Complaint7d,
-			ProviderReported: state.ReputationOf(h, f.Now) != nil, OneClick: caps.OneClick, Sent7d: week[p.ID].Sent, Delivered7d: week[p.ID].Delivered}
+			ProviderReported: u.ProviderReported, OneClick: caps.OneClick, Sent7d: u.Sent7d}
 		if p.IpMode != "dedicated" {
 			sh.IPs = nil
 		}

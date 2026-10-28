@@ -24814,6 +24814,7 @@ export interface components {
             complaint: components["schemas"]["DeliverabilityRateLimit"];
             /** @description Postal (self-hosted) */
             name: string;
+            notJudged?: string;
             note?: components["schemas"]["DeliverabilityProviderNote"];
             providerId: string;
             status: string;

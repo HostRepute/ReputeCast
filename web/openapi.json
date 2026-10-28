@@ -25765,6 +25765,9 @@
             "description": "Postal (self-hosted)",
             "type": "string"
           },
+          "notJudged": {
+            "type": "string"
+          },
           "note": {
             "$ref": "#/components/schemas/DeliverabilityProviderNote"
           },

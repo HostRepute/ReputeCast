@@ -208,14 +208,13 @@ type ShareFacts struct {
 	RateRamp bool
 	Pricing  state.Pricing
 	// Bounce and Complaint are 7-day rates in percent (nil without volume);
-	// ProviderReported is true when the provider measured them. Sent7d and
-	// Delivered7d are the volume ReputeCast's rates count: below
-	// MinRateVolume they can't judge a provider (SR-5).
+	// ProviderReported is true when the provider measured them. Sent7d is
+	// the volume ReputeCast's rates count: below MinRateVolume they can't
+	// judge a provider (SR-5).
 	Bounce           *float64
 	Complaint        *float64
 	ProviderReported bool
 	Sent7d           int64
-	Delivered7d      int64
 	Limits           state.Limits
 	// Account is the account standing ("Production · no enforcement").
 	Account string

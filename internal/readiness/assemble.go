@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
 )
@@ -658,7 +659,7 @@ func (b *builder) providerRates(s ShareFacts) check {
 	} else {
 		c.Detail = tx("rates.complaintNADetail", A{"detail": detail})
 	}
-	if !s.ProviderReported && s.Sent7d > 0 && s.Sent7d < MinRateVolume {
+	if manage.TooFewToJudge(s.ProviderReported, s.Sent7d) {
 		// One bounce among three messages isn't a 33% bounce rate: below
 		// the minimum volume the rates don't judge the provider (SR-5).
 		c.Title = tx("rates.tooFew", A{"provider": s.Name, "count": s.Sent7d})
@@ -705,9 +706,9 @@ func (b *builder) providerRates(s ShareFacts) check {
 }
 
 // MinRateVolume is how many messages ReputeCast's own 7-day rates need
-// before they can warn about or block a provider (the guard pauses a send
-// on a mailbox provider's rates after 500 messages, too).
-const MinRateVolume = 500
+// before they can warn about or block a provider: the one rule
+// Deliverability's provider card uses too (manage.TooFewToJudge).
+const MinRateVolume = manage.MinRateVolume
 
 // yes is a select argument: "yes" or "no".
 func yes(b bool) string {

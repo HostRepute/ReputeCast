@@ -2,6 +2,7 @@
   "status": "{status, select, healthy {Ổn định} degraded {Suy giảm} down {Gián đoạn} sandbox {Sandbox} warming_up {Đang khởi động} paused {Đã tạm dừng} other {{raw}}}",
   "name.selfHosted": "{name} (tự lưu trữ)",
   "rate.bounce": "Tỷ lệ trả thư",
+  "rate.tooFew": "Chưa đủ thư: {count, number} thư trong 7 ngày qua, tỷ lệ chỉ được đánh giá từ {min, number} thư.",
   "rate.complaint": "Tỷ lệ khiếu nại",
   "rate.spamComplaint": "Tỷ lệ khiếu nại spam",
   "threshold.reviewPause": "xem xét {review}, tạm dừng {pause}",

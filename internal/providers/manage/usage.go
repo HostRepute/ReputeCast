@@ -29,7 +29,29 @@ type Usage struct {
 	Bounce7d        *float64 `json:"bounce7d,omitempty"`
 	Complaint7d     *float64 `json:"complaint7d,omitempty"`
 	ComplaintReason string   `json:"complaintReason,omitempty" enum:"no_data,not_reported"`
+	// Sent7d is the mail ReputeCast counted over the same seven days, and
+	// ProviderReported is true when the rates are the provider's own.
+	Sent7d           int64 `json:"sent7d"`
+	ProviderReported bool  `json:"providerReported,omitempty"`
 }
+
+// MinRateVolume is how many messages ReputeCast's own 7-day rates need
+// before they judge a provider (a warning, a block, a bar turning amber or
+// red): one bounce among three messages isn't a 33% bounce rate (SR-5,
+// R1.L5c). Rates a provider measures itself are judged as they come. The
+// guard pauses a send on a mailbox provider's rates after 500 messages too.
+const MinRateVolume = 500
+
+// TooFewToJudge reports whether the 7-day rates rest on too little mail to
+// judge the provider: ReputeCast counted them itself over fewer than
+// MinRateVolume messages. Send Readiness and Deliverability's provider card
+// both go by it.
+func TooFewToJudge(providerReported bool, sent int64) bool {
+	return !providerReported && sent > 0 && sent < MinRateVolume
+}
+
+// TooFewToJudge is TooFewToJudge for the usage's own rates.
+func (u Usage) TooFewToJudge() bool { return TooFewToJudge(u.ProviderReported, u.Sent7d) }
 
 // Why a complaint rate is empty (review F-3).
 const (
@@ -84,7 +106,7 @@ func UsageOf(ctx context.Context, q *store.Queries, ws *store.Workspace, provs [
 	}
 	for _, p := range provs {
 		m, w := byMonth[p.ID], byWeek[p.ID]
-		u := Usage{MonthSent: m.Sent, MonthCost: round2(costToDate(p, m))}
+		u := Usage{MonthSent: m.Sent, MonthCost: round2(costToDate(p, m)), Sent7d: w.Sent}
 		if w.Sent > 0 {
 			v := round2(float64(w.Bounced) / float64(w.Sent) * 100)
 			u.Bounce7d = &v
@@ -92,7 +114,7 @@ func UsageOf(ctx context.Context, q *store.Queries, ws *store.Workspace, provs [
 		u.Complaint7d, u.ComplaintReason = ComplaintRate(w)
 		if r := state.ReputationOf(state.HealthOf(p), now); r != nil {
 			b, c := r.Bounce, r.Complaint
-			u.Bounce7d, u.Complaint7d, u.ComplaintReason = &b, &c, ""
+			u.Bounce7d, u.Complaint7d, u.ComplaintReason, u.ProviderReported = &b, &c, "", true
 		}
 		out[p.ID] = u
 	}
