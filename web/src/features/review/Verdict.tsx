@@ -63,9 +63,23 @@ export function VerdictBanner({ run, mode, actions }: { run: Run; mode: Review['
  * "Running Send Readiness · 19 of 31 checks done" with the progress bar.
  * Sending stays locked meanwhile, and says why (lock). Sender blocklists
  * come from HostRepute's hourly check, not from this run: the note says
- * so, and when that check ran (hourlyAt), without a timing claim.
+ * so, and when that check ran (hourlyAt), without a timing claim. After
+ * fixes, the fixes that made it run again come last, with their Undo
+ * (applied, SendReadinessStates · re-running after a fix).
  */
-export function RunningBanner({ progress, hourlyAt, lock, action }: { progress?: Schemas['ReadinessProgress']; hourlyAt?: string; lock?: string; action?: ReactNode }) {
+export function RunningBanner({
+  progress,
+  hourlyAt,
+  lock,
+  action,
+  applied,
+}: {
+  progress?: Schemas['ReadinessProgress']
+  hourlyAt?: string
+  lock?: string
+  action?: ReactNode
+  applied?: ReactNode
+}) {
   const t = useT()
   const done = progress?.done ?? 0
   const total = Math.max(progress?.total ?? 0, done)
@@ -77,8 +91,38 @@ export function RunningBanner({ progress, hourlyAt, lock, action }: { progress?:
         <Bar value={total ? (done / total) * 100 : 4} height={8} label={t(m.checksDone)} />
         <span className="k">{hourlyAt ? t(m.runningHourly, { time: clock(hourlyAt) }) : t(m.runningGroups)}</span>
         {lock ? <span className="k font-medium text-ink">{lock}</span> : null}
+        {applied}
       </div>
       {action}
+    </div>
+  )
+}
+
+/**
+ * "You applied 2 fixes at 09:46, saved as version 15: Inserted the footer
+ * block · Minified the inline CSS" and Undo these fixes (R1.U3): under the
+ * re-running banner, then under the verdict while the campaign is still as
+ * the fixes left it. The fixes are named in the language they were applied
+ * in; readers of another language read how many.
+ */
+export function AppliedFixes({ batch, me, undo }: { batch: Schemas['ReadinessFixBatch']; me?: string; undo?: ReactNode }) {
+  const t = useT()
+  const now = useNow()
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px]">
+      <span>
+        {t(m.appliedFixes, {
+          who: !batch.appliedBy || batch.appliedBy === me ? 'me' : 'other',
+          name: batch.appliedBy,
+          count: batch.count,
+          time: whenText(batch.appliedAt, now),
+          hasVersion: batch.version ? 'yes' : 'no',
+          version: batch.version ?? 0,
+          hasList: batch.applied.length ? 'yes' : 'no',
+          list: batch.applied.join(' · '),
+        })}
+      </span>
+      {undo}
     </div>
   )
 }

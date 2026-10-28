@@ -150,6 +150,9 @@ type CampaignReview struct {
 	Running  *readiness.ReadinessProgress `json:"running,omitempty"`
 	// Failed is the last run when it stopped on an error.
 	Failed *readiness.ReadinessRunFailure `json:"failed,omitempty"`
+	// Fixes are the latest one-click fixes applied together, while Undo can
+	// still put the campaign back as it was before them (R1.U3).
+	Fixes *readiness.ReadinessFixBatch `json:"fixes,omitempty"`
 	// SendNowWithin is how many minutes old the run may be for a send that
 	// starts now (it is that send's check); older, the checks run again.
 	SendNowWithin int                           `json:"sendNowWithin"`
@@ -270,6 +273,9 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 	}
 	if out.Running, out.Failed, err = s.Readiness.State(ctx, c.ID); err != nil {
+		return out, err
+	}
+	if out.Fixes, err = s.Readiness.UndoableFixes(ctx, c); err != nil {
 		return out, err
 	}
 	out.SendNowWithin = int(SendNowWithin / time.Minute)

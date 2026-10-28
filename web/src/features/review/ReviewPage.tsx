@@ -43,8 +43,8 @@ import {
   type Thresholds,
 } from './logic'
 import { m } from './messages'
-import { fixReason, sendLockReason, whenText, whoCan } from './parts'
-import { IncompleteBanner, RunningBanner, ScheduledBanner, ScheduledTiles, StaleBanner, VerdictBanner } from './Verdict'
+import { fixesToast, fixReason, sendLockReason, undoReason, whenText, whoCan } from './parts'
+import { AppliedFixes, IncompleteBanner, RunningBanner, ScheduledBanner, ScheduledTiles, StaleBanner, VerdictBanner } from './Verdict'
 import { ByVersion, EACH, languageRows, sentVersions } from '@/features/languages/review'
 import { mr } from '@/features/languages/messages'
 import { digestSendsIssue, IssueReviewCard } from '@/features/digests/IssueParts'
@@ -59,8 +59,8 @@ import { ReviewWebLine } from '@/features/website/elsewhere'
 const reviewPath = '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review' as const
 const progressPath = '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/progress' as const
 
-/** Why sending is locked while a run is under way: a fix, a send, or the checks themselves. */
-type Lock = 'fix' | 'send' | 'run'
+/** Why sending is locked while a run is under way: a fix, an undo, a send, or the checks themselves. */
+type Lock = 'fix' | 'undo' | 'send' | 'run'
 
 /** 7.5 Review & send: Send Readiness, estimates, settings, approvals and the send. */
 export function ReviewPage({ campaignId }: { campaignId: string }) {
@@ -224,6 +224,9 @@ function ReviewBody({
   const versions = sentVersions(languageRows(d.run?.checks))
   const campaignId = d.campaign.id
   const path = { workspace: slug, campaignId }
+  // What the person may do here, and who can when they can't, by name.
+  const allowed = { edit: d.access.canEdit, send: d.access.canSend, editable: d.campaign.editable }
+  const whoHelps = { send: d.access.sendHelpers, edit: d.access.editHelpers }
   const [busy, setBusy] = useState<Busy>()
   const [confirm, setConfirm] = useState<'send' | 'approved' | null>(null)
   const [bypass, setBypass] = useState(false)
@@ -274,13 +277,10 @@ function ReviewBody({
         params: { path },
         body: { fixes },
       })
-      const applied = data?.applied ?? []
-      toast({
-        kind: 'success',
-        // The applied fixes are named by the server.
-        title: applied.length === 1 ? applied[0]! : t(m.fixesApplied, { count: applied.length }),
-        detail: applied.length > 1 ? applied.join(' · ') : t(m.readinessRunsAgain),
-      })
+      // The applied fixes are named by the server; Undo puts the campaign
+      // back as it was before them (R1.U3).
+      const batch = data?.batch
+      toast(fixesToast(data?.applied ?? [], batch?.undoable && !undoReason(batch, allowed, whoHelps) ? () => void undoFixes(batch) : undefined))
       // The checks run again in the background; sending stays locked until they finish.
       if (data?.running) awaitRun('fix')
     } catch (e) {
@@ -290,6 +290,43 @@ function ReviewBody({
       await refresh()
     }
   }
+
+  /**
+   * Undo puts the campaign back as it was before fixes applied together
+   * (R1.U3): the email through a restore of the version before them, the
+   * route and the audience. The checks then run again; sending stays
+   * locked until they finish.
+   */
+  const undoFixes = async (batch: Schemas['ReadinessFixBatch']) => {
+    setBusy('undo')
+    try {
+      const { data } = await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/fixes/{batchId}/undo', {
+        params: { path: { ...path, batchId: batch.id } },
+      })
+      toast({
+        kind: 'success',
+        title: t(m.fixesUndone, { count: data?.count ?? batch.count }),
+        detail: data?.restored ? t(m.fixesUndoneVersion, { restored: data.restored, version: data.version }) : t(m.readinessRunsAgain),
+      })
+      if (data?.running) awaitRun('undo')
+    } catch (e) {
+      fail(t(m.undoFailed))(e)
+    } finally {
+      setBusy(undefined)
+      await refresh()
+    }
+  }
+  const undoButton = (batch: Schemas['ReadinessFixBatch']) => (
+    <Button
+      size="sm"
+      className="max-md:min-h-11"
+      loading={busy === 'undo'}
+      disabledReason={busy && busy !== 'undo' ? t(m.lockedWhileChanging) : undoReason(batch, allowed, whoHelps)}
+      onClick={() => void undoFixes(batch)}
+    >
+      {t(m.undoFixes, { count: batch.count })}
+    </Button>
+  )
 
   const saveSettings = async (body: Schemas['ReadinessSendSettings'], what: 'thresholds' | 'schedule'): Promise<boolean> => {
     try {
@@ -442,13 +479,14 @@ function ReviewBody({
   const recipients = finalCount(d)
   if (running || progress) {
     // Sending stays locked while the checks run, and says why (SR-13).
-    const lockText = lock === 'fix' ? t(m.lockedAfterFix) : lock === 'send' ? t(m.lockedBeforeSend) : t(m.waitForChecks)
+    const lockText = lock === 'fix' ? t(m.lockedAfterFix) : lock === 'undo' ? t(m.lockedAfterUndo) : lock === 'send' ? t(m.lockedBeforeSend) : t(m.waitForChecks)
     return (
       <div className="flex flex-col gap-3.5">
         <RunningBanner
           progress={progress}
           hourlyAt={d.run?.estimates.hourlyAt}
-          lock={lock === 'fix' || lock === 'send' ? lockText : undefined}
+          lock={lock === 'fix' || lock === 'undo' || lock === 'send' ? lockText : undefined}
+          applied={d.fixes ? <AppliedFixes batch={d.fixes} me={me?.user.name} undo={undoButton(d.fixes)} /> : undefined}
           action={
             <Button className="rv-off min-h-10 max-md:min-h-11" disabledReason={lockText}>
               {d.run ? ctaLabel(d.schedule, recipients) : d.schedule.mode === 'now' ? t(m.send) : t(m.scheduleSend)}
@@ -762,6 +800,7 @@ function ReviewBody({
         </Banner>
       ) : null}
       {top}
+      {d.fixes ? <AppliedFixes batch={d.fixes} me={me?.user.name} undo={undoButton(d.fixes)} /> : null}
       <div className="flex flex-wrap items-start gap-5">
         <div className="flex min-w-0 flex-[1_1_560px] flex-col gap-5">
           {approvalCard}

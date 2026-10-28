@@ -241,6 +241,14 @@ export const m = defineMessages('review', {
   rerun: 'Re-run checks',
   fixesApplied: '{count, plural, one {# fix applied} other {# fixes applied}}',
   readinessRunsAgain: 'Send Readiness runs again; sending stays locked until it finishes.',
+  // Undo for one-click fixes (R1.U3): the fixes applied together, put back in one click.
+  appliedFixes:
+    '{who, select, me {You} other {{name}}} applied {count, plural, one {# fix} other {# fixes}} at {time}{hasVersion, select, yes {, saved as version {version}} other {}}{hasList, select, yes {: {list}} other {}}.',
+  undoFixes: '{count, plural, one {Undo this fix} other {Undo these fixes}}',
+  fixesUndone: '{count, plural, one {Fix undone} other {# fixes undone}}',
+  fixesUndoneVersion: 'The email is back to version {restored}, saved as version {version}. Send Readiness runs again; sending stays locked until it finishes.',
+  undoFailed: "Couldn't undo the fixes",
+  lockedAfterUndo: 'Sending is locked while the checks run again after the undo.',
   runStoppedTitle: 'The checks stopped before finishing',
   runStoppedBody: '{error} Nothing changed: the results below are from the last run that finished. Run the checks again.',
   fixFailed: "Couldn't apply the fix",
@@ -368,7 +376,7 @@ export const m = defineMessages('review', {
   whatNextVersion: 'Fixes that change the email are saved as a new version of the campaign.',
   whatNextLocked: 'Sending stays locked while the checks run again.',
   whatNextBack: "You're back on Review & send with the new verdict, and the schedule button tells you what it will do.",
-  fixesUndo: 'Every fix to the email is saved as a new version you can undo from Version history.',
+  fixesUndo: 'Undo on Review & send puts the campaign back as it was until it changes again. Every fix to the email is also kept in Version history.',
   cancel: 'Cancel',
   pickAFix: 'Pick at least one fix.',
   applyFixes: '{count, plural, =0 {Apply fixes and re-run checks} one {Apply the fix and re-run checks} other {Apply # fixes and re-run checks}}',

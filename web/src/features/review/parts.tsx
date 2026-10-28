@@ -1,6 +1,7 @@
 import { useRouter } from '@tanstack/react-router'
 import type { MouseEvent, ReactNode } from 'react'
 import { Badge, type Tone } from '@/components/ui/Badge'
+import type { ToastInput } from '@/components/ui/Toast'
 import { cn } from '@/lib/cn'
 import { clock, shortDate } from '@/lib/format'
 import { CodeText } from '@/features/accessibility/review'
@@ -98,6 +99,35 @@ export function sendLockReason(o: {
 export function fixReason(f: Fix, can: { edit: boolean; send: boolean; editable: boolean }, helpers: { send: string[]; edit: string[] }): string | undefined {
   if (!can.editable) return t(m.alreadySendingNoChange)
   if (f.action === 'route_only' && !can.send) return whoCan('route', helpers.send)
+  if (!can.edit) return whoCan('edit', helpers.edit)
+  return undefined
+}
+
+/**
+ * The toast after one-click fixes: the fixes as the server names them, and
+ * Undo while it can put the campaign back as it was (R1.U3).
+ */
+export function fixesToast(applied: string[], undo?: () => void): ToastInput {
+  return {
+    kind: 'success',
+    title: applied.length === 1 ? applied[0]! : t(m.fixesApplied, { count: applied.length }),
+    detail: applied.length > 1 ? applied.join(' · ') : t(m.readinessRunsAgain),
+    undo,
+  }
+}
+
+/**
+ * Who may undo fixes applied together (R1.U3): as applying them, a batch
+ * that changed the route needs the right to send, the rest the right to
+ * edit.
+ */
+export function undoReason(
+  batch: { route?: boolean },
+  can: { edit: boolean; send: boolean; editable: boolean },
+  helpers: { send: string[]; edit: string[] },
+): string | undefined {
+  if (!can.editable) return t(m.alreadySendingNoChange)
+  if (batch.route && !can.send) return whoCan('route', helpers.send)
   if (!can.edit) return whoCan('edit', helpers.edit)
   return undefined
 }

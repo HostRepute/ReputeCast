@@ -60,6 +60,13 @@ type ComposerSaveContent struct {
 	// before it cancels an approval. Saves other domains make for a person
 	// who clicked them (Send Readiness's fixes) cancel it as before.
 	askApproval bool
+	// exact refuses to merge: a save based on an older version fails with
+	// the version conflict (an undo puts back only what it changed).
+	exact bool
+	// settings, when set, are the content settings the HTML is prepared
+	// with instead of the campaign's: an undo puts a version back as it was
+	// before Minify, which it turns off again.
+	settings *ComposerContentSettings
 }
 
 // ComposerSavedContent is the result of a save.
@@ -201,6 +208,9 @@ func (s *Service) SaveIn(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 		var settings ComposerContentSettings
 		_ = json.Unmarshal(cur.ContentSettings, &settings)
+		if in.settings != nil {
+			settings = *in.settings
+		}
 		c, err := s.prepareContent(ctx, q, ws, id, in, settings)
 		if err != nil {
 			return err
@@ -217,6 +227,9 @@ func (s *Service) SaveIn(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 		var merged *ComposerMerged
 		if int(cur.Version) != in.BaseVersion && !in.Force && !in.Stash {
+			if in.exact {
+				return s.conflictFor(ctx, q, l, id, cur, in)
+			}
 			// Two people changed different sections: keep both (CO-10).
 			if merged, err = s.merge(ctx, q, id, cur, &in); err != nil {
 				return err
@@ -624,6 +637,19 @@ type ComposerRestoreVersion struct {
 
 // Restore copies a version on top of the history.
 func (s *Service) Restore(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, version int, in ComposerRestoreVersion) (ComposerSavedContent, error) {
+	return s.restore(ctx, ws, p, id, version, in.BaseVersion, false, nil)
+}
+
+// RestoreExactly is Restore for an undo (Send Readiness's fixes): it puts
+// a version back only while the campaign is still at baseVersion; when
+// anyone saved since, it fails with the version conflict instead of
+// merging their edit. settings, when set, are the content settings the
+// version had (the undo puts them back too); nil keeps the campaign's.
+func (s *Service) RestoreExactly(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, version, baseVersion int, settings *ComposerContentSettings) (ComposerSavedContent, error) {
+	return s.restore(ctx, ws, p, id, version, baseVersion, true, settings)
+}
+
+func (s *Service) restore(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, version, baseVersion int, exact bool, settings *ComposerContentSettings) (ComposerSavedContent, error) {
 	// The campaign must belong to the workspace before its versions are read.
 	if _, err := s.Q.GetComposerCampaign(ctx, store.GetComposerCampaignParams{WorkspaceID: ws.ID, ID: id}); err != nil {
 		return ComposerSavedContent{}, api.MapError(err, "Campaign")
@@ -635,8 +661,8 @@ func (s *Service) Restore(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		}
 		return ComposerSavedContent{}, err
 	}
-	return s.Save(ctx, ws, p, id, ComposerSaveContent{BaseVersion: in.BaseVersion, Subject: v.Subject, Preheader: v.Preheader, MJML: v.Mjml, HTML: v.Html,
-		ABTest: abFromDB(v.AbTest), Label: mVersionRestored.Text(i18n.Default, i18n.Args{"version": strconv.Itoa(version)}), Source: "restore"})
+	return s.Save(ctx, ws, p, id, ComposerSaveContent{BaseVersion: baseVersion, Subject: v.Subject, Preheader: v.Preheader, MJML: v.Mjml, HTML: v.Html,
+		ABTest: abFromDB(v.AbTest), Label: mVersionRestored.Text(i18n.Default, i18n.Args{"version": strconv.Itoa(version)}), Source: "restore", exact: exact, settings: settings})
 }
 
 // Duplicate copies a campaign (any status) into a new draft.

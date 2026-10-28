@@ -10,6 +10,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/store"
 )
 
 // ReadinessCampaignPath is the {workspace}/{campaignId} of readiness operations.
@@ -37,6 +38,18 @@ type fixesInput struct {
 	Body ReadinessFixesInput
 }
 
+type undoInput struct {
+	ReadinessCampaignPath
+	BatchID string `path:"batchId" format:"uuid"`
+}
+
+// ReadinessUndoOutcome is what Undo put back and the run it started (in the
+// background: poll …/readiness/progress).
+type ReadinessUndoOutcome struct {
+	ReadinessUndoResult
+	Running *ReadinessProgress `json:"running,omitempty"`
+}
+
 type settingsInput struct {
 	ReadinessCampaignPath
 	Body ReadinessSendSettings
@@ -47,6 +60,23 @@ type settingsInput struct {
 type ReadinessFixOutcome struct {
 	ReadinessFixResult
 	Running *ReadinessProgress `json:"running,omitempty"`
+}
+
+// rerun queues a run of the checks after a change made from Review & send
+// (fixes, an undo): sending stays locked until it finishes. A run that
+// already waits or runs reads the campaign as it now is.
+func (s *Service) rerun(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (*ReadinessProgress, error) {
+	running, err := s.Start(ctx, ws, id, RunOptions{Trigger: TriggerManual, By: &p.UserID})
+	switch {
+	case err == nil:
+		return ProgressForReader(ctx, running), nil
+	case errors.Is(err, ErrRunning):
+		if pr, err := s.Progress(ctx, id); err == nil {
+			return ProgressForReader(ctx, pr), nil
+		}
+		return nil, nil
+	}
+	return nil, err
 }
 
 // pollForReader is a poll in the request's language.
@@ -126,16 +156,33 @@ func Register(h huma.API, s *Service) {
 			// The checks run again in the background; sending stays locked
 			// until they finish.
 			out := ReadinessFixOutcome{ReadinessFixResult: res}
-			running, err := s.Start(ctx, ws, id, RunOptions{Trigger: TriggerManual, By: &p.UserID})
-			switch {
-			case err == nil:
-				out.Running = ProgressForReader(ctx, running)
-			case errors.Is(err, ErrRunning):
-				// A run already waits or runs: it reads the campaign as fixed.
-				if pr, err := s.Progress(ctx, id); err == nil {
-					out.Running = ProgressForReader(ctx, pr)
-				}
-			default:
+			if out.Running, err = s.rerun(ctx, ws, p, id); err != nil {
+				return nil, err
+			}
+			return api.OK(out), nil
+		})
+	api.Post(h, api.Op{ID: "undo-readiness-fixes", Path: "/workspaces/{workspace}/campaigns/{campaignId}/readiness/fixes/{batchId}/undo",
+		Summary: "Undo one-click fixes applied together, then run the checks again",
+		Description: "Puts the campaign back as it was before the fixes: its content through a restore of the version before them (saved as a new version), " +
+			"its content settings, its route override and its audience. Fails with 409 fixes_changed when the campaign changed since, 409 fixes_undone " +
+			"when they were undone already, and 409 fixes_not_undoable when they changed language versions. Undoing a route change needs campaigns:send.",
+		Tags: tags, Access: api.WorkspaceHuman(authz.CampaignsEdit)},
+		func(ctx context.Context, in *undoInput) (*api.Body[ReadinessUndoOutcome], error) {
+			id, err := in.ID()
+			if err != nil {
+				return nil, err
+			}
+			batch, err := uuid.Parse(in.BatchID)
+			if err != nil {
+				return nil, api.NotFound("Fixes")
+			}
+			ws, p := api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx)
+			res, err := s.UndoFixes(ctx, ws, p, id, batch)
+			if err != nil {
+				return nil, err
+			}
+			out := ReadinessUndoOutcome{ReadinessUndoResult: res}
+			if out.Running, err = s.rerun(ctx, ws, p, id); err != nil {
 				return nil, err
 			}
 			return api.OK(out), nil

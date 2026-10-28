@@ -134,6 +134,25 @@ func (q *Queries) ReadinessCampaignWorkspace(ctx context.Context, id uuid.UUID) 
 	return workspace_id, err
 }
 
+const readinessClaimFixUndo = `-- name: ReadinessClaimFixUndo :execrows
+UPDATE readiness_fix_batches SET undone_at = $1, undone_by = $2 WHERE id = $3 AND undone_at IS NULL
+`
+
+type ReadinessClaimFixUndoParams struct {
+	UndoneAt *time.Time `json:"undoneAt"`
+	UndoneBy *uuid.UUID `json:"undoneBy"`
+	ID       uuid.UUID  `json:"id"`
+}
+
+// Claims a batch for an undo: one at a time, never twice.
+func (q *Queries) ReadinessClaimFixUndo(ctx context.Context, arg ReadinessClaimFixUndoParams) (int64, error) {
+	result, err := q.db.Exec(ctx, readinessClaimFixUndo, arg.UndoneAt, arg.UndoneBy, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const readinessClaimProgress = `-- name: ReadinessClaimProgress :one
 UPDATE readiness_progress SET updated_at = $1
 WHERE campaign_id = $2 AND run_id = $3 AND failed_at IS NULL
@@ -253,6 +272,76 @@ func (q *Queries) ReadinessFailProgress(ctx context.Context, arg ReadinessFailPr
 	return err
 }
 
+const readinessFixBatch = `-- name: ReadinessFixBatch :one
+SELECT b.id, b.workspace_id, b.campaign_id, b.applied_by, b.applied_at, b.applied, b.applied_lang, b.blocked, b.version_before, b.version_after,
+       b.route_changed, b.route_before, b.route_after, b.audience_changed, b.audience_before, b.audience_after,
+       b.settings_changed, b.settings_before, b.settings_after, b.undone_at, b.undone_by,
+       coalesce(u.name, '')::text AS applied_by_name
+FROM readiness_fix_batches b LEFT JOIN users u ON u.id = b.applied_by
+WHERE b.workspace_id = $1 AND b.campaign_id = $2 AND b.id = $3
+`
+
+type ReadinessFixBatchParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+type ReadinessFixBatchRow struct {
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	CampaignID      uuid.UUID       `json:"campaignId"`
+	AppliedBy       *uuid.UUID      `json:"appliedBy"`
+	AppliedAt       time.Time       `json:"appliedAt"`
+	Applied         json.RawMessage `json:"applied"`
+	AppliedLang     string          `json:"appliedLang"`
+	Blocked         string          `json:"blocked"`
+	VersionBefore   *int32          `json:"versionBefore"`
+	VersionAfter    *int32          `json:"versionAfter"`
+	RouteChanged    bool            `json:"routeChanged"`
+	RouteBefore     json.RawMessage `json:"routeBefore"`
+	RouteAfter      json.RawMessage `json:"routeAfter"`
+	AudienceChanged bool            `json:"audienceChanged"`
+	AudienceBefore  json.RawMessage `json:"audienceBefore"`
+	AudienceAfter   json.RawMessage `json:"audienceAfter"`
+	SettingsChanged bool            `json:"settingsChanged"`
+	SettingsBefore  json.RawMessage `json:"settingsBefore"`
+	SettingsAfter   json.RawMessage `json:"settingsAfter"`
+	UndoneAt        *time.Time      `json:"undoneAt"`
+	UndoneBy        *uuid.UUID      `json:"undoneBy"`
+	AppliedByName   string          `json:"appliedByName"`
+}
+
+func (q *Queries) ReadinessFixBatch(ctx context.Context, arg ReadinessFixBatchParams) (ReadinessFixBatchRow, error) {
+	row := q.db.QueryRow(ctx, readinessFixBatch, arg.WorkspaceID, arg.CampaignID, arg.ID)
+	var i ReadinessFixBatchRow
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.CampaignID,
+		&i.AppliedBy,
+		&i.AppliedAt,
+		&i.Applied,
+		&i.AppliedLang,
+		&i.Blocked,
+		&i.VersionBefore,
+		&i.VersionAfter,
+		&i.RouteChanged,
+		&i.RouteBefore,
+		&i.RouteAfter,
+		&i.AudienceChanged,
+		&i.AudienceBefore,
+		&i.AudienceAfter,
+		&i.SettingsChanged,
+		&i.SettingsBefore,
+		&i.SettingsAfter,
+		&i.UndoneAt,
+		&i.UndoneBy,
+		&i.AppliedByName,
+	)
+	return i, err
+}
+
 const readinessForgetConfirmation = `-- name: ReadinessForgetConfirmation :exec
 DELETE FROM campaign_send_confirmations WHERE campaign_id = $1
 `
@@ -367,6 +456,64 @@ func (q *Queries) ReadinessGetRun(ctx context.Context, arg ReadinessGetRunParams
 	return i, err
 }
 
+const readinessInsertFixBatch = `-- name: ReadinessInsertFixBatch :exec
+INSERT INTO readiness_fix_batches (id, workspace_id, campaign_id, applied_by, applied_at, applied, applied_lang, blocked,
+    version_before, version_after, route_changed, route_before, route_after, audience_changed, audience_before, audience_after,
+    settings_changed, settings_before, settings_after)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
+    $9, $10, $11, $12, $13, $14,
+    $15, $16, $17, $18, $19)
+`
+
+type ReadinessInsertFixBatchParams struct {
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	CampaignID      uuid.UUID       `json:"campaignId"`
+	AppliedBy       *uuid.UUID      `json:"appliedBy"`
+	AppliedAt       time.Time       `json:"appliedAt"`
+	Applied         json.RawMessage `json:"applied"`
+	AppliedLang     string          `json:"appliedLang"`
+	Blocked         string          `json:"blocked"`
+	VersionBefore   *int32          `json:"versionBefore"`
+	VersionAfter    *int32          `json:"versionAfter"`
+	RouteChanged    bool            `json:"routeChanged"`
+	RouteBefore     json.RawMessage `json:"routeBefore"`
+	RouteAfter      json.RawMessage `json:"routeAfter"`
+	AudienceChanged bool            `json:"audienceChanged"`
+	AudienceBefore  json.RawMessage `json:"audienceBefore"`
+	AudienceAfter   json.RawMessage `json:"audienceAfter"`
+	SettingsChanged bool            `json:"settingsChanged"`
+	SettingsBefore  json.RawMessage `json:"settingsBefore"`
+	SettingsAfter   json.RawMessage `json:"settingsAfter"`
+}
+
+// A batch of one-click fixes applied together (review R1.U3): the parts of
+// the campaign it changed, before and after, so Undo can put them back.
+func (q *Queries) ReadinessInsertFixBatch(ctx context.Context, arg ReadinessInsertFixBatchParams) error {
+	_, err := q.db.Exec(ctx, readinessInsertFixBatch,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.CampaignID,
+		arg.AppliedBy,
+		arg.AppliedAt,
+		arg.Applied,
+		arg.AppliedLang,
+		arg.Blocked,
+		arg.VersionBefore,
+		arg.VersionAfter,
+		arg.RouteChanged,
+		arg.RouteBefore,
+		arg.RouteAfter,
+		arg.AudienceChanged,
+		arg.AudienceBefore,
+		arg.AudienceAfter,
+		arg.SettingsChanged,
+		arg.SettingsBefore,
+		arg.SettingsAfter,
+	)
+	return err
+}
+
 const readinessInsertRoute = `-- name: ReadinessInsertRoute :exec
 INSERT INTO campaign_routes (campaign_id, provider_id, planned, status, cost_micros)
 VALUES ($1, $2, $3, 'pending', $4)
@@ -432,6 +579,73 @@ func (q *Queries) ReadinessInsertRun(ctx context.Context, arg ReadinessInsertRun
 		arg.Fingerprint,
 	)
 	return err
+}
+
+const readinessLatestFixBatch = `-- name: ReadinessLatestFixBatch :one
+SELECT b.id, b.workspace_id, b.campaign_id, b.applied_by, b.applied_at, b.applied, b.applied_lang, b.blocked, b.version_before, b.version_after,
+       b.route_changed, b.route_before, b.route_after, b.audience_changed, b.audience_before, b.audience_after,
+       b.settings_changed, b.settings_before, b.settings_after, b.undone_at, b.undone_by,
+       coalesce(u.name, '')::text AS applied_by_name
+FROM readiness_fix_batches b LEFT JOIN users u ON u.id = b.applied_by
+WHERE b.campaign_id = $1
+ORDER BY b.applied_at DESC, b.id DESC
+LIMIT 1
+`
+
+type ReadinessLatestFixBatchRow struct {
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	CampaignID      uuid.UUID       `json:"campaignId"`
+	AppliedBy       *uuid.UUID      `json:"appliedBy"`
+	AppliedAt       time.Time       `json:"appliedAt"`
+	Applied         json.RawMessage `json:"applied"`
+	AppliedLang     string          `json:"appliedLang"`
+	Blocked         string          `json:"blocked"`
+	VersionBefore   *int32          `json:"versionBefore"`
+	VersionAfter    *int32          `json:"versionAfter"`
+	RouteChanged    bool            `json:"routeChanged"`
+	RouteBefore     json.RawMessage `json:"routeBefore"`
+	RouteAfter      json.RawMessage `json:"routeAfter"`
+	AudienceChanged bool            `json:"audienceChanged"`
+	AudienceBefore  json.RawMessage `json:"audienceBefore"`
+	AudienceAfter   json.RawMessage `json:"audienceAfter"`
+	SettingsChanged bool            `json:"settingsChanged"`
+	SettingsBefore  json.RawMessage `json:"settingsBefore"`
+	SettingsAfter   json.RawMessage `json:"settingsAfter"`
+	UndoneAt        *time.Time      `json:"undoneAt"`
+	UndoneBy        *uuid.UUID      `json:"undoneBy"`
+	AppliedByName   string          `json:"appliedByName"`
+}
+
+// The campaign's latest batch of fixes: the only one Undo can put back.
+func (q *Queries) ReadinessLatestFixBatch(ctx context.Context, campaignID uuid.UUID) (ReadinessLatestFixBatchRow, error) {
+	row := q.db.QueryRow(ctx, readinessLatestFixBatch, campaignID)
+	var i ReadinessLatestFixBatchRow
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.CampaignID,
+		&i.AppliedBy,
+		&i.AppliedAt,
+		&i.Applied,
+		&i.AppliedLang,
+		&i.Blocked,
+		&i.VersionBefore,
+		&i.VersionAfter,
+		&i.RouteChanged,
+		&i.RouteBefore,
+		&i.RouteAfter,
+		&i.AudienceChanged,
+		&i.AudienceBefore,
+		&i.AudienceAfter,
+		&i.SettingsChanged,
+		&i.SettingsBefore,
+		&i.SettingsAfter,
+		&i.UndoneAt,
+		&i.UndoneBy,
+		&i.AppliedByName,
+	)
+	return i, err
 }
 
 const readinessLatestRun = `-- name: ReadinessLatestRun :one
@@ -557,6 +771,31 @@ func (q *Queries) ReadinessListNames(ctx context.Context, workspaceID uuid.UUID)
 		return nil, err
 	}
 	return items, nil
+}
+
+const readinessLockCampaign = `-- name: ReadinessLockCampaign :one
+SELECT route_override, audience, content_settings FROM campaigns
+WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
+FOR UPDATE
+`
+
+type ReadinessLockCampaignParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+type ReadinessLockCampaignRow struct {
+	RouteOverride   json.RawMessage `json:"routeOverride"`
+	Audience        json.RawMessage `json:"audience"`
+	ContentSettings json.RawMessage `json:"contentSettings"`
+}
+
+// The parts of a campaign an undo puts back, locked until it commits.
+func (q *Queries) ReadinessLockCampaign(ctx context.Context, arg ReadinessLockCampaignParams) (ReadinessLockCampaignRow, error) {
+	row := q.db.QueryRow(ctx, readinessLockCampaign, arg.WorkspaceID, arg.ID)
+	var i ReadinessLockCampaignRow
+	err := row.Scan(&i.RouteOverride, &i.Audience, &i.ContentSettings)
+	return i, err
 }
 
 const readinessMediaSizes = `-- name: ReadinessMediaSizes :many
@@ -763,6 +1002,19 @@ func (q *Queries) ReadinessRecipients(ctx context.Context, arg ReadinessRecipien
 		return nil, err
 	}
 	return items, nil
+}
+
+const readinessReleaseFixUndo = `-- name: ReadinessReleaseFixUndo :execrows
+UPDATE readiness_fix_batches SET undone_at = NULL, undone_by = NULL WHERE id = $1
+`
+
+// Gives a claimed batch back when its undo failed.
+func (q *Queries) ReadinessReleaseFixUndo(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, readinessReleaseFixUndo, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const readinessReplaceRoutes = `-- name: ReadinessReplaceRoutes :exec

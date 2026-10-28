@@ -11,8 +11,10 @@ export type FixPick = { check: Check; fix: Fix }
 /**
  * Review the fixes (SendReadinessFixes, SR-13): each one-click fix with
  * what it changes, picked to apply together. Focus moves into the panel and
- * back to the button that opened it; applying saves a new version (undo it
- * from Version history) and re-runs the checks, which lock sending.
+ * back to the button that opened it; applying saves a new version and
+ * re-runs the checks, which lock sending. Review & send then offers Undo
+ * for the fixes applied together (R1.U3), and Version history keeps every
+ * version.
  */
 export function FixReview({
   open,

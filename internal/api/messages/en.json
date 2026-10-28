@@ -96,6 +96,7 @@
   "notFound.pushSubscription": "Push subscription not found.",
   "notFound.question": "Question not found.",
   "notFound.readinessRun": "Readiness run not found.",
+  "notFound.fixes": "Fixes not found.",
   "notFound.recommendation": "Recommendation not found.",
   "notFound.recommendationsPage": "Recommendations page not found.",
   "notFound.referralLink": "Referral link not found.",

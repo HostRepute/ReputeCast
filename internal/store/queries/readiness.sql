@@ -222,3 +222,46 @@ SELECT EXISTS (SELECT 1 FROM postmaster_daily WHERE workspace_id = @workspace_id
 -- name: ReadinessConfirmCanary :exec
 -- The canary choice confirmed with a send (C1).
 UPDATE campaign_send_confirmations SET canary = @canary WHERE campaign_id = @campaign_id;
+
+-- name: ReadinessInsertFixBatch :exec
+-- A batch of one-click fixes applied together (review R1.U3): the parts of
+-- the campaign it changed, before and after, so Undo can put them back.
+INSERT INTO readiness_fix_batches (id, workspace_id, campaign_id, applied_by, applied_at, applied, applied_lang, blocked,
+    version_before, version_after, route_changed, route_before, route_after, audience_changed, audience_before, audience_after,
+    settings_changed, settings_before, settings_after)
+VALUES (@id, @workspace_id, @campaign_id, sqlc.narg(applied_by), @applied_at, @applied, @applied_lang, @blocked,
+    sqlc.narg(version_before), sqlc.narg(version_after), @route_changed, sqlc.narg(route_before), sqlc.narg(route_after), @audience_changed,
+    sqlc.narg(audience_before), sqlc.narg(audience_after), @settings_changed, sqlc.narg(settings_before), sqlc.narg(settings_after));
+
+-- name: ReadinessFixBatch :one
+SELECT b.id, b.workspace_id, b.campaign_id, b.applied_by, b.applied_at, b.applied, b.applied_lang, b.blocked, b.version_before, b.version_after,
+       b.route_changed, b.route_before, b.route_after, b.audience_changed, b.audience_before, b.audience_after,
+       b.settings_changed, b.settings_before, b.settings_after, b.undone_at, b.undone_by,
+       coalesce(u.name, '')::text AS applied_by_name
+FROM readiness_fix_batches b LEFT JOIN users u ON u.id = b.applied_by
+WHERE b.workspace_id = @workspace_id AND b.campaign_id = @campaign_id AND b.id = @id;
+
+-- name: ReadinessLatestFixBatch :one
+-- The campaign's latest batch of fixes: the only one Undo can put back.
+SELECT b.id, b.workspace_id, b.campaign_id, b.applied_by, b.applied_at, b.applied, b.applied_lang, b.blocked, b.version_before, b.version_after,
+       b.route_changed, b.route_before, b.route_after, b.audience_changed, b.audience_before, b.audience_after,
+       b.settings_changed, b.settings_before, b.settings_after, b.undone_at, b.undone_by,
+       coalesce(u.name, '')::text AS applied_by_name
+FROM readiness_fix_batches b LEFT JOIN users u ON u.id = b.applied_by
+WHERE b.campaign_id = @campaign_id
+ORDER BY b.applied_at DESC, b.id DESC
+LIMIT 1;
+
+-- name: ReadinessClaimFixUndo :execrows
+-- Claims a batch for an undo: one at a time, never twice.
+UPDATE readiness_fix_batches SET undone_at = sqlc.narg(undone_at), undone_by = sqlc.narg(undone_by) WHERE id = @id AND undone_at IS NULL;
+
+-- name: ReadinessReleaseFixUndo :execrows
+-- Gives a claimed batch back when its undo failed.
+UPDATE readiness_fix_batches SET undone_at = NULL, undone_by = NULL WHERE id = @id;
+
+-- name: ReadinessLockCampaign :one
+-- The parts of a campaign an undo puts back, locked until it commits.
+SELECT route_override, audience, content_settings FROM campaigns
+WHERE workspace_id = @workspace_id AND id = @id AND deleted_at IS NULL
+FOR UPDATE;

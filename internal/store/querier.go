@@ -2773,6 +2773,8 @@ type Querier interface {
 	ReadinessCampaign(ctx context.Context, arg ReadinessCampaignParams) (ReadinessCampaignRow, error)
 	// The workspace of a campaign (the sending engine asks by campaign id).
 	ReadinessCampaignWorkspace(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
+	// Claims a batch for an undo: one at a time, never twice.
+	ReadinessClaimFixUndo(ctx context.Context, arg ReadinessClaimFixUndoParams) (int64, error)
 	// A worker takes up a queued run: it still owns the campaign's row.
 	ReadinessClaimProgress(ctx context.Context, arg ReadinessClaimProgressParams) (uuid.UUID, error)
 	// The canary choice confirmed with a send (C1).
@@ -2783,12 +2785,18 @@ type Querier interface {
 	ReadinessEndProgress(ctx context.Context, arg ReadinessEndProgressParams) error
 	// A run stopped on an error: the row says why until the next run.
 	ReadinessFailProgress(ctx context.Context, arg ReadinessFailProgressParams) error
+	ReadinessFixBatch(ctx context.Context, arg ReadinessFixBatchParams) (ReadinessFixBatchRow, error)
 	ReadinessForgetConfirmation(ctx context.Context, campaignID uuid.UUID) error
 	ReadinessGetProgress(ctx context.Context, campaignID uuid.UUID) (ReadinessGetProgressRow, error)
 	ReadinessGetRun(ctx context.Context, arg ReadinessGetRunParams) (ReadinessGetRunRow, error)
+	// A batch of one-click fixes applied together (review R1.U3): the parts of
+	// the campaign it changed, before and after, so Undo can put them back.
+	ReadinessInsertFixBatch(ctx context.Context, arg ReadinessInsertFixBatchParams) error
 	ReadinessInsertRoute(ctx context.Context, arg ReadinessInsertRouteParams) error
 	// ran_by is the person who asked; an API key or agent is ran_by_actor_*.
 	ReadinessInsertRun(ctx context.Context, arg ReadinessInsertRunParams) error
+	// The campaign's latest batch of fixes: the only one Undo can put back.
+	ReadinessLatestFixBatch(ctx context.Context, campaignID uuid.UUID) (ReadinessLatestFixBatchRow, error)
 	ReadinessLatestRun(ctx context.Context, campaignID uuid.UUID) (ReadinessLatestRunRow, error)
 	// The latest run's id, time and verdict: what the review screen's poll
 	// compares with what it shows.
@@ -2799,6 +2807,8 @@ type Querier interface {
 	// Which of the lists a send went to before (a first send to a list asks
 	// for a typed confirmation, SR-13).
 	ReadinessListsSentTo(ctx context.Context, arg ReadinessListsSentToParams) ([]string, error)
+	// The parts of a campaign an undo puts back, locked until it commits.
+	ReadinessLockCampaign(ctx context.Context, arg ReadinessLockCampaignParams) (ReadinessLockCampaignRow, error)
 	// The sizes of the media library's images an email shows.
 	ReadinessMediaSizes(ctx context.Context, arg ReadinessMediaSizesParams) ([]ReadinessMediaSizesRow, error)
 	// Whether Gmail Postmaster Tools data comes in for the workspace at all
@@ -2818,6 +2828,8 @@ type Querier interface {
 	// Each contact's lists are read only with with_lists (routing needs them,
 	// counts don't).
 	ReadinessRecipients(ctx context.Context, arg ReadinessRecipientsParams) ([]ReadinessRecipientsRow, error)
+	// Gives a claimed batch back when its undo failed.
+	ReadinessReleaseFixUndo(ctx context.Context, id uuid.UUID) (int64, error)
 	// The planned split of an unsent campaign, refreshed by each run.
 	ReadinessReplaceRoutes(ctx context.Context, campaignID uuid.UUID) error
 	// Scheduled campaigns starting within the window whose latest run is

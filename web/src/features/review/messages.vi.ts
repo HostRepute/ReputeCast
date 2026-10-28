@@ -227,6 +227,14 @@ export default translate(m, {
   rerun: 'Chạy lại kiểm tra',
   fixesApplied: '{count, plural, other {Đã áp dụng # bản sửa}}',
   readinessRunsAgain: 'Kiểm tra độ sẵn sàng đang chạy lại; việc gửi bị khóa cho đến khi hoàn tất.',
+  appliedFixes:
+    '{who, select, me {Bạn} other {{name}}} đã áp dụng {count, number} bản sửa lúc {time}{hasVersion, select, yes {, lưu thành phiên bản {version}} other {}}{hasList, select, yes {: {list}} other {}}.',
+  undoFixes: '{count, plural, =1 {Hoàn tác bản sửa này} other {Hoàn tác các bản sửa này}}',
+  fixesUndone: '{count, plural, =1 {Đã hoàn tác bản sửa} other {Đã hoàn tác # bản sửa}}',
+  fixesUndoneVersion:
+    'Email đã trở về phiên bản {restored}, được lưu thành phiên bản {version}. Kiểm tra độ sẵn sàng đang chạy lại; việc gửi bị khóa cho đến khi hoàn tất.',
+  undoFailed: 'Không hoàn tác được các bản sửa',
+  lockedAfterUndo: 'Chưa thể gửi trong khi các mục kiểm tra chạy lại sau khi hoàn tác.',
   runStoppedTitle: 'Các kiểm tra đã dừng trước khi hoàn tất',
   runStoppedBody: '{error} Không có gì thay đổi: kết quả bên dưới là của lần chạy gần nhất đã hoàn tất. Hãy chạy lại các kiểm tra.',
   fixFailed: 'Không áp dụng được bản sửa',
@@ -352,7 +360,7 @@ export default translate(m, {
   whatNextVersion: 'Các bản sửa thay đổi email được lưu thành một phiên bản mới của chiến dịch.',
   whatNextLocked: 'Chưa thể gửi trong khi các mục kiểm tra chạy lại.',
   whatNextBack: 'Bạn quay lại Kiểm tra và gửi với kết luận mới, và nút lên lịch cho biết nó sẽ làm gì.',
-  fixesUndo: 'Mỗi bản sửa email được lưu thành một phiên bản mới mà bạn có thể hoàn tác trong Lịch sử phiên bản.',
+  fixesUndo: 'Hoàn tác ở Kiểm tra và gửi đưa chiến dịch về như trước, cho đến khi chiến dịch thay đổi lần nữa. Mọi bản sửa email cũng được giữ trong Lịch sử phiên bản.',
   cancel: 'Hủy',
   pickAFix: 'Hãy chọn ít nhất một bản sửa.',
   applyFixes: '{count, plural, =0 {Áp dụng bản sửa và chạy lại kiểm tra} other {Áp dụng # bản sửa và chạy lại kiểm tra}}',

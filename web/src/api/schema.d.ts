@@ -4717,6 +4717,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/fixes/{batchId}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Undo one-click fixes applied together, then run the checks again
+         * @description Puts the campaign back as it was before the fixes: its content through a restore of the version before them (saved as a new version), its content settings, its route override and its audience. Fails with 409 fixes_changed when the campaign changed since, 409 fixes_undone when they were undone already, and 409 fixes_not_undoable when they changed language versions. Undoing a route change needs campaigns:send.
+         */
+        post: operations["undo-readiness-fixes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/progress": {
         parameters: {
             query?: never;
@@ -21704,6 +21724,7 @@ export interface components {
             campaign: components["schemas"]["ReviewCampaign"];
             canary: components["schemas"]["ReviewCanary"];
             failed?: components["schemas"]["ReadinessRunFailure"];
+            fixes?: components["schemas"]["ReadinessFixBatch"];
             held?: components["schemas"]["ReviewHeld"];
             pauseSlack: boolean;
             run?: components["schemas"]["ReadinessRun"];
@@ -34498,8 +34519,22 @@ export interface components {
             /** @enum {string} */
             tone?: "primary" | "danger";
         };
+        ReadinessFixBatch: {
+            applied: string[];
+            /** Format: date-time */
+            appliedAt: string;
+            appliedBy: string;
+            /** Format: int64 */
+            count: number;
+            id: string;
+            route?: boolean;
+            undoable: boolean;
+            /** Format: int64 */
+            version?: number;
+        };
         ReadinessFixOutcome: {
             applied: string[];
+            batch?: components["schemas"]["ReadinessFixBatch"];
             running?: components["schemas"]["ReadinessProgress"];
             /** Format: int64 */
             version: number;
@@ -34728,6 +34763,15 @@ export interface components {
             open?: boolean;
             /** Format: date-time */
             start: string;
+        };
+        ReadinessUndoOutcome: {
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            restored?: number;
+            running?: components["schemas"]["ReadinessProgress"];
+            /** Format: int64 */
+            version: number;
         };
         RecBlockUse: {
             automation: string;
@@ -56772,6 +56816,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReadinessFixOutcome"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "undo-readiness-fixes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                batchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessUndoOutcome"];
                 };
             };
             /** @description Error */

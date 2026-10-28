@@ -14628,6 +14628,9 @@
           "failed": {
             "$ref": "#/components/schemas/ReadinessRunFailure"
           },
+          "fixes": {
+            "$ref": "#/components/schemas/ReadinessFixBatch"
+          },
           "held": {
             "$ref": "#/components/schemas/ReviewHeld"
           },
@@ -59297,6 +59300,50 @@
         ],
         "type": "object"
       },
+      "ReadinessFixBatch": {
+        "additionalProperties": false,
+        "properties": {
+          "applied": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "appliedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "appliedBy": {
+            "type": "string"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "route": {
+            "type": "boolean"
+          },
+          "undoable": {
+            "type": "boolean"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "appliedAt",
+          "appliedBy",
+          "applied",
+          "count",
+          "undoable"
+        ],
+        "type": "object"
+      },
       "ReadinessFixOutcome": {
         "additionalProperties": false,
         "properties": {
@@ -59305,6 +59352,9 @@
               "type": "string"
             },
             "type": "array"
+          },
+          "batch": {
+            "$ref": "#/components/schemas/ReadinessFixBatch"
           },
           "running": {
             "$ref": "#/components/schemas/ReadinessProgress"
@@ -60147,6 +60197,31 @@
           "end",
           "basis",
           "basisLabel"
+        ],
+        "type": "object"
+      },
+      "ReadinessUndoOutcome": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "restored": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "running": {
+            "$ref": "#/components/schemas/ReadinessProgress"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "version"
         ],
         "type": "object"
       },
@@ -119748,6 +119823,79 @@
           }
         ],
         "summary": "Apply one-click fixes, then run the checks again",
+        "tags": [
+          "Review \u0026 send"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/fixes/{batchId}/undo": {
+      "post": {
+        "description": "Puts the campaign back as it was before the fixes: its content through a restore of the version before them (saved as a new version), its content settings, its route override and its audience. Fails with 409 fixes_changed when the campaign changed since, 409 fixes_undone when they were undone already, and 409 fixes_not_undoable when they changed language versions. Undoing a route change needs campaigns:send.",
+        "operationId": "undo-readiness-fixes",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "batchId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessUndoOutcome"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Undo one-click fixes applied together, then run the checks again",
         "tags": [
           "Review \u0026 send"
         ],

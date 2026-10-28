@@ -3208,6 +3208,30 @@ type PushTestSubscription struct {
 	CreatedAt   time.Time `json:"createdAt"`
 }
 
+type ReadinessFixBatch struct {
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	CampaignID      uuid.UUID       `json:"campaignId"`
+	AppliedBy       *uuid.UUID      `json:"appliedBy"`
+	AppliedAt       time.Time       `json:"appliedAt"`
+	Applied         json.RawMessage `json:"applied"`
+	AppliedLang     string          `json:"appliedLang"`
+	Blocked         string          `json:"blocked"`
+	VersionBefore   *int32          `json:"versionBefore"`
+	VersionAfter    *int32          `json:"versionAfter"`
+	RouteChanged    bool            `json:"routeChanged"`
+	RouteBefore     json.RawMessage `json:"routeBefore"`
+	RouteAfter      json.RawMessage `json:"routeAfter"`
+	AudienceChanged bool            `json:"audienceChanged"`
+	AudienceBefore  json.RawMessage `json:"audienceBefore"`
+	AudienceAfter   json.RawMessage `json:"audienceAfter"`
+	SettingsChanged bool            `json:"settingsChanged"`
+	SettingsBefore  json.RawMessage `json:"settingsBefore"`
+	SettingsAfter   json.RawMessage `json:"settingsAfter"`
+	UndoneAt        *time.Time      `json:"undoneAt"`
+	UndoneBy        *uuid.UUID      `json:"undoneBy"`
+}
+
 type ReadinessProgress struct {
 	CampaignID         uuid.UUID       `json:"campaignId"`
 	RunID              uuid.UUID       `json:"runId"`
