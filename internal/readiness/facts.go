@@ -69,6 +69,9 @@ type CampaignFacts struct {
 	// SenderEmail is the From address; SenderDomain its domain.
 	SenderEmail  string
 	SenderDomain string
+	// ReplyTo is the campaign's reply-to address, else its sender's: the
+	// one-click unsubscribe header's mailto, as the send writes it.
+	ReplyTo string
 	// StartAt is when the send would start (the schedule, or now).
 	StartAt time.Time
 	// ScheduleMode is now, at or best_time.
@@ -354,6 +357,9 @@ type AuthFacts struct {
 	DMARCPolicy  string
 	DMARCRecord  string
 	DMARCAligned *float64
+	// DMARCDomain is where the record was found: the domain itself or its
+	// organizational domain (the record is at _dmarc.DMARCDomain).
+	DMARCDomain string
 	// BIMIStatus is pass, missing, invalid or error.
 	BIMIStatus string
 	BIMILogo   string
@@ -465,7 +471,10 @@ type VariantReport struct {
 type ComplianceFacts struct {
 	// UnsubscribeURL is the one-click unsubscribe link with a {token} placeholder.
 	UnsubscribeURL string
-	HTTPS          bool
+	// Mailto is the List-Unsubscribe header's mailto address (the reply-to
+	// address, else the From address), as the send writes it.
+	Mailto string
+	HTTPS  bool
 	// ComplaintRate is the route's 7-day complaint rate in percent.
 	ComplaintRate *float64
 	// Gmail is Gmail Postmaster Tools' latest day for the sending domain

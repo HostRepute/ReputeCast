@@ -7,7 +7,7 @@ import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { bySeverity, checksByGroup, flatGroupLabels, flatTitle, groupTitles, type Check, type Fix, type Run } from './logic'
 import { m } from './messages'
-import { AppHref, CheckBadge, CheckRow } from './parts'
+import { AppHref, CheckBadge, CheckRow, Chevron, TechDetails } from './parts'
 
 type Actions = {
   busy?: string
@@ -183,40 +183,6 @@ function FixWithNote({ check, fix: f, index, busy, reason, onApply }: { check: C
       )}
       {note}
     </div>
-  )
-}
-
-/** "Technical details": what the finding rests on, and the raw records or answers. */
-export function TechDetails({ check: c }: { check: Check }) {
-  const t = useT()
-  return (
-    <details className="rv-tech">
-      <summary>
-        <span>{t(m.technicalDetails)}</span>
-        <Chevron />
-      </summary>
-      <div className="rv-tpanel">
-        {c.technical?.length ? (
-          <dl className="rv-tdl">
-            {c.technical.map((r, i) => (
-              <div key={i} className="contents">
-                <dt>{r.label}</dt>
-                <dd className={r.before ? 'mono' : undefined}>{r.value}</dd>
-              </div>
-            ))}
-          </dl>
-        ) : null}
-        {c.raw?.length ? <pre className="rv-raw">{c.raw.join('\n')}</pre> : null}
-      </div>
-    </details>
-  )
-}
-
-function Chevron() {
-  return (
-    <svg className="rv-chev" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <path d="m4 6 4 4 4-4" />
-    </svg>
   )
 }
 

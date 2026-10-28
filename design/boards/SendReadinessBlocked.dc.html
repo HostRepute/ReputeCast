@@ -160,6 +160,14 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 .srow > .rt{grid-area:t}
 .srow > .fixes{grid-area:f;display:flex;gap:10px;align-items:flex-start;justify-content:flex-end;flex-wrap:wrap}
 .srow > .more{grid-area:d;min-width:0}
+.srow > .tech{grid-area:d;min-width:0}
+.tech > summary{display:inline-flex;align-items:center;gap:6px;min-height:24px;font-size:12px;font-weight:600;color:#0F766E;border-radius:6px;list-style:none;cursor:pointer}
+.tech > summary::-webkit-details-marker{display:none}
+.tech > summary:hover{color:#115E59}
+.tech[open] > summary .chev{transform:rotate(180deg)}
+.tpanel{margin-top:6px;padding:12px 14px;background:#F9FAFB;border:1px solid #E3E6EB;border-radius:8px;display:flex;flex-direction:column;gap:10px}
+.tdl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 14px;margin:0;font-size:12.5px}
+.tdl dt{color:#5B6472;font-weight:500;margin:0}.tdl dd{margin:0;color:#0B1220}
 .fix{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
 .fix .k{font-size:11.5px}
 .btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
@@ -182,6 +190,8 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   .srow > .fixes{flex-direction:column;align-items:stretch;justify-content:flex-start}
   .fix{align-items:stretch}
   .content .btn{min-height:44px}
+  .tech > summary{min-height:44px}
+  .tdl{grid-template-columns:minmax(0,1fr)}
   .content .in{min-height:44px}
   .sug{min-height:44px}
   .rail{grid-template-columns:minmax(0,1fr)}
@@ -344,11 +354,12 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
           </div>
           <div class="srow" style="background:#FFF5F5">
             <span class="badge bad"><span class="dot"></span>Block</span>
-            <div class="rt"><span class="t">Routing: Postal is Down and Broadcasts failover is set to pause and ask</span><span class="k">mta.acme.io has refused connections since 08:52 (ECONNREFUSED on port 25 and 443). 10% of this send has no healthy provider. SES is Healthy with 47,860 of 50,000 quota free.</span></div>
+            <div class="rt"><span class="t">Routing: Postal is Down and Broadcasts failover is set to pause and ask</span><span class="k">mta.acme.io has refused connections since 08:52. 10% of this send has no healthy provider. SES is Healthy with 47,860 of 50,000 quota free.</span></div>
             <div class="fixes">
               <div class="fix"><button type="button" class="btn sm" aria-describedby="bf3">Send 100% via SES</button><span class="k" id="bf3">+6 min · +$0.48</span></div>
               <div class="fix"><a href="ProvidersOutage.dc.html" class="btn sm">Check Postal</a></div>
             </div>
+            <details class="tech"><summary><span>Technical details</span><svg class="chev" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></summary><div class="tpanel"><dl class="tdl"><dt>Error</dt><dd>ECONNREFUSED on port 25 and 443</dd></dl></div></details>
           </div>
 
           <div class="grp"><h2 class="h2">Warnings · 2</h2></div>

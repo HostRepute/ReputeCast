@@ -6,7 +6,7 @@ import { cn } from '@/lib/cn'
 import { clock, shortDate } from '@/lib/format'
 import { CodeText } from '@/features/accessibility/review'
 import { CheckRowsGrid } from '@/features/languages/review'
-import { formatList, t } from '@/i18n'
+import { formatList, t, useT } from '@/i18n'
 import { statusWord, type Check, type CheckStatus, type Fix, type SkippedKind } from './logic'
 import { m } from './messages'
 
@@ -147,6 +147,8 @@ export function CheckRow({
   alert?: boolean
   children?: ReactNode
 }) {
+  // Records, headers and error codes are behind "Technical details" (R1.U2).
+  const tech = check.technical?.length || check.raw?.length
   return (
     <div className={cn('rv-row', check.status === 'warn' && 'r-warn', (check.status === 'block' || alert) && 'r-bad')} role={alert ? 'alert' : undefined}>
       <CheckBadge status={check.status} />
@@ -154,6 +156,7 @@ export function CheckRow({
         <span className="rv-t">{title ?? <CodeText text={check.title} />}</span>
         {showDetail && check.detail ? <span className={cn('k', check.mono && 'mono')}>{check.detail}</span> : null}
         {check.rows?.length ? <CheckRowsGrid rows={check.rows} /> : null}
+        {tech ? <TechDetails check={check} /> : null}
       </div>
       {children}
     </div>
@@ -163,4 +166,38 @@ export function CheckRow({
 /** "09:40" today, "Mon 12 Oct 09:40" on another day (display timezone). */
 export function whenText(d: string | Date, now: Date = new Date()): string {
   return shortDate(d) === shortDate(now) ? clock(d) : `${shortDate(d)} ${clock(d)}`
+}
+
+/** "Technical details": what the finding rests on, and the raw records or answers. */
+export function TechDetails({ check: c }: { check: Check }) {
+  const say = useT()
+  return (
+    <details className="rv-tech">
+      <summary>
+        <span>{say(m.technicalDetails)}</span>
+        <Chevron />
+      </summary>
+      <div className="rv-tpanel">
+        {c.technical?.length ? (
+          <dl className="rv-tdl">
+            {c.technical.map((r, i) => (
+              <div key={i} className="contents">
+                <dt>{r.label}</dt>
+                <dd className={r.before ? 'mono' : undefined}>{r.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+        {c.raw?.length ? <pre className="rv-raw">{c.raw.join('\n')}</pre> : null}
+      </div>
+    </details>
+  )
+}
+
+export function Chevron() {
+  return (
+    <svg className="rv-chev" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="m4 6 4 4 4-4" />
+    </svg>
+  )
 }

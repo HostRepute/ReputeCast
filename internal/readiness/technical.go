@@ -1,7 +1,9 @@
 package readiness
 
 import (
+	"fmt"
 	"net/netip"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -91,6 +93,54 @@ func (b *builder) listingDetails(ip string, listed []ListingFacts) ([]techRow, [
 	}
 	return rows, raw
 }
+
+// txtAnswer is a TXT record as dig shows it, for a check's technical
+// details (R1.U2): the lookup and the record, never inside a sentence.
+func txtAnswer(name, record string) []string {
+	if strings.TrimSpace(name) == "" || strings.TrimSpace(record) == "" {
+		return nil
+	}
+	return []string{"$ dig +short " + name + " TXT", `"` + record + `"`}
+}
+
+// dnsAnswerRow names what DNS answered a lookup that failed (SERVFAIL,
+// REFUSED, a timeout), nil when there is nothing to name.
+func dnsAnswerRow(trouble string) []techRow {
+	switch trouble {
+	case TroubleTimeout, TroubleServFail, TroubleRefused:
+		return []techRow{{Label: tx("tech.dnsAnswer", nil), Value: tx("tech.dnsAnswerValue", A{"trouble": trouble})}}
+	}
+	return nil
+}
+
+// unsubscribeHeaders are the one-click unsubscribe headers as the send
+// writes them; {token} stands for each recipient's.
+func unsubscribeHeaders(cf ComplianceFacts) []string {
+	lu := "<" + cf.UnsubscribeURL + ">"
+	if cf.Mailto != "" {
+		lu += ", <mailto:" + cf.Mailto + "?subject=unsubscribe%20{token}>"
+	}
+	return []string{"List-Unsubscribe: " + lu, "List-Unsubscribe-Post: List-Unsubscribe=One-Click"}
+}
+
+// maxLinkRows is how many links' or images' responses technical details
+// list.
+const maxLinkRows = 10
+
+// responseRow is what a link or an image answered, in a check's technical
+// details: "HTTP 404", "No response".
+func responseRow(url string, status int) techRow {
+	v := tx("tech.noResponse", nil)
+	if status != 0 {
+		v = tx("tech.httpStatus", A{"status": fmt.Sprint(status)})
+	}
+	return techRow{Label: RawText(displayURL(url)), Value: v}
+}
+
+// codeSuffix splits an outage's English sentence from the error it ends
+// with in brackets: "mta.acme.io has refused connections since 08:52
+// (ECONNREFUSED on port 25 and 443)".
+var codeSuffix = regexp.MustCompile(`^(.+?)\s*\(([^()]+)\)\.?$`)
 
 func orNone(s string) string {
 	if s == "" {

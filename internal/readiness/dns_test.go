@@ -80,8 +80,10 @@ func TestDNSLookupErrorIsUnknown(t *testing.T) {
 		if strings.Contains(strings.ToLower(c.Title), "invalid") || strings.Contains(c.Title, "isn't verified") || !strings.Contains(c.Title, "Couldn't look up the "+record) {
 			t.Errorf("%s says the record is wrong: %q", key, c.Title)
 		}
-		if !strings.Contains(c.Detail, "SERVFAIL") || !strings.Contains(c.Detail, "send-time recheck") {
-			t.Errorf("%s detail: %q", key, c.Detail)
+		// What DNS answered is a technical detail (R1.U2).
+		if strings.Contains(c.Detail, "SERVFAIL") || !strings.HasPrefix(c.Detail, "The DNS server failed, ") || !strings.Contains(c.Detail, "send-time recheck") ||
+			techRows(c)["DNS answer"] != "SERVFAIL" {
+			t.Errorf("%s detail: %q %+v", key, c.Detail, c.Technical)
 		}
 		if c.Note != "DNS error" {
 			t.Errorf("%s note: %q", key, c.Note)
@@ -137,8 +139,11 @@ func TestInvalidBIMIWarns(t *testing.T) {
 	z.Add("default._bimi.news.acme.io", "TXT", "v=BIMI1; l=http://acme.io/logo.svg")
 	f, _ := authOf(t, z, reqs)
 	c := byKey(readiness.Assemble(f))["auth.bimi"]
-	if c.Status != readiness.Warn || c.Title != "The BIMI record of news.acme.io is invalid" || !strings.Contains(c.Detail, "https") || c.Ack == "" {
-		t.Errorf("invalid BIMI: %s %q %q ack %q", c.Status, c.Title, c.Detail, c.Ack)
+	// What's wrong with the record, in the checker's words, is a technical
+	// detail (R1.U2).
+	if c.Status != readiness.Warn || c.Title != "The BIMI record of news.acme.io is invalid" || c.Detail != "Mailbox providers show no logo until it's fixed." ||
+		!strings.Contains(techRows(c)["Problem"], "https") || c.Ack == "" {
+		t.Errorf("invalid BIMI: %s %q %q %+v ack %q", c.Status, c.Title, c.Detail, c.Technical, c.Ack)
 	}
 }
 

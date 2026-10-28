@@ -114,7 +114,7 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	sched := ParseSchedule(c.Schedule)
 	f := Facts{Now: now, Location: loc, Workspace: ws.Slug, MailboxRates: DefaultMailboxRates}
 	f.Campaign = CampaignFacts{ID: c.ID.String(), Name: c.Name, Subject: c.Subject, Preheader: c.Preheader, Version: int(c.Version),
-		SenderName: c.SenderName, SenderEmail: c.SenderEmail, SenderDomain: c.SenderDomain, StartAt: sched.StartAt(now), ScheduleMode: sched.Mode,
+		SenderName: c.SenderName, SenderEmail: c.SenderEmail, SenderDomain: c.SenderDomain, ReplyTo: firstNonEmpty(c.ReplyTo, c.SenderReplyTo), StartAt: sched.StartAt(now), ScheduleMode: sched.Mode,
 		HTMLOnly: HTMLOnly(c.Mjml, c.Html)}
 	ab := parseABTest(c.AbTest)
 	if ab != nil {
@@ -594,6 +594,7 @@ func AuthFactsOf(domain string, auth dnscheck.DomainAuth, orgDMARC *dnscheck.DMA
 		dmarc = *orgDMARC
 	}
 	out.DMARCStatus, out.DMARCPolicy, out.DMARCRecord = dmarc.Status, dmarc.Policy, dmarc.Record
+	out.DMARCDomain = firstNonEmpty(dmarc.PolicyDomain, dmarc.Domain, domain)
 	if dmarc.Status == dnscheck.StatusError {
 		out.DMARCError = dnsTrouble(dmarc.Error)
 	}
@@ -919,7 +920,8 @@ func net4(s string) string {
 
 // compliance gathers the one-click unsubscribe link and the complaint rate.
 func (s *Service) compliance(ws *store.Workspace, f Facts) ComplianceFacts {
-	out := ComplianceFacts{UnsubscribeURL: strings.ReplaceAll(s.URLs.Unsubscribe(ws.Slug, "TOKEN"), "TOKEN", "{token}")}
+	out := ComplianceFacts{UnsubscribeURL: strings.ReplaceAll(s.URLs.Unsubscribe(ws.Slug, "TOKEN"), "TOKEN", "{token}"),
+		Mailto: firstNonEmpty(f.Campaign.ReplyTo, f.Campaign.SenderEmail)}
 	out.HTTPS = strings.HasPrefix(out.UnsubscribeURL, "https://") || localURL(out.UnsubscribeURL)
 	var weighted, total float64
 	for _, sh := range f.Route.Shares {

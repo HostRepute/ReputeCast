@@ -35,7 +35,8 @@ SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.audienc
        coalesce(s.name, '')::text AS sender_name,
        coalesce(s.email, '')::text AS sender_email,
        coalesce(d.domain, '')::text AS sender_domain,
-       coalesce(u.name, '')::text AS updated_by_name
+       coalesce(u.name, '')::text AS updated_by_name,
+       coalesce(s.reply_to, '')::text AS sender_reply_to
 FROM campaigns c
 LEFT JOIN senders s ON s.id = c.sender_id
 LEFT JOIN sending_domains d ON d.id = s.domain_id
@@ -80,6 +81,7 @@ type ReadinessCampaignRow struct {
 	SenderEmail     string          `json:"senderEmail"`
 	SenderDomain    string          `json:"senderDomain"`
 	UpdatedByName   string          `json:"updatedByName"`
+	SenderReplyTo   string          `json:"senderReplyTo"`
 }
 
 // A campaign with its sender and sending domain.
@@ -118,6 +120,7 @@ func (q *Queries) ReadinessCampaign(ctx context.Context, arg ReadinessCampaignPa
 		&i.SenderEmail,
 		&i.SenderDomain,
 		&i.UpdatedByName,
+		&i.SenderReplyTo,
 	)
 	return i, err
 }

@@ -741,36 +741,33 @@ func (b *builder) authentication() {
 	} else if bad := failing(a.SPF); len(bad) == 0 && len(a.SPF) > 0 {
 		names := shorts(a.SPF)
 		b.add(check{Key: "auth.spf", Group: GroupAuthentication, Status: Pass,
-			Title: tx("auth.spfPass", A{"count": len(names), "provider": first(names)}), Detail: RawText(a.SPFRecord), Mono: a.SPFRecord != "", Label: RawText("SPF"), Short: RawText("SPF")})
+			Title: tx("auth.spfPass", A{"count": len(names), "provider": first(names)}), Label: RawText("SPF"), Short: RawText("SPF"), Raw: txtAnswer(domain, a.SPFRecord)})
 	} else if len(a.SPF) == 0 && a.SPFRecord == "" && a.SPFError != "" {
 		b.add(b.lookupUnknown("auth.spf", "SPF", domain, nil, []ProviderAuthFacts{{Unknown: true, Trouble: a.SPFError}}))
 	} else if len(a.SPF) == 0 && a.SPFRecord == "" {
 		b.add(check{Key: "auth.spf", Group: GroupAuthentication, Status: Block, Title: tx("auth.spfMissing", A{"domain": domain}),
 			Detail: tx("auth.spfMissingDetail", nil), Label: RawText("SPF"), Fixes: []fix{senders}})
 	} else {
-		var detail Text
-		fail := firstFailText(a.SPF)
-		switch {
-		case a.SPFRecord != "" && !fail.Empty():
-			detail = tx("auth.spfFailDetail", A{"record": a.SPFRecord, "fix": fail})
-		case a.SPFRecord != "":
-			detail = RawText(a.SPFRecord)
-		default:
-			detail = fail
+		// What to add, in a sentence; the record itself is in the
+		// technical details (R1.U2).
+		detail := firstFailText(a.SPF)
+		if detail.Empty() {
+			detail = tx("auth.spfFailsDetail", A{"domain": domain})
 		}
 		b.add(check{Key: "auth.spf", Group: GroupAuthentication, Status: Block, Title: tx("auth.spfFails", A{"providers": ArgAnd(bad)}),
-			Detail: detail, Label: RawText("SPF"), Fixes: []fix{senders}})
+			Detail: detail, Label: RawText("SPF"), Fixes: []fix{senders}, Raw: txtAnswer(domain, a.SPFRecord)})
 	}
 	if unknown := lookupFailing(a.DKIM); len(unknown) > 0 && len(failing(a.DKIM)) == 0 {
 		b.add(b.lookupUnknown("auth.dkim", "DKIM", domain, unknown, unknown))
 	} else if bad := failing(a.DKIM); len(bad) == 0 && len(a.DKIM) > 0 {
 		bits := 0
-		parts := []Text{}
+		tech := []techRow{}
 		for _, d := range a.DKIM {
 			if d.KeyBits > 0 && (bits == 0 || d.KeyBits < bits) {
 				bits = d.KeyBits
 			}
-			parts = append(parts, authDetail(d))
+			// Each provider's keys: "3 Easy DKIM CNAMEs verified".
+			tech = append(tech, techRow{Label: RawText(d.Short), Value: authValue(d)})
 		}
 		names := shorts(a.DKIM)
 		title := tx("auth.dkimPass", A{"count": len(names), "provider": first(names), "keys": yes(bits > 0), "bits": fmt.Sprint(bits)})
@@ -779,7 +776,7 @@ func (b *builder) authentication() {
 			status = Warn
 			title = tx("auth.dkimWeak", A{"bits": fmt.Sprint(bits)})
 		}
-		c := check{Key: "auth.dkim", Group: GroupAuthentication, Status: status, Title: title, Detail: joined(" · ", parts), Label: RawText("DKIM"), Short: RawText("DKIM")}
+		c := check{Key: "auth.dkim", Group: GroupAuthentication, Status: status, Title: title, Label: RawText("DKIM"), Short: RawText("DKIM"), Technical: tech}
 		if status == Warn {
 			c.Ack = tx("auth.dkimWeakAck", nil)
 			c.Fixes = []fix{senders}
@@ -805,6 +802,8 @@ func (b *builder) authentication() {
 	if a.DMARCStatus == "pass" {
 		unaligned = b.unaligned(domain)
 	}
+	// The DMARC record as DNS answers it, in the technical details.
+	dmarcRaw := txtAnswer("_dmarc."+firstNonEmpty(a.DMARCDomain, domain), a.DMARCRecord)
 	switch {
 	case len(unaligned) > 0:
 		// Mail a provider sends unaligned fails DMARC however the record
@@ -812,7 +811,7 @@ func (b *builder) authentication() {
 		b.add(check{Key: "auth.dmarc", Group: GroupAuthentication, Status: Block, Label: RawText("DMARC"),
 			Title:  tx("auth.dmarcUnaligned", A{"providers": ArgAnd(unaligned), "count": len(unaligned)}),
 			Detail: tx("auth.dmarcUnalignedDetail", A{"domain": domain, "policy": firstNonEmpty(a.DMARCPolicy, "none"), "strict": yes(dmarcMode(a.DMARCRecord, "aspf") == "s")}),
-			Fixes:  []fix{senders}})
+			Fixes:  []fix{senders}, Raw: dmarcRaw})
 	case a.DMARCStatus == "pass":
 		policy := firstNonEmpty(a.DMARCPolicy, "none")
 		title := tx("auth.dmarcPass", A{"policy": policy, "measured": "no"})
@@ -825,8 +824,8 @@ func (b *builder) authentication() {
 				title = tx("auth.dmarcLow", A{"aligned": aligned})
 			}
 		}
-		c := check{Key: "auth.dmarc", Group: GroupAuthentication, Status: status, Title: title, Detail: RawText(a.DMARCRecord), Mono: a.DMARCRecord != "", Label: RawText("DMARC"),
-			Short: RawText("DMARC p=" + policy)}
+		c := check{Key: "auth.dmarc", Group: GroupAuthentication, Status: status, Title: title, Label: RawText("DMARC"),
+			Short: RawText("DMARC p=" + policy), Raw: dmarcRaw}
 		if status == Warn {
 			c.Ack = tx("auth.dmarcLowAck", nil)
 			c.Fixes = []fix{link(tx("fix.openDeliverability", nil), b.href("/deliverability"))}
@@ -841,17 +840,18 @@ func (b *builder) authentication() {
 		b.add(b.lookupUnknown("auth.dmarc", "DMARC", domain, nil, []ProviderAuthFacts{{Unknown: true, Trouble: a.DMARCError}}))
 	default:
 		b.add(check{Key: "auth.dmarc", Group: GroupAuthentication, Status: Block, Title: tx("auth.dmarcInvalid", A{"domain": domain}),
-			Detail: RawText(a.DMARCRecord), Mono: a.DMARCRecord != "", Label: RawText("DMARC"), Fixes: []fix{senders}})
+			Detail: tx("auth.dmarcInvalidDetail", nil), Label: RawText("DMARC"), Fixes: []fix{senders}, Raw: dmarcRaw})
 	}
 	if unknown := lookupFailing(a.MailFrom); len(unknown) > 0 && len(failing(a.MailFrom)) == 0 {
 		b.add(b.lookupUnknown("auth.mail_from", "MAIL FROM", domain, unknown, unknown))
 	} else if bad := failing(a.MailFrom); len(bad) == 0 && len(a.MailFrom) > 0 {
-		parts := []string{}
+		// Each provider's return-path domain, in the technical details.
+		tech := []techRow{}
 		for _, m := range a.MailFrom {
-			parts = append(parts, m.Domain+" ("+m.Short+")")
+			tech = append(tech, techRow{Label: RawText(m.Short), Value: RawText(m.Domain)})
 		}
 		b.add(check{Key: "auth.mail_from", Group: GroupAuthentication, Status: Pass, Title: tx("auth.mailFromPass", A{"count": len(a.MailFrom)}),
-			Detail: RawText(strings.Join(parts, " · ")), Label: RawText("MAIL FROM"), Short: tx("auth.mailFromShort", nil)})
+			Label: RawText("MAIL FROM"), Short: tx("auth.mailFromShort", nil), Technical: tech})
 	} else if len(a.MailFrom) > 0 {
 		b.add(check{Key: "auth.mail_from", Group: GroupAuthentication, Status: Warn,
 			Title:  tx("auth.mailFromDefault", A{"providers": ArgAnd(bad), "count": len(bad), "domain": domain}),
@@ -860,20 +860,23 @@ func (b *builder) authentication() {
 	}
 	switch a.BIMIStatus {
 	case "pass":
-		detail := RawText(a.BIMILogo)
-		if detail.Empty() {
-			detail = tx("auth.bimiShows", nil)
+		var tech []techRow
+		if a.BIMILogo != "" {
+			tech = []techRow{{Label: tx("tech.logo", nil), Value: RawText(a.BIMILogo)}}
 		}
-		b.add(check{Key: "auth.bimi", Group: GroupAuthentication, Status: Pass, Title: tx("auth.bimiFound", nil), Detail: detail, Label: RawText("BIMI"), Short: RawText("BIMI")})
+		b.add(check{Key: "auth.bimi", Group: GroupAuthentication, Status: Pass, Title: tx("auth.bimiFound", nil), Detail: tx("auth.bimiShows", nil), Label: RawText("BIMI"),
+			Short: RawText("BIMI"), Technical: tech})
 	case "invalid":
 		// A broken record shows no logo and tells mailbox providers the
 		// domain tried: worth fixing, not worth stopping a send.
-		detail := tx("auth.bimiInvalidDetail", nil)
+		// What's wrong with the record is the checker's own words: in the
+		// technical details.
+		var tech []techRow
 		if strings.TrimSpace(a.BIMIProblem) != "" {
-			detail = sentences(RawText(sentence(a.BIMIProblem)), detail)
+			tech = []techRow{{Label: tx("tech.problem", nil), Value: RawText(sentence(a.BIMIProblem))}}
 		}
-		b.add(check{Key: "auth.bimi", Group: GroupAuthentication, Status: Warn, Title: tx("auth.bimiInvalid", A{"domain": domain}), Detail: detail,
-			Label: RawText("BIMI"), Ack: tx("auth.bimiInvalidAck", nil), Fixes: []fix{link(tx("fix.openDeliverability", nil), b.href("/deliverability"))}})
+		b.add(check{Key: "auth.bimi", Group: GroupAuthentication, Status: Warn, Title: tx("auth.bimiInvalid", A{"domain": domain}), Detail: tx("auth.bimiInvalidDetail", nil),
+			Label: RawText("BIMI"), Ack: tx("auth.bimiInvalidAck", nil), Fixes: []fix{link(tx("fix.openDeliverability", nil), b.href("/deliverability"))}, Technical: tech})
 	case "error":
 		b.add(b.lookupUnknown("auth.bimi", "BIMI", domain, nil, []ProviderAuthFacts{{Unknown: true, Trouble: a.BIMIError}}))
 	default:
@@ -931,7 +934,7 @@ func (b *builder) lookupUnknown(key, record, domain string, providers, unknown [
 	}
 	return check{Key: key, Group: GroupAuthentication, Status: Unknown, Title: title, Label: RawText(record),
 		Detail: tx("auth.lookupFailedDetail", A{"trouble": trouble}), Note: tx("note.dnsError", nil),
-		Fixes: []fix{link(tx("fix.openDeliverability", nil), b.href("/deliverability"))}}
+		Fixes: []fix{link(tx("fix.openDeliverability", nil), b.href("/deliverability"))}, Technical: dnsAnswerRow(trouble)}
 }
 
 func shorts(list []ProviderAuthFacts) []string {
@@ -945,18 +948,23 @@ func shorts(list []ProviderAuthFacts) []string {
 // authDetail is what a provider's record says: "SES: 3 Easy DKIM CNAMEs
 // verified".
 func authDetail(p ProviderAuthFacts) Text {
-	var d any = p.Detail
+	return tx("auth.detail", A{"provider": p.Short, "detail": authValue(p)})
+}
+
+// authValue is what a provider's record says, without the provider: "3
+// Easy DKIM CNAMEs verified", "selector postal-2026 verified".
+func authValue(p ProviderAuthFacts) Text {
 	switch p.DetailKind {
 	case AuthCNAMEs:
-		d = tx("auth.cnames", A{"count": p.CNAMEs})
+		return tx("auth.cnames", A{"count": p.CNAMEs})
 	case AuthSelector:
-		d = tx("auth.selector", A{"selector": p.Selector})
+		return tx("auth.selector", A{"selector": p.Selector})
 	case AuthUnverified:
-		d = tx("auth.dkimUnverified", nil)
+		return tx("auth.dkimUnverified", nil)
 	case AuthSPFAdd:
-		d = tx("auth.spfAdd", A{"value": p.Value, "name": p.Name})
+		return tx("auth.spfAdd", A{"value": p.Value, "name": p.Name})
 	}
-	return tx("auth.detail", A{"provider": p.Short, "detail": d})
+	return RawText(p.Detail)
 }
 
 // firstFailText is what's wrong with the first failing provider, as a
@@ -1323,6 +1331,10 @@ func (b *builder) links() {
 			respond.Note = tx("note.notChecked", nil)
 			respond.Title = tx("links.someUnchecked", A{"ok": ok, "total": len(considered), "unchecked": len(unverified) + notRequested})
 			parts := []Text{}
+			// What each answered is in the technical details: "HTTP 999".
+			for _, l := range unverified[:min(len(unverified), maxLinkRows)] {
+				respond.Technical = append(respond.Technical, responseRow(l.URL, l.Status))
+			}
 			for i, l := range unverified {
 				if i == 2 {
 					parts = append(parts, tx("links.brokenMore", A{"count": len(unverified) - 2}))
@@ -1347,11 +1359,18 @@ func (b *builder) links() {
 		}
 		if slow.Millis > 0 && respond.Status == Pass {
 			respond.Detail = tx("links.slowest", A{"url": displayURL(slow.URL), "ms": slow.Millis, "http200": yes(all200)})
+			if all200 {
+				respond.Technical = []techRow{{Label: tx("tech.responses", nil), Value: tx("tech.allOK", A{"count": len(probed)})}}
+			}
 		}
 	default:
 		respond.Status = Warn
 		respond.Title = tx("links.broken", A{"count": len(broken), "total": total})
 		parts := []Text{}
+		// What each answered is in the technical details: "HTTP 404".
+		for _, l := range broken[:min(len(broken), maxLinkRows)] {
+			respond.Technical = append(respond.Technical, responseRow(l.URL, l.Status))
+		}
 		for i, l := range broken {
 			if i == 3 {
 				parts = append(parts, tx("links.brokenMore", A{"count": len(broken) - 3}))
@@ -1644,19 +1663,18 @@ func (b *builder) compliance() {
 		c.Fixes = append(c.Fixes, link(tx("fix.editRoute", nil), b.href("/providers/routing")))
 		b.add(c)
 	case cf.HTTPS:
-		detail := RawText(fmt.Sprintf("List-Unsubscribe: <%s> · List-Unsubscribe-Post: List-Unsubscribe=One-Click", cf.UnsubscribeURL))
-		mono := true
+		// The headers as the send writes them are technical details (R1.U2).
+		var detail Text
 		if len(replaced) > 0 {
-			detail = sentences(detail, tx("compliance.oneClickReplaced", A{"providers": ArgAnd(shortsOf(replaced)), "count": len(replaced)}))
-			mono = false
+			detail = tx("compliance.oneClickReplaced", A{"providers": ArgAnd(shortsOf(replaced)), "count": len(replaced)})
 		}
 		b.add(check{Key: "compliance.list_unsubscribe", Group: GroupCompliance, Status: Pass, Title: tx("compliance.oneClick", nil),
-			Detail: detail, Mono: mono,
+			Detail: detail, Raw: unsubscribeHeaders(cf),
 			Label: tx("label.oneClick", nil), Short: tx("compliance.oneClickShort", nil)})
 	default:
 		b.add(check{Key: "compliance.list_unsubscribe", Group: GroupCompliance, Status: Warn, Title: tx("compliance.oneClickHttps", nil),
-			Detail: tx("compliance.oneClickHttpsDetail", A{"url": cf.UnsubscribeURL}),
-			Label:  tx("label.oneClick", nil), Ack: tx("compliance.oneClickHttpsAck", nil)})
+			Detail: tx("compliance.oneClickHttpsDetail", A{"url": cf.UnsubscribeURL}), Raw: unsubscribeHeaders(cf),
+			Label: tx("label.oneClick", nil), Ack: tx("compliance.oneClickHttpsAck", nil)})
 	}
 	ct := b.f.Content
 	footerBlocked := false
@@ -1982,12 +2000,26 @@ func (b *builder) routing() {
 			held += s.Recipients
 		}
 		parts := []Text{}
-		if d.DownDetail != "" || d.Down != nil {
+		// The provider's error ("ECONNREFUSED") is a technical detail, not
+		// part of the sentence (R1.U2).
+		var tech []techRow
+		switch {
+		case d.Down != nil && !d.Down.Auth && d.Down.Code != "":
+			parts = append(parts, tx("share.refuses", A{"host": d.Down.Who, "when": b.when(d.Down.Since)}))
+			tech = append(tech, techRow{Label: tx("tech.error", nil), Value: RawText(d.Down.Code)})
+		case d.Down == nil && d.DownDetail != "":
+			text := d.DownDetail
+			if m := codeSuffix.FindStringSubmatch(text); m != nil {
+				text = m[1]
+				tech = append(tech, techRow{Label: tx("tech.error", nil), Value: RawText(m[2])})
+			}
+			parts = append(parts, RawText(sentence(text)))
+		case d.Down != nil:
 			parts = append(parts, b.downText(d))
 		}
 		parts = append(parts, tx("routing.heldShare", A{"share": ArgPercent(math.Round(pct))}))
 		c := check{Key: "routing.health", Group: GroupRouting, Status: Block, Label: tx("label.routeHealth", nil),
-			Title: tx("routing.down", A{"provider": d.Name, "state": word, "stream": stream, "policy": policyText(rt.Policy)})}
+			Title: tx("routing.down", A{"provider": d.Name, "state": word, "stream": stream, "policy": policyText(rt.Policy)}), Technical: tech}
 		if o := b.otherAvailable(d.ProviderID); o != nil {
 			if o.Quota != nil && o.Quota.Max > 0 {
 				parts = append(parts, tx("routing.otherQuota", A{"provider": o.Short, "status": firstNonEmpty(o.Status, state.Healthy), "statusName": statusText(o.Status),

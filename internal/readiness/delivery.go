@@ -192,7 +192,7 @@ func (b *builder) trackingDomain() {
 		}
 		b.add(check{Key: "links.tracking_domain", Group: GroupLinks, Status: Unknown, Label: label, Note: note,
 			Title:  tx("tracking.domainUnknown", A{"host": host}),
-			Detail: tx("tracking.domainUnknownDetail", A{"trouble": ct.TrackingDNS})})
+			Detail: tx("tracking.domainUnknownDetail", A{"trouble": ct.TrackingDNS}), Technical: dnsAnswerRow(ct.TrackingDNS)})
 		return
 	}
 	if !ct.TrackingHTTPS {
@@ -248,6 +248,11 @@ func (b *builder) images() {
 	switch {
 	case len(broken) > 0:
 		parts := []Text{}
+		// What each answered is in the technical details: "HTTP 404".
+		var tech []techRow
+		for _, im := range broken[:min(len(broken), maxLinkRows)] {
+			tech = append(tech, responseRow(im.URL, im.Status))
+		}
 		for i, im := range broken {
 			if i == 2 {
 				parts = append(parts, tx("links.brokenMore", A{"count": len(broken) - 2}))
@@ -262,7 +267,7 @@ func (b *builder) images() {
 		b.add(check{Key: "content.images", Group: GroupContent, Status: Warn, Label: label,
 			Title:  tx("images.broken", A{"count": len(broken), "total": total}),
 			Detail: sentences(joined(" · ", parts), tx("images.brokenDetail", nil)),
-			Ack:    tx("images.brokenAck", A{"count": len(broken)}), Fixes: []fix{open(broken[0])}})
+			Ack:    tx("images.brokenAck", A{"count": len(broken)}), Fixes: []fix{open(broken[0])}, Technical: tech})
 	case len(insecure) > 0:
 		b.add(check{Key: "content.images", Group: GroupContent, Status: Warn, Label: label,
 			Title:  tx("images.insecure", A{"count": len(insecure), "total": total}),

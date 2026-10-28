@@ -185,8 +185,9 @@ func TestHonestLinkCounts(t *testing.T) {
 		t.Error("links not checked make the run incomplete")
 	}
 	f.Content.Report.LinkList = manyLinks(14, 14)
-	if c := mustCheck(t, readiness.Assemble(f), "links.respond"); c.Status != readiness.Pass || c.Title != "14 of 14 links respond" || !strings.HasPrefix(c.Detail, "HTTP 200 · slowest acme.io/p/13") {
-		t.Fatalf("board: %q / %q", c.Title, c.Detail)
+	if c := mustCheck(t, readiness.Assemble(f), "links.respond"); c.Status != readiness.Pass || c.Title != "14 of 14 links respond" || !strings.HasPrefix(c.Detail, "Slowest: acme.io/p/13") ||
+		techRows(c)["Responses"] != "HTTP 200 from all 14 links" {
+		t.Fatalf("board: %q / %q / %+v", c.Title, c.Detail, c.Technical)
 	}
 }
 
@@ -197,7 +198,9 @@ func TestBotBlockedLinksAreUnknown(t *testing.T) {
 	f.Content.Report.LinkList = append(links("https://acme.io/blog"), contentcheck.ContentCheckLink{URL: "https://www.linkedin.com/company/acme", Host: "www.linkedin.com",
 		Kind: "social", Path: []int{}, Probed: true, Status: 999, BotBlocked: true})
 	c := mustCheck(t, readiness.Assemble(f), "links.respond")
-	if c.Status != readiness.Unknown || !strings.Contains(c.Detail, "linkedin.com/company/acme refused the automated check (HTTP 999)") {
+	// The 999 itself is a technical detail (R1.U2).
+	if c.Status != readiness.Unknown || !strings.Contains(c.Detail, "linkedin.com/company/acme refused the automated check") || strings.Contains(c.Detail, "999") ||
+		techRows(c)["www.linkedin.com/company/acme"] != "HTTP 999" {
 		t.Fatalf("999: %+v", c)
 	}
 }
@@ -211,7 +214,8 @@ func TestLinksOfEveryLanguageVersion(t *testing.T) {
 	f.Content.Versions = []readiness.VersionReport{{Language: "vi", Report: vi}}
 	f.Languages.Source = "en"
 	c := mustCheck(t, readiness.Assemble(f), "links.respond")
-	if c.Status != readiness.Warn || !strings.Contains(c.Title, "1 of 4 links") || !strings.Contains(c.Detail, "acme.io/vi/blog returns 404") {
+	if c.Status != readiness.Warn || !strings.Contains(c.Title, "1 of 4 links") || !strings.Contains(c.Detail, "acme.io/vi/blog returns an error") ||
+		techRows(c)["acme.io/vi/blog"] != "HTTP 404" {
 		t.Fatalf("Vietnamese link: %+v", c)
 	}
 }
@@ -249,7 +253,10 @@ func TestDMARCAlignmentPerProvider(t *testing.T) {
 	}
 	f.Auth.DMARCRecord = "v=DMARC1; p=quarantine; aspf=s"
 	c := mustCheck(t, readiness.Assemble(f), "auth.dmarc")
-	if c.Status != readiness.Block || c.Title != "Mail through Postal won’t pass DMARC" || !strings.Contains(c.Detail, "aspf=s") {
+	// The sentence says strict alignment; the record (aspf=s) is in the
+	// technical details (R1.U2).
+	if c.Status != readiness.Block || c.Title != "Mail through Postal won’t pass DMARC" || !strings.Contains(c.Detail, "strict SPF alignment") || strings.Contains(c.Detail, "aspf=s") ||
+		!strings.Contains(strings.Join(c.Raw, "\n"), "v=DMARC1; p=quarantine; aspf=s") {
 		t.Fatalf("strict: %+v", c)
 	}
 }
@@ -311,7 +318,8 @@ func TestTrackingDomain(t *testing.T) {
 		t.Fatalf("missing: %+v", c)
 	}
 	f.Content.TrackingDNS = readiness.TroubleServFail
-	if c := mustCheck(t, readiness.Assemble(f), "links.tracking_domain"); c.Status != readiness.Unknown || !strings.Contains(c.Detail, "SERVFAIL") {
+	if c := mustCheck(t, readiness.Assemble(f), "links.tracking_domain"); c.Status != readiness.Unknown || strings.Contains(c.Detail, "SERVFAIL") ||
+		!strings.HasPrefix(c.Detail, "The DNS server failed.") || techRows(c)["DNS answer"] != "SERVFAIL" {
 		t.Fatalf("servfail: %+v", c)
 	}
 	f.Content.TrackingDNS, f.Content.TrackingHTTPS = "ok", false
@@ -354,7 +362,9 @@ func TestImagesOverHTTPS(t *testing.T) {
 		t.Fatalf("insecure: %q", c.Title)
 	}
 	f.Content.Report.ImageList[3].Broken, f.Content.Report.ImageList[3].Status = true, 404
-	if c := mustCheck(t, readiness.Assemble(f), "content.images"); c.Status != readiness.Warn || !strings.Contains(c.Detail, "cdn.acme.io/3.png returns 404") {
+	// The 404 itself is a technical detail (R1.U2).
+	if c := mustCheck(t, readiness.Assemble(f), "content.images"); c.Status != readiness.Warn || !strings.Contains(c.Detail, "cdn.acme.io/3.png returns an error") ||
+		techRows(c)["cdn.acme.io/3.png"] != "HTTP 404" {
 		t.Fatalf("broken: %+v", c)
 	}
 }
