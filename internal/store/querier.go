@@ -4507,7 +4507,7 @@ type Querier interface {
 	// broken condition says "Marcus Chen deleted this segment on Tue 14 Oct").
 	VisibilityDeletions(ctx context.Context, arg VisibilityDeletionsParams) ([]VisibilityDeletionsRow, error)
 	VisibilityFields(ctx context.Context, workspaceID uuid.UUID) ([]VisibilityFieldsRow, error)
-	VisibilityGetCount(ctx context.Context, campaignID uuid.UUID) (VisibilityCount, error)
+	VisibilityGetCount(ctx context.Context, campaignID uuid.UUID) (VisibilityGetCountRow, error)
 	// Conditional content (internal/visibility, design expansion M21).
 	// The workspace's lists with their subscribed members, for the condition
 	// picker and the rules' words.
@@ -4520,6 +4520,9 @@ type Querier interface {
 	// the sunset policy stopped are left out by the caller, as in Send
 	// Readiness; the oldest contact of a mailbox is kept.
 	VisibilityRecipients(ctx context.Context, arg VisibilityRecipientsParams) ([]VisibilityRecipientsRow, error)
+	// VisibilityRecipients for some contacts only (a count's samples), read by
+	// id: the same conditions, the same columns.
+	VisibilityRecipientsAmong(ctx context.Context, arg VisibilityRecipientsAmongParams) ([]VisibilityRecipientsAmongRow, error)
 	VisibilitySaveCount(ctx context.Context, arg VisibilitySaveCountParams) error
 	VisibilitySegments(ctx context.Context, workspaceID uuid.UUID) ([]VisibilitySegmentsRow, error)
 	// Tags in use, most used first.

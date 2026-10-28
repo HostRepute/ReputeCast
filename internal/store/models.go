@@ -5133,6 +5133,7 @@ type VisibilityCount struct {
 	Factors      json.RawMessage `json:"factors"`
 	CountedAt    time.Time       `json:"countedAt"`
 	DurationMs   int32           `json:"durationMs"`
+	Samples      json.RawMessage `json:"samples"`
 }
 
 type WarmupEvent struct {

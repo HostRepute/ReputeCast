@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 )
 
@@ -388,5 +389,67 @@ func TestVersionsSizesAndEmpty(t *testing.T) {
 	}
 	if over != 1 {
 		t.Fatalf("one version is over the clipping size: %+v", vs)
+	}
+}
+
+// A count keeps, for each version and each language, its first recipient
+// with a first name (else its first one), and the preview contacts are
+// those samples while they still get their version.
+func TestSamplesAndPreviewPicks(t *testing.T) {
+	beta := uuid.NewString()
+	e := Read(email(section("beta", rule("beta", ShowOnly, MatchAll, VisibilityCondition{Kind: KindList, Op: "includes", Value: beta}), "Beta corner")))
+	n := &Names{Lang: i18n.For(i18n.English), Lists: map[string]string{beta: "Beta Program"}, Segments: map[string]string{}, Fields: map[string]NamedField{}}
+	contact := func(first, lang string, onBeta bool) *Facts {
+		return &Facts{ID: uuid.New(), FirstName: first, Email: strings.ToLower(first+lang) + "@example.com", Language: lang, Lists: map[string]bool{beta: onBeta},
+			Segments: map[string]bool{}, Tags: map[string]bool{}, Attributes: map[string]any{}}
+	}
+	noName, ana, ben := contact("", "en", true), contact("Ana", "en-US", true), contact("Ben", "en", false)
+	es1, lucia, vi := contact("", "es", false), contact("Lucía", "es-MX", false), contact("", "vi", false)
+	es2 := contact("", "es", false)
+	recipients := []*Facts{noName, ana, ben, es1, lucia, vi, es2}
+
+	tl := Count(e, recipients, n)
+	if tl.Total != 7 || tl.ByHidden[""] != 2 || tl.ByHidden["beta"] != 5 {
+		t.Fatalf("tally: %+v", tl)
+	}
+	sm := tl.Samples
+	if sm.Versions[""] != ana.ID || sm.Versions["beta"] != ben.ID {
+		t.Fatalf("version samples prefer a first name: %v", sm.Versions)
+	}
+	var langs []string
+	for _, l := range sm.Languages {
+		langs = append(langs, l.Language)
+	}
+	// English and Spanish have three readers each, Vietnamese one.
+	if strings.Join(langs, ",") != "en,es,vi" || sm.Languages[1].ID != lucia.ID || sm.Languages[2].ID != vi.ID {
+		t.Fatalf("language samples: %+v", sm.Languages)
+	}
+
+	vs := Versions(e, tl, "")
+	facts := map[uuid.UUID]*Facts{}
+	for _, f := range recipients {
+		facts[f.ID] = f
+	}
+	out, every := pickPreviews(e, n, vs, sm, facts)
+	if !every || len(out) != 4 || out[0].Version != 1 || out[1].Version != 2 {
+		t.Fatalf("picks: %v %+v", every, out)
+	}
+	if out[0].ID != ben.ID.String() || out[1].ID != ana.ID.String() || out[1].Trait != "Beta Program" {
+		t.Fatalf("one per version, the version with more recipients first: %+v", out)
+	}
+	if out[2].ID != lucia.ID.String() || out[2].Trait != "Spanish" || out[3].ID != vi.ID.String() {
+		t.Fatalf("then one per other language: %+v", out[2:])
+	}
+
+	// Ana left Beta Program since the count: her sample no longer fits.
+	ana.Lists[beta] = false
+	if _, every := pickPreviews(e, n, vs, sm, facts); every {
+		t.Fatalf("a sample that changed version still counts")
+	}
+	ana.Lists[beta] = true
+	// Ben is no longer in the audience.
+	delete(facts, ben.ID)
+	if out, every := pickPreviews(e, n, vs, sm, facts); every || len(out) != 3 {
+		t.Fatalf("a sample gone from the audience: %v %+v", every, out)
 	}
 }

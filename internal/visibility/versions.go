@@ -119,7 +119,13 @@ func uuids(in []string) []uuid.UUID {
 // Readiness counts them (suppressed, role and duplicate addresses and
 // contacts the sunset policy stopped left out), with what conditions read.
 func FinalRecipients(ctx context.Context, q *store.Queries, segs SegmentResolver, wsID uuid.UUID, a Audience, ruleSegments Segments) ([]*Facts, error) {
-	if a.Empty() {
+	return finalRecipients(ctx, q, segs, wsID, a, ruleSegments, nil)
+}
+
+// finalRecipients is FinalRecipients, for the contacts among only when
+// among isn't nil: those of them still in the audience.
+func finalRecipients(ctx context.Context, q *store.Queries, segs SegmentResolver, wsID uuid.UUID, a Audience, ruleSegments Segments, among []uuid.UUID) ([]*Facts, error) {
+	if a.Empty() || among != nil && len(among) == 0 {
 		return []*Facts{}, nil
 	}
 	members := func(ids []string) ([]uuid.UUID, error) {
@@ -144,7 +150,18 @@ func FinalRecipients(ctx context.Context, q *store.Queries, segs SegmentResolver
 	if err != nil {
 		return nil, err
 	}
-	rows, err := q.VisibilityRecipients(ctx, store.VisibilityRecipientsParams{WorkspaceID: wsID, Lists: uuids(a.Lists), Contacts: in, ExcludeLists: uuids(a.ExcludeLists), ExcludeContacts: out})
+	var rows []store.VisibilityRecipientsRow
+	if among == nil {
+		rows, err = q.VisibilityRecipients(ctx, store.VisibilityRecipientsParams{WorkspaceID: wsID, Lists: uuids(a.Lists), Contacts: in, ExcludeLists: uuids(a.ExcludeLists), ExcludeContacts: out})
+	} else {
+		var some []store.VisibilityRecipientsAmongRow
+		some, err = q.VisibilityRecipientsAmong(ctx, store.VisibilityRecipientsAmongParams{Among: among, WorkspaceID: wsID, Lists: uuids(a.Lists), Contacts: in,
+			ExcludeLists: uuids(a.ExcludeLists), ExcludeContacts: out})
+		rows = make([]store.VisibilityRecipientsRow, len(some))
+		for i, r := range some {
+			rows[i] = store.VisibilityRecipientsRow(r)
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -214,6 +231,66 @@ type Tally struct {
 	ByHidden map[string]int64
 	// Shown counts, for each block, the recipients who see it.
 	Shown map[string]int64
+	// Samples are the contacts to preview the versions as.
+	Samples Samples
+}
+
+// Samples are, for each version (Hidden.String()) and each base language of
+// an audience, its first recipient with a first name, else its first one:
+// the contacts the composer previews the email as (PreviewContacts).
+type Samples struct {
+	Versions map[string]uuid.UUID `json:"versions"`
+	// Languages go from the one most recipients read to the fewest.
+	Languages []LanguageSample `json:"languages"`
+}
+
+// LanguageSample is the contact a base language ("es") is previewed as.
+type LanguageSample struct {
+	Language string    `json:"language"`
+	ID       uuid.UUID `json:"id"`
+}
+
+// sampler picks Samples from recipients decided in audience order.
+type sampler struct {
+	versions, languages map[string]*Facts
+	readers             map[string]int64
+}
+
+func newSampler() *sampler {
+	return &sampler{versions: map[string]*Facts{}, languages: map[string]*Facts{}, readers: map[string]int64{}}
+}
+
+// add is a recipient who gets the version key.
+func (s *sampler) add(key string, f *Facts) {
+	if cur, ok := s.versions[key]; !ok || cur.FirstName == "" && f.FirstName != "" {
+		s.versions[key] = f
+	}
+	l := baseLanguage(f.Language)
+	if l == "" {
+		return
+	}
+	s.readers[l]++
+	if cur, ok := s.languages[l]; !ok || cur.FirstName == "" && f.FirstName != "" {
+		s.languages[l] = f
+	}
+}
+
+func (s *sampler) samples() Samples {
+	out := Samples{Versions: make(map[string]uuid.UUID, len(s.versions)), Languages: make([]LanguageSample, 0, len(s.languages))}
+	for k, f := range s.versions {
+		out.Versions[k] = f.ID
+	}
+	for l, f := range s.languages {
+		out.Languages = append(out.Languages, LanguageSample{Language: l, ID: f.ID})
+	}
+	sort.Slice(out.Languages, func(i, j int) bool {
+		a, b := out.Languages[i].Language, out.Languages[j].Language
+		if s.readers[a] != s.readers[b] {
+			return s.readers[a] > s.readers[b]
+		}
+		return a < b
+	})
+	return out
 }
 
 // Count decides every recipient and tallies the versions.
@@ -222,16 +299,20 @@ func Count(e Email, recipients []*Facts, n *Names) Tally {
 	for _, b := range e.Blocks {
 		t.Shown[b.ID] = 0
 	}
+	sm := newSampler()
 	for _, f := range recipients {
 		d := Decide(e, f, n)
+		key := d.Hidden.String()
 		t.Total++
-		t.ByHidden[d.Hidden.String()]++
+		t.ByHidden[key]++
 		for _, b := range e.Blocks {
 			if !d.Hidden[b.ID] {
 				t.Shown[b.ID]++
 			}
 		}
+		sm.add(key, f)
 	}
+	t.Samples = sm.samples()
 	return t
 }
 
