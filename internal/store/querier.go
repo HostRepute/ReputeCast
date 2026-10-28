@@ -1900,8 +1900,9 @@ type Querier interface {
 	// Results of a sent campaign per language version and why readers got it.
 	LanguagesMessageResults(ctx context.Context, campaignID *uuid.UUID) ([]LanguagesMessageResultsRow, error)
 	// "Preview as" in the composer: one active contact per contact language
-	// (its base code), from the given lists when there are any, people with a
-	// first name first.
+	// (its base code), from the given lists when there are any: people with a
+	// first name first, then the one who opened last, then by email. Each
+	// language's contact is found with aggregates, so the audience isn't sorted.
 	LanguagesPreviewContacts(ctx context.Context, arg LanguagesPreviewContactsParams) ([]LanguagesPreviewContactsRow, error)
 	LanguagesRemove(ctx context.Context, arg LanguagesRemoveParams) (int64, error)
 	LanguagesSetDefault(ctx context.Context, arg LanguagesSetDefaultParams) (int64, error)
