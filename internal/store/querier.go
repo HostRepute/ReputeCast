@@ -405,7 +405,8 @@ type Querier interface {
 	// timezone; yearly triggers match the day and month every year.
 	AutomationDateFieldMatches(ctx context.Context, arg AutomationDateFieldMatchesParams) ([]uuid.UUID, error)
 	AutomationDateTriggers(ctx context.Context) ([]AutomationDateTriggersRow, error)
-	// Whether the contact opened or clicked any email of this flow since a time.
+	// Whether the contact opened or clicked any email of this flow since a time
+	// (a person's settled clicks only, review AN-2).
 	AutomationEngaged(ctx context.Context, arg AutomationEngagedParams) (bool, error)
 	AutomationEventNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
 	AutomationFields(ctx context.Context, workspaceID uuid.UUID) ([]AutomationFieldsRow, error)
@@ -413,7 +414,8 @@ type Querier interface {
 	// Runs of a version whose contact bought the product (any product when
 	// empty) since entering, not refunded in full.
 	AutomationGoalRunsBought(ctx context.Context, arg AutomationGoalRunsBoughtParams) ([]uuid.UUID, error)
-	// Runs whose contact opened or clicked an email of this flow since entering.
+	// Runs whose contact opened or clicked an email of this flow since entering
+	// (a person's settled clicks only, review AN-2).
 	AutomationGoalRunsEngaged(ctx context.Context, arg AutomationGoalRunsEngagedParams) ([]AutomationGoalRunsEngagedRow, error)
 	AutomationGoalRunsEvent(ctx context.Context, arg AutomationGoalRunsEventParams) ([]AutomationGoalRunsEventRow, error)
 	AutomationGoalRunsInList(ctx context.Context, arg AutomationGoalRunsInListParams) ([]AutomationGoalRunsInListRow, error)
@@ -423,6 +425,8 @@ type Querier interface {
 	AutomationLists(ctx context.Context, workspaceID uuid.UUID) ([]AutomationListsRow, error)
 	// Runs waiting on a webhook call whose job never ran (lost or not enqueued).
 	AutomationLostWebhookRuns(ctx context.Context, before time.Time) ([]AutomationLostWebhookRunsRow, error)
+	// Whether an email was opened or clicked: clicks only once they settled as
+	// a person's (review AN-2).
 	AutomationMessageEngaged(ctx context.Context, arg AutomationMessageEngagedParams) (bool, error)
 	AutomationMessageForStats(ctx context.Context, id uuid.UUID) (AutomationMessageForStatsRow, error)
 	AutomationMessageVars(ctx context.Context, messageID uuid.UUID) (json.RawMessage, error)
@@ -858,7 +862,8 @@ type Querier interface {
 	ContactChoseFewer(ctx context.Context, contactID *uuid.UUID) (bool, error)
 	ContactConsentEvents(ctx context.Context, contactID uuid.UUID) ([]ContactConsentEventsRow, error)
 	// Emails sent to a contact since a date (Broadcasts and Automations), how
-	// many were opened by a person and how many were clicked.
+	// many were opened by a person and how many a person clicked: bot clicks
+	// and clicks still waiting to settle aren't a person's (review AN-2).
 	ContactEngagementSince(ctx context.Context, arg ContactEngagementSinceParams) (ContactEngagementSinceRow, error)
 	// A signup form sets the language from the browser's first language when
 	// the contact has none. It never overwrites one.
@@ -4539,7 +4544,9 @@ type Querier interface {
 	// segment, list or field is deleted, and the blocks Scoring lists).
 	VisibilityUnsent(ctx context.Context, workspaceID uuid.UUID) ([]VisibilityUnsentRow, error)
 	// Runs waiting at a branch for an open or click: wake them as soon as the
-	// email they wait on has one, instead of at the end of the window.
+	// email they wait on has one, instead of at the end of the window. A click
+	// is a person's once it settled as one (review AN-2): a scanner's click is
+	// filed as a bot's, and one still waiting to settle wakes nobody yet.
 	WakeAutomationBranchRuns(ctx context.Context, now *time.Time) (int64, error)
 	WarmupActiveForProvider(ctx context.Context, providerID uuid.UUID) (WarmupPlan, error)
 	// Every plan that is still running (daily warm-up job).

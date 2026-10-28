@@ -155,7 +155,8 @@ func (q *Queries) ContactConsentEvents(ctx context.Context, contactID uuid.UUID)
 const contactEngagementSince = `-- name: ContactEngagementSince :one
 SELECT count(*)::bigint AS emails,
        count(*) FILTER (WHERE EXISTS (SELECT 1 FROM delivery_events de WHERE de.message_id = m.id AND de.type = 'open' AND NOT de.machine))::bigint AS human_opened,
-       count(*) FILTER (WHERE EXISTS (SELECT 1 FROM delivery_events de WHERE de.message_id = m.id AND de.type = 'click'))::bigint AS clicked
+       count(*) FILTER (WHERE EXISTS (SELECT 1 FROM delivery_events de WHERE de.message_id = m.id AND de.type = 'click' AND NOT de.machine
+                                       AND de.class <> 'pending'))::bigint AS clicked
 FROM messages m
 WHERE m.contact_id = $1 AND m.stream IN ('broadcast', 'automation') AND m.queued_at >= $2
 `
@@ -172,7 +173,8 @@ type ContactEngagementSinceRow struct {
 }
 
 // Emails sent to a contact since a date (Broadcasts and Automations), how
-// many were opened by a person and how many were clicked.
+// many were opened by a person and how many a person clicked: bot clicks
+// and clicks still waiting to settle aren't a person's (review AN-2).
 func (q *Queries) ContactEngagementSince(ctx context.Context, arg ContactEngagementSinceParams) (ContactEngagementSinceRow, error) {
 	row := q.db.QueryRow(ctx, contactEngagementSince, arg.ContactID, arg.Since)
 	var i ContactEngagementSinceRow

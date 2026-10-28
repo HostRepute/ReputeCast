@@ -220,11 +220,33 @@ func TestScoringTickNightlyAndBands(t *testing.T) {
 		VALUES ($1,$2,$3,$4,$5,'broadcast','delivered','hannah@bergconsulting.de',$6,$6,$6)`, msg, ws, campaign, contact, provider, now.Add(-time.Hour)); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO delivery_events (id, workspace_id, message_id, campaign_id, contact_id, provider_id, type, occurred_at, url, received_at)
-		VALUES ($1,$2,$3,$4,$5,$6,'click',$7,'https://docs.acme.io/flags',$8)`, uuid.Must(uuid.NewV7()), ws, msg, campaign, contact, provider, now.Add(-time.Minute), now); err != nil {
-		t.Fatal(err)
+	// Her click waits a minute to settle, as every click does (review AN-2),
+	// and a scanner clicked another link: neither counts yet.
+	click := uuid.Must(uuid.NewV7())
+	for _, x := range []struct {
+		id      uuid.UUID
+		url     string
+		class   string
+		machine bool
+	}{{click, "https://docs.acme.io/flags", "pending", false}, {uuid.Must(uuid.NewV7()), "https://acme.io/changelog", "bot", true}} {
+		if _, err := pool.Exec(ctx, `INSERT INTO delivery_events (id, workspace_id, message_id, campaign_id, contact_id, provider_id, type, occurred_at, url, received_at, class, machine)
+			VALUES ($1,$2,$3,$4,$5,$6,'click',$7,$8,$9,$10,$11)`, x.id, ws, msg, campaign, contact, provider, now.Add(-6*time.Minute), x.url, now.Add(-5*time.Minute), x.class, x.machine); err != nil {
+			t.Fatal(err)
+		}
 	}
 	svc.Now = func() time.Time { return now.Add(5 * time.Second) }
+	if err := svc.TickWorkspace(ctx, ws); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT score FROM contact_scores WHERE contact_id = $1`, contact).Scan(&score); err != nil || score != 47 {
+		t.Fatalf("a scanner's click and one still settling scored: %d %v", score, err)
+	}
+	// It settles as hers after that tick: the next one scores it, though it
+	// arrived before the window the tick reads.
+	if _, err := pool.Exec(ctx, `UPDATE delivery_events SET class = 'human' WHERE id = $1`, click); err != nil {
+		t.Fatal(err)
+	}
+	svc.Now = func() time.Time { return now.Add(20 * time.Second) }
 	if err := svc.TickWorkspace(ctx, ws); err != nil {
 		t.Fatal(err)
 	}

@@ -380,7 +380,8 @@ SELECT EXISTS (
     JOIN messages m ON m.id = de.message_id
     WHERE de.contact_id = $1 AND m.automation_id = $2 AND de.occurred_at >= $3
       AND (($4::text = 'opened' AND de.type = 'open' AND (NOT $5::boolean OR NOT de.machine))
-        OR ($4::text = 'clicked' AND de.type = 'click' AND ($6::text = '' OR de.url ILIKE '%' || $6::text || '%'))))
+        OR ($4::text = 'clicked' AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending'
+            AND ($6::text = '' OR de.url ILIKE '%' || $6::text || '%'))))
 `
 
 type AutomationEngagedParams struct {
@@ -392,7 +393,8 @@ type AutomationEngagedParams struct {
 	UrlContains  string     `json:"urlContains"`
 }
 
-// Whether the contact opened or clicked any email of this flow since a time.
+// Whether the contact opened or clicked any email of this flow since a time
+// (a person's settled clicks only, review AN-2).
 func (q *Queries) AutomationEngaged(ctx context.Context, arg AutomationEngagedParams) (bool, error) {
 	row := q.db.QueryRow(ctx, automationEngaged,
 		arg.ContactID,
@@ -501,7 +503,8 @@ WHERE r.automation_id = $1 AND r.version = $2 AND r.status IN ('active', 'waitin
     JOIN messages m ON m.id = de.message_id
     WHERE de.contact_id = r.contact_id AND m.automation_id = r.automation_id AND de.occurred_at >= r.entered_at
       AND (($3::text = 'opened' AND de.type = 'open' AND (NOT $4::boolean OR NOT de.machine))
-        OR ($3::text = 'clicked' AND de.type = 'click' AND ($5::text = '' OR de.url ILIKE '%' || $5::text || '%'))))
+        OR ($3::text = 'clicked' AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending'
+            AND ($5::text = '' OR de.url ILIKE '%' || $5::text || '%'))))
 LIMIT 1000
 FOR UPDATE OF r SKIP LOCKED
 `
@@ -519,7 +522,8 @@ type AutomationGoalRunsEngagedRow struct {
 	NodeID string    `json:"nodeId"`
 }
 
-// Runs whose contact opened or clicked an email of this flow since entering.
+// Runs whose contact opened or clicked an email of this flow since entering
+// (a person's settled clicks only, review AN-2).
 func (q *Queries) AutomationGoalRunsEngaged(ctx context.Context, arg AutomationGoalRunsEngagedParams) ([]AutomationGoalRunsEngagedRow, error) {
 	rows, err := q.db.Query(ctx, automationGoalRunsEngaged,
 		arg.AutomationID,
@@ -740,7 +744,8 @@ SELECT EXISTS (
     SELECT 1 FROM delivery_events de
     WHERE de.message_id = $1
       AND (($2::text = 'opened' AND de.type = 'open' AND (NOT $3::boolean OR NOT de.machine))
-        OR ($2::text = 'clicked' AND de.type = 'click' AND ($4::text = '' OR de.url ILIKE '%' || $4::text || '%'))))
+        OR ($2::text = 'clicked' AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending'
+            AND ($4::text = '' OR de.url ILIKE '%' || $4::text || '%'))))
 `
 
 type AutomationMessageEngagedParams struct {
@@ -750,6 +755,8 @@ type AutomationMessageEngagedParams struct {
 	UrlContains string     `json:"urlContains"`
 }
 
+// Whether an email was opened or clicked: clicks only once they settled as
+// a person's (review AN-2).
 func (q *Queries) AutomationMessageEngaged(ctx context.Context, arg AutomationMessageEngagedParams) (bool, error) {
 	row := q.db.QueryRow(ctx, automationMessageEngaged,
 		arg.MessageID,
@@ -3033,11 +3040,13 @@ WHERE r.status = 'waiting' AND r.next_at > $1 AND r.state ->> 'wait' = 'branch'
     SELECT 1 FROM delivery_events de
     WHERE de.message_id = (r.state ->> 'message')::uuid
       AND ((r.state ->> 'want' = 'opened' AND de.type = 'open' AND (NOT coalesce((r.state ->> 'human')::boolean, false) OR NOT de.machine))
-        OR (r.state ->> 'want' = 'clicked' AND de.type = 'click')))
+        OR (r.state ->> 'want' = 'clicked' AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending')))
 `
 
 // Runs waiting at a branch for an open or click: wake them as soon as the
-// email they wait on has one, instead of at the end of the window.
+// email they wait on has one, instead of at the end of the window. A click
+// is a person's once it settled as one (review AN-2): a scanner's click is
+// filed as a bot's, and one still waiting to settle wakes nobody yet.
 func (q *Queries) WakeAutomationBranchRuns(ctx context.Context, now *time.Time) (int64, error) {
 	result, err := q.db.Exec(ctx, wakeAutomationBranchRuns, now)
 	if err != nil {

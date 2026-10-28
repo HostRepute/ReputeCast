@@ -23,7 +23,10 @@ var views = []struct{ name, body string }{
     FROM public.list_memberships lm
     JOIN public.lists l ON l.id = lm.list_id
     WHERE l.workspace_id = {ws} AND l.deleted_at IS NULL`},
-	{"events", `SELECT de.contact_id, de.type, NOT de.machine AS human, de.occurred_at, de.campaign_id, de.url,
+	// human: a person's open or click. A click is a person's once it has
+	// settled as one (review AN-2): a scanner's is a bot's, and one still
+	// waiting to settle isn't anyone's yet.
+	{"events", `SELECT de.contact_id, de.type, (NOT de.machine AND de.class <> 'pending') AS human, de.occurred_at, de.campaign_id, de.url,
            de.mailbox_provider
     FROM public.delivery_events de
     WHERE de.workspace_id = {ws}`},
