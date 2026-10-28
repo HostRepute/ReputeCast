@@ -45,6 +45,23 @@ export function verdictHeading(run: Run): string {
   })
 }
 
+/**
+ * What the checks that couldn't run were (R1.U8): "provider" when every one
+ * is sender reputation data (HostRepute's blocklists, a domain looked up
+ * live, the providers' rates), so the send goes on the providers' own data
+ * ("Continue with provider data only", as SendReadinessStates draws it);
+ * "skipped" when other checks are among them (content that couldn't be
+ * checked, accessibility that couldn't run, links that couldn't be
+ * fetched): the send goes on without them. The server words its audit
+ * entry by the same rule.
+ */
+export type SkippedKind = 'provider' | 'skipped'
+
+export function skippedKind(run: Run): SkippedKind {
+  const unknown = run.checks.filter((c) => c.status === 'unknown')
+  return unknown.length > 0 && unknown.every((c) => c.group === 'reputation') ? 'provider' : 'skipped'
+}
+
 /** "Ready", "Ready with warnings", "Blocked". */
 export function verdictTitle(v: Verdict): string {
   return v === 'blocked' ? t(m.verdictBlocked) : v === 'warnings' ? t(m.verdictWarnings) : t(m.verdictReady)

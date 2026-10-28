@@ -756,7 +756,10 @@ func (s *Service) Poll(ctx context.Context, campaignID uuid.UUID) (ReadinessPoll
 	return out, nil
 }
 
-// AcceptUnknown records "Continue with provider data only" on the latest run.
+// AcceptUnknown records that a person continues without the checks that
+// couldn't run on the latest run: "Continue with provider data only" when
+// they are all sender reputation data, "Continue without the skipped
+// checks" otherwise (ProviderDataOnly), which the audit entry names.
 func (s *Service) AcceptUnknown(ctx context.Context, ws *store.Workspace, p *authz.Principal, campaignID uuid.UUID, runID uuid.UUID) (ReadinessRun, error) {
 	c, err := s.Campaign(ctx, ws, campaignID)
 	if err != nil {
@@ -779,18 +782,42 @@ func (s *Service) AcceptUnknown(ctx context.Context, ws *store.Workspace, p *aut
 			unknown = append(unknown, ch.Key)
 		}
 	}
+	reason := "Continue without the skipped checks"
+	if ProviderDataOnly(latest.Checks) {
+		reason = "Continue with provider data only"
+	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.ReadinessAcceptUnknown(ctx, store.ReadinessAcceptUnknownParams{AcceptedAt: &now, AcceptedBy: &p.UserID, ID: runID}); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "readiness.unknown_accepted", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Reason: "Continue with provider data only", After: map[string]any{"skipped": unknown}, Metadata: map[string]any{"run_id": runID.String(), "problem": latest.Problem}})
+			Reason: reason, After: map[string]any{"skipped": unknown}, Metadata: map[string]any{"run_id": runID.String(), "problem": latest.Problem}})
 	})
 	if err != nil {
 		return ReadinessRun{}, err
 	}
 	return s.mustLatest(ctx, campaignID)
+}
+
+// ProviderDataOnly reports whether every check that couldn't run is sender
+// reputation data (HostRepute's blocklists, a domain looked up live, the
+// providers' rates): continuing without them leaves the providers' own
+// data. Content, accessibility, link or authentication checks that couldn't
+// run are skipped instead (R1.U8). Review & send words its button the same
+// way.
+func ProviderDataOnly(checks []ReadinessCheck) bool {
+	n := 0
+	for _, ch := range checks {
+		if ch.Status != Unknown {
+			continue
+		}
+		if ch.Group != GroupReputation {
+			return false
+		}
+		n++
+	}
+	return n > 0
 }
 
 func (s *Service) mustLatest(ctx context.Context, id uuid.UUID) (ReadinessRun, error) {

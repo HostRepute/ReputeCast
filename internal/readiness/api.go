@@ -95,8 +95,8 @@ func Register(h huma.API, s *Service) {
 			return api.OK(pollForReader(ctx, poll)), err
 		})
 	api.Post(h, api.Op{ID: "accept-unknown-readiness", Path: "/workspaces/{workspace}/campaigns/{campaignId}/readiness/{runId}/accept-unknown",
-		Summary:     "Continue with provider data only",
-		Description: "Accepts the checks that couldn't run (HostRepute unreachable). The skipped checks are recorded in the audit log and re-tried during the send.",
+		Summary:     "Continue without the checks that couldn't run",
+		Description: "Accepts the checks that couldn't run (HostRepute unreachable, content that couldn't be checked, links that couldn't be fetched). The skipped checks are recorded in the audit log and re-tried during the send.",
 		Tags:        tags, Access: api.WorkspaceHuman(authz.CampaignsEdit)},
 		func(ctx context.Context, in *runPathInput) (*api.Body[ReadinessRun], error) {
 			id, err := in.ID()

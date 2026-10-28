@@ -1,3 +1,4 @@
+import { t as tx } from '@/i18n'
 import { approvalMode, heldNote, heldSentence } from './ApprovalCard'
 import {
   acknowledgedKeys,
@@ -19,6 +20,7 @@ import {
   scheduleSentence,
   scheduleShort,
   sendsIn,
+  skippedKind,
   thresholdError,
   verdictHeading,
   verdictShort,
@@ -29,6 +31,8 @@ import {
   type Run,
   type Thresholds,
 } from './logic'
+import { m } from './messages'
+import { sendLockReason } from './parts'
 
 const check = (over: Partial<Check>): Check => ({ key: 'k', group: 'content', status: 'pass', title: 'A check', fixes: [], ...over }) as Check
 
@@ -258,5 +262,42 @@ describe('approval states', () => {
     expect(heldNote([check({ group: 'links', status: 'block' })])).toMatch(/^Fixing the link changes the content/)
     expect(heldNote([check({ group: 'routing', status: 'block' })])).toMatch(/^Changing the route invalidates the approval/)
     expect(heldNote([check({ group: 'links', status: 'block' }), check({ group: 'content', status: 'block' })])).toMatch(/^Fixing a block in the campaign/)
+  })
+})
+
+describe('skipped checks (R1.U8)', () => {
+  const unknown = (...groups: string[]) => ({ checks: groups.map((group, i) => check({ key: `k${i}`, group: group as Check['group'], status: 'unknown' })) }) as Run
+
+  it('continues with provider data only when every skipped check is sender reputation', () => {
+    expect(skippedKind(unknown('reputation', 'reputation'))).toBe('provider')
+    expect(tx(m.continueLabel, { kind: skippedKind(unknown('reputation')) })).toBe('Continue with provider data only')
+  })
+
+  it('continues without the skipped checks when content, links or accessibility couldn’t run', () => {
+    for (const groups of [['content'], ['reputation', 'links'], ['accessibility']]) {
+      expect(skippedKind(unknown(...groups))).toBe('skipped')
+    }
+    expect(tx(m.continueLabel, { kind: 'skipped' })).toBe('Continue without the skipped checks')
+    expect(tx(m.continueNote, { kind: 'skipped' })).toBe(
+      "“Continue without the skipped checks” records the skipped checks in the campaign's audit trail and re-tries them during the send.",
+    )
+  })
+})
+
+describe('sending locked while a change is saved (R1.U4)', () => {
+  const free = { canSend: true, helpers: ['Marcus Chen'], changing: false, blocks: 0, stale: false }
+
+  it('locks the send, with why, while a fix is on its way', () => {
+    expect(sendLockReason(free)).toBeUndefined()
+    expect(sendLockReason({ ...free, changing: true })).toBe('Sending is locked while your change is saved.')
+    expect(sendLockReason({ ...free, changing: true, blocks: 2, stale: true })).toBe('Sending is locked while your change is saved.')
+  })
+
+  it('names who can send first, then blocks, skipped checks and staleness', () => {
+    expect(sendLockReason({ ...free, canSend: false, changing: true })).toBe('Marcus Chen can send it.')
+    expect(sendLockReason({ ...free, blocks: 1 })).toBe('Fix the blocking issue first.')
+    expect(sendLockReason({ ...free, incomplete: 'provider' })).toBe("Some checks couldn't run. Retry them, or continue with provider data only.")
+    expect(sendLockReason({ ...free, incomplete: 'skipped' })).toBe("Some checks couldn't run. Retry them, or continue without them.")
+    expect(sendLockReason({ ...free, stale: true })).toBe('The campaign changed since the checks ran. Run them again first.')
   })
 })

@@ -25,9 +25,25 @@ import { ConfirmSend, type SendIntent } from './ConfirmSend'
 import { FixReview, type FixPick } from './FixReview'
 import { HeldRecheckCard } from './HeldRecheck'
 import { NeedsAttention, PassedCard } from './Issues'
-import { campaignWord, confirmNote, ctaLabel, ctaShort, ctaWhen, primaryFix, scheduleSentence, verdictShort, type Check, type Fix, type Review, type Schedule, type Thresholds } from './logic'
+import {
+  campaignWord,
+  confirmNote,
+  ctaLabel,
+  ctaShort,
+  ctaWhen,
+  primaryFix,
+  scheduleSentence,
+  skippedKind,
+  verdictHeading,
+  type Check,
+  type Fix,
+  type Review,
+  type Schedule,
+  type SkippedKind,
+  type Thresholds,
+} from './logic'
 import { m } from './messages'
-import { fixReason, whenText, whoCan } from './parts'
+import { fixReason, sendLockReason, whenText, whoCan } from './parts'
 import { IncompleteBanner, RunningBanner, ScheduledBanner, ScheduledTiles, StaleBanner, VerdictBanner } from './Verdict'
 import { ByVersion, EACH, languageRows, sentVersions } from '@/features/languages/review'
 import { mr } from '@/features/languages/messages'
@@ -388,12 +404,12 @@ function ReviewBody({
     }
   }
 
-  const acceptUnknown = async () => {
+  const acceptUnknown = async (kind: SkippedKind) => {
     if (!run) return
     setBusy('accept')
     try {
       await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/{runId}/accept-unknown', { params: { path: { ...path, runId: run.id } } })
-      toast({ kind: 'success', title: t(m.continuing), detail: t(m.continuingDetail) })
+      toast({ kind: 'success', title: t(m.continuing, { kind }), detail: t(m.continuingDetail) })
     } catch (e) {
       fail(t(m.continueFailed))(e)
     } finally {
@@ -501,15 +517,17 @@ function ReviewBody({
       return f && f.action !== 'verify_addresses' && f.action !== 'accessibility_one_click' ? [{ check: x, fix: f }] : []
     })
   const applicable = fixes.filter((x) => !reasonFor(x.fix))
-  const sendReason = !a.canSend
-    ? whoCan('send', helpers)
-    : blocked
-      ? t(m.fixBlocksFirst, { count: run.counts.blocks })
-      : incomplete
-        ? t(m.someChecksFailed)
-        : d.stale
-          ? t(m.changedRunAgain)
-          : undefined
+  // Sending stays locked, with why, while a change made here is on its way
+  // (a fix, Include them, an undo), as the fixes drawer is (R1.U4).
+  const skipped = skippedKind(run)
+  const sendReason = sendLockReason({
+    canSend: a.canSend,
+    helpers,
+    changing: busy !== undefined,
+    blocks: blocked ? run.counts.blocks : 0,
+    incomplete: incomplete ? skipped : undefined,
+    stale: d.stale,
+  })
   const label = ctaLabel(d.schedule, recipients)
   const openSend = () => setConfirm('send')
   const reviewFixes = applicable.length ? (
@@ -615,14 +633,14 @@ function ReviewBody({
               <Button disabledReason={a.canEdit ? undefined : whoCan('edit', editHelpers)} onClick={() => void runChecks()}>
                 {run.checks.some((x) => x.status === 'unknown' && x.group === 'reputation') ? t(m.retryBlocklist) : t(m.retryChecks)}
               </Button>
-              <Button variant="primary" loading={busy === 'accept'} disabledReason={a.canEdit ? undefined : whoCan('edit', editHelpers)} onClick={() => void acceptUnknown()}>
-                {t(m.continueProvider)}
+              <Button variant="primary" loading={busy === 'accept'} disabledReason={a.canEdit ? undefined : whoCan('edit', editHelpers)} onClick={() => void acceptUnknown(skipped)}>
+                {t(m.continueLabel, { kind: skipped })}
               </Button>
             </>
           }
         />
         <UnknownList run={run} />
-        <span className="k">{t(m.continueNote)}</span>
+        <span className="k">{t(m.continueNote, { kind: skipped })}</span>
       </div>
     )
   } else if (d.stale) {
@@ -852,7 +870,7 @@ function ReviewBody({
           <div className="rv-page-pad" aria-hidden="true" />
           <StickyAction
             when={ctaWhen(d.schedule)}
-            verdict={verdictShort(run)}
+            verdict={verdictHeading(run)}
             label={ctaShort(d.schedule, recipients)}
             aria={t(m.ctaAria, { label: ctaShort(d.schedule, recipients), when: ctaWhen(d.schedule) })}
             disabledReason={sendReason}

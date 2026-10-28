@@ -6,7 +6,7 @@ import { clock, shortDate } from '@/lib/format'
 import { CodeText } from '@/features/accessibility/review'
 import { CheckRowsGrid } from '@/features/languages/review'
 import { formatList, t } from '@/i18n'
-import { statusWord, type Check, type CheckStatus, type Fix } from './logic'
+import { statusWord, type Check, type CheckStatus, type Fix, type SkippedKind } from './logic'
 import { m } from './messages'
 
 /** The 40px verdict mark of the banners (warn, bad, ok) and the 36px error mark. */
@@ -69,6 +69,29 @@ export function AppHref({ href, className, describedBy, children }: { href: stri
  */
 export function whoCan(what: 'send' | 'edit' | 'route', helpers: string[]): string {
   return t(m.whoCan, { what, names: helpers.length ? formatList(helpers, 'disjunction') : 'none' })
+}
+
+/**
+ * Why the send can't go out yet, in the order a person deals with it: who
+ * can send, a change of theirs still being saved (a fix, Include them, an
+ * undo: R1.U4), blocks, checks that couldn't run, a campaign that changed
+ * since the checks ran. Undefined when it can.
+ */
+export function sendLockReason(o: {
+  canSend: boolean
+  helpers: string[]
+  changing: boolean
+  blocks: number
+  /** Checks couldn't run and nobody continued without them: which kind (skippedKind). */
+  incomplete?: SkippedKind
+  stale: boolean
+}): string | undefined {
+  if (!o.canSend) return whoCan('send', o.helpers)
+  if (o.changing) return t(m.lockedWhileChanging)
+  if (o.blocks > 0) return t(m.fixBlocksFirst, { count: o.blocks })
+  if (o.incomplete) return t(m.someChecksFailed, { kind: o.incomplete })
+  if (o.stale) return t(m.changedRunAgain)
+  return undefined
 }
 
 /** Who may apply a fix: route changes need the right to send, the rest the right to edit. */

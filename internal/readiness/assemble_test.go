@@ -194,6 +194,20 @@ func TestAssembleIncompleteAndEmpty(t *testing.T) {
 	if !res.Incomplete || res.Counts.Unknown == 0 || res.Problem != f.Reputation.Outage || res.Verdict == readiness.VerdictBlocked {
 		t.Fatalf("incomplete: %+v %s %s", res.Counts, res.Problem, res.Verdict)
 	}
+	// R1.U8: only sender reputation data is missing, so the send goes on
+	// the providers' own data ("Continue with provider data only")…
+	if !readiness.ProviderDataOnly(res.Checks) {
+		t.Fatal("HostRepute's outage leaves the providers' data")
+	}
+	// …but content that couldn't be checked is skipped, not provider data
+	// ("Continue without the skipped checks").
+	f.Content.Checked = false
+	if res := readiness.Assemble(f); readiness.ProviderDataOnly(res.Checks) || !res.Incomplete {
+		t.Fatalf("content unchecked: %+v", res.Counts)
+	}
+	if readiness.ProviderDataOnly(readiness.Assemble(digest()).Checks) {
+		t.Fatal("a run where every check ran skipped nothing")
+	}
 
 	f = digest()
 	f.Audience = readiness.AudienceFacts{Empty: true, Mailboxes: map[string]int64{}}

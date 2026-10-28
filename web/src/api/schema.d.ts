@@ -4747,8 +4747,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Continue with provider data only
-         * @description Accepts the checks that couldn't run (HostRepute unreachable). The skipped checks are recorded in the audit log and re-tried during the send.
+         * Continue without the checks that couldn't run
+         * @description Accepts the checks that couldn't run (HostRepute unreachable, content that couldn't be checked, links that couldn't be fetched). The skipped checks are recorded in the audit log and re-tried during the send.
          */
         post: operations["accept-unknown-readiness"];
         delete?: never;

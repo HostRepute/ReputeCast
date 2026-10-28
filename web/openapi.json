@@ -119782,7 +119782,7 @@
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/{runId}/accept-unknown": {
       "post": {
-        "description": "Accepts the checks that couldn't run (HostRepute unreachable). The skipped checks are recorded in the audit log and re-tried during the send.",
+        "description": "Accepts the checks that couldn't run (HostRepute unreachable, content that couldn't be checked, links that couldn't be fetched). The skipped checks are recorded in the audit log and re-tried during the send.",
         "operationId": "accept-unknown-readiness",
         "parameters": [
           {
@@ -119845,7 +119845,7 @@
             "session": []
           }
         ],
-        "summary": "Continue with provider data only",
+        "summary": "Continue without the checks that couldn't run",
         "tags": [
           "Review \u0026 send"
         ],
