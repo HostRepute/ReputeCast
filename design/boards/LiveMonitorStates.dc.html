@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Live sending monitor, connecting, stale, error, rates and complete states</title>
+<title>Live sending monitor, connecting, stale, error, rates, in doubt and complete states</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -207,11 +207,20 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 @media (max-width:1100px){.cw{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:767px){.cw{grid-template-columns:minmax(0,1fr)}}
 
+/* messages in doubt: the decision cards, same values as the paused and outage boards */
+label.opt{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid #E3E6EB;border-radius:8px;cursor:pointer;background:#fff}
+label.opt input{margin-top:3px;flex:none}
+label.opt.sel{border-color:#0F766E;background:#F0FDFA}
+@media (max-width:767px){
+  .dec-act{flex-direction:column-reverse!important;align-items:stretch!important}
+  .dec-act .btn{width:100%;min-height:44px!important}
+}
+
 /* phones: every top-bar target is at least 44px (tabs, links, fields, buttons, the bell and the account menu) */
 @media (max-width:767px){.top .tabs a{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box}.top a:not(.btn){min-height:44px}.top .btn,.top .in,.top select,.top input{min-height:44px;box-sizing:border-box}.top .ibtn{width:44px;height:44px;box-sizing:border-box}.top .ubtn{min-height:44px;box-sizing:border-box}.top nav[aria-label="Breadcrumb"] a{min-width:44px;justify-content:center}.top .chsw a{min-height:44px!important}}
 </style>
 </helmet>
-<h1 class="vh">Live sending monitor, connecting, stale, error, rate adjustment and complete states</h1>
+<h1 class="vh">Live sending monitor, connecting, stale, error, rate adjustment, messages in doubt and complete states</h1>
 <div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh">
   <a href="#main" class="skip">Skip to content</a>
   <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
@@ -343,6 +352,50 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
         </section>
       </section>
 
+      <!-- Messages in doubt (review GS-1): a provider call ended without an answer, so nobody knows whether the provider took them. They are never sent again on a guess. While other mail is still going out, this card sits above the progress card and the header adds a "15 in doubt" badge; once nothing else is left (this example) the send waits for it, Pause and Resume disappear, and the header badge reads "Waiting for your decision · 15 in doubt". Each provider's line says whether it recognizes a message it already took and until when (only SparkPost, 24 h, and Brevo, 30 min, do); "Send them again" is recommended only while every provider still does. -->
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Messages in doubt state">
+        <div class="strip"><span class="dot" style="color:#FBBF24"></span>Decision · 15 messages in doubt, nothing else left to send</div>
+        <section class="card" style="border-color:#FCD34D;display:flex;flex-direction:column" aria-labelledby="st-doubt-title">
+          <div style="display:flex;gap:18px;align-items:flex-start;padding:20px 22px;background:#FFFBEB;border-radius:10px 10px 0 0;flex-wrap:wrap">
+            <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#FDE68A"></circle><path d="M15.5 15.5a4.5 4.5 0 1 1 6.2 4.2c-1.1.5-1.7 1.4-1.7 2.6v.7M20 27.5v.5" stroke="#92400E" stroke-width="3" stroke-linecap="round" fill="none"></path></svg>
+            <div style="display:flex;flex-direction:column;gap:4px;flex:1 1 320px;min-width:120px">
+              <div role="alert"><h2 id="st-doubt-title" style="margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em;color:#78350F">15 messages in doubt wait for your decision</h2></div>
+              <span style="color:#78350F">ReputeCast can't tell whether Postal took them: the call that handed them over ended without an answer. They aren't sent again unless someone decides to, so nobody gets the email twice. Everything else is sent; the send ends once you decide.</span>
+            </div>
+          </div>
+          <div style="padding:18px 22px;display:flex;flex-direction:column;gap:10px">
+            <h3 class="h2">Where they are in doubt</h3>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px 12px;flex-wrap:wrap;font-size:13px"><span style="font-weight:600">Postal · 15 messages · handed over at 09:47:31</span><span class="badge warn"><span class="dot"></span>Could arrive twice</span></div>
+              <span style="font-size:13px">Postal can't recognize a message it already took, so sending them again can deliver a copy twice.</span>
+            </div>
+            <p class="fn" style="padding:8px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#F9FAFB">If the provider reports an event for one (delivered, bounced or a complaint), it counts as sent and leaves this list by itself.</p>
+          </div>
+          <div style="padding:18px 22px;border-top:1px solid #EEF0F3;display:flex;flex-direction:column;gap:12px">
+            <h3 class="h2" id="st-doubt-choose">Choose how to continue</h3>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px" role="radiogroup" aria-labelledby="st-doubt-choose">
+              <label class="opt {{optResend}}"><input type="radio" name="doubt" checked="{{chResend}}" onChange="{{pickResend}}"><span><span style="font-weight:600">Send them again</span><br><span class="k">Anyone whose copy the provider did take gets the email twice.</span></span></label>
+              <label class="opt {{optLeave}}"><input type="radio" name="doubt" checked="{{chLeave}}" onChange="{{pickLeave}}"><span><span style="font-weight:600">Leave them out (recommended)</span><br><span class="k">They're marked "not sent, in doubt" in the report. If the provider reports an event for one, it counts as sent after all.</span></span></label>
+            </div>
+            <div class="dec-act" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center">
+              <span class="k" style="margin-right:auto">Linh Nguyen and Marcus Chen can decide</span>
+              <sc-if value="{{chResend}}" hint-placeholder-val="{{false}}"><button class="btn pri" type="button" style="min-height:40px;padding:0 18px">Send 15 messages again</button></sc-if>
+              <sc-if value="{{chLeave}}" hint-placeholder-val="{{true}}"><button class="btn pri" type="button" style="min-height:40px;padding:0 18px">Leave 15 messages out</button></sc-if>
+            </div>
+          </div>
+        </section>
+        <div class="card" style="padding:20px 22px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap"><span class="n" style="font-size:34px;letter-spacing:-.02em">99%</span><span style="font-size:15px">31,177 of 31,192 sent</span></div>
+          <p class="sumline" aria-live="polite"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="#FEF3C7"></circle><path d="M6.2 5.2v5.6M9.8 5.2v5.6" stroke="#92400E" stroke-width="1.8" stroke-linecap="round"></path></svg><span>Everything else is sent. 15 messages in doubt wait for your decision.</span></p>
+          <div class="bar" style="height:12px;border-radius:6px;display:flex;gap:2px" role="img" aria-label="Sent: Amazon SES 28,073 and Postal 3,104. 15 in doubt."><i style="width:89.9%;background:#4a3aa7"></i><i style="width:9.9%;background:#e87ba4"></i><i style="width:.1%;min-width:4px;background:#B45309"></i></div>
+          <div style="display:flex;gap:8px 18px;flex-wrap:wrap;font-size:13px">
+            <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#4a3aa7"></span>Amazon SES 28,073 · 0 /s</span>
+            <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#e87ba4"></span>Postal 3,104 · 0 /s</span>
+            <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#B45309"></span>In doubt 15</span>
+          </div>
+        </div>
+      </section>
+
       <section style="display:flex;flex-direction:column;gap:14px" aria-label="Complete state">
         <div class="strip"><span class="dot" style="color:#4ADE80"></span>Success · send complete, complaint watch running</div>
         <div style="display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:12px;background:#F0FDF4;border:1px solid #86EFAC;flex-wrap:wrap">
@@ -397,12 +450,12 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2410}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3160}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
     // Shown open, with Outlook lowered from 5 /s to 3 /s and not applied yet.
-    this.state = { ratesOpen: true, applied: null, draft: { gmail: 0, outlook: 3, yahoo: 4, icloud: 3, other: 0 }, note: '', streamPaused: false, moreOpen: false };
+    this.state = { ratesOpen: true, applied: null, draft: { gmail: 0, outlook: 3, yahoo: 4, icloud: 3, other: 0 }, note: '', streamPaused: false, moreOpen: false, doubt: 'leave_out' };
   }
   cfg() {
     // Live view at 09:38:44. Remaining recipients per mailbox provider add up to the 11,598 queued.
@@ -487,6 +540,13 @@ class Component extends DCLogic {
       streamLive: !s.streamPaused,
       streamBtn: s.streamPaused ? 'Resume updates' : 'Pause updates',
       moreOpen: !!s.moreOpen,
+      // Messages in doubt: the recommended choice (leave them out) is picked first.
+      chResend: s.doubt === 'resend',
+      chLeave: s.doubt === 'leave_out',
+      optResend: s.doubt === 'resend' ? 'sel' : '',
+      optLeave: s.doubt === 'leave_out' ? 'sel' : '',
+      pickResend: function () { self.setState({ doubt: 'resend' }); },
+      pickLeave: function () { self.setState({ doubt: 'leave_out' }); },
       toggleMore: function () { self.setState({ moreOpen: !s.moreOpen }); },
       openRatesFromMenu: function () { self.setState({ moreOpen: false, ratesOpen: true, draft: Object.assign({}, applied) }); },
       toggleStream: function () { self.setState({ streamPaused: !s.streamPaused }); },

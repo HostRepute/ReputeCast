@@ -59,6 +59,8 @@ export const mm = defineMessages('live.model', {
   legendHeld: 'Held {count}',
   legendQueuedOn: 'Queued on {provider} {count}',
   legendQueued: 'Queued {count}',
+  /** Messages in doubt (review GS-1): {count} is formatted. */
+  legendInDoubt: 'In doubt {count}',
 
   // Counters.
   tileDelivered: 'Delivered',
@@ -189,6 +191,8 @@ export const mm = defineMessages('live.model', {
   sumRouteHeld: '{count, plural, =0 {{who} share held since {time} and waiting for your decision.} other {{who} share held since {time} and waiting for your decision. {names} keeps sending.}}',
   sumCampaignPaused: 'Every mailbox provider paused at {time} and waits for your decision.',
   sumPaused: 'Paused at {time}. Nothing goes out until someone resumes.',
+  /** Everything else went out; only messages in doubt are left (review GS-1). */
+  sumInDoubtWaiting: 'Everything else is sent. {count, plural, one {# message in doubt waits} other {# messages in doubt wait}} for your decision.',
   sumPreparing: 'Preparing the audience; sending starts in a moment.',
   sumCanaryLead: '{phase, select, continued {Canary continued at {time}.} other {Canary passed at {time}.}}',
   rateFull: 'full rate',
@@ -196,6 +200,8 @@ export const mm = defineMessages('live.model', {
   providerHeld: 'Held',
   /** A retried share's test messages: {done} of {needed} went through in a row (review GS-3). */
   providerRetrying: 'Retrying · {done} of {needed} tests passed',
+  /** A held share testing its provider while nobody has decided yet (review GS-3). */
+  providerProbing: 'Testing · {done} of {needed} tests passed',
   providerWarmup: 'Warm-up',
   providerWarmupNote: "warm-up day {day} · {sent} of today's {cap} cap",
   // A share today's warm-up cap (or a paused plan) holds; it goes on by
@@ -265,6 +271,23 @@ export const mm = defineMessages('live.model', {
   policyPauseAsk: 'Nothing moved automatically because Broadcast failover is set to pause and ask.',
   policyWarmOnly: 'Nothing moved automatically because no warmed-up provider can take the share.',
   policyNone: 'Nothing moved automatically because no other provider can take the share.',
+  /**
+   * Under an outage's log (review R2.L2): {provider} is the sending provider
+   * ("SparkPost"); it recognizes a message it already took (idempotency key)
+   * for {window} ("24 h") after the first try.
+   */
+  retriesKeyed:
+    'Retries used exponential back-off (5 s to 60 s). Each attempt carries an idempotency key, and {provider} recognizes a message it already took for {window} after the first try, so a retry in that time is never delivered twice. After it, a message whose answer was lost is held as in doubt.',
+  /** {provider} is the sending provider ("Postal"); it can't recognize a message sent again. */
+  retriesUnkeyed:
+    "Retries used exponential back-off (5 s to 60 s). {provider} can't recognize a message it already took, so a message goes again only after {provider} refused it; one whose answer was lost is held as in doubt, not sent twice.",
+  /**
+   * While nobody has decided (review GS-3): {short} is the sending provider
+   * ("Postal"); {needed} test messages in a row resume the share; {done}
+   * went through so far.
+   */
+  outageProbing:
+    'Until you decide, ReputeCast tests {short} with {seed, select, yes {1 message to a seed mailbox} other {1 of these messages}} every 60 s and sends the share again after {needed} go through in a row{done, plural, =0 {} other { ({done} so far)}}.',
 
   // "What tripped".
   factWho: '{metric, select, complaint {{who} complaints} bounce {{who} bounces} deferral {{who} deferrals} other {{who} {metric}}}',
@@ -292,6 +315,10 @@ export const mm = defineMessages('live.model', {
   badgeStillSending: '{providers} still sending',
   badgeRouteRetrying: '{provider} route held · retrying every 60 s',
   badgeRouteWaiting: '{provider} route held · waiting for your decision',
+  badgeRouteProbing: '{provider} route held · testing every 60 s until you decide',
+  /** {count} is formatted. */
+  badgeInDoubt: '{count} in doubt',
+  badgeInDoubtWaiting: 'Waiting for your decision · {count} in doubt',
   badgeProviderHeld: '{provider} held',
   badgeStarting: 'Starting',
   badgeSending: 'Sending',
@@ -344,6 +371,29 @@ export const mm = defineMessages('live.model', {
   lostRetrying: 'Reconnecting automatically (attempt {attempt} of {max}).',
   mobileEta: 'ETA {eta} · about {time}',
   mobileEtaPaused: 'Paused',
+  mobileEtaInDoubt: 'Waiting for your decision',
+
+  // Messages in doubt (review GS-1): a provider call ended without an
+  // answer, so ReputeCast can't tell whether the provider took them.
+  inDoubtTitle: '{count, plural, one {# message in doubt} other {# messages in doubt}}',
+  inDoubtWaitingTitle: '{count, plural, one {# message in doubt waits for your decision} other {# messages in doubt wait for your decision}}',
+  /** {providers} lists the sending providers ("Postal and SparkPost"). */
+  inDoubtBody:
+    "ReputeCast can't tell whether {providers} took {count, plural, one {it} other {them}}: the call that handed {count, plural, one {it} other {them}} over ended without an answer. {count, plural, one {It isn't} other {They aren't}} sent again unless someone decides to, so nobody gets the email twice.",
+  inDoubtWaitingRest: 'Everything else is sent; the send ends once you decide.',
+  inDoubtSendingRest: 'The rest of the send goes on meanwhile; decide whenever you are ready.',
+  inDoubtWho: 'Where they are in doubt',
+  /** {provider} is the sending provider ("Postal"); {time} when the call went out. */
+  inDoubtShare: '{provider} · {count, plural, one {# message} other {# messages}} · handed over at {time}',
+  /** {window} is how long the provider recognizes a message it took ("24 h"); {until} a time ("tomorrow 09:09"). */
+  inDoubtSafe: '{provider} recognizes a message it already took for {window} after the first try, so sending them again before {until} delivers none twice.',
+  inDoubtExpired:
+    '{provider} recognizes a message it already took for {window} after the first try. For these that time is up, so sending them again can deliver a copy twice.',
+  inDoubtNoKey: "{provider} can't recognize a message it already took, so sending them again can deliver a copy twice.",
+  inDoubtSafeBadge: 'Safe to send again',
+  inDoubtTwiceBadge: 'Could arrive twice',
+  inDoubtUnknownProvider: 'The provider',
+  inDoubtSettles: 'If the provider reports an event for one (delivered, bounced or a complaint), it counts as sent and leaves this list by itself.',
 
   complaintHeading: 'Complaint',
   complaintHeadingLimit: 'Complaint · limit {limit}',

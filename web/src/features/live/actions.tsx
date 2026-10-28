@@ -29,6 +29,7 @@ export function useLiveActions(slug: string, campaignId: string, apply: (s: Snap
   const cancelM = $api.useMutation('post', `${base}/cancel`)
   const moveM = $api.useMutation('post', `${base}/move`)
   const retryM = $api.useMutation('post', `${base}/retry`)
+  const inDoubtM = $api.useMutation('post', `${base}/in-doubt`)
   const thresholdsM = $api.useMutation('put', `${base}/thresholds`)
   const acknowledgeM = $api.useMutation('post', `${base}/acknowledge`)
   const ratesM = $api.useMutation('put', `${base}/rates`)
@@ -43,6 +44,7 @@ export function useLiveActions(slug: string, campaignId: string, apply: (s: Snap
     cancelM.isPending ||
     moveM.isPending ||
     retryM.isPending ||
+    inDoubtM.isPending ||
     thresholdsM.isPending ||
     acknowledgeM.isPending ||
     ratesM.isPending ||
@@ -106,6 +108,21 @@ export function useLiveActions(slug: string, campaignId: string, apply: (s: Snap
         .mutateAsync({ params: { path }, body })
         .then(settle)
         .catch(fail(tt(m.retryFailed))),
+    /** Messages in doubt (review GS-1): send them again, or leave them out of the send. */
+    decideInDoubt: (body: Schemas['LiveInDoubtRequest']) =>
+      inDoubtM
+        .mutateAsync({ params: { path }, body })
+        .then(settle)
+        .then((r) => {
+          const n = count(r.decided)
+          toast(
+            body.action === 'resend'
+              ? { kind: 'success', title: tt(m.inDoubtResent, { count: r.decided, n }) }
+              : { kind: 'success', title: tt(m.inDoubtLeftOut, { count: r.decided, n }), detail: tt(m.inDoubtLeftOutDetail) },
+          )
+          return r
+        })
+        .catch(fail(tt(m.inDoubtFailed))),
     /** The canary (review GS-10): everyone now, 10 more minutes, or stop. */
     continueCanary: () =>
       canaryContinueM
@@ -190,6 +207,8 @@ export function runAction(actions: LiveActions, a: LiveAction, target?: string):
       return actions.move(a.body, target)
     case 'retry':
       return actions.retry(a.body)
+    case 'inDoubt':
+      return actions.decideInDoubt(a.body)
   }
 }
 
@@ -270,6 +289,8 @@ export function CancelSendDialog({
             description={t(m.pauseInsteadBody)}
           />
         ) : null}
+        {/* Cancelling leaves the messages in doubt out as well (review GS-1). */}
+        {s.inDoubt?.count && choice === 'cancel' ? <p className="k m-0">{t(m.cancelInDoubt, { count: s.inDoubt.count })}</p> : null}
       </div>
     </ConfirmDialog>
   )

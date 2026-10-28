@@ -50,6 +50,7 @@ export default translate(mm, {
   legendHeld: 'Tạm giữ {count}',
   legendQueuedOn: 'Chờ gửi qua {provider} {count}',
   legendQueued: 'Chờ gửi {count}',
+  legendInDoubt: 'Chưa rõ trạng thái {count}',
 
   tileDelivered: 'Gửi thành công',
   tileBounced: 'Bị trả lại',
@@ -167,12 +168,14 @@ export default translate(mm, {
   sumRouteHeld: '{count, plural, =0 {Phần của {who} bị giữ từ {time} và đang chờ bạn quyết định.} other {Phần của {who} bị giữ từ {time} và đang chờ bạn quyết định. {names} vẫn tiếp tục gửi.}}',
   sumCampaignPaused: 'Mọi nhà cung cấp hộp thư đã tạm dừng lúc {time} và chờ bạn quyết định.',
   sumPaused: 'Đã tạm dừng lúc {time}. Không thư nào được gửi cho đến khi có người tiếp tục.',
+  sumInDoubtWaiting: 'Mọi thư khác đã được gửi. {count, plural, other {# thư chưa rõ trạng thái}} đang chờ bạn quyết định.',
   sumPreparing: 'Đang chuẩn bị danh sách người nhận; việc gửi sẽ bắt đầu ngay.',
   sumCanaryLead: '{phase, select, continued {Gửi thử được tiếp tục lúc {time}.} other {Gửi thử đạt lúc {time}.}}',
   rateFull: 'tốc độ tối đa',
   providerDownSince: 'Gián đoạn từ {time}',
   providerHeld: 'Tạm giữ',
   providerRetrying: 'Đang thử lại · {done}/{needed} lần kiểm tra đạt',
+  providerProbing: 'Đang kiểm tra · {done}/{needed} lần kiểm tra đạt',
   providerWarmup: 'Khởi động',
   providerWarmupNote: 'khởi động ngày {day} · {sent} trên giới hạn hôm nay {cap}',
   providerWarmupHeld: 'Chờ giới hạn ngày mai',
@@ -230,6 +233,12 @@ export default translate(mm, {
   policyPauseAsk: 'Không có gì được chuyển tự động vì chuyển dự phòng của luồng Gửi hàng loạt đang đặt là tạm dừng và hỏi.',
   policyWarmOnly: 'Không có gì được chuyển tự động vì không có nhà cung cấp đã khởi động xong nào nhận được phần này.',
   policyNone: 'Không có gì được chuyển tự động vì không có nhà cung cấp nào khác nhận được phần này.',
+  retriesKeyed:
+    'Các lần thử lại dùng giãn cách tăng dần theo cấp số nhân (5 giây đến 60 giây). Mỗi lần thử mang một khóa idempotency, và {provider} nhận ra thư mình đã nhận trong {window} kể từ lần thử đầu, nên lần thử lại trong khoảng đó không bao giờ đến hai lần. Sau đó, thư bị mất phản hồi được giữ ở trạng thái chưa rõ.',
+  retriesUnkeyed:
+    '{provider} không nhận ra được thư mình đã nhận nên các lần thử lại (giãn cách 5 giây đến 60 giây) chỉ gửi lại thư mà {provider} đã từ chối; thư bị mất phản hồi được giữ ở trạng thái chưa rõ, không gửi hai lần.',
+  outageProbing:
+    'Cho đến khi bạn quyết định, ReputeCast kiểm tra {short} bằng {seed, select, yes {1 thư tới một hộp thư mẫu} other {1 thư trong số này}} mỗi 60 giây và gửi lại phần này sau {needed} lần thành công liên tiếp{done, plural, =0 {} other { (đã đạt {done})}}.',
 
   factWho: '{metric, select, complaint {Khiếu nại ở {who}} bounce {Thư trả lại ở {who}} deferral {Lần hoãn nhận ở {who}} other {{metric} ở {who}}}',
   factAll: '{metric, select, complaint {Khiếu nại} bounce {Thư trả lại} deferral {Lần hoãn nhận} other {{Metric}}}',
@@ -255,6 +264,9 @@ export default translate(mm, {
   badgeStillSending: '{providers} vẫn đang gửi',
   badgeRouteRetrying: 'Tuyến {provider} bị tạm giữ · thử lại mỗi 60 giây',
   badgeRouteWaiting: 'Tuyến {provider} bị tạm giữ · đang chờ bạn quyết định',
+  badgeRouteProbing: 'Tuyến {provider} bị tạm giữ · kiểm tra mỗi 60 giây cho đến khi bạn quyết định',
+  badgeInDoubt: '{count} thư chưa rõ trạng thái',
+  badgeInDoubtWaiting: 'Đang chờ bạn quyết định · {count} thư chưa rõ trạng thái',
   badgeProviderHeld: '{provider} bị tạm giữ',
   badgeStarting: 'Đang bắt đầu',
   badgeSending: 'Đang gửi',
@@ -305,6 +317,23 @@ export default translate(mm, {
   lostRetrying: 'Đang tự kết nối lại (lần thử {attempt} trên {max}).',
   mobileEta: 'Còn {eta} · khoảng {time}',
   mobileEtaPaused: 'Đã tạm dừng',
+  mobileEtaInDoubt: 'Đang chờ bạn quyết định',
+
+  inDoubtTitle: '{count, plural, other {# thư chưa rõ trạng thái}}',
+  inDoubtWaitingTitle: '{count, plural, other {# thư chưa rõ trạng thái đang chờ bạn quyết định}}',
+  inDoubtBody:
+    'ReputeCast không biết {providers} đã nhận {count, plural, other {các thư này}} hay chưa: lần gọi bàn giao thư đã kết thúc mà không có phản hồi. Thư sẽ không được gửi lại trừ khi có người quyết định, để không ai nhận email hai lần.',
+  inDoubtWaitingRest: 'Mọi thư khác đã được gửi; lần gửi kết thúc ngay khi bạn quyết định.',
+  inDoubtSendingRest: 'Phần còn lại của lần gửi vẫn tiếp tục; bạn có thể quyết định bất cứ lúc nào.',
+  inDoubtWho: 'Thư chưa rõ trạng thái ở đâu',
+  inDoubtShare: '{provider} · {count, plural, other {# thư}} · bàn giao lúc {time}',
+  inDoubtSafe: '{provider} nhận ra thư mình đã nhận trong {window} kể từ lần thử đầu, nên gửi lại trước {until} sẽ không có thư nào đến hai lần.',
+  inDoubtExpired: '{provider} nhận ra thư mình đã nhận trong {window} kể từ lần thử đầu. Với các thư này thời gian đó đã hết, nên gửi lại có thể khiến một bản đến hai lần.',
+  inDoubtNoKey: '{provider} không nhận ra được thư mình đã nhận, nên gửi lại có thể khiến một bản đến hai lần.',
+  inDoubtSafeBadge: 'Gửi lại an toàn',
+  inDoubtTwiceBadge: 'Có thể đến hai lần',
+  inDoubtUnknownProvider: 'Nhà cung cấp',
+  inDoubtSettles: 'Nếu nhà cung cấp báo một sự kiện cho thư nào đó (gửi thành công, bị trả lại hoặc bị khiếu nại), thư đó được tính là đã gửi và tự rời khỏi danh sách này.',
 
 
   complaintHeading: 'Khiếu nại',

@@ -4,17 +4,23 @@ import { Button } from '@/components/ui/Button'
 import { Grid, Row } from '@/components/ui/Layout'
 import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
+import { andList } from '@/lib/format'
 import { runAction, type LiveActions, type LivePermissions } from './actions'
 import { MailboxTable, ProgressCard, ProviderTable, Tiles, useRatesControl } from './LiveParts'
 import { m } from './messages'
+import { mm } from './model.messages'
 import { ResumeDialog } from './ResumeDialog'
 import {
   defaultOption,
+  inDoubtIncident,
+  inDoubtRows,
+  inDoubtText,
   incidentTitle,
   logLines,
   moveFacts,
   optionAction,
   outageSummary,
+  retriesNote,
   thresholdSummary,
   tiles,
   trippedFacts,
@@ -47,6 +53,7 @@ export function DecisionView({
   return (
     <>
       <IncidentPanel s={s} incident={incident} actions={actions} can={can} onCancelAll={onCancelAll} />
+      <InDoubtPanel s={s} actions={actions} can={can} />
       <ProgressCard s={s} incident={incident} note={note?.id === incident.id ? note.text : undefined} />
       <Tiles tiles={tiles(s, outage ? 'outage' : 'threshold', incident)} />
       {outage ? <ProviderTable s={s} outage={incident} /> : <MailboxTable s={s} decision rates={rates} />}
@@ -132,6 +139,85 @@ function IncidentPanel({ s, incident, actions, can, onCancelAll }: { s: Snapshot
         </div>
       ) : null}
       {outage ? null : <ResumeDialog open={asking} onOpenChange={setAsking} incident={incident} actions={actions} />}
+    </section>
+  )
+}
+
+/**
+ * Messages in doubt (LiveMonitorStates › in doubt; review GS-1, R2.L3): a
+ * provider call ended without an answer, so ReputeCast can't tell whether
+ * the provider took them. Each provider's line says whether it recognizes
+ * a message it already took and until when, which is what makes sending
+ * them again safe; leaving them out marks them "not sent, in doubt" in
+ * the report. While the rest sends, it can wait; once nothing else is
+ * left, the send waits for it.
+ */
+export function InDoubtPanel({ s, actions, can }: { s: Snapshot; actions: LiveActions; can: LivePermissions }) {
+  const tr = useT()
+  const [choice, setChoice] = useState<string>()
+  const [busy, setBusy] = useState(false)
+  const incident = inDoubtIncident(s)
+  if (!incident || !s.inDoubt) return null
+  const t = tones.warn
+  const text = inDoubtText(s)
+  const rows = inDoubtRows(s)
+  const options = incident.detail.options ?? []
+  // Until someone picks, the recommendation (it changes once a provider's window ends).
+  const picked = options.find((o) => o.key === choice) ?? options.find((o) => o.recommended) ?? options[0]
+  const action = picked ? optionAction(incident, picked.key) : null
+  const send = s.helpers?.send ?? []
+  const go = async () => {
+    if (!action || busy) return
+    setBusy(true)
+    try {
+      await runAction(actions, action)
+    } catch {
+      // The toast said what failed; the choice stays for another try.
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <section className={cn('card flex flex-col', t.border)} aria-labelledby={`in-doubt-${incident.id}`}>
+      <div className={cn('flex flex-wrap items-start gap-[18px] rounded-t-[10px] px-[22px] py-5', t.head)}>
+        <InDoubtIcon />
+        <div className="flex flex-col gap-1 max-md:min-w-[120px]" style={{ flex: '1 1 320px' }}>
+          <span id={`in-doubt-${incident.id}`} role="alert" className={cn('text-[20px] font-bold tracking-[-0.01em]', t.text)}>
+            {text.title}
+          </span>
+          <span className={t.text}>{text.body}</span>
+        </div>
+      </div>
+      <Column title={tr(mm.inDoubtWho)} border={false}>
+        {rows.map((r) => (
+          <div key={r.key} className="flex flex-col gap-1">
+            <Row justify="space-between" gap={12} align="flex-start" wrap className="text-[13px]">
+              <span className="font-semibold">{r.title}</span>
+              <Badge tone={r.badge.tone} dot className="flex-none">
+                {r.badge.text}
+              </Badge>
+            </Row>
+            <span className="text-[13px]">{r.text}</span>
+          </div>
+        ))}
+        <p className="lv-fn rounded-lg border border-line bg-bg-2 px-2.5 py-2">{tr(mm.inDoubtSettles)}</p>
+      </Column>
+      {options.length ? (
+        <div className="flex flex-col gap-3 border-t border-line-2 px-[22px] py-[18px]">
+          <h2 className="h2">{tr(m.chooseTitle)}</h2>
+          <Grid min={280} gap={12} role="radiogroup" aria-label={tr(m.chooseLabel)}>
+            {options.map((o) => (
+              <Choice key={o.key} name={`in-doubt-${incident.id}`} option={o} checked={picked?.key === o.key} onChange={() => setChoice(o.key)} />
+            ))}
+          </Grid>
+          <div className="lv-dec-acts flex flex-wrap items-center justify-end gap-2.5">
+            {send.length ? <span className="k mr-auto">{tr(m.inDoubtWho, { names: andList(send) })}</span> : null}
+            <Button variant="primary" className="min-h-[40px] px-[18px]" onClick={() => void go()} loading={busy} disabledReason={can.decide ?? (action ? undefined : tr(m.pickFirst))}>
+              {picked?.action || picked?.title || tr(m.continue)}
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }
@@ -246,8 +332,6 @@ function Tripped({ s, incident }: { s: Snapshot; incident: Incident }) {
 function ProviderLog({ s, incident }: { s: Snapshot; incident: Incident }) {
   const t = useT()
   const lines = logLines(incident)
-  const provider = incident.providerShort || incident.provider
-  const keyed = s.providers.find((p) => p.id === incident.providerId)?.idempotent ?? false
   return (
     <Column title={t(m.whatReturned, { provider: incident.providerShort || incident.provider })}>
       {lines.length ? (
@@ -261,7 +345,7 @@ function ProviderLog({ s, incident }: { s: Snapshot; incident: Incident }) {
       ) : (
         <span className="text-[13px]">{t(m.healthDown)}</span>
       )}
-      <span className="k">{t(keyed ? m.retriesKeyed : m.retriesUnkeyed, { provider })}</span>
+      <span className="k">{retriesNote(incident, s)}</span>
     </Column>
   )
 }
@@ -335,6 +419,16 @@ function PauseIcon() {
     <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
       <circle cx="20" cy="20" r="19" fill="#FECACA" />
       <path d="M15 13v14M25 13v14" stroke="#991B1B" strokeWidth="3.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+/** A question mark: nobody knows whether the provider took them. */
+function InDoubtIcon() {
+  return (
+    <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
+      <circle cx="20" cy="20" r="19" fill="#FDE68A" />
+      <path d="M15.5 15.5a4.5 4.5 0 1 1 6.2 4.2c-1.1.5-1.7 1.4-1.7 2.6v.7M20 27.5v.5" stroke="#92400E" strokeWidth="3" strokeLinecap="round" fill="none" />
     </svg>
   )
 }

@@ -16,12 +16,26 @@ import { CancelSendDialog, useLiveActions, useLivePermissions, type LiveActions,
 import { canaryActive } from './canary'
 import { mc } from './canary.messages'
 import { CanaryView } from './Canary'
-import { DecisionView } from './Decision'
+import { DecisionView, InDoubtPanel } from './Decision'
 import { LiveBody } from './LiveParts'
 import { m } from './messages'
 import { MobileLive } from './Mobile'
 import { ThresholdsDialog } from './ResumeDialog'
-import { freshness, headerBadges, isStarting, lostText, openIncident, openNotices, startedLine, warmupHolds, whoLine, type Incident, type Snapshot } from './model'
+import {
+  freshness,
+  headerBadges,
+  inDoubtIncident,
+  inDoubtWaiting,
+  isStarting,
+  lostText,
+  openIncident,
+  openNotices,
+  startedLine,
+  warmupHolds,
+  whoLine,
+  type Incident,
+  type Snapshot,
+} from './model'
 import {
   CancelledView,
   ConnectingCard,
@@ -137,9 +151,12 @@ function LiveScreen({
       />
     ) : null
   const staleBanner = stale ? <StaleBanner {...staleText(s, stream.heardAt, now)} onReconnect={stream.reconnect} /> : null
+  // A send that waits only for the decision on its messages in doubt has
+  // nothing to resume: the in-doubt panel is the way on (review GS-1).
   const pausedBanner =
-    s.state === 'paused' && !incident ? <PausedBanner s={s} can={can} onResume={resume} onCancel={cancelOpen} busy={actions.pending} /> : null
+    s.state === 'paused' && !incident && !inDoubtWaiting(s) ? <PausedBanner s={s} can={can} onResume={resume} onCancel={cancelOpen} busy={actions.pending} /> : null
   const incidentBanner = incident && mode !== 'decision' ? <IncidentBanner s={s} incident={incident} onDecide={() => setView(undefined)} /> : null
+  const inDoubtPanel = inDoubtIncident(s) ? <InDoubtPanel s={s} actions={actions} can={can} /> : null
   const noticeBanners = active && openNotices(s).length ? <NoticeBanners s={s} actions={actions} can={can} /> : null
   // Shares today's warm-up cap holds, with their choices (review PR-8).
   const warmupBanners = active && warmupHolds(s).length ? <WarmupHoldBanners s={s} actions={actions} can={can} /> : null
@@ -167,12 +184,13 @@ function LiveScreen({
           incident={incident}
           connecting={mode === 'connecting'}
           banner={
-            lostBanner || staleBanner || pausedBanner || incidentBanner || noticeBanners || warmupBanners ? (
+            lostBanner || staleBanner || pausedBanner || incidentBanner || inDoubtPanel || noticeBanners || warmupBanners ? (
               <>
                 {lostBanner}
                 {staleBanner}
                 {pausedBanner}
                 {incidentBanner}
+                {inDoubtPanel}
                 {noticeBanners}
                 {warmupBanners}
               </>
@@ -233,6 +251,7 @@ function LiveScreen({
           {staleBanner}
           {pausedBanner}
           {incidentBanner}
+          {inDoubtPanel}
           {noticeBanners}
           {warmupBanners}
           <LiveBody

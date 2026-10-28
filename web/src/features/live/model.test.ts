@@ -8,6 +8,10 @@ import {
   finishedText,
   freshness,
   headerBadges,
+  inDoubtIncident,
+  inDoubtRows,
+  inDoubtText,
+  inDoubtWaiting,
   incidentTitle,
   lostText,
   mailboxStatus,
@@ -24,6 +28,7 @@ import {
   providerNote,
   providerResultLines,
   providerStatus,
+  retriesNote,
   sentLine,
   startedLine,
   startingText,
@@ -88,6 +93,7 @@ function provider(p: Partial<Provider>): Provider {
     cost: 0,
     plannedCost: 0,
     retrying: false,
+    probing: false,
     probes: 0,
     probesNeeded: 3,
     probeSeed: false,
@@ -484,6 +490,136 @@ describe('LiveMonitorOutage', () => {
     expect(providerStatus(retrying.providers[1]!)).toEqual({ tone: 'warn', text: 'Retrying · 1 of 3 tests passed' })
     const again: Incident = { ...outage, detail: { ...outage.detail, retried: true } }
     expect(outageTitle(again)).toBe('Postal is still down after 15 minutes of retrying')
+  })
+
+  // Review GS-3 (R2.A5b): until someone decides, the held share tests its
+  // provider by itself; a decision still wins.
+  it('says the held share tests its provider until someone decides', () => {
+    const probing = snapshot({
+      ...down,
+      providers: [down.providers[0]!, { ...down.providers[1]!, probing: true, probes: 2, probesNeeded: 3, probeSeed: true }],
+    })
+    expect(headerBadges(probing, outage).map((b) => b.text)).toEqual(['Postal route held · testing every 60 s until you decide', 'SES still sending'])
+    expect(providerStatus(probing.providers[1]!)).toEqual({ tone: 'warn', text: 'Testing · 2 of 3 tests passed' })
+    expect(outageSummary(outage, probing)).toBe(
+      'From 09:14:02 to 09:17:10, 37 send attempts to mta.acme.io failed and 0 succeeded, so the Postal share of this campaign is on hold: 1,956 sent, 1,204 remaining. Amazon SES keeps sending at 14 /s, 73% complete overall. Nothing moved automatically because Broadcast failover is set to pause and ask. Until you decide, ReputeCast tests Postal with 1 message to a seed mailbox every 60 s and sends the share again after 3 go through in a row (2 so far).',
+    )
+    const own = snapshot({ ...probing, providers: [probing.providers[0]!, { ...probing.providers[1]!, probes: 0, probeSeed: false }] })
+    expect(outageSummary(outage, own)).toContain('Until you decide, ReputeCast tests Postal with 1 of these messages every 60 s and sends the share again after 3 go through in a row.')
+  })
+
+  // Review R2.L2: what a provider's idempotency really guarantees, and for how long.
+  it('says how long the provider recognizes a retry, or that it cannot', () => {
+    expect(retriesNote(outage, down)).toBe(
+      "Retries used exponential back-off (5 s to 60 s). Postal can't recognize a message it already took, so a message goes again only after Postal refused it; one whose answer was lost is held as in doubt, not sent twice.",
+    )
+    const keyed = snapshot({ ...down, providers: [down.providers[0]!, { ...down.providers[1]!, idempotent: true, idempotencySeconds: 86400 }] })
+    expect(retriesNote(outage, keyed)).toBe(
+      'Retries used exponential back-off (5 s to 60 s). Each attempt carries an idempotency key, and Postal recognizes a message it already took for 24 h after the first try, so a retry in that time is never delivered twice. After it, a message whose answer was lost is held as in doubt.',
+    )
+  })
+})
+
+// Review GS-1 (R2.L3): messages whose provider call ended without an
+// answer. Nobody knows whether the provider took them, so a person decides.
+describe('Messages in doubt', () => {
+  const doubt: Incident = {
+    id: 'i9',
+    kind: 'in_doubt',
+    scope: 'campaign',
+    mailbox: '',
+    mailboxName: '',
+    providerId: '',
+    provider: '',
+    providerShort: '',
+    metric: 'in_doubt',
+    held: 15,
+    trippedAt: T('09:20:02'),
+    resolution: '',
+    detail: {
+      succeeded: 0,
+      remaining: 15,
+      options: [
+        { key: 'resend', title: 'Send them again', body: 'Where the provider no longer recognizes a message it already took, anyone whose copy it did take gets the email twice.', action: 'Send 15 messages again', recommended: false },
+        { key: 'leave_out', title: 'Leave them out (recommended)', body: 'They\'re marked "not sent, in doubt" in the report.', action: 'Leave 15 messages out', recommended: true },
+      ],
+    },
+  }
+  const shares: NonNullable<Snapshot['inDoubt']>['providers'] = [
+    { providerId: 'postal', provider: 'Postal', short: 'Postal', count: 12, since: T('09:14:02'), idempotent: false, safe: false },
+    { providerId: 'sp', provider: 'SparkPost', short: 'SparkPost', count: 3, since: T('09:14:02'), idempotent: true, windowSeconds: 86400, safeUntil: '2026-10-15T09:09:02Z', safe: true },
+  ]
+  const sending = snapshot({
+    sent: 23060,
+    queued: 7340,
+    startedAt: T('09:00:04'),
+    providers: [{ ...ses, sent: 21104, remaining: 7340, rate: 14 }],
+    inDoubt: { count: 15, since: T('09:14:02'), providers: shares, safe: false, waiting: false, incidentId: 'i9' },
+    incidents: [doubt],
+  })
+  const waiting = snapshot({
+    ...sending,
+    status: 'paused',
+    state: 'paused',
+    sent: 31589,
+    queued: 0,
+    options: { canPause: false, canResume: false, canCancel: true },
+    inDoubt: { ...sending.inDoubt!, waiting: true },
+  })
+
+  it('says what is in doubt and what each provider recognizes', () => {
+    expect(inDoubtIncident(sending)?.id).toBe('i9')
+    expect(inDoubtText(sending)).toEqual({
+      title: '15 messages in doubt',
+      body: "ReputeCast can't tell whether Postal and SparkPost took them: the call that handed them over ended without an answer. They aren't sent again unless someone decides to, so nobody gets the email twice. The rest of the send goes on meanwhile; decide whenever you are ready.",
+    })
+    expect(inDoubtRows(sending)).toEqual([
+      {
+        key: 'postal',
+        title: 'Postal · 12 messages · handed over at 09:14:02',
+        text: "Postal can't recognize a message it already took, so sending them again can deliver a copy twice.",
+        badge: { tone: 'warn', text: 'Could arrive twice' },
+      },
+      {
+        key: 'sp',
+        title: 'SparkPost · 3 messages · handed over at 09:14:02',
+        text: 'SparkPost recognizes a message it already took for 24 h after the first try, so sending them again before tomorrow 09:09 delivers none twice.',
+        badge: { tone: 'ok', text: 'Safe to send again' },
+      },
+    ])
+    // Once the provider's window is over, it says so.
+    const late = { ...sending, inDoubt: { ...sending.inDoubt!, providers: [{ ...shares[1]!, safe: false }] } }
+    expect(inDoubtRows(late)[0]!.text).toBe(
+      'SparkPost recognizes a message it already took for 24 h after the first try. For these that time is up, so sending them again can deliver a copy twice.',
+    )
+    // A resolved incident, or a finished send, has nothing to decide.
+    expect(inDoubtIncident({ ...sending, incidents: [{ ...doubt, resolvedAt: T('09:30:00') }] })).toBeUndefined()
+    expect(inDoubtIncident({ ...sending, state: 'finished' })).toBeUndefined()
+  })
+
+  it('maps the two choices to the API', () => {
+    expect(optionAction(doubt, 'resend')).toEqual({ kind: 'inDoubt', body: { action: 'resend' } })
+    expect(optionAction(doubt, 'leave_out')).toEqual({ kind: 'inDoubt', body: { action: 'leave_out' } })
+    expect(optionAction(doubt, 'resume')).toBeNull()
+  })
+
+  it('shows them beside what keeps sending', () => {
+    expect(inDoubtWaiting(sending)).toBe(false)
+    expect(headerBadges(sending, undefined).map((b) => b.text)).toEqual(['Sending', '15 in doubt'])
+    expect(progressLegend(sending).map((l) => l.text)).toEqual(['Amazon SES 21,104 · 14.0 /s', 'In doubt 15', 'Queued 7,340'])
+  })
+
+  it('waits for the decision once nothing else is left', () => {
+    expect(inDoubtWaiting(waiting)).toBe(true)
+    expect(headerBadges(waiting, undefined).map((b) => b.text)).toEqual(['Waiting for your decision · 15 in doubt'])
+    expect(summaryLine(waiting).text).toBe('Everything else is sent. 15 messages in doubt wait for your decision.')
+    expect(inDoubtText(waiting).title).toBe('15 messages in doubt wait for your decision')
+    expect(inDoubtText(waiting).body).toContain('Everything else is sent; the send ends once you decide.')
+    expect(mobileEta(waiting)).toBe('Waiting for your decision')
+    // A send a person paused isn't waiting for it: Resume still works there.
+    const paused = { ...waiting, pausedBy: 'Linh Nguyen', inDoubt: { ...waiting.inDoubt!, waiting: false } }
+    expect(inDoubtWaiting(paused)).toBe(false)
+    expect(headerBadges(paused, undefined).map((b) => b.text)).toEqual(['Paused by Linh Nguyen', '15 in doubt'])
   })
 })
 

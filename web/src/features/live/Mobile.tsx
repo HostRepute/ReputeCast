@@ -21,6 +21,7 @@ import {
   autoPausedText,
   barSegments,
   eventWord,
+  inDoubtWaiting,
   mailboxColor,
   mailboxName,
   mailboxRate,
@@ -83,7 +84,10 @@ export function MobileLive({
   const { slug, me } = useWorkspace()
   useDocumentTitle(t(shell.docTitleWorkspace, { title: t(m.documentTitle, { name: s.name }), workspace: me.workspace.name }))
   const tiles = mobileTiles(s)
-  const paused = s.state === 'paused' && !incident
+  // Waiting only for the decision on messages in doubt (review GS-1): the
+  // panel above is the way on; there's nothing to pause or resume.
+  const waiting = inDoubtWaiting(s)
+  const paused = s.state === 'paused' && !incident && !waiting
   const [ratesOpen, setRatesOpen] = useState(false)
   const [note, setNote] = useState<{ state: string; text: string }>()
   const state = `${s.state}|${incident?.id ?? ''}`
@@ -312,7 +316,7 @@ export function MobileLive({
           )}
         </Card>
         <p className="k m-0 px-2 text-center text-[12px]">{whoLine(s)}</p>
-        {s.options.canPause || s.options.canCancel || paused ? (
+        {!waiting && (s.options.canPause || s.options.canCancel || paused) ? (
           <div className="lv-pbar" role="group" aria-label={t(mm.sendActions)}>
             {paused ? (
               <Button variant="primary" className="flex-1" onClick={onResume} disabledReason={can.resume} loading={busy}>
@@ -360,6 +364,13 @@ function StateBadge({ s, incident }: { s: Snapshot; incident?: Incident }) {
     return (
       <Badge tone="warn" dot>
         {t(mm.badgeProviderHeld, { provider: incident.providerShort })}
+      </Badge>
+    )
+  }
+  if (inDoubtWaiting(s)) {
+    return (
+      <Badge tone="warn" dot>
+        {t(mm.badgeInDoubt, { count: count(s.inDoubt?.count ?? 0) })}
       </Badge>
     )
   }

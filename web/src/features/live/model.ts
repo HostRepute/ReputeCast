@@ -22,6 +22,7 @@ export type Threshold = Schemas['LiveThreshold']
 export type IncidentOption = Schemas['IncidentOption']
 export type MoveEstimate = Schemas['MoveEstimate']
 export type WarmupHold = Schemas['LiveWarmupHold']
+export type InDoubtShare = Schemas['InDoubtShare']
 export type MailboxKey = Mailbox['key']
 export type Tone = 'ok' | 'warn' | 'bad' | 'info' | 'neutral'
 
@@ -75,6 +76,8 @@ export const queuedColor = 'var(--line-hover)'
 export const heldMailboxColor = 'var(--bad-line)'
 export const heldRouteColor = '#FCD34D'
 export const waitingColor = 'var(--purple-fg)'
+/** Messages in doubt (review GS-1): neither sent nor queued. */
+export const inDoubtColor = 'var(--warn-bar)'
 
 /** Threshold bars: green under half the limit, amber from half, red at the limit. */
 export function usageColor(value: number, limit: number): string {
@@ -210,6 +213,8 @@ export function progressSegments(s: Snapshot, incident?: Incident): Segment[] {
     const route = incident?.kind === 'provider_outage' || (!incident && warmupHolds(s).length > 0)
     segs.push({ key: 'held', value: s.held, color: route ? heldRouteColor : heldMailboxColor, title: tt(mm.held) })
   }
+  const doubt = s.inDoubt?.count ?? 0
+  if (doubt > 0) segs.push({ key: 'doubt', value: doubt, color: inDoubtColor, title: tt(mm.legendInDoubt, { count: count(doubt) }) })
   return segs
 }
 
@@ -496,6 +501,8 @@ export function summaryLine(s: Snapshot, incident?: Incident): { tone: Tone; tex
     const msg = incident.scope === 'route' ? mm.sumRouteHeld : mm.sumMailboxPaused
     return { tone: 'bad', held: true, text: tt(msg, { who: scopeName(incident), time, count: names.length, names: andList(names) }) }
   }
+  // Only messages in doubt are left (review GS-1): the send waits for the decision on them.
+  if (inDoubtWaiting(s)) return { tone: 'warn', held: true, text: tt(mm.sumInDoubtWaiting, { count: s.inDoubt!.count }) }
   if (s.state === 'paused') return { tone: 'warn', held: true, text: tt(mm.sumPaused, { time: clockSeconds(s.pausedAt ?? s.at) }) }
   if (s.state === 'preparing') return { tone: 'ok', text: tt(mm.sumPreparing) }
   // A share today's warm-up cap holds goes on with tomorrow's cap (review PR-8).
@@ -525,6 +532,8 @@ export function summaryLine(s: Snapshot, incident?: Incident): { tone: Tone; tex
 export function providerStatus(p: Provider, mobile = false): { tone: Tone; text: string } {
   if (p.warmupHold) return { tone: 'warn', text: tt(p.warmupHold.paused ? mm.providerWarmupPaused : mm.providerWarmupHeld) }
   if (p.retrying && p.routeStatus === 'held') return { tone: 'warn', text: tt(mm.providerRetrying, { done: p.probes, needed: p.probesNeeded }) }
+  // Held for an outage nobody decided on yet: it tests its provider by itself (review GS-3).
+  if (p.probing && p.routeStatus === 'held') return { tone: 'warn', text: tt(mm.providerProbing, { done: p.probes, needed: p.probesNeeded }) }
   if (p.downSince && (p.routeStatus === 'held' || p.status === 'down')) return { tone: 'bad', text: tt(mm.providerDownSince, { time: clock(p.downSince) }) }
   if (p.routeStatus === 'held' || p.routeStatus === 'paused') return { tone: 'warn', text: tt(mm.providerHeld) }
   if (p.status === 'down') return { tone: 'bad', text: tt(pm.statusDown) }
@@ -687,6 +696,8 @@ export function outageSummary(i: Incident, s: Snapshot): string {
   if (d.policy === 'pause_and_ask') parts.push(tt(mm.policyPauseAsk))
   else if (d.policy === 'warm_only') parts.push(tt(mm.policyWarmOnly))
   else parts.push(tt(mm.policyNone))
+  // Until someone decides, the share tests its provider by itself (review GS-3).
+  if (p?.probing) parts.push(tt(mm.outageProbing, { short, seed: p.probeSeed ? 'yes' : 'no', needed: p.probesNeeded, done: p.probes }))
   return parts.join(' ')
 }
 
@@ -773,6 +784,19 @@ export function trippedEvidence(i: Incident, s: Snapshot): string | undefined {
   })
 }
 
+/**
+ * How retries worked under an outage's log, with what the provider's
+ * idempotency really guarantees (review GS-1, R2.L2): only a provider that
+ * recognizes a message it already took keeps a retry from arriving twice,
+ * and only for its window.
+ */
+export function retriesNote(i: Incident, s: Snapshot): string {
+  const provider = i.providerShort || i.provider
+  const p = s.providers.find((x) => x.id === i.providerId)
+  if (p?.idempotent && p.idempotencySeconds) return tt(mm.retriesKeyed, { provider, window: duration(p.idempotencySeconds / 60) })
+  return tt(mm.retriesUnkeyed, { provider })
+}
+
 /** "09:14:02 ECONNREFUSED mta.acme.io:443" lines of an outage. */
 export function logLines(i: Incident): { key: string; text: string; bad: boolean }[] {
   return (i.detail.log ?? []).map((l, n) => ({ key: `${n}`, text: `${clockSeconds(l.at)} ${l.text}`, bad: l.bad }))
@@ -807,9 +831,12 @@ export type LiveAction =
   | { kind: 'cancel'; body: { mailbox?: MailboxKey; providerId?: string }; whole?: boolean }
   | { kind: 'move'; body: { fromProviderId: string; toProviderId: string } }
   | { kind: 'retry'; body: { providerId: string } }
+  | { kind: 'inDoubt'; body: { action: 'resend' | 'leave_out' } }
 
 /** What an incident option does on the API. */
 export function optionAction(i: Incident, key: string): LiveAction | null {
+  // Messages in doubt (review GS-1): send them again or leave them out.
+  if (i.kind === 'in_doubt') return key === 'resend' || key === 'leave_out' ? { kind: 'inDoubt', body: { action: key } } : null
   const scope = i.scope === 'mailbox_provider' ? { mailbox: i.mailbox as MailboxKey } : i.scope === 'route' ? { providerId: i.providerId } : {}
   switch (key) {
     case 'resume':
@@ -834,7 +861,21 @@ export function autoPausedText(i: Incident): string {
   return who ? tt(mm.badgeAutoPausedWho, { who }) : tt(mm.badgeAutoPaused)
 }
 
-export function headerBadges(s: Snapshot, incident: Incident | undefined): { tone: Tone; text: string; pulse?: boolean; live?: boolean }[] {
+export type HeaderBadge = { tone: Tone; text: string; pulse?: boolean; live?: boolean }
+
+/**
+ * The header's state words. Messages in doubt (review GS-1) add theirs;
+ * once nothing else is left, waiting for that decision is the state.
+ */
+export function headerBadges(s: Snapshot, incident: Incident | undefined): HeaderBadge[] {
+  const doubt = s.inDoubt?.count ?? 0
+  if (!incident && inDoubtWaiting(s)) return [{ tone: 'warn', text: tt(mm.badgeInDoubtWaiting, { count: count(doubt) }) }]
+  const out = stateBadges(s, incident)
+  if (doubt > 0 && ['sending', 'partial', 'paused'].includes(s.state)) out.push({ tone: 'warn', text: tt(mm.badgeInDoubt, { count: count(doubt) }) })
+  return out
+}
+
+function stateBadges(s: Snapshot, incident: Incident | undefined): HeaderBadge[] {
   if (incident?.kind === 'threshold') {
     const out: { tone: Tone; text: string; pulse?: boolean; live?: boolean }[] = [{ tone: 'bad', text: autoPausedText(incident), pulse: true }]
     if (incident.scope === 'mailbox_provider' && s.continuing.length) out.push({ tone: 'ok', text: tt(mm.badgeOthersSending) })
@@ -847,7 +888,7 @@ export function headerBadges(s: Snapshot, incident: Incident | undefined): { ton
   if (incident?.kind === 'provider_outage') {
     const p = s.providers.find((x) => x.id === incident.providerId)
     const out: { tone: Tone; text: string; pulse?: boolean; live?: boolean }[] = [
-      { tone: 'warn', text: tt(p?.retrying ? mm.badgeRouteRetrying : mm.badgeRouteWaiting, { provider: incident.providerShort }) },
+      { tone: 'warn', text: tt(p?.retrying ? mm.badgeRouteRetrying : p?.probing ? mm.badgeRouteProbing : mm.badgeRouteWaiting, { provider: incident.providerShort }) },
     ]
     const others = continuingProviders(s, incident)
     if (others.length) out.push({ tone: 'ok', text: tt(mm.badgeStillSending, { providers: andList(others.map((x) => x.short)) }) })
@@ -893,6 +934,68 @@ export function headerBadges(s: Snapshot, incident: Incident | undefined): { ton
 export function openIncident(s: Snapshot): Incident | undefined {
   if (s.state !== 'partial' && s.state !== 'paused') return undefined
   return s.incident
+}
+
+/**
+ * Whether the send waits only for the decision on its messages in doubt
+ * (review GS-1): everything else went out, and resuming couldn't send
+ * anything.
+ */
+export function inDoubtWaiting(s: Snapshot): boolean {
+  return !!s.inDoubt?.waiting && s.state === 'paused'
+}
+
+/** The open in-doubt incident with its two ways to continue (review GS-1). */
+export function inDoubtIncident(s: Snapshot): Incident | undefined {
+  const id = s.inDoubt?.incidentId
+  if (!id || !['sending', 'partial', 'paused'].includes(s.state)) return undefined
+  return s.incidents.find((i) => i.id === id && i.kind === 'in_doubt' && !i.resolvedAt)
+}
+
+/**
+ * "12 messages in doubt" and what that means: ReputeCast can't tell
+ * whether the provider took them, so they aren't sent again on a guess.
+ */
+export function inDoubtText(s: Snapshot): { title: string; body: string } {
+  const d = s.inDoubt
+  if (!d) return { title: '', body: '' }
+  const waiting = inDoubtWaiting(s)
+  const names = d.providers.map(shareName)
+  const providers = names.length ? andList(names) : tt(mm.inDoubtUnknownProvider)
+  return {
+    title: tt(waiting ? mm.inDoubtWaitingTitle : mm.inDoubtTitle, { count: d.count }),
+    body: `${tt(mm.inDoubtBody, { providers, count: d.count })} ${tt(waiting ? mm.inDoubtWaitingRest : mm.inDoubtSendingRest)}`,
+  }
+}
+
+function shareName(p: InDoubtShare): string {
+  return p.short || p.provider || tt(mm.inDoubtUnknownProvider)
+}
+
+export type InDoubtRow = { key: string; title: string; text: string; badge: { tone: Tone; text: string } }
+
+/**
+ * Each sending provider's messages in doubt, and whether sending them
+ * again can deliver one twice (review GS-1, R2.L2): only a provider that
+ * recognizes a message it already took (an idempotency key), and only
+ * inside its window, makes it safe. Times are the snapshot's day ("09:09",
+ * "tomorrow 09:09").
+ */
+export function inDoubtRows(s: Snapshot): InDoubtRow[] {
+  return (s.inDoubt?.providers ?? []).map((p) => {
+    const provider = shareName(p)
+    const window = p.windowSeconds ? duration(p.windowSeconds / 60) : ''
+    let text: string
+    if (p.idempotent && p.safe && p.safeUntil) text = tt(mm.inDoubtSafe, { provider, window, until: whenText(p.safeUntil, s.at) })
+    else if (p.idempotent && window) text = tt(mm.inDoubtExpired, { provider, window })
+    else text = tt(mm.inDoubtNoKey, { provider })
+    return {
+      key: p.providerId || provider,
+      title: tt(mm.inDoubtShare, { provider, count: p.count, time: clockSeconds(p.since) }),
+      text,
+      badge: p.safe ? { tone: 'ok', text: tt(mm.inDoubtSafeBadge) } : { tone: 'warn', text: tt(mm.inDoubtTwiceBadge) },
+    }
+  })
 }
 
 /** Whether the first events haven't arrived yet (the connecting state). */
@@ -982,7 +1085,7 @@ export function lostText(at: Date, lastUpdate: string | undefined, attempt: numb
 
 /** Mobile progress line: "ETA 13 min · about 09:34". */
 export function mobileEta(s: Snapshot): string {
-  if (s.etaSeconds === undefined) return s.state === 'paused' ? tt(mm.mobileEtaPaused) : ''
+  if (s.etaSeconds === undefined) return inDoubtWaiting(s) ? tt(mm.mobileEtaInDoubt) : s.state === 'paused' ? tt(mm.mobileEtaPaused) : ''
   const eta = duration(s.etaSeconds / 60)
   return s.finishesAt ? tt(mm.mobileEta, { eta, time: whenText(s.finishesAt, s.at) }) : tt(mm.timingEta, { eta })
 }
@@ -1049,6 +1152,8 @@ export function progressLegend(s: Snapshot, incident?: Incident, mobile = false)
       items.push({ key: 'held', color: heldMailboxColor, text: who ? tt(mm.legendHeldWho, { who, count: count(s.held) }) : tt(mm.legendHeld, { count: count(s.held) }) })
     }
   }
+  const doubt = s.inDoubt?.count ?? 0
+  if (doubt > 0) items.push({ key: 'doubt', color: inDoubtColor, text: tt(mm.legendInDoubt, { count: count(doubt) }) })
   const queued = queuedCount(s, incident)
   if (queued > 0) {
     const others = incident?.kind === 'provider_outage' ? continuingProviders(s, incident) : []

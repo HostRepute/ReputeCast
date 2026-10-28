@@ -352,9 +352,16 @@ func testOutage(t *testing.T, f *sendtest.Fixture) {
 		t.Fatalf("outage detail %+v", d)
 	}
 	checkOutageLanguages(t, f, snap)
-	if f.Status() != "paused" {
+	// With only the held share left, the send stays on to test Postal by
+	// itself until someone decides (review GS-3).
+	if f.Status() != "sending" || snap.State != "partial" {
 		f.Dump()
-		t.Fatalf("status %s; with only the held share left the campaign waits for a decision", f.Status())
+		t.Fatalf("status %s (%s); with only the held share left the send keeps testing Postal", f.Status(), snap.State)
+	}
+	for _, p := range snap.Providers {
+		if p.Adapter == "postal" && (!p.Probing || p.NextProbe == nil) {
+			t.Fatalf("the held Postal share isn't testing its provider: %+v", p)
+		}
 	}
 	moved, err := f.E.MoveShare(f.Ctx, f.Campaign, f.Sofia, f.ProviderID("postal"), f.ProviderID("ses"))
 	if err != nil {

@@ -110,11 +110,6 @@ export const m = defineMessages('live', {
   /** {provider} is the sending provider ("Postal"). */
   whatReturned: 'What {provider} returned',
   healthDown: "ReputeCast's health checks marked the provider down; no send call to it has succeeded since.",
-  /** {provider} is the sending provider ("Brevo"); it recognizes a message it already took (idempotency key). */
-  retriesKeyed: 'Retries used exponential back-off (5 s to 60 s). Each attempt carries an idempotency key, so {provider} never takes a message twice.',
-  /** {provider} is the sending provider ("Postal"); it takes no idempotency key. */
-  retriesUnkeyed:
-    "Retries used exponential back-off (5 s to 60 s). {provider} takes no idempotency key, so a message goes again only after {provider} refused it; one whose answer was lost is held as in doubt, not sent twice.",
   likelyCauses: 'Likely causes',
   noCauses: 'Nothing in this send explains it yet; the evidence is on the left.',
   recommended: 'Recommended',
@@ -146,6 +141,8 @@ export const m = defineMessages('live', {
   othersKeepSending: '{providers} keeps sending.',
   nothingElseSending: 'Nothing else is sending.',
   everythingElseSending: 'Everything else keeps sending.',
+  /** A held share testing its provider while nobody has decided (review GS-3); {provider} is "Postal". */
+  bannerProbing: 'Meanwhile ReputeCast tests {provider} with 1 message every 60 s.',
   /** {who} is a mailbox provider ("Outlook") or a sending provider ("Postal"). */
   heldUntilWho: '{count} {who} recipients are held until someone decides.',
   heldUntil: '{count} recipients are held until someone decides.',
@@ -205,6 +202,14 @@ export const m = defineMessages('live', {
   cancelFailed: "Couldn't cancel",
   moveFailed: "Couldn't move the share",
   retryFailed: "Couldn't retry",
+  // Messages in doubt (review GS-1). {n} is {count} formatted.
+  inDoubtResent: '{count, plural, one {# message in doubt goes} other {{n} messages in doubt go}} out again',
+  inDoubtLeftOut: '{count, plural, one {# message in doubt left out} other {{n} messages in doubt left out}}',
+  inDoubtLeftOutDetail: 'The report shows them as "not sent, in doubt".',
+  inDoubtFailed: "Couldn't decide on the messages in doubt",
+  /** On the in-doubt panel's button while one of the people below decides. */
+  inDoubtWho: '{names} can decide',
+  cancelInDoubt: '{count, plural, one {The # message in doubt is} other {The # messages in doubt are}} left out too; the report shows {count, plural, one {it} other {them}} as "not sent, in doubt".',
   resumedWithChanges: 'Resumed with changes',
   /** {who} is a mailbox provider ("Outlook"). */
   resumedWhoWithChanges: '{who} resumed with changes',

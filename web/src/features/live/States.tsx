@@ -551,6 +551,8 @@ export function IncidentBanner({ s, incident, onDecide }: { s: Snapshot; inciden
   const others = continuingProviders(s, incident).map((p) => p.short)
   const rest = outage ? (others.length ? t(m.othersKeepSending, { providers: andList(others) }) : t(m.nothingElseSending)) : t(m.everythingElseSending)
   const held = who ? t(m.heldUntilWho, { count: count(incident.held), who }) : t(m.heldUntil, { count: count(incident.held) })
+  // While nobody has decided, the held share tests its provider by itself (review GS-3).
+  const probing = outage && s.providers.some((p) => p.id === incident.providerId && p.probing && p.routeStatus === 'held')
   return (
     <Banner
       tone={outage ? 'warn' : 'bad'}
@@ -561,7 +563,7 @@ export function IncidentBanner({ s, incident, onDecide }: { s: Snapshot; inciden
         </Button>
       }
     >
-      {`${held} ${rest}`}
+      {[held, rest, probing ? t(m.bannerProbing, { provider: incident.providerShort || incident.provider }) : ''].filter(Boolean).join(' ')}
     </Banner>
   )
 }

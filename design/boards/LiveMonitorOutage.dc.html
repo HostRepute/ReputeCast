@@ -248,7 +248,7 @@ label.opt input{flex:none}
         <span style="font-weight:600">Weekly Digest #142</span>
       </nav>
       <span class="k">Started by Sofia Rossi · approved by Marcus Chen, Oct 10 16:20</span>
-      <span class="badge warn"><span class="dot"></span>Postal route held · waiting for your decision</span>
+      <span class="badge warn"><span class="dot"></span>Postal route held · testing every 60 s until you decide</span>
       <span class="badge ok"><span class="dot"></span>SES still sending</span>
       <span class="fresh"><span class="dot"></span>Live · updated 1 s ago</span>
       <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -263,7 +263,7 @@ label.opt input{flex:none}
           <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#FDE68A"></circle><path d="M20 11v11M20 27v1" stroke="#92400E" stroke-width="3" stroke-linecap="round"></path></svg>
           <div style="display:flex;flex-direction:column;gap:4px;flex:1 1 320px">
             <div role="alert"><h2 id="ou-title" style="margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em;color:#78350F">Postal returned connection errors for 3 minutes</h2></div>
-            <span style="color:#78350F">From 09:14:02 to 09:17:10, 37 send attempts to mta.acme.io failed and 0 succeeded, so the Postal share of this campaign is on hold: 1,956 sent, 1,163 remaining. Amazon SES keeps sending at 14 /s, 74% complete overall. Nothing moved automatically because Broadcast failover is set to pause and ask.</span>
+            <span style="color:#78350F">From 09:14:02 to 09:17:10, 37 send attempts to mta.acme.io failed and 0 succeeded, so the Postal share of this campaign is on hold: 1,956 sent, 1,163 remaining. Amazon SES keeps sending at 14 /s, 74% complete overall. Nothing moved automatically because Broadcast failover is set to pause and ask. Until you decide, ReputeCast tests Postal with 1 message to a seed mailbox every 60 s and sends the share again after 3 go through in a row.</span>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0">
@@ -276,7 +276,8 @@ label.opt input{flex:none}
               <span style="color:#991B1B">09:17:10 ECONNREFUSED mta.acme.io:443</span>
               <span style="color:#5B6472">09:17:40 health check · still failing</span>
             </div>
-            <span class="k">Retries used exponential back-off (5 s to 60 s). Postal takes no idempotency key, so a message goes again only after Postal refused it; one whose answer was lost is held as in doubt, not sent twice.</span>
+            <!-- What the provider's idempotency really guarantees (review R2.L2). A provider that recognizes a message it already took (SparkPost for 24 h, Brevo for 30 min) reads: "Each attempt carries an idempotency key, and SparkPost recognizes a message it already took for 24 h after the first try, so a retry in that time is never delivered twice. After it, a message whose answer was lost is held as in doubt." -->
+            <span class="k">Retries used exponential back-off (5 s to 60 s). Postal can't recognize a message it already took, so a message goes again only after Postal refused it; one whose answer was lost is held as in doubt, not sent twice.</span>
           </div>
           <div style="padding:18px 22px;display:flex;flex-direction:column;gap:10px;border-right:1px solid #EEF0F3">
             <h3 class="h2">Likely causes</h3>
@@ -298,7 +299,7 @@ label.opt input{flex:none}
         <div style="padding:18px 22px;border-top:1px solid #EEF0F3;display:flex;flex-direction:column;gap:12px">
           <h3 class="h2" id="ou-choose">Choose how to continue</h3>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px" role="radiogroup" aria-labelledby="ou-choose">
-            <label class="opt {{optRetry}}"><input type="radio" name="act" checked="{{chRetry}}" onChange="{{pickRetry}}"><span><span style="font-weight:600">Retry Postal</span><br><span class="k">Keep the 1,163 recipients on Postal. ReputeCast sends 1 test message to a seed inbox every 60 s; the share resumes by itself after 3 successes in a row. If Postal is still down after 15 min, you're asked again.</span></span></label>
+            <label class="opt {{optRetry}}"><input type="radio" name="act" checked="{{chRetry}}" onChange="{{pickRetry}}"><span><span style="font-weight:600">Retry Postal</span><br><span class="k">Keep the 1,163 recipients on Postal. ReputeCast keeps sending 1 test message to a seed mailbox every 60 s; the share resumes by itself after 3 successes in a row. If Postal is still down after 15 min, you're asked again.</span></span></label>
             <label class="opt {{optMove}}"><input type="radio" name="act" checked="{{chMove}}" onChange="{{pickMove}}"><span><span style="font-weight:600">Move the remaining Postal share to SES (recommended)</span><br><span class="k">1,163 recipients join the SES queue now. The 1,956 already sent via Postal keep their tracking.</span>
               <span class="k" style="display:block;margin-top:8px;font-weight:600;color:#0B1220">Checks ReputeCast ran on SES</span>
               <span class="chks" role="list">
@@ -355,7 +356,7 @@ label.opt input{flex:none}
             <thead><tr><th scope="col">Sending provider</th><th scope="col" class="r">Sent</th><th scope="col" class="r">Remaining</th><th scope="col" class="r">Rate</th><th scope="col" class="r">Delivered</th><th scope="col" class="r">Bounce</th><th scope="col" class="r">API errors · 3 min</th><th scope="col">Status</th></tr></thead>
             <tbody>
               <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#4a3aa7"></span>Amazon SES</span></td><td class="r n">21,104</td><td class="r n">6,969</td><td class="r n">14.0 /s</td><td class="r n">99.1%</td><td class="r n">0.6%</td><td class="r n">0.1%</td><td><span class="badge ok">Healthy</span></td></tr>
-              <tr style="background:#FFFBEB"><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#e87ba4"></span>Postal</span><div class="k">mta.acme.io · 203.0.113.25</div></td><td class="r n">1,956</td><td class="r n">1,163</td><td class="r n">0 /s</td><td class="r n">98.6%</td><td class="r n">0.9%</td><td class="r n" style="color:#991B1B">100%</td><td><span class="badge bad">Down since 09:14</span></td></tr>
+              <tr style="background:#FFFBEB"><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#e87ba4"></span>Postal</span><div class="k">mta.acme.io · 203.0.113.25</div></td><td class="r n">1,956</td><td class="r n">1,163</td><td class="r n">0 /s</td><td class="r n">98.6%</td><td class="r n">0.9%</td><td class="r n" style="color:#991B1B">100%</td><td><span class="badge warn">Testing · 0 of 3 tests passed</span></td></tr>
             </tbody>
           </table>
         </div>
@@ -364,7 +365,7 @@ label.opt input{flex:none}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1432}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1487}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);

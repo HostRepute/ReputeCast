@@ -823,7 +823,7 @@
   },
   "LiveMonitorOutage.dc.html": {
    "expand": "fill",
-   "h": 1432,
+   "h": 1487,
    "is_interactive": true,
    "page": "monitor",
    "title": "Live monitor · provider outage",
@@ -852,13 +852,22 @@
   },
   "LiveMonitorStates.dc.html": {
    "expand": "fill",
-   "h": 2410,
+   "h": 3160,
    "is_interactive": true,
    "page": "monitor",
-   "title": "Live monitor · connecting / stale / error / rates / complete",
+   "title": "Live monitor · connecting / stale / error / rates / in doubt / complete",
    "w": 1440,
    "x": 5030,
    "y": 0
+  },
+  "LiveMonitorStatesPhone.dc.html": {
+   "h": 5640,
+   "is_interactive": true,
+   "page": "monitor",
+   "title": "Live monitor · connecting / stale / error / rates / in doubt / complete · phone",
+   "w": 390,
+   "x": 1020,
+   "y": 6042
   },
   "LiveMonitorTablet.dc.html": {
    "h": 2776,
@@ -5421,6 +5430,7 @@
   "LiveMonitorTablet.dc.html",
   "LiveMonitorPausedPhone.dc.html",
   "LiveMonitorCanaryPhone.dc.html",
+  "LiveMonitorStatesPhone.dc.html",
   "Campaigns.dc.html",
   "Report.dc.html",
   "ReportStates.dc.html",
