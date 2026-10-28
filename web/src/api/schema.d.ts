@@ -31611,6 +31611,14 @@ export interface components {
             code: string;
             source: boolean;
         };
+        PlacementMailboxResult: {
+            counts: components["schemas"]["PlacementCounts"];
+            /** @description Gmail, Outlook.com, Yahoo */
+            name: string;
+            /** @description The seed mailbox provider's key (gmail) */
+            provider: string;
+            tab?: string;
+        };
         PlacementNotChecked: {
             email: string;
             /** @description The seed's mailbox provider (iCloud) */
@@ -31917,6 +31925,7 @@ export interface components {
              * @description Late copies found until then update the result
              */
             lateUntil?: string;
+            mailboxes: components["schemas"]["PlacementMailboxResult"][];
             name: string;
             /** @enum {string} */
             origin: "placement" | "review" | "composer" | "warmup" | "template";
@@ -31989,6 +31998,7 @@ export interface components {
              * @description Late copies found until then update the result
              */
             lateUntil?: string;
+            mailboxes: components["schemas"]["PlacementMailboxResult"][];
             name: string;
             /** @enum {string} */
             origin: "placement" | "review" | "composer" | "warmup" | "template";

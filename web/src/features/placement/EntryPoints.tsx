@@ -11,7 +11,7 @@ import { orList, shortDate } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import { RunDialog, type RunPreset } from './RunDialog'
-import { base, dayTime, PBar, Pv, resultLine, throughText, usePlacementAccess, type TestRow } from './shared'
+import { base, dayTime, PBar, Pv, resultLine, throughText, usePlacementAccess, type Counts, type TestRow } from './shared'
 
 /*
  * Where else a placement test starts or shows (brief §6): Review & send's
@@ -88,21 +88,36 @@ function ResultsLink({ row, children }: { row: TestRow; children: ReactNode }) {
   )
 }
 
-/** "SES · Inbox 8 · Tab 2 · Spam 0 · Not arrived 1", or what's found so far while the test runs. */
-function reviewLine(t: ReturnType<typeof useT>, p: TestRow['providers'][number], several: boolean, live: boolean): string {
-  const c = p.counts
-  const parts = live
-    ? [t(m.entryFound, { found: c.found, copies: c.copies })]
-    : [t(m.resInbox, { n: c.inbox }), t(m.resTab, { n: c.tab }), t(m.resSpam, { n: c.spam }), ...(c.notArrived > 0 ? [t(m.resNotArrived, { n: c.notArrived })] : [])]
-  return (several ? [p.short, ...parts] : parts).join(' · ')
+/**
+ * "Promotions 2": copies in an inbox tab, by the tab's name (the tabs they
+ * landed in, else the provider's tab for bulk mail), "Tab 2" when unknown.
+ * Undefined for a provider without tabs that put nothing in one (Yahoo).
+ */
+function tabPart(t: ReturnType<typeof useT>, c: Counts, bulkTab?: string): string | undefined {
+  const names = c.tabs.length ? c.tabs : bulkTab ? [bulkTab] : []
+  if (!names.length) return c.tab > 0 ? t(m.resTab, { n: c.tab }) : undefined
+  return t(m.resTabCount, { tab: names.map((x) => t(m.tabName, { tab: x })).join(' / '), n: c.tab })
+}
+
+/** "Inbox 8 · Promotions 2 · Spam 0 · Not arrived 1", or what's found so far while the test runs. */
+function resultParts(t: ReturnType<typeof useT>, c: Counts, live: boolean, bulkTab?: string): string[] {
+  if (live) return [t(m.entryFound, { found: c.found, copies: c.copies })]
+  const tab = tabPart(t, c, bulkTab)
+  return [
+    t(m.resInbox, { n: c.inbox }),
+    ...(tab ? [tab] : []),
+    t(m.resSpam, { n: c.spam }),
+    ...(c.notArrived > 0 ? [t(m.resNotArrived, { n: c.notArrived })] : []),
+  ]
 }
 
 /**
  * Review & send's placement card (SR-9, SendReadiness): the seed mailboxes a
- * test reaches, the campaign's last result per sending provider (Inbox,
- * Tab, Spam, Not arrived) with View results, and Run placement
- * test, which starts one for this campaign as scheduled. Optional, and
- * never part of the verdict; a route over several providers compares them.
+ * test reaches, the campaign's last result per mailbox provider (Gmail,
+ * Outlook.com, Yahoo…: Inbox, Promotions, Spam, Not arrived) and, when the
+ * route went through several sending providers, a line for each, with View
+ * results, and Run placement test, which starts one for this campaign as
+ * scheduled. Optional, and never part of the verdict.
  */
 export function PlacementReviewCard({ campaignId, campaignName, providers, className }: { campaignId: string; campaignName: string; providers: string[]; className?: string }) {
   const t = useT()
@@ -148,12 +163,20 @@ export function PlacementReviewCard({ campaignId, campaignName, providers, class
         {row ? (
           <div className="pl-rv-last">
             <span className="k">{t(m.entryLast, { day: shortDate(row.startedAt), name: row.contentName })}</span>
-            {row.providers.map((p) => (
-              <div key={p.id} className="flex flex-col gap-1.5">
-                <span className="font-medium">{reviewLine(t, p, row.providers.length > 1, live)}</span>
-                <PBar counts={p.counts} waiting={live} />
+            {row.mailboxes.map((b) => (
+              <div key={b.provider} className="flex flex-col gap-1.5">
+                <span className="font-medium">{[b.name, ...resultParts(t, b.counts, live, b.tab)].join(' · ')}</span>
+                <PBar counts={b.counts} waiting={live} />
               </div>
             ))}
+            {/* A route over several sending providers compares them. */}
+            {row.providers.length > 1
+              ? row.providers.map((p) => (
+                  <span key={p.id} className="k">
+                    {t(m.entryThrough, { provider: p.short, result: resultParts(t, p.counts, live).join(' · ') })}
+                  </span>
+                ))
+              : null}
           </div>
         ) : (
           <span className="k pl-rv-last">{t(m.entryNotRun)}</span>

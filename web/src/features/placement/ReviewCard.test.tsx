@@ -1,8 +1,11 @@
 import { screen, within } from '@testing-library/react'
 import type { Schemas } from '@/api/client'
+import { setCatalogLoader, setLocale, t as tx } from '@/i18n'
 import { json, mockApi } from '@/test/api'
 import { renderInWorkspace, workspaceMe } from '@/test/app'
 import { PlacementReviewCard } from './EntryPoints'
+import { m } from './messages'
+import vietnamese from './messages.vi'
 
 type Row = Schemas['PlacementTestRow']
 type Counts = Schemas['PlacementCounts']
@@ -40,8 +43,20 @@ const row = {
   through: 'compare',
   startedAt: '2026-10-12T13:05:00Z',
   startedBy: 'Linh Nguyen',
-  counts: counts({ inbox: 13, tab: 4, spam: 2, notArrived: 1, copies: 20, found: 19 }),
-  providers: [provider('p-ses', 'SES', counts({ inbox: 8, tab: 2 })), provider('p-postal', 'Postal', counts({ inbox: 5, tab: 2, spam: 2, notArrived: 1, found: 9 }))],
+  counts: counts({ inbox: 13, tab: 4, spam: 2, notArrived: 1, copies: 20, found: 19, tabs: ['Promotions'] }),
+  providers: [
+    provider('p-ses', 'SES', counts({ inbox: 8, tab: 2, tabs: ['Promotions'] })),
+    provider('p-postal', 'Postal', counts({ inbox: 5, tab: 2, spam: 2, notArrived: 1, found: 9, tabs: ['Promotions'] })),
+  ],
+  // Where the 20 copies landed at each mailbox provider, through both routes.
+  mailboxes: [
+    { provider: 'gmail', name: 'Gmail', tab: 'Promotions', counts: counts({ copies: 4, found: 4, tab: 4, tabs: ['Promotions'] }) },
+    { provider: 'outlook', name: 'Outlook.com', tab: 'Other', counts: counts({ copies: 4, found: 4, inbox: 3, spam: 1 }) },
+    { provider: 'yahoo', name: 'Yahoo', counts: counts({ copies: 4, found: 4, inbox: 3, spam: 1 }) },
+    { provider: 'icloud', name: 'iCloud', counts: counts({ copies: 4, found: 4, inbox: 4 }) },
+    { provider: 'gmx', name: 'GMX', counts: counts({ copies: 2, found: 2, inbox: 2 }) },
+    { provider: 'webde', name: 'Web.de', counts: counts({ copies: 2, found: 1, inbox: 1, notArrived: 1 }) },
+  ],
 } as unknown as Row
 
 const list = { attention: [], canManage: true, canRun: true, deleteAfter: '24h', manageHelpers: [], providers: [], runHelpers: [], seedsConnected: 10, seedsTotal: 10, starters: [], tests: [row] }
@@ -76,7 +91,7 @@ const me = workspaceMe({ permissions: ['campaigns:view', 'deliverability:view', 
 describe('Review & send · placement test (SR-9)', () => {
   afterEach(() => mockApi({}))
 
-  it("shows the seed mailboxes and the campaign's last result per sending provider", async () => {
+  it("shows the seed mailboxes and the campaign's last result per mailbox provider", async () => {
     mockApi({
       'GET /api/v1/workspaces/acme-newsletter/placement/tests': () => json(list),
       'GET /api/v1/workspaces/acme-newsletter/placement/seeds': () => json(seeds),
@@ -86,8 +101,16 @@ describe('Review & send · placement test (SR-9)', () => {
     expect(await within(card).findByText('10 seed mailboxes (Gmail, Outlook, Yahoo, iCloud, GMX, Web.de) · about 3 min')).toBeInTheDocument()
     expect(within(card).getByText('Optional')).toBeInTheDocument()
     expect(within(card).getByText(/^Last result · .* · Weekly Digest #142$/)).toBeInTheDocument()
-    expect(within(card).getByText('SES · Inbox 8 · Tab 2 · Spam 0')).toBeInTheDocument()
-    expect(within(card).getByText('Postal · Inbox 5 · Tab 2 · Spam 2 · Not arrived 1')).toBeInTheDocument()
+    // Inbox, Promotions and Spam per mailbox provider (SR-9): the tab by
+    // the provider's own name, none for a provider without tabs.
+    expect(within(card).getByText('Gmail · Inbox 0 · Promotions 4 · Spam 0')).toBeInTheDocument()
+    expect(within(card).getByText('Outlook.com · Inbox 3 · Other 0 · Spam 1')).toBeInTheDocument()
+    expect(within(card).getByText('Yahoo · Inbox 3 · Spam 1')).toBeInTheDocument()
+    expect(within(card).getByText('Web.de · Inbox 1 · Spam 0 · Not arrived 1')).toBeInTheDocument()
+    expect(within(card).getAllByRole('img', { name: /^Inbox / })).toHaveLength(6)
+    // Both routes, compared.
+    expect(within(card).getByText('Through SES: Inbox 8 · Promotions 2 · Spam 0')).toBeInTheDocument()
+    expect(within(card).getByText('Through Postal: Inbox 5 · Promotions 2 · Spam 2 · Not arrived 1')).toBeInTheDocument()
     expect(within(card).getByRole('link', { name: 'View results' })).toHaveAttribute('href', '/w/acme-newsletter/deliverability/placement/t-142')
     expect(within(card).getByRole('button', { name: 'Run placement test' })).toBeEnabled()
   })
@@ -116,5 +139,19 @@ describe('Review & send · placement test (SR-9)', () => {
     const run = await within(card).findByRole('button', { name: 'Run placement test' })
     expect(run).toHaveAttribute('aria-disabled', 'true')
     expect(run).toHaveAccessibleDescription("Your role can't run placement tests: ask Linh Nguyen or Marcus Chen.")
+  })
+})
+
+describe("inbox tabs by the mailbox provider's name", () => {
+  afterEach(async () => {
+    await setLocale('en')
+  })
+
+  it('reads Gmail and Outlook tabs in Vietnamese, and any other name as it is', async () => {
+    setCatalogLoader('vi', async () => vietnamese)
+    await setLocale('vi')
+    expect(tx(m.resTabCount, { tab: tx(m.tabName, { tab: 'Promotions' }), n: 4 })).toBe('Quảng cáo 4')
+    expect(tx(m.tabName, { tab: 'Other' })).toBe('Khác')
+    expect(tx(m.tabName, { tab: 'Newsletters' })).toBe('Newsletters')
   })
 })

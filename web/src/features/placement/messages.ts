@@ -588,6 +588,11 @@ export const m = defineMessages('placement', {
   entryCantRunNobody: "Your role can't run placement tests.",
   entryLast: 'Last result · {day} · {name}',
   entryFound: '{found, number} of {copies, number} found',
+  // Review & send's card per mailbox provider (SR-9): "Gmail · Inbox 2 · Promotions 2 · Spam 0".
+  resTabCount: '{tab} {n, number}',
+  // An inbox tab as the mailbox provider names it: Gmail's Primary, Promotions, Updates, Social, Forums; Outlook's Focused and Other.
+  tabName: '{tab}',
+  entryThrough: 'Through {provider}: {result}',
   approvalCaption: 'The campaign’s latest test, for context: {time} · {name} · {through}',
   sendTest: 'Send test',
   testMore: 'More ways to test',

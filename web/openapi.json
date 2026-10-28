@@ -49277,6 +49277,31 @@
         ],
         "type": "object"
       },
+      "PlacementMailboxResult": {
+        "additionalProperties": false,
+        "properties": {
+          "counts": {
+            "$ref": "#/components/schemas/PlacementCounts"
+          },
+          "name": {
+            "description": "Gmail, Outlook.com, Yahoo",
+            "type": "string"
+          },
+          "provider": {
+            "description": "The seed mailbox provider's key (gmail)",
+            "type": "string"
+          },
+          "tab": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "name",
+          "counts"
+        ],
+        "type": "object"
+      },
       "PlacementNotChecked": {
         "additionalProperties": false,
         "properties": {
@@ -50367,6 +50392,12 @@
             "format": "date-time",
             "type": "string"
           },
+          "mailboxes": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementMailboxResult"
+            },
+            "type": "array"
+          },
           "name": {
             "type": "string"
           },
@@ -50483,6 +50514,7 @@
           "startedAt",
           "startedBy",
           "providers",
+          "mailboxes",
           "counts"
         ],
         "type": "object"
@@ -50617,6 +50649,12 @@
             "format": "date-time",
             "type": "string"
           },
+          "mailboxes": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementMailboxResult"
+            },
+            "type": "array"
+          },
           "name": {
             "type": "string"
           },
@@ -50688,6 +50726,7 @@
           "startedAt",
           "startedBy",
           "providers",
+          "mailboxes",
           "counts"
         ],
         "type": "object"
