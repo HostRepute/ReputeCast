@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/paidaccess"
+	"github.com/hostrepute/reputecast/internal/retryaudience"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -39,6 +40,9 @@ type Audience struct {
 	IncludeUnengaged2 *bool `json:"includeUnengaged"`
 	// Paid is who on the lists gets a paid-only campaign (Earn).
 	Paid paidaccess.Audience `json:"-"`
+	// RetryOf is the issue a retry campaign sends again to the addresses
+	// that were blocked for the sender's reputation (review AN-7).
+	RetryOf uuid.UUID `json:"-"`
 }
 
 // ParseAudience reads campaigns.audience (both key styles).
@@ -46,6 +50,7 @@ func ParseAudience(raw json.RawMessage) Audience {
 	var a Audience
 	_ = json.Unmarshal(raw, &a)
 	a.Paid = paidaccess.Parse(raw)
+	a.RetryOf, _ = retryaudience.Of(raw)
 	a.ExcludeLists = append(a.ExcludeLists, a.ExcludeLists2...)
 	a.ExcludeSegments = append(a.ExcludeSegments, a.ExcludeSegs2...)
 	a.ExcludeTiers = append(a.ExcludeTiers, a.ExcludeTiers2...)
@@ -94,6 +99,9 @@ func (a Audience) hash() string {
 	}
 	if a.Paid.Set() {
 		parts = append(parts, "paid:"+a.Paid.Who+":"+a.Paid.Tier)
+	}
+	if a.RetryOf != uuid.Nil {
+		parts = append(parts, "retry:"+a.RetryOf.String())
 	}
 	sum := sha256.Sum256([]byte(strings.Join(parts, "|")))
 	return hex.EncodeToString(sum[:12])
@@ -171,6 +179,13 @@ func finalRecipients(ctx context.Context, q *store.Queries, segs SegmentResolver
 	if err != nil {
 		return nil, err
 	}
+	// A retry goes only to its issue's blocked addresses (review AN-7).
+	retry := retryaudience.Keep{}
+	if a.RetryOf != uuid.Nil {
+		if retry, err = retryaudience.LoadIssue(ctx, q, wsID, a.RetryOf, uuid.Nil); err != nil {
+			return nil, err
+		}
+	}
 	seen := make(map[string]bool, len(rows))
 	excludeSunset := slices.Contains(a.ExcludeTiers, "sunset")
 	byDefault := true
@@ -180,7 +195,7 @@ func finalRecipients(ctx context.Context, q *store.Queries, segs SegmentResolver
 	leaveOut := a.leavesOutUnengaged(byDefault)
 	res := make([]*Facts, 0, len(rows))
 	for _, r := range rows {
-		if !keep.Keeps(r.ID) {
+		if !keep.Keeps(r.ID) || !retry.Keeps(r.ID) {
 			continue
 		}
 		if r.Suppressed || r.RoleAddress || emailaddr.IsRole(r.Email) {

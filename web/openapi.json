@@ -64637,6 +64637,39 @@
         ],
         "type": "object"
       },
+      "ReportBlockedRetry": {
+        "additionalProperties": false,
+        "properties": {
+          "blocked": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "campaign": {
+            "$ref": "#/components/schemas/ReportRetryCampaign"
+          },
+          "of": {
+            "$ref": "#/components/schemas/ReportCampaignRef"
+          },
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unavailable": {
+            "enum": [
+              "is_retry",
+              "not_finished",
+              "none_left",
+              ""
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "blocked",
+          "recipients"
+        ],
+        "type": "object"
+      },
       "ReportBounceDiagnostic": {
         "additionalProperties": false,
         "properties": {
@@ -64681,6 +64714,9 @@
           },
           "label": {
             "type": "string"
+          },
+          "retry": {
+            "$ref": "#/components/schemas/ReportBlockedRetry"
           },
           "type": {
             "type": "string"
@@ -66050,6 +66086,30 @@
         "required": [
           "columns",
           "split"
+        ],
+        "type": "object"
+      },
+      "ReportRetryCampaign": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status"
         ],
         "type": "object"
       },
@@ -120741,6 +120801,73 @@
         ],
         "x-access": "workspace",
         "x-permission": "reports:share"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/retry": {
+      "post": {
+        "description": "Once a block for the sender's reputation or policy is fixed, the addresses it bounced (valid ones, never suppressed for it) get the campaign again, once each: a draft that goes out from Review \u0026 send like any campaign. Addresses suppressed or unsubscribed since are left out. A campaign has one retry at a time; a retry isn't retried again.",
+        "operationId": "retry-campaign-blocked",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerCampaign"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Draft a retry: the campaign again, to its addresses blocked for the sender's reputation",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
       }
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review": {

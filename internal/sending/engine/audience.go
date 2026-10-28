@@ -22,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
+	"github.com/hostrepute/reputecast/internal/retryaudience"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -317,6 +318,13 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 	if err != nil {
 		return err
 	}
+	// A retry goes only to its issue's addresses that were blocked for the
+	// sender's reputation, once (review AN-7); its own messages so far
+	// don't count, so a build that continues keeps them.
+	retry, err := retryaudience.Load(ctx, e.Q, cc.WorkspaceID, cc.Audience, campaignID)
+	if err != nil {
+		return err
+	}
 	// Conditional blocks: each page's recipients are decided once, here
 	// (their lists, tags, fields and tier as the build reads them).
 	var planner Planner
@@ -352,7 +360,7 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			}
 		}
 		for _, c := range rows {
-			if !keep.Keeps(c.ID) {
+			if !keep.Keeps(c.ID) || !retry.Keeps(c.ID) {
 				continue
 			}
 			if why := eligibility(c, def, dups[c.ID]); why != "" {

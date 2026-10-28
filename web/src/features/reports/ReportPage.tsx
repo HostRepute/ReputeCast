@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
-import { useRef, useState } from 'react'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { useRef, useState, type ReactNode } from 'react'
 import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
@@ -128,11 +128,108 @@ function BacklogAlert({ b, onRefresh }: { b: Schemas['ReportIngestBacklog']; onR
 }
 
 /**
+ * "Retry after fixing" in the Investigate dialog (ReportStates; review
+ * AN-7): once the block is fixed, the issue goes again to its blocked
+ * addresses still on the list, once each, as a draft that goes out from
+ * Review & send. Or the retry made already, or why there's none.
+ */
+export function BlockedRetry({ retry, campaignId, reason, onClose }: { retry: Schemas['ReportBlockedRetry']; campaignId: string; reason?: string; onClose: () => void }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  const navigate = useNavigate()
+  const qc = useQueryClient()
+  const create = $api.useMutation('post', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/retry')
+  const [error, setError] = useState<string>()
+  const c = retry.campaign
+  let text: string
+  let action: ReactNode = null
+  if (c?.startedAt) {
+    text = t(m.retrySent, { date: shortDate(c.startedAt), name: c.name })
+    action = (
+      <ButtonLink size="sm" to="/w/$workspace/campaigns/$campaignId/report" params={{ workspace: slug, campaignId: c.id }}>
+        {t(m.retryReport)}
+      </ButtonLink>
+    )
+  } else if (c) {
+    text = t(m.retryDraft, { name: c.name })
+    action = (
+      <ButtonLink size="sm" to="/w/$workspace/campaigns/$campaignId/review" params={{ workspace: slug, campaignId: c.id }}>
+        {t(m.retryOpen)}
+      </ButtonLink>
+    )
+  } else if (retry.unavailable === 'is_retry') {
+    text = t(m.retryIsRetry, { name: retry.of?.name ?? '' })
+  } else if (retry.unavailable === 'not_finished') {
+    text = t(m.retryNotFinished)
+  } else if (retry.unavailable === 'none_left') {
+    text = t(m.retryNoneLeft)
+  } else {
+    const left = retry.blocked - retry.recipients
+    text = [
+      t(m.retryBody, { n: retry.recipients, count: count(retry.recipients) }),
+      left > 0 ? t(m.retryLeftOut, { n: left, count: count(left) }) : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+    action = (
+      <Button
+        size="sm"
+        loading={create.isPending}
+        disabledReason={reason ?? (retry.recipients > 0 ? undefined : t(m.retryNobodyNow))}
+        onClick={async () => {
+          setError(undefined)
+          try {
+            const made = await create.mutateAsync({ params: { path: { workspace: slug, campaignId } } })
+            await qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report/bounces/{type}'] })
+            toast({ kind: 'success', title: tt(m.retryDrafted, { name: made.name }), detail: tt(m.retryDraftedDetail) })
+            onClose()
+            void navigate({ to: '/w/$workspace/campaigns/$campaignId/review', params: { workspace: slug, campaignId: made.id } })
+          } catch (e) {
+            setError(`${tt(m.retryFailed)}: ${errorMessage(e)}`)
+          }
+        }}
+      >
+        {t(m.retryButton, { count: count(retry.recipients) })}
+      </Button>
+    )
+  }
+  return (
+    <section className="col gap-2 rounded-[10px] border border-line px-3.5 py-3" aria-labelledby="rep-retry-h">
+      <h3 id="rep-retry-h" className="m-0 text-[14px] font-semibold">
+        {t(m.retryTitle)}
+      </h3>
+      <p className="m-0 text-[13px] text-ink-2">{text}</p>
+      {action ? <div className="row gap-2">{action}</div> : null}
+      {error ? (
+        <span className="err" role="alert">
+          {error}
+        </span>
+      ) : null}
+    </section>
+  )
+}
+
+/**
  * The Review dialog of a bounce type: what the providers said, then
  * suppress or leave them. Blocks for the sender's reputation are
- * investigated, never suppressed (review AN-7).
+ * investigated, never suppressed, and retried once fixed (review AN-7).
  */
-function ReviewDialog({ row, campaignId, onClose, onSuppress, suppressReason }: { row: BounceRow; campaignId: string; onClose: () => void; onSuppress: () => void; suppressReason?: string }) {
+function ReviewDialog({
+  row,
+  campaignId,
+  onClose,
+  onSuppress,
+  suppressReason,
+  retryReason,
+}: {
+  row: BounceRow
+  campaignId: string
+  onClose: () => void
+  onSuppress: () => void
+  suppressReason?: string
+  /** Why the member can't draft a retry (campaigns they can't edit). */
+  retryReason?: string
+}) {
   const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report/bounces/{type}', {
@@ -199,6 +296,7 @@ function ReviewDialog({ row, campaignId, onClose, onSuppress, suppressReason }: 
           </table>
         </TableScroll>
       )}
+      {blocked && q.data?.retry ? <BlockedRetry retry={q.data.retry} campaignId={campaignId} reason={retryReason} onClose={onClose} /> : null}
     </Dialog>
   )
 }
@@ -440,6 +538,7 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
           row={reviewing}
           campaignId={campaignId}
           suppressReason={suppressReason}
+          retryReason={editReason}
           onClose={() => setReviewing(undefined)}
           onSuppress={() => setSuppressing(reviewing)}
         />

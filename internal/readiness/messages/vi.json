@@ -110,6 +110,7 @@
   "label.riskyAddresses": "Địa chỉ rủi ro",
   "label.invalidAddresses": "Địa chỉ không hợp lệ",
   "label.paidAccess": "Quyền truy cập trả phí",
+  "label.retry": "Gửi lại",
   "label.sponsorBlock": "Khối Nhà tài trợ",
   "label.sponsoredLabel": "Nhãn Được tài trợ",
   "label.upgradeBlock": "Khối Nâng cấp",
@@ -650,6 +651,9 @@
   "paid.includedPastDue": "Có cả dùng thử, quyền truy cập miễn phí và quà tặng, cùng {count, number} hội viên trả phí có thanh toán thất bại trong khi Stripe thử lại.",
   "paid.pastDue": "Có cả {count, number} hội viên trả phí có thanh toán thất bại trong khi Stripe thử lại.",
   "paid.testMembers": "Hội viên trả phí thử nghiệm không bao giờ được tính.",
+  "retry.title": "Gửi lại {issue}: {count, plural, other {# địa chỉ}} bị chặn vì uy tín của bên gửi",
+  "retry.short": "gửi lại",
+  "retry.detail": "{blocked, plural, other {# địa chỉ}} của {issue} bị chặn vì uy tín hoặc chính sách của bên gửi và chưa được gửi lại. Mỗi địa chỉ nhận số này một lần; ai đã hủy đăng ký hoặc bị chặn gửi kể từ đó sẽ được bỏ ra. Hãy gửi khi việc chặn đã được khắc phục: IP hoặc tên miền gửi đã được gỡ khỏi danh sách chặn, hoặc xác thực đã đạt.",
 
   "sponsor.missing": "Khối Nhà tài trợ: thiếu mẫu quảng cáo của {sponsor}",
   "sponsor.due": "Hạn {day}.",

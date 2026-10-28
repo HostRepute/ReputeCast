@@ -240,7 +240,7 @@ export default translate(m, {
 
   checkDelisting: 'Kiểm tra gỡ khỏi danh sách chặn',
   investigate: 'Tìm hiểu',
-  blockedNote: 'Các địa chỉ này vẫn hợp lệ; việc chặn là do IP hoặc tên miền gửi. Chúng vẫn ở trong danh sách của bạn và sẽ được gửi lại sau khi bạn khắc phục.',
+  blockedNote: 'Các địa chỉ này vẫn hợp lệ; việc chặn là do IP hoặc tên miền gửi. Chúng vẫn ở trong danh sách của bạn: sau khi bạn khắc phục, mục Tìm hiểu gửi lại số báo này cho chúng.',
   blockedReview: 'Những gì từng nhà cung cấp nói về các lần chặn này. Các địa chỉ vẫn hợp lệ và không bao giờ bị chặn gửi vì lý do này.',
 
   abNoWinner: 'Không có bản thắng rõ ràng',
@@ -424,6 +424,24 @@ export default translate(m, {
   suppressDone: '{n, plural, other {Đã chặn gửi {count} địa chỉ}}',
   suppressAlready: '{count} địa chỉ đã có trong danh sách từ trước.',
   suppressEveryProvider: 'Mọi nhà cung cấp gửi thư đều nhận được cập nhật.',
+
+  // ── Retry after fixing (blocked for the sender's reputation) ─────────
+  retryTitle: 'Gửi lại sau khi khắc phục',
+  retryBody:
+    '{n, plural, other {Sau khi khắc phục việc chặn, hãy gửi lại số báo này cho {count} địa chỉ bị chặn vẫn còn trong danh sách của bạn.}} Mỗi địa chỉ chỉ nhận lại một lần, và thư đi qua Kiểm tra và gửi như mọi chiến dịch.',
+  retryLeftOut: '{n, plural, other {{count} địa chỉ khác đã hủy đăng ký hoặc bị chặn gửi kể từ đó, nên không được gửi lại.}}',
+  retryButton: 'Gửi lại {count} địa chỉ sau khi khắc phục',
+  retryNobodyNow: 'Mọi địa chỉ bị chặn đều đã hủy đăng ký hoặc bị chặn gửi kể từ đó.',
+  retryDraft: 'Bản gửi lại đang là bản nháp: {name}. Hãy gửi nó từ Kiểm tra và gửi sau khi khắc phục việc chặn.',
+  retryOpen: 'Mở trong Kiểm tra và gửi',
+  retrySent: 'Bản gửi lại đã được gửi vào {date}: {name}.',
+  retryReport: 'Mở báo cáo của nó',
+  retryIsRetry: 'Số báo này là bản gửi lại của {name}, nên các địa chỉ bị chặn của nó không được gửi lại thêm lần nữa. Hãy kiểm tra việc chặn với nhà cung cấp của bạn trước.',
+  retryNotFinished: 'Các địa chỉ bị chặn có thể được gửi lại sau khi đợt gửi kết thúc.',
+  retryNoneLeft: 'Không còn ai để gửi lại: mọi địa chỉ bị chặn cuối cùng đã nhận được thư, hoặc đã được gửi lại rồi.',
+  retryDrafted: 'Đã tạo bản nháp gửi lại: {name}',
+  retryDraftedDetail: 'Hãy xem lại nó trong Kiểm tra và gửi, rồi gửi đi.',
+  retryFailed: 'Không tạo được bản nháp gửi lại',
 
   // ── Sharing ──────────────────────────────────────────────────────────
   shareBadge: 'Liên kết chỉ xem',

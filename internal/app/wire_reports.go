@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -23,6 +24,11 @@ func reportsService(a *App) *reports.Service {
 		Languages: &languages.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
 		// View-online pages a signup came from (an issue's forwards).
 		Links: a.Links,
+		// Who a retry of blocked addresses reaches, as Review & send counts.
+		RetryAudience: func(ctx context.Context, ws *store.Workspace, audience json.RawMessage) (int64, error) {
+			f, err := readinessService(a).Audience(ctx, ws, audience)
+			return f.Final, err
+		},
 	}
 }
 

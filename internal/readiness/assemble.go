@@ -87,6 +87,7 @@ func Assemble(f Facts) ReadinessResult {
 	b.compliance()
 	b.audience()
 	b.paidAudience()
+	b.retryAudience()
 	b.verification()
 	b.routing()
 	b.rules()

@@ -38,6 +38,16 @@ func (s *Service) BounceReview(ctx context.Context, ws *store.Workspace, campaig
 		out.Diagnostics = append(out.Diagnostics, ReportBounceDiagnostic{Provider: providerShort(r.ProviderName, r.Adapter, ""), Type: r.OriginalType,
 			Code: r.OriginalCode, Diagnostic: r.Diagnostic, Count: r.N})
 	}
+	if t.Suppress == "never" {
+		// Blocks for the sender's reputation: retried once fixed (retry.go).
+		c, err := s.Q.ReportCampaign(ctx, store.ReportCampaignParams{WorkspaceID: ws.ID, ID: campaignID})
+		if err != nil {
+			return out, api.MapError(err, "Campaign")
+		}
+		if out.Retry, err = s.blockedRetry(ctx, ws, c); err != nil {
+			return out, err
+		}
+	}
 	return out, nil
 }
 

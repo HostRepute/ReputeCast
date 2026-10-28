@@ -145,6 +145,17 @@ type AudienceFacts struct {
 	// Paid describes a paid-only campaign's recipients (paid.go); nil for
 	// everyone on the lists.
 	Paid *PaidAudienceFacts `json:"-"`
+	// Retry describes a retry's recipients (retry.go); nil when the
+	// campaign isn't a retry.
+	Retry *RetryAudienceFacts `json:"-"`
+}
+
+// RetryAudienceFacts are a retry's: the issue it sends again, and how many
+// of its addresses were blocked for the sender's reputation and haven't had
+// a retry yet (before the audience's own rules leave some out).
+type RetryAudienceFacts struct {
+	Issue   string
+	Blocked int64
 }
 
 // LanguagesFacts are the email's language versions and who gets which.

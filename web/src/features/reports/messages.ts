@@ -249,7 +249,7 @@ export const m = defineMessages('reports', {
   // ── Bounces (new) ────────────────────────────────────────────────────
   checkDelisting: 'Check delisting',
   investigate: 'Investigate',
-  blockedNote: 'These addresses are valid; the block is about the sending IP or domain. They stay on your list and are retried after you fix it.',
+  blockedNote: 'These addresses are valid; the block is about the sending IP or domain. They stay on your list: once you fix it, Investigate sends them this issue again.',
   blockedReview: 'What each provider said about these blocks. The addresses are valid and are never suppressed for them.',
 
   // ── A/B test (new) ───────────────────────────────────────────────────
@@ -435,6 +435,24 @@ export const m = defineMessages('reports', {
   suppressDone: '{n, plural, one {{count} address suppressed} other {{count} addresses suppressed}}',
   suppressAlready: '{count} were already on the list.',
   suppressEveryProvider: 'Every sending provider gets the update.',
+
+  // ── Retry after fixing (blocked for the sender's reputation) ─────────
+  retryTitle: 'Retry after fixing',
+  retryBody:
+    '{n, plural, one {Once the block is fixed, send this issue again to the {count} blocked address still on your list.} other {Once the block is fixed, send this issue again to the {count} blocked addresses still on your list.}} Each gets it once, and it goes out from Review & send with its checks.',
+  retryLeftOut: '{n, plural, one {{count} more unsubscribed or was suppressed since, and is left out.} other {{count} more unsubscribed or were suppressed since, and are left out.}}',
+  retryButton: 'Retry {count} after fixing',
+  retryNobodyNow: 'Every blocked address unsubscribed or was suppressed since.',
+  retryDraft: 'The retry is a draft: {name}. Send it from Review & send once the block is fixed.',
+  retryOpen: 'Open in Review & send',
+  retrySent: 'The retry went out on {date}: {name}.',
+  retryReport: 'Open its report',
+  retryIsRetry: 'This issue is a retry of {name}, so its blocked addresses aren’t retried again. Check the block with your provider first.',
+  retryNotFinished: 'Its blocked addresses can be retried once the send has ended.',
+  retryNoneLeft: 'Nobody is left to retry: every blocked address was delivered in the end, or had a retry already.',
+  retryDrafted: 'Retry drafted: {name}',
+  retryDraftedDetail: 'Check it in Review & send, then send it.',
+  retryFailed: "Couldn't draft the retry",
 
   // ── Sharing ──────────────────────────────────────────────────────────
   shareBadge: 'Read-only link',

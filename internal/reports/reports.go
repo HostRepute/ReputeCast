@@ -69,6 +69,10 @@ type Service struct {
 	// Links reads the view-online pages new subscribers came from (an
 	// issue's forwards); nil leaves those out.
 	Links *linktoken.Signer
+	// RetryAudience counts who an audience goes to, as Review & send counts
+	// them (Send Readiness): what a retry of blocked addresses would reach.
+	// Nil counts the blocked addresses alone.
+	RetryAudience func(ctx context.Context, ws *store.Workspace, audience json.RawMessage) (int64, error)
 }
 
 func (s *Service) now() time.Time {

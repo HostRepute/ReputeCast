@@ -527,6 +527,36 @@ type ReportBounceReview struct {
 	Count        int64                    `json:"count"`
 	Unsuppressed int64                    `json:"unsuppressed"`
 	Diagnostics  []ReportBounceDiagnostic `json:"diagnostics"`
+	// Retry is "Retry after fixing", for blocks for the sender's
+	// reputation or policy (review AN-7); absent for other bounces.
+	Retry *ReportBlockedRetry `json:"retry,omitempty"`
+}
+
+// ReportBlockedRetry is what a retry of the blocked addresses would do, or
+// the retry made already (review AN-7, R5.L5).
+type ReportBlockedRetry struct {
+	// Blocked counts the addresses blocked for the sender's reputation or
+	// policy, never delivered, that haven't had a retry; Recipients those
+	// of them a retry goes to now (still in the audience: not unsubscribed,
+	// suppressed or paused).
+	Blocked    int64 `json:"blocked"`
+	Recipients int64 `json:"recipients"`
+	// Campaign is the retry, once made (a draft, or sent).
+	Campaign *ReportRetryCampaign `json:"campaign,omitempty"`
+	// Unavailable says why no retry can be made: is_retry (this campaign is
+	// a retry, which isn't retried again), not_finished (its send hasn't
+	// ended) or none_left (no address left to retry).
+	Unavailable string `json:"unavailable,omitempty" enum:"is_retry,not_finished,none_left,"`
+	// Of is the campaign a retry retries (is_retry).
+	Of *ReportCampaignRef `json:"of,omitempty"`
+}
+
+// ReportRetryCampaign is a campaign's retry.
+type ReportRetryCampaign struct {
+	ID        string     `json:"id"`
+	Name      string     `json:"name"`
+	Status    string     `json:"status"`
+	StartedAt *time.Time `json:"startedAt,omitempty"`
 }
 
 // ReportSuppressResult says how many bounced addresses were suppressed.

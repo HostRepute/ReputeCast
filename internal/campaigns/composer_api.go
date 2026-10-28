@@ -215,6 +215,20 @@ func RegisterComposer(h huma.API, s *Service) {
 			out, err := s.Duplicate(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 			return api.OK(out), err
 		})
+	api.Post(h, api.Op{ID: "retry-campaign-blocked", Path: "/workspaces/{workspace}/campaigns/{campaignId}/retry",
+		Summary: "Draft a retry: the campaign again, to its addresses blocked for the sender's reputation",
+		Description: "Once a block for the sender's reputation or policy is fixed, the addresses it bounced (valid ones, never suppressed for it) get the campaign " +
+			"again, once each: a draft that goes out from Review & send like any campaign. Addresses suppressed or unsubscribed since are left out. A campaign has " +
+			"one retry at a time; a retry isn't retried again.",
+		Tags: tags, Access: edit, Status: 201},
+		func(ctx context.Context, in *CampaignPath) (*api.Body[ComposerCampaign], error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.CreateRetry(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
+			return api.OK(out), err
+		})
 	api.Post(h, api.Op{ID: "send-campaign-test", Path: "/workspaces/{workspace}/campaigns/{campaignId}/test", Summary: "Send a test email of the saved content",
 		Description: "Goes through the System route. Without campaigns:send, test emails can only go to your own address.",
 		Tags:        tags, Access: edit},

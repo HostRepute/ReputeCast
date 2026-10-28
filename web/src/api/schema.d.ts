@@ -4932,6 +4932,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Draft a retry: the campaign again, to its addresses blocked for the sender's reputation
+         * @description Once a block for the sender's reputation or policy is fixed, the addresses it bounced (valid ones, never suppressed for it) get the campaign again, once each: a draft that goes out from Review & send like any campaign. Addresses suppressed or unsubscribed since are left out. A campaign has one retry at a time; a retry isn't retried again.
+         */
+        post: operations["retry-campaign-blocked"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review": {
         parameters: {
             query?: never;
@@ -36007,6 +36027,16 @@ export interface components {
             /** Format: int64 */
             waiting: number;
         };
+        ReportBlockedRetry: {
+            /** Format: int64 */
+            blocked: number;
+            campaign?: components["schemas"]["ReportRetryCampaign"];
+            of?: components["schemas"]["ReportCampaignRef"];
+            /** Format: int64 */
+            recipients: number;
+            /** @enum {string} */
+            unavailable?: "is_retry" | "not_finished" | "none_left" | "";
+        };
         ReportBounceDiagnostic: {
             code: string;
             /** Format: int64 */
@@ -36020,6 +36050,7 @@ export interface components {
             count: number;
             diagnostics: components["schemas"]["ReportBounceDiagnostic"][];
             label: string;
+            retry?: components["schemas"]["ReportBlockedRetry"];
             type: string;
             /** Format: int64 */
             unsuppressed: number;
@@ -36458,6 +36489,13 @@ export interface components {
         ReportProviderTable: {
             columns: components["schemas"]["ReportProviderColumn"][];
             split: boolean;
+        };
+        ReportRetryCampaign: {
+            id: string;
+            name: string;
+            /** Format: date-time */
+            startedAt?: string;
+            status: string;
         };
         ReportRollout: {
             /** Format: date-time */
@@ -57244,6 +57282,39 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "retry-campaign-blocked": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerCampaign"];
+                };
             };
             /** @description Error */
             default: {

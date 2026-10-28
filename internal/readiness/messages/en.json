@@ -110,6 +110,7 @@
   "label.riskyAddresses": "Risky addresses",
   "label.invalidAddresses": "Invalid addresses",
   "label.paidAccess": "Paid access",
+  "label.retry": {"message": "Retry", "note": "the label of the Review & send line of a retry: an issue sent again to the addresses a mailbox provider blocked for the sender's reputation"},
   "label.sponsorBlock": "Sponsor block",
   "label.sponsoredLabel": "Sponsored label",
   "label.upgradeBlock": "Upgrade block",
@@ -650,6 +651,9 @@
   "paid.includedPastDue": "Trials, complimentary and gift access are included, and {count, plural, one {# paid member} other {# paid members}} whose payment failed while Stripe retries.",
   "paid.pastDue": "{count, plural, one {# paid member} other {# paid members}} whose payment failed while Stripe retries are included.",
   "paid.testMembers": "Test paid members never count.",
+  "retry.title": {"message": "A retry of {issue}: {count, plural, one {# address} other {# addresses}} blocked for the sender's reputation", "note": "issue: the campaign sent again (workspace content, never translated)"},
+  "retry.short": "a retry",
+  "retry.detail": {"message": "{blocked, plural, one {# address} other {# addresses}} of {issue} were blocked for the sender's reputation or policy and haven't had a retry yet. Each gets the issue once; anyone who unsubscribed or was suppressed since is left out. Send it once the block is fixed: the sending IP or domain delisted, or authentication passing.", "note": "blocked: the addresses blocked before the audience's own rules leave anyone out"},
 
   "sponsor.missing": "Sponsor block: {endsInS, select, yes {{sponsor}’} other {{sponsor}’s}} creative is missing",
   "sponsor.due": "Due {day}.",

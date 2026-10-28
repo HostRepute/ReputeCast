@@ -23,6 +23,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/paidaccess"
+	"github.com/hostrepute/reputecast/internal/retryaudience"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/templates"
 )
@@ -69,6 +70,9 @@ type dbAudience struct {
 	// sunset policy's override, "Include them"); a save keeps them.
 	IncludeSunset    bool  `json:"include_sunset,omitempty"`
 	IncludeUnengaged *bool `json:"include_unengaged,omitempty"`
+	// RetryOf makes the campaign a retry of an issue (retry.go): a save
+	// keeps it, so the retry still goes only to the blocked addresses.
+	RetryOf string `json:"retry_of,omitempty"`
 }
 
 func audienceFromDB(raw json.RawMessage) ComposerAudience {
@@ -489,7 +493,11 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			abt.Winner = ""
 			ab = abt.toDB()
 		}
-		audience, count = c.Audience, c.AudienceCount
+		// A copy of a retry is a campaign of its own, to the whole audience.
+		audience, count = retryaudience.Without(c.Audience), c.AudienceCount
+		if _, retry := retryaudience.Of(c.Audience); retry {
+			count = nil
+		}
 		// A scoped member's copy keeps the audience only if they could pick it.
 		if len(p.Scope.Lists) > 0 && s.checkAudience(ctx, s.Q, ws, p, audienceFromDB(c.Audience)) != nil {
 			audience, count = []byte(`{}`), nil

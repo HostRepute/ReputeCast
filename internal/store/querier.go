@@ -3138,6 +3138,28 @@ type Querier interface {
 	RestoreList(ctx context.Context, id uuid.UUID) (List, error)
 	ResumeAutomation(ctx context.Context, arg ResumeAutomationParams) error
 	RetireAutomationVersion(ctx context.Context, arg RetireAutomationVersionParams) error
+	// Retries of an issue's blocked addresses (review AN-7, R5.L5).
+	// Who a retry of an issue may go to: the contacts whose email a mailbox
+	// provider blocked for the sender's reputation or policy and never
+	// delivered, who haven't been sent a retry of it yet. The retry being built
+	// (retry_id) doesn't count, so a build that continues keeps its own.
+	RetryBlockedContacts(ctx context.Context, arg RetryBlockedContactsParams) ([]uuid.UUID, error)
+	// An issue's retry, when it has one that isn't deleted.
+	RetryCampaignOf(ctx context.Context, arg RetryCampaignOfParams) (RetryCampaignOfRow, error)
+	// A retry has its issue's language versions: the source's blocks first.
+	RetryCopyLanguageSource(ctx context.Context, arg RetryCopyLanguageSourceParams) error
+	// Then each language version, as everyone else got it (subject, preheader
+	// and content come in: an A/B test's winner, with no test of its own).
+	RetryCopyTranslation(ctx context.Context, arg RetryCopyTranslationParams) error
+	// A retry: a draft copy of its issue as everyone else got it (subject,
+	// preheader and content come in: an A/B test's winner, with no test of its
+	// own), from the same sender with the same settings, to the issue's
+	// audience kept to its blocked addresses.
+	RetryInsertCampaign(ctx context.Context, arg RetryInsertCampaignParams) error
+	// The name of the issue a retry retries (deleted or not).
+	RetryIssueName(ctx context.Context, arg RetryIssueNameParams) (string, error)
+	// Takes an issue for a retry: two people asking at once make one retry.
+	RetryLockIssue(ctx context.Context, arg RetryLockIssueParams) (RetryLockIssueRow, error)
 	RevenueActiveSubscriptions(ctx context.Context, arg RevenueActiveSubscriptionsParams) (int64, error)
 	// The latest paid-member event of each kind the overview lists. A paid
 	// start is "subscribed" or a completed checkout without a trial (trials
