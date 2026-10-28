@@ -517,6 +517,75 @@ func TestNoSilentAlarmAfterAQuietPeriod(t *testing.T) {
 	}
 }
 
+// PR-3, R3.L3: a provider that never reported an event doesn't read "no
+// events yet" forever. Mail sent and no event 30 minutes later is flagged
+// for every provider, as quiet webhooks are, measured from its connection;
+// its first event clears it.
+func TestNeverAnEventIsFlagged(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	w := demoWorkspace(t, env)
+	fp := addFake(t, env, w, nil)
+	setFakeErr(nil)
+	// Connected an hour ago: the mail below goes out after the connection.
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE providers SET connected_at = now() - interval '1 hour' WHERE id = $1`, fp.ID); err != nil {
+		t.Fatal(err)
+	}
+	fp, _ = env.App.Q.ProvGetAny(ctx, fp.ID)
+	check := func(at time.Time) store.Provider {
+		t.Helper()
+		p, err := service(env, func() time.Time { return at }).Check(ctx, fp, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	// Connected, nothing sent yet: nothing to wait for.
+	if p := check(time.Now()); p.Status != state.Healthy {
+		t.Fatalf("nothing sent: %s %s", p.Status, p.StatusDetail)
+	}
+	// One message, checked 25 minutes after it went out: still inside its
+	// 30-minute grace.
+	sendFake(t, env, w, fp, 1, 40*time.Minute)
+	if p := check(time.Now().Add(-15 * time.Minute)); p.Status != state.Healthy {
+		t.Fatalf("inside the grace: %s %s", p.Status, p.StatusDetail)
+	}
+	// 40 minutes on (now), still no event: flagged, silent since it was
+	// connected.
+	later := time.Now()
+	p := check(later)
+	if p.Status != state.Degraded || p.StatusDetail != state.DetailWebhooksSilent {
+		t.Fatalf("mail sent and no event after 30 min: %s %s", p.Status, p.StatusDetail)
+	}
+	if h := state.HealthOf(p); h.Webhooks == nil || h.Webhooks.SilentSince == nil || !h.Webhooks.SilentSince.Equal(p.ConnectedAt) {
+		t.Fatalf("silent since %+v, connected %v", h.Webhooks, p.ConnectedAt)
+	}
+	if n := count(t, env, `SELECT count(*) FROM notifications WHERE kind = 'webhooks_silent' AND workspace_id = $1 AND data->>'providerId' = $2`, w.ID, fp.ID.String()); n == 0 {
+		t.Fatal("nobody was told no event came back")
+	}
+	owner := env.Client()
+	owner.SignInDemo("linh@acme.io")
+	var o struct {
+		Silent *struct {
+			ProviderID string
+			Overdue    int64
+		}
+	}
+	owner.Do("GET", ws+"/providers", nil).MustStatus(t, 200).JSON(t, &o)
+	if o.Silent == nil || o.Silent.ProviderID != fp.ID.String() || o.Silent.Overdue != 1 {
+		t.Fatalf("silent = %+v", o.Silent)
+	}
+	// The first event arrives: the provider is healthy again.
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE providers SET last_event_at = $2 WHERE id = $1`, fp.ID, later.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	fp, _ = env.App.Q.ProvGetAny(ctx, fp.ID)
+	if p := check(later.Add(2 * time.Minute)); p.Status != state.Healthy {
+		t.Fatalf("after the first event: %s %s", p.Status, p.StatusDetail)
+	}
+}
+
 // fakePoll is a provider whose events come by polling its events API.
 type fakePoll struct{ fake }
 

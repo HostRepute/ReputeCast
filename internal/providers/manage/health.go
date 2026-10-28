@@ -40,6 +40,11 @@ const (
 	// SilentMinOverdue is how many overdue messages make quiet webhooks
 	// "silent": one welcome email after a quiet night is never an alarm.
 	SilentMinOverdue = 10
+	// FirstEventMinOverdue is how many overdue messages make a provider
+	// that never reported an event "silent" (review PR-3, R3.L3): nothing
+	// ever proved its events arrive, so mail sent and no event 30 minutes
+	// later is enough, where "no events yet" would otherwise stay forever.
+	FirstEventMinOverdue = 1
 	// CheckEvery is how often a healthy provider's API is checked.
 	CheckEvery = 5 * time.Minute
 	// OutageCalls and OutageRate: at least this many calls in three
@@ -293,24 +298,31 @@ func (s *Service) Check(ctx context.Context, p store.Provider, probe bool) (stor
 	if recovered {
 		h.Down = nil
 	}
-	// Webhook freshness, only while the provider is up.
+	// Webhook freshness, only while the provider is up. A provider that
+	// never reported an event is measured from its connection: mail sent
+	// and no event 30 minutes later is flagged for every provider (PR-3),
+	// not read as "no events yet" forever.
 	silentNow, resumed := false, false
 	caps := state.Caps(p)
-	if h.Down == nil && caps.Webhooks != "" && caps.Webhooks != "Bounce mailbox" && p.LastEventAt != nil {
-		if h.Webhooks != nil && h.Webhooks.SilentSince != nil && p.LastEventAt.After(*h.Webhooks.SilentSince) {
+	if h.Down == nil && caps.Webhooks != "" && caps.Webhooks != "Bounce mailbox" {
+		since, minOverdue, quiet := p.ConnectedAt, int64(FirstEventMinOverdue), true
+		if p.LastEventAt != nil {
+			since, minOverdue, quiet = *p.LastEventAt, SilentMinOverdue, now.Sub(*p.LastEventAt) >= SilentAfter
+		}
+		if p.LastEventAt != nil && h.Webhooks != nil && h.Webhooks.SilentSince != nil && p.LastEventAt.After(*h.Webhooks.SilentSince) {
 			resumed = true
 			h.Webhooks = &state.WebhookState{}
-		} else if now.Sub(*p.LastEventAt) >= SilentAfter {
+		} else if quiet {
 			// Silent only with enough mail past its grace and no event: the
 			// messages sent after a quiet period get their 30 minutes first.
-			od, err := s.Q.ProvEventsOverdue(ctx, store.ProvEventsOverdueParams{ProviderID: &p.ID, Since: *p.LastEventAt, GraceBefore: now.Add(-EventGrace)})
+			od, err := s.Q.ProvEventsOverdue(ctx, store.ProvEventsOverdueParams{ProviderID: &p.ID, Since: since, GraceBefore: now.Add(-EventGrace)})
 			if err != nil {
 				return p, err
 			}
-			if od.Overdue >= SilentMinOverdue {
+			if od.Overdue >= minOverdue {
 				if h.Webhooks == nil || h.Webhooks.SilentSince == nil {
 					silentNow = true
-					t := *p.LastEventAt
+					t := since
 					h.Webhooks = &state.WebhookState{SilentSince: &t}
 				}
 				if h.Webhooks.CheckedAt == nil || now.Sub(*h.Webhooks.CheckedAt) >= time.Hour {
