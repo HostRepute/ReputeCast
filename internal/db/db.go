@@ -30,17 +30,7 @@ func Open(ctx context.Context, url string, maxConns int32) (*pgxpool.Pool, error
 		cfg.MaxConns = maxConns
 	}
 	cfg.MaxConnIdleTime = 5 * time.Minute
-	cfg.ConnConfig.RuntimeParams["application_name"] = "reputecast"
-	// Postgres compiles a plan whose estimated cost passes jit_above_cost
-	// with JIT, again on every execution. ReputeCast's queries are short:
-	// counting a 48,000-contact audience for Review & send spent 0.5 s
-	// compiling and 0.1 s running. It is set once connected rather than in
-	// the startup packet, which poolers such as PgBouncer refuse for
-	// settings they don't know.
-	cfg.AfterConnect = func(ctx context.Context, c *pgx.Conn) error {
-		_, err := c.Exec(ctx, "SET jit = off")
-		return err
-	}
+	Configure(cfg)
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, err
@@ -52,6 +42,24 @@ func Open(ctx context.Context, url string, maxConns int32) (*pgxpool.Pool, error
 		return nil, fmt.Errorf("connect to postgres: %w", err)
 	}
 	return pool, nil
+}
+
+// Configure sets up a pool's connections the way ReputeCast uses them;
+// Open does it, and so do the test databases (internal/testdb).
+//
+// JIT is off: Postgres compiles a plan whose estimated cost passes
+// jit_above_cost with JIT, again on every execution, and ReputeCast's
+// queries are short (counting a 48,000-contact audience for Review & send
+// spent 0.5 s compiling and 0.1 s running). It is set once connected rather
+// than in the startup packet, which poolers such as PgBouncer refuse for
+// settings they don't know. UUIDs travel as bytes (registerUUID).
+func Configure(cfg *pgxpool.Config) {
+	cfg.ConnConfig.RuntimeParams["application_name"] = "reputecast"
+	cfg.AfterConnect = func(ctx context.Context, c *pgx.Conn) error {
+		registerUUID(c.TypeMap())
+		_, err := c.Exec(ctx, "SET jit = off")
+		return err
+	}
 }
 
 // MigrationStatus describes one goose migration.
