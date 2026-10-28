@@ -15413,6 +15413,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/templates/{templateId}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A template's email, for the gallery's preview of it
+         * @description Compiled on the server (a starter in the workspace's brand kit), personalized for a reader without a first name so the fallbacks show, with its links, scripts and form controls taken out: a picture of the email, not a page to use.
+         */
+        get: operations["preview-template"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/tracking-checks": {
         parameters: {
             query?: never;
@@ -26743,6 +26763,10 @@ export interface components {
             /** Format: date-time */
             sentAt: string;
             thumb: components["schemas"]["MJMLThumbItem"][];
+        };
+        EmailTemplatePreview: {
+            /** @description The compiled email with its fallbacks shown and its links, scripts and form controls taken out: a picture of the email, not a page to use */
+            html: string;
         };
         EmailTemplateSummary: {
             builtin: boolean;
@@ -81676,6 +81700,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description A template id, or starter:<key> for a built-in starter */
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailTemplatePreview"];
+                };
             };
             /** @description Error */
             default: {

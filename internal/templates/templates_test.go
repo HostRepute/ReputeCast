@@ -116,4 +116,40 @@ func TestTemplateGallery(t *testing.T) {
 	v.SignInDemo("aisha@acme.io")
 	v.Do("GET", ws+"/templates", nil).MustStatus(t, 200)
 	v.Do("POST", ws+"/templates", map[string]any{"name": "x", "mjml": section}).MustStatus(t, 403)
+
+	// R4.U4: the gallery shows each template's real email: a starter compiled
+	// in the brand kit, a saved one as stored, with fallbacks and no links.
+	var pv struct{ HTML string }
+	c.Do("GET", ws+"/templates/starter:weekly-digest/preview", nil).MustStatus(t, 200).JSON(t, &pv)
+	if !strings.Contains(pv.HTML, "Hi there, two or three sentences") || !strings.Contains(pv.HTML, "/media/starters/") || strings.Contains(pv.HTML, "{{") || strings.Contains(pv.HTML, "href=") {
+		t.Fatalf("starter preview: %s", pv.HTML)
+	}
+	for _, tp := range g.Templates {
+		if tp.Name != "Acme digest v3" {
+			continue
+		}
+		v.Do("GET", ws+"/templates/"+tp.ID+"/preview", nil).MustStatus(t, 200).JSON(t, &pv)
+		if !strings.Contains(pv.HTML, "<table") || strings.Contains(pv.HTML, "href=") {
+			t.Fatalf("saved template preview: %s", pv.HTML)
+		}
+	}
+	c.Do("GET", ws+"/templates/starter:nope/preview", nil).MustStatus(t, 404)
+}
+
+// A preview is a picture: nothing in it runs, links or takes focus.
+func TestPicture(t *testing.T) {
+	out := templates.Picture(`<html><head><base href="https://evil.example/"><link rel="stylesheet" href="https://fonts.example/x.css"><meta http-equiv="refresh" content="0;url=https://evil.example/"></head>` +
+		`<body><p onclick="steal()">Hi {{ first_name | default: "there" }}, {{ last_name }}.</p><a href="{{ unsubscribe_url }}" tabindex="2">Unsubscribe</a>` +
+		`<script>alert(1)</script><form action="/x"><input name="q"><button>Go</button></form><iframe src="https://evil.example/"></iframe>` +
+		`<div contenteditable="true">Notes</div><img src="/media/starters/hero.png" alt="Hero"></body></html>`)
+	for _, gone := range []string{"onclick", "href=", "tabindex", "<script", "alert(1)", "<form", "<input", "<button", "<iframe", "contenteditable", "<base", "<link", "http-equiv", "{{"} {
+		if strings.Contains(out, gone) {
+			t.Fatalf("%s left in: %s", gone, out)
+		}
+	}
+	for _, kept := range []string{"Hi there, .", ">Unsubscribe</a>", `<img src="/media/starters/hero.png" alt="Hero"/>`, "Notes"} {
+		if !strings.Contains(out, kept) {
+			t.Fatalf("%s missing: %s", kept, out)
+		}
+	}
 }

@@ -32535,6 +32535,19 @@
         ],
         "type": "object"
       },
+      "EmailTemplatePreview": {
+        "additionalProperties": false,
+        "properties": {
+          "html": {
+            "description": "The compiled email with its fallbacks shown and its links, scripts and form controls taken out: a picture of the email, not a page to use",
+            "type": "string"
+          }
+        },
+        "required": [
+          "html"
+        ],
+        "type": "object"
+      },
       "EmailTemplateSummary": {
         "additionalProperties": false,
         "properties": {
@@ -169928,6 +169941,75 @@
         ],
         "x-access": "workspace",
         "x-permission": "templates:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/templates/{templateId}/preview": {
+      "get": {
+        "description": "Compiled on the server (a starter in the workspace's brand kit), personalized for a reader without a first name so the fallbacks show, with its links, scripts and form controls taken out: a picture of the email, not a page to use.",
+        "operationId": "preview-template",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "A template id, or starter:\u003ckey\u003e for a built-in starter",
+            "in": "path",
+            "name": "templateId",
+            "required": true,
+            "schema": {
+              "description": "A template id, or starter:\u003ckey\u003e for a built-in starter",
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailTemplatePreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A template's email, for the gallery's preview of it",
+        "tags": [
+          "Templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "templates:view"
       }
     },
     "/api/v1/workspaces/{workspace}/tracking-checks": {

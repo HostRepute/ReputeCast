@@ -11,7 +11,8 @@ import { syncedBlockDefs, useBrandKit } from './BrandKit'
 import { focusCanvas } from './editor/keys'
 import { blockAdded, blockContent, componentLabel, mjChildren, sectionOf, tagOf } from './editor/labels'
 import { BlockIcon, ToolIcon } from './icons'
-import { Thumb } from './Thumb'
+import { PickTile } from './Gallery'
+import { TemplatePicture } from './Thumb'
 import { isDigestTemplate } from '@/features/digests/composer/DigestMode'
 import { LayerMark, LayersNote } from '@/features/conditional/Canvas'
 import { EarnBlocksHint } from '@/features/earn/composer/EarnBlocks'
@@ -441,10 +442,14 @@ function TemplatesTab({ sectionsRef }: { sectionsRef: RefObject<HTMLDivElement |
       <span className="k">{tr(mc.templatesLead)}</span>
       <div className="grid grid-cols-2 gap-2">
         {all.map((t) => (
-          <button key={t.id} type="button" className="tpl" style={{ padding: 8, gap: 6 }} disabled={!c.canEdit} onClick={() => setConfirm({ id: t.id, name: t.name })}>
-            <Thumb items={t.thumb} blank={t.id === 'starter:blank'} small />
-            <span className="text-[12px] font-semibold">{t.name}</span>
-          </button>
+          <PickTile
+            key={t.id}
+            small
+            picture={<TemplatePicture id={t.id} name={t.name} thumb={t.thumb} blank={t.id === 'starter:blank'} small />}
+            name={t.name}
+            disabled={!c.canEdit}
+            onPick={() => setConfirm({ id: t.id, name: t.name })}
+          />
         ))}
       </div>
       <div ref={sectionsRef} className="mt-2 flex flex-col gap-1.5">

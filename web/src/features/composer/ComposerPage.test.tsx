@@ -5,7 +5,7 @@ import { json } from '@/test/api'
 import type { Campaign } from './context'
 import type * as Grapes from './editor/grapes'
 import { headless } from './editor/testEditor'
-import { renderComposerPage, workspaceBase } from './testPage'
+import { pageTest, pageWait, renderComposerPage, workspaceBase } from './testPage'
 import { testCampaign } from './testing'
 
 // The whole composer on a headless editor (testPage.tsx).
@@ -28,7 +28,7 @@ function contentRoute(id: string, saves: Body[]) {
 
 /** The composer is ready once the canvas loaded (the headless editor). */
 async function editorReady() {
-  await waitFor(() => expect(headless.current?.editor.getWrapper()?.findType('mj-text').length).toBeGreaterThan(0))
+  await waitFor(() => expect(headless.current?.editor.getWrapper()?.findType('mj-text').length).toBeGreaterThan(0), pageWait)
   return headless.current!
 }
 
@@ -41,7 +41,7 @@ describe('the composer page', () => {
 
   // R4.L1, CO-1: forty minutes in one text must not be lost. Every 30
   // seconds the words being typed are saved, while the typing goes on.
-  it('autosaves the words of a text being typed every 30 seconds, without ending the typing', async () => {
+  it('autosaves the words of a text being typed every 30 seconds, without ending the typing', pageTest, async () => {
     const campaign = testCampaign()
     const saves: Body[] = []
     // The composer's own timers: catch the 30-second autosave to run its tick.
@@ -63,18 +63,18 @@ describe('the composer page', () => {
     vi.spyOn(inst.editor, 'getEditing').mockReturnValue(text)
     const flush = vi.spyOn(inst, 'flushEditing')
     act(() => void inst.editor.trigger('component:input', text))
-    await waitFor(() => expect(document.getElementById('cstatus')).toHaveTextContent('Saved 09:38 · v14'))
+    await waitFor(() => expect(document.getElementById('cstatus')).toHaveTextContent('Saved 09:38 · v14'), pageWait)
     const before = saves.length
 
     act(() => ticks[0]!())
-    await waitFor(() => expect(saves.length).toBe(before + 1))
+    await waitFor(() => expect(saves.length).toBe(before + 1), pageWait)
     const saved = saves[before]!
     expect(saved.mjml).toContain('Hi there, three launches and one deprecation')
     expect(saved).toMatchObject({ source: 'autosave', baseVersion: 14 })
     // The typing goes on: the editing wasn't ended for the save.
     expect(flush).not.toHaveBeenCalled()
     expect(text.toHTML()).not.toContain('three launches')
-    await waitFor(() => expect(document.getElementById('cstatus')).toHaveTextContent('Saved 09:40 · v15'))
+    await waitFor(() => expect(document.getElementById('cstatus')).toHaveTextContent('Saved 09:40 · v15'), pageWait)
 
     // Nothing new since: the next tick saves nothing.
     act(() => ticks[0]!())
@@ -83,7 +83,7 @@ describe('the composer page', () => {
   })
 
   // R4.L6, CO-6: previewing variant B shows B's body, with its unsaved edits, not A's.
-  it("previews variant B's body, as edited on the canvas", async () => {
+  it("previews variant B's body, as edited on the canvas", pageTest, async () => {
     const bBody = '<mjml><mj-body><mj-section><mj-column><mj-text>Variant B body</mj-text></mj-column></mj-section></mj-body></mjml>'
     const campaign: Campaign = testCampaign({
       mjml: '<mjml><mj-body><mj-section><mj-column><mj-text>Variant A body</mj-text></mj-column></mj-section></mj-body></mjml>',
@@ -105,12 +105,12 @@ describe('the composer page', () => {
 
     // Variant B on the canvas, and an edit to it that isn't saved yet.
     fireEvent.click(screen.getByRole('button', { name: 'Variant B · content' }))
-    await waitFor(() => expect(inst.getBody()).toContain('Variant B body'))
+    await waitFor(() => expect(inst.getBody()).toContain('Variant B body'), pageWait)
     act(() => {
       inst.editor.getWrapper()!.findType('mj-text')[0]!.components('Variant B body, edited')
     })
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
-    await waitFor(() => expect(previews.length).toBeGreaterThan(0))
+    await waitFor(() => expect(previews.length).toBeGreaterThan(0), pageWait)
     const last = previews[previews.length - 1]!
     expect(last.variant).toBe('B')
     expect(last.html).toContain('Variant B body, edited')

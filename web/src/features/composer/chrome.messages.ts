@@ -166,6 +166,8 @@ export const mh = defineMessages('composer.chrome', {
   /** Quick review on phones. */
   /** A blank template's thumbnail. */
   thumbEmpty: 'Empty',
+  /** The frame that draws a template's email in the gallery (hidden from screen readers; the tile's button names it). */
+  thumbPreview: 'Preview of {name}',
 
   quickNote: '<b>Quick review on this screen.</b> Edit text, the subject and comments here. Drag-and-drop layout editing works on larger screens.',
   quickGroup: 'Quick review',

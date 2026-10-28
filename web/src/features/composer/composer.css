@@ -614,6 +614,70 @@ label.tg {
   padding: 5px 8px 3px;
   gap: 3px;
 }
+/* A template's real email (R4.U4): drawn at 600 px in a frame, scaled to
+   the tile and cropped, on the same grey as the miniatures. */
+.thumb.mini.live {
+  padding: 10px 14px 0;
+}
+.thumb.mini.live.small {
+  padding: 5px 8px 0;
+}
+.thumb.mini.live .mpic {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 3px 3px 0 0;
+}
+.thumb.mini.live iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 0;
+  background: #ffffff;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+/* A tile with a picture: a frame can't sit inside a button, so the button
+   that picks the template covers the whole tile. */
+.tpl.pick {
+  position: relative;
+  cursor: default;
+}
+.tpl.pick .tpl-pick {
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tpl.pick .tpl-pick::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+}
+.tpl.pick .tpl-pick:disabled {
+  cursor: default;
+}
+.tpl.pick .tpl-pick:focus-visible {
+  outline: none;
+}
+.tpl.pick .tpl-pick:focus-visible::after {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.tpl.pick:has(.tpl-pick:disabled):hover {
+  border-color: var(--line);
+}
 .thumb.mini.small .memail {
   padding: 4px 5px;
   gap: 3px;

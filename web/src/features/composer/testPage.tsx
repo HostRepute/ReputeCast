@@ -22,6 +22,13 @@ type Handler = (request: Request) => Response | Promise<Response>
 
 export const workspaceBase = '/api/v1/workspaces/acme-newsletter'
 
+/**
+ * The whole page on a headless editor takes a few seconds on a busy
+ * machine: its tests get room, and so do their waits.
+ */
+export const pageTest = { timeout: 30_000 }
+export const pageWait = { timeout: 15_000 }
+
 /** Linh, who edits campaigns, unless a test says otherwise. */
 export const composerMe = workspaceMe({ permissions: ['campaigns:view', 'campaigns:edit', 'campaigns:send', 'subscribers:view'] })
 

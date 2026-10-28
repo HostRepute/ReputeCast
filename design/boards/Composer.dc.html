@@ -430,6 +430,36 @@ input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:check
   .ds .qbar .qn.c{background:#EEF0F3;color:#4B5563}
   .ds.edittext .e-p,.ds.edittext .e-h1,.ds.edittext .e-h2{outline:1px dashed #0F766E;outline-offset:3px;border-radius:2px}
 }
+/* Templates tab (R4.U4): each template's real email, laid out at 600 px and
+   drawn small, as ComposerEmpty's gallery draws it. Blank keeps its outline. */
+.tpls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tpls .tpl{display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid #E3E6EB;border-radius:10px;background:#FFFFFF;cursor:pointer;text-align:left;font:inherit;font-size:12px;font-weight:600;color:#0B1220;min-width:0;min-height:44px}
+.tpls .tpl:hover{border-color:#0F766E}
+.tpls .thumb{display:flex;justify-content:center;height:86px;padding:5px 8px 0;border:1px solid #E3E6EB;border-radius:7px;background:#F3F4F6;overflow:hidden;box-sizing:border-box}
+.tpls .lv{display:block;width:72px;height:81px;flex:none;overflow:hidden;background:#FFFFFF;border-radius:3px 3px 0 0;box-shadow:0 0 0 1px #E3E6EB}
+.tpls .lv.blank{display:flex;flex-direction:column;gap:4px;padding:5px 5px 0;box-sizing:border-box}
+.tpls .lv.blank .bh{display:block;padding-bottom:4px;border-bottom:1px solid #EEF0F3}
+.tpls .lv.blank .bh i{display:block;width:16px;height:4px;border-radius:2px;background:#0B1220}
+.tpls .lv.blank .be{flex:1 1 auto;border:1px dashed #C9CED6;border-radius:3px}
+.tpls .lv.blank .bf{display:flex;flex-direction:column;align-items:center;gap:2px;margin:0 -5px;padding:4px 5px;background:#F3F4F6}
+.tpls .lv.blank .bf i{display:block;width:70%;height:2px;border-radius:2px;background:#C9CED6}
+.tpls .lv.blank .bf i + i{width:45%}
+.tpls .e6{display:block;width:600px;transform:scale(.12);transform-origin:0 0;background:#FFFFFF;font:400 15px/1.55 Georgia,'Times New Roman',serif;color:#1F2937;text-align:left}
+.tpls .e6 i,.tpls .e6 b,.tpls .e6 > span,.tpls .e6 .es > span,.tpls .e6 .ecol > span > span{display:block}
+.tpls .e6 .eh{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #EEF0F3;font:12px 'IBM Plex Sans',system-ui,sans-serif;color:#5B6472}
+.tpls .e6 .elg{width:120px;height:32px;border-radius:4px;background:#0B1220}
+.tpls .e6 .eim{height:230px;margin-bottom:16px;border-radius:2px;background:#E3E6EB}
+.tpls .e6 .es{padding:20px 24px 8px}
+.tpls .e6 .h1{margin:0 0 10px;font-size:26px;line-height:1.2;font-weight:700;color:#0B1220}
+.tpls .e6 .h2{margin:0 0 6px;font-size:17px;line-height:1.3;font-weight:700;color:#0B1220}
+.tpls .e6 .p{margin:0 0 12px}
+.tpls .e6 .ebt{display:inline-block!important;padding:9px 14px;border-radius:6px;background:#0F766E;color:#FFFFFF;font:600 13px 'IBM Plex Sans',system-ui,sans-serif}
+.tpls .e6 .ecol{display:flex;gap:16px;padding:16px 24px}
+.tpls .e6 .ecol > span{display:block;flex:1 1 0%;min-width:0;font-size:14px;line-height:1.5}
+.tpls .e6 .ecol .eim{height:130px;margin-bottom:10px}
+.tpls .e6 .ef{padding:18px 24px;background:#F3F4F6;text-align:center;font:12px/1.6 'IBM Plex Sans',system-ui,sans-serif;color:#5B6472}
+.tpls .e6 .ef b{display:inline;font-weight:400;color:#0F766E}
+
 </style>
 </helmet>
 <div class="{{rootCls}}" style="min-height:100vh;display:flex;flex-direction:column">
@@ -575,6 +605,13 @@ input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:check
       <sc-if value="{{lTemplates}}" hint-placeholder-val="{{false}}">
       <div class="lpb" id="lp-templates" role="tabpanel" aria-labelledby="lt-templates" style="padding:12px;gap:10px">
         <p class="k" style="margin:0">A template replaces the whole email. The current one moves to version history first, so nothing is lost.</p>
+        <!-- R4.U4: each template's real email, drawn small (a sandboxed frame in the app, loaded as the tile comes into view). -->
+        <div class="tpls">
+          <button type="button" class="tpl"><span class="thumb" aria-hidden="true"><span class="lv blank"><span class="bh"><i></i></span><span class="be"></span><span class="bf"><i></i><i></i></span></span></span><span>Blank</span></button>
+          <button type="button" class="tpl"><span class="thumb" aria-hidden="true"><span class="lv"><span class="e6"><span class="eh"><i class="elg"></i><span>Blog · Docs · Changelog</span></span><span class="es"><i class="eim"></i><b class="h1">A headline that says what’s inside this week</b><span class="p">Hi there, two or three sentences on what this issue covers and why it matters to the reader.</span></span><span class="ecol"><span><i class="eim"></i><b class="h2">First article title</b><span class="p">One or two sentences that make people want to read the rest.</span><span class="ebt">Read the article</span></span><span><i class="eim"></i><b class="h2">Second article title</b><span class="p">One or two sentences that make people want to read the rest.</span><span class="ebt">Read the article</span></span></span><span class="ef">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><b>Unsubscribe</b> · <b>Email preferences</b> · <b>View in browser</b></span></span></span></span><span>Weekly digest</span></button>
+          <button type="button" class="tpl"><span class="thumb" aria-hidden="true"><span class="lv"><span class="e6"><span class="eh"><i class="elg"></i></span><span class="es" style="padding:24px 24px 28px"><i class="eim" style="height:250px;margin-bottom:18px"></i><b class="h1">Announce the one thing that changed</b><span class="p">Hi there, say what’s new, who it’s for and what they can do with it today. Keep it to one idea so the button has one job.</span><span class="ebt">See what’s new</span></span><span class="ef">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><b>Unsubscribe</b> · <b>Email preferences</b> · <b>View in browser</b></span></span></span></span><span>Product update</span></button>
+          <button type="button" class="tpl"><span class="thumb" aria-hidden="true"><span class="lv"><span class="e6"><span class="eh"><i class="elg"></i><span>Blog · Docs · Changelog</span></span><span class="es"><b class="h1">This week at Acme: three launches and a deprecation</b><span class="p">Hi there, here’s what shipped, what we’re retiring in November and what’s next.</span></span><span class="ecol"><span><i class="eim"></i><b class="h2">Faster exports</b><span class="p">CSV exports of any size now finish in seconds.</span><span class="ebt">Read more</span></span><span><i class="eim"></i><b class="h2">Saved views</b><span class="p">Keep the filters you use most, one click away.</span><span class="ebt">Read more</span></span></span><span class="ef">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><b>Unsubscribe</b> · <b>Email preferences</b> · <b>View in browser</b></span></span></span></span><span>Acme digest v3</span></button>
+        </div>
         <a href="ComposerEmpty.dc.html" class="btn" style="align-self:flex-start">Open the template gallery</a>
         <a href="BrandKit.dc.html" class="btn" style="align-self:flex-start">Brand kit</a>
       </div>

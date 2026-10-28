@@ -1,15 +1,58 @@
-import { useState } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { $api, errorMessage, http } from '@/api/client'
 import { toast } from '@/components/ui/Toast'
 import { dayMonthDate } from '@/lib/format'
 import { BrandKitBanner, useDefaultColoursNote } from './BrandKit'
 import { useComposer } from './context'
-import { Thumb } from './Thumb'
+import { CampaignPicture, TemplatePicture } from './Thumb'
 import { GalleryCaption, GalleryResult, galleryTileClass, useGalleryResults } from '@/features/accessibility/composer/Gallery'
 import { isDigestTemplate } from '@/features/digests/composer/DigestMode'
 import { AgencyComposerGallery } from '@/features/agency/ComposerLibrary'
 import { useT } from '@/i18n'
 import { m } from './messages'
+
+/**
+ * A gallery tile: the template's picture, then the button that picks it
+ * (named after the template, its line as its description), which covers the
+ * whole tile. The picture is a frame, and a frame can't sit in a button.
+ */
+export function PickTile({
+  className,
+  picture,
+  name,
+  detail,
+  disabled,
+  busy,
+  onPick,
+  children,
+  small,
+}: {
+  className?: string
+  picture: ReactNode
+  name: string
+  detail?: string
+  disabled?: boolean
+  busy?: boolean
+  onPick: () => void
+  children?: ReactNode
+  small?: boolean
+}) {
+  const id = useId()
+  return (
+    <div className={`${className ?? 'tpl'} pick`} style={small ? { padding: 8, gap: 6 } : undefined} aria-busy={busy || undefined}>
+      {picture}
+      <button type="button" className={`tpl-pick${small ? ' text-[12px]' : ''}`} disabled={disabled} aria-describedby={detail ? `${id}-d` : undefined} onClick={onPick}>
+        {name}
+      </button>
+      {detail ? (
+        <span className="k" id={`${id}-d`}>
+          {detail}
+        </span>
+      ) : null}
+      {children}
+    </div>
+  )
+}
 
 /**
  * The empty canvas (ComposerEmpty): start from a starter template, one of
@@ -87,38 +130,49 @@ export function EmptyGallery() {
             </div>
             <div className="tpl-grid grid gap-3" style={{ marginTop: -10 }}>
               {g.data.starters.map((tpl) => (
-                <button key={tpl.id} type="button" className={galleryTileClass(a11y.byId.get(tpl.id))} disabled={!c.canEdit} aria-busy={busy === tpl.id || undefined} onClick={() => void applyTemplate(tpl.id, tpl.name)}>
-                  <Thumb items={tpl.thumb} blank={tpl.id === 'starter:blank'} />
-                  <span className="font-semibold">{tpl.name}</span>
-                  <span className="k">{tpl.description}</span>
+                <PickTile
+                  key={tpl.id}
+                  className={galleryTileClass(a11y.byId.get(tpl.id))}
+                  picture={<TemplatePicture id={tpl.id} name={tpl.name} thumb={tpl.thumb} blank={tpl.id === 'starter:blank'} />}
+                  name={tpl.name}
+                  detail={tpl.description}
+                  disabled={!c.canEdit}
+                  busy={busy === tpl.id}
+                  onPick={() => void applyTemplate(tpl.id, tpl.name)}
+                >
                   <GalleryResult result={a11y.byId.get(tpl.id)} />
-                </button>
+                </PickTile>
               ))}
             </div>
             <div className="flex flex-col gap-2">
               <span className="font-semibold">{t(m.yours)}</span>
               <div className="tpl-grid grid gap-3">
                 {g.data.templates.map((tpl) => (
-                  <button key={tpl.id} type="button" className={galleryTileClass(a11y.byId.get(tpl.id))} disabled={!c.canEdit} aria-busy={busy === tpl.id || undefined} onClick={() => void applyTemplate(tpl.id, tpl.name)}>
-                    <Thumb items={tpl.thumb} />
-                    <span className="font-semibold">{tpl.name}</span>
-                    <span className="k">{tpl.updatedAt ? t(m.savedTemplateEdited, { date: dayMonthDate(tpl.updatedAt) }) : t(m.savedTemplate)}</span>
+                  <PickTile
+                    key={tpl.id}
+                    className={galleryTileClass(a11y.byId.get(tpl.id))}
+                    picture={<TemplatePicture id={tpl.id} name={tpl.name} thumb={tpl.thumb} />}
+                    name={tpl.name}
+                    detail={tpl.updatedAt ? t(m.savedTemplateEdited, { date: dayMonthDate(tpl.updatedAt) }) : t(m.savedTemplate)}
+                    disabled={!c.canEdit}
+                    busy={busy === tpl.id}
+                    onPick={() => void applyTemplate(tpl.id, tpl.name)}
+                  >
                     <GalleryResult result={a11y.byId.get(tpl.id)} />
-                  </button>
+                  </PickTile>
                 ))}
                 {g.data.lastCampaign ? (
-                  <button
-                    type="button"
+                  <PickTile
                     className={galleryTileClass(a11y.last)}
+                    picture={<CampaignPicture id={g.data.lastCampaign.id} name={g.data.lastCampaign.name} thumb={g.data.lastCampaign.thumb} />}
+                    name={t(m.copyOf, { name: g.data.lastCampaign.name })}
+                    detail={t(m.lastSent, { date: dayMonthDate(g.data.lastCampaign.sentAt) })}
                     disabled={!c.canEdit}
-                    aria-busy={busy === g.data.lastCampaign.id || undefined}
-                    onClick={() => g.data.lastCampaign && void copyCampaign(g.data.lastCampaign.id, g.data.lastCampaign.name)}
+                    busy={busy === g.data.lastCampaign.id}
+                    onPick={() => g.data.lastCampaign && void copyCampaign(g.data.lastCampaign.id, g.data.lastCampaign.name)}
                   >
-                    <Thumb items={g.data.lastCampaign.thumb} />
-                    <span className="font-semibold">{t(m.copyOf, { name: g.data.lastCampaign.name })}</span>
-                    <span className="k">{t(m.lastSent, { date: dayMonthDate(g.data.lastCampaign.sentAt) })}</span>
                     <GalleryResult result={a11y.last} />
-                  </button>
+                  </PickTile>
                 ) : null}
                 <button type="button" className="tpl" style={{ borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' }} disabled={!c.canEdit} onClick={() => c.openDialog('import')}>
                   <span className="font-semibold">{t(m.importTile)}</span>

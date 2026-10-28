@@ -12,7 +12,7 @@ import { headlessMjmlEditor } from './editor/testEditor'
 import { QuickReviewBar } from './QuickReview'
 import { ChecksRunBar } from './RightPanel'
 import { SendTestButton, testBlockedReason } from './SendTest'
-import { renderComposerPage, workspaceBase } from './testPage'
+import { pageTest, pageWait, renderComposerPage, workspaceBase } from './testPage'
 import { testCampaign, testComposer } from './testing'
 
 // The whole composer renders on a headless editor (testPage.tsx).
@@ -138,7 +138,7 @@ describe('editing an approved campaign in the composer', () => {
   let unmock: (() => void) | undefined
   afterEach(() => unmock?.())
 
-  it('stops saying "Approved" once the first save cancels the approval', async () => {
+  it('stops saying "Approved" once the first save cancels the approval', pageTest, async () => {
     const draft = testCampaign()
     let server: Campaign = { ...draft, status: 'approved', approval: approved }
     const saves: Record<string, unknown>[] = []
@@ -157,7 +157,7 @@ describe('editing an approved campaign in the composer', () => {
     })
     unmock = page.unmock
     const chip = () => document.getElementById('cstatus')!
-    await waitFor(() => expect(chip()).toHaveTextContent('Approved · saved 09:38 · v14'))
+    await waitFor(() => expect(chip()).toHaveTextContent('Approved · saved 09:38 · v14'), pageWait)
 
     const banner = (await screen.findByText(/^Approved by Marcus Chen/)).closest<HTMLElement>('[role="status"]')!
     fireEvent.click(within(banner).getByRole('button', { name: 'Edit' }))
@@ -166,15 +166,15 @@ describe('editing an approved campaign in the composer', () => {
     fireEvent.click(within(screen.getByRole('region', { name: 'Inbox' })).getByRole('button', { name: 'Edit' }))
     fireEvent.change(await screen.findByRole('textbox', { name: /^Subject/ }), { target: { value: 'Three launches and a deprecation' } })
     act(() => void runShortcutHandler('save'))
-    await waitFor(() => expect(saves).toHaveLength(1))
+    await waitFor(() => expect(saves).toHaveLength(1), pageWait)
     expect(saves[0]).toMatchObject({ cancelApproval: true, subject: 'Three launches and a deprecation' })
-    await waitFor(() => expect(chip()).toHaveTextContent('Saved 09:40 · v15'))
+    await waitFor(() => expect(chip()).toHaveTextContent('Saved 09:40 · v15'), pageWait)
     expect(chip()).not.toHaveTextContent('Approved')
 
     // The approval is gone: the next save doesn't cancel whatever comes next.
     fireEvent.change(screen.getByRole('textbox', { name: /^Subject/ }), { target: { value: 'Three launches, one deprecation' } })
     act(() => void runShortcutHandler('save'))
-    await waitFor(() => expect(saves).toHaveLength(2))
+    await waitFor(() => expect(saves).toHaveLength(2), pageWait)
     expect(saves[1]).not.toHaveProperty('cancelApproval')
   })
 })

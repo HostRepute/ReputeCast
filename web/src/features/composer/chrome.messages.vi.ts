@@ -156,6 +156,7 @@ export default translate(mh, {
   writeFootNote: 'Bố cục, cột và khoảng cách giữ nguyên như trong Thiết kế.',
 
   thumbEmpty: 'Trống',
+  thumbPreview: 'Bản xem trước của {name}',
 
   quickNote: '<b>Xem nhanh trên màn hình này.</b> Bạn sửa được văn bản, tiêu đề và nhận xét ở đây. Kéo thả để sửa bố cục có trên màn hình lớn hơn.',
   quickGroup: 'Xem nhanh',

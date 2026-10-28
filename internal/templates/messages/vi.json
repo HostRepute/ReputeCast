@@ -18,6 +18,7 @@
   "problem.mjml": "Không đọc được MJML: {error}",
   "problem.nameTaken": "Đã có {kind, select, section {phần đã lưu} other {mẫu}} tên “{name}”. Hãy chọn tên khác.",
   "problem.notFound": "Không tìm thấy mẫu.",
+  "problem.previewCompile": "MJML của mẫu này không biên dịch được nên chưa có bản xem trước: {error}",
 
   "sample.address": "Công ty của bạn · Số nhà và tên đường · Thành phố, mã bưu chính",
   "sample.footer.unsubscribe": "Hủy đăng ký",

@@ -313,6 +313,33 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 .mt .ft{margin:auto -8px 0;padding:5px 8px;background:#F3F4F6;display:flex;flex-direction:column;align-items:center;gap:2px}
 .mt .ft i{height:2px;border-radius:2px;background:#C9CED6}
 .mt .em{flex:1 1 auto;min-height:56px;border:1px dashed #C9CED6;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600;color:#5B6472}
+/* R4.U4: each template's real email, laid out at 600 px and drawn small (the
+   app draws its compiled HTML in a sandboxed frame that loads as the tile comes
+   into view). Blank keeps the "Empty" miniature. */
+.thumb.live{padding:10px 14px 0}
+.lv{width:100%;max-width:132px;height:146px;overflow:hidden;background:#FFFFFF;border-radius:3px 3px 0 0;box-shadow:0 1px 2px rgba(11,18,32,0.06),0 0 0 1px #E3E6EB;flex:none}
+.e6{width:600px;transform:scale(.22);transform-origin:0 0;background:#FFFFFF;font:15px/1.55 Georgia,'Times New Roman',serif;color:#1F2937}
+.e6 i{display:block}
+.e6 .eh{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #EEF0F3;font:12px 'IBM Plex Sans',system-ui,sans-serif;color:#5B6472}
+.e6 .elg{width:120px;height:32px;border-radius:4px;background:#0B1220}
+.e6 .eim{height:230px;margin-bottom:16px;border-radius:2px;background:#E3E6EB;position:relative;overflow:hidden}
+.e6 .eim::after{content:"";position:absolute;left:18%;bottom:-50px;width:40%;height:120px;background:#D4D8DF;transform:rotate(45deg)}
+.e6 .ebn{height:250px;margin:0;border-radius:0;background:#4B5563}
+.e6 .es{padding:20px 24px 8px}
+.e6 h1{margin:0 0 10px;font-size:26px;line-height:1.2;font-weight:700;color:#0B1220}
+.e6 h2{margin:0 0 6px;font-size:17px;line-height:1.3;font-weight:700;color:#0B1220}
+.e6 p{margin:0 0 12px}
+.e6 .ebt{display:inline-block;padding:9px 14px;border-radius:6px;background:#0F766E;color:#FFFFFF;font:600 13px 'IBM Plex Sans',system-ui,sans-serif}
+.e6 .ecol{display:flex;gap:16px;padding:16px 24px}
+.e6 .ecol > div{flex:1 1 0%;min-width:0;font-size:14px;line-height:1.5}
+.e6 .ecol .eim{height:130px;margin-bottom:10px}
+.e6 .e3{gap:12px;padding:20px 18px 8px}
+.e6 .e3 .eim{height:110px}
+.e6 .e3 h2{font-size:15px}
+.e6 .e3 p{font-size:13px;margin-bottom:8px}
+.e6 .e3 .ebt{font-size:12px;padding:7px 12px}
+.e6 .ef{padding:18px 24px;background:#F3F4F6;text-align:center;font:12px/1.6 'IBM Plex Sans',system-ui,sans-serif;color:#5B6472}
+.e6 .ef b{font-weight:400;color:#0F766E}
 .imp{border-style:dashed;align-items:center;justify-content:center;text-align:center;min-height:230px}
 .dim{opacity:.55}
 @media (max-width:1100px){
@@ -325,6 +352,8 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   .tgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   .thumb{height:140px;padding:8px 10px 0}
   .mt{height:132px}
+  .lv{height:132px;max-width:120px}
+  .e6{transform:scale(.2)}
   .tpl{min-height:44px}
   .bk .btn{min-height:44px;flex:1 1 100%}
   .cb-end .btn,.cbar .devt{display:none}
@@ -440,23 +469,23 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
                 <span class="nm">Blank</span><span class="k">Header, an empty body and the footer</span>
               </a>
               <a href="Composer.dc.html" class="tpl">
-                <div class="thumb" aria-hidden="true"><div class="mt"><div class="hd"><i class="lg"></i><span class="nv"><i></i><i></i><i></i></span></div><i class="im" style="height:28px"></i><i class="h" style="width:92%"></i><i class="h" style="width:60%"></i><i class="l" style="width:96%"></i><div class="row"><div><i class="im" style="height:16px"></i><i class="l" style="width:90%"></i><i class="l" style="width:70%"></i><i class="bt" style="width:22px;height:5px"></i></div><div><i class="im" style="height:16px"></i><i class="l" style="width:90%"></i><i class="l" style="width:64%"></i><i class="bt" style="width:22px;height:5px"></i></div></div><div class="ft"><i style="width:70%"></i><i style="width:45%"></i></div></div></div>
+                <div class="thumb live" aria-hidden="true"><div class="lv"><div class="e6"><div class="eh"><i class="elg"></i><span>Blog · Docs · Changelog</span></div><div class="es"><i class="eim"></i><h1>A headline that says what’s inside this week</h1><p>Hi there, two or three sentences on what this issue covers and why it matters to the reader.</p></div><div class="ecol"><div><i class="eim"></i><h2>First article title</h2><p>One or two sentences that make people want to read the rest.</p><span class="ebt">Read the article</span></div><div><i class="eim"></i><h2>Second article title</h2><p>One or two sentences that make people want to read the rest.</p><span class="ebt">Read the article</span></div></div><div class="ef">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><b>Unsubscribe</b> · <b>Email preferences</b> · <b>View in browser</b></div></div></div></div>
                 <span class="nm">Weekly digest</span><span class="k">Hero, two article cards, footer</span>
               </a>
               <a href="Composer.dc.html" class="tpl">
-                <div class="thumb" aria-hidden="true"><div class="mt"><div class="hd"><i class="lg"></i><span class="nv"><i></i><i></i></span></div><i class="h" style="width:88%"></i><i class="h" style="width:52%"></i><i class="im" style="height:34px"></i><i class="l" style="width:96%"></i><i class="l" style="width:92%"></i><i class="l" style="width:70%"></i><i class="bt" style="align-self:center;width:36px"></i><div class="ft"><i style="width:70%"></i><i style="width:45%"></i></div></div></div>
+                <div class="thumb live" aria-hidden="true"><div class="lv"><div class="e6"><div class="eh"><i class="elg"></i></div><div class="es" style="padding:24px 24px 28px"><i class="eim" style="height:250px;margin-bottom:18px"></i><h1>Announce the one thing that changed</h1><p>Hi there, say what’s new, who it’s for and what they can do with it today. Keep it to one idea so the button has one job.</p><span class="ebt" style="padding:11px 18px;font-size:14px">See what’s new</span></div><div class="ef">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><b>Unsubscribe</b> · <b>Email preferences</b> · <b>View in browser</b></div></div></div></div>
                 <span class="nm">Product update</span><span class="k">One announcement, one button</span>
               </a>
               <a href="Composer.dc.html" class="tpl">
-                <div class="thumb" aria-hidden="true"><div class="mt"><i class="lg" style="width:16px;height:5px;margin-bottom:4px"></i><i class="l" style="width:40%;background:#9CA3AF"></i><i class="l" style="width:96%"></i><i class="l" style="width:92%"></i><i class="l" style="width:98%"></i><i class="l" style="width:60%"></i><i class="l" style="width:94%;margin-top:3px"></i><i class="l" style="width:88%"></i><i class="l" style="width:50%"></i><i class="l" style="width:34%;margin-top:4px;background:#9CA3AF"></i><div class="ft"><i style="width:70%"></i><i style="width:45%"></i></div></div></div>
+                <div class="thumb live" aria-hidden="true"><div class="lv"><div class="e6"><div class="es" style="padding:28px 24px 12px;line-height:1.6"><p>Hi there,</p><p>Write this the way you would write to one person: what happened, what you learned, and what you would like them to do next.</p><p>A second paragraph with the detail. Short paragraphs read well on phones.</p><p>Thanks for reading,<br>Your name</p></div><div class="ef" style="background:#FFFFFF;text-align:left;border-top:1px solid #EEF0F3;margin:0 24px;padding:12px 0 24px">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><b>Unsubscribe</b> · <b>Email preferences</b> · <b>View in browser</b></div></div></div></div>
                 <span class="nm">Plain text</span><span class="k">A personal note, no images</span>
               </a>
               <a href="Composer.dc.html" class="tpl">
-                <div class="thumb" aria-hidden="true"><div class="mt" style="padding-top:0"><div style="margin:0 -8px;height:52px;background:#4B5563;border-radius:3px 3px 0 0;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;padding:6px 8px"><i class="lg" style="background:#FFFFFF;width:16px;height:5px;margin-bottom:auto"></i><i style="height:5px;width:86%;border-radius:2px;background:#FFFFFF"></i><i style="height:5px;width:54%;border-radius:2px;background:#FFFFFF"></i></div><i class="l" style="width:96%;margin-top:3px"></i><i class="l" style="width:90%"></i><i class="l" style="width:66%"></i><i class="bt" style="width:44px;height:8px"></i><div class="ft"><i style="width:70%"></i><i style="width:45%"></i></div></div></div>
+                <div class="thumb live" aria-hidden="true"><div class="lv"><div class="e6"><i class="eim ebn"></i><div class="es" style="padding:24px 24px 28px"><h1 style="font-size:28px;line-height:1.15">One big announcement</h1><p>Hi there, lead with the news, then the one detail that makes it matter.</p><p>Add the date, the price or the deadline if there is one.</p><span class="ebt" style="padding:11px 18px;font-size:14px">Read the announcement</span></div><div class="ef">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><b>Unsubscribe</b> · <b>Email preferences</b> · <b>View in browser</b></div></div></div></div>
                 <span class="nm">Announcement</span><span class="k">Full-width hero with the headline on it</span>
               </a>
               <a href="Composer.dc.html" class="tpl">
-                <div class="thumb" aria-hidden="true"><div class="mt"><div class="hd"><i class="lg"></i><span class="nv"><i></i><i></i></span></div><i class="h" style="width:70%;align-self:center"></i><div class="row"><div><i class="im" style="height:16px"></i><i class="l" style="width:80%"></i></div><div><i class="im" style="height:16px"></i><i class="l" style="width:70%"></i></div><div><i class="im" style="height:16px"></i><i class="l" style="width:76%"></i></div></div><div class="row"><div><i class="im" style="height:16px"></i><i class="l" style="width:72%"></i></div><div><i class="im" style="height:16px"></i><i class="l" style="width:80%"></i></div><div><i class="im" style="height:16px"></i><i class="l" style="width:66%"></i></div></div><i class="bt" style="align-self:center;width:40px"></i><div class="ft"><i style="width:70%"></i><i style="width:45%"></i></div></div></div>
+                <div class="thumb live" aria-hidden="true"><div class="lv"><div class="e6"><div class="eh"><i class="elg"></i></div><div class="ecol e3"><div><i class="eim"></i><h2>Product name</h2><p>$29 · one line about it</p><span class="ebt">View</span></div><div><i class="eim"></i><h2>Product name</h2><p>$49 · one line about it</p><span class="ebt">View</span></div><div><i class="eim"></i><h2>Product name</h2><p>$99 · one line about it</p><span class="ebt">View</span></div></div><div class="es" style="padding:8px 24px"><p>Hi there, a sentence that ties the products together: a season, a sale, a new collection.</p></div><div class="ecol e3"><div><i class="eim"></i><h2>Product name</h2><p>$19 · one line about it</p><span class="ebt">View</span></div><div><i class="eim"></i><h2>Product name</h2><p>$39 · one line about it</p><span class="ebt">View</span></div><div><i class="eim"></i><h2>Product name</h2><p>$59 · one line about it</p><span class="ebt">View</span></div></div><div class="ef">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><b>Unsubscribe</b> · <b>Email preferences</b> · <b>View in browser</b></div></div></div></div>
                 <span class="nm">Product grid</span><span class="k">Three product cards per row</span>
               </a>
             </div>
@@ -466,11 +495,11 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
             <h3 style="margin:0;font-size:14px;font-weight:600">Yours</h3>
             <div class="tgrid">
               <a href="Composer.dc.html" class="tpl cur">
-                <div class="thumb" aria-hidden="true"><div class="mt"><div class="hd"><i class="lg"></i><span class="nv"><i></i><i></i><i></i></span></div><i class="h" style="width:84%"></i><i class="l" style="width:96%"></i><i class="l" style="width:72%"></i><div class="row"><div><i class="im" style="height:18px"></i><i class="l" style="width:88%"></i><i class="bt" style="width:22px;height:5px"></i></div><div><i class="im" style="height:18px"></i><i class="l" style="width:80%"></i><i class="bt" style="width:22px;height:5px"></i></div></div><i class="l" style="width:94%"></i><div class="ft"><i style="width:70%"></i><i style="width:45%"></i></div></div></div>
+                <div class="thumb live" aria-hidden="true"><div class="lv"><div class="e6"><div class="eh"><i class="elg"></i><span>Blog · Docs · Changelog</span></div><div class="es"><h1>This week at Acme: three launches and a deprecation</h1><p>Hi there, here’s what shipped, what we’re retiring in November and what’s next.</p></div><div class="ecol"><div><i class="eim"></i><h2>Faster exports</h2><p>CSV exports of any size now finish in seconds.</p><span class="ebt">Read more</span></div><div><i class="eim"></i><h2>Saved views</h2><p>Keep the filters you use most, one click away.</p><span class="ebt">Read more</span></div></div><div class="es" style="padding-top:0"><p>Questions? Reply to this email: it comes to us.</p></div><div class="ef">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><b>Unsubscribe</b> · <b>Email preferences</b> · <b>View in browser</b></div></div></div></div>
                 <span class="nm">Acme digest v3</span><span class="k">Saved template · edited 7 Oct</span><span class="k" style="color:#0F766E;font-weight:600">Weekly Digest #142 started from it</span>
               </a>
               <a href="Composer.dc.html" class="tpl">
-                <div class="thumb" aria-hidden="true"><div class="mt"><div class="hd"><i class="lg"></i><span class="nv"><i></i><i></i></span></div><i class="im" style="height:30px"></i><i class="h" style="width:90%"></i><i class="l" style="width:96%"></i><i class="l" style="width:84%"></i><i class="l" style="width:60%"></i><i class="bt" style="width:36px"></i><div class="ft"><i style="width:70%"></i><i style="width:45%"></i></div></div></div>
+                <div class="thumb live" aria-hidden="true"><div class="lv"><div class="e6"><div class="eh"><i class="elg"></i><span>Blog · Docs · Changelog</span></div><div class="es"><i class="eim"></i><h1>October at Acme: audit logs for every plan</h1><p>Hi there, every workspace now keeps a full audit log. Here’s how to find it, and what it records.</p><span class="ebt">See the audit log</span></div><div class="ef">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><b>Unsubscribe</b> · <b>Email preferences</b> · <b>View in browser</b></div></div></div></div>
                 <span class="nm">Copy of October Product Update</span><span class="k">Last sent campaign · 9 Oct</span>
               </a>
               <button type="button" class="tpl imp">
