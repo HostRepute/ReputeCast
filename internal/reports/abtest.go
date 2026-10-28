@@ -37,6 +37,10 @@ type abConfig struct {
 	Decision      *abSnapshot `json:"decision"`
 }
 
+// OutcomeUnrecorded is the outcome of a test decided before the sending
+// engine kept its decisions: the winner is known, what decided it isn't.
+const OutcomeUnrecorded = "unrecorded"
+
 // abSnapshot is the decision the engine kept (internal/sending/engine
 // ab.go's abDecision).
 type abSnapshot struct {
@@ -229,9 +233,13 @@ func abResult(l i18n.Lang, cfg *abConfig, snd sendAB, cells []store.ReportCounte
 		}
 		out.Remaining, out.RolloutAt = rollout, out.DecidedAt
 	case cfg.Winner != "":
-		// Decided before decisions were kept: the winner, without a
-		// snapshot of what decided it.
-		out.State, out.Winner = "decided", cfg.Winner
+		// Decided before decisions were kept (review AN-1): the winner went
+		// to the rest, but what decided it wasn't kept. The samples' results
+		// since aren't what it was decided on, so no confidence or
+		// significance is claimed for it.
+		out.State, out.Winner, out.Outcome = "decided", cfg.Winner, OutcomeUnrecorded
+		out.Lift, out.PValue, out.Confidence, out.Significant = nil, nil, nil, false
+		out.Leader, out.RunnerUp = "", ""
 		out.Remaining = rollout
 		if cfg.DecidedAt != nil {
 			out.DecidedAt = cfg.DecidedAt

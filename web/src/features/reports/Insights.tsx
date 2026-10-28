@@ -19,7 +19,7 @@ const tone: Record<Insight['tone'], Tone> = { bad: 'bad', warn: 'warn', info: 'i
  * "Insights": what stands out in the report's numbers, each with what to
  * do about it (Report board). Read-only links show them without actions.
  */
-export function Insights({ r, onShowLink }: { r: CampaignReport; onShowLink?: (position: number) => void }) {
+export function Insights({ r, onShowLink }: { r: CampaignReport; onShowLink?: (position: number, variant?: string) => void }) {
   const t = useT()
   const ws = useOptionalWorkspace()
   const word: Record<Insight['kind'], string> = { blocked: t(m.insightBlocked), mailbox_bounces: t(m.insightWarn), top_link: t(m.insightInfo) }
@@ -36,13 +36,13 @@ export function Insights({ r, onShowLink }: { r: CampaignReport; onShowLink?: (p
       case 'open_postmaster':
         return x.link ? (
           <ButtonAnchor size="sm" href={x.link}>
-            {x.actionLabel}
-            <span className="vh"> {t(m.newTab)}</span>
+            {x.actionLabel}{' '}
+            <span className="vh">{t(m.newTab)}</span>
           </ButtonAnchor>
         ) : null
       case 'show_link':
         return onShowLink && x.position !== undefined ? (
-          <Button size="sm" className="rep-noprint" onClick={() => onShowLink(x.position!)}>
+          <Button size="sm" className="rep-noprint" onClick={() => onShowLink(x.position!, x.variant)}>
             {x.actionLabel}
           </Button>
         ) : null

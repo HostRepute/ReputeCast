@@ -3,6 +3,7 @@ package reports_test
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,6 +24,7 @@ func TestABEndToEnd(t *testing.T) {
 	t.Run("ClearWinner", func(t *testing.T) { testABWinner(t, s.Fixture(t, "AB clear winner")) })
 	t.Run("NoClearWinner", func(t *testing.T) { testABNoWinner(t, s.Fixture(t, "AB no clear winner")) })
 	t.Run("SendTimeInLocalTime", func(t *testing.T) { testABSendTime(t, s.Fixture(t, "AB send time")) })
+	t.Run("ContentClickMaps", func(t *testing.T) { testABContentMaps(t, s.Fixture(t, "AB content maps")) })
 }
 
 type abCard struct {
@@ -62,9 +64,16 @@ func setAB(f *sendtest.Fixture, minSample int, metric string) {
 		{"key":"B","subject":"The Postgres deep dive, plus three launches"}],"test_percent":40,"metric":%q,"duration_hours":1,"min_sample":%d}`, metric, minSample))
 }
 
-// clicks has a share of a variant's sample click (people, an hour after
-// their mail went out).
+// clicks has a share of a variant's sample click its first link (people,
+// ten minutes after their mail went out).
 func clicks(t *testing.T, f *sendtest.Fixture, variant string, every int) int {
+	t.Helper()
+	return clicksOn(t, f, variant, 0, every)
+}
+
+// clicksOn has a share of a variant's sample click a link (people, ten
+// minutes after their mail went out).
+func clicksOn(t *testing.T, f *sendtest.Fixture, variant string, link, every int) int {
 	t.Helper()
 	rows, err := f.Env.App.Pool.Query(f.Ctx, `SELECT id, sent_at FROM messages WHERE campaign_id = $1 AND variant = $2 AND NOT ab_rollout AND sent_at IS NOT NULL ORDER BY id`,
 		f.Campaign, variant)
@@ -80,7 +89,7 @@ func clicks(t *testing.T, f *sendtest.Fixture, variant string, every int) int {
 			t.Fatal(err)
 		}
 		if i%every == 0 {
-			evs = append(evs, sending.Engagement{MessageID: id, Click: true, Link: 0, UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/129.0",
+			evs = append(evs, sending.Engagement{MessageID: id, Click: true, Link: link, UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/129.0",
 				IP: fmt.Sprintf("198.51.100.%d", i%200+1), Method: "GET", At: at.Add(10 * time.Minute)})
 		}
 		i++
@@ -300,5 +309,126 @@ func testABSendTime(t *testing.T, f *sendtest.Fixture) {
 	}
 	if card := abReport(t, f); card.State != "decided" || card.Winner != "B" || card.Outcome != "manual" {
 		t.Fatalf("a person's pick: %+v", card)
+	}
+}
+
+// testABContentMaps: a test on content has an email per variant, so there is
+// no one map of everyone's clicks (review AN-5). The report marks its click
+// map per variant; each variant's map is its own email with its own links,
+// numbered from its first, and counts its own recipients' clicks; the
+// campaign's map is variant A's and says nothing of B's links; the bot
+// clicks the headline leaves out are every variant's.
+func testABContentMaps(t *testing.T, f *sendtest.Fixture) {
+	f.Exec(`UPDATE campaigns SET ab_test = $2 WHERE id = $1`, f.Campaign, `{"kind":"content","variants":[{"key":"A"},
+		{"key":"B","html":"<html><body><h1>Variant B</h1><p><a href=\"https://acme.io/b-guide\">Read the B guide</a></p><p><a href=\"https://acme.io/b-blog\">B blog</a></p><p>Acme Inc · 500 Market St, San Francisco, CA 94105 · <a href=\"{{ unsubscribe_url }}\">Unsubscribe</a></p></body></html>"}],
+		"test_percent":40,"metric":"clicks","duration_hours":1,"min_sample":150}`)
+	f.AddContacts(sendtest.ContactSpec{N: 1600, Mailbox: "gmail", Domain: "gmail.com", Engaged: true})
+	f.StartSend(engine.StartOptions{ABWindow: 40 * time.Minute})
+	f.Drive(5 * time.Minute)
+	var offB int
+	if err := f.Env.App.Pool.QueryRow(f.Ctx, `SELECT (content->'links'->>'B')::int FROM campaign_sends WHERE campaign_id = $1`, f.Campaign).Scan(&offB); err != nil || offB <= 0 {
+		t.Fatalf("variant B's first link position: %d %v", offB, err)
+	}
+	onA := clicksOn(t, f, "A", 0, 5)
+	onB := clicksOn(t, f, "B", offB, 3)
+	// A scanner on one of B's links: a bot click on B's email only.
+	var scanned uuid.UUID
+	if err := f.Env.App.Pool.QueryRow(f.Ctx, `SELECT id FROM messages WHERE campaign_id = $1 AND variant = 'B' AND NOT ab_rollout AND sent_at IS NOT NULL
+		ORDER BY id DESC LIMIT 1`, f.Campaign).Scan(&scanned); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.E.Recorder.RecordEngagement(f.Ctx, []sending.Engagement{{MessageID: scanned, Click: true, Link: offB + 1, UserAgent: "Mozilla/5.0 Barracuda Sentinel",
+		IP: "198.51.100.250", Method: "GET", At: f.Start.Add(20 * time.Minute)}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, done := f.Drive(3 * time.Hour); !done {
+		f.Dump()
+		t.Fatal("the send didn't finish")
+	}
+	type mapLink struct {
+		URL          string
+		Position     int
+		UniqueClicks int64
+		BotClicks    int64
+	}
+	var r struct {
+		Headline struct{ BotClicks int64 }
+		ClickMap struct {
+			PerVariant bool
+			Total      int64
+			BotTotal   int64
+			Links      []mapLink
+			Variants   []struct {
+				Key       string
+				SameEmail bool
+				HTML      string
+				Total     int64
+				BotTotal  int64
+				Links     []mapLink
+			}
+		}
+		Insights []struct{ Kind, Variant string }
+	}
+	c := f.Env.Client()
+	c.SignInDemo("linh@acme.io")
+	c.Do("GET", fmt.Sprintf("/workspaces/acme-newsletter/campaigns/%s/report", f.Campaign), nil).MustStatus(t, 200).JSON(t, &r)
+	m := r.ClickMap
+	if !m.PerVariant || len(m.Variants) != 2 || m.Variants[0].Key != "A" || m.Variants[1].Key != "B" {
+		t.Fatalf("a test on content has a map per variant: per variant %v, %d maps", m.PerVariant, len(m.Variants))
+	}
+	a, b := m.Variants[0], m.Variants[1]
+	if !a.SameEmail || b.SameEmail || !strings.Contains(b.HTML, "b-guide") || !strings.Contains(b.HTML, `data-rc-link="0"`) {
+		t.Fatalf("B's map is drawn on B's own email: same email %v, html %q", b.SameEmail, b.HTML)
+	}
+	if len(b.Links) != 2 || b.Links[0].Position != 0 || b.Links[0].URL != "https://acme.io/b-guide" || b.Links[1].URL != "https://acme.io/b-blog" {
+		t.Fatalf("B's links, numbered from its first: %+v", b.Links)
+	}
+	// What each variant's recipients did, from the clicks recorded one by
+	// one (the demo transport's readers click too): the people who clicked
+	// each link, and the bot clicks.
+	people := func(variant string, from, to int) int64 {
+		return f.Count(`SELECT count(*) FROM tracking_link_clicks k JOIN messages m ON m.id = k.message_id
+			WHERE m.campaign_id = $1 AND m.variant = $2 AND k.link BETWEEN $3 AND $4`, f.Campaign, variant, from, to)
+	}
+	bots := func(variant string, from, to int) int64 {
+		return f.Count(`SELECT count(*) FROM delivery_events e JOIN messages m ON m.id = e.message_id
+			WHERE e.campaign_id = $1 AND e.type = 'click' AND e.machine AND m.variant = $2 AND e.link BETWEEN $3 AND $4`, f.Campaign, variant, from, to)
+	}
+	if want := people("B", offB, offB); b.Links[0].UniqueClicks != want || want < int64(onB) {
+		t.Fatalf("B's guide: %d people on B's map, %d clicked it (%d of them here)", b.Links[0].UniqueClicks, want, onB)
+	}
+	if want := people("B", offB, offB+1); b.Total != want {
+		t.Fatalf("B's map counts %d people's clicks, B's recipients made %d", b.Total, want)
+	}
+	if want := bots("B", offB, offB+1); b.BotTotal != want || b.Links[1].BotClicks < 1 {
+		t.Fatalf("B's map: %d bot clicks (%d on the blog link), want %d with the scanner's", b.BotTotal, b.Links[1].BotClicks, want)
+	}
+	if want := people("A", 0, offB-1); a.Total != want || want < int64(onA) {
+		t.Fatalf("A's map counts %d people's clicks, A's recipients made %d (%d of them here)", a.Total, want, onA)
+	}
+	if want := bots("A", 0, offB-1); a.BotTotal != want {
+		t.Fatalf("A's map: %d bot clicks, want %d", a.BotTotal, want)
+	}
+	// The campaign's map is A's email, with A's links only. (Its counts are
+	// every click on those links: the demo transport's readers click by
+	// position, whichever email they got, so they can be more than A's.)
+	if m.Total < a.Total {
+		t.Fatalf("the campaign's map counts %d clicks, A's map %d", m.Total, a.Total)
+	}
+	for _, l := range m.Links {
+		if strings.Contains(l.URL, "acme.io/b-") {
+			t.Fatalf("the campaign's map has B's link %s", l.URL)
+		}
+	}
+	// The tile's bot clicks are every variant's, not only the map's (A's):
+	// the scanner's click on B's email is one of them.
+	want := f.Count(`SELECT count(*) FROM delivery_events WHERE campaign_id = $1 AND type = 'click' AND machine AND link >= 0`, f.Campaign)
+	if r.Headline.BotClicks != want || r.Headline.BotClicks < m.BotTotal+1 {
+		t.Fatalf("headline bot clicks %d, want every link's %d (the campaign's map has %d)", r.Headline.BotClicks, want, m.BotTotal)
+	}
+	for _, in := range r.Insights {
+		if in.Kind == "top_link" && in.Variant == "" {
+			t.Fatalf("the top link of a test on content names its variant: %+v", in)
+		}
 	}
 }

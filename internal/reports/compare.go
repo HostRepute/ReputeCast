@@ -13,7 +13,8 @@ import (
 
 // Every tile compares the issue with the median of the workspace's last
 // issues before it (review AN-11): "▲ 2.4% vs your last 6 issues" for the
-// count sent, percentage points for the rates. Until the results are final
+// count sent, percentage points for the rates, and draws the metric over
+// those issues and this one as a trend line. Until the results are final
 // nothing is compared: the numbers can still rise.
 
 // CompareIssues is how many earlier issues the medians are of.
@@ -32,6 +33,10 @@ type ReportComparison struct {
 	// fewer unsubscribes, complaints, bounces), bad, or neutral (the count
 	// sent, privacy-protected opens, no change).
 	Tone string `json:"tone" enum:"good,bad,neutral"`
+	// Trend is the metric in each of the earlier issues that have it,
+	// oldest first, then in this issue: the count sent, the rates in
+	// percent. The tile's trend line.
+	Trend []float64 `json:"trend"`
 }
 
 // ReportComparisons are the tiles' comparisons.
@@ -126,6 +131,9 @@ func (s *Service) compare(ctx context.Context, ws *store.Workspace, c store.Repo
 // percentage points. A rate an issue doesn't have (nothing delivered, no
 // mailbox provider that reports complaints) is left out of its median; a
 // tile none of them has isn't compared.
+//
+// past is newest first, as the issues are read; each trend runs oldest first
+// and ends with this issue.
 func compareTiles(now issueRates, past []issueRates) []ReportComparison {
 	out := []ReportComparison{}
 	sents := make([]float64, 0, len(past))
@@ -133,7 +141,12 @@ func compareTiles(now issueRates, past []issueRates) []ReportComparison {
 		sents = append(sents, p.sent)
 	}
 	if m, ok := median(sents); ok && m > 0 {
-		out = append(out, ReportComparison{Metric: "sent", Change: round((now.sent-m)/m*100, 1), Unit: "percent", Median: m, Tone: "neutral"})
+		trend := make([]float64, 0, len(past)+1)
+		for i := len(past) - 1; i >= 0; i-- {
+			trend = append(trend, past[i].sent)
+		}
+		out = append(out, ReportComparison{Metric: "sent", Change: round((now.sent-m)/m*100, 1), Unit: "percent", Median: m, Tone: "neutral",
+			Trend: append(trend, now.sent)})
 	}
 	// Up is good or bad by metric.
 	for _, k := range []struct {
@@ -154,9 +167,11 @@ func compareTiles(now issueRates, past []issueRates) []ReportComparison {
 			continue
 		}
 		vals := []float64{}
-		for _, p := range past {
-			if v := k.pick(p); v != nil {
+		trend := []float64{}
+		for i := len(past) - 1; i >= 0; i-- {
+			if v := k.pick(past[i]); v != nil {
 				vals = append(vals, *v)
+				trend = append(trend, *v)
 			}
 		}
 		m, ok := median(vals)
@@ -172,7 +187,7 @@ func compareTiles(now issueRates, past []issueRates) []ReportComparison {
 				tone = "bad"
 			}
 		}
-		out = append(out, ReportComparison{Metric: k.metric, Change: change, Unit: "points", Median: round(m, 2), Tone: tone})
+		out = append(out, ReportComparison{Metric: k.metric, Change: change, Unit: "points", Median: round(m, 2), Tone: tone, Trend: append(trend, *cur)})
 	}
 	return out
 }

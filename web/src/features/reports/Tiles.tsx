@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
+import { Sparkline } from '@/components/ui/Data'
 import { cn } from '@/lib/cn'
 import { clock, count, shortDate } from '@/lib/format'
 import { useOptionalWorkspace } from '@/lib/session'
@@ -9,20 +10,34 @@ import { T, useT } from '@/i18n'
 import { PollTiles, type PollResults } from '@/features/polls/report'
 import { sentByLanguage } from '@/features/languages/report'
 import { m } from './messages'
-import { bounceSub, comparison, notReportedLine, pct1, pct2, sentByLine, type CampaignReport, type TileComparison } from './words'
+import { bounceSub, comparison, notReportedLine, pct1, pct2, sentByLine, trendLabel, type CampaignReport, type TileComparison } from './words'
 
 /** "What SMTP can and can't do": the adapters guide, whose table says what each provider reports. */
 const SMTP_GUIDE = 'https://github.com/hostrepute/reputecast/blob/main/docs/adapters.md'
 
 type Column = Schemas['ReportProviderColumn']
 
-/** One headline tile (`.card.tile`: 14px 16px, 3px gaps) with its comparison. */
+/** A tile's trend line: the metric over the earlier issues and this one, read out by its label. */
+export interface TileTrend {
+  values: number[]
+  label: string
+}
+
+/** The trend of a tile's metric, once the results are final and there are earlier issues (review AN-11). */
+export function tileTrend(c: Schemas['ReportComparisons'], metric: Schemas['ReportComparison']['metric']): TileTrend | undefined {
+  const x = c.tiles.find((tile) => tile.metric === metric)
+  const label = x ? trendLabel(x) : undefined
+  return x && label ? { values: x.trend, label } : undefined
+}
+
+/** One headline tile (`.card.tile`: 14px 16px, 3px gaps) with its comparison and trend line. */
 function Tile({
   label,
   value,
   sub,
   extra,
   cmp,
+  trend,
   muted,
   behind,
   asOf,
@@ -33,6 +48,7 @@ function Tile({
   sub: ReactNode
   extra?: ReactNode
   cmp?: TileComparison
+  trend?: TileTrend
   muted?: boolean
   behind?: boolean
   asOf?: string
@@ -42,7 +58,12 @@ function Tile({
   return (
     <div className={cn('card rep-tile', behind && 'border-bad-line')}>
       <span className="k">{label}</span>
-      <span className={cn('n text-[22px]', muted && 'text-ink-3')}>{value}</span>
+      <div className="rep-tile-n">
+        <span className={cn('n text-[22px]', muted && 'text-ink-3')}>{value}</span>
+        {trend && !asOf ? (
+          <Sparkline className="rep-spark" values={trend.values} width={64} height={24} color="#8B94A3" last="#0F766E" strokeWidth={1.5} baseline={false} label={trend.label} />
+        ) : null}
+      </div>
       {asOf ? (
         <Badge tone="warn" className="self-start">
           {t(m.asOf, { time: asOf })}
@@ -96,6 +117,7 @@ export function HeadlineTiles({ r, polls, onBots }: { r: CampaignReport; polls?:
   const relay = inferredOnly(r)
   const from = (text: string) => (tracker ? t(m.fromProvider, { text, provider: tracker.short || tracker.name }) : text)
   const cmp = (metric: Schemas['ReportComparison']['metric']) => (final ? comparison(r.comparisons, metric) : undefined)
+  const trend = (metric: Schemas['ReportComparison']['metric']) => (final ? tileTrend(r.comparisons, metric) : undefined)
   const measurable = h.humanOpenRateMeasurable !== undefined
   const humanSub = measurable
     ? t(final ? m.humanSub : m.humanSoFar, { rate: pct1(h.humanOpenRate), measurable: pct1(h.humanOpenRateMeasurable) })
@@ -137,7 +159,7 @@ export function HeadlineTiles({ r, polls, onBots }: { r: CampaignReport; polls?:
       label={t(m.delivered)}
       value={count(h.delivered)}
       sub={deliveredSub}
-      cmp={cmp('delivered')}
+      cmp={cmp('delivered')} trend={trend('delivered')}
       behind={Boolean(lag)}
       asOf={lag}
       badge={
@@ -149,14 +171,14 @@ export function HeadlineTiles({ r, polls, onBots }: { r: CampaignReport; polls?:
       }
     />
   )
-  const human = <Tile label={t(m.humanOpens)} value={count(h.humanOpens)} sub={opensLag ? undefined : (current ?? from(humanSub))} cmp={cmp('humanOpens')} behind={Boolean(opensLag)} asOf={opensLag} />
+  const human = <Tile label={t(m.humanOpens)} value={count(h.humanOpens)} sub={opensLag ? undefined : (current ?? from(humanSub))} cmp={cmp('humanOpens')} trend={trend('humanOpens')} behind={Boolean(opensLag)} asOf={opensLag} />
   const privacy = (
     <Tile
       label={t(m.privacyOpens)}
       value={count(h.privacyOpens)}
       muted
       sub={opensLag ? undefined : (current ?? t(final ? m.privacySub : m.privacySoFar, { rate: pct1(h.privacyOpenRate) }))}
-      cmp={cmp('privacyOpens')}
+      cmp={cmp('privacyOpens')} trend={trend('privacyOpens')}
       behind={Boolean(opensLag)}
       asOf={opensLag}
     />
@@ -167,7 +189,7 @@ export function HeadlineTiles({ r, polls, onBots }: { r: CampaignReport; polls?:
       value={count(h.clicks)}
       sub={opensLag ? undefined : (current ?? from(t(final ? m.clicksPeople : m.clicksSoFar, { rate: pct1(h.clickRate), cto: pct1(h.clickToOpen) })))}
       extra={final ? bots : null}
-      cmp={cmp('clicks')}
+      cmp={cmp('clicks')} trend={trend('clicks')}
       behind={Boolean(opensLag)}
       asOf={opensLag}
     />
@@ -178,12 +200,12 @@ export function HeadlineTiles({ r, polls, onBots }: { r: CampaignReport; polls?:
       value={count(h.complaints)}
       sub={complaintsSub}
       extra={final && notReported ? <span className="k">{notReported}</span> : null}
-      cmp={cmp('complaints')}
+      cmp={cmp('complaints')} trend={trend('complaints')}
       behind={Boolean(lag)}
       asOf={lag}
     />
   )
-  const bounceTile = <Tile label={t(m.bounces)} value={count(h.bounces)} sub={bounces} cmp={cmp('bounces')} behind={Boolean(lag)} asOf={lag} />
+  const bounceTile = <Tile label={t(m.bounces)} value={count(h.bounces)} sub={bounces} cmp={cmp('bounces')} trend={trend('bounces')} behind={Boolean(lag)} asOf={lag} />
   if (!final) {
     return (
       <div className={cn('rep-tiles six', lag && 'opacity-75')}>
@@ -199,13 +221,13 @@ export function HeadlineTiles({ r, polls, onBots }: { r: CampaignReport; polls?:
   }
   return (
     <div className={cn('rep-tiles', lag && 'opacity-75')}>
-      <Tile label={t(m.sent)} value={count(h.sent)} sub={sentByLanguage(r.languages) ?? (sentByLine(h) || '—')} cmp={cmp('sent')} />
+      <Tile label={t(m.sent)} value={count(h.sent)} sub={sentByLanguage(r.languages) ?? (sentByLine(h) || '—')} cmp={cmp('sent')} trend={trend('sent')} />
       {delivered}
       {polls?.length ? <PollTiles polls={polls} /> : null}
       {human}
       {privacy}
       {clicks}
-      <Tile label={t(m.unsubscribes)} value={count(h.unsubscribes)} sub={current ?? t(m.unsubSub, { rate: pct2(h.unsubscribeRate) })} cmp={cmp('unsubscribes')} />
+      <Tile label={t(m.unsubscribes)} value={count(h.unsubscribes)} sub={current ?? t(m.unsubSub, { rate: pct2(h.unsubscribeRate) })} cmp={cmp('unsubscribes')} trend={trend('unsubscribes')} />
       {complaints}
       {bounceTile}
     </div>

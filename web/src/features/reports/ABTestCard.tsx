@@ -3,20 +3,27 @@ import { Badge, type Tone } from '@/components/ui/Badge'
 import { useT } from '@/i18n'
 import { clock, count, decimal, pct, shortDate } from '@/lib/format'
 import { m } from './messages'
-import { abBadge, abExplanation, pct1, pct2, variantLine, type CampaignReport } from './words'
+import { abExplanation, pct1, pct2, variantLine, type CampaignReport } from './words'
 
 type AB = Schemas['ReportABTest']
 type Variant = Schemas['ReportABVariant']
 type TT = ReturnType<typeof useT>
 
-/** "Winner B · 98% confidence · decided on clicks", "No clear winner", or the test so far. */
+/**
+ * The card's badge: "Testing · decides at 12:00", "No clear winner",
+ * "Winner B · 98% confidence · decided on clicks". A confidence is only
+ * claimed for a significant decision; a test decided before decisions were
+ * kept has none to claim.
+ */
 export function abHeadline(t: TT, x: AB): { tone: Tone; text: string } {
-  const confidence = x.confidence !== undefined ? pct(Math.min(99, Math.round(x.confidence)), 0) : undefined
-  if (x.state === 'testing') return abBadge(x)
+  if (x.state === 'testing') return { tone: 'info', text: x.decidedAt ? t(m.abTestingAt, { time: clock(x.decidedAt) }) : t(m.abTesting) }
   if (x.state === 'no_winner') return { tone: 'neutral', text: t(m.abNoWinner) }
-  if (x.outcome === 'manual') return { tone: 'ok', text: t(m.abChosenBy, { variant: x.winner ?? '' }) }
-  if (confidence) return { tone: 'ok', text: t(m.abWinnerOn, { variant: x.winner ?? '', confidence, metric: x.metric }) }
-  return abBadge(x)
+  const variant = x.winner ?? ''
+  if (x.outcome === 'manual') return { tone: 'ok', text: t(m.abChosenBy, { variant }) }
+  if (x.outcome === 'unrecorded') return { tone: 'neutral', text: t(m.abChosenUnrecorded, { variant }) }
+  if (!x.significant) return { tone: 'warn', text: t(m.abChosen, { variant }) }
+  if (x.confidence === undefined) return { tone: 'ok', text: t(m.abWinner, { variant }) }
+  return { tone: 'ok', text: t(m.abWinnerOn, { variant, confidence: pct(Math.min(99, Math.round(x.confidence)), 0), metric: x.metric }) }
 }
 
 /** The decision rates, the leader first: "B 3.4%, A 2.6%". */
@@ -28,8 +35,22 @@ function decisionRates(x: AB): string {
     .join(', ')
 }
 
+/** What the bars show: the final numbers, or when they arrive. */
+function barsLine(t: TT, x: AB, final: boolean, finalAt?: string): string | undefined {
+  const max = pct(x.barMax, 0)
+  if (final) return t(m.abBarsFinal, { metric: x.metric, max })
+  return finalAt ? t(m.abBarsComing, { day: shortDate(finalAt), time: clock(finalAt), max }) : undefined
+}
+
 /** "How the winner was picked", as the board words it. */
 export function abHow(t: TT, x: AB, final: boolean, finalAt?: string): string[] {
+  if (x.outcome === 'unrecorded') {
+    // Decided before decisions were kept: what decided it isn't known.
+    const rest = x.remaining > 0 && x.rolloutAt
+    const out = [rest ? t(m.abUnrecorded, { count: count(x.remaining), winner: x.winner ?? x.default, time: clock(x.rolloutAt!) }) : t(m.abUnrecordedNoRest)]
+    const bars = barsLine(t, x, final, finalAt)
+    return bars ? [...out, bars] : out
+  }
   if (x.state === 'testing' || x.remaining <= 0 || x.decidedAfter === undefined) return abExplanation(x)
   const hours = decimal(x.decidedAfter, Number.isInteger(x.decidedAfter) ? 0 : 1)
   const values = {
@@ -45,12 +66,9 @@ export function abHow(t: TT, x: AB, final: boolean, finalAt?: string): string[] 
   const out: string[] = []
   if (x.outcome === 'manual') out.push(t(m.abPicked, values))
   else out.push(t(x.state === 'no_winner' ? m.abZTestNoWinner : m.abZTest, values))
-  const max = pct(x.barMax, 0)
-  if (final) {
-    out.push(`${t(x.metric === 'clicks' ? m.abOpensCouldnt : m.abPrivacyLeftOut)} ${t(m.abBarsFinal, { metric: x.metric, max })}`)
-  } else if (finalAt) {
-    out.push(t(m.abBarsComing, { day: shortDate(finalAt), time: clock(finalAt), max }))
-  }
+  const bars = barsLine(t, x, final, finalAt)
+  if (final) out.push(`${t(x.metric === 'clicks' ? m.abOpensCouldnt : m.abPrivacyLeftOut)} ${bars}`)
+  else if (bars) out.push(bars)
   return out
 }
 
@@ -65,7 +83,9 @@ export function abLead(t: TT, x: AB): string | null {
 
 function VariantPane({ v, x, final }: { v: Variant; x: AB; final: boolean }) {
   const t = useT()
-  const decided = x.state !== 'testing' && x.decidedAt !== undefined
+  // A test decided before decisions were kept has no numbers as of its decision.
+  const unrecorded = x.outcome === 'unrecorded'
+  const decided = x.state !== 'testing' && x.decidedAt !== undefined && !unrecorded
   // Before the results are final the bars show the decision, as of when it was made.
   const atDecision = !final && decided
   const value = atDecision ? v.decisionRate : v.metricRate
@@ -73,7 +93,7 @@ function VariantPane({ v, x, final }: { v: Variant; x: AB; final: boolean }) {
   const time = x.decidedAt ? clock(x.decidedAt) : ''
   const winner = x.state === 'decided' && v.winner
   const badge = winner
-    ? { tone: 'ok' as Tone, text: t(m.abVariantWinner, { variant: v.key }) }
+    ? { tone: 'ok' as Tone, text: t(unrecorded ? m.abVariantChosen : m.abVariantWinner, { variant: v.key }) }
     : x.state === 'no_winner' && v.default
       ? { tone: 'neutral' as Tone, text: t(m.abYourDefault, { variant: v.key }) }
       : { tone: 'neutral' as Tone, text: v.key }

@@ -82,7 +82,8 @@ func (s *Service) sent(ctx context.Context, c store.ReportCampaignRow) (sentCont
 }
 
 // clickMaps builds the campaign's click map (the campaign's email: variant
-// A's for a test on content) and, with an A/B test, each variant's.
+// A's for a test on content, then marked PerVariant) and, with an A/B test,
+// each variant's.
 func (s *Service) clickMaps(ctx context.Context, l i18n.Lang, c store.ReportCampaignRow, ab *abConfig, links []store.ReportLinksRow) (ReportClickMap, error) {
 	content, err := s.sent(ctx, c)
 	if err != nil {
@@ -109,6 +110,10 @@ func (s *Service) clickMaps(ctx context.Context, l i18n.Lang, c store.ReportCamp
 	maps := make([]ReportVariantClickMap, 0, len(ab.Variants))
 	for _, v := range ab.Variants {
 		key, html := content.own(v.Key)
+		if key != "" {
+			// A test on content: each variant has its own email.
+			out.PerVariant = true
+		}
 		from, to := content.span(key)
 		counts, kept := byVariant[v.Key]
 		if !kept && key == "" {

@@ -44,6 +44,8 @@ var (
 	mInsightOpenPostmaster       = msgs.M("insight.openPostmaster")
 	mInsightTopLink              = msgs.M("insight.topLink")
 	mInsightTopLinkDetail        = msgs.M("insight.topLinkDetail")
+	mInsightTopLinkVariant       = msgs.M("insight.topLinkVariant")
+	mInsightTopLinkVariantDetail = msgs.M("insight.topLinkVariantDetail")
 	mInsightShowLink             = msgs.M("insight.showLink")
 	mAllSuppressed               = msgs.M("problem.allSuppressed")
 

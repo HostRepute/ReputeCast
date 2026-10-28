@@ -114,6 +114,8 @@ export const m = defineMessages('reports', {
   points: '{n} pts',
   vsLast: '{change} vs your last {n, plural, one {issue} other {# issues}}',
   sameAsLast: 'Same as your last {n, plural, one {issue} other {# issues}}',
+  trendLine:
+    '{dir, select, up {{n, plural, one {Up since your last issue, from {from} to {to}} other {Up over your last # issues, from {from} to {to}}}} down {{n, plural, one {Down since your last issue, from {from} to {to}} other {Down over your last # issues, from {from} to {to}}}} other {{n, plural, one {Same as your last issue, at {to}} other {Same as # issues ago, at {to}}}}}',
   cmpNote: 'Arrows compare with the median of your last {n, plural, one {issue} other {# issues}}.',
   cmpNoHistory: 'No earlier issue to compare with yet.',
   scannerNote: 'Scanner opens {count} excluded: security filters that open mail seconds after delivery.',
@@ -254,6 +256,10 @@ export const m = defineMessages('reports', {
   abNoWinner: 'No clear winner',
   abWinnerOn: '{metric, select, clicks {Winner {variant} · {confidence} confidence · decided on clicks} other {Winner {variant} · {confidence} confidence · decided on human opens}}',
   abChosenBy: 'Winner {variant} · picked by a person',
+  abChosenUnrecorded: '{variant} chosen · confidence not recorded',
+  abUnrecorded:
+    "This test was decided before ReputeCast kept a record of each decision, so how sure it was isn't known. The remaining {count} got {winner} at {time}.",
+  abUnrecordedNoRest: "This test was decided before ReputeCast kept a record of each decision, so how sure it was isn't known.",
   abLead: '{leader} was {lift} pts ahead at {confidence} confidence, so everyone else got {winner} (your default).',
   abLeadSmall: 'Fewer than {min} recipients per variant could be measured, so everyone else got {winner} (your default).',
   abYourDefault: '{variant} · your default',
@@ -304,7 +310,6 @@ export const m = defineMessages('reports', {
   // ── Results per mailbox provider ─────────────────────────────────────
   mailboxTitle: 'Results per mailbox provider',
   mailboxCaption: 'where recipients read it',
-  mailboxIcloud: "iCloud's machine opens are Apple Mail Privacy Protection prefetches; its human-open figure is the honest one.",
   colMailbox: 'Mailbox provider',
   colUnsubs: 'Unsubs',
 
@@ -351,6 +356,7 @@ export const m = defineMessages('reports', {
   // ── A/B test ─────────────────────────────────────────────────────────
   abTitle: 'A/B test · {label}',
   abVariantWinner: '{variant} · winner',
+  abVariantChosen: '{variant} · chosen',
   abHumanOpens: '<b>{rate}</b> human opens',
   abClicks: '<b>{rate}</b> clicks',
   abComplaints: '<b>{rate}</b> complaints',
@@ -359,11 +365,7 @@ export const m = defineMessages('reports', {
   abTesting: 'Testing',
   abTestingAt: 'Testing · decides at {time}',
   abWinner: 'Winner {variant}',
-  abWinnerConf: 'Winner {variant} · {confidence} confidence',
   abChosen: '{variant} chosen · not significant',
-  abChosenConf: '{variant} chosen · not significant · {confidence} confidence',
-  abNotYet: 'Not significant yet',
-  abNotYetConf: 'Not significant yet · {confidence} confidence',
   abDecides:
     '{metric, select, clicks {Clicks} other {Human opens}} {hours, plural, one {# hour} other {# hours}} after the sample went out decide it{stats, select, yes {; so far two-proportion z-test, lift {lift} points, p = {p}} other {}}.',
   abResult:

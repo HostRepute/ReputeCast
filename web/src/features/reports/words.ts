@@ -156,6 +156,24 @@ export function comparison(c: Schemas['ReportComparisons'], metric: Schemas['Rep
   return { arrow: up ? '▲' : '▼', direction: t(up ? m.up : m.down), text: t(m.vsLast, { change, n: c.issues }), tone }
 }
 
+/**
+ * A tile's trend line, read out: "Up over your last 6 issues, from 49.9% to
+ * 52.8%" (review AN-11). It runs from the oldest of the earlier issues to
+ * this one, and says the same as the numbers the tile shows: the change is
+ * up or down when they differ at the tile's precision.
+ */
+export function trendLabel(x: Schemas['ReportComparison']): string | undefined {
+  const v = x.trend
+  if (!v || v.length < 2) return undefined
+  const fmt = (n: number) => (x.metric === 'sent' ? count(n) : pct(n, smallRates.has(x.metric) ? 2 : 1))
+  const first = v[0]!
+  const now = v[v.length - 1]!
+  const from = fmt(first)
+  const to = fmt(now)
+  const dir = from === to ? 'same' : now > first ? 'up' : 'down'
+  return t(m.trendLine, { dir, n: v.length - 1, from, to })
+}
+
 /** "193 hard, 79 soft, 16 blocked or other", after the rate of sent. */
 export function bounceSub(h: Schemas['ReportHeadline'], final: boolean): string {
   const rate = pct2(h.bounceRate)
@@ -184,16 +202,6 @@ export function niceMax(v: number): { max: number; step: number } {
 export function fewerNote(n: number): string | null {
   if (n <= 0) return null
   return t(m.fewer, { n, count: count(n) })
-}
-
-/** The A/B badge: "Winner B · 98% confidence", "Testing · decides at 12:00", "Not significant yet · 81% confidence". */
-export function abBadge(x: Schemas['ReportABTest']): { tone: Tone; text: string } {
-  const confidence = x.confidence !== undefined ? pct(Math.min(99, Math.round(x.confidence)), 0) : undefined
-  if (x.state === 'testing') return { tone: 'info', text: x.decidedAt ? t(m.abTestingAt, { time: clock(x.decidedAt) }) : t(m.abTesting) }
-  const variant = x.winner ?? ''
-  if (x.state === 'decided' && x.significant) return { tone: 'ok', text: confidence ? t(m.abWinnerConf, { variant, confidence }) : t(m.abWinner, { variant }) }
-  if (x.state === 'decided') return { tone: 'warn', text: confidence ? t(m.abChosenConf, { variant, confidence }) : t(m.abChosen, { variant }) }
-  return { tone: 'warn', text: confidence ? t(m.abNotYetConf, { confidence }) : t(m.abNotYet) }
 }
 
 /** "How the winner was picked", as sentences. */

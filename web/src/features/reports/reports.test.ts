@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { Schemas } from '@/api/client'
 import { t } from '@/i18n'
-import { abHow, abLead } from './ABTestCard'
-import { anchorsOf, bubbleWidth, entries, placeBubbles, screenRulesForPrint, withFallbacks, type AnchorBox, type Spot } from './ClickMap'
+import { abHeadline, abHow, abLead } from './ABTestCard'
+import { anchorsOf, bubbleWidth, entries, placeBubbles, screenRulesForPrint, shownVariant, withFallbacks, type AnchorBox, type Spot } from './ClickMap'
 import { hourX, seriesPath, tableHours } from './EngagementChart'
 import { linkMeta } from './ShareCard'
-import { abBadge, abExplanation, bounceSub, comparison, engagementNote, fewerNote, headerCaption, niceMax, notReportedLine, providerNote, splitCaption, variantLine } from './words'
+import { abExplanation, bounceSub, comparison, engagementNote, fewerNote, headerCaption, niceMax, notReportedLine, providerNote, splitCaption, trendLabel, variantLine } from './words'
 
 const info = (over: Partial<Schemas['ReportCampaignInfo']>): Schemas['ReportCampaignInfo'] => ({
   id: 'c',
@@ -42,12 +42,12 @@ describe('report words', () => {
     const c: Schemas['ReportComparisons'] = {
       issues: 6,
       tiles: [
-        { metric: 'sent', change: 2.4, unit: 'percent', median: 46856, tone: 'neutral' },
-        { metric: 'delivered', change: -0.1, unit: 'points', median: 99.2, tone: 'bad' },
-        { metric: 'humanOpens', change: 2.1, unit: 'points', median: 50.7, tone: 'good' },
-        { metric: 'unsubscribes', change: 0.03, unit: 'points', median: 0.21, tone: 'bad' },
-        { metric: 'complaints', change: -0.01, unit: 'points', median: 0.1, tone: 'good' },
-        { metric: 'bounces', change: 0, unit: 'points', median: 0.6, tone: 'neutral' },
+        { metric: 'sent', change: 2.4, unit: 'percent', median: 46856, tone: 'neutral', trend: [] },
+        { metric: 'delivered', change: -0.1, unit: 'points', median: 99.2, tone: 'bad', trend: [] },
+        { metric: 'humanOpens', change: 2.1, unit: 'points', median: 50.7, tone: 'good', trend: [] },
+        { metric: 'unsubscribes', change: 0.03, unit: 'points', median: 0.21, tone: 'bad', trend: [] },
+        { metric: 'complaints', change: -0.01, unit: 'points', median: 0.1, tone: 'good', trend: [] },
+        { metric: 'bounces', change: 0, unit: 'points', median: 0.6, tone: 'neutral', trend: [] },
       ],
     }
     expect(comparison(c, 'sent')).toEqual({ arrow: '▲', direction: 'Up', text: '2.4% vs your last 6 issues', tone: 'neu' })
@@ -124,7 +124,7 @@ describe('report words', () => {
       barMax: 10,
       decidedAt: '2026-10-09T16:00:00Z',
     } as Schemas['ReportABTest']
-    expect(abBadge(x).text).toMatch(/^Testing · decides at \d\d:00$/)
+    expect(abHeadline(t, x)).toEqual({ tone: 'info', text: expect.stringMatching(/^Testing · decides at \d\d:00$/) as string })
     expect(abExplanation(x)[0]).toBe('Human opens 2 hours after the sample went out decide it. Machine opens were excluded so Apple Mail prefetches couldn’t decide it.')
     expect(variantLine({ key: 'B', label: '', recipients: 4798, samplePercent: 10, winner: true, remaining: 38384, default: false, eligible: 0, conversions: 0 })).toBe(
       '4,798 recipients · 10% sample, then 38,384 remaining',
@@ -166,6 +166,39 @@ describe('A/B card', () => {
     )
     expect(how[1]).toBe("Opens couldn't decide it, because Apple Mail opens messages automatically. The bars show human clicks after 72 h, on a 0 to 10% scale.")
     expect(abLead(t, won)).toBeNull()
+  })
+
+  it('claims a confidence only for a significant decision', () => {
+    expect(abHeadline(t, won)).toEqual({ tone: 'ok', text: 'Winner B · 98% confidence · decided on clicks' })
+    expect(abHeadline(t, { ...won, confidence: 99.97 }).text).toBe('Winner B · 99% confidence · decided on clicks')
+    expect(abHeadline(t, { ...won, metric: 'human_opens' }).text).toBe('Winner B · 98% confidence · decided on human opens')
+    expect(abHeadline(t, { ...won, confidence: undefined }).text).toBe('Winner B')
+    // Numbers that don't reach significance never read as a confident win.
+    expect(abHeadline(t, { ...won, significant: false, confidence: 61.3 })).toEqual({ tone: 'warn', text: 'B chosen · not significant' })
+    expect(abHeadline(t, { ...won, outcome: 'manual' })).toEqual({ tone: 'ok', text: 'Winner B · picked by a person' })
+    expect(abHeadline(t, { ...won, state: 'no_winner', outcome: 'not_significant', winner: 'A' })).toEqual({ tone: 'neutral', text: 'No clear winner' })
+    expect(abHeadline(t, { ...won, state: 'testing', outcome: undefined, decidedAt: undefined })).toEqual({ tone: 'info', text: 'Testing' })
+  })
+
+  it('claims no confidence for a test decided before decisions were kept', () => {
+    const legacy = {
+      ...won,
+      outcome: 'unrecorded',
+      significant: false,
+      confidence: undefined,
+      pValue: undefined,
+      lift: undefined,
+      leader: undefined,
+      runnerUp: undefined,
+      decidedAfter: undefined,
+      variants: [v({ key: 'A', default: true, metricRate: 5.6 }), v({ key: 'B', winner: true, remaining: 38384, metricRate: 6.7 })],
+    } as Schemas['ReportABTest']
+    expect(abHeadline(t, legacy)).toEqual({ tone: 'neutral', text: 'B chosen · confidence not recorded' })
+    const how = abHow(t, legacy, true)
+    expect(how[0]).toMatch(/^This test was decided before ReputeCast kept a record of each decision, so how sure it was isn't known\. The remaining 38,384 got B at \d\d:00\.$/)
+    expect(how[1]).toBe('The bars show human clicks after 72 h, on a 0 to 10% scale.')
+    expect(how.join(' ')).not.toMatch(/confidence|significant|z-test|couldn't decide/)
+    expect(abHow(t, { ...legacy, remaining: 0 }, false)).toEqual(["This test was decided before ReputeCast kept a record of each decision, so how sure it was isn't known."])
   })
 
   it('says so when there is no clear winner, and that the default went out', () => {
@@ -326,5 +359,31 @@ describe('share links', () => {
     }
     expect(linkMeta(s)).toBe('Created by Marcus Chen on 21 Oct · expires 20 Nov · with the email and cost per provider')
     expect(linkMeta({ ...s, includes: { cost: false, warmup: false, email: false } })).toBe('Created by Marcus Chen on 21 Oct · expires 20 Nov')
+  })
+})
+
+describe('trend lines', () => {
+  const c = (o: Partial<Schemas['ReportComparison']>) =>
+    ({ metric: 'humanOpens', change: 2.1, unit: 'points', median: 50.7, tone: 'good', trend: [], ...o }) as Schemas['ReportComparison']
+  it('read the line out the way the tile writes its numbers', () => {
+    expect(trendLabel(c({ trend: [49.92, 50.4, 49.7, 50.71, 51.03, 50.6, 52.79] }))).toBe('Up over your last 6 issues, from 49.9% to 52.8%')
+    expect(trendLabel(c({ metric: 'sent', trend: [46000, 47980] }))).toBe('Up since your last issue, from 46,000 to 47,980')
+    // Small rates keep two decimals, as their tiles do.
+    expect(trendLabel(c({ metric: 'complaints', trend: [0.06, 0.05, 0.041] }))).toBe('Down over your last 2 issues, from 0.06% to 0.04%')
+    // The same at the tile's precision reads as the same, not as a change.
+    expect(trendLabel(c({ metric: 'delivered', trend: [99.12, 98.7, 99.08] }))).toBe('Same as 2 issues ago, at 99.1%')
+    expect(trendLabel(c({ trend: [52.79] }))).toBeUndefined()
+  })
+})
+
+describe('click map variants', () => {
+  const vm = (key: string) => ({ key, sameEmail: key === 'A', html: '', available: true, total: 0, botTotal: 0, links: [], rows: [] }) as Schemas['ReportVariantClickMap']
+  it('starts a test on content on its first variant: no map holds everyone', () => {
+    expect(shownVariant({ perVariant: true, variants: [vm('A'), vm('B')] }, '')).toBe('A')
+    expect(shownVariant({ perVariant: true, variants: [vm('A'), vm('B')] }, 'B')).toBe('B')
+    expect(shownVariant({ perVariant: true, variants: [vm('A'), vm('B')] }, 'C')).toBe('A')
+    expect(shownVariant({ perVariant: false, variants: [vm('A'), vm('B')] }, '')).toBe('')
+    expect(shownVariant({ perVariant: false, variants: [vm('A'), vm('B')] }, 'B')).toBe('B')
+    expect(shownVariant({ perVariant: false, variants: [] }, 'B')).toBe('')
   })
 })

@@ -34,6 +34,9 @@ type ReportInsight struct {
 	Link string `json:"link,omitempty"`
 	// Position is the link's position on the click map (show_link).
 	Position *int `json:"position,omitempty"`
+	// Variant is the A/B variant whose map the link is on, for a test on
+	// content (show_link); empty otherwise.
+	Variant string `json:"variant,omitempty"`
 	// detailNoWarmup is Detail without the sending provider's warm-up day,
 	// for a read-only link that doesn't share the warm-up state (leaveOut);
 	// empty when Detail doesn't mention it.
@@ -107,76 +110,119 @@ func (s *Service) insights(ctx context.Context, l i18n.Lang, ws *store.Workspace
 		}
 		ins = append(ins, in)
 	}
-	// A mailbox provider bouncing far more than the others.
+	if in := mailboxBouncesInsight(l, out.Mailboxes); in != nil {
+		ins = append(ins, *in)
+	}
+	if in := topLinkInsight(l, out.ClickMap); in != nil {
+		ins = append(ins, *in)
+	}
+	return ins, nil
+}
+
+// mailboxBouncesInsight is a mailbox provider bouncing far more than the
+// others together, with what to open about it: Microsoft SNDS for Outlook,
+// Google Postmaster Tools for Gmail.
+func mailboxBouncesInsight(l i18n.Lang, mailboxes []ReportMailboxRow) *ReportInsight {
 	type rate struct {
 		key, name   string
 		v           float64
 		sent, bounc int64
 	}
 	var rates []rate
-	for _, m := range out.Mailboxes {
+	for _, m := range mailboxes {
 		if m.BounceRate == nil {
 			continue
 		}
 		rates = append(rates, rate{key: m.Key, name: m.Name, v: *m.BounceRate, sent: m.Sent, bounc: int64(math.Round(*m.BounceRate / 100 * float64(m.Sent)))})
 	}
-	if len(rates) >= 2 {
-		slices.SortStableFunc(rates, func(a, b rate) int {
-			switch {
-			case a.v > b.v:
-				return -1
-			case a.v < b.v:
-				return 1
+	if len(rates) < 2 {
+		return nil
+	}
+	slices.SortStableFunc(rates, func(a, b rate) int {
+		switch {
+		case a.v > b.v:
+			return -1
+		case a.v < b.v:
+			return 1
+		}
+		return 0
+	})
+	top := rates[0]
+	// The other mailbox providers together.
+	var sent, bounced int64
+	for _, r := range rates[1:] {
+		sent += r.sent
+		bounced += r.bounc
+	}
+	others := 0.0
+	if sent > 0 {
+		others = float64(bounced) / float64(sent) * 100
+	}
+	if others <= 0 || top.v < bounceOutlier*others || top.bounc < bounceOutlierMin {
+		return nil
+	}
+	times := math.Round(top.v / others)
+	in := ReportInsight{Kind: "mailbox_bounces", Tone: "warn",
+		Title: mInsightMailboxBounces.Text(l, i18n.Args{"mailbox": top.name, "rate": formatRate(l, top.v), "times": int(times),
+			"others": formatRate(l, round(others, 1))}),
+		Detail: mInsightMailboxBouncesDetail.Text(l, i18n.Args{"n": top.bounc, "bounced": formatCount(l, top.bounc), "sent": formatCount(l, top.sent)})}
+	switch top.key {
+	case "outlook":
+		in.Action, in.ActionLabel, in.Link = "open_snds", mInsightOpenSNDS.Text(l, nil), sndsURL
+		in.Detail += " " + mInsightSNDSDetail.Text(l, nil)
+	case "gmail":
+		in.Action, in.ActionLabel, in.Link = "open_postmaster", mInsightOpenPostmaster.Text(l, nil), postmasterURL
+	}
+	return &in
+}
+
+// topLinkInsight is a link that drew much of its email's human clicks, to
+// show on the click map. A test on content has an email per variant (the
+// map is PerVariant): each variant's links are measured against its own
+// clicks, and the insight names the variant whose map it is on.
+func topLinkInsight(l i18n.Lang, cm ReportClickMap) *ReportInsight {
+	type email struct {
+		variant string
+		links   []ReportLink
+	}
+	emails := []email{{links: cm.Links}}
+	if cm.PerVariant {
+		emails = emails[:0]
+		for _, v := range cm.Variants {
+			emails = append(emails, email{variant: v.Key, links: v.Links})
+		}
+	}
+	var best *ReportLink
+	variant := ""
+	for _, e := range emails {
+		var top *ReportLink
+		for i := range e.links {
+			if lk := &e.links[i]; top == nil || lk.UniqueClicks > top.UniqueClicks {
+				top = lk
 			}
-			return 0
-		})
-		top := rates[0]
-		// The other mailbox providers together.
-		var sent, bounced int64
-		for _, r := range rates[1:] {
-			sent += r.sent
-			bounced += r.bounc
 		}
-		others := 0.0
-		if sent > 0 {
-			others = float64(bounced) / float64(sent) * 100
+		if top == nil || top.Share < topLinkShare || top.UniqueClicks == 0 {
+			continue
 		}
-		if others > 0 && top.v >= bounceOutlier*others && top.bounc >= bounceOutlierMin {
-			times := math.Round(top.v / others)
-			in := ReportInsight{Kind: "mailbox_bounces", Tone: "warn",
-				Title: mInsightMailboxBounces.Text(l, i18n.Args{"mailbox": top.name, "rate": formatRate(l, top.v), "times": int(times),
-					"others": formatRate(l, round(others, 1))}),
-				Detail: mInsightMailboxBouncesDetail.Text(l, i18n.Args{"n": top.bounc, "bounced": formatCount(l, top.bounc), "sent": formatCount(l, top.sent)})}
-			switch top.key {
-			case "outlook":
-				in.Action, in.ActionLabel, in.Link = "open_snds", mInsightOpenSNDS.Text(l, nil), sndsURL
-				in.Detail += " " + mInsightSNDSDetail.Text(l, nil)
-			case "gmail":
-				in.Action, in.ActionLabel, in.Link = "open_postmaster", mInsightOpenPostmaster.Text(l, nil), postmasterURL
-			}
-			ins = append(ins, in)
+		if best == nil || top.Share > best.Share || (top.Share == best.Share && top.UniqueClicks > best.UniqueClicks) {
+			best, variant = top, e.variant
 		}
 	}
-	// A link that drew much of the human clicks.
-	var top *ReportLink
-	for i := range out.ClickMap.Links {
-		lk := &out.ClickMap.Links[i]
-		if top == nil || lk.UniqueClicks > top.UniqueClicks {
-			top = lk
-		}
+	if best == nil {
+		return nil
 	}
-	if top != nil && top.Share >= topLinkShare && top.UniqueClicks > 0 {
-		pos := top.Position
-		label := top.Label
-		if label == "" {
-			label = strings.TrimPrefix(strings.TrimPrefix(top.URL, "https://"), "http://")
-		}
-		ins = append(ins, ReportInsight{Kind: "top_link", Tone: "info",
-			Title:  mInsightTopLink.Text(l, i18n.Args{"link": label, "share": formatShare(l, top.Share)}),
-			Detail: mInsightTopLinkDetail.Text(l, i18n.Args{"n": top.UniqueClicks, "people": formatCount(l, top.UniqueClicks), "link": label}),
-			Action: "show_link", ActionLabel: mInsightShowLink.Text(l, nil), Position: &pos})
+	pos := best.Position
+	label := best.Label
+	if label == "" {
+		label = strings.TrimPrefix(strings.TrimPrefix(best.URL, "https://"), "http://")
 	}
-	return ins, nil
+	args := i18n.Args{"link": label, "share": formatShare(l, best.Share), "n": best.UniqueClicks, "people": formatCount(l, best.UniqueClicks), "variant": variant}
+	in := ReportInsight{Kind: "top_link", Tone: "info", Title: mInsightTopLink.Text(l, args), Detail: mInsightTopLinkDetail.Text(l, args),
+		Action: "show_link", ActionLabel: mInsightShowLink.Text(l, nil), Position: &pos, Variant: variant}
+	if variant != "" {
+		in.Title, in.Detail = mInsightTopLinkVariant.Text(l, args), mInsightTopLinkVariantDetail.Text(l, args)
+	}
+	return &in
 }
 
 func yesNo(b bool) string {

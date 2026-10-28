@@ -357,10 +357,13 @@ export function ReportBody({
   const mapPolls = useMapPolls(items)
   const [view, setView] = useState<'human' | 'bot'>('human')
   const [focus, setFocus] = useState<number>()
+  // The A/B variant the map shows; an insight about a content test's link names its variant.
+  const [variant, setVariant] = useState<string>()
   const map = useRef<HTMLElement>(null)
-  const toMap = (v: 'human' | 'bot', position?: number) => {
+  const toMap = (v: 'human' | 'bot', position?: number, onVariant?: string) => {
     setView(v)
     setFocus(position)
+    if (onVariant) setVariant(onVariant)
     map.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     if (position === undefined) map.current?.focus({ preventScroll: true })
   }
@@ -383,6 +386,11 @@ export function ReportBody({
             setFocus(undefined)
           }}
           focus={focus}
+          variant={variant}
+          onVariant={(key) => {
+            setVariant(key)
+            setFocus(undefined)
+          }}
         />
       )}
     </LanguageClickMap>
@@ -398,7 +406,7 @@ export function ReportBody({
         {r.campaign.final ? <MeasurableDisclosure r={r} /> : null}
       </section>
       <div className="flex flex-wrap items-start gap-5">
-        <Insights r={r} onShowLink={actions ? (p) => toMap('human', p) : undefined} />
+        <Insights r={r} onShowLink={actions ? (p, v) => toMap('human', p, v) : undefined} />
         <Growth r={r} campaignId={actions ? r.campaign.id : undefined} />
       </div>
       <EngagementChart e={r.engagement} startedAt={r.campaign.startedAt} final={r.campaign.final} remaining={remaining} />

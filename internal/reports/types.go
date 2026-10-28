@@ -94,7 +94,8 @@ type ReportHeadline struct {
 	ClickRate               *float64              `json:"clickRate,omitempty"`
 	ClickToOpen             *float64              `json:"clickToOpen,omitempty"`
 	// BotClicks are the clicks on the email's links the bot filter left
-	// out (scanners following every link, the hidden link's scanners).
+	// out (scanners following every link, the hidden link's scanners): on
+	// every variant's and language version's links.
 	BotClicks       int64    `json:"botClicks"`
 	Unsubscribes    int64    `json:"unsubscribes"`
 	UnsubscribeRate *float64 `json:"unsubscribeRate,omitempty"`
@@ -217,6 +218,11 @@ type ReportClickMap struct {
 	// who got it after the test) on the variant's email. Empty without a
 	// test, or when the clicks weren't kept per variant.
 	Variants []ReportVariantClickMap `json:"variants"`
+	// PerVariant: a test on content, whose variants each have their own
+	// email, so no one map holds everyone's clicks. The map's own HTML,
+	// links and totals are then variant A's (the campaign's email), as in
+	// Variants; read each variant's map there.
+	PerVariant bool `json:"perVariant"`
 }
 
 // ReportVariantClickMap is one A/B variant's click map.
@@ -403,9 +409,11 @@ type ReportABTest struct {
 	// State: decided (a winner went out), testing (the window is open) or
 	// no_winner (no clear winner: the default went out).
 	State string `json:"state" enum:"decided,testing,no_winner"`
-	// Outcome is the decision: winner, not_significant, too_small or
-	// manual (a person picked); empty while testing.
-	Outcome string `json:"outcome,omitempty" enum:"winner,not_significant,too_small,manual,"`
+	// Outcome is the decision: winner, not_significant, too_small, manual
+	// (a person picked) or unrecorded (decided before decisions were kept:
+	// the winner is known, its confidence isn't, so none is given); empty
+	// while testing.
+	Outcome string `json:"outcome,omitempty" enum:"winner,not_significant,too_small,manual,unrecorded,"`
 	// Winner is the variant the rest got; Default the test's default (A).
 	Winner   string            `json:"winner,omitempty"`
 	Default  string            `json:"default"`

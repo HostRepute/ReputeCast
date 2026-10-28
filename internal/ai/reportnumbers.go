@@ -146,6 +146,11 @@ func numbersFrom(r reports.CampaignReport) reportNumbers {
 
 // topLinks are the three most-clicked links.
 func topLinks(r reports.CampaignReport) []reports.ReportLink {
+	if r.ClickMap.PerVariant {
+		// A test on content: each variant's links share its own email's
+		// clicks, not everyone's, so no link is a share of all clicks.
+		return nil
+	}
 	links := slices.Clone(r.ClickMap.Links)
 	slices.SortStableFunc(links, func(a, b reports.ReportLink) int {
 		switch {
@@ -321,7 +326,8 @@ type contextAB struct {
 	Kind   string `json:"kind"`
 	Metric string `json:"metric"`
 	// Outcome: winner (significant), not_significant or too_small (the
-	// default went to everyone else), manual (a person picked).
+	// default went to everyone else), manual (a person picked), unrecorded
+	// (decided before decisions were kept: no confidence is known).
 	Outcome  string           `json:"outcome"`
 	Winner   string           `json:"winner,omitempty"`
 	Default  string           `json:"default"`

@@ -88,10 +88,24 @@ func reportOut(r reports.CampaignReport) map[string]any {
 	}
 	out["by_sending_provider"] = provs
 	links := []map[string]any{}
-	for _, l := range r.ClickMap.Links {
-		if l.UniqueClicks > 0 || l.BotClicks > 0 {
-			links = append(links, map[string]any{"link": l.Label, "url": l.URL, "people_who_clicked": l.UniqueClicks, "share_pct": l.Share, "bot_clicks": l.BotClicks})
+	add := func(variant string, ls []reports.ReportLink) {
+		for _, l := range ls {
+			if l.UniqueClicks > 0 || l.BotClicks > 0 {
+				x := map[string]any{"link": l.Label, "url": l.URL, "people_who_clicked": l.UniqueClicks, "share_pct": l.Share, "bot_clicks": l.BotClicks}
+				if variant != "" {
+					// A test on content: the share is of the variant's own email's clicks.
+					x["variant"] = variant
+				}
+				links = append(links, x)
+			}
 		}
+	}
+	if r.ClickMap.PerVariant {
+		for _, v := range r.ClickMap.Variants {
+			add(v.Key, v.Links)
+		}
+	} else {
+		add("", r.ClickMap.Links)
 	}
 	out["links"] = links
 	if t := r.ABTest; t != nil {

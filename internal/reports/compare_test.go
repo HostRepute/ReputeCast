@@ -1,6 +1,9 @@
 package reports
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 // TestCompareTiles: every tile compares with the median of the last issues
 // (review AN-11): the count sent in percent, the rates in points, each read
@@ -59,6 +62,25 @@ func TestCompareTiles(t *testing.T) {
 	// complaints aren't compared.
 	if _, ok := tiles["complaints"]; ok || len(tiles) != 7 {
 		t.Fatalf("tiles: %+v", tiles)
+	}
+	// Each tile's trend line: the earlier issues oldest first (they're read
+	// newest first), then this issue.
+	if got := tiles["sent"].Trend; !slices.Equal(got, []float64{45000, 46500, 47000, 46000, 47980}) {
+		t.Fatalf("sent trend %v", got)
+	}
+	// The imported issue has no human opens of the measurable: it isn't a
+	// point of that trend.
+	if got := tiles["humanOpens"].Trend; !slices.Equal(got, []float64{49.7253, 50, 49.8615, 52.7862}) {
+		t.Fatalf("human opens trend %v", got)
+	}
+	if got := tiles["bounces"].Trend; !slices.Equal(got, []float64{0.8889, 0.4731, 0.4468, 0.4348, 0.6003}) {
+		t.Fatalf("bounces trend %v", got)
+	}
+	for metric, c := range tiles {
+		if n := len(c.Trend); n < 2 || c.Trend[n-1] != map[string]float64{"sent": 47980, "delivered": 99.0996, "humanOpens": 52.7862, "privacyOpens": 21.9483,
+			"clicks": 6.301, "unsubscribes": 0.2356, "bounces": 0.6003}[metric] {
+			t.Fatalf("%s trend %v doesn't end with this issue", metric, c.Trend)
+		}
 	}
 	// Nothing earlier: nothing compared.
 	if got := compareTiles(ratesOf(now, counts{}), nil); len(got) != 0 {

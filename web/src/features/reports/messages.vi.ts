@@ -114,6 +114,8 @@ export default translate(m, {
   points: '{n} điểm',
   vsLast: '{change} so với {n, plural, other {# số gần nhất của bạn}}',
   sameAsLast: 'Bằng {n, plural, other {# số gần nhất của bạn}}',
+  trendLine:
+    '{dir, select, up {{n, plural, other {Tăng qua # số gần nhất của bạn, từ {from} lên {to}}}} down {{n, plural, other {Giảm qua # số gần nhất của bạn, từ {from} xuống {to}}}} other {{n, plural, other {Bằng mức của # số trước, ở {to}}}}}',
   cmpNote: 'Mũi tên so với trung vị của {n, plural, other {# số gần nhất của bạn}}.',
   cmpNoHistory: 'Chưa có số trước nào để so sánh.',
   scannerNote: 'Đã loại {count} lượt mở của trình quét: các bộ lọc bảo mật mở thư vài giây sau khi thư đến.',
@@ -244,6 +246,10 @@ export default translate(m, {
   abNoWinner: 'Không có bản thắng rõ ràng',
   abWinnerOn: '{metric, select, clicks {{variant} thắng · độ tin cậy {confidence} · quyết định theo lượt nhấp} other {{variant} thắng · độ tin cậy {confidence} · quyết định theo lượt mở bởi người đọc}}',
   abChosenBy: '{variant} thắng · do một người chọn',
+  abChosenUnrecorded: 'Đã chọn {variant} · không có dữ liệu về độ tin cậy',
+  abUnrecorded:
+    'Thử nghiệm này được quyết định trước khi ReputeCast lưu lại từng quyết định, nên không biết kết quả chắc chắn đến đâu. {count} người còn lại nhận {winner} lúc {time}.',
+  abUnrecordedNoRest: 'Thử nghiệm này được quyết định trước khi ReputeCast lưu lại từng quyết định, nên không biết kết quả chắc chắn đến đâu.',
   abLead: '{leader} dẫn trước {lift} điểm với độ tin cậy {confidence}, nên những người còn lại nhận {winner} (bản mặc định của bạn).',
   abLeadSmall: 'Đo được ít hơn {min} người nhận cho mỗi phiên bản, nên những người còn lại nhận {winner} (bản mặc định của bạn).',
   abYourDefault: '{variant} · bản mặc định của bạn',
@@ -293,7 +299,6 @@ export default translate(m, {
   // ── Results per mailbox provider ─────────────────────────────────────
   mailboxTitle: 'Kết quả theo nhà cung cấp hộp thư',
   mailboxCaption: 'nơi người nhận đọc thư',
-  mailboxIcloud: 'Lượt mở tự động của iCloud là các lần tải trước của Apple Mail Privacy Protection; số lượt mở bởi người đọc mới là con số thật.',
   colMailbox: 'Nhà cung cấp hộp thư',
   colUnsubs: 'Hủy đăng ký',
 
@@ -340,6 +345,7 @@ export default translate(m, {
   // ── A/B test ─────────────────────────────────────────────────────────
   abTitle: 'Thử nghiệm A/B · {label}',
   abVariantWinner: '{variant} · bản thắng',
+  abVariantChosen: '{variant} · đã chọn',
   abHumanOpens: '<b>{rate}</b> lượt mở bởi người đọc',
   abClicks: '<b>{rate}</b> lượt nhấp',
   abComplaints: '<b>{rate}</b> khiếu nại',
@@ -348,11 +354,7 @@ export default translate(m, {
   abTesting: 'Đang thử nghiệm',
   abTestingAt: 'Đang thử nghiệm · quyết định lúc {time}',
   abWinner: '{variant} thắng',
-  abWinnerConf: '{variant} thắng · độ tin cậy {confidence}',
   abChosen: 'Đã chọn {variant} · chưa có ý nghĩa thống kê',
-  abChosenConf: 'Đã chọn {variant} · chưa có ý nghĩa thống kê · độ tin cậy {confidence}',
-  abNotYet: 'Chưa có ý nghĩa thống kê',
-  abNotYetConf: 'Chưa có ý nghĩa thống kê · độ tin cậy {confidence}',
   abDecides:
     '{metric, select, clicks {Lượt nhấp} other {Lượt mở bởi người đọc}} trong {hours, plural, other {# giờ}} sau khi gửi nhóm thử sẽ quyết định{stats, select, yes {; đến giờ kiểm định z hai tỷ lệ cho mức tăng {lift} điểm, p = {p}} other {}}.',
   abResult:

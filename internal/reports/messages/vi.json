@@ -43,6 +43,8 @@
   "insight.openPostmaster": "Mở Postmaster Tools",
   "insight.topLink": "Liên kết “{link}” chiếm {share} lượt nhấp của người đọc.",
   "insight.topLinkDetail": "{n, plural, other {{people} người đã nhấp “{link}”, nhiều hơn mọi liên kết khác.}}",
+  "insight.topLinkVariant": "Trong email của phiên bản {variant}, liên kết “{link}” chiếm {share} lượt nhấp của người đọc.",
+  "insight.topLinkVariantDetail": "{n, plural, other {{people} người nhận phiên bản {variant} đã nhấp “{link}”, nhiều hơn mọi liên kết khác của email đó.}}",
   "insight.showLink": "Xem trên bản đồ nhấp",
   "problem.finalAlertPeople": "Chỉ người đã đăng nhập mới nhận được email khi kết quả đã chốt, không phải khóa API hay tác tử.",
   "problem.finalAlertNotSent": "Chiến dịch này chưa gửi gì, nên chưa có kết quả nào để chờ.",

@@ -43,6 +43,8 @@
   "insight.openPostmaster": { "message": "Open Postmaster Tools", "note": "Google Postmaster Tools, never translated" },
   "insight.topLink": "The “{link}” link drew {share} of human clicks.",
   "insight.topLinkDetail": "{n, plural, one {{people} person clicked “{link}”, more than any other link.} other {{people} people clicked “{link}”, more than any other link.}}",
+  "insight.topLinkVariant": {"message": "In variant {variant}'s email, the “{link}” link drew {share} of human clicks.", "note": "an insight on the report of an A/B test on content, where each variant is its own email; variant: A, B or C"},
+  "insight.topLinkVariantDetail": "{n, plural, one {{people} person who got variant {variant} clicked “{link}”, more than any other link of that email.} other {{people} people who got variant {variant} clicked “{link}”, more than any other link of that email.}}",
   "insight.showLink": "Show on the click map",
   "problem.finalAlertPeople": "Only a signed-in person can be emailed when the results are final, not an API key or agent.",
   "problem.finalAlertNotSent": "This campaign hasn't sent anything yet, so there are no results to wait for.",

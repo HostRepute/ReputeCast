@@ -454,6 +454,16 @@ function LinkTable({ s, view, focus }: { s: Shown; view: 'human' | 'bot'; focus?
 }
 
 /**
+ * The A/B variant a map shows ("" for everyone's clicks). A test on content
+ * has an email per variant and no map of everyone's clicks, so it shows a
+ * variant, the first one unless another is chosen (review AN-5).
+ */
+export function shownVariant(m: Pick<Map, 'perVariant' | 'variants'>, chosen: string): string {
+  if (m.variants.some((x) => x.key === chosen)) return chosen
+  return m.perVariant && m.variants.length ? m.variants[0]!.key : ''
+}
+
+/**
  * "Click map": the email as sent with the share of human clicks on each
  * link, or where the bot clicks landed, beside the clicks per link (Report
  * board). clicks is the headline count of people who clicked; imported
@@ -478,11 +488,19 @@ export const ClickMap = forwardRef<
     onView: (v: 'human' | 'bot') => void
     /** A link to point at (an insight's "Show on the click map"). */
     focus?: number
+    /** The A/B variant shown, when the report chooses it ("" for everyone); the map keeps its own choice otherwise. */
+    variant?: string
+    onVariant?: (key: string) => void
   }
->(function ClickMap({ m, clicks, imported, emailShared = true, picker, languageNote, polls, pollNote, view, onView, focus }, ref) {
+>(function ClickMap({ m, clicks, imported, emailShared = true, picker, languageNote, polls, pollNote, view, onView, focus, variant: chosen, onVariant }, ref) {
   const t = useT()
   const [table, setTable] = useState(false)
-  const [variant, setVariant] = useState('')
+  const [own, setOwn] = useState('')
+  const variant = shownVariant(m, chosen ?? own)
+  const setVariant = (key: string) => {
+    setOwn(key)
+    onVariant?.(key)
+  }
   const v = m.variants.find((x) => x.key === variant)
   // One object per map and variant: the frame measures again when it changes.
   const s: Shown = useMemo(
@@ -511,7 +529,8 @@ export const ClickMap = forwardRef<
         <label className="flex items-center gap-2 text-[12px] font-semibold text-ink-2">
           {t(rm.variantToShow)}
           <select className="in h-[30px]" value={variant} onChange={(e) => setVariant(e.target.value)}>
-            <option value="">{t(rm.allRecipients)}</option>
+            {/* A test on content has no map of everyone's clicks: each variant is its own email. */}
+            {m.perVariant ? null : <option value="">{t(rm.allRecipients)}</option>}
             {m.variants.map((x) => (
               <option key={x.key} value={x.key}>
                 {t(rm.variantRecipients, { key: x.key })}

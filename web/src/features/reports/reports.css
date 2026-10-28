@@ -130,6 +130,19 @@
   gap: 3px;
   padding: 14px 16px;
 }
+/* The number and its trend over the last issues (review AN-11): the line
+   sits right of the number, and under it when the tile is too narrow. */
+.rep-tile-n {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2px 8px;
+}
+.rep-spark {
+  flex: none;
+  margin-bottom: 4px;
+}
 .rep-cmp {
   margin-top: 4px;
   font-size: 12px;

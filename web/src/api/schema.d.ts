@@ -35928,7 +35928,7 @@ export interface components {
             /** Format: int64 */
             minSample: number;
             /** @enum {string} */
-            outcome?: "winner" | "not_significant" | "too_small" | "manual" | "";
+            outcome?: "winner" | "not_significant" | "too_small" | "manual" | "unrecorded" | "";
             /** Format: double */
             pValue?: number;
             /** Format: int64 */
@@ -36055,6 +36055,7 @@ export interface components {
             language?: string;
             links: components["schemas"]["ReportLink"][];
             other?: components["schemas"]["ReportLinkGroup"];
+            perVariant: boolean;
             rows: components["schemas"]["ReportLinkRow"][];
             /**
              * Format: double
@@ -36087,6 +36088,7 @@ export interface components {
             metric: "sent" | "delivered" | "humanOpens" | "privacyOpens" | "clicks" | "unsubscribes" | "complaints" | "bounces";
             /** @enum {string} */
             tone: "good" | "bad" | "neutral";
+            trend: number[];
             /** @enum {string} */
             unit: "percent" | "points";
         };
@@ -36224,6 +36226,7 @@ export interface components {
             title: string;
             /** @enum {string} */
             tone: "bad" | "warn" | "info";
+            variant?: string;
         };
         ReportLanguageCount: {
             /** Format: int64 */

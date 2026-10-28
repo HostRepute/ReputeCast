@@ -64466,6 +64466,7 @@
               "not_significant",
               "too_small",
               "manual",
+              "unrecorded",
               ""
             ],
             "type": "string"
@@ -64890,6 +64891,9 @@
           "other": {
             "$ref": "#/components/schemas/ReportLinkGroup"
           },
+          "perVariant": {
+            "type": "boolean"
+          },
           "rows": {
             "items": {
               "$ref": "#/components/schemas/ReportLinkRow"
@@ -64921,7 +64925,8 @@
           "links",
           "threshold",
           "rows",
-          "variants"
+          "variants",
+          "perVariant"
         ],
         "type": "object"
       },
@@ -64985,6 +64990,13 @@
             ],
             "type": "string"
           },
+          "trend": {
+            "items": {
+              "format": "double",
+              "type": "number"
+            },
+            "type": "array"
+          },
           "unit": {
             "enum": [
               "percent",
@@ -64998,7 +65010,8 @@
           "change",
           "unit",
           "median",
-          "tone"
+          "tone",
+          "trend"
         ],
         "type": "object"
       },
@@ -65384,6 +65397,9 @@
               "warn",
               "info"
             ],
+            "type": "string"
+          },
+          "variant": {
             "type": "string"
           }
         },

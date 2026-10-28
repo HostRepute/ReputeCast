@@ -183,7 +183,19 @@ func reportCSV(r CampaignReport, loc *time.Location) []byte {
 		}
 		row()
 	}
-	if len(r.ClickMap.Links) > 0 {
+	switch {
+	case r.ClickMap.PerVariant:
+		// A test on content: each variant's email has its own links, each a
+		// share of that email's clicks.
+		row("A/B variant", "Link", "URL", "Human clicks", "People who clicked", "Share of the variant's human clicks", "Bot clicks (left out)")
+		for _, v := range r.ClickMap.Variants {
+			for _, l := range v.Links {
+				share := strconv.FormatFloat(l.Share, 'f', 1, 64) + "%"
+				row(v.Key, l.Label, l.URL, num(l.Clicks), num(l.UniqueClicks), share, num(l.BotClicks))
+			}
+		}
+		row()
+	case len(r.ClickMap.Links) > 0:
 		row("Link", "URL", "Human clicks", "People who clicked", "Share of human clicks", "Bot clicks (left out)")
 		for _, l := range r.ClickMap.Links {
 			share := strconv.FormatFloat(l.Share, 'f', 1, 64) + "%"

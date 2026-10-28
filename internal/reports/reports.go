@@ -200,7 +200,11 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 	if out.ClickMap, err = s.clickMaps(ctx, l, c, ab, links); err != nil {
 		return out, err
 	}
-	out.Headline.BotClicks = out.ClickMap.BotTotal
+	// The send's bot clicks: on every link, whichever variant's or language
+	// version's email the map shows.
+	for _, lk := range links {
+		out.Headline.BotClicks += lk.BotClicks
+	}
 	if s.Languages != nil {
 		if out.Languages, err = s.Languages.CampaignResults(ctx, ws, c.ID, c.Audience); err != nil {
 			return out, err
