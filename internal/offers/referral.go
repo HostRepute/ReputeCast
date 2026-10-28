@@ -154,11 +154,15 @@ func (s *Service) IssueReferralCode(ctx context.Context, ws *store.Workspace, of
 			_ = off.SetPromotionCodeActive(context.WithoutCancel(ctx), pc.ID, false)
 			return ReferralCode{}, err
 		}
-		// The referrer's personal link: the code applies only for them.
-		claim := s.Earn.UpgradeURL(ctx, ws, contactID, uuid.Nil) + "&offer=" + code
-		return ReferralCode{Code: code, ClaimURL: claim, ExpiresAt: expires}, nil
+		return ReferralCode{Code: code, ClaimURL: s.ReferralClaimURL(ctx, ws, contactID, code), ExpiresAt: expires}, nil
 	}
 	return ReferralCode{}, errors.New("offers: no free referral code after 5 tries")
+}
+
+// ReferralClaimURL is the link that applies a referral reward's code: its
+// referrer's personal upgrade link, the only one the code works with.
+func (s *Service) ReferralClaimURL(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, code string) string {
+	return s.Earn.UpgradeURL(ctx, ws, contactID, uuid.Nil) + "&offer=" + code
 }
 
 // codePrefix starts a code with the tier it unlocks ("INS" for Insider), or

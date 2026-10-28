@@ -180,6 +180,9 @@ type Coupons interface {
 	Status(ctx context.Context, ws *store.Workspace) (CouponStatus, error)
 	Offers(ctx context.Context, ws *store.Workspace) ([]CouponOffer, error)
 	Issue(ctx context.Context, ws *store.Workspace, offerID string, contact uuid.UUID, validDays int) (IssuedCoupon, error)
+	// ClaimURL is an issued code's claim link as it stands: its referrer's
+	// personal upgrade link with the code.
+	ClaimURL(ctx context.Context, ws *store.Workspace, contact uuid.UUID, code string) string
 }
 
 // CouponStatus says whether a payment provider can issue coupons.

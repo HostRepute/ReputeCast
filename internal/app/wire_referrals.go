@@ -120,6 +120,11 @@ func (c offerCoupons) Issue(ctx context.Context, ws *store.Workspace, offerID st
 	return referrals.IssuedCoupon{Code: code.Code, ClaimURL: code.ClaimURL, ExpiresAt: code.ExpiresAt}, nil
 }
 
+// ClaimURL implements referrals.Coupons.
+func (c offerCoupons) ClaimURL(ctx context.Context, ws *store.Workspace, contact uuid.UUID, code string) string {
+	return c.s.ReferralClaimURL(ctx, ws, contact, code)
+}
+
 // growPages are a workspace's public page links (its custom domain's when
 // verified).
 func (a *App) growPages(ctx context.Context, ws *store.Workspace) (forms.PageLinks, error) {

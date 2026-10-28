@@ -588,7 +588,25 @@ func (s *Service) ClaimLink(ctx context.Context, ws *store.Workspace, id uuid.UU
 	}
 	err = s.Audit.Log(ctx, audit.Event{WorkspaceID: &ws.ID, Action: "referral.claim_link_copied", TargetType: "referral_reward",
 		TargetID: id.String(), TargetName: rw.RewardName, Metadata: map[string]any{"related": rw.ContactID.String()}})
-	return ReferralClaimLink{URL: rw.ClaimUrl, ExpiresAt: rw.ExpiresAt}, err
+	code, _ := s.rewardCode(ctx, rw)
+	return ReferralClaimLink{URL: s.claimURL(ctx, ws, rw, code), ExpiresAt: rw.ExpiresAt}, err
+}
+
+// claimURL is a coupon reward's claim link made now: its referrer's own
+// upgrade link with the code. The link stored when the code was issued may
+// predate codes working only through that link (upgrade?offer=…, which
+// shows anyone the normal prices), or name a page domain since changed.
+// Without the payment side or the code it is the stored link.
+func (s *Service) claimURL(ctx context.Context, ws *store.Workspace, rw store.ReferralReward, code string) string {
+	if rw.RewardType != RewardCoupon || rw.ClaimUrl == "" || code == "" || s.Coupons == nil {
+		return rw.ClaimUrl
+	}
+	if c := s.Coupons(); c != nil {
+		if u := c.ClaimURL(ctx, ws, rw.ContactID, code); u != "" {
+			return u
+		}
+	}
+	return rw.ClaimUrl
 }
 
 // openAddress reads a manual reward's sealed shipping address.
