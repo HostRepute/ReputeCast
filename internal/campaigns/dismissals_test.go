@@ -1,6 +1,7 @@
 package campaigns_test
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"testing"
@@ -10,7 +11,7 @@ import (
 
 // CO-14 (ComposerWarnings): warnings are dismissed with a reason, stay
 // listed with who and why, come back when they change, and can be undone.
-// Blocking issues are never dismissed.
+// Blocking issues are never dismissed: the API refuses them (R4.U5).
 
 type dismissChecks struct {
 	Warnings  int
@@ -80,13 +81,24 @@ func TestComposerDismissWarnings(t *testing.T) {
 		t.Fatalf("the subject changed, its warning is back: %+v", r.Dismissed)
 	}
 
-	// Blocking issues stay blocking, whatever is stored.
+	// Blocking issues can't be dismissed: the API says so and stores nothing.
 	block := find(r, "links.blocklist")
-	c.Do("POST", ws+"/campaigns/"+flash+"/dismissals", map[string]any{"key": r.IssueKeys[block], "checkId": "links.blocklist", "reason": "wrong"}).MustStatus(t, 201)
+	p := c.Do("POST", ws+"/campaigns/"+flash+"/dismissals", map[string]any{"key": r.IssueKeys[block], "checkId": "links.blocklist", "title": r.Issues[block].Title, "reason": "wrong"}).
+		MustStatus(t, 422).Problem(t)
+	if detail, _ := p["detail"].(string); !strings.Contains(detail, "Blocking issues can't be dismissed") {
+		t.Fatalf("block refused: %v", p)
+	}
 	for _, x := range check().Dismissed {
 		if x.Dismissal.CheckID == "links.blocklist" {
 			t.Fatal("a block was dismissed")
 		}
+	}
+	var stored int
+	if err := env.App.Pool.QueryRow(context.Background(), `SELECT count(*) FROM campaign_check_dismissals WHERE campaign_id = $1 AND check_id = 'links.blocklist'`, flash).Scan(&stored); err != nil || stored != 0 {
+		t.Fatalf("a refused dismissal was stored: %d %v", stored, err)
+	}
+	if auditCount(t, env, "campaign.check.dismiss", flash) != 2 {
+		t.Fatal("a refused dismissal was audited as done")
 	}
 
 	// "Other" needs a note; reasons are a fixed list.

@@ -77,5 +77,6 @@
   "dismiss.subject": "đã gửi kiểu tiêu đề này cho danh sách này trước đây",
   "dismiss.wrong": "kiểm tra này không đúng ở đây",
   "dismiss.other": "lý do khác",
-  "problem.dismissNote": "Hãy ghi lý do vào ghi chú để người duyệt biết."
+  "problem.dismissNote": "Hãy ghi lý do vào ghi chú để người duyệt biết.",
+  "problem.dismissBlock": "Không thể bỏ qua lỗi chặn gửi: email không gửi được cho đến khi lỗi được sửa. Hãy sửa lỗi này trong email, lần kiểm tra sau sẽ không còn báo."
 }

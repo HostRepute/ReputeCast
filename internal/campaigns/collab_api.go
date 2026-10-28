@@ -194,7 +194,7 @@ func registerCollaboration(h huma.API, s *Service, tags []string) {
 	// sending isn't asked about it: dismissing one is a person's judgement,
 	// never an API key's or an agent's.
 	api.Post(h, api.Op{ID: "dismiss-campaign-warning", Path: "/workspaces/{workspace}/campaigns/{campaignId}/dismissals", Summary: "Dismiss a warning of the composer's checks, with a reason",
-		Description: "key is the warning's issueKeys entry from the checks. The warning stays listed with who dismissed it and why, and comes back when it changes. Blocking issues are never dismissed. " +
+		Description: "key is the warning's issueKeys entry from the checks. The warning stays listed with who dismissed it and why, and comes back when it changes. Blocking issues can't be dismissed: their checks are refused with 422. " +
 			"Review & send counts a dismissed warning as confirmed, so only a signed-in person can dismiss one, not an API key or agent.",
 		Tags: tags, Access: api.WorkspaceHuman(authz.CampaignsEdit), Status: http.StatusCreated},
 		func(ctx context.Context, in *dismissInput) (*api.Body[ComposerDismissal], error) {

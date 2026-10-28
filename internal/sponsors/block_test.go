@@ -119,6 +119,8 @@ func TestSponsorBlockInComposerAndReview(t *testing.T) {
 	if !found || chk.Verdict != "blocked" {
 		t.Fatalf("composer checks: %+v", chk)
 	}
+	// It blocks the send, so it can't be dismissed (R4.U5).
+	linh.Do("POST", ws+"/campaigns/"+id+"/dismissals", map[string]any{"key": "ab12", "checkId": sponsors.IssueCreative, "reason": "wrong"}).MustStatus(t, 422)
 
 	// Review & send says the same, and that sponsored content is labelled.
 	run := runReadiness(t, env, linh, id)

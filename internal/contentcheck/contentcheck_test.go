@@ -99,6 +99,43 @@ func TestCheckFindsEveryInlineWarning(t *testing.T) {
 	}
 }
 
+// R4.U5: every check that blocks a send is known as blocking, so nobody can
+// dismiss its issues; warnings stay dismissible.
+func TestBlockingChecksCantBeDismissed(t *testing.T) {
+	src := `<mjml><mj-body>
+<mj-section><mj-column><mj-image src="/media/1/hero.png" width="552px"></mj-image><mj-button href="https://go.acme-promo.link/sale">Claim</mj-button>` +
+		`<mj-text>Hi {% if %} {{ frist_name }}</mj-text></mj-column></mj-section>
+</mj-body></mjml>`
+	c := &Checker{Blocklist: StaticBlocklist{"go.acme-promo.link": {"Spamhaus DBL"}}}
+	r, err := c.Check(context.Background(), Input{MJML: src, Fields: []string{"first_name"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	blocks := map[string]bool{}
+	for _, is := range r.Issues {
+		switch is.Severity {
+		case Block:
+			blocks[is.ID] = true
+			if !Blocking(is.ID) {
+				t.Errorf("%s blocks the send but isn't registered as blocking", is.ID)
+			}
+		case Warn:
+			if Blocking(is.ID) {
+				t.Errorf("%s is a warning but registered as blocking", is.ID)
+			}
+		}
+	}
+	for _, id := range []string{IssueFooter, IssueLiquidSyntax, IssueSubjectMissing, IssueLinkBlocklist} {
+		if !blocks[id] {
+			t.Fatalf("the email should trip %s: %+v", id, r.Issues)
+		}
+	}
+	RegisterBlocking("test.extra_block")
+	if !Blocking("test.extra_block") || Blocking("content.alt_text") {
+		t.Fatal("registered checks")
+	}
+}
+
 func TestCleanEmailIsReady(t *testing.T) {
 	src := `<mjml><mj-body>
 <mj-section><mj-column><mj-image src="/media/1/hero.png" alt="Roadmap" width="552px" height="180px" padding="0px"></mj-image><mj-text>Hi {{ first_name | default: "there" }}, here's what shipped this week at Acme, what we're retiring in November, and where the next quarter is headed. Feature flags are generally available and audit logs export to S3.</mj-text><mj-text>The changelog has every detail, and the roadmap call on Thursday covers what's next for the API, the dashboard and self-hosted installs, with time for your questions.</mj-text></mj-column></mj-section>

@@ -17,6 +17,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -36,6 +37,41 @@ const (
 	Info  = "info"
 	Pass  = "pass"
 )
+
+// The checks whose issues block a send.
+const (
+	IssueFooter         = "compliance.footer"
+	IssueLiquidSyntax   = "personalization.syntax"
+	IssueSubjectMissing = "subject.missing"
+	IssueLinkBlocklist  = "links.blocklist"
+)
+
+// blocking are the checks whose issues stop a send until they're fixed:
+// nobody can dismiss them (review 2026-10, CO-14). Checks other packages
+// add to the composer's (internal/sponsors) register theirs.
+var (
+	blockingMu sync.RWMutex
+	blocking   = map[string]bool{IssueFooter: true, IssueLiquidSyntax: true, IssueSubjectMissing: true, IssueLinkBlocklist: true}
+)
+
+// Blocking reports whether a check's issues block a send. Such an issue
+// can't be dismissed: it is fixed or the email isn't sent.
+func Blocking(id string) bool {
+	blockingMu.RLock()
+	defer blockingMu.RUnlock()
+	return blocking[id]
+}
+
+// RegisterBlocking names checks another package adds whose issues block a
+// send (a Sponsor block waiting for its creative), so they can't be
+// dismissed either.
+func RegisterBlocking(ids ...string) {
+	blockingMu.Lock()
+	defer blockingMu.Unlock()
+	for _, id := range ids {
+		blocking[id] = true
+	}
+}
 
 // ClipBytes is the size at which Gmail clips a message (102 KB).
 const ClipBytes = 102 * 1024
@@ -379,7 +415,7 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 		case hasAddress:
 			title, tag = mFooterUnsubscribe, mFooterUnsubscribeTag
 		}
-		add(worded(ContentCheckIssue{ID: "compliance.footer", Severity: Block, Group: "Compliance", Section: -1,
+		add(worded(ContentCheckIssue{ID: IssueFooter, Severity: Block, Group: "Compliance", Section: -1,
 			Fixes: []ContentCheckFix{fixOf("insert_footer", mFooterFix.Keep(nil), nil)}},
 			title.Keep(nil), tag.Keep(nil), mFooterDetail.Keep(nil)))
 	}
@@ -395,7 +431,7 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 			if rest, ok := strings.CutPrefix(p.Message, fmt.Sprintf("Line %d: ", p.Line)); ok && p.Line > 0 {
 				title = mLiquidTitleLine.Keep(i18n.Args{"where": src.where, "line": strconv.Itoa(p.Line), "problem": rest})
 			}
-			add(worded(ContentCheckIssue{ID: "personalization.syntax", Severity: Block, Group: "Personalization", Section: -1},
+			add(worded(ContentCheckIssue{ID: IssueLiquidSyntax, Severity: Block, Group: "Personalization", Section: -1},
 				title, i18n.Text{}, mLiquidDetail.Keep(nil)))
 		}
 	}
@@ -414,7 +450,7 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 	}
 
 	if strings.TrimSpace(in.Subject) == "" {
-		add(worded(ContentCheckIssue{ID: "subject.missing", Severity: Block, Group: "Subject", Section: -1}, mSubjectMissing.Keep(nil), i18n.Text{}, mSubjectMissingDet.Keep(nil)))
+		add(worded(ContentCheckIssue{ID: IssueSubjectMissing, Severity: Block, Group: "Subject", Section: -1}, mSubjectMissing.Keep(nil), i18n.Text{}, mSubjectMissingDet.Keep(nil)))
 	} else if h := SubjectHeuristicsIn(in.Subject, in.Language); len(h) > 0 {
 		r.SubjectHeuristics = h
 		suggestion := SuggestSubject(in.Subject)
@@ -989,7 +1025,7 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentCh
 		if len(lists) > 0 {
 			r.LinksBlocklisted++
 			on := i18n.Args{"lists": append([]string(nil), lists...)}
-			add(worded(ContentCheckIssue{ID: "links.blocklist", Severity: Block, Group: "Links", Path: l.path, Section: l.section, Fixes: fixesFor(l, entry.Final), URL: l.href},
+			add(worded(ContentCheckIssue{ID: IssueLinkBlocklist, Severity: Block, Group: "Links", Path: l.path, Section: l.section, Fixes: fixesFor(l, entry.Final), URL: l.href},
 				mLinkBlocklistTitle.Keep(i18n.Args{"kind": kind, "host": host, "lists": on["lists"]}), mLinkBlocklistTag.Keep(on), mLinkBlocklistDetail.Keep(nil)))
 			continue
 		}

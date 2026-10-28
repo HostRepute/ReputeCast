@@ -141,6 +141,11 @@ func (s *Service) Dismiss(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		return ComposerDismissal{}, api.MapError(err, "Campaign")
 	}
 	l := i18n.LangFrom(ctx)
+	// A blocking issue stops the send until it's fixed: a dismissal stored
+	// for it would read as handled while nothing changed (CO-14).
+	if contentcheck.Blocking(in.CheckID) {
+		return ComposerDismissal{}, api.Invalid("body.checkId", mDismissBlock.Text(l, nil))
+	}
 	if in.Reason == "other" && strings.TrimSpace(in.Note) == "" {
 		return ComposerDismissal{}, api.Invalid("body.note", mDismissNote.Text(l, nil))
 	}
