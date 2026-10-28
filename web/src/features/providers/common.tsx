@@ -1,11 +1,11 @@
 import { ApiError, type Schemas } from '@/api/client'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { NavTabs } from '@/components/ui/Tabs'
+import { ChannelMenu } from '@/features/channels/ChannelMenu'
 import { T, t as tt, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { ago, decimal, duration, pct, trimPct } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
-import { ChannelMenu } from './ChannelMenu'
 import { m } from './messages'
 import './providers.css'
 

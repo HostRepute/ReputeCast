@@ -6,7 +6,7 @@ import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { useT } from '@/i18n'
 import { clock, count, dayMonthDate, monthName, orList, pct } from '@/lib/format'
 import { useMe, usePermissionReason, useWorkspace } from '@/lib/session'
-import { ChannelSwitch } from '@/features/channels/ChannelSwitch'
+import { ChannelMenu } from '@/features/channels/ChannelMenu'
 import { PushTabs, throwIfForbidden, type PushSetup } from './common'
 import { m } from './messages'
 import { NotSetUp } from './NotSetUp'
@@ -36,7 +36,7 @@ export function PushSetupPage() {
       documentTitle={t(m.docTitle)}
       filters={
         <>
-          <ChannelSwitch current="push" />
+          <ChannelMenu current="push" />
           <PushTabs />
         </>
       }

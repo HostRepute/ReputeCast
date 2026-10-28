@@ -14,7 +14,7 @@ import { Field, Input, OptionCard, Select, Textarea } from '@/components/ui/Fiel
 import { Note } from '@/components/ui/Note'
 import { Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
-import { channelIcon } from '@/features/channels/ChannelSwitch'
+import { channelIcon } from '@/features/channels/channel'
 import { formatList, T, useT, type MessageDescriptor } from '@/i18n'
 import { ago, clock, count, dayMonthDate, dayMonthYear, inZone, monthName, money } from '@/lib/format'
 import { deniedReason, useMe, useWorkspace } from '@/lib/session'

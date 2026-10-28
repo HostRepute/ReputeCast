@@ -226,51 +226,6 @@
   }
 }
 
-/* The channel button and its listbox (Providers board, PR-15). */
-.chbtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 34px;
-  padding: 0 10px;
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  background: #fff;
-  color: var(--ink);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.chbtn:hover {
-  background: #f3f4f6;
-}
-.chbtn .chv {
-  color: var(--ink-3);
-}
-.pv-chmenu {
-  position: absolute;
-  top: 40px;
-  left: 0;
-  min-width: 210px;
-  max-width: calc(100vw - 24px);
-}
-.pv-chmenu a[aria-selected='true'] {
-  font-weight: 600;
-}
-@media (max-width: 767px) {
-  .chbtn {
-    height: 44px;
-  }
-  .pv-chmenu {
-    top: 50px;
-  }
-  .pv-chmenu a {
-    min-height: 44px;
-  }
-}
-
 /* The ordered split (ProvidersRouting, PR-14): the bar pictures the list. */
 .pv-sbar {
   display: flex;
@@ -494,22 +449,6 @@
     bottom: 72px;
   }
   .pv-unsaved .btn {
-    min-height: 44px;
-  }
-}
-
-/* Sending providers on phones (PR-15): every target is at least 44 px,
-   in the header (channel button, tabs, actions) and the content. */
-@media (max-width: 767px) {
-  .top:has(.chbtn) .btn,
-  .top:has(.chbtn) + .content .btn,
-  .top:has(.chbtn) + .content select.in,
-  .top:has(.chbtn) + .content input.in {
-    min-height: 44px;
-  }
-  .top:has(.chbtn) .tabs a {
-    display: inline-flex;
-    align-items: center;
     min-height: 44px;
   }
 }

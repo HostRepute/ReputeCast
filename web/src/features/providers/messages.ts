@@ -16,8 +16,6 @@ export const m = defineMessages('providers', {
   tabEvents: 'Events & sync',
   tabAdapters: 'Adapters',
   /** The channel button; {channel} is "Email", "SMS"… */
-  channelButton: 'Channel: {channel}. Change channel',
-  channelLabel: 'Channel',
 
   // Streams, by their key.
   streamBroadcast: 'Broadcasts',

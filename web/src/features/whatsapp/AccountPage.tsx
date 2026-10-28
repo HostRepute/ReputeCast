@@ -8,7 +8,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { toast } from '@/components/ui/Toast'
-import { ChannelSwitch } from '@/features/channels/ChannelSwitch'
+import { ChannelMenu } from '@/features/channels/ChannelMenu'
 import { copyText } from '@/features/push/common'
 import { useT } from '@/i18n'
 import { ago, andList, clock, count, dayMonthDate, dayMonthYear, orList } from '@/lib/format'
@@ -39,7 +39,7 @@ export function WhatsAppFrame({ doc, data, children }: { doc: string; data?: Ove
       documentTitle={doc}
       filters={
         <>
-          <ChannelSwitch current="whatsapp" />
+          <ChannelMenu current="whatsapp" />
           <WhatsAppTabs />
         </>
       }

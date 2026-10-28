@@ -1,15 +1,20 @@
 import { Link } from '@tanstack/react-router'
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { $api } from '@/api/client'
-import { channelIcon, channelName, type Channel } from '@/features/channels/ChannelSwitch'
 import { useT } from '@/i18n'
 import { useWorkspace } from '@/lib/session'
+import { channelIcon, channelName, type Channel } from './channel'
 import { m } from './messages'
+
+/** The listbox's width (`.ch-menu`'s min-width). */
+const menuWidth = 210
 
 /**
  * The channel of Sending providers as one button with a listbox (Providers
- * board): "Email ▾" opens Email, SMS, Push and WhatsApp; each option opens
- * that channel's section, or its setup when it isn't set up yet.
+ * board, review R3.U5): "Email ▾" opens Email, SMS, Push and WhatsApp; each
+ * option opens that channel's section, or its setup when it isn't set up
+ * yet. Every channel's section heads with it (Email, SMS, Push, WhatsApp),
+ * so the header has one row of tabs.
  */
 export function ChannelMenu({ current }: { current: Channel }) {
   const t = useT()
@@ -32,8 +37,14 @@ export function ChannelMenu({ current }: { current: Channel }) {
     return () => document.removeEventListener('mousedown', away)
   }, [open])
 
+  // On a phone the button can sit near the right edge (after the title): the
+  // list then opens leftward from the button's end, so it never runs off
+  // the screen.
+  const [end, setEnd] = useState(false)
   const options = () => Array.from(box.current?.querySelectorAll<HTMLAnchorElement>('[role="option"]') ?? [])
   const openMenu = () => {
+    const r = button.current?.getBoundingClientRect()
+    setEnd(Boolean(r && r.left + menuWidth > window.innerWidth - 12))
     setOpen(true)
     // The selected channel takes focus once the list is drawn.
     requestAnimationFrame(() => (options().find((o) => o.getAttribute('aria-selected') === 'true') ?? options()[0])?.focus())
@@ -117,7 +128,7 @@ export function ChannelMenu({ current }: { current: Channel }) {
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
-        aria-label={t(m.channelButton, { channel: t(channelName[current]) })}
+        aria-label={t(m.menuButton, { channel: t(channelName[current]) })}
         onClick={() => (open ? setOpen(false) : openMenu())}
         onKeyDown={(e) => {
           if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
@@ -133,7 +144,7 @@ export function ChannelMenu({ current }: { current: Channel }) {
         </svg>
       </button>
       {open ? (
-        <div id={listId} className="menu pv-chmenu" role="listbox" tabIndex={-1} aria-label={t(m.channelLabel)} onKeyDown={onListKey}>
+        <div id={listId} className={end ? 'menu ch-menu ch-menu-end' : 'menu ch-menu'} role="listbox" tabIndex={-1} aria-label={t(m.switchLabel)} onKeyDown={onListKey}>
           {channels.map(option)}
         </div>
       ) : null}

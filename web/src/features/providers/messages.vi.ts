@@ -11,8 +11,6 @@ export default translate(m, {
   tabTraffic: 'Quy tắc lưu lượng',
   tabEvents: 'Sự kiện và đồng bộ',
   tabAdapters: 'Adapter',
-  channelButton: 'Kênh: {channel}. Đổi kênh',
-  channelLabel: 'Kênh',
 
   streamBroadcast: 'Gửi hàng loạt',
   streamAutomation: 'Tự động hóa',

@@ -4,12 +4,11 @@ import { m } from './messages'
 /** Vietnamese for the channel model's words (docs/i18n/glossary-vi.md › Channels and SMS). */
 export default translate(m, {
   switchLabel: 'Kênh',
+  menuButton: 'Kênh: {channel}. Đổi kênh',
   email: 'Email',
   sms: 'SMS',
   push: 'Thông báo đẩy',
   whatsapp: 'WhatsApp',
-  addChannel: 'Thêm kênh',
-  addChannelHint: 'Tin nhắn, thông báo đẩy hoặc WhatsApp, bên cạnh email. Bộ chuyển kênh xuất hiện khi kênh thứ hai được thiết lập.',
   smsTermsTab: 'Điều khoản tin nhắn',
   all: 'Tất cả',
   sendsOn: 'Gửi qua {channels}',

@@ -1,47 +1,68 @@
-/* The channel switch of Sending providers (design expansion phase 8, `.chsw`). */
-.ch-switch {
-  display: inline-flex;
-  align-items: stretch;
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  overflow: hidden;
-  background: #fff;
-  flex: none;
-  max-width: 100%;
-}
-.ch-switch a {
+/* The channel button and its listbox, heading every channel's section of
+   Sending providers (Providers board, PR-15, review R3.U5). */
+.chbtn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 32px;
-  min-height: 32px !important;
-  padding: 0 11px;
-  color: #4b5563;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
   font-size: 13px;
   font-weight: 600;
+  cursor: pointer;
   white-space: nowrap;
-  text-decoration: none !important;
 }
-.ch-switch a + a {
-  border-left: 1px solid #e3e6eb;
-}
-.ch-switch a:hover {
+.chbtn:hover {
   background: #f3f4f6;
-  color: #0b1220;
 }
-.ch-switch a.on {
-  background: #e3f1ee;
-  color: #0f766e;
+.chbtn .chv {
+  color: var(--ink-3);
 }
-.ch-switch svg {
-  flex: none;
+.ch-menu {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  min-width: 210px;
+  max-width: calc(100vw - 24px);
 }
-.ch-add {
-  gap: 6px;
+/* No room on the right (a phone, the button after the title): it opens from the button's end. */
+.ch-menu.ch-menu-end {
+  left: auto;
+  right: 0;
+}
+.ch-menu a[aria-selected='true'] {
+  font-weight: 600;
 }
 @media (max-width: 767px) {
-  .ch-switch {
-    overflow-x: auto;
+  .chbtn {
+    height: 44px;
+  }
+  .ch-menu {
+    top: 50px;
+  }
+  .ch-menu a {
+    min-height: 44px;
+  }
+}
+
+/* Sending providers on phones (PR-15): every target is at least 44 px,
+   in the header (channel button, tabs, actions) and the content, in each
+   channel's section. */
+@media (max-width: 767px) {
+  .top:has(.chbtn) .btn,
+  .top:has(.chbtn) + .content .btn,
+  .top:has(.chbtn) + .content select.in,
+  .top:has(.chbtn) + .content input.in {
+    min-height: 44px;
+  }
+  .top:has(.chbtn) .tabs a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
   }
 }
 
