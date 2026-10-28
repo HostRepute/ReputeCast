@@ -224,6 +224,130 @@ describe('style panel', () => {
   })
 })
 
+// R4.U3: every block's Style panel is in the writer's words too; the four
+// padding boxes and "Inner padding 10px 25px" wait in Advanced.
+describe('style panel of each block', () => {
+  const doc =
+    '<mjml><mj-body><mj-hero><mj-text>Hero</mj-text></mj-hero><mj-section><mj-column>' +
+    '<mj-text>Words</mj-text><mj-button href="https://acme.io">Go</mj-button><mj-image src="https://acme.io/a.png" alt="A"></mj-image><mj-divider></mj-divider>' +
+    '</mj-column></mj-section></mj-body></mjml>'
+  const panel = async (tag: string, patch: Parameters<typeof testComposer>[0] = {}) => {
+    const { editor: ed } = await headlessMjmlEditor(doc)
+    const c = ed.getWrapper()!.findType(tag)[0] as Component
+    unmock = mockApi({ [`GET ${base}/languages`]: () => json({ source: 'en', versions: [] }) })
+    const r = await renderInWorkspace(
+      <ComposerCtx.Provider value={testComposer({ editor: ed, selected: c, ...patch })}>
+        <StyleFields c={c} />
+      </ComposerCtx.Provider>,
+      { me: editor },
+    )
+    return { c, ...r }
+  }
+  const group = (name: string) => screen.getByRole('group', { name })
+  const press = (g: string, b: string) => fireEvent.click(within(group(g)).getByRole('button', { name: b }))
+  /** The px padding boxes are only inside the closed Advanced disclosure. */
+  const boxesOnlyInAdvanced = (container: HTMLElement) => {
+    const adv = container.querySelector('details.adv')!
+    expect(adv).not.toHaveAttribute('open')
+    for (const box of screen.getAllByRole('textbox', { name: 'Top' })) expect(adv.contains(box)).toBe(true)
+    expect(adv).toHaveTextContent('Advanced (MJML attributes)')
+  }
+
+  it('text: size, weight, alignment and space above and below', async () => {
+    const { c, container } = await panel('mj-text')
+    // MJML's own 10 px above and below is Medium.
+    expect(within(group('Spacing')).getByRole('button', { name: 'M' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('10 px above and below')).toBeInTheDocument()
+    press('Spacing', 'L')
+    expect(c.getAttributes().padding).toBe('20px 25px 20px 25px')
+    press('Weight', 'Bold')
+    expect(c.getAttributes()['font-weight']).toBe('bold')
+    press('Alignment', 'Center')
+    expect(c.getAttributes().align).toBe('center')
+    fireEvent.change(screen.getByRole('combobox', { name: 'Text style' }), { target: { value: '16' } })
+    expect(c.getAttributes()['font-size']).toBe('16px')
+    boxesOnlyInAdvanced(container)
+  })
+
+  it('button: size, width, corners, alignment and spacing, with inner padding in Advanced', async () => {
+    const { c, container } = await panel('mj-button')
+    const adv = container.querySelector('details.adv')!
+    expect(adv.querySelector('summary')).toHaveTextContent('padding 10 25 10 25 · inner padding 10 25')
+    expect(within(group('Size')).getByRole('button', { name: 'Medium' })).toHaveAttribute('aria-pressed', 'true')
+    press('Size', 'Large')
+    expect(c.getAttributes()['inner-padding']).toBe('14px 32px')
+    press('Width', 'Full width')
+    expect(c.getAttributes().width).toBe('100%')
+    press('Width', 'Fit the text')
+    expect(c.getAttributes().width).toBeUndefined()
+    press('Corners', 'Pill')
+    expect(c.getAttributes()['border-radius']).toBe('999px')
+    press('Spacing', 'S')
+    expect(c.getAttributes().padding).toBe('4px 25px 4px 25px')
+    expect(adv.contains(screen.getByRole('textbox', { name: 'Inner padding' }))).toBe(true)
+    boxesOnlyInAdvanced(container)
+  })
+
+  it('image: corners and spacing; its size stays in plain words', async () => {
+    const { c, container } = await panel('mj-image')
+    expect(screen.getByRole('textbox', { name: 'Width' })).toBeInTheDocument()
+    press('Corners', 'Rounded')
+    expect(c.getAttributes()['border-radius']).toBe('8px')
+    press('Alignment', 'Left')
+    expect(c.getAttributes().align).toBe('left')
+    boxesOnlyInAdvanced(container)
+  })
+
+  it('column: background, space inside and corners', async () => {
+    const { c, container } = await panel('mj-column')
+    expect(within(group('Space inside')).getByRole('button', { name: 'None' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('No space inside')).toBeInTheDocument()
+    press('Space inside', 'M')
+    expect(c.getAttributes().padding).toBe('16px')
+    press('Background', 'Grey')
+    expect(c.getAttributes()['background-color']).toBe('#F3F4F6')
+    // A column has no background image.
+    expect(within(group('Background')).queryByRole('button', { name: 'Image…' })).toBeNull()
+    boxesOnlyInAdvanced(container)
+  })
+
+  it('hero: background, space above and below the content, and where it sits', async () => {
+    const { c, container } = await panel('mj-hero')
+    press('Spacing', 'L')
+    expect(c.getAttributes().padding).toBe('80px 0px 80px 0px')
+    press('Vertical alignment', 'Middle')
+    expect(c.getAttributes()['vertical-align']).toBe('middle')
+    boxesOnlyInAdvanced(container)
+  })
+
+  it('divider: line, style, length and spacing', async () => {
+    const { c, container } = await panel('mj-divider')
+    // MJML's own 4 px line is Thick.
+    expect(within(group('Line')).getByRole('button', { name: 'Thick' })).toHaveAttribute('aria-pressed', 'true')
+    press('Line', 'Thin')
+    expect(c.getAttributes()['border-width']).toBe('1px')
+    press('Line style', 'Dashed')
+    expect(c.getAttributes()['border-style']).toBe('dashed')
+    press('Length', 'Short')
+    expect(c.getAttributes().width).toBe('50%')
+    boxesOnlyInAdvanced(container)
+  })
+
+  it('takes a preset over padding written side by side', async () => {
+    const { c } = await panel('mj-text')
+    c.addAttributes({ 'padding-top': '3px', 'padding-right': '25px', 'padding-bottom': '7px', 'padding-left': '25px' })
+    press('Spacing', 'M')
+    expect(c.getAttributes()['padding-top']).toBeUndefined()
+    expect(c.getAttributes().padding).toBe('10px 25px 10px 25px')
+  })
+
+  it('keeps the MJML attributes in the transactional editor, as its boards draw it', async () => {
+    const { container } = await panel('mj-button', { kind: 'transactional' })
+    expect(container.querySelector('details.adv')).toBeNull()
+    expect(screen.getByRole('textbox', { name: 'Inner padding' })).toBeInTheDocument()
+  })
+})
+
 describe('quick review on phones', () => {
   it('offers Edit text, Inbox, Checks, Comments and Send test', async () => {
     unmock = mockApi({ [`GET ${base}/comments`]: () => json({ threads: [], open: 2, resolved: 0 }) })

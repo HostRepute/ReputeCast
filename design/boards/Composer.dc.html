@@ -299,6 +299,8 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 .email .e-p{margin:0;font-size:15px;line-height:1.55}
 .email .e-btn{display:inline-block;padding:9px 14px;border-radius:6px;background:#0F766E;color:#FFFFFF;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600}
 .selsec{outline:2px solid #1D4ED8;outline-offset:-2px;margin-top:30px}
+.selb{outline:2px solid #1D4ED8;outline-offset:2px}
+.cvs .sec,.cvs .col,.cvs .ph,.cvs .e-btn{cursor:pointer}
 .lab{font-weight:600}
 .lab .lm{font-weight:500;opacity:.85;margin-left:6px}
 .hero{position:relative}
@@ -409,6 +411,7 @@ input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:check
   .ds .cfoot{display:none}
   .ds .lab,.ds .tb,.ds .ctools,.ds .lqpop{display:none}
   .ds .selsec{outline:none;margin-top:0}
+  .ds .selb{outline:none}
   .ds .email,.ds .email.mob{width:100%}
   .ds .email .cols{flex-direction:column}
   .ds .email .col{flex:none!important}
@@ -591,7 +594,7 @@ input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:check
             <div class="ph" style="width:96px;height:28px">Logo · 96×28</div>
             <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472">Blog · Docs · Changelog</div>
           </div>
-          <div class="sec hero" style="padding:20px 24px 8px">
+          <div class="{{heroCls}}" style="padding:20px 24px 8px" onClick="{{selHero}}">
             <div class="ph" style="height:180px;margin-bottom:16px">Hero image · 552×180 · alt “Q4 roadmap illustration”</div>
             <h2 class="e-h1">Three launches, one deprecation, and the roadmap for Q4</h2>
             <p class="e-p">Hi <button type="button" class="lq" aria-expanded="{{popOpen}}" aria-controls="{{popCtl}}" aria-label="Personalization: first name, fallback there. Edit" onClick="{{togglePop}}">First name <span class="fb">· fallback “there”</span></button>, here's what shipped this week at Acme, what we're retiring in November, and where the next quarter is headed.</p>
@@ -607,7 +610,8 @@ input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:check
             </sc-if>
           </div>
 
-          <div class="sec selsec" style="{{secStyle}}">
+          <div class="{{secCls}}" style="{{secStyle}}" onClick="{{selSection}}">
+            <sc-if value="{{isSection}}" hint-placeholder-val="{{true}}">
             <span class="lab">Section · 2 columns<span class="lm">Feature highlights</span></span>
             <div class="tb" role="toolbar" aria-label="Section tools">
               <button type="button" aria-label="Select parent"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 10 4-4 4 4"></path></svg></button>
@@ -615,12 +619,13 @@ input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:check
               <button type="button" aria-label="Duplicate"><svg aria-hidden="true" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1.5"></rect><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"></path></svg></button>
               <button type="button" aria-label="Delete"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="M3 4h10M6 4V2.5h4V4M5 4l.6 9h4.8L11 4"></path></svg></button>
             </div>
+            </sc-if>
             <div class="cols">
-              <div class="col" style="{{c1Style}}">
-                <div class="ph" style="height:120px;margin-bottom:10px">Image · alt “Feature flag targeting rules”</div>
+              <div class="{{colCls}}" style="{{c1Style}}" onClick="{{selColumn}}">
+                <div class="{{imgCls}}" style="height:120px;margin-bottom:10px" onClick="{{selImage}}">Image · alt “Feature flag targeting rules”</div>
                 <h3 class="e-h2">Feature flags are generally available</h3>
-                <p style="margin:0 0 10px;font-size:14px;line-height:1.5;color:#374151">Target rollouts by plan, region or percentage, with an audit trail for every change.</p>
-                <a href="https://docs.acme.io/flags" class="e-btn">Read the docs</a>
+                <p class="{{textCls}}" style="margin:0 0 10px;font-size:14px;line-height:1.5;color:#374151" onClick="{{selText}}">Target rollouts by plan, region or percentage, with an audit trail for every change.</p>
+                <a href="https://docs.acme.io/flags" class="{{btnCls}}" onClick="{{selButton}}">Read the docs</a>
                 <button type="button" class="pin" style="bottom:3px;left:128px;right:auto;background:#EDE9FE;color:#5B21B6" aria-label="Comment by Marcus Chen on this button. Open comments" onClick="{{goComments}}">MC</button>
               </div>
               <div class="col" style="{{c2Style}}">
@@ -632,7 +637,7 @@ input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:check
             </div>
           </div>
 
-          <div class="sec" style="padding:8px 24px"><div style="border-top:1px solid #E3E6EB"></div></div>
+          <div class="{{divCls}}" style="padding:8px 24px" onClick="{{selDivider}}"><div style="border-top:1px solid #E3E6EB"></div></div>
           <div class="sec" style="padding:8px 24px 16px">
             <h3 class="e-h2">Retiring the v1 API on 30 November</h3>
             <p style="margin:0;font-size:14px;line-height:1.5;color:#374151">If you still call api.acme.io/v1, the migration guide covers every endpoint. Most teams finish in an afternoon.</p>
@@ -655,12 +660,14 @@ input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:check
         <button type="button" role="tab" id="rt-comments" aria-controls="{{rCommentsCtl}}" aria-selected="{{rComments}}" tabindex="{{rCommentsTi}}" class="{{rCommentsCls}}" onClick="{{goComments}}" onKeyDown="{{rtKey}}" aria-label="Comments, 2 open">Comments <span class="n">· 2</span></button>
       </div>
       <div class="rp-sel">
-        <div class="rt"><b>Section · 2 columns</b><span class="k">Feature highlights</span></div>
+        <div class="rt"><b>{{selTitle}}</b><span class="k">{{selSub}}</span></div>
         <span class="k">Style is shared by all 3 language versions.</span>
       </div>
 
       <sc-if value="{{rStyle}}" hint-placeholder-val="{{true}}">
       <div id="rp-style" role="tabpanel" aria-labelledby="rt-style" style="display:flex;flex-direction:column;flex:1">
+        <!-- Each block's Style panel is in the writer's words, its MJML attributes in Advanced (R4.U3): select a block on the email. -->
+        <sc-if value="{{isSection}}" hint-placeholder-val="{{true}}">
         <div class="prop"><span class="t" id="sp-l">Spacing</span>
           <div class="seg full" role="group" aria-labelledby="sp-l">
             <button type="button" aria-pressed="{{spS}}" onClick="{{setSpS}}">S</button><button type="button" aria-pressed="{{spM}}" onClick="{{setSpM}}">M</button><button type="button" aria-pressed="{{spL}}" onClick="{{setSpL}}">L</button>
@@ -700,6 +707,163 @@ input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:check
             <div class="prop"><label class="t" for="mjcls">mj-class</label><input id="mjcls" class="in mono" placeholder="none"></div>
           </div>
         </details>
+        </sc-if>
+
+        <sc-if value="{{isText}}" hint-placeholder-val="{{false}}">
+        <div class="prop"><label class="t" for="tx-st">Text style</label>
+          <select id="tx-st" class="in"><option>Body · Georgia 14 px</option><option>Small · Georgia 13 px</option><option>Large · Georgia 16 px</option></select>
+        </div>
+        <div class="prop"><span class="t" id="tx-w">Weight</span>
+          <div class="seg full" role="group" aria-labelledby="tx-w"><button type="button" aria-pressed="true">Regular</button><button type="button" aria-pressed="false">Bold</button></div>
+        </div>
+        <div class="prop"><span class="t" id="tx-al">Alignment</span>
+          <div class="seg full" role="group" aria-labelledby="tx-al"><button type="button" aria-pressed="true">Left</button><button type="button" aria-pressed="false">Center</button><button type="button" aria-pressed="false">Right</button></div>
+        </div>
+        <div class="prop"><span class="t" id="tx-sp">Spacing</span>
+          <div class="seg full" role="group" aria-labelledby="tx-sp"><button type="button" aria-pressed="false">S</button><button type="button" aria-pressed="true">M</button><button type="button" aria-pressed="false">L</button></div>
+          <span class="k">10 px above and below</span>
+        </div>
+        <details class="adv">
+          <summary><span>Advanced (MJML attributes)</span><span class="k">padding 10 0 10 0</span></summary>
+          <div class="advb">
+            <div class="prop"><span class="t">Padding · mj-text padding</span><div class="row4"><label class="k" style="display:flex;flex-direction:column;gap:2px">Top<input class="in" value="10"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Right<input class="in" value="0"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Bottom<input class="in" value="10"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Left<input class="in" value="0"></label></div></div>
+            <div class="prop"><span class="t">Typography</span><div class="row2"><select aria-label="Font" class="in"><option>Georgia</option></select><input class="in" aria-label="Font size" value="14px"></div><div class="row2"><input class="in" aria-label="Text colour" value="#374151"><input class="in" aria-label="Line height" value="1.5"></div></div>
+            <div class="prop"><label class="t" for="tx-fw">Weight · mj-text font-weight</label><select id="tx-fw" class="in"><option>Regular</option><option>Medium</option><option>Semibold</option><option>Bold</option></select></div>
+          </div>
+        </details>
+        </sc-if>
+
+        <sc-if value="{{isButton}}" hint-placeholder-val="{{false}}">
+        <div class="prop"><label class="t" for="bt-c">Button colour</label>
+          <div style="display:flex;gap:8px;align-items:center"><span aria-hidden="true" style="width:30px;height:30px;border-radius:7px;background:#0F766E;flex:none"></span><input id="bt-c" class="in mono" value="#0F766E" style="flex:1"></div>
+          <span class="k">White text on #0F766E is 5.5:1, enough for any size.</span>
+        </div>
+        <div class="prop"><span class="t" id="bt-sz">Size</span>
+          <div class="seg full" role="group" aria-labelledby="bt-sz"><button type="button" aria-pressed="false">Small</button><button type="button" aria-pressed="true">Medium</button><button type="button" aria-pressed="false">Large</button></div>
+        </div>
+        <div class="prop"><span class="t" id="bt-w">Width</span>
+          <div class="seg full" role="group" aria-labelledby="bt-w"><button type="button" aria-pressed="true">Fit the text</button><button type="button" aria-pressed="false">Full width</button></div>
+        </div>
+        <div class="prop"><span class="t" id="bt-cr">Corners</span>
+          <div class="seg full" role="group" aria-labelledby="bt-cr"><button type="button" aria-pressed="false">Square</button><button type="button" aria-pressed="true">Rounded</button><button type="button" aria-pressed="false">Pill</button></div>
+        </div>
+        <div class="prop"><span class="t" id="bt-al">Alignment</span>
+          <div class="seg full" role="group" aria-labelledby="bt-al"><button type="button" aria-pressed="true">Left</button><button type="button" aria-pressed="false">Center</button><button type="button" aria-pressed="false">Right</button></div>
+        </div>
+        <div class="prop"><span class="t" id="bt-sp">Spacing</span>
+          <div class="seg full" role="group" aria-labelledby="bt-sp"><button type="button" aria-pressed="false">S</button><button type="button" aria-pressed="true">M</button><button type="button" aria-pressed="false">L</button></div>
+          <span class="k">10 px above and below</span>
+        </div>
+        <details class="adv">
+          <summary><span>Advanced (MJML attributes)</span><span class="k">padding 10 0 10 0 · inner padding 10 25</span></summary>
+          <div class="advb">
+            <div class="prop"><label class="t" for="bt-ip">Inner padding</label><input id="bt-ip" class="in" value="10px 25px"></div>
+            <div class="prop"><span class="t">Outer padding</span><div class="row4"><label class="k" style="display:flex;flex-direction:column;gap:2px">Top<input class="in" value="10"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Right<input class="in" value="0"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Bottom<input class="in" value="10"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Left<input class="in" value="0"></label></div></div>
+            <div class="prop"><label class="t" for="bt-br">Border radius</label><input id="bt-br" class="in" value="6px"></div>
+            <div class="prop"><label class="t" for="bt-wd">Width · mj-button width</label><input id="bt-wd" class="in" placeholder="auto"></div>
+          </div>
+        </details>
+        </sc-if>
+
+        <sc-if value="{{isImage}}" hint-placeholder-val="{{false}}">
+        <div class="prop"><span class="t">Size</span>
+          <div class="row2"><label class="k" style="display:flex;flex-direction:column;gap:2px">Width<input class="in" value="264px"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Height<input class="in" placeholder="auto"></label></div>
+        </div>
+        <div class="prop"><span class="t" id="im-al">Alignment</span>
+          <div class="seg full" role="group" aria-labelledby="im-al"><button type="button" aria-pressed="false">Left</button><button type="button" aria-pressed="true">Center</button><button type="button" aria-pressed="false">Right</button></div>
+        </div>
+        <div class="prop"><span class="t" id="im-cr">Corners</span>
+          <div class="seg full" role="group" aria-labelledby="im-cr"><button type="button" aria-pressed="true">Square</button><button type="button" aria-pressed="false">Rounded</button></div>
+        </div>
+        <div class="prop"><span class="t" id="im-sp">Spacing</span>
+          <div class="seg full" role="group" aria-labelledby="im-sp"><button type="button" aria-pressed="false">S</button><button type="button" aria-pressed="true">M</button><button type="button" aria-pressed="false">L</button></div>
+          <span class="k">10 px above and below</span>
+        </div>
+        <details class="adv">
+          <summary><span>Advanced (MJML attributes)</span><span class="k">padding 10 0 10 0</span></summary>
+          <div class="advb">
+            <div class="prop"><span class="t">Padding · mj-image padding</span><div class="row4"><label class="k" style="display:flex;flex-direction:column;gap:2px">Top<input class="in" value="10"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Right<input class="in" value="0"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Bottom<input class="in" value="10"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Left<input class="in" value="0"></label></div></div>
+            <div class="prop"><label class="t" for="im-br">Border radius</label><input id="im-br" class="in" value="0px"></div>
+          </div>
+        </details>
+        </sc-if>
+
+        <sc-if value="{{isColumn}}" hint-placeholder-val="{{false}}">
+        <div class="prop"><span class="t" id="cl-bg">Background</span>
+          <div class="swr" role="group" aria-labelledby="cl-bg">
+            <button type="button" class="swb" aria-pressed="true"><span class="sw" style="background:#FFFFFF"></span>White</button>
+            <button type="button" class="swb" aria-pressed="false"><span class="sw" style="background:#F3F4F6"></span>Grey</button>
+            <button type="button" class="swb" aria-pressed="false"><span class="sw" style="background:#F0FDFA"></span>Tint</button>
+          </div>
+        </div>
+        <div class="prop"><span class="t" id="cl-sp">Space inside</span>
+          <div class="seg full" role="group" aria-labelledby="cl-sp"><button type="button" aria-pressed="true">None</button><button type="button" aria-pressed="false">S</button><button type="button" aria-pressed="false">M</button><button type="button" aria-pressed="false">L</button></div>
+          <span class="k">No space inside</span>
+        </div>
+        <div class="prop"><span class="t" id="cl-cr">Corners</span>
+          <div class="seg full" role="group" aria-labelledby="cl-cr"><button type="button" aria-pressed="true">Square</button><button type="button" aria-pressed="false">Rounded</button></div>
+        </div>
+        <details class="adv">
+          <summary><span>Advanced (MJML attributes)</span><span class="k">padding 0 0 0 0</span></summary>
+          <div class="advb">
+            <div class="prop"><span class="t">Padding · mj-column padding</span><div class="row4"><label class="k" style="display:flex;flex-direction:column;gap:2px">Top<input class="in" value="0"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Right<input class="in" value="0"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Bottom<input class="in" value="0"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Left<input class="in" value="0"></label></div></div>
+            <div class="prop"><span class="t">Border</span><div class="row2"><select aria-label="Border style" class="in"><option>None</option><option>Solid</option><option>Dashed</option></select><input class="in" aria-label="Border width" value="0px"></div></div>
+            <div class="prop"><label class="t" for="cl-br">Border radius</label><input id="cl-br" class="in" value="0px"></div>
+          </div>
+        </details>
+        </sc-if>
+
+        <sc-if value="{{isHero}}" hint-placeholder-val="{{false}}">
+        <div class="prop"><span class="t" id="hr-bg">Background</span>
+          <div class="swr" role="group" aria-labelledby="hr-bg">
+            <button type="button" class="swb" aria-pressed="true"><span class="sw" style="background:#FFFFFF"></span>White</button>
+            <button type="button" class="swb" aria-pressed="false"><span class="sw" style="background:#F3F4F6"></span>Grey</button>
+            <button type="button" class="swb" aria-pressed="false"><span class="sw" style="background:#F0FDFA"></span>Tint</button>
+            <button type="button" class="swb" style="padding:0 9px">Image…</button>
+          </div>
+        </div>
+        <div class="prop"><span class="t" id="hr-sp">Spacing</span>
+          <div class="seg full" role="group" aria-labelledby="hr-sp"><button type="button" aria-pressed="true">S</button><button type="button" aria-pressed="false">M</button><button type="button" aria-pressed="false">L</button></div>
+          <span class="k">24 px above and below</span>
+        </div>
+        <div class="prop"><span class="t" id="hr-va">Vertical alignment</span>
+          <div class="seg full" role="group" aria-labelledby="hr-va"><button type="button" aria-pressed="true">Top</button><button type="button" aria-pressed="false">Middle</button><button type="button" aria-pressed="false">Bottom</button></div>
+        </div>
+        <details class="adv">
+          <summary><span>Advanced (MJML attributes)</span><span class="k">padding 24 24 24 24</span></summary>
+          <div class="advb">
+            <div class="prop"><span class="t">Padding · mj-hero padding</span><div class="row4"><label class="k" style="display:flex;flex-direction:column;gap:2px">Top<input class="in" value="24"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Right<input class="in" value="24"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Bottom<input class="in" value="24"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Left<input class="in" value="24"></label></div></div>
+            <div class="prop"><label class="t" for="hr-h">Height</label><input id="hr-h" class="in" placeholder="auto"></div>
+          </div>
+        </details>
+        </sc-if>
+
+        <sc-if value="{{isDivider}}" hint-placeholder-val="{{false}}">
+        <div class="prop"><span class="t" id="dv-l">Line</span>
+          <div class="seg full" role="group" aria-labelledby="dv-l"><button type="button" aria-pressed="true">Thin</button><button type="button" aria-pressed="false">Medium</button><button type="button" aria-pressed="false">Thick</button></div>
+        </div>
+        <div class="prop"><span class="t" id="dv-s">Line style</span>
+          <div class="seg full" role="group" aria-labelledby="dv-s"><button type="button" aria-pressed="true">Solid</button><button type="button" aria-pressed="false">Dashed</button><button type="button" aria-pressed="false">Dotted</button></div>
+        </div>
+        <div class="prop"><label class="t" for="dv-c">Line colour</label>
+          <div style="display:flex;gap:8px;align-items:center"><span aria-hidden="true" style="width:30px;height:30px;border-radius:7px;background:#E3E6EB;flex:none"></span><input id="dv-c" class="in mono" value="#E3E6EB" style="flex:1"></div>
+        </div>
+        <div class="prop"><span class="t" id="dv-ln">Length</span>
+          <div class="seg full" role="group" aria-labelledby="dv-ln"><button type="button" aria-pressed="true">Full</button><button type="button" aria-pressed="false">Wide</button><button type="button" aria-pressed="false">Short</button></div>
+        </div>
+        <div class="prop"><span class="t" id="dv-sp">Spacing</span>
+          <div class="seg full" role="group" aria-labelledby="dv-sp"><button type="button" aria-pressed="true">S</button><button type="button" aria-pressed="false">M</button><button type="button" aria-pressed="false">L</button></div>
+          <span class="k">4 px above and below</span>
+        </div>
+        <details class="adv">
+          <summary><span>Advanced (MJML attributes)</span><span class="k">padding 4 24 4 24</span></summary>
+          <div class="advb">
+            <div class="prop"><span class="t">Line · mj-divider border</span><div class="row2"><select aria-label="Line style" class="in"><option>Solid</option><option>Dashed</option><option>Dotted</option></select><input class="in" aria-label="Line width" value="1px"></div></div>
+            <div class="prop"><span class="t">Padding · mj-divider padding</span><div class="row4"><label class="k" style="display:flex;flex-direction:column;gap:2px">Top<input class="in" value="4"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Right<input class="in" value="24"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Bottom<input class="in" value="4"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Left<input class="in" value="24"></label></div></div>
+          </div>
+        </details>
+        </sc-if>
+
         <div class="rp-foot"><span class="badge ok"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Pass</span><span class="k">This section: 2 images with alt text, 2 links work</span></div>
       </div>
       </sc-if>
@@ -787,7 +951,7 @@ input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:check
   </div>
 
   <footer class="cfoot">
-    <nav class="bc" aria-label="Selection path"><span>Email</span><span aria-hidden="true">›</span><span>Body</span><span aria-hidden="true">›</span><b>Feature highlights · 2 columns</b></nav>
+    <nav class="bc" aria-label="Selection path"><span>Email</span><span aria-hidden="true">›</span><span>Body</span><span aria-hidden="true">›</span><b>{{crumb}}</b></nav>
     <span class="hint"><span><span class="kbd">Enter</span>edits text</span><span><span class="kbd">Esc</span>selects parent</span><span><span class="kbd">⌘Z</span>undo</span><span><span class="kbd">⌘/</span>shortcuts</span></span>
     <span class="k" style="margin-left:auto">64 KB of 102 KB · 7 images · 14 links</span>
     <a href="ComposerStates.dc.html" class="k">Version history · 14 versions</a>
@@ -841,7 +1005,8 @@ class Component extends DCLogic {
   constructor(props) {
     super(props);
     // waiting: a request waits for this person's decision (quick review's Approve, R4.U6).
-    this.state = { inbox: false, dev: 'desktop', ltab: 'blocks', rtab: 'style', pop: true, space: 'M', bg: 'white', align: 'left', cols: '50', sheet: null, reply: '', waiting: false };
+    // sel: the block whose Style panel shows (R4.U3); select another on the email.
+    this.state = { inbox: false, dev: 'desktop', ltab: 'blocks', rtab: 'style', pop: true, space: 'M', bg: 'white', align: 'left', cols: '50', sheet: null, reply: '', waiting: false, sel: 'section' };
   }
   tabKey(order, key, prefix) {
     var self = this;
@@ -882,7 +1047,37 @@ class Component extends DCLogic {
     var lb = tab(s.ltab, 'blocks', 'lp-blocks'), ll = tab(s.ltab, 'layers', 'lp-layers'), lt = tab(s.ltab, 'templates', 'lp-templates');
     var rs = tab(s.rtab, 'style', 'rp-style'), rse = tab(s.rtab, 'settings', 'rp-settings'), rc = tab(s.rtab, 'checks', 'rp-checks'), rco = tab(s.rtab, 'comments', 'rp-comments');
     var panelSheet = s.sheet === 'checks' || s.sheet === 'comments';
+    var sels = {
+      section: ['Section · 2 columns', 'Feature highlights', 'Feature highlights · 2 columns'],
+      text: ['Text', 'Column 1 · Feature flags', 'Feature highlights · Column 1 · Text'],
+      button: ['Button', 'Read the docs', 'Feature highlights · Column 1 · Button'],
+      image: ['Image', 'Feature flag targeting rules', 'Feature highlights · Column 1 · Image'],
+      column: ['Column 1 of 2', 'Feature highlights', 'Feature highlights · Column 1'],
+      hero: ['Hero', 'Three launches, one deprecation', 'Hero'],
+      divider: ['Divider', 'Before “Retiring the v1 API”', 'Divider']
+    };
+    var cur = sels[s.sel] || sels.section;
+    function pick(sel) {
+      return function (e) {
+        if (e) {
+          e.stopPropagation();
+          if (sel === 'button' && e.preventDefault) e.preventDefault();
+          // The personalization chip and comment pins keep their own clicks.
+          if (e.target && e.target.closest && e.target.closest('.lq, .lqpop, .pin')) return;
+        }
+        self.setState({ sel: sel, rtab: 'style' });
+      };
+    }
+    function selCls(base, sel) { return base + (s.sel === sel ? ' selb' : ''); }
     return {
+      isSection: s.sel === 'section', isText: s.sel === 'text', isButton: s.sel === 'button', isImage: s.sel === 'image',
+      isColumn: s.sel === 'column', isHero: s.sel === 'hero', isDivider: s.sel === 'divider',
+      selTitle: cur[0], selSub: cur[1], crumb: cur[2],
+      secCls: 'sec' + (s.sel === 'section' ? ' selsec' : ''),
+      heroCls: selCls('sec hero', 'hero'), colCls: selCls('col', 'column'), imgCls: selCls('ph', 'image'),
+      textCls: selCls('', 'text'), btnCls: selCls('e-btn', 'button'), divCls: selCls('sec', 'divider'),
+      selSection: pick('section'), selHero: pick('hero'), selColumn: pick('column'), selImage: pick('image'),
+      selText: pick('text'), selButton: pick('button'), selDivider: pick('divider'),
       rootCls: 'ds' + (s.sheet === 'text' ? ' edittext' : ''),
       tok: o + ' first_name | default: "there" ' + c,
       inboxOpen: s.inbox,
