@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/providers/simulator"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/sending/sendtest"
 )
@@ -34,12 +35,14 @@ func TestEstimateMatchesTheSend(t *testing.T) {
 
 // compareWithSend starts the fixture's send, estimates it from what the
 // audience build planned (recipients per provider and mailbox provider),
-// drives it to the end and compares: within 5% of the send's length or 20
-// seconds. The demo transport throttles a call now and then, and those
-// messages go after a back-off, so the 99th percentile counts.
+// drives it to the end and compares when its 99th percentile message went
+// out: within 5% of the send's length or 20 seconds. It sends through the
+// steady demo transport: a provider that throttles a call slows its route
+// (to half its rate for a minute at least), which no estimate can know in
+// advance; the engine's answer to throttling has tests of its own.
 func compareWithSend(t *testing.T, f *sendtest.Fixture) {
 	t.Helper()
-	f.StartSend(engine.StartOptions{})
+	f.StartSend(engine.StartOptions{Scenario: simulator.ScenarioSteady})
 	cells := map[uuid.UUID]map[string]int64{}
 	rows, err := f.Env.App.Pool.Query(f.Ctx, `SELECT provider_id, mailbox_provider, count(*) FROM messages WHERE campaign_id = $1 GROUP BY 1, 2`, f.Campaign)
 	if err != nil {

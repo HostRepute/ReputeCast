@@ -68,7 +68,7 @@ func newDemoCmd(o *rootOpts) *cobra.Command {
 			return nil
 		},
 	}
-	send.Flags().StringVar(&scenario, "scenario", simulator.ScenarioNormal, "normal, outlook-complaints or postal-outage")
+	send.Flags().StringVar(&scenario, "scenario", simulator.ScenarioNormal, "normal, outlook-complaints, postal-outage or steady (normal without the provider throttling now and then)")
 	send.Flags().StringVar(&workspace, "workspace", "acme-newsletter", "workspace slug")
 	send.Flags().DurationVar(&elapsed, "elapsed", 0, "start the send this long ago and fast-forward to now (e.g. 21m)")
 	send.Flags().DurationVar(&abWindow, "ab-window", engine.DemoABWindow, "how long the A/B test runs before the winner goes to the rest")

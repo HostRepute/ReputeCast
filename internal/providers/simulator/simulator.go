@@ -35,15 +35,18 @@ import (
 // Adapter is the transport's key.
 const Adapter = "simulator"
 
-// Scenarios.
+// Scenarios. Steady is normal without the provider throttling a call now
+// and then: a send's timing is the engine's rules alone, as an estimate
+// plays them.
 const (
 	ScenarioNormal            = "normal"
 	ScenarioOutlookComplaints = "outlook-complaints"
 	ScenarioPostalOutage      = "postal-outage"
+	ScenarioSteady            = "steady"
 )
 
 // Scenarios lists the valid scenario names.
-var Scenarios = []string{ScenarioNormal, ScenarioOutlookComplaints, ScenarioPostalOutage}
+var Scenarios = []string{ScenarioNormal, ScenarioOutlookComplaints, ScenarioPostalOutage, ScenarioSteady}
 
 // Outage timing of the postal-outage scenario, measured from the send's start.
 const (
@@ -201,9 +204,13 @@ func (p *Provider) outageError(now time.Time) error {
 }
 
 // throttled is true for about one call in a thousand (SES) or 250 (Postal),
-// the API error rates on the boards. The draw depends on the call's time
-// too, so a retry of the same message isn't throttled again for sure.
+// the API error rates on the boards, and never in the steady scenario. The
+// draw depends on the call's time too, so a retry of the same message isn't
+// throttled again for sure.
 func (p *Provider) throttled(id uuid.UUID, now time.Time) bool {
+	if p.s.Scenario == ScenarioSteady {
+		return false
+	}
 	h := binary.BigEndian.Uint32(id[12:16]) ^ uint32(now.UnixNano()/int64(time.Millisecond))*2654435761
 	r := float64(h) / float64(math.MaxUint32)
 	limit := 0.001
