@@ -94,7 +94,7 @@ func seedProvidersImpl(ctx context.Context, s *Seeder) error {
 		}
 	}
 
-	// Postal's warm-up: 21 counted days, started ten days ago (the
+	// Postal's warm-up: 21 counted days, started eleven days ago (the
 	// workspace's calendar), eight counted, so today is day 9; one slowdown
 	// on day 6.
 	plan := postalPlan()
@@ -256,9 +256,11 @@ func postalPlan() []warmup.Day {
 
 // postalDays are Postal's warm-up days so far, one per calendar day from
 // the day the plan started (ProvidersWarmup): the plan's day, its cap,
-// what went out and the rates (percent). Sunday sent nothing, so day 4
-// repeated on Monday; a guard tripped on day 6 (bounces 2.3%), so day 6
-// repeated and the cap held at 2,600 for two healthy days.
+// what went out and the rates (percent). Sunday sent nothing, so day 5
+// repeated on Monday; a guard tripped on day 6 (bounces 2.3%), so the cap
+// held at 2,600 for two healthy days with the plan staying on day 6 until
+// the second one completed it, and the ramp resumed one step up, day 7 at
+// 3,600 (R3.L6d).
 var postalDays = []struct {
 	day               int
 	cap, plan, sent   int64
@@ -272,19 +274,21 @@ var postalDays = []struct {
 	{day: 1, cap: 200, sent: 200, bounce: 0.5, delivered: 100, counted: true},
 	{day: 2, cap: 400, sent: 400, bounce: 0.5, delivered: 200, counted: true},
 	{day: 3, cap: 700, sent: 700, bounce: 0.5, delivered: 350, counted: true},
-	{day: 4, cap: 1200, sent: 0},
 	{day: 4, cap: 1200, sent: 1200, bounce: 0.5, delivered: 600, counted: true},
+	{day: 5, cap: 1800, sent: 0},
 	{day: 5, cap: 1800, sent: 1800, bounce: 0.4, complaint: 0.06, delivered: 1667, complained: 1, counted: true},
 	{day: 6, cap: 2600, sent: 2600, bounce: 2.3, complaint: 0.04, delivered: 2500, complained: 1, slowed: true},
-	{day: 6, cap: 2600, sent: 2600, bounce: 0.2, complaint: 0.04, delivered: 2500, complained: 1, counted: true, held: true, healthy: 1},
-	{day: 7, cap: 2600, plan: 3600, sent: 2600, bounce: 0.8, complaint: 0.04, delivered: 2500, complained: 1, counted: true, held: true, healthy: 2},
+	{day: 6, cap: 2600, sent: 2600, bounce: 0.2, complaint: 0.04, delivered: 2500, complained: 1, held: true, healthy: 1},
+	{day: 6, cap: 2600, sent: 2600, bounce: 0.8, complaint: 0.04, delivered: 2500, complained: 1, counted: true, held: true, healthy: 2},
+	{day: 7, cap: 3600, sent: 3600, bounce: 0.7, complaint: 0.04, delivered: 2400, complained: 1, counted: true},
 	{day: 8, cap: 4800, sent: 4798, bounce: 0.9, complaint: 0.06, delivered: 3333, complained: 2, counted: true},
 }
 
 // seedWarmup writes Postal's plan as the daily job leaves it after the
-// days above: started ten days ago, eight days counted, so the plan's day
-// 1 (start_date) moved on by the two days that didn't count and today is
-// day 9.
+// days above: started eleven days ago, eight days counted, so the plan's
+// day 1 (start_date) moved on by the three days that didn't move it (the
+// Sunday, the slowdown and the first healthy day under its hold) and today
+// is day 9.
 func seedWarmup(ctx context.Context, s *Seeder, provider uuid.UUID, started time.Time, sched []warmup.Day, loc *time.Location, by uuid.UUID) error {
 	progress := []warmup.Result{}
 	missed := 0
@@ -292,7 +296,8 @@ func seedWarmup(ctx context.Context, s *Seeder, provider uuid.UUID, started time
 		b, c := d.bounce, d.complaint
 		res := warmup.Result{Day: d.day, Date: started.AddDate(0, 0, i).Format("2006-01-02"), Cap: d.cap, PlannedCap: d.plan, Sent: d.sent,
 			Bounced: int64(math.Round(float64(d.sent) * b / 100)), Complained: d.complained, Delivered: d.delivered,
-			Counted: d.counted, Judged: d.sent >= warmup.DefaultMinSample, Short: !d.counted && !d.slowed, Slowed: d.slowed, Held: d.held, Healthy: d.healthy}
+			Counted: d.counted, Judged: d.sent >= warmup.DefaultMinSample, Short: float64(d.sent) < math.Ceil(float64(d.cap)*warmup.CountShare), Slowed: d.slowed,
+			Held: d.held, Healthy: d.healthy}
 		if d.sent > 0 {
 			res.Bounce = &b
 		}
@@ -327,10 +332,10 @@ func seedWarmup(ctx context.Context, s *Seeder, provider uuid.UUID, started time
 		body        string
 	}{
 		{dayAt(0, 9), "started", "", "Plan started by Linh Nguyen: 21 counted days, engaged-first."},
-		{dayAt(3, 23), "day_complete", "", "Nothing sent, so day 4 repeated on " + started.AddDate(0, 0, 4).Weekday().String() + "."},
+		{dayAt(4, 23), "day_complete", "", "Nothing sent, so day 5 repeated on " + started.AddDate(0, 0, 5).Weekday().String() + "."},
 		{dayAt(6, 23), "slowdown", "Automatic slowdown.", "Bounces hit 2.3% (guard 2%), mostly Yahoo. Day 6 didn't count; the cap holds at 2,600 until 2 healthy days in a row."},
-		{dayAt(8, 23), "resumed", "", "Second healthy day at the held cap (bounces 0.8%), so the ramp resumes with day 8 at 4,800."},
-		{dayAt(9, 23), "day_complete", "", `Day 8 counted: 4,798 sent inside "October Product Update", bounce 0.9%.`},
+		{dayAt(8, 23), "resumed", "", "Second healthy day at the held cap (bounces 0.8%), so the ramp resumes with day 7 at 3,600."},
+		{dayAt(10, 23), "day_complete", "", `Day 8 counted: 4,798 sent inside "October Product Update", bounce 0.9%.`},
 	}
 	for _, e := range log {
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO warmup_events (id, plan_id, occurred_at, kind, title, body) VALUES ($1,$2,$3,$4,$5,$6)`, ID(), id, e.at, e.kind, e.title, e.body); err != nil {

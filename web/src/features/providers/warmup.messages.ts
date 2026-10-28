@@ -48,8 +48,9 @@ export const mw = defineMessages('providers.warmup', {
   howNeeds: 'Today counts once {need} are sent; {sent} so far.',
   howPausedNow: 'The plan is paused on day {day}.',
   howSample: 'Guards judge a day only after {count} messages.',
+  /** The plan stays on its day while the cap holds, so the ramp resumes one step above the held cap (R3.L6d). */
   howHold:
-    '{action, select, step_back {After a guard trips, the cap steps back a day and holds until {days} healthy days in a row.} pause {After a guard trips, the plan pauses until someone resumes it.} other {After a guard trips, the cap holds until {days} healthy days in a row.}}',
+    '{action, select, step_back {After a guard trips, the cap steps back a day and holds until {days} healthy days in a row; then the ramp resumes on the day that tripped.} pause {After a guard trips, the plan pauses until someone resumes it.} other {After a guard trips, the cap holds until {days} healthy days in a row; then the ramp resumes one step up.}}',
   howPause: 'Pausing freezes the plan; it resumes on the day it stopped.',
 
   // The plan's numbers.
@@ -111,6 +112,8 @@ export const mw = defineMessages('providers.warmup', {
   notJudged: 'not judged',
   badgeCounted: 'Counted',
   badgeNotCounted: 'Not counted',
+  /** A healthy day under a slowdown's hold: the plan stays on its day (R3.L6d). */
+  badgeHeld: 'Held',
   badgePlanned: 'Planned',
   badgeToday: 'Today',
   badgePausedDay: 'Paused',
@@ -123,6 +126,8 @@ export const mw = defineMessages('providers.warmup', {
     '{metric, select, complaint {complaints over {limit}} other {bounces over {limit}}} · {action, select, step_back {slowdown, the cap steps back to {cap}} pause {slowdown, the plan paused} other {slowdown, the cap holds at {cap}}}',
   noteShort: '{sent} of {cap} sent · day {day} repeated',
   noteHealthy: 'healthy day {n} of {of}',
+  /** A healthy day under a hold proves the held cap without moving the plan on (R3.L6d). */
+  noteHealthyHeld: 'healthy day {n} of {of} · the plan stays on day {day} while the cap holds',
   noteHealthyLast: 'healthy day {n} of {of} · ramp resumes',
   noteTodayRepeats: '{sent} of {cap} sent · day {day} repeats tomorrow',
   noteTodayNeeds: '{sent} of {need} sent to count',
@@ -160,6 +165,8 @@ export const mw = defineMessages('providers.warmup', {
   overflowLabelNone: "Send what's over today's cap through a warm provider instead of waiting",
   /** {count} is formatted. */
   overflowToday: 'Over the cap so far today: {count}',
+  /** R3.L6b: transactional mail a warming provider sent over today's cap because no warm provider of its route could take it; {count} is formatted. */
+  transactionalOverCap: 'Transactional mail over the cap today: {count} · password resets and receipts never wait for the warm-up',
   overflowNone: "No warm provider shares the Broadcasts route now, so what's over the cap waits for tomorrow's cap.",
   overflowOn: "What's over the cap goes through a warm provider",
   overflowOff: "What's over the cap waits for tomorrow's cap",

@@ -458,7 +458,8 @@ func warmupBrief(sn *snapshot, p store.Provider) *ProviderWarmupBrief {
 		if w.HeldCap != nil {
 			cap, rate = *w.HeldCap, warmup.RateFor(*w.HeldCap)
 		}
-		return &ProviderWarmupBrief{PlanID: w.ID.String(), Day: day, Days: int(w.Days), Status: w.Status, TodayCap: cap, SentToday: sn.warmSent[p.ID], Rate: rate, Share: share}
+		return &ProviderWarmupBrief{PlanID: w.ID.String(), Day: day, Days: int(w.Days), Status: w.Status, TodayCap: cap, SentToday: sn.warmSent[p.ID], Rate: rate, Share: share,
+			TransactionalOverCap: warmup.OverCapToday(w.OverCap, w.OverCapOn, sn.now, sn.loc)}
 	}
 	return nil
 }

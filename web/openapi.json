@@ -54995,6 +54995,10 @@
           "todayCap": {
             "format": "int64",
             "type": "integer"
+          },
+          "transactionalOverCap": {
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
@@ -55005,7 +55009,8 @@
           "todayCap",
           "sentToday",
           "rate",
-          "share"
+          "share",
+          "transactionalOverCap"
         ],
         "type": "object"
       },
@@ -93077,6 +93082,10 @@
           "todayCap": {
             "format": "int64",
             "type": "integer"
+          },
+          "transactionalOverCap": {
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
@@ -93110,6 +93119,7 @@
           "ramp",
           "mailboxCaps",
           "overflowToday",
+          "transactionalOverCap",
           "settings",
           "holds",
           "log",
@@ -93213,7 +93223,8 @@
           "reason": {
             "enum": [
               "short",
-              "guard"
+              "guard",
+              "held"
             ],
             "type": "string"
           },

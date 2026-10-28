@@ -77,6 +77,7 @@ export default translate(mo, {
 
   warmupCap: 'Giới hạn khởi động hôm nay · {cap}',
   warmupSentToday: '{sent} đã gửi · {weekday}',
+  warmupOverCap: '{count, plural, other {# thư giao dịch}} vượt giới hạn hôm nay: thư đặt lại mật khẩu và biên nhận không bao giờ phải chờ',
   warmupSentShare: '{sent} đã gửi · {share}',
   acceptedUnknown: '{count} đã nhận · chưa rõ trạng thái',
   quota24h: 'Hạn mức 24 giờ · {max}',

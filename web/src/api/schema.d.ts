@@ -33318,6 +33318,8 @@ export interface components {
             status: "active" | "slowed" | "paused" | "done";
             /** Format: int64 */
             todayCap: number;
+            /** Format: int64 */
+            transactionalOverCap: number;
         };
         ProviderWebhookCheck: {
             /** Format: date-time */
@@ -44143,6 +44145,8 @@ export interface components {
             statusDetail: string;
             /** Format: int64 */
             todayCap: number;
+            /** Format: int64 */
+            transactionalOverCap: number;
         };
         WarmupRampDay: {
             /** Format: int64 */
@@ -44183,7 +44187,7 @@ export interface components {
             /** Format: int64 */
             plannedCap?: number;
             /** @enum {string} */
-            reason?: "short" | "guard";
+            reason?: "short" | "guard" | "held";
             repeat: boolean;
             /** Format: int64 */
             sent?: number;

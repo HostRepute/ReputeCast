@@ -274,6 +274,7 @@ export function ProviderRow({ card, monthStart, last, onSettings }: { card: Prov
       <div className="flex flex-[1_1_260px] flex-col gap-3">
         {rateMeters(card)}
         {quotaMeter(card, 'normal')}
+        {card.warmup?.transactionalOverCap ? <span className="k">{t(mo.warmupOverCap, { count: card.warmup.transactionalOverCap })}</span> : null}
         {rateMeter(card)}
         <CostGrid card={card} monthStart={monthStart} />
       </div>

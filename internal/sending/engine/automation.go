@@ -251,10 +251,17 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 		return 0, nil
 	}
 	want := max(int(math.Floor(r.rate.PerSecond)), 1)
-	// A warming provider's automation mail counts toward its cap; past it
-	// the mail goes through a warm fallback or waits (PR-8).
-	if left, err := e.outboxWarmLeft(ctx, r.provider, now); err != nil || left <= 0 {
+	// A warming provider's automation mail counts toward its cap, per
+	// mailbox provider when the plan caps them separately; what the cap or
+	// a paused plan stops stays queued (held, never dropped) or goes
+	// through a warm Automations fallback when the plan allows it (PR-8,
+	// R3.L6b).
+	warm, full, err := e.outboxWarm(ctx, r.provider, now)
+	if err != nil {
 		return 0, err
+	}
+	if left := warm.left(); left <= 0 {
+		return 0, nil
 	} else if left < int64(want) {
 		want = int(left)
 	}
@@ -262,7 +269,7 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 	if err != nil || granted <= 0 {
 		return 0, err
 	}
-	rows, err := e.Q.SendingOutboxClaim(ctx, store.SendingOutboxClaimParams{ProviderID: &pid, Now: now, Lim: int32(granted)})
+	rows, err := e.Q.SendingOutboxClaim(ctx, store.SendingOutboxClaimParams{ProviderID: &pid, Now: now, Lim: int32(granted), FullMailboxes: full})
 	if err != nil || len(rows) == 0 {
 		return 0, err
 	}
@@ -273,6 +280,12 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 	}
 	var batch []pending
 	for _, row := range rows {
+		if !warm.take(row.MailboxProvider) {
+			// Its mailbox provider's part of today's cap filled up within
+			// this tick: it waits with the rest.
+			out.release = append(out.release, row.ID)
+			continue
+		}
 		switch {
 		case row.Gone:
 			out.drop(row.ID, "cancelled", "The contact was erased, unsubscribed or suppressed before the email went out.")

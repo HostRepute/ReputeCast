@@ -45,6 +45,50 @@ func (q *Queries) ConnectCreateList(ctx context.Context, arg ConnectCreateListPa
 	return err
 }
 
+const connectDeliveryEvent = `-- name: ConnectDeliveryEvent :one
+SELECT e.received_at, r.source
+FROM delivery_events e
+JOIN provider_raw_events r ON r.id = e.raw_event_id
+WHERE e.provider_id = $1::uuid AND e.type = 'delivered' AND r.source IN ('webhook', 'queue')
+  AND (e.message_id = $2::uuid OR e.provider_message_id = $3::text)
+  AND lower(e.recipient) = lower($4::text)
+  AND e.received_at >= $5 AND e.received_at < $6
+ORDER BY e.received_at
+LIMIT 1
+`
+
+type ConnectDeliveryEventParams struct {
+	ProviderID        uuid.UUID `json:"providerId"`
+	MessageID         uuid.UUID `json:"messageId"`
+	ProviderMessageID string    `json:"providerMessageId"`
+	Recipient         string    `json:"recipient"`
+	Since             time.Time `json:"since"`
+	Until             time.Time `json:"until"`
+}
+
+type ConnectDeliveryEventRow struct {
+	ReceivedAt time.Time `json:"receivedAt"`
+	Source     string    `json:"source"`
+}
+
+// The delivery event of a message, reported for its recipient by webhook or
+// through the queue ReputeCast polls (PR-3, PR-4), once normalized: the SES
+// event check passes on the mailbox simulator's Delivery event, not on the
+// Send event SES publishes first (review R3.A1).
+func (q *Queries) ConnectDeliveryEvent(ctx context.Context, arg ConnectDeliveryEventParams) (ConnectDeliveryEventRow, error) {
+	row := q.db.QueryRow(ctx, connectDeliveryEvent,
+		arg.ProviderID,
+		arg.MessageID,
+		arg.ProviderMessageID,
+		arg.Recipient,
+		arg.Since,
+		arg.Until,
+	)
+	var i ConnectDeliveryEventRow
+	err := row.Scan(&i.ReceivedAt, &i.Source)
+	return i, err
+}
+
 const connectFirstEventSince = `-- name: ConnectFirstEventSince :one
 SELECT received_at, source FROM provider_raw_events
 WHERE provider_id = $1 AND source IN ('webhook', 'queue') AND received_at >= $2

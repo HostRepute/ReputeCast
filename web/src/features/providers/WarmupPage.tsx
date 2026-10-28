@@ -446,8 +446,17 @@ function RampCard({ plan }: { plan: WarmupPlan }) {
   )
 }
 
-function CountedBadge({ counted }: { counted: boolean }) {
+function CountedBadge({ counted, held }: { counted: boolean; held?: boolean }) {
   const t = useT()
+  // A healthy day under a slowdown's hold: it didn't move the plan on, but
+  // nothing went wrong (R3.L6d).
+  if (!counted && held) {
+    return (
+      <Badge tone="info" dot>
+        {t(mw.badgeHeld)}
+      </Badge>
+    )
+  }
   return counted ? (
     <Badge tone="ok" icon="check">
       {t(mw.badgeCounted)}
@@ -503,8 +512,15 @@ function DayRow({ plan, row: d }: { plan: WarmupPlan; row: WarmupRow }) {
   const guard = d.reason === 'guard'
   const last = ahead && d.day === plan.days && !d.repeat
   let note = ''
-  if (d.status === 'counted' && d.healthy) {
-    note = d.healthy >= plan.healthyDays ? t(mw.noteHealthyLast, { n: d.healthy, of: plan.healthyDays }) : t(mw.noteHealthy, { n: d.healthy, of: plan.healthyDays })
+  if (d.healthy && (d.status === 'counted' || d.reason === 'held')) {
+    // A healthy day under a hold proves the held cap; the plan stays on its
+    // day until the hold ends (R3.L6d).
+    note =
+      d.healthy >= plan.healthyDays
+        ? t(mw.noteHealthyLast, { n: d.healthy, of: plan.healthyDays })
+        : d.status === 'counted'
+          ? t(mw.noteHealthy, { n: d.healthy, of: plan.healthyDays })
+          : t(mw.noteHealthyHeld, { n: d.healthy, of: plan.healthyDays, day: d.day })
   } else if (guard) {
     const limit = d.metric === 'complaint' ? limitPct(s.guardComplaint) : limitPct(s.guardBounce)
     note = t(mw.noteGuard, { metric: d.metric ?? 'bounce', limit, action: s.guardAction, cap: count(plan.held ?? d.cap) })
@@ -555,7 +571,7 @@ function DayRow({ plan, row: d }: { plan: WarmupPlan; row: WarmupRow }) {
             </Badge>
           )
         ) : (
-          <CountedBadge counted={d.status === 'counted'} />
+          <CountedBadge counted={d.status === 'counted'} held={d.reason === 'held'} />
         )}
         {note ? <div className="k">{note}</div> : null}
       </Td>
@@ -650,6 +666,7 @@ function MailboxCaps({ plan }: { plan: WarmupPlan }) {
           onChange={(e) => save.mutate({ params: { path: { workspace: slug, planId: plan.id } }, body: { ...plan.settings, overflow: e.target.checked } })}
         />
       </div>
+      <span className="k">{t(mw.transactionalOverCap, { count: count(plan.transactionalOverCap) })}</span>
     </section>
   )
 }

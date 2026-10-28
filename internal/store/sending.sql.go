@@ -1995,8 +1995,9 @@ WITH picked AS (
     WHERE m.provider_id = $1 AND m.status = 'queued' AND m.campaign_id IS NULL AND m.stream = 'automation'
       AND m.claimed_at IS NULL
       AND (m.next_attempt_at IS NULL OR m.next_attempt_at <= $2::timestamptz)
+      AND (CASE WHEN m.mailbox_provider IN ('gmail', 'outlook', 'yahoo', 'icloud') THEN m.mailbox_provider ELSE 'other' END) <> ALL($3::text[])
     ORDER BY m.id
-    LIMIT $3
+    LIMIT $4
     FOR UPDATE SKIP LOCKED
 ), upd AS (
     UPDATE messages m SET claimed_at = $2::timestamptz, attempts = m.attempts + 1
@@ -2016,9 +2017,10 @@ ORDER BY upd.id
 `
 
 type SendingOutboxClaimParams struct {
-	ProviderID *uuid.UUID `json:"providerId"`
-	Now        time.Time  `json:"now"`
-	Lim        int32      `json:"lim"`
+	ProviderID    *uuid.UUID `json:"providerId"`
+	Now           time.Time  `json:"now"`
+	FullMailboxes []string   `json:"fullMailboxes"`
+	Lim           int32      `json:"lim"`
 }
 
 type SendingOutboxClaimRow struct {
@@ -2042,9 +2044,17 @@ type SendingOutboxClaimRow struct {
 }
 
 // Claims queued automation emails of one provider; a stale claim is never
-// taken over (SendingOutboxRequeueStale, SendingOutboxMarkInDoubt).
+// taken over (SendingOutboxRequeueStale, SendingOutboxMarkInDoubt). Mail to
+// the mailbox providers in full_mailboxes (gmail, outlook, yahoo, icloud or
+// other), whose part of a warming provider's cap is used up today, stays
+// queued (PR-8, R3.L6b), so it never blocks mail to the others.
 func (q *Queries) SendingOutboxClaim(ctx context.Context, arg SendingOutboxClaimParams) ([]SendingOutboxClaimRow, error) {
-	rows, err := q.db.Query(ctx, sendingOutboxClaim, arg.ProviderID, arg.Now, arg.Lim)
+	rows, err := q.db.Query(ctx, sendingOutboxClaim,
+		arg.ProviderID,
+		arg.Now,
+		arg.FullMailboxes,
+		arg.Lim,
+	)
 	if err != nil {
 		return nil, err
 	}

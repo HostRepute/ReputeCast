@@ -5209,6 +5209,8 @@ type WarmupPlan struct {
 	MinSample         int32           `json:"minSample"`
 	Overflowed        int64           `json:"overflowed"`
 	OverflowedOn      *time.Time      `json:"overflowedOn"`
+	OverCap           int64           `json:"overCap"`
+	OverCapOn         *time.Time      `json:"overCapOn"`
 }
 
 type Webhook struct {

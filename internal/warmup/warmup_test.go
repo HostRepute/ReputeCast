@@ -3,6 +3,7 @@ package warmup_test
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -54,8 +55,9 @@ func TestParsePlanKeepsDatedDays(t *testing.T) {
 	}
 }
 
-// The demo plan reads as ProvidersWarmup draws it: started ten days ago,
-// eight days counted, so today is day 9 of 21 at 6,000.
+// The demo plan reads as ProvidersWarmup draws it: started eleven days ago,
+// eight days counted, so today is day 9 of 21 at 6,000. The slowdown's hold
+// kept the plan on day 6 until its second healthy day (R3.L6d).
 func TestWarmupEndpoints(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
@@ -67,7 +69,7 @@ func TestWarmupEndpoints(t *testing.T) {
 		t.Fatalf("plans %+v", o.Plans)
 	}
 	p := o.Plans[0]
-	if p.Day != 9 || p.Days != 21 || p.Counted != 8 || p.CalendarDays != 10 || p.TodayCap != 6000 || p.NeedToday != 4800 || p.Progress != 38.1 {
+	if p.Day != 9 || p.Days != 21 || p.Counted != 8 || p.CalendarDays != 11 || p.TodayCap != 6000 || p.NeedToday != 4800 || p.Progress != 38.1 {
 		t.Fatalf("plan day %d/%d counted %d of %d calendar days, cap %d need %d, progress %v", p.Day, p.Days, p.Counted, p.CalendarDays, p.TodayCap, p.NeedToday, p.Progress)
 	}
 	if p.SentTotal < 16898 || p.Slowdowns != 1 || p.LastSlowdown == nil || p.LastSlowdown.Day != 6 || p.LastSlowdown.Metric != "bounce" {
@@ -79,7 +81,7 @@ func TestWarmupEndpoints(t *testing.T) {
 	if p.RateToday != 2 || p.NextRate == nil || p.NextRate.Day != 12 || p.NextRate.Value != 4 {
 		t.Fatalf("rate %v next %+v", p.RateToday, p.NextRate)
 	}
-	want := []string{"counted", "counted", "counted", "not_counted", "counted", "counted", "not_counted", "counted", "counted", "counted", "today"}
+	want := []string{"counted", "counted", "counted", "counted", "not_counted", "counted", "not_counted", "not_counted", "counted", "counted", "counted", "today"}
 	if len(p.Rows) < len(want)+12 {
 		t.Fatalf("%d rows", len(p.Rows))
 	}
@@ -88,22 +90,27 @@ func TestWarmupEndpoints(t *testing.T) {
 			t.Fatalf("row %d (day %d) is %s, want %s", i, p.Rows[i].Day, p.Rows[i].Status, st)
 		}
 	}
-	if r := p.Rows[3]; r.Day != 4 || r.Reason != "short" || r.Judged {
+	if r := p.Rows[4]; r.Day != 5 || r.Reason != "short" || r.Judged {
 		t.Fatalf("Sunday: %+v", r)
 	}
 	if r := p.Rows[6]; r.Day != 6 || r.Reason != "guard" || r.Metric != "bounce" || !r.Judged {
 		t.Fatalf("the slowdown: %+v", r)
 	}
-	if r := p.Rows[7]; r.Day != 6 || !r.Held || r.Healthy != 1 {
+	// The first healthy day proves the held cap without moving the plan on;
+	// the second completes day 6, and the ramp resumes one step up.
+	if r := p.Rows[7]; r.Day != 6 || !r.Held || r.Healthy != 1 || r.Reason != "held" {
 		t.Fatalf("first healthy day: %+v", r)
 	}
-	if r := p.Rows[8]; r.Day != 7 || r.Cap != 2600 || r.PlannedCap != 3600 || r.Healthy != 2 {
+	if r := p.Rows[8]; r.Day != 6 || r.Cap != 2600 || r.PlannedCap != 0 || r.Healthy != 2 || r.Status != "counted" {
 		t.Fatalf("second healthy day: %+v", r)
 	}
-	if r := p.Rows[10]; r.Day != 9 || r.Cap != 6000 || r.Need != 4800 || r.Judged {
+	if r := p.Rows[9]; r.Day != 7 || r.Cap != 3600 || r.Held {
+		t.Fatalf("the day after the hold: %+v", r)
+	}
+	if r := p.Rows[11]; r.Day != 9 || r.Cap != 6000 || r.Need != 4800 || r.Judged {
 		t.Fatalf("today: %+v", r)
 	}
-	if r := p.Rows[11]; r.Day != 9 || !r.Repeat || r.Status != "planned" {
+	if r := p.Rows[12]; r.Day != 9 || !r.Repeat || r.Status != "planned" {
 		t.Fatalf("tomorrow repeats day 9: %+v", r)
 	}
 	last := p.Rows[len(p.Rows)-1]
@@ -287,22 +294,23 @@ func (h *harness) view(id uuid.UUID) warmup.WarmupPlanView {
 // PR-8: the daily job moves a plan by counted days. A day counts once 80%
 // of its cap went out and the guards held; the guards judge a day only
 // after 500 messages; a slowdown holds the cap until two healthy days in a
-// row; a day that didn't count repeats.
+// row, with the plan staying on its day meanwhile, so the ramp resumes one
+// step above the held cap (R3.L6d); a day that didn't count repeats.
 func TestPlanMovesByCountedDays(t *testing.T) {
 	h := newHarness(t)
 	id, ses := h.plan()
 	noon := func(i int) time.Time { return h.day(i).Add(12 * time.Hour) }
 	h.send(ses, noon(0), "outlook", 600, 3, 0)  // day 1, cap 600: counts
 	h.send(ses, noon(1), "outlook", 800, 24, 0) // day 2, cap 800: bounces 3% trip the guard
-	h.send(ses, noon(2), "outlook", 800, 2, 0)  // day 2 again, held at 800: healthy day 1
-	h.send(ses, noon(3), "outlook", 800, 2, 0)  // day 3 held at 800 (plan 1,000): healthy day 2, the ramp resumes
-	h.send(ses, noon(4), "yahoo", 300, 150, 0)  // day 4, cap 1,200: too few to judge, too few to count
+	h.send(ses, noon(2), "outlook", 800, 2, 0)  // day 2 again, held at 800: healthy day 1, the plan stays on day 2
+	h.send(ses, noon(3), "outlook", 800, 2, 0)  // day 2 again, held at 800: healthy day 2 ends the hold and completes day 2
+	h.send(ses, noon(4), "yahoo", 300, 150, 0)  // day 3, cap 1,000 (one step up): too few to judge, too few to count
 	h.at = h.day(5).Add(10 * time.Hour)
 	if err := h.svc.Evaluate(h.ctx, id); err != nil {
 		t.Fatal(err)
 	}
 	v := h.view(id)
-	if v.Counted != 3 || v.Day != 4 || v.TodayCap != 1200 || v.Held != nil || v.Status != "active" || v.CalendarDays != 5 {
+	if v.Counted != 2 || v.Day != 3 || v.TodayCap != 1000 || v.Held != nil || v.Status != "active" || v.CalendarDays != 5 {
 		t.Fatalf("after five days: counted %d, day %d, cap %d, held %v, status %s, calendar %d", v.Counted, v.Day, v.TodayCap, v.Held, v.Status, v.CalendarDays)
 	}
 	want := []struct {
@@ -315,9 +323,9 @@ func TestPlanMovesByCountedDays(t *testing.T) {
 	}{
 		{1, "counted", "", 600, 0, false, 0, true},
 		{2, "not_counted", "guard", 800, 0, false, 0, true},
-		{2, "counted", "", 800, 0, true, 1, true},
-		{3, "counted", "", 800, 1000, true, 2, true},
-		{4, "not_counted", "short", 1200, 0, false, 0, false},
+		{2, "not_counted", "held", 800, 0, true, 1, true},
+		{2, "counted", "", 800, 0, true, 2, true},
+		{3, "not_counted", "short", 1000, 0, false, 0, false},
 	}
 	for i, w := range want {
 		r := v.Rows[i]
@@ -328,26 +336,28 @@ func TestPlanMovesByCountedDays(t *testing.T) {
 	if r := v.Rows[1]; r.Metric != "bounce" || r.Bounce == nil || *r.Bounce != 3 {
 		t.Fatalf("the slowdown: %+v", r)
 	}
-	if r := v.Rows[5]; r.Status != "today" || r.Day != 4 || !r.Date.Equal(h.day(5)) {
+	if r := v.Rows[5]; r.Status != "today" || r.Day != 3 || !r.Date.Equal(h.day(5)) {
 		t.Fatalf("today: %+v", r)
 	}
 	// The log keeps what changed (started, the slowdown, its end, the day
-	// that repeated) under today's line: nothing is scheduled today.
-	if v.Slowdowns != 1 || len(v.Log) != 5 || v.Log[0].Kind != "today" || v.Log[1].Body != "300 of 1,200 sent, so day 4 repeated on "+h.day(5).Weekday().String()+"." {
+	// that repeated) under today's line: nothing is scheduled today. The
+	// hold's end names the next step, day 3 at 1,000.
+	if v.Slowdowns != 1 || len(v.Log) != 5 || v.Log[0].Kind != "today" || v.Log[1].Body != "300 of 1,000 sent, so day 3 repeated on "+h.day(5).Weekday().String()+"." ||
+		v.Log[2].Kind != "resumed" || !strings.Contains(v.Log[2].Body, "the ramp resumes with day 3 at 1,000") {
 		t.Fatalf("slowdowns %d, log %+v", v.Slowdowns, v.Log)
 	}
 	var startDate time.Time
 	if err := h.env.App.Pool.QueryRow(h.ctx, `SELECT start_date FROM warmup_plans WHERE id = $1`, id).Scan(&startDate); err != nil {
 		t.Fatal(err)
 	}
-	if !time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, h.loc).Equal(h.day(2)) {
-		t.Fatalf("day 1 moved to %v, want two days later", startDate)
+	if !time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, h.loc).Equal(h.day(3)) {
+		t.Fatalf("day 1 moved to %v, want three days later (the trip, the first healthy day, the short day)", startDate)
 	}
 	// The job runs every hour: running it again changes nothing.
 	if err := h.svc.Evaluate(h.ctx, id); err != nil {
 		t.Fatal(err)
 	}
-	if again := h.view(id); again.Counted != 3 || again.Day != 4 || len(again.Rows) != len(v.Rows) || len(again.Log) != 5 {
+	if again := h.view(id); again.Counted != 2 || again.Day != 3 || len(again.Rows) != len(v.Rows) || len(again.Log) != 5 {
 		t.Fatalf("a second run moved the plan: counted %d day %d", again.Counted, again.Day)
 	}
 
@@ -359,7 +369,7 @@ func TestPlanMovesByCountedDays(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("allowance: %v %v", ok, err)
 	}
-	if a.Cap != 1200 || a.Sent != 100 || a.Left() != 1100 || a.MailboxCaps["gmail"] != 480 || a.MailboxLeft("gmail") != 380 || a.Day != 4 || !a.EngagedFirst || a.Overflow {
+	if a.Cap != 1000 || a.Sent != 100 || a.Left() != 900 || a.MailboxCaps["gmail"] != 400 || a.MailboxLeft("gmail") != 300 || a.Day != 3 || !a.EngagedFirst || a.Overflow {
 		t.Fatalf("allowance %+v", a)
 	}
 }

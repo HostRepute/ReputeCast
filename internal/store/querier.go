@@ -827,6 +827,11 @@ type Querier interface {
 	ConfirmInstanceBasics(ctx context.Context) error
 	ConnectActiveContacts(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	ConnectCreateList(ctx context.Context, arg ConnectCreateListParams) error
+	// The delivery event of a message, reported for its recipient by webhook or
+	// through the queue ReputeCast polls (PR-3, PR-4), once normalized: the SES
+	// event check passes on the mailbox simulator's Delivery event, not on the
+	// Send event SES publishes first (review R3.A1).
+	ConnectDeliveryEvent(ctx context.Context, arg ConnectDeliveryEventParams) (ConnectDeliveryEventRow, error)
 	// The first event a provider delivered after a time, by webhook or queue:
 	// its endpoint was reached from outside (PR-9).
 	ConnectFirstEventSince(ctx context.Context, arg ConnectFirstEventSinceParams) (ConnectFirstEventSinceRow, error)
@@ -3311,6 +3316,9 @@ type Querier interface {
 	// apart: a simulation of the first recipients is scaled to it.
 	RoutingCampaignAudienceSize(ctx context.Context, arg RoutingCampaignAudienceSizeParams) (RoutingCampaignAudienceSizeRow, error)
 	RoutingContact(ctx context.Context, arg RoutingContactParams) (RoutingContactRow, error)
+	// Addresses of the workspace's newest contacts, for the impact preview of
+	// a stream that mailed nobody lately (R3.U4a).
+	RoutingContactAddresses(ctx context.Context, arg RoutingContactAddressesParams) ([]RoutingContactAddressesRow, error)
 	// The default sender's verification per provider: a failover target must
 	// be able to sign for it (PR-14 target checks).
 	RoutingDefaultSenderVerification(ctx context.Context, workspaceID uuid.UUID) (json.RawMessage, error)
@@ -3325,11 +3333,18 @@ type Querier interface {
 	// Serializes routing saves of a workspace (the version check and the write).
 	RoutingLock(ctx context.Context, workspaceID uuid.UUID) error
 	// The broadcast the route tester's Campaign tab simulates (PR-14): the next
-	// scheduled one, else the draft edited last.
+	// scheduled one, else the draft edited last, with its sender's verification
+	// per provider (failover targets are vetted with it, R3.U4c).
 	RoutingNextBroadcast(ctx context.Context, workspaceID uuid.UUID) (RoutingNextBroadcastRow, error)
 	// When the routing was last saved and by whom.
 	RoutingSaved(ctx context.Context, workspaceID uuid.UUID) (RoutingSavedRow, error)
 	RoutingSenderDomains(ctx context.Context, workspaceID uuid.UUID) ([]RoutingSenderDomainsRow, error)
+	// A stream's latest recipients since a time (review R3.U4a): the routing
+	// impact preview runs them through the saved and the unsaved routing, with
+	// what routing reads at send time (mailbox provider, transactional
+	// category). Automations, System and Transactional mail is never a
+	// campaign's (messages_stream_recent_idx).
+	RoutingStreamRecipients(ctx context.Context, arg RoutingStreamRecipientsParams) ([]RoutingStreamRecipientsRow, error)
 	RoutingUpsertPolicy(ctx context.Context, arg RoutingUpsertPolicyParams) error
 	// A run still in progress (runs older than ten minutes are considered dead).
 	RunningDeliverabilityCheckRun(ctx context.Context, arg RunningDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error)
@@ -3649,7 +3664,10 @@ type Querier interface {
 	SendingOpenMailboxWindow(ctx context.Context, arg SendingOpenMailboxWindowParams) error
 	SendingOpenWindow(ctx context.Context, arg SendingOpenWindowParams) error
 	// Claims queued automation emails of one provider; a stale claim is never
-	// taken over (SendingOutboxRequeueStale, SendingOutboxMarkInDoubt).
+	// taken over (SendingOutboxRequeueStale, SendingOutboxMarkInDoubt). Mail to
+	// the mailbox providers in full_mailboxes (gmail, outlook, yahoo, icloud or
+	// other), whose part of a warming provider's cap is used up today, stays
+	// queued (PR-8, R3.L6b), so it never blocks mail to the others.
 	SendingOutboxClaim(ctx context.Context, arg SendingOutboxClaimParams) ([]SendingOutboxClaimRow, error)
 	// The automation outbox's other stale claims become in doubt.
 	SendingOutboxMarkInDoubt(ctx context.Context, arg SendingOutboxMarkInDoubtParams) (int64, error)
@@ -4324,6 +4342,10 @@ type Querier interface {
 	TxnMessageLinks(ctx context.Context, messageID uuid.UUID) ([]string, error)
 	// The webhook deliveries of a message's message.* events.
 	TxnMessageWebhooks(ctx context.Context, arg TxnMessageWebhooksParams) ([]TxnMessageWebhooksRow, error)
+	// A message a warming provider can't take today (its cap, or its paused
+	// plan) goes to a warm provider of its route (review R3.L6b). It isn't a
+	// failover: the claim is released and the route note says why.
+	TxnMoveForWarmup(ctx context.Context, arg TxnMoveForWarmupParams) error
 	// A message moves to the next provider of its route (failover).
 	TxnMoveToProvider(ctx context.Context, arg TxnMoveToProviderParams) error
 	TxnOptOut(ctx context.Context, arg TxnOptOutParams) (TxnOptOutRow, error)
@@ -4399,6 +4421,9 @@ type Querier interface {
 	// shows it as Bounced (soft), where campaigns count it as a deferral.
 	TxnSetBounced(ctx context.Context, arg TxnSetBouncedParams) error
 	TxnSetDomainTransactional(ctx context.Context, arg TxnSetDomainTransactionalParams) error
+	// When the provider a transactional message is on got it: its retry window
+	// starts then.
+	TxnSetProviderSince(ctx context.Context, arg TxnSetProviderSinceParams) error
 	TxnSettings(ctx context.Context, workspaceID uuid.UUID) (TxnSettingsRow, error)
 	// Transactional email: settings, categories, templates, versions, the
 	// message log, opt-outs, idempotency, alerts and the first-send guide.
@@ -4596,6 +4621,10 @@ type Querier interface {
 	WarmupActivePlans(ctx context.Context) ([]WarmupActivePlansRow, error)
 	// texts keeps the title's and body's messages for later readers.
 	WarmupAddEvent(ctx context.Context, arg WarmupAddEventParams) error
+	// Transactional messages a warming provider sent over today's cap, or while
+	// its plan was paused, because no warm provider of their route could take
+	// them: transactional mail never waits (review R3.L6b).
+	WarmupAddOverCap(ctx context.Context, arg WarmupAddOverCapParams) error
 	// Messages over today's cap that went through a warm provider (PR-8).
 	WarmupAddOverflow(ctx context.Context, arg WarmupAddOverflowParams) error
 	// The running plan of a provider with its workspace's time zone: warm-up

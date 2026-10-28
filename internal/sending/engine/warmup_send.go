@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/providers"
+	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/sending"
@@ -320,62 +321,220 @@ func tierRank(tier string) int {
 	return 2
 }
 
-// outboxWarmLeft is how many automation emails a warming provider may
-// still send today (math.MaxInt64 when it isn't warming up). When its cap
-// or a pause stops them, they go through the Automations fallback if it is
-// warm and can take them, else they wait for tomorrow's cap.
-func (e *Engine) outboxWarmLeft(ctx context.Context, p store.Provider, now time.Time) (int64, error) {
+// outboxWarm is a warming provider's allowance for automation emails (nil
+// when it isn't warming up) and the mailbox providers whose part of today's
+// cap is used up (their mail waits, SendingOutboxClaim). Automation mail
+// counts toward the cap and respects a paused plan: what the cap or the
+// pause stops stays queued, never dropped, until tomorrow's cap or the
+// plan's resume, unless the plan sends what's over the cap through a warm
+// provider and the Automations fallback is warm and can take it (PR-8,
+// review R3.L6b). Over a mailbox provider's part of the cap, only that
+// mailbox provider's mail moves.
+func (e *Engine) outboxWarm(ctx context.Context, p store.Provider, now time.Time) (*warmRoute, []string, error) {
+	full := []string{}
 	w := e.warmRouteFor(ctx, p, now)
 	if w == nil {
-		return math.MaxInt64, nil
+		return nil, full, nil
 	}
-	left := w.left()
-	if left > 0 || !w.a.Overflow {
-		return left, nil
+	for _, sh := range warmup.MailboxShares {
+		if w.mailboxLeft(sh.Mailbox) <= 0 {
+			full = append(full, sh.Mailbox)
+		}
+	}
+	if len(full) == 0 || !w.a.Overflow {
+		return w, full, nil
 	}
 	set, err := routing.Load(ctx, e.Q, p.WorkspaceID)
 	if err != nil {
-		return 0, err
+		return nil, nil, err
 	}
 	def, ok := set.Default(providers.StreamAutomation)
 	if !ok || def.Fallback == nil || *def.Fallback == p.ID {
-		return 0, nil
+		return w, full, nil
 	}
 	fb, err := e.Q.ProvGetAny(ctx, *def.Fallback)
 	if err != nil {
-		return 0, nil //nolint:nilerr // no fallback any more: the mail waits for tomorrow's cap
+		return w, full, nil //nolint:nilerr // no fallback any more: the mail waits for tomorrow's cap
 	}
 	var queued int64
-	if err := e.Pool.QueryRow(ctx, `SELECT count(*) FROM messages WHERE provider_id = $1 AND status = 'queued' AND campaign_id IS NULL AND stream = 'automation'`, p.ID).Scan(&queued); err != nil {
-		return 0, err
+	if err := e.Pool.QueryRow(ctx, `SELECT count(*) FROM messages WHERE provider_id = $1 AND status = 'queued' AND campaign_id IS NULL AND stream = 'automation'
+		AND `+mailboxBucket+` = ANY($2)`, p.ID, full).Scan(&queued); err != nil {
+		return nil, nil, err
 	}
-	v := state.Vet(fb, state.Load{Messages: max(queued, 1), Warmup: warmup.Today(ctx, e.Q, fb.ID, now, nil)})
+	if queued == 0 {
+		return w, full, nil
+	}
+	// Vetted with the stream's senders, as a failover is: without them the
+	// sender's domain is unknown there and nothing moves by itself.
+	v := state.Vet(fb, state.Load{Messages: max(queued, 1), Sender: manage.StreamSenders(ctx, e.Q, p.WorkspaceID, providers.StreamAutomation),
+		Warmup: warmup.Today(ctx, e.Q, fb.ID, now, nil)})
 	if !v.Automatic(false) {
-		return 0, nil
+		return w, full, nil
 	}
-	tag, err := e.Pool.Exec(ctx, `UPDATE messages SET provider_id = $2, claimed_at = NULL
-		WHERE provider_id = $1 AND status = 'queued' AND campaign_id IS NULL AND stream = 'automation'`, p.ID, fb.ID)
-	if err != nil {
-		return 0, err
+	why := "cap"
+	if w.a.Paused {
+		why = "paused"
 	}
-	if n := tag.RowsAffected(); n > 0 {
-		loc := state.Location("")
-		if ws, err := e.Q.GetWorkspace(ctx, p.WorkspaceID); err == nil {
-			loc = state.Location(ws.Timezone)
+	note := routing.RouteNote("instead", i18n.Args{"alt": state.Short(fb.Name, fb.Adapter), "provider": state.Short(p.Name, p.Adapter), "why": why, "tier": "", "day": w.a.Day})
+	err = sending.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
+		tag, err := tx.Exec(ctx, `UPDATE messages SET provider_id = $2, claimed_at = NULL, route_note = $3
+			WHERE provider_id = $1 AND status = 'queued' AND campaign_id IS NULL AND stream = 'automation' AND claimed_at IS NULL
+			AND `+mailboxBucket+` = ANY($4)`, p.ID, fb.ID, note, full)
+		if err != nil {
+			return err
 		}
-		day := time.Date(now.In(loc).Year(), now.In(loc).Month(), now.In(loc).Day(), 0, 0, 0, 0, time.UTC)
-		if err := e.Q.WarmupAddOverflow(ctx, store.WarmupAddOverflowParams{ID: w.a.PlanID, Day: day, N: n}); err != nil {
-			return 0, err
+		if n := tag.RowsAffected(); n > 0 {
+			return store.New(tx).WarmupAddOverflow(ctx, store.WarmupAddOverflowParams{ID: w.a.PlanID, Day: w.today(), N: n})
 		}
-	}
-	return 0, nil
+		return nil
+	})
+	return w, full, err
 }
 
-// warmFull reports whether a warming provider's cap (or its paused plan)
-// leaves no room today: transactional mail then goes to its fallback
-// first. Product mail never waits for a warm-up, so with no fallback it
-// still goes out (and counts toward the cap).
-func (e *Engine) warmFull(ctx context.Context, p store.Provider, now time.Time) bool {
-	w := e.warmRouteFor(ctx, p, now)
-	return w != nil && w.left() <= 0
+// mailboxBucket is a message's part of a warming provider's cap in SQL:
+// its mailbox provider when the plan caps it separately, else "other"
+// (warmup.MailboxOf; SendingOutboxClaim reads it the same way).
+const mailboxBucket = `(CASE WHEN mailbox_provider IN ('gmail', 'outlook', 'yahoo', 'icloud') THEN mailbox_provider ELSE 'other' END)`
+
+// today is the workspace's day the allowance counts, as a date.
+func (w *warmRoute) today() time.Time {
+	d := w.a.NextDay.AddDate(0, 0, -1)
+	return time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, time.UTC)
+}
+
+// take counts a message toward today's cap when its mailbox provider's part
+// (or the cap) has room, and reports whether it had.
+func (w *warmRoute) take(mbp string) bool {
+	if w == nil {
+		return true
+	}
+	if w.mailboxLeft(mbp) <= 0 {
+		return false
+	}
+	w.spent[warmup.MailboxOf(mbp)]++
+	w.spentAll++
+	return true
+}
+
+// Transactional mail and the warm-up (review R3.L6b). A password reset never
+// waits for a warm-up. A warming provider sends transactional mail within
+// today's cap (per mailbox provider when its plan caps them separately),
+// counting toward it like every stream; over the cap, or while its plan is
+// paused, a message goes through a warm provider of its route that can take
+// it, else through the warming provider anyway, counted as over today's cap
+// (WarmupAddOverCap) for the warm-up page and the provider card to show.
+
+// txWarm is a warming provider's transactional mail in one tick.
+type txWarm struct {
+	w *warmRoute
+	// over are the claimed messages that go out over today's cap.
+	over map[uuid.UUID]bool
+}
+
+// overSent counts the messages sent over today's cap.
+func (t *txWarm) overSent(sent []uuid.UUID) int64 {
+	if t == nil {
+		return 0
+	}
+	var n int64
+	for _, id := range sent {
+		if t.over[id] {
+			n++
+		}
+	}
+	return n
+}
+
+// warmTransactional sorts a tick's claimed transactional messages on a
+// warming provider: within today's cap they stay; over it a warm provider
+// of their route takes them (moved now, their claim released); with none,
+// they stay and go out over the cap. Not warming up: every message stays.
+func (o *TransactionalOutbox) warmTransactional(ctx context.Context, p store.Provider, rows []store.TxnOutboxClaimRow, now time.Time) ([]store.TxnOutboxClaimRow, *txWarm, error) {
+	w := o.E.warmRouteFor(ctx, p, now)
+	if w == nil {
+		return rows, nil, nil
+	}
+	tw := &txWarm{w: w, over: map[uuid.UUID]bool{}}
+	keep := make([]store.TxnOutboxClaimRow, 0, len(rows))
+	type move struct {
+		id uuid.UUID
+		to store.Provider
+	}
+	var moves []move
+	for _, row := range rows {
+		if w.take(row.MailboxProvider) {
+			keep = append(keep, row)
+			continue
+		}
+		if to := o.warmAlternative(ctx, p, row.Route, row.Tried, now); to != nil {
+			moves = append(moves, move{row.ID, *to})
+			continue
+		}
+		tw.over[row.ID] = true
+		keep = append(keep, row)
+	}
+	if len(moves) == 0 {
+		return keep, tw, nil
+	}
+	why := "cap"
+	if w.a.Paused {
+		why = "paused"
+	}
+	err := sending.Tx(ctx, o.E.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		for _, m := range moves {
+			to := m.to.ID
+			note := routing.RouteNote("instead", i18n.Args{"alt": state.Short(m.to.Name, m.to.Adapter), "provider": state.Short(p.Name, p.Adapter), "why": why, "tier": "", "day": w.a.Day})
+			if err := q.TxnMoveForWarmup(ctx, store.TxnMoveForWarmupParams{ID: m.id, ProviderID: &to, RouteNote: note}); err != nil {
+				return err
+			}
+			if err := q.TxnSetProviderSince(ctx, store.TxnSetProviderSinceParams{MessageID: m.id, At: now}); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	return keep, tw, err
+}
+
+// warmAlternative is the warm provider of a transactional message's route
+// that takes it while its warming provider can't today: the route's other
+// provider when its failover policy lets mail move by itself, the message
+// didn't give up on it, it isn't warming up itself and it can take the
+// message (state.Vet, as a failover vets it).
+func (o *TransactionalOutbox) warmAlternative(ctx context.Context, current store.Provider, routeRaw, triedRaw json.RawMessage, now time.Time) *store.Provider {
+	var rs txRouteSnap
+	_ = json.Unmarshal(routeRaw, &rs)
+	if rs.Policy == string(routing.PauseAndAsk) {
+		return nil
+	}
+	var tried []attempt
+	_ = json.Unmarshal(triedRaw, &tried)
+	gaveUp := map[string]bool{}
+	for _, a := range tried {
+		if a.GaveUp {
+			gaveUp[a.ProviderID] = true
+		}
+	}
+	cands := []uuid.UUID{rs.Primary}
+	if rs.Fallback != nil {
+		cands = append(cands, *rs.Fallback)
+	}
+	for _, id := range cands {
+		if id == uuid.Nil || id == current.ID || gaveUp[id.String()] {
+			continue
+		}
+		p, err := o.E.Q.ProvGetAny(ctx, id)
+		if err != nil || p.WorkspaceID != current.WorkspaceID || p.DisconnectedAt != nil || !state.Available(p) {
+			continue
+		}
+		if o.E.warmRouteFor(ctx, p, now) != nil {
+			continue // warming up too
+		}
+		if !state.Vet(p, state.Load{Messages: 1}).Allowed() {
+			continue
+		}
+		return &p
+	}
+	return nil
 }

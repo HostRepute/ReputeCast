@@ -101,6 +101,8 @@ export const mo = defineMessages('providers.overview', {
   // {share} a percentage; {rate} and {peak} messages per second.
   warmupCap: "Today's warm-up cap · {cap}",
   warmupSentToday: '{sent} sent · {weekday}',
+  /** R3.L6b: transactional mail a warming provider sent over today's cap; it never waits. */
+  warmupOverCap: "{count, plural, one {# transactional message} other {# transactional messages}} over today's cap: password resets and receipts never wait",
   warmupSentShare: '{sent} sent · {share}',
   acceptedUnknown: '{count} accepted · status unknown',
   quota24h: '24 h quota · {max}',

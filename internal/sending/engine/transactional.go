@@ -284,7 +284,6 @@ func (o *TransactionalOutbox) next(ctx context.Context, q *store.Queries, curren
 	if rs.Fallback != nil {
 		cands = append(cands, *rs.Fallback)
 	}
-	var full *store.Provider
 	for i, id := range cands {
 		if id == uuid.Nil || gaveUp[id.String()] {
 			continue
@@ -301,20 +300,14 @@ func (o *TransactionalOutbox) next(ctx context.Context, q *store.Queries, curren
 		}
 		// Moving to the fallback is vetted as every move is (review GS-5):
 		// a sandboxed account or a used-up quota can't take the message.
+		// A warming provider's cap is the outbox's to apply when it sends
+		// (warmTransactional): product mail never waits for a warm-up.
 		if i > 0 && !state.Vet(p, state.Load{Messages: 1}).Allowed() {
-			continue
-		}
-		// A warming primary at today's cap leaves product mail to the
-		// fallback; with none, it still sends (PR-8).
-		if i == 0 && len(cands) > 1 && o.E.warmFull(ctx, p, o.E.now()) {
-			full = &p
 			continue
 		}
 		return &p, nil
 	}
-	// Product mail never waits for a warm-up: when the fallback can't take
-	// it, the full primary still sends it (and it counts toward the cap).
-	return full, nil
+	return nil, nil
 }
 
 // reroute moves the queues of providers marked down (or removed) to the
@@ -522,6 +515,22 @@ func (o *TransactionalOutbox) tick(ctx context.Context, pid uuid.UUID, routes ma
 	if err != nil || len(rows) == 0 {
 		return 0, err
 	}
+	// A warming provider sends within today's cap; over it a warm provider
+	// of the route takes the message, else it still goes out, counted as
+	// over the cap: transactional mail never waits (review R3.L6b).
+	claimed := rows
+	rows, warm, err := o.warmTransactional(ctx, r.provider, rows, now)
+	if err != nil {
+		ids := make([]uuid.UUID, 0, len(claimed))
+		for _, row := range claimed {
+			ids = append(ids, row.ID)
+		}
+		_ = o.E.Q.SendingRelease(context.WithoutCancel(ctx), ids)
+		return 0, err
+	}
+	if len(rows) == 0 {
+		return 0, nil
+	}
 	type pending struct {
 		row store.TxnOutboxClaimRow
 		msg providers.Message
@@ -696,6 +705,13 @@ func (o *TransactionalOutbox) tick(ctx context.Context, pid uuid.UUID, routes ma
 				return err
 			}
 			sent = len(sentIDs)
+			// Sent over a warming provider's cap: the warm-up page and the
+			// provider card say how many (R3.L6b).
+			if n := warm.overSent(sentIDs); n > 0 {
+				if err := q.WarmupAddOverCap(ctx, store.WarmupAddOverCapParams{ID: warm.w.a.PlanID, Day: warm.w.today(), N: n}); err != nil {
+					return err
+				}
+			}
 		}
 		if len(retryIDs) > 0 {
 			if err := q.SendingRetryLater(ctx, store.SendingRetryLaterParams{Ids: retryIDs, Ats: retryAt, Errors: retryErr}); err != nil {

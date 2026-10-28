@@ -121,6 +121,9 @@ type ProviderWarmupBrief struct {
 	SentToday int64   `json:"sentToday"`
 	Rate      float64 `json:"rate"`
 	Share     int     `json:"share"`
+	// TransactionalOverCap is how many transactional messages went out over
+	// today's cap: they never wait for the warm-up (review R3.L6b).
+	TransactionalOverCap int64 `json:"transactionalOverCap"`
 }
 
 // ProviderCallError is one failed call.

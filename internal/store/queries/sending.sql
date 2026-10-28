@@ -573,12 +573,16 @@ WHERE status = 'queued' AND campaign_id IS NULL AND stream = 'automation' AND pr
 
 -- name: SendingOutboxClaim :many
 -- Claims queued automation emails of one provider; a stale claim is never
--- taken over (SendingOutboxRequeueStale, SendingOutboxMarkInDoubt).
+-- taken over (SendingOutboxRequeueStale, SendingOutboxMarkInDoubt). Mail to
+-- the mailbox providers in full_mailboxes (gmail, outlook, yahoo, icloud or
+-- other), whose part of a warming provider's cap is used up today, stays
+-- queued (PR-8, R3.L6b), so it never blocks mail to the others.
 WITH picked AS (
     SELECT m.id FROM messages m
     WHERE m.provider_id = @provider_id AND m.status = 'queued' AND m.campaign_id IS NULL AND m.stream = 'automation'
       AND m.claimed_at IS NULL
       AND (m.next_attempt_at IS NULL OR m.next_attempt_at <= @now::timestamptz)
+      AND (CASE WHEN m.mailbox_provider IN ('gmail', 'outlook', 'yahoo', 'icloud') THEN m.mailbox_provider ELSE 'other' END) <> ALL(@full_mailboxes::text[])
     ORDER BY m.id
     LIMIT @lim
     FOR UPDATE SKIP LOCKED

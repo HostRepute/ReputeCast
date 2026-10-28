@@ -411,6 +411,18 @@ WHERE t.message_id = x.id;
 UPDATE messages SET provider_id = @provider_id, claimed_at = NULL, next_attempt_at = NULL, route_note = 'failover', failover = true
 WHERE id = @id;
 
+-- name: TxnMoveForWarmup :exec
+-- A message a warming provider can't take today (its cap, or its paused
+-- plan) goes to a warm provider of its route (review R3.L6b). It isn't a
+-- failover: the claim is released and the route note says why.
+UPDATE messages SET provider_id = @provider_id, claimed_at = NULL, attempts = greatest(attempts - 1, 0), route_note = @route_note
+WHERE id = @id;
+
+-- name: TxnSetProviderSince :exec
+-- When the provider a transactional message is on got it: its retry window
+-- starts then.
+UPDATE transactional_messages SET provider_since = @at::timestamptz WHERE message_id = @message_id;
+
 -- name: TxnMarkFailedOver :exec
 UPDATE transactional_messages SET provider_since = @at::timestamptz, failed_over_from = sqlc.narg(from_provider), failed_over_at = @at::timestamptz
 WHERE message_id = @message_id;

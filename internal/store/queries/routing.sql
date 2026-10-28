@@ -60,15 +60,39 @@ DELETE FROM routing_rules WHERE workspace_id = @workspace_id AND stream = ANY(@s
 
 -- name: RoutingNextBroadcast :one
 -- The broadcast the route tester's Campaign tab simulates (PR-14): the next
--- scheduled one, else the draft edited last.
+-- scheduled one, else the draft edited last, with its sender's verification
+-- per provider (failover targets are vetted with it, R3.U4c).
 SELECT c.id, c.name, c.scheduled_at, c.audience,
-       coalesce(split_part(sn.email, '@', 2), '')::text AS sender_domain
+       coalesce(split_part(sn.email, '@', 2), '')::text AS sender_domain,
+       (sn.id IS NOT NULL)::boolean AS has_sender,
+       coalesce(sn.verification, '{}'::jsonb)::jsonb AS sender_verification
 FROM campaigns c
 LEFT JOIN senders sn ON sn.id = c.sender_id
 WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL AND c.origin = '' AND c.channel IN ('', 'email')
   AND c.status IN ('scheduled', 'draft')
 ORDER BY (c.status = 'scheduled') DESC, c.scheduled_at ASC NULLS LAST, c.updated_at DESC
 LIMIT 1;
+
+-- name: RoutingStreamRecipients :many
+-- A stream's latest recipients since a time (review R3.U4a): the routing
+-- impact preview runs them through the saved and the unsaved routing, with
+-- what routing reads at send time (mailbox provider, transactional
+-- category). Automations, System and Transactional mail is never a
+-- campaign's (messages_stream_recent_idx).
+SELECT m.email, m.mailbox_provider, coalesce(t.category_id::text, '')::text AS category
+FROM messages m
+LEFT JOIN transactional_messages t ON t.message_id = m.id
+WHERE m.workspace_id = @workspace_id AND m.stream = @stream AND m.campaign_id IS NULL AND m.queued_at >= @since::timestamptz
+ORDER BY m.queued_at DESC
+LIMIT @lim;
+
+-- name: RoutingContactAddresses :many
+-- Addresses of the workspace's newest contacts, for the impact preview of
+-- a stream that mailed nobody lately (R3.U4a).
+SELECT c.email, c.mailbox_provider FROM contacts c
+WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS NULL
+ORDER BY c.created_at DESC
+LIMIT @lim;
 
 -- name: RoutingCampaignAudience :many
 -- A page of a campaign's list audience for the route tester: subscribed,

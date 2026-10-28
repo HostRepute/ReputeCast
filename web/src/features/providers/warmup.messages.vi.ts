@@ -42,7 +42,7 @@ export default translate(mw, {
   howPausedNow: 'Kế hoạch đang tạm dừng ở ngày {day}.',
   howSample: 'Ngưỡng bảo vệ chỉ đánh giá một ngày sau {count} thư.',
   howHold:
-    '{action, select, step_back {Khi vượt ngưỡng bảo vệ, giới hạn lùi lại một ngày và giữ nguyên cho đến khi có {days} ngày ổn định liên tiếp.} pause {Khi vượt ngưỡng bảo vệ, kế hoạch tạm dừng cho đến khi có người tiếp tục.} other {Khi vượt ngưỡng bảo vệ, giới hạn giữ nguyên cho đến khi có {days} ngày ổn định liên tiếp.}}',
+    '{action, select, step_back {Khi vượt ngưỡng bảo vệ, giới hạn lùi lại một ngày và giữ nguyên cho đến khi có {days} ngày ổn định liên tiếp; sau đó mức tăng tiếp tục từ ngày đã vượt ngưỡng.} pause {Khi vượt ngưỡng bảo vệ, kế hoạch tạm dừng cho đến khi có người tiếp tục.} other {Khi vượt ngưỡng bảo vệ, giới hạn giữ nguyên cho đến khi có {days} ngày ổn định liên tiếp; sau đó mức tăng tiếp tục thêm một bậc.}}',
   howPause: 'Tạm dừng sẽ đóng băng kế hoạch; khi tiếp tục, kế hoạch chạy tiếp từ ngày đã dừng.',
 
   todayCap: 'Giới hạn hôm nay',
@@ -93,6 +93,7 @@ export default translate(mw, {
   notJudged: 'chưa đánh giá',
   badgeCounted: 'Được tính',
   badgeNotCounted: 'Không được tính',
+  badgeHeld: 'Đang giữ',
   badgePlanned: 'Theo kế hoạch',
   badgeToday: 'Hôm nay',
   badgePausedDay: 'Tạm dừng',
@@ -102,6 +103,7 @@ export default translate(mw, {
     '{metric, select, complaint {khiếu nại vượt {limit}} other {trả thư vượt {limit}}} · {action, select, step_back {giảm tốc, giới hạn lùi về {cap}} pause {giảm tốc, kế hoạch đã tạm dừng} other {giảm tốc, giới hạn giữ ở {cap}}}',
   noteShort: 'Đã gửi {sent} trên {cap} · ngày {day} được lặp lại',
   noteHealthy: 'ngày ổn định {n}/{of}',
+  noteHealthyHeld: 'ngày ổn định {n}/{of} · kế hoạch vẫn ở ngày {day} trong khi giới hạn được giữ',
   noteHealthyLast: 'ngày ổn định {n}/{of} · tiếp tục tăng',
   noteTodayRepeats: 'Đã gửi {sent} trên {cap} · ngày {day} lặp lại vào ngày mai',
   noteTodayNeeds: 'Đã gửi {sent} trên {need} cần để được tính',
@@ -129,6 +131,7 @@ export default translate(mw, {
   sharedCap: 'dùng chung',
   overflowLabel: 'Gửi phần vượt giới hạn hôm nay qua {provider} (đã khởi động xong) thay vì chờ',
   overflowLabelNone: 'Gửi phần vượt giới hạn hôm nay qua một nhà cung cấp đã khởi động xong thay vì chờ',
+  transactionalOverCap: 'Thư giao dịch vượt giới hạn hôm nay: {count} · thư đặt lại mật khẩu và biên nhận không bao giờ phải chờ khởi động',
   overflowToday: 'Đã vượt giới hạn hôm nay: {count}',
   overflowNone: 'Hiện không có nhà cung cấp đã khởi động xong nào cùng tuyến Gửi hàng loạt, nên phần vượt giới hạn sẽ chờ giới hạn của ngày mai.',
   overflowOn: 'Phần vượt giới hạn được gửi qua nhà cung cấp đã khởi động xong',

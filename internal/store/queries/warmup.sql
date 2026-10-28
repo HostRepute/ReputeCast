@@ -122,6 +122,14 @@ UPDATE warmup_plans
 SET overflowed = CASE WHEN overflowed_on = @day::date THEN overflowed + @n ELSE @n END, overflowed_on = @day::date
 WHERE id = @id;
 
+-- name: WarmupAddOverCap :exec
+-- Transactional messages a warming provider sent over today's cap, or while
+-- its plan was paused, because no warm provider of their route could take
+-- them: transactional mail never waits (review R3.L6b).
+UPDATE warmup_plans
+SET over_cap = CASE WHEN over_cap_on = @day::date THEN over_cap + @n ELSE @n END, over_cap_on = @day::date
+WHERE id = @id;
+
 -- name: WarmupCapHolds :many
 -- PR-8: campaign shares today's warm-up cap holds on a provider (route
 -- held with reason warmup_cap), with what still waits.

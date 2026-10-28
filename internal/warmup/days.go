@@ -13,7 +13,8 @@ import (
 // never holds the ramp. A day that doesn't count repeats the next day. A
 // pause freezes the plan: it resumes on the day it stopped. After a guard
 // trips, the cap holds (or steps back, as the plan says) until HealthyDays
-// counted days in a row.
+// healthy days in a row, and the plan stays on its day meanwhile: the ramp
+// then resumes from the held cap, one step at a time (Hold.Moves).
 
 const (
 	// CountShare is the share of a day's cap that must go out for the day
@@ -143,6 +144,21 @@ func (h Hold) After(v Verdict, dayCap, prevCap int64, action string) (Hold, Hold
 		return h, HoldHealthy
 	}
 	return h, HoldNone
+}
+
+// Moves reports whether a judged day moves the plan on (review R3.L6d). h
+// is the hold the day was judged under and step what judging it did. A day
+// outside a hold moves the plan when it counted. Under a hold the plan
+// stays on its day, so the cap never jumps several steps when the hold
+// ends: only the healthy day that ends it moves the plan on, and only when
+// the held cap is the day's own planned cap (the healthy days proved it).
+// A hold that stepped back to a lower cap resumes on the day the guard
+// tripped, the one step above the held cap.
+func (h Hold) Moves(v Verdict, step HoldStep, planned int64) bool {
+	if h.Cap == nil {
+		return v.Counted
+	}
+	return step == HoldEnded && planned <= *h.Cap
 }
 
 // MailboxShares are the parts of a day's cap per mailbox provider when a

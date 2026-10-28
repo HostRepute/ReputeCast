@@ -35,10 +35,10 @@ const (
 	RejectRate = 0.25
 )
 
-// streamSenders is the verification per provider of the senders a stream
+// StreamSenders is the verification per provider of the senders a stream
 // uses, merged: a provider is "verified" only when every one of them is
 // verified there. nil when the stream has no stored sender.
-func streamSenders(ctx context.Context, q *store.Queries, wsID uuid.UUID, stream providers.Stream) map[string]string {
+func StreamSenders(ctx context.Context, q *store.Queries, wsID uuid.UUID, stream providers.Stream) map[string]string {
 	rows, err := q.ProvStreamSenderVerification(ctx, store.ProvStreamSenderVerificationParams{WorkspaceID: wsID, Stream: string(stream)})
 	if err != nil || len(rows) == 0 {
 		return nil
@@ -70,7 +70,7 @@ func streamSenders(ctx context.Context, q *store.Queries, wsID uuid.UUID, stream
 // stream's senders and the fallback's warm-up today.
 func (s *Service) failoverVetting(ctx context.Context, q *store.Queries, ws store.Workspace, p, fallback store.Provider, stream providers.Stream, now time.Time) state.Vetting {
 	need, _ := q.ProvStreamRecentVolume(ctx, store.ProvStreamRecentVolumeParams{ProviderID: &p.ID, Stream: string(stream), Since: ptrTime(now.Add(-time.Hour))})
-	load := state.Load{Broadcast: stream == providers.StreamBroadcast, Messages: max(need, 1), Sender: streamSenders(ctx, q, ws.ID, stream),
+	load := state.Load{Broadcast: stream == providers.StreamBroadcast, Messages: max(need, 1), Sender: StreamSenders(ctx, q, ws.ID, stream),
 		Warmup: warmup.Today(ctx, q, fallback.ID, now, state.Location(ws.Timezone))}
 	return state.Vet(fallback, load)
 }

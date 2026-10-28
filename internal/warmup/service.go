@@ -77,9 +77,10 @@ type WarmupRow struct {
 	Uses        []WarmupCampaignUse `json:"uses"`
 	// Status: counted, not_counted, today, planned.
 	Status string `json:"status" enum:"counted,not_counted,today,planned"`
-	// Why a day didn't count: short (under 80% of its cap went out) or
-	// guard (a guard tripped; Metric says which).
-	Reason string `json:"reason,omitempty" enum:"short,guard"`
+	// Why a day didn't count: short (under 80% of its cap went out), guard
+	// (a guard tripped; Metric says which) or held (a healthy day under a
+	// slowdown's hold: it proves the held cap without moving the plan on).
+	Reason string `json:"reason,omitempty" enum:"short,guard,held"`
 	Metric string `json:"metric,omitempty" enum:"bounce,complaint"`
 	// Judged: the guards had enough messages to judge the day.
 	Judged bool `json:"judged"`
@@ -190,9 +191,14 @@ type WarmupPlanView struct {
 	// OverflowTo is the warm provider over-cap mail goes through (the
 	// largest share of the Broadcasts split that isn't warming up), empty
 	// when there is none; OverflowToday what went through it today.
-	OverflowTo    string         `json:"overflowTo,omitempty"`
-	OverflowToday int64          `json:"overflowToday"`
-	Settings      WarmupSettings `json:"settings"`
+	OverflowTo    string `json:"overflowTo,omitempty"`
+	OverflowToday int64  `json:"overflowToday"`
+	// TransactionalOverCap is how many transactional messages went out over
+	// today's cap (or while the plan was paused) because no warm provider of
+	// their route could take them: transactional mail never waits, and it
+	// counts toward the cap (review R3.L6b).
+	TransactionalOverCap int64          `json:"transactionalOverCap"`
+	Settings             WarmupSettings `json:"settings"`
 	// Holds are campaigns' shares waiting at today's cap, with choices.
 	Holds     []WarmupCapHold  `json:"holds"`
 	Log       []WarmupLogEntry `json:"log"`
@@ -299,6 +305,7 @@ func (s *Service) view(ctx context.Context, ws *store.Workspace, r store.WarmupL
 	if r.OverflowedOn != nil && localDate(*r.OverflowedOn, loc).Equal(today) {
 		v.OverflowToday = r.Overflowed
 	}
+	v.TransactionalOverCap = OverCapToday(r.OverCap, r.OverCapOn, today, loc)
 	v.OverflowTo = s.overflowTarget(ctx, ws, r.ProviderID)
 	if v.Holds, err = s.capHolds(ctx, ws, r.ProviderID); err != nil {
 		return v, err
@@ -335,9 +342,13 @@ func (s *Service) view(ctx context.Context, ws *store.Workspace, r store.WarmupL
 			Need: int64(math.Ceil(float64(res.Cap) * CountShare)), Held: res.Held, Healthy: res.Healthy, Bounced: res.Bounced, Complained: res.Complained, Delivered: res.Delivered}
 		if !res.Counted {
 			row.Status = "not_counted"
-			row.Reason = "short"
-			if res.Slowed {
+			switch {
+			case res.Slowed:
 				row.Reason, row.Metric = "guard", res.Metric
+			case res.Held && res.Healthy > 0:
+				row.Reason = "held"
+			default:
+				row.Reason = "short"
 			}
 		}
 		if res.Slowed {
@@ -488,6 +499,15 @@ func (s *Service) overflowTarget(ctx context.Context, ws *store.Workspace, provi
 		}
 	}
 	return best
+}
+
+// OverCapToday is the plan's count of transactional messages sent over the
+// cap, when it counts today (the workspace's day) and 0 otherwise.
+func OverCapToday(n int64, on *time.Time, today time.Time, loc *time.Location) int64 {
+	if on == nil || !localDate(*on, loc).Equal(dateIn(today, loc)) {
+		return 0
+	}
+	return n
 }
 
 func dayUTC(t time.Time) time.Time {

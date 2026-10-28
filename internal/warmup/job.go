@@ -71,8 +71,9 @@ var systemActor = &audit.Actor{Type: authz.ActorSystem, Name: "System"}
 // Evaluate brings one plan up to date (PR-8): it judges every finished
 // day of the workspace's calendar since the last run, moves the plan on by
 // the days that counted (a day that didn't count repeats), holds the cap
-// after a guard trips until two healthy days in a row, raises the
-// Broadcast share on schedule and finishes the plan once every day
+// after a guard trips until two healthy days in a row without moving the
+// plan meanwhile (the ramp resumes from the held cap, Hold.Moves), raises
+// the Broadcast share on schedule and finishes the plan once every day
 // counted. A paused plan isn't judged: its days wait. Running it twice a
 // day is harmless.
 func (s *Service) Evaluate(ctx context.Context, planID uuid.UUID) error {
@@ -139,6 +140,10 @@ func (s *Service) Evaluate(ctx context.Context, planID uuid.UUID) error {
 			if step == HoldHealthy || step == HoldEnded {
 				res.Healthy = hold.Streak + 1
 			}
+			// A healthy day under a hold proves the held cap but doesn't
+			// move the plan on, so the cap never jumps when the hold ends.
+			moves := hold.Moves(v, step, planned)
+			res.Counted = moves
 			plan.set(res)
 			// The log entry is dated on the day it is about.
 			at := d.AddDate(0, 0, 1).Add(-time.Second)
@@ -166,7 +171,12 @@ func (s *Service) Evaluate(ctx context.Context, planID uuid.UUID) error {
 				// The table says "healthy day 1 of 2"; the log keeps what changed.
 			case HoldEnded:
 				setStatus("active", kept{})
-				nextDay := min(day+1, days)
+				// The ramp resumes from the held cap: the next day, or the
+				// day the guard tripped after a step back.
+				nextDay := day
+				if moves {
+					nextDay = min(day+1, days)
+				}
 				addEvent(at, "resumed", kept{}, keep("log.holdEnded", i18n.Args{"bounce": bounce, "day": nextDay, "cap": plan.PlannedCap(nextDay)}))
 			default:
 				// The log keeps what changed: a day a campaign used, a day
@@ -181,7 +191,7 @@ func (s *Service) Evaluate(ctx context.Context, planID uuid.UUID) error {
 				}
 			}
 			hold = next
-			if !v.Counted {
+			if !moves {
 				// The day repeats: the plan's day 1 moves a day later.
 				start = start.AddDate(0, 0, 1)
 			}

@@ -167,6 +167,45 @@ func (q *Queries) RoutingContact(ctx context.Context, arg RoutingContactParams) 
 	return i, err
 }
 
+const routingContactAddresses = `-- name: RoutingContactAddresses :many
+SELECT c.email, c.mailbox_provider FROM contacts c
+WHERE c.workspace_id = $1 AND c.status = 'active' AND c.erased_at IS NULL
+ORDER BY c.created_at DESC
+LIMIT $2
+`
+
+type RoutingContactAddressesParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Lim         int32     `json:"lim"`
+}
+
+type RoutingContactAddressesRow struct {
+	Email           string `json:"email"`
+	MailboxProvider string `json:"mailboxProvider"`
+}
+
+// Addresses of the workspace's newest contacts, for the impact preview of
+// a stream that mailed nobody lately (R3.U4a).
+func (q *Queries) RoutingContactAddresses(ctx context.Context, arg RoutingContactAddressesParams) ([]RoutingContactAddressesRow, error) {
+	rows, err := q.db.Query(ctx, routingContactAddresses, arg.WorkspaceID, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RoutingContactAddressesRow{}
+	for rows.Next() {
+		var i RoutingContactAddressesRow
+		if err := rows.Scan(&i.Email, &i.MailboxProvider); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const routingDefaultSenderVerification = `-- name: RoutingDefaultSenderVerification :one
 SELECT sn.verification FROM senders sn JOIN workspaces w ON w.default_sender_id = sn.id WHERE w.id = $1
 `
@@ -357,7 +396,9 @@ func (q *Queries) RoutingLock(ctx context.Context, workspaceID uuid.UUID) error 
 
 const routingNextBroadcast = `-- name: RoutingNextBroadcast :one
 SELECT c.id, c.name, c.scheduled_at, c.audience,
-       coalesce(split_part(sn.email, '@', 2), '')::text AS sender_domain
+       coalesce(split_part(sn.email, '@', 2), '')::text AS sender_domain,
+       (sn.id IS NOT NULL)::boolean AS has_sender,
+       coalesce(sn.verification, '{}'::jsonb)::jsonb AS sender_verification
 FROM campaigns c
 LEFT JOIN senders sn ON sn.id = c.sender_id
 WHERE c.workspace_id = $1 AND c.deleted_at IS NULL AND c.origin = '' AND c.channel IN ('', 'email')
@@ -367,15 +408,18 @@ LIMIT 1
 `
 
 type RoutingNextBroadcastRow struct {
-	ID           uuid.UUID       `json:"id"`
-	Name         string          `json:"name"`
-	ScheduledAt  *time.Time      `json:"scheduledAt"`
-	Audience     json.RawMessage `json:"audience"`
-	SenderDomain string          `json:"senderDomain"`
+	ID                 uuid.UUID       `json:"id"`
+	Name               string          `json:"name"`
+	ScheduledAt        *time.Time      `json:"scheduledAt"`
+	Audience           json.RawMessage `json:"audience"`
+	SenderDomain       string          `json:"senderDomain"`
+	HasSender          bool            `json:"hasSender"`
+	SenderVerification json.RawMessage `json:"senderVerification"`
 }
 
 // The broadcast the route tester's Campaign tab simulates (PR-14): the next
-// scheduled one, else the draft edited last.
+// scheduled one, else the draft edited last, with its sender's verification
+// per provider (failover targets are vetted with it, R3.U4c).
 func (q *Queries) RoutingNextBroadcast(ctx context.Context, workspaceID uuid.UUID) (RoutingNextBroadcastRow, error) {
 	row := q.db.QueryRow(ctx, routingNextBroadcast, workspaceID)
 	var i RoutingNextBroadcastRow
@@ -385,6 +429,8 @@ func (q *Queries) RoutingNextBroadcast(ctx context.Context, workspaceID uuid.UUI
 		&i.ScheduledAt,
 		&i.Audience,
 		&i.SenderDomain,
+		&i.HasSender,
+		&i.SenderVerification,
 	)
 	return i, err
 }
@@ -430,6 +476,58 @@ func (q *Queries) RoutingSenderDomains(ctx context.Context, workspaceID uuid.UUI
 	for rows.Next() {
 		var i RoutingSenderDomainsRow
 		if err := rows.Scan(&i.ID, &i.Domain, &i.DnsRecords); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const routingStreamRecipients = `-- name: RoutingStreamRecipients :many
+SELECT m.email, m.mailbox_provider, coalesce(t.category_id::text, '')::text AS category
+FROM messages m
+LEFT JOIN transactional_messages t ON t.message_id = m.id
+WHERE m.workspace_id = $1 AND m.stream = $2 AND m.campaign_id IS NULL AND m.queued_at >= $3::timestamptz
+ORDER BY m.queued_at DESC
+LIMIT $4
+`
+
+type RoutingStreamRecipientsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Stream      string    `json:"stream"`
+	Since       time.Time `json:"since"`
+	Lim         int32     `json:"lim"`
+}
+
+type RoutingStreamRecipientsRow struct {
+	Email           string `json:"email"`
+	MailboxProvider string `json:"mailboxProvider"`
+	Category        string `json:"category"`
+}
+
+// A stream's latest recipients since a time (review R3.U4a): the routing
+// impact preview runs them through the saved and the unsaved routing, with
+// what routing reads at send time (mailbox provider, transactional
+// category). Automations, System and Transactional mail is never a
+// campaign's (messages_stream_recent_idx).
+func (q *Queries) RoutingStreamRecipients(ctx context.Context, arg RoutingStreamRecipientsParams) ([]RoutingStreamRecipientsRow, error) {
+	rows, err := q.db.Query(ctx, routingStreamRecipients,
+		arg.WorkspaceID,
+		arg.Stream,
+		arg.Since,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RoutingStreamRecipientsRow{}
+	for rows.Next() {
+		var i RoutingStreamRecipientsRow
+		if err := rows.Scan(&i.Email, &i.MailboxProvider, &i.Category); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

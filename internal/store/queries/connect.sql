@@ -98,6 +98,21 @@ WHERE provider_id = @provider_id AND source IN ('webhook', 'queue') AND received
 ORDER BY received_at
 LIMIT 1;
 
+-- name: ConnectDeliveryEvent :one
+-- The delivery event of a message, reported for its recipient by webhook or
+-- through the queue ReputeCast polls (PR-3, PR-4), once normalized: the SES
+-- event check passes on the mailbox simulator's Delivery event, not on the
+-- Send event SES publishes first (review R3.A1).
+SELECT e.received_at, r.source
+FROM delivery_events e
+JOIN provider_raw_events r ON r.id = e.raw_event_id
+WHERE e.provider_id = @provider_id::uuid AND e.type = 'delivered' AND r.source IN ('webhook', 'queue')
+  AND (e.message_id = @message_id::uuid OR e.provider_message_id = @provider_message_id::text)
+  AND lower(e.recipient) = lower(@recipient::text)
+  AND e.received_at >= @since AND e.received_at < @until
+ORDER BY e.received_at
+LIMIT 1;
+
 -- name: ConnectFirstEventSince :one
 -- The first event a provider delivered after a time, by webhook or queue:
 -- its endpoint was reached from outside (PR-9).

@@ -89,6 +89,39 @@ func TestHoldAfter(t *testing.T) {
 
 func ptr[T any](v T) *T { return &v }
 
+// R3.L6d: a hold keeps the plan on its day. Healthy days under it don't
+// move the plan on, so when the hold ends the cap goes one step up from the
+// held cap instead of jumping the steps the healthy days would have skipped.
+func TestHoldKeepsThePlanOnItsDay(t *testing.T) {
+	counted := Verdict{Counted: true, Judged: true}
+	trip := Verdict{Judged: true, Tripped: true, Metric: "bounce"}
+	short := Verdict{Short: true}
+	// Outside a hold, a day moves the plan when it counted.
+	if !(Hold{}).Moves(counted, HoldNone, 2600) || (Hold{}).Moves(short, HoldNone, 2600) || (Hold{}).Moves(trip, HoldStarted, 2600) {
+		t.Fatal("days outside a hold")
+	}
+	// Held at day 6's own cap: the first healthy day stays on day 6, the
+	// second ends the hold and completes it, so day 7 follows.
+	held := Hold{Cap: ptr(int64(2600))}
+	next, step := held.After(counted, 2600, 1800, "hold")
+	if step != HoldHealthy || held.Moves(counted, step, 2600) {
+		t.Fatalf("first healthy day moved the plan: %v", step)
+	}
+	if _, step := next.After(counted, 2600, 1800, "hold"); step != HoldEnded || !next.Moves(counted, step, 2600) {
+		t.Fatalf("the hold's last day didn't complete the day: %v", step)
+	}
+	// Stepped back to day 5's cap after day 6 tripped: the healthy days
+	// prove 1,800, so the ramp resumes on day 6 at 2,600, not day 7.
+	back := Hold{Cap: ptr(int64(1800)), Streak: 1}
+	if _, step := back.After(counted, 1800, 1800, "step_back"); step != HoldEnded || back.Moves(counted, step, 2600) {
+		t.Fatalf("a step back resumed past the day that tripped: %v", step)
+	}
+	// Short days and new trips under a hold never move it.
+	if held.Moves(short, HoldNone, 2600) || held.Moves(trip, HoldStarted, 2600) {
+		t.Fatal("a day that didn't count moved a held plan")
+	}
+}
+
 // The caps per mailbox provider add up to the day's cap.
 func TestMailboxCaps(t *testing.T) {
 	c := MailboxCaps(6000)
