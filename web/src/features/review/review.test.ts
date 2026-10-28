@@ -1,4 +1,4 @@
-import { t as tx } from '@/i18n'
+import { setCatalogLoader, setLocale, t as tx } from '@/i18n'
 import { approvalMode, heldNote, heldSentence } from './ApprovalCard'
 import {
   acknowledgedKeys,
@@ -32,6 +32,7 @@ import {
   type Thresholds,
 } from './logic'
 import { m } from './messages'
+import vietnamese from './messages.vi'
 import { sendLockReason } from './parts'
 
 const check = (over: Partial<Check>): Check => ({ key: 'k', group: 'content', status: 'pass', title: 'A check', fixes: [], ...over }) as Check
@@ -299,5 +300,18 @@ describe('sending locked while a change is saved (R1.U4)', () => {
     expect(sendLockReason({ ...free, incomplete: 'provider' })).toBe("Some checks couldn't run. Retry them, or continue with provider data only.")
     expect(sendLockReason({ ...free, incomplete: 'skipped' })).toBe("Some checks couldn't run. Retry them, or continue without them.")
     expect(sendLockReason({ ...free, stale: true })).toBe('The campaign changed since the checks ran. Run them again first.')
+  })
+})
+
+describe('Vietnamese group headings (R1.U1)', () => {
+  afterEach(async () => {
+    await setLocale('en')
+  })
+
+  it('reads as the report words them, in the board’s “·” format', async () => {
+    setCatalogLoader('vi', async () => vietnamese)
+    await setLocale('vi')
+    expect(tx(m.needsAttention, { count: 2 })).toBe('Cần xử lý · 2')
+    expect(tx(m.passedTitle, { count: 27 })).toBe('Đã đạt · 27')
   })
 })

@@ -90,7 +90,7 @@ export default translate(m, {
   warningsTitle: 'Cảnh báo · {count}',
   notChecked: 'Chưa kiểm tra · {count}',
   runChecksAgain: 'Hãy chạy lại kiểm tra',
-  passedTitle: 'Đạt · {count}',
+  passedTitle: 'Đã đạt · {count}',
   queued: 'Đang chờ',
   ofTotal: '{checked} trên {total}',
   runningNow: 'đang chạy',
@@ -321,7 +321,7 @@ export default translate(m, {
   canaryOnHint: 'Lần gửi bắt đầu với 5% liên hệ tương tác nhiều nhất và các hộp thư thử, rồi tiếp tục khi kết quả của họ ổn.',
   canaryOffHint: 'Gửi cho toàn bộ người nhận theo tốc độ của tuyến, không gửi thử trước.',
   // Review & send per the boards (SR-13).
-  needsAttention: 'Cần xem · {count}',
+  needsAttention: 'Cần xử lý · {count}',
   attnWarnings: '{count, plural, other {Không mục nào chặn lần gửi. Sửa ở đây, hoặc xác nhận ở bước tiếp theo.}}',
   technicalDetails: 'Chi tiết kỹ thuật',
   passedByGroup: 'Các mục đạt theo nhóm',
