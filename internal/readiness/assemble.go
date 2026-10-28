@@ -1444,10 +1444,8 @@ func (b *builder) links() {
 				Title:  title,
 				Detail: sentences(used, tx("links.listedDetail", nil)),
 				Label:  tx("label.uriBlocklists", nil)}
-			for _, fx := range is.Fixes {
-				if fx.Kind == "replace_link" && fx.Value != "" {
-					c.Fixes = append(c.Fixes, apply(FixReplaceLink, replaceLabel(fx.Label, fx.Value), "danger", map[string]string{"from": is.URL, "to": fx.Value}))
-				}
+			if to := b.knownDestination(is.URL); to != "" {
+				c.Fixes = append(c.Fixes, apply(FixReplaceLink, tx("fix.replaceWithDestination", nil), "", map[string]string{"from": is.URL, "to": to}))
 			}
 			c.Fixes = append(c.Fixes, link(tx("fix.editLink", nil), b.editor(is.Path, "deliverability")))
 			b.add(c)
@@ -1462,13 +1460,7 @@ func (b *builder) links() {
 		c := check{Key: "links.shortener", Group: GroupLinks, Status: Warn, Title: title,
 			Detail: tx("links.shortenerDetail", nil), Label: tx("label.urlShortener", nil),
 			Ack: tx("links.shortenerAck", A{"count": len(short)})}
-		final := ""
-		for _, l := range r.LinkList {
-			if l.URL == first.URL && l.Final != "" {
-				final = l.Final
-			}
-		}
-		if final != "" && len(short) == 1 {
+		if final := b.knownDestination(first.URL); final != "" && len(short) == 1 {
 			c.Fixes = []fix{apply(FixReplaceLink, tx("fix.replaceWithDestination", nil), "", map[string]string{"from": first.URL, "to": final})}
 		}
 		c.Fixes = append(c.Fixes, link(tx("fix.editLink", nil), b.editor(first.Path, "deliverability")))
@@ -1511,10 +1503,18 @@ func (b *builder) allLinks() []contentcheck.ContentCheckLink {
 	return out
 }
 
-// replaceLabel is the content check's replace fix ("Replace with
-// acme.io/sale") in the reader's language.
-func replaceLabel(label, to string) Text {
-	return verified(tx("fix.replaceWith", A{"target": strings.TrimPrefix(to, "https://")}), label)
+// knownDestination is where a link really leads (the address its redirect
+// ends at) when the run requested the link and found that address on none
+// of the URI blocklists; "" otherwise. A one-click replacement only ever
+// points a link there: ReputeCast never guesses an address (R1.U3), and
+// without one the link is edited in the composer.
+func (b *builder) knownDestination(href string) string {
+	for _, l := range b.allLinks() {
+		if l.URL == href && l.Final != "" && l.FinalClean {
+			return l.Final
+		}
+	}
+	return ""
 }
 
 // emptyLinkTitle is the content check's empty button ("Button “Read the

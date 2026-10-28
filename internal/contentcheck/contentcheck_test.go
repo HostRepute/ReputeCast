@@ -69,7 +69,7 @@ func TestCheckFindsEveryInlineWarning(t *testing.T) {
 <mj-section><mj-column><mj-text>` + big + `</mj-text></mj-column><mj-column><mj-text>{{ frist_name }}</mj-text></mj-column></mj-section>
 </mj-body></mjml>`
 	c := &Checker{Blocklist: StaticBlocklist{"go.acme-promo.link": {"SURBL", "Spamhaus DBL"}}}
-	r, err := c.Check(context.Background(), Input{Subject: "FLASH SALE!!! 48 HOURS ONLY", MJML: src, OwnDomains: []string{"news.acme.io"}, Fields: []string{"first_name", "email"}})
+	r, err := c.Check(context.Background(), Input{Subject: "FLASH SALE!!! 48 HOURS ONLY", MJML: src, Fields: []string{"first_name", "email"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,8 +85,10 @@ func TestCheckFindsEveryInlineWarning(t *testing.T) {
 	if r.Verdict != "blocked" || r.Issues[0].Severity != Block {
 		t.Fatalf("order and verdict: %s %+v", r.Verdict, r.Issues[0])
 	}
+	// Without the link's real destination, a listed link is edited by hand:
+	// no address is guessed (R1.U3).
 	bl := ids["links.blocklist"]
-	if bl.Fixes[0].Value != "https://acme.io/sale" || len(bl.Path) != 3 || bl.Path[0] != 2 {
+	if len(bl.Fixes) != 1 || bl.Fixes[0].Kind != "edit_link" || len(bl.Path) != 3 || bl.Path[0] != 2 {
 		t.Fatalf("blocklist fix: %+v", bl)
 	}
 	if alt := ids["content.alt_text"]; alt.Title != "Hero image has no alt text" || alt.Section != 1 {

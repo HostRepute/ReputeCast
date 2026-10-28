@@ -410,7 +410,7 @@ func (r *readinessSeed) flashSale(ctx context.Context) error {
 					Fixes: []contentcheck.ContentCheckFix{{Kind: "insert_footer", Label: "Insert footer block"}}},
 				{ID: "links.blocklist", Severity: contentcheck.Block, Group: "Links", Title: "Button links to go.acme-promo.link, listed on SURBL and Spamhaus DBL",
 					Tag: "Link domain on SURBL and Spamhaus DBL", URL: blockURL, Path: []int{2, 0, 3}, Section: 2,
-					Fixes: []contentcheck.ContentCheckFix{{Kind: "replace_link", Label: "Replace with acme.io/sale", Value: "https://acme.io/sale", Path: []int{2, 0, 3}}}},
+					Fixes: []contentcheck.ContentCheckFix{{Kind: "edit_link", Label: "Edit link", Path: []int{2, 0, 3}}}},
 				{ID: "subject.spam", Severity: contentcheck.Warn, Group: "Subject", Title: "Subject trips 3 spam heuristics", Section: -1, Path: []int{}},
 			},
 			LinkList: append(probed(

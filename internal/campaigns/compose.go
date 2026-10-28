@@ -727,12 +727,6 @@ func (s *Service) Checks(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 		return ComposerChecks{}, err
 	}
 	fields := known.fields()
-	var domains []string
-	if c.SenderEmail != "" {
-		if _, d, ok := strings.Cut(c.SenderEmail, "@"); ok {
-			domains = append(domains, d)
-		}
-	}
 	checker := s.Checker
 	if checker == nil {
 		checker = &contentcheck.Checker{}
@@ -743,7 +737,7 @@ func (s *Service) Checks(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 	if settings.Minify && html != "" {
 		html = contentcheck.Minify(html)
 	}
-	base := contentcheck.Input{Subject: in.Subject, Preheader: in.Preheader, MJML: in.MJML, HTML: html, OwnDomains: domains,
+	base := contentcheck.Input{Subject: in.Subject, Preheader: in.Preheader, MJML: in.MJML, HTML: html,
 		Address: templates.WorkspaceAddress(ws), Fields: fields, ProbeLinks: in.ProbeLinks, Language: in.Language, WorkspaceID: ws.ID}
 	r, err := checker.Check(ctx, base)
 	if err != nil {

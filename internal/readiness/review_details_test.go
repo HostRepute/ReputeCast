@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/readiness"
 )
@@ -144,5 +145,62 @@ func TestTypedConfirmationOnlyWhenUnusual(t *testing.T) {
 	// HostRepute's hourly check time goes with the run.
 	if at := readiness.Assemble(digest()).Estimates.HourlyAt; at == nil || !at.Equal(now.Add(-time.Minute)) {
 		t.Errorf("hourly check: %v", at)
+	}
+}
+
+// R1.U3: a listed link is replaced in one click only with where it really
+// leads, once that address was looked up on the URI blocklists and found on
+// none; the fix review shows the link before and after. Otherwise the link
+// is edited in the composer: no address is guessed.
+func TestListedLinkReplacedOnlyWithKnownDestination(t *testing.T) {
+	f := digest()
+	listed := contentcheck.ContentCheckLink{URL: "https://go.acme-promo.link/sale", Host: "go.acme-promo.link", Text: "Claim your discount", Kind: "button", Path: []int{2, 0, 3},
+		Probed: true, Status: 200, Final: "https://acme.io/pricing/annual", FinalClean: true}
+	f.Content.Report.LinkList = append(f.Content.Report.LinkList, listed)
+	// A guessed fix stored by an older content check is never offered.
+	f.Content.Report.Issues = []contentcheck.ContentCheckIssue{{ID: "links.blocklist", Severity: contentcheck.Block, Group: "Links", URL: listed.URL, Path: listed.Path,
+		Title: "Button links to go.acme-promo.link, listed on SURBL and Spamhaus DBL", Tag: "Link domain on SURBL and Spamhaus DBL",
+		Fixes: []contentcheck.ContentCheckFix{{Kind: "replace_link", Label: "Replace with acme.io/sale", Value: "https://acme.io/sale"}, {Kind: "edit_link", Label: "Edit link"}}}}
+	res := stored(t, readiness.Assemble(f))
+	c := check(t, res, "links.blocklist.go.acme-promo.link")
+	replace := fixOf(t, c, readiness.FixReplaceLink)
+	if replace.Label != "Replace with destination URL" || replace.Params["to"] != "https://acme.io/pricing/annual" || replace.Params["from"] != listed.URL {
+		t.Fatalf("replace: %+v", replace)
+	}
+	if replace.Note != "Changes the link" || len(replace.Effects) != 3 || replace.Effects[0].Label != "“Claim your discount” button" ||
+		replace.Effects[0].Before != listed.URL || replace.Effects[0].Value != "https://acme.io/pricing/annual" ||
+		replace.Effects[1].Value != "Where the link leads today, on none of Spamhaus DBL and SURBL" {
+		t.Fatalf("effects: %q %+v", replace.Note, replace.Effects)
+	}
+	if vi := check(t, res.In(i18n.For(i18n.Vietnamese)), c.Key); fixOf(t, vi, readiness.FixReplaceLink).Label != "Thay bằng URL đích" {
+		t.Errorf("in Vietnamese: %+v", vi.Fixes)
+	}
+
+	// The destination wasn't found clean (listed, or its lookup failed), or
+	// the link didn't redirect: Edit link only.
+	for _, final := range []string{listed.Final, ""} {
+		g := digest()
+		x := listed
+		x.Final, x.FinalClean = final, false
+		g.Content.Report.LinkList = append(g.Content.Report.LinkList, x)
+		g.Content.Report.Issues = f.Content.Report.Issues
+		c := check(t, stored(t, readiness.Assemble(g)), "links.blocklist.go.acme-promo.link")
+		if len(c.Fixes) != 1 || c.Fixes[0].Kind != "link" || c.Fixes[0].Label != "Edit link" {
+			t.Errorf("without a clean destination (final %q): %+v", final, c.Fixes)
+		}
+	}
+
+	// A shortener's destination follows the same rule.
+	g := digest()
+	short := contentcheck.ContentCheckLink{URL: "https://bit.ly/3xK9tQ", Host: "bit.ly", Text: "Read the post", Kind: "link", Path: []int{1}, Probed: true, Status: 200,
+		Final: "https://blog.acme.io/annual-plans"}
+	g.Content.Report.LinkList = append(g.Content.Report.LinkList, short)
+	g.Content.Report.Issues = []contentcheck.ContentCheckIssue{{ID: "links.shortener", Severity: contentcheck.Warn, Group: "Links", URL: short.URL, Path: short.Path}}
+	if c := check(t, stored(t, readiness.Assemble(g)), "links.shortener"); hasFix(c, readiness.FixReplaceLink) {
+		t.Errorf("a shortener's destination nobody checked: %+v", c.Fixes)
+	}
+	g.Content.Report.LinkList[len(g.Content.Report.LinkList)-1].FinalClean = true
+	if c := check(t, stored(t, readiness.Assemble(g)), "links.shortener"); fixOf(t, c, readiness.FixReplaceLink).Params["to"] != short.Final {
+		t.Errorf("a shortener's clean destination: %+v", c.Fixes)
 	}
 }

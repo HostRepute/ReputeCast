@@ -116,7 +116,6 @@ type checkSubject struct {
 	TrackOpens  bool
 	TrackClicks bool
 	ProbeLinks  bool
-	OwnDomains  []string
 	Address     string
 	// WorkspaceID and TemplateID say whose policy and language versions the
 	// accessibility checks use.
@@ -256,7 +255,7 @@ func (s *Service) runChecks(ctx context.Context, cs checkSubject) TransactionalC
 	if checker == nil {
 		checker = &contentcheck.Checker{}
 	}
-	rep, cerr := checker.Check(ctx, contentcheck.Input{Subject: cs.Subject, Preheader: cs.Preheader, MJML: cs.MJML, HTML: html, OwnDomains: cs.OwnDomains,
+	rep, cerr := checker.Check(ctx, contentcheck.Input{Subject: cs.Subject, Preheader: cs.Preheader, MJML: cs.MJML, HTML: html,
 		Address: cs.Address, ProbeLinks: cs.ProbeLinks})
 	if cerr == nil {
 		out.SizeBytes, out.Links, out.Images, out.PlainText = rep.SizeBytes, len(rep.LinkList), rep.Images, rep.PlainText
@@ -444,22 +443,6 @@ func (s *Service) draftSubject(ctx context.Context, ws *store.Workspace, t store
 	return checkSubject{
 		content:  content{Subject: t.Subject, Preheader: t.Preheader, EditorMode: t.EditorMode, MJML: t.Mjml, HTML: t.Html, Text: t.PlainText, Variables: parseVariables(t.Variables)},
 		TestData: parseTestData(t.TestData), Kind: t.CategoryKind, TrackOpens: t.TrackOpens, TrackClicks: t.TrackClicks,
-		OwnDomains: s.ownDomains(ctx, ws.ID), Address: s.footer(ctx, ws), WorkspaceID: ws.ID, TemplateID: t.ID,
+		Address: s.footer(ctx, ws), WorkspaceID: ws.ID, TemplateID: t.ID,
 	}
-}
-
-func (s *Service) ownDomains(ctx context.Context, wsID uuid.UUID) []string {
-	rows, err := s.Q.TxnSenders(ctx, wsID)
-	if err != nil {
-		return nil
-	}
-	out := []string{}
-	seen := map[string]bool{}
-	for _, r := range rows {
-		if !seen[r.Domain] {
-			seen[r.Domain] = true
-			out = append(out, r.Domain)
-		}
-	}
-	return out
 }

@@ -33,7 +33,7 @@ func (b *builder) fixEffects() {
 			case f.Kind == "apply" && f.Action == FixInsertFooter:
 				f.Note = tx("fixnote.footer", nil)
 			case f.Kind == "apply" && f.Action == FixReplaceLink:
-				f.Note = tx("fixnote.link", nil)
+				b.replaceEffects(f)
 			case f.Kind == "link" && strings.HasSuffix(f.Href, "/deliverability") && c.Group == GroupReputation:
 				f.Note = tx("fixnote.noChange", nil)
 			}
@@ -128,6 +128,22 @@ func (b *builder) paramEffects(f *fix) {
 	}
 	f.Note = tx("fixnote.links", A{"count": n})
 	f.Effects = append(f.Effects, techRow{Label: tx("effect.unchanged", nil), Value: tx("effect.unchangedValue", nil)})
+}
+
+// replaceEffects: the link before and after, pointed at the address it
+// already leads to, which was looked up on the URI blocklists.
+func (b *builder) replaceEffects(f *fix) {
+	from, to := f.Params["from"], f.Params["to"]
+	f.Note = tx("fixnote.link", nil)
+	label := tx("effect.unnamedLink", nil)
+	if text, kind := linkTextFor(b.f.Content.Report, from); text != "" {
+		label = tx("effect.link", A{"text": text, "kind": kind})
+	}
+	f.Effects = []techRow{
+		{Label: label, Value: RawText(to), Before: from},
+		{Label: tx("effect.destination", nil), Value: tx("effect.destinationValue", A{"lists": ArgAnd(b.uriLists())})},
+		{Label: tx("effect.unchanged", nil), Value: tx("effect.unchangedValue", nil)},
+	}
 }
 
 // change says whether a fix makes something more, less or the same.

@@ -48,7 +48,7 @@
   "link.blocklistTitle": {"message": "{kind, select, button {Button} image {Image} nav {Menu link} social {Social link} other {Link}} links to {host}, listed on {lists}", "note": "kind: what the link is; host: a domain; lists: blocklist names, SURBL and Spamhaus DBL"},
   "link.blocklistTag": "Link domain on {lists}",
   "link.blocklistDetail": "Mail linking to a blocklisted domain gets filtered regardless of your reputation. Use a domain you control.",
-  "link.replaceWith": {"message": "Replace with {target}", "note": "a button; target: an address on your own domain, acme.io/sale"},
+  "link.replaceWithDestination": {"message": "Replace with destination URL", "note": "a button: points a listed or shortened link at the page it redirects to, once that page is known to be clean"},
   "link.shortenerTitle": {"message": "{kind, select, button {Button} image {Image} nav {Menu link} social {Social link} other {Link}} redirects through {host}, a URL shortener", "note": "host: bit.ly"},
   "link.shortenerTag": "Shortened link",
   "link.shortenerDetail": "Shortened links hide where they go; filters treat them as suspicious and many shortener domains are blocklisted. Link to the page directly.",

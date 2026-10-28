@@ -18,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
+	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -104,6 +105,35 @@ func ReplaceLink(src, from, to string) (string, int) {
 		}
 	}
 	return src, n
+}
+
+// cleanDestination refuses an address a link would be pointed at when it
+// is on the URI blocklists, or when looking it up failed: a fix never swaps
+// a listed link for another one it didn't check (R1.U3).
+func (s *Service) cleanDestination(ctx context.Context, to, field string) error {
+	if s.Links == nil {
+		return nil
+	}
+	host := hostOf(to)
+	domains := []string{host}
+	if d := contentcheck.RegistrableDomain(host); d != host {
+		domains = append(domains, d)
+	}
+	rep, err := s.Links.Check(ctx, domains)
+	lists := contentcheck.URIListNames
+	if err == nil && len(rep.Lists) > 0 {
+		lists = rep.Lists
+	}
+	loc := i18n.LangFrom(ctx).Locale
+	for _, d := range domains {
+		if listed := rep.Listed[d]; len(listed) > 0 {
+			return api.Invalid(field, say(ctx, "problem.destinationListed", A{"host": host, "lists": i18n.AndList(loc, listed)}))
+		}
+		if err != nil || rep.Unknown[d] != "" {
+			return api.Invalid(field, say(ctx, "problem.destinationUnknown", A{"host": host, "lists": i18n.AndList(loc, lists)}))
+		}
+	}
+	return nil
 }
 
 // HTMLOnly reports whether a campaign is written in HTML only (the HTML
@@ -211,6 +241,9 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 			from, to := strings.TrimSpace(fx.Params["from"]), strings.TrimSpace(fx.Params["to"])
 			if from == "" || !validLink(to) {
 				return out, api.Invalid(field, say(ctx, "problem.replaceLink", nil))
+			}
+			if err := s.cleanDestination(ctx, to, field+".params.to"); err != nil {
+				return out, err
 			}
 			body := src
 			if htmlOnly {

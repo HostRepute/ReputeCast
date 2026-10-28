@@ -48,7 +48,7 @@
   "link.blocklistTitle": "{kind, select, button {Nút} image {Hình} nav {Liên kết menu} social {Liên kết mạng xã hội} other {Liên kết}} trỏ đến {host}, tên miền bị liệt kê trên {lists}",
   "link.blocklistTag": "Tên miền liên kết bị liệt kê trên {lists}",
   "link.blocklistDetail": "Thư có liên kết đến tên miền trong danh sách chặn sẽ bị lọc, dù uy tín của bạn thế nào. Hãy dùng tên miền do bạn kiểm soát.",
-  "link.replaceWith": "Thay bằng {target}",
+  "link.replaceWithDestination": "Thay bằng URL đích",
   "link.shortenerTitle": "{kind, select, button {Nút} image {Hình} nav {Liên kết menu} social {Liên kết mạng xã hội} other {Liên kết}} chuyển hướng qua {host}, một dịch vụ rút gọn liên kết",
   "link.shortenerTag": "Liên kết rút gọn",
   "link.shortenerDetail": "Liên kết rút gọn che giấu đích đến; bộ lọc coi chúng là đáng ngờ và nhiều tên miền rút gọn nằm trong danh sách chặn. Hãy liên kết thẳng đến trang.",

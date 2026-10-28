@@ -178,6 +178,10 @@ type ContentCheckLink struct {
 	Broken bool   `json:"broken,omitempty"`
 	Millis int    `json:"millis,omitempty"`
 	Final  string `json:"final,omitempty"`
+	// FinalClean is true when Final, the address the link really leads to,
+	// was looked up on the URI blocklists and found on none: only then is a
+	// listed or shortened link offered "Replace with destination URL".
+	FinalClean bool `json:"finalClean,omitempty"`
 	// BotBlocked is true when the site refused the automated request.
 	BotBlocked bool `json:"botBlocked,omitempty"`
 }
@@ -188,9 +192,6 @@ type Input struct {
 	Preheader string
 	MJML      string
 	HTML      string
-	// OwnDomains are the workspace's sending domains ("news.acme.io"); fixes
-	// for blocklisted links point at their registrable domain.
-	OwnDomains []string
 	// Address is the postal address from the workspace's branding, if set.
 	Address string
 	// Fields are the personalization tokens that exist (liquid.Catalog keys).
@@ -925,10 +926,6 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentCh
 			listings = l
 		}
 	}
-	own := ""
-	if len(in.OwnDomains) > 0 {
-		own = RegistrableDomain(in.OwnDomains[0])
-	}
 	var probe map[string]ProbeResult
 	if in.ProbeLinks && c.Prober != nil {
 		var urls []string
@@ -941,6 +938,7 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentCh
 		}
 		probe = c.Prober.Probe(ctx, urls)
 	}
+	clean := c.cleanDestinations(ctx, s.links, probe, listings)
 	if n := len(r.LinkDomainsUnknown); n > 0 {
 		// Not knowing isn't clean: say which lookups failed (Send Readiness
 		// turns this into an Unknown check).
@@ -950,6 +948,18 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentCh
 			mLinkUnknownTitle.Keep(i18n.Args{"count": n, "lists": lists}), mLinkUnknownTag.Keep(nil), mLinkUnknownDetail.Keep(i18n.Args{"trouble": trouble})))
 	}
 	editLink := func(path []int) ContentCheckFix { return fixOf("edit_link", mLinkEdit.Keep(nil), path) }
+	// A listed or shortened link is replaced only with where it really
+	// leads, once that address is known to be clean; ReputeCast never
+	// guesses an address (R1.U3). Otherwise the link is edited by hand.
+	fixesFor := func(l link, final string) []ContentCheckFix {
+		fixes := []ContentCheckFix{}
+		if final != "" && clean[final] {
+			fix := fixOf("replace_link", mLinkReplaceDestination.Keep(nil), l.path)
+			fix.Value = final
+			fixes = append(fixes, fix)
+		}
+		return append(fixes, editLink(l.path))
+	}
 	for _, l := range s.links {
 		kind := linkKind(l.kind)
 		if strings.TrimSpace(l.href) == "" || l.href == "#" {
@@ -969,6 +979,7 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentCh
 		}
 		if pr, ok := probe[u.String()]; ok {
 			entry.Probed, entry.Status, entry.Broken, entry.Millis, entry.Final, entry.BotBlocked = true, pr.Status, pr.Broken, pr.Millis, pr.Final, pr.BotBlocked
+			entry.FinalClean = pr.Final != "" && clean[pr.Final]
 		}
 		r.LinkList = append(r.LinkList, entry)
 		lists := listings[host]
@@ -977,21 +988,13 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentCh
 		}
 		if len(lists) > 0 {
 			r.LinksBlocklisted++
-			fixes := []ContentCheckFix{}
-			if own != "" && RegistrableDomain(host) != own {
-				target := own + u.EscapedPath()
-				fix := fixOf("replace_link", mLinkReplaceWith.Keep(i18n.Args{"target": target}), l.path)
-				fix.Value = "https://" + target
-				fixes = append(fixes, fix)
-			}
-			fixes = append(fixes, editLink(l.path))
 			on := i18n.Args{"lists": append([]string(nil), lists...)}
-			add(worded(ContentCheckIssue{ID: "links.blocklist", Severity: Block, Group: "Links", Path: l.path, Section: l.section, Fixes: fixes, URL: l.href},
+			add(worded(ContentCheckIssue{ID: "links.blocklist", Severity: Block, Group: "Links", Path: l.path, Section: l.section, Fixes: fixesFor(l, entry.Final), URL: l.href},
 				mLinkBlocklistTitle.Keep(i18n.Args{"kind": kind, "host": host, "lists": on["lists"]}), mLinkBlocklistTag.Keep(on), mLinkBlocklistDetail.Keep(nil)))
 			continue
 		}
 		if shorteners[host] {
-			add(worded(ContentCheckIssue{ID: "links.shortener", Severity: Warn, Group: "Links", Path: l.path, Section: l.section, Fixes: []ContentCheckFix{editLink(l.path)}, URL: l.href},
+			add(worded(ContentCheckIssue{ID: "links.shortener", Severity: Warn, Group: "Links", Path: l.path, Section: l.section, Fixes: fixesFor(l, entry.Final), URL: l.href},
 				mLinkShortenerTitle.Keep(i18n.Args{"kind": kind, "host": host}), mLinkShortenerTag.Keep(nil), mLinkShortenerDetail.Keep(nil)))
 			continue
 		}
@@ -1003,6 +1006,73 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentCh
 			}
 		}
 	}
+}
+
+// cleanDestinations looks up where listed and shortened links really lead
+// (the probe followed their redirects) on the URI blocklists, and returns
+// the destinations found on none: the only addresses a fix may point such a
+// link at. A destination on the link's own host, another shortener, or one
+// whose lookup failed is never clean. Without a probe nothing is known, so
+// nothing is clean.
+func (c *Checker) cleanDestinations(ctx context.Context, links []link, probe map[string]ProbeResult, listings map[string][]string) map[string]bool {
+	out := map[string]bool{}
+	if c.Blocklist == nil || len(probe) == 0 {
+		return out
+	}
+	listed := func(host string) bool { return len(listings[host]) > 0 || len(listings[RegistrableDomain(host)]) > 0 }
+	finals := map[string]string{}
+	domains := []string{}
+	seen := map[string]bool{}
+	for _, l := range links {
+		host, u := linkHost(l.href)
+		if host == "" || !(listed(host) || shorteners[host]) {
+			continue
+		}
+		final := probe[u.String()].Final
+		fhost, fu := linkHost(final)
+		if fhost == "" || (fu.Scheme != "https" && fu.Scheme != "http") || fhost == host || shorteners[fhost] {
+			continue
+		}
+		finals[final] = fhost
+		for _, d := range []string{fhost, RegistrableDomain(fhost)} {
+			if !seen[d] {
+				seen[d] = true
+				domains = append(domains, d)
+			}
+		}
+	}
+	if len(finals) == 0 {
+		return out
+	}
+	sort.Strings(domains)
+	// The link domains' progress is already reported: these lookups don't
+	// count there.
+	quiet := WithProgress(ctx, func(string, int, int) {})
+	var bad map[string][]string
+	unknown := map[string]string{}
+	if live, ok := c.Blocklist.(BlocklistChecker); ok {
+		rep, err := live.Check(quiet, domains)
+		if err != nil {
+			return out
+		}
+		bad, unknown = rep.Listed, rep.Unknown
+	} else {
+		l, err := c.Blocklist.Listings(quiet, domains)
+		if err != nil {
+			return out
+		}
+		bad = l
+	}
+	for final, host := range finals {
+		ok := true
+		for _, d := range []string{host, RegistrableDomain(host)} {
+			if len(bad[d]) > 0 || unknown[d] != "" {
+				ok = false
+			}
+		}
+		out[final] = ok
+	}
+	return out
 }
 
 // linkKind is what a link is, for link.*Title's kind: button, image, nav,

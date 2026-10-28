@@ -300,7 +300,7 @@ func TestComposerChecksAndPreview(t *testing.T) {
 		found[is.ID] = true
 		switch is.ID {
 		case "links.blocklist":
-			if is.Severity != "block" || is.Title != "Button links to go.acme-promo.link, listed on SURBL and Spamhaus DBL" || is.Fixes[0].Label != "Replace with acme.io/sale" || len(is.Path) == 0 {
+			if is.Severity != "block" || is.Title != "Button links to go.acme-promo.link, listed on SURBL and Spamhaus DBL" || len(is.Fixes) != 1 || is.Fixes[0].Kind != "edit_link" || len(is.Path) == 0 {
 				t.Fatalf("blocklist issue: %+v", is)
 			}
 		case "compliance.footer":

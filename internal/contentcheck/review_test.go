@@ -172,3 +172,91 @@ func TestImageRatioThreshold(t *testing.T) {
 		t.Fatalf("the sample should be mostly image: %.2f", r.ImageShare)
 	}
 }
+
+// R1.U3: a listed or shortened link is offered "Replace with destination
+// URL" only when the address it redirects to is known and clean on the URI
+// blocklists; a listed destination, a destination whose lookup failed and a
+// link nobody requested are edited by hand. No address is ever guessed.
+func TestReplaceOnlyWithKnownCleanDestination(t *testing.T) {
+	html := `<a href="https://go.acme-promo.link/sale">Claim your discount</a> <a href="https://bit.ly/3xK9tQ">Read the post</a>
+<a href="https://go.acme-promo.link/bad">Other offer</a> <a href="https://bit.ly/unknown">Webinar</a>
+<p>Acme Inc · 500 Market St <a href="{{ unsubscribe_url }}">Unsubscribe</a></p>`
+	p := fakeProber{
+		"https://go.acme-promo.link/sale": {Status: 200, Final: "https://acme.io/pricing/annual"},
+		"https://bit.ly/3xK9tQ":           {Status: 200, Final: "https://blog.acme.io/annual-plans"},
+		"https://go.acme-promo.link/bad":  {Status: 200, Final: "https://bad.example/offer"},
+		"https://bit.ly/unknown":          {Status: 200, Final: "https://slow.example/webinar"},
+	}
+	lists := StaticBlocklist{"go.acme-promo.link": {"SURBL", "Spamhaus DBL"}, "bad.example": {"SURBL"}}
+	checker := &Checker{Blocklist: unknownFor{lists, "slow.example"}, Prober: p}
+	r, err := checker.Check(context.Background(), Input{Subject: "Annual plans", HTML: html, ProbeLinks: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixes := map[string][]ContentCheckFix{}
+	for _, is := range r.Issues {
+		if is.ID == "links.blocklist" || is.ID == "links.shortener" {
+			fixes[is.URL] = is.Fixes
+		}
+	}
+	replace := func(url string) string {
+		f := fixes[url]
+		if len(f) == 0 || f[len(f)-1].Kind != "edit_link" {
+			t.Fatalf("%s: every listed or shortened link can be edited: %+v", url, f)
+		}
+		if len(f) == 2 && f[0].Kind == "replace_link" {
+			if f[0].Label != "Replace with destination URL" {
+				t.Errorf("%s: label %q", url, f[0].Label)
+			}
+			return f[0].Value
+		}
+		return ""
+	}
+	if got := replace("https://go.acme-promo.link/sale"); got != "https://acme.io/pricing/annual" {
+		t.Errorf("listed link with a clean destination: %q", got)
+	}
+	if got := replace("https://bit.ly/3xK9tQ"); got != "https://blog.acme.io/annual-plans" {
+		t.Errorf("shortener with a clean destination: %q", got)
+	}
+	if got := replace("https://go.acme-promo.link/bad"); got != "" {
+		t.Errorf("a listed destination is never offered: %q", got)
+	}
+	if got := replace("https://bit.ly/unknown"); got != "" {
+		t.Errorf("a destination that couldn't be looked up is never offered: %q", got)
+	}
+	for _, l := range r.LinkList {
+		want := l.URL == "https://go.acme-promo.link/sale" || l.URL == "https://bit.ly/3xK9tQ"
+		if l.FinalClean != want {
+			t.Errorf("%s: finalClean %v", l.URL, l.FinalClean)
+		}
+	}
+
+	// The composer doesn't request links: nothing is known about where they
+	// lead, so they are only edited.
+	r, err = checker.Check(context.Background(), Input{Subject: "Annual plans", HTML: html})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, is := range r.Issues {
+		if (is.ID == "links.blocklist" || is.ID == "links.shortener") && (len(is.Fixes) != 1 || is.Fixes[0].Kind != "edit_link") {
+			t.Errorf("%s without a probe: %+v", is.URL, is.Fixes)
+		}
+	}
+}
+
+// unknownFor is a live blocklist whose lookups of one domain fail.
+type unknownFor struct {
+	StaticBlocklist
+	failing string
+}
+
+func (u unknownFor) Check(ctx context.Context, domains []string) (BlocklistReport, error) {
+	listed, _ := u.Listings(ctx, domains)
+	rep := BlocklistReport{Listed: listed, Unknown: map[string]string{}, Lists: URIListNames, Domains: len(domains)}
+	for _, d := range domains {
+		if d == u.failing {
+			rep.Unknown[d] = TroubleTimeout
+		}
+	}
+	return rep, nil
+}

@@ -137,6 +137,15 @@ func TestFixesKeepHTMLOnlyCampaigns(t *testing.T) {
 		t.Errorf("not minified: %s", after.HTML)
 	}
 
+	// A replacement address on the URI blocklists is refused, and nothing
+	// changes (R1.U3).
+	listed := fix(422, map[string]any{"action": "replace_link", "params": map[string]string{"from": "https://bit.ly/x", "to": "https://go.acme-promo.link/sale"}}).Problem(t)
+	if p := fmt.Sprint(listed); !strings.Contains(p, "go.acme-promo.link is on ") || !strings.Contains(p, "Spamhaus DBL") || !strings.Contains(p, " too, so the link wasn’t changed") {
+		t.Errorf("listed destination: %v", listed)
+	}
+	if got := get(); got.Version != after.Version || !strings.Contains(got.HTML, "bit.ly/x") {
+		t.Fatalf("a refused replacement changed the campaign: v%d", got.Version)
+	}
 	fix(200, map[string]any{"action": "replace_link", "params": map[string]string{"from": "https://bit.ly/x", "to": "https://acme.io/blog/post"}})
 	if after = get(); !strings.Contains(after.HTML, `href="https://acme.io/blog/post"`) || strings.Contains(after.HTML, "bit.ly") || after.MJML != "" {
 		t.Fatalf("after Replace link: %s", after.HTML)
