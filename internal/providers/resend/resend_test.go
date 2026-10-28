@@ -410,6 +410,32 @@ func TestAcceptedBatchWithoutIDs(t *testing.T) {
 	}
 }
 
+// Resend's idempotency key covers its request, and a batch's key is the
+// batch's: a message whose answer was lost goes out again in another call
+// with another key, which Resend can't match. So the adapter doesn't claim
+// that Resend recognizes a message it already took (review GS-1, F-6): the
+// engine holds such messages as in doubt instead of sending them again, and
+// the live monitor says Resend doesn't recognize them.
+func TestBatchKeysAreNotPerMessage(t *testing.T) {
+	f := newFake()
+	env := contracttest.NewEnv(t, f.handler)
+	p := newProvider(t, env, nil)
+	if w := providers.IdempotencyWindow(p); w != 0 {
+		t.Fatalf("idempotency window %v: Resend's batch keys don't cover a message sent again in another call", w)
+	}
+	a, b := contracttest.Message(0), contracttest.Message(1)
+	if _, err := p.Send(context.Background(), []providers.Message{a, b}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.Send(context.Background(), []providers.Message{a}); err != nil {
+		t.Fatal(err)
+	}
+	reqs := env.Requests()
+	if len(reqs) != 2 || reqs[0].Header.Get("Idempotency-Key") == reqs[1].Header.Get("Idempotency-Key") {
+		t.Fatalf("requests %+v: a message sent alone after its batch carries another key", reqs)
+	}
+}
+
 func TestQuotaAndSendingOnlyKey(t *testing.T) {
 	f := newFake()
 	env := contracttest.NewEnv(t, f.handler)

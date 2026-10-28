@@ -225,10 +225,16 @@ func validTag(s string) bool {
 
 // Send implements providers.Provider: one message through POST /emails,
 // more through POST /emails/batch. Both carry an Idempotency-Key derived
-// from the ReputeCast message ids, so a retry after a timeout never sends
-// twice. Resend validates a batch as a whole: when one message is invalid,
-// nothing is sent and the messages are sent one by one instead, so the
-// invalid one fails alone.
+// from the ReputeCast message ids, which Resend keeps for 24 hours: the same
+// call made again (the same message alone, or the same batch in the same
+// order) is answered once. A key covers its whole request, though, and a
+// message whose answer was lost goes out again in another call (another
+// batch, or alone), with another key that Resend has never seen. So the
+// adapter is not a providers.IdempotentSender: the engine holds such a
+// message as in doubt instead of sending it again (review GS-1). Resend
+// validates a batch as a whole: when one message is invalid, nothing is
+// sent and the messages are sent one by one instead, so the invalid one
+// fails alone.
 func (p *Provider) Send(ctx context.Context, msgs []providers.Message) ([]providers.SendResult, error) {
 	switch {
 	case len(msgs) == 0:

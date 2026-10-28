@@ -121,6 +121,10 @@ type Suite struct {
 	Webhooks         []Webhook
 	// Tamper breaks a valid signed request; the default flips a body byte.
 	Tamper func(r *http.Request, body []byte) (*http.Request, []byte)
+	// IdempotencyKey reads the idempotency key a recorded send request
+	// carries ("" for none). An adapter whose provider recognizes a message
+	// it already took (providers.IdempotentSender) must say where it is.
+	IdempotencyKey func(r Recorded) string
 }
 
 // NewEnv starts the fake API (when api is not nil) for adapter-specific
@@ -324,6 +328,51 @@ func Run(t *testing.T, s Suite) {
 		_, err := p.Send(context.Background(), []providers.Message{Message(0)})
 		if !errors.Is(err, providers.ErrUnauthorized) {
 			t.Fatalf("rejected credentials must fail the call with providers.ErrUnauthorized, got %v", err)
+		}
+	})
+
+	// An adapter that says its provider recognizes a message it already took
+	// (providers.IdempotentSender) lets the engine send a message again
+	// after a lost answer (review GS-1), so the promise must hold message by
+	// message: one message per call, each with a key made from its id alone,
+	// the same key every time, and the provider's answer to a repeated
+	// message read as sent. A provider's key covers its request: a batch's
+	// key would cover the batch, and a message sent again in another batch
+	// would be delivered twice.
+	t.Run("Idempotency", func(t *testing.T) {
+		env.reset()
+		p := s.New(t, env)
+		if providers.IdempotencyWindow(p) == 0 {
+			t.Skip("the provider doesn't recognize a message it already took")
+		}
+		ready(t, s)
+		if s.API == nil {
+			t.Skip("keys are checked against the fake API")
+		}
+		if s.IdempotencyKey == nil {
+			t.Fatal("the adapter is a providers.IdempotentSender: set Suite.IdempotencyKey so the suite can read its keys")
+		}
+		if n := p.Capabilities().BatchSize; n != 1 {
+			t.Fatalf("BatchSize %d: an idempotent sender hands each message over in its own call", n)
+		}
+		a, b := Message(0), Message(1)
+		for i, m := range []providers.Message{a, a, b} {
+			res, err := p.Send(context.Background(), []providers.Message{m})
+			if err != nil || len(res) != 1 || res[0].Err != nil || res[0].MessageID != m.ID {
+				t.Fatalf("send %d: %+v, %v (a message sent again must be answered as sent)", i, res, err)
+			}
+		}
+		var keys []string
+		for _, r := range env.Requests() {
+			if k := s.IdempotencyKey(r); k != "" {
+				keys = append(keys, k)
+			}
+		}
+		if len(keys) != 3 {
+			t.Fatalf("%d keyed requests for 3 sends: %q", len(keys), keys)
+		}
+		if keys[0] != keys[1] || keys[0] == keys[2] || !strings.Contains(keys[0], a.ID.String()) || !strings.Contains(keys[2], b.ID.String()) {
+			t.Fatalf("keys %q: want each message's own id, the same when it is sent again", keys)
 		}
 	})
 

@@ -4,8 +4,9 @@
 // operated and documented (checked 2026-10-13,
 // https://bird.com/products/email/sparkpost).
 //
-// Each message is its own transmission with an Idempotency-Key, so a retry
-// after a timeout or a 504 never sends twice.
+// Each message is its own transmission with an Idempotency-Key made from its
+// ReputeCast id, which SparkPost keeps for 24 hours: a retry after a timeout
+// or a 504 within that time never sends twice (idempotency.go).
 //
 // Terms (checked 2026-10-13): SparkPost accounts are under Bird's terms
 // since 22 December 2024 (https://bird.com/legal/legal-terms-updates). Bird's
@@ -171,14 +172,18 @@ func decodeError(_ int, body []byte) (string, string) {
 }
 
 // classify adjusts apiclient's status mapping: 420 is SparkPost's
-// sending-limit status (nothing was sent), which is throttling.
+// sending-limit status (nothing was sent), which is throttling, and a 409
+// for a key whose first request is still running is answered later.
 func classify(err error) error {
 	var ce *providers.CallError
 	if !errors.As(err, &ce) {
 		return err
 	}
-	if ce.Status == 420 {
+	switch {
+	case ce.Status == 420:
 		ce.Temporary, ce.Throttled = true, true
+	case ce.Status == http.StatusConflict && ce.Code == codeKeyInProgress:
+		ce.Temporary = true
 	}
 	if ce.Code == "" && ce.Status != 0 {
 		ce.Code = fmt.Sprintf("HTTP %d", ce.Status)
@@ -268,6 +273,12 @@ func (p *Provider) sendOne(ctx context.Context, m providers.Message) (providers.
 		ContentType: "application/json", Body: body, Header: http.Header{"Idempotency-Key": {"rc-" + m.ID.String()}}})
 	if err != nil {
 		err = classify(err)
+		var ce *providers.CallError
+		if errors.As(err, &ce) && accepted(ce) {
+			// Handed over by an earlier attempt; events find the message by
+			// its rc_message metadata.
+			return providers.SendResult{MessageID: m.ID, ProviderMessageID: m.ID.String()}, nil
+		}
 		return apiclient.Failed(m, err)
 	}
 	var out struct {

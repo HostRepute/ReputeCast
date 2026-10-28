@@ -272,6 +272,14 @@ func TestContract(t *testing.T) {
 			r.Body = io.NopCloser(bytes.NewReader(body))
 			return r, body
 		},
+		// Brevo reads the key from the email's headers object.
+		IdempotencyKey: func(r contracttest.Recorded) string {
+			var in struct {
+				Headers map[string]string `json:"headers"`
+			}
+			_ = json.Unmarshal(r.Body, &in)
+			return in.Headers["IdempotencyKey"]
+		},
 		Webhooks: []contracttest.Webhook{
 			{Name: "Delivered", Request: webhook("delivered.json"), Want: []providers.Event{{
 				Type: providers.EventDelivered, Recipient: "d.f@outlook.com", ProviderMessageID: "202610121341.5787683@smtp-relay.mailin.fr",
