@@ -34498,6 +34498,8 @@ export interface components {
             /** Format: date-time */
             startedAt: string;
             startedBy?: string;
+            /** @enum {string} */
+            startedByType?: "api_key" | "mcp_agent";
             /** Format: int64 */
             total: number;
             trigger: string;
@@ -34592,6 +34594,8 @@ export interface components {
             /** Format: date-time */
             ranAt: string;
             ranBy?: string;
+            /** @enum {string} */
+            ranByType?: "api_key" | "mcp_agent";
             /** @enum {string} */
             trigger: "manual" | "composer" | "schedule" | "send_time" | "approval";
             /** Format: date-time */

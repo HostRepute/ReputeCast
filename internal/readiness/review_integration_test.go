@@ -203,8 +203,8 @@ func TestRunsAreBackgroundJobs(t *testing.T) {
 	if poll.Running != nil || poll.Failed != nil || poll.Latest == nil || poll.Latest.ID == before.ID {
 		t.Fatalf("after the run: %+v", poll)
 	}
-	if after := readinesstest.Latest(t, c, "acme-newsletter", id); after.ID != poll.Latest.ID || after.Trigger != "manual" {
-		t.Errorf("latest run: %s %s", after.ID, after.Trigger)
+	if after := readinesstest.Latest(t, c, "acme-newsletter", id); after.ID != poll.Latest.ID || after.Trigger != "manual" || after.RanBy != "Linh Nguyen" || after.RanByType != "" {
+		t.Errorf("latest run: %s %s by %q (%s)", after.ID, after.Trigger, after.RanBy, after.RanByType)
 	}
 	var actor string
 	if err := env.App.Pool.QueryRow(ctx, `SELECT actor_name FROM audit_events WHERE action = 'readiness.run' AND target_id = $1 ORDER BY occurred_at DESC LIMIT 1`, id).Scan(&actor); err != nil || actor != "Linh Nguyen" {
@@ -240,9 +240,21 @@ func TestRunsAreBackgroundJobs(t *testing.T) {
 	c.Do("POST", ws+"/api-keys", map[string]any{"name": "Readiness bot", "permissions": []string{"campaigns:edit"}}).MustStatus(t, 201).JSON(t, &key)
 	bot := env.Client()
 	bot.Bearer = key.Secret
-	bot.Do("POST", ws+"/campaigns/"+id+"/readiness", nil).MustStatus(t, 202)
+	poll = readiness.ReadinessPoll{}
+	bot.Do("POST", ws+"/campaigns/"+id+"/readiness", nil).MustStatus(t, 202).JSON(t, &poll)
+	// Waiting and done, the run names the key, never Linh, who made it.
+	if poll.Running == nil || poll.Running.StartedBy != "Readiness bot" || poll.Running.StartedByType != "api_key" {
+		t.Errorf("the key's queued run: %+v", poll.Running)
+	}
 	if n := readinesstest.Work(t, env); n != 1 {
 		t.Fatalf("worked %d runs", n)
+	}
+	if run := readinesstest.Latest(t, c, "acme-newsletter", id); run.RanBy != "Readiness bot" || run.RanByType != "api_key" {
+		t.Errorf("the key's run is by %q (%s), want the key", run.RanBy, run.RanByType)
+	}
+	var ranBy *string
+	if err := env.App.Pool.QueryRow(ctx, `SELECT ran_by::text FROM readiness_runs WHERE campaign_id = $1 ORDER BY ran_at DESC LIMIT 1`, id).Scan(&ranBy); err != nil || ranBy != nil {
+		t.Errorf("the key's run names a person: %v %v", ranBy, err)
 	}
 	var typ, name, actorID string
 	if err := env.App.Pool.QueryRow(ctx, `SELECT actor_type, actor_name, coalesce(actor_id::text, '') FROM audit_events

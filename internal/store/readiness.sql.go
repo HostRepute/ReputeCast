@@ -263,25 +263,26 @@ func (q *Queries) ReadinessForgetConfirmation(ctx context.Context, campaignID uu
 const readinessGetProgress = `-- name: ReadinessGetProgress :one
 SELECT p.campaign_id, p.run_id, p.trigger, p.started_by, p.started_at, p.updated_at, p.groups, p.done, p.total,
        p.failed_at, p.error,
-       coalesce(u.name, '')::text AS started_by_name
+       coalesce(u.name, nullif(p.started_by_actor_name, ''), '')::text AS started_by_name, p.started_by_actor_type
 FROM readiness_progress p
 LEFT JOIN users u ON u.id = p.started_by
 WHERE p.campaign_id = $1
 `
 
 type ReadinessGetProgressRow struct {
-	CampaignID    uuid.UUID       `json:"campaignId"`
-	RunID         uuid.UUID       `json:"runId"`
-	Trigger       string          `json:"trigger"`
-	StartedBy     *uuid.UUID      `json:"startedBy"`
-	StartedAt     time.Time       `json:"startedAt"`
-	UpdatedAt     time.Time       `json:"updatedAt"`
-	Groups        json.RawMessage `json:"groups"`
-	Done          int32           `json:"done"`
-	Total         int32           `json:"total"`
-	FailedAt      *time.Time      `json:"failedAt"`
-	Error         string          `json:"error"`
-	StartedByName string          `json:"startedByName"`
+	CampaignID         uuid.UUID       `json:"campaignId"`
+	RunID              uuid.UUID       `json:"runId"`
+	Trigger            string          `json:"trigger"`
+	StartedBy          *uuid.UUID      `json:"startedBy"`
+	StartedAt          time.Time       `json:"startedAt"`
+	UpdatedAt          time.Time       `json:"updatedAt"`
+	Groups             json.RawMessage `json:"groups"`
+	Done               int32           `json:"done"`
+	Total              int32           `json:"total"`
+	FailedAt           *time.Time      `json:"failedAt"`
+	Error              string          `json:"error"`
+	StartedByName      string          `json:"startedByName"`
+	StartedByActorType string          `json:"startedByActorType"`
 }
 
 func (q *Queries) ReadinessGetProgress(ctx context.Context, campaignID uuid.UUID) (ReadinessGetProgressRow, error) {
@@ -300,6 +301,7 @@ func (q *Queries) ReadinessGetProgress(ctx context.Context, campaignID uuid.UUID
 		&i.FailedAt,
 		&i.Error,
 		&i.StartedByName,
+		&i.StartedByActorType,
 	)
 	return i, err
 }
@@ -307,7 +309,7 @@ func (q *Queries) ReadinessGetProgress(ctx context.Context, campaignID uuid.UUID
 const readinessGetRun = `-- name: ReadinessGetRun :one
 SELECT rr.id, rr.campaign_id, rr.trigger, rr.verdict, rr.checks, rr.estimates, rr.ran_at, rr.duration_ms, rr.ran_by, rr.campaign_version,
        rr.fingerprint, rr.unknown_accepted_at, rr.unknown_accepted_by,
-       coalesce(u.name, '')::text AS ran_by_name,
+       coalesce(u.name, nullif(rr.ran_by_actor_name, ''), '')::text AS ran_by_name, rr.ran_by_actor_type,
        coalesce(a.name, '')::text AS accepted_by_name
 FROM readiness_runs rr
 LEFT JOIN users u ON u.id = rr.ran_by
@@ -335,6 +337,7 @@ type ReadinessGetRunRow struct {
 	UnknownAcceptedAt *time.Time      `json:"unknownAcceptedAt"`
 	UnknownAcceptedBy *uuid.UUID      `json:"unknownAcceptedBy"`
 	RanByName         string          `json:"ranByName"`
+	RanByActorType    string          `json:"ranByActorType"`
 	AcceptedByName    string          `json:"acceptedByName"`
 }
 
@@ -356,6 +359,7 @@ func (q *Queries) ReadinessGetRun(ctx context.Context, arg ReadinessGetRunParams
 		&i.UnknownAcceptedAt,
 		&i.UnknownAcceptedBy,
 		&i.RanByName,
+		&i.RanByActorType,
 		&i.AcceptedByName,
 	)
 	return i, err
@@ -386,8 +390,10 @@ func (q *Queries) ReadinessInsertRoute(ctx context.Context, arg ReadinessInsertR
 }
 
 const readinessInsertRun = `-- name: ReadinessInsertRun :exec
-INSERT INTO readiness_runs (id, campaign_id, trigger, verdict, checks, estimates, ran_at, duration_ms, ran_by, campaign_version, fingerprint)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+INSERT INTO readiness_runs (id, campaign_id, trigger, verdict, checks, estimates, ran_at, duration_ms, ran_by, ran_by_actor_type, ran_by_actor_name,
+                            campaign_version, fingerprint)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+        $12, $13)
 `
 
 type ReadinessInsertRunParams struct {
@@ -400,10 +406,13 @@ type ReadinessInsertRunParams struct {
 	RanAt           time.Time       `json:"ranAt"`
 	DurationMs      int32           `json:"durationMs"`
 	RanBy           *uuid.UUID      `json:"ranBy"`
+	RanByActorType  string          `json:"ranByActorType"`
+	RanByActorName  string          `json:"ranByActorName"`
 	CampaignVersion int32           `json:"campaignVersion"`
 	Fingerprint     string          `json:"fingerprint"`
 }
 
+// ran_by is the person who asked; an API key or agent is ran_by_actor_*.
 func (q *Queries) ReadinessInsertRun(ctx context.Context, arg ReadinessInsertRunParams) error {
 	_, err := q.db.Exec(ctx, readinessInsertRun,
 		arg.ID,
@@ -415,6 +424,8 @@ func (q *Queries) ReadinessInsertRun(ctx context.Context, arg ReadinessInsertRun
 		arg.RanAt,
 		arg.DurationMs,
 		arg.RanBy,
+		arg.RanByActorType,
+		arg.RanByActorName,
 		arg.CampaignVersion,
 		arg.Fingerprint,
 	)
@@ -424,7 +435,7 @@ func (q *Queries) ReadinessInsertRun(ctx context.Context, arg ReadinessInsertRun
 const readinessLatestRun = `-- name: ReadinessLatestRun :one
 SELECT rr.id, rr.campaign_id, rr.trigger, rr.verdict, rr.checks, rr.estimates, rr.ran_at, rr.duration_ms, rr.ran_by, rr.campaign_version,
        rr.fingerprint, rr.unknown_accepted_at, rr.unknown_accepted_by,
-       coalesce(u.name, '')::text AS ran_by_name,
+       coalesce(u.name, nullif(rr.ran_by_actor_name, ''), '')::text AS ran_by_name, rr.ran_by_actor_type,
        coalesce(a.name, '')::text AS accepted_by_name
 FROM readiness_runs rr
 LEFT JOIN users u ON u.id = rr.ran_by
@@ -449,6 +460,7 @@ type ReadinessLatestRunRow struct {
 	UnknownAcceptedAt *time.Time      `json:"unknownAcceptedAt"`
 	UnknownAcceptedBy *uuid.UUID      `json:"unknownAcceptedBy"`
 	RanByName         string          `json:"ranByName"`
+	RanByActorType    string          `json:"ranByActorType"`
 	AcceptedByName    string          `json:"acceptedByName"`
 }
 
@@ -470,6 +482,7 @@ func (q *Queries) ReadinessLatestRun(ctx context.Context, campaignID uuid.UUID) 
 		&i.UnknownAcceptedAt,
 		&i.UnknownAcceptedBy,
 		&i.RanByName,
+		&i.RanByActorType,
 		&i.AcceptedByName,
 	)
 	return i, err
@@ -975,24 +988,27 @@ func (q *Queries) ReadinessSetSendSettings(ctx context.Context, arg ReadinessSet
 }
 
 const readinessStartProgress = `-- name: ReadinessStartProgress :one
-INSERT INTO readiness_progress (campaign_id, run_id, trigger, started_by, started_at, updated_at, groups, done, total)
-VALUES ($1, $2, $3, $4, $5, $5, $6, 0, $7)
+INSERT INTO readiness_progress (campaign_id, run_id, trigger, started_by, started_by_actor_type, started_by_actor_name, started_at, updated_at, groups, done, total)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $7, $8, 0, $9)
 ON CONFLICT (campaign_id) DO UPDATE
-SET run_id = EXCLUDED.run_id, trigger = EXCLUDED.trigger, started_by = EXCLUDED.started_by, started_at = EXCLUDED.started_at,
+SET run_id = EXCLUDED.run_id, trigger = EXCLUDED.trigger, started_by = EXCLUDED.started_by, started_by_actor_type = EXCLUDED.started_by_actor_type,
+    started_by_actor_name = EXCLUDED.started_by_actor_name, started_at = EXCLUDED.started_at,
     updated_at = EXCLUDED.updated_at, groups = EXCLUDED.groups, done = 0, total = EXCLUDED.total, failed_at = NULL, error = ''
-WHERE readiness_progress.updated_at < $8::timestamptz OR readiness_progress.failed_at IS NOT NULL
+WHERE readiness_progress.updated_at < $10::timestamptz OR readiness_progress.failed_at IS NOT NULL
 RETURNING run_id
 `
 
 type ReadinessStartProgressParams struct {
-	CampaignID  uuid.UUID       `json:"campaignId"`
-	RunID       uuid.UUID       `json:"runId"`
-	Trigger     string          `json:"trigger"`
-	StartedBy   *uuid.UUID      `json:"startedBy"`
-	Now         time.Time       `json:"now"`
-	Groups      json.RawMessage `json:"groups"`
-	Total       int32           `json:"total"`
-	StaleBefore time.Time       `json:"staleBefore"`
+	CampaignID         uuid.UUID       `json:"campaignId"`
+	RunID              uuid.UUID       `json:"runId"`
+	Trigger            string          `json:"trigger"`
+	StartedBy          *uuid.UUID      `json:"startedBy"`
+	StartedByActorType string          `json:"startedByActorType"`
+	StartedByActorName string          `json:"startedByActorName"`
+	Now                time.Time       `json:"now"`
+	Groups             json.RawMessage `json:"groups"`
+	Total              int32           `json:"total"`
+	StaleBefore        time.Time       `json:"staleBefore"`
 }
 
 // Starts a run unless one is already waiting or running (a run that stopped
@@ -1003,6 +1019,8 @@ func (q *Queries) ReadinessStartProgress(ctx context.Context, arg ReadinessStart
 		arg.RunID,
 		arg.Trigger,
 		arg.StartedBy,
+		arg.StartedByActorType,
+		arg.StartedByActorName,
 		arg.Now,
 		arg.Groups,
 		arg.Total,

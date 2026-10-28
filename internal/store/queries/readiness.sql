@@ -42,13 +42,16 @@ SELECT id, name FROM segments WHERE workspace_id = @workspace_id ORDER BY name;
 SELECT count(*)::bigint FROM lists WHERE workspace_id = @workspace_id AND deleted_at IS NULL;
 
 -- name: ReadinessInsertRun :exec
-INSERT INTO readiness_runs (id, campaign_id, trigger, verdict, checks, estimates, ran_at, duration_ms, ran_by, campaign_version, fingerprint)
-VALUES (@id, @campaign_id, @trigger, @verdict, @checks, @estimates, @ran_at, @duration_ms, sqlc.narg(ran_by), @campaign_version, @fingerprint);
+-- ran_by is the person who asked; an API key or agent is ran_by_actor_*.
+INSERT INTO readiness_runs (id, campaign_id, trigger, verdict, checks, estimates, ran_at, duration_ms, ran_by, ran_by_actor_type, ran_by_actor_name,
+                            campaign_version, fingerprint)
+VALUES (@id, @campaign_id, @trigger, @verdict, @checks, @estimates, @ran_at, @duration_ms, sqlc.narg(ran_by), @ran_by_actor_type, @ran_by_actor_name,
+        @campaign_version, @fingerprint);
 
 -- name: ReadinessLatestRun :one
 SELECT rr.id, rr.campaign_id, rr.trigger, rr.verdict, rr.checks, rr.estimates, rr.ran_at, rr.duration_ms, rr.ran_by, rr.campaign_version,
        rr.fingerprint, rr.unknown_accepted_at, rr.unknown_accepted_by,
-       coalesce(u.name, '')::text AS ran_by_name,
+       coalesce(u.name, nullif(rr.ran_by_actor_name, ''), '')::text AS ran_by_name, rr.ran_by_actor_type,
        coalesce(a.name, '')::text AS accepted_by_name
 FROM readiness_runs rr
 LEFT JOIN users u ON u.id = rr.ran_by
@@ -60,7 +63,7 @@ LIMIT 1;
 -- name: ReadinessGetRun :one
 SELECT rr.id, rr.campaign_id, rr.trigger, rr.verdict, rr.checks, rr.estimates, rr.ran_at, rr.duration_ms, rr.ran_by, rr.campaign_version,
        rr.fingerprint, rr.unknown_accepted_at, rr.unknown_accepted_by,
-       coalesce(u.name, '')::text AS ran_by_name,
+       coalesce(u.name, nullif(rr.ran_by_actor_name, ''), '')::text AS ran_by_name, rr.ran_by_actor_type,
        coalesce(a.name, '')::text AS accepted_by_name
 FROM readiness_runs rr
 LEFT JOIN users u ON u.id = rr.ran_by
@@ -84,10 +87,11 @@ WHERE r.campaign_id = @campaign_id
 -- name: ReadinessStartProgress :one
 -- Starts a run unless one is already waiting or running (a run that stopped
 -- updating for two minutes, or failed, is taken over).
-INSERT INTO readiness_progress (campaign_id, run_id, trigger, started_by, started_at, updated_at, groups, done, total)
-VALUES (@campaign_id, @run_id, @trigger, sqlc.narg(started_by), @now, @now, @groups, 0, @total)
+INSERT INTO readiness_progress (campaign_id, run_id, trigger, started_by, started_by_actor_type, started_by_actor_name, started_at, updated_at, groups, done, total)
+VALUES (@campaign_id, @run_id, @trigger, sqlc.narg(started_by), @started_by_actor_type, @started_by_actor_name, @now, @now, @groups, 0, @total)
 ON CONFLICT (campaign_id) DO UPDATE
-SET run_id = EXCLUDED.run_id, trigger = EXCLUDED.trigger, started_by = EXCLUDED.started_by, started_at = EXCLUDED.started_at,
+SET run_id = EXCLUDED.run_id, trigger = EXCLUDED.trigger, started_by = EXCLUDED.started_by, started_by_actor_type = EXCLUDED.started_by_actor_type,
+    started_by_actor_name = EXCLUDED.started_by_actor_name, started_at = EXCLUDED.started_at,
     updated_at = EXCLUDED.updated_at, groups = EXCLUDED.groups, done = 0, total = EXCLUDED.total, failed_at = NULL, error = ''
 WHERE readiness_progress.updated_at < @stale_before::timestamptz OR readiness_progress.failed_at IS NOT NULL
 RETURNING run_id;
@@ -113,7 +117,7 @@ DELETE FROM readiness_progress WHERE campaign_id = @campaign_id AND run_id = @ru
 -- name: ReadinessGetProgress :one
 SELECT p.campaign_id, p.run_id, p.trigger, p.started_by, p.started_at, p.updated_at, p.groups, p.done, p.total,
        p.failed_at, p.error,
-       coalesce(u.name, '')::text AS started_by_name
+       coalesce(u.name, nullif(p.started_by_actor_name, ''), '')::text AS started_by_name, p.started_by_actor_type
 FROM readiness_progress p
 LEFT JOIN users u ON u.id = p.started_by
 WHERE p.campaign_id = @campaign_id;

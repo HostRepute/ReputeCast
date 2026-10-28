@@ -2778,6 +2778,7 @@ type Querier interface {
 	ReadinessGetProgress(ctx context.Context, campaignID uuid.UUID) (ReadinessGetProgressRow, error)
 	ReadinessGetRun(ctx context.Context, arg ReadinessGetRunParams) (ReadinessGetRunRow, error)
 	ReadinessInsertRoute(ctx context.Context, arg ReadinessInsertRouteParams) error
+	// ran_by is the person who asked; an API key or agent is ran_by_actor_*.
 	ReadinessInsertRun(ctx context.Context, arg ReadinessInsertRunParams) error
 	ReadinessLatestRun(ctx context.Context, campaignID uuid.UUID) (ReadinessLatestRunRow, error)
 	// The latest run's id, time and verdict: what the review screen's poll

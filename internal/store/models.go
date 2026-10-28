@@ -3208,17 +3208,19 @@ type PushTestSubscription struct {
 }
 
 type ReadinessProgress struct {
-	CampaignID uuid.UUID       `json:"campaignId"`
-	RunID      uuid.UUID       `json:"runId"`
-	Trigger    string          `json:"trigger"`
-	StartedBy  *uuid.UUID      `json:"startedBy"`
-	StartedAt  time.Time       `json:"startedAt"`
-	UpdatedAt  time.Time       `json:"updatedAt"`
-	Groups     json.RawMessage `json:"groups"`
-	Done       int32           `json:"done"`
-	Total      int32           `json:"total"`
-	FailedAt   *time.Time      `json:"failedAt"`
-	Error      string          `json:"error"`
+	CampaignID         uuid.UUID       `json:"campaignId"`
+	RunID              uuid.UUID       `json:"runId"`
+	Trigger            string          `json:"trigger"`
+	StartedBy          *uuid.UUID      `json:"startedBy"`
+	StartedAt          time.Time       `json:"startedAt"`
+	UpdatedAt          time.Time       `json:"updatedAt"`
+	Groups             json.RawMessage `json:"groups"`
+	Done               int32           `json:"done"`
+	Total              int32           `json:"total"`
+	FailedAt           *time.Time      `json:"failedAt"`
+	Error              string          `json:"error"`
+	StartedByActorType string          `json:"startedByActorType"`
+	StartedByActorName string          `json:"startedByActorName"`
 }
 
 type ReadinessRun struct {
@@ -3235,6 +3237,8 @@ type ReadinessRun struct {
 	Fingerprint       string          `json:"fingerprint"`
 	UnknownAcceptedAt *time.Time      `json:"unknownAcceptedAt"`
 	UnknownAcceptedBy *uuid.UUID      `json:"unknownAcceptedBy"`
+	RanByActorType    string          `json:"ranByActorType"`
+	RanByActorName    string          `json:"ranByActorName"`
 }
 
 type Recommendation struct {

@@ -373,8 +373,12 @@ type ReadinessRun struct {
 	CampaignID string    `json:"campaignId"`
 	Trigger    string    `json:"trigger" enum:"manual,composer,schedule,send_time,approval"`
 	RanAt      time.Time `json:"ranAt"`
-	RanBy      string    `json:"ranBy,omitempty"`
-	DurationMs int       `json:"durationMs"`
+	// RanBy names who asked for the run: a person, or an API key or agent
+	// as itself (RanByType). Empty for runs nobody asked for.
+	RanBy string `json:"ranBy,omitempty"`
+	// RanByType is set when RanBy names an API key or an agent.
+	RanByType  string `json:"ranByType,omitempty" enum:"api_key,mcp_agent"`
+	DurationMs int    `json:"durationMs"`
 	// Version is the campaign version the run checked.
 	Version int `json:"version"`
 	ReadinessResult
@@ -413,6 +417,8 @@ type ReadinessProgress struct {
 	Trigger   string    `json:"trigger"`
 	StartedAt time.Time `json:"startedAt"`
 	StartedBy string    `json:"startedBy,omitempty"`
+	// StartedByType is set when StartedBy names an API key or an agent.
+	StartedByType string `json:"startedByType,omitempty" enum:"api_key,mcp_agent"`
 	// Queued is true until a worker takes the run up.
 	Queued bool                     `json:"queued"`
 	Done   int                      `json:"done"`

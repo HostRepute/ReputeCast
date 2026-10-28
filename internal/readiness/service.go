@@ -116,13 +116,33 @@ const staleAfter = 2 * time.Minute
 // RunOptions describe a run.
 type RunOptions struct {
 	Trigger string
-	// By is the person who asked (nil for jobs); for an API key or an
-	// agent, the person who made it.
+	// By is the person who asked: nil for jobs, API keys and agents.
 	By *uuid.UUID
-	// Actor is who asked as the audit log names them: the API key or
-	// agent itself, not the person who made it. Start keeps the request's
-	// caller with the queued run, so the worker that runs it logs them.
+	// Actor is who asked as the audit log names them: an API key or agent
+	// as itself, never as the person who made it. Start keeps the
+	// request's caller with the queued run, so the worker that runs it
+	// logs and names them.
 	Actor *audit.Actor
+}
+
+// askedBy is o with who asked taken from the request: callers pass the
+// caller's user as By, and an API key's or agent's user is the person who
+// made it, so a key or agent asks as itself instead.
+func (o RunOptions) askedBy(ctx context.Context) RunOptions {
+	if p := audit.PrincipalFrom(ctx); o.By != nil && p != nil && !p.IsHuman() {
+		pid := p.ID
+		o.By, o.Actor = nil, &audit.Actor{Type: p.Type, ID: &pid, Name: p.Name}
+	}
+	return o
+}
+
+// nonHuman is the API key or agent behind a run, when one asked: its type
+// and name for the run's ran_by_actor_* and the progress's started_by_actor_*.
+func (o RunOptions) nonHuman() (string, string) {
+	if a := o.Actor; a != nil && (a.Type == authz.ActorAPIKey || a.Type == authz.ActorMCPAgent) {
+		return string(a.Type), a.Name
+	}
+	return "", ""
 }
 
 // Fingerprint identifies what a run checks: content, sender, audience,
@@ -177,6 +197,7 @@ func (s *Service) Run(ctx context.Context, ws *store.Workspace, id uuid.UUID, o 
 	if o.Trigger == "" {
 		o.Trigger = TriggerManual
 	}
+	o = o.askedBy(ctx)
 	if _, err := s.Campaign(ctx, ws, id); err != nil {
 		return ReadinessRun{}, err
 	}
@@ -195,6 +216,7 @@ func (s *Service) Start(ctx context.Context, ws *store.Workspace, id uuid.UUID, 
 	if o.Trigger == "" {
 		o.Trigger = TriggerManual
 	}
+	o = o.askedBy(ctx)
 	if _, err := s.Campaign(ctx, ws, id); err != nil {
 		return nil, err
 	}
@@ -202,8 +224,8 @@ func (s *Service) Start(ctx context.Context, ws *store.Workspace, id uuid.UUID, 
 		return nil, errors.New("send readiness: no job queue in this process")
 	}
 	runID := uuid.Must(uuid.NewV7())
-	// The worker logs the run as who asked: the request's caller, an API
-	// key or agent as itself (By is the person who made it).
+	// The worker logs and names the run as who asked: the request's
+	// caller, an API key or agent as itself.
 	args := RunArgs{CampaignID: id, WorkspaceID: ws.ID, RunID: runID, Trigger: o.Trigger, By: o.By}
 	actor := o.Actor
 	if p := audit.PrincipalFrom(ctx); actor == nil && p != nil {
@@ -231,8 +253,9 @@ func (s *Service) claim(ctx context.Context, q *store.Queries, id, runID uuid.UU
 	started := s.now()
 	groups := s.queuedGroups()
 	gb, _ := json.Marshal(groups)
+	actorType, actorName := o.nonHuman()
 	if _, err := q.ReadinessStartProgress(ctx, store.ReadinessStartProgressParams{CampaignID: id, RunID: runID, Trigger: o.Trigger, StartedBy: o.By,
-		Now: started, Groups: gb, Total: 0, StaleBefore: started.Add(-staleAfter)}); err != nil {
+		StartedByActorType: actorType, StartedByActorName: actorName, Now: started, Groups: gb, Total: 0, StaleBefore: started.Add(-staleAfter)}); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrRunning
 		}
@@ -321,6 +344,8 @@ func (s *Service) runClaimed(ctx context.Context, ws *store.Workspace, id, runID
 		if u, err := s.Q.GetUser(ctx, *o.By); err == nil {
 			run.RanBy = u.Name
 		}
+	} else if t, name := o.nonHuman(); t != "" {
+		run.RanBy, run.RanByType = name, t
 	}
 	return run, nil
 }
@@ -468,6 +493,7 @@ func (p *progressWriter) stage(st stage, f Facts) {
 // audience count, and keeps the history short.
 func (s *Service) store(ctx context.Context, ws *store.Workspace, c store.ReadinessCampaignRow, run ReadinessRun, o RunOptions) error {
 	by := o.By
+	actorType, actorName := o.nonHuman()
 	checks, est, err := EncodeResult(run.ReadinessResult)
 	if err != nil {
 		return err
@@ -476,7 +502,8 @@ func (s *Service) store(ctx context.Context, ws *store.Workspace, c store.Readin
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.ReadinessInsertRun(ctx, store.ReadinessInsertRunParams{ID: id, CampaignID: c.ID, Trigger: run.Trigger, Verdict: run.Verdict, Checks: checks,
-			Estimates: est, RanAt: run.RanAt, DurationMs: int32(run.DurationMs), RanBy: by, CampaignVersion: c.Version, Fingerprint: run.Fingerprint}); err != nil {
+			Estimates: est, RanAt: run.RanAt, DurationMs: int32(run.DurationMs), RanBy: by, RanByActorType: actorType, RanByActorName: actorName,
+			CampaignVersion: c.Version, Fingerprint: run.Fingerprint}); err != nil {
 			return err
 		}
 		if editable(c.Status) {
@@ -516,7 +543,7 @@ func (s *Service) store(ctx context.Context, ws *store.Workspace, c store.Readin
 		}
 		var actor *audit.Actor
 		switch {
-		case by == nil:
+		case by == nil && actorType == "":
 			actor = &audit.Actor{Type: authz.ActorSystem, Name: "System"}
 		case audit.PrincipalFrom(ctx) != nil:
 			// Run inside the request: the caller, as the request says.
@@ -586,6 +613,7 @@ func (s *Service) Latest(ctx context.Context, campaignID uuid.UUID) (*ReadinessR
 		return nil, err
 	}
 	run := decodeRun(r.ID, r.CampaignID, r.Trigger, r.Verdict, r.Checks, r.Estimates, r.RanAt, r.DurationMs, r.CampaignVersion, r.Fingerprint, r.UnknownAcceptedAt, r.RanByName, r.AcceptedByName)
+	run.RanByType = r.RanByActorType
 	return &run, nil
 }
 
@@ -596,6 +624,7 @@ func (s *Service) Get(ctx context.Context, campaignID, runID uuid.UUID) (*Readin
 		return nil, api.MapError(err, "Readiness run")
 	}
 	run := decodeRun(r.ID, r.CampaignID, r.Trigger, r.Verdict, r.Checks, r.Estimates, r.RanAt, r.DurationMs, r.CampaignVersion, r.Fingerprint, r.UnknownAcceptedAt, r.RanByName, r.AcceptedByName)
+	run.RanByType = r.RanByActorType
 	return &run, nil
 }
 
@@ -690,8 +719,8 @@ func (s *Service) progressRow(ctx context.Context, campaignID uuid.UUID) (*Readi
 	if p.UpdatedAt.Before(s.now().Add(-staleAfter)) {
 		return nil, nil, nil
 	}
-	out := &ReadinessProgress{RunID: p.RunID.String(), Trigger: p.Trigger, StartedAt: p.StartedAt, StartedBy: p.StartedByName, Done: int(p.Done), Total: int(p.Total),
-		Groups: []ReadinessProgressGroup{}}
+	out := &ReadinessProgress{RunID: p.RunID.String(), Trigger: p.Trigger, StartedAt: p.StartedAt, StartedBy: p.StartedByName, StartedByType: p.StartedByActorType,
+		Done: int(p.Done), Total: int(p.Total), Groups: []ReadinessProgressGroup{}}
 	_ = json.Unmarshal(p.Groups, &out.Groups)
 	out.Queued = true
 	for _, g := range out.Groups {
