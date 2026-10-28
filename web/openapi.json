@@ -19199,6 +19199,14 @@
             "maxLength": 16,
             "type": "string"
           },
+          "sample": {
+            "description": "Personalize as Preview's reader without a first name",
+            "enum": [
+              "contact",
+              "no_first_name"
+            ],
+            "type": "string"
+          },
           "to": {
             "items": {
               "type": "string"
@@ -116586,7 +116594,7 @@
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/dismissals": {
       "post": {
-        "description": "key is the warning's issueKeys entry from the checks. The warning stays listed with who dismissed it and why, and comes back when it changes. Blocking issues are never dismissed. Review \u0026 send counts a dismissed warning as confirmed, so only a signed-in person can dismiss one, not an API key or agent.",
+        "description": "key is the warning's issueKeys entry from the checks. The warning stays listed with who dismissed it and why, and comes back when it changes. Blocking issues can't be dismissed: their checks are refused with 422. Review \u0026 send counts a dismissed warning as confirmed, so only a signed-in person can dismiss one, not an API key or agent.",
         "operationId": "dismiss-campaign-warning",
         "parameters": [
           {

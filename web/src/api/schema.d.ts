@@ -3978,7 +3978,7 @@ export interface paths {
         put?: never;
         /**
          * Dismiss a warning of the composer's checks, with a reason
-         * @description key is the warning's issueKeys entry from the checks. The warning stays listed with who dismissed it and why, and comes back when it changes. Blocking issues are never dismissed. Review & send counts a dismissed warning as confirmed, so only a signed-in person can dismiss one, not an API key or agent.
+         * @description key is the warning's issueKeys entry from the checks. The warning stays listed with who dismissed it and why, and comes back when it changes. Blocking issues can't be dismissed: their checks are refused with 422. Review & send counts a dismissed warning as confirmed, so only a signed-in person can dismiss one, not an API key or agent.
          */
         post: operations["dismiss-campaign-warning"];
         delete?: never;
@@ -23019,6 +23019,11 @@ export interface components {
             contactId?: string;
             eachLanguage?: boolean;
             language?: string;
+            /**
+             * @description Personalize as Preview's reader without a first name
+             * @enum {string}
+             */
+            sample?: "contact" | "no_first_name";
             to: string[];
             /** @enum {string} */
             variant?: "A" | "B" | "C";

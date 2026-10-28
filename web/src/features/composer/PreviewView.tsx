@@ -6,7 +6,7 @@ import { clock, count, decimal } from '@/lib/format'
 import { T, t as tt, useT, type MessageDescriptor } from '@/i18n'
 import { useComposer } from './context'
 import { inboxTime } from './format'
-import { SendTestButton } from './SendTest'
+import { SendTestButton, type TestAs } from './SendTest'
 import { mb } from './blocks.messages'
 import { m } from './messages'
 import { mp } from './preview.messages'
@@ -287,6 +287,16 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
   // Conditional content: the version the previewed contact gets, and why.
   const version = usePreviewVersion(sample.sample === 'contact' ? (sample.contactId ?? preview?.contact?.id ?? undefined) : undefined)
   const extra = sample.contactId && !contacts.data?.items.some((ct) => ct.id === sample.contactId) ? cond?.contacts.find((ct) => ct.id === sample.contactId) : undefined
+  // Send test goes out personalized as the reader the preview shows (R4.L5):
+  // the picked contact (named before its preview arrives), the one the
+  // server chose, or the reader without a first name.
+  const testAs = ((): TestAs | undefined => {
+    if (sample.sample === 'no_first_name') return { sample: 'no_first_name' }
+    const id = (sample.sample === 'contact' ? sample.contactId : undefined) ?? preview?.contact?.id
+    if (!id) return undefined
+    const who = contacts.data?.items.find((ct) => ct.id === id) ?? (preview?.contact?.id === id ? preview.contact : undefined) ?? (extra?.id === id ? extra : undefined)
+    return { contactId: id, name: who ? who.name || who.email : '' }
+  })()
   const senderLine = (darkMode: boolean) => (
     <div className="flex flex-col gap-0.5" style={{ padding: '0 0 10px', borderBottom: `1px solid ${darkMode ? '#1F2937' : 'var(--line-2)'}`, marginBottom: 10 }}>
       <span className="text-[15px] font-semibold">{preview?.subject ?? c.subject}</span>
@@ -332,7 +342,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
                 </select>
               </label>
               <ShowWhyToggle v={version} />
-              <SendTestButton toMe />
+              <SendTestButton toMe as={testAs} />
               <button type="button" className="btn pri" onClick={onReview}>
                 {c.campaign.access.canSend ? tr(m.reviewSend) : tr(m.requestApproval)}
               </button>

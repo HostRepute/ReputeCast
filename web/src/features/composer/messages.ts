@@ -106,6 +106,9 @@ export const m = defineMessages('composer', {
   // Send test.
   testSent: 'Test sent to {to}',
   testVia: 'via {provider}',
+  /** A test sent from Preview, personalized as the "Preview as" contact. */
+  testViaAs: 'Personalized as {name}, via {provider}',
+  testViaNoFirstName: 'Personalized as a reader without a first name, via {provider}',
   testFailed: "Couldn't send the test",
   checkConnection: 'Check your connection and try again.',
   sendTest: 'Send test',

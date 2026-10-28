@@ -128,12 +128,30 @@ func TestComposerPreviewUsesTheContactsOwnFields(t *testing.T) {
 		t.Fatalf("Mary Ann: %s", between(pv.HTML, "Dear", "."))
 	}
 
-	// A test send personalized as a contact says the same.
+	// A test send personalized as the previewed contact says the same
+	// (R4.L5): no first name gets the fallback, and Mary Ann stays whole.
 	c.Do("POST", ws+"/campaigns/"+d.ID+"/test", map[string]any{"to": []string{"linh@acme.io"}, "contactId": nguyen}).MustStatus(t, 200)
+	c.Do("POST", ws+"/campaigns/"+d.ID+"/test", map[string]any{"to": []string{"linh@acme.io"}, "contactId": maryAnn}).MustStatus(t, 200)
+	// Preview's "No first name" reader: the fallbacks show.
+	c.Do("POST", ws+"/campaigns/"+d.ID+"/test", map[string]any{"to": []string{"linh@acme.io"}, "sample": "no_first_name"}).MustStatus(t, 200)
+	c.Do("POST", ws+"/campaigns/"+d.ID+"/test", map[string]any{"to": []string{"linh@acme.io"}, "sample": "random"}).MustStatus(t, 422)
 	box.mu.Lock()
 	defer box.mu.Unlock()
-	if len(box.msgs) != 1 || box.msgs[0].Subject != "[Test] Hi there" || !strings.Contains(box.msgs[0].HTML, "Dear there Nguyen,") {
-		t.Fatalf("test send: %d messages", len(box.msgs))
+	if len(box.msgs) != 3 {
+		t.Fatalf("test sends: %d messages", len(box.msgs))
+	}
+	if m := box.msgs[0]; m.Subject != "[Test] Hi there" || !strings.Contains(m.HTML, "Dear there Nguyen,") {
+		t.Fatalf("as Nguyen: %q %s", m.Subject, between(m.HTML, "Dear", "."))
+	}
+	if m := box.msgs[1]; m.Subject != "[Test] Hi Mary Ann" || !strings.Contains(m.HTML, "Dear Mary Ann Smith,") {
+		t.Fatalf("as Mary Ann: %q %s", m.Subject, between(m.HTML, "Dear", "."))
+	}
+	if m := box.msgs[2]; m.Subject != "[Test] Hi there" || !strings.Contains(m.HTML, "Dear there ,") || strings.Contains(m.HTML, "Nguyen") {
+		t.Fatalf("without a first name: %q %s", m.Subject, between(m.HTML, "Dear", "."))
+	}
+	var who struct{ After map[string]any }
+	if err := env.App.Pool.QueryRow(ctx, `SELECT jsonb_build_object('After', after) FROM audit_events WHERE action = 'campaign.test_send' AND target_id = $1 ORDER BY occurred_at, id LIMIT 1 OFFSET 1`, d.ID).Scan(&who); err != nil || who.After["contactId"] != maryAnn {
+		t.Fatalf("the audit names who the test was personalized as: %+v %v", who, err)
 	}
 }
 

@@ -556,6 +556,10 @@ type ComposerTestSend struct {
 	To        []string `json:"to" minItems:"1" maxItems:"10"`
 	Variant   string   `json:"variant,omitempty" enum:"A,B,C"`
 	ContactID string   `json:"contactId,omitempty" format:"uuid" doc:"Personalize as this contact"`
+	// Sample no_first_name personalizes the test as Preview's reader
+	// without a first name (the fallbacks show). Without it or a contact,
+	// the test is personalized as the audience's first contact.
+	Sample string `json:"sample,omitempty" enum:"contact,no_first_name" doc:"Personalize as Preview's reader without a first name"`
 	// Language sends one language version (the source when empty);
 	// EachLanguage sends one email per language that would be sent.
 	Language     string `json:"language,omitempty" maxLength:"16"`
@@ -610,7 +614,7 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	type testEmail struct{ subject, html string }
 	emails := make([]testEmail, 0, len(langs))
 	for _, lang := range langs {
-		pv, err := s.Preview(ctx, ws, p, id, ComposerPreviewRequest{ContactID: in.ContactID, Variant: in.Variant, Language: lang})
+		pv, err := s.Preview(ctx, ws, p, id, ComposerPreviewRequest{ContactID: in.ContactID, Sample: in.Sample, Variant: in.Variant, Language: lang})
 		if err != nil {
 			return ComposerTestSendResult{}, err
 		}
@@ -660,6 +664,13 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	after := map[string]any{"to": to, "variant": in.Variant, "provider": provider}
 	if len(sent) > 0 {
 		after["languages"] = sent
+	}
+	// Who the test was personalized as (Preview as).
+	if in.ContactID != "" {
+		after["contactId"] = in.ContactID
+	}
+	if in.Sample == "no_first_name" {
+		after["sample"] = in.Sample
 	}
 	err := s.Audit.Log(ctx, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.test_send", TargetType: "campaign", TargetID: id.String(), After: after})
 	return ComposerTestSendResult{Sent: to, Provider: provider, Languages: sent}, err

@@ -10,15 +10,35 @@ import { TestSplit } from '@/features/placement/EntryPoints'
 import { t as tt, useT } from '@/i18n'
 import { m } from './messages'
 
-async function sendTest(slug: string, campaignId: string, to: string[], variant: string, language?: string) {
+/**
+ * Who a test is personalized as: Preview's "Preview as" contact, or its
+ * reader without a first name (R4.L5). Without it, the server uses the
+ * audience's first contact.
+ */
+export type TestAs = { contactId: string; name: string } | { sample: 'no_first_name' }
+
+async function sendTest(slug: string, campaignId: string, to: string[], variant: string, language?: string, as?: TestAs) {
   const { data } = await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/test', {
     params: { path: { workspace: slug, campaignId } },
-    body: { to, variant: variant === 'A' ? undefined : (variant as 'B' | 'C'), ...testLanguageBody(language) },
+    body: {
+      to,
+      variant: variant === 'A' ? undefined : (variant as 'B' | 'C'),
+      ...testLanguageBody(language),
+      ...(as && 'contactId' in as ? { contactId: as.contactId } : {}),
+      ...(as && 'sample' in as ? { sample: as.sample } : {}),
+    },
   })
   return data!
 }
 
-function useSend() {
+/** The toast's line under "Test sent to …": who it was personalized as, and the route. */
+function sentDetail(provider: string, as?: TestAs): string | undefined {
+  if (!provider) return undefined
+  if (as && 'sample' in as) return tt(m.testViaNoFirstName, { provider })
+  return as?.name ? tt(m.testViaAs, { name: as.name, provider }) : tt(m.testVia, { provider })
+}
+
+function useSend(as?: TestAs) {
   const c = useComposer()
   const [busy, setBusy] = useState(false)
   const run = async (to: string[], language = c.campaign.language) => {
@@ -30,8 +50,8 @@ function useSend() {
         toast({ kind: 'error', title: tt(m.testNeedsSave), detail: tt(m.testNeedsSaveDetail) })
         return false
       }
-      const r = await sendTest(c.slug, c.campaign.id, to, c.variant, language)
-      toast({ kind: 'success', title: tt(m.testSent, { to: r.sent.join(', ') }), detail: r.provider ? tt(m.testVia, { provider: r.provider }) : undefined })
+      const r = await sendTest(c.slug, c.campaign.id, to, c.variant, language, as)
+      toast({ kind: 'success', title: tt(m.testSent, { to: r.sent.join(', ') }), detail: sentDetail(r.provider, as) })
       return true
     } catch (e) {
       toast({ kind: 'error', title: tt(m.testFailed), detail: e instanceof ApiError ? e.message : tt(m.checkConnection) })
@@ -53,13 +73,13 @@ export function testBlockedReason(c: ReturnType<typeof useComposer>): string | u
   return c.canEdit && (s === 'error' || s === 'offline' || s === 'conflict') ? tt(m.testNeedsSave) : undefined
 }
 
-export function SendTestButton({ disabled, toMe }: { disabled?: boolean; toMe?: boolean }) {
+export function SendTestButton({ disabled, toMe, as }: { disabled?: boolean; toMe?: boolean; as?: TestAs }) {
   const c = useComposer()
   const t = useT()
   const blocked = testBlockedReason(c)
   const { data: me } = useMe()
   const email = me?.user.email ?? ''
-  const { busy, run } = useSend()
+  const { busy, run } = useSend(as)
   const [open, setOpen] = useState(false)
   const [picked, setPicked] = useState<string[]>([])
   const [extra, setExtra] = useState('')

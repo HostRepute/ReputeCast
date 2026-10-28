@@ -100,6 +100,8 @@ export default translate(m, {
 
   testSent: 'Đã gửi thư thử đến {to}',
   testVia: 'qua {provider}',
+  testViaAs: 'Cá nhân hóa theo {name}, qua {provider}',
+  testViaNoFirstName: 'Cá nhân hóa theo một người đọc không có tên, qua {provider}',
   testFailed: 'Không gửi được thư thử',
   checkConnection: 'Hãy kiểm tra kết nối rồi thử lại.',
   sendTest: 'Gửi thử',
