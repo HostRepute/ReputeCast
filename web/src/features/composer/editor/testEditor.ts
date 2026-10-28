@@ -40,6 +40,9 @@ export async function headlessMjmlEditor(body = ''): Promise<{ editor: Editor; c
   return { editor, compile: compile! }
 }
 
+/** The editor headlessComposerEditor made last, for tests to edit through. */
+export const headless: { current?: ComposerEditor } = {}
+
 /**
  * createComposerEditor for tests of the whole composer (vi.mock of
  * './editor/grapes'): the composer's interface over a headless editor, so
@@ -58,7 +61,7 @@ export async function headlessComposerEditor(_container: HTMLElement, opts: { bo
     getZoom: () => 100,
     setZoom: () => {},
   })
-  return {
+  headless.current = {
     editor,
     compile,
     getBody: () => editor.getHtml().trim(),
@@ -69,4 +72,5 @@ export async function headlessComposerEditor(_container: HTMLElement, opts: { bo
     isEditingText: () => !!editor.getEditing(),
     flushEditing: async () => {},
   }
+  return headless.current
 }

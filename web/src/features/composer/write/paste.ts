@@ -44,8 +44,16 @@ export function textToHtml(text: string): string {
     .join('')
 }
 
+/** Where a paste came from, by the marks each editor leaves in its HTML. */
+function pasteSource(html: string): string {
+  if (/docs-internal-guid/.test(html)) return 'Google Docs'
+  if (/<!--\s*notionvc:/i.test(html)) return 'Notion'
+  if (/urn:schemas-microsoft-com:office|class="?Mso/i.test(html)) return 'Word'
+  return ''
+}
+
 export function cleanPaste(html: string, doc: Document = document): CleanPaste {
-  const source = /docs-internal-guid/.test(html) ? 'Google Docs' : /urn:schemas-microsoft-com:office|class="?Mso/i.test(html) ? 'Word' : ''
+  const source = pasteSource(html)
   // Read in an inert document: a paste from any web page must not load or run anything.
   const box = parseInert(html.replace(/<!--[\s\S]*?-->/g, ''))
   const out: CleanPaste = { html: '', source, kept: [], removed: 0, images: 0 }
@@ -141,6 +149,12 @@ export function cleanPaste(html: string, doc: Document = document): CleanPaste {
   let loose: HTMLElement | null = null
   for (const child of Array.from(root.childNodes)) {
     const isBlock = child.nodeType === 1 && /^(P|H2|H3|UL|OL)$/.test((child as HTMLElement).tagName)
+    // Notion copies each bullet as a list of its own: one list goes in.
+    const prev = blocks.lastChild as HTMLElement | null
+    if (isBlock && /^(UL|OL)$/.test((child as HTMLElement).tagName) && !loose && prev?.nodeType === 1 && prev.tagName === (child as HTMLElement).tagName) {
+      for (const li of Array.from(child.childNodes)) prev.appendChild(li)
+      continue
+    }
     if (isBlock) {
       loose = null
       blocks.appendChild(child)

@@ -128,6 +128,37 @@ describe('paste cleanup', () => {
     expect(out.html).not.toMatch(/style=|script|img/)
   })
 
+  // R4.A1, CO-9: a paste from Notion, as its clipboard holds it.
+  it('keeps headings, links and lists from Notion, one list per list, and drops its markup', () => {
+    const notion =
+      '<meta charset="utf-8"><!-- notionvc: 4f2a9c1e-7d3b-4e5f-9a8b-0c1d2e3f4a5b -->' +
+      '<h1 id="1c9e" class="">Retiring the v1 API</h1>' +
+      '<p id="2d0f" class="">On <strong>30 November</strong> the v1 endpoints stop answering. Read the <a href="https://docs.acme.io/migrate-v2">migration guide</a>.</p>' +
+      '<ul id="3e1a" class="bulleted-list"><li style="list-style-type:disc">Requests to v1 return <code>410 Gone</code></li></ul>' +
+      '<ul id="4f2b" class="bulleted-list"><li style="list-style-type:disc">API keys keep working</li></ul>' +
+      '<ol type="1" id="5a3c" class="numbered-list" start="1"><li>Update the SDK</li></ol>' +
+      '<ol type="1" id="6b4d" class="numbered-list" start="2"><li>Switch the base URL</li></ol>' +
+      '<ul id="7c5e" class="to-do-list"><li><div class="checkbox checkbox-off"></div><span class="to-do-children-unchecked">Tell the team</span></li></ul>' +
+      '<p id="8d6f" class=""></p>' +
+      '<blockquote id="9e7a" class="">Questions? <em>Reply to this email.</em></blockquote>' +
+      '<figure id="af8b" class="image"><img src="https://prod-files-secure.s3.us-west-2.amazonaws.com/x/roadmap.png"></figure>' +
+      '<!-- notionvc: 4f2a9c1e-7d3b-4e5f-9a8b-0c1d2e3f4a5b -->'
+    const out = cleanPaste(notion)
+    expect(out.source).toBe('Notion')
+    expect(out.kept).toEqual(['headings', 'links', 'lists'])
+    expect(out.images).toBe(1)
+    expect(out.removed).toBeGreaterThanOrEqual(10)
+    expect(out.html).toBe(
+      '<h2>Retiring the v1 API</h2>' +
+        '<p>On <strong>30 November</strong> the v1 endpoints stop answering. Read the <a href="https://docs.acme.io/migrate-v2">migration guide</a>.</p>' +
+        '<ul><li>Requests to v1 return 410 Gone</li><li>API keys keep working</li></ul>' +
+        '<ol><li>Update the SDK</li><li>Switch the base URL</li></ol>' +
+        '<ul><li>Tell the team</li></ul>' +
+        '<p>Questions? <em>Reply to this email.</em></p>',
+    )
+    expect(out.html).not.toMatch(/notionvc|class=|style=|id=|img|checkbox/)
+  })
+
   it('reads the paste in an inert document, so nothing in it loads or runs', () => {
     const out = cleanPaste('<p>Hi <img src="x" onerror="window.__ran = true"><b onclick="x()">there</b></p>')
     expect((window as unknown as { __ran?: boolean }).__ran).toBeUndefined()

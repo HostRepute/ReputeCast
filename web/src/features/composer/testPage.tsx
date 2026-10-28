@@ -1,9 +1,11 @@
 import type { QueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { vi } from 'vitest'
 import { meQueryKey } from '@/lib/session'
 import { json, mockApi } from '@/test/api'
 import { renderInWorkspace, workspaceMe } from '@/test/app'
 import type { WorkspaceMe } from '@/lib/session'
+import type { ComposerSearch } from './Composer'
 import { ComposerPage } from './ComposerPage'
 import type { Campaign } from './context'
 import { testContext } from './testing'
@@ -40,12 +42,21 @@ function stubObservers() {
   vi.stubGlobal('IntersectionObserver', Observer)
 }
 
+/** The page with its search params kept in state, as the route keeps them in the address. */
+function Page({ id, initial }: { id: string; initial: ComposerSearch }) {
+  const [search, setSearch] = useState(initial)
+  return <ComposerPage campaignId={id} search={search} onSearch={setSearch} />
+}
+
 /**
  * Renders /campaigns/:id/edit for `campaign()` (read on every GET, so a test
  * can change what the server has). `routes` answer the calls the test is
  * about ("PUT /api/v1/workspaces/acme-newsletter/campaigns/…/content").
  */
-export async function renderComposerPage(campaign: () => Campaign, { routes = {}, me = composerMe }: { routes?: Record<string, Handler>; me?: WorkspaceMe } = {}) {
+export async function renderComposerPage(
+  campaign: () => Campaign,
+  { routes = {}, me = composerMe, search = {} }: { routes?: Record<string, Handler>; me?: WorkspaceMe; search?: ComposerSearch } = {},
+) {
   stubObservers()
   const id = campaign().id
   const own: Record<string, Handler> = {
@@ -54,7 +65,7 @@ export async function renderComposerPage(campaign: () => Campaign, { routes = {}
     ...routes,
   }
   const unmock = mockApi(new Proxy(own, { get: (t, k: string) => t[k] ?? (() => json({ title: 'Not Found', status: 404, detail: 'Not part of this test.' }, 404)) }))
-  const utils = await renderInWorkspace(<ComposerPage campaignId={id} search={{}} onSearch={() => {}} />, { me, seed: seedMe, path: `/w/acme-newsletter/campaigns/${id}/edit` })
+  const utils = await renderInWorkspace(<Page id={id} initial={search} />, { me, seed: seedMe, path: `/w/acme-newsletter/campaigns/${id}/edit` })
   return {
     ...utils,
     unmock: () => {
