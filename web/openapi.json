@@ -24004,6 +24004,9 @@
           "final": {
             "type": "string"
           },
+          "finalClean": {
+            "type": "boolean"
+          },
           "host": {
             "type": "string"
           },

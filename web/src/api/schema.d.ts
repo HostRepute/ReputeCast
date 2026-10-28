@@ -24300,6 +24300,7 @@ export interface components {
             botBlocked?: boolean;
             broken?: boolean;
             final?: string;
+            finalClean?: boolean;
             host: string;
             /** @enum {string} */
             kind: "button" | "link" | "image" | "nav" | "social";
