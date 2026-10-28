@@ -534,12 +534,22 @@ func TestReferralCodesOnlyForTheirReader(t *testing.T) {
 		t.Fatalf("the referrer's used code: %+v", v.Notice)
 	}
 
-	// The demo's codes date from before codes had 12 characters: they
-	// still work, for their own referrer only.
-	if got := o.CheckoutCode(mine, &s.ws, "live", "INS-OH7K2Q", omar, tier, "month"); got != "promo_INS-OH7K2Q" {
+	// A code from before codes had 12 characters still works, for its own
+	// referrer only.
+	legacy := "INS-H7K2QM"
+	if _, err := s.env.App.Pool.Exec(ctx, `INSERT INTO earn_offer_codes (id, workspace_id, offer_id, code, contact_id, issued_to, issued_at, expires_at, stripe, source)
+		VALUES ($1, $2, $3, $4, $5, 'Omar Haddad', $6, $7, $8, 'referral')`,
+		uuid.Must(uuid.NewV7()), s.ws.ID, offerID, legacy, omar, *s.clock, s.clock.AddDate(0, 0, 60), []byte(`{"live":{"promo":"promo_`+legacy+`"}}`)); err != nil {
+		t.Fatal(err)
+	}
+	if got := o.CheckoutCode(mine, &s.ws, "live", legacy, omar, tier, "month"); got != "promo_"+legacy {
 		t.Fatalf("Omar's code from before: %q", got)
 	}
-	looksUnknown("INS-OH7K2Q")
+	looksUnknown(legacy)
+	// The demo's codes are 12 characters, like the ones issued now.
+	if got := o.CheckoutCode(mine, &s.ws, "live", "INS-H7K2QM8XRT4P", omar, tier, "month"); got != "promo_INS-H7K2QM8XRT4P" {
+		t.Fatalf("Omar's demo code: %q", got)
+	}
 
 	// An address that tried 20 codes that weren't its own finds none, not
 	// even its own, for 10 minutes; other addresses go on as before.
