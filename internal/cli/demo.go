@@ -31,7 +31,8 @@ func newDemoCmd(o *rootOpts) *cobra.Command {
 			"Scenarios:\n" +
 			"  normal              the LiveMonitor board\n" +
 			"  outlook-complaints  lapsed Outlook readers complain until the Outlook share auto-pauses (LiveMonitorPaused)\n" +
-			"  postal-outage       Postal refuses connections 14 minutes in; its share is held (LiveMonitorOutage)\n\n" +
+			"  postal-outage       Postal refuses connections 14 minutes in; its share is held (LiveMonitorOutage)\n" +
+			"  steady              normal without the provider throttling a call now and then\n\n" +
 			"--elapsed starts the send that long ago and sends that part at once with back-dated times (and the\n" +
 			"minute or two that takes), so the monitor opens mid-send: --elapsed 20m shows the boards' 09:21 moment.\n" +
 			"--reset clears an earlier send of the campaign, with what it changed outside it (provider statistics,\n" +
