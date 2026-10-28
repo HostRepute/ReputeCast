@@ -226,6 +226,19 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
         </div>
         <span class="k">Send Readiness stays usable: blocklist checks are marked Unknown instead of Pass until HostRepute answers.</span>
       </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Not enough mail state">
+        <div class="strip"><span class="dot" style="color:#6B7280"></span>Empty · too little mail to judge a provider's rates</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+          <article class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-weight:700;font-size:15px">Postal (self-hosted)</span><span class="badge warn"><span class="dot"></span>Warming up</span></div>
+            <div class="kv"><span class="k">Bounce rate · warm-up guard 2%</span><span class="n">33.33%</span></div>
+            <div class="kv"><span class="k">Complaint rate · warm-up guard 0.1%</span><span class="n">0%</span></div>
+            <span class="k">Not enough mail yet: 3 messages in the last 7 days, and rates are judged from 500.</span>
+          </article>
+        </div>
+        <span class="k">Below 500 messages in 7 days, ReputeCast's own rates show without the bars that compare them with the provider's thresholds, as Send Readiness judges them. Rates a provider measures itself are judged as they come.</span>
+      </section>
     </main>
   </div>
 </div>
