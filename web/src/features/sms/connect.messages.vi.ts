@@ -17,7 +17,8 @@ export default translate(m, {
   s4sub: 'Theo dõi báo nhận về',
   s5: 'Quốc gia',
   s5sub: 'Ai nhắn tin đến đâu',
-  stepperFoot: 'Đa số mọi người hoàn tất trong khoảng 10 phút. Bạn có thể thêm nhà cung cấp sau; mỗi quốc gia có tuyến riêng.',
+  stepperFoot:
+    'Việc kết nối mất vài phút. Số đang chờ đăng ký chưa gửi được cho đến khi nhà mạng duyệt, việc này có thể mất vài ngày. Bạn có thể thêm nhà cung cấp sau; mỗi quốc gia có tuyến riêng.',
   // Step 1.
   h1: 'Nhà cung cấp nào gửi tin nhắn của bạn?',
   lead1: 'Tin nhắn có giá đúng bằng mức nhà cung cấp của bạn tính. ReputeCast không cộng thêm gì.',

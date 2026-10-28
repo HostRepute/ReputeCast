@@ -276,7 +276,7 @@ label.opt input{flex:none}
               <span style="color:#991B1B">09:17:10 ECONNREFUSED mta.acme.io:443</span>
               <span style="color:#5B6472">09:17:40 health check · still failing</span>
             </div>
-            <span class="k">Retries used exponential back-off (5 s to 60 s). No message was sent twice: each attempt carries an idempotency key.</span>
+            <span class="k">Retries used exponential back-off (5 s to 60 s). Postal takes no idempotency key, so a message goes again only after Postal refused it; one whose answer was lost is held as in doubt, not sent twice.</span>
           </div>
           <div style="padding:18px 22px;display:flex;flex-direction:column;gap:10px;border-right:1px solid #EEF0F3">
             <h3 class="h2">Likely causes</h3>

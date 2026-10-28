@@ -260,7 +260,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
         <p class="lead rise d3" style="font-size:19px">ReputeCast tells you whether a campaign will reach the inbox before you send, and guards your sender reputation while it sends. It delivers through your own Amazon SES, Postmark, Mailgun, SendGrid, Resend, Postal or any SMTP server, with several providers at once and no lock-in.</p>
         <div class="rise d4" style="display:flex;flex-direction:column;gap:10px">
           <pre><span class="typed">docker compose -f https://get.reputecast.com/compose.yml up -d</span><span class="cursor" aria-hidden="true"></span></pre>
-          <span class="k">One command. Postgres, Redis and the app. Then open localhost:8080 and connect a provider in about 10 minutes.</span>
+          <span class="k">One command. Postgres and the app. Then open localhost:8080 and connect the sending provider you already use: 10–15 minutes with access to your DNS.</span>
         </div>
         <div class="rise d5" style="display:flex;gap:10px;flex-wrap:wrap">
           <a href="https://github.com/hostrepute/reputecast" class="btn pri">Star on GitHub</a>
@@ -435,7 +435,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
       <div class="reveal" style="flex:1 1 380px;display:flex;flex-direction:column;gap:14px">
         <h2 class="sec" style="color:#fff">Install in one command</h2>
         <p style="margin:0;color:#C3C2B7;font-size:17px">Docker Compose brings up Postgres, Redis, the app and the workers. Upgrades are one pull away. Backups are a pg_dump.</p>
-        <ol style="margin:0;padding-left:20px;color:#E5E7EB;display:flex;flex-direction:column;gap:6px;font-size:15px"><li>Run the compose command.</li><li>Open localhost:8080 and create the owner account.</li><li>Connect a sending provider: about 10 minutes, DNS included.</li><li>Import contacts with consent intact, send a test, go.</li></ol>
+        <ol style="margin:0;padding-left:20px;color:#E5E7EB;display:flex;flex-direction:column;gap:6px;font-size:15px"><li>Run the compose command.</li><li>Open localhost:8080 and create the owner account.</li><li>Connect a sending provider: 10–15 minutes with access to your DNS. A new Amazon SES account also waits about a day for production access.</li><li>Import contacts with consent intact, send a test, go.</li></ol>
       </div>
       <div class="reveal" style="flex:1 1 420px;display:flex;flex-direction:column;gap:12px">
 <pre style="background:#111827;border:1px solid #1F2937">curl -fsSL https://get.reputecast.com/compose.yml -o compose.yml

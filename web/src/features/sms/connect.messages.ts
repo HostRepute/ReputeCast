@@ -17,7 +17,8 @@ export const m = defineMessages('smsConnect', {
   s4sub: 'Watch the receipt arrive',
   s5: 'Countries',
   s5sub: 'Who texts where',
-  stepperFoot: 'Most people finish in about 10 minutes. You can add more providers later; each country gets its own route.',
+  stepperFoot:
+    'Connecting takes a few minutes. A number waiting for its registration can’t send until the carrier approves it, which can take days. You can add more providers later; each country gets its own route.',
   // Step 1.
   h1: 'Which provider sends your texts?',
   lead1: 'Texts cost what your provider charges. ReputeCast adds nothing.',
