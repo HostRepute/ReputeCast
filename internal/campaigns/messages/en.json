@@ -63,6 +63,8 @@
   "version.merged": { "message": "merged with {name}'s v{version}", "note": "a version's label: two people changed different sections and both edits were kept; name: a member's name; version: 15" },
   "version.synced": { "message": "{kind, select, header {Header} other {Footer}} updated in Brand kit", "note": "a version's label: the synced Header or Footer changed in Settings › Brand kit" },
   "version.sharedForReview": { "message": "Shared for review", "note": "the name given to the version a review link shows" },
+  "version.agent": { "message": "changed by an agent", "note": "a version's label: an AI agent changed the draft through the MCP server" },
+  "version.agentCreated": { "message": "created by an agent", "note": "the first version's label of a draft an AI agent wrote through the MCP server" },
   "problem.commentEmpty": "Write something to comment.",
   "problem.commentAnchor": { "message": "That block can't hold a comment. Select it again and retry.", "note": "the block's comment marker is malformed" },
   "problem.commentMention": "You can only mention people in this workspace.",

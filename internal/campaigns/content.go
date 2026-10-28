@@ -67,6 +67,9 @@ type ComposerSaveContent struct {
 	// with instead of the campaign's: an undo puts a version back as it was
 	// before Minify, which it turns off again.
 	settings *ComposerContentSettings
+	// audited is set when the caller writes the save's audit entry (an MCP
+	// agent's tool call records what it changed).
+	audited bool
 }
 
 // ComposerSavedContent is the result of a save.
@@ -265,6 +268,7 @@ func (s *Service) SaveIn(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			out, err = s.stash(ctx, q, ws, p, id, cur, c, in)
 			return err
 		}
+		c.audited = in.audited
 		out, err = s.storeVersion(ctx, q, ws, p, id, cur, c, in.Label, in.Source)
 		out.Merged = merged
 		return err
@@ -334,6 +338,8 @@ type preparedContent struct {
 	recompiled string
 	// cancels is the request this save cancels (the person agreed to).
 	cancels string
+	// audited: the caller writes the audit entry (ComposerSaveContent.audited).
+	audited bool
 }
 
 // prepareContent turns a save into what is stored: the HTML compiled on
@@ -406,17 +412,22 @@ func (s *Service) conflictFor(ctx context.Context, q *store.Queries, l i18n.Lang
 func (s *Service) storeVersion(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, id uuid.UUID, cur store.ComposerLockCampaignRow, c preparedContent, label, source string) (ComposerSavedContent, error) {
 	version := cur.Version + 1
 	now := s.now()
+	by := userRef(p)
 	if err := q.SaveComposerContent(ctx, store.SaveComposerContentParams{WorkspaceID: ws.ID, ID: id, Subject: c.subject, Preheader: c.preheader, Mjml: c.mjml, Html: c.html,
-		PlainText: c.plain, AbTest: c.ab, ContentHash: c.hash, Version: version, UpdatedBy: &p.UserID, Now: now}); err != nil {
+		PlainText: c.plain, AbTest: c.ab, ContentHash: c.hash, Version: version, UpdatedBy: by, Now: now}); err != nil {
 		return ComposerSavedContent{}, err
 	}
 	label = strings.TrimSpace(label)
 	if err := q.InsertComposerVersion(ctx, store.InsertComposerVersionParams{CampaignID: id, Version: version, Subject: c.subject, Preheader: c.preheader,
-		Mjml: c.mjml, Html: c.html, PlainText: c.plain, AbTest: c.ab, SavedBy: &p.UserID, SavedAt: now, Label: label, Source: source, SizeBytes: int32(len(c.html))}); err != nil {
+		Mjml: c.mjml, Html: c.html, PlainText: c.plain, AbTest: c.ab, SavedBy: by, SavedAt: now, Label: label, Source: source, SizeBytes: int32(len(c.html))}); err != nil {
 		return ComposerSavedContent{}, err
 	}
+	saved := ComposerSavedContent{Version: int(version), SavedAt: now, ContentHash: c.hash, SizeBytes: len(c.html), PlainText: c.plain, HTML: c.html, Recompiled: c.recompiled}
 	if _, err := q.PruneComposerVersions(ctx, store.PruneComposerVersionsParams{CampaignID: id, Keep: KeepVersions}); err != nil {
 		return ComposerSavedContent{}, err
+	}
+	if c.audited {
+		return saved, nil
 	}
 	before := map[string]any{"version": cur.Version}
 	after := map[string]any{"version": version, "sizeBytes": len(c.html)}
@@ -441,7 +452,7 @@ func (s *Service) storeVersion(ctx context.Context, q *store.Queries, ws *store.
 		Before: before, After: after, Metadata: meta}); err != nil {
 		return ComposerSavedContent{}, err
 	}
-	return ComposerSavedContent{Version: int(version), SavedAt: now, ContentHash: c.hash, SizeBytes: len(c.html), PlainText: c.plain, HTML: c.html, Recompiled: c.recompiled}, nil
+	return saved, nil
 }
 
 // stash keeps a save's content in the history as its own version and puts

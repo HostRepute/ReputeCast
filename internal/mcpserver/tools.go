@@ -157,6 +157,15 @@ func (s *Service) campaignTarget(action string) func(ctx context.Context, c *age
 	}
 }
 
+// campaigns is the campaigns service the tools list, create and save
+// through, as the composer does.
+func (s *Service) campaigns() *campaigns.Service {
+	if s.Campaigns != nil {
+		return s.Campaigns
+	}
+	return &campaigns.Service{Pool: s.Pool, Q: s.Q, Audit: s.Audit}
+}
+
 func (s *Service) addTools(srv *mcp.Server) {
 	tool(s, srv, "list_campaigns", authz.CampaignsView, func(ctx context.Context, c *agentCall, in listCampaignsIn) (any, entry, error) {
 		e := entry{action: "campaign.listed", targetType: "campaign", targetText: keep("target.campaigns", nil)}
@@ -171,11 +180,7 @@ func (s *Service) addTools(srv *mcp.Server) {
 		if limit <= 0 || limit > 100 {
 			limit = 25
 		}
-		svc := s.Campaigns
-		if svc == nil {
-			svc = &campaigns.Service{Pool: s.Pool, Q: s.Q, Audit: s.Audit}
-		}
-		list, err := svc.List(ctx, &c.Workspace, campaigns.ListParams{Status: status, Query: in.Query, PageSize: limit, Page: 1})
+		list, err := s.campaigns().List(ctx, &c.Workspace, campaigns.ListParams{Status: status, Query: in.Query, PageSize: limit, Page: 1})
 		if err != nil {
 			return nil, e, err
 		}
@@ -267,19 +272,18 @@ func (s *Service) addTools(srv *mcp.Server) {
 		if name == "" {
 			return nil, e, errors.New("give the draft a name")
 		}
-		creator := c.Principal.UserID
-		var by *uuid.UUID
-		if creator != uuid.Nil {
-			by = &creator
-		}
-		row, err := s.Q.McpCreateDraft(ctx, store.McpCreateDraftParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: c.Workspace.ID, Name: name, Subject: in.Subject, Preheader: in.Preheader, Mjml: in.MJML, CreatedBy: by})
+		// Stored as the composer stores a draft: the server compiles and
+		// checks the MJML, and the draft has its first version (CO-3).
+		ws := c.Workspace
+		row, err := s.campaigns().CreateForAgent(ctx, &ws, c.Principal, name, campaigns.AgentContent{Subject: &in.Subject, Preheader: &in.Preheader, MJML: &in.MJML})
 		if err != nil {
 			return nil, e, err
 		}
-		e.targetID = row.ID.String()
-		e.after = map[string]any{"name": name, "subject": in.Subject}
+		e.targetID = row.ID
+		e.after = map[string]any{"name": name, "subject": in.Subject, "version": row.Version}
 		e.detailText = keep("detail.draft", nil)
-		return map[string]any{"id": row.ID, "name": row.Name, "status": row.Status, "message": "Draft created. A person reviews and sends it from ReputeCast."}, e, nil
+		return map[string]any{"id": row.ID, "name": row.Name, "status": row.Status, "version": row.Version,
+			"message": "Draft created. ReputeCast compiled the MJML; a person reviews and sends it from ReputeCast."}, e, nil
 	}, nil)
 
 	tool(s, srv, "update_campaign_content", authz.CampaignsEdit, func(ctx context.Context, c *agentCall, in updateContentIn) (any, entry, error) {
@@ -295,19 +299,18 @@ func (s *Service) addTools(srv *mcp.Server) {
 		if in.Language != "" && s.Languages != nil {
 			return s.updateLanguage(ctx, c, cp, in, e)
 		}
-		creator := c.Principal.UserID
-		var by *uuid.UUID
-		if creator != uuid.Nil {
-			by = &creator
-		}
-		row, err := s.Q.McpUpdateDraft(ctx, store.McpUpdateDraftParams{ID: cp.ID, WorkspaceID: c.Workspace.ID, Subject: in.Subject, Preheader: in.Preheader, Mjml: in.MJML, UpdatedBy: by})
+		// Saved as the composer saves (CO-3): the server compiles and checks
+		// the MJML (the HTML sent is that compile), the change is a new
+		// version, and approvals and Send Readiness see it.
+		ws := c.Workspace
+		saved, err := s.campaigns().SaveForAgent(ctx, &ws, c.Principal, cp.ID, campaigns.AgentContent{Subject: in.Subject, Preheader: in.Preheader, MJML: in.MJML})
 		if err != nil {
 			return nil, e, err
 		}
 		e.detailText = keep("detail.changed", i18n.Args{"fields": changedFields(in)})
-		e.before = map[string]any{"subject": cp.Subject, "preheader": cp.Preheader, "version": cp.Version}
-		e.after = map[string]any{"subject": row.Subject, "preheader": row.Preheader, "version": row.Version}
-		return map[string]any{"id": row.ID, "name": row.Name, "version": row.Version, "subject": row.Subject}, e, nil
+		e.before = map[string]any{"subject": saved.BeforeSubject, "preheader": saved.BeforePreheader, "version": saved.BeforeVersion}
+		e.after = map[string]any{"subject": saved.Subject, "preheader": saved.Preheader, "version": saved.Version, "sizeBytes": saved.SizeBytes, "contentHash": saved.ContentHash}
+		return map[string]any{"id": cp.ID, "name": cp.Name, "version": saved.Version, "subject": saved.Subject, "size_bytes": saved.SizeBytes, "unchanged": saved.Unchanged}, e, nil
 	}, nil)
 
 	tool(s, srv, "schedule_campaign", authz.CampaignsSend, func(ctx context.Context, c *agentCall, in scheduleIn) (any, entry, error) {

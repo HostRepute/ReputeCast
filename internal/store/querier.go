@@ -2061,7 +2061,6 @@ type Querier interface {
 	McpCampaignByProvider(ctx context.Context, campaignID uuid.UUID) ([]McpCampaignByProviderRow, error)
 	McpCampaignRoutes(ctx context.Context, campaignID uuid.UUID) ([]McpCampaignRoutesRow, error)
 	McpCampaignTotals(ctx context.Context, campaignID uuid.UUID) (McpCampaignTotalsRow, error)
-	McpCreateDraft(ctx context.Context, arg McpCreateDraftParams) (McpCreateDraftRow, error)
 	McpCreateSegment(ctx context.Context, arg McpCreateSegmentParams) (McpCreateSegmentRow, error)
 	McpDefaultRoutingRule(ctx context.Context, arg McpDefaultRoutingRuleParams) (McpDefaultRoutingRuleRow, error)
 	// Read models behind the MCP server's tools. Writes go through the
@@ -2078,7 +2077,6 @@ type Querier interface {
 	McpSearchContacts(ctx context.Context, arg McpSearchContactsParams) ([]McpSearchContactsRow, error)
 	McpSendingDomains(ctx context.Context, workspaceID uuid.UUID) ([]McpSendingDomainsRow, error)
 	McpSetRoutingSplits(ctx context.Context, arg McpSetRoutingSplitsParams) error
-	McpUpdateDraft(ctx context.Context, arg McpUpdateDraftParams) (McpUpdateDraftRow, error)
 	// A live signup offer by its code or link (case-insensitive).
 	OfferByCode(ctx context.Context, arg OfferByCodeParams) (EarnOffer, error)
 	// A referral reward's single-use code, by the code a reader brings.

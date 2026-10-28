@@ -13,7 +13,9 @@ import (
 func (a *App) mcpserver() *mcpserver.Service {
 	return &mcpserver.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Sending: a.Sending, Mail: a.Mail,
-		Campaigns:     &campaigns.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Extras: campaignExtras(a)},
+		// Agents' drafts are saved as the composer saves them: a change
+		// re-checks the campaign's open approval like any other (CO-3).
+		Campaigns:     &campaigns.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Extras: campaignExtras(a), AfterChange: CampaignChangeHook(a)},
 		Languages:     languagesService(a),
 		Accessibility: newAccessibility(a),
 		// Agents list templates, render previews and read the log; they never send.

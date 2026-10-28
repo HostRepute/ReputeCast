@@ -8,7 +8,7 @@ export default translate(md, {
   restoredDetail: 'Nó được lưu thành một phiên bản mới; không có gì bị xóa.',
   restoreFailed: 'Không khôi phục được phiên bản',
   source:
-    '{source, select, autosave {tự lưu} manual {lưu thủ công} import {nhập} template {mẫu} create {tạo mới} restore {khôi phục} conflict {giữ lại sau xung đột} merge {đã gộp} recovered {khôi phục từ trình duyệt này} synced {khối đồng bộ đã cập nhật} other {{source}}}',
+    '{source, select, autosave {tự lưu} manual {lưu thủ công} import {nhập} template {mẫu} create {tạo mới} duplicate {bản sao} api {API hoặc tác tử} restore {khôi phục} conflict {giữ lại sau xung đột} merge {đã gộp} recovered {khôi phục từ trình duyệt này} synced {khối đồng bộ đã cập nhật} other {{source}}}',
   compareWith: 'So sánh v{a} với v{b}',
   tickTwo: 'Hãy đánh dấu hai phiên bản để so sánh.',
   compareTwo: 'So sánh hai phiên bản',

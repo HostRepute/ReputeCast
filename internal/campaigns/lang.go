@@ -84,6 +84,8 @@ var (
 	mVersionMerged          = msgs.M("version.merged")
 	mVersionSynced          = msgs.M("version.synced")
 	mVersionSharedForReview = msgs.M("version.sharedForReview")
+	mVersionAgent           = msgs.M("version.agent")
+	mVersionAgentCreated    = msgs.M("version.agentCreated")
 	mCommentEmpty           = msgs.M("problem.commentEmpty")
 	mCommentAnchor          = msgs.M("problem.commentAnchor")
 	mCommentMention         = msgs.M("problem.commentMention")
@@ -142,8 +144,10 @@ func versionLabel(l i18n.Lang, label string) string {
 	if l.Locale == i18n.English {
 		return label
 	}
-	if label == mVersionFromWebPost.Source() {
-		return mVersionFromWebPost.Text(l, nil)
+	for _, m := range []i18n.Msg{mVersionFromWebPost, mVersionAgent, mVersionAgentCreated} {
+		if label == m.Source() {
+			return m.Text(l, nil)
+		}
 	}
 	if m := reVersionFromTemplate.FindStringSubmatch(label); m != nil {
 		return mVersionFromTemplate.Text(l, i18n.Args{"name": m[1]})

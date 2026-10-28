@@ -75,18 +75,6 @@ WHERE workspace_id = @workspace_id AND listed ORDER BY impact DESC, asset;
 SELECT DISTINCT ON (domain) domain, day, spam_rate, domain_reputation, ip_reputation
 FROM postmaster_daily WHERE workspace_id = @workspace_id ORDER BY domain, day DESC;
 
--- name: McpCreateDraft :one
-INSERT INTO campaigns (id, workspace_id, name, status, subject, preheader, mjml, created_by, updated_by)
-VALUES (@id, @workspace_id, @name, 'draft', @subject, @preheader, @mjml, @created_by, @created_by)
-RETURNING id, name, status, version, created_at;
-
--- name: McpUpdateDraft :one
-UPDATE campaigns
-SET subject = coalesce(sqlc.narg(subject), subject), preheader = coalesce(sqlc.narg(preheader), preheader),
-    mjml = coalesce(sqlc.narg(mjml), mjml), version = version + 1, updated_at = now(), updated_by = @updated_by
-WHERE id = @id AND workspace_id = @workspace_id AND status IN ('draft','approval','approved') AND deleted_at IS NULL
-RETURNING id, name, status, version, subject, preheader;
-
 -- name: McpCreateSegment :one
 INSERT INTO segments (id, workspace_id, name, description, mode, definition, created_by)
 VALUES (@id, @workspace_id, @name, @description, 'builder', @definition, @created_by)

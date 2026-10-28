@@ -12,7 +12,7 @@ export const md = defineMessages('composer.dialogs', {
   restoreFailed: "Couldn't restore the version",
   /** A version saved without a description of its changes: how it was saved. */
   source:
-    '{source, select, autosave {autosave} manual {manual} import {import} template {template} create {create} restore {restore} conflict {kept after a conflict} merge {merged} recovered {recovered from this browser} synced {synced block updated} other {{source}}}',
+    '{source, select, autosave {autosave} manual {manual} import {import} template {template} create {create} duplicate {copy} api {API or agent} restore {restore} conflict {kept after a conflict} merge {merged} recovered {recovered from this browser} synced {synced block updated} other {{source}}}',
   compareWith: 'Compare v{a} with v{b}',
   tickTwo: 'Tick two versions to compare them.',
   compareTwo: 'Compare two versions',

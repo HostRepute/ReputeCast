@@ -452,18 +452,8 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	var ab json.RawMessage
 	var audience json.RawMessage = []byte(`{}`)
 	var count *int64
-	var sender *uuid.UUID
+	sender := s.defaultSender(ctx, ws)
 	source := "create"
-	if def, err := s.Q.ComposerDefaultSender(ctx, ws.ID); err == nil && def.SenderID != "" {
-		if u, err := uuid.Parse(def.SenderID); err == nil {
-			sender = &u
-		}
-	}
-	if sender == nil {
-		if senders, err := s.Q.ListComposerSenders(ctx, ws.ID); err == nil && len(senders) > 0 {
-			sender = &senders[0].ID
-		}
-	}
 	switch {
 	case in.TemplateID != "":
 		if s.Templates == nil {
@@ -521,34 +511,82 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		html = checked
 	}
 	html = accessibility.FinalizeStored(ctx, s.Q, ws.ID, accessibility.OwnerCampaign, uuid.Nil, 0, html)
-	id := uuid.Must(uuid.NewV7())
-	now := s.now()
-	actor := p.UserID
-	var autosaved *time.Time
-	if src != "" {
-		autosaved = &now
-	}
-	plain := contentcheck.PlainText(html)
-	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		if err := q.InsertComposerCampaign(ctx, store.InsertComposerCampaignParams{
-			ID: id, WorkspaceID: ws.ID, Name: name, Subject: subject, Preheader: preheader, SenderID: sender, Audience: audience, AudienceCount: count,
-			Mjml: src, Html: html, PlainText: plain, AbTest: ab, ContentHash: ContentHash(subject, preheader, src, html, ab),
-			CreatedBy: &actor, Now: now, AutosavedAt: autosaved,
-		}); err != nil {
-			return err
-		}
-		if err := q.InsertComposerVersion(ctx, store.InsertComposerVersionParams{CampaignID: id, Version: 1, Subject: subject, Preheader: preheader, Mjml: src, Html: html,
-			PlainText: plain, AbTest: ab, SavedBy: &actor, SavedAt: now, Label: label, Source: source, SizeBytes: int32(len(html))}); err != nil {
-			return err
-		}
-		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.create", TargetType: "campaign", TargetID: id.String(), TargetName: name,
+	id, err := s.insertDraft(ctx, ws, p, draftRow{name: name, subject: subject, preheader: preheader, mjml: src, html: html, label: label, source: source,
+		ab: ab, audience: audience, count: count, sender: sender},
+		&audit.Event{WorkspaceID: &ws.ID, Action: "campaign.create", TargetType: "campaign", TargetName: name,
 			After: map[string]any{"name": name, "templateId": in.TemplateID, "fromCampaignId": in.FromCampaignID}})
-	})
 	if err != nil {
 		return ComposerCampaign{}, err
 	}
 	return s.Detail(ctx, ws, p, id)
+}
+
+// defaultSender is the sender a new draft starts with: the workspace's
+// default, or its first sender.
+func (s *Service) defaultSender(ctx context.Context, ws *store.Workspace) *uuid.UUID {
+	if def, err := s.Q.ComposerDefaultSender(ctx, ws.ID); err == nil && def.SenderID != "" {
+		if u, err := uuid.Parse(def.SenderID); err == nil {
+			return &u
+		}
+	}
+	if senders, err := s.Q.ListComposerSenders(ctx, ws.ID); err == nil && len(senders) > 0 {
+		return &senders[0].ID
+	}
+	return nil
+}
+
+// draftRow is a new draft as it's first stored: its content, audience and
+// sender, and its first version's label and source.
+type draftRow struct {
+	name, subject, preheader, mjml, html, label, source string
+	ab, audience                                        json.RawMessage
+	count                                               *int64
+	sender                                              *uuid.UUID
+}
+
+// insertDraft stores a new draft and its first version. event, when set, is
+// the creation's audit entry (its target is filled in); without it the
+// caller writes one.
+func (s *Service) insertDraft(ctx context.Context, ws *store.Workspace, p *authz.Principal, d draftRow, event *audit.Event) (uuid.UUID, error) {
+	id := uuid.Must(uuid.NewV7())
+	now := s.now()
+	actor := userRef(p)
+	var autosaved *time.Time
+	if d.mjml != "" {
+		autosaved = &now
+	}
+	plain := contentcheck.PlainText(d.html)
+	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if err := q.InsertComposerCampaign(ctx, store.InsertComposerCampaignParams{
+			ID: id, WorkspaceID: ws.ID, Name: d.name, Subject: d.subject, Preheader: d.preheader, SenderID: d.sender, Audience: d.audience, AudienceCount: d.count,
+			Mjml: d.mjml, Html: d.html, PlainText: plain, AbTest: d.ab, ContentHash: ContentHash(d.subject, d.preheader, d.mjml, d.html, d.ab),
+			CreatedBy: actor, Now: now, AutosavedAt: autosaved,
+		}); err != nil {
+			return err
+		}
+		if err := q.InsertComposerVersion(ctx, store.InsertComposerVersionParams{CampaignID: id, Version: 1, Subject: d.subject, Preheader: d.preheader, Mjml: d.mjml, Html: d.html,
+			PlainText: plain, AbTest: d.ab, SavedBy: actor, SavedAt: now, Label: d.label, Source: d.source, SizeBytes: int32(len(d.html))}); err != nil {
+			return err
+		}
+		if event == nil {
+			return nil
+		}
+		e := *event
+		e.TargetID = id.String()
+		return s.Audit.LogWith(ctx, q, e)
+	})
+	return id, err
+}
+
+// userRef is the person behind an action, for the columns that name one
+// (nil for a key nobody created any more).
+func userRef(p *authz.Principal) *uuid.UUID {
+	if p == nil || p.UserID == uuid.Nil {
+		return nil
+	}
+	id := p.UserID
+	return &id
 }
 
 // ComposerUpdateCampaign changes what isn't versioned content: name, sender,

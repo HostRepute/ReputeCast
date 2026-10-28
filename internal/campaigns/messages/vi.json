@@ -63,6 +63,8 @@
   "version.merged": "đã gộp với v{version} của {name}",
   "version.synced": "{kind, select, header {Đầu trang} other {Chân trang}} được cập nhật trong Bộ nhận diện",
   "version.sharedForReview": "Đã chia sẻ để góp ý",
+  "version.agent": "do tác tử thay đổi",
+  "version.agentCreated": "do tác tử tạo",
   "problem.commentEmpty": "Hãy viết nhận xét.",
   "problem.commentAnchor": "Khối này không nhận nhận xét được. Hãy chọn lại khối rồi thử lại.",
   "problem.commentMention": "Bạn chỉ có thể nhắc đến người trong không gian làm việc này.",
