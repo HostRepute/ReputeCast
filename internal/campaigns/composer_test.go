@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/apptest"
 )
 
@@ -365,11 +367,39 @@ func TestComposerChecksAndPreview(t *testing.T) {
 	// Composer context.
 	var ctxOut struct {
 		Senders []struct{ Email string }
-		Lists   []struct{ Name string }
+		Lists   []struct {
+			ID, Name string
+			Count    *int64
+		}
 		Tokens  []struct{ Key, Kind string }
 		Members []struct{ Email string }
 	}
+	// An empty list counts 0, and an erased contact or one who isn't
+	// active doesn't count.
+	ctx := context.Background()
+	w, err := env.App.Q.GetWorkspaceBySlug(ctx, "acme-newsletter")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO lists (id, workspace_id, name) VALUES ($1, $2, 'Nobody yet')`, uuid.Must(uuid.NewV7()), w.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE contacts SET status = 'unsubscribed' WHERE id = (SELECT contact_id FROM list_memberships m JOIN lists l ON l.id = m.list_id WHERE l.workspace_id = $1 AND l.name = 'Weekly Digest' AND m.status = 'subscribed' LIMIT 1)`, w.ID); err != nil {
+		t.Fatal(err)
+	}
 	c.Do("GET", ws+"/composer", nil).MustStatus(t, 200).JSON(t, &ctxOut)
+	// Each list's count is its subscribed, active contacts, as counting
+	// the list on its own does.
+	for _, l := range ctxOut.Lists {
+		var want int64
+		if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM list_memberships m JOIN contacts c ON c.id = m.contact_id
+			WHERE m.list_id = $1 AND m.status = 'subscribed' AND c.status = 'active' AND c.erased_at IS NULL`, l.ID).Scan(&want); err != nil {
+			t.Fatal(err)
+		}
+		if l.Count == nil || *l.Count != want || (l.Name == "Nobody yet" && want != 0) {
+			t.Fatalf("list %s: %v, want %d", l.Name, l.Count, want)
+		}
+	}
 	// Other seeders add senders and lists too: assert the ones the composer demo needs.
 	has := func(want string, got []string) bool {
 		for _, g := range got {

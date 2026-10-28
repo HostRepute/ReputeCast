@@ -206,13 +206,22 @@ FROM workspaces w WHERE w.id = @id;
 
 -- name: ComposerAudienceLists :many
 -- Lists with their subscribed, active contacts (suppressed addresses excluded).
-SELECT l.id, l.name,
-       (SELECT count(*) FROM list_memberships m
-        JOIN contacts c ON c.id = m.contact_id
-        WHERE m.list_id = l.id AND m.status = 'subscribed' AND c.status = 'active' AND c.erased_at IS NULL)::bigint AS subscribers
+-- The workspace's memberships are counted in one pass, not list by list.
+SELECT l.id, l.name, coalesce(n.subscribers, 0)::bigint AS subscribers
 FROM lists l
+LEFT JOIN (
+  SELECT m.list_id, count(*) AS subscribers
+  FROM list_memberships m
+  JOIN contacts c ON c.id = m.contact_id
+  WHERE c.workspace_id = @workspace_id AND m.status = 'subscribed' AND c.status = 'active' AND c.erased_at IS NULL
+  GROUP BY m.list_id
+) n ON n.list_id = l.id
 WHERE l.workspace_id = @workspace_id AND l.deleted_at IS NULL
 ORDER BY l.created_at;
+
+-- name: ComposerListIDs :many
+-- The lists an audience may name.
+SELECT id FROM lists WHERE workspace_id = @workspace_id AND deleted_at IS NULL;
 
 -- name: ComposerAudienceSegments :many
 SELECT id, name, cached_count FROM segments WHERE workspace_id = @workspace_id ORDER BY name;

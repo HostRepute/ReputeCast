@@ -774,6 +774,7 @@ type Querier interface {
 	// Who approved a request, in order.
 	ComposerApprovalApprovers(ctx context.Context, requestID uuid.UUID) ([]string, error)
 	// Lists with their subscribed, active contacts (suppressed addresses excluded).
+	// The workspace's memberships are counted in one pass, not list by list.
 	ComposerAudienceLists(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceListsRow, error)
 	ComposerAudienceSegments(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceSegmentsRow, error)
 	// The current version number moves on without the content changing
@@ -793,6 +794,8 @@ type Querier interface {
 	ComposerDefaultSender(ctx context.Context, id uuid.UUID) (ComposerDefaultSenderRow, error)
 	ComposerLastSentCampaign(ctx context.Context, workspaceID uuid.UUID) (ComposerLastSentCampaignRow, error)
 	ComposerLatestReadiness(ctx context.Context, campaignID uuid.UUID) (ComposerLatestReadinessRow, error)
+	// The lists an audience may name.
+	ComposerListIDs(ctx context.Context, workspaceID uuid.UUID) ([]uuid.UUID, error)
 	// Row lock for autosave: the version check and the new version are atomic.
 	ComposerLockCampaign(ctx context.Context, arg ComposerLockCampaignParams) (ComposerLockCampaignRow, error)
 	// The workspace's active people, for @mentions in comments (CO-10).
@@ -2914,7 +2917,8 @@ type Querier interface {
 	ReferralLinksMissing(ctx context.Context, arg ReferralLinksMissingParams) ([]uuid.UUID, error)
 	ReferralLinksOfContact(ctx context.Context, contactID uuid.UUID) ([]ReferralLinksOfContactRow, error)
 	ReferralListSubscribers(ctx context.Context, listID uuid.UUID) (int64, error)
-	// Lists a program can use, with their subscribers and whether a program
+	// Lists a program can use, with their subscribers (the workspace's
+	// memberships counted in one pass, not list by list) and whether a program
 	// already has them.
 	ReferralListsOffered(ctx context.Context, workspaceID uuid.UUID) ([]ReferralListsOfferedRow, error)
 	ReferralMilestoneByID(ctx context.Context, id uuid.UUID) (ReferralMilestone, error)

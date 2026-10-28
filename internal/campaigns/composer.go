@@ -670,13 +670,13 @@ func normalizeAudience(a ComposerAudience) ComposerAudience {
 // member only targets lists in their scope.
 func (s *Service) checkAudience(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, a ComposerAudience) error {
 	l := i18n.LangFrom(ctx)
-	lists, err := q.ComposerAudienceLists(ctx, ws.ID)
+	lists, err := q.ComposerListIDs(ctx, ws.ID)
 	if err != nil {
 		return err
 	}
 	known := map[string]bool{}
-	for _, l := range lists {
-		known[l.ID.String()] = true
+	for _, id := range lists {
+		known[id.String()] = true
 	}
 	for _, id := range append(append([]string{}, a.Lists...), a.ExcludeLists...) {
 		if !known[id] {

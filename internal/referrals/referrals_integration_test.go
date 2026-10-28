@@ -589,3 +589,42 @@ func TestReferralTokenCheck(t *testing.T) {
 		}
 	}
 }
+
+// The programs and the lists a new one can use share one count of each
+// list's subscribers: confirmed and not erased. A program on a deleted list
+// (restorable for 30 days) is counted on its own.
+func TestProgramsCountSubscribers(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	f.subscriber("ana.lima@example.com", "Ana", "Lima", f.list, f.other)
+	erased := f.subscriber("gone@example.com", "", "", f.list)
+	f.exec(`UPDATE contacts SET erased_at = now() WHERE id = $1`, erased)
+	pending := uuid.Must(uuid.NewV7())
+	f.exec(`INSERT INTO contacts (id, workspace_id, email) VALUES ($1, $2, 'pending@example.com')`, pending, f.ws.ID)
+	f.exec(`INSERT INTO list_memberships (list_id, contact_id, status) VALUES ($1, $2, 'pending')`, f.list, pending)
+	if _, err := f.s.Create(ctx, &f.ws, referrals.ReferralCreateInput{ListID: f.list.String()}); err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := f.s.Programs(ctx, &f.ws)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]int64{"Weekly Digest": 2, "Product Updates": 1}
+	for _, l := range out.Lists {
+		if l.Subscribers != want[l.Name] || l.Taken != (l.Name == "Weekly Digest") {
+			t.Fatalf("list %s: %+v", l.Name, l)
+		}
+	}
+	if len(out.Lists) != 2 || len(out.Items) != 1 || out.Items[0].Subscribers != 2 {
+		t.Fatalf("programs: %+v", out)
+	}
+
+	f.exec(`UPDATE lists SET deleted_at = now() WHERE id = $1`, f.list)
+	if out, err = f.s.Programs(ctx, &f.ws); err != nil {
+		t.Fatal(err)
+	}
+	if len(out.Lists) != 1 || len(out.Items) != 1 || out.Items[0].Subscribers != 2 {
+		t.Fatalf("a deleted list's program: %+v", out)
+	}
+}

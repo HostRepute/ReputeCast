@@ -111,11 +111,15 @@ func (q *Queries) CampaignTotalsSince(ctx context.Context, arg CampaignTotalsSin
 }
 
 const composerAudienceLists = `-- name: ComposerAudienceLists :many
-SELECT l.id, l.name,
-       (SELECT count(*) FROM list_memberships m
-        JOIN contacts c ON c.id = m.contact_id
-        WHERE m.list_id = l.id AND m.status = 'subscribed' AND c.status = 'active' AND c.erased_at IS NULL)::bigint AS subscribers
+SELECT l.id, l.name, coalesce(n.subscribers, 0)::bigint AS subscribers
 FROM lists l
+LEFT JOIN (
+  SELECT m.list_id, count(*) AS subscribers
+  FROM list_memberships m
+  JOIN contacts c ON c.id = m.contact_id
+  WHERE c.workspace_id = $1 AND m.status = 'subscribed' AND c.status = 'active' AND c.erased_at IS NULL
+  GROUP BY m.list_id
+) n ON n.list_id = l.id
 WHERE l.workspace_id = $1 AND l.deleted_at IS NULL
 ORDER BY l.created_at
 `
@@ -127,6 +131,7 @@ type ComposerAudienceListsRow struct {
 }
 
 // Lists with their subscribed, active contacts (suppressed addresses excluded).
+// The workspace's memberships are counted in one pass, not list by list.
 func (q *Queries) ComposerAudienceLists(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceListsRow, error) {
 	rows, err := q.db.Query(ctx, composerAudienceLists, workspaceID)
 	if err != nil {
@@ -292,6 +297,31 @@ func (q *Queries) ComposerLatestReadiness(ctx context.Context, campaignID uuid.U
 	var i ComposerLatestReadinessRow
 	err := row.Scan(&i.Verdict, &i.Issues)
 	return i, err
+}
+
+const composerListIDs = `-- name: ComposerListIDs :many
+SELECT id FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL
+`
+
+// The lists an audience may name.
+func (q *Queries) ComposerListIDs(ctx context.Context, workspaceID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, composerListIDs, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const composerLockCampaign = `-- name: ComposerLockCampaign :one
