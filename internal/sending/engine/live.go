@@ -1098,7 +1098,12 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	if hasSend {
 		s.Watch = e.liveWatch(ctx, cc.WorkspaceID, snd, ts, th, now)
 	}
-	s.Postmaster = e.livePostmaster(ctx, cc.WorkspaceID, cc.SenderEmail, now)
+	// Gmail's spam rate from Postmaster Tools shows only while Traffic rules
+	// read it (After the send › Postmaster Tools), as the watch does.
+	_, watchRules, watchErr := rules.Load(ctx, e.Q, cc.WorkspaceID)
+	if watchErr == nil && watchRules.Postmaster {
+		s.Postmaster = e.livePostmaster(ctx, cc.WorkspaceID, cc.SenderEmail, now)
+	}
 	for k, c := range queue {
 		heldMailbox := holdBlocks(holds, k.mailbox, k.provider)
 		switch {
@@ -1158,8 +1163,8 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	s.text.audience = e.audienceLabel(ctx, cc.WorkspaceID, cc.Audience)
 	s.Details.Audience = s.text.audience.in(i18n.Default)
 	s.Details.AudienceCount = s.Recipients
-	if _, w, err := rules.Load(ctx, e.Q, cc.WorkspaceID); err == nil && w.Enabled {
-		s.Details.WatchHours = w.Hours
+	if watchErr == nil && watchRules.Enabled {
+		s.Details.WatchHours = watchRules.Hours
 	}
 	s.Details.Route = strings.Join(routeLabel, " · ")
 	s.Details.ScheduledBy = s.ScheduledBy

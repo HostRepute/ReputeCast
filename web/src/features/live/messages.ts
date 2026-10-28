@@ -197,6 +197,8 @@ export const m = defineMessages('live', {
   watchFootnote: "Late complaints add the contact to the suppression list and count in this campaign's report. Most arrive in the first 24 hours.",
   watchAlertWho: '{who} complaints reached {value} after the send (limit {limit})',
   watchAlertAll: 'Complaints reached {value} after the send (limit {limit})',
+  /** From Gmail Postmaster Tools: one spam rate a day for the sending domain. */
+  watchAlertPostmaster: "Gmail's spam rate reached {value} after the send (limit {limit}), from Postmaster Tools",
   acknowledge: 'Acknowledge',
   acknowledgeFailed: "Couldn't acknowledge the alert",
   cancelFailed: "Couldn't cancel",

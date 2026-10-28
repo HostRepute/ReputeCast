@@ -82,6 +82,13 @@ type watchTrip struct {
 	mailbox      string // "" for the whole send
 	events, base int64
 	value, limit float64
+	// postmaster: Gmail's spam rate for the sending domain on day, from
+	// Postmaster Tools (review GS-6, R2.A4). Gmail never reports single
+	// complaints, only a rate per day for everything the domain sent, so
+	// it has no counts.
+	postmaster bool
+	domain     string
+	day        time.Time
 }
 
 // watchTrips are the scopes over their complaint limit with enough
@@ -103,6 +110,36 @@ func watchTrips(th Thresholds, ts tallies) []watchTrip {
 		out = append(out, watchTrip{events: t.complained, base: t.reported, value: t.complaintRate(), limit: th.Complaint})
 	}
 	return out
+}
+
+// postmasterDayShift finds the first Postmaster Tools day that can hold a
+// send: Gmail's days run on Pacific time (UTC-7 in summer, UTC-8 in
+// winter), so the day of the send's start, shifted by 7 hours, is the
+// first one that ends after the send started. An earlier day ended before
+// the send and says nothing about it.
+const postmasterDayShift = 7 * time.Hour
+
+// postmasterTrip is Gmail's spam rate for the sending domain, from
+// Postmaster Tools, over the complaint limit per mailbox provider on a day
+// of the send or after it (review GS-6, R2.A4). Postmaster reports a rate
+// only for days with enough mail to Gmail, so a rate that is there is
+// evidence enough; it covers everything the domain sent that day.
+func (e *Engine) postmasterTrip(ctx context.Context, cc store.SendingCampaignContextRow, th Thresholds) (watchTrip, bool, error) {
+	domain := domainOf(cc.SenderEmail)
+	if domain == "" || cc.StartedAt == nil {
+		return watchTrip{}, false, nil
+	}
+	rows, err := e.Q.SendingPostmasterLatest(ctx, store.SendingPostmasterLatestParams{WorkspaceID: cc.WorkspaceID, Domain: domain,
+		Since: cc.StartedAt.UTC().Add(-postmasterDayShift)})
+	if err != nil || len(rows) == 0 || rows[0].SpamRate == nil {
+		return watchTrip{}, false, err
+	}
+	// Stored as a share (0.0018); the limits are percentages.
+	v := *rows[0].SpamRate * 100
+	if v <= th.MailboxComplaint {
+		return watchTrip{}, false, nil
+	}
+	return watchTrip{mailbox: "gmail", value: v, limit: th.MailboxComplaint, postmaster: true, domain: domain, day: rows[0].Day}, true, nil
 }
 
 // watchCampaign raises the alerts a watched send has earned; each scope
@@ -127,7 +164,19 @@ func (e *Engine) watchCampaign(ctx context.Context, id uuid.UUID, now time.Time)
 	if err != nil {
 		return err
 	}
-	trips := watchTrips(sendThresholds(snd), ts)
+	th := sendThresholds(snd)
+	trips := watchTrips(th, ts)
+	// Gmail reports no complaints per message: with Postmaster Tools on
+	// (Traffic rules › After the send), its daily spam rate is watched.
+	if w.Postmaster {
+		tr, ok, err := e.postmasterTrip(ctx, cc, th)
+		if err != nil {
+			return err
+		}
+		if ok {
+			trips = append(trips, tr)
+		}
+	}
 	if len(trips) == 0 {
 		return nil
 	}
@@ -164,9 +213,26 @@ func (e *Engine) watchAlert(ctx context.Context, c store.SendingCampaignContextR
 	pctArgs(words, "limit", tr.limit)
 	d := IncidentDetail{Events: tr.events, Base: tr.base, Delivered: tr.base}
 	d.setNote(keep("note.watch", words))
-	d.addCause(keep("cause.watchLead", words), keep("cause.watch", words))
-	d.addRecommendation(keep("rec.watchSuppressed", words))
-	d.addRecommendation(keep("rec.watchNext", words))
+	body := keep("notify.watchBody", words)
+	summary := fmt.Sprintf("%s complaints reached %s after the send (limit %s)", firstNonEmpty(who, "The send's"), fmtRate(tr.value), fmtRate(tr.limit))
+	meta := map[string]any{"source": "complaint watch"}
+	if tr.postmaster {
+		// Gmail says how much was marked as spam that day, never by whom:
+		// nobody is suppressed for it (review GS-6, R2.A4).
+		// The panel's sentence writes the day as "14 Oct" (live_lang.go's
+		// "…Day"); the notification writes it with its year.
+		words["domain"], words["day"], words["postmasterDay"] = tr.domain, tr.day, tr.day.Format(time.RFC3339)
+		d.Reason = "postmaster"
+		d.addCause(keep("cause.watchPostmasterLead", words), keep("cause.watchPostmaster", words))
+		d.addRecommendation(keep("rec.watchPostmaster", words))
+		body = keep("notify.watchPostmasterBody", words)
+		summary = fmt.Sprintf("Gmail's spam rate for %s reached %s on %s after the send (limit %s)", tr.domain, fmtRate(tr.value), tr.day.Format(time.DateOnly), fmtRate(tr.limit))
+		meta = map[string]any{"source": "Postmaster Tools", "domain": tr.domain, "day": tr.day.Format(time.DateOnly)}
+	} else {
+		d.addCause(keep("cause.watchLead", words), keep("cause.watch", words))
+		d.addRecommendation(keep("rec.watchSuppressed", words))
+		d.addRecommendation(keep("rec.watchNext", words))
+	}
 	d.setOptions([]option{{key: "acknowledge", recommended: true, title: keep("opt.acknowledgeTitle", nil), body: keep("opt.acknowledgeBody", words), action: keep("opt.acknowledge", nil)}})
 	value, limit := round4(tr.value), round4(tr.limit)
 	return db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
@@ -177,14 +243,17 @@ func (e *Engine) watchAlert(ctx context.Context, c store.SendingCampaignContextR
 			return err
 		}
 		if err := notify.ToMembersWith(ctx, tx, c.WorkspaceID, authz.CampaignsSend, notify.Notification{
-			Kind: notify.KindComplaintWatch, Severity: "warn", TitleText: keep("notify.watchTitle", words), BodyText: keep("notify.watchBody", words),
+			Kind: notify.KindComplaintWatch, Severity: "warn", TitleText: keep("notify.watchTitle", words), BodyText: body,
 			Link: liveLink(c.WorkspaceSlug, c.ID), Data: map[string]any{"campaignId": c.ID.String(), "incidentId": id.String(), "mailbox": tr.mailbox},
 		}); err != nil {
 			return err
 		}
+		meta["scope"], meta["mailbox_provider"], meta["value"], meta["limit"], meta["summary"] = scope, tr.mailbox, value, limit, summary
+		if !tr.postmaster {
+			meta["complaints"], meta["delivered"] = tr.events, tr.base
+		}
 		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.complaint_alert", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Actor: systemActor, Metadata: map[string]any{"scope": scope, "mailbox_provider": tr.mailbox, "value": value, "limit": limit, "complaints": tr.events, "delivered": tr.base,
-				"summary": fmt.Sprintf("%s complaints reached %s after the send (limit %s)", firstNonEmpty(who, "The send's"), fmtRate(tr.value), fmtRate(tr.limit)), "source": "complaint watch"}})
+			Actor: systemActor, Metadata: meta})
 	})
 }
 

@@ -179,6 +179,7 @@ export default translate(m, {
   watchFootnote: 'Khiếu nại đến muộn sẽ đưa liên hệ vào danh sách chặn gửi và được tính trong báo cáo của chiến dịch này. Phần lớn đến trong 24 giờ đầu.',
   watchAlertWho: 'Khiếu nại ở {who} đạt {value} sau lần gửi (ngưỡng {limit})',
   watchAlertAll: 'Khiếu nại đạt {value} sau lần gửi (ngưỡng {limit})',
+  watchAlertPostmaster: 'Tỷ lệ spam của Gmail đạt {value} sau lần gửi (ngưỡng {limit}), theo Postmaster Tools',
   acknowledge: 'Đã xem',
   acknowledgeFailed: 'Không đánh dấu được cảnh báo',
   cancelFailed: 'Không hủy được',

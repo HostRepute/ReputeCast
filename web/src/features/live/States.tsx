@@ -320,9 +320,12 @@ function ComplaintAlerts({ s, actions, can }: { s: Snapshot; actions: LiveAction
           tone="warn"
           title={
             <span role="alert">
-              {i.scope === 'mailbox_provider'
-                ? tr(m.watchAlertWho, { who: scopeName(i), value: pct(i.value ?? undefined, 2), limit: pct(i.limit ?? undefined, 2) })
-                : tr(m.watchAlertAll, { value: pct(i.value ?? undefined, 2), limit: pct(i.limit ?? undefined, 2) })}
+              {i.detail.reason === 'postmaster'
+                ? // Gmail's daily spam rate from Postmaster Tools (review GS-6, R2.A4).
+                  tr(m.watchAlertPostmaster, { value: pct(i.value ?? undefined, 2), limit: pct(i.limit ?? undefined, 2) })
+                : i.scope === 'mailbox_provider'
+                  ? tr(m.watchAlertWho, { who: scopeName(i), value: pct(i.value ?? undefined, 2), limit: pct(i.limit ?? undefined, 2) })
+                  : tr(m.watchAlertAll, { value: pct(i.value ?? undefined, 2), limit: pct(i.limit ?? undefined, 2) })}
             </span>
           }
           actions={

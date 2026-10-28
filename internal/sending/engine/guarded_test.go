@@ -59,6 +59,7 @@ func TestGuardedSending(t *testing.T) {
 	t.Run("ThresholdsWhilePaused", func(t *testing.T) { testThresholdsWhilePaused(t, s.Fixture(t, "GS-2 thresholds")) })
 	// GS-6: complaints count where reported; the complaint watch after the send.
 	t.Run("ComplaintWatchAfterTheSend", func(t *testing.T) { testComplaintWatch(t, s.Fixture(t, "GS-6 watch")) })
+	t.Run("PostmasterAfterTheSend", func(t *testing.T) { testPostmasterWatch(t, s.Fixture(t, "GS-6 postmaster")) })
 	// GS-7: plain SMTP's deliveries are inferred from its acceptance.
 	t.Run("SMTPInfersDelivery", func(t *testing.T) { testSMTPInfersDelivery(t, s.Fixture(t, "GS-7 smtp")) })
 	// GS-8: throttles shared by sends going out at once; ETAs.
