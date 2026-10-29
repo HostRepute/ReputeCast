@@ -437,7 +437,8 @@ Spec GS-14 · **Done** (fixed by the audit)
 - Code: `web/src/features/live/useLiveSend.ts` (stale after 90 s → polls every 10 s); the stream
   sends a heartbeat every 15 s; role="alert" is on the incident's title only (`Decision.tsx`).
   While the stream is down only the progress bar fades, as on LiveMonitorStates; the counts keep
-  their contrast (`live.css`, found by the QA of the final build).
+  their contrast (`live.css`, found by the QA of the final build). An outage's title says what the
+  provider returned in the reader's language ("Postal trả về lỗi kết nối trong 3 phút").
 - Tests: `useLiveSend.test.ts`, `TestGuardedSending/StreamHeartbeats`.
 
 **R2.U6 · Keep "What tripped / Likely causes / Recommended / Choose how to continue".**
