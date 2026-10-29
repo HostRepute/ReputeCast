@@ -32,7 +32,7 @@
   },
   "AccountStates.dc.html": {
    "expand": "fill",
-   "h": 1039,
+   "h": 1040,
    "is_interactive": true,
    "page": "account",
    "title": "Account & security · dialogs and states",
@@ -148,7 +148,7 @@
   },
   "AutomationFlow.dc.html": {
    "expand": "fill",
-   "h": 1153,
+   "h": 1154,
    "is_interactive": true,
    "page": "automations",
    "title": "Automations · flow canvas",
@@ -172,11 +172,11 @@
    "title": "Automations · flow canvas · tablet",
    "w": 834,
    "x": 954,
-   "y": 1513
+   "y": 1514
   },
   "AutomationPublish.dc.html": {
    "expand": "fill",
-   "h": 958,
+   "h": 959,
    "is_interactive": true,
    "page": "automations",
    "title": "Automations · publish & version diff",
@@ -224,7 +224,7 @@
   },
   "BrandKit.dc.html": {
    "expand": "fill",
-   "h": 2466,
+   "h": 2588,
    "is_interactive": true,
    "page": "settings",
    "title": "Settings · brand kit",
@@ -233,7 +233,7 @@
    "y": 0
   },
   "BrandKitPhone.dc.html": {
-   "h": 4803,
+   "h": 5089,
    "is_interactive": true,
    "page": "settings",
    "title": "Settings · brand kit · phone",
@@ -340,7 +340,7 @@
   },
   "ComposerStates.dc.html": {
    "expand": "fill",
-   "h": 2606,
+   "h": 3404,
    "is_interactive": true,
    "page": "composer",
    "title": "Composer · loading / error / saved",
@@ -407,7 +407,7 @@
    "y": 0
   },
   "ContactProfilePhone.dc.html": {
-   "h": 2714,
+   "h": 2732,
    "is_interactive": true,
    "page": "audience",
    "title": "Audience · contact profile · phone",
@@ -426,7 +426,7 @@
    "y": 0
   },
   "ContactsPhone.dc.html": {
-   "h": 1712,
+   "h": 1739,
    "is_interactive": true,
    "page": "audience",
    "title": "Audience · contacts · phone",
@@ -544,7 +544,7 @@
   },
   "DeliverabilityStates.dc.html": {
    "expand": "fill",
-   "h": 781,
+   "h": 1046,
    "is_interactive": true,
    "page": "deliverability",
    "title": "Deliverability · loading / error",
@@ -747,7 +747,7 @@
   },
   "Landing.dc.html": {
    "expand": "fill",
-   "h": 6642,
+   "h": 6688,
    "is_interactive": true,
    "page": "landing",
    "title": "reputecast.com landing page",
@@ -756,22 +756,22 @@
    "y": 0
   },
   "LandingPhone.dc.html": {
-   "h": 11985,
+   "h": 12075,
    "is_interactive": true,
    "page": "landing",
    "title": "reputecast.com landing page · phone",
    "w": 390,
    "x": 0,
-   "y": 16746
+   "y": 16816
   },
   "LandingTablet.dc.html": {
-   "h": 9497,
+   "h": 9521,
    "is_interactive": true,
    "page": "landing",
    "title": "reputecast.com landing page · tablet",
    "w": 834,
    "x": 0,
-   "y": 6919
+   "y": 6965
   },
   "ListHealth.dc.html": {
    "expand": "fill",
@@ -880,7 +880,7 @@
   },
   "Logo.dc.html": {
    "expand": "fill",
-   "h": 2877,
+   "h": 2878,
    "is_interactive": true,
    "page": "design",
    "title": "Logo · mark, lockups, colour versions, files",
@@ -948,7 +948,7 @@
   },
   "MigrationPreview.dc.html": {
    "expand": "fill",
-   "h": 1235,
+   "h": 1236,
    "is_interactive": true,
    "page": "migration",
    "title": "Import 4 · Preview",
@@ -1005,7 +1005,7 @@
   },
   "MigrationStates.dc.html": {
    "expand": "fill",
-   "h": 991,
+   "h": 992,
    "is_interactive": true,
    "page": "migration",
    "title": "Import · empty / error",
@@ -1024,7 +1024,7 @@
    "y": 0
   },
   "NotificationsPhone.dc.html": {
-   "h": 6762,
+   "h": 6793,
    "is_interactive": true,
    "page": "account",
    "title": "Notification center & preferences · phone",
@@ -1039,11 +1039,11 @@
    "title": "Notification center & preferences · tablet",
    "w": 834,
    "x": 954,
-   "y": 3469
+   "y": 3470
   },
   "OverviewEmpty.dc.html": {
    "expand": "fill",
-   "h": 834,
+   "h": 854,
    "is_interactive": true,
    "page": "overview",
    "title": "Overview · first run",
@@ -1052,7 +1052,7 @@
    "y": 0
   },
   "OverviewEmptyPhone.dc.html": {
-   "h": 1659,
+   "h": 1741,
    "is_interactive": true,
    "page": "overview",
    "title": "Overview · first run · phone",
@@ -1140,7 +1140,7 @@
    "y": 1848
   },
   "ProvidersRoutingPhone.dc.html": {
-   "h": 5019,
+   "h": 5025,
    "is_interactive": true,
    "page": "providers",
    "title": "Routing rules & route tester · phone",
@@ -1155,11 +1155,11 @@
    "title": "Routing rules & route tester · tablet",
    "w": 834,
    "x": 954,
-   "y": 4626
+   "y": 4673
   },
   "ProvidersStates.dc.html": {
    "expand": "fill",
-   "h": 1194,
+   "h": 2390,
    "is_interactive": true,
    "page": "providers",
    "title": "Providers · empty / loading / error",
@@ -1184,7 +1184,7 @@
    "title": "Traffic rules",
    "w": 1440,
    "x": 6080,
-   "y": 1848
+   "y": 3044
   },
   "ProvidersTrafficRulesPhone.dc.html": {
    "h": 5465,
@@ -1193,11 +1193,11 @@
    "title": "Traffic rules · phone",
    "w": 390,
    "x": 1020,
-   "y": 8254
+   "y": 8301
   },
   "ProvidersWarmup.dc.html": {
    "expand": "fill",
-   "h": 1904,
+   "h": 1951,
    "is_interactive": true,
    "page": "providers",
    "title": "Warm-up planner",
@@ -1379,7 +1379,7 @@
   },
   "SSOSetup.dc.html": {
    "expand": "fill",
-   "h": 2340,
+   "h": 2341,
    "is_interactive": true,
    "page": "instance",
    "title": "SSO setup · Microsoft Entra ID",
@@ -1456,7 +1456,7 @@
   },
   "SendReadinessBlocked.dc.html": {
    "expand": "fill",
-   "h": 1617,
+   "h": 1623,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · blocked",
@@ -1465,17 +1465,17 @@
    "y": 0
   },
   "SendReadinessBlockedPhone.dc.html": {
-   "h": 4302,
+   "h": 4346,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · blocked · phone",
    "w": 390,
    "x": 510,
-   "y": 7179
+   "y": 7387
   },
   "SendReadinessConfirm.dc.html": {
    "expand": "fill",
-   "h": 807,
+   "h": 746,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · confirm",
@@ -1485,7 +1485,7 @@
   },
   "SendReadinessFixes.dc.html": {
    "expand": "fill",
-   "h": 1308,
+   "h": 1325,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · review 2 fixes",
@@ -1503,17 +1503,17 @@
    "y": 7179
   },
   "SendReadinessPhone.dc.html": {
-   "h": 3927,
+   "h": 4132,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · ready with warnings · phone",
    "w": 390,
    "x": 0,
-   "y": 7179
+   "y": 7387
   },
   "SendReadinessStates.dc.html": {
    "expand": "fill",
-   "h": 3308,
+   "h": 3334,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · running / error / scheduled",
@@ -1522,7 +1522,7 @@
    "y": 0
   },
   "SendReadinessTablet.dc.html": {
-   "h": 2433,
+   "h": 2641,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · ready with warnings · tablet",
@@ -1701,10 +1701,10 @@
    "title": "Team · members and invitations · phone",
    "w": 390,
    "x": 510,
-   "y": 11281
+   "y": 11284
   },
   "SettingsTeamTablet.dc.html": {
-   "h": 1197,
+   "h": 1200,
    "is_interactive": true,
    "page": "team",
    "title": "Team · members and invitations · tablet",
@@ -1714,7 +1714,7 @@
   },
   "SetupCatalog.dc.html": {
    "expand": "fill",
-   "h": 2124,
+   "h": 2143,
    "is_interactive": true,
    "page": "setup",
    "title": "Setup 1 · Provider catalog",
@@ -1723,22 +1723,22 @@
    "y": 0
   },
   "SetupCatalogPhone.dc.html": {
-   "h": 5549,
+   "h": 5587,
    "is_interactive": true,
    "page": "setup",
    "title": "Setup 1 · Provider catalog · phone",
    "w": 390,
    "x": 0,
-   "y": 7194
+   "y": 7230
   },
   "SetupCatalogTablet.dc.html": {
-   "h": 3312,
+   "h": 3329,
    "is_interactive": true,
    "page": "setup",
    "title": "Setup 1 · Provider catalog · tablet",
    "w": 834,
    "x": 0,
-   "y": 3552
+   "y": 3571
   },
   "SetupContacts.dc.html": {
    "expand": "fill",
@@ -1767,7 +1767,7 @@
    "title": "Setup 3 · Domain verification · phone",
    "w": 390,
    "x": 1020,
-   "y": 7194
+   "y": 7230
   },
   "SetupDone.dc.html": {
    "expand": "fill",
@@ -1800,22 +1800,22 @@
    "y": 0
   },
   "SetupSESPhone.dc.html": {
-   "h": 3699,
+   "h": 3716,
    "is_interactive": true,
    "page": "setup",
    "title": "Setup 2 · Amazon SES · phone",
    "w": 390,
    "x": 510,
-   "y": 7194
+   "y": 7230
   },
   "SetupSESTablet.dc.html": {
-   "h": 2451,
+   "h": 2468,
    "is_interactive": true,
    "page": "setup",
    "title": "Setup 2 · Amazon SES · tablet",
    "w": 834,
    "x": 954,
-   "y": 3552
+   "y": 3571
   },
   "SetupSMTP.dc.html": {
    "expand": "fill",
@@ -1845,7 +1845,7 @@
    "title": "Setup 4 · Test send",
    "w": 1440,
    "x": 0,
-   "y": 2244
+   "y": 2263
   },
   "ShellNotifications.dc.html": {
    "expand": "fill",
@@ -1919,7 +1919,7 @@
   },
   "TeamInvite.dc.html": {
    "expand": "fill",
-   "h": 787,
+   "h": 714,
    "is_interactive": true,
    "page": "team",
    "title": "Team · invite dialog",
@@ -1929,7 +1929,7 @@
   },
   "TeamInviteNoProvider.dc.html": {
    "expand": "fill",
-   "h": 900,
+   "h": 827,
    "is_interactive": true,
    "page": "team",
    "title": "Team · invite without a System provider",
@@ -1959,7 +1959,7 @@
   },
   "TwoFactorStates.dc.html": {
    "expand": "fill",
-   "h": 1126,
+   "h": 1127,
    "is_interactive": true,
    "page": "account",
    "title": "Two-factor · wrong code, passkey, recovery codes, reset fallbacks",
@@ -1994,7 +1994,7 @@
    "title": "Workspace settings · general, approvals, danger zone · phone",
    "w": 390,
    "x": 0,
-   "y": 11281
+   "y": 11284
   },
   "Transactional.dc.html": {
    "x": 0,
@@ -2010,7 +2010,7 @@
    "x": 1560,
    "y": 0,
    "w": 1440,
-   "h": 2624,
+   "h": 2606,
    "title": "Transactional · first run, alert, no route, outage, read-only, loading",
    "page": "p1-transactional",
    "is_interactive": true,
@@ -2130,7 +2130,7 @@
    "x": 3120,
    "y": 5598,
    "w": 1440,
-   "h": 2022,
+   "h": 2002,
    "title": "Message detail · rejected, bounced, failed, failover, test, retention, permission",
    "page": "p1-transactional",
    "is_interactive": true,
@@ -2234,7 +2234,7 @@
    "x": 12200,
    "y": 0,
    "w": 1440,
-   "h": 39591,
+   "h": 39798,
    "title": "Design system · expansion patterns (phases 1–8)",
    "page": "design",
    "is_interactive": true,
@@ -2324,7 +2324,7 @@
    "x": 4680,
    "y": 16249,
    "w": 1440,
-   "h": 8498,
+   "h": 8488,
    "title": "Languages · states of General, the composer, compare, and Add language",
    "page": "p2-connect",
    "is_interactive": true,
@@ -2424,7 +2424,7 @@
    "x": 3120,
    "y": 28735,
    "w": 1440,
-   "h": 2918,
+   "h": 2970,
    "title": "Review & send · languages and accessibility (Weekly Digest #143)",
    "page": "p2-connect",
    "is_interactive": true,
@@ -2462,7 +2462,7 @@
   },
   "AutomationLanguages.dc.html": {
    "x": 3120,
-   "y": 35733,
+   "y": 35785,
    "w": 1440,
    "h": 1545,
    "title": "Automations · a Send email step’s languages and the v4 publish dialog (changes AutomationFlow and AutomationPublish)",
@@ -2499,7 +2499,7 @@
   },
   "ComposerLanguagesTablet.dc.html": {
    "x": 2862,
-   "y": 37758,
+   "y": 37810,
    "w": 834,
    "h": 2276,
    "title": "Composer · languages, German outdated · tablet",
@@ -2508,7 +2508,7 @@
   },
   "ComposerAccessibilityTablet.dc.html": {
    "x": 3816,
-   "y": 37758,
+   "y": 37810,
    "w": 834,
    "h": 3038,
    "title": "Composer · accessibility panel, issues found · tablet",
@@ -2562,7 +2562,7 @@
   },
   "StressCampaignsPseudoPhone.dc.html": {
    "x": 2550,
-   "y": 42579,
+   "y": 42631,
    "w": 390,
    "h": 2240,
    "title": "Stress test · Campaigns · pseudo-locale +40% · phone",
@@ -2571,7 +2571,7 @@
   },
   "StressReviewPseudoPhone.dc.html": {
    "x": 3060,
-   "y": 42579,
+   "y": 42631,
    "w": 390,
    "h": 5083,
    "title": "Stress test · Review & send · pseudo-locale +40% · phone",
@@ -2580,7 +2580,7 @@
   },
   "StressTeamPseudoPhone.dc.html": {
    "x": 3570,
-   "y": 42579,
+   "y": 42631,
    "w": 390,
    "h": 2121,
    "title": "Stress test · Team · pseudo-locale +40% · phone",
@@ -2589,7 +2589,7 @@
   },
   "ComposerAccessibilityPhone.dc.html": {
    "x": 4080,
-   "y": 42579,
+   "y": 42631,
    "w": 390,
    "h": 3794,
    "title": "Composer · accessibility panel, issues found · phone",
@@ -2598,9 +2598,9 @@
   },
   "SendReadinessAccessibilityPhone.dc.html": {
    "x": 4590,
-   "y": 42579,
+   "y": 42631,
    "w": 390,
-   "h": 6025,
+   "h": 6073,
    "title": "Review & send · languages and accessibility (Weekly Digest #143) · phone",
    "page": "p2-connect",
    "is_interactive": true
@@ -2629,7 +2629,7 @@
    "x": 3120,
    "y": 0,
    "w": 1440,
-   "h": 3073,
+   "h": 3072,
    "title": "Digest · type picker and setup",
    "page": "p3-create",
    "is_interactive": true,
@@ -2759,7 +2759,7 @@
    "x": 0,
    "y": 31599,
    "w": 834,
-   "h": 5487,
+   "h": 5532,
    "title": "Digest · type picker and setup · tablet",
    "page": "p3-create",
    "is_interactive": true
@@ -2784,7 +2784,7 @@
   },
   "DigestOverviewPhone.dc.html": {
    "x": 0,
-   "y": 40218,
+   "y": 40263,
    "w": 390,
    "h": 3573,
    "title": "Digest · overview and issues · phone",
@@ -2793,7 +2793,7 @@
   },
   "PublicPollPhone.dc.html": {
    "x": 510,
-   "y": 40218,
+   "y": 40263,
    "w": 390,
    "h": 10397,
    "title": "Public · poll answer page and survey page (720) · phone",
@@ -2804,7 +2804,7 @@
    "x": 1020,
    "y": 40218,
    "w": 390,
-   "h": 10790,
+   "h": 10809,
    "title": "Composer · AI suggestions · phone",
    "page": "p3-create",
    "is_interactive": true
@@ -2833,7 +2833,7 @@
    "x": 3120,
    "y": 0,
    "w": 1440,
-   "h": 1599,
+   "h": 1616,
    "title": "Contact profile · score card and address check (changes Contact profile)",
    "page": "p4-insights",
    "is_interactive": true,
@@ -2843,7 +2843,7 @@
    "x": 4680,
    "y": 0,
    "w": 1440,
-   "h": 3309,
+   "h": 3327,
    "title": "Score across the app · Contacts, segments, automation trigger, Visibility, MCP (changes those screens)",
    "page": "p4-insights",
    "is_interactive": true,
@@ -2871,9 +2871,9 @@
   },
   "VerificationStates.dc.html": {
    "x": 3120,
-   "y": 5915,
+   "y": 5932,
    "w": 1440,
-   "h": 7062,
+   "h": 7076,
    "title": "Verification · out of credits, partial, service down, no permission, import preview, signup form",
    "page": "p4-insights",
    "is_interactive": true,
@@ -2901,7 +2901,7 @@
   },
   "PlacementRun.dc.html": {
    "x": 3120,
-   "y": 13457,
+   "y": 13488,
    "w": 1440,
    "h": 4798,
    "title": "Placement · run a test",
@@ -2911,7 +2911,7 @@
   },
   "PlacementSeeds.dc.html": {
    "x": 4680,
-   "y": 13457,
+   "y": 13475,
    "w": 1440,
    "h": 1569,
    "title": "Placement · seed mailboxes",
@@ -2923,7 +2923,7 @@
    "x": 0,
    "y": 18735,
    "w": 1440,
-   "h": 5429,
+   "h": 5411,
    "title": "Placement · waiting, everything in spam, sign-in failed, no seeds, no permission",
    "page": "p4-insights",
    "is_interactive": true,
@@ -2990,7 +2990,7 @@
    "x": 0,
    "y": 33603,
    "w": 390,
-   "h": 3968,
+   "h": 3986,
    "title": "Contact profile · score card and address check (changes Contact profile) · phone",
    "page": "p4-insights",
    "is_interactive": true
@@ -3117,7 +3117,7 @@
    "x": 1560,
    "y": 17232,
    "w": 1440,
-   "h": 5729,
+   "h": 5839,
    "title": "Recommendations · add, partner code, end, paused, limit, unreachable, empty",
    "page": "p5-grow",
    "is_interactive": true,
@@ -3155,7 +3155,7 @@
   },
   "PublicRecommendations.dc.html": {
    "x": 1680,
-   "y": 29719,
+   "y": 29829,
    "w": 720,
    "h": 804,
    "title": "Public · recommendations page",
@@ -3165,7 +3165,7 @@
   },
   "PublicGrowStates.dc.html": {
    "x": 2520,
-   "y": 29719,
+   "y": 29829,
    "w": 720,
    "h": 10335,
    "title": "Public · leaderboard, hub states, invite fallback, recommendation states, emails as received (adds the confirmation page’s recommendations and the preference center’s Invite friends card)",
@@ -3184,7 +3184,7 @@
   },
   "ReferralsTablet.dc.html": {
    "x": 954,
-   "y": 40534,
+   "y": 40644,
    "w": 834,
    "h": 3203,
    "title": "Referrals · results · tablet",
@@ -3193,7 +3193,7 @@
   },
   "RecommendationsTablet.dc.html": {
    "x": 1908,
-   "y": 40534,
+   "y": 40644,
    "w": 834,
    "h": 1964,
    "title": "Recommendations · you recommend and recommending you · tablet",
@@ -3220,7 +3220,7 @@
   },
   "ReferralReviewPhone.dc.html": {
    "x": 1020,
-   "y": 44217,
+   "y": 44327,
    "w": 390,
    "h": 2863,
    "title": "Referrals · review queue · phone",
@@ -3229,7 +3229,7 @@
   },
   "RecommendationsPhone.dc.html": {
    "x": 1530,
-   "y": 44217,
+   "y": 44327,
    "w": 390,
    "h": 2816,
    "title": "Recommendations · you recommend and recommending you · phone",
@@ -3238,7 +3238,7 @@
   },
   "PublicReferralHubPhone.dc.html": {
    "x": 2040,
-   "y": 44217,
+   "y": 44327,
    "w": 390,
    "h": 2657,
    "title": "Public · referral hub · phone",
@@ -3247,7 +3247,7 @@
   },
   "PublicReferralInvitePhone.dc.html": {
    "x": 2550,
-   "y": 44217,
+   "y": 44327,
    "w": 390,
    "h": 858,
    "title": "Public · invite page · phone",
@@ -3256,7 +3256,7 @@
   },
   "PublicRecommendationsPhone.dc.html": {
    "x": 3060,
-   "y": 44217,
+   "y": 44327,
    "w": 390,
    "h": 915,
    "title": "Public · recommendations page · phone",
@@ -3277,7 +3277,7 @@
    "x": 1560,
    "y": 0,
    "w": 1440,
-   "h": 4892,
+   "h": 4873,
    "title": "Earn · launch checklist, test only, conversions only, too early, no access, read-only, loading, error, Overview card",
    "page": "p6-earn",
    "is_interactive": true,
@@ -3397,7 +3397,7 @@
    "x": 1560,
    "y": 15814,
    "w": 1440,
-   "h": 4057,
+   "h": 4075,
    "title": "Earn · paid members: past due, ended, test data, empty, no results, read-only, loading, error",
    "page": "p6-earn",
    "is_interactive": true,
@@ -3455,7 +3455,7 @@
   },
   "EarnInAudience.dc.html": {
    "x": 1560,
-   "y": 20351,
+   "y": 20369,
    "w": 1440,
    "h": 2055,
    "title": "Audience · paid status in contacts, the contact profile and segments (changes Contacts, ContactProfile, SegmentBuilder)",
@@ -3485,7 +3485,7 @@
   },
   "EarnSponsors.dc.html": {
    "x": 1560,
-   "y": 23443,
+   "y": 23461,
    "w": 1440,
    "h": 4412,
    "title": "Earn · sponsors",
@@ -3535,7 +3535,7 @@
   },
   "PublicGift.dc.html": {
    "x": 1680,
-   "y": 33941,
+   "y": 33959,
    "w": 720,
    "h": 2160,
    "title": "Public · give a gift and redeem it",
@@ -3545,7 +3545,7 @@
   },
   "PublicSponsorReport.dc.html": {
    "x": 2520,
-   "y": 33941,
+   "y": 33959,
    "w": 720,
    "h": 1121,
    "title": "Public · sponsor report",
@@ -3574,7 +3574,7 @@
   },
   "EarnPlansTablet.dc.html": {
    "x": 954,
-   "y": 44261,
+   "y": 44279,
    "w": 834,
    "h": 1336,
    "title": "Earn · plans & offers · tablet",
@@ -3583,7 +3583,7 @@
   },
   "EarnMembersTablet.dc.html": {
    "x": 1908,
-   "y": 44261,
+   "y": 44279,
    "w": 834,
    "h": 1116,
    "title": "Earn · paid members · tablet",
@@ -3592,7 +3592,7 @@
   },
   "EarnSponsorsTablet.dc.html": {
    "x": 2862,
-   "y": 44261,
+   "y": 44279,
    "w": 834,
    "h": 1153,
    "title": "Earn · sponsors · tablet",
@@ -3619,7 +3619,7 @@
   },
   "EarnMembersPhone.dc.html": {
    "x": 1020,
-   "y": 49518,
+   "y": 49536,
    "w": 390,
    "h": 1787,
    "title": "Earn · paid members · phone",
@@ -3628,7 +3628,7 @@
   },
   "EarnSponsorsPhone.dc.html": {
    "x": 1530,
-   "y": 49518,
+   "y": 49536,
    "w": 390,
    "h": 1756,
    "title": "Earn · sponsors · phone",
@@ -3637,7 +3637,7 @@
   },
   "PublicUpgradePhone.dc.html": {
    "x": 2040,
-   "y": 49518,
+   "y": 49536,
    "w": 390,
    "h": 2093,
    "title": "Public · upgrade page · phone",
@@ -3646,7 +3646,7 @@
   },
   "PublicCancelPhone.dc.html": {
    "x": 2550,
-   "y": 49518,
+   "y": 49536,
    "w": 390,
    "h": 1038,
    "title": "Public · cancel page · phone",
@@ -3655,7 +3655,7 @@
   },
   "PublicGiftPhone.dc.html": {
    "x": 3060,
-   "y": 49518,
+   "y": 49536,
    "w": 390,
    "h": 2769,
    "title": "Public · give a gift and redeem it · phone",
@@ -3664,7 +3664,7 @@
   },
   "PublicSponsorReportPhone.dc.html": {
    "x": 3570,
-   "y": 49518,
+   "y": 49536,
    "w": 390,
    "h": 1443,
    "title": "Public · sponsor report · phone",
@@ -3715,7 +3715,7 @@
    "x": 6240,
    "y": 0,
    "w": 1440,
-   "h": 9034,
+   "h": 9052,
    "title": "Website · off and turning on, domain and certificate, approval, unpublished, loading, error, read-only",
    "page": "p7-publish",
    "is_interactive": true,
@@ -3835,7 +3835,7 @@
    "x": 1560,
    "y": 32930,
    "w": 1440,
-   "h": 5753,
+   "h": 5734,
    "title": "Earn · products · refund, dispute, new link, test mode, no Stripe, empty, read-only, loading",
    "page": "p7-publish",
    "is_interactive": true,
@@ -4021,7 +4021,7 @@
    "x": 0,
    "y": 0,
    "w": 1440,
-   "h": 1445,
+   "h": 1399,
    "title": "Sending providers · SMS providers and senders",
    "page": "p8-channels",
    "is_interactive": true,
@@ -4031,7 +4031,7 @@
    "x": 1560,
    "y": 0,
    "w": 1440,
-   "h": 2693,
+   "h": 2665,
    "title": "Sending providers · SMS routing and rules",
    "page": "p8-channels",
    "is_interactive": true,
@@ -4041,7 +4041,7 @@
    "x": 3120,
    "y": 0,
    "w": 1440,
-   "h": 7918,
+   "h": 7899,
    "title": "SMS · connect, registration, keywords, suppressions, budget, outage, states",
    "page": "p8-channels",
    "is_interactive": true,
@@ -4061,7 +4061,7 @@
    "x": 1560,
    "y": 8398,
    "w": 1440,
-   "h": 3197,
+   "h": 3216,
    "title": "SMS composer · UCS-2 fix, personalization, bit.ly, over 3 segments, UK preview, empty audience, read-only",
    "page": "p8-channels",
    "is_interactive": true,
@@ -4111,7 +4111,7 @@
    "x": 0,
    "y": 12237,
    "w": 1440,
-   "h": 3703,
+   "h": 3722,
    "title": "Automations · SMS, push and WhatsApp steps",
    "page": "p8-channels",
    "is_interactive": true,
@@ -4119,7 +4119,7 @@
   },
   "PublicSmsTerms.dc.html": {
    "x": 1560,
-   "y": 12237,
+   "y": 12256,
    "w": 720,
    "h": 1304,
    "title": "Public · text message terms",
@@ -4129,9 +4129,9 @@
   },
   "PushSetup.dc.html": {
    "x": 0,
-   "y": 16420,
+   "y": 16439,
    "w": 1440,
-   "h": 1986,
+   "h": 1940,
    "title": "Sending providers · web push setup",
    "page": "p8-channels",
    "is_interactive": true,
@@ -4139,7 +4139,7 @@
   },
   "PushPrompt.dc.html": {
    "x": 1560,
-   "y": 16420,
+   "y": 16439,
    "w": 1440,
    "h": 3586,
    "title": "Signup forms · push prompt designer",
@@ -4169,9 +4169,9 @@
   },
   "WhatsAppChannel.dc.html": {
    "x": 0,
-   "y": 24161,
+   "y": 24180,
    "w": 1440,
-   "h": 5211,
+   "h": 5165,
    "title": "Sending providers · WhatsApp account, templates, campaign, states",
    "page": "p8-channels",
    "is_interactive": true,
@@ -4179,7 +4179,7 @@
   },
   "AgencyOverview.dc.html": {
    "x": 0,
-   "y": 29852,
+   "y": 29871,
    "w": 1440,
    "h": 1449,
    "title": "Agency · overview",
@@ -4189,9 +4189,9 @@
   },
   "AgencyLibrary.dc.html": {
    "x": 1560,
-   "y": 29852,
+   "y": 29871,
    "w": 1440,
-   "h": 3361,
+   "h": 3342,
    "title": "Agency · workspace templates and shared library",
    "page": "p8-channels",
    "is_interactive": true,
@@ -4229,7 +4229,7 @@
   },
   "SmsProvidersTablet.dc.html": {
    "x": 0,
-   "y": 39207,
+   "y": 39226,
    "w": 834,
    "h": 1928,
    "title": "Sending providers · SMS providers and senders · tablet",
@@ -4238,7 +4238,7 @@
   },
   "SmsComposerTablet.dc.html": {
    "x": 954,
-   "y": 39207,
+   "y": 39226,
    "w": 834,
    "h": 1727,
    "title": "SMS composer · Summit: 8 days to go · tablet",
@@ -4247,7 +4247,7 @@
   },
   "AgencyOverviewTablet.dc.html": {
    "x": 1908,
-   "y": 39207,
+   "y": 39226,
    "w": 834,
    "h": 2211,
    "title": "Agency · overview · tablet",
@@ -4256,7 +4256,7 @@
   },
   "SmsProvidersPhone.dc.html": {
    "x": 0,
-   "y": 41898,
+   "y": 41917,
    "w": 390,
    "h": 3110,
    "title": "Sending providers · SMS providers and senders · phone",
@@ -4265,7 +4265,7 @@
   },
   "SmsComposerPhone.dc.html": {
    "x": 510,
-   "y": 41898,
+   "y": 41917,
    "w": 390,
    "h": 3002,
    "title": "SMS composer · Summit: 8 days to go · phone",
@@ -4274,7 +4274,7 @@
   },
   "SmsReportPhone.dc.html": {
    "x": 1020,
-   "y": 41898,
+   "y": 41917,
    "w": 390,
    "h": 4983,
    "title": "SMS report · Summit: 8 days to go · phone",
@@ -4283,7 +4283,7 @@
   },
   "PublicSmsTermsPhone.dc.html": {
    "x": 1530,
-   "y": 41898,
+   "y": 41917,
    "w": 390,
    "h": 1671,
    "title": "Public · text message terms · phone",
@@ -4292,7 +4292,7 @@
   },
   "PushComposerPhone.dc.html": {
    "x": 2040,
-   "y": 41898,
+   "y": 41917,
    "w": 390,
    "h": 3566,
    "title": "Push composer · previews · phone",
@@ -4301,7 +4301,7 @@
   },
   "AgencyOverviewPhone.dc.html": {
    "x": 2550,
-   "y": 41898,
+   "y": 41917,
    "w": 390,
    "h": 2843,
    "title": "Agency · overview · phone",
