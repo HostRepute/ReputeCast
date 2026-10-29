@@ -539,9 +539,11 @@
     border-width: 3px;
   }
 
-  /* Stale data while the event stream is down (LiveMonitorStates). */
-  .lv-stale {
-    opacity: 0.75;
+  /* Stale data while the event stream is down (LiveMonitorStates): the
+     progress bar fades, as on the board; the counts and their labels keep
+     their contrast, since people still read them as of the time shown. */
+  .lv-stale > .bar {
+    opacity: 0.55;
   }
 
   /* LiveMonitorMobile: its own header, and the board's phone sizes for
