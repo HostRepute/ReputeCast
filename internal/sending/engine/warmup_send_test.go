@@ -157,7 +157,9 @@ func TestWarmupOtherStreams(t *testing.T) {
 	t.Run("AutomationsWaitWhilePaused", func(t *testing.T) { testAutomationsWaitWhilePaused(t, s.Fixture(t, "Warm-up automations paused")) })
 	t.Run("AutomationsCapPerMailbox", func(t *testing.T) { testAutomationsCapPerMailbox(t, s.Fixture(t, "Warm-up automations mailbox")) })
 	t.Run("AutomationsOverflowToWarmFallback", func(t *testing.T) { testAutomationsOverflow(t, s.Fixture(t, "Warm-up automations overflow")) })
-	t.Run("AutomationsOverflowPerMailbox", func(t *testing.T) { testAutomationsOverflowPerMailbox(t, s.Fixture(t, "Warm-up automations mailbox overflow")) })
+	t.Run("AutomationsOverflowPerMailbox", func(t *testing.T) {
+		testAutomationsOverflowPerMailbox(t, s.Fixture(t, "Warm-up automations mailbox overflow"))
+	})
 	t.Run("TransactionalNeverWaits", func(t *testing.T) { testTransactionalNeverWaits(t, s.Fixture(t, "Warm-up transactional")) })
 }
 
