@@ -151,7 +151,7 @@ func sentence(l i18n.Lang, t i18n.Text) string {
 	if err != nil {
 		return ""
 	}
-	args := make(i18n.Args, len(t.Args)+1)
+	args := make(i18n.Args, len(t.Args))
 	for k, v := range t.Args {
 		args[k] = value(l, k, v)
 	}
