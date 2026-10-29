@@ -51,7 +51,7 @@ The report asked for P0 first (data loss or wrong sends), then P1 (honest number
 | P1 | Check the failover target; a wait before "webhooks silent" | R3.L5, R3.L4, R3.A4 | Done; the triggers changed on purpose |
 | P1 | Duration and cost estimates match the engine | R1.L5, R2.L9 | Done in M40 (one volume rule) |
 | P2 | Readiness: issues first, friction by risk, a fix's consequences before it applies | R1.U1, R1.U6, R1.U3 | Done in M40 (no guessed links, Undo) |
-| P2 | Canary and thresholds by bounce type | R2.A1, R2.A2 | Done in M40 (new IPs, block bursts) |
+| P2 | Canary and thresholds by bounce type | R2.A1, R2.A2 | Done in M40 (new IPs read from providers, block bursts) |
 | P2 | Write mode, collaboration, brand kit in the composer | R4.A1, R4.A2, R4.A3 | Done in M40 (synced blocks) |
 | P2 | Analytics with trends, attribution, three open groups | R5.A2, R5.A1, R5.U1 | Done in M40 (trend lines) |
 | P2 | "Help me choose", writing before a provider, SQS polling | R3.U1, R3.U2, R3.A1 | Done in M40 |
@@ -352,10 +352,18 @@ Spec GS-10 · **Done in M40**
   (`web/src/features/live/Canary.tsx`). M40: a dedicated IP that has never sent for the workspace
   starts a canary. Each send records the IPs of a dedicated provider once per run
   (`workspace_sending_ips`, migration 03313), and Review & send and the live monitor name the IP
-  and its provider.
+  and its provider. A provider's dedicated IPs come from its own API (SES, SendGrid, Mailgun,
+  SparkPost and Brevo, each in its `ips.go`) when it is connected, when its connection step is
+  repeated and every day (`internal/providers/manage/ips.go`); for the others a person sets them
+  on Sending providers (`web/src/features/providers/SendingIPs.tsx`, migration 03350). Before M40
+  only the demo seed wrote them, so the trigger never fired on a real install.
 - Tests: `TestGuardedSending/CanaryPassesThenEveryone`, `/CanaryGateHoldsThenStop`,
-  `/CanaryChoices`, `/CanaryForNewSendingIP`, `TestSeedGateNeedsArrivals`, `TestCanaryChoice`,
-  `TestSendingIPsBackfill`, `canary.test.ts`.
+  `/CanaryChoices`, `/CanaryForNewSendingIP`, `/CanaryForReportedIP` (a connected provider's
+  reported IP starts a canary on the first send, not the second), `TestSeedGateNeedsArrivals`,
+  `TestCanaryChoice`, `TestSendingIPsBackfill`, `canary.test.ts`; `TestCleanIPs`,
+  `TestSendingIPsFollowsPages`, `TestSendingIPs` (each adapter), `TestRefreshIPs`, `TestIPsWorker`,
+  `TestConnectReadsSendingIPs`, `TestSetProviderIPs`, `TestCheckProviderIPs`,
+  `TestReviewReadsRefreshedIPs`, `TestWarmupUsesReportedIPs`, `SendingIPs.test.tsx`.
 
 **R2.A2 · Thresholds by bounce type.** Policy and reputation blocks (5.7.x, Outlook S3150, Yahoo
 TSS04) stop early; unknown users reflect list quality; deferral rate per mailbox provider.
@@ -852,9 +860,10 @@ Spec F-5, F-4 · **Done in M40**
   table is written only by the demo or tests. The health job still never calls a demo provider
   (they are sample data), so the outage flow is tested with a provider that isn't one. M40 found
   what the writers test can't see, data that only the demo seeded: the default reply rules (now
-  given to every workspace) and the sending IPs a new-IP canary needs.
+  given to every workspace) and providers' sending IPs, a column the new-IP canary, Send
+  Readiness and warm-up read (now read from each provider's API or set by hand, R2.A1).
 - Tests: `TestQueriedTablesHaveProductionWriters`, `TestGuardedSending/HealthJobOutageHasOptions`,
-  `TestNewWorkspaceStartsWithDefaultReplyRules`, `TestGuardedSending/CanaryForNewSendingIP`.
+  `TestNewWorkspaceStartsWithDefaultReplyRules`, `TestGuardedSending/CanaryForReportedIP`.
 
 **X.2 · The UI over-promises.** Every claim needs a test.
 Spec F-6 · **Done in M40**
@@ -868,8 +877,11 @@ Spec F-1 · **Done** (R2.L8)
 **X.4 · "No data" is not 0:** Gmail and iCloud complaints, SMTP deliveries, silent webhooks.
 Spec F-3, F-2 · **Done**
 - Code: the APIs return `null` with a reason for unreported rates; the screens say "n/a" and why.
+  M40: a sending IP the blocklist checks haven't reached yet is Unknown on Send Readiness, never
+  "clean on 0 of 0".
 - Tests: `TestComplaintsCountWhereReported`, `TestGuardedSending/SMTPInfersDelivery`,
-  `TestNoSilentAlarmAfterAQuietPeriod`, `TestProviderRatesNeedEnoughMail`.
+  `TestNoSilentAlarmAfterAQuietPeriod`, `TestProviderRatesNeedEnoughMail`,
+  `TestAssembleUncheckedIP`.
 
 **X.5 · Scope is spread thin:** pause SMS, WhatsApp, shop and the like until the five features'
 P0 is done.

@@ -151,7 +151,7 @@ M40 finished it; the rows above now mean what follows.
 | GS-1 | The live monitor shows the decision on messages in doubt per provider: whether it recognizes a resend and until when, the two choices, the recommended one and who can decide. SparkPost recognizes a message it already took for 24 hours; Resend doesn't take part (its keys cover a batch request). |
 | GS-3 | A held share nobody decided on tests its provider every 60 s by itself and resumes after 3 tests in a row go through; a failed test uses no attempts; a person's Move or Cancel ends the tests, their Retry keeps them going. |
 | GS-6 | Complaints clearly over the limit (the lower bound of a one-sided 95% Wilson interval, from 3 complaints) trip a send of any size, per mailbox provider and campaign-wide, during the send and in the watch after it. With Traffic rules › After the send › Gmail Postmaster on, the watch alerts once when a day's Postmaster spam rate passes the limit. |
-| GS-10 | A dedicated IP that never sent for the workspace starts a canary: each send records its dedicated provider's IPs once per run, and Review & send and the live monitor name the IP and provider. |
+| GS-10 | A dedicated IP that never sent for the workspace starts a canary: each send records its dedicated provider's IPs once per run, and Review & send and the live monitor name the IP and provider. A provider's dedicated IPs come from its API (SES, SendGrid, Mailgun, SparkPost, Brevo) when connected, on a repeated connection step and daily, or are set by hand on Sending providers; an IP the blocklist checks haven't reached is Unknown on Send Readiness. |
 | GS-11 | Block and policy bounces trip at any volume once clearly over the limit, and on a burst at one named mailbox provider: 3 or more within 10 minutes, clearly over the limit among what it was sent in those minutes (not in the 10 minutes after a resume). |
 | GS-12 | Every workspace starts with the default reply rules; workspaces without rules got them. |
 | PR-3 | SES setup finishes on the simulator's Delivery event, not any event. A provider that never reported an event is flagged once mail is 30 minutes overdue, counted from its connection. |
@@ -170,7 +170,7 @@ M40 finished it; the rows above now mean what follows.
 | AN-11 | Every tile draws its trend over the compared issues once results are final. |
 
 Migrations: 03300–03301 (Send Readiness), 03310–03313 (guarded sending), 03320–03321 (providers),
-03330 (composer), 03340–03341 (analytics).
+03330 (composer), 03340–03341 (analytics), 03350 (providers' sending IPs).
 
 ## Found while building the review (outside the five features)
 
