@@ -55,6 +55,7 @@ func TestGuardedSending(t *testing.T) {
 	// GS-2: resuming re-arms; changes at every scope; thresholds while paused.
 	t.Run("ResumeDoesNotRetripOnOldEvents", func(t *testing.T) { testResumeRearms(t, s.Fixture(t, "GS-2 mailbox")) })
 	t.Run("CampaignResumeRearms", func(t *testing.T) { testCampaignResumeRearms(t, s.Fixture(t, "GS-2 campaign")) })
+	t.Run("CampaignResumeWithChanges", func(t *testing.T) { testCampaignResumeWithChanges(t, s.Fixture(t, "GS-2 campaign changes")) })
 	t.Run("RouteResumeWithChanges", func(t *testing.T) { testRouteResumeWithChanges(t, s.Fixture(t, "GS-2 route")) })
 	t.Run("ThresholdsWhilePaused", func(t *testing.T) { testThresholdsWhilePaused(t, s.Fixture(t, "GS-2 thresholds")) })
 	// GS-6: complaints count where reported; the complaint watch after the send.

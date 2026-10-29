@@ -70,6 +70,62 @@ func testResumeRearms(t *testing.T, f *sendtest.Fixture) {
 	}
 }
 
+// testCampaignResumeWithChanges (review GS-2): with the campaign scope a
+// trip pauses the whole send; "Resume with changes" leaves out the group
+// the incident names (the never-engaged imports behind Outlook's
+// complaints), resolves it as resumed with changes, re-arms the thresholds
+// and audits how many were left out; the others then get the email.
+func testCampaignResumeWithChanges(t *testing.T, f *sendtest.Fixture) {
+	f.Exec(`UPDATE campaigns SET thresholds = '{"scope":"campaign"}' WHERE id = $1`, f.Campaign)
+	at := outlookTrip(t, f)
+	if s := f.Status(); s != "paused" {
+		t.Fatalf("campaign %s, want paused by the campaign-wide trip", s)
+	}
+	snap, err := f.E.Snapshot(f.Ctx, f.WS, f.Campaign)
+	if err != nil {
+		t.Fatal(err)
+	}
+	in := snap.Incident
+	if in == nil || in.Scope != "campaign" || in.Detail.Changes == nil || in.Detail.Changes.Exclude == 0 {
+		t.Fatalf("incident %+v, want a campaign-wide one with changes to leave a group out", in)
+	}
+	setClock(t, f, at)
+	res, err := f.E.ResumeScope(f.Ctx, f.Campaign, f.Sofia, engine.ResumeRequest{WithChanges: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Excluded == 0 || res.Excluded != in.Detail.Changes.Exclude {
+		t.Fatalf("left out %d, the incident offered to leave out %d", res.Excluded, in.Detail.Changes.Exclude)
+	}
+	if s := f.Status(); s != "sending" {
+		t.Fatalf("campaign %s after resuming, want sending", s)
+	}
+	if n := f.Count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND status = 'cancelled' AND error LIKE 'Excluded when %'`, f.Campaign); n != res.Excluded {
+		t.Fatalf("%d messages left out, the resume said %d", n, res.Excluded)
+	}
+	if n := f.Count(`SELECT count(*) FROM campaign_incidents WHERE campaign_id = $1 AND resolution = 'resumed_with_changes'`, f.Campaign); n != 1 {
+		t.Fatal("the incident isn't resolved as resumed with changes")
+	}
+	if n := f.Count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.resumed'
+		AND (after->>'with_changes')::boolean AND (after->>'excluded')::bigint = $2`, f.Campaign.String(), res.Excluded); n != 1 {
+		t.Fatal("the resume's audit entry doesn't say what was left out")
+	}
+	if rearm, _ := guardOf(t, f)["rearm"].(map[string]any); rearm["campaign"] == nil {
+		t.Fatal("the campaign-wide thresholds didn't re-arm")
+	}
+	_, done, err := f.E.Drive(f.Ctx, f.Campaign, at, 15*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !done || f.Status() != "sent" {
+		f.Dump()
+		t.Fatalf("send didn't finish after resuming with changes: %s", f.Status())
+	}
+	if n := f.Count(`SELECT count(*) FROM campaign_incidents WHERE campaign_id = $1 AND kind = 'threshold'`, f.Campaign); n != 1 {
+		t.Fatalf("%d threshold incidents: resuming tripped again", n)
+	}
+}
+
 // testCampaignResumeRearms: with the campaign scope a trip pauses the whole
 // send; resuming it re-arms every threshold from the current counts, with
 // a raised limit audited.
