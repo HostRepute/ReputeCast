@@ -33,6 +33,7 @@ Versions are minimums to start from. Upgrade within the same major version freel
 | Templates | github.com/osteele/liquid | v1.9.2 |
 | Server-side MJML (API/automation sends only) | github.com/preslavrachev/gomjml | v0.13.0 (targets MJML 4.15.3) |
 | AWS SES | github.com/aws/aws-sdk-go-v2 + service/sesv2 | v1.47.3 / v1.79.1 |
+| AWS SES events and setup: the SNS topic SES publishes to; the SQS queue ReputeCast long-polls when nothing may reach it from the internet (review PR-4); STS for the account a key belongs to and for assuming a role | github.com/aws/aws-sdk-go-v2/service/sns + service/sqs + service/sts | v1.47.5 / v1.52.4 / v1.51.4 |
 | SMTP | github.com/wneessen/go-mail | v0.8.1 |
 | Bounce mailbox (IMAP) | github.com/emersion/go-imap/v2 | v2.0.0-beta.8 (beta; isolated in one package) |
 | DNS checks | github.com/miekg/dns | v1.1.73 (behind `internal/dnscheck`; see notes) |
