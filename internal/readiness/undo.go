@@ -297,7 +297,7 @@ func (s *Service) UndoFixes(ctx context.Context, ws *store.Workspace, p *authz.P
 				return err
 			}
 			if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.update", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-				Before: map[string]any{"settings": json.RawMessage(cur.ContentSettings)}, After: map[string]any{"settings": json.RawMessage(settings)}, Metadata: meta}); err != nil {
+				Before: map[string]any{"settings": cur.ContentSettings}, After: map[string]any{"settings": json.RawMessage(settings)}, Metadata: meta}); err != nil {
 				return err
 			}
 		}
@@ -328,7 +328,7 @@ func (s *Service) UndoFixes(ctx context.Context, ws *store.Workspace, p *authz.P
 				return err
 			}
 			if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.update", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-				Before: map[string]any{"audience": json.RawMessage(cur.Audience)}, After: map[string]any{"audience": json.RawMessage(audience)}, Metadata: meta}); err != nil {
+				Before: map[string]any{"audience": cur.Audience}, After: map[string]any{"audience": json.RawMessage(audience)}, Metadata: meta}); err != nil {
 				return err
 			}
 		}

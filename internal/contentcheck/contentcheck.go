@@ -1025,7 +1025,7 @@ func (c *Checker) cleanDestinations(ctx context.Context, links []link, probe map
 	seen := map[string]bool{}
 	for _, l := range links {
 		host, u := linkHost(l.href)
-		if host == "" || !(listed(host) || shorteners[host]) {
+		if host == "" || (!listed(host) && !shorteners[host]) {
 			continue
 		}
 		final := probe[u.String()].Final
