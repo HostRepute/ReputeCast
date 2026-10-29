@@ -213,7 +213,7 @@ export function canaryMinBase(s: Snapshot): number {
   return s.thresholds.find((x) => x.key === 'mailbox_complaint')?.minBase || 500
 }
 
-/** "A mailbox provider's thresholds can trip only after 500 delivered to it; in the canary only Gmail has that many." */
+/** "A mailbox provider's thresholds need 500 delivered to it before they can trip, except …; in the canary only Gmail has that many." */
 export function canaryMinNote(s: Snapshot): string {
   const min = canaryMinBase(s)
   const enough = s.mailboxes.filter((mb) => mb.delivered >= min).map((mb) => mailboxName(mb.key))

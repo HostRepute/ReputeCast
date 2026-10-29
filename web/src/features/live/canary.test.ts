@@ -207,6 +207,8 @@ describe('LiveMonitorCanary', () => {
     expect(gmail?.state.text).toBe('Watching')
     expect(outlook).toMatchObject({ delivered: '95.1% · 14 retrying', deferred: '6.4%', complaint: '0 so far', rate: '5 /s' })
     expect(outlook?.state.text).toBe('Collecting evidence')
-    expect(canaryMinNote(snap)).toBe("A mailbox provider's thresholds can trip only after 500 delivered to it; in the canary only Gmail has that many.")
+    expect(canaryMinNote(snap)).toBe(
+      "A mailbox provider's thresholds need 500 delivered to it before they can trip, except complaints and block/policy bounces clearly over the limit; in the canary only Gmail has that many.",
+    )
   })
 })

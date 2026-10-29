@@ -107,6 +107,6 @@ export default translate(mc, {
   deliveredRetrying: '{rate} · {retrying} đang thử lại',
   noneSoFar: 'chưa có',
   minNote:
-    '{count, plural, =0 {Ngưỡng của một nhà cung cấp hộp thư chỉ có thể bị vượt sau khi đã giao {min} thư tới đó; trong lần gửi thử chưa nhà cung cấp nào đạt số đó.} other {Ngưỡng của một nhà cung cấp hộp thư chỉ có thể bị vượt sau khi đã giao {min} thư tới đó; trong lần gửi thử chỉ {names} đạt số đó.}}',
+    '{count, plural, =0 {Ngưỡng của một nhà cung cấp hộp thư cần đã giao {min} thư tới đó mới có thể bị vượt, trừ khiếu nại và thư trả lại do chặn/chính sách rõ ràng vượt giới hạn; trong lần gửi thử chưa nhà cung cấp nào đạt số đó.} other {Ngưỡng của một nhà cung cấp hộp thư cần đã giao {min} thư tới đó mới có thể bị vượt, trừ khiếu nại và thư trả lại do chặn/chính sách rõ ràng vượt giới hạn; trong lần gửi thử chỉ {names} đạt số đó.}}',
   ratesTimes: 'Thời gian giả định lần gửi chính bắt đầu lúc {until}.',
 })

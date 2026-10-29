@@ -115,7 +115,8 @@ export const mc = defineMessages('live.canary', {
   colQueued: 'Queued',
   deliveredRetrying: '{rate} · {retrying} retrying',
   noneSoFar: '0 so far',
+  /** Complaints and block/policy bounces clearly over the limit trip sooner (review R2.L7c). */
   minNote:
-    "{count, plural, =0 {A mailbox provider's thresholds can trip only after {min} delivered to it; in the canary none has that many yet.} one {A mailbox provider's thresholds can trip only after {min} delivered to it; in the canary only {names} has that many.} other {A mailbox provider's thresholds can trip only after {min} delivered to it; in the canary only {names} have that many.}}",
+    "{count, plural, =0 {A mailbox provider's thresholds need {min} delivered to it before they can trip, except complaints and block/policy bounces clearly over the limit; in the canary none has that many yet.} one {A mailbox provider's thresholds need {min} delivered to it before they can trip, except complaints and block/policy bounces clearly over the limit; in the canary only {names} has that many.} other {A mailbox provider's thresholds need {min} delivered to it before they can trip, except complaints and block/policy bounces clearly over the limit; in the canary only {names} have that many.}}",
   ratesTimes: 'Times assume the main send starts at {until}.',
 })
