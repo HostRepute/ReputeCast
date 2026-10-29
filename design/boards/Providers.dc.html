@@ -240,7 +240,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-weight:700;font-size:17px">Amazon SES</span><span class="badge ok"><span class="dot"></span>Healthy</span><span class="badge mut">us-east-1</span></div>
             <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge pur">Broadcasts 90%</span><span class="badge pur">Automations primary</span><span class="badge mut">System fallback</span></div>
             <div style="display:flex;flex-direction:column;gap:4px;font-size:13px">
-              <div style="display:flex;justify-content:space-between"><span class="k">IPs</span><span>Shared pool · checked at domain level</span></div>
+              <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><span class="k">Sending IPs</span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right"><span>Shared pool · checked at domain level</span><span class="k">From Amazon SES, checked daily · 5 h ago</span></span></div>
               <div style="display:flex;justify-content:space-between"><span class="k">Webhooks</span><span>SNS · last event 2 min ago</span></div>
               <div style="display:flex;justify-content:space-between"><span class="k">API error rate · 7 d</span><span class="n">0.1%</span></div>
               <div style="display:flex;justify-content:space-between"><span class="k">Account status</span><span>Production · no enforcement</span></div>
@@ -268,7 +268,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-weight:700;font-size:17px">Postmark</span><span class="badge ok"><span class="dot"></span>Healthy</span><span class="badge mut">Transactional stream</span></div>
             <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge pur">System primary</span><span class="badge mut">Automations fallback</span></div>
             <div style="display:flex;flex-direction:column;gap:4px;font-size:13px">
-              <div style="display:flex;justify-content:space-between"><span class="k">IPs</span><span>Shared pool · checked at domain level</span></div>
+              <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><span class="k">Sending IPs</span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right"><span>Shared pool · checked at domain level</span><span style="display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap"><span class="k">Postmark doesn't report them</span><button class="btn sm" aria-label="Edit Postmark's sending IPs">Edit</button></span></span></div>
               <div style="display:flex;justify-content:space-between"><span class="k">Webhooks</span><span>Registered · last event 6 min ago</span></div>
               <div style="display:flex;justify-content:space-between"><span class="k">API error rate · 7 d</span><span class="n">0.0%</span></div>
               <div style="display:flex;justify-content:space-between"><span class="k">Account status</span><span>Approved · 10,000 per month plan</span></div>
@@ -295,7 +295,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-weight:700;font-size:17px">Postal</span><span class="badge info"><span class="dot"></span>Warming up · day 9 of 21</span><span class="badge mut">self-hosted · mta.acme.io</span></div>
             <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge pur">Broadcasts 10%</span></div>
             <div style="display:flex;flex-direction:column;gap:4px;font-size:13px">
-              <div style="display:flex;justify-content:space-between"><span class="k">IPs</span><span class="mono">203.0.113.25 · dedicated</span></div>
+              <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><span class="k">Sending IPs</span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right"><span class="mono">203.0.113.25 · dedicated</span><span style="display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap"><span class="k">Set by Linh Nguyen · Fri 3 Oct</span><button class="btn sm" aria-label="Edit Postal's sending IPs">Edit</button></span></span></div>
               <div style="display:flex;justify-content:space-between"><span class="k">Webhooks</span><span>Registered · last event 1 min ago</span></div>
               <div style="display:flex;justify-content:space-between"><span class="k">API error rate · 7 d</span><span class="n">0.4%</span></div>
               <div style="display:flex;justify-content:space-between"><span class="k">Server</span><span>Postal 3.3.4 · reachable</span></div>
@@ -345,7 +345,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1331}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1412}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);

@@ -41,6 +41,20 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
 .rbn .b{font-size:13px;color:#4B5563}
 .sk{background:#E9ECF0;border-radius:6px;display:inline-block}
 .bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+/* sending IPs (review GS-10): the edit dialog and its fields, as the Dialogs, AISettings and Feedback boards draw them */
+.dlg{width:100%;max-width:640px;display:flex;flex-direction:column;background:#fff;border-radius:12px;box-shadow:0 24px 60px rgba(11,18,32,.3)}
+.dh{padding:18px 22px 0;display:flex;flex-direction:column;gap:6px}
+.db{padding:16px 22px;display:flex;flex-direction:column;gap:12px}
+.df{padding:14px 22px 18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid #EEF0F3;align-items:center}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+.in{height:36px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box;min-width:0}
+textarea.in{height:auto;min-height:64px;padding:8px 10px;line-height:1.45;resize:vertical;font:inherit;font-size:13px}
+.in.err,.in[aria-invalid="true"]{border-color:#DC2626}
+.err{font-size:12.5px;color:#991B1B;font-weight:500}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;font-size:13px}
+.opt.on{border-color:#0F766E;background:#F0FDFA}
+.opt input{margin-top:3px}
+@media (max-width:767px){.dlg .btn{min-height:44px}.opt{min-height:44px;box-sizing:border-box}}
 
 
 /* shell additions: workspace switcher, notification bell, user menu */
@@ -329,11 +343,51 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
           <div style="display:flex;flex-wrap:wrap;gap:8px"><button type="button" class="btn sm">Show the latest routing</button><button type="button" class="btn sm">Keep my edits and replace it</button></div>
         </section>
       </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Sending IPs, set by hand">
+        <div class="strip"><span class="dot" style="color:#6B7280"></span>Sending IPs · Postal doesn't report them: set by hand (Edit on its card)</div>
+        <div class="dlg" role="dialog" aria-modal="false" aria-labelledby="ips-t" aria-describedby="ips-d" style="max-width:560px">
+          <div class="dh"><h2 id="ips-t" style="margin:0;font-size:16px;font-weight:700;letter-spacing:-.01em">Postal's sending IPs</h2><p id="ips-d" style="margin:0;color:#4B5563;font-size:13.5px">Postal doesn't report the IPs its mail leaves from, so ReputeCast uses the ones you list: Send Readiness checks each on IP blocklists, and one that never sent for this workspace starts a canary.</p></div>
+          <div class="db">
+            <fieldset style="border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:8px"><legend class="vh">How Postal sends</legend>
+              <label class="opt on"><input type="radio" name="ipmode" checked><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:600">Dedicated IPs</span><span class="k">Its own IPs: your server's, or ones the provider gave your account. Checked one by one.</span></span></label>
+              <label class="opt"><input type="radio" name="ipmode"><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:600">Shared pool</span><span class="k">The provider's IPs, shared with its other customers: checked at domain level.</span></span></label>
+            </fieldset>
+            <div class="lbl"><label for="ips-x">IP addresses</label><textarea id="ips-x" class="in mono" rows="3" spellcheck="false" aria-describedby="ips-h">203.0.113.25</textarea><span class="k" id="ips-h">One per line, IPv4 or IPv6, up to 64: the public addresses your mail leaves from.</span></div>
+          </div>
+          <div class="df"><button type="button" class="btn">Cancel</button><button type="button" class="btn pri">Save IPs</button></div>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Sending IPs, an address that can't send">
+        <div class="strip"><span class="dot" style="color:#F87171"></span>Sending IPs · a private address entered; the server says why next to the field</div>
+        <div class="dlg" role="dialog" aria-modal="false" aria-labelledby="ips2-t" style="max-width:560px">
+          <div class="dh"><h2 id="ips2-t" style="margin:0;font-size:16px;font-weight:700;letter-spacing:-.01em">Postal's sending IPs</h2></div>
+          <div class="db">
+            <div class="lbl"><label for="ips2-x">IP addresses</label><textarea id="ips2-x" class="in mono" rows="3" spellcheck="false" aria-invalid="true" aria-describedby="ips2-e ips2-h">203.0.113.25
+10.0.0.5</textarea><span class="err" id="ips2-e" role="alert">10.0.0.5 is a private or reserved address. Enter the public IP your mail leaves from, the one blocklists and mailbox providers see.</span><span class="k" id="ips2-h">One per line, IPv4 or IPv6, up to 64: the public addresses your mail leaves from.</span></div>
+          </div>
+          <div class="df"><button type="button" class="btn">Cancel</button><button type="button" class="btn pri">Save IPs</button></div>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Sending IPs, a check that failed">
+        <div class="strip"><span class="dot" style="color:#FBBF24"></span>Sending IPs · Amazon SES couldn't be asked; the last list stays</div>
+        <div class="card" style="display:flex;flex-wrap:wrap;gap:20px;padding:20px 22px;max-width:620px">
+          <div style="flex:1 1 260px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-weight:700;font-size:17px">Amazon SES</span><span class="badge ok"><span class="dot"></span>Healthy</span><span class="badge mut">us-east-1</span></div>
+            <div style="display:flex;flex-direction:column;gap:4px;font-size:13px">
+              <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><span class="k">Sending IPs</span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right"><span class="mono">54.240.8.12, 54.240.8.13 · dedicated</span><span style="display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap"><span class="k" style="color:#92400E">Couldn't check with Amazon SES 5 h ago: The role or keys ReputeCast uses can't list the account's dedicated IPs: allow ses:GetDedicatedIps in their IAM policy (the CloudFormation template does), then check again.</span><button class="btn sm" aria-label="Check again for Amazon SES's sending IPs">Check again</button></span></span></div>
+              <div style="display:flex;justify-content:space-between;gap:12px"><span class="k">Webhooks</span><span>SNS · last event 2 min ago</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2390}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3740}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
