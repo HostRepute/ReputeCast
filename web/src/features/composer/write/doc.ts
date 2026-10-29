@@ -163,5 +163,8 @@ export function fromEditable(el: HTMLElement): string {
 
 /** True when a text holds nothing to read (an emptied new block). */
 export function isBlank(html: string): boolean {
-  return !html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim() && !/<img\b/i.test(html)
+  // Read as the browser reads it rather than stripping tags with a pattern:
+  // text only, with non-breaking spaces as the spaces they are.
+  const box = parseInert(html)
+  return !(box.textContent ?? '').trim() && !box.querySelector('img')
 }

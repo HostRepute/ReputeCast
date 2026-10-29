@@ -54,8 +54,10 @@ function pasteSource(html: string): string {
 
 export function cleanPaste(html: string, doc: Document = document): CleanPaste {
   const source = pasteSource(html)
-  // Read in an inert document: a paste from any web page must not load or run anything.
-  const box = parseInert(html.replace(/<!--[\s\S]*?-->/g, ''))
+  // Read in an inert document: a paste from any web page must not load or
+  // run anything. Comments (Word's conditional ones among them) are left to
+  // the parser: they become comment nodes, which the walk below skips.
+  const box = parseInert(html)
   const out: CleanPaste = { html: '', source, kept: [], removed: 0, images: 0 }
   const kept = new Set<CleanPaste['kept'][number]>()
 

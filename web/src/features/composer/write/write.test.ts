@@ -69,6 +69,10 @@ describe('write mode document', () => {
     expect(isBlank('<p>&nbsp;</p>')).toBe(true)
     expect(isBlank('<p>{{ first_name }}</p>')).toBe(false)
     expect(isBlank('<img src="a.png">')).toBe(false)
+    // As the browser reads it: spaces of any kind, comments and broken tags hold nothing.
+    expect(isBlank('<p> &nbsp; <br></p><!-- <b>note</b> -->')).toBe(true)
+    expect(isBlank('<p>&nbsp;x</p>')).toBe(false)
+    expect(isBlank('<p>a &lt; b</p>')).toBe(false)
   })
 })
 
@@ -174,6 +178,12 @@ describe('paste cleanup', () => {
     const out = cleanPaste('<p>Hi <img src="x" onerror="window.__ran = true"><b onclick="x()">there</b></p>')
     expect((window as unknown as { __ran?: boolean }).__ran).toBeUndefined()
     expect(out.html).toBe('Hi <strong>there</strong>')
+  })
+
+  it('keeps no comment, even one a pattern would leave behind', () => {
+    const out = cleanPaste('<p>a<!-- hidden -->b<!--[if !supportLists]-->c<!--[endif]--></p><!<!---->--<script>x()</script>-->')
+    // The broken comment's rest is only text, and the script goes.
+    expect(out.html).toBe('<p>abc</p><p>----&gt;</p>')
   })
 
   it('drops unsafe links and keeps Liquid ones', () => {
