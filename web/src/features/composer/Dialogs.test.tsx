@@ -135,6 +135,24 @@ describe('image library (CO-12)', () => {
     expect(screen.getAllByText(/for email$/)).toHaveLength(1)
   })
 
+  it('takes a typed URL only when it is a whole https URL', async () => {
+    unmock = mockApi({ 'GET /api/v1/workspaces/acme-newsletter/media': () => json({ items: [] }) })
+    const { img } = await openLibrary()
+    const field = screen.getByLabelText('Image URL')
+    const use = screen.getByRole('button', { name: 'Use URL' })
+    for (const bad of ['javascript:alert(1)//https://', 'http://cdn.acme.io/hero.png', 'https://']) {
+      fireEvent.change(field, { target: { value: bad } })
+      expect(use).toBeDisabled()
+      // Enter, or a script submitting the form, gets no further than the button.
+      fireEvent.submit(field.closest('form')!)
+      expect(img.getAttributes().src).toBe('https://placehold.co/600x300')
+    }
+    fireEvent.change(field, { target: { value: ' https://cdn.acme.io/hero image.png ' } })
+    fireEvent.click(use)
+    expect(img.getAttributes().src).toBe('https://cdn.acme.io/hero%20image.png')
+    expect(screen.getByRole('dialog', { name: 'Describe the image' })).toBeInTheDocument()
+  })
+
   it('asks for alt text once an image is chosen, and the image gets it', async () => {
     unmock = mockApi({ 'GET /api/v1/workspaces/acme-newsletter/media': () => json({ items: [hero] }) })
     const { editor, img, onClose } = await openLibrary()

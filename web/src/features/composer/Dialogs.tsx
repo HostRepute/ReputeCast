@@ -314,19 +314,22 @@ export function optimizedNote(t: ReturnType<typeof useT>, a: Schemas['MediaAsset
   return a.sizeBytes < o.sizeBytes * 0.95 ? t(md.compressedFrom, { size }) : ''
 }
 
-type Picked = { src: string; asset?: Schemas['MediaAsset'] }
+/** An image just chosen, with its asset when it came from the library. */
+type Picked = { asset?: Schemas['MediaAsset'] }
 
 /**
  * The alt text prompt after an image is chosen (CO-12, ComposerWrite ·
  * image block): describe it, or say it's decorative (an empty alt, which
- * screen readers skip). Either clears the "No alt text" warning.
+ * screen readers skip). Either clears the "No alt text" warning. It shows
+ * the image the block now holds, which is the one the email will show.
  */
 function AltStep({ component, picked, onDone }: { component: Component; picked: Picked; onDone: () => void }) {
   const t = useT()
   const id = useId()
-  const before = (component.getAttributes() as Record<string, unknown>).alt
-  const [alt, setAlt] = useState(typeof before === 'string' ? before : '')
-  const name = picked.asset?.fileName ?? (picked.src.split('?')[0]!.split('/').pop() || picked.src)
+  const attrs = component.getAttributes() as Record<string, unknown>
+  const src = typeof attrs.src === 'string' ? attrs.src : ''
+  const [alt, setAlt] = useState(typeof attrs.alt === 'string' ? attrs.alt : '')
+  const name = picked.asset?.fileName ?? (src.split('?')[0]!.split('/').pop() || src)
   const save = (value: string) => {
     component.addAttributes({ alt: value })
     onDone()
@@ -344,7 +347,7 @@ function AltStep({ component, picked, onDone }: { component: Component; picked: 
     >
       <div className="flex items-start gap-3">
         <img
-          src={picked.src}
+          src={src}
           alt=""
           className="shrink-0 rounded-md border border-line"
           style={{ width: 120, height: 80, objectFit: 'contain', background: 'repeating-conic-gradient(#F3F4F6 0 25%, #fff 0 50%) 0 0/12px 12px' }}
@@ -380,6 +383,20 @@ function AltStep({ component, picked, onDone }: { component: Component; picked: 
   )
 }
 
+/**
+ * An image URL typed in the library, when an email can use it: a whole
+ * https URL, as the browser reads it. Anything else (another scheme, a
+ * javascript: URL, half a URL) is refused by the form, not only its button.
+ */
+export function typedImageUrl(text: string): string {
+  try {
+    const u = new URL(text.trim())
+    return u.protocol === 'https:' ? u.href : ''
+  } catch {
+    return ''
+  }
+}
+
 function AssetsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const c = useComposer()
   const t = useT()
@@ -388,6 +405,7 @@ function AssetsDialog({ open, onClose }: { open: boolean; onClose: () => void })
   const [uploading, setUploading] = useState(false)
   const [drag, setDrag] = useState(false)
   const [url, setUrl] = useState('')
+  const typed = typedImageUrl(url)
   const [picked, setPicked] = useState<Picked | null>(null)
   // A prompt left open when the dialog closed doesn't come back next time.
   const [wasOpen, setWasOpen] = useState(open)
@@ -409,7 +427,7 @@ function AssetsDialog({ open, onClose }: { open: boolean; onClose: () => void })
         comp.set('src', src)
         // An image needs alt text, or to be marked decorative: ask now.
         if (c.canEdit) {
-          setPicked({ src, asset })
+          setPicked({ asset })
           return
         }
       }
@@ -479,11 +497,11 @@ function AssetsDialog({ open, onClose }: { open: boolean; onClose: () => void })
           className="flex gap-2"
           onSubmit={(e) => {
             e.preventDefault()
-            if (url.trim()) choose(url.trim())
+            if (typed) choose(typed)
           }}
         >
           <input className="in mono flex-1" aria-label={t(md.imageUrl)} placeholder={t(md.pasteUrl)} value={url} onChange={(e) => setUrl(e.target.value)} />
-          <button type="submit" className="btn" disabled={!/^https:\/\//.test(url.trim())}>
+          <button type="submit" className="btn" disabled={!typed}>
             {t(md.useUrl)}
           </button>
         </form>
