@@ -98,7 +98,35 @@ const (
 
 // sgCohorts are the four months before this one: joiners (imports left
 // out) and how many left within 30 days (and, for the oldest, within 90).
+// The last 30 days' joins are the boards' too, and on the first days of a
+// month more of them fall in the month before than its 1,612: that cohort
+// then has those joins and no more.
 var sgCohorts = []struct{ joined, left30, left90 int }{{1402, 57, 123}, {1288, 48, 0}, {1351, 66, 0}, {1612, 0, 0}}
+
+// sgCohortStart is the first day of the oldest cohort month, four months
+// before this one, in the workspace's time zone.
+func sgCohortStart(now time.Time, loc *time.Location) time.Time {
+	l := now.In(loc)
+	return time.Date(l.Year(), l.Month(), 1, 0, 0, 0, 0, loc).AddDate(0, -4, 0)
+}
+
+// sgFormLaunches are when each source of natives began to bring them:
+// Beta apply within the cohort months (the boards' form since August), the
+// others before them. Late in a month 150 days back is already in the
+// oldest cohort month, so those launched the day before it at the latest:
+// the natives they have left for before the cohorts would otherwise join
+// inside them, past every month's number.
+func sgFormLaunches(now, cohortStart time.Time) map[string]time.Time {
+	since := map[string]time.Time{sgNL: now.AddDate(0, 0, -210), sgFooter: now.AddDate(0, 0, -160), sgBeta: now.AddDate(0, 0, -63),
+		sgSub: now.AddDate(0, 0, -150), sgAPI: now.AddDate(0, 0, -200)}
+	latest := cohortStart.AddDate(0, 0, -1)
+	for src, at := range since {
+		if src != sgBeta && at.After(latest) {
+			since[src] = latest
+		}
+	}
+	return since
+}
 
 func (w *sgWorld) growth(ctx context.Context) error {
 	if err := w.growthSources(); err != nil {
@@ -224,9 +252,7 @@ func (w *sgWorld) growthSources() error {
 	}
 
 	// Earlier joins: the cohort months, then everything before them.
-	l := w.now.In(w.loc)
-	month := time.Date(l.Year(), l.Month(), 1, 0, 0, 0, 0, w.loc)
-	cohortStart := month.AddDate(0, -4, 0)
+	cohortStart := sgCohortStart(w.now, w.loc)
 	inCohort := make([]int, 4)
 	monthOf := func(t time.Time) int {
 		t = t.In(w.loc)
@@ -247,8 +273,7 @@ func (w *sgWorld) growthSources() error {
 		}
 	}
 	// Natives first joined through a form once it existed.
-	formSince := map[string]time.Time{sgNL: w.now.AddDate(0, 0, -210), sgFooter: w.now.AddDate(0, 0, -160), sgBeta: w.now.AddDate(0, 0, -63),
-		sgSub: w.now.AddDate(0, 0, -150), sgAPI: w.now.AddDate(0, 0, -200)}
+	formSince := sgFormLaunches(w.now, cohortStart)
 	natLeft := map[string]int{}
 	for src, n := range sgPreNatives {
 		natLeft[src] = n
@@ -459,8 +484,7 @@ var sgDepartures = []struct {
 // growthDepartures marks who left: the cohorts' leavers before the 30
 // days, then the 30 days' 472 (eight of them erased since).
 func (w *sgWorld) growthDepartures() error {
-	l := w.now.In(w.loc)
-	cohortStart := time.Date(l.Year(), l.Month(), 1, 0, 0, 0, 0, w.loc).AddDate(0, -4, 0)
+	cohortStart := sgCohortStart(w.now, w.loc)
 	before := w.periodStart.Add(-2 * time.Hour)
 	leave := func(c *sgContact, at time.Time, kind string) {
 		c.g.left, c.g.leftKind = &at, kind
