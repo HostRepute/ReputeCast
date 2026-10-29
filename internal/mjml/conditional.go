@@ -2,7 +2,6 @@ package mjml
 
 import (
 	"encoding/json"
-	"html"
 	"regexp"
 	"sort"
 	"strings"
@@ -197,31 +196,22 @@ func openingTag(src string, n *Node) (int, bool) {
 
 // SetAttr sets an attribute of an element in the source: it replaces the
 // value or adds the attribute after the tag's name. Values are written
-// double-quoted, escaped.
+// double-quoted, escaped as html.EscapeString escapes them (spelled out, so
+// that quotes visibly can't end the value: settings are JSON).
 func SetAttr(src string, n *Node, name, value string) (string, bool) {
-	end, ok := openingTag(src, n)
-	if !ok {
-		return src, false
-	}
-	tag := src[n.Start:end]
-	esc := html.EscapeString(value)
-	var next string
-	if loc := attrRe(name).FindStringIndex(tag); loc != nil {
-		next = tag[:loc[0]] + " " + name + `="` + esc + `"` + tag[loc[1]:]
-	} else {
-		at := len("<" + n.Tag)
-		if at > len(tag) || !strings.EqualFold(tag[:at], "<"+n.Tag) {
-			return src, false
-		}
-		next = tag[:at] + " " + name + `="` + esc + `"` + tag[at:]
-	}
-	return src[:n.Start] + next + src[end:], true
+	esc := strings.NewReplacer("&", "&amp;", "'", "&#39;", "<", "&lt;", ">", "&gt;", `"`, "&#34;").Replace(value)
+	return setAttr(src, n, name, esc)
 }
 
 // SetAttrRaw is SetAttr for values that hold single quotes on purpose
 // (font stacks): only &, <, > and double quotes are escaped.
 func SetAttrRaw(src string, n *Node, name, value string) (string, bool) {
 	esc := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", `"`, "&quot;").Replace(value)
+	return setAttr(src, n, name, esc)
+}
+
+// setAttr writes an escaped value as the attribute's, double-quoted.
+func setAttr(src string, n *Node, name, esc string) (string, bool) {
 	end, ok := openingTag(src, n)
 	if !ok {
 		return src, false
