@@ -9,8 +9,8 @@
 package routing
 
 import (
-	"crypto/sha256"
 	"encoding/binary"
+	"hash/fnv"
 	"math"
 	"slices"
 	"strings"
@@ -307,10 +307,15 @@ func pairBucket(splits []Split, h uint64, winner uuid.UUID) int {
 	return bucket
 }
 
-// addressHash is the 64-bit hash of a normalized address.
+// addressHash is the 64-bit hash of a normalized address: FNV-1a, then
+// splitmix64's finalizer so that every input bit moves every output bit.
+// It only spreads addresses over buckets and providers: it must be stable
+// across runs and machines and quick for every recipient of a send, and
+// needn't be cryptographic.
 func addressHash(email string) uint64 {
-	sum := sha256.Sum256([]byte(strings.ToLower(strings.TrimSpace(email))))
-	return binary.BigEndian.Uint64(sum[:8])
+	h := fnv.New64a()
+	_, _ = h.Write([]byte(strings.ToLower(strings.TrimSpace(email))))
+	return mix64(h.Sum64())
 }
 
 // unit maps an address hash and a provider to (0, 1): the provider's draw
