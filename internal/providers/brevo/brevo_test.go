@@ -37,7 +37,13 @@ type fake struct {
 	// gone are webhook ids still listed but deleted already, as in a race
 	// with another client.
 	gone map[int]bool
+	// ips is GET /v3/senders/ips's answer.
+	ips string
 }
+
+// dedicatedIPs are the account's dedicated IPs, one of them inactive.
+const dedicatedIPs = `{"ips":[{"id":3,"ip":"198.51.100.52","active":true,"domain":"mail.acme.io"},` +
+	`{"id":1,"ip":"198.51.100.50","active":false,"domain":"old.acme.io"},{"id":2,"ip":"198.51.100.51","active":true,"domain":"mail.acme.io"}]}`
 
 func (f *fake) with(fn func()) {
 	f.mu.Lock()
@@ -93,6 +99,15 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 			w.WriteHeader(http.StatusCreated)
 			_ = json.NewEncoder(w).Encode(map[string]string{"messageId": "<202610121341." + strconv.FormatInt(f.n.Add(1), 10) + "@smtp-relay.mailin.fr>"})
 		}
+	}))
+	mux.HandleFunc("GET /v3/senders/ips", guard(func(w http.ResponseWriter, _ *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if f.throttled {
+			writeErr(w, http.StatusTooManyRequests, "too_many_requests", "Too many requests")
+			return
+		}
+		_, _ = io.WriteString(w, f.ips)
 	}))
 	mux.HandleFunc("GET /v3/account", guard(func(w http.ResponseWriter, _ *http.Request) {
 		f.mu.Lock()
@@ -208,7 +223,7 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 }
 
 func newFake() *fake {
-	return &fake{keys: map[string]bool{}, plan: `{"type":"subscription","creditsType":"sendLimit","credits":15000}`}
+	return &fake{keys: map[string]bool{}, plan: `{"type":"subscription","creditsType":"sendLimit","credits":15000}`, ips: dedicatedIPs}
 }
 
 func newProvider(t *testing.T, env *contracttest.Env) providers.Provider {
@@ -237,9 +252,10 @@ func webhook(file string) func(t *testing.T, env *contracttest.Env) (*http.Reque
 func TestContract(t *testing.T) {
 	f := newFake()
 	contracttest.Run(t, contracttest.Suite{
-		Adapter: brevo.Adapter,
-		API:     f.handler,
-		New:     newProvider,
+		Adapter:    brevo.Adapter,
+		API:        f.handler,
+		New:        newProvider,
+		SendingIPs: &providers.SendingIPs{Dedicated: true, IPs: []string{"198.51.100.51", "198.51.100.52"}},
 		Delivered: func(t *testing.T, env *contracttest.Env, msgs []providers.Message, res []providers.SendResult) {
 			reqs := env.Requests()
 			if len(reqs) != 1 || reqs[0].Path != "/v3/smtp/email" {
@@ -468,4 +484,23 @@ func TestUnregisterWebhook(t *testing.T) {
 			t.Fatalf("webhooks left: %v", f.hooks)
 		}
 	})
+}
+
+// The account's active dedicated IPs carry its mail; none means Brevo's
+// shared IPs. Throttling is an error, never an empty list.
+func TestSendingIPs(t *testing.T) {
+	f := newFake()
+	env := contracttest.NewEnv(t, f.handler)
+	r := newProvider(t, env).(providers.IPReporter)
+	if got, err := r.SendingIPs(context.Background()); err != nil || !got.Dedicated || !slices.Equal(got.IPs, []string{"198.51.100.51", "198.51.100.52"}) {
+		t.Fatalf("the active dedicated IPs: %+v, %v", got, err)
+	}
+	f.with(func() { f.ips = `{"ips":[]}` })
+	if got, err := r.SendingIPs(context.Background()); err != nil || got.Dedicated || got.IPs == nil || len(got.IPs) != 0 {
+		t.Fatalf("shared IPs: %+v, %v", got, err)
+	}
+	f.with(func() { f.ips, f.throttled = dedicatedIPs, true })
+	if got, err := r.SendingIPs(context.Background()); err == nil || len(got.IPs) != 0 {
+		t.Fatalf("throttled: %+v, %v", got, err)
+	}
 }

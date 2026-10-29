@@ -42,6 +42,8 @@ var (
 	mDoneQueue       = msgs.M("provision.queueDone")
 	mStepQueuePolicy = msgs.M("provision.queuePolicy")
 	mDoneQueuePolicy = msgs.M("provision.queuePolicyDone")
+
+	mDedicatedIPsDenied = msgs.M("error.dedicatedIpsDenied")
 )
 
 // say returns a message's English and the message, kept for its readers.

@@ -40,5 +40,7 @@
   "provision.queuePolicy": "Limit the queue to that topic and start polling every {seconds} s",
   "provision.queuePolicyDone": "Limited the queue to that topic and started polling every {seconds} s",
 
-  "status.incident": { "message": "AWS reports an SES incident in {region}.", "note": "from the AWS status page, during an outage; region: us-east-1" }
+  "status.incident": { "message": "AWS reports an SES incident in {region}.", "note": "from the AWS status page, during an outage; region: us-east-1" },
+
+  "error.dedicatedIpsDenied": { "message": "The role or keys ReputeCast uses can't list the account's dedicated IPs: allow ses:GetDedicatedIps in their IAM policy (the CloudFormation template does), then check again.", "note": "a daily check of the sending IPs failed for want of a permission; ses:GetDedicatedIps is AWS's name for it, never translated" }
 }

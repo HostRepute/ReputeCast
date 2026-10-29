@@ -352,7 +352,7 @@ func (p *Provider) RequestProductionAccess(ctx context.Context, r providers.Prod
 const Policy = `{ "Version": "2012-10-17", "Statement": [
   { "Effect": "Allow", "Action": ["ses:SendEmail","ses:SendRawEmail","ses:GetAccount","ses:GetSendQuota",
     "ses:*ConfigurationSet*","ses:*EmailIdentity*","ses:ListEmailIdentities","ses:*Tenant*","ses:GetReputationEntity",
-    "ses:*SuppressedDestination*","ses:PutAccountDetails"], "Resource": "*" },
+    "ses:*SuppressedDestination*","ses:PutAccountDetails","ses:GetDedicatedIps"], "Resource": "*" },
   { "Effect": "Allow", "Action": ["sns:CreateTopic","sns:Subscribe","sns:Unsubscribe","sns:SetTopicAttributes","sns:GetSubscriptionAttributes"],
     "Resource": "arn:aws:sns:*:*:reputecast-*" },
   { "Effect": "Allow", "Action": ["sqs:CreateQueue","sqs:GetQueueAttributes","sqs:SetQueueAttributes","sqs:ReceiveMessage","sqs:DeleteMessage"],
@@ -361,10 +361,10 @@ const Policy = `{ "Version": "2012-10-17", "Statement": [
 // Template is the CloudFormation template that creates the role.
 const Template = `AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
-  ReputeCast access to Amazon SES: send mail, read the account, manage
-  configuration sets, identities, the workspace's tenant and the suppression
-  list, and create the SNS topics and SQS queues (reputecast-*) that carry
-  delivery events back to ReputeCast.
+  ReputeCast access to Amazon SES: send mail, read the account and its
+  dedicated IPs, manage configuration sets, identities, the workspace's
+  tenant and the suppression list, and create the SNS topics and SQS queues
+  (reputecast-*) that carry delivery events back to ReputeCast.
 Parameters:
   ExternalId:
     Type: String
@@ -408,6 +408,7 @@ Resources:
                   - ses:GetReputationEntity
                   - ses:*SuppressedDestination*
                   - ses:PutAccountDetails
+                  - ses:GetDedicatedIps
                 Resource: "*"
               - Effect: Allow
                 Action:

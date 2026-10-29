@@ -2,8 +2,9 @@
 // adapter must pass (TECH_STACK note 10): registration and capabilities,
 // the texts people read about the adapter (in every app language), Send
 // (success, permanent rejection, outage, rejected credentials) against a
-// fake of the provider's API, and ParseWebhook (signature verification and
-// normalization) against recorded payloads.
+// fake of the provider's API, ParseWebhook (signature verification and
+// normalization) against recorded payloads, and, for an adapter that
+// reports them, the account's sending IPs.
 //
 // An adapter's test calls Run with a Suite:
 //
@@ -125,6 +126,9 @@ type Suite struct {
 	// carries ("" for none). An adapter whose provider recognizes a message
 	// it already took (providers.IdempotentSender) must say where it is.
 	IdempotencyKey func(r Recorded) string
+	// SendingIPs is what an adapter that reports the account's sending IPs
+	// (providers.IPReporter) must read from the fake API, in any order.
+	SendingIPs *providers.SendingIPs
 }
 
 // NewEnv starts the fake API (when api is not nil) for adapter-specific
@@ -199,6 +203,59 @@ func Run(t *testing.T, s Suite) {
 		}
 		if _, ok := p.(providers.WebhookRegistrar); p.Capabilities().RemovesWebhook && !ok {
 			t.Fatal("an adapter that removes its webhook must register it too")
+		}
+		// Sending providers tells people whether a provider's IPs come from
+		// its API or are set by hand from this flag, without opening the
+		// adapter.
+		if _, ok := p.(providers.IPReporter); ok != p.Capabilities().ReportsIPs {
+			t.Fatalf("ReportsIPs is %v but the adapter implements IPReporter: %v", p.Capabilities().ReportsIPs, ok)
+		}
+	})
+
+	// An adapter that reports the account's sending IPs answers with what
+	// the provider lists, each address once, and fails when it can't ask:
+	// an outage or refused credentials are errors, never an empty list,
+	// which would take a dedicated IP's checks away.
+	t.Run("SendingIPs", func(t *testing.T) {
+		env.reset()
+		p := s.New(t, env)
+		r, ok := p.(providers.IPReporter)
+		if !ok {
+			t.Skip("the adapter doesn't report the account's sending IPs")
+		}
+		if s.API == nil {
+			t.Skip("sending IPs are read from the fake API")
+		}
+		if s.SendingIPs == nil {
+			t.Fatal("the adapter is a providers.IPReporter: set Suite.SendingIPs to what the fake API lists")
+		}
+		got, err := r.SendingIPs(context.Background())
+		if err != nil {
+			t.Fatalf("SendingIPs: %v", err)
+		}
+		clean, bad := providers.CleanIPs(got.IPs)
+		if len(bad) > 0 || len(clean) != len(got.IPs) {
+			t.Fatalf("SendingIPs listed %q: every entry must be an IP address, each once", got.IPs)
+		}
+		if got.Dedicated != (len(got.IPs) > 0) {
+			t.Fatalf("Dedicated is %v with %d IPs: an account on IPs of its own lists them, a shared pool lists none", got.Dedicated, len(got.IPs))
+		}
+		want, _ := providers.CleanIPs(s.SendingIPs.IPs)
+		if got.Dedicated != s.SendingIPs.Dedicated || !slices.Equal(clean, want) {
+			t.Fatalf("SendingIPs = %+v, want %+v", got, *s.SendingIPs)
+		}
+		if s.SkipFailureModes {
+			return
+		}
+		for _, c := range []struct {
+			mode string
+			want error
+		}{{ModeOutage, providers.ErrUnavailable}, {ModeAuth, providers.ErrUnauthorized}} {
+			env.SetMode(c.mode)
+			res, err := r.SendingIPs(context.Background())
+			if !errors.Is(err, c.want) {
+				t.Fatalf("%s: SendingIPs = %+v, %v; want an error wrapping %v, so the IPs ReputeCast knows stay", c.mode, res, err, c.want)
+			}
 		}
 	})
 

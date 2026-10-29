@@ -20,5 +20,6 @@
   "tracking.off": "Open and click tracking are off for the account and on every message ReputeCast sends.",
   "tracking.on": "{on, select, open {Account-level open tracking is on, but ReputeCast turns SendGrid's tracking off on every message it sends.} click {Account-level click tracking is on, but ReputeCast turns SendGrid's tracking off on every message it sends.} other {Account-level open and click tracking is on, but ReputeCast turns SendGrid's tracking off on every message it sends.}}",
   "error.noWebhookId": "SendGrid didn't return the webhook's id",
-  "error.domainMissing": { "message": "{domain} is not authenticated in SendGrid", "note": "domain: news.acme.io" }
+  "error.domainMissing": { "message": "{domain} is not authenticated in SendGrid", "note": "domain: news.acme.io" },
+  "error.ipsRestricted": { "message": "The API key can't read the account's IP addresses: give it read access to IP Management in SendGrid › Settings › API Keys, then check again.", "note": "the daily check of the sending IPs was refused; IP Management and the menu names are SendGrid's" }
 }

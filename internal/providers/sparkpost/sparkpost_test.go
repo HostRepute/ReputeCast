@@ -40,7 +40,17 @@ type fake struct {
 	// answers as if the first request with a key were still running.
 	keys       map[string]keyedRequest
 	inProgress bool
+	// sendingIPs is GET /api/v1/sending-ips's answer; "" lists the
+	// account's IPs in two pools.
+	sendingIPs string
 }
+
+// sendingIPs are the account's dedicated IPs: two in the "marketing" pool
+// the provider sends through, one in the default pool.
+const sendingIPs = `{"results":[` +
+	`{"external_ip":"198.51.100.31","hostname":"mta31.sparkpostmail.com","ip_pool":"marketing","customer_provided":false,"auto_warmup_enabled":false},` +
+	`{"external_ip":"198.51.100.4","hostname":"mta4.sparkpostmail.com","ip_pool":"default","customer_provided":false,"auto_warmup_enabled":false},` +
+	`{"external_ip":"198.51.100.30","hostname":"mta30.sparkpostmail.com","ip_pool":"marketing","customer_provided":false,"auto_warmup_enabled":true,"auto_warmup_stage":5}]}`
 
 type keyedRequest struct {
 	body   []byte
@@ -121,6 +131,19 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 			f.keys[key] = keyedRequest{body: body, answer: answer}
 		})
 		_, _ = io.WriteString(w, answer)
+	}))
+	mux.HandleFunc("GET /api/v1/sending-ips", guard(func(w http.ResponseWriter, _ *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if f.limitHit {
+			writeErr(w, 420, "2102", "Exceed Sending Limit (hourly)")
+			return
+		}
+		if f.sendingIPs == "" {
+			_, _ = io.WriteString(w, sendingIPs)
+			return
+		}
+		_, _ = io.WriteString(w, f.sendingIPs)
 	}))
 	mux.HandleFunc("GET /api/v1/account", guard(func(w http.ResponseWriter, r *http.Request) {
 		usage := ""
@@ -269,9 +292,10 @@ func batchRequest(t *testing.T, _ *contracttest.Env) (*http.Request, []byte) {
 func TestContract(t *testing.T) {
 	f := &fake{}
 	contracttest.Run(t, contracttest.Suite{
-		Adapter: sparkpost.Adapter,
-		API:     f.handler,
-		New:     newProvider,
+		Adapter:    sparkpost.Adapter,
+		API:        f.handler,
+		New:        newProvider,
+		SendingIPs: &providers.SendingIPs{Dedicated: true, IPs: []string{"198.51.100.30", "198.51.100.31"}},
 		Delivered: func(t *testing.T, env *contracttest.Env, msgs []providers.Message, res []providers.SendResult) {
 			reqs := env.Requests()
 			if len(reqs) != 1 || reqs[0].Path != "/api/v1/transmissions" || reqs[0].Header.Get("Idempotency-Key") != "rc-"+msgs[0].ID.String() {
@@ -551,5 +575,36 @@ func TestSuppressionsTrackingBackfill(t *testing.T) {
 	evs, err := p.(providers.EventBackfiller).Backfill(context.Background(), []string{"t-1", "t-2", "t-3"})
 	if err != nil || len(evs) != 2 || evs[0].Type != providers.EventDelivered || evs[0].MessageID == nil || evs[1].Type != providers.EventHardBounce {
 		t.Fatalf("backfill: %+v, %v", evs, err)
+	}
+}
+
+// Transmissions go out through the connection's IP pool, or the default
+// pool without one: only that pool's IPs count. An account without
+// dedicated IPs lists none; throttling (420) is an error, never an empty
+// list.
+func TestSendingIPs(t *testing.T) {
+	f := &fake{}
+	env := contracttest.NewEnv(t, f.handler)
+	read := func(p providers.Provider) (providers.SendingIPs, error) {
+		return p.(providers.IPReporter).SendingIPs(context.Background())
+	}
+	if got, err := read(newProvider(t, env)); err != nil || !got.Dedicated || !slices.Equal(got.IPs, []string{"198.51.100.30", "198.51.100.31"}) {
+		t.Fatalf("the marketing pool: %+v, %v", got, err)
+	}
+	settings, _ := json.Marshal(sparkpost.Settings{Region: "eu", BaseURL: env.URL})
+	byDefault, err := sparkpost.New(providers.Config{Settings: settings, Credentials: json.RawMessage(`{"api_key":"` + apiKey + `"}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := read(byDefault); err != nil || !slices.Equal(got.IPs, []string{"198.51.100.4"}) {
+		t.Fatalf("the default pool: %+v, %v", got, err)
+	}
+	f.with(func() { f.sendingIPs = `{"results":[]}` })
+	if got, err := read(byDefault); err != nil || got.Dedicated || got.IPs == nil || len(got.IPs) != 0 {
+		t.Fatalf("shared IPs: %+v, %v", got, err)
+	}
+	f.with(func() { f.limitHit = true })
+	if got, err := read(byDefault); err == nil || len(got.IPs) != 0 {
+		t.Fatalf("throttled: %+v, %v", got, err)
 	}
 }

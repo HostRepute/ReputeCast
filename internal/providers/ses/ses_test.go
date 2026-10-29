@@ -116,6 +116,19 @@ func fakeAPI(env *contracttest.Env) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"EnforcementStatus":"HEALTHY","ProductionAccessEnabled":true,"SendingEnabled":true,"SendQuota":{"Max24HourSend":50000,"MaxSendRate":14,"SentLast24Hours":2140}}`)
 	})
+	// GetDedicatedIps in two pages, a standard pool and a managed one.
+	mux.HandleFunc("GET /v2/email/dedicated-ips", func(w http.ResponseWriter, r *http.Request) {
+		if guard(w) {
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Query().Get("NextToken") == "" {
+			_, _ = io.WriteString(w, `{"DedicatedIps":[{"Ip":"198.51.100.21","WarmupStatus":"DONE","WarmupPercentage":100,"PoolName":"ses-default-dedicated-pool"},`+
+				`{"Ip":"198.51.100.7","WarmupStatus":"IN_PROGRESS","WarmupPercentage":40,"PoolName":"ses-default-dedicated-pool"}],"NextToken":"page-2"}`)
+			return
+		}
+		_, _ = io.WriteString(w, `{"DedicatedIps":[{"Ip":"203.0.113.40","WarmupStatus":"NOT_APPLICABLE","WarmupPercentage":-1,"PoolName":"rc-managed"}]}`)
+	})
 	return mux
 }
 
@@ -186,9 +199,10 @@ func notification(file, version string) func(t *testing.T, env *contracttest.Env
 
 func TestContract(t *testing.T) {
 	contracttest.Run(t, contracttest.Suite{
-		Adapter: ses.Adapter,
-		API:     fakeAPI,
-		New:     newProvider,
+		Adapter:    ses.Adapter,
+		API:        fakeAPI,
+		New:        newProvider,
+		SendingIPs: &providers.SendingIPs{Dedicated: true, IPs: []string{"198.51.100.7", "198.51.100.21", "203.0.113.40"}},
 		Delivered: func(t *testing.T, env *contracttest.Env, msgs []providers.Message, _ []providers.SendResult) {
 			reqs := env.Requests()
 			if len(reqs) != len(msgs) {

@@ -25,6 +25,7 @@ var (
 	mTrackingOn        = msgs.M("tracking.on")
 	mNoWebhookID       = msgs.M("error.noWebhookId")
 	mDomainMissing     = msgs.M("error.domainMissing")
+	mIPsRestricted     = msgs.M("error.ipsRestricted")
 )
 
 // say returns a message's English and the message, kept for its readers.

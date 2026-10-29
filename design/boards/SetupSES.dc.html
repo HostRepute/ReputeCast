@@ -141,7 +141,7 @@ label.opt input{flex:none}
         <details style="font-size:13px"><summary style="cursor:pointer;font-weight:600;min-height:24px">Show the IAM policy (least privilege)</summary><pre style="margin-top:8px">{ "Version": "2012-10-17", "Statement": [
   { "Effect": "Allow", "Action": ["ses:SendEmail","ses:SendRawEmail","ses:GetAccount","ses:GetSendQuota",
     "ses:*ConfigurationSet*","ses:*EmailIdentity*","ses:*Tenant*","ses:*SuppressedDestination*",
-    "ses:PutAccountDetails"], "Resource": "*" },
+    "ses:PutAccountDetails","ses:GetDedicatedIps"], "Resource": "*" },
   { "Effect": "Allow", "Action": ["sns:CreateTopic","sns:Subscribe","sns:SetTopicAttributes"],
     "Resource": "arn:aws:sns:*:*:reputecast-*" },
   { "Effect": "Allow", "Action": ["sqs:CreateQueue","sqs:GetQueueAttributes","sqs:SetQueueAttributes",
