@@ -425,8 +425,17 @@ export function thresholdRows(s: Snapshot): ThresholdRow[] {
 export function thresholdEvidence(t: Threshold): string {
   const unit = t.key === 'complaint' || t.key === 'mailbox_complaint' ? 'delivered' : 'sent'
   if (t.state === 'na') return tt(mm.thresholdNa, { reason: t.reason ?? 'no_data' })
+  // Complaints and block/policy bounces also trip from 3 once clearly over the limit (review R2.L7c).
   if (t.state === 'collecting' && (t.events < t.minEvents || t.base < t.minBase))
-    return tt(mm.thresholdNeeds, { key: t.key, events: count(t.events), base: count(t.base), unit, minEvents: count(t.minEvents), minBase: count(t.minBase) })
+    return tt(mm.thresholdNeeds, {
+      key: t.key,
+      events: count(t.events),
+      base: count(t.base),
+      unit,
+      minEvents: count(t.minEvents),
+      minBase: count(t.minBase),
+      sooner: t.anyVolume ? 'yes' : 'no',
+    })
   switch (t.key) {
     case 'complaint': {
       const names = (t.parts ?? []).map((p) => mailboxName(p.key ?? p.name))
@@ -565,7 +574,7 @@ export function orderedMailboxes(s: Snapshot, decision: boolean): Mailbox[] {
 
 /** The metrics an incident's words know; another one keeps its own name. */
 function metricKey(metric: string): string {
-  return metric === 'complaint' || metric === 'bounce' || metric === 'deferral' ? metric : 'other'
+  return ['complaint', 'bounce', 'deferral', 'block_bounce', 'unknown_user'].includes(metric) ? metric : 'other'
 }
 
 /** The values a metric's messages take: its key, its name and the name capitalised. */
@@ -633,7 +642,7 @@ export function thresholdSummary(i: Incident, s: Snapshot): string {
   const events = d.events ?? 0
   const parts = [
     tt(who ? mm.summaryTrippedWho : mm.summaryTripped, { time: clockSeconds(i.trippedAt), sent: count(d.sent ?? 0), total: count(d.total ?? 0), who }),
-    tt(mm.summaryEvents, { ...metricValues(i.metric), events, count: count(events), base: count(d.base ?? 0) }),
+    tt(mm.summaryEvents, { ...metricValues(i.metric), events, count: count(events), base: count(d.base ?? 0), window: d.window ?? 0 }),
   ]
   const progress = progressText(s)
   if (i.scope === 'campaign') {
@@ -734,7 +743,16 @@ export function trippedFacts(
         value: tt(mm.factValue, { events: count(n), base: count(base), rate: rateText(i.metric, share(n, base) ?? 0) }),
       })
   } else if (i.scope !== 'campaign') {
-    const [n, base] = i.metric === 'complaint' ? [t.complained, t.complaintBase] : i.metric === 'bounce' ? [t.bounced, s.sent] : [t.deferred, s.sent]
+    const [n, base] =
+      i.metric === 'complaint'
+        ? [t.complained, t.complaintBase]
+        : i.metric === 'bounce'
+          ? [t.bounced, s.sent]
+          : i.metric === 'block_bounce'
+            ? [t.blockBounced, s.sent]
+            : i.metric === 'unknown_user'
+              ? [t.unknownBounced, s.sent]
+              : [t.deferred, s.sent]
     rows.push({
       label: tt(mm.factCampaignWide, metricValues(i.metric)),
       value: tt(mm.factValue, { events: count(n), base: count(base), rate: rateText(i.metric, share(n, base) ?? 0) }),
@@ -774,14 +792,16 @@ export function trippedEvidence(i: Incident, s: Snapshot): string | undefined {
   const key = i.metric === 'complaint' ? (i.scope === 'mailbox_provider' ? 'mailbox_complaint' : 'complaint') : i.metric
   const row = s.thresholds.find((x) => x.key === key && (!x.mailbox || x.mailbox === i.mailbox)) ?? s.thresholds.find((x) => x.key === key)
   const unit = i.metric === 'complaint' ? 'delivered' : 'sent'
-  return tt(mm.factEvidence, {
-    metric: i.metric,
-    events: count(d.events),
-    base: count(d.base),
-    unit,
-    minEvents: count(row?.minEvents ?? 5),
-    minBase: count(row?.minBase ?? (i.scope === 'campaign' ? 1000 : 500)),
-  })
+  const minEvents = row?.minEvents ?? 5
+  const minBase = row?.minBase ?? (i.scope === 'campaign' ? 1000 : 500)
+  const v = { metric: i.metric, events: count(d.events), base: count(d.base), unit, minEvents: count(minEvents), minBase: count(minBase) }
+  if (!d.clear) return tt(mm.factEvidence, v)
+  // Clearly over the limit before the usual evidence: a small send, or a
+  // burst of block/policy bounces (review R2.L7c). It names only the part
+  // of the evidence it didn't wait for.
+  const few = (d.events ?? 0) < minEvents
+  const thin = (d.base ?? 0) < minBase
+  return tt(mm.factEvidenceClear, { ...v, window: d.window ?? 0, waitFor: few && !thin ? 'events' : thin && !few ? 'base' : 'both' })
 }
 
 /**

@@ -37015,6 +37015,9 @@
           "changes": {
             "$ref": "#/components/schemas/ResumeChanges"
           },
+          "clear": {
+            "type": "boolean"
+          },
           "continuing": {
             "items": {
               "type": "string"
@@ -43517,6 +43520,9 @@
           "action": {
             "type": "string"
           },
+          "anyVolume": {
+            "type": "boolean"
+          },
           "base": {
             "format": "int64",
             "type": "integer"
@@ -43595,6 +43601,7 @@
           "base",
           "minEvents",
           "minBase",
+          "anyVolume",
           "state"
         ],
         "type": "object"

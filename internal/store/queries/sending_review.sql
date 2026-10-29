@@ -219,6 +219,13 @@ SELECT mailbox_provider, bounce_class, count(*)::bigint AS n FROM delivery_event
 WHERE campaign_id = @campaign_id AND type = 'hard_bounce'
 GROUP BY mailbox_provider, bounce_class;
 
+-- name: SendingBounceTypesSince :many
+-- A send's hard bounces by mailbox provider and class since a time: a
+-- burst of block/policy bounces (review GS-11).
+SELECT mailbox_provider, bounce_class, count(*)::bigint AS n FROM delivery_events
+WHERE campaign_id = @campaign_id AND type = 'hard_bounce' AND occurred_at >= @since::timestamptz
+GROUP BY mailbox_provider, bounce_class;
+
 -- name: SendingDeferredSince :many
 -- The messages each mailbox provider deferred, or bounced softly, since a
 -- time (each message once).

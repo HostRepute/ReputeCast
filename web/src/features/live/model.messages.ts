@@ -124,8 +124,12 @@ export const mm = defineMessages('live.model', {
   mxNote: 'Gmail includes Google Workspace and Outlook includes Microsoft 365 recipients (found from MX records).',
   thresholdState: '{state, select, ok {Watching} near {Close to the limit} collecting {Collecting evidence} tripped {Tripped} other {n/a}}',
   thresholdNa: "{reason, select, not_reported {Gmail and iCloud don't report complaints per message} other {Nothing to count yet}}",
+  /**
+   * {sooner} is yes for complaints and block/policy bounces, which also
+   * pause from 3 once clearly over the limit (review R2.L7c).
+   */
   thresholdNeeds:
-    '{events} in {base} {unit, select, delivered {delivered} other {sent}} · needs {minEvents} {key, select, complaint {complaints} mailbox_complaint {complaints} deferral {deferrals} other {bounces}} and {minBase} {unit, select, delivered {delivered} other {sent}} to pause',
+    '{events} in {base} {unit, select, delivered {delivered} other {sent}} · needs {minEvents} {key, select, complaint {complaints} mailbox_complaint {complaints} deferral {deferrals} block_bounce {block/policy bounces} other {bounces}} and {minBase} {unit, select, delivered {delivered} other {sent}} to pause{sooner, select, yes {, or 3 clearly over the limit} other {}}',
   thresholdComplaintsTo: '{events} in {base} delivered to {names}',
   thresholdIn: '{unit, select, delivered {{events} in {base} delivered} other {{events} of {base} sent}}',
   thresholdHighestAction:
@@ -133,7 +137,7 @@ export const mm = defineMessages('live.model', {
   thresholdReplyAction:
     '{action, select, slow {at {limit}, {who} slows to half rate} pause_route {at {limit}, {who} pauses on that route} alert {at {limit}, an alert goes out} other {at {limit}, {who} pauses}}{timed, select, yes { for {duration}} other {}}',
   thresholdsFootnote:
-    'A threshold trips after at least 5 events and enough evidence that the rate is really above the limit. Until then it shows “Collecting evidence” with a grey bar.',
+    'A threshold trips after at least 5 events and enough evidence that the rate is really above the limit; complaints and block/policy bounces also trip from 3 when the rate is clearly over it, however small the send. Until then it shows “Collecting evidence” with a grey bar.',
   scopeCampaign: 'Scope: pause the whole campaign.',
   scopeRoute: 'Scope: pause only the affected route or mailbox provider.',
 
@@ -218,12 +222,13 @@ export const mm = defineMessages('live.model', {
   providerQuotaNote: 'quota {free} free after this send',
   providerLine: '{rate} · {delivered} delivered',
 
-  // An incident. {metric} is complaint, bounce or deferral; {Metric} the
-  // metric's own name, capitalised, when it's another one.
+  // An incident. {metric} is complaint, bounce, deferral, block_bounce
+  // (block/policy bounces) or unknown_user; {Metric} the metric's own
+  // name, capitalised, when it's another one.
   incidentTitle:
-    '{metric, select, complaint {{who} complaint rate reached {value} (limit {limit})} bounce {{who} bounce rate reached {value} (limit {limit})} deferral {{who} deferral rate reached {value} (limit {limit})} other {{who} {metric} rate reached {value} (limit {limit})}}',
+    '{metric, select, complaint {{who} complaint rate reached {value} (limit {limit})} bounce {{who} bounce rate reached {value} (limit {limit})} deferral {{who} deferral rate reached {value} (limit {limit})} block_bounce {{who} block/policy bounce rate reached {value} (limit {limit})} unknown_user {{who} unknown-user rate reached {value} (limit {limit})} other {{who} {metric} rate reached {value} (limit {limit})}}',
   incidentTitleAll:
-    '{metric, select, complaint {Complaint rate reached {value} (limit {limit})} bounce {Bounce rate reached {value} (limit {limit})} deferral {Deferral rate reached {value} (limit {limit})} other {{Metric} rate reached {value} (limit {limit})}}',
+    '{metric, select, complaint {Complaint rate reached {value} (limit {limit})} bounce {Bounce rate reached {value} (limit {limit})} deferral {Deferral rate reached {value} (limit {limit})} block_bounce {Block/policy bounce rate reached {value} (limit {limit})} unknown_user {Unknown-user rate reached {value} (limit {limit})} other {{Metric} rate reached {value} (limit {limit})}}',
   outageAuth: '{name} rejected the credentials',
   outageReturned: '{name} returned {errorKind}',
   outageDown: '{name} is down',
@@ -241,9 +246,12 @@ export const mm = defineMessages('live.model', {
 
   summaryTrippedWho: 'Tripped at {time}, after {sent} of {total} {who} recipients were sent.',
   summaryTripped: 'Tripped at {time}, after {sent} of {total} recipients were sent.',
-  /** {count} is {events} formatted, for a metric other than the three. */
+  /**
+   * {count} is {events} formatted, for a metric other than these; {window}
+   * the minutes a burst counted (0: the whole send).
+   */
   summaryEvents:
-    '{metric, select, complaint {{events, plural, one {# complaint} other {# complaints}} out of {base} delivered.} bounce {{events, plural, one {# bounce} other {# bounces}} out of {base} sent.} deferral {{events, plural, one {# deferral} other {# deferrals}} out of {base} sent.} other {{count} {metric} out of {base} sent.}}',
+    '{metric, select, complaint {{events, plural, one {# complaint} other {# complaints}} out of {base} delivered} bounce {{events, plural, one {# bounce} other {# bounces}} out of {base} sent} deferral {{events, plural, one {# deferral} other {# deferrals}} out of {base} sent} block_bounce {{events, plural, one {# block/policy bounce} other {# block/policy bounces}} out of {base} sent} unknown_user {{events, plural, one {# unknown user} other {# unknown users}} out of {base} sent} other {{count} {metric} out of {base} sent}}{window, plural, =0 {} other { within # minutes}}.',
   summaryCampaignPaused: 'ReputeCast paused the campaign with {held} recipients left, {progress} complete.',
   summaryHeldWho: 'ReputeCast held the remaining {held} {who} recipients.',
   summaryHeld: 'ReputeCast held the remaining {held} recipients.',
@@ -290,15 +298,25 @@ export const mm = defineMessages('live.model', {
     'Until you decide, ReputeCast tests {short} with {seed, select, yes {1 message to a seed mailbox} other {1 of these messages}} every 60 s and sends the share again after {needed} go through in a row{done, plural, =0 {} other { ({done} so far)}}.',
 
   // "What tripped".
-  factWho: '{metric, select, complaint {{who} complaints} bounce {{who} bounces} deferral {{who} deferrals} other {{who} {metric}}}',
-  factAll: '{metric, select, complaint {Complaints} bounce {Bounces} deferral {Deferrals} other {{Metric}}}',
+  factWho:
+    '{metric, select, complaint {{who} complaints} bounce {{who} bounces} deferral {{who} deferrals} block_bounce {{who} block/policy bounces} unknown_user {{who} unknown users} other {{who} {metric}}}',
+  factAll: '{metric, select, complaint {Complaints} bounce {Bounces} deferral {Deferrals} block_bounce {Block/policy bounces} unknown_user {Unknown users} other {{Metric}}}',
   factValue: '{events} of {base} · {rate}',
   factLimit: '{scope, select, mailbox_provider {Limit, per mailbox provider} route {Limit, per sending provider} other {Limit, whole campaign}}',
   factOthers: '{names} complaints',
   factEvidence:
-    '{metric, select, complaint {{events} complaints} bounce {{events} bounces} deferral {{events} deferrals} other {{events} events}} in {base} {unit, select, delivered {delivered} other {sent}} · enough evidence (needs {minEvents} events and {minBase} {unit, select, delivered {delivered} other {sent}})',
+    '{metric, select, complaint {{events} complaints} bounce {{events} bounces} deferral {{events} deferrals} block_bounce {{events} block/policy bounces} unknown_user {{events} unknown users} other {{events} events}} in {base} {unit, select, delivered {delivered} other {sent}} · enough evidence (needs {minEvents} events and {minBase} {unit, select, delivered {delivered} other {sent}})',
+  /**
+   * Clearly over the limit before the usual evidence (review R2.L7c): on a
+   * small send ({window} 0; {waitFor} is the part of the evidence it didn't
+   * wait for: events, base or both), or in a burst of block/policy bounces
+   * within {window} minutes.
+   */
+  factEvidenceClear:
+    "{metric, select, complaint {{events} complaints} block_bounce {{events} block/policy bounces} other {{events} events}} in {base} {unit, select, delivered {delivered} other {sent}}{window, plural, =0 { · clearly over the limit, so it didn't wait for {waitFor, select, events {{minEvents} events} base {{minBase} {unit, select, delivered {delivered} other {sent}}} other {{minEvents} events and {minBase} {unit, select, delivered {delivered} other {sent}}}}} other { within # minutes · clearly over the limit in that time}}",
   factWatch: 'Complaints keep arriving for up to {hours} h; ReputeCast keeps watching after the send ends.',
-  factCampaignWide: '{metric, select, complaint {Campaign-wide complaints} bounce {Campaign-wide bounces} deferral {Campaign-wide deferrals} other {Campaign-wide {metric}}}',
+  factCampaignWide:
+    '{metric, select, complaint {Campaign-wide complaints} bounce {Campaign-wide bounces} deferral {Campaign-wide deferrals} block_bounce {Campaign-wide block/policy bounces} unknown_user {Campaign-wide unknown users} other {Campaign-wide {metric}}}',
 
   // "If you move the share to SES".
   moveTitle: 'If you move the share to {provider}',

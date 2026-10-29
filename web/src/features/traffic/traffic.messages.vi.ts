@@ -47,7 +47,7 @@ export default translate(m, {
   actionLabel: '{rule}{level, select, first {, mức thứ nhất} second {, mức thứ hai} other {}}: hành động',
   windowLabel: '{rule}{level, select, first {, mức thứ nhất} second {, mức thứ hai} other {}}: khoảng thời gian',
   thresholdsNote:
-    'Mỗi ngưỡng chờ ít nhất 5 sự kiện và 500 thư đã giao tới nhà cung cấp hộp thư đó, rồi chỉ vượt ngưỡng khi có đủ bằng chứng rằng tỷ lệ thật sự cao hơn giới hạn. Trước đó, màn hình theo dõi trực tiếp hiển thị “Đang thu thập bằng chứng”.',
+    'Mỗi ngưỡng chờ ít nhất 5 sự kiện và 500 thư đã giao tới nhà cung cấp hộp thư đó, rồi chỉ vượt ngưỡng khi có đủ bằng chứng rằng tỷ lệ thật sự cao hơn giới hạn. Khiếu nại và thư trả lại do chặn/chính sách không phải chờ lâu như vậy: từ 3 sự kiện, một tỷ lệ rõ ràng cao hơn giới hạn sẽ vượt ngưỡng dù lần gửi nhỏ đến đâu. Thư trả lại do chặn/chính sách còn được xét riêng trong 10 phút gần nhất, nên một nhà cung cấp hộp thư bắt đầu chặn muộn trong một lần gửi lớn cũng vượt ngưỡng. Trước đó, màn hình theo dõi trực tiếp hiển thị “Đang thu thập bằng chứng”.',
   pctRange: 'Nhập một số từ {min} đến {max}.',
   levelsOrder: 'Mức thứ nhất phải thấp hơn mức thứ hai.',
 
@@ -134,7 +134,7 @@ export default translate(m, {
   how5: 'Mọi hành động đều hiện trên màn hình theo dõi trực tiếp và trong <a>Sự kiện và đồng bộ</a>.',
   legendTitle: 'Màn hình theo dõi trực tiếp hiển thị gì',
   legendCollecting: 'Đang thu thập bằng chứng',
-  legendCollectingBody: 'Ít hơn 5 sự kiện hoặc 500 thư đã giao; chưa thể vượt ngưỡng. Thanh màu xám.',
+  legendCollectingBody: 'Ít hơn 5 sự kiện hoặc 500 thư đã giao, và chưa rõ ràng vượt giới hạn; chưa thể vượt ngưỡng. Thanh màu xám.',
   legendWatching: 'Đang theo dõi',
   legendWatchingBody: 'Đủ bằng chứng và trong giới hạn.',
   legendNear: 'Gần chạm ngưỡng',

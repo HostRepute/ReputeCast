@@ -322,7 +322,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
             <div class="thr-v"><span class="n">0.2% of 5%</span><span>Postal 0.4%, SES 0.1%</span></div>
           </div>
           <div style="display:flex;align-items:center;padding:10px 12px;border-radius:8px;background:#F9FAFB;border:1px solid #E3E6EB">
-            <p class="fn">A threshold trips after at least 5 events and enough evidence that the rate is really above the limit. Until then it shows “Collecting evidence” with a grey bar.</p>
+            <p class="fn">A threshold trips after at least 5 events and enough evidence that the rate is really above the limit; complaints and block/policy bounces also trip from 3 when the rate is clearly over it, however small the send. Until then it shows “Collecting evidence” with a grey bar.</p>
           </div>
         </div>
       </section>
@@ -451,7 +451,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2083}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2118}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);

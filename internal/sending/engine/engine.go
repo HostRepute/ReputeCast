@@ -339,6 +339,65 @@ func over(events, base int64, limit float64, minEv int64) bool {
 	return (float64(events)-expected)/math.Sqrt(expected) >= zTrip
 }
 
+// Small sends (review R2.L7c). The floors above keep a rate from tripping
+// on a handful of events early in a send, but alone they never protect a
+// send with fewer than 500 delivered to a mailbox provider, however bad
+// its rate. So complaints and block/policy bounces (anyVolume) also trip
+// at any volume once they are clearly over the limit: at least minClear
+// events, and the lower end of the rate's one-sided 95% Wilson score
+// interval above the limit. Wilson rather than over's Poisson test because
+// with a few hundred messages the normal approximation behind that test is
+// poor; 95% rather than 90% because no floor stands between a few events
+// and the action. Three complaints among 300 delivered (1%) trip a 0.10%
+// limit, and so do 10 among 300; 2 among 300 don't (too few), nor do 3
+// among the first 1,284 (0.23%, whose interval reaches down to 0.09%). At
+// large volumes the rate rule above trips first.
+const (
+	minClear = 3
+	zClear   = 1.645
+)
+
+// wilsonLower is the lower end of a rate's one-sided 95% Wilson score
+// interval, as a percentage.
+func wilsonLower(events, base int64) float64 {
+	if base <= 0 || events <= 0 {
+		return 0
+	}
+	n, z2 := float64(base), zClear*zClear
+	p := min(float64(events)/n, 1)
+	centre := p + z2/(2*n)
+	margin := zClear * math.Sqrt(p*(1-p)/n+z2/(4*n*n))
+	return math.Max(0, (centre-margin)/(1+z2/n)) * 100
+}
+
+// clearlyOver reports whether events out of base put a rate clearly over
+// its limit (a percentage) at any volume (see above).
+func clearlyOver(events, base int64, limit float64) bool {
+	return events >= minClear && base > 0 && limit > 0 && wilsonLower(events, base) > limit
+}
+
+// anyVolume reports whether a threshold also trips when clearly over its
+// limit at any volume: complaints, and block/policy bounces (review
+// R2.L7c, GS-11). Both are a mailbox provider's verdict on the sender, so
+// a few of them mean more than a few unknown users (the list's hygiene) or
+// deferrals (passing congestion), which keep the floors alone.
+func anyVolume(key string) bool {
+	return key == "complaint" || key == "mailbox_complaint" || key == "block_bounce"
+}
+
+// exceeds reports whether a rate trips its threshold: over its limit with
+// the floors' evidence, or, for the rates that trip at any volume, clearly
+// over it (clear: only that says so).
+func exceeds(key string, events, base, minEv, minBase int64, limit float64) (ok, clear bool) {
+	if base >= minBase && over(events, base, limit, minEv) {
+		return true, false
+	}
+	if anyVolume(key) && clearlyOver(events, base, limit) {
+		return true, true
+	}
+	return false, false
+}
+
 // Retry back-off for temporary errors: 5 s doubling to 60 s, at most
 // maxAttempts provider calls per message. A claim still open after
 // staleClaim belonged to a call whose answer was lost (doubt.go). A

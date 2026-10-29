@@ -37,10 +37,14 @@ type IncidentDetail struct {
 	// Action is what a level that didn't pause did (GS-11, GS-12):
 	// slowed (to SlowedTo messages per second), warned or alerted. Such an
 	// incident is a notice to acknowledge, not a decision. Window is a
-	// deferral level's window, in minutes.
+	// deferral level's window, or a burst's (Events and Base count within
+	// it), in minutes.
 	Action   string  `json:"action,omitempty" enum:"slowed,warned,alerted,"`
 	SlowedTo float64 `json:"slowedTo,omitempty"`
 	Window   int     `json:"window,omitempty"`
+	// Clear: the rate tripped clearly over its limit before the usual
+	// evidence (5 events and 500 sent or delivered), review R2.L7c.
+	Clear bool `json:"clear,omitempty"`
 
 	// Outages.
 	Reason    string            `json:"reason,omitempty"`
@@ -145,7 +149,7 @@ type MoveCheck struct {
 
 // analyzeThreshold explains a threshold trip with the send's own data.
 func (e *Engine) analyzeThreshold(ctx context.Context, rs *runState, ts tallies, tr trip, held int64, now time.Time) IncidentDetail {
-	d := IncidentDetail{Events: tr.events, Base: tr.base}
+	d := IncidentDetail{Events: tr.events, Base: tr.base, Window: tr.window, Clear: tr.clear}
 	scope := ts.total
 	scopeName := "the campaign"
 	// sc names the scope in the sentences: a mailbox provider by its key
@@ -179,7 +183,7 @@ func (e *Engine) analyzeThreshold(ctx context.Context, rs *runState, ts tallies,
 		d.Secondary = &IncidentRate{Metric: "bounce", Events: scope.bounced(), Base: scope.sent, Value: round2(rate(scope.bounced(), scope.sent)), Limit: rs.thresholds.Bounce}
 	}
 	if note := thresholdNote(tr); note != "" {
-		d.setNote(keep(note, nil))
+		d.setNote(keep(note, i18n.Args{"window": int64(tr.window)}))
 	}
 	if tr.scope == "mailbox_provider" {
 		for _, mbp := range routing.MailboxProviders {
@@ -339,6 +343,13 @@ func thresholdNote(tr trip) string {
 		return "note.complaint"
 	case "bounce":
 		return "note.bounce"
+	case "block_bounce":
+		// Why so few block/policy bounces pause a mailbox provider
+		// (bytype.go).
+		if tr.window > 0 {
+			return "note.blockBurst"
+		}
+		return "note.blockBounce"
 	case "deferral":
 		return "note.deferral"
 	}

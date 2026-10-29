@@ -49,6 +49,45 @@ func (q *Queries) SendingBounceTypes(ctx context.Context, campaignID *uuid.UUID)
 	return items, nil
 }
 
+const sendingBounceTypesSince = `-- name: SendingBounceTypesSince :many
+SELECT mailbox_provider, bounce_class, count(*)::bigint AS n FROM delivery_events
+WHERE campaign_id = $1 AND type = 'hard_bounce' AND occurred_at >= $2::timestamptz
+GROUP BY mailbox_provider, bounce_class
+`
+
+type SendingBounceTypesSinceParams struct {
+	CampaignID *uuid.UUID `json:"campaignId"`
+	Since      time.Time  `json:"since"`
+}
+
+type SendingBounceTypesSinceRow struct {
+	MailboxProvider string `json:"mailboxProvider"`
+	BounceClass     string `json:"bounceClass"`
+	N               int64  `json:"n"`
+}
+
+// A send's hard bounces by mailbox provider and class since a time: a
+// burst of block/policy bounces (review GS-11).
+func (q *Queries) SendingBounceTypesSince(ctx context.Context, arg SendingBounceTypesSinceParams) ([]SendingBounceTypesSinceRow, error) {
+	rows, err := q.db.Query(ctx, sendingBounceTypesSince, arg.CampaignID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SendingBounceTypesSinceRow{}
+	for rows.Next() {
+		var i SendingBounceTypesSinceRow
+		if err := rows.Scan(&i.MailboxProvider, &i.BounceClass, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const sendingCallWindow = `-- name: SendingCallWindow :one
 
 SELECT coalesce(sum(calls), 0)::bigint AS calls, coalesce(sum(errors), 0)::bigint AS errors

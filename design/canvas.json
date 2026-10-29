@@ -785,7 +785,7 @@
   },
   "LiveMonitor.dc.html": {
    "expand": "fill",
-   "h": 2083,
+   "h": 2118,
    "is_interactive": true,
    "page": "monitor",
    "title": "Live monitor · sending",
@@ -813,7 +813,7 @@
    "y": 6042
   },
   "LiveMonitorMobile.dc.html": {
-   "h": 2606,
+   "h": 2641,
    "is_interactive": true,
    "page": "monitor",
    "title": "Live monitor · mobile",
@@ -870,7 +870,7 @@
    "y": 6042
   },
   "LiveMonitorTablet.dc.html": {
-   "h": 2776,
+   "h": 2828,
    "is_interactive": true,
    "page": "monitor",
    "title": "Live monitor · sending · tablet",

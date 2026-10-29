@@ -60,6 +60,13 @@ func TestGuardedSending(t *testing.T) {
 	// GS-6: complaints count where reported; the complaint watch after the send.
 	t.Run("ComplaintWatchAfterTheSend", func(t *testing.T) { testComplaintWatch(t, s.Fixture(t, "GS-6 watch")) })
 	t.Run("PostmasterAfterTheSend", func(t *testing.T) { testPostmasterWatch(t, s.Fixture(t, "GS-6 postmaster")) })
+	// R2.L7c: complaints clearly over the limit trip on small sends too,
+	// during the send and after it.
+	t.Run("SmallSendComplaintsPause", func(t *testing.T) { testSmallSendComplaints(t, s.Fixture(t, "L7c small send")) })
+	t.Run("SmallSendWatchAlerts", func(t *testing.T) { testSmallSendWatch(t, s.Fixture(t, "L7c small watch")) })
+	// GS-11: block/policy bounces need less evidence than unknown users.
+	t.Run("BlockPolicyFloor", func(t *testing.T) { testBlockPolicyFloor(t, s.Fixture(t, "GS-11 block floor")) })
+	t.Run("BlockPolicyBurst", func(t *testing.T) { testBlockBurst(t, s.Fixture(t, "GS-11 block burst")) })
 	// GS-7: plain SMTP's deliveries are inferred from its acceptance.
 	t.Run("SMTPInfersDelivery", func(t *testing.T) { testSMTPInfersDelivery(t, s.Fixture(t, "GS-7 smtp")) })
 	// GS-8: throttles shared by sends going out at once; ETAs.

@@ -43,6 +43,8 @@
   "note.complaintYahoo": "Yahoo filters on the complaints its feedback loop reports; staying under 0.1% protects placement for every later send.",
   "note.complaint": "Mailbox providers filter on complaint rates; staying under 0.1% protects placement for every later send.",
   "note.bounce": "Bounce rates above 2% tell mailbox providers the list is old; providers such as SES review accounts above 5%.",
+  "note.blockBounce": "A block or policy bounce is the mailbox provider refusing the sender itself (its reputation, a policy or the content); once it starts, the rest is usually refused too, so a few of them, clearly over the limit, are enough to pause.",
+  "note.blockBurst": {"message": "These block or policy bounces arrived within {window} minutes: the mailbox provider started refusing the sender itself (its reputation, a policy or the content), and further mail to it is likely to be refused too.", "note": "window: minutes"},
   "note.deferral": "Mailbox providers defer mail they want to slow down; sending slower usually clears it within the hour.",
   "note.warmupShift": { "message": "The {who} warm-up schedule shifts by a day so the IP doesn't miss its ramp.", "note": "who: the held sending provider's short name" },
 

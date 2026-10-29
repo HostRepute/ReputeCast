@@ -107,7 +107,7 @@ export default translate(mm, {
   thresholdState: '{state, select, ok {Đang theo dõi} near {Gần chạm ngưỡng} collecting {Đang thu thập bằng chứng} tripped {Đã vượt ngưỡng} other {n/a}}',
   thresholdNa: '{reason, select, not_reported {Gmail và iCloud không báo cáo khiếu nại theo từng thư} other {Chưa có gì để đếm}}',
   thresholdNeeds:
-    '{events} trên {base} thư {unit, select, delivered {đã giao} other {đã gửi}} · cần {minEvents} {key, select, complaint {khiếu nại} mailbox_complaint {khiếu nại} deferral {lần hoãn nhận} other {thư trả lại}} và {minBase} thư {unit, select, delivered {đã giao} other {đã gửi}} mới có thể tạm dừng',
+    '{events} trên {base} thư {unit, select, delivered {đã giao} other {đã gửi}} · cần {minEvents} {key, select, complaint {khiếu nại} mailbox_complaint {khiếu nại} deferral {lần hoãn nhận} block_bounce {thư trả lại do chặn/chính sách} other {thư trả lại}} và {minBase} thư {unit, select, delivered {đã giao} other {đã gửi}} mới có thể tạm dừng{sooner, select, yes {, hoặc 3 khi rõ ràng vượt ngưỡng} other {}}',
   thresholdComplaintsTo: '{events} trên {base} thư đã giao tới {names}',
   thresholdIn: '{unit, select, delivered {{events} trên {base} thư đã giao} other {{events} trên {base} thư đã gửi}}',
   thresholdHighestAction:
@@ -115,7 +115,7 @@ export default translate(mm, {
   thresholdReplyAction:
     '{action, select, slow {khi đạt {limit}, {who} giảm còn một nửa tốc độ} pause_route {khi đạt {limit}, {who} tạm dừng trên tuyến đó} alert {khi đạt {limit}, một cảnh báo được gửi} other {khi đạt {limit}, {who} tạm dừng}}{timed, select, yes { trong {duration}} other {}}',
   thresholdsFootnote:
-    'Một ngưỡng chỉ bị vượt sau ít nhất 5 sự kiện và đủ bằng chứng rằng tỷ lệ thực sự cao hơn giới hạn. Trước đó nó hiện “Đang thu thập bằng chứng” với thanh màu xám.',
+    'Một ngưỡng chỉ bị vượt sau ít nhất 5 sự kiện và đủ bằng chứng rằng tỷ lệ thực sự cao hơn giới hạn; khiếu nại và thư trả lại do chặn/chính sách còn bị vượt từ 3 sự kiện khi tỷ lệ rõ ràng cao hơn giới hạn, dù lần gửi nhỏ đến đâu. Trước đó nó hiện “Đang thu thập bằng chứng” với thanh màu xám.',
   scopeCampaign: 'Phạm vi: tạm dừng toàn bộ chiến dịch.',
   scopeRoute: 'Phạm vi: chỉ tạm dừng tuyến hoặc nhà cung cấp hộp thư bị ảnh hưởng.',
 
@@ -189,9 +189,9 @@ export default translate(mm, {
   providerLine: '{rate} · {delivered} gửi thành công',
 
   incidentTitle:
-    '{metric, select, complaint {Tỷ lệ khiếu nại ở {who} đạt {value} (giới hạn {limit})} bounce {Tỷ lệ trả thư ở {who} đạt {value} (giới hạn {limit})} deferral {Tỷ lệ hoãn nhận ở {who} đạt {value} (giới hạn {limit})} other {Tỷ lệ {metric} ở {who} đạt {value} (giới hạn {limit})}}',
+    '{metric, select, complaint {Tỷ lệ khiếu nại ở {who} đạt {value} (giới hạn {limit})} bounce {Tỷ lệ trả thư ở {who} đạt {value} (giới hạn {limit})} deferral {Tỷ lệ hoãn nhận ở {who} đạt {value} (giới hạn {limit})} block_bounce {Tỷ lệ trả thư do chặn/chính sách ở {who} đạt {value} (giới hạn {limit})} unknown_user {Tỷ lệ người nhận không tồn tại ở {who} đạt {value} (giới hạn {limit})} other {Tỷ lệ {metric} ở {who} đạt {value} (giới hạn {limit})}}',
   incidentTitleAll:
-    '{metric, select, complaint {Tỷ lệ khiếu nại đạt {value} (giới hạn {limit})} bounce {Tỷ lệ trả thư đạt {value} (giới hạn {limit})} deferral {Tỷ lệ hoãn nhận đạt {value} (giới hạn {limit})} other {Tỷ lệ {Metric} đạt {value} (giới hạn {limit})}}',
+    '{metric, select, complaint {Tỷ lệ khiếu nại đạt {value} (giới hạn {limit})} bounce {Tỷ lệ trả thư đạt {value} (giới hạn {limit})} deferral {Tỷ lệ hoãn nhận đạt {value} (giới hạn {limit})} block_bounce {Tỷ lệ trả thư do chặn/chính sách đạt {value} (giới hạn {limit})} unknown_user {Tỷ lệ người nhận không tồn tại đạt {value} (giới hạn {limit})} other {Tỷ lệ {Metric} đạt {value} (giới hạn {limit})}}',
   outageAuth: '{name} đã từ chối thông tin xác thực',
   outageReturned: '{name} trả về {errorKind}',
   outageDown: '{name} gián đoạn',
@@ -206,7 +206,7 @@ export default translate(mm, {
   summaryTrippedWho: 'Vượt ngưỡng lúc {time}, sau khi đã gửi cho {sent} trên {total} người nhận ở {who}.',
   summaryTripped: 'Vượt ngưỡng lúc {time}, sau khi đã gửi cho {sent} trên {total} người nhận.',
   summaryEvents:
-    '{metric, select, complaint {{events, plural, other {# khiếu nại}} trên {base} thư gửi thành công.} bounce {{events, plural, other {# thư trả lại}} trên {base} thư đã gửi.} deferral {{events, plural, other {# lần hoãn nhận}} trên {base} thư đã gửi.} other {{count} {metric} trên {base} thư đã gửi.}}',
+    '{metric, select, complaint {{events, plural, other {# khiếu nại}} trên {base} thư gửi thành công} bounce {{events, plural, other {# thư trả lại}} trên {base} thư đã gửi} deferral {{events, plural, other {# lần hoãn nhận}} trên {base} thư đã gửi} block_bounce {{events, plural, other {# thư trả lại do chặn/chính sách}} trên {base} thư đã gửi} unknown_user {{events, plural, other {# người nhận không tồn tại}} trên {base} thư đã gửi} other {{count} {metric} trên {base} thư đã gửi}}{window, plural, =0 {} other { trong vòng # phút}}.',
   summaryCampaignPaused: 'ReputeCast đã tạm dừng chiến dịch khi còn {held} người nhận, đã hoàn tất {progress}.',
   summaryHeldWho: 'ReputeCast đã tạm giữ {held} người nhận còn lại ở {who}.',
   summaryHeld: 'ReputeCast đã tạm giữ {held} người nhận còn lại.',
@@ -240,16 +240,20 @@ export default translate(mm, {
   outageProbing:
     'Cho đến khi bạn quyết định, ReputeCast kiểm tra {short} bằng {seed, select, yes {1 thư tới một hộp thư mẫu} other {1 thư trong số này}} mỗi 60 giây và gửi lại phần này sau {needed} lần thành công liên tiếp{done, plural, =0 {} other { (đã đạt {done})}}.',
 
-  factWho: '{metric, select, complaint {Khiếu nại ở {who}} bounce {Thư trả lại ở {who}} deferral {Lần hoãn nhận ở {who}} other {{metric} ở {who}}}',
-  factAll: '{metric, select, complaint {Khiếu nại} bounce {Thư trả lại} deferral {Lần hoãn nhận} other {{Metric}}}',
+  factWho:
+    '{metric, select, complaint {Khiếu nại ở {who}} bounce {Thư trả lại ở {who}} deferral {Lần hoãn nhận ở {who}} block_bounce {Thư trả lại do chặn/chính sách ở {who}} unknown_user {Người nhận không tồn tại ở {who}} other {{metric} ở {who}}}',
+  factAll:
+    '{metric, select, complaint {Khiếu nại} bounce {Thư trả lại} deferral {Lần hoãn nhận} block_bounce {Thư trả lại do chặn/chính sách} unknown_user {Người nhận không tồn tại} other {{Metric}}}',
   factValue: '{events} trên {base} · {rate}',
   factLimit: '{scope, select, mailbox_provider {Giới hạn, theo nhà cung cấp hộp thư} route {Giới hạn, theo nhà cung cấp gửi thư} other {Giới hạn, toàn bộ chiến dịch}}',
   factOthers: 'Khiếu nại ở {names}',
   factEvidence:
-    '{metric, select, complaint {{events} khiếu nại} bounce {{events} thư trả lại} deferral {{events} lần hoãn} other {{events} sự kiện}} trên {base} thư {unit, select, delivered {đã giao} other {đã gửi}} · đủ bằng chứng (cần {minEvents} sự kiện và {minBase} thư {unit, select, delivered {đã giao} other {đã gửi}})',
+    '{metric, select, complaint {{events} khiếu nại} bounce {{events} thư trả lại} deferral {{events} lần hoãn} block_bounce {{events} thư trả lại do chặn/chính sách} unknown_user {{events} người nhận không tồn tại} other {{events} sự kiện}} trên {base} thư {unit, select, delivered {đã giao} other {đã gửi}} · đủ bằng chứng (cần {minEvents} sự kiện và {minBase} thư {unit, select, delivered {đã giao} other {đã gửi}})',
+  factEvidenceClear:
+    '{metric, select, complaint {{events} khiếu nại} block_bounce {{events} thư trả lại do chặn/chính sách} other {{events} sự kiện}} trên {base} thư {unit, select, delivered {đã giao} other {đã gửi}}{window, plural, =0 { · rõ ràng vượt ngưỡng, nên không chờ đủ {waitFor, select, events {{minEvents} sự kiện} base {{minBase} thư {unit, select, delivered {đã giao} other {đã gửi}}} other {{minEvents} sự kiện và {minBase} thư {unit, select, delivered {đã giao} other {đã gửi}}}}} other { trong vòng # phút · rõ ràng vượt ngưỡng trong khoảng thời gian đó}}',
   factWatch: 'Khiếu nại có thể tiếp tục đến trong tối đa {hours} giờ; ReputeCast vẫn theo dõi sau khi gửi xong.',
   factCampaignWide:
-    '{metric, select, complaint {Khiếu nại toàn chiến dịch} bounce {Thư trả lại toàn chiến dịch} deferral {Lần hoãn nhận toàn chiến dịch} other {{metric} toàn chiến dịch}}',
+    '{metric, select, complaint {Khiếu nại toàn chiến dịch} bounce {Thư trả lại toàn chiến dịch} deferral {Lần hoãn nhận toàn chiến dịch} block_bounce {Thư trả lại do chặn/chính sách toàn chiến dịch} unknown_user {Người nhận không tồn tại toàn chiến dịch} other {{metric} toàn chiến dịch}}',
 
   moveTitle: 'Nếu bạn chuyển phần này sang {provider}',
   moveCost: 'Chi phí thêm',

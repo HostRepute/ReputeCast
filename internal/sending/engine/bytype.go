@@ -33,6 +33,27 @@ import (
 // and 500 sent to the scope (within the window, for deferrals). A level
 // that pauses goes through the auto-pause (an incident to decide on); one
 // that slows down or warns leaves a notice to acknowledge.
+//
+// Block/policy bounces need less evidence than unknown users. An unknown
+// user is one bad address on the list: it costs nothing beyond itself, and
+// a few of them say nothing about how a mailbox provider sees the sender.
+// A block or policy rejection is the mailbox provider deciding about the
+// sender itself (its IP or domain reputation, a policy, the content): once
+// it starts, the rest of the mail to that provider is refused too, and
+// every refusal deepens the damage, while a pause costs only a delay that
+// a person can undo. So besides the whole-send rate with its floors, block
+// bounces trip at any volume once clearly over the limit (anyVolume, from
+// 3), and a burst does: from blockBurstEvents block/policy bounces at one
+// mailbox provider within blockBurstMinutes, clearly over the limit among
+// what was sent to it in that time. The burst catches a mailbox provider
+// that starts blocking late in a large send, while its whole-send rate is
+// still diluted by everything it took earlier. It watches the named
+// mailbox providers only: "Other" is many unrelated receivers, and a few
+// blocks among them aren't one filter's decision.
+const (
+	blockBurstMinutes = 10
+	blockBurstEvents  = minClear
+)
 
 // Actions a level takes.
 const (
@@ -62,8 +83,10 @@ func blockClass(class string) bool {
 type typed struct {
 	at             time.Time
 	block, unknown map[string]int64
-	// deferred and sent within each window (minutes).
+	// deferred and sent within each window (minutes); recentBlock the
+	// block/policy bounces within the last blockBurstMinutes.
 	deferred, sent map[int]map[string]int64
+	recentBlock    map[string]int64
 }
 
 // typedTotals are a send's block/policy and other hard bounces per
@@ -126,7 +149,46 @@ func readTypedAt(ctx context.Context, q *store.Queries, campaignID uuid.UUID, th
 			t.sent[w][r.MailboxProvider] = r.N
 		}
 	}
+	if th.BlockBounce <= 0 {
+		return t, nil
+	}
+	// A burst of block/policy bounces (see above): the last
+	// blockBurstMinutes' blocks and what was sent in that time.
+	since := now.Add(-blockBurstMinutes * time.Minute)
+	if t.sent[blockBurstMinutes] == nil {
+		t.sent[blockBurstMinutes] = map[string]int64{}
+		srows, err := q.SendingSentSinceByMailbox(ctx, store.SendingSentSinceByMailboxParams{CampaignID: &campaignID, Since: &since})
+		if err != nil {
+			return t, err
+		}
+		for _, r := range srows {
+			t.sent[blockBurstMinutes][r.MailboxProvider] = r.N
+		}
+	}
+	t.recentBlock = map[string]int64{}
+	brows, err := q.SendingBounceTypesSince(ctx, store.SendingBounceTypesSinceParams{CampaignID: &campaignID, Since: since})
+	if err != nil {
+		return t, err
+	}
+	for _, r := range brows {
+		if blockClass(r.BounceClass) {
+			t.recentBlock[r.MailboxProvider] += r.N
+		}
+	}
 	return t, nil
+}
+
+// blockBurst reports a burst of block/policy bounces at a mailbox provider
+// (see above): at least blockBurstEvents within the last
+// blockBurstMinutes, clearly over the limit among what was sent to it
+// then. A mailbox provider a person resumed is judged on bursts again once
+// a whole window passed since, so blocks from before never pause it again.
+func (t typed) blockBurst(mbp string, limit float64, resumed, now time.Time) (blocks, sent int64, ok bool) {
+	if mbp == "other" || t.recentBlock == nil || (!resumed.IsZero() && now.Sub(resumed) < blockBurstMinutes*time.Minute) {
+		return 0, 0, false
+	}
+	blocks, sent = t.recentBlock[mbp], t.sent[blockBurstMinutes][mbp]
+	return blocks, sent, blocks >= blockBurstEvents && clearlyOver(blocks, sent, limit)
 }
 
 // typedTrip is a typed level over its limit.
@@ -161,9 +223,17 @@ func (e *Engine) checkTyped(rs *runState, ts tallies, now time.Time) *typedTrip 
 		m := rs.guard.judged(key, *ts.mailbox[mbp])
 		base := rs.guard.Rearm[key]
 		block := max(ty.block[mbp]-base.Block, 0)
-		if th.BlockBounce > 0 && !rs.guard.acted("block", mbp) && m.sent >= minSampleScoped && over(block, m.sent, th.BlockBounce, minEvents) {
-			return &typedTrip{trip{scope: "mailbox_provider", mailbox: mbp, metric: "block_bounce", value: rate(block, m.sent), limit: th.BlockBounce, events: block, base: m.sent},
-				"block", th.BlockAction}
+		if th.BlockBounce > 0 && !rs.guard.acted("block", mbp) {
+			// Over the whole send so far (with the floors, or clearly over
+			// at any volume), then a burst (see above).
+			if ok, clear := exceeds("block_bounce", block, m.sent, minEvents, minSampleScoped, th.BlockBounce); ok {
+				return &typedTrip{trip{scope: "mailbox_provider", mailbox: mbp, metric: "block_bounce", value: rate(block, m.sent), limit: th.BlockBounce, events: block, base: m.sent,
+					clear: clear}, "block", th.BlockAction}
+			}
+			if b, s, ok := ty.blockBurst(mbp, th.BlockBounce, base.At, now); ok {
+				return &typedTrip{trip{scope: "mailbox_provider", mailbox: mbp, metric: "block_bounce", value: rate(b, s), limit: th.BlockBounce, events: b, base: s,
+					window: blockBurstMinutes, clear: true}, "block", th.BlockAction}
+			}
 		}
 		for _, lv := range deferralLevels(th) {
 			if lv.limit <= 0 || lv.window <= 0 || rs.guard.acted(lv.key, mbp) {

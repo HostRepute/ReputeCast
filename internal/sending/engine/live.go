@@ -552,6 +552,10 @@ type LiveThreshold struct {
 	Base      int64  `json:"base"`
 	MinEvents int64  `json:"minEvents"`
 	MinBase   int64  `json:"minBase"`
+	// AnyVolume: below MinEvents and MinBase the rate still trips once it
+	// is clearly over its limit, from 3 events (complaints and block/policy
+	// bounces, review R2.L7c).
+	AnyVolume bool `json:"anyVolume"`
 	// State: ok (watching), near (at 90% of the limit or more), collecting
 	// (at or near the limit without the evidence to trip yet), tripped, na
 	// (nothing to count: see Reason).

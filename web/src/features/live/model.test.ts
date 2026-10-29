@@ -63,7 +63,9 @@ const T = (hms: string) => `2026-10-14T${hms}Z`
 
 /** A thresholds card row with its evidence, as the API sends it. */
 function thr(key: Threshold['key'], value: number | undefined, limit: number, extra: Partial<Threshold> = {}): Threshold {
-  return { key, value, limit, events: 0, base: 0, minEvents: 5, minBase: 500, state: 'ok', ...extra }
+  // Complaints and block/policy bounces also trip clearly over the limit at any volume (review R2.L7c).
+  const anyVolume = key === 'complaint' || key === 'mailbox_complaint' || key === 'block_bounce'
+  return { key, value, limit, events: 0, base: 0, minEvents: 5, minBase: 500, anyVolume, state: 'ok', ...extra }
 }
 
 /** Totals, with what complaint rates are counted on (F-2) and bounces by type (GS-11). */
@@ -268,6 +270,18 @@ describe('LiveMonitor', () => {
     expect([failing.value, failing.color]).toEqual(['100% of 5%', 'var(--bad-strong)'])
   })
 
+  // Review R2.L7c: complaints and block/policy bounces also trip from 3
+  // once clearly over the limit, so "Collecting evidence" says so; other
+  // rates wait for the floors alone.
+  it('says what a rate still needs before it can pause', () => {
+    const complaints = thr('mailbox_complaint', 0.67, 0.1, { mailbox: 'outlook', events: 2, base: 300, state: 'collecting' })
+    expect(thresholdEvidence(complaints)).toBe('2 in 300 delivered · needs 5 complaints and 500 delivered to pause, or 3 clearly over the limit')
+    const blocks = thr('block_bounce', 0.5, 0.5, { mailbox: 'outlook', events: 2, base: 400, state: 'collecting' })
+    expect(thresholdEvidence(blocks)).toBe('2 in 400 sent · needs 5 block/policy bounces and 500 sent to pause, or 3 clearly over the limit')
+    const bounces = thr('bounce', 2.5, 2, { events: 10, base: 400, minBase: 1000, state: 'collecting' })
+    expect(thresholdEvidence(bounces)).toBe('10 in 400 sent · needs 5 bounces and 1,000 sent to pause')
+  })
+
   it('describes each sending provider', () => {
     expect(providerNote(ses, false)).toBe('quota 19,416 free after this send')
     expect(providerNote(postal, false)).toBe("warm-up day 9 · 1,959 of today's 6,000 cap")
@@ -394,6 +408,37 @@ describe('LiveMonitorPaused', () => {
   it('maps each choice to the API', () => {
     expect(optionAction(outlook, 'resume_with_changes')).toEqual({ kind: 'resume', body: { mailbox: 'outlook', withChanges: true } })
     expect(optionAction(outlook, 'cancel_share')).toEqual({ kind: 'cancel', body: { mailbox: 'outlook' } })
+  })
+
+  // Review R2.L7c: a small send's complaints, clearly over the limit,
+  // trip before the usual evidence; the decision view says so.
+  it('says when a rate tripped clearly over the limit on a small send', () => {
+    const small: Incident = { ...outlook, value: 3.33, detail: { ...outlook.detail, events: 10, base: 300, clear: true } }
+    expect(trippedFacts(small, paused).evidence?.text).toBe("10 complaints in 300 delivered · clearly over the limit, so it didn't wait for 500 delivered")
+    // It names only the evidence it didn't have.
+    const fewer: Incident = { ...small, value: 0.5, detail: { ...small.detail, events: 3, base: 600 } }
+    expect(trippedFacts(fewer, paused).evidence?.text).toBe("3 complaints in 600 delivered · clearly over the limit, so it didn't wait for 5 events")
+    const both: Incident = { ...small, value: 1.5, detail: { ...small.detail, events: 3, base: 200 } }
+    expect(trippedFacts(both, paused).evidence?.text).toBe("3 complaints in 200 delivered · clearly over the limit, so it didn't wait for 5 events and 500 delivered")
+  })
+
+  // Review GS-11: block/policy bounces read in words, and a burst says
+  // the minutes it counted.
+  it('names block/policy bounces and their burst', () => {
+    const burst: Incident = {
+      ...outlook,
+      metric: 'block_bounce',
+      value: 1.33,
+      limit: 0.5,
+      detail: { ...outlook.detail, events: 8, base: 600, window: 10, clear: true },
+    }
+    const blocks = snapshot({ ...paused, thresholds: [...paused.thresholds, thr('block_bounce', 0.4, 0.5, { mailbox: 'outlook' })] })
+    expect(incidentTitle(burst)).toBe('Outlook block/policy bounce rate reached 1.3% (limit 0.5%)')
+    expect(thresholdSummary(burst, blocks)).toContain('8 block/policy bounces out of 600 sent within 10 minutes.')
+    const f = trippedFacts(burst, blocks)
+    expect(f.head.label).toBe('Outlook block/policy bounces')
+    // A burst can have the usual evidence within its window; it says the time instead.
+    expect(f.evidence?.text).toBe('8 block/policy bounces in 600 sent within 10 minutes · clearly over the limit in that time')
   })
 })
 

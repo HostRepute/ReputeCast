@@ -28142,6 +28142,7 @@ export interface components {
             campaign?: components["schemas"]["IncidentRate"];
             causes?: components["schemas"]["IncidentCause"][];
             changes?: components["schemas"]["ResumeChanges"];
+            clear?: boolean;
             continuing?: string[];
             /** Format: int64 */
             delivered?: number;
@@ -30046,6 +30047,7 @@ export interface components {
         };
         LiveThreshold: {
             action?: string;
+            anyVolume: boolean;
             /** Format: int64 */
             base: number;
             /** Format: int64 */

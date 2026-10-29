@@ -3525,6 +3525,9 @@ type Querier interface {
 	// A send's hard bounces by mailbox provider and class (block/policy or
 	// unknown users).
 	SendingBounceTypes(ctx context.Context, campaignID *uuid.UUID) ([]SendingBounceTypesRow, error)
+	// A send's hard bounces by mailbox provider and class since a time: a
+	// burst of block/policy bounces (review GS-11).
+	SendingBounceTypesSince(ctx context.Context, arg SendingBounceTypesSinceParams) ([]SendingBounceTypesSinceRow, error)
 	SendingBumpCounters(ctx context.Context, arg SendingBumpCountersParams) error
 	// GS-4: the provider errors threshold ---------------------------------------
 	// A provider's API calls and failed calls within a time window (the API

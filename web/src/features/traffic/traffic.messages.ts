@@ -50,7 +50,7 @@ export const m = defineMessages('traffic', {
   actionLabel: '{rule}{level, select, first {, first level} second {, second level} other {}}: action',
   windowLabel: '{rule}{level, select, first {, first level} second {, second level} other {}}: time window',
   thresholdsNote:
-    "Every threshold waits for at least 5 events and 500 delivered to that mailbox provider, then trips only when there's enough evidence that the rate is really above the limit. Until then the live monitor shows it as “Collecting evidence”.",
+    "Every threshold waits for at least 5 events and 500 delivered to that mailbox provider, then trips only when there's enough evidence that the rate is really above the limit. Complaints and block/policy bounces don't wait that long: from 3, a rate clearly over the limit trips however small the send. Block/policy bounces are also judged on the last 10 minutes alone, so a mailbox provider that starts blocking late in a large send trips too. Until then the live monitor shows it as “Collecting evidence”.",
   pctRange: 'Enter a number from {min} to {max}.',
   levelsOrder: 'The first level must be lower than the second.',
 
@@ -141,7 +141,7 @@ export const m = defineMessages('traffic', {
   how5: 'Every action shows in the live monitor and in <a>Events & sync</a>.',
   legendTitle: 'What the live monitor shows',
   legendCollecting: 'Collecting evidence',
-  legendCollectingBody: "Fewer than 5 events or 500 delivered; it can't trip yet. Grey bar.",
+  legendCollectingBody: "Fewer than 5 events or 500 delivered, and not clearly over the limit; it can't trip yet. Grey bar.",
   legendWatching: 'Watching',
   legendWatchingBody: 'Enough evidence and inside the limit.',
   legendNear: 'Close to the limit',

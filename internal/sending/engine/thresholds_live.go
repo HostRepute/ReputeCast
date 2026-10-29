@@ -84,23 +84,26 @@ func liveThresholds(th Thresholds, ts tallies, g guardState, api []LiveThreshold
 // thresholdRow is a rate's row: its value (null without a base), evidence
 // and state.
 func thresholdRow(key string, events, base, minEv, minBase int64, limit float64) LiveThreshold {
-	r := LiveThreshold{Key: key, Limit: limit, Events: events, Base: base, MinEvents: minEv, MinBase: minBase}
+	r := LiveThreshold{Key: key, Limit: limit, Events: events, Base: base, MinEvents: minEv, MinBase: minBase, AnyVolume: anyVolume(key)}
 	if base <= 0 {
 		r.State, r.Reason = "na", "no_data"
 		return r
 	}
 	v := round2(rate(events, base))
 	r.Value = &v
-	r.State = thresholdState(events, base, minEv, minBase, limit)
+	r.State = thresholdState(key, events, base, minEv, minBase, limit)
 	return r
 }
 
-// thresholdState is a rate's state against its limit.
-func thresholdState(events, base, minEv, minBase int64, limit float64) string {
+// thresholdState is a rate's state against its limit, as the guard judges
+// it (exceeds): collecting evidence while it is at its limit or near it
+// but can't trip yet.
+func thresholdState(key string, events, base, minEv, minBase int64, limit float64) string {
 	v := rate(events, base)
 	enough := events >= minEv && base >= minBase
+	tripped, _ := exceeds(key, events, base, minEv, minBase, limit)
 	switch {
-	case enough && over(events, base, limit, minEv):
+	case tripped:
 		return "tripped"
 	case v >= limit, v >= 0.9*limit && !enough:
 		return "collecting"

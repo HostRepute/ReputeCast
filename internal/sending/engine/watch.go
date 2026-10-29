@@ -93,20 +93,31 @@ type watchTrip struct {
 
 // watchTrips are the scopes over their complaint limit with enough
 // evidence: each mailbox provider that reports complaints, then the whole
-// send where they're reported.
-func watchTrips(th Thresholds, ts tallies) []watchTrip {
+// send where they're reported. The whole send leaves out the mailbox
+// providers with an alert of their own (over their limit now, or alerted
+// before), as the guard leaves out a paused one: their complaints are
+// told already, and a small send to one of them would otherwise alert
+// twice for the same complaints.
+func watchTrips(th Thresholds, ts tallies, alerted map[string]bool) []watchTrip {
 	var out []watchTrip
+	t := ts.total
 	for _, k := range routing.MailboxProviders {
 		m := ts.mailbox[k]
 		if m == nil || !mailbox.ReportsComplaints(k) {
 			continue
 		}
-		if m.reported >= minSampleScoped && over(m.complained, m.reported, th.MailboxComplaint, minEvents) {
+		// As during the send: with the floors' evidence, or clearly over
+		// the limit at any volume (review R2.L7c).
+		ok, _ := exceeds("mailbox_complaint", m.complained, m.reported, minEvents, minSampleScoped, th.MailboxComplaint)
+		if ok {
 			out = append(out, watchTrip{mailbox: k, events: m.complained, base: m.reported, value: m.complaintRate(), limit: th.MailboxComplaint})
 		}
+		if ok || alerted[k] {
+			t.complained -= m.complained
+			t.reported -= m.reported
+		}
 	}
-	t := ts.total
-	if t.reported >= minSampleCampaign && over(t.complained, t.reported, th.Complaint, minEvents) {
+	if ok, _ := exceeds("complaint", t.complained, t.reported, minEvents, minSampleCampaign, th.Complaint); ok {
 		out = append(out, watchTrip{events: t.complained, base: t.reported, value: t.complaintRate(), limit: th.Complaint})
 	}
 	return out
@@ -164,8 +175,17 @@ func (e *Engine) watchCampaign(ctx context.Context, id uuid.UUID, now time.Time)
 	if err != nil {
 		return err
 	}
+	// The scopes that alerted already ("" the whole send).
+	before, err := e.Q.SendingIncidentsOfKind(ctx, store.SendingIncidentsOfKindParams{CampaignID: id, Kind: "complaint_watch"})
+	if err != nil {
+		return err
+	}
+	alerted := map[string]bool{}
+	for _, in := range before {
+		alerted[in.MailboxProvider] = true
+	}
 	th := sendThresholds(snd)
-	trips := watchTrips(th, ts)
+	trips := watchTrips(th, ts, alerted)
 	// Gmail reports no complaints per message: with Postmaster Tools on
 	// (Traffic rules › After the send), its daily spam rate is watched.
 	if w.Postmaster {
@@ -177,19 +197,8 @@ func (e *Engine) watchCampaign(ctx context.Context, id uuid.UUID, now time.Time)
 			trips = append(trips, tr)
 		}
 	}
-	if len(trips) == 0 {
-		return nil
-	}
-	alerted, err := e.Q.SendingIncidentsOfKind(ctx, store.SendingIncidentsOfKindParams{CampaignID: id, Kind: "complaint_watch"})
-	if err != nil {
-		return err
-	}
 	for _, tr := range trips {
-		done := false
-		for _, in := range alerted {
-			done = done || in.MailboxProvider == tr.mailbox
-		}
-		if done {
+		if alerted[tr.mailbox] {
 			continue
 		}
 		if err := e.watchAlert(ctx, cc, snd, tr, w.Hours, now); err != nil {

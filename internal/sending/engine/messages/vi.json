@@ -43,6 +43,8 @@
   "note.complaintYahoo": "Yahoo lọc theo các khiếu nại mà vòng phản hồi của họ báo cáo; giữ dưới 0,1% giúp bảo vệ vị trí thư cho mọi lần gửi sau.",
   "note.complaint": "Các nhà cung cấp hộp thư lọc thư theo tỷ lệ khiếu nại; giữ dưới 0,1% giúp bảo vệ vị trí thư cho mọi lần gửi sau.",
   "note.bounce": "Tỷ lệ trả thư trên 2% cho các nhà cung cấp hộp thư biết danh sách đã cũ; các nhà cung cấp như SES xem xét tài khoản khi vượt 5%.",
+  "note.blockBounce": "Thư trả lại do chặn hoặc chính sách là việc nhà cung cấp hộp thư từ chối chính người gửi (uy tín, một chính sách hoặc nội dung); khi đã bắt đầu, phần còn lại thường cũng bị từ chối, nên chỉ vài thư như vậy, khi rõ ràng vượt giới hạn, là đủ để tạm dừng.",
+  "note.blockBurst": "Các thư trả lại do chặn hoặc chính sách này đến trong vòng {window} phút: nhà cung cấp hộp thư đã bắt đầu từ chối chính người gửi (uy tín, một chính sách hoặc nội dung), và thư tiếp theo gửi tới đó nhiều khả năng cũng bị từ chối.",
   "note.deferral": "Các nhà cung cấp hộp thư hoãn nhận khi muốn làm chậm luồng thư; gửi chậm lại thường giải quyết được trong vòng một giờ.",
   "note.warmupShift": "Lịch khởi động của {who} sẽ lùi một ngày để IP không bỏ lỡ mức tăng của mình.",
 

@@ -228,8 +228,11 @@ type trip struct {
 	limit    float64
 	events   int64
 	base     int64
-	// window is a deferral level's window in minutes (GS-11).
+	// window is a deferral level's window, or a burst's, in minutes (GS-11).
 	window int
+	// clear: the rate tripped clearly over its limit at any volume, before
+	// the floors' evidence (review R2.L7c).
+	clear bool
 }
 
 // checkThresholds pauses a mailbox provider, a route or the whole campaign
@@ -260,10 +263,11 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 			// A resume recorded before the guard kept its counts.
 			m = m.since(counts{Complained: h.Rearm["complaint"], Hard: h.Rearm["bounce"], Deferred: h.Rearm["deferral"]})
 		}
+		complaint, clear := exceeds("mailbox_complaint", m.complained, m.reported, minEvents, minSampleScoped, th.MailboxComplaint)
 		switch {
-		case m.reported >= minSampleScoped && over(m.complained, m.reported, th.MailboxComplaint, minEvents) &&
-			(th.ComplaintAction != actWarn || !rs.guard.acted("complaint", mbp)):
-			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "complaint", value: m.complaintRate(), limit: th.MailboxComplaint, events: m.complained, base: m.reported})
+		case complaint && (th.ComplaintAction != actWarn || !rs.guard.acted("complaint", mbp)):
+			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "complaint", value: m.complaintRate(), limit: th.MailboxComplaint, events: m.complained, base: m.reported,
+				clear: clear})
 		case m.sent >= minSampleScoped && over(m.bounced(), m.sent, th.Bounce, minEvents):
 			trips = append(trips, trip{scope: "mailbox_provider", mailbox: mbp, metric: "bounce", value: rate(m.bounced(), m.sent), limit: th.Bounce, events: m.bounced(), base: m.sent})
 		case th.DeferralWindow == 0 && m.sent >= minSampleScoped && over(m.deferred, m.sent, th.Deferral, minDeferrals):
@@ -317,8 +321,9 @@ func (e *Engine) checkThresholds(ctx context.Context, rs *runState, ts tallies, 
 		}
 		// Complaints count only where mailbox providers report them: Gmail's
 		// and iCloud's delivered mail would dilute the rate (review F-2).
-		if t.reported >= minSampleCampaign && over(t.complained, t.reported, th.Complaint, minEvents) {
-			trips = append(trips, trip{scope: "campaign", metric: "complaint", value: t.complaintRate(), limit: th.Complaint, events: t.complained, base: t.reported})
+		// Clearly over the limit, they trip at any volume (R2.L7c).
+		if ok, clear := exceeds("complaint", t.complained, t.reported, minEvents, minSampleCampaign, th.Complaint); ok {
+			trips = append(trips, trip{scope: "campaign", metric: "complaint", value: t.complaintRate(), limit: th.Complaint, events: t.complained, base: t.reported, clear: clear})
 		}
 	}
 	if len(trips) == 0 {
