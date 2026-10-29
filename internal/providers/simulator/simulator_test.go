@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/contracttest"
 	"github.com/hostrepute/reputecast/internal/providers/simulator"
@@ -167,6 +168,26 @@ func TestOutlookComplaintsScenario(t *testing.T) {
 	}
 	if gmail["complaint"] > 0.1 {
 		t.Errorf("the scenario only affects Outlook: Gmail complaints %.2f%%", gmail["complaint"])
+	}
+}
+
+// Gmail and Apple never report a complaint (review F-2), so the demo
+// transport plans none there, in any scenario. One planned there would
+// count among a send's complaints while complaint rates leave that mailbox
+// provider's delivered mail out: it could pause the whole send before the
+// mailbox provider whose readers complain.
+func TestNoComplaintsWhereNotReported(t *testing.T) {
+	for _, scenario := range simulator.Scenarios {
+		p := newSim(t, map[string]any{"demo": true, "mimic": "ses", "scenario": scenario})
+		for _, mbp := range []string{mailbox.Gmail, mailbox.Outlook, mailbox.Yahoo, mailbox.ICloud, mailbox.Other} {
+			if mailbox.ReportsComplaints(mbp) {
+				continue
+			}
+			got := plan(t, p, 20000, map[string]string{simulator.TagMailbox: mbp, simulator.TagEngaged: "false", simulator.TagTier: "sunset"})
+			if got["complaint"] > 0 {
+				t.Errorf("%s scenario: %s complaints %.3f%%, but %s doesn't report complaints", scenario, mbp, got["complaint"], mbp)
+			}
+		}
 	}
 }
 

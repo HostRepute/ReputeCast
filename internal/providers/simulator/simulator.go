@@ -294,13 +294,17 @@ type Event struct {
 // the board's human open rate divided by 0.6. machine (privacy proxies
 // fetching on delivery) is a little above the board's share, because a
 // person who opens after a proxy fetch turns the open human. click is the
-// share of people who open and then click.
+// share of people who open and then click. complaint is what the mailbox
+// provider reports: Gmail and Apple never tell senders about a complaint
+// (review F-2, mailbox.ReportsComplaints), so theirs is 0 whatever their
+// readers do. One planned there would count among a send's complaints
+// while complaint rates leave that mailbox provider's delivered mail out.
 type mailboxRates struct {
 	bounce, complaint, deferral, human, machine, click float64
 }
 
 var rates = map[string]mailboxRates{
-	"gmail":   {bounce: 0.4, complaint: 0.02, deferral: 0.2, human: 18.0, machine: 5.7, click: 23},
+	"gmail":   {bounce: 0.4, complaint: 0.0, deferral: 0.2, human: 18.0, machine: 5.7, click: 23},
 	"outlook": {bounce: 1.1, complaint: 0.05, deferral: 0.4, human: 13.4, machine: 3.3, click: 20},
 	"yahoo":   {bounce: 0.7, complaint: 0.03, deferral: 2.0, human: 15.7, machine: 4.7, click: 21},
 	"icloud":  {bounce: 0.4, complaint: 0.0, deferral: 0.2, human: 7.5, machine: 5.6, click: 18},
