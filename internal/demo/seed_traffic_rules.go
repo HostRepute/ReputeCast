@@ -29,6 +29,11 @@ func seedTrafficRules(ctx context.Context, s *Seeder) error {
 		ON CONFLICT (workspace_id) DO NOTHING`, ws.ID, linh.ID); err != nil {
 		return err
 	}
+	// The sample workspace has the board's three rules, as Linh set them up,
+	// in place of the defaults a new workspace starts with.
+	if _, err := s.Tx.Exec(ctx, `DELETE FROM traffic_reply_rules WHERE workspace_id = $1`, ws.ID); err != nil {
+		return err
+	}
 	type rule struct {
 		mailbox, contains, action string
 		count, window, duration   int // minutes; duration 0 until someone resumes

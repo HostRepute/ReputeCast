@@ -72,12 +72,48 @@ func ReplyRules(ctx context.Context, q *store.Queries, ws uuid.UUID) ([]ReplyRul
 
 // KnownReplyKey names a reply mailbox providers are known for, so the
 // screen and the incident can say what it means in the reader's language
-// ("" for one it doesn't know).
+// ("" for one it doesn't know). Yahoo's TS04 and TSS04 both defer mail for
+// unexpected volume or complaints.
 func KnownReplyKey(contains string) string {
 	return map[string]string{
-		"tss04": "tss04", "s3150": "s3150", "s3140": "s3150", "421-4.7.28": "gmail_rate", "4.7.28": "gmail_rate",
+		"tss04": "tss04", "ts04": "tss04", "s3150": "s3150", "s3140": "s3150", "421-4.7.28": "gmail_rate", "4.7.28": "gmail_rate",
 		"4.7.650": "outlook_throttle", "5.7.26": "dmarc", "4.7.0": "temporary",
 	}[strings.ToLower(strings.TrimSpace(contains))]
+}
+
+// DefaultReplyRules are the response rules every workspace starts with
+// (review GS-12): the replies mailbox providers are known for, acting as
+// the Traffic rules board does. Outlook's S3150 means the sending IP is on
+// Microsoft's block list, so its first one pauses Outlook on that route
+// until someone resumes; Yahoo's TSS04 (and the older TS04) defers mail
+// for volume or complaints, so ten in ten minutes pause Yahoo for two
+// hours; Gmail's 421-4.7.28 rate-limits the sender, so five in ten minutes
+// slow Gmail to half rate for 30 minutes. A rule matches plain text, so
+// TS04 is its own rule (TSS04 doesn't contain it). People change or
+// delete them on Traffic rules like any other rule.
+var DefaultReplyRules = []ReplyRule{
+	{Mailbox: "yahoo", Contains: "TSS04", Count: 10, WindowMinutes: 10, Action: "pause", DurationMinutes: 120, Enabled: true},
+	{Mailbox: "yahoo", Contains: "TS04", Count: 10, WindowMinutes: 10, Action: "pause", DurationMinutes: 120, Enabled: true},
+	{Mailbox: "outlook", Contains: "S3150", Count: 1, WindowMinutes: 10, Action: "pause_route", Enabled: true},
+	{Mailbox: "gmail", Contains: "421-4.7.28", Count: 5, WindowMinutes: 10, Action: "slow", DurationMinutes: 30, Enabled: true},
+}
+
+// AddDefaultReplyRules gives a new workspace the default response rules,
+// in the caller's transaction.
+func AddDefaultReplyRules(ctx context.Context, q *store.Queries, ws uuid.UUID, now time.Time) error {
+	for i, r := range DefaultReplyRules {
+		var dur *int32
+		if r.DurationMinutes > 0 {
+			d := int32(r.DurationMinutes * 60)
+			dur = &d
+		}
+		if err := q.TrafficReplyRuleInsert(ctx, store.TrafficReplyRuleInsertParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws, MailboxProvider: r.Mailbox,
+			Contains: r.Contains, MinCount: int32(r.Count), WindowSeconds: int32(r.WindowMinutes * 60), Action: r.Action, DurationSeconds: dur,
+			Enabled: r.Enabled, Position: int32(i), CreatedAt: now}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Normalized is the canary with its values in range.

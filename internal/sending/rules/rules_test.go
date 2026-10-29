@@ -20,7 +20,7 @@ func TestReplyRuleMatches(t *testing.T) {
 }
 
 func TestKnownReplyKey(t *testing.T) {
-	for contains, want := range map[string]string{"TSS04": "tss04", " s3150 ": "s3150", "S3140": "s3150", "4.7.650": "outlook_throttle", "blocked": ""} {
+	for contains, want := range map[string]string{"TSS04": "tss04", "TS04": "tss04", " s3150 ": "s3150", "S3140": "s3150", "4.7.650": "outlook_throttle", "blocked": ""} {
 		if got := KnownReplyKey(contains); got != want {
 			t.Errorf("KnownReplyKey(%q) = %q, want %q", contains, got, want)
 		}
