@@ -1,3 +1,4 @@
+import { setCatalogLoader, setLocale } from '@/i18n'
 import { setDisplayTimeZone } from '@/lib/format'
 import {
   abLine,
@@ -52,6 +53,7 @@ import {
   whenText,
   whoLine,
 } from './model'
+import vietnamese from './model.messages.vi'
 import { currentRates, finishSeconds, nearestLevel } from './RatesPanel'
 
 /*
@@ -495,6 +497,19 @@ const down = snapshot({
 })
 
 describe('LiveMonitorOutage', () => {
+  it('names what Postal returned in the reader\'s language', async () => {
+    setCatalogLoader('vi', async () => vietnamese)
+    await setLocale('vi')
+    try {
+      // docs/i18n/glossary-vi.md: "Postal trả về lỗi kết nối trong 3 phút".
+      expect(outageTitle(outage)).toBe('Postal trả về lỗi kết nối trong 3 phút')
+      expect(outageTitle({ ...outage, detail: { ...outage.detail, errorKind: 'throttling errors' } })).toBe('Postal trả về lỗi giới hạn tốc độ trong 3 phút')
+      expect(outageTitle({ ...outage, detail: { ...outage.detail, errorKind: 'API errors', from: undefined } })).toBe('Postal trả về lỗi API')
+    } finally {
+      await setLocale('en')
+    }
+  })
+
   it('says what Postal returned and what is on hold', () => {
     expect(outageTitle(outage)).toBe('Postal returned connection errors for 3 minutes')
     expect(outageSummary(outage, down)).toBe(

@@ -237,6 +237,10 @@ export const mm = defineMessages('live.model', {
   /** {errorKind} comes from the provider's adapter ("connection errors"). */
   outageReturnedFor: '{name} returned {errorKind} for {mins, plural, one {# minute} other {# minutes}}',
   outageErrorsFor: '{name} returned errors for {mins, plural, one {# minute} other {# minutes}}',
+  /** The engine's error kinds (sending/engine/analysis.go), as {errorKind} above says them. */
+  kindConnection: 'connection errors',
+  kindThrottling: 'throttling errors',
+  kindApi: 'API errors',
   // Route-level answers that hold a share (review GS-4, PR-7).
   outageIdentity: "{name} refused the sender: it isn't verified there",
   outageQuota: "{name}'s sending quota is used up",

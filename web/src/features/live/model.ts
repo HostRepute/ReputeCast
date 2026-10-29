@@ -615,6 +615,18 @@ function outageMinutes(d: Incident['detail']): number {
   return Math.max(1, Math.round((new Date(d.to).getTime() - new Date(d.from).getTime()) / 60000))
 }
 
+/** The engine's error kinds in the reader's language; a kind it doesn't know shows as it came. */
+const errorKinds: Record<string, MessageDescriptor> = {
+  'connection errors': mm.kindConnection,
+  'throttling errors': mm.kindThrottling,
+  'API errors': mm.kindApi,
+}
+
+function errorKindText(kind: string): string {
+  const msg = errorKinds[kind]
+  return msg ? tt(msg) : kind
+}
+
 /** "Postal returned connection errors for 3 minutes". */
 export function outageTitle(i: Incident): string {
   const d = i.detail
@@ -625,9 +637,9 @@ export function outageTitle(i: Incident): string {
   if (d.reason === 'quota') return tt(mm.outageQuota, { name })
   if (d.reason === 'api_errors') return tt(mm.outageApiErrors, { name, rate: rate(d.errorRate ?? i.value ?? 0) })
   if (d.reason === 'throttled') return tt(mm.outageThrottled, { name, mins: outageMinutes(d) })
-  if (!d.from || !d.to) return d.errorKind ? tt(mm.outageReturned, { name, errorKind: d.errorKind }) : tt(mm.outageDown, { name })
+  if (!d.from || !d.to) return d.errorKind ? tt(mm.outageReturned, { name, errorKind: errorKindText(d.errorKind) }) : tt(mm.outageDown, { name })
   const mins = Math.max(1, Math.round((new Date(d.to).getTime() - new Date(d.from).getTime()) / 60000))
-  return d.errorKind ? tt(mm.outageReturnedFor, { name, errorKind: d.errorKind, mins }) : tt(mm.outageErrorsFor, { name, mins })
+  return d.errorKind ? tt(mm.outageReturnedFor, { name, errorKind: errorKindText(d.errorKind), mins }) : tt(mm.outageErrorsFor, { name, mins })
 }
 
 /**
