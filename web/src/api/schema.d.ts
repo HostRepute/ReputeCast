@@ -21881,6 +21881,10 @@ export interface components {
             /** Format: int64 */
             seedSpam: number;
         };
+        CanaryIP: {
+            ip: string;
+            provider: string;
+        };
         CancelInput: {
             reason?: string;
         };
@@ -29633,6 +29637,7 @@ export interface components {
             mainSeconds: number;
             /** Format: int64 */
             neverMailed: number;
+            newIps: components["schemas"]["CanaryIP"][];
             /** Format: double */
             percent: number;
             /** @enum {string} */
@@ -37113,8 +37118,9 @@ export interface components {
             domain?: string;
             /** Format: int64 */
             neverMailed: number;
+            newIps: components["schemas"]["CanaryIP"][];
             planned: boolean;
-            reasons: ("new_domain" | "never_mailed" | "over_usual")[];
+            reasons: ("new_domain" | "new_ip" | "never_mailed" | "over_usual")[];
             /** Format: int64 */
             seeds: number;
             /** Format: int64 */

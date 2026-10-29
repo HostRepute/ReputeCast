@@ -95,7 +95,8 @@ export const m = defineMessages('traffic', {
   canaryOff: 'Off',
   runWhen: 'Run a canary when',
   reasonNewDomain: 'The sending domain or IP is new',
-  reasonNewDomainHint: 'first 30 days of sending from it',
+  /** Review GS-10: only the dedicated IPs Providers lists are checked; a shared pool's are the provider's. */
+  reasonNewDomainHint: "the domain's first 30 days, or a dedicated IP listed on Providers that never sent for this workspace",
   reasonNeverMailed: 'Some recipients never got mail from this domain',
   reasonNeverMailedHint: 'for example contacts imported since the last send',
   reasonOverUsual: 'The audience is over 2× the usual size',

@@ -27,6 +27,8 @@ export default translate(mc, {
   why: 'Vì sao gửi thử:',
   whyNeverMailed: '{count, plural, other {# người nhận chưa từng nhận thư từ {domain}.}}',
   whyNewDomain: '{domain} còn mới: đây là trong 30 ngày đầu gửi từ tên miền này.',
+  whyNewIP: '{count, plural, other {Địa chỉ IP gửi {ips} chưa từng gửi thư cho không gian làm việc này.}}',
+  ipOn: '{ip} trên {provider}',
   whyOverUsual: 'Số người nhận {audience} lớn hơn 2 lần mức thông thường {usual}.',
   whyChosen: 'Gửi thử đã được chọn trong Kiểm tra và gửi.',
   rulesLink: 'Quy tắc gửi thử',

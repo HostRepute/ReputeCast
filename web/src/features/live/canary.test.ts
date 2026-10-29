@@ -55,6 +55,7 @@ const watching: Canary = {
   neverMailed: 2118,
   usual: 30800,
   domain: 'news.acme.io',
+  newIps: [],
   startedAt: T('09:00:04'),
   sentAt: T('09:05:12'),
   until: T('09:25:12'),
@@ -98,6 +99,11 @@ describe('LiveMonitorCanary', () => {
     expect(canaryTitle(watching, now)).toBe('Canary · 1,560 most-engaged recipients (5%) plus 10 seed mailboxes · watching until 09:25 (13 min left)')
     expect(canarySentLine(watching)).toBe('Sent 09:00:04 to 09:05:12. 29,632 recipients are queued until the canary passes.')
     expect(canaryWhy(watching)).toBe('2,118 recipients have never had mail from news.acme.io.')
+    // Review GS-10: a dedicated sending IP that never sent for the workspace.
+    const newIP = { ...watching, reasons: ['new_ip'], newIps: [{ ip: '203.0.113.25', provider: 'Postal' }] }
+    expect(canaryWhy(newIP)).toBe('The sending IP 203.0.113.25 on Postal has never sent mail for this workspace.')
+    const twoIPs = { ...newIP, newIps: [...newIP.newIps, { ip: '203.0.113.26', provider: 'Postal' }] }
+    expect(canaryWhy(twoIPs)).toBe('The sending IPs 203.0.113.25 on Postal and 203.0.113.26 on Postal have never sent mail for this workspace.')
   })
 
   it('says how the gates stand in one line', () => {

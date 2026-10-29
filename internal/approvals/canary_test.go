@@ -28,7 +28,16 @@ func (c *canaryStarter) Start(ctx context.Context, id, by uuid.UUID) error {
 }
 
 func (c *canaryStarter) CanaryPlanFor(context.Context, uuid.UUID) (sending.CanaryPlan, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return c.plan, nil
+}
+
+// setPlan changes the plan the starter tells.
+func (c *canaryStarter) setPlan(p sending.CanaryPlan) {
+	c.mu.Lock()
+	c.plan = p
+	c.mu.Unlock()
 }
 
 type canaryReview struct {
@@ -40,6 +49,7 @@ type canaryReview struct {
 		Size    int64
 		Seeds   int
 		Domain  string
+		NewIPs  []sending.CanaryIP `json:"newIps"`
 	}
 }
 
@@ -71,9 +81,17 @@ func TestCanaryChoice(t *testing.T) {
 	starter := &canaryStarter{plan: sending.CanaryPlan{Auto: true, Reasons: []string{"new_domain"}, Domain: "news.acme.io", Size: 1560, Seeds: 10}}
 	env.App.Sending = starter
 	if c := canary().Canary; c.Choice != "auto" || !c.Planned || !c.Auto || c.Size != 1560 || c.Seeds != 10 || len(c.Reasons) != 1 || c.Reasons[0] != "new_domain" ||
-		c.Domain != "news.acme.io" {
+		c.Domain != "news.acme.io" || c.NewIPs == nil || len(c.NewIPs) != 0 {
 		t.Fatalf("the starter's plan: %+v", c)
 	}
+	// Review GS-10: a dedicated IP that never sent for the workspace, with
+	// its provider.
+	starter.setPlan(sending.CanaryPlan{Auto: true, Reasons: []string{"new_ip"}, Domain: "news.acme.io", Size: 1560, Seeds: 10,
+		NewIPs: []sending.CanaryIP{{IP: "203.0.113.25", Provider: "Postal"}}})
+	if c := canary().Canary; len(c.Reasons) != 1 || c.Reasons[0] != "new_ip" || len(c.NewIPs) != 1 || c.NewIPs[0] != (sending.CanaryIP{IP: "203.0.113.25", Provider: "Postal"}) {
+		t.Fatalf("the new IP plan: %+v", c)
+	}
+	starter.setPlan(sending.CanaryPlan{Auto: true, Reasons: []string{"new_domain"}, Domain: "news.acme.io", Size: 1560, Seeds: 10})
 
 	// No approval in the way.
 	var policy struct{ Policy map[string]any }

@@ -29,6 +29,9 @@ export const mc = defineMessages('live.canary', {
   why: 'Why it runs:',
   whyNeverMailed: '{count, plural, one {# recipient has never had mail from {domain}.} other {# recipients have never had mail from {domain}.}}',
   whyNewDomain: '{domain} is new: this is among its first 30 days of sending.',
+  /** {ips} lists the IPs with their providers ("203.0.113.9 on Postal"); review GS-10. */
+  whyNewIP: '{count, plural, one {The sending IP {ips} has never sent mail for this workspace.} other {The sending IPs {ips} have never sent mail for this workspace.}}',
+  ipOn: '{ip} on {provider}',
   whyOverUsual: 'The audience of {audience} is over twice the usual {usual}.',
   whyChosen: 'A canary was chosen in Review & send.',
   rulesLink: 'Canary rules',

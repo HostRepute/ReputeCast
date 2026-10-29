@@ -15,10 +15,14 @@ import (
 type LiveCanary struct {
 	Phase string `json:"phase" enum:"sending,watching,held,passed,continued,stopped"`
 	// Chosen: a person asked for it in Review & send; otherwise Reasons
-	// say why Traffic rules ran it (new_domain, never_mailed, over_usual).
+	// say why Traffic rules ran it (new_domain, new_ip, never_mailed,
+	// over_usual).
 	Chosen  bool     `json:"chosen"`
 	Reasons []string `json:"reasons"`
-	Percent float64  `json:"percent"`
+	// NewIPs are the sending IPs that never sent for the workspace before
+	// (the new_ip reason).
+	NewIPs  []CanaryIP `json:"newIps"`
+	Percent float64    `json:"percent"`
 	// Size is the canary's recipients; Sent how many went; Seeds the seed
 	// inboxes that got it too.
 	Size  int64 `json:"size"`
@@ -58,6 +62,10 @@ func liveCanary(cs canaryState, ts tallies, ty typed, sent int64, queue map[queu
 		WatchMinutes: cs.Watch, Extended: cs.Extended, DecidedAt: cs.Decided, DecidedBy: cs.DecidedBy, Gates: canaryGates(cs, ts, ty), Placement: cs.SeedResult}
 	if out.Reasons == nil {
 		out.Reasons = []string{}
+	}
+	out.NewIPs = cs.NewIPs
+	if out.NewIPs == nil {
+		out.NewIPs = []CanaryIP{}
 	}
 	for _, c := range queue {
 		out.Queued += c.canary

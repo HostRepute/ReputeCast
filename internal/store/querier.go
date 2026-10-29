@@ -3582,7 +3582,6 @@ type Querier interface {
 	// time (each message once).
 	SendingDeferredSince(ctx context.Context, arg SendingDeferredSinceParams) ([]SendingDeferredSinceRow, error)
 	SendingDeleteSimEvents(ctx context.Context, ids []int64) error
-	// GS-10: the canary ----------------------------------------------------------
 	// When the workspace first started a send from a sending domain, other
 	// than this campaign (epoch: never).
 	SendingDomainFirstSend(ctx context.Context, arg SendingDomainFirstSendParams) (time.Time, error)
@@ -3631,6 +3630,8 @@ type Querier interface {
 	SendingInsertIncident(ctx context.Context, arg SendingInsertIncidentParams) error
 	SendingInsertLink(ctx context.Context, arg SendingInsertLinkParams) error
 	SendingInsertSend(ctx context.Context, arg SendingInsertSendParams) error
+	// Which of these sending IPs a workspace has sent from before.
+	SendingKnownIPs(ctx context.Context, arg SendingKnownIPsParams) ([]string, error)
 	// What a campaign still has to send (queued or held) and what is in doubt.
 	SendingLeftToSend(ctx context.Context, campaignID *uuid.UUID) (SendingLeftToSendRow, error)
 	SendingListNames(ctx context.Context, workspaceID uuid.UUID) ([]SendingListNamesRow, error)
@@ -3668,6 +3669,8 @@ type Querier interface {
 	// there (its answer is recorded, or it ends in doubt).
 	SendingMoveRemaining(ctx context.Context, arg SendingMoveRemainingParams) (int64, error)
 	SendingNextSimEvent(ctx context.Context) (time.Time, error)
+	// Mail went out from these sending IPs for a workspace.
+	SendingNoteIPs(ctx context.Context, arg SendingNoteIPsParams) error
 	SendingOpenIncidents(ctx context.Context, campaignID uuid.UUID) ([]CampaignIncident, error)
 	// GS-8: throttles shared by a workspace's sends -----------------------------
 	// Opens a mailbox provider's window: a slot of the workspace's sends to it.
@@ -3739,6 +3742,10 @@ type Querier interface {
 	// A send's messages a mailbox provider deferred that the sending provider
 	// is still retrying (no delivery or bounce yet), per mailbox provider.
 	SendingRetrying(ctx context.Context, campaignID *uuid.UUID) ([]SendingRetryingRow, error)
+	// GS-10: the canary ----------------------------------------------------------
+	// The sending providers a campaign's routes use, with the sending IPs
+	// ReputeCast knows for them (a dedicated provider's list).
+	SendingRouteIPs(ctx context.Context, campaignID uuid.UUID) ([]SendingRouteIPsRow, error)
 	SendingRoutes(ctx context.Context, campaignID uuid.UUID) ([]SendingRoutesRow, error)
 	SendingRuleDelete(ctx context.Context, arg SendingRuleDeleteParams) (int64, error)
 	// A later run of the send it last found breaking the rule found it kept.

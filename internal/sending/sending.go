@@ -61,6 +61,15 @@ type CanaryPlan struct {
 	NeverMailed int64
 	Usual       int64
 	Audience    int64
+	// NewIPs are the routes' dedicated sending IPs that never sent for the
+	// workspace (the new_ip reason).
+	NewIPs []CanaryIP
+}
+
+// CanaryIP is a sending IP and its provider's short name.
+type CanaryIP struct {
+	IP       string `json:"ip"`
+	Provider string `json:"provider"`
 }
 
 // CanaryPlanner tells Review & send the canary plan of a campaign.

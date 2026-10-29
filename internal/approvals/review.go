@@ -197,13 +197,16 @@ type ReviewCanary struct {
 	Auto    bool   `json:"auto"`
 	// Reasons are why the engine would run one by itself, with the numbers
 	// behind them (the live monitor words them the same way).
-	Reasons     []string `json:"reasons" enum:"new_domain,never_mailed,over_usual"`
+	Reasons     []string `json:"reasons" enum:"new_domain,new_ip,never_mailed,over_usual"`
 	Size        int64    `json:"size"`
 	Seeds       int      `json:"seeds"`
 	Domain      string   `json:"domain,omitempty"`
 	NeverMailed int64    `json:"neverMailed"`
 	Usual       int64    `json:"usual"`
 	Audience    int64    `json:"audience"`
+	// NewIPs are the dedicated sending IPs that never sent for the
+	// workspace (new_ip, review GS-10).
+	NewIPs []sending.CanaryIP `json:"newIps"`
 }
 
 func abSummary(l i18n.Lang, raw json.RawMessage) *ReviewAB {
@@ -231,7 +234,7 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		return CampaignReview{}, err
 	}
 	out := CampaignReview{TestSends: []ReviewTestSend{}, Typed: ReviewTyped{Reasons: []string{}}, Timezone: ws.Timezone,
-		Canary: ReviewCanary{Choice: sending.CanaryAuto, Reasons: []string{}}}
+		Canary: ReviewCanary{Choice: sending.CanaryAuto, Reasons: []string{}, NewIPs: []sending.CanaryIP{}}}
 	if conf, err := s.Readiness.Confirmed(ctx, campaignID); err == nil && conf != nil && conf.Canary != "" {
 		out.Canary.Choice = conf.Canary
 	}
@@ -241,6 +244,9 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			out.Canary.Domain, out.Canary.NeverMailed, out.Canary.Usual, out.Canary.Audience = plan.Domain, plan.NeverMailed, plan.Usual, plan.Audience
 			if plan.Reasons != nil {
 				out.Canary.Reasons = plan.Reasons
+			}
+			if plan.NewIPs != nil {
+				out.Canary.NewIPs = plan.NewIPs
 			}
 		}
 	}

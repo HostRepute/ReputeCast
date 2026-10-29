@@ -90,7 +90,7 @@ export default translate(m, {
   canaryOff: 'Tắt',
   runWhen: 'Gửi thử khi',
   reasonNewDomain: 'Tên miền hoặc IP gửi còn mới',
-  reasonNewDomainHint: '30 ngày đầu gửi từ tên miền hoặc IP đó',
+  reasonNewDomainHint: '30 ngày đầu gửi từ tên miền, hoặc một IP riêng có trong Nhà cung cấp chưa từng gửi cho không gian làm việc này',
   reasonNeverMailed: 'Một số người nhận chưa từng nhận thư từ tên miền này',
   reasonNeverMailedHint: 'ví dụ liên hệ được nhập từ lần gửi trước',
   reasonOverUsual: 'Số người nhận lớn hơn 2 lần mức thông thường',

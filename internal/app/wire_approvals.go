@@ -144,7 +144,7 @@ func (p engineCanaryPlanner) CanaryPlanFor(ctx context.Context, campaignID uuid.
 		return sending.CanaryPlan{}, err
 	}
 	return sending.CanaryPlan{Auto: plan.Auto, Reasons: plan.Reasons, Size: plan.Size, Seeds: plan.Seeds, Domain: plan.Domain,
-		NeverMailed: plan.NeverMailed, Usual: plan.Usual, Audience: plan.Audience}, nil
+		NeverMailed: plan.NeverMailed, Usual: plan.Usual, Audience: plan.Audience, NewIPs: plan.NewIPs}, nil
 }
 
 // newApprovals builds the approvals service with its own Send Readiness.

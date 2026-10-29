@@ -7,6 +7,7 @@ import { Field, Select } from '@/components/ui/Field'
 import { clock, count, money } from '@/lib/format'
 import { confirmLanguages } from '@/features/languages/review'
 import { mr } from '@/features/languages/messages'
+import { newIPsText } from '@/features/live/canary'
 import { mc } from '@/features/live/canary.messages'
 import { formatList, useT } from '@/i18n'
 import { acknowledgedKeys, acknowledgements, dismissedWarnings, minutes, scheduleSentence, thresholdsLine, verdictTitle, type Check, type Fix, type Review, type Run } from './logic'
@@ -21,9 +22,11 @@ function canaryReasons(t: ReturnType<typeof useT>, plan: Review['canary']): stri
     .map((r) =>
       r === 'new_domain'
         ? t(mc.whyNewDomain, { domain })
-        : r === 'never_mailed'
-          ? t(mc.whyNeverMailed, { count: plan.neverMailed, domain })
-          : t(mc.whyOverUsual, { audience: count(plan.audience), usual: count(plan.usual) }),
+        : r === 'new_ip'
+          ? t(mc.whyNewIP, { count: plan.newIps.length, ips: newIPsText(plan.newIps) })
+          : r === 'never_mailed'
+            ? t(mc.whyNeverMailed, { count: plan.neverMailed, domain })
+            : t(mc.whyOverUsual, { audience: count(plan.audience), usual: count(plan.usual) }),
     )
     .join(' ')
 }

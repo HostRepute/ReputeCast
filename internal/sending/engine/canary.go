@@ -20,20 +20,23 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/notify"
+	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
+	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/sending/rules"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
 // The canary (review GS-10). A send starts with a canary when Review &
 // send asks for one, or by itself (Traffic rules) when the sending domain
-// is new, some recipients never got mail from it, or the audience is over
-// twice the usual: the most engaged few percent, plus the workspace's
-// seed mailboxes, get the email first while everyone else waits. After the
-// last canary message the canary is watched for a while; then every gate
-// with enough evidence must pass (bounces, block/policy bounces,
-// deferrals, complaints per mailbox provider, seeds in spam) and the send
-// continues by itself. A gate that fails holds the send and asks. People
+// or a dedicated sending IP is new, some recipients never got mail from
+// the domain, or the audience is over twice the usual: the most engaged
+// few percent, plus the workspace's seed mailboxes, get the email first
+// while everyone else waits. After the last canary message the canary is
+// watched for a while; then every gate with enough evidence must pass
+// (bounces, block/policy bounces, deferrals, complaints per mailbox
+// provider, seeds in spam) and the send continues by itself. A gate that
+// fails holds the send and asks. People
 // who can send stop it or watch longer; people who can approve continue
 // early. The most engaged readers can't say how new imports will react:
 // their complaints are watched during the main send and after it.
@@ -45,12 +48,19 @@ const (
 	CanaryOff  = "off"
 )
 
-// Why a canary runs by itself.
+// Why a canary runs by itself. A new sending IP counts as a new domain
+// does (Traffic rules › "The sending domain or IP is new").
 const (
 	reasonNewDomain   = "new_domain"
+	reasonNewIP       = "new_ip"
 	reasonNeverMailed = "never_mailed"
 	reasonOverUsual   = "over_usual"
 )
+
+// CanaryIP is a sending IP of a send's routes that never sent for the
+// workspace, and the provider it belongs to (one type, so Review & send
+// and the live monitor read the same API schema).
+type CanaryIP = sending.CanaryIP
 
 // Canary phases (campaign_sends.canary's phase).
 const (
@@ -94,6 +104,9 @@ type CanaryPlan struct {
 	Domain      string `json:"domain"`
 	// DomainSince is when the workspace first sent from the domain.
 	DomainSince *time.Time `json:"domainSince,omitempty"`
+	// NewIPs are the dedicated sending IPs of the send's routes that never
+	// sent for the workspace (review GS-10).
+	NewIPs []CanaryIP `json:"newIps"`
 	// MinAudience is the smallest audience an automatic canary runs on.
 	MinAudience int64 `json:"minAudience"`
 }
@@ -115,6 +128,7 @@ type canaryState struct {
 	NeverMailed int64          `json:"neverMailed,omitempty"`
 	Usual       int64          `json:"usual,omitempty"`
 	Domain      string         `json:"domain,omitempty"`
+	NewIPs      []CanaryIP     `json:"newIps,omitempty"`
 	Started     *time.Time     `json:"started,omitempty"`
 	SentAt      *time.Time     `json:"sentAt,omitempty"`
 	Until       *time.Time     `json:"until,omitempty"`
@@ -200,7 +214,7 @@ func (e *Engine) canaryPlan(ctx context.Context, q *store.Queries, cc store.Send
 		return CanaryPlan{}, err
 	}
 	p := CanaryPlan{Reasons: []string{}, Enabled: settings.Enabled, Percent: settings.Percent, WatchMinutes: settings.WatchMinutes, Audience: audience,
-		Domain: domainOf(cc.SenderEmail), MinAudience: minCanaryAudience}
+		Domain: domainOf(cc.SenderEmail), NewIPs: []CanaryIP{}, MinAudience: minCanaryAudience}
 	if settings.Seeds {
 		p.Seeds = e.seedCount(ctx, cc.WorkspaceID)
 	}
@@ -222,6 +236,11 @@ func (e *Engine) canaryPlan(ctx context.Context, q *store.Queries, cc store.Send
 			p.Reasons = append(p.Reasons, reasonNewDomain)
 		}
 		if last, err = q.SendingDomainLastSend(ctx, store.SendingDomainLastSendParams{WorkspaceID: cc.WorkspaceID, CampaignID: cc.ID, Domain: p.Domain}); err != nil {
+			return p, err
+		}
+	}
+	if settings.NewDomain {
+		if err := canaryIPs(ctx, q, cc, &p); err != nil {
 			return p, err
 		}
 	}
@@ -250,6 +269,57 @@ func (e *Engine) canaryPlan(ctx context.Context, q *store.Queries, cc store.Send
 	}
 	p.Auto = settings.Enabled && len(p.Reasons) > 0 && audience >= minCanaryAudience
 	return p, nil
+}
+
+// canaryIPs finds the sending IPs of a send's routes that never sent for
+// the workspace (review GS-10): a new IP has no reputation yet, as a new
+// domain hasn't. Only a dedicated provider's IPs are the workspace's own:
+// the ones its provider lists (Providers shows them), recorded as mail
+// goes out (workspace_sending_ips). A shared pool's IPs are the
+// provider's, kept warm by everyone's mail, and change from message to
+// message, so they aren't checked. The routes are the send's split as
+// Send Readiness last planned it.
+func canaryIPs(ctx context.Context, q *store.Queries, cc store.SendingCampaignContextRow, p *CanaryPlan) error {
+	routes, err := q.SendingRouteIPs(ctx, cc.ID)
+	if err != nil {
+		return err
+	}
+	for _, r := range routes {
+		if r.IpMode != "dedicated" || len(r.Ips) == 0 {
+			continue
+		}
+		short := state.Short(r.Name, r.Adapter)
+		known, err := q.SendingKnownIPs(ctx, store.SendingKnownIPsParams{WorkspaceID: cc.WorkspaceID, Ips: r.Ips})
+		if err != nil {
+			return err
+		}
+		for _, ip := range r.Ips {
+			if !slices.Contains(known, ip) {
+				p.NewIPs = append(p.NewIPs, CanaryIP{IP: ip, Provider: short})
+			}
+		}
+	}
+	if len(p.NewIPs) > 0 {
+		p.Reasons = append(p.Reasons, reasonNewIP)
+	}
+	return nil
+}
+
+// noteIPs records the dedicated IPs a route sent from (once per run), so
+// that only an IP a workspace never sent from starts a canary (canaryIPs).
+func (e *Engine) noteIPs(ctx context.Context, r *runRoute, now time.Time) {
+	if r.ipsNoted {
+		return
+	}
+	r.ipsNoted = true
+	p := r.provider
+	if p.IpMode != "dedicated" || len(p.Ips) == 0 {
+		return
+	}
+	id := p.ID
+	if err := e.Q.SendingNoteIPs(ctx, store.SendingNoteIPsParams{WorkspaceID: p.WorkspaceID, ProviderID: &id, At: now, Ips: p.Ips}); err != nil {
+		e.log().WarnContext(ctx, "note sending IPs", "provider", p.ID, "err", err)
+	}
 }
 
 // startCanary decides, once the send's audience is built, whether a canary
@@ -289,6 +359,7 @@ func (e *Engine) startCanary(ctx context.Context, q *store.Queries, cc store.Sen
 		cs.Reasons = plan.Reasons
 	}
 	cs.NeverMailed, cs.Usual, cs.Domain, cs.Gates, cs.Watch = plan.NeverMailed, plan.Usual, plan.Domain, settings.Gates, settings.WatchMinutes
+	cs.NewIPs = plan.NewIPs
 	if settings.Seeds {
 		cs.Seeds = plan.Seeds
 	}

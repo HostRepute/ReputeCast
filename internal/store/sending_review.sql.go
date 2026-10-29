@@ -234,7 +234,6 @@ func (q *Queries) SendingDeferredSince(ctx context.Context, arg SendingDeferredS
 }
 
 const sendingDomainFirstSend = `-- name: SendingDomainFirstSend :one
-
 SELECT coalesce(min(c.started_at), 'epoch'::timestamptz)::timestamptz AS first_at
 FROM campaigns c JOIN senders s ON s.id = c.sender_id
 WHERE c.workspace_id = $1 AND c.id <> $2 AND c.started_at IS NOT NULL
@@ -247,7 +246,6 @@ type SendingDomainFirstSendParams struct {
 	Domain      string    `json:"domain"`
 }
 
-// GS-10: the canary ----------------------------------------------------------
 // When the workspace first started a send from a sending domain, other
 // than this campaign (epoch: never).
 func (q *Queries) SendingDomainFirstSend(ctx context.Context, arg SendingDomainFirstSendParams) (time.Time, error) {
@@ -433,6 +431,36 @@ func (q *Queries) SendingIncidentsOfKind(ctx context.Context, arg SendingInciden
 	return items, nil
 }
 
+const sendingKnownIPs = `-- name: SendingKnownIPs :many
+SELECT ip FROM workspace_sending_ips WHERE workspace_id = $1 AND ip = ANY($2::text[])
+`
+
+type SendingKnownIPsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Ips         []string  `json:"ips"`
+}
+
+// Which of these sending IPs a workspace has sent from before.
+func (q *Queries) SendingKnownIPs(ctx context.Context, arg SendingKnownIPsParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, sendingKnownIPs, arg.WorkspaceID, arg.Ips)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var ip string
+		if err := rows.Scan(&ip); err != nil {
+			return nil, err
+		}
+		items = append(items, ip)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const sendingLeftToSend = `-- name: SendingLeftToSend :one
 SELECT count(*) FILTER (WHERE status IN ('queued', 'held'))::bigint AS to_send,
        count(*) FILTER (WHERE status = 'in_doubt')::bigint AS in_doubt
@@ -596,6 +624,31 @@ func (q *Queries) SendingMarkInDoubt(ctx context.Context, arg SendingMarkInDoubt
 		return nil, err
 	}
 	return items, nil
+}
+
+const sendingNoteIPs = `-- name: SendingNoteIPs :exec
+INSERT INTO workspace_sending_ips (workspace_id, ip, provider_id, first_sent_at, last_sent_at)
+SELECT $1, a.ip, $2, $3, $3 FROM unnest($4::text[]) AS a (ip)
+ON CONFLICT (workspace_id, ip) DO UPDATE SET provider_id = EXCLUDED.provider_id,
+    last_sent_at = greatest(workspace_sending_ips.last_sent_at, EXCLUDED.last_sent_at)
+`
+
+type SendingNoteIPsParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ProviderID  *uuid.UUID `json:"providerId"`
+	At          time.Time  `json:"at"`
+	Ips         []string   `json:"ips"`
+}
+
+// Mail went out from these sending IPs for a workspace.
+func (q *Queries) SendingNoteIPs(ctx context.Context, arg SendingNoteIPsParams) error {
+	_, err := q.db.Exec(ctx, sendingNoteIPs,
+		arg.WorkspaceID,
+		arg.ProviderID,
+		arg.At,
+		arg.Ips,
+	)
+	return err
 }
 
 const sendingOpenMailboxWindow = `-- name: SendingOpenMailboxWindow :exec
@@ -976,6 +1029,51 @@ func (q *Queries) SendingRetrying(ctx context.Context, campaignID *uuid.UUID) ([
 	for rows.Next() {
 		var i SendingRetryingRow
 		if err := rows.Scan(&i.MailboxProvider, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const sendingRouteIPs = `-- name: SendingRouteIPs :many
+
+SELECT p.id, p.name, p.adapter, p.ip_mode, coalesce(p.ips, '{}')::text[] AS ips
+FROM campaign_routes cr JOIN providers p ON p.id = cr.provider_id
+WHERE cr.campaign_id = $1 AND cr.planned > 0
+ORDER BY cr.planned DESC, p.name
+`
+
+type SendingRouteIPsRow struct {
+	ID      uuid.UUID `json:"id"`
+	Name    string    `json:"name"`
+	Adapter string    `json:"adapter"`
+	IpMode  string    `json:"ipMode"`
+	Ips     []string  `json:"ips"`
+}
+
+// GS-10: the canary ----------------------------------------------------------
+// The sending providers a campaign's routes use, with the sending IPs
+// ReputeCast knows for them (a dedicated provider's list).
+func (q *Queries) SendingRouteIPs(ctx context.Context, campaignID uuid.UUID) ([]SendingRouteIPsRow, error) {
+	rows, err := q.db.Query(ctx, sendingRouteIPs, campaignID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SendingRouteIPsRow{}
+	for rows.Next() {
+		var i SendingRouteIPsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Adapter,
+			&i.IpMode,
+			&i.Ips,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

@@ -76,6 +76,11 @@ export function canarySummary(c: Canary): string {
   return c.extended > 0 && c.until ? `${tt(mc.sumWatchingUntil, { until: clock(c.until) })} ${gates}` : gates
 }
 
+/** "203.0.113.9 on Postal and 203.0.113.10 on Postal": new sending IPs (review GS-10). */
+export function newIPsText(ips: { ip: string; provider: string }[]): string {
+  return andList(ips.map((x) => tt(mc.ipOn, { ip: x.ip, provider: x.provider })))
+}
+
 /** Why the canary runs, in a sentence or two. */
 export function canaryWhy(c: Canary): string {
   const parts: string[] = []
@@ -83,6 +88,7 @@ export function canaryWhy(c: Canary): string {
   for (const r of c.reasons) {
     if (r === 'never_mailed' && c.neverMailed > 0) parts.push(tt(mc.whyNeverMailed, { count: c.neverMailed, domain: c.domain }))
     if (r === 'new_domain') parts.push(tt(mc.whyNewDomain, { domain: c.domain }))
+    if (r === 'new_ip' && c.newIps.length) parts.push(tt(mc.whyNewIP, { count: c.newIps.length, ips: newIPsText(c.newIps) }))
     if (r === 'over_usual') parts.push(tt(mc.whyOverUsual, { audience: count(c.size && c.percent ? Math.round((c.size * 100) / c.percent) : 0), usual: count(c.usual) }))
   }
   return parts.join(' ')

@@ -109,6 +109,8 @@ type runRoute struct {
 	// probe is set while one of the share's own messages goes as a held
 	// share's test message (outages.go).
 	probe bool
+	// ipsNoted: this run recorded the provider's sending IPs (canary.go).
+	ipsNoted bool
 	// slow is the share of its rate a throttled route sends at (0 = full),
 	// calmFrom since when it has been answered normally (routeerrors.go).
 	slow     float64
@@ -1037,6 +1039,9 @@ func (e *Engine) send(ctx context.Context, rs *runState, r *runRoute, claimed []
 	}
 	if len(out.sims) > 0 {
 		e.insert(ctx, SimArgs{}, nil)
+	}
+	if len(out.sentIDs) > 0 {
+		e.noteIPs(ctx, r, now)
 	}
 	return delivery{hold: hold, slowed: slowed, sent: len(out.sentIDs)}, nil
 }

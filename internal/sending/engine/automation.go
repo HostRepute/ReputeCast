@@ -363,6 +363,10 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 	if err == nil && len(out.sims) > 0 {
 		e.insert(ctx, SimArgs{}, nil)
 	}
+	// Automation mail builds an IP's history too (canary.go).
+	if err == nil && len(out.sentIDs) > 0 {
+		e.noteIPs(ctx, r, now)
+	}
 	return len(out.sentIDs), err
 }
 

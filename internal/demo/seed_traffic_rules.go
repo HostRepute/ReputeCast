@@ -34,6 +34,22 @@ func seedTrafficRules(ctx context.Context, s *Seeder) error {
 	if _, err := s.Tx.Exec(ctx, `DELETE FROM traffic_reply_rules WHERE workspace_id = $1`, ws.ID); err != nil {
 		return err
 	}
+	// Its dedicated IPs have sent for months (Postal's): they aren't new to
+	// the canary (review GS-10), as migration 03313 records for real
+	// workspaces.
+	if _, err := s.Tx.Exec(ctx, `INSERT INTO workspace_sending_ips (workspace_id, ip, provider_id, first_sent_at, last_sent_at)
+		SELECT p.workspace_id, a.ip, p.id, s.first_at, s.last_at
+		FROM providers p
+		CROSS JOIN LATERAL unnest(p.ips) AS a (ip)
+		CROSS JOIN LATERAL (
+		    SELECT min(c.started_at) AS first_at, max(coalesce(c.completed_at, c.started_at)) AS last_at
+		    FROM campaign_counters cc JOIN campaigns c ON c.id = cc.campaign_id
+		    WHERE cc.provider_id = p.id AND cc.sent > 0 AND c.started_at IS NOT NULL
+		) s
+		WHERE p.workspace_id = $1 AND p.ip_mode = 'dedicated' AND s.first_at IS NOT NULL
+		ON CONFLICT (workspace_id, ip) DO NOTHING`, ws.ID); err != nil {
+		return err
+	}
 	type rule struct {
 		mailbox, contains, action string
 		count, window, duration   int // minutes; duration 0 until someone resumes

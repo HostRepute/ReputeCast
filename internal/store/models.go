@@ -5752,3 +5752,11 @@ type WorkspaceSendDefault struct {
 	UpdatedAt        time.Time  `json:"updatedAt"`
 	UpdatedBy        *uuid.UUID `json:"updatedBy"`
 }
+
+type WorkspaceSendingIp struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Ip          string     `json:"ip"`
+	ProviderID  *uuid.UUID `json:"providerId"`
+	FirstSentAt time.Time  `json:"firstSentAt"`
+	LastSentAt  time.Time  `json:"lastSentAt"`
+}

@@ -257,6 +257,25 @@ SELECT count(*)::bigint FROM placement_seeds WHERE workspace_id = @workspace_id 
 
 -- GS-10: the canary ----------------------------------------------------------
 
+-- name: SendingRouteIPs :many
+-- The sending providers a campaign's routes use, with the sending IPs
+-- ReputeCast knows for them (a dedicated provider's list).
+SELECT p.id, p.name, p.adapter, p.ip_mode, coalesce(p.ips, '{}')::text[] AS ips
+FROM campaign_routes cr JOIN providers p ON p.id = cr.provider_id
+WHERE cr.campaign_id = @campaign_id AND cr.planned > 0
+ORDER BY cr.planned DESC, p.name;
+
+-- name: SendingKnownIPs :many
+-- Which of these sending IPs a workspace has sent from before.
+SELECT ip FROM workspace_sending_ips WHERE workspace_id = @workspace_id AND ip = ANY(@ips::text[]);
+
+-- name: SendingNoteIPs :exec
+-- Mail went out from these sending IPs for a workspace.
+INSERT INTO workspace_sending_ips (workspace_id, ip, provider_id, first_sent_at, last_sent_at)
+SELECT @workspace_id, a.ip, @provider_id, @at, @at FROM unnest(@ips::text[]) AS a (ip)
+ON CONFLICT (workspace_id, ip) DO UPDATE SET provider_id = EXCLUDED.provider_id,
+    last_sent_at = greatest(workspace_sending_ips.last_sent_at, EXCLUDED.last_sent_at);
+
 -- name: SendingDomainFirstSend :one
 -- When the workspace first started a send from a sending domain, other
 -- than this campaign (epoch: never).

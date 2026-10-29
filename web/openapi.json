@@ -14986,6 +14986,22 @@
         ],
         "type": "object"
       },
+      "CanaryIP": {
+        "additionalProperties": false,
+        "properties": {
+          "ip": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ip",
+          "provider"
+        ],
+        "type": "object"
+      },
       "CancelInput": {
         "additionalProperties": false,
         "properties": {
@@ -42203,6 +42219,12 @@
             "format": "int64",
             "type": "integer"
           },
+          "newIps": {
+            "items": {
+              "$ref": "#/components/schemas/CanaryIP"
+            },
+            "type": "array"
+          },
           "percent": {
             "format": "double",
             "type": "number"
@@ -42268,6 +42290,7 @@
           "phase",
           "chosen",
           "reasons",
+          "newIps",
           "percent",
           "size",
           "sent",
@@ -67898,6 +67921,12 @@
             "format": "int64",
             "type": "integer"
           },
+          "newIps": {
+            "items": {
+              "$ref": "#/components/schemas/CanaryIP"
+            },
+            "type": "array"
+          },
           "planned": {
             "type": "boolean"
           },
@@ -67905,6 +67934,7 @@
             "items": {
               "enum": [
                 "new_domain",
+                "new_ip",
                 "never_mailed",
                 "over_usual"
               ],
@@ -67934,7 +67964,8 @@
           "seeds",
           "neverMailed",
           "usual",
-          "audience"
+          "audience",
+          "newIps"
         ],
         "type": "object"
       },
