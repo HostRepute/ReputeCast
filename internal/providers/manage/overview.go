@@ -279,6 +279,7 @@ func (s *Service) card(sn *snapshot, p store.Provider) ProviderCard {
 	if c.IPs == nil {
 		c.IPs = []string{}
 	}
+	c.IPSource = ipSourceCard(sn.lang, p)
 	if d, ok := providers.Lookup(p.Adapter); ok && (d.Kind == "self_hosted" || d.Kind == "smtp") {
 		c.AccountKind = "server"
 	}

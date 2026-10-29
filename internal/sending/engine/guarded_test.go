@@ -81,6 +81,7 @@ func TestGuardedSending(t *testing.T) {
 	t.Run("CanaryGateHoldsThenStop", func(t *testing.T) { testCanaryHolds(t, s.Fixture(t, "GS-10 hold")) })
 	t.Run("CanaryChoices", func(t *testing.T) { testCanaryChoices(t, s.Fixture(t, "GS-10 choices")) })
 	t.Run("CanaryForNewSendingIP", func(t *testing.T) { testCanaryNewIP(t, s.Fixture(t, "GS-10 new IP")) })
+	t.Run("CanaryForReportedIP", func(t *testing.T) { testCanaryReportedIP(t, s) })
 	// GS-11: thresholds by bounce type; deferrals slow down, then pause.
 	t.Run("TypedLevels", func(t *testing.T) { testTypedLevels(t, s.Fixture(t, "GS-11 levels")) })
 	// GS-12: mailbox provider response rules; the Traffic rules API.

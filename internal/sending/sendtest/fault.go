@@ -3,6 +3,7 @@ package sendtest
 import (
 	"context"
 	"net/http"
+	"slices"
 	"sync"
 	"time"
 
@@ -16,7 +17,8 @@ import (
 // out), or holds the call until the test lets it go, or refuses it. It
 // counts what it took per message, so a test can tell whether anything was
 // delivered twice. "faultesp-idem" dedupes by message id like a provider
-// with idempotency keys (providers.IdempotentSender).
+// with idempotency keys (providers.IdempotentSender); "faultesp-ips" lists
+// the account's dedicated IPs (providers.IPReporter, Fault.SetIPs).
 //
 // Only tests import sendtest, so the adapters exist only in test binaries.
 
@@ -54,6 +56,8 @@ type FaultState struct {
 	calls   int
 	started chan struct{}
 	release chan struct{}
+	// ips are the dedicated IPs faultesp-ips lists.
+	ips []string
 }
 
 // Reset sets the mode and forgets what was taken.
@@ -62,6 +66,14 @@ func (f *FaultState) Reset(mode string) {
 	defer f.mu.Unlock()
 	f.mode, f.took, f.to, f.calls = mode, map[uuid.UUID]int{}, map[string]int{}, 0
 	f.started, f.release = make(chan struct{}, 64), make(chan struct{})
+	f.ips = nil
+}
+
+// SetIPs sets the dedicated IPs faultesp-ips lists; none is a shared pool.
+func (f *FaultState) SetIPs(ips ...string) {
+	f.mu.Lock()
+	f.ips = slices.Clone(ips)
+	f.mu.Unlock()
 }
 
 // SetMode changes what the providers do, keeping what they took.
@@ -128,6 +140,31 @@ func init() {
 		providers.Register(providers.Descriptor{Adapter: d.key, Name: "Fault ESP", Kind: "api", Capabilities: p.Capabilities(),
 			New: func(providers.Config) (providers.Provider, error) { c := p; return &c, nil }})
 	}
+	providers.Register(providers.Descriptor{Adapter: "faultesp-ips", Name: "Fault ESP", Kind: "api", Capabilities: (&faultIPs{}).Capabilities(),
+		New: func(providers.Config) (providers.Provider, error) { return &faultIPs{}, nil }})
+}
+
+// faultIPs is a fault provider whose API lists the account's dedicated IPs
+// (providers.IPReporter): the ones Fault.SetIPs set.
+type faultIPs struct{ faultESP }
+
+func (p *faultIPs) Adapter() string { return "faultesp-ips" }
+
+func (p *faultIPs) Capabilities() providers.Capabilities {
+	c := p.faultESP.Capabilities()
+	c.ReportsIPs = true
+	return c
+}
+
+// SendingIPs implements providers.IPReporter.
+func (p *faultIPs) SendingIPs(context.Context) (providers.SendingIPs, error) {
+	Fault.mu.Lock()
+	defer Fault.mu.Unlock()
+	ips := slices.Clone(Fault.ips)
+	if ips == nil {
+		ips = []string{}
+	}
+	return providers.SendingIPs{Dedicated: len(ips) > 0, IPs: ips}, nil
 }
 
 func (p *faultESP) Adapter() string {
@@ -220,6 +257,14 @@ func (f *Fixture) UseFaultProvider(dedupe bool) uuid.UUID {
 		adapter = "faultesp-idem"
 	}
 	return f.useFault(adapter)
+}
+
+// UseReportingProvider is UseFaultProvider with a provider whose API lists
+// the account's dedicated IPs (Fault.SetIPs), on the shared pool until
+// someone asks it.
+func (f *Fixture) UseReportingProvider() uuid.UUID {
+	f.T.Helper()
+	return f.useFault("faultesp-ips")
 }
 
 // UseFaultSMTP is UseFaultProvider with a provider that reports no

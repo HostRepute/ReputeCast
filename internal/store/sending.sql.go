@@ -2900,7 +2900,7 @@ func (q *Queries) SendingWorkspaceDefaults(ctx context.Context, id uuid.UUID) (S
 }
 
 const sendingWorkspaceProviders = `-- name: SendingWorkspaceProviders :many
-SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at FROM providers WHERE workspace_id = $1 AND disconnected_at IS NULL ORDER BY connected_at, name
+SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at, ip_source FROM providers WHERE workspace_id = $1 AND disconnected_at IS NULL ORDER BY connected_at, name
 `
 
 func (q *Queries) SendingWorkspaceProviders(ctx context.Context, workspaceID uuid.UUID) ([]Provider, error) {
@@ -2936,6 +2936,7 @@ func (q *Queries) SendingWorkspaceProviders(ctx context.Context, workspaceID uui
 			&i.ConnectedBy,
 			&i.ConnectedAt,
 			&i.DisconnectedAt,
+			&i.IpSource,
 		); err != nil {
 			return nil, err
 		}

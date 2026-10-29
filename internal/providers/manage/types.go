@@ -163,6 +163,7 @@ type ProviderCard struct {
 	Roles       []ProviderStreamRole `json:"roles"`
 	IPMode      string               `json:"ipMode" enum:"shared,dedicated"`
 	IPs         []string             `json:"ips"`
+	IPSource    ProviderIPSource     `json:"ipSource" doc:"Where ipMode and ips come from, and whether people set them by hand"`
 	Webhook     ProviderWebhookFeed  `json:"webhook"`
 	ErrorRate7d *float64             `json:"errorRate7d,omitempty" doc:"Percent of API calls that failed"`
 	ErrorRate3m *float64             `json:"errorRate3m,omitempty" doc:"Percent of API calls that failed in the last 3 minutes; omitted when there were none"`
@@ -188,6 +189,29 @@ type ProviderCard struct {
 	// Credentials lists the secret fields (never their values) so the
 	// settings dialog can offer "Replace".
 	Credentials []ProviderCredentialField `json:"credentials"`
+}
+
+// ProviderIPSource is where a provider's sending IPs come from (review
+// GS-10): the canary's new-IP trigger, Send Readiness's IP blocklist rows
+// and warm-up read them.
+type ProviderIPSource struct {
+	// From is "provider" when its API lists them (ReputeCast asks when the
+	// provider is connected and every day), "manual" when a person set them,
+	// "none" when nobody has yet.
+	From string `json:"from" enum:"provider,manual,none"`
+	// Editable is true when people set them by hand: the provider's API
+	// doesn't list them.
+	Editable bool `json:"editable"`
+	// CheckedAt is the provider's last answer.
+	CheckedAt *time.Time `json:"checkedAt,omitempty"`
+	// Error says why the last check failed, in the reader's language; the
+	// IPs are what the last answer said.
+	Error   string     `json:"error,omitempty"`
+	ErrorAt *time.Time `json:"errorAt,omitempty"`
+	// SetBy names who set them by hand (a member, an API key or an agent),
+	// SetAt when.
+	SetBy string     `json:"setBy,omitempty"`
+	SetAt *time.Time `json:"setAt,omitempty"`
 }
 
 // ProviderCredentialField is a write-only credential of a provider.

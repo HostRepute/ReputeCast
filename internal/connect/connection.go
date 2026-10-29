@@ -248,6 +248,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 	if err != nil {
 		return ConnectSetup{}, err
 	}
+	p = s.refreshIPs(ctx, p, adapter)
 	state.Connection.Status, state.Connection.At, state.Connection.Error = "connected", &now, nil
 	state.Connection.Account, state.Connection.AccountText, state.Connection.AccountID = quota.Account, quota.AccountText, accountID
 	state.Connection.Settings = map[string]string{}
@@ -280,6 +281,23 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 		s.queueProvisioning(ctx, out.ID)
 	}
 	return s.View(ctx, ws, out)
+}
+
+// refreshIPs asks a provider whose API lists the account's sending IPs for
+// them (review GS-10), with the credentials just checked: the canary's
+// new-IP trigger, Send Readiness's IP blocklist rows and warm-up read them.
+// A provider that can't answer keeps its IPs and says why on Sending
+// providers; connecting goes on.
+func (s *Service) refreshIPs(ctx context.Context, p store.Provider, adapter providers.Provider) store.Provider {
+	if s.Providers == nil || adapter == nil {
+		return p
+	}
+	fresh, err := s.Providers.RefreshIPsWith(ctx, p, adapter, manage.IPsOnConnect)
+	if err != nil {
+		s.log().WarnContext(ctx, "sending IPs at connect", "provider", p.ID, "err", err)
+		return p
+	}
+	return fresh
 }
 
 func stringOf(v any) string {
@@ -806,7 +824,7 @@ func (s *Service) saveProvider(ctx context.Context, ws *store.Workspace, d provi
 		if prov != nil {
 			var err error
 			out, err = q.ConnectUpdateProvider(ctx, store.ConnectUpdateProviderParams{ID: id, Label: b.label, Config: cfg, CredentialsEnc: sealed, Status: statusWord,
-				StatusDetail: detail, IpMode: prov.IpMode, Ips: prov.Ips, Health: health, CheckedAt: &now})
+				StatusDetail: detail, Health: health, CheckedAt: &now})
 			if err != nil {
 				return err
 			}

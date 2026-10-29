@@ -81,6 +81,13 @@
   "problem.pickTarget": "Pick the provider to move the held recipients to.",
   "problem.targetMissing": "That provider is not connected to this workspace.",
   "problem.targetUnavailable": "{name} can't take mail right now.",
+  "problem.ipsReported": { "message": "{name} reports its sending IPs itself: ReputeCast reads them when it's connected and every day, so they can't be set by hand. Check them now to read them again.", "note": "name: the provider (Amazon SES)" },
+  "problem.ipsNotReported": { "message": "{name}'s API doesn't list its sending IPs. Set them by hand instead.", "note": "name: the provider (Postal)" },
+  "problem.ipsEnter": "Enter at least one IP address, or choose Shared pool.",
+  "problem.ipsTooMany": "Enter up to {max, number} IP addresses: leave out the ones that don't send this workspace's mail.",
+  "problem.ipsNotAddress": { "message": "“{value}” isn't an IP address. Enter IPv4 or IPv6 addresses, one per line.", "note": "value: what was entered, as entered" },
+  "problem.ipsNotPublic": { "message": "{ip} is a private or reserved address. Enter the public IP your mail leaves from, the one blocklists and mailbox providers see.", "note": "ip: an address such as 10.0.0.5" },
+  "problem.ipsShared": "A shared pool has no IPs to list. Leave them out, or choose Dedicated IPs.",
 
   "adapters.adminOnly": "Adapters apply to every workspace on this instance, so only instance admins can install, update or remove them.",
   "adapters.noRemote": { "message": "This build can't run community adapters of kind remote.", "note": "remote is a kind of community adapter, as manifests name it" },

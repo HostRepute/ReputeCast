@@ -81,6 +81,13 @@
   "problem.pickTarget": "Hãy chọn nhà cung cấp sẽ nhận những người nhận đang bị tạm giữ.",
   "problem.targetMissing": "Nhà cung cấp đó chưa kết nối với không gian làm việc này.",
   "problem.targetUnavailable": "{name} hiện không nhận được thư.",
+  "problem.ipsReported": "{name} tự báo các IP gửi thư của mình: ReputeCast đọc chúng khi kết nối và mỗi ngày, nên không thể đặt thủ công. Hãy kiểm tra ngay để đọc lại.",
+  "problem.ipsNotReported": "API của {name} không liệt kê các IP gửi thư. Hãy đặt chúng thủ công.",
+  "problem.ipsEnter": "Hãy nhập ít nhất một địa chỉ IP, hoặc chọn Nhóm IP dùng chung.",
+  "problem.ipsTooMany": "Hãy nhập tối đa {max, number} địa chỉ IP: bỏ những IP không gửi thư của không gian làm việc này.",
+  "problem.ipsNotAddress": "“{value}” không phải là địa chỉ IP. Hãy nhập địa chỉ IPv4 hoặc IPv6, mỗi dòng một địa chỉ.",
+  "problem.ipsNotPublic": "{ip} là địa chỉ nội bộ hoặc dành riêng. Hãy nhập IP công khai mà thư của bạn được gửi đi, IP mà các danh sách chặn và nhà cung cấp hộp thư nhìn thấy.",
+  "problem.ipsShared": "Nhóm IP dùng chung không có IP nào để liệt kê. Hãy bỏ trống, hoặc chọn IP riêng.",
 
   "adapters.adminOnly": "Adapter áp dụng cho mọi không gian làm việc trên hệ thống này, nên chỉ quản trị viên hệ thống mới cài đặt, cập nhật hoặc gỡ được.",
   "adapters.noRemote": "Bản dựng này không chạy được adapter cộng đồng loại remote.",

@@ -69,13 +69,3 @@ func CleanIPs(ips []string) (clean, bad []string) {
 	}
 	return clean, bad
 }
-
-// PublicIP reports whether mail can leave from a on the internet: a global
-// unicast address outside the private, shared (carrier-grade NAT) and
-// loopback ranges, the only kind blocklists and mailbox providers see.
-func PublicIP(a netip.Addr) bool {
-	return a.IsGlobalUnicast() && !a.IsPrivate() && !sharedSpace.Contains(a)
-}
-
-// sharedSpace is the carrier-grade NAT range (RFC 6598).
-var sharedSpace = netip.MustParsePrefix("100.64.0.0/10")

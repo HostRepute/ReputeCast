@@ -457,7 +457,7 @@ func (q *Queries) ProvEndFailovers(ctx context.Context, arg ProvEndFailoversPara
 }
 
 const provGet = `-- name: ProvGet :one
-SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at FROM providers
+SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at, ip_source FROM providers
 WHERE workspace_id = $1 AND id = $2 AND disconnected_at IS NULL
 `
 
@@ -493,12 +493,13 @@ func (q *Queries) ProvGet(ctx context.Context, arg ProvGetParams) (Provider, err
 		&i.ConnectedBy,
 		&i.ConnectedAt,
 		&i.DisconnectedAt,
+		&i.IpSource,
 	)
 	return i, err
 }
 
 const provGetAny = `-- name: ProvGetAny :one
-SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at FROM providers WHERE id = $1
+SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at, ip_source FROM providers WHERE id = $1
 `
 
 func (q *Queries) ProvGetAny(ctx context.Context, id uuid.UUID) (Provider, error) {
@@ -528,12 +529,13 @@ func (q *Queries) ProvGetAny(ctx context.Context, id uuid.UUID) (Provider, error
 		&i.ConnectedBy,
 		&i.ConnectedAt,
 		&i.DisconnectedAt,
+		&i.IpSource,
 	)
 	return i, err
 }
 
 const provGetByWebhookToken = `-- name: ProvGetByWebhookToken :one
-SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at FROM providers
+SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at, ip_source FROM providers
 WHERE webhook_token = $1 AND adapter = $2 AND disconnected_at IS NULL
 `
 
@@ -569,6 +571,7 @@ func (q *Queries) ProvGetByWebhookToken(ctx context.Context, arg ProvGetByWebhoo
 		&i.ConnectedBy,
 		&i.ConnectedAt,
 		&i.DisconnectedAt,
+		&i.IpSource,
 	)
 	return i, err
 }
@@ -789,7 +792,7 @@ func (q *Queries) ProvLastConfirmed(ctx context.Context, arg ProvLastConfirmedPa
 
 const provListActive = `-- name: ProvListActive :many
 
-SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at FROM providers
+SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at, ip_source FROM providers
 WHERE workspace_id = $1 AND disconnected_at IS NULL
 ORDER BY connected_at, name
 `
@@ -829,6 +832,7 @@ func (q *Queries) ProvListActive(ctx context.Context, workspaceID uuid.UUID) ([]
 			&i.ConnectedBy,
 			&i.ConnectedAt,
 			&i.DisconnectedAt,
+			&i.IpSource,
 		); err != nil {
 			return nil, err
 		}
@@ -841,7 +845,7 @@ func (q *Queries) ProvListActive(ctx context.Context, workspaceID uuid.UUID) ([]
 }
 
 const provListAllActive = `-- name: ProvListAllActive :many
-SELECT p.id, p.workspace_id, p.adapter, p.name, p.label, p.config, p.credentials_enc, p.webhook_token, p.webhook_secret_enc, p.status, p.status_detail, p.ip_mode, p.ips, p.capabilities, p.limits, p.health, p.pricing, p.tracking, p.last_event_at, p.last_checked_at, p.connected_by, p.connected_at, p.disconnected_at FROM providers p
+SELECT p.id, p.workspace_id, p.adapter, p.name, p.label, p.config, p.credentials_enc, p.webhook_token, p.webhook_secret_enc, p.status, p.status_detail, p.ip_mode, p.ips, p.capabilities, p.limits, p.health, p.pricing, p.tracking, p.last_event_at, p.last_checked_at, p.connected_by, p.connected_at, p.disconnected_at, p.ip_source FROM providers p
 JOIN workspaces w ON w.id = p.workspace_id AND w.deleted_at IS NULL
 WHERE p.disconnected_at IS NULL
 ORDER BY p.workspace_id, p.connected_at
@@ -881,6 +885,7 @@ func (q *Queries) ProvListAllActive(ctx context.Context) ([]Provider, error) {
 			&i.ConnectedBy,
 			&i.ConnectedAt,
 			&i.DisconnectedAt,
+			&i.IpSource,
 		); err != nil {
 			return nil, err
 		}
@@ -890,6 +895,43 @@ func (q *Queries) ProvListAllActive(ctx context.Context) ([]Provider, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const provLockForIPs = `-- name: ProvLockForIPs :one
+SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at, ip_source FROM providers WHERE id = $1 AND disconnected_at IS NULL FOR UPDATE
+`
+
+// A connected provider, locked while its sending IPs change.
+func (q *Queries) ProvLockForIPs(ctx context.Context, id uuid.UUID) (Provider, error) {
+	row := q.db.QueryRow(ctx, provLockForIPs, id)
+	var i Provider
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Adapter,
+		&i.Name,
+		&i.Label,
+		&i.Config,
+		&i.CredentialsEnc,
+		&i.WebhookToken,
+		&i.WebhookSecretEnc,
+		&i.Status,
+		&i.StatusDetail,
+		&i.IpMode,
+		&i.Ips,
+		&i.Capabilities,
+		&i.Limits,
+		&i.Health,
+		&i.Pricing,
+		&i.Tracking,
+		&i.LastEventAt,
+		&i.LastCheckedAt,
+		&i.ConnectedBy,
+		&i.ConnectedAt,
+		&i.DisconnectedAt,
+		&i.IpSource,
+	)
+	return i, err
 }
 
 const provMembersWithNames = `-- name: ProvMembersWithNames :many
@@ -1269,6 +1311,44 @@ func (q *Queries) ProvSentThroughSince(ctx context.Context, arg ProvSentThroughS
 	var n int64
 	err := row.Scan(&n)
 	return n, err
+}
+
+const provSetIPSource = `-- name: ProvSetIPSource :exec
+UPDATE providers SET ip_source = $1 WHERE id = $2
+`
+
+type ProvSetIPSourceParams struct {
+	IpSource json.RawMessage `json:"ipSource"`
+	ID       uuid.UUID       `json:"id"`
+}
+
+// Where a provider's sending IPs come from, the IPs unchanged (a check
+// that failed keeps them).
+func (q *Queries) ProvSetIPSource(ctx context.Context, arg ProvSetIPSourceParams) error {
+	_, err := q.db.Exec(ctx, provSetIPSource, arg.IpSource, arg.ID)
+	return err
+}
+
+const provSetIPs = `-- name: ProvSetIPs :exec
+UPDATE providers SET ip_mode = $1, ips = $2::text[], ip_source = $3 WHERE id = $4
+`
+
+type ProvSetIPsParams struct {
+	IpMode   string          `json:"ipMode"`
+	Ips      []string        `json:"ips"`
+	IpSource json.RawMessage `json:"ipSource"`
+	ID       uuid.UUID       `json:"id"`
+}
+
+// A provider's sending IPs (sorted, each once) and where they come from.
+func (q *Queries) ProvSetIPs(ctx context.Context, arg ProvSetIPsParams) error {
+	_, err := q.db.Exec(ctx, provSetIPs,
+		arg.IpMode,
+		arg.Ips,
+		arg.IpSource,
+		arg.ID,
+	)
+	return err
 }
 
 const provSetRouteStatus = `-- name: ProvSetRouteStatus :execrows

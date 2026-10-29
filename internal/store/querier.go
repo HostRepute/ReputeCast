@@ -857,7 +857,9 @@ type Querier interface {
 	ConnectSetSendThresholds(ctx context.Context, arg ConnectSetSendThresholdsParams) error
 	ConnectSetWebhookSecret(ctx context.Context, arg ConnectSetWebhookSecretParams) error
 	ConnectSuppressionSyncMode(ctx context.Context, arg ConnectSuppressionSyncModeParams) error
-	// Settings and credentials from a repeated connection step (new key, other region).
+	// Settings and credentials from a repeated connection step (new key, other
+	// region). The sending IPs are left to the IP check and to people (they
+	// change apart from this, and writing back what was read would undo them).
 	ConnectUpdateProvider(ctx context.Context, arg ConnectUpdateProviderParams) (Provider, error)
 	ConsumeEmailChange(ctx context.Context, arg ConsumeEmailChangeParams) (EmailChange, error)
 	// A state is single use: reading it deletes it.
@@ -2595,6 +2597,8 @@ type Querier interface {
 	ProvListActive(ctx context.Context, workspaceID uuid.UUID) ([]Provider, error)
 	// Every connected provider of every workspace (health and sync jobs).
 	ProvListAllActive(ctx context.Context) ([]Provider, error)
+	// A connected provider, locked while its sending IPs change.
+	ProvLockForIPs(ctx context.Context, id uuid.UUID) (Provider, error)
 	ProvMembersWithNames(ctx context.Context, ids []uuid.UUID) ([]ProvMembersWithNamesRow, error)
 	ProvPurgeCallWindows(ctx context.Context, before time.Time) (int64, error)
 	// Webhook events received per hour (webhook freshness chart).
@@ -2617,6 +2621,11 @@ type Querier interface {
 	ProvSentSince(ctx context.Context, arg ProvSentSinceParams) ([]ProvSentSinceRow, error)
 	// Mail of one stream a provider sent since a time (what failover moved to it).
 	ProvSentThroughSince(ctx context.Context, arg ProvSentThroughSinceParams) (int64, error)
+	// Where a provider's sending IPs come from, the IPs unchanged (a check
+	// that failed keeps them).
+	ProvSetIPSource(ctx context.Context, arg ProvSetIPSourceParams) error
+	// A provider's sending IPs (sorted, each once) and where they come from.
+	ProvSetIPs(ctx context.Context, arg ProvSetIPsParams) error
 	ProvSetRouteStatus(ctx context.Context, arg ProvSetRouteStatusParams) (int64, error)
 	ProvStartFailover(ctx context.Context, arg ProvStartFailoverParams) error
 	// PR-7: messages of a stream a provider took in the last hour (what a

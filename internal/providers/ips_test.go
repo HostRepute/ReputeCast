@@ -20,20 +20,3 @@ func TestCleanIPs(t *testing.T) {
 		t.Fatalf("no IPs: %q, %q; want an empty list, never nil", clean, bad)
 	}
 }
-
-// Only an address mail can leave from on the internet is a sending IP.
-func TestPublicIP(t *testing.T) {
-	for s, want := range map[string]bool{
-		"203.0.113.25": true, "198.51.100.7": true, "2001:db8::25": true, "54.240.8.1": true,
-		"10.0.0.5": false, "172.16.4.1": false, "192.168.1.20": false, "100.64.0.1": false, "127.0.0.1": false,
-		"0.0.0.0": false, "169.254.0.1": false, "224.0.0.1": false, "::1": false, "fd00::25": false, "fe80::1": false,
-	} {
-		a, ok := ParseIP(s)
-		if !ok {
-			t.Fatalf("%s doesn't parse", s)
-		}
-		if got := PublicIP(a); got != want {
-			t.Errorf("PublicIP(%s) = %v, want %v", s, got, want)
-		}
-	}
-}

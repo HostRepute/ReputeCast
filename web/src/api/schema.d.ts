@@ -12228,6 +12228,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/providers/{providerId}/ips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the sending IPs of a provider whose API doesn't list them
+         * @description For self-hosted servers, SMTP and providers without an IP API: their dedicated IPs (up to 64 public IPv4 or IPv6 addresses) or the provider's shared pool. A provider whose API reports its IPs is refused with 409: ReputeCast reads them when it's connected and every day.
+         */
+        put: operations["set-provider-ips"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/providers/{providerId}/ips/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask a provider for its sending IPs now
+         * @description For a provider whose API reports its IPs; the card says what it answered, or why it couldn't. Others are refused with 409: their IPs are set by hand.
+         */
+        post: operations["check-provider-ips"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/providers/{providerId}/tracking": {
         parameters: {
             query?: never;
@@ -33038,6 +33078,8 @@ export interface components {
             id: string;
             /** @enum {string} */
             ipMode: "shared" | "dedicated";
+            /** @description Where ipMode and ips come from, and whether people set them by hand */
+            ipSource: components["schemas"]["ProviderIPSource"];
             ips: string[];
             label: string;
             name: string;
@@ -33147,6 +33189,25 @@ export interface components {
             action: string;
             /** Format: int64 */
             moved: number;
+        };
+        ProviderIPSource: {
+            /** Format: date-time */
+            checkedAt?: string;
+            editable: boolean;
+            error?: string;
+            /** Format: date-time */
+            errorAt?: string;
+            /** @enum {string} */
+            from: "provider" | "manual" | "none";
+            /** Format: date-time */
+            setAt?: string;
+            setBy?: string;
+        };
+        ProviderIPsInput: {
+            /** @description The public IPv4 or IPv6 addresses mail leaves from, up to 64, when mode is dedicated */
+            ips?: string[];
+            /** @enum {string} */
+            mode: "shared" | "dedicated";
         };
         ProviderIncidentEntry: {
             /** Format: date-time */
@@ -74188,6 +74249,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProviderHeldDecisionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-provider-ips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderIPsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderCard"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-provider-ips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderCard"];
                 };
             };
             /** @description Error */

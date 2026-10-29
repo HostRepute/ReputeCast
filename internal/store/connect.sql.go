@@ -158,7 +158,7 @@ INSERT INTO providers (id, workspace_id, adapter, name, label, config, credentia
                        status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, connected_by, connected_at, last_checked_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
         $10, $11, $12, $13::text[], $14, $15, $16, $17, $18, $19, $19)
-RETURNING id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at
+RETURNING id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at, ip_source
 `
 
 type ConnectInsertProviderParams struct {
@@ -230,6 +230,7 @@ func (q *Queries) ConnectInsertProvider(ctx context.Context, arg ConnectInsertPr
 		&i.ConnectedBy,
 		&i.ConnectedAt,
 		&i.DisconnectedAt,
+		&i.IpSource,
 	)
 	return i, err
 }
@@ -411,7 +412,7 @@ func (q *Queries) ConnectProviderRouted(ctx context.Context, arg ConnectProvider
 }
 
 const connectProvidersWithSecrets = `-- name: ConnectProvidersWithSecrets :many
-SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at FROM providers
+SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at, ip_source FROM providers
 WHERE workspace_id = $1 AND disconnected_at IS NULL AND webhook_secret_enc IS NOT NULL
 ORDER BY connected_at
 `
@@ -450,6 +451,7 @@ func (q *Queries) ConnectProvidersWithSecrets(ctx context.Context, workspaceID u
 			&i.ConnectedBy,
 			&i.ConnectedAt,
 			&i.DisconnectedAt,
+			&i.IpSource,
 		); err != nil {
 			return nil, err
 		}
@@ -560,9 +562,9 @@ func (q *Queries) ConnectSuppressionSyncMode(ctx context.Context, arg ConnectSup
 const connectUpdateProvider = `-- name: ConnectUpdateProvider :one
 UPDATE providers
 SET label = $1, config = $2, credentials_enc = $3, status = $4, status_detail = $5,
-    ip_mode = $6, ips = $7::text[], health = $8, last_checked_at = $9
-WHERE id = $10
-RETURNING id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at
+    health = $6, last_checked_at = $7
+WHERE id = $8
+RETURNING id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at, ip_source
 `
 
 type ConnectUpdateProviderParams struct {
@@ -571,14 +573,14 @@ type ConnectUpdateProviderParams struct {
 	CredentialsEnc []byte          `json:"credentialsEnc"`
 	Status         string          `json:"status"`
 	StatusDetail   string          `json:"statusDetail"`
-	IpMode         string          `json:"ipMode"`
-	Ips            []string        `json:"ips"`
 	Health         json.RawMessage `json:"health"`
 	CheckedAt      *time.Time      `json:"checkedAt"`
 	ID             uuid.UUID       `json:"id"`
 }
 
-// Settings and credentials from a repeated connection step (new key, other region).
+// Settings and credentials from a repeated connection step (new key, other
+// region). The sending IPs are left to the IP check and to people (they
+// change apart from this, and writing back what was read would undo them).
 func (q *Queries) ConnectUpdateProvider(ctx context.Context, arg ConnectUpdateProviderParams) (Provider, error) {
 	row := q.db.QueryRow(ctx, connectUpdateProvider,
 		arg.Label,
@@ -586,8 +588,6 @@ func (q *Queries) ConnectUpdateProvider(ctx context.Context, arg ConnectUpdatePr
 		arg.CredentialsEnc,
 		arg.Status,
 		arg.StatusDetail,
-		arg.IpMode,
-		arg.Ips,
 		arg.Health,
 		arg.CheckedAt,
 		arg.ID,
@@ -617,6 +617,7 @@ func (q *Queries) ConnectUpdateProvider(ctx context.Context, arg ConnectUpdatePr
 		&i.ConnectedBy,
 		&i.ConnectedAt,
 		&i.DisconnectedAt,
+		&i.IpSource,
 	)
 	return i, err
 }

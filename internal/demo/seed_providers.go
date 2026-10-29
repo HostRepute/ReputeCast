@@ -40,6 +40,7 @@ type demoProvider struct {
 	health                                            state.Health
 	pricing                                           state.Pricing
 	tracking                                          state.Tracking
+	ipSource                                          state.IPSource // none: insertProvider fills it
 	connected, lastEvent                              time.Duration
 }
 
@@ -201,11 +202,25 @@ func insertProvider(ctx context.Context, s *Seeder, id, wsID uuid.UUID, p demoPr
 	health, _ := json.Marshal(p.health)
 	pricing, _ := json.Marshal(p.pricing)
 	tracking, _ := json.Marshal(p.tracking)
+	// Where the sending IPs come from (review GS-10): the provider's API,
+	// checked with the rest, or the member who connected it, by hand.
+	src := p.ipSource
+	switch {
+	case src.From == "" && p.caps.ReportsIPs:
+		src = state.IPSource{From: state.IPsFromProvider, CheckedAt: &checked}
+	case src.From == state.IPsFromPerson && src.SetByName == "":
+		u := by
+		src.SetBy = &u
+		if err := s.Tx.QueryRow(ctx, `SELECT name FROM users WHERE id = $1`, by).Scan(&src.SetByName); err != nil {
+			return err
+		}
+	}
+	ipSource, _ := json.Marshal(src)
 	_, err = s.Tx.Exec(ctx, `INSERT INTO providers (id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail,
-		ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
+		ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, ip_source)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
 		id, wsID, p.adapter, p.name, p.label, cfg, creds, token, whsec, p.status, p.detail,
-		p.ipMode, ips, caps, limits, health, pricing, tracking, s.Ago(p.lastEvent), checked, by, s.Ago(p.connected))
+		p.ipMode, ips, caps, limits, health, pricing, tracking, s.Ago(p.lastEvent), checked, by, s.Ago(p.connected), ipSource)
 	return err
 }
 
@@ -775,6 +790,9 @@ func acmeProviders(checked time.Time) []demoProvider {
 	pmCaps := capsOf("postmark")
 	pmCaps.Pricing = "plan, $15 per month"
 	postalCaps := capsOf("postal")
+	// Postal's API doesn't list the server's IPs: the member who connected
+	// it set 203.0.113.25 by hand a few minutes later.
+	postalIPsSet := checked.Add(-(8*24*time.Hour + 2*time.Hour) + 12*time.Minute)
 	return []demoProvider{
 		{
 			key: "ses", adapter: "ses", name: "Amazon SES", label: "us-east-1", status: state.Healthy, detail: "Production · no enforcement", ipMode: "shared",
@@ -813,6 +831,7 @@ func acmeProviders(checked time.Time) []demoProvider {
 			health:    state.Health{Account: "Postal 3.3.4 · reachable", Version: "3.3.4", LastSuccessAt: &checked, LastSuccessOp: "POST /api/v1/messages/message"},
 			pricing:   state.Pricing{Model: "self_hosted", Monthly: 24},
 			tracking:  state.Tracking{Detail: "Track clicks and opens disabled on the mail server; no link rewriting.", Scope: "mail server mta.acme.io", Mode: "reputecast", CheckedAt: &checked},
+			ipSource:  state.IPSource{From: state.IPsFromPerson, SetAt: &postalIPsSet},
 			connected: 8*24*time.Hour + 2*time.Hour, lastEvent: time.Minute,
 		},
 	}

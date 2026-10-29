@@ -550,9 +550,9 @@ func (s *Service) SetRegion(ctx context.Context, ws *store.Workspace, rawID stri
 	delete(cfg, "configuration_set")
 	b := built{settings: cfg, creds: s.currentCreds(&p), label: in.Region}
 	quota := providers.Quota{}
+	var adapter providers.Provider
 	if !manage.IsDemo(p) {
-		adapter, err := newAdapter(d, p.ID, ws.ID, b, s.Factory.WebhookSecret(p), s.httpClient())
-		if err != nil {
+		if adapter, err = newAdapter(d, p.ID, ws.ID, b, s.Factory.WebhookSecret(p), s.httpClient()); err != nil {
 			return ConnectSetup{}, err
 		}
 		if v, ok := adapter.(providers.Verifier); ok {
@@ -580,10 +580,12 @@ func (s *Service) SetRegion(ctx context.Context, ws *store.Workspace, rawID stri
 	hb, _ := json.Marshal(h)
 	now := s.now()
 	if _, err := s.Q.ConnectUpdateProvider(ctx, store.ConnectUpdateProviderParams{ID: p.ID, Label: in.Region, Config: cb, CredentialsEnc: p.CredentialsEnc,
-		Status: statusWord, StatusDetail: quota.Account, IpMode: p.IpMode, Ips: p.Ips, Health: hb, CheckedAt: &now}); err != nil {
+		Status: statusWord, StatusDetail: quota.Account, Health: hb, CheckedAt: &now}); err != nil {
 		return ConnectSetup{}, err
 	}
 	p.Config = cb
+	// Dedicated IPs belong to a region: the new one's are read again.
+	p = s.refreshIPs(ctx, p, adapter)
 	st, err := s.update(ctx, ws, cur.ID, "provider.region_change", map[string]any{"before": before, "after": in.Region}, func(_ *store.ProviderSetup, state *State) error {
 		state.Connection.Region = in.Region
 		state.Connection.Summary = in.Region + " · " + map[bool]string{true: "sandbox", false: "production"}[quota.Sandbox]

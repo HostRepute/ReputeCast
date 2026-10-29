@@ -110,6 +110,14 @@ var (
 	mPickTarget          = msgs.M("problem.pickTarget")
 	mTargetMissing       = msgs.M("problem.targetMissing")
 
+	mIPsReported    = msgs.M("problem.ipsReported")
+	mIPsNotReported = msgs.M("problem.ipsNotReported")
+	mIPsEnter       = msgs.M("problem.ipsEnter")
+	mIPsTooMany     = msgs.M("problem.ipsTooMany")
+	mIPsNotAddress  = msgs.M("problem.ipsNotAddress")
+	mIPsNotPublic   = msgs.M("problem.ipsNotPublic")
+	mIPsShared      = msgs.M("problem.ipsShared")
+
 	mAdminOnly          = msgs.M("adapters.adminOnly")
 	mNoRemote           = msgs.M("adapters.noRemote")
 	mManifestUnusable   = msgs.M("adapters.manifestUnusable")

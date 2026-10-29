@@ -107,6 +107,8 @@ func init() {
 		jobsFn := func() *jobs.Client { return a.Jobs }
 		river.AddWorker(a.JobReg.Workers, &manage.HealthWorker{S: svc})
 		river.AddWorker(a.JobReg.Workers, &manage.TrackingWorker{S: svc})
+		// The sending IPs of providers whose API lists them (review GS-10).
+		river.AddWorker(a.JobReg.Workers, &manage.IPsWorker{S: svc})
 		river.AddWorker(a.JobReg.Workers, &manage.MoveWebhooksWorker{S: svc, PublicURL: a.currentPublicURL})
 		river.AddWorker(a.JobReg.Workers, &ingest.NormalizeWorker{N: n})
 		river.AddWorker(a.JobReg.Workers, &ingest.SweepWorker{N: n, Jobs: jobsFn})
@@ -126,5 +128,6 @@ func init() {
 		a.JobReg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return warmup.DailyArgs{}, nil }, true)
 		a.JobReg.Every(5*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return warmup.ResumeArgs{}, nil }, false)
 		a.JobReg.Every(24*time.Hour, func() (river.JobArgs, *river.InsertOpts) { return manage.TrackingArgs{}, nil }, true)
+		a.JobReg.Every(24*time.Hour, func() (river.JobArgs, *river.InsertOpts) { return manage.IPsArgs{}, nil }, true)
 	})
 }

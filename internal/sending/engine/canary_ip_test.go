@@ -2,6 +2,7 @@ package engine_test
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"testing"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/pressly/goose/v3"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/sending/sendtest"
 	"github.com/hostrepute/reputecast/migrations"
@@ -80,6 +82,82 @@ func testCanaryNewIP(t *testing.T, f *sendtest.Fixture) {
 	}
 	if slices.Contains(plan.Reasons, "new_ip") || len(plan.NewIPs) != 0 {
 		t.Fatalf("plan %+v after Postal sent, want its IP known", plan)
+	}
+}
+
+// testCanaryReportedIP (review GS-10, F-4): the new-IP trigger works on
+// what production writes, not on a seeded list of IPs. A provider whose
+// API reports a dedicated IP gets it when it's connected (the IP check
+// providers.ip_mode and ips come from); the first send through it starts
+// a canary for that IP, and once mail went out from it, the next send to
+// the same readers doesn't start one.
+func testCanaryReportedIP(t *testing.T, s *sendtest.Suite) {
+	f := s.Fixture(t, "GS-10 reported IP")
+	f.Exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.Campaign)
+	f.Exec(`INSERT INTO traffic_rules (workspace_id, canary) VALUES ($1, '{"seeds":false}')
+		ON CONFLICT (workspace_id) DO UPDATE SET canary = traffic_rules.canary || '{"seeds":false}'`, f.WS)
+	t.Cleanup(func() { f.Exec(`UPDATE traffic_rules SET canary = canary - 'seeds' WHERE workspace_id = $1`, f.WS) })
+	f.AddContacts(sendtest.ContactSpec{N: 1200, Mailbox: "gmail", Domain: "gmail.com", Engaged: true})
+	sendtest.Fault.Reset(sendtest.FaultOK)
+	t.Cleanup(func() { sendtest.Fault.Reset(sendtest.FaultOK) })
+	id := f.UseReportingProvider()
+	const ip = "198.51.100.77"
+	sendtest.Fault.SetIPs(ip)
+
+	// Connecting asks the provider for its IPs, as the daily check does.
+	svc := &manage.Service{Pool: f.Env.App.Pool, Q: f.Env.App.Q, Audit: f.Env.App.Audit, Factory: &manage.Factory{Box: f.Env.App.Secrets}}
+	p, err := f.Env.App.Q.ProvGetAny(f.Ctx, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p, err = svc.RefreshIPs(f.Ctx, p, manage.IPsOnConnect); err != nil {
+		t.Fatal(err)
+	}
+	if p.IpMode != "dedicated" || !slices.Equal(p.Ips, []string{ip}) {
+		t.Fatalf("after the IP check: %s %q, want dedicated %s", p.IpMode, p.Ips, ip)
+	}
+
+	// The first send through it: a canary, for the new IP among its reasons.
+	f.StartSend(engine.StartOptions{Canary: engine.CanaryAuto})
+	c := canaryState(t, f)
+	if c["phase"] != "sending" || !slices.Contains(toStrings(c["reasons"]), "new_ip") {
+		f.Dump()
+		t.Fatalf("canary %v, want one for the reported IP", c)
+	}
+	if ips, _ := c["newIps"].([]any); len(ips) != 1 || ips[0].(map[string]any)["ip"] != ip {
+		t.Fatalf("canary's new IPs %v, want %s", c["newIps"], ip)
+	}
+	if _, done := f.Drive(3 * time.Hour); !done || f.Status() != "sent" {
+		f.Dump()
+		t.Fatalf("the first send didn't finish (%s)", f.Status())
+	}
+	if n := f.Count(`SELECT count(*) FROM workspace_sending_ips WHERE workspace_id = $1 AND ip = $2 AND provider_id = $3`, f.WS, ip, id); n != 1 {
+		t.Fatalf("the IP mail went out from isn't recorded (%d)", n)
+	}
+
+	// The second send through it, to the same readers: the IP has sent for
+	// the workspace and nobody is new to the domain, so no canary at all.
+	// The domain has sent for months (the first send moved back; the demo's
+	// own sends from it carry no start), so only the IP is under test.
+	var started time.Time
+	if err := f.Env.App.Pool.QueryRow(f.Ctx, `SELECT started_at FROM campaigns WHERE id = $1`, f.Campaign).Scan(&started); err != nil {
+		t.Fatal(err)
+	}
+	f.Exec(`UPDATE campaigns SET started_at = $2 WHERE id = $1`, f.Campaign, started.AddDate(0, -2, 0))
+	t.Cleanup(func() { f.Exec(`UPDATE campaigns SET started_at = $2 WHERE id = $1`, f.Campaign, started) })
+	g := s.Fixture(t, "GS-10 reported IP again")
+	g.Exec(`UPDATE campaigns SET ab_test = NULL, audience = $2, route_override = $3 WHERE id = $1`,
+		g.Campaign, fmt.Sprintf(`{"lists":[%q]}`, f.List), `{"provider_id":"`+id.String()+`"}`)
+	g.StartSend(engine.StartOptions{Canary: engine.CanaryAuto})
+	if c := canaryState(t, g); c["phase"] != nil && c["phase"] != "" || len(toStrings(c["reasons"])) > 0 {
+		t.Fatalf("canary %v on the second send, want none", c)
+	}
+	plan, err := g.E.CanaryPlanFor(g.Ctx, g.Campaign)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slices.Contains(plan.Reasons, "new_ip") || len(plan.NewIPs) != 0 {
+		t.Fatalf("plan %+v, want the reported IP known", plan)
 	}
 }
 

@@ -50,10 +50,12 @@ VALUES (@id, @workspace_id, @adapter, @name, @label, @config, @credentials_enc, 
 RETURNING *;
 
 -- name: ConnectUpdateProvider :one
--- Settings and credentials from a repeated connection step (new key, other region).
+-- Settings and credentials from a repeated connection step (new key, other
+-- region). The sending IPs are left to the IP check and to people (they
+-- change apart from this, and writing back what was read would undo them).
 UPDATE providers
 SET label = @label, config = @config, credentials_enc = @credentials_enc, status = @status, status_detail = @status_detail,
-    ip_mode = @ip_mode, ips = @ips::text[], health = @health, last_checked_at = @checked_at
+    health = @health, last_checked_at = @checked_at
 WHERE id = @id
 RETURNING *;
 

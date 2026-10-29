@@ -52,11 +52,7 @@ type Capabilities struct {
 	BatchSize       int        `json:"batchSize"` // messages per API call; 1 = no batching
 	// DedicatedIPs is the dedicated-IP option as badges show it ("optional,
 	// $24.95 per IP per month"); "" when the provider offers none.
-	DedicatedIPs string `json:"dedicatedIps"`
-	// ReportsIPs is true when the adapter lists the account's dedicated
-	// sending IPs (IPReporter): ReputeCast keeps them up to date. Without
-	// it, people set a provider's IPs by hand.
-	ReportsIPs     bool   `json:"reportsIps,omitempty"`
+	DedicatedIPs   string `json:"dedicatedIps"`
 	Sandbox        string `json:"sandbox"` // "detection", "test token", "mode", ""
 	QuotaDiscovery bool   `json:"quotaDiscovery"`
 	// RateDiscovery is true when the API also reports the maximum send rate
@@ -92,6 +88,10 @@ type Capabilities struct {
 	// a message counts as delivered once the server accepts it ("delivered
 	// (inferred)"); bounces and complaints still arrive as reports.
 	InfersDelivery bool `json:"infersDelivery,omitempty"`
+	// ReportsIPs is true when the adapter lists the account's dedicated
+	// sending IPs (IPReporter): ReputeCast keeps them up to date. Without
+	// it, people set a provider's IPs by hand.
+	ReportsIPs bool `json:"reportsIps,omitempty"`
 }
 
 // How a provider carries the one-click unsubscribe headers

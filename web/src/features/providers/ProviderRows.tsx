@@ -27,6 +27,7 @@ import {
 } from './common'
 import { m } from './messages'
 import { mo } from './overview.messages'
+import { SendingIPsFact } from './SendingIPs'
 
 /** One provider per row inside the providers card; rows are separated by a line. */
 export function RowShell({ children, className, last }: { children: ReactNode; className?: string; last?: boolean }) {
@@ -73,14 +74,6 @@ export function RoleBadges({ card, outage, silentHeld, down }: { card: ProviderC
         )
       })}
     </>
-  )
-}
-
-function ipsText(card: ProviderCard) {
-  return card.ipMode === 'dedicated' && card.ips.length ? (
-    <span className="mono">{tt(mo.ipsDedicated, { ips: card.ips.join(', ') })}</span>
-  ) : (
-    <span>{tt(mo.ipsShared)}</span>
   )
 }
 
@@ -235,7 +228,7 @@ export function ProviderRow({ card, monthStart, last, onSettings }: { card: Prov
           </div>
         ) : null}
         <div className="flex flex-col gap-1 text-[13px]">
-          <Fact className="pv-fact" k={t(mo.factIps)}>{ipsText(card)}</Fact>
+          <SendingIPsFact card={card} />
           <Fact className="pv-fact" k={t(mo.factWebhooks)}>
             <span>{webhookText(card)}</span>
           </Fact>
@@ -445,7 +438,7 @@ export function SilentRow({ card, silent }: { card: ProviderCard; silent: Schema
           <Fact className="pv-fact" k={t(mo.factErrorRate7d)}>
             <span className="n">{pct(card.errorRate7d ?? 0)}</span>
           </Fact>
-          <Fact className="pv-fact" k={t(mo.factIps)}>{ipsText(card)}</Fact>
+          <SendingIPsFact card={card} />
         </div>
       </div>
       <div className="flex flex-[1_1_260px] flex-col gap-3">

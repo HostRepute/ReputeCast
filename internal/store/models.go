@@ -2934,6 +2934,7 @@ type Provider struct {
 	ConnectedBy      *uuid.UUID      `json:"connectedBy"`
 	ConnectedAt      time.Time       `json:"connectedAt"`
 	DisconnectedAt   *time.Time      `json:"disconnectedAt"`
+	IpSource         json.RawMessage `json:"ipSource"`
 }
 
 type ProviderCallWindow struct {

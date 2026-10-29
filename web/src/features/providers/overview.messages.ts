@@ -69,12 +69,31 @@ export const mo = defineMessages('providers.overview', {
     '{role, select, split {{stream} {share}} primary {{stream} primary} other {{stream} · conditions}}{state, select, held { · held} sending { · still sending} other {}}',
   ipsDedicated: '{ips} · dedicated',
   ipsShared: 'Shared pool · checked at domain level',
+  /** A self-hosted server whose IPs nobody has listed yet (review GS-10). */
+  ipsNotSet: 'Dedicated · not set yet',
+  /** Where the sending IPs come from: the provider's API. {ago} is the last check: "5 h ago". */
+  ipsFromProvider: '{checked, select, yes {From {provider}, checked daily · {ago}} other {From {provider}, checked daily}}',
+  /** The last check failed and the IPs are the last answer's; {error} is why, in the provider's or the adapter's words. */
+  ipsCheckFailed: "Couldn't check with {provider} {ago}: {error}",
+  /** A person set the IPs by hand; {name} is who, {date} when: "Fri 3 Oct". */
+  ipsSetBy: '{hasName, select, yes {Set by {name} · {date}} other {Set by hand · {date}}}',
+  /** Nobody has set them yet, and the provider's API can't list them. */
+  ipsNotReported: "{provider} doesn't report them",
+  editIps: 'Edit',
+  /** Starts with the button's visible word, as its accessible name must (WCAG 2.5.3). */
+  editIpsLabel: "Edit {name}'s sending IPs",
+  checkIpsAgain: 'Check again',
+  /** Starts with the button's visible words, as its accessible name must (WCAG 2.5.3). */
+  checkIpsLabel: "Check again for {name}'s sending IPs",
+  /** "Check again" answered. */
+  ipsChecked: '{name} lists {count, plural, =0 {no dedicated IPs: the shared pool} one {# dedicated IP} other {# dedicated IPs}}',
+  ipsCheckFailedTitle: "Couldn't check with {name}",
   /** {kind} is how events arrive ("SNS"); {ago} how long ago: "20 s ago". */
   webhookLine: '{hasKind, select, yes {{kind} · } other {}}{hasEvent, select, yes {last event {ago}} other {no events yet}}',
   /** Webhook kinds that are words; SNS and Event Grid are product names. */
   webhookRegistered: 'Registered',
   webhookBounceMailbox: 'Bounce mailbox',
-  factIps: 'IPs',
+  factIps: 'Sending IPs',
   factWebhooks: 'Webhooks',
   factErrorRate7d: 'API error rate · 7 d',
   factErrorRate3m: 'API error rate · 3 min',
@@ -204,6 +223,28 @@ export const mo = defineMessages('providers.overview', {
   errMonthly: 'Enter the price per month, like 15.',
   errLabel: 'Give the provider a label, like the region or server name.',
   errCredential: 'Enter the new value for the credential you are replacing.',
+
+  // ── Sending IPs dialog (review GS-10) ───────────────────────────────
+  ipsDialogTitle: "{name}'s sending IPs",
+  ipsDialogBody:
+    "{name} doesn't report the IPs its mail leaves from, so ReputeCast uses the ones you list: Send Readiness checks each on IP blocklists, and one that never sent for this workspace starts a canary.",
+  /** The radio group's name for screen readers. */
+  ipsModeLabel: 'How {name} sends',
+  ipsModeDedicated: 'Dedicated IPs',
+  ipsModeDedicatedHint: "Its own IPs: your server's, or ones the provider gave your account. Checked one by one.",
+  ipsModeShared: 'Shared pool',
+  ipsModeSharedHint: "The provider's IPs, shared with its other customers: checked at domain level.",
+  ipsLabel: 'IP addresses',
+  /** {max} is a count: "64". */
+  ipsHint: 'One per line, IPv4 or IPv6, up to {max}: the public addresses your mail leaves from.',
+  ipsSave: 'Save IPs',
+  ipsSaved: "{name}'s sending IPs saved",
+  ipsSavedDedicated:
+    '{count, plural, one {# dedicated IP: Send Readiness checks it, and a canary starts while it has never sent for this workspace.} other {# dedicated IPs: Send Readiness checks them, and a canary starts on one that never sent for this workspace.}}',
+  ipsSavedShared: 'Shared pool: checked at domain level.',
+  errIpsEnter: 'Enter at least one IP address, or choose Shared pool.',
+  /** {max} is a count: "64". */
+  errIpsTooMany: 'Enter up to {max} IP addresses.',
 
   // ── Remove provider ──────────────────────────────────────────────────
   removeTitle: 'Remove {name} from this workspace?',

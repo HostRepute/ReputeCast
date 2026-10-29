@@ -108,6 +108,19 @@ UPDATE providers SET label = @label, pricing = @pricing, limits = @limits WHERE 
 -- name: ProvUpdateTracking :exec
 UPDATE providers SET tracking = @tracking WHERE id = @id;
 
+-- name: ProvLockForIPs :one
+-- A connected provider, locked while its sending IPs change.
+SELECT * FROM providers WHERE id = @id AND disconnected_at IS NULL FOR UPDATE;
+
+-- name: ProvSetIPs :exec
+-- A provider's sending IPs (sorted, each once) and where they come from.
+UPDATE providers SET ip_mode = @ip_mode, ips = @ips::text[], ip_source = @ip_source WHERE id = @id;
+
+-- name: ProvSetIPSource :exec
+-- Where a provider's sending IPs come from, the IPs unchanged (a check
+-- that failed keeps them).
+UPDATE providers SET ip_source = @ip_source WHERE id = @id;
+
 -- name: ProvDisconnect :exec
 UPDATE providers SET disconnected_at = now(), status = 'paused', status_detail = 'Disconnected' WHERE id = @id;
 

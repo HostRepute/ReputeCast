@@ -53821,6 +53821,10 @@
             ],
             "type": "string"
           },
+          "ipSource": {
+            "$ref": "#/components/schemas/ProviderIPSource",
+            "description": "Where ipMode and ips come from, and whether people set them by hand"
+          },
           "ips": {
             "items": {
               "type": "string"
@@ -53886,6 +53890,7 @@
           "roles",
           "ipMode",
           "ips",
+          "ipSource",
           "webhook",
           "accountKind",
           "account",
@@ -54219,6 +54224,68 @@
         "required": [
           "action",
           "moved"
+        ],
+        "type": "object"
+      },
+      "ProviderIPSource": {
+        "additionalProperties": false,
+        "properties": {
+          "checkedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "editable": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          },
+          "errorAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "from": {
+            "enum": [
+              "provider",
+              "manual",
+              "none"
+            ],
+            "type": "string"
+          },
+          "setAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "setBy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "editable"
+        ],
+        "type": "object"
+      },
+      "ProviderIPsInput": {
+        "additionalProperties": false,
+        "properties": {
+          "ips": {
+            "description": "The public IPv4 or IPv6 addresses mail leaves from, up to 64, when mode is dedicated",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "mode": {
+            "enum": [
+              "shared",
+              "dedicated"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode"
         ],
         "type": "object"
       },
@@ -155043,6 +155110,150 @@
         ],
         "x-access": "workspace",
         "x-permission": "campaigns:pause"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/providers/{providerId}/ips": {
+      "put": {
+        "description": "For self-hosted servers, SMTP and providers without an IP API: their dedicated IPs (up to 64 public IPv4 or IPv6 addresses) or the provider's shared pool. A provider whose API reports its IPs is refused with 409: ReputeCast reads them when it's connected and every day.",
+        "operationId": "set-provider-ips",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "providerId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderIPsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderCard"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set the sending IPs of a provider whose API doesn't list them",
+        "tags": [
+          "Sending providers"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/providers/{providerId}/ips/check": {
+      "post": {
+        "description": "For a provider whose API reports its IPs; the card says what it answered, or why it couldn't. Others are refused with 409: their IPs are set by hand.",
+        "operationId": "check-provider-ips",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "providerId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderCard"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ask a provider for its sending IPs now",
+        "tags": [
+          "Sending providers"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:manage"
       }
     },
     "/api/v1/workspaces/{workspace}/providers/{providerId}/tracking": {
