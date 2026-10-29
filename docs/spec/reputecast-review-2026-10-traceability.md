@@ -236,7 +236,8 @@ Spec SR-13 · **Done in M40**
   blocklist checks skipped", "Ready with warnings · 2 checks skipped") and never calls a blocked
   send ready; the phone's sticky bar uses it too. The button reads "Continue with provider data
   only" only when every skipped check is sender-reputation data, else "Continue without the
-  skipped checks".
+  skipped checks". The approval card and the confirmation dialog name the verdict the same way
+  (`verdictName`), found by the QA of the final build.
 - Tests: `review.test.ts`, `TestAssembleIncompleteAndEmpty`.
 
 **R1.U9 · Test sends while Blocked.**
@@ -435,6 +436,8 @@ only when the state changes.**
 Spec GS-14 · **Done** (fixed by the audit)
 - Code: `web/src/features/live/useLiveSend.ts` (stale after 90 s → polls every 10 s); the stream
   sends a heartbeat every 15 s; role="alert" is on the incident's title only (`Decision.tsx`).
+  While the stream is down only the progress bar fades, as on LiveMonitorStates; the counts keep
+  their contrast (`live.css`, found by the QA of the final build).
 - Tests: `useLiveSend.test.ts`, `TestGuardedSending/StreamHeartbeats`.
 
 **R2.U6 · Keep "What tripped / Likely causes / Recommended / Choose how to continue".**
@@ -570,9 +573,11 @@ Spec PR-14, PR-2 · **Done in M40**
   (migration 03321). (b) M40: a failed background refresh keeps the editor and its edits under a
   banner, and the bulk-terms view has the leave warning and the conflict note. (c)
   `internal/routing/simulate.go`; M40: engagement tiers, per-mailbox caps, a hold without overflow,
-  and where a down provider's mail goes under the failover policy.
+  and where a down provider's mail goes under the failover policy. The tester and the condition
+  chips name lists, categories and mailbox providers, never their ids (`valueNames`, found by
+  the QA of the final build).
 - Tests: `routing-order.test.ts`, `TestCampaignSimulation`, `TestRoutingImpactForEveryStream`,
-  `RoutingPage.test.tsx`, `TestCampaignSimulationWarmupAndFailover`.
+  `RoutingPage.test.tsx`, `routing-editing.test.ts`, `TestCampaignSimulationWarmupAndFailover`.
 
 **R3.U5 · The two-level Email/SMS/Push/WhatsApp header is too dense.**
 Spec PR-15 · **Done in M40**
@@ -703,8 +708,8 @@ Spec CO-14 · **Done in M40**
 **R4.U4 · A template gallery with real previews.**
 Spec CO-14 · **Done in M40**
 - Code: M40: `GET /templates/{id}/preview` compiles the template with its Liquid fallbacks and
-  strips scripts, forms, frames and links; `Thumb.tsx` shows it in a sandboxed, inert frame, scaled
-  and loaded lazily.
+  strips scripts, forms, frames, links and web font imports; `Thumb.tsx` shows it in a sandboxed,
+  inert frame, scaled and loaded lazily.
 - Tests: `TestTemplateGallery`, `TestPicture`, `Gallery.test.tsx`.
 
 **R4.U5 · Warnings can be dismissed with a reason; a Block can't.**
