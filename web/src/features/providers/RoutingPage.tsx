@@ -43,6 +43,7 @@ import {
   splitTotal,
   startEditing,
   toSaveInput,
+  valueNames,
   weightsProblem,
   type Condition,
   type Draft,
@@ -867,12 +868,11 @@ function Conditions({
 }) {
   const t = useT()
   const byId = new Map(cfg.providers.map((p) => [p.id, p]))
-  const lists = new Map(cfg.lists.map((l) => [l.id, l.name]))
   return (
     <div className="flex flex-col gap-2">
       <span className="text-[13px] font-semibold">{sd.splits.length > 1 ? t(mr.conditionsBeforeSplit) : t(mr.conditionsBeforePrimary)}</span>
       {sd.conditions.map((c, i) => {
-        const values = c.field === 'list' ? c.values.map((v) => lists.get(v) ?? v) : c.field === 'mailbox_provider' ? c.values.map((v) => mailboxName[v] ?? v) : c.values
+        const values = valueNames(c, cfg)
         const split = (c.splits ?? []).filter((x) => x.weight > 0)
         const p = byId.get(c.providerId ?? split[0]?.providerId ?? '')
         // A split by weight shows each provider's dot, as the bar does.

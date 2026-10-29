@@ -7,7 +7,7 @@ import { formatList, useT } from '@/i18n'
 import { clock, count, shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { providerColor, streamName, type Stream } from './common'
-import { costText, fallbackText, fieldText, mailboxName, splitPair, stepText, toInput, type Condition, type Draft, type RoutingConfig } from './routing-model'
+import { costText, fallbackText, fieldText, mailboxName, splitPair, stepText, toInput, valueNames, type Condition, type Draft, type RoutingConfig } from './routing-model'
 import { mr } from './routing.messages'
 
 function useDebounced<T>(value: T, ms: number): T {
@@ -260,7 +260,7 @@ function CampaignTester({ cfg, draft }: { cfg: RoutingConfig; draft?: Draft }) {
           <span className="n text-right">
             {r.conditions.length
               ? r.conditions
-                  .map((c) => t(mr.conditionMatchedLine, { field: fieldText[c.field as Condition['field']] ?? c.field, values: c.values.join(', '), count: count(c.count) }))
+                  .map((c) => t(mr.conditionMatchedLine, { field: fieldText[c.field as Condition['field']] ?? c.field, values: valueNames(c, cfg).join(', '), count: count(c.count) }))
                   .join('; ')
               : t(mr.conditionsNone)}
           </span>

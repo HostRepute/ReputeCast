@@ -249,6 +249,24 @@ export const mailboxName: Record<string, string> = {
   },
 }
 
+/**
+ * A condition's values as people read them: list and category names and
+ * mailbox provider names, never the ids a rule stores. The server's labels
+ * come first; a simulated match carries none and is named from the config.
+ */
+export function valueNames(c: { field: string; values: string[]; valueLabels?: string[] }, cfg: Pick<RoutingConfig, 'lists' | 'categories'>): string[] {
+  if (c.valueLabels?.length === c.values.length) return c.valueLabels
+  const names =
+    c.field === 'list'
+      ? new Map(cfg.lists.map((l) => [l.id, l.name]))
+      : c.field === 'category'
+        ? new Map(cfg.categories.map((x) => [x.id, x.name]))
+        : c.field === 'mailbox_provider'
+          ? new Map(Object.keys(mailboxName).map((k) => [k, mailboxName[k]!]))
+          : undefined
+  return names ? c.values.map((v) => names.get(v) ?? v) : c.values
+}
+
 /** A condition's field as its chip says it ("recipient mailbox provider"). */
 export const fieldText: Record<Condition['field'], string> = {
   get mailbox_provider() {

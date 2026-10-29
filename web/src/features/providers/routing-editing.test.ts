@@ -1,5 +1,5 @@
 import type { Schemas } from '@/api/client'
-import { afterSave, changedStreams, discardStreams, keepEditsOnLatest, rebase, startEditing, toSaveInput, type RoutingConfig } from './routing-model'
+import { afterSave, changedStreams, discardStreams, keepEditsOnLatest, rebase, startEditing, toSaveInput, valueNames, type RoutingConfig } from './routing-model'
 
 const ses = 'ses-0000-0000-0000-000000000001'
 const postmark = 'pm-00-0000-0000-0000-000000000002'
@@ -68,5 +68,25 @@ describe('routing being edited (PR-2)', () => {
     const done = afterSave(e, answer, ['system'])
     expect(changedStreams(done.draft, done.base)).toEqual([])
     expect(done.versions.system).toBe('s2')
+  })
+})
+
+describe("a condition's values as people read them", () => {
+  const cfg = {
+    ...config(),
+    lists: [{ id: 'l-beta', name: 'Beta Program' }],
+    categories: [{ id: 'c-billing', name: 'Billing' }],
+  }
+
+  it('names lists, categories and mailbox providers, and keeps sender domains as they are', () => {
+    expect(valueNames({ field: 'list', values: ['l-beta'] }, cfg)).toEqual(['Beta Program'])
+    expect(valueNames({ field: 'category', values: ['c-billing'] }, cfg)).toEqual(['Billing'])
+    expect(valueNames({ field: 'mailbox_provider', values: ['gmail', 'icloud'] }, cfg)).toEqual(['Gmail', 'iCloud'])
+    expect(valueNames({ field: 'sender_domain', values: ['updates.acme.io'] }, cfg)).toEqual(['updates.acme.io'])
+  })
+
+  it("takes the server's labels first, and keeps an id it can't name", () => {
+    expect(valueNames({ field: 'list', values: ['l-beta'], valueLabels: ['Beta testers'] }, cfg)).toEqual(['Beta testers'])
+    expect(valueNames({ field: 'list', values: ['l-gone'] }, cfg)).toEqual(['l-gone'])
   })
 })

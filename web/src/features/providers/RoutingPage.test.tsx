@@ -219,4 +219,24 @@ describe('Routing › route tester › Campaign', () => {
     expect(screen.getByText("Held while Postal's warm-up is paused").closest('div')).toHaveTextContent('4,821')
     expect(screen.getByText("Postal's warm-up is paused: its recipients wait until someone resumes it.")).toBeInTheDocument()
   })
+
+  it('names the lists and mailbox providers a condition matched, never their ids', async () => {
+    const beta = '0199e000-0000-7000-8000-0000000000b1'
+    api(
+      { ...config(), lists: [{ id: beta, name: 'Beta Program' }] },
+      {
+        campaign: {
+          ...campaign({}),
+          conditions: [
+            { field: 'list', values: [beta], count: 587 },
+            { field: 'mailbox_provider', values: ['outlook'], count: 1204 },
+          ],
+        },
+      },
+    )
+    await renderInWorkspace(<RoutingPage />, { me: owner, path })
+    await campaignTab()
+    expect(screen.getByText('list is Beta Program · 587; recipient mailbox provider is Outlook · 1,204')).toBeInTheDocument()
+    expect(screen.queryByText(new RegExp(beta))).not.toBeInTheDocument()
+  })
 })
