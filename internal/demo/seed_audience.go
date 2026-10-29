@@ -76,6 +76,15 @@ func seedAudienceImpl(ctx context.Context, s *Seeder) error {
 		{"saved views", func() error { return audSavedViews(ctx, s) }},
 		{"rollups", func() error { return audRollups(ctx, s, a, bits) }},
 		{"import draft", func() error { return audStageDraft(ctx, s, a) }},
+		// Planner statistics for the contacts and memberships just written:
+		// the seeders after this one pick their people by joining the two,
+		// and without statistics each join reads a list's members again for
+		// every contact (a billion rows, minutes). audSeedLate analyzes
+		// again once every seeder has run.
+		{"statistics", func() error {
+			_, err := s.Tx.Exec(ctx, `ANALYZE contacts, list_memberships, lists`)
+			return err
+		}},
 	}
 	for _, st := range steps {
 		if err := st.fn(); err != nil {
