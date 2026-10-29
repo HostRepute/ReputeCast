@@ -895,3 +895,74 @@ Process · **Followed**
 - M33–M40 built only the five core features. Changes elsewhere are bugs found on the way (the
   review spec's last section) and the channel menu R3.U5 asked for, which SMS, Push and WhatsApp
   share.
+
+## How it was checked
+
+On 29 October 2026, at the head of `review/m40` (commit c70ac95; this section was added after it):
+
+- **Generated code**: sqlc, the OpenAPI document and the web's API types regenerate with no change.
+- **Migrations**: on a scratch database every migration runs up; the twelve M40 migrations then
+  run down one by one, which removes their tables, columns and indexes, and up again, which gives
+  a schema identical to the first.
+- **Go**: `go vet` over all 195 packages finds nothing, and golangci-lint reports 0 issues (the
+  packages the last commits changed were checked again at the head); `go test -race -count=1`
+  over every package at that one commit, as CI runs it (`-timeout 45m`, four packages at a
+  time): all 195 ran once, the 155 with tests passed and 40 have none, with no data race
+  (14:16 to 15:55, in two parts: the 64 longest packages, then the other 131).
+- **Faults the race run found**: the first run over every package failed in two packages, and
+  the checks behind them found four faults, all fixed with tests before the run above:
+  - Late in some months (29 to 31 October among them) the demo's Subscribe page launched inside
+    Growth's cohort months, 150 days back, so the 148 joiners it had left for before them joined
+    inside them and every cohort passed the boards' numbers. Every source but Beta apply now
+    launches the day before the cohorts at the latest (`TestFormLaunchesAroundCohorts`, every
+    five hours from 2026 to 2029; the demo seeded at 07:30 on 29 October has the boards'
+    cohorts).
+  - The demo's seeders picked people by joining contacts with a list's members before either
+    table had planner statistics: a nested loop read 21,000 members for each of 48,000 contacts,
+    a billion rows a pick, and eight picks took 12 of the seed's 13 minutes. The audience seeder
+    now analyzes both once it has written them; the seed takes about a minute, and the run's
+    demo-seeded tests with it.
+  - The block and policy scenarios of guarded sending counted the reputation bounces and
+    complaints the demo's simulated providers make at random: the burst failed 8 runs in 16, the
+    floor 1 in 16. They now send through a provider that reports nothing of its own and pass ten
+    runs in ten.
+  - The reported-IP canary scenario saw its second send as over the usual size whenever the
+    scenarios before it had left small sends, so it failed with the whole suite and passed alone.
+    It now leaves that trigger out, as only the IP is under test; the whole suite passed three
+    runs in three.
+  The demo package's four tests now share one seed, made at noon in New York on the 15th and
+  read as of then (checked on the 15th of ten months, through both changes of summer time),
+  instead of seeding four times past go test's 45 minutes.
+- **Web**: TypeScript and ESLint report nothing; `pnpm i18n:check` finds every one of the 36,290
+  strings in Vietnamese and no hard-coded text; Vitest passes 995 tests in 141 files; the
+  production build succeeds.
+- **Screens**: the production build, with the demo data, signed in as an Owner, in English and
+  Vietnamese at 390, 834 and 1440 px: 28 states of the screens M40 changed (Review & send with its
+  technical details, fixes drawer, applied fixes and their Undo, and skipped checks; the live
+  monitor with messages in doubt and a held share testing its provider; the report with its trend
+  lines and the Investigate dialog's retry; the composer's style panel, synced block dialog,
+  template gallery and the phone's approve sheet; providers with their sending IPs and their
+  dialog, the channel menu, the route tester's campaign simulation, unsaved routing, warm-up,
+  traffic rules and SMS providers; Deliverability; the bot filter and its dialog; the brand kit).
+  168 runs: 158 checked, 10 left out by design (the builder's tabs on phones, which use the quick
+  review instead, and the quick review's Approve on larger screens). axe (WCAG 2.0, 2.1 and 2.2
+  A and AA) found no violation; no page scrolls sideways; no permission key appears in visible
+  text; no console error. The controls under 44 px on phones are the sizes their boards draw
+  (30 px chips and small buttons, 24 px text links, 20 px tips, 36 px dialog buttons, the 40×24
+  switch). The live monitor states the demo data doesn't reach were drawn by the production build
+  from the demo's own snapshot with the fields the engine sends for them. The run found seven
+  faults, all fixed with tests: list ids in the route tester, web font imports in the gallery's
+  pictures, a badge running past a 390 px screen, the quick review sheets' close button and the
+  sending IPs dialog's buttons under the 44 px their boards draw, skipped checks not named on the
+  approval card and the confirmation, faded counts below 4.5:1 in the live monitor's stale state,
+  and an English error kind in a Vietnamese outage title.
+- **Canvas**: every board was measured in Chromium once its fonts loaded and its runtime settled;
+  65 frames were refitted to their content, boards under them moved down without overlaps, and
+  the canvas was published (version 56).
+- **Security**: every endpoint M40 added declares its permission (campaigns:edit for synced
+  blocks, a retry and undoing fixes, with campaigns:send for undoing a route; templates:view for
+  a template's picture; providers:manage for sending IPs; campaigns:send for messages in doubt;
+  instance admins for the bot filter) and writes an audit entry when it changes something. A
+  template's picture keeps nothing that runs, links, loads from elsewhere or takes focus, and is
+  shown in a sandboxed, inert frame. Sending IPs set by hand must be public addresses; an agent's
+  drafts go through the same checks as the composer's.
