@@ -134,6 +134,44 @@ What M33 built for the others to use:
 
 M39 checked them across the review's screens: refused actions name who can help (`authz` and each screen's own copy), `pnpm i18n:check` passes with every new string in English and Vietnamese, and the roadmap, `docs/DESIGN_INVENTORY.md` (#517–#555, the deliberate differences from the boards) and the README describe what was built. Its hardening carried X-1 to every other screen (team, verification, Earn, SMS, push, WhatsApp, Grow, website, products, transactional, digests, agency) and to the server's problems: they say what the role can't do and who can help. The canvas's 71 boards outside the review were redrawn the same way, so the design and the app agree (#555). API-key scopes, MCP agent permissions, integration key scopes and the roles editor keep the keys, since that is what people set there, and the audit log records them.
 
+## Audit against the report (M40) ✅
+
+On 28 October 2026 the code was read against the report itself, item by item, rather than against
+these rows. [`reputecast-review-2026-10-traceability.md`](reputecast-review-2026-10-traceability.md)
+lists every report item with its rows, code, tests and status. Where an item was done only in part,
+M40 finished it; the rows above now mean what follows.
+
+| ID | What M40 added |
+|---|---|
+| SR-2 | A parent domain HostRepute doesn't watch is looked up live on DBL and SURBL; when nothing can look it up the row is Unknown, never clean. |
+| SR-3 | An audience edited after scheduling holds the send like content and route edits: an order-independent digest of its lists, segments and exclusions is kept with the confirmation (older confirmations are judged by count). The hold's notification says it expires 3 hours after the send time. |
+| SR-5 | One rule, `manage.TooFewToJudge` (500 messages), judges a provider's rates on Review & send and on Deliverability, whose card says "Not enough mail yet". |
+| SR-9 | The placement card counts Inbox, Promotions (or the provider's own tab) and Spam per mailbox provider, with a "Through SES: …" line when routes are compared. |
+| SR-13 | No guessed link: "Replace with destination URL" only when the link redirects to a destination that is clean on the live URI blocklists. Applied fixes can be undone (content, route and audience) from the toast, the re-running banner or the verdict. Sending is locked while a fix saves. Records, headers and codes are in each row's technical details. The verdict names the checks someone chose to skip and never calls a blocked send ready. |
+| GS-1 | The live monitor shows the decision on messages in doubt per provider: whether it recognizes a resend and until when, the two choices, the recommended one and who can decide. SparkPost recognizes a message it already took for 24 hours; Resend doesn't take part (its keys cover a batch request). |
+| GS-3 | A held share nobody decided on tests its provider every 60 s by itself and resumes after 3 tests in a row go through; a failed test uses no attempts; a person's Move or Cancel ends the tests, their Retry keeps them going. |
+| GS-6 | Complaints clearly over the limit (the lower bound of a one-sided 95% Wilson interval, from 3 complaints) trip a send of any size, per mailbox provider and campaign-wide, during the send and in the watch after it. With Traffic rules › After the send › Gmail Postmaster on, the watch alerts once when a day's Postmaster spam rate passes the limit. |
+| GS-10 | A dedicated IP that never sent for the workspace starts a canary: each send records its dedicated provider's IPs once per run, and Review & send and the live monitor name the IP and provider. |
+| GS-11 | Block and policy bounces trip at any volume once clearly over the limit, and on a burst at one named mailbox provider: 3 or more within 10 minutes, clearly over the limit among what it was sent in those minutes (not in the 10 minutes after a resume). |
+| GS-12 | Every workspace starts with the default reply rules; workspaces without rules got them. |
+| PR-3 | SES setup finishes on the simulator's Delivery event, not any event. A provider that never reported an event is flagged once mail is 30 minutes overdue, counted from its connection. |
+| PR-8 | Automations wait at the cap and while a plan is paused, or overflow to a warm provider, per mailbox part. Transactional mail never waits: it goes to a warm provider of its route, or is sent and counted over the cap for the day. A held plan stays on its day and resumes from its held cap one step at a time. |
+| PR-14 | Every stream's change shows its impact before saving. Edits survive a failed background refresh and the bulk-terms view. The route tester simulates engagement tiers, per-mailbox caps, holds without overflow and where a down provider's mail goes. |
+| PR-15 | One channel menu heads Email, SMS, Push and WhatsApp. Setup time reads the same everywhere, the site included: 10–15 minutes on AWS, longer off AWS, up to 24 hours for SES production access. |
+| CO-3 | An agent's drafts go through the composer's save: compiled, checked, versioned and audited. |
+| CO-5 | A test send is personalized as the contact being previewed. |
+| CO-7 | Once a save cancels the approval, the header stops saying "Approved". |
+| CO-11 | Any section can be saved as a named synced block, listed under "Your blocks", unlinked in one campaign, renamed or deleted in the brand kit. |
+| CO-14 | Every block's Style panel speaks the writer's words, with the raw attributes under Advanced. The template gallery shows each template's real email. A blocking check can't be dismissed (422). Approvers approve from the phone's quick review. |
+| AN-1 | An A/B test decided before decisions were recorded claims no confidence. |
+| AN-2 | Automations, segments, scores and engagement count only settled human clicks. Instance admins edit the bot filter's user agents and networks on Instance admin › Bot filter. |
+| AN-5 | A content test's click map shows each variant on its own email. |
+| AN-7 | "Retry after fixing" drafts the issue again for the addresses blocked for the sender's reputation, once each, through Review & send. |
+| AN-11 | Every tile draws its trend over the compared issues once results are final. |
+
+Migrations: 03300–03301 (Send Readiness), 03310–03313 (guarded sending), 03320–03321 (providers),
+03330 (composer), 03340–03341 (analytics).
+
 ## Found while building the review (outside the five features)
 
 | ID | What | Status |
