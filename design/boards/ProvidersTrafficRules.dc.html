@@ -38,7 +38,7 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
 .step{display:flex;gap:10px;align-items:flex-start;font-size:13px}
 .step .num{width:22px;height:22px;border-radius:50%;background:#0B1220;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:none}
 label.tg{display:flex;gap:10px;align-items:flex-start;font-size:13px;cursor:pointer}
-label.tg input{margin-top:3px}
+label.tg input{margin-top:3px;flex:none}
 
 
 /* shell additions: workspace switcher, notification bell, user menu */
@@ -211,6 +211,9 @@ select.in.win{width:auto}
   .rrule{grid-template-columns:auto minmax(0,1fr);padding:12px}
   .rrule .btn{grid-column:2;justify-self:start;min-height:44px}
   .rule,.sech,.addf{padding-left:14px;padding-right:14px}
+  /* the canary's triggers and seeds choice: each row one 44px target */
+  label.tg{min-height:44px!important;align-items:center}
+  label.tg input{margin-top:0}
 }
 .cgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px;align-items:end}
 .ggrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 16px}
@@ -327,7 +330,7 @@ select.in.win{width:auto}
               </div>
             </div>
             <div class="fns" style="padding:12px 20px">
-              <p class="fn">Every threshold waits for at least 5 events and 500 delivered to that mailbox provider, then trips only when there's enough evidence that the rate is really above the limit. Until then the live monitor shows it as “Collecting evidence”.</p>
+              <p class="fn">Every threshold waits for at least 5 events and 500 delivered to that mailbox provider, then trips only when there's enough evidence that the rate is really above the limit. Complaints and block/policy bounces don't wait that long: from 3, a rate clearly over the limit trips however small the send. Block/policy bounces are also judged on the last 10 minutes alone, so a mailbox provider that starts blocking late in a large send trips too. Until then the live monitor shows it as “Collecting evidence”.</p>
             </div>
           </section>
 
@@ -373,7 +376,7 @@ select.in.win{width:auto}
             <div style="padding:16px 20px;display:flex;flex-direction:column;gap:16px">
               <fieldset class="fs">
                 <legend>Run a canary when</legend>
-                <label class="tg"><input type="checkbox" checked><span><span style="font-weight:600">The sending domain or IP is new</span><br><span class="k">first 30 days of sending from it</span></span></label>
+                <label class="tg"><input type="checkbox" checked><span><span style="font-weight:600">The sending domain or IP is new</span><br><span class="k">the domain's first 30 days, or a dedicated IP listed on Providers that never sent for this workspace</span></span></label>
                 <label class="tg"><input type="checkbox" checked><span><span style="font-weight:600">Some recipients never got mail from this domain</span><br><span class="k">for example contacts imported since the last send</span></span></label>
                 <label class="tg"><input type="checkbox" checked><span><span style="font-weight:600">The audience is over 2× the usual size</span><br><span class="k">usual for Weekly Digest: 31,400, the median of the last 8 sends</span></span></label>
               </fieldset>
@@ -423,7 +426,7 @@ select.in.win{width:auto}
 
           <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
             <h2 class="h2">What the live monitor shows</h2>
-            <div class="lg"><span class="badge mut"><span class="dot"></span>Collecting evidence</span><span class="k">Fewer than 5 events or 500 delivered; it can't trip yet. Grey bar.</span></div>
+            <div class="lg"><span class="badge mut"><span class="dot"></span>Collecting evidence</span><span class="k">Fewer than 5 events or 500 delivered, and not clearly over the limit; it can't trip yet. Grey bar.</span></div>
             <div class="lg"><span class="badge ok"><span class="dot"></span>Watching</span><span class="k">Enough evidence and inside the limit.</span></div>
             <div class="lg"><span class="badge warn"><span class="dot"></span>Close to the limit</span><span class="k">At 90% of the limit or more.</span></div>
             <div class="lg"><span class="badge bad"><span class="dot"></span>Tripped</span><span class="k">Enough evidence that the rate is above the limit; the action ran.</span></div>
@@ -442,7 +445,7 @@ select.in.win{width:auto}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2448}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2501}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);

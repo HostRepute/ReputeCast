@@ -235,6 +235,25 @@
     .tr-ggrid {
       grid-template-columns: minmax(0, 1fr);
     }
+    /* The canary's triggers and its seeds choice stand alone: on phones
+       each row is at least 44 px tall, and its label fills the row beside
+       the box, so all of it is one target. */
+    .tr-fs .chk,
+    .tr-cgrid .chk {
+      min-height: 44px;
+      align-items: center;
+    }
+    .tr-fs .chk input,
+    .tr-cgrid .chk input {
+      margin-top: 0;
+    }
+    .tr-fs .chk label,
+    .tr-cgrid .chk label {
+      flex: 1;
+      align-self: stretch;
+      justify-content: center;
+      cursor: pointer;
+    }
     .tr-rule,
     .tr-sech,
     .tr-addf {
