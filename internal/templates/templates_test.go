@@ -152,4 +152,16 @@ func TestPicture(t *testing.T) {
 			t.Fatalf("%s missing: %s", kept, out)
 		}
 	}
+
+	// MJML's mj-font imports each web font in the stylesheet too: the picture
+	// loads nothing from elsewhere, and keeps the rest of the styles.
+	styled := templates.Picture(`<html><head><style type="text/css">@import url(https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap);` +
+		`@import 'https://fonts.example/a.css' screen; @IMPORT url("https://fonts.example/b.css");` +
+		`body { font-family: Inter, Arial, sans-serif; }</style></head><body><p>Hi</p></body></html>`)
+	if strings.Contains(strings.ToLower(styled), "@import") || strings.Contains(styled, "fonts.") {
+		t.Fatalf("a web font import left in: %s", styled)
+	}
+	if !strings.Contains(styled, "body { font-family: Inter, Arial, sans-serif; }") {
+		t.Fatalf("styles lost: %s", styled)
+	}
 }

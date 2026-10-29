@@ -3,6 +3,7 @@ package templates
 import (
 	"bytes"
 	"context"
+	"regexp"
 	"strings"
 
 	"golang.org/x/net/html"
@@ -74,7 +75,12 @@ var dropped = map[atom.Atom]bool{
 	atom.Base: true, atom.Link: true,
 }
 
-// disarm takes out what could run, link or take focus.
+// cssImport is a stylesheet's @import rule: MJML's mj-font writes one for
+// each web font as well as a link, and it would load from outside the
+// picture just the same.
+var cssImport = regexp.MustCompile(`(?i)@import\s+(?:url\(\s*)?(?:"[^"]*"|'[^']*'|[^\s;)]+)\s*\)?[^;]*;?`)
+
+// disarm takes out what could run, link, load from elsewhere or take focus.
 func disarm(n *html.Node) {
 	for c := n.FirstChild; c != nil; {
 		next := c.NextSibling
@@ -84,6 +90,9 @@ func disarm(n *html.Node) {
 			disarm(c)
 		}
 		c = next
+	}
+	if n.Type == html.TextNode && n.Parent != nil && n.Parent.DataAtom == atom.Style {
+		n.Data = cssImport.ReplaceAllString(n.Data, "")
 	}
 	if n.Type != html.ElementNode {
 		return
