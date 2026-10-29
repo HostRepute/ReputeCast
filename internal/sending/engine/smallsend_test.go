@@ -118,11 +118,23 @@ func testSmallSendWatch(t *testing.T, f *sendtest.Fixture) {
 	}
 }
 
+// faultOnly sends the fixture's campaign through the fault provider, which
+// takes the mail and reports nothing of its own: the demo's simulated
+// providers bounce about 0.13% of Outlook's mail on the sender's
+// reputation, a block too, and some readers complain, at random, so a
+// scenario that counts blocks would count theirs some runs and not others.
+func faultOnly(t *testing.T, f *sendtest.Fixture) {
+	t.Helper()
+	sendtest.Fault.Reset(sendtest.FaultOK)
+	f.UseFaultProvider(false)
+}
+
 // testBlockPolicyFloor: block/policy bounces trip on less evidence than
 // unknown users (bytype.go). Three among the first ~150 sent to Outlook
 // pause it at once; a burst, 8 in the last minutes while Outlook's
 // whole-send rate is still under its limit, pauses it too.
 func testBlockPolicyFloor(t *testing.T, f *sendtest.Fixture) {
+	faultOnly(t, f)
 	at := smallSend(t, f, 400, 400, 30*time.Second)
 	blocks(t, f, at, 3, at.Add(-20*time.Second))
 	if _, _, err := f.E.Drive(f.Ctx, f.Campaign, at, 15*time.Second); err != nil {
@@ -140,6 +152,7 @@ func testBlockPolicyFloor(t *testing.T, f *sendtest.Fixture) {
 // send is under the 0.5% limit, but the burst pauses Outlook.
 func testBlockBurst(t *testing.T, f *sendtest.Fixture) {
 	f.Exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.Campaign)
+	faultOnly(t, f)
 	f.AddContacts(sendtest.ContactSpec{N: 2400, Mailbox: "outlook", Domain: "hotmail.com", Engaged: true})
 	f.StartSend(engine.StartOptions{})
 	f.Exec(`UPDATE campaign_sends SET throttles = '{"outlook":1}' WHERE campaign_id = $1`, f.Campaign)

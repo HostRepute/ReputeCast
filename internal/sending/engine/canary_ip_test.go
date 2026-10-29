@@ -94,9 +94,16 @@ func testCanaryNewIP(t *testing.T, f *sendtest.Fixture) {
 func testCanaryReportedIP(t *testing.T, s *sendtest.Suite) {
 	f := s.Fixture(t, "GS-10 reported IP")
 	f.Exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.Campaign)
-	f.Exec(`INSERT INTO traffic_rules (workspace_id, canary) VALUES ($1, '{"seeds":false}')
-		ON CONFLICT (workspace_id) DO UPDATE SET canary = traffic_rules.canary || '{"seeds":false}'`, f.WS)
-	t.Cleanup(func() { f.Exec(`UPDATE traffic_rules SET canary = canary - 'seeds' WHERE workspace_id = $1`, f.WS) })
+	// Without the seed mailboxes, and without "over the usual size": the
+	// usual is the median of the workspace's last 8 sends, which the
+	// suite's scenarios before this one make small, so a send of 1,200 is
+	// over it after them and not when this scenario runs alone. Only the
+	// IP is under test.
+	f.Exec(`INSERT INTO traffic_rules (workspace_id, canary) VALUES ($1, '{"seeds":false,"overUsual":false}')
+		ON CONFLICT (workspace_id) DO UPDATE SET canary = traffic_rules.canary || '{"seeds":false,"overUsual":false}'`, f.WS)
+	t.Cleanup(func() {
+		f.Exec(`UPDATE traffic_rules SET canary = canary - 'seeds' - 'overUsual' WHERE workspace_id = $1`, f.WS)
+	})
 	f.AddContacts(sendtest.ContactSpec{N: 1200, Mailbox: "gmail", Domain: "gmail.com", Engaged: true})
 	sendtest.Fault.Reset(sendtest.FaultOK)
 	t.Cleanup(func() { sendtest.Fault.Reset(sendtest.FaultOK) })
