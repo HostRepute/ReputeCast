@@ -180,6 +180,8 @@
   "reputation.domainListed": "{domain} bị liệt kê trên {count, number}/{sources, number} danh sách chặn tên miền",
   "reputation.domainListedAck": "Tôi hiểu {domain} đang bị liệt kê trên {lists}.",
   "reputation.ipUnknown": "Chưa kiểm tra được danh sách chặn IP cho {ip}",
+  "reputation.ipNotChecked": "IP {ip} của {provider} chưa được kiểm tra trên các danh sách chặn IP",
+  "reputation.ipNotCheckedDetail": "IP này mới có trong các lần kiểm tra danh sách chặn của Khả năng vào hộp thư, vốn chạy hằng ngày: cho đến khi được kiểm tra, chưa ai biết nó có bị liệt kê hay không. Hãy chạy kiểm tra ngay từ Khả năng vào hộp thư.",
   "reputation.ipUnknownFlat": "Uy tín người gửi · danh sách chặn IP cho {ip}",
   "reputation.ipClean": "IP {ip} của {provider} sạch trên {sources, number}/{sources, number} danh sách chặn IP",
   "reputation.ipCleanShort": "{ip} sạch trên {sources, number}/{sources, number} danh sách chặn",

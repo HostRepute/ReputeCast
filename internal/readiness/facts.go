@@ -286,6 +286,10 @@ type ReputationFacts struct {
 	Domains []DomainAssetFacts
 	// ReverseDNS is the reverse DNS of the dedicated IPs carrying the send.
 	ReverseDNS []ReverseDNSFacts
+	// UncheckedIPs are dedicated IPs carrying the send that Deliverability's
+	// blocklist checks don't cover yet (a provider began listing them after
+	// the last run, review GS-10): unknown, never clean (F-3).
+	UncheckedIPs []string
 }
 
 // ReverseDNSFacts is the forward-confirmed reverse DNS of a dedicated IP.

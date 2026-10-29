@@ -791,6 +791,16 @@ func (s *Service) reputation(ctx context.Context, g *gathered, f Facts) (Reputat
 				out.IPSources = append(out.IPSources, src.Source)
 			}
 		}
+		if rep.Status != Unknown {
+			checked := checkedAssets(ov)
+			for _, sh := range carrying(f.Route.Shares) {
+				for _, ip := range sh.IPs {
+					if !checked[strings.ToLower(ip)] && !slices.Contains(out.UncheckedIPs, ip) {
+						out.UncheckedIPs = append(out.UncheckedIPs, ip)
+					}
+				}
+			}
+		}
 	}
 	out.Domains = s.reputationDomains(ctx, g, f, checkedAssets(ov))
 	if err == nil {

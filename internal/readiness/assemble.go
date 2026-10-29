@@ -307,6 +307,13 @@ func (b *builder) reputation() {
 					Title:     tx("reputation.ipUnknown", A{"ip": ip}),
 					FlatTitle: tx("reputation.ipUnknownFlat", A{"ip": ip}),
 					Detail:    unknownReason(r), Note: unknownNote, Label: label})
+			case len(listed) == 0 && slices.Contains(r.UncheckedIPs, ip):
+				// An IP the checks haven't reached isn't clean (F-3).
+				b.add(check{Key: key, Group: GroupReputation, Status: Unknown,
+					Title:     tx("reputation.ipNotChecked", A{"provider": s.Name, "ip": ip}),
+					FlatTitle: tx("reputation.ipUnknownFlat", A{"ip": ip}),
+					Detail:    tx("reputation.ipNotCheckedDetail", nil), Note: tx("note.notChecked", nil), Label: label,
+					Fixes: []fix{deliverability}})
 			case len(listed) == 0:
 				detail := b.sourcesDetail("ip", checked)
 				if ptr := b.reverseDNSOf(ip); ptr != "" {

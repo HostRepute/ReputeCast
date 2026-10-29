@@ -181,6 +181,8 @@
   "reputation.domainListedAck": { "message": "I understand {domain} is listed on {lists}.", "note": "lists: blocklists' names (Spamhaus DBL, SURBL)" },
   "reputation.ipUnknown": "IP blocklists for {ip} couldn't be checked",
   "reputation.ipUnknownFlat": "Sender reputation · IP blocklists for {ip}",
+  "reputation.ipNotChecked": { "message": "{provider} IP {ip} isn't checked on IP blocklists yet", "note": "a dedicated IP Deliverability's daily blocklist checks don't cover yet; provider: Amazon SES; ip: 203.0.113.25" },
+  "reputation.ipNotCheckedDetail": "It's new to Deliverability's blocklist checks, which run daily: until they reach it, nobody knows whether it's listed. Run the checks now from Deliverability.",
   "reputation.ipClean": "{provider} IP {ip} is clean on {sources, number} of {sources, number} IP blocklists",
   "reputation.ipCleanShort": "{ip} clean on {sources, number} of {sources, number} blocklists",
   "reputation.ipListed": "{provider} IP {ip} is listed on {count, number} of {sources, number} IP blocklists",

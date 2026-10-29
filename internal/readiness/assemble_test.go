@@ -279,3 +279,31 @@ func TestText(t *testing.T) {
 		t.Fatalf("minutes: %d", m)
 	}
 }
+
+// A dedicated IP Deliverability's blocklist checks haven't reached yet (its
+// provider began listing it since their last run, review GS-10) is
+// unknown, never clean (F-3), and says how to check it; an IP they cover
+// keeps its verdict.
+func TestAssembleUncheckedIP(t *testing.T) {
+	f := digest()
+	reported := postal(3160, 10)
+	reported.IPs = []string{"203.0.113.25", "198.51.100.40"}
+	f.Route.Shares = []readiness.ShareFacts{ses(28444, 90), reported}
+	f.Reputation.UncheckedIPs = []string{"198.51.100.40"}
+	checks := byKey(readiness.Assemble(f))
+	c := checks["reputation.ip_blocklists.198.51.100.40"]
+	if c.Status != readiness.Unknown || c.Title != "Postal IP 198.51.100.40 isn't checked on IP blocklists yet" ||
+		!strings.Contains(c.Detail, "Run the checks now from Deliverability") {
+		t.Fatalf("unchecked IP: %+v", c)
+	}
+	deliverability := false
+	for _, x := range c.Fixes {
+		deliverability = deliverability || x.Kind == "link" && strings.HasSuffix(x.Href, "/deliverability")
+	}
+	if !deliverability {
+		t.Fatalf("no way to Deliverability's checks: %+v", c.Fixes)
+	}
+	if c := checks["reputation.ip_blocklists.203.0.113.25"]; c.Status != readiness.Warn {
+		t.Fatalf("the checked IP lost its verdict: %+v", c)
+	}
+}
