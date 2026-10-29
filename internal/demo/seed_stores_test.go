@@ -2,40 +2,24 @@ package demo
 
 import (
 	"context"
-	"io"
-	"log/slog"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/commerce"
-	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
-	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
-	"github.com/hostrepute/reputecast/internal/testdb"
 )
 
 // The Shopify sample (brief 4, "Shopify: Acme Merch"): the numbers
 // IntegrationsShopify, CommerceStates and CommerceEmails show, read back
 // through the commerce service.
 func TestStoresSample(t *testing.T) {
-	if testing.Short() {
-		t.Skip("seeds the whole demo")
-	}
-	pool := testdb.New(t)
-	cfg := config.Defaults()
-	cfg.Files.Dir = t.TempDir() // the sample product files (X19)
-	box, err := secrets.New(make([]byte, 32))
-	if err != nil {
-		t.Fatal(err)
-	}
+	pool, box, at := seededSample(t)
 	ctx := context.Background()
-	if _, err := Seed(ctx, pool, &cfg, box, slog.New(slog.NewTextHandler(io.Discard, nil))); err != nil {
-		t.Fatalf("seed: %v", err)
-	}
 	q := store.New(pool)
 	ws, err := q.GetWorkspaceBySlug(ctx, "acme-newsletter")
 	if err != nil {
@@ -45,7 +29,8 @@ func TestStoresSample(t *testing.T) {
 	if err := pool.QueryRow(ctx, `SELECT id::text FROM stores WHERE name = 'Acme Merch'`).Scan(&id); err != nil {
 		t.Fatal(err)
 	}
-	svc := &commerce.Service{Pool: pool, Q: q, Box: box}
+	// Read as of the seed, as the boards show it.
+	svc := &commerce.Service{Pool: pool, Q: q, Box: box, Now: func() time.Time { return at }}
 	linh, err := q.GetUserByEmail(ctx, "linh@acme.io")
 	if err != nil {
 		t.Fatal(err)

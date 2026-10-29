@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	"github.com/hostrepute/reputecast/internal/config"
-	"github.com/hostrepute/reputecast/internal/secrets"
-	"github.com/hostrepute/reputecast/internal/testdb"
 )
 
 func TestSplitAddsUp(t *testing.T) {
@@ -24,21 +22,14 @@ func TestSplitAddsUp(t *testing.T) {
 	}
 }
 
-// The demo seed must run cleanly on a fresh database and be idempotent.
+// The demo seed must run cleanly on a fresh database (seededSample's) and
+// be idempotent.
 func TestSeed(t *testing.T) {
-	pool := testdb.New(t)
+	pool, box, _ := seededSample(t)
 	cfg := config.Defaults()
 	cfg.Files.Dir = t.TempDir() // the sample product files (X19)
-	box, err := secrets.New(make([]byte, 32))
-	if err != nil {
-		t.Fatal(err)
-	}
-	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	ctx := context.Background()
-	if _, err := Seed(ctx, pool, &cfg, box, log); err != nil {
-		t.Fatalf("seed: %v", err)
-	}
-	if _, err := Seed(ctx, pool, &cfg, box, log); err != nil {
+	if _, err := Seed(ctx, pool, &cfg, box, slog.New(slog.NewTextHandler(io.Discard, nil))); err != nil {
 		t.Fatalf("second seed must be a no-op: %v", err)
 	}
 	var campaigns int
