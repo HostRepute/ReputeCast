@@ -451,4 +451,11 @@
   .pv-unsaved .btn {
     min-height: 44px;
   }
+  /* The sending IPs dialog's buttons are 44 px, as ProvidersStates draws them. */
+  .pv-ipdlg .btn {
+    min-height: 44px;
+  }
+  .pv-ipdlg .btn.ic {
+    width: 44px;
+  }
 }

@@ -1706,6 +1706,11 @@
     transform: none;
     overflow: auto;
   }
+  /* The sheet's close button is 44 px, as ComposerStates draws it. */
+  .dlg.qsheet .btn.ic {
+    width: 44px;
+    min-height: 44px;
+  }
   .cmp.view-visual .cpanel.left,
   .cmp.view-visual .cpanel.right,
   .cmp.view-visual .istrip,

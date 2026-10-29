@@ -163,6 +163,7 @@ export function SendingIPsDialog({ card, onClose }: { card: ProviderCard; onClos
   return (
     <Dialog
       open
+      className="pv-ipdlg"
       onOpenChange={(o) => !o && onClose()}
       title={t(mo.ipsDialogTitle, { name: card.name })}
       description={t(mo.ipsDialogBody, { name: card.name })}
