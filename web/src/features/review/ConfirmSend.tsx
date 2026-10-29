@@ -10,7 +10,7 @@ import { mr } from '@/features/languages/messages'
 import { newIPsText } from '@/features/live/canary'
 import { mc } from '@/features/live/canary.messages'
 import { formatList, useT } from '@/i18n'
-import { acknowledgedKeys, acknowledgements, dismissedWarnings, minutes, scheduleSentence, thresholdsLine, verdictTitle, type Check, type Fix, type Review, type Run } from './logic'
+import { acknowledgedKeys, acknowledgements, dismissedWarnings, minutes, scheduleSentence, thresholdsLine, verdictName, type Check, type Fix, type Review, type Run } from './logic'
 import { m } from './messages'
 
 export type Canary = 'auto' | 'on' | 'off'
@@ -164,7 +164,7 @@ export function ConfirmSend({
           <RDialog.Content className="rv-confirm" aria-describedby={`${id}-d`} onPointerDownOutside={(e) => e.preventDefault()}>
             <section className="c-head">
               <Badge tone={run.verdict === 'warnings' ? 'warn' : 'ok'} dot className="self-start">
-                {verdictTitle(run.verdict)}
+                {verdictName(run)}
               </Badge>
               <RDialog.Title className="c-title">{title}</RDialog.Title>
               <RDialog.Description id={`${id}-d`} className="text-ink-2">

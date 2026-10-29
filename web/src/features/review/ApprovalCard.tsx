@@ -10,7 +10,7 @@ import { monthDayTime } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useMe, useWorkspace } from '@/lib/session'
 import { approverNames, DiffLines, MiniBanner, PersonLine, unchangedSentence } from '@/features/approvals/parts'
-import { acknowledgedKeys, acknowledgements, agoWords, countsShort, linkParts, scheduleShort, statusWord, verdictTitle, waitWords, type Review, type Run } from './logic'
+import { acknowledgedKeys, acknowledgements, agoWords, countsShort, linkParts, scheduleShort, statusWord, verdictName, verdictTitle, waitWords, type Review, type Run } from './logic'
 import { m } from './messages'
 import { AppHref, whenText } from './parts'
 
@@ -120,7 +120,7 @@ export function RequiredCard({
   const prev = a.request && ['changes_requested', 'rejected'].includes(a.request.status) ? a.request : undefined
   return (
     <Shell review={review} run={run} title={t(m.requiredTitle)} id="rv-approval">
-      <MiniBanner tone="warn" title={verdictTitle(run.verdict)}>
+      <MiniBanner tone="warn" title={verdictName(run)}>
         {countsShort(run.counts)}
       </MiniBanner>
       {prev ? (
@@ -188,7 +188,7 @@ export function WaitingCard({
   const mine = req.requestedBy.name === me?.user.name
   return (
     <Shell review={review} run={run} title={t(m.waitingTitle)} id="rv-approval">
-      <MiniBanner tone="warn" title={verdictTitle(run.verdict)}>
+      <MiniBanner tone="warn" title={verdictName(run)}>
         {t(m.snapshotLocked, { version: req.version })}
       </MiniBanner>
       <div className="card ap-inner">

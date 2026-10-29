@@ -23,6 +23,7 @@ import {
   skippedKind,
   thresholdError,
   verdictHeading,
+  verdictName,
   verdictShort,
   waitShort,
   waitWords,
@@ -70,6 +71,11 @@ describe('verdict copy', () => {
     expect(verdictHeading({ ...ready, checks: [skipped('links.blocklists'), skipped('content.compile')] })).toBe('Ready · 2 checks skipped')
     expect(verdictHeading({ ...ready, checks: [skipped('accessibility.run')] })).toBe('Ready · 1 check skipped')
     expect(verdictHeading({ ...ready, verdict: 'blocked', counts: { ...counts, blocks: 1 } })).toBe('Blocked · 1 to fix')
+    // Cards and badges name the verdict without counts, and say what was skipped too.
+    expect(verdictName(ready)).toBe('Ready · blocklist checks skipped')
+    expect(verdictName({ ...ready, verdict: 'warnings', checks: [skipped('links.blocklists'), skipped('links.respond')] })).toBe('Ready with warnings · 2 checks skipped')
+    expect(verdictName({ ...ready, unknownAcceptedAt: undefined, verdict: 'warnings' })).toBe('Ready with warnings')
+    expect(verdictName({ ...ready, verdict: 'blocked' })).toBe('Blocked')
   })
 
   it('puts the schedule in the main action (SR-13)', () => {

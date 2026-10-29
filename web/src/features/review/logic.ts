@@ -67,6 +67,17 @@ export function verdictTitle(v: Verdict): string {
   return v === 'blocked' ? t(m.verdictBlocked) : v === 'warnings' ? t(m.verdictWarnings) : t(m.verdictReady)
 }
 
+/**
+ * The verdict's name where a card or badge shows it: "Ready with warnings",
+ * or, once someone chose to send without checks that couldn't run, what was
+ * skipped as well ("Ready with warnings · 1 check skipped"), never just
+ * "Ready" (review R1.U8).
+ */
+export function verdictName(run: Run): string {
+  const skipped = Boolean(run.unknownAcceptedAt) && run.verdict !== 'blocked' && run.checks.some((c) => c.status === 'unknown')
+  return skipped ? verdictHeading(run) : verdictTitle(run.verdict)
+}
+
 /** A campaign's status in the header badge: "Draft", "Waiting for approval", "Scheduled". */
 export function campaignWord(status: string): string {
   const words: Record<string, Parameters<typeof t>[0]> = {
