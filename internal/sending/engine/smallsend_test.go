@@ -80,6 +80,7 @@ func testSmallSendComplaints(t *testing.T, f *sendtest.Fixture) {
 // floors' 500 delivered.
 func testSmallSendWatch(t *testing.T, f *sendtest.Fixture) {
 	f.Exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.Campaign)
+	limitsOutOfReach(f)
 	f.AddContacts(sendtest.ContactSpec{N: 300, Mailbox: "outlook", Domain: "hotmail.com", Engaged: true})
 	f.StartSend(engine.StartOptions{})
 	end, done, err := f.E.Drive(f.Ctx, f.Campaign, f.Start, 30*time.Minute)
@@ -90,6 +91,7 @@ func testSmallSendWatch(t *testing.T, f *sendtest.Fixture) {
 		f.Dump()
 		t.Fatalf("send not finished: %s", f.Status())
 	}
+	defaultLimits(f)
 	setClock(t, f, end.Add(12*time.Hour))
 	f.Exec(`UPDATE campaign_counters SET complained = 2 WHERE campaign_id = $1 AND mailbox_provider = 'outlook' AND delivered > 0
 		AND provider_id = (SELECT provider_id FROM campaign_counters WHERE campaign_id = $1 AND mailbox_provider = 'outlook' AND delivered > 0 LIMIT 1)`, f.Campaign)

@@ -12,12 +12,27 @@ import (
 	"github.com/hostrepute/reputecast/internal/sending/sendtest"
 )
 
+// limitsOutOfReach keeps a send that isn't under test going. The demo
+// transport draws block bounces and complaints at random, and a few of
+// them among the first hundreds sent to Outlook are clearly over their
+// limits (about one run in a hundred), which pauses Outlook. defaultLimits
+// gives the finished send back the defaults: the complaint watch judges by
+// the send's limits.
+func limitsOutOfReach(f *sendtest.Fixture) {
+	f.Exec(`UPDATE campaigns SET thresholds = '{"block_bounce": 20, "complaint": 5, "mailbox_complaint": 5}' WHERE id = $1`, f.Campaign)
+}
+
+func defaultLimits(f *sendtest.Fixture) {
+	f.Exec(`UPDATE campaign_sends SET thresholds = '{}' WHERE campaign_id = $1`, f.Campaign)
+}
+
 // testComplaintWatch: complaints keep arriving after a send ends. The send
 // is watched for 72 hours; Outlook passing its complaint limit with enough
 // evidence alerts the people who can resume sends, once, and they
 // acknowledge it. Gmail's complaints read "not reported", never 0%.
 func testComplaintWatch(t *testing.T, f *sendtest.Fixture) {
 	f.Exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.Campaign)
+	limitsOutOfReach(f)
 	f.AddContacts(
 		sendtest.ContactSpec{N: 700, Mailbox: "outlook", Domain: "hotmail.com", Engaged: true},
 		sendtest.ContactSpec{N: 300, Mailbox: "gmail", Domain: "gmail.com", Engaged: true},
@@ -31,6 +46,7 @@ func testComplaintWatch(t *testing.T, f *sendtest.Fixture) {
 		f.Dump()
 		t.Fatalf("send not finished: %s", f.Status())
 	}
+	defaultLimits(f)
 	var until *time.Time
 	if err := f.Env.App.Pool.QueryRow(f.Ctx, `SELECT watch_until FROM campaign_sends WHERE campaign_id = $1`, f.Campaign).Scan(&until); err != nil {
 		t.Fatal(err)
