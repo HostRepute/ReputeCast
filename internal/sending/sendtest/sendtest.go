@@ -292,3 +292,31 @@ func (f *Fixture) Drive(d time.Duration) (time.Time, bool) {
 	}
 	return at, done
 }
+
+// DriveWithout is Drive a second at a time, dropping what the demo
+// transport plans of these kinds (delivered, deferred, hard_bounce,
+// soft_bounce, complaint, open, click; every kind with none) before any of
+// it comes due, so the test scripts those outcomes itself. Each second the
+// engine sends, then applies the events due by then; an event comes due
+// 0.6 s after its message went out at the earliest, so what a second's
+// sends planned is dropped before the next second could apply it.
+func (f *Fixture) DriveWithout(d time.Duration, kinds ...string) (time.Time, bool) {
+	f.T.Helper()
+	at, end := f.Start, f.Start.Add(d)
+	for at.Before(end) {
+		next, done, err := f.E.Drive(f.Ctx, f.Campaign, at, min(time.Second, end.Sub(at)))
+		if err != nil {
+			f.T.Fatalf("drive: %v", err)
+		}
+		if len(kinds) == 0 {
+			f.Exec(`DELETE FROM sending_sim_events WHERE campaign_id = $1`, f.Campaign)
+		} else {
+			f.Exec(`DELETE FROM sending_sim_events WHERE campaign_id = $1 AND kind = ANY($2)`, f.Campaign, kinds)
+		}
+		if done {
+			return next, true
+		}
+		at = next
+	}
+	return at, false
+}

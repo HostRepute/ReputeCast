@@ -9,9 +9,10 @@ import (
 )
 
 // HandedOver sends the fixture's campaign to its contacts (without the
-// A/B test) until every message is with a provider, then drops what the
-// demo transport planned for them, so a test scripts their deliveries,
-// opens and clicks itself. It returns the messages in id order.
+// A/B test) until every message is with a provider, and drops what the
+// demo transport plans for them before any of it comes due (a chance
+// bounce or complaint would suppress the address), so a test scripts their
+// deliveries, opens and clicks itself. It returns the messages in id order.
 func (f *Fixture) HandedOver(specs ...ContactSpec) []uuid.UUID {
 	f.T.Helper()
 	f.Exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.Campaign)
@@ -21,21 +22,16 @@ func (f *Fixture) HandedOver(specs ...ContactSpec) []uuid.UUID {
 	}
 	f.AddContacts(specs...)
 	f.StartSend(engine.StartOptions{})
-	f.Drive(time.Minute)
+	f.DriveWithout(time.Minute)
 	if got := f.Count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND sent_at IS NOT NULL`, f.Campaign); got != int64(n) {
 		f.Dump()
 		f.T.Fatalf("%d of %d sent", got, n)
 	}
-	f.Exec(`DELETE FROM sending_sim_events WHERE campaign_id = $1`, f.Campaign)
-	f.Exec(`UPDATE messages SET status = 'sent', delivered_at = NULL, deferred_at = NULL, soft_bounced_at = NULL, opened_at = NULL,
-		human_opened_at = NULL, privacy_opened_at = NULL, clicked_at = NULL, unsubscribed_at = NULL WHERE campaign_id = $1`, f.Campaign)
-	f.Exec(`UPDATE campaign_counters SET delivered = 0, deferred = 0, hard_bounced = 0, soft_bounced = 0, complained = 0, rejected = 0,
-		opened_human = 0, opened_privacy = 0, opened_machine = 0, clicked = 0, unsubscribed = 0 WHERE campaign_id = $1`, f.Campaign)
-	f.Exec(`UPDATE campaign_links SET clicks = 0, unique_clicks = 0, bot_clicks = 0 WHERE campaign_id = $1`, f.Campaign)
-	f.Exec(`DELETE FROM campaign_hourly WHERE campaign_id = $1`, f.Campaign)
-	f.Exec(`DELETE FROM tracking_pending_clicks WHERE message_id IN (SELECT id FROM messages WHERE campaign_id = $1)`, f.Campaign)
-	f.Exec(`DELETE FROM tracking_link_clicks WHERE message_id IN (SELECT id FROM messages WHERE campaign_id = $1)`, f.Campaign)
-	f.Exec(`DELETE FROM delivery_events WHERE campaign_id = $1`, f.Campaign)
+	if got := f.Count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND (status <> 'sent' OR delivered_at IS NOT NULL OR deferred_at IS NOT NULL
+		OR soft_bounced_at IS NOT NULL OR opened_at IS NOT NULL OR clicked_at IS NOT NULL)`, f.Campaign); got != 0 {
+		f.Dump()
+		f.T.Fatalf("the demo transport reported on %d messages", got)
+	}
 	rows, err := f.Env.App.Pool.Query(f.Ctx, `SELECT id FROM messages WHERE campaign_id = $1 ORDER BY id`, f.Campaign)
 	if err != nil {
 		f.T.Fatal(err)
