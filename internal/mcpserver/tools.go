@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
 	"net/mail"
 	"sort"
 	"strings"
@@ -99,13 +98,6 @@ func (s *Service) findCampaign(ctx context.Context, ws uuid.UUID, r string) (sto
 		return c, fmt.Errorf("no campaign named or with id %q in this workspace", r)
 	}
 	return c, err
-}
-
-func pct(n, d int64) float64 {
-	if d <= 0 {
-		return 0
-	}
-	return math.Round(float64(n)/float64(d)*1000) / 10
 }
 
 // tool wraps a handler with authentication, the permission check and the audit entry.
@@ -203,50 +195,6 @@ func (s *Service) addTools(srv *mcp.Server) {
 		e.detailText = keep("detail.count", i18n.Args{"n": len(rows), "total": list.Total})
 		return map[string]any{"campaigns": rows, "total": list.Total}, e, nil
 	}, nil)
-
-	tool(s, srv, "get_campaign_report", authz.ReportsView, func(ctx context.Context, c *agentCall, in CampaignRef) (any, entry, error) {
-		e := entry{action: "report.read", targetType: "campaign", targetName: in.Campaign}
-		cp, err := s.findCampaign(ctx, c.Workspace.ID, in.Campaign)
-		if err != nil {
-			return nil, e, err
-		}
-		e.targetID, e.targetName = cp.ID.String(), cp.Name
-		if s.Reports != nil {
-			// The report the app and the API show (review AN-14).
-			r, err := s.Reports.Report(ctx, &c.Workspace, cp.ID)
-			if err != nil {
-				return nil, e, err
-			}
-			return reportOut(r), e, nil
-		}
-		t, err := s.Q.McpCampaignTotals(ctx, cp.ID)
-		if err != nil {
-			return nil, e, err
-		}
-		byProv, err := s.Q.McpCampaignByProvider(ctx, cp.ID)
-		if err != nil {
-			return nil, e, err
-		}
-		byBox, err := s.Q.McpCampaignByMailbox(ctx, cp.ID)
-		if err != nil {
-			return nil, e, err
-		}
-		provs := []map[string]any{}
-		for _, p := range byProv {
-			provs = append(provs, map[string]any{"sending_provider": p.Provider, "sent": p.Sent, "delivered_pct": pct(p.Delivered, p.Sent), "bounce_pct": pct(p.Bounced, p.Sent), "complaint_pct": pct(p.Complained, p.Delivered)})
-		}
-		boxes := []map[string]any{}
-		for _, b := range byBox {
-			boxes = append(boxes, map[string]any{"mailbox_provider": b.MailboxProvider, "sent": b.Sent, "share_pct": pct(b.Sent, t.Sent), "human_opens_pct": pct(b.OpenedHuman, b.Delivered), "complaint_pct": pct(b.Complained, b.Delivered)})
-		}
-		return map[string]any{
-			"campaign": cp.Name, "status": cp.Status, "subject": cp.Subject, "sent": t.Sent, "delivered": t.Delivered,
-			"delivered_pct": pct(t.Delivered, t.Sent), "human_opens_pct": pct(t.OpenedHuman, t.Delivered), "machine_opens_pct": pct(t.OpenedMachine, t.Delivered),
-			"clicks_pct": pct(t.Clicked, t.Delivered), "bounce_pct": pct(t.Bounced, t.Sent), "complaint_pct": math.Round(float64(t.Complained)/math.Max(float64(t.Delivered), 1)*10000) / 100,
-			"unsubscribes": t.Unsubscribed, "by_sending_provider": provs, "by_mailbox_provider": boxes,
-			"note": "Human opens exclude Apple Mail Privacy Protection prefetches, which are counted as machine opens.",
-		}, e, nil
-	}, s.campaignTarget("report.read"))
 
 	tool(s, srv, "get_send_readiness", authz.CampaignsView, func(ctx context.Context, c *agentCall, in CampaignRef) (any, entry, error) {
 		e := entry{action: "readiness.read", targetType: "campaign", targetName: in.Campaign}

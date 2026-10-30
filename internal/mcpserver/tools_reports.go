@@ -130,6 +130,19 @@ func (s *Service) addReportTools(srv *mcp.Server) {
 	if s.Reports == nil {
 		return
 	}
+	tool(s, srv, "get_campaign_report", authz.ReportsView, func(ctx context.Context, c *agentCall, in CampaignRef) (any, entry, error) {
+		e := entry{action: "report.read", targetType: "campaign", targetName: in.Campaign}
+		cp, err := s.findCampaign(ctx, c.Workspace.ID, in.Campaign)
+		if err != nil {
+			return nil, e, err
+		}
+		e.targetID, e.targetName = cp.ID.String(), cp.Name
+		r, err := s.Reports.Report(ctx, &c.Workspace, cp.ID)
+		if err != nil {
+			return nil, e, err
+		}
+		return reportOut(r), e, nil
+	}, s.campaignTarget("report.read"))
 	tool(s, srv, "share_campaign_report", authz.ReportsShare, func(ctx context.Context, c *agentCall, in shareReportIn) (any, entry, error) {
 		e := entry{action: "report_share.create", targetType: "campaign", targetName: in.Campaign}
 		cp, err := s.findCampaign(ctx, c.Workspace.ID, in.Campaign)
