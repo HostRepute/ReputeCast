@@ -104,6 +104,23 @@ func TestSplitPackageRunsEachTestOnce(t *testing.T) {
 	}
 }
 
+func TestSplitPackageSpreadsItsHeavyTests(t *testing.T) {
+	// A package's tests run one after another: TestA and TestB go to
+	// different shards, though dealing by total time alone would put both
+	// beside the 150-second package's shard.
+	tm := times{pkgs: map[string]float64{"m/x": 150}, tests: map[string]map[string]float64{"m/big": {"TestA": 100, "TestB": 60}}}
+	shards := split([]string{"m/big", "m/x"}, tm, 2)
+	for _, ls := range shards {
+		for _, l := range ls {
+			if l.pkg == "m/big" {
+				if got := ran(t, l, []string{"TestA", "TestB"}); len(got) != 1 {
+					t.Fatalf("one shard runs %v of m/big: %v", got, shards)
+				}
+			}
+		}
+	}
+}
+
 func TestSplitPackageInOneShardRunsWhole(t *testing.T) {
 	tm := times{pkgs: map[string]float64{}, tests: map[string]map[string]float64{"m/big": {"TestA": 1, "TestB": 1}}}
 	shards := split([]string{"m/big"}, tm, 1)

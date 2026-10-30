@@ -8,13 +8,13 @@
 // import/path" lines); a package the file doesn't list weighs the median.
 // The file can also time a package's tests one by one ("seconds
 // import/path TestName" lines). Such a package is split: its tests are
-// dealt like packages, and each shard that gets some of them prints
+// dealt to the shards, and each shard that gets some of them prints
 // "import/path run regexp" naming them, which the package's TestMain
-// applies (internal/testsplit). The shard with most of the package's time
-// prints "import/path skip regexp" with the other shards' tests instead, so
-// a test the file doesn't time yet runs there. Packages and tests are dealt
-// heaviest first, each to the shard with the least time so far, so
-// everything runs in exactly one shard whatever the file says.
+// applies (internal/testsplit). The shard with the least of the package's
+// time prints "import/path skip regexp" with the other shards' tests
+// instead, so a test the file doesn't time yet runs there. Tests and
+// packages are dealt heaviest first, so everything runs in exactly one
+// shard whatever the file says.
 //
 //	go test -race -count=1 -json ./... | go run ./scripts/testshard -record -split import/path
 //
@@ -113,20 +113,23 @@ func (l line) String() string {
 	return l.pkg + " " + l.mode + " " + l.re
 }
 
-// split deals the packages, and the tests of the packages timed test by
-// test, heaviest first, each to the shard with the least time so far (the
-// first on a tie), and returns each shard's lines in package order.
+// split deals the tests of the packages timed test by test first: a
+// package's tests run one after another, so each goes, heaviest first, to
+// the shard with the least of that package's time so far (then the least
+// time, then the first). The other packages follow, heaviest first, each to
+// the shard with the least time so far (the first on a tie). It returns
+// each shard's lines in package order.
 func split(pkgs []string, t times, n int) [][]line {
 	fallback := median(t.pkgs)
 	type item struct {
 		pkg, test string
 		w         float64
 	}
-	var items []item
+	var tests, whole []item
 	for _, p := range pkgs {
-		if tests := t.tests[p]; len(tests) > 0 {
-			for name, w := range tests {
-				items = append(items, item{p, name, w})
+		if ts := t.tests[p]; len(ts) > 0 {
+			for name, w := range ts {
+				tests = append(tests, item{p, name, w})
 			}
 			continue
 		}
@@ -134,22 +137,41 @@ func split(pkgs []string, t times, n int) [][]line {
 		if !ok {
 			w = fallback
 		}
-		items = append(items, item{p, "", w})
+		whole = append(whole, item{p, "", w})
 	}
-	sort.Slice(items, func(i, j int) bool {
-		a, b := items[i], items[j]
-		if a.w != b.w {
-			return a.w > b.w
-		}
-		if a.pkg != b.pkg {
-			return a.pkg < b.pkg
-		}
-		return a.test < b.test
-	})
+	for _, items := range [][]item{tests, whole} {
+		sort.Slice(items, func(i, j int) bool {
+			a, b := items[i], items[j]
+			if a.w != b.w {
+				return a.w > b.w
+			}
+			if a.pkg != b.pkg {
+				return a.pkg < b.pkg
+			}
+			return a.test < b.test
+		})
+	}
 	totals := make([]float64, n)
-	whole := make([][]string, n)
+	own := map[string][]float64{}    // split package → its time per shard
 	parts := map[string][][]string{} // split package → its tests per shard
-	for _, it := range items {
+	for _, it := range tests {
+		if own[it.pkg] == nil {
+			own[it.pkg] = make([]float64, n)
+			parts[it.pkg] = make([][]string, n)
+		}
+		o := own[it.pkg]
+		k := 0
+		for i := 1; i < n; i++ {
+			if o[i] < o[k] || (o[i] == o[k] && totals[i] < totals[k]) {
+				k = i
+			}
+		}
+		o[k] += it.w
+		totals[k] += it.w
+		parts[it.pkg][k] = append(parts[it.pkg][k], it.test)
+	}
+	out := make([][]line, n)
+	for _, it := range whole {
 		k := 0
 		for i := 1; i < n; i++ {
 			if totals[i] < totals[k] {
@@ -157,23 +179,10 @@ func split(pkgs []string, t times, n int) [][]line {
 			}
 		}
 		totals[k] += it.w
-		if it.test == "" {
-			whole[k] = append(whole[k], it.pkg)
-			continue
-		}
-		if parts[it.pkg] == nil {
-			parts[it.pkg] = make([][]string, n)
-		}
-		parts[it.pkg][k] = append(parts[it.pkg][k], it.test)
-	}
-	out := make([][]line, n)
-	for k := range n {
-		for _, p := range whole[k] {
-			out[k] = append(out[k], line{pkg: p})
-		}
+		out[k] = append(out[k], line{pkg: it.pkg})
 	}
 	for p, byShard := range parts {
-		for k, l := range partLines(p, byShard, t.tests[p]) {
+		for k, l := range partLines(p, byShard, own[p]) {
 			if l.pkg != "" {
 				out[k] = append(out[k], l)
 			}
@@ -186,22 +195,18 @@ func split(pkgs []string, t times, n int) [][]line {
 }
 
 // partLines says what each shard runs of a split package: all of it when
-// one shard got all its tests; otherwise the shard with most of its time
-// skips the others' tests, and the others run theirs.
-func partLines(pkg string, byShard [][]string, w map[string]float64) []line {
+// one shard got all its tests; otherwise the shard with the least of its
+// time skips the others' tests, and the others run theirs.
+func partLines(pkg string, byShard [][]string, own []float64) []line {
 	out := make([]line, len(byShard))
-	home, homeW, used := -1, -1.0, 0
+	home, used := -1, 0
 	for k, tests := range byShard {
 		if len(tests) == 0 {
 			continue
 		}
 		used++
-		var sum float64
-		for _, name := range tests {
-			sum += w[name]
-		}
-		if sum > homeW {
-			home, homeW = k, sum
+		if home < 0 || own[k] < own[home] {
+			home = k
 		}
 	}
 	if used == 1 {
