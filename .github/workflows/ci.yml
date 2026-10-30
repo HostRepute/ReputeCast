@@ -90,7 +90,9 @@ jobs:
       - name: go test (shard ${{ matrix.shard }} of 3)
         run: |
           pkgs=$(go list ./... | go run ./scripts/testshard -shard ${{ matrix.shard }} -of 3)
-          echo "$(wc -w <<<"$pkgs") packages"
+          echo "::group::$(wc -w <<<"$pkgs") packages in this shard"
+          echo "$pkgs"
+          echo "::endgroup::"
           go test -race -count=1 -timeout 45m $pkgs
 
   golangci:
