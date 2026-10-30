@@ -14,6 +14,9 @@ PG_PORT   ?= $(shell grep -s '^PG_PORT=' .env | cut -d= -f2 || true)
 PG_PORT   := $(if $(PG_PORT),$(PG_PORT),5432)
 DEV_DB    ?= postgres://reputecast:reputecast@localhost:$(PG_PORT)/reputecast?sslmode=disable
 TEST_DB   ?= postgres://reputecast:reputecast@localhost:$(PG_PORT)/postgres?sslmode=disable
+# Packages CI splits test by test across its shards; each calls testsplit.Main
+# from its TestMain.
+SPLIT_TESTS := github.com/hostrepute/reputecast/internal/approvals
 
 export REPUTECAST_ENV ?= development
 
@@ -66,7 +69,8 @@ test-go: ## Go unit and integration tests (uses the compose Postgres when runnin
 test-durations: ## Time each Go package's tests, which CI splits its Go jobs by
 	@if docker compose ps --status running postgres 2>/dev/null | grep -q postgres; then \
 	  export REPUTECAST_TEST_DATABASE_URL="$(TEST_DB)"; fi; \
-	$(GO) test -race -count=1 -timeout 45m -json ./... | $(GO) run ./scripts/testshard -record > .github/go-test-durations.txt.new && \
+	$(GO) test -p 2 -race -count=1 -timeout 45m -json ./... | \
+	  $(GO) run ./scripts/testshard -record -split $(SPLIT_TESTS) > .github/go-test-durations.txt.new && \
 	  mv .github/go-test-durations.txt.new .github/go-test-durations.txt
 
 .PHONY: test-web
