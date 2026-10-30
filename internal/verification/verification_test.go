@@ -25,9 +25,12 @@ import (
 // (valid…, invalid…, catchall…, role…, disposable…, unknown…), and can fail
 // after a number of checks.
 type fakeKickbox struct {
-	mu         sync.Mutex
-	checks     int
-	failAfter  int // fail every check after this many (0: never)
+	mu        sync.Mutex
+	checks    int
+	failAfter int // fail every check after this many (0: never)
+	// failFrom fails every address that sorts from this one on, whatever
+	// order the parallel checks arrive in ("": none).
+	failFrom   string
 	failStatus int
 	failBody   string
 	delay      time.Duration
@@ -52,19 +55,20 @@ func (f *fakeKickbox) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if delay > 0 {
 		time.Sleep(delay)
 	}
+	email := r.URL.Query().Get("email")
 	f.mu.Lock()
 	f.checks++
-	n, after, status, body := f.checks, f.failAfter, f.failStatus, f.failBody
-	if after == 0 || n <= after {
+	fail := (f.failAfter > 0 && f.checks > f.failAfter) || (f.failFrom != "" && email >= f.failFrom)
+	status, body := f.failStatus, f.failBody
+	if !fail {
 		f.balance--
 	}
 	f.mu.Unlock()
-	if after > 0 && n > after {
+	if fail {
 		w.WriteHeader(status)
 		_, _ = w.Write([]byte(body))
 		return
 	}
-	email := r.URL.Query().Get("email")
 	local := strings.SplitN(email, "@", 2)[0]
 	a := map[string]any{"result": "deliverable", "reason": "accepted_email", "email": email, "success": true}
 	switch {
@@ -393,8 +397,11 @@ func TestPartialResultsOutageAndCredits(t *testing.T) {
 	}
 
 	// Out of credits: the job stops, keeps its results and resumes later.
+	// The outage left the first addresses checked, in order; the balance
+	// runs out ten addresses into the rest.
 	kb.set(func(k *fakeKickbox) {
-		k.checks, k.failAfter, k.failStatus, k.failBody = 0, 10, http.StatusForbidden, `{"success":false,"message":"Insufficient balance"}`
+		k.failAfter, k.failFrom = 0, fmt.Sprintf("valid%02d@x.test", partial+10)
+		k.failStatus, k.failBody = http.StatusForbidden, `{"success":false,"message":"Insufficient balance"}`
 	})
 	j, err = f.svc.Start(f.ctx, &f.ws, verification.VerificationStartInput{Target: verification.VerificationTarget{Kind: "tier", Tiers: []string{"at_risk"}}})
 	if err != nil {
@@ -402,10 +409,10 @@ func TestPartialResultsOutageAndCredits(t *testing.T) {
 	}
 	id = uuid.MustParse(j.ID)
 	j, _ = f.svc.Job(f.ctx, &f.ws, id)
-	if j.Status != "stopped" || j.StopReason != "no_credits" || j.Checked == 0 || j.Checked >= j.Total {
+	if j.Status != "stopped" || j.StopReason != "no_credits" || j.Skipped != partial || j.Checked != 10 {
 		t.Fatalf("out of credits = %+v", j)
 	}
-	kb.set(func(k *fakeKickbox) { k.failAfter, k.balance = 0, 5000 })
+	kb.set(func(k *fakeKickbox) { k.failFrom, k.balance = "", 5000 })
 	if j, err = f.svc.Resume(f.ctx, &f.ws, id); err != nil {
 		t.Fatal(err)
 	}

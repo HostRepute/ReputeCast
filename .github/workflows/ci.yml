@@ -74,6 +74,8 @@ jobs:
           go run ./cmd/reputecast openapi > web/openapi.json
           git diff --exit-code -- internal/store web/openapi.json
       - run: go vet ./...
+      # Failing tests and their messages as annotations on the pull request.
+      - run: echo "::add-matcher::.github/go-test-matcher.json"
       # Under -race the demo-heavy packages take longer than go test's
       # default 10 minutes per package on a CI runner.
       - run: go test -race -count=1 -timeout 45m ./...

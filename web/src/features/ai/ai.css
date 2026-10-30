@@ -986,6 +986,41 @@
     align-items: center;
     gap: 10px;
   }
+  /* "Every number matches this report", or the numbers that don't. */
+  .ai-numcheck {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .ai-numcheck.ok {
+    color: #166534;
+  }
+  .ai-numcheck.bad {
+    color: #991b1b;
+  }
+  /* Ask about this report, under the kept summary. */
+  .ai-ask {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 12px;
+    border-top: 1px solid #99f6e4;
+  }
+  .ai-kept > .ai-ask:first-child {
+    padding-top: 0;
+    border-top: 0;
+  }
+  .ai-answer {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+  }
   .ai-kept-hr {
     display: inline-flex;
     align-items: center;

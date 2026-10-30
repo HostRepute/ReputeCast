@@ -188,10 +188,12 @@ func condition(t *sqlText, c SegmentCondition, custom map[string]CustomField) {
 			t.raw("NOT ")
 		}
 		t.raw("EXISTS (SELECT 1 FROM events e WHERE e.contact_id = c.id" + indent)
+		// A person's opens and clicks only: machine opens, bot clicks and
+		// clicks still waiting to settle never match (review AN-2).
 		if c.Field == "opened" {
 			t.raw("AND e.type = 'open' AND e.human = true")
 		} else {
-			t.raw("AND e.type = 'click'")
+			t.raw("AND e.type = 'click' AND e.human = true")
 		}
 		t.raw(indent + "AND e.occurred_at >= " + interval(c) + ")")
 	case "opened_campaign":

@@ -5,6 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/templates"
 )
@@ -43,5 +46,26 @@ func TestStarterContentInTheEmailsLanguage(t *testing.T) {
 	src, ok := templates.StarterMJMLIn(i18n.For(i18n.Vietnamese), templates.BlogDigestStarter, "")
 	if !ok || strings.Contains(src, "%%") || !strings.Contains(src, `"buttonText":"Đọc bài viết"`) {
 		t.Fatalf("Vietnamese starter: %v %s", ok, src)
+	}
+}
+
+// An issue skipped because its owner lost a permission says what the owner
+// can no longer do, in the reader's words and never the permission key
+// (review X-1); what a person wrote stays as written.
+func TestSkipNoteInTheReadersLanguage(t *testing.T) {
+	en, vi := i18n.For(i18n.English), i18n.For(i18n.Vietnamese)
+	lostSend, lostEdit := ownerLostPrefix+string(authz.CampaignsSend), ownerLostPrefix+string(authz.CampaignsEdit)
+	someone := uuid.New()
+	cases := []struct{ name, got, want string }{
+		{"send", skipNoteIn(lostSend, nil, en), "the owner can no longer send campaigns"},
+		{"edit", skipNoteIn(lostEdit, nil, en), "the owner can no longer edit campaigns"},
+		{"send in Vietnamese", skipNoteIn(lostSend, nil, vi), "người phụ trách không còn gửi được chiến dịch"},
+		{"edit in Vietnamese", skipNoteIn(lostEdit, nil, vi), "người phụ trách không còn sửa được chiến dịch"},
+		{"a person's note", skipNoteIn("Holiday week", &someone, vi), "Holiday week"},
+	}
+	for _, c := range cases {
+		if c.got != c.want {
+			t.Errorf("%s: %q, want %q", c.name, c.got, c.want)
+		}
 	}
 }

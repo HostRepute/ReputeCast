@@ -59,7 +59,7 @@ func Shared(ctx context.Context, key string, fill func(pool *pgxpool.Pool, dir s
 	if _, err := admin.Exec(ctx, `CREATE DATABASE `+name+` TEMPLATE `+templateName); err != nil {
 		return "", "", err
 	}
-	pool, err := pgxpool.New(ctx, withDB(baseURL, name))
+	pool, err := newPool(ctx, withDB(baseURL, name))
 	if err == nil {
 		err = fill(pool, dir)
 		pool.Close()

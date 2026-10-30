@@ -64,16 +64,16 @@ func (s *Service) Export(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			`SELECT name, description, double_opt_in::text, requires_approval::text, to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at`},
 		{"suppressions.csv", []string{"email", "reason", "source", "original_code", "detail", "created_at"},
 			`SELECT email, reason, source, original_code, detail, to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') FROM suppressions WHERE workspace_id = $1 ORDER BY created_at`},
-		{"campaigns.csv", []string{"name", "status", "subject", "preheader", "audience_count", "sent", "delivered", "human_opens", "machine_opens", "clicks", "bounces", "complaints", "unsubscribes", "scheduled_at", "started_at", "completed_at"},
+		{"campaigns.csv", []string{"name", "status", "subject", "preheader", "audience_count", "sent", "delivered", "human_opens", "privacy_protected_opens", "machine_opens", "clicks", "bounces", "complaints", "unsubscribes", "scheduled_at", "started_at", "completed_at"},
 			`SELECT c.name, c.status, c.subject, c.preheader, coalesce(c.audience_count::text, ''),
-			        coalesce(sum(k.sent), 0)::text, coalesce(sum(k.delivered), 0)::text, coalesce(sum(k.opened_human), 0)::text, coalesce(sum(k.opened_machine), 0)::text,
+			        coalesce(sum(k.sent), 0)::text, coalesce(sum(k.delivered), 0)::text, coalesce(sum(k.opened_human), 0)::text, coalesce(sum(k.opened_privacy), 0)::text, coalesce(sum(k.opened_machine), 0)::text,
 			        coalesce(sum(k.clicked), 0)::text, coalesce(sum(k.hard_bounced + k.soft_bounced), 0)::text, coalesce(sum(k.complained), 0)::text, coalesce(sum(k.unsubscribed), 0)::text,
 			        coalesce(to_char(c.scheduled_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), ''), coalesce(to_char(c.started_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), ''),
 			        coalesce(to_char(c.completed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), '')
 			 FROM campaigns c LEFT JOIN campaign_counters k ON k.campaign_id = c.id
 			 WHERE c.workspace_id = $1 AND c.deleted_at IS NULL GROUP BY c.id ORDER BY c.created_at`},
-		{"reports.csv", []string{"campaign", "sending_provider", "mailbox_provider", "sent", "delivered", "human_opens", "machine_opens", "clicks", "hard_bounces", "soft_bounces", "complaints", "unsubscribes"},
-			`SELECT c.name, coalesce(p.name, ''), k.mailbox_provider, k.sent::text, k.delivered::text, k.opened_human::text, k.opened_machine::text, k.clicked::text,
+		{"reports.csv", []string{"campaign", "sending_provider", "mailbox_provider", "sent", "delivered", "human_opens", "privacy_protected_opens", "machine_opens", "clicks", "hard_bounces", "soft_bounces", "complaints", "unsubscribes"},
+			`SELECT c.name, coalesce(p.name, ''), k.mailbox_provider, k.sent::text, k.delivered::text, k.opened_human::text, k.opened_privacy::text, k.opened_machine::text, k.clicked::text,
 			        k.hard_bounced::text, k.soft_bounced::text, k.complained::text, k.unsubscribed::text
 			 FROM campaign_counters k JOIN campaigns c ON c.id = k.campaign_id LEFT JOIN providers p ON p.id = k.provider_id
 			 WHERE c.workspace_id = $1 ORDER BY c.created_at, p.name, k.mailbox_provider`},

@@ -42,6 +42,11 @@ func (r *Registry) Every(d time.Duration, fn func() (river.JobArgs, *river.Inser
 	r.Periodic = append(r.Periodic, river.NewPeriodicJob(river.PeriodicInterval(d), fn, &river.PeriodicJobOpts{RunOnStart: runOnStart}))
 }
 
+// SoftStopTimeout is how long running jobs may finish when the worker
+// stops, before their context is cancelled. It stays under the HTTP
+// shutdown timeout (20 s by default), after which the process exits.
+const SoftStopTimeout = 10 * time.Second
+
 // Options configures the client.
 type Options struct {
 	Run         bool // run workers (worker role); false = insert-only
@@ -57,6 +62,11 @@ func NewClient(pool *pgxpool.Pool, reg *Registry, o Options) (*Client, error) {
 		JobTimeout:   10 * time.Minute,
 		MaxAttempts:  12,
 		ErrorHandler: &errorHandler{log: o.Logger},
+		// Stopping (SIGTERM, a deploy) is graceful: no new job is fetched,
+		// and running jobs get SoftStopTimeout to finish before their
+		// context is cancelled. A send loop then stops between batches,
+		// with the batch in flight sent and recorded (internal/sending).
+		SoftStopTimeout: SoftStopTimeout,
 	}
 	if o.Run {
 		c := max(o.Concurrency, 4)

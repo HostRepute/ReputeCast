@@ -590,7 +590,18 @@ func (h *Handler) issue(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodHead {
 		_, _ = w.Write([]byte(doc)) //nolint:gosec // the publisher's own email, served under a no-script CSP; inserted values are escaped
 	}
+	// The issue's web views (review AN-13): counted on the server like the
+	// website's pages, once per visitor and day from a daily salted hash of
+	// the address and browser, without cookies; crawlers and prefetches
+	// don't count.
+	if h.Website != nil {
+		h.Website.CountView(r.Context(), s.ws, r, pageIssue, row.CampaignID)
+	}
 }
+
+// pageIssue is the page kind of an issue's archive page in the website's
+// view counts (its page id is the campaign).
+const pageIssue = "issue"
 
 func (h *Handler) archiveMissing(w http.ResponseWriter, r *http.Request, s *site) {
 	pl := h.visitorLang(w, r, s, nil)

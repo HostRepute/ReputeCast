@@ -30,8 +30,22 @@ import { m } from './messages'
 import { whenText } from './parts'
 import { EACH, TestLanguageSelect, testLanguages, type SentVersion } from '@/features/languages/review'
 
-/** Audience: the lists, what's excluded and the final count. */
-export function AudienceCard({ audience, children }: { audience: Run['estimates']['audience']; children?: ReactNode }) {
+/**
+ * Audience: the lists, what's excluded and the final count. The sunset
+ * policy's line offers "Include them" (onInclude) when the person can edit
+ * the campaign (SR-11).
+ */
+export function AudienceCard({
+  audience,
+  onInclude,
+  including,
+  children,
+}: {
+  audience: Run['estimates']['audience']
+  onInclude?: () => void
+  including?: boolean
+  children?: ReactNode
+}) {
   const t = useT()
   return (
     <section className="card rv-card" aria-labelledby="rv-audience">
@@ -39,8 +53,24 @@ export function AudienceCard({ audience, children }: { audience: Run['estimates'
         {t(m.audience)}
       </h2>
       {audience.rows.map((r, i) => (
-        <div key={i} className={cn('rv-sum', r.kind !== 'base' && 's-minus')}>
-          <span>{r.label}</span>
+        <div key={i} className={cn('rv-sum', r.kind !== 'base' && 's-minus', r.action && onInclude && 'items-start')}>
+          {r.action === 'include_unengaged' && onInclude ? (
+            <span className="flex flex-col items-start gap-0.5">
+              <span>{r.label}</span>
+              <button
+                type="button"
+                className="rv-lnk"
+                aria-label={t(m.includeThemLabel, { count: r.count })}
+                aria-busy={including || undefined}
+                disabled={including}
+                onClick={onInclude}
+              >
+                {t(m.includeThem)}
+              </button>
+            </span>
+          ) : (
+            <span>{r.label}</span>
+          )}
           <span className="n">{r.kind === 'minus' ? `−${count(r.count)}` : r.kind === 'plus' ? `+${count(r.count)}` : count(r.count)}</span>
         </div>
       ))}
@@ -90,6 +120,25 @@ export function RouteCard({ route, startAt }: { route: Run['estimates']['route']
             </div>
           )
         })}
+        {shares.map((s) => {
+          if (!s.available || !s.warmupCap) return null
+          return s.days && s.days > 1 ? (
+            <span key={`cap-${s.providerId}`} className="k">
+              {t(m.warmupOver, { name: s.short, count: count(s.recipients), cap: count(s.warmupCap), days: s.days })}
+            </span>
+          ) : s.recipients <= s.warmupCap ? (
+            <span key={`cap-${s.providerId}`} className="k">
+              {t(m.warmupWithin, { name: s.short, count: count(s.recipients), cap: count(s.warmupCap) })}
+            </span>
+          ) : null
+        })}
+        {shares.map((s) =>
+          s.available && s.overQuota ? (
+            <span key={`quota-${s.providerId}`} className="k">
+              {t(m.quotaOver, { name: s.short, count: count(s.overQuota) })}
+            </span>
+          ) : null,
+        )}
       </div>
       {held.length ? (
         <>
@@ -138,7 +187,7 @@ export function RouteCard({ route, startAt }: { route: Run['estimates']['route']
                       {s.short} · {s.priceLabel} · {s.rateLabel}
                     </td>
                     <td className="n r">{dollars(s.cost)}</td>
-                    <td className="n r">{minutes(s.minutes)}</td>
+                    <td className="n r">{s.days && s.days > 1 ? t(m.overDays, { duration: minutes(s.minutes), days: s.days }) : minutes(s.minutes)}</td>
                   </tr>
                 ))}
                 <tr className="t-total">
@@ -149,10 +198,38 @@ export function RouteCard({ route, startAt }: { route: Run['estimates']['route']
               </tbody>
             </table>
           </div>
-          <FinishLine total={route.totalMinutes} startAt={startAt} />
+          {route.timeline ? <TimelineInset timeline={route.timeline} /> : <FinishLine total={route.totalMinutes} startAt={startAt} />}
         </>
       )}
     </section>
+  )
+}
+
+/** When the send's parts go out, as the sending engine plays it out: the
+ * A/B sample, the winner and the rest, and what the estimate includes. */
+function TimelineInset({ timeline }: { timeline: NonNullable<Run['estimates']['route']['timeline']> }) {
+  const t = useT()
+  const ab = timeline.ab
+  return (
+    <div className="rv-inset">
+      {ab ? (
+        <>
+          <span className="text-[13px] font-semibold">
+            {t(m.abLine, { kind: ab.kind, percent: ab.testPercent, variants: ab.variants, perVariant: count(ab.perVariant) })}
+          </span>
+          <span className="n text-[13px]">
+            {ab.decideAt && !timeline.open
+              ? t(m.abTimes, { from: clock(timeline.start), to: clock(ab.sampleEnd), decide: clock(ab.decideAt), end: clock(timeline.end) })
+              : t(m.abTimesManual, { from: clock(timeline.start), to: clock(ab.sampleEnd) })}
+          </span>
+        </>
+      ) : timeline.bestTime ? (
+        <span className="n text-[13px]">{t(m.bestTimeLine, { end: clock(timeline.end) })}</span>
+      ) : (
+        <span className="n text-[13px]">{t(m.finishesAbout, { end: clock(timeline.end), start: clock(timeline.start) })}</span>
+      )}
+      <span className="k">{timeline.basisLabel}</span>
+    </div>
   )
 }
 
@@ -192,14 +269,23 @@ export function ThrottlingCard({ throttling, note }: { throttling: Run['estimate
 
 const fields: ThresholdField[] = ['bounce', 'complaint', 'mailboxComplaint', 'providerErrors']
 
-/** Auto-pause thresholds: saved when a field loses focus or the scope changes. */
+/**
+ * Auto-pause (SR-13): the thresholds this send pauses at, as one line
+ * (the workspace's defaults, or this send's own), and the fields behind
+ * "Change for this send". A field saves when it loses focus.
+ */
 export function ThresholdsCard({
   thresholds,
+  own,
+  campaign,
   disabledReason,
   scope = true,
   onSave,
 }: {
   thresholds: Thresholds
+  /** The campaign has thresholds of its own (not the workspace's defaults). */
+  own?: boolean
+  campaign: string
   disabledReason?: string
   scope?: boolean
   onSave: (t: Thresholds) => Promise<boolean>
@@ -210,6 +296,8 @@ export function ThresholdsCard({
   const cards = getI18n().locale !== 'en'
   const [text, setText] = useState<Record<ThresholdField, string>>(() => textOf(thresholds))
   const [errors, setErrors] = useState<Partial<Record<ThresholdField, string>>>({})
+  // Open while a field has an error, so it stays in view.
+  const [open, setOpen] = useState(false)
   // Saved values reset the fields; refetches of the same values don't.
   const key = JSON.stringify(thresholds)
   const [seen, setSeen] = useState(key)
@@ -233,59 +321,80 @@ export function ThresholdsCard({
     const ok = await onSave({ ...thresholds, [field]: v })
     if (!ok) setText(textOf(thresholds))
   }
+  const name = useId()
   return (
     <section className="card rv-card" aria-labelledby="rv-thresholds">
       <h2 className="h2" id="rv-thresholds">
-        {t(m.thresholdsTitle)}
+        {t(m.autoPause)}
       </h2>
-      <Grid cols={2} gap={10}>
-        {fields.map((f) => (
-          <Field key={f} label={thresholdLimits[f].label} error={errors[f]}>
-            <input
-              className="in"
-              inputMode="decimal"
-              value={text[f]}
-              readOnly={Boolean(disabledReason)}
-              title={disabledReason}
-              onChange={(e) => setText((v) => ({ ...v, [f]: e.target.value }))}
-              onBlur={() => void commit(f)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-              }}
-            />
-          </Field>
-        ))}
-      </Grid>
-      {scope && cards ? (
-        <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-          <legend className="mb-1.5 p-0 text-[12px] font-semibold text-ink-2">{t(m.whenTrips)}</legend>
-          {(['route', 'campaign'] as const).map((v) => (
-            <label key={v} className="rv-rad">
-              <input
-                type="radio"
-                name="rv-trips"
-                checked={thresholds.scope === v}
+      <span className="text-[13px]">
+        {t(m.autoPauseSummary, {
+          source: own ? 'campaign' : 'workspace',
+          bounce: percentText(thresholds.bounce, 1).replace(' ', ''),
+          complaint: percentText(thresholds.complaint, 2).replace(' ', ''),
+          mailbox: percentText(thresholds.mailboxComplaint, 2).replace(' ', ''),
+          errors: percentText(thresholds.providerErrors, 0).replace(' ', ''),
+        })}
+      </span>
+      <span className="k">{t(m.autoPauseScope, { scope: thresholds.scope })}</span>
+      <details className="rv-disc" open={open || Object.values(errors).some(Boolean)} onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
+        <summary>
+          <span>{t(m.changeForThisSend)}</span>
+          <svg className="rv-chev" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path d="m4 6 4 4 4-4" />
+          </svg>
+        </summary>
+        <div className="flex flex-col gap-2.5 pt-2.5">
+          <Grid cols={2} gap={10}>
+            {fields.map((f) => (
+              <Field key={f} label={thresholdLimits[f].label} error={errors[f]}>
+                <input
+                  className="in"
+                  inputMode="decimal"
+                  value={text[f]}
+                  readOnly={Boolean(disabledReason)}
+                  title={disabledReason}
+                  onChange={(e) => setText((v) => ({ ...v, [f]: e.target.value }))}
+                  onBlur={() => void commit(f)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                  }}
+                />
+              </Field>
+            ))}
+          </Grid>
+          {scope && cards ? (
+            <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
+              <legend className="mb-1.5 p-0 text-[12px] font-semibold text-ink-2">{t(m.whenTrips)}</legend>
+              {(['route', 'campaign'] as const).map((v) => (
+                <label key={v} className="rv-rad">
+                  <input
+                    type="radio"
+                    name={name}
+                    checked={thresholds.scope === v}
+                    disabled={Boolean(disabledReason)}
+                    onChange={() => void onSave({ ...thresholds, scope: v })}
+                  />
+                  <span>{v === 'route' ? t(m.pauseRoute) : t(m.pauseCampaign)}</span>
+                </label>
+              ))}
+            </fieldset>
+          ) : scope ? (
+            <Field label={t(m.whenTrips)}>
+              <Select
+                value={thresholds.scope}
                 disabled={Boolean(disabledReason)}
-                onChange={() => void onSave({ ...thresholds, scope: v })}
-              />
-              <span>{v === 'route' ? t(m.pauseRoute) : t(m.pauseCampaign)}</span>
-            </label>
-          ))}
-        </fieldset>
-      ) : scope ? (
-        <Field label={t(m.whenTrips)}>
-          <Select
-            value={thresholds.scope}
-            disabled={Boolean(disabledReason)}
-            title={disabledReason}
-            onChange={(e) => void onSave({ ...thresholds, scope: e.target.value as Thresholds['scope'] })}
-          >
-            <option value="route">{t(m.pauseRoute)}</option>
-            <option value="campaign">{t(m.pauseCampaign)}</option>
-          </Select>
-        </Field>
-      ) : null}
-      {disabledReason ? <span className="k">{disabledReason}</span> : null}
+                title={disabledReason}
+                onChange={(e) => void onSave({ ...thresholds, scope: e.target.value as Thresholds['scope'] })}
+              >
+                <option value="route">{t(m.pauseRoute)}</option>
+                <option value="campaign">{t(m.pauseCampaign)}</option>
+              </Select>
+            </Field>
+          ) : null}
+          <span className="k">{disabledReason ?? t(m.changeForThisSendNote, { name: campaign })}</span>
+        </div>
+      </details>
     </section>
   )
 }
@@ -299,16 +408,23 @@ function textOf(t: Thresholds): Record<ThresholdField, string> {
   }
 }
 
-/** Scheduling: now, a date and time in a zone, or each recipient's best time. */
+/**
+ * Scheduling: now, a date and time in a zone, or each recipient's best
+ * time, as boxes that frame the choice (SendReadiness, SR-13). The main
+ * action says what the choice does ("Schedule for Tue 14 Oct, 09:00 ET").
+ */
 export function SchedulingCard({
   schedule,
   timezone,
+  abHours,
   disabledReason,
   hint,
   onSave,
 }: {
   schedule: Schedule
   timezone: string
+  /** The A/B test's wait: sending now says when its winner is picked. */
+  abHours?: number
   disabledReason?: string
   hint?: ReactNode
   onSave: (s: Schedule) => Promise<boolean>
@@ -341,9 +457,9 @@ export function SchedulingCard({
   }
   const off = Boolean(disabledReason)
   const when = (
-    <span className="rv-when">
-      <input className="in" type="date" value={draft.date ?? ''} aria-label={t(m.date)} disabled={off} onChange={(e) => change({ date: e.target.value })} />
-      <input className="in" type="time" value={draft.time ?? ''} aria-label={t(m.time)} disabled={off} onChange={(e) => change({ time: e.target.value })} />
+    <div className="rv-dt">
+      <input className="in" type="date" value={draft.date ?? ''} aria-label={t(m.sendDate)} disabled={off} onChange={(e) => change({ date: e.target.value })} />
+      <input className="in" type="time" value={draft.time ?? ''} aria-label={t(m.sendTime)} disabled={off} onChange={(e) => change({ time: e.target.value })} />
       <select className="in" aria-label={t(m.timezone)} value={tz} disabled={off} onChange={(e) => change({ timezone: e.target.value })}>
         {zoneOptions(tz).map((z) => (
           <option key={z} value={z}>
@@ -351,15 +467,16 @@ export function SchedulingCard({
           </option>
         ))}
       </select>
-    </span>
+    </div>
   )
+  const at = draft.date && draft.time ? scheduleCaption({ ...draft, timezone: tz }) : ''
   const options: { mode: Schedule['mode']; title: string; caption: string }[] = [
-    { mode: 'now', title: t(m.modeNow), caption: t(m.modeNowCaption) },
-    { mode: 'at', title: t(m.modeAt), caption: draft.mode === 'at' ? scheduleCaption({ ...draft, timezone: tz }) : t(m.modeAtCaption) },
+    { mode: 'now', title: t(m.modeNow), caption: abHours ? t(m.modeNowCaptionAb, { hours: abHours }) : t(m.modeNowCaption) },
+    { mode: 'at', title: t(m.modeAt), caption: draft.mode === 'at' && at ? at : t(m.modeAtCaption) },
     {
       mode: 'best_time',
       title: t(m.modeBest),
-      caption: t(m.modeBestCaption, { time: draft.mode === 'best_time' && draft.time ? draft.time : '09:00' }),
+      caption: t(m.modeBestCaption, { time: draft.mode === 'best_time' && at ? at.replace(/ · [^·]*$/, '').replace(' · ', ', ') : '09:00' }),
     },
   ]
   return (
@@ -368,16 +485,17 @@ export function SchedulingCard({
         {t(m.scheduling)}
       </h2>
       {options.map((o) => (
-        <label key={o.mode} className="rv-rad">
-          <input type="radio" name={name} checked={draft.mode === o.mode} disabled={off} onChange={() => pick(o.mode)} />
-          {/* As on the board, a long caption may take a few pixels from the radio. */}
-          <span className={o.mode === 'at' || draft.mode === o.mode ? 'flex-1' : undefined}>
-            <span className="font-semibold">{o.title}</span>
-            <br />
-            <span className="k">{o.caption}</span>
-            {o.mode !== 'now' && draft.mode === o.mode ? when : null}
-          </span>
-        </label>
+        <div key={o.mode} className={cn('rv-radbox', draft.mode === o.mode && 'on')}>
+          <label className="rv-radl">
+            <input type="radio" name={name} checked={draft.mode === o.mode} disabled={off} onChange={() => pick(o.mode)} />
+            <span className="rv-radt">
+              {o.title}
+              <br />
+              <span className="k">{o.caption}</span>
+            </span>
+          </label>
+          {o.mode !== 'now' && draft.mode === o.mode ? when : null}
+        </div>
       ))}
       {disabledReason ? <span className="k">{disabledReason}</span> : hint ? <span className="k">{hint}</span> : null}
     </section>
@@ -385,12 +503,26 @@ export function SchedulingCard({
 }
 
 /**
- * Scheduling once it's settled: no choice to make here. The card is faded
- * as on the boards; its sentence is set in ink so it still reads at 4.5:1
- * through the fade (in ink-3 it would drop to 2.6:1).
+ * Scheduling once it's settled, or locked until the blocks are fixed: no
+ * choice to make here. The card is faded as on the boards; its sentence is
+ * set in ink so it still reads at 4.5:1 through the fade (in ink-3 it
+ * would drop to 2.6:1).
  */
-export function ScheduleNote({ text }: { text: string }) {
+export function ScheduleNote({ text, locked }: { text: string; locked?: boolean }) {
   const t = useT()
+  if (locked) {
+    // Locked until the blocks are fixed: muted by its colours, not faded,
+    // so the badge keeps its contrast.
+    return (
+      <section className="card rv-card c-tight" aria-labelledby="rv-schedule">
+        <h2 className="h2 flex items-center justify-between gap-2 text-ink-3" id="rv-schedule">
+          {t(m.scheduling)}
+          <Badge tone="neutral">{t(m.locked)}</Badge>
+        </h2>
+        <span className="k">{text}</span>
+      </section>
+    )
+  }
   return (
     <section className="card rv-card c-tight opacity-60" aria-labelledby="rv-schedule">
       <h2 className="h2" id="rv-schedule">
@@ -401,11 +533,17 @@ export function ScheduleNote({ text }: { text: string }) {
   )
 }
 
-/** Test sends: through the composer's test endpoint (System route). */
+/**
+ * Test sends: through the composer's test endpoint (System route). They go
+ * out while the checks block too (SR-13): a test checks the fixes before
+ * the checks clear (note).
+ */
 export function TestSendsCard({
   sends,
   me,
   toOthers,
+  helpers = [],
+  note,
   disabledReason,
   onSend,
   versions = [],
@@ -413,6 +551,9 @@ export function TestSendsCard({
   sends: Schemas['ReviewTestSend'][]
   me: string
   toOthers: boolean
+  /** Who can send tests to others, when the reader can't. */
+  helpers?: string[]
+  note?: string
   disabledReason?: string
   onSend: (to: string, language?: string) => Promise<boolean>
   /** The email's language versions: the test sends one, or one of each. */
@@ -435,6 +576,7 @@ export function TestSendsCard({
       <h2 className="h2" id="rv-tests">
         {t(m.testSends)}
       </h2>
+      {note ? <span className="k">{note}</span> : null}
       <div className="flex gap-2 max-md:flex-wrap">
         <label className="vh" htmlFor={id}>
           {t(m.testAddress)}
@@ -462,7 +604,7 @@ export function TestSendsCard({
           {t(m.sendTestButton)}
         </Button>
       ) : null}
-      {!toOthers ? <span className="k">{t(m.testOwnOnly)}</span> : null}
+      {!toOthers ? <span className="k">{t(m.testOwnOnly, { names: helpers.length ? formatList(helpers, 'disjunction') : 'none' })}</span> : null}
       {sends.map((s, i) => (
         <div key={i} className="rv-sum">
           <span className="k">

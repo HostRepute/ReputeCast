@@ -176,7 +176,7 @@ function resendReason(t: ReturnType<typeof useT>, d: Detail): string | undefined
     case 'template':
       return t(ml.resendTemplate)
     case 'permission':
-      return t(ml.resendPermission, { permission: 'transactional:send' })
+      return t(ml.resendPermission)
     case 'not_sent':
       return t(ml.resendNotSent)
   }
@@ -729,7 +729,7 @@ function ContentPanel({ d }: { d: Detail }) {
       <Note tone="neutral">
         <T
           msg={c.helpers.length ? ml.contentForbidden : ml.contentForbiddenNoNames}
-          values={{ permission: <span className="mono">{'transactional:content'}</span>, names: c.helpers.join(', ') }}
+          values={{ names: c.helpers.join(', ') }}
         />
       </Note>
     )

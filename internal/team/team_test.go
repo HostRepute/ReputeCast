@@ -147,7 +147,7 @@ func TestMembersList(t *testing.T) {
 	v := env.Client()
 	v.SignInDemo("aisha@acme.io")
 	v.Do("GET", ws+"/members", nil).MustStatus(t, 200).JSON(t, &l)
-	if l.CanInvite || l.CanManage || !strings.Contains(l.Reason, "team:invite") || !strings.Contains(l.Reason, "Ask Linh Nguyen or Marcus Chen") {
+	if l.CanInvite || l.CanManage || !strings.Contains(l.Reason, "Your role can't invite people") || !strings.Contains(l.Reason, "Ask Linh Nguyen or Marcus Chen") {
 		t.Fatalf("viewer: %+v", l)
 	}
 	v.Do("GET", ws+"/invitations", nil).MustStatus(t, 200)
@@ -341,7 +341,7 @@ func TestDeactivateReactivateRemove(t *testing.T) {
 			t.Fatal("content writers can't send")
 		}
 	}
-	if !found || !strings.Contains(detail.KeysNote, "apikeys:manage") || detail.Sessions != 2 || len(detail.Activity) == 0 {
+	if !found || detail.KeysNote != "None. This role can't create API keys." || detail.Sessions != 2 || len(detail.Activity) == 0 {
 		t.Fatalf("detail: %+v", detail)
 	}
 	c.Do("POST", ws+"/members/"+daniel.ID+"/sign-out", nil).MustStatus(t, 200)

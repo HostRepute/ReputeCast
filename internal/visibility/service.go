@@ -118,6 +118,7 @@ func (s *Service) tally(ctx context.Context, ws *store.Workspace, campaignID uui
 				t.ByHidden[v.Hidden] = v.Recipients
 			}
 			_ = json.Unmarshal(c.Shown, &t.Shown)
+			_ = json.Unmarshal(c.Samples, &t.Samples)
 			return countResult{Tally: t, At: c.CountedAt, DurationMs: int(c.DurationMs)}, nil
 		} else if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return countResult{}, err
@@ -150,8 +151,9 @@ func (s *Service) tally(ctx context.Context, ws *store.Workspace, campaignID uui
 	sort.Slice(vs, func(i, j int) bool { return vs[i].Recipients > vs[j].Recipients })
 	vb, _ := json.Marshal(vs)
 	sb, _ := json.Marshal(t.Shown)
+	smb, _ := json.Marshal(t.Samples)
 	if err := s.Q.VisibilitySaveCount(ctx, store.VisibilitySaveCountParams{CampaignID: campaignID, WorkspaceID: ws.ID, RulesHash: rulesHash, AudienceHash: audHash,
-		Total: t.Total, Versions: vb, Shown: sb, Factors: []byte(`{}`), CountedAt: res.At, DurationMs: int32(res.DurationMs)}); err != nil {
+		Total: t.Total, Versions: vb, Shown: sb, Factors: []byte(`{}`), Samples: smb, CountedAt: res.At, DurationMs: int32(res.DurationMs)}); err != nil {
 		s.log().WarnContext(ctx, "save the visibility count", "campaign", campaignID, "err", err)
 	}
 	return res, nil

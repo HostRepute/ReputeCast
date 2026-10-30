@@ -28,7 +28,7 @@ export interface ConnectSearch {
 /** Why a handoff came back without a connection. */
 function reasonText(reason: string | undefined, conn: Connection): string {
   // A workspace that was already connected keeps its connection.
-  const v = { kept: conn.status === 'connected' ? 'connected' : 'nothing', team: conn.teamName ?? '', perm: 'integrations:hostrepute' }
+  const v = { kept: conn.status === 'connected' ? 'connected' : 'nothing', team: conn.teamName ?? '' }
   switch (reason) {
     case 'declined':
       return tt(m.reasonDeclined, v)

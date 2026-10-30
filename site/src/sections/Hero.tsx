@@ -3,7 +3,7 @@ import { Count } from '../components/Count'
 import { links } from '../content/links'
 import { useProgress } from '../lib/motion'
 
-const RECIPIENTS = 31_604
+const RECIPIENTS = 31_192
 const SENT = 19_594
 
 /**
@@ -52,7 +52,7 @@ export function Hero() {
               <span className="typed">docker compose -f {links.composeUrl} up -d</span>
               <span className="cursor" aria-hidden="true" />
             </pre>
-            <span className="k">One command. Postgres and the app. Then open localhost:8080 and connect a provider in about 10 minutes.</span>
+            <span className="k">One command. Postgres and the app. Then open localhost:8080 and connect a provider: most take 10–15 minutes.</span>
           </div>
           <div className="rise d5 flex flex-wrap gap-2.5">
             <a href={links.repo} className="btn pri">
@@ -95,10 +95,10 @@ export function Hero() {
                 recipients
               </span>
               <span>
-                <b className="n">$2.84</b> on SES
+                <b className="n">$2.81</b> on SES
               </span>
               <span>
-                <b className="n">34 min</b> at 14/s
+                <b className="n">33 min</b> at 14/s
               </span>
             </div>
           </div>
@@ -119,7 +119,7 @@ export function Hero() {
                 <b className="n">
                   <Count final={SENT} p={p} live={live} />
                 </b>{' '}
-                of 31,604 sent
+                of 31,192 sent
               </span>
               <span className="k">99.0% delivered · 0.60% bounced · 0.03% complaints</span>
             </div>
@@ -129,7 +129,7 @@ export function Hero() {
               <span className="dot pulse rounded-full" />
               Auto-paused
             </span>
-            <span className="text-[14px]">Outlook complaints hit 0.18% (limit 0.10%). 2,522 held, everything else still sending.</span>
+            <span className="text-[14px]">Outlook complaints hit 0.18% (limit 0.10%). 2,436 held, everything else still sending.</span>
           </div>
         </div>
       </div>

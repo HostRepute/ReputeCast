@@ -215,6 +215,9 @@ func SeedNorthwindWith(ctx context.Context, pool *pgxpool.Pool, cfg *config.Conf
 			return nil, fmt.Errorf("seed northwind deferred step %d: %w", i+1, err)
 		}
 	}
+	if err := sampleClassified(ctx, tx, n.ws); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}

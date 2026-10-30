@@ -33,7 +33,7 @@ export const m = defineMessages('pushPrompt', {
   deleteTitle: 'Delete “{name}”?',
   deleteText: 'Readers stop being asked. Subscriptions it brought in stay, with their consent records.',
   deleted: 'Deleted “{name}”',
-  readOnly: 'Read-only: changing a prompt needs {perm}.',
+  readOnly: "Read-only: your role can't change prompts.",
 
   // Form and type
   form: 'Form',

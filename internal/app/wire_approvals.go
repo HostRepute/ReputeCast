@@ -2,19 +2,25 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
 	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/rivertype"
 
 	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/campaigns"
+	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/demo"
+	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/sending"
+	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/templates"
 )
@@ -26,18 +32,26 @@ import (
 // audience.
 func readinessService(a *App) *readiness.Service {
 	prober := linkProber(a)
+	links := linkBlocklist(a, 30*time.Second)
 	cs := &campaigns.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit,
 		Templates: &templates.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
 		Mail:      func() mailer.Sender { return a.Mail },
 		URLs:      a.URLs,
-		Checker:   &contentcheck.Checker{Blocklist: contentcheck.StoreBlocklist{Q: a.Q}, Prober: prober, Extra: contentExtras(a)},
+		Checker:   &contentcheck.Checker{Blocklist: links, Prober: prober, Extra: contentExtras(a)},
 		// Send Readiness checks and fixes every language version.
 		Translations: campaignTranslations(a),
 	}
 	_, dl := deliverabilityServices(a)
 	rs := &readiness.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log, Campaigns: cs, Deliverability: dl, URLs: a.URLs, Segments: a.segments(),
-		Languages: languagesService(a)}
+		Languages: languagesService(a), Mailbox: a.mailboxClassifier(),
+		// Lookups Deliverability couldn't make are made again during a run;
+		// the return-path and tracking domains are looked up as link domains are.
+		DNS: dl.DNS, Links: links,
+		// Runs wait in the job queue; a worker runs them (SR-8).
+		Jobs: func() readiness.JobInserter { return lazyJobs{a} },
+		// Estimates come from the sending engine's own rules (SR-5, C4).
+		Estimator: engineEstimator{a}}
 	if acc := readinessAccessibility(a); acc != nil {
 		rs.Accessibility = acc
 	}
@@ -59,6 +73,33 @@ func readinessService(a *App) *readiness.Service {
 		rs.UpgradeOffers = uo
 	}
 	return rs
+}
+
+// engineEstimator asks the app's sending engine for a send's estimate
+// (built on first use: the engine's own wiring includes Send Readiness).
+type engineEstimator struct{ a *App }
+
+// Estimate implements readiness.Estimator.
+func (e engineEstimator) Estimate(ctx context.Context, campaignID uuid.UUID, o engine.EstimateOptions) (engine.Estimate, error) {
+	return e.a.SendingEngine().Estimate(ctx, campaignID, o)
+}
+
+// linkBlocklist looks link domains up live on Spamhaus DBL and SURBL and
+// keeps the answers for an hour (SR-1), for the composer's inline checks
+// (a short budget: it checks as people type) and Send Readiness (a longer
+// one: it runs in the background). The demo and the tests answer from the
+// demo's zone, so nothing reaches the real lists.
+func linkBlocklist(a *App, budget time.Duration) *contentcheck.LiveBlocklist {
+	cfg := a.Cfg
+	if cfg == nil {
+		d := config.Defaults()
+		cfg = &d
+	}
+	resolver := dnscheck.NewResolver(dnscheck.Options{Servers: cfg.DNS.Servers, Timeout: cfg.DNS.Timeout})
+	if cfg.IsDevelopment() || cfg.Env == "test" {
+		resolver = demo.ReadinessLinkDNS(resolver)
+	}
+	return &contentcheck.LiveBlocklist{Q: a.Q, DNS: resolver, Budget: budget}
 }
 
 // readinessUpgradeOffers finds Upgrade blocks whose offer ended; set from
@@ -89,13 +130,31 @@ var readinessConditional = func(*App) readiness.ConditionalChecker { return nil 
 // verification domain replaces it from its wire file. Nil leaves them out.
 var readinessVerification = func(*App) readiness.VerificationChecker { return nil }
 
+// approvalsCanaryPlanner tells Review & send the sending engine's canary
+// plan (C1: engine.CanaryPlanFor).
+var approvalsCanaryPlanner = func(a *App) sending.CanaryPlanner { return engineCanaryPlanner{a} }
+
+// engineCanaryPlanner is the sending engine's canary plan as Review & send
+// reads it (sending.CanaryPlan).
+type engineCanaryPlanner struct{ a *App }
+
+func (p engineCanaryPlanner) CanaryPlanFor(ctx context.Context, campaignID uuid.UUID) (sending.CanaryPlan, error) {
+	plan, err := p.a.SendingEngine().CanaryPlanFor(ctx, campaignID)
+	if err != nil {
+		return sending.CanaryPlan{}, err
+	}
+	return sending.CanaryPlan{Auto: plan.Auto, Reasons: plan.Reasons, Size: plan.Size, Seeds: plan.Seeds, Domain: plan.Domain,
+		NeverMailed: plan.NeverMailed, Usual: plan.Usual, Audience: plan.Audience, NewIPs: plan.NewIPs}, nil
+}
+
 // newApprovals builds the approvals service with its own Send Readiness.
 func newApprovals(a *App) *approvals.Service {
 	rs := readinessService(a)
 	s := &approvals.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log, Readiness: rs, Campaigns: rs.Campaigns,
-		Languages: rs.Languages,
-		Sending:   func() sending.Starter { return a.Sending },
+		Languages:     rs.Languages,
+		Sending:       func() sending.Starter { return a.Sending },
+		CanaryPlanner: approvalsCanaryPlanner(a),
 		// Publishing an approved automation: the gate already passed.
 		Automations: &automations.Service{
 			Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Log: a.Log,
@@ -140,6 +199,15 @@ func SendRecheck(a *App) func(ctx context.Context, campaignID uuid.UUID) (approv
 	return newApprovals(a).SendRecheck
 }
 
+// ApprovalsTickAt runs Review & send's minute job as if it were now: tests
+// move the clock to a scheduled send's recheck, or past a held send's
+// expiry.
+func ApprovalsTickAt(a *App, now time.Time) error {
+	s := newApprovals(a)
+	s.Now = func() time.Time { return now }
+	return s.Tick(context.Background())
+}
+
 // HeldSendCheck is the send-time check the minute job runs for scheduled
 // and held sends: it holds a send that turns Blocked or lost its approval
 // (and tells people), and returns an error wrapping sending.ErrNotReady.
@@ -155,7 +223,34 @@ func init() {
 		approvals.Register(h, s)
 	})
 	jobRegistrars = append(jobRegistrars, func(a *App) {
+		river.AddWorker(a.JobReg.Workers, &readiness.RunWorker{S: newApprovals(a).Readiness})
 		river.AddWorker(a.JobReg.Workers, &approvals.TickWorker{S: newApprovals(a)})
 		a.JobReg.Every(time.Minute, func() (river.JobArgs, *river.InsertOpts) { return approvals.TickArgs{}, nil }, false)
 	})
+}
+
+// ReadinessQueue works the Send Readiness runs waiting in the job queue, in
+// this process: tests (whose app runs no workers) call it after asking for
+// a run. It returns how many it worked.
+func ReadinessQueue(ctx context.Context, a *App) (int, error) {
+	res, err := a.Jobs.JobList(ctx, river.NewJobListParams().Kinds(readiness.RunArgs{}.Kind()).States(rivertype.JobStateAvailable).First(100))
+	if err != nil {
+		return 0, err
+	}
+	rs := newApprovals(a).Readiness
+	n := 0
+	for _, job := range res.Jobs {
+		var args readiness.RunArgs
+		if err := json.Unmarshal(job.EncodedArgs, &args); err != nil {
+			return n, err
+		}
+		if _, err := a.Jobs.JobDelete(ctx, job.ID); err != nil {
+			return n, err
+		}
+		if err := rs.Work(ctx, args); err != nil {
+			return n, err
+		}
+		n++
+	}
+	return n, nil
 }

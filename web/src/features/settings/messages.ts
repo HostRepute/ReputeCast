@@ -5,6 +5,7 @@ export const m = defineMessages('settings', {
   general: 'General',
   senders: 'Senders',
   providers: 'Providers',
+  sendingRules: 'Sending rules',
   team: 'Team',
   roles: 'Roles',
   approvals: 'Approvals',
@@ -18,5 +19,6 @@ export const m = defineMessages('settings', {
   authentication: 'Authentication',
   sso: 'SSO providers',
   instance: 'Instance & updates',
+  botFilter: 'Bot filter',
   instanceAudit: 'Audit log',
 })

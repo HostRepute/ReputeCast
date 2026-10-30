@@ -535,7 +535,7 @@ function BudgetReached({ data }: { data: Overview }) {
             <Button size="sm" variant="danger-primary" disabled>
               {t(m.raiseBudget)}
             </Button>
-            <span className="k self-center">{t(m.needsManage, { names: formatList(data.helpers, 'disjunction') })}</span>
+            <span className="k self-center">{t(m.needsManage, { names: data.helpers.length ? formatList(data.helpers, 'disjunction') : 'none' })}</span>
           </>
         )}
       </div>

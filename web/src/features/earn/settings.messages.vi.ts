@@ -16,10 +16,10 @@ export default translate(ms, {
   tabAccess: 'Quyền truy cập',
   tabAttribution: 'Phân bổ',
   tabPages: 'Trang',
-  needsPaymentsManage: 'Cần quyền payments:manage.',
+  needsPaymentsManage: 'Vai trò của bạn không thể quản lý nhà cung cấp thanh toán.',
   readOnlyTitle: 'Chỉ xem · {name}, {role}',
-  readOnly: 'Cài đặt thanh toán cần quyền {payments}; xuất bản email hội viên cần quyền {publish}. Hãy hỏi {helpers}.',
-  readOnlyNoHelpers: 'Cài đặt thanh toán cần quyền {payments}; xuất bản email hội viên cần quyền {publish}.',
+  readOnly: 'Vai trò của bạn không thể thay đổi cài đặt thanh toán. Xuất bản email hội viên cần người có thể xuất bản mẫu giao dịch. Hãy hỏi {helpers}.',
+  readOnlyNoHelpers: 'Vai trò của bạn không thể thay đổi cài đặt thanh toán. Xuất bản email hội viên cần người có thể xuất bản mẫu giao dịch.',
   // The connection card.
   connected: 'Đã kết nối',
   setupInProgress: 'Đang thiết lập',

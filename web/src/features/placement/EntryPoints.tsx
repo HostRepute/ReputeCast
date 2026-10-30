@@ -7,11 +7,11 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { Note } from '@/components/ui/Note'
 import { T, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { shortDate } from '@/lib/format'
+import { orList, shortDate } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import { RunDialog, type RunPreset } from './RunDialog'
-import { base, dayTime, PBar, Pv, resultLine, throughText, usePlacementAccess, type TestRow } from './shared'
+import { base, dayTime, PBar, Pv, resultLine, throughText, usePlacementAccess, type Counts, type TestRow } from './shared'
 
 /*
  * Where else a placement test starts or shows (brief §6): Review & send's
@@ -89,14 +89,46 @@ function ResultsLink({ row, children }: { row: TestRow; children: ReactNode }) {
 }
 
 /**
- * Review & send: "Not run for this campaign · Run placement test", or the
- * latest result per provider with View results. Optional, and never part
- * of the verdict. A route over several providers compares them.
+ * "Promotions 2": copies in an inbox tab, by the tab's name (the tabs they
+ * landed in, else the provider's tab for bulk mail), "Tab 2" when unknown.
+ * Undefined for a provider without tabs that put nothing in one (Yahoo).
+ */
+function tabPart(t: ReturnType<typeof useT>, c: Counts, bulkTab?: string): string | undefined {
+  const names = c.tabs.length ? c.tabs : bulkTab ? [bulkTab] : []
+  if (!names.length) return c.tab > 0 ? t(m.resTab, { n: c.tab }) : undefined
+  return t(m.resTabCount, { tab: names.map((x) => t(m.tabName, { tab: x })).join(' / '), n: c.tab })
+}
+
+/** "Inbox 8 · Promotions 2 · Spam 0 · Not arrived 1", or what's found so far while the test runs. */
+function resultParts(t: ReturnType<typeof useT>, c: Counts, live: boolean, bulkTab?: string): string[] {
+  if (live) return [t(m.entryFound, { found: c.found, copies: c.copies })]
+  const tab = tabPart(t, c, bulkTab)
+  return [
+    t(m.resInbox, { n: c.inbox }),
+    ...(tab ? [tab] : []),
+    t(m.resSpam, { n: c.spam }),
+    ...(c.notArrived > 0 ? [t(m.resNotArrived, { n: c.notArrived })] : []),
+  ]
+}
+
+/**
+ * Review & send's placement card (SR-9, SendReadiness): the seed mailboxes a
+ * test reaches, the campaign's last result per mailbox provider (Gmail,
+ * Outlook.com, Yahoo…: Inbox, Promotions, Spam, Not arrived) and, when the
+ * route went through several sending providers, a line for each, with View
+ * results, and Run placement test, which starts one for this campaign as
+ * scheduled. Optional, and never part of the verdict.
  */
 export function PlacementReviewCard({ campaignId, campaignName, providers, className }: { campaignId: string; campaignName: string; providers: string[]; className?: string }) {
   const t = useT()
+  const { slug } = useWorkspace()
+  const canView = useCan('deliverability:view')
   const { q, row } = useLatest('campaign', campaignId)
-  const reason = useRunReason(q.data)
+  const seeds = $api.useQuery('get', `${base}/seeds`, { params: { path: { workspace: slug } } }, { enabled: canView })
+  // Who can run a test, by name rather than by permission key.
+  const canRun = useCan('placement:run')
+  const helpers = q.data?.runHelpers ?? []
+  const reason = canRun ? undefined : helpers.length ? t(m.entryCantRun, { helpers: orList(helpers) }) : t(m.entryCantRunNobody)
   const { ref: runRef, open: runOpen, setOpen: setRunOpen, close: closeRun } = useOpener<HTMLButtonElement>()
   if (!q.data) return null
   const used = [...new Set(providers)]
@@ -107,27 +139,57 @@ export function PlacementReviewCard({ campaignId, campaignName, providers, class
     providers: used.length > 1 ? used : undefined,
     from: campaignName,
   }
+  const connected = seeds.data?.seeds.filter((s) => s.status === 'connected') ?? []
+  const names = [...new Set(connected.map((s) => s.providerName))]
+  // A test skips the seeds whose sign-in failed or expired: the caption says so.
+  const attention = seeds.data?.seeds.filter((s) => s.status === 'failed' || s.status === 'expired') ?? []
+  const live = row ? running(row) : false
   return (
-    <section className={cn('card flex flex-col gap-2.5', className)} aria-labelledby="pl-review-card">
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="h2" id="pl-review-card">
-          {t(m.entryTitle)}
-        </h2>
-        <span className="k">{t(m.entryOptional)}</span>
+    <section className={cn('card pl-rv', className)} aria-labelledby="pl-review-card">
+      <div className="pl-rv-h">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <h2 className="h2" id="pl-review-card">
+            {t(m.entryTitle)}
+          </h2>
+          {seeds.data ? (
+            <span className="k">
+              {connected.length ? t(m.entrySeeds, { count: connected.length, names: names.join(', '), attention: attention.length }) : t(m.entryNoSeeds)}
+            </span>
+          ) : null}
+        </div>
+        <span className="badge mut">{t(m.entryOptional)}</span>
       </div>
-      {row ? (
-        <>
-          <ProviderResults row={row} />
-          <span className="k">
-            {t(m.entryLatest, { time: dayTime(row.startedAt), name: row.startedBy })} · <ResultsLink row={row}>{t(m.entryViewResults)}</ResultsLink>
-          </span>
-        </>
-      ) : (
-        <span className="k">{t(m.entryNotRun)}</span>
-      )}
-      <Button ref={runRef} className="self-start" disabledReason={reason} onClick={() => setRunOpen(true)}>
-        {t(m.runTest)}
-      </Button>
+      <div className="pl-rv-b">
+        {row ? (
+          <div className="pl-rv-last">
+            <span className="k">{t(m.entryLast, { day: shortDate(row.startedAt), name: row.contentName })}</span>
+            {row.mailboxes.map((b) => (
+              <div key={b.provider} className="flex flex-col gap-1.5">
+                <span className="font-medium">{[b.name, ...resultParts(t, b.counts, live, b.tab)].join(' · ')}</span>
+                <PBar counts={b.counts} waiting={live} />
+              </div>
+            ))}
+            {/* A route over several sending providers compares them. */}
+            {row.providers.length > 1
+              ? row.providers.map((p) => (
+                  <span key={p.id} className="k">
+                    {t(m.entryThrough, { provider: p.short, result: resultParts(t, p.counts, live).join(' · ') })}
+                  </span>
+                ))
+              : null}
+          </div>
+        ) : (
+          <span className="k pl-rv-last">{t(m.entryNotRun)}</span>
+        )}
+        {row ? (
+          <ButtonLink to="/w/$workspace/deliverability/placement/$testId" params={{ workspace: slug, testId: row.id }}>
+            {t(m.entryViewResults)}
+          </ButtonLink>
+        ) : null}
+        <Button ref={runRef} disabledReason={reason} onClick={() => setRunOpen(true)}>
+          {t(m.runTest)}
+        </Button>
+      </div>
       {runOpen ? <RunDialog open onOpenChange={(v) => !v && closeRun()} preset={preset} /> : null}
     </section>
   )

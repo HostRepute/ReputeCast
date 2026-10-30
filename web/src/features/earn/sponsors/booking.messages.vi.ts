@@ -162,7 +162,7 @@ export default translate(mb, {
   shareLineNever: '{name} chia sẻ ngày {date} · không bao giờ hết hạn · {views, plural, =0 {chưa được mở} other {đã mở # lần}}',
   shareNone: 'Hãy chia sẻ một liên kết để {sponsor} xem được báo cáo này mà không cần đăng nhập.',
   shareButton: 'Chia sẻ liên kết chỉ xem',
-  shareNoPermission: 'Chia sẻ cần quyền {permission}.',
+  shareNoPermission: 'Vai trò của bạn không thể chia sẻ báo cáo.',
   revoked: 'Đã thu hồi liên kết. Liên kết ngừng hoạt động ngay từ bây giờ.',
   revokeTitle: 'Thu hồi liên kết này?',
   revokeText: '{sponsor} sẽ không mở được báo cáo bằng liên kết này nữa. Bạn có thể chia sẻ liên kết mới bất cứ lúc nào.',
@@ -191,17 +191,17 @@ export default translate(mb, {
   // An agent's proposal.
   proposedBadge: 'Do tác tử đề xuất',
   proposalNote:
-    'Tác tử “{agent}” đã đề xuất lượt đặt chỗ này vào {when}: “{note}” Tác tử có thể đề xuất lượt đặt chỗ; một người có quyền {permission} sẽ xác nhận.',
+    'Tác tử “{agent}” đã đề xuất lượt đặt chỗ này vào {when}: “{note}” Tác tử có thể đề xuất lượt đặt chỗ; một người có thể quản lý nhà tài trợ sẽ xác nhận.',
   proposalNoteNoNote:
-    'Tác tử “{agent}” đã đề xuất lượt đặt chỗ này vào {when}. Tác tử có thể đề xuất lượt đặt chỗ; một người có quyền {permission} sẽ xác nhận.',
+    'Tác tử “{agent}” đã đề xuất lượt đặt chỗ này vào {when}. Tác tử có thể đề xuất lượt đặt chỗ; một người có thể quản lý nhà tài trợ sẽ xác nhận.',
   onceConfirmed: 'Đã đặt, sau khi được xác nhận',
   dismiss: 'Bỏ qua',
   confirm: 'Xác nhận đặt chỗ',
   dismissed: 'Đã bỏ qua đề xuất cho số #{issue}',
   // Read-only.
   readOnlyTitle: '{name} · {role}',
-  readOnlyText: 'Quản lý lượt đặt chỗ cần quyền {permission}. Hãy hỏi {helpers}.',
-  readOnlyNoHelpers: 'Quản lý lượt đặt chỗ cần quyền {permission}.',
+  readOnlyText: 'Vai trò của bạn không thể quản lý lượt đặt chỗ. Hãy hỏi {helpers}.',
+  readOnlyNoHelpers: 'Vai trò của bạn không thể quản lý lượt đặt chỗ.',
   // Record a payment.
   payEyebrow: 'Thanh toán · #{issue}',
   payTitle: 'Ghi nhận thanh toán',
@@ -232,7 +232,7 @@ export default translate(mb, {
   sees3: 'Không bao giờ thấy dữ liệu liên hệ, nhà tài trợ khác hay phần còn lại của số',
   newLink: 'Liên kết mới',
   createLink: 'Tạo liên kết',
-  shareFoot: 'Cần quyền {permission} · có thể thu hồi · ghi vào nhật ký kiểm tra',
+  shareFoot: 'Dành cho người có thể chia sẻ báo cáo · có thể thu hồi · ghi vào nhật ký kiểm tra',
   done: 'Xong',
   linkCreated: 'Đã tạo liên kết',
   // Cancel a booking.

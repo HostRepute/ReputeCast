@@ -12,7 +12,7 @@ import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { Segmented } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
-import { T, useT } from '@/i18n'
+import { useT } from '@/i18n'
 import { clock, dayMonthDate } from '@/lib/format'
 import { useDocumentTitle, useScrollRegion } from '@/lib/hooks'
 import { useCan, useMe, useWorkspace } from '@/lib/session'
@@ -23,7 +23,7 @@ import { growBlockDefs, isGrowBlock, setGrowPreview } from './composer/blocks'
 import { GrowBlockInspector, GrowBlocksNote } from './composer/Panel'
 import { typeLabel } from './MilestonesPage'
 import { me } from './email.messages'
-import { GROW, fileKind, fileSize, mono } from './shared'
+import { GROW, fileKind, fileSize } from './shared'
 import '@/features/composer/composer.css'
 import '@/features/connect/connect.css'
 import './grow.css'
@@ -282,7 +282,7 @@ function Editor({ d }: { d: Detail }) {
       {!canEdit ? (
         <div className="px-7 pt-3">
           <Note tone="neutral">
-            <T msg={me.readOnly} values={{ mono }} />
+            {t(me.readOnly)}
           </Note>
         </div>
       ) : null}

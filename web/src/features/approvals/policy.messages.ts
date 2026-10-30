@@ -15,7 +15,7 @@ export const mp = defineMessages('approvals.policy', {
 
   readOnly: 'Read-only',
   readOnlyLead: 'You can view the approval policy.',
-  readOnlyReason: 'Changing it needs the workspace:manage permission.',
+  readOnlyReason: "Your role can't change it.",
 
   // ── When is approval required? ────────────────────────────────────────
   whenTitle: 'When is approval required?',
@@ -32,17 +32,19 @@ export const mp = defineMessages('approvals.policy', {
   warningsDetail: 'Blocked sends never start; this rule adds a human check for warnings.',
   lacksSendTitle: 'The author lacks the send permission',
   lacksSendDetail:
-    'Members with campaigns:edit but not campaigns:send can still prepare a send and request approval. {who, select, roles {{roles} today: {names}.} members {Members today: {names}.} other {Nobody is in that position today.}}',
+    'Members who can edit campaigns but not send them can still prepare a send and request approval. {who, select, roles {{roles} today: {names}.} members {Members today: {names}.} other {Nobody is in that position today.}}',
   listsTitle: 'The audience includes a list marked “Requires approval”',
   listsDetail:
     '{marked, select, yes {Marked today: {lists}. Mark more in <link>Audience → Lists</link>.} other {No list is marked yet. Mark lists in <link>Audience → Lists</link>.}}',
   automationTitle: 'Publishing an automation also requires approval',
-  automationDetail: 'Applies to automations:publish. Off: publishing is logged only.',
+  automationDetail: 'Applies to everyone who can publish automations. Off: publishing is logged only.',
+  // {perm} in the website's post rule note: “The author lacks the send permission” also covers publishing posts and pages.
+  postPublishing: 'publishing posts and pages',
 
   // ── Approvers ─────────────────────────────────────────────────────────
   approversTitle: 'Approvers',
   approversNote:
-    'Approvers are members with <mono>campaigns:approve</mono>. {has, select, yes {Today: {list}.} other {Nobody holds it today: give it to a role in Settings › Roles.}} Authors can never approve their own campaign.',
+    'Approvers are the people whose role can approve campaigns. {has, select, yes {Today: {list}.} other {Nobody can approve today: allow a role to approve campaigns in Settings › Roles.}} Authors can never approve their own campaign.',
   approverWithRole: '<b>{name}</b> ({role})',
   approverName: '<b>{name}</b>',
   requiredLegend: 'Approvals required',
@@ -50,7 +52,7 @@ export const mp = defineMessages('approvals.policy', {
   oneApprovalDetail: 'Any approver other than the author',
   twoApprovals: '2 approvals',
   twoApprovalsDetail: 'Two different approvers; with {count} approvers today one of them must not be the author',
-  twoNeeds: '{count, plural, one {Needs two members with campaigns:approve; today there is #.} other {Needs two members with campaigns:approve; today there are #.}}',
+  twoNeeds: '{count, plural, one {Needs two members who can approve campaigns; today there is #.} other {Needs two members who can approve campaigns; today there are #.}}',
   snapshot: 'Snapshot',
   snapshotDetail:
     'An approval covers content and subject, the audience definition, the sending route and the schedule. Changing any of them, or the audience count moving by more than 10%, invalidates it; the approver sees exactly what changed.',

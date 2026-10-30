@@ -48,7 +48,14 @@ func (s *Service) loadImage(ctx context.Context, ws *store.Workspace, src string
 	if err != nil {
 		return nil, invalid(ctx, "body.src", mImageUnreadable, map[string]any{"detail": imageReason(ctx, err)})
 	}
+	// One image is decoded at a time across ReputeCast, so the budget each
+	// decode keeps to also bounds them together.
+	release, err := media.DecodeSlot(ctx)
+	if err != nil {
+		return nil, err
+	}
 	out, err := resize(raw, ctype, MaxImageWidth)
+	release()
 	if err != nil {
 		return nil, invalid(ctx, "body.src", mImageUnreadable, map[string]any{"detail": imageReason(ctx, err)})
 	}
@@ -130,20 +137,29 @@ func (s *Service) fetchImage(ctx context.Context, ws *store.Workspace, src strin
 }
 
 // resize decodes a PNG, JPEG or GIF and scales it down to width with a box
-// filter; a JPEG stays a JPEG, the rest become PNG.
+// filter; a JPEG stays a JPEG, the rest become PNG. An image whose decoding
+// and copy would take more memory than an upload may (media.DecodeBudget)
+// isn't decoded: a few hundred bytes of header can claim gigabytes.
 func resize(data []byte, ctype string, width int) (*imageData, error) {
-	var img image.Image
-	var err error
+	var decode func(io.Reader) (image.Image, error)
 	switch {
 	case strings.HasPrefix(ctype, "image/png"):
-		img, err = png.Decode(bytes.NewReader(data))
+		decode = png.Decode
 	case strings.HasPrefix(ctype, "image/jpeg"):
-		img, err = jpeg.Decode(bytes.NewReader(data))
+		decode = jpeg.Decode
 	case strings.HasPrefix(ctype, "image/gif"):
-		img, err = gif.Decode(bytes.NewReader(data))
+		decode = gif.Decode
 	default:
 		return nil, imageErr(mImageFormat, nil)
 	}
+	cost, w, h, ok := media.DecodeCost(data)
+	if ok && w > width {
+		cost += 4 * int64(width) * int64(max(1, h*width/w)) // boxScale's copy
+	}
+	if !ok || cost > media.DecodeBudget {
+		return nil, imageErr(mImageDecode, nil)
+	}
+	img, err := decode(bytes.NewReader(data))
 	if err != nil {
 		return nil, imageErr(mImageDecode, nil)
 	}

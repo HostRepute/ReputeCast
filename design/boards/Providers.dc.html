@@ -60,7 +60,7 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
 /* responsive shell */
 @media (max-width:1100px){
   .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
-  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .brand-t,.side .ws{display:none}.side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .side .nav a{justify-content:center;padding:0!important;height:44px}
   .side .nav svg{width:20px;height:20px}
   .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
@@ -160,6 +160,18 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 .ws .av{font-weight:700}
 /* switches: a disabled switch looks disabled */
 .tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+/* review: channel button and tabs reach 44px on touch widths */
+@media (max-width:767px){.top .chbtn,.top .btn,.content .btn{min-height:44px}.sc-host .in{height:44px}.top .tabs a{height:44px}}
+.m .l .n{white-space:nowrap}
+/* header: one channel button with a listbox, as on the traffic rules board */
+.chbtn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 10px;border:1px solid #D4D8DF;border-radius:8px;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.chbtn:hover{background:#F3F4F6}
+.chbtn .chv{color:#5B6472}
+.menu a[aria-selected="true"]{font-weight:600}
+@media (max-width:767px){.chbtn{height:44px}}
+
+/* phones: every top-bar target is at least 44px (tabs, links, fields, buttons, the bell and the account menu) */
+@media (max-width:767px){.top .tabs a{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box}.top a:not(.btn){min-height:44px}.top .btn,.top .in,.top select,.top input{min-height:44px;box-sizing:border-box}.top .ibtn{width:44px;height:44px;box-sizing:border-box}.top .ubtn{min-height:44px;box-sizing:border-box}.top nav[aria-label="Breadcrumb"] a{min-width:44px;justify-content:center}.top .chsw a{min-height:44px!important}}
 </style>
 </helmet>
 <div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh">
@@ -169,19 +181,19 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
       <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
       <span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span>
     </a>
-    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Acme Newsletter, your role Owner"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Acme Newsletter, Owner, switch workspace"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
     <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px" aria-label="Main">
-      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
-      <a href="Campaigns.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
-      <a href="AutomationsList.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
-      <a href="Transactional.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
-      <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
-      <a href="GrowOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
-      <a href="EarnOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
-      <a href="FormBuilder.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
-      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
-      <a href="Providers.dc.html" class="on xm" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
-      <a href="WorkspaceSettings.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="Main.dc.html" title="Overview"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html" title="Campaigns"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html" class="xm" title="Automations"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Transactional.dc.html" class="xm" title="Transactional"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
+      <a href="Contacts.dc.html" title="Audience"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="GrowOverview.dc.html" class="xm" title="Grow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
+      <a href="EarnOverview.dc.html" class="xm" title="Earn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
+      <a href="FormBuilder.dc.html" class="xm" title="Forms &amp; pages"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html" title="Deliverability"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html" class="on xm" aria-current="page" title="Sending providers"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html" class="xm" title="Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
       <a href="ShellMore.dc.html" class="more on" aria-label="More: Automations, Transactional, Grow, Earn, Forms & pages, Sending providers, Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">More</span></a>
     </nav>
   </aside>
@@ -189,18 +201,29 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
     <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
       <h1 style="margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em">Sending providers &amp; routing</h1>
-      <nav class="chsw" aria-label="Channel" style="margin-left:4px"><a href="Providers.dc.html" class="on" aria-current="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Email</a><a href="SmsProviders.dc.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2.5h10A1.5 1.5 0 0 1 14.5 4v6a1.5 1.5 0 0 1-1.5 1.5H7.6L4.5 14v-2.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5z"></path><path d="M5.2 7h.01M8 7h.01M10.8 7h.01" stroke-width="2.2"></path></svg>SMS</a><a href="PushSetup.dc.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg>Push</a><a href="WhatsAppChannel.dc.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8a6.2 6.2 0 0 0-5.33 9.36L1.8 14.2l3.13-.84A6.2 6.2 0 1 0 8 1.8z"></path><path d="M6.1 5.2c-.5 0-.95.45-.85 1.05.35 2.2 2.15 4.05 4.4 4.45.6.1 1.05-.35 1.05-.85v-.55l-1.5-.65-.6.6a3.7 3.7 0 0 1-2-2l.6-.6-.65-1.5z" stroke-width="1.25"></path></svg>WhatsApp</a></nav>
+      <div style="position:relative;margin-left:4px">
+        <button class="chbtn" type="button" aria-haspopup="listbox" aria-expanded="{{chOpen}}" aria-label="Channel: Email. Change channel" onClick="{{toggleCh}}"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Email<svg class="chv" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+        <sc-if value="{{chOpen}}" hint-placeholder-val="{{false}}">
+          <div class="menu" role="listbox" aria-label="Channel" style="top:40px;left:0;min-width:210px">
+            <a role="option" aria-selected="true" href="Providers.dc.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span style="flex:1">Email</span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#0F766E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg></a>
+            <a role="option" aria-selected="false" href="SmsProviders.dc.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2.5h10A1.5 1.5 0 0 1 14.5 4v6a1.5 1.5 0 0 1-1.5 1.5H7.6L4.5 14v-2.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5z"></path></svg><span style="flex:1">SMS</span></a>
+            <a role="option" aria-selected="false" href="PushSetup.dc.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span style="flex:1">Push</span></a>
+            <a role="option" aria-selected="false" href="WhatsAppChannel.dc.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8a6.2 6.2 0 0 0-5.33 9.36L1.8 14.2l3.13-.84A6.2 6.2 0 1 0 8 1.8z"></path></svg><span style="flex:1">WhatsApp</span></a>
+          </div>
+        </sc-if>
+      </div>
       <nav class="tabs" aria-label="Sections" style="margin-left:12px">
-        <a href="Providers.dc.html" class="on">Providers</a>
+        <a href="Providers.dc.html" class="on" aria-current="page">Providers</a>
         <a href="ProvidersRouting.dc.html">Routing &amp; failover</a>
         <a href="ProvidersWarmup.dc.html">Warm-up</a>
+        <a href="ProvidersTrafficRules.dc.html">Traffic rules</a>
         <a href="ProvidersEvents.dc.html">Events &amp; sync</a>
         <a href="ProvidersAdapters.dc.html">Adapters</a>
       </nav>
       <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <span class="k">All 3 providers checked 1 min ago</span>
         <a href="SetupCatalog.dc.html" class="btn pri">Add provider</a>
-      <div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
+      <div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Linh Nguyen, account menu"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
     </header>
 
     <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
@@ -208,7 +231,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
         <div class="card" style="padding:14px 18px;display:flex;flex-direction:column;gap:2px"><span class="k">Providers</span><span class="n" style="font-size:22px">3 connected</span><span class="k">2 Healthy · 1 Warming up</span></div>
         <div class="card" style="padding:14px 18px;display:flex;flex-direction:column;gap:2px"><span class="k">Sent this month, all providers</span><span class="n" style="font-size:22px">146,210</span><span class="k">SES 131,604 · Postal 11,194 · Postmark 3,412</span></div>
         <div class="card" style="padding:14px 18px;display:flex;flex-direction:column;gap:2px"><span class="k">Cost to date, October</span><span class="n" style="font-size:22px">$29.62</span><span class="k">$0.20 per 1,000 blended</span></div>
-        <div class="card" style="padding:14px 18px;display:flex;flex-direction:column;gap:2px"><span class="k">Shared suppression list</span><span class="n" style="font-size:22px">1,874</span><span class="k">synced to all providers 09:40</span></div>
+        <div class="card" style="padding:14px 18px;display:flex;flex-direction:column;gap:2px"><span class="k">Shared suppression list</span><span class="n" style="font-size:22px">1,874</span><span class="k">1,498 bounces and complaints pushed to providers 09:40</span></div>
       </div>
 
       <section class="card" style="display:flex;flex-direction:column">
@@ -217,10 +240,11 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-weight:700;font-size:17px">Amazon SES</span><span class="badge ok"><span class="dot"></span>Healthy</span><span class="badge mut">us-east-1</span></div>
             <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge pur">Broadcasts 90%</span><span class="badge pur">Automations primary</span><span class="badge mut">System fallback</span></div>
             <div style="display:flex;flex-direction:column;gap:4px;font-size:13px">
-              <div style="display:flex;justify-content:space-between"><span class="k">IPs</span><span>Shared pool · checked at domain level</span></div>
+              <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><span class="k">Sending IPs</span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right"><span>Shared pool · checked at domain level</span><span class="k">From Amazon SES, checked daily · 5 h ago</span></span></div>
               <div style="display:flex;justify-content:space-between"><span class="k">Webhooks</span><span>SNS · last event 2 min ago</span></div>
               <div style="display:flex;justify-content:space-between"><span class="k">API error rate · 7 d</span><span class="n">0.1%</span></div>
               <div style="display:flex;justify-content:space-between"><span class="k">Account status</span><span>Production · no enforcement</span></div>
+              <p style="margin:2px 0 0;padding:8px 10px;border-radius:8px;background:#F9FAFB;border:1px solid #E3E6EB"><span class="k">Tenant</span> <span style="font-weight:600">acme-newsletter</span> · own suppression list · reputation policy Standard (pauses this tenant only)</p>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap"><a href="SetupDomain.dc.html" class="btn sm">Domains</a><a href="ProvidersEvents.dc.html" class="btn sm">Events</a><button class="btn sm">Settings</button></div>
           </div>
@@ -244,7 +268,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-weight:700;font-size:17px">Postmark</span><span class="badge ok"><span class="dot"></span>Healthy</span><span class="badge mut">Transactional stream</span></div>
             <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge pur">System primary</span><span class="badge mut">Automations fallback</span></div>
             <div style="display:flex;flex-direction:column;gap:4px;font-size:13px">
-              <div style="display:flex;justify-content:space-between"><span class="k">IPs</span><span>Shared pool · checked at domain level</span></div>
+              <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><span class="k">Sending IPs</span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right"><span>Shared pool · checked at domain level</span><span style="display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap"><span class="k">Postmark doesn't report them</span><button class="btn sm" aria-label="Edit Postmark's sending IPs">Edit</button></span></span></div>
               <div style="display:flex;justify-content:space-between"><span class="k">Webhooks</span><span>Registered · last event 6 min ago</span></div>
               <div style="display:flex;justify-content:space-between"><span class="k">API error rate · 7 d</span><span class="n">0.0%</span></div>
               <div style="display:flex;justify-content:space-between"><span class="k">Account status</span><span>Approved · 10,000 per month plan</span></div>
@@ -271,7 +295,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-weight:700;font-size:17px">Postal</span><span class="badge info"><span class="dot"></span>Warming up · day 9 of 21</span><span class="badge mut">self-hosted · mta.acme.io</span></div>
             <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge pur">Broadcasts 10%</span></div>
             <div style="display:flex;flex-direction:column;gap:4px;font-size:13px">
-              <div style="display:flex;justify-content:space-between"><span class="k">IPs</span><span class="mono">203.0.113.25 · dedicated</span></div>
+              <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><span class="k">Sending IPs</span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right"><span class="mono">203.0.113.25 · dedicated</span><span style="display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap"><span class="k">Set by Linh Nguyen · Fri 3 Oct</span><button class="btn sm" aria-label="Edit Postal's sending IPs">Edit</button></span></span></div>
               <div style="display:flex;justify-content:space-between"><span class="k">Webhooks</span><span>Registered · last event 1 min ago</span></div>
               <div style="display:flex;justify-content:space-between"><span class="k">API error rate · 7 d</span><span class="n">0.4%</span></div>
               <div style="display:flex;justify-content:space-between"><span class="k">Server</span><span>Postal 3.3.4 · reachable</span></div>
@@ -321,10 +345,18 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1284}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1411}}'>
 class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { chOpen: false };
+  }
   renderVals() {
-    return {};
+    var self = this;
+    return {
+      chOpen: !!this.state.chOpen,
+      toggleCh: function () { self.setState({ chOpen: !self.state.chOpen }); }
+    };
   }
 }
 </script>

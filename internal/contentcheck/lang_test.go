@@ -21,7 +21,7 @@ func TestIssuesInVietnamese(t *testing.T) {
 <mj-section><mj-column><mj-text>` + big + `</mj-text></mj-column><mj-column><mj-text>{{ frist_name }}</mj-text></mj-column></mj-section>
 </mj-body></mjml>`
 	c := &Checker{Blocklist: StaticBlocklist{"go.acme-promo.link": {"SURBL", "Spamhaus DBL"}}}
-	r, err := c.Check(context.Background(), Input{Subject: "FLASH SALE!!! 48 HOURS ONLY", MJML: src, OwnDomains: []string{"news.acme.io"}, Fields: []string{"first_name", "email"}})
+	r, err := c.Check(context.Background(), Input{Subject: "FLASH SALE!!! 48 HOURS ONLY", MJML: src, Fields: []string{"first_name", "email"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestIssuesInVietnamese(t *testing.T) {
 	}
 	want := map[string][3]string{
 		"content.alt_text":              {"Hình hero chưa có văn bản thay thế", "Hình chưa có văn bản thay thế", "Lưu"},
-		"links.blocklist":               {"Nút trỏ đến go.acme-promo.link, tên miền bị liệt kê trên SURBL và Spamhaus DBL", "Tên miền liên kết bị liệt kê trên SURBL và Spamhaus DBL", "Thay bằng acme.io/sale"},
+		"links.blocklist":               {"Nút trỏ đến go.acme-promo.link, tên miền bị liệt kê trên SURBL và Spamhaus DBL", "Tên miền liên kết bị liệt kê trên SURBL và Spamhaus DBL", "Sửa liên kết"},
 		"links.shortener":               {"Nút chuyển hướng qua bit.ly, một dịch vụ rút gọn liên kết", "Liên kết rút gọn", "Sửa liên kết"},
 		"links.empty":                   {"Nút “Empty” chưa có liên kết", "Nút chưa có liên kết", "Sửa liên kết"},
 		"compliance.footer":             {"Nội dung thư không có liên kết hủy đăng ký hay địa chỉ bưu chính", "Không có liên kết hủy đăng ký hay địa chỉ bưu chính", "Chèn khối chân thư"},
@@ -65,7 +65,7 @@ func TestIssuesInVietnamese(t *testing.T) {
 	}
 	// The English stays as it was, for Send Readiness and API clients.
 	if is := byID(r, "links.blocklist"); is.Title != "Button links to go.acme-promo.link, listed on SURBL and Spamhaus DBL" || is.Tag != "Link domain on SURBL and Spamhaus DBL" ||
-		is.Fixes[0].Label != "Replace with acme.io/sale" {
+		is.Fixes[0].Label != "Edit link" {
 		t.Errorf("English blocklist: %+v", is)
 	}
 	if is := byID(r, "content.size"); is.Title != "105 KB is over Gmail's 102 KB clipping limit" {

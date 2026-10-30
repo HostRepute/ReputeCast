@@ -111,6 +111,11 @@ type summaryInput struct {
 	Body AIReportSummaryInput
 }
 
+type askInput struct {
+	api.WorkspaceInput
+	Body AIReportQuestionInput
+}
+
 type outcomeInput struct {
 	api.WorkspaceInput
 	Request string `path:"request" format:"uuid"`
@@ -273,6 +278,13 @@ func Register(h huma.API, s *Service) {
 		Description: "Sends the report's aggregate numbers only (no addresses). Needs reports:view.", Tags: tags, Access: use},
 		func(ctx context.Context, in *summaryInput) (*api.Body[AIReportSummary], error) {
 			out, err := s.Summarize(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "ask-about-report", Path: base + "/report-question", Summary: "Ask about this report: an answer from the report's numbers, each one checked",
+		Description: "Sends the report's aggregate numbers and the question only (no addresses) to the workspace's own model; the answer's numbers are filled in from the report. Needs reports:view.",
+		Tags:        tags, Access: use},
+		func(ctx context.Context, in *askInput) (*api.Body[AIReportAnswer], error) {
+			out, err := s.Ask(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "record-ai-outcome", Path: base + "/requests/{request}/outcome", Summary: "Record what was done with a suggestion: accepted, rejected…",

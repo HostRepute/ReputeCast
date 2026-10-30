@@ -153,7 +153,7 @@ export const mb = defineMessages('earn.booking', {
   shareLineNever: 'Shared by {name} on {date} · never expires · opened {views, plural, =0 {not yet} one {# time} other {# times}}',
   shareNone: 'Share a link so {sponsor} can see this report without signing in.',
   shareButton: 'Share read-only link',
-  shareNoPermission: 'Sharing needs {permission}.',
+  shareNoPermission: 'Your role can’t share reports.',
   revoked: 'The link is revoked. It stops working now.',
   revokeTitle: 'Revoke this link?',
   revokeText: '{sponsor} can no longer open the report with it. A new link can be shared at any time.',
@@ -181,16 +181,16 @@ export const mb = defineMessages('earn.booking', {
   issuePast: 'This issue went out without a booking.',
   // An agent's proposal.
   proposedBadge: 'Proposed by an agent',
-  proposalNote: 'The agent “{agent}” proposed this booking on {when}: “{note}” Agents can propose bookings; a person with {permission} confirms them.',
-  proposalNoteNoNote: 'The agent “{agent}” proposed this booking on {when}. Agents can propose bookings; a person with {permission} confirms them.',
+  proposalNote: 'The agent “{agent}” proposed this booking on {when}: “{note}” Agents can propose bookings; a person who can manage sponsors confirms them.',
+  proposalNoteNoNote: 'The agent “{agent}” proposed this booking on {when}. Agents can propose bookings; a person who can manage sponsors confirms them.',
   onceConfirmed: 'Booked, once confirmed',
   dismiss: 'Dismiss',
   confirm: 'Confirm booking',
   dismissed: 'The proposal for #{issue} is dismissed',
   // Read-only.
   readOnlyTitle: '{name} · {role}',
-  readOnlyText: 'Managing bookings needs {permission}. Ask {helpers}.',
-  readOnlyNoHelpers: 'Managing bookings needs {permission}.',
+  readOnlyText: 'Your role can’t manage bookings. Ask {helpers}.',
+  readOnlyNoHelpers: 'Your role can’t manage bookings.',
   // Record a payment.
   payEyebrow: 'Payment · #{issue}',
   payTitle: 'Record a payment',
@@ -221,7 +221,7 @@ export const mb = defineMessages('earn.booking', {
   sees3: 'Never contact data, other sponsors or the rest of the issue',
   newLink: 'New link',
   createLink: 'Create link',
-  shareFoot: 'Needs {permission} · revocable · recorded in the audit log',
+  shareFoot: 'For people who can share reports · revocable · recorded in the audit log',
   done: 'Done',
   linkCreated: 'Link created',
   // Cancel a booking.

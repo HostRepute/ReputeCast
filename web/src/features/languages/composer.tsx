@@ -120,6 +120,7 @@ export function LanguageSwitcher({
   onAdd,
   aiItems,
   aiMarked,
+  compact,
 }: {
   campaignName: string
   data: Langs
@@ -132,6 +133,8 @@ export function LanguageSwitcher({
   aiItems?: (close: () => void) => ReactNode
   /** Versions written by AI that nobody reviewed yet, and the chip that says so. */
   aiMarked?: { languages: string[]; label: string }
+  /** The composer's top bar: "English · 3 of 4" on the source instead of the chip. */
+  compact?: boolean
 }) {
   const t = useT()
   const [open, setOpen] = useState(false)
@@ -163,7 +166,9 @@ export function LanguageSwitcher({
             aria-expanded={open}
             aria-label={
               onSource
-                ? t(mz.switcherSourceLabel, { language: current.name, have, total: offered.length })
+                ? compact
+                  ? t(mz.switcherShortLabel, { language: current.name, have, total: offered.length })
+                  : t(mz.switcherSourceLabel, { language: current.name, have, total: offered.length })
                 : t(mz.switcherLabel, { language: current.name, status: chip.short.toLowerCase() })
             }
           >
@@ -171,6 +176,8 @@ export function LanguageSwitcher({
             <span>{current.name}</span>{' '}
             {!onSource && aiMarked?.languages.includes(current.language) ? (
               <Badge tone="info">{aiMarked.label}</Badge>
+            ) : onSource && compact ? (
+              <span className="lng-n">{t(mz.sourceShort, { have, total: offered.length })}</span>
             ) : (
               <Badge tone={chip.tone}>{onSource ? t(mz.sourceChip, { have, total: offered.length }) : chip.short}</Badge>
             )}
@@ -237,7 +244,7 @@ export function LanguageSwitcher({
             <span className="k">
               <T
                 msg={mz.addWorkspaceNeeds}
-                values={{ helpers: data.workspaceHelpers.length ? formatList(data.workspaceHelpers, 'disjunction') : 'none', code: (c) => <span className="mono">{c}</span> }}
+                values={{ helpers: data.workspaceHelpers.length ? formatList(data.workspaceHelpers, 'disjunction') : 'none' }}
               />
             </span>
           </div>
@@ -528,7 +535,7 @@ function ReadOnlyBanner({ data }: { data: Langs }) {
         <div>
           <T
             msg={mz.readOnlyText}
-            values={{ helpers: data.editHelpers.length ? formatList(data.editHelpers, 'disjunction') : 'none', code: (c) => <span className="mono">{c}</span> }}
+            values={{ helpers: data.editHelpers.length ? formatList(data.editHelpers, 'disjunction') : 'none' }}
           />
         </div>
       </div>

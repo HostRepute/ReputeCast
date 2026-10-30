@@ -44,79 +44,322 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
   .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
 }
+
+/* live monitor: freshness, live summary, threshold states, footnotes, rate steppers */
+.fresh{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5B6472;font-weight:500;white-space:nowrap}
+.fresh .dot{color:#15803D}
+.fresh.stale .dot{color:#B45309}
+.sumline{margin:0;display:flex;align-items:flex-start;gap:8px;font-size:13px;color:#0B1220;line-height:1.45}
+.sumline svg{flex:none;margin-top:2px}
+.thr{display:flex;flex-direction:column;gap:6px}
+.thr-h{display:flex;justify-content:space-between;align-items:center;gap:6px 12px;flex-wrap:wrap;font-size:13px}
+.thr-h > span:first-child{display:flex;flex-direction:column;gap:1px;min-width:0}
+.thr-h b{font-weight:600}
+.thr-v{display:flex;flex-wrap:wrap;gap:2px 8px;font-size:12.5px;color:#4B5563}
+.thr-v .n{color:#0B1220}
+.fn{margin:0;font-size:12px;color:#5B6472;font-weight:500;line-height:1.45}
+.fns{display:flex;flex-direction:column;gap:4px;padding:12px 18px;border-top:1px solid #EEF0F3}
+.ratep{border-top:1px solid #EEF0F3;background:#F9FAFB;padding:14px 18px 16px;display:flex;flex-direction:column;gap:10px}
+.rrow{display:grid;grid-template-columns:minmax(110px,150px) minmax(110px,150px) auto minmax(0,1fr);align-items:center;gap:8px 14px;font-size:13px;padding:4px 0}
+.rrow .nm{display:flex;gap:8px;align-items:center;font-weight:600}
+.stp{display:inline-flex;align-items:stretch;border:1px solid #8B94A3;border-radius:8px;background:#FFFFFF;overflow:hidden;flex:none}
+.stp button{width:36px;height:36px;border:0;background:#FFFFFF;color:#0B1220;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;font:inherit}
+.stp button:hover{background:#F3F4F6}
+.stp button:disabled{color:#9CA3AF;cursor:not-allowed;background:#FFFFFF}
+.stp output{min-width:86px;display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-variant-numeric:tabular-nums;font-size:13px;border-left:1px solid #E3E6EB;border-right:1px solid #E3E6EB}
+.chg{font-weight:600;color:#0B1220}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+@media (max-width:767px){
+  .rrow{grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:8px 0;border-bottom:1px solid #EEF0F3}
+  .rrow .was{grid-column:1 / -1;order:3}
+  .rrow .eff{grid-column:1 / -1;order:4}
+  .stp button{width:44px;height:44px}
+  .sc-host .fresh{white-space:normal}
+}
+/* phone: events wrap by field, never inside a timestamp */
+@media (max-width:767px){
+  .ev{flex-wrap:wrap;gap:4px 10px;padding:10px 12px}
+  .sc-host .ev .mono{overflow-wrap:normal;white-space:nowrap}
+  .ev > span:last-child{flex:1 1 100%}
+}
+/* phone: the header's Pause / Cancel move into a sticky bar above the tab bar */
+.pbar{display:none}
+@media (max-width:767px){
+  .top .hdr-act{display:none!important}
+  .pbar{display:flex;position:sticky;bottom:57px;z-index:20;gap:8px;align-items:stretch;padding:10px 12px;margin:0 -12px -12px;background:#FFFFFF;border-top:1px solid #E3E6EB}
+  .pbar .btn{min-height:44px}
+  .pbar .menu{bottom:52px;right:0;min-width:220px}
+}
+/* phone: small buttons and menu items still give a 44px target */
+@media (max-width:767px){
+  .btn.sm{min-height:44px!important}
+  .content .btn,.top .btn{min-height:44px}
+  .content .thr-links a{min-height:44px!important}
+  .pbar .menu a,.pbar .menu button{min-height:44px}
+}
+/* phone board: bottom action bar (no tab bar on this board) */
+.mbar{position:sticky;bottom:0;z-index:20;display:flex;flex-direction:column;gap:10px;padding:10px 16px 12px;background:#FFFFFF;border-top:1px solid #E3E6EB}
+.mmenu{position:absolute;right:0;bottom:52px;z-index:40;background:#FFFFFF;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:220px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.mmenu a,.mmenu button{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:8px;color:#0B1220;font:inherit;font-size:14px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.mmenu a:hover,.mmenu button:hover{background:#F3F4F6}
+.mmenu button + a,.mmenu a + button{border-top:1px solid #EEF0F3;border-radius:0 0 8px 8px}
 </style>
 </helmet>
+<a href="#main" class="skip">Skip to content</a>
 <h1 class="vh">Live sending monitor, mobile</h1>
 <div style="width:390px;min-height:1500px;box-sizing:border-box;display:flex;flex-direction:column;background:#F3F4F6">
-  <header style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#fff;border-bottom:1px solid #E3E6EB">
-    <a href="Campaigns.dc.html" class="btn" style="min-height:40px;width:40px;padding:0" aria-label="Back to campaigns"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a>
-    <div style="display:flex;flex-direction:column;min-width:0;flex:1"><span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Weekly Digest #142</span><span class="k">Live · events 1 s ago</span></div>
+  <header style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#fff;border-bottom:1px solid #E3E6EB">
+    <a href="Campaigns.dc.html" class="btn" style="min-height:44px;width:44px;padding:0;flex:none" aria-label="Back to campaigns"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a>
+    <div style="display:flex;flex-direction:column;min-width:0;flex:1"><span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Weekly Digest #142</span><span class="fresh"><span class="dot"></span>Live · updated 1 s ago</span></div>
     <span class="badge ok"><span class="dot"></span>Sending</span>
   </header>
 
-  <main style="padding:16px;display:flex;flex-direction:column;gap:14px">
-    <section class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px">
-      <div style="display:flex;align-items:baseline;gap:10px"><span class="n" style="font-size:32px;letter-spacing:-.02em">62%</span><span>19,594 of 31,604</span></div>
-      <div class="bar" style="height:10px;border-radius:5px;display:flex;gap:2px"><i style="width:55.8%;background:#4a3aa7"></i><i style="width:6.2%;background:#e87ba4"></i></div>
-      <div style="display:flex;justify-content:space-between" class="k"><span>ETA 13 min · about 09:34</span><span>16.2 /s</span></div>
-      <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px">
+  <main id="main" style="padding:16px;display:flex;flex-direction:column;gap:14px">
+    <section class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px" aria-label="Progress">
+      <div style="display:flex;align-items:baseline;gap:10px"><span class="n" style="font-size:32px;letter-spacing:-.02em">63%</span><span>19,594 of 31,192 sent</span></div>
+      <!-- The only live region: changes when the send's state or a threshold's state changes, never per count. -->
+      <p class="sumline" aria-live="polite"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg><span>{{summary}}</span></p>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;align-items:flex-end;gap:8px;min-height:18px">
+          <span aria-hidden="true" style="flex:0 0 5%;min-width:12px;height:8px;border:2px solid #15803D;border-bottom:0;border-radius:3px 3px 0 0;box-sizing:border-box"></span>
+          <span class="k" style="display:inline-flex;align-items:center;gap:5px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Canary 5% · passed 09:20</span>
+        </div>
+        <div class="bar" style="height:10px;border-radius:5px;display:flex;gap:2px" role="img" aria-label="Sent so far: Amazon SES 17,635 and Postal 1,959, including the 1,560 canary recipients. 11,598 queued."><i style="width:56.5%;background:#4a3aa7"></i><i style="width:6.3%;background:#e87ba4"></i></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap" class="k"><span>SES done about {{sesDone}} · Postal about {{postalDone}}</span><span>16.2 /s</span></div>
+      <div style="display:flex;gap:6px 14px;flex-wrap:wrap;font-size:12px">
         <span style="display:flex;gap:6px;align-items:center"><span class="dot" style="color:#4a3aa7"></span>SES 17,635</span>
         <span style="display:flex;gap:6px;align-items:center"><span class="dot" style="color:#e87ba4"></span>Postal 1,959</span>
+        <span style="display:flex;gap:6px;align-items:center"><span class="dot" style="color:#C9CED6"></span>Queued 11,598</span>
       </div>
     </section>
 
     <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
-      <div class="card tile"><span class="k">Delivered</span><span class="n" style="font-size:22px">19,402</span><span class="k">99.0%</span></div>
-      <div class="card tile"><span class="k">Bounced</span><span class="n" style="font-size:22px">118</span><span class="k">0.60%</span></div>
-      <div class="card tile"><span class="k">Complained</span><span class="n" style="font-size:22px">6</span><span class="k">0.03%</span></div>
+      <div class="card tile"><span class="k">Delivered</span><span class="n" style="font-size:22px">19,402</span><span class="k">99.0% · 74 retrying</span></div>
+      <div class="card tile"><span class="k">Bounced</span><span class="n" style="font-size:22px">118</span><span class="k">0.60% · 8 block/policy</span></div>
+      <div class="card tile"><span class="k">Complained</span><span class="n" style="font-size:22px">4</span><span class="k">0.04% where reported</span></div>
       <div class="card tile"><span class="k">Opened · human</span><span class="n" style="font-size:22px">1,920</span><span class="k">+891 machine</span></div>
       <div class="card tile" style="grid-column:span 2"><span class="k">Clicked</span><span class="n" style="font-size:22px">402</span><span class="k">2.1% · 14.3% click-to-open</span></div>
     </div>
 
     <section class="card" style="display:flex;flex-direction:column">
-      <div style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center"><h2 class="h2">Thresholds</h2><span class="k">auto-pause</span></div>
-      <div style="padding:0 14px 12px;display:flex;flex-direction:column;gap:10px">
-        <div style="display:flex;flex-direction:column;gap:5px"><div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Bounce</span><span class="n">0.60% of 2.0%</span></div><div class="bar"><i style="width:30%;background:#15803D"></i></div></div>
-        <div style="display:flex;flex-direction:column;gap:5px"><div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Complaint</span><span class="n">0.03% of 0.10%</span></div><div class="bar"><i style="width:30%;background:#15803D"></i></div></div>
-        <div style="display:flex;flex-direction:column;gap:5px"><div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Outlook complaint</span><span class="n">0.05% of 0.10%</span></div><div class="bar"><i style="width:50%;background:#B45309"></i></div></div>
-        <div style="display:flex;flex-direction:column;gap:5px"><div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Provider errors</span><span class="n">0.2% of 5%</span></div><div class="bar"><i style="width:4%;background:#15803D"></i></div></div>
+      <div style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 class="h2">Thresholds</h2><a href="SendReadiness.dc.html" style="font-size:13px;min-height:44px;min-width:44px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center">Edit</a></div>
+      <div style="padding:0 14px 14px;display:flex;flex-direction:column;gap:14px">
+        <div class="thr">
+          <div class="thr-h"><span><b>Bounces</b><span class="k">whole send</span></span><span class="badge ok"><span class="dot"></span>Watching</span></div>
+          <div class="bar" aria-hidden="true"><i style="width:30%;background:#15803D"></i></div>
+          <div class="thr-v"><span class="n">0.60% of 2.0%</span><span>118 of 19,594 sent</span></div>
+        </div>
+        <div class="thr">
+          <div class="thr-h"><span><b>Block/policy bounces</b><span class="k">per mailbox provider</span></span><span class="badge ok"><span class="dot"></span>Watching</span></div>
+          <div class="bar" aria-hidden="true"><i style="width:14%;background:#15803D"></i></div>
+          <div class="thr-v"><span class="n">Outlook 0.07% of 0.5%</span><span>highest</span></div>
+        </div>
+        <div class="thr">
+          <div class="thr-h"><span><b>Deferrals</b><span class="k">per mailbox provider, over 10 min</span></span><span class="badge ok"><span class="dot"></span>Watching</span></div>
+          <div class="bar" aria-hidden="true"><i style="width:21%;background:#15803D"></i></div>
+          <div class="thr-v"><span class="n">Yahoo 3.1% of 15%</span><span>at 15% it slows to half rate</span></div>
+        </div>
+        <div class="thr">
+          <div class="thr-h"><span><b>Complaints</b><span class="k">whole send, where reported</span></span><span class="badge ok"><span class="dot"></span>Watching</span></div>
+          <div class="bar" aria-hidden="true"><i style="width:45%;background:#15803D"></i></div>
+          <div class="thr-v"><span class="n">0.04% of 0.10%</span><span>4 in 8,895 delivered</span></div>
+        </div>
+        <div class="thr">
+          <div class="thr-h"><span><b>Outlook complaints</b><span class="k">highest mailbox provider</span></span><span class="badge ok"><span class="dot"></span>Watching</span></div>
+          <div class="bar" aria-hidden="true"><i style="width:50%;background:#15803D"></i></div>
+          <div class="thr-v"><span class="n">0.05% of 0.10%</span><span>2 in 4,049 delivered</span></div>
+        </div>
+        <div class="thr">
+          <div class="thr-h"><span><b>Mailbox provider replies</b><span class="k">3 reply rules</span></span><span class="badge ok"><span class="dot"></span>Watching</span></div>
+          <div class="bar" aria-hidden="true"><i style="width:10%;background:#15803D"></i></div>
+          <div class="thr-v"><span class="n">Yahoo TSS04: 1 of 10</span><span>at 10, Yahoo pauses for 2 h</span></div>
+        </div>
+        <div class="thr">
+          <div class="thr-h"><span><b>Sending provider API errors</b><span class="k">over 3 min</span></span><span class="badge ok"><span class="dot"></span>Watching</span></div>
+          <div class="bar" aria-hidden="true"><i style="width:4%;background:#15803D"></i></div>
+          <div class="thr-v"><span class="n">0.2% of 5%</span></div>
+        </div>
+        <p class="fn" style="padding-top:12px;border-top:1px solid #EEF0F3">A threshold trips after at least 5 events and enough evidence that the rate is really above the limit; complaints and block/policy bounces also trip from 3 when the rate is clearly over it, however small the send.</p>
+      </div>
+    </section>
+
+    <section class="card" style="display:flex;flex-direction:column" id="mob-mbx">
+      <div style="padding:8px 8px 8px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 class="h2">Per mailbox provider</h2><button class="btn" type="button" style="min-height:44px;font-size:13px;padding:0 12px" aria-expanded="{{ratesOpen}}" aria-controls="mob-rates" onClick="{{toggleRates}}">Adjust rates</button></div>
+      <sc-if value="{{ratesOpen}}" hint-placeholder-val="{{false}}">
+        <div class="ratep" id="mob-rates">
+          <div style="display:flex;flex-direction:column;gap:2px"><h3 class="h2" style="font-size:14px">Rates per mailbox provider</h3><span class="k">For the rest of this send, on every route.</span></div>
+          <div class="rrow"><span class="nm"><span class="dot" style="color:#2a78d6"></span>Gmail</span><span class="k was">{{r.gmail.was}}</span><div class="stp" role="group" aria-label="Gmail rate"><button type="button" aria-label="Lower Gmail rate" onClick="{{r.gmail.dec}}" disabled="{{r.gmail.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.gmail.label}}</output><button type="button" aria-label="Raise Gmail rate" onClick="{{r.gmail.inc}}" disabled="{{r.gmail.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.gmail.effect}}</span></div>
+          <div class="rrow"><span class="nm"><span class="dot" style="color:#eb6834"></span>Outlook</span><span class="k was">{{r.outlook.was}}</span><div class="stp" role="group" aria-label="Outlook rate"><button type="button" aria-label="Lower Outlook rate" onClick="{{r.outlook.dec}}" disabled="{{r.outlook.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.outlook.label}}</output><button type="button" aria-label="Raise Outlook rate" onClick="{{r.outlook.inc}}" disabled="{{r.outlook.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.outlook.effect}}</span></div>
+          <div class="rrow"><span class="nm"><span class="dot" style="color:#1baf7a"></span>Yahoo</span><span class="k was">{{r.yahoo.was}}</span><div class="stp" role="group" aria-label="Yahoo rate"><button type="button" aria-label="Lower Yahoo rate" onClick="{{r.yahoo.dec}}" disabled="{{r.yahoo.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.yahoo.label}}</output><button type="button" aria-label="Raise Yahoo rate" onClick="{{r.yahoo.inc}}" disabled="{{r.yahoo.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.yahoo.effect}}</span></div>
+          <div class="rrow"><span class="nm"><span class="dot" style="color:#eda100"></span>iCloud</span><span class="k was">{{r.icloud.was}}</span><div class="stp" role="group" aria-label="iCloud rate"><button type="button" aria-label="Lower iCloud rate" onClick="{{r.icloud.dec}}" disabled="{{r.icloud.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.icloud.label}}</output><button type="button" aria-label="Raise iCloud rate" onClick="{{r.icloud.inc}}" disabled="{{r.icloud.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.icloud.effect}}</span></div>
+          <div class="rrow"><span class="nm"><span class="dot" style="color:#8b94a3"></span>Other</span><span class="k was">{{r.other.was}}</span><div class="stp" role="group" aria-label="Other rate"><button type="button" aria-label="Lower Other rate" onClick="{{r.other.dec}}" disabled="{{r.other.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.other.label}}</output><button type="button" aria-label="Raise Other rate" onClick="{{r.other.inc}}" disabled="{{r.other.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.other.effect}}</span></div>
+          <span style="font-size:13px"><span class="k">Whole send: </span><span class="n">{{wholeEffect}}</span></span>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+            <button class="btn" type="button" onClick="{{cancelRates}}">Cancel</button>
+            <button class="btn pri" type="button" onClick="{{applyRates}}" disabled="{{noChange}}">Apply</button>
+          </div>
+        </div>
+      </sc-if>
+      <div class="row" style="align-items:flex-start"><span class="dot" style="color:#2a78d6;margin-top:6px"></span><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">Gmail <span class="k" style="font-weight:500">· 9,013 sent</span></span><span class="k">99.3% delivered · deferred 0.4% · bounce 0.4% · complaints n/a · {{rates.gmail}}</span></div><span class="badge ok"><span class="dot"></span>Sending</span></div>
+      <div class="row" style="align-items:flex-start"><span class="dot" style="color:#eb6834;margin-top:6px"></span><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">Outlook <span class="k" style="font-weight:500">· 4,115 sent</span></span><span class="k">98.4% delivered · deferred 0.0% · bounce 1.1% · complaints 0.05% · {{rates.outlook}}</span></div><span class="badge ok"><span class="dot"></span>Sending</span></div>
+      <div class="row" style="align-items:flex-start"><span class="dot" style="color:#1baf7a;margin-top:6px"></span><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">Yahoo <span class="k" style="font-weight:500">· 1,763 sent</span></span><span class="k">99.0% delivered · deferred 3.1% · bounce 0.7% · complaints 0.06% · {{rates.yahoo}}</span></div><span class="badge ok"><span class="dot"></span>Sending</span></div>
+      <div class="row" style="align-items:flex-start"><span class="dot" style="color:#eda100;margin-top:6px"></span><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">iCloud <span class="k" style="font-weight:500">· 1,567 sent</span></span><span class="k">99.4% delivered · deferred 0.2% · bounce 0.4% · complaints n/a · {{rates.icloud}}</span></div><span class="badge ok"><span class="dot"></span>Sending</span></div>
+      <div class="row" style="align-items:flex-start"><span class="dot" style="color:#8b94a3;margin-top:6px"></span><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">Other <span class="k" style="font-weight:500">· 3,136 sent</span></span><span class="k">98.9% delivered · deferred 0.6% · bounce 0.8% · complaints 0.03% · {{rates.other}}</span></div><span class="badge ok"><span class="dot"></span>Sending</span></div>
+      <div class="fns" style="padding:12px 14px">
+        <p class="fn">n/a: Gmail and iCloud don't report complaints per message. Gmail's spam rate from Postmaster Tools: 0.04% yesterday.</p>
+        <p class="fn">Gmail includes Google Workspace and Outlook includes Microsoft 365 recipients (found from MX records). Deferred: share of attempts in the last 10 minutes the mailbox provider asked to retry.</p>
       </div>
     </section>
 
     <section class="card" style="display:flex;flex-direction:column">
-      <div style="padding:12px 14px"><h2 class="h2">Per mailbox provider</h2></div>
-      <div class="row"><span class="dot" style="color:#2a78d6"></span><span style="flex:1">Gmail</span><span class="n">9,013</span><span class="k" style="width:52px;text-align:right">99.3%</span><span class="badge ok">OK</span></div>
-      <div class="row"><span class="dot" style="color:#eb6834"></span><span style="flex:1">Outlook</span><span class="n">4,115</span><span class="k" style="width:52px;text-align:right">98.4%</span><span class="badge ok">OK</span></div>
-      <div class="row"><span class="dot" style="color:#1baf7a"></span><span style="flex:1">Yahoo</span><span class="n">1,763</span><span class="k" style="width:52px;text-align:right">99.0%</span><span class="badge ok">OK</span></div>
-      <div class="row"><span class="dot" style="color:#eda100"></span><span style="flex:1">iCloud</span><span class="n">1,567</span><span class="k" style="width:52px;text-align:right">99.4%</span><span class="badge ok">OK</span></div>
-      <div class="row"><span class="dot" style="color:#8b94a3"></span><span style="flex:1">Other</span><span class="n">3,136</span><span class="k" style="width:52px;text-align:right">98.9%</span><span class="badge ok">OK</span></div>
-    </section>
-
-    <section class="card" style="display:flex;flex-direction:column">
       <div style="padding:12px 14px"><h2 class="h2">Per sending provider</h2></div>
-      <div class="row"><span class="dot" style="color:#4a3aa7"></span><div style="flex:1;display:flex;flex-direction:column"><span>Amazon SES</span><span class="k">14.2 /s · 99.1% delivered</span></div><span class="n">17,635</span><span class="badge ok">Healthy</span></div>
-      <div class="row"><span class="dot" style="color:#e87ba4"></span><div style="flex:1;display:flex;flex-direction:column"><span>Postal</span><span class="k">2.0 /s · 98.6% delivered</span></div><span class="n">1,959</span><span class="badge info">Warm-up</span></div>
+      <div class="row"><span class="dot" style="color:#4a3aa7"></span><div style="flex:1;display:flex;flex-direction:column"><span>Amazon SES</span><span class="k">14.2 /s · 99.1% delivered · done about {{sesDone}}</span></div><span class="n">17,635</span><span class="badge ok">Healthy</span></div>
+      <div class="row"><span class="dot" style="color:#e87ba4"></span><div style="flex:1;display:flex;flex-direction:column"><span>Postal</span><span class="k">2.0 /s · 98.6% delivered · done about {{postalDone}}</span></div><span class="n">1,959</span><span class="badge info">Warm-up</span></div>
     </section>
 
     <section class="card" style="display:flex;flex-direction:column">
-      <div style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center"><h2 class="h2">Live events</h2><span class="badge ok"><span class="dot"></span>streaming</span></div>
-      <div class="row"><span class="mono k">09:21:44</span><span class="badge ok">delivered</span><span class="mono" style="font-size:12px">a.k···@gmail.com</span></div>
-      <div class="row"><span class="mono k">09:21:44</span><span class="badge bad">bounce</span><span class="mono" style="font-size:12px">r.w···@outlook.com</span></div>
-      <div class="row"><span class="mono k">09:21:43</span><span class="badge info">open</span><span class="mono" style="font-size:12px">s.p···@gmail.com</span></div>
-      <div class="row"><span class="mono k">09:21:42</span><span class="badge warn">deferred</span><span class="mono" style="font-size:12px">h.b···@yahoo.com</span></div>
+      <div style="padding:8px 8px 8px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 class="h2">Live events</h2><button class="btn" type="button" style="min-height:44px;font-size:13px;padding:0 12px" aria-pressed="{{streamPaused}}" onClick="{{toggleStream}}">{{streamBtn}}</button></div>
+      <div class="row"><span class="mono k">09:38:44</span><span class="badge ok">delivered</span><span class="mono" style="font-size:12px">a.k···@gmail.com</span></div>
+      <div class="row"><span class="mono k">09:38:44</span><span class="badge bad">bounce</span><span class="mono" style="font-size:12px">r.w···@outlook.com</span></div>
+      <div class="row"><span class="mono k">09:38:43</span><span class="badge info">open</span><span class="mono" style="font-size:12px">s.p···@gmail.com</span></div>
+      <div class="row"><span class="mono k">09:38:42</span><span class="badge warn">deferred</span><span class="mono" style="font-size:12px">h.b···@yahoo.com</span></div>
     </section>
 
-    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:4px">
-      <a href="LiveMonitorPaused.dc.html" class="btn">Pause</a>
-      <button class="btn" style="color:#991B1B;border-color:#FCA5A5">Cancel</button>
-    </div>
+    <p class="fn" style="text-align:center">Anyone who can send can pause · Linh Nguyen and Marcus Chen can resume</p>
   </main>
+
+  <div class="mbar" role="group" aria-label="Send actions">
+    <sc-if value="{{cancelAsk}}" hint-placeholder-val="{{false}}">
+      <div style="display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid #FCA5A5;border-radius:10px;background:#FFF5F5">
+        <span style="font-weight:600;color:#7F1D1D">Cancel Weekly Digest #142?</span>
+        <span style="font-size:13px;color:#7F1D1D">The 11,598 queued recipients won't get it. The 19,594 already sent can't be recalled.</span>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+          <button class="btn" type="button" onClick="{{cancelKeep}}">Keep sending</button>
+          <button class="btn" type="button" style="background:#B91C1C;border-color:#B91C1C;color:#FFFFFF">Cancel send</button>
+        </div>
+      </div>
+    </sc-if>
+    <div style="display:flex;gap:8px;align-items:stretch;position:relative">
+      <a href="LiveMonitorPaused.dc.html" class="btn pri" style="flex:1 1 auto">Pause</a>
+      <button class="btn" type="button" style="width:44px;padding:0;flex:none" aria-label="More actions" aria-haspopup="menu" aria-expanded="{{moreOpen}}" onClick="{{toggleMore}}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg></button>
+      <sc-if value="{{moreOpen}}" hint-placeholder-val="{{false}}">
+        <div class="mmenu" role="menu" aria-label="More actions">
+          <a role="menuitem" href="#mob-mbx" onClick="{{openRatesFromMenu}}">Adjust rates</a>
+          <button role="menuitem" type="button" style="color:#991B1B" onClick="{{cancelOpen}}">Cancel send…</button>
+        </div>
+      </sc-if>
+    </div>
+  </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1588}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":2641}}'>
 class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { ratesOpen: false, applied: null, draft: null, note: '', streamPaused: false, moreOpen: false, cancelAsk: false };
+  }
+  cfg() {
+    // Live view at 09:38:44. Remaining recipients per mailbox provider add up to the 11,598 queued.
+    return {
+      now: 9 * 3600 + 38 * 60 + 44,
+      mailboxes: [
+        { key: 'gmail', name: 'Gmail', left: 5335, rate: 0 },
+        { key: 'outlook', name: 'Outlook', left: 2436, rate: 5 },
+        { key: 'yahoo', name: 'Yahoo', left: 1044, rate: 4 },
+        { key: 'icloud', name: 'iCloud', left: 928, rate: 3 },
+        { key: 'other', name: 'Other', left: 1855, rate: 0 }
+      ],
+      ses: { left: 10438, rate: 14.2 },
+      postal: { left: 1160, rate: 2.0 },
+      summary: 'Canary passed at 09:20. Sending to everyone; every threshold is inside its limit.'
+    };
+  }
   renderVals() {
-    return {};
+    var self = this;
+    var s = this.state;
+    var c = this.cfg();
+    var LEVELS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 0];
+    var base = {};
+    c.mailboxes.forEach(function (m) { base[m.key] = m.rate; });
+    var applied = s.applied || base;
+    var draft = s.draft || applied;
+    function lab(v) { return v === 0 ? 'full rate' : v + ' /s'; }
+    function clock(sec) {
+      var m = Math.round((c.now + sec) / 60);
+      var h = Math.floor(m / 60), mm = m % 60;
+      return (h < 10 ? '0' : '') + h + ':' + (mm < 10 ? '0' : '') + mm;
+    }
+    function mbTime(m, rates) { var v = rates[m.key]; return v > 0 ? m.left / v : 0; }
+    function sesTime(rates) {
+      var t = c.ses.left / c.ses.rate;
+      c.mailboxes.forEach(function (m) { t = Math.max(t, mbTime(m, rates)); });
+      return t;
+    }
+    function postalTime() { return c.postal.left / c.postal.rate; }
+    function whole(rates) { return Math.max(sesTime(rates), postalTime()); }
+    var r = {};
+    var changed = [];
+    var rates = {};
+    c.mailboxes.forEach(function (m) {
+      var v = draft[m.key];
+      var was = applied[m.key];
+      var i = LEVELS.indexOf(v);
+      var isChanged = v !== was;
+      if (isChanged) changed.push(m.name + ' ' + lab(v));
+      var effect = '';
+      if (isChanged) {
+        var t0 = mbTime(m, applied), t1 = mbTime(m, draft);
+        if (t1 && t0) effect = 'finishes about ' + clock(t1) + ' instead of ' + clock(t0);
+        else if (t1) effect = 'finishes about ' + clock(t1);
+        else effect = 'limited only by the sending provider';
+      }
+      rates[m.key] = lab(was);
+      r[m.key] = {
+        label: lab(v),
+        was: isChanged ? 'was ' + lab(was) : 'now ' + lab(was),
+        effect: effect,
+        atMin: i === 0,
+        atMax: v === 0,
+        dec: function () { var d = Object.assign({}, draft); d[m.key] = LEVELS[Math.max(0, i - 1)]; self.setState({ draft: d }); },
+        inc: function () { var d = Object.assign({}, draft); d[m.key] = LEVELS[Math.min(LEVELS.length - 1, i + 1)]; self.setState({ draft: d }); }
+      };
+    });
+    var w0 = whole(applied), w1 = whole(draft);
+    var diff = Math.round((c.now + w1) / 60) - Math.round((c.now + w0) / 60);
+    var wholeEffect = changed.length === 0 ? 'about ' + clock(w0) + ' (no change yet)'
+      : 'about ' + clock(w0) + ' → about ' + clock(w1) + (diff > 0 ? ' (' + diff + ' min later)' : diff < 0 ? ' (' + (-diff) + ' min sooner)' : ' (same minute)');
+    return {
+      r: r,
+      rates: rates,
+      wholeEffect: wholeEffect,
+      noChange: changed.length === 0,
+      ratesOpen: !!s.ratesOpen,
+      summary: s.note || c.summary,
+      sesDone: clock(sesTime(applied)),
+      postalDone: clock(postalTime()),
+      streamPaused: !!s.streamPaused,
+      streamLive: !s.streamPaused,
+      streamBtn: s.streamPaused ? 'Resume updates' : 'Pause updates',
+      cancelAsk: !!s.cancelAsk,
+      cancelOpen: function () { self.setState({ moreOpen: false, cancelAsk: true }); },
+      cancelKeep: function () { self.setState({ cancelAsk: false }); },
+      moreOpen: !!s.moreOpen,
+      toggleMore: function () { self.setState({ moreOpen: !s.moreOpen }); },
+      openRatesFromMenu: function () { self.setState({ moreOpen: false, ratesOpen: true, draft: Object.assign({}, applied) }); },
+      toggleStream: function () { self.setState({ streamPaused: !s.streamPaused }); },
+      toggleRates: function () { self.setState({ ratesOpen: !s.ratesOpen, draft: s.ratesOpen ? null : Object.assign({}, applied) }); },
+      cancelRates: function () { self.setState({ ratesOpen: false, draft: null }); },
+      applyRates: function () {
+        if (!changed.length) return;
+        self.setState({
+          applied: Object.assign({}, draft),
+          draft: null,
+          ratesOpen: false,
+          note: 'Rates changed: ' + changed.join(', ') + '. The whole send now finishes about ' + clock(w1) + '.'
+        });
+      }
+    };
   }
 }
 </script>

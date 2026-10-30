@@ -18,9 +18,9 @@ func newDemoCmd(o *rootOpts) *cobra.Command {
 		Short: "Development helpers for the Acme demo (REPUTECAST_ENV=development only)",
 	}
 	var (
-		scenario, workspace string
-		elapsed, abWindow   time.Duration
-		reset               bool
+		scenario, workspace, canary string
+		elapsed, abWindow           time.Duration
+		reset                       bool
 	)
 	send := &cobra.Command{
 		Use:   `send "<campaign>"`,
@@ -31,7 +31,8 @@ func newDemoCmd(o *rootOpts) *cobra.Command {
 			"Scenarios:\n" +
 			"  normal              the LiveMonitor board\n" +
 			"  outlook-complaints  lapsed Outlook readers complain until the Outlook share auto-pauses (LiveMonitorPaused)\n" +
-			"  postal-outage       Postal refuses connections 14 minutes in; its share is held (LiveMonitorOutage)\n\n" +
+			"  postal-outage       Postal refuses connections 14 minutes in; its share is held (LiveMonitorOutage)\n" +
+			"  steady              normal without the provider throttling a call now and then\n\n" +
 			"--elapsed starts the send that long ago and sends that part at once with back-dated times (and the\n" +
 			"minute or two that takes), so the monitor opens mid-send: --elapsed 20m shows the boards' 09:21 moment.\n" +
 			"--reset clears an earlier send of the campaign, with what it changed outside it (provider statistics,\n" +
@@ -54,7 +55,7 @@ func newDemoCmd(o *rootOpts) *cobra.Command {
 			}
 			defer a.Close()
 			res, err := a.SendingEngine().DemoSend(cmd.Context(), engine.DemoSendOptions{
-				Workspace: workspace, Campaign: args[0], Scenario: scenario, Elapsed: elapsed, ABWindow: abWindow, Reset: reset,
+				Workspace: workspace, Campaign: args[0], Scenario: scenario, Elapsed: elapsed, ABWindow: abWindow, Reset: reset, Canary: canary,
 			})
 			if err != nil {
 				return err
@@ -68,11 +69,12 @@ func newDemoCmd(o *rootOpts) *cobra.Command {
 			return nil
 		},
 	}
-	send.Flags().StringVar(&scenario, "scenario", simulator.ScenarioNormal, "normal, outlook-complaints or postal-outage")
+	send.Flags().StringVar(&scenario, "scenario", simulator.ScenarioNormal, "normal, outlook-complaints, postal-outage or steady (normal without the provider throttling now and then)")
 	send.Flags().StringVar(&workspace, "workspace", "acme-newsletter", "workspace slug")
 	send.Flags().DurationVar(&elapsed, "elapsed", 0, "start the send this long ago and fast-forward to now (e.g. 21m)")
 	send.Flags().DurationVar(&abWindow, "ab-window", engine.DemoABWindow, "how long the A/B test runs before the winner goes to the rest")
 	send.Flags().BoolVar(&reset, "reset", false, "clear an earlier send of the campaign first")
+	send.Flags().StringVar(&canary, "canary", "", "auto, on or off (default: on in the normal scenario, off in the others)")
 	cmd.AddCommand(send)
 	return cmd
 }

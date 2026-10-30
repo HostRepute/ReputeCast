@@ -153,7 +153,7 @@ func (s *Service) Settings(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		out.DefaultSender = &TransactionalSenderRef{ID: st.DefaultSenderID.String(), Name: st.DefaultSenderName, Email: st.DefaultSenderEmail}
 	}
 	if !out.CanEdit {
-		out.Reason = deniedMessage(ctx, "settings", authz.TransactionalPublish, s.helpers(ctx, ws.ID, authz.TransactionalPublish, 3))
+		out.Reason = deniedMessage(ctx, "settings", s.helpers(ctx, ws.ID, authz.TransactionalPublish, 3))
 	}
 	return out, nil
 }

@@ -156,8 +156,8 @@ export default translate(mr, {
     'Chương trình đã bật được {days, plural, other {# ngày}}: đến nay có {visits, plural, other {# lượt truy cập liên kết}}, {signups, plural, other {# lượt đăng ký}} và {confirmed} lượt đã xác nhận. Số liệu nhỏ như vậy dao động quá nhiều để rút ra kết luận.',
   littleProgress: '{count}/20 đã xác nhận',
   littleLinks: 'Tiến độ của từng người giới thiệu có ở <referrers>Người giới thiệu</referrers>, và lượt giới thiệu bị tạm giữ chờ ở <review>Duyệt</review>.',
-  readOnlyText: 'Bạn xem được kết quả, người giới thiệu và hàng chờ duyệt. Để tắt chương trình, bạn cần quyền <mono>grow:edit</mono>. Hãy hỏi {helpers}.',
-  readOnlyTextNoHelpers: 'Bạn xem được kết quả, người giới thiệu và hàng chờ duyệt. Để tắt chương trình, bạn cần quyền <mono>grow:edit</mono>.',
+  readOnlyText: 'Bạn xem được kết quả, người giới thiệu và hàng chờ duyệt. Vai trò của bạn không thể tắt chương trình. Hãy hỏi {helpers}.',
+  readOnlyTextNoHelpers: 'Bạn xem được kết quả, người giới thiệu và hàng chờ duyệt. Vai trò của bạn không thể tắt chương trình.',
   loadError: 'Không tải được kết quả',
   loadingLabel: 'Đang tải kết quả',
   // No program yet.
@@ -165,8 +165,8 @@ export default translate(mr, {
   noneText:
     'Người đọc chia sẻ liên kết cá nhân và nhận thưởng ở các mốc bạn chọn. Chỉ người đăng ký đã xác nhận mới được tính, sau thời gian chờ, nên danh sách luôn là người thật.',
   noneAction: 'Bắt đầu chương trình giới thiệu',
-  noneEditNeeds: 'Để bắt đầu chương trình, bạn cần quyền <mono>grow:edit</mono>. Hãy hỏi {helpers}.',
-  noneEditNeedsNoHelpers: 'Để bắt đầu chương trình, bạn cần quyền <mono>grow:edit</mono>.',
+  noneEditNeeds: 'Vai trò của bạn không thể bắt đầu chương trình. Hãy hỏi {helpers}.',
+  noneEditNeedsNoHelpers: 'Vai trò của bạn không thể bắt đầu chương trình.',
   resumeTitle: 'Chương trình {list} đang được thiết lập',
   resumeText: 'Hướng dẫn đang ở bước {step}/5. Người đọc chưa thấy gì cho đến khi chương trình được bật.',
   resumeAction: 'Tiếp tục thiết lập',

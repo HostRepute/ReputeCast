@@ -94,7 +94,7 @@ export const m = defineMessages('polls', {
   previewTitle: 'Answer page preview',
   previewLoading: 'Rendering the answer page…',
   previewFailed: 'The answer page couldn’t be shown. {detail}',
-  readOnly: 'You can open the poll’s settings and preview the answer page. Editing needs campaigns:edit.',
+  readOnly: 'You can open the poll’s settings and preview the answer page. Your role can’t edit the poll.',
   problems: 'This poll isn’t complete: {problems}',
 
   // What a new Poll block and a new 0–10 scale say until the author

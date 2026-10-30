@@ -48,8 +48,10 @@ func TestPullOnlyProviderSyncsWithoutError(t *testing.T) {
 		VALUES ($1, $2, 'brevo', 'Brevo', $3, $4, $5, '{}')`, id, ws.ID, `{"base_url":"`+api.URL+`"}`, creds, token); err != nil {
 		t.Fatal(err)
 	}
+	// A hard bounce is what a push would hand to the provider (a manual
+	// entry stays in ReputeCast).
 	if _, err := env.App.Q.IngestAddSuppression(ctx, store.IngestAddSuppressionParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID,
-		Email: "manual@example.com", Reason: "manual", Source: "manual", CreatedAt: time.Now()}); err != nil {
+		Email: "bounced@example.com", Reason: "hard_bounce", Source: "webhook", CreatedAt: time.Now()}); err != nil {
 		t.Fatal(err)
 	}
 	p, err := env.App.Q.ProvGetAny(ctx, id)

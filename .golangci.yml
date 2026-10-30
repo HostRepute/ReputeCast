@@ -1,8 +1,8 @@
 version: "2"
 run:
-  # The whole module takes a few minutes cold here, and more than 15 on a
-  # cold CI runner.
-  timeout: 30m
+  # The whole module takes a few minutes cold here, and more than 30 on a
+  # cold CI runner since the review's milestones (M33–M40) grew it by half.
+  timeout: 60m
 linters:
   default: standard
   enable:

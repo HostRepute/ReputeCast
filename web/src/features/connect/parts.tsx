@@ -116,13 +116,14 @@ export function useSetupActions(workspace: string, setupId: string) {
   const webhook = useSetupAction(workspace, setupId, async (body: Schemas['ConnectWebhookInput']) => (await http.POST('/api/v1/workspaces/{workspace}/connect/setups/{setupId}/webhook', { ...path, body })).data)
   const polling = useSetupAction(workspace, setupId, async () => (await http.POST('/api/v1/workspaces/{workspace}/connect/setups/{setupId}/polling', path)).data)
   const region = useSetupAction(workspace, setupId, async (body: Schemas['ConnectRegionInput']) => (await http.PUT('/api/v1/workspaces/{workspace}/connect/setups/{setupId}/region', { ...path, body })).data)
+  const events = useSetupAction(workspace, setupId, async (body: Schemas['ConnectEventsInput']) => (await http.PUT('/api/v1/workspaces/{workspace}/connect/setups/{setupId}/events', { ...path, body })).data)
   const provision = useSetupAction(workspace, setupId, async () => (await http.POST('/api/v1/workspaces/{workspace}/connect/setups/{setupId}/provision', path)).data)
   const production = useSetupAction(workspace, setupId, async (body: Schemas['ConnectProductionAccessInput']) => (await http.POST('/api/v1/workspaces/{workspace}/connect/setups/{setupId}/production-access', { ...path, body })).data)
   const domain = useSetupAction(workspace, setupId, async (body: Schemas['ConnectDomainInput']) => (await http.POST('/api/v1/workspaces/{workspace}/connect/setups/{setupId}/domain', { ...path, body })).data)
   const streams = useSetupAction(workspace, setupId, async (body: Schemas['ConnectStreamsInput']) => (await http.PUT('/api/v1/workspaces/{workspace}/connect/setups/{setupId}/streams', { ...path, body })).data)
   const finish = useSetupAction(workspace, setupId, async (body: Schemas['ConnectFinishInput']) => (await http.POST('/api/v1/workspaces/{workspace}/connect/setups/{setupId}/finish', { ...path, body })).data)
   const step = useSetupAction(workspace, setupId, async (body: Schemas['ConnectStepInput']) => (await http.PATCH('/api/v1/workspaces/{workspace}/connect/setups/{setupId}', { ...path, body })).data)
-  return { connect, mailbox, webhook, polling, region, provision, production, domain, streams, finish, step }
+  return { connect, mailbox, webhook, polling, region, events, provision, production, domain, streams, finish, step }
 }
 
 export type SetupActions = ReturnType<typeof useSetupActions>

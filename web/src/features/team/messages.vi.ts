@@ -9,8 +9,8 @@ export default translate(m, {
   nothingChanged: 'Không có gì bị thay đổi.',
   retry: 'Thử lại',
   readOnly: 'Chỉ xem',
-  readOnlyNote: 'Bạn có thể xem nhóm. Mời thành viên cần quyền <mono>team:invite</mono> và đổi vai trò cần <mono>team:manage</mono>.',
-  readOnlyNoteAsk: 'Bạn có thể xem nhóm. Mời thành viên cần quyền <mono>team:invite</mono> và đổi vai trò cần <mono>team:manage</mono>. Hãy nhờ {helpers}.',
+  readOnlyNote: 'Bạn có thể xem nhóm. Vai trò của bạn không thể mời người khác hay đổi vai trò của thành viên.',
+  readOnlyNoteAsk: 'Bạn có thể xem nhóm. Vai trò của bạn không thể mời người khác hay đổi vai trò của thành viên. Hãy nhờ {helpers}.',
 
   members: 'Thành viên',
   membersCaption: 'Mọi người có quyền truy cập {workspace}',

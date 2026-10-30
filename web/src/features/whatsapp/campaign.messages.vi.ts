@@ -125,8 +125,8 @@ export default translate(m, {
   later: 'sau đó',
   costLine: 'ước tính {amount}',
   costLineSplit: 'ước tính {amount}, không đổi khi chia thành hai ngày',
-  approvalOk: 'Không có quy tắc nào khớp · {name} có thể gửi chiến dịch WhatsApp ({perm})',
-  approvalNeeds: '{name} là {role}: việc gửi cần quyền {perms}. {helpers} có thể phê duyệt.',
+  approvalOk: 'Không có quy tắc nào khớp · {name} có thể gửi chiến dịch WhatsApp',
+  approvalNeeds: '{name} là {role}, vai trò này không thể gửi chiến dịch WhatsApp. {helpers} có thể phê duyệt.',
   estimatedCost: 'Chi phí ước tính',
   costNote: '{n, plural, other {# tin nhắn {category}}}, Meta tính phí khi gửi thành công · theo bảng giá của Meta ngày {date}',
   editRates: 'Sửa bảng giá',
@@ -144,7 +144,7 @@ export default translate(m, {
   ratesSave: 'Lưu bảng giá',
   ratesSaved: 'Đã lưu bảng giá',
   ratesEdited: '{name} sửa lần gần nhất ngày {date}',
-  ratesReadOnly: 'Thay đổi bảng giá cần quyền {perm}.',
+  ratesReadOnly: 'Vai trò của bạn không thể thay đổi bảng giá.',
   cancel: 'Hủy',
 
   // Test
@@ -183,7 +183,7 @@ export default translate(m, {
   sentSplitToast: 'Đang gửi cho {now} người; {later} người nhận {laterDay, select, tomorrow {vào ngày mai} other {sau đó}}',
   scheduledToast: 'Đã lên lịch {date}, {time}',
   blockedReason: 'Hãy sửa các mục chặn trước.',
-  noPermission: 'Việc gửi cần quyền {perms}.',
+  sendAction: 'gửi chiến dịch WhatsApp',
   waitingApproval: 'Đang chờ phê duyệt · {name} yêu cầu lúc {time}',
   backToEditor: 'Quay lại trình soạn thảo',
   sendConfirmTitle: 'Gửi “{name}”?',

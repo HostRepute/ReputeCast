@@ -9,6 +9,362 @@
     min-width: 150px;
   }
 
+  /* A render error notice's masked samples. */
+  .lv-samples {
+    margin: 6px 0 0;
+    padding-left: 18px;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  /* The live view's events beside the send details (LiveMonitor); one
+     column on tablets and phones (LiveMonitorTablet). */
+  .lv-split {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .lv-split-main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex: 2 1 560px;
+    min-width: 0;
+  }
+  .lv-split-side {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex: 1 1 320px;
+    min-width: 0;
+  }
+  @media (min-width: 1100px) {
+    .lv-split-side {
+      max-width: 400px;
+    }
+  }
+  /* A button that reads as a link ("Edit for this send"). */
+  .btn.lv-linkbtn {
+    color: var(--accent);
+    font-weight: 500;
+    padding-inline: 4px;
+  }
+  .btn.lv-linkbtn:hover {
+    color: var(--accent-hover);
+    background: transparent;
+    text-decoration: underline;
+  }
+
+  /* The header's freshness pill (.fresh). */
+  .lv-fresh {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #5b6472;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .lv-fresh .dot {
+    color: var(--ok-strong, #15803d);
+  }
+  .lv-fresh.stale .dot {
+    color: #b45309;
+  }
+
+  /* Phones: Pause and its menu stay above the tab bar (.pbar). */
+  .lv-pbar {
+    display: flex;
+    position: sticky;
+    bottom: var(--tabbar-h, 57px);
+    z-index: 20;
+    gap: 8px;
+    align-items: stretch;
+    padding: 10px 12px;
+    margin: 0 -12px -12px;
+    background: var(--surface, #fff);
+    border-top: 1px solid var(--line);
+  }
+  .lv-pbar .btn {
+    min-height: 44px;
+  }
+  .lv-pbar .btn.icon-only,
+  .lv-pbar .btn[aria-haspopup] {
+    width: 44px;
+    padding: 0;
+  }
+  .lv-m .lv-mrow {
+    align-items: flex-start;
+  }
+
+  /* The canary's share above the progress bar, once it passed. */
+  .lv-canary-mark {
+    height: 8px;
+    border: 2px solid var(--ok-strong, #15803d);
+    border-bottom: 0;
+    border-radius: 3px 3px 0 0;
+    box-sizing: border-box;
+  }
+
+  /* The progress card's summary line (.sumline). */
+  .lv-sumline {
+    margin: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink);
+    line-height: 1.45;
+  }
+  .lv-sumline svg {
+    flex: none;
+    margin-top: 2px;
+  }
+
+  /* Adjust rates (.ratep, .rrow, .stp). */
+  .lv-rates {
+    border-bottom: 1px solid var(--line-2);
+    background: var(--ground-2);
+    padding: 14px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .lv-rates-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .lv-rate {
+    display: grid;
+    grid-template-columns: minmax(110px, 150px) minmax(110px, 150px) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px 14px;
+    font-size: 13px;
+    padding: 4px 0;
+  }
+  .lv-rate-name {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-weight: 600;
+  }
+  .lv-rates-held {
+    margin: 0;
+    font-size: 13px;
+  }
+  .lv-stepper {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid #8b94a3;
+    border-radius: 8px;
+    background: var(--surface, #fff);
+    overflow: hidden;
+    flex: none;
+  }
+  .lv-stepper button {
+    width: 36px;
+    height: 36px;
+    border: 0;
+    background: var(--surface, #fff);
+    color: var(--ink);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font: inherit;
+  }
+  .lv-stepper button:hover {
+    background: var(--ground-3);
+  }
+  .lv-stepper button:disabled {
+    color: #9ca3af;
+    cursor: not-allowed;
+    background: var(--surface, #fff);
+  }
+  .lv-stepper output {
+    min-width: 86px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+  }
+  .lv-rates-f {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding-top: 4px;
+  }
+  @media (max-width: 767px) {
+    .lv-rate {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 6px 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--line-2);
+    }
+    .lv-rate-was {
+      grid-column: 1 / -1;
+      order: 3;
+    }
+    .lv-rate-effect {
+      grid-column: 1 / -1;
+      order: 4;
+    }
+    .lv-stepper button {
+      width: 44px;
+      height: 44px;
+    }
+  }
+
+  /* The canary (LiveMonitorCanary: .cnr-top, .gate, .seeds, .act). */
+  .lv-canary {
+    display: flex;
+    flex-direction: column;
+    border-color: #99f6e4;
+  }
+  .lv-cnr-top {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 20px 22px;
+    background: #f0fdfa;
+    border-radius: 10px 10px 0 0;
+    border-bottom: 1px solid #99f6e4;
+    flex-wrap: wrap;
+  }
+  .lv-cnr-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .lv-cnr-dec {
+    flex: 2 1 300px;
+    min-width: 0;
+    padding: 16px 22px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-left: 1px solid var(--line-2);
+  }
+  .lv-gate {
+    display: grid;
+    grid-template-columns: minmax(120px, 160px) minmax(0, 1fr) minmax(96px, 130px) 148px;
+    gap: 4px 16px;
+    align-items: center;
+    padding: 11px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+  }
+  .lv-gn {
+    font-weight: 600;
+  }
+  .lv-gv {
+    font-variant-numeric: tabular-nums;
+    min-width: 0;
+  }
+  .lv-gl {
+    font-size: 12.5px;
+  }
+  .lv-gate .lv-gs {
+    justify-self: end;
+  }
+  details.lv-seeds {
+    border-top: 1px solid var(--line-2);
+    padding-top: 10px;
+  }
+  details.lv-seeds summary {
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f766e;
+    min-height: 24px;
+  }
+  .lv-seedbar {
+    display: flex;
+    height: 12px;
+    gap: 2px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--line-2);
+  }
+  .lv-seedbar i {
+    display: block;
+    height: 100%;
+  }
+  .lv-seedrow {
+    display: flex;
+    justify-content: space-between;
+    gap: 2px 12px;
+    flex-wrap: wrap;
+    padding: 7px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 12.5px;
+  }
+  .lv-act {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 0;
+    border-top: 1px solid var(--line-2);
+  }
+  .lv-act:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .lv-act .btn {
+    width: 100%;
+    min-height: 40px;
+  }
+  .lv-stop {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid #fca5a5;
+    border-radius: 10px;
+    background: #fff5f5;
+    margin-top: 6px;
+  }
+  @media (max-width: 1100px) {
+    .lv-cnr-dec {
+      border-left: 0;
+      border-top: 1px solid var(--line-2);
+    }
+  }
+  @media (max-width: 767px) {
+    .lv-gate {
+      grid-template-columns: minmax(0, 1fr) auto;
+      padding: 12px 0;
+    }
+    .lv-gv,
+    .lv-gl {
+      grid-column: 1 / -1;
+    }
+    .lv-gate .lv-gs {
+      grid-row: 1;
+      grid-column: 2;
+    }
+    /* 44 px targets, as LiveMonitorMobile draws them (`lv-page` is the page's <main>). */
+    .lv-act .btn,
+    .lv-page .btn {
+      min-height: 44px;
+    }
+    details.lv-seeds summary {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
+  }
+
   /* A line of the live event feed (.ev on the boards). */
   .lv-ev {
     display: flex;
@@ -22,6 +378,160 @@
     border-top: 0;
   }
 
+  /* The checks ReputeCast ran on a move's target, under the option
+     (.chks on LiveMonitorOutage). */
+  .lv-chks {
+    margin: 6px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .lv-chks > span {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    font-size: 12px;
+    color: #4b5563;
+    font-weight: 500;
+  }
+  .lv-chks > span svg {
+    flex: none;
+    margin-top: 2px;
+  }
+
+  /* Auto-pause thresholds (LiveMonitor): a grid of rows, each with its
+     state badge, bar and evidence line. */
+  .lv-thr {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .lv-thr-h {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px 12px;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+  .lv-thr-h > span:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+  .lv-thr-h b {
+    font-weight: 600;
+  }
+  .lv-thr-v {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 8px;
+    font-size: 12.5px;
+    color: #4b5563;
+  }
+  .lv-thr-v .n {
+    color: var(--ink);
+  }
+  .lv-fn {
+    margin: 0;
+    font-size: 12px;
+    color: #5b6472;
+    font-weight: 500;
+    line-height: 1.45;
+  }
+  .lv-fns {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--line-2);
+  }
+
+  /* The complaint watch's rows after the send (LiveMonitorStates). */
+  .lv-cw {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px 28px;
+  }
+  @media (max-width: 1100px) {
+    .lv-cw {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 767px) {
+    .lv-cw {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* Adjust rates (LiveMonitor): one row per mailbox provider with a
+     stepper. */
+  .lv-ratep {
+    border-top: 1px solid var(--line-2);
+    background: #f9fafb;
+    padding: 14px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .lv-rrow {
+    display: grid;
+    grid-template-columns: minmax(110px, 150px) minmax(110px, 150px) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px 14px;
+    font-size: 13px;
+    padding: 4px 0;
+  }
+  .lv-rrow .nm {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-weight: 600;
+  }
+  .lv-stp {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid #8b94a3;
+    border-radius: 8px;
+    background: #ffffff;
+    overflow: hidden;
+    flex: none;
+  }
+  .lv-stp button {
+    width: 36px;
+    height: 36px;
+    border: 0;
+    background: #ffffff;
+    color: var(--ink);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font: inherit;
+  }
+  .lv-stp button:hover {
+    background: #f3f4f6;
+  }
+  .lv-stp button:disabled {
+    color: #9ca3af;
+    cursor: not-allowed;
+    background: #ffffff;
+  }
+  .lv-stp output {
+    min-width: 86px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+  }
+
   /* The connecting state's spinner (28px, 3px ring). */
   .spin.lv-spin {
     width: 28px;
@@ -29,9 +539,11 @@
     border-width: 3px;
   }
 
-  /* Stale data while the event stream is down (LiveMonitorStates). */
-  .lv-stale {
-    opacity: 0.75;
+  /* Stale data while the event stream is down (LiveMonitorStates): the
+     progress bar fades, as on the board; the counts and their labels keep
+     their contrast, since people still read them as of the time shown. */
+  .lv-stale > .bar {
+    opacity: 0.55;
   }
 
   /* LiveMonitorMobile: its own header, and the board's phone sizes for
@@ -77,9 +589,51 @@
 }
 
 @media (max-width: 767px) {
+  /* A warm-up hold's target picker: a phone-sized target (review PR-8). */
+  select.lv-warm-target {
+    height: 44px;
+  }
+  .lv-rrow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .lv-rrow .was {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+  .lv-rrow .eff {
+    grid-column: 1 / -1;
+    order: 4;
+  }
+  .lv-stp button {
+    width: 44px;
+    height: 44px;
+  }
+  .lv-thr-links a,
+  .lv-thr-links button {
+    min-height: 44px;
+  }
   .content.lv-m {
     padding: 16px;
     gap: 14px;
+  }
+  /* A decision's actions on phones: the choice first, full width
+     (LiveMonitorPausedPhone). */
+  .lv-dec-acts {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .lv-dec-acts .btn {
+    min-height: 44px;
+  }
+  /* Every action on the phone screens is a 44px target. */
+  .content.lv-m .btn,
+  .lv-pbar .btn,
+  .lv-canary .btn,
+  .lv-tbl ~ .lv-fns a {
+    min-height: 44px;
   }
   /* LiveMonitorMobile is a screen of its own: its header leads back to
      the campaigns, and the shell's tab bar isn't drawn under it. */

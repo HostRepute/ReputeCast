@@ -23,8 +23,8 @@
   "milestone.webhookURL": { "message": "{detail}", "note": "detail: why the endpoint can't be used" },
   "milestone.webhookHTTPS": "Give an endpoint that starts with https://.",
   "milestone.couponNeedsStripe": "Connect Stripe in Earn › Settings › Payments first.",
-  "milestone.couponNeedsEarn": { "message": "Coupon rewards need earn:edit. Ask {helpers}.", "note": "helpers: who holds earn:edit" },
-  "milestone.couponNeedsEarnAlone": "Coupon rewards need earn:edit, which nobody in this workspace holds.",
+  "milestone.couponNeedsEarn": { "message": "Coupon rewards use Earn's offers, which your role can't change. Ask {helpers}.", "note": "helpers: who holds earn:edit" },
+  "milestone.couponNeedsEarnAlone": "Coupon rewards use Earn's offers, which nobody in this workspace can change.",
   "milestone.offer": "Pick an offer of the kind “Referral reward”.",
   "milestone.imageUnknown": "That image isn't in the library any more. Pick it again.",
   "milestone.programOnLast": "The program needs at least one milestone while it's on. Add another one first, or turn the program off.",
@@ -41,7 +41,7 @@
   "block.rewardMilestone": "A Reward block belongs to a milestone email.",
 
   "test.notEmail": { "message": "“{value}” isn't an email address.", "note": "value: what was typed in To, as typed" },
-  "test.ownAddress": "Without campaigns:send, test emails can only go to your own address.",
+  "test.ownAddress": "Your role can't send campaigns, so test emails can only go to your own address.",
   "test.noProvider": "Test emails go out through the System route, and no sending provider can deliver them yet. Connect one in Sending providers, or check the email in Preview.",
 
   "codes.none": "The upload has no codes. Put one code on each line.",

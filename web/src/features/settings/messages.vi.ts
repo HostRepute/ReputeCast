@@ -5,6 +5,7 @@ export default translate(m, {
   general: 'Chung',
   senders: 'Người gửi',
   providers: 'Nhà cung cấp',
+  sendingRules: 'Quy tắc gửi',
   team: 'Nhóm',
   roles: 'Vai trò',
   approvals: 'Phê duyệt',
@@ -18,5 +19,6 @@ export default translate(m, {
   authentication: 'Xác thực',
   sso: 'Nhà cung cấp SSO',
   instance: 'Hệ thống và cập nhật',
+  botFilter: 'Bộ lọc bot',
   instanceAudit: 'Nhật ký kiểm tra',
 })

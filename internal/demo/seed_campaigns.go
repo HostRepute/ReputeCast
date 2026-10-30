@@ -81,8 +81,9 @@ func seedCampaignsImpl(ctx context.Context, s *Seeder) error {
 		return id, err
 	}
 
-	// Scheduled: Weekly Digest #142, in 1 day 22 h.
-	n := int64(31604)
+	// Scheduled: Weekly Digest #142, in 1 day 22 h: 31,604 after
+	// suppressions, minus the 412 unengaged a send leaves out (SR-11).
+	n := int64(31192)
 	created := s.Ago(3 * 24 * time.Hour)
 	id, err := insert("Weekly Digest #142", "scheduled", audiences["Weekly Digest"], &n, map[string]any{
 		"subject": "Three launches, one deprecation, and the roadmap for Q4", "preheader": "Feature flags are GA, audit log exports, and what we're retiring in November.", "created": created,
@@ -219,16 +220,31 @@ func seedSent(ctx context.Context, s *Seeder, c sentCampaign, audience map[strin
 			soft := bounced - hard
 			complained := int64(math.Round(float64(delivered) * c.complaint / 100))
 			human := int64(math.Round(float64(delivered) * c.humanOpens / 100))
-			machine := int64(math.Round(float64(delivered) * c.machineOpens / 100))
+			// machineOpens are every open no person made: most of them Apple
+			// Mail's privacy prefetches, the rest scanners'.
+			opened := int64(math.Round(float64(delivered) * c.machineOpens / 100))
+			privacy := int64(math.Round(float64(opened) * privacyShare(mb.Key)))
+			machine := opened - privacy
 			clicked := int64(math.Round(float64(delivered) * c.clicks / 100))
 			unsub := int64(math.Round(float64(delivered) * c.unsubscribes / 100))
-			if _, err := s.Tx.Exec(ctx, `INSERT INTO campaign_counters (campaign_id, provider_id, mailbox_provider, sent, delivered, hard_bounced, soft_bounced, complained, opened_human, opened_machine, clicked, unsubscribed)
-				VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, id, pid, mb.Key, sentN, delivered, hard, soft, complained, human, machine, clicked, unsub); err != nil {
+			if _, err := s.Tx.Exec(ctx, `INSERT INTO campaign_counters (campaign_id, provider_id, mailbox_provider, sent, delivered, hard_bounced, soft_bounced, complained,
+				opened_human, opened_privacy, opened_machine, clicked, unsubscribed)
+				VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`, id, pid, mb.Key, sentN, delivered, hard, soft, complained, human, privacy, machine, clicked, unsub); err != nil {
 				return err
 			}
 		}
 	}
 	return nil
+}
+
+// privacyShare is the part of a mailbox provider's machine opens that are
+// Apple Mail's privacy prefetches (the rest are scanners'), as in the
+// October Product Update's report.
+func privacyShare(mailbox string) float64 {
+	if mailbox == "icloud" {
+		return 0.97
+	}
+	return 0.86
 }
 
 // costMicros is the sample cost of a send: SES $0.10 per 1,000, the rest free.

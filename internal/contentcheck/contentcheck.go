@@ -17,6 +17,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -37,11 +38,51 @@ const (
 	Pass  = "pass"
 )
 
+// The checks whose issues block a send.
+const (
+	IssueFooter         = "compliance.footer"
+	IssueLiquidSyntax   = "personalization.syntax"
+	IssueSubjectMissing = "subject.missing"
+	IssueLinkBlocklist  = "links.blocklist"
+)
+
+// blocking are the checks whose issues stop a send until they're fixed:
+// nobody can dismiss them (review 2026-10, CO-14). Checks other packages
+// add to the composer's (internal/sponsors) register theirs.
+var (
+	blockingMu sync.RWMutex
+	blocking   = map[string]bool{IssueFooter: true, IssueLiquidSyntax: true, IssueSubjectMissing: true, IssueLinkBlocklist: true}
+)
+
+// Blocking reports whether a check's issues block a send. Such an issue
+// can't be dismissed: it is fixed or the email isn't sent.
+func Blocking(id string) bool {
+	blockingMu.RLock()
+	defer blockingMu.RUnlock()
+	return blocking[id]
+}
+
+// RegisterBlocking names checks another package adds whose issues block a
+// send (a Sponsor block waiting for its creative), so they can't be
+// dismissed either.
+func RegisterBlocking(ids ...string) {
+	blockingMu.Lock()
+	defer blockingMu.Unlock()
+	for _, id := range ids {
+		blocking[id] = true
+	}
+}
+
 // ClipBytes is the size at which Gmail clips a message (102 KB).
 const ClipBytes = 102 * 1024
 
 // NearClipBytes is where the size warning starts.
 const NearClipBytes = 85 * 1024
+
+// ImageShareLimit is the share of the email's area images may cover before
+// the content checks warn (one threshold for the composer and Send
+// Readiness): image-heavy mail scores higher with spam filters.
+const ImageShareLimit = 0.6
 
 // ContentCheckFix is a one-click fix offered with an issue. The composer applies it to
 // the canvas (Path points at the component) or to the campaign settings; an
@@ -105,19 +146,58 @@ type ContentCheckReport struct {
 	Links            int    `json:"links"`
 	LinksBlocklisted int    `json:"linksBlocklisted"`
 	LinksBroken      int    `json:"linksBroken"`
-	// SubjectHeuristics names the spam heuristics the subject trips.
-	SubjectHeuristics []string              `json:"subjectHeuristics"`
-	Issues            []ContentCheckIssue   `json:"issues"`
-	Sections          []ContentCheckSection `json:"sections"`
-	PlainText         string                `json:"plainText"`
-	CheckedAt         time.Time             `json:"checkedAt"`
+	// SubjectHeuristics, PreheaderHeuristics and BodyHeuristics name the
+	// spam heuristics the subject, the preheader and the body's text trip.
+	SubjectHeuristics   []string              `json:"subjectHeuristics"`
+	PreheaderHeuristics []string              `json:"preheaderHeuristics"`
+	BodyHeuristics      []string              `json:"bodyHeuristics"`
+	Issues              []ContentCheckIssue   `json:"issues"`
+	Sections            []ContentCheckSection `json:"sections"`
+	PlainText           string                `json:"plainText"`
+	CheckedAt           time.Time             `json:"checkedAt"`
 	// ImageShare is the estimated share of the email's area covered by
 	// images (0 to 1; 0 without images). Words counts the plain text.
 	ImageShare float64 `json:"imageShare"`
 	Words      int     `json:"words"`
+	// ImagesInsecure counts images loaded over plain HTTP; ImageList is
+	// every image with, when images were requested, the response.
+	ImagesInsecure int                 `json:"imagesInsecure"`
+	ImageList      []ContentCheckImage `json:"imageList"`
 	// LinkList is every link with its text and, when links were probed, the
 	// response (Send Readiness shows the slowest and the link domains).
 	LinkList []ContentCheckLink `json:"linkList"`
+	// LinkDomains counts the link domains looked up on the URI blocklists
+	// (URILists names them); LinkDomainsUnknown are those whose lookup
+	// failed: unknown, not clean.
+	LinkDomains        int                         `json:"linkDomains"`
+	URILists           []string                    `json:"uriLists"`
+	LinkDomainsUnknown []ContentCheckUnknownDomain `json:"linkDomainsUnknown"`
+}
+
+// ContentCheckUnknownDomain is a link domain that couldn't be looked up.
+type ContentCheckUnknownDomain struct {
+	Domain string `json:"domain"`
+	// Trouble is why: timeout, refused (the list refused the resolver) or other.
+	Trouble string `json:"trouble" enum:"timeout,refused,other"`
+}
+
+// ContentCheckImage is one image of the email.
+type ContentCheckImage struct {
+	URL string `json:"url"`
+	// Host is where the image loads from; empty for the media library's
+	// images (relative until the send makes them absolute) and for images
+	// whose address is personalized.
+	Host string `json:"host,omitempty"`
+	// Insecure is true for an image loaded over plain HTTP.
+	Insecure bool  `json:"insecure,omitempty"`
+	Path     []int `json:"path"`
+	// Probed is true when the image was requested (Send Readiness); Status,
+	// Broken and Bytes (the size the server reported, 0 when it didn't)
+	// describe the response.
+	Probed bool  `json:"probed,omitempty"`
+	Status int   `json:"status,omitempty"`
+	Broken bool  `json:"broken,omitempty"`
+	Bytes  int64 `json:"bytes,omitempty"`
 }
 
 // ContentCheckLink is one link of the email.
@@ -134,6 +214,12 @@ type ContentCheckLink struct {
 	Broken bool   `json:"broken,omitempty"`
 	Millis int    `json:"millis,omitempty"`
 	Final  string `json:"final,omitempty"`
+	// FinalClean is true when Final, the address the link really leads to,
+	// was looked up on the URI blocklists and found on none: only then is a
+	// listed or shortened link offered "Replace with destination URL".
+	FinalClean bool `json:"finalClean,omitempty"`
+	// BotBlocked is true when the site refused the automated request.
+	BotBlocked bool `json:"botBlocked,omitempty"`
 }
 
 // Input is the content to check.
@@ -142,9 +228,6 @@ type Input struct {
 	Preheader string
 	MJML      string
 	HTML      string
-	// OwnDomains are the workspace's sending domains ("news.acme.io"); fixes
-	// for blocklisted links point at their registrable domain.
-	OwnDomains []string
 	// Address is the postal address from the workspace's branding, if set.
 	Address string
 	// Fields are the personalization tokens that exist (liquid.Catalog keys).
@@ -172,9 +255,15 @@ type Blocklist interface {
 
 // ProbeResult is the outcome of requesting one link.
 type ProbeResult struct {
-	Status int    `json:"status"`
-	Broken bool   `json:"broken"`
-	Error  string `json:"error,omitempty"`
+	Status int  `json:"status"`
+	Broken bool `json:"broken"`
+	// BotBlocked is true when the site refused an automated request (999,
+	// 429): whether the link works isn't known.
+	BotBlocked bool   `json:"botBlocked,omitempty"`
+	Error      string `json:"error,omitempty"`
+	// Bytes is the size the server reported (Content-Length), 0 when it
+	// didn't.
+	Bytes int64 `json:"bytes,omitempty"`
 	// Millis is how long the response took; Final is the address after
 	// redirects (empty when the link didn't redirect).
 	Millis int    `json:"millis,omitempty"`
@@ -229,7 +318,9 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 	if c.Now != nil {
 		now = c.Now
 	}
-	r := ContentCheckReport{ClipBytes: ClipBytes, Issues: []ContentCheckIssue{}, Sections: []ContentCheckSection{}, SubjectHeuristics: []string{}, LinkList: []ContentCheckLink{}, CheckedAt: now()}
+	r := ContentCheckReport{ClipBytes: ClipBytes, Issues: []ContentCheckIssue{}, Sections: []ContentCheckSection{}, SubjectHeuristics: []string{}, LinkList: []ContentCheckLink{}, CheckedAt: now(),
+		URILists: []string{}, LinkDomainsUnknown: []ContentCheckUnknownDomain{}, PreheaderHeuristics: SubjectHeuristicsIn(in.Preheader, in.Language),
+		BodyHeuristics: []string{}}
 	htmlSrc := in.HTML
 	if htmlSrc == "" && strings.TrimSpace(in.MJML) != "" {
 		htmlSrc = mjml.Compile(in.MJML).HTML
@@ -237,9 +328,16 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 	r.SizeBytes = len(htmlSrc)
 	s := c.scanContent(in.MJML, htmlSrc)
 	r.Images = len(s.images)
+	r.ImageList = imageList(s.images)
+	for _, im := range r.ImageList {
+		if im.Insecure {
+			r.ImagesInsecure++
+		}
+	}
 	r.Links = len(s.links)
 	r.PlainText = PlainText(htmlSrc)
 	r.Words = len(strings.Fields(r.PlainText))
+	r.BodyHeuristics = BodyHeuristics(r.PlainText, in.Language)
 	if share, ok := imageShare(s.images, r.PlainText); ok {
 		r.ImageShare = share
 	}
@@ -288,7 +386,7 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 		add(worded(ContentCheckIssue{ID: "content.size", Severity: Warn, Group: "Content", Section: -1, Fixes: fixes}, title, i18n.Text{}, detail...))
 	}
 
-	if share, ok := imageShare(s.images, r.PlainText); ok && share > 0.85 {
+	if share, ok := imageShare(s.images, r.PlainText); ok && share >= ImageShareLimit {
 		pct := math.Round(share * 100)
 		add(worded(ContentCheckIssue{ID: "content.image_ratio", Severity: Warn, Group: "Content", Section: -1},
 			mRatioTitle.Keep(i18n.Args{"share": percentArg(pct)}), i18n.Text{}, mRatioDetail.Keep(nil)))
@@ -296,6 +394,9 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 
 	// Links: blocklists, shorteners, empty links, broken links.
 	c.checkLinks(ctx, in, s, &r, add)
+	if in.ProbeLinks && c.Prober != nil {
+		c.probeImages(ctx, r.ImageList)
+	}
 
 	hasUnsub := false
 	for _, l := range s.links {
@@ -314,45 +415,42 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 		case hasAddress:
 			title, tag = mFooterUnsubscribe, mFooterUnsubscribeTag
 		}
-		add(worded(ContentCheckIssue{ID: "compliance.footer", Severity: Block, Group: "Compliance", Section: -1,
+		add(worded(ContentCheckIssue{ID: IssueFooter, Severity: Block, Group: "Compliance", Section: -1,
 			Fixes: []ContentCheckFix{fixOf("insert_footer", mFooterFix.Keep(nil), nil)}},
 			title.Keep(nil), tag.Keep(nil), mFooterDetail.Keep(nil)))
 	}
 
+	// Personalization (liquid.Check, C8): a tag that doesn't parse stops the
+	// email from rendering; a field that doesn't exist is flagged even with
+	// a fallback, which every recipient would get.
 	for _, src := range []struct{ where, text string }{{"subject", in.Subject}, {"preheader", in.Preheader}, {"body", bodySource(in.MJML, htmlSrc)}} {
-		for _, p := range liquid.Validate(src.text) {
+		for _, p := range liquid.Check(src.text, nil) {
 			title := mLiquidTitle.Keep(i18n.Args{"where": src.where, "problem": p.Message})
 			// "Line 3: …" names its line in the reader's language; the
 			// template engine's explanation after it stays English.
 			if rest, ok := strings.CutPrefix(p.Message, fmt.Sprintf("Line %d: ", p.Line)); ok && p.Line > 0 {
 				title = mLiquidTitleLine.Keep(i18n.Args{"where": src.where, "line": strconv.Itoa(p.Line), "problem": rest})
 			}
-			add(worded(ContentCheckIssue{ID: "personalization.syntax", Severity: Block, Group: "Personalization", Section: -1},
+			add(worded(ContentCheckIssue{ID: IssueLiquidSyntax, Severity: Block, Group: "Personalization", Section: -1},
 				title, i18n.Text{}, mLiquidDetail.Keep(nil)))
 		}
 	}
 	if len(in.Fields) > 0 {
-		known := map[string]bool{"unsubscribe_url": true, "preferences_url": true, "view_in_browser_url": true}
-		for _, f := range in.Fields {
-			known[f] = true
-		}
-		for _, u := range liquid.Uses(in.Subject + "\n" + in.Preheader + "\n" + bodySource(in.MJML, htmlSrc)) {
-			root := strings.SplitN(u.Key, ".", 2)[0]
-			if known[u.Key] || known[root] || root == "contact" || root == "forloop" || u.HasFallback {
+		for _, is := range liquid.Check(in.Subject+"\n"+in.Preheader+"\n"+bodySource(in.MJML, htmlSrc), in.Fields) {
+			if is.Kind != liquid.IssueUnknownField {
 				continue
 			}
-			// Poll answer links and survey links are filled per recipient
-			// (internal/polls).
-			if strings.HasPrefix(root, "rc_poll_") || strings.HasPrefix(root, "rc_survey_") {
-				continue
+			token := "{{ " + is.Field + " }}"
+			title, detail := mUnknownFieldTitle.Keep(i18n.Args{"token": token}), mUnknownFieldDetail.Keep(nil)
+			if is.HasFallback {
+				title, detail = mUnknownFieldFallback.Keep(i18n.Args{"token": token, "fallback": is.Fallback}), mUnknownFieldFallbackDetail.Keep(nil)
 			}
-			add(worded(ContentCheckIssue{ID: "personalization.unknown_field", Severity: Warn, Group: "Personalization", Section: -1},
-				mUnknownFieldTitle.Keep(i18n.Args{"token": "{{ " + u.Key + " }}"}), i18n.Text{}, mUnknownFieldDetail.Keep(nil)))
+			add(worded(ContentCheckIssue{ID: "personalization.unknown_field", Severity: Warn, Group: "Personalization", Section: -1}, title, i18n.Text{}, detail))
 		}
 	}
 
 	if strings.TrimSpace(in.Subject) == "" {
-		add(worded(ContentCheckIssue{ID: "subject.missing", Severity: Block, Group: "Subject", Section: -1}, mSubjectMissing.Keep(nil), i18n.Text{}, mSubjectMissingDet.Keep(nil)))
+		add(worded(ContentCheckIssue{ID: IssueSubjectMissing, Severity: Block, Group: "Subject", Section: -1}, mSubjectMissing.Keep(nil), i18n.Text{}, mSubjectMissingDet.Keep(nil)))
 	} else if h := SubjectHeuristicsIn(in.Subject, in.Language); len(h) > 0 {
 		r.SubjectHeuristics = h
 		suggestion := SuggestSubject(in.Subject)
@@ -766,6 +864,64 @@ func linkHost(href string) (string, *url.URL) {
 	return strings.ToLower(u.Hostname()), u
 }
 
+// imageList lists the images with where they load from. A relative
+// address is the media library's (the send makes it absolute on the public
+// URL); a personalized one isn't known before the send.
+func imageList(images []image) []ContentCheckImage {
+	out := make([]ContentCheckImage, 0, len(images))
+	for _, im := range images {
+		src := strings.TrimSpace(im.src)
+		entry := ContentCheckImage{URL: src, Path: im.path}
+		if entry.Path == nil {
+			entry.Path = []int{}
+		}
+		lower := strings.ToLower(src)
+		switch {
+		case strings.HasPrefix(lower, "http://"):
+			entry.Insecure = true
+			entry.Host, _ = linkHost(src)
+		case strings.HasPrefix(lower, "https://"), strings.HasPrefix(lower, "//"):
+			entry.Host, _ = linkHost(src)
+		}
+		out = append(out, entry)
+	}
+	return out
+}
+
+// probeImages requests the images that load from the web (Send Readiness):
+// whether they load, and their size when the server says.
+func (c *Checker) probeImages(ctx context.Context, images []ContentCheckImage) {
+	var urls []string
+	seen := map[string]bool{}
+	for _, im := range images {
+		if im.Host == "" || strings.Contains(im.URL, "{{") {
+			continue
+		}
+		u := im.URL
+		if strings.HasPrefix(u, "//") {
+			u = "https:" + u
+		}
+		if !seen[u] {
+			seen[u] = true
+			urls = append(urls, u)
+		}
+	}
+	if len(urls) == 0 {
+		return
+	}
+	// Progress is about links; the images' requests don't count there.
+	res := c.Prober.Probe(WithProgress(ctx, func(string, int, int) {}), urls)
+	for i := range images {
+		u := images[i].URL
+		if strings.HasPrefix(u, "//") {
+			u = "https:" + u
+		}
+		if pr, ok := res[u]; ok {
+			images[i].Probed, images[i].Status, images[i].Broken, images[i].Bytes = true, pr.Status, pr.Broken && !pr.BotBlocked, pr.Bytes
+		}
+	}
+}
+
 var shorteners = map[string]bool{
 	"bit.ly": true, "tinyurl.com": true, "t.co": true, "goo.gl": true, "ow.ly": true, "is.gd": true, "buff.ly": true,
 	"rebrand.ly": true, "cutt.ly": true, "shorturl.at": true, "tiny.cc": true, "rb.gy": true, "bl.ink": true,
@@ -787,13 +943,24 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentCh
 			domains = append(domains, h)
 		}
 		sort.Strings(domains)
-		if l, err := c.Blocklist.Listings(ctx, domains); err == nil {
+		if live, ok := c.Blocklist.(BlocklistChecker); ok {
+			// Looked up live: a domain whose lookup failed is unknown.
+			if rep, err := live.Check(ctx, domains); err == nil {
+				listings, r.LinkDomains, r.URILists = rep.Listed, rep.Domains, rep.Lists
+				for _, d := range domains {
+					if why, ok := rep.Unknown[d]; ok {
+						r.LinkDomainsUnknown = append(r.LinkDomainsUnknown, ContentCheckUnknownDomain{Domain: d, Trouble: why})
+					}
+				}
+			} else {
+				for _, d := range domains {
+					r.LinkDomainsUnknown = append(r.LinkDomainsUnknown, ContentCheckUnknownDomain{Domain: d, Trouble: TroubleOther})
+				}
+				r.LinkDomains = len(domains)
+			}
+		} else if l, err := c.Blocklist.Listings(ctx, domains); err == nil {
 			listings = l
 		}
-	}
-	own := ""
-	if len(in.OwnDomains) > 0 {
-		own = RegistrableDomain(in.OwnDomains[0])
 	}
 	var probe map[string]ProbeResult
 	if in.ProbeLinks && c.Prober != nil {
@@ -807,7 +974,28 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentCh
 		}
 		probe = c.Prober.Probe(ctx, urls)
 	}
+	clean := c.cleanDestinations(ctx, s.links, probe, listings)
+	if n := len(r.LinkDomainsUnknown); n > 0 {
+		// Not knowing isn't clean: say which lookups failed (Send Readiness
+		// turns this into an Unknown check).
+		trouble := r.LinkDomainsUnknown[0].Trouble
+		lists := append([]string(nil), r.URILists...)
+		add(worded(ContentCheckIssue{ID: "links.blocklist_unknown", Severity: Info, Group: "Links", Section: -1},
+			mLinkUnknownTitle.Keep(i18n.Args{"count": n, "lists": lists}), mLinkUnknownTag.Keep(nil), mLinkUnknownDetail.Keep(i18n.Args{"trouble": trouble})))
+	}
 	editLink := func(path []int) ContentCheckFix { return fixOf("edit_link", mLinkEdit.Keep(nil), path) }
+	// A listed or shortened link is replaced only with where it really
+	// leads, once that address is known to be clean; ReputeCast never
+	// guesses an address (R1.U3). Otherwise the link is edited by hand.
+	fixesFor := func(l link, final string) []ContentCheckFix {
+		fixes := []ContentCheckFix{}
+		if final != "" && clean[final] {
+			fix := fixOf("replace_link", mLinkReplaceDestination.Keep(nil), l.path)
+			fix.Value = final
+			fixes = append(fixes, fix)
+		}
+		return append(fixes, editLink(l.path))
+	}
 	for _, l := range s.links {
 		kind := linkKind(l.kind)
 		if strings.TrimSpace(l.href) == "" || l.href == "#" {
@@ -826,7 +1014,8 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentCh
 			entry.Path = []int{}
 		}
 		if pr, ok := probe[u.String()]; ok {
-			entry.Probed, entry.Status, entry.Broken, entry.Millis, entry.Final = true, pr.Status, pr.Broken, pr.Millis, pr.Final
+			entry.Probed, entry.Status, entry.Broken, entry.Millis, entry.Final, entry.BotBlocked = true, pr.Status, pr.Broken, pr.Millis, pr.Final, pr.BotBlocked
+			entry.FinalClean = pr.Final != "" && clean[pr.Final]
 		}
 		r.LinkList = append(r.LinkList, entry)
 		lists := listings[host]
@@ -835,21 +1024,13 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentCh
 		}
 		if len(lists) > 0 {
 			r.LinksBlocklisted++
-			fixes := []ContentCheckFix{}
-			if own != "" && RegistrableDomain(host) != own {
-				target := own + u.EscapedPath()
-				fix := fixOf("replace_link", mLinkReplaceWith.Keep(i18n.Args{"target": target}), l.path)
-				fix.Value = "https://" + target
-				fixes = append(fixes, fix)
-			}
-			fixes = append(fixes, editLink(l.path))
 			on := i18n.Args{"lists": append([]string(nil), lists...)}
-			add(worded(ContentCheckIssue{ID: "links.blocklist", Severity: Block, Group: "Links", Path: l.path, Section: l.section, Fixes: fixes, URL: l.href},
+			add(worded(ContentCheckIssue{ID: IssueLinkBlocklist, Severity: Block, Group: "Links", Path: l.path, Section: l.section, Fixes: fixesFor(l, entry.Final), URL: l.href},
 				mLinkBlocklistTitle.Keep(i18n.Args{"kind": kind, "host": host, "lists": on["lists"]}), mLinkBlocklistTag.Keep(on), mLinkBlocklistDetail.Keep(nil)))
 			continue
 		}
 		if shorteners[host] {
-			add(worded(ContentCheckIssue{ID: "links.shortener", Severity: Warn, Group: "Links", Path: l.path, Section: l.section, Fixes: []ContentCheckFix{editLink(l.path)}, URL: l.href},
+			add(worded(ContentCheckIssue{ID: "links.shortener", Severity: Warn, Group: "Links", Path: l.path, Section: l.section, Fixes: fixesFor(l, entry.Final), URL: l.href},
 				mLinkShortenerTitle.Keep(i18n.Args{"kind": kind, "host": host}), mLinkShortenerTag.Keep(nil), mLinkShortenerDetail.Keep(nil)))
 			continue
 		}
@@ -861,6 +1042,73 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentCh
 			}
 		}
 	}
+}
+
+// cleanDestinations looks up where listed and shortened links really lead
+// (the probe followed their redirects) on the URI blocklists, and returns
+// the destinations found on none: the only addresses a fix may point such a
+// link at. A destination on the link's own host, another shortener, or one
+// whose lookup failed is never clean. Without a probe nothing is known, so
+// nothing is clean.
+func (c *Checker) cleanDestinations(ctx context.Context, links []link, probe map[string]ProbeResult, listings map[string][]string) map[string]bool {
+	out := map[string]bool{}
+	if c.Blocklist == nil || len(probe) == 0 {
+		return out
+	}
+	listed := func(host string) bool { return len(listings[host]) > 0 || len(listings[RegistrableDomain(host)]) > 0 }
+	finals := map[string]string{}
+	domains := []string{}
+	seen := map[string]bool{}
+	for _, l := range links {
+		host, u := linkHost(l.href)
+		if host == "" || (!listed(host) && !shorteners[host]) {
+			continue
+		}
+		final := probe[u.String()].Final
+		fhost, fu := linkHost(final)
+		if fhost == "" || (fu.Scheme != "https" && fu.Scheme != "http") || fhost == host || shorteners[fhost] {
+			continue
+		}
+		finals[final] = fhost
+		for _, d := range []string{fhost, RegistrableDomain(fhost)} {
+			if !seen[d] {
+				seen[d] = true
+				domains = append(domains, d)
+			}
+		}
+	}
+	if len(finals) == 0 {
+		return out
+	}
+	sort.Strings(domains)
+	// The link domains' progress is already reported: these lookups don't
+	// count there.
+	quiet := WithProgress(ctx, func(string, int, int) {})
+	var bad map[string][]string
+	unknown := map[string]string{}
+	if live, ok := c.Blocklist.(BlocklistChecker); ok {
+		rep, err := live.Check(quiet, domains)
+		if err != nil {
+			return out
+		}
+		bad, unknown = rep.Listed, rep.Unknown
+	} else {
+		l, err := c.Blocklist.Listings(quiet, domains)
+		if err != nil {
+			return out
+		}
+		bad = l
+	}
+	for final, host := range finals {
+		ok := true
+		for _, d := range []string{host, RegistrableDomain(host)} {
+			if len(bad[d]) > 0 || unknown[d] != "" {
+				ok = false
+			}
+		}
+		out[final] = ok
+	}
+	return out
 }
 
 // linkKind is what a link is, for link.*Title's kind: button, image, nav,
@@ -883,8 +1131,13 @@ func truncate(s string, n int) string {
 
 var (
 	repeatedPunct = regexp.MustCompile(`[!?]{2,}|\.{4,}`)
-	urgencyRe     = regexp.MustCompile(`(?i)\b(act now|urgent|hurry|last chance|limited time|today only|only|expires?|ending soon|ends (today|tonight|soon)|\d+\s+hours?|now or never|final hours|don'?t miss|before it'?s gone)\b`)
-	moneyRe       = regexp.MustCompile(`(?i)(\$\$+|\bfree\b|\b100%\s+free\b|\bguaranteed?\b|\bcash\b|\bno cost\b|\brisk[- ]free\b)`)
+	// urgencyRe catches pressure phrasing. "Only" alone isn't urgency
+	// ("Members only"), nor is a number of hours ("2 hours of Q&A"): only
+	// "48 hours only", "only 3 days left" and the like are.
+	urgencyRe = regexp.MustCompile(`(?i)\b(act now|urgent|hurry|last chance|limited time|today only|only today|expires?|ending soon|ends (today|tonight|soon)|\d+\s+(hours?|days?)\s+(only|left)|only\s+\d+\s+(hours?|days?|left)|now or never|final hours|don'?t miss|before it'?s gone)\b`)
+	// moneyRe catches money words; "free" in a compound ("gluten-free",
+	// "free-range", "toll-free") isn't one (moneyWords).
+	moneyRe = regexp.MustCompile(`(?i)(\$\$+|\bfree\b|\bguaranteed?\b|\bcash\b|\bno cost\b|\brisk[- ]free\b)`)
 	// clickbaitRe catches teaser phrases spam filters weigh, as the AI
 	// assistant's subject ideas are checked against them too.
 	clickbaitRe = regexp.MustCompile(`(?i)\b(you won'?t believe|you will not believe|can'?t believe|shocking|jaw[- ]dropping|mind[- ]blowing|what happens next|this one (weird )?trick|doctors hate)\b`)
@@ -928,11 +1181,51 @@ func SubjectHeuristics(subject string) []string {
 	if urgencyRe.MatchString(subject) {
 		out = append(out, "urgency")
 	}
-	if moneyRe.MatchString(subject) {
+	if len(moneyWords(subject)) > 0 {
 		out = append(out, "money words")
 	}
 	if clickbaitRe.MatchString(subject) {
 		out = append(out, "click-bait")
+	}
+	return out
+}
+
+// moneyWords are the money words of a text: "free" counts on its own, not
+// inside a compound ("gluten-free", "free-range"), and "risk-free" counts.
+func moneyWords(text string) []string {
+	out := []string{}
+	for _, loc := range moneyRe.FindAllStringIndex(text, -1) {
+		w := text[loc[0]:loc[1]]
+		if strings.EqualFold(w, "free") {
+			before := loc[0] > 0 && text[loc[0]-1] == '-' || strings.HasSuffix(text[:loc[0]], "\u2011")
+			after := loc[1] < len(text) && text[loc[1]] == '-'
+			if before || after {
+				continue
+			}
+		}
+		out = append(out, strings.ToLower(w))
+	}
+	return out
+}
+
+// BodyHeuristics returns the spam heuristics an email's text trips: spam
+// phrases repeated through the body (three or more urgency, money or
+// click-bait phrases), and repeated exclamation marks. A word or two is
+// normal; filters weigh the pile-up.
+func BodyHeuristics(text, language string) []string {
+	out := []string{}
+	lang := strings.ToLower(strings.TrimSpace(language))
+	if i := strings.IndexAny(lang, "-_"); i >= 0 {
+		lang = lang[:i]
+	}
+	if lang == "" || lang == "en" {
+		phrases := len(urgencyRe.FindAllString(text, -1)) + len(moneyWords(text)) + len(clickbaitRe.FindAllString(text, -1))
+		if phrases >= 3 {
+			out = append(out, "spam phrases")
+		}
+	}
+	if len(repeatedPunct.FindAllString(text, -1)) >= 3 {
+		out = append(out, "repeated punctuation")
 	}
 	return out
 }
@@ -948,10 +1241,13 @@ func SubjectHeuristicPhrase(subject, language string) string {
 	if lang != "" && lang != "en" {
 		return ""
 	}
-	for _, re := range []*regexp.Regexp{clickbaitRe, urgencyRe, moneyRe} {
+	for _, re := range []*regexp.Regexp{clickbaitRe, urgencyRe} {
 		if m := re.FindString(subject); m != "" {
 			return strings.ToLower(m)
 		}
+	}
+	if w := moneyWords(subject); len(w) > 0 {
+		return w[0]
 	}
 	return ""
 }

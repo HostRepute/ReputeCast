@@ -34,8 +34,9 @@ export default translate(mm, {
   typeDownloadText: 'Một tệp hoặc URL. Phù hợp cho cẩm nang, hình nền và mẫu thiết kế. Tệp được phân phối qua liên kết hết hạn sau 7 ngày.',
   typeCodesText: 'Mỗi phần thưởng một mã, lấy từ danh sách bạn tải lên. Phù hợp cho phiếu mua hàng. Cảnh báo bạn trước khi hết mã.',
   typeManualText: 'Bất cứ thứ gì bạn gửi thủ công, như nhãn dán hay một buổi trò chuyện với biên tập viên. Có thể hỏi địa chỉ giao hàng.',
-  typeCouponText: 'Quyền truy cập trả phí miễn phí qua mã Stripe dùng một lần. Cần kết nối Stripe và quyền earn:edit.',
-  typeCouponTextShort: 'Quyền truy cập trả phí miễn phí qua mã Stripe dùng một lần. Dùng cho một gói trả phí; cần kết nối Stripe và quyền earn:edit.',
+  typeCouponText: 'Quyền truy cập trả phí miễn phí qua mã Stripe dùng một lần. Cần kết nối Stripe và vai trò được thay đổi ưu đãi trong Kiếm tiền.',
+  typeCouponTextShort:
+    'Quyền truy cập trả phí miễn phí qua mã Stripe dùng một lần. Dùng cho một gói trả phí; cần kết nối Stripe và vai trò được thay đổi ưu đãi trong Kiếm tiền.',
   typeWebhookText: 'Hệ thống của chính bạn tạo phần thưởng. ReputeCast gửi sự kiện referral.milestone_reached có chữ ký.',
   // Reward lines.
   lineFile: '{type} · {size} · {name}',
@@ -96,14 +97,15 @@ export default translate(mm, {
   fulfilled: 'Đã đánh dấu {reward} là đã trao cho {name}',
   fulfilledDetail: 'Ghi chú hiện trên trang phần thưởng của họ. Địa chỉ của họ sẽ bị xóa sau 30 ngày.',
   noAddress: 'Không hỏi địa chỉ',
-  addressHidden: 'Chỉ hiện với thành viên có quyền subscribers:view',
+  addressHidden: 'Chỉ hiện với thành viên có thể xem liên hệ',
   fulfillFoot: 'Địa chỉ giao hàng bị xóa 30 ngày sau khi phần thưởng được đánh dấu đã trao. Ghi chú hiện trên trang phần thưởng của người giới thiệu.',
-  exportNeeds: 'Cần quyền <mono>subscribers:export</mono> · có ghi nhật ký',
+  exportNeeds: 'Chỉ dành cho thành viên có thể xuất liên hệ · có ghi nhật ký',
   exportCsv: 'Xuất CSV',
   exported: 'Đã xuất danh sách phần thưởng cần trao',
   // Read-only.
-  readOnlyText: 'Bạn xem được mốc thưởng, phần thưởng và tình trạng của chúng. Để thay đổi, bạn cần quyền <mono>grow:edit</mono>. Hãy hỏi {helpers}.',
-  readOnlyTextNoHelpers: 'Bạn xem được mốc thưởng, phần thưởng và tình trạng của chúng. Để thay đổi, bạn cần quyền <mono>grow:edit</mono>.',
+  readOnlyText:
+    'Bạn xem được mốc thưởng, phần thưởng và tình trạng của chúng. Vai trò của bạn không thể thay đổi mốc thưởng hay phần thưởng. Hãy hỏi {helpers}.',
+  readOnlyTextNoHelpers: 'Bạn xem được mốc thưởng, phần thưởng và tình trạng của chúng. Vai trò của bạn không thể thay đổi mốc thưởng hay phần thưởng.',
   loadError: 'Không tải được mốc thưởng',
   loadingLabel: 'Đang tải mốc thưởng',
   // Editor.
@@ -162,7 +164,7 @@ export default translate(mm, {
   codesAlert: 'Cảnh báo khi dưới',
   codesAlertLabel: 'Ngưỡng cảnh báo',
   codesAlertUnit: 'mã, hoặc còn chưa đến hai tuần theo tốc độ hiện tại',
-  codesNote: 'Mã được lưu mã hóa, chỉ hiện với thành viên có quyền grow:review, và không bao giờ được ghi vào nhật ký kiểm tra.',
+  codesNote: 'Mã được lưu mã hóa, chỉ hiện với thành viên có thể gửi lại và trao phần thưởng, và không bao giờ được ghi vào nhật ký kiểm tra.',
   codesSaveFirst: 'Hãy lưu mốc thưởng trước, rồi tải mã lên.',
   // Manual.
   manualTitle: 'Trao thủ công',
@@ -190,9 +192,10 @@ export default translate(mm, {
   couponNote:
     'Mỗi phần thưởng tạo một mã khuyến mãi dùng một lần trong Stripe và một liên kết nhận thưởng dẫn đến trang nâng cấp với mã đã được áp dụng. Ai cũng dùng được liên kết nhận thưởng, nên người giới thiệu đã trả phí có thể chuyển cho người khác; trang phần thưởng sẽ cho họ biết.',
   couponNeedsEarn:
-    'Phần thưởng phiếu giảm giá cần quyền <mono>earn:edit</mono>, vì chúng cho quyền truy cập trả phí. Hãy hỏi {helpers}. Bạn vẫn có thể đổi tên, mô tả, hình ảnh và email.',
-  couponNeedsEarnNoHelpers: 'Phần thưởng phiếu giảm giá cần quyền <mono>earn:edit</mono>, vì chúng cho quyền truy cập trả phí. Bạn vẫn có thể đổi tên, mô tả, hình ảnh và email.',
-  couponLocked: 'Đã khóa với {name}: {role}, không có quyền earn:edit',
+    'Phần thưởng phiếu giảm giá cần vai trò được thay đổi ưu đãi trong Kiếm tiền, vì chúng cho quyền truy cập trả phí. Hãy hỏi {helpers}. Bạn vẫn có thể đổi tên, mô tả, hình ảnh và email.',
+  couponNeedsEarnNoHelpers:
+    'Phần thưởng phiếu giảm giá cần vai trò được thay đổi ưu đãi trong Kiếm tiền, vì chúng cho quyền truy cập trả phí. Bạn vẫn có thể đổi tên, mô tả, hình ảnh và email.',
+  couponLocked: 'Đã khóa với {name}: vai trò {role} không thể thay đổi ưu đãi trong Kiếm tiền',
   connectStripe: 'Kết nối Stripe',
   // Webhook.
   webhookTitle: 'Webhook',

@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -42,7 +43,11 @@ type fake struct {
 	stale       map[string][]string // still listed, already removed in Mailgun
 	unsubAdds   int
 	tracking    map[string]string
-	n           atomic.Int64
+	// dedicated and domainIPs answer GET /v3/ips?dedicated=true and GET
+	// /v3/domains/{domain}/ips.
+	dedicated string
+	domainIPs string
+	n         atomic.Int64
 }
 
 func (f *fake) with(fn func()) {
@@ -53,7 +58,10 @@ func (f *fake) with(fn func()) {
 
 func newFake() *fake {
 	return &fake{domainState: "active", hooks: map[string][]string{"delivered": {"https://other.example/hook"}},
-		tracking: map[string]string{"open": "true", "click": `"htmlonly"`, "unsubscribe": "true"}}
+		tracking:  map[string]string{"open": "true", "click": `"htmlonly"`, "unsubscribe": "true"},
+		dedicated: `{"items":["198.51.100.7","198.51.100.8","203.0.113.12"],"total_count":3}`,
+		// The domain sends from two of them and from a shared IP.
+		domainIPs: `{"items":["198.51.100.8","209.61.151.1","198.51.100.7"],"total_count":3}`}
 }
 
 func message(w http.ResponseWriter, status int, msg string) {
@@ -272,6 +280,20 @@ func (f *fake) handler(t *testing.T) func(env *contracttest.Env) http.Handler {
 			f.mu.Unlock()
 			message(w, http.StatusOK, strconv.Itoa(len(in))+" addresses have been added to the unsubscribes table")
 		}))
+		mux.HandleFunc("GET /v3/ips", guard(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Query().Get("dedicated") != "true" {
+				message(w, http.StatusBadRequest, "ask for the dedicated IPs")
+				return
+			}
+			f.mu.Lock()
+			defer f.mu.Unlock()
+			_, _ = io.WriteString(w, f.dedicated)
+		}))
+		mux.HandleFunc("GET /v3/domains/"+domain+"/ips", guard(func(w http.ResponseWriter, _ *http.Request) {
+			f.mu.Lock()
+			defer f.mu.Unlock()
+			_, _ = io.WriteString(w, f.domainIPs)
+		}))
 		mux.HandleFunc("GET /v3/domains/"+domain+"/tracking", guard(func(w http.ResponseWriter, _ *http.Request) {
 			f.mu.Lock()
 			defer f.mu.Unlock()
@@ -330,9 +352,10 @@ func webhook(file string) func(t *testing.T, env *contracttest.Env) (*http.Reque
 func TestContract(t *testing.T) {
 	f := newFake()
 	contracttest.Run(t, contracttest.Suite{
-		Adapter: mailgun.Adapter,
-		API:     f.handler(t),
-		New:     func(t *testing.T, env *contracttest.Env) providers.Provider { return newProvider(t, env, true, domain) },
+		Adapter:    mailgun.Adapter,
+		API:        f.handler(t),
+		New:        func(t *testing.T, env *contracttest.Env) providers.Provider { return newProvider(t, env, true, domain) },
+		SendingIPs: &providers.SendingIPs{Dedicated: true, IPs: []string{"198.51.100.7", "198.51.100.8"}},
 		Delivered: func(t *testing.T, env *contracttest.Env, msgs []providers.Message, res []providers.SendResult) {
 			reqs := env.Requests()
 			if len(reqs) != 1 || reqs[0].Path != "/v3/"+domain+"/messages" {
@@ -672,5 +695,36 @@ func TestBasicAuthHeader(t *testing.T) {
 	want := "Basic " + base64.StdEncoding.EncodeToString([]byte("api:"+apiKey))
 	if got := env.Requests()[0].Header.Get("Authorization"); got != want {
 		t.Fatalf("auth header: %q", got)
+	}
+}
+
+// The domain's mail goes out from the account's dedicated IPs assigned to
+// it; a shared IP the domain also lists isn't the account's, and an account
+// without dedicated IPs sends from Mailgun's shared IPs, found in one call.
+// A failed call is an error, never an empty list.
+func TestSendingIPs(t *testing.T) {
+	f := newFake()
+	env := contracttest.NewEnv(t, f.handler(t))
+	r := newProvider(t, env, true, domain).(providers.IPReporter)
+	got, err := r.SendingIPs(context.Background())
+	if err != nil || !got.Dedicated || !slices.Equal(got.IPs, []string{"198.51.100.7", "198.51.100.8"}) {
+		t.Fatalf("the domain's dedicated IPs: %+v, %v", got, err)
+	}
+	f.with(func() { f.domainIPs = `{"items":["209.61.151.1"],"total_count":1}` })
+	if got, err := r.SendingIPs(context.Background()); err != nil || got.Dedicated || len(got.IPs) != 0 {
+		t.Fatalf("a domain on shared IPs: %+v, %v", got, err)
+	}
+	f.with(func() { f.dedicated = `{"items":[],"total_count":0}` })
+	before := len(env.Requests())
+	if got, err := r.SendingIPs(context.Background()); err != nil || got.Dedicated || got.IPs == nil || len(got.IPs) != 0 {
+		t.Fatalf("an account without dedicated IPs: %+v, %v", got, err)
+	}
+	if n := len(env.Requests()) - before; n != 1 {
+		t.Fatalf("%d calls for an account without dedicated IPs, want 1", n)
+	}
+	f.with(func() { f.dedicated = `{"items":["198.51.100.7"],"total_count":1}` })
+	env.SetMode(contracttest.ModeOutage)
+	if got, err := r.SendingIPs(context.Background()); !errors.Is(err, providers.ErrUnavailable) || len(got.IPs) != 0 {
+		t.Fatalf("an outage: %+v, %v", got, err)
 	}
 }

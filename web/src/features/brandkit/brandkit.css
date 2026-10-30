@@ -1,0 +1,326 @@
+/* Settings › Brand kit (BrandKit board). Values from the board, scoped to .bk. */
+.bk .bkhead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+}
+.bk .ttl {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.bk .lead {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 14px;
+  max-width: 760px;
+}
+.bk .bkgrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 20px;
+  align-items: start;
+}
+.bk .improw {
+  align-items: flex-end;
+  flex-wrap: nowrap;
+}
+.bk .improw .lbl {
+  flex: 1 1 auto;
+}
+.bk .improw .in {
+  width: 100%;
+}
+.bk .det {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px 24px;
+  align-items: start;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ground-3);
+}
+.bk .dcell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.bk .dl {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-4, #5b6472);
+}
+.bk .lgt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.bk .dsw {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px 0 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 12px;
+}
+.bk .dsw i {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px rgba(11, 18, 32, 0.12);
+  display: block;
+}
+.bk .lgrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.bk .lcell {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  min-width: 0;
+}
+.bk .lprev {
+  height: 96px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bk .crow {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 120px minmax(190px, auto);
+  gap: 8px 14px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--line-2, #eef0f3);
+}
+.bk .crow:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.bk .crow:last-child {
+  padding-bottom: 0;
+}
+.bk .crow .badge {
+  justify-self: start;
+}
+.bk .csw {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(11, 18, 32, 0.12);
+  display: block;
+}
+.bk .cname {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.bk .cname b {
+  font-weight: 600;
+}
+.bk .cin {
+  width: 120px;
+}
+.bk .fgrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 16px;
+  align-items: stretch;
+}
+.bk .fsamp {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ground-3);
+  min-width: 0;
+  color: #1f2937;
+}
+.bk .segm {
+  display: inline-flex;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.bk .segm button {
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  background: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+.bk .segm button + button {
+  border-left: 1px solid var(--line);
+}
+.bk .segm button[aria-pressed='true'] {
+  background: #0b1220;
+  color: #ffffff;
+}
+.bk .segm button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.bk .bprev {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.bk .bpc {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.bk .ebtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 22px;
+  color: #ffffff;
+  font-weight: 700;
+  box-sizing: border-box;
+}
+.bk .sbrow {
+  display: flex;
+  align-items: center;
+  gap: 12px 16px;
+  flex-wrap: wrap;
+  padding: 12px 0;
+  border-top: 1px solid var(--line-2, #eef0f3);
+}
+.bk .sbrow:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.bk .sbrow:last-child {
+  padding-bottom: 0;
+}
+.bk .sbt {
+  width: 84px;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--ground-3);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  flex: none;
+}
+.bk .sbt i {
+  display: block;
+  border-radius: 2px;
+}
+.bk .bkgrid aside .note {
+  flex-wrap: nowrap;
+}
+.bk .pmail {
+  background: #ffffff;
+  border-radius: 6px;
+  box-shadow:
+    0 1px 2px rgba(11, 18, 32, 0.06),
+    0 0 0 1px var(--line);
+  overflow: hidden;
+}
+@media (max-width: 1100px) {
+  .bk .bkgrid {
+    grid-template-columns: 1fr;
+  }
+  .bk .crow {
+    grid-template-columns: 36px minmax(0, 1fr) 120px;
+  }
+  .bk .crow .badge {
+    grid-column: 2 / -1;
+  }
+}
+@media (max-width: 767px) {
+  .bk .ttl {
+    font-size: 21px;
+  }
+  .bk .improw {
+    flex-wrap: wrap;
+  }
+  .bk .improw .lbl {
+    flex: 1 1 100%;
+  }
+  .bk .improw .btn {
+    min-height: 44px;
+  }
+  .bk .det {
+    grid-template-columns: 1fr;
+  }
+  .bk .lgrid,
+  .bk .fgrid,
+  .bk .bprev {
+    grid-template-columns: 1fr;
+  }
+  .bk .crow {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+  .bk .crow .badge,
+  .bk .crow .cin {
+    grid-column: 2 / -1;
+  }
+  .bk .crow .cin {
+    width: 100%;
+    min-width: 0;
+  }
+  .bk .bkhead > div:last-child {
+    width: 100%;
+  }
+  .bk .bkhead > div:last-child .btn {
+    flex: 1 1 140px;
+    min-height: 44px;
+  }
+  .bk .segm button {
+    height: 44px;
+  }
+  .bk .sbrow .btn,
+  .bk .lcell .btn,
+  .bk .btn.sm {
+    min-height: 44px;
+  }
+  .bk .in,
+  .bk select.in {
+    height: 44px;
+  }
+}

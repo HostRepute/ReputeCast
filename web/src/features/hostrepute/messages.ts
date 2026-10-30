@@ -56,9 +56,9 @@ export const m = defineMessages('hostrepute', {
   openSettings: 'Open Settings › Integrations',
   connectedTeam: 'Connected to team “{team}”',
   connectWith: 'Connect with HostRepute',
-  /** {perm} is the permission key; {role} the member's role. */
-  permHave: 'Needs the {perm} permission · you have it as {role}',
-  permAsk: 'Needs the {perm} permission · ask an Owner or Admin of this workspace',
+  /** {role} is the member's role. */
+  permHave: 'You can connect HostRepute as {role}',
+  permAsk: "Your role can't connect HostRepute · ask an Owner or Admin of this workspace",
 
   // ── Deliverability › Connect HostRepute ──────────────────────────────
   pageTitle: 'Connect HostRepute',
@@ -93,7 +93,7 @@ export const m = defineMessages('hostrepute', {
   reasonDeclined: '{kept, select, connected {You declined the request on HostRepute. Your connection to team “{team}” is unchanged.} other {You declined the request on HostRepute. Nothing was connected.}}',
   reasonWrongUser: 'This handoff was started by someone else. Start it again from your own account.',
   reasonForbidden:
-    '{kept, select, connected {Connecting HostRepute needs the {perm} permission. Your connection to team “{team}” is unchanged.} other {Connecting HostRepute needs the {perm} permission. Nothing was connected.}}',
+    "{kept, select, connected {Your role can't connect HostRepute. Your connection to team “{team}” is unchanged.} other {Your role can't connect HostRepute. Nothing was connected.}}",
   reasonExchange:
     "{kept, select, connected {HostRepute didn't accept the approval (it expired or was already used). Your connection to team “{team}” is unchanged; try again.} other {HostRepute didn't accept the approval (it expired or was already used). Nothing was connected; try again.}}",
   reasonUnreachable:

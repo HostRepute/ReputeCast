@@ -45,9 +45,31 @@ type ComposerSaveContent struct {
 	ABTest *ComposerABTest `json:"abTest,omitempty"`
 	// Label says what changed ("2-column section padding").
 	Label  string `json:"label,omitempty" maxLength:"200"`
-	Source string `json:"source,omitempty" enum:"autosave,manual,import,template" default:"autosave"`
+	Source string `json:"source,omitempty" enum:"autosave,manual,import,template,recovered" default:"autosave"`
 	// Force saves on top of a newer version ("Keep mine").
 	Force bool `json:"force,omitempty"`
+	// Stash keeps this content in the version history without making it
+	// current ("Load theirs" after a conflict): it is saved as a version,
+	// then the current content is saved on top of it, unchanged.
+	Stash bool `json:"stash,omitempty"`
+	// CancelApproval says the person knows saving cancels the campaign's
+	// pending or approved request; without it such a save through the API
+	// fails with 409 approval_would_cancel (CO-7).
+	CancelApproval bool `json:"cancelApproval,omitempty"`
+	// askApproval is set by the API handler: a save someone sends asks
+	// before it cancels an approval. Saves other domains make for a person
+	// who clicked them (Send Readiness's fixes) cancel it as before.
+	askApproval bool
+	// exact refuses to merge: a save based on an older version fails with
+	// the version conflict (an undo puts back only what it changed).
+	exact bool
+	// settings, when set, are the content settings the HTML is prepared
+	// with instead of the campaign's: an undo puts a version back as it was
+	// before Minify, which it turns off again.
+	settings *ComposerContentSettings
+	// audited is set when the caller writes the save's audit entry (an MCP
+	// agent's tool call records what it changed).
+	audited bool
 }
 
 // ComposerSavedContent is the result of a save.
@@ -59,6 +81,81 @@ type ComposerSavedContent struct {
 	PlainText   string    `json:"plainText"`
 	// HTML is what was stored (minified when the campaign asks for it).
 	HTML string `json:"html"`
+	// Unchanged is true when the content was already the current version's:
+	// nothing new was stored and Version is that version.
+	Unchanged bool `json:"unchanged,omitempty"`
+	// StashedVersion is the version that keeps the stashed content (Stash).
+	StashedVersion int `json:"stashedVersion,omitempty"`
+	// Recompiled says what the HTML sent got wrong when it didn't show or do
+	// what the MJML says (links, images, text, conditional markers): the
+	// server stored its own compile of the MJML instead.
+	Recompiled string `json:"recompiled,omitempty"`
+	// Merged is set when someone saved a newer version in the meantime and
+	// the two edits changed different sections: both were kept (CO-10).
+	// The composer puts their sections in; the rest is yours.
+	Merged *ComposerMerged `json:"merged,omitempty"`
+}
+
+// ComposerMerged is what a merged save took from the newer version.
+type ComposerMerged struct {
+	With     string               `json:"with" doc:"Who saved the newer version"`
+	Version  int                  `json:"version" doc:"Their version"`
+	Sections []mjml.MergedSection `json:"sections" doc:"Their sections, at their positions in the email"`
+	// Head is their mj-head (styles, title, preview) when they changed it.
+	Head      string  `json:"head,omitempty"`
+	Subject   *string `json:"subject,omitempty"`
+	Preheader *string `json:"preheader,omitempty"`
+}
+
+// pick3 merges one field: the side that changed it wins; both changing it
+// differently is a conflict.
+func pick3(base, theirs, mine string) (string, bool) {
+	switch {
+	case theirs == base || theirs == mine:
+		return mine, true
+	case mine == base:
+		return theirs, true
+	}
+	return "", false
+}
+
+// merge tries to keep both edits when someone saved a newer version since
+// in's base: section by section, with the subject, preheader and head. It
+// changes in to the merged content when it can.
+func (s *Service) merge(ctx context.Context, q *store.Queries, id uuid.UUID, cur store.ComposerLockCampaignRow, in *ComposerSaveContent) (*ComposerMerged, error) {
+	base, err := q.GetComposerVersion(ctx, store.GetComposerVersionParams{CampaignID: id, Version: int32(in.BaseVersion)})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil // the base left the history: a person chooses
+	}
+	if err != nil {
+		return nil, err
+	}
+	// The A/B test isn't merged: only when they left it as it was.
+	if string(base.AbTest) != string(cur.AbTest) {
+		return nil, nil
+	}
+	subject, ok1 := pick3(base.Subject, cur.Subject, in.Subject)
+	preheader, ok2 := pick3(base.Preheader, cur.Preheader, in.Preheader)
+	if !ok1 || !ok2 {
+		return nil, nil
+	}
+	m, ok := mjml.MergeSections(base.Mjml, cur.Mjml, in.MJML)
+	if !ok {
+		return nil, nil
+	}
+	info := &ComposerMerged{With: cur.UpdatedByName, Version: int(cur.Version), Sections: m.Theirs, Head: m.Head}
+	if info.Sections == nil {
+		info.Sections = []mjml.MergedSection{}
+	}
+	if subject != in.Subject {
+		info.Subject = &subject
+	}
+	if preheader != in.Preheader {
+		info.Preheader = &preheader
+	}
+	// The HTML sent was compiled without their sections: the server compiles.
+	in.Subject, in.Preheader, in.MJML, in.HTML = subject, preheader, m.MJML, ""
+	return info, nil
 }
 
 // conflict is the 409 sent when someone else saved a newer version.
@@ -91,34 +188,16 @@ func (s *Service) SaveIn(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if err := validateSubject(l, in.Subject); err != nil {
 		return ComposerSavedContent{}, err
 	}
-	if s.translated(ctx, ws, id, lang) {
-		if in.ABTest != nil {
-			if err := validateAB(l, in.ABTest); err != nil {
-				return ComposerSavedContent{}, err
-			}
-		}
-		c, err := s.Q.GetComposerCampaign(ctx, store.GetComposerCampaignParams{WorkspaceID: ws.ID, ID: id})
-		if err != nil {
-			return ComposerSavedContent{}, api.MapError(err, "Campaign")
-		}
-		if !editableStatuses[c.Status] {
-			return ComposerSavedContent{}, api.Conflict(s.access(ctx, ws, p, c.Status, c.StartedAt).ReadOnlyReason)
-		}
-		var settings ComposerContentSettings
-		_ = json.Unmarshal(c.ContentSettings, &settings)
-		out, err := s.Translations.Save(ctx, ws, p, id, lang, in, settings.Minify)
-		if err == nil {
-			s.changed(ctx, ws, id)
-		}
-		return out, err
-	}
-	if in.Source == "" {
-		in.Source = "autosave"
-	}
 	if in.ABTest != nil {
 		if err := validateAB(l, in.ABTest); err != nil {
 			return ComposerSavedContent{}, err
 		}
+	}
+	if s.translated(ctx, ws, id, lang) {
+		return s.saveTranslation(ctx, ws, p, id, lang, in)
+	}
+	if in.Source == "" {
+		in.Source = "autosave"
 	}
 	var out ComposerSavedContent
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -130,85 +209,283 @@ func (s *Service) SaveIn(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if !editableStatuses[cur.Status] {
 			return api.Conflict(s.access(ctx, ws, p, cur.Status, nil).ReadOnlyReason)
 		}
-		if int(cur.Version) != in.BaseVersion && !in.Force {
-			var theirs, mine []string
-			if base, err := q.GetComposerVersion(ctx, store.GetComposerVersionParams{CampaignID: id, Version: int32(in.BaseVersion)}); err == nil {
-				theirs = mjml.ChangedSections(base.Mjml, cur.Mjml)
-				mine = mjml.ChangedSections(base.Mjml, in.MJML)
-				if base.Subject != cur.Subject {
-					theirs = append(theirs, "subject")
-				}
-				if base.Subject != in.Subject {
-					mine = append(mine, "subject")
-				}
-			}
+		var settings ComposerContentSettings
+		_ = json.Unmarshal(cur.ContentSettings, &settings)
+		if in.settings != nil {
+			settings = *in.settings
+		}
+		c, err := s.prepareContent(ctx, q, ws, id, in, settings)
+		if err != nil {
+			return err
+		}
+		// Saving what is already the current version stores nothing, and two
+		// people saving the same content don't conflict.
+		if c.hash == cur.ContentHash && !in.Stash {
 			at := cur.UpdatedAt
 			if cur.AutosavedAt != nil {
 				at = *cur.AutosavedAt
 			}
-			return conflict(l, cur.Version, cur.UpdatedByName, at, nonNil(theirs), nonNil(mine))
+			out = ComposerSavedContent{Version: int(cur.Version), SavedAt: at, ContentHash: cur.ContentHash, SizeBytes: len(cur.Html), PlainText: cur.PlainText, HTML: cur.Html, Unchanged: true}
+			return nil
 		}
-		var settings ComposerContentSettings
-		_ = json.Unmarshal(cur.ContentSettings, &settings)
-		src, html := in.MJML, in.HTML
-		if html == "" && strings.TrimSpace(src) != "" {
-			src = mjml.SetHeadMeta(src, in.Subject, in.Preheader)
-			res := mjml.Compile(src)
-			if len(res.Errors) > 0 {
-				// The compiler's own message stays as it wrote it.
-				return api.Invalid("body.mjml", mProblemMJMLCompile.Text(l, i18n.Args{"error": res.Errors[0].Message}))
+		var merged *ComposerMerged
+		if int(cur.Version) != in.BaseVersion && !in.Force && !in.Stash {
+			if in.exact {
+				return s.conflictFor(ctx, q, l, id, cur, in)
 			}
-			html = res.HTML
+			// Two people changed different sections: keep both (CO-10).
+			if merged, err = s.merge(ctx, q, id, cur, &in); err != nil {
+				return err
+			}
+			if merged == nil {
+				return s.conflictFor(ctx, q, l, id, cur, in)
+			}
+			if c, err = s.prepareContent(ctx, q, ws, id, in, settings); err != nil {
+				return err
+			}
+			in.Source, in.Label = "merge", mVersionMerged.Text(i18n.Default, i18n.Args{"name": merged.With, "version": strconv.Itoa(merged.Version)})
 		}
-		if settings.Minify && html != "" {
-			html = contentcheck.Minify(html)
+		// Saving never empties an email that has a body (a one-click fix
+		// or an API client sending neither MJML nor HTML would wipe it, SR-4).
+		if emptyBody(c.mjml, c.html) && !emptyBody(cur.Mjml, cur.Html) {
+			return api.Invalid("body.html", mProblemEmptyBody.Text(l, nil))
 		}
-		// lang, dir and the layout tables' role (accessibility).
-		html = accessibility.FinalizeStored(ctx, q, ws.ID, accessibility.OwnerCampaign, id, 0, html)
-		if in.ABTest != nil {
-			for i := range in.ABTest.Variants {
-				in.ABTest.Variants[i].HTML = accessibility.FinalizeStored(ctx, q, ws.ID, accessibility.OwnerCampaign, id, 0, in.ABTest.Variants[i].HTML)
+		// Editing an approved (or pending) campaign cancels its request: only
+		// once the person said so (CO-7). Load theirs keeps the content as it is.
+		if !in.Stash {
+			a, err := s.openApproval(ctx, q, id)
+			if err != nil {
+				return err
+			}
+			if a != nil && in.askApproval && !in.CancelApproval {
+				return approvalWouldCancel(l, a)
+			}
+			if a != nil {
+				c.cancels = a.ID
 			}
 		}
-		ab := in.ABTest.toDB()
-		plain := contentcheck.PlainText(html)
-		hash := ContentHash(in.Subject, in.Preheader, src, html, ab)
-		version := cur.Version + 1
-		now := s.now()
-		if err := q.SaveComposerContent(ctx, store.SaveComposerContentParams{WorkspaceID: ws.ID, ID: id, Subject: in.Subject, Preheader: in.Preheader, Mjml: src, Html: html,
-			PlainText: plain, AbTest: ab, ContentHash: hash, Version: version, UpdatedBy: &p.UserID, Now: now}); err != nil {
+		if in.Stash {
+			out, err = s.stash(ctx, q, ws, p, id, cur, c, in)
 			return err
 		}
-		label := strings.TrimSpace(in.Label)
-		if err := q.InsertComposerVersion(ctx, store.InsertComposerVersionParams{CampaignID: id, Version: version, Subject: in.Subject, Preheader: in.Preheader,
-			Mjml: src, Html: html, PlainText: plain, AbTest: ab, SavedBy: &p.UserID, SavedAt: now, Label: label, Source: in.Source, SizeBytes: int32(len(html))}); err != nil {
-			return err
-		}
-		if _, err := q.PruneComposerVersions(ctx, store.PruneComposerVersionsParams{CampaignID: id, Keep: KeepVersions}); err != nil {
-			return err
-		}
-		before := map[string]any{"version": cur.Version}
-		after := map[string]any{"version": version, "sizeBytes": len(html)}
-		if cur.Subject != in.Subject {
-			before["subject"], after["subject"] = cur.Subject, in.Subject
-		}
-		if cur.Preheader != in.Preheader {
-			before["preheader"], after["preheader"] = cur.Preheader, in.Preheader
-		}
-		if string(cur.AbTest) != string(ab) {
-			after["abTest"] = in.ABTest != nil
-		}
-		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.content.save", TargetType: "campaign", TargetID: id.String(),
-			Before: before, After: after, Metadata: map[string]any{"label": label, "source": in.Source, "contentHash": hash}}); err != nil {
-			return err
-		}
-		out = ComposerSavedContent{Version: int(version), SavedAt: now, ContentHash: hash, SizeBytes: len(html), PlainText: plain, HTML: html}
-		return nil
+		c.audited = in.audited
+		out, err = s.storeVersion(ctx, q, ws, p, id, cur, c, in.Label, in.Source)
+		out.Merged = merged
+		return err
 	})
-	if err == nil {
+	if err == nil && !out.Unchanged && !in.Stash {
 		s.changed(ctx, ws, id)
 	}
 	return out, err
+}
+
+// saveTranslation saves a language version's content (internal/languages).
+// Stash is two saves there: yours as a version, then theirs on top.
+func (s *Service) saveTranslation(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, lang string, in ComposerSaveContent) (ComposerSavedContent, error) {
+	c, err := s.Q.GetComposerCampaign(ctx, store.GetComposerCampaignParams{WorkspaceID: ws.ID, ID: id})
+	if err != nil {
+		return ComposerSavedContent{}, api.MapError(err, "Campaign")
+	}
+	if !editableStatuses[c.Status] {
+		return ComposerSavedContent{}, api.Conflict(s.access(ctx, ws, p, c.Status, c.StartedAt).ReadOnlyReason)
+	}
+	var settings ComposerContentSettings
+	_ = json.Unmarshal(c.ContentSettings, &settings)
+	if !in.Stash {
+		if in.askApproval && !in.CancelApproval {
+			a, err := s.openApproval(ctx, s.Q, id)
+			if err != nil {
+				return ComposerSavedContent{}, err
+			}
+			if a != nil {
+				return ComposerSavedContent{}, approvalWouldCancel(i18n.LangFrom(ctx), a)
+			}
+		}
+		out, err := s.Translations.Save(ctx, ws, p, id, lang, in, settings.Minify)
+		if err == nil {
+			s.changed(ctx, ws, id)
+		}
+		return out, err
+	}
+	theirs, err := s.Translations.Content(ctx, ws, id, lang)
+	if err != nil {
+		return ComposerSavedContent{}, err
+	}
+	mine := in
+	mine.Stash, mine.Force, mine.Source = false, true, "manual"
+	mine.Label = mVersionKeptYours.Text(i18n.Default, i18n.Args{"name": theirs.UpdatedBy, "version": strconv.Itoa(theirs.Version)})
+	kept, err := s.Translations.Save(ctx, ws, p, id, lang, mine, settings.Minify)
+	if err != nil {
+		return ComposerSavedContent{}, err
+	}
+	back := ComposerSaveContent{BaseVersion: kept.Version, Subject: theirs.Subject, Preheader: theirs.Preheader, MJML: theirs.MJML, HTML: theirs.HTML,
+		ABTest: abFromDB(theirs.ABTest), Source: "manual", Label: mVersionLoadedTheirs.Text(i18n.Default, i18n.Args{"name": theirs.UpdatedBy, "version": strconv.Itoa(theirs.Version)})}
+	out, err := s.Translations.Save(ctx, ws, p, id, lang, back, settings.Minify)
+	if err == nil {
+		out.StashedVersion = kept.Version
+		s.changed(ctx, ws, id)
+	}
+	return out, err
+}
+
+// preparedContent is a save's content as it will be stored.
+type preparedContent struct {
+	subject, preheader, mjml, html, plain, hash string
+	ab                                          json.RawMessage
+	abTest                                      *ComposerABTest
+	// recompiled names what the HTML sent got wrong ("links"; "B: text" for
+	// a variant) when the server stored its own compile instead.
+	recompiled string
+	// cancels is the request this save cancels (the person agreed to).
+	cancels string
+	// audited: the caller writes the audit entry (ComposerSaveContent.audited).
+	audited bool
+}
+
+// prepareContent turns a save into what is stored: the HTML compiled on
+// the server when the browser sent none, minified when the campaign asks
+// for it, with lang, dir and the layout tables' role (accessibility).
+func (s *Service) prepareContent(ctx context.Context, q *store.Queries, ws *store.Workspace, id uuid.UUID, in ComposerSaveContent, settings ComposerContentSettings) (preparedContent, error) {
+	l := i18n.LangFrom(ctx)
+	src := in.MJML
+	if in.HTML == "" && strings.TrimSpace(src) != "" {
+		src = mjml.SetHeadMeta(src, in.Subject, in.Preheader)
+	}
+	// The HTML sent must show and do what the MJML says (CO-3); otherwise the
+	// server's own compile is stored instead.
+	html, recompiled, errs := mjml.Checked(src, in.HTML)
+	if errs != nil {
+		// The compiler's own message stays as it wrote it.
+		return preparedContent{}, api.Invalid("body.mjml", mProblemMJMLCompile.Text(l, i18n.Args{"error": errs[0].Message}))
+	}
+	if settings.Minify && html != "" {
+		html = contentcheck.Minify(html)
+	}
+	html = accessibility.FinalizeStored(ctx, q, ws.ID, accessibility.OwnerCampaign, id, 0, html)
+	var abTest *ComposerABTest
+	if in.ABTest != nil {
+		t := *in.ABTest
+		t.Variants = append([]ComposerABVariant(nil), in.ABTest.Variants...)
+		for i, v := range t.Variants {
+			if strings.TrimSpace(v.MJML) != "" {
+				vh, mismatch, errs := mjml.Checked(v.MJML, v.HTML)
+				if errs != nil {
+					return preparedContent{}, api.Invalid("body.abTest.variants", mProblemMJMLCompile.Text(l, i18n.Args{"error": errs[0].Message}))
+				}
+				if mismatch != "" && recompiled == "" {
+					recompiled = v.Key + ": " + mismatch
+				}
+				t.Variants[i].HTML = vh
+			}
+			t.Variants[i].HTML = accessibility.FinalizeStored(ctx, q, ws.ID, accessibility.OwnerCampaign, id, 0, t.Variants[i].HTML)
+		}
+		abTest = &t
+	}
+	ab := abTest.toDB()
+	return preparedContent{subject: in.Subject, preheader: in.Preheader, mjml: src, html: html, plain: contentcheck.PlainText(html),
+		hash: ContentHash(in.Subject, in.Preheader, src, html, ab), ab: ab, abTest: abTest, recompiled: recompiled}, nil
+}
+
+// conflictFor is the 409 of a save based on an old version: who saved the
+// newer one, when, and which sections each side changed.
+func (s *Service) conflictFor(ctx context.Context, q *store.Queries, l i18n.Lang, id uuid.UUID, cur store.ComposerLockCampaignRow, in ComposerSaveContent) error {
+	var theirs, mine []string
+	if base, err := q.GetComposerVersion(ctx, store.GetComposerVersionParams{CampaignID: id, Version: int32(in.BaseVersion)}); err == nil {
+		theirs = mjml.ChangedSections(base.Mjml, cur.Mjml)
+		mine = mjml.ChangedSections(base.Mjml, in.MJML)
+		if base.Subject != cur.Subject {
+			theirs = append(theirs, "subject")
+		}
+		if base.Subject != in.Subject {
+			mine = append(mine, "subject")
+		}
+	}
+	at := cur.UpdatedAt
+	if cur.AutosavedAt != nil {
+		at = *cur.AutosavedAt
+	}
+	return conflict(l, cur.Version, cur.UpdatedByName, at, nonNil(theirs), nonNil(mine))
+}
+
+// storeVersion makes the content the campaign's next version, with its
+// history row and its audit entry. cur is the locked campaign.
+func (s *Service) storeVersion(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, id uuid.UUID, cur store.ComposerLockCampaignRow, c preparedContent, label, source string) (ComposerSavedContent, error) {
+	version := cur.Version + 1
+	now := s.now()
+	by := userRef(p)
+	if err := q.SaveComposerContent(ctx, store.SaveComposerContentParams{WorkspaceID: ws.ID, ID: id, Subject: c.subject, Preheader: c.preheader, Mjml: c.mjml, Html: c.html,
+		PlainText: c.plain, AbTest: c.ab, ContentHash: c.hash, Version: version, UpdatedBy: by, Now: now}); err != nil {
+		return ComposerSavedContent{}, err
+	}
+	label = strings.TrimSpace(label)
+	if err := q.InsertComposerVersion(ctx, store.InsertComposerVersionParams{CampaignID: id, Version: version, Subject: c.subject, Preheader: c.preheader,
+		Mjml: c.mjml, Html: c.html, PlainText: c.plain, AbTest: c.ab, SavedBy: by, SavedAt: now, Label: label, Source: source, SizeBytes: int32(len(c.html))}); err != nil {
+		return ComposerSavedContent{}, err
+	}
+	saved := ComposerSavedContent{Version: int(version), SavedAt: now, ContentHash: c.hash, SizeBytes: len(c.html), PlainText: c.plain, HTML: c.html, Recompiled: c.recompiled}
+	if _, err := q.PruneComposerVersions(ctx, store.PruneComposerVersionsParams{CampaignID: id, Keep: KeepVersions}); err != nil {
+		return ComposerSavedContent{}, err
+	}
+	if c.audited {
+		return saved, nil
+	}
+	before := map[string]any{"version": cur.Version}
+	after := map[string]any{"version": version, "sizeBytes": len(c.html)}
+	if cur.Subject != c.subject {
+		before["subject"], after["subject"] = cur.Subject, c.subject
+	}
+	if cur.Preheader != c.preheader {
+		before["preheader"], after["preheader"] = cur.Preheader, c.preheader
+	}
+	if string(cur.AbTest) != string(c.ab) {
+		after["abTest"] = c.abTest != nil
+	}
+	meta := map[string]any{"label": label, "source": source, "contentHash": c.hash}
+	if c.recompiled != "" {
+		meta["recompiled"] = c.recompiled
+	}
+	if c.cancels != "" {
+		// The approvals domain records the cancellation itself (AfterChange).
+		meta["cancelsApproval"] = c.cancels
+	}
+	if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.content.save", TargetType: "campaign", TargetID: id.String(),
+		Before: before, After: after, Metadata: meta}); err != nil {
+		return ComposerSavedContent{}, err
+	}
+	return saved, nil
+}
+
+// stash keeps a save's content in the history as its own version and puts
+// the current content back on top ("Load theirs"): the campaign's content
+// doesn't change, so neither do its checks or its approval.
+func (s *Service) stash(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, id uuid.UUID, cur store.ComposerLockCampaignRow, c preparedContent, in ComposerSaveContent) (ComposerSavedContent, error) {
+	theirs := strconv.Itoa(int(cur.Version))
+	kept, top := cur.Version+1, cur.Version+2
+	now := s.now()
+	keptLabel := mVersionKeptYours.Text(i18n.Default, i18n.Args{"name": cur.UpdatedByName, "version": theirs})
+	if err := q.InsertComposerVersion(ctx, store.InsertComposerVersionParams{CampaignID: id, Version: kept, Subject: c.subject, Preheader: c.preheader,
+		Mjml: c.mjml, Html: c.html, PlainText: c.plain, AbTest: c.ab, SavedBy: &p.UserID, SavedAt: now, Label: keptLabel, Source: "conflict", SizeBytes: int32(len(c.html))}); err != nil {
+		return ComposerSavedContent{}, err
+	}
+	topLabel := mVersionLoadedTheirs.Text(i18n.Default, i18n.Args{"name": cur.UpdatedByName, "version": theirs})
+	if err := q.InsertComposerVersion(ctx, store.InsertComposerVersionParams{CampaignID: id, Version: top, Subject: cur.Subject, Preheader: cur.Preheader,
+		Mjml: cur.Mjml, Html: cur.Html, PlainText: cur.PlainText, AbTest: cur.AbTest, SavedBy: &p.UserID, SavedAt: now, Label: topLabel, Source: "restore", SizeBytes: int32(len(cur.Html))}); err != nil {
+		return ComposerSavedContent{}, err
+	}
+	if err := q.ComposerBumpVersion(ctx, store.ComposerBumpVersionParams{WorkspaceID: ws.ID, ID: id, Version: top, UpdatedBy: &p.UserID, Now: now}); err != nil {
+		return ComposerSavedContent{}, err
+	}
+	if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.content.stash", TargetType: "campaign", TargetID: id.String(),
+		Before: map[string]any{"version": cur.Version}, After: map[string]any{"version": top, "keptVersion": kept},
+		Metadata: map[string]any{"baseVersion": in.BaseVersion, "contentHash": c.hash}}); err != nil {
+		return ComposerSavedContent{}, err
+	}
+	return ComposerSavedContent{Version: int(top), SavedAt: now, ContentHash: cur.ContentHash, SizeBytes: len(cur.Html), PlainText: cur.PlainText, HTML: cur.Html, StashedVersion: int(kept)}, nil
+}
+
+// emptyBody reports content with neither MJML nor HTML.
+func emptyBody(mjmlSrc, html string) bool {
+	return strings.TrimSpace(mjmlSrc) == "" && strings.TrimSpace(html) == ""
 }
 
 func validateAB(l i18n.Lang, t *ComposerABTest) error {
@@ -225,13 +502,8 @@ func validateAB(l i18n.Lang, t *ComposerABTest) error {
 	if !keys["A"] || !keys["B"] {
 		return api.Invalid("body.abTest.variants", mProblemVariantsAB.Text(l, nil))
 	}
-	if t.Kind == "subject" {
-		for _, v := range t.Variants {
-			if v.Key != "A" && strings.TrimSpace(v.Subject) == "" {
-				return api.Invalid("body.abTest.variants", mProblemVariantSubject.Text(l, i18n.Args{"variant": v.Key}))
-			}
-		}
-	}
+	// A subject variant without a subject still saves (an autosave mid-edit
+	// must not fail): the checks say "Write a subject for variant B".
 	return nil
 }
 
@@ -241,34 +513,99 @@ type ComposerVersion struct {
 	SavedAt   time.Time `json:"savedAt"`
 	SavedBy   string    `json:"savedBy"`
 	Label     string    `json:"label"`
-	Source    string    `json:"source" enum:"create,autosave,manual,restore,template,import,duplicate,api"`
+	Source    string    `json:"source" enum:"create,autosave,manual,restore,template,import,duplicate,api,conflict,merge,recovered,synced"`
 	SizeBytes int       `json:"sizeBytes"`
 	Current   bool      `json:"current"`
+	// Name is what a person called the version ("Sent to legal"); named
+	// versions are never pruned and can be listed on their own.
+	Name string `json:"name"`
 }
 
-// ComposerVersionList is the version history, newest first.
+// ComposerVersionList is one page of the version history, newest first.
 type ComposerVersionList struct {
 	Items []ComposerVersion `json:"items"`
-	Total int               `json:"total"`
+	// Total counts every version kept; Named the named ones.
+	Total int `json:"total"`
+	Named int `json:"named"`
+	// NextBefore asks for the next (older) page; absent on the last page.
+	NextBefore *int `json:"nextBefore,omitempty"`
 }
 
-// Versions lists the history of a campaign.
-func (s *Service) Versions(ctx context.Context, ws *store.Workspace, id uuid.UUID, limit int) (ComposerVersionList, error) {
+// VersionsPage asks for one page of the history.
+type VersionsPage struct {
+	Limit int
+	// Before lists versions older than this one (0: from the newest).
+	Before int
+	// Named lists named versions only.
+	Named bool
+}
+
+// Versions lists the history of a campaign, one page at a time.
+func (s *Service) Versions(ctx context.Context, ws *store.Workspace, id uuid.UUID, page VersionsPage) (ComposerVersionList, error) {
 	c, err := s.Q.GetComposerCampaign(ctx, store.GetComposerCampaignParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
 		return ComposerVersionList{}, api.MapError(err, "Campaign")
 	}
-	rows, err := s.Q.ListComposerVersions(ctx, store.ListComposerVersionsParams{CampaignID: id, Lim: int32(limit)})
+	if page.Limit <= 0 {
+		page.Limit = 50
+	}
+	var before *int32
+	if page.Before > 0 {
+		b := int32(page.Before)
+		before = &b
+	}
+	// One more than asked tells whether an older page exists.
+	rows, err := s.Q.ComposerVersionsPage(ctx, store.ComposerVersionsPageParams{CampaignID: id, Before: before, NamedOnly: page.Named, Lim: int32(page.Limit + 1)})
 	if err != nil {
 		return ComposerVersionList{}, err
 	}
-	out := ComposerVersionList{Items: make([]ComposerVersion, 0, len(rows)), Total: int(c.VersionCount)}
+	named, err := s.Q.ComposerNamedVersionCount(ctx, id)
+	if err != nil {
+		return ComposerVersionList{}, err
+	}
+	out := ComposerVersionList{Items: make([]ComposerVersion, 0, len(rows)), Total: int(c.VersionCount), Named: int(named)}
+	if len(rows) > page.Limit {
+		rows = rows[:page.Limit]
+		next := int(rows[len(rows)-1].Version)
+		out.NextBefore = &next
+	}
 	l := i18n.LangFrom(ctx)
 	for _, r := range rows {
 		out.Items = append(out.Items, ComposerVersion{Version: int(r.Version), SavedAt: r.SavedAt, SavedBy: r.SavedByName, Label: versionLabel(l, r.Label), Source: r.Source,
-			SizeBytes: int(r.SizeBytes), Current: r.Version == c.Version})
+			SizeBytes: int(r.SizeBytes), Current: r.Version == c.Version, Name: r.Name})
 	}
 	return out, nil
+}
+
+// ComposerNameVersion names a version ("" removes its name).
+type ComposerNameVersion struct {
+	Name string `json:"name" maxLength:"120" doc:"The version's name; empty removes it"`
+}
+
+// NameVersion names one version of the history.
+func (s *Service) NameVersion(ctx context.Context, ws *store.Workspace, id uuid.UUID, version int, in ComposerNameVersion) (ComposerVersion, error) {
+	name := strings.Join(strings.Fields(in.Name), " ")
+	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		c, err := q.GetComposerCampaign(ctx, store.GetComposerCampaignParams{WorkspaceID: ws.ID, ID: id})
+		if err != nil {
+			return api.MapError(err, "Campaign")
+		}
+		old, err := q.ComposerNameVersion(ctx, store.ComposerNameVersionParams{CampaignID: id, Version: int32(version), Name: name})
+		if err != nil {
+			return api.MapError(err, "Version")
+		}
+		if old == name {
+			return nil
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.version.name", TargetType: "campaign", TargetID: id.String(), TargetName: c.Name,
+			Before: map[string]any{"version": version, "name": old}, After: map[string]any{"version": version, "name": name}})
+	})
+	if err != nil {
+		return ComposerVersion{}, err
+	}
+	d, err := s.Version(ctx, ws, id, version)
+	return d.ComposerVersion, err
 }
 
 // ComposerVersionDetail is a version with its content (compare, restore).
@@ -295,7 +632,7 @@ func (s *Service) Version(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	}
 	d := ComposerVersionDetail{
 		ComposerVersion: ComposerVersion{Version: int(v.Version), SavedAt: v.SavedAt, SavedBy: v.SavedByName, Label: versionLabel(i18n.LangFrom(ctx), v.Label), Source: v.Source,
-			SizeBytes: int(v.SizeBytes), Current: v.Version == c.Version},
+			SizeBytes: int(v.SizeBytes), Current: v.Version == c.Version, Name: v.Name},
 		Subject: v.Subject, Preheader: v.Preheader, MJML: v.Mjml, HTML: v.Html, ABTest: abFromDB(v.AbTest), Sections: []string{},
 	}
 	if prev, err := s.Q.GetComposerVersion(ctx, store.GetComposerVersionParams{CampaignID: id, Version: int32(version - 1)}); err == nil {
@@ -311,6 +648,19 @@ type ComposerRestoreVersion struct {
 
 // Restore copies a version on top of the history.
 func (s *Service) Restore(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, version int, in ComposerRestoreVersion) (ComposerSavedContent, error) {
+	return s.restore(ctx, ws, p, id, version, in.BaseVersion, false, nil)
+}
+
+// RestoreExactly is Restore for an undo (Send Readiness's fixes): it puts
+// a version back only while the campaign is still at baseVersion; when
+// anyone saved since, it fails with the version conflict instead of
+// merging their edit. settings, when set, are the content settings the
+// version had (the undo puts them back too); nil keeps the campaign's.
+func (s *Service) RestoreExactly(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, version, baseVersion int, settings *ComposerContentSettings) (ComposerSavedContent, error) {
+	return s.restore(ctx, ws, p, id, version, baseVersion, true, settings)
+}
+
+func (s *Service) restore(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, version, baseVersion int, exact bool, settings *ComposerContentSettings) (ComposerSavedContent, error) {
 	// The campaign must belong to the workspace before its versions are read.
 	if _, err := s.Q.GetComposerCampaign(ctx, store.GetComposerCampaignParams{WorkspaceID: ws.ID, ID: id}); err != nil {
 		return ComposerSavedContent{}, api.MapError(err, "Campaign")
@@ -322,8 +672,8 @@ func (s *Service) Restore(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		}
 		return ComposerSavedContent{}, err
 	}
-	return s.Save(ctx, ws, p, id, ComposerSaveContent{BaseVersion: in.BaseVersion, Subject: v.Subject, Preheader: v.Preheader, MJML: v.Mjml, HTML: v.Html,
-		ABTest: abFromDB(v.AbTest), Label: mVersionRestored.Text(i18n.Default, i18n.Args{"version": strconv.Itoa(version)}), Source: "restore"})
+	return s.Save(ctx, ws, p, id, ComposerSaveContent{BaseVersion: baseVersion, Subject: v.Subject, Preheader: v.Preheader, MJML: v.Mjml, HTML: v.Html,
+		ABTest: abFromDB(v.AbTest), Label: mVersionRestored.Text(i18n.Default, i18n.Args{"version": strconv.Itoa(version)}), Source: "restore", exact: exact, settings: settings})
 }
 
 // Duplicate copies a campaign (any status) into a new draft.

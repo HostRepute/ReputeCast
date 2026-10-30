@@ -2,8 +2,9 @@
 // adapter must pass (TECH_STACK note 10): registration and capabilities,
 // the texts people read about the adapter (in every app language), Send
 // (success, permanent rejection, outage, rejected credentials) against a
-// fake of the provider's API, and ParseWebhook (signature verification and
-// normalization) against recorded payloads.
+// fake of the provider's API, ParseWebhook (signature verification and
+// normalization) against recorded payloads, and, for an adapter that
+// reports them, the account's sending IPs.
 //
 // An adapter's test calls Run with a Suite:
 //
@@ -121,6 +122,13 @@ type Suite struct {
 	Webhooks         []Webhook
 	// Tamper breaks a valid signed request; the default flips a body byte.
 	Tamper func(r *http.Request, body []byte) (*http.Request, []byte)
+	// IdempotencyKey reads the idempotency key a recorded send request
+	// carries ("" for none). An adapter whose provider recognizes a message
+	// it already took (providers.IdempotentSender) must say where it is.
+	IdempotencyKey func(r Recorded) string
+	// SendingIPs is what an adapter that reports the account's sending IPs
+	// (providers.IPReporter) must read from the fake API, in any order.
+	SendingIPs *providers.SendingIPs
 }
 
 // NewEnv starts the fake API (when api is not nil) for adapter-specific
@@ -195,6 +203,59 @@ func Run(t *testing.T, s Suite) {
 		}
 		if _, ok := p.(providers.WebhookRegistrar); p.Capabilities().RemovesWebhook && !ok {
 			t.Fatal("an adapter that removes its webhook must register it too")
+		}
+		// Sending providers tells people whether a provider's IPs come from
+		// its API or are set by hand from this flag, without opening the
+		// adapter.
+		if _, ok := p.(providers.IPReporter); ok != p.Capabilities().ReportsIPs {
+			t.Fatalf("ReportsIPs is %v but the adapter implements IPReporter: %v", p.Capabilities().ReportsIPs, ok)
+		}
+	})
+
+	// An adapter that reports the account's sending IPs answers with what
+	// the provider lists, each address once, and fails when it can't ask:
+	// an outage or refused credentials are errors, never an empty list,
+	// which would take a dedicated IP's checks away.
+	t.Run("SendingIPs", func(t *testing.T) {
+		env.reset()
+		p := s.New(t, env)
+		r, ok := p.(providers.IPReporter)
+		if !ok {
+			t.Skip("the adapter doesn't report the account's sending IPs")
+		}
+		if s.API == nil {
+			t.Skip("sending IPs are read from the fake API")
+		}
+		if s.SendingIPs == nil {
+			t.Fatal("the adapter is a providers.IPReporter: set Suite.SendingIPs to what the fake API lists")
+		}
+		got, err := r.SendingIPs(context.Background())
+		if err != nil {
+			t.Fatalf("SendingIPs: %v", err)
+		}
+		clean, bad := providers.CleanIPs(got.IPs)
+		if len(bad) > 0 || len(clean) != len(got.IPs) {
+			t.Fatalf("SendingIPs listed %q: every entry must be an IP address, each once", got.IPs)
+		}
+		if got.Dedicated != (len(got.IPs) > 0) {
+			t.Fatalf("Dedicated is %v with %d IPs: an account on IPs of its own lists them, a shared pool lists none", got.Dedicated, len(got.IPs))
+		}
+		want, _ := providers.CleanIPs(s.SendingIPs.IPs)
+		if got.Dedicated != s.SendingIPs.Dedicated || !slices.Equal(clean, want) {
+			t.Fatalf("SendingIPs = %+v, want %+v", got, *s.SendingIPs)
+		}
+		if s.SkipFailureModes {
+			return
+		}
+		for _, c := range []struct {
+			mode string
+			want error
+		}{{ModeOutage, providers.ErrUnavailable}, {ModeAuth, providers.ErrUnauthorized}} {
+			env.SetMode(c.mode)
+			res, err := r.SendingIPs(context.Background())
+			if !errors.Is(err, c.want) {
+				t.Fatalf("%s: SendingIPs = %+v, %v; want an error wrapping %v, so the IPs ReputeCast knows stay", c.mode, res, err, c.want)
+			}
 		}
 	})
 
@@ -324,6 +385,51 @@ func Run(t *testing.T, s Suite) {
 		_, err := p.Send(context.Background(), []providers.Message{Message(0)})
 		if !errors.Is(err, providers.ErrUnauthorized) {
 			t.Fatalf("rejected credentials must fail the call with providers.ErrUnauthorized, got %v", err)
+		}
+	})
+
+	// An adapter that says its provider recognizes a message it already took
+	// (providers.IdempotentSender) lets the engine send a message again
+	// after a lost answer (review GS-1), so the promise must hold message by
+	// message: one message per call, each with a key made from its id alone,
+	// the same key every time, and the provider's answer to a repeated
+	// message read as sent. A provider's key covers its request: a batch's
+	// key would cover the batch, and a message sent again in another batch
+	// would be delivered twice.
+	t.Run("Idempotency", func(t *testing.T) {
+		env.reset()
+		p := s.New(t, env)
+		if providers.IdempotencyWindow(p) == 0 {
+			t.Skip("the provider doesn't recognize a message it already took")
+		}
+		ready(t, s)
+		if s.API == nil {
+			t.Skip("keys are checked against the fake API")
+		}
+		if s.IdempotencyKey == nil {
+			t.Fatal("the adapter is a providers.IdempotentSender: set Suite.IdempotencyKey so the suite can read its keys")
+		}
+		if n := p.Capabilities().BatchSize; n != 1 {
+			t.Fatalf("BatchSize %d: an idempotent sender hands each message over in its own call", n)
+		}
+		a, b := Message(0), Message(1)
+		for i, m := range []providers.Message{a, a, b} {
+			res, err := p.Send(context.Background(), []providers.Message{m})
+			if err != nil || len(res) != 1 || res[0].Err != nil || res[0].MessageID != m.ID {
+				t.Fatalf("send %d: %+v, %v (a message sent again must be answered as sent)", i, res, err)
+			}
+		}
+		var keys []string
+		for _, r := range env.Requests() {
+			if k := s.IdempotencyKey(r); k != "" {
+				keys = append(keys, k)
+			}
+		}
+		if len(keys) != 3 {
+			t.Fatalf("%d keyed requests for 3 sends: %q", len(keys), keys)
+		}
+		if keys[0] != keys[1] || keys[0] == keys[2] || !strings.Contains(keys[0], a.ID.String()) || !strings.Contains(keys[2], b.ID.String()) {
+			t.Fatalf("keys %q: want each message's own id, the same when it is sent again", keys)
 		}
 	})
 

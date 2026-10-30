@@ -7,7 +7,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { Field, Input, Select, Textarea, Toggle } from '@/components/ui/Field'
 import { toast } from '@/components/ui/Toast'
-import { T, useT } from '@/i18n'
+import { useT } from '@/i18n'
 import { dayMonthYear, shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { copyText } from '../EarnPage'
@@ -196,7 +196,7 @@ export function ShareDialog({ bookingId, sponsorId, issue, sponsor, onClose }: {
       footer={
         <>
           <span className="k mr-auto">
-            <T msg={mb.shareFoot} values={{ permission: 'reports:share' }} />
+            {t(mb.shareFoot)}
           </span>
           <Button onClick={onClose}>{t(mb.done)}</Button>
         </>

@@ -1,0 +1,37 @@
+<mjml>
+  <mj-head>
+    <mj-title>Conditional content</mj-title>
+    <mj-preview>Members see the beta corner; everyone sees the rest.</mj-preview>
+  </mj-head>
+  <mj-body width="600px" background-color="#F3F4F6">
+    <mj-section background-color="#ffffff" padding="20px 24px">
+      <mj-column>
+        <mj-text font-size="15px">Hi {{ first_name | default: "there" }}, here is the week.</mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section rc-visible='{"id":"beta1","show":"match","rules":[{"field":"plan","op":"is","value":"team"}]}' rc-name="Beta corner" background-color="#F0FDFA" padding="16px 24px">
+      <mj-column>
+        <mj-text>Beta corner: <a href="https://acme.io/beta">try the new editor</a> before anyone else.</mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="#ffffff" padding="16px 24px">
+      <mj-column width="50%">
+        <mj-text>Left column for everyone.</mj-text>
+      </mj-column>
+      <mj-column width="50%" rc-visible='{"id":"col2","show":"match","rules":[{"field":"plan","op":"is","value":"free"}]}'>
+        <mj-text>Upgrade to keep your history.</mj-text>
+        <mj-button href="https://acme.io/upgrade" background-color="#0F766E">Upgrade</mj-button>
+      </mj-column>
+    </mj-section>
+    <mj-section rc-omit="true" background-color="#ffffff">
+      <mj-column>
+        <mj-text>Sponsor slot without a booking: the editor shows it, the email leaves it out.</mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="#F3F4F6" padding="18px 24px">
+      <mj-column>
+        <mj-text align="center" font-size="12px">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><a href="{{ unsubscribe_url }}">Unsubscribe</a> · <a href="{{ preferences_url }}">Email preferences</a></mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

@@ -62,11 +62,11 @@ describe('Settings › General › Languages', () => {
     expect(screen.getByLabelText('Fallback language')).not.toBeDisabled()
   })
 
-  it('is read-only without workspace:manage, and says who can change it', async () => {
+  it("is read-only when the role can't manage the workspace, and says who can change it", async () => {
     mockApi({ 'GET /api/v1/workspaces/acme-newsletter/languages': () => json(board(false)) })
     await renderInWorkspace(<LanguagesCard />, { path: '/w/acme-newsletter/settings' })
     const note = await screen.findByRole('note')
-    expect(note).toHaveTextContent('Changing workspace languages needs workspace:manage. Ask Marcus Chen or Linh Nguyen.')
+    expect(note).toHaveTextContent("Your role can't change workspace languages. Ask Marcus Chen or Linh Nguyen.")
     expect(screen.queryByRole('button', { name: 'Add language' })).not.toBeInTheDocument()
     expect(screen.getByLabelText('Default language')).toBeDisabled()
     expect(screen.getAllByRole('link', { name: 'View page copy' }).length).toBeGreaterThan(0)

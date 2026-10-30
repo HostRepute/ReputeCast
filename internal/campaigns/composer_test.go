@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/apptest"
 )
 
@@ -193,7 +195,7 @@ func TestComposerDetailOfTheDemo(t *testing.T) {
 	c.SignInDemo("linh@acme.io")
 	var d detail
 	c.Do("GET", ws+"/campaigns/"+campaignID(t, env, "Weekly Digest #142"), nil).MustStatus(t, 200).JSON(t, &d)
-	if d.Version != 14 || d.VersionCount != 14 || d.AudienceLabel != "Weekly Digest" || d.AudienceCount == nil || *d.AudienceCount != 31604 {
+	if d.Version != 14 || d.VersionCount != 14 || d.AudienceLabel != "Weekly Digest" || d.AudienceCount == nil || *d.AudienceCount != 31192 {
 		t.Fatalf("digest: %+v", d)
 	}
 	if d.Subject != "Three launches, one deprecation, and the roadmap for Q4" || !strings.Contains(d.MJML, "mj-section") || d.Sender.Email != "digest@news.acme.io" {
@@ -241,7 +243,9 @@ func TestComposerPermissions(t *testing.T) {
 	if strings.Join(d.Access.SendHelpers, ",") != "Marcus Chen,Linh Nguyen" {
 		t.Fatalf("helpers: %v", d.Access.SendHelpers)
 	}
-	w.Do("PUT", ws+"/campaigns/"+digest+"/content", map[string]any{"baseVersion": 14, "subject": d.Subject, "preheader": d.Preheader, "mjml": d.MJML, "html": d.HTML, "label": "typo"}).MustStatus(t, 200)
+	// The digest is approved: the composer asked first, and he agreed (CO-7).
+	w.Do("PUT", ws+"/campaigns/"+digest+"/content", map[string]any{"baseVersion": 14, "subject": d.Subject, "preheader": d.Preheader, "mjml": d.MJML, "html": d.HTML, "label": "typo",
+		"cancelApproval": true}).MustStatus(t, 200)
 	// Test emails only to himself.
 	r = w.Do("POST", ws+"/campaigns/"+digest+"/test", map[string]any{"to": []string{"marcus@acme.io"}})
 	r.MustStatus(t, 403)
@@ -296,7 +300,7 @@ func TestComposerChecksAndPreview(t *testing.T) {
 		found[is.ID] = true
 		switch is.ID {
 		case "links.blocklist":
-			if is.Severity != "block" || is.Title != "Button links to go.acme-promo.link, listed on SURBL and Spamhaus DBL" || is.Fixes[0].Label != "Replace with acme.io/sale" || len(is.Path) == 0 {
+			if is.Severity != "block" || is.Title != "Button links to go.acme-promo.link, listed on SURBL and Spamhaus DBL" || len(is.Fixes) != 1 || is.Fixes[0].Kind != "edit_link" || len(is.Path) == 0 {
 				t.Fatalf("blocklist issue: %+v", is)
 			}
 		case "compliance.footer":
@@ -317,13 +321,15 @@ func TestComposerChecksAndPreview(t *testing.T) {
 			}
 		}
 	}
-	// Exactly the ComposerWarnings board's set: two blocks, alt text, size, subject.
-	for _, id := range []string{"links.blocklist", "compliance.footer", "content.alt_text", "content.size", "subject.spam"} {
+	// The ComposerWarnings board's set: two blocks, alt text, size, subject;
+	// and the image ratio, since the composer and Send Readiness share one
+	// threshold (60%, review SR-7) and the sale is 80% image.
+	for _, id := range []string{"links.blocklist", "compliance.footer", "content.alt_text", "content.size", "subject.spam", "content.image_ratio"} {
 		if !found[id] {
 			t.Fatalf("missing %s in %+v", id, checks.Issues)
 		}
 	}
-	if len(found) != 5 {
+	if len(found) != 6 {
 		t.Fatalf("unexpected issues: %+v", checks.Issues)
 	}
 
@@ -361,11 +367,39 @@ func TestComposerChecksAndPreview(t *testing.T) {
 	// Composer context.
 	var ctxOut struct {
 		Senders []struct{ Email string }
-		Lists   []struct{ Name string }
+		Lists   []struct {
+			ID, Name string
+			Count    *int64
+		}
 		Tokens  []struct{ Key, Kind string }
 		Members []struct{ Email string }
 	}
+	// An empty list counts 0, and an erased contact or one who isn't
+	// active doesn't count.
+	ctx := context.Background()
+	w, err := env.App.Q.GetWorkspaceBySlug(ctx, "acme-newsletter")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO lists (id, workspace_id, name) VALUES ($1, $2, 'Nobody yet')`, uuid.Must(uuid.NewV7()), w.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE contacts SET status = 'unsubscribed' WHERE id = (SELECT contact_id FROM list_memberships m JOIN lists l ON l.id = m.list_id WHERE l.workspace_id = $1 AND l.name = 'Weekly Digest' AND m.status = 'subscribed' LIMIT 1)`, w.ID); err != nil {
+		t.Fatal(err)
+	}
 	c.Do("GET", ws+"/composer", nil).MustStatus(t, 200).JSON(t, &ctxOut)
+	// Each list's count is its subscribed, active contacts, as counting
+	// the list on its own does.
+	for _, l := range ctxOut.Lists {
+		var want int64
+		if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM list_memberships m JOIN contacts c ON c.id = m.contact_id
+			WHERE m.list_id = $1 AND m.status = 'subscribed' AND c.status = 'active' AND c.erased_at IS NULL`, l.ID).Scan(&want); err != nil {
+			t.Fatal(err)
+		}
+		if l.Count == nil || *l.Count != want || (l.Name == "Nobody yet" && want != 0) {
+			t.Fatalf("list %s: %v, want %d", l.Name, l.Count, want)
+		}
+	}
 	// Other seeders add senders and lists too: assert the ones the composer demo needs.
 	has := func(want string, got []string) bool {
 		for _, g := range got {

@@ -9,14 +9,14 @@ import { Loading, Skeleton } from '@/components/ui/Feedback'
 import { Input } from '@/components/ui/Field'
 import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
-import { T, useT } from '@/i18n'
+import { useT } from '@/i18n'
 import { count, dayMonthDate } from '@/lib/format'
 import { deniedReason, useCan, useWorkspace } from '@/lib/session'
 import { RewardEditor } from './RewardEditor'
 import { m } from './messages'
 import { mm } from './milestones.messages'
 import { mr } from './referrals.messages'
-import { GROW, GrowPage, LoadError, ProgramNav, ReadOnlyNote, fileKind, fileSize, mono, orNames, useGrowRefresh, useReferralPrograms } from './shared'
+import { GROW, GrowPage, LoadError, ProgramNav, ReadOnlyNote, fileKind, fileSize, orNames, useGrowRefresh, useReferralPrograms } from './shared'
 
 export type MilestoneList = Schemas['ReferralMilestoneList']
 export type Milestone = Schemas['ReferralMilestoneView']
@@ -57,7 +57,7 @@ export function MilestonesPage({ search, onSearch }: { search: MilestonesSearch;
           <>
             {canEdit ? null : (
               <ReadOnlyNote>
-                <T msg={d.helpers.edit.length ? mm.readOnlyText : mm.readOnlyTextNoHelpers} values={{ helpers: orNames(d.helpers.edit), mono }} />
+                {t(d.helpers.edit.length ? mm.readOnlyText : mm.readOnlyTextNoHelpers, { helpers: orNames(d.helpers.edit) })}
               </ReadOnlyNote>
             )}
             <MilestonesTable d={d} onEdit={(id) => onSearch({ ...search, edit: id })} />
@@ -461,7 +461,7 @@ function FulfillCard({ d }: { d: MilestoneList }) {
             <span className="k">{t(mm.fulfillFoot)}</span>
             <span className="flex items-center gap-2.5">
               <span className="k">
-                <T msg={mm.exportNeeds} values={{ mono }} />
+                {t(mm.exportNeeds)}
               </span>
               <Button size="sm" icon="download" disabledReason={canExport ? undefined : deniedReason('subscribers:export')} onClick={() => void exportCsv()}>
                 {t(mm.exportCsv)}

@@ -1,0 +1,17 @@
+<mjml>
+  <mj-body width="600px">
+    <mj-section padding="16px 24px">
+      <mj-column>
+        <mj-text>Before the raw block.</mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-raw><p style="margin:0;padding:12px 24px;font-family:Georgia,serif">A paragraph pasted as raw HTML, with a <a href="https://acme.io/raw">link</a>.</p></mj-raw>
+    <mj-raw><!--[if mso]><p>Only Outlook sees this.</p><![endif]--><p>Everyone sees this.</p></mj-raw>
+    <mj-section padding="16px 24px">
+      <mj-column>
+        <mj-raw><table role="presentation"><tr><td>A raw table in a column</td></tr></table></mj-raw>
+        <mj-text>After the raw blocks.</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

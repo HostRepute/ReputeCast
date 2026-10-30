@@ -112,8 +112,8 @@ export function ConnectCard({
             </Button>
             <span className="k">
               {can
-                ? t(m.permHave, { perm: 'integrations:hostrepute', role: roleName({ key: me.workspace.roleKey, name: me.workspace.roleName }) })
-                : t(m.permAsk, { perm: 'integrations:hostrepute' })}
+                ? t(m.permHave, { role: roleName({ key: me.workspace.roleKey, name: me.workspace.roleName }) })
+                : t(m.permAsk)}
             </span>
           </div>
         )}

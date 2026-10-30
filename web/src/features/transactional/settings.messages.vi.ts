@@ -34,7 +34,7 @@ export default translate(mg, {
   medianUnit: 'giây',
   medianLabel: 'Giới hạn thời gian gửi trung vị',
   noAutoPause:
-    'Thư giao dịch không có cơ chế tự tạm dừng: thư đặt lại mật khẩu phải luôn được gửi. Cảnh báo đến các thành viên có quyền {permission}, trong ứng dụng và qua email, theo <link>tùy chọn thông báo</link> của họ.',
+    'Thư giao dịch không có cơ chế tự tạm dừng: thư đặt lại mật khẩu phải luôn được gửi. Cảnh báo đến các thành viên có thể xem thư giao dịch, trong ứng dụng và qua email, theo <link>tùy chọn thông báo</link> của họ.',
   defaultsTitle: 'Mặc định cho mẫu mới',
   sender: 'Người gửi',
   defaultSender: 'Người gửi mặc định',
@@ -65,7 +65,7 @@ export default translate(mg, {
   changeOpens: '{to, select, on {Đã bật theo dõi lượt mở} other {Đã tắt theo dõi lượt mở}}',
   changeClicks: '{to, select, on {Đã bật theo dõi lượt nhấp} other {Đã tắt theo dõi lượt nhấp}}',
   changeMany: '{count} thay đổi',
-  readOnly: 'Thay đổi các cài đặt này cần quyền {permission}.',
+  readOnly: 'Vai trò của bạn không thể thay đổi các cài đặt này.',
   // Category dialog
   addTitle: 'Thêm danh mục',
   editTitle: 'Sửa {name}',

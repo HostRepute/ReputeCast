@@ -184,7 +184,7 @@ function SettingsBody({ data }: { data: Settings }) {
   const month = monthName(data.monthStart)
   return (
     <>
-      {reason ? <ReadOnlyNote msg={mp.readOnlyText} perm="providers:manage" helpers={data.helpers} /> : null}
+      {reason ? <ReadOnlyNote msg={mp.readOnlyText} helpers={data.helpers} /> : null}
       <section className="card flex flex-wrap" aria-label={t(mp.connectedProviders)}>
         {data.providers.length === 0 ? (
           <div className="flex-[1_1_100%] px-5 py-4.5 text-ink-2">{t(mp.noneConnected)}</div>

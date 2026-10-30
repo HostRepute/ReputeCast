@@ -273,7 +273,7 @@ function TurnOnForm({ overview, onStarted }: { overview: Overview; onStarted: ()
   if (!canManage) {
     return (
       <div className="ws-main" style={{ maxWidth: 880, margin: '0 auto', width: '100%' }}>
-        <ReadOnlyNote msg={m.readOnlyTurnOn} helpers={overview.helpers.manage} perms={{ perm: 'website:manage' }} />
+        <ReadOnlyNote msg={m.readOnlyTurnOn} helpers={overview.helpers.manage} />
         <section className="card ws-ton" aria-labelledby="ws-ton-h">
           <h2 className="t" id="ws-ton-h" style={{ fontSize: 16 }}>
             {t(m.turnOnTitle)}
@@ -293,7 +293,7 @@ function TurnOnForm({ overview, onStarted }: { overview: Overview; onStarted: ()
               {t(m.turnOn)}
             </Button>
             <span className="k">
-              <T msg={m.needsManage} values={{ perm: <code className="mono">{'website:manage'}</code> }} />
+              {t(m.needsManage)}
             </span>
           </div>
         </section>

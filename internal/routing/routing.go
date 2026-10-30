@@ -9,13 +9,15 @@
 package routing
 
 import (
-	"crypto/sha256"
 	"encoding/binary"
+	"hash/fnv"
+	"math"
 	"slices"
 	"strings"
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/providers"
 )
 
@@ -230,38 +232,113 @@ func match(c Conditions, r Recipient, mbp string) (field, value string, ok bool)
 	return field, value, true
 }
 
-// pick chooses a provider from a weighted split. The bucket comes from a
-// hash of the address, so a recipient always lands on the same provider
-// (important while a provider warms up) and the split is exact over many
-// recipients.
+// pick chooses a provider from a weighted split with weighted rendezvous
+// (highest random weight) hashing: each provider of the split scores the
+// address with a hash of the address and the provider's id, scaled by its
+// weight, and the highest score wins. So:
+//
+//   - the order of the split doesn't matter: reordering it moves nobody;
+//   - a recipient always lands on the same provider while the split stays
+//     (important while a provider warms up);
+//   - raising one provider's weight only moves recipients to it, about the
+//     difference, and nobody else changes provider;
+//   - each provider gets its weight's share of recipients.
+//
+// The bucket (0–99) is only reported for a split of two providers, where it
+// is exact: the first provider of the split as given owns buckets below its
+// weight, the second the rest. It is -1 otherwise.
 func pick(splits []Split, email string) (uuid.UUID, int, bool) {
 	if len(splits) == 1 {
 		return splits[0].ProviderID, 0, false
 	}
-	total := 0
-	for _, s := range splits {
-		total += max(s.Weight, 0)
+	if len(splits) == 0 {
+		return uuid.Nil, -1, false
 	}
-	b := Bucket(email)
-	if total <= 0 {
-		return splits[0].ProviderID, b, true
-	}
-	// Scale the bucket to the total weight (weights normally sum to 100).
-	at := b * total / 100
-	acc := 0
+	h := addressHash(email)
+	live := 0
 	for _, s := range splits {
-		acc += max(s.Weight, 0)
-		if at < acc {
-			return s.ProviderID, b, true
+		if s.Weight > 0 {
+			live++
 		}
 	}
-	return splits[len(splits)-1].ProviderID, b, true
+	var best uuid.UUID
+	bestScore := -1.0
+	for _, s := range splits {
+		w := float64(s.Weight)
+		if live == 0 {
+			w = 1 // no weights at all: an even split, still order-independent
+		}
+		if w <= 0 {
+			continue
+		}
+		score := w / -math.Log(unit(h, s.ProviderID))
+		if score > bestScore || (score == bestScore && s.ProviderID.String() < best.String()) {
+			best, bestScore = s.ProviderID, score
+		}
+	}
+	return best, pairBucket(splits, h, best), true
+}
+
+// pairBucket is the bucket of the address in a split of two providers with
+// positive weights, consistent with the winner: with first and second in
+// the split's order, the first wins exactly when the bucket is below its
+// share of 100. -1 for any other split.
+func pairBucket(splits []Split, h uint64, winner uuid.UUID) int {
+	var pair []Split
+	for _, s := range splits {
+		if s.Weight > 0 {
+			pair = append(pair, s)
+		}
+	}
+	if len(pair) != 2 {
+		return -1
+	}
+	a := -math.Log(unit(h, pair[0].ProviderID))
+	b := -math.Log(unit(h, pair[1].ProviderID))
+	bucket := min(max(int(math.Floor(100*a/(a+b))), 0), 99)
+	// The first owns buckets below its share (weights normally sum to 100).
+	edge := int(math.Round(100 * float64(pair[0].Weight) / float64(pair[0].Weight+pair[1].Weight)))
+	switch {
+	case winner == pair[0].ProviderID && bucket >= edge:
+		bucket = max(edge-1, 0)
+	case winner == pair[1].ProviderID && bucket < edge:
+		bucket = min(edge, 99)
+	}
+	return bucket
+}
+
+// addressHash is the 64-bit hash of a normalized address: FNV-1a, then
+// splitmix64's finalizer so that every input bit moves every output bit.
+// It only spreads addresses over buckets and providers: it must be stable
+// across runs and machines and quick for every recipient of a send, and
+// needn't be cryptographic.
+func addressHash(email string) uint64 {
+	h := fnv.New64a()
+	_, _ = h.Write([]byte(strings.ToLower(strings.TrimSpace(email))))
+	return mix64(h.Sum64())
+}
+
+// unit maps an address hash and a provider to (0, 1): the provider's draw
+// for that address, independent from the other providers' draws.
+func unit(h uint64, provider uuid.UUID) float64 {
+	x := mix64(h ^ binary.BigEndian.Uint64(provider[:8]))
+	x = mix64(x ^ binary.BigEndian.Uint64(provider[8:]))
+	return (float64(x>>11) + 0.5) / (1 << 53)
+}
+
+// mix64 is splitmix64's finalizer: every input bit changes every output bit.
+func mix64(x uint64) uint64 {
+	x ^= x >> 30
+	x *= 0xbf58476d1ce4e5b9
+	x ^= x >> 27
+	x *= 0x94d049bb133111eb
+	x ^= x >> 31
+	return x
 }
 
 // Bucket maps an address to 0–99, stable across runs and machines.
 func Bucket(email string) int {
-	sum := sha256.Sum256([]byte(strings.ToLower(strings.TrimSpace(email))))
-	return int(binary.BigEndian.Uint64(sum[:8]) % 100)
+	return int(addressHash(email) % 100)
 }
 
 // Mailbox providers.
@@ -276,26 +353,15 @@ const (
 // MailboxProviders in display order.
 var MailboxProviders = []string{Gmail, Outlook, Yahoo, ICloud, Other}
 
-// MailboxProvider guesses the mailbox provider from an address's domain.
-// Contacts carry a better answer (MX-based) when they exist.
+// MailboxProvider guesses the mailbox provider from an address's domain
+// name. Contacts carry a better answer (internal/mailbox classifies company
+// domains from their MX records); use it when there is one.
 func MailboxProvider(email string) string {
 	d := strings.ToLower(email)
 	if i := strings.LastIndexByte(d, '@'); i >= 0 {
 		d = d[i+1:]
 	}
-	switch {
-	case d == "gmail.com" || d == "googlemail.com":
-		return Gmail
-	case d == "outlook.com" || d == "hotmail.com" || d == "live.com" || d == "msn.com" ||
-		strings.HasPrefix(d, "outlook.") || strings.HasPrefix(d, "hotmail.") || strings.HasPrefix(d, "live."):
-		return Outlook
-	case d == "yahoo.com" || d == "ymail.com" || d == "aol.com" || d == "rocketmail.com" ||
-		strings.HasPrefix(d, "yahoo.") || strings.HasPrefix(d, "aol."):
-		return Yahoo
-	case d == "icloud.com" || d == "me.com" || d == "mac.com":
-		return ICloud
-	}
-	return Other
+	return emailaddr.MailboxProvider(d)
 }
 
 // MailboxName is the display name of a mailbox provider.

@@ -142,7 +142,12 @@ export function ScoreRing({
   )
 }
 
-/** A responsive line for small trends; values are drawn left to right. */
+/**
+ * A line for small trends; values are drawn left to right. It stretches to
+ * its box, or with `width` is drawn to scale at that size (a stat tile's
+ * trend, review AN-11); `last` marks the latest value with a dot of that
+ * colour.
+ */
 export function Sparkline({
   values,
   height = 120,
@@ -150,6 +155,9 @@ export function Sparkline({
   label,
   baseline = true,
   strokeWidth = 2.5,
+  width,
+  last,
+  className,
 }: {
   values: number[]
   height?: number
@@ -157,23 +165,45 @@ export function Sparkline({
   label: string
   baseline?: boolean
   strokeWidth?: number
+  width?: number
+  last?: string
+  className?: string
 }) {
-  const w = 600
+  const w = width ?? 600
   const pad = 2
+  // The dot stays inside the box.
+  const r = last ? 3 : 0
   const min = Math.min(...values)
   const max = Math.max(...values)
   const span = max - min || 1
-  const top = height * 0.18
-  const bottom = height - height * 0.2
-  const pts = values.map((v, i) => {
-    const x = values.length === 1 ? w / 2 : (i / (values.length - 1)) * w
-    const y = bottom - ((v - min) / span) * (bottom - top)
-    return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)} ${Math.max(pad, y).toFixed(1)}`
-  })
+  const top = Math.max(height * 0.18, r + 1)
+  const bottom = Math.min(height - height * 0.2, height - r - 1)
+  const at = values.map((v, i) => ({
+    x: values.length === 1 ? w / 2 : r + (i / (values.length - 1)) * (w - 2 * r),
+    y: Math.max(pad, bottom - ((v - min) / span) * (bottom - top)),
+  }))
+  const end = at[at.length - 1]
   return (
-    <svg viewBox={`0 0 ${w} ${height}`} width="100%" height={height} preserveAspectRatio="none" role="img" aria-label={label}>
-      <path d={pts.join(' ')} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+    <svg
+      viewBox={`0 0 ${w} ${height}`}
+      width={width ?? '100%'}
+      height={height}
+      preserveAspectRatio={width ? undefined : 'none'}
+      role="img"
+      aria-label={label}
+      className={className}
+    >
+      <path
+        d={at.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')}
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+      />
       {baseline ? <line x1="0" y1={height - 2} x2={w} y2={height - 2} stroke="#E3E6EB" strokeWidth="1" vectorEffect="non-scaling-stroke" /> : null}
+      {last && end ? <circle cx={end.x.toFixed(1)} cy={end.y.toFixed(1)} r={r} fill={last} stroke="#FFFFFF" strokeWidth="1.5" /> : null}
     </svg>
   )
 }

@@ -43,6 +43,7 @@
   "detail.languageChanged": "{language}: {fields}",
   "detail.languageUnchanged": "{language}: không thay đổi",
   "detail.count": "{n} trên {total}",
+  "detail.reportShared": "Liên kết chỉ xem đến {campaign}",
   "detail.draft": "bản nháp",
   "detail.textDraft": "bản nháp tin nhắn",
   "detail.pushDraft": "bản nháp thông báo đẩy",

@@ -1,12 +1,12 @@
 package engine
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"hash/fnv"
-	"math/rand/v2"
 	"slices"
 	"strings"
 	"time"
@@ -22,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
+	"github.com/hostrepute/reputecast/internal/retryaudience"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -43,9 +44,26 @@ type audienceDef struct {
 	// whose Broadcasts the policy stopped receive it anyway (Review & send),
 	// unless the sunset tier is excluded.
 	IncludeSunset bool
+	// IncludeUnengaged includes (true) or leaves out (false) the unengaged
+	// contacts (the sunset tier); unset, the default applies (SR-11, C2).
+	IncludeUnengaged *bool
 	// Paid keeps only the paid members of the lists (at a tier and above)
 	// or only the free subscribers: a paid-only campaign (Earn).
 	Paid paidaccess.Audience
+}
+
+// leaveOutUnengaged excludes the sunset tier when the unengaged contacts
+// are left out: as the campaign says, else by default (byDefault) unless
+// it overrides the sunset policy. Send Readiness counts the same contacts
+// (SR-11, C2: the one filter).
+func (d *audienceDef) leaveOutUnengaged(byDefault bool) {
+	out := byDefault && !d.IncludeSunset
+	if d.IncludeUnengaged != nil {
+		out = !*d.IncludeUnengaged
+	}
+	if out && !slices.Contains(d.ExcludeTiers, "sunset") {
+		d.ExcludeTiers = append(d.ExcludeTiers, "sunset")
+	}
 }
 
 // sendsToStopped reports whether contacts the sunset policy stopped receive
@@ -56,16 +74,18 @@ func (d audienceDef) sendsToStopped() bool {
 
 func parseAudience(raw json.RawMessage) audienceDef {
 	var in struct {
-		Lists            []string `json:"lists"`
-		Segments         []string `json:"segments"`
-		ExcludeLists     []string `json:"excludeLists"`
-		ExcludeLists2    []string `json:"exclude_lists"`
-		ExcludeSegments  []string `json:"excludeSegments"`
-		ExcludeSegments2 []string `json:"exclude_segments"`
-		ExcludeTiers     []string `json:"excludeTiers"`
-		ExcludeTiers2    []string `json:"exclude_tiers"`
-		IncludeSunset    bool     `json:"include_sunset"`
-		IncludeSunset2   bool     `json:"includeSunset"`
+		Lists             []string `json:"lists"`
+		Segments          []string `json:"segments"`
+		ExcludeLists      []string `json:"excludeLists"`
+		ExcludeLists2     []string `json:"exclude_lists"`
+		ExcludeSegments   []string `json:"excludeSegments"`
+		ExcludeSegments2  []string `json:"exclude_segments"`
+		ExcludeTiers      []string `json:"excludeTiers"`
+		ExcludeTiers2     []string `json:"exclude_tiers"`
+		IncludeSunset     bool     `json:"include_sunset"`
+		IncludeSunset2    bool     `json:"includeSunset"`
+		IncludeUnengaged  *bool    `json:"include_unengaged"`
+		IncludeUnengaged2 *bool    `json:"includeUnengaged"`
 	}
 	_ = json.Unmarshal(raw, &in)
 	ids := func(parts ...[]string) []uuid.UUID {
@@ -82,7 +102,7 @@ func parseAudience(raw json.RawMessage) audienceDef {
 	tiers := append(append([]string{}, in.ExcludeTiers...), in.ExcludeTiers2...)
 	return audienceDef{Lists: ids(in.Lists), Segments: ids(in.Segments), ExcludeLists: ids(in.ExcludeLists, in.ExcludeLists2),
 		ExcludeSegments: ids(in.ExcludeSegments, in.ExcludeSegments2), ExcludeTiers: tiers, IncludeSunset: in.IncludeSunset || in.IncludeSunset2,
-		Paid: paidaccess.Parse(raw)}
+		IncludeUnengaged: cmp.Or(in.IncludeUnengaged, in.IncludeUnengaged2), Paid: paidaccess.Parse(raw)}
 }
 
 // Excluded counts the contacts of the audience who don't receive the send.
@@ -128,6 +148,10 @@ type abTest struct {
 	Metric        string      `json:"metric"`
 	DurationHours int         `json:"duration_hours"`
 	Winner        string      `json:"winner"`
+	// The decision rule (ab.go, contract C14): the fewest recipients per
+	// variant and the confidence a winner needs (500 and 0.95 when unset).
+	MinSample  int64   `json:"min_sample,omitempty"`
+	Confidence float64 `json:"confidence,omitempty"`
 }
 
 type abVariant struct {
@@ -154,6 +178,11 @@ type abState struct {
 	Rates map[string]float64 `json:"rates,omitempty"`
 	// Window overrides the test duration, in seconds (demo sends).
 	Window int64 `json:"window,omitempty"`
+	// Rule, Default and Decision are the test's decision rule, its default
+	// variant and what it was decided on (ab.go).
+	Rule     abRule      `json:"rule,omitzero"`
+	Default  string      `json:"default,omitempty"`
+	Decision *abDecision `json:"decision,omitempty"`
 }
 
 func parseAB(raw json.RawMessage) abState {
@@ -198,11 +227,24 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 		return nil
 	}
 	def := parseAudience(cc.Audience)
+	// The workspace's default for the unengaged (Settings › Sending rules).
+	byDefault := true
+	if d, err := e.Q.SendDefaults(ctx, cc.WorkspaceID); err == nil {
+		byDefault = d.ExcludeUnengaged
+	}
+	def.leaveOutUnengaged(byDefault)
 	if len(def.Lists) == 0 && len(def.Segments) == 0 {
 		return e.fail(ctx, cc, english("fail.noAudience", nil), now)
 	}
 	if cc.SenderEmail == "" {
 		return e.fail(ctx, cc, english("fail.noSender", nil), now)
+	}
+	// Company domains go out as their mailbox provider (Google Workspace
+	// as Gmail…), so routing, throttles and the guard see them right.
+	if e.Mailbox != nil {
+		if _, err := e.Mailbox.ClassifyPending(ctx, cc.WorkspaceID, classifyBudget); err != nil && e.Log != nil {
+			e.Log.WarnContext(ctx, "mailbox classification before the send", "campaign", campaignID, "err", err)
+		}
 	}
 	set, err := routing.Load(ctx, e.Q, cc.WorkspaceID)
 	if err != nil {
@@ -249,7 +291,8 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 		}
 	}
 	r := &router{e: e, set: set, byID: byID, loc: loc, now: now, override: routeOverride(cc.RouteOverride),
-		senderDomain: domainOf(cc.SenderEmail), rates: map[uuid.UUID]providerRate{}, planned: map[uuid.UUID]int64{}}
+		senderDomain: domainOf(cc.SenderEmail), sender: senderVerification(ctx, e.Q, cc.WorkspaceID, cc.SenderID),
+		rates: map[uuid.UUID]providerRate{}, planned: map[uuid.UUID]int64{}}
 	excluded := Excluded{}
 	_ = json.Unmarshal(snd.Excluded, &excluded)
 	cursor := uuid.Nil
@@ -263,13 +306,22 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 	if err != nil {
 		return err
 	}
-	sendAt := sendTimes(ab, loc, now)
+	// A send-time test's variants go out at their time of day in each
+	// recipient's own time zone (ab.go).
+	sendAt := newSendTimes(ab, loc, now)
 	var sc schedule
 	_ = json.Unmarshal(cc.Schedule, &sc)
 	bestTime := sc.Mode == "best_time"
 	// A paid-only campaign: who has paid access is read once, as the build
 	// starts (or continues); contacts it leaves out aren't recipients.
 	keep, err := paidaccess.Load(ctx, e.Q, cc.WorkspaceID, def.Paid)
+	if err != nil {
+		return err
+	}
+	// A retry goes only to its issue's addresses that were blocked for the
+	// sender's reputation, once (review AN-7); its own messages so far
+	// don't count, so a build that continues keeps them.
+	retry, err := retryaudience.Load(ctx, e.Q, cc.WorkspaceID, cc.Audience, campaignID)
 	if err != nil {
 		return err
 	}
@@ -308,7 +360,7 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			}
 		}
 		for _, c := range rows {
-			if !keep.Keeps(c.ID) {
+			if !keep.Keeps(c.ID) || !retry.Keeps(c.ID) {
 				continue
 			}
 			if why := eligibility(c, def, dups[c.ID]); why != "" {
@@ -317,14 +369,14 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			}
 			mbp := c.MailboxProvider
 			if mbp == "" {
-				mbp = routing.MailboxProvider(c.Email)
+				mbp = e.mailboxFor(ctx, c.Email)
 			}
 			rt, err := r.route(ctx, c, mbp)
 			if err != nil {
 				return e.fail(ctx, cc, err.Error(), now)
 			}
 			pid := rt.provider
-			variant, status, next := assignVariant(ab, c.ID, sendAt)
+			variant, status, next := assignVariant(ab, c.ID, sendAt.in(c.Timezone))
 			if h, ok := hours[c.ID]; ok && next == nil {
 				// Best time: the hour the contact usually opens at, within
 				// 24 hours; contacts who never opened go at the start.
@@ -333,8 +385,9 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 				}
 			}
 			// A random send order: the first minutes of the send are a fair
-			// sample of the audience (migration 00652).
-			order := rand.Int32() //nolint:gosec // an order, not a secret
+			// sample of the audience (migration 00652); a warming provider's
+			// share goes most engaged first (warmup_send.go).
+			order := r.sendOrder(ctx, pid, c.Tier)
 			ml := content.pick(chooser, multilingual, c.Language)
 			msgs = append(msgs, []any{newID(), cc.WorkspaceID, "broadcast", &campaignID, &c.ID, c.Email, variant, &pid, mbp, status, now, next, rt.note, rt.failover, order,
 				ml.Language, ml.Contact, ml.Reason, hidden[c.ID]})
@@ -464,28 +517,13 @@ func (e *Engine) finishPrepare(ctx context.Context, cc store.SendingCampaignCont
 	if err != nil {
 		return err
 	}
-	st := parseAB(snd.Ab)
-	if ab != nil && ab.TestPercent > 0 && ab.TestPercent < 100 && len(ab.Variants) >= 2 && ab.Winner == "" {
-		st.Kind, st.Metric, st.TestPercent, st.Phase = ab.Kind, ab.Metric, ab.TestPercent, "testing"
-		if st.Metric == "" {
-			st.Metric = "human_opens"
-		}
-		st.Variants = st.Variants[:0]
-		for _, v := range ab.Variants {
-			st.Variants = append(st.Variants, v.Key)
-		}
-		window := time.Duration(max(ab.DurationHours, 1)) * time.Hour
-		if st.Window > 0 {
-			window = time.Duration(st.Window) * time.Second
-		}
-		if st.Metric != "manual" {
-			at := now.Add(window)
-			st.DecideAt = &at
-		}
-	} else if ab != nil && ab.Winner != "" {
-		st.Kind, st.Phase, st.Winner = ab.Kind, "decided", ab.Winner
+	// The A/B test's rule, default and decision time (ab.go).
+	st, err := e.abStart(ctx, cc, ab, parseAB(snd.Ab), now)
+	if err != nil {
+		return err
 	}
 	abb, _ := json.Marshal(st)
+	canary := false
 	err = db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.SendingFinishPrepare(ctx, store.SendingFinishPrepareParams{CampaignID: cc.ID, Ab: abb, At: now}); err != nil {
@@ -499,10 +537,17 @@ func (e *Engine) finishPrepare(ctx context.Context, cc store.SendingCampaignCont
 		if err := q.SendingSetAudienceCount(ctx, store.SendingSetAudienceCountParams{ID: cc.ID, N: &n}); err != nil {
 			return err
 		}
+		// The canary (review GS-10): the most engaged go first.
+		if canary, err = e.startCanary(ctx, q, cc, s, now); err != nil {
+			return err
+		}
 		return q.SendingStageClear(ctx, cc.ID)
 	})
 	if err != nil {
 		return err
+	}
+	if canary {
+		e.startSeeds(ctx, cc.WorkspaceID, cc.ID)
 	}
 	e.kick(ctx, cc.ID)
 	return nil
@@ -716,27 +761,6 @@ func nextAtHour(now time.Time, hour int) time.Time {
 	return t
 }
 
-// sendTimes are the local send times of a send-time test's variants.
-func sendTimes(ab *abTest, loc *time.Location, now time.Time) map[string]*time.Time {
-	out := map[string]*time.Time{}
-	if ab == nil || ab.Kind != "send_time" {
-		return out
-	}
-	local := now.In(loc)
-	for _, v := range ab.Variants {
-		var h, m int
-		if _, err := fmt.Sscanf(v.SendTime, "%d:%d", &h, &m); err != nil {
-			continue
-		}
-		t := time.Date(local.Year(), local.Month(), local.Day(), h, m, 0, 0, loc)
-		if t.Before(now) {
-			t = t.AddDate(0, 0, 1)
-		}
-		out[v.Key] = &t
-	}
-	return out
-}
-
 // snapshotContent captures what the send renders.
 func (e *Engine) snapshotContent(cc store.SendingCampaignContextRow, ab *abTest) (sendContent, error) {
 	tr := Tracking{Opens: true, Clicks: true}
@@ -828,8 +852,10 @@ type router struct {
 	now          time.Time
 	override     *uuid.UUID
 	senderDomain string
-	rates        map[uuid.UUID]providerRate
-	planned      map[uuid.UUID]int64
+	// sender is the campaign sender's verification per provider.
+	sender  map[string]string
+	rates   map[uuid.UUID]providerRate
+	planned map[uuid.UUID]int64
 }
 
 func (r *router) rate(ctx context.Context, p store.Provider) providerRate {
@@ -839,6 +865,16 @@ func (r *router) rate(ctx context.Context, p store.Provider) providerRate {
 	pr := r.e.rateOf(ctx, r.e.Q, p, r.loc, r.now)
 	r.rates[p.ID] = pr
 	return pr
+}
+
+// vet checks whether a fallback can take one more recipient on top of what
+// this build already gave it.
+func (r *router) vet(ctx context.Context, p store.Provider) state.Vetting {
+	load := state.Load{Broadcast: true, Messages: r.planned[p.ID] + 1, Sender: r.sender}
+	if pr := r.rate(ctx, p); pr.WarmingUp {
+		load.Warmup = &state.WarmupToday{Cap: pr.Cap, Sent: pr.SentToday, Paused: pr.Paused}
+	}
+	return state.Vet(p, load)
 }
 
 // routed is where one recipient goes and why (messages.route_note, shown on
@@ -891,7 +927,10 @@ func (r *router) route(ctx context.Context, c store.SendingAudiencePageRow, mbp 
 	if pr.WarmingUp {
 		allowed := len(pr.Tiers) == 0 || slices.Contains(pr.Tiers, c.Tier)
 		capLeft := pr.Cap <= 0 || pr.SentToday+r.planned[pid] < pr.Cap
-		if !allowed || !capLeft || pr.Paused {
+		// Over today's cap goes to a warm provider only when the plan
+		// allows overflow; otherwise it waits on the warming provider and
+		// the send loop holds it at the cap with choices (PR-8).
+		if !allowed || (!capLeft && pr.Overflow) || pr.Paused {
 			if alt, ok := r.warmAlternative(ctx, d.Rule, pid); ok {
 				ap := r.byID[alt]
 				why := "cap"
@@ -909,10 +948,11 @@ func (r *router) route(ctx context.Context, c store.SendingAudiencePageRow, mbp 
 	if cur := r.byID[out.provider]; !state.Available(cur) {
 		target, hold := routing.Failover(r.set.Policy(providers.StreamBroadcast), d.Fallback, func(id uuid.UUID) routing.ProviderState {
 			fp, ok := r.byID[id]
-			if !ok {
+			if !ok || id == cur.ID {
 				return routing.ProviderState{}
 			}
-			return routing.ProviderState{Available: state.Available(fp), WarmingUp: r.rate(ctx, fp).WarmingUp}
+			v := r.vet(ctx, fp)
+			return routing.ProviderState{Available: v.Automatic(true), WarmingUp: v.Warming()}
 		})
 		if !hold && target != nil && r.set.Policy(providers.StreamBroadcast) != routing.PauseAndAsk {
 			fb := r.byID[*target]
@@ -964,6 +1004,12 @@ func routeOverride(raw json.RawMessage) *uuid.UUID {
 	var o struct {
 		ProviderID string `json:"provider_id"`
 		Provider   string `json:"providerId"`
+		// Splits is how Send Readiness's "Send via SES only" stores it
+		// (readiness.RouteOverride): the split that carries the send.
+		Splits []struct {
+			ProviderID string `json:"provider_id"`
+			Weight     int    `json:"weight"`
+		} `json:"splits"`
 	}
 	if len(raw) == 0 || json.Unmarshal(raw, &o) != nil {
 		return nil
@@ -973,7 +1019,14 @@ func routeOverride(raw json.RawMessage) *uuid.UUID {
 			return &id
 		}
 	}
-	return nil
+	var best *uuid.UUID
+	weight := 0
+	for _, sp := range o.Splits {
+		if id, err := uuid.Parse(sp.ProviderID); err == nil && sp.Weight > weight {
+			best, weight = &id, sp.Weight
+		}
+	}
+	return best
 }
 
 func domainOf(email string) string {

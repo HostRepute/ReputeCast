@@ -175,11 +175,25 @@ func TestThumbAndChanges(t *testing.T) {
 	if len(th) != 4 || th[0].H != 10 || th[0].W != 40 || len(th[2].Row) != 2 {
 		t.Fatalf("thumb: %+v", th)
 	}
-	// Header, hero, cards, text and footer need 112 px: the footer's bar
-	// would be cut off, so it is left out.
+	// The header and the footer frame the miniature email; the parts between
+	// them share the height and stop at the first that doesn't fit.
 	long := strings.Replace(doc, "<mj-section><mj-column><mj-divider/></mj-column></mj-section>", "<mj-section><mj-column><mj-text>Retiring the v1 API</mj-text></mj-column></mj-section>", 1)
-	if th := Thumb(long); len(th) != 4 || th[3].H != 8 || th[3].W != 70 {
+	if th := Thumb(long); len(th) != 5 || th[3].H != 8 || th[3].W != 70 || th[4].Kind != "footer" {
+		t.Fatalf("thumb with text: %+v", th)
+	}
+	tall := strings.Replace(doc, "<mj-section><mj-column><mj-divider/></mj-column></mj-section>", strings.Repeat("<mj-section><mj-column><mj-image src=\"/b.png\"/></mj-column></mj-section>", 3), 1)
+	if th := Thumb(tall); len(th) != 4 || th[2].Row == nil || th[3].Kind != "footer" {
 		t.Fatalf("thumb that overflows: %+v", th)
+	}
+	// The thumbnail is a miniature email: each part says what it stands for.
+	if th[0].Kind != "header" || th[1].Kind != "image" || th[2].Row[0].Kind != "image" || th[len(th)-1].Kind != "footer" {
+		t.Fatalf("thumb kinds: %+v", th)
+	}
+	kinds := Thumb(`<mjml><mj-body><mj-section><mj-column><mj-text font-size="28px">Big news</mj-text></mj-column></mj-section>` +
+		`<mj-section><mj-column><mj-text><h2>Also</h2></mj-text></mj-column></mj-section>` +
+		`<mj-section><mj-column><mj-text>Words</mj-text><mj-button href="https://acme.io">Go</mj-button></mj-column></mj-section></mj-body></mjml>`)
+	if len(kinds) != 4 || kinds[0].Kind != "heading" || kinds[1].Kind != "heading" || kinds[2].Kind != "text" || kinds[3].Kind != "button" || !kinds[3].Accent {
+		t.Fatalf("kinds: %+v", kinds)
 	}
 	changed := strings.Replace(doc, "Hi {{", "Hello {{", 1)
 	if got := ChangedSections(doc, changed); len(got) != 1 || got[0] != "hero" {

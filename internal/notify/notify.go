@@ -21,15 +21,21 @@ const (
 	KindApprovalDecided     = "approval_decided" // approved, rejected, changes requested
 	KindApprovalInvalidated = "approval_invalidated"
 	KindSendPaused          = "send_paused"
-	KindSendBlocked         = "send_blocked" // the send-time recheck turned Blocked
-	KindProviderDown        = "provider_down"
-	KindProviderDegraded    = "provider_degraded"
-	KindWebhooksSilent      = "webhooks_silent"
-	KindInviteAccepted      = "invite_accepted"
-	KindInviteRequested     = "invite_requested" // an invitee asked for a new invitation
-	KindHostReputeAlert     = "hostrepute_alert"
-	KindSendFinished        = "send_finished"
-	KindJobFinished         = "job_finished" // imports, exports
+	// KindComplaintWatch: complaints passed a limit during the watch after a
+	// send (review GS-6); preferences are those of auto-pauses.
+	KindComplaintWatch = "complaint_watch"
+	// KindRenderFailed: the template failed for some recipients of a send
+	// (review CO-4); preferences are those of auto-pauses.
+	KindRenderFailed     = "render_failed"
+	KindSendBlocked      = "send_blocked" // the send-time recheck turned Blocked
+	KindProviderDown     = "provider_down"
+	KindProviderDegraded = "provider_degraded"
+	KindWebhooksSilent   = "webhooks_silent"
+	KindInviteAccepted   = "invite_accepted"
+	KindInviteRequested  = "invite_requested" // an invitee asked for a new invitation
+	KindHostReputeAlert  = "hostrepute_alert"
+	KindSendFinished     = "send_finished"
+	KindJobFinished      = "job_finished" // imports, exports
 	// Integrations hub (design expansion, phase 2).
 	KindIntegrationAttention = "integration_attention" // an integration needs attention
 	KindPostDraftCreated     = "post_draft_created"    // a WordPress post became a campaign draft
@@ -84,6 +90,11 @@ const (
 	KindPushWorkerMissing  = "push_worker_missing" // a push site's service worker is missing or unreachable
 	KindWhatsAppAttention  = "whatsapp_attention"  // a WhatsApp template was rejected, or the number's quality dropped
 	KindWhatsAppTokenFails = "whatsapp_token"      // Meta rejected the WhatsApp access token: sends are held
+	// Comments in the composer (review 2026-10, CO-10).
+	KindCommentMention = "comment_mention" // someone @mentioned the member in a campaign's comments
+	// KindResultsFinal: a campaign report's results are final, for someone
+	// who asked to be emailed then ("Email me when it's final").
+	KindResultsFinal = "results_final"
 )
 
 // Notification is what appears in the notification center.

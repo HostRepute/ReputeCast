@@ -179,8 +179,8 @@ export const m = defineMessages('scoring', {
 
   // Read-only.
   readOnly: 'Read-only',
-  readOnlyAsk: 'You can see every rule, the spread and who is in each band. Editing scoring needs <mono>scoring:edit</mono>. Ask {helpers}.',
-  readOnlyNoAsk: 'You can see every rule, the spread and who is in each band. Editing scoring needs <mono>scoring:edit</mono>.',
+  readOnlyAsk: "You can see every rule, the spread and who is in each band. Your role can't edit scoring rules, decay or bands. Ask {helpers}.",
+  readOnlyNoAsk: "You can see every rule, the spread and who is in each band. Your role can't edit scoring rules, decay or bands.",
 
   // Empty state.
   emptyTitle: 'Score contacts by their interest',

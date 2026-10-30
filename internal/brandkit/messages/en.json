@@ -1,0 +1,19 @@
+{
+  "problem.badColor": "Use a colour like #4338CA.",
+  "problem.badFallback": "Choose one of the email-safe fallback fonts.",
+  "problem.badFontUrl": {"message": "Use the web font's https stylesheet link, with the font's name.", "note": "a web font's CSS link, like https://fonts.googleapis.com/css2?family=Inter"},
+  "problem.badLogo": "That image isn't in this workspace's library. Upload the logo again.",
+  "problem.oneSection": "A synced block is one section: an mj-section or an mj-wrapper.",
+  "problem.compile": {"message": "The block's MJML doesn't compile: {error}", "note": "error: the compiler's own message, in English"},
+  "problem.needsUnsubscribe": "The footer needs the unsubscribe link: every email holding it must have one.",
+  "problem.notSaved": "Save the brand kit first; the synced Header and Footer start from it.",
+  "problem.syncedName": "Give the synced block a name, so people can find it in the blocks panel.",
+  "problem.alreadySynced": "This section is a synced block already, or holds one. Unlink it first to save it as a new one.",
+  "problem.holdsSynced": "A synced block can't hold another synced block.",
+  "problem.keepHeaderFooter": "The synced Header and Footer stay: every brand kit has them. Edit them instead.",
+  "problem.badWebsite": "Enter the website's address, like acme.io.",
+  "problem.unreachable": {"message": "{site} couldn't be read ({reason}). Check the address and try again.", "note": "site: the website's host, acme.io; reason: a short technical reason"},
+  "import.linkContrast": {"message": "{color} isn't used for links. It's {ratio}:1 on white, under the 4.5:1 that small text needs. Links use the next colour on your site.", "note": "color: #6366F1; ratio: a contrast ratio with two decimals, 4.47"},
+  "import.svgLogo": {"message": "The logo on {site} is an SVG, which Gmail and Outlook don't show. Upload a PNG version.", "note": "site: the website's host, acme.io"},
+  "import.logoNotAdded": {"message": "The logo on {site} wasn't added to the media library: only people who edit campaigns can add images. Ask one of them to import it.", "note": "site: the website's host, acme.io"}
+}

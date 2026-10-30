@@ -143,7 +143,7 @@ function Section({ title, aside, children }: { title: string; aside?: ReactNode;
   )
 }
 
-/** "Aisha Bello · Viewer: managing bookings needs sponsors:manage. Ask …" */
+/** "Aisha Bello · Viewer. Your role can’t manage bookings. Ask …" */
 function ReadOnly({ helpers }: { helpers: string[] }) {
   const t = useT()
   const { me: wme } = useWorkspace()
@@ -155,7 +155,7 @@ function ReadOnly({ helpers }: { helpers: string[] }) {
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
         <span className="font-bold">{t(mb.readOnlyTitle, { name: user?.name || user?.email || '', role })}</span>
         <div>
-          <T msg={helpers.length ? mb.readOnlyText : mb.readOnlyNoHelpers} values={{ permission: <span className="mono">{'sponsors:manage'}</span>, helpers: orList(helpers) }} />
+          <T msg={helpers.length ? mb.readOnlyText : mb.readOnlyNoHelpers} values={{ helpers: orList(helpers) }} />
         </div>
       </div>
     </div>
@@ -943,7 +943,7 @@ function ProposalBody({ p, slotPrice, currency }: { p: Proposal; slotPrice: numb
       <div className="note n" role="note">
         <NoteIcon tone="neutral" />
         <div className="min-w-0 flex-[1_1_320px]">
-          <T msg={p.note ? mb.proposalNote : mb.proposalNoteNoNote} values={{ agent: p.agent, when, note: p.note, permission: <span className="mono">{'sponsors:manage'}</span> }} />
+          <T msg={p.note ? mb.proposalNote : mb.proposalNoteNoNote} values={{ agent: p.agent, when, note: p.note }} />
         </div>
       </div>
       <dl className="sp-kv">

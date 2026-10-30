@@ -13,6 +13,61 @@ import (
 	"github.com/google/uuid"
 )
 
+const reportBlockedBounces = `-- name: ReportBlockedBounces :many
+SELECT e.mailbox_provider, e.provider_id, coalesce(p.name, '')::text AS provider_name, coalesce(p.adapter, '')::text AS adapter,
+       coalesce(p.ips, '{}')::text[] AS ips, count(*)::bigint AS n
+FROM delivery_events e
+LEFT JOIN providers p ON p.id = e.provider_id
+WHERE e.campaign_id = $1 AND e.workspace_id = $2 AND e.type IN ('hard_bounce', 'soft_bounce')
+  AND e.bounce_class IN ('policy_block', 'spam_block', 'reputation')
+GROUP BY e.mailbox_provider, e.provider_id, p.name, p.adapter, p.ips
+ORDER BY n DESC
+`
+
+type ReportBlockedBouncesParams struct {
+	CampaignID  *uuid.UUID `json:"campaignId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+}
+
+type ReportBlockedBouncesRow struct {
+	MailboxProvider string     `json:"mailboxProvider"`
+	ProviderID      *uuid.UUID `json:"providerId"`
+	ProviderName    string     `json:"providerName"`
+	Adapter         string     `json:"adapter"`
+	Ips             []string   `json:"ips"`
+	N               int64      `json:"n"`
+}
+
+// A campaign's bounces for the sender's reputation or policy by mailbox
+// provider and sending provider, with the provider's addresses (the
+// report's insights, review AN-15).
+func (q *Queries) ReportBlockedBounces(ctx context.Context, arg ReportBlockedBouncesParams) ([]ReportBlockedBouncesRow, error) {
+	rows, err := q.db.Query(ctx, reportBlockedBounces, arg.CampaignID, arg.WorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportBlockedBouncesRow{}
+	for rows.Next() {
+		var i ReportBlockedBouncesRow
+		if err := rows.Scan(
+			&i.MailboxProvider,
+			&i.ProviderID,
+			&i.ProviderName,
+			&i.Adapter,
+			&i.Ips,
+			&i.N,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const reportBounceCodes = `-- name: ReportBounceCodes :many
 SELECT e.bounce_class, e.type, e.provider_id,
        coalesce(p.name, '')::text AS provider_name, coalesce(p.adapter, '')::text AS adapter,
@@ -182,8 +237,10 @@ func (q *Queries) ReportBounceRecipients(ctx context.Context, arg ReportBounceRe
 const reportCampaign = `-- name: ReportCampaign :one
 
 SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.audience, c.audience_count, c.ab_test, c.schedule,
-       c.html, c.scheduled_at, c.started_at, c.completed_at, c.origin, c.note
+       c.html, c.scheduled_at, c.started_at, c.completed_at, c.origin, c.note,
+       coalesce(s.ab, '{}'::jsonb)::jsonb AS send_ab
 FROM campaigns c
+LEFT JOIN campaign_sends s ON s.campaign_id = c.id
 WHERE c.workspace_id = $1 AND c.id = $2 AND c.deleted_at IS NULL
 `
 
@@ -208,9 +265,11 @@ type ReportCampaignRow struct {
 	CompletedAt   *time.Time      `json:"completedAt"`
 	Origin        string          `json:"origin"`
 	Note          string          `json:"note"`
+	SendAb        json.RawMessage `json:"sendAb"`
 }
 
 // Campaign reports (spec 7.7, 5.5) and read-only report links.
+// send_ab is the send's A/B state (when the test is decided, the decision).
 func (q *Queries) ReportCampaign(ctx context.Context, arg ReportCampaignParams) (ReportCampaignRow, error) {
 	row := q.db.QueryRow(ctx, reportCampaign, arg.WorkspaceID, arg.ID)
 	var i ReportCampaignRow
@@ -230,6 +289,7 @@ func (q *Queries) ReportCampaign(ctx context.Context, arg ReportCampaignParams) 
 		&i.CompletedAt,
 		&i.Origin,
 		&i.Note,
+		&i.SendAb,
 	)
 	return i, err
 }
@@ -238,7 +298,7 @@ const reportCounterCells = `-- name: ReportCounterCells :many
 SELECT cc.provider_id, cc.mailbox_provider, cc.variant,
        coalesce(p.name, '')::text AS provider_name, coalesce(p.adapter, '')::text AS adapter,
        cc.sent, cc.delivered, cc.deferred, cc.hard_bounced, cc.soft_bounced, cc.complained, cc.rejected,
-       cc.opened_human, cc.opened_machine, cc.clicked, cc.unsubscribed
+       cc.opened_human, cc.opened_privacy, cc.opened_machine, cc.clicked, cc.unsubscribed
 FROM campaign_counters cc
 LEFT JOIN providers p ON p.id = cc.provider_id
 WHERE cc.campaign_id = $1
@@ -259,6 +319,7 @@ type ReportCounterCellsRow struct {
 	Complained      int64     `json:"complained"`
 	Rejected        int64     `json:"rejected"`
 	OpenedHuman     int64     `json:"openedHuman"`
+	OpenedPrivacy   int64     `json:"openedPrivacy"`
 	OpenedMachine   int64     `json:"openedMachine"`
 	Clicked         int64     `json:"clicked"`
 	Unsubscribed    int64     `json:"unsubscribed"`
@@ -289,6 +350,7 @@ func (q *Queries) ReportCounterCells(ctx context.Context, campaignID uuid.UUID) 
 			&i.Complained,
 			&i.Rejected,
 			&i.OpenedHuman,
+			&i.OpenedPrivacy,
 			&i.OpenedMachine,
 			&i.Clicked,
 			&i.Unsubscribed,
@@ -303,8 +365,188 @@ func (q *Queries) ReportCounterCells(ctx context.Context, campaignID uuid.UUID) 
 	return items, nil
 }
 
+const reportFinalAlertIs = `-- name: ReportFinalAlertIs :one
+SELECT EXISTS (SELECT 1 FROM report_final_alerts WHERE campaign_id = $1 AND user_id = $2)::boolean AS asked
+`
+
+type ReportFinalAlertIsParams struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	UserID     uuid.UUID `json:"userId"`
+}
+
+func (q *Queries) ReportFinalAlertIs(ctx context.Context, arg ReportFinalAlertIsParams) (bool, error) {
+	row := q.db.QueryRow(ctx, reportFinalAlertIs, arg.CampaignID, arg.UserID)
+	var asked bool
+	err := row.Scan(&asked)
+	return asked, err
+}
+
+const reportFinalAlertRemove = `-- name: ReportFinalAlertRemove :execrows
+DELETE FROM report_final_alerts WHERE campaign_id = $1 AND user_id = $2
+`
+
+type ReportFinalAlertRemoveParams struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	UserID     uuid.UUID `json:"userId"`
+}
+
+func (q *Queries) ReportFinalAlertRemove(ctx context.Context, arg ReportFinalAlertRemoveParams) (int64, error) {
+	result, err := q.db.Exec(ctx, reportFinalAlertRemove, arg.CampaignID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const reportFinalAlertSet = `-- name: ReportFinalAlertSet :exec
+INSERT INTO report_final_alerts (campaign_id, user_id, workspace_id) VALUES ($1, $2, $3)
+ON CONFLICT (campaign_id, user_id) DO NOTHING
+`
+
+type ReportFinalAlertSetParams struct {
+	CampaignID  uuid.UUID `json:"campaignId"`
+	UserID      uuid.UUID `json:"userId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+// Someone asked to be emailed when a report's results are final.
+func (q *Queries) ReportFinalAlertSet(ctx context.Context, arg ReportFinalAlertSetParams) error {
+	_, err := q.db.Exec(ctx, reportFinalAlertSet, arg.CampaignID, arg.UserID, arg.WorkspaceID)
+	return err
+}
+
+const reportFinalAlertsDue = `-- name: ReportFinalAlertsDue :many
+SELECT a.campaign_id, a.user_id, a.workspace_id, c.name AS campaign_name, w.slug AS workspace_slug, c.completed_at
+FROM report_final_alerts a
+JOIN campaigns c ON c.id = a.campaign_id
+JOIN workspaces w ON w.id = a.workspace_id
+WHERE c.completed_at IS NOT NULL AND c.completed_at <= $1::timestamptz
+ORDER BY a.created_at
+LIMIT 500
+`
+
+type ReportFinalAlertsDueRow struct {
+	CampaignID    uuid.UUID  `json:"campaignId"`
+	UserID        uuid.UUID  `json:"userId"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	CampaignName  string     `json:"campaignName"`
+	WorkspaceSlug string     `json:"workspaceSlug"`
+	CompletedAt   *time.Time `json:"completedAt"`
+}
+
+// Requests whose campaign's results became final (72 hours after the send
+// ended), with what the notification says; the oldest first.
+func (q *Queries) ReportFinalAlertsDue(ctx context.Context, finalBefore time.Time) ([]ReportFinalAlertsDueRow, error) {
+	rows, err := q.db.Query(ctx, reportFinalAlertsDue, finalBefore)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportFinalAlertsDueRow{}
+	for rows.Next() {
+		var i ReportFinalAlertsDueRow
+		if err := rows.Scan(
+			&i.CampaignID,
+			&i.UserID,
+			&i.WorkspaceID,
+			&i.CampaignName,
+			&i.WorkspaceSlug,
+			&i.CompletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const reportGrowthJoins = `-- name: ReportGrowthJoins :many
+SELECT g.contact_id, g.page, g.referrer, g.utm_medium, g.utm_campaign
+FROM contact_growth g
+WHERE g.workspace_id = $1 AND g.joined_at >= $2 AND g.source_kind IN ('form', 'subscribe_page')
+  AND (g.referrer LIKE '%/view/%' OR g.page LIKE '%/archive/%' OR g.referrer LIKE '%/archive/%' OR g.page LIKE $3 OR g.referrer LIKE $3
+       OR lower(g.utm_medium) = 'forward')
+ORDER BY g.joined_at
+LIMIT 20000
+`
+
+type ReportGrowthJoinsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+	PostPath    string    `json:"postPath"`
+}
+
+type ReportGrowthJoinsRow struct {
+	ContactID   uuid.UUID `json:"contactId"`
+	Page        string    `json:"page"`
+	Referrer    string    `json:"referrer"`
+	UtmMedium   string    `json:"utmMedium"`
+	UtmCampaign string    `json:"utmCampaign"`
+}
+
+// Contacts who joined since a campaign started through a form or the
+// subscribe page, with their first touch's page, referrer and UTM medium
+// and campaign: the issue's forwards and web-post signups are read from
+// them (review AN-12).
+func (q *Queries) ReportGrowthJoins(ctx context.Context, arg ReportGrowthJoinsParams) ([]ReportGrowthJoinsRow, error) {
+	rows, err := q.db.Query(ctx, reportGrowthJoins, arg.WorkspaceID, arg.Since, arg.PostPath)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportGrowthJoinsRow{}
+	for rows.Next() {
+		var i ReportGrowthJoinsRow
+		if err := rows.Scan(
+			&i.ContactID,
+			&i.Page,
+			&i.Referrer,
+			&i.UtmMedium,
+			&i.UtmCampaign,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const reportGrowthReferrals = `-- name: ReportGrowthReferrals :one
+SELECT count(DISTINCT rf.id)::bigint
+FROM referrals rf
+JOIN messages m ON m.contact_id = rf.referrer_id AND m.campaign_id = $1
+WHERE rf.workspace_id = $2 AND rf.signed_up_at >= $3 AND rf.status <> 'not_counted'
+  AND m.clicked_at IS NOT NULL AND m.clicked_at <= rf.signed_up_at AND m.clicked_at > rf.signed_up_at - interval '7 days'
+  AND NOT EXISTS (
+      SELECT 1 FROM messages o
+      WHERE o.contact_id = rf.referrer_id AND o.campaign_id IS DISTINCT FROM m.campaign_id
+        AND o.clicked_at > m.clicked_at AND o.clicked_at <= rf.signed_up_at)
+`
+
+type ReportGrowthReferralsParams struct {
+	CampaignID  *uuid.UUID `json:"campaignId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Since       time.Time  `json:"since"`
+}
+
+// Referral signups since a campaign started credited to it: it was the
+// last email their referrer clicked, as a person, in the 7 days before the
+// signup (the attribution rule upgrades follow, review AN-12).
+func (q *Queries) ReportGrowthReferrals(ctx context.Context, arg ReportGrowthReferralsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, reportGrowthReferrals, arg.CampaignID, arg.WorkspaceID, arg.Since)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const reportHourly = `-- name: ReportHourly :many
-SELECT hour, opened_human, opened_machine, clicked
+SELECT hour, opened_human, opened_privacy, opened_machine, clicked
 FROM campaign_hourly
 WHERE campaign_id = $1 AND hour <= $2
 ORDER BY hour
@@ -318,6 +560,7 @@ type ReportHourlyParams struct {
 type ReportHourlyRow struct {
 	Hour          int32 `json:"hour"`
 	OpenedHuman   int64 `json:"openedHuman"`
+	OpenedPrivacy int64 `json:"openedPrivacy"`
 	OpenedMachine int64 `json:"openedMachine"`
 	Clicked       int64 `json:"clicked"`
 }
@@ -334,6 +577,7 @@ func (q *Queries) ReportHourly(ctx context.Context, arg ReportHourlyParams) ([]R
 		if err := rows.Scan(
 			&i.Hour,
 			&i.OpenedHuman,
+			&i.OpenedPrivacy,
 			&i.OpenedMachine,
 			&i.Clicked,
 		); err != nil {
@@ -398,6 +642,29 @@ func (q *Queries) ReportIngestBacklog(ctx context.Context, arg ReportIngestBackl
 	return items, nil
 }
 
+const reportIssuePages = `-- name: ReportIssuePages :one
+SELECT coalesce((SELECT ai.slug FROM archive_issues ai WHERE ai.workspace_id = $1 AND ai.campaign_id = $2), '')::text AS archive_slug,
+       coalesce((SELECT p.slug FROM website_posts p WHERE p.campaign_id = $2 AND p.deleted_at IS NULL LIMIT 1), '')::text AS post_slug
+`
+
+type ReportIssuePagesParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+}
+
+type ReportIssuePagesRow struct {
+	ArchiveSlug string `json:"archiveSlug"`
+	PostSlug    string `json:"postSlug"`
+}
+
+// Where a campaign is on the web: its archive page and its website post.
+func (q *Queries) ReportIssuePages(ctx context.Context, arg ReportIssuePagesParams) (ReportIssuePagesRow, error) {
+	row := q.db.QueryRow(ctx, reportIssuePages, arg.WorkspaceID, arg.CampaignID)
+	var i ReportIssuePagesRow
+	err := row.Scan(&i.ArchiveSlug, &i.PostSlug)
+	return i, err
+}
+
 const reportLatestReadiness = `-- name: ReportLatestReadiness :one
 SELECT verdict, ran_at FROM readiness_runs WHERE campaign_id = $1 ORDER BY ran_at DESC LIMIT 1
 `
@@ -441,8 +708,65 @@ func (q *Queries) ReportLatestSent(ctx context.Context, arg ReportLatestSentPara
 	return i, err
 }
 
+const reportLeftOutInDoubt = `-- name: ReportLeftOutInDoubt :one
+SELECT count(*)::bigint FROM messages WHERE campaign_id = $1 AND doubt_at IS NOT NULL AND status = 'cancelled'
+`
+
+// A campaign's messages left out while in doubt (review GS-1): nobody knew
+// whether their provider took them, and a person chose not to send them
+// again. The report says so in its header ("not sent, in doubt").
+func (q *Queries) ReportLeftOutInDoubt(ctx context.Context, campaignID *uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, reportLeftOutInDoubt, campaignID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const reportLinkVariants = `-- name: ReportLinkVariants :many
+SELECT position, variant, clicks, unique_clicks, bot_clicks
+FROM campaign_link_variants
+WHERE campaign_id = $1
+ORDER BY variant, position
+`
+
+type ReportLinkVariantsRow struct {
+	Position     int32  `json:"position"`
+	Variant      string `json:"variant"`
+	Clicks       int64  `json:"clicks"`
+	UniqueClicks int64  `json:"uniqueClicks"`
+	BotClicks    int64  `json:"botClicks"`
+}
+
+// Clicks per link and A/B variant, for each variant's click map (review
+// AN-5).
+func (q *Queries) ReportLinkVariants(ctx context.Context, campaignID uuid.UUID) ([]ReportLinkVariantsRow, error) {
+	rows, err := q.db.Query(ctx, reportLinkVariants, campaignID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportLinkVariantsRow{}
+	for rows.Next() {
+		var i ReportLinkVariantsRow
+		if err := rows.Scan(
+			&i.Position,
+			&i.Variant,
+			&i.Clicks,
+			&i.UniqueClicks,
+			&i.BotClicks,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const reportLinks = `-- name: ReportLinks :many
-SELECT id, url, label, position, clicks, unique_clicks
+SELECT id, url, label, position, clicks, unique_clicks, bot_clicks
 FROM campaign_links
 WHERE campaign_id = $1
 ORDER BY position, url
@@ -455,8 +779,11 @@ type ReportLinksRow struct {
 	Position     int32     `json:"position"`
 	Clicks       int64     `json:"clicks"`
 	UniqueClicks int64     `json:"uniqueClicks"`
+	BotClicks    int64     `json:"botClicks"`
 }
 
+// Clicks per link: people's clicks, people's first click per link, and
+// the clicks the bot filter left out.
 func (q *Queries) ReportLinks(ctx context.Context, campaignID uuid.UUID) ([]ReportLinksRow, error) {
 	rows, err := q.db.Query(ctx, reportLinks, campaignID)
 	if err != nil {
@@ -473,6 +800,120 @@ func (q *Queries) ReportLinks(ctx context.Context, campaignID uuid.UUID) ([]Repo
 			&i.Position,
 			&i.Clicks,
 			&i.UniqueClicks,
+			&i.BotClicks,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const reportProviderTracked = `-- name: ReportProviderTracked :one
+SELECT EXISTS (
+    SELECT 1 FROM delivery_events
+    WHERE campaign_id = $1::uuid AND provider_id = $2::uuid AND type IN ('open', 'click')
+      AND original_type NOT IN ('', 'ReputeCast tracking')
+)::boolean AS reported
+`
+
+type ReportProviderTrackedParams struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	ProviderID uuid.UUID `json:"providerId"`
+}
+
+// Whether a sending provider reported opens or clicks of a campaign's
+// messages: its own tracking counted them (review AN-4).
+func (q *Queries) ReportProviderTracked(ctx context.Context, arg ReportProviderTrackedParams) (bool, error) {
+	row := q.db.QueryRow(ctx, reportProviderTracked, arg.CampaignID, arg.ProviderID)
+	var reported bool
+	err := row.Scan(&reported)
+	return reported, err
+}
+
+const reportRecentIssues = `-- name: ReportRecentIssues :many
+WITH this AS (
+    SELECT coalesce(t.audience -> 'lists', '[]') AS lists, coalesce(t.audience -> 'segments', '[]') AS segments
+    FROM campaigns t WHERE t.id = $1
+), recent AS (
+    SELECT c.id, c.started_at
+    FROM campaigns c, this
+    WHERE c.workspace_id = $2 AND c.id <> $1 AND c.deleted_at IS NULL AND c.channel = 'email'
+      AND c.status = 'sent' AND c.started_at IS NOT NULL AND c.started_at < $3
+      AND coalesce(c.audience -> 'lists', '[]') @> this.lists AND this.lists @> coalesce(c.audience -> 'lists', '[]')
+      AND coalesce(c.audience -> 'segments', '[]') @> this.segments AND this.segments @> coalesce(c.audience -> 'segments', '[]')
+      AND EXISTS (SELECT 1 FROM campaign_counters x WHERE x.campaign_id = c.id AND x.sent > 0)
+    ORDER BY c.started_at DESC
+    LIMIT $4
+)
+SELECT r.id AS campaign_id, cc.mailbox_provider,
+       sum(cc.sent)::bigint AS sent, sum(cc.delivered)::bigint AS delivered, sum(cc.hard_bounced)::bigint AS hard_bounced,
+       sum(cc.soft_bounced)::bigint AS soft_bounced, sum(cc.complained)::bigint AS complained, sum(cc.opened_human)::bigint AS opened_human,
+       sum(cc.opened_privacy)::bigint AS opened_privacy, sum(cc.opened_machine)::bigint AS opened_machine, sum(cc.clicked)::bigint AS clicked,
+       sum(cc.unsubscribed)::bigint AS unsubscribed
+FROM recent r
+JOIN campaign_counters cc ON cc.campaign_id = r.id
+GROUP BY r.id, r.started_at, cc.mailbox_provider
+ORDER BY r.started_at DESC, cc.mailbox_provider
+`
+
+type ReportRecentIssuesParams struct {
+	CampaignID  uuid.UUID  `json:"campaignId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Before      *time.Time `json:"before"`
+	Lim         int32      `json:"lim"`
+}
+
+type ReportRecentIssuesRow struct {
+	CampaignID      uuid.UUID `json:"campaignId"`
+	MailboxProvider string    `json:"mailboxProvider"`
+	Sent            int64     `json:"sent"`
+	Delivered       int64     `json:"delivered"`
+	HardBounced     int64     `json:"hardBounced"`
+	SoftBounced     int64     `json:"softBounced"`
+	Complained      int64     `json:"complained"`
+	OpenedHuman     int64     `json:"openedHuman"`
+	OpenedPrivacy   int64     `json:"openedPrivacy"`
+	OpenedMachine   int64     `json:"openedMachine"`
+	Clicked         int64     `json:"clicked"`
+	Unsubscribed    int64     `json:"unsubscribed"`
+}
+
+// The last issues before a campaign to the same audience (sent email
+// campaigns, not deleted, to the same lists and segments in any order),
+// with their counters per mailbox provider, for the tiles' comparison with
+// the median of the last issues (review AN-11): another list's sends
+// aren't this newsletter's issues.
+func (q *Queries) ReportRecentIssues(ctx context.Context, arg ReportRecentIssuesParams) ([]ReportRecentIssuesRow, error) {
+	rows, err := q.db.Query(ctx, reportRecentIssues,
+		arg.CampaignID,
+		arg.WorkspaceID,
+		arg.Before,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportRecentIssuesRow{}
+	for rows.Next() {
+		var i ReportRecentIssuesRow
+		if err := rows.Scan(
+			&i.CampaignID,
+			&i.MailboxProvider,
+			&i.Sent,
+			&i.Delivered,
+			&i.HardBounced,
+			&i.SoftBounced,
+			&i.Complained,
+			&i.OpenedHuman,
+			&i.OpenedPrivacy,
+			&i.OpenedMachine,
+			&i.Clicked,
+			&i.Unsubscribed,
 		); err != nil {
 			return nil, err
 		}
@@ -490,7 +931,8 @@ SELECT cr.provider_id, p.name AS provider_name, p.adapter, cr.planned, cr.status
                 (SELECT (percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - m.sent_at)) * 1000)::integer
                  FROM messages m
                  WHERE m.campaign_id = cr.campaign_id AND m.provider_id = cr.provider_id
-                   AND m.delivered_at IS NOT NULL AND m.sent_at IS NOT NULL AND m.delivered_at >= m.sent_at))::integer AS delivery_p50_ms
+                   AND m.delivered_at IS NOT NULL AND m.sent_at IS NOT NULL AND m.delivered_at >= m.sent_at),
+                0)::integer AS delivery_p50_ms
 FROM campaign_routes cr
 JOIN providers p ON p.id = cr.provider_id
 WHERE cr.campaign_id = $1
@@ -509,7 +951,7 @@ type ReportRoutesRow struct {
 
 // Each sending provider's share of the send: what was planned, the cost and
 // the median time to delivery (stored at completion, else computed from the
-// route's messages).
+// route's messages; 0 before anything was delivered).
 func (q *Queries) ReportRoutes(ctx context.Context, campaignID uuid.UUID) ([]ReportRoutesRow, error) {
 	rows, err := q.db.Query(ctx, reportRoutes, campaignID)
 	if err != nil {
@@ -538,8 +980,22 @@ func (q *Queries) ReportRoutes(ctx context.Context, campaignID uuid.UUID) ([]Rep
 	return items, nil
 }
 
+const reportSendContent = `-- name: ReportSendContent :one
+SELECT coalesce(content, '{}'::jsonb)::jsonb AS content FROM campaign_sends WHERE campaign_id = $1
+`
+
+// The email as the send captured it: each content variant's HTML and the
+// first link position of each (internal/sending/engine sendContent).
+func (q *Queries) ReportSendContent(ctx context.Context, campaignID uuid.UUID) (json.RawMessage, error) {
+	row := q.db.QueryRow(ctx, reportSendContent, campaignID)
+	var content json.RawMessage
+	err := row.Scan(&content)
+	return content, err
+}
+
 const reportShareByToken = `-- name: ReportShareByToken :one
-SELECT rs.id, rs.campaign_id, rs.expires_at, rs.revoked_at, c.workspace_id, w.slug AS workspace_slug, w.name AS workspace_name
+SELECT rs.id, rs.campaign_id, rs.expires_at, rs.revoked_at, rs.include_cost, rs.include_warmup, rs.include_email,
+       c.workspace_id, w.slug AS workspace_slug, w.name AS workspace_name
 FROM report_shares rs
 JOIN campaigns c ON c.id = rs.campaign_id AND c.deleted_at IS NULL
 JOIN workspaces w ON w.id = c.workspace_id AND w.deleted_at IS NULL
@@ -551,6 +1007,9 @@ type ReportShareByTokenRow struct {
 	CampaignID    uuid.UUID  `json:"campaignId"`
 	ExpiresAt     *time.Time `json:"expiresAt"`
 	RevokedAt     *time.Time `json:"revokedAt"`
+	IncludeCost   bool       `json:"includeCost"`
+	IncludeWarmup bool       `json:"includeWarmup"`
+	IncludeEmail  bool       `json:"includeEmail"`
 	WorkspaceID   uuid.UUID  `json:"workspaceId"`
 	WorkspaceSlug string     `json:"workspaceSlug"`
 	WorkspaceName string     `json:"workspaceName"`
@@ -565,6 +1024,9 @@ func (q *Queries) ReportShareByToken(ctx context.Context, tokenHash []byte) (Rep
 		&i.CampaignID,
 		&i.ExpiresAt,
 		&i.RevokedAt,
+		&i.IncludeCost,
+		&i.IncludeWarmup,
+		&i.IncludeEmail,
 		&i.WorkspaceID,
 		&i.WorkspaceSlug,
 		&i.WorkspaceName,
@@ -573,19 +1035,22 @@ func (q *Queries) ReportShareByToken(ctx context.Context, tokenHash []byte) (Rep
 }
 
 const reportShareCreate = `-- name: ReportShareCreate :one
-INSERT INTO report_shares (id, campaign_id, token_hash, token_sealed, created_by, created_at, expires_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, campaign_id, token_hash, created_by, created_at, expires_at, revoked_at, token_sealed, revoked_by, views, last_viewed_at
+INSERT INTO report_shares (id, campaign_id, token_hash, token_sealed, created_by, created_at, expires_at, include_cost, include_warmup, include_email)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+RETURNING id, campaign_id, token_hash, created_by, created_at, expires_at, revoked_at, token_sealed, revoked_by, views, last_viewed_at, include_cost, include_warmup, include_email
 `
 
 type ReportShareCreateParams struct {
-	ID          uuid.UUID  `json:"id"`
-	CampaignID  uuid.UUID  `json:"campaignId"`
-	TokenHash   []byte     `json:"tokenHash"`
-	TokenSealed []byte     `json:"tokenSealed"`
-	CreatedBy   *uuid.UUID `json:"createdBy"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	ExpiresAt   *time.Time `json:"expiresAt"`
+	ID            uuid.UUID  `json:"id"`
+	CampaignID    uuid.UUID  `json:"campaignId"`
+	TokenHash     []byte     `json:"tokenHash"`
+	TokenSealed   []byte     `json:"tokenSealed"`
+	CreatedBy     *uuid.UUID `json:"createdBy"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	ExpiresAt     *time.Time `json:"expiresAt"`
+	IncludeCost   bool       `json:"includeCost"`
+	IncludeWarmup bool       `json:"includeWarmup"`
+	IncludeEmail  bool       `json:"includeEmail"`
 }
 
 func (q *Queries) ReportShareCreate(ctx context.Context, arg ReportShareCreateParams) (ReportShare, error) {
@@ -597,6 +1062,9 @@ func (q *Queries) ReportShareCreate(ctx context.Context, arg ReportShareCreatePa
 		arg.CreatedBy,
 		arg.CreatedAt,
 		arg.ExpiresAt,
+		arg.IncludeCost,
+		arg.IncludeWarmup,
+		arg.IncludeEmail,
 	)
 	var i ReportShare
 	err := row.Scan(
@@ -611,12 +1079,15 @@ func (q *Queries) ReportShareCreate(ctx context.Context, arg ReportShareCreatePa
 		&i.RevokedBy,
 		&i.Views,
 		&i.LastViewedAt,
+		&i.IncludeCost,
+		&i.IncludeWarmup,
+		&i.IncludeEmail,
 	)
 	return i, err
 }
 
 const reportShareGet = `-- name: ReportShareGet :one
-SELECT id, campaign_id, token_hash, created_by, created_at, expires_at, revoked_at, token_sealed, revoked_by, views, last_viewed_at FROM report_shares WHERE id = $1 AND campaign_id = $2
+SELECT id, campaign_id, token_hash, created_by, created_at, expires_at, revoked_at, token_sealed, revoked_by, views, last_viewed_at, include_cost, include_warmup, include_email FROM report_shares WHERE id = $1 AND campaign_id = $2
 `
 
 type ReportShareGetParams struct {
@@ -639,12 +1110,15 @@ func (q *Queries) ReportShareGet(ctx context.Context, arg ReportShareGetParams) 
 		&i.RevokedBy,
 		&i.Views,
 		&i.LastViewedAt,
+		&i.IncludeCost,
+		&i.IncludeWarmup,
+		&i.IncludeEmail,
 	)
 	return i, err
 }
 
 const reportShareList = `-- name: ReportShareList :many
-SELECT rs.id, rs.campaign_id, rs.token_hash, rs.created_by, rs.created_at, rs.expires_at, rs.revoked_at, rs.token_sealed, rs.revoked_by, rs.views, rs.last_viewed_at, coalesce(u.name, '')::text AS created_by_name
+SELECT rs.id, rs.campaign_id, rs.token_hash, rs.created_by, rs.created_at, rs.expires_at, rs.revoked_at, rs.token_sealed, rs.revoked_by, rs.views, rs.last_viewed_at, rs.include_cost, rs.include_warmup, rs.include_email, coalesce(u.name, '')::text AS created_by_name
 FROM report_shares rs
 LEFT JOIN users u ON u.id = rs.created_by
 WHERE rs.campaign_id = $1 AND rs.revoked_at IS NULL AND (rs.expires_at IS NULL OR rs.expires_at > $2)
@@ -668,6 +1142,9 @@ type ReportShareListRow struct {
 	RevokedBy     *uuid.UUID `json:"revokedBy"`
 	Views         int64      `json:"views"`
 	LastViewedAt  *time.Time `json:"lastViewedAt"`
+	IncludeCost   bool       `json:"includeCost"`
+	IncludeWarmup bool       `json:"includeWarmup"`
+	IncludeEmail  bool       `json:"includeEmail"`
 	CreatedByName string     `json:"createdByName"`
 }
 
@@ -693,6 +1170,9 @@ func (q *Queries) ReportShareList(ctx context.Context, arg ReportShareListParams
 			&i.RevokedBy,
 			&i.Views,
 			&i.LastViewedAt,
+			&i.IncludeCost,
+			&i.IncludeWarmup,
+			&i.IncludeEmail,
 			&i.CreatedByName,
 		); err != nil {
 			return nil, err
@@ -708,7 +1188,7 @@ func (q *Queries) ReportShareList(ctx context.Context, arg ReportShareListParams
 const reportShareRevoke = `-- name: ReportShareRevoke :one
 UPDATE report_shares SET revoked_at = $1, revoked_by = $2
 WHERE id = $3 AND campaign_id = $4 AND revoked_at IS NULL
-RETURNING id, campaign_id, token_hash, created_by, created_at, expires_at, revoked_at, token_sealed, revoked_by, views, last_viewed_at
+RETURNING id, campaign_id, token_hash, created_by, created_at, expires_at, revoked_at, token_sealed, revoked_by, views, last_viewed_at, include_cost, include_warmup, include_email
 `
 
 type ReportShareRevokeParams struct {
@@ -738,6 +1218,9 @@ func (q *Queries) ReportShareRevoke(ctx context.Context, arg ReportShareRevokePa
 		&i.RevokedBy,
 		&i.Views,
 		&i.LastViewedAt,
+		&i.IncludeCost,
+		&i.IncludeWarmup,
+		&i.IncludeEmail,
 	)
 	return i, err
 }
@@ -794,6 +1277,37 @@ func (q *Queries) ReportUnsubscribeReasons(ctx context.Context, arg ReportUnsubs
 	return items, nil
 }
 
+const reportViewedMessages = `-- name: ReportViewedMessages :many
+SELECT id FROM messages WHERE campaign_id = $1 AND id = ANY ($2::uuid[])
+`
+
+type ReportViewedMessagesParams struct {
+	CampaignID *uuid.UUID  `json:"campaignId"`
+	Ids        []uuid.UUID `json:"ids"`
+}
+
+// Which of these messages are a campaign's (view-online pages a signup
+// came from).
+func (q *Queries) ReportViewedMessages(ctx context.Context, arg ReportViewedMessagesParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, reportViewedMessages, arg.CampaignID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const reportWarmupAt = `-- name: ReportWarmupAt :many
 SELECT w.provider_id, w.start_date, w.days, w.engaged_first, w.status
 FROM warmup_plans w
@@ -835,4 +1349,26 @@ func (q *Queries) ReportWarmupAt(ctx context.Context, providerIds []uuid.UUID) (
 		return nil, err
 	}
 	return items, nil
+}
+
+const reportWebViews = `-- name: ReportWebViews :one
+SELECT coalesce(sum(v.views), 0)::bigint
+FROM website_view_days v
+WHERE v.workspace_id = $1
+  AND ((v.page_kind = 'issue' AND v.page_id = $2)
+    OR (v.page_kind = 'post' AND v.page_id IN (SELECT p.id FROM website_posts p WHERE p.campaign_id = $2)))
+`
+
+type ReportWebViewsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+}
+
+// First-party, cookie-free views of a campaign on the web: its archive
+// page and its website post (review AN-13).
+func (q *Queries) ReportWebViews(ctx context.Context, arg ReportWebViewsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, reportWebViews, arg.WorkspaceID, arg.CampaignID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
 }

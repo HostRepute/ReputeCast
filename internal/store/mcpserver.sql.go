@@ -279,51 +279,6 @@ func (q *Queries) McpCampaignTotals(ctx context.Context, campaignID uuid.UUID) (
 	return i, err
 }
 
-const mcpCreateDraft = `-- name: McpCreateDraft :one
-INSERT INTO campaigns (id, workspace_id, name, status, subject, preheader, mjml, created_by, updated_by)
-VALUES ($1, $2, $3, 'draft', $4, $5, $6, $7, $7)
-RETURNING id, name, status, version, created_at
-`
-
-type McpCreateDraftParams struct {
-	ID          uuid.UUID  `json:"id"`
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	Name        string     `json:"name"`
-	Subject     string     `json:"subject"`
-	Preheader   string     `json:"preheader"`
-	Mjml        string     `json:"mjml"`
-	CreatedBy   *uuid.UUID `json:"createdBy"`
-}
-
-type McpCreateDraftRow struct {
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name"`
-	Status    string    `json:"status"`
-	Version   int32     `json:"version"`
-	CreatedAt time.Time `json:"createdAt"`
-}
-
-func (q *Queries) McpCreateDraft(ctx context.Context, arg McpCreateDraftParams) (McpCreateDraftRow, error) {
-	row := q.db.QueryRow(ctx, mcpCreateDraft,
-		arg.ID,
-		arg.WorkspaceID,
-		arg.Name,
-		arg.Subject,
-		arg.Preheader,
-		arg.Mjml,
-		arg.CreatedBy,
-	)
-	var i McpCreateDraftRow
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Status,
-		&i.Version,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
 const mcpCreateSegment = `-- name: McpCreateSegment :one
 INSERT INTO segments (id, workspace_id, name, description, mode, definition, created_by)
 VALUES ($1, $2, $3, $4, 'builder', $5, $6)
@@ -757,51 +712,4 @@ type McpSetRoutingSplitsParams struct {
 func (q *Queries) McpSetRoutingSplits(ctx context.Context, arg McpSetRoutingSplitsParams) error {
 	_, err := q.db.Exec(ctx, mcpSetRoutingSplits, arg.Splits, arg.ID, arg.WorkspaceID)
 	return err
-}
-
-const mcpUpdateDraft = `-- name: McpUpdateDraft :one
-UPDATE campaigns
-SET subject = coalesce($1, subject), preheader = coalesce($2, preheader),
-    mjml = coalesce($3, mjml), version = version + 1, updated_at = now(), updated_by = $4
-WHERE id = $5 AND workspace_id = $6 AND status IN ('draft','approval','approved') AND deleted_at IS NULL
-RETURNING id, name, status, version, subject, preheader
-`
-
-type McpUpdateDraftParams struct {
-	Subject     *string    `json:"subject"`
-	Preheader   *string    `json:"preheader"`
-	Mjml        *string    `json:"mjml"`
-	UpdatedBy   *uuid.UUID `json:"updatedBy"`
-	ID          uuid.UUID  `json:"id"`
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-}
-
-type McpUpdateDraftRow struct {
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name"`
-	Status    string    `json:"status"`
-	Version   int32     `json:"version"`
-	Subject   string    `json:"subject"`
-	Preheader string    `json:"preheader"`
-}
-
-func (q *Queries) McpUpdateDraft(ctx context.Context, arg McpUpdateDraftParams) (McpUpdateDraftRow, error) {
-	row := q.db.QueryRow(ctx, mcpUpdateDraft,
-		arg.Subject,
-		arg.Preheader,
-		arg.Mjml,
-		arg.UpdatedBy,
-		arg.ID,
-		arg.WorkspaceID,
-	)
-	var i McpUpdateDraftRow
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Status,
-		&i.Version,
-		&i.Subject,
-		&i.Preheader,
-	)
-	return i, err
 }

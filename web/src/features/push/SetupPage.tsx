@@ -3,10 +3,10 @@ import { $api, errorMessage } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Button } from '@/components/ui/Button'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
-import { T, useT } from '@/i18n'
+import { useT } from '@/i18n'
 import { clock, count, dayMonthDate, monthName, orList, pct } from '@/lib/format'
 import { useMe, usePermissionReason, useWorkspace } from '@/lib/session'
-import { ChannelSwitch } from '@/features/channels/ChannelSwitch'
+import { ChannelMenu } from '@/features/channels/ChannelMenu'
 import { PushTabs, throwIfForbidden, type PushSetup } from './common'
 import { m } from './messages'
 import { NotSetUp } from './NotSetUp'
@@ -36,7 +36,7 @@ export function PushSetupPage() {
       documentTitle={t(m.docTitle)}
       filters={
         <>
-          <ChannelSwitch current="push" />
+          <ChannelMenu current="push" />
           <PushTabs />
         </>
       }
@@ -95,7 +95,7 @@ function ReadOnlyNote({ helpers }: { helpers: string[] }) {
       <div className="flex min-w-0 flex-col gap-1">
         <span className="font-bold">{t(m.readOnlyTitle, { name: user?.name ?? '', role: me.workspace.roleName })}</span>
         <div>
-          <T msg={m.readOnlyText} values={{ perm: <span className="mono">{'providers:manage'}</span> }} />
+          {t(m.readOnlyText)}
           {helpers.length ? ` ${t(m.askHelpers, { helpers: orList(helpers) })}` : null}
         </div>
       </div>

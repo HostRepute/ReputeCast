@@ -110,7 +110,7 @@ export const m = defineMessages('smsReview', {
   cBudgetPassText: '{after} of {budget} after this send{under, select, yes {, under the {alert}% alert} other {, past the {alert}% alert}}.',
   cBudgetNone: 'Budget: no monthly budget set',
   cBudgetBlock: 'Budget: this send costs {cost}; {remaining} is left in {month}’s budget. Raise the budget or send to fewer people.',
-  cBudgetBlockText: '{month} so far: {spent} of {budget}. Raising it needs providers:manage: {helpers} can do it from here.',
+  cBudgetBlockText: '{month} so far: {spent} of {budget}. Raising it needs someone who can manage providers: {helpers} can do it from here.',
   raiseBudget: 'Raise the budget',
   fewerPeople: 'Send to fewer people',
   overBudget: '{amount} over {month}’s budget. At 100%, campaigns can’t start and SMS steps wait.',
@@ -183,7 +183,7 @@ export const m = defineMessages('smsReview', {
   // Approvals.
   approvals: 'Approvals',
   noApproval: 'No approval needed.',
-  noApprovalWhy: 'No approval needed. {audience, select, yes {The audience is under {min}, } other {}}{cost, select, yes {the cost is under the {amount} rule for SMS and WhatsApp, } other {}}and {name} holds campaigns:send and sms:send.',
+  noApprovalWhy: 'No approval needed. {audience, select, yes {The audience is under {min}, } other {}}{cost, select, yes {the cost is under the {amount} rule for SMS and WhatsApp, } other {}}and {name} can send SMS campaigns.',
   approvalRules: 'Approval rules',
   approvalRequired: 'Approval required before this send',
   rulesMatched: '{count, plural, one {# rule matched} other {# rules matched}}',
@@ -225,9 +225,11 @@ export const m = defineMessages('smsReview', {
   sent: '“{name}” is sending to {count}',
   changed: 'The campaign changed since these checks ran. They ran again; review them before you send.',
   readOnlyTitle: 'Read-only · {name}, {role}',
-  readOnlyText: 'You can see the checks, the route and the cost. Sending needs campaigns:send and sms:send. {helpers, select, none {} other {Ask {helpers}.}}',
+  readOnlyText: 'You can see the checks, the route and the cost. Your role can’t send SMS campaigns. {helpers, select, none {} other {Ask {helpers}.}}',
   viewersCant: 'Viewers can’t schedule or send.',
-  needsSend: 'Sending needs {perms}. {helpers, select, none {} other {Ask {helpers}.}}',
+  // Send is off without the send permissions: "Sending SMS campaigns needs a
+  // permission you don't have. Ask …" (deniedReason, src/lib/session.tsx).
+  sendAction: 'Sending SMS campaigns',
   unschedule: 'Unschedule',
   unscheduled: 'Back to a draft',
   scheduledFor: 'Scheduled for {date} at {time}',

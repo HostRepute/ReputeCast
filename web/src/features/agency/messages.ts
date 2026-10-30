@@ -309,7 +309,7 @@ export const m = defineMessages('agency', {
   galleryShowAll: 'Show all {n}',
   galleryCantEdit: "You can't edit this email.",
   galleryNote:
-    "Using an item makes a copy in {workspace}, which needs <mono>{permission}</mono> here. Copies aren't linked: when the library changes, the copy says “Library has a newer version” and shows the diff.",
+    "Using an item makes a copy in {workspace}, so it needs a role that can edit templates here. Copies aren't linked: when the library changes, the copy says “Library has a newer version” and shows the diff.",
   galleryStartedFrom: 'started from “{name}” in the {agency} library',
   galleryCopied: '“{name}” copied to {workspace}',
   galleryCopyFailed: "Couldn't copy it",

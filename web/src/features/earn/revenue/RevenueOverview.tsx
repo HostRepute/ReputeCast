@@ -224,12 +224,6 @@ function ReadOnly({ o }: { o: Overview }) {
   const { me: wme } = useWorkspace()
   const user = useMe().data?.user
   const role = roleName({ key: wme.workspace.roleKey, name: wme.workspace.roleName, builtin: true })
-  const perms = ['earn:edit', 'earn:manage', 'payments:manage', 'sponsors:manage']
-  const permNodes = perms.map((p) => (
-    <span key={p} className="mono">
-      {p}
-    </span>
-  ))
   return (
     <div className="note n" role="note">
       <span style={{ color: 'var(--ink-2)', display: 'inline-flex', flex: 'none', marginTop: 1 }}>
@@ -238,23 +232,11 @@ function ReadOnly({ o }: { o: Overview }) {
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
         <span className="font-bold">{t(mr.roTitle, { name: user?.name || user?.email || '', role })}</span>
         <div>
-          <T
-            msg={o.helpers.length ? mr.roText : mr.roTextNoHelpers}
-            values={{
-              perms: <>{joinNodes(permNodes)}</>,
-              helpers: orList(o.helpers),
-            }}
-          />
+          <T msg={o.helpers.length ? mr.roText : mr.roTextNoHelpers} values={{ helpers: orList(o.helpers) }} />
         </div>
       </div>
     </div>
   )
-}
-
-/** "a, b, c or d" with nodes. */
-function joinNodes(nodes: ReactNode[]): ReactNode {
-  const words = orList(nodes.map((_, i) => `§${i}§`))
-  return words.split(/§(\d+)§/).map((part, i) => (i % 2 === 1 ? nodes[Number(part)] : part))
 }
 
 /** What you can do (read-only). */
@@ -276,16 +258,15 @@ function CanDo({ provider }: { provider: string }) {
       <span>{text}</span>
     </li>
   )
-  const mono = (p: string) => <span className="mono">{p}</span>
   return (
     <Card title={t(mr.canTitle)}>
       <ul className="er-pad m-0 flex list-none flex-col gap-2">
         {ok(t(mr.canSee))}
         {ok(t(mr.canMembers))}
         {ok(t(mr.canPlans))}
-        {no(<T msg={mr.canEdit} values={{ perm: mono('earn:edit') }} />)}
-        {no(<T msg={mr.canManage} values={{ perm: mono('earn:manage') }} />)}
-        {no(<T msg={mr.canPayments} values={{ provider, perm: mono('payments:manage') }} />)}
+        {no(t(mr.canEdit))}
+        {no(t(mr.canManage))}
+        {no(t(mr.canPayments, { provider }))}
       </ul>
     </Card>
   )

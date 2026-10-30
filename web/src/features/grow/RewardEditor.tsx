@@ -682,7 +682,7 @@ function CouponSettings({
     <Box title={t(mm.couponTitle)} aside={d.stripe.connected ? t(mm.couponConnected, { account: d.stripe.account }) : t(mm.couponNotConnected)}>
       {!canEarn && !disabled ? (
         <Note tone="neutral">
-          <T msg={d.helpers.earn.length ? mm.couponNeedsEarn : mm.couponNeedsEarnNoHelpers} values={{ helpers: orNames(d.helpers.earn), mono }} />
+          {t(d.helpers.earn.length ? mm.couponNeedsEarn : mm.couponNeedsEarnNoHelpers, { helpers: orNames(d.helpers.earn) })}
         </Note>
       ) : null}
       <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-3 max-md:grid-cols-1">

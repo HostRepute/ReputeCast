@@ -48,8 +48,8 @@ export default translate(m, {
   openSettings: 'Mở Cài đặt › Tích hợp',
   connectedTeam: 'Đã kết nối với nhóm “{team}”',
   connectWith: 'Kết nối với HostRepute',
-  permHave: 'Cần quyền {perm} · bạn có quyền này với vai trò {role}',
-  permAsk: 'Cần quyền {perm} · hãy hỏi Chủ sở hữu hoặc Quản trị viên của không gian làm việc này',
+  permHave: 'Bạn có thể kết nối HostRepute với vai trò {role}',
+  permAsk: 'Vai trò của bạn không thể kết nối HostRepute · hãy hỏi Chủ sở hữu hoặc Quản trị viên của không gian làm việc này',
 
   // ── Deliverability › Connect HostRepute ──────────────────────────────
   pageTitle: 'Kết nối HostRepute',
@@ -81,7 +81,7 @@ export default translate(m, {
     '{kept, select, connected {Bạn đã từ chối yêu cầu trên HostRepute. Kết nối của bạn với nhóm “{team}” vẫn giữ nguyên.} other {Bạn đã từ chối yêu cầu trên HostRepute. Chưa có gì được kết nối.}}',
   reasonWrongUser: 'Lần chuyển này do người khác bắt đầu. Hãy bắt đầu lại từ tài khoản của chính bạn.',
   reasonForbidden:
-    '{kept, select, connected {Để kết nối HostRepute, bạn cần quyền {perm}. Kết nối của bạn với nhóm “{team}” vẫn giữ nguyên.} other {Để kết nối HostRepute, bạn cần quyền {perm}. Chưa có gì được kết nối.}}',
+    '{kept, select, connected {Vai trò của bạn không thể kết nối HostRepute. Kết nối của bạn với nhóm “{team}” vẫn giữ nguyên.} other {Vai trò của bạn không thể kết nối HostRepute. Chưa có gì được kết nối.}}',
   reasonExchange:
     '{kept, select, connected {HostRepute không chấp nhận lần phê duyệt (đã hết hạn hoặc đã được dùng). Kết nối của bạn với nhóm “{team}” vẫn giữ nguyên; hãy thử lại.} other {HostRepute không chấp nhận lần phê duyệt (đã hết hạn hoặc đã được dùng). Chưa có gì được kết nối; hãy thử lại.}}',
   reasonUnreachable:

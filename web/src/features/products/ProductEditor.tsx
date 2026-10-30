@@ -274,11 +274,11 @@ function Editor({ detail, crumbs }: { detail: ProductDetail; crumbs: (name: stri
     <Page title={name} documentTitle={t(pe.documentTitle, { name })} breadcrumb={crumbs(name)} actions={actions}>
       {ro ? (
         <IconNote tone="n" title={t(pe.readOnlyTitle, { name: user?.name ?? '', role })}>
-          <T msg={detail.helpers.edit.length ? pe.readOnlyTextAsk : pe.readOnlyText} values={{ mono, helpers: orList(detail.helpers.edit) }} />
+          <T msg={detail.helpers.edit.length ? pe.readOnlyTextAsk : pe.readOnlyText} values={{ helpers: orList(detail.helpers.edit) }} />
         </IconNote>
       ) : !canPublish ? (
         <IconNote tone="n" title={t(pe.noPublishTitle, { name: user?.name ?? '' })}>
-          <T msg={pe.noPublishText} values={{ mono, role }} />
+          <T msg={pe.noPublishText} values={{ role }} />
         </IconNote>
       ) : null}
       {archived ? (

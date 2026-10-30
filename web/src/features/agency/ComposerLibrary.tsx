@@ -7,7 +7,7 @@ import { Dialog } from '@/components/ui/Dialog'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { T, useT } from '@/i18n'
+import { useT } from '@/i18n'
 import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
 import { useAgencyCan, useAgencyMe } from './api'
@@ -20,7 +20,6 @@ type Item = Schemas['AgencyLibraryItem']
 type Copy = Schemas['AgencyGalleryCopy']
 
 const galleryKey = ['get', '/api/v1/workspaces/{workspace}/agency/library'] as const
-const mono = (c: React.ReactNode) => <span className="mono">{c}</span>
 
 /** The agency's staff in one of its clients: the library is theirs to use there. */
 function useStaffInClient() {
@@ -119,7 +118,7 @@ export function AgencyComposerGallery({ canEdit, onLoad }: { canEdit: boolean; o
         </Button>
       ) : null}
       <Note tone="info">
-        <T msg={m.galleryNote} values={{ workspace: me.workspace.name, permission: 'templates:edit', mono }} />
+        {t(m.galleryNote, { workspace: me.workspace.name })}
       </Note>
     </section>
   )

@@ -16,6 +16,7 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as ResetPasswordTokenRouteImport } from './routes/reset-password.$token'
+import { Route as ReviewTokenRouteImport } from './routes/review.$token'
 import { Route as WWorkspaceRouteRouteImport } from './routes/w/$workspace/route'
 import { Route as WorkspacesNewRouteImport } from './routes/workspaces/new'
 import { Route as WWorkspaceAppRouteRouteImport } from './routes/w/$workspace/_app/route'
@@ -34,6 +35,7 @@ import { Route as WWorkspaceImportIndexRouteImport } from './routes/w/$workspace
 import { Route as WWorkspaceTransactionalGuideRouteImport } from './routes/w/$workspace/transactional/guide'
 import { Route as WWorkspaceAppAdminAuditRouteImport } from './routes/w/$workspace/_app/admin/audit'
 import { Route as WWorkspaceAppAdminAuthenticationRouteImport } from './routes/w/$workspace/_app/admin/authentication'
+import { Route as WWorkspaceAppAdminBotFilterRouteImport } from './routes/w/$workspace/_app/admin/bot-filter'
 import { Route as WWorkspaceAppAdminInstanceRouteImport } from './routes/w/$workspace/_app/admin/instance'
 import { Route as WWorkspaceAppAdminUsersRouteImport } from './routes/w/$workspace/_app/admin/users'
 import { Route as WWorkspaceAppAdminWorkspacesRouteImport } from './routes/w/$workspace/_app/admin/workspaces'
@@ -63,13 +65,16 @@ import { Route as WWorkspaceAppProvidersIndexRouteImport } from './routes/w/$wor
 import { Route as WWorkspaceAppProvidersAdaptersRouteImport } from './routes/w/$workspace/_app/providers/adapters'
 import { Route as WWorkspaceAppProvidersEventsRouteImport } from './routes/w/$workspace/_app/providers/events'
 import { Route as WWorkspaceAppProvidersRoutingRouteImport } from './routes/w/$workspace/_app/providers/routing'
+import { Route as WWorkspaceAppProvidersTrafficRulesRouteImport } from './routes/w/$workspace/_app/providers/traffic-rules'
 import { Route as WWorkspaceAppProvidersWarmupRouteImport } from './routes/w/$workspace/_app/providers/warmup'
 import { Route as WWorkspaceAppSettingsIndexRouteImport } from './routes/w/$workspace/_app/settings/index'
 import { Route as WWorkspaceAppSettingsApprovalsRouteImport } from './routes/w/$workspace/_app/settings/approvals'
 import { Route as WWorkspaceAppSettingsAuditRouteImport } from './routes/w/$workspace/_app/settings/audit'
+import { Route as WWorkspaceAppSettingsBrandKitRouteImport } from './routes/w/$workspace/_app/settings/brand-kit'
 import { Route as WWorkspaceAppSettingsKeysRouteImport } from './routes/w/$workspace/_app/settings/keys'
 import { Route as WWorkspaceAppSettingsMcpRouteImport } from './routes/w/$workspace/_app/settings/mcp'
 import { Route as WWorkspaceAppSettingsProvidersRouteImport } from './routes/w/$workspace/_app/settings/providers'
+import { Route as WWorkspaceAppSettingsSendingRulesRouteImport } from './routes/w/$workspace/_app/settings/sending-rules'
 import { Route as WWorkspaceAppSettingsWebhooksRouteImport } from './routes/w/$workspace/_app/settings/webhooks'
 import { Route as WWorkspaceAppTransactionalIndexRouteImport } from './routes/w/$workspace/_app/transactional/index'
 import { Route as WWorkspaceAppTransactionalImportRouteImport } from './routes/w/$workspace/_app/transactional/import'
@@ -199,6 +204,11 @@ const ResetPasswordTokenRoute = ResetPasswordTokenRouteImport.update({
   path: '/$token',
   getParentRoute: () => ResetPasswordRoute,
 } as any)
+const ReviewTokenRoute = ReviewTokenRouteImport.update({
+  id: '/review/$token',
+  path: '/review/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WWorkspaceRouteRoute = WWorkspaceRouteRouteImport.update({
   id: '/w/$workspace',
   path: '/w/$workspace',
@@ -290,6 +300,12 @@ const WWorkspaceAppAdminAuthenticationRoute =
   WWorkspaceAppAdminAuthenticationRouteImport.update({
     id: '/admin/authentication',
     path: '/admin/authentication',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppAdminBotFilterRoute =
+  WWorkspaceAppAdminBotFilterRouteImport.update({
+    id: '/admin/bot-filter',
+    path: '/admin/bot-filter',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppAdminInstanceRoute =
@@ -461,6 +477,12 @@ const WWorkspaceAppProvidersRoutingRoute =
     path: '/providers/routing',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppProvidersTrafficRulesRoute =
+  WWorkspaceAppProvidersTrafficRulesRouteImport.update({
+    id: '/providers/traffic-rules',
+    path: '/providers/traffic-rules',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppProvidersWarmupRoute =
   WWorkspaceAppProvidersWarmupRouteImport.update({
     id: '/providers/warmup',
@@ -485,6 +507,12 @@ const WWorkspaceAppSettingsAuditRoute =
     path: '/settings/audit',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppSettingsBrandKitRoute =
+  WWorkspaceAppSettingsBrandKitRouteImport.update({
+    id: '/settings/brand-kit',
+    path: '/settings/brand-kit',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppSettingsKeysRoute =
   WWorkspaceAppSettingsKeysRouteImport.update({
     id: '/settings/keys',
@@ -501,6 +529,12 @@ const WWorkspaceAppSettingsProvidersRoute =
   WWorkspaceAppSettingsProvidersRouteImport.update({
     id: '/settings/providers',
     path: '/settings/providers',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsSendingRulesRoute =
+  WWorkspaceAppSettingsSendingRulesRouteImport.update({
+    id: '/settings/sending-rules',
+    path: '/settings/sending-rules',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppSettingsWebhooksRoute =
@@ -1071,6 +1105,7 @@ export interface FileRoutesByFullPath {
   '/invite/$token': typeof InviteTokenRoute
   '/r/$token': typeof RTokenRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
+  '/review/$token': typeof ReviewTokenRoute
   '/workspaces/new': typeof WorkspacesNewRoute
   '/w/$workspace/agency': typeof WWorkspaceAgencyRouteRouteWithChildren
   '/w/$workspace/account': typeof WWorkspaceAppAccountRoute
@@ -1087,6 +1122,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/import/': typeof WWorkspaceImportIndexRoute
   '/w/$workspace/admin/audit': typeof WWorkspaceAppAdminAuditRoute
   '/w/$workspace/admin/authentication': typeof WWorkspaceAppAdminAuthenticationRoute
+  '/w/$workspace/admin/bot-filter': typeof WWorkspaceAppAdminBotFilterRoute
   '/w/$workspace/admin/instance': typeof WWorkspaceAppAdminInstanceRoute
   '/w/$workspace/admin/users': typeof WWorkspaceAppAdminUsersRoute
   '/w/$workspace/admin/workspaces': typeof WWorkspaceAppAdminWorkspacesRoute
@@ -1107,12 +1143,15 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/providers/adapters': typeof WWorkspaceAppProvidersAdaptersRoute
   '/w/$workspace/providers/events': typeof WWorkspaceAppProvidersEventsRoute
   '/w/$workspace/providers/routing': typeof WWorkspaceAppProvidersRoutingRoute
+  '/w/$workspace/providers/traffic-rules': typeof WWorkspaceAppProvidersTrafficRulesRoute
   '/w/$workspace/providers/warmup': typeof WWorkspaceAppProvidersWarmupRoute
   '/w/$workspace/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
   '/w/$workspace/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
+  '/w/$workspace/settings/brand-kit': typeof WWorkspaceAppSettingsBrandKitRoute
   '/w/$workspace/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
   '/w/$workspace/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
   '/w/$workspace/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
+  '/w/$workspace/settings/sending-rules': typeof WWorkspaceAppSettingsSendingRulesRoute
   '/w/$workspace/settings/webhooks': typeof WWorkspaceAppSettingsWebhooksRoute
   '/w/$workspace/transactional/import': typeof WWorkspaceAppTransactionalImportRoute
   '/w/$workspace/transactional/settings': typeof WWorkspaceAppTransactionalSettingsRoute
@@ -1226,6 +1265,7 @@ export interface FileRoutesByTo {
   '/invite/$token': typeof InviteTokenRoute
   '/r/$token': typeof RTokenRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
+  '/review/$token': typeof ReviewTokenRoute
   '/workspaces/new': typeof WorkspacesNewRoute
   '/w/$workspace/account': typeof WWorkspaceAppAccountRoute
   '/w/$workspace/notifications': typeof WWorkspaceAppNotificationsRoute
@@ -1240,6 +1280,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/import': typeof WWorkspaceImportIndexRoute
   '/w/$workspace/admin/audit': typeof WWorkspaceAppAdminAuditRoute
   '/w/$workspace/admin/authentication': typeof WWorkspaceAppAdminAuthenticationRoute
+  '/w/$workspace/admin/bot-filter': typeof WWorkspaceAppAdminBotFilterRoute
   '/w/$workspace/admin/instance': typeof WWorkspaceAppAdminInstanceRoute
   '/w/$workspace/admin/users': typeof WWorkspaceAppAdminUsersRoute
   '/w/$workspace/admin/workspaces': typeof WWorkspaceAppAdminWorkspacesRoute
@@ -1260,12 +1301,15 @@ export interface FileRoutesByTo {
   '/w/$workspace/providers/adapters': typeof WWorkspaceAppProvidersAdaptersRoute
   '/w/$workspace/providers/events': typeof WWorkspaceAppProvidersEventsRoute
   '/w/$workspace/providers/routing': typeof WWorkspaceAppProvidersRoutingRoute
+  '/w/$workspace/providers/traffic-rules': typeof WWorkspaceAppProvidersTrafficRulesRoute
   '/w/$workspace/providers/warmup': typeof WWorkspaceAppProvidersWarmupRoute
   '/w/$workspace/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
   '/w/$workspace/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
+  '/w/$workspace/settings/brand-kit': typeof WWorkspaceAppSettingsBrandKitRoute
   '/w/$workspace/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
   '/w/$workspace/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
   '/w/$workspace/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
+  '/w/$workspace/settings/sending-rules': typeof WWorkspaceAppSettingsSendingRulesRoute
   '/w/$workspace/settings/webhooks': typeof WWorkspaceAppSettingsWebhooksRoute
   '/w/$workspace/transactional/import': typeof WWorkspaceAppTransactionalImportRoute
   '/w/$workspace/transactional/settings': typeof WWorkspaceAppTransactionalSettingsRoute
@@ -1380,6 +1424,7 @@ export interface FileRoutesById {
   '/invite/$token': typeof InviteTokenRoute
   '/r/$token': typeof RTokenRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
+  '/review/$token': typeof ReviewTokenRoute
   '/workspaces/new': typeof WorkspacesNewRoute
   '/w/$workspace/_app': typeof WWorkspaceAppRouteRouteWithChildren
   '/w/$workspace/agency': typeof WWorkspaceAgencyRouteRouteWithChildren
@@ -1397,6 +1442,7 @@ export interface FileRoutesById {
   '/w/$workspace/import/': typeof WWorkspaceImportIndexRoute
   '/w/$workspace/_app/admin/audit': typeof WWorkspaceAppAdminAuditRoute
   '/w/$workspace/_app/admin/authentication': typeof WWorkspaceAppAdminAuthenticationRoute
+  '/w/$workspace/_app/admin/bot-filter': typeof WWorkspaceAppAdminBotFilterRoute
   '/w/$workspace/_app/admin/instance': typeof WWorkspaceAppAdminInstanceRoute
   '/w/$workspace/_app/admin/users': typeof WWorkspaceAppAdminUsersRoute
   '/w/$workspace/_app/admin/workspaces': typeof WWorkspaceAppAdminWorkspacesRoute
@@ -1417,12 +1463,15 @@ export interface FileRoutesById {
   '/w/$workspace/_app/providers/adapters': typeof WWorkspaceAppProvidersAdaptersRoute
   '/w/$workspace/_app/providers/events': typeof WWorkspaceAppProvidersEventsRoute
   '/w/$workspace/_app/providers/routing': typeof WWorkspaceAppProvidersRoutingRoute
+  '/w/$workspace/_app/providers/traffic-rules': typeof WWorkspaceAppProvidersTrafficRulesRoute
   '/w/$workspace/_app/providers/warmup': typeof WWorkspaceAppProvidersWarmupRoute
   '/w/$workspace/_app/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
   '/w/$workspace/_app/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
+  '/w/$workspace/_app/settings/brand-kit': typeof WWorkspaceAppSettingsBrandKitRoute
   '/w/$workspace/_app/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
   '/w/$workspace/_app/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
   '/w/$workspace/_app/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
+  '/w/$workspace/_app/settings/sending-rules': typeof WWorkspaceAppSettingsSendingRulesRoute
   '/w/$workspace/_app/settings/webhooks': typeof WWorkspaceAppSettingsWebhooksRoute
   '/w/$workspace/_app/transactional/import': typeof WWorkspaceAppTransactionalImportRoute
   '/w/$workspace/_app/transactional/settings': typeof WWorkspaceAppTransactionalSettingsRoute
@@ -1538,6 +1587,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/r/$token'
     | '/reset-password/$token'
+    | '/review/$token'
     | '/workspaces/new'
     | '/w/$workspace/agency'
     | '/w/$workspace/account'
@@ -1554,6 +1604,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/import/'
     | '/w/$workspace/admin/audit'
     | '/w/$workspace/admin/authentication'
+    | '/w/$workspace/admin/bot-filter'
     | '/w/$workspace/admin/instance'
     | '/w/$workspace/admin/users'
     | '/w/$workspace/admin/workspaces'
@@ -1574,12 +1625,15 @@ export interface FileRouteTypes {
     | '/w/$workspace/providers/adapters'
     | '/w/$workspace/providers/events'
     | '/w/$workspace/providers/routing'
+    | '/w/$workspace/providers/traffic-rules'
     | '/w/$workspace/providers/warmup'
     | '/w/$workspace/settings/approvals'
     | '/w/$workspace/settings/audit'
+    | '/w/$workspace/settings/brand-kit'
     | '/w/$workspace/settings/keys'
     | '/w/$workspace/settings/mcp'
     | '/w/$workspace/settings/providers'
+    | '/w/$workspace/settings/sending-rules'
     | '/w/$workspace/settings/webhooks'
     | '/w/$workspace/transactional/import'
     | '/w/$workspace/transactional/settings'
@@ -1693,6 +1747,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/r/$token'
     | '/reset-password/$token'
+    | '/review/$token'
     | '/workspaces/new'
     | '/w/$workspace/account'
     | '/w/$workspace/notifications'
@@ -1707,6 +1762,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/import'
     | '/w/$workspace/admin/audit'
     | '/w/$workspace/admin/authentication'
+    | '/w/$workspace/admin/bot-filter'
     | '/w/$workspace/admin/instance'
     | '/w/$workspace/admin/users'
     | '/w/$workspace/admin/workspaces'
@@ -1727,12 +1783,15 @@ export interface FileRouteTypes {
     | '/w/$workspace/providers/adapters'
     | '/w/$workspace/providers/events'
     | '/w/$workspace/providers/routing'
+    | '/w/$workspace/providers/traffic-rules'
     | '/w/$workspace/providers/warmup'
     | '/w/$workspace/settings/approvals'
     | '/w/$workspace/settings/audit'
+    | '/w/$workspace/settings/brand-kit'
     | '/w/$workspace/settings/keys'
     | '/w/$workspace/settings/mcp'
     | '/w/$workspace/settings/providers'
+    | '/w/$workspace/settings/sending-rules'
     | '/w/$workspace/settings/webhooks'
     | '/w/$workspace/transactional/import'
     | '/w/$workspace/transactional/settings'
@@ -1846,6 +1905,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/r/$token'
     | '/reset-password/$token'
+    | '/review/$token'
     | '/workspaces/new'
     | '/w/$workspace/_app'
     | '/w/$workspace/agency'
@@ -1863,6 +1923,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/import/'
     | '/w/$workspace/_app/admin/audit'
     | '/w/$workspace/_app/admin/authentication'
+    | '/w/$workspace/_app/admin/bot-filter'
     | '/w/$workspace/_app/admin/instance'
     | '/w/$workspace/_app/admin/users'
     | '/w/$workspace/_app/admin/workspaces'
@@ -1883,12 +1944,15 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/providers/adapters'
     | '/w/$workspace/_app/providers/events'
     | '/w/$workspace/_app/providers/routing'
+    | '/w/$workspace/_app/providers/traffic-rules'
     | '/w/$workspace/_app/providers/warmup'
     | '/w/$workspace/_app/settings/approvals'
     | '/w/$workspace/_app/settings/audit'
+    | '/w/$workspace/_app/settings/brand-kit'
     | '/w/$workspace/_app/settings/keys'
     | '/w/$workspace/_app/settings/mcp'
     | '/w/$workspace/_app/settings/providers'
+    | '/w/$workspace/_app/settings/sending-rules'
     | '/w/$workspace/_app/settings/webhooks'
     | '/w/$workspace/_app/transactional/import'
     | '/w/$workspace/_app/transactional/settings'
@@ -2002,6 +2066,7 @@ export interface RootRouteChildren {
   WWorkspaceRouteRoute: typeof WWorkspaceRouteRouteWithChildren
   InviteTokenRoute: typeof InviteTokenRoute
   RTokenRoute: typeof RTokenRoute
+  ReviewTokenRoute: typeof ReviewTokenRoute
   WorkspacesNewRoute: typeof WorkspacesNewRoute
 }
 
@@ -2055,6 +2120,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/reset-password/$token'
       preLoaderRoute: typeof ResetPasswordTokenRouteImport
       parentRoute: typeof ResetPasswordRoute
+    }
+    '/review/$token': {
+      id: '/review/$token'
+      path: '/review/$token'
+      fullPath: '/review/$token'
+      preLoaderRoute: typeof ReviewTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/w/$workspace': {
       id: '/w/$workspace'
@@ -2180,6 +2252,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/authentication'
       fullPath: '/w/$workspace/admin/authentication'
       preLoaderRoute: typeof WWorkspaceAppAdminAuthenticationRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/admin/bot-filter': {
+      id: '/w/$workspace/_app/admin/bot-filter'
+      path: '/admin/bot-filter'
+      fullPath: '/w/$workspace/admin/bot-filter'
+      preLoaderRoute: typeof WWorkspaceAppAdminBotFilterRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/admin/instance': {
@@ -2385,6 +2464,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppProvidersRoutingRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/providers/traffic-rules': {
+      id: '/w/$workspace/_app/providers/traffic-rules'
+      path: '/providers/traffic-rules'
+      fullPath: '/w/$workspace/providers/traffic-rules'
+      preLoaderRoute: typeof WWorkspaceAppProvidersTrafficRulesRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/providers/warmup': {
       id: '/w/$workspace/_app/providers/warmup'
       path: '/providers/warmup'
@@ -2413,6 +2499,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppSettingsAuditRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/settings/brand-kit': {
+      id: '/w/$workspace/_app/settings/brand-kit'
+      path: '/settings/brand-kit'
+      fullPath: '/w/$workspace/settings/brand-kit'
+      preLoaderRoute: typeof WWorkspaceAppSettingsBrandKitRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/settings/keys': {
       id: '/w/$workspace/_app/settings/keys'
       path: '/settings/keys'
@@ -2432,6 +2525,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/providers'
       fullPath: '/w/$workspace/settings/providers'
       preLoaderRoute: typeof WWorkspaceAppSettingsProvidersRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/sending-rules': {
+      id: '/w/$workspace/_app/settings/sending-rules'
+      path: '/settings/sending-rules'
+      fullPath: '/w/$workspace/settings/sending-rules'
+      preLoaderRoute: typeof WWorkspaceAppSettingsSendingRulesRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/settings/webhooks': {
@@ -3106,6 +3206,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppIndexRoute: typeof WWorkspaceAppIndexRoute
   WWorkspaceAppAdminAuditRoute: typeof WWorkspaceAppAdminAuditRoute
   WWorkspaceAppAdminAuthenticationRoute: typeof WWorkspaceAppAdminAuthenticationRoute
+  WWorkspaceAppAdminBotFilterRoute: typeof WWorkspaceAppAdminBotFilterRoute
   WWorkspaceAppAdminInstanceRoute: typeof WWorkspaceAppAdminInstanceRoute
   WWorkspaceAppAdminUsersRoute: typeof WWorkspaceAppAdminUsersRoute
   WWorkspaceAppAdminWorkspacesRoute: typeof WWorkspaceAppAdminWorkspacesRoute
@@ -3126,12 +3227,15 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppProvidersAdaptersRoute: typeof WWorkspaceAppProvidersAdaptersRoute
   WWorkspaceAppProvidersEventsRoute: typeof WWorkspaceAppProvidersEventsRoute
   WWorkspaceAppProvidersRoutingRoute: typeof WWorkspaceAppProvidersRoutingRoute
+  WWorkspaceAppProvidersTrafficRulesRoute: typeof WWorkspaceAppProvidersTrafficRulesRoute
   WWorkspaceAppProvidersWarmupRoute: typeof WWorkspaceAppProvidersWarmupRoute
   WWorkspaceAppSettingsApprovalsRoute: typeof WWorkspaceAppSettingsApprovalsRoute
   WWorkspaceAppSettingsAuditRoute: typeof WWorkspaceAppSettingsAuditRoute
+  WWorkspaceAppSettingsBrandKitRoute: typeof WWorkspaceAppSettingsBrandKitRoute
   WWorkspaceAppSettingsKeysRoute: typeof WWorkspaceAppSettingsKeysRoute
   WWorkspaceAppSettingsMcpRoute: typeof WWorkspaceAppSettingsMcpRoute
   WWorkspaceAppSettingsProvidersRoute: typeof WWorkspaceAppSettingsProvidersRoute
+  WWorkspaceAppSettingsSendingRulesRoute: typeof WWorkspaceAppSettingsSendingRulesRoute
   WWorkspaceAppSettingsWebhooksRoute: typeof WWorkspaceAppSettingsWebhooksRoute
   WWorkspaceAppTransactionalImportRoute: typeof WWorkspaceAppTransactionalImportRoute
   WWorkspaceAppTransactionalSettingsRoute: typeof WWorkspaceAppTransactionalSettingsRoute
@@ -3221,6 +3325,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppIndexRoute: WWorkspaceAppIndexRoute,
   WWorkspaceAppAdminAuditRoute: WWorkspaceAppAdminAuditRoute,
   WWorkspaceAppAdminAuthenticationRoute: WWorkspaceAppAdminAuthenticationRoute,
+  WWorkspaceAppAdminBotFilterRoute: WWorkspaceAppAdminBotFilterRoute,
   WWorkspaceAppAdminInstanceRoute: WWorkspaceAppAdminInstanceRoute,
   WWorkspaceAppAdminUsersRoute: WWorkspaceAppAdminUsersRoute,
   WWorkspaceAppAdminWorkspacesRoute: WWorkspaceAppAdminWorkspacesRoute,
@@ -3243,12 +3348,17 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppProvidersAdaptersRoute: WWorkspaceAppProvidersAdaptersRoute,
   WWorkspaceAppProvidersEventsRoute: WWorkspaceAppProvidersEventsRoute,
   WWorkspaceAppProvidersRoutingRoute: WWorkspaceAppProvidersRoutingRoute,
+  WWorkspaceAppProvidersTrafficRulesRoute:
+    WWorkspaceAppProvidersTrafficRulesRoute,
   WWorkspaceAppProvidersWarmupRoute: WWorkspaceAppProvidersWarmupRoute,
   WWorkspaceAppSettingsApprovalsRoute: WWorkspaceAppSettingsApprovalsRoute,
   WWorkspaceAppSettingsAuditRoute: WWorkspaceAppSettingsAuditRoute,
+  WWorkspaceAppSettingsBrandKitRoute: WWorkspaceAppSettingsBrandKitRoute,
   WWorkspaceAppSettingsKeysRoute: WWorkspaceAppSettingsKeysRoute,
   WWorkspaceAppSettingsMcpRoute: WWorkspaceAppSettingsMcpRoute,
   WWorkspaceAppSettingsProvidersRoute: WWorkspaceAppSettingsProvidersRoute,
+  WWorkspaceAppSettingsSendingRulesRoute:
+    WWorkspaceAppSettingsSendingRulesRoute,
   WWorkspaceAppSettingsWebhooksRoute: WWorkspaceAppSettingsWebhooksRoute,
   WWorkspaceAppTransactionalImportRoute: WWorkspaceAppTransactionalImportRoute,
   WWorkspaceAppTransactionalSettingsRoute:
@@ -3495,6 +3605,7 @@ const rootRouteChildren: RootRouteChildren = {
   WWorkspaceRouteRoute: WWorkspaceRouteRouteWithChildren,
   InviteTokenRoute: InviteTokenRoute,
   RTokenRoute: RTokenRoute,
+  ReviewTokenRoute: ReviewTokenRoute,
   WorkspacesNewRoute: WorkspacesNewRoute,
 }
 export const routeTree = rootRouteImport

@@ -102,7 +102,7 @@ export function MembersPage({ search, onSearch }: { search: MembersSearch; onSea
                 <div>
                   <T
                     msg={d.helpers.length ? mm.readOnly : mm.readOnlyNoHelpers}
-                    values={{ manage: <span className="mono">{'earn:manage'}</span>, export: <span className="mono">{'subscribers:export'}</span>, helpers: orList(d.helpers) }}
+                    values={{ helpers: orList(d.helpers) }}
                   />
                 </div>
               </div>
@@ -286,7 +286,7 @@ function Header({ list, search, onImport, onComp }: { list: List; search: Member
     </div>
     {canExport ? null : (
       <span className="k self-end" id="ea-exp-why">
-        <T msg={list.helpers.length ? mm.exportNeeds : mm.exportNeedsNoHelpers} values={{ permission: <span className="mono">{'subscribers:export'}</span>, helpers: orList(list.helpers) }} />
+        <T msg={list.helpers.length ? mm.exportNeeds : mm.exportNeedsNoHelpers} values={{ helpers: orList(list.helpers) }} />
       </span>
     )}
     </div>

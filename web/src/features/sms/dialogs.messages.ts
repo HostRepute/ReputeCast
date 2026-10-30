@@ -25,7 +25,7 @@ export const m = defineMessages('smsDialogs', {
   removed: '{name} removed',
   cancel: 'Cancel',
   close: 'Close',
-  readOnly: 'You can see this provider; changing it needs providers:manage.',
+  readOnly: 'You can see this provider, but your role can’t change it.',
   // Add sender ID.
   addIdTitle: 'Add an alphanumeric sender ID',
   addIdText: 'Up to 11 letters and digits, such as ACME. Allowed in some countries, registered in others, not supported in the US and Canada. People can’t reply to it.',

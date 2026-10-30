@@ -164,8 +164,8 @@ export default translate(mu, {
   // States.
   loadError: 'Không tải được hướng dẫn',
   loadingLabel: 'Đang tải hướng dẫn',
-  needsEdit: 'Để thiết lập chương trình, bạn cần quyền <mono>grow:edit</mono>. Hãy hỏi {helpers}.',
-  needsEditNoHelpers: 'Để thiết lập chương trình, bạn cần quyền <mono>grow:edit</mono>.',
+  needsEdit: 'Vai trò của bạn không thể thiết lập chương trình. Hãy hỏi {helpers}.',
+  needsEditNoHelpers: 'Vai trò của bạn không thể thiết lập chương trình.',
   alreadyOn: 'Chương trình {list} đã bật.',
   backToGrow: 'Quay lại Tăng trưởng',
   saveFailed: 'Không lưu được hướng dẫn',

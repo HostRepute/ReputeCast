@@ -199,12 +199,12 @@ func (s *Service) require(ctx context.Context, perm authz.Permission) (*Staff, s
 // CodeAgencyOff is the problem code while agency mode is off.
 const CodeAgencyOff = "agency_off"
 
-// denied explains a missing agency permission and names the agency
-// managers who hold it.
+// denied says, in plain words, what a missing agency permission keeps the
+// reader from doing, and names the agency managers who hold it.
 func (s *Service) denied(ctx context.Context, perm authz.Permission) *api.Problem {
 	helpers := s.managerNames(ctx, 2)
 	l := i18n.LangFrom(ctx)
-	args := i18n.Args{"permission": string(perm), "what": deniedWhat(l, perm)}
+	args := i18n.Args{"what": deniedWhat(l, perm)}
 	msg := mDenied
 	if len(helpers) > 0 {
 		args["helpers"] = i18n.OrList(l.Locale, helpers)

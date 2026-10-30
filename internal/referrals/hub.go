@@ -234,6 +234,7 @@ func (s *Service) hubRewards(ctx context.Context, ws *store.Workspace, p store.R
 				}
 			case RewardCodes, RewardWebhook, RewardCoupon:
 				h.Code, h.AnswerURL = s.rewardCode(ctx, r)
+				h.ClaimURL = s.claimURL(ctx, ws, r, h.Code)
 			}
 		}
 		if r.RewardType == RewardManual {

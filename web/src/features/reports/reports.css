@@ -70,6 +70,13 @@
 .rep-ck.hot {
   background: var(--bad-strong);
 }
+/* Where bot clicks landed: grey, dashed (the board's Bot clicks view). */
+.rep-ck.bot {
+  border: 1px dashed #8b94a3;
+  background: var(--line-2);
+  color: var(--ink-2);
+  box-shadow: none;
+}
 /* A poll on the click map (design expansion, X11): one region with its answers. */
 .rep-poll {
   position: absolute;
@@ -91,6 +98,409 @@
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
+}
+
+/* Headline tiles (Report boards): two across on phones and tablets, four
+   on desktops; 14px 16px, 3px gaps, the comparison under the numbers. */
+.rep-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (min-width: 1101px) {
+  .rep-tiles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+/* While results still come in: six tiles (ReportStates), three across on
+   tablets, six on desktops. */
+@media (min-width: 768px) and (max-width: 1100px) {
+  .rep-tiles.six {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1101px) {
+  .rep-tiles.six {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+.rep-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px 16px;
+}
+/* The number and its trend over the last issues (review AN-11): the line
+   sits right of the number, and under it when the tile is too narrow. */
+.rep-tile-n {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2px 8px;
+}
+.rep-spark {
+  flex: none;
+  margin-bottom: 4px;
+}
+.rep-cmp {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.rep-cmp.pos {
+  color: #166534;
+}
+.rep-cmp.neg {
+  color: #991b1b;
+}
+.rep-cmp.neu {
+  color: var(--ink-3);
+}
+
+/* "What “of measurable” means": a disclosure with a stacked bar. */
+details.rep-opx > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+details.rep-opx > summary::-webkit-details-marker {
+  display: none;
+}
+details.rep-opx > summary .chev {
+  display: inline-flex;
+  transition: transform 0.18s ease;
+}
+details.rep-opx[open] > summary .chev {
+  transform: rotate(90deg);
+}
+.rep-opx-b {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 16px 14px;
+  font-size: 13px;
+}
+.rep-opx-b p {
+  margin: 0;
+  max-width: 820px;
+  color: var(--ink-2);
+}
+.rep-stk {
+  display: flex;
+  justify-content: space-between;
+  gap: 2px;
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--line-2);
+}
+.rep-stk i {
+  display: block;
+  height: 100%;
+}
+.rep-leg {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  font-size: 12px;
+}
+.rep-leg > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.rep-sw {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  box-sizing: border-box;
+}
+
+/* The board's grey note with an info mark (tracking sources, blocked bounces). */
+.rep-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f9fafb;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.rep-note > svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* "Results are still coming in" (ReportStates). */
+.rep-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #dbeafe;
+  font-size: 13.5px;
+}
+
+/* Insights. */
+.rep-ins {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rep-ins li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px 12px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--line-2);
+}
+.rep-ins li:first-child {
+  border-top: 0;
+}
+.rep-ins .rt {
+  display: flex;
+  flex: 1 1 280px;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rep-ins .badge {
+  margin-top: 1px;
+}
+
+/* Growth & revenue from this issue. */
+.rep-gts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.rep-gt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  background: #f9fafb;
+}
+.rep-lnk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* The 72-hour chart's axes and the rollout mark. */
+.rep-yax {
+  position: relative;
+  flex: none;
+  width: 34px;
+  height: 200px;
+}
+.rep-yax span {
+  position: absolute;
+  right: 0;
+  transform: translateY(-50%);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.rep-xax {
+  position: relative;
+  height: 16px;
+  margin-top: 6px;
+}
+.rep-xax span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.rep-xax span.x0 {
+  transform: none;
+}
+.rep-xax span.x9 {
+  transform: translateX(-100%);
+}
+.rep-mk {
+  position: absolute;
+  top: 4px;
+  padding: 0 4px;
+  background: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+/* Tables: row headers, sub-labels, a highlighted row with its note, totals. */
+.rep-tbl tbody th,
+.rep-tbl tfoot th {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--line-2);
+  text-align: left;
+  vertical-align: middle;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+  white-space: normal;
+}
+.rep-tbl tbody tr:last-child th {
+  border-bottom: 0;
+}
+.rep-tbl thead .rep-sub {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+.rep-tbl tr.hl td,
+.rep-tbl tr.hl th {
+  border-bottom: 0;
+}
+.rep-tbl tr.nt td {
+  padding-top: 0;
+}
+.rep-tbl tfoot td,
+.rep-tbl tfoot th {
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+}
+.rep-tbl tr.rep-focus th,
+.rep-tbl tr.rep-focus td {
+  background: var(--accent-tint);
+}
+
+/* Panes inside a card (A/B test, sharing), 1px dividers only between them. */
+.rep-panes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  overflow: hidden;
+  border-radius: 0 0 9px 9px;
+  background: var(--line-2);
+}
+.rep-panes > * {
+  min-width: 0;
+  box-sizing: border-box;
+  background: #fff;
+}
+.rep-pane {
+  display: flex;
+  flex: 1 1 300px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+}
+.rep-pane.win {
+  background: var(--ok-tint);
+}
+.rep-abbar {
+  height: 10px;
+  border-radius: 999px;
+}
+.rep-abbar i {
+  border-radius: 0 999px 999px 0;
+}
+
+/* Share options and active links. */
+.rep-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+.rep-opt input {
+  flex: none;
+  margin-top: 2px;
+}
+.rep-opt > span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.rep-lrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  details.rep-opx > summary .chev {
+    transition: none;
+  }
+}
+
+/* Phones: 44px targets, and the chart keeps every other hour. */
+@media (max-width: 767px) {
+  details.rep-opx > summary,
+  .rep-opt,
+  .rep-lnk,
+  main.rep-crumbs .btn,
+  main.rep-shared .btn,
+  .mainc:has(> main.rep-crumbs) > .top .btn,
+  main.rep-crumbs .in,
+  main.rep-crumbs .ai-kept-hr {
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+  /* A tile's own link ("1,108 bot clicks filtered"): a 44px target
+     without moving the lines around it. */
+  .rep-tile a {
+    display: inline-block;
+    padding-block: 14px;
+    margin-block: -14px;
+  }
+  .rep-opt {
+    align-items: center;
+  }
+  .rep-opt input {
+    margin-top: 0;
+  }
+  .rep-xax .xo {
+    display: none;
+  }
+  .rep-gts {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+  .seg.rep-seg button,
+  #rep-click-map select.in {
+    height: 44px;
+  }
 }
 
 /* The states board's grey blocks (6px corners, no shimmer on the strip). */

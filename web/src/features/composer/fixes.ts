@@ -64,6 +64,46 @@ export function replaceLink(target: Component, from: string, to: string): boolea
   return changed
 }
 
+/** Components whose content is text that may print Liquid variables. */
+const TEXT_TAGS = new Set(['mj-text', 'mj-button', 'mj-raw', 'mj-table', 'mj-navbar-link', 'mj-social-element', 'mj-accordion-title', 'mj-accordion-text', 'mj-hero'])
+
+/**
+ * Replaces a Liquid variable everywhere the email prints it ({{ frist_name
+ * | default: "there" }} → {{ first_name | default: "there" }}): the
+ * subject, the preheader, the A/B variants and the canvas. Returns how many
+ * places changed. Each canvas change is an edit like any other (undoable).
+ */
+export function replaceField(c: ComposerState, from: string, to: string): number {
+  const re = new RegExp(`(\\{\\{-?\\s*)${escapeRe(from)}(?![\\w])`, 'g')
+  let n = 0
+  const swap = (s: string) =>
+    s.replace(re, (_m, open: string) => {
+      n++
+      return `${open}${to}`
+    })
+  const subject = swap(c.subject)
+  if (subject !== c.subject) c.setSubject(subject)
+  const preheader = swap(c.preheader)
+  if (preheader !== c.preheader) c.setPreheader(preheader)
+  if (c.abTest) {
+    const before = n
+    const variants = c.abTest.variants.map((v) => ({ ...v, ...(v.subject ? { subject: swap(v.subject) } : {}), ...(v.preheader ? { preheader: swap(v.preheader) } : {}), ...(v.mjml ? { mjml: swap(v.mjml) } : {}) }))
+    if (n !== before) c.setABTest({ ...c.abTest, variants })
+  }
+  const walk = (x: Component) => {
+    if (TEXT_TAGS.has(tagOf(x)) && !mjChildren(x).length) {
+      const inner = x.getInnerHTML()
+      const next = swap(inner)
+      if (next !== inner) x.components(next)
+      return
+    }
+    x.components().forEach(walk)
+  }
+  const body = bodyOf(c)
+  if (body) walk(body)
+  return n
+}
+
 /** Appends the ReputeCast footer block (address + unsubscribe) to the body. */
 export function insertFooter(c: ComposerState) {
   const body = bodyOf(c)

@@ -176,7 +176,7 @@ export default translate(mc, {
   toEarn: 'Đến Kiếm tiền',
   // Permissions.
   forbiddenBadge: '403 · {role}',
-  forbiddenTitle: 'Kết nối nhà cung cấp thanh toán cần quyền payments:manage',
+  forbiddenTitle: 'Vai trò của bạn không thể kết nối nhà cung cấp thanh toán',
   forbiddenText: 'Hãy hỏi {helpers}. Bạn vẫn xem được kết nối và nhật ký sự kiện thanh toán trong Kiếm tiền › Cài đặt.',
   forbiddenTextNoHelpers: 'Bạn vẫn xem được kết nối và nhật ký sự kiện thanh toán trong Kiếm tiền › Cài đặt.',
   earnSettings: 'Cài đặt Kiếm tiền',

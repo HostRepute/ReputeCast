@@ -41,17 +41,17 @@ export default translate(pe, {
   fixChecks: 'Sửa {count, plural, other {# mục kiểm tra}} để xuất bản',
   fixChecksReason: 'Hãy sửa các mục kiểm tra xuất bản trước: {count, plural, other {# mục chưa đạt}}.',
   nothingToPublish: 'Không có gì để xuất bản: bản nháp giống hệt bản đã xuất bản.',
-  publishNeeds: 'Xuất bản cần quyền products:publish. {helpers} có thể xuất bản. Các thay đổi của bạn đã được lưu.',
-  publishNeedsUnsaved: 'Xuất bản cần quyền products:publish. {helpers} có thể xuất bản sau khi bạn lưu thay đổi.',
-  publishNeedsNoHelpers: 'Xuất bản cần quyền products:publish.',
+  publishNeeds: 'Vai trò của bạn không thể xuất bản sản phẩm. {helpers} có thể xuất bản. Các thay đổi của bạn đã được lưu.',
+  publishNeedsUnsaved: 'Vai trò của bạn không thể xuất bản sản phẩm. {helpers} có thể xuất bản sau khi bạn lưu thay đổi.',
+  publishNeedsNoHelpers: 'Vai trò của bạn không thể xuất bản sản phẩm.',
   noPublishTitle: '{name} không xuất bản được',
   noPublishText:
-    'Bạn có thể viết nội dung sản phẩm, tải tệp lên và đặt giá. Xuất bản, lưu trữ và đổi giá sản phẩm đã xuất bản cần quyền <mono>products:publish</mono>, mà vai trò {role} không có.',
+    'Bạn có thể viết nội dung sản phẩm, tải tệp lên và đặt giá. Vai trò {role} không thể xuất bản hay lưu trữ sản phẩm, cũng không thể đổi giá sản phẩm đã xuất bản.',
   readOnlyTitle: 'Chỉ đọc · {name}, {role}',
   readOnlyText:
-    'Bạn xem được sản phẩm này, các mục kiểm tra xuất bản và số liệu của nó. Chỉnh sửa cần quyền <mono>products:edit</mono> và xuất bản cần <mono>products:publish</mono>.',
+    'Bạn xem được sản phẩm này, các mục kiểm tra xuất bản và số liệu của nó. Vai trò của bạn không thể sửa hay xuất bản sản phẩm.',
   readOnlyTextAsk:
-    'Bạn xem được sản phẩm này, các mục kiểm tra xuất bản và số liệu của nó. Chỉnh sửa cần quyền <mono>products:edit</mono> và xuất bản cần <mono>products:publish</mono>. Hãy hỏi {helpers}.',
+    'Bạn xem được sản phẩm này, các mục kiểm tra xuất bản và số liệu của nó. Vai trò của bạn không thể sửa hay xuất bản sản phẩm. Hãy hỏi {helpers}.',
   more: 'Thao tác khác',
   archive: 'Lưu trữ',
   archiveTitle: 'Lưu trữ {name}?',
@@ -69,7 +69,7 @@ export default translate(pe, {
   leaveTitle: 'Rời trình sửa sản phẩm?',
   leaveText: 'Các thay đổi của bạn với {name} chưa được lưu.',
   loadError: 'Không tải được sản phẩm này',
-  forbiddenTitle: 'Sản phẩm cần quyền products:view',
+  forbiddenTitle: 'Vai trò của bạn không xem được sản phẩm',
   // Details.
   details: 'Chi tiết',
   name: 'Tên',

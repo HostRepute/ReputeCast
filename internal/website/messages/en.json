@@ -29,7 +29,7 @@
   "post.teamByline": { "message": "The {publisher} team", "note": "the default byline of a campaign's post; publisher: Acme" },
   "post.notWebOnly": "Only web-only posts can be sent as a campaign.",
   "post.sentAsCampaign": "This post was already sent as a campaign.",
-  "post.deletePublished": "Deleting a published post takes it off the site too. You need website:publish for that.",
+  "post.deletePublished": "Deleting a published post takes it off the site too. Your role can't unpublish posts.",
 
   "check.address.pass": { "message": "The address is free", "note": "a web check in Review & send" },
   "check.address.block": { "message": "The address is taken", "note": "a web check in Review & send; the send is blocked until it changes" },

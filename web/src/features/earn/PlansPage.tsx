@@ -76,7 +76,7 @@ function PlansBody({ plans, unmapped }: { plans: Plans; unmapped: Schemas['EarnU
             <div>
               <T
                 msg={plans.helpers.length ? mp.readOnly : mp.readOnlyNoHelpers}
-                values={{ permission: <span className="mono">{'earn:edit'}</span>, helpers: orList(plans.helpers) }}
+                values={{ helpers: orList(plans.helpers) }}
               />
             </div>
           </div>

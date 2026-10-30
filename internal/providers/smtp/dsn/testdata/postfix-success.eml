@@ -1,0 +1,56 @@
+Return-Path: <>
+Received: by mail.acme.io (Postfix) id 7B1E2D04; Sun, 12 Oct 2026 09:39:24 -0400 (EDT)
+Date: Sun, 12 Oct 2026 09:39:24 -0400 (EDT)
+From: MAILER-DAEMON@mail.acme.io (Mail Delivery System)
+Subject: Successful Mail Delivery Report
+To: bounces@news.acme.io
+Auto-Submitted: auto-replied
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=delivery-status;
+	boundary="7B1E2D04.1760276364/mail.acme.io"
+Message-Id: <20261012133924.7B1E2D04@mail.acme.io>
+
+This is a MIME-encapsulated message.
+
+--7B1E2D04.1760276364/mail.acme.io
+Content-Description: Notification
+Content-Type: text/plain; charset=us-ascii
+
+This is the mail system at host mail.acme.io.
+
+Your message was successfully delivered to the destination(s)
+listed below. If the message was delivered to mailbox you will
+receive no further notifications. Otherwise you may still receive
+notifications of mail delivery errors from other systems.
+
+<a.k@example.org>: delivery via mx.example.org[192.0.2.10]:25: 250 2.0.0
+    Ok: queued as 4cF2pQ0x1Bz
+
+--7B1E2D04.1760276364/mail.acme.io
+Content-Description: Delivery report
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns; mail.acme.io
+X-Postfix-Queue-ID: 7B1E2D04
+X-Postfix-Sender: rfc822; bounces@news.acme.io
+Arrival-Date: Sun, 12 Oct 2026 09:39:23 -0400 (EDT)
+
+Final-Recipient: rfc822; a.k@example.org
+Original-Recipient: rfc822;a.k@example.org
+Action: relayed
+Status: 2.0.0
+Remote-MTA: dns; mx.example.org
+Diagnostic-Code: smtp; 250 2.0.0 Ok: queued as 4cF2pQ0x1Bz
+
+--7B1E2D04.1760276364/mail.acme.io
+Content-Description: Message Headers
+Content-Type: text/rfc822-headers
+
+Return-Path: <bounces@news.acme.io>
+From: Acme Newsletter <news@news.acme.io>
+To: a.k@example.org
+Subject: Weekly Digest #142
+Message-ID: <0199d5a8-2b6e-7c41-9a0e-000000000003@news.acme.io>
+X-ReputeCast-Message: 0199d5a8-2b6e-7c41-9a0e-000000000003
+
+--7B1E2D04.1760276364/mail.acme.io--

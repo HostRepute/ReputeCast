@@ -77,6 +77,15 @@ func Register(h huma.API, s *Service) {
 			out, err := s.Get(ctx, ws, in.ID, WorkspaceAddress(ws))
 			return api.OK(out), err
 		})
+	api.Get(h, api.Op{ID: "preview-template", Path: "/workspaces/{workspace}/templates/{templateId}/preview", Summary: "A template's email, for the gallery's preview of it",
+		Description: "Compiled on the server (a starter in the workspace's brand kit), personalized for a reader without a first name so the fallbacks show, " +
+			"with its links, scripts and form controls taken out: a picture of the email, not a page to use.",
+		Tags: tags, Access: api.Workspace(authz.TemplatesView)},
+		func(ctx context.Context, in *templateInput) (*api.Body[EmailTemplatePreview], error) {
+			ws := api.WorkspaceFrom(ctx)
+			out, err := s.Preview(ctx, ws, in.ID, WorkspaceAddress(ws))
+			return api.OK(out), err
+		})
 	api.Post(h, api.Op{ID: "create-template", Path: "/workspaces/{workspace}/templates", Summary: "Save a template or a reusable section",
 		Tags: tags, Access: api.Workspace(authz.TemplatesEdit), Status: 201, MaxBodyBytes: 5 << 20},
 		func(ctx context.Context, in *createInput) (*api.Body[EmailTemplateDetail], error) {

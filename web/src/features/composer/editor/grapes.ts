@@ -1,9 +1,12 @@
-import type { Editor } from 'grapesjs'
+import type { Component, Editor } from 'grapesjs'
 import type { ComponentPluginOptions } from 'grapesjs-mjml'
 import { loadFeedItems } from '@/features/digests/composer/feedComponent'
 import { loadGrowBlocks } from '@/features/grow/composer/blocks'
 import { canvasCss } from './canvasCss'
 import { encodeTables, loadTable } from './components'
+import { chipify, loadLiquidChips } from './liquid'
+import { lockSynced } from './synced'
+import { withLiveText } from './live'
 import { installMjmlHooks, type MjmlCompile } from './mjmlHooks'
 
 /**
@@ -31,6 +34,12 @@ export interface ComposerEditor {
   compile: MjmlCompile
   /** The canvas as MJML: <mjml><mj-body>…</mj-body></mjml>. */
   getBody(): string
+  /**
+   * The canvas as MJML with the words of a text being typed, without ending
+   * its editing: autosave and the browser journal take them while the
+   * person is still typing (getBody has them only once the editing ends).
+   */
+  getLiveBody(): string
   /** Replaces the canvas content (undoable). */
   setBody(body: string): void
   /** True while a text is being edited on the canvas (its latest words aren't in the model yet). */
@@ -108,6 +117,8 @@ export async function createComposerEditor(container: HTMLElement, opts: CreateO
           columnsPadding: '0px',
           customComponents: [
             (e: Editor, o: ComponentPluginOptions) => loadTable(e, o),
+            // Personalization tokens as chips (CO-4); they export as their Liquid.
+            (e: Editor) => loadLiquidChips(e),
             // A recurring digest's Feed items block (it only appears in digest templates).
             (e: Editor, o: ComponentPluginOptions) => loadFeedItems(e, o),
             // Grow's Referral, Recommendations and Reward blocks (design expansion, X15).
@@ -122,12 +133,38 @@ export async function createComposerEditor(container: HTMLElement, opts: CreateO
   })
   await new Promise<void>((resolve) => editor.onReady(() => resolve()))
   if (!compile) throw new Error('grapesjs-mjml did not load')
+  chipify(editor)
+  // Synced Header and Footer change in the brand kit only (CO-11).
+  lockSynced(editor)
+  // Tokens typed in a text, or brought in by a block, become chips too.
+  const pending = new Set<Component>()
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const later = (c: Component | undefined) => {
+    if (!c) return
+    pending.add(c)
+    if (timer === undefined)
+      timer = setTimeout(() => {
+        timer = undefined
+        const roots = [...pending]
+        pending.clear()
+        // Removed meanwhile (no parent): nothing to do.
+        for (const r of roots) if (r.parent()) chipify(editor, r)
+        lockSynced(editor)
+      }, 0)
+  }
+  editor.on('rte:disable', (view: { model?: Component } | undefined) => later(view?.model))
+  editor.on('component:add', (c: Component) => {
+    if (c.get('type') !== 'rc-liquid' && c.get('type') !== 'textnode') later(c)
+  })
   return {
     editor,
     compile,
     getBody: () => editor.getHtml().trim(),
+    getLiveBody: () => withLiveText(editor, () => editor.getHtml().trim()),
     setBody: (body: string) => {
       editor.setComponents(encodeTables(body))
+      chipify(editor)
+      lockSynced(editor)
     },
     isEditingText: () => !!editor.getEditing(),
     flushEditing: async () => {

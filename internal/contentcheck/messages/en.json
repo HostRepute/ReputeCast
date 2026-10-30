@@ -48,11 +48,18 @@
   "link.blocklistTitle": {"message": "{kind, select, button {Button} image {Image} nav {Menu link} social {Social link} other {Link}} links to {host}, listed on {lists}", "note": "kind: what the link is; host: a domain; lists: blocklist names, SURBL and Spamhaus DBL"},
   "link.blocklistTag": "Link domain on {lists}",
   "link.blocklistDetail": "Mail linking to a blocklisted domain gets filtered regardless of your reputation. Use a domain you control.",
-  "link.replaceWith": {"message": "Replace with {target}", "note": "a button; target: an address on your own domain, acme.io/sale"},
+  "link.replaceWithDestination": {"message": "Replace with destination URL", "note": "a button: points a listed or shortened link at the page it redirects to, once that page is known to be clean"},
   "link.shortenerTitle": {"message": "{kind, select, button {Button} image {Image} nav {Menu link} social {Social link} other {Link}} redirects through {host}, a URL shortener", "note": "host: bit.ly"},
   "link.shortenerTag": "Shortened link",
   "link.shortenerDetail": "Shortened links hide where they go; filters treat them as suspicious and many shortener domains are blocklisted. Link to the page directly.",
   "link.brokenTitle": {"message": "{kind, select, button {Button} image {Image} nav {Menu link} social {Social link} other {Link}} to {url} {status, select, 0 {doesn't respond} other {returns {status}}}", "note": "status: the HTTP status the page answered with, 404"},
   "link.brokenTag": "Broken link",
-  "link.brokenDetail": "People who click get an error page. Fix the address or remove the link."
+  "link.brokenDetail": "People who click get an error page. Fix the address or remove the link.",
+
+  "link.unknownTitle": { "message": "Couldn't check {count, plural, one {# link domain} other {# link domains}} on {lists}", "note": "lists: blocklist names, Spamhaus DBL and SURBL" },
+  "link.unknownTag": "Not checked",
+  "link.unknownDetail": "{trouble, select, refused {The lists refused this server's DNS resolver; blocklist lookups need your own recursive resolver.} other {DNS didn't answer in time.}} Not knowing isn't the same as clean: Send Readiness looks them up again before the send.",
+
+  "unknownField.titleFallback": { "message": "{token} isn't a contact field, so everyone gets “{fallback}”", "note": "token: a personalization tag, {{ frist_name }}; fallback: what it prints instead" },
+  "unknownField.fallbackDetail": "The fallback hides the typo in previews but not from your readers. Check the spelling against the fields in the token menu."
 }

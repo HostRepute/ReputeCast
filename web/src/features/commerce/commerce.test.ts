@@ -1,5 +1,5 @@
 import type { Schemas } from '@/api/client'
-import { t } from '@/i18n'
+import { t, type Catalog, type MessageDescriptor } from '@/i18n'
 import { describe as describeEntry, entryTime } from './Activity'
 import { money, share, storefront } from './api'
 import { isStoreTrigger, storeOfTrigger, storeTriggerDefaults } from './automation'
@@ -66,5 +66,26 @@ describe('store triggers', () => {
     const flow = (kind: string, store?: string) => ({ nodes: [{ type: 'trigger', data: { trigger: { kind, store } as Schemas['AutomationTrigger'] } }] })
     expect(storeOfTrigger(flow('abandoned_checkout', 's1'))).toBe('s1')
     expect(storeOfTrigger(flow('joined_list', 's1'))).toBeUndefined()
+  })
+})
+
+// X-1: stores say what the reader's role can't do, or who can, in words
+// (integrations:manage never shows).
+const permissionKey = /\b[a-z]+:(?:view|edit|send|pause|approve|publish|content|create|import|export|delete|verify|manage|sql|share|hostrepute|invite|use|run|review|connect|transfer|usage|library)\b/
+const english = import.meta.glob<Record<string, Record<string, MessageDescriptor>>>('./**/*messages.ts', { eager: true })
+const vietnamese = import.meta.glob<Catalog>('./**/*messages.vi.ts', { eager: true, import: 'default' })
+
+describe("commerce copy", () => {
+  it('names no permission key, in English or Vietnamese', () => {
+    const en = Object.values(english).flatMap((file) => Object.values(file).flatMap((group) => Object.values(group)))
+    const vi = Object.values(vietnamese).flatMap((catalog) => Object.entries(catalog))
+    expect(en.length).toBeGreaterThan(0)
+    expect(vi.length).toBeGreaterThan(0)
+    for (const d of en) {
+      expect(d.message, d.id).not.toMatch(permissionKey)
+      // Nor does a call site pass one in: no {perm}, {perms} or {permission} to fill.
+      expect(d.message, d.id).not.toMatch(/\{perm(?:s|ission)?\}/)
+    }
+    for (const [id, text] of vi) expect(text, id).not.toMatch(permissionKey)
   })
 })

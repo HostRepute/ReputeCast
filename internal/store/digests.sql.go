@@ -363,7 +363,7 @@ func (q *Queries) DigestCampaignState(ctx context.Context, id uuid.UUID) (Digest
 }
 
 const digestCampaignTemplate = `-- name: DigestCampaignTemplate :one
-SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.sender_id, c.reply_to, c.audience, c.audience_count, c.editor_mode, c.mjml, c.html, c.plain_text, c.version, c.ab_test, c.schedule, c.thresholds, c.route_override, c.tracking, c.created_by, c.updated_by, c.created_at, c.updated_at, c.autosaved_at, c.scheduled_at, c.started_by, c.started_at, c.completed_at, c.deleted_at, c.origin, c.note, c.content_hash, c.content_settings, c.digest_id, c.digest_role, c.channel, coalesce(s.name, '')::text AS sender_name, coalesce(s.email, '')::text AS sender_email
+SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.sender_id, c.reply_to, c.audience, c.audience_count, c.editor_mode, c.mjml, c.html, c.plain_text, c.version, c.ab_test, c.schedule, c.thresholds, c.route_override, c.tracking, c.created_by, c.updated_by, c.created_at, c.updated_at, c.autosaved_at, c.scheduled_at, c.started_by, c.started_at, c.completed_at, c.deleted_at, c.origin, c.note, c.content_hash, c.content_settings, c.digest_id, c.digest_role, c.channel, c.canary, coalesce(s.name, '')::text AS sender_name, coalesce(s.email, '')::text AS sender_email
 FROM campaigns c LEFT JOIN senders s ON s.id = c.sender_id
 WHERE c.id = $1 AND c.deleted_at IS NULL
 `
@@ -406,6 +406,7 @@ type DigestCampaignTemplateRow struct {
 	DigestID        *uuid.UUID      `json:"digestId"`
 	DigestRole      string          `json:"digestRole"`
 	Channel         string          `json:"channel"`
+	Canary          string          `json:"canary"`
 	SenderName      string          `json:"senderName"`
 	SenderEmail     string          `json:"senderEmail"`
 }
@@ -452,6 +453,7 @@ func (q *Queries) DigestCampaignTemplate(ctx context.Context, id uuid.UUID) (Dig
 		&i.DigestID,
 		&i.DigestRole,
 		&i.Channel,
+		&i.Canary,
 		&i.SenderName,
 		&i.SenderEmail,
 	)

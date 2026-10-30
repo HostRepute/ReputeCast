@@ -145,7 +145,7 @@ export default translate(m, {
   quote: '“{text}”',
   commentBy: '{who} · {when}',
   commentByAnswer: '{answer} · {who} · {when}',
-  showing: 'Hiển thị {shown} trên {total} · chỉ người có quyền subscribers:view mới thấy tên',
+  showing: 'Hiển thị {shown} trên {total} · chỉ người có thể xem liên hệ mới thấy tên',
   previous: 'Trước',
   next: 'Sau',
   noComments: 'Chưa có nhận xét nào.',

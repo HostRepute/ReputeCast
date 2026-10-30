@@ -69,7 +69,7 @@ func TestCheckFindsEveryInlineWarning(t *testing.T) {
 <mj-section><mj-column><mj-text>` + big + `</mj-text></mj-column><mj-column><mj-text>{{ frist_name }}</mj-text></mj-column></mj-section>
 </mj-body></mjml>`
 	c := &Checker{Blocklist: StaticBlocklist{"go.acme-promo.link": {"SURBL", "Spamhaus DBL"}}}
-	r, err := c.Check(context.Background(), Input{Subject: "FLASH SALE!!! 48 HOURS ONLY", MJML: src, OwnDomains: []string{"news.acme.io"}, Fields: []string{"first_name", "email"}})
+	r, err := c.Check(context.Background(), Input{Subject: "FLASH SALE!!! 48 HOURS ONLY", MJML: src, Fields: []string{"first_name", "email"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,8 +85,10 @@ func TestCheckFindsEveryInlineWarning(t *testing.T) {
 	if r.Verdict != "blocked" || r.Issues[0].Severity != Block {
 		t.Fatalf("order and verdict: %s %+v", r.Verdict, r.Issues[0])
 	}
+	// Without the link's real destination, a listed link is edited by hand:
+	// no address is guessed (R1.U3).
 	bl := ids["links.blocklist"]
-	if bl.Fixes[0].Value != "https://acme.io/sale" || len(bl.Path) != 3 || bl.Path[0] != 2 {
+	if len(bl.Fixes) != 1 || bl.Fixes[0].Kind != "edit_link" || len(bl.Path) != 3 || bl.Path[0] != 2 {
 		t.Fatalf("blocklist fix: %+v", bl)
 	}
 	if alt := ids["content.alt_text"]; alt.Title != "Hero image has no alt text" || alt.Section != 1 {
@@ -97,9 +99,46 @@ func TestCheckFindsEveryInlineWarning(t *testing.T) {
 	}
 }
 
+// R4.U5: every check that blocks a send is known as blocking, so nobody can
+// dismiss its issues; warnings stay dismissible.
+func TestBlockingChecksCantBeDismissed(t *testing.T) {
+	src := `<mjml><mj-body>
+<mj-section><mj-column><mj-image src="/media/1/hero.png" width="552px"></mj-image><mj-button href="https://go.acme-promo.link/sale">Claim</mj-button>` +
+		`<mj-text>Hi {% if %} {{ frist_name }}</mj-text></mj-column></mj-section>
+</mj-body></mjml>`
+	c := &Checker{Blocklist: StaticBlocklist{"go.acme-promo.link": {"Spamhaus DBL"}}}
+	r, err := c.Check(context.Background(), Input{MJML: src, Fields: []string{"first_name"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	blocks := map[string]bool{}
+	for _, is := range r.Issues {
+		switch is.Severity {
+		case Block:
+			blocks[is.ID] = true
+			if !Blocking(is.ID) {
+				t.Errorf("%s blocks the send but isn't registered as blocking", is.ID)
+			}
+		case Warn:
+			if Blocking(is.ID) {
+				t.Errorf("%s is a warning but registered as blocking", is.ID)
+			}
+		}
+	}
+	for _, id := range []string{IssueFooter, IssueLiquidSyntax, IssueSubjectMissing, IssueLinkBlocklist} {
+		if !blocks[id] {
+			t.Fatalf("the email should trip %s: %+v", id, r.Issues)
+		}
+	}
+	RegisterBlocking("test.extra_block")
+	if !Blocking("test.extra_block") || Blocking("content.alt_text") {
+		t.Fatal("registered checks")
+	}
+}
+
 func TestCleanEmailIsReady(t *testing.T) {
 	src := `<mjml><mj-body>
-<mj-section><mj-column><mj-image src="/media/1/hero.png" alt="Roadmap" width="552px" height="180px" padding="0px"></mj-image><mj-text>Hi {{ first_name | default: "there" }}, here's what shipped this week at Acme, what we're retiring in November, and where the next quarter is headed. Feature flags are generally available and audit logs export to S3.</mj-text></mj-column></mj-section>
+<mj-section><mj-column><mj-image src="/media/1/hero.png" alt="Roadmap" width="552px" height="180px" padding="0px"></mj-image><mj-text>Hi {{ first_name | default: "there" }}, here's what shipped this week at Acme, what we're retiring in November, and where the next quarter is headed. Feature flags are generally available and audit logs export to S3.</mj-text><mj-text>The changelog has every detail, and the roadmap call on Thursday covers what's next for the API, the dashboard and self-hosted installs, with time for your questions.</mj-text></mj-column></mj-section>
 <mj-section><mj-column><mj-text>Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><a href="{{ unsubscribe_url }}">Unsubscribe</a></mj-text></mj-column></mj-section>
 </mj-body></mjml>`
 	r, err := (&Checker{}).Check(context.Background(), Input{Subject: "Three launches", MJML: src, Fields: []string{"first_name"}})

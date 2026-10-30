@@ -34,7 +34,7 @@ export default translate(m, {
   addressHint: 'Hiện ở cuối trang.',
   links: 'Liên kết và liên hệ',
   sections: 'Các phần',
-  readOnly: 'Bạn có thể đọc điều khoản. Xuất bản phiên bản mới cần quyền forms:edit.',
+  readOnly: 'Bạn có thể đọc điều khoản. Vai trò của bạn không thể xuất bản phiên bản mới.',
   noSms: 'Không gian làm việc này chưa thiết lập nhắn tin, nên trang trả về 404. Trang hoạt động khi có nhà cung cấp SMS đầu tiên.',
   addProvider: 'Thêm nhà cung cấp SMS',
   loading: 'Đang tải điều khoản tin nhắn',

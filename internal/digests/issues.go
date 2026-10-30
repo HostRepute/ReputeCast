@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -106,6 +107,20 @@ func (s *Service) Issues(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 	out := DigestIssues{Items: make([]DigestIssue, 0, len(rows))}
 	// The collecting issue counts its new posts as they stand.
 	open := s.openPosts(ctx, d.Digest)
+	// Who the next issue goes to, counted once at most: counting reads every
+	// contact on its lists, and the estimates and the approval check both
+	// need it.
+	next := sync.OnceValues(func() (*store.DigestCampaignTemplateRow, DigestAudience) {
+		tpl, err := s.template(ctx, d.Digest)
+		if err != nil || tpl == nil {
+			return nil, DigestAudience{Empty: true}
+		}
+		a, err := s.audienceOf(ctx, ws, tpl.Audience)
+		if err != nil {
+			return nil, DigestAudience{Empty: true}
+		}
+		return tpl, a
+	})
 	for _, r := range rows {
 		it := DigestIssue{ID: r.ID.String(), SendAt: r.SendAt, Deadline: r.Deadline, SkipReason: r.SkipReason, SkipNote: skipNoteIn(r.SkipNote, r.SkippedBy, l),
 			SkippedBy: r.SkippedByName, SkippedAt: r.SkippedAt, HoldReason: r.HoldReason, Posts: counts[r.ID], FeedTries: feedTriesIn(r.FeedTries, l),
@@ -133,7 +148,8 @@ func (s *Service) Issues(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 			if r.CampaignAudience != nil && *r.CampaignAudience > 0 {
 				n := *r.CampaignAudience
 				it.Recipients = &n
-			} else if est := s.estimate(ctx, ws, d.Digest); est > 0 {
+			} else if _, a := next(); !a.Empty && a.Final > 0 {
+				est := a.Final
 				it.Recipients = &est
 			}
 			it.Estimated = it.Recipients != nil
@@ -161,11 +177,14 @@ func (s *Service) Issues(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 		}
 		prev = it
 	}
-	needs := s.needsApproval(ctx, ws, d.Digest)
+	needs := sync.OnceValue(func() bool {
+		tpl, a := next()
+		return tpl != nil && s.needsApproval(ctx, ws, d.Digest, tpl, a)
+	})
 	for i := range out.Items {
 		switch out.Items[i].Status {
 		case "collecting", "preparing":
-			out.Items[i].NeedsApproval = needs
+			out.Items[i].NeedsApproval = needs()
 		}
 	}
 	return out, nil
@@ -219,10 +238,18 @@ func feedTriesIn(raw json.RawMessage, l i18n.Lang) []DigestFeedTry {
 
 // skipNoteIn is why an issue was skipped, for a reader: what a person
 // wrote stays as written; what a digest wrote when its owner lost a
-// permission is written in the reader's language.
+// permission is written in the reader's language, as what the owner can no
+// longer do, never the permission key (review X-1).
 func skipNoteIn(note string, by *uuid.UUID, l i18n.Lang) string {
 	if perm, ok := strings.CutPrefix(note, ownerLostPrefix); ok && by == nil {
-		return mIssueOwnerLost.Text(l, i18n.Args{"permission": perm})
+		lost := ""
+		switch authz.Permission(perm) {
+		case authz.CampaignsSend:
+			lost = "send"
+		case authz.CampaignsEdit:
+			lost = "edit"
+		}
+		return mIssueOwnerLost.Text(l, i18n.Args{"lost": lost})
 	}
 	return note
 }
@@ -243,19 +270,6 @@ func (s *Service) openPosts(ctx context.Context, d store.Digest) int {
 	}
 	n := len(newItems(all))
 	return min(n, b.Max)
-}
-
-// estimate counts the recipients an issue would have now.
-func (s *Service) estimate(ctx context.Context, ws *store.Workspace, d store.Digest) int64 {
-	tpl, err := s.template(ctx, d)
-	if err != nil || tpl == nil || s.checks() == nil {
-		return 0
-	}
-	a, err := s.checks().Audience(ctx, ws, tpl.Audience)
-	if err != nil || a.Empty {
-		return 0
-	}
-	return a.Final
 }
 
 // issueFor loads an issue of a digest of the workspace.

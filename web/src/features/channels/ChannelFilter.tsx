@@ -2,7 +2,7 @@ import { $api } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { formatList, useT } from '@/i18n'
 import { useWorkspace } from '@/lib/session'
-import { channelIcon, channelName, type Channel } from './ChannelSwitch'
+import { channelIcon, channelName, type Channel } from './channel'
 import { m } from './messages'
 import './channels.css'
 

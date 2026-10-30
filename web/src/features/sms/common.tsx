@@ -4,7 +4,7 @@ import { ApiError, type Schemas } from '@/api/client'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { NavTabs } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
-import { ChannelSwitch } from '@/features/channels/ChannelSwitch'
+import { ChannelMenu } from '@/features/channels/ChannelMenu'
 import { getI18n, useT, type MessageDescriptor } from '@/i18n'
 import { dayMonthDate, dayMonthYear, money } from '@/lib/format'
 import { roleName } from '@/lib/roles'
@@ -42,14 +42,14 @@ export async function copyText(text: string): Promise<boolean> {
 export type SenderKind = Schemas['SmsSenderRow']['kind']
 export type Registration = Schemas['SmsRegistrationView']
 
-/** The SMS section's header: the channel switch, then its three tabs. */
+/** The SMS section's header: the channel menu, then its three tabs. */
 export function SmsTabs() {
   const t = useT()
   const { slug } = useWorkspace()
   const params = { workspace: slug }
   return (
     <>
-      <ChannelSwitch current="sms" />
+      <ChannelMenu current="sms" />
       <NavTabs
         label={t(m.sections)}
         className="ml-3 max-md:ml-0"

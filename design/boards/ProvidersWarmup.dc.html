@@ -65,7 +65,7 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
 /* responsive shell */
 @media (max-width:1100px){
   .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
-  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .brand-t,.side .ws{display:none}.side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .side .nav a{justify-content:center;padding:0!important;height:44px}
   .side .nav svg{width:20px;height:20px}
   .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
@@ -169,6 +169,31 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 .ws .av{font-weight:700}
 /* switches: a disabled switch looks disabled */
 .tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+/* review: volume-based warm-up, per-mailbox caps, overflow switch */
+.mbar{display:flex;height:12px;gap:2px;border-radius:999px;overflow:hidden;background:#EEF0F3}
+.mbar i{display:block;height:100%}
+.mtbl td,.mtbl th{padding:7px 8px}
+.mtbl td .dot{margin-right:8px}
+.mtbl tr.tot td{font-weight:600;border-top:1px solid #E3E6EB}
+.lg{display:flex;gap:10px;font-size:13px}
+.lg > .mono{flex:none;white-space:nowrap;min-width:76px}
+.cap,.sent{min-height:2px}
+.tbl .badge svg{flex:none}
+.tbl td.nw{white-space:nowrap}
+.tbl td .k{margin-top:2px}
+input[type=checkbox].tgx{appearance:none;-webkit-appearance:none;width:40px;height:24px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tgx::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff}
+input[type=checkbox].tgx:checked{background:#0F766E}input[type=checkbox].tgx:checked::after{left:18px}
+@media (max-width:767px){.top .chbtn,.top .btn,.content .btn{min-height:44px}.sc-host .in{height:44px}.top .tabs a{height:44px}}
+/* header: one channel button with a listbox, as on the traffic rules board */
+.chbtn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 10px;border:1px solid #D4D8DF;border-radius:8px;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.chbtn:hover{background:#F3F4F6}
+.chbtn .chv{color:#5B6472}
+.menu a[aria-selected="true"]{font-weight:600}
+@media (max-width:767px){.chbtn{height:44px}}
+
+/* phones: every top-bar target is at least 44px (tabs, links, fields, buttons, the bell and the account menu) */
+@media (max-width:767px){.top .tabs a{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box}.top a:not(.btn){min-height:44px}.top .btn,.top .in,.top select,.top input{min-height:44px;box-sizing:border-box}.top .ibtn{width:44px;height:44px;box-sizing:border-box}.top .ubtn{min-height:44px;box-sizing:border-box}.top nav[aria-label="Breadcrumb"] a{min-width:44px;justify-content:center}.top .chsw a{min-height:44px!important}}
 </style>
 </helmet>
 <div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh">
@@ -178,19 +203,19 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
       <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
       <span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span>
     </a>
-    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Acme Newsletter, your role Owner"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Acme Newsletter, Owner, switch workspace"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
     <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px" aria-label="Main">
-      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
-      <a href="Campaigns.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
-      <a href="AutomationsList.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
-      <a href="Transactional.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
-      <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
-      <a href="GrowOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
-      <a href="EarnOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
-      <a href="FormBuilder.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
-      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
-      <a href="Providers.dc.html" class="on xm" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
-      <a href="WorkspaceSettings.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="Main.dc.html" title="Overview"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html" title="Campaigns"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html" class="xm" title="Automations"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Transactional.dc.html" class="xm" title="Transactional"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
+      <a href="Contacts.dc.html" title="Audience"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="GrowOverview.dc.html" class="xm" title="Grow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
+      <a href="EarnOverview.dc.html" class="xm" title="Earn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
+      <a href="FormBuilder.dc.html" class="xm" title="Forms &amp; pages"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html" title="Deliverability"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html" class="on xm" aria-current="page" title="Sending providers"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html" class="xm" title="Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
       <a href="ShellMore.dc.html" class="more on" aria-label="More: Automations, Transactional, Grow, Earn, Forms & pages, Sending providers, Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">More</span></a>
     </nav>
   </aside>
@@ -198,109 +223,162 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
     <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
       <h1 style="margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em">Sending providers &amp; routing</h1>
-      <nav class="chsw" aria-label="Channel" style="margin-left:4px"><a href="Providers.dc.html" class="on" aria-current="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Email</a><a href="SmsProviders.dc.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2.5h10A1.5 1.5 0 0 1 14.5 4v6a1.5 1.5 0 0 1-1.5 1.5H7.6L4.5 14v-2.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5z"></path><path d="M5.2 7h.01M8 7h.01M10.8 7h.01" stroke-width="2.2"></path></svg>SMS</a><a href="PushSetup.dc.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg>Push</a><a href="WhatsAppChannel.dc.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8a6.2 6.2 0 0 0-5.33 9.36L1.8 14.2l3.13-.84A6.2 6.2 0 1 0 8 1.8z"></path><path d="M6.1 5.2c-.5 0-.95.45-.85 1.05.35 2.2 2.15 4.05 4.4 4.45.6.1 1.05-.35 1.05-.85v-.55l-1.5-.65-.6.6a3.7 3.7 0 0 1-2-2l.6-.6-.65-1.5z" stroke-width="1.25"></path></svg>WhatsApp</a></nav>
+      <div style="position:relative;margin-left:4px">
+        <button class="chbtn" type="button" aria-haspopup="listbox" aria-expanded="{{chOpen}}" aria-label="Channel: Email. Change channel" onClick="{{toggleCh}}"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Email<svg class="chv" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+        <sc-if value="{{chOpen}}" hint-placeholder-val="{{false}}">
+          <div class="menu" role="listbox" aria-label="Channel" style="top:40px;left:0;min-width:210px">
+            <a role="option" aria-selected="true" href="Providers.dc.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span style="flex:1">Email</span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#0F766E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg></a>
+            <a role="option" aria-selected="false" href="SmsProviders.dc.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2.5h10A1.5 1.5 0 0 1 14.5 4v6a1.5 1.5 0 0 1-1.5 1.5H7.6L4.5 14v-2.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5z"></path></svg><span style="flex:1">SMS</span></a>
+            <a role="option" aria-selected="false" href="PushSetup.dc.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span style="flex:1">Push</span></a>
+            <a role="option" aria-selected="false" href="WhatsAppChannel.dc.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8a6.2 6.2 0 0 0-5.33 9.36L1.8 14.2l3.13-.84A6.2 6.2 0 1 0 8 1.8z"></path></svg><span style="flex:1">WhatsApp</span></a>
+          </div>
+        </sc-if>
+      </div>
       <nav class="tabs" aria-label="Sections" style="margin-left:12px">
         <a href="Providers.dc.html">Providers</a>
         <a href="ProvidersRouting.dc.html">Routing &amp; failover</a>
-        <a href="ProvidersWarmup.dc.html" class="on">Warm-up</a>
+        <a href="ProvidersWarmup.dc.html" class="on" aria-current="page">Warm-up</a>
+        <a href="ProvidersTrafficRules.dc.html">Traffic rules</a>
         <a href="ProvidersEvents.dc.html">Events &amp; sync</a>
         <a href="ProvidersAdapters.dc.html">Adapters</a>
       </nav>
       <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <button class="btn">Pause warm-up</button>
         <button class="btn pri">New warm-up plan</button>
-      <div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
+      <div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Linh Nguyen, account menu"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
     </header>
 
     <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
-      <section class="card" style="padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+      <section class="card" style="padding:20px 22px;display:flex;flex-direction:column;gap:14px" aria-labelledby="wu-h">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-          <h2 class="h2" style="font-size:17px">Postal · dedicated IP 203.0.113.25</h2>
+          <h2 class="h2" id="wu-h" style="font-size:17px">Postal · dedicated IP 203.0.113.25</h2>
           <span class="badge info"><span class="dot"></span>Warming up · day 9 of 21</span>
-          <span class="badge mut">started Sat 4 Oct</span>
-          <span class="k" style="margin-left:auto">Finishes Fri 24 Oct, then Postal is eligible as a Broadcast failover target</span>
+          <span class="badge mut">started Wed 1 Oct</span>
+          <span class="k" style="margin-left:auto">Finishes Mon 27 Oct at the earliest, then Postal is eligible as a Broadcast failover target</span>
         </div>
-        <div style="display:flex;height:10px;gap:2px;border-radius:5px;overflow:hidden;background:#EEF0F3"><div style="width:42.8%;background:#1c5cab"></div></div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;height:10px;gap:2px;border-radius:5px;overflow:hidden;background:#EEF0F3" aria-hidden="true"><div style="width:38.1%;background:#1c5cab"></div></div>
+          <span class="k">8 of 21 days counted</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:8px;background:#F9FAFB;border:1px solid #E3E6EB">
+          <h3 style="margin:0;font-size:13px;font-weight:600">How the plan moves</h3>
+          <ul style="margin:0;padding-left:18px;font-size:13px;display:flex;flex-direction:column;gap:4px">
+            <li>A day counts once at least 80% of its cap was sent and bounces stayed under the guard. <strong>Sunday sent 0, so day 9 repeats tomorrow.</strong></li>
+            <li>Guards judge a day only after 500 messages.</li>
+            <li>After a guard trips, the cap holds until 2 healthy days in a row; then the ramp resumes one step up.</li>
+            <li>Pausing freezes the plan; it resumes on the day it stopped.</li>
+          </ul>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px">
           <div><div class="k">Today's cap</div><div class="n" style="font-size:20px">6,000</div><div class="k">0 sent · Sunday, no broadcasts</div></div>
-          <div><div class="k">Sent during warm-up</div><div class="n" style="font-size:20px">21,420</div><div class="k">of 24,600 planned so far</div></div>
+          <div><div class="k">Sent during warm-up</div><div class="n" style="font-size:20px">20,398</div><div class="k">8 of 11 days counted</div></div>
           <div><div class="k">Bounce rate · guard 2%</div><div class="n" style="font-size:20px">0.9%</div><div class="k">7-day</div></div>
           <div><div class="k">Complaint rate · guard 0.1%</div><div class="n" style="font-size:20px">0.05%</div><div class="k">7-day</div></div>
-          <div><div class="k">Slowdowns</div><div class="n" style="font-size:20px">1</div><div class="k">day 6 held, bounces 2.3%</div></div>
+          <div><div class="k">Slowdowns</div><div class="n" style="font-size:20px">1</div><div class="k">day 6, bounces 2.3%</div></div>
           <div><div class="k">Rate limit today</div><div class="n" style="font-size:20px">2 /s</div><div class="k">rises to 4 /s on day 12</div></div>
         </div>
       </section>
 
       <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
-        <section class="card" style="flex:2 1 600px;min-width:0;display:flex;flex-direction:column">
+        <section class="card" style="flex:2 1 600px;min-width:0;display:flex;flex-direction:column" aria-labelledby="ramp-h">
           <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px">
-            <h2 class="h2">Daily volume ramp</h2>
-            <div style="display:flex;gap:14px;font-size:12px"><span style="display:flex;gap:6px;align-items:center"><span style="width:10px;height:10px;border-radius:2px;background:#DBEAFE"></span>planned cap</span><span style="display:flex;gap:6px;align-items:center"><span style="width:10px;height:10px;border-radius:2px;background:#1c5cab"></span>sent</span></div>
+            <h2 class="h2" id="ramp-h">Daily volume ramp</h2>
+            <div style="display:flex;gap:14px;font-size:12px;flex-wrap:wrap"><span style="display:flex;gap:6px;align-items:center"><span style="width:10px;height:10px;border-radius:2px;background:#DBEAFE;box-shadow:inset 0 0 0 1px #8B94A3"></span>planned cap</span><span style="display:flex;gap:6px;align-items:center"><span style="width:10px;height:10px;border-radius:2px;background:#1c5cab"></span>sent</span><span style="display:flex;gap:6px;align-items:center"><span style="width:10px;height:10px;border-radius:2px;background:#B45309"></span>guard tripped</span></div>
           </div>
           <div style="padding:18px 20px;display:flex;flex-direction:column;gap:8px">
-            <div style="display:flex;align-items:flex-end;gap:4px;height:180px" role="img" aria-label="Daily caps rising from 200 on day 1 to 48,000 on day 21, with sent volume filled in for days 1 to 8">
-              <div class="col"><div class="sent" style="height:1%"></div></div>
-              <div class="col"><div class="sent" style="height:2%"></div></div>
-              <div class="col"><div class="sent" style="height:3%"></div></div>
-              <div class="col"><div class="sent" style="height:5%"></div></div>
-              <div class="col"><div class="sent" style="height:7%"></div></div>
-              <div class="col"><div class="sent" style="height:10%;background:#B45309"></div></div>
+            <div style="display:flex;align-items:flex-end;gap:4px;height:180px" role="img" aria-label="Planned daily caps by plan day, drawn to scale: 200 on day 1 rising to 48,000 on day 21. Days 1 to 8 are sent. Day 6 tripped the bounce guard and held its 2,600 cap for two healthy days; the ramp then resumed one step up, day 7 at 3,600. Day 9, today, plans 6,000.">
+              <div class="col"><div class="sent" style="height:0.4%"></div></div>
+              <div class="col"><div class="sent" style="height:0.8%"></div></div>
+              <div class="col"><div class="sent" style="height:1.5%"></div></div>
+              <div class="col"><div class="sent" style="height:2.5%"></div></div>
+              <div class="col"><div class="sent" style="height:3.8%"></div></div>
+              <div class="col"><div class="sent" style="height:5.4%;background:#B45309"></div></div>
+              <div class="col"><div class="sent" style="height:7.5%"></div></div>
               <div class="col"><div class="sent" style="height:10%"></div></div>
-              <div class="col"><div class="sent" style="height:17%"></div></div>
-              <div class="col" style="border-bottom:3px solid #0B1220"><div class="cap" style="height:22%"></div></div>
-              <div class="col"><div class="cap" style="height:27%"></div></div>
-              <div class="col"><div class="cap" style="height:32%"></div></div>
-              <div class="col"><div class="cap" style="height:38%"></div></div>
-              <div class="col"><div class="cap" style="height:44%"></div></div>
+              <div class="col" style="border-bottom:3px solid #0B1220"><div class="cap" style="height:12.5%"></div></div>
+              <div class="col"><div class="cap" style="height:15.6%"></div></div>
+              <div class="col"><div class="cap" style="height:18.8%"></div></div>
+              <div class="col"><div class="cap" style="height:22.9%"></div></div>
+              <div class="col"><div class="cap" style="height:28.1%"></div></div>
+              <div class="col"><div class="cap" style="height:34.4%"></div></div>
+              <div class="col"><div class="cap" style="height:41.7%"></div></div>
               <div class="col"><div class="cap" style="height:50%"></div></div>
-              <div class="col"><div class="cap" style="height:56%"></div></div>
-              <div class="col"><div class="cap" style="height:63%"></div></div>
-              <div class="col"><div class="cap" style="height:70%"></div></div>
-              <div class="col"><div class="cap" style="height:78%"></div></div>
-              <div class="col"><div class="cap" style="height:85%"></div></div>
-              <div class="col"><div class="cap" style="height:92%"></div></div>
+              <div class="col"><div class="cap" style="height:59.4%"></div></div>
+              <div class="col"><div class="cap" style="height:69.8%"></div></div>
+              <div class="col"><div class="cap" style="height:79.2%"></div></div>
+              <div class="col"><div class="cap" style="height:89.6%"></div></div>
               <div class="col"><div class="cap" style="height:100%"></div></div>
             </div>
-            <div style="display:flex;justify-content:space-between" class="k"><span>Day 1 · 200</span><span>Day 9 · today · 6,000</span><span>Day 21 · 48,000</span></div>
+            <div style="display:flex;justify-content:space-between;gap:8px" class="k"><span>Day 1 · 200</span><span>Day 9 · today · 6,000</span><span>Day 21 · 48,000</span></div>
           </div>
           <div style="overflow-x:auto;border-top:1px solid #EEF0F3">
-            <table class="tbl">
-              <thead><tr><th scope="col">Day</th><th scope="col">Date</th><th scope="col" class="r">Cap</th><th scope="col" class="r">Sent</th><th scope="col" class="r">Bounce</th><th scope="col" class="r">Complaints</th><th scope="col">Audience</th><th scope="col">Status</th></tr></thead>
+            <table class="tbl" style="min-width:720px">
+              <caption class="vh">Warm-up days, with whether each one counted</caption>
+              <thead><tr><th scope="col">Day</th><th scope="col">Date</th><th scope="col" class="r">Cap</th><th scope="col" class="r">Sent</th><th scope="col" class="r">Bounce</th><th scope="col" class="r">Complaints</th><th scope="col">Audience</th><th scope="col">Counted</th></tr></thead>
               <tbody>
-                <tr><td>5</td><td>Wed 8 Oct</td><td class="r n">1,800</td><td class="r n">1,800</td><td class="r n">1.2%</td><td class="r n">0.00%</td><td>Active tier</td><td><span class="badge ok">Done</span></td></tr>
-                <tr style="background:#FFFBEB"><td>6</td><td>Thu 9 Oct</td><td class="r n">2,600</td><td class="r n">2,600</td><td class="r n" style="color:#92400E">2.3%</td><td class="r n">0.04%</td><td>Active tier</td><td><span class="badge warn">Slowdown · bounces over 2%</span></td></tr>
-                <tr><td>7</td><td>Fri 10 Oct</td><td class="r n">2,600 · held</td><td class="r n">2,600</td><td class="r n">0.8%</td><td class="r n">0.04%</td><td>Active tier</td><td><span class="badge ok">Done · ramp resumed</span></td></tr>
-                <tr><td>8</td><td>Sat 11 Oct</td><td class="r n">4,800</td><td class="r n">4,798</td><td class="r n">0.9%</td><td class="r n">0.05%</td><td>Active + Cooling</td><td><span class="badge ok">Done</span></td></tr>
-                <tr style="background:#F0FDFA"><td style="font-weight:700">9</td><td style="font-weight:700">Sun 12 Oct</td><td class="r n">6,000</td><td class="r n">0</td><td class="r n">–</td><td class="r n">–</td><td>Active + Cooling</td><td><span class="badge info">Today</span></td></tr>
-                <tr><td>10</td><td>Mon 13 Oct</td><td class="r n">7,500</td><td class="r n">–</td><td class="r n">–</td><td class="r n">–</td><td>Active + Cooling</td><td><span class="badge mut">Planned</span></td></tr>
-                <tr><td>11</td><td>Tue 14 Oct</td><td class="r n">9,000</td><td class="r n">–</td><td class="r n">–</td><td class="r n">–</td><td>Active + Cooling · Weekly Digest #142 uses 3,160</td><td><span class="badge mut">Planned</span></td></tr>
-                <tr><td>12</td><td>Wed 15 Oct</td><td class="r n">11,000</td><td class="r n">–</td><td class="r n">–</td><td class="r n">–</td><td>All tiers except Sunset · share rises to 15%</td><td><span class="badge mut">Planned</span></td></tr>
-                <tr><td>21</td><td>Fri 24 Oct</td><td class="r n">48,000</td><td class="r n">–</td><td class="r n">–</td><td class="r n">–</td><td>All · share 40%, eligible as failover</td><td><span class="badge mut">Planned</span></td></tr>
+                <tr><td class="nw">1–5</td><td class="nw">Wed 1 Oct<div class="k">to Mon 6 Oct</div></td><td class="r n">4,300</td><td class="r n">4,300</td><td class="r n">0.5%</td><td class="r n">0.03%</td><td>Active tier</td><td><span class="badge ok"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"></path></svg>Counted</span><div class="k">5 days · Sun 5 Oct sent 0, so day 5 repeated on Monday</div></td></tr>
+                <tr style="background:#FFFBEB"><td>6</td><td class="nw">Tue 7 Oct</td><td class="r n">2,600</td><td class="r n">2,600</td><td class="r n" style="color:#92400E;font-weight:600">2.3%</td><td class="r n">0.04%</td><td>Active tier</td><td><span class="badge warn"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4.5 4.5 7 7M11.5 4.5l-7 7"></path></svg>Not counted</span><div class="k">bounces over 2% · slowdown, the cap holds at 2,600</div></td></tr>
+                <tr><td>6</td><td class="nw">Wed 8 Oct</td><td class="r n">2,600<div class="k">held</div></td><td class="r n">2,600</td><td class="r n">0.2%</td><td class="r n">0.04%</td><td>Active tier</td><td><span class="badge info"><span class="dot"></span>Held</span><div class="k">healthy day 1 of 2 · the plan stays on day 6 while the cap holds</div></td></tr>
+                <tr><td>6</td><td class="nw">Thu 9 Oct</td><td class="r n">2,600<div class="k">held</div></td><td class="r n">2,600</td><td class="r n">0.8%</td><td class="r n">0.04%</td><td>Active tier</td><td><span class="badge ok"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"></path></svg>Counted</span><div class="k">healthy day 2 of 2 · ramp resumes</div></td></tr>
+                <tr><td>7</td><td class="nw">Fri 10 Oct</td><td class="r n">3,600</td><td class="r n">3,500</td><td class="r n">0.7%</td><td class="r n">0.04%</td><td>Active tier</td><td><span class="badge ok"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"></path></svg>Counted</span></td></tr>
+                <tr><td>8</td><td class="nw">Sat 11 Oct</td><td class="r n">4,800</td><td class="r n">4,798</td><td class="r n">0.9%</td><td class="r n">0.06%</td><td>Active + Cooling</td><td><span class="badge ok"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"></path></svg>Counted</span></td></tr>
+                <tr style="background:#F0FDFA"><td style="font-weight:700">9</td><td class="nw" style="font-weight:700">Sun 12 Oct<div class="k" style="font-weight:500">today</div></td><td class="r n">6,000</td><td class="r n">0</td><td class="r">not judged</td><td class="r">not judged</td><td>Active + Cooling</td><td><span class="badge warn"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4.5 4.5 7 7M11.5 4.5l-7 7"></path></svg>Not counted</span><div class="k">0 of 6,000 sent · day 9 repeats tomorrow</div></td></tr>
+                <tr><td>9</td><td class="nw">Mon 13 Oct</td><td class="r n">6,000</td><td class="r n">–</td><td class="r n">–</td><td class="r n">–</td><td>Active + Cooling</td><td><span class="badge mut"><span class="dot"></span>Planned</span><div class="k">repeat of day 9</div></td></tr>
+                <tr><td>10</td><td class="nw">Tue 14 Oct</td><td class="r n">7,500</td><td class="r n">–</td><td class="r n">–</td><td class="r n">–</td><td>Active + Cooling · Weekly Digest #142 uses 3,119</td><td><span class="badge mut"><span class="dot"></span>Planned</span></td></tr>
+                <tr><td>11</td><td class="nw">Wed 15 Oct</td><td class="r n">9,000</td><td class="r n">–</td><td class="r n">–</td><td class="r n">–</td><td>Active + Cooling</td><td><span class="badge mut"><span class="dot"></span>Planned</span></td></tr>
+                <tr><td>12</td><td class="nw">Thu 16 Oct</td><td class="r n">11,000</td><td class="r n">–</td><td class="r n">–</td><td class="r n">–</td><td>All tiers except Sunset · share rises to 15%</td><td><span class="badge mut"><span class="dot"></span>Planned</span></td></tr>
+                <tr><td>21</td><td class="nw">Mon 27 Oct<div class="k">at the earliest</div></td><td class="r n">48,000</td><td class="r n">–</td><td class="r n">–</td><td class="r n">–</td><td>All · share 40%, eligible as failover</td><td><span class="badge mut"><span class="dot"></span>Planned</span></td></tr>
               </tbody>
             </table>
           </div>
         </section>
 
-        <aside style="flex:1 1 340px;max-width:440px;display:flex;flex-direction:column;gap:16px">
-          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
-            <h2 class="h2">Plan settings</h2>
-            <label class="lbl">Length<select class="in"><option>21 days · recommended for a new dedicated IP</option><option>14 days · fast</option><option>30 days · cautious</option></select></label>
-            <label class="lbl">Ordering<select class="in"><option>Most engaged contacts first (Active, then Cooling, then At risk)</option><option>Random sample</option></select></label>
-            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
-              <label class="lbl">Slow down if bounces exceed<input class="in" value="2.0 %"></label>
-              <label class="lbl">or complaints exceed<input class="in" value="0.10 %"></label>
+        <aside class="cpanel" style="flex:1 1 340px;max-width:440px;min-width:0;display:flex;flex-direction:column;gap:16px" aria-label="Today's caps, plan settings and log">
+          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px" aria-labelledby="mb-h">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:4px 10px;flex-wrap:wrap"><h2 class="h2" id="mb-h">Today's caps by mailbox provider</h2><span class="k">day 9 · 6,000 in total</span></div>
+            <div class="mbar" aria-hidden="true"><i style="width:40%;background:#2a78d6"></i><i style="width:25%;background:#eb6834"></i><i style="width:15%;background:#1baf7a"></i><i style="width:10%;background:#eda100"></i><i style="width:10%;background:#8b94a3"></i></div>
+            <table class="tbl mtbl">
+              <caption class="vh">Postal's caps for today, by mailbox provider</caption>
+              <thead><tr><th scope="col">Mailbox provider</th><th scope="col" class="r">Cap</th><th scope="col" class="r">Sent</th></tr></thead>
+              <tbody>
+                <tr><td><span class="dot" style="color:#2a78d6"></span>Gmail</td><td class="r n">2,400</td><td class="r n">0</td></tr>
+                <tr><td><span class="dot" style="color:#eb6834"></span>Outlook</td><td class="r n">1,500</td><td class="r n">0</td></tr>
+                <tr><td><span class="dot" style="color:#1baf7a"></span>Yahoo</td><td class="r n">900</td><td class="r n">0</td></tr>
+                <tr><td><span class="dot" style="color:#eda100"></span>iCloud</td><td class="r n">600</td><td class="r n">0</td></tr>
+                <tr><td><span class="dot" style="color:#8b94a3"></span>Other</td><td class="r n">600</td><td class="r n">0</td></tr>
+                <tr class="tot"><td>Total</td><td class="r n">6,000</td><td class="r n">0</td></tr>
+              </tbody>
+            </table>
+            <span class="k">Gmail includes Google Workspace and Outlook includes Microsoft 365 recipients (found from MX records).</span>
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;flex-wrap:nowrap">
+              <label for="ovf" style="display:flex;flex-direction:column;gap:2px;cursor:pointer;min-width:0"><span style="font-weight:600;font-size:13px">Send what's over today's cap through Amazon SES (warm) instead of waiting</span><span class="k">Over the cap so far today: 0</span></label>
+              <input id="ovf" type="checkbox" class="tgx" role="switch" checked>
             </div>
-            <label class="lbl">When a guard trips<select class="in"><option>Hold tomorrow's cap at today's level, then continue</option><option>Step back one day</option><option>Pause until I resume</option></select></label>
-            <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px;cursor:pointer"><input type="checkbox" checked style="margin-top:3px"><span>Spread each day's cap evenly across mailbox providers, so no single provider sees a spike from the new IP</span></label>
+            <span class="k">Transactional mail over the cap today: 0 · password resets and receipts never wait for the warm-up</span>
+          </section>
+
+          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px" aria-labelledby="ps-h">
+            <h2 class="h2" id="ps-h">Plan settings</h2>
+            <label class="lbl">Length<select class="in"><option>21 counted days · recommended for a new dedicated IP</option><option>14 counted days · fast</option><option>30 counted days · cautious</option></select></label>
+            <label class="lbl">Ordering<select class="in"><option>Most engaged contacts first (Active, then Cooling, then At risk)</option><option>Random sample</option></select></label>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:end">
+              <label class="lbl">Slow down if bounces exceed<input class="in" value="2.0 %" aria-describedby="g500"></label>
+              <label class="lbl">or complaints exceed<input class="in" value="0.10 %" aria-describedby="g500"></label>
+            </div>
+            <span class="k" id="g500" style="margin-top:-6px">Guards judge a day only after 500 messages.</span>
+            <label class="lbl">When a guard trips<select class="in"><option>Hold the cap until 2 healthy days in a row</option><option>Step back one day, then hold</option><option>Pause until I resume</option></select></label>
+            <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px;cursor:pointer"><input type="checkbox" checked style="margin-top:3px"><span>Cap each mailbox provider separately: Gmail 40%, Outlook 25%, Yahoo 15%, iCloud 10% and Other 10% of the day's cap</span></label>
             <button class="btn pri">Save plan</button>
           </section>
 
-          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
-            <h2 class="h2">Warm-up log</h2>
-            <div style="display:flex;gap:10px;font-size:13px"><span class="mono k">Sat 11 Oct</span><span>Day 8 complete: 4,798 sent inside "October Product Update", bounce 0.9%.</span></div>
-            <div style="display:flex;gap:10px;font-size:13px"><span class="mono k">Fri 10 Oct</span><span>Ramp resumed: bounces back to 0.8%.</span></div>
-            <div style="display:flex;gap:10px;font-size:13px"><span class="mono k">Thu 9 Oct</span><span><strong>Automatic slowdown.</strong> Bounces hit 2.3% (guard 2%), mostly Yahoo 421 deferrals that turned into soft bounces. Day 7 cap held at 2,600 and the Yahoo throttle dropped to 1 /s.</span></div>
-            <div style="display:flex;gap:10px;font-size:13px"><span class="mono k">Sat 4 Oct</span><span>Plan started by Linh Nguyen: 21 days, engaged-first.</span></div>
+          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px" aria-labelledby="log-h">
+            <h2 class="h2" id="log-h">Warm-up log</h2>
+            <div class="lg"><span class="mono k">Sun 12 Oct</span><span>Nothing is scheduled today, so day 9 doesn't count and repeats tomorrow.</span></div>
+            <div class="lg"><span class="mono k">Sat 11 Oct</span><span>Day 8 counted: 4,798 sent inside "October Product Update", bounce 0.9%.</span></div>
+            <div class="lg"><span class="mono k">Thu 9 Oct</span><span>Second healthy day at the held cap (bounces 0.8%), so the ramp resumes with day 7 at 3,600.</span></div>
+            <div class="lg"><span class="mono k">Tue 7 Oct</span><span><strong>Automatic slowdown.</strong> Bounces hit 2.3% (guard 2%), mostly Yahoo 421 deferrals that turned into soft bounces. Day 6 didn't count; the cap holds at 2,600 until 2 healthy days in a row, and the Yahoo throttle dropped to 1 /s.</span></div>
+            <div class="lg"><span class="mono k">Sun 5 Oct</span><span>Nothing sent, so day 5 repeated on Monday.</span></div>
+            <div class="lg"><span class="mono k">Wed 1 Oct</span><span>Plan started by Linh Nguyen: 21 counted days, engaged-first.</span></div>
           </section>
         </aside>
       </div>
@@ -308,10 +386,18 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1439}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1951}}'>
 class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { chOpen: false };
+  }
   renderVals() {
-    return {};
+    var self = this;
+    return {
+      chOpen: !!this.state.chOpen,
+      toggleCh: function () { self.setState({ chOpen: !self.state.chOpen }); }
+    };
   }
 }
 </script>

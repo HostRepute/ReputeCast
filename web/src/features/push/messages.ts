@@ -193,7 +193,7 @@ export const m = defineMessages('push', {
   turnOn: 'Generate keys and turn on push',
   turningOn: 'Generating keys…',
   seeDesigner: 'See the prompt designer',
-  turnOnNote: 'Needs {perm}. Turning push on asks nobody anything until you publish a prompt.',
+  turnOnNote: 'Only people who can manage providers can turn push on. Turning it on asks nobody anything until you publish a prompt.',
   pushOn: 'Push is on. Add a site, then publish a prompt.',
 
   // Worker states
@@ -229,7 +229,7 @@ export const m = defineMessages('push', {
 
   // Read-only
   readOnlyTitle: 'Read-only · {name}, {role}',
-  readOnlyText: 'You can see sites, subscribers and prompts. Keys and sites need {perm}, and the private key is never shown to anyone.',
+  readOnlyText: "You can see sites, subscribers and prompts. Your role can't change keys or sites, and the private key is never shown to anyone.",
   askHelpers: 'Ask {helpers}.',
 
   // Load states

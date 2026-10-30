@@ -3,7 +3,7 @@ import { defineMessages } from '@/i18n'
 /** The approval rule for publishing transactional templates (Settings › Approvals, the review screen). */
 export const m = defineMessages('transactional.approval', {
   ruleTitle: 'Publishing a transactional template also requires approval',
-  ruleDetail: 'Applies to transactional:publish. Off: publishing is logged only, and the API sends the new version at once.',
+  ruleDetail: 'Applies to everyone who can publish transactional templates. Off: publishing is logged only, and the API sends the new version at once.',
   // The approval review of a template publish request.
   cardTitle: 'Transactional template',
   cardCaption: 'The draft the approval lets its author publish',

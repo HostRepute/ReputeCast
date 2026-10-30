@@ -12,6 +12,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/apptest"
 	"github.com/hostrepute/reputecast/internal/mcpserver"
 	"github.com/hostrepute/reputecast/internal/readiness"
+	"github.com/hostrepute/reputecast/internal/readiness/readinesstest"
 )
 
 const ws = "/workspaces/acme-newsletter"
@@ -59,7 +60,7 @@ func TestRunsReadInEachReadersLanguage(t *testing.T) {
 	id := campaignID(t, en, "Weekly Digest #143")
 
 	var run readiness.ReadinessRun
-	en.Do("POST", ws+"/campaigns/"+id+"/readiness", nil).MustStatus(t, 200).JSON(t, &run)
+	readinesstest.Post(t, env, en, ws+"/campaigns/"+id+"/readiness").MustStatus(t, 200).JSON(t, &run)
 	if len(run.Checks) == 0 || strings.Contains(run.Checks[0].Title, "Uy tín") {
 		t.Fatalf("English run: %+v", run.Checks)
 	}
@@ -99,7 +100,7 @@ func TestRunsReadInEachReadersLanguage(t *testing.T) {
 	}
 	// A run's own endpoint reads in the request's language too.
 	var viRun readiness.ReadinessRun
-	vi.Do("POST", ws+"/campaigns/"+id+"/readiness", nil).MustStatus(t, 200).JSON(t, &viRun)
+	readinesstest.Post(t, env, vi, ws+"/campaigns/"+id+"/readiness").MustStatus(t, 200).JSON(t, &viRun)
 	if len(viRun.Groups) == 0 || viRun.Groups[0].Title == run.Groups[0].Title {
 		t.Errorf("run in Vietnamese: %+v", viRun.Groups)
 	}

@@ -195,12 +195,12 @@ func TestAccessErrorsInTheReadersLanguage(t *testing.T) {
 
 	// API clients get English unless they send Accept-Language.
 	p := c.Do("GET", path, nil).MustStatus(t, 403).Problem(t)
-	if p["detail"] != "Inviting members needs the team:invite permission. Ask Linh Nguyen." || p["code"] != "permission_denied" {
+	if p["detail"] != "Inviting members needs a permission you don't have. Ask Linh Nguyen." || p["permission"] != "team:invite" || p["code"] != "permission_denied" {
 		t.Fatalf("english: %v", p)
 	}
 	c.Header = http.Header{"Accept-Language": {"vi-VN,vi;q=0.9,en;q=0.8"}}
 	p = c.Do("GET", path, nil).MustStatus(t, 403).Problem(t)
-	if p["detail"] != "Để mời thành viên, bạn cần quyền team:invite. Hãy hỏi Linh Nguyen." || p["permission"] != "team:invite" {
+	if p["detail"] != "Bạn chưa có quyền mời thành viên. Hãy hỏi Linh Nguyen." || p["permission"] != "team:invite" {
 		t.Fatalf("vietnamese: %v", p)
 	}
 	c.Header = http.Header{"Accept-Language": {"fr-FR"}}
@@ -210,7 +210,7 @@ func TestAccessErrorsInTheReadersLanguage(t *testing.T) {
 	// Without the header, a member reads their own language.
 	c.Header = nil
 	c.Do("PUT", "/me/language", choose("vi", "auto")).MustStatus(t, 200)
-	if p = c.Do("GET", path, nil).MustStatus(t, 403).Problem(t); !strings.HasPrefix(p["detail"].(string), "Để mời thành viên") {
+	if p = c.Do("GET", path, nil).MustStatus(t, 403).Problem(t); !strings.HasPrefix(p["detail"].(string), "Bạn chưa có quyền mời thành viên") {
 		t.Fatalf("member's language: %v", p)
 	}
 	// Sign-in problems too.

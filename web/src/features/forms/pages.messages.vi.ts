@@ -103,7 +103,7 @@ export default translate(m, {
   noMatch: 'Không có số nào khớp với “{search}”.',
   noIssues: 'Chưa có số nào. Các chiến dịch đã gửi của những danh sách được xuất bản sẽ xuất hiện ở đây.',
   hiddenBadge: 'Đã ẩn',
-  needsEdit: 'Cần quyền forms:edit để sửa trang lưu trữ.',
+  needsEdit: 'Vai trò của bạn không thể sửa trang lưu trữ.',
   show: 'Hiện',
   hide: 'Ẩn',
   range: '{from} đến {to} trên {total}',

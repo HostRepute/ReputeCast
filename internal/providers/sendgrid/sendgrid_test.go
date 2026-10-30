@@ -81,8 +81,16 @@ type fake struct {
 	domainValid bool
 	globalAdds  [][]string
 	tracking    map[string]bool
-	n           atomic.Int64
+	// assigned is GET /v3/ips/assigned's answer.
+	assigned string
+	n        atomic.Int64
 }
+
+// assignedIPs are the account's IPs in two pools: the provider sends
+// through "newsletters".
+const assignedIPs = `[{"ip":"198.51.100.9","pools":["transactional"],"warmup":false,"start_date":1700000000},` +
+	`{"ip":"198.51.100.8","pools":["newsletters","marketing"],"warmup":true,"start_date":1760000000},` +
+	`{"ip":"198.51.100.7","pools":["newsletters"],"warmup":false,"start_date":1700000000}]`
 
 func (f *fake) handler(env *contracttest.Env) http.Handler {
 	mux := http.NewServeMux()
@@ -274,6 +282,11 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 		f.mu.Unlock()
 		_ = json.NewEncoder(w).Encode(in)
 	}))
+	mux.HandleFunc("GET /v3/ips/assigned", readOnly(func(w http.ResponseWriter, _ *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		_, _ = io.WriteString(w, f.assigned)
+	}))
 	mux.HandleFunc("GET /v3/stats", readOnly(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = io.WriteString(w, `[{"date":"2026-10-11","stats":[{"metrics":{"requests":1000,"delivered":960,"bounces":20,"spam_reports":1}}]},{"date":"2026-10-12","stats":[{"metrics":{"requests":1000,"delivered":980,"bounces":10,"spam_reports":0}}]}]`)
 	}))
@@ -288,7 +301,7 @@ func (f *fake) with(fn func()) {
 }
 
 func newFake(t *testing.T) *fake {
-	return &fake{pubKey: publicKey(t), tracking: map[string]bool{"click": true, "open": true}}
+	return &fake{pubKey: publicKey(t), tracking: map[string]bool{"click": true, "open": true}, assigned: assignedIPs}
 }
 
 func newProvider(t *testing.T, env *contracttest.Env, withKey bool) providers.Provider {
@@ -317,9 +330,10 @@ func signedRequest(t *testing.T, path string, body []byte) *http.Request {
 func TestContract(t *testing.T) {
 	f := newFake(t)
 	contracttest.Run(t, contracttest.Suite{
-		Adapter: sendgrid.Adapter,
-		API:     f.handler,
-		New:     func(t *testing.T, env *contracttest.Env) providers.Provider { return newProvider(t, env, true) },
+		Adapter:    sendgrid.Adapter,
+		API:        f.handler,
+		New:        func(t *testing.T, env *contracttest.Env) providers.Provider { return newProvider(t, env, true) },
+		SendingIPs: &providers.SendingIPs{Dedicated: true, IPs: []string{"198.51.100.7", "198.51.100.8"}},
 		Delivered: func(t *testing.T, env *contracttest.Env, msgs []providers.Message, res []providers.SendResult) {
 			reqs := env.Requests()
 			if len(reqs) != 1 || reqs[0].Path != "/v3/mail/send" {
@@ -637,5 +651,43 @@ func TestTrackingAndReputation(t *testing.T) {
 	rep, err := p.(providers.ReputationReporter).Reputation(context.Background())
 	if err != nil || rep.Bounce != 1.5 || rep.Window != "7 d" || rep.Complaint < 0.0515 || rep.Complaint > 0.0516 {
 		t.Fatalf("reputation: %+v, %v", rep, err)
+	}
+}
+
+// The IPs mail goes out from: the IP pool's when the connection names one,
+// every assigned IP when it doesn't, none on SendGrid's shared IPs. A key
+// that may not read IP Management is an error that says so, never an
+// empty list.
+func TestSendingIPs(t *testing.T) {
+	f := newFake(t)
+	env := contracttest.NewEnv(t, f.handler)
+	read := func(p providers.Provider) (providers.SendingIPs, error) {
+		return p.(providers.IPReporter).SendingIPs(context.Background())
+	}
+	got, err := read(newProvider(t, env, true))
+	if err != nil || !got.Dedicated || !slices.Equal(got.IPs, []string{"198.51.100.7", "198.51.100.8"}) {
+		t.Fatalf("the pool's IPs: %+v, %v", got, err)
+	}
+	settings, _ := json.Marshal(sendgrid.Settings{BaseURL: env.URL})
+	noPool, err := sendgrid.New(providers.Config{Settings: settings, Credentials: json.RawMessage(`{"api_key":"` + apiKey + `"}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := read(noPool); err != nil || !slices.Equal(got.IPs, []string{"198.51.100.7", "198.51.100.8", "198.51.100.9"}) {
+		t.Fatalf("every assigned IP without a pool: %+v, %v", got, err)
+	}
+	f.with(func() { f.assigned = `[]` })
+	if got, err := read(noPool); err != nil || got.Dedicated || got.IPs == nil || len(got.IPs) != 0 {
+		t.Fatalf("shared IPs: %+v, %v", got, err)
+	}
+	f.with(func() { f.assigned, f.restricted = assignedIPs, true })
+	got, err = read(noPool)
+	var ce *providers.CallError
+	if !errors.As(err, &ce) || !errors.Is(err, providers.ErrUnauthorized) || !strings.Contains(ce.Message, "IP Management") || len(got.IPs) != 0 {
+		t.Fatalf("a restricted key: %+v, %v", got, err)
+	}
+	contracttest.CheckText(t, "the restricted key", ce.Message, ce.Text)
+	if n := len(env.Requests()); n != 4 {
+		t.Fatalf("%d calls for 4 checks: the assigned IPs come in one answer", n)
 	}
 }

@@ -21,6 +21,11 @@ import (
 // ingestOverlap is how far each run reads back past the last one.
 const ingestOverlap = 2 * time.Minute
 
+// settleLookback is how much further back clicks are read: a click waits a
+// minute before it settles as a person's or a bot's (internal/tracking), and
+// its settling job can run late.
+const settleLookback = "15 minutes"
+
 // listsSQL is an email's lists: a campaign's audience lists, or the list
 // that starts an automation.
 const listsSQL = `CASE
@@ -45,7 +50,11 @@ var ingestSQL = []string{
 	ORDER BY de.occurred_at
 	ON CONFLICT (contact_id, source_id) DO NOTHING
 	RETURNING contact_id`,
-	// Real clicks, one per email and link; a click is a human open too.
+	// Real clicks, one per email and link; a click is a human open too. A
+	// click counts once it has settled as a person's (review AN-2): until
+	// then it may still turn out to be a scanner's. Clicks are read
+	// settleLookback further back than the window, so one that settles
+	// after the window it arrived in passed is still scored.
 	`WITH clicks AS (
 	    SELECT de.workspace_id, de.contact_id, de.message_id, de.occurred_at, de.url, ` + listsSQL + ` AS lists
 	    FROM delivery_events de
@@ -53,8 +62,8 @@ var ingestSQL = []string{
 	    JOIN contacts c ON c.id = de.contact_id AND c.erased_at IS NULL
 	    LEFT JOIN campaigns cp ON cp.id = m.campaign_id
 	    LEFT JOIN automations a ON a.id = m.automation_id
-	    WHERE de.workspace_id = $1 AND de.received_at > $2 AND de.received_at <= $3
-	      AND de.type = 'click' AND NOT de.machine
+	    WHERE de.workspace_id = $1 AND de.received_at > $2::timestamptz - interval '` + settleLookback + `' AND de.received_at <= $3
+	      AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending'
 	)
 	INSERT INTO score_events (workspace_id, contact_id, source_id, occurred_at, kind, ref, lists, message_id, counted)
 	SELECT workspace_id, contact_id, source_id, occurred_at, kind, ref, lists, message_id, true FROM (

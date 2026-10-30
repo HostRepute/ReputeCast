@@ -1,7 +1,6 @@
 package app
 
 import (
-	"net"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -29,7 +28,7 @@ func (a *App) imports() *imports.Service {
 	guard := netguard.Policy{AllowPrivate: a.Cfg != nil && a.Cfg.Providers.AllowPrivateNetworks}
 	s := &imports.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Audience: a.audience(), Mail: a.Mail,
-		MX:    &imports.MXChecker{Q: a.Q, Resolver: net.DefaultResolver},
+		MX:    &imports.MXChecker{Q: a.Q, Resolver: dnsResolver(a.Cfg)},
 		HTTP:  guard.Client(60 * time.Second),
 		Guard: guard,
 		Jobs:  func() *jobs.Client { return a.Jobs },

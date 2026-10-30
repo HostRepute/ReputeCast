@@ -542,7 +542,8 @@ func (s *Service) rewardMap(ctx context.Context, ws *store.Workspace, pages inte
 	case RewardCoupon:
 		code, _ := s.rewardCode(ctx, rw)
 		v["code"] = code
-		v["url"] = rw.ClaimUrl
+		v["claim_url"] = s.claimURL(ctx, ws, rw, code)
+		v["url"] = v["claim_url"]
 	default:
 		code, u := s.rewardCode(ctx, rw)
 		v["code"], v["url"] = code, u

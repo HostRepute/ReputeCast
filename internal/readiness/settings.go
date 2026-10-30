@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/providers/state"
+	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -34,51 +35,13 @@ type ReadinessThresholds struct {
 	Scope string `json:"scope" enum:"route,campaign"`
 }
 
-// dbThresholds is campaigns.thresholds as the sending engine reads it
-// (api_errors is the provider errors threshold; provider_errors and
-// hard_bounce are older spellings still read).
-type dbThresholds struct {
-	Bounce           *float64 `json:"bounce,omitempty"`
-	HardBounce       *float64 `json:"hard_bounce,omitempty"`
-	Complaint        *float64 `json:"complaint,omitempty"`
-	MailboxComplaint *float64 `json:"mailbox_complaint,omitempty"`
-	APIErrors        *float64 `json:"api_errors,omitempty"`
-	ProviderErrors   *float64 `json:"provider_errors,omitempty"`
-	Scope            string   `json:"scope,omitempty"`
-}
-
-// ParseThresholds reads a campaign's thresholds, falling back to the
-// workspace's defaults (send_thresholds) and then to 2% / 0.10% / 0.10% / 5%.
+// ParseThresholds reads a send's thresholds as the sending engine resolves
+// them (engine.ParseThresholds: its defaults, then the workspace's
+// send_thresholds, then the campaign's own, in either spelling), so Review
+// & send shows what the engine enforces.
 func ParseThresholds(campaign, workspace json.RawMessage) ReadinessThresholds {
-	t := ReadinessThresholds{Bounce: 2, Complaint: 0.1, MailboxComplaint: 0.1, ProviderErrors: 5, Scope: "route"}
-	for _, raw := range []json.RawMessage{workspace, campaign} {
-		var d dbThresholds
-		if len(raw) == 0 || json.Unmarshal(raw, &d) != nil {
-			continue
-		}
-		if d.HardBounce != nil {
-			t.Bounce = *d.HardBounce
-		}
-		if d.Bounce != nil {
-			t.Bounce = *d.Bounce
-		}
-		if d.Complaint != nil {
-			t.Complaint = *d.Complaint
-		}
-		if d.MailboxComplaint != nil {
-			t.MailboxComplaint = *d.MailboxComplaint
-		}
-		if d.ProviderErrors != nil {
-			t.ProviderErrors = *d.ProviderErrors
-		}
-		if d.APIErrors != nil {
-			t.ProviderErrors = *d.APIErrors
-		}
-		if d.Scope == "route" || d.Scope == "campaign" {
-			t.Scope = d.Scope
-		}
-	}
-	return t
+	t := engine.ParseThresholds(campaign, workspace)
+	return ReadinessThresholds{Bounce: t.Bounce, Complaint: t.Complaint, MailboxComplaint: t.MailboxComplaint, ProviderErrors: t.APIErrors, Scope: t.Scope}
 }
 
 // toDB writes the thresholds into the stored ones, keeping the keys this

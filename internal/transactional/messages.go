@@ -1172,7 +1172,7 @@ func (s *Service) Resend(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 		case "template":
 			return TransactionalSendResult{}, problem(http.StatusConflict, "resend_unavailable", say(ctx, "resend.template", i18n.Args{"key": r.TemplateKey}))
 		default:
-			return TransactionalSendResult{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, deniedMessage(ctx, "resend", authz.TransactionalSend, s.helpers(ctx, ws.ID, authz.TransactionalSend, 3)))
+			return TransactionalSendResult{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, deniedMessage(ctx, "resend", s.helpers(ctx, ws.ID, authz.TransactionalSend, 3)))
 		}
 	}
 	in := TransactionalSend{Template: r.TemplateKey, To: TransactionalAddress{Email: r.Email, Name: r.ToName}, Tags: r.Tags}

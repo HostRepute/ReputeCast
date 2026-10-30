@@ -26,6 +26,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/liquid"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/providers/simulator"
@@ -79,6 +80,19 @@ type Engine struct {
 	// availability at send time, and fills automation emails' Checkout
 	// items (internal/commerce); nil sends them as written.
 	Store StoreContent
+	// Mailbox classifies company domains from their MX records before an
+	// audience is built, and automation recipients without a contact
+	// (internal/mailbox); nil keeps the providers contacts already carry.
+	Mailbox MailboxClassifier
+	// CallTimeout bounds one provider call (30 s when zero).
+	CallTimeout time.Duration
+	// StreamHeartbeat is how often the live stream says it's alive while
+	// nothing changes (15 s when zero; review GS-14).
+	StreamHeartbeat time.Duration
+	// Seeds sends a canary's copies to the workspace's seed mailboxes and
+	// reads where they landed (internal/placement; review GS-10); nil
+	// leaves the seed gate out.
+	Seeds SeedChecker
 
 	mu       sync.Mutex
 	calls    map[routeKey]*callLog
@@ -152,10 +166,36 @@ type Thresholds struct {
 	// Scope is "route" (pause only the affected mailbox provider or sending
 	// provider) or "campaign" (pause everything).
 	Scope string `json:"scope"`
+	// By bounce type and level (review GS-11; Traffic rules › Thresholds
+	// by bounce type), each with its action: pause_mailbox, slow (to half
+	// rate), pause_send or warn.
+	//
+	// BlockBounce: block/policy bounces (rejections for reputation, policy
+	// or content) at one mailbox provider.
+	BlockBounce float64 `json:"block_bounce"`
+	BlockAction string  `json:"block_action"`
+	// UnknownWarn and UnknownPause: unknown users (other hard bounces)
+	// over the whole send, two levels.
+	UnknownWarn        float64 `json:"unknown_warn"`
+	UnknownWarnAction  string  `json:"unknown_warn_action"`
+	UnknownPause       float64 `json:"unknown_pause"`
+	UnknownPauseAction string  `json:"unknown_pause_action"`
+	// DeferralSlow and Deferral: soft bounces and deferrals at one mailbox
+	// provider over a window of minutes (0: the whole send so far), two
+	// levels.
+	DeferralSlow       float64 `json:"deferral_slow"`
+	DeferralSlowWindow int     `json:"deferral_slow_window"`
+	DeferralSlowAction string  `json:"deferral_slow_action"`
+	DeferralWindow     int     `json:"deferral_window"`
+	DeferralAction     string  `json:"deferral_action"`
+	// ComplaintAction is what MailboxComplaint does.
+	ComplaintAction string `json:"complaint_action"`
 }
 
 // DefaultThresholds are used for limits a campaign doesn't set.
-var DefaultThresholds = Thresholds{Bounce: 2.0, Complaint: 0.1, MailboxComplaint: 0.1, Deferral: 5.0, APIErrors: 5.0, Scope: "route"}
+var DefaultThresholds = Thresholds{Bounce: 2.0, Complaint: 0.1, MailboxComplaint: 0.1, Deferral: 40, APIErrors: 5.0, Scope: "route",
+	BlockBounce: 0.5, BlockAction: actPauseMailbox, UnknownWarn: 3, UnknownWarnAction: actWarn, UnknownPause: 5, UnknownPauseAction: actPauseSend,
+	DeferralSlow: 15, DeferralSlowWindow: 10, DeferralSlowAction: actSlow, DeferralWindow: 10, DeferralAction: actPauseMailbox, ComplaintAction: actPauseMailbox}
 
 // ParseThresholds resolves a send's thresholds: the defaults, then the
 // workspace's (workspaces.send_thresholds, Settings › Providers), then the
@@ -177,6 +217,19 @@ func ParseThresholds(campaign, workspace json.RawMessage) Thresholds {
 			ProviderErrors    *float64 `json:"provider_errors"`
 			ProviderErrorRate *float64 `json:"provider_error_rate"`
 			Scope             string   `json:"scope"`
+			// By type and level (GS-11).
+			BlockBounce        *float64 `json:"block_bounce"`
+			BlockAction        string   `json:"block_action"`
+			UnknownWarn        *float64 `json:"unknown_warn"`
+			UnknownWarnAction  string   `json:"unknown_warn_action"`
+			UnknownPause       *float64 `json:"unknown_pause"`
+			UnknownPauseAction string   `json:"unknown_pause_action"`
+			DeferralSlow       *float64 `json:"deferral_slow"`
+			DeferralSlowWindow *int     `json:"deferral_slow_window"`
+			DeferralSlowAction string   `json:"deferral_slow_action"`
+			DeferralWindow     *int     `json:"deferral_window"`
+			DeferralAction     string   `json:"deferral_action"`
+			ComplaintAction    string   `json:"complaint_action"`
 		}
 		if len(raw) == 0 || json.Unmarshal(raw, &in) != nil {
 			continue
@@ -197,6 +250,27 @@ func ParseThresholds(campaign, workspace json.RawMessage) Thresholds {
 		set(&t.APIErrors, in.ProviderErrorRate, in.ProviderErrors, in.APIErrors)
 		if in.Scope == "campaign" || in.Scope == "route" {
 			t.Scope = in.Scope
+		}
+		set(&t.BlockBounce, in.BlockBounce)
+		set(&t.UnknownWarn, in.UnknownWarn)
+		set(&t.UnknownPause, in.UnknownPause)
+		set(&t.DeferralSlow, in.DeferralSlow)
+		for _, w := range []struct {
+			dst *int
+			v   *int
+		}{{&t.DeferralSlowWindow, in.DeferralSlowWindow}, {&t.DeferralWindow, in.DeferralWindow}} {
+			if w.v != nil && *w.v >= 0 && *w.v <= 60 {
+				*w.dst = *w.v
+			}
+		}
+		for _, a := range []struct {
+			dst *string
+			v   string
+		}{{&t.BlockAction, in.BlockAction}, {&t.UnknownWarnAction, in.UnknownWarnAction}, {&t.UnknownPauseAction, in.UnknownPauseAction},
+			{&t.DeferralSlowAction, in.DeferralSlowAction}, {&t.DeferralAction, in.DeferralAction}, {&t.ComplaintAction, in.ComplaintAction}} {
+			if validAction(a.v) {
+				*a.dst = a.v
+			}
 		}
 	}
 	if !mailbox {
@@ -265,14 +339,91 @@ func over(events, base int64, limit float64, minEv int64) bool {
 	return (float64(events)-expected)/math.Sqrt(expected) >= zTrip
 }
 
+// Small sends (review R2.L7c). The floors above keep a rate from tripping
+// on a handful of events early in a send, but alone they never protect a
+// send with fewer than 500 delivered to a mailbox provider, however bad
+// its rate. So complaints and block/policy bounces (anyVolume) also trip
+// at any volume once they are clearly over the limit: at least minClear
+// events, and the lower end of the rate's one-sided 95% Wilson score
+// interval above the limit. Wilson rather than over's Poisson test because
+// with a few hundred messages the normal approximation behind that test is
+// poor; 95% rather than 90% because no floor stands between a few events
+// and the action. Three complaints among 300 delivered (1%) trip a 0.10%
+// limit, and so do 10 among 300; 2 among 300 don't (too few), nor do 3
+// among the first 1,284 (0.23%, whose interval reaches down to 0.09%). At
+// large volumes the rate rule above trips first.
+const (
+	minClear = 3
+	zClear   = 1.645
+)
+
+// wilsonLower is the lower end of a rate's one-sided 95% Wilson score
+// interval, as a percentage.
+func wilsonLower(events, base int64) float64 {
+	if base <= 0 || events <= 0 {
+		return 0
+	}
+	n, z2 := float64(base), zClear*zClear
+	p := min(float64(events)/n, 1)
+	centre := p + z2/(2*n)
+	margin := zClear * math.Sqrt(p*(1-p)/n+z2/(4*n*n))
+	return math.Max(0, (centre-margin)/(1+z2/n)) * 100
+}
+
+// clearlyOver reports whether events out of base put a rate clearly over
+// its limit (a percentage) at any volume (see above).
+func clearlyOver(events, base int64, limit float64) bool {
+	return events >= minClear && base > 0 && limit > 0 && wilsonLower(events, base) > limit
+}
+
+// anyVolume reports whether a threshold also trips when clearly over its
+// limit at any volume: complaints, and block/policy bounces (review
+// R2.L7c, GS-11). Both are a mailbox provider's verdict on the sender, so
+// a few of them mean more than a few unknown users (the list's hygiene) or
+// deferrals (passing congestion), which keep the floors alone.
+func anyVolume(key string) bool {
+	return key == "complaint" || key == "mailbox_complaint" || key == "block_bounce"
+}
+
+// exceeds reports whether a rate trips its threshold: over its limit with
+// the floors' evidence, or, for the rates that trip at any volume, clearly
+// over it (clear: only that says so).
+func exceeds(key string, events, base, minEv, minBase int64, limit float64) (ok, clear bool) {
+	if base >= minBase && over(events, base, limit, minEv) {
+		return true, false
+	}
+	if anyVolume(key) && clearlyOver(events, base, limit) {
+		return true, true
+	}
+	return false, false
+}
+
 // Retry back-off for temporary errors: 5 s doubling to 60 s, at most
-// maxAttempts provider calls per message.
+// maxAttempts provider calls per message. A claim still open after
+// staleClaim belonged to a call whose answer was lost (doubt.go). A
+// provider call gets sendTimeout, even when the job is told to stop: what
+// the provider took must be recorded.
 const (
 	backoffMin  = 5 * time.Second
 	backoffMax  = 60 * time.Second
 	maxAttempts = 10
 	staleClaim  = 5 * time.Minute
+	sendTimeout = 30 * time.Second
 )
+
+// callContext is a provider call's context: it outlives the job's
+// cancellation (River stopping the worker, the job's timeout), since a call
+// cut in the middle leaves its messages in doubt, but never runs past
+// sendTimeout. The send loops stop between steps once the job's context
+// ends, so a stopping worker drains: the batch in flight is sent and
+// recorded, nothing new is claimed.
+func (e *Engine) callContext(ctx context.Context, now time.Time) (context.Context, context.CancelFunc) {
+	d := e.CallTimeout
+	if d <= 0 {
+		d = sendTimeout
+	}
+	return context.WithTimeout(simulator.WithNow(context.WithoutCancel(ctx), now), d)
+}
 
 func backoff(attempts int) time.Duration {
 	d := backoffMin << max(attempts-1, 0)
@@ -316,6 +467,12 @@ type providerRate struct {
 	Tiers                 []string
 	WarmingUp             bool
 	Paused                bool
+	// EngagedFirst and Overflow are the warm-up plan's (warmup_send.go).
+	EngagedFirst, Overflow bool
+	// PlanID is the warm-up plan; NextDay when tomorrow's cap starts (the
+	// live monitor's warm-up hold and ETA).
+	PlanID  uuid.UUID
+	NextDay time.Time
 }
 
 func (e *Engine) rateOf(ctx context.Context, q *store.Queries, p store.Provider, loc *time.Location, now time.Time) providerRate {
@@ -327,6 +484,8 @@ func (e *Engine) rateOf(ctx context.Context, q *store.Queries, p store.Provider,
 	if a, ok, err := warmup.AllowanceFor(ctx, q, p.ID, now, loc); err == nil && ok {
 		r.WarmingUp = true
 		r.WarmupDay, r.WarmupDays, r.Cap, r.SentToday, r.Tiers, r.Paused = a.Day, a.Days, a.Cap, a.Sent, a.Tiers, a.Paused
+		r.EngagedFirst, r.Overflow = a.EngagedFirst, a.Overflow
+		r.PlanID, r.NextDay = a.PlanID, a.NextDay
 		if a.Rate > 0 {
 			r.PerSecond = math.Min(r.PerSecond, a.Rate)
 		}
@@ -391,7 +550,11 @@ type callLog struct {
 	lastFailure  time.Time
 	lastSuccess  time.Time
 	failures     int
-	lines        []IncidentLogLine
+	// Throttling is tracked apart: the provider pacing the account is an
+	// outage only when it lasts (routeerrors.go).
+	firstThrottle time.Time
+	throttles     int
+	lines         []IncidentLogLine
 }
 
 type IncidentLogLine struct {
@@ -420,19 +583,23 @@ func (e *Engine) recordCall(k routeKey, at time.Time, err error) {
 	defer e.mu.Unlock()
 	if err == nil {
 		l.lastSuccess, l.firstFailure, l.lastFailure, l.failures = at, time.Time{}, time.Time{}, 0
+		l.firstThrottle, l.throttles = time.Time{}, 0
 		return
 	}
-	// Throttling is the provider pacing us, not an outage: the batch backs
-	// off and the call doesn't count toward holding the route.
-	var ce *providers.CallError
-	if asCallError(err, &ce) && ce.Throttled {
-		return
+	// Throttling is the provider pacing us: the batch backs off and the
+	// route slows down; it holds the route only when it lasts three minutes.
+	if throttledErr(err) {
+		if l.firstThrottle.IsZero() {
+			l.firstThrottle = at
+		}
+		l.throttles++
+	} else {
+		if l.firstFailure.IsZero() {
+			l.firstFailure = at
+		}
+		l.lastFailure = at
+		l.failures++
 	}
-	if l.firstFailure.IsZero() {
-		l.firstFailure = at
-	}
-	l.lastFailure = at
-	l.failures++
 	// The log summarises: a line when the answer changes, and once more a
 	// minute later when the provider keeps answering the same way.
 	text := callText(err)
@@ -476,4 +643,30 @@ func callText(err error) string {
 		return ce.Error()
 	}
 	return err.Error()
+}
+
+// MailboxClassifier is the part of mailbox.Classifier the engine uses.
+type MailboxClassifier interface {
+	ClassifyPending(ctx context.Context, workspaceID uuid.UUID, budget time.Duration) (int64, error)
+	ForEmail(ctx context.Context, email string) mailbox.Class
+}
+
+// classifyBudget bounds how long a send waits for MX lookups before its
+// audience is built; contacts still waiting go as Other.
+const classifyBudget = 15 * time.Second
+
+// mailboxFor classifies an address that has no contact provider.
+func (e *Engine) mailboxFor(ctx context.Context, email string) string {
+	if e.Mailbox == nil {
+		return mailbox.Static(emailDomain(email)).Provider
+	}
+	return e.Mailbox.ForEmail(ctx, email).Provider
+}
+
+// emailDomain is the part after the last @.
+func emailDomain(email string) string {
+	if i := strings.LastIndexByte(email, '@'); i >= 0 {
+		return strings.ToLower(email[i+1:])
+	}
+	return ""
 }

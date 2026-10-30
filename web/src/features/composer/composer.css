@@ -266,7 +266,25 @@
   cursor: default;
 }
 
-/* Layers */
+/* Layers: a keyboard tree (↑ ↓ → ← Home End Enter). */
+.lay-help {
+  margin: 0;
+  padding: 8px 12px 0;
+  line-height: 1.6;
+}
+.lay-help kbd {
+  margin: 0 2px;
+}
+.lay-tree {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.lay:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
 .lay {
   display: flex;
   align-items: center;
@@ -464,6 +482,212 @@ label.tg {
   display: block;
   border-radius: 2px;
   background: var(--line-strong);
+}
+
+/* Template thumbnails as miniature emails (Composer and ComposerEmpty
+   boards): a white email in a grey frame, with its header (logo and
+   links), images with a mountain, headings, text lines, a button pill and
+   the footer's two lines under it. */
+.thumb.mini {
+  height: 156px;
+  padding: 10px 14px 6px;
+  gap: 6px;
+  background: #e9ecf0;
+  align-items: stretch;
+}
+.thumb.mini .memail {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 7px 9px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.thumb.mini .mbody {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow: hidden;
+}
+.thumb.mini i {
+  display: block;
+  flex: none;
+  border-radius: 2px;
+  background: var(--line-strong);
+}
+.thumb.mini .mhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+}
+.thumb.mini .mlogo {
+  width: 18px;
+  height: 4px;
+  background: var(--ink);
+}
+.thumb.mini .mnav {
+  display: flex;
+  gap: 3px;
+}
+.thumb.mini .mnav i {
+  width: 8px;
+  height: 2px;
+  background: #c7ccd4;
+}
+.thumb.mini .mimg {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex: none;
+  min-height: 12px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.thumb.mini .mimg svg {
+  width: 26px;
+  height: 14px;
+  margin-bottom: 1px;
+  fill: #cfd4db;
+}
+.thumb.mini .mhd {
+  height: 4px;
+  background: #4b5563;
+}
+.thumb.mini .mtx {
+  height: 2px;
+  background: #d1d5db;
+}
+.thumb.mini .mbt {
+  width: 30%;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+.thumb.mini .mrow {
+  display: flex;
+  gap: 5px;
+  flex: none;
+}
+.thumb.mini .mcol {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.thumb.mini .mfoot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+.thumb.mini .mfoot i {
+  width: 40%;
+  height: 2px;
+  background: #c7ccd4;
+}
+.thumb.mini .mfoot i + i {
+  width: 28%;
+}
+.thumb.mini .mempty {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--line-strong);
+  border-radius: 2px;
+  font-size: 10px;
+  color: var(--ink-3);
+}
+.thumb.mini.small {
+  height: 74px;
+  padding: 5px 8px 3px;
+  gap: 3px;
+}
+/* A template's real email (R4.U4): drawn at 600 px in a frame, scaled to
+   the tile and cropped, on the same grey as the miniatures. */
+.thumb.mini.live {
+  padding: 10px 14px 0;
+}
+.thumb.mini.live.small {
+  padding: 5px 8px 0;
+}
+.thumb.mini.live .mpic {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 3px 3px 0 0;
+}
+.thumb.mini.live iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 0;
+  background: #ffffff;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+/* A tile with a picture: a frame can't sit inside a button, so the button
+   that picks the template covers the whole tile. */
+.tpl.pick {
+  position: relative;
+  cursor: default;
+}
+.tpl.pick .tpl-pick {
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tpl.pick .tpl-pick::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+}
+.tpl.pick .tpl-pick:disabled {
+  cursor: default;
+}
+.tpl.pick .tpl-pick:focus-visible {
+  outline: none;
+}
+.tpl.pick .tpl-pick:focus-visible::after {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.tpl.pick:has(.tpl-pick:disabled):hover {
+  border-color: var(--line);
+}
+.thumb.mini.small .memail {
+  padding: 4px 5px;
+  gap: 3px;
+}
+.thumb.mini.small .mbody {
+  gap: 3px;
+}
+.thumb.mini.small .mimg svg {
+  width: 14px;
+  height: 8px;
 }
 
 /* Code view */
@@ -723,6 +947,13 @@ label.tg {
   border-radius: 6px 6px 0 0;
   white-space: nowrap;
 }
+/* The canvas's selection badge: "Section · 2 columns  Feature highlights". */
+.cmp-sel .lab .lab-n {
+  margin-left: 6px;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
 .cmp-sel .tb {
   position: absolute;
   top: -30px;
@@ -845,6 +1076,33 @@ label.tg {
 .rte button:hover,
 .rte button[aria-pressed='true'] {
   background: rgba(255, 255, 255, 0.16);
+}
+.rte select {
+  height: 28px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.rte select option {
+  color: var(--ink);
+  background: var(--surface);
+}
+.rte button:focus-visible,
+.rte select:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -2px;
+}
+.rte svg {
+  width: 14px;
+  height: 14px;
+  stroke: #fff;
+  fill: none;
 }
 .rte .rsep {
   width: 1px;

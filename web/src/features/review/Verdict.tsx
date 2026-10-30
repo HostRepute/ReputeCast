@@ -8,11 +8,17 @@ import { useNow } from '@/lib/hooks'
 import { m as am } from '@/features/accessibility/messages'
 import { accessibilityBlock } from '@/features/accessibility/review'
 import { formatList, useT } from '@/i18n'
-import { blockedLine, countsLine, scheduleSentence, sendsIn, thresholdsLine, verdictTitle, type Review, type Run } from './logic'
+import { blockedLine, countsLine, scheduleSentence, sendsIn, thresholdsLine, verdictHeading, type Review, type Run } from './logic'
 import { m } from './messages'
 import { VerdictIcon, whenText } from './parts'
 
-/** Ready, Ready with warnings or Blocked, with the banner's actions. */
+/**
+ * Ready, Ready with warnings or Blocked, with the banner's actions
+ * (SendReadiness, SendReadinessBlocked): "Ready with warnings · 2 to
+ * review", "Blocked · 3 to fix", and "Ready · blocklist checks skipped"
+ * once someone chose to send without the checks that couldn't run
+ * (verdictHeading).
+ */
 export function VerdictBanner({ run, mode, actions }: { run: Run; mode: Review['schedule']['mode']; actions?: ReactNode }) {
   const now = useNow()
   const t = useT()
@@ -20,32 +26,60 @@ export function VerdictBanner({ run, mode, actions }: { run: Run; mode: Review['
   const kind = blocked ? 'bad' : run.verdict === 'warnings' ? 'warn' : 'ok'
   // Blocked by the workspace's accessibility policy alone: the banner says so.
   const a11y = blocked ? accessibilityBlock(run) : undefined
+  const skipped = run.unknownAcceptedAt ? run.checks.filter((c) => c.status === 'unknown').length : 0
+  const line = a11y
+    ? t(am.blockedLine, { counts: countsLine(run.counts), note: a11y.note })
+    : blocked
+      ? blockedLine(run.counts, run.checks)
+      : skipped && run.unknownAcceptedAt
+        ? t(m.skippedLine, {
+            passed: run.counts.passed,
+            skipped,
+            warnings: run.counts.warnings,
+            blocks: run.counts.blocks,
+            name: run.unknownAcceptedBy || t(m.someone),
+            time: whenText(run.unknownAcceptedAt, now),
+          })
+        : t(m.verdictLineShort, {
+            passed: run.counts.passed,
+            warnings: run.counts.warnings,
+            blocks: run.counts.blocks,
+            when: whenText(run.ranAt, now),
+            mode: mode === 'now' ? 'now' : 'scheduled',
+          })
   return (
     <section className={cn('rv-verdict rise', `v-${kind}`)} role={blocked ? 'alert' : 'status'}>
       <VerdictIcon kind={kind} />
       <div className="rv-vtext">
-        <span className="rv-vtitle">{a11y ? t(am.blockedTitle, { count: a11y.count }) : verdictTitle(run.verdict)}</span>
-        <span>
-          {a11y
-            ? t(am.blockedLine, { counts: countsLine(run.counts), note: a11y.note })
-            : blocked
-              ? blockedLine(run.counts, run.checks)
-              : t(m.verdictLine, {
-                  passed: run.counts.passed,
-                  warnings: run.counts.warnings,
-                  blocks: run.counts.blocks,
-                  when: whenText(run.ranAt, now),
-                  mode: mode === 'now' ? 'now' : 'scheduled',
-                })}
-        </span>
+        <span className="rv-vtitle">{a11y ? t(am.blockedTitle, { count: a11y.count }) : verdictHeading(run)}</span>
+        <span>{line}</span>
       </div>
       {actions ? <div className="rv-vacts">{actions}</div> : null}
     </section>
   )
 }
 
-/** "Running Send Readiness · 19 of 31 checks done" with the progress bar. */
-export function RunningBanner({ progress, action }: { progress?: Schemas['ReadinessProgress']; action?: ReactNode }) {
+/**
+ * "Running Send Readiness · 19 of 31 checks done" with the progress bar.
+ * Sending stays locked meanwhile, and says why (lock). Sender blocklists
+ * come from HostRepute's hourly check, not from this run: the note says
+ * so, and when that check ran (hourlyAt), without a timing claim. After
+ * fixes, the fixes that made it run again come last, with their Undo
+ * (applied, SendReadinessStates · re-running after a fix).
+ */
+export function RunningBanner({
+  progress,
+  hourlyAt,
+  lock,
+  action,
+  applied,
+}: {
+  progress?: Schemas['ReadinessProgress']
+  hourlyAt?: string
+  lock?: string
+  action?: ReactNode
+  applied?: ReactNode
+}) {
   const t = useT()
   const done = progress?.done ?? 0
   const total = Math.max(progress?.total ?? 0, done)
@@ -55,9 +89,40 @@ export function RunningBanner({ progress, action }: { progress?: Schemas['Readin
       <div className="rv-vtext gap-1.5!">
         <span className="text-[18px] font-bold">{total ? t(m.runningCount, { done, total }) : t(m.running)}</span>
         <Bar value={total ? (done / total) * 100 : 4} height={8} label={t(m.checksDone)} />
-        <span className="k">{t(m.runningNote)}</span>
+        <span className="k">{hourlyAt ? t(m.runningHourly, { time: clock(hourlyAt) }) : t(m.runningGroups)}</span>
+        {lock ? <span className="k font-medium text-ink">{lock}</span> : null}
+        {applied}
       </div>
       {action}
+    </div>
+  )
+}
+
+/**
+ * "You applied 2 fixes at 09:46, saved as version 15: Inserted the footer
+ * block · Minified the inline CSS" and Undo these fixes (R1.U3): under the
+ * re-running banner, then under the verdict while the campaign is still as
+ * the fixes left it. The fixes are named in the language they were applied
+ * in; readers of another language read how many.
+ */
+export function AppliedFixes({ batch, me, undo }: { batch: Schemas['ReadinessFixBatch']; me?: string; undo?: ReactNode }) {
+  const t = useT()
+  const now = useNow()
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px]">
+      <span>
+        {t(m.appliedFixes, {
+          who: !batch.appliedBy || batch.appliedBy === me ? 'me' : 'other',
+          name: batch.appliedBy,
+          count: batch.count,
+          time: whenText(batch.appliedAt, now),
+          hasVersion: batch.version ? 'yes' : 'no',
+          version: batch.version ?? 0,
+          hasList: batch.applied.length ? 'yes' : 'no',
+          list: batch.applied.join(' · '),
+        })}
+      </span>
+      {undo}
     </div>
   )
 }

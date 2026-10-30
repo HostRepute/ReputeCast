@@ -85,7 +85,7 @@ export default translate(m, {
   policyMedianWait: 'Thời gian chờ trung vị',
   noRules: 'Không có quy tắc nào được bật: các lần gửi không bao giờ cần phê duyệt',
   approvalsFrom: '{count} lượt, từ {approvers}',
-  approvalsFromNobody: '{count} lượt, nhưng chưa có ai phê duyệt được (chưa thành viên nào có quyền campaigns:approve)',
+  approvalsFromNobody: '{count} lượt, nhưng chưa thành viên nào có thể phê duyệt chiến dịch',
   medianWait: '{wait} trong 30 ngày qua',
   medianWaitNone: 'Không có quyết định nào trong 30 ngày qua',
   loading: 'Đang tải các yêu cầu phê duyệt',

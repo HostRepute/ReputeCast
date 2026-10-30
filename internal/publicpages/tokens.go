@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/audience"
+	"github.com/hostrepute/reputecast/internal/counters"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/i18n"
@@ -886,11 +887,10 @@ func (h *Handler) unsubscribe(ctx context.Context, s *site, c linktoken.Claims, 
 		}
 		at := ev.At
 		if msg != nil {
-			if msg.CampaignID != nil && msg.ProviderID != nil {
-				if err := q.PublicBumpUnsubscribed(ctx, store.PublicBumpUnsubscribedParams{CampaignID: *msg.CampaignID, ProviderID: *msg.ProviderID,
-					MailboxProvider: msg.MailboxProvider, Variant: msg.Variant}); err != nil {
-					return err
-				}
+			// The message moves to unsubscribed once; its campaign's count
+			// follows (internal/counters).
+			if err := counters.Unsubscribed(ctx, q, msg.ID, at); err != nil {
+				return err
 			}
 			source := "Unsubscribe page"
 			if ev.Source == audience.SourceOneClick {

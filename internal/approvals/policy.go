@@ -41,9 +41,6 @@ const (
 // approval no longer covers it.
 const InvalidationShare = 10.0
 
-// LargeSend is the audience size from which sending asks to type the count.
-const LargeSend = 1000
-
 // policyDoc is workspaces.approval_policy (the shape the workspace settings
 // summary reads too).
 type policyDoc struct {

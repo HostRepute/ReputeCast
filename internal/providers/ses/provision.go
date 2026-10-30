@@ -38,6 +38,8 @@ var (
 // connection of the same instance already uses them in the account.
 const (
 	TopicName = "reputecast-events"
+	// QueueName is the SQS queue of the queue mode (PR-4).
+	QueueName = "reputecast-events"
 	RoleName  = "ReputeCastSES"
 	// EventDestination names the configuration sets' event destination.
 	EventDestination = "reputecast"
@@ -73,7 +75,9 @@ func withSuffix(name, suffix string) string {
 	return name + "-" + suffix
 }
 
-// ProvisionSteps implements providers.Provisioner.
+// ProvisionSteps implements providers.Provisioner: the workspace's tenant
+// (PR-11), the event path (SNS calling the webhook, or SNS into an SQS
+// queue ReputeCast polls, PR-4) and a configuration set per stream.
 func (p *Provider) ProvisionSteps(_ context.Context, in providers.ProvisionInput) []providers.ProvisionStep {
 	topic := withSuffix(TopicName, in.Suffix)
 	step := func(key string, m i18n.Msg, args i18n.Args) providers.ProvisionStep {
@@ -81,10 +85,19 @@ func (p *Provider) ProvisionSteps(_ context.Context, in providers.ProvisionInput
 		st.Label, st.LabelText = say(m, args)
 		return st
 	}
-	out := []providers.ProvisionStep{
-		// "Create SNS topic `reputecast-events` and subscribe `https://…`"
-		step("sns_topic", mStepTopic, i18n.Args{"topic": topic, "url": in.WebhookURL}),
-		step("sns_confirm", mStepConfirm, nil),
+	out := []providers.ProvisionStep{}
+	if in.Tenant != "" {
+		out = append(out, step("tenant", mStepTenant, i18n.Args{"tenant": TenantName(in.Tenant, in.Suffix)}))
+	}
+	if in.Events == providers.EventsQueue {
+		out = append(out,
+			step("sns_queue", mStepQueue, i18n.Args{"topic": topic, "queue": withSuffix(QueueName, in.Suffix)}),
+			step("sqs_policy", mStepQueuePolicy, i18n.Args{"seconds": int(QueueWait / time.Second)}))
+	} else {
+		out = append(out,
+			// "Create SNS topic `reputecast-events` and subscribe `https://…`"
+			step("sns_topic", mStepTopic, i18n.Args{"topic": topic, "url": in.WebhookURL}),
+			step("sns_confirm", mStepConfirm, nil))
 	}
 	for _, s := range streamOrder {
 		out = append(out, step("config_set:"+s, mStepConfigSet, i18n.Args{"name": withSuffix(configSetNames[s], in.Suffix)}))
@@ -95,10 +108,16 @@ func (p *Provider) ProvisionSteps(_ context.Context, in providers.ProvisionInput
 // Provision implements providers.Provisioner.
 func (p *Provider) Provision(ctx context.Context, step string, in providers.ProvisionInput) (providers.ProvisionResult, error) {
 	switch {
+	case step == "tenant":
+		return p.provisionTenant(ctx, in)
 	case step == "sns_topic":
 		return p.provisionTopic(ctx, in)
 	case step == "sns_confirm":
 		return p.confirmSubscription(ctx, in)
+	case step == "sns_queue":
+		return p.provisionQueue(ctx, in)
+	case step == "sqs_policy":
+		return p.limitQueue(ctx, in)
 	case strings.HasPrefix(step, "config_set:"):
 		return p.provisionConfigSet(ctx, strings.TrimPrefix(step, "config_set:"), in)
 	}
@@ -109,14 +128,22 @@ func (p *Provider) snsClient() *sns.Client {
 	return sns.NewFromConfig(p.aws, func(o *sns.Options) { o.Retryer = aws.NopRetryer{} })
 }
 
+// createTopic creates (or finds) the event topic.
+func (p *Provider) createTopic(ctx context.Context, in providers.ProvisionInput) (string, error) {
+	t, err := p.snsClient().CreateTopic(ctx, &sns.CreateTopicInput{Name: aws.String(withSuffix(TopicName, in.Suffix))})
+	if err != nil {
+		return "", callError("sns:CreateTopic", err)
+	}
+	return aws.ToString(t.TopicArn), nil
+}
+
 func (p *Provider) provisionTopic(ctx context.Context, in providers.ProvisionInput) (providers.ProvisionResult, error) {
 	name := withSuffix(TopicName, in.Suffix)
 	c := p.snsClient()
-	t, err := c.CreateTopic(ctx, &sns.CreateTopicInput{Name: aws.String(name)})
+	topicARN, err := p.createTopic(ctx, in)
 	if err != nil {
-		return providers.ProvisionResult{}, callError("sns:CreateTopic", err)
+		return providers.ProvisionResult{}, err
 	}
-	topicARN := aws.ToString(t.TopicArn)
 	proto := "https"
 	if strings.HasPrefix(in.WebhookURL, "http://") {
 		proto = "http"
@@ -125,6 +152,7 @@ func (p *Provider) provisionTopic(ctx context.Context, in providers.ProvisionInp
 	if err != nil {
 		return providers.ProvisionResult{}, callError("sns:Subscribe", err)
 	}
+	p.dropSubscription(ctx, aws.ToString(sub.SubscriptionArn))
 	arns := append([]string{}, p.s.TopicARNs...)
 	if !contains(arns, topicARN) {
 		arns = append(arns, topicARN)
@@ -202,6 +230,10 @@ func (p *Provider) provisionConfigSet(ctx context.Context, stream string, in pro
 	} else if err != nil {
 		return providers.ProvisionResult{}, callError("ses:CreateConfigurationSetEventDestination", err)
 	}
+	// Sends that name the workspace's tenant may use the set (PR-11).
+	if err := p.associate(ctx, p.resourceARN("configuration-set", name)); err != nil {
+		return providers.ProvisionResult{}, err
+	}
 	sets := map[string]string{}
 	for k, v := range p.s.ConfigurationSets {
 		sets[k] = v
@@ -239,8 +271,13 @@ func (p *Provider) AccountID(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", callError("sts:GetCallerIdentity", err)
 	}
+	p.callerARN = aws.ToString(out.Arn)
 	return aws.ToString(out.Account), nil
 }
+
+// CallerARN is who the credentials belong to, as the last AccountID call
+// read it ("arn:aws:iam::123456789012:user/reputecast-ses").
+func (p *Provider) CallerARN() string { return p.callerARN }
 
 // ScanRegions implements providers.RegionScanner: GetAccount in every SES
 // region, ten at a time.
@@ -314,16 +351,20 @@ func (p *Provider) RequestProductionAccess(ctx context.Context, r providers.Prod
 // Policy is the least-privilege IAM policy ReputeCast needs.
 const Policy = `{ "Version": "2012-10-17", "Statement": [
   { "Effect": "Allow", "Action": ["ses:SendEmail","ses:SendRawEmail","ses:GetAccount","ses:GetSendQuota",
-    "ses:*ConfigurationSet*","ses:*EmailIdentity*","ses:*SuppressedDestination*","ses:PutAccountDetails"], "Resource": "*" },
-  { "Effect": "Allow", "Action": ["sns:CreateTopic","sns:Subscribe","sns:SetTopicAttributes","sns:GetSubscriptionAttributes"],
-    "Resource": "arn:aws:sns:*:*:reputecast-*" } ] }`
+    "ses:*ConfigurationSet*","ses:*EmailIdentity*","ses:ListEmailIdentities","ses:*Tenant*","ses:GetReputationEntity",
+    "ses:*SuppressedDestination*","ses:PutAccountDetails","ses:GetDedicatedIps"], "Resource": "*" },
+  { "Effect": "Allow", "Action": ["sns:CreateTopic","sns:Subscribe","sns:Unsubscribe","sns:SetTopicAttributes","sns:GetSubscriptionAttributes"],
+    "Resource": "arn:aws:sns:*:*:reputecast-*" },
+  { "Effect": "Allow", "Action": ["sqs:CreateQueue","sqs:GetQueueAttributes","sqs:SetQueueAttributes","sqs:ReceiveMessage","sqs:DeleteMessage"],
+    "Resource": "arn:aws:sqs:*:*:reputecast-*" } ] }`
 
 // Template is the CloudFormation template that creates the role.
 const Template = `AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
-  ReputeCast access to Amazon SES: send mail, read the account, manage
-  configuration sets, identities and the suppression list, and create the
-  SNS topics (reputecast-*) that carry delivery events back to ReputeCast.
+  ReputeCast access to Amazon SES: send mail, read the account and its
+  dedicated IPs, manage configuration sets, identities, the workspace's
+  tenant and the suppression list, and create the SNS topics and SQS queues
+  (reputecast-*) that carry delivery events back to ReputeCast.
 Parameters:
   ExternalId:
     Type: String
@@ -362,16 +403,29 @@ Resources:
                   - ses:GetSendQuota
                   - ses:*ConfigurationSet*
                   - ses:*EmailIdentity*
+                  - ses:ListEmailIdentities
+                  - ses:*Tenant*
+                  - ses:GetReputationEntity
                   - ses:*SuppressedDestination*
                   - ses:PutAccountDetails
+                  - ses:GetDedicatedIps
                 Resource: "*"
               - Effect: Allow
                 Action:
                   - sns:CreateTopic
                   - sns:Subscribe
+                  - sns:Unsubscribe
                   - sns:SetTopicAttributes
                   - sns:GetSubscriptionAttributes
                 Resource: arn:aws:sns:*:*:reputecast-*
+              - Effect: Allow
+                Action:
+                  - sqs:CreateQueue
+                  - sqs:GetQueueAttributes
+                  - sqs:SetQueueAttributes
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                Resource: arn:aws:sqs:*:*:reputecast-*
 Outputs:
   RoleArn:
     Description: Paste this into ReputeCast.
@@ -446,4 +500,18 @@ func decodeSettings(raw []byte, v any) error {
 		return nil
 	}
 	return json.Unmarshal(raw, v)
+}
+
+// dropSubscription removes the topic's previous subscription when the
+// events path changed (webhook ⇄ queue), so events don't arrive twice. A
+// failure leaves it: duplicates are normalized once.
+func (p *Provider) dropSubscription(ctx context.Context, keep string) {
+	var s subscriptionSettings
+	if err := decodeSettings(p.cfg.Settings, &s); err != nil {
+		return
+	}
+	if s.SubscriptionARN == "" || s.SubscriptionARN == keep || !strings.HasPrefix(s.SubscriptionARN, "arn:") {
+		return
+	}
+	_, _ = p.snsClient().Unsubscribe(ctx, &sns.UnsubscribeInput{SubscriptionArn: aws.String(s.SubscriptionARN)})
 }

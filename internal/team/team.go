@@ -96,7 +96,7 @@ type TeamMemberList struct {
 	// CanInvite / CanManage reflect the caller's team:invite and team:manage.
 	CanInvite bool `json:"canInvite"`
 	CanManage bool `json:"canManage"`
-	// Reason explains read-only access ("Inviting needs the team:invite permission…").
+	// Reason explains read-only access ("Your role can't invite people…").
 	Reason string `json:"reason,omitempty"`
 	// Helpers are members who hold team:manage.
 	Helpers []string `json:"helpers"`
@@ -318,7 +318,7 @@ type TeamMemberDetail struct {
 	Permissions []TeamEffectivePermission `json:"permissions"`
 	Groups      []string                  `json:"groups"`
 	APIKeys     []TeamMemberAPIKey        `json:"apiKeys"`
-	// KeysNote explains an empty list ("Creating API keys needs apikeys:manage…").
+	// KeysNote explains an empty list ("None. This role can't create API keys.").
 	KeysNote           string               `json:"keysNote,omitempty"`
 	ApprovalsGiven     []TeamMemberApproval `json:"approvalsGiven"`
 	ApprovalsRequested []TeamMemberApproval `json:"approvalsRequested"`

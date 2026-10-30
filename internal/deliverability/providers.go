@@ -7,6 +7,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
+	"github.com/hostrepute/reputecast/internal/providers/manage"
 	provstate "github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -153,6 +154,13 @@ func (st *state) providerHealth() []DeliverabilityProviderHealth {
 		}
 		h.Bounce = rateLimit(l, text(l, "rate.bounce", nil), u.Bounce7d, limits.Bounce, p.Adapter)
 		h.Complaint = rateLimit(l, text(l, complaintLabel, nil), u.Complaint7d, limits.Complaint, p.Adapter)
+		if u.TooFewToJudge() {
+			// Too little mail to judge the rates (the rule Send Readiness
+			// uses): they show without a tone, and the card says why.
+			h.Bounce.Tone, h.Bounce.Usage = "ok", 0
+			h.Complaint.Tone, h.Complaint.Usage = "ok", 0
+			h.NotJudged = text(l, "rate.tooFew", i18n.Args{"count": u.Sent7d, "min": manage.MinRateVolume})
+		}
 		switch {
 		case p.Adapter == "ses":
 			v := text(l, "note.vdmOff", nil)

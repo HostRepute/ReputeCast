@@ -189,7 +189,7 @@ function TierForm({ tier, plans, account }: { tier?: Tier; plans: Plans; account
     <Frame title={title} actions={actions}>
       {ro ? (
         <Note tone="neutral">
-          <T msg={plans.helpers.length ? mt.readOnly : mt.readOnlyNoHelpers} values={{ permission: <span className="mono">{'earn:edit'}</span>, helpers: orList(plans.helpers) }} />
+          <T msg={plans.helpers.length ? mt.readOnly : mt.readOnlyNoHelpers} values={{ helpers: orList(plans.helpers) }} />
         </Note>
       ) : null}
       {busy && !tier && plans.connected ? <SavingCard /> : null}

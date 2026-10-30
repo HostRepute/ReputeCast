@@ -159,8 +159,8 @@ export const mu = defineMessages('grow.setup', {
   // States.
   loadError: "Couldn't load the guide",
   loadingLabel: 'Loading the guide',
-  needsEdit: 'Setting up a program needs <mono>grow:edit</mono>. Ask {helpers}.',
-  needsEditNoHelpers: 'Setting up a program needs <mono>grow:edit</mono>.',
+  needsEdit: "Your role can't set up a program. Ask {helpers}.",
+  needsEditNoHelpers: "Your role can't set up a program.",
   alreadyOn: 'The {list} program is already on.',
   backToGrow: 'Back to Grow',
   saveFailed: "Couldn't save the guide",

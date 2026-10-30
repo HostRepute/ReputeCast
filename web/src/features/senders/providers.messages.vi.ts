@@ -6,7 +6,7 @@ export default translate(mp, {
   documentTitle: 'Nhà cung cấp · Cài đặt',
   loadFailed: 'Không tải được cài đặt nhà cung cấp',
   loading: 'Đang tải cài đặt nhà cung cấp…',
-  readOnlyText: 'Bạn có thể xem các nhà cung cấp và cài đặt gửi mặc định. Để thay đổi, bạn cần quyền {perm}.',
+  readOnlyText: 'Bạn có thể xem các nhà cung cấp và cài đặt gửi mặc định. Vai trò của bạn không thể thay đổi chúng.',
 
   connectedProviders: 'Nhà cung cấp đã kết nối',
   noneConnected: 'Chưa có nhà cung cấp gửi thư nào được kết nối.',

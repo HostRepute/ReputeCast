@@ -66,6 +66,9 @@ type Service struct {
 	// (X17; nil: unavailable).
 	Revenue  RevenueReader
 	Sponsors SponsorProposer
+	// Reports reads campaign reports as the API does and makes read-only
+	// links (nil: the report from the counters only, no links).
+	Reports ReportReader
 	// Grow and Recommendations read Grow's referrals and recommendations
 	// (nil: unavailable).
 	Grow            GrowReader
@@ -97,7 +100,8 @@ type MCPToolInfo struct {
 // Tools is the catalogue, in the order shown on the MCP settings screen.
 var Tools = []MCPToolInfo{
 	{"list_campaigns", "List campaigns with status, audience and headline results.", string(authz.CampaignsView), false},
-	{"get_campaign_report", "Results of a campaign by sending provider and mailbox provider.", string(authz.ReportsView), false},
+	{"get_campaign_report", "A campaign's report as the app shows it: human, privacy-protected and scanner opens apart, the measurable open rate, complaints where reported, results by mailbox and sending provider, links, the A/B decision and growth.", string(authz.ReportsView), false},
+	{"share_campaign_report", "Make a read-only link to a campaign's report that expires (30 days by default), choosing whether it shows the cost, warm-up and the email.", string(authz.ReportsShare), true},
 	{"get_send_readiness", "The latest Send Readiness verdict and checks of a campaign.", string(authz.CampaignsView), false},
 	{"create_campaign_draft", "Create a draft campaign from MJML.", string(authz.CampaignsEdit), true},
 	{"update_campaign_content", "Change the subject, preheader or MJML of a draft, or of one of its language versions.", string(authz.CampaignsEdit), true},

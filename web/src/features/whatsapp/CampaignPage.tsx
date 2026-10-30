@@ -638,7 +638,7 @@ export function RatesDialog({ onClose }: { onClose: () => void }) {
             </table>
           </div>
           {data.editedAt && data.editedBy ? <span className="k">{t(m.ratesEdited, { date: dayMonthYear(data.editedAt), name: data.editedBy })}</span> : null}
-          {!data.canManage ? <span className="k">{t(m.ratesReadOnly, { perm: 'providers:manage' })}</span> : null}
+          {!data.canManage ? <span className="k">{t(m.ratesReadOnly)}</span> : null}
           {save.isError ? (
             <span className="err" role="alert">
               {errorMessage(save.error)}

@@ -245,7 +245,7 @@ export function BulkWarningView({
                 ))}
             </Select>
             {fallbackIssue ? (
-              <Badge tone="warn" id="pv-bw-fallback-terms" className="mt-0.5 self-start">
+              <Badge tone="warn" dot id="pv-bw-fallback-terms" className="mt-0.5 self-start">
                 {t(mb.termsBadge)}
               </Badge>
             ) : null}
@@ -367,7 +367,9 @@ export function BulkWarningView({
                   <tr key={`${p.id}-${term.variant}`} className={cn(flagged && 'bg-warn-tint')}>
                     <Td className="font-semibold">{termName(p, term.variant)}</Td>
                     <Td>
-                      <Badge tone={badge.tone}>{badge.text}</Badge>
+                      <Badge tone={badge.tone} dot>
+                        {badge.text}
+                      </Badge>
                     </Td>
                     <Td>
                       {term.note}

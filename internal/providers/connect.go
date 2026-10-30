@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+	"time"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
 )
@@ -114,7 +115,17 @@ type ProvisionInput struct {
 	// because another connection of this instance already uses the plain
 	// names in the same account and region.
 	Suffix string
+	// Events is how events come back: "" or "webhook" (the provider calls
+	// WebhookURL) or "queue" (a queue ReputeCast polls, PR-4).
+	Events string
+	// Tenant names the workspace's own tenant at the provider when it has
+	// them (SES tenants, PR-11); empty for none.
+	Tenant string
 }
+
+// EventsQueue is ProvisionInput.Events for events that come through a
+// queue ReputeCast polls.
+const EventsQueue = "queue"
 
 // ProvisionResult is the outcome of one step.
 type ProvisionResult struct {
@@ -129,6 +140,45 @@ type ProvisionResult struct {
 	// Pending is true when the step waits for something outside ReputeCast
 	// (the SNS subscription handshake); call Provision again a bit later.
 	Pending bool
+	// Note qualifies what was done, under it ("This workspace's own
+	// suppression list…"); NoteText is its message.
+	Note     string
+	NoteText i18n.Text
+}
+
+// EventQueue is implemented by adapters whose events can come through a
+// queue ReputeCast polls instead of webhooks (SES through SQS, PR-4):
+// nothing has to reach ReputeCast from the internet.
+type EventQueue interface {
+	// QueueEnabled reports whether this connection gets its events that way.
+	QueueEnabled() bool
+	// ReceiveEvents returns up to max queued events, waiting up to wait for
+	// the first one (a long poll).
+	ReceiveEvents(ctx context.Context, max int, wait time.Duration) ([]QueuedEvent, error)
+	// AckEvents removes stored events from the queue.
+	AckEvents(ctx context.Context, handles []string) error
+}
+
+// QueuedEvent is one event pulled from an event queue, in the format the
+// adapter's ParseWebhook reads.
+type QueuedEvent struct {
+	Body        []byte
+	ContentType string
+	// Handle acknowledges the event once it is stored.
+	Handle string
+}
+
+// EventChecker is implemented by adapters with an address that always
+// accepts mail and makes the provider report a delivery (SES's mailbox
+// simulator): the setup sends there and waits for that event before it
+// calls events verified (PR-3).
+type EventChecker interface {
+	EventCheckAddress() string
+	// EventCheckFrom picks an address the provider may send the check from:
+	// one of candidates (the workspace's senders) whose address or domain
+	// it has verified, else any address of an identity it has verified; ""
+	// while none is (the check then waits for domain verification).
+	EventCheckFrom(ctx context.Context, candidates []string) (string, error)
 }
 
 // Provisioner creates the provider-side resources ReputeCast needs, one

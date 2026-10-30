@@ -127,12 +127,21 @@ export const Toggle = forwardRef<
 >(function Toggle({ label, hideLabel, description, className, id, ...rest }, ref) {
   const auto = useId()
   const tid = id ?? auto
+  if (hideLabel) {
+    // The box is the label, so all of it is the target (44 px on phones where a page sizes it).
+    return (
+      <label className={cn('flex items-center gap-3', className)}>
+        <input ref={ref} type="checkbox" role="switch" className="tg" id={tid} {...rest} />
+        <span className="vh">{label}</span>
+      </label>
+    )
+  }
   return (
     <div className={cn('flex items-center gap-3', className)}>
       <input ref={ref} type="checkbox" role="switch" className="tg" id={tid} {...rest} />
-      <label htmlFor={tid} className={cn(hideLabel ? 'vh' : 'flex min-w-0 flex-col gap-0.5')}>
-        <span className={hideLabel ? undefined : 'font-semibold'}>{label}</span>
-        {description && !hideLabel ? <span className="k">{description}</span> : null}
+      <label htmlFor={tid} className="flex min-w-0 flex-col gap-0.5">
+        <span className="font-semibold">{label}</span>
+        {description ? <span className="k">{description}</span> : null}
       </label>
     </div>
   )

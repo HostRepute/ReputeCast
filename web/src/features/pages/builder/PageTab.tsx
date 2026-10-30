@@ -13,8 +13,6 @@ import { dayTimeText, zoneLabel } from './wording'
 type SettingsInput = Schemas['PageSettingsInput']
 type Visibility = PageSettings['visibility']
 
-const MANAGE = 'website:manage'
-
 /** The Page tab's text fields: shown as typed while focused, saved when they're left. */
 function useDraftField(stored: string): [string, (v: string) => void, () => string | null, () => void] {
   const [editing, setEditing] = useState<string | null>(null)
@@ -91,7 +89,7 @@ export function PageTab() {
     if (e.key === 'Enter') e.currentTarget.blur()
   }
   const helpers = p.publish.publishers
-  const manageWhy = canManage ? '' : helpers.length ? t(m.manageWhy, { permission: MANAGE, helpers: formatList(helpers, 'disjunction') }) : t(m.manageWhyNoHelpers, { permission: MANAGE })
+  const manageWhy = canManage ? '' : helpers.length ? t(m.manageWhy, { helpers: formatList(helpers, 'disjunction') }) : t(m.manageWhyNoHelpers)
   const visibilities: { v: Visibility; label: string }[] = [
     { v: 'public', label: t(m.visPublic) },
     { v: 'members', label: t(m.visMembers) },

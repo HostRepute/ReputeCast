@@ -152,7 +152,7 @@ export default translate(dc, {
   readOnly: 'Chỉ xem',
   previewNextIssue: 'Xem trước số tiếp theo',
   viewerTitle: '{name} · {role}',
-  viewerBody: 'Bạn có thể xem trước các số và đọc cài đặt của mẫu. Để sửa mẫu, bạn cần quyền campaigns:edit. Hãy hỏi {names}.',
-  viewerBodyNoOne: 'Bạn có thể xem trước các số và đọc cài đặt của mẫu. Để sửa mẫu, bạn cần quyền campaigns:edit.',
+  viewerBody: 'Bạn có thể xem trước các số và đọc cài đặt của mẫu. Vai trò của bạn không thể sửa mẫu. Hãy hỏi {names}.',
+  viewerBodyNoOne: 'Bạn có thể xem trước các số và đọc cài đặt của mẫu. Vai trò của bạn không thể sửa mẫu.',
   viewerNote: 'Khung thiết kế và các bản xem trước vẫn hoạt động. Khối, tiêu đề và bảng thuộc tính bị tắt.',
 })

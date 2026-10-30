@@ -16,7 +16,7 @@ import { MilestoneTrack } from './MilestoneTrack'
 import { WeekBars, type BarDatum } from './WeekBars'
 import { m, mo } from './messages'
 import { mc } from './recommendations.messages'
-import { GROW, GrowPage, LoadError, NewsletterTile, ReadOnlyNote, calendarDay, dayRange, mono } from './shared'
+import { GROW, GrowPage, LoadError, NewsletterTile, ReadOnlyNote, calendarDay, dayRange } from './shared'
 
 type Overview = Schemas['GrowOverview']
 type Need = Schemas['GrowNeed']
@@ -70,10 +70,10 @@ function OverviewBody({ o }: { o: Overview }) {
     <div className="gw">
       {readOnly ? (
         <ReadOnlyNote>
-          <T
-            msg={o.helpers.edit.length && o.helpers.connect.length ? mo.readOnlyText : mo.readOnlyTextNoHelpers}
-            values={{ mono, editHelpers: formatList(o.helpers.edit, 'disjunction'), connectHelpers: formatList(o.helpers.connect, 'disjunction') }}
-          />
+          {t(o.helpers.edit.length && o.helpers.connect.length ? mo.readOnlyText : mo.readOnlyTextNoHelpers, {
+            editHelpers: formatList(o.helpers.edit, 'disjunction'),
+            connectHelpers: formatList(o.helpers.connect, 'disjunction'),
+          })}
         </ReadOnlyNote>
       ) : null}
       <div className="flex flex-wrap items-center justify-between gap-2">

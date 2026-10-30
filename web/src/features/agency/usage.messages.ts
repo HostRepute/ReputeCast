@@ -7,7 +7,8 @@ export const m = defineMessages('agencyUsage', {
   monthPartial: '{month} · to date',
   exportCsv: 'Export CSV',
   loadFailed: "Couldn't load the usage",
-  readOnly: 'Read-only · without agency:usage',
+  // The note's label; the server's reason follows it ("You can't see costs and rebill rates or export usage. Ask …").
+  readOnly: 'Read-only',
   tileEmails: 'Emails',
   tileEmailsSub: '{n, plural, one {every stream, # workspace} other {every stream, # workspaces}}',
   tileSegments: 'SMS segments',

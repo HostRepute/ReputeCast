@@ -24,7 +24,7 @@ type listInput struct {
 type uploadInput struct {
 	api.WorkspaceInput
 	RawBody huma.MultipartFormFiles[struct {
-		File huma.FormFile `form:"file" contentType:"image/png,image/jpeg,image/gif,application/octet-stream" required:"true" doc:"PNG, JPEG or GIF, up to 5 MB"`
+		File huma.FormFile `form:"file" contentType:"image/png,image/jpeg,image/gif,application/octet-stream" required:"true" doc:"PNG or JPEG up to 20 MB, GIF up to 5 MB"`
 	}]
 }
 
@@ -41,15 +41,18 @@ func Register(h huma.API, s *Service) {
 			items, err := s.List(ctx, api.WorkspaceFrom(ctx), in.Limit)
 			return api.OK(MediaAssetList{Items: items}), err
 		})
-	api.Post(h, api.Op{ID: "upload-media", Path: "/workspaces/{workspace}/media", Summary: "Upload an image (PNG, JPEG or GIF, up to 5 MB)",
-		Description: "The file is validated by its content, not its name. Uploading the same file twice returns the stored image.",
-		Tags:        tags, Access: api.Workspace(authz.CampaignsEdit), MaxBodyBytes: MaxBytes + 64<<10, Status: 201},
+	api.Post(h, api.Op{ID: "upload-media", Path: "/workspaces/{workspace}/media", Summary: "Upload an image (PNG or JPEG up to 20 MB, GIF up to 5 MB)",
+		Description: "The file is validated by its content, not its name. What's stored is made for email: at most 1,200 px wide (same proportions, never enlarged), " +
+			"photos turned upright and compressed (a photo saved as PNG may become a JPEG), and metadata such as location and camera details removed. " +
+			"GIFs keep their frames. `original` describes the file as uploaded when the stored image differs from it. " +
+			"Uploading the same file twice returns the stored image.",
+		Tags: tags, Access: api.Workspace(authz.CampaignsEdit), MaxBodyBytes: MaxUploadBytes + 64<<10, Status: 201},
 		func(ctx context.Context, in *uploadInput) (*api.Body[MediaAsset], error) {
 			f := in.RawBody.Data().File
 			if !f.IsSet {
 				return nil, api.Invalid("body.file", say(ctx, mChooseImage))
 			}
-			data, err := io.ReadAll(io.LimitReader(f, MaxBytes+1))
+			data, err := io.ReadAll(io.LimitReader(f, MaxUploadBytes+1))
 			if err != nil {
 				return nil, api.Invalid("body.file", say(ctx, mInterrupted))
 			}

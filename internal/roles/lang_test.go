@@ -50,7 +50,7 @@ func TestRolesInVietnamese(t *testing.T) {
 	var imp struct{ Sensitive, Approvals string }
 	vi.Do("POST", ws+"/roles/impact", map[string]any{"permissions": []string{"campaigns:edit"}}).MustStatus(t, 200).JSON(t, &imp)
 	if imp.Sensitive != "Chưa chọn · không bắt buộc xác thực hai lớp" ||
-		imp.Approvals != "Người giữ vai trò này yêu cầu phê duyệt được cho lần gửi vì họ có campaigns:edit mà không có campaigns:send" {
+		imp.Approvals != "Người giữ vai trò này yêu cầu phê duyệt được cho lần gửi vì họ sửa được chiến dịch nhưng không gửi được" {
 		t.Errorf("impact: %+v", imp)
 	}
 	if p := vi.Do("DELETE", ws+"/roles/"+editor, nil).MustStatus(t, 409).Problem(t); p["detail"] != "Biên tập viên là vai trò có sẵn nên không xóa được." {

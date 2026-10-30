@@ -1,6 +1,6 @@
 import { keepPreviousData, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { GoogleMark } from '@/components/icons/Icon'
@@ -12,7 +12,7 @@ import { EmptyRow, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { Truncate } from '@/components/ui/Truncate'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
-import { T, t as tt, useT } from '@/i18n'
+import { t as tt, useT } from '@/i18n'
 import { ago, andList, inDays, monthDay, orList, usDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
@@ -84,14 +84,13 @@ export function TeamPage({ search }: { search: TeamSearch }) {
   )
 }
 
-/** "You can view the team. Inviting needs the team:invite permission…", and who can help. */
+/** "You can view the team. Your role can't invite people…", and who can help. */
 function ReadOnlyNote({ helpers }: { helpers: string[] }) {
   const t = useT()
-  const mono = (c: ReactNode) => <span className="mono">{c}</span>
   return (
     <div className="note n" role="status">
       <Badge tone="neutral">{t(tm.readOnly)}</Badge>
-      <span>{helpers.length ? <T msg={tm.readOnlyNoteAsk} values={{ helpers: orList(helpers), mono }} /> : <T msg={tm.readOnlyNote} values={{ mono }} />}</span>
+      <span>{helpers.length ? t(tm.readOnlyNoteAsk, { helpers: orList(helpers) }) : t(tm.readOnlyNote)}</span>
     </div>
   )
 }

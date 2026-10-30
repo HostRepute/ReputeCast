@@ -33,7 +33,7 @@ func TestMemberPageInVietnamese(t *testing.T) {
 		KeysNote string
 	}
 	vi.Do("GET", ws+"/members/"+daniel.ID, nil).MustStatus(t, 200).JSON(t, &detail)
-	if detail.Groups[0] != "Chiến dịch" || detail.KeysNote != "Không có. Tạo khóa API cần quyền apikeys:manage, mà vai trò này không có." {
+	if detail.Groups[0] != "Chiến dịch" || detail.KeysNote != "Không có. Vai trò này không thể tạo khóa API." {
 		t.Errorf("detail: %v · %q", detail.Groups, detail.KeysNote)
 	}
 	for _, p := range detail.Permissions {
@@ -48,7 +48,7 @@ func TestMemberPageInVietnamese(t *testing.T) {
 			}
 		}
 	}
-	if p := vi.Do("POST", ws+"/members/"+linh.ID+"/deactivate", map[string]any{}).MustStatus(t, 409).Problem(t); p["detail"] != "Bạn không thể tự vô hiệu hóa chính mình. Hãy nhờ một thành viên khác có quyền team:manage, hoặc rời không gian làm việc trong Tài khoản và bảo mật." {
+	if p := vi.Do("POST", ws+"/members/"+linh.ID+"/deactivate", map[string]any{}).MustStatus(t, 409).Problem(t); p["detail"] != "Bạn không thể tự vô hiệu hóa chính mình. Hãy nhờ một thành viên khác có quyền quản lý nhóm, hoặc rời không gian làm việc trong Tài khoản và bảo mật." {
 		t.Errorf("deactivate yourself: %v", p)
 	}
 

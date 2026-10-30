@@ -67,7 +67,7 @@ export const me = defineMessages('website.elsewhere', {
   meter: 'Meter',
   meterText: '{used} of {limit} free paid {limit, plural, one {post} other {posts}} used in {month}',
   signOutEverywhere: 'Sign out everywhere…',
-  signOutHint: 'Needs subscribers:edit · audited',
+  signOutHint: 'For people who can edit contacts · audited',
   signOutTitle: 'Sign {name} out everywhere?',
   signOutText: 'Every session on {host} ends now: {count, plural, one {# browser} other {# browsers}}. They can sign in again with a new link.',
   signOutBadge: 'Sign out everywhere',
@@ -101,7 +101,7 @@ export const me = defineMessages('website.elsewhere', {
 
   // Approvals
   policyPost: 'Publishing a post or page needs approval',
-  policyPostText: "Off by default. Approvers are the workspace's approvers (campaigns:approve). The approval covers the content, address, visibility and publish time.",
+  policyPostText: "Off by default. Approvers are the workspace's approvers: the people who can approve campaigns. The approval covers the content, address, visibility and publish time.",
   policyPostNote: '“The author lacks the send permission” also covers {perm}: an author without it gets Request approval instead of Publish.',
   inboxPost: 'Post',
   inboxPostLine: 'Post · {visibility} · requested by {name}, {date} · web preview',

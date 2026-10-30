@@ -68,7 +68,13 @@ func TestWarmupInVietnamese(t *testing.T) {
 	}
 	vi.Do("POST", path+"/resume", nil).MustStatus(t, 200)
 	vi.Do("GET", ws+"/warmup", nil).MustStatus(t, 200).JSON(t, &o)
-	if p := o.Plans[0]; p.StatusDetail != "" || p.Log[0].Body != "Linh Nguyen đã tiếp tục khởi động." {
-		t.Fatalf("resumed: %q, %+v", p.StatusDetail, p.Log[0])
+	// Nothing is scheduled today: the log opens with today's line, then
+	// the entry just written.
+	p = o.Plans[0]
+	if len(p.Log) < 2 || p.Log[0].Kind != "today" || p.Log[0].Body != "Hôm nay không có lịch gửi nào, nên ngày 9 không được tính và sẽ lặp lại vào ngày mai." {
+		t.Fatalf("today's line: %+v", p.Log)
+	}
+	if p.StatusDetail != "" || p.Log[1].Body != "Linh Nguyen đã tiếp tục khởi động ở ngày 9." {
+		t.Fatalf("resumed: %q, %+v", p.StatusDetail, p.Log[1])
 	}
 }

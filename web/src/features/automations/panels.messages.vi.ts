@@ -149,7 +149,7 @@ export default translate(mp, {
   publicOnly: 'Chỉ địa chỉ công khai. Liên hệ vẫn đi tiếp qua bước này dù lệnh gọi thất bại.',
   signingSecret: 'Khóa bí mật để ký',
   notSet: 'Chưa đặt',
-  secretReason: 'Chỉnh sửa cần quyền automations:edit.',
+  secretReason: 'Vai trò của bạn không thể sửa tự động hóa.',
   replace: 'Thay',
   set: 'Đặt',
   secretSaved: 'Đã lưu khóa bí mật để ký',

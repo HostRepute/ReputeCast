@@ -27,7 +27,7 @@
   "problem.fieldBuiltin": "{key} là một trường có sẵn.",
   "problem.fieldMoney": "Chỉ trường số mới hiển thị được dưới dạng tiền.",
   "problem.fieldExists": "Đã có một trường với khóa {key}.",
-  "problem.paidNeedsEarn": "Lọc theo trạng thái trả phí cần quyền earn:view.",
+  "problem.paidNeedsEarn": "Vai trò của bạn không xem được hội viên trả phí, nên không lọc được theo trạng thái trả phí.",
   "problem.pickPaid": "Hãy chọn một trạng thái trả phí.",
   "problem.policyActive": "Tích cực cần ít nhất 1 ngày.",
   "problem.policyAtRisk": "Có nguy cơ phải bắt đầu sau {days} ngày để Nguội dần còn khoảng.",

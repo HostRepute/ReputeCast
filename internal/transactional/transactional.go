@@ -32,8 +32,10 @@ import (
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/linktoken"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/publicurl"
+	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -136,6 +138,10 @@ type Service struct {
 	URLs  publicurl.Builder
 	Log   *slog.Logger
 	Jobs  func() *jobs.Client
+	// Mailbox classifies a recipient's company domain from its MX records
+	// (internal/mailbox), so routing conditions on the mailbox provider see
+	// Google Workspace as Gmail; nil uses the domain name only.
+	Mailbox MailboxClassifier
 	// Checker runs the composer's content checks (links are not probed in
 	// the editor).
 	Checker *contentcheck.Checker
@@ -219,4 +225,18 @@ func clip(s string, n int) string {
 		return s
 	}
 	return s[:n]
+}
+
+// MailboxClassifier is the part of mailbox.Classifier transactional sends use.
+type MailboxClassifier interface {
+	ForEmail(ctx context.Context, email string) mailbox.Class
+}
+
+// mailboxFor is the recipient's mailbox provider before a contact says
+// otherwise.
+func (s *Service) mailboxFor(ctx context.Context, email string) string {
+	if s.Mailbox == nil {
+		return routing.MailboxProvider(email)
+	}
+	return s.Mailbox.ForEmail(ctx, email).Provider
 }

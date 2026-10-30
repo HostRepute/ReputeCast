@@ -1916,6 +1916,25 @@ func (q *Queries) TxnMessageWebhooks(ctx context.Context, arg TxnMessageWebhooks
 	return items, nil
 }
 
+const txnMoveForWarmup = `-- name: TxnMoveForWarmup :exec
+UPDATE messages SET provider_id = $1, claimed_at = NULL, attempts = greatest(attempts - 1, 0), route_note = $2
+WHERE id = $3
+`
+
+type TxnMoveForWarmupParams struct {
+	ProviderID *uuid.UUID `json:"providerId"`
+	RouteNote  string     `json:"routeNote"`
+	ID         uuid.UUID  `json:"id"`
+}
+
+// A message a warming provider can't take today (its cap, or its paused
+// plan) goes to a warm provider of its route (review R3.L6b). It isn't a
+// failover: the claim is released and the route note says why.
+func (q *Queries) TxnMoveForWarmup(ctx context.Context, arg TxnMoveForWarmupParams) error {
+	_, err := q.db.Exec(ctx, txnMoveForWarmup, arg.ProviderID, arg.RouteNote, arg.ID)
+	return err
+}
+
 const txnMoveToProvider = `-- name: TxnMoveToProvider :exec
 UPDATE messages SET provider_id = $1, claimed_at = NULL, next_attempt_at = NULL, route_note = 'failover', failover = true
 WHERE id = $2
@@ -3046,6 +3065,22 @@ type TxnSetDomainTransactionalParams struct {
 
 func (q *Queries) TxnSetDomainTransactional(ctx context.Context, arg TxnSetDomainTransactionalParams) error {
 	_, err := q.db.Exec(ctx, txnSetDomainTransactional, arg.Transactional, arg.ID)
+	return err
+}
+
+const txnSetProviderSince = `-- name: TxnSetProviderSince :exec
+UPDATE transactional_messages SET provider_since = $1::timestamptz WHERE message_id = $2
+`
+
+type TxnSetProviderSinceParams struct {
+	At        time.Time `json:"at"`
+	MessageID uuid.UUID `json:"messageId"`
+}
+
+// When the provider a transactional message is on got it: its retry window
+// starts then.
+func (q *Queries) TxnSetProviderSince(ctx context.Context, arg TxnSetProviderSinceParams) error {
+	_, err := q.db.Exec(ctx, txnSetProviderSince, arg.At, arg.MessageID)
 	return err
 }
 

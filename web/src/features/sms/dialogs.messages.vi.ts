@@ -26,7 +26,7 @@ export default translate(m, {
   removed: 'Đã gỡ {name}',
   cancel: 'Hủy',
   close: 'Đóng',
-  readOnly: 'Bạn xem được nhà cung cấp này; thay đổi cần quyền providers:manage.',
+  readOnly: 'Bạn xem được nhà cung cấp này, nhưng vai trò của bạn không thể thay đổi nó.',
   // Add sender ID.
   addIdTitle: 'Thêm ID người gửi dạng chữ và số',
   addIdText:

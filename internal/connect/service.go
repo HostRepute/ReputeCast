@@ -76,8 +76,11 @@ type Service struct {
 	// OnRoutingChange is called after the streams step saved routing (the
 	// system mailer forgets its cached availability).
 	OnRoutingChange func()
-	Log             *slog.Logger
-	Now             func() time.Time
+	// Host finds out whether ReputeCast runs on AWS (the SES access it
+	// recommends, PR-5); nil checks this process's host.
+	Host *HostDetector
+	Log  *slog.Logger
+	Now  func() time.Time
 }
 
 func (s *Service) now() time.Time {
@@ -85,6 +88,17 @@ func (s *Service) now() time.Time {
 		return s.Now()
 	}
 	return time.Now()
+}
+
+// defaultHost checks this process's own host.
+var defaultHost = &HostDetector{}
+
+// host is where ReputeCast runs.
+func (s *Service) host(ctx context.Context) HostInfo {
+	if s.Host != nil {
+		return s.Host.Detect(ctx)
+	}
+	return defaultHost.Detect(ctx)
 }
 
 func (s *Service) log() *slog.Logger {
@@ -183,6 +197,13 @@ func (s *Service) save(ctx context.Context, q *store.Queries, st store.ProviderS
 // update loads a setup for update, lets fn change it, and saves it with an
 // audit entry when action is set.
 func (s *Service) update(ctx context.Context, ws *store.Workspace, id uuid.UUID, action string, meta map[string]any, fn func(st *store.ProviderSetup, state *State) error) (store.ProviderSetup, error) {
+	return s.updateWith(ctx, ws, id, action, meta, func(_ *store.Queries, st *store.ProviderSetup, state *State) error { return fn(st, state) })
+}
+
+// updateWith is update for changes beyond the setup (the provider's
+// settings): fn writes them through q, in the transaction that saves the
+// setup and its audit entry.
+func (s *Service) updateWith(ctx context.Context, ws *store.Workspace, id uuid.UUID, action string, meta map[string]any, fn func(q *store.Queries, st *store.ProviderSetup, state *State) error) (store.ProviderSetup, error) {
 	var out store.ProviderSetup
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -194,7 +215,7 @@ func (s *Service) update(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 			return setupNotFound(ctx)
 		}
 		state := decodeState(st.State)
-		if err := fn(&st, &state); err != nil {
+		if err := fn(q, &st, &state); err != nil {
 			return err
 		}
 		if out, err = s.save(ctx, q, st, state); err != nil {
@@ -328,6 +349,11 @@ func (s *Service) SetStep(ctx context.Context, ws *store.Workspace, rawID string
 	})
 	if err != nil {
 		return ConnectSetup{}, err
+	}
+	if in.Step != "connection" && in.Step != "domain" {
+		// Past the domain step a sending domain may be verified: the event
+		// check that waited for one goes out (PR-3).
+		s.resumeEventCheck(ctx, st.ID)
 	}
 	return s.View(ctx, ws, st)
 }

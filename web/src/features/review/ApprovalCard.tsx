@@ -4,13 +4,13 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { Field, Textarea } from '@/components/ui/Field'
-import { T, t as tr, useT } from '@/i18n'
+import { formatList, T, t as tr, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { monthDayTime } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useMe, useWorkspace } from '@/lib/session'
 import { approverNames, DiffLines, MiniBanner, PersonLine, unchangedSentence } from '@/features/approvals/parts'
-import { acknowledgedKeys, acknowledgements, agoWords, countsShort, linkParts, scheduleShort, statusWord, verdictTitle, waitWords, type Review, type Run } from './logic'
+import { acknowledgedKeys, acknowledgements, agoWords, countsShort, linkParts, scheduleShort, statusWord, verdictName, verdictTitle, waitWords, type Review, type Run } from './logic'
 import { m } from './messages'
 import { AppHref, whenText } from './parts'
 
@@ -63,9 +63,17 @@ function Foot({ children }: { children: ReactNode }) {
   return <div className="row ap-foot">{children}</div>
 }
 
-/** "You don't hold campaigns:send · Content Writer" when the reader is the author. */
-function ruleText(rule: Schemas['ApprovalRuleMatch'], me?: string): string {
-  if (rule.key === 'author_lacks_send' && rule.author && rule.author === me) return rule.role ? tr(m.ruleNoSendRole, { role: rule.role }) : tr(m.ruleNoSend)
+/**
+ * A matched rule as Review & send words it: the author's role and who can
+ * approve, never a permission key ("Your role, Content Writer, needs an
+ * approval to send: Marcus Chen or Linh Nguyen can approve").
+ */
+function ruleText(rule: Schemas['ApprovalRuleMatch'], approvers: string[], me?: string): string {
+  if (rule.key === 'author_lacks_send') {
+    const names = approvers.length ? formatList(approvers, 'disjunction') : 'none'
+    const mine = !rule.author || rule.author === me
+    return tr(m.ruleNeedsApproval, { mine: mine ? 'yes' : 'no', author: rule.author ?? '', hasRole: rule.role ? 'yes' : 'no', role: rule.role ?? '', names })
+  }
   // The other rules come from the server, as written there.
   return rule.label
 }
@@ -76,14 +84,15 @@ export function RequiredCard({
   run,
   busy,
   onRequest,
-  onBypass,
+  more,
   onSaveDraft,
 }: {
   review: Review
   run: Run
   busy: boolean
   onRequest: (note: string) => void
-  onBypass?: () => void
+  /** More: the request's link, the policy and the emergency send (MoreMenu). */
+  more?: ReactNode
   onSaveDraft: (note: string) => void
 }) {
   const t = useT()
@@ -111,7 +120,7 @@ export function RequiredCard({
   const prev = a.request && ['changes_requested', 'rejected'].includes(a.request.status) ? a.request : undefined
   return (
     <Shell review={review} run={run} title={t(m.requiredTitle)} id="rv-approval">
-      <MiniBanner tone="warn" title={verdictTitle(run.verdict)}>
+      <MiniBanner tone="warn" title={verdictName(run)}>
         {countsShort(run.counts)}
       </MiniBanner>
       {prev ? (
@@ -132,7 +141,7 @@ export function RequiredCard({
         </div>
         <ul className="ap-list">
           {a.rules.map((r) => (
-            <li key={r.key}>{ruleText(r, myName)}</li>
+            <li key={r.key}>{ruleText(r, approvers.map((p) => p.name), myName)}</li>
           ))}
         </ul>
         <Field label={t(m.noteForApprovers)} optional>
@@ -144,11 +153,7 @@ export function RequiredCard({
       </div>
       <Foot>
         <Button onClick={() => onSaveDraft(note)}>{t(m.saveDraft)}</Button>
-        {onBypass ? (
-          <Button variant="danger" onClick={onBypass}>
-            {t(m.sendWithoutApproval)}
-          </Button>
-        ) : null}
+        {more}
         <Button variant="primary" disabledReason={a.canRequest ? undefined : a.requestReason || t(m.cantRequest)} loading={busy} onClick={() => onRequest(note.trim())}>
           {t(m.requestApproval)}
         </Button>
@@ -164,14 +169,15 @@ export function WaitingCard({
   busy,
   onRemind,
   onCancel,
-  onBypass,
+  more,
 }: {
   review: Review
   run: Run
   busy?: 'remind' | 'cancel'
   onRemind: () => void
   onCancel: () => void
-  onBypass?: () => void
+  /** More: the request's link, the policy and the emergency send (MoreMenu). */
+  more?: ReactNode
 }) {
   const t = useT()
   const { slug } = useWorkspace()
@@ -182,7 +188,7 @@ export function WaitingCard({
   const mine = req.requestedBy.name === me?.user.name
   return (
     <Shell review={review} run={run} title={t(m.waitingTitle)} id="rv-approval">
-      <MiniBanner tone="warn" title={verdictTitle(run.verdict)}>
+      <MiniBanner tone="warn" title={verdictName(run)}>
         {t(m.snapshotLocked, { version: req.version })}
       </MiniBanner>
       <div className="card ap-inner">
@@ -217,14 +223,11 @@ export function WaitingCard({
             <Button variant="danger" loading={busy === 'cancel'} onClick={onCancel}>
               {t(m.cancelRequest)}
             </Button>
+            {more}
           </>
         ) : (
           <>
-            {onBypass ? (
-              <Button variant="danger" onClick={onBypass}>
-                {t(m.sendWithoutApproval)}
-              </Button>
-            ) : null}
+            {more}
             {review.access.isOwner ? (
               <Button variant="danger" loading={busy === 'cancel'} onClick={onCancel}>
                 {t(m.cancelRequest)}
@@ -259,7 +262,9 @@ export function ApprovedCard({
   const req = review.approval.request!
   const snap = req.snapshot
   const decided = req.decidedAt ? whenText(req.decidedAt, now) : ''
-  const reason = review.access.canEdit ? undefined : t(m.needsEdit)
+  // Who can, by name, never a permission key.
+  const helpers = review.access.editHelpers
+  const reason = review.access.canEdit ? undefined : t(m.needsEdit, { names: helpers.length ? formatList(helpers, 'disjunction') : 'none' })
   return (
     <Shell review={review} run={run} title={t(m.approvedTitle)} id="rv-approval">
       <MiniBanner tone="ok" title={t(m.approvedBanner)}>
@@ -571,6 +576,7 @@ export function BypassDialog({
       onOpenChange={close}
       dismissible={false}
       hideClose
+      className="rv-bypass"
       eyebrow={<span className="k">{t(m.bypassEyebrow)}</span>}
       title={t(m.bypassTitle)}
       description={

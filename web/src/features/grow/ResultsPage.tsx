@@ -71,7 +71,7 @@ function NoProgram({ helpers }: { helpers: string[] }) {
       <p className="m-0">{t(mr.noneText)}</p>
       {canEdit ? null : (
         <p className="k m-0 mt-2">
-          <T msg={helpers.length ? mr.noneEditNeeds : mr.noneEditNeedsNoHelpers} values={{ helpers: orNames(helpers), mono }} />
+          {t(helpers.length ? mr.noneEditNeeds : mr.noneEditNeedsNoHelpers, { helpers: orNames(helpers) })}
         </p>
       )}
     </EmptyState>
@@ -141,7 +141,7 @@ function Results({ programId, search, onSearch }: { programId: string; search: R
       <OffBanner p={p} />
       {readOnly ? (
         <ReadOnlyNote>
-          <T msg={p.helpers.edit.length ? mr.readOnlyText : mr.readOnlyTextNoHelpers} values={{ helpers: orNames(p.helpers.edit), mono }} />
+          {t(p.helpers.edit.length ? mr.readOnlyText : mr.readOnlyTextNoHelpers, { helpers: orNames(p.helpers.edit) })}
         </ReadOnlyNote>
       ) : null}
       <ProgramHeader p={p} period={period} onPeriod={(v) => onSearch({ ...search, period: v === 'all' ? undefined : v })} helpers={p.helpers.edit} />

@@ -45,7 +45,7 @@ export function AssistMenu() {
   const a = ca.assist
   const s = a.status
   const trigger = (
-    <button type="button" className="btn ai-assist" aria-haspopup="menu" aria-expanded={open}>
+    <button type="button" className="btn ai-assist" aria-haspopup="menu" aria-expanded={open} title={t(ms.assist)}>
       <Sparkle />
       {t(ms.assist)}
       <Icon name="chevronDown" size={14} />

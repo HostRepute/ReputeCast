@@ -12,7 +12,6 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/api"
-	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -124,14 +123,15 @@ func askNames(ctx context.Context, names []string) string {
 	return i18n.OrList(i18n.LangFrom(ctx).Locale, names)
 }
 
-// deniedMessage is "Publishing needs transactional:publish. Ask …": what a
-// role can't do here, in the request's language. action is one of
-// categories, settings, resend, edit and publish.
-func deniedMessage(ctx context.Context, action string, perm authz.Permission, helpers []string) string {
+// deniedMessage is "Your role can't publish templates. Ask …": what a role
+// can't do here, in the request's language, never the permission key
+// (review X-1). action is one of categories, settings, resend, edit and
+// publish.
+func deniedMessage(ctx context.Context, action string, helpers []string) string {
 	if len(helpers) > 0 {
-		return say(ctx, "denied.ask", i18n.Args{"action": action, "permission": string(perm), "names": askNames(ctx, helpers)})
+		return say(ctx, "denied.ask", i18n.Args{"action": action, "names": askNames(ctx, helpers)})
 	}
-	return say(ctx, "denied", i18n.Args{"action": action, "permission": string(perm)})
+	return say(ctx, "denied", i18n.Args{"action": action})
 }
 
 // dayIn writes a day as the reader's region format does: "2 Oct 2026" in

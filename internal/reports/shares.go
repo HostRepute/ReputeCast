@@ -36,15 +36,42 @@ func newShareToken() (string, error) {
 
 func sealAD(id uuid.UUID) string { return "report_share:" + id.String() + ":token" }
 
-// ShareInput creates a read-only link.
+// DefaultShareDays is how long a read-only link works unless the person
+// who makes it chooses otherwise, and MaxShareDays the longest they can
+// choose (review AN-16).
+const (
+	DefaultShareDays = 30
+	MaxShareDays     = 90
+)
+
+// mShareDays is the problem of a link asked to work outside 1 to 90 days.
+var mShareDays = msgs.M("problem.shareDays")
+
+// ShareInput creates a read-only link. The numbers, charts and tables are
+// always in; the cost per provider, the warm-up state and the email itself
+// only when chosen (review AN-16). The AI summary and the Ask box are never
+// shared.
 type ShareInput struct {
-	// ExpiresInDays makes the link stop working after that many days; 0 or
-	// absent keeps it until it is revoked.
-	ExpiresInDays int `json:"expiresInDays,omitempty" minimum:"0" maximum:"365" doc:"0 keeps the link until it is revoked"`
+	// ExpiresInDays makes the link stop working after that many days (30
+	// when absent); every link expires.
+	ExpiresInDays int  `json:"expiresInDays,omitempty" minimum:"1" maximum:"90" doc:"30 when absent"`
+	IncludeCost   bool `json:"includeCost,omitempty" doc:"Show the cost per sending provider"`
+	IncludeWarmup bool `json:"includeWarmup,omitempty" doc:"Show the warm-up day of each sending provider"`
+	// IncludeEmail shows the email as sent in the click map.
+	IncludeEmail bool `json:"includeEmail,omitempty" doc:"Show the email as sent, in the click map"`
 }
 
 // CreateShare makes a read-only link to a campaign's report.
 func (s *Service) CreateShare(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID, in ShareInput) (ReportShareLink, error) {
+	days := in.ExpiresInDays
+	if days == 0 {
+		days = DefaultShareDays
+	}
+	// The API's schema holds the days to 1–90; agents (MCP) and other
+	// callers come here without it, and a link mustn't outlive the limit.
+	if days < 1 || days > MaxShareDays {
+		return ReportShareLink{}, api.Invalid("body.expiresInDays", mShareDays.Text(i18n.LangFrom(ctx), nil))
+	}
 	c, err := s.Q.ReportCampaign(ctx, store.ReportCampaignParams{WorkspaceID: ws.ID, ID: campaignID})
 	if err != nil {
 		return ReportShareLink{}, api.MapError(err, "Campaign")
@@ -69,11 +96,8 @@ func (s *Service) CreateShare(ctx context.Context, ws *store.Workspace, campaign
 	if err != nil {
 		return ReportShareLink{}, err
 	}
-	var expires *time.Time
-	if in.ExpiresInDays > 0 {
-		t := now.Add(time.Duration(in.ExpiresInDays) * 24 * time.Hour)
-		expires = &t
-	}
+	t := now.Add(time.Duration(days) * 24 * time.Hour)
+	expires := &t
 	p := api.PrincipalFrom(ctx)
 	var by *uuid.UUID
 	byName := ""
@@ -86,18 +110,19 @@ func (s *Service) CreateShare(ctx context.Context, ws *store.Workspace, campaign
 		q := store.New(tx)
 		var err error
 		row, err = q.ReportShareCreate(ctx, store.ReportShareCreateParams{ID: id, CampaignID: c.ID, TokenHash: authn.HashToken(token), TokenSealed: sealed,
-			CreatedBy: by, CreatedAt: now, ExpiresAt: expires})
+			CreatedBy: by, CreatedAt: now, ExpiresAt: expires, IncludeCost: in.IncludeCost, IncludeWarmup: in.IncludeWarmup, IncludeEmail: in.IncludeEmail})
 		if err != nil {
 			return err
 		}
-		after := map[string]any{"campaign": c.Name, "expiresAt": expires}
+		after := map[string]any{"campaign": c.Name, "expiresAt": expires, "includeCost": in.IncludeCost, "includeWarmup": in.IncludeWarmup, "includeEmail": in.IncludeEmail}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "report_share.create", TargetType: "report_share", TargetID: id.String(),
 			TargetName: c.Name, After: after, Metadata: map[string]any{"campaignId": c.ID.String()}})
 	})
 	if err != nil {
 		return ReportShareLink{}, err
 	}
-	return ReportShareLink{ID: row.ID.String(), URL: s.URLs.Report(token), CreatedAt: row.CreatedAt, CreatedByName: byName, ExpiresAt: row.ExpiresAt}, nil
+	return ReportShareLink{ID: row.ID.String(), URL: s.URLs.Report(token), CreatedAt: row.CreatedAt, CreatedByName: byName, ExpiresAt: row.ExpiresAt,
+		Includes: ReportShareIncludes{Cost: row.IncludeCost, Warmup: row.IncludeWarmup, Email: row.IncludeEmail}}, nil
 }
 
 // Shares lists a campaign's active read-only links.
@@ -112,7 +137,8 @@ func (s *Service) Shares(ctx context.Context, ws *store.Workspace, campaignID uu
 	}
 	out := ReportShareList{Items: []ReportShareLink{}}
 	for _, r := range rows {
-		l := ReportShareLink{ID: r.ID.String(), CreatedAt: r.CreatedAt, CreatedByName: r.CreatedByName, ExpiresAt: r.ExpiresAt, Views: r.Views, LastViewedAt: r.LastViewedAt}
+		l := ReportShareLink{ID: r.ID.String(), CreatedAt: r.CreatedAt, CreatedByName: r.CreatedByName, ExpiresAt: r.ExpiresAt, Views: r.Views, LastViewedAt: r.LastViewedAt,
+			Includes: ReportShareIncludes{Cost: r.IncludeCost, Warmup: r.IncludeWarmup, Email: r.IncludeEmail}}
 		if len(r.TokenSealed) > 0 {
 			if token, err := s.Box.OpenString(r.TokenSealed, sealAD(r.ID)); err == nil {
 				l.URL = s.URLs.Report(token)
@@ -189,8 +215,37 @@ func (s *Service) Shared(ctx context.Context, token, client string) (SharedCampa
 		return SharedCampaignReport{}, err
 	}
 	redact(&rep)
+	leaveOut(&rep, ReportShareIncludes{Cost: link.IncludeCost, Warmup: link.IncludeWarmup, Email: link.IncludeEmail})
 	_ = s.Q.ReportShareTouch(ctx, store.ReportShareTouchParams{At: &now, ID: link.ID})
-	return SharedCampaignReport{Workspace: ws.Name, ExpiresAt: link.ExpiresAt, Report: rep}, nil
+	return SharedCampaignReport{Workspace: ws.Name, ExpiresAt: link.ExpiresAt, Includes: ReportShareIncludes{Cost: link.IncludeCost, Warmup: link.IncludeWarmup,
+		Email: link.IncludeEmail}, Report: rep}, nil
+}
+
+// leaveOut removes what a link doesn't share: the cost per provider, the
+// warm-up state (in the providers' columns and in the insights' words),
+// the email itself.
+func leaveOut(r *CampaignReport, in ReportShareIncludes) {
+	for i := range r.Providers.Columns {
+		if !in.Cost {
+			r.Providers.Columns[i].Cost = nil
+		}
+		if !in.Warmup {
+			r.Providers.Columns[i].WarmupDay, r.Providers.Columns[i].EngagedFirst = nil, false
+		}
+	}
+	if !in.Warmup {
+		for i := range r.Insights {
+			if d := r.Insights[i].detailNoWarmup; d != "" {
+				r.Insights[i].Detail = d
+			}
+		}
+	}
+	if !in.Email {
+		r.ClickMap.HTML, r.ClickMap.Available = "", false
+		for i := range r.ClickMap.Variants {
+			r.ClickMap.Variants[i].HTML, r.ClickMap.Variants[i].Available = "", false
+		}
+	}
 }
 
 // redact drops the ids of rows inside the workspace from a report that

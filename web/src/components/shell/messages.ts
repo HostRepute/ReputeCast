@@ -43,7 +43,7 @@ export const m = defineMessages('shell', {
   moreSheetSwitcherRole: '{role} · switch workspace',
 
   // Workspace switcher.
-  switcherLabel: '{workspace}, {role}. Switch workspace',
+  switcherLabel: '{workspace}, {role}, switch workspace',
   switcherMenuLabel: 'Workspaces',
   switcherHeading: 'Your workspaces',
   switcherWorkspaceLine: '{role} · {count, plural, one {# subscriber} other {# subscribers}}',
@@ -75,7 +75,7 @@ export const m = defineMessages('shell', {
   sectionTabsLabel: 'Sections',
 
   // User menu (ShellUserMenu).
-  userMenuLabel: 'Account menu for {name}',
+  userMenuLabel: '{name}, account menu',
   userMenuContentLabel: 'Account',
   userMenuAccount: 'Account & security',
   userMenuNotifications: 'Notification preferences',

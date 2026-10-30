@@ -2,8 +2,8 @@ import { translate } from '@/i18n'
 import { m } from './session.messages'
 
 export default translate(m, {
-  denied: 'Để {action}, bạn cần quyền {permission}.',
-  deniedAsk: 'Để {action}, bạn cần quyền {permission}. Hãy hỏi {helpers}.',
+  denied: 'Bạn chưa có quyền {action}.',
+  deniedAsk: 'Bạn chưa có quyền {action}. Hãy hỏi {helpers}.',
   this: 'thực hiện thao tác này',
   'campaigns:send': 'gửi chiến dịch',
   'campaigns:pause': 'tạm dừng lần gửi',
@@ -25,4 +25,20 @@ export default translate(m, {
   'integrations:hostrepute': 'kết nối HostRepute',
   'forms:edit': 'sửa biểu mẫu và trang công khai',
   'reports:share': 'chia sẻ báo cáo',
+  'subscribers:create': 'tạo liên hệ',
+  'subscribers:edit': 'sửa liên hệ',
+  'lists:manage': 'quản lý danh sách',
+  'segments:edit': 'sửa phân khúc',
+  'automations:edit': 'sửa tự động hóa',
+  'scoring:edit': 'sửa quy tắc chấm điểm',
+  'transactional:send': 'gửi qua API hoặc SMTP',
+  'transactional:publish': 'xuất bản mẫu giao dịch',
+  'sms:send': 'gửi chiến dịch SMS',
+  'push:send': 'gửi chiến dịch thông báo đẩy',
+  'whatsapp:send': 'gửi chiến dịch WhatsApp',
+  'reports:view': 'xem báo cáo',
+  'products:publish': 'xuất bản sản phẩm',
+  'orders:manage': 'quản lý đơn hàng',
+  'grow:edit': 'sửa chương trình giới thiệu',
+  'grow:connect': 'quản lý liên kết đối tác',
 })
