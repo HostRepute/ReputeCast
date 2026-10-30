@@ -20,20 +20,6 @@ SELECT coalesce(sum(sent), 0)::bigint AS sent, coalesce(sum(delivered), 0)::bigi
        coalesce(sum(clicked), 0)::bigint AS clicked, coalesce(sum(unsubscribed), 0)::bigint AS unsubscribed
 FROM campaign_counters WHERE campaign_id = @campaign_id;
 
--- name: McpCampaignByProvider :many
-SELECT p.name AS provider, coalesce(sum(c.sent), 0)::bigint AS sent, coalesce(sum(c.delivered), 0)::bigint AS delivered,
-       coalesce(sum(c.hard_bounced + c.soft_bounced), 0)::bigint AS bounced, coalesce(sum(c.complained), 0)::bigint AS complained
-FROM campaign_counters c JOIN providers p ON p.id = c.provider_id
-WHERE c.campaign_id = @campaign_id
-GROUP BY p.name ORDER BY sent DESC;
-
--- name: McpCampaignByMailbox :many
-SELECT c.mailbox_provider, coalesce(sum(c.sent), 0)::bigint AS sent, coalesce(sum(c.delivered), 0)::bigint AS delivered,
-       coalesce(sum(c.opened_human), 0)::bigint AS opened_human, coalesce(sum(c.complained), 0)::bigint AS complained
-FROM campaign_counters c
-WHERE c.campaign_id = @campaign_id
-GROUP BY c.mailbox_provider ORDER BY sent DESC;
-
 -- name: McpLatestReadiness :one
 SELECT verdict, checks, estimates, ran_at FROM readiness_runs WHERE campaign_id = @campaign_id ORDER BY ran_at DESC LIMIT 1;
 
