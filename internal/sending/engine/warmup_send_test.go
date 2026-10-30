@@ -248,7 +248,9 @@ func automationMail(t *testing.T, f *sendtest.Fixture, provider uuid.UUID, mailb
 	return ids
 }
 
-// outbox runs the automation outbox for n seconds from at.
+// outbox runs the automation outbox for n seconds from at. Eight seconds
+// cover a retry: the demo transport throttles about one call in 1,000 (one
+// in 250 at Postal), and the route waits 5 s before it tries again.
 func outbox(t *testing.T, f *sendtest.Fixture, at time.Time, n int) {
 	t.Helper()
 	for i := range n {
@@ -310,14 +312,14 @@ func testAutomationsWaitWhilePaused(t *testing.T, f *sendtest.Fixture) {
 	f.Exec(`UPDATE warmup_plans SET status = 'paused', paused_at = $2 WHERE id = $1`, a.PlanID, f.Start)
 	f.AddContacts(sendtest.ContactSpec{N: 3, Mailbox: "outlook", Domain: "outlook.com", Engaged: true})
 	ids := automationMail(t, f, postal, "outlook")
-	outbox(t, f, f.Start, 5)
+	outbox(t, f, f.Start, 8)
 	// A paused plan sends nothing, though today's cap has room: without
 	// overflow the mail waits.
 	if got := statuses(t, f, ids); got["queued@postal"] != 3 {
 		t.Fatalf("while paused: %v", got)
 	}
 	f.Exec(`UPDATE warmup_plans SET status = 'active', paused_at = NULL WHERE id = $1`, a.PlanID)
-	outbox(t, f, f.Start.Add(time.Minute), 5)
+	outbox(t, f, f.Start.Add(time.Minute), 8)
 	if got := statuses(t, f, ids); got["sent@postal"] != 3 {
 		t.Fatalf("after the resume: %v", got)
 	}
@@ -379,7 +381,7 @@ func testAutomationsOverflow(t *testing.T, f *sendtest.Fixture) {
 	before := f.Count(`SELECT CASE WHEN overflowed_on = $2::date THEN overflowed ELSE 0 END FROM warmup_plans WHERE id = $1`, a.PlanID, a.NextDay.AddDate(0, 0, -1).Format("2006-01-02"))
 	f.AddContacts(sendtest.ContactSpec{N: 3, Mailbox: "icloud", Domain: "icloud.com", Engaged: true})
 	ids := automationMail(t, f, postal, "icloud")
-	outbox(t, f, f.Start, 6)
+	outbox(t, f, f.Start, 8)
 	// Over the cap, with overflow on: the mail goes through Postmark, and
 	// counts as over the cap today.
 	if got := statuses(t, f, ids); got["sent@postmark"] != 3 {
@@ -396,7 +398,7 @@ func testAutomationsOverflow(t *testing.T, f *sendtest.Fixture) {
 	f.Exec(`UPDATE warmup_plans SET status = 'paused', paused_at = $2, held_cap = NULL WHERE id = $1`, a.PlanID, f.Start)
 	f.AddContacts(sendtest.ContactSpec{N: 2, Mailbox: "other", Domain: "example.net", Engaged: true})
 	paused := automationMail(t, f, postal, "other")
-	outbox(t, f, f.Start.Add(time.Minute), 4)
+	outbox(t, f, f.Start.Add(time.Minute), 8)
 	if got := statuses(t, f, paused); got["sent@postmark"] != 2 {
 		t.Fatalf("overflow while paused: %v", got)
 	}
@@ -451,9 +453,8 @@ func passwordResets(t *testing.T, key *apptest.Client, tag string, n int) []uuid
 	return ids
 }
 
-// transactionalOutbox runs the transactional outbox for n seconds from at.
-// Eight seconds cover a retry: the demo transport throttles about one call
-// in 250 at Postal, and the route waits 5 s before it tries again.
+// transactionalOutbox runs the transactional outbox for n seconds from at;
+// eight seconds cover a retry, as for outbox.
 func transactionalOutbox(t *testing.T, f *sendtest.Fixture, at time.Time, n int) {
 	t.Helper()
 	for i := range n {
