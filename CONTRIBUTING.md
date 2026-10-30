@@ -81,7 +81,7 @@ repository.
 
 Integration tests start Postgres 18 with Testcontainers, or reuse the compose
 database when it runs (`make test` does that automatically). CI runs the Go
-suite on Go 1.27 against Postgres 16, 17 and 18, each in four shards that
+suite on Go 1.27 against Postgres 16, 17 and 18, each in three shards that
 take about as long as each other: `scripts/testshard` splits the packages by
 their test times in `.github/go-test-durations.txt`, where a new package
 counts as the median until `make test-durations` times the suite again.

@@ -43,17 +43,19 @@ jobs:
           include-hidden-files: true
 
   go:
-    name: Go ${{ matrix.go }} · Postgres ${{ matrix.pg }} · shard ${{ matrix.shard }}/4
+    name: Go ${{ matrix.go }} · Postgres ${{ matrix.pg }} · shard ${{ matrix.shard }}/3
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         go: ["1.27.x"]
         pg: ["16", "17", "18"]
-        # Each Postgres version's packages in four shards that take about
-        # as long as each other (scripts/testshard), so a run takes about a
-        # quarter of the suite's time.
-        shard: [1, 2, 3, 4]
+        # Each Postgres version's packages in three shards that take about
+        # as long as each other (scripts/testshard). The first gets the
+        # slowest package (internal/approvals today, about 18 minutes under
+        # -race), which sets how long a run takes: more shards wouldn't make
+        # it shorter.
+        shard: [1, 2, 3]
     services:
       postgres:
         image: postgres:${{ matrix.pg }}-alpine
@@ -71,23 +73,23 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go }}
-      # The checks that don't depend on Postgres run once, in the shard with
-      # the least to test.
+      # The checks that don't depend on Postgres run once, in the last
+      # shard, which never holds the slowest package.
       - name: Generated code is up to date
-        if: matrix.pg == '18' && matrix.go == '1.27.x' && matrix.shard == 4
+        if: matrix.pg == '18' && matrix.go == '1.27.x' && matrix.shard == 3
         run: |
           go tool sqlc generate
           go run ./cmd/reputecast openapi > web/openapi.json
           git diff --exit-code -- internal/store web/openapi.json
-      - if: matrix.pg == '18' && matrix.shard == 4
+      - if: matrix.pg == '18' && matrix.shard == 3
         run: go vet ./...
       # Failing tests and their messages as annotations on the pull request.
       - run: echo "::add-matcher::.github/go-test-matcher.json"
       # Under -race the demo-heavy packages take longer than go test's
       # default 10 minutes per package on a CI runner.
-      - name: go test (shard ${{ matrix.shard }} of 4)
+      - name: go test (shard ${{ matrix.shard }} of 3)
         run: |
-          pkgs=$(go list ./... | go run ./scripts/testshard -shard ${{ matrix.shard }} -of 4)
+          pkgs=$(go list ./... | go run ./scripts/testshard -shard ${{ matrix.shard }} -of 3)
           echo "$(wc -w <<<"$pkgs") packages"
           go test -race -count=1 -timeout 45m $pkgs
 
