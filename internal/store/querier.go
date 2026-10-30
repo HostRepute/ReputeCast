@@ -2059,8 +2059,6 @@ type Querier interface {
 	McpAddSuppression(ctx context.Context, arg McpAddSuppressionParams) (uuid.UUID, error)
 	McpAutomations(ctx context.Context, workspaceID uuid.UUID) ([]McpAutomationsRow, error)
 	McpBlocklists(ctx context.Context, workspaceID uuid.UUID) ([]McpBlocklistsRow, error)
-	McpCampaignByMailbox(ctx context.Context, campaignID uuid.UUID) ([]McpCampaignByMailboxRow, error)
-	McpCampaignByProvider(ctx context.Context, campaignID uuid.UUID) ([]McpCampaignByProviderRow, error)
 	McpCampaignRoutes(ctx context.Context, campaignID uuid.UUID) ([]McpCampaignRoutesRow, error)
 	McpCampaignTotals(ctx context.Context, campaignID uuid.UUID) (McpCampaignTotalsRow, error)
 	McpCreateSegment(ctx context.Context, arg McpCreateSegmentParams) (McpCreateSegmentRow, error)

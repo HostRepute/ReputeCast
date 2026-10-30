@@ -147,6 +147,7 @@ func seedReportsImpl(ctx context.Context, s *Seeder) error {
 			return err
 		}
 	}
+	s.reportsShaped = true
 	return nil
 }
 

@@ -66,6 +66,9 @@ type Seeder struct {
 	Extra map[string]any
 
 	after []func(context.Context, *Seeder) error
+	// reportsShaped: the report shaping ran (seed_reports.go); sends seeded
+	// after it keep their counters as seeded.
+	reportsShaped bool
 }
 
 // After runs fn once every seeder has run, for rows that need IDs from a
