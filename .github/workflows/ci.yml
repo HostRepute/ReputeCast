@@ -50,11 +50,9 @@ jobs:
       matrix:
         go: ["1.27.x"]
         pg: ["16", "17", "18"]
-        # Each Postgres version's packages in three shards that take about
-        # as long as each other (scripts/testshard). The first gets the
-        # slowest package (internal/approvals today, about 18 minutes under
-        # -race), which sets how long a run takes: more shards wouldn't make
-        # it shorter.
+        # Each Postgres version's tests in three shards that take about as
+        # long as each other (scripts/testshard). internal/approvals, the
+        # slowest package, is split test by test across them.
         shard: [1, 2, 3]
     services:
       postgres:
@@ -73,27 +71,38 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go }}
-      # The checks that don't depend on Postgres run once, in the last
-      # shard, which never holds the slowest package.
+      # Failing tests and their messages as annotations on the pull request.
+      - run: echo "::add-matcher::.github/go-test-matcher.json"
+      # Under -race the demo-heavy packages take longer than go test's
+      # default 10 minutes per package on a CI runner. The shard's lines
+      # are "import/path", or "import/path run|skip regexp" for its part of
+      # a split package, which that package's TestMain reads from
+      # REPUTECAST_TEST_RUN (internal/testsplit).
+      - name: go test (shard ${{ matrix.shard }} of 3)
+        run: |
+          lines=$(go list ./... | go run ./scripts/testshard -shard ${{ matrix.shard }} -of 3)
+          echo "::group::$(wc -l <<<"$lines") packages in this shard"
+          echo "$lines"
+          echo "::endgroup::"
+          export REPUTECAST_TEST_RUN=$(awk 'NF == 3' <<<"$lines")
+          go test -race -count=1 -timeout 45m $(cut -d' ' -f1 <<<"$lines")
+
+  go-checks:
+    name: Go · generated code, go vet
+    runs-on: ubuntu-latest
+    # Apart from the test shards: go vet alone takes about half an hour on
+    # a runner, and neither check needs Postgres.
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.27.x"
       - name: Generated code is up to date
-        if: matrix.pg == '18' && matrix.go == '1.27.x' && matrix.shard == 3
         run: |
           go tool sqlc generate
           go run ./cmd/reputecast openapi > web/openapi.json
           git diff --exit-code -- internal/store web/openapi.json
-      - if: matrix.pg == '18' && matrix.shard == 3
-        run: go vet ./...
-      # Failing tests and their messages as annotations on the pull request.
-      - run: echo "::add-matcher::.github/go-test-matcher.json"
-      # Under -race the demo-heavy packages take longer than go test's
-      # default 10 minutes per package on a CI runner.
-      - name: go test (shard ${{ matrix.shard }} of 3)
-        run: |
-          pkgs=$(go list ./... | go run ./scripts/testshard -shard ${{ matrix.shard }} -of 3)
-          echo "::group::$(wc -w <<<"$pkgs") packages in this shard"
-          echo "$pkgs"
-          echo "::endgroup::"
-          go test -race -count=1 -timeout 45m $pkgs
+      - run: go vet ./...
 
   golangci:
     name: golangci-lint

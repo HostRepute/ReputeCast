@@ -1,165 +1,193 @@
-# Seconds each package's tests took under go test -race, slowest first.
-# scripts/testshard splits CI's Go tests by them; make test-durations refreshes them.
-1047.7 github.com/hostrepute/reputecast/internal/approvals
+# Seconds each package's tests took under go test -race, slowest first; a
+# package split across shards has a line per test. scripts/testshard splits
+# CI's Go tests by them; make test-durations refreshes them.
+509.0 github.com/hostrepute/reputecast/internal/approvals TestSendTimeRecheckHolds
 402.1 github.com/hostrepute/reputecast/internal/sending/engine
 363.2 github.com/hostrepute/reputecast/internal/publicpages
 270.2 github.com/hostrepute/reputecast/internal/campaigns
 266.5 github.com/hostrepute/reputecast/internal/pages
-233.8 github.com/hostrepute/reputecast/internal/accessibility
-218.4 github.com/hostrepute/reputecast/internal/accounts
+257.0 github.com/hostrepute/reputecast/internal/approvals TestScheduledSendLosesItsApproval
+235.4 github.com/hostrepute/reputecast/internal/instance
+233.2 github.com/hostrepute/reputecast/internal/accessibility
 183.9 github.com/hostrepute/reputecast/internal/products
 170.0 github.com/hostrepute/reputecast/internal/providers/manage
-169.4 github.com/hostrepute/reputecast/internal/integrations
-167.3 github.com/hostrepute/reputecast/internal/instance
 164.8 github.com/hostrepute/reputecast/internal/readiness
-154.1 github.com/hostrepute/reputecast/internal/hostrepute
+146.2 github.com/hostrepute/reputecast/internal/accessrequests
+145.2 github.com/hostrepute/reputecast/internal/integrations
 144.6 github.com/hostrepute/reputecast/internal/reports
-144.4 github.com/hostrepute/reputecast/internal/languages
-140.4 github.com/hostrepute/reputecast/internal/accessrequests
 135.1 github.com/hostrepute/reputecast/internal/transactional
-133.8 github.com/hostrepute/reputecast/internal/connect
-133.1 github.com/hostrepute/reputecast/internal/automations
-132.0 github.com/hostrepute/reputecast/internal/placement
 130.9 github.com/hostrepute/reputecast/internal/sponsors
-124.5 github.com/hostrepute/reputecast/internal/counters
-121.2 github.com/hostrepute/reputecast/internal/ingest
-120.6 github.com/hostrepute/reputecast/internal/demo
+128.2 github.com/hostrepute/reputecast/internal/ingest
+124.8 github.com/hostrepute/reputecast/internal/media
+123.0 github.com/hostrepute/reputecast/internal/automations
+121.7 github.com/hostrepute/reputecast/internal/accounts
+115.4 github.com/hostrepute/reputecast/internal/counters
+113.1 github.com/hostrepute/reputecast/internal/audience
+112.6 github.com/hostrepute/reputecast/internal/demo
+106.4 github.com/hostrepute/reputecast/internal/notify
 106.4 github.com/hostrepute/reputecast/internal/sessionext
 100.5 github.com/hostrepute/reputecast/internal/warmup
 98.7 github.com/hostrepute/reputecast/internal/website
-96.1 github.com/hostrepute/reputecast/internal/agency
-96.1 github.com/hostrepute/reputecast/internal/imports
-93.0 github.com/hostrepute/reputecast/internal/digests
 92.9 github.com/hostrepute/reputecast/internal/transactional/importer
 92.6 github.com/hostrepute/reputecast/internal/recommendations
 85.7 github.com/hostrepute/reputecast/internal/smtprelay
+85.0 github.com/hostrepute/reputecast/internal/approvals TestSendRecheck
 84.1 github.com/hostrepute/reputecast/internal/sso
-75.7 github.com/hostrepute/reputecast/internal/forms
-74.7 github.com/hostrepute/reputecast/internal/deliverability
-74.2 github.com/hostrepute/reputecast/internal/mcpserver
+83.7 github.com/hostrepute/reputecast/internal/connect
+81.7 github.com/hostrepute/reputecast/internal/digests
+75.5 github.com/hostrepute/reputecast/internal/deliverability
+70.7 github.com/hostrepute/reputecast/internal/forms
 69.2 github.com/hostrepute/reputecast/internal/texting
+69.1 github.com/hostrepute/reputecast/internal/agency
 68.8 github.com/hostrepute/reputecast/internal/team
-64.3 github.com/hostrepute/reputecast/internal/ai
-60.1 github.com/hostrepute/reputecast/internal/media
+68.5 github.com/hostrepute/reputecast/internal/mcpserver
+62.2 github.com/hostrepute/reputecast/internal/hostrepute
+58.9 github.com/hostrepute/reputecast/internal/languages
+58.0 github.com/hostrepute/reputecast/internal/approvals TestApprovalWebhookEvents
 56.0 github.com/hostrepute/reputecast/internal/routing
+55.8 github.com/hostrepute/reputecast/internal/placement
+55.4 github.com/hostrepute/reputecast/internal/approvals TestCanaryChoice
+46.1 github.com/hostrepute/reputecast/internal/ai
 43.9 github.com/hostrepute/reputecast/internal/workspaces
-43.9 github.com/hostrepute/reputecast/internal/earn
 43.7 github.com/hostrepute/reputecast/internal/scoring
+43.0 github.com/hostrepute/reputecast/internal/earn
 42.9 github.com/hostrepute/reputecast/internal/visibility
-42.9 github.com/hostrepute/reputecast/internal/apikeys
-40.0 github.com/hostrepute/reputecast/internal/offers
-38.6 github.com/hostrepute/reputecast/internal/audience
-38.6 github.com/hostrepute/reputecast/internal/domains
-38.3 github.com/hostrepute/reputecast/internal/brandkit
-37.5 github.com/hostrepute/reputecast/internal/auditlog
-36.3 github.com/hostrepute/reputecast/internal/polls
-35.5 github.com/hostrepute/reputecast/internal/applang
+36.3 github.com/hostrepute/reputecast/internal/domains
 34.8 github.com/hostrepute/reputecast/internal/store
-32.5 github.com/hostrepute/reputecast/internal/commerce
+34.7 github.com/hostrepute/reputecast/internal/approvals TestReadinessRunAndFixes
+33.6 github.com/hostrepute/reputecast/internal/apikeys
+31.7 github.com/hostrepute/reputecast/internal/commerce
+31.0 github.com/hostrepute/reputecast/internal/brandkit
 30.7 github.com/hostrepute/reputecast/internal/providers/remote
+30.6 github.com/hostrepute/reputecast/internal/offers
+28.5 github.com/hostrepute/reputecast/internal/auditlog
 27.1 github.com/hostrepute/reputecast/internal/segments
 26.2 github.com/hostrepute/reputecast/internal/roles
 25.7 github.com/hostrepute/reputecast/internal/verification
 25.5 github.com/hostrepute/reputecast/internal/gifts
 25.2 github.com/hostrepute/reputecast/internal/push
-25.2 github.com/hostrepute/reputecast/internal/notify
+24.9 github.com/hostrepute/reputecast/internal/polls
+23.5 github.com/hostrepute/reputecast/internal/imports
 22.9 github.com/hostrepute/reputecast/internal/tracking
+22.8 github.com/hostrepute/reputecast/internal/applang
+22.5 github.com/hostrepute/reputecast/internal/approvals TestReviewAndApprovals
 22.1 github.com/hostrepute/reputecast/internal/webhooks
 20.1 github.com/hostrepute/reputecast/internal/whatsapp
-19.4 github.com/hostrepute/reputecast/internal/passwordreuse
+18.3 github.com/hostrepute/reputecast/internal/approvals TestApprovalsInVietnamese
 18.0 github.com/hostrepute/reputecast/internal/revenue
-17.3 github.com/hostrepute/reputecast/internal/overview
 16.8 github.com/hostrepute/reputecast/internal/systemmail
 16.1 github.com/hostrepute/reputecast/internal/referrals
 14.5 github.com/hostrepute/reputecast/internal/suppressions
 12.8 github.com/hostrepute/reputecast/internal/renders
+12.7 github.com/hostrepute/reputecast/internal/overview
 11.7 github.com/hostrepute/reputecast/internal/templates
-9.9 github.com/hostrepute/reputecast/internal/growth
-9.5 github.com/hostrepute/reputecast/internal/providers/eventqueue
-9.1 github.com/hostrepute/reputecast/internal/demoworkspace
-7.8 github.com/hostrepute/reputecast/internal/api
+9.8 github.com/hostrepute/reputecast/internal/approvals TestSendNowRunsReadinessOnce
+9.8 github.com/hostrepute/reputecast/internal/approvals TestNotificationsReadInTheReadersLanguage
+9.7 github.com/hostrepute/reputecast/internal/growth
+9.1 github.com/hostrepute/reputecast/internal/passwordreuse
+7.7 github.com/hostrepute/reputecast/internal/providers/eventqueue
 7.7 github.com/hostrepute/reputecast/internal/welcomeprompt
+7.6 github.com/hostrepute/reputecast/internal/approvals TestReviewSaysWhoCan
 7.5 github.com/hostrepute/reputecast/internal/proxycheck
+7.3 github.com/hostrepute/reputecast/internal/demoworkspace
 6.9 github.com/hostrepute/reputecast/internal/sending/rules
-6.8 github.com/hostrepute/reputecast/internal/app
-6.5 github.com/hostrepute/reputecast/internal/mailbox
-5.3 github.com/hostrepute/reputecast/internal/db
+6.7 github.com/hostrepute/reputecast/internal/approvals TestAutomationPublishApproval
+6.7 github.com/hostrepute/reputecast/internal/app
+6.5 github.com/hostrepute/reputecast/internal/approvals TestTransactionalPublishApproval
+6.0 github.com/hostrepute/reputecast/internal/approvals TestReviewCanaryStartsTheCanaryPhase
+5.5 github.com/hostrepute/reputecast/internal/api
+4.7 github.com/hostrepute/reputecast/internal/mailbox
 3.2 github.com/hostrepute/reputecast/internal/providers/simulator
+3.1 github.com/hostrepute/reputecast/internal/db
 2.3 github.com/hostrepute/reputecast/internal/testdb
-2.1 github.com/hostrepute/reputecast/internal/apptest
-2.1 github.com/hostrepute/reputecast/internal/digests/feed
-2.0 github.com/hostrepute/reputecast/internal/ai/llm
-2.0 github.com/hostrepute/reputecast/internal/contentcheck
-1.8 github.com/hostrepute/reputecast/internal/cli
-1.4 github.com/hostrepute/reputecast/internal/authn
+2.1 github.com/hostrepute/reputecast/internal/contentcheck
+2.0 github.com/hostrepute/reputecast/internal/apptest
+2.0 github.com/hostrepute/reputecast/internal/cli
+1.9 github.com/hostrepute/reputecast/internal/digests/feed
+1.6 github.com/hostrepute/reputecast/internal/authn
+1.5 github.com/hostrepute/reputecast/internal/ai/llm
 1.4 github.com/hostrepute/reputecast/internal/website/render
 1.3 github.com/hostrepute/reputecast/internal/pagelabels
-1.3 github.com/hostrepute/reputecast/internal/providers/azureacs
-1.2 github.com/hostrepute/reputecast/internal/mjml
+1.3 github.com/hostrepute/reputecast/internal/mjml
 1.2 github.com/hostrepute/reputecast/internal/providers/mailgun
-1.2 github.com/hostrepute/reputecast/internal/phone
 1.2 github.com/hostrepute/reputecast/internal/providers/ses
-1.2 github.com/hostrepute/reputecast/internal/providers/mailjet
 1.1 github.com/hostrepute/reputecast/internal/sms/awseum
+1.1 github.com/hostrepute/reputecast/internal/providers/mailjet
 1.1 github.com/hostrepute/reputecast/internal/payments/stripe
+1.1 github.com/hostrepute/reputecast/internal/providers/azureacs
+1.1 github.com/hostrepute/reputecast/internal/phone
 1.1 github.com/hostrepute/reputecast/internal/providers/postal
 1.1 github.com/hostrepute/reputecast/internal/providers/sendgrid
-1.1 github.com/hostrepute/reputecast/internal/abstats
 1.1 github.com/hostrepute/reputecast/internal/providers/resend
-1.1 github.com/hostrepute/reputecast/internal/providers/brevo
 1.1 github.com/hostrepute/reputecast/internal/stores/shopify
 1.1 github.com/hostrepute/reputecast/internal/sms/twilio
 1.1 github.com/hostrepute/reputecast/internal/providers/sparkpost
 1.1 github.com/hostrepute/reputecast/internal/sms/vonage
-1.1 github.com/hostrepute/reputecast/internal/i18n
 1.1 github.com/hostrepute/reputecast/internal/sms/telnyx
 1.1 github.com/hostrepute/reputecast/internal/sms/plivo
+1.1 github.com/hostrepute/reputecast/internal/providers/brevo
+1.1 github.com/hostrepute/reputecast/internal/providers/httpgeneric
 1.1 github.com/hostrepute/reputecast/internal/stores/woocommerce
 1.1 github.com/hostrepute/reputecast/internal/placement/seedbox
-1.1 github.com/hostrepute/reputecast/internal/providers/httpgeneric
 1.1 github.com/hostrepute/reputecast/internal/verification/adapter
 1.1 github.com/hostrepute/reputecast/internal/providers/smtp
 1.1 github.com/hostrepute/reputecast/internal/providers/postmark
 1.0 github.com/hostrepute/reputecast/internal/server
 1.0 github.com/hostrepute/reputecast/internal/liquid
-1.0 github.com/hostrepute/reputecast/internal/authz
-1.0 github.com/hostrepute/reputecast/internal/access
-1.0 github.com/hostrepute/reputecast/internal/dnscheck
-1.0 github.com/hostrepute/reputecast/internal/providers
 1.0 github.com/hostrepute/reputecast/internal/verification/adapter/neverbounce
-1.0 github.com/hostrepute/reputecast/internal/clicktoken
 1.0 github.com/hostrepute/reputecast/internal/verification/adapter/bouncer
 1.0 github.com/hostrepute/reputecast/internal/verification/adapter/zerobounce
+1.0 github.com/hostrepute/reputecast/internal/access
 1.0 github.com/hostrepute/reputecast/internal/verification/adapter/kickbox
-1.0 github.com/hostrepute/reputecast/internal/emailaddr
+1.0 github.com/hostrepute/reputecast/internal/authz
+1.0 github.com/hostrepute/reputecast/internal/i18n
+1.0 github.com/hostrepute/reputecast/internal/linkrule
 1.0 github.com/hostrepute/reputecast/internal/verification/adapter/emailable
 1.0 github.com/hostrepute/reputecast/internal/providers/apiclient
-1.0 github.com/hostrepute/reputecast/internal/membermail
-1.0 github.com/hostrepute/reputecast/internal/providers/bounce
-1.0 github.com/hostrepute/reputecast/internal/linkrule
+1.0 github.com/hostrepute/reputecast/internal/dnscheck
 1.0 github.com/hostrepute/reputecast/internal/providers/smtp/dsn
 1.0 github.com/hostrepute/reputecast/internal/whatsapp/meta
-1.0 github.com/hostrepute/reputecast/internal/config
 1.0 github.com/hostrepute/reputecast/internal/providers/state
+1.0 github.com/hostrepute/reputecast/internal/clicktoken
+1.0 github.com/hostrepute/reputecast/internal/membermail
 1.0 github.com/hostrepute/reputecast/internal/retryaudience
-1.0 github.com/hostrepute/reputecast/internal/linktoken
+1.0 github.com/hostrepute/reputecast/internal/channels
+1.0 github.com/hostrepute/reputecast/internal/config
 1.0 github.com/hostrepute/reputecast/internal/push/webpush
 1.0 github.com/hostrepute/reputecast/internal/push/webpush/webpushtest
-1.0 github.com/hostrepute/reputecast/internal/providers/flex
+1.0 github.com/hostrepute/reputecast/internal/providers/bounce
 1.0 github.com/hostrepute/reputecast/internal/sms
-1.0 github.com/hostrepute/reputecast/internal/netguard
 1.0 github.com/hostrepute/reputecast/internal/recommendations/partnerproto
-1.0 github.com/hostrepute/reputecast/internal/channels
 1.0 github.com/hostrepute/reputecast/scripts/testshard
+1.0 github.com/hostrepute/reputecast/internal/emailaddr
+1.0 github.com/hostrepute/reputecast/internal/netguard
+1.0 github.com/hostrepute/reputecast/internal/providers
+1.0 github.com/hostrepute/reputecast/internal/providers/flex
 1.0 github.com/hostrepute/reputecast/internal/providers/webhookauth
+1.0 github.com/hostrepute/reputecast/internal/linktoken
 1.0 github.com/hostrepute/reputecast/internal/publicurl
 1.0 github.com/hostrepute/reputecast/internal/useragent
+1.0 github.com/hostrepute/reputecast/internal/abstats
 1.0 github.com/hostrepute/reputecast/internal/secrets
 1.0 github.com/hostrepute/reputecast/internal/stores
 1.0 github.com/hostrepute/reputecast/internal/website/gate
-0.0 github.com/hostrepute/reputecast/internal/providers/mimemsg
 0.0 github.com/hostrepute/reputecast/cmd/reputecast
+0.0 github.com/hostrepute/reputecast/internal/providers/mimemsg
 0.0 github.com/hostrepute/reputecast/internal/ai/llm/contracttest
+0.0 github.com/hostrepute/reputecast/internal/approvals TestAutomationChangesInVietnamese
+0.0 github.com/hostrepute/reputecast/internal/approvals TestAutomationLacksNamesTheChannel
+0.0 github.com/hostrepute/reputecast/internal/approvals TestClientSignoffCoversEveryChannel
+0.0 github.com/hostrepute/reputecast/internal/approvals TestDiff
+0.0 github.com/hostrepute/reputecast/internal/approvals TestDiffNamesTheChangedLink
+0.0 github.com/hostrepute/reputecast/internal/approvals TestEvaluateMatchesTheSampleRequest
+0.0 github.com/hostrepute/reputecast/internal/approvals TestHeldReasonsAndScheduleInVietnamese
+0.0 github.com/hostrepute/reputecast/internal/approvals TestInvalidationReadsInTheReadersLanguage
+0.0 github.com/hostrepute/reputecast/internal/approvals TestLanguageChangesReadInVietnamese
+0.0 github.com/hostrepute/reputecast/internal/approvals TestParsePolicyDefaultsAndRoundTrip
+0.0 github.com/hostrepute/reputecast/internal/approvals TestRulesReadInTheReadersLanguage
+0.0 github.com/hostrepute/reputecast/internal/approvals TestScaleRoute
+0.0 github.com/hostrepute/reputecast/internal/approvals TestScheduleText
+0.0 github.com/hostrepute/reputecast/internal/approvals TestStartProblemSaysWhyInTheReadersLanguage
 0.0 github.com/hostrepute/reputecast/internal/audit
 0.0 github.com/hostrepute/reputecast/internal/hostrepute/hrtest
 0.0 github.com/hostrepute/reputecast/internal/jobs
