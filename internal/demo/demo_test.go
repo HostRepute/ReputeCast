@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/hostrepute/reputecast/internal/config"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 )
 
 func TestSplitAddsUp(t *testing.T) {
@@ -19,6 +20,35 @@ func TestSplitAddsUp(t *testing.T) {
 		if sum != n {
 			t.Fatalf("Split(%d) sums to %d", n, sum)
 		}
+	}
+}
+
+// Gmail and iCloud never report complaints (review F-2): no seeded send,
+// ReputeCast's own or history imported from Brevo, holds one there.
+func TestNoComplaintsWhereNotReported(t *testing.T) {
+	pool, _, _ := seededSample(t)
+	rows, err := pool.Query(context.Background(), `SELECT mailbox_provider, sum(complained)::bigint FROM campaign_counters GROUP BY 1`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	complained := int64(0)
+	for rows.Next() {
+		var mbp string
+		var n int64
+		if err := rows.Scan(&mbp, &n); err != nil {
+			t.Fatal(err)
+		}
+		if n > 0 && !mailbox.ReportsComplaints(mbp) {
+			t.Errorf("%d complaints at %s, which doesn't report them", n, mbp)
+		}
+		complained += n
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	if complained == 0 {
+		t.Fatal("the sample's sends hold no complaints at all")
 	}
 }
 

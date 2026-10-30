@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -498,9 +499,14 @@ func (n *nwSeed) campaign(ctx context.Context, c nwCampaign) error {
 	for i, sent := range Split(c.count, weights) {
 		delivered := int64(math.Round(float64(sent) * 0.991))
 		human := int64(math.Round(float64(delivered) * c.humanOpens / 100))
+		// Gmail and iCloud never report complaints (review F-2).
+		complained := delivered / 4000
+		if !mailbox.ReportsComplaints(MailboxShare[i].Key) {
+			complained = 0
+		}
 		if _, err := n.Tx.Exec(ctx, `INSERT INTO campaign_counters (campaign_id, provider_id, mailbox_provider, sent, delivered, hard_bounced, soft_bounced, complained,
 			opened_human, opened_machine, clicked, unsubscribed) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-			id, provider, MailboxShare[i].Key, sent, delivered, (sent-delivered)*2/3, (sent-delivered)-(sent-delivered)*2/3, delivered/4000, human, delivered/9,
+			id, provider, MailboxShare[i].Key, sent, delivered, (sent-delivered)*2/3, (sent-delivered)-(sent-delivered)*2/3, complained, human, delivered/9,
 			delivered*6/100, delivered/500); err != nil {
 			return err
 		}

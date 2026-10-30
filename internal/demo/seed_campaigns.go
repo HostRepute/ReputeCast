@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/mailbox"
 )
 
 func init() { seedCampaigns = seedCampaignsImpl }
@@ -184,6 +186,11 @@ func seedSent(ctx context.Context, s *Seeder, c sentCampaign, audience map[strin
 	if _, imported := c.perProvider["brevo"]; imported {
 		origin, note = "brevo", ""
 	}
+	// Gmail and iCloud never report complaints (review F-2). The report
+	// shaping (seed_reports.go) moves the complaints of the sends it shapes
+	// to the mailbox providers that report them; history imported from
+	// Brevo and sends seeded after it keep their cells as seeded here.
+	asSeeded := origin != "" || s.reportsShaped
 	if _, err := s.Tx.Exec(ctx, `INSERT INTO campaigns (id, workspace_id, name, status, subject, preheader, audience, audience_count, ab_test, schedule,
 		created_by, updated_by, created_at, updated_at, scheduled_at, started_by, started_at, completed_at, origin, note)
 		VALUES ($1,$2,$3,'sent',$4,'',$5,$6,$7,$8,$9,$9,$10,$11,$12,$9,$12,$11,$13,$14)`,
@@ -219,6 +226,9 @@ func seedSent(ctx context.Context, s *Seeder, c sentCampaign, audience map[strin
 			hard := bounced * 2 / 3
 			soft := bounced - hard
 			complained := int64(math.Round(float64(delivered) * c.complaint / 100))
+			if asSeeded && !mailbox.ReportsComplaints(mb.Key) {
+				complained = 0
+			}
 			human := int64(math.Round(float64(delivered) * c.humanOpens / 100))
 			// machineOpens are every open no person made: most of them Apple
 			// Mail's privacy prefetches, the rest scanners'.
