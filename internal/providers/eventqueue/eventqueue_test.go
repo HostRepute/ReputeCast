@@ -46,15 +46,23 @@ func (f *fakeQueue) ParseWebhook(context.Context, *http.Request, []byte) ([]prov
 	return []providers.Event{}, nil
 }
 func (f *fakeQueue) QueueEnabled() bool { return true }
-func (f *fakeQueue) ReceiveEvents(_ context.Context, maxEvents int, _ time.Duration) ([]providers.QueuedEvent, error) {
+func (f *fakeQueue) ReceiveEvents(ctx context.Context, maxEvents int, wait time.Duration) ([]providers.QueuedEvent, error) {
 	qmu.Lock()
-	defer qmu.Unlock()
 	if failing != nil {
+		qmu.Unlock()
 		return nil, failing
 	}
 	n := min(maxEvents, len(queued))
 	out := append([]providers.QueuedEvent(nil), queued[:n]...)
 	queued = queued[n:]
+	qmu.Unlock()
+	if n == 0 {
+		// A long poll of an empty queue lasts its whole wait, as SQS's does.
+		select {
+		case <-ctx.Done():
+		case <-time.After(wait):
+		}
+	}
 	return out, nil
 }
 func (f *fakeQueue) AckEvents(_ context.Context, handles []string) error {
@@ -87,7 +95,9 @@ func TestPollStoresEventsThenAcks(t *testing.T) {
 	}
 	qmu.Unlock()
 	var polled []error
-	w := &eventqueue.Worker{Pool: env.App.Pool, Q: env.App.Q, Factory: &manage.Factory{Box: env.App.Secrets}, For: 50 * time.Millisecond,
+	// The poll lasts its whole span, its last long poll finding the queue
+	// empty: long enough for storing both receives on a slow runner.
+	w := &eventqueue.Worker{Pool: env.App.Pool, Q: env.App.Q, Factory: &manage.Factory{Box: env.App.Secrets}, For: 2 * time.Second,
 		OnPoll: func(_ context.Context, _ store.Provider, err error) { polled = append(polled, err) }}
 	n, err := w.Poll(ctx, p)
 	if err != nil || n != 12 {
