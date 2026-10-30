@@ -202,6 +202,16 @@ func testABNoWinner(t *testing.T, f *sendtest.Fixture) {
 	f.AddContacts(sendtest.ContactSpec{N: 1600, Mailbox: "gmail", Domain: "gmail.com", Engaged: true})
 	f.StartSend(engine.StartOptions{ABWindow: 40 * time.Minute})
 	held := f.Count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND status = 'held'`, f.Campaign)
+	// A fifth of each variant's sample clicks, and nobody else: with the
+	// demo transport's clicks (about 4% of each, at random), one variant
+	// would lead significantly about one run in twenty.
+	f.DriveWithout(5*time.Minute, "click")
+	if n := f.Count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND variant <> '' AND NOT ab_rollout AND sent_at IS NULL`, f.Campaign); n != 0 {
+		f.Dump()
+		t.Fatalf("%d of the sample not sent after 5 minutes", n)
+	}
+	clicks(t, f, "A", 5)
+	clicks(t, f, "B", 5)
 	if _, done := f.Drive(3 * time.Hour); !done {
 		f.Dump()
 		t.Fatal("the send didn't finish")

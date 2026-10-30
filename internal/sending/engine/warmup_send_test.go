@@ -452,6 +452,8 @@ func passwordResets(t *testing.T, key *apptest.Client, tag string, n int) []uuid
 }
 
 // transactionalOutbox runs the transactional outbox for n seconds from at.
+// Eight seconds cover a retry: the demo transport throttles about one call
+// in 250 at Postal, and the route waits 5 s before it tries again.
 func transactionalOutbox(t *testing.T, f *sendtest.Fixture, at time.Time, n int) {
 	t.Helper()
 	for i := range n {
@@ -537,7 +539,7 @@ func testTransactionalNeverWaits(t *testing.T, f *sendtest.Fixture) {
 	f.Exec(`UPDATE warmup_plans SET status = 'paused', paused_at = $2, held_cap = NULL WHERE id = $1`, a.PlanID, f.Start)
 	transactionalRoute(t, f, postal, &ses, "pause_and_ask")
 	paused := passwordResets(t, key, "paused", 1)
-	transactionalOutbox(t, f, f.Start.Add(2*time.Minute), 4)
+	transactionalOutbox(t, f, f.Start.Add(2*time.Minute), 8)
 	if got := statuses(t, f, paused); got["sent@postal"] != 1 {
 		t.Fatalf("while the plan is paused: %v", got)
 	}
