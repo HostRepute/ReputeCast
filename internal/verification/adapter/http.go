@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -159,37 +160,59 @@ func Decode(resp *Response, v any) error {
 
 // OneByOne checks emails with verify, up to parallel at a time, and returns
 // the answers in order. The first error stops it; answers before it are
-// returned with the error so a job keeps them.
+// returned with the error so a job keeps them. An error stops only the
+// addresses after the one that failed: checks of the addresses before it
+// run to the end, however late they are, since the service answers (and
+// charges for) them whatever order the parallel checks reach it in.
 func OneByOne(ctx context.Context, emails []string, parallel int, verify func(ctx context.Context, email string) (Answer, error)) ([]Answer, error) {
 	if parallel < 1 {
 		parallel = 1
 	}
 	out := make([]Answer, len(emails))
 	errs := make([]error, len(emails))
+	cancels := make([]context.CancelFunc, len(emails))
+	var mu sync.Mutex
+	failed := len(emails) // the first address that failed
+	stopAfter := func(i int) {
+		mu.Lock()
+		defer mu.Unlock()
+		if i >= failed {
+			return
+		}
+		failed = i
+		for _, c := range cancels[i+1:] {
+			if c != nil {
+				c()
+			}
+		}
+	}
 	sem := make(chan struct{}, parallel)
-	done := make(chan int, len(emails))
-	cctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	var wg sync.WaitGroup
 	for i, e := range emails {
 		sem <- struct{}{}
-		go func(i int, e string) {
-			defer func() { <-sem; done <- i }()
-			if cctx.Err() != nil {
-				errs[i] = cctx.Err()
-				return
-			}
+		mu.Lock()
+		if failed < i {
+			mu.Unlock()
+			<-sem
+			errs[i] = context.Canceled
+			continue
+		}
+		cctx, cancel := context.WithCancel(ctx)
+		cancels[i] = cancel
+		mu.Unlock()
+		wg.Add(1)
+		go func() {
+			defer func() { cancel(); <-sem; wg.Done() }()
 			a, err := verify(cctx, e)
 			if err != nil {
 				errs[i] = err
-				cancel()
+				stopAfter(i)
 				return
 			}
 			out[i] = a
-		}(i, e)
+		}()
 	}
-	for range emails {
-		<-done
-	}
+	wg.Wait()
 	for i, err := range errs {
 		if err != nil {
 			// Keep the answers before the first failure, in order.
