@@ -62,6 +62,13 @@ test-go: ## Go unit and integration tests (uses the compose Postgres when runnin
 	  REPUTECAST_TEST_DATABASE_URL="$(TEST_DB)" $(GO) test -race -timeout 45m ./...; \
 	else $(GO) test -race -timeout 45m ./...; fi
 
+.PHONY: test-durations
+test-durations: ## Time each Go package's tests, which CI splits its Go jobs by
+	@if docker compose ps --status running postgres 2>/dev/null | grep -q postgres; then \
+	  export REPUTECAST_TEST_DATABASE_URL="$(TEST_DB)"; fi; \
+	$(GO) test -race -count=1 -timeout 45m -json ./... | $(GO) run ./scripts/testshard -record > .github/go-test-durations.txt.new && \
+	  mv .github/go-test-durations.txt.new .github/go-test-durations.txt
+
 .PHONY: test-web
 test-web: ## Web unit tests (Vitest)
 	cd web && $(PNPM) test
