@@ -39,9 +39,12 @@ func TestEstimateMatchesTheSend(t *testing.T) {
 // out: within 5% of the send's length or 20 seconds. It sends through the
 // steady demo transport: a provider that throttles a call slows its route
 // (to half its rate for a minute at least), which no estimate can know in
-// advance; the engine's answer to throttling has tests of its own.
+// advance; the engine's answer to throttling has tests of its own. For the
+// same reason the send runs with limits it can't reach: a few chance block
+// bounces at Outlook would pause it there and end the send early.
 func compareWithSend(t *testing.T, f *sendtest.Fixture) {
 	t.Helper()
+	limitsOutOfReach(f)
 	f.StartSend(engine.StartOptions{Scenario: simulator.ScenarioSteady})
 	cells := map[uuid.UUID]map[string]int64{}
 	rows, err := f.Env.App.Pool.Query(f.Ctx, `SELECT provider_id, mailbox_provider, count(*) FROM messages WHERE campaign_id = $1 GROUP BY 1, 2`, f.Campaign)
