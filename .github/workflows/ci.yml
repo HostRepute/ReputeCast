@@ -105,44 +105,49 @@ jobs:
       - run: go vet ./...
 
   golangci:
-    name: golangci-lint
+    name: golangci-lint (${{ matrix.part }}/3)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Every third package, linted side by side. Most of a lint is loading
+        # the packages, which compiles them. Tests that import a package
+        # importing the one they test, as tests using internal/apptest do
+        # (internal/app imports nearly everything), need it compiled again
+        # against that package with its test files: 1,406 such copies for
+        # 197 packages. A part compiles only the copies its own tests need.
+        part: [1, 2, 3]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
         with:
           go-version: "1.27.x"
-          # The cache setup-go shares between jobs holds what the first job
-          # to save it built, the shards' -race builds: none of it helps
-          # the linters. This job keeps its own, below.
-          cache: false
-      # The module and build caches and golangci-lint's results as main's
-      # latest lint left them, so a run checks again only what changed.
-      # main saves them after each run; pull requests restore main's.
-      - uses: actions/cache/restore@v5
+      - name: Packages of this part
+        id: part
+        run: echo "packages=$(go list -f '{{.Dir}}' ./... | awk 'NR % 3 == ${{ matrix.part }} - 1' | sed "s|^$PWD|.|" | xargs)" >> "$GITHUB_OUTPUT"
+      # golangci-lint's cache: each package's results, and the facts its
+      # analyzers keep about the packages it imports, as main's latest lint
+      # of this part left them. Runs on main save it; pull requests only
+      # restore it.
+      - uses: actions/cache/restore@v6
         with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-            ~/.cache/golangci-lint
-          key: golangci-${{ runner.os }}-${{ hashFiles('go.sum') }}-${{ github.sha }}
+          path: ~/.cache/golangci-lint
+          key: golangci-${{ matrix.part }}-${{ hashFiles('go.sum') }}-${{ github.sha }}
           restore-keys: |
-            golangci-${{ runner.os }}-${{ hashFiles('go.sum') }}-
-            golangci-${{ runner.os }}-
+            golangci-${{ matrix.part }}-${{ hashFiles('go.sum') }}-
+            golangci-${{ matrix.part }}-
       - uses: golangci/golangci-lint-action@v8
         with:
           version: v2.14.0
-          # Its own cache is golangci-lint's results from the week's first
-          # run, which the cache above replaces.
+          args: ${{ steps.part.outputs.packages }}
+          # The action's own cache is saved once a week and shared by the
+          # three parts; the one above replaces it.
           skip-cache: true
       - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-            ~/.cache/golangci-lint
-          key: golangci-${{ runner.os }}-${{ hashFiles('go.sum') }}-${{ github.sha }}
+          path: ~/.cache/golangci-lint
+          key: golangci-${{ matrix.part }}-${{ hashFiles('go.sum') }}-${{ github.sha }}
 
   adapter-sdk:
     name: Adapter SDK · typecheck, test, build, end to end
