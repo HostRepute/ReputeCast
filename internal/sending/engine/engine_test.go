@@ -255,6 +255,7 @@ func containsDots(s string) bool {
 
 func testAutoPause(t *testing.T, f *sendtest.Fixture) {
 	f.Exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.Campaign)
+	blocksOutOfReach(f)
 	f.AddContacts(
 		// Outlook sends at 5 /s, so 2,500 take over eight minutes: complaints
 		// arrive one to six minutes after delivery and trip the threshold
