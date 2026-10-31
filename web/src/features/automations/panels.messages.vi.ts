@@ -134,6 +134,7 @@ export default translate(mp, {
   everyYear: 'Hằng năm',
   reentry: 'Vào lại',
   oncePerContact: 'Một lần cho mỗi liên hệ',
+  oncePerYear: 'Mỗi năm một lần cho mỗi liên hệ',
   everyTime: 'Mỗi lần, sau khi họ đã rời quy trình',
   entered: 'Đã vào <b>{value}</b>',
 

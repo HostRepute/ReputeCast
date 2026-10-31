@@ -820,7 +820,7 @@ function TriggerProps({ graph, node, options, editable, onChange, stats, hasStat
             value={t.reentry ?? 'once'}
             onChange={(v) => set({ reentry: v })}
             options={[
-              { value: 'once', label: tr(mp.oncePerContact) },
+              { value: 'once', label: tr(t.kind === 'date_field' && t.yearly ? mp.oncePerYear : mp.oncePerContact) },
               { value: 'always', label: tr(mp.everyTime) },
             ]}
           />

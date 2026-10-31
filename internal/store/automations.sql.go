@@ -185,7 +185,8 @@ func (q *Queries) AutomationContactByEmail(ctx context.Context, arg AutomationCo
 }
 
 const automationContactEmailedSince = `-- name: AutomationContactEmailedSince :one
-SELECT EXISTS (SELECT 1 FROM messages WHERE contact_id = $1 AND queued_at >= $2)
+SELECT EXISTS (SELECT 1 FROM messages WHERE contact_id = $1 AND queued_at >= $2
+                 AND stream IN ('broadcast', 'automation') AND status NOT IN ('rejected', 'failed', 'cancelled'))
 `
 
 type AutomationContactEmailedSinceParams struct {
@@ -193,6 +194,10 @@ type AutomationContactEmailedSinceParams struct {
 	Since     time.Time  `json:"since"`
 }
 
+// "Skip if the contact received any email in the last N hours": campaign
+// and automation email that went or is going out. Transactional and System
+// mail (a password reset) and messages that never left don't count
+// (review 2026-11 EN-4).
 func (q *Queries) AutomationContactEmailedSince(ctx context.Context, arg AutomationContactEmailedSinceParams) (bool, error) {
 	row := q.db.QueryRow(ctx, automationContactEmailedSince, arg.ContactID, arg.Since)
 	var exists bool
@@ -311,7 +316,7 @@ WHERE c.workspace_id = $1 AND c.status = 'active' AND c.erased_at IS NULL
             ELSE substr(c.attributes ->> $2::text, 1, 10)::date END + $5::int, 'MM-DD') = to_char($6::date, 'MM-DD')))
   AND NOT EXISTS (SELECT 1 FROM automation_events e
                   WHERE e.workspace_id = c.workspace_id AND e.contact_id = c.id AND e.kind = 'date_field'
-                    AND e.ref = $2::text AND e.occurred_at >= $6::date)
+                    AND e.ref = $2::text AND (e.occurred_at AT TIME ZONE $3::text)::date >= $6::date)
 LIMIT 5000
 `
 
@@ -813,6 +818,23 @@ func (q *Queries) AutomationMessageForStats(ctx context.Context, id uuid.UUID) (
 	return i, err
 }
 
+const automationMessageSentAt = `-- name: AutomationMessageSentAt :one
+SELECT status, sent_at FROM messages WHERE id = $1
+`
+
+type AutomationMessageSentAtRow struct {
+	Status string     `json:"status"`
+	SentAt *time.Time `json:"sentAt"`
+}
+
+// When an automation email actually left (NULL while it is queued or held).
+func (q *Queries) AutomationMessageSentAt(ctx context.Context, id uuid.UUID) (AutomationMessageSentAtRow, error) {
+	row := q.db.QueryRow(ctx, automationMessageSentAt, id)
+	var i AutomationMessageSentAtRow
+	err := row.Scan(&i.Status, &i.SentAt)
+	return i, err
+}
+
 const automationProviderSendsSince = `-- name: AutomationProviderSendsSince :many
 SELECT p.k::text AS provider_id, sum(p.v::bigint)::bigint AS n, max(s.day)::date AS last_day
 FROM automation_step_stats s
@@ -945,6 +967,25 @@ func (q *Queries) AutomationRoute(ctx context.Context, workspaceID uuid.UUID) (A
 	var i AutomationRouteRow
 	err := row.Scan(&i.Splits, &i.FallbackProviderID)
 	return i, err
+}
+
+const automationRunEnteredSince = `-- name: AutomationRunEnteredSince :one
+SELECT EXISTS (SELECT 1 FROM automation_runs WHERE automation_id = $1 AND contact_id = $2 AND entered_at > $3::timestamptz)
+`
+
+type AutomationRunEnteredSinceParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	ContactID    uuid.UUID `json:"contactId"`
+	Since        time.Time `json:"since"`
+}
+
+// A run of the contact in the flow started after @since (a yearly date
+// trigger lets a contact through once a year).
+func (q *Queries) AutomationRunEnteredSince(ctx context.Context, arg AutomationRunEnteredSinceParams) (bool, error) {
+	row := q.db.QueryRow(ctx, automationRunEnteredSince, arg.AutomationID, arg.ContactID, arg.Since)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
 const automationRunExists = `-- name: AutomationRunExists :one
@@ -1425,13 +1466,18 @@ func (q *Queries) BumpAutomationStepStats(ctx context.Context, arg BumpAutomatio
 }
 
 const claimAutomationEvents = `-- name: ClaimAutomationEvents :many
-SELECT id, workspace_id, kind, contact_id, ref, payload, occurred_at
+SELECT id, workspace_id, kind, contact_id, ref, payload, occurred_at, attempts
 FROM automation_events
-WHERE processed_at IS NULL
+WHERE processed_at IS NULL AND (retry_at IS NULL OR retry_at <= $1::timestamptz)
 ORDER BY id
-LIMIT $1
+LIMIT $2
 FOR UPDATE SKIP LOCKED
 `
+
+type ClaimAutomationEventsParams struct {
+	Now time.Time `json:"now"`
+	Lim int32     `json:"lim"`
+}
 
 type ClaimAutomationEventsRow struct {
 	ID          int64           `json:"id"`
@@ -1441,10 +1487,12 @@ type ClaimAutomationEventsRow struct {
 	Ref         string          `json:"ref"`
 	Payload     json.RawMessage `json:"payload"`
 	OccurredAt  time.Time       `json:"occurredAt"`
+	Attempts    int16           `json:"attempts"`
 }
 
-func (q *Queries) ClaimAutomationEvents(ctx context.Context, lim int32) ([]ClaimAutomationEventsRow, error) {
-	rows, err := q.db.Query(ctx, claimAutomationEvents, lim)
+// Events to dispatch, oldest first; one that failed waits for its retry.
+func (q *Queries) ClaimAutomationEvents(ctx context.Context, arg ClaimAutomationEventsParams) ([]ClaimAutomationEventsRow, error) {
+	rows, err := q.db.Query(ctx, claimAutomationEvents, arg.Now, arg.Lim)
 	if err != nil {
 		return nil, err
 	}
@@ -1460,6 +1508,7 @@ func (q *Queries) ClaimAutomationEvents(ctx context.Context, lim int32) ([]Claim
 			&i.Ref,
 			&i.Payload,
 			&i.OccurredAt,
+			&i.Attempts,
 		); err != nil {
 			return nil, err
 		}
@@ -1473,7 +1522,7 @@ func (q *Queries) ClaimAutomationEvents(ctx context.Context, lim int32) ([]Claim
 
 const claimDueAutomationRuns = `-- name: ClaimDueAutomationRuns :many
 SELECT r.id, r.automation_id, r.version, r.contact_id, r.node_id, r.status, r.state, r.entered_at, r.node_entered_at, r.next_at,
-       a.workspace_id
+       a.workspace_id, r.attempts
 FROM automation_runs r
 JOIN automations a ON a.id = r.automation_id
 WHERE r.status IN ('active', 'waiting') AND r.next_at <= $1 AND a.status = 'live' AND a.deleted_at IS NULL
@@ -1499,6 +1548,7 @@ type ClaimDueAutomationRunsRow struct {
 	NodeEnteredAt time.Time       `json:"nodeEnteredAt"`
 	NextAt        *time.Time      `json:"nextAt"`
 	WorkspaceID   uuid.UUID       `json:"workspaceId"`
+	Attempts      int16           `json:"attempts"`
 }
 
 // Runs ready to move on, in flows that are live (paused flows hold their runs).
@@ -1523,6 +1573,7 @@ func (q *Queries) ClaimDueAutomationRuns(ctx context.Context, arg ClaimDueAutoma
 			&i.NodeEnteredAt,
 			&i.NextAt,
 			&i.WorkspaceID,
+			&i.Attempts,
 		); err != nil {
 			return nil, err
 		}
@@ -1748,6 +1799,59 @@ func (q *Queries) ExitAutomationRuns(ctx context.Context, arg ExitAutomationRuns
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const failAutomationEvent = `-- name: FailAutomationEvent :exec
+UPDATE automation_events SET attempts = attempts + 1, last_error = $1, retry_at = $2::timestamptz,
+    processed_at = CASE WHEN $3::boolean THEN now() ELSE NULL END
+WHERE id = $4
+`
+
+type FailAutomationEventParams struct {
+	Error   string    `json:"error"`
+	RetryAt time.Time `json:"retryAt"`
+	GiveUp  bool      `json:"giveUp"`
+	ID      int64     `json:"id"`
+}
+
+// Counts a failed dispatch: retried after @retry_at, or set aside (processed,
+// nobody enrolled) once @give_up.
+func (q *Queries) FailAutomationEvent(ctx context.Context, arg FailAutomationEventParams) error {
+	_, err := q.db.Exec(ctx, failAutomationEvent,
+		arg.Error,
+		arg.RetryAt,
+		arg.GiveUp,
+		arg.ID,
+	)
+	return err
+}
+
+const failAutomationRun = `-- name: FailAutomationRun :exec
+UPDATE automation_runs SET attempts = attempts + 1, last_error = $1,
+    next_at = CASE WHEN $2::boolean THEN NULL ELSE $3::timestamptz END,
+    status = CASE WHEN $2::boolean THEN 'failed' ELSE status END,
+    exit_reason = CASE WHEN $2::boolean THEN 'error' ELSE exit_reason END,
+    finished_at = CASE WHEN $2::boolean THEN $3::timestamptz ELSE finished_at END
+WHERE id = $4
+`
+
+type FailAutomationRunParams struct {
+	Error  string    `json:"error"`
+	GiveUp bool      `json:"giveUp"`
+	NextAt time.Time `json:"nextAt"`
+	ID     uuid.UUID `json:"id"`
+}
+
+// Counts a failed step: the run tries again at @next_at, or fails for good
+// once @give_up.
+func (q *Queries) FailAutomationRun(ctx context.Context, arg FailAutomationRunParams) error {
+	_, err := q.db.Exec(ctx, failAutomationRun,
+		arg.Error,
+		arg.GiveUp,
+		arg.NextAt,
+		arg.ID,
+	)
+	return err
 }
 
 const getAutomation = `-- name: GetAutomation :one

@@ -393,6 +393,10 @@ type Querier interface {
 	// time, not refunded in full.
 	AutomationContactBought(ctx context.Context, arg AutomationContactBoughtParams) (bool, error)
 	AutomationContactByEmail(ctx context.Context, arg AutomationContactByEmailParams) (AutomationContactByEmailRow, error)
+	// "Skip if the contact received any email in the last N hours": campaign
+	// and automation email that went or is going out. Transactional and System
+	// mail (a password reset) and messages that never left don't count
+	// (review 2026-11 EN-4).
 	AutomationContactEmailedSince(ctx context.Context, arg AutomationContactEmailedSinceParams) (bool, error)
 	AutomationContactInList(ctx context.Context, arg AutomationContactInListParams) (bool, error)
 	AutomationContactInWorkspace(ctx context.Context, arg AutomationContactInWorkspaceParams) (AutomationContactInWorkspaceRow, error)
@@ -432,6 +436,8 @@ type Querier interface {
 	// a person's (review AN-2).
 	AutomationMessageEngaged(ctx context.Context, arg AutomationMessageEngagedParams) (bool, error)
 	AutomationMessageForStats(ctx context.Context, id uuid.UUID) (AutomationMessageForStatsRow, error)
+	// When an automation email actually left (NULL while it is queued or held).
+	AutomationMessageSentAt(ctx context.Context, id uuid.UUID) (AutomationMessageSentAtRow, error)
 	AutomationMessageVars(ctx context.Context, messageID uuid.UUID) (json.RawMessage, error)
 	// Trigger data in automation emails (design expansion phase 7).
 	AutomationMessageVarsInsert(ctx context.Context, arg AutomationMessageVarsInsertParams) error
@@ -452,6 +458,9 @@ type Querier interface {
 	AutomationRemoveListMembership(ctx context.Context, arg AutomationRemoveListMembershipParams) error
 	// The default Automations route: the weighted split and the fallback.
 	AutomationRoute(ctx context.Context, workspaceID uuid.UUID) (AutomationRouteRow, error)
+	// A run of the contact in the flow started after @since (a yearly date
+	// trigger lets a contact through once a year).
+	AutomationRunEnteredSince(ctx context.Context, arg AutomationRunEnteredSinceParams) (bool, error)
 	AutomationRunExists(ctx context.Context, arg AutomationRunExistsParams) (bool, error)
 	// The message a run's email step queued (for branch checks).
 	AutomationRunMessage(ctx context.Context, arg AutomationRunMessageParams) (AutomationRunMessageRow, error)
@@ -546,7 +555,8 @@ type Querier interface {
 	CheckDismissalInsert(ctx context.Context, arg CheckDismissalInsertParams) (uuid.UUID, error)
 	// The warnings dismissed in a campaign's composer (CO-14).
 	CheckDismissalsList(ctx context.Context, arg CheckDismissalsListParams) ([]CheckDismissalsListRow, error)
-	ClaimAutomationEvents(ctx context.Context, lim int32) ([]ClaimAutomationEventsRow, error)
+	// Events to dispatch, oldest first; one that failed waits for its retry.
+	ClaimAutomationEvents(ctx context.Context, arg ClaimAutomationEventsParams) ([]ClaimAutomationEventsRow, error)
 	// Runs ready to move on, in flows that are live (paused flows hold their runs).
 	ClaimDueAutomationRuns(ctx context.Context, arg ClaimDueAutomationRunsParams) ([]ClaimDueAutomationRunsRow, error)
 	ClearSegmentMembers(ctx context.Context, segmentID uuid.UUID) error
@@ -1355,6 +1365,12 @@ type Querier interface {
 	EnableAuditPurge(ctx context.Context) error
 	EnabledSSOProviders(ctx context.Context) ([]EnabledSSOProvidersRow, error)
 	ExitAutomationRuns(ctx context.Context, arg ExitAutomationRunsParams) (int64, error)
+	// Counts a failed dispatch: retried after @retry_at, or set aside (processed,
+	// nobody enrolled) once @give_up.
+	FailAutomationEvent(ctx context.Context, arg FailAutomationEventParams) error
+	// Counts a failed step: the run tries again at @next_at, or fails for good
+	// once @give_up.
+	FailAutomationRun(ctx context.Context, arg FailAutomationRunParams) error
 	FailStaleDeliverabilityCheckRuns(ctx context.Context, aliveAfter time.Time) (int64, error)
 	FinishDeliverabilityCheckRun(ctx context.Context, arg FinishDeliverabilityCheckRunParams) error
 	FinishImport(ctx context.Context, arg FinishImportParams) error
