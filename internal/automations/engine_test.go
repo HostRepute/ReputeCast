@@ -438,3 +438,65 @@ func TestDateFieldTriggers(t *testing.T) {
 		t.Fatalf("contact whose date isn't due entered the flow")
 	}
 }
+
+// DP-5: a contact who paused email on the preference center gets no
+// automation email while the pause lasts; the step counts a skip and the
+// flow goes on. A pause that has ended changes nothing.
+func TestEmailStepsSkipPausedContacts(t *testing.T) {
+	env, c := signedIn(t, "linh@acme.io")
+	ctx := context.Background()
+	clk := &clock{t: time.Now()}
+	svc := engine(env, clk)
+	emailID := newEmail(t, c, "Test · paused")
+	product := listID(t, env, "Product Updates")
+	flow := publishFlow(t, c, "Paused flow", automations.AutomationGraph{
+		Nodes: []automations.AutomationNode{
+			node("t", automations.NodeTrigger, automations.AutomationNodeData{Trigger: &automations.AutomationTrigger{Kind: automations.TriggerJoinedList, ListID: product}}),
+			node("m", automations.NodeEmail, automations.AutomationNodeData{Email: &automations.AutomationEmailStep{EmailID: emailID, EmailVersion: 1, Subject: "Hello"}}),
+			node("tag", automations.NodeList, automations.AutomationNodeData{Action: &automations.AutomationListAction{Kind: "add_tag", Tag: "after-email"}}),
+		},
+		Edges: []automations.AutomationEdge{link("t", "m", ""), link("m", "tag", "")},
+	})
+	paused := addContact(t, env, "paused@example.com", nil)
+	ended := addContact(t, env, "pause-ended@example.com", nil)
+	for _, p := range []struct {
+		c     uuid.UUID
+		until time.Time
+	}{{paused, clk.now().Add(30 * 24 * time.Hour)}, {ended, clk.now().Add(-time.Hour)}} {
+		if _, err := env.App.Pool.Exec(ctx, `INSERT INTO contact_preferences (contact_id, paused_until) VALUES ($1, $2)`, p.c, p.until); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := env.App.Pool.Exec(ctx, `INSERT INTO list_memberships (list_id, contact_id, status, source, subscribed_at) VALUES ($1,$2,'subscribed','form:test',now())`, product, p.c); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if started, err := svc.Dispatch(ctx); err != nil || started != 2 {
+		t.Fatalf("dispatch started %d: %v", started, err)
+	}
+	if _, err := svc.Tick(ctx); err != nil {
+		t.Fatal(err)
+	}
+	messages := func(contact uuid.UUID) int {
+		var n int
+		if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM messages WHERE contact_id = $1 AND stream = 'automation'`, contact).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		return n
+	}
+	if n := messages(paused); n != 0 {
+		t.Fatalf("the paused contact got %d automation messages", n)
+	}
+	if nodeID, status, _ := run(t, env, flow, paused); nodeID != "tag" || status != "completed" {
+		t.Fatalf("the paused contact's run is at %s %s; the flow should go on past the email", nodeID, status)
+	}
+	if n := messages(ended); n != 1 {
+		t.Fatalf("the contact whose pause ended got %d automation messages, want 1", n)
+	}
+	var skipped int64
+	if err := env.App.Pool.QueryRow(ctx, `SELECT coalesce(sum(skipped), 0) FROM automation_step_stats WHERE automation_id = $1 AND node_id = 'm'`, flow).Scan(&skipped); err != nil {
+		t.Fatal(err)
+	}
+	if skipped != 1 {
+		t.Fatalf("the email step counted %d skips, want 1", skipped)
+	}
+}

@@ -358,6 +358,11 @@ SELECT EXISTS (SELECT 1 FROM list_memberships WHERE list_id = @list_id AND conta
 -- name: AutomationContactEmailedSince :one
 SELECT EXISTS (SELECT 1 FROM messages WHERE contact_id = @contact_id AND queued_at >= @since);
 
+-- name: AutomationContactPaused :one
+-- The contact paused email on the preference center (30 or 90 days), as
+-- campaigns read it (sending.sql's audience).
+SELECT EXISTS (SELECT 1 FROM contact_preferences WHERE contact_id = @contact_id AND paused_until > @now::timestamptz);
+
 -- name: AutomationContactSuppressed :one
 SELECT EXISTS (SELECT 1 FROM suppressions WHERE workspace_id = @workspace_id AND email = @email);
 
