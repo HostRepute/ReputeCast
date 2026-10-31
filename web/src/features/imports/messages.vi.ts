@@ -199,6 +199,9 @@ export default translate(m, {
   pullBefore: 'Lấy các địa chỉ bị chặn gửi sẵn có từ các nhà cung cấp gửi thư đã kết nối trước khi nhập',
   inSync: '· {providers} đã đồng bộ ({count} địa chỉ), nên bước này chỉ kiểm tra lại',
   checked: '· {providers} được kiểm tra để tìm các địa chỉ họ đang chặn',
+  importTag: 'Gắn thẻ cho mọi liên hệ được nhập (không bắt buộc)',
+  importTagHint: 'Viết thường, như cách thẻ được lưu. Hữu ích để tìm hoặc phân nhóm họ sau này.',
+  viewImported: 'Xem các liên hệ này',
   recordHistory: 'Ghi lần nhập vào lịch sử đồng ý của từng liên hệ',
   continuePreview: 'Tiếp tục đến bước xem trước',
 

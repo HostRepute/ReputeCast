@@ -11,7 +11,7 @@ import { useSyncExternalStore } from 'react'
  * imports feature installs it). Screens can also track a job they started
  * with trackJob() so it shows right away.
  */
-export type JobKind = 'import' | 'export' | 'scoring' | 'verification'
+export type JobKind = 'import' | 'export' | 'scoring' | 'verification' | 'optin'
 export type JobStatus = 'queued' | 'running' | 'done' | 'failed' | 'canceled'
 
 export interface BackgroundJob {
@@ -28,6 +28,8 @@ export interface BackgroundJob {
   detail?: string
   /** Where to see the result (an app path). */
   href?: string
+  /** A finished export's file (an API path that downloads it). */
+  downloadUrl?: string
   startedAt?: string
   finishedAt?: string
   /** The toast's title when it finishes or fails, where the kind's own doesn't fit ("Scores recalculated"). */

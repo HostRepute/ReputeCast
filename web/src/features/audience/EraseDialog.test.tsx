@@ -15,10 +15,10 @@ describe('Erase contacts (review 2026-11 DP-1)', () => {
 
   it('says Stripe keeps its records only where the workspace has paid members', async () => {
     unmock = mockApi({})
-    const { unmount } = await renderInWorkspace(<EraseDialog ids={['a', 'b']} onClose={() => {}} onDone={() => {}} stripe />, { me: owner })
+    const { unmount } = await renderInWorkspace(<EraseDialog selection={{ ids: ['a', 'b'] }} n={2} onClose={() => {}} onDone={() => {}} stripe />, { me: owner })
     expect(screen.getByText('Stripe keeps its own records of paid members. Delete the customer in Stripe too if you need to.')).toBeInTheDocument()
     unmount()
-    await renderInWorkspace(<EraseDialog ids={['a', 'b']} onClose={() => {}} onDone={() => {}} />, { me: owner })
+    await renderInWorkspace(<EraseDialog selection={{ ids: ['a', 'b'] }} n={2} onClose={() => {}} onDone={() => {}} />, { me: owner })
     expect(screen.queryByText(/Stripe keeps its own records/)).not.toBeInTheDocument()
   })
 
@@ -37,7 +37,7 @@ describe('Erase contacts (review 2026-11 DP-1)', () => {
           409,
         ),
     })
-    await renderInWorkspace(<EraseDialog ids={['a', 'b']} onClose={() => {}} onDone={() => (done = true)} stripe />, { me: owner })
+    await renderInWorkspace(<EraseDialog selection={{ ids: ['a', 'b'] }} n={2} onClose={() => {}} onDone={() => (done = true)} stripe />, { me: owner })
     fireEvent.change(screen.getByRole('textbox'), { target: { value: '2' } })
     fireEvent.click(screen.getByRole('button', { name: 'Erase 2 contacts' }))
     await waitFor(() => expect(screen.getByText(/1 contact still pays through Stripe/)).toBeInTheDocument())

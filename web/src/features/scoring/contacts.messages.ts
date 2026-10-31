@@ -32,5 +32,9 @@ export const m = defineMessages('scoring.contacts', {
   removeFilterNamed: 'Remove filter: {name}',
   sortedByScore: 'sorted by score, highest first',
   sortedByActivity: 'sorted by last activity',
+  sortedByJoined: 'sorted by joined, newest first',
+  sortedByLastOpen: 'sorted by last open, newest first',
+  sortedByEmail: 'sorted by email, A to Z',
+  totalSortedCapped: '{count, number}+ contacts · {sort}',
   totalSorted: '{count, plural, one {# contact} other {# contacts}} · {sort}',
 })

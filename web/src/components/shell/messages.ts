@@ -113,6 +113,8 @@ export const m = defineMessages('shell', {
   jobExportFinished: 'Export finished',
   jobVerificationFinished: 'Verification finished',
   jobOpen: 'Open',
+  jobDownload: 'Download',
+  jobOptinFinished: 'Opt-in emails sent',
   jobFailed: '{title} failed',
   jobFailedDetail: 'see the job history for what went wrong',
 

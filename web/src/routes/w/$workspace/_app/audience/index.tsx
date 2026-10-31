@@ -18,6 +18,13 @@ const search = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional()
     .catch(undefined),
+  // Joined on or before a day, and one import's contacts (review 2026-11 AU-10).
+  joinedBefore: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .catch(undefined),
+  import: z.string().uuid().optional().catch(undefined),
   segment: z.string().uuid().optional().catch(undefined),
   language: z
     .string()
@@ -33,7 +40,7 @@ const search = z.object({
   utmMedium: z.string().max(200).optional().catch(undefined),
   utmCampaign: z.string().max(200).optional().catch(undefined),
   referringDomain: z.string().max(200).optional().catch(undefined),
-  sort: z.enum(['activity', 'score']).optional().catch(undefined),
+  sort: z.enum(['activity', 'score', 'joined', 'last_open', 'email']).optional().catch(undefined),
   /** The latest address check's result (X14). */
   check: z.enum(['valid', 'invalid', 'risky', 'unknown', 'never']).optional().catch(undefined),
   /** Paid status (Earn, X16). */
@@ -77,6 +84,9 @@ const search = z.object({
     .catch(undefined),
   page: z.coerce.number().int().min(1).optional().catch(undefined),
   size: z.coerce.number().int().min(1).max(100).optional().catch(undefined),
+  // The page's keyset cursor (AU-1) and the columns shown (AU-9).
+  cursor: z.string().max(600).optional().catch(undefined),
+  cols: z.string().max(600).optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/w/$workspace/_app/audience/')({

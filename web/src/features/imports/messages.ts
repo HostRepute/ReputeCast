@@ -197,6 +197,9 @@ export const m = defineMessages('imports', {
   pullBefore: 'Pull existing suppressions from connected sending providers before importing',
   inSync: '· {providers} are already in sync ({count} addresses), so this just re-checks',
   checked: '· {providers} are checked for addresses they already block',
+  importTag: 'Tag every imported contact (optional)',
+  importTagHint: 'Lower-case, as tags are kept. Useful to find or segment them later.',
+  viewImported: 'View these contacts',
   recordHistory: "Record the import in each contact's consent history",
   continuePreview: 'Continue to preview',
 

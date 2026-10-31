@@ -33,5 +33,9 @@ export default translate(m, {
   removeFilterNamed: 'Gỡ bộ lọc: {name}',
   sortedByScore: 'sắp xếp theo điểm, cao nhất trước',
   sortedByActivity: 'sắp xếp theo hoạt động gần nhất',
+  sortedByJoined: 'sắp xếp theo ngày tham gia, mới nhất trước',
+  sortedByLastOpen: 'sắp xếp theo lần mở gần nhất, mới nhất trước',
+  sortedByEmail: 'sắp xếp theo email, A đến Z',
+  totalSortedCapped: '{count, number}+ liên hệ · {sort}',
   totalSorted: '{count, plural, other {# liên hệ}} · {sort}',
 })

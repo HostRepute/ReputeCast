@@ -202,7 +202,7 @@ function Summary({ p }: { p: Profile }) {
           {p.name || p.email}
           <ContactTierChip contactId={p.id} />
         </span>
-        <span className="mono text-[13px] text-ink-2">{p.email}</span>
+        <EmailLine p={p} />
         <div className="mt-1 flex flex-wrap gap-1.5">
           <span className={`badge ${tierClass[tier]}`}>{tierLabel[tier]}</span>
           <Badge tone={consentTone[consent]}>{consentLabel[consent]}</Badge>
@@ -226,6 +226,91 @@ function Summary({ p }: { p: Profile }) {
         <Stat label={tr(m.lastOpen)} value={lastOpen} />
       </div>
     </section>
+  )
+}
+
+/**
+ * The address under the name, which the team can correct (review 2026-11
+ * AU-7): another contact's address or a suppressed one is refused.
+ */
+function EmailLine({ p }: { p: Profile }) {
+  const tr = useT()
+  const { slug } = useWorkspace()
+  const reason = usePermissionReason('subscribers:edit')
+  const qc = useQueryClient()
+  const invalidate = useInvalidateAudience()
+  const update = $api.useMutation('patch', '/api/v1/workspaces/{workspace}/contacts/{contact}')
+  const [editing, setEditing] = useState(false)
+  const [email, setEmail] = useState(p.email)
+  const [err, setErr] = useState<{ text: string; other?: string; name?: string }>()
+  if (!editing) {
+    return (
+      <span className="flex flex-wrap items-center gap-2">
+        <span className="mono text-[13px] text-ink-2">{p.email}</span>
+        {reason ? null : (
+          <button
+            type="button"
+            className="text-[12px] font-semibold text-accent underline underline-offset-2"
+            onClick={() => {
+              setEmail(p.email)
+              setErr(undefined)
+              setEditing(true)
+            }}
+          >
+            {tr(m.editEmail)}
+          </button>
+        )}
+      </span>
+    )
+  }
+  const save = async () => {
+    setErr(undefined)
+    try {
+      await update.mutateAsync({ params: { path: { workspace: slug, contact: p.id } }, body: { email: email.trim() } })
+      await qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/contacts/{contact}'] })
+      await invalidate()
+      setEditing(false)
+      toast({ kind: 'success', title: t(m.emailSaved) })
+    } catch (e) {
+      const meta = e instanceof ApiError ? ((e.problem.meta ?? {}) as Record<string, string>) : {}
+      setErr({ text: errorMessage(e), other: meta.contactId, name: meta.name })
+    }
+  }
+  return (
+    <form
+      className="mt-1 flex max-w-[460px] flex-col gap-2"
+      onSubmit={(e) => {
+        e.preventDefault()
+        void save()
+      }}
+    >
+      <Field
+        label={tr(m.emailLabel)}
+        hint={tr(m.emailHint, { name: p.firstName || p.name || p.email })}
+        error={
+          err ? (
+            <>
+              {err.text}{' '}
+              {err.other ? (
+                <Link to="/w/$workspace/audience/contacts/$contactId" params={{ workspace: slug, contactId: err.other }}>
+                  {tr(m.openOther, { name: err.name || tr(m.contact) })}
+                </Link>
+              ) : null}
+            </>
+          ) : undefined
+        }
+      >
+        <Input type="email" value={email} autoFocus maxLength={254} onChange={(e) => setEmail(e.target.value)} />
+      </Field>
+      <div className="flex justify-end gap-2">
+        <Button size="sm" onClick={() => setEditing(false)}>
+          {tr(common.cancel)}
+        </Button>
+        <Button size="sm" variant="primary" type="submit" loading={update.isPending} disabled={!email.trim() || email.trim() === p.email}>
+          {tr(m.saveEmail)}
+        </Button>
+      </div>
+    </form>
   )
 }
 
@@ -295,9 +380,21 @@ function FieldsCard({ p }: { p: Profile }) {
         ),
       )}
       <div className="mt-2.5 flex flex-wrap gap-1.5">
-        {p.tags.map((t) => (
-          <span key={t} className="ptag">
-            {t}
+        {p.tags.map((tag) => (
+          <span key={tag} className="ptag">
+            {tag}
+            {reason ? null : (
+              <button
+                type="button"
+                className="ptag-x"
+                aria-label={tr(m.removeTagLabel, { tag })}
+                onClick={() => {
+                  void save({ tags: p.tags.filter((x) => x !== tag) }).catch((e) => toast({ kind: 'error', title: t(m.tagFailed), detail: errorMessage(e) }))
+                }}
+              >
+                ×
+              </button>
+            )}
           </span>
         ))}
         {adding ? (
@@ -515,6 +612,8 @@ function ConsentCard({ p }: { p: Profile }) {
   const link = $api.useMutation('post', '/api/v1/workspaces/{workspace}/contacts/{contact}/preference-link')
   const allDouble = p.lists.length > 0 && p.lists.every((l) => l.doubleOptIn)
   const first = p.firstName || p.name
+  const editReason = usePermissionReason('subscribers:edit')
+  const [removing, setRemoving] = useState<Schemas['ContactListConsent']>()
   return (
     <section className="card flex flex-col" aria-labelledby="consent-h">
       <div className="pf-consent-h flex items-center justify-between px-4.5 py-3.5">
@@ -530,10 +629,23 @@ function ConsentCard({ p }: { p: Profile }) {
               <span className="font-semibold">{l.name}</span>
               <span className="k">{consentText(l, consentLanguage)}</span>
             </div>
-            {consentBadge(l, p)}
+            <span className="flex items-center gap-2.5">
+              {consentBadge(l, p)}
+              {editReason || l.status === 'none' ? null : (
+                <button
+                  type="button"
+                  className="text-[12px] font-semibold text-accent underline underline-offset-2"
+                  aria-label={t(m.removeFromListLabel, { name: p.name || p.email, list: l.name })}
+                  onClick={() => setRemoving(l)}
+                >
+                  {t(m.removeFromList)}
+                </button>
+              )}
+            </span>
           </div>
         ))}
       </div>
+      {removing ? <RemoveFromList p={p} list={removing} onClose={() => setRemoving(undefined)} /> : null}
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line-2 px-4.5 py-2.5">
         <span className="k">
           {t(m.preferences, {
@@ -559,6 +671,47 @@ function ConsentCard({ p }: { p: Profile }) {
         </Button>
       </div>
     </section>
+  )
+}
+
+/** Takes the contact off a list: the team's change, not their unsubscribe (review 2026-11 AU-6). */
+function RemoveFromList({ p, list, onClose }: { p: Profile; list: Schemas['ContactListConsent']; onClose: () => void }) {
+  const tr = useT()
+  const { slug } = useWorkspace()
+  const qc = useQueryClient()
+  const invalidate = useInvalidateAudience()
+  const remove = $api.useMutation('delete', '/api/v1/workspaces/{workspace}/contacts/{contact}/lists/{list}')
+  const [err, setErr] = useState<string>()
+  const name = p.name || p.email
+  const go = async () => {
+    try {
+      await remove.mutateAsync({ params: { path: { workspace: slug, contact: p.id, list: list.listId } } })
+      await qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/contacts/{contact}'] })
+      await invalidate()
+      toast({ kind: 'success', title: t(m.removedFromList, { list: list.name }) })
+      onClose()
+    } catch (e) {
+      setErr(errorMessage(e))
+    }
+  }
+  return (
+    <Dialog
+      open
+      onOpenChange={(o) => !o && onClose()}
+      size="sm"
+      title={tr(m.removeFromListTitle, { name, list: list.name })}
+      description={tr(m.removeFromListBody)}
+      footer={
+        <>
+          <Button onClick={onClose}>{tr(common.cancel)}</Button>
+          <Button variant="primary" loading={remove.isPending} onClick={() => void go()}>
+            {tr(m.removeFromList)}
+          </Button>
+        </>
+      }
+    >
+      {err ? <p className="m-0 text-[13px] font-semibold text-bad-fg">{err}</p> : null}
+    </Dialog>
   )
 }
 
@@ -733,6 +886,8 @@ function eventIcon(it: Item): [keyof typeof icons, keyof typeof tone] {
       case 'suppressed':
       case 'erased':
         return ['x', 'red']
+      case 'email_changed':
+        return ['mail', 'grey']
     }
     return ['minus', 'grey']
   }
@@ -839,6 +994,14 @@ function ActivityRow({ it }: { it: Item }) {
       case 'suppressed':
         title = <b>{tr(m.actSuppressed)}</b>
         meta = [...meta, ...present(it.detail, it.note, by)]
+        break
+      case 'removed':
+        title = <T msg={m.actRemovedFrom} values={{ list: it.list ?? '', b }} />
+        meta = [...meta, ...present(by)]
+        break
+      case 'email_changed':
+        title = <T msg={m.actEmailChanged} values={{ b }} />
+        meta = [...meta, ...present(it.note, by)]
         break
       default:
         title = <b>{tr(m.actConsentOther, { type: it.type, label: it.type.replace('_', ' ') })}</b>

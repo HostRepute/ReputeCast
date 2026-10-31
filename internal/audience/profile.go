@@ -824,7 +824,7 @@ func (s *Service) changeEmail(ctx context.Context, tx pgx.Tx, ws *store.Workspac
 		if otherName == "" {
 			otherName = email
 		}
-		return c, api.Err(409, "email_taken", say(ctx, mEmailTaken, i18n.Args{"name": otherName})).WithMeta("contactId", other.String())
+		return c, api.Err(409, "email_taken", say(ctx, mEmailTaken, i18n.Args{"name": otherName})).WithMeta("contactId", other.String()).WithMeta("name", otherName)
 	case !errors.Is(err, pgx.ErrNoRows):
 		return c, err
 	}

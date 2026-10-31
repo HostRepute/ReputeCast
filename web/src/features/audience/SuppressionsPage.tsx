@@ -33,6 +33,8 @@ export interface SuppressionsSearch {
   appliesTo?: 'all' | 'marketing'
   import?: string
   page?: number
+  /** The page's keyset cursor (review 2026-11 AU-1). */
+  cursor?: string
   /** Phase 8: the SMS suppression list instead of email's. */
   channel?: 'sms'
   smsReason?: SmsSuppressionSearch['smsReason']
@@ -72,7 +74,17 @@ export function SuppressionsPage({ search }: { search: SuppressionsSearch }) {
     {
       params: {
         path: { workspace: slug },
-        query: { q: search.q, reason: search.reason, source: search.source, since: search.since, appliesTo: search.appliesTo, import: search.import, page, pageSize: 10 },
+        query: {
+          q: search.q,
+          reason: search.reason,
+          source: search.source,
+          since: search.since,
+          appliesTo: search.appliesTo,
+          import: search.import,
+          cursor: search.cursor,
+          page: search.cursor ? undefined : page,
+          pageSize: 10,
+        },
       },
     },
     { placeholderData: keepPreviousData },
@@ -82,7 +94,7 @@ export function SuppressionsPage({ search }: { search: SuppressionsSearch }) {
   const editReason = usePermissionReason('subscribers:edit')
   const exportReason = usePermissionReason('subscribers:export')
   const go = (next: SuppressionsSearch) => void navigate({ to: '/w/$workspace/audience/suppressions', params: { workspace: slug }, search: next })
-  const setFilter = (patch: Partial<SuppressionsSearch>) => go({ ...search, ...patch, page: undefined })
+  const setFilter = (patch: Partial<SuppressionsSearch>) => go({ ...search, ...patch, page: undefined, cursor: undefined })
   const d = list.data
   if (!d && list.error instanceof ApiError && list.error.status === 403) throw list.error
   const filtered = Boolean(search.q || search.reason || search.source || search.since || search.appliesTo || search.import)
@@ -142,7 +154,13 @@ export function SuppressionsPage({ search }: { search: SuppressionsSearch }) {
             editReason={editReason}
             onRemove={setRemoving}
             onGroup={(id) => setFilter({ import: id, q: undefined })}
-            onPage={(p) => go({ ...search, page: p > 1 ? p : undefined })}
+            onPage={(dir) =>
+              dir === 'next'
+                ? go({ ...search, cursor: d.nextCursor, page: page + 1 })
+                : page <= 2
+                  ? go({ ...search, cursor: undefined, page: undefined })
+                  : go({ ...search, cursor: d.prevCursor, page: page - 1 })
+            }
             onClear={() => go({})}
           />
           </>
@@ -315,7 +333,8 @@ function Filters({ search, d, onChange, top }: { search: SuppressionsSearch; d: 
         <option value="30d">{tr(m.last30)}</option>
       </select>
       <span className="k ml-auto" role="status">
-        {tr(m.addresses, { n: d.matching, count: count(d.matching) })}
+        {/* Past 10,000 the count reads "10,000+" (review D5). */}
+        {tr(m.addresses, { n: d.matching, count: d.totalCapped ? `${count(d.matching)}+` : count(d.matching) })}
       </span>
     </div>
   )
@@ -371,11 +390,10 @@ function Table({
   editReason?: string
   onRemove: (it: Item) => void
   onGroup: (importId: string) => void
-  onPage: (p: number) => void
+  onPage: (dir: 'next' | 'prev') => void
   onClear: () => void
 }) {
   const tr = useT()
-  const last = page * d.pageSize >= d.total
   return (
     <section className="card" aria-label={tr(m.tableLabel)}>
       <TableScroll label={tr(m.tableLabel)}>
@@ -453,10 +471,10 @@ function Table({
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line-2 px-4 py-2.5">
         <span className="k">{tr(m.removeNote)}</span>
         <div className="flex gap-1.5">
-          <Button size="sm" disabled={page <= 1} onClick={() => onPage(page - 1)}>
+          <Button size="sm" disabled={page <= 1 && !d.prevCursor} onClick={() => onPage('prev')}>
             {tr(m.previous)}
           </Button>
-          <Button size="sm" disabled={last} onClick={() => onPage(page + 1)}>
+          <Button size="sm" disabled={!d.nextCursor} onClick={() => onPage('next')}>
             {tr(m.next)}
           </Button>
         </div>

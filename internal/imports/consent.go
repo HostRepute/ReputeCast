@@ -90,6 +90,8 @@ type ImportConsentMapping struct {
 	DoubleOptIn      bool   `json:"doubleOptIn"`
 	PullSuppressions bool   `json:"pullSuppressions"`
 	RecordHistory    bool   `json:"recordHistory"`
+	// Tag goes on every row the import brings in (review 2026-11 AU-10).
+	Tag string `json:"tag"`
 	// HistoryExample is how the consent history entry will read.
 	HistoryExample string `json:"historyExample"`
 	// Providers are the providers new suppressions are pushed to.
@@ -125,7 +127,7 @@ func (s *Service) Consent(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	if err != nil {
 		return ImportConsentMapping{}, err
 	}
-	out := ImportConsentMapping{Statuses: []ImportConsentStatus{}, Evidence: opts.Evidence, PullSuppressions: opts.PullSuppressions, RecordHistory: opts.RecordHistory,
+	out := ImportConsentMapping{Statuses: []ImportConsentStatus{}, Evidence: opts.Evidence, PullSuppressions: opts.PullSuppressions, RecordHistory: opts.RecordHistory, Tag: opts.Tag,
 		Providers: providers, InSync: inSync}
 	if m.Subscribed == HandlePending {
 		out.Evidence = "repermission"

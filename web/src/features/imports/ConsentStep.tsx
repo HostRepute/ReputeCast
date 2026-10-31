@@ -5,6 +5,7 @@ import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel } from '@/components/ui/Feedback'
+import { Field, Input } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { TableScroll, Th } from '@/components/ui/Table'
 import { useT } from '@/i18n'
@@ -72,11 +73,12 @@ function ConsentForm({ d, m }: { d: Detail; m: Mapping }) {
   const [evidence, setEvidence] = useState(m.evidence)
   const [pull, setPull] = useState(m.pullSuppressions)
   const [history, setHistory] = useState(m.recordHistory)
+  const [tag, setTag] = useState(m.tag ?? '')
   const [err, setErr] = useState<string | null>(null)
   const submit = async () => {
     setErr(null)
     try {
-      await save.mutateAsync({ params: { path: { workspace: slug, id: d.id } }, body: { map, evidence, pullSuppressions: pull, recordHistory: history } })
+      await save.mutateAsync({ params: { path: { workspace: slug, id: d.id } }, body: { map, evidence, pullSuppressions: pull, recordHistory: history, tag: tag.trim() || undefined } })
       await qc.invalidateQueries({ predicate: (x) => String((x.queryKey as unknown[])[1] ?? '').includes('/imports') })
       await navigate({ to: stepPath.preview, params: { workspace: slug, importId: d.id } })
     } catch (e) {
@@ -162,6 +164,10 @@ function ConsentForm({ d, m }: { d: Detail; m: Mapping }) {
             {t(im.recordHistory)} {m.historyExample ? <span className="k">· "{m.historyExample}"</span> : null}
           </span>
         </label>
+        {/* Every imported contact can carry a tag, to find or segment them later (review 2026-11 AU-10). */}
+        <Field label={t(im.importTag)} hint={t(im.importTagHint)} className="max-w-[420px]">
+          <Input value={tag} maxLength={60} placeholder={'mailchimp-2026-09'} onChange={(e) => setTag(e.target.value)} />
+        </Field>
       </section>
       {/* Phase 8: SMS consent comes in only with its evidence columns. */}
       {m.sms ? <SmsImportConsent sms={m.sms} /> : null}

@@ -35656,6 +35656,9 @@
           "suppressCount": {
             "format": "int64",
             "type": "integer"
+          },
+          "tag": {
+            "type": "string"
           }
         },
         "required": [
@@ -35666,6 +35669,7 @@
           "doubleOptIn",
           "pullSuppressions",
           "recordHistory",
+          "tag",
           "historyExample",
           "providers",
           "inSync"
