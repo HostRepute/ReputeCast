@@ -628,3 +628,16 @@ SELECT m.automation_id, m.automation_node, a.live_version, a.draft_version
 FROM messages m
 JOIN automations a ON a.id = m.automation_id
 WHERE m.id = @id;
+
+-- name: AutomationAlertsToNotify :many
+-- Alerts opened since the last scan that nobody was told about yet.
+SELECT al.id, al.kind, al.node_id, al.detail, a.id AS automation_id, a.name, a.workspace_id, w.slug
+FROM automation_alerts al
+JOIN automations a ON a.id = al.automation_id AND a.deleted_at IS NULL
+JOIN workspaces w ON w.id = a.workspace_id
+WHERE al.resolved_at IS NULL AND al.notified_at IS NULL
+ORDER BY al.first_at
+LIMIT 100;
+
+-- name: AutomationAlertNotified :exec
+UPDATE automation_alerts SET notified_at = @at WHERE id = @id;

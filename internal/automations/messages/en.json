@@ -1,5 +1,9 @@
 {
   "type.trigger": {"message": "Trigger", "note": "Step types, as the palette names them; they also start a step's name in sentences (lower-cased in English)"},
+  "notify.attentionTitle": "An automation needs attention",
+  "notify.stepFailing": "“{name}”: a step keeps failing ({error}). Contacts there wait or skip it until it is fixed.",
+  "notify.stepFailingPlain": "“{name}”: a step keeps failing. Contacts there wait or skip it until it is fixed.",
+  "notify.sendingHeld": "“{name}”: its emails are held and nobody receives them until the sending problem is fixed.",
   "type.delay": "Delay",
   "type.email": "Send email",
   "type.branch": "Branch",

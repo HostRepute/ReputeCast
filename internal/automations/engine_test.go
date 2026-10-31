@@ -726,3 +726,39 @@ func TestFailingRunDoesNotStallOthers(t *testing.T) {
 		t.Fatalf("%d step_failing alerts (%v)", alerts, err)
 	}
 }
+
+// EN-5: a step whose email can't be composed opens a "step failing" alert,
+// and the people who edit automations hear about it once.
+func TestAlertNotifiesOnce(t *testing.T) {
+	env, c := signedIn(t, "linh@acme.io")
+	ctx := context.Background()
+	clk := &clock{t: time.Now()}
+	svc := engine(env, clk)
+	emailID := newEmail(t, c, "Test · alert")
+	product := listID(t, env, "Product Updates")
+	flow := publishFlow(t, c, "Alert flow", automations.AutomationGraph{
+		Nodes: []automations.AutomationNode{
+			node("t", automations.NodeTrigger, automations.AutomationNodeData{Trigger: &automations.AutomationTrigger{Kind: automations.TriggerJoinedList, ListID: product}}),
+			node("m", automations.NodeEmail, automations.AutomationNodeData{Email: &automations.AutomationEmailStep{EmailID: emailID, EmailVersion: 1, Subject: "Hello"}}),
+		},
+		Edges: []automations.AutomationEdge{link("t", "m", "")},
+	})
+	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO automation_alerts (id, automation_id, kind, node_id, detail, failures, first_at, last_at)
+		VALUES ($1, $2, 'step_failing', 'm', '{"error": "The workspace has no default sender."}', 1, now(), now())`, uuid.Must(uuid.NewV7()), flow); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		if err := svc.Scan(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var n int
+	var body string
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*), max(n.body) FROM notifications n JOIN users u ON u.id = n.user_id
+		WHERE u.email = 'linh@acme.io' AND n.kind = 'automation_attention' AND n.body LIKE '%Alert flow%'`).Scan(&n, &body); err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 || !strings.Contains(body, "Alert flow") || !strings.Contains(body, "no default sender") {
+		t.Fatalf("%d notifications: %q", n, body)
+	}
+}

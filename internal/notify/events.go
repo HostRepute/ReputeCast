@@ -44,6 +44,7 @@ var Events = []EventType{
 	{Key: KindDigestIssueHeld, Label: "Digest issue held", Audience: "The owner, and approvers with a request open", Short: "held digest issues", DefaultEmail: true, Kinds: []string{KindDigestIssueHeld}},
 	{Key: KindDigestPaused, Label: "Digest paused", Audience: "The owner, or people who can send campaigns", Short: "paused digests", DefaultEmail: true, Kinds: []string{KindDigestPaused}},
 	{Key: KindDigestFeedFailing, Label: "Digest feed failing", Audience: "The digest's owner", Short: "failing digest feeds", DefaultEmail: true, Kinds: []string{KindDigestFeedFailing}},
+	{Key: KindAutomationAttention, Label: "Automation needs attention", Audience: "People who can edit automations", Short: "automation problems", DefaultEmail: true, Kinds: []string{KindAutomationAttention}},
 	{Key: KindDigestDraftReady, Label: "Digest draft ready", Audience: "The owner and people who can send campaigns", Short: "digest drafts", DefaultEmail: true, Kinds: []string{KindDigestDraftReady}},
 	// Campaign reports (review AN-15): the email someone asked for.
 	{Key: KindResultsFinal, Label: "Report results final", Audience: "When you asked to be emailed", Short: "final report results", DefaultEmail: true, Kinds: []string{KindResultsFinal}},
@@ -122,7 +123,7 @@ const (
 
 var categoryKinds = map[string][]string{
 	CategoryApprovals:     {KindApprovalRequested, KindApprovalDecided, KindApprovalInvalidated},
-	CategorySending:       {KindSendPaused, KindSendBlocked, KindSendFinished, KindResultsFinal, KindDigestIssueHeld, KindDigestPaused, KindDigestFeedFailing, KindDigestDraftReady, KindSMSSendPaused},
+	CategorySending:       {KindSendPaused, KindSendBlocked, KindSendFinished, KindResultsFinal, KindDigestIssueHeld, KindDigestPaused, KindDigestFeedFailing, KindDigestDraftReady, KindSMSSendPaused, KindAutomationAttention},
 	CategoryProviders:     {KindProviderDown, KindProviderDegraded, KindWebhooksSilent, KindSMSProviderDown, KindSMSRegistration, KindSMSBudget, KindPushWorkerMissing, KindWhatsAppAttention, KindWhatsAppTokenFails},
 	CategoryTeam:          {KindInviteAccepted, KindInviteRequested, KindCommentMention},
 	CategoryHostRepute:    {KindHostReputeAlert},

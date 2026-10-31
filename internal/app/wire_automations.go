@@ -6,8 +6,12 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/ingest"
+	"github.com/hostrepute/reputecast/internal/providers"
+	"github.com/hostrepute/reputecast/internal/store"
 )
 
 // automationMailer builds the mailer the automations engine uses for "Send
@@ -65,4 +69,29 @@ func init() {
 	jobRegistrars = append(jobRegistrars, func(a *App) {
 		automations.RegisterJobs(a.JobReg, newAutomations(a))
 	})
+}
+
+// Delivery reports from providers count on the automation step that sent
+// the email (review 2026-11 EN-5): delivered, bounced, complained.
+func init() {
+	normalizerHooks = append(normalizerHooks, func(a *App) ingest.MessageHook {
+		// Counting needs only the store: the full service would build the
+		// sending engine, whose normalizer builds these hooks.
+		svc := &automations.Service{Q: a.Q, Log: a.Log}
+		return func(ctx context.Context, tx pgx.Tx, _ store.Provider, id uuid.UUID, stream string, ev providers.Event) error {
+			if stream != "automation" {
+				return nil
+			}
+			kind := automationEventKinds[ev.Type]
+			if kind == "" {
+				return nil
+			}
+			return svc.RecordMessageEvent(ctx, store.New(tx), automations.MessageEvent{MessageID: id, Type: kind, At: ev.OccurredAt})
+		}
+	})
+}
+
+// automationEventKinds are the provider events an automation step counts.
+var automationEventKinds = map[providers.EventType]string{
+	providers.EventDelivered: "delivered", providers.EventHardBounce: "bounced", providers.EventComplaint: "complained",
 }

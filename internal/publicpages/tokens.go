@@ -899,6 +899,11 @@ func (h *Handler) unsubscribe(ctx context.Context, s *site, c linktoken.Claims, 
 				OriginalType: source, UserAgent: truncate(ev.UserAgent, 500), Ip: ev.IP, Recipient: msg.Email, Source: source}); err != nil {
 				return err
 			}
+			if h.MessageUnsubscribed != nil {
+				if err := h.MessageUnsubscribed(ctx, q, msg.ID, at); err != nil {
+					return err
+				}
+			}
 		}
 		if reason != "" {
 			return q.PublicInsertFeedback(ctx, store.PublicInsertFeedbackParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: s.ws.ID, ContactID: &c.ContactID,

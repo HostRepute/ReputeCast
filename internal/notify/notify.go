@@ -52,6 +52,9 @@ const (
 	KindDigestIssueHeld   = "digest_issue_held"   // Send Readiness blocked a digest issue: it waits for a person
 	KindDigestPaused      = "digest_paused"       // a digest paused (by a person, its owner's permissions, the feed)
 	KindDigestFeedFailing = "digest_feed_failing" // a digest's feed failed at preparation, then the issue was skipped
+	// KindAutomationAttention: a flow's step keeps failing or its sending is
+	// held (review 2026-11 EN-5).
+	KindAutomationAttention = "automation_attention"
 	KindDigestDraftReady  = "digest_draft_ready"  // draft mode: an issue is a draft to send through Review & send
 	// AI assistant (design expansion, phase 3).
 	KindAIUsage       = "ai_usage"        // this month's AI use reached 80% of the cap, or the cap
