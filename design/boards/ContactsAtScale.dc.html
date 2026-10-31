@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audience at scale · counts, select all, views, columns, filters, edits</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.sboard{width:1440px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:22px}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.strip span{font-weight:500;text-transform:none;letter-spacing:0;color:#CBD5E1}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+figcaption{font-size:12px;color:#5B6472;font-weight:600}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}
+.btn.dpri{background:#B91C1C;border-color:#B91C1C;color:#fff}
+.btn[aria-disabled=true]{opacity:.5}
+.linkbtn{background:none;border:0;padding:0;font:inherit;font-size:13px;font-weight:600;color:#0F766E;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.t1{background:#104281;color:#fff}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font-size:12.5px;font-weight:500;color:#374151}
+.chip.on{background:#E3F1EE;border-color:#99F6E4;color:#0F766E;font-weight:600}
+.chip .more{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-right:-6px;border-radius:6px;border:0;background:transparent;color:inherit;cursor:pointer}
+.in{height:36px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box}
+.in.err{border-color:#B91C1C}
+.lbl{font-size:12px;font-weight:600;color:#374151}
+.field{display:flex;flex-direction:column;gap:6px}
+.hint{font-size:12px;color:#5B6472}
+.errt{font-size:12px;color:#991B1B;font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:10px 12px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl th button{display:inline-flex;align-items:center;gap:4px;background:none;border:0;padding:0;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer}
+.tbl th[aria-sort] button{color:#0B1220}
+.tbl td{padding:10px 12px;border-bottom:1px solid #EEF0F3;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.tbl tr.sel td{background:#F0FDFA}
+.foot{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-top:1px solid #EEF0F3;flex-wrap:wrap;gap:8px}
+.bulk{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 12px;background:#F0FDFA;border:1px solid #99F6E4;border-radius:10px}
+.banner{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;padding:9px 12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;font-size:13px}
+.menu{background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:240px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;width:100%}
+.menu button:hover,.menu button.hl{background:#F3F4F6}
+.menu button.red{color:#991B1B}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+.menu label{display:flex;align-items:center;gap:10px;min-height:32px;padding:0 10px;border-radius:8px;font-size:13px}
+.pop{background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:14px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box}
+.dlg{background:#fff;border-radius:12px;box-shadow:0 24px 64px rgba(11,18,32,.24);display:flex;flex-direction:column;box-sizing:border-box;border:1px solid #E3E6EB}
+.dlg header{padding:18px 20px 6px;font-size:17px;font-weight:700}
+.dlg .body{padding:6px 20px 14px;display:flex;flex-direction:column;gap:12px;color:#374151}
+.dlg footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #EEF0F3}
+.note{display:flex;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px}
+.note.w{background:#FFFBEB;border:1px solid #FDE68A;color:#78350F}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.sec{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #EEF0F3}
+.h2{font-size:15px;font-weight:700;margin:0}
+.lrow{display:flex;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid #EEF0F3}
+.lrow:first-of-type{border-top:0}
+.tag{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 4px 0 8px;border-radius:6px;background:#EEF0F3;font-size:12px;font-weight:600;color:#374151}
+.tag button{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:0;border-radius:4px;background:transparent;color:#5B6472;cursor:pointer}
+.sw{display:inline-flex;align-items:center;width:34px;height:20px;border-radius:999px;background:#0F766E;padding:2px;box-sizing:border-box;justify-content:flex-end}
+.sw.off{background:#C9CED6;justify-content:flex-start}
+.sw i{width:16px;height:16px;border-radius:50%;background:#fff;display:block}
+.spin{width:12px;height:12px;border-radius:50%;border:2px solid #CBD5E1;border-top-color:#0F766E;display:inline-block}
+</style>
+</helmet>
+<div class="sboard" data-wrap="1">
+
+<div class="strip">1 · Large audiences <span>Contacts and Suppressions count exactly up to 10,000 and read "10,000+" above, with an exact count on request (review D5). Pages move with cursors, so page 400 opens as fast as page 1.</span></div>
+<div class="grid">
+  <figure><figcaption>More than 10,000 match: "10,000+", and Count all</figcaption>
+    <section class="card"><div class="foot"><span class="k">1–25 of 10,000+ · <button class="linkbtn">Count all</button></span><div style="display:flex;gap:6px;align-items:center"><select class="in" style="height:30px" aria-label="Rows per page"><option>25 per page</option></select><button class="btn sm" aria-disabled="true">Previous</button><button class="btn sm">Next</button></div></div></section>
+  </figure>
+  <figure><figcaption>Counting (the button is busy), then the exact number</figcaption>
+    <section class="card"><div class="foot"><span class="k" style="display:inline-flex;gap:6px;align-items:center"><span class="spin" aria-hidden="true"></span>26–50 of 10,000+ · counting…</span><div style="display:flex;gap:6px"><button class="btn sm">Previous</button><button class="btn sm">Next</button></div></div></section>
+    <section class="card"><div class="foot"><span class="k">26–50 of 1,048,213</span><div style="display:flex;gap:6px"><button class="btn sm">Previous</button><button class="btn sm">Next</button></div></div></section>
+  </figure>
+  <figure><figcaption>The filter row's total and Suppressions' line read the same way</figcaption>
+    <div class="card" style="display:flex;gap:8px;align-items:center;padding:10px 12px;flex-wrap:wrap"><input class="in" style="width:260px" placeholder="Search name, email or tag" aria-label="Search contacts"><select class="in" aria-label="List"><option>Any list</option></select><button class="btn">More filters</button><span class="k" style="margin-left:auto">10,000+ contacts · sorted by last activity</span></div>
+    <div class="card" style="padding:10px 12px"><span class="k">10,000+ addresses</span></div>
+  </figure>
+  <figure><figcaption>A link to a page that no longer exists (a cursor from another order)</figcaption>
+    <div class="note w" role="alert"><span>This page of the list is out of date. <button class="linkbtn">Go back to the first page</button></span></div>
+  </figure>
+</div>
+
+<div class="strip">2 · Select all matching <span>After a whole page is selected, a banner offers every contact the filter matches; bulk actions, export and verification then reach contacts on later pages. A filtered list can be exported as it is.</span></div>
+<div class="grid">
+  <figure><figcaption>The page is selected: offer the rest</figcaption>
+    <div class="bulk"><span style="font-weight:600;font-size:13px">25 selected</span><button class="btn sm">Add to list</button><button class="btn sm">Remove from list</button><button class="btn sm">Add tag</button><button class="btn sm">Remove tag</button><button class="btn sm">Resend opt-in</button><button class="btn sm">Verify addresses</button><button class="btn sm">Export CSV</button><button class="btn sm danger">Suppress</button><button class="btn sm danger">Erase</button><button class="btn sm" style="margin-left:auto">Clear</button></div>
+    <div class="banner" role="status">All 25 contacts on this page are selected. <button class="linkbtn">Select all 48,213 matching</button></div>
+  </figure>
+  <figure><figcaption>Everything matching is selected</figcaption>
+    <div class="bulk"><span style="font-weight:600;font-size:13px">All 48,213 matching</span><button class="btn sm">Add to list</button><button class="btn sm">Remove from list</button><button class="btn sm">Add tag</button><button class="btn sm">Remove tag</button><button class="btn sm">Resend opt-in</button><button class="btn sm">Verify addresses</button><button class="btn sm">Export CSV</button><button class="btn sm danger">Suppress</button><button class="btn sm danger">Erase</button><button class="btn sm" style="margin-left:auto">Clear</button></div>
+    <div class="banner" role="status">All 48,213 contacts matching this view are selected. <button class="linkbtn">Select only this page</button></div>
+  </figure>
+  <figure><figcaption>Remove from list and Remove tag: recorded as the team's change, not the contact's choice</figcaption>
+    <div class="dlg" style="width:460px"><header>Remove 48,213 contacts from a list?</header><div class="body"><div class="field"><label class="lbl" for="rl">List</label><select id="rl" class="in"><option>Beta Program</option></select></div><span class="hint">They stay contacts and keep their other lists. The removal is shown in their history as made by your team, not as an unsubscribe, so they can be added back.</span></div><footer><button class="btn">Cancel</button><button class="btn pri">Remove from Beta Program</button></footer></div>
+  </figure>
+  <figure><figcaption>A long action runs in the background, in the jobs tray, and reports what it really did</figcaption>
+    <div class="card" style="padding:12px 14px;display:flex;flex-direction:column;gap:6px;width:360px"><span style="font-weight:600;font-size:13px">Resend opt-in · 48,213 contacts</span><div style="height:6px;border-radius:999px;background:#EEF0F3"><div style="width:62%;height:6px;border-radius:999px;background:#0F766E"></div></div><span class="k">62% · jobs keep running if you close the tab</span></div>
+    <div class="note i" role="status"><span><b>Opt-in emails sent to 3,904 contacts.</b> 41,118 had confirmed already, 2,710 are suppressed and 481 got one in the last 10 minutes.</span></div>
+    <div class="card" style="display:flex;gap:8px;align-items:center;padding:10px 12px;flex-wrap:wrap"><span class="k">Signed up in the last 30 days · 1,204 contacts</span><button class="btn sm" style="margin-left:auto">Export this view</button></div>
+  </figure>
+</div>
+
+<div class="strip">3 · Saved views <span>Each view chip has a menu: rename it, save the current filters and columns in it, delete it. Personal views are their creator's only.</span></div>
+<div class="grid three">
+  <figure><figcaption>The chip's menu</figcaption>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="chip">All contacts · 48,213</span><span class="chip on">Beta Program · 2,115<button class="more" aria-label="Beta Program view, more actions" aria-haspopup="menu" aria-expanded="true"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></svg></button></span></div>
+    <div class="menu" role="menu" style="width:280px"><button role="menuitem" class="hl">Rename</button><button role="menuitem">Save current filters and columns</button><hr><button role="menuitem" class="red">Delete view</button></div>
+  </figure>
+  <figure><figcaption>Rename</figcaption>
+    <div class="dlg"><header>Rename view</header><div class="body"><div class="field"><label class="lbl" for="vn">Name</label><input id="vn" class="in" value="Beta Program · engaged"></div></div><footer><button class="btn">Cancel</button><button class="btn pri">Save</button></footer></div>
+  </figure>
+  <figure><figcaption>Delete</figcaption>
+    <div class="dlg"><header>Delete "Beta Program"?</header><div class="body"><span>The view goes for everyone in the workspace. Its contacts stay where they are.</span></div><footer><button class="btn">Cancel</button><button class="btn dpri">Delete view</button></footer></div>
+  </figure>
+</div>
+
+<div class="strip">4 · Columns and order <span>Sort by last activity, score, joined, last open or email from the column headers; choose columns, custom fields included. A view keeps both.</span></div>
+<div class="grid">
+  <figure><figcaption>Sorted by joined, newest first (the header's button)</figcaption>
+    <section class="card" style="overflow:hidden"><table class="tbl"><thead><tr><th><input type="checkbox" aria-label="Select all on this page"></th><th>Contact</th><th>Lists</th><th>Tier</th><th><button>Score</button></th><th><button>Last open</button></th><th aria-sort="descending"><button>Joined<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button></th><th>Plan</th></tr></thead>
+    <tbody><tr><td><input type="checkbox" aria-label="Select Ana Lima"></td><td><b>Ana Lima</b><div class="k mono">ana.lima@example.com</div></td><td>Weekly Digest</td><td><span class="badge t1">Active</span></td><td>91 Hot</td><td>Today</td><td>31 Oct 2026</td><td>team</td></tr>
+    <tr><td><input type="checkbox" aria-label="Select Sam Rivera"></td><td><b>Sam Rivera</b><div class="k mono">sam.rivera@outlook.com</div></td><td>Weekly Digest</td><td><span class="badge t1">Active</span></td><td>64 Warm</td><td>Thu 2 Oct</td><td>30 Oct 2026</td><td>–</td></tr></tbody></table></section>
+  </figure>
+  <figure><figcaption>Columns: the table's and the workspace's custom fields</figcaption>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" aria-haspopup="dialog" aria-expanded="true">Columns · 8</button></div>
+    <div class="pop" style="width:300px;margin-left:auto" role="dialog" aria-label="Columns">
+      <span class="lbl">Columns</span>
+      <div class="menu" style="box-shadow:none;border:0;padding:0;min-width:0">
+        <label><input type="checkbox" checked> Lists</label><label><input type="checkbox" checked> Tier</label><label><input type="checkbox" checked> Score</label><label><input type="checkbox"> Consent</label><label><input type="checkbox"> Mailbox provider</label><label><input type="checkbox" checked> Last open</label><label><input type="checkbox" checked> Joined</label><label><input type="checkbox"> Source</label>
+        <div class="mh">Custom fields</div><label><input type="checkbox" checked> Plan</label><label><input type="checkbox"> Company size</label>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:8px"><button class="btn sm">Reset</button><span class="k" style="align-self:center">Save in a view from its menu</span></div>
+    </div>
+  </figure>
+</div>
+
+<div class="strip">5 · Filters <span>Joined between two dates (the workspace's time zone); the contacts of one import, reached from its report.</span></div>
+<div class="grid">
+  <figure><figcaption>More filters</figcaption>
+    <div class="pop" style="width:360px">
+      <div class="field"><span class="lbl">Joined between</span><div style="display:flex;gap:8px;align-items:center"><input class="in" type="date" value="2026-10-01" aria-label="Joined from"><span class="k">and</span><input class="in" type="date" value="2026-10-31" aria-label="Joined until"></div><span class="hint">Dates in the workspace's time zone (Europe/Berlin).</span></div>
+      <div class="field"><label class="lbl" for="imp">From an import</label><select id="imp" class="in"><option>Mailchimp · Acme Customers · 18 Sep</option></select></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn sm">Clear</button><button class="btn sm pri">Apply</button></div>
+    </div>
+  </figure>
+  <figure><figcaption>Import report: View these contacts; imports can tag every row</figcaption>
+    <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><span style="font-weight:700">13,739 contacts imported</span><span class="k">Tagged mailchimp-2026-09 · 412 skipped</span><div style="display:flex;gap:8px"><button class="btn pri">View these contacts</button><button class="btn">Download report</button></div></div>
+    <div class="field"><label class="lbl" for="itag">Tag every imported contact (optional)</label><input id="itag" class="in" value="mailchimp-2026-09"><span class="hint">Lower-case, as tags are kept. Useful to find or segment them later.</span></div>
+  </figure>
+</div>
+
+<div class="strip">6 · Contact profile <span>An address can be corrected; lists and tags can be taken off by the team.</span></div>
+<div class="grid three">
+  <figure><figcaption>Edit the address</figcaption>
+    <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div class="field"><label class="lbl" for="em">Email address</label><input id="em" class="in" value="sam.rivera@outlook.com"><span class="hint">History and consent stay with Sam. The new address is checked against suppressions and its mailbox provider is looked up again.</span></div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn sm">Cancel</button><button class="btn sm pri">Save address</button></div></div>
+  </figure>
+  <figure><figcaption>Refused: another contact, or a suppressed address</figcaption>
+    <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div class="field"><label class="lbl" for="em2">Email address</label><input id="em2" class="in err" value="ana.lima@example.com" aria-invalid="true" aria-describedby="em2e"><span class="errt" id="em2e">Ana Lima has this address already. <a href="#">Open Ana Lima</a></span></div></div>
+    <div class="card" style="padding:14px 16px"><span class="errt">sam@old-domain.com is suppressed (hard bounce, 2 Oct). Remove it from Suppressions first.</span></div>
+  </figure>
+  <figure><figcaption>Lists and tags</figcaption>
+    <section class="card"><div class="sec"><h3 class="h2">Lists</h3><button class="btn sm">Add to list</button></div>
+      <div class="lrow"><span style="flex:1">Weekly Digest</span><span class="badge ok">Subscribed</span><button class="linkbtn" aria-label="Remove Sam Rivera from Weekly Digest">Remove</button></div>
+      <div class="lrow"><span style="flex:1">Beta Program</span><span class="badge warn">Waiting for opt-in</span><button class="linkbtn" aria-label="Remove Sam Rivera from Beta Program">Remove</button></div>
+      <div class="lrow" style="flex-wrap:wrap"><span class="k" style="width:100%">Tags</span><span class="tag">customer<button aria-label="Remove tag customer">×</button></span><span class="tag">vip<button aria-label="Remove tag vip">×</button></span></div>
+    </section>
+  </figure>
+</div>
+
+<div class="strip">7 · Suppressions, List health, verification <span>An upload group can be removed with a reason; the sunset policy can be turned off and its numbers changed, with a dry run before any erasing; addresses can be checked from Contacts, a segment or a flagged source.</span></div>
+<div class="grid three">
+  <figure><figcaption>Remove an upload group</figcaption>
+    <div class="dlg"><header>Remove 1,204 suppressions?</header><div class="body"><span>From <b>blocklist-oct.csv</b>, uploaded by Linh on 30 Oct. These addresses can receive email again.</span><div class="field"><label class="lbl" for="why">Why (kept in the audit log)</label><input id="why" class="in" value="Wrong file uploaded"></div></div><footer><button class="btn">Cancel</button><button class="btn dpri">Remove 1,204</button></footer></div>
+  </figure>
+  <figure><figcaption>The sunset policy, on or off, and its dry run</figcaption>
+    <section class="card"><div class="sec"><h3 class="h2">Sunset policy</h3><span class="sw" role="switch" aria-checked="true" aria-label="Sunset policy"><i></i></span></div>
+      <div style="padding:12px 16px;display:flex;flex-direction:column;gap:10px;font-size:13px"><span>Move to Sunset after <input class="in" style="width:64px;height:30px" value="180" aria-label="Days without opens"> days without a human open</span><span style="display:flex;gap:8px;align-items:center"><span class="sw off" role="switch" aria-checked="false" aria-label="Erase after months in Sunset"><i></i></span>Erase after <input class="in" style="width:56px;height:30px" value="12" aria-label="Months in Sunset"> months in Sunset</span></div></section>
+    <div class="dlg"><header>Turn on erasing?</header><div class="body"><div class="note w"><span><b>4,212 contacts</b> have been in Sunset for 12 months or more and would be erased on 1 Dec, then every night as more reach it. Paid members are kept.</span></div><div class="field"><label class="lbl" for="tc">Type ERASE to confirm</label><input id="tc" class="in" value="ERASE"></div></div><footer><button class="btn">Cancel</button><button class="btn dpri">Turn on erasing</button></footer></div>
+  </figure>
+  <figure><figcaption>Verify from a segment or a flagged source</figcaption>
+    <div class="card" style="padding:12px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="k">Segment · 1,204 contacts</span><button class="btn sm" style="margin-left:auto">Verify addresses</button></div>
+    <div class="card" style="padding:12px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span><b>API key “Website signup form”</b> <span class="badge bad">Flagged</span></span><button class="btn sm" style="margin-left:auto">Verify addresses</button></div>
+  </figure>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

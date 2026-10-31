@@ -426,6 +426,37 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 	})
 }
 
+// Condition is a saved segment as a condition on contacts aliased c, for
+// a query whose $1 is the workspace, its own placeholders numbered from
+// first: the snapshot for a static segment, the rules as a subquery for a
+// dynamic one, so its members never travel through Go (review 2026-11
+// AU-3). A SQL segment, which runs as its own restricted role, is
+// evaluated first and comes back as ids.
+func (s *Service) Condition(ctx context.Context, workspaceID, segmentID uuid.UUID, first int) (string, []any, error) {
+	seg, err := s.Q.GetSegment(ctx, store.GetSegmentParams{WorkspaceID: workspaceID, ID: segmentID})
+	if err != nil {
+		return "", nil, err
+	}
+	switch {
+	case seg.Refresh == "static":
+		return fmt.Sprintf("c.id IN (SELECT sm.contact_id FROM segment_members sm WHERE sm.segment_id = $%d)", first), []any{seg.ID}, nil
+	case seg.Mode == "sql":
+		ids, err := s.ids(ctx, workspaceID, nil, seg.Sql)
+		if err != nil {
+			return "", nil, err
+		}
+		return fmt.Sprintf("c.id = ANY ($%d)", first), []any{ids}, nil
+	}
+	var def SegmentDefinition
+	_ = json.Unmarshal(seg.Definition, &def)
+	custom, err := s.customFields(ctx, workspaceID)
+	if err != nil {
+		return "", nil, err
+	}
+	q, args := Compile(def, workspaceID, custom).Query(first)
+	return "c.id IN (" + withViews() + "SELECT seg.id FROM (\n" + q + "\n) seg)", args, nil
+}
+
 // ContactIDs resolves a saved segment to contact ids: the snapshot for
 // static segments, a fresh evaluation for dynamic ones. The send pipeline
 // still excludes suppressed and role addresses on its own.

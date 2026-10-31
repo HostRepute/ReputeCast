@@ -269,6 +269,9 @@ type ImportSaveConsentInput struct {
 	Evidence         string           `json:"evidence" enum:"trust,repermission"`
 	PullSuppressions bool             `json:"pullSuppressions"`
 	RecordHistory    bool             `json:"recordHistory"`
+	// Tag goes on every contact the import brings in (review 2026-11
+	// AU-10); empty for none.
+	Tag string `json:"tag,omitempty" maxLength:"60"`
 }
 
 // SaveConsent stores the consent mapping and moves on to the preview.
@@ -286,6 +289,10 @@ func (s *Service) SaveConsent(ctx context.Context, ws *store.Workspace, id uuid.
 	}
 	opts := parseOptions(imp.Options)
 	opts.Evidence, opts.PullSuppressions, opts.RecordHistory = in.Evidence, in.PullSuppressions, in.RecordHistory
+	opts.Tag = ""
+	if t := cleanTags([]string{in.Tag}); len(t) > 0 {
+		opts.Tag = t[0]
+	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.SetImportConsentMap(ctx, store.SetImportConsentMapParams{ID: imp.ID, ConsentMap: mustJSON(m)}); err != nil {

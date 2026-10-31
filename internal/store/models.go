@@ -375,6 +375,26 @@ type AudienceDaily struct {
 	Bounced      int64     `json:"bounced"`
 }
 
+type AudienceJob struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Kind        string          `json:"kind"`
+	Status      string          `json:"status"`
+	Selection   json.RawMessage `json:"selection"`
+	Actor       json.RawMessage `json:"actor"`
+	CreatedBy   *uuid.UUID      `json:"createdBy"`
+	Total       int64           `json:"total"`
+	Done        int64           `json:"done"`
+	AfterID     *uuid.UUID      `json:"afterId"`
+	Result      json.RawMessage `json:"result"`
+	FileKey     string          `json:"fileKey"`
+	Error       string          `json:"error"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	StartedAt   *time.Time      `json:"startedAt"`
+	FinishedAt  *time.Time      `json:"finishedAt"`
+	ExpiresAt   *time.Time      `json:"expiresAt"`
+}
+
 type AudienceState struct {
 	WorkspaceID     uuid.UUID  `json:"workspaceId"`
 	TiersComputedAt *time.Time `json:"tiersComputedAt"`
@@ -3647,6 +3667,9 @@ type SavedView struct {
 	Position     int32           `json:"position"`
 	CreatedAt    time.Time       `json:"createdAt"`
 	ShowInHealth bool            `json:"showInHealth"`
+	Stats        json.RawMessage `json:"stats"`
+	CountedAt    *time.Time      `json:"countedAt"`
+	UpdatedAt    time.Time       `json:"updatedAt"`
 }
 
 type ScoreEvent struct {

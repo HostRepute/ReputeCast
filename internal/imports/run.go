@@ -649,6 +649,7 @@ func (s *Service) createRow(ctx context.Context, tx pgx.Tx, st *runState, r mapp
 			}
 		}
 	}
+	tags = st.withImportTag(tags)
 	consent := "single"
 	handling := st.cm.handling(r.Status)
 	switch {
@@ -816,6 +817,7 @@ func (s *Service) mergeRow(ctx context.Context, q *store.Queries, tx pgx.Tx, st 
 	if st.opts.ImportTags {
 		tags = cleanTags(append(append([]string{}, c.Tags...), r.Tags...))
 	}
+	tags = st.withImportTag(tags)
 	if _, err := tx.Exec(ctx, `UPDATE contacts SET first_name = $2, last_name = $3, company = $4, country = $5, timezone = $6, language = $7,
 		tags = $8, attributes = $9, updated_at = now() WHERE id = $1`,
 		c.ID, cur["first_name"], cur["last_name"], cur["company"], cur["country"], cur["timezone"], cur["language"], tags, mustJSON(attrs)); err != nil {
@@ -843,6 +845,15 @@ func (s *Service) mergeRow(ctx context.Context, q *store.Queries, tx pgx.Tx, st 
 		return s.recordImport(ctx, tx, st, c.ID, list, r, c.Consent, now)
 	}
 	return nil
+}
+
+// withImportTag adds the tag the import puts on every row it brings in
+// (review 2026-11 AU-10), when it has one.
+func (st *runState) withImportTag(tags []string) []string {
+	if st.opts.Tag == "" {
+		return tags
+	}
+	return cleanTags(append(append([]string{}, tags...), st.opts.Tag))
 }
 
 func cleanTags(in []string) []string {

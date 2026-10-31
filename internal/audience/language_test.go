@@ -113,7 +113,7 @@ func TestContactLanguage(t *testing.T) {
 		total := func(q string) int64 {
 			t.Helper()
 			var page struct{ Total int64 }
-			c.Do(http.MethodGet, ws+"/contacts?"+q, nil).MustStatus(t, 200).JSON(t, &page)
+			c.Do(http.MethodGet, ws+"/contacts?exact=true&"+q, nil).MustStatus(t, 200).JSON(t, &page)
 			return page.Total
 		}
 		// SettingsLanguages: 4,180 Spanish (es, es-MX, es-ES…), 2,240

@@ -2,6 +2,7 @@ package audience
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -57,7 +58,8 @@ func (w *RetentionWorker) Timeout(*river.Job[RetentionArgs]) time.Duration { ret
 
 // Work implements river.Worker.
 func (w *RetentionWorker) Work(ctx context.Context, _ *river.Job[RetentionArgs]) error {
-	return w.Svc.RunRetention(ctx, w.Log)
+	// Exports past their seven days go with the hourly retention pass.
+	return errors.Join(w.Svc.RunRetention(ctx, w.Log), w.Svc.SweepJobFiles(ctx))
 }
 
 // RetentionRun is what one run did in one workspace.

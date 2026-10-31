@@ -124,8 +124,10 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | Board | Screen / states | Responsive boards |
 |---|---|---|
 | `AudienceStates.dc.html` | Audience · empty / loading / error | — |
+| `AudienceListsFields.dc.html` | Audience · lists and fields · lists and their opt-in, custom fields, what uses a field before it's deleted, restore (review 2026-11 AU-11) | — |
 | `ContactProfile.dc.html` | Audience · contact profile | phone |
 | `Contacts.dc.html` | Audience · contacts | phone, tablet |
+| `ContactsAtScale.dc.html` | Audience at scale · "10,000+" counts, select all matching, remove from list or tag, view menu, columns and order, joined-between and import filters, editing an address, removing an upload group, the sunset policy's dry run, verify entry points (review 2026-11 AU-1–AU-14) | — |
 | `ListHealth.dc.html` | Audience · list health | — |
 | `SegmentBuilder.dc.html` | Audience · segment builder | tablet |
 | `Suppressions.dc.html` | Audience · suppression list | — |

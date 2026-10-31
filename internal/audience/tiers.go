@@ -90,6 +90,7 @@ func RegisterJobs(reg *jobs.Registry, s *Service, log *slog.Logger) {
 	river.AddWorker(reg.Workers, &TiersWorker{Svc: s, Log: log})
 	reg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return TiersArgs{}, nil }, true)
 	river.AddWorker(reg.Workers, &RetentionWorker{Svc: s, Log: log})
+	river.AddWorker(reg.Workers, &AudienceJobWorker{Svc: s})
 	reg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return RetentionArgs{}, nil }, true)
 }
 

@@ -27,8 +27,12 @@ type ContactFilter struct {
 	Source  string `json:"source,omitempty" maxLength:"80"`
 	Tag     string `json:"tag,omitempty" maxLength:"80"`
 	Segment string `json:"segment,omitempty" doc:"Segment id"`
-	// JoinedAfter is a date (2026-09-01).
-	JoinedAfter string `json:"joinedAfter,omitempty" maxLength:"10"`
+	// JoinedAfter and JoinedBefore are dates (2026-09-01) in the workspace's
+	// time zone, both included.
+	JoinedAfter  string `json:"joinedAfter,omitempty" maxLength:"10"`
+	JoinedBefore string `json:"joinedBefore,omitempty" maxLength:"10"`
+	// Import is an import's id: the contacts it brought in.
+	Import string `json:"import,omitempty" maxLength:"40"`
 	// Language is a workspace language's code (its regional codes match),
 	// "none" for contacts with no language or "not_offered" for languages
 	// the workspace doesn't offer.
@@ -68,6 +72,13 @@ func (f *filterSQL) add(cond string, vals ...any) {
 	f.where += "\n  AND " + cond
 }
 
+// addNumbered appends a condition whose placeholders are numbered already,
+// from the next argument on.
+func (f *filterSQL) addNumbered(cond string, vals ...any) {
+	f.args = append(f.args, vals...)
+	f.where += "\n  AND " + cond
+}
+
 // filterSQL builds the WHERE clause for a filter in workspace ws, limited
 // to the caller's list scope ("Editor, Beta Program list only"). It
 // resolves segments to contact ids.
@@ -86,9 +97,19 @@ func (s *Service) filterSQL(ctx context.Context, wsID uuid.UUID, f ContactFilter
 // the ones already there.
 func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQL, f ContactFilter) error {
 	if q := strings.ToLower(strings.TrimSpace(f.Q)); q != "" {
-		// Tags are stored lower-case (cleanTags), so the search is too.
-		like := "%" + db.EscapeLike(q) + "%"
-		out.add("(c.email LIKE ? OR lower(c.first_name || ' ' || c.last_name) LIKE ? OR c.tags @> ARRAY[?::text])", like, like, q)
+		switch {
+		case emailaddr.Valid(q):
+			// A whole address: the unique index answers (review 2026-11 AU-2).
+			out.add("c.email = ?", emailaddr.Normalize(q))
+		case strings.Contains(q, "@"):
+			// Part of an address: the trigram index on email.
+			out.add("c.email LIKE ?", "%"+db.EscapeLike(q)+"%")
+		default:
+			// Part of an address or a name through the trigram indexes; tags
+			// are stored lower-case (cleanTags), so the search is too.
+			like := "%" + db.EscapeLike(q) + "%"
+			out.add("(c.email LIKE ? OR lower(c.first_name || ' ' || c.last_name) LIKE ? OR c.tags @> ARRAY[?::text])", like, like, q)
+		}
 	}
 	if f.List != "" {
 		id, err := uuid.Parse(f.List)
@@ -119,12 +140,39 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 	if t := strings.ToLower(strings.TrimSpace(f.Tag)); t != "" {
 		out.add("c.tags @> ARRAY[?::text]", t)
 	}
-	if f.JoinedAfter != "" {
-		d, err := time.Parse("2006-01-02", f.JoinedAfter)
-		if err != nil {
-			return api.Invalid("joinedAfter", say(ctx, mJoinedAfter, nil))
+	if f.JoinedAfter != "" || f.JoinedBefore != "" {
+		// Days in the workspace's time zone (review 2026-11 AU-10).
+		loc := time.UTC
+		var tz string
+		if err := s.Pool.QueryRow(ctx, `SELECT timezone FROM workspaces WHERE id = $1`, wsID).Scan(&tz); err == nil {
+			if l, err := time.LoadLocation(tz); err == nil {
+				loc = l
+			}
 		}
-		out.add("c.created_at >= ?", d)
+		for _, d := range []struct {
+			v, loc string
+			cond   string
+			next   bool
+		}{{f.JoinedAfter, "joinedAfter", "c.created_at >= ?", false}, {f.JoinedBefore, "joinedBefore", "c.created_at < ?", true}} {
+			if d.v == "" {
+				continue
+			}
+			day, err := time.ParseInLocation("2006-01-02", d.v, loc)
+			if err != nil {
+				return api.Invalid(d.loc, say(ctx, mJoinedAfter, nil))
+			}
+			if d.next {
+				day = day.AddDate(0, 0, 1)
+			}
+			out.add(d.cond, day)
+		}
+	}
+	if f.Import != "" {
+		id, err := uuid.Parse(f.Import)
+		if err != nil {
+			return api.Invalid("import", say(ctx, mFilterImport, nil))
+		}
+		out.add("c.import_id = ?", id)
 	}
 	switch f.Check {
 	case "":
@@ -156,11 +204,11 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 		if err != nil {
 			return api.Invalid("segment", say(ctx, mFilterSegment, nil))
 		}
-		ids, err := s.Segments.ContactIDs(ctx, wsID, id)
+		cond, args, err := s.Segments.Condition(ctx, wsID, id, len(out.args)+1)
 		if err != nil {
 			return segments.Problem(ctx, err)
 		}
-		out.add("c.id = ANY (?)", ids)
+		out.addNumbered(cond, args...)
 	}
 	return nil
 }

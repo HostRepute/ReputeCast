@@ -12,8 +12,14 @@
   "problem.eraseConfirm": "Hãy nhập {n} để xác nhận xóa vĩnh viễn {n} liên hệ.",
   "problem.smsConsentFilter": "Hãy chọn bất kỳ, không có hoặc một danh sách của không gian làm việc này.",
   "problem.viewName": "Hãy đặt tên cho chế độ xem.",
+  "problem.cursor": "Trang này của danh sách đã cũ. Hãy quay về trang đầu.",
+  "problem.emailTaken": "{name} đã dùng địa chỉ này.",
+  "problem.emailSuppressed": "{email} đang bị chặn ({reason}). Hãy gỡ khỏi danh sách chặn trước.",
+  "note.emailChanged": "nhóm đã sửa địa chỉ, từ {from}",
+  "problem.viewColumn": "Không có cột {column} để hiển thị.",
   "problem.filterList": "Hãy chọn một danh sách của không gian làm việc này.",
   "problem.joinedAfter": "Hãy dùng một ngày theo dạng 2026-09-01.",
+  "problem.filterImport": "Lần nhập này không có trong workspace.",
   "problem.filterSegment": "Hãy chọn một phân khúc của không gian làm việc này.",
   "problem.notLanguageClosest": "{value} không phải là một ngôn ngữ. Có phải ý bạn là {name} ({code})?",
   "problem.notLanguage": "{value} không phải là một ngôn ngữ. Hãy dùng mã như es-MX, hoặc tên tiếng Anh của ngôn ngữ như Spanish.",
@@ -100,8 +106,6 @@
   "reason.invalid": "Địa chỉ không hợp lệ",
 
   "failure.suppressed": "đang trong danh sách chặn gửi ({reason}); cần một lần đồng ý đăng ký mới",
-  "failure.refused": "nhà cung cấp của luồng Hệ thống đã từ chối email",
-  "failure.cooldown": "địa chỉ này vừa nhận email xác nhận trong 10 phút qua, hoặc hôm nay đã nhận đủ năm email",
   "note.alreadySuppressed": "{count, plural, other {# địa chỉ đã có sẵn trong danh sách chặn gửi.}}",
 
   "source.preference_center": "trung tâm tùy chọn",
@@ -137,6 +141,7 @@
   "insight.attention": "{name} cần chú ý: hãy kiểm tra tỷ lệ trả thư, tỷ lệ khiếu nại và những gì đã thay đổi trong các lần gửi gần đây.",
 
   "note.addedByTeam": "do nhóm thêm vào",
+  "note.removedByTeam": "nhóm đã gỡ khỏi danh sách",
   "note.confirmationSent": "đã gửi email xác nhận qua luồng Hệ thống",
   "note.waitingConfirmation": "đang chờ nhấp xác nhận",
   "detail.frequencyAll": "mọi số",
@@ -146,5 +151,13 @@
   "detail.pauseLifted": "đã bỏ tạm dừng",
   "context.unsubscribePage": "Trang hủy đăng ký",
   "context.oneClick": "List-Unsubscribe một lần nhấp",
-  "context.csvUpload": "Tải lên CSV · {file}"
+  "context.csvUpload": "Tải lên CSV · {file}",
+  "job.exportTitle": "Xuất · {count, plural, other {# liên hệ}}",
+  "job.resendTitle": "Gửi lại email xác nhận · {count, plural, other {# liên hệ}}",
+  "job.exportDone": "{count, plural, other {# dòng}}, tải xuống được trong 7 ngày",
+  "job.resendSent": "Đã gửi tới {count, plural, other {# liên hệ}}",
+  "job.resendConfirmed": "{count, plural, other {# đã xác nhận từ trước}}",
+  "job.resendSuppressed": "{count, plural, other {# nằm trong danh sách chặn}}",
+  "job.resendCooldown": "{count, plural, other {# vừa nhận email trong 10 phút qua}}",
+  "job.resendFailed": "{count, plural, other {# bị nhà cung cấp System từ chối}}"
 }

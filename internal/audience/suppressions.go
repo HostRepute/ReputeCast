@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"time"
 
@@ -133,14 +134,19 @@ type SuppressionFilterOption struct {
 
 // SuppressionList is one page of the suppression list.
 type SuppressionList struct {
-	Items    []SuppressionItem         `json:"items"`
-	Total    int64                     `json:"total" doc:"Rows matching, groups counted once"`
-	Matching int64                     `json:"matching" doc:"Addresses matching the filter"`
-	Page     int                       `json:"page"`
-	PageSize int                       `json:"pageSize"`
-	Counts   SuppressionCountsView     `json:"counts"`
-	Sync     []SuppressionProviderSync `json:"sync"`
-	Sources  []SuppressionFilterOption `json:"sources"`
+	Items    []SuppressionItem `json:"items"`
+	Total    int64             `json:"total" doc:"Rows matching, groups counted once; at most 10,000 unless exact"`
+	Matching int64             `json:"matching" doc:"Addresses matching the filter; at most 10,000 unless exact"`
+	// TotalCapped: more than 10,000 rows match ("10,000+", review 2026-11 D5).
+	TotalCapped bool `json:"totalCapped,omitempty"`
+	Page        int  `json:"page"`
+	PageSize    int  `json:"pageSize"`
+	// NextCursor and PrevCursor page on and back; empty at either end.
+	NextCursor string                    `json:"nextCursor,omitempty"`
+	PrevCursor string                    `json:"prevCursor,omitempty"`
+	Counts     SuppressionCountsView     `json:"counts"`
+	Sync       []SuppressionProviderSync `json:"sync"`
+	Sources    []SuppressionFilterOption `json:"sources"`
 }
 
 // SuppressionFilter narrows the list.
@@ -159,14 +165,15 @@ type SuppressionFilter struct {
 // ListSuppressions returns one page of the shared suppression list. Rows
 // that came in with an import are grouped unless the person searches or
 // opens the group.
-func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f SuppressionFilter, page, pageSize int) (SuppressionList, error) {
-	if pageSize <= 0 {
-		pageSize = 10
+func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f SuppressionFilter, pg ContactPage) (SuppressionList, error) {
+	if pg.PageSize <= 0 {
+		pg.PageSize = 10
 	}
-	if page <= 0 {
-		page = 1
+	if pg.Page <= 0 {
+		pg.Page = 1
 	}
-	out := SuppressionList{Items: []SuppressionItem{}, Page: page, PageSize: pageSize, Sync: []SuppressionProviderSync{}, Sources: []SuppressionFilterOption{}}
+	pageSize := pg.PageSize
+	out := SuppressionList{Items: []SuppressionItem{}, Page: pg.Page, PageSize: pageSize, Sync: []SuppressionProviderSync{}, Sources: []SuppressionFilterOption{}}
 	l := i18n.LangFrom(ctx)
 	fs := filterSQL{where: "s.workspace_id = $1", args: []any{ws.ID}}
 	if q := strings.TrimSpace(strings.ToLower(f.Q)); q != "" {
@@ -223,10 +230,39 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 		       f.import_id, count(*)::bigint, NULL, (array_agg(f.texts ORDER BY f.original_code DESC, f.context DESC))[1]
 		FROM f WHERE ` + fmt.Sprint(group) + ` AND f.import_id IS NOT NULL GROUP BY f.import_id
 	)`
-	if err := s.Pool.QueryRow(ctx, cte+` SELECT count(*), coalesce(sum(n), 0)::bigint FROM r`, fs.args...).Scan(&out.Total, &out.Matching); err != nil {
+	countSQL := cte + ` SELECT count(*), coalesce(sum(n), 0)::bigint FROM r`
+	if !pg.Exact {
+		countSQL = cte + fmt.Sprintf(` SELECT count(*), coalesce(sum(n), 0)::bigint FROM (SELECT n FROM r LIMIT %d) x`, countCap+1)
+	}
+	if err := s.Pool.QueryRow(ctx, countSQL, fs.args...).Scan(&out.Total, &out.Matching); err != nil {
 		return out, err
 	}
-	args := append(fs.args, pageSize, (page-1)*pageSize)
+	if out.Total > countCap {
+		out.Total, out.Matching, out.TotalCapped = countCap, countCap, true
+	}
+	// Keyset paging on the rows (and groups), newest first.
+	keys := []sortKey{{expr: "r.created_at", desc: true, kind: 't'}}
+	var cur *contactCursor
+	page := ""
+	args := fs.args
+	if pg.Cursor != "" {
+		c, err := readCursor(pg.Cursor, "suppressions", keys)
+		if err != nil {
+			return out, api.Invalid("cursor", say(ctx, mCursor, nil))
+		}
+		cur = &c
+		page = "WHERE " + keyset(keys, "r.id", c, func(v any) string {
+			args = append(args, v)
+			return fmt.Sprintf("$%d", len(args))
+		})
+	}
+	backward := cur != nil && cur.Before
+	args = append(args, pageSize+1)
+	limit := fmt.Sprintf("LIMIT $%d", len(args))
+	if cur == nil && pg.Page > 1 {
+		args = append(args, (pg.Page-1)*pageSize)
+		limit += fmt.Sprintf(" OFFSET $%d", len(args))
+	}
 	rows, err := s.Pool.Query(ctx, cte+fmt.Sprintf(`
 		SELECT r.grp, r.id, r.email, r.reasons, r.source, r.original_code, r.created_at, r.campaign_id, r.automation_step,
 		       r.context, r.scope, r.import_id, r.n, r.texts,
@@ -238,12 +274,14 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 		LEFT JOIN imports i ON i.id = r.import_id
 		LEFT JOIN campaigns cp ON cp.id = r.campaign_id
 		LEFT JOIN automations a ON a.id = r.automation_id
-		ORDER BY r.created_at DESC, r.id DESC
-		LIMIT $%d OFFSET $%d`, len(args)-1, len(args)), args...)
+		%s
+		ORDER BY %s
+		%s`, page, orderBy(keys, "r.id", backward), limit), args...)
 	if err != nil {
 		return out, err
 	}
 	defer rows.Close()
+	var marks []contactCursor
 	for rows.Next() {
 		var it SuppressionItem
 		var id uuid.UUID
@@ -254,6 +292,7 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 			&it.Context, &it.Scope, &importID, &it.Rows, &texts, &provName, &adapter, &userName, &impSource, &fileName, &campaign, &automation); err != nil {
 			return out, err
 		}
+		marks = append(marks, contactCursor{Sort: "suppressions", Values: []any{cursorValue(it.At)}, ID: id})
 		it.OriginalCode, it.Context = KeptIn(l, texts, "original_code", it.OriginalCode), suppressions.DetailIn(l, KeptIn(l, texts, "context", it.Context))
 		it.ID = id.String()
 		it.Reasons = sortReasons(it.Reasons)
@@ -288,6 +327,24 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 	}
 	if err := rows.Err(); err != nil {
 		return out, err
+	}
+	more := len(out.Items) > pageSize
+	if more {
+		out.Items, marks = out.Items[:pageSize], marks[:pageSize]
+	}
+	if backward {
+		slices.Reverse(out.Items)
+		slices.Reverse(marks)
+	}
+	if len(marks) > 0 {
+		if more || backward {
+			out.NextCursor = marks[len(marks)-1].encode()
+		}
+		if (backward && more) || (!backward && (cur != nil || pg.Page > 1)) {
+			first := marks[0]
+			first.Before = true
+			out.PrevCursor = first.encode()
+		}
 	}
 	counts, err := s.Q.SuppressionCounts(ctx, ws.ID)
 	if err != nil {

@@ -4,6 +4,8 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/hostrepute/reputecast/internal/audience"
+	"github.com/hostrepute/reputecast/internal/config"
+	"github.com/hostrepute/reputecast/internal/jobs"
 )
 
 func init() {
@@ -15,8 +17,18 @@ func init() {
 	})
 }
 
+// Audience is the audience service (tests and tools reach it here).
+func (a *App) Audience() *audience.Service { return a.audience() }
+
 func (a *App) audience() *audience.Service {
+	cfg := a.Cfg
+	if cfg == nil { // the OpenAPI command registers operations without config
+		d := config.Defaults()
+		cfg = &d
+	}
+	files := cfg.FilesDir()
 	return &audience.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Segments: a.segments(), Mail: a.Mail, Links: a.Links, URLs: a.URLs,
+		Jobs: func() *jobs.Client { return a.Jobs }, FilesDir: files,
 		// Poll answers and survey responses, what the contact bought, and
 		// their store orders and abandoned checkouts (X20).
 		Answers: audience.ActivitySources{audienceAnswers(a), audiencePurchases(a), audienceStores(a)}, SourceNames: audienceSourceNames(a),

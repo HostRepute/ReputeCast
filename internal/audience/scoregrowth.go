@@ -32,8 +32,9 @@ type ScoreGrowthFilter struct {
 	UTMMedium       string `json:"utmMedium,omitempty" maxLength:"200"`
 	UTMCampaign     string `json:"utmCampaign,omitempty" maxLength:"200"`
 	ReferringDomain string `json:"referringDomain,omitempty" maxLength:"255"`
-	// Sort orders the table: by last activity (default) or score, highest first.
-	Sort string `json:"sort,omitempty" enum:"activity,score"`
+	// Sort orders the table: by last activity (default), score (highest
+	// first), joined or last open (newest first), or email.
+	Sort string `json:"sort,omitempty" enum:"activity,score,joined,last_open,email"`
 }
 
 // ScoreGrowthQuery is the same filter as query parameters.
@@ -46,7 +47,7 @@ type ScoreGrowthQuery struct {
 	UTMMedium       string `query:"utmMedium" maxLength:"200"`
 	UTMCampaign     string `query:"utmCampaign" maxLength:"200"`
 	ReferringDomain string `query:"referringDomain" maxLength:"255"`
-	Sort            string `query:"sort" enum:"activity,score,"`
+	Sort            string `query:"sort" enum:"activity,score,joined,last_open,email,"`
 }
 
 func (q ScoreGrowthQuery) filter() ScoreGrowthFilter {
@@ -126,12 +127,4 @@ func (s *Service) growthFilter(out *filterSQL, f ScoreGrowthFilter) error {
 		growth("(g.referrer_domain = ? OR g.referrer_domain LIKE ?)", v, "%."+db.EscapeLike(v))
 	}
 	return nil
-}
-
-// contactOrder is the ORDER BY of the contacts table.
-func contactOrder(f ScoreGrowthFilter) string {
-	if f.Sort == "score" {
-		return "cs.score DESC NULLS LAST, c.last_activity_at DESC NULLS LAST, c.id DESC"
-	}
-	return "c.last_activity_at DESC NULLS LAST, c.id DESC"
 }

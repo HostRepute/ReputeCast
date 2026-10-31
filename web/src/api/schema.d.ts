@@ -5808,7 +5808,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List contacts, most recent activity first */
+        /** List contacts, most recent activity first (or the order asked for) */
         get: operations["list-contacts"];
         put?: never;
         /** Add a contact */
@@ -5867,6 +5867,60 @@ export interface paths {
          * @description Needs subscribers:export. Every export is written to the audit log with its size and filter.
          */
         post: operations["export-contacts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/jobs/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export contacts in the background (logged)
+         * @description For any number of contacts: the file is written in the background (the jobs tray follows it) and kept 7 days for whoever started it. Needs subscribers:export; starting, finishing and each download are audited.
+         */
+        post: operations["start-contacts-export"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/jobs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A background export or resend: its progress and what it did */
+        get: operations["get-contacts-job"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/jobs/{id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a finished export (its starter only, logged) */
+        get: operations["download-contacts-export"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5942,7 +5996,11 @@ export interface paths {
         delete: operations["delete-contact-view"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Rename a saved view, or save new filters or columns in it
+         * @description A personal view is its creator's only. Audited as contact_view.update.
+         */
+        patch: operations["update-contact-view"];
         trace?: never;
     };
     "/api/v1/workspaces/{workspace}/contacts/{contactId}/channels": {
@@ -6222,6 +6280,26 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contact}/lists/{list}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Take a contact off a list (the team's change, not an unsubscribe)
+         * @description Recorded in the contact's history as removed by the team; audited.
+         */
+        delete: operations["remove-contact-from-list"];
         options?: never;
         head?: never;
         patch?: never;
@@ -20484,6 +20562,52 @@ export interface components {
             keys: components["schemas"]["ConversionKey"][];
             summary: components["schemas"]["ConversionSummary"];
         };
+        AudienceJob: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int64 */
+            done: number;
+            downloadUrl?: string;
+            error?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            id: string;
+            /** @enum {string} */
+            kind: "export" | "resend_optin";
+            result: components["schemas"]["AudienceJobResult"];
+            /** @enum {string} */
+            status: "queued" | "running" | "done" | "failed";
+            /** Format: int64 */
+            total: number;
+        };
+        AudienceJobResult: {
+            /**
+             * Format: int64
+             * @description Skipped: confirmed already
+             */
+            confirmed?: number;
+            /**
+             * Format: int64
+             * @description Skipped: got one in the last 10 minutes, or five today
+             */
+            cooldown?: number;
+            /**
+             * Format: int64
+             * @description The System provider refused the email
+             */
+            failed?: number;
+            /** Format: int64 */
+            rows?: number;
+            /** Format: int64 */
+            sent?: number;
+            /**
+             * Format: int64
+             * @description Skipped: on the suppression list
+             */
+            suppressed?: number;
+        };
         AudienceListInput: {
             description?: string;
             /** @description New signups confirm by email first (default true) */
@@ -23928,15 +24052,15 @@ export interface components {
         };
         ContactBulkInput: {
             /** @enum {string} */
-            action: "add_to_list" | "add_tag" | "resend_optin" | "suppress";
+            action: "add_to_list" | "remove_from_list" | "add_tag" | "remove_tag" | "resend_optin" | "suppress";
             allMatching?: boolean;
             filter?: components["schemas"]["ContactFilter"];
             ids?: string[];
-            /** @description For add_to_list */
+            /** @description For add_to_list and remove_from_list */
             listId?: string;
             /** @description For suppress */
             reason?: string;
-            /** @description For add_tag */
+            /** @description For add_tag and remove_tag */
             tag?: string;
         };
         ContactBulkResult: {
@@ -23947,6 +24071,7 @@ export interface components {
             failed: number;
             /** @description Up to 20 examples */
             failures: components["schemas"]["ContactBulkFailure"][];
+            jobId?: string;
             /** Format: int64 */
             matched: number;
             note?: string;
@@ -23991,7 +24116,9 @@ export interface components {
             /** @enum {string} */
             consent?: "double" | "single" | "pending";
             growthSource?: string;
+            import?: string;
             joinedAfter?: string;
+            joinedBefore?: string;
             language?: string;
             /** @description List id */
             list?: string;
@@ -24015,7 +24142,7 @@ export interface components {
             signedIn?: boolean;
             smsConsent?: string;
             /** @enum {string} */
-            sort?: "activity" | "score";
+            sort?: "activity" | "score" | "joined" | "last_open" | "email";
             source?: string;
             spentFrom?: string;
             spentTo?: string;
@@ -24063,12 +24190,15 @@ export interface components {
         };
         ContactList: {
             items: components["schemas"]["ContactListItem"][];
+            nextCursor?: string;
             /** Format: int64 */
             page: number;
             /** Format: int64 */
             pageSize: number;
+            prevCursor?: string;
             /** Format: int64 */
             total: number;
+            totalCapped?: boolean;
         };
         ContactListAddInput: {
             /** @enum {string} */
@@ -24087,6 +24217,9 @@ export interface components {
             /** @enum {string} */
             consent: "double" | "single" | "pending";
             email: string;
+            fields?: {
+                [key: string]: unknown;
+            };
             id: string;
             /** Format: date-time */
             joinedAt: string;
@@ -24233,8 +24366,11 @@ export interface components {
             spentCents: number;
         };
         ContactSavedView: {
+            columns: string[];
             /** Format: int64 */
             count: number;
+            /** Format: date-time */
+            countedAt?: string;
             filters: components["schemas"]["ContactFilter"];
             id: string;
             name: string;
@@ -24355,6 +24491,7 @@ export interface components {
         ContactUpdate: {
             company?: string;
             country?: string;
+            email?: string;
             /** @description Custom field key → value; null clears it */
             fields?: {
                 [key: string]: unknown;
@@ -24390,9 +24527,15 @@ export interface components {
             tags: string[];
         };
         ContactViewInput: {
+            columns?: string[];
             filters: components["schemas"]["ContactFilter"];
             name: string;
             personal?: boolean;
+        };
+        ContactViewUpdate: {
+            columns?: string[];
+            filters?: components["schemas"]["ContactFilter"];
+            name?: string;
         };
         ContentCheckFix: {
             /** @enum {string} */
@@ -27859,13 +28002,14 @@ export interface components {
         };
         ImportJob: {
             detail?: string;
+            downloadUrl?: string;
             eta?: string;
             /** Format: date-time */
             finishedAt?: string;
             href: string;
             id: string;
             /** @enum {string} */
-            kind: "import" | "verification";
+            kind: "import" | "verification" | "export" | "optin";
             /** Format: int64 */
             progress?: number;
             /** Format: date-time */
@@ -27929,6 +28073,7 @@ export interface components {
             recordHistory: boolean;
             risky: components["schemas"]["ImportRiskyActions"];
             skipRows: number[];
+            tag?: string;
         };
         ImportPreview: {
             /** Format: date-time */
@@ -28039,6 +28184,7 @@ export interface components {
             map: components["schemas"]["ImportConsentMap"];
             pullSuppressions: boolean;
             recordHistory: boolean;
+            tag?: string;
         };
         ImportSaveFieldsInput: {
             fields: components["schemas"]["ImportFieldChoice"][];
@@ -41408,20 +41554,23 @@ export interface components {
             items: components["schemas"]["SuppressionItem"][];
             /**
              * Format: int64
-             * @description Addresses matching the filter
+             * @description Addresses matching the filter; at most 10,000 unless exact
              */
             matching: number;
+            nextCursor?: string;
             /** Format: int64 */
             page: number;
             /** Format: int64 */
             pageSize: number;
+            prevCursor?: string;
             sources: components["schemas"]["SuppressionFilterOption"][];
             sync: components["schemas"]["SuppressionProviderSync"][];
             /**
              * Format: int64
-             * @description Rows matching, groups counted once
+             * @description Rows matching, groups counted once; at most 10,000 unless exact
              */
             total: number;
+            totalCapped?: boolean;
         };
         SuppressionProviderSync: {
             adapter: string;
@@ -59475,7 +59624,12 @@ export interface operations {
                 tag?: string;
                 /** @description Segment id */
                 segment?: string;
+                /** @description Joined on or after this day (2026-09-01), in the workspace's time zone */
                 joinedAfter?: string;
+                /** @description Joined on or before this day, in the workspace's time zone */
+                joinedBefore?: string;
+                /** @description An import's id: the contacts it brought in */
+                import?: string;
                 /** @description The latest address check's result */
                 check?: "valid" | "invalid" | "risky" | "unknown" | "never" | "";
                 /** @description A workspace language's code (es also matches es-MX), none or not_offered */
@@ -59488,7 +59642,7 @@ export interface operations {
                 utmMedium?: string;
                 utmCampaign?: string;
                 referringDomain?: string;
-                sort?: "activity" | "score" | "";
+                sort?: "activity" | "score" | "joined" | "last_open" | "email" | "";
                 /** @description Only contacts who signed in to the website */
                 signedIn?: boolean;
                 paid?: "with_access" | "trialing" | "past_due" | "complimentary" | "gift" | "ended" | "free" | "";
@@ -59512,8 +59666,15 @@ export interface operations {
                 phoneCountry?: string;
                 /** @description any: SMS consent on some list; none: on none; or a list id */
                 smsConsent?: string;
+                /** @description nextCursor or prevCursor of the page before; pages in constant time */
+                cursor?: string;
+                /** @description A page number from the start, when there is no cursor */
                 page?: number;
                 pageSize?: number;
+                /** @description Count past 10,000 (slower on large audiences) */
+                exact?: boolean;
+                /** @description Custom field keys, comma-separated (at most 10), whose values each row carries */
+                fields?: string;
             };
             header?: never;
             path: {
@@ -59691,6 +59852,106 @@ export interface operations {
             };
         };
     };
+    "start-contacts-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactExportInput"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudienceJob"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-contacts-job": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudienceJob"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "download-contacts-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "tag-contact": {
         parameters: {
             query?: never;
@@ -59850,6 +60111,43 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-contact-view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactViewUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactSavedView"];
+                };
             };
             /** @description Error */
             default: {
@@ -60441,6 +60739,38 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ContactJoin"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-contact-from-list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+                list: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -81187,8 +81517,13 @@ export interface operations {
                 import?: string;
                 /** @description all: every stream; marketing: Broadcasts and Automations only (unsubscribes, role addresses) */
                 appliesTo?: "all" | "marketing" | "";
+                /** @description nextCursor or prevCursor of the page before */
+                cursor?: string;
+                /** @description A page number from the start, when there is no cursor */
                 page?: number;
                 pageSize?: number;
+                /** @description Count past 10,000 */
+                exact?: boolean;
             };
             header?: never;
             path: {

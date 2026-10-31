@@ -53,7 +53,7 @@ func TestPaidStatusInContacts(t *testing.T) {
 	var top, trials, free, ended page
 	c.Do(http.MethodGet, ws+"/contacts?paid=with_access&paidTier="+sum.PaidTiers[1].ID, nil).MustStatus(t, 200).JSON(t, &top)
 	c.Do(http.MethodGet, ws+"/contacts?paid=trialing&pageSize=100", nil).MustStatus(t, 200).JSON(t, &trials)
-	c.Do(http.MethodGet, ws+"/contacts?paid=free", nil).MustStatus(t, 200).JSON(t, &free)
+	c.Do(http.MethodGet, ws+"/contacts?paid=free&exact=true", nil).MustStatus(t, 200).JSON(t, &free)
 	c.Do(http.MethodGet, ws+"/contacts?paid=ended&pageSize=100", nil).MustStatus(t, 200).JSON(t, &ended)
 	if top.Total == 0 || top.Total >= p.Total {
 		t.Errorf("Founding member and above: %d of %d", top.Total, p.Total)
@@ -69,7 +69,7 @@ func TestPaidStatusInContacts(t *testing.T) {
 		}
 	}
 	var all page
-	c.Do(http.MethodGet, ws+"/contacts", nil).MustStatus(t, 200).JSON(t, &all)
+	c.Do(http.MethodGet, ws+"/contacts?exact=true", nil).MustStatus(t, 200).JSON(t, &all)
 	if trials.Total == 0 || ended.Total == 0 || free.Total+p.Total != all.Total {
 		t.Errorf("trials %d, ended %d, free %d + with access %d of %d", trials.Total, ended.Total, free.Total, p.Total, all.Total)
 	}

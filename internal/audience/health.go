@@ -306,20 +306,15 @@ func (s *Service) healthRows(ctx context.Context, ws *store.Workspace) ([]ListHe
 	if err != nil {
 		return nil, err
 	}
+	// The followed views' numbers, kept like the Contacts chips' (AU-3).
+	stats, err := s.viewStats(ctx, ws.ID, views)
+	if err != nil {
+		return nil, err
+	}
 	for _, v := range views {
-		var f ContactFilter
-		_ = json.Unmarshal(v.Filters, &f)
-		fs, err := s.filterSQL(ctx, ws.ID, f)
-		if err != nil {
-			continue
-		}
-		var row ListHealthRow
-		var pending int64
-		if err := s.Pool.QueryRow(ctx, `SELECT count(*), count(*) FILTER (WHERE c.tier = 'active'), count(*) FILTER (WHERE c.tier = 'cooling'),
-			count(*) FILTER (WHERE c.tier = 'at_risk'), count(*) FILTER (WHERE c.tier = 'sunset'), count(*) FILTER (WHERE c.consent = 'pending')
-			FROM contacts c WHERE `+fs.where, fs.args...).Scan(&row.Contacts, &row.Tiers.Active, &row.Tiers.Cooling, &row.Tiers.AtRisk, &row.Tiers.Sunset, &pending); err != nil {
-			return nil, err
-		}
+		st := stats[v.ID]
+		row := ListHealthRow{Contacts: st.Contacts, Tiers: AudienceTierCounts{st.Active, st.Cooling, st.AtRisk, st.Sunset}}
+		pending := st.Pending
 		row.Kind, row.ID, row.Name = "view", v.ID.String(), v.Name
 		t := totalsBy["view:"+v.ID.String()]
 		row.NetGrowth = t.Joined - t.Departed

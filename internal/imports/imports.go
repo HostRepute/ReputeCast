@@ -126,6 +126,9 @@ type ImportOptions struct {
 	// ImportTemplates brings the source's email templates along (Notifuse):
 	// transactional ones as drafts, the others as saved templates.
 	ImportTemplates bool `json:"importTemplates"`
+	// Tag goes on every contact the import brings in or updates
+	// ("mailchimp-2026-09"), lower-cased (review 2026-11 AU-10).
+	Tag string `json:"tag,omitempty" maxLength:"60"`
 }
 
 // ImportListChoice maps a source list to a ReputeCast list.

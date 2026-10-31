@@ -15,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/erasure"
+	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/publicurl"
@@ -41,6 +42,10 @@ type Service struct {
 	// Erasure is every package's personal data about contacts, for erasing
 	// and exporting (internal/app fills it; nil: the audience's own only).
 	Erasure *erasure.Registry
+	// Jobs queues background exports and resends (AU-4); FilesDir keeps
+	// the exports' files.
+	Jobs     func() *jobs.Client
+	FilesDir string
 }
 
 // SourceNamer names contacts' sources: by contact, for the contacts whose

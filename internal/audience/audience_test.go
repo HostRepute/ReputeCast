@@ -58,7 +58,7 @@ func TestAudienceDemo(t *testing.T) {
 				Tier  string
 			}
 		}
-		c.Do(http.MethodGet, ws+"/contacts?tier=active&pageSize=10", nil).MustStatus(t, 200).JSON(t, &page)
+		c.Do(http.MethodGet, ws+"/contacts?tier=active&pageSize=10&exact=true", nil).MustStatus(t, 200).JSON(t, &page)
 		// The Summit's new registrants are active (X21, brief §8.12).
 		if page.Total != 29412+338 {
 			t.Fatalf("active %d, want 29,750", page.Total)

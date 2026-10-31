@@ -15,7 +15,7 @@ import (
 // with their progress, and ones that ended in the last two hours.
 type ImportJob struct {
 	ID   string `json:"id"`
-	Kind string `json:"kind" enum:"import,verification"`
+	Kind string `json:"kind" enum:"import,verification,export,optin"`
 	// Title: "Importing 13,739 contacts from Mailchimp".
 	Title  string `json:"title"`
 	Status string `json:"status" enum:"queued,running,done,failed,canceled"`
@@ -26,9 +26,11 @@ type ImportJob struct {
 	// Detail is the result or the failure in words.
 	Detail string `json:"detail,omitempty"`
 	// Href is the app path of the import's progress or report.
-	Href       string     `json:"href"`
-	StartedAt  *time.Time `json:"startedAt,omitempty"`
-	FinishedAt *time.Time `json:"finishedAt,omitempty"`
+	Href string `json:"href"`
+	// DownloadURL fetches a finished export's file (its starter only).
+	DownloadURL string     `json:"downloadUrl,omitempty"`
+	StartedAt   *time.Time `json:"startedAt,omitempty"`
+	FinishedAt  *time.Time `json:"finishedAt,omitempty"`
 }
 
 // JobSource adds another domain's jobs to the tray (address verification).

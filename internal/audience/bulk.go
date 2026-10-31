@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
-	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -35,9 +34,9 @@ type Selection struct {
 
 type ContactBulkInput struct {
 	Selection
-	Action string `json:"action" enum:"add_to_list,add_tag,resend_optin,suppress"`
-	ListID string `json:"listId,omitempty" doc:"For add_to_list"`
-	Tag    string `json:"tag,omitempty" maxLength:"60" doc:"For add_tag"`
+	Action string `json:"action" enum:"add_to_list,remove_from_list,add_tag,remove_tag,resend_optin,suppress"`
+	ListID string `json:"listId,omitempty" doc:"For add_to_list and remove_from_list"`
+	Tag    string `json:"tag,omitempty" maxLength:"60" doc:"For add_tag and remove_tag"`
 	Reason string `json:"reason,omitempty" maxLength:"300" doc:"For suppress"`
 }
 
@@ -61,6 +60,9 @@ type ContactBulkResult struct {
 	// Target names the list or tag ("Re-permission").
 	Target string `json:"target,omitempty"`
 	Note   string `json:"note,omitempty"`
+	// JobID is set when the action runs in the background (resend opt-in):
+	// the jobs tray follows it and its result says what it did.
+	JobID string `json:"jobId,omitempty"`
 }
 
 // selectIDs resolves a selection to contact ids visible to the caller.
@@ -94,9 +96,15 @@ func (s *Service) selectIDs(ctx context.Context, ws *store.Workspace, sel Select
 	return pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
 }
 
-// Bulk applies an action to a selection of contacts.
+// Bulk applies an action to a selection of contacts. Resending the opt-in
+// email runs in the background (AU-4).
 func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, in ContactBulkInput) (ContactBulkResult, error) {
 	out := ContactBulkResult{Action: in.Action, Failures: []ContactBulkFailure{}}
+	if in.Action == "resend_optin" {
+		job, err := s.StartJob(ctx, ws, JobResendOptIn, in.Selection)
+		out.Matched, out.JobID = job.Total, job.ID
+		return out, err
+	}
 	ids, err := s.selectIDs(ctx, ws, in.Selection)
 	if err != nil {
 		return out, err
@@ -150,6 +158,53 @@ func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, in ContactBulkI
 			return s.Audit.LogWith(ctx, store.New(tx), audit.Event{WorkspaceID: &ws.ID, Action: "contacts.add_to_list", TargetType: "list", TargetID: listID.String(), TargetName: l.Name,
 				Metadata: map[string]any{"matched": out.Matched, "done": out.Done, "failed": out.Failed, "filter": selectionMeta(in.Selection)}})
 		})
+	case "remove_from_list":
+		// The team takes them off the list (AU-6): the membership goes and a
+		// "removed" event says who did it; it isn't their unsubscribe, so it
+		// never counts as one and they can be added back.
+		listID, perr := uuid.Parse(in.ListID)
+		if perr != nil {
+			return out, api.Invalid("body.listId", mPickList.Text(lang, nil))
+		}
+		l, lerr := s.Q.GetList(ctx, store.GetListParams{WorkspaceID: ws.ID, ID: listID})
+		if lerr != nil {
+			return out, api.Invalid("body.listId", mListGone.Text(lang, nil))
+		}
+		if !scopeAllowsList(ctx, listID) {
+			return out, api.Invalid("body.listId", mScopeLists.Text(lang, nil))
+		}
+		out.Target = l.Name
+		err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+			var removed []uuid.UUID
+			rows, err := tx.Query(ctx, `DELETE FROM list_memberships WHERE list_id = $1 AND contact_id = ANY ($2) RETURNING contact_id`, listID, ids)
+			if err != nil {
+				return err
+			}
+			if removed, err = pgx.CollectRows(rows, pgx.RowTo[uuid.UUID]); err != nil {
+				return err
+			}
+			if err := insertConsentEvents(ctx, tx, removed, &listID, "removed", "team", kept(mNoteRemovedByTeam, nil), actor, s.now()); err != nil {
+				return err
+			}
+			out.Done = int64(len(removed))
+			return s.Audit.LogWith(ctx, store.New(tx), audit.Event{WorkspaceID: &ws.ID, Action: "contacts.remove_from_list", TargetType: "list", TargetID: listID.String(),
+				TargetName: l.Name, Metadata: map[string]any{"matched": out.Matched, "removed": out.Done, "filter": selectionMeta(in.Selection)}})
+		})
+	case "remove_tag":
+		tag := cleanTags([]string{in.Tag})
+		if len(tag) == 0 {
+			return out, api.Invalid("body.tag", mEnterTag.Text(lang, nil))
+		}
+		out.Target = tag[0]
+		err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+			res, err := tx.Exec(ctx, `UPDATE contacts SET tags = array_remove(tags, $2), updated_at = now() WHERE id = ANY ($1) AND $2 = ANY (tags)`, ids, tag[0])
+			if err != nil {
+				return err
+			}
+			out.Done = res.RowsAffected()
+			return s.Audit.LogWith(ctx, store.New(tx), audit.Event{WorkspaceID: &ws.ID, Action: "contacts.remove_tag", TargetType: "tag", TargetName: tag[0],
+				Metadata: map[string]any{"matched": out.Matched, "removed": out.Done, "filter": selectionMeta(in.Selection)}})
+		})
 	case "add_tag":
 		tag := cleanTags([]string{in.Tag})
 		if len(tag) == 0 {
@@ -182,37 +237,6 @@ func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, in ContactBulkI
 		if res.Already > 0 {
 			out.Note = mAlreadyNote.Text(lang, i18n.Args{"count": res.Already})
 		}
-	case "resend_optin":
-		rows, qerr := s.Pool.Query(ctx, `SELECT * FROM contacts WHERE id = ANY ($1) LIMIT 5000`, ids)
-		if qerr != nil {
-			return out, qerr
-		}
-		contacts, cerr := pgx.CollectRows(rows, pgx.RowToStructByName[store.Contact])
-		if cerr != nil {
-			return out, cerr
-		}
-		if s.Mail == nil || !s.Mail.SystemAvailable(ctx, &ws.ID) {
-			return out, api.Err(409, "no_system_provider", mNoSystemProvider.Text(lang, nil))
-		}
-		note := kept(mNoteConfirmSent, nil)
-		for _, c := range contacts {
-			sent, _, serr := s.sendConfirmation(ctx, ws, c)
-			if errors.Is(serr, ErrOptInCooldown) {
-				out.Failed++
-				out.Failures = appendFailure(out.Failures, c.Email, "cooldown", mFailCooldown.Text(lang, nil))
-				continue
-			}
-			if sent {
-				out.Done++
-				_ = s.Q.InsertConsentEvent(ctx, store.InsertConsentEventParams{ID: uuid.Must(uuid.NewV7()), ContactID: c.ID, Action: "optin_sent", Source: "team",
-					Note: note.English, Texts: KeptTexts(map[string]i18n.Text{"note": note.Text}), ActorID: actor, OccurredAt: s.now()})
-			} else {
-				out.Failed++
-				out.Failures = appendFailure(out.Failures, c.Email, "refused", mFailRefused.Text(lang, nil))
-			}
-		}
-		err = s.Audit.Log(ctx, audit.Event{WorkspaceID: &ws.ID, Action: "contacts.resend_optin", TargetType: "contact",
-			Metadata: map[string]any{"matched": out.Matched, "sent": out.Done, "failed": out.Failed}})
 	default:
 		return out, api.Invalid("body.action", mPickAction.Text(lang, nil))
 	}

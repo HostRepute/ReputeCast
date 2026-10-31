@@ -12,8 +12,14 @@
   "problem.eraseConfirm": { "message": "Type {n} to confirm erasing {n} contacts.", "note": "n: the number of contacts, which the person types to confirm" },
   "problem.smsConsentFilter": "Pick any, none or a list of this workspace.",
   "problem.viewName": "Give the view a name.",
+  "problem.cursor": "This page of the list is out of date. Go back to the first page.",
+  "problem.emailTaken": "{name} has this address already.",
+  "problem.emailSuppressed": "{email} is suppressed ({reason}). Remove it from Suppressions first.",
+  "note.emailChanged": { "message": "address corrected by the team, from {from}", "note": "a consent event's note: the team changed the contact's email address" },
+  "problem.viewColumn": "There's no column {column} to show.",
   "problem.filterList": "Pick a list from this workspace.",
   "problem.joinedAfter": "Use a date like 2026-09-01.",
+  "problem.filterImport": "That import isn't in this workspace.",
   "problem.filterSegment": "Pick a segment from this workspace.",
   "problem.notLanguageClosest": { "message": "{value} isn't a language. Did you mean {name} ({code})?", "note": "value: what was typed, in quotes; name and code: the closest language, like Spanish (es)" },
   "problem.notLanguage": { "message": "{value} isn't a language. Use a code such as es-MX, or a language's name such as Spanish.", "note": "value: what was typed, in quotes. Language names are read in English, so keep Spanish as is" },
@@ -100,8 +106,6 @@
   "reason.invalid": "Invalid address",
 
   "failure.suppressed": { "message": "on the suppression list ({reason}); needs a new opt-in", "note": "reason: a reason.* name in lower case, like hard bounce" },
-  "failure.refused": "the System provider refused the email",
-  "failure.cooldown": "a confirmation email went to this address in the last 10 minutes, or five went today",
   "note.alreadySuppressed": "{count, plural, other {# were already on the suppression list.}}",
 
   "source.preference_center": { "message": "the preference center", "note": "where a consent change came from, inside a sentence: Unsubscribed in the preference center" },
@@ -137,6 +141,7 @@
   "insight.attention": { "message": "{name} needs attention: check its bounce and complaint rates and what changed in recent sends to it.", "note": "name: a list's or saved view's name" },
 
   "note.addedByTeam": { "message": "added by the team", "note": "a consent event's note: a member added the contacts to a list" },
+  "note.removedByTeam": { "message": "removed by the team", "note": "a consent event's note: a member took the contacts off a list (not their unsubscribe)" },
   "note.confirmationSent": "confirmation sent via the System stream",
   "note.waitingConfirmation": "waiting for the confirmation click",
   "detail.frequencyAll": { "message": "every issue", "note": "how often a subscriber chose to get emails, in the preference center" },
@@ -146,5 +151,13 @@
   "detail.pauseLifted": "pause lifted",
   "context.unsubscribePage": "Unsubscribe page",
   "context.oneClick": "List-Unsubscribe one-click",
-  "context.csvUpload": { "message": "CSV upload · {file}", "note": "file: the uploaded file's name" }
+  "context.csvUpload": { "message": "CSV upload · {file}", "note": "file: the uploaded file's name" },
+  "job.exportTitle": "Export · {count, plural, one {# contact} other {# contacts}}",
+  "job.resendTitle": "Resend opt-in · {count, plural, one {# contact} other {# contacts}}",
+  "job.exportDone": "{count, plural, one {# row} other {# rows}}, ready to download for 7 days",
+  "job.resendSent": "Sent to {count, plural, one {# contact} other {# contacts}}",
+  "job.resendConfirmed": "{count, plural, other {# confirmed already}}",
+  "job.resendSuppressed": "{count, plural, other {# suppressed}}",
+  "job.resendCooldown": "{count, plural, other {# got one in the last 10 minutes}}",
+  "job.resendFailed": "{count, plural, other {# refused by the System provider}}"
 }

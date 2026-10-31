@@ -238,12 +238,25 @@ ORDER BY position, created_at, id;
 
 -- name: CreateSavedView :one
 INSERT INTO saved_views (id, workspace_id, user_id, name, filters, columns, position, show_in_health)
-VALUES (@id, @workspace_id, @user_id, @name, @filters, '{}',
+VALUES (@id, @workspace_id, @user_id, @name, @filters, @columns,
         (SELECT coalesce(max(position), 0) + 1 FROM saved_views WHERE workspace_id = @workspace_id), false)
 RETURNING *;
 
 -- name: GetSavedView :one
 SELECT * FROM saved_views WHERE workspace_id = @workspace_id AND id = @id;
+
+-- name: UpdateSavedView :one
+-- A rename, new filters or columns (review 2026-11 AU-8, AU-9); new filters
+-- are counted again.
+UPDATE saved_views
+SET name = @name, filters = @filters, columns = @columns, updated_at = @at,
+    stats = CASE WHEN filters = @filters THEN stats END,
+    counted_at = CASE WHEN filters = @filters THEN counted_at END
+WHERE workspace_id = @workspace_id AND id = @id
+RETURNING *;
+
+-- name: SavedViewCounted :exec
+UPDATE saved_views SET stats = @stats, counted_at = @at WHERE id = @id;
 
 -- name: DeleteSavedView :execrows
 DELETE FROM saved_views WHERE workspace_id = @workspace_id AND id = @id;
@@ -379,3 +392,36 @@ SELECT w.id, w.slug, w.timezone, w.sunset_policy, s.tiers_computed_at
 FROM workspaces w
 LEFT JOIN audience_state s ON s.workspace_id = w.id
 WHERE w.deleted_at IS NULL;
+
+-- name: AudienceJobInsert :one
+INSERT INTO audience_jobs (id, workspace_id, kind, selection, actor, created_by, total, created_at)
+VALUES (@id, @workspace_id, @kind, @selection, @actor, sqlc.narg(created_by), @total, @at)
+RETURNING *;
+
+-- name: AudienceJobGet :one
+SELECT * FROM audience_jobs WHERE workspace_id = @workspace_id AND id = @id;
+
+-- name: AudienceJobForWork :one
+SELECT * FROM audience_jobs WHERE id = @id FOR UPDATE SKIP LOCKED;
+
+-- name: AudienceJobStarted :exec
+UPDATE audience_jobs SET status = 'running', started_at = coalesce(started_at, @at::timestamptz) WHERE id = @id;
+
+-- name: AudienceJobProgress :exec
+UPDATE audience_jobs SET done = @done, after_id = @after_id, result = @result, file_key = @file_key WHERE id = @id;
+
+-- name: AudienceJobFinished :exec
+UPDATE audience_jobs SET status = @status, done = @done, result = @result, error = @error, finished_at = @at::timestamptz,
+    expires_at = sqlc.narg(expires_at) WHERE id = @id;
+
+-- name: AudienceJobsRecent :many
+-- The jobs tray: running ones, and those that ended in the last two hours.
+SELECT * FROM audience_jobs
+WHERE workspace_id = @workspace_id AND (status IN ('queued', 'running') OR finished_at > @ended_after::timestamptz)
+ORDER BY created_at DESC LIMIT 20;
+
+-- name: AudienceJobsExpired :many
+SELECT id, file_key FROM audience_jobs WHERE file_key <> '' AND expires_at < @now::timestamptz;
+
+-- name: AudienceJobFileGone :exec
+UPDATE audience_jobs SET file_key = '' WHERE id = @id;
