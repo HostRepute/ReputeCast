@@ -4,6 +4,7 @@ import { m as scoring } from '@/features/scoring/messages'
 import { useT } from '@/i18n'
 import { count } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
+import { m as lf } from './listsfields.messages'
 import { m } from './messages'
 
 /** The audience summary behind the tabs and the empty state. */
@@ -13,9 +14,10 @@ export function useAudienceSummary() {
 }
 
 /**
- * Contacts · Segments · List health · Suppression list, inline after the
- * screen title. Counts appear once the summary has loaded (and not at all
- * while the workspace has no contacts, as on the empty-state board).
+ * Contacts · Segments · Lists & fields · List health · Suppression list,
+ * inline after the screen title. Counts appear once the summary has loaded
+ * (and not at all while the workspace has no contacts, as on the empty-state
+ * board).
  */
 export function AudienceTabs() {
   const { slug } = useWorkspace()
@@ -30,6 +32,7 @@ export function AudienceTabs() {
       tabs={[
         { label: show ? t(m.tabContactsCount, { count: count(s.contacts) }) : t(m.tabContacts), to: '/w/$workspace/audience', params: { workspace: slug }, exact: true },
         { label: show ? t(m.tabSegmentsCount, { count: count(s.segments) }) : t(m.tabSegments), to: '/w/$workspace/audience/segments', params: { workspace: slug } },
+        { label: t(lf.tab), to: '/w/$workspace/audience/lists', params: { workspace: slug } },
         { label: t(m.tabHealth), to: '/w/$workspace/audience/health', params: { workspace: slug } },
         // Scoring and Growth (X13).
         { label: t(scoring.tabScoring), to: '/w/$workspace/audience/scoring', params: { workspace: slug } },

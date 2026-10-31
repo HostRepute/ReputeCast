@@ -151,6 +151,9 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 .ubtn .av{border-radius:50%;font-weight:700}
 .ws .av{font-weight:700}
 /* switches: a disabled switch looks disabled */
+input[type=checkbox].tg{appearance:none;-webkit-appearance:none;width:40px;height:24px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tg::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff}
+input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:checked::after{left:18px}
 .tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
 
 /* phones: every top-bar target is at least 44px (tabs, links, fields, buttons, the bell and the account menu) */
@@ -221,7 +224,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
         </section>
 
         <section class="card" style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column">
-          <div style="padding:14px 18px;border-bottom:1px solid #EEF0F3;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><h2 class="h2">Sunset policy</h2><span class="badge ok"><span class="dot"></span>On since 1 Sep</span></div>
+          <div style="padding:14px 18px;border-bottom:1px solid #EEF0F3;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><h2 class="h2">Sunset policy</h2><label style="display:flex;align-items:center;gap:10px;font-size:13px"><span class="badge ok"><span class="dot"></span>On since 1 Sep</span><input type="checkbox" class="tg" role="switch" checked aria-label="Sunset policy on"></label></div>
           <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px">
             <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
               <label class="lbl">Active until<input class="in" value="30 days without an open"></label>
@@ -230,8 +233,8 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
               <label class="lbl">Count machine opens?<select class="in"><option>No, human opens and clicks only</option><option>Yes</option></select></label>
             </div>
             <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px"><input type="checkbox" checked style="margin-top:3px"><span>Send one re-engagement email when a contact enters Sunset <span class="k">· automation "Re-engagement" · 18.4% win back so far</span></span></label>
-            <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px"><input type="checkbox" checked style="margin-top:3px"><span>Stop sending Broadcasts 30 days after that if there's still no open <span class="k">· Automations and System mail continue</span></span></label>
-            <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px"><input type="checkbox" style="margin-top:3px"><span>Delete the contact after 12 months in Sunset <span class="k">· off; GDPR retention is handled in Settings</span></span></label>
+            <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px"><input type="checkbox" checked style="margin-top:3px"><span>Stop sending Broadcasts <input class="in" value="30" aria-label="Days after entering Sunset" style="width:56px;display:inline-block;padding:2px 6px;height:26px"> days after that if there's still no open <span class="k">· Automations and System mail continue</span></span></label>
+            <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px"><input type="checkbox" style="margin-top:3px"><span>Erase the contact after <input class="in" value="12" aria-label="Months in Sunset" style="width:56px;display:inline-block;padding:2px 6px;height:26px"> months in Sunset <span class="k">· off; turning it on shows how many contacts the first run erases and asks you to type ERASE</span></span></label>
             <div style="display:flex;gap:8px"><button class="btn sm pri">Save policy</button><a href="AutomationFlow.dc.html" class="btn sm">Edit re-engagement flow</a></div>
           </div>
           <div style="padding:12px 18px;border-top:1px solid #EEF0F3;background:#FFFBEB;border-radius:0 0 10px 10px;font-size:13px"><strong>This week:</strong> 1,204 contacts enter Sunset on Wednesday and get the re-engagement email; 893 who didn't respond last month stop receiving Broadcasts on Friday.</div>

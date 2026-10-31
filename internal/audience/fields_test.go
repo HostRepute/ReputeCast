@@ -158,10 +158,15 @@ func TestSunsetErasingNeedsTheDryRun(t *testing.T) {
 	if !saved.DeleteAfter || saved.ConfirmErase != "" {
 		t.Fatalf("saved: %+v", saved)
 	}
-	// Already on: changing the months needs no new word; off is off.
+	// Already on: waiting longer needs no new word, erasing sooner does;
+	// off is off.
 	delete(policy, "confirmErase")
 	policy["deleteAfterMonths"] = 18
 	c.Do(http.MethodPut, base+"/audience/sunset-policy", policy).MustStatus(t, 200)
+	policy["deleteAfterMonths"] = 1
+	if p := c.Do(http.MethodPut, base+"/audience/sunset-policy", policy).MustStatus(t, 409).Problem(t); p["meta"].(map[string]any)["erase"] != float64(20) {
+		t.Fatalf("sooner: %v", p)
+	}
 	policy["enabled"] = false
 	var off struct{ Enabled bool }
 	c.Do(http.MethodPut, base+"/audience/sunset-policy", policy).MustStatus(t, 200).JSON(t, &off)
@@ -187,13 +192,14 @@ func TestRemoveASuppressionUpload(t *testing.T) {
 	}
 	var list struct {
 		Items []struct {
-			ID, ImportID, Address string
-			Group, Upload         bool
-			Rows                  int64
+			ID, ImportID, Address, UploadedBy string
+			Group, Upload                     bool
+			Rows                              int64
 		}
 	}
 	c.Do(http.MethodGet, base+"/suppressions", nil).MustStatus(t, 200).JSON(t, &list)
-	if len(list.Items) != 1 || !list.Items[0].Group || !list.Items[0].Upload || list.Items[0].Rows != 3 || list.Items[0].Address != "blocklist-oct.csv" {
+	if len(list.Items) != 1 || !list.Items[0].Group || !list.Items[0].Upload || list.Items[0].Rows != 3 || list.Items[0].Address != "blocklist-oct.csv" ||
+		list.Items[0].UploadedBy == "" {
 		t.Fatalf("the upload's row: %+v", list.Items)
 	}
 	upload := list.Items[0].ImportID

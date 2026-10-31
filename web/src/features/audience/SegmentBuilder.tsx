@@ -26,6 +26,8 @@ import { m as am } from './messages'
 import { m } from './segments.messages'
 import './audience.css'
 import { SignedInWhen } from '@/features/website/elsewhere'
+import { TargetVerify } from '@/features/verification/HealthEntry'
+import { m as vm } from '@/features/verification/messages'
 
 type Catalog = Schemas['SegmentCatalog']
 type CatalogField = Schemas['SegmentCatalogField']
@@ -701,6 +703,9 @@ function LiveCount({
         <ButtonLink size="sm" variant="primary" to="/w/$workspace/campaigns/new" params={{ workspace: slug }}>
           {t(m.useInCampaign)}
         </ButtonLink>
+        {segmentId !== 'new' ? (
+          <TargetVerify target={{ kind: 'segment', segmentId }} origin="segments" from={t(vm.fromSegments, { name: detail?.name ?? name })} />
+        ) : null}
       </div>
     </section>
   )

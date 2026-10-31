@@ -88,9 +88,11 @@ type SuppressionItem struct {
 	ImportID string `json:"importId,omitempty"`
 	// Upload is set when the group is a CSV upload (ImportID is then the
 	// upload's id), which can be removed whole (review 2026-11 AU-14).
-	Upload  bool              `json:"upload,omitempty"`
-	Reasons []string          `json:"reasons"`
-	Source  SuppressionSource `json:"source"`
+	Upload bool `json:"upload,omitempty"`
+	// UploadedBy names who uploaded a CSV group, for "uploaded by Linh".
+	UploadedBy string            `json:"uploadedBy,omitempty"`
+	Reasons    []string          `json:"reasons"`
+	Source     SuppressionSource `json:"source"`
 	// OriginalCode is the provider's code ("550 5.1.1 user unknown") or a note.
 	OriginalCode string    `json:"originalCode"`
 	At           time.Time `json:"at"`
@@ -301,6 +303,7 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 		if it.Upload {
 			// A CSV upload: its file, by whom.
 			fileName, source, userName = uploadFile, "csv", uploader
+			it.UploadedBy = uploader
 		}
 		marks = append(marks, contactCursor{Sort: "suppressions", Values: []any{cursorValue(it.At)}, ID: id})
 		it.OriginalCode, it.Context = KeptIn(l, texts, "original_code", it.OriginalCode), suppressions.DetailIn(l, KeptIn(l, texts, "context", it.Context))

@@ -8,6 +8,8 @@ import { toast } from '@/components/ui/Toast'
 import { formatList, useT } from '@/i18n'
 import { shortDate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
+import { m as lf } from '@/features/audience/listsfields.messages'
+import { UsesList } from '@/features/audience/UsesList'
 import { m } from './messages'
 
 type Usage = Schemas['VisibilityUsage']
@@ -70,6 +72,14 @@ export function DeleteSegmentButton({ segmentId, name }: { segmentId: string; na
   const usage = useVisibilityUsage('segment', segmentId, open)
   const u = usage.data
   const e = u?.emails[0]
+  // Campaigns, digests, automations, views and segments built on it (AU-11).
+  const impact = $api.useQuery(
+    'get',
+    '/api/v1/workspaces/{workspace}/segments/{segment}/impact',
+    { params: { path: { workspace: slug, segment: segmentId } } },
+    { enabled: open && segmentId !== 'new' },
+  )
+  const uses = impact.data?.uses ?? []
   if (segmentId === 'new') return null
   return (
     <>
@@ -109,7 +119,14 @@ export function DeleteSegmentButton({ segmentId, name }: { segmentId: string; na
           toast({ kind: 'success', title: t(m.segmentDeleted, { name }) })
           void navigate({ to: '/w/$workspace/audience/segments', params: { workspace: slug } })
         }}
-      />
+      >
+        {uses.length ? (
+          <div className="flex flex-col gap-2">
+            <span className="text-[13px]">{t(lf.usedIn)}</span>
+            <UsesList uses={uses} />
+          </div>
+        ) : null}
+      </ConfirmDialog>
     </>
   )
 }

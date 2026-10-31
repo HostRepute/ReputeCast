@@ -189,8 +189,11 @@ func (s *Service) SavePolicy(ctx context.Context, ws *store.Workspace, p SunsetP
 		return p, err
 	}
 	before := ParsePolicy(ws.SunsetPolicy)
-	// Turning erasing on needs the typed word after the dry run.
-	if p.Enabled && p.DeleteAfter && (!before.Enabled || !before.DeleteAfter) && strings.TrimSpace(p.ConfirmErase) != "ERASE" {
+	// Turning erasing on, or erasing sooner than before, needs the typed
+	// word after the dry run.
+	wasErasing := before.Enabled && before.DeleteAfter
+	sooner := wasErasing && p.DeleteAfterMonths < before.DeleteAfterMonths
+	if p.Enabled && p.DeleteAfter && (!wasErasing || sooner) && strings.TrimSpace(p.ConfirmErase) != "ERASE" {
 		dry, err := s.SunsetDryRun(ctx, ws, p.DeleteAfterMonths)
 		if err != nil {
 			return p, err
