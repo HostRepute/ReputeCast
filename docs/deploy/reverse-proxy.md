@@ -45,6 +45,8 @@ server {
     # template archives); product files go up in 4 MB chunks.
     client_max_body_size 110m;
 
+    # /metrics lives on its own port (9464); never proxy that one. The main
+    # listener answers /metrics with 404 unless a metrics token is set.
     location / {
         proxy_pass http://127.0.0.1:8080;
         proxy_http_version 1.1;

@@ -31,3 +31,31 @@ func TestPublicURLName(t *testing.T) {
 		t.Errorf("both set: the documented name wins, got %q", c.HTTP.PublicURL)
 	}
 }
+
+// DP-7: /metrics has its own listener by default, and a bearer token for the
+// main listener must be long enough to guess-proof.
+func TestMetricsDefaults(t *testing.T) {
+	c, err := Load("", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.Metrics.Enabled || c.Metrics.Addr != ":9464" || c.Metrics.Token != "" {
+		t.Fatalf("metrics defaults = %+v", c.Metrics)
+	}
+	t.Setenv("REPUTECAST_METRICS__TOKEN", "short")
+	c, err = Load("", nil)
+	if err == nil {
+		err = c.Validate()
+	}
+	if err == nil {
+		t.Fatal("a 5-character metrics token passed validation")
+	}
+	t.Setenv("REPUTECAST_METRICS__TOKEN", "0123456789abcdef")
+	c, err = Load("", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Validate(); err != nil {
+		t.Fatalf("a 16-character token: %v", err)
+	}
+}

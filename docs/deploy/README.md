@@ -126,5 +126,25 @@ need the same uploaded files folder.
 
 - `/healthz`: liveness.
 - `/readyz`: the database is reachable.
-- `/metrics`: Prometheus metrics, on the main listener or on a separate
-  address (`REPUTECAST_METRICS__ADDR`).
+- `/metrics`: Prometheus metrics on their own listener, `:9464` by default
+  (`REPUTECAST_METRICS__ADDR`). Don't publish that port or proxy it. To
+  scrape the main listener instead, set `REPUTECAST_METRICS__TOKEN` and send
+  it as a bearer token:
+
+  ```yaml
+  scrape_configs:
+    - job_name: reputecast
+      authorization:
+        credentials: <the token>
+      static_configs:
+        - targets: ["news.example.com:443"]
+      scheme: https
+  ```
+
+  Without a token the main listener answers `/metrics` with 404. Earlier
+  versions served `/metrics` openly on the main listener: when you upgrade,
+  point Prometheus at port 9464 or set a token.
+
+Several processes started with `--auto-migrate` take turns: one runs the
+migrations while the others wait for it (up to 15 minutes). Migrations need
+a direct or session-mode connection, not PgBouncer in transaction mode.

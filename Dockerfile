@@ -31,7 +31,7 @@ ENV REPUTECAST_HTTP__ADDR=:8080 \
     REPUTECAST_SECRETS__KEY_FILE=/var/lib/reputecast/secret.key \
     REPUTECAST_LOG__FORMAT=json
 VOLUME ["/var/lib/reputecast"]
-EXPOSE 8080
+EXPOSE 8080 9464
 USER nonroot:nonroot
 ENTRYPOINT ["/usr/local/bin/reputecast"]
 CMD ["serve", "--auto-migrate", "--auto-install"]

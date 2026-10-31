@@ -182,6 +182,37 @@ func NewFrom(t testing.TB, template string) *pgxpool.Pool {
 	return pool
 }
 
+// Empty creates an empty database (no migrations) and returns its URL; it
+// is dropped when the test ends. For tests of migrating itself.
+func Empty(t testing.TB) string {
+	t.Helper()
+	if testing.Short() {
+		t.Skip("integration test: needs Postgres (run without -short)")
+	}
+	once.Do(setup)
+	if initErr != nil {
+		t.Fatalf("testdb: %v", initErr)
+	}
+	ctx := context.Background()
+	name := owned("rc_test_empty")
+	admin, err := pgx.Connect(ctx, withDB(baseURL, "postgres"))
+	if err != nil {
+		t.Fatalf("testdb connect: %v", err)
+	}
+	defer func() { _ = admin.Close(ctx) }()
+	if _, err := admin.Exec(ctx, `CREATE DATABASE `+name); err != nil {
+		t.Fatalf("testdb create: %v", err)
+	}
+	t.Cleanup(func() {
+		a, err := pgx.Connect(context.Background(), withDB(baseURL, "postgres"))
+		if err == nil {
+			_, _ = a.Exec(context.Background(), `DROP DATABASE IF EXISTS `+name+` WITH (FORCE)`)
+			_ = a.Close(context.Background())
+		}
+	})
+	return withDB(baseURL, name)
+}
+
 // Template builds a database on top of the migrated template with fill
 // (the demo data, say) and returns its name for NewFrom. Call it once per
 // test binary: cloning is a few milliseconds where filling may take seconds.
