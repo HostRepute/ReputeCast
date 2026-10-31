@@ -124,6 +124,8 @@ export const entries: Entry[] = [
   { board: 'ListHealth', path: `${ws}/audience/health` },
   { board: 'Suppressions', path: `${ws}/audience/suppressions` },
   { board: 'AudienceStates', manual: true },
+  { board: 'ContactsAtScale', manual: true },
+  { board: 'AudienceListsFields', path: `${ws}/audience/lists` },
   { board: 'MigrationSource', path: `${ws}/import` },
   { board: 'MigrationFields', path: `${ws}/import/{import:draft}/fields` },
   { board: 'MigrationConsent', path: `${ws}/import/{import:draft}/consent` },

@@ -370,6 +370,16 @@ type Querier interface {
 	// Audience: lists, custom fields, contacts, consent, saved views,
 	// suppressions and the daily rollups behind List health.
 	AudienceCounts(ctx context.Context, workspaceID uuid.UUID) (AudienceCountsRow, error)
+	AudienceJobFileGone(ctx context.Context, id uuid.UUID) error
+	AudienceJobFinished(ctx context.Context, arg AudienceJobFinishedParams) error
+	AudienceJobForWork(ctx context.Context, id uuid.UUID) (AudienceJob, error)
+	AudienceJobGet(ctx context.Context, arg AudienceJobGetParams) (AudienceJob, error)
+	AudienceJobInsert(ctx context.Context, arg AudienceJobInsertParams) (AudienceJob, error)
+	AudienceJobProgress(ctx context.Context, arg AudienceJobProgressParams) error
+	AudienceJobStarted(ctx context.Context, arg AudienceJobStartedParams) error
+	AudienceJobsExpired(ctx context.Context, now time.Time) ([]AudienceJobsExpiredRow, error)
+	// The jobs tray: running ones, and those that ended in the last two hours.
+	AudienceJobsRecent(ctx context.Context, arg AudienceJobsRecentParams) ([]AudienceJob, error)
 	AuditLogActionGroups(ctx context.Context, workspaceID *uuid.UUID) ([]AuditLogActionGroupsRow, error)
 	// Actors seen in the workspace log, for the actor filter.
 	AuditLogActors(ctx context.Context, workspaceID *uuid.UUID) ([]AuditLogActorsRow, error)
@@ -3461,6 +3471,7 @@ type Querier interface {
 	// Workspaces and their roles, for the JIT default and group mapping pickers.
 	SSOWorkspaceRoles(ctx context.Context) ([]SSOWorkspaceRolesRow, error)
 	SaveComposerContent(ctx context.Context, arg SaveComposerContentParams) error
+	SavedViewCounted(ctx context.Context, arg SavedViewCountedParams) error
 	// 30-day sums per list or followed view.
 	ScopeTotalsSince(ctx context.Context, arg ScopeTotalsSinceParams) ([]ScopeTotalsSinceRow, error)
 	// API events sent in the last 30 days, with how many: the rule editor
@@ -4575,6 +4586,9 @@ type Querier interface {
 	UpdateMemberRole(ctx context.Context, arg UpdateMemberRoleParams) (WorkspaceMember, error)
 	UpdatePasskeyAfterUse(ctx context.Context, arg UpdatePasskeyAfterUseParams) error
 	UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, error)
+	// A rename, new filters or columns (review 2026-11 AU-8, AU-9); new filters
+	// are counted again.
+	UpdateSavedView(ctx context.Context, arg UpdateSavedViewParams) (SavedView, error)
 	UpdateSegment(ctx context.Context, arg UpdateSegmentParams) (Segment, error)
 	UpdateSocialProviders(ctx context.Context, arg UpdateSocialProvidersParams) (InstanceSetting, error)
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error)

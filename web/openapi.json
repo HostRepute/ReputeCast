@@ -10049,6 +10049,103 @@
         ],
         "type": "object"
       },
+      "AudienceJob": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "done": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "downloadUrl": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "finishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "export",
+              "resend_optin"
+            ],
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/AudienceJobResult"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "failed"
+            ],
+            "type": "string"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "total",
+          "done",
+          "result",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "AudienceJobResult": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed": {
+            "description": "Skipped: confirmed already",
+            "format": "int64",
+            "type": "integer"
+          },
+          "cooldown": {
+            "description": "Skipped: got one in the last 10 minutes, or five today",
+            "format": "int64",
+            "type": "integer"
+          },
+          "failed": {
+            "description": "The System provider refused the email",
+            "format": "int64",
+            "type": "integer"
+          },
+          "rows": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "suppressed": {
+            "description": "Skipped: on the suppression list",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "AudienceListInput": {
         "additionalProperties": false,
         "properties": {
@@ -22230,7 +22327,9 @@
           "action": {
             "enum": [
               "add_to_list",
+              "remove_from_list",
               "add_tag",
+              "remove_tag",
               "resend_optin",
               "suppress"
             ],
@@ -22250,7 +22349,7 @@
             "type": "array"
           },
           "listId": {
-            "description": "For add_to_list",
+            "description": "For add_to_list and remove_from_list",
             "type": "string"
           },
           "reason": {
@@ -22259,7 +22358,7 @@
             "type": "string"
           },
           "tag": {
-            "description": "For add_tag",
+            "description": "For add_tag and remove_tag",
             "maxLength": 60,
             "type": "string"
           }
@@ -22289,6 +22388,9 @@
               "$ref": "#/components/schemas/ContactBulkFailure"
             },
             "type": "array"
+          },
+          "jobId": {
+            "type": "string"
           },
           "matched": {
             "format": "int64",
@@ -22443,7 +22545,15 @@
             "maxLength": 200,
             "type": "string"
           },
+          "import": {
+            "maxLength": 40,
+            "type": "string"
+          },
           "joinedAfter": {
+            "maxLength": 10,
+            "type": "string"
+          },
+          "joinedBefore": {
             "maxLength": 10,
             "type": "string"
           },
@@ -22526,7 +22636,10 @@
           "sort": {
             "enum": [
               "activity",
-              "score"
+              "score",
+              "joined",
+              "last_open",
+              "email"
             ],
             "type": "string"
           },
@@ -22709,6 +22822,9 @@
             },
             "type": "array"
           },
+          "nextCursor": {
+            "type": "string"
+          },
           "page": {
             "format": "int64",
             "type": "integer"
@@ -22717,9 +22833,15 @@
             "format": "int64",
             "type": "integer"
           },
+          "prevCursor": {
+            "type": "string"
+          },
           "total": {
             "format": "int64",
             "type": "integer"
+          },
+          "totalCapped": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -22801,6 +22923,10 @@
           },
           "email": {
             "type": "string"
+          },
+          "fields": {
+            "additionalProperties": {},
+            "type": "object"
           },
           "id": {
             "type": "string"
@@ -23327,9 +23453,19 @@
       "ContactSavedView": {
         "additionalProperties": false,
         "properties": {
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "count": {
             "format": "int64",
             "type": "integer"
+          },
+          "countedAt": {
+            "format": "date-time",
+            "type": "string"
           },
           "filters": {
             "$ref": "#/components/schemas/ContactFilter"
@@ -23349,6 +23485,7 @@
           "name",
           "filters",
           "count",
+          "columns",
           "shared"
         ],
         "type": "object"
@@ -23733,6 +23870,10 @@
             "maxLength": 2,
             "type": "string"
           },
+          "email": {
+            "maxLength": 254,
+            "type": "string"
+          },
           "fields": {
             "additionalProperties": {},
             "description": "Custom field key → value; null clears it",
@@ -23864,6 +24005,13 @@
       "ContactViewInput": {
         "additionalProperties": false,
         "properties": {
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
           "filters": {
             "$ref": "#/components/schemas/ContactFilter"
           },
@@ -23880,6 +24028,27 @@
           "name",
           "filters"
         ],
+        "type": "object"
+      },
+      "ContactViewUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/ContactFilter"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "ContentCheckFix": {
@@ -35930,6 +36099,9 @@
           "detail": {
             "type": "string"
           },
+          "downloadUrl": {
+            "type": "string"
+          },
           "eta": {
             "type": "string"
           },
@@ -35946,7 +36118,9 @@
           "kind": {
             "enum": [
               "import",
-              "verification"
+              "verification",
+              "export",
+              "optin"
             ],
             "type": "string"
           },
@@ -36196,6 +36370,10 @@
               "type": "integer"
             },
             "type": "array"
+          },
+          "tag": {
+            "maxLength": 60,
+            "type": "string"
           }
         },
         "required": [
@@ -36544,6 +36722,10 @@
           },
           "recordHistory": {
             "type": "boolean"
+          },
+          "tag": {
+            "maxLength": 60,
+            "type": "string"
           }
         },
         "required": [
@@ -83188,9 +83370,12 @@
             "type": "array"
           },
           "matching": {
-            "description": "Addresses matching the filter",
+            "description": "Addresses matching the filter; at most 10,000 unless exact",
             "format": "int64",
             "type": "integer"
+          },
+          "nextCursor": {
+            "type": "string"
           },
           "page": {
             "format": "int64",
@@ -83199,6 +83384,9 @@
           "pageSize": {
             "format": "int64",
             "type": "integer"
+          },
+          "prevCursor": {
+            "type": "string"
           },
           "sources": {
             "items": {
@@ -83213,9 +83401,12 @@
             "type": "array"
           },
           "total": {
-            "description": "Rows matching, groups counted once",
+            "description": "Rows matching, groups counted once; at most 10,000 unless exact",
             "format": "int64",
             "type": "integer"
+          },
+          "totalCapped": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -125273,11 +125464,35 @@
             }
           },
           {
+            "description": "Joined on or after this day (2026-09-01), in the workspace's time zone",
             "explode": false,
             "in": "query",
             "name": "joinedAfter",
             "schema": {
+              "description": "Joined on or after this day (2026-09-01), in the workspace's time zone",
               "maxLength": 10,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Joined on or before this day, in the workspace's time zone",
+            "explode": false,
+            "in": "query",
+            "name": "joinedBefore",
+            "schema": {
+              "description": "Joined on or before this day, in the workspace's time zone",
+              "maxLength": 10,
+              "type": "string"
+            }
+          },
+          {
+            "description": "An import's id: the contacts it brought in",
+            "explode": false,
+            "in": "query",
+            "name": "import",
+            "schema": {
+              "description": "An import's id: the contacts it brought in",
+              "maxLength": 40,
               "type": "string"
             }
           },
@@ -125396,6 +125611,9 @@
               "enum": [
                 "activity",
                 "score",
+                "joined",
+                "last_open",
+                "email",
                 ""
               ],
               "type": "string"
@@ -125541,11 +125759,24 @@
             }
           },
           {
+            "description": "nextCursor or prevCursor of the page before; pages in constant time",
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "description": "nextCursor or prevCursor of the page before; pages in constant time",
+              "maxLength": 600,
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number from the start, when there is no cursor",
             "explode": false,
             "in": "query",
             "name": "page",
             "schema": {
               "default": 1,
+              "description": "A page number from the start, when there is no cursor",
               "format": "int64",
               "minimum": 1,
               "type": "integer"
@@ -125561,6 +125792,27 @@
               "maximum": 100,
               "minimum": 1,
               "type": "integer"
+            }
+          },
+          {
+            "description": "Count past 10,000 (slower on large audiences)",
+            "explode": false,
+            "in": "query",
+            "name": "exact",
+            "schema": {
+              "description": "Count past 10,000 (slower on large audiences)",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Custom field keys, comma-separated (at most 10), whose values each row carries",
+            "explode": false,
+            "in": "query",
+            "name": "fields",
+            "schema": {
+              "description": "Custom field keys, comma-separated (at most 10), whose values each row carries",
+              "maxLength": 600,
+              "type": "string"
             }
           }
         ],
@@ -125594,7 +125846,7 @@
             "bearer": []
           }
         ],
-        "summary": "List contacts, most recent activity first",
+        "summary": "List contacts, most recent activity first (or the order asked for)",
         "tags": [
           "Audience"
         ],
@@ -125880,6 +126132,199 @@
           }
         ],
         "summary": "Export contacts as CSV (logged)",
+        "tags": [
+          "Audience"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:export"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/contacts/jobs/export": {
+      "post": {
+        "description": "For any number of contacts: the file is written in the background (the jobs tray follows it) and kept 7 days for whoever started it. Needs subscribers:export; starting, finishing and each download are audited.",
+        "operationId": "start-contacts-export",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactExportInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudienceJob"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Export contacts in the background (logged)",
+        "tags": [
+          "Audience"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:export"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/contacts/jobs/{id}": {
+      "get": {
+        "operationId": "get-contacts-job",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudienceJob"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A background export or resend: its progress and what it did",
+        "tags": [
+          "Audience"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/contacts/jobs/{id}/download": {
+      "get": {
+        "operationId": "download-contacts-export",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download a finished export (its starter only, logged)",
         "tags": [
           "Audience"
         ],
@@ -126196,6 +126641,81 @@
           }
         ],
         "summary": "Delete a saved view",
+        "tags": [
+          "Audience"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:edit"
+      },
+      "patch": {
+        "description": "A personal view is its creator's only. Audited as contact_view.update.",
+        "operationId": "update-contact-view",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactViewUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactSavedView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename a saved view, or save new filters or columns in it",
         "tags": [
           "Audience"
         ],
@@ -127417,6 +127937,75 @@
         ],
         "x-access": "workspace",
         "x-permission": "subscribers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/contacts/{contact}/lists/{list}": {
+      "delete": {
+        "description": "Recorded in the contact's history as removed by the team; audited.",
+        "operationId": "remove-contact-from-list",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "contact",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "list",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take a contact off a list (the team's change, not an unsubscribe)",
+        "tags": [
+          "Audience"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:edit"
       }
     },
     "/api/v1/workspaces/{workspace}/contacts/{contact}/preference-link": {
@@ -168750,11 +169339,24 @@
             }
           },
           {
+            "description": "nextCursor or prevCursor of the page before",
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "description": "nextCursor or prevCursor of the page before",
+              "maxLength": 600,
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number from the start, when there is no cursor",
             "explode": false,
             "in": "query",
             "name": "page",
             "schema": {
               "default": 1,
+              "description": "A page number from the start, when there is no cursor",
               "format": "int64",
               "minimum": 1,
               "type": "integer"
@@ -168770,6 +169372,16 @@
               "maximum": 100,
               "minimum": 1,
               "type": "integer"
+            }
+          },
+          {
+            "description": "Count past 10,000",
+            "explode": false,
+            "in": "query",
+            "name": "exact",
+            "schema": {
+              "description": "Count past 10,000",
+              "type": "boolean"
             }
           }
         ],

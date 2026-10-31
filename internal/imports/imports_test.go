@@ -163,6 +163,7 @@ func TestCSVImport(t *testing.T) {
 	}
 	c.Do(http.MethodPut, base+"/imports/"+id+"/consent", map[string]any{
 		"map": map[string]string{"subscribed": "confirmed", "pending": "pending", "transactional": "skip"}, "evidence": "trust", "pullSuppressions": false, "recordHistory": true,
+		"tag": " CSV-2026 ",
 	}).MustStatus(t, 200)
 
 	var p struct {
@@ -214,6 +215,12 @@ func TestCSVImport(t *testing.T) {
 	}
 	if cara.Company != "Cara Co" {
 		t.Errorf("merge didn't fill the empty company: %q", cara.Company)
+	}
+	// Review 2026-11 AU-10: every row it brought in, merged ones included,
+	// carries the import's tag.
+	var tagged int
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM contacts WHERE workspace_id = $1 AND 'csv-2026' = ANY (tags)`, ws.ID).Scan(&tagged); err != nil || int64(tagged) != s.Imported+s.Merged {
+		t.Errorf("tagged %d, want %d (%v)", tagged, s.Imported+s.Merged, err)
 	}
 	var src string
 	if err := env.App.Pool.QueryRow(ctx, `SELECT source FROM suppressions WHERE workspace_id = $1 AND email = 'ben@gmail.com'`, ws.ID).Scan(&src); err != nil {

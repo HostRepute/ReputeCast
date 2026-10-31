@@ -3,7 +3,9 @@ package audience
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -35,9 +37,12 @@ type contactsQuery struct {
 	Source      string `query:"source" maxLength:"80"`
 	Tag         string `query:"tag" maxLength:"80"`
 	Segment     string `query:"segment" doc:"Segment id"`
-	JoinedAfter string `query:"joinedAfter" maxLength:"10"`
-	Check       string `query:"check" enum:"valid,invalid,risky,unknown,never," doc:"The latest address check's result"`
-	Language    string `query:"language" maxLength:"16" doc:"A workspace language's code (es also matches es-MX), none or not_offered"`
+	JoinedAfter string `query:"joinedAfter" maxLength:"10" doc:"Joined on or after this day (2026-09-01), in the workspace's time zone"`
+	// JoinedBefore and Import: review 2026-11 AU-10.
+	JoinedBefore string `query:"joinedBefore" maxLength:"10" doc:"Joined on or before this day, in the workspace's time zone"`
+	Import       string `query:"import" maxLength:"40" doc:"An import's id: the contacts it brought in"`
+	Check        string `query:"check" enum:"valid,invalid,risky,unknown,never," doc:"The latest address check's result"`
+	Language     string `query:"language" maxLength:"16" doc:"A workspace language's code (es also matches es-MX), none or not_offered"`
 	ScoreGrowthQuery
 	WebsiteQuery
 	PaidQuery
@@ -45,14 +50,44 @@ type contactsQuery struct {
 	ProductsQuery
 	StoreQuery
 	ChannelQuery
-	Page     int `query:"page" minimum:"1" default:"1"`
-	PageSize int `query:"pageSize" minimum:"1" maximum:"100" default:"10"`
+	Cursor   string `query:"cursor" maxLength:"600" doc:"nextCursor or prevCursor of the page before; pages in constant time"`
+	Page     int    `query:"page" minimum:"1" default:"1" doc:"A page number from the start, when there is no cursor"`
+	PageSize int    `query:"pageSize" minimum:"1" maximum:"100" default:"10"`
+	Exact    bool   `query:"exact" doc:"Count past 10,000 (slower on large audiences)"`
+	Fields   string `query:"fields" maxLength:"600" doc:"Custom field keys, comma-separated (at most 10), whose values each row carries"`
+}
+
+// fieldKeys reads the fields parameter: up to ten keys.
+func (q contactsQuery) fieldKeys() []string {
+	var out []string
+	for _, k := range strings.Split(q.Fields, ",") {
+		if k = strings.TrimSpace(k); k != "" && len(out) < 10 && !slices.Contains(out, k) {
+			out = append(out, k)
+		}
+	}
+	return out
 }
 
 func (q contactsQuery) filter() ContactFilter {
-	return ContactFilter{Q: q.Q, List: q.List, Tier: q.Tier, Mailbox: q.Mailbox, Consent: q.Consent, Source: q.Source, Tag: q.Tag, Segment: q.Segment, JoinedAfter: q.JoinedAfter,
+	return ContactFilter{Q: q.Q, List: q.List, Tier: q.Tier, Mailbox: q.Mailbox, Consent: q.Consent, Source: q.Source, Tag: q.Tag, Segment: q.Segment, JoinedAfter: q.JoinedAfter, JoinedBefore: q.JoinedBefore, Import: q.Import,
 		Language: q.Language, ScoreGrowthFilter: q.ScoreGrowthQuery.filter(), Check: q.Check, WebsiteFilter: q.WebsiteQuery.filter(), PaidFilter: q.PaidQuery.filter(),
 		PushWhatsAppFilter: q.PushWhatsAppQuery.filter(), ProductsFilter: q.ProductsQuery.filter(), StoreFilter: q.StoreQuery.filter(), ChannelFilter: q.ChannelQuery.filter()}
+}
+
+type jobPathInput struct {
+	api.WorkspaceInput
+	ID string `path:"id" format:"uuid"`
+}
+
+type contactListPath struct {
+	ContactPathInput
+	List string `path:"list" format:"uuid"`
+}
+
+type viewUpdateInput struct {
+	api.WorkspaceInput
+	ID   string `path:"id" format:"uuid"`
+	Body ContactViewUpdate
 }
 
 type ContactPathInput struct {
@@ -77,8 +112,10 @@ type suppressionsQuery struct {
 	// AppliesTo: all mail, or marketing only (transactional mail still
 	// reaches the address).
 	AppliesTo string `query:"appliesTo" enum:"all,marketing," doc:"all: every stream; marketing: Broadcasts and Automations only (unsubscribes, role addresses)"`
-	Page      int    `query:"page" minimum:"1" default:"1"`
+	Cursor    string `query:"cursor" maxLength:"600" doc:"nextCursor or prevCursor of the page before"`
+	Page      int    `query:"page" minimum:"1" default:"1" doc:"A page number from the start, when there is no cursor"`
 	PageSize  int    `query:"pageSize" minimum:"1" maximum:"100" default:"10"`
+	Exact     bool   `query:"exact" doc:"Count past 10,000"`
 }
 
 type AudienceIDInput struct {
@@ -144,9 +181,9 @@ func Register(h huma.API, s *Service, box Box) {
 		})
 
 	// Contacts
-	api.Get(h, api.Op{ID: "list-contacts", Path: ws + "/contacts", Summary: "List contacts, most recent activity first", Tags: tags, Access: view},
+	api.Get(h, api.Op{ID: "list-contacts", Path: ws + "/contacts", Summary: "List contacts, most recent activity first (or the order asked for)", Tags: tags, Access: view},
 		func(ctx context.Context, in *contactsQuery) (*api.Body[ContactList], error) {
-			out, err := s.ListContacts(ctx, api.WorkspaceFrom(ctx), in.filter(), in.Page, in.PageSize)
+			out, err := s.ListContacts(ctx, api.WorkspaceFrom(ctx), in.filter(), ContactPage{Cursor: in.Cursor, Page: in.Page, PageSize: in.PageSize, Exact: in.Exact, Fields: in.fieldKeys()})
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "create-contact", Path: ws + "/contacts", Summary: "Add a contact", Tags: tags, Access: api.Workspace(authz.SubscribersCreate), Status: http.StatusCreated},
@@ -164,6 +201,16 @@ func Register(h huma.API, s *Service, box Box) {
 			out, err := s.CreateView(ctx, api.WorkspaceFrom(ctx), in.Body)
 			return api.OK(out), err
 		})
+	api.Patch(h, api.Op{ID: "update-contact-view", Path: ws + "/contacts/views/{id}", Summary: "Rename a saved view, or save new filters or columns in it",
+		Description: "A personal view is its creator's only. Audited as contact_view.update.", Tags: tags, Access: edit},
+		func(ctx context.Context, in *viewUpdateInput) (*api.Body[ContactSavedView], error) {
+			id, err := uuid.Parse(in.ID)
+			if err != nil {
+				return nil, api.NotFound("Saved view")
+			}
+			out, err := s.UpdateView(ctx, api.WorkspaceFrom(ctx), id, in.Body)
+			return api.OK(out), err
+		})
 	api.Delete(h, api.Op{ID: "delete-contact-view", Path: ws + "/contacts/views/{id}", Summary: "Delete a saved view", Tags: tags, Access: edit},
 		func(ctx context.Context, in *AudienceIDInput) (*api.Empty, error) {
 			return api.NoContent, s.DeleteView(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.ID))
@@ -177,6 +224,54 @@ func Register(h huma.API, s *Service, box Box) {
 		func(ctx context.Context, in *body[ContactEraseInput]) (*api.Body[ContactBulkResult], error) {
 			out, err := s.Erase(ctx, api.WorkspaceFrom(ctx), in.Body)
 			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "start-contacts-export", Path: ws + "/contacts/jobs/export", Summary: "Export contacts in the background (logged)",
+		Description: "For any number of contacts: the file is written in the background (the jobs tray follows it) and kept 7 days for whoever started it. " +
+			"Needs subscribers:export; starting, finishing and each download are audited.", Tags: tags, Access: api.Workspace(authz.SubscribersExport), Status: http.StatusAccepted},
+		func(ctx context.Context, in *body[ContactExportInput]) (*api.Body[AudienceJob], error) {
+			out, err := s.StartJob(ctx, api.WorkspaceFrom(ctx), JobExport, in.Body.Selection)
+			return api.OK(out), err
+		})
+	api.Get(h, api.Op{ID: "get-contacts-job", Path: ws + "/contacts/jobs/{id}", Summary: "A background export or resend: its progress and what it did", Tags: tags, Access: view},
+		func(ctx context.Context, in *jobPathInput) (*api.Body[AudienceJob], error) {
+			id, err := uuid.Parse(in.ID)
+			if err != nil {
+				return nil, api.NotFound("Job")
+			}
+			out, err := s.Job(ctx, api.WorkspaceFrom(ctx), id)
+			return api.OK(out), err
+		})
+	api.Get(h, api.Op{ID: "download-contacts-export", Path: ws + "/contacts/jobs/{id}/download", Summary: "Download a finished export (its starter only, logged)",
+		Tags: tags, Access: api.Workspace(authz.SubscribersExport)},
+		func(ctx context.Context, in *jobPathInput) (*huma.StreamResponse, error) {
+			id, err := uuid.Parse(in.ID)
+			if err != nil {
+				return nil, api.NotFound("Export")
+			}
+			wsp := api.WorkspaceFrom(ctx)
+			f, size, err := s.OpenExport(ctx, wsp, id)
+			if err != nil {
+				return nil, err
+			}
+			name := fmt.Sprintf("contacts-%s-%s.csv", wsp.Slug, s.now().In(workspaceLocation(wsp)).Format("2006-01-02"))
+			return &huma.StreamResponse{Body: func(hctx huma.Context) {
+				defer func() { _ = f.Close() }()
+				hctx.SetHeader("Content-Type", "text/csv; charset=utf-8")
+				hctx.SetHeader("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
+				hctx.SetHeader("Content-Length", fmt.Sprint(size))
+				hctx.SetHeader("Cache-Control", "no-store")
+				hctx.SetStatus(200)
+				_, _ = io.Copy(hctx.BodyWriter(), f)
+			}}, nil
+		})
+	api.Delete(h, api.Op{ID: "remove-contact-from-list", Path: ws + "/contacts/{contact}/lists/{list}", Summary: "Take a contact off a list (the team's change, not an unsubscribe)",
+		Description: "Recorded in the contact's history as removed by the team; audited.", Tags: tags, Access: edit},
+		func(ctx context.Context, in *contactListPath) (*api.Empty, error) {
+			list, err := uuid.Parse(in.List)
+			if err != nil {
+				return nil, api.NotFound("List")
+			}
+			return api.NoContent, s.RemoveFromList(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.Contact), list)
 		})
 	api.Post(h, api.Op{ID: "export-contacts", Path: ws + "/contacts/export", Summary: "Export contacts as CSV (logged)",
 		Description: "Needs subscribers:export. Every export is written to the audit log with its size and filter.", Tags: tags, Access: api.Workspace(authz.SubscribersExport)},
@@ -286,7 +381,7 @@ func Register(h huma.API, s *Service, box Box) {
 	stags := []string{"Suppressions"}
 	api.Get(h, api.Op{ID: "list-suppressions", Path: ws + "/suppressions", Summary: "The shared suppression list with reasons, sources and provider sync", Tags: stags, Access: view},
 		func(ctx context.Context, in *suppressionsQuery) (*api.Body[SuppressionList], error) {
-			out, err := s.ListSuppressions(ctx, api.WorkspaceFrom(ctx), SuppressionFilter{Q: in.Q, Reason: in.Reason, Source: in.Source, Since: in.Since, Import: in.Import, AppliesTo: in.AppliesTo}, in.Page, in.PageSize)
+			out, err := s.ListSuppressions(ctx, api.WorkspaceFrom(ctx), SuppressionFilter{Q: in.Q, Reason: in.Reason, Source: in.Source, Since: in.Since, Import: in.Import, AppliesTo: in.AppliesTo}, ContactPage{Cursor: in.Cursor, Page: in.Page, PageSize: in.PageSize, Exact: in.Exact})
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "add-suppressions", Path: ws + "/suppressions", Summary: "Add addresses to the suppression list", Tags: stags, Access: edit},

@@ -68,6 +68,273 @@ func (q *Queries) AudienceCounts(ctx context.Context, workspaceID uuid.UUID) (Au
 	return i, err
 }
 
+const audienceJobFileGone = `-- name: AudienceJobFileGone :exec
+UPDATE audience_jobs SET file_key = '' WHERE id = $1
+`
+
+func (q *Queries) AudienceJobFileGone(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, audienceJobFileGone, id)
+	return err
+}
+
+const audienceJobFinished = `-- name: AudienceJobFinished :exec
+UPDATE audience_jobs SET status = $1, done = $2, result = $3, error = $4, finished_at = $5::timestamptz,
+    expires_at = $6 WHERE id = $7
+`
+
+type AudienceJobFinishedParams struct {
+	Status    string          `json:"status"`
+	Done      int64           `json:"done"`
+	Result    json.RawMessage `json:"result"`
+	Error     string          `json:"error"`
+	At        time.Time       `json:"at"`
+	ExpiresAt *time.Time      `json:"expiresAt"`
+	ID        uuid.UUID       `json:"id"`
+}
+
+func (q *Queries) AudienceJobFinished(ctx context.Context, arg AudienceJobFinishedParams) error {
+	_, err := q.db.Exec(ctx, audienceJobFinished,
+		arg.Status,
+		arg.Done,
+		arg.Result,
+		arg.Error,
+		arg.At,
+		arg.ExpiresAt,
+		arg.ID,
+	)
+	return err
+}
+
+const audienceJobForWork = `-- name: AudienceJobForWork :one
+SELECT id, workspace_id, kind, status, selection, actor, created_by, total, done, after_id, result, file_key, error, created_at, started_at, finished_at, expires_at FROM audience_jobs WHERE id = $1 FOR UPDATE SKIP LOCKED
+`
+
+func (q *Queries) AudienceJobForWork(ctx context.Context, id uuid.UUID) (AudienceJob, error) {
+	row := q.db.QueryRow(ctx, audienceJobForWork, id)
+	var i AudienceJob
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Kind,
+		&i.Status,
+		&i.Selection,
+		&i.Actor,
+		&i.CreatedBy,
+		&i.Total,
+		&i.Done,
+		&i.AfterID,
+		&i.Result,
+		&i.FileKey,
+		&i.Error,
+		&i.CreatedAt,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
+const audienceJobGet = `-- name: AudienceJobGet :one
+SELECT id, workspace_id, kind, status, selection, actor, created_by, total, done, after_id, result, file_key, error, created_at, started_at, finished_at, expires_at FROM audience_jobs WHERE workspace_id = $1 AND id = $2
+`
+
+type AudienceJobGetParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+func (q *Queries) AudienceJobGet(ctx context.Context, arg AudienceJobGetParams) (AudienceJob, error) {
+	row := q.db.QueryRow(ctx, audienceJobGet, arg.WorkspaceID, arg.ID)
+	var i AudienceJob
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Kind,
+		&i.Status,
+		&i.Selection,
+		&i.Actor,
+		&i.CreatedBy,
+		&i.Total,
+		&i.Done,
+		&i.AfterID,
+		&i.Result,
+		&i.FileKey,
+		&i.Error,
+		&i.CreatedAt,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
+const audienceJobInsert = `-- name: AudienceJobInsert :one
+INSERT INTO audience_jobs (id, workspace_id, kind, selection, actor, created_by, total, created_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id, workspace_id, kind, status, selection, actor, created_by, total, done, after_id, result, file_key, error, created_at, started_at, finished_at, expires_at
+`
+
+type AudienceJobInsertParams struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Kind        string          `json:"kind"`
+	Selection   json.RawMessage `json:"selection"`
+	Actor       json.RawMessage `json:"actor"`
+	CreatedBy   *uuid.UUID      `json:"createdBy"`
+	Total       int64           `json:"total"`
+	At          time.Time       `json:"at"`
+}
+
+func (q *Queries) AudienceJobInsert(ctx context.Context, arg AudienceJobInsertParams) (AudienceJob, error) {
+	row := q.db.QueryRow(ctx, audienceJobInsert,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.Kind,
+		arg.Selection,
+		arg.Actor,
+		arg.CreatedBy,
+		arg.Total,
+		arg.At,
+	)
+	var i AudienceJob
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Kind,
+		&i.Status,
+		&i.Selection,
+		&i.Actor,
+		&i.CreatedBy,
+		&i.Total,
+		&i.Done,
+		&i.AfterID,
+		&i.Result,
+		&i.FileKey,
+		&i.Error,
+		&i.CreatedAt,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
+const audienceJobProgress = `-- name: AudienceJobProgress :exec
+UPDATE audience_jobs SET done = $1, after_id = $2, result = $3, file_key = $4 WHERE id = $5
+`
+
+type AudienceJobProgressParams struct {
+	Done    int64           `json:"done"`
+	AfterID *uuid.UUID      `json:"afterId"`
+	Result  json.RawMessage `json:"result"`
+	FileKey string          `json:"fileKey"`
+	ID      uuid.UUID       `json:"id"`
+}
+
+func (q *Queries) AudienceJobProgress(ctx context.Context, arg AudienceJobProgressParams) error {
+	_, err := q.db.Exec(ctx, audienceJobProgress,
+		arg.Done,
+		arg.AfterID,
+		arg.Result,
+		arg.FileKey,
+		arg.ID,
+	)
+	return err
+}
+
+const audienceJobStarted = `-- name: AudienceJobStarted :exec
+UPDATE audience_jobs SET status = 'running', started_at = coalesce(started_at, $1::timestamptz) WHERE id = $2
+`
+
+type AudienceJobStartedParams struct {
+	At time.Time `json:"at"`
+	ID uuid.UUID `json:"id"`
+}
+
+func (q *Queries) AudienceJobStarted(ctx context.Context, arg AudienceJobStartedParams) error {
+	_, err := q.db.Exec(ctx, audienceJobStarted, arg.At, arg.ID)
+	return err
+}
+
+const audienceJobsExpired = `-- name: AudienceJobsExpired :many
+SELECT id, file_key FROM audience_jobs WHERE file_key <> '' AND expires_at < $1::timestamptz
+`
+
+type AudienceJobsExpiredRow struct {
+	ID      uuid.UUID `json:"id"`
+	FileKey string    `json:"fileKey"`
+}
+
+func (q *Queries) AudienceJobsExpired(ctx context.Context, now time.Time) ([]AudienceJobsExpiredRow, error) {
+	rows, err := q.db.Query(ctx, audienceJobsExpired, now)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AudienceJobsExpiredRow{}
+	for rows.Next() {
+		var i AudienceJobsExpiredRow
+		if err := rows.Scan(&i.ID, &i.FileKey); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const audienceJobsRecent = `-- name: AudienceJobsRecent :many
+SELECT id, workspace_id, kind, status, selection, actor, created_by, total, done, after_id, result, file_key, error, created_at, started_at, finished_at, expires_at FROM audience_jobs
+WHERE workspace_id = $1 AND (status IN ('queued', 'running') OR finished_at > $2::timestamptz)
+ORDER BY created_at DESC LIMIT 20
+`
+
+type AudienceJobsRecentParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	EndedAfter  time.Time `json:"endedAfter"`
+}
+
+// The jobs tray: running ones, and those that ended in the last two hours.
+func (q *Queries) AudienceJobsRecent(ctx context.Context, arg AudienceJobsRecentParams) ([]AudienceJob, error) {
+	rows, err := q.db.Query(ctx, audienceJobsRecent, arg.WorkspaceID, arg.EndedAfter)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AudienceJob{}
+	for rows.Next() {
+		var i AudienceJob
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.Kind,
+			&i.Status,
+			&i.Selection,
+			&i.Actor,
+			&i.CreatedBy,
+			&i.Total,
+			&i.Done,
+			&i.AfterID,
+			&i.Result,
+			&i.FileKey,
+			&i.Error,
+			&i.CreatedAt,
+			&i.StartedAt,
+			&i.FinishedAt,
+			&i.ExpiresAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const contactActivityCount = `-- name: ContactActivityCount :one
 SELECT ((SELECT count(*) FROM delivery_events de WHERE de.contact_id = $1 AND de.type <> 'sent')
       + (SELECT count(*) FROM consent_events ce WHERE ce.contact_id = $1))::bigint
@@ -454,9 +721,9 @@ func (q *Queries) CreateList(ctx context.Context, arg CreateListParams) (List, e
 
 const createSavedView = `-- name: CreateSavedView :one
 INSERT INTO saved_views (id, workspace_id, user_id, name, filters, columns, position, show_in_health)
-VALUES ($1, $2, $3, $4, $5, '{}',
+VALUES ($1, $2, $3, $4, $5, $6,
         (SELECT coalesce(max(position), 0) + 1 FROM saved_views WHERE workspace_id = $2), false)
-RETURNING id, workspace_id, user_id, name, filters, columns, position, created_at, show_in_health
+RETURNING id, workspace_id, user_id, name, filters, columns, position, created_at, show_in_health, stats, counted_at, updated_at
 `
 
 type CreateSavedViewParams struct {
@@ -465,6 +732,7 @@ type CreateSavedViewParams struct {
 	UserID      *uuid.UUID      `json:"userId"`
 	Name        string          `json:"name"`
 	Filters     json.RawMessage `json:"filters"`
+	Columns     []string        `json:"columns"`
 }
 
 func (q *Queries) CreateSavedView(ctx context.Context, arg CreateSavedViewParams) (SavedView, error) {
@@ -474,6 +742,7 @@ func (q *Queries) CreateSavedView(ctx context.Context, arg CreateSavedViewParams
 		arg.UserID,
 		arg.Name,
 		arg.Filters,
+		arg.Columns,
 	)
 	var i SavedView
 	err := row.Scan(
@@ -486,6 +755,9 @@ func (q *Queries) CreateSavedView(ctx context.Context, arg CreateSavedViewParams
 		&i.Position,
 		&i.CreatedAt,
 		&i.ShowInHealth,
+		&i.Stats,
+		&i.CountedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -749,7 +1021,7 @@ func (q *Queries) GetList(ctx context.Context, arg GetListParams) (List, error) 
 }
 
 const getSavedView = `-- name: GetSavedView :one
-SELECT id, workspace_id, user_id, name, filters, columns, position, created_at, show_in_health FROM saved_views WHERE workspace_id = $1 AND id = $2
+SELECT id, workspace_id, user_id, name, filters, columns, position, created_at, show_in_health, stats, counted_at, updated_at FROM saved_views WHERE workspace_id = $1 AND id = $2
 `
 
 type GetSavedViewParams struct {
@@ -770,6 +1042,9 @@ func (q *Queries) GetSavedView(ctx context.Context, arg GetSavedViewParams) (Sav
 		&i.Position,
 		&i.CreatedAt,
 		&i.ShowInHealth,
+		&i.Stats,
+		&i.CountedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -845,7 +1120,7 @@ func (q *Queries) GetSuppressionByEmail(ctx context.Context, arg GetSuppressionB
 }
 
 const healthViews = `-- name: HealthViews :many
-SELECT id, workspace_id, user_id, name, filters, columns, position, created_at, show_in_health FROM saved_views WHERE workspace_id = $1 AND show_in_health ORDER BY position, created_at
+SELECT id, workspace_id, user_id, name, filters, columns, position, created_at, show_in_health, stats, counted_at, updated_at FROM saved_views WHERE workspace_id = $1 AND show_in_health ORDER BY position, created_at
 `
 
 func (q *Queries) HealthViews(ctx context.Context, workspaceID uuid.UUID) ([]SavedView, error) {
@@ -867,6 +1142,9 @@ func (q *Queries) HealthViews(ctx context.Context, workspaceID uuid.UUID) ([]Sav
 			&i.Position,
 			&i.CreatedAt,
 			&i.ShowInHealth,
+			&i.Stats,
+			&i.CountedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1472,7 +1750,7 @@ func (q *Queries) ListResumeForm(ctx context.Context, arg ListResumeFormParams) 
 }
 
 const listSavedViews = `-- name: ListSavedViews :many
-SELECT id, workspace_id, user_id, name, filters, columns, position, created_at, show_in_health FROM saved_views
+SELECT id, workspace_id, user_id, name, filters, columns, position, created_at, show_in_health, stats, counted_at, updated_at FROM saved_views
 WHERE workspace_id = $1 AND (user_id IS NULL OR user_id = $2)
 ORDER BY position, created_at, id
 `
@@ -1501,6 +1779,9 @@ func (q *Queries) ListSavedViews(ctx context.Context, arg ListSavedViewsParams) 
 			&i.Position,
 			&i.CreatedAt,
 			&i.ShowInHealth,
+			&i.Stats,
+			&i.CountedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1681,6 +1962,21 @@ func (q *Queries) RestoreList(ctx context.Context, id uuid.UUID) (List, error) {
 		&i.Origin,
 	)
 	return i, err
+}
+
+const savedViewCounted = `-- name: SavedViewCounted :exec
+UPDATE saved_views SET stats = $1, counted_at = $2 WHERE id = $3
+`
+
+type SavedViewCountedParams struct {
+	Stats json.RawMessage `json:"stats"`
+	At    *time.Time      `json:"at"`
+	ID    uuid.UUID       `json:"id"`
+}
+
+func (q *Queries) SavedViewCounted(ctx context.Context, arg SavedViewCountedParams) error {
+	_, err := q.db.Exec(ctx, savedViewCounted, arg.Stats, arg.At, arg.ID)
+	return err
 }
 
 const scopeTotalsSince = `-- name: ScopeTotalsSince :many
@@ -2096,6 +2392,53 @@ func (q *Queries) UpdateList(ctx context.Context, arg UpdateListParams) (List, e
 		&i.DeletedAt,
 		&i.DeletePaused,
 		&i.Origin,
+	)
+	return i, err
+}
+
+const updateSavedView = `-- name: UpdateSavedView :one
+UPDATE saved_views
+SET name = $1, filters = $2, columns = $3, updated_at = $4,
+    stats = CASE WHEN filters = $2 THEN stats END,
+    counted_at = CASE WHEN filters = $2 THEN counted_at END
+WHERE workspace_id = $5 AND id = $6
+RETURNING id, workspace_id, user_id, name, filters, columns, position, created_at, show_in_health, stats, counted_at, updated_at
+`
+
+type UpdateSavedViewParams struct {
+	Name        string          `json:"name"`
+	Filters     json.RawMessage `json:"filters"`
+	Columns     []string        `json:"columns"`
+	At          time.Time       `json:"at"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	ID          uuid.UUID       `json:"id"`
+}
+
+// A rename, new filters or columns (review 2026-11 AU-8, AU-9); new filters
+// are counted again.
+func (q *Queries) UpdateSavedView(ctx context.Context, arg UpdateSavedViewParams) (SavedView, error) {
+	row := q.db.QueryRow(ctx, updateSavedView,
+		arg.Name,
+		arg.Filters,
+		arg.Columns,
+		arg.At,
+		arg.WorkspaceID,
+		arg.ID,
+	)
+	var i SavedView
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.UserID,
+		&i.Name,
+		&i.Filters,
+		&i.Columns,
+		&i.Position,
+		&i.CreatedAt,
+		&i.ShowInHealth,
+		&i.Stats,
+		&i.CountedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

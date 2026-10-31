@@ -298,6 +298,10 @@ func consentSourceLabel(l i18n.Lang, src, action string) string {
 // ContactUpdate changes fields and tags. Omitted fields stay as they are;
 // a custom field set to null is cleared.
 type ContactUpdate struct {
+	// Email corrects the address (review 2026-11 AU-7): history and consent
+	// stay with the contact; the new address may not belong to another
+	// contact or be suppressed.
+	Email     *string        `json:"email,omitempty" maxLength:"254"`
 	FirstName *string        `json:"firstName,omitempty" maxLength:"100"`
 	LastName  *string        `json:"lastName,omitempty" maxLength:"100"`
 	Company   *string        `json:"company,omitempty" maxLength:"200"`
@@ -458,6 +462,11 @@ func (s *Service) UpdateContact(ctx context.Context, ws *store.Workspace, id uui
 		if err != nil {
 			return err
 		}
+		if in.Email != nil {
+			if after, err = s.changeEmail(ctx, tx, ws, after, *in.Email); err != nil {
+				return err
+			}
+		}
 		if after.Language != c.Language {
 			source, name, by := languageSourceOf(ctx)
 			if err := RecordLanguageSource(ctx, q, id, source, name, s.now(), by); err != nil {
@@ -476,7 +485,7 @@ func (s *Service) UpdateContact(ctx context.Context, ws *store.Workspace, id uui
 }
 
 func contactFieldsSnapshot(c store.Contact) map[string]any {
-	return map[string]any{"firstName": c.FirstName, "lastName": c.LastName, "company": c.Company, "country": c.Country,
+	return map[string]any{"email": c.Email, "firstName": c.FirstName, "lastName": c.LastName, "company": c.Company, "country": c.Country,
 		"timezone": c.Timezone, "language": c.Language, "tags": c.Tags, "fields": c.Attributes}
 }
 
@@ -756,4 +765,87 @@ func (s *Service) SuppressContact(ctx context.Context, ws *store.Workspace, id u
 		return api.Conflict(say(ctx, mAlreadySuppressed, i18n.Args{"email": c.Email}))
 	}
 	return nil
+}
+
+// RemoveFromList takes a contact off a list (AU-6): the team's change, so
+// it's recorded as removed by the team, never as their unsubscribe.
+func (s *Service) RemoveFromList(ctx context.Context, ws *store.Workspace, contactID, listID uuid.UUID) error {
+	if ok, err := s.inScope(ctx, contactID); err != nil || !ok {
+		if err != nil {
+			return err
+		}
+		return api.NotFound("Contact")
+	}
+	if !scopeAllowsList(ctx, listID) {
+		return api.NotFound("List")
+	}
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		c, err := q.GetContact(ctx, store.GetContactParams{WorkspaceID: ws.ID, ID: contactID})
+		if err != nil || c.ErasedAt != nil {
+			return api.NotFound("Contact")
+		}
+		l, err := q.GetList(ctx, store.GetListParams{WorkspaceID: ws.ID, ID: listID})
+		if err != nil {
+			return api.NotFound("List")
+		}
+		res, err := tx.Exec(ctx, `DELETE FROM list_memberships WHERE list_id = $1 AND contact_id = $2`, listID, contactID)
+		if err != nil {
+			return err
+		}
+		if res.RowsAffected() == 0 {
+			return nil
+		}
+		if err := insertConsentEvents(ctx, tx, []uuid.UUID{contactID}, &listID, "removed", "team", kept(mNoteRemovedByTeam, nil), actorID(ctx), s.now()); err != nil {
+			return err
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "contact.remove_from_list", TargetType: "contact", TargetID: contactID.String(),
+			TargetName: c.Email, Metadata: map[string]any{"list": l.Name, "listId": listID.String()}})
+	})
+}
+
+// changeEmail corrects a contact's address in tx: refused (409) when
+// another contact has it or it is suppressed; otherwise the address and
+// its mailbox provider change (company domains are looked up again) and an
+// "email_changed" consent event keeps the old one in the history.
+func (s *Service) changeEmail(ctx context.Context, tx pgx.Tx, ws *store.Workspace, c store.Contact, raw string) (store.Contact, error) {
+	email, problem := emailaddr.Check(raw)
+	if problem != "" {
+		return c, api.Invalid("body.email", say(ctx, mEmailInvalid, nil))
+	}
+	if email == c.Email {
+		return c, nil
+	}
+	var other uuid.UUID
+	var otherName string
+	err := tx.QueryRow(ctx, `SELECT id, trim(first_name || ' ' || last_name) FROM contacts WHERE workspace_id = $1 AND email = $2`, ws.ID, email).Scan(&other, &otherName)
+	switch {
+	case err == nil:
+		if otherName == "" {
+			otherName = email
+		}
+		return c, api.Err(409, "email_taken", say(ctx, mEmailTaken, i18n.Args{"name": otherName})).WithMeta("contactId", other.String())
+	case !errors.Is(err, pgx.ErrNoRows):
+		return c, err
+	}
+	var reason string
+	err = tx.QueryRow(ctx, `SELECT reason FROM suppressions WHERE workspace_id = $1 AND email = $2`, ws.ID, email).Scan(&reason)
+	switch {
+	case err == nil:
+		l := i18n.LangFrom(ctx)
+		return c, api.Err(409, "email_suppressed", say(ctx, mEmailSuppressed, i18n.Args{"email": email, "reason": strings.ToLower(reasonNameIn(l, reason))}))
+	case !errors.Is(err, pgx.ErrNoRows):
+		return c, err
+	}
+	after := c
+	if err := tx.QueryRow(ctx, `UPDATE contacts SET email = $3, mailbox_provider = $4, mailbox_detail = '', mailbox_checked_at = NULL, updated_at = now()
+		WHERE workspace_id = $1 AND id = $2 RETURNING email, mailbox_provider, mailbox_detail`, ws.ID, c.ID, email, emailaddr.MailboxProvider(emailaddr.Domain(email))).
+		Scan(&after.Email, &after.MailboxProvider, &after.MailboxDetail); err != nil {
+		return c, err
+	}
+	note := kept(mNoteEmailChanged, i18n.Args{"from": c.Email})
+	if err := insertConsentEvents(ctx, tx, []uuid.UUID{c.ID}, nil, "email_changed", "team", note, actorID(ctx), s.now()); err != nil {
+		return c, err
+	}
+	return after, nil
 }

@@ -4,15 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/api"
-	"github.com/hostrepute/reputecast/internal/audit"
-	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/scoring"
 	"github.com/hostrepute/reputecast/internal/segments"
@@ -43,59 +41,99 @@ type ContactListItem struct {
 	Paid *ContactPaid `json:"paid,omitempty"`
 	// Phone is the number as people read it (+1 312 555 0123), when there is one.
 	Phone string `json:"phone,omitempty"`
+	// Fields are the custom fields asked for (a view's columns), by key.
+	Fields map[string]any `json:"fields,omitempty"`
 }
 
 // ContactList is one page of contacts.
 type ContactList struct {
-	Items    []ContactListItem `json:"items"`
-	Total    int64             `json:"total"`
-	Page     int               `json:"page"`
-	PageSize int               `json:"pageSize"`
+	Items []ContactListItem `json:"items"`
+	// Total counts the matching contacts exactly up to 10,000; above that
+	// it is 10,000 and TotalCapped is set ("10,000+"), unless the exact
+	// count was asked for (review 2026-11 D5).
+	Total       int64 `json:"total"`
+	TotalCapped bool  `json:"totalCapped,omitempty"`
+	Page        int   `json:"page"`
+	PageSize    int   `json:"pageSize"`
+	// NextCursor and PrevCursor page on from this page's last row, and back
+	// from its first; empty at either end.
+	NextCursor string `json:"nextCursor,omitempty"`
+	PrevCursor string `json:"prevCursor,omitempty"`
 }
 
-// ListContacts returns one page, most recent activity first.
-func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f ContactFilter, page, pageSize int) (ContactList, error) {
-	if pageSize <= 0 {
-		pageSize = 10
+// countCap is how far the contacts and suppressions counts go before they
+// read "10,000+".
+const countCap = 10000
+
+// ContactPage asks for one page of contacts: from a cursor, or by page
+// number from the start, and whether to count past 10,000.
+type ContactPage struct {
+	Cursor   string
+	Page     int
+	PageSize int
+	Exact    bool
+	// Fields are custom field keys whose values the rows carry.
+	Fields []string
+}
+
+// ListContacts returns one page in the filter's order, most recent
+// activity first by default.
+func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f ContactFilter, pg ContactPage) (ContactList, error) {
+	if pg.PageSize <= 0 {
+		pg.PageSize = 10
 	}
-	if page <= 0 {
-		page = 1
+	if pg.Page <= 0 {
+		pg.Page = 1
 	}
 	fs, err := s.filterSQL(ctx, ws.ID, f)
 	if err != nil {
 		return ContactList{}, err
 	}
-	out := ContactList{Items: []ContactListItem{}, Page: page, PageSize: pageSize}
-	if err := s.Pool.QueryRow(ctx, "SELECT count(*) FROM contacts c WHERE "+fs.where, fs.args...).Scan(&out.Total); err != nil {
+	out := ContactList{Items: []ContactListItem{}, Page: pg.Page, PageSize: pg.PageSize}
+	if out.Total, out.TotalCapped, err = s.countContacts(ctx, fs, pg.Exact); err != nil {
 		return out, err
 	}
-	args := append(fs.args, pageSize, (page-1)*pageSize)
+	q, err := s.listQuery(ctx, fs, f, pg)
+	if err != nil {
+		return out, err
+	}
+	sort, keys, cur, backward := q.sort, q.keys, q.cur, q.backward
 	bands, scored, err := scoring.AppliedBands(ctx, s.Q, ws.ID)
 	if err != nil {
 		return out, err
 	}
-	rows, err := s.Pool.Query(ctx, fmt.Sprintf(`SELECT c.id, c.email, c.first_name, c.last_name, c.tier, c.consent, c.mailbox_provider, c.mailbox_detail,
-		c.last_open_at, c.last_open_machine, c.created_at, c.source,
-		EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email),
-		coalesce(cs.score, 0)::int
-		FROM contacts c LEFT JOIN contact_scores cs ON cs.contact_id = c.id WHERE %s
-		ORDER BY %s
-		LIMIT $%d OFFSET $%d`, fs.where, contactOrder(f.ScoreGrowthFilter), len(args)-1, len(args)), args...)
+	rows, err := s.Pool.Query(ctx, q.sql, q.args...)
 	if err != nil {
 		return out, err
 	}
 	defer rows.Close()
 	ids := []uuid.UUID{}
+	marks := []contactCursor{}
 	l := i18n.LangFrom(ctx)
 	for rows.Next() {
 		var it ContactListItem
 		var id uuid.UUID
 		var first, last, detail string
 		var score int
-		if err := rows.Scan(&id, &it.Email, &first, &last, &it.Tier, &it.Consent, &it.MailboxProvider, &detail,
-			&it.LastOpenAt, &it.LastOpenMachine, &it.JoinedAt, &it.Source, &it.Suppressed, &score); err != nil {
+		dest := []any{&id, &it.Email, &first, &last, &it.Tier, &it.Consent, &it.MailboxProvider, &detail,
+			&it.LastOpenAt, &it.LastOpenMachine, &it.JoinedAt, &it.Source, &it.Suppressed, &score}
+		vals := sortDest(keys)
+		dest = append(dest, vals...)
+		var fields []byte
+		if len(pg.Fields) > 0 {
+			dest = append(dest, &fields)
+		}
+		if err := rows.Scan(dest...); err != nil {
 			return out, err
 		}
+		if len(fields) > 0 {
+			_ = json.Unmarshal(fields, &it.Fields)
+		}
+		mark := contactCursor{Sort: sort, ID: id, Values: make([]any, len(keys))}
+		for i, v := range vals {
+			mark.Values[i] = cursorValue(deref(v))
+		}
+		marks = append(marks, mark)
 		if scored {
 			it.Score, it.ScoreBand = &score, bands.Band(score)
 		}
@@ -109,6 +147,28 @@ func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f Conta
 	}
 	if err := rows.Err(); err != nil {
 		return out, err
+	}
+	more := len(out.Items) > pg.PageSize
+	if more {
+		out.Items, ids, marks = out.Items[:pg.PageSize], ids[:pg.PageSize], marks[:pg.PageSize]
+	}
+	if backward {
+		slices.Reverse(out.Items)
+		slices.Reverse(ids)
+		slices.Reverse(marks)
+	}
+	if len(marks) > 0 {
+		// Forward, more rows follow when the page overflowed; back, the
+		// page it came from does. Earlier rows exist on any page after the
+		// first, or when going back overflowed.
+		if (!backward && more) || backward {
+			out.NextCursor = marks[len(marks)-1].encode()
+		}
+		if (backward && more) || (!backward && (cur != nil || pg.Page > 1)) {
+			first := marks[0]
+			first.Before = true
+			out.PrevCursor = first.encode()
+		}
 	}
 	srcs := make([]string, len(out.Items))
 	for i, it := range out.Items {
@@ -147,124 +207,100 @@ func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f Conta
 	return out, nil
 }
 
-// ContactSavedView is a chip above the contacts table.
-type ContactSavedView struct {
-	ID      string        `json:"id"`
-	Name    string        `json:"name"`
-	Filters ContactFilter `json:"filters"`
-	Count   int64         `json:"count"`
-	// Shared views are visible to everyone in the workspace.
-	Shared bool `json:"shared"`
+// listQuery is the contacts table's page query.
+type listQuery struct {
+	sql      string
+	args     []any
+	sort     string
+	keys     []sortKey
+	cur      *contactCursor
+	backward bool
 }
 
-// ContactSavedViews is the views row: "All contacts" plus the saved views.
-type ContactSavedViews struct {
-	All   int64              `json:"all"`
-	Items []ContactSavedView `json:"items"`
-}
-
-// Views returns the saved views with their counts, counted in one scan.
-func (s *Service) Views(ctx context.Context, ws *store.Workspace) (ContactSavedViews, error) {
-	var uid uuid.UUID
-	if u := api.UserFrom(ctx); u != nil {
-		uid = u.ID
-	}
-	views, err := s.Q.ListSavedViews(ctx, store.ListSavedViewsParams{WorkspaceID: ws.ID, UserID: &uid})
-	if err != nil {
-		return ContactSavedViews{}, err
-	}
-	out := ContactSavedViews{Items: make([]ContactSavedView, 0, len(views))}
-	base, err := s.filterSQL(ctx, ws.ID, ContactFilter{})
-	if err != nil {
-		return out, err
-	}
-	// One query: count(*) FILTER (WHERE <view>) per view, each view's
-	// arguments numbered after the ones already used.
-	sel := []string{"count(*)"}
-	for _, v := range views {
-		var f ContactFilter
-		_ = json.Unmarshal(v.Filters, &f)
-		// A view by paid status shows only to members who can see it.
-		if f.Paid != "" && !canSeePaid(ctx) {
-			continue
-		}
-		out.Items = append(out.Items, ContactSavedView{ID: v.ID.String(), Name: v.Name, Filters: f, Shared: v.UserID == nil})
-		sub := filterSQL{where: "true", args: base.args}
-		if err := s.applyFilter(ctx, ws.ID, &sub, f); err != nil {
-			sel = append(sel, "0")
-			continue
-		}
-		base.args = sub.args
-		sel = append(sel, "count(*) FILTER (WHERE "+sub.where+")")
-	}
-	args := base.args
-	counts := make([]int64, len(sel))
-	ptrs := make([]any, len(sel))
-	for i := range counts {
-		ptrs[i] = &counts[i]
-	}
-	if err := s.Pool.QueryRow(ctx, "SELECT "+strings.Join(sel, ", ")+" FROM contacts c WHERE "+base.where, args...).Scan(ptrs...); err != nil {
-		return out, err
-	}
-	out.All = counts[0]
-	for i := range out.Items {
-		out.Items[i].Count = counts[i+1]
-	}
-	return out, nil
-}
-
-// ContactViewInput saves the current filters as a view.
-type ContactViewInput struct {
-	Name    string        `json:"name" minLength:"1" maxLength:"80"`
-	Filters ContactFilter `json:"filters"`
-	// Personal views are only visible to their creator.
-	Personal bool `json:"personal,omitempty"`
-}
-
-func (s *Service) CreateView(ctx context.Context, ws *store.Workspace, in ContactViewInput) (ContactSavedView, error) {
-	in.Name = strings.TrimSpace(in.Name)
-	if in.Name == "" {
-		return ContactSavedView{}, api.Invalid("body.name", say(ctx, mViewName, nil))
-	}
-	if _, err := s.filterSQL(ctx, ws.ID, in.Filters); err != nil {
-		return ContactSavedView{}, err
-	}
-	filters, _ := json.Marshal(in.Filters)
-	var user *uuid.UUID
-	if in.Personal {
-		user = actorID(ctx)
-	}
-	var v store.SavedView
-	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		var err error
-		v, err = q.CreateSavedView(ctx, store.CreateSavedViewParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, UserID: user, Name: in.Name, Filters: filters})
+// listQuery builds the page query of a filter: its order, the keyset from
+// the cursor (or an offset from the page number), one row more than the
+// page to tell whether more follow, and the custom fields asked for.
+func (s *Service) listQuery(ctx context.Context, fs filterSQL, f ContactFilter, pg ContactPage) (listQuery, error) {
+	q := listQuery{}
+	q.sort, q.keys = contactSort(f.Sort)
+	if pg.Cursor != "" {
+		c, err := readCursor(pg.Cursor, q.sort, q.keys)
 		if err != nil {
-			return err
+			return q, api.Invalid("cursor", say(ctx, mCursor, nil))
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "contact_view.create", TargetType: "saved_view", TargetID: v.ID.String(), TargetName: v.Name, After: in})
-	})
-	if err != nil {
-		return ContactSavedView{}, err
+		q.cur = &c
+		fs.addNumbered(keyset(q.keys, "c.id", c, func(v any) string {
+			fs.args = append(fs.args, v)
+			return fmt.Sprintf("$%d", len(fs.args))
+		}))
 	}
-	return ContactSavedView{ID: v.ID.String(), Name: v.Name, Filters: in.Filters, Shared: user == nil}, nil
+	q.backward = q.cur != nil && q.cur.Before
+	args := append(slices.Clip(fs.args), pg.PageSize+1)
+	limit := len(args)
+	offset := ""
+	if q.cur == nil && pg.Page > 1 {
+		// A page number without a cursor (the public API's first pages).
+		args = append(args, (pg.Page-1)*pg.PageSize)
+		offset = fmt.Sprintf(" OFFSET $%d", len(args))
+	}
+	exprs := make([]string, len(q.keys), len(q.keys)+1)
+	for i, k := range q.keys {
+		exprs[i] = k.expr
+	}
+	if len(pg.Fields) > 0 {
+		args = append(args, pg.Fields)
+		exprs = append(exprs, fmt.Sprintf("(SELECT jsonb_object_agg(a.key, a.value) FROM jsonb_each(c.attributes) a WHERE a.key = ANY ($%d::text[]))", len(args)))
+	}
+	q.args = args
+	q.sql = fmt.Sprintf(`SELECT c.id, c.email, c.first_name, c.last_name, c.tier, c.consent, c.mailbox_provider, c.mailbox_detail,
+		c.last_open_at, c.last_open_machine, c.created_at, c.source,
+		EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email),
+		coalesce(cs.score, 0)::int, %s
+		FROM contacts c LEFT JOIN contact_scores cs ON cs.contact_id = c.id WHERE %s
+		ORDER BY %s
+		LIMIT $%d%s`, strings.Join(exprs, ", "), fs.where, orderBy(q.keys, "c.id", q.backward), limit, offset)
+	return q, nil
 }
 
-func (s *Service) DeleteView(ctx context.Context, ws *store.Workspace, id uuid.UUID) error {
-	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		v, err := q.GetSavedView(ctx, store.GetSavedViewParams{WorkspaceID: ws.ID, ID: id})
-		if err != nil {
-			return api.MapError(err, "Saved view")
+// countContacts counts the filter's contacts, exactly up to countCap and
+// beyond it only when asked.
+func (s *Service) countContacts(ctx context.Context, fs filterSQL, exact bool) (int64, bool, error) {
+	var n int64
+	if exact {
+		err := s.Pool.QueryRow(ctx, "SELECT count(*) FROM contacts c WHERE "+fs.where, fs.args...).Scan(&n)
+		return n, false, err
+	}
+	err := s.Pool.QueryRow(ctx, fmt.Sprintf("SELECT count(*) FROM (SELECT 1 FROM contacts c WHERE %s LIMIT %d) x", fs.where, countCap+1), fs.args...).Scan(&n)
+	if n > countCap {
+		return countCap, true, err
+	}
+	return n, false, err
+}
+
+// sortDest are scan targets for an order's keys.
+func sortDest(keys []sortKey) []any {
+	out := make([]any, len(keys))
+	for i, k := range keys {
+		switch k.kind {
+		case 't':
+			out[i] = new(*time.Time)
+		case 'i':
+			out[i] = new(*int32)
+		default:
+			out[i] = new(*string)
 		}
-		if v.UserID != nil {
-			if me := actorID(ctx); me == nil || *me != *v.UserID {
-				return api.NotFound("Saved view")
-			}
-		}
-		if _, err := q.DeleteSavedView(ctx, store.DeleteSavedViewParams{WorkspaceID: ws.ID, ID: id}); err != nil {
-			return err
-		}
-		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "contact_view.delete", TargetType: "saved_view", TargetID: id.String(), TargetName: v.Name, Before: v.Filters})
-	})
+	}
+	return out
+}
+
+func deref(v any) any {
+	switch x := v.(type) {
+	case **time.Time:
+		return *x
+	case **int32:
+		return *x
+	case **string:
+		return *x
+	}
+	return v
 }

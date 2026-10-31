@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -8,6 +9,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/imports"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/netguard"
+	"github.com/hostrepute/reputecast/internal/store"
 )
 
 func init() {
@@ -36,7 +38,7 @@ func (a *App) imports() *imports.Service {
 		Templates: notifuseTemplates{a: a},
 		// Verification jobs run in the background too (built when asked:
 		// the verification service uses this one).
-		JobSources: []imports.JobSource{verificationTray(a)},
+		JobSources: []imports.JobSource{verificationTray(a), audienceTray(a)},
 		// The optional "Verify the new addresses" folds a service's answers
 		// into the preview and the import (X14), read when asked.
 		Checks: importChecks{a: a},
@@ -52,3 +54,20 @@ func (a *App) imports() *imports.Service {
 // importTexts records imported numbers and SMS consent (wire_texting.go
 // sets it).
 var importTexts = func(*App) imports.Texts { return nil }
+
+// audienceTray adds the background exports and resends (review 2026-11
+// AU-4) to the jobs tray.
+func audienceTray(a *App) imports.JobSource {
+	return func(ctx context.Context, ws *store.Workspace) ([]imports.ImportJob, error) {
+		jobs, err := a.audience().TrayJobs(ctx, ws)
+		if err != nil {
+			return nil, err
+		}
+		out := make([]imports.ImportJob, 0, len(jobs))
+		for _, j := range jobs {
+			out = append(out, imports.ImportJob{ID: j.ID, Kind: j.Kind, Title: j.Title, Status: j.Status, Progress: j.Progress, Detail: j.Detail, Href: j.Href,
+				DownloadURL: j.DownloadURL, StartedAt: j.StartedAt, FinishedAt: j.FinishedAt})
+		}
+		return out, nil
+	}
+}
