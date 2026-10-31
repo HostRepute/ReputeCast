@@ -27884,6 +27884,7 @@ export interface components {
             statuses: components["schemas"]["ImportConsentStatus"][];
             /** Format: int64 */
             suppressCount: number;
+            tag: string;
         };
         ImportConsentStatus: {
             /** Format: int64 */

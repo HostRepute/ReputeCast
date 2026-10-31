@@ -12,6 +12,7 @@ import { toast } from '@/components/ui/Toast'
 import { t, useT, type MessageDescriptor } from '@/i18n'
 import { common } from '@/i18n/common'
 import { count } from '@/lib/format'
+import { trackJob } from '@/lib/jobs'
 import { useCan, useWorkspace } from '@/lib/session'
 import { m } from './contacts.messages'
 
@@ -150,7 +151,7 @@ export function AddContactDialog({ onClose, lists }: { onClose: () => void; list
 }
 
 /** Save current view: a name for the filters, shared or only for me. */
-export function SaveViewDialog({ onClose, filter }: { onClose: () => void; filter: Filter }) {
+export function SaveViewDialog({ onClose, filter, columns }: { onClose: () => void; filter: Filter; columns?: string[] }) {
   const tr = useT()
   const { slug } = useWorkspace()
   const invalidate = useInvalidateAudience()
@@ -165,7 +166,7 @@ export function SaveViewDialog({ onClose, filter }: { onClose: () => void; filte
       return
     }
     try {
-      await save.mutateAsync({ params: { path: { workspace: slug } }, body: { name: name.trim(), filters: filter, personal } })
+      await save.mutateAsync({ params: { path: { workspace: slug } }, body: { name: name.trim(), filters: filter, columns, personal } })
       await invalidate()
       onClose()
       toast({ kind: 'success', title: t(m.viewSaved, { name: name.trim() }) })
@@ -205,11 +206,16 @@ export function SaveViewDialog({ onClose, filter }: { onClose: () => void; filte
   )
 }
 
-export type BulkKind = 'add_to_list' | 'add_tag' | 'resend_optin' | 'suppress'
+export type BulkKind = 'add_to_list' | 'remove_from_list' | 'add_tag' | 'remove_tag' | 'resend_optin' | 'suppress'
+
+/** What a bulk action reaches: the rows picked, or everything a filter matches (AU-5). */
+export type BulkSelection = { ids: string[] } | { allMatching: true; filter: Filter }
 
 const bulkCopy: Record<BulkKind, { title: MessageDescriptor; action: MessageDescriptor }> = {
   add_to_list: { title: m.addToList, action: m.addToList },
+  remove_from_list: { title: m.removeFromList, action: m.removeFromList },
   add_tag: { title: m.addTag, action: m.addTag },
+  remove_tag: { title: m.removeTag, action: m.removeTag },
   resend_optin: { title: m.resendOptin, action: m.resendOptin },
   suppress: { title: m.suppress, action: m.suppress },
 }
@@ -218,13 +224,16 @@ const bulkCopy: Record<BulkKind, { title: MessageDescriptor; action: MessageDesc
 export function BulkDialog({
   kind,
   onClose,
-  ids,
+  selection,
+  n,
   lists,
   onDone,
 }: {
   kind: BulkKind
   onClose: () => void
-  ids: string[]
+  selection: BulkSelection
+  /** How many the selection reaches. */
+  n: number
   lists: ListSummary[]
   onDone: (r: Schemas['ContactBulkResult']) => void
 }) {
@@ -236,12 +245,13 @@ export function BulkDialog({
   const [tag, setTag] = useState('')
   const [reason, setReason] = useState('')
   const [err, setErr] = useState<string | null>(null)
-  const n = ids.length
   const who = { n, count: count(n) }
+  const listed = kind === 'add_to_list' || kind === 'remove_from_list'
+  const tagged = kind === 'add_tag' || kind === 'remove_tag'
   const submit = async () => {
     setErr(null)
-    if (kind === 'add_tag' && !tag.trim()) {
-      setErr(t(m.typeTag))
+    if (tagged && !tag.trim()) {
+      setErr(t(kind === 'remove_tag' ? m.typeTagRemove : m.typeTag))
       return
     }
     if (kind === 'suppress' && !reason.trim()) {
@@ -252,17 +262,21 @@ export function BulkDialog({
       const r = await run.mutateAsync({
         params: { path: { workspace: slug } },
         body: {
-          ids,
+          ...selection,
           action: kind,
-          listId: kind === 'add_to_list' ? listId : undefined,
-          tag: kind === 'add_tag' ? tag.trim() : undefined,
+          listId: listed ? listId : undefined,
+          tag: tagged ? tag.trim() : undefined,
           reason: kind === 'suppress' ? reason.trim() : undefined,
         },
       })
       await invalidate()
       onClose()
       onDone(r)
-      if (r.failed === 0) toast({ kind: 'success', title: bulkTitle(r), detail: r.note || undefined })
+      if (r.jobId) {
+        // Resending runs in the background (AU-4): the jobs tray follows it.
+        trackJob(slug, { id: r.jobId, kind: 'optin', title: t(m.resendStarted), status: 'queued', startedAt: new Date().toISOString() })
+        toast({ kind: 'success', title: t(m.resendStarted), detail: t(m.resendStartedBody) })
+      } else if (r.failed === 0) toast({ kind: 'success', title: bulkTitle(r), detail: r.note || undefined })
     } catch (e) {
       setErr(errorMessage(e))
     }
@@ -273,7 +287,15 @@ export function BulkDialog({
       onOpenChange={(o) => !o && onClose()}
       size="sm"
       title={tr(bulkCopy[kind].title)}
-      description={kind === 'resend_optin' ? tr(m.resendBody, who) : kind === 'suppress' ? tr(m.suppressBody, who) : tr(m.appliesTo, who)}
+      description={
+        kind === 'resend_optin'
+          ? tr(m.resendBody, who)
+          : kind === 'suppress'
+            ? tr(m.suppressBody, who)
+            : kind === 'remove_from_list'
+              ? `${tr(m.appliesTo, who)} ${tr(m.removeFromListBody, who)}`
+              : tr(m.appliesTo, who)
+      }
       footer={
         <>
           <Button onClick={onClose}>{tr(common.cancel)}</Button>
@@ -284,7 +306,7 @@ export function BulkDialog({
       }
     >
       <div className="flex flex-col gap-3.5">
-        {kind === 'add_to_list' ? (
+        {listed ? (
           <Field label={tr(m.list)} error={err ?? undefined}>
             <Select value={listId} onChange={(e) => setListId(e.target.value)}>
               {lists.map((l) => (
@@ -295,7 +317,7 @@ export function BulkDialog({
             </Select>
           </Field>
         ) : null}
-        {kind === 'add_tag' ? (
+        {tagged ? (
           <Field label={tr(m.tag)} error={err ?? undefined}>
             <Input value={tag} onChange={(e) => setTag(e.target.value)} placeholder={'re-permission'} maxLength={60} />
           </Field>
@@ -318,6 +340,10 @@ function bulkTitle(r: Schemas['ContactBulkResult']) {
       return t(m.doneAddToList, v)
     case 'add_tag':
       return t(m.doneAddTag, v)
+    case 'remove_from_list':
+      return t(m.doneRemoveFromList, v)
+    case 'remove_tag':
+      return t(m.doneRemoveTag, v)
     case 'resend_optin':
       return t(m.doneResend, v)
     case 'suppress':
@@ -383,7 +409,20 @@ export function BulkResultPanel({ result, onDismiss }: { result: Schemas['Contac
  * refused because some contacts still pay through Stripe says so, with the
  * way to Earn › Members (review 2026-11 DP-1).
  */
-export function EraseDialog({ onClose, ids, onDone, stripe = false }: { onClose: () => void; ids: string[]; onDone: () => void; stripe?: boolean }) {
+export function EraseDialog({
+  onClose,
+  selection,
+  n,
+  onDone,
+  stripe = false,
+}: {
+  onClose: () => void
+  selection: BulkSelection
+  /** How many the selection reaches: the number to type. */
+  n: number
+  onDone: () => void
+  stripe?: boolean
+}) {
   const tr = useT()
   const { slug } = useWorkspace()
   const canEarn = useCan('earn:view')
@@ -392,11 +431,10 @@ export function EraseDialog({ onClose, ids, onDone, stripe = false }: { onClose:
   const [typed, setTyped] = useState('')
   const [err, setErr] = useState<string | null>(null)
   const [paid, setPaid] = useState<string | null>(null)
-  const n = ids.length
-  const ok = typed.replace(/[,\s]/g, '') === String(n)
+  const ok = typed.replace(/[,.\s]/g, '') === String(n)
   const submit = async () => {
     try {
-      const r = await erase.mutateAsync({ params: { path: { workspace: slug } }, body: { ids, confirm: n } })
+      const r = await erase.mutateAsync({ params: { path: { workspace: slug } }, body: { ...selection, confirm: n } })
       await invalidate()
       onDone()
       toast({

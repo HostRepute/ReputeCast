@@ -288,9 +288,16 @@ function Summary({ d, now }: { d: Detail; now: number }) {
         <ButtonLink to="/w/$workspace/import" params={{ workspace: slug }}>
           {tr(m.importAnother)}
         </ButtonLink>
-        <ButtonLink variant="primary" className="wnext" to="/w/$workspace/audience" params={{ workspace: slug }}>
-          {tr(m.viewContacts)}
-        </ButtonLink>
+        {/* The contacts it brought in (review 2026-11 AU-10). */}
+        {(s?.imported ?? d.progress.imported) > 0 ? (
+          <ButtonLink variant="primary" className="wnext" to="/w/$workspace/audience" params={{ workspace: slug }} search={{ import: d.id }}>
+            {tr(m.viewImported)}
+          </ButtonLink>
+        ) : (
+          <ButtonLink variant="primary" className="wnext" to="/w/$workspace/audience" params={{ workspace: slug }}>
+            {tr(m.viewContacts)}
+          </ButtonLink>
+        )}
       </div>
     </>
   )

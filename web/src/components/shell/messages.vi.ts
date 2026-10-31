@@ -96,6 +96,8 @@ export default translate(m, {
   jobExportFinished: 'Đã xuất xong',
   jobVerificationFinished: 'Đã xác minh xong',
   jobOpen: 'Mở',
+  jobDownload: 'Tải xuống',
+  jobOptinFinished: 'Đã gửi email xác nhận',
   jobFailed: '{title} thất bại',
   jobFailedDetail: 'xem lịch sử tác vụ để biết lỗi',
 

@@ -1,8 +1,8 @@
 import { keepPreviousData } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { createColumnHelper, rowSelectionFeature, tableFeatures, useTable, type RowSelectionState } from '@tanstack/react-table'
-import { useEffect, useMemo, useState } from 'react'
-import { $api, errorMessage, http, type Schemas } from '@/api/client'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
@@ -12,14 +12,18 @@ import { Popover } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
 import { TableScroll, Th } from '@/components/ui/Table'
 import { andList, count, dayMonthDate, dayMonthYear, shortDate } from '@/lib/format'
-import { trackJob, updateJob } from '@/lib/jobs'
+import { trackJob, updateJob, useBackgroundJobs } from '@/lib/jobs'
+import { Note } from '@/components/ui/Note'
+import { VerifyDialog } from '@/features/verification/VerifyDialog'
+import { ColumnChooser, columnLabels, defaultColumns, fieldKeys, parseColumns, SortHeader, type BuiltinColumn, type ColumnId, type ContactSort } from './ContactColumns'
+import { ViewChips } from './ViewChips'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
 import { AddressCheckFilter } from '@/features/verification/AddressCheck'
 import { AudienceTabs, useAudienceSummary } from './AudienceTabs'
-import { AddContactDialog, BulkDialog, BulkResultPanel, EraseDialog, SaveViewDialog, type BulkKind } from './ContactDialogs'
-import { BandSelect, GrowthSourceField, ScoreCell, ScoreGrowthChips, ScoreGrowthFields, scoreGrowthMoreKeys, ScoreHeader, useTotalLine, type ScoreGrowthDraft } from '@/features/scoring/ContactsScore'
+import { AddContactDialog, BulkDialog, BulkResultPanel, EraseDialog, SaveViewDialog, type BulkKind, type BulkSelection } from './ContactDialogs'
+import { BandSelect, GrowthSourceField, ScoreCell, ScoreGrowthChips, ScoreGrowthFields, scoreGrowthMoreKeys, useTotalLine, type ScoreGrowthDraft } from '@/features/scoring/ContactsScore'
 import { fileName, saveBlob } from './download'
-import { consentFilterLabel, consentLabel, consentTone, mailboxColor, mailboxes, mailboxLabel, tierClass, tierColor, tierLabel, tiers, type Consent, type Mailbox, type Tier } from './labels'
+import { consentFilterLabel, consentLabel, consentTone, mailboxColor, mailboxes, mailboxLabel, tierClass, tierLabel, tiers, type Consent, type Mailbox, type Tier } from './labels'
 import { LanguageFilter } from '@/features/page-languages/contacts'
 import { PaidStatusCell, PaidStatusSelect, PaidTierChip } from '@/features/earn/ContactsPaid'
 import { BoughtFilter } from '@/features/products/filter'
@@ -43,6 +47,9 @@ export interface ContactsSearch {
   source?: string
   tag?: string
   joinedAfter?: string
+  /** Joined on or before this day, and the contacts of one import (review 2026-11 AU-10). */
+  joinedBefore?: string
+  import?: string
   segment?: string
   language?: string
   // Scoring and Growth (X13).
@@ -54,7 +61,7 @@ export interface ContactsSearch {
   utmMedium?: string
   utmCampaign?: string
   referringDomain?: string
-  sort?: 'activity' | 'score'
+  sort?: ContactSort
   /** The latest address check (X14). */
   check?: 'valid' | 'invalid' | 'risky' | 'unknown' | 'never'
   /** Paid status (Earn, X16): a status, or with_access at paidTier and above. */
@@ -77,6 +84,9 @@ export interface ContactsSearch {
   whatsAppConsent?: boolean
   page?: number
   size?: number
+  /** The page's keyset cursor (review 2026-11 AU-1), and the columns shown (AU-9). */
+  cursor?: string
+  cols?: string
 }
 
 type Item = Schemas['ContactListItem']
@@ -91,6 +101,8 @@ const filterKeys = [
   'source',
   'tag',
   'joinedAfter',
+  'joinedBefore',
+  'import',
   'segment',
   'language',
   // Scoring and Growth (X13).
@@ -163,33 +175,68 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
   const filter = filterOf(search)
   const page = search.page ?? 1
   const size = search.size ?? 10
+  const sort: ContactSort = search.sort ?? 'activity'
   const summary = useAudienceSummary()
+  const phones = usePhoneColumn()
+  const paidOn = (summary.data?.paidTiers.length ?? 0) > 0
+  const columns = parseColumns(search.cols) ?? defaultColumns(paidOn, phones)
+  const fields = fieldKeys(columns)
   const views = $api.useQuery('get', '/api/v1/workspaces/{workspace}/contacts/views', { params: { path: { workspace: slug } } })
+  // "Count all" asks for the exact count of this filter only (review D5).
+  const filterKey = JSON.stringify(filter)
+  const [exactFor, setExactFor] = useState<string>()
+  const exact = exactFor === filterKey
   const list = $api.useQuery(
     'get',
     '/api/v1/workspaces/{workspace}/contacts',
-    { params: { path: { workspace: slug }, query: { ...filter, page, pageSize: size } } },
+    {
+      params: {
+        path: { workspace: slug },
+        query: {
+          ...filter,
+          cursor: search.cursor,
+          page: search.cursor ? undefined : page,
+          pageSize: size,
+          exact: exact || undefined,
+          fields: fields.length ? fields.join(',') : undefined,
+        },
+      },
+    },
     { placeholderData: keepPreviousData },
   )
   // The selection belongs to one page of one filter: another page or filter
-  // starts with nothing selected.
-  const key = JSON.stringify({ filter, page, size })
+  // starts with nothing selected; "all matching" belongs to the filter.
+  const key = JSON.stringify({ filter, page, size, cursor: search.cursor })
   const [picked, setPicked] = useState<{ key: string; rows: RowSelectionState }>({ key, rows: {} })
   const selection = picked.key === key ? picked.rows : {}
-  const setSelection = (rows: RowSelectionState) => setPicked({ key, rows })
+  const setSelection = (rows: RowSelectionState) => {
+    setPicked({ key, rows })
+    setAllFor(undefined)
+  }
+  const [allFor, setAllFor] = useState<string>()
+  const all = allFor === filterKey
   const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
   const [bulk, setBulk] = useState<BulkKind | null>(null)
   const [erasing, setErasing] = useState(false)
+  const [verifying, setVerifying] = useState(false)
   const [result, setResult] = useState<Schemas['ContactBulkResult'] | null>(null)
   const addReason = usePermissionReason('subscribers:create')
   const importReason = usePermissionReason('subscribers:import')
+  const exportReason = usePermissionReason('subscribers:export')
 
   const go = (next: ContactsSearch) => void navigate({ to: '/w/$workspace/audience', params: { workspace: slug }, search: next })
-  const setFilter = (patch: Partial<ContactsSearch>) => go({ ...search, ...patch, page: undefined })
+  const setFilter = (patch: Partial<ContactsSearch>) => go({ ...search, ...patch, page: undefined, cursor: undefined })
 
   const empty = summary.data && summary.data.contacts === 0
   const ids = Object.keys(selection)
+  const data = list.data
+  const total = data?.total ?? 0
+  const sel: BulkSelection = all ? { allMatching: true, filter } : { ids }
+  const n = all ? total : ids.length
+  const pageFull = data !== undefined && ids.length > 0 && ids.length === data.items.length
+  const more = data !== undefined && (data.totalCapped || total > data.items.length)
+  const stale = list.error instanceof ApiError && list.error.status === 422 && Boolean(search.cursor)
   return (
     <Page
       title={tr(am.title)}
@@ -214,7 +261,14 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
         <AudienceEmpty lists={summary.data?.lists ?? []} />
       ) : (
         <>
-          <SavedViews views={views.data} filter={filter} onPick={(f) => go({ ...f, size: search.size })} onSave={() => setSaving(true)} />
+          <ViewChips
+            views={views.data}
+            active={views.data?.items.find((v) => Object.keys(filter).length > 0 && sameFilter(filter, v.filters) && (v.columns.join(',') || undefined) === search.cols)?.id}
+            filter={filter}
+            columns={search.cols}
+            onPick={(f, cols) => go({ ...(f as ContactsSearch), cols, size: search.size })}
+            onSave={() => setSaving(true)}
+          />
           {/* The website's members (features/website), while it's on. */}
           <MembersChips
             signedIn={Boolean(search.signedIn)}
@@ -229,17 +283,60 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
             whatsapp={Boolean(search.whatsAppConsent)}
             onWhatsApp={(on) => setFilter({ whatsAppConsent: on || undefined })}
           />
-          <Filters search={search} total={list.data?.total} lists={summary.data?.lists ?? []} paidTiers={summary.data?.paidTiers ?? []} onChange={setFilter} />
+          <Filters
+            search={search}
+            total={data?.total}
+            capped={data?.totalCapped ?? false}
+            lists={summary.data?.lists ?? []}
+            paidTiers={summary.data?.paidTiers ?? []}
+            onChange={setFilter}
+            tools={
+              <>
+                <ColumnChooser columns={columns} onChange={(c) => go({ ...search, cols: c.join(',') })} onReset={() => go({ ...search, cols: undefined })} />
+                {Object.keys(filter).length > 0 ? (
+                  <Button disabledReason={exportReason} onClick={() => void startExport(slug, { allMatching: true, filter }, total)}>
+                    {tr(m.exportView)}
+                  </Button>
+                ) : null}
+              </>
+            }
+          />
+          <ExportsReady />
           {result ? <BulkResultPanel result={result} onDismiss={() => setResult(null)} /> : null}
-          {ids.length > 0 ? (
+          {ids.length > 0 || all ? (
             <BulkBar
-              n={ids.length}
-              onAction={(k) => (k === 'erase' ? setErasing(true) : setBulk(k))}
-              onExport={() => void exportCSV(slug, { ids }, ids.length)}
+              n={n}
+              all={all}
+              counting={all && (!exact || list.isFetching)}
+              onAction={(k) => (k === 'erase' ? setErasing(true) : k === 'verify' ? setVerifying(true) : setBulk(k))}
+              onExport={() => void (all ? startExport(slug, sel, n) : exportCSV(slug, { ids }, ids.length))}
               onClear={() => setSelection({})}
             />
           ) : null}
-          {list.isError ? (
+          {pageFull && more ? (
+            <div className="banner" role="status">
+              {all ? tr(m.allMatchingSelected, { count: countLine(total, data.totalCapped) }) : tr(m.pageSelected, { n: ids.length, count: count(ids.length) })}{' '}
+              <button
+                type="button"
+                className="font-semibold text-accent underline underline-offset-2"
+                onClick={() => {
+                  setAllFor(all ? undefined : filterKey)
+                  // Acting on everything needs the exact number (the erase types it).
+                  if (!all) setExactFor(filterKey)
+                }}
+              >
+                {all ? tr(m.selectPageOnly) : tr(m.selectAllMatching, { count: countLine(total, data.totalCapped) })}
+              </button>
+            </div>
+          ) : null}
+          {stale ? (
+            <Note tone="warn">
+              {tr(m.staleCursor)}{' '}
+              <button type="button" className="font-semibold text-accent underline underline-offset-2" onClick={() => go({ ...search, cursor: undefined, page: undefined })}>
+                {tr(m.firstPage)}
+              </button>
+            </Note>
+          ) : list.isError ? (
             <ErrorPanel title={tr(m.loadFailed)} actions={<Button onClick={() => list.refetch()}>{tr(common.retry)}</Button>}>
               {errorMessage(list.error)} {tr(m.nothingChanged)}
             </ErrorPanel>
@@ -252,24 +349,33 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
               onSelection={setSelection}
               page={page}
               size={size}
+              columns={columns}
               filtered={Object.keys(filter).length > 0}
-              paid={(summary.data?.paidTiers.length ?? 0) > 0}
-              byScore={search.sort === 'score'}
-              onSort={(score) => go({ ...search, sort: score ? 'score' : undefined, page: undefined })}
-              onPage={(p) => go({ ...search, page: p > 1 ? p : undefined })}
-              onSize={(s) => go({ ...search, size: s === 10 ? undefined : s, page: undefined })}
+              sort={sort}
+              counting={exact && list.isFetching}
+              onCountAll={() => setExactFor(filterKey)}
+              onSort={(s) => go({ ...search, sort: s === 'activity' ? undefined : s, page: undefined, cursor: undefined })}
+              onPage={(next) =>
+                next === 'next'
+                  ? go({ ...search, cursor: list.data.nextCursor, page: page + 1 })
+                  : page <= 2
+                    ? go({ ...search, cursor: undefined, page: undefined })
+                    : go({ ...search, cursor: list.data.prevCursor, page: page - 1 })
+              }
+              onSize={(s) => go({ ...search, size: s === 10 ? undefined : s, page: undefined, cursor: undefined })}
               onClear={() => go({ size: search.size })}
             />
           )}
         </>
       )}
       {adding ? <AddContactDialog onClose={() => setAdding(false)} lists={summary.data?.lists ?? []} /> : null}
-      {saving ? <SaveViewDialog onClose={() => setSaving(false)} filter={filter} /> : null}
+      {saving ? <SaveViewDialog onClose={() => setSaving(false)} filter={filter} columns={parseColumns(search.cols)} /> : null}
       {bulk ? (
         <BulkDialog
           kind={bulk}
           onClose={() => setBulk(null)}
-          ids={ids}
+          selection={sel}
+          n={n}
           lists={summary.data?.lists ?? []}
           onDone={(r) => {
             setSelection({})
@@ -280,7 +386,8 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
       {erasing ? (
         <EraseDialog
           onClose={() => setErasing(false)}
-          ids={ids}
+          selection={sel}
+          n={n}
           stripe={summary.data?.stripe ?? false}
           onDone={() => {
             setSelection({})
@@ -288,7 +395,59 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
           }}
         />
       ) : null}
+      {verifying ? (
+        <VerifyDialog
+          open
+          onOpenChange={(o) => !o && setVerifying(false)}
+          target={all ? { kind: 'selection', filter } : { kind: 'selection', contactIds: ids }}
+          origin="contacts"
+          from={tr(m.verifyFrom, { n, count: count(n) })}
+          onStarted={() => {
+            setVerifying(false)
+            setSelection({})
+          }}
+        />
+      ) : null}
     </Page>
+  )
+}
+
+/** "48,213", or "10,000+" past the count's cap. */
+function countLine(total: number, capped: boolean | undefined) {
+  return capped ? t(m.totalCapped, { count: count(total) }) : count(total)
+}
+
+/** Starts a background export (AU-4); the jobs tray follows it and offers the file. */
+export async function startExport(slug: string, selection: BulkSelection, n: number) {
+  try {
+    const { data } = await http.POST('/api/v1/workspaces/{workspace}/contacts/jobs/export', { params: { path: { workspace: slug } }, body: selection })
+    if (data) trackJob(slug, { id: data.id, kind: 'export', title: t(m.exporting, { n, count: count(n) }), status: 'queued', startedAt: new Date().toISOString() })
+    toast({ kind: 'success', title: t(m.exportStarted), detail: t(m.exportStartedBody) })
+  } catch (e) {
+    toast({ kind: 'error', title: t(m.exportFailed), detail: errorMessage(e) })
+  }
+}
+
+/** Finished exports this member started, with their download (from the jobs list). */
+function ExportsReady() {
+  const tr = useT()
+  const { slug } = useWorkspace()
+  const { jobs } = useBackgroundJobs(slug)
+  const ready = jobs.filter((j) => j.kind === 'export' && j.status === 'done' && j.downloadUrl)
+  if (!ready.length) return null
+  return (
+    <>
+      {ready.map((j) => (
+        <Note key={j.id} tone="info">
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <b>{j.detail ?? j.title}</b>
+            <a className="font-semibold text-accent underline underline-offset-2" href={j.downloadUrl} download>
+              {tr(m.download)}
+            </a>
+          </span>
+        </Note>
+      ))}
+    </>
   )
 }
 
@@ -308,44 +467,24 @@ export async function exportCSV(slug: string, body: Schemas['ContactExportInput'
   }
 }
 
-function SavedViews({ views, filter, onPick, onSave }: { views?: Schemas['ContactSavedViews']; filter: Filter; onPick: (f: ContactsSearch) => void; onSave: () => void }) {
-  const tr = useT()
-  const none = Object.keys(filter).length === 0
-  return (
-    <div className="flex flex-wrap items-center gap-2" role="group" aria-label={tr(m.savedViews)}>
-      <span className="k mr-1">{tr(m.savedViews)}</span>
-      <button type="button" className="vchip" aria-pressed={none} onClick={() => onPick({})}>
-        {views ? tr(m.allContactsCount, { count: count(views.all) }) : tr(m.allContacts)}
-      </button>
-      {views?.items.map((v) => {
-        const tier = v.filters.tier as Tier | undefined
-        const onlyTier = tier && Object.keys(v.filters).length === 1
-        return (
-          <button key={v.id} type="button" className="vchip" aria-pressed={!none && sameFilter(filter, v.filters)} onClick={() => onPick(v.filters as ContactsSearch)}>
-            {onlyTier ? <span className="dot" style={{ color: tierColor[tier] }} aria-hidden="true" /> : null}
-            {v.name} · {count(v.count)}
-          </button>
-        )
-      })}
-      <button type="button" className="vchip dashed" onClick={onSave}>
-        {tr(m.saveCurrent)}
-      </button>
-    </div>
-  )
-}
-
 function Filters({
   search,
   total,
+  capped,
   lists,
   paidTiers,
   onChange,
+  tools,
 }: {
   search: ContactsSearch
   total?: number
+  /** More than 10,000 match: the line reads "10,000+" (review D5). */
+  capped: boolean
   lists: Schemas['AudienceListSummary'][]
   paidTiers: Schemas['AudiencePaidTier'][]
   onChange: (patch: Partial<ContactsSearch>) => void
+  /** The columns and export buttons, at the row's end. */
+  tools?: ReactNode
 }) {
   const tr = useT()
   // The box follows the URL (a saved view or "Clear filters" changes it)
@@ -362,7 +501,7 @@ function Filters({
     return () => window.clearTimeout(h)
   }, [q, urlQ, onChange])
   const more =
-    [search.source, search.tag, search.joinedAfter, search.segment].filter(Boolean).length +
+    [search.source, search.tag, search.joinedAfter || search.joinedBefore, search.segment, search.import].filter(Boolean).length +
     scoreGrowthMoreKeys.filter((k) => search[k] !== undefined).length +
     storeMoreKeys.filter((k) => search[k] !== undefined).length
   const totalLine = useTotalLine()
@@ -426,7 +565,10 @@ function Filters({
       <BoughtFilter className={sel} value={search.bought} onChange={(bought) => onChange({ bought })} />
       <SmsContactFilters className={sel} search={search} onChange={onChange} />
       <MoreFilters search={search} n={more} onChange={onChange} />
-      <span className="k ml-auto">{total === undefined ? '' : totalLine(total, search.sort === 'score')}</span>
+      <span className="k ml-auto" aria-live="polite">
+        {total === undefined ? '' : totalLine(total, search.sort ?? 'activity', capped)}
+      </span>
+      {tools}
       <ScoreGrowthChips search={search} onChange={onChange} />
       <StoreChips search={search} onChange={onChange} />
     </div>
@@ -440,7 +582,11 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
   const segments = $api.useQuery('get', '/api/v1/workspaces/{workspace}/segments', { params: { path: { workspace: slug } } }, { enabled: open })
   const [tag, setTag] = useState(search.tag ?? '')
   const [after, setAfter] = useState(search.joinedAfter ?? '')
+  const [before, setBefore] = useState(search.joinedBefore ?? '')
+  const [imp, setImp] = useState(search.import ?? '')
   const [segment, setSegment] = useState(search.segment ?? '')
+  const imports = $api.useQuery('get', '/api/v1/workspaces/{workspace}/imports', { params: { path: { workspace: slug } } }, { enabled: open })
+  const { me } = useWorkspace()
   const scoreGrowth = (): ScoreGrowthDraft => Object.fromEntries(scoreGrowthMoreKeys.map((k) => [k, search[k]]))
   const [extra, setExtra] = useState<ScoreGrowthDraft>(scoreGrowth)
   const storeDraft = (): StoreDraft => ({ storeCustomer: search.storeCustomer, spentFrom: search.spentFrom, spentTo: search.spentTo })
@@ -450,6 +596,8 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
       // Opening shows the filters that apply now.
       setTag(search.tag ?? '')
       setAfter(search.joinedAfter ?? '')
+      setBefore(search.joinedBefore ?? '')
+      setImp(search.import ?? '')
       setSegment(search.segment ?? '')
       setExtra(scoreGrowth())
       setStores(storeDraft())
@@ -471,8 +619,28 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
       <Field label={tr(m.tag)}>
         <Input value={tag} onChange={(e) => setTag(e.target.value)} placeholder={'customer'} />
       </Field>
-      <Field label={tr(m.joinedAfter)}>
-        <Input type="date" value={after} onChange={(e) => setAfter(e.target.value)} />
+      <fieldset className="m-0 flex flex-col gap-1.5 border-0 p-0">
+        <legend className="mb-1.5 text-xs font-semibold text-ink-2">{tr(m.joinedBetween)}</legend>
+        <div className="flex items-center gap-2">
+          <Input type="date" aria-label={tr(m.joinedFrom)} value={after} max={before || undefined} onChange={(e) => setAfter(e.target.value)} />
+          <span className="k">{tr(m.and)}</span>
+          <Input type="date" aria-label={tr(m.joinedUntil)} value={before} min={after || undefined} onChange={(e) => setBefore(e.target.value)} />
+        </div>
+        <span className="k">{tr(m.joinedHint, { tz: me.timezone })}</span>
+      </fieldset>
+      <Field label={tr(m.fromImport)}>
+        <Select value={imp} onChange={(e) => setImp(e.target.value)}>
+          <option value="">{tr(m.anyImport)}</option>
+          {/* An import in the address bar shows before the list has loaded. */}
+          {imp && !imports.data?.items.some((i) => i.id === imp) ? <option value={imp}>{imp.slice(0, 8)}</option> : null}
+          {imports.data?.items
+            .filter((i) => i.status === 'done')
+            .map((i) => (
+              <option key={i.id} value={i.id}>
+                {tr(m.importOption, { source: i.fileName || i.sourceName, day: i.finishedAt ? dayMonthDate(new Date(i.finishedAt)) : '' })}
+              </option>
+            ))}
+        </Select>
       </Field>
       <Field label={tr(m.segment)}>
         <Select value={segment} onChange={(e) => setSegment(e.target.value)}>
@@ -494,6 +662,8 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
               source: undefined,
               tag: undefined,
               joinedAfter: undefined,
+              joinedBefore: undefined,
+              import: undefined,
               segment: undefined,
               ...Object.fromEntries([...scoreGrowthMoreKeys, ...storeMoreKeys].map((k) => [k, undefined])),
             })
@@ -506,7 +676,15 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
           size="sm"
           variant="primary"
           onClick={() => {
-            onChange({ tag: tag.trim() || undefined, joinedAfter: after || undefined, segment: segment || undefined, ...extra, ...stores })
+            onChange({
+              tag: tag.trim() || undefined,
+              joinedAfter: after || undefined,
+              joinedBefore: before || undefined,
+              import: imp || undefined,
+              segment: segment || undefined,
+              ...extra,
+              ...stores,
+            })
             setOpen(false)
           }}
         >
@@ -517,34 +695,62 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
   )
 }
 
-function BulkBar({ n, onAction, onExport, onClear }: { n: number; onAction: (k: BulkKind | 'erase') => void; onExport: () => void; onClear: () => void }) {
+function BulkBar({
+  n,
+  all,
+  counting,
+  onAction,
+  onExport,
+  onClear,
+}: {
+  n: number
+  /** Everything matching the filter is selected (AU-5). */
+  all: boolean
+  /** The exact number of everything matching is on its way: actions wait for it. */
+  counting: boolean
+  onAction: (k: BulkKind | 'erase' | 'verify') => void
+  onExport: () => void
+  onClear: () => void
+}) {
   const tr = useT()
   const editReason = usePermissionReason('subscribers:edit')
   const exportReason = usePermissionReason('subscribers:export')
   const deleteReason = usePermissionReason('subscribers:delete')
+  const verifyReason = usePermissionReason('subscribers:verify')
   const canExport = useCan('subscribers:export')
+  const wait = counting ? tr(m.counting) : undefined
   return (
     <div className="card flex flex-wrap items-center gap-2.5 border-accent-line bg-accent-tint px-3 py-2" role="region" aria-label={tr(m.bulkActions)}>
-      <span className="text-[13px] font-semibold" role="status">
-        {tr(m.selected, { count: count(n) })}
+      <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold" role="status">
+        {counting ? <span className="spin sm" aria-hidden="true" /> : null}
+        {counting ? tr(m.counting) : all ? tr(m.allMatching, { count: count(n) }) : tr(m.selected, { count: count(n) })}
       </span>
-      <Button size="sm" disabledReason={editReason} onClick={() => onAction('add_to_list')}>
+      <Button size="sm" disabledReason={editReason ?? wait} onClick={() => onAction('add_to_list')}>
         {tr(m.addToList)}
       </Button>
-      <Button size="sm" disabledReason={editReason} onClick={() => onAction('add_tag')}>
+      <Button size="sm" disabledReason={editReason ?? wait} onClick={() => onAction('remove_from_list')}>
+        {tr(m.removeFromList)}
+      </Button>
+      <Button size="sm" disabledReason={editReason ?? wait} onClick={() => onAction('add_tag')}>
         {tr(m.addTag)}
       </Button>
-      <Button size="sm" disabledReason={editReason} onClick={() => onAction('resend_optin')}>
+      <Button size="sm" disabledReason={editReason ?? wait} onClick={() => onAction('remove_tag')}>
+        {tr(m.removeTag)}
+      </Button>
+      <Button size="sm" disabledReason={editReason ?? wait} onClick={() => onAction('resend_optin')}>
         {tr(m.resendOptin)}
       </Button>
-      <Button size="sm" disabledReason={exportReason} title={tr(m.exportTitle)} onClick={onExport}>
+      <Button size="sm" disabledReason={verifyReason ?? wait} onClick={() => onAction('verify')}>
+        {tr(m.verifyAddresses)}
+      </Button>
+      <Button size="sm" disabledReason={exportReason ?? wait} title={tr(m.exportTitle)} onClick={onExport}>
         {tr(m.exportCsv)}
       </Button>
       <span className="k">{canExport ? tr(m.exportLogged) : tr(m.exportNeeds)}</span>
-      <Button size="sm" className="dline" disabledReason={editReason} onClick={() => onAction('suppress')}>
+      <Button size="sm" className="dline" disabledReason={editReason ?? wait} onClick={() => onAction('suppress')}>
         {tr(m.suppress)}
       </Button>
-      <Button size="sm" className="dline" disabledReason={deleteReason} onClick={() => onAction('erase')}>
+      <Button size="sm" className="dline" disabledReason={deleteReason ?? wait} onClick={() => onAction('erase')}>
         {tr(m.delete)}
       </Button>
       <Button size="sm" className="ml-auto" onClick={onClear}>
@@ -560,30 +766,37 @@ function ContactsTable({
   onSelection,
   page,
   size,
+  columns,
   filtered,
-  paid,
   onPage,
   onSize,
   onClear,
-  byScore,
+  sort,
   onSort,
+  counting,
+  onCountAll,
 }: {
   data: Schemas['ContactList']
   selection: RowSelectionState
   onSelection: (s: RowSelectionState) => void
   page: number
   size: number
+  /** The columns after Contact, in order (AU-9). */
+  columns: ColumnId[]
   filtered: boolean
-  /** Paid status shows (Earn, X16): the tier chip and the Paid column. */
-  paid: boolean
-  onPage: (p: number) => void
+  onPage: (dir: 'next' | 'prev') => void
   onSize: (s: number) => void
   onClear: () => void
-  byScore: boolean
-  onSort: (score: boolean) => void
+  sort: ContactSort
+  onSort: (s: ContactSort) => void
+  /** The exact count is being counted (review D5). */
+  counting: boolean
+  onCountAll: () => void
 }) {
   const { slug } = useWorkspace()
-  const columns = useMemo(
+  const fields = $api.useQuery('get', '/api/v1/workspaces/{workspace}/fields', { params: { path: { workspace: slug } } }, { enabled: columns.some((c) => c.startsWith('field:')) })
+  const fieldLabel = (key: string) => fields.data?.items.find((f) => f.key === key)?.label || key
+  const tableColumns = useMemo(
     () =>
       col.columns([
         col.display({
@@ -614,7 +827,7 @@ function ContactsTable({
   const table = useTable(
     {
       features,
-      columns,
+      columns: tableColumns,
       data: data.items,
       getRowId: (r) => r.id,
       state: { rowSelection: selection },
@@ -623,11 +836,96 @@ function ContactsTable({
     (s) => ({ rowSelection: s.rowSelection }),
   )
   const header = table.getHeaderGroups()[0]!.headers[0]!
-  // Phase 8: the phone column, once texting is set up.
-  const phones = usePhoneColumn()
   const tr = useT()
-  const from = data.total === 0 ? 0 : (page - 1) * size + 1
-  const to = Math.min(data.total, page * size)
+  const from = data.items.length === 0 ? 0 : (page - 1) * size + 1
+  const to = from === 0 ? 0 : from + data.items.length - 1
+  const head = (c: ColumnId) => {
+    switch (c) {
+      case 'score':
+        return <SortHeader key={c} label={tr(m.colScore)} sort="score" current={sort} onSort={onSort} />
+      case 'last_open':
+        return <SortHeader key={c} label={tr(m.colLastOpen)} sort="last_open" current={sort} onSort={onSort} />
+      case 'joined':
+        return <SortHeader key={c} label={tr(m.colJoined)} sort="joined" current={sort} onSort={onSort} />
+      case 'phone':
+        return <Th key={c}>{tr(cfm.column)}</Th>
+    }
+    if (c.startsWith('field:')) return <Th key={c}>{fieldLabel(c.slice('field:'.length))}</Th>
+    return <Th key={c}>{tr(columnLabels[c as BuiltinColumn])}</Th>
+  }
+  const cell = (c: ColumnId, row: Item) => {
+    const tier = row.tier as Tier
+    const consent = row.consent as Consent
+    switch (c) {
+      case 'paid':
+        return (
+          <td key={c} className="nw">
+            <PaidStatusCell paid={row.paid} />
+          </td>
+        )
+      case 'phone':
+        return (
+          <td key={c} className="mono nw">
+            {row.phone || <span className="k">–</span>}
+          </td>
+        )
+      case 'lists':
+        return (
+          <td key={c} className="lists">
+            {row.lists.join(', ') || '–'}
+          </td>
+        )
+      case 'tier':
+        return (
+          <td key={c}>
+            <span className={`badge ${tierClass[tier]}`}>{tierLabel[tier]}</span>
+          </td>
+        )
+      case 'score':
+        return (
+          <td key={c} className="nw">
+            <ScoreCell score={row.score} band={row.scoreBand} />
+          </td>
+        )
+      case 'consent':
+        return (
+          <td key={c}>
+            {row.suppressed ? <Badge tone="bad">{tr(m.suppressed)}</Badge> : <Badge tone={consentTone[consent]}>{consentLabel[consent]}</Badge>}
+          </td>
+        )
+      case 'mailbox':
+        // Mailbox provider, last open and source wrap so the table fits its card (Contacts board).
+        return (
+          <td key={c} className="wrap">
+            <span className="flex items-center gap-1.5">
+              <span className="dot" style={{ color: mailboxColor[row.mailboxProvider] ?? mailboxColor.other }} aria-hidden="true" />
+              {row.mailboxLabel}
+            </span>
+          </td>
+        )
+      case 'last_open':
+        return (
+          <td key={c} className="wrap">
+            {lastOpen(row.lastOpenAt, row.lastOpenMachine)}
+          </td>
+        )
+      case 'joined':
+        return <td key={c}>{joined(row.joinedAt)}</td>
+      case 'source':
+        return (
+          <td key={c} className="wrap">
+            {row.sourceLabel}
+          </td>
+        )
+    }
+    const v = row.fields?.[c.slice('field:'.length)]
+    return (
+      <td key={c} className="wrap">
+        {v === undefined || v === null || v === '' ? <span className="k">–</span> : String(v)}
+      </td>
+    )
+  }
+  const showPaidChip = columns.includes('paid')
   return (
     <section className="card" aria-label={tr(m.contacts)}>
       <TableScroll label={tr(m.contacts)}>
@@ -637,24 +935,13 @@ function ContactsTable({
               <th scope="col">
                 <table.FlexRender header={header} />
               </th>
-              <Th>{tr(m.colContact)}</Th>
-              {paid ? <Th>{tr(m.colPaid)}</Th> : null}
-              {phones ? <Th>{tr(cfm.column)}</Th> : null}
-              <Th>{tr(m.colLists)}</Th>
-              <Th>{tr(m.colTier)}</Th>
-              <ScoreHeader sorted={byScore} onSort={onSort} />
-              <Th>{tr(m.colConsent)}</Th>
-              <Th>{tr(m.colMailbox)}</Th>
-              <Th>{tr(m.colLastOpen)}</Th>
-              <Th>{tr(m.colJoined)}</Th>
-              <Th>{tr(m.colSource)}</Th>
+              <SortHeader label={tr(m.colContact)} sort="email" current={sort} onSort={onSort} />
+              {columns.map(head)}
             </tr>
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => {
               const c = row.original
-              const tier = c.tier as Tier
-              const consent = c.consent as Consent
               return (
                 <tr key={row.id} className={row.getIsSelected() ? 'sel' : undefined}>
                   <td>
@@ -668,45 +955,16 @@ function ContactsTable({
                     >
                       {c.name || c.email}
                     </Link>
-                    {paid ? <PaidTierChip paid={c.paid} /> : null}
+                    {showPaidChip ? <PaidTierChip paid={c.paid} /> : null}
                     <div className="k mono">{c.email}</div>
                   </td>
-                  {paid ? (
-                    <td className="nw">
-                      <PaidStatusCell paid={c.paid} />
-                    </td>
-                  ) : null}
-                  {phones ? <td className="mono nw">{c.phone || <span className="k">–</span>}</td> : null}
-                  <td className="lists">{c.lists.join(', ') || '–'}</td>
-                  <td>
-                    <span className={`badge ${tierClass[tier]}`}>{tierLabel[tier]}</span>
-                  </td>
-                  <td className="nw">
-                    <ScoreCell score={c.score} band={c.scoreBand} />
-                  </td>
-                  <td>
-                    {c.suppressed ? (
-                      <Badge tone="bad">{tr(m.suppressed)}</Badge>
-                    ) : (
-                      <Badge tone={consentTone[consent]}>{consentLabel[consent]}</Badge>
-                    )}
-                  </td>
-                  {/* Mailbox provider, last open and source wrap so the table fits its card (Contacts board). */}
-                  <td className="wrap">
-                    <span className="flex items-center gap-1.5">
-                      <span className="dot" style={{ color: mailboxColor[c.mailboxProvider] ?? mailboxColor.other }} aria-hidden="true" />
-                      {c.mailboxLabel}
-                    </span>
-                  </td>
-                  <td className="wrap">{lastOpen(c.lastOpenAt, c.lastOpenMachine)}</td>
-                  <td>{joined(c.joinedAt)}</td>
-                  <td className="wrap">{c.sourceLabel}</td>
+                  {columns.map((k) => cell(k, c))}
                 </tr>
               )
             })}
             {data.items.length === 0 ? (
               <tr>
-                <td colSpan={10 + (paid ? 1 : 0) + (phones ? 1 : 0)} className="py-8 text-center text-ink-3">
+                <td colSpan={2 + columns.length} className="py-8 text-center text-ink-3">
                   {filtered ? (
                     <>
                       {tr(m.noMatch)}{' '}
@@ -724,7 +982,20 @@ function ContactsTable({
         </table>
       </TableScroll>
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line-2 px-4 py-2.5">
-        <span className="k">{tr(m.range, { from: count(from), to: count(to), total: count(data.total) })}</span>
+        <span className="k inline-flex items-center gap-1.5" aria-live="polite">
+          {counting ? <span className="spin" aria-hidden="true" /> : null}
+          {tr(m.range, { from: count(from), to: count(to), total: data.totalCapped ? tr(m.totalCapped, { count: count(data.total) }) : count(data.total) })}
+          {counting ? (
+            <> · {tr(m.counting)}</>
+          ) : data.totalCapped ? (
+            <>
+              {' · '}
+              <button type="button" className="font-semibold text-accent underline underline-offset-2" onClick={onCountAll}>
+                {tr(m.countAll)}
+              </button>
+            </>
+          ) : null}
+        </span>
         <div className="flex items-center gap-1.5 max-md:flex-wrap">
           <select className="in h-[30px] max-md:w-0 max-md:min-w-full" aria-label={tr(m.rowsPerPage)} value={size} onChange={(e) => onSize(Number(e.target.value))}>
             {[10, 50, 100].map((n) => (
@@ -733,10 +1004,10 @@ function ContactsTable({
               </option>
             ))}
           </select>
-          <Button size="sm" disabled={page <= 1} onClick={() => onPage(page - 1)}>
+          <Button size="sm" disabled={page <= 1 && !data.prevCursor} onClick={() => onPage('prev')}>
             {tr(m.previous)}
           </Button>
-          <Button size="sm" disabled={to >= data.total} onClick={() => onPage(page + 1)}>
+          <Button size="sm" disabled={!data.nextCursor} onClick={() => onPage('next')}>
             {tr(m.next)}
           </Button>
         </div>

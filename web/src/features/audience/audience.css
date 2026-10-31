@@ -50,6 +50,62 @@
   .vchip.dashed {
     border-style: dashed;
   }
+  /* A saved view's chip with its menu (review 2026-11 AU-8): the menu
+     button sits inside the pill. */
+  .vchip-wrap {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+  }
+  .vchip-wrap .vchip {
+    padding-right: 30px;
+  }
+  .vchip-more {
+    position: absolute;
+    right: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--ink-3);
+    cursor: pointer;
+  }
+  .vchip-more:hover,
+  .vchip-more[data-state='open'] {
+    background: var(--ground);
+    color: var(--ink);
+  }
+  .vchip-wrap[data-on] .vchip-more {
+    color: var(--accent);
+  }
+  /* "All 25 on this page are selected · Select all 48,213 matching" (AU-5). */
+  .banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 4px 8px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    background: var(--color-info-tint);
+    border: 1px solid var(--color-info-line);
+    font-size: 13px;
+    text-align: center;
+  }
+  @media (max-width: 767px) {
+    .vchip-more {
+      width: 32px;
+      height: 32px;
+      right: 0;
+    }
+    .vchip-wrap .vchip {
+      padding-right: 36px;
+    }
+  }
 
   .tbl tr.sel td {
     background: var(--accent-tint);
@@ -91,6 +147,7 @@
   .ptag {
     display: inline-flex;
     align-items: center;
+    gap: 2px;
     height: 24px;
     padding: 0 8px;
     border-radius: 6px;
@@ -98,6 +155,35 @@
     border: 1px solid var(--line);
     font-size: 12px;
     font-weight: 500;
+  }
+  /* A tag the team can take off (review 2026-11 AU-6). */
+  .ptag:has(.ptag-x) {
+    padding-right: 2px;
+  }
+  .ptag-x {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--ink-3);
+    font: inherit;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .ptag-x:hover {
+    background: var(--line);
+    color: var(--ink);
+  }
+  @media (max-width: 767px) {
+    .ptag-x {
+      width: 28px;
+      height: 28px;
+    }
   }
   .ev {
     display: flex;

@@ -21,7 +21,7 @@ export interface ScoreGrowthSearch {
   utmMedium?: string
   utmCampaign?: string
   referringDomain?: string
-  sort?: 'activity' | 'score'
+  sort?: 'activity' | 'score' | 'joined' | 'last_open' | 'email'
 }
 
 /** Keys counted by "More filters · n". */
@@ -75,10 +75,19 @@ export function ScoreHeader({ sorted, onSort }: { sorted: boolean; onSort: (scor
   )
 }
 
-/** "48,213 contacts · sorted by score, highest first". */
+const sortedBy = {
+  activity: m.sortedByActivity,
+  score: m.sortedByScore,
+  joined: m.sortedByJoined,
+  last_open: m.sortedByLastOpen,
+  email: m.sortedByEmail,
+} as const
+
+/** "48,213 contacts · sorted by score, highest first"; "10,000+ contacts" past the count's cap. */
 export function useTotalLine() {
   const t = useT()
-  return (total: number, byScore: boolean) => t(m.totalSorted, { count: total, sort: t(byScore ? m.sortedByScore : m.sortedByActivity) })
+  return (total: number, sort: keyof typeof sortedBy, capped = false) =>
+    t(capped ? m.totalSortedCapped : m.totalSorted, { count: total, sort: t(sortedBy[sort] ?? m.sortedByActivity) })
 }
 
 export type ScoreGrowthDraft = Pick<ScoreGrowthSearch, (typeof scoreGrowthMoreKeys)[number]>
