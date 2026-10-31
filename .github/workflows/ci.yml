@@ -112,9 +112,37 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: "1.27.x"
+          # The cache setup-go shares between jobs holds what the first job
+          # to save it built, the shards' -race builds: none of it helps
+          # the linters. This job keeps its own, below.
+          cache: false
+      # The module and build caches and golangci-lint's results as main's
+      # latest lint left them, so a run checks again only what changed.
+      # main saves them after each run; pull requests restore main's.
+      - uses: actions/cache/restore@v5
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+            ~/.cache/golangci-lint
+          key: golangci-${{ runner.os }}-${{ hashFiles('go.sum') }}-${{ github.sha }}
+          restore-keys: |
+            golangci-${{ runner.os }}-${{ hashFiles('go.sum') }}-
+            golangci-${{ runner.os }}-
       - uses: golangci/golangci-lint-action@v8
         with:
           version: v2.14.0
+          # Its own cache is golangci-lint's results from the week's first
+          # run, which the cache above replaces.
+          skip-cache: true
+      - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+            ~/.cache/golangci-lint
+          key: golangci-${{ runner.os }}-${{ hashFiles('go.sum') }}-${{ github.sha }}
 
   adapter-sdk:
     name: Adapter SDK · typecheck, test, build, end to end
