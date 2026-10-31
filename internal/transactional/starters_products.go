@@ -54,3 +54,30 @@ func init() {
 		why:   "You get this email because you bought from {{ site }}. Purchase emails can't be turned off.",
 	})
 }
+
+// The buyer's notice when a delayed payment (a bank debit) didn't clear
+// after checkout (review 2026-11 EN-7): nothing was charged, and a link to
+// try again. It is made with the delivery template, as a draft, and sent
+// once it's published.
+func init() {
+	starterList = append(starterList, TransactionalStarter{
+		Key: "product-payment-failed", Name: "Payment didn't go through", Description: "When a bank payment for a digital product fails after checkout", Kind: KindEssential,
+		Subject: "Your payment for {{ product_name }} didn't go through", Preheader: "Nothing was charged. You can try again.",
+		Variables: []TransactionalVariable{
+			{Name: "first_name", Type: TypeText, Sample: "Ana", Default: "there"},
+			{Name: "product_name", Type: TypeText, Required: true, Sample: "The Deliverability Field Guide"},
+			{Name: "retry_url", Type: TypeURL, Required: true, Sample: "https://news.example.com/products/field-guide"},
+			{Name: "site", Type: TypeText, Sample: "news.example.com", Default: "us"},
+		},
+		TestData: []TransactionalTestData{
+			{Name: "A buyer", Data: map[string]any{"first_name": "Ana", "product_name": "The Deliverability Field Guide",
+				"retry_url": "https://news.example.com/products/field-guide", "site": "news.example.com"}},
+		},
+		heading:   "Your payment didn't go through",
+		body:      []string{"Hi {{ first_name }},", "Your bank didn't complete the payment for {{ product_name }}, so the order wasn't placed and nothing was charged."},
+		button:    "Try again",
+		href:      "{{ retry_url }}",
+		bodyAfter: []string{"If you think this is a mistake, check with your bank or pay another way."},
+		why:       "You get this email because you started a purchase at {{ site }}. Purchase emails can't be turned off.",
+	})
+}

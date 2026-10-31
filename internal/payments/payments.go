@@ -230,6 +230,13 @@ type Webhook struct {
 	Secret string
 }
 
+// WebhookUpdater changes the events a registered endpoint receives, so a
+// webhook registered by an older version gets the events a newer one
+// subscribes to.
+type WebhookUpdater interface {
+	UpdateWebhookEvents(ctx context.Context, id string, events []string) error
+}
+
 // PortalConfig is what the customer portal lets readers do.
 type PortalConfig struct {
 	UpdateCard   bool
@@ -476,7 +483,11 @@ type EventKind string
 
 // Event kinds.
 const (
-	EventCheckoutCompleted   EventKind = "checkout_completed"
+	EventCheckoutCompleted EventKind = "checkout_completed"
+	// A delayed payment method (a bank debit) cleared, or didn't, after
+	// its checkout completed.
+	EventCheckoutAsyncPaid   EventKind = "checkout_async_paid"
+	EventCheckoutAsyncFailed EventKind = "checkout_async_failed"
 	EventSubscriptionCreated EventKind = "subscription_created"
 	EventSubscriptionUpdated EventKind = "subscription_updated"
 	EventSubscriptionDeleted EventKind = "subscription_deleted"

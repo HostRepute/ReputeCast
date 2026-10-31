@@ -20056,6 +20056,7 @@ export interface components {
             canManage: boolean;
             counts: components["schemas"]["ApprovalCounts"];
             items: components["schemas"]["ApprovalListItem"][];
+            nextCursor?: string;
             policy: components["schemas"]["ApprovalPolicySummary"];
         };
         ApprovalListItem: {
@@ -32804,7 +32805,7 @@ export interface components {
             email?: string;
             file?: string;
             /** @enum {string} */
-            kind: "checkout_started" | "paid" | "delivery_sent" | "delivery_delivered" | "delivery_failed" | "downloaded" | "refunded" | "dispute_opened" | "dispute_closed" | "access_revoked" | "access_restored" | "new_link" | "buyer_asked";
+            kind: "checkout_started" | "paid" | "delivery_sent" | "delivery_delivered" | "delivery_failed" | "downloaded" | "refunded" | "dispute_opened" | "dispute_updated" | "dispute_closed" | "access_revoked" | "access_restored" | "new_link" | "buyer_asked";
             note?: string;
             outcome?: string;
             page?: string;
@@ -52657,6 +52658,9 @@ export interface operations {
                 approver?: string;
                 /** @description Requested in the last N days (0: all) */
                 days?: number;
+                /** @description The nextCursor of the page before */
+                cursor?: string;
+                limit?: number;
             };
             header?: never;
             path: {

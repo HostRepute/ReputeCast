@@ -382,6 +382,7 @@ var (
 	mAutoPause       = msgs.M("label.autoPause")
 	mNoteComment     = msgs.M("note.comment")
 	mNoteCancelled   = msgs.M("note.cancelled")
+	mInboxCursor     = msgs.M("inbox.cursor")
 	mVisibility      = msgs.M("label.visibility")
 	mPolicyWarming   = msgs.M("policy.warming")
 	mPolicyConnected = msgs.M("policy.connected")

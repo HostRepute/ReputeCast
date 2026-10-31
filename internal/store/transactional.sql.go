@@ -1182,9 +1182,12 @@ WITH log AS (
       AND ($6::text IS NULL OR ($6::text = 'raw' AND t.source = 'smtp' AND t.template_key = '') OR t.template_key = $6::text)
       AND ($7::uuid IS NULL OR m.provider_id = $7::uuid)
       AND ($8::uuid IS NULL OR t.key_id = $8::uuid)
-      AND ($9::text IS NULL OR m.email ILIKE '%' || $9::text || '%' OR t.message_id::text = $9::text
-           OR t.idempotency_key = $9::text OR $9::text = ANY(t.tags)
-           OR EXISTS (SELECT 1 FROM jsonb_each_text(t.metadata) kv WHERE kv.value = $9::text))
+      -- The search ignores case; an idempotency key also finds the messages of
+      -- a batch sent with it ("key#0", "key#1"…).
+      AND ($9::text IS NULL OR strpos(lower(m.email), lower($9::text)) > 0 OR t.message_id::text = lower($9::text)
+           OR lower(t.idempotency_key) = lower($9::text) OR starts_with(lower(t.idempotency_key), lower($9::text) || '#')
+           OR EXISTS (SELECT 1 FROM unnest(t.tags) tg WHERE lower(tg) = lower($9::text))
+           OR EXISTS (SELECT 1 FROM jsonb_each_text(t.metadata) kv WHERE lower(kv.value) = lower($9::text)))
       AND ($10::timestamptz IS NULL OR (t.accepted_at, t.message_id) < ($10::timestamptz, $11::uuid))
       AND ($12::timestamptz IS NULL OR (t.accepted_at, t.message_id) > ($12::timestamptz, $13::uuid))
 )
@@ -1348,9 +1351,12 @@ WHERE t.workspace_id = $1 AND t.accepted_at >= $2::timestamptz AND t.accepted_at
   AND ($4::text IS NULL OR ($4::text = 'raw' AND t.source = 'smtp' AND t.template_key = '') OR t.template_key = $4::text)
   AND ($5::uuid IS NULL OR m.provider_id = $5::uuid)
   AND ($6::uuid IS NULL OR t.key_id = $6::uuid)
-  AND ($7::text IS NULL OR m.email ILIKE '%' || $7::text || '%' OR t.message_id::text = $7::text
-       OR t.idempotency_key = $7::text OR $7::text = ANY(t.tags)
-       OR EXISTS (SELECT 1 FROM jsonb_each_text(t.metadata) kv WHERE kv.value = $7::text))
+  -- The search ignores case; an idempotency key also finds the messages of
+  -- a batch sent with it ("key#0", "key#1"…).
+  AND ($7::text IS NULL OR strpos(lower(m.email), lower($7::text)) > 0 OR t.message_id::text = lower($7::text)
+       OR lower(t.idempotency_key) = lower($7::text) OR starts_with(lower(t.idempotency_key), lower($7::text) || '#')
+       OR EXISTS (SELECT 1 FROM unnest(t.tags) tg WHERE lower(tg) = lower($7::text))
+       OR EXISTS (SELECT 1 FROM jsonb_each_text(t.metadata) kv WHERE lower(kv.value) = lower($7::text)))
 GROUP BY 1
 `
 

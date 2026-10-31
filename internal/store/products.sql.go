@@ -738,6 +738,26 @@ func (q *Queries) ProductCheckoutInsert(ctx context.Context, arg ProductCheckout
 	return err
 }
 
+const productCheckoutPaymentFailed = `-- name: ProductCheckoutPaymentFailed :execrows
+UPDATE product_checkouts SET status = 'failed', email = CASE WHEN $1::text <> '' THEN $1::text ELSE email END
+WHERE id = $2 AND status IN ('open', 'expired')
+`
+
+type ProductCheckoutPaymentFailedParams struct {
+	Email string    `json:"email"`
+	ID    uuid.UUID `json:"id"`
+}
+
+// A delayed payment (a bank debit) didn't clear: the checkout failed. The
+// payer's address is kept for the notice (erased with the contact).
+func (q *Queries) ProductCheckoutPaymentFailed(ctx context.Context, arg ProductCheckoutPaymentFailedParams) (int64, error) {
+	result, err := q.db.Exec(ctx, productCheckoutPaymentFailed, arg.Email, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const productCheckoutSetSession = `-- name: ProductCheckoutSetSession :exec
 UPDATE product_checkouts SET session_id = $1 WHERE id = $2
 `

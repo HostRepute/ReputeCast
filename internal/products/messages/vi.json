@@ -81,6 +81,7 @@
   "size.bytes": "{n} byte",
 
   "template.deliveryName": "Giao sản phẩm",
+  "template.failedName": "Thanh toán không thành công",
   "category.purchases": "Mua hàng",
   "category.purchasesText": "Email gửi người mua: liên kết tải xuống của sản phẩm số",
   "webhook.order.paid": "Người mua đã thanh toán cho một sản phẩm số; email giao hàng đang được gửi.",

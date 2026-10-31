@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/riverqueue/river"
 
+	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
@@ -217,6 +219,10 @@ func (s *Service) healthCheck(ctx context.Context, c store.PaymentConnection) er
 		case err == nil && !ok:
 			_ = s.Q.PayConnectionWebhookMissing(ctx, store.PayConnectionWebhookMissingParams{ID: c.ID, At: now})
 			return s.notifyAttention(ctx, &ws, c, "webhook_missing", now)
+		case err == nil:
+			if err := s.syncWebhookEvents(ctx, &ws, c, client); err != nil {
+				s.log().Warn("earn: couldn't add the new webhook events", "connection", c.ID, "err", err)
+			}
 		}
 	}
 	if c.LastEventAt != nil && now.Sub(*c.LastEventAt) > SilentAfter && s.activeSubscriptions(ctx, c.WorkspaceID, c.Mode) >= SilentMinimum {
@@ -228,6 +234,39 @@ func (s *Service) healthCheck(ctx context.Context, c store.PaymentConnection) er
 		}
 	}
 	return nil
+}
+
+// syncWebhookEvents subscribes a webhook ReputeCast registered earlier to
+// the events this version takes and it doesn't yet (review 2026-11 EN-7: a
+// failed bank debit, a dispute's updates), so nobody has to register it
+// again. Audited for the system.
+func (s *Service) syncWebhookEvents(ctx context.Context, ws *store.Workspace, c store.PaymentConnection, client payments.Client) error {
+	d, ok := payments.Lookup(c.Provider)
+	if !ok {
+		return nil
+	}
+	var added []string
+	for _, e := range d.WebhookEvents {
+		if !slices.Contains(c.WebhookEvents, e) {
+			added = append(added, e)
+		}
+	}
+	u, ok := client.(payments.WebhookUpdater)
+	if len(added) == 0 || !ok {
+		return nil
+	}
+	if err := u.UpdateWebhookEvents(ctx, c.WebhookID, d.WebhookEvents); err != nil {
+		return err
+	}
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if err := q.PayConnectionWebhookEvents(ctx, store.PayConnectionWebhookEventsParams{ID: c.ID, WebhookEvents: d.WebhookEvents, At: s.now()}); err != nil {
+			return err
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "payments.webhook_events_added", TargetType: "payment_connection",
+			TargetID: c.ID.String(), TargetName: connName(connRow{PaymentConnection: c}), Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"},
+			Metadata: map[string]any{"mode": c.Mode, "added": added}})
+	})
 }
 
 func (s *Service) notifyAttention(ctx context.Context, ws *store.Workspace, c store.PaymentConnection, reason string, now time.Time) error {

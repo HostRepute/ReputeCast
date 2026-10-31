@@ -61,6 +61,7 @@ export default translate(m, {
   emptyFiltered: 'Hãy xóa bộ lọc hoặc chọn khoảng thời gian dài hơn để xem thêm.',
   emptyNone: 'Yêu cầu sẽ hiện ở đây khi có người yêu cầu phê duyệt.',
   tableCaption: 'Yêu cầu phê duyệt',
+  showOlder: 'Xem các yêu cầu cũ hơn',
   colCampaign: 'Chiến dịch',
   colAuthor: 'Tác giả',
   colAudience: 'Người nhận',

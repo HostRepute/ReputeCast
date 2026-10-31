@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/scoring"
 )
 
@@ -122,7 +123,7 @@ func (s *Service) growthFilter(out *filterSQL, f ScoreGrowthFilter) error {
 		}
 	}
 	if v := strings.ToLower(strings.TrimSpace(f.ReferringDomain)); v != "" {
-		growth("(g.referrer_domain = ? OR g.referrer_domain LIKE ?)", v, "%."+escapeLike(v))
+		growth("(g.referrer_domain = ? OR g.referrer_domain LIKE ?)", v, "%."+db.EscapeLike(v))
 	}
 	return nil
 }

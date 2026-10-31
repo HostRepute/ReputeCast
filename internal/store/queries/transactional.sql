@@ -510,9 +510,12 @@ WITH log AS (
       AND (sqlc.narg(template)::text IS NULL OR (sqlc.narg(template)::text = 'raw' AND t.source = 'smtp' AND t.template_key = '') OR t.template_key = sqlc.narg(template)::text)
       AND (sqlc.narg(provider_id)::uuid IS NULL OR m.provider_id = sqlc.narg(provider_id)::uuid)
       AND (sqlc.narg(key_id)::uuid IS NULL OR t.key_id = sqlc.narg(key_id)::uuid)
-      AND (sqlc.narg(q)::text IS NULL OR m.email ILIKE '%' || sqlc.narg(q)::text || '%' OR t.message_id::text = sqlc.narg(q)::text
-           OR t.idempotency_key = sqlc.narg(q)::text OR sqlc.narg(q)::text = ANY(t.tags)
-           OR EXISTS (SELECT 1 FROM jsonb_each_text(t.metadata) kv WHERE kv.value = sqlc.narg(q)::text))
+      -- The search ignores case; an idempotency key also finds the messages of
+      -- a batch sent with it ("key#0", "key#1"…).
+      AND (sqlc.narg(q)::text IS NULL OR strpos(lower(m.email), lower(sqlc.narg(q)::text)) > 0 OR t.message_id::text = lower(sqlc.narg(q)::text)
+           OR lower(t.idempotency_key) = lower(sqlc.narg(q)::text) OR starts_with(lower(t.idempotency_key), lower(sqlc.narg(q)::text) || '#')
+           OR EXISTS (SELECT 1 FROM unnest(t.tags) tg WHERE lower(tg) = lower(sqlc.narg(q)::text))
+           OR EXISTS (SELECT 1 FROM jsonb_each_text(t.metadata) kv WHERE lower(kv.value) = lower(sqlc.narg(q)::text)))
       AND (sqlc.narg(before_at)::timestamptz IS NULL OR (t.accepted_at, t.message_id) < (sqlc.narg(before_at)::timestamptz, sqlc.narg(before_id)::uuid))
       AND (sqlc.narg(after_at)::timestamptz IS NULL OR (t.accepted_at, t.message_id) > (sqlc.narg(after_at)::timestamptz, sqlc.narg(after_id)::uuid))
 )
@@ -543,9 +546,12 @@ WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since::timestamptz AN
   AND (sqlc.narg(template)::text IS NULL OR (sqlc.narg(template)::text = 'raw' AND t.source = 'smtp' AND t.template_key = '') OR t.template_key = sqlc.narg(template)::text)
   AND (sqlc.narg(provider_id)::uuid IS NULL OR m.provider_id = sqlc.narg(provider_id)::uuid)
   AND (sqlc.narg(key_id)::uuid IS NULL OR t.key_id = sqlc.narg(key_id)::uuid)
-  AND (sqlc.narg(q)::text IS NULL OR m.email ILIKE '%' || sqlc.narg(q)::text || '%' OR t.message_id::text = sqlc.narg(q)::text
-       OR t.idempotency_key = sqlc.narg(q)::text OR sqlc.narg(q)::text = ANY(t.tags)
-       OR EXISTS (SELECT 1 FROM jsonb_each_text(t.metadata) kv WHERE kv.value = sqlc.narg(q)::text))
+  -- The search ignores case; an idempotency key also finds the messages of
+  -- a batch sent with it ("key#0", "key#1"…).
+  AND (sqlc.narg(q)::text IS NULL OR strpos(lower(m.email), lower(sqlc.narg(q)::text)) > 0 OR t.message_id::text = lower(sqlc.narg(q)::text)
+       OR lower(t.idempotency_key) = lower(sqlc.narg(q)::text) OR starts_with(lower(t.idempotency_key), lower(sqlc.narg(q)::text) || '#')
+       OR EXISTS (SELECT 1 FROM unnest(t.tags) tg WHERE lower(tg) = lower(sqlc.narg(q)::text))
+       OR EXISTS (SELECT 1 FROM jsonb_each_text(t.metadata) kv WHERE lower(kv.value) = lower(sqlc.narg(q)::text)))
 GROUP BY 1;
 
 -- name: TxnLogKeys :many

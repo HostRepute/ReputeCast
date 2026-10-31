@@ -80,6 +80,10 @@ var Events = []string{
 	// a delayed payment method's success.
 	"charge.dispute.closed",
 	"checkout.session.async_payment_succeeded",
+	// Review 2026-11 EN-7: a delayed payment method that failed, and a
+	// dispute's changes before it closes.
+	"checkout.session.async_payment_failed",
+	"charge.dispute.updated",
 }
 
 // Prefixes of restricted keys per mode, and of the secret keys refused.
@@ -372,6 +376,17 @@ func (c *Client) RegisterWebhook(ctx context.Context, endpoint string, events []
 		return payments.Webhook{}, err
 	}
 	return payments.Webhook{ID: w.ID, URL: w.URL, Events: w.EnabledEvents, Secret: w.Secret}, nil
+}
+
+var _ payments.WebhookUpdater = (*Client)(nil)
+
+// UpdateWebhookEvents implements payments.WebhookUpdater.
+func (c *Client) UpdateWebhookEvents(ctx context.Context, id string, events []string) error {
+	f := url.Values{}
+	for _, e := range events {
+		f.Add("enabled_events[]", e)
+	}
+	return c.call(ctx, http.MethodPost, "/v1/webhook_endpoints/"+url.PathEscape(id), f, nil)
 }
 
 // WebhookExists implements payments.Client.

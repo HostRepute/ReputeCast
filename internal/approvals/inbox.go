@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -95,6 +97,8 @@ type ApprovalList struct {
 	// AllRequests is true for approvers (they see every request).
 	AllRequests bool `json:"allRequests"`
 	CanManage   bool `json:"canManage"`
+	// NextCursor asks for the next page; empty on the last one.
+	NextCursor string `json:"nextCursor,omitempty"`
 }
 
 // ListParams filter the inbox.
@@ -103,6 +107,41 @@ type ListParams struct {
 	Author   string
 	Approver string
 	Days     int
+	// Cursor is a page's NextCursor; Limit is the page size (50, at most 100).
+	Cursor string
+	Limit  int
+}
+
+// inboxRank is a request's place in the inbox's order: pending first.
+func inboxRank(status string) int32 {
+	if status == "pending" {
+		return 0
+	}
+	return 1
+}
+
+// inboxCursor is where the page after r starts.
+func inboxCursor(r store.ApprovalListRow) string {
+	return fmt.Sprintf("%d.%d.%s", inboxRank(r.Status), r.RequestedAt.UnixMicro(), r.ID)
+}
+
+// readInboxCursor sets the paging parameters from a NextCursor.
+func readInboxCursor(ctx context.Context, cursor string, p *store.ApprovalListParams) error {
+	if cursor == "" {
+		return nil
+	}
+	parts := strings.Split(cursor, ".")
+	if len(parts) == 3 {
+		rank, err1 := strconv.ParseInt(parts[0], 10, 32)
+		micros, err2 := strconv.ParseInt(parts[1], 10, 64)
+		id, err3 := uuid.Parse(parts[2])
+		if err1 == nil && err2 == nil && err3 == nil && (rank == 0 || rank == 1) {
+			at := time.UnixMicro(micros).UTC()
+			p.AfterRank, p.AfterAt, p.AfterID = int32(rank), &at, &id
+			return nil
+		}
+	}
+	return api.Invalid("query.cursor", say(ctx, mInboxCursor, nil))
 }
 
 // List returns the approval inbox: approvers see every request, others
@@ -110,58 +149,82 @@ type ListParams struct {
 func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Principal, f ListParams) (ApprovalList, error) {
 	out := ApprovalList{Items: []ApprovalListItem{}, Authors: []ApprovalFilterOption{}, Approvers: []ApprovalFilterOption{}, AllRequests: p.Can(authz.CampaignsApprove),
 		CanManage: p.Can(authz.WorkspaceManage)}
-	// Open requests are re-checked so the inbox never lists a stale approval.
-	if open, err := s.Q.ApprovalOpenRequests(ctx); err == nil {
+	// The workspace's open requests are re-checked first, so the inbox
+	// never lists a stale approval.
+	if open, err := s.Q.ApprovalOpenRequestsIn(ctx, ws.ID); err == nil {
 		for _, r := range open {
-			if r.WorkspaceID == ws.ID && r.CampaignID != nil {
+			if r.CampaignID != nil {
 				_, _ = s.Revalidate(ctx, ws, *r.CampaignID)
 			}
 		}
 	}
-	days := f.Days
 	since := time.Time{}
-	if days > 0 {
-		since = s.now().AddDate(0, 0, -days)
+	if f.Days > 0 {
+		since = s.now().AddDate(0, 0, -f.Days)
 	}
-	params := store.ApprovalListParams{WorkspaceID: ws.ID, AllRequests: out.AllRequests, Viewer: p.UserID, Since: since, HideReplaced: false}
+	limit := f.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	// Filters, tab counts and paging run in SQL, so no request is lost past
+	// a fixed number of rows (review 2026-11 EN-7).
+	params := store.ApprovalListParams{WorkspaceID: ws.ID, AllRequests: out.AllRequests, Viewer: p.UserID, Since: since, Lim: int32(limit + 1)}
 	if id, err := uuid.Parse(f.Author); err == nil {
 		params.Author = &id
 	}
 	if id, err := uuid.Parse(f.Approver); err == nil {
 		params.Approver = &id
 	}
+	if f.Status != "" && f.Status != "all" {
+		params.Status = &f.Status
+	}
+	if err := readInboxCursor(ctx, f.Cursor, &params); err != nil {
+		return out, err
+	}
 	rows, err := s.Q.ApprovalList(ctx, params)
 	if err != nil {
 		return out, err
+	}
+	if len(rows) > limit {
+		rows = rows[:limit]
+		out.NextCursor = inboxCursor(rows[limit-1])
+	}
+	counts, err := s.Q.ApprovalListCounts(ctx, store.ApprovalListCountsParams{WorkspaceID: ws.ID, AllRequests: params.AllRequests, Viewer: params.Viewer,
+		Since: since, Author: params.Author, Approver: params.Approver})
+	if err != nil {
+		return out, err
+	}
+	for _, c := range counts {
+		n := int(c.N)
+		switch c.Status {
+		case "pending":
+			out.Counts.Pending = n
+		case "approved":
+			out.Counts.Approved = n
+		case "changes_requested":
+			out.Counts.ChangesRequested = n
+		case "rejected":
+			out.Counts.Rejected = n
+		case "invalidated":
+			out.Counts.Invalidated = n
+		}
+		out.Counts.All += n
+	}
+	authors, err := s.Q.ApprovalListAuthors(ctx, store.ApprovalListAuthorsParams{WorkspaceID: ws.ID, AllRequests: params.AllRequests, Viewer: params.Viewer, Since: since})
+	if err != nil {
+		return out, err
+	}
+	for _, a := range authors {
+		if a.ID != nil {
+			out.Authors = append(out.Authors, ApprovalFilterOption{ID: a.ID.String(), Name: a.Name})
+		}
 	}
 	ms, err := s.members(ctx, s.Q, ws.ID)
 	if err != nil {
 		return out, err
 	}
-	loc := state.Location(ws.Timezone)
 	l := langOf(ctx)
-	authors := map[string]bool{}
 	for _, r := range rows {
-		switch r.Status {
-		case "pending":
-			out.Counts.Pending++
-		case "approved":
-			out.Counts.Approved++
-		case "changes_requested":
-			out.Counts.ChangesRequested++
-		case "rejected":
-			out.Counts.Rejected++
-		case "invalidated":
-			out.Counts.Invalidated++
-		}
-		out.Counts.All++
-		if r.RequestedBy != nil && !authors[r.RequestedBy.String()] {
-			authors[r.RequestedBy.String()] = true
-			out.Authors = append(out.Authors, ApprovalFilterOption{ID: r.RequestedBy.String(), Name: r.RequestedByName})
-		}
-		if f.Status != "" && f.Status != "all" && r.Status != f.Status {
-			continue
-		}
 		var rules []ApprovalRuleMatch
 		_ = json.Unmarshal(r.Rules, &rules)
 		var texts map[string]ruleTexts
@@ -235,7 +298,6 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		}
 		out.Items = append(out.Items, it)
 	}
-	_ = loc
 	for _, a := range approversOf(ms) {
 		out.Approvers = append(out.Approvers, ApprovalFilterOption{ID: a.ID.String(), Name: a.Name})
 	}

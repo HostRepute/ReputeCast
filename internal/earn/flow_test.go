@@ -523,3 +523,36 @@ func TestMemberEmailsAreSent(t *testing.T) {
 		t.Fatalf("payment failed sent %d times", n)
 	}
 }
+
+// Review 2026-11 EN-7: a webhook registered before a version subscribed to
+// more events gets them added by the hourly check, once, audited.
+func TestOlderWebhooksGetNewEvents(t *testing.T) {
+	f := newFlow(t)
+	f.connect()
+	ctx := context.Background()
+	ep := f.fake.Objects(payments.Test, "webhook_endpoint")[0]
+	old := []string{"checkout.session.completed", "invoice.paid"}
+	ep["enabled_events"] = old
+	f.fake.Put(payments.Test, ep)
+	if _, err := f.env.App.Pool.Exec(ctx, `UPDATE payment_connections SET webhook_events = $2 WHERE id = $1`, f.conn, old); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		if err := f.svc.Hourly(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	d, _ := payments.Lookup("stripe")
+	if got := fmt.Sprint(f.fake.Objects(payments.Test, "webhook_endpoint")[0]["enabled_events"]); got != fmt.Sprint(d.WebhookEvents) {
+		t.Fatalf("Stripe's endpoint takes %s", got)
+	}
+	var stored []string
+	var audits int
+	if err := f.env.App.Pool.QueryRow(ctx, `SELECT webhook_events, (SELECT count(*) FROM audit_events WHERE action = 'payments.webhook_events_added' AND target_id = $2)
+		FROM payment_connections WHERE id = $1`, uuid.MustParse(f.conn), f.conn).Scan(&stored, &audits); err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprint(stored) != fmt.Sprint(d.WebhookEvents) || audits != 1 {
+		t.Fatalf("stored %v, audited %d times", stored, audits)
+	}
+}

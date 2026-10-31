@@ -52,6 +52,9 @@ type OneTimeHook interface {
 	CheckoutCompleted(ctx context.Context, tx pgx.Tx, ws *store.Workspace, mode string, cs payments.CheckoutSession, at time.Time) (handled bool, detail map[string]any, err error)
 	// Refunded handles the refund of a one-time payment.
 	Refunded(ctx context.Context, tx pgx.Tx, ws *store.Workspace, mode string, ch payments.Charge, at time.Time) (handled bool, detail map[string]any, err error)
+	// CheckoutFailed handles a one-time checkout whose delayed payment (a
+	// bank debit) didn't clear.
+	CheckoutFailed(ctx context.Context, tx pgx.Tx, ws *store.Workspace, mode string, cs payments.CheckoutSession, at time.Time) (handled bool, detail map[string]any, err error)
 }
 
 // OfferBanner is an offer link's line on the upgrade page.

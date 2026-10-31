@@ -305,7 +305,7 @@ func (s *Service) logParams(ctx context.Context, ws *store.Workspace, f LogFilte
 	if p.KeyID, err = optionalUUID(ctx, "query.key", f.Key); err != nil {
 		return p, err
 	}
-	p.Q = optionalText(strings.ToLower(f.Query))
+	p.Q = optionalText(f.Query)
 	if p.BeforeAt, p.BeforeID, err = decodeCursor(f.Before); err != nil {
 		return p, api.Invalid("query.before", say(ctx, "log.pageStale", nil))
 	}

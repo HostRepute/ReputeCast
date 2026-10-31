@@ -13,7 +13,7 @@ export const m = defineMessages('scoring.contacts', {
   lowest: 'Lowest score',
   highest: 'Highest score',
   and: 'and',
-  growthSource: 'Growth source',
+  growthSource: 'Source',
   anySource: 'Any source',
   sourceContacts: '{name} · {count, number}',
   utmSource: 'UTM source',

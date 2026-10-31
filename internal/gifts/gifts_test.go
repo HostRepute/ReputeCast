@@ -427,3 +427,57 @@ func TestGiftsTab(t *testing.T) {
 	viewer.Do(http.MethodPut, ws+"/earn/gifts/page", map[string]any{"on": true, "linkMonths": 12}).MustStatus(t, 403)
 	viewer.Do(http.MethodPost, ws+"/earn/gifts/"+karim.ID+"/link", nil).MustStatus(t, 403)
 }
+
+// Review 2026-11 EN-7: a gift paid by bank debit waits for it to clear:
+// paid when it does, abandoned (never sent) when it doesn't.
+func TestGiftPaidByBankDebit(t *testing.T) {
+	s := newSample(t)
+	ctx := context.Background()
+	g := s.env.App.Gifts()
+	year := s.yearOption()
+	start := func(buyer string) (string, map[string]any) {
+		t.Helper()
+		to, v, err := g.Buy(ctx, &s.ws, gifts.BuyInput{Option: year, To: "person", BuyerName: "Bank Buyer", BuyerEmail: buyer})
+		if err != nil || v != nil {
+			t.Fatalf("buy: %v %+v", err, v)
+		}
+		session := to[strings.LastIndex(to, "/")+1:]
+		cs := s.fake.Get(payments.Live, session)
+		cs["status"], cs["payment_status"], cs["payment_intent"] = "complete", "unpaid", "pi_debit_"+session[len(session)-6:]
+		cs["customer_details"] = map[string]any{"email": buyer}
+		s.deliver(s.fake.Emit(payments.Live, "checkout.session.completed", cs, nil))
+		if gf := s.giftBySession(session); gf.Status != gifts.StatusCheckout {
+			t.Fatalf("a gift paid before its bank debit cleared: %s", gf.Status)
+		}
+		return session, cs
+	}
+	outcome := func(typ string) string {
+		t.Helper()
+		var o string
+		if err := s.env.App.Pool.QueryRow(ctx, `SELECT outcome FROM payment_events WHERE workspace_id = $1 AND type = $2 ORDER BY received_at DESC LIMIT 1`,
+			s.ws.ID, typ).Scan(&o); err != nil {
+			t.Fatal(err)
+		}
+		return o
+	}
+
+	paid, cs := start("cleared@example.com")
+	cs["payment_status"] = "paid"
+	s.deliver(s.fake.Emit(payments.Live, "checkout.session.async_payment_succeeded", cs, nil))
+	if gf := s.giftBySession(paid); gf.Status != gifts.StatusPaid || gf.PaidAt == nil {
+		t.Fatalf("cleared: %+v", gf)
+	}
+	if o := outcome("checkout.session.async_payment_succeeded"); o != "gift_paid" {
+		t.Errorf("cleared outcome: %s", o)
+	}
+
+	failed, cs := start("bounced@example.com")
+	s.deliver(s.fake.Emit(payments.Live, "checkout.session.async_payment_failed", cs, nil))
+	gf := s.giftBySession(failed)
+	if gf.Status != gifts.StatusAbandoned || gf.PaidAt != nil || s.events(gf.ID)["payment_failed"] != 1 {
+		t.Fatalf("failed: %+v %v", gf, s.events(gf.ID))
+	}
+	if o := outcome("checkout.session.async_payment_failed"); o != "gift_payment_failed" {
+		t.Errorf("failed outcome: %s", o)
+	}
+}

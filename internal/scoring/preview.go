@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -107,10 +108,6 @@ func fieldRulesChanged(prev, next ScoringConfig) bool {
 	return false
 }
 
-func escapeLike(s string) string {
-	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
-}
-
 // matchSQL is the condition "a score event this rule counts".
 func matchSQL(r ScoringRule, a *sqlArgs) string {
 	switch r.Kind {
@@ -121,7 +118,7 @@ func matchSQL(r ScoringRule, a *sqlArgs) string {
 		return "se.kind = 'open'"
 	case KindClick:
 		if r.Contains != "" {
-			return "(se.kind = 'click' AND lower(se.ref) LIKE " + a.add("%"+escapeLike(strings.ToLower(r.Contains))+"%") + ")"
+			return "(se.kind = 'click' AND lower(se.ref) LIKE " + a.add("%"+db.EscapeLike(strings.ToLower(r.Contains))+"%") + ")"
 		}
 		return "se.kind = 'click'"
 	case KindForm:

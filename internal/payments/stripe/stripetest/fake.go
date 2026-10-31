@@ -279,6 +279,16 @@ func (f *Fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"api_version": form.Get("api_version"), "livemode": live, "secret": "whsec_" + hex.EncodeToString([]byte(id))[:24]}
 		d.objects[id] = o
 		writeJSON(w, 200, o)
+	case r.Method == http.MethodPost && strings.HasPrefix(path, "/v1/webhook_endpoints/"):
+		o, ok := d.objects[strings.TrimPrefix(path, "/v1/webhook_endpoints/")]
+		if !ok {
+			stripeError(w, 404, "invalid_request_error", "resource_missing", "No such webhook endpoint")
+			return
+		}
+		if ev, ok := form["enabled_events[]"]; ok {
+			o["enabled_events"] = ev
+		}
+		writeJSON(w, 200, o)
 	case r.Method == http.MethodPost && path == "/v1/billing_portal/configurations":
 		id := newID("bpc")
 		o := obj{"id": id, "object": "billing_portal.configuration", "livemode": live, "features": formTree(form)}

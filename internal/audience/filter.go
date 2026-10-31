@@ -10,6 +10,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/segments"
@@ -84,9 +85,10 @@ func (s *Service) filterSQL(ctx context.Context, wsID uuid.UUID, f ContactFilter
 // applyFilter appends the conditions of f to out, numbering arguments after
 // the ones already there.
 func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQL, f ContactFilter) error {
-	if q := strings.TrimSpace(f.Q); q != "" {
-		like := "%" + escapeLike(strings.ToLower(q)) + "%"
-		out.add("(c.email LIKE ? OR lower(c.first_name || ' ' || c.last_name) LIKE ? OR ? = ANY (c.tags))", like, like, q)
+	if q := strings.ToLower(strings.TrimSpace(f.Q)); q != "" {
+		// Tags are stored lower-case (cleanTags), so the search is too.
+		like := "%" + db.EscapeLike(q) + "%"
+		out.add("(c.email LIKE ? OR lower(c.first_name || ' ' || c.last_name) LIKE ? OR c.tags @> ARRAY[?::text])", like, like, q)
 	}
 	if f.List != "" {
 		id, err := uuid.Parse(f.List)
@@ -114,8 +116,8 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 	default:
 		out.add("c.source = ?", f.Source)
 	}
-	if t := strings.TrimSpace(f.Tag); t != "" {
-		out.add("? = ANY (c.tags)", t)
+	if t := strings.ToLower(strings.TrimSpace(f.Tag)); t != "" {
+		out.add("c.tags @> ARRAY[?::text]", t)
 	}
 	if f.JoinedAfter != "" {
 		d, err := time.Parse("2006-01-02", f.JoinedAfter)
@@ -181,10 +183,6 @@ func scopeAllowsList(ctx context.Context, id uuid.UUID) bool {
 		return true
 	}
 	return authz.Scope.AllowsList(p.Scope, id)
-}
-
-func escapeLike(s string) string {
-	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
 }
 
 // TierName is how a tier reads in the UI, in English.

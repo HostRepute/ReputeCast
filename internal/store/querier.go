@@ -306,6 +306,10 @@ type Querier interface {
 	ApprovalLatestForCampaign(ctx context.Context, campaignID *uuid.UUID) (ApprovalLatestForCampaignRow, error)
 	// The approval inbox. Approvers see every request; others only their own.
 	ApprovalList(ctx context.Context, arg ApprovalListParams) ([]ApprovalListRow, error)
+	// Who asked for approval in the inbox's period (the Author filter).
+	ApprovalListAuthors(ctx context.Context, arg ApprovalListAuthorsParams) ([]ApprovalListAuthorsRow, error)
+	// The inbox tabs' numbers, for the same filters as ApprovalList.
+	ApprovalListCounts(ctx context.Context, arg ApprovalListCountsParams) ([]ApprovalListCountsRow, error)
 	ApprovalLock(ctx context.Context, arg ApprovalLockParams) (ApprovalRequest, error)
 	ApprovalMarkScheduled(ctx context.Context, arg ApprovalMarkScheduledParams) error
 	ApprovalMarkSending(ctx context.Context, arg ApprovalMarkSendingParams) error
@@ -317,6 +321,8 @@ type Querier interface {
 	ApprovalOpenHold(ctx context.Context, campaignID uuid.UUID) (CampaignIncident, error)
 	// Open campaign requests of every workspace (the revalidation job).
 	ApprovalOpenRequests(ctx context.Context) ([]ApprovalOpenRequestsRow, error)
+	// Open campaign requests of one workspace (re-checked when its inbox opens).
+	ApprovalOpenRequestsIn(ctx context.Context, workspaceID uuid.UUID) ([]ApprovalOpenRequestsInRow, error)
 	// Whether an enabled webhook posts campaign.paused to Slack (Review & send says who hears about a held send).
 	ApprovalPauseAlertsSlack(ctx context.Context, workspaceID uuid.UUID) (bool, error)
 	ApprovalPendingForWorkspace(ctx context.Context, workspaceID uuid.UUID) ([]ApprovalPendingForWorkspaceRow, error)
@@ -1558,6 +1564,8 @@ type Querier interface {
 	GiftPageSet(ctx context.Context, arg GiftPageSetParams) error
 	// The payment went through: the gift waits for its delivery date.
 	GiftPaid(ctx context.Context, arg GiftPaidParams) error
+	// A delayed payment (a bank debit) didn't clear: the gift is abandoned.
+	GiftPaymentFailed(ctx context.Context, arg GiftPaymentFailedParams) error
 	GiftReceiptSent(ctx context.Context, arg GiftReceiptSentParams) error
 	GiftRedeemed(ctx context.Context, arg GiftRedeemedParams) error
 	GiftRefunded(ctx context.Context, arg GiftRefundedParams) error
@@ -2323,6 +2331,7 @@ type Querier interface {
 	PayConnectionSetWebhook(ctx context.Context, arg PayConnectionSetWebhookParams) error
 	// A verified event arrived: freshness for the webhook card.
 	PayConnectionTouchEvent(ctx context.Context, arg PayConnectionTouchEventParams) error
+	PayConnectionWebhookEvents(ctx context.Context, arg PayConnectionWebhookEventsParams) error
 	PayConnectionWebhookMissing(ctx context.Context, arg PayConnectionWebhookMissingParams) error
 	// Payments (internal/earn): payment provider connections and the payments
 	// event log.
@@ -2504,6 +2513,9 @@ type Querier interface {
 	ProductCheckoutGet(ctx context.Context, id uuid.UUID) (ProductCheckout, error)
 	// Checkouts
 	ProductCheckoutInsert(ctx context.Context, arg ProductCheckoutInsertParams) error
+	// A delayed payment (a bank debit) didn't clear: the checkout failed. The
+	// payer's address is kept for the notice (erased with the contact).
+	ProductCheckoutPaymentFailed(ctx context.Context, arg ProductCheckoutPaymentFailedParams) (int64, error)
 	ProductCheckoutSetSession(ctx context.Context, arg ProductCheckoutSetSessionParams) error
 	ProductCheckoutsExpire(ctx context.Context, before time.Time) error
 	// The delivery emails of orders' links (Transactional › Messages).
@@ -4127,7 +4139,8 @@ type Querier interface {
 	SponsorSlotUpdate(ctx context.Context, arg SponsorSlotUpdateParams) error
 	SponsorSlots(ctx context.Context, workspaceID uuid.UUID) ([]SponsorSlotsRow, error)
 	SponsorUpdate(ctx context.Context, arg SponsorUpdateParams) error
-	StartImport(ctx context.Context, arg StartImportParams) error
+	// Only a staged draft starts: of two clicks at once, one wins.
+	StartImport(ctx context.Context, arg StartImportParams) (int64, error)
 	// Addresses each provider's bounce and complaint events added to the shared
 	// list (the "pulled in" count of providers without a suppression API).
 	SuppAddedByProvider(ctx context.Context, workspaceID uuid.UUID) ([]SuppAddedByProviderRow, error)

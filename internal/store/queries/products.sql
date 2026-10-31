@@ -163,6 +163,12 @@ UPDATE product_checkouts SET session_id = @session_id WHERE id = @id;
 -- name: ProductCheckoutFailed :exec
 UPDATE product_checkouts SET status = 'failed' WHERE id = @id;
 
+-- name: ProductCheckoutPaymentFailed :execrows
+-- A delayed payment (a bank debit) didn't clear: the checkout failed. The
+-- payer's address is kept for the notice (erased with the contact).
+UPDATE product_checkouts SET status = 'failed', email = CASE WHEN @email::text <> '' THEN @email::text ELSE email END
+WHERE id = @id AND status IN ('open', 'expired');
+
 -- name: ProductCheckoutGet :one
 SELECT * FROM product_checkouts WHERE id = @id;
 

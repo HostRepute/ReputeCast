@@ -747,9 +747,9 @@ func (q *Queries) SetImportStep(ctx context.Context, arg SetImportStepParams) er
 	return err
 }
 
-const startImport = `-- name: StartImport :exec
+const startImport = `-- name: StartImport :execrows
 UPDATE imports SET status = 'running', step = 'import', started_at = now(), finished_at = NULL, error = '', progress = $1, updated_at = now()
-WHERE id = $2
+WHERE id = $2 AND status = 'draft' AND staged_at IS NOT NULL
 `
 
 type StartImportParams struct {
@@ -757,7 +757,11 @@ type StartImportParams struct {
 	ID       uuid.UUID       `json:"id"`
 }
 
-func (q *Queries) StartImport(ctx context.Context, arg StartImportParams) error {
-	_, err := q.db.Exec(ctx, startImport, arg.Progress, arg.ID)
-	return err
+// Only a staged draft starts: of two clicks at once, one wins.
+func (q *Queries) StartImport(ctx context.Context, arg StartImportParams) (int64, error) {
+	result, err := q.db.Exec(ctx, startImport, arg.Progress, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

@@ -411,6 +411,16 @@ function eventView(t: T, ev: Event, o: OrderDetail): { tone: EvTone; title: stri
             : t(po.evDisputeOpenedDetailNoDue, { event: ev.stripe, reason: ev.reason ?? '' })
           : undefined,
       }
+    case 'dispute_updated':
+      return {
+        tone: 'warn',
+        title: t(po.evDisputeUpdated),
+        detail: ev.stripe
+          ? ev.respondBy
+            ? t(po.evDisputeUpdatedDetail, { event: ev.stripe, state: ev.outcome ?? '', date: day(ev.respondBy) })
+            : t(po.evDisputeUpdatedDetailNoDue, { event: ev.stripe, state: ev.outcome ?? '' })
+          : undefined,
+      }
     case 'dispute_closed':
       return { tone: ev.outcome === 'won' ? 'ok' : 'bad', title: ev.outcome === 'won' ? t(po.evDisputeWon) : t(po.evDisputeLost), detail: ev.stripe ? t(po.evStripe, { event: ev.stripe }) : undefined }
     case 'access_revoked':

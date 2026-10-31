@@ -736,20 +736,28 @@ WHERE r.workspace_id = $1 AND r.status <> 'bypassed'
   AND ($5::uuid IS NULL OR r.requested_by = $5::uuid)
   AND ($6::uuid IS NULL OR r.decided_by = $6::uuid
        OR EXISTS (SELECT 1 FROM approval_decisions y WHERE y.request_id = r.id AND y.approver_id = $6::uuid))
-  AND NOT EXISTS (SELECT 1 FROM approval_requests n WHERE n.previous_id = r.id AND n.status <> 'bypassed' AND r.status IN ('invalidated') AND n.requested_at > r.requested_at
-                  AND $7::boolean)
-ORDER BY CASE r.status WHEN 'pending' THEN 0 ELSE 1 END, r.requested_at DESC
-LIMIT 200
+  AND ($7::text IS NULL OR r.status = $7::text)
+  -- Keyset paging in the inbox's order: pending first, then newest.
+  AND ($8::timestamptz IS NULL
+       OR (CASE r.status WHEN 'pending' THEN 0 ELSE 1 END) > $9::int
+       OR (CASE r.status WHEN 'pending' THEN 0 ELSE 1 END) = $9::int
+          AND (r.requested_at, r.id) < ($8::timestamptz, $10::uuid))
+ORDER BY CASE r.status WHEN 'pending' THEN 0 ELSE 1 END, r.requested_at DESC, r.id DESC
+LIMIT $11
 `
 
 type ApprovalListParams struct {
-	WorkspaceID  uuid.UUID  `json:"workspaceId"`
-	AllRequests  bool       `json:"allRequests"`
-	Viewer       uuid.UUID  `json:"viewer"`
-	Since        time.Time  `json:"since"`
-	Author       *uuid.UUID `json:"author"`
-	Approver     *uuid.UUID `json:"approver"`
-	HideReplaced bool       `json:"hideReplaced"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	AllRequests bool       `json:"allRequests"`
+	Viewer      uuid.UUID  `json:"viewer"`
+	Since       time.Time  `json:"since"`
+	Author      *uuid.UUID `json:"author"`
+	Approver    *uuid.UUID `json:"approver"`
+	Status      *string    `json:"status"`
+	AfterAt     *time.Time `json:"afterAt"`
+	AfterRank   int32      `json:"afterRank"`
+	AfterID     *uuid.UUID `json:"afterId"`
+	Lim         int32      `json:"lim"`
 }
 
 type ApprovalListRow struct {
@@ -801,7 +809,11 @@ func (q *Queries) ApprovalList(ctx context.Context, arg ApprovalListParams) ([]A
 		arg.Since,
 		arg.Author,
 		arg.Approver,
-		arg.HideReplaced,
+		arg.Status,
+		arg.AfterAt,
+		arg.AfterRank,
+		arg.AfterID,
+		arg.Lim,
 	)
 	if err != nil {
 		return nil, err
@@ -849,6 +861,108 @@ func (q *Queries) ApprovalList(ctx context.Context, arg ApprovalListParams) ([]A
 			&i.LastComment,
 			&i.CampaignChannel,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const approvalListAuthors = `-- name: ApprovalListAuthors :many
+SELECT DISTINCT r.requested_by AS id, u.name
+FROM approval_requests r
+JOIN users u ON u.id = r.requested_by
+WHERE r.workspace_id = $1 AND r.status <> 'bypassed'
+  AND ($2::boolean OR r.requested_by = $3::uuid)
+  AND r.requested_at >= $4::timestamptz
+ORDER BY u.name, r.requested_by
+`
+
+type ApprovalListAuthorsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	AllRequests bool      `json:"allRequests"`
+	Viewer      uuid.UUID `json:"viewer"`
+	Since       time.Time `json:"since"`
+}
+
+type ApprovalListAuthorsRow struct {
+	ID   *uuid.UUID `json:"id"`
+	Name string     `json:"name"`
+}
+
+// Who asked for approval in the inbox's period (the Author filter).
+func (q *Queries) ApprovalListAuthors(ctx context.Context, arg ApprovalListAuthorsParams) ([]ApprovalListAuthorsRow, error) {
+	rows, err := q.db.Query(ctx, approvalListAuthors,
+		arg.WorkspaceID,
+		arg.AllRequests,
+		arg.Viewer,
+		arg.Since,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ApprovalListAuthorsRow{}
+	for rows.Next() {
+		var i ApprovalListAuthorsRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const approvalListCounts = `-- name: ApprovalListCounts :many
+SELECT r.status, count(*)::bigint AS n
+FROM approval_requests r
+WHERE r.workspace_id = $1 AND r.status <> 'bypassed'
+  AND ($2::boolean OR r.requested_by = $3::uuid)
+  AND r.requested_at >= $4::timestamptz
+  AND ($5::uuid IS NULL OR r.requested_by = $5::uuid)
+  AND ($6::uuid IS NULL OR r.decided_by = $6::uuid
+       OR EXISTS (SELECT 1 FROM approval_decisions y WHERE y.request_id = r.id AND y.approver_id = $6::uuid))
+GROUP BY r.status
+`
+
+type ApprovalListCountsParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	AllRequests bool       `json:"allRequests"`
+	Viewer      uuid.UUID  `json:"viewer"`
+	Since       time.Time  `json:"since"`
+	Author      *uuid.UUID `json:"author"`
+	Approver    *uuid.UUID `json:"approver"`
+}
+
+type ApprovalListCountsRow struct {
+	Status string `json:"status"`
+	N      int64  `json:"n"`
+}
+
+// The inbox tabs' numbers, for the same filters as ApprovalList.
+func (q *Queries) ApprovalListCounts(ctx context.Context, arg ApprovalListCountsParams) ([]ApprovalListCountsRow, error) {
+	rows, err := q.db.Query(ctx, approvalListCounts,
+		arg.WorkspaceID,
+		arg.AllRequests,
+		arg.Viewer,
+		arg.Since,
+		arg.Author,
+		arg.Approver,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ApprovalListCountsRow{}
+	for rows.Next() {
+		var i ApprovalListCountsRow
+		if err := rows.Scan(&i.Status, &i.N); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1125,6 +1239,41 @@ func (q *Queries) ApprovalOpenRequests(ctx context.Context) ([]ApprovalOpenReque
 	items := []ApprovalOpenRequestsRow{}
 	for rows.Next() {
 		var i ApprovalOpenRequestsRow
+		if err := rows.Scan(&i.ID, &i.WorkspaceID, &i.CampaignID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const approvalOpenRequestsIn = `-- name: ApprovalOpenRequestsIn :many
+SELECT r.id, r.workspace_id, r.campaign_id
+FROM approval_requests r
+JOIN campaigns c ON c.id = r.campaign_id AND c.deleted_at IS NULL AND c.status IN ('draft', 'approval', 'approved', 'scheduled')
+JOIN workspaces w ON w.id = r.workspace_id AND w.deleted_at IS NULL
+WHERE r.workspace_id = $1 AND r.status IN ('pending', 'approved') AND r.subject_type = 'campaign'
+`
+
+type ApprovalOpenRequestsInRow struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	CampaignID  *uuid.UUID `json:"campaignId"`
+}
+
+// Open campaign requests of one workspace (re-checked when its inbox opens).
+func (q *Queries) ApprovalOpenRequestsIn(ctx context.Context, workspaceID uuid.UUID) ([]ApprovalOpenRequestsInRow, error) {
+	rows, err := q.db.Query(ctx, approvalOpenRequestsIn, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ApprovalOpenRequestsInRow{}
+	for rows.Next() {
+		var i ApprovalOpenRequestsInRow
 		if err := rows.Scan(&i.ID, &i.WorkspaceID, &i.CampaignID); err != nil {
 			return nil, err
 		}

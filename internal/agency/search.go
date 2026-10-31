@@ -10,6 +10,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -117,7 +118,7 @@ func (s *Service) Search(ctx context.Context, query string) (AgencySearchResults
 			return out, err
 		}
 	} else {
-		pattern := "%" + escapeLike(q) + "%"
+		pattern := "%" + db.EscapeLike(q) + "%"
 		rows, err := s.Q.AgencySearchNames(ctx, store.AgencySearchNamesParams{WorkspaceIds: ids, Pattern: pattern})
 		if err != nil {
 			return out, err
@@ -195,8 +196,4 @@ func (s *Service) recordContactSearch(ctx context.Context, set workspaceSet, add
 		}
 	}
 	return nil
-}
-
-func escapeLike(s string) string {
-	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
 }

@@ -118,6 +118,11 @@ export default translate(po, {
   evDisputeOpened: 'Tranh chấp được mở',
   evDisputeOpenedDetail: 'Stripe: {event} · “{reason}” · phản hồi trước {date}',
   evDisputeOpenedDetailNoDue: 'Stripe: {event} · “{reason}”',
+  evDisputeUpdated: 'Tranh chấp được cập nhật',
+  evDisputeUpdatedDetail:
+    'Stripe: {event} · {state, select, needs_response {cần bạn phản hồi} warning_needs_response {cần bạn phản hồi} under_review {đang được xem xét} warning_under_review {đang được xem xét} other {{state}}} · phản hồi trước {date}',
+  evDisputeUpdatedDetailNoDue:
+    'Stripe: {event} · {state, select, needs_response {cần bạn phản hồi} warning_needs_response {cần bạn phản hồi} under_review {đang được xem xét} warning_under_review {đang được xem xét} other {{state}}}',
   evDisputeWon: 'Thắng tranh chấp',
   evDisputeLost: 'Thua tranh chấp',
   evRevoked: 'Đã thu hồi quyền truy cập',

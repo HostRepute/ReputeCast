@@ -55,6 +55,8 @@ func (s *Service) Consume(ctx context.Context, tx pgx.Tx, e earn.PaymentEvent) (
 		return s.consumeRefund(ctx, tx, e)
 	case payments.PaymentDisputeOpened, payments.PaymentDisputeUpdated, payments.PaymentDisputeClosed:
 		return s.consumeDispute(ctx, tx, e)
+	case payments.PaymentFailed:
+		return s.consumeFailed(ctx, tx, e)
 	}
 	return earn.Consumed{}, false, nil
 }
@@ -111,6 +113,32 @@ func (s *Service) consumePaid(ctx context.Context, tx pgx.Tx, e earn.PaymentEven
 		out.Outcome, out.Ignored = "order_paid_already", true
 	}
 	return out, true, nil
+}
+
+// consumeFailed handles a checkout whose delayed payment (a bank debit)
+// didn't clear: no order is made, the checkout is marked failed, and the
+// buyer is told by email, with a link to try again (review 2026-11 EN-7).
+func (s *Service) consumeFailed(ctx context.Context, tx pgx.Tx, e earn.PaymentEvent) (earn.Consumed, bool, error) {
+	q := store.New(tx)
+	co, ok, err := checkoutOf(ctx, q, e.Payment)
+	if err != nil || !ok || co.WorkspaceID != e.Workspace.ID {
+		return earn.Consumed{}, false, err
+	}
+	detail := map[string]any{"session": e.Payment.SessionID}
+	n, err := q.ProductCheckoutPaymentFailed(ctx, store.ProductCheckoutPaymentFailedParams{ID: co.ID, Email: strings.ToLower(strings.TrimSpace(e.Payment.CustomerEmail))})
+	if err != nil {
+		return earn.Consumed{}, true, err
+	}
+	if n == 0 {
+		// Paid after all, or told already.
+		return earn.Consumed{Outcome: "order_payment_failed_known", Ignored: true, Detail: detail}, true, nil
+	}
+	if s.Jobs != nil && s.Jobs() != nil {
+		if _, err := s.Jobs().InsertTx(ctx, tx, PaymentFailedArgs{CheckoutID: co.ID}, nil); err != nil {
+			return earn.Consumed{}, true, err
+		}
+	}
+	return earn.Consumed{Outcome: "order_payment_failed", Detail: detail, ContactID: co.ContactID}, true, nil
 }
 
 // applyPaid turns a paid checkout into an order, once: its buyer and
@@ -452,6 +480,12 @@ func (s *Service) consumeDispute(ctx context.Context, tx pgx.Tx, e earn.PaymentE
 			restored = true
 		}
 	default:
+		// Stripe's own status ("under_review") and the date to answer by go
+		// on the order's timeline (review 2026-11 EN-7).
+		if err := s.event(ctx, q, o.ID, "dispute_updated", now, nil, map[string]any{"stripe": e.Type, "outcome": e.Payment.DisputeStatus,
+			"respondBy": e.Payment.DisputeDueBy}); err != nil {
+			return earn.Consumed{}, true, err
+		}
 		return earn.Consumed{Outcome: "order_dispute_updated", Detail: map[string]any{"order": o.Number, "status": status}}, true, nil
 	}
 	revoked := false

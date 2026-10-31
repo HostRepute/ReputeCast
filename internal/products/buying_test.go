@@ -778,6 +778,21 @@ func TestDisputes(t *testing.T) {
 	if len(list.Items) != 1 || list.Items[0].Download.State != "revoked_auto" || list.Items[0].DisputeStatus != "open" {
 		t.Errorf("orders filtered as disputed: %+v", list.Items)
 	}
+	// Review 2026-11 EN-7: an update before it closes (evidence sent) goes
+	// on the order's timeline, with Stripe's own status.
+	upd, err := s.stripe.UpdateDispute(payments.Live, dp, "under_review")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st, out := s.hook(upd); st != "applied" || out != "order_dispute_updated" {
+		t.Fatalf("dispute updated: %s %s", st, out)
+	}
+	if d := s.event(o.ID, "dispute_updated"); d["outcome"] != "under_review" || d["stripe"] != "charge.dispute.updated" || d["respondBy"] == nil {
+		t.Errorf("dispute_updated: %v", d)
+	}
+	if o = s.order(o.ID); o.DisputeStatus != "open" || o.AccessRevokedAt == nil {
+		t.Errorf("an update changed the dispute: %+v", o)
+	}
 	closeDispute(dp, true)
 	o = s.order(o.ID)
 	if o.Status != products.OrderPaid || o.DisputeStatus != "won" {
@@ -933,4 +948,69 @@ func TestDelayedPaymentWaitsForStripe(t *testing.T) {
 		t.Fatalf("payment arrived: %s %s", st, out)
 	}
 	checkOrder(t, s.orderOf(session), s.fieldGuide, "bank.debit@example.de", 2900)
+}
+
+// Review 2026-11 EN-7: a bank debit that fails after checkout makes no
+// order; the checkout is marked failed and the buyer is told, once the
+// notice's template is published, with a link to try again.
+func TestDelayedPaymentThatFails(t *testing.T) {
+	if !slices.Contains(stripe.Events, "checkout.session.async_payment_failed") || !slices.Contains(stripe.Events, "charge.dispute.updated") {
+		t.Error("the webhook doesn't subscribe to the failed bank payment or the dispute's updates")
+	}
+	s := newShop(t)
+	_, session := s.checkout(s.fieldGuide, "", false)
+	cs := s.stripe.Get(payments.Live, session)
+	cs["status"], cs["payment_status"] = "complete", "unpaid"
+	cs["customer_details"] = map[string]any{"email": "Failed.Debit@example.de", "name": "Failed Debit"}
+	cs["amount_total"], cs["currency"] = int64(2900), "usd"
+	if st, out := s.hook(s.stripe.Emit(payments.Live, "checkout.session.completed", cs, nil)); st != "ignored" || out != "payment_pending" {
+		t.Fatalf("checkout completed unpaid: %s %s", st, out)
+	}
+	if st, out := s.hook(s.stripe.Emit(payments.Live, "checkout.session.async_payment_failed", cs, nil)); st != "applied" || out != "order_payment_failed" {
+		t.Fatalf("payment failed: %s %s", st, out)
+	}
+	if n := s.count(`SELECT count(*) FROM product_orders WHERE session_id = $1`, session); n != 0 {
+		t.Fatal("an order for a payment that failed")
+	}
+	co := s.checkoutOf(session)
+	var status, email string
+	s.scan(`SELECT status, email FROM product_checkouts WHERE id = $1`, []any{co.ID}, &status, &email)
+	if status != "failed" || email != "failed.debit@example.de" {
+		t.Fatalf("checkout: %s %s", status, email)
+	}
+	if n := s.count(`SELECT count(*) FROM river_job WHERE kind = 'products.payment_failed' AND args->>'checkout_id' = $1`, co.ID.String()); n != 1 {
+		t.Fatalf("payment failed jobs: %d", n)
+	}
+	// The same event again changes nothing.
+	if st, out := s.hook(s.stripe.Emit(payments.Live, "checkout.session.async_payment_failed", cs, nil)); st != "ignored" || out != "order_payment_failed_known" {
+		t.Fatalf("payment failed again: %s %s", st, out)
+	}
+
+	sent := func() int {
+		return s.count(`SELECT count(*) FROM transactional_messages WHERE workspace_id = $1 AND template_key = 'product-payment-failed'`, s.ws.ID)
+	}
+	// A workspace whose products predate the notice gets its draft, and
+	// nothing is sent until it's published.
+	if err := s.svc.SendPaymentFailed(s.ctx, co.ID); err != nil {
+		t.Fatal(err)
+	}
+	var revision int
+	s.scan(`SELECT draft_revision FROM transactional_templates WHERE workspace_id = $1 AND key = 'product-payment-failed'`, []any{s.ws.ID}, &revision)
+	if sent() != 0 {
+		t.Fatal("a draft notice was sent")
+	}
+	s.owner.Do("POST", ws+"/transactional/templates/product-payment-failed/publish", map[string]any{"baseRevision": revision}).MustStatus(t, 200)
+	if err := s.svc.SendPaymentFailed(s.ctx, co.ID); err != nil {
+		t.Fatal(err)
+	}
+	if sent() != 1 {
+		t.Fatal("the buyer wasn't told")
+	}
+	var to string
+	var data []byte
+	s.scan(`SELECT m.email, t.data FROM transactional_messages t JOIN messages m ON m.id = t.message_id WHERE t.workspace_id = $1 AND t.template_key = 'product-payment-failed'`,
+		[]any{s.ws.ID}, &to, &data)
+	if to != "failed.debit@example.de" || !strings.Contains(string(data), "/products/"+s.slug(s.fieldGuide)) {
+		t.Fatalf("notice to %s with %s", to, data)
+	}
 }

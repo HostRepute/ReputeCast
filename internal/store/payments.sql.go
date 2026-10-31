@@ -396,6 +396,21 @@ func (q *Queries) PayConnectionTouchEvent(ctx context.Context, arg PayConnection
 	return err
 }
 
+const payConnectionWebhookEvents = `-- name: PayConnectionWebhookEvents :exec
+UPDATE payment_connections SET webhook_events = $1, updated_at = $2 WHERE id = $3
+`
+
+type PayConnectionWebhookEventsParams struct {
+	WebhookEvents []string  `json:"webhookEvents"`
+	At            time.Time `json:"at"`
+	ID            uuid.UUID `json:"id"`
+}
+
+func (q *Queries) PayConnectionWebhookEvents(ctx context.Context, arg PayConnectionWebhookEventsParams) error {
+	_, err := q.db.Exec(ctx, payConnectionWebhookEvents, arg.WebhookEvents, arg.At, arg.ID)
+	return err
+}
+
 const payConnectionWebhookMissing = `-- name: PayConnectionWebhookMissing :exec
 UPDATE payment_connections SET webhook_missing_at = coalesce(webhook_missing_at, $1::timestamptz), updated_at = $1 WHERE id = $2
 `

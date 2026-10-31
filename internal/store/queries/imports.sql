@@ -50,9 +50,10 @@ WHERE id = @id;
 -- name: SetImportPreview :exec
 UPDATE imports SET preview = @preview, updated_at = now() WHERE id = @id;
 
--- name: StartImport :exec
+-- name: StartImport :execrows
+-- Only a staged draft starts: of two clicks at once, one wins.
 UPDATE imports SET status = 'running', step = 'import', started_at = now(), finished_at = NULL, error = '', progress = @progress, updated_at = now()
-WHERE id = @id;
+WHERE id = @id AND status = 'draft' AND staged_at IS NOT NULL;
 
 -- name: SetImportProgress :exec
 UPDATE imports SET progress = @progress, updated_at = now() WHERE id = @id;

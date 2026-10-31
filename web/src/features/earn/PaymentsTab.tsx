@@ -659,7 +659,7 @@ function eventStatus(t: T, e: Schemas['EarnEvent']): { label: string; tone: Tone
       const tone: Tone =
         e.outcome === 'past_due'
           ? 'warn'
-          : ['access_ended', 'refunded', 'refund_recorded', 'gift_refunded', 'cancel_scheduled', 'ended', 'canceled'].includes(e.outcome)
+          : ['access_ended', 'refunded', 'refund_recorded', 'gift_refunded', 'gift_payment_failed', 'order_refunded', 'order_payment_failed', 'cancel_scheduled', 'ended', 'canceled'].includes(e.outcome)
             ? 'neutral'
             : 'ok'
       return { label: t(ms.stApplied), tone }
@@ -718,8 +718,23 @@ export function outcomeText(t: T, e: Schemas['EarnEvent']): string {
       return t(ms.oGiftPaid, { months: num('months') })
     case 'gift_refunded':
       return d.partial ? t(ms.oGiftPartlyRefunded) : t(ms.oGiftRefunded)
+    case 'gift_payment_failed':
+      return t(ms.oGiftPaymentFailed)
     case 'dispute_opened':
       return t(ms.oDispute)
+    // Digital products' payments (X19) go through the same log.
+    case 'order_paid':
+      return t(ms.oOrderPaid, { order: num('order'), product: s('product') })
+    case 'order_refunded':
+      return t(ms.oOrderRefunded, { order: num('order') })
+    case 'order_disputed':
+      return t(ms.oOrderDisputed, { order: num('order') })
+    case 'order_dispute_updated':
+      return t(ms.oOrderDisputeUpdated, { order: num('order') })
+    case 'order_dispute_closed':
+      return t(ms.oOrderDisputeClosed, { order: num('order'), status: s('status') })
+    case 'order_payment_failed':
+      return t(ms.oOrderPaymentFailed)
     case 'billing_email':
       return t(ms.oBilling)
   }

@@ -251,6 +251,8 @@ func (s *Service) applyEvent(ctx context.Context, tx pgx.Tx, ws *store.Workspace
 		return s.applyTrialEnding(ctx, tx, ws, conn, pe, ev)
 	case payments.EventCheckoutCompleted:
 		return s.applyCheckout(ctx, tx, ws, conn, pe, ev)
+	case payments.EventCheckoutAsyncPaid, payments.EventCheckoutAsyncFailed:
+		return s.applyAsyncCheckout(ctx, tx, ws, conn, ev)
 	case payments.EventInvoicePaid:
 		return s.applyInvoicePaid(ctx, tx, ws, conn, pe, ev)
 	case payments.EventPaymentFailed:
@@ -703,6 +705,31 @@ func (s *Service) applyTrialEnding(ctx context.Context, tx pgx.Tx, ws *store.Wor
 	m := s.memberEmailFor("trial_ending", row, ws, tname, ev.Created)
 	m.key = "earn:" + pe.ProviderEventID + ":trial_ending"
 	o.emails = append(o.emails, m)
+	return o, nil
+}
+
+// applyAsyncCheckout settles a one-time checkout paid by a delayed method
+// (a bank debit): a gift waits for it, then is paid or not (review 2026-11
+// EN-7). A subscription's is settled by its invoice's events instead.
+func (s *Service) applyAsyncCheckout(ctx context.Context, tx pgx.Tx, ws *store.Workspace, conn store.PaymentConnection, ev payments.Event) (outcome, error) {
+	cs := ev.Checkout
+	if cs.SubscriptionID != "" || s.OneTime == nil {
+		return ignored("settled_by_invoice"), nil
+	}
+	if ev.Kind == payments.EventCheckoutAsyncFailed {
+		handled, detail, err := s.OneTime.CheckoutFailed(ctx, tx, ws, conn.Mode, *cs, ev.Created)
+		if err != nil || !handled {
+			return ignored("not_a_gift"), err
+		}
+		return applied("gift_payment_failed", detail), nil
+	}
+	handled, detail, err := s.OneTime.CheckoutCompleted(ctx, tx, ws, conn.Mode, *cs, ev.Created)
+	if err != nil || !handled {
+		return ignored("not_a_gift"), err
+	}
+	o := applied("gift_paid", detail)
+	amount := cs.AmountTotal
+	o.amount, o.currency = &amount, cs.Currency
 	return o, nil
 }
 

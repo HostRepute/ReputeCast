@@ -33,6 +33,28 @@ func (s *Service) CheckoutCompleted(ctx context.Context, tx pgx.Tx, ws *store.Wo
 	return true, detail, nil
 }
 
+// CheckoutFailed implements earn.OneTimeHook: a gift's delayed payment (a
+// bank debit) didn't clear, so the gift is never sent. Its checkout counts
+// as abandoned, and its timeline says why.
+func (s *Service) CheckoutFailed(ctx context.Context, tx pgx.Tx, ws *store.Workspace, mode string, cs payments.CheckoutSession, at time.Time) (bool, map[string]any, error) {
+	q := store.New(tx)
+	g, err := q.GiftBySessionForUpdate(ctx, store.GiftBySessionForUpdateParams{WorkspaceID: ws.ID, Mode: mode, Session: cs.ID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil, nil
+	}
+	if err != nil {
+		return false, nil, err
+	}
+	detail := map[string]any{"gift": g.ID.String(), "months": g.Months}
+	if g.Status != StatusCheckout && g.Status != StatusAbandoned {
+		return true, detail, nil
+	}
+	if err := q.GiftPaymentFailed(ctx, store.GiftPaymentFailedParams{ID: g.ID, At: at}); err != nil {
+		return true, detail, err
+	}
+	return true, detail, event(ctx, q, g.ID, "payment_failed", at, nil, nil, map[string]any{"session": cs.ID})
+}
+
 // markPaid moves a gift from checkout to paid (once), with its event and
 // the gift.purchased webhook.
 func (s *Service) markPaid(ctx context.Context, q *store.Queries, ws *store.Workspace, g store.EarnGift, cs payments.CheckoutSession, at time.Time) error {
