@@ -68,7 +68,7 @@ jobs:
       REPUTECAST_TEST_DATABASE_URL: postgres://reputecast:reputecast@localhost:5432/postgres?sslmode=disable
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: ${{ matrix.go }}
       # Failing tests and their messages as annotations on the pull request.
@@ -94,7 +94,7 @@ jobs:
     # a runner, and neither check needs Postgres.
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: "1.27.x"
       - name: Generated code is up to date
@@ -119,7 +119,7 @@ jobs:
         part: [1, 2, 3]
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: "1.27.x"
       - name: Packages of this part
@@ -174,7 +174,7 @@ jobs:
       # (npx reputecast-adapter test).
       - run: pnpm test
         working-directory: sdk
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: "1.27.x"
       # The template run as a Node process, through the Go runtime, against
