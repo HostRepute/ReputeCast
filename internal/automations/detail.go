@@ -42,7 +42,10 @@ type AutomationDetail struct {
 	Issues           []AutomationGraphIssue `json:"issues"`
 	Route            AutomationRoute        `json:"route"`
 	InFlow           int64                  `json:"inFlow"`
-	UpdatedAt        time.Time              `json:"updatedAt"`
+	// Overdue counts, while the flow is paused, the contacts whose wait
+	// ended meanwhile: resuming asks what happens to them (AT-4).
+	Overdue   int64     `json:"overdue"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // Get returns a flow for the editor.
@@ -102,6 +105,12 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, id uuid.UUID) (A
 	for _, c := range counts {
 		out.InFlow += c.N
 	}
+	if a.Status == StatusPaused {
+		now := s.now()
+		if out.Overdue, err = s.Q.AutomationOverdueRuns(ctx, store.AutomationOverdueRunsParams{AutomationID: a.ID, Now: &now}); err != nil {
+			return out, err
+		}
+	}
 	out.Route, err = s.route(ctx, s.Q, ws.ID)
 	return out, err
 }
@@ -159,6 +168,70 @@ type AutomationStats struct {
 	Entered int64                 `json:"entered"`
 	InFlow  int64                 `json:"inFlow"`
 	Steps   []AutomationStepStats `json:"steps"`
+	// Sequence is the flow's emails in order with how many go on to the
+	// next one (review 2026-11 AT-13).
+	Sequence []AutomationSequenceStep `json:"sequence"`
+}
+
+// AutomationSequenceStep is one email of a flow's sequence.
+type AutomationSequenceStep struct {
+	NodeID       string `json:"nodeId"`
+	Sent         int64  `json:"sent"`
+	Delivered    int64  `json:"delivered"`
+	OpenedHuman  int64  `json:"openedHuman"`
+	Clicked      int64  `json:"clicked"`
+	Unsubscribed int64  `json:"unsubscribed"`
+	// Next counts the contacts who reached the next email (or emails,
+	// after a branch); absent for the last one.
+	Next *int64 `json:"next,omitempty"`
+}
+
+// sequence lists a graph's emails top to bottom with, for each, the
+// arrivals at the nearest emails after it.
+func sequence(g AutomationGraph, byNode map[string]*AutomationStepStats) []AutomationSequenceStep {
+	out := []AutomationSequenceStep{}
+	stat := func(id string) AutomationStepStats {
+		if st, ok := byNode[id]; ok {
+			return *st
+		}
+		return AutomationStepStats{}
+	}
+	for _, id := range g.Order() {
+		n := g.Node(id)
+		if n == nil || n.Type != NodeEmail {
+			continue
+		}
+		st := stat(id)
+		step := AutomationSequenceStep{NodeID: id, Sent: st.Sent, Delivered: st.Delivered, OpenedHuman: st.OpenedHuman, Clicked: st.Clicked, Unsubscribed: st.Unsubscribed}
+		seen := map[string]bool{id: true}
+		queue := []string{}
+		for _, e := range g.Out(id) {
+			queue = append(queue, e.Target)
+		}
+		var next int64
+		found := false
+		for len(queue) > 0 {
+			cur := queue[0]
+			queue = queue[1:]
+			if seen[cur] {
+				continue
+			}
+			seen[cur] = true
+			if c := g.Node(cur); c != nil && c.Type == NodeEmail {
+				next += stat(cur).Entered
+				found = true
+				continue
+			}
+			for _, e := range g.Out(cur) {
+				queue = append(queue, e.Target)
+			}
+		}
+		if found {
+			step.Next = &next
+		}
+		out = append(out, step)
+	}
+	return out
 }
 
 // Stats returns per-step stats for the last N days, across versions (steps
@@ -170,7 +243,7 @@ func (s *Service) Stats(ctx context.Context, ws *store.Workspace, id uuid.UUID, 
 		return AutomationStats{}, api.MapError(err, "Automation")
 	}
 	since := s.since(days)
-	out := AutomationStats{Days: days, Since: since, Steps: []AutomationStepStats{}}
+	out := AutomationStats{Days: days, Since: since, Steps: []AutomationStepStats{}, Sequence: []AutomationSequenceStep{}}
 	ids := []uuid.UUID{a.ID}
 	rows, err := s.Q.AutomationStepStatsSince(ctx, store.AutomationStepStatsSinceParams{AutomationIds: ids, Since: since})
 	if err != nil {
@@ -252,6 +325,15 @@ func (s *Service) Stats(ctx context.Context, ws *store.Workspace, id uuid.UUID, 
 			}
 		}
 	}
+	// The sequence reads the live version's order (the draft's before
+	// the first publish).
+	shown := a.DraftVersion
+	if a.LiveVersion != nil {
+		shown = *a.LiveVersion
+	}
+	if sv, err := s.Q.GetAutomationVersion(ctx, store.GetAutomationVersionParams{AutomationID: a.ID, Version: shown}); err == nil {
+		out.Sequence = sequence(s.graphOf(sv.Graph), byNode)
+	}
 	return out, nil
 }
 
@@ -302,6 +384,10 @@ type AutomationOptions struct {
 	// Milestones are the referral milestones the "Reached a milestone"
 	// trigger can start on (Grow).
 	Milestones []AutomationMilestoneOption `json:"milestones"`
+	// Segments and Campaigns are what "Enters a segment" and "Clicked a
+	// link" can start on (review 2026-11 AT-10).
+	Segments  []AutomationOptionItem `json:"segments"`
+	Campaigns []AutomationOptionItem `json:"campaigns"`
 }
 
 // AutomationMilestoneOption is a referral milestone a "Reached a
@@ -318,7 +404,21 @@ type AutomationMilestoneOption struct {
 // Options lists lists, forms, fields, emails, providers, tags and API events.
 func (s *Service) Options(ctx context.Context, ws *store.Workspace) (AutomationOptions, error) {
 	out := AutomationOptions{Lists: []AutomationOptionItem{}, Forms: []AutomationFormOption{}, Fields: []AutomationFieldOption{}, Emails: []AutomationEmailOption{}, Providers: []AutomationRouteProvider{}, Tags: []string{}, Events: []string{}, Milestones: []AutomationMilestoneOption{},
-		Products: []AutomationOptionItem{}}
+		Products: []AutomationOptionItem{}, Segments: []AutomationOptionItem{}, Campaigns: []AutomationOptionItem{}}
+	if segs, err := s.Q.AutomationSegments(ctx, ws.ID); err == nil {
+		for _, sg := range segs {
+			out.Segments = append(out.Segments, AutomationOptionItem{ID: sg.ID.String(), Name: sg.Name})
+		}
+	} else {
+		return out, err
+	}
+	if camps, err := s.Q.AutomationLinkCampaigns(ctx, ws.ID); err == nil {
+		for _, c := range camps {
+			out.Campaigns = append(out.Campaigns, AutomationOptionItem{ID: c.ID.String(), Name: c.Name})
+		}
+	} else {
+		return out, err
+	}
 	if prods, err := s.Q.SegmentProductOptions(ctx, ws.ID); err == nil {
 		for _, p := range prods {
 			out.Products = append(out.Products, AutomationOptionItem{ID: p.ID.String(), Name: p.Name})

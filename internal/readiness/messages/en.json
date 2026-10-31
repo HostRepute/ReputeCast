@@ -481,6 +481,7 @@
   "estimate.duplicates": "Duplicates",
   "estimate.sunsetOverride": "Sunset-tier override",
   "estimate.sunsetStopped": "Sunset policy (Broadcasts stopped)",
+  "estimate.overCap": {"message": "Over the marketing cap ({count} in {days, plural, one {# day} other {# days}})", "note": "An audience line on Review & send: contacts who got the workspace's most campaign and automation emails already"},
   "estimate.unengaged": "Unengaged {days, number}+ days (sunset policy)",
   "estimate.selfHosted": "self-hosted",
   "estimate.plan": "plan",
@@ -1016,6 +1017,8 @@
   "problem.ruleText": "Enter the text to look for.",
   "problem.ruleGone": "That sending rule isn't there any more.",
   "problem.typedMultiple": "Enter a multiple from 1.1 to 20.",
+  "problem.capCount": "Enter the most emails as a number from 0 (no cap) to 50.",
+  "problem.capDays": "Enter the days as a number from 1 to 90.",
   "problem.paramThere": "Every link already has {param}.",
 
   "rules.whoCanChange": { "message": "{names, select, none {Your role can't change the sending rules.} other {Your role can't change the sending rules: {names} can.}}", "note": "Why the reader can't change Settings › Sending rules; names: Linh Nguyen or Marcus Chen" },

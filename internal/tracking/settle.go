@@ -224,6 +224,21 @@ func (s *Service) countClick(ctx context.Context, tx pgx.Tx, q *store.Queries, b
 			return err
 		}
 	}
+	// "Clicked a link" triggers (review 2026-11 AT-10): each person's
+	// click in a campaign or an automation email.
+	if m.ContactID != nil && (m.Stream == "broadcast" || m.Stream == "automation") {
+		src := ""
+		if m.CampaignID != nil {
+			src = "campaign:" + m.CampaignID.String()
+		} else if ref := refOf(m.ContentRef); ref.Email != uuid.Nil {
+			src = "email:" + ref.Email.String()
+		}
+		if src != "" {
+			if err := automations.EmitLinkClicked(ctx, q, m.WorkspaceID, *m.ContactID, src, url, at); err != nil {
+				return err
+			}
+		}
+	}
 	if m.Stream == "automation" && s.Automations != nil {
 		if firstOpen {
 			if err := s.Automations.RecordMessageEvent(ctx, q, automations.MessageEvent{MessageID: m.ID, Type: "opened", At: at}); err != nil {

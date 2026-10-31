@@ -39,6 +39,10 @@ export interface Refs {
   milestones?: Map<string, string>
   /** Stores the store triggers watch (id → name; X20). */
   stores?: Map<string, string>
+  /** Segments "Enters a segment" names (review 2026-11 AT-10). */
+  segments?: Map<string, string>
+  /** What "Clicked a link" listens to: "campaign:<id>" and "email:<id>" → name. */
+  sources?: Map<string, string>
 }
 
 export const emptyRefs: Refs = { lists: new Map(), forms: new Map(), emails: new Map(), providers: new Map(), fields: new Map(), milestones: new Map() }
@@ -54,6 +58,8 @@ export function refsFrom(o: Schemas['AutomationOptions'] | undefined): Refs {
     // Digital products (X19): published first, then others that sold.
     products: new Map((o.products ?? []).map((p) => [p.id, p.name])),
     milestones: new Map(o.milestones.map((x) => [x.id, x.name])),
+    segments: new Map((o.segments ?? []).map((x) => [x.id, x.name])),
+    sources: new Map([...(o.campaigns ?? []).map((c): [string, string] => [`campaign:${c.id}`, c.name]), ...o.emails.map((e): [string, string] => [`email:${e.id}`, e.name])]),
   }
 }
 
@@ -95,7 +101,14 @@ export const TRIGGER_KINDS: readonly TriggerConfig['kind'][] = [
   'order_placed',
   'first_order',
   'abandoned_checkout',
+  // Segments and links (review 2026-11 AT-10).
+  'segment_entered',
+  'segment_left',
+  'link_clicked',
 ]
+
+/** The triggers that can be a flow's second or third (AT-11). */
+export const ALSO_KINDS: readonly TriggerConfig['kind'][] = ['joined_list', 'form_submitted', 'tag_added', 'api_event', 'segment_entered', 'segment_left', 'link_clicked']
 
 /** A trigger kind's name: "Joined list", "Form submitted". */
 export function triggerKindLabel(kind: TriggerConfig['kind']): string {
@@ -124,6 +137,12 @@ export function triggerKindLabel(kind: TriggerConfig['kind']): string {
       return tt(mg.kindFirstOrder)
     case 'abandoned_checkout':
       return tt(mg.kindAbandonedCheckout)
+    case 'segment_entered':
+      return tt(mg.kindSegmentEntered)
+    case 'segment_left':
+      return tt(mg.kindSegmentLeft)
+    case 'link_clicked':
+      return tt(mg.kindLinkClicked)
   }
   return kind
 }
@@ -279,7 +298,22 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
     case 'first_order':
     case 'abandoned_checkout':
       return refs.stores?.get(t.store ?? '') ?? tt(mg.aStore)
+    case 'segment_entered':
+    case 'segment_left':
+      return refs.segments?.get(t.segmentId ?? '') ?? tt(mg.aSegment)
+    case 'link_clicked':
+      if (!t.source) return t.urlContains ? `${tt(mg.anyCampaignOrEmail)} · ${t.urlContains}` : tt(mg.anyCampaignOrEmail)
+      return (refs.sources?.get(t.source) ?? tt(mg.anEmail)) + (t.urlContains ? ` · ${t.urlContains}` : '')
   }
+  return ''
+}
+
+/** Every trigger of a flow: "Weekly Digest, or vip" (AT-11). */
+export function triggersRef(t: TriggerConfig | undefined, refs: Refs): string {
+  if (!t) return ''
+  let out = triggerRef(t, refs) || triggerKindLabel(t.kind)
+  for (const a of t.also ?? []) out = tt(mg.orTrigger, { first: out, second: triggerRef(a, refs) || triggerKindLabel(a.kind) })
+  return out
 }
 
 export function conditionPhrase(g: FlowGraph, c: FlowCondition | undefined, refs: Refs): string {
@@ -376,7 +410,7 @@ export function nodeTitle(g: FlowGraph, n: FlowNode, refs: Refs): string {
       if (!d.trigger?.kind) return tt(mg.pickTrigger)
       // "Acme Merch · after 1 hour" (X20).
       if (d.trigger.kind === 'abandoned_checkout') return tt(mg.checkoutAfter, { store: triggerRef(d.trigger, refs), hours: d.trigger.afterHours || 1 })
-      return triggerRef(d.trigger, refs) || triggerKindLabel(d.trigger.kind)
+      return triggersRef(d.trigger, refs)
     }
     case 'delay':
       return d.delay ? tt(mg.waitFor, { duration: durationText(d.delay) }) : tt(mg.wait)

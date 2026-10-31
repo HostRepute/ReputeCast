@@ -117,6 +117,9 @@ type Excluded struct {
 	Sunset       int64 `json:"sunset"`
 	Excluded     int64 `json:"excluded"`
 	Tiers        int64 `json:"tiers"`
+	// Capped counts contacts over the workspace's marketing cap (review
+	// 2026-11 AT-9).
+	Capped int64 `json:"capped"`
 }
 
 // Content is what a send renders, captured at start (campaign_sends.content).
@@ -333,9 +336,16 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			return e.fail(ctx, cc, english("fail.conditional", i18n.Args{"error": err.Error()}), now)
 		}
 	}
+	// The workspace's marketing cap, with automations (review 2026-11 AT-9).
+	limit, err := e.Q.WorkspaceMarketingCap(ctx, cc.WorkspaceID)
+	if err != nil {
+		return err
+	}
+	capSince := now.AddDate(0, 0, -int(limit.MarketingCapDays))
 	for {
 		rows, err := e.Q.SendingAudiencePage(ctx, store.SendingAudiencePageParams{
 			Now: now, ExcludeLists: def.ExcludeLists, CampaignID: campaignID, Lists: def.Lists, WorkspaceID: cc.WorkspaceID, After: cursor, Lim: pageSize,
+			CapCount: limit.MarketingCapCount, CapSince: capSince,
 		})
 		if err != nil {
 			return err
@@ -605,6 +615,8 @@ func eligibility(c store.SendingAudiencePageRow, def audienceDef, dup bool) stri
 		return "sunset"
 	case slices.Contains(def.ExcludeTiers, c.Tier):
 		return "tiers"
+	case c.OverCap:
+		return "cap"
 	}
 	return ""
 }
@@ -631,6 +643,8 @@ func (x *Excluded) add(why string) {
 		x.Excluded++
 	case "tiers":
 		x.Tiers++
+	case "cap":
+		x.Capped++
 	}
 }
 

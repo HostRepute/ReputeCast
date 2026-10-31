@@ -47,6 +47,7 @@ const board = (canManage: boolean): View => ({
   sunsetDays: 180,
   canManage,
   managers: ['Linh Nguyen', 'Marcus Chen'],
+  marketingCap: { count: 0, days: 7 },
   reason: canManage ? undefined : "Your role can't change the sending rules: Linh Nguyen or Marcus Chen can.",
 })
 

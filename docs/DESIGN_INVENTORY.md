@@ -140,6 +140,7 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | `AutomationPublish.dc.html` | Automations · publish & version diff | — |
 | `AutomationsList.dc.html` | Automations · list | phone, tablet |
 | `AutomationsStates.dc.html` | Automations · templates / loading / error | — |
+| `AutomationsComplete.dc.html` | Automations, complete · a flow's row menu and delete, discard draft, contacts at a step and on the profile, preview as and test send, resume with overdue delays, the trigger stack, re-entry every N days, contact-local dates, leave with the list, segment and link triggers, the marketing cap, a changed trigger in the publish diff, sequence stats (review 2026-11 AT-1–AT-13) | — |
 
 ### 7.11 Migration importer
 
@@ -1139,3 +1140,7 @@ When they disagree we follow the design for UI and the spec for behaviour.
 | 572 | Lists & fields on phones (review 2026-11 AU-11) | `AudienceListsFields` draws the tables at 1440 only | — | Below 768 px each list and field is a row of its own: its name, its facts on one line, its buttons below. |
 | 573 | The sunset policy's numbers and its dry run (review 2026-11 AU-12) | `ContactsAtScale` draws a short card with two switches and a dialog without a badge; `ListHealth` the full card | — | The full card stays: a switch in its header turns the policy off, and "Stop sending Broadcasts N days" and "Erase the contact after N months" take their number inline (`ListHealth`, redrawn in M43). The dialog wears a "Sunset policy" badge like every confirmation dialog, and also opens, titled "Erase sooner?", when the months go down while erasing is on. |
 | 574 | Removing an upload group (review 2026-11 AU-14) | `ContactsAtScale` draws the dialog; `Suppressions` (redrawn in M43) a CSV upload row with "Remove group" | — | The dialog adds that contacts held back for a bounce or a complaint first confirm a new opt-in, as removing one address says. |
+| 575 | Contacts at a step (review 2026-11 AT-2) | `AutomationsComplete` draws a drawer beside the canvas | The editor's side panels are already open on both sides | A dialog from the step's Stats panel ("See the 412 contacts here"), with the same rows, Show more and Remove from flow. |
+| 576 | The sequence (review 2026-11 AT-13) | `AutomationsComplete` draws a six-column table | The flow's Stats panel is 300 px wide | One block per email: its name, the four numbers in two columns, and the bar with "92% went on to the next email". |
+| 577 | Preview as (review 2026-11 AT-3) | `AutomationsComplete` draws an address field | A preview is of a contact, not an address | The field searches contacts; picking one shows "Preview as Maya Patel" and "Change". Send test defaults to the signed-in person's address. |
+| 578 | Resume and delete dialogs (review 2026-11 AT-1, AT-4) | `AutomationsComplete` draws them without a badge | Every confirmation dialog has one (`Dialogs`) | "Delete flow" and "Resume" badges. Resuming opens the dialog only when contacts' waits ended during the pause; otherwise it resumes at once, as before. |

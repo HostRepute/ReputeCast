@@ -307,7 +307,7 @@ SELECT a.id, a.workspace_id, a.live_version, a.trigger, v.graph
 FROM automations a
 JOIN automation_versions v ON v.automation_id = a.id AND v.version = a.live_version
 WHERE a.workspace_id = @workspace_id AND a.status = 'live' AND a.deleted_at IS NULL
-  AND a.trigger ->> 'kind' = @kind::text;
+  AND a.triggers @> jsonb_build_array(jsonb_build_object('kind', @kind::text));
 
 -- name: AutomationRunExists :one
 SELECT EXISTS (SELECT 1 FROM automation_runs WHERE automation_id = @automation_id AND contact_id = @contact_id);
@@ -537,7 +537,15 @@ WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS 
   AND NOT EXISTS (SELECT 1 FROM automation_events e
                   WHERE e.workspace_id = c.workspace_id AND e.contact_id = c.id AND e.kind = 'date_field'
                     AND e.ref = @field::text AND (e.occurred_at AT TIME ZONE @tz::text)::date >= @today::date)
+  -- At each contact's own time (review 2026-11 AT-7): only the contacts
+  -- whose time zone is one of these.
+  AND (NOT @by_zone::boolean OR coalesce(c.timezone, '') = ANY(@zones::text[]))
 LIMIT 5000;
+
+-- name: AutomationContactZones :many
+-- The time zones a workspace's contacts have ('' for none).
+SELECT DISTINCT coalesce(timezone, '')::text AS zone FROM contacts
+WHERE workspace_id = @workspace_id AND status = 'active' AND erased_at IS NULL;
 
 -- name: AutomationRunEnteredSince :one
 -- A run of the contact in the flow started after @since (a yearly date
@@ -641,3 +649,155 @@ LIMIT 100;
 
 -- name: AutomationAlertNotified :exec
 UPDATE automation_alerts SET notified_at = @at WHERE id = @id;
+
+-- name: AutomationRunsAtNode :many
+-- The contacts at a step, the latest to arrive first, after a cursor
+-- (review 2026-11 AT-2).
+SELECT r.id, r.contact_id, r.status, r.node_entered_at, r.entered_at, r.next_at,
+       coalesce(r.state ->> 'wait', '')::text AS wait,
+       c.email, c.first_name, c.last_name
+FROM automation_runs r
+JOIN contacts c ON c.id = r.contact_id
+WHERE r.automation_id = @automation_id AND r.node_id = @node_id AND r.status IN ('active', 'waiting')
+  AND (NOT @after::boolean OR (r.node_entered_at, r.id) < (@after_at::timestamptz, @after_id::uuid))
+ORDER BY r.node_entered_at DESC, r.id DESC
+LIMIT @lim;
+
+-- name: CountAutomationRunsAtNode :one
+SELECT count(*)::bigint FROM automation_runs
+WHERE automation_id = @automation_id AND node_id = @node_id AND status IN ('active', 'waiting');
+
+-- name: ContactAutomationRuns :many
+-- The flows a contact is in or went through, the latest run of each, the
+-- ones in progress first (AT-2).
+SELECT x.id, x.automation_id, x.name, x.version, x.node_id, x.status, x.exit_reason, x.entered_at, x.node_entered_at, x.finished_at, x.graph FROM (
+    SELECT DISTINCT ON (r.automation_id) r.id, r.automation_id, a.name, r.version, r.node_id, r.status, r.exit_reason,
+           r.entered_at, r.node_entered_at, r.finished_at, v.graph
+    FROM automation_runs r
+    JOIN automations a ON a.id = r.automation_id AND a.deleted_at IS NULL
+    JOIN automation_versions v ON v.automation_id = r.automation_id AND v.version = r.version
+    WHERE r.contact_id = @contact_id AND a.workspace_id = @workspace_id
+    ORDER BY r.automation_id, r.entered_at DESC
+) x
+ORDER BY (x.status IN ('active', 'waiting')) DESC, x.entered_at DESC
+LIMIT 50;
+
+-- name: LockAutomationRun :one
+SELECT r.id, r.automation_id, r.version, r.node_id, r.status, r.contact_id, a.name, a.workspace_id,
+       c.email, c.first_name, c.last_name
+FROM automation_runs r
+JOIN automations a ON a.id = r.automation_id AND a.deleted_at IS NULL
+JOIN contacts c ON c.id = r.contact_id
+WHERE r.id = @id AND a.workspace_id = @workspace_id
+FOR UPDATE OF r;
+
+-- name: AutomationContactOnList :one
+SELECT EXISTS (SELECT 1 FROM list_memberships WHERE list_id = @list_id AND contact_id = @contact_id AND status IN ('pending', 'subscribed'));
+
+-- name: AutomationOverdueRuns :one
+-- Runs whose wait ended while the flow was paused (AT-4).
+SELECT count(*)::bigint FROM automation_runs
+WHERE automation_id = @automation_id AND status IN ('active', 'waiting') AND next_at <= @now;
+
+-- name: AutomationOverdueRunIDs :many
+-- The overdue runs, the longest waiting first (resume, "spread over N hours").
+SELECT id FROM automation_runs
+WHERE automation_id = @automation_id AND status IN ('active', 'waiting') AND next_at <= @now
+ORDER BY next_at, id;
+
+-- name: SetAutomationRunsNextAt :exec
+-- Sets each run's next time (resume, "spread over N hours").
+UPDATE automation_runs SET next_at = d.due
+FROM (SELECT unnest(@ids::uuid[]) AS run_id, unnest(@dues::timestamptz[]) AS due) d
+WHERE automation_runs.id = d.run_id;
+
+-- name: AutomationSkipOverdue :execrows
+-- Resume, "skip overdue emails": the overdue runs skip the next email they
+-- reach.
+UPDATE automation_runs SET state = state || '{"skipEmail": true}'::jsonb
+WHERE automation_id = @automation_id AND status IN ('active', 'waiting') AND next_at <= @now;
+
+-- name: AutomationRunGroups :many
+-- Where the contacts on older versions are, for moving them to a new one.
+SELECT version, node_id, count(*)::bigint AS n
+FROM automation_runs
+WHERE automation_id = @automation_id AND status IN ('active', 'waiting') AND version <> @version
+GROUP BY version, node_id;
+
+-- name: MigrateRunsKeep :execrows
+-- Publish, "move": runs at a step the new version still has move as they are.
+UPDATE automation_runs SET version = @version
+WHERE automation_id = @automation_id AND status IN ('active', 'waiting') AND version = @from_version AND node_id = @node_id;
+
+-- name: MigrateRunsRetimeDelay :execrows
+-- Publish, "move": runs waiting at a delay that changed wait from when they
+-- reached it, by the new delay.
+UPDATE automation_runs
+SET version = @version,
+    next_at = node_entered_at + make_interval(0, 0, 0, 0, 0, 0, @delay_seconds::float8),
+    state = jsonb_build_object('wait', 'delay', 'until', node_entered_at + make_interval(0, 0, 0, 0, 0, 0, @delay_seconds::float8))
+          || (CASE WHEN jsonb_exists(state, 'skipEmail') THEN jsonb_build_object('skipEmail', state -> 'skipEmail') ELSE '{}'::jsonb END)
+WHERE automation_id = @automation_id AND status = 'waiting' AND version = @from_version AND node_id = @node_id;
+
+-- name: MigrateRunsForward :execrows
+-- Publish, "move": runs at a step the new version dropped go on at the next
+-- step it still has.
+UPDATE automation_runs
+SET version = @version, node_id = @to_node, state = '{}'::jsonb, node_entered_at = @now, status = 'active', next_at = @now
+WHERE automation_id = @automation_id AND status IN ('active', 'waiting') AND version = @from_version AND node_id = @node_id;
+
+-- name: MigrateRunsEnd :execrows
+-- Publish, "move": runs at a dropped step with nothing after it finish.
+UPDATE automation_runs
+SET version = @version, status = 'completed', finished_at = @now, next_at = NULL, exit_reason = 'migrated'
+WHERE automation_id = @automation_id AND status IN ('active', 'waiting') AND version = @from_version AND node_id = @node_id;
+
+-- name: ClearFinishedRunState :execrows
+-- A finished run's trigger data (an order's details…) goes after 90 days (AT-8).
+UPDATE automation_runs r SET state = '{}'::jsonb
+WHERE r.id IN (SELECT x.id FROM automation_runs x WHERE x.finished_at IS NOT NULL AND x.finished_at < @before AND x.state <> '{}'::jsonb LIMIT 5000);
+
+-- name: AutomationMarketingSent :one
+-- Campaign and automation emails a contact got since a time, and the
+-- oldest of them (AT-9).
+SELECT count(*)::bigint AS n, coalesce(min(queued_at), @since::timestamptz)::timestamptz AS oldest FROM messages
+WHERE contact_id = @contact_id AND stream IN ('broadcast', 'automation') AND queued_at > @since::timestamptz AND status NOT IN ('failed', 'cancelled', 'rejected');
+
+-- name: WorkspaceMarketingCap :one
+SELECT marketing_cap_count, marketing_cap_days FROM workspaces WHERE id = @id;
+
+-- name: AutomationWatchedSegments :many
+-- Dynamic segments a live flow starts on entering or leaving (AT-10).
+SELECT DISTINCT s.id, s.workspace_id, s.watched_at
+FROM automations a
+CROSS JOIN LATERAL jsonb_array_elements(a.triggers) t
+JOIN segments s ON s.id::text = t.value ->> 'segmentId' AND s.workspace_id = a.workspace_id
+WHERE a.status = 'live' AND a.deleted_at IS NULL AND t.value ->> 'kind' IN ('segment_entered', 'segment_left')
+  AND s.refresh <> 'static';
+
+-- name: SeedSegmentMembers :exec
+-- A watched segment's first evaluation: its members, no events.
+INSERT INTO segment_members (segment_id, contact_id, entered_at)
+SELECT @segment_id, unnest(@contact_ids::uuid[]), @at::timestamptz
+ON CONFLICT DO NOTHING;
+
+-- name: MarkSegmentWatched :exec
+UPDATE segments SET watched_at = @at WHERE id = @id;
+
+-- name: AutomationLinkClickListened :one
+-- Whether a live flow starts on a link click in this workspace (AT-10).
+SELECT EXISTS (SELECT 1 FROM automations a
+               WHERE a.workspace_id = @workspace_id AND a.status = 'live' AND a.deleted_at IS NULL
+                 AND a.triggers @> '[{"kind": "link_clicked"}]'::jsonb);
+
+-- name: AutomationSegments :many
+-- Segments a "Enters a segment" trigger can start on (AT-10).
+SELECT id, name FROM segments WHERE workspace_id = @workspace_id ORDER BY name, id;
+
+-- name: AutomationLinkCampaigns :many
+-- Campaigns a "Clicked a link" trigger can listen to: the sent ones, the
+-- latest first, and those still to go out (AT-10).
+SELECT id, name FROM campaigns
+WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND status IN ('scheduled', 'sending', 'paused', 'sent', 'approved')
+ORDER BY coalesce(started_at, scheduled_at, created_at) DESC, id
+LIMIT 100;

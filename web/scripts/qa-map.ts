@@ -138,6 +138,7 @@ export const entries: Entry[] = [
   // the step into view, which a click on it (as the board shows) doesn't.
   { board: 'AutomationFlow', path: `${ws}/automations/{automation:Welcome series}?step=n3` },
   { board: 'AutomationsStates', manual: true },
+  { board: 'AutomationsComplete', manual: true },
   { board: 'FormBuilder', path: `${ws}/forms?form={form:Newsletter signup}` },
   { board: 'FormsStates', manual: true },
   { board: 'Notifications', path: `${ws}/notifications` },

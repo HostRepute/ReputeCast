@@ -121,10 +121,18 @@ type SendDefaults struct {
 	TypedMultiple    float64 `json:"typedMultiple" minimum:"1.1" maximum:"20"`
 }
 
+// MarketingCap is at most Count campaign and automation emails per contact
+// in Days days, together (review 2026-11 AT-9); Count 0 is no cap.
+type MarketingCap struct {
+	Count int `json:"count" minimum:"0" maximum:"50"`
+	Days  int `json:"days" minimum:"1" maximum:"90"`
+}
+
 // SendingRulesView is Settings › Sending rules.
 type SendingRulesView struct {
-	Rules    []SendingRule `json:"rules"`
-	Defaults SendDefaults  `json:"defaults"`
+	Rules        []SendingRule `json:"rules"`
+	Defaults     SendDefaults  `json:"defaults"`
+	MarketingCap MarketingCap  `json:"marketingCap"`
 	// SunsetDays is the sunset policy's (contacts unengaged that long are
 	// left out).
 	SunsetDays int `json:"sunsetDays"`
@@ -161,6 +169,11 @@ func (s *Service) SendingRules(ctx context.Context, ws *store.Workspace, p *auth
 		return out, err
 	}
 	out.Defaults = SendDefaults{ExcludeUnengaged: d.ExcludeUnengaged, TypedMultiple: d.TypedMultiple}
+	limit, err := s.Q.WorkspaceMarketingCap(ctx, ws.ID)
+	if err != nil {
+		return out, err
+	}
+	out.MarketingCap = MarketingCap{Count: int(limit.MarketingCapCount), Days: int(limit.MarketingCapDays)}
 	rows, err := s.Q.SendingRulesList(ctx, ws.ID)
 	if err != nil {
 		return out, err
@@ -340,6 +353,35 @@ func (s *Service) SaveSendDefaults(ctx context.Context, ws *store.Workspace, p *
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "send_defaults.updated", TargetType: "workspace", TargetID: ws.ID.String(), TargetName: ws.Name,
 			Before: map[string]any{"exclude_unengaged": before.ExcludeUnengaged, "typed_multiple": before.TypedMultiple},
 			After:  map[string]any{"exclude_unengaged": in.ExcludeUnengaged, "typed_multiple": in.TypedMultiple}})
+	})
+	if err != nil {
+		return SendingRulesView{}, err
+	}
+	return s.SendingRules(ctx, ws, p)
+}
+
+// SaveMarketingCap sets the workspace's marketing cap, audited. It applies
+// to campaigns from their next audience count and to automation emails
+// from their next step.
+func (s *Service) SaveMarketingCap(ctx context.Context, ws *store.Workspace, p *authz.Principal, in MarketingCap) (SendingRulesView, error) {
+	if in.Count < 0 || in.Count > 50 {
+		return SendingRulesView{}, api.Invalid("body.count", say(ctx, "problem.capCount", nil))
+	}
+	if in.Days < 1 || in.Days > 90 {
+		return SendingRulesView{}, api.Invalid("body.days", say(ctx, "problem.capDays", nil))
+	}
+	before, err := s.Q.WorkspaceMarketingCap(ctx, ws.ID)
+	if err != nil {
+		return SendingRulesView{}, err
+	}
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if err := q.SetWorkspaceMarketingCap(ctx, store.SetWorkspaceMarketingCapParams{ID: ws.ID, Count: int32(in.Count), Days: int32(in.Days)}); err != nil {
+			return err
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "marketing_cap.updated", TargetType: "workspace", TargetID: ws.ID.String(), TargetName: ws.Name,
+			Before: map[string]any{"count": before.MarketingCapCount, "days": before.MarketingCapDays},
+			After:  map[string]any{"count": in.Count, "days": in.Days}})
 	})
 	if err != nil {
 		return SendingRulesView{}, err

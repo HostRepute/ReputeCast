@@ -2202,6 +2202,10 @@ func (b *builder) estimates() ReadinessEstimates {
 				row.Action = FixIncludeUnengaged
 			}
 		}
+		// The workspace's marketing cap (review 2026-11 AT-9).
+		if a.CapCount > 0 {
+			addRow(tx("estimate.overCap", A{"count": a.CapCount, "days": a.CapDays}), a.OverCap, "minus")
+		}
 	}
 	out.Audience = aud
 

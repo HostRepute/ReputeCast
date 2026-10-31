@@ -454,6 +454,7 @@ type Automation struct {
 	PauseReason   string          `json:"pauseReason"`
 	DraftRevision int64           `json:"draftRevision"`
 	UpdatedBy     *uuid.UUID      `json:"updatedBy"`
+	Triggers      json.RawMessage `json:"triggers"`
 }
 
 type AutomationAlert struct {
@@ -3771,6 +3772,7 @@ type Segment struct {
 	CountMs     *int32          `json:"countMs"`
 	TierCounts  json.RawMessage `json:"tierCounts"`
 	UpdatedBy   *uuid.UUID      `json:"updatedBy"`
+	WatchedAt   *time.Time      `json:"watchedAt"`
 }
 
 type SegmentMember struct {
@@ -5787,6 +5789,8 @@ type Workspace struct {
 	HiddenSections            []string        `json:"hiddenSections"`
 	UnconfirmedEraseDays      int32           `json:"unconfirmedEraseDays"`
 	EventDetailDays           int32           `json:"eventDetailDays"`
+	MarketingCapCount         int32           `json:"marketingCapCount"`
+	MarketingCapDays          int32           `json:"marketingCapDays"`
 }
 
 type WorkspaceLanguage struct {

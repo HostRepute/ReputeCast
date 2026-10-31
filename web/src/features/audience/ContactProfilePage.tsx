@@ -37,6 +37,7 @@ import { ChannelConsentCard } from '@/features/sms/ContactConsent'
 import { smsEventIcon, useSmsActivity } from '@/features/sms/activity'
 import './audience.css'
 import { ContactWebsiteCard } from '@/features/website/elsewhere'
+import { ContactAutomationsCard } from '@/features/automations/people'
 import { channelActivityIcon, useChannelActivity } from '@/features/push/activity'
 import { ContactChannelCards } from '@/features/push/ContactCards'
 
@@ -163,6 +164,8 @@ export function ContactProfilePage({ contactId }: { contactId: string }) {
               {/* A connected store's orders and consent (X20). */}
               <StoreOrdersCard contactId={p.id} />
               <ChannelConsentCard contactId={p.id} name={p.name || p.email} />
+              {/* The flows the contact is in, and where (review 2026-11 AT-2). */}
+              <ContactAutomationsCard contactId={p.id} name={p.name || p.email} />
             </div>
             <ActivityCard contactId={contactId} total={p.activityTotal} />
           </div>

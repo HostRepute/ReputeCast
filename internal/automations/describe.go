@@ -38,6 +38,10 @@ var (
 	mTriggerOrderPlaced       = msg("trigger.orderPlaced")
 	mTriggerFirstOrder        = msg("trigger.firstOrder")
 	mTriggerAbandonedCheckout = msg("trigger.abandonedCheckout")
+	mTriggerSegmentEntered    = msg("trigger.segmentEntered")
+	mTriggerSegmentLeft       = msg("trigger.segmentLeft")
+	mTriggerLinkClicked       = msg("trigger.linkClicked")
+	mTriggerOr                = msg("trigger.or")
 	mTriggerOther             = msg("trigger.other")
 	mTriggerLabel             = msg("trigger.label")
 	mTriggerNone              = msg("trigger.none")
@@ -48,6 +52,8 @@ var (
 	mRefAMilestone     = msg("ref.aMilestone")
 	mRefAnyMilestone   = msg("ref.anyMilestone")
 	mRefAStore         = msg("ref.aStore")
+	mRefASegment       = msg("ref.aSegment")
+	mRefAnEmail        = msg("ref.anEmail")
 	mRefAnyProduct     = msg("ref.anyProduct")
 	mRefDeletedProduct = msg("ref.deletedProduct")
 	mRefRemovedStep    = msg("ref.removedStep")
@@ -184,6 +190,12 @@ func triggerKindLabel(kind string) i18n.Text {
 		return txt(mTriggerFirstOrder)
 	case TriggerAbandonedCheckout:
 		return txt(mTriggerAbandonedCheckout)
+	case TriggerSegmentEntered:
+		return txt(mTriggerSegmentEntered)
+	case TriggerSegmentLeft:
+		return txt(mTriggerSegmentLeft)
+	case TriggerLinkClicked:
+		return txt(mTriggerLinkClicked)
 	}
 	return txt(mTriggerOther)
 }
@@ -250,6 +262,23 @@ func triggerRef(t *AutomationTrigger, refs *Refs) i18n.Text {
 			}
 		}
 		return txt(mRefAStore)
+	case TriggerSegmentEntered, TriggerSegmentLeft:
+		if refs != nil {
+			if n, ok := refs.Segments[t.SegmentID]; ok {
+				return nameOrNothing(n)
+			}
+		}
+		return txt(mRefASegment)
+	case TriggerLinkClicked:
+		if t.Source == "" {
+			return txt(mRefAnyEmail)
+		}
+		if refs != nil {
+			if n, ok := refs.Sources[t.Source]; ok {
+				return nameOrNothing(n)
+			}
+		}
+		return txt(mRefAnEmail)
 	}
 	return i18n.Text{}
 }
@@ -297,6 +326,20 @@ func triggerLabel(t *AutomationTrigger, refs *Refs) i18n.Text {
 	if t == nil || t.Kind == "" {
 		return txt(mTriggerNone)
 	}
+	// More than one trigger: "Joined list · Weekly Digest, or Tag added ·
+	// vip" (review 2026-11 AT-11).
+	if all := t.Triggers(); len(all) > 1 {
+		out := oneTriggerLabel(&all[0], refs)
+		for i := 1; i < len(all); i++ {
+			out = txt(mTriggerOr, "first", out, "second", oneTriggerLabel(&all[i], refs))
+		}
+		return out
+	}
+	return oneTriggerLabel(t, refs)
+}
+
+// oneTriggerLabel is one trigger's "Joined list · Weekly Digest".
+func oneTriggerLabel(t *AutomationTrigger, refs *Refs) i18n.Text {
 	ref := triggerRef(t, refs)
 	if emptyText(ref) {
 		return triggerKindLabel(t.Kind)

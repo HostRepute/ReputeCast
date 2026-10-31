@@ -65,6 +65,7 @@ import {
   typeName,
   type FlowGraph,
   type NodeData,
+  type Refs,
   type StepType,
 } from './graph'
 import { DRAG_TYPE, draggedStepType, FlowStatsList, graphOrder, Palette, Prop, StepPanel, StepStatsPanel, type PaletteItem } from './panels'
@@ -72,6 +73,9 @@ import { storeOfTrigger, useStoreTriggerOptions } from '@/features/commerce/auto
 import { t as tt, T, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { mf } from './flow.messages'
+import { m as mc } from './complete.messages'
+import { DiscardDraftButton, ResumeDialog } from './manage'
+import { SequenceStats } from './sequence'
 import { AutomationStatusBadge } from './StatusBadge'
 import { FlowViewProvider, startCountUp, type FlowView, type StepStats } from './view'
 import './automations.css'
@@ -523,6 +527,7 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
   const [publishOpen, setPublishOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [pauseOpen, setPauseOpen] = useState(false)
+  const [resumeOpen, setResumeOpen] = useState(false)
   const [preview, setPreview] = useState<{ id: string; version: number } | null>(null)
   const [editingEmail, setEditingEmail] = useState<{ id: string; version: number; node: string } | null>(null)
   const [opening, setOpening] = useState(false)
@@ -588,20 +593,38 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
               disabledReason={publishReason}
               loading={resume.isPending}
               onClick={() =>
-                resume.mutate(
-                  { params: { path: { workspace: slug, id } } },
-                  {
-                    onSuccess: () => {
-                      toast({ title: t(mf.resumed, { name: detail.name }), detail: t(mf.resumedDetail) })
-                      refreshDetail()
-                    },
-                    onError: (e) => toast({ kind: 'error', title: t(mf.resumeFailed), detail: errorMessage(e) }),
-                  },
-                )
+                // Contacts whose wait ended during the pause: ask what happens to them (AT-4).
+                detail.overdue > 0
+                  ? setResumeOpen(true)
+                  : resume.mutate(
+                      { params: { path: { workspace: slug, id } } },
+                      {
+                        onSuccess: () => {
+                          toast({ title: t(mf.resumed, { name: detail.name }), detail: t(mf.resumedDetail) })
+                          refreshDetail()
+                        },
+                        onError: (e) => toast({ kind: 'error', title: t(mf.resumeFailed), detail: errorMessage(e) }),
+                      },
+                    )
               }
             >
               {t(mf.resume)}
             </Button>
+          ) : null}
+          {resumeOpen ? (
+            <ResumeDialog
+              id={id}
+              name={detail.name}
+              overdue={detail.overdue}
+              onClose={() => setResumeOpen(false)}
+              onResumed={() => {
+                toast({ title: t(mf.resumed, { name: detail.name }), detail: t(mf.resumedDetail) })
+                refreshDetail()
+              }}
+            />
+          ) : null}
+          {published && meta.changes > 0 && detail.liveVersion ? (
+            <DiscardDraftButton id={id} changes={meta.changes} liveVersion={detail.liveVersion} disabledReason={canEdit ? undefined : editReason} onDiscarded={() => void onReload()} />
           ) : null}
           <Button onClick={() => setHistoryOpen(true)}>{t(mf.versionHistory)}</Button>
           <Button variant="primary" loading={opening} disabledReason={publishBlocked} onClick={() => void openPublish()}>
@@ -771,9 +794,16 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
             </TabPanel>
             <TabPanel value="stats" className="flex flex-1 flex-col">
               {selected ? (
-                <StepStatsPanel node={selected} stats={statsMap.get(selected.id)} automationId={id} hasStats={published} />
+                <StepStatsPanel
+                  node={selected}
+                  stats={statsMap.get(selected.id)}
+                  automationId={id}
+                  hasStats={published}
+                  automationName={detail.name}
+                  stepName={nodeTitle(graph, selected, refs)}
+                />
               ) : (
-                <FlowStatsPanel stats={stats.data} inFlow={detail.inFlow} published={published} />
+                <FlowStatsPanel stats={stats.data} inFlow={detail.inFlow} published={published} graph={graph} refs={refs} />
               )}
             </TabPanel>
           </PanelTabs>
@@ -941,7 +971,7 @@ function FlowPanel({ detail, editable, issues }: { detail: Detail; editable: boo
 const bold = (chunks: ReactNode[]) => <b className="n">{chunks}</b>
 
 /** Right panel › Stats with no step selected: the flow's 30-day numbers. */
-function FlowStatsPanel({ stats, inFlow, published }: { stats?: Schemas['AutomationStats']; inFlow: number; published: boolean }) {
+function FlowStatsPanel({ stats, inFlow, published, graph, refs }: { stats?: Schemas['AutomationStats']; inFlow: number; published: boolean; graph: FlowGraph; refs: Refs }) {
   const t = useT()
   return (
     <>
@@ -959,6 +989,13 @@ function FlowStatsPanel({ stats, inFlow, published }: { stats?: Schemas['Automat
           </span>
         </div>
       </div>
+      {/* The emails one after another (review 2026-11 AT-13). */}
+      {published && stats ? (
+        <div className="fe-prop">
+          <span className="tt">{t(mc.sequenceTitle)}</span>
+          <SequenceStats sequence={stats.sequence} graph={graph} refs={refs} />
+        </div>
+      ) : null}
     </>
   )
 }
