@@ -1,12 +1,17 @@
 package digests_test
 
 import (
+	"context"
+	"encoding/json"
 	"math"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/digests"
+	"github.com/hostrepute/reputecast/internal/readiness"
+	"github.com/hostrepute/reputecast/internal/store"
 )
 
 // TestDemoDigest checks the sample digest as the DigestOverview board shows
@@ -237,4 +242,41 @@ func TestDemoDigest(t *testing.T) {
 	if !found.OK || found.URL != "https://blog.acme.io/feed/" || found.Kind != "rss" || found.Items != 10 {
 		t.Fatalf("find: %+v", found)
 	}
+}
+
+// The digests list counts the next issue's audience once, for its estimate
+// and the approval check together: counting reads every contact on the
+// lists, 14,110 of them for the demo digest.
+func TestDigestListCountsTheAudienceOnce(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	w, err := env.App.Q.GetWorkspaceBySlug(ctx, "acme-newsletter")
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc := env.App.Digests()
+	checks := &countingChecks{Checks: svc.Checks()}
+	svc.Checks = func() digests.Checks { return checks }
+	list, err := svc.List(ctx, &w)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list.Items) != 1 || list.Items[0].Next == nil || list.Items[0].Next.Status != "collecting" || !list.Items[0].Next.NeedsApproval {
+		t.Fatalf("list: %+v", list.Items)
+	}
+	if checks.audiences != 1 {
+		t.Fatalf("the list counted the audience %d times, want once", checks.audiences)
+	}
+}
+
+// countingChecks counts the audiences asked of Send Readiness.
+type countingChecks struct {
+	digests.Checks
+	audiences int
+}
+
+func (c *countingChecks) Audience(ctx context.Context, ws *store.Workspace, raw json.RawMessage) (readiness.AudienceFacts, error) {
+	c.audiences++
+	return c.Checks.Audience(ctx, ws, raw)
 }

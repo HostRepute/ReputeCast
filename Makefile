@@ -14,6 +14,9 @@ PG_PORT   ?= $(shell grep -s '^PG_PORT=' .env | cut -d= -f2 || true)
 PG_PORT   := $(if $(PG_PORT),$(PG_PORT),5432)
 DEV_DB    ?= postgres://reputecast:reputecast@localhost:$(PG_PORT)/reputecast?sslmode=disable
 TEST_DB   ?= postgres://reputecast:reputecast@localhost:$(PG_PORT)/postgres?sslmode=disable
+# Packages CI splits test by test across its shards; each calls testsplit.Main
+# from its TestMain.
+SPLIT_TESTS := github.com/hostrepute/reputecast/internal/approvals
 
 export REPUTECAST_ENV ?= development
 
@@ -34,7 +37,7 @@ services: ## Start Postgres and Mailpit (docker compose)
 dev: services ## Run the API (air, live reload) and the web app (Vite) together
 	@echo "API  http://localhost:8080   Web  http://localhost:5173   Mail http://localhost:8025"
 	@trap 'kill 0' INT TERM; \
-	  REPUTECAST_DATABASE__URL="$(DEV_DB)" REPUTECAST_HTTP__PUBLIC_URL=http://localhost:5173 \
+	  REPUTECAST_DATABASE__URL="$(DEV_DB)" REPUTECAST_PUBLIC_URL=http://localhost:5173 \
 	  REPUTECAST_AUTH__COOKIE_SECURE=false $(GO) tool air & \
 	  (cd web && $(PNPM) dev) & \
 	  wait
@@ -61,6 +64,14 @@ test-go: ## Go unit and integration tests (uses the compose Postgres when runnin
 	@if docker compose ps --status running postgres 2>/dev/null | grep -q postgres; then \
 	  REPUTECAST_TEST_DATABASE_URL="$(TEST_DB)" $(GO) test -race -timeout 45m ./...; \
 	else $(GO) test -race -timeout 45m ./...; fi
+
+.PHONY: test-durations
+test-durations: ## Time each Go package's tests, which CI splits its Go jobs by
+	@if docker compose ps --status running postgres 2>/dev/null | grep -q postgres; then \
+	  export REPUTECAST_TEST_DATABASE_URL="$(TEST_DB)"; fi; \
+	$(GO) test -p 2 -race -count=1 -timeout 45m -json ./... | \
+	  $(GO) run ./scripts/testshard -record -split $(SPLIT_TESTS) > .github/go-test-durations.txt.new && \
+	  mv .github/go-test-durations.txt.new .github/go-test-durations.txt
 
 .PHONY: test-web
 test-web: ## Web unit tests (Vitest)

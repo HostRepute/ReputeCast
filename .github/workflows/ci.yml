@@ -17,8 +17,8 @@ jobs:
     name: Web · lint, typecheck, test, build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
           package_json_file: web/package.json
       - uses: actions/setup-node@v5
@@ -36,20 +36,24 @@ jobs:
         working-directory: web
       - run: pnpm build
         working-directory: web
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: web-dist
           path: web/dist
           include-hidden-files: true
 
   go:
-    name: Go ${{ matrix.go }} · Postgres ${{ matrix.pg }}
+    name: Go ${{ matrix.go }} · Postgres ${{ matrix.pg }} · shard ${{ matrix.shard }}/3
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         go: ["1.27.x"]
         pg: ["16", "17", "18"]
+        # Each Postgres version's tests in three shards that take about as
+        # long as each other (scripts/testshard). internal/approvals, the
+        # slowest package, is split test by test across them.
+        shard: [1, 2, 3]
     services:
       postgres:
         image: postgres:${{ matrix.pg }}-alpine
@@ -63,39 +67,115 @@ jobs:
     env:
       REPUTECAST_TEST_DATABASE_URL: postgres://reputecast:reputecast@localhost:5432/postgres?sslmode=disable
     steps:
-      - uses: actions/checkout@v5
+      # A runner guarantees only 14 GB of free disk, and the Go jobs can need
+      # more: go keeps each package it compiles twice, in its build cache and
+      # in its work directory, until the command ends. The runner comes with
+      # toolsets none of these jobs use; this removes the largest.
+      - name: Free disk space
+        run: |
+          before=$(df -h --output=avail / | tail -1 | xargs)
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          echo "::notice title=Disk space::$before free, $(df -h --output=avail / | tail -1 | xargs) after removing unused toolsets"
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go }}
+      # Failing tests and their messages as annotations on the pull request.
+      - run: echo "::add-matcher::.github/go-test-matcher.json"
+      # Under -race the demo-heavy packages take longer than go test's
+      # default 10 minutes per package on a CI runner. The shard's lines
+      # are "import/path", or "import/path run|skip regexp" for its part of
+      # a split package, which that package's TestMain reads from
+      # REPUTECAST_TEST_RUN (internal/testsplit).
+      - name: go test (shard ${{ matrix.shard }} of 3)
+        run: |
+          lines=$(go list ./... | go run ./scripts/testshard -shard ${{ matrix.shard }} -of 3)
+          echo "::group::$(wc -l <<<"$lines") packages in this shard"
+          echo "$lines"
+          echo "::endgroup::"
+          export REPUTECAST_TEST_RUN=$(awk 'NF == 3' <<<"$lines")
+          go test -race -count=1 -timeout 45m $(cut -d' ' -f1 <<<"$lines")
+
+  go-checks:
+    name: Go · generated code, go vet
+    runs-on: ubuntu-latest
+    # Apart from the test shards: go vet alone takes about half an hour on
+    # a runner, and neither check needs Postgres.
+    steps:
+      # As in the go job.
+      - name: Free disk space
+        run: |
+          before=$(df -h --output=avail / | tail -1 | xargs)
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          echo "::notice title=Disk space::$before free, $(df -h --output=avail / | tail -1 | xargs) after removing unused toolsets"
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.27.x"
       - name: Generated code is up to date
-        if: matrix.pg == '18' && matrix.go == '1.27.x'
         run: |
           go tool sqlc generate
           go run ./cmd/reputecast openapi > web/openapi.json
           git diff --exit-code -- internal/store web/openapi.json
       - run: go vet ./...
-      # Under -race the demo-heavy packages take longer than go test's
-      # default 10 minutes per package on a CI runner.
-      - run: go test -race -count=1 -timeout 45m ./...
 
   golangci:
-    name: golangci-lint
+    name: golangci-lint (${{ matrix.part }}/3)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Every third package, linted side by side. Most of a lint is loading
+        # the packages, which compiles them. Tests that import a package
+        # importing the one they test, as tests using internal/apptest do
+        # (internal/app imports nearly everything), need it compiled again
+        # against that package with its test files: 1,406 such copies for
+        # 197 packages. A part compiles only the copies its own tests need.
+        part: [1, 2, 3]
     steps:
-      - uses: actions/checkout@v5
+      # As in the go job.
+      - name: Free disk space
+        run: |
+          before=$(df -h --output=avail / | tail -1 | xargs)
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          echo "::notice title=Disk space::$before free, $(df -h --output=avail / | tail -1 | xargs) after removing unused toolsets"
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
         with:
           go-version: "1.27.x"
+      - name: Packages of this part
+        id: part
+        run: echo "packages=$(go list -f '{{.Dir}}' ./... | awk 'NR % 3 == ${{ matrix.part }} - 1' | sed "s|^$PWD|.|" | xargs)" >> "$GITHUB_OUTPUT"
+      # golangci-lint's cache: each package's results, and the facts its
+      # analyzers keep about the packages it imports, as main's latest lint
+      # of this part left them. Runs on main save it; pull requests only
+      # restore it.
+      - uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/golangci-lint
+          key: golangci-${{ matrix.part }}-${{ hashFiles('go.sum') }}-${{ github.sha }}
+          restore-keys: |
+            golangci-${{ matrix.part }}-${{ hashFiles('go.sum') }}-
+            golangci-${{ matrix.part }}-
       - uses: golangci/golangci-lint-action@v8
         with:
           version: v2.14.0
+          args: ${{ steps.part.outputs.packages }}
+          # The action's own cache is saved once a week and shared by the
+          # three parts; the one above replaces it.
+          skip-cache: true
+      - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/golangci-lint
+          key: golangci-${{ matrix.part }}-${{ hashFiles('go.sum') }}-${{ github.sha }}
 
   adapter-sdk:
     name: Adapter SDK · typecheck, test, build, end to end
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
           package_json_file: sdk/package.json
       - uses: actions/setup-node@v5
@@ -129,8 +209,8 @@ jobs:
     name: Site · lint, typecheck, test, build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
           package_json_file: site/package.json
       - uses: actions/setup-node@v5
@@ -157,7 +237,7 @@ jobs:
           grep -q 'The newsletter platform that protects your inbox placement.</h1>' dist/index.html
           grep -q '"@type": "SoftwareApplication"' dist/index.html
           test -f dist/sitemap.xml && test -f dist/robots.txt && test -f dist/og.png
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: site-dist
           path: site/dist
@@ -169,7 +249,7 @@ jobs:
     name: Zapier app · lint, test, build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
@@ -189,7 +269,7 @@ jobs:
     name: Make app · validate, test, build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
@@ -205,7 +285,7 @@ jobs:
     name: n8n nodes · lint, typecheck, test, build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
@@ -231,7 +311,7 @@ jobs:
       matrix:
         php: ["8.1", "8.4"]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
@@ -247,7 +327,7 @@ jobs:
         working-directory: integrations/wordpress
       - run: composer build
         working-directory: integrations/wordpress
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         if: matrix.php == '8.4'
         with:
           name: wordpress-plugin
@@ -257,7 +337,7 @@ jobs:
     name: GoReleaser · check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"

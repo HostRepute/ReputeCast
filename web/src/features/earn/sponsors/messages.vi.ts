@@ -149,8 +149,8 @@ export default translate(msp, {
   linkByHand: 'Liên kết chiến dịch thủ công',
   // Read-only, loading and errors.
   readOnlyTitle: 'Chỉ xem · {name}, {role}',
-  readOnlyText: 'Bạn có thể xem nhà tài trợ, lượt đặt chỗ và báo cáo. Quản lý chúng cần quyền {permission}. Hãy hỏi {helpers}.',
-  readOnlyNoHelpers: 'Bạn có thể xem nhà tài trợ, lượt đặt chỗ và báo cáo. Quản lý chúng cần quyền {permission}.',
+  readOnlyText: 'Bạn có thể xem nhà tài trợ, lượt đặt chỗ và báo cáo. Vai trò của bạn không thể quản lý chúng. Hãy hỏi {helpers}.',
+  readOnlyNoHelpers: 'Bạn có thể xem nhà tài trợ, lượt đặt chỗ và báo cáo. Vai trò của bạn không thể quản lý chúng.',
   errorTitle: 'Không tải được lượt đặt chỗ',
   errorText: 'Các khối Tài trợ đã có trong bản nháp vẫn giữ nội dung tài trợ của chúng.',
   loadingLabel: 'Đang tải nhà tài trợ',

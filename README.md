@@ -33,22 +33,39 @@ seat or workspace limit.
 
 - **Send Readiness.** Every campaign gets a verdict before it goes out (Ready,
   Ready with warnings or Blocked), with evidence and a fix for each finding:
-  blocklists, SPF/DKIM/DMARC, content, links, Gmail and Yahoo bulk-sender
-  rules, audience quality and routing.
+  blocklists (link domains looked up live), SPF/DKIM/DMARC, content, every
+  A/B variant, Liquid, Gmail and Yahoo bulk-sender rules, your workspace's
+  own sending rules, audience quality and routing, with estimates the
+  sending engine keeps. A scheduled send is checked again when it starts,
+  and a placement test runs from the same screen.
 - **Guarded sending.** Live progress per mailbox provider and per sending
-  provider. The whole send, or just one route, pauses when bounces or
-  complaints cross your thresholds.
+  provider, with an ETA for each. The whole send, one mailbox provider or
+  one route pauses or slows down when bounces (by type), deferrals or
+  complaints (only where mailbox providers report them) cross your
+  thresholds, or when a mailbox provider's replies match your traffic
+  rules; a canary phase tests new domains and unusual audiences first, and
+  a message is never sent twice when a provider's answer is lost.
 - **Bring your own providers.** Amazon SES, Mailgun, SendGrid, Postmark,
   Resend, SparkPost, Mailjet, Brevo, Azure Communication Services, Postal and
-  any SMTP server, several at once: routing per stream and mailbox provider,
-  weighted splits, failover, warm-up and one shared suppression list. Or
+  any SMTP server, several at once: routing per stream and mailbox provider
+  (found from MX records, so Google Workspace counts as Gmail), sticky
+  weighted splits, failover only to a provider that passes its checks,
+  warm-up enforced as mail goes out, and one shared suppression list that
+  pushes only what applies to all mail. Or
   [write an adapter](docs/adapters.md).
-- **Composer.** A drag-and-drop MJML builder with Liquid personalization, a
-  code view, device and inbox previews, A/B variants and inline deliverability
-  warnings.
-- **Honest analytics.** Human opens counted apart from machine opens (Apple
-  Mail Privacy Protection), a click map, and results per mailbox provider and
-  per sending provider.
+- **Composer.** A drag-and-drop MJML builder with a Write mode for people who
+  just want to type, personalization chips with fallbacks, a code view,
+  device and inbox previews (or real renders through your own Litmus or
+  Mailgun Inspect), A/B variants each checked on its own, a brand kit with
+  synced header and footer, comments and review links, autosave that
+  survives a crash, and inline deliverability warnings.
+- **Honest analytics.** Human, privacy-protected (Apple Mail) and machine
+  opens counted apart, with the open rate of the opens you can measure;
+  clicks settled against security scanners before they count; complaint
+  rates only where mailbox providers report them; A/B winners decided by
+  sample size and significance; a click map per variant; each number
+  compared with your last issues; results per mailbox provider and per
+  sending provider.
 - **Transactional email.** Templates written in the composer, a send, batch
   and render API with idempotency keys, an SMTP relay, a message log,
   category unsubscribes and delivery alerts, on a stream that fails over

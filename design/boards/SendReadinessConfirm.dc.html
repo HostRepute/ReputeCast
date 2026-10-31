@@ -32,6 +32,20 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
 .sum{display:flex;justify-content:space-between;gap:10px;font-size:13px}
 label.chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;cursor:pointer}
 label.chk input{margin-top:3px}
+.btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+.sgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 24px}
+.fnote{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:8px;background:#F3F4F6;border:1px solid #E3E6EB;color:#374151;font-size:12.5px;line-height:1.45}
+@media (max-width:1100px){.side .nav > span{justify-content:center;padding:0!important;height:44px}.side .nav svg{width:20px;height:20px}}
+@media (max-width:767px){
+  .side{display:none!important}
+  .ovl{padding:12px!important}
+  .sgrid{grid-template-columns:minmax(0,1fr)}
+  .sgrid .sum{flex-wrap:wrap}
+  .dlg > div,.dlg > fieldset{padding-left:16px!important;padding-right:16px!important}
+  .dacts{flex-direction:column-reverse;align-items:stretch!important}
+  .dacts .k{margin-right:0!important;text-align:center}
+  label.chk{min-height:44px}
+}
 
 
 /* shell additions: workspace switcher, notification bell, user menu */
@@ -56,7 +70,7 @@ label.chk input{margin-top:3px}
 /* responsive shell */
 @media (max-width:1100px){
   .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
-  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .brand-t,.side .ws{display:none}.side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .side .nav a{justify-content:center;padding:0!important;height:44px}
   .side .nav svg{width:20px;height:20px}
   .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
@@ -129,6 +143,9 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
   .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
 }
+
+/* phones: every top-bar target is at least 44px (tabs, links, fields, buttons, the bell and the account menu) */
+@media (max-width:767px){.top .tabs a{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box}.top a:not(.btn){min-height:44px}.top .btn,.top .in,.top select,.top input{min-height:44px;box-sizing:border-box}.top .ibtn{width:44px;height:44px;box-sizing:border-box}.top .ubtn{min-height:44px;box-sizing:border-box}.top nav[aria-label="Breadcrumb"] a{min-width:44px;justify-content:center}.top .chsw a{min-height:44px!important}}
 </style>
 </helmet>
 <h1 class="vh">Confirm send</h1>
@@ -140,71 +157,88 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
       <span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span>
     </div>
     <div class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px">
-      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563">Overview</span>
-      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;background:#E3F1EE;color:#0F766E;font-weight:500">Campaigns</span>
-      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563">Automations</span>
-      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563">Audience</span>
-      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563">Forms &amp; pages</span>
-      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563">Deliverability</span>
-      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563">Sending providers</span>
-      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563">Settings</span>
+      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" style="flex:none"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></span>
+      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;background:#E3F1EE;color:#0F766E;font-weight:500"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" style="flex:none"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></span>
+      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" style="flex:none"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></span>
+      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" style="flex:none"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></span>
+      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" style="flex:none"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></span>
+      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" style="flex:none"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></span>
+      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" style="flex:none"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></span>
+      <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" style="flex:none"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></span>
     </div>
   </aside>
 
   <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column;opacity:.5" aria-hidden="true">
     <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
       <span style="font-size:13px;color:#5B6472">Campaigns / Weekly Digest #142 / <span style="font-weight:600;color:#0B1220">Review &amp; send</span></span>
-          <div class="tools" style="margin-left:auto"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div>
+          <div class="tools" style="margin-left:auto"><span class="ibtn"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></span><span class="ubtn"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></span></div>
     </header>
-    <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+    <div class="content" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
       <div style="display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:12px;background:#FFFBEB;border:1px solid #FCD34D">
-        <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:20px;font-weight:700;color:#78350F">Ready with warnings</span><span style="color:#78350F">27 checks passed, 2 warnings, 0 blocks.</span></div>
+        <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:20px;font-weight:700;color:#78350F">Ready with warnings · 2 to review</span><span style="color:#78350F">27 passed · 2 warnings · 0 blocks</span></div>
       </div>
       <div style="display:flex;gap:20px;flex-wrap:wrap">
         <div class="card" style="flex:1 1 560px;height:520px"></div>
         <div style="flex:1 1 340px;max-width:420px;display:flex;flex-direction:column;gap:16px"><div class="card" style="height:160px"></div><div class="card" style="height:200px"></div><div class="card" style="height:120px"></div></div>
       </div>
-    </main>
+    </div>
   </div>
 
-  <div style="position:absolute;inset:0;background:rgba(11,18,32,.45);display:flex;align-items:flex-start;justify-content:center;padding:72px 16px;box-sizing:border-box">
-    <section class="card" role="dialog" aria-labelledby="confirm-title" style="width:100%;max-width:640px;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(11,18,32,.3)">
+  <main id="main" style="position:absolute;inset:0;background:rgba(11,18,32,.45);display:flex;align-items:flex-start;justify-content:center;padding:72px 16px;box-sizing:border-box" class="ovl">
+    <section class="card dlg" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-when" style="width:100%;max-width:640px;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(11,18,32,.3)">
       <div style="padding:22px 24px 16px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid #EEF0F3">
         <span class="badge warn" style="align-self:flex-start"><span class="dot"></span>Ready with warnings</span>
-        <h2 id="confirm-title" style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em">Schedule "Weekly Digest #142" for 31,604 people?</h2>
-        <span style="color:#4B5563">Tuesday 14 Oct 2026 at 09:00 America/New_York. Checks run again 15 minutes before the send, and the campaign pauses itself if any check turns to Block.</span>
+        <h2 id="confirm-title" style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em">Schedule "Weekly Digest #142" for 31,192 people?</h2>
+        <span id="confirm-when" style="color:#4B5563">Tue 14 Oct 2026 at 09:00 America/New_York. Checks run again at 08:45; the send is held for review if a check turns to Block or the audience changes by more than 10%.</span>
       </div>
       <div style="padding:16px 24px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid #EEF0F3">
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 24px">
-          <div class="sum"><span class="k">From</span><span class="n">Acme Newsletter &lt;digest@news.acme.io&gt;</span></div>
+        <div class="sgrid">
+          <div class="sum"><span class="k">From</span><span class="n" style="text-align:right">Acme Newsletter &lt;digest@news.acme.io&gt;</span></div>
           <div class="sum"><span class="k">Reply-to</span><span class="n">hello@acme.io</span></div>
           <div class="sum"><span class="k">Subject</span><span class="n" style="text-align:right">Three launches, one deprecation, and the roadmap for Q4</span></div>
-          <div class="sum"><span class="k">A/B</span><span class="n">Subject test · 2 variants · 20% sample</span></div>
-          <div class="sum"><span class="k">Route</span><span class="n">SES 28,444 · Postal 3,160</span></div>
-          <div class="sum"><span class="k">Cost · duration</span><span class="n">$2.84 · about 34 min</span></div>
+          <div class="sum"><span class="k">A/B</span><span class="n" style="text-align:right">Subject test · 2 variants · 20% sample</span></div>
+          <div class="sum"><span class="k">Route</span><span class="n">SES 28,073 · Postal 3,119</span></div>
+          <div class="sum"><span class="k">Cost · timing</span><span class="n" style="text-align:right">$2.81 · winner 11:00 · done about 11:31</span></div>
           <div class="sum"><span class="k">Auto-pause</span><span class="n">bounce 2.0% · complaint 0.10%</span></div>
-          <div class="sum"><span class="k">Excluded</span><span class="n">331 suppressed · 27 role · 26 duplicates</span></div>
+          <div class="sum"><span class="k">Excluded</span><span class="n" style="text-align:right">331 suppressed · 27 role · 26 duplicates · 412 unengaged</span></div>
         </div>
       </div>
-      <div style="padding:16px 24px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #EEF0F3">
-        <label class="chk"><input type="checkbox" checked><span>I understand 412 unengaged contacts are included. <a href="SendReadiness.dc.html">Exclude them instead</a></span></label>
-        <label class="chk"><input type="checkbox" checked><span>I understand the Postal IP is listed on UCEPROTECT L3, a low-impact list.</span></label>
-      </div>
-      <div style="padding:16px 24px 22px;display:flex;flex-direction:column;gap:12px">
-        <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">Type the recipient count to confirm<input class="in mono" value="31604" style="height:44px;font-size:16px;letter-spacing:.08em"><span class="k" style="font-weight:500">This is deliberate: large sends can't be recalled once they leave the queue.</span></label>
-        <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+      <fieldset style="margin:0;padding:16px 24px;display:flex;flex-direction:column;gap:10px;border:0;border-bottom:1px solid #EEF0F3;min-width:0">
+        <legend class="vh">Confirm each warning</legend>
+        <span style="font-size:13px;font-weight:600">Confirm the 2 warnings</span>
+        <label class="chk"><input type="checkbox" checked="{{ack1}}" onChange="{{toggle1}}"><span>I understand the Postal IP 203.0.113.25 is listed on UCEPROTECT L3, a low-impact list. <a href="SendReadinessFixes.dc.html">Send via SES only instead</a></span></label>
+        <label class="chk"><input type="checkbox" checked="{{ack2}}" onChange="{{toggle2}}"><span>I understand 2 of 14 links have no utm_campaign, which the workspace rule asks for. <a href="SendReadinessFixes.dc.html">Add it instead</a></span></label>
+      </fieldset>
+      <div style="padding:16px 24px 22px;display:flex;flex-direction:column;gap:14px">
+        <div class="fnote"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.6" aria-hidden="true" style="flex:none;margin-top:2px"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><span>We ask you to type the recipient count only when something is unusual: an audience much larger than usual, a first send to a list, domain or provider, or a reputation warning above low impact.</span></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center;flex-wrap:wrap" class="dacts">
+          <sc-if value="{{notReady}}" hint-placeholder-val="{{true}}"><span class="k" id="why-off" style="margin-right:auto">Tick both warnings to schedule.</span></sc-if>
           <a href="SendReadiness.dc.html" class="btn" style="min-height:44px">Back</a>
-          <a href="SendReadinessStates.dc.html" class="btn pri" style="min-height:44px;padding:0 20px;font-size:14px">Schedule send</a>
+          <sc-if value="{{ready}}" hint-placeholder-val="{{false}}"><a href="SendReadinessStates.dc.html" class="btn pri" style="min-height:44px;padding:0 20px;font-size:14px">Schedule send</a></sc-if>
+          <sc-if value="{{notReady}}" hint-placeholder-val="{{true}}"><button type="button" class="btn pri" aria-disabled="true" aria-describedby="why-off" style="min-height:44px;padding:0 20px;font-size:14px">Schedule send</button></sc-if>
         </div>
       </div>
     </section>
-  </div>
+  </main>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":746}}'>
 class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { ack1: false, ack2: false };
+  }
   renderVals() {
-    return {};
+    var self = this;
+    var ready = this.state.ack1 && this.state.ack2;
+    return {
+      ack1: this.state.ack1,
+      ack2: this.state.ack2,
+      toggle1: function () { self.setState({ ack1: !self.state.ack1 }); },
+      toggle2: function () { self.setState({ ack2: !self.state.ack2 }); },
+      ready: ready,
+      notReady: !ready
+    };
   }
 }
 </script>

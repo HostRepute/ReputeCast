@@ -48,7 +48,7 @@ func TestEvaluateMatchesTheSampleRequest(t *testing.T) {
 	want := []string{
 		"Audience of 47,912 is at least 10,000",
 		"Route includes Postal, which is warming up (day 9 of 21)",
-		"Daniel Park doesn't hold campaigns:send · Content Writer",
+		"Daniel Park can't send it · Content Writer",
 	}
 	if len(rules) != len(want) {
 		t.Fatalf("rules: %+v", rules)

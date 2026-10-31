@@ -1,0 +1,281 @@
+/*
+ * Sending providers › Traffic rules (ProvidersTrafficRules): classes
+ * specific to the board, copied value for value and prefixed `tr-` so they
+ * never collide with the shared vocabulary in app.css.
+ */
+@layer components {
+  /* Two columns: the rules, then how they work (.cpanel). */
+  .tr-cols {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .tr-main {
+    flex: 2 1 600px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .tr-aside {
+    flex: 1 1 360px;
+    max-width: 460px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .tr-ro {
+    margin: 0 0 12px;
+  }
+
+  /* A card's heading (.sech). */
+  .tr-sech {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px 12px;
+    flex-wrap: wrap;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--line-2);
+  }
+
+  /* A threshold: heading, then one line per level (.rule, .rule-l). */
+  .tr-rule {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 20px;
+  }
+  .tr-rule + .tr-rule {
+    border-top: 1px solid var(--line-2);
+  }
+  .tr-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+  .in.tr-pct {
+    width: 72px;
+    min-width: 0;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .in.tr-win {
+    width: auto;
+    min-width: 0;
+  }
+  .tr-arr {
+    color: #5b6472;
+  }
+  .tr-fns {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--line-2);
+  }
+  .tr-fn {
+    margin: 0;
+    font-size: 12px;
+    color: #5b6472;
+    font-weight: 500;
+    line-height: 1.45;
+  }
+
+  /* A reply rule: its switch, what it does, Remove (.rrule). */
+  .tr-rrule {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 4px 14px;
+    align-items: start;
+    margin: 0;
+    padding: 12px 20px;
+    border-top: 1px solid var(--line-2);
+  }
+  .tr-rrule:first-of-type {
+    border-top: 0;
+  }
+  .tr-swl {
+    min-height: 24px;
+    padding-top: 1px;
+  }
+  .tr-code {
+    font-size: 12.5px;
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: var(--ground-3);
+    border: 1px solid var(--line);
+  }
+
+  /* Add rule (.addf). */
+  .tr-addf {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px 20px 16px;
+    border-top: 1px solid var(--line-2);
+    background: var(--ground-2);
+    border-radius: 0 0 10px 10px;
+  }
+  .tr-addgrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 12px;
+  }
+
+  /* The canary's settings (.fs, .cgrid, .ggrid, .gatef). */
+  .tr-fs {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+  .tr-fs legend {
+    padding: 0;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .tr-cgrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px 16px;
+    align-items: end;
+  }
+  .tr-ggrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px 16px;
+  }
+  .tr-gate {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--ground-2);
+    font-size: 13px;
+  }
+  .tr-gi {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: none;
+    color: var(--ink-3);
+  }
+
+  /* After the send: a switch with its words (.swrow). */
+  .tr-swrow {
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .tr-switch {
+    flex-direction: row-reverse;
+    justify-content: space-between;
+  }
+
+  /* The side panel. */
+  .tr-how {
+    margin: 0;
+    padding-left: 18px;
+    list-style: decimal;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .tr-lg {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+  }
+  .tr-ra {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+  .tr-ra + .tr-ra {
+    border-top: 1px solid var(--line-2);
+  }
+  .tr-ra-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  @media (max-width: 1100px) {
+    .tr-ggrid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .tr-aside {
+      max-width: none;
+    }
+  }
+  @media (max-width: 767px) {
+    .tr-aside {
+      flex: 1 1 100%;
+    }
+    .tr-cgrid,
+    .tr-ggrid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    /* The canary's triggers and its seeds choice stand alone: on phones
+       each row is at least 44 px tall, and its label fills the row beside
+       the box, so all of it is one target. */
+    .tr-fs .chk,
+    .tr-cgrid .chk {
+      min-height: 44px;
+      align-items: center;
+    }
+    .tr-fs .chk input,
+    .tr-cgrid .chk input {
+      margin-top: 0;
+    }
+    .tr-fs .chk label,
+    .tr-cgrid .chk label {
+      flex: 1;
+      align-self: stretch;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .tr-rule,
+    .tr-sech,
+    .tr-addf {
+      padding-left: 14px;
+      padding-right: 14px;
+    }
+    .tr-rrule {
+      grid-template-columns: auto minmax(0, 1fr);
+      padding: 12px;
+    }
+    .tr-rrule .btn {
+      grid-column: 2;
+      justify-self: start;
+      min-height: 44px;
+    }
+    .tr-swl {
+      min-height: 44px;
+      min-width: 44px;
+      justify-content: center;
+    }
+    .tr-ra-link {
+      min-height: 44px;
+    }
+  }
+}

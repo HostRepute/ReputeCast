@@ -151,6 +151,6 @@ export default translate(mt, {
   savedSyncFailed: 'Đã lưu {tier}; Stripe không phản hồi',
   errName: 'Hãy đặt tên cho gói.',
   errPrice: 'Hãy đặt giá theo tháng hoặc theo năm cho gói.',
-  readOnly: 'Thay đổi gói và ưu đãi cần quyền {permission}. Hãy hỏi {helpers}.',
-  readOnlyNoHelpers: 'Thay đổi gói và ưu đãi cần quyền {permission}.',
+  readOnly: 'Vai trò của bạn không thể thay đổi gói và ưu đãi. Hãy hỏi {helpers}.',
+  readOnlyNoHelpers: 'Vai trò của bạn không thể thay đổi gói và ưu đãi.',
 })

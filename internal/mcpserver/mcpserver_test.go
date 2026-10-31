@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 
@@ -76,12 +77,26 @@ func TestMCPServer(t *testing.T) {
 		t.Fatalf("report: %v %s", err, text(res))
 	}
 	var report struct {
-		Sent              int64
-		DeliveredPct      float64          `json:"delivered_pct"`
-		BySendingProvider []map[string]any `json:"by_sending_provider"`
+		Sent                    int64
+		DeliveredPct            float64          `json:"delivered_pct"`
+		BySendingProvider       []map[string]any `json:"by_sending_provider"`
+		ComplaintsWhereReported *float64         `json:"complaint_pct_where_reported"`
+		NotReportedBy           []string         `json:"complaints_not_reported_by"`
+		ByMailboxProvider       []map[string]any `json:"by_mailbox_provider"`
 	}
 	if err := json.Unmarshal([]byte(text(res)), &report); err != nil || report.Sent != 47980 || report.DeliveredPct != 99.1 || len(report.BySendingProvider) != 2 {
 		t.Fatalf("report body: %+v %v %s", report, err, text(res))
+	}
+	// Complaints only where they are reported (review F-2): the board's
+	// 0.09%, and Gmail's and iCloud's rows say n/a, never 0.
+	if report.ComplaintsWhereReported == nil || *report.ComplaintsWhereReported != 0.09 || !slices.Equal(report.NotReportedBy, []string{"Gmail", "iCloud"}) {
+		t.Fatalf("complaints where reported: %v, not reported by %v", report.ComplaintsWhereReported, report.NotReportedBy)
+	}
+	for _, b := range report.ByMailboxProvider {
+		_, rate := b["complaint_pct"].(float64)
+		if slices.Contains(report.NotReportedBy, b["mailbox_provider"].(string)) == rate {
+			t.Fatalf("%v's complaint rate: %v", b["mailbox_provider"], b["complaint_pct"])
+		}
 	}
 
 	// A tool the agent lacks the permission for is denied, audited and proposed.

@@ -1,0 +1,254 @@
+/* Settings › Sending rules (SettingsSendingRules, SettingsSendingRulesPhone). */
+@layer components {
+  .sr-skel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+  }
+  .sr-scroll {
+    overflow-x: auto;
+    position: relative;
+  }
+  .sr-tab {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .sr-tab th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--ink-3);
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .sr-tab td {
+    padding: 12px;
+    border-bottom: 1px solid var(--line-2);
+    vertical-align: middle;
+  }
+  .sr-tab tr:last-child td {
+    border-bottom: 0;
+  }
+  .sr-tab td.sr-rn {
+    min-width: 220px;
+  }
+  .sr-tab select {
+    width: 100%;
+    min-width: 110px;
+  }
+  .sr-tab td.sr-sc select {
+    min-width: 140px;
+  }
+  .sr-stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    min-height: 36px;
+  }
+  .sr-tab .sr-lt {
+    min-width: 150px;
+  }
+  .sr-foot {
+    border-top: 1px solid var(--line-2);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  /* Up to 900 px the table becomes one card per rule. */
+  @media (max-width: 900px) {
+    .sr-tab thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+    .sr-tab,
+    .sr-tab tbody {
+      display: block;
+      width: auto;
+    }
+    .sr-tab tr {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+      grid-template-areas:
+        'rn rn lt ed'
+        'sev sc st st';
+      gap: 10px 14px;
+      padding: 14px 16px;
+      border-top: 1px solid var(--line-2);
+      align-items: start;
+    }
+    .sr-tab tr:first-child {
+      border-top: 0;
+    }
+    .sr-tab td {
+      display: block;
+      border: 0 !important;
+      padding: 0;
+      min-width: 0;
+    }
+    .sr-tab td.sr-rn {
+      grid-area: rn;
+      min-width: 0;
+    }
+    .sr-tab td.sr-sev {
+      grid-area: sev;
+    }
+    .sr-tab td.sr-sc {
+      grid-area: sc;
+    }
+    .sr-tab td.sr-st {
+      grid-area: st;
+    }
+    .sr-tab td.sr-lt {
+      grid-area: lt;
+      min-width: 0;
+    }
+    .sr-tab td.sr-ed {
+      grid-area: ed;
+    }
+    .sr-tab td[data-label]::before {
+      content: attr(data-label);
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      margin-bottom: 4px;
+    }
+  }
+  @media (max-width: 767px) {
+    .sr-tab tr {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-areas:
+        'rn rn'
+        'sev sc'
+        'st st'
+        'lt ed';
+    }
+    .sr-tab td.sr-ed {
+      align-self: end;
+      justify-self: end;
+    }
+    .sr-stat {
+      min-height: 44px;
+    }
+  }
+  .sr-cols {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 767px) {
+    .sr-cols {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    /* 44 px targets on phones, as SettingsSendingRulesPhone draws them. */
+    .sr-page .btn,
+    .sr-page select,
+    .sr-page input:not([type='checkbox']):not([type='radio']),
+    .sr-page .sr-stat {
+      min-height: 44px;
+    }
+  }
+  .sr-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 0;
+    border: 0;
+    min-width: 0;
+  }
+  .sr-fs {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .sr-fs legend {
+    padding: 0;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .sr-cond {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+    align-items: end;
+  }
+  .sr-optrow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  @media (max-width: 767px) {
+    .sr-cond,
+    .sr-optrow {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .sr-prev {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--ground-3);
+  }
+  .sr-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .sr-defaults {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .sr-trow {
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .sr-trow.col {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .sr-sunset {
+    margin-top: -6px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .sr-mult {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sr-mult input {
+    width: 88px;
+  }
+  .sr-save {
+    padding-top: 14px;
+    border-top: 1px solid var(--line-2);
+  }
+}

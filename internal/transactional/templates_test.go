@@ -307,7 +307,7 @@ func TestTemplatePermissions(t *testing.T) {
 	daniel.SignInDemo("daniel@acme.io")
 	var dt ttemplate
 	daniel.Do("GET", base+"/templates/trial-ending", nil).MustStatus(t, 200).JSON(t, &dt)
-	if !dt.Access.CanEdit || dt.Access.CanPublish || !strings.Contains(dt.Access.PublishReason, "transactional:publish") || !strings.Contains(dt.Access.PublishReason, "Your draft is saved") {
+	if !dt.Access.CanEdit || dt.Access.CanPublish || !strings.HasPrefix(dt.Access.PublishReason, "Your role can't publish templates. Ask ") || !strings.HasSuffix(dt.Access.PublishReason, "Your draft is saved.") {
 		t.Fatalf("daniel access: %+v", dt.Access)
 	}
 	daniel.Do("PUT", base+"/templates/trial-ending/draft", map[string]any{"baseRevision": dt.DraftRevision, "subject": "Your trial ends soon"}).MustStatus(t, 200)
@@ -322,7 +322,7 @@ func TestTemplatePermissions(t *testing.T) {
 	aisha.SignInDemo("aisha@acme.io")
 	var at ttemplate
 	aisha.Do("GET", base+"/templates/trial-ending", nil).MustStatus(t, 200).JSON(t, &at)
-	if at.Access.CanEdit || !strings.Contains(at.Access.EditReason, "transactional:edit") {
+	if at.Access.CanEdit || !strings.HasPrefix(at.Access.EditReason, "You can open every tab and render with test data. Your role can't edit templates.") {
 		t.Fatalf("aisha access: %+v", at.Access)
 	}
 	aisha.Do("POST", base+"/templates/trial-ending/preview", map[string]any{}).MustStatus(t, 200)
@@ -367,6 +367,7 @@ func TestCategoriesAndSettings(t *testing.T) {
 		AlertFailed          int
 		AlertMedianSeconds   int
 		CanEdit              bool
+		Reason               string
 	}
 	c.Do("GET", base+"/settings", nil).MustStatus(t, 200).JSON(t, &st)
 	if !st.LinkContacts || st.ContentRetentionDays != 30 || st.AlertBounceRate != 2 || st.AlertFailed != 10 || st.AlertMedianSeconds != 30 || !st.CanEdit {
@@ -394,12 +395,12 @@ func TestCategoriesAndSettings(t *testing.T) {
 		t.Fatalf("category audit: %v", got)
 	}
 
-	// Viewers read settings, read-only.
+	// Viewers read settings, read-only, and why in words, never a key.
 	v := env.Client()
 	v.SignInDemo("aisha@acme.io")
 	v.Do("GET", base+"/settings", nil).MustStatus(t, 200).JSON(t, &st)
-	if st.CanEdit {
-		t.Fatal("viewer can edit settings")
+	if st.CanEdit || !strings.HasPrefix(st.Reason, "Your role can't change Transactional settings.") {
+		t.Fatalf("viewer settings: %+v", st)
 	}
 	v.Do("PUT", base+"/settings", in).MustStatus(t, 403)
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/apptest"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/languages"
+	"github.com/hostrepute/reputecast/internal/readiness/readinesstest"
 )
 
 const ws = "/workspaces/acme-newsletter"
@@ -186,12 +187,29 @@ func TestFinalizeOnSave(t *testing.T) {
 		Version                  int
 	}
 	linh.Do("GET", ws+"/campaigns/"+id, nil).MustStatus(t, 200).JSON(t, &c)
-	html := `<!doctype html><html><body><div><table><tr><td>Hi</td></tr></table><table><tr><th>Plan</th></tr></table></div></body></html>`
+	// The server stores its own compile of the MJML (review 2026-10, CO-3),
+	// not a stale one sent along, and finalizes it: the email's language and
+	// direction on <html>, presentation roles on layout tables, and none on
+	// a data table (it has th cells).
+	mj := strings.Replace(c.MJML, "</mj-body>", `<mj-section><mj-column><mj-table><tr><th>Plan</th></tr><tr><td>Pro</td></tr></mj-table></mj-column></mj-section></mj-body>`, 1)
+	stale := `<!doctype html><html><body><div><table><tr><td>Hi</td></tr></table></div></body></html>`
 	var saved struct{ HTML string }
-	linh.Do("PUT", ws+"/campaigns/"+id+"/content", map[string]any{"baseVersion": c.Version, "subject": c.Subject, "preheader": c.Preheader, "mjml": c.MJML, "html": html}).
+	linh.Do("PUT", ws+"/campaigns/"+id+"/content", map[string]any{"baseVersion": c.Version, "subject": c.Subject, "preheader": c.Preheader, "mjml": mj, "html": stale}).
 		MustStatus(t, 200).JSON(t, &saved)
-	if !strings.Contains(saved.HTML, `<html lang="en" dir="ltr">`) || !strings.Contains(saved.HTML, `<table role="presentation"><tr><td>Hi`) || strings.Contains(saved.HTML, `role="presentation"><tr><th>`) {
-		t.Fatalf("stored HTML: %s", saved.HTML)
+	h := saved.HTML
+	tagAt := func(i int) string {
+		if i < 0 {
+			return ""
+		}
+		return h[i : i+strings.Index(h[i:], ">")+1]
+	}
+	open := tagAt(strings.Index(h, "<html"))
+	plan := strings.Index(h, ">Plan</th>")
+	if !strings.Contains(open, `lang="en"`) || !strings.Contains(open, `dir="ltr"`) || strings.Contains(h, "<td>Hi") || !strings.Contains(h, `role="presentation"`) || plan < 0 {
+		t.Fatalf("stored HTML: %s", h)
+	}
+	if data := tagAt(strings.LastIndex(h[:plan], "<table")); strings.Contains(data, `role="presentation"`) {
+		t.Fatalf("data table: %s", data)
 	}
 }
 
@@ -226,7 +244,7 @@ func TestReadinessGroupAndBlock(t *testing.T) {
 	id := campaignID(t, linh, "Weekly Digest #143")
 
 	var run readinessRun
-	linh.Do("POST", ws+"/campaigns/"+id+"/readiness", nil).MustStatus(t, 200).JSON(t, &run)
+	readinesstest.Post(t, env, linh, ws+"/campaigns/"+id+"/readiness").MustStatus(t, 200).JSON(t, &run)
 	got := strings.Join(run.group("accessibility"), ", ")
 	if !strings.HasPrefix(got, "warn accessibility.alt_text") || !strings.Contains(got, "warn accessibility.contrast") || !strings.Contains(got, "warn accessibility.moderate") ||
 		!strings.Contains(got, "pass accessibility.lang_dir") || !strings.Contains(got, "pass accessibility.layout_tables") {
@@ -243,7 +261,7 @@ func TestReadinessGroupAndBlock(t *testing.T) {
 
 	// Block: the serious rows block, the verdict turns Blocked and says why.
 	setPolicy(t, linh, "block", 12)
-	linh.Do("POST", ws+"/campaigns/"+id+"/readiness", nil).MustStatus(t, 200).JSON(t, &run)
+	readinesstest.Post(t, env, linh, ws+"/campaigns/"+id+"/readiness").MustStatus(t, 200).JSON(t, &run)
 	if run.Verdict != "blocked" || run.Counts.Blocks != 2 {
 		t.Fatalf("block: %s %+v", run.Verdict, run.Counts)
 	}
@@ -267,7 +285,7 @@ func TestReadinessFixes(t *testing.T) {
 	aisha.SignInDemo("aisha@acme.io")
 	id := campaignID(t, linh, "Weekly Digest #143")
 	fix := func(c *apptest.Client, action string, params map[string]string) *apptest.Response {
-		return c.Do("POST", ws+"/campaigns/"+id+"/readiness/fixes", map[string]any{"fixes": []map[string]any{{"action": action, "params": params}}})
+		return readinesstest.Fix(t, env, c, ws+"/campaigns/"+id+"/readiness/fixes", map[string]any{"fixes": []map[string]any{{"action": action, "params": params}}})
 	}
 	aisha.Do("POST", ws+"/campaigns/"+id+"/readiness/fixes", map[string]any{"fixes": []map[string]any{{"action": "accessibility_one_click"}}}).MustStatus(t, 403)
 
@@ -490,7 +508,7 @@ func TestLanguageVersions(t *testing.T) {
 		Applied []string
 		Run     *readinessRun
 	}
-	linh.Do("POST", ws+"/campaigns/"+id+"/readiness/fixes", map[string]any{"fixes": []map[string]any{{"action": "accessibility_one_click"}}}).MustStatus(t, 200).JSON(t, &out)
+	readinesstest.Fix(t, env, linh, ws+"/campaigns/"+id+"/readiness/fixes", map[string]any{"fixes": []map[string]any{{"action": "accessibility_one_click"}}}).MustStatus(t, 200).JSON(t, &out)
 	if mj, _ := stored(); strings.Count(mj, "<h2") < 2 || strings.Contains(mj, "<h3") {
 		t.Fatalf("the Spanish card titles stay Heading 3: %s", mj)
 	}

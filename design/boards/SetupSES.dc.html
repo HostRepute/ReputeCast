@@ -81,6 +81,19 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
   .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
 }
+/* review: selected option, event path, provisioning list */
+label.opt:has(input:checked){border-color:#0F766E;background:#F0FDFA}
+label.opt .badge{vertical-align:1px}
+.row .badge{flex:none}
+label.opt input{flex:none}
+@media (max-width:767px){
+  .wiz .btn,header .btn{min-height:44px}
+  .wiz .in{height:44px}
+  .wiz main [style*="minmax(300px"],.wiz main [style*="minmax(280px"]{grid-template-columns:1fr!important}
+  li.row{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:10px;row-gap:2px;align-items:start;padding:10px 12px}
+  li.row > .k{grid-column:2;margin-left:0!important}
+  #cont-why{text-align:left!important}
+}
 </style>
 </helmet>
 <div style="min-height:100vh;display:flex;flex-direction:column">
@@ -98,7 +111,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   <div class="wiz" style="display:flex;flex-wrap:wrap;gap:24px;padding:28px;max-width:1300px;margin:0 auto;width:100%;box-sizing:border-box;align-items:flex-start">
     <nav class="card wizsteps" aria-label="Setup steps" style="flex:1 1 220px;max-width:250px;padding:14px 16px;display:flex;flex-direction:column">
       <div class="step done"><span class="num">✓</span><div><div style="font-weight:600">Provider</div><div class="k">Amazon SES</div></div></div>
-      <div class="step cur"><span class="num">2</span><div><div style="font-weight:600">Connection</div><div class="k">AWS access, region, provisioning</div></div></div>
+      <div class="step cur"><span class="num">2</span><div><div style="font-weight:600">Connection</div><div class="k">AWS access, region, events</div></div></div>
       <div class="step"><span class="num">3</span><div><div style="font-weight:600">Domain verification</div><div class="k">DKIM, MAIL FROM, SPF, DMARC</div></div></div>
       <div class="step"><span class="num">4</span><div><div style="font-weight:600">Test send</div></div></div>
       <div class="step"><span class="num">5</span><div><div style="font-weight:600">Streams</div></div></div>
@@ -108,45 +121,66 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
     <main style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:18px">
       <div style="display:flex;flex-direction:column;gap:6px">
         <h2 style="margin:0;font-size:24px;font-weight:700;letter-spacing:-.02em">Connect your AWS account</h2>
-        <span style="color:#4B5563">ReputeCast needs permission to send through SES, create SNS topics for events and manage configuration sets. Nothing else.</span>
+        <span style="color:#4B5563">ReputeCast needs permission to send through SES, create the event topic or queue, and manage configuration sets and this workspace's SES tenant. Nothing else.</span>
+        <span class="k">Most setups take 10–15 minutes; Amazon SES takes longer when ReputeCast doesn't run on AWS, and a new AWS account can wait up to 24 hours for production access.</span>
       </div>
 
-      <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
-        <h3 class="h2">1. How to grant access</h3>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px">
-          <label class="opt" style="border-color:#0F766E;background:#F0FDFA"><input type="radio" name="how" checked><span><span style="font-weight:600">CloudFormation stack (recommended)</span><br><span class="k">Opens the AWS console with a stack that creates an IAM role with the exact policy below. No long-lived keys. About 2 minutes.</span><br><a href="https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?templateURL=https://reputecast.com/cf/reputecast-ses.yaml" class="btn sm" style="margin-top:8px">Launch stack in AWS</a></span></label>
-          <label class="opt"><input type="radio" name="how"><span><span style="font-weight:600">IAM access keys</span><br><span class="k">Paste an access key id and secret for a user with the policy below. Keys are encrypted at rest and never shown again.</span><br><span style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input class="in mono" placeholder="AKIA…" aria-label="Access key id" disabled><input class="in mono" type="password" placeholder="Secret access key" aria-label="Secret access key" disabled></span></span></label>
+      <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px" aria-labelledby="s1-h">
+        <h3 class="h2" id="s1-h">1. How to grant access</h3>
+        <div style="display:flex;flex-wrap:nowrap;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:8px;background:#DBEAFE">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#1E40AF" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="flex:none;margin-top:2px"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.6M8 5.2v.1"></path></svg>
+          <p style="margin:0;font-size:13px;color:#1E40AF"><span style="font-weight:600">ReputeCast isn't running on AWS, so CloudFormation would still need keys. IAM access keys are recommended here.</span> Checked at 09:07: no EC2 or ECS instance metadata answered on this server.</p>
         </div>
-        <details style="font-size:13px"><summary style="cursor:pointer;font-weight:600">Show the IAM policy (least privilege)</summary><pre style="margin-top:8px">{ "Version": "2012-10-17", "Statement": [
+        <fieldset style="border:0;margin:0;padding:0;min-width:0">
+          <legend class="vh">How to grant access</legend>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px">
+            <label class="opt"><input type="radio" name="how" checked><span style="min-width:0"><span style="font-weight:600">IAM access keys</span> <span class="badge ok"><span class="dot"></span>Recommended here</span><br><span class="k">Create an IAM user with the policy below and paste its access key. Keys are encrypted at rest and never shown again.</span><span style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px"><input class="in mono" value="AKIA••••••••7QXP" aria-label="Access key id, saved" readonly><input class="in" value="Saved, never shown" aria-label="Secret access key" readonly></span><button type="button" class="btn sm" style="margin-top:8px">Replace keys</button></span></label>
+            <label class="opt"><input type="radio" name="how"><span style="min-width:0"><span style="font-weight:600">CloudFormation stack</span><br><span class="k">Best when ReputeCast runs on AWS (EC2, ECS): the stack creates an IAM role that ReputeCast assumes, so there are no long-lived keys.</span><br><a href="https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?templateURL=https://reputecast.com/cf/reputecast-ses.yaml" class="btn sm" style="margin-top:8px;text-decoration:none">Launch stack in AWS</a></span></label>
+          </div>
+        </fieldset>
+        <details style="font-size:13px"><summary style="cursor:pointer;font-weight:600;min-height:24px">Show the IAM policy (least privilege)</summary><pre style="margin-top:8px">{ "Version": "2012-10-17", "Statement": [
   { "Effect": "Allow", "Action": ["ses:SendEmail","ses:SendRawEmail","ses:GetAccount","ses:GetSendQuota",
-    "ses:*ConfigurationSet*","ses:*EmailIdentity*","ses:PutAccountDetails"], "Resource": "*" },
+    "ses:*ConfigurationSet*","ses:*EmailIdentity*","ses:*Tenant*","ses:*SuppressedDestination*",
+    "ses:PutAccountDetails","ses:GetDedicatedIps"], "Resource": "*" },
   { "Effect": "Allow", "Action": ["sns:CreateTopic","sns:Subscribe","sns:SetTopicAttributes"],
-    "Resource": "arn:aws:sns:*:*:reputecast-*" } ] }</pre></details>
-        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-radius:8px;background:#F0FDF4;border:1px solid #BBF7D0"><span class="badge ok"><span class="dot"></span>Connected</span><span style="font-size:13px">Role <span class="mono">arn:aws:iam::123456789012:role/ReputeCastSES</span> assumed at 09:08 · account 123456789012</span></div>
+    "Resource": "arn:aws:sns:*:*:reputecast-*" },
+  { "Effect": "Allow", "Action": ["sqs:CreateQueue","sqs:GetQueueAttributes","sqs:SetQueueAttributes",
+    "sqs:ReceiveMessage","sqs:DeleteMessage"], "Resource": "arn:aws:sqs:*:*:reputecast-*" } ] }</pre></details>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-radius:8px;background:#F0FDF4;border:1px solid #BBF7D0"><span class="badge ok"><span class="dot"></span>Connected</span><span style="font-size:13px">Access key <span class="mono">AKIA…7QXP</span> for IAM user <span class="mono">reputecast-ses</span> verified at 09:08 · account 123456789012</span></div>
       </section>
 
-      <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
-        <h3 class="h2">2. Region</h3>
+      <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px" aria-labelledby="s2-h">
+        <h3 class="h2" id="s2-h">2. Region</h3>
         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
           <label class="lbl" style="flex:1 1 280px">SES region<select class="in"><option>us-east-1 · N. Virginia · production access, quota 50,000 per day</option><option>eu-west-1 · Ireland · sandbox</option><option>us-west-2 · Oregon · sandbox</option></select></label>
           <span class="k" style="flex:1 1 280px">ReputeCast read your account in each region. Pick the one where you already have production access, or the one closest to your recipients.</span>
         </div>
       </section>
 
-      <section class="card" style="display:flex;flex-direction:column">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;flex-wrap:wrap;gap:8px"><h3 class="h2">3. Provisioning · 5 of 7 done</h3><span class="k">SNS topics and configuration sets are created for you, with retry</span></div>
-        <div class="row"><span class="badge ok">Done</span><span>Verified credentials and permissions</span><span class="k" style="margin-left:auto">09:08:12</span></div>
-        <div class="row"><span class="badge ok">Done</span><span>Read account: production access, 50,000 per 24 h, 14 per second</span><span class="k" style="margin-left:auto">09:08:13</span></div>
-        <div class="row"><span class="badge ok">Done</span><span>Created SNS topic <span class="mono">reputecast-events</span> and subscribed <span class="mono">https://reputecast.acme.io/hooks/ses/7d1a</span></span><span class="k" style="margin-left:auto">09:08:15</span></div>
-        <div class="row"><span class="badge ok">Done</span><span>Confirmed SNS subscription (handshake received)</span><span class="k" style="margin-left:auto">09:08:16</span></div>
-        <div class="row"><span class="badge ok">Done</span><span>Created configuration set <span class="mono">rc-broadcasts</span> with event destination, tracking off</span><span class="k" style="margin-left:auto">09:08:18</span></div>
-        <div class="row" style="background:#FFF5F5"><span class="badge bad">Failed</span><span>Create configuration set <span class="mono">rc-automations</span> · <span class="mono" style="color:#991B1B">AccessDenied: ses:CreateConfigurationSet</span> · the role policy was edited after the stack ran</span><div style="margin-left:auto;display:flex;gap:6px"><button class="btn sm pri">Retry</button><button class="btn sm">Fix policy</button></div></div>
-        <div class="row"><span class="spin"></span><span>Create configuration set <span class="mono">rc-system</span></span><span class="k" style="margin-left:auto">waiting</span></div>
+      <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px" aria-labelledby="s3-h">
+        <h3 class="h2" id="s3-h">3. How SES events reach ReputeCast</h3>
+        <span class="k" style="margin-top:-6px">Deliveries, bounces and complaints come from SES through SNS. Pick how they get here.</span>
+        <fieldset style="border:0;margin:0;padding:0;min-width:0">
+          <legend class="vh">How SES events reach ReputeCast</legend>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px">
+            <label class="opt"><input type="radio" name="ev" value="webhook" checked="{{isHook}}" onChange="{{pickHook}}"><span style="min-width:0"><span style="font-weight:600">Webhook</span><br><span class="k">SNS calls <span class="mono">https://reputecast.acme.io/hooks/ses/7d1a</span> · needs a public HTTPS URL</span></span></label>
+            <label class="opt"><input type="radio" name="ev" value="queue" checked="{{isQueue}}" onChange="{{pickQueue}}"><span style="min-width:0"><span style="font-weight:600">Queue</span><br><span class="k">SNS → an SQS queue ReputeCast polls every 20 s · works behind NAT and firewalls · about $0.40 per million events</span></span></label>
+          </div>
+        </fieldset>
       </section>
 
-      <section class="card" style="border-color:#FCD34D;display:flex;flex-direction:column">
+      <section class="card" style="display:flex;flex-direction:column" aria-labelledby="s4-h">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;flex-wrap:wrap;gap:8px"><h3 class="h2" id="s4-h">4. Provisioning and event check · 10 of 10 done</h3><span class="k">Created for you; each step retries on its own</span></div>
+        <ol style="list-style:none;margin:0;padding:0">
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="10">
+            <li class="row"><span class="badge ok"><span class="dot"></span>Done</span><span style="min-width:0;overflow-wrap:anywhere">{{r.t}}<sc-if value="{{r.hasMono}}" hint-placeholder-val="{{false}}"> <span class="mono">{{r.mono}}</span></sc-if><sc-if value="{{r.hasNote}}" hint-placeholder-val="{{false}}"><span class="k" style="display:block">{{r.note}}</span></sc-if></span><span class="k" style="margin-left:auto;white-space:nowrap">{{r.time}}</span></li>
+          </sc-for>
+        </ol>
+      </section>
+
+      <section class="card" style="border-color:#FCD34D;display:flex;flex-direction:column" aria-labelledby="sb-h">
         <div style="display:flex;gap:14px;align-items:flex-start;padding:16px 20px;background:#FFFBEB;border-radius:10px 10px 0 0;flex-wrap:wrap">
-          <span class="badge warn" style="height:24px"><span class="dot"></span>Sandbox detected in eu-west-1</span>
+          <span class="badge warn" style="height:24px" id="sb-h"><span class="dot"></span>Sandbox detected in eu-west-1</span>
           <span style="font-size:13px;color:#78350F;flex:1 1 320px">If you switch to eu-west-1, that region is in the SES sandbox: 200 emails per day, 1 per second, and only to verified addresses. ReputeCast can file the production-access request for you.</span>
         </div>
         <div style="padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
@@ -159,18 +193,48 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
         <div style="padding:0 20px 16px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn">Request production access for eu-west-1</button><span class="k" style="align-self:center">AWS usually answers within 24 hours. You can keep going with us-east-1 meanwhile.</span></div>
       </section>
 
-      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
-        <a href="SetupCatalog.dc.html" class="btn">Back</a>
-        <div style="display:flex;gap:10px"><button class="btn">Save and finish later</button><a href="SetupDomain.dc.html" class="btn pri" style="min-height:40px;padding:0 18px">Continue to domain verification</a></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <a href="SetupCatalog.dc.html" class="btn">Back</a>
+          <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn">Save and finish later</button><a href="SetupDomain.dc.html" class="btn pri" style="min-height:40px;padding:0 18px" aria-describedby="cont-why">Continue to domain verification</a></div>
+        </div>
+        <p class="k" id="cont-why" style="margin:0;text-align:right">Continue stays disabled until a real delivery event from SES reaches ReputeCast. It arrived at 09:08:31, so events are verified.</p>
       </div>
     </main>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2070}}'>
 class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { ev: 'webhook' };
+  }
   renderVals() {
-    return {};
+    var s = this.state;
+    var self = this;
+    var hook = s.ev === 'webhook';
+    var rows = [
+      { t: 'Verified the access key and its permissions', time: '09:08:12' },
+      { t: 'Read account: production access, 50,000 per 24 h, 14 per second', time: '09:08:13' },
+      { t: 'Created tenant', mono: 'acme-newsletter', note: 'This workspace’s own suppression list and reputation policy Standard, which pauses this tenant only', time: '09:08:14' },
+      hook ? { t: 'Created SNS topic reputecast-events and subscribed', mono: 'https://reputecast.acme.io/hooks/ses/7d1a', time: '09:08:15' }
+        : { t: 'Created SNS topic reputecast-events and an SQS queue subscribed to it:', mono: 'reputecast-events-7d1a', time: '09:08:15' },
+      hook ? { t: 'Confirmed the SNS subscription (handshake received)', time: '09:08:16' }
+        : { t: 'Limited the queue to that topic and started polling every 20 s', time: '09:08:16' },
+      { t: 'Created configuration set', mono: 'rc-broadcasts', note: 'event destination on, provider tracking off', time: '09:08:18' },
+      { t: 'Created configuration set', mono: 'rc-automations', note: 'retried once by itself after a ThrottlingException', time: '09:08:21' },
+      { t: 'Created configuration set', mono: 'rc-system', time: '09:08:22' },
+      { t: 'Sent a test to', mono: 'success@simulator.amazonses.com', note: 'the SES mailbox simulator; it doesn’t affect your bounce or complaint rates', time: '09:08:29' },
+      { t: 'Delivery event received 09:08:31 · events verified', note: hook ? 'through the webhook, 2 s after sending' : 'through the queue, on the next poll', time: '09:08:31' }
+    ];
+    return {
+      isHook: hook,
+      isQueue: !hook,
+      pickHook: function () { self.setState({ ev: 'webhook' }); },
+      pickQueue: function () { self.setState({ ev: 'queue' }); },
+      rows: rows.map(function (r) { return { t: r.t, mono: r.mono || '', hasMono: !!r.mono, note: r.note || '', hasNote: !!r.note, time: r.time }; })
+    };
   }
 }
 </script>

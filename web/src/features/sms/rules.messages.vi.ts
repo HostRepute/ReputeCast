@@ -19,7 +19,7 @@ export default translate(m, {
   errorTitle: 'Không tải được quy tắc SMS',
   retry: 'Thử lại',
   readOnlyText:
-    'Bạn có thể xem tuyến, quy tắc, ngân sách và công cụ kiểm tra tuyến. Thay đổi cần quyền providers:manage. {helpers, select, none {} other {Hãy hỏi {helpers}.}}',
+    'Bạn có thể xem tuyến, quy tắc, ngân sách và công cụ kiểm tra tuyến. Vai trò của bạn không thể thay đổi chúng. {helpers, select, none {} other {Hãy hỏi {helpers}.}}',
   // Routes.
   routesTitle: 'Tuyến',
   routesLead: 'Quốc gia được xác định từ số điện thoại, không phải từ địa chỉ của liên hệ.',
@@ -150,11 +150,11 @@ export default translate(m, {
   monthlyBudget: 'Ngân sách hằng tháng',
   setBy: '{name} đặt ngày {date}',
   alertAt: 'Cảnh báo ở',
-  alertHint: 'của ngân sách · gửi email cho mọi người có quyền providers:manage',
+  alertHint: 'của ngân sách · gửi email cho mọi người có thể quản lý nhà cung cấp',
   budgetLabel: 'Ngân sách {month}',
   budgetOf: 'trên {budget}',
   budgetNote:
-    'Ở 100%, chiến dịch không bắt đầu được và các bước SMS phải chờ đến khi người có quyền providers:manage nâng ngân sách. Giá lấy từ bảng giá của từng nhà cung cấp, hoặc giá bạn nhập.',
+    'Ở 100%, chiến dịch không bắt đầu được và các bước SMS phải chờ đến khi người có thể quản lý nhà cung cấp nâng ngân sách. Giá lấy từ bảng giá của từng nhà cung cấp, hoặc giá bạn nhập.',
   autoPause: 'Tự động tạm dừng, theo từng chiến dịch',
   failedAbove: 'Thất bại trên',
   filteredAbove: 'Bị nhà mạng lọc trên',

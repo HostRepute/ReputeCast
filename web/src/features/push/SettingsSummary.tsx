@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { $api } from '@/api/client'
 import { ButtonLink } from '@/components/ui/Button'
-import { channelIcon } from '@/features/channels/ChannelSwitch'
+import { channelIcon } from '@/features/channels/channel'
 import { useChannelSetUp } from '@/features/channels/hooks'
 import { QualityBadge } from '@/features/whatsapp/common'
 import { formatList, useT } from '@/i18n'

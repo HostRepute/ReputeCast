@@ -284,7 +284,7 @@ func (o *TransactionalOutbox) next(ctx context.Context, q *store.Queries, curren
 	if rs.Fallback != nil {
 		cands = append(cands, *rs.Fallback)
 	}
-	for _, id := range cands {
+	for i, id := range cands {
 		if id == uuid.Nil || gaveUp[id.String()] {
 			continue
 		}
@@ -296,6 +296,13 @@ func (o *TransactionalOutbox) next(ctx context.Context, q *store.Queries, curren
 			return nil, err
 		}
 		if p.DisconnectedAt != nil || !state.Available(p) {
+			continue
+		}
+		// Moving to the fallback is vetted as every move is (review GS-5):
+		// a sandboxed account or a used-up quota can't take the message.
+		// A warming provider's cap is the outbox's to apply when it sends
+		// (warmTransactional): product mail never waits for a warm-up.
+		if i > 0 && !state.Vet(p, state.Load{Messages: 1}).Allowed() {
 			continue
 		}
 		return &p, nil
@@ -508,6 +515,22 @@ func (o *TransactionalOutbox) tick(ctx context.Context, pid uuid.UUID, routes ma
 	if err != nil || len(rows) == 0 {
 		return 0, err
 	}
+	// A warming provider sends within today's cap; over it a warm provider
+	// of the route takes the message, else it still goes out, counted as
+	// over the cap: transactional mail never waits (review R3.L6b).
+	claimed := rows
+	rows, warm, err := o.warmTransactional(ctx, r.provider, rows, now)
+	if err != nil {
+		ids := make([]uuid.UUID, 0, len(claimed))
+		for _, row := range claimed {
+			ids = append(ids, row.ID)
+		}
+		_ = o.E.Q.SendingRelease(context.WithoutCancel(ctx), ids)
+		return 0, err
+	}
+	if len(rows) == 0 {
+		return 0, nil
+	}
 	type pending struct {
 		row store.TxnOutboxClaimRow
 		msg providers.Message
@@ -548,14 +571,14 @@ func (o *TransactionalOutbox) tick(ctx context.Context, pid uuid.UUID, routes ma
 		for i, p := range chunk {
 			msgs[i], xs[i] = p.msg, p.x
 		}
-		cctx, cancel := context.WithTimeout(simulator.WithNow(ctx, now), 30*time.Second)
+		cctx, cancel := o.E.callContext(ctx, now)
 		res, callErr := providers.SendWithExtras(cctx, r.transport, msgs, xs)
 		cancel()
 		if callErr == nil && len(res) != len(msgs) {
 			callErr = &providers.CallError{Op: "Send", Message: "the provider didn't answer for every message", Temporary: true}
 		}
 		o.E.recordCall(key, now, callErr)
-		if err := manage.RecordSend(ctx, o.E.Pool, r.provider, res, callErr, now); err != nil {
+		if err := manage.RecordSend(context.WithoutCancel(ctx), o.E.Pool, r.provider, res, callErr, now); err != nil {
 			o.E.log().WarnContext(ctx, "record provider call", "provider", pid, "err", err)
 		}
 		if callErr != nil {
@@ -578,6 +601,11 @@ func (o *TransactionalOutbox) tick(ctx context.Context, pid uuid.UUID, routes ma
 			p := chunk[i]
 			if rr.Err == nil {
 				results[p.row.ID] = &txResult{row: p.row, ok: true, pmid: rr.ProviderMessageID}
+				if r.transport != nil && r.transport.Capabilities().InfersDelivery {
+					// Plain SMTP reports no deliveries: the server's 250 is it
+					// (review GS-7).
+					sims = append(sims, inferredRow(p.row.WorkspaceID, nil, p.row.ID, pid, now))
+				}
 				if r.sim != nil {
 					for _, ev := range r.sim.Plan(p.msg) {
 						if (ev.Kind == "open" && !p.row.TrackOpens) || (ev.Kind == "click" && !p.row.TrackClicks) {
@@ -593,6 +621,9 @@ func (o *TransactionalOutbox) tick(ctx context.Context, pid uuid.UUID, routes ma
 	}
 	sent := 0
 	outcomes := map[uuid.UUID]*TransactionalOutcome{}
+	// Recorded even when the job is told to stop: the providers have these
+	// messages now (review GS-1).
+	ctx = context.WithoutCancel(ctx)
 	err = sending.Tx(ctx, o.E.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		for k := range outcomes {
@@ -674,6 +705,13 @@ func (o *TransactionalOutbox) tick(ctx context.Context, pid uuid.UUID, routes ma
 				return err
 			}
 			sent = len(sentIDs)
+			// Sent over a warming provider's cap: the warm-up page and the
+			// provider card say how many (R3.L6b).
+			if n := warm.overSent(sentIDs); n > 0 {
+				if err := q.WarmupAddOverCap(ctx, store.WarmupAddOverCapParams{ID: warm.w.a.PlanID, Day: warm.w.today(), N: n}); err != nil {
+					return err
+				}
+			}
 		}
 		if len(retryIDs) > 0 {
 			if err := q.SendingRetryLater(ctx, store.SendingRetryLaterParams{Ids: retryIDs, Ats: retryAt, Errors: retryErr}); err != nil {

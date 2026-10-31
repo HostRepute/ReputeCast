@@ -35,7 +35,7 @@ export const m = defineMessages('smsSuppressions', {
   laterFilteredRecent: 'filtered by carriers ({count, plural, one {once} other {# times}} in 30 days)',
   laterProvider_list: 'the provider’s own opt-out list',
   laterManual: 'manual',
-  showing: 'Showing {shown} of {total} · numbers are partly masked. Reasons other than a text opt-out can be removed with a reason; that needs subscribers:edit and is audited.',
+  showing: 'Showing {shown} of {total} · numbers are partly masked. Reasons other than a text opt-out can be removed with a reason by people who can edit contacts, and each removal is audited.',
   previous: 'Previous',
   next: 'Next',
   empty: 'No numbers on the SMS suppression list yet.',

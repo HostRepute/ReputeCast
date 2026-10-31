@@ -29,7 +29,7 @@
   "post.teamByline": "Đội ngũ {publisher}",
   "post.notWebOnly": "Chỉ bài viết chỉ trên web mới gửi thành chiến dịch được.",
   "post.sentAsCampaign": "Bài viết này đã được gửi thành chiến dịch.",
-  "post.deletePublished": "Xóa một bài viết đã xuất bản cũng gỡ bài viết khỏi trang web. Bạn cần quyền website:publish để làm việc đó.",
+  "post.deletePublished": "Xóa một bài viết đã xuất bản cũng gỡ bài viết khỏi trang web. Vai trò của bạn không gỡ xuất bản được bài viết.",
 
   "check.address.pass": "Địa chỉ còn trống",
   "check.address.block": "Địa chỉ đã được dùng",

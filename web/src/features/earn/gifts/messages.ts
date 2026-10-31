@@ -62,7 +62,7 @@ export const mg = defineMessages('earn.gifts', {
   // The gifts.
   giftsTitle: 'Gifts',
   giftsCaption: 'Everything bought on {host}. Times are the buyer’s.',
-  giftsCaptionRo: 'No row menu: changing a delivery date, resending or copying a redeem link needs <mono>earn:manage</mono>.',
+  giftsCaptionRo: 'No row menu: your role can’t change a delivery date, resend a gift or copy a redeem link.',
   search: 'Buyer, recipient or email',
   searchLabel: 'Search gifts',
   filterLabel: 'Filter gifts',
@@ -151,9 +151,9 @@ export const mg = defineMessages('earn.gifts', {
   rRefundsText: 'Made in {provider}. The redeem link stops working and a scheduled email isn’t sent.',
   // Read-only and errors.
   readOnlyTitle: 'Read-only · {name}, {role}',
-  readOnlyBoth: 'You can see gifts and their status. Changing gift options or the gift page needs <mono>earn:edit</mono>, and changing a gift needs <mono>earn:manage</mono>. Ask {helpers}.',
-  readOnlyEdit: 'You can see gifts and change them. Changing gift options or the gift page needs <mono>earn:edit</mono>. Ask {helpers}.',
-  readOnlyManage: 'Changing a gift (its delivery date, resending it, copying its redeem link) needs <mono>earn:manage</mono>. Ask {helpers}.',
+  readOnlyBoth: 'You can see gifts and their status. Your role can’t change gift options, the gift page or the gifts themselves. Ask {helpers}.',
+  readOnlyEdit: 'You can see gifts and change them. Your role can’t change gift options or the gift page. Ask {helpers}.',
+  readOnlyManage: 'Your role can’t change a gift’s delivery date, resend a gift or copy its redeem link. Ask {helpers}.',
   // Fills {helpers} in "Ask {helpers}." above when nobody can be named.
   helpersFallback: 'a workspace owner',
   errorTitle: 'Couldn’t load gifts',

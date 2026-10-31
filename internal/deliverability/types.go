@@ -172,6 +172,10 @@ type DeliverabilityProviderHealth struct {
 	Tone       string                  `json:"tone" enum:"ok,warn,bad,info,neutral"`
 	Bounce     DeliverabilityRateLimit `json:"bounce"`
 	Complaint  DeliverabilityRateLimit `json:"complaint"`
+	// NotJudged says why the rates aren't judged against the thresholds yet
+	// (not enough mail: ReputeCast counted fewer than 500 messages in 7
+	// days, the rule Send Readiness uses); the rates show, without a tone.
+	NotJudged string `json:"notJudged,omitempty"`
 	// Note is one extra fact ("Reputation dashboard", "Stream", "Thresholds").
 	Note *DeliverabilityProviderNote `json:"note,omitempty"`
 }

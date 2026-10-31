@@ -89,6 +89,7 @@ func Descriptor() providers.Descriptor {
 			Sandbox:         "detection",
 			QuotaDiscovery:  true,
 			RemovesWebhook:  true,
+			ReportsIPs:      true,
 			// Pricing, DedicatedIPs and every other text people read (the
 			// terms' note, the Adapters tab's words, the fields' labels and
 			// hints) are in messages/en.json: WithMessages fills them.

@@ -127,6 +127,41 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 
+	api.Get(h, api.Op{ID: "get-campaign-report-final-alert", Path: base + "/final-alert",
+		Summary: "Whether you asked to be emailed when the report's results are final", Tags: tags, Access: view},
+		func(ctx context.Context, in *ReportPath) (*api.Body[ReportFinalAlert], error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.FinalAlert(ctx, api.WorkspaceFrom(ctx), id)
+			return api.OK(out), err
+		})
+	api.Put(h, api.Op{ID: "set-campaign-report-final-alert", Path: base + "/final-alert",
+		Summary:     "Email me when the results are final (72 hours after the send ended)",
+		Description: "Sends one notification, in the app and by email as your notification preferences say. Only people can ask, not API keys.",
+		Tags:        tags, Access: view},
+		func(ctx context.Context, in *ReportPath) (*api.Body[ReportFinalAlert], error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.SetFinalAlert(ctx, api.WorkspaceFrom(ctx), id, true)
+			return api.OK(out), err
+		})
+	api.Delete(h, api.Op{ID: "remove-campaign-report-final-alert", Path: base + "/final-alert", Summary: "Stop the email for when the results are final",
+		Tags: tags, Access: view},
+		func(ctx context.Context, in *ReportPath) (*api.Empty, error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, err
+			}
+			if _, err := s.SetFinalAlert(ctx, api.WorkspaceFrom(ctx), id, false); err != nil {
+				return nil, err
+			}
+			return api.NoContent, nil
+		})
+
 	api.Get(h, api.Op{ID: "list-campaign-report-shares", Path: base + "/shares", Summary: "Active read-only links of a report", Tags: tags, Access: share},
 		func(ctx context.Context, in *ReportPath) (*api.Body[ReportShareList], error) {
 			id, err := in.id()

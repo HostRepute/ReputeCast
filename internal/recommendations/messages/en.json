@@ -4,7 +4,7 @@
   "rec.url": "Give the subscribe page's address, starting with https://.",
   "rec.where": "Pick where it shows: the confirmation page, emails, or both.",
   "rec.logo": "That image isn't in the library any more. Pick it again.",
-  "rec.partnerPause": "A partner is paused with its partner link, which needs grow:connect.",
+  "rec.partnerPause": "A partner is paused with its partner link. People who can manage partner links can pause it.",
   "rec.order": "The order has to list every recommendation once. Reload and try again.",
   "rec.listUnknown": "That list doesn't exist. Pick another list.",
   "code.labelRequired": "Say who the code is for. The label shows under Recommending you once they connect.",

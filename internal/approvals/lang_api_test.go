@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/readiness/readinesstest"
 )
 
 // A member who reads Vietnamese gets approvals' texts in Vietnamese:
@@ -41,7 +42,9 @@ func TestApprovalsInVietnamese(t *testing.T) {
 	var full map[string]any
 	daniel.Do("GET", ws+"/campaigns/"+nov, nil).MustStatus(t, 200).JSON(t, &full)
 	daniel.Do("PUT", ws+"/campaigns/"+nov+"/content", map[string]any{"baseVersion": full["version"], "subject": "November Product Update: faster exports and a new API",
-		"preheader": full["preheader"], "mjml": full["mjml"], "html": full["html"], "label": "subject", "source": "manual"}).MustStatus(t, 200)
+		"preheader": full["preheader"], "mjml": full["mjml"], "html": full["html"], "label": "subject", "source": "manual",
+		// The composer asked first: the editor agreed that saving cancels the approval.
+		"cancelApproval": true}).MustStatus(t, 200)
 	if r = getReview(t, daniel, nov); r.Approval.Request.Status != "invalidated" || r.Approval.Request.InvalidatedReason != "subject changed" {
 		t.Fatalf("invalidated, in English: %+v", r.Approval.Request)
 	}
@@ -70,6 +73,9 @@ func TestApprovalsInVietnamese(t *testing.T) {
 
 	// Daniel asks again (in English); Marcus reads the request's rules in Vietnamese.
 	var asked struct{ ID string }
+	// The checks run again first (the campaign changed since they ran).
+	daniel.Do("POST", ws+"/campaigns/"+nov+"/approval", map[string]any{}).MustStatus(t, 409)
+	readinesstest.Work(t, env)
 	daniel.Do("POST", ws+"/campaigns/"+nov+"/approval", map[string]any{}).MustStatus(t, 201).JSON(t, &asked)
 	var d struct {
 		Rules             []struct{ Key, Label, Short, Badge string }
@@ -79,7 +85,7 @@ func TestApprovalsInVietnamese(t *testing.T) {
 	badges := []string{}
 	for _, rule := range d.Rules {
 		badges = append(badges, rule.Badge)
-		if rule.Key == "author_lacks_send" && !strings.HasPrefix(rule.Label, "Daniel Park không có quyền campaigns:send") {
+		if rule.Key == "author_lacks_send" && !strings.HasPrefix(rule.Label, "Daniel Park chưa được gửi lần này") {
 			t.Errorf("lacks send: %q", rule.Label)
 		}
 	}

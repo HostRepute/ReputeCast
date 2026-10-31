@@ -97,7 +97,7 @@ export default translate(m, {
   spent: 'Đã chi {amount}',
   alertAt: 'Cảnh báo ở {alert}%',
   raiseBudget: 'Nâng ngân sách',
-  needsManage: 'Cần quyền providers:manage · {names}',
+  needsManage: 'Vai trò của bạn không thể nâng ngân sách. {names, select, none {} other {Hãy hỏi {names}.}}',
   // Senders.
   sendersTitle: 'Người gửi · {count}',
   sendersLead: 'Số điện thoại và ID người gửi, cùng sự chấp thuận của nhà mạng mà mỗi người gửi cần trước khi gửi được.',
@@ -145,7 +145,7 @@ export default translate(m, {
   seeTerms: 'Xem trang điều khoản bạn sẽ có',
   readOnlyTitle: '{name} · {role}',
   readOnlyText:
-    'Bạn có thể xem nhà cung cấp, người gửi, chi phí và báo cáo. Thông tin xác thực không bao giờ được hiện, và mọi thay đổi cần quyền providers:manage. {helpers, select, none {} other {Hãy hỏi {helpers}.}}',
+    'Bạn có thể xem nhà cung cấp, người gửi, chi phí và báo cáo. Thông tin xác thực không bao giờ được hiện, và vai trò của bạn không thể thay đổi gì. {helpers, select, none {} other {Hãy hỏi {helpers}.}}',
   errorTitle: 'Không tải được nhà cung cấp SMS',
   errorText: 'Việc gửi không bị ảnh hưởng: tin nhắn vẫn được gửi đi và báo nhận vẫn được lưu khi đến.',
   retry: 'Thử lại',

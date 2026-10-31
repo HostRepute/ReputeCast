@@ -50,6 +50,9 @@ type getCampaignInput struct {
 type versionsInput struct {
 	CampaignPath
 	Limit int `query:"limit" minimum:"1" maximum:"300" default:"50"`
+	// Before lists the versions older than this one (the next page).
+	Before int  `query:"before" minimum:"0" doc:"List versions older than this version number (the next page)"`
+	Named  bool `query:"named" doc:"Named versions only"`
 }
 
 // VersionPath adds a {version}.
@@ -61,6 +64,11 @@ type VersionPath struct {
 type restoreInput struct {
 	VersionPath
 	Body ComposerRestoreVersion
+}
+
+type nameVersionInput struct {
+	VersionPath
+	Body ComposerNameVersion
 }
 
 type testSendInput struct {
@@ -143,24 +151,38 @@ func RegisterComposer(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Put(h, api.Op{ID: "save-campaign-content", Path: "/workspaces/{workspace}/campaigns/{campaignId}/content", Summary: "Save the content as a new version (autosave)",
-		Description: "Fails with 409 version_conflict when someone saved a newer version since baseVersion; the problem's meta says who, when and which sections each side changed. Send force: true to keep yours on top.",
+		Description: "Fails with 409 version_conflict when someone saved a newer version since baseVersion; the problem's meta says who, when and which sections each side changed. Send force: true to keep yours on top, or stash: true to keep yours in the history under the current version (Load theirs). Saving content that is already the current version stores nothing (unchanged: true). Fails with 409 approval_would_cancel while the campaign has a pending or approved request, since the save cancels it: send cancelApproval: true once the person agreed.",
 		Tags:        tags, Access: edit, MaxBodyBytes: 16 << 20},
 		func(ctx context.Context, in *saveContentInput) (*api.Body[ComposerSavedContent], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
 			}
+			// A save sent through the API asks before it cancels an approval (CO-7).
+			in.Body.askApproval = true
 			out, err := s.SaveIn(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Language, in.Body)
 			return api.OK(out), err
 		})
-	api.Get(h, api.Op{ID: "list-campaign-versions", Path: "/workspaces/{workspace}/campaigns/{campaignId}/versions", Summary: "Version history, newest first",
-		Tags: tags, Access: view},
+	api.Get(h, api.Op{ID: "list-campaign-versions", Path: "/workspaces/{workspace}/campaigns/{campaignId}/versions", Summary: "Version history, newest first, one page at a time",
+		Description: "nextBefore, when present, is the before= of the next (older) page. named=true lists the versions people named.",
+		Tags:        tags, Access: view},
 		func(ctx context.Context, in *versionsInput) (*api.Body[ComposerVersionList], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.Versions(ctx, api.WorkspaceFrom(ctx), id, in.Limit)
+			out, err := s.Versions(ctx, api.WorkspaceFrom(ctx), id, VersionsPage{Limit: in.Limit, Before: in.Before, Named: in.Named})
+			return api.OK(out), err
+		})
+	api.Put(h, api.Op{ID: "name-campaign-version", Path: "/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}/name", Summary: "Name a version (or remove its name)",
+		Description: "Named versions are never pruned from the history.",
+		Tags:        tags, Access: edit},
+		func(ctx context.Context, in *nameVersionInput) (*api.Body[ComposerVersion], error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.NameVersion(ctx, api.WorkspaceFrom(ctx), id, in.Version, in.Body)
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-campaign-version", Path: "/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}", Summary: "One version with its content",
@@ -191,6 +213,20 @@ func RegisterComposer(h huma.API, s *Service) {
 				return nil, err
 			}
 			out, err := s.Duplicate(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "retry-campaign-blocked", Path: "/workspaces/{workspace}/campaigns/{campaignId}/retry",
+		Summary: "Draft a retry: the campaign again, to its addresses blocked for the sender's reputation",
+		Description: "Once a block for the sender's reputation or policy is fixed, the addresses it bounced (valid ones, never suppressed for it) get the campaign " +
+			"again, once each: a draft that goes out from Review & send like any campaign. Addresses suppressed or unsubscribed since are left out. A campaign has " +
+			"one retry at a time; a retry isn't retried again.",
+		Tags: tags, Access: edit, Status: 201},
+		func(ctx context.Context, in *CampaignPath) (*api.Body[ComposerCampaign], error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.CreateRetry(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "send-campaign-test", Path: "/workspaces/{workspace}/campaigns/{campaignId}/test", Summary: "Send a test email of the saved content",
@@ -241,6 +277,11 @@ func RegisterComposer(h huma.API, s *Service) {
 			for i := range out.Lint {
 				out.Lint[i].Message = out.Lint[i].In(l)
 			}
+			for i := range out.Variants {
+				for j := range out.Variants[i].Issues {
+					out.Variants[i].Issues[j] = out.Variants[i].Issues[j].In(l)
+				}
+			}
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "composer-context", Path: "/workspaces/{workspace}/composer", Summary: "Senders, lists, segments, personalization tokens, team and route for the composer",
@@ -263,6 +304,7 @@ func RegisterComposer(h huma.API, s *Service) {
 			res := mjml.CompileIn(l, in.Body.MJML)
 			return api.OK(ComposerCompiled{HTML: res.HTML, Errors: nonNilProblems(res.Errors), Warnings: mjml.LintIn(l, in.Body.MJML), SizeBytes: len(res.HTML), DurationMs: res.Duration.Milliseconds()}), nil
 		})
+	registerCollaboration(h, s, tags)
 }
 
 func nonNilProblems(p []mjml.MJMLProblem) []mjml.MJMLProblem {

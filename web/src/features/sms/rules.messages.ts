@@ -14,7 +14,7 @@ export const m = defineMessages('smsRules', {
   errorTitle: 'Couldn’t load the SMS rules',
   retry: 'Retry',
   readOnlyText:
-    'You can see routes, rules, the budget and the route tester. Changing them needs providers:manage. {helpers, select, none {} other {Ask {helpers}.}}',
+    'You can see routes, rules, the budget and the route tester. Your role can’t change them. {helpers, select, none {} other {Ask {helpers}.}}',
   // Routes.
   routesTitle: 'Routes',
   routesLead: 'Countries come from the phone number, not from the contact’s address.',
@@ -140,10 +140,10 @@ export const m = defineMessages('smsRules', {
   monthlyBudget: 'Monthly budget',
   setBy: 'Set by {name} on {date}',
   alertAt: 'Alert at',
-  alertHint: 'of the budget · emails everyone with providers:manage',
+  alertHint: 'of the budget · emails everyone who can manage providers',
   budgetLabel: '{month} budget',
   budgetOf: 'of {budget}',
-  budgetNote: 'At 100%, campaigns can’t start and SMS steps wait until someone with providers:manage raises it. Prices come from each provider’s pricing, or a price you enter.',
+  budgetNote: 'At 100%, campaigns can’t start and SMS steps wait until someone who can manage providers raises it. Prices come from each provider’s pricing, or a price you enter.',
   autoPause: 'Auto-pause, per campaign',
   failedAbove: 'Failed above',
   filteredAbove: 'Filtered by carriers above',

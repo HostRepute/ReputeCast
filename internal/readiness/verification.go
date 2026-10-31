@@ -200,11 +200,11 @@ func money2(v float64) string {
 
 // excludeRisky leaves the audience's risky addresses out: a static segment
 // of them joins the campaign's excluded segments.
-func (s *Service) excludeRisky(ctx context.Context, ws *store.Workspace, p *authz.Principal, c store.ReadinessCampaignRow) (string, error) {
+func (s *Service) excludeRisky(ctx context.Context, ws *store.Workspace, p *authz.Principal, c *store.ReadinessCampaignRow) (string, error) {
 	if s.Verification == nil {
 		return "", api.Conflict(say(ctx, "problem.noAddressChecks", nil))
 	}
-	aud, recipients, err := s.computeAudience(ctx, s.Q, ws.ID, ParseAudience(c.Audience), sunsetDays(ws.SunsetPolicy), s.now())
+	aud, recipients, err := s.computeAudience(ctx, s.Q, ws.ID, ParseAudience(c.Audience), sunsetDays(ws.SunsetPolicy), s.now(), true)
 	if err != nil {
 		return "", err
 	}
@@ -241,5 +241,6 @@ func (s *Service) excludeRisky(ctx context.Context, ws *store.Workspace, p *auth
 	if err != nil {
 		return "", err
 	}
+	c.Audience = next
 	return say(ctx, "applied.excludedRisky", A{"count": n}), nil
 }

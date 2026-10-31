@@ -167,7 +167,7 @@ func TestCheckGrantEscalation(t *testing.T) {
 
 func TestDeniedMessage(t *testing.T) {
 	got := DeniedMessage(CampaignsSend, []string{"Marcus Chen", "Linh Nguyen"})
-	want := "Sending needs the campaigns:send permission. Ask Marcus Chen or Linh Nguyen."
+	want := "Sending needs a permission you don't have. Ask Marcus Chen or Linh Nguyen."
 	if got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}

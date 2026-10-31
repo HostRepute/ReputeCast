@@ -183,7 +183,7 @@ export default translate(m, {
   restored: 'Đã khôi phục phiên bản {version}',
   close: 'Đóng',
   readOnlyText:
-    'Bạn có thể đọc tin nhắn, bản xem trước và chi phí. Chỉnh sửa cần quyền campaigns:edit; gửi cần thêm sms:send. {helpers, select, none {} other {Hãy hỏi {helpers}.}}',
+    'Bạn có thể đọc tin nhắn, bản xem trước và chi phí. Vai trò của bạn không thể sửa tin nhắn, và chỉ người có thể gửi chiến dịch SMS mới gửi được. {helpers, select, none {} other {Hãy hỏi {helpers}.}}',
   loading: 'Đang tải tin nhắn',
   errorTitle: 'Không mở được chiến dịch SMS này',
   retry: 'Thử lại',

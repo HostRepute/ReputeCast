@@ -150,7 +150,7 @@ export default translate(m, {
   connect: 'Kết nối và hiện webhook',
   connecting: 'Đang kiểm tra với Meta…',
   connectedToast: 'Đã kết nối. Tiếp theo, hãy dán webhook vào Meta.',
-  connectNeeds: 'Cần quyền {perm}. Hãy hỏi {helpers}.',
+  connectNeeds: 'Vai trò của bạn không thể kết nối tài khoản WhatsApp. Hãy hỏi {helpers}.',
 
   // Waiting for verification
   waitingTitle: 'Đang chờ yêu cầu xác minh của Meta',
@@ -215,7 +215,7 @@ export default translate(m, {
   // Read-only
   readOnlyTitle: 'Chỉ xem · {name}, {role}',
   readOnlyText:
-    'Bạn có thể xem tài khoản, mẫu và chi phí. Thông tin xác thực không bao giờ được hiện, và việc kết nối, đồng bộ hoặc ngắt kết nối cần quyền {perm}.',
+    'Bạn có thể xem tài khoản, mẫu và chi phí. Thông tin xác thực không bao giờ được hiện, và vai trò của bạn không thể kết nối, đồng bộ hay ngắt kết nối tài khoản.',
   askHelpers: 'Hãy hỏi {helpers}.',
 
   // Events

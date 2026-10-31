@@ -21,19 +21,28 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// OfferHook applies offers on the upgrade page and at checkout.
+// OfferCodeRedeemer, when the Offers hook has it, marks a single-use offer
+// code (a referral reward's) used once a subscription takes it.
+type OfferCodeRedeemer interface {
+	CodeRedeemed(ctx context.Context, tx pgx.Tx, ws *store.Workspace, code string, at time.Time) error
+}
+
+// OfferHook applies offers on the upgrade page and at checkout. reader is
+// the contact of the page's personal link (?r=), uuid.Nil without one: a
+// single-use code (a referral reward's) works only for the reader it was
+// issued to.
 type OfferHook interface {
 	// UpgradeOffer shows an offer link's offer (?offer=FALL26) on the
 	// upgrade page: its line and the price of the tier and period it
 	// applies to, or that it has ended and the normal prices.
-	UpgradeOffer(ctx context.Context, ws *store.Workspace, mode, code string, v *UpgradeView) error
+	UpgradeOffer(ctx context.Context, ws *store.Workspace, mode, code string, reader uuid.UUID, v *UpgradeView) error
 	// CheckoutCode is the provider's promotion code to apply for an offer
 	// link, when the offer is live and applies to the tier and period; ""
 	// otherwise.
-	CheckoutCode(ctx context.Context, ws *store.Workspace, mode, code string, tier uuid.UUID, period string) string
+	CheckoutCode(ctx context.Context, ws *store.Workspace, mode, code string, reader, tier uuid.UUID, period string) string
 	// PeriodFor is the period an offer link opens the page on (the one
 	// the offer applies to); "" for the page's default.
-	PeriodFor(ctx context.Context, ws *store.Workspace, code string) string
+	PeriodFor(ctx context.Context, ws *store.Workspace, code string, reader uuid.UUID) string
 }
 
 // OneTimeHook takes the payment events of one-time payments: gifts.

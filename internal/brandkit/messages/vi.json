@@ -1,0 +1,19 @@
+{
+  "problem.badColor": "Hãy dùng mã màu như #4338CA.",
+  "problem.badFallback": "Hãy chọn một phông chữ dự phòng an toàn cho email.",
+  "problem.badFontUrl": "Hãy dùng liên kết stylesheet https của phông web, kèm tên phông.",
+  "problem.badLogo": "Hình này không có trong thư viện của không gian làm việc. Hãy tải logo lên lại.",
+  "problem.oneSection": "Một khối đồng bộ là một phần: một mj-section hoặc một mj-wrapper.",
+  "problem.compile": "MJML của khối không biên dịch được: {error}",
+  "problem.needsUnsubscribe": "Chân trang cần có liên kết hủy đăng ký: mọi email chứa nó đều phải có liên kết này.",
+  "problem.notSaved": "Hãy lưu bộ nhận diện thương hiệu trước; Đầu trang và Chân trang đồng bộ được tạo từ đó.",
+  "problem.syncedName": "Hãy đặt tên cho khối đồng bộ để mọi người tìm thấy nó trong bảng khối.",
+  "problem.alreadySynced": "Phần này đã là một khối đồng bộ hoặc có chứa một khối đồng bộ. Hãy hủy liên kết trước khi lưu nó thành khối mới.",
+  "problem.holdsSynced": "Một khối đồng bộ không thể chứa một khối đồng bộ khác.",
+  "problem.keepHeaderFooter": "Đầu trang và Chân trang đồng bộ luôn được giữ: bộ nhận diện nào cũng có chúng. Hãy sửa chúng thay vì xóa.",
+  "problem.badWebsite": "Hãy nhập địa chỉ website, ví dụ acme.io.",
+  "problem.unreachable": "Không đọc được {site} ({reason}). Hãy kiểm tra địa chỉ rồi thử lại.",
+  "import.linkContrast": "{color} không được dùng cho liên kết. Màu này đạt {ratio}:1 trên nền trắng, dưới mức 4,5:1 mà chữ nhỏ cần. Liên kết dùng màu kế tiếp trên website của bạn.",
+  "import.svgLogo": "Logo trên {site} là tệp SVG, Gmail và Outlook không hiển thị được. Hãy tải lên bản PNG.",
+  "import.logoNotAdded": "Logo trên {site} chưa được thêm vào thư viện: chỉ người chỉnh sửa chiến dịch mới thêm được hình. Hãy nhờ một người trong số họ nhập logo."
+}

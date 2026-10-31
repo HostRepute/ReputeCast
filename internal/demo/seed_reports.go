@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"html"
 	"math"
 	"regexp"
 	"sort"
@@ -16,7 +15,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/abstats"
 	"github.com/hostrepute/reputecast/internal/authn"
+	"github.com/hostrepute/reputecast/internal/linkrule"
+	"github.com/hostrepute/reputecast/internal/liquid"
 )
 
 func init() { seedReports = seedReportsImpl }
@@ -30,7 +32,9 @@ func init() { seedReports = seedReportsImpl }
 // to delivery per route and, for the October Product Update, the A/B test.
 // The October Product Update reproduces the Report board.
 
-// Counter metrics of one cell, in this order.
+// Counter metrics of one cell, in this order. Opens are in three buckets
+// (review AN-10): people's (rmHuman), privacy-protected (rmPrivacy: Apple
+// Mail opening every message on delivery) and scanners' (rmMachine).
 const (
 	rmSent = iota
 	rmDelivered
@@ -40,6 +44,7 @@ const (
 	rmMachine
 	rmClicked
 	rmUnsub
+	rmPrivacy
 	rmCount
 )
 
@@ -118,6 +123,8 @@ func seedReportsImpl(ctx context.Context, s *Seeder) error {
 			if err := reportShareLink(ctx, s, c); err != nil {
 				return err
 			}
+			// Growth from the issue, once Grow and the archive are seeded.
+			s.After(reportOctoberGrowth(c))
 		} else {
 			reportShapeGeneric(c)
 		}
@@ -140,12 +147,13 @@ func seedReportsImpl(ctx context.Context, s *Seeder) error {
 			return err
 		}
 	}
+	s.reportsShaped = true
 	return nil
 }
 
 func reportLoadCells(ctx context.Context, s *Seeder, c *reportCampaignSeed, adapters map[uuid.UUID]string) error {
 	rows, err := s.Tx.Query(ctx, `SELECT provider_id, mailbox_provider, variant, sent, delivered, hard_bounced + soft_bounced, complained,
-		opened_human, opened_machine, clicked, unsubscribed FROM campaign_counters WHERE campaign_id = $1 ORDER BY provider_id, mailbox_provider, variant`, c.id)
+		opened_human, opened_privacy, opened_machine, clicked, unsubscribed FROM campaign_counters WHERE campaign_id = $1 ORDER BY provider_id, mailbox_provider, variant`, c.id)
 	if err != nil {
 		return err
 	}
@@ -153,7 +161,7 @@ func reportLoadCells(ctx context.Context, s *Seeder, c *reportCampaignSeed, adap
 	for rows.Next() {
 		cell := &reportCell{}
 		if err := rows.Scan(&cell.provider, &cell.mailbox, &cell.variant, &cell.m[rmSent], &cell.m[rmDelivered], &cell.m[rmBounced], &cell.m[rmComplained],
-			&cell.m[rmHuman], &cell.m[rmMachine], &cell.m[rmClicked], &cell.m[rmUnsub]); err != nil {
+			&cell.m[rmHuman], &cell.m[rmPrivacy], &cell.m[rmMachine], &cell.m[rmClicked], &cell.m[rmUnsub]); err != nil {
 			return err
 		}
 		cell.adapter = adapters[cell.provider]
@@ -175,9 +183,10 @@ func (c *reportCampaignSeed) total(k int) int64 {
 var reportMailboxFactor = map[int]map[string]float64{
 	rmDelivered:  {"gmail": 1.003, "outlook": 0.995, "yahoo": 0.999, "icloud": 1.004, "other": 0.997},
 	rmBounced:    {"gmail": 0.67, "outlook": 1.67, "yahoo": 1.17, "icloud": 0.5, "other": 1.33},
-	rmComplained: {"gmail": 0.75, "outlook": 1.5, "yahoo": 1.25, "icloud": 0.1, "other": 1.0},
-	rmHuman:      {"gmail": 1.083, "outlook": 0.876, "yahoo": 0.966, "icloud": 0.757, "other": 0.983},
-	rmMachine:    {"gmail": 0.495, "outlook": 1.15, "yahoo": 0.683, "icloud": 3.17, "other": 0.806},
+	rmComplained: {"gmail": 0, "outlook": 1.5, "yahoo": 1.25, "icloud": 0, "other": 1.0},
+	rmHuman:      {"gmail": 1.138, "outlook": 0.959, "yahoo": 0.993, "icloud": 0.272, "other": 1.027},
+	rmPrivacy:    {"gmail": 0.69, "outlook": 0.73, "yahoo": 0.94, "icloud": 3.67, "other": 0.95},
+	rmMachine:    {"gmail": 0.62, "outlook": 2.0, "yahoo": 0.73, "icloud": 0.27, "other": 1.23},
 	rmClicked:    {"gmail": 1.11, "outlook": 0.84, "yahoo": 0.94, "icloud": 0.81, "other": 1.02},
 	rmUnsub:      {"gmail": 0.89, "outlook": 1.27, "yahoo": 1.1, "icloud": 0.76, "other": 1.02},
 }
@@ -263,7 +272,7 @@ func reportShapeGeneric(c *reportCampaignSeed) {
 	delivered := func(cell *reportCell) int64 { return cell.m[rmDelivered] }
 	reshape(rmDelivered, sent, sent)
 	reshape(rmBounced, sent, func(cell *reportCell) int64 { return cell.m[rmSent] - cell.m[rmDelivered] })
-	for _, k := range []int{rmComplained, rmHuman, rmMachine, rmClicked, rmUnsub} {
+	for _, k := range []int{rmComplained, rmHuman, rmPrivacy, rmMachine, rmClicked, rmUnsub} {
 		reshape(k, delivered, delivered)
 	}
 	mix := reportClassMix
@@ -307,22 +316,27 @@ func (cell *reportCell) splitHardSoft() {
 // A/B test (10% sample each, the winner to the remaining 80% at 12:00).
 var (
 	octMailboxSent = map[string]int64{"gmail": 22071, "outlook": 10076, "yahoo": 4318, "icloud": 3838, "other": 7677}
-	octTotals      = map[int]int64{rmDelivered: 47548, rmBounced: 288, rmComplained: 19, rmHuman: 19590, rmMachine: 8844, rmClicked: 2996, rmUnsub: 112}
-	// Per mailbox provider, in reportMailboxes order (percent; decimals).
+	octTotals      = map[int]int64{rmDelivered: 47548, rmBounced: 288, rmComplained: 19, rmHuman: 19590, rmPrivacy: 10436, rmMachine: 1240, rmClicked: 2996, rmUnsub: 112}
+	// Per mailbox provider, in reportMailboxes order (percent of delivered;
+	// decimals). Human opens are the board's share of measurable (55.3,
+	// 47.0, 51.5, 57.0, 53.4) times the share that isn't privacy-protected.
 	octMailboxRates = map[int][]float64{
-		rmDelivered:  {99.4, 98.6, 99.0, 99.5, 98.8},
-		rmHuman:      {44.6, 36.1, 39.8, 31.2, 40.5},
-		rmMachine:    {9.2, 21.4, 12.7, 58.9, 15.0},
-		rmClicked:    {7.0, 5.3, 5.9, 5.1, 6.4},
-		rmBounced:    {0.4, 1.0, 0.7, 0.3, 0.8},
-		rmComplained: {0.03, 0.06, 0.05, 0.00, 0.04},
+		rmDelivered: {99.4, 98.6, 99.0, 99.5, 98.8},
+		rmHuman:     {46.9, 39.5, 40.9, 11.2, 42.3},
+		rmPrivacy:   {15.2, 16.0, 20.5, 80.4, 20.7},
+		rmMachine:   {1.6, 5.2, 1.9, 0.7, 3.2},
+		rmClicked:   {7.0, 5.3, 5.9, 5.1, 6.4},
+		rmBounced:   {0.4, 1.0, 0.7, 0.3, 0.8},
+		// Gmail and iCloud don't report complaints to senders (review F-2).
+		rmComplained: {0, 0.09, 0.09, 0, 0.08},
 		rmUnsub:      {0.21, 0.30, 0.26, 0.18, 0.24},
 	}
-	octDigits = map[int]int{rmDelivered: 1, rmHuman: 1, rmMachine: 1, rmClicked: 1, rmBounced: 1, rmComplained: 2, rmUnsub: 2}
+	octDigits = map[int]int{rmDelivered: 1, rmHuman: 1, rmPrivacy: 1, rmMachine: 1, rmClicked: 1, rmBounced: 1, rmComplained: 2, rmUnsub: 2}
 	// Per sending provider (SES, Postal).
 	octProviderRates = map[int][]float64{
 		rmDelivered:  {99.2, 98.6},
 		rmHuman:      {41.4, 39.6},
+		rmPrivacy:    {22.0, 21.9},
 		rmClicked:    {6.4, 5.8},
 		rmBounced:    {0.5, 0.9},
 		rmComplained: {0.04, 0.06},
@@ -340,7 +354,7 @@ var (
 	// Variant results of the samples (percent of delivered).
 	octVariantRates = map[int]map[string]float64{
 		rmHuman:   {"A": 39.8, "B": 42.6},
-		rmClicked: {"A": 5.9, "B": 6.4},
+		rmClicked: {"A": 5.6, "B": 6.7},
 	}
 	octVariantComplaints = map[string]int64{"A": 3, "B": 2}
 )
@@ -452,7 +466,7 @@ func reportShapeOctober(c *reportCampaignSeed) error {
 	delivered := func(cell *reportCell) int64 { return cell.m[rmDelivered] }
 	fit(rmDelivered, sent)
 	fit(rmBounced, sent)
-	for _, k := range []int{rmHuman, rmMachine, rmClicked, rmComplained, rmUnsub} {
+	for _, k := range []int{rmHuman, rmPrivacy, rmMachine, rmClicked, rmComplained, rmUnsub} {
 		fit(k, delivered)
 	}
 	// Bounce types: per provider, the board's type totals spread over the
@@ -591,7 +605,7 @@ func reportShapeOctober(c *reportCampaignSeed) error {
 	byDelivered := func(r, v int) float64 { return float64(split[r][v].m[rmDelivered]) }
 	splitMetric(rmDelivered, func(c *reportCell) int64 { return c.m[rmDelivered] }, func(c *reportCell, x int64) { c.m[rmDelivered] = x }, bySent)
 	splitMetric(rmBounced, func(c *reportCell) int64 { return c.m[rmBounced] }, func(c *reportCell, x int64) { c.m[rmBounced] = x }, bySent)
-	for _, k := range []int{rmHuman, rmMachine, rmClicked, rmComplained, rmUnsub} {
+	for _, k := range []int{rmHuman, rmPrivacy, rmMachine, rmClicked, rmComplained, rmUnsub} {
 		k := k
 		splitMetric(k, func(c *reportCell) int64 { return c.m[k] }, func(c *reportCell, x int64) { c.m[k] = x }, byDelivered)
 	}
@@ -646,10 +660,10 @@ func reportWriteCounters(ctx context.Context, s *Seeder, c *reportCampaignSeed) 
 			continue
 		}
 		rows = append(rows, []any{c.id, cell.provider, cell.mailbox, cell.variant, cell.m[rmSent], cell.m[rmDelivered], cell.hard, cell.soft,
-			cell.m[rmComplained], cell.m[rmHuman], cell.m[rmMachine], cell.m[rmClicked], cell.m[rmUnsub]})
+			cell.m[rmComplained], cell.m[rmHuman], cell.m[rmPrivacy], cell.m[rmMachine], cell.m[rmClicked], cell.m[rmUnsub]})
 	}
 	_, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"campaign_counters"}, []string{"campaign_id", "provider_id", "mailbox_provider", "variant", "sent", "delivered",
-		"hard_bounced", "soft_bounced", "complained", "opened_human", "opened_machine", "clicked", "unsubscribed"}, pgx.CopyFromRows(rows))
+		"hard_bounced", "soft_bounced", "complained", "opened_human", "opened_privacy", "opened_machine", "clicked", "unsubscribed"}, pgx.CopyFromRows(rows))
 	return err
 }
 
@@ -841,7 +855,8 @@ func reportCurve(h, fast, tauFast, tauSlow float64) float64 {
 // winner goes out two hours later: the second rise of the chart.
 func reportHourly(ctx context.Context, s *Seeder, c *reportCampaignSeed, ab bool) error {
 	type curve struct{ fast, tauFast, tauSlow float64 }
-	curves := map[int]curve{rmHuman: {0.578, 1.7, 20}, rmMachine: {0.78, 1.0, 14}, rmClicked: {0.72, 1.2, 12}}
+	// Privacy-protected opens come as the mail arrives.
+	curves := map[int]curve{rmHuman: {0.578, 1.7, 20}, rmPrivacy: {0.92, 0.35, 10}, rmMachine: {0.9, 0.2, 6}, rmClicked: {0.72, 1.2, 12}}
 	cum := func(k int, h float64) float64 {
 		cv := curves[k]
 		if !ab {
@@ -850,7 +865,7 @@ func reportHourly(ctx context.Context, s *Seeder, c *reportCampaignSeed, ab bool
 		return 0.2*reportCurve(h, cv.fast, cv.tauFast, cv.tauSlow) + 0.8*reportCurve(h-2, cv.fast, cv.tauFast, cv.tauSlow)/reportCurve(70, cv.fast, cv.tauFast, cv.tauSlow)
 	}
 	counts := map[int][]int64{}
-	for _, k := range []int{rmHuman, rmMachine, rmClicked} {
+	for _, k := range []int{rmHuman, rmPrivacy, rmMachine, rmClicked} {
 		w := make([]float64, 72)
 		for h := 0; h < 72; h++ {
 			w[h] = math.Max(cum(k, float64(h+1))-cum(k, float64(h)), 0)
@@ -859,61 +874,44 @@ func reportHourly(ctx context.Context, s *Seeder, c *reportCampaignSeed, ab bool
 	}
 	rows := make([][]any, 0, 72)
 	for h := 0; h < 72; h++ {
-		rows = append(rows, []any{c.id, int32(h), counts[rmHuman][h], counts[rmMachine][h], counts[rmClicked][h]})
+		rows = append(rows, []any{c.id, int32(h), counts[rmHuman][h], counts[rmPrivacy][h], counts[rmMachine][h], counts[rmClicked][h]})
 	}
 	if _, err := s.Tx.Exec(ctx, `DELETE FROM campaign_hourly WHERE campaign_id = $1`, c.id); err != nil {
 		return err
 	}
-	_, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"campaign_hourly"}, []string{"campaign_id", "hour", "opened_human", "opened_machine", "clicked"}, pgx.CopyFromRows(rows))
+	_, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"campaign_hourly"}, []string{"campaign_id", "hour", "opened_human", "opened_privacy", "opened_machine", "clicked"}, pgx.CopyFromRows(rows))
 	return err
 }
 
-var (
-	anchorRe = regexp.MustCompile(`(?is)<a\s[^>]*?href\s*=\s*["']([^"']+)["'][^>]*>(.*?)</a>`)
-	tagRe    = regexp.MustCompile(`(?s)<[^>]+>`)
-	attrRe   = regexp.MustCompile(`(?i)\b(aria-label|title|alt)\s*=\s*["']([^"']+)["']`)
-	spaceRe  = regexp.MustCompile(`\s+`)
+// The October Product Update's people per link, as on the Report board's
+// click map: 3,412 human clicks by the 2,996 people who clicked (a person
+// can click several links; a repeat click on one link counts once). By
+// address, so the composer's email and the placeholder one get the same.
+var octLinkPeople = map[string]int64{
+	"https://docs.acme.io/flags": 1297, "https://acme.io/changelog/audit-exports": 819, "https://docs.acme.io/migrate-v2": 648,
+	// The navigation row: "Header links" on the map.
+	"https://acme.io/blog": 82, "https://docs.acme.io": 68, "https://acme.io/changelog": 55,
+	// Images: "Other".
+	"https://acme.io/blog/october-product-update": 160, "https://acme.io": 106, "https://acme.io/features/feature-flags-ga": 103,
+	"https://acme.io/features/audit-log-exports": 74,
+}
+
+// octBotClicks are the clicks the bot filter left out: security scanners
+// following every link of the October Product Update on arrival.
+const octBotClicks = 1108
+
+// Per link, the people who clicked it make this many clicks, repeats
+// included; across links, people per link add up to this many times the
+// people who clicked (3,412 / 2,996).
+const (
+	repeatClicks    = 1.18
+	linksPerClicker = 1.139
 )
 
-type reportAnchor struct{ url, label string }
-
-func reportAnchors(doc string) []reportAnchor {
-	var out []reportAnchor
-	for _, m := range anchorRe.FindAllStringSubmatch(doc, -1) {
-		u := strings.TrimSpace(html.UnescapeString(m[1]))
-		if u == "" || strings.HasPrefix(u, "#") || strings.HasPrefix(strings.ToLower(u), "mailto:") {
-			continue
-		}
-		label := strings.TrimSpace(spaceRe.ReplaceAllString(html.UnescapeString(tagRe.ReplaceAllString(m[2], " ")), " "))
-		if label == "" {
-			// An image link: its aria-label, title or the image's alt text.
-			for _, src := range []string{m[0], m[2]} {
-				if a := attrRe.FindStringSubmatch(src); a != nil {
-					label = strings.TrimSpace(html.UnescapeString(a[2]))
-					break
-				}
-			}
-		}
-		out = append(out, reportAnchor{u, label})
-	}
-	return out
-}
-
-// Shares of clicks (percent) for the October Product Update's links, as on
-// the Report board's click map; other links share what is left.
-// The images are labelled by their alt text (the composer's email) or as
-// placeholders (reportEmailHTML).
-var octLinkShares = map[string]float64{
-	"read the docs": 38, "see changelog": 24, "read the guide": 19, "docs": 6,
-	"email preferences": 2.0, "view in browser": 1.8, "unsubscribe": 1.6, "blog": 1.5, "changelog": 1.4, "acme": 1.3,
-	"october product update": 1.2, "hero image": 1.2,
-	"feature flags dashboard": 1.1, "feature flags ga image": 1.1, "audit log export settings": 1.1, "audit log exports image": 1.1,
-}
-
-var footerLabel = regexp.MustCompile(`(?i)unsubscribe|preferences|view (in|online)|browser|privacy|github|^x$|twitter|linkedin|image$`)
-
 // reportLinks stores the email (when no other seeder wrote its content)
-// and the clicks per link: Σ clicks equals the campaign's clicks.
+// and the clicks per link, the links numbered as the sending engine numbers
+// them (internal/linkrule): people per link add up to about 1.14 times the
+// people who clicked, and scanners clicked each link alike.
 func reportLinks(ctx context.Context, s *Seeder, c *reportCampaignSeed, oct bool) error {
 	if strings.TrimSpace(c.html) == "" {
 		c.html = reportEmailHTML(c.name, oct)
@@ -921,63 +919,84 @@ func reportLinks(ctx context.Context, s *Seeder, c *reportCampaignSeed, oct bool
 			return err
 		}
 	}
-	anchors := reportAnchors(c.html)
-	if len(anchors) == 0 {
+	_, links := linkrule.Rewrite(liquid.ExpandBlocks(c.html), func(l linkrule.Link) string { return l.URL })
+	if len(links) == 0 {
 		return nil
 	}
-	weights := make([]float64, len(anchors))
-	body := []float64{38, 24, 19, 12, 8, 6, 5, 4, 3, 3}
-	b := 0
-	for i, a := range anchors {
-		l := strings.ToLower(a.label)
-		if v, ok := octLinkShares[l]; ok && oct {
-			weights[i] = v
-			continue
-		}
-		switch {
-		case footerLabel.MatchString(a.label):
-			weights[i] = 1.5
-		case len(a.label) <= 10 && i < 4:
-			weights[i] = 2 // header navigation
-		default:
-			if b < len(body) {
-				weights[i] = body[b]
-			} else {
-				weights[i] = 2
-			}
-			b++
+	rows := linkrule.Rows(c.html)
+	inRow := map[int]bool{}
+	for _, r := range rows {
+		for _, p := range r {
+			inRow[p] = true
 		}
 	}
-	clicks := Split(c.total(rmClicked), weights)
+	people := make([]int64, len(links))
+	if oct {
+		for i, l := range links {
+			people[i] = octLinkPeople[l.URL]
+		}
+	} else {
+		weights := make([]float64, len(links))
+		body := []float64{38, 24, 19, 12, 8, 6, 5, 4, 3, 3}
+		b := 0
+		for i, l := range links {
+			switch {
+			case inRow[i]:
+				weights[i] = 2 // a navigation row
+			case l.Label == "" || strings.HasSuffix(strings.ToLower(l.Label), "image"):
+				weights[i] = 2.5 // an image
+			case b < len(body):
+				weights[i] = body[b]
+				b++
+			default:
+				weights[i] = 2
+			}
+		}
+		people = Split(int64(math.Round(float64(c.total(rmClicked))*linksPerClicker)), weights)
+	}
+	bots := make([]int64, len(links))
+	if oct {
+		even := make([]float64, len(links))
+		for i := range even {
+			even[i] = 1
+		}
+		bots = Split(octBotClicks, even)
+	} else {
+		// About one delivered message in sixty meets a scanner that clicks
+		// every link.
+		for i := range bots {
+			bots[i] = c.total(rmDelivered) / 60
+		}
+	}
 	// Links other seeders created for the campaign (matched by address) are
 	// updated, so a link appears once.
 	existing := map[string][]uuid.UUID{}
-	rows, err := s.Tx.Query(ctx, `SELECT id, url FROM campaign_links WHERE campaign_id = $1 ORDER BY position, id`, c.id)
+	rs, err := s.Tx.Query(ctx, `SELECT id, url FROM campaign_links WHERE campaign_id = $1 ORDER BY position, id`, c.id)
 	if err != nil {
 		return err
 	}
-	for rows.Next() {
+	for rs.Next() {
 		var id uuid.UUID
 		var u string
-		if err := rows.Scan(&id, &u); err != nil {
-			rows.Close()
+		if err := rs.Scan(&id, &u); err != nil {
+			rs.Close()
 			return err
 		}
 		existing[u] = append(existing[u], id)
 	}
-	rows.Close()
-	for i, a := range anchors {
-		unique := int64(math.Round(float64(clicks[i]) * 0.86))
-		if ids := existing[a.url]; len(ids) > 0 {
-			existing[a.url] = ids[1:]
-			if _, err := s.Tx.Exec(ctx, `UPDATE campaign_links SET label = $2, position = $3, clicks = $4, unique_clicks = $5 WHERE id = $1`,
-				ids[0], a.label, i, clicks[i], unique); err != nil {
+	rs.Close()
+	for i, l := range links {
+		clicks := int64(math.Round(float64(people[i]) * repeatClicks))
+		if ids := existing[l.URL]; len(ids) > 0 {
+			existing[l.URL] = ids[1:]
+			if _, err := s.Tx.Exec(ctx, `UPDATE campaign_links SET label = $2, position = $3, clicks = $4, unique_clicks = $5, bot_clicks = $6 WHERE id = $1`,
+				ids[0], l.Label, i, clicks, people[i], bots[i]); err != nil {
 				return err
 			}
 			continue
 		}
-		if _, err := s.Tx.Exec(ctx, `INSERT INTO campaign_links (id, campaign_id, url, label, position, clicks, unique_clicks) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-			ID(), c.id, a.url, a.label, i, clicks[i], unique); err != nil {
+		if _, err := s.Tx.Exec(ctx, `INSERT INTO campaign_links (id, campaign_id, url, label, position, clicks, unique_clicks, bot_clicks) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+			ID(), c.id, l.URL, l.Label, i, clicks, people[i], bots[i]); err != nil {
 			return err
 		}
 	}
@@ -1039,9 +1058,11 @@ func reportRouteTimes(ctx context.Context, s *Seeder, c *reportCampaignSeed, seq
 }
 
 // reportOctoberABTest records how the October Product Update's subject test
-// was decided: human opens two hours after the 10% + 10% samples went out,
-// machine opens excluded, then B to the remaining 80% at 12:00. The send
-// ends when the remaining recipients are through.
+// was decided, as the sending engine keeps a decision (review AN-1): human
+// clicks two hours after the 10% + 10% samples went out (B 3.4%, A 2.6%,
+// 98% confidence; opens couldn't decide it, Apple Mail opens messages by
+// itself), then B to the remaining 80% at 12:00. The send ends when the
+// remaining recipients are through.
 func reportOctoberABTest(ctx context.Context, s *Seeder, c *reportCampaignSeed) error {
 	var raw json.RawMessage
 	if err := s.Tx.QueryRow(ctx, `SELECT coalesce(ab_test, '{}'::jsonb) FROM campaigns WHERE id = $1`, c.id).Scan(&raw); err != nil {
@@ -1057,16 +1078,23 @@ func reportOctoberABTest(ctx context.Context, s *Seeder, c *reportCampaignSeed) 
 	}
 	decided := c.started.Add(2 * time.Hour)
 	ab["winner"] = "B"
-	ab["metric"] = "human_opens"
+	ab["metric"] = "clicks"
 	ab["duration_hours"] = 2
 	ab["test_percent"] = 20
 	ab["decided_at"] = decided.UTC().Format(time.RFC3339)
-	// Recipients whose opens could be measured by then (Apple Mail
-	// prefetches excluded) and how many of them opened.
-	ab["decision"] = map[string]any{"variants": []map[string]any{
-		{"key": "A", "eligible": 2690, "conversions": 710},
-		{"key": "B", "eligible": 2690, "conversions": 785},
-	}}
+	// Each sample's deliveries by then and the people among them who had
+	// clicked; the rule is the default one (95%, at least 500 each).
+	vs := []abstats.Variant{{Key: "A", Eligible: 4752, Conversions: 124}, {Key: "B", Eligible: 4757, Conversions: 162}}
+	rule := abstats.Rule{}.Normalized()
+	res := abstats.Decide(rule, vs)
+	variants := make([]map[string]any, 0, len(vs))
+	for _, v := range vs {
+		r, _ := abstats.Rate(v.Conversions, v.Eligible)
+		variants = append(variants, map[string]any{"key": v.Key, "sent": 4798, "eligible": v.Eligible, "conversions": v.Conversions, "rate": r})
+	}
+	ab["decision"] = map[string]any{"metric": "clicks", "variants": variants, "leader": res.Leader, "runner_up": res.RunnerUp,
+		"lift": res.Lift, "p_value": res.P, "confidence": res.Confidence, "min_sample": rule.MinSample, "threshold": rule.Confidence,
+		"outcome": res.Outcome, "winner": "B", "default": "A", "hours": 2, "decided_at": decided.UTC().Format(time.RFC3339)}
 	b, err := json.Marshal(ab)
 	if err != nil {
 		return err
@@ -1092,22 +1120,39 @@ func reportOctoberABTest(ctx context.Context, s *Seeder, c *reportCampaignSeed) 
 	return err
 }
 
-// reportShareLink is the read-only link the Report board shows at the
-// bottom of the October Product Update: made by Linh two days ago, opened
-// a few times since. The token is sealed like the app seals it.
+// reportShareLink is the read-only links the Report board shows at the
+// bottom of the October Product Update: made by Linh two days ago and
+// Marcus yesterday, opened a few times since. The tokens are sealed like
+// the app seals them.
 func reportShareLink(ctx context.Context, s *Seeder, c *reportCampaignSeed) error {
-	b := make([]byte, 16)
-	if _, err := rand.Read(b); err != nil {
-		return err
+	// The board's two active links: Linh's with the email, Marcus's with
+	// the email and the cost per provider; both expire after 30 days.
+	for _, l := range []struct {
+		who         string
+		ago         time.Duration
+		views       int
+		cost, email bool
+	}{
+		{"linh@acme.io", 46 * time.Hour, 14, false, true},
+		{"marcus@acme.io", 22 * time.Hour, 3, true, true},
+	} {
+		b := make([]byte, 16)
+		if _, err := rand.Read(b); err != nil {
+			return err
+		}
+		token := base64.RawURLEncoding.EncodeToString(b)
+		id := ID()
+		sealed, err := s.Box.SealString(token, "report_share:"+id.String()+":token")
+		if err != nil {
+			return err
+		}
+		created := s.Ago(l.ago)
+		if _, err := s.Tx.Exec(ctx, `INSERT INTO report_shares (id, campaign_id, token_hash, token_sealed, created_by, created_at, expires_at, views, last_viewed_at,
+			include_cost, include_warmup, include_email)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,false,$11)`, id, c.id, authn.HashToken(token), sealed, s.Users[l.who].ID, created, created.AddDate(0, 0, 30),
+			l.views, s.Ago(3*time.Hour), l.cost, l.email); err != nil {
+			return err
+		}
 	}
-	token := base64.RawURLEncoding.EncodeToString(b)
-	id := ID()
-	sealed, err := s.Box.SealString(token, "report_share:"+id.String()+":token")
-	if err != nil {
-		return err
-	}
-	linh := s.Users["linh@acme.io"]
-	_, err = s.Tx.Exec(ctx, `INSERT INTO report_shares (id, campaign_id, token_hash, token_sealed, created_by, created_at, views, last_viewed_at)
-		VALUES ($1,$2,$3,$4,$5,$6,14,$7)`, id, c.id, authn.HashToken(token), sealed, linh.ID, s.Ago(46*time.Hour), s.Ago(3*time.Hour))
-	return err
+	return nil
 }

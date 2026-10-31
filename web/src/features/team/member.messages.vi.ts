@@ -12,8 +12,8 @@ export default translate(m, {
   loadFailed: 'Không tải được thành viên này',
   loading: 'Đang tải thành viên',
 
-  manageNeeds: 'Quản lý nhóm cần quyền team:manage.',
-  manageNeedsAsk: 'Quản lý nhóm cần quyền team:manage. Hãy hỏi {helpers}.',
+  manageNeeds: 'Vai trò của bạn không thể quản lý nhóm.',
+  manageNeedsAsk: 'Vai trò của bạn không thể quản lý nhóm. Hãy hỏi {helpers}.',
   cantDeactivateSelf: 'Bạn không thể vô hiệu hóa chính mình.',
   leaveInstead: 'Thay vào đó, hãy rời không gian làm việc trong Tài khoản và bảo mật.',
 
@@ -51,7 +51,7 @@ export default translate(m, {
   needs: 'cần {permission}',
 
   keysTitle: 'Khóa API họ đã tạo',
-  keysNoPermission: 'Không có. Tạo khóa API cần quyền <mono>apikeys:manage</mono>, mà vai trò này không có.',
+  keysNoPermission: 'Không có. Vai trò này không thể tạo khóa API.',
   keysNoneYet: 'Chưa có.',
   mcpAgent: 'Tác tử MCP',
   expired: 'Đã hết hạn',
@@ -61,7 +61,7 @@ export default translate(m, {
   givenLast: '{count} · gần nhất: {campaign} ngày {date}',
   givenLastUnnamed: '{count} · gần nhất: một chiến dịch ngày {date}',
   givenNone: 'Chưa có',
-  givenCantApprove: 'Không có · không phê duyệt được (không có campaigns:approve)',
+  givenCantApprove: 'Không có · vai trò của họ không phê duyệt được chiến dịch',
   requested: 'Đã yêu cầu',
   requestedPending: '{count} đang chờ · <link>{campaign}</link>',
   requestedNonePending: '{count} · không có yêu cầu nào đang chờ',

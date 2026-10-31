@@ -99,7 +99,7 @@ function SettingsForm({ s, cats }: { s: Settings; cats: Schemas['TransactionalCa
     <>
       {ro ? (
         <Note tone="neutral">
-          <T msg={mg.readOnly} values={{ permission: <span className="mono">{'transactional:publish'}</span> }} />
+          {t(mg.readOnly)}
         </Note>
       ) : null}
       <section className="card">
@@ -193,7 +193,6 @@ function SettingsForm({ s, cats }: { s: Settings; cats: Schemas['TransactionalCa
                 <T
                   msg={mg.noAutoPause}
                   values={{
-                    permission: <span className="mono">{'transactional:view'}</span>,
                     link: (chunks) => (
                       <Link to="/w/$workspace/account" params={{ workspace: slug }} hash="notifications">
                         {chunks}

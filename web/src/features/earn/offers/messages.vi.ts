@@ -82,8 +82,8 @@ export default translate(mof, {
     '{name} đã kết thúc vào ngày {date}, đúng ngày kết thúc đã đặt. Người đọc có liên kết sẽ thấy “Ưu đãi này đã kết thúc” và giá thường; {count, plural, =1 {hội viên trả phí} other {# hội viên trả phí}} đã dùng ưu đãi vẫn giữ giá {price} cho {period, select, year {năm} other {tháng}} đầu tiên.',
   endedNoteEarly:
     '{name} đã kết thúc vào ngày {date}. Người đọc có liên kết sẽ thấy “Ưu đãi này đã kết thúc” và giá thường; các hội viên trả phí đã dùng ưu đãi vẫn giữ mức giảm giá của họ.',
-  readOnly: 'Thay đổi gói và ưu đãi cần quyền <mono>earn:edit</mono>. Hãy hỏi {helpers}.',
-  readOnlyNoHelpers: 'Thay đổi gói và ưu đãi cần quyền <mono>earn:edit</mono>. Hãy hỏi chủ sở hữu không gian làm việc.',
+  readOnly: 'Vai trò của bạn không thể thay đổi gói và ưu đãi. Hãy hỏi {helpers}.',
+  readOnlyNoHelpers: 'Vai trò của bạn không thể thay đổi gói và ưu đãi. Hãy hỏi chủ sở hữu không gian làm việc.',
   // The editor.
   crumbEarn: 'Kiếm tiền',
   crumbPlans: 'Gói và ưu đãi',
@@ -197,7 +197,7 @@ export default translate(mof, {
   codesTitle: '{name}',
   codesSub: 'Đã cấp {issued}, đã dùng {redeemed}',
   codesNote:
-    'Mục Tăng trưởng tạo một mã dùng một lần mỗi khi một người giới thiệu đạt 10 lượt giới thiệu. Mã chỉ áp dụng cho {tiers}; thay đổi ưu đãi này cần quyền <mono>earn:edit</mono>.',
+    'Mục Tăng trưởng tạo một mã dùng một lần mỗi khi một người giới thiệu đạt 10 lượt giới thiệu. Mã chỉ áp dụng cho {tiers}; thay đổi ưu đãi này cần người có thể sửa gói và ưu đãi.',
   cCode: 'Mã',
   cIssuedTo: 'Cấp cho',
   cIssued: 'Ngày cấp',

@@ -52,6 +52,9 @@ type Report struct {
 	ARFRecipient string
 	// Mailbox is the address the report was delivered to (the bounce mailbox).
 	Mailbox string
+	// texts are a multipart message's text parts, read as a bounce only
+	// when no delivery-status or feedback part says what happened.
+	texts [][]byte
 }
 
 // ErrNotAReport means the message is neither a DSN, an ARF report nor a
@@ -79,6 +82,16 @@ func Parse(raw []byte) (*Report, error) {
 		if err := rep.walk(msg.Body, params["boundary"], 0); err != nil {
 			return nil, err
 		}
+		// A report's human-readable part restates its delivery-status part
+		// (a success notice, a bounce): only a message without one is read
+		// as a bounce by its text.
+		for _, t := range rep.texts {
+			if rep.Kind != "" {
+				break
+			}
+			rep.heuristic(t)
+		}
+		rep.texts = nil
 	} else {
 		body, _ := io.ReadAll(io.LimitReader(msg.Body, 4<<20))
 		rep.heuristic(body)
@@ -132,8 +145,8 @@ func (r *Report) walk(body io.Reader, boundary string, depth int) error {
 				if err := r.walk(bytes.NewReader(data), params["boundary"], depth+1); err != nil {
 					return err
 				}
-			} else if r.Kind == "" && strings.HasPrefix(ct, "text/") {
-				r.heuristic(data)
+			} else if strings.HasPrefix(ct, "text/") {
+				r.texts = append(r.texts, data)
 			}
 		}
 	}
@@ -214,7 +227,8 @@ func (r *Report) heuristic(body []byte) {
 		return
 	}
 	status := enhancedRe.FindString(text)
-	if status == "" {
+	if status == "" || status[0] == '2' {
+		// No status, or a success: not a bounce.
 		return
 	}
 	for _, m := range headerRe.FindAllStringSubmatch(text, -1) {

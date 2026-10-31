@@ -85,9 +85,9 @@ func langOf(hctx huma.Context) i18n.Lang {
 	return RequestLang(hctx.Header("Accept-Language"), nil)
 }
 
-// DeniedText explains a missing permission in a language: "Sending needs
-// the campaigns:send permission. Ask Marcus Chen or Linh Nguyen." Its
-// words are internal/authz's (authz.DeniedText).
+// DeniedText explains a missing permission in a language: "Sending needs a
+// permission you don't have. Ask Marcus Chen or Linh Nguyen." Its words are
+// internal/authz's (authz.DeniedText).
 func DeniedText(l i18n.Lang, perm authz.Permission, helpers []string) string {
 	return authz.DeniedText(l, perm, helpers)
 }

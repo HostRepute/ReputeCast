@@ -69,11 +69,12 @@ func (e *earnMore) offersSeed(ctx context.Context) error {
 		}
 	}
 	// Grow issued two referral reward codes, to Omar Haddad on 9 Oct and
-	// Kenji Watanabe on 13 Oct; neither is redeemed yet.
+	// Kenji Watanabe on 13 Oct; neither is redeemed yet. Like every code
+	// issued now, 12 characters of the code alphabet after the prefix.
 	for _, c := range []struct {
 		code, email, name string
 		at                time.Time
-	}{{"INS-OH7K2Q", "omar.haddad@gmail.com", "Omar Haddad", s.earnDay(2026, 10, 9, 18, 12)}, {"INS-KW4M9X", "kenji.w@icloud.com", "Kenji Watanabe", s.earnDay(2026, 10, 13, 8, 47)}} {
+	}{{"INS-H7K2QM8XRT4P", "omar.haddad@gmail.com", "Omar Haddad", s.earnDay(2026, 10, 9, 18, 12)}, {"INS-KW4M9XB3NFQD", "kenji.w@icloud.com", "Kenji Watanabe", s.earnDay(2026, 10, 13, 8, 47)}} {
 		var contact *uuid.UUID
 		var id uuid.UUID
 		if err := s.Tx.QueryRow(ctx, `SELECT id FROM contacts WHERE workspace_id = $1 AND email = $2`, e.ws.ID, c.email).Scan(&id); err == nil {

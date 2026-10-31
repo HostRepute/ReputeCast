@@ -22,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -672,15 +673,23 @@ func (s *Service) createRow(ctx context.Context, tx pgx.Tx, st *runState, r mapp
 	impID := st.imp.ID
 	id := uuid.Must(uuid.NewV7())
 	var got uuid.UUID
+	// The import's MX check already named the hosting of company domains:
+	// Google Workspace mail is filtered by Gmail, and so on. Other company
+	// domains wait for the mailbox sweep (internal/mailbox).
+	mbx := mailbox.FromHosting(domain, st.hosting[domain])
+	var mbxChecked *time.Time
+	if mbx.Detail != "" {
+		mbxChecked = &now
+	}
 	err := tx.QueryRow(ctx, `INSERT INTO contacts (id, workspace_id, email, first_name, last_name, company, country, timezone, language,
 			mailbox_provider, mailbox_detail, consent, consent_evidence, source, tags, attributes, role_address, import_id, tier,
-			last_open_at, last_human_open_at, last_click_at, last_activity_at, created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$20,$21,$22,$23,$22)
+			last_open_at, last_human_open_at, last_click_at, last_activity_at, created_at, updated_at, mailbox_checked_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$20,$21,$22,$23,$22,$24)
 		ON CONFLICT (workspace_id, email) DO NOTHING
 		RETURNING id`,
 		id, st.ws.ID, email, builtin["first_name"], builtin["last_name"], builtin["company"], strings.ToUpper(builtin["country"]), validTZ(builtin["timezone"]),
-		builtin["language"], emailaddr.MailboxProvider(domain), st.hosting[domain], consent, mustJSON(evidence), "import:"+st.imp.Source, tags, mustJSON(attrs),
-		role, &impID, tier, lastOpen, lastClick, now, created).Scan(&got)
+		builtin["language"], mbx.Provider, mbx.Detail, consent, mustJSON(evidence), "import:"+st.imp.Source, tags, mustJSON(attrs),
+		role, &impID, tier, lastOpen, lastClick, now, created, mbxChecked).Scan(&got)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return uuid.Nil, false, nil
 	}

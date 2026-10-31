@@ -24,7 +24,7 @@ export default translate(m, {
   blockedTitle: '{n, plural, other {# mục kiểm tra}} đang chặn việc gửi',
   blockedText: 'Hãy sửa trong trình soạn thảo hoặc trong thiết lập thông báo đẩy, rồi kiểm tra lại. Đã kiểm tra lúc {time}.',
   approvalTitle: 'Sẵn sàng, sau khi được phê duyệt',
-  approvalText: 'Mọi mục kiểm tra đều đạt. Gửi chiến dịch thông báo đẩy cần quyền {perm}, nên {helpers} sẽ phê duyệt.',
+  approvalText: 'Mọi mục kiểm tra đều đạt. Vai trò của bạn không thể gửi chiến dịch thông báo đẩy, nên {helpers} sẽ phê duyệt.',
   approvalTextRules: 'Mọi mục kiểm tra đều đạt. Chiến dịch này khớp một quy tắc phê duyệt, nên {helpers} sẽ phê duyệt.',
   pendingTitle: 'Đang chờ phê duyệt',
   pendingText: '{name} đã yêu cầu lúc {time}. {helpers} có thể phê duyệt; việc gửi bắt đầu khi họ phê duyệt, hoặc vào thời điểm đã lên lịch.',
@@ -95,9 +95,9 @@ export default translate(m, {
   imageOk: '{w} × {h}, {ratio}, {size} · được Chrome trên Windows và Android hiển thị',
   imageWarn: '{w} × {h}, {ratio}, {size} · Chrome hiển thị hình ảnh tỷ lệ 2:1, dưới 1 MB và rộng ít nhất 360 px',
   imageNone: 'Không có hình ảnh · Chrome trên Windows và Android chỉ hiện văn bản',
-  approvalOk: 'Không quy tắc nào khớp · {name} có thể gửi chiến dịch thông báo đẩy ({perm})',
+  approvalOk: 'Không quy tắc nào khớp · {name} có thể gửi chiến dịch thông báo đẩy',
   approvalOkAnon: 'Không quy tắc nào khớp',
-  approvalNeeds: '{name} có vai trò {role}: gửi cần quyền {perms}. {helpers} có thể phê duyệt.',
+  approvalNeeds: '{name} có vai trò {role}, vai trò này không thể gửi chiến dịch thông báo đẩy. {helpers} có thể phê duyệt.',
 
   // Audience card
   audienceTitle: 'Người nhận',
@@ -149,5 +149,5 @@ export default translate(m, {
   requested: 'Đã gửi yêu cầu phê duyệt',
   cancel: 'Hủy',
   blockedReason: 'Hãy sửa các mục đang chặn gửi trước.',
-  noPermission: 'Gửi cần quyền {perms}.',
+  sendAction: 'gửi chiến dịch thông báo đẩy',
 })

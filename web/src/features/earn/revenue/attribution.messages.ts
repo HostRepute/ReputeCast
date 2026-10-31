@@ -29,7 +29,7 @@ export const ma = defineMessages('earn.attribution', {
   save: 'Save',
   saved: 'Attribution saved',
   savedText: 'Recorded in the audit log.',
-  readOnly: 'Changing attribution needs <mono>payments:manage</mono>.',
+  readOnly: 'Your role can’t change attribution.',
   // The conversions log.
   logTitle: 'Conversions log',
   logAll: 'All {count, plural, one {# is} other {# are}} “{name}” at {value}, from {sender}',

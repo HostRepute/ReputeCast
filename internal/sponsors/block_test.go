@@ -5,9 +5,9 @@ import (
 	"html"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/readiness/readinesstest"
 	"github.com/hostrepute/reputecast/internal/sponsors"
 )
 
@@ -19,32 +19,23 @@ type sponsorRun struct {
 	}
 }
 
-// runReadiness runs Send Readiness now, waiting out a run in progress.
-func runReadiness(t *testing.T, c *apptest.Client, id string) sponsorRun {
+// runReadiness runs Send Readiness (the run a fix queued, or a new one).
+func runReadiness(t *testing.T, env *apptest.Env, c *apptest.Client, id string) sponsorRun {
 	t.Helper()
-	for range 20 {
-		res := c.Do("POST", ws+"/campaigns/"+id+"/readiness", nil)
-		if res.Status == 409 {
-			time.Sleep(500 * time.Millisecond)
-			continue
-		}
-		var r sponsorRun
-		res.MustStatus(t, 200).JSON(t, &r)
-		return r
-	}
-	t.Fatal("Send Readiness kept running")
-	return sponsorRun{}
+	var r sponsorRun
+	readinesstest.Post(t, env, c, ws+"/campaigns/"+id+"/readiness").MustStatus(t, 200).JSON(t, &r)
+	return r
 }
 
 // applyFix applies a Review & send fix and returns the run after it.
-func applyFix(t *testing.T, c *apptest.Client, id, action string) sponsorRun {
+func applyFix(t *testing.T, env *apptest.Env, c *apptest.Client, id, action string) sponsorRun {
 	t.Helper()
 	var out struct{ Run *sponsorRun }
-	c.Do("POST", ws+"/campaigns/"+id+"/readiness/fixes", map[string]any{"fixes": []map[string]any{{"action": action}}}).MustStatus(t, 200).JSON(t, &out)
-	if out.Run != nil {
-		return *out.Run
+	readinesstest.Fix(t, env, c, ws+"/campaigns/"+id+"/readiness/fixes", map[string]any{"fixes": []map[string]any{{"action": action}}}).MustStatus(t, 200).JSON(t, &out)
+	if out.Run == nil {
+		t.Fatal("no run after the fix")
 	}
-	return runReadiness(t, c, id)
+	return *out.Run
 }
 
 func (r sponsorRun) check(key string) (status, title string, actions []string) {
@@ -128,9 +119,11 @@ func TestSponsorBlockInComposerAndReview(t *testing.T) {
 	if !found || chk.Verdict != "blocked" {
 		t.Fatalf("composer checks: %+v", chk)
 	}
+	// It blocks the send, so it can't be dismissed (R4.U5).
+	linh.Do("POST", ws+"/campaigns/"+id+"/dismissals", map[string]any{"key": "ab12", "checkId": sponsors.IssueCreative, "reason": "wrong"}).MustStatus(t, 422)
 
 	// Review & send says the same, and that sponsored content is labelled.
-	run := runReadiness(t, linh, id)
+	run := runReadiness(t, env, linh, id)
 	if st, title, fixes := run.check("content.sponsor.creative"); st != "block" || !strings.Contains(title, "Northwind Analytics") ||
 		strings.Join(fixes, " ") != "link:/w/acme-newsletter/earn/sponsors?booking="+blk.BookingID+" apply:sponsor_remove_block" {
 		t.Errorf("readiness, waiting: %s %s %v", st, title, fixes)
@@ -145,11 +138,11 @@ func TestSponsorBlockInComposerAndReview(t *testing.T) {
 		"text": "Northwind shows which reports your team actually uses.", "button": "Try Northwind free", "link": "https://northwind-analytics.example/trial",
 		"utm": map[string]any{"source": "acme-weekly-digest", "medium": "email", "campaign": "143"}}).MustStatus(t, 200)
 	linh.Do("POST", ws+"/sponsor-bookings/"+blk.BookingID+"/creative/ready", nil).MustStatus(t, 200)
-	run = runReadiness(t, linh, id)
+	run = runReadiness(t, env, linh, id)
 	if st, _, fixes := run.check("content.sponsor.stale"); st != "block" || !strings.Contains(strings.Join(fixes, " "), "apply:sponsor_refresh_block") {
 		t.Fatalf("readiness, stale: %s %v", st, fixes)
 	}
-	run = applyFix(t, linh, id, "sponsor_refresh_block")
+	run = applyFix(t, env, linh, id, "sponsor_refresh_block")
 	for _, ch := range run.Checks {
 		if strings.HasPrefix(ch.Key, "content.sponsor") && ch.Status != "pass" {
 			t.Errorf("after the update: %+v", ch)
@@ -176,11 +169,11 @@ func TestSponsorBlockInComposerAndReview(t *testing.T) {
 	if gone.State != sponsors.BlockNone || gone.Issue != 143 || !strings.Contains(gone.MJML, `rc-omit="1"`) || !strings.Contains(gone.MJML, "No sponsor is booked for #143") {
 		t.Fatalf("canceled block: %+v", gone)
 	}
-	run = runReadiness(t, linh, id)
+	run = runReadiness(t, env, linh, id)
 	if st, _, _ := run.check("content.sponsor.stale"); st != "block" {
 		t.Errorf("readiness after the cancel: %s", st)
 	}
-	run = applyFix(t, linh, id, "sponsor_refresh_block")
+	run = applyFix(t, env, linh, id, "sponsor_refresh_block")
 	if st, title, _ := run.check("content.sponsor.none"); st != "pass" || !strings.Contains(title, "#143") {
 		t.Errorf("left out: %s %s", st, title)
 	}

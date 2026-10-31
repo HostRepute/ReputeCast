@@ -136,13 +136,13 @@ export default translate(s, {
 
   modeTitle: 'Chế độ gửi',
   autoHint: 'Mỗi số được gửi đúng giờ khi đã qua kiểm tra và phê duyệt.',
-  autoNeeds: 'Cần quyền campaigns:send để bật.',
+  autoNeeds: 'Chỉ người có thể gửi chiến dịch mới bật được.',
   draftHint: 'Mỗi số trở thành một chiến dịch bản nháp. Một người sẽ gửi nó qua Kiểm tra và gửi.',
-  draftNeeds: 'Cần quyền campaigns:edit. Không có gì tự gửi đi.',
+  draftNeeds: 'Chỉ người có thể sửa chiến dịch mới bật được. Không có gì tự gửi đi.',
   draftOnly:
-    'Để gửi tự động, bạn cần quyền campaigns:send. Hãy hỏi {helpers}. Bạn có thể bật ở chế độ bản nháp: mỗi số trở thành một bản nháp để bạn gửi qua Kiểm tra và gửi.',
-  ownerSince: 'Người phụ trách từ {date}. Các số được gửi dưới quyền của họ; nếu họ mất quyền campaigns:send, bản tin định kỳ sẽ tạm dừng.',
-  ownerNow: 'Người phụ trách. Các số được gửi dưới quyền của họ; nếu họ mất quyền campaigns:send, bản tin định kỳ sẽ tạm dừng.',
+    'Vai trò của bạn không thể bật chế độ gửi tự động. Hãy hỏi {helpers}. Bạn có thể bật ở chế độ bản nháp: mỗi số trở thành một bản nháp để bạn gửi qua Kiểm tra và gửi.',
+  ownerSince: 'Người phụ trách từ {date}. Các số được gửi dưới quyền của họ; nếu họ không còn gửi được chiến dịch, bản tin định kỳ sẽ tạm dừng.',
+  ownerNow: 'Người phụ trách. Các số được gửi dưới quyền của họ; nếu họ không còn gửi được chiến dịch, bản tin định kỳ sẽ tạm dừng.',
   noOwner: 'Ai bật bản tin này sẽ trở thành người phụ trách: các số được gửi dưới quyền của người đó.',
 
   previewTitle: 'Xem trước nguồn cấp',

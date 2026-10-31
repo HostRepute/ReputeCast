@@ -14,7 +14,7 @@ import (
 )
 
 const warmupActiveForProvider = `-- name: WarmupActiveForProvider :one
-SELECT id, provider_id, ip, start_date, days, schedule, engaged_first, slowdown_bounce, slowdown_complaint, status, status_detail, progress, created_at, guard_action, spread_mailbox, created_by, paused_at, updated_at, texts FROM warmup_plans WHERE provider_id = $1 AND status <> 'done' ORDER BY created_at DESC LIMIT 1
+SELECT id, provider_id, ip, start_date, days, schedule, engaged_first, slowdown_bounce, slowdown_complaint, status, status_detail, progress, created_at, guard_action, spread_mailbox, created_by, paused_at, updated_at, texts, started_on, evaluated_through, held_cap, healthy_streak, overflow, min_sample, overflowed, overflowed_on, over_cap, over_cap_on FROM warmup_plans WHERE provider_id = $1 AND status <> 'done' ORDER BY created_at DESC LIMIT 1
 `
 
 func (q *Queries) WarmupActiveForProvider(ctx context.Context, providerID uuid.UUID) (WarmupPlan, error) {
@@ -40,12 +40,22 @@ func (q *Queries) WarmupActiveForProvider(ctx context.Context, providerID uuid.U
 		&i.PausedAt,
 		&i.UpdatedAt,
 		&i.Texts,
+		&i.StartedOn,
+		&i.EvaluatedThrough,
+		&i.HeldCap,
+		&i.HealthyStreak,
+		&i.Overflow,
+		&i.MinSample,
+		&i.Overflowed,
+		&i.OverflowedOn,
+		&i.OverCap,
+		&i.OverCapOn,
 	)
 	return i, err
 }
 
 const warmupActivePlans = `-- name: WarmupActivePlans :many
-SELECT w.id, w.provider_id, w.ip, w.start_date, w.days, w.schedule, w.engaged_first, w.slowdown_bounce, w.slowdown_complaint, w.status, w.status_detail, w.progress, w.created_at, w.guard_action, w.spread_mailbox, w.created_by, w.paused_at, w.updated_at, w.texts, p.name AS provider_name, p.adapter, p.workspace_id
+SELECT w.id, w.provider_id, w.ip, w.start_date, w.days, w.schedule, w.engaged_first, w.slowdown_bounce, w.slowdown_complaint, w.status, w.status_detail, w.progress, w.created_at, w.guard_action, w.spread_mailbox, w.created_by, w.paused_at, w.updated_at, w.texts, w.started_on, w.evaluated_through, w.held_cap, w.healthy_streak, w.overflow, w.min_sample, w.overflowed, w.overflowed_on, w.over_cap, w.over_cap_on, p.name AS provider_name, p.adapter, p.workspace_id
 FROM warmup_plans w JOIN providers p ON p.id = w.provider_id AND p.disconnected_at IS NULL
 WHERE w.status IN ('active', 'slowed')
 `
@@ -70,6 +80,16 @@ type WarmupActivePlansRow struct {
 	PausedAt          *time.Time      `json:"pausedAt"`
 	UpdatedAt         time.Time       `json:"updatedAt"`
 	Texts             json.RawMessage `json:"texts"`
+	StartedOn         time.Time       `json:"startedOn"`
+	EvaluatedThrough  *time.Time      `json:"evaluatedThrough"`
+	HeldCap           *int64          `json:"heldCap"`
+	HealthyStreak     int32           `json:"healthyStreak"`
+	Overflow          bool            `json:"overflow"`
+	MinSample         int32           `json:"minSample"`
+	Overflowed        int64           `json:"overflowed"`
+	OverflowedOn      *time.Time      `json:"overflowedOn"`
+	OverCap           int64           `json:"overCap"`
+	OverCapOn         *time.Time      `json:"overCapOn"`
 	ProviderName      string          `json:"providerName"`
 	Adapter           string          `json:"adapter"`
 	WorkspaceID       uuid.UUID       `json:"workspaceId"`
@@ -105,6 +125,16 @@ func (q *Queries) WarmupActivePlans(ctx context.Context) ([]WarmupActivePlansRow
 			&i.PausedAt,
 			&i.UpdatedAt,
 			&i.Texts,
+			&i.StartedOn,
+			&i.EvaluatedThrough,
+			&i.HeldCap,
+			&i.HealthyStreak,
+			&i.Overflow,
+			&i.MinSample,
+			&i.Overflowed,
+			&i.OverflowedOn,
+			&i.OverCap,
+			&i.OverCapOn,
 			&i.ProviderName,
 			&i.Adapter,
 			&i.WorkspaceID,
@@ -146,6 +176,209 @@ func (q *Queries) WarmupAddEvent(ctx context.Context, arg WarmupAddEventParams) 
 		arg.Texts,
 	)
 	return err
+}
+
+const warmupAddOverCap = `-- name: WarmupAddOverCap :exec
+UPDATE warmup_plans
+SET over_cap = CASE WHEN over_cap_on = $1::date THEN over_cap + $2 ELSE $2 END, over_cap_on = $1::date
+WHERE id = $3
+`
+
+type WarmupAddOverCapParams struct {
+	Day time.Time `json:"day"`
+	N   int64     `json:"n"`
+	ID  uuid.UUID `json:"id"`
+}
+
+// Transactional messages a warming provider sent over today's cap, or while
+// its plan was paused, because no warm provider of their route could take
+// them: transactional mail never waits (review R3.L6b).
+func (q *Queries) WarmupAddOverCap(ctx context.Context, arg WarmupAddOverCapParams) error {
+	_, err := q.db.Exec(ctx, warmupAddOverCap, arg.Day, arg.N, arg.ID)
+	return err
+}
+
+const warmupAddOverflow = `-- name: WarmupAddOverflow :exec
+UPDATE warmup_plans
+SET overflowed = CASE WHEN overflowed_on = $1::date THEN overflowed + $2 ELSE $2 END, overflowed_on = $1::date
+WHERE id = $3
+`
+
+type WarmupAddOverflowParams struct {
+	Day time.Time `json:"day"`
+	N   int64     `json:"n"`
+	ID  uuid.UUID `json:"id"`
+}
+
+// Messages over today's cap that went through a warm provider (PR-8).
+func (q *Queries) WarmupAddOverflow(ctx context.Context, arg WarmupAddOverflowParams) error {
+	_, err := q.db.Exec(ctx, warmupAddOverflow, arg.Day, arg.N, arg.ID)
+	return err
+}
+
+const warmupAllowancePlan = `-- name: WarmupAllowancePlan :one
+SELECT w.id, w.provider_id, w.ip, w.start_date, w.days, w.schedule, w.engaged_first, w.slowdown_bounce, w.slowdown_complaint, w.status, w.status_detail, w.progress, w.created_at, w.guard_action, w.spread_mailbox, w.created_by, w.paused_at, w.updated_at, w.texts, w.started_on, w.evaluated_through, w.held_cap, w.healthy_streak, w.overflow, w.min_sample, w.overflowed, w.overflowed_on, w.over_cap, w.over_cap_on, ws.timezone AS workspace_timezone
+FROM warmup_plans w
+JOIN providers p ON p.id = w.provider_id
+JOIN workspaces ws ON ws.id = p.workspace_id
+WHERE w.provider_id = $1 AND w.status <> 'done'
+ORDER BY w.created_at DESC
+LIMIT 1
+`
+
+type WarmupAllowancePlanRow struct {
+	ID                uuid.UUID       `json:"id"`
+	ProviderID        uuid.UUID       `json:"providerId"`
+	Ip                string          `json:"ip"`
+	StartDate         time.Time       `json:"startDate"`
+	Days              int32           `json:"days"`
+	Schedule          json.RawMessage `json:"schedule"`
+	EngagedFirst      bool            `json:"engagedFirst"`
+	SlowdownBounce    float64         `json:"slowdownBounce"`
+	SlowdownComplaint float64         `json:"slowdownComplaint"`
+	Status            string          `json:"status"`
+	StatusDetail      string          `json:"statusDetail"`
+	Progress          json.RawMessage `json:"progress"`
+	CreatedAt         time.Time       `json:"createdAt"`
+	GuardAction       string          `json:"guardAction"`
+	SpreadMailbox     bool            `json:"spreadMailbox"`
+	CreatedBy         *uuid.UUID      `json:"createdBy"`
+	PausedAt          *time.Time      `json:"pausedAt"`
+	UpdatedAt         time.Time       `json:"updatedAt"`
+	Texts             json.RawMessage `json:"texts"`
+	StartedOn         time.Time       `json:"startedOn"`
+	EvaluatedThrough  *time.Time      `json:"evaluatedThrough"`
+	HeldCap           *int64          `json:"heldCap"`
+	HealthyStreak     int32           `json:"healthyStreak"`
+	Overflow          bool            `json:"overflow"`
+	MinSample         int32           `json:"minSample"`
+	Overflowed        int64           `json:"overflowed"`
+	OverflowedOn      *time.Time      `json:"overflowedOn"`
+	OverCap           int64           `json:"overCap"`
+	OverCapOn         *time.Time      `json:"overCapOn"`
+	WorkspaceTimezone string          `json:"workspaceTimezone"`
+}
+
+// The running plan of a provider with its workspace's time zone: warm-up
+// caps count the workspace's day, whatever the caller's clock (PR-8).
+func (q *Queries) WarmupAllowancePlan(ctx context.Context, providerID uuid.UUID) (WarmupAllowancePlanRow, error) {
+	row := q.db.QueryRow(ctx, warmupAllowancePlan, providerID)
+	var i WarmupAllowancePlanRow
+	err := row.Scan(
+		&i.ID,
+		&i.ProviderID,
+		&i.Ip,
+		&i.StartDate,
+		&i.Days,
+		&i.Schedule,
+		&i.EngagedFirst,
+		&i.SlowdownBounce,
+		&i.SlowdownComplaint,
+		&i.Status,
+		&i.StatusDetail,
+		&i.Progress,
+		&i.CreatedAt,
+		&i.GuardAction,
+		&i.SpreadMailbox,
+		&i.CreatedBy,
+		&i.PausedAt,
+		&i.UpdatedAt,
+		&i.Texts,
+		&i.StartedOn,
+		&i.EvaluatedThrough,
+		&i.HeldCap,
+		&i.HealthyStreak,
+		&i.Overflow,
+		&i.MinSample,
+		&i.Overflowed,
+		&i.OverflowedOn,
+		&i.OverCap,
+		&i.OverCapOn,
+		&i.WorkspaceTimezone,
+	)
+	return i, err
+}
+
+const warmupCapHolds = `-- name: WarmupCapHolds :many
+SELECT cr.campaign_id, c.name AS campaign_name, c.sender_id, cr.provider_id, cr.status_detail, cr.planned,
+       (SELECT count(*) FROM messages m WHERE m.campaign_id = cr.campaign_id AND m.provider_id = cr.provider_id AND m.status = 'queued')::bigint AS held
+FROM campaign_routes cr JOIN campaigns c ON c.id = cr.campaign_id
+WHERE cr.provider_id = $1 AND cr.status = 'held' AND cr.status_detail LIKE '%"reason":"warmup_cap"%'
+ORDER BY c.name
+`
+
+type WarmupCapHoldsRow struct {
+	CampaignID   uuid.UUID  `json:"campaignId"`
+	CampaignName string     `json:"campaignName"`
+	SenderID     *uuid.UUID `json:"senderId"`
+	ProviderID   uuid.UUID  `json:"providerId"`
+	StatusDetail string     `json:"statusDetail"`
+	Planned      int64      `json:"planned"`
+	Held         int64      `json:"held"`
+}
+
+// PR-8: campaign shares today's warm-up cap holds on a provider (route
+// held with reason warmup_cap), with what still waits.
+func (q *Queries) WarmupCapHolds(ctx context.Context, providerID uuid.UUID) ([]WarmupCapHoldsRow, error) {
+	rows, err := q.db.Query(ctx, warmupCapHolds, providerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []WarmupCapHoldsRow{}
+	for rows.Next() {
+		var i WarmupCapHoldsRow
+		if err := rows.Scan(
+			&i.CampaignID,
+			&i.CampaignName,
+			&i.SenderID,
+			&i.ProviderID,
+			&i.StatusDetail,
+			&i.Planned,
+			&i.Held,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const warmupCapHoldsDue = `-- name: WarmupCapHoldsDue :many
+SELECT cr.campaign_id, cr.provider_id, cr.status_detail
+FROM campaign_routes cr
+WHERE cr.status = 'held' AND cr.status_detail LIKE '%"reason":"warmup_cap"%'
+`
+
+type WarmupCapHoldsDueRow struct {
+	CampaignID   uuid.UUID `json:"campaignId"`
+	ProviderID   uuid.UUID `json:"providerId"`
+	StatusDetail string    `json:"statusDetail"`
+}
+
+// Shares a warm-up cap held whose provider's new day has started (the
+// daily job sends them on), across workspaces.
+func (q *Queries) WarmupCapHoldsDue(ctx context.Context) ([]WarmupCapHoldsDueRow, error) {
+	rows, err := q.db.Query(ctx, warmupCapHoldsDue)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []WarmupCapHoldsDueRow{}
+	for rows.Next() {
+		var i WarmupCapHoldsDueRow
+		if err := rows.Scan(&i.CampaignID, &i.ProviderID, &i.StatusDetail); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const warmupDailyStats = `-- name: WarmupDailyStats :many
@@ -194,8 +427,61 @@ func (q *Queries) WarmupDailyStats(ctx context.Context, arg WarmupDailyStatsPara
 	return items, nil
 }
 
+const warmupDayStats = `-- name: WarmupDayStats :many
+SELECT coalesce(nullif(m.mailbox_provider, ''), 'other')::text AS mailbox_provider,
+       count(*)::bigint AS sent,
+       count(*) FILTER (WHERE m.status = 'bounced')::bigint AS bounced,
+       count(*) FILTER (WHERE m.status = 'complained')::bigint AS complained,
+       count(*) FILTER (WHERE m.delivered_at IS NOT NULL OR m.status IN ('delivered', 'complained'))::bigint AS delivered
+FROM messages m
+WHERE m.provider_id = $1 AND m.sent_at >= $2::timestamptz AND m.sent_at < $3::timestamptz
+GROUP BY 1
+`
+
+type WarmupDayStatsParams struct {
+	ProviderID *uuid.UUID `json:"providerId"`
+	Since      time.Time  `json:"since"`
+	Until      time.Time  `json:"until"`
+}
+
+type WarmupDayStatsRow struct {
+	MailboxProvider string `json:"mailboxProvider"`
+	Sent            int64  `json:"sent"`
+	Bounced         int64  `json:"bounced"`
+	Complained      int64  `json:"complained"`
+	Delivered       int64  `json:"delivered"`
+}
+
+// One day of a warming provider (the workspace's day): sent, bounced,
+// complained and delivered per mailbox provider.
+func (q *Queries) WarmupDayStats(ctx context.Context, arg WarmupDayStatsParams) ([]WarmupDayStatsRow, error) {
+	rows, err := q.db.Query(ctx, warmupDayStats, arg.ProviderID, arg.Since, arg.Until)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []WarmupDayStatsRow{}
+	for rows.Next() {
+		var i WarmupDayStatsRow
+		if err := rows.Scan(
+			&i.MailboxProvider,
+			&i.Sent,
+			&i.Bounced,
+			&i.Complained,
+			&i.Delivered,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const warmupGetPlan = `-- name: WarmupGetPlan :one
-SELECT w.id, w.provider_id, w.ip, w.start_date, w.days, w.schedule, w.engaged_first, w.slowdown_bounce, w.slowdown_complaint, w.status, w.status_detail, w.progress, w.created_at, w.guard_action, w.spread_mailbox, w.created_by, w.paused_at, w.updated_at, w.texts, p.name AS provider_name, p.adapter, p.workspace_id
+SELECT w.id, w.provider_id, w.ip, w.start_date, w.days, w.schedule, w.engaged_first, w.slowdown_bounce, w.slowdown_complaint, w.status, w.status_detail, w.progress, w.created_at, w.guard_action, w.spread_mailbox, w.created_by, w.paused_at, w.updated_at, w.texts, w.started_on, w.evaluated_through, w.held_cap, w.healthy_streak, w.overflow, w.min_sample, w.overflowed, w.overflowed_on, w.over_cap, w.over_cap_on, p.name AS provider_name, p.adapter, p.workspace_id
 FROM warmup_plans w JOIN providers p ON p.id = w.provider_id
 WHERE w.id = $1 AND p.workspace_id = $2
 `
@@ -225,6 +511,16 @@ type WarmupGetPlanRow struct {
 	PausedAt          *time.Time      `json:"pausedAt"`
 	UpdatedAt         time.Time       `json:"updatedAt"`
 	Texts             json.RawMessage `json:"texts"`
+	StartedOn         time.Time       `json:"startedOn"`
+	EvaluatedThrough  *time.Time      `json:"evaluatedThrough"`
+	HeldCap           *int64          `json:"heldCap"`
+	HealthyStreak     int32           `json:"healthyStreak"`
+	Overflow          bool            `json:"overflow"`
+	MinSample         int32           `json:"minSample"`
+	Overflowed        int64           `json:"overflowed"`
+	OverflowedOn      *time.Time      `json:"overflowedOn"`
+	OverCap           int64           `json:"overCap"`
+	OverCapOn         *time.Time      `json:"overCapOn"`
 	ProviderName      string          `json:"providerName"`
 	Adapter           string          `json:"adapter"`
 	WorkspaceID       uuid.UUID       `json:"workspaceId"`
@@ -253,6 +549,16 @@ func (q *Queries) WarmupGetPlan(ctx context.Context, arg WarmupGetPlanParams) (W
 		&i.PausedAt,
 		&i.UpdatedAt,
 		&i.Texts,
+		&i.StartedOn,
+		&i.EvaluatedThrough,
+		&i.HeldCap,
+		&i.HealthyStreak,
+		&i.Overflow,
+		&i.MinSample,
+		&i.Overflowed,
+		&i.OverflowedOn,
+		&i.OverCap,
+		&i.OverCapOn,
 		&i.ProviderName,
 		&i.Adapter,
 		&i.WorkspaceID,
@@ -261,10 +567,10 @@ func (q *Queries) WarmupGetPlan(ctx context.Context, arg WarmupGetPlanParams) (W
 }
 
 const warmupInsertPlan = `-- name: WarmupInsertPlan :exec
-INSERT INTO warmup_plans (id, provider_id, ip, start_date, days, schedule, engaged_first, slowdown_bounce, slowdown_complaint,
-                          status, status_detail, progress, guard_action, spread_mailbox, created_by, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
-        'active', '', '[]', $10, $11, $12, $13, $13)
+INSERT INTO warmup_plans (id, provider_id, ip, start_date, started_on, days, schedule, engaged_first, slowdown_bounce, slowdown_complaint,
+                          status, status_detail, progress, guard_action, spread_mailbox, overflow, created_by, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $4, $5, $6, $7, $8, $9,
+        'active', '', '[]', $10, $11, $12, $13, $14, $14)
 `
 
 type WarmupInsertPlanParams struct {
@@ -279,6 +585,7 @@ type WarmupInsertPlanParams struct {
 	SlowdownComplaint float64         `json:"slowdownComplaint"`
 	GuardAction       string          `json:"guardAction"`
 	SpreadMailbox     bool            `json:"spreadMailbox"`
+	Overflow          bool            `json:"overflow"`
 	CreatedBy         *uuid.UUID      `json:"createdBy"`
 	CreatedAt         time.Time       `json:"createdAt"`
 }
@@ -296,6 +603,7 @@ func (q *Queries) WarmupInsertPlan(ctx context.Context, arg WarmupInsertPlanPara
 		arg.SlowdownComplaint,
 		arg.GuardAction,
 		arg.SpreadMailbox,
+		arg.Overflow,
 		arg.CreatedBy,
 		arg.CreatedAt,
 	)
@@ -304,7 +612,7 @@ func (q *Queries) WarmupInsertPlan(ctx context.Context, arg WarmupInsertPlanPara
 
 const warmupListPlans = `-- name: WarmupListPlans :many
 
-SELECT w.id, w.provider_id, w.ip, w.start_date, w.days, w.schedule, w.engaged_first, w.slowdown_bounce, w.slowdown_complaint, w.status, w.status_detail, w.progress, w.created_at, w.guard_action, w.spread_mailbox, w.created_by, w.paused_at, w.updated_at, w.texts, p.name AS provider_name, p.adapter, p.workspace_id, p.ips AS provider_ips, p.status AS provider_status,
+SELECT w.id, w.provider_id, w.ip, w.start_date, w.days, w.schedule, w.engaged_first, w.slowdown_bounce, w.slowdown_complaint, w.status, w.status_detail, w.progress, w.created_at, w.guard_action, w.spread_mailbox, w.created_by, w.paused_at, w.updated_at, w.texts, w.started_on, w.evaluated_through, w.held_cap, w.healthy_streak, w.overflow, w.min_sample, w.overflowed, w.overflowed_on, w.over_cap, w.over_cap_on, p.name AS provider_name, p.adapter, p.workspace_id, p.ips AS provider_ips, p.status AS provider_status,
        coalesce(u.name, '')::text AS created_by_name
 FROM warmup_plans w
 JOIN providers p ON p.id = w.provider_id AND p.disconnected_at IS NULL
@@ -333,6 +641,16 @@ type WarmupListPlansRow struct {
 	PausedAt          *time.Time      `json:"pausedAt"`
 	UpdatedAt         time.Time       `json:"updatedAt"`
 	Texts             json.RawMessage `json:"texts"`
+	StartedOn         time.Time       `json:"startedOn"`
+	EvaluatedThrough  *time.Time      `json:"evaluatedThrough"`
+	HeldCap           *int64          `json:"heldCap"`
+	HealthyStreak     int32           `json:"healthyStreak"`
+	Overflow          bool            `json:"overflow"`
+	MinSample         int32           `json:"minSample"`
+	Overflowed        int64           `json:"overflowed"`
+	OverflowedOn      *time.Time      `json:"overflowedOn"`
+	OverCap           int64           `json:"overCap"`
+	OverCapOn         *time.Time      `json:"overCapOn"`
 	ProviderName      string          `json:"providerName"`
 	Adapter           string          `json:"adapter"`
 	WorkspaceID       uuid.UUID       `json:"workspaceId"`
@@ -372,6 +690,16 @@ func (q *Queries) WarmupListPlans(ctx context.Context, workspaceID uuid.UUID) ([
 			&i.PausedAt,
 			&i.UpdatedAt,
 			&i.Texts,
+			&i.StartedOn,
+			&i.EvaluatedThrough,
+			&i.HeldCap,
+			&i.HealthyStreak,
+			&i.Overflow,
+			&i.MinSample,
+			&i.Overflowed,
+			&i.OverflowedOn,
+			&i.OverCap,
+			&i.OverCapOn,
 			&i.ProviderName,
 			&i.Adapter,
 			&i.WorkspaceID,
@@ -426,6 +754,34 @@ func (q *Queries) WarmupLog(ctx context.Context, arg WarmupLogParams) ([]WarmupE
 	return items, nil
 }
 
+const warmupMove = `-- name: WarmupMove :exec
+UPDATE warmup_plans
+SET start_date = $1, evaluated_through = $2, held_cap = $3, healthy_streak = $4, updated_at = now()
+WHERE id = $5
+`
+
+type WarmupMoveParams struct {
+	StartDate        time.Time  `json:"startDate"`
+	EvaluatedThrough *time.Time `json:"evaluatedThrough"`
+	HeldCap          *int64     `json:"heldCap"`
+	HealthyStreak    int32      `json:"healthyStreak"`
+	ID               uuid.UUID  `json:"id"`
+}
+
+// PR-8: where the plan stands after the daily job judged its days: the
+// day that counts as day 1 now (start_date), the last day judged and a
+// slowdown's hold.
+func (q *Queries) WarmupMove(ctx context.Context, arg WarmupMoveParams) error {
+	_, err := q.db.Exec(ctx, warmupMove,
+		arg.StartDate,
+		arg.EvaluatedThrough,
+		arg.HeldCap,
+		arg.HealthyStreak,
+		arg.ID,
+	)
+	return err
+}
+
 const warmupPlannedCampaignUse = `-- name: WarmupPlannedCampaignUse :many
 SELECT c.id, c.name, c.scheduled_at, cr.planned
 FROM campaign_routes cr JOIN campaigns c ON c.id = cr.campaign_id
@@ -464,6 +820,99 @@ func (q *Queries) WarmupPlannedCampaignUse(ctx context.Context, arg WarmupPlanne
 			&i.ScheduledAt,
 			&i.Planned,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const warmupResolveCapHold = `-- name: WarmupResolveCapHold :exec
+UPDATE campaign_incidents SET resolved_at = $1, resolution = $2, resolved_by = $3
+WHERE campaign_id = $4 AND provider_id = $5 AND kind = 'throttled' AND metric = 'warmup_cap' AND resolved_at IS NULL
+`
+
+type WarmupResolveCapHoldParams struct {
+	At         *time.Time `json:"at"`
+	Resolution string     `json:"resolution"`
+	ResolvedBy *uuid.UUID `json:"resolvedBy"`
+	CampaignID uuid.UUID  `json:"campaignId"`
+	ProviderID *uuid.UUID `json:"providerId"`
+}
+
+func (q *Queries) WarmupResolveCapHold(ctx context.Context, arg WarmupResolveCapHoldParams) error {
+	_, err := q.db.Exec(ctx, warmupResolveCapHold,
+		arg.At,
+		arg.Resolution,
+		arg.ResolvedBy,
+		arg.CampaignID,
+		arg.ProviderID,
+	)
+	return err
+}
+
+const warmupResume = `-- name: WarmupResume :exec
+UPDATE warmup_plans
+SET status = $1, status_detail = $2, paused_at = NULL, start_date = $3, evaluated_through = $4,
+    texts = coalesce($5::jsonb, '{}'), updated_at = now()
+WHERE id = $6
+`
+
+type WarmupResumeParams struct {
+	Status           string          `json:"status"`
+	StatusDetail     string          `json:"statusDetail"`
+	StartDate        time.Time       `json:"startDate"`
+	EvaluatedThrough *time.Time      `json:"evaluatedThrough"`
+	Texts            json.RawMessage `json:"texts"`
+	ID               uuid.UUID       `json:"id"`
+}
+
+// PR-8: a paused plan resumes on the day it stopped: its days move on by
+// the days it was paused, which are never judged.
+func (q *Queries) WarmupResume(ctx context.Context, arg WarmupResumeParams) error {
+	_, err := q.db.Exec(ctx, warmupResume,
+		arg.Status,
+		arg.StatusDetail,
+		arg.StartDate,
+		arg.EvaluatedThrough,
+		arg.Texts,
+		arg.ID,
+	)
+	return err
+}
+
+const warmupSentSince = `-- name: WarmupSentSince :many
+SELECT coalesce(nullif(m.mailbox_provider, ''), 'other')::text AS mailbox_provider, count(*)::bigint AS n
+FROM messages m
+WHERE m.provider_id = $1 AND m.sent_at >= $2::timestamptz
+GROUP BY 1
+`
+
+type WarmupSentSinceParams struct {
+	ProviderID *uuid.UUID `json:"providerId"`
+	Since      time.Time  `json:"since"`
+}
+
+type WarmupSentSinceRow struct {
+	MailboxProvider string `json:"mailboxProvider"`
+	N               int64  `json:"n"`
+}
+
+// What a provider sent since a time (the start of the workspace's day),
+// per mailbox provider: every stream counts toward the warm-up cap.
+func (q *Queries) WarmupSentSince(ctx context.Context, arg WarmupSentSinceParams) ([]WarmupSentSinceRow, error) {
+	rows, err := q.db.Query(ctx, warmupSentSince, arg.ProviderID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []WarmupSentSinceRow{}
+	for rows.Next() {
+		var i WarmupSentSinceRow
+		if err := rows.Scan(&i.MailboxProvider, &i.N); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -527,8 +976,9 @@ func (q *Queries) WarmupSetStatus(ctx context.Context, arg WarmupSetStatusParams
 const warmupUpdateSettings = `-- name: WarmupUpdateSettings :exec
 UPDATE warmup_plans
 SET days = $1, schedule = $2, engaged_first = $3, slowdown_bounce = $4,
-    slowdown_complaint = $5, guard_action = $6, spread_mailbox = $7, updated_at = now()
-WHERE id = $8
+    slowdown_complaint = $5, guard_action = $6, spread_mailbox = $7,
+    overflow = $8, updated_at = now()
+WHERE id = $9
 `
 
 type WarmupUpdateSettingsParams struct {
@@ -539,6 +989,7 @@ type WarmupUpdateSettingsParams struct {
 	SlowdownComplaint float64         `json:"slowdownComplaint"`
 	GuardAction       string          `json:"guardAction"`
 	SpreadMailbox     bool            `json:"spreadMailbox"`
+	Overflow          bool            `json:"overflow"`
 	ID                uuid.UUID       `json:"id"`
 }
 
@@ -551,6 +1002,7 @@ func (q *Queries) WarmupUpdateSettings(ctx context.Context, arg WarmupUpdateSett
 		arg.SlowdownComplaint,
 		arg.GuardAction,
 		arg.SpreadMailbox,
+		arg.Overflow,
 		arg.ID,
 	)
 	return err

@@ -164,7 +164,7 @@ export const mc = defineMessages('earn.connect', {
   toEarn: 'Go to Earn',
   // Permissions.
   forbiddenBadge: '403 · {role}',
-  forbiddenTitle: 'Connecting a payment provider needs payments:manage',
+  forbiddenTitle: 'Your role can’t connect a payment provider',
   forbiddenText: 'Ask {helpers}. You can still see the connection and the payments event log in Earn › Settings.',
   forbiddenTextNoHelpers: 'You can still see the connection and the payments event log in Earn › Settings.',
   earnSettings: 'Earn settings',

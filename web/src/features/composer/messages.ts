@@ -69,16 +69,17 @@ export const m = defineMessages('composer', {
   routeNotSetUp: 'Broadcasts route · not set up',
   routeReadOnly: '{route} · read-only',
   routeOpen: '{route}: open routing',
-  routeNeedsPermission: 'Routing needs providers:manage',
+  routeNeedsPermission: 'People who manage providers can change the route.',
   backToEditor: 'Back to editor',
   previewLabel: 'Preview',
   campaignLabel: 'Campaign',
+  campaignName: 'Campaign name',
   preview: 'Preview',
   reviewSend: 'Review & send',
   requestApproval: 'Request approval',
   reviewBlocks: '{action, select, send {Review & send} other {Request approval}} · {count, plural, one {# block} other {# blocks}}',
   permissionBanner:
-    '<b>{name} · {role}.</b> You can edit this campaign and request approval. Sending needs the <mono>campaigns:send</mono> permission{hasHelpers, select, yes {: ask {helpers}} other {}}. {routing, select, yes {Scheduling, test sends to the whole team and route changes are hidden for your role.} other {Scheduling and test sends to the whole team are hidden for your role.}}',
+    '<b>{name} · {role}.</b> You can edit this campaign and request approval. Only people who can send campaigns can send it{hasHelpers, select, yes {: ask {helpers}} other {}}. {routing, select, yes {Scheduling, test sends to the whole team and route changes are hidden for your role.} other {Scheduling and test sends to the whole team are hidden for your role.}}',
   whatApprovalCovers: 'What approval covers',
 
   // Audience and sender pickers.
@@ -105,6 +106,9 @@ export const m = defineMessages('composer', {
   // Send test.
   testSent: 'Test sent to {to}',
   testVia: 'via {provider}',
+  /** A test sent from Preview, personalized as the "Preview as" contact. */
+  testViaAs: 'Personalized as {name}, via {provider}',
+  testViaNoFirstName: 'Personalized as a reader without a first name, via {provider}',
   testFailed: "Couldn't send the test",
   checkConnection: 'Check your connection and try again.',
   sendTest: 'Send test',
@@ -138,19 +142,6 @@ export const m = defineMessages('composer', {
   offlineBody: "Your edits since {time} are kept in this browser. ReputeCast retries every 10 seconds and saves as soon as the connection is back. Don't close the tab.",
   retryNow: 'Retry now',
   downloadBackup: 'Download MJML as backup',
-  someone: 'Someone',
-  conflict: 'Conflict',
-  conflictTitle: '{who} saved version {version} while you were editing',
-  conflictTitleAt: '{who} saved version {version} at {time} while you were editing',
-  keepMine: 'Keep mine as v{version}',
-  loadTheirs: "Load {name}'s v{version}",
-  compare: 'Compare',
-  /** {parts}: what both changed, such as "subject and hero". {name}: the other person's first name. */
-  conflictBoth: "Both of you changed the {parts}. Keeping yours makes a new version {version} on top of {name}'s; nothing is lost either way.",
-  conflictTheirs: "{name} changed the {parts}. Keeping yours makes a new version {version} on top of {name}'s; nothing is lost either way.",
-  conflictPlain: "Keeping yours makes a new version {version} on top of {name}'s; nothing is lost either way.",
-  conflictSubject: 'subject',
-  conflictBody: 'the email body',
   errorTitle: "Couldn't save version {version}",
   errorBody: '{message} Your edits are still on the canvas.',
   saved: 'Saved',
@@ -183,10 +174,11 @@ export const m = defineMessages('composer', {
   noteCopied: 'copied “{name}”',
   templateFailed: "Couldn't open the template",
   copyFailed: "Couldn't copy the campaign",
-  galleryTitle: 'Start from a template or a blank canvas',
-  galleryLead: 'Templates are MJML, so everything stays editable. Your saved sections and the last campaign are here too.',
+  galleryTitle: 'Start from a template or a blank email',
+  galleryLead: 'Templates are MJML, so every part stays editable in Write, Design and Code.',
   templatesFailed: "Templates couldn't load. {error}",
   yours: 'Yours',
+  templatesHeading: 'Templates',
   savedTemplate: 'Saved template',
   savedTemplateEdited: 'Saved template · edited {date}',
   copyOf: 'Copy of {name}',
@@ -221,6 +213,19 @@ export const m = defineMessages('composer', {
   severityWarn: 'Warn',
   describeImage: 'Describe the image',
   noWarningsLong: 'No warnings. Send Readiness runs the full set, including link checks, before anything goes out.',
+  /** The checks couldn't run; the last results stay (ComposerWarnings). {time} is when they ran ("09:31"). */
+  checksFailed: "<b>Checks couldn't run ({reason, select, network {network} other {server error}})</b> · showing results from {time}",
+  checksFailedNone: "<b>Checks couldn't run ({reason, select, network {network} other {server error}})</b>",
+  checksRunning: '<b>Running checks…</b> · results from {time} stay until this finishes',
+  checksRanOk: '<b>Checked just now</b> · {blocks, plural, =0 {no blocks} one {# block} other {# blocks}} and {warnings, plural, =0 {no warnings} one {# warning} other {# warnings}}',
+  checksRetry: 'Retry',
+  /** Send test sends the saved email: it waits for the latest save. */
+  testNeedsSave: 'Send test needs the latest save',
+  testNeedsSaveDetail: "The last save didn't go through, and tests send what is saved. Try again once the email is saved.",
+  /** An A/B variant's own findings in the Deliverability tab. */
+  variantIssues: 'Variant {key}',
+  variantIssuesNote: "Found in variant {key} only. It's fixed in that variant.",
+  showVariant: 'Show variant {key}',
 
   // One-click fixes.
   linkReplaced: 'Link replaced with {url}',

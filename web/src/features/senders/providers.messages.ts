@@ -5,7 +5,7 @@ export const mp = defineMessages('senders.providers', {
   documentTitle: 'Providers · Settings',
   loadFailed: "Couldn't load the provider settings",
   loading: 'Loading the provider settings…',
-  readOnlyText: 'You can view the providers and the sending defaults. Changing them needs the {perm} permission.',
+  readOnlyText: "You can view the providers and the sending defaults. Your role can't change them.",
 
   connectedProviders: 'Connected providers',
   noneConnected: 'No sending provider is connected yet.',

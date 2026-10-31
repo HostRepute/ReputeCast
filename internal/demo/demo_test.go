@@ -7,8 +7,7 @@ import (
 	"testing"
 
 	"github.com/hostrepute/reputecast/internal/config"
-	"github.com/hostrepute/reputecast/internal/secrets"
-	"github.com/hostrepute/reputecast/internal/testdb"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 )
 
 func TestSplitAddsUp(t *testing.T) {
@@ -24,21 +23,43 @@ func TestSplitAddsUp(t *testing.T) {
 	}
 }
 
-// The demo seed must run cleanly on a fresh database and be idempotent.
-func TestSeed(t *testing.T) {
-	pool := testdb.New(t)
-	cfg := config.Defaults()
-	cfg.Files.Dir = t.TempDir() // the sample product files (X19)
-	box, err := secrets.New(make([]byte, 32))
+// Gmail and iCloud never report complaints (review F-2): no seeded send,
+// ReputeCast's own or history imported from Brevo, holds one there.
+func TestNoComplaintsWhereNotReported(t *testing.T) {
+	pool, _, _ := seededSample(t)
+	rows, err := pool.Query(context.Background(), `SELECT mailbox_provider, sum(complained)::bigint FROM campaign_counters GROUP BY 1`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	ctx := context.Background()
-	if _, err := Seed(ctx, pool, &cfg, box, log); err != nil {
-		t.Fatalf("seed: %v", err)
+	defer rows.Close()
+	complained := int64(0)
+	for rows.Next() {
+		var mbp string
+		var n int64
+		if err := rows.Scan(&mbp, &n); err != nil {
+			t.Fatal(err)
+		}
+		if n > 0 && !mailbox.ReportsComplaints(mbp) {
+			t.Errorf("%d complaints at %s, which doesn't report them", n, mbp)
+		}
+		complained += n
 	}
-	if _, err := Seed(ctx, pool, &cfg, box, log); err != nil {
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	if complained == 0 {
+		t.Fatal("the sample's sends hold no complaints at all")
+	}
+}
+
+// The demo seed must run cleanly on a fresh database (seededSample's) and
+// be idempotent.
+func TestSeed(t *testing.T) {
+	pool, box, _ := seededSample(t)
+	cfg := config.Defaults()
+	cfg.Files.Dir = t.TempDir() // the sample product files (X19)
+	ctx := context.Background()
+	if _, err := Seed(ctx, pool, &cfg, box, slog.New(slog.NewTextHandler(io.Discard, nil))); err != nil {
 		t.Fatalf("second seed must be a no-op: %v", err)
 	}
 	var campaigns int

@@ -2,40 +2,23 @@ package demo
 
 import (
 	"context"
-	"io"
-	"log/slog"
 	"math"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 
-	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/growth"
 	"github.com/hostrepute/reputecast/internal/scoring"
-	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
-	"github.com/hostrepute/reputecast/internal/testdb"
 )
 
 // The scoring and growth sample (audience-insights brief §4): the numbers
 // ScoringRules, ScoringStates, ScoringProfile, GrowthSources and
 // GrowthStates show, read back through the services that serve them.
 func TestScoringGrowthSample(t *testing.T) {
-	if testing.Short() {
-		t.Skip("seeds the whole demo")
-	}
-	pool := testdb.New(t)
-	cfg := config.Defaults()
-	cfg.Files.Dir = t.TempDir() // the sample product files (X19)
-	box, err := secrets.New(make([]byte, 32))
-	if err != nil {
-		t.Fatal(err)
-	}
+	pool, _, at := seededSample(t)
 	ctx := context.Background()
-	if _, err := Seed(ctx, pool, &cfg, box, slog.New(slog.NewTextHandler(io.Discard, nil))); err != nil {
-		t.Fatalf("seed: %v", err)
-	}
 	q := store.New(pool)
 	ws, err := q.GetWorkspaceBySlug(ctx, "acme-newsletter")
 	if err != nil {
@@ -43,10 +26,6 @@ func TestScoringGrowthSample(t *testing.T) {
 	}
 	// The services read the sample as of the seed, as the boards show it:
 	// scores decay after it, and Growth counts whole days in New York.
-	var at time.Time
-	if err := pool.QueryRow(ctx, `SELECT max(computed_at) FROM contact_scores`).Scan(&at); err != nil {
-		t.Fatal(err)
-	}
 	seeded := func() time.Time { return at }
 
 	// Scoring: the spread, bands by tier, and rule 3 at +25.

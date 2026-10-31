@@ -1306,16 +1306,30 @@ func (q *Queries) LanguagesMessageResults(ctx context.Context, campaignID *uuid.
 }
 
 const languagesPreviewContacts = `-- name: LanguagesPreviewContacts :many
-SELECT DISTINCT ON (lower(split_part(replace(c.language, '_', '-'), '-', 1)))
-       c.id, c.email, c.first_name, c.last_name, c.language
-FROM contacts c
-WHERE c.workspace_id = $1 AND c.erased_at IS NULL AND c.status = 'active' AND c.language <> ''
-  AND (cardinality($2::uuid[]) = 0 OR EXISTS (
-    SELECT 1 FROM list_memberships m
-    WHERE m.contact_id = c.id AND m.status = 'subscribed'
-      AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($2::uuid[]) AND ll.deleted_at IS NULL))))
-  AND (cardinality($3::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships sm WHERE sm.contact_id = c.id AND sm.list_id = ANY($3::uuid[])))
-ORDER BY lower(split_part(replace(c.language, '_', '-'), '-', 1)), (c.first_name = '') ASC, c.last_open_at DESC NULLS LAST, c.email
+WITH audience AS MATERIALIZED (
+  SELECT c.id, lower(split_part(replace(c.language, '_', '-'), '-', 1)) AS base,
+         c.first_name <> '' AS named, c.last_open_at, c.email
+  FROM contacts c
+  WHERE c.workspace_id = $1 AND c.erased_at IS NULL AND c.status = 'active' AND c.language <> ''
+    AND (cardinality($2::uuid[]) = 0 OR EXISTS (
+      SELECT 1 FROM list_memberships m
+      WHERE m.contact_id = c.id AND m.status = 'subscribed'
+        AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($2::uuid[]) AND ll.deleted_at IS NULL))))
+    AND (cardinality($3::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships sm WHERE sm.contact_id = c.id AND sm.list_id = ANY($3::uuid[])))
+), named AS (
+  -- Whether a language has anyone with a first name.
+  SELECT base, bool_or(named) AS named FROM audience GROUP BY base
+), latest AS (
+  -- The last open among them (NULL when none of them opened).
+  SELECT a.base, a.named, max(a.last_open_at) AS last_open_at
+  FROM audience a JOIN named n ON n.base = a.base AND n.named = a.named
+  GROUP BY a.base, a.named
+)
+SELECT DISTINCT ON (a.base) c.id, c.email, c.first_name, c.last_name, c.language
+FROM audience a
+JOIN latest l ON l.base = a.base AND l.named = a.named AND a.last_open_at IS NOT DISTINCT FROM l.last_open_at
+JOIN contacts c ON c.id = a.id
+ORDER BY a.base, a.email
 LIMIT 200
 `
 
@@ -1334,8 +1348,9 @@ type LanguagesPreviewContactsRow struct {
 }
 
 // "Preview as" in the composer: one active contact per contact language
-// (its base code), from the given lists when there are any, people with a
-// first name first.
+// (its base code), from the given lists when there are any: people with a
+// first name first, then the one who opened last, then by email. Each
+// language's contact is found with aggregates, so the audience isn't sorted.
 func (q *Queries) LanguagesPreviewContacts(ctx context.Context, arg LanguagesPreviewContactsParams) ([]LanguagesPreviewContactsRow, error) {
 	rows, err := q.db.Query(ctx, languagesPreviewContacts, arg.WorkspaceID, arg.Lists, arg.ScopeLists)
 	if err != nil {

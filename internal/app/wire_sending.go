@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/ingest"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/liquid"
@@ -115,6 +117,10 @@ func sendingEngine(a *App) *engine.Engine {
 		Recipients: func() []liquid.RecipientData { return recipientData(a) },
 		// Store blocks read prices and availability when the email goes out.
 		Store: sendingStore(a),
+		// Company domains go out as their mailbox provider (MX records).
+		Mailbox: a.mailboxClassifier(),
+		// A canary's copies go to the seed inboxes as a placement test.
+		Seeds: canarySeeds{a: a},
 	}
 	v, _ := sendingEngines.LoadOrStore(a, e)
 	return v.(*engine.Engine)
@@ -133,6 +139,11 @@ func init() {
 	})
 	jobRegistrars = append(jobRegistrars, func(a *App) {
 		engine.RegisterJobs(a.JobReg, sendingEngine(a))
+	})
+	// A provider event about a message in doubt settles it: the provider
+	// took it after all (review GS-1).
+	normalizerHooks = append(normalizerHooks, func(a *App) ingest.MessageHook {
+		return (&engine.Engine{Q: a.Q, Now: time.Now}).InDoubtHook()
 	})
 	// The automations engine's "Send email" step goes through the sending
 	// engine (routing, failover, rendering, tracking, delivery).

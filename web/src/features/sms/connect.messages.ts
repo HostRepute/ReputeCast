@@ -17,7 +17,8 @@ export const m = defineMessages('smsConnect', {
   s4sub: 'Watch the receipt arrive',
   s5: 'Countries',
   s5sub: 'Who texts where',
-  stepperFoot: 'Most people finish in about 10 minutes. You can add more providers later; each country gets its own route.',
+  stepperFoot:
+    'Connecting takes a few minutes. A number waiting for its registration can’t send until the carrier approves it, which can take days. You can add more providers later; each country gets its own route.',
   // Step 1.
   h1: 'Which provider sends your texts?',
   lead1: 'Texts cost what your provider charges. ReputeCast adds nothing.',
@@ -29,7 +30,7 @@ export const m = defineMessages('smsConnect', {
   manageAdapters: 'Manage adapters',
   cancel: 'Cancel',
   connectNamed: 'Connect {name}',
-  readOnly: 'You can look at the catalog. Connecting a provider needs providers:manage. {helpers, select, none {} other {Ask {helpers}.}}',
+  readOnly: 'You can look at the catalog. Your role can’t connect providers. {helpers, select, none {} other {Ask {helpers}.}}',
   // Step 2.
   h2: 'Connect {name}',
   lead2Twilio: 'Use an API key rather than the auth token, so you can revoke ReputeCast’s access on its own.',

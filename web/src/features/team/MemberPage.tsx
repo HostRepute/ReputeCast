@@ -290,11 +290,11 @@ function KeysCard({ d }: { d: Detail }) {
         {d.apiKeys.length === 0 ? (
           <div className="note n">
             <span>
-              {/* The server's two notes read in the app language; any other shows as it comes. */}
-              {d.keysNote?.includes('apikeys:manage') ? (
-                <T msg={mm.keysNoPermission} values={{ mono: (c) => <span className="mono">{c}</span> }} />
-              ) : d.keysNote === undefined || d.keysNote === 'None yet.' ? (
+              {/* The server's two notes read in the app language; any other shows as it comes. An active member's effective permissions tell which note it is. */}
+              {d.keysNote === undefined || d.keysNote === 'None yet.' ? (
                 t(mm.keysNoneYet)
+              ) : d.member.status === 'active' && !d.permissions.some((p) => p.key === 'apikeys:manage' && p.granted) ? (
+                t(mm.keysNoPermission)
               ) : (
                 d.keysNote
               )}

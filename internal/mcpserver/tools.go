@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
 	"net/mail"
 	"sort"
 	"strings"
@@ -101,13 +100,6 @@ func (s *Service) findCampaign(ctx context.Context, ws uuid.UUID, r string) (sto
 	return c, err
 }
 
-func pct(n, d int64) float64 {
-	if d <= 0 {
-		return 0
-	}
-	return math.Round(float64(n)/float64(d)*1000) / 10
-}
-
 // tool wraps a handler with authentication, the permission check and the audit entry.
 func tool[In any](s *Service, srv *mcp.Server, name string, perm authz.Permission, run func(ctx context.Context, c *agentCall, in In) (any, entry, error), target func(ctx context.Context, c *agentCall, in In) entry) {
 	var desc string
@@ -157,6 +149,15 @@ func (s *Service) campaignTarget(action string) func(ctx context.Context, c *age
 	}
 }
 
+// campaigns is the campaigns service the tools list, create and save
+// through, as the composer does.
+func (s *Service) campaigns() *campaigns.Service {
+	if s.Campaigns != nil {
+		return s.Campaigns
+	}
+	return &campaigns.Service{Pool: s.Pool, Q: s.Q, Audit: s.Audit}
+}
+
 func (s *Service) addTools(srv *mcp.Server) {
 	tool(s, srv, "list_campaigns", authz.CampaignsView, func(ctx context.Context, c *agentCall, in listCampaignsIn) (any, entry, error) {
 		e := entry{action: "campaign.listed", targetType: "campaign", targetText: keep("target.campaigns", nil)}
@@ -171,11 +172,7 @@ func (s *Service) addTools(srv *mcp.Server) {
 		if limit <= 0 || limit > 100 {
 			limit = 25
 		}
-		svc := s.Campaigns
-		if svc == nil {
-			svc = &campaigns.Service{Pool: s.Pool, Q: s.Q, Audit: s.Audit}
-		}
-		list, err := svc.List(ctx, &c.Workspace, campaigns.ListParams{Status: status, Query: in.Query, PageSize: limit, Page: 1})
+		list, err := s.campaigns().List(ctx, &c.Workspace, campaigns.ListParams{Status: status, Query: in.Query, PageSize: limit, Page: 1})
 		if err != nil {
 			return nil, e, err
 		}
@@ -198,42 +195,6 @@ func (s *Service) addTools(srv *mcp.Server) {
 		e.detailText = keep("detail.count", i18n.Args{"n": len(rows), "total": list.Total})
 		return map[string]any{"campaigns": rows, "total": list.Total}, e, nil
 	}, nil)
-
-	tool(s, srv, "get_campaign_report", authz.ReportsView, func(ctx context.Context, c *agentCall, in CampaignRef) (any, entry, error) {
-		e := entry{action: "report.read", targetType: "campaign", targetName: in.Campaign}
-		cp, err := s.findCampaign(ctx, c.Workspace.ID, in.Campaign)
-		if err != nil {
-			return nil, e, err
-		}
-		e.targetID, e.targetName = cp.ID.String(), cp.Name
-		t, err := s.Q.McpCampaignTotals(ctx, cp.ID)
-		if err != nil {
-			return nil, e, err
-		}
-		byProv, err := s.Q.McpCampaignByProvider(ctx, cp.ID)
-		if err != nil {
-			return nil, e, err
-		}
-		byBox, err := s.Q.McpCampaignByMailbox(ctx, cp.ID)
-		if err != nil {
-			return nil, e, err
-		}
-		provs := []map[string]any{}
-		for _, p := range byProv {
-			provs = append(provs, map[string]any{"sending_provider": p.Provider, "sent": p.Sent, "delivered_pct": pct(p.Delivered, p.Sent), "bounce_pct": pct(p.Bounced, p.Sent), "complaint_pct": pct(p.Complained, p.Delivered)})
-		}
-		boxes := []map[string]any{}
-		for _, b := range byBox {
-			boxes = append(boxes, map[string]any{"mailbox_provider": b.MailboxProvider, "sent": b.Sent, "share_pct": pct(b.Sent, t.Sent), "human_opens_pct": pct(b.OpenedHuman, b.Delivered), "complaint_pct": pct(b.Complained, b.Delivered)})
-		}
-		return map[string]any{
-			"campaign": cp.Name, "status": cp.Status, "subject": cp.Subject, "sent": t.Sent, "delivered": t.Delivered,
-			"delivered_pct": pct(t.Delivered, t.Sent), "human_opens_pct": pct(t.OpenedHuman, t.Delivered), "machine_opens_pct": pct(t.OpenedMachine, t.Delivered),
-			"clicks_pct": pct(t.Clicked, t.Delivered), "bounce_pct": pct(t.Bounced, t.Sent), "complaint_pct": math.Round(float64(t.Complained)/math.Max(float64(t.Delivered), 1)*10000) / 100,
-			"unsubscribes": t.Unsubscribed, "by_sending_provider": provs, "by_mailbox_provider": boxes,
-			"note": "Human opens exclude Apple Mail Privacy Protection prefetches, which are counted as machine opens.",
-		}, e, nil
-	}, s.campaignTarget("report.read"))
 
 	tool(s, srv, "get_send_readiness", authz.CampaignsView, func(ctx context.Context, c *agentCall, in CampaignRef) (any, entry, error) {
 		e := entry{action: "readiness.read", targetType: "campaign", targetName: in.Campaign}
@@ -259,19 +220,18 @@ func (s *Service) addTools(srv *mcp.Server) {
 		if name == "" {
 			return nil, e, errors.New("give the draft a name")
 		}
-		creator := c.Principal.UserID
-		var by *uuid.UUID
-		if creator != uuid.Nil {
-			by = &creator
-		}
-		row, err := s.Q.McpCreateDraft(ctx, store.McpCreateDraftParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: c.Workspace.ID, Name: name, Subject: in.Subject, Preheader: in.Preheader, Mjml: in.MJML, CreatedBy: by})
+		// Stored as the composer stores a draft: the server compiles and
+		// checks the MJML, and the draft has its first version (CO-3).
+		ws := c.Workspace
+		row, err := s.campaigns().CreateForAgent(ctx, &ws, c.Principal, name, campaigns.AgentContent{Subject: &in.Subject, Preheader: &in.Preheader, MJML: &in.MJML})
 		if err != nil {
 			return nil, e, err
 		}
-		e.targetID = row.ID.String()
-		e.after = map[string]any{"name": name, "subject": in.Subject}
+		e.targetID = row.ID
+		e.after = map[string]any{"name": name, "subject": in.Subject, "version": row.Version}
 		e.detailText = keep("detail.draft", nil)
-		return map[string]any{"id": row.ID, "name": row.Name, "status": row.Status, "message": "Draft created. A person reviews and sends it from ReputeCast."}, e, nil
+		return map[string]any{"id": row.ID, "name": row.Name, "status": row.Status, "version": row.Version,
+			"message": "Draft created. ReputeCast compiled the MJML; a person reviews and sends it from ReputeCast."}, e, nil
 	}, nil)
 
 	tool(s, srv, "update_campaign_content", authz.CampaignsEdit, func(ctx context.Context, c *agentCall, in updateContentIn) (any, entry, error) {
@@ -287,19 +247,18 @@ func (s *Service) addTools(srv *mcp.Server) {
 		if in.Language != "" && s.Languages != nil {
 			return s.updateLanguage(ctx, c, cp, in, e)
 		}
-		creator := c.Principal.UserID
-		var by *uuid.UUID
-		if creator != uuid.Nil {
-			by = &creator
-		}
-		row, err := s.Q.McpUpdateDraft(ctx, store.McpUpdateDraftParams{ID: cp.ID, WorkspaceID: c.Workspace.ID, Subject: in.Subject, Preheader: in.Preheader, Mjml: in.MJML, UpdatedBy: by})
+		// Saved as the composer saves (CO-3): the server compiles and checks
+		// the MJML (the HTML sent is that compile), the change is a new
+		// version, and approvals and Send Readiness see it.
+		ws := c.Workspace
+		saved, err := s.campaigns().SaveForAgent(ctx, &ws, c.Principal, cp.ID, campaigns.AgentContent{Subject: in.Subject, Preheader: in.Preheader, MJML: in.MJML})
 		if err != nil {
 			return nil, e, err
 		}
 		e.detailText = keep("detail.changed", i18n.Args{"fields": changedFields(in)})
-		e.before = map[string]any{"subject": cp.Subject, "preheader": cp.Preheader, "version": cp.Version}
-		e.after = map[string]any{"subject": row.Subject, "preheader": row.Preheader, "version": row.Version}
-		return map[string]any{"id": row.ID, "name": row.Name, "version": row.Version, "subject": row.Subject}, e, nil
+		e.before = map[string]any{"subject": saved.BeforeSubject, "preheader": saved.BeforePreheader, "version": saved.BeforeVersion}
+		e.after = map[string]any{"subject": saved.Subject, "preheader": saved.Preheader, "version": saved.Version, "sizeBytes": saved.SizeBytes, "contentHash": saved.ContentHash}
+		return map[string]any{"id": cp.ID, "name": cp.Name, "version": saved.Version, "subject": saved.Subject, "size_bytes": saved.SizeBytes, "unchanged": saved.Unchanged}, e, nil
 	}, nil)
 
 	tool(s, srv, "schedule_campaign", authz.CampaignsSend, func(ctx context.Context, c *agentCall, in scheduleIn) (any, entry, error) {

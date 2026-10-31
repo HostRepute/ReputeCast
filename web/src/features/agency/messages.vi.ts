@@ -317,7 +317,7 @@ export default translate(m, {
   galleryShowAll: 'Hiện cả {n}',
   galleryCantEdit: 'Bạn không sửa được email này.',
   galleryNote:
-    'Dùng một mục sẽ tạo bản sao trong {workspace}, việc này cần <mono>{permission}</mono> ở đây. Bản sao không được liên kết: khi thư viện thay đổi, bản sao ghi “Thư viện có phiên bản mới hơn” và hiện phần khác biệt.',
+    'Dùng một mục sẽ tạo bản sao trong {workspace}, nên cần vai trò có thể sửa mẫu ở đây. Bản sao không được liên kết: khi thư viện thay đổi, bản sao ghi “Thư viện có phiên bản mới hơn” và hiện phần khác biệt.',
   galleryStartedFrom: 'bắt đầu từ “{name}” trong thư viện {agency}',
   galleryCopied: 'Đã sao chép “{name}” vào {workspace}',
   galleryCopyFailed: 'Không sao chép được',

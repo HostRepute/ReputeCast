@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { IntlMessageFormat } from 'intl-messageformat'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import { t } from '@/i18n'
+import { t, type Catalog, type MessageDescriptor } from '@/i18n'
 import { setDisplayTimeZone } from '@/lib/format'
 import { json, mockApi } from '@/test/api'
 import { renderInWorkspace, workspaceMe } from '@/test/app'
@@ -268,5 +268,26 @@ describe('New page (PagesStates · the template picker)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create page' }))
     expect(await screen.findByText('Give the page a name.')).toBeInTheDocument()
     expect(screen.getByLabelText('Page name')).toHaveAttribute('aria-invalid', 'true')
+  })
+})
+
+// X-1: pages say what the reader's role can't do, or who can, in words
+// (website:edit and website:publish never show).
+const permissionKey = /\b[a-z]+:(?:view|edit|send|pause|approve|publish|content|create|import|export|delete|verify|manage|sql|share|hostrepute|invite|use|run|review|connect|transfer|usage|library)\b/
+const english = import.meta.glob<Record<string, Record<string, MessageDescriptor>>>('./**/*messages.ts', { eager: true })
+const vietnamese = import.meta.glob<Catalog>('./**/*messages.vi.ts', { eager: true, import: 'default' })
+
+describe("pages copy", () => {
+  it('names no permission key, in English or Vietnamese', () => {
+    const en = Object.values(english).flatMap((file) => Object.values(file).flatMap((group) => Object.values(group)))
+    const vi = Object.values(vietnamese).flatMap((catalog) => Object.entries(catalog))
+    expect(en.length).toBeGreaterThan(0)
+    expect(vi.length).toBeGreaterThan(0)
+    for (const d of en) {
+      expect(d.message, d.id).not.toMatch(permissionKey)
+      // Nor does a call site pass one in: no {perm}, {perms} or {permission} to fill.
+      expect(d.message, d.id).not.toMatch(/\{perm(?:s|ission)?\}/)
+    }
+    for (const [id, text] of vi) expect(text, id).not.toMatch(permissionKey)
   })
 })

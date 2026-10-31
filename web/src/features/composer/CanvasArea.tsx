@@ -8,25 +8,31 @@ import { DigestPreviewWith, useDigestMode } from '@/features/digests/composer/Di
 import { DigestCanvasCards } from '@/features/digests/composer/IssueMode'
 import { dc } from '@/features/digests/composer/messages'
 import { AltTextNote, WHOLE_ZOOM, WholeIssue } from '@/features/digests/composer/WholeIssue'
-import { t as tt, useT } from '@/i18n'
+import { t as tt, useT, type MessageDescriptor } from '@/i18n'
 import { common } from '@/i18n/common'
 import { RewriteActions } from '@/features/ai/composer/rewrite'
+import { newTest, withVariant } from './ABPanel'
 import { mc } from './canvas.messages'
 import { m } from './messages'
 import { useComposer, type Issue } from './context'
 import { DEVICES, EMAIL_DEVICES, type DeviceId } from './editor/grapes'
 import { componentLabel, mjChildren, tagOf } from './editor/labels'
+import { friendlyLabel } from './friendly'
 import { headCss } from './editor/mjmlDoc'
+import { applyTextStyle, currentTextStyle, TEXT_STYLES, type TextEditing, type TextStyle } from './editor/textStyle'
+import { chipHtml } from './editor/liquid'
 import { componentAt, insertFooter, reveal } from './fixes'
 import { EmptyGallery } from './Gallery'
 import { ToolIcon } from './icons'
-import { contentIssues } from './RightPanel'
+import { canvasIssues } from './RightPanel'
+import { LiquidPopover } from './LiquidChips'
 import { StateCards } from './StateCards'
 import { AccessibilityOverlays } from '@/features/accessibility/composer/Overlays'
 import { ConditionalOverlays, ConditionalToggle } from '@/features/conditional/Canvas'
 import { VersionsPanel } from '@/features/conditional/Versions'
 import { SurveyLinkChoices } from '@/features/surveys/LinkChoices'
 import { EmailWebToggle, WebOverlays } from '@/features/website/composer/campaign'
+import { CommentOverlays } from './Comments'
 import { GrowPreviewAs } from '@/features/grow/composer/Panel'
 import { mb as growMessages } from '@/features/grow/composer/messages'
 import { mc as earnComposer } from '@/features/earn/composer/composer.messages'
@@ -118,8 +124,9 @@ function VariantSeg() {
   const keys = t ? t.variants.map((v) => v.key) : ['A']
   const add = () => {
     if (!c.canEdit) return
+    // A new subject variant starts from A's subject (CO-6).
     if (!t) {
-      c.setABTest({ kind: 'subject', testPercent: 20, metric: 'human_opens', durationHours: 2, variants: [{ key: 'A' }, { key: 'B', subject: '' }] })
+      c.setABTest(newTest('subject', c.subject, c.currentMjml))
       c.setVariant('B')
       return
     }
@@ -127,9 +134,9 @@ function VariantSeg() {
       c.setView('preview')
       return
     }
-    const next = (['B', 'C'] as const).find((k) => !t.variants.some((v) => v.key === k))!
-    c.setABTest({ ...t, variants: [...t.variants, t.kind === 'content' ? { key: next, mjml: c.currentMjml() } : { key: next, subject: '' }] })
-    c.setVariant(next)
+    const next = withVariant(t, c.subject, c.currentMjml)
+    c.setABTest(next)
+    c.setVariant(next.variants[next.variants.length - 1]!.key)
   }
   return (
     <div className="seg" role="group" aria-label={tr(mc.variantGroup)}>
@@ -175,7 +182,9 @@ export function ViewSeg({ dim }: { dim?: boolean }) {
       </div>
     )
   }
-  const items: { v: 'visual' | 'mjml' | 'html'; label: string }[] = [
+  const items: { v: 'visual' | 'write' | 'mjml' | 'html'; label: string }[] = [
+    // Write mode (CO-9): the email as a document.
+    ...(c.kind === 'transactional' ? [] : [{ v: 'write' as const, label: t(mc.viewWrite) }]),
     { v: 'visual', label: t(mc.viewVisual) },
     { v: 'mjml', label: 'MJML' },
     { v: 'html', label: 'HTML' },
@@ -191,18 +200,60 @@ export function ViewSeg({ dim }: { dim?: boolean }) {
   )
 }
 
-function Toolbar({ zoom }: { zoom: number }) {
+/**
+ * Undo, redo and zoom float at the canvas's top left (Composer board). When
+ * other tools sit beside them (Email · Web, Preview as, conditional
+ * content, variants), the email starts below the row instead of under it.
+ */
+function useFloatingTools(): RefObject<HTMLDivElement | null> {
+  const ref = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    const host = el?.parentElement
+    if (!el || !host) return
+    const update = () => {
+      const extra = el.children.length > 1
+      if (extra) {
+        el.dataset.extra = ''
+        host.style.setProperty('--tools-h', `${el.offsetHeight}px`)
+      } else {
+        delete el.dataset.extra
+        host.style.removeProperty('--tools-h')
+      }
+    }
+    update()
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update)
+    ro?.observe(el)
+    const mo = new MutationObserver(update)
+    mo.observe(el, { childList: true })
+    return () => {
+      ro?.disconnect()
+      mo.disconnect()
+    }
+  }, [])
+  return ref
+}
+
+function Toolbar({ zoom, zoomMode, onZoom }: { zoom: number; zoomMode: ZoomMode; onZoom: (z: ZoomMode) => void }) {
   const c = useComposer()
   const t = useT()
   const digest = useDigestMode()
-  const issues = contentIssues(c.checks?.issues)
-  const blocks = issues.filter((i) => i.severity === 'block').length
-  const warns = issues.length - blocks
   const mobile = c.device === 'mobile'
+  const ref = useFloatingTools()
+  // Subject and send-time variants don't change the canvas: the Inbox strip
+  // edits them (Composer board). Content variants switch here.
+  const contentTest = c.abTest?.kind === 'content'
   return (
-    <div className="cmp-tools">
-      <DeviceSeg />
-      <ViewSeg />
+    <div ref={ref} className="cmp-tools float">
+      {/* The board's floating tools: undo, redo and zoom (CO-14). */}
+      <div className="ctools" role="group" aria-label={t(mc.undoZoom)}>
+        <UndoRedo />
+        <select className="in" aria-label={t(mc.zoom)} value={zoomMode} onChange={(e) => onZoom(e.target.value as ZoomMode)}>
+          <option value="1">100%</option>
+          <option value="0.75">75%</option>
+          <option value="fit">{zoomMode === 'fit' && zoom < 1 ? t(mc.zoomFitAt, { pct: Math.round(zoom * 100) }) : t(mc.zoomFit)}</option>
+        </select>
+      </div>
       <EmailWebToggle />
       {digest ? <DigestPreviewWith /> : <CanvasPreviewAs />}
       <GrowPreviewAs editor={c.editor} slug={c.slug} rev={c.rev} campaignId={c.kind === 'transactional' ? undefined : c.campaign.id} />
@@ -212,25 +263,8 @@ function Toolbar({ zoom }: { zoom: number }) {
         <span className="k" style={{ marginLeft: 'auto' }}>
           {tt(dc.zoomWhole, { pct: Math.round(WHOLE_ZOOM * 100) })}
         </span>
-      ) : issues.length ? (
-        <>
-          {blocks ? (
-            <Badge tone="bad" dot>
-              {t(mc.blocking, { count: blocks })}
-            </Badge>
-          ) : null}
-          {warns ? (
-            <Badge tone="warn" dot>
-              {t(mc.warnings, { count: warns })}
-            </Badge>
-          ) : null}
-          <span className="k" style={{ marginLeft: 'auto' }}>
-            {t(mc.warningsNote)}
-          </span>
-        </>
       ) : mobile ? (
         <>
-          <UndoRedo />
           <Badge tone="info">{t(mc.columnsStack)}</Badge>
           <span className="k inline-flex items-center gap-1.5" style={{ marginLeft: 'auto' }}>
             {t(mc.darkMode)}{' '}
@@ -239,17 +273,23 @@ function Toolbar({ zoom }: { zoom: number }) {
             </button>
           </span>
         </>
-      ) : (
-        <>
-          <UndoRedo />
-          {/* A digest's issues have no A/B test: each issue's subject comes from its posts. */}
-          {digest || c.campaign.digestRole ? null : <VariantSeg />}
-          <span className="k" style={{ marginLeft: 'auto' }}>
-            {t(mc.zoomHint, { zoom: Math.round(zoom * 100) })}
-          </span>
-        </>
+      ) : digest || c.campaign.digestRole || !contentTest ? null : (
+        // A digest's issues have no A/B test: each issue's subject comes from its posts.
+        <VariantSeg />
       )}
     </div>
+  )
+}
+
+/** The selection's badge: "Section · 2 columns  Feature highlights", "Image" (Composer board). */
+function SelectionLabel({ sel }: { sel: Component }) {
+  const label = friendlyLabel(sel)
+  if (!label.head) return <span className="lab">{componentLabel(sel)}</span>
+  return (
+    <span className="lab">
+      {label.head}
+      {label.name ? <span className="lab-n">{label.name}</span> : null}
+    </span>
   )
 }
 
@@ -300,7 +340,7 @@ function SelectionOverlay({ host, tick }: { host: HTMLElement | null; tick: numb
       ))}
       <div className="cmp-sel" style={{ top: box.top, left: box.left, width: box.width, height: box.height }}>
         <div className="cmp-sel-box" aria-hidden="true" />
-        {rte ? null : <span className="lab">{componentLabel(sel)}</span>}
+        {rte ? null : <SelectionLabel sel={sel} />}
         {c.canEdit && !rte ? (
           <div className="tb" role="toolbar" aria-label={t(mc.componentTools)}>
             {canParent ? (
@@ -344,7 +384,7 @@ const TAGGED = new Set(['content.alt_text', 'links.blocklist', 'links.shortener'
 function WarningOverlays({ host, tick }: { host: HTMLElement | null; tick: number }) {
   const c = useComposer()
   const ed = c.editor
-  const issues = (c.checks?.issues ?? []).filter((i) => (i.severity === 'block' || i.severity === 'warn') && i.tag && i.path.length && TAGGED.has(i.id))
+  const issues = canvasIssues(c).filter((i) => (i.severity === 'block' || i.severity === 'warn') && i.tag && i.path.length && TAGGED.has(i.id))
   const placed = useMemo(() => {
     if (!ed) return []
     const out: { issue: Issue; box: Box; target: Component }[] = []
@@ -357,7 +397,7 @@ function WarningOverlays({ host, tick }: { host: HTMLElement | null; tick: numbe
       if (target && box) out.push({ issue, box, target })
     }
     return out
-  }, [ed, host, tick, c.checks]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ed, host, tick, c.checks, c.variant]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <>
       {placed.map(({ issue, box, target }, i) => {
@@ -387,7 +427,7 @@ function WarningOverlays({ host, tick }: { host: HTMLElement | null; tick: numbe
 function MissingFooter({ width }: { width: number }) {
   const c = useComposer()
   const t = useT()
-  const issue = c.checks?.issues.find((i) => i.id === 'compliance.footer')
+  const issue = canvasIssues(c).find((i) => i.id === 'compliance.footer')
   if (!issue) return null
   const when = c.checks?.footerRemovedAt
   return (
@@ -407,7 +447,9 @@ function MissingFooter({ width }: { width: number }) {
   )
 }
 
-type Rte = { exec(cmd: string, value?: string): void; insertHTML(html: string): void; selection(): Selection | null; doc: Document; el: HTMLElement }
+type Rte = TextEditing & { insertHTML(html: string): void }
+
+const styleLabels: Record<TextStyle, MessageDescriptor> = { p: mc.styleParagraph, heading: mc.styleHeading, subheading: mc.styleSubheading, small: mc.styleSmall }
 
 /**
  * GrapesJS ends text editing on any mousedown in the page outside the text.
@@ -470,13 +512,14 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
       return false
     }
   }
-  // As in MouseShield: stop GrapesJS ending the edit, and keep the focus in the text.
+  // As in MouseShield: stop GrapesJS ending the edit, and keep the focus in the text
+  // (a select still opens: it gives the focus back once a style is picked).
   const keep = (e: MouseEvent) => {
-    e.preventDefault()
+    if (!(e.target instanceof HTMLSelectElement)) e.preventDefault()
     e.stopPropagation()
   }
   // The text lives in the canvas iframe: give it focus back before formatting.
-  const exec = (cmd: string) => {
+  const inText = (fn: () => void) => {
     const s = rte.rte.selection()
     const r = s && s.rangeCount ? s.getRangeAt(0).cloneRange() : null
     rte.rte.el.focus()
@@ -484,9 +527,10 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
       s.removeAllRanges()
       s.addRange(r)
     }
-    rte.rte.exec(cmd)
+    fn()
     setSel((n) => n + 1)
   }
+  const exec = (cmd: string) => inText(() => rte.rte.exec(cmd))
   const saveRange = () => {
     const s = rte.rte.selection()
     range.current = s && s.rangeCount ? s.getRangeAt(0).cloneRange() : null
@@ -524,6 +568,15 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
   const tokens = c.context.tokens
   return (
     <div className="rte" role="toolbar" aria-label={tr(mc.textFormatting)} style={{ top: Math.max(0, box.top - 40), left: box.left }} onMouseDown={keep}>
+      {/* Headings and small print, as Write mode's formatting bar offers them (CO-8). */}
+      <select aria-label={tr(mc.textStyle)} value={currentTextStyle(rte.rte)} onChange={(e) => inText(() => applyTextStyle(rte.rte, e.target.value as TextStyle))}>
+        {TEXT_STYLES.map((s) => (
+          <option key={s} value={s}>
+            {tr(styleLabels[s])}
+          </option>
+        ))}
+      </select>
+      <span className="rsep" aria-hidden="true" />
       <button type="button" aria-label={tr(mc.bold)} aria-pressed={state('bold')} onClick={() => exec('bold')}>
         <b>B</b>
       </button>
@@ -574,6 +627,20 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
         </MouseShield>
       </Popover>
       <span className="rsep" aria-hidden="true" />
+      <button type="button" aria-label={tr(mc.bulletedList)} title={tr(mc.bulletedList)} aria-pressed={state('insertUnorderedList')} onClick={() => exec('insertUnorderedList')}>
+        <svg viewBox="0 0 16 16" strokeWidth={1.7} strokeLinecap="round" aria-hidden="true">
+          <path d="M6 4h8M6 8h8M6 12h8" />
+          <circle cx="2.5" cy="4" r=".6" />
+          <circle cx="2.5" cy="8" r=".6" />
+          <circle cx="2.5" cy="12" r=".6" />
+        </svg>
+      </button>
+      <button type="button" aria-label={tr(mc.numberedList)} title={tr(mc.numberedList)} aria-pressed={state('insertOrderedList')} onClick={() => exec('insertOrderedList')}>
+        <svg viewBox="0 0 16 16" strokeWidth={1.6} strokeLinecap="round" aria-hidden="true">
+          <path d="M6.5 4h7.5M6.5 8h7.5M6.5 12h7.5M2 3l1-.5v3M2 7.5h2L2 10h2M2 12h1.6l-.9 1 .9 1H2" />
+        </svg>
+      </button>
+      <span className="rsep" aria-hidden="true" />
       <Popover
         label={tr(mc.insertToken)}
         className="w-[280px]"
@@ -608,7 +675,8 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
                 onClick={() => {
                   restoreRange()
                   const token = t.fallback !== undefined && t.fallback !== '' ? `{{ ${t.key} | default: "${t.fallback}" }}` : `{{ ${t.key} }}`
-                  rte.rte.insertHTML(token.replace(/&/g, '&amp;').replace(/</g, '&lt;'))
+                  // A chip, as the canvas shows tokens (it exports as the token).
+                  rte.rte.insertHTML(`${chipHtml(token, { label: t.label, fallback: t.fallback || undefined, unknown: false })}&nbsp;`)
                 }}
               >
                 <span>{t.label}</span>
@@ -623,8 +691,10 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
   )
 }
 
-/** Fits the device width into the canvas column (tablet and phone screens). */
-function useZoom(editor: Editor | null, stage: HTMLElement | null, device: DeviceId): number {
+/** 100%, 75%, or Fit: the device width fitted into the canvas column (tablet and phone screens). */
+export type ZoomMode = '1' | '0.75' | 'fit'
+
+function useZoom(editor: Editor | null, stage: HTMLElement | null, device: DeviceId, mode: ZoomMode = 'fit'): number {
   const [zoom, setZoom] = useState(1)
   useLayoutEffect(() => {
     if (!stage) return
@@ -632,13 +702,14 @@ function useZoom(editor: Editor | null, stage: HTMLElement | null, device: Devic
     const measure = () => {
       const cs = getComputedStyle(stage)
       const avail = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
-      setZoom(avail >= width ? 1 : Math.max(0.4, Math.floor((avail / width) * 100) / 100))
+      const fit = avail >= width ? 1 : Math.max(0.4, Math.floor((avail / width) * 100) / 100)
+      setZoom(mode === 'fit' ? fit : Number(mode))
     }
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(stage)
     return () => ro.disconnect()
-  }, [stage, device])
+  }, [stage, device, mode])
   useEffect(() => {
     if (editor && Math.abs(editor.Canvas.getZoom() - zoom * 100) > 0.5) editor.Canvas.setZoom(zoom * 100)
   }, [editor, zoom])
@@ -725,7 +796,8 @@ export function CanvasArea({
   const [host, setHost] = useState<HTMLDivElement | null>(null)
   const [stage, setStage] = useState<HTMLDivElement | null>(null)
   const ed = c.editor
-  const zoom = useZoom(ed, stage, c.device)
+  const [zoomMode, setZoomMode] = useState<ZoomMode>('fit')
+  const zoom = useZoom(ed, stage, c.device, zoomMode)
   const tick = useCanvasTick(ed, host)
   useZoomHeight(ed, zoom, tick, c.device, host)
   useFrameTitle(ed)
@@ -743,17 +815,19 @@ export function CanvasArea({
   if (c.isEmpty) {
     return (
       <>
-        <div className="cmp-tools" style={{ opacity: 0.55 }} aria-hidden="true" inert>
-          <DeviceSeg dim />
-          <ViewSeg dim />
-        </div>
+        {slots?.empty ? (
+          <div className="cmp-tools" style={{ opacity: 0.55 }} aria-hidden="true" inert>
+            <DeviceSeg dim />
+            <ViewSeg dim />
+          </div>
+        ) : null}
         {slots?.empty ?? <EmptyGallery />}
       </>
     )
   }
   return (
     <>
-      {slots?.toolbar ? slots.toolbar(zoom) : <Toolbar zoom={zoom} />}
+      {slots?.toolbar ? slots.toolbar(zoom) : <Toolbar zoom={zoom} zoomMode={zoomMode} onZoom={setZoomMode} />}
       <div ref={canvasRef} className="cmp-canvas" id={c.view === 'visual' ? 'main' : undefined} tabIndex={-1} {...canvasScroll}>
         {whole ? <WholeIssue /> : null}
         <div
@@ -782,9 +856,11 @@ export function CanvasArea({
             <AccessibilityOverlays host={host} tick={tick} boxOf={boxOf} />
             <ConditionalOverlays host={host} tick={tick} boxOf={boxOf} />
             <WebOverlays host={host} tick={tick} boxOf={boxOf} />
+            <CommentOverlays host={host} tick={tick} boxOf={boxOf} />
             <LanguageTags host={host} tick={tick} />
             <SelectionOverlay host={host} tick={tick} />
             <RteToolbar host={host} tick={tick} />
+            <LiquidPopover host={host} tick={tick} boxOf={boxOf} />
           </div>
           {ed ? (
             <div className="mx-auto" style={{ width: frameWidth }}>

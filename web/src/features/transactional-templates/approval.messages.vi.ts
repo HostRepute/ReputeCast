@@ -3,7 +3,7 @@ import { m } from './approval.messages'
 
 export default translate(m, {
   ruleTitle: 'Xuất bản mẫu giao dịch cũng cần phê duyệt',
-  ruleDetail: 'Áp dụng cho transactional:publish. Khi tắt: việc xuất bản chỉ được ghi vào nhật ký, và API gửi phiên bản mới ngay.',
+  ruleDetail: 'Áp dụng cho mọi người có thể xuất bản mẫu giao dịch. Khi tắt: việc xuất bản chỉ được ghi vào nhật ký, và API gửi phiên bản mới ngay.',
   cardTitle: 'Mẫu giao dịch',
   cardCaption: 'Bản nháp mà phê duyệt này cho phép tác giả xuất bản',
   version: 'Phiên bản',

@@ -9,12 +9,12 @@ import { Input, Select } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
-import { T, formatList, useT } from '@/i18n'
+import { formatList, useT } from '@/i18n'
 import { clock, count, dayMonthDate, dayMonthYear } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import { mv } from './review.messages'
-import { GROW, GrowPage, LoadError, ProgramNav, mono, orNames, useGrowRefresh, useReferralPrograms } from './shared'
+import { GROW, GrowPage, LoadError, ProgramNav, orNames, useGrowRefresh, useReferralPrograms } from './shared'
 
 type Queue = Schemas['ReferralReviewQueue']
 type Group = Schemas['ReferralReviewGroup']
@@ -103,7 +103,7 @@ function Queue({ d, programId, listName, search, onSearch }: { d: Queue; program
       </div>
       {!canReview ? (
         <Note tone="neutral">
-          <T msg={d.helpers.review.length ? mv.readOnly : mv.readOnlyNoHelpers} values={{ helpers: orNames(d.helpers.review), mono }} />
+          {t(d.helpers.review.length ? mv.readOnly : mv.readOnlyNoHelpers, { helpers: orNames(d.helpers.review) })}
         </Note>
       ) : null}
       <div className="flex flex-wrap items-center gap-2.5">

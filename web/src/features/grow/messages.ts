@@ -37,7 +37,7 @@ export const m = defineMessages('grow', {
   none: '–',
   loading: 'Loading…',
   forbiddenTitle: "You can't see Grow",
-  forbiddenText: 'Seeing referrals and recommendations needs <mono>grow:view</mono>. Ask an owner or admin of this workspace.',
+  forbiddenText: "Your role can't see referrals and recommendations. Ask an owner or admin of this workspace.",
   loadErrorDetail: 'The server answered {status} after 3 tries. Links keep working and referrals keep counting; only this page is affected.',
   loadErrorDetailNoStatus: "The server couldn't be reached after 3 tries. Links keep working and referrals keep counting; only this page is affected.",
   growOverview: 'Grow overview',
@@ -214,8 +214,8 @@ export const mo = defineMessages('grow.overview', {
   loadingChart: 'New subscribers, loading',
   loadingProgram: 'Referral program, loading',
   loadingRecs: 'Recommendations, loading',
-  readOnlyText: 'You can see results, referrers and recommendations. Changing the program needs <mono>grow:edit</mono> and deciding on held referrals needs <mono>grow:review</mono>: ask {editHelpers}. Partner links need <mono>grow:connect</mono>: ask {connectHelpers}.',
-  readOnlyTextNoHelpers: 'You can see results, referrers and recommendations. Changing the program needs <mono>grow:edit</mono>, deciding on held referrals <mono>grow:review</mono>, and partner links <mono>grow:connect</mono>.',
+  readOnlyText: "You can see results, referrers and recommendations. Your role can't change the program, decide on held referrals or manage partner links. Ask {editHelpers} about the program and held referrals, and {connectHelpers} about partner links.",
+  readOnlyTextNoHelpers: "You can see results, referrers and recommendations. Your role can't change the program, decide on held referrals or manage partner links.",
 })
 
 /** The line under a signup form's embed code (Forms › form builder), once a referral program exists. */

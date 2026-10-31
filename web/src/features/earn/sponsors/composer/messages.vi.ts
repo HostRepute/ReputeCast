@@ -23,8 +23,8 @@ export default translate(mcs, {
   noneNoIssue: 'Không có vị trí tài trợ nào áp dụng cho danh sách của email này. Khối này sẽ bị ẩn.',
   noDate: 'Email này chưa có ngày gửi. Khi email được lên lịch, khối sẽ tự điền từ lượt đặt chỗ của số đó; trước đó khối bị ẩn.',
   // helpers: names joined as "A or B".
-  noPrice: 'Giá và lượt đặt chỗ nằm trong Kiếm tiền, và Kiếm tiền cần quyền earn:view. Hãy hỏi {helpers}.',
-  noPriceAlone: 'Giá và lượt đặt chỗ nằm trong Kiếm tiền, và Kiếm tiền cần quyền earn:view.',
+  noPrice: 'Giá và lượt đặt chỗ nằm trong Kiếm tiền, mà vai trò của bạn không xem được. Hãy hỏi {helpers}.',
+  noPriceAlone: 'Giá và lượt đặt chỗ nằm trong Kiếm tiền, mà vai trò của bạn không xem được.',
   creative: 'Nội dung tài trợ',
   creativeNote: 'Được hiển thị đúng như nhà tài trợ gửi. Bạn có thể đổi bố cục, nhãn và phần Hiển thị.',
   layout: 'Bố cục',

@@ -73,7 +73,7 @@ describe('GlobalShortcuts', () => {
   it('N tells a viewer why nothing happened', async () => {
     const { router } = await renderInWorkspace(<GlobalShortcuts />)
     act(() => void press('n'))
-    expect(await screen.findByText('Editing campaigns needs the campaigns:edit permission.')).toBeInTheDocument()
+    expect(await screen.findByText("Editing campaigns needs a permission you don't have.")).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/w/acme-newsletter/campaigns')
   })
 

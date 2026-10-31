@@ -21,7 +21,7 @@ import { recBadge } from './OverviewPage'
 import { PreviewButton } from './Previews'
 import { m } from './messages'
 import { mc } from './recommendations.messages'
-import { GROW, GrowPage, LoadError, NewsletterTile, ReadOnlyNote, copy, mono, orNames, uploadFile, useGrowRefresh } from './shared'
+import { GROW, GrowPage, LoadError, NewsletterTile, ReadOnlyNote, copy, orNames, uploadFile, useGrowRefresh } from './shared'
 
 type View = Schemas['RecommendationsView']
 type Item = Schemas['RecommendationItem']
@@ -121,14 +121,14 @@ function Body({ v, onAdd, onCode }: { v: View; onAdd: () => void; onCode: () => 
     <div className="gw">
       {!canEdit && !canConnect ? (
         <ReadOnlyNote>
-          <T
-            msg={v.helpers.edit.length && v.helpers.connect.length ? mc.readOnlyText : mc.readOnlyTextNoHelpers}
-            values={{ mono, editHelpers: orNames(v.helpers.edit), connectHelpers: orNames(v.helpers.connect) }}
-          />
+          {t(v.helpers.edit.length && v.helpers.connect.length ? mc.readOnlyText : mc.readOnlyTextNoHelpers, {
+            editHelpers: orNames(v.helpers.edit),
+            connectHelpers: orNames(v.helpers.connect),
+          })}
         </ReadOnlyNote>
       ) : canEdit && !canConnect ? (
         <Note tone="neutral">
-          <T msg={v.helpers.connect.length ? mc.editorNoConnect : mc.editorNoConnectNoHelpers} values={{ mono, helpers: orNames(v.helpers.connect) }} />
+          {t(v.helpers.connect.length ? mc.editorNoConnect : mc.editorNoConnectNoHelpers, { helpers: orNames(v.helpers.connect) })}
         </Note>
       ) : null}
       <YouRecommend v={v} />
@@ -585,7 +585,7 @@ function RowMenu({ it }: { it: Item }) {
         ) : null}
         {it.kind === 'partner' && !canConnect ? (
           <span className="k block px-3 py-1.5">
-            <T msg={mc.needsConnect} values={{ mono }} />
+            {t(mc.needsConnect)}
           </span>
         ) : null}
       </Menu>
@@ -810,7 +810,7 @@ function RecommendingYou({ v }: { v: View }) {
           <p className="m-0 text-[13.5px]">{t(mc.endFinal, { name: ending.name })}</p>
           {v.items.some((it) => it.kind === 'partner' && it.name === ending.name) ? <Note tone="info">{t(mc.endSeparate, { name: ending.name })}</Note> : null}
           <span className="k">
-            <T msg={mc.connectNeeds} values={{ mono }} />
+            {t(mc.connectNeeds)}
           </span>
         </ConfirmDialog>
       ) : null}
@@ -1180,7 +1180,7 @@ function AddDialog({ v, onClose, start = 'choose' }: { v?: View; onClose: () => 
           <OptionCard name="rec-kind" value="partner" checked={kind === 'partner'} disabled={!canConnect} onChange={() => setKind('partner')} title={t(mc.addPartner)} description={t(mc.addPartnerText)}>
             {!canConnect ? (
               <span className="k">
-                <T msg={v?.helpers.connect.length ? mc.editorNoConnect : mc.editorNoConnectNoHelpers} values={{ mono, helpers: orNames(v?.helpers.connect) }} />
+                {t(v?.helpers.connect.length ? mc.editorNoConnect : mc.editorNoConnectNoHelpers, { helpers: orNames(v?.helpers.connect) })}
               </span>
             ) : null}
           </OptionCard>
@@ -1296,7 +1296,7 @@ function AddDialog({ v, onClose, start = 'choose' }: { v?: View; onClose: () => 
       footer={
         <>
           <span className="k mr-auto">
-            <T msg={mc.connectNeeds} values={{ mono }} />
+            {t(mc.connectNeeds)}
           </span>
           <Button onClick={onClose}>{t(mc.cancel)}</Button>
           <Button variant="primary" loading={busy} disabled={!showConfirm && !showBlock} onClick={() => void connect()}>
@@ -1503,7 +1503,7 @@ function CodeDialog({ v, onClose }: { v: View; onClose: () => void }) {
       footer={
         <>
           <span className="k mr-auto">
-            <T msg={mc.needsConnect} values={{ mono }} />
+            {t(mc.needsConnect)}
           </span>
           <Button onClick={onClose}>{t(mc.cancel)}</Button>
           <Button variant="primary" loading={busy} disabled={!label.trim() || !listId} onClick={() => void create()}>

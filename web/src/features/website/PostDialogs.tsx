@@ -66,14 +66,14 @@ export function PostStateDialog({ post: p, overview, onClose, onDialog }: { post
           {a.requestedBy}
         </span>,
       ],
-      [t(mp.rule), a.rule === 'post_publish' ? t(mp.rulePostPublish) : <T msg={mp.ruleAuthorLacksSend} values={{ perm: code('website:publish') }} />],
-      [t(mp.canApprove), <T key="ca" msg={mp.canApproveWho} values={{ approvers: orList(a.approvers), perm: <span className="k">{'campaigns:approve'}</span> }} />],
+      [t(mp.rule), a.rule === 'post_publish' ? t(mp.rulePostPublish) : t(mp.ruleAuthorLacksSend)],
+      [t(mp.canApprove), t(mp.canApproveWho, { approvers: orList(a.approvers) })],
       [t(mp.covers), t(mp.coversText, { path: postPath(p), visibility: visName(t, p.visibility) })],
     ]
     if (canPublish && !canApprove) {
       note = (
         <Note tone="neutral">
-          <T msg={mp.cantApprove} values={{ perm: code('campaigns:approve') }} />
+          {t(mp.cantApprove)}
         </Note>
       )
     }

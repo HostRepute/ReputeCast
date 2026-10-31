@@ -1410,11 +1410,15 @@ func (q *Queries) ReferralListSubscribers(ctx context.Context, listID uuid.UUID)
 }
 
 const referralListsOffered = `-- name: ReferralListsOffered :many
-SELECT l.id, l.name, l.description,
-       (SELECT count(*) FROM list_memberships lm JOIN contacts c ON c.id = lm.contact_id
-        WHERE lm.list_id = l.id AND lm.status = 'subscribed' AND c.erased_at IS NULL)::bigint AS subscribers,
+SELECT l.id, l.name, l.description, coalesce(n.subscribers, 0)::bigint AS subscribers,
        EXISTS (SELECT 1 FROM referral_programs p WHERE p.list_id = l.id AND p.deleted_at IS NULL) AS taken
 FROM lists l
+LEFT JOIN (
+  SELECT lm.list_id, count(*) AS subscribers
+  FROM list_memberships lm JOIN contacts c ON c.id = lm.contact_id
+  WHERE c.workspace_id = $1 AND lm.status = 'subscribed' AND c.erased_at IS NULL
+  GROUP BY lm.list_id
+) n ON n.list_id = l.id
 WHERE l.workspace_id = $1 AND l.deleted_at IS NULL
 ORDER BY subscribers DESC, l.name
 `
@@ -1427,7 +1431,8 @@ type ReferralListsOfferedRow struct {
 	Taken       bool      `json:"taken"`
 }
 
-// Lists a program can use, with their subscribers and whether a program
+// Lists a program can use, with their subscribers (the workspace's
+// memberships counted in one pass, not list by list) and whether a program
 // already has them.
 func (q *Queries) ReferralListsOffered(ctx context.Context, workspaceID uuid.UUID) ([]ReferralListsOfferedRow, error) {
 	rows, err := q.db.Query(ctx, referralListsOffered, workspaceID)

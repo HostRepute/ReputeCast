@@ -2,27 +2,42 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import type { Component } from 'grapesjs'
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { $api, ApiError, errorMessage, http } from '@/api/client'
+import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
 import { andList, clock } from '@/lib/format'
-import { useDocumentTitle } from '@/lib/hooks'
+import { mn } from './banners.messages'
+import { useDocumentTitle, useMediaQuery } from '@/lib/hooks'
 import { useUnsavedWork } from '@/lib/sessionClock'
 import { runShortcutHandler, useShortcutHandler } from '@/lib/shortcuts'
-import { useCan, useWorkspace } from '@/lib/session'
+import { useCan, useMe, useWorkspace } from '@/lib/session'
+import { ComposerBanners, type Recovered } from './Banners'
+import { ApprovalBanner, ApprovalDialog, type Approval } from './Approval'
 import { CanvasArea } from './CanvasArea'
-import { ComposerCtx, type ABTest, type Campaign, type Checks, type ComposerCtxData, type ComposerDialog, type ComposerState, type SaveStatus, type View } from './context'
+import { ComposerCtx, type ABTest, type Campaign, type Checks, type ComposerCtxData, type ComposerDialog, type ComposerState, type RightTab, type SaveStatus, type View } from './context'
 import { Dialogs } from './Dialogs'
+import { variantLines } from './ABPanel'
 import { trackChanges, type ChangeTracker } from './editor/changes'
 import { createComposerEditor, type ComposerEditor, type DeviceId, type EmailDevice } from './editor/grapes'
-import { atPath } from './editor/labels'
+import { installCanvasKeys } from './editor/keys'
+import { lockCanvas, unlockCanvas, type Locked } from './editor/lock'
+import { isKnownField, knownFields } from './editor/fields'
+import { setChipLabels } from './editor/liquid'
+import { trackMeta, type Meta, type MetaUndo } from './editor/metaUndo'
+import { atPath, sectionWord } from './editor/labels'
+import { applySections } from './editor/merge'
+import { mx } from './collab.messages'
 import { canvasHead, isEmptyBody, joinMjml, splitMjml, withHeadMeta } from './editor/mjmlDoc'
 import { Footer, VersionLink } from './Footer'
 import { Header, PermissionBanner } from './Header'
 import { LeftPanel } from './LeftPanel'
 import { PreviewView } from './PreviewView'
+import { WriteView } from './write/WriteView'
 import { RightPanel } from './RightPanel'
-import { SubjectBar } from './SubjectBar'
+import { forgetRecovered, journalWriter, useJournalKey, useRecoveredJournal, type JournalWriter } from './journal'
+import { serialQueue } from './saveQueue'
+import { InboxStrip } from './InboxStrip'
+import { QuickReviewBar, QuickReviewNote } from './QuickReview'
 import { AccessibilityProvider } from '@/features/accessibility/composer/state'
 import { ConditionalProvider } from '@/features/conditional/state'
 import { withoutAltText } from '@/features/accessibility/composer/Status'
@@ -38,6 +53,7 @@ import { WebCanvasView, WebModeProvider } from '@/features/website/composer/camp
 import { t as tt, useT } from '@/i18n'
 import { m } from './messages'
 import './composer.css'
+import './chrome.css'
 
 // CodeMirror loads with the code view only.
 const CodeView = lazy(() => import('./CodeView').then((m) => ({ default: m.CodeView })))
@@ -50,17 +66,19 @@ export interface ComposerSearch {
   variant?: string
   /** Component to select once the canvas is ready (element path from mj-body, "1-0-0"). */
   select?: string
-  panel?: 'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'
+  panel?: RightTab
   left?: 'blocks' | 'layers' | 'templates'
+  /** A comment thread to show with panel=comments (a mention's link, CO-10). */
+  thread?: string
 }
-
-const BACKUP_KEY = (id: string) => `rc-composer-backup:${id}`
 
 function offlineError(e: unknown) {
   return e instanceof TypeError || (e instanceof ApiError && (e.status === 502 || e.status === 503 || e.status === 504))
 }
 
-type PendingSource = { source: 'template' | 'import' | 'code' | 'restore'; label?: string }
+type PendingSource = { source: 'template' | 'import' | 'code' | 'restore' | 'recovered'; label?: string }
+
+type SaveOptions = Parameters<ComposerState['save']>[0] & {}
 
 /**
  * The campaign composer: GrapesJS + MJML on a canvas with ReputeCast's own UI
@@ -86,8 +104,17 @@ export function Composer({
   const qc = useQueryClient()
   const navigate = useNavigate()
   const canEditPerm = useCan('campaigns:edit')
-  const canEdit = canEditPerm && campaign.access.editable && !missingLanguage
+  // An approved or pending campaign opens without editing: editing cancels its
+  // approval, so the person says so first (CO-7, ComposerStates · Approval).
+  const [approvalGate, setApprovalGate] = useState(() => Boolean(campaign.approval) && canEditPerm && campaign.access.editable && !missingLanguage)
+  const [approvalInfo, setApprovalInfo] = useState<Approval | null>(campaign.approval ?? null)
+  const [askApproval, setAskApproval] = useState<'open' | 'save' | null>(null)
+  /** The person agreed that saving cancels the approval: saves say so. */
+  const cancelApproval = useRef(false)
+  const canEdit = canEditPerm && campaign.access.editable && !missingLanguage && !approvalGate
   const view: View = search.view === 'compare' ? 'visual' : (search.view ?? 'visual')
+  // Phones get quick review in Design mode (ComposerPhone board).
+  const phone = useMediaQuery('(max-width: 767px)')
   // The assistant (features/ai): its panel in the right column, and translating with AI in place of the canvas.
   const assist = useComposerAssistState(campaign.id)
   const comparing = search.view === 'compare' || Boolean(assist.translating)
@@ -108,9 +135,20 @@ export function Composer({
   const [subject, setSubjectState] = useState(campaign.subject)
   const [preheader, setPreheaderState] = useState(campaign.preheader)
   const [abTest, setABTestState] = useState<ABTest | null>(campaign.abTest ?? null)
+  // Saves read what is typed from these refs, not from a render's closure:
+  // a subject typed while a slow save is on its way belongs to the next save.
+  const subjectRef = useRef(campaign.subject)
+  const preheaderRef = useRef(campaign.preheader)
   const abRef = useRef(abTest)
   const [empty, setEmpty] = useState(() => isEmptyBody(campaign.mjml))
   const bodyRef = useRef(initial.body)
+  /** Undo and redo of the subject, preheader and A/B test, on the editor's undo stack (CO-8). */
+  const meta = useRef<MetaUndo | null>(null)
+  const currentMeta = useCallback((): Meta => ({ subject: subjectRef.current, preheader: preheaderRef.current, abTest: abRef.current }), [])
+  const canEditRef = useRef(canEdit)
+  useLayoutEffect(() => {
+    canEditRef.current = canEdit
+  }, [canEdit])
 
   const [ge, setGe] = useState<ComposerEditor | null>(null)
   const [selected, setSelected] = useState<Component | null>(null)
@@ -118,10 +156,16 @@ export function Composer({
   const [status, setStatus] = useState<SaveStatus>(() =>
     campaign.autosavedAt ? { kind: 'saved', at: campaign.autosavedAt, version: campaign.version } : { kind: 'new' },
   )
+  const statusRef = useRef(status)
+  useLayoutEffect(() => {
+    statusRef.current = status
+  }, [status])
   const [checks, setChecks] = useState<Checks>()
+  /** The last check run failed (its results stay, marked stale), or succeeded again after a failure. */
+  const [checksRun, setChecksRun] = useState<{ state: 'ok' | 'failed' | 'recovered'; reason?: 'network' | 'server' }>({ state: 'ok' })
   const [checksPending, setChecksPending] = useState(false)
   const [checksNonce, setChecksNonce] = useState(0)
-  const [rightTab, setRightTab] = useState<'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'>(search.panel ?? 'style')
+  const [rightTab, setRightTab] = useState<RightTab>(search.panel ?? 'style')
   const [leftTab, setLeftTab] = useState<'blocks' | 'layers' | 'templates'>(search.left ?? 'blocks')
   // A deep link selects its component once the canvas is ready.
   const deepLink = useRef(search.select)
@@ -136,28 +180,79 @@ export function Composer({
   const revision = useRef(0)
   const savedRevision = useRef(0)
   const tracker = useRef<ChangeTracker | null>(null)
-  const saving = useRef<Promise<boolean> | null>(null)
   const pendingSource = useRef<PendingSource | null>(null)
+  /** Told the revision a save stored (the browser journal forgets what is saved). */
+  const afterSaved = useRef<((rev: number) => void) | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const geRef = useRef<ComposerEditor | null>(null)
+  /** What the read-only canvas took away from each component, to give back when editing is agreed to. */
+  const locked = useRef<Locked | null>(null)
   const leaveCheck = useRef<(() => boolean) | null>(null)
   /** Content A/B tests: the canvas shows one variant; the others' bodies wait here. */
   const variantBodies = useRef<Record<string, string>>({})
   const shownVariant = useRef('A')
+  /** Resolves once the canvas is ready (a recovered draft waits for it before saving). */
+  const editorReady = useRef<{ promise: Promise<void>; resolve: () => void } | null>(null)
+  const whenEditorReady = useCallback(() => {
+    if (geRef.current) return Promise.resolve()
+    if (!editorReady.current) {
+      let resolve!: () => void
+      const promise = new Promise<void>((r) => (resolve = r))
+      editorReady.current = { promise, resolve }
+    }
+    return editorReady.current.promise
+  }, [])
+
+  // The browser journal (CO-1): every edit reaches this browser's storage within
+  // two seconds, keystrokes in a text included; a save that catches up clears it.
+  // Edits found there when the composer opens are offered back (Recovered edits).
+  const { data: meData } = useMe()
+  const jKey = useJournalKey(meData?.user.id ?? 'me', campaign.id, language)
+  const journal = useRef<JournalWriter | null>(null)
+  const [recoveredEntry, setRecoveredEntry] = useRecoveredJournal(jKey, campaign, canEdit)
 
   useDocumentTitle(t(m.documentTitle, { name: name || t(m.untitled) }))
 
   const markDirty = useCallback(() => {
     revision.current++
+    journal.current?.touch()
     setRev((r) => r + 1)
     setStatus((s) => (s.kind === 'saving' || s.kind === 'conflict' || s.kind === 'offline' ? s : { kind: 'dirty', at: s.kind === 'saved' ? s.at : undefined, version: version.current }))
   }, [])
+
+  /** What an undo or a redo brings back to the subject, preheader and A/B test. */
+  const applyMeta = useCallback(
+    (next: Meta) => {
+      if (next.subject !== subjectRef.current) {
+        subjectRef.current = next.subject
+        setSubjectState(next.subject)
+        tracker.current?.note(tt(m.noteSubject))
+      }
+      if (next.preheader !== preheaderRef.current) {
+        preheaderRef.current = next.preheader
+        setPreheaderState(next.preheader)
+        tracker.current?.note(tt(m.notePreheader))
+      }
+      if (JSON.stringify(next.abTest) !== JSON.stringify(abRef.current)) {
+        abRef.current = next.abTest
+        setABTestState(next.abTest)
+        tracker.current?.note(next.abTest ? tt(m.noteAb, { kind: next.abTest.kind }) : tt(m.noteAbRemoved))
+      }
+      markDirty()
+    },
+    [markDirty],
+  )
+  const applyMetaRef = useRef(applyMeta)
+  useLayoutEffect(() => {
+    applyMetaRef.current = applyMeta
+  }, [applyMeta])
 
   const editorWanted = !empty
   useEffect(() => {
     if (!editorWanted || !containerRef.current) return
     let cancelled = false
     let created: ComposerEditor | null = null
+    let stopKeys: (() => void) | undefined
     // Each editor gets its own mount: a cancelled one (React re-running the
     // effect) is destroyed later and must not take the next one with it.
     const mount = document.createElement('div')
@@ -175,17 +270,24 @@ export function Composer({
         // Dev builds expose the live editor to the visual QA scripts.
         if (import.meta.env.DEV) (window as unknown as { __rcComposer?: typeof ed }).__rcComposer = ed
         tracker.current = trackChanges(ed)
+        meta.current = trackMeta(ed, currentMeta(), (next) => applyMetaRef.current(next))
+        stopKeys = installCanvasKeys(ed, () => canEditRef.current)
         ed.on('update', markDirty)
-        // Typing in a text only reports input; it's an edit all the same.
-        ed.on('component:input', markDirty)
+        // Typing in a text only reports input; it's an edit all the same, saved and
+        // journaled as it is typed (getLiveBody), without ending the editing.
+        ed.on('component:input', (comp: Component) => {
+          tracker.current?.typing(comp)
+          markDirty()
+        })
         ed.on('component:toggled', () => setSelected(ed.getSelected() ?? null))
         ed.on('component:remove', () => setSelected(ed.getSelected() ?? null))
-        ed.on('undo redo', () => setRev((r) => r + 1))
-        if (!canEdit) {
-          // Read-only: no dragging, no text editing.
-          ed.getWrapper()?.onAll((c: Component) => c.set({ draggable: false, droppable: false, editable: false, removable: false, copyable: false }))
-        }
+        // Chips read the workspace's fields once they load: Write mode redraws them too.
+        ed.on('undo redo rc:liquid:labels', () => setRev((r) => r + 1))
+        // Read-only: no dragging, no text editing (given back if editing is agreed to later).
+        if (!canEdit) locked.current = lockCanvas(ed)
         setGe(inst)
+        editorReady.current?.resolve()
+        editorReady.current = null
         const link = deepLink.current
         if (link) {
           deepLink.current = undefined
@@ -204,6 +306,9 @@ export function Composer({
       cancelled = true
       tracker.current?.dispose()
       tracker.current = null
+      meta.current?.dispose()
+      meta.current = null
+      stopKeys?.()
       if (geRef.current === created) geRef.current = null
       created?.editor.destroy()
       if (created) mount.remove()
@@ -219,6 +324,23 @@ export function Composer({
     if (ge && ge.editor.getDevice() !== device) ge.editor.setDevice(device)
   }, [ge, device])
 
+  // Liquid chips read the workspace's fields: their names, and which keys aren't fields (CO-4).
+  const tokens = context.tokens
+  const digestTemplate = campaign.digestRole === 'template'
+  useEffect(() => {
+    if (!ge) return
+    const known = knownFields(tokens, digestTemplate)
+    setChipLabels(ge.editor, (p) => ({ label: tokens.find((x) => x.key === p.key)?.label ?? p.key, fallback: p.fallback, unknown: !isKnownField(p.key, known) }))
+  }, [ge, tokens, digestTemplate])
+
+  // Editing agreed to: the canvas takes edits again.
+  useEffect(() => {
+    if (canEdit && ge && locked.current) {
+      unlockCanvas(locked.current)
+      locked.current = null
+    }
+  }, [canEdit, ge])
+
   // Re-render the canvas when the head changes (mj-attributes, styles).
   useEffect(() => {
     if (!ge) return
@@ -226,15 +348,16 @@ export function Composer({
     for (const t of ['mj-section', 'mj-hero', 'mj-wrapper', 'mj-raw']) body?.findType(t).forEach((c: Component) => (c.view as unknown as { rerender?: () => void })?.rerender?.())
   }, [ge, head])
 
-  const canvasBody = useCallback(() => (geRef.current ? geRef.current.getBody() : bodyRef.current), [])
+  /** The canvas as MJML, with the words of a text being typed (they reach the model only when its editing ends). */
+  const canvasBody = useCallback(() => (geRef.current ? geRef.current.getLiveBody() : bodyRef.current), [])
 
   /** Body of variant A: the canvas, unless it shows another variant of a content test. */
   const bodyA = useCallback(() => (shownVariant.current === 'A' ? canvasBody() : (variantBodies.current.A ?? canvasBody())), [canvasBody])
 
   const currentMjml = useCallback(() => {
     if (empty && !geRef.current) return ''
-    return joinMjml(withHeadMeta(headRef.current, { title: subject, preview: preheader }), bodyA())
-  }, [empty, subject, preheader, bodyA])
+    return joinMjml(withHeadMeta(headRef.current, { title: subjectRef.current, preview: preheaderRef.current }), bodyA())
+  }, [empty, bodyA])
 
   const compileCurrent = useCallback(() => {
     const inst = geRef.current
@@ -249,7 +372,7 @@ export function Composer({
     if (!t) return undefined
     if (t.kind !== 'content' || !geRef.current) return t
     const inst = geRef.current
-    const h = withHeadMeta(headRef.current, { title: subject, preview: preheader })
+    const h = withHeadMeta(headRef.current, { title: subjectRef.current, preview: preheaderRef.current })
     return {
       ...t,
       variants: t.variants.map((v) => {
@@ -259,10 +382,21 @@ export function Composer({
         return { ...v, mjml, html: inst.compile(mjml).html }
       }),
     }
-  }, [subject, preheader, canvasBody, bodyA])
+  }, [canvasBody, bodyA])
+
+  /** What variant `key` sends, unsaved edits included: its subject and preheader (or A's), and its compiled HTML. */
+  const variantContent = useCallback(
+    (key: string) => {
+      const t = abRef.current
+      const lines = variantLines(t, key, { subject: subjectRef.current, preheader: preheaderRef.current })
+      if (key !== 'A' && t?.kind === 'content') return { ...lines, html: abForSave()?.variants.find((x) => x.key === key)?.html ?? '' }
+      return { ...lines, html: compileCurrent()?.html ?? '' }
+    },
+    [abForSave, compileCurrent],
+  )
 
   const loadContent = useCallback(
-    (mjml: string, how: { source: 'template' | 'import' | 'code' | 'restore' | 'reload'; label?: string }) => {
+    (mjml: string, how: { source: 'template' | 'import' | 'code' | 'restore' | 'reload' | 'recovered'; label?: string }) => {
       const parts = splitMjml(mjml)
       setHead(parts.head)
       bodyRef.current = parts.body
@@ -286,49 +420,135 @@ export function Composer({
     [markDirty, setHead, onSearch, search],
   )
 
+  /**
+   * A save merged with someone else's (CO-10): their sections, head,
+   * subject and preheader come onto the canvas, as stored. With no edits
+   * since the save, the canvas is the saved version.
+   */
+  const applyMerged = useCallback(
+    (merged: Schemas['ComposerMerged'], rev0: number, saved: { at: string; version: number }) => {
+      const clean = revision.current === rev0
+      if (geRef.current) applySections(geRef.current.editor, merged.sections)
+      if (merged.head) setHead(merged.head)
+      if (merged.subject != null) {
+        subjectRef.current = merged.subject
+        setSubjectState(merged.subject)
+      }
+      if (merged.preheader != null) {
+        preheaderRef.current = merged.preheader
+        setPreheaderState(merged.preheader)
+      }
+      if (clean) {
+        // The editor reports these changes a moment later: they're saved.
+        window.setTimeout(() => {
+          tracker.current?.take()
+          savedRevision.current = revision.current
+          setStatus({ kind: 'saved', at: saved.at, version: saved.version })
+        }, 0)
+      }
+      const parts = [
+        ...merged.sections.map((x) => sectionWord(x.label)),
+        ...(merged.subject != null ? [tt(mx.mergedSubject)] : []),
+        ...(merged.preheader != null ? [tt(mx.mergedPreheader)] : []),
+        ...(merged.head ? [tt(mx.mergedHead)] : []),
+      ]
+      toast({ kind: 'info', title: tt(mx.mergedTitle, { name: merged.with }), detail: tt(mx.mergedDetail, { name: merged.with, parts: andList(parts), version: merged.version }) })
+    },
+    [setHead],
+  )
+
+  /**
+   * The campaign's status and approval as the server has them, after a save
+   * that cancelled the approval: the canvas and the edits stay as they are.
+   * Once the approval is gone, later saves ask again if someone requests
+   * and gets a new one meanwhile.
+   */
+  const refreshCampaign = useCallback(async () => {
+    try {
+      const { data } = await http.GET('/api/v1/workspaces/{workspace}/campaigns/{campaignId}', {
+        params: { path: { workspace: slug, campaignId: campaign.id }, query: language ? { language } : {} },
+      })
+      if (!data) return
+      // Every open copy of this campaign (each language version's) takes the
+      // shared status, approval and access; their content stays.
+      qc.setQueriesData<Campaign>({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}'] }, (old) =>
+        old && old.id === data.id ? { ...old, status: data.status, approval: data.approval, access: data.access } : old,
+      )
+      setApprovalInfo(data.approval ?? null)
+      if (!data.approval) cancelApproval.current = false
+    } catch {
+      // The next save or reload brings it; the save itself went through.
+    }
+  }, [slug, campaign.id, language, qc])
+
+  /** Saves run one after another: each reads what is on screen when its turn comes. */
+  const [enqueueSave] = useState(serialQueue)
   const save = useCallback(
-    async (opts: { manual?: boolean; quiet?: boolean; force?: boolean; background?: boolean; source?: 'autosave' | 'manual' | 'import' | 'template'; label?: string } = {}): Promise<boolean> => {
-      if (!canEdit) return false
-      // Text being typed reaches the model when its editing ends: timed autosaves
-      // wait for that; anything the person asked for ends the editing first.
-      if (geRef.current?.isEditingText()) {
-        if (opts.background) return false
-        await geRef.current.flushEditing()
-      }
-      if (saving.current) {
-        await saving.current
-        if (revision.current === savedRevision.current && !opts.force) return true
-      }
+    (opts: SaveOptions = {}): Promise<boolean> => {
+      if (!canEdit) return Promise.resolve(false)
       const run = async (): Promise<boolean> => {
+        // A save the person asked for ends the text editing first (the model gets
+        // the words, the canvas compiles them); a timed autosave saves the words
+        // as they are typed, without interrupting the typing.
+        if (!opts.background && geRef.current?.isEditingText()) await geRef.current.flushEditing()
+        const pending = pendingSource.current
+        if (!opts.force && !opts.stash && !opts.manual && !pending && revision.current === savedRevision.current) return true
         const rev0 = revision.current
         const mjml = currentMjml()
-        const compiled = compileCurrent()
-        const pending = pendingSource.current
-        const label = opts.label ?? pending?.label ?? tracker.current?.take() ?? ''
+        const compiled = mjml && geRef.current ? geRef.current.compile(mjml) : null
+        const label = opts.label ?? pending?.label ?? (opts.stash ? '' : (tracker.current?.take() ?? ''))
         const source = opts.source ?? (pending ? (pending.source === 'restore' || pending.source === 'code' ? 'manual' : pending.source) : opts.manual ? 'manual' : 'autosave')
+        const cancelling = cancelApproval.current
         setStatus({ kind: 'saving', version: version.current })
         try {
           const { data } = await http.PUT('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/content', {
             params: { path: { workspace: slug, campaignId: campaign.id }, query: language ? { language } : {} },
-            body: { baseVersion: version.current, subject, preheader, mjml, html: compiled?.html ?? '', abTest: abForSave(), label, source, force: opts.force || undefined },
+            body: {
+              baseVersion: version.current,
+              subject: subjectRef.current,
+              preheader: preheaderRef.current,
+              mjml,
+              html: compiled?.html ?? '',
+              abTest: abForSave(),
+              label,
+              source,
+              force: opts.force || undefined,
+              stash: opts.stash || undefined,
+              cancelApproval: cancelling || undefined,
+            },
           })
           version.current = data!.version
           savedRevision.current = rev0
           pendingSource.current = null
-          try {
-            window.localStorage.removeItem(BACKUP_KEY(campaign.id))
-          } catch {
-            /* storage unavailable */
-          }
+          // Someone saved a newer version and changed other sections: theirs
+          // are in the saved version; the canvas takes them too (CO-10).
+          if (data!.merged) applyMerged(data!.merged, rev0, { at: data!.savedAt, version: data!.version })
+          afterSaved.current?.(rev0)
           setStatus(revision.current === rev0 ? { kind: 'saved', at: data!.savedAt, version: data!.version } : { kind: 'dirty', at: data!.savedAt, version: data!.version })
           if (opts.manual && !opts.quiet) setSavedCard({ version: data!.version, at: data!.savedAt })
           // The source's versions: offer to keep them in step (LanguageStates).
-          if (!language) void afterSourceSave(savedMjml.current, mjml, data!.version)
-          savedMjml.current = mjml
+          if (!language && !opts.stash && !data!.unchanged) void afterSourceSave(savedMjml.current, mjml, data!.version)
+          if (!opts.stash) savedMjml.current = data!.merged ? currentMjml() : mjml
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns'] })
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions'] })
+          // This save cancelled the approval, as the person agreed to: the
+          // campaign is as the server now has it (a draft, no approval), so
+          // the header stops saying "Approved" (CO-7, R4.L7).
+          if (cancelling && !opts.stash && !data!.unchanged) void refreshCampaign()
           return true
         } catch (e) {
+          if (e instanceof ApiError && e.status === 409 && e.code === 'approval_would_cancel') {
+            // Approved since the composer opened: ask before the save cancels it.
+            setStatus({ kind: 'error', version: version.current, message: e.message })
+            void http
+              .GET('/api/v1/workspaces/{workspace}/campaigns/{campaignId}', { params: { path: { workspace: slug, campaignId: campaign.id } } })
+              .then(({ data }) => {
+                if (data?.approval) setApprovalInfo(data.approval)
+                setAskApproval('save')
+              })
+              .catch(() => setAskApproval('save'))
+            return false
+          }
           if (e instanceof ApiError && e.status === 409 && e.code === 'version_conflict') {
             const meta = (e.problem.meta ?? {}) as Record<string, unknown>
             setStatus({
@@ -339,11 +559,6 @@ export function Composer({
             return false
           }
           if (offlineError(e)) {
-            try {
-              window.localStorage.setItem(BACKUP_KEY(campaign.id), JSON.stringify({ at: new Date().toISOString(), baseVersion: version.current, subject, preheader, mjml }))
-            } catch {
-              /* storage unavailable */
-            }
             setStatus((s) => ({ kind: 'offline', since: s.kind === 'offline' ? s.since : new Date().toISOString(), version: version.current, message: tt(m.offlineReason) }))
             return false
           }
@@ -351,32 +566,26 @@ export function Composer({
           return false
         }
       }
-      const p = run()
-      saving.current = p
-      try {
-        return await p
-      } finally {
-        saving.current = null
-      }
+      return enqueueSave(run)
     },
-    [canEdit, currentMjml, compileCurrent, abForSave, slug, campaign.id, subject, preheader, qc, language, afterSourceSave],
+    [canEdit, currentMjml, abForSave, slug, campaign.id, qc, language, afterSourceSave, enqueueSave, applyMerged, refreshCampaign],
   )
 
-
-  // Autosave every 30 s while there are changes, and 2 s after a structural change.
   const saveRef = useRef(save)
   useLayoutEffect(() => {
     saveRef.current = save
   })
+  // Autosave every 30 s while there are changes, the words of a text being typed
+  // included, and 2 s after a structural change. A conflict waits for the person.
   useEffect(() => {
     if (!canEdit) return
     const h = window.setInterval(() => {
-      if (revision.current !== savedRevision.current) void saveRef.current({ background: true })
+      if (revision.current !== savedRevision.current && statusRef.current.kind !== 'conflict') void saveRef.current({ background: true })
     }, 30_000)
     return () => window.clearInterval(h)
   }, [canEdit])
   useEffect(() => {
-    if (!canEdit || revision.current === savedRevision.current) return
+    if (!canEdit || revision.current === savedRevision.current || statusRef.current.kind === 'conflict') return
     if (pendingSource.current || tracker.current?.structural()) {
       const h = window.setTimeout(() => void saveRef.current({ background: true }), pendingSource.current ? 300 : 2000)
       return () => window.clearTimeout(h)
@@ -394,11 +603,16 @@ export function Composer({
     if (!data) return
     qc.setQueryData(['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}', { params: { path: { workspace: slug, campaignId: campaign.id }, query: language ? { language } : undefined } }], data)
     setName(data.name)
+    subjectRef.current = data.subject
+    preheaderRef.current = data.preheader
     setSubjectState(data.subject)
     setPreheaderState(data.preheader)
     setABTestState(data.abTest ?? null)
     abRef.current = data.abTest ?? null
     loadContent(data.mjml, { source: 'reload' })
+    // What the server has replaces the email: undo starts over from it.
+    meta.current?.reset(currentMeta())
+    geRef.current?.editor.UndoManager.clear()
     version.current = data.version
     tracker.current?.take()
     pendingSource.current = null
@@ -407,35 +621,111 @@ export function Composer({
     window.setTimeout(() => {
       // The canvas reload fires change events: they aren't edits.
       savedRevision.current = revision.current
+      geRef.current?.editor.UndoManager.clear()
       setStatus({ kind: 'saved', at: data.autosavedAt ?? data.updatedAt, version: data.version })
     }, 50)
-  }, [slug, campaign.id, qc, loadContent, language])
+  }, [slug, campaign.id, qc, loadContent, language, currentMeta])
 
   const setSubject = useCallback(
     (v: string) => {
+      subjectRef.current = v
       setSubjectState(v)
       tracker.current?.note(variant === 'A' ? tt(m.noteSubject) : tt(m.noteSubjectVariant, { variant }))
+      meta.current?.change(currentMeta())
       markDirty()
     },
-    [markDirty, variant],
+    [markDirty, variant, currentMeta],
   )
   const setPreheader = useCallback(
     (v: string) => {
+      preheaderRef.current = v
       setPreheaderState(v)
       tracker.current?.note(tt(m.notePreheader))
+      meta.current?.change(currentMeta())
       markDirty()
     },
-    [markDirty],
+    [markDirty, currentMeta],
   )
   const setABTest = useCallback(
     (t: ABTest | null) => {
       setABTestState(t)
       abRef.current = t
       tracker.current?.note(t ? tt(m.noteAb, { kind: t.kind }) : tt(m.noteAbRemoved))
+      meta.current?.change(currentMeta())
       markDirty()
     },
-    [markDirty],
+    [markDirty, currentMeta],
   )
+  // The journal's writer: it reads the editor as it is (the words being typed
+  // included) and writes at once when the tab is hidden or closed.
+  const currentMjmlRef = useRef(currentMjml)
+  const abForSaveRef = useRef(abForSave)
+  useLayoutEffect(() => {
+    currentMjmlRef.current = currentMjml
+    abForSaveRef.current = abForSave
+  })
+  useEffect(() => {
+    if (!canEdit) return
+    const w = journalWriter({
+      key: jKey,
+      campaignId: campaign.id,
+      language,
+      snapshot: () => ({ baseVersion: version.current, subject: subjectRef.current, preheader: preheaderRef.current, mjml: currentMjmlRef.current(), abTest: abForSaveRef.current() ?? null }),
+    })
+    journal.current = w
+    afterSaved.current = (rev0) => {
+      // Everything typed is saved: the journal forgets it.
+      if (revision.current === rev0) w.clear()
+    }
+    const hidden = () => {
+      if (document.visibilityState === 'hidden') w.flush()
+    }
+    window.addEventListener('pagehide', w.flush)
+    document.addEventListener('visibilitychange', hidden)
+    return () => {
+      window.removeEventListener('pagehide', w.flush)
+      document.removeEventListener('visibilitychange', hidden)
+      w.flush()
+      w.dispose()
+      if (journal.current === w) journal.current = null
+      afterSaved.current = null
+    }
+  }, [canEdit, jKey, campaign.id, language])
+
+  const restoreRecovered = useCallback(async (): Promise<boolean> => {
+    const e = recoveredEntry
+    if (!e) return false
+    const label = tt(mn.recoveredLabel, { from: clock(e.startedAt), to: clock(e.updatedAt) })
+    subjectRef.current = e.subject
+    preheaderRef.current = e.preheader
+    setSubjectState(e.subject)
+    setPreheaderState(e.preheader)
+    abRef.current = e.abTest
+    setABTestState(e.abTest)
+    // Taken back in one undo with the canvas it brings (same moment, same step).
+    meta.current?.change(currentMeta(), { step: true })
+    loadContent(e.mjml, { source: 'recovered', label })
+    await whenEditorReady()
+    // On top of whatever is current now: the person chose these edits.
+    const ok = await save({ force: true, manual: true, quiet: true, source: 'recovered', label })
+    if (ok) {
+      forgetRecovered(jKey)
+      setRecoveredEntry(null)
+      toast({ kind: 'success', title: tt(mn.recoveredDone), detail: tt(mn.recoveredDoneDetail, { version: version.current }) })
+    } else {
+      toast({ kind: 'error', title: tt(mn.recoveredFailed), detail: tt(mn.recoveredFailedDetail) })
+    }
+    return ok
+  }, [recoveredEntry, setRecoveredEntry, loadContent, whenEditorReady, save, jKey, currentMeta])
+  const discardRecovered = useCallback(() => {
+    forgetRecovered(jKey)
+    setRecoveredEntry(null)
+  }, [jKey, setRecoveredEntry])
+  const recovered = useMemo<Recovered | null>(
+    () => (recoveredEntry ? { entry: recoveredEntry, restore: restoreRecovered, discard: discardRecovered } : null),
+    [recoveredEntry, restoreRecovered, discardRecovered],
+  )
+
   const updateMeta = $api.useMutation('patch', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}')
   const commitName = useCallback(() => {
     const n = name.trim()
@@ -468,12 +758,19 @@ export function Composer({
         void http
           .POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/checks', {
             params: { path: { workspace: slug, campaignId: campaign.id } },
-            body: { subject, preheader, mjml, html, language },
+            // Each A/B variant is checked too (its subject, or its content).
+            body: { subject, preheader, mjml, html, language, abTest: geRef.current ? abForSave() : undefined },
           })
           .then(({ data }) => {
-            if (n === seq.current && data) setChecks(data)
+            if (n === seq.current && data) {
+              setChecks(data)
+              setChecksRun((r) => (r.state === 'failed' ? { state: 'recovered' } : { state: 'ok' }))
+            }
           })
-          .catch(() => undefined)
+          .catch((e: unknown) => {
+            // The last results stay, shown as stale with a Retry (ComposerWarnings).
+            if (n === seq.current) setChecksRun({ state: 'failed', reason: offlineError(e) ? 'network' : 'server' })
+          })
           .finally(() => {
             if (n === seq.current) setChecksPending(false)
           })
@@ -482,7 +779,7 @@ export function Composer({
     )
     return () => window.clearTimeout(h)
     // rev covers canvas edits; ge triggers the first run once the editor is ready.
-  }, [rev, ge, subject, preheader, empty, slug, campaign.id, campaign.html, campaign.mjml, compileCurrent, currentMjml, checksNonce, language])
+  }, [rev, ge, subject, preheader, abTest, empty, slug, campaign.id, campaign.html, campaign.mjml, compileCurrent, currentMjml, abForSave, checksNonce, language])
 
   const onSettingsChanged = useCallback(() => {
     setChecksNonce((n) => n + 1)
@@ -596,6 +893,9 @@ export function Composer({
     },
     status,
     save,
+    variantContent,
+    hasUnsaved: () => revision.current !== savedRevision.current || pendingSource.current !== null || statusRef.current.kind === 'offline' || statusRef.current.kind === 'error' || statusRef.current.kind === 'conflict',
+    currentVersion: () => version.current,
     currentMjml,
     compileCurrent,
     loadContent,
@@ -607,8 +907,12 @@ export function Composer({
     // The images' alt text is listed in the Accessibility tab.
     checks: empty ? undefined : withoutAltText(checks),
     checksPending,
+    checksFailure: checksRun.state === 'failed' ? { reason: checksRun.reason ?? 'server' } : null,
+    checksRecovered: checksRun.state === 'recovered',
+    retryChecks: () => setChecksNonce((n) => n + 1),
     rightTab,
     setRightTab,
+    thread: search.thread,
     leftTab,
     setLeftTab,
     openDialog: setDialog,
@@ -622,6 +926,15 @@ export function Composer({
     setPreviewSlot,
     missingLanguage,
   }
+
+  /** "Edit anyway": saves from now on cancel the approval; a save that asked goes through. */
+  const editAnyway = useCallback(async () => {
+    cancelApproval.current = true
+    setApprovalGate(false)
+    const via = askApproval
+    setAskApproval(null)
+    if (via === 'save') await save({ manual: true, quiet: true })
+  }, [askApproval, save])
 
   const goReview = useCallback(async () => {
     if (revision.current !== savedRevision.current && !(await save())) return
@@ -666,7 +979,7 @@ export function Composer({
       <AccessibilityProvider>
       <DigestModeProvider>
       <ConditionalProvider>
-      <div className="cmp rc-app">
+      <div className={`cmp rc-app view-${view}`}>
         <a href="#main" className="skip">
           {t(m.skip)}
         </a>
@@ -675,10 +988,14 @@ export function Composer({
         {/* Sponsor blocks fill themselves from the issue's booking (Earn, X17). */}
         <SponsorSync />
         {!campaign.access.canSend && canEditPerm ? <PermissionBanner /> : null}
+        {approvalGate && approvalInfo && view !== 'preview' ? <ApprovalBanner approval={approvalInfo} onEdit={() => setAskApproval('open')} /> : null}
+        {view === 'preview' ? null : <ComposerBanners recovered={recovered} />}
         {view === 'preview' ? <PreviewView onReview={goReview} /> : null}
         {/* The canvas stays mounted off screen in the other views: GrapesJS keeps its state and compiles. */}
         <div className={`flex flex-1 flex-col${view === 'preview' ? ' cmp-offstage' : ''}`} inert={view === 'preview' || undefined} aria-hidden={view === 'preview' || undefined}>
-          {view === 'visual' && !comparing && !missingLanguage ? <SubjectBar /> : null}
+          {(view === 'visual' || view === 'write') && !comparing && !missingLanguage ? <InboxStrip /> : null}
+          {/* Quick review on phones (CO-14): Design mode's layout editing waits for a larger screen. */}
+          {phone && view === 'visual' && !comparing && !missingLanguage && !empty ? <QuickReviewNote /> : null}
           <div className="cmp-body">
             {view === 'visual' && !comparing && !missingLanguage ? <LeftPanel {...digestLeftPanel(campaign, context.postalAddress)} /> : null}
             {comparing ? assist.translating ? <AITranslateView /> : <ComposerCompare /> : null}
@@ -692,6 +1009,7 @@ export function Composer({
               {/* The website's Web view of the canvas (features/website). */}
               <WebCanvasView />
             </div>
+            {view === 'write' && !comparing && !missingLanguage ? <WriteView /> : null}
             {view === 'mjml' || view === 'html' ? (
               <Suspense fallback={<div className="cmp-main" style={{ alignItems: 'center', justifyContent: 'center' }} aria-busy="true"><span className="spin" aria-hidden="true" /></div>}>
                 <CodeView />
@@ -699,6 +1017,7 @@ export function Composer({
             ) : null}
             {view === 'visual' && !comparing && !missingLanguage ? <AssistRight fallback={<RightPanel />} /> : null}
           </div>
+          {phone && view === 'visual' && !comparing && !missingLanguage && !empty ? <QuickReviewBar /> : null}
           {view === 'preview' || (missingLanguage && !comparing) ? null : assist.translating ? (
             <AITranslateFooter />
           ) : comparing ? (
@@ -710,6 +1029,9 @@ export function Composer({
           )}
         </div>
         <Dialogs dialog={dialog} onClose={() => setDialog(null)} onSavedTemplate={(t) => setSavedCard({ version: version.current, at: new Date().toISOString(), template: t })} />
+        {approvalInfo ? (
+          <ApprovalDialog approval={approvalInfo} scheduledAt={campaign.scheduledAt} open={askApproval !== null} onOpenChange={(o) => !o && setAskApproval(null)} onEdit={editAnyway} />
+        ) : null}
         <UnsavedChangesGuard
           dirty={canEdit && (unsaved || codeDirty)}
           title={t(m.leaveTitle)}

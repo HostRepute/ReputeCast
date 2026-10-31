@@ -67,7 +67,7 @@ function StartSetup({ adapter, onStarted }: { adapter: string; onStarted: (s: Se
         {!can ? (
           <>
             <StepHeading title={t(m.title)} />
-            <ReadOnlyNote msg={m.readOnlyCatalog} perm="providers:manage" helpers={catalog.data?.helpers} />
+            <ReadOnlyNote msg={m.readOnlyCatalog} helpers={catalog.data?.helpers} />
             <div>
               <ButtonLink to="/w/$workspace/providers/connect" params={{ workspace: slug }}>
                 {t(ms.backToCatalog)}
@@ -168,7 +168,7 @@ function SetupScreens({ setupId, step, onStep }: { setupId: string; step?: Setup
       <WizardBody current={stepNumber[view]} setup={setup}>
         {setup.status === 'abandoned' ? <Note tone="warn">{t(ms.cancelledNote)}</Note> : null}
         {!can && setup.status !== 'abandoned' ? (
-          <ReadOnlyNote msg={m.readOnlySetup} perm="providers:manage" helpers={setup.helpers} />
+          <ReadOnlyNote msg={m.readOnlySetup} helpers={setup.helpers} />
         ) : null}
         <StepScreen view={view} props={props} />
       </WizardBody>

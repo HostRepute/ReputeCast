@@ -53,10 +53,10 @@ export const m = defineMessages('audience.segments', {
   generated: 'Generated SQL',
   readOnly: 'read only',
   copied: 'Copied the SQL',
-  needsSql: 'Needs segments:sql',
+  needsSql: 'Needs a role that can write SQL segments',
   sqlOff: 'SQL segments are turned off on this database; an admin can enable them.',
   openSql: 'Open in SQL editor',
-  needsSqlNote: 'needs segments:sql',
+  needsSqlNote: 'needs a role that can write SQL segments',
   countAndSaved: 'Count and saved segments',
 
   // ── Live count ───────────────────────────────────────────────────────

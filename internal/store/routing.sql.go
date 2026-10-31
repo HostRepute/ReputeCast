@@ -38,8 +38,104 @@ func (q *Queries) RoutingBroadcastSizes(ctx context.Context, arg RoutingBroadcas
 	return i, err
 }
 
+const routingCampaignAudience = `-- name: RoutingCampaignAudience :many
+SELECT c.id, c.email, c.mailbox_provider, c.tier,
+       coalesce(array_agg(lm.list_id) FILTER (WHERE lm.status = 'subscribed'), '{}')::uuid[] AS list_ids
+FROM contacts c
+LEFT JOIN list_memberships lm ON lm.contact_id = c.id
+WHERE c.workspace_id = $1 AND c.status = 'active' AND c.erased_at IS NULL AND c.id > $2::uuid
+  AND EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'
+              AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($3::uuid[]) AND ll.deleted_at IS NULL)))
+  AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY($4::uuid[]))
+  AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)
+GROUP BY c.id
+ORDER BY c.id
+LIMIT $5
+`
+
+type RoutingCampaignAudienceParams struct {
+	WorkspaceID  uuid.UUID   `json:"workspaceId"`
+	After        uuid.UUID   `json:"after"`
+	Lists        []uuid.UUID `json:"lists"`
+	ExcludeLists []uuid.UUID `json:"excludeLists"`
+	Size         int32       `json:"size"`
+}
+
+type RoutingCampaignAudienceRow struct {
+	ID              uuid.UUID   `json:"id"`
+	Email           string      `json:"email"`
+	MailboxProvider string      `json:"mailboxProvider"`
+	Tier            string      `json:"tier"`
+	ListIds         []uuid.UUID `json:"listIds"`
+}
+
+// A page of a campaign's list audience for the route tester: subscribed,
+// not suppressed, not on an excluded list, with each contact's mailbox
+// provider, tier and lists.
+func (q *Queries) RoutingCampaignAudience(ctx context.Context, arg RoutingCampaignAudienceParams) ([]RoutingCampaignAudienceRow, error) {
+	rows, err := q.db.Query(ctx, routingCampaignAudience,
+		arg.WorkspaceID,
+		arg.After,
+		arg.Lists,
+		arg.ExcludeLists,
+		arg.Size,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RoutingCampaignAudienceRow{}
+	for rows.Next() {
+		var i RoutingCampaignAudienceRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.MailboxProvider,
+			&i.Tier,
+			&i.ListIds,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const routingCampaignAudienceSize = `-- name: RoutingCampaignAudienceSize :one
+SELECT count(*) FILTER (WHERE c.tier <> 'sunset')::bigint AS engaged, count(*) FILTER (WHERE c.tier = 'sunset')::bigint AS sunset
+FROM contacts c
+WHERE c.workspace_id = $1 AND c.status = 'active' AND c.erased_at IS NULL
+  AND EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'
+              AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($2::uuid[]) AND ll.deleted_at IS NULL)))
+  AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY($3::uuid[]))
+  AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)
+`
+
+type RoutingCampaignAudienceSizeParams struct {
+	WorkspaceID  uuid.UUID   `json:"workspaceId"`
+	Lists        []uuid.UUID `json:"lists"`
+	ExcludeLists []uuid.UUID `json:"excludeLists"`
+}
+
+type RoutingCampaignAudienceSizeRow struct {
+	Engaged int64 `json:"engaged"`
+	Sunset  int64 `json:"sunset"`
+}
+
+// How many recipients the route tester's audience has, the sunset tier
+// apart: a simulation of the first recipients is scaled to it.
+func (q *Queries) RoutingCampaignAudienceSize(ctx context.Context, arg RoutingCampaignAudienceSizeParams) (RoutingCampaignAudienceSizeRow, error) {
+	row := q.db.QueryRow(ctx, routingCampaignAudienceSize, arg.WorkspaceID, arg.Lists, arg.ExcludeLists)
+	var i RoutingCampaignAudienceSizeRow
+	err := row.Scan(&i.Engaged, &i.Sunset)
+	return i, err
+}
+
 const routingContact = `-- name: RoutingContact :one
-SELECT c.id, c.mailbox_provider,
+SELECT c.id, c.mailbox_provider, c.mailbox_detail,
        coalesce(array_agg(lm.list_id) FILTER (WHERE lm.status = 'subscribed'), '{}')::uuid[] AS list_ids
 FROM contacts c
 LEFT JOIN list_memberships lm ON lm.contact_id = c.id
@@ -55,22 +151,86 @@ type RoutingContactParams struct {
 type RoutingContactRow struct {
 	ID              uuid.UUID   `json:"id"`
 	MailboxProvider string      `json:"mailboxProvider"`
+	MailboxDetail   string      `json:"mailboxDetail"`
 	ListIds         []uuid.UUID `json:"listIds"`
 }
 
 func (q *Queries) RoutingContact(ctx context.Context, arg RoutingContactParams) (RoutingContactRow, error) {
 	row := q.db.QueryRow(ctx, routingContact, arg.WorkspaceID, arg.Email)
 	var i RoutingContactRow
-	err := row.Scan(&i.ID, &i.MailboxProvider, &i.ListIds)
+	err := row.Scan(
+		&i.ID,
+		&i.MailboxProvider,
+		&i.MailboxDetail,
+		&i.ListIds,
+	)
 	return i, err
 }
 
-const routingDeleteRules = `-- name: RoutingDeleteRules :exec
-DELETE FROM routing_rules WHERE workspace_id = $1
+const routingContactAddresses = `-- name: RoutingContactAddresses :many
+SELECT c.email, c.mailbox_provider FROM contacts c
+WHERE c.workspace_id = $1 AND c.status = 'active' AND c.erased_at IS NULL
+ORDER BY c.created_at DESC
+LIMIT $2
 `
 
-func (q *Queries) RoutingDeleteRules(ctx context.Context, workspaceID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, routingDeleteRules, workspaceID)
+type RoutingContactAddressesParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Lim         int32     `json:"lim"`
+}
+
+type RoutingContactAddressesRow struct {
+	Email           string `json:"email"`
+	MailboxProvider string `json:"mailboxProvider"`
+}
+
+// Addresses of the workspace's newest contacts, for the impact preview of
+// a stream that mailed nobody lately (R3.U4a).
+func (q *Queries) RoutingContactAddresses(ctx context.Context, arg RoutingContactAddressesParams) ([]RoutingContactAddressesRow, error) {
+	rows, err := q.db.Query(ctx, routingContactAddresses, arg.WorkspaceID, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RoutingContactAddressesRow{}
+	for rows.Next() {
+		var i RoutingContactAddressesRow
+		if err := rows.Scan(&i.Email, &i.MailboxProvider); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const routingDefaultSenderVerification = `-- name: RoutingDefaultSenderVerification :one
+SELECT sn.verification FROM senders sn JOIN workspaces w ON w.default_sender_id = sn.id WHERE w.id = $1
+`
+
+// The default sender's verification per provider: a failover target must
+// be able to sign for it (PR-14 target checks).
+func (q *Queries) RoutingDefaultSenderVerification(ctx context.Context, workspaceID uuid.UUID) (json.RawMessage, error) {
+	row := q.db.QueryRow(ctx, routingDefaultSenderVerification, workspaceID)
+	var verification json.RawMessage
+	err := row.Scan(&verification)
+	return verification, err
+}
+
+const routingDeleteStreamRules = `-- name: RoutingDeleteStreamRules :exec
+DELETE FROM routing_rules WHERE workspace_id = $1 AND stream = ANY($2::text[])
+`
+
+type RoutingDeleteStreamRulesParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Streams     []string  `json:"streams"`
+}
+
+// A save replaces only the streams it changes.
+func (q *Queries) RoutingDeleteStreamRules(ctx context.Context, arg RoutingDeleteStreamRulesParams) error {
+	_, err := q.db.Exec(ctx, routingDeleteStreamRules, arg.WorkspaceID, arg.Streams)
 	return err
 }
 
@@ -224,6 +384,57 @@ func (q *Queries) RoutingLists(ctx context.Context, workspaceID uuid.UUID) ([]Ro
 	return items, nil
 }
 
+const routingLock = `-- name: RoutingLock :exec
+SELECT pg_advisory_xact_lock(hashtextextended('routing:' || ($1::uuid)::text, 0))
+`
+
+// Serializes routing saves of a workspace (the version check and the write).
+func (q *Queries) RoutingLock(ctx context.Context, workspaceID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, routingLock, workspaceID)
+	return err
+}
+
+const routingNextBroadcast = `-- name: RoutingNextBroadcast :one
+SELECT c.id, c.name, c.scheduled_at, c.audience,
+       coalesce(split_part(sn.email, '@', 2), '')::text AS sender_domain,
+       (sn.id IS NOT NULL)::boolean AS has_sender,
+       coalesce(sn.verification, '{}'::jsonb)::jsonb AS sender_verification
+FROM campaigns c
+LEFT JOIN senders sn ON sn.id = c.sender_id
+WHERE c.workspace_id = $1 AND c.deleted_at IS NULL AND c.origin = '' AND c.channel IN ('', 'email')
+  AND c.status IN ('scheduled', 'draft')
+ORDER BY (c.status = 'scheduled') DESC, c.scheduled_at ASC NULLS LAST, c.updated_at DESC
+LIMIT 1
+`
+
+type RoutingNextBroadcastRow struct {
+	ID                 uuid.UUID       `json:"id"`
+	Name               string          `json:"name"`
+	ScheduledAt        *time.Time      `json:"scheduledAt"`
+	Audience           json.RawMessage `json:"audience"`
+	SenderDomain       string          `json:"senderDomain"`
+	HasSender          bool            `json:"hasSender"`
+	SenderVerification json.RawMessage `json:"senderVerification"`
+}
+
+// The broadcast the route tester's Campaign tab simulates (PR-14): the next
+// scheduled one, else the draft edited last, with its sender's verification
+// per provider (failover targets are vetted with it, R3.U4c).
+func (q *Queries) RoutingNextBroadcast(ctx context.Context, workspaceID uuid.UUID) (RoutingNextBroadcastRow, error) {
+	row := q.db.QueryRow(ctx, routingNextBroadcast, workspaceID)
+	var i RoutingNextBroadcastRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.ScheduledAt,
+		&i.Audience,
+		&i.SenderDomain,
+		&i.HasSender,
+		&i.SenderVerification,
+	)
+	return i, err
+}
+
 const routingSaved = `-- name: RoutingSaved :one
 SELECT r.updated_at, coalesce(u.name, '')::text AS updated_by_name
 FROM routing_rules r LEFT JOIN users u ON u.id = r.updated_by
@@ -265,6 +476,58 @@ func (q *Queries) RoutingSenderDomains(ctx context.Context, workspaceID uuid.UUI
 	for rows.Next() {
 		var i RoutingSenderDomainsRow
 		if err := rows.Scan(&i.ID, &i.Domain, &i.DnsRecords); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const routingStreamRecipients = `-- name: RoutingStreamRecipients :many
+SELECT m.email, m.mailbox_provider, coalesce(t.category_id::text, '')::text AS category
+FROM messages m
+LEFT JOIN transactional_messages t ON t.message_id = m.id
+WHERE m.workspace_id = $1 AND m.stream = $2 AND m.campaign_id IS NULL AND m.queued_at >= $3::timestamptz
+ORDER BY m.queued_at DESC
+LIMIT $4
+`
+
+type RoutingStreamRecipientsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Stream      string    `json:"stream"`
+	Since       time.Time `json:"since"`
+	Lim         int32     `json:"lim"`
+}
+
+type RoutingStreamRecipientsRow struct {
+	Email           string `json:"email"`
+	MailboxProvider string `json:"mailboxProvider"`
+	Category        string `json:"category"`
+}
+
+// A stream's latest recipients since a time (review R3.U4a): the routing
+// impact preview runs them through the saved and the unsaved routing, with
+// what routing reads at send time (mailbox provider, transactional
+// category). Automations, System and Transactional mail is never a
+// campaign's (messages_stream_recent_idx).
+func (q *Queries) RoutingStreamRecipients(ctx context.Context, arg RoutingStreamRecipientsParams) ([]RoutingStreamRecipientsRow, error) {
+	rows, err := q.db.Query(ctx, routingStreamRecipients,
+		arg.WorkspaceID,
+		arg.Stream,
+		arg.Since,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RoutingStreamRecipientsRow{}
+	for rows.Next() {
+		var i RoutingStreamRecipientsRow
+		if err := rows.Scan(&i.Email, &i.MailboxProvider, &i.Category); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

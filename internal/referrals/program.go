@@ -257,24 +257,29 @@ func (s *Service) text(ctx context.Context, m i18n.Msg, args i18n.Args) string {
 // Programs lists the workspace's programs and the lists they can use.
 func (s *Service) Programs(ctx context.Context, ws *store.Workspace) (ReferralProgramList, error) {
 	out := ReferralProgramList{Items: []ReferralProgramSummary{}, Lists: []ReferralListOption{}, Helpers: s.helperSets(ctx, ws.ID)}
+	lists, err := s.Q.ReferralListsOffered(ctx, ws.ID)
+	if err != nil {
+		return out, err
+	}
+	subscribers := make(map[uuid.UUID]int64, len(lists))
+	for _, l := range lists {
+		subscribers[l.ID] = l.Subscribers
+		out.Lists = append(out.Lists, ReferralListOption{ID: l.ID.String(), Name: l.Name, Description: l.Description, Subscribers: l.Subscribers, Taken: l.Taken})
+	}
 	rows, err := s.Q.ReferralProgramsOf(ctx, ws.ID)
 	if err != nil {
 		return out, err
 	}
 	for _, r := range rows {
-		n, err := s.Q.ReferralListSubscribers(ctx, r.ListID)
-		if err != nil {
-			return out, err
+		n, ok := subscribers[r.ListID]
+		if !ok {
+			// A deleted list isn't offered: it is counted on its own.
+			if n, err = s.Q.ReferralListSubscribers(ctx, r.ListID); err != nil {
+				return out, err
+			}
 		}
 		out.Items = append(out.Items, ReferralProgramSummary{ID: r.ID.String(), ListID: r.ListID.String(), ListName: r.ListName,
 			Status: r.Status, SetupStep: int(r.SetupStep), Subscribers: n, StartedAt: r.FirstOnAt})
-	}
-	lists, err := s.Q.ReferralListsOffered(ctx, ws.ID)
-	if err != nil {
-		return out, err
-	}
-	for _, l := range lists {
-		out.Lists = append(out.Lists, ReferralListOption{ID: l.ID.String(), Name: l.Name, Description: l.Description, Subscribers: l.Subscribers, Taken: l.Taken})
 	}
 	return out, nil
 }

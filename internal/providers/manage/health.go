@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -26,6 +25,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
+	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -33,6 +33,18 @@ import (
 const (
 	// SilentAfter is how long webhooks may be quiet while mail goes out.
 	SilentAfter = 6 * time.Hour
+	// EventGrace is how long a message may wait for its first event before
+	// it counts as overdue (PR-6): providers report most deliveries within
+	// seconds, a deferral within minutes.
+	EventGrace = 30 * time.Minute
+	// SilentMinOverdue is how many overdue messages make quiet webhooks
+	// "silent": one welcome email after a quiet night is never an alarm.
+	SilentMinOverdue = 10
+	// FirstEventMinOverdue is how many overdue messages make a provider
+	// that never reported an event "silent" (review PR-3, R3.L3): nothing
+	// ever proved its events arrive, so mail sent and no event 30 minutes
+	// later is enough, where "no events yet" would otherwise stay forever.
+	FirstEventMinOverdue = 1
 	// CheckEvery is how often a healthy provider's API is checked.
 	CheckEvery = 5 * time.Minute
 	// OutageCalls and OutageRate: at least this many calls in three
@@ -286,22 +298,31 @@ func (s *Service) Check(ctx context.Context, p store.Provider, probe bool) (stor
 	if recovered {
 		h.Down = nil
 	}
-	// Webhook freshness, only while the provider is up.
+	// Webhook freshness, only while the provider is up. A provider that
+	// never reported an event is measured from its connection: mail sent
+	// and no event 30 minutes later is flagged for every provider (PR-3),
+	// not read as "no events yet" forever.
 	silentNow, resumed := false, false
 	caps := state.Caps(p)
-	if h.Down == nil && caps.Webhooks != "" && caps.Webhooks != "Bounce mailbox" && p.LastEventAt != nil {
-		if h.Webhooks != nil && h.Webhooks.SilentSince != nil && p.LastEventAt.After(*h.Webhooks.SilentSince) {
+	if h.Down == nil && caps.Webhooks != "" && caps.Webhooks != "Bounce mailbox" {
+		since, minOverdue, quiet := p.ConnectedAt, int64(FirstEventMinOverdue), true
+		if p.LastEventAt != nil {
+			since, minOverdue, quiet = *p.LastEventAt, SilentMinOverdue, now.Sub(*p.LastEventAt) >= SilentAfter
+		}
+		if p.LastEventAt != nil && h.Webhooks != nil && h.Webhooks.SilentSince != nil && p.LastEventAt.After(*h.Webhooks.SilentSince) {
 			resumed = true
 			h.Webhooks = &state.WebhookState{}
-		} else if now.Sub(*p.LastEventAt) >= SilentAfter {
-			rows, err := s.Q.ProvSentSince(ctx, store.ProvSentSinceParams{ProviderIds: []uuid.UUID{p.ID}, Since: p.LastEventAt})
+		} else if quiet {
+			// Silent only with enough mail past its grace and no event: the
+			// messages sent after a quiet period get their 30 minutes first.
+			od, err := s.Q.ProvEventsOverdue(ctx, store.ProvEventsOverdueParams{ProviderID: &p.ID, Since: since, GraceBefore: now.Add(-EventGrace)})
 			if err != nil {
 				return p, err
 			}
-			if len(rows) == 1 && rows[0].SinceLastEvent > 0 {
+			if od.Overdue >= minOverdue {
 				if h.Webhooks == nil || h.Webhooks.SilentSince == nil {
 					silentNow = true
-					t := *p.LastEventAt
+					t := since
 					h.Webhooks = &state.WebhookState{SilentSince: &t}
 				}
 				if h.Webhooks.CheckedAt == nil || now.Sub(*h.Webhooks.CheckedAt) >= time.Hour {
@@ -309,6 +330,11 @@ func (s *Service) Check(ctx context.Context, p store.Provider, probe bool) (stor
 				}
 			}
 		}
+	}
+	// Messages refused for good (PR-7): watched over the last ten minutes.
+	rejectStarted, rejectEnded, err := s.watchRejections(ctx, p, &h, now)
+	if err != nil {
+		return p, err
 	}
 	status := s.baseStatus(ctx, p, h)
 	detail := ""
@@ -321,6 +347,10 @@ func (s *Service) Check(ctx context.Context, p store.Provider, probe bool) (stor
 		}
 	case h.Webhooks != nil && h.Webhooks.SilentSince != nil:
 		status, detail = state.Degraded, state.DetailWebhooksSilent
+	case h.Rejecting != nil:
+		status, detail = state.Degraded, state.DetailRejecting
+	case h.MailboxFailing(now):
+		status, detail = state.Degraded, state.DetailMailboxFailing
 	}
 	if probed && callErr == nil && adapter != nil {
 		snap := state.Snapshot{Capabilities: adapter.Capabilities(), BroadcastStream: caps.BroadcastStream}
@@ -361,12 +391,43 @@ func (s *Service) Check(ctx context.Context, p store.Provider, probe bool) (stor
 				return err
 			}
 		}
+		if rejectStarted {
+			if err := s.onRejecting(ctx, tx, ws, p, h.Rejecting); err != nil {
+				return err
+			}
+		}
+		if rejectEnded {
+			if err := s.onRejectingEnded(ctx, tx, ws, p, now); err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 	if err != nil {
 		return p, err
 	}
+	if went {
+		s.holdShares(ctx, p, h.Down.Reason)
+	}
 	return s.Q.ProvGetAny(ctx, p.ID)
+}
+
+// holdShares hands an outage to the sending engine (review GS-3): every
+// running send's share on the provider goes through the engine's outage
+// path, held with its analysis and ways to continue (or moved when the
+// Broadcast failover policy allows it), the same as an outage a send finds
+// itself. Without the engine in this process the sends find it themselves.
+func (s *Service) holdShares(ctx context.Context, p store.Provider, reason string) {
+	if s.Sending == nil {
+		return
+	}
+	o, ok := s.Sending().(sending.Outages)
+	if !ok {
+		return
+	}
+	if err := o.HoldShares(ctx, p.ID, reason); err != nil {
+		s.log().WarnContext(ctx, "hold the running sends' shares", "provider", p.ID, "err", err)
+	}
 }
 
 // streakStart is when the current run of failures began.
@@ -428,18 +489,22 @@ func (s *Service) diagnose(ctx context.Context, p store.Provider, adapter provid
 		}
 	}
 	checks = append(checks, reg)
-	code, err := s.selfTest(ctx, p)
+	// The endpoint (PR-9): its address must be a public one; the provider
+	// calling it is what proves it reachable, so the check says when it
+	// last did.
 	end := state.WebhookCheck{Key: "endpoint"}
-	if err == nil && code == http.StatusOK {
+	if bad, ok := s.checkAddress(ctx, url); ok {
 		end.OK = &yes
-		end.Detail, end.DetailText = keep(mCheckSelfTestOK, nil)
+		if p.LastEventAt != nil {
+			loc := time.UTC
+			if ws, err := s.Q.GetWorkspace(ctx, p.WorkspaceID); err == nil {
+				loc = state.Location(ws.Timezone)
+			}
+			end.Detail, end.DetailText = keep(mCheckLastReached, i18n.Args{"name": state.Short(p.Name, p.Adapter), "at": p.LastEventAt.In(loc)})
+		}
 	} else {
 		end.OK = &no
-		if err != nil {
-			end.Detail = err.Error()
-		} else {
-			end.Detail, end.DetailText = keep(mCheckSelfTest, i18n.Args{"status": strconv.Itoa(code)})
-		}
+		end.Detail, end.DetailText = keep(mCheckAddressProblem, i18n.Args{"kind": bad.Kind, "host": bad.Host, "ip": bad.IP})
 	}
 	checks = append(checks, end)
 	var got int64
@@ -498,29 +563,17 @@ func VerifySelfTest(token, header string, now time.Time) bool {
 	return hmac.Equal([]byte(SelfTestSignature(token, n)), []byte(header))
 }
 
-// selfTest posts to the provider's public webhook URL, through whatever
-// proxy and TLS the instance sits behind, and expects 200.
-func (s *Service) selfTest(ctx context.Context, p store.Provider) (int, error) {
-	url := WebhookURL(s.URLs, p)
-	hdr := http.Header{}
-	hdr.Set(SelfTestHeader, SelfTestSignature(p.WebhookToken, s.now().Unix()))
-	hdr.Set("Content-Type", "application/json")
-	if s.SelfTest != nil {
-		return s.SelfTest(ctx, url, hdr)
+// checkAddress looks at a webhook address without calling it.
+func (s *Service) checkAddress(ctx context.Context, url string) (AddressProblem, bool) {
+	if s.CheckAddress != nil {
+		return s.CheckAddress(ctx, url)
 	}
-	cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	req, err := http.NewRequestWithContext(cctx, http.MethodPost, url, strings.NewReader(`{"selfTest":true}`))
-	if err != nil {
-		return 0, err
-	}
-	req.Header = hdr
-	resp, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
-	if err != nil {
-		return 0, err
-	}
-	_ = resp.Body.Close()
-	return resp.StatusCode, nil
+	return CheckAddress(ctx, url)
+}
+
+// addressText says why no provider can reach an address.
+func addressText(l i18n.Lang, a AddressProblem) string {
+	return mCheckAddressProblem.Text(l, i18n.Args{"kind": a.Kind, "host": a.Host, "ip": a.IP})
 }
 
 func streamLabel(s string) string {
@@ -563,7 +616,6 @@ func (s *Service) onDown(ctx context.Context, tx pgx.Tx, ws store.Workspace, p s
 	for _, x := range provs {
 		byID[x.ID] = x
 	}
-	short := state.Short(p.Name, p.Adapter)
 	// "503 ServiceUnavailable on SendEmail", "API errors" without one.
 	errText := "API errors"
 	failed := i18n.Args{"name": p.Name, "hasError": "no", "error": "", "hasOp": "no", "op": ""}
@@ -594,70 +646,44 @@ func (s *Service) onDown(ctx context.Context, tx pgx.Tx, ws store.Workspace, p s
 		if !ok || !inSplit(def, p.ID) {
 			continue
 		}
-		target, hold := routing.Failover(set.Policy(stream), def.Fallback, func(id uuid.UUID) routing.ProviderState {
-			fp, ok := byID[id]
-			if !ok {
-				return routing.ProviderState{}
-			}
-			wu, _ := q.WarmupActiveForProvider(ctx, id)
-			return routing.ProviderState{Available: state.Available(fp) && id != p.ID, WarmingUp: wu.Status != "" && wu.Status != "done"}
-		})
+		// The fallback is vetted before any mail moves (PR-7): sending
+		// domain verified, quota free, not in sandbox, warm, bulk terms.
+		policy := set.Policy(stream)
+		target, vetting := s.vetFailover(ctx, q, ws, p, stream, policy, def.Fallback, byID, now)
+		hold := target == nil
 		mode := "automatic"
 		if hold {
-			mode, target = "held", nil
+			mode = "held"
 		}
 		if err := q.ProvStartFailover(ctx, store.ProvStartFailoverParams{ID: newID(), WorkspaceID: ws.ID, Stream: string(stream), ProviderID: p.ID,
-			FallbackProviderID: target, Mode: mode, StartedAt: now, Detail: json.RawMessage(`{}`)}); err != nil {
+			FallbackProviderID: target, Mode: mode, StartedAt: now, Detail: failoverDetailJSON(def.Fallback, vetting)}); err != nil {
 			return err
 		}
 		if !hold {
 			fb := byID[*target]
 			auto = append(auto, streamLabel(string(stream)))
 			failures := max(h.ConsecutiveFailures, 1)
+			fbShort := state.Short(fb.Name, fb.Adapter)
 			if err := s.incident(ctx, q, ws.ID, now, "failover", "ok",
-				fmt.Sprintf("%s: switched to %s after %d failed health checks.", streamLabel(string(stream)), state.Short(fb.Name, fb.Adapter), failures),
-				mIncidentFailover.Keep(i18n.Args{"stream": string(stream), "fallback": state.Short(fb.Name, fb.Adapter), "count": failures}), &p.ID, nil); err != nil {
+				fmt.Sprintf("%s: switched to %s after %d failed health checks; %s passed its checks first.", streamLabel(string(stream)), fbShort, failures, fbShort),
+				mIncidentVetted.Keep(i18n.Args{"stream": string(stream), "fallback": fbShort, "count": failures}), &p.ID, nil); err != nil {
 				return err
 			}
 			continue
 		}
+		if vetting != nil && policy != routing.PauseAndAsk && stream != providers.StreamBroadcast {
+			// The fallback would have taken over, but it can't take the mail.
+			fb := byID[*def.Fallback]
+			fbShort := state.Short(fb.Name, fb.Adapter)
+			if err := s.incident(ctx, q, ws.ID, now, "fallback_failed", "warn",
+				fmt.Sprintf("%s: %s didn't pass its checks, so ReputeCast keeps retrying %s instead of switching.", streamLabel(string(stream)), fbShort, p.Name),
+				mIncidentFallbackFail.Keep(i18n.Args{"stream": string(stream), "fallback": fbShort, "name": p.Name}), &p.ID, nil); err != nil {
+				return err
+			}
+		}
+		// The running sends' shares on the provider go through the sending
+		// engine's outage path once this is recorded (holdShares).
 		held = append(held, streamLabel(string(stream)))
-		if stream != providers.StreamBroadcast {
-			continue
-		}
-		camps, err := q.ProvSendingCampaignsOn(ctx, store.ProvSendingCampaignsOnParams{WorkspaceID: ws.ID, ProviderID: p.ID})
-		if err != nil {
-			return err
-		}
-		for _, c := range camps {
-			detail, _ := json.Marshal(map[string]string{"reason": "provider_down", "provider": p.Name})
-			if _, err := q.ProvSetRouteStatus(ctx, store.ProvSetRouteStatusParams{CampaignID: c.ID, ProviderID: p.ID, Status: "held", StatusDetail: string(detail)}); err != nil {
-				return err
-			}
-			var planned, sent int64
-			_ = tx.QueryRow(ctx, `SELECT cr.planned, coalesce((SELECT sum(cc.sent) FROM campaign_counters cc WHERE cc.campaign_id = cr.campaign_id AND cc.provider_id = cr.provider_id), 0)
-				FROM campaign_routes cr WHERE cr.campaign_id = $1 AND cr.provider_id = $2`, c.ID, p.ID).Scan(&planned, &sent)
-			heldN := max(planned-sent, 0)
-			if _, err := tx.Exec(ctx, `INSERT INTO campaign_incidents (id, campaign_id, kind, scope, provider_id, metric, held, detail, tripped_at)
-				VALUES ($1, $2, 'provider_outage', 'route', $3, 'api_errors', $4, $5, $6)`, newID(), c.ID, p.ID, heldN, json.RawMessage(`{}`), now); err != nil {
-				return err
-			}
-			cid := c.ID
-			if err := s.incident(ctx, q, ws.ID, now, "broadcast_held", "warn",
-				fmt.Sprintf("Broadcasts: %q %s share held, %d recipients. Decision requested.", c.Name, short, heldN),
-				mIncidentHeld.Keep(i18n.Args{"campaign": fmt.Sprintf("%q", c.Name), "short": short, "count": heldN}), &p.ID, &cid); err != nil {
-				return err
-			}
-			// Each member reads it in their own language (notify's kept text).
-			title, titleText := keep(mNotifyHeldTitle, i18n.Args{"campaign": fmt.Sprintf("%q", c.Name)})
-			body, bodyText := keep(mNotifyHeldBody, i18n.Args{"name": p.Name, "count": heldN, "countText": strconv.FormatInt(heldN, 10)})
-			if err := notify.ToMembersWith(ctx, tx, ws.ID, authz.CampaignsSend, notify.Notification{
-				Kind: notify.KindSendPaused, Severity: "bad", Title: title, TitleText: titleText, Body: body, BodyText: bodyText,
-				Link: "/w/" + ws.Slug + "/providers", Data: map[string]any{"campaignId": c.ID.String(), "providerId": p.ID.String()},
-			}); err != nil {
-				return err
-			}
-		}
 	}
 	// "503 ServiceUnavailable on SendEmail since 14:02. Automations failed
 	// over automatically. Broadcasts wait for you."

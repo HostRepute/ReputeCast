@@ -1,6 +1,6 @@
 import type { Schemas } from '@/api/client'
 import { t } from '@/i18n'
-import { calendarDate, decimal, inZone, money, pct } from '@/lib/format'
+import { calendarDate, count, decimal, inZone, money, pct, timeOfDay } from '@/lib/format'
 import { m } from './messages'
 
 export type Review = Schemas['CampaignReview']
@@ -18,9 +18,64 @@ export function plural(n: number, one: string, many: string): string {
   return n === 1 ? one : many
 }
 
+/** "Ready", "Ready with warnings · 2 to review", "Blocked · 3 to fix" (SR-13). */
+export function verdictShort(run: Run): string {
+  if (run.verdict === 'blocked') return t(m.verdictBlockedCount, { count: run.counts.blocks })
+  if (run.verdict === 'warnings') return t(m.verdictWarningsCount, { count: run.counts.warnings })
+  return t(m.verdictReady)
+}
+
+/** Checks whose result comes from a blocklist lookup: link domains, sender domains and IPs. */
+const blocklistKey = /^(links\.blocklists?|reputation\.(domain|ip)_blocklists)(\.|$)/
+
+/**
+ * The verdict banner's title (SR-13): verdictShort, or, once someone accepted
+ * the checks that couldn't run, "Ready · blocklist checks skipped" ("Ready
+ * with warnings · 2 checks skipped" when other checks were skipped too).
+ * Accepting skipped checks never readies a blocked send: it stays "Blocked ·
+ * 1 to fix".
+ */
+export function verdictHeading(run: Run): string {
+  const skipped = run.unknownAcceptedAt ? run.checks.filter((c) => c.status === 'unknown') : []
+  if (run.verdict === 'blocked' || skipped.length === 0) return verdictShort(run)
+  return t(m.skippedTitle, {
+    warnings: run.verdict === 'warnings' ? 'yes' : 'no',
+    blocklists: skipped.every((c) => blocklistKey.test(c.key)) ? 'yes' : 'no',
+    count: skipped.length,
+  })
+}
+
+/**
+ * What the checks that couldn't run were (R1.U8): "provider" when every one
+ * is sender reputation data (HostRepute's blocklists, a domain looked up
+ * live, the providers' rates), so the send goes on the providers' own data
+ * ("Continue with provider data only", as SendReadinessStates draws it);
+ * "skipped" when other checks are among them (content that couldn't be
+ * checked, accessibility that couldn't run, links that couldn't be
+ * fetched): the send goes on without them. The server words its audit
+ * entry by the same rule.
+ */
+export type SkippedKind = 'provider' | 'skipped'
+
+export function skippedKind(run: Run): SkippedKind {
+  const unknown = run.checks.filter((c) => c.status === 'unknown')
+  return unknown.length > 0 && unknown.every((c) => c.group === 'reputation') ? 'provider' : 'skipped'
+}
+
 /** "Ready", "Ready with warnings", "Blocked". */
 export function verdictTitle(v: Verdict): string {
   return v === 'blocked' ? t(m.verdictBlocked) : v === 'warnings' ? t(m.verdictWarnings) : t(m.verdictReady)
+}
+
+/**
+ * The verdict's name where a card or badge shows it: "Ready with warnings",
+ * or, once someone chose to send without checks that couldn't run, what was
+ * skipped as well ("Ready with warnings · 1 check skipped"), never just
+ * "Ready" (review R1.U8).
+ */
+export function verdictName(run: Run): string {
+  const skipped = Boolean(run.unknownAcceptedAt) && run.verdict !== 'blocked' && run.checks.some((c) => c.status === 'unknown')
+  return skipped ? verdictHeading(run) : verdictTitle(run.verdict)
 }
 
 /** A campaign's status in the header badge: "Draft", "Waiting for approval", "Scheduled". */
@@ -84,14 +139,43 @@ export function primaryFix(c: Check): Fix | undefined {
   return c.fixes.find((f) => f.kind === 'apply' && f.action !== 'accessibility_decorative' && f.action !== 'sponsor_remove_block')
 }
 
-/** "Fix both warnings", "Apply all 3 fixes". */
-export function fixAllLabel(kind: 'warn' | 'block', n: number): string {
-  return kind === 'block' ? t(m.fixAllBlocks, { n }) : t(m.fixAllWarnings, { n })
+/** "ET" for America/New_York; the zone itself when it has no short name. */
+export function zoneShort(zone?: string | null): string {
+  if (!zone) return ''
+  if (zone === 'UTC') return 'UTC'
+  try {
+    const name = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'shortGeneric' }).formatToParts(new Date()).find((p) => p.type === 'timeZoneName')?.value
+    if (name && name.length <= 5 && !name.startsWith('GMT')) return name
+  } catch {
+    // An unknown zone reads as it is.
+  }
+  return zone
 }
 
-/** "Schedule send to 31,604 recipients" or "Send to 47,842 recipients". */
-export function sendLabel(mode: Schedule['mode'], recipients: number): string {
-  return mode === 'now' ? t(m.sendNow, { recipients }) : t(m.sendScheduled, { recipients })
+/** "Tue 14 Oct, 09:00 ET". */
+function atWhen(s: Schedule): string {
+  return t(m.ctaWhen, { day: calendarDate(s.date ?? '', 'shortDate'), time: timeOfDay(s.time ?? ''), zone: zoneShort(s.timezone) }).trim()
+}
+
+/** When the send goes out: "Tue 14 Oct, 09:00 ET", "Best time from Tue 14 Oct", "Sends within a minute". */
+export function ctaWhen(s: Schedule): string {
+  if (s.mode === 'now' || !s.date || !s.time) return t(m.ctaWhenNow)
+  return s.mode === 'best_time' ? t(m.ctaWhenBest, { day: calendarDate(s.date, 'shortDate') }) : atWhen(s)
+}
+
+/**
+ * The main action, with the schedule in it (SR-13): "Send now to 31,192",
+ * "Schedule for Tue 14 Oct, 09:00 ET", "Schedule best time from Tue 14 Oct,
+ * 09:00 ET".
+ */
+export function ctaLabel(s: Schedule, recipients: number): string {
+  if (s.mode === 'now' || !s.date || !s.time) return t(m.ctaNow, { count: count(recipients) })
+  return s.mode === 'best_time' ? t(m.ctaBest, { when: atWhen(s) }) : t(m.ctaAt, { when: atWhen(s) })
+}
+
+/** The sticky bar's short label on phones: "Schedule · 31,192", "Send now · 31,192". */
+export function ctaShort(s: Schedule, recipients: number): string {
+  return s.mode === 'now' || !s.date || !s.time ? t(m.ctaShortNow, { count: count(recipients) }) : t(m.ctaShortAt, { count: count(recipients) })
 }
 
 /** "You'll confirm the audience and the two warnings on the next step." */
@@ -296,12 +380,14 @@ export function checksByGroup(run: Run): { group: Group; checks: Check[] }[] {
 
 /**
  * Warnings people confirm before sending (keys and sentences); the ones
- * with a one-click alternative ("Exclude them instead") come first.
+ * with a one-click alternative ("Send via SES only instead") come first.
+ * A warning someone dismissed in the composer, with a reason, is already
+ * confirmed (dismissedWarnings).
  */
-export function acknowledgements(run: Run): { key: string; keys: string[]; text: string; fix?: Fix }[] {
-  const out: { key: string; keys: string[]; text: string; fix?: Fix }[] = []
+export function acknowledgements(run: Run): { key: string; keys: string[]; text: string; check: Check; fix?: Fix }[] {
+  const out: { key: string; keys: string[]; text: string; check: Check; fix?: Fix }[] = []
   const groups = new Map<string, { keys: string[] }>()
-  for (const c of run.checks.filter((x) => x.status === 'warn')) {
+  for (const c of run.checks.filter((x) => x.status === 'warn' && !x.dismissal)) {
     const text = c.ack || t(m.ackDefault, { title: c.title })
     // Warnings confirmed in the same words (the serious accessibility
     // issues) are one checkbox that confirms them all. The server says
@@ -312,11 +398,21 @@ export function acknowledgements(run: Run): { key: string; keys: string[]; text:
       same.keys.push(c.key)
       continue
     }
-    const ack = { key: c.key, keys: [c.key], text, fix: c.fixes.find((f) => f.kind === 'apply' && f.action === 'exclude_sunset') }
+    // A fix with a dialog of its own isn't offered here.
+    const fix = primaryFix(c)
+    const ack = { key: c.key, keys: [c.key], text, check: c, fix: fix && fix.action !== 'verify_addresses' && fix.action !== 'accessibility_one_click' ? fix : undefined }
     groups.set(id, ack)
     out.push(ack)
   }
   return out.sort((a, b) => Number(Boolean(b.fix)) - Number(Boolean(a.fix)))
+}
+
+/**
+ * Warnings someone dismissed in the composer with a reason (CO-14): still
+ * listed as warnings, with who and why, and counted as confirmed.
+ */
+export function dismissedWarnings(run: Run): Check[] {
+  return run.checks.filter((c) => c.status === 'warn' && c.dismissal)
 }
 
 /** The warning keys the checked confirmations cover. */

@@ -154,6 +154,15 @@ export function setAttr(c: Component, key: string, value: string) {
   else c.addAttributes({ [key]: value })
 }
 
+/**
+ * Sets all four sides of a box attribute as one shorthand ("16px 24px"),
+ * taking out longhands an earlier edit wrote (they'd win over it).
+ */
+export function setBox(c: Component, key: string, value: string) {
+  c.removeAttributes(SIDES.map((s) => `${key}-${s}`))
+  setAttr(c, key, value)
+}
+
 /** Sets one side of a box attribute, writing all four sides as longhands. */
 export function setBoxSide(c: Component, key: string, side: (typeof SIDES)[number], value: string, head: HeadDefaults) {
   const cur = effectiveBox(c, key, head)

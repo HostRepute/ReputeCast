@@ -194,6 +194,20 @@ func TestAssembleIncompleteAndEmpty(t *testing.T) {
 	if !res.Incomplete || res.Counts.Unknown == 0 || res.Problem != f.Reputation.Outage || res.Verdict == readiness.VerdictBlocked {
 		t.Fatalf("incomplete: %+v %s %s", res.Counts, res.Problem, res.Verdict)
 	}
+	// R1.U8: only sender reputation data is missing, so the send goes on
+	// the providers' own data ("Continue with provider data only")…
+	if !readiness.ProviderDataOnly(res.Checks) {
+		t.Fatal("HostRepute's outage leaves the providers' data")
+	}
+	// …but content that couldn't be checked is skipped, not provider data
+	// ("Continue without the skipped checks").
+	f.Content.Checked = false
+	if res := readiness.Assemble(f); readiness.ProviderDataOnly(res.Checks) || !res.Incomplete {
+		t.Fatalf("content unchecked: %+v", res.Counts)
+	}
+	if readiness.ProviderDataOnly(readiness.Assemble(digest()).Checks) {
+		t.Fatal("a run where every check ran skipped nothing")
+	}
 
 	f = digest()
 	f.Audience = readiness.AudienceFacts{Empty: true, Mailboxes: map[string]int64{}}
@@ -263,5 +277,33 @@ func TestText(t *testing.T) {
 	}
 	if m := readiness.Minutes(28444.0 / 14); m != 34 {
 		t.Fatalf("minutes: %d", m)
+	}
+}
+
+// A dedicated IP Deliverability's blocklist checks haven't reached yet (its
+// provider began listing it since their last run, review GS-10) is
+// unknown, never clean (F-3), and says how to check it; an IP they cover
+// keeps its verdict.
+func TestAssembleUncheckedIP(t *testing.T) {
+	f := digest()
+	reported := postal(3160, 10)
+	reported.IPs = []string{"203.0.113.25", "198.51.100.40"}
+	f.Route.Shares = []readiness.ShareFacts{ses(28444, 90), reported}
+	f.Reputation.UncheckedIPs = []string{"198.51.100.40"}
+	checks := byKey(readiness.Assemble(f))
+	c := checks["reputation.ip_blocklists.198.51.100.40"]
+	if c.Status != readiness.Unknown || c.Title != "Postal IP 198.51.100.40 isn't checked on IP blocklists yet" ||
+		!strings.Contains(c.Detail, "Run the checks now from Deliverability") {
+		t.Fatalf("unchecked IP: %+v", c)
+	}
+	deliverability := false
+	for _, x := range c.Fixes {
+		deliverability = deliverability || x.Kind == "link" && strings.HasSuffix(x.Href, "/deliverability")
+	}
+	if !deliverability {
+		t.Fatalf("no way to Deliverability's checks: %+v", c.Fixes)
+	}
+	if c := checks["reputation.ip_blocklists.203.0.113.25"]; c.Status != readiness.Warn {
+		t.Fatalf("the checked IP lost its verdict: %+v", c)
 	}
 }

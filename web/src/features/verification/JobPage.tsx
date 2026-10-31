@@ -379,7 +379,7 @@ function Finished({ j, onAgain }: { j: Job; onAgain: (t: Target) => void }) {
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-2 px-[18px] py-3">
         <span className="k">
-          <T msg={m.csvNote} values={{ code: (c) => <span className="mono">{c}</span> }} />
+          {t(m.csvNote)}
         </span>
         {j.canExport ? (
           <ButtonAnchor href={`/api/v1/workspaces/${slug}/verification/jobs/${j.id}/results.csv`} icon="download" newTab={false} download="">

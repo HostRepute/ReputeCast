@@ -1,0 +1,36 @@
+<mjml>
+  <mj-head>
+    <mj-attributes>
+      <mj-all font-family="Georgia, 'Times New Roman', serif"></mj-all>
+      <mj-class name="muted" color="#5B6472" font-size="13px"></mj-class>
+      <mj-button background-color="#0F766E" border-radius="6px"></mj-button>
+    </mj-attributes>
+    <mj-style>.article-card { border-radius: 8px; }</mj-style>
+    <mj-style inline="inline">.lead { font-size: 16px; }</mj-style>
+  </mj-head>
+  <mj-body width="600px" background-color="#F3F4F6">
+    <mj-hero mode="fixed-height" height="240px" background-width="600px" background-height="240px" background-url="https://acme.io/hero.png" background-color="#0B1220" padding="40px 24px">
+      <mj-text color="#ffffff" font-size="28px" font-weight="700">Three launches and a roadmap</mj-text>
+      <mj-button href="https://acme.io/launch">Read the launch notes</mj-button>
+    </mj-hero>
+    <mj-wrapper background-color="#ffffff" padding="16px 0px">
+      <mj-section padding="0px 24px">
+        <mj-group>
+          <mj-column width="50%">
+            <mj-image src="https://acme.io/a.png" alt='The "Q4" roadmap &amp; more' href="https://acme.io/roadmap" width="268px"></mj-image>
+          </mj-column>
+          <mj-column width="50%">
+            <mj-text mj-class="muted" css-class="lead">Grouped columns stay side by side on phones.</mj-text>
+          </mj-column>
+        </mj-group>
+      </mj-section>
+      <mj-section padding="0px 24px">
+        <mj-column>
+          <mj-divider border-color="#E3E6EB" border-width="1px"></mj-divider>
+          <mj-spacer height="12px"></mj-spacer>
+          <mj-table font-size="13px"><tr><th align="left">Plan</th><th align="right">Price</th></tr><tr><td>Starter</td><td align="right">$9/mo</td></tr></mj-table>
+        </mj-column>
+      </mj-section>
+    </mj-wrapper>
+  </mj-body>
+</mjml>

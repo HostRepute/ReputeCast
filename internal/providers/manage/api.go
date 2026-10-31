@@ -33,6 +33,12 @@ type settingsInput struct {
 	Body       ProviderSettingsInput
 }
 
+type ipsInput struct {
+	api.WorkspaceInput
+	ProviderID string `path:"providerId" format:"uuid"`
+	Body       ProviderIPsInput
+}
+
 type trackingInput struct {
 	api.WorkspaceInput
 	ProviderID string `path:"providerId" format:"uuid"`
@@ -95,6 +101,19 @@ func Register(h huma.API, s *Service) {
 	api.Patch(h, api.Op{ID: "update-provider", Path: "/workspaces/{workspace}/providers/{providerId}", Summary: "Change a provider's label, pricing or limits", Tags: tags, Access: manage},
 		func(ctx context.Context, in *settingsInput) (*api.Body[ProviderCard], error) {
 			out, err := s.UpdateSettings(ctx, api.WorkspaceFrom(ctx), in.ProviderID, in.Body)
+			return api.OK(out), err
+		})
+	api.Put(h, api.Op{ID: "set-provider-ips", Path: "/workspaces/{workspace}/providers/{providerId}/ips", Summary: "Set the sending IPs of a provider whose API doesn't list them",
+		Description: "For self-hosted servers, SMTP and providers without an IP API: their dedicated IPs (up to 64 public IPv4 or IPv6 addresses) or the provider's shared pool. " +
+			"A provider whose API reports its IPs is refused with 409: ReputeCast reads them when it's connected and every day.", Tags: tags, Access: manage},
+		func(ctx context.Context, in *ipsInput) (*api.Body[ProviderCard], error) {
+			out, err := s.SetIPs(ctx, api.WorkspaceFrom(ctx), in.ProviderID, in.Body)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "check-provider-ips", Path: "/workspaces/{workspace}/providers/{providerId}/ips/check", Summary: "Ask a provider for its sending IPs now",
+		Description: "For a provider whose API reports its IPs; the card says what it answered, or why it couldn't. Others are refused with 409: their IPs are set by hand.", Tags: tags, Access: manage},
+		func(ctx context.Context, in *providerInput) (*api.Body[ProviderCard], error) {
+			out, err := s.CheckIPs(ctx, api.WorkspaceFrom(ctx), in.ProviderID)
 			return api.OK(out), err
 		})
 	api.Delete(h, api.Op{ID: "disconnect-provider", Path: "/workspaces/{workspace}/providers/{providerId}", Summary: "Disconnect a provider no route uses, and remove the webhook ReputeCast registered there", Tags: tags, Access: manage, Status: http.StatusOK},

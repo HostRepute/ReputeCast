@@ -71,8 +71,8 @@ export const mof = defineMessages('earn.offers', {
   endOffer: 'End the offer',
   endedNote: '{name} ended on {date}, its end date. Readers with the link see “This offer has ended” and the normal prices; the {count, plural, one {paid member} other {# paid members}} who used it keep {price} for their first {period, select, year {year} other {month}}.',
   endedNoteEarly: '{name} ended on {date}. Readers with the link see “This offer has ended” and the normal prices; the paid members who used it keep their discount.',
-  readOnly: 'Changing plans and offers needs <mono>earn:edit</mono>. Ask {helpers}.',
-  readOnlyNoHelpers: 'Changing plans and offers needs <mono>earn:edit</mono>. Ask a workspace owner.',
+  readOnly: 'Your role can’t change plans and offers. Ask {helpers}.',
+  readOnlyNoHelpers: 'Your role can’t change plans and offers. Ask a workspace owner.',
   // The editor.
   crumbEarn: 'Earn',
   crumbPlans: 'Plans & offers',
@@ -177,7 +177,7 @@ export const mof = defineMessages('earn.offers', {
   // Referral codes.
   codesTitle: '{name}',
   codesSub: '{issued} issued, {redeemed} redeemed',
-  codesNote: 'Grow creates a single-use code each time a referrer reaches 10 referrals. Codes apply to {tiers} only; changing this offer needs <mono>earn:edit</mono>.',
+  codesNote: 'Grow creates a single-use code each time a referrer reaches 10 referrals. Codes apply to {tiers} only; changing this offer needs someone who can edit plans and offers.',
   cCode: 'Code',
   cIssuedTo: 'Issued to',
   cIssued: 'Issued',

@@ -70,7 +70,7 @@ export function FormAddressCheck({ formKey, formName }: { formKey: string; formN
           <span className="flex flex-col gap-px">
             <label htmlFor={`${formKey}-check`}>{t(m.formCheckTitle, { name })}</label>
             <span className="k" id={`${formKey}-check-h`}>
-              <T msg={m.formCheckBody} values={{ name, price: money(s.price, true), code: (c) => <span className="mono">{c}</span> }} />
+              <T msg={m.formCheckBody} values={{ name, price: money(s.price, true) }} />
             </span>
           </span>
         </div>

@@ -153,8 +153,8 @@ export default translate(m, {
   clearSearch: 'Xóa tìm kiếm',
   buildYourOwn: 'Hoặc tự xây bằng <a>API công khai</a>.',
   readOnly: 'Chỉ xem',
-  readOnlyCatalog: 'Kết nối và Quản lý thành Xem: bạn mở được mọi tích hợp và xem hoạt động của nó. Kết nối cần quyền integrations:manage. Hãy nhờ {helpers}.',
-  readOnlyCatalogAlone: 'Kết nối và Quản lý thành Xem: bạn mở được mọi tích hợp và xem hoạt động của nó. Kết nối cần quyền integrations:manage.',
+  readOnlyCatalog: 'Kết nối và Quản lý thành Xem: bạn mở được mọi tích hợp và xem hoạt động của nó. Vai trò của bạn không thể kết nối tích hợp. Hãy nhờ {helpers}.',
+  readOnlyCatalogAlone: 'Kết nối và Quản lý thành Xem: bạn mở được mọi tích hợp và xem hoạt động của nó. Vai trò của bạn không thể kết nối tích hợp.',
   loadingCatalog: 'Đang tải tích hợp',
   loadError: 'Không tải được tích hợp',
   loadErrorBody: '{detail} Các tích hợp đã kết nối vẫn hoạt động: khóa và webhook của chúng không phụ thuộc vào trang này.',
@@ -468,8 +468,8 @@ export default translate(m, {
   expiredFoot: 'Kết nối lại giữ nguyên những gì {name} được làm. Hãy chọn lại thời hạn, hoặc không đặt hạn.',
   ownerLeftFoot: 'Tiếp quản cũng có trong menu ⋯, cùng Ngắt kết nối.',
 
-  readOnlyApp: 'Bạn xem được hoạt động, webhook và những gì {name} được làm. Đổi, xoay vòng, tiếp quản và ngắt kết nối cần quyền integrations:manage. Hãy nhờ {helpers}.',
-  readOnlyAppAlone: 'Bạn xem được hoạt động, webhook và những gì {name} được làm. Đổi, xoay vòng, tiếp quản và ngắt kết nối cần quyền integrations:manage.',
+  readOnlyApp: 'Bạn xem được hoạt động, webhook và những gì {name} được làm. Vai trò của bạn không thể đổi, xoay vòng, tiếp quản hay ngắt kết nối tích hợp này. Hãy nhờ {helpers}.',
+  readOnlyAppAlone: 'Bạn xem được hoạt động, webhook và những gì {name} được làm. Vai trò của bạn không thể đổi, xoay vòng, tiếp quản hay ngắt kết nối tích hợp này.',
 
   // ── Connect dialog ───────────────────────────────────────────────────
   connectEyebrow: 'Kết nối {name} · {person}',
@@ -761,8 +761,8 @@ export default translate(m, {
   noSitesTitle: 'Chưa có trang nào',
   noSitesBody: 'Hãy cài plugin ReputeCast trên trang WordPress của bạn, rồi kết nối nó ở đây.',
   noSitesFoot: 'Mỗi trang có khóa riêng: khóa liệt kê được biểu mẫu đăng ký và tạo bản nháp từ bài viết, ngoài ra không làm được gì khác.',
-  readOnlyWp: 'Bạn xem được tình trạng, biểu mẫu, bản nháp và khóa của từng trang. Kết nối, quy tắc, Kiểm tra ngay và khóa cần quyền integrations:manage. Hãy nhờ {helpers}.',
-  readOnlyWpAlone: 'Bạn xem được tình trạng, biểu mẫu, bản nháp và khóa của từng trang. Kết nối, quy tắc, Kiểm tra ngay và khóa cần quyền integrations:manage.',
+  readOnlyWp: 'Bạn xem được tình trạng, biểu mẫu, bản nháp và khóa của từng trang. Vai trò của bạn không thể kết nối trang, đổi quy tắc, dùng Kiểm tra ngay hay quản lý khóa. Hãy nhờ {helpers}.',
+  readOnlyWpAlone: 'Bạn xem được tình trạng, biểu mẫu, bản nháp và khóa của từng trang. Vai trò của bạn không thể kết nối trang, đổi quy tắc, dùng Kiểm tra ngay hay quản lý khóa.',
   loadingSites: 'Đang tải các trang của bạn',
   loadSitesError: 'Không tải được các trang của bạn',
   loadSitesErrorBody: '{detail} Biểu mẫu trên các trang của bạn vẫn hoạt động: chúng tải qua đoạn mã công khai của từng biểu mẫu.',
@@ -801,7 +801,7 @@ export default translate(m, {
   hookReadOnly: 'Để đổi, hãy đổi quy trình trong {name}, hoặc ngắt kết nối {name}.',
 
   // ── Keys & MCP: agents and integrations ──────────────────────────────
-  mcpNoIntegrations: 'Tác tử không bao giờ kết nối tích hợp: integrations:manage chỉ dành cho người.',
+  mcpNoIntegrations: 'Tác tử không bao giờ kết nối tích hợp: việc này chỉ dành cho người.',
 
   // ── Team: integrations a member connected ────────────────────────────
   memberLegend: 'Tích hợp {name} đã kết nối · {count}',
@@ -814,7 +814,7 @@ export default translate(m, {
   memberDefault: 'mặc định',
   memberDisconnect: 'Ngắt kết nối',
   memberFoot: 'Tiếp quản đưa bạn thành chủ của các khóa. Khóa giữ nguyên giá trị, nên không có gì thay đổi trong {tools}.',
-  memberNoManage: 'Những mục này ngừng hoạt động cho đến khi người có quyền integrations:manage tiếp quản hoặc ngắt kết nối chúng trong Cài đặt › Tích hợp.',
+  memberNoManage: 'Những mục này ngừng hoạt động cho đến khi người có thể quản lý tích hợp tiếp quản hoặc ngắt kết nối chúng trong Cài đặt › Tích hợp.',
   memberError: 'Không bàn giao được {name}',
 
   // ── HostRepute ───────────────────────────────────────────────────────

@@ -30,12 +30,13 @@ func (q *Queries) ReadinessAcceptUnknown(ctx context.Context, arg ReadinessAccep
 
 const readinessCampaign = `-- name: ReadinessCampaign :one
 SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.audience, c.audience_count, c.mjml, c.html, c.version,
-       c.ab_test, c.schedule, c.thresholds, c.route_override, c.content_hash, c.content_settings, c.reply_to,
+       c.ab_test, c.schedule, c.thresholds, c.route_override, c.content_hash, c.content_settings, c.reply_to, c.tracking,
        c.created_by, c.updated_by, c.created_at, c.updated_at, c.autosaved_at, c.scheduled_at, c.started_at, c.sender_id,
        coalesce(s.name, '')::text AS sender_name,
        coalesce(s.email, '')::text AS sender_email,
        coalesce(d.domain, '')::text AS sender_domain,
-       coalesce(u.name, '')::text AS updated_by_name
+       coalesce(u.name, '')::text AS updated_by_name,
+       coalesce(s.reply_to, '')::text AS sender_reply_to
 FROM campaigns c
 LEFT JOIN senders s ON s.id = c.sender_id
 LEFT JOIN sending_domains d ON d.id = s.domain_id
@@ -67,6 +68,7 @@ type ReadinessCampaignRow struct {
 	ContentHash     string          `json:"contentHash"`
 	ContentSettings json.RawMessage `json:"contentSettings"`
 	ReplyTo         string          `json:"replyTo"`
+	Tracking        json.RawMessage `json:"tracking"`
 	CreatedBy       *uuid.UUID      `json:"createdBy"`
 	UpdatedBy       *uuid.UUID      `json:"updatedBy"`
 	CreatedAt       time.Time       `json:"createdAt"`
@@ -79,6 +81,7 @@ type ReadinessCampaignRow struct {
 	SenderEmail     string          `json:"senderEmail"`
 	SenderDomain    string          `json:"senderDomain"`
 	UpdatedByName   string          `json:"updatedByName"`
+	SenderReplyTo   string          `json:"senderReplyTo"`
 }
 
 // A campaign with its sender and sending domain.
@@ -104,6 +107,7 @@ func (q *Queries) ReadinessCampaign(ctx context.Context, arg ReadinessCampaignPa
 		&i.ContentHash,
 		&i.ContentSettings,
 		&i.ReplyTo,
+		&i.Tracking,
 		&i.CreatedBy,
 		&i.UpdatedBy,
 		&i.CreatedAt,
@@ -116,6 +120,7 @@ func (q *Queries) ReadinessCampaign(ctx context.Context, arg ReadinessCampaignPa
 		&i.SenderEmail,
 		&i.SenderDomain,
 		&i.UpdatedByName,
+		&i.SenderReplyTo,
 	)
 	return i, err
 }
@@ -132,6 +137,107 @@ func (q *Queries) ReadinessCampaignWorkspace(ctx context.Context, id uuid.UUID) 
 	return workspace_id, err
 }
 
+const readinessClaimFixUndo = `-- name: ReadinessClaimFixUndo :execrows
+UPDATE readiness_fix_batches SET undone_at = $1, undone_by = $2 WHERE id = $3 AND undone_at IS NULL
+`
+
+type ReadinessClaimFixUndoParams struct {
+	UndoneAt *time.Time `json:"undoneAt"`
+	UndoneBy *uuid.UUID `json:"undoneBy"`
+	ID       uuid.UUID  `json:"id"`
+}
+
+// Claims a batch for an undo: one at a time, never twice.
+func (q *Queries) ReadinessClaimFixUndo(ctx context.Context, arg ReadinessClaimFixUndoParams) (int64, error) {
+	result, err := q.db.Exec(ctx, readinessClaimFixUndo, arg.UndoneAt, arg.UndoneBy, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const readinessClaimProgress = `-- name: ReadinessClaimProgress :one
+UPDATE readiness_progress SET updated_at = $1
+WHERE campaign_id = $2 AND run_id = $3 AND failed_at IS NULL
+RETURNING run_id
+`
+
+type ReadinessClaimProgressParams struct {
+	Now        time.Time `json:"now"`
+	CampaignID uuid.UUID `json:"campaignId"`
+	RunID      uuid.UUID `json:"runId"`
+}
+
+// A worker takes up a queued run: it still owns the campaign's row.
+func (q *Queries) ReadinessClaimProgress(ctx context.Context, arg ReadinessClaimProgressParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, readinessClaimProgress, arg.Now, arg.CampaignID, arg.RunID)
+	var run_id uuid.UUID
+	err := row.Scan(&run_id)
+	return run_id, err
+}
+
+const readinessConfirmCanary = `-- name: ReadinessConfirmCanary :exec
+UPDATE campaign_send_confirmations SET canary = $1 WHERE campaign_id = $2
+`
+
+type ReadinessConfirmCanaryParams struct {
+	Canary     string    `json:"canary"`
+	CampaignID uuid.UUID `json:"campaignId"`
+}
+
+// The canary choice confirmed with a send (C1).
+func (q *Queries) ReadinessConfirmCanary(ctx context.Context, arg ReadinessConfirmCanaryParams) error {
+	_, err := q.db.Exec(ctx, readinessConfirmCanary, arg.Canary, arg.CampaignID)
+	return err
+}
+
+const readinessConfirmSend = `-- name: ReadinessConfirmSend :exec
+INSERT INTO campaign_send_confirmations (campaign_id, workspace_id, run_id, confirmed_by, confirmed_at, scheduled_at, recipients, acknowledged, unknown,
+    content_digest, sender_id, route_digest, audience_digest)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8::text[],
+    $9::text[], $10, $11, $12, $13)
+ON CONFLICT (campaign_id) DO UPDATE SET run_id = EXCLUDED.run_id, confirmed_by = EXCLUDED.confirmed_by, confirmed_at = EXCLUDED.confirmed_at,
+    scheduled_at = EXCLUDED.scheduled_at, recipients = EXCLUDED.recipients, acknowledged = EXCLUDED.acknowledged, unknown = EXCLUDED.unknown,
+    content_digest = EXCLUDED.content_digest, sender_id = EXCLUDED.sender_id, route_digest = EXCLUDED.route_digest, audience_digest = EXCLUDED.audience_digest
+`
+
+type ReadinessConfirmSendParams struct {
+	CampaignID     uuid.UUID  `json:"campaignId"`
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	RunID          *uuid.UUID `json:"runId"`
+	ConfirmedBy    *uuid.UUID `json:"confirmedBy"`
+	ConfirmedAt    time.Time  `json:"confirmedAt"`
+	ScheduledAt    *time.Time `json:"scheduledAt"`
+	Recipients     int64      `json:"recipients"`
+	Acknowledged   []string   `json:"acknowledged"`
+	Unknown        []string   `json:"unknown"`
+	ContentDigest  string     `json:"contentDigest"`
+	SenderID       *uuid.UUID `json:"senderId"`
+	RouteDigest    string     `json:"routeDigest"`
+	AudienceDigest string     `json:"audienceDigest"`
+}
+
+// What a person confirmed as they scheduled or started a send (SR-3): the
+// send-time recheck holds the send on anything they didn't.
+func (q *Queries) ReadinessConfirmSend(ctx context.Context, arg ReadinessConfirmSendParams) error {
+	_, err := q.db.Exec(ctx, readinessConfirmSend,
+		arg.CampaignID,
+		arg.WorkspaceID,
+		arg.RunID,
+		arg.ConfirmedBy,
+		arg.ConfirmedAt,
+		arg.ScheduledAt,
+		arg.Recipients,
+		arg.Acknowledged,
+		arg.Unknown,
+		arg.ContentDigest,
+		arg.SenderID,
+		arg.RouteDigest,
+		arg.AudienceDigest,
+	)
+	return err
+}
+
 const readinessEndProgress = `-- name: ReadinessEndProgress :exec
 DELETE FROM readiness_progress WHERE campaign_id = $1 AND run_id = $2
 `
@@ -146,25 +252,131 @@ func (q *Queries) ReadinessEndProgress(ctx context.Context, arg ReadinessEndProg
 	return err
 }
 
+const readinessFailProgress = `-- name: ReadinessFailProgress :exec
+UPDATE readiness_progress SET failed_at = $1, error = $2, updated_at = $1
+WHERE campaign_id = $3 AND run_id = $4
+`
+
+type ReadinessFailProgressParams struct {
+	Now        *time.Time `json:"now"`
+	Error      string     `json:"error"`
+	CampaignID uuid.UUID  `json:"campaignId"`
+	RunID      uuid.UUID  `json:"runId"`
+}
+
+// A run stopped on an error: the row says why until the next run.
+func (q *Queries) ReadinessFailProgress(ctx context.Context, arg ReadinessFailProgressParams) error {
+	_, err := q.db.Exec(ctx, readinessFailProgress,
+		arg.Now,
+		arg.Error,
+		arg.CampaignID,
+		arg.RunID,
+	)
+	return err
+}
+
+const readinessFixBatch = `-- name: ReadinessFixBatch :one
+SELECT b.id, b.workspace_id, b.campaign_id, b.applied_by, b.applied_at, b.applied, b.applied_lang, b.blocked, b.version_before, b.version_after,
+       b.route_changed, b.route_before, b.route_after, b.audience_changed, b.audience_before, b.audience_after,
+       b.settings_changed, b.settings_before, b.settings_after, b.undone_at, b.undone_by,
+       coalesce(u.name, '')::text AS applied_by_name
+FROM readiness_fix_batches b LEFT JOIN users u ON u.id = b.applied_by
+WHERE b.workspace_id = $1 AND b.campaign_id = $2 AND b.id = $3
+`
+
+type ReadinessFixBatchParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+type ReadinessFixBatchRow struct {
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	CampaignID      uuid.UUID       `json:"campaignId"`
+	AppliedBy       *uuid.UUID      `json:"appliedBy"`
+	AppliedAt       time.Time       `json:"appliedAt"`
+	Applied         json.RawMessage `json:"applied"`
+	AppliedLang     string          `json:"appliedLang"`
+	Blocked         string          `json:"blocked"`
+	VersionBefore   *int32          `json:"versionBefore"`
+	VersionAfter    *int32          `json:"versionAfter"`
+	RouteChanged    bool            `json:"routeChanged"`
+	RouteBefore     json.RawMessage `json:"routeBefore"`
+	RouteAfter      json.RawMessage `json:"routeAfter"`
+	AudienceChanged bool            `json:"audienceChanged"`
+	AudienceBefore  json.RawMessage `json:"audienceBefore"`
+	AudienceAfter   json.RawMessage `json:"audienceAfter"`
+	SettingsChanged bool            `json:"settingsChanged"`
+	SettingsBefore  json.RawMessage `json:"settingsBefore"`
+	SettingsAfter   json.RawMessage `json:"settingsAfter"`
+	UndoneAt        *time.Time      `json:"undoneAt"`
+	UndoneBy        *uuid.UUID      `json:"undoneBy"`
+	AppliedByName   string          `json:"appliedByName"`
+}
+
+func (q *Queries) ReadinessFixBatch(ctx context.Context, arg ReadinessFixBatchParams) (ReadinessFixBatchRow, error) {
+	row := q.db.QueryRow(ctx, readinessFixBatch, arg.WorkspaceID, arg.CampaignID, arg.ID)
+	var i ReadinessFixBatchRow
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.CampaignID,
+		&i.AppliedBy,
+		&i.AppliedAt,
+		&i.Applied,
+		&i.AppliedLang,
+		&i.Blocked,
+		&i.VersionBefore,
+		&i.VersionAfter,
+		&i.RouteChanged,
+		&i.RouteBefore,
+		&i.RouteAfter,
+		&i.AudienceChanged,
+		&i.AudienceBefore,
+		&i.AudienceAfter,
+		&i.SettingsChanged,
+		&i.SettingsBefore,
+		&i.SettingsAfter,
+		&i.UndoneAt,
+		&i.UndoneBy,
+		&i.AppliedByName,
+	)
+	return i, err
+}
+
+const readinessForgetConfirmation = `-- name: ReadinessForgetConfirmation :exec
+DELETE FROM campaign_send_confirmations WHERE campaign_id = $1
+`
+
+func (q *Queries) ReadinessForgetConfirmation(ctx context.Context, campaignID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, readinessForgetConfirmation, campaignID)
+	return err
+}
+
 const readinessGetProgress = `-- name: ReadinessGetProgress :one
 SELECT p.campaign_id, p.run_id, p.trigger, p.started_by, p.started_at, p.updated_at, p.groups, p.done, p.total,
-       coalesce(u.name, '')::text AS started_by_name
+       p.failed_at, p.error,
+       coalesce(u.name, nullif(p.started_by_actor_name, ''), '')::text AS started_by_name, p.started_by_actor_type
 FROM readiness_progress p
 LEFT JOIN users u ON u.id = p.started_by
 WHERE p.campaign_id = $1
 `
 
 type ReadinessGetProgressRow struct {
-	CampaignID    uuid.UUID       `json:"campaignId"`
-	RunID         uuid.UUID       `json:"runId"`
-	Trigger       string          `json:"trigger"`
-	StartedBy     *uuid.UUID      `json:"startedBy"`
-	StartedAt     time.Time       `json:"startedAt"`
-	UpdatedAt     time.Time       `json:"updatedAt"`
-	Groups        json.RawMessage `json:"groups"`
-	Done          int32           `json:"done"`
-	Total         int32           `json:"total"`
-	StartedByName string          `json:"startedByName"`
+	CampaignID         uuid.UUID       `json:"campaignId"`
+	RunID              uuid.UUID       `json:"runId"`
+	Trigger            string          `json:"trigger"`
+	StartedBy          *uuid.UUID      `json:"startedBy"`
+	StartedAt          time.Time       `json:"startedAt"`
+	UpdatedAt          time.Time       `json:"updatedAt"`
+	Groups             json.RawMessage `json:"groups"`
+	Done               int32           `json:"done"`
+	Total              int32           `json:"total"`
+	FailedAt           *time.Time      `json:"failedAt"`
+	Error              string          `json:"error"`
+	StartedByName      string          `json:"startedByName"`
+	StartedByActorType string          `json:"startedByActorType"`
 }
 
 func (q *Queries) ReadinessGetProgress(ctx context.Context, campaignID uuid.UUID) (ReadinessGetProgressRow, error) {
@@ -180,7 +392,10 @@ func (q *Queries) ReadinessGetProgress(ctx context.Context, campaignID uuid.UUID
 		&i.Groups,
 		&i.Done,
 		&i.Total,
+		&i.FailedAt,
+		&i.Error,
 		&i.StartedByName,
+		&i.StartedByActorType,
 	)
 	return i, err
 }
@@ -188,7 +403,7 @@ func (q *Queries) ReadinessGetProgress(ctx context.Context, campaignID uuid.UUID
 const readinessGetRun = `-- name: ReadinessGetRun :one
 SELECT rr.id, rr.campaign_id, rr.trigger, rr.verdict, rr.checks, rr.estimates, rr.ran_at, rr.duration_ms, rr.ran_by, rr.campaign_version,
        rr.fingerprint, rr.unknown_accepted_at, rr.unknown_accepted_by,
-       coalesce(u.name, '')::text AS ran_by_name,
+       coalesce(u.name, nullif(rr.ran_by_actor_name, ''), '')::text AS ran_by_name, rr.ran_by_actor_type,
        coalesce(a.name, '')::text AS accepted_by_name
 FROM readiness_runs rr
 LEFT JOIN users u ON u.id = rr.ran_by
@@ -216,6 +431,7 @@ type ReadinessGetRunRow struct {
 	UnknownAcceptedAt *time.Time      `json:"unknownAcceptedAt"`
 	UnknownAcceptedBy *uuid.UUID      `json:"unknownAcceptedBy"`
 	RanByName         string          `json:"ranByName"`
+	RanByActorType    string          `json:"ranByActorType"`
 	AcceptedByName    string          `json:"acceptedByName"`
 }
 
@@ -237,9 +453,68 @@ func (q *Queries) ReadinessGetRun(ctx context.Context, arg ReadinessGetRunParams
 		&i.UnknownAcceptedAt,
 		&i.UnknownAcceptedBy,
 		&i.RanByName,
+		&i.RanByActorType,
 		&i.AcceptedByName,
 	)
 	return i, err
+}
+
+const readinessInsertFixBatch = `-- name: ReadinessInsertFixBatch :exec
+INSERT INTO readiness_fix_batches (id, workspace_id, campaign_id, applied_by, applied_at, applied, applied_lang, blocked,
+    version_before, version_after, route_changed, route_before, route_after, audience_changed, audience_before, audience_after,
+    settings_changed, settings_before, settings_after)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
+    $9, $10, $11, $12, $13, $14,
+    $15, $16, $17, $18, $19)
+`
+
+type ReadinessInsertFixBatchParams struct {
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	CampaignID      uuid.UUID       `json:"campaignId"`
+	AppliedBy       *uuid.UUID      `json:"appliedBy"`
+	AppliedAt       time.Time       `json:"appliedAt"`
+	Applied         json.RawMessage `json:"applied"`
+	AppliedLang     string          `json:"appliedLang"`
+	Blocked         string          `json:"blocked"`
+	VersionBefore   *int32          `json:"versionBefore"`
+	VersionAfter    *int32          `json:"versionAfter"`
+	RouteChanged    bool            `json:"routeChanged"`
+	RouteBefore     json.RawMessage `json:"routeBefore"`
+	RouteAfter      json.RawMessage `json:"routeAfter"`
+	AudienceChanged bool            `json:"audienceChanged"`
+	AudienceBefore  json.RawMessage `json:"audienceBefore"`
+	AudienceAfter   json.RawMessage `json:"audienceAfter"`
+	SettingsChanged bool            `json:"settingsChanged"`
+	SettingsBefore  json.RawMessage `json:"settingsBefore"`
+	SettingsAfter   json.RawMessage `json:"settingsAfter"`
+}
+
+// A batch of one-click fixes applied together (review R1.U3): the parts of
+// the campaign it changed, before and after, so Undo can put them back.
+func (q *Queries) ReadinessInsertFixBatch(ctx context.Context, arg ReadinessInsertFixBatchParams) error {
+	_, err := q.db.Exec(ctx, readinessInsertFixBatch,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.CampaignID,
+		arg.AppliedBy,
+		arg.AppliedAt,
+		arg.Applied,
+		arg.AppliedLang,
+		arg.Blocked,
+		arg.VersionBefore,
+		arg.VersionAfter,
+		arg.RouteChanged,
+		arg.RouteBefore,
+		arg.RouteAfter,
+		arg.AudienceChanged,
+		arg.AudienceBefore,
+		arg.AudienceAfter,
+		arg.SettingsChanged,
+		arg.SettingsBefore,
+		arg.SettingsAfter,
+	)
+	return err
 }
 
 const readinessInsertRoute = `-- name: ReadinessInsertRoute :exec
@@ -267,8 +542,10 @@ func (q *Queries) ReadinessInsertRoute(ctx context.Context, arg ReadinessInsertR
 }
 
 const readinessInsertRun = `-- name: ReadinessInsertRun :exec
-INSERT INTO readiness_runs (id, campaign_id, trigger, verdict, checks, estimates, ran_at, duration_ms, ran_by, campaign_version, fingerprint)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+INSERT INTO readiness_runs (id, campaign_id, trigger, verdict, checks, estimates, ran_at, duration_ms, ran_by, ran_by_actor_type, ran_by_actor_name,
+                            campaign_version, fingerprint)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+        $12, $13)
 `
 
 type ReadinessInsertRunParams struct {
@@ -281,10 +558,13 @@ type ReadinessInsertRunParams struct {
 	RanAt           time.Time       `json:"ranAt"`
 	DurationMs      int32           `json:"durationMs"`
 	RanBy           *uuid.UUID      `json:"ranBy"`
+	RanByActorType  string          `json:"ranByActorType"`
+	RanByActorName  string          `json:"ranByActorName"`
 	CampaignVersion int32           `json:"campaignVersion"`
 	Fingerprint     string          `json:"fingerprint"`
 }
 
+// ran_by is the person who asked; an API key or agent is ran_by_actor_*.
 func (q *Queries) ReadinessInsertRun(ctx context.Context, arg ReadinessInsertRunParams) error {
 	_, err := q.db.Exec(ctx, readinessInsertRun,
 		arg.ID,
@@ -296,16 +576,85 @@ func (q *Queries) ReadinessInsertRun(ctx context.Context, arg ReadinessInsertRun
 		arg.RanAt,
 		arg.DurationMs,
 		arg.RanBy,
+		arg.RanByActorType,
+		arg.RanByActorName,
 		arg.CampaignVersion,
 		arg.Fingerprint,
 	)
 	return err
 }
 
+const readinessLatestFixBatch = `-- name: ReadinessLatestFixBatch :one
+SELECT b.id, b.workspace_id, b.campaign_id, b.applied_by, b.applied_at, b.applied, b.applied_lang, b.blocked, b.version_before, b.version_after,
+       b.route_changed, b.route_before, b.route_after, b.audience_changed, b.audience_before, b.audience_after,
+       b.settings_changed, b.settings_before, b.settings_after, b.undone_at, b.undone_by,
+       coalesce(u.name, '')::text AS applied_by_name
+FROM readiness_fix_batches b LEFT JOIN users u ON u.id = b.applied_by
+WHERE b.campaign_id = $1
+ORDER BY b.applied_at DESC, b.id DESC
+LIMIT 1
+`
+
+type ReadinessLatestFixBatchRow struct {
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	CampaignID      uuid.UUID       `json:"campaignId"`
+	AppliedBy       *uuid.UUID      `json:"appliedBy"`
+	AppliedAt       time.Time       `json:"appliedAt"`
+	Applied         json.RawMessage `json:"applied"`
+	AppliedLang     string          `json:"appliedLang"`
+	Blocked         string          `json:"blocked"`
+	VersionBefore   *int32          `json:"versionBefore"`
+	VersionAfter    *int32          `json:"versionAfter"`
+	RouteChanged    bool            `json:"routeChanged"`
+	RouteBefore     json.RawMessage `json:"routeBefore"`
+	RouteAfter      json.RawMessage `json:"routeAfter"`
+	AudienceChanged bool            `json:"audienceChanged"`
+	AudienceBefore  json.RawMessage `json:"audienceBefore"`
+	AudienceAfter   json.RawMessage `json:"audienceAfter"`
+	SettingsChanged bool            `json:"settingsChanged"`
+	SettingsBefore  json.RawMessage `json:"settingsBefore"`
+	SettingsAfter   json.RawMessage `json:"settingsAfter"`
+	UndoneAt        *time.Time      `json:"undoneAt"`
+	UndoneBy        *uuid.UUID      `json:"undoneBy"`
+	AppliedByName   string          `json:"appliedByName"`
+}
+
+// The campaign's latest batch of fixes: the only one Undo can put back.
+func (q *Queries) ReadinessLatestFixBatch(ctx context.Context, campaignID uuid.UUID) (ReadinessLatestFixBatchRow, error) {
+	row := q.db.QueryRow(ctx, readinessLatestFixBatch, campaignID)
+	var i ReadinessLatestFixBatchRow
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.CampaignID,
+		&i.AppliedBy,
+		&i.AppliedAt,
+		&i.Applied,
+		&i.AppliedLang,
+		&i.Blocked,
+		&i.VersionBefore,
+		&i.VersionAfter,
+		&i.RouteChanged,
+		&i.RouteBefore,
+		&i.RouteAfter,
+		&i.AudienceChanged,
+		&i.AudienceBefore,
+		&i.AudienceAfter,
+		&i.SettingsChanged,
+		&i.SettingsBefore,
+		&i.SettingsAfter,
+		&i.UndoneAt,
+		&i.UndoneBy,
+		&i.AppliedByName,
+	)
+	return i, err
+}
+
 const readinessLatestRun = `-- name: ReadinessLatestRun :one
 SELECT rr.id, rr.campaign_id, rr.trigger, rr.verdict, rr.checks, rr.estimates, rr.ran_at, rr.duration_ms, rr.ran_by, rr.campaign_version,
        rr.fingerprint, rr.unknown_accepted_at, rr.unknown_accepted_by,
-       coalesce(u.name, '')::text AS ran_by_name,
+       coalesce(u.name, nullif(rr.ran_by_actor_name, ''), '')::text AS ran_by_name, rr.ran_by_actor_type,
        coalesce(a.name, '')::text AS accepted_by_name
 FROM readiness_runs rr
 LEFT JOIN users u ON u.id = rr.ran_by
@@ -330,6 +679,7 @@ type ReadinessLatestRunRow struct {
 	UnknownAcceptedAt *time.Time      `json:"unknownAcceptedAt"`
 	UnknownAcceptedBy *uuid.UUID      `json:"unknownAcceptedBy"`
 	RanByName         string          `json:"ranByName"`
+	RanByActorType    string          `json:"ranByActorType"`
 	AcceptedByName    string          `json:"acceptedByName"`
 }
 
@@ -351,8 +701,28 @@ func (q *Queries) ReadinessLatestRun(ctx context.Context, campaignID uuid.UUID) 
 		&i.UnknownAcceptedAt,
 		&i.UnknownAcceptedBy,
 		&i.RanByName,
+		&i.RanByActorType,
 		&i.AcceptedByName,
 	)
+	return i, err
+}
+
+const readinessLatestRunRef = `-- name: ReadinessLatestRunRef :one
+SELECT id, ran_at, verdict FROM readiness_runs WHERE campaign_id = $1 ORDER BY ran_at DESC LIMIT 1
+`
+
+type ReadinessLatestRunRefRow struct {
+	ID      uuid.UUID `json:"id"`
+	RanAt   time.Time `json:"ranAt"`
+	Verdict string    `json:"verdict"`
+}
+
+// The latest run's id, time and verdict: what the review screen's poll
+// compares with what it shows.
+func (q *Queries) ReadinessLatestRunRef(ctx context.Context, campaignID uuid.UUID) (ReadinessLatestRunRefRow, error) {
+	row := q.db.QueryRow(ctx, readinessLatestRunRef, campaignID)
+	var i ReadinessLatestRunRefRow
+	err := row.Scan(&i.ID, &i.RanAt, &i.Verdict)
 	return i, err
 }
 
@@ -406,6 +776,137 @@ func (q *Queries) ReadinessListNames(ctx context.Context, workspaceID uuid.UUID)
 	return items, nil
 }
 
+const readinessLockCampaign = `-- name: ReadinessLockCampaign :one
+SELECT route_override, audience, content_settings FROM campaigns
+WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
+FOR UPDATE
+`
+
+type ReadinessLockCampaignParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+type ReadinessLockCampaignRow struct {
+	RouteOverride   json.RawMessage `json:"routeOverride"`
+	Audience        json.RawMessage `json:"audience"`
+	ContentSettings json.RawMessage `json:"contentSettings"`
+}
+
+// The parts of a campaign an undo puts back, locked until it commits.
+func (q *Queries) ReadinessLockCampaign(ctx context.Context, arg ReadinessLockCampaignParams) (ReadinessLockCampaignRow, error) {
+	row := q.db.QueryRow(ctx, readinessLockCampaign, arg.WorkspaceID, arg.ID)
+	var i ReadinessLockCampaignRow
+	err := row.Scan(&i.RouteOverride, &i.Audience, &i.ContentSettings)
+	return i, err
+}
+
+const readinessMediaSizes = `-- name: ReadinessMediaSizes :many
+SELECT id, size_bytes FROM media_assets WHERE workspace_id = $1 AND id = ANY($2::uuid[])
+`
+
+type ReadinessMediaSizesParams struct {
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+	Ids         []uuid.UUID `json:"ids"`
+}
+
+type ReadinessMediaSizesRow struct {
+	ID        uuid.UUID `json:"id"`
+	SizeBytes int32     `json:"sizeBytes"`
+}
+
+// The sizes of the media library's images an email shows.
+func (q *Queries) ReadinessMediaSizes(ctx context.Context, arg ReadinessMediaSizesParams) ([]ReadinessMediaSizesRow, error) {
+	rows, err := q.db.Query(ctx, readinessMediaSizes, arg.WorkspaceID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReadinessMediaSizesRow{}
+	for rows.Next() {
+		var i ReadinessMediaSizesRow
+		if err := rows.Scan(&i.ID, &i.SizeBytes); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const readinessPostmasterConnected = `-- name: ReadinessPostmasterConnected :one
+SELECT EXISTS (SELECT 1 FROM postmaster_daily WHERE workspace_id = $1 AND day >= $2::date)::bool
+`
+
+type ReadinessPostmasterConnectedParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+// Whether Gmail Postmaster Tools data comes in for the workspace at all
+// (recent days for any domain).
+func (q *Queries) ReadinessPostmasterConnected(ctx context.Context, arg ReadinessPostmasterConnectedParams) (bool, error) {
+	row := q.db.QueryRow(ctx, readinessPostmasterConnected, arg.WorkspaceID, arg.Since)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const readinessPostmasterDays = `-- name: ReadinessPostmasterDays :many
+SELECT domain, day, spam_rate, spf_rate, dkim_rate, dmarc_rate, tls_rate
+FROM postmaster_daily
+WHERE workspace_id = $1 AND domain = ANY($2::text[]) AND day >= $3::date
+ORDER BY day DESC, domain
+`
+
+type ReadinessPostmasterDaysParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Domains     []string  `json:"domains"`
+	Since       time.Time `json:"since"`
+}
+
+type ReadinessPostmasterDaysRow struct {
+	Domain    string    `json:"domain"`
+	Day       time.Time `json:"day"`
+	SpamRate  *float64  `json:"spamRate"`
+	SpfRate   *float64  `json:"spfRate"`
+	DkimRate  *float64  `json:"dkimRate"`
+	DmarcRate *float64  `json:"dmarcRate"`
+	TlsRate   *float64  `json:"tlsRate"`
+}
+
+// Gmail Postmaster Tools' last days for a sending domain (or its parent):
+// the spam rate and the authentication and TLS pass rates Google reports.
+func (q *Queries) ReadinessPostmasterDays(ctx context.Context, arg ReadinessPostmasterDaysParams) ([]ReadinessPostmasterDaysRow, error) {
+	rows, err := q.db.Query(ctx, readinessPostmasterDays, arg.WorkspaceID, arg.Domains, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReadinessPostmasterDaysRow{}
+	for rows.Next() {
+		var i ReadinessPostmasterDaysRow
+		if err := rows.Scan(
+			&i.Domain,
+			&i.Day,
+			&i.SpamRate,
+			&i.SpfRate,
+			&i.DkimRate,
+			&i.DmarcRate,
+			&i.TlsRate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const readinessPruneRuns = `-- name: ReadinessPruneRuns :exec
 DELETE FROM readiness_runs r
 WHERE r.campaign_id = $1
@@ -422,18 +923,22 @@ func (q *Queries) ReadinessPruneRuns(ctx context.Context, campaignID uuid.UUID) 
 const readinessRecipients = `-- name: ReadinessRecipients :many
 SELECT c.id, c.email, c.mailbox_provider, c.tier, c.role_address, c.language,
        (c.broadcasts_stopped_at IS NOT NULL)::boolean AS broadcasts_stopped,
-       coalesce((SELECT array_agg(m.list_id) FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'), '{}')::uuid[] AS list_ids,
+       (btrim(c.first_name) = '')::boolean AS no_first_name,
+       (CASE WHEN $1::boolean
+             THEN coalesce((SELECT array_agg(m.list_id) FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'), '{}')
+             ELSE '{}' END)::uuid[] AS list_ids,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email) AS suppressed,
-       EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = c.id AND e.type IN ('soft_bounce', 'hard_bounce') AND e.occurred_at > $1::timestamptz) AS bounced
+       EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = c.id AND e.type IN ('soft_bounce', 'hard_bounce') AND e.occurred_at > $2::timestamptz) AS bounced
 FROM contacts c
-WHERE c.workspace_id = $2 AND c.status = 'active' AND c.erased_at IS NULL
-  AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($3::uuid[]) AND ll.deleted_at IS NULL)))
-       OR c.id = ANY($4::uuid[]))
-  AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY($5::uuid[]))
-  AND NOT (c.id = ANY($6::uuid[]))
+WHERE c.workspace_id = $3 AND c.status = 'active' AND c.erased_at IS NULL
+  AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($4::uuid[]) AND ll.deleted_at IS NULL)))
+       OR c.id = ANY($5::uuid[]))
+  AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY($6::uuid[]))
+  AND NOT (c.id = ANY($7::uuid[]))
 `
 
 type ReadinessRecipientsParams struct {
+	WithLists       bool        `json:"withLists"`
 	BouncedSince    time.Time   `json:"bouncedSince"`
 	WorkspaceID     uuid.UUID   `json:"workspaceId"`
 	Lists           []uuid.UUID `json:"lists"`
@@ -450,6 +955,7 @@ type ReadinessRecipientsRow struct {
 	RoleAddress       bool        `json:"roleAddress"`
 	Language          string      `json:"language"`
 	BroadcastsStopped bool        `json:"broadcastsStopped"`
+	NoFirstName       bool        `json:"noFirstName"`
 	ListIds           []uuid.UUID `json:"listIds"`
 	Suppressed        bool        `json:"suppressed"`
 	Bounced           bool        `json:"bounced"`
@@ -459,8 +965,11 @@ type ReadinessRecipientsRow struct {
 // contacts subscribed to the lists (or in the segments), minus excluded lists
 // and segments, with what the counts need per contact. A deleted list
 // (restorable for 30 days) adds nobody; as an exclusion it still excludes.
+// Each contact's lists are read only with with_lists (routing needs them,
+// counts don't).
 func (q *Queries) ReadinessRecipients(ctx context.Context, arg ReadinessRecipientsParams) ([]ReadinessRecipientsRow, error) {
 	rows, err := q.db.Query(ctx, readinessRecipients,
+		arg.WithLists,
 		arg.BouncedSince,
 		arg.WorkspaceID,
 		arg.Lists,
@@ -483,6 +992,7 @@ func (q *Queries) ReadinessRecipients(ctx context.Context, arg ReadinessRecipien
 			&i.RoleAddress,
 			&i.Language,
 			&i.BroadcastsStopped,
+			&i.NoFirstName,
 			&i.ListIds,
 			&i.Suppressed,
 			&i.Bounced,
@@ -495,6 +1005,19 @@ func (q *Queries) ReadinessRecipients(ctx context.Context, arg ReadinessRecipien
 		return nil, err
 	}
 	return items, nil
+}
+
+const readinessReleaseFixUndo = `-- name: ReadinessReleaseFixUndo :execrows
+UPDATE readiness_fix_batches SET undone_at = NULL, undone_by = NULL WHERE id = $1
+`
+
+// Gives a claimed batch back when its undo failed.
+func (q *Queries) ReadinessReleaseFixUndo(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, readinessReleaseFixUndo, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const readinessReplaceRoutes = `-- name: ReadinessReplaceRoutes :exec
@@ -580,6 +1103,32 @@ func (q *Queries) ReadinessSegmentNames(ctx context.Context, workspaceID uuid.UU
 		return nil, err
 	}
 	return items, nil
+}
+
+const readinessSendConfirmation = `-- name: ReadinessSendConfirmation :one
+SELECT campaign_id, workspace_id, run_id, confirmed_by, confirmed_at, scheduled_at, recipients, acknowledged, unknown, content_digest, sender_id, route_digest, canary, audience_digest FROM campaign_send_confirmations WHERE campaign_id = $1
+`
+
+func (q *Queries) ReadinessSendConfirmation(ctx context.Context, campaignID uuid.UUID) (CampaignSendConfirmation, error) {
+	row := q.db.QueryRow(ctx, readinessSendConfirmation, campaignID)
+	var i CampaignSendConfirmation
+	err := row.Scan(
+		&i.CampaignID,
+		&i.WorkspaceID,
+		&i.RunID,
+		&i.ConfirmedBy,
+		&i.ConfirmedAt,
+		&i.ScheduledAt,
+		&i.Recipients,
+		&i.Acknowledged,
+		&i.Unknown,
+		&i.ContentDigest,
+		&i.SenderID,
+		&i.RouteDigest,
+		&i.Canary,
+		&i.AudienceDigest,
+	)
+	return i, err
 }
 
 const readinessSetAudience = `-- name: ReadinessSetAudience :exec
@@ -703,34 +1252,39 @@ func (q *Queries) ReadinessSetSendSettings(ctx context.Context, arg ReadinessSet
 }
 
 const readinessStartProgress = `-- name: ReadinessStartProgress :one
-INSERT INTO readiness_progress (campaign_id, run_id, trigger, started_by, started_at, updated_at, groups, done, total)
-VALUES ($1, $2, $3, $4, $5, $5, $6, 0, $7)
+INSERT INTO readiness_progress (campaign_id, run_id, trigger, started_by, started_by_actor_type, started_by_actor_name, started_at, updated_at, groups, done, total)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $7, $8, 0, $9)
 ON CONFLICT (campaign_id) DO UPDATE
-SET run_id = EXCLUDED.run_id, trigger = EXCLUDED.trigger, started_by = EXCLUDED.started_by, started_at = EXCLUDED.started_at,
-    updated_at = EXCLUDED.updated_at, groups = EXCLUDED.groups, done = 0, total = EXCLUDED.total
-WHERE readiness_progress.updated_at < $8::timestamptz
+SET run_id = EXCLUDED.run_id, trigger = EXCLUDED.trigger, started_by = EXCLUDED.started_by, started_by_actor_type = EXCLUDED.started_by_actor_type,
+    started_by_actor_name = EXCLUDED.started_by_actor_name, started_at = EXCLUDED.started_at,
+    updated_at = EXCLUDED.updated_at, groups = EXCLUDED.groups, done = 0, total = EXCLUDED.total, failed_at = NULL, error = ''
+WHERE readiness_progress.updated_at < $10::timestamptz OR readiness_progress.failed_at IS NOT NULL
 RETURNING run_id
 `
 
 type ReadinessStartProgressParams struct {
-	CampaignID  uuid.UUID       `json:"campaignId"`
-	RunID       uuid.UUID       `json:"runId"`
-	Trigger     string          `json:"trigger"`
-	StartedBy   *uuid.UUID      `json:"startedBy"`
-	Now         time.Time       `json:"now"`
-	Groups      json.RawMessage `json:"groups"`
-	Total       int32           `json:"total"`
-	StaleBefore time.Time       `json:"staleBefore"`
+	CampaignID         uuid.UUID       `json:"campaignId"`
+	RunID              uuid.UUID       `json:"runId"`
+	Trigger            string          `json:"trigger"`
+	StartedBy          *uuid.UUID      `json:"startedBy"`
+	StartedByActorType string          `json:"startedByActorType"`
+	StartedByActorName string          `json:"startedByActorName"`
+	Now                time.Time       `json:"now"`
+	Groups             json.RawMessage `json:"groups"`
+	Total              int32           `json:"total"`
+	StaleBefore        time.Time       `json:"staleBefore"`
 }
 
-// Starts a run unless one is already running (a run that stopped updating
-// for two minutes is taken over).
+// Starts a run unless one is already waiting or running (a run that stopped
+// updating for two minutes, or failed, is taken over).
 func (q *Queries) ReadinessStartProgress(ctx context.Context, arg ReadinessStartProgressParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, readinessStartProgress,
 		arg.CampaignID,
 		arg.RunID,
 		arg.Trigger,
 		arg.StartedBy,
+		arg.StartedByActorType,
+		arg.StartedByActorName,
 		arg.Now,
 		arg.Groups,
 		arg.Total,

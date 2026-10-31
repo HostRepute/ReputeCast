@@ -32,7 +32,7 @@ export const mg = defineMessages('transactional.settings', {
   medianUnit: 'seconds',
   medianLabel: 'Median delivery limit',
   noAutoPause:
-    'There is no auto-pause for transactional mail: password resets have to keep flowing. Alerts reach members with {permission}, in the app and by email, as their <link>notification preferences</link> say.',
+    'There is no auto-pause for transactional mail: password resets have to keep flowing. Alerts reach members who can see transactional mail, in the app and by email, as their <link>notification preferences</link> say.',
   defaultsTitle: 'Defaults for new templates',
   sender: 'Sender',
   defaultSender: 'Default sender',
@@ -64,7 +64,7 @@ export const mg = defineMessages('transactional.settings', {
   changeOpens: '{to, select, on {Track opens turned on} other {Track opens turned off}}',
   changeClicks: '{to, select, on {Track clicks turned on} other {Track clicks turned off}}',
   changeMany: '{count} changes',
-  readOnly: 'Changing these needs {permission}.',
+  readOnly: "Your role can't change these settings.",
   // Category dialog
   addTitle: 'Add a category',
   editTitle: 'Edit {name}',

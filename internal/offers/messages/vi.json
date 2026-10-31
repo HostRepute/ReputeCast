@@ -47,6 +47,10 @@
   "composer.option.months": "{offer} · {price} mỗi tháng trong {months, plural, other {# tháng}}",
   "composer.option.once": "{offer} · {price} cho {period, select, year {năm} other {tháng}} đầu tiên",
   "page.button": "Nâng cấp lên {tier} với giá {price}",
+  "page.codeExpiredText": "Mã {offer} chỉ dùng được trong thời gian có hạn. Đây là giá thường.",
+  "page.codeExpiredTitle": "Mã này đã hết hạn",
+  "page.codeUsedText": "Mỗi mã {offer} chỉ dùng được một lần. Đây là giá thường.",
+  "page.codeUsedTitle": "Mã này đã được dùng",
   "page.endedText": "{offer} đã kết thúc. Đây là giá thường.",
   "page.endedTextOn": "{offer} chỉ áp dụng đến {date}. Đây là giá thường.",
   "page.endedTitle": "Ưu đãi này đã kết thúc",
@@ -82,6 +86,8 @@
   "problem.oneRetention": "“{name}” đã là ưu đãi giữ chân. Hãy kết thúc ưu đãi đó trước: trang hủy chỉ hiển thị tối đa một ưu đãi.",
   "problem.percent": "Hãy nhập phần trăm từ 1 đến 100.",
   "problem.ways": "Hãy cho phép người đọc nhận ưu đãi bằng mã, bằng liên kết, hoặc cả hai.",
+  "referral.applies": "{tier} · {period, select, month {theo tháng} year {theo năm} other {{period}}}",
+  "referral.discount": "{type, select, percent {Giảm {percent}%} other {Giảm {amount}}} {duration, select, once {một lần} months {trong {months} tháng} other {vĩnh viễn}}",
 
   "problem.notFound": "Không tìm thấy ưu đãi.",
   "sync.unreachable": "không kết nối được"

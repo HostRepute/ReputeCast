@@ -1,0 +1,15 @@
+<mjml>
+  <mj-head>
+    <mj-preview>Your plan: {{ plan | default: "free" }}</mj-preview>
+  </mj-head>
+  <mj-body width="600px">
+    <mj-section padding="20px 24px">
+      <mj-column>
+        <mj-text font-size="15px" line-height="1.55">Hi {{ first_name | default: "there" }}, your {{ plan | default: "free" }} plan renews soon.{% if plan == "team" %} Thanks for being a team customer.{% endif %}</mj-text>
+        <mj-text>Quotes stay intact: {{ last_name | default: "O'Brien" }} &amp; "friends" &lt;3</mj-text>
+        <mj-button href="https://acme.io/account?email={{ email }}" background-color="#0F766E" color="#ffffff">Manage {{ first_name | default: "your" }} account</mj-button>
+        <mj-text font-size="12px"><a href="{{ unsubscribe_url }}">Unsubscribe</a> · <a href="{{ view_in_browser_url }}">View in browser</a></mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

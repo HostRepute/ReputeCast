@@ -33,10 +33,16 @@ func TestUploadProblemsInVietnamese(t *testing.T) {
 		t.Fatalf("svg, in Vietnamese: %v", p)
 	}
 	small := pngBytes(t, 4, 4, false)
-	big := append(small, bytes.Repeat([]byte{0}, media.MaxBytes+1-len(small))...)
+	big := append(small, bytes.Repeat([]byte{0}, media.MaxUploadBytes+1-len(small))...)
 	p = upload(t, vi, "huge.png", big).MustStatus(t, 422).Problem(t)
-	if p["detail"] != "Hình ảnh nặng 5,0 MB; giới hạn là 5 MB. Hình ảnh trong email hiển thị tốt nhất khi dưới 200 KB." {
+	if p["detail"] != "Tệp nặng 20,1 MB; giới hạn là 20 MB. Hãy xuất hình ảnh nhỏ hơn rồi thử lại." {
 		t.Fatalf("too large, in Vietnamese: %v", p)
+	}
+	// GIFs are kept as uploaded, so their limit is the stored one.
+	gif := append([]byte("GIF89a\x01\x00\x01\x00\x00\x00\x00"), bytes.Repeat([]byte{0}, media.MaxBytes)...)
+	p = upload(t, vi, "huge.gif", gif).MustStatus(t, 422).Problem(t)
+	if p["detail"] != "Ảnh GIF nặng 5,1 MB; ảnh GIF tối đa 5 MB vì được lưu nguyên như khi tải lên để giữ đủ các khung hình động." {
+		t.Fatalf("GIF too large, in Vietnamese: %v", p)
 	}
 	missing := "/workspaces/acme-newsletter/media/0192e8f0-0000-7000-8000-000000000000"
 	p = vi.Do("DELETE", missing, nil).MustStatus(t, 404).Problem(t)
@@ -49,8 +55,12 @@ func TestUploadProblemsInVietnamese(t *testing.T) {
 		t.Fatalf("svg, in English: %v", p)
 	}
 	p = upload(t, en, "huge.png", big).MustStatus(t, 422).Problem(t)
-	if p["detail"] != "The image is 5.0 MB; the limit is 5 MB. Email images work best under 200 KB." {
+	if p["detail"] != "The file is 20.1 MB; the limit is 20 MB. Export the image smaller and retry." {
 		t.Fatalf("too large, in English: %v", p)
+	}
+	p = upload(t, en, "huge.gif", gif).MustStatus(t, 422).Problem(t)
+	if p["detail"] != "The GIF is 5.1 MB; GIFs can be up to 5 MB because they're stored as uploaded, so animations keep their frames." {
+		t.Fatalf("GIF too large, in English: %v", p)
 	}
 	p = en.Do("DELETE", missing, nil).MustStatus(t, 404).Problem(t)
 	if p["detail"] != "Image not found." {

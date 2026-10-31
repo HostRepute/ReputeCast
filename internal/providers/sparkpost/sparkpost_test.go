@@ -35,6 +35,26 @@ type fake struct {
 	suppressions [][]map[string]string
 	limitHit     bool
 	n            atomic.Int64
+	// keys are the transmissions' Idempotency-Keys with the first request's
+	// body and answer, as SparkPost keeps them for 24 hours; inProgress
+	// answers as if the first request with a key were still running.
+	keys       map[string]keyedRequest
+	inProgress bool
+	// sendingIPs is GET /api/v1/sending-ips's answer; "" lists the
+	// account's IPs in two pools.
+	sendingIPs string
+}
+
+// sendingIPs are the account's dedicated IPs: two in the "marketing" pool
+// the provider sends through, one in the default pool.
+const sendingIPs = `{"results":[` +
+	`{"external_ip":"198.51.100.31","hostname":"mta31.sparkpostmail.com","ip_pool":"marketing","customer_provided":false,"auto_warmup_enabled":false},` +
+	`{"external_ip":"198.51.100.4","hostname":"mta4.sparkpostmail.com","ip_pool":"default","customer_provided":false,"auto_warmup_enabled":false},` +
+	`{"external_ip":"198.51.100.30","hostname":"mta30.sparkpostmail.com","ip_pool":"marketing","customer_provided":false,"auto_warmup_enabled":true,"auto_warmup_stage":5}]}`
+
+type keyedRequest struct {
+	body   []byte
+	answer string
 }
 
 func (f *fake) with(fn func()) {
@@ -66,29 +86,64 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 		}
 	}
 	mux.HandleFunc("POST /api/v1/transmissions", guard(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
 		var in struct {
 			Options    map[string]any `json:"options"`
 			Recipients []struct {
 				Address struct{ Email string } `json:"address"`
 			} `json:"recipients"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&in); err != nil || len(in.Recipients) != 1 || !strings.HasPrefix(r.Header.Get("Idempotency-Key"), "rc-") {
+		key := r.Header.Get("Idempotency-Key")
+		if err := json.Unmarshal(body, &in); err != nil || len(in.Recipients) != 1 || !strings.HasPrefix(key, "rc-") {
 			writeErr(w, http.StatusUnprocessableEntity, "1300", "invalid data format/type")
 			return
 		}
 		f.mu.Lock()
-		limit := f.limitHit
+		limit, busy := f.limitHit, f.inProgress
+		first, seen := f.keys[key]
 		f.mu.Unlock()
-		if limit {
+		switch {
+		case limit:
 			writeErr(w, 420, "2102", "Exceed Sending Limit (daily)")
+			return
+		case busy:
+			writeErr(w, http.StatusConflict, "1601", "A request with this idempotency key is in progress")
+			return
+		case seen && bytes.Equal(first.body, body):
+			// The same request again: the first one's answer, replayed.
+			w.Header().Set("X-Idempotent-Replayed", "true")
+			_, _ = io.WriteString(w, first.answer)
+			return
+		case seen:
+			writeErr(w, http.StatusConflict, "1600", "This idempotency key was already used with a different request")
 			return
 		}
 		id := strconv.FormatInt(11668787484950529+f.n.Add(1), 10)
+		answer := `{"results":{"total_rejected_recipients":0,"total_accepted_recipients":1,"id":"` + id + `"}}`
 		if in.Recipients[0].Address.Email == contracttest.RejectAddress {
-			_, _ = io.WriteString(w, `{"errors":[{"message":"transmission created, but with validation errors","code":"2000"}],"results":{"rcpt_to_errors":[{"message":"invalid data format/type","description":"Invalid recipient address.email: `+contracttest.RejectAddress+`","code":"1300"}],"total_rejected_recipients":1,"total_accepted_recipients":0,"id":"`+id+`"}}`)
+			answer = `{"errors":[{"message":"transmission created, but with validation errors","code":"2000"}],"results":{"rcpt_to_errors":[{"message":"invalid data format/type","description":"Invalid recipient address.email: ` +
+				contracttest.RejectAddress + `","code":"1300"}],"total_rejected_recipients":1,"total_accepted_recipients":0,"id":"` + id + `"}}`
+		}
+		f.with(func() {
+			if f.keys == nil {
+				f.keys = map[string]keyedRequest{}
+			}
+			f.keys[key] = keyedRequest{body: body, answer: answer}
+		})
+		_, _ = io.WriteString(w, answer)
+	}))
+	mux.HandleFunc("GET /api/v1/sending-ips", guard(func(w http.ResponseWriter, _ *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if f.limitHit {
+			writeErr(w, 420, "2102", "Exceed Sending Limit (hourly)")
 			return
 		}
-		_, _ = io.WriteString(w, `{"results":{"total_rejected_recipients":0,"total_accepted_recipients":1,"id":"`+id+`"}}`)
+		if f.sendingIPs == "" {
+			_, _ = io.WriteString(w, sendingIPs)
+			return
+		}
+		_, _ = io.WriteString(w, f.sendingIPs)
 	}))
 	mux.HandleFunc("GET /api/v1/account", guard(func(w http.ResponseWriter, r *http.Request) {
 		usage := ""
@@ -237,9 +292,10 @@ func batchRequest(t *testing.T, _ *contracttest.Env) (*http.Request, []byte) {
 func TestContract(t *testing.T) {
 	f := &fake{}
 	contracttest.Run(t, contracttest.Suite{
-		Adapter: sparkpost.Adapter,
-		API:     f.handler,
-		New:     newProvider,
+		Adapter:    sparkpost.Adapter,
+		API:        f.handler,
+		New:        newProvider,
+		SendingIPs: &providers.SendingIPs{Dedicated: true, IPs: []string{"198.51.100.30", "198.51.100.31"}},
 		Delivered: func(t *testing.T, env *contracttest.Env, msgs []providers.Message, res []providers.SendResult) {
 			reqs := env.Requests()
 			if len(reqs) != 1 || reqs[0].Path != "/api/v1/transmissions" || reqs[0].Header.Get("Idempotency-Key") != "rc-"+msgs[0].ID.String() {
@@ -277,6 +333,7 @@ func TestContract(t *testing.T) {
 			r.Body = io.NopCloser(bytes.NewReader(body))
 			return r, body
 		},
+		IdempotencyKey: func(r contracttest.Recorded) string { return r.Header.Get("Idempotency-Key") },
 		Webhooks: []contracttest.Webhook{{
 			Name: "Batch", Request: batchRequest,
 			Want: []providers.Event{
@@ -310,6 +367,48 @@ func TestTestBatchHasNoEvents(t *testing.T) {
 		if err != nil || len(evs) != 0 {
 			t.Fatalf("%s: %v, %v", body, evs, err)
 		}
+	}
+}
+
+// SparkPost keeps a transmission's Idempotency-Key for 24 hours (review
+// GS-1): sending a message again is answered with the first transmission,
+// a message rendered again since is refused as a key already used (409,
+// 1600), which means an earlier attempt handed it over, and a key whose
+// first request still runs is answered later (409, 1601).
+func TestRetriedSendIsNotSentTwice(t *testing.T) {
+	f := &fake{}
+	env := contracttest.NewEnv(t, f.handler)
+	p := newProvider(t, env)
+	if w := providers.IdempotencyWindow(p); w != 24*time.Hour {
+		t.Fatalf("idempotency window %v, want SparkPost's 24 hours", w)
+	}
+	ctx := context.Background()
+	m := contracttest.Message(0)
+	first, err := p.Send(ctx, []providers.Message{m})
+	if err != nil || first[0].Err != nil {
+		t.Fatal(first, err)
+	}
+	again, err := p.Send(ctx, []providers.Message{m})
+	if err != nil || again[0].Err != nil || again[0].ProviderMessageID != first[0].ProviderMessageID {
+		t.Fatalf("the same message again: %+v, %v; want the first transmission replayed", again, err)
+	}
+	if n := f.n.Load(); n != 1 {
+		t.Fatalf("%d transmissions for one message", n)
+	}
+	rendered := m
+	rendered.HTML = "<p>Rendered again since the first try.</p>"
+	res, err := p.Send(ctx, []providers.Message{rendered})
+	if err != nil || res[0].Err != nil || res[0].ProviderMessageID != m.ID.String() {
+		t.Fatalf("a key already used: %+v, %v; want it counted as handed over", res, err)
+	}
+	if n := f.n.Load(); n != 1 {
+		t.Fatalf("%d transmissions for one message", n)
+	}
+	f.with(func() { f.inProgress = true })
+	_, err = p.Send(ctx, []providers.Message{contracttest.Message(1)})
+	var ce *providers.CallError
+	if !errors.As(err, &ce) || !ce.Temporary || ce.Throttled || ce.Code != "1601" {
+		t.Fatalf("a key whose first request still runs: %v; want a temporary error", err)
 	}
 }
 
@@ -476,5 +575,36 @@ func TestSuppressionsTrackingBackfill(t *testing.T) {
 	evs, err := p.(providers.EventBackfiller).Backfill(context.Background(), []string{"t-1", "t-2", "t-3"})
 	if err != nil || len(evs) != 2 || evs[0].Type != providers.EventDelivered || evs[0].MessageID == nil || evs[1].Type != providers.EventHardBounce {
 		t.Fatalf("backfill: %+v, %v", evs, err)
+	}
+}
+
+// Transmissions go out through the connection's IP pool, or the default
+// pool without one: only that pool's IPs count. An account without
+// dedicated IPs lists none; throttling (420) is an error, never an empty
+// list.
+func TestSendingIPs(t *testing.T) {
+	f := &fake{}
+	env := contracttest.NewEnv(t, f.handler)
+	read := func(p providers.Provider) (providers.SendingIPs, error) {
+		return p.(providers.IPReporter).SendingIPs(context.Background())
+	}
+	if got, err := read(newProvider(t, env)); err != nil || !got.Dedicated || !slices.Equal(got.IPs, []string{"198.51.100.30", "198.51.100.31"}) {
+		t.Fatalf("the marketing pool: %+v, %v", got, err)
+	}
+	settings, _ := json.Marshal(sparkpost.Settings{Region: "eu", BaseURL: env.URL})
+	byDefault, err := sparkpost.New(providers.Config{Settings: settings, Credentials: json.RawMessage(`{"api_key":"` + apiKey + `"}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := read(byDefault); err != nil || !slices.Equal(got.IPs, []string{"198.51.100.4"}) {
+		t.Fatalf("the default pool: %+v, %v", got, err)
+	}
+	f.with(func() { f.sendingIPs = `{"results":[]}` })
+	if got, err := read(byDefault); err != nil || got.Dedicated || got.IPs == nil || len(got.IPs) != 0 {
+		t.Fatalf("shared IPs: %+v, %v", got, err)
+	}
+	f.with(func() { f.limitHit = true })
+	if got, err := read(byDefault); err == nil || len(got.IPs) != 0 {
+		t.Fatalf("throttled: %+v, %v", got, err)
 	}
 }

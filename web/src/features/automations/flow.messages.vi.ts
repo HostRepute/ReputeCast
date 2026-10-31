@@ -17,7 +17,7 @@ export default translate(mf, {
   versionHistory: 'Lịch sử phiên bản',
   publishVersion: 'Xuất bản v{version}',
 
-  editReason: 'Chỉnh sửa tự động hóa cần quyền automations:edit.',
+  editReason: 'Vai trò của bạn không thể sửa tự động hóa.',
   loadLatestFirst: 'Hãy tải bản nháp mới nhất trước.',
   nothingToPublish: 'Không có gì để xuất bản: bản nháp giống v{version}.',
   notAllowed: 'Không được phép',
@@ -60,7 +60,7 @@ export default translate(mf, {
   tabStats: 'Số liệu',
   dragHint:
     '{snap, select, on {Kéo một bước vào khung thiết kế hoặc thả lên một đường nối. Bám lưới đang bật.} other {Kéo một bước vào khung thiết kế hoặc thả lên một đường nối. Bám lưới đang tắt.}}',
-  lookAround: 'Bạn có thể xem quanh; chỉnh sửa cần quyền automations:edit.',
+  lookAround: 'Bạn có thể xem quanh; vai trò của bạn không thể sửa tự động hóa.',
   statsStart: 'Số liệu bắt đầu khi tự động hóa được xuất bản.',
   triggerChanged: 'Đã đổi trình kích hoạt thành {trigger}',
   triggerChangedDetail: 'Mỗi quy trình có một trình kích hoạt; các cài đặt khác của nó được đặt lại từ đầu.',

@@ -84,8 +84,8 @@ export default translate(pm, {
   exported: '{count, plural, other {Đã xuất # đơn hàng}}',
   exportedDetail: 'Tệp CSV nằm trong thư mục tải xuống của bạn, và lần xuất được ghi vào nhật ký kiểm tra.',
   exportFailed: 'Không xuất được đơn hàng',
-  exportNeeds: 'Xuất đơn hàng cần quyền subscribers:export, vì đơn hàng chứa địa chỉ email của người mua.',
-  exportNeedsAsk: 'Xuất đơn hàng cần quyền subscribers:export, vì đơn hàng chứa địa chỉ email của người mua. Hãy hỏi {helpers}.',
+  exportNeeds: 'Chỉ người có thể xuất liên hệ mới xuất được đơn hàng, vì đơn hàng chứa địa chỉ email của người mua.',
+  exportNeedsAsk: 'Chỉ người có thể xuất liên hệ mới xuất được đơn hàng, vì đơn hàng chứa địa chỉ email của người mua. Hãy hỏi {helpers}.',
   searchLabel: 'Tìm đơn hàng',
   searchPlaceholder: 'Số đơn hàng hoặc email',
   productLabel: 'Sản phẩm',
@@ -119,7 +119,7 @@ export default translate(pm, {
   disputeLostSubNoReason: 'thua',
   testSub: 'không có tiền chuyển đi',
   footer:
-    'Hiển thị {shown} trên {total, plural, other {# đơn hàng}}. Xuất dữ liệu cần quyền <mono>subscribers:export</mono>, vì đơn hàng chứa địa chỉ email, và được ghi vào nhật ký kiểm tra.',
+    'Hiển thị {shown} trên {total, plural, other {# đơn hàng}}. Đơn hàng chứa địa chỉ email, nên chỉ người có thể xuất liên hệ mới xuất được chúng, và mỗi lần xuất đều được ghi vào nhật ký kiểm tra.',
   previous: 'Trước',
   next: 'Sau',
   noOrders: 'Chưa có đơn hàng nào. Đơn hàng hiện ở đây ngay khi Stripe xác nhận thanh toán.',
@@ -172,9 +172,9 @@ export default translate(pm, {
   paymentsPath: 'Kiếm tiền › Cài đặt › Thanh toán',
   readOnlyTitle: 'Chỉ đọc · {name}, {role}',
   readOnlyText:
-    'Bạn xem được sản phẩm, đơn hàng và số liệu của chúng. Sửa sản phẩm cần quyền <mono>products:edit</mono>, xuất bản cần <mono>products:publish</mono>, và thao tác với đơn hàng cần <mono>orders:manage</mono>.',
+    'Bạn xem được sản phẩm, đơn hàng và số liệu của chúng. Vai trò của bạn không thể sửa hay xuất bản sản phẩm, cũng không thể quản lý đơn hàng.',
   readOnlyTextAsk:
-    'Bạn xem được sản phẩm, đơn hàng và số liệu của chúng. Sửa sản phẩm cần quyền <mono>products:edit</mono>, xuất bản cần <mono>products:publish</mono>, và thao tác với đơn hàng cần <mono>orders:manage</mono>. Hãy hỏi {helpers}.',
+    'Bạn xem được sản phẩm, đơn hàng và số liệu của chúng. Vai trò của bạn không thể sửa hay xuất bản sản phẩm, cũng không thể quản lý đơn hàng. Hãy hỏi {helpers}.',
   emptyTitle: 'Chưa có sản phẩm nào',
   emptyText:
     'Bán một cuốn cẩm nang, bộ mẫu hay bản ghi hình, qua tài khoản Stripe của chính bạn. ReputeCast không thu phí; phí của Stripe vẫn áp dụng. Người mua nhận liên kết tải xuống qua email, và không ai bị đăng ký vào danh sách nào trừ khi họ tự chọn.',

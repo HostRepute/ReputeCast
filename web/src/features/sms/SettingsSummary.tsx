@@ -1,7 +1,7 @@
 import { $api, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { ButtonLink } from '@/components/ui/Button'
-import { channelIcon } from '@/features/channels/ChannelSwitch'
+import { channelIcon } from '@/features/channels/channel'
 import { useChannelSetUp } from '@/features/channels/hooks'
 import { formatList, T, useT } from '@/i18n'
 import { cn } from '@/lib/cn'

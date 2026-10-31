@@ -1,15 +1,47 @@
 package mjml
 
-import "strings"
+import (
+	"regexp"
+	"strconv"
+	"strings"
+)
 
-// MJMLThumbItem is one bar of a template's wireframe thumbnail in the gallery:
-// a grey block of height H (px) and width W (% of the thumbnail; 0 = full),
-// an accent pill for buttons, or a row of blocks for columns.
+// MJMLThumbItem is one part of a template's thumbnail in the gallery, a
+// miniature email (Composer and ComposerEmpty boards): a block of height H
+// (px) and width W (% of the thumbnail; 0 = full), an accent pill for
+// buttons, or a row of blocks for columns. Kind says what it stands for.
 type MJMLThumbItem struct {
+	Kind   string          `json:"kind,omitempty" enum:"header,image,heading,text,button,footer" doc:"What the part stands for; empty in thumbnails stored before kinds"`
 	H      int             `json:"h,omitempty"`
 	W      int             `json:"w,omitempty"`
 	Accent bool            `json:"accent,omitempty"`
 	Row    []MJMLThumbItem `json:"row,omitempty"`
+}
+
+// Thumbnail kinds.
+const (
+	thumbHeader  = "header"
+	thumbImage   = "image"
+	thumbHeading = "heading"
+	thumbText    = "text"
+	thumbButton  = "button"
+	thumbFooter  = "footer"
+)
+
+// headingRe finds a heading in a text: an h1–h3, or a font size of 20 px
+// or more on the mj-text.
+var headingRe = regexp.MustCompile(`(?i)<h[1-3][\s>]`)
+
+// isHeading tells whether a section's first text reads as a heading.
+func isHeading(n *Node) bool {
+	x := n.Find("mj-text")
+	if x == nil {
+		return false
+	}
+	if size, err := strconv.Atoi(strings.TrimSuffix(strings.TrimSpace(x.Attr("font-size")), "px")); err == nil && size >= 20 {
+		return true
+	}
+	return headingRe.MatchString(x.Inner)
 }
 
 // The gallery thumbnail is 120 px tall with 10 px of padding and 6 px
@@ -28,23 +60,37 @@ func (it MJMLThumbItem) height() int {
 	return h
 }
 
-// Thumb derives the gallery wireframe from a document: a short bar for the
-// header, a block for a hero image, a row of blocks for columns, lines for
-// text and a pill for a button. It keeps at most five items and stops at the
-// first one that doesn't fit the thumbnail, so no bar is cut off.
+// Thumb derives the gallery's miniature email from a document: the header
+// (logo and links), a block for a hero image, a row of blocks for columns,
+// lines for headings and text, a pill for a button, and the footer. The
+// header and the footer frame it; between them it keeps at most five parts
+// and stops at the first one that doesn't fit, so no part is cut off.
 func Thumb(src string) []MJMLThumbItem {
 	items := thumbItems(src)
-	used := 0
-	for i, it := range items {
-		if i > 0 {
-			used += thumbGap
+	out := make([]MJMLThumbItem, 0, len(items))
+	used, body := 0, 0
+	full := false
+	for _, it := range items {
+		if it.Kind == thumbHeader || it.Kind == thumbFooter {
+			out = append(out, it)
+			continue
 		}
-		used += it.height()
-		if used > thumbHeight {
-			return items[:i]
+		if full || body == 5 {
+			continue
 		}
+		h := it.height()
+		if body > 0 {
+			h += thumbGap
+		}
+		if used+h > thumbHeight {
+			full = true
+			continue
+		}
+		used += h
+		body++
+		out = append(out, it)
 	}
-	return items
+	return out
 }
 
 func thumbItems(src string) []MJMLThumbItem {
@@ -61,9 +107,6 @@ func thumbItems(src string) []MJMLThumbItem {
 	textLines := []int{70, 50, 85, 60}
 	tl := 0
 	for i, n := range body.Children {
-		if len(out) >= 5 {
-			break
-		}
 		label := SectionLabel(n, i, total)
 		cols := 0
 		images := 0
@@ -83,31 +126,33 @@ func thumbItems(src string) []MJMLThumbItem {
 		})
 		switch {
 		case label == "header":
-			out = append(out, MJMLThumbItem{H: 10, W: 40})
+			out = append(out, MJMLThumbItem{Kind: thumbHeader, H: 10, W: 40})
 		case label == "divider":
 			continue
 		case label == "footer":
-			out = append(out, MJMLThumbItem{H: 8})
+			out = append(out, MJMLThumbItem{Kind: thumbFooter, H: 8})
 		case cols >= 2 && images > 0:
 			row := make([]MJMLThumbItem, cols)
 			for j := range row {
-				row[j] = MJMLThumbItem{H: 28}
+				row[j] = MJMLThumbItem{Kind: thumbImage, H: 28}
 			}
 			out = append(out, MJMLThumbItem{Row: row})
 		case label == "hero" || label == "image" || images > 0:
-			out = append(out, MJMLThumbItem{H: 34})
+			out = append(out, MJMLThumbItem{Kind: thumbImage, H: 34})
 		case strings.HasSuffix(label, "columns"):
 			row := make([]MJMLThumbItem, cols)
 			for j := range row {
-				row[j] = MJMLThumbItem{H: 18}
+				row[j] = MJMLThumbItem{Kind: thumbText, H: 18}
 			}
 			out = append(out, MJMLThumbItem{Row: row})
+		case isHeading(n):
+			out = append(out, MJMLThumbItem{Kind: thumbHeading, H: 8, W: 80})
 		default:
-			out = append(out, MJMLThumbItem{H: 8, W: textLines[tl%len(textLines)]})
+			out = append(out, MJMLThumbItem{Kind: thumbText, H: 8, W: textLines[tl%len(textLines)]})
 			tl++
 		}
-		if buttons > 0 && len(out) < 5 && cols < 2 {
-			out = append(out, MJMLThumbItem{H: 14, W: 35, Accent: true})
+		if buttons > 0 && cols < 2 {
+			out = append(out, MJMLThumbItem{Kind: thumbButton, H: 14, W: 35, Accent: true})
 		}
 	}
 	return out

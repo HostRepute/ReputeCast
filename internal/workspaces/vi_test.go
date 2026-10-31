@@ -24,7 +24,7 @@ func TestGeneralSettingsInVietnamese(t *testing.T) {
 
 	var s settings
 	vi.Do("GET", ws+"/settings", nil).MustStatus(t, 200).JSON(t, &s)
-	if got := strings.Join(s.Approvals.Rules, " · "); got != "người nhận ≥ 10.000 · tuyến có một nhà cung cấp đang khởi động · tác giả không có quyền campaigns:send" {
+	if got := strings.Join(s.Approvals.Rules, " · "); got != "người nhận ≥ 10.000 · tuyến có một nhà cung cấp đang khởi động · tác giả chưa được gửi" {
 		t.Errorf("rules: %q", got)
 	}
 	if !strings.HasPrefix(s.Members.SignIn, "SSO Google Workspace cho ") || !strings.HasSuffix(s.Members.SignIn, " · vẫn cho phép mật khẩu và khóa truy cập") {
@@ -53,7 +53,7 @@ func TestGeneralSettingsInVietnamese(t *testing.T) {
 	viewer.SignInDemo("aisha@acme.io")
 	var vs settings
 	viewer.Do("GET", ws+"/settings", nil).MustStatus(t, 200).JSON(t, &vs)
-	if !strings.HasPrefix(vs.Reason, "Muốn thay đổi cài đặt không gian làm việc, bạn cần quyền workspace:manage. Hãy nhờ ") {
+	if !strings.HasPrefix(vs.Reason, "Vai trò của bạn không thể thay đổi cài đặt không gian làm việc. Hãy nhờ ") {
 		t.Errorf("viewer: %q", vs.Reason)
 	}
 

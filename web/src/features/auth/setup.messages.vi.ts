@@ -109,7 +109,7 @@ export default translate(m, {
   providerNeedsWorkspace: 'Hãy tạo không gian làm việc trước.',
   continue: 'Tiếp tục',
   providerSub:
-    'ReputeCast gửi thư qua nhà cung cấp của chính bạn: Amazon SES, Postmark, Mailgun, SendGrid, Resend, một máy chủ Postal hoặc bất kỳ máy chủ SMTP nào. Kết nối một nhà cung cấp mất khoảng 10 phút.',
+    'ReputeCast gửi thư qua nhà cung cấp của chính bạn: Amazon SES, Postmark, Mailgun, SendGrid, Resend, một máy chủ Postal hoặc bất kỳ máy chủ SMTP nào. Phần lớn việc thiết lập mất 10–15 phút; Amazon SES mất lâu hơn khi ReputeCast không chạy trên AWS, và một tài khoản AWS mới có thể phải chờ đến 24 giờ để có quyền gửi chính thức.',
   ready: 'Sẵn sàng',
   readyBody:
     '{instance} đã được thiết lập và {workspace} đã được tạo; bạn là Chủ sở hữu của không gian này. Lời mời, đặt lại mật khẩu và thông báo qua email sẽ bắt đầu hoạt động khi có nhà cung cấp xử lý luồng Hệ thống.',

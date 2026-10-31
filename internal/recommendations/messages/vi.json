@@ -4,7 +4,7 @@
   "rec.url": "Hãy cho địa chỉ trang đăng ký, bắt đầu bằng https://.",
   "rec.where": "Hãy chọn nơi hiện: trang xác nhận, email, hoặc cả hai.",
   "rec.logo": "Hình ảnh đó không còn trong thư viện. Hãy chọn lại.",
-  "rec.partnerPause": "Một đối tác được tạm dừng cùng liên kết đối tác của nó, việc này cần quyền grow:connect.",
+  "rec.partnerPause": "Một đối tác được tạm dừng cùng liên kết đối tác của nó. Người có quyền quản lý liên kết đối tác có thể tạm dừng liên kết này.",
   "rec.order": "Thứ tự phải liệt kê mỗi đề xuất đúng một lần. Hãy tải lại rồi thử lại.",
   "rec.listUnknown": "Danh sách đó không tồn tại. Hãy chọn danh sách khác.",
   "code.labelRequired": "Hãy cho biết mã dành cho ai. Nhãn sẽ hiện trong mục Đề xuất bạn khi họ kết nối.",

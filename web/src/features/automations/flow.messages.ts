@@ -21,7 +21,7 @@ export const mf = defineMessages('automations.flow', {
   versionHistory: 'Version history',
   publishVersion: 'Publish v{version}',
 
-  editReason: 'Editing automations needs the automations:edit permission.',
+  editReason: "Your role can't edit automations.",
   loadLatestFirst: 'Load the latest draft first.',
   nothingToPublish: 'Nothing to publish: the draft is the same as v{version}.',
   notAllowed: 'Not allowed',
@@ -67,7 +67,7 @@ export const mf = defineMessages('automations.flow', {
   tabSteps: 'Steps',
   tabStats: 'Stats',
   dragHint: '{snap, select, on {Drag a step onto the canvas or onto an edge. Snap to grid is on.} other {Drag a step onto the canvas or onto an edge. Snap to grid is off.}}',
-  lookAround: 'You can look around; editing needs the automations:edit permission.',
+  lookAround: "You can look around; your role can't edit automations.",
   statsStart: 'Stats start when the automation is published.',
   triggerChanged: 'Trigger changed to {trigger}',
   triggerChangedDetail: 'A flow has one trigger; its other settings start fresh.',

@@ -109,7 +109,7 @@ func ensureTemplate(ctx context.Context) error {
 	if _, err := admin.Exec(ctx, `CREATE DATABASE `+templateName); err != nil {
 		return err
 	}
-	pool, err := pgxpool.New(ctx, withDB(baseURL, templateName))
+	pool, err := newPool(ctx, withDB(baseURL, templateName))
 	if err != nil {
 		return err
 	}
@@ -167,7 +167,7 @@ func NewFrom(t testing.TB, template string) *pgxpool.Pool {
 		t.Fatalf("testdb create: %v", err)
 	}
 	_ = admin.Close(ctx)
-	pool, err := pgxpool.New(ctx, withDB(baseURL, name))
+	pool, err := newPool(ctx, withDB(baseURL, name))
 	if err != nil {
 		t.Fatalf("testdb pool: %v", err)
 	}
@@ -199,7 +199,7 @@ func Template(ctx context.Context, key string, fill func(*pgxpool.Pool) error) (
 	if _, err := admin.Exec(ctx, `CREATE DATABASE `+name+` TEMPLATE `+templateName); err != nil {
 		return "", err
 	}
-	pool, err := pgxpool.New(ctx, withDB(baseURL, name))
+	pool, err := newPool(ctx, withDB(baseURL, name))
 	if err != nil {
 		return "", err
 	}
@@ -214,6 +214,17 @@ func Template(ctx context.Context, key string, fill func(*pgxpool.Pool) error) (
 
 // URL returns the connection URL of the database behind pool's config.
 func URL(pool *pgxpool.Pool) string { return pool.Config().ConnString() }
+
+// newPool opens a pool on a test database, set up as the app's are
+// (db.Configure): what tests run is what the app runs.
+func newPool(ctx context.Context, url string) (*pgxpool.Pool, error) {
+	cfg, err := pgxpool.ParseConfig(url)
+	if err != nil {
+		return nil, err
+	}
+	db.Configure(cfg)
+	return pgxpool.NewWithConfig(ctx, cfg)
+}
 
 func withDB(raw, name string) string {
 	u, err := url.Parse(raw)

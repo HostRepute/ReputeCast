@@ -28,7 +28,7 @@
   "approvals.sendApprove": "Người giữ vai trò này gửi được và phê duyệt được lần gửi của thành viên khác; họ không thể tự phê duyệt lần gửi của mình",
   "approvals.approve": "Người giữ vai trò này phê duyệt được lần gửi của thành viên khác",
   "approvals.send": "Người giữ vai trò này gửi được; chính sách phê duyệt vẫn áp dụng cho lần gửi lớn hoặc có rủi ro",
-  "approvals.request": "Người giữ vai trò này yêu cầu phê duyệt được cho lần gửi vì họ có campaigns:edit mà không có campaigns:send",
+  "approvals.request": "Người giữ vai trò này yêu cầu phê duyệt được cho lần gửi vì họ sửa được chiến dịch nhưng không gửi được",
   "approvals.none": "Người giữ vai trò này không gửi được và không yêu cầu phê duyệt được",
 
   "audit.permissions": "{count, plural, other {# quyền}}",

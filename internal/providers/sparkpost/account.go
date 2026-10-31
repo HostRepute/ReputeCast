@@ -433,6 +433,18 @@ func (p *Provider) AddSuppressions(ctx context.Context, emails []string) error {
 	return nil
 }
 
+// RemoveSuppressions implements providers.SuppressionRemover: both the
+// transactional and the non-transactional entries go.
+func (p *Provider) RemoveSuppressions(ctx context.Context, emails []string) error {
+	for _, e := range emails {
+		err := p.api.Do(ctx, "DELETE /api/v1/suppression-list", http.MethodDelete, apiclient.Path("/api/v1/suppression-list/%s", e), nil, nil)
+		if err != nil && !apiclient.NotFound(err) {
+			return classify(err)
+		}
+	}
+	return nil
+}
+
 // Tracking implements providers.TrackingManager from the account's
 // defaults. ReputeCast turns open and click tracking off on every
 // transmission, so they never touch its mail.

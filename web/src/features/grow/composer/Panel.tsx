@@ -5,10 +5,10 @@ import { Skeleton } from '@/components/ui/Feedback'
 import { OptionCard } from '@/components/ui/Field'
 import { Menu, MenuItem, MenuLabel } from '@/components/ui/Menu'
 import { Note } from '@/components/ui/Note'
-import { T, useT } from '@/i18n'
+import { useT } from '@/i18n'
 import { dayMonthDate } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
-import { GROW, mono, orNames, tileInitials } from '../shared'
+import { GROW, orNames, tileInitials } from '../shared'
 import {
   growBlocksIn,
   growKindOf,
@@ -378,7 +378,7 @@ function ReferralInspector({ c }: { c: Component }) {
         </span>
         {!canEditGrow ? (
           <span className="gw-cmp-why">
-            <T msg={list?.helpers.edit.length ? mb.needsGrowEdit : mb.needsGrowEditNoHelpers} values={{ mono, helpers: orNames(list?.helpers.edit) }} />
+            {t(list?.helpers.edit.length ? mb.needsGrowEdit : mb.needsGrowEditNoHelpers, { helpers: orNames(list?.helpers.edit) })}
           </span>
         ) : null}
       </Prop>

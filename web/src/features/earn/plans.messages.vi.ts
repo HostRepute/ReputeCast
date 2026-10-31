@@ -57,8 +57,8 @@ export default translate(mp, {
   syncRetry: 'Thử lại với Stripe',
   noPrice: 'Chưa có giá',
   readOnlyTitle: 'Chỉ xem · {name}, {role}',
-  readOnly: 'Thay đổi gói và ưu đãi cần quyền {permission}. Hãy hỏi {helpers}.',
-  readOnlyNoHelpers: 'Thay đổi gói và ưu đãi cần quyền {permission}.',
+  readOnly: 'Vai trò của bạn không thể thay đổi gói và ưu đãi. Hãy hỏi {helpers}.',
+  readOnlyNoHelpers: 'Vai trò của bạn không thể thay đổi gói và ưu đãi.',
   noTiersTitle: 'Tạo gói đầu tiên của bạn',
   noTiersText:
     'Người đọc sẽ thấy gói trên trang nâng cấp của bạn, bên cạnh {list} miễn phí. Hãy đặt cho gói một cái tên, giá theo tháng hoặc theo năm, thời gian dùng thử và các quyền lợi.',

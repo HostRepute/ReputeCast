@@ -743,7 +743,7 @@ function PostHeader({
   )
 }
 
-/** "Daniel Park · Content Writer. You can write and edit posts. Publishing needs website:publish…" */
+/** "Daniel Park · Content Writer. You can write and edit posts. Your role can't publish them…" */
 function WriterBanner({ post }: { post: Post }) {
   const t = useT()
   const { me } = useWorkspace()
@@ -755,7 +755,7 @@ function WriterBanner({ post }: { post: Post }) {
       <span>
         <T
           msg={mc.writerNote}
-          values={{ name: <b>{user?.name ?? ''}</b>, role: <b>{me.workspace.roleName}</b>, perm: <code className="mono">{'website:publish'}</code>, rule, approvers: orList(post.publish.approvers) }}
+          values={{ name: <b>{user?.name ?? ''}</b>, role: <b>{me.workspace.roleName}</b>, rule, approvers: orList(post.publish.approvers) }}
         />
       </span>
     </div>
@@ -984,7 +984,6 @@ function RequestApprovalDialog({ post, draft, host, onClose, onSent }: { post: P
   const [error, setError] = useState<string>()
   void host
   const pub = post.publish
-  const code = (x: string) => <code className="mono">{x}</code>
   const vis = draft.visibility === 'paid' ? t(mc.visPaid) : draft.visibility === 'members' ? t(mc.visMembers) : t(mc.visPublic)
   const when = draft.publishMode === 'at' && draft.publishAt ? scheduledLine(draft.publishAt, draft.publishTz) : t(mc.whenApproved)
   const send = async () => {
@@ -1018,10 +1017,10 @@ function RequestApprovalDialog({ post, draft, host, onClose, onSent }: { post: P
     >
       <dl className="ws-kv">
         <dt>{t(mc.approvalRule)}</dt>
-        <dd>{pub.rule === 'post_publish' ? t(mc.approvalRulePost) : <T msg={mc.approvalRuleSend} values={{ perm: code('website:publish') }} />}</dd>
+        <dd>{pub.rule === 'post_publish' ? t(mc.approvalRulePost) : t(mc.approvalRuleSend)}</dd>
         <dt>{t(mc.approvalApprovers)}</dt>
         <dd>
-          <T msg={mc.approvalApproversText} values={{ approvers: orList(pub.approvers), perm: code('campaigns:approve') }} />
+          {t(mc.approvalApproversText, { approvers: orList(pub.approvers) })}
         </dd>
         <dt>{t(mc.approvalCovers)}</dt>
         <dd>{t(mc.approvalCoversText, { path: `/posts/${draft.slug}`, visibility: vis, when })}</dd>

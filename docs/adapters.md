@@ -66,6 +66,7 @@ itself"):
 |---|---|
 | `Verifier` / `QuotaReporter` | Connect step and the health job (every 5 minutes, every minute while a provider is down). `Quota` wins when both exist. |
 | `ReputationReporter` | The provider's own bounce and complaint rates, which its review thresholds apply to. |
+| `IPReporter` | The dedicated IPs the account sends from (`SendingIPs`), read when the provider is connected, when its connection step is repeated and every day. The canary's new-IP trigger, Send Readiness's IP blocklist rows, Deliverability and warm-up read them. Set `Capabilities.ReportsIPs` with it. Return an error when the provider can't be asked, never an empty list: ReputeCast keeps what it knew. Without it, people set the provider's IPs by hand. |
 | `DomainManager` | DNS records with live status for the domain step and Deliverability. |
 | `WebhookRegistrar`, `WebhookInspector`, `WebhookTester` | "Register webhooks", the webhooks-silent diagnosis, "Send test event". |
 | `WebhookVerifier`, `WebhookHandshaker` | Ingest verifies before storing. Handshakes (SNS subscriptions, Event Grid validation) are answered and not stored. |

@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/publicurl"
+	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/templates"
 )
@@ -57,6 +58,9 @@ type Service struct {
 	// Recipients add the per-reader variables of blocks (Grow's Referral
 	// and Recommendations blocks) to previews and test sends; nil adds none.
 	Recipients func() []liquid.RecipientData
+	// Box seals review links' tokens so members can copy a link again
+	// (review.go); review links need it.
+	Box *secrets.Box
 }
 
 // ChannelRows fills in the list's rows of one channel's campaigns

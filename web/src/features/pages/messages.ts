@@ -100,8 +100,8 @@ export const m = defineMessages('pages', {
   // Read-only
   readOnlyTitle: 'Read-only · {name}, {role}',
   readOnlyRole: 'Read-only · {role}',
-  readOnly: 'You can open every page and see its numbers. Editing needs <code>website:edit</code> and publishing needs <code>website:publish</code>. Ask {helpers}.',
-  readOnlyNobody: 'You can open every page and see its numbers. Editing needs <code>website:edit</code> and publishing needs <code>website:publish</code>.',
+  readOnly: 'You can open every page and see its numbers. Your role can’t edit or publish pages. Ask {helpers}.',
+  readOnlyNobody: 'You can open every page and see its numbers. Your role can’t edit or publish pages.',
 
   // Empty, loading and error
   emptyTitle: 'No pages yet. Start with About or a template.',

@@ -4,6 +4,7 @@ import (
 	"embed"
 	"strings"
 
+	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
@@ -58,6 +59,18 @@ func listArgs(names []string) i18n.Args {
 		return i18n.Args{"names": "", "last": "", "count": 0}
 	}
 	return i18n.Args{"names": strings.Join(names[:len(names)-1], ", "), "last": names[len(names)-1], "count": len(names)}
+}
+
+// permissionList names permissions as people read them: each one's label
+// in the reader's language, in quotes, joined as the language joins a list
+// (“Send or schedule campaigns” and “Export contacts”), never the keys
+// (review X-1). A problem's permission field keeps a key for API clients.
+func permissionList(l i18n.Lang, perms []authz.Permission) string {
+	labels := make([]string, len(perms))
+	for i, p := range perms {
+		labels[i] = "“" + authz.LabelIn(l, p) + "”"
+	}
+	return i18n.AndList(l.Locale, labels)
 }
 
 // readOnlyReason explains what a caller without team:invite or

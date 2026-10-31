@@ -111,8 +111,9 @@ export const m = defineMessages('auth.setup', {
   providerTitle: 'Connect a sending provider',
   providerNeedsWorkspace: 'Create a workspace first.',
   continue: 'Continue',
+  /** The setup time as the connect wizard states it (R3.U6, F-6): never "about 10 minutes". */
   providerSub:
-    'ReputeCast sends through your own provider: Amazon SES, Postmark, Mailgun, SendGrid, Resend, a Postal server or any SMTP server. Connecting one takes about 10 minutes.',
+    "ReputeCast sends through your own provider: Amazon SES, Postmark, Mailgun, SendGrid, Resend, a Postal server or any SMTP server. Most setups take 10–15 minutes; Amazon SES takes longer when ReputeCast doesn't run on AWS, and a new AWS account can wait up to 24 hours for production access.",
   ready: 'Ready',
   readyBody:
     "{instance} is set up and {workspace} is created; you're its Owner. Invites, password resets and notifications by email start working once a provider handles the System stream.",

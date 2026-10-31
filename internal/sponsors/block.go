@@ -485,10 +485,16 @@ func (s *Service) ComposerIssues(ctx context.Context, ws *store.Workspace, campa
 	if section >= 0 {
 		fixes = append(fixes, contentcheck.ContentCheckFix{Kind: "remove_section", Label: text(ctx, "check.remove", nil), Path: []int{section}})
 	}
-	return []contentcheck.ContentCheckIssue{{ID: "content.sponsor_creative", Severity: contentcheck.Block, Group: "Content",
+	return []contentcheck.ContentCheckIssue{{ID: IssueCreative, Severity: contentcheck.Block, Group: "Content",
 		Title: text(ctx, "check.missing", map[string]any{"sponsor": b.Sponsor, "ends": ends(b.Sponsor)}), Detail: detail, Tag: text(ctx, "check.tag", nil),
 		Path: path, Section: section, Fixes: fixes}}
 }
+
+// IssueCreative is the check of a Sponsor block still waiting for its
+// creative: it blocks the send, so it can't be dismissed.
+const IssueCreative = "content.sponsor_creative"
+
+func init() { contentcheck.RegisterBlocking(IssueCreative) }
 
 // Fix actions of the Sponsor block in Review & send.
 const (

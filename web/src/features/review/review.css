@@ -162,6 +162,16 @@
   .rv-card.c-tight {
     gap: 10px;
   }
+  /* The estimate's timeline under the route table (the board's .inset). */
+  .rv-inset {
+    padding: 12px 14px;
+    background: var(--ground-3);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
   .rv-sum {
     display: flex;
     justify-content: space-between;
@@ -170,6 +180,44 @@
   }
   .rv-sum.s-minus {
     color: var(--ink-3);
+  }
+  /* The canary choice in the confirmation (C1). */
+  .rv-confirm .c-canary {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .rv-confirm .c-canary select {
+    max-width: 320px;
+  }
+  /* "Include them" under the sunset policy's line of the audience. */
+  .rv-lnk {
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+    cursor: pointer;
+    min-height: 24px;
+  }
+  .rv-lnk:hover {
+    color: var(--accent-hover);
+  }
+  .rv-lnk:disabled {
+    cursor: progress;
+    opacity: 0.6;
+  }
+  @media (max-width: 767px) {
+    .rv-lnk {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+    }
   }
   .rv-sum.s-final {
     border-top: 1px solid var(--line);
@@ -310,6 +358,28 @@
     }
     .rv-when {
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+    /* 44 px targets, as the phone boards draw them: every button and field
+       on the page (`rv-page` is its <main>) and in the fix review. */
+    .rv-page .btn,
+    .rv-page select,
+    .rv-page input:not([type='checkbox']):not([type='radio']),
+    .rv-drawer .btn {
+      min-height: 44px;
+    }
+    /* A one-line scheduling option (shorter wording, as in Vietnamese) is
+       tapped through its card: 44 px too. */
+    label.rv-rad {
+      min-height: 44px;
+    }
+    /* The confirmation and the emergency send, as SendReadinessConfirm draws
+       them on a phone: 44 px fields, buttons and confirmations. */
+    .rv-confirm select,
+    .rv-confirm .btn,
+    .rv-bypass .in,
+    .rv-bypass .btn,
+    label.rv-chk {
+      min-height: 44px;
     }
   }
 }

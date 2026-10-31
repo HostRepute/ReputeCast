@@ -65,6 +65,9 @@ type Service struct {
 	Earn  *earn.Service
 	Log   *slog.Logger
 	Now   func() time.Time
+
+	// codeMisses limits the referral codes an address can try (referral.go).
+	codeMisses misses
 }
 
 // now is the offers' clock: their own, else Earn's (tests set it).

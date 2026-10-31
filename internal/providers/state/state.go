@@ -1,8 +1,9 @@
 // Package state describes what ReputeCast stores about a connected provider
 // in the providers table's JSON columns (capability snapshot, health,
-// pricing, limits, provider-side tracking) and the display helpers every
-// screen shares (short names, chart colours). It has no database access, so
-// routing, warm-up, ingest and the providers service can all use it.
+// pricing, limits, provider-side tracking, where its sending IPs come from)
+// and the display helpers every screen shares (short names, chart colours).
+// It has no database access, so routing, warm-up, ingest and the providers
+// service can all use it.
 //
 // These types are a contract that Deliverability, Overview, send readiness
 // and the sending engine read: fields keep their JSON names and meanings and
@@ -24,6 +25,8 @@ import (
 	"encoding/json"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
@@ -191,6 +194,52 @@ type Health struct {
 	// reports for the account, when its API offers one. Screens prefer it
 	// to ReputeCast's own count while it is fresh (see ReputationOf).
 	Reputation *Reputation `json:"reputation,omitempty"`
+	// LastRejection is the last message the provider refused for good, in
+	// its own code and words (manage.RecordSend).
+	LastRejection *CallRecord `json:"lastRejection,omitempty"`
+	// Rejecting is set while the provider refuses an unusual share of the
+	// messages handed to it (PR-7, the health job).
+	Rejecting *RejectState `json:"rejecting,omitempty"`
+	// BounceMailbox is the last read of an SMTP provider's bounce mailbox
+	// (PR-10): when reading fails, bounces from that server go unseen.
+	BounceMailbox *MailboxState `json:"bounceMailbox,omitempty"`
+	// EventQueue is the last poll of the SQS queue an SES connection's
+	// events arrive in (PR-4).
+	EventQueue *MailboxState `json:"eventQueue,omitempty"`
+}
+
+// MailboxState is how reading a bounce mailbox goes.
+type MailboxState struct {
+	LastPollAt time.Time  `json:"lastPollAt"`
+	LastOKAt   *time.Time `json:"lastOkAt,omitempty"`
+	// Error is the last failure, as the mail server or the network said
+	// it; FailingSince is when reading started to fail.
+	Error        string     `json:"error,omitempty"`
+	FailingSince *time.Time `json:"failingSince,omitempty"`
+	// Reported is set once the failure was raised (incident, notification).
+	Reported bool `json:"reported,omitempty"`
+}
+
+// MailboxFailAfter is how long a bounce mailbox may fail to be read before
+// the provider is Degraded and the team is told: a mail server restarting
+// is no alarm.
+const MailboxFailAfter = 15 * time.Minute
+
+// MailboxFailing reports whether a bounce mailbox has failed long enough
+// to be raised.
+func (h Health) MailboxFailing(now time.Time) bool {
+	m := h.BounceMailbox
+	return m != nil && m.FailingSince != nil && now.Sub(*m.FailingSince) >= MailboxFailAfter
+}
+
+// RejectState is a run of refused messages: since when, how many of how
+// many in the health job's window, and the provider's last answer.
+type RejectState struct {
+	Since    time.Time `json:"since"`
+	Rejected int64     `json:"rejected"`
+	Total    int64     `json:"total"`
+	Code     string    `json:"code,omitempty"`
+	Message  string    `json:"message,omitempty"`
 }
 
 // Reputation is a provider-reported bounce and complaint rate.
@@ -319,6 +368,46 @@ func TrackingOf(p store.Provider) Tracking {
 		t.Mode = "reputecast"
 	}
 	return t
+}
+
+// Where a provider's sending IPs come from (IPSource.From).
+const (
+	// IPsFromProvider: its API lists them (providers.IPReporter); ReputeCast
+	// asks when the provider is connected and every day.
+	IPsFromProvider = "provider"
+	// IPsFromPerson: a person set them, for a provider whose API can't list
+	// them.
+	IPsFromPerson = "manual"
+)
+
+// IPSource is where a provider's sending IPs (providers.ip_mode and ips)
+// come from (providers.ip_source).
+type IPSource struct {
+	// From is IPsFromProvider, IPsFromPerson or "" (nobody yet: what
+	// connecting set).
+	From string `json:"from,omitempty"`
+	// CheckedAt is the provider's last answer.
+	CheckedAt *time.Time `json:"checkedAt,omitempty"`
+	// Error is the last check's failure, while the IPs stay what the last
+	// answer said; ErrorText is the message it comes from, when the
+	// adapter worded it (providers.CallError.Text).
+	Error     string     `json:"error,omitempty"`
+	ErrorText i18n.Text  `json:"errorText,omitzero"`
+	ErrorAt   *time.Time `json:"errorAt,omitempty"`
+	// SetBy is the member who set the IPs by hand (nil for an API key or an
+	// agent), SetByName the name of whoever did, as it was then.
+	SetBy     *uuid.UUID `json:"setBy,omitempty"`
+	SetByName string     `json:"setByName,omitempty"`
+	SetAt     *time.Time `json:"setAt,omitempty"`
+}
+
+// IPSourceOf decodes where a provider's sending IPs come from.
+func IPSourceOf(p store.Provider) IPSource {
+	var s IPSource
+	if len(p.IpSource) > 0 {
+		_ = json.Unmarshal(p.IpSource, &s)
+	}
+	return s
 }
 
 // Short is the label used in badges and legends: "SES", "Postal", "Postmark".

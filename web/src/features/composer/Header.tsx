@@ -7,7 +7,6 @@ import { useMe, useWorkspace } from '@/lib/session'
 import { useComposer, type SaveStatus } from './context'
 import { statusWord } from './format'
 import { ToolIcon } from './icons'
-import { AudiencePicker, SenderPicker } from './Pickers'
 import { PaidOnlyBadge } from '@/features/earn/composer/EarnBlocks'
 import { SendTestButton } from './SendTest'
 import { ComposerLanguageSwitcher, versionLanguage, withoutVersion } from '@/features/languages/composerParts'
@@ -19,6 +18,9 @@ import { m } from './messages'
 import { useAssistBanner } from '@/features/ai/composer/panel'
 import { AssistMenu } from '@/features/ai/composer/assistMenu'
 import { WebChip } from '@/features/website/composer/campaign'
+import { PresenceChip } from './Collab'
+import { useAccessibility } from '@/features/accessibility/composer/state'
+import { mh } from './chrome.messages'
 
 const routeColors: Record<string, string> = { ses: 'var(--chart-ses)', postal: 'var(--chart-postal)', postmark: 'var(--chart-postmark)' }
 
@@ -43,7 +45,7 @@ export function statusText(status: SaveStatus, campaignStatus: string): string {
   }
 }
 
-function RouteButton() {
+export function RouteButton() {
   const { campaign, context, slug } = useComposer()
   const t = useT()
   // A campaign without its own split follows the Broadcasts routing rule.
@@ -86,7 +88,128 @@ function RouteButton() {
   )
 }
 
-/** The composer's top bar: back, name, status, audience, sender, route and actions. */
+/** The save state as the top bar's chip: "✓ Saved 09:38 · v14" (Composer board). */
+export function StatusChip({ word, draft }: { word: string; draft: boolean }) {
+  const c = useComposer()
+  const t = useT()
+  const { status, campaign } = c
+  const versioned = Boolean(versionLanguage(campaign) || c.missingLanguage)
+  const args = { draft: draft ? 'yes' : 'no', status: statusWord(word) }
+  let text: string
+  let tone: 'ok' | 'warn' | 'bad' | 'neutral' = 'neutral'
+  switch (status.kind) {
+    case 'saved':
+      text = t(mh.saved, { ...args, time: clock(status.at), version: status.version })
+      tone = 'ok'
+      break
+    case 'dirty':
+      text = status.at ? t(mh.saved, { ...args, time: clock(status.at), version: status.version }) : t(mh.editing, { ...args, version: status.version })
+      break
+    case 'saving':
+      text = t(mh.saving, { ...args, version: status.version })
+      break
+    default:
+      text = statusText(status, word)
+      tone = status.kind === 'offline' || status.kind === 'error' ? 'bad' : status.kind === 'conflict' ? 'warn' : 'neutral'
+  }
+  return (
+    <span id="cstatus" role="status" className={`stchip${tone === 'bad' ? ' bad' : tone === 'warn' ? ' warn' : ''}`}>
+      {tone === 'ok' ? <ToolIcon name="check" size={12} strokeWidth={2.2} /> : null}
+      {withoutVersion(text, versioned)}
+    </span>
+  )
+}
+
+const MODES = ['write', 'visual', 'code'] as const
+
+/** Write · Design · Code (Composer and ComposerWrite boards): arrow keys move between them. */
+export function ModeTabs() {
+  const c = useComposer()
+  const t = useT()
+  const current = c.view === 'write' ? 'write' : c.view === 'mjml' || c.view === 'html' ? 'code' : 'visual'
+  const label = (m: (typeof MODES)[number]) => (m === 'write' ? t(mh.modeWrite) : m === 'visual' ? t(mh.modeDesign) : t(mh.modeCode))
+  const go = (m: (typeof MODES)[number]) => c.setView(m === 'code' ? 'mjml' : m)
+  return (
+    <div className="modes" role="tablist" aria-label={t(mh.modeGroup)}>
+      {MODES.map((m) => (
+        <button
+          key={m}
+          type="button"
+          role="tab"
+          id={`mode-${m}`}
+          aria-selected={current === m}
+          tabIndex={current === m ? 0 : -1}
+          onClick={() => go(m)}
+          onKeyDown={(e) => {
+            const i = MODES.indexOf(m)
+            const next = e.key === 'ArrowRight' ? MODES[(i + 1) % MODES.length] : e.key === 'ArrowLeft' ? MODES[(i + MODES.length - 1) % MODES.length] : e.key === 'Home' ? MODES[0] : e.key === 'End' ? MODES[MODES.length - 1] : null
+            if (!next) return
+            e.preventDefault()
+            go(next)
+            window.requestAnimationFrame(() => document.getElementById(`mode-${next}`)?.focus())
+          }}
+        >
+          {label(m)}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** Desktop · Mobile: the canvas's width (it only applies in Design mode). */
+export function DeviceToggle() {
+  const c = useComposer()
+  const t = useT()
+  const design = c.view === 'visual'
+  return (
+    <div className="devt" role="group" aria-label={design ? t(mh.widthGroup) : t(mh.widthGroupWrite)}>
+      {(['desktop', 'mobile'] as const).map((d) => {
+        const name = d === 'desktop' ? t(mh.desktop) : t(mh.mobile)
+        return (
+          <button
+            key={d}
+            type="button"
+            aria-pressed={c.device === d}
+            aria-disabled={design ? undefined : true}
+            aria-label={design ? name : t(mh.widthInDesign, { device: name })}
+            title={design ? (d === 'desktop' ? t(mh.desktopTitle) : t(mh.mobileTitle)) : t(mh.widthInDesignTitle)}
+            onClick={() => design && c.setDevice(d)}
+          >
+            <ToolIcon name={d} size={16} strokeWidth={1.6} />
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Blocks and warnings the checks found (dismissed warnings aside), A/B variants included. */
+export function useReadiness(): { blocks: number; warnings: number } {
+  const c = useComposer()
+  const a11y = useAccessibility()
+  const issues = c.checks?.issues ?? []
+  const dismissed = new Set((c.checks?.dismissed ?? []).map((d) => d.index))
+  let blocks = 0
+  let warnings = 0
+  issues.forEach((i, n) => {
+    if (i.severity === 'block') blocks++
+    else if (i.severity === 'warn' && !dismissed.has(n)) warnings++
+  })
+  for (const v of c.checks?.variants ?? []) {
+    blocks += v.blocks
+    warnings += v.warnings
+  }
+  // Accessibility counts in Checks too (ComposerWarnings): serious issues
+  // block when the workspace's policy says so.
+  const report = a11y?.enabled && !a11y.error ? a11y.report : undefined
+  for (const i of report?.issues ?? []) {
+    if (i.severity === 'serious' && report?.policy === 'block') blocks++
+    else warnings++
+  }
+  return { blocks, warnings }
+}
+
+/** The composer's top bar (Composer board): the campaign, Write · Design · Code, the canvas width, and the actions. */
 export function Header({ onReview }: { onReview: () => void }) {
   const c = useComposer()
   const { campaign, view, slug, status, canEdit } = c
@@ -97,86 +220,89 @@ export function Header({ onReview }: { onReview: () => void }) {
   const issue = isDigestIssue(campaign)
   const word = digest ? t(dc.template) : campaign.status
   const saveTrouble = status.kind === 'offline' || status.kind === 'error' || status.kind === 'conflict'
-  const blocks = c.checks?.issues.filter((i) => i.severity === 'block' && i.group !== 'Subject').length ?? 0
+  const ready = useReadiness()
   const empty = c.isEmpty
   const preview = view === 'preview'
-  const reviewLabel = campaign.access.canSend ? t(m.reviewSend) : t(m.requestApproval)
+  const action = campaign.access.canSend ? 'send' : 'approval'
+  const nameReadOnly = preview || view === 'mjml' || view === 'html' || !canEdit
   return (
-    <header className="cmp-head">
-      {preview ? (
-        <button type="button" className="btn ic" aria-label={t(m.backToEditor)} onClick={() => c.setView('visual')}>
-          <ToolIcon name="back" size={16} />
-        </button>
-      ) : digest || issue ? (
-        <Link to="/w/$workspace/campaigns/digests/$digestId" params={{ workspace: slug, digestId: campaign.digestId! }} className="btn ic" aria-label={t(dc.backToDigest, { name: c.name })}>
-          <ToolIcon name="back" size={16} />
-        </Link>
-      ) : (
-        <Link to="/w/$workspace/campaigns" params={{ workspace: slug }} className="btn ic" aria-label={t(m.backToCampaigns)}>
-          <ToolIcon name="back" size={16} />
-        </Link>
-      )}
-      <div className="flex min-w-0 flex-col">
-        {preview || view === 'mjml' || view === 'html' || !canEdit ? (
-          <>
-            <span className="k" style={{ fontSize: 11 }}>
-              {preview ? t(m.previewLabel) : digest ? t(dc.template) : issue ? <IssueHeaderLabel fallback={t(m.campaignLabel)} /> : t(m.campaignLabel)}
-            </span>
-            <span className="text-[15px] font-bold">{c.name || t(m.untitled)}</span>
-          </>
+    <header className={`cbar${preview ? ' is-preview' : ''}`}>
+      <div className="cb-left">
+        {preview ? (
+          <button type="button" className="btn ic" aria-label={t(m.backToEditor)} onClick={() => c.setView('visual')}>
+            <ToolIcon name="back" size={16} />
+          </button>
+        ) : digest || issue ? (
+          <Link to="/w/$workspace/campaigns/digests/$digestId" params={{ workspace: slug, digestId: campaign.digestId! }} className="btn ic" aria-label={t(dc.backToDigest, { name: c.name })}>
+            <ToolIcon name="back" size={16} />
+          </Link>
         ) : (
-          <>
-            <label className="k" htmlFor="cname" style={{ fontSize: 11 }}>
-              {digest ? t(dc.template) : issue ? <IssueHeaderLabel fallback={t(m.campaignLabel)} /> : t(m.campaignLabel)}
-            </label>
-            <input
-              id="cname"
-              className={empty ? 'cmp-name wide' : 'cmp-name'}
-              value={c.name}
-              placeholder={t(m.untitled)}
-              onChange={(e) => c.setName(e.target.value)}
-              onBlur={() => c.commitName()}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-                if (e.key === 'Escape') {
-                  c.setName(campaign.name)
-                  ;(e.target as HTMLInputElement).blur()
-                }
-              }}
-              maxLength={200}
-              aria-describedby="cstatus"
-            />
-          </>
+          <Link to="/w/$workspace/campaigns" params={{ workspace: slug }} className="btn ic" aria-label={t(m.backToCampaigns)}>
+            <ToolIcon name="back" size={16} />
+          </Link>
         )}
-      </div>
-      <DigestBadge />
-      {campaign.audience.paid === 'paid' ? <PaidOnlyBadge /> : null}
-      {digest && !canEdit && !preview ? (
-        <Badge id="cstatus" tone="neutral" role="status">
-          {t(dc.readOnly)}
-        </Badge>
-      ) : issue && !preview && !saveTrouble ? (
-        <span id="cstatus" role="status" className="contents">
-          <IssueHeaderStatus />
-        </span>
-      ) : (
-        <Badge id="cstatus" tone={status.kind === 'offline' || status.kind === 'error' ? 'bad' : status.kind === 'conflict' ? 'warn' : 'neutral'} role="status">
-          {withoutVersion(
-            preview ? t(m.statusVersion, { status: statusWord(word), version: status.kind === 'new' ? 1 : status.version }) : statusText(status, word),
-            Boolean(versionLanguage(campaign) || c.missingLanguage),
+        <div className="cb-id">
+          {nameReadOnly ? (
+            <>
+              <span className={preview || digest || issue ? 'k cb-kind' : 'sr-only'}>
+                {preview ? t(m.previewLabel) : digest ? t(dc.template) : issue ? <IssueHeaderLabel fallback={t(m.campaignLabel)} /> : t(m.campaignLabel)}
+              </span>
+              <span className="cb-name">{c.name || t(m.untitled)}</span>
+            </>
+          ) : (
+            <>
+              <label className={digest || issue ? 'k cb-kind' : 'sr-only'} htmlFor="cname">
+                {digest ? t(dc.template) : issue ? <IssueHeaderLabel fallback={t(m.campaignLabel)} /> : t(m.campaignName)}
+              </label>
+              <input
+                id="cname"
+                className={empty ? 'cmp-name cb-name wide' : 'cmp-name cb-name'}
+                value={c.name}
+                placeholder={t(m.untitled)}
+                onChange={(e) => c.setName(e.target.value)}
+                onBlur={() => c.commitName()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                  if (e.key === 'Escape') {
+                    c.setName(campaign.name)
+                    ;(e.target as HTMLInputElement).blur()
+                  }
+                }}
+                maxLength={200}
+                aria-describedby="cstatus"
+              />
+            </>
           )}
-        </Badge>
-      )}
-      {preview || digest || issue ? null : <ComposerLanguageSwitcher />}
+          {digest && !canEdit && !preview ? (
+            <Badge id="cstatus" tone="neutral" role="status">
+              {t(dc.readOnly)}
+            </Badge>
+          ) : issue && !preview && !saveTrouble ? (
+            <span id="cstatus" role="status" className="contents">
+              <IssueHeaderStatus />
+            </span>
+          ) : preview ? (
+            <span id="cstatus" role="status" className="stchip">
+              {withoutVersion(t(m.statusVersion, { status: statusWord(word), version: status.kind === 'new' ? 1 : status.version }), Boolean(versionLanguage(campaign) || c.missingLanguage))}
+            </span>
+          ) : (
+            <StatusChip word={word} draft={campaign.status === 'draft' && !digest} />
+          )}
+        </div>
+        <DigestBadge />
+        {campaign.audience.paid === 'paid' ? <PaidOnlyBadge /> : null}
+        {/* Who else has it open (CO-10). */}
+        {preview ? null : <PresenceChip />}
+      </div>
       {preview ? null : (
-        <div className="flex flex-wrap gap-2" style={{ marginLeft: 12 }}>
-          <AudiencePicker />
-          <SenderPicker />
-          <RouteButton />
-          <WebChip />
+        <div className="cb-mid">
+          <ModeTabs />
+          <DeviceToggle />
         </div>
       )}
-      <div className="flex flex-wrap items-center gap-2" style={{ marginLeft: 'auto' }}>
+      <div className="cb-end">
+        {preview || digest || issue ? null : <ComposerLanguageSwitcher compact />}
+        <WebChip />
         {preview ? (
           // The preview fills this with "Preview as", the test button and Review & send.
           <PreviewAsSlot />
@@ -185,30 +311,47 @@ export function Header({ onReview }: { onReview: () => void }) {
         ) : issue ? (
           <>
             <SendTestButton disabled={empty} />
-            <button type="button" className={`btn pri${blocks ? ' bad-pri' : ''}`} disabled={empty} onClick={onReview}>
+            <button type="button" className={`btn pri${ready.blocks ? ' bad-pri' : ''}`} disabled={empty} onClick={onReview}>
               {t(dc.checkThis)}
             </button>
           </>
         ) : (
           <>
             <AssistMenu />
-            <button type="button" className="btn" disabled={empty} style={empty ? { opacity: 0.5 } : undefined} onClick={() => c.setView('preview')}>
-              {t(m.preview)}
+            <button type="button" className="btn" disabled={empty} style={empty ? { opacity: 0.5 } : undefined} aria-label={t(m.preview)} onClick={() => c.setView('preview')}>
+              <span className="bi" aria-hidden="true">
+                <ToolIcon name="eye" size={15} strokeWidth={1.6} />
+              </span>
+              <span className="bt">{t(m.preview)}</span>
             </button>
-            <SendTestButton disabled={empty} />
-            <button
-              type="button"
-              className={`btn pri${blocks ? ' bad-pri' : ''}`}
-              disabled={empty}
-              style={empty ? { opacity: 0.5 } : undefined}
-              aria-describedby={campaign.access.canSend ? undefined : 'perm-hint'}
-              onClick={onReview}
-            >
-              {blocks ? t(m.reviewBlocks, { action: campaign.access.canSend ? 'send' : 'approval', count: blocks }) : reviewLabel}
-            </button>
+            <span className="hide-ds">
+              <SendTestButton disabled={empty} />
+            </span>
           </>
         )}
       </div>
+      {preview || digest || issue ? null : (
+        <div className="cb-go">
+          <button
+            type="button"
+            className={`btn pri rsend${ready.blocks ? ' bad-pri' : ''}`}
+            disabled={empty}
+            style={empty ? { opacity: 0.5 } : undefined}
+            aria-describedby={campaign.access.canSend ? undefined : 'perm-hint'}
+            onClick={onReview}
+          >
+            <span className="rs-a">{t(mh.readinessAction, { action })}</span>
+            {ready.blocks || ready.warnings ? (
+              <>
+                <span className="rs-dot" aria-hidden="true">
+                  ·
+                </span>
+                <span className="rs-b">{t(mh.readinessCount, { blocks: ready.blocks, warnings: ready.warnings })}</span>
+              </>
+            ) : null}
+          </button>
+        </div>
+      )}
     </header>
   )
 }

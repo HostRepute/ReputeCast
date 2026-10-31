@@ -3,7 +3,8 @@
 Settings come from defaults, an optional YAML file (`--config` or
 `REPUTECAST_CONFIG`), environment variables and flags, in that order.
 Environment variables use the `REPUTECAST_` prefix and a double underscore
-between levels (`http.public_url` → `REPUTECAST_HTTP__PUBLIC_URL`).
+between levels (`http.trusted_proxies` → `REPUTECAST_HTTP__TRUSTED_PROXIES`). The public URL
+has one name everywhere: `REPUTECAST_PUBLIC_URL`.
 
 ## Settings
 
@@ -12,7 +13,7 @@ between levels (`http.public_url` → `REPUTECAST_HTTP__PUBLIC_URL`).
 | `REPUTECAST_DATABASE__URL` (or `DATABASE_URL`) | `postgres://reputecast:reputecast@localhost:5432/reputecast?sslmode=disable` | Postgres 16–18. |
 | `REPUTECAST_DATABASE__MAX_CONNS` | `20` | Pool size per process. |
 | `REPUTECAST_HTTP__ADDR` | `:8080` | Listen address. |
-| `REPUTECAST_HTTP__PUBLIC_URL` | `http://localhost:8080` | The address people and providers reach. Used for webhooks, SSO redirects, passkeys, public pages and links in emails. Use `https://` in production. An address saved in Instance admin › Instance & updates replaces it for links, pages and webhooks (moving provider webhooks with it); HTTPS-only cookies and HSTS follow this setting, so keep the two the same. |
+| `REPUTECAST_PUBLIC_URL` | `http://localhost:8080` | The address people and providers reach. (`REPUTECAST_HTTP__PUBLIC_URL`, its earlier name, still works when `REPUTECAST_PUBLIC_URL` isn't set.) Used for webhooks, SSO redirects, passkeys, public pages and links in emails. Use `https://` in production. An address saved in Instance admin › Instance & updates replaces it for links, pages and webhooks (moving provider webhooks with it); HTTPS-only cookies and HSTS follow this setting, so keep the two the same. |
 | `REPUTECAST_HTTP__TRUSTED_PROXIES` | — | Comma-separated CIDRs or IPs of your reverse proxies; only then is `X-Forwarded-For` trusted. |
 | `REPUTECAST_HTTP__RATE_LIMIT_AUTH` | `30` | Sign-in requests per minute per client IP (on top of per-email lockout). |
 | `REPUTECAST_HTTP__RATE_LIMIT_API` | `600` | API requests per minute per API key (per IP for browser sessions). |
@@ -39,7 +40,7 @@ a `.env` file next to it or from your shell:
 
 | Variable | Default | Notes |
 |---|---|---|
-| `REPUTECAST_PUBLIC_URL` | `http://localhost:8080` | Becomes `REPUTECAST_HTTP__PUBLIC_URL`. |
+| `REPUTECAST_PUBLIC_URL` | `http://localhost:8080` | Passed to ReputeCast as it is. |
 | `REPUTECAST_ADMIN_EMAIL` | `admin@example.com` | The first Owner, created on the first start. |
 | `POSTGRES_PASSWORD` | `reputecast` | Set it before the first start: Postgres only applies it when the database volume is created. |
 | `REPUTECAST_PORT` | `8080` | Host port. |

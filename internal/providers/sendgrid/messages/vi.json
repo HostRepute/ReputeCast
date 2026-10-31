@@ -20,5 +20,6 @@
   "tracking.off": "Theo dõi lượt mở và lượt nhấp đều tắt cho tài khoản và trên mọi thư ReputeCast gửi.",
   "tracking.on": "{on, select, open {Theo dõi lượt mở ở cấp tài khoản đang bật, nhưng ReputeCast tắt theo dõi của SendGrid trên mọi thư mà ReputeCast gửi.} click {Theo dõi lượt nhấp ở cấp tài khoản đang bật, nhưng ReputeCast tắt theo dõi của SendGrid trên mọi thư mà ReputeCast gửi.} other {Theo dõi lượt mở và lượt nhấp ở cấp tài khoản đang bật, nhưng ReputeCast tắt theo dõi của SendGrid trên mọi thư mà ReputeCast gửi.}}",
   "error.noWebhookId": "SendGrid không trả về mã của webhook",
-  "error.domainMissing": "{domain} chưa được xác thực trong SendGrid"
+  "error.domainMissing": "{domain} chưa được xác thực trong SendGrid",
+  "error.ipsRestricted": "Khóa API không đọc được địa chỉ IP của tài khoản: hãy cấp quyền đọc IP Management cho khóa trong SendGrid › Settings › API Keys, rồi kiểm tra lại."
 }

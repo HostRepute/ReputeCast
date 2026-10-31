@@ -154,8 +154,8 @@ export const m = defineMessages('integrations', {
   clearSearch: 'Clear search',
   buildYourOwn: 'Or build your own with the <a>public API</a>.',
   readOnly: 'Read-only',
-  readOnlyCatalog: 'Connect and Manage become View: you can open every integration and see its activity. Connecting needs integrations:manage. Ask {helpers}.',
-  readOnlyCatalogAlone: 'Connect and Manage become View: you can open every integration and see its activity. Connecting needs integrations:manage.',
+  readOnlyCatalog: "Connect and Manage become View: you can open every integration and see its activity. Your role can't connect integrations. Ask {helpers}.",
+  readOnlyCatalogAlone: "Connect and Manage become View: you can open every integration and see its activity. Your role can't connect integrations.",
   loadingCatalog: 'Loading integrations',
   loadError: "Couldn't load integrations",
   loadErrorBody: "{detail} Connected integrations keep working: their keys and webhooks don't depend on this page.",
@@ -470,8 +470,8 @@ export const m = defineMessages('integrations', {
   expiredFoot: 'Reconnect keeps what {name} can do. Choose an expiry again, or none.',
   ownerLeftFoot: 'Take over is also in the ⋯ menu, with Disconnect.',
 
-  readOnlyApp: "You can see {name}'s activity, its webhooks and what it can do. Changing, rotating, taking over and disconnecting need integrations:manage. Ask {helpers}.",
-  readOnlyAppAlone: "You can see {name}'s activity, its webhooks and what it can do. Changing, rotating, taking over and disconnecting need integrations:manage.",
+  readOnlyApp: "You can see {name}'s activity, its webhooks and what it can do. Your role can't change, rotate, take over or disconnect it. Ask {helpers}.",
+  readOnlyAppAlone: "You can see {name}'s activity, its webhooks and what it can do. Your role can't change, rotate, take over or disconnect it.",
 
   // ── Connect dialog ───────────────────────────────────────────────────
   connectEyebrow: 'Connect {name} · {person}',
@@ -762,8 +762,8 @@ export const m = defineMessages('integrations', {
   noSitesTitle: 'No sites yet',
   noSitesBody: 'Install the ReputeCast plugin on your WordPress site, then connect it here.',
   noSitesFoot: 'Each site gets its own key: it can list your signup forms and create drafts from posts, and nothing else.',
-  readOnlyWp: "You can see each site's health, forms, post drafts and key. Connecting, rules, Check now and keys need integrations:manage. Ask {helpers}.",
-  readOnlyWpAlone: "You can see each site's health, forms, post drafts and key. Connecting, rules, Check now and keys need integrations:manage.",
+  readOnlyWp: "You can see each site's health, forms, post drafts and key. Your role can't connect sites, change rules, use Check now or manage keys. Ask {helpers}.",
+  readOnlyWpAlone: "You can see each site's health, forms, post drafts and key. Your role can't connect sites, change rules, use Check now or manage keys.",
   loadingSites: 'Loading your sites',
   loadSitesError: "Couldn't load your sites",
   loadSitesErrorBody: "{detail} Forms on your sites keep working: they load through each form's public script.",
@@ -802,7 +802,7 @@ export const m = defineMessages('integrations', {
   hookReadOnly: 'To change it, change the workflow in {name}, or disconnect {name}.',
 
   // ── Keys & MCP: agents and integrations ──────────────────────────────
-  mcpNoIntegrations: 'Agents never connect integrations: integrations:manage is for people.',
+  mcpNoIntegrations: 'Agents never connect integrations: only people do.',
 
   // ── Team: integrations a member connected ────────────────────────────
   memberLegend: 'Integrations {name} connected · {count}',
@@ -815,7 +815,7 @@ export const m = defineMessages('integrations', {
   memberDefault: 'default',
   memberDisconnect: 'Disconnect',
   memberFoot: "Take over makes you the keys' owner. The keys keep their values, so nothing changes in {tools}.",
-  memberNoManage: 'These stop working until someone with integrations:manage takes them over or disconnects them in Settings › Integrations.',
+  memberNoManage: 'These stop working until someone who can manage integrations takes them over or disconnects them in Settings › Integrations.',
   memberError: "Couldn't hand over {name}",
 
   // ── HostRepute ───────────────────────────────────────────────────────

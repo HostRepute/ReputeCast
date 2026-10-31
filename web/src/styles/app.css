@@ -1672,6 +1672,10 @@
     padding-top: 2px;
     padding-bottom: 2px;
     max-width: 100%;
+    /* A badge alone on its line (a long state, a long language) wraps
+       inside the line instead of running past the screen's edge. */
+    flex-shrink: 1;
+    min-width: 0;
   }
   :is(.rc-app, .ovl, .toasts, .corner) .tabs .badge,
   :is(.rc-app, .ovl, .toasts, .corner) .tbl td .badge {

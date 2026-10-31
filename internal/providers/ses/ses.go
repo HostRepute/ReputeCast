@@ -59,6 +59,18 @@ type Settings struct {
 	ExternalID string `json:"external_id,omitempty"`
 	// TopicARNs restricts which SNS topics may post events.
 	TopicARNs []string `json:"topic_arns,omitempty"`
+	// Tenant is the SES tenant of the workspace (PR-11): its own suppression
+	// list and reputation, so a bounce in this workspace never stops mail of
+	// another workspace or app on the same AWS account. Sends name it.
+	Tenant string `json:"tenant,omitempty"`
+	// Events is how SES events come back: "" (SNS calls the webhook) or
+	// "queue" (an SQS queue ReputeCast polls, PR-4), with the queue's URL
+	// and ARN once provisioned.
+	Events   string `json:"events,omitempty"`
+	QueueURL string `json:"queue_url,omitempty"`
+	QueueARN string `json:"queue_arn,omitempty"`
+	// AccountID is the AWS account (the tenant's resource ARNs).
+	AccountID string `json:"account_id,omitempty"`
 	// Endpoint overrides the SES API endpoint (tests, VPC endpoints).
 	Endpoint string `json:"endpoint,omitempty"`
 }
@@ -87,6 +99,9 @@ func Descriptor() providers.Descriptor {
 			Sandbox:         "detection",
 			QuotaDiscovery:  true,
 			RateDiscovery:   true,
+			EventQueue:      "SQS",
+			Tenants:         true,
+			ReportsIPs:      true,
 			// Pricing, DedicatedIPs and every other text people read (the
 			// terms' note, the Adapters tab's words, the fields' labels and
 			// hints) are in messages/en.json: WithMessages fills them.
@@ -115,6 +130,8 @@ type Provider struct {
 	// aws is the resolved SDK configuration, reused by provisioning (SNS)
 	// and region scans (provision.go).
 	aws aws.Config
+	// callerARN is who the credentials belong to, read with AccountID.
+	callerARN string
 }
 
 var _ providers.Provider = (*Provider)(nil)
@@ -142,7 +159,7 @@ func New(cfg providers.Config) (providers.Provider, error) {
 	awsCfg := aws.Config{Region: p.s.Region, HTTPClient: p.http, Retryer: func() aws.Retryer { return aws.NopRetryer{} }}
 	switch {
 	case p.s.Access == "role" && p.s.RoleARN != "":
-		base, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(p.s.Region), config.WithHTTPClient(p.http))
+		base, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(p.s.Region), config.WithHTTPClient(sdkHTTP(p.http)))
 		if err != nil {
 			return nil, fmt.Errorf("ses: load AWS credentials to assume %s: %w", p.s.RoleARN, err)
 		}
@@ -165,6 +182,28 @@ func New(cfg providers.Config) (providers.Provider, error) {
 		}
 	})
 	return p, nil
+}
+
+// sdkHTTP is the client the AWS SDK's config loader calls through: the
+// adapter's own transport (netguard's dialer, proxy, TLS settings) in a
+// client the loader can add a custom CA bundle to (AWS_CA_BUNDLE or the
+// shared config's ca_bundle). Given a plain *http.Client, the loader fails
+// whenever a bundle is set.
+func sdkHTTP(c *http.Client) config.HTTPClient {
+	tr, ok := c.Transport.(*http.Transport)
+	if c.Transport != nil && !ok {
+		return c
+	}
+	b := awshttp.NewBuildableClient().WithTimeout(c.Timeout)
+	if tr == nil {
+		return b
+	}
+	return b.WithTransportOptions(func(t *http.Transport) {
+		t.Proxy, t.DialContext, t.DialTLSContext = tr.Proxy, tr.DialContext, tr.DialTLSContext
+		if tr.TLSClientConfig != nil {
+			t.TLSClientConfig = tr.TLSClientConfig.Clone()
+		}
+	})
 }
 
 // Adapter implements providers.Provider.
@@ -264,6 +303,8 @@ func (p *Provider) sendOne(ctx context.Context, m providers.Message, x providers
 	if cs := p.configurationSet(m.Stream); cs != "" {
 		in.ConfigurationSetName = aws.String(cs)
 	}
+	// The workspace's tenant: its own suppression list and reputation.
+	in.TenantName = p.tenant()
 	out, err := p.client.SendEmail(ctx, in)
 	if err != nil {
 		ce := callError("SendEmail", err)
@@ -380,10 +421,29 @@ func (p *Provider) Quota(ctx context.Context) (providers.Quota, error) {
 	return q, nil
 }
 
-// ListSuppressions implements providers.SuppressionSyncer (account list).
+// SuppressionScope implements providers.SuppressionScoper: the tenant's own
+// list when the workspace has a tenant; otherwise the account-level list,
+// which ReputeCast only reads, because every app on the AWS account shares it.
+func (p *Provider) SuppressionScope() providers.SuppressionScope {
+	if p.s.Tenant != "" {
+		return providers.SuppressionScope{Scope: providers.SuppressionScopeTenant, Writable: true}
+	}
+	return providers.SuppressionScope{Scope: providers.SuppressionScopeAccount}
+}
+
+// tenant names the tenant for suppression calls, nil for the account list.
+func (p *Provider) tenant() *string {
+	if p.s.Tenant == "" {
+		return nil
+	}
+	return aws.String(p.s.Tenant)
+}
+
+// ListSuppressions implements providers.SuppressionSyncer: the tenant's list,
+// or the account-level list without a tenant.
 func (p *Provider) ListSuppressions(ctx context.Context, since time.Time) ([]providers.Suppression, error) {
 	out := []providers.Suppression{}
-	in := &sesv2.ListSuppressedDestinationsInput{PageSize: aws.Int32(1000)}
+	in := &sesv2.ListSuppressedDestinationsInput{PageSize: aws.Int32(1000), TenantName: p.tenant()}
 	if !since.IsZero() {
 		in.StartDate = aws.Time(since)
 	}
@@ -410,12 +470,29 @@ func (p *Provider) ListSuppressions(ctx context.Context, since time.Time) ([]pro
 	}
 }
 
-// AddSuppressions implements providers.SuppressionSyncer. SES only knows
-// BOUNCE and COMPLAINT reasons; addresses pushed from the shared list use
-// BOUNCE so SES never delivers to them.
+// AddSuppressions implements providers.SuppressionSyncer as hard bounces.
+// It never writes the account-level list: without a tenant it does nothing
+// and says so (providers.ErrNotSupported).
 func (p *Provider) AddSuppressions(ctx context.Context, emails []string) error {
+	list := make([]providers.Suppression, 0, len(emails))
 	for _, e := range emails {
-		_, err := p.client.PutSuppressedDestination(ctx, &sesv2.PutSuppressedDestinationInput{EmailAddress: aws.String(e), Reason: types.SuppressionListReasonBounce})
+		list = append(list, providers.Suppression{Email: e, Reason: "hard_bounce"})
+	}
+	return p.AddSuppressionsWithReason(ctx, list)
+}
+
+// AddSuppressionsWithReason implements providers.SuppressionReasonAdder: the
+// tenant's list, a complaint as COMPLAINT and a hard bounce as BOUNCE.
+func (p *Provider) AddSuppressionsWithReason(ctx context.Context, list []providers.Suppression) error {
+	if p.s.Tenant == "" {
+		return providers.ErrNotSupported
+	}
+	for _, s := range list {
+		reason := types.SuppressionListReasonBounce
+		if s.Reason == "complaint" {
+			reason = types.SuppressionListReasonComplaint
+		}
+		_, err := p.client.PutSuppressedDestination(ctx, &sesv2.PutSuppressedDestinationInput{EmailAddress: aws.String(s.Email), Reason: reason, TenantName: p.tenant()})
 		if err != nil {
 			ce := callError("PutSuppressedDestination", err)
 			if ce.Code == "BadRequestException" {
@@ -427,8 +504,27 @@ func (p *Provider) AddSuppressions(ctx context.Context, emails []string) error {
 	return nil
 }
 
+// RemoveSuppressions implements providers.SuppressionRemover on the
+// tenant's list only.
+func (p *Provider) RemoveSuppressions(ctx context.Context, emails []string) error {
+	if p.s.Tenant == "" {
+		return providers.ErrNotSupported
+	}
+	for _, e := range emails {
+		_, err := p.client.DeleteSuppressedDestination(ctx, &sesv2.DeleteSuppressedDestinationInput{EmailAddress: aws.String(e), TenantName: p.tenant()})
+		if err != nil {
+			ce := callError("DeleteSuppressedDestination", err)
+			if ce.Code == "NotFoundException" || ce.Code == "BadRequestException" {
+				continue // not on the list (any more)
+			}
+			return ce
+		}
+	}
+	return nil
+}
+
 // AddDomain implements providers.DomainManager: Easy DKIM and a custom MAIL
-// FROM domain (bounce.<domain>).
+// FROM domain (bounce.<domain>), associated with the workspace's tenant.
 func (p *Provider) AddDomain(ctx context.Context, domain string) ([]providers.DNSRecord, error) {
 	_, err := p.client.CreateEmailIdentity(ctx, &sesv2.CreateEmailIdentityInput{EmailIdentity: aws.String(domain), ConfigurationSetName: optional(p.s.ConfigurationSet)})
 	if err != nil {
@@ -436,6 +532,9 @@ func (p *Provider) AddDomain(ctx context.Context, domain string) ([]providers.DN
 		if !errors.As(err, &ae) || ae.ErrorCode() != "AlreadyExistsException" {
 			return nil, callError("CreateEmailIdentity", err)
 		}
+	}
+	if err := p.associate(ctx, p.resourceARN("identity", domain)); err != nil {
+		return nil, err
 	}
 	_, err = p.client.PutEmailIdentityMailFromAttributes(ctx, &sesv2.PutEmailIdentityMailFromAttributesInput{
 		EmailIdentity: aws.String(domain), MailFromDomain: aws.String("bounce." + domain), BehaviorOnMxFailure: types.BehaviorOnMxFailureUseDefaultValue,

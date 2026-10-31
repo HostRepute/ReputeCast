@@ -8,7 +8,11 @@ import { KV } from './AssetCards'
 import { m } from './messages'
 import { barColor, toneOf } from './words'
 
-function RateRow({ r }: { r: Schemas['DeliverabilityRateLimit'] }) {
+/**
+ * A rate against the provider's thresholds. While there's too little mail to
+ * judge it (judged=false), it shows without the bar that would compare it.
+ */
+function RateRow({ r, judged = true }: { r: Schemas['DeliverabilityRateLimit']; judged?: boolean }) {
   const t = useT()
   const label = r.thresholds ? `${r.label} · ${r.thresholds}` : r.label
   return (
@@ -16,7 +20,7 @@ function RateRow({ r }: { r: Schemas['DeliverabilityRateLimit'] }) {
       <KV label={label} labelClass="k">
         {trimPct(r.value)}
       </KV>
-      <Bar value={r.usage} color={barColor[r.tone] ?? barColor.ok} label={t(m.rateBarLabel, { label, value: trimPct(r.value) })} />
+      {judged ? <Bar value={r.usage} color={barColor[r.tone] ?? barColor.ok} label={t(m.rateBarLabel, { label, value: trimPct(r.value) })} /> : null}
     </div>
   )
 }
@@ -42,8 +46,10 @@ export function ProviderHealthCard({ providers, connected }: { providers: Schema
                 {p.badge}
               </Badge>
             </div>
-            <RateRow r={p.bounce} />
-            <RateRow r={p.complaint} />
+            <RateRow r={p.bounce} judged={!p.notJudged} />
+            <RateRow r={p.complaint} judged={!p.notJudged} />
+            {/* The server's sentence: the same minimum volume as Send Readiness. */}
+            {p.notJudged ? <span className="k">{p.notJudged}</span> : null}
             {connected && p.note ? (
               <KV label={p.note.label} labelClass="k" valueClass="font-normal [font-variant-numeric:normal]">
                 {p.note.value}

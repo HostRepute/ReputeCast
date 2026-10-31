@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -23,6 +22,12 @@ import (
 type liveInput struct {
 	api.WorkspaceInput
 	CampaignID string `path:"campaignId" format:"uuid" doc:"Campaign id"`
+}
+
+// LiveHeartbeat is the stream's sign of life while nothing changes (review
+// GS-14: stale data detection).
+type LiveHeartbeat struct {
+	At time.Time `json:"at"`
 }
 
 type liveStreamInput struct {
@@ -50,6 +55,38 @@ type LiveResumeRequest struct {
 	// WithChanges applies the incident's recommended changes (exclude the
 	// group, lower the rate, hand the excluded contacts to the flow).
 	WithChanges bool `json:"withChanges,omitempty"`
+	// Limit raises the limit of the metric that tripped, for this send
+	// only, in percent ("Resume with the threshold raised to 0.20%").
+	Limit *float64 `json:"limit,omitempty" minimum:"0.01" maximum:"100"`
+	// Rate slows the resumed mailbox provider or route down for the rest
+	// of the send, in messages per second ("Resume at 2 /s").
+	Rate *float64 `json:"rate,omitempty" minimum:"0.1" maximum:"10000"`
+}
+
+// LiveAcknowledgeRequest marks an alert as read (complaints after the send).
+type LiveAcknowledgeRequest struct {
+	IncidentID string `json:"incidentId" format:"uuid"`
+}
+
+// LiveRatesRequest changes a running or waiting send's rates per mailbox
+// provider for the rest of the send, on every route (review GS-13).
+type LiveRatesRequest struct {
+	// Rates in messages per second by mailbox provider (gmail, outlook,
+	// yahoo, icloud, other); 0 is the sending providers' full rate. A
+	// mailbox provider left out keeps its rate.
+	Rates map[string]float64 `json:"rates" minProperties:"1" maxProperties:"5"`
+}
+
+// LiveThresholdsRequest changes a running or waiting send's auto-pause
+// thresholds, in percent; a field left out keeps its value.
+type LiveThresholdsRequest struct {
+	Bounce           *float64 `json:"bounce,omitempty" minimum:"0.1" maximum:"20"`
+	Complaint        *float64 `json:"complaint,omitempty" minimum:"0.01" maximum:"5"`
+	MailboxComplaint *float64 `json:"mailboxComplaint,omitempty" minimum:"0.01" maximum:"5"`
+	Deferral         *float64 `json:"deferral,omitempty" minimum:"1" maximum:"100"`
+	APIErrors        *float64 `json:"apiErrors,omitempty" minimum:"1" maximum:"100"`
+	// Scope: pause only the affected route or mailbox provider, or the whole campaign.
+	Scope string `json:"scope,omitempty" enum:"route,campaign"`
 }
 
 // LiveCancelRequest cancels the whole send, or one share of it.
@@ -74,12 +111,21 @@ type LiveWinnerRequest struct {
 	Variant string `json:"variant" enum:"A,B,C"`
 }
 
+// LiveInDoubtRequest decides on the messages in doubt: send them again or
+// leave them out, all of them or one sending provider's.
+type LiveInDoubtRequest struct {
+	Action     string `json:"action" enum:"resend,leave_out"`
+	ProviderID string `json:"providerId,omitempty" format:"uuid"`
+}
+
 // LiveActionResult is what an action changed, with the new snapshot.
 type LiveActionResult struct {
-	Moved     int64        `json:"moved"`
-	Cancelled int64        `json:"cancelled"`
-	Excluded  int64        `json:"excluded"`
-	Snapshot  LiveSnapshot `json:"snapshot"`
+	Moved     int64 `json:"moved"`
+	Cancelled int64 `json:"cancelled"`
+	Excluded  int64 `json:"excluded"`
+	// Decided is how many messages in doubt were sent again or left out.
+	Decided  int64        `json:"decided"`
+	Snapshot LiveSnapshot `json:"snapshot"`
 }
 
 // body is an action's input: the campaign's path and a JSON body. Huma reads
@@ -93,6 +139,7 @@ type body[T any] struct {
 
 // Register adds the live monitor's operations.
 func Register(h huma.API, e *Engine) {
+	RegisterTraffic(h, e)
 	tags := []string{"Live sending"}
 	base := "/workspaces/{workspace}/campaigns/{campaignId}/live"
 	api.Get(h, api.Op{ID: "get-live-send", Path: base, Summary: "The live monitor's snapshot of a send", Tags: tags, Access: api.Workspace(authz.CampaignsView)},
@@ -106,17 +153,18 @@ func Register(h huma.API, e *Engine) {
 			if err != nil {
 				return nil, mapErr(ctx, err)
 			}
-			s.Helpers = &LiveHelpers{Pause: access.Helpers(ctx, e.Q, ws.ID, authz.CampaignsPause), Send: access.Helpers(ctx, e.Q, ws.ID, authz.CampaignsSend)}
+			s.Helpers = &LiveHelpers{Pause: access.Helpers(ctx, e.Q, ws.ID, authz.CampaignsPause), Send: access.Helpers(ctx, e.Q, ws.ID, authz.CampaignsSend),
+				Approve: access.Helpers(ctx, e.Q, ws.ID, authz.CampaignsApprove)}
 			return api.OK(s.In(i18n.LangFrom(ctx))), nil
 		})
 	sse.Register(h, huma.Operation{
 		OperationID: "stream-live-send", Method: http.MethodGet, Path: api.Version + base + "/stream",
-		Summary:     "Server-sent events of a send: a snapshot event at once and on every change, heartbeats as comments",
-		Description: "Each `snapshot` event carries the whole live state; its id is the snapshot version, so a reconnecting EventSource resumes with Last-Event-ID.",
+		Summary:     "Server-sent events of a send: a snapshot event at once and on every change, a heartbeat event every 15 s",
+		Description: "Each `snapshot` event carries the whole live state; its id is the snapshot version, so a reconnecting EventSource resumes with Last-Event-ID. A `heartbeat` event every 15 s says the connection is alive while nothing changes: a monitor that hears nothing for longer treats its data as stale.",
 		Tags:        tags, Security: []map[string][]string{{"session": {}}, {"bearer": {}}},
 		Metadata:   map[string]any{"reputecast.access": api.Workspace(authz.CampaignsView)},
 		Extensions: map[string]any{"x-access": string(api.AccessWorkspace), "x-permission": string(authz.CampaignsView)},
-	}, map[string]any{"snapshot": LiveSnapshot{}}, func(ctx context.Context, in *liveStreamInput, send sse.Sender) {
+	}, map[string]any{"snapshot": LiveSnapshot{}, "heartbeat": LiveHeartbeat{}}, func(ctx context.Context, in *liveStreamInput, send sse.Sender) {
 		id, err := uuid.Parse(in.CampaignID)
 		if err != nil {
 			return
@@ -137,7 +185,11 @@ func Register(h huma.API, e *Engine) {
 		updates, cancel := e.Subscribe(ctx, ws.ID, id)
 		defer cancel()
 		resumed := in.LastEventID != "" || in.LastEventIDQuery != ""
-		heartbeat := time.NewTicker(15 * time.Second)
+		every := e.StreamHeartbeat
+		if every <= 0 {
+			every = 15 * time.Second
+		}
+		heartbeat := time.NewTicker(every)
 		defer heartbeat.Stop()
 		_ = send(sse.Message{Retry: 3000, Comment: "connected"})
 		for {
@@ -152,7 +204,7 @@ func Register(h huma.API, e *Engine) {
 					return
 				}
 			case <-heartbeat.C:
-				if err := send.Comment("heartbeat " + strconv.FormatInt(time.Now().Unix(), 10)); err != nil {
+				if err := send(sse.Message{Data: LiveHeartbeat{At: time.Now().UTC()}}); err != nil {
 					return
 				}
 			}
@@ -177,7 +229,10 @@ func Register(h huma.API, e *Engine) {
 			if err != nil {
 				return nil, err
 			}
-			req := ResumeRequest{Mailbox: in.Body.Mailbox, WithChanges: in.Body.WithChanges}
+			req := ResumeRequest{Mailbox: in.Body.Mailbox, WithChanges: in.Body.WithChanges, Limit: in.Body.Limit}
+			if in.Body.Rate != nil && !in.Body.WithChanges {
+				req.Changes = &ResumeChanges{Mailbox: in.Body.Mailbox, Rate: *in.Body.Rate}
+			}
 			if in.Body.ProviderID != "" {
 				pid, err := uuid.Parse(in.Body.ProviderID)
 				if err != nil {
@@ -190,6 +245,52 @@ func Register(h huma.API, e *Engine) {
 				return nil, mapErr(ctx, err)
 			}
 			return e.result(ctx, id, LiveActionResult{Excluded: res.Excluded})
+		})
+	api.Put(h, api.Op{ID: "set-live-thresholds", Path: base + "/thresholds", Summary: "Change a running or waiting send's auto-pause thresholds", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
+		func(ctx context.Context, in *body[LiveThresholdsRequest]) (*api.Body[LiveActionResult], error) {
+			ctx = ownAPI(ctx)
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
+			if err != nil {
+				return nil, err
+			}
+			if err := e.SetThresholds(ctx, id, by, ThresholdChange(in.Body)); err != nil {
+				return nil, mapErr(ctx, err)
+			}
+			return e.result(ctx, id, LiveActionResult{})
+		})
+	api.Put(h, api.Op{ID: "set-live-rates", Path: base + "/rates", Summary: "Change a running or waiting send's rates per mailbox provider", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
+		func(ctx context.Context, in *body[LiveRatesRequest]) (*api.Body[LiveActionResult], error) {
+			ctx = ownAPI(ctx)
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
+			if err != nil {
+				return nil, err
+			}
+			for _, k := range sortedKeys(in.Body.Rates) {
+				if key, args := rateProblem(k, in.Body.Rates[k]); key != "" {
+					return nil, api.Invalid("body.rates."+k, say(ctx, key, args))
+				}
+			}
+			if err := e.SetRates(ctx, id, by, in.Body.Rates); err != nil {
+				return nil, mapErr(ctx, err)
+			}
+			return e.result(ctx, id, LiveActionResult{})
+		})
+	registerCanary(h, e, base, tags)
+	api.Post(h, api.Op{ID: "acknowledge-live-alert", Path: base + "/acknowledge", Summary: "Mark an alert of a send as read (complaints after the send)", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
+		func(ctx context.Context, in *body[LiveAcknowledgeRequest]) (*api.Body[LiveActionResult], error) {
+			ctx = ownAPI(ctx)
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
+			if err != nil {
+				return nil, err
+			}
+			iid, err := uuid.Parse(in.Body.IncidentID)
+			if err != nil {
+				return nil, api.Invalid("body.incidentId", say(ctx, "problem.incidentId", nil))
+			}
+			if err := e.Acknowledge(ctx, id, by, iid); err != nil {
+				return nil, mapErr(ctx, err)
+			}
+			return e.result(ctx, id, LiveActionResult{})
 		})
 	api.Post(h, api.Op{ID: "cancel-live-send", Path: base + "/cancel", Summary: "Cancel a send, or one mailbox provider's or sending provider's share", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
 		func(ctx context.Context, in *body[LiveCancelRequest]) (*api.Body[LiveActionResult], error) {
@@ -245,6 +346,27 @@ func Register(h huma.API, e *Engine) {
 				return nil, mapErr(ctx, err)
 			}
 			return e.result(ctx, id, LiveActionResult{})
+		})
+	api.Post(h, api.Op{ID: "resolve-live-in-doubt", Path: base + "/in-doubt", Summary: "Send the messages in doubt again, or leave them out", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
+		func(ctx context.Context, in *body[LiveInDoubtRequest]) (*api.Body[LiveActionResult], error) {
+			ctx = ownAPI(ctx)
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
+			if err != nil {
+				return nil, err
+			}
+			var pid *uuid.UUID
+			if in.Body.ProviderID != "" {
+				p, err := uuid.Parse(in.Body.ProviderID)
+				if err != nil {
+					return nil, api.Invalid("body.providerId", say(ctx, "problem.providerId", nil))
+				}
+				pid = &p
+			}
+			n, err := e.ResolveInDoubt(ctx, id, by, in.Body.Action == "resend", pid)
+			if err != nil {
+				return nil, mapErr(ctx, err)
+			}
+			return e.result(ctx, id, LiveActionResult{Decided: n})
 		})
 	api.Post(h, api.Op{ID: "pick-live-ab-winner", Path: base + "/ab-winner", Summary: "End the A/B test with a chosen winner", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
 		func(ctx context.Context, in *body[LiveWinnerRequest]) (*api.Body[LiveActionResult], error) {

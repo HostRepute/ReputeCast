@@ -13,7 +13,7 @@ export default translate(m, {
   documentTitle: 'Người gửi · Cài đặt',
   ossBadge: 'Phiên bản mã nguồn mở · có đủ mọi tính năng',
   loadFailed: 'Không tải được danh sách người gửi',
-  readOnlyText: 'Bạn có thể xem người gửi, tên miền và bản ghi của chúng. Để thay đổi, bạn cần quyền {perm}.',
+  readOnlyText: 'Bạn có thể xem người gửi, tên miền và bản ghi của chúng. Vai trò của bạn không thể thay đổi chúng.',
 
   identitiesTitle: 'Danh tính người gửi',
   identitiesLine: 'Việc xác minh tính theo từng nhà cung cấp gửi thư: mỗi nhà cung cấp ký bằng khóa DKIM riêng.',

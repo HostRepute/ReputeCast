@@ -8,10 +8,10 @@ export const ms = defineMessages('earn.settings', {
   tabAccess: 'Access',
   tabAttribution: 'Attribution',
   tabPages: 'Pages',
-  needsPaymentsManage: 'Needs payments:manage.',
+  needsPaymentsManage: 'Your role can’t manage payment providers.',
   readOnlyTitle: 'Read-only · {name}, {role}',
-  readOnly: 'Payment settings need {payments}; member emails need {publish} to publish. Ask {helpers}.',
-  readOnlyNoHelpers: 'Payment settings need {payments}; member emails need {publish} to publish.',
+  readOnly: 'Your role can’t change payment settings. Publishing member emails needs someone who can publish transactional templates. Ask {helpers}.',
+  readOnlyNoHelpers: 'Your role can’t change payment settings. Publishing member emails needs someone who can publish transactional templates.',
   // The connection card.
   connected: 'Connected',
   setupInProgress: 'Setup in progress',

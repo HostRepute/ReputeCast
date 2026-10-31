@@ -127,12 +127,12 @@ export const s = defineMessages('digestSettings', {
 
   modeTitle: 'Sending mode',
   autoHint: 'Each issue goes out at its time once its checks and approvals pass.',
-  autoNeeds: 'Needs campaigns:send to turn on.',
+  autoNeeds: 'Only people who can send campaigns can turn it on.',
   draftHint: 'Each issue becomes a draft campaign. Someone sends it through Review & send.',
-  draftNeeds: 'Needs campaigns:edit. Nothing goes out by itself.',
-  draftOnly: 'Sending automatically needs campaigns:send. Ask {helpers}. You can turn it on in draft mode: each issue becomes a draft you send through Review & send.',
-  ownerSince: 'Owner since {date}. Issues send under their authority; if they lose campaigns:send, the digest pauses.',
-  ownerNow: 'Owner. Issues send under their authority; if they lose campaigns:send, the digest pauses.',
+  draftNeeds: 'Only people who can edit campaigns can turn it on. Nothing goes out by itself.',
+  draftOnly: "Your role can't turn on automatic sending. Ask {helpers}. You can turn it on in draft mode: each issue becomes a draft you send through Review & send.",
+  ownerSince: 'Owner since {date}. Issues send under their authority; if they can no longer send campaigns, the digest pauses.',
+  ownerNow: 'Owner. Issues send under their authority; if they can no longer send campaigns, the digest pauses.',
   noOwner: 'Whoever turns it on becomes its owner: issues send under their authority.',
 
   previewTitle: 'Feed preview',

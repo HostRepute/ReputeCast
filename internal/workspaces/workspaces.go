@@ -9,11 +9,13 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/sending/rules"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -141,6 +143,11 @@ func Create(ctx context.Context, tx pgx.Tx, p CreateParams) (store.Workspace, er
 		if _, err := tx.Exec(ctx, `INSERT INTO stream_policies (workspace_id, stream, failover) VALUES ($1, $2, $3)`, ws.ID, stream, failover); err != nil {
 			return store.Workspace{}, err
 		}
+	}
+	// The response rules for the replies mailbox providers are known for
+	// (Traffic rules, review GS-12): every workspace starts with them.
+	if err := rules.AddDefaultReplyRules(ctx, q, ws.ID, time.Now()); err != nil {
+		return store.Workspace{}, err
 	}
 	return q.GetWorkspace(ctx, ws.ID)
 }

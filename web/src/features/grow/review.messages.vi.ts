@@ -109,8 +109,8 @@ export default translate(mv, {
   emptyText: 'Lượt giới thiệu đáng ngờ chờ ở đây thay vì được tính. Bạn sẽ nhận thông báo khi có lượt mới.',
   emptyFiltered: 'Không có lượt giới thiệu bị tạm giữ nào khớp với các bộ lọc này.',
   clearFilters: 'Xóa bộ lọc',
-  readOnly: 'Để quyết định, bạn cần quyền <mono>grow:review</mono>. Hãy hỏi {helpers}.',
-  readOnlyNoHelpers: 'Để quyết định, bạn cần quyền <mono>grow:review</mono>.',
+  readOnly: 'Vai trò của bạn không thể quyết định về lượt giới thiệu bị tạm giữ. Hãy hỏi {helpers}.',
+  readOnlyNoHelpers: 'Vai trò của bạn không thể quyết định về lượt giới thiệu bị tạm giữ.',
   loadError: 'Không tải được hàng chờ duyệt',
   loadingLabel: 'Đang tải hàng chờ duyệt',
 })

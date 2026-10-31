@@ -109,24 +109,22 @@ func (s *Service) access(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	a := TransactionalTemplateAccess{CanEdit: p.Can(authz.TransactionalEdit), CanPublish: p.Can(authz.TransactionalPublish),
 		CanSendTestToOthers: p.Can(authz.TransactionalSend), CanViewContent: p.Can(authz.TransactionalContent), PublishHelpers: []string{}}
 	if !a.CanEdit {
-		edit := i18n.Args{"permission": string(authz.TransactionalEdit)}
 		if helpers := s.helpers(ctx, ws.ID, authz.TransactionalEdit, 3); len(helpers) > 0 {
-			edit["names"] = askNames(ctx, helpers)
-			a.EditReason = say(ctx, "denied.editorAsk", edit)
+			a.EditReason = say(ctx, "denied.editorAsk", i18n.Args{"names": askNames(ctx, helpers)})
 		} else {
-			a.EditReason = say(ctx, "denied.editor", edit)
+			a.EditReason = say(ctx, "denied.editor", nil)
 		}
 	}
 	if !a.CanPublish {
 		a.PublishHelpers = s.helpers(ctx, ws.ID, authz.TransactionalPublish, 3)
-		publish := i18n.Args{"permission": string(authz.TransactionalPublish), "names": askNames(ctx, a.PublishHelpers)}
+		publish := i18n.Args{"names": askNames(ctx, a.PublishHelpers)}
 		switch {
 		case a.CanEdit && len(a.PublishHelpers) > 0:
 			a.PublishReason = say(ctx, "denied.publishSavedAsk", publish)
 		case a.CanEdit:
-			a.PublishReason = say(ctx, "denied.publishSaved", publish)
+			a.PublishReason = say(ctx, "denied.publishSaved", nil)
 		default:
-			a.PublishReason = deniedMessage(ctx, "publish", authz.TransactionalPublish, a.PublishHelpers)
+			a.PublishReason = deniedMessage(ctx, "publish", a.PublishHelpers)
 		}
 	}
 	return a

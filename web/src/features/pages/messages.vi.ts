@@ -101,8 +101,8 @@ export default translate(m, {
   // Read-only
   readOnlyTitle: 'Chỉ xem · {name}, {role}',
   readOnlyRole: 'Chỉ xem · {role}',
-  readOnly: 'Bạn mở được mọi trang và xem số liệu của chúng. Chỉnh sửa cần quyền <code>website:edit</code> và xuất bản cần quyền <code>website:publish</code>. Hãy hỏi {helpers}.',
-  readOnlyNobody: 'Bạn mở được mọi trang và xem số liệu của chúng. Chỉnh sửa cần quyền <code>website:edit</code> và xuất bản cần quyền <code>website:publish</code>.',
+  readOnly: 'Bạn mở được mọi trang và xem số liệu của chúng. Vai trò của bạn không thể sửa hay xuất bản trang. Hãy hỏi {helpers}.',
+  readOnlyNobody: 'Bạn mở được mọi trang và xem số liệu của chúng. Vai trò của bạn không thể sửa hay xuất bản trang.',
 
   // Empty, loading and error
   emptyTitle: 'Chưa có trang nào. Hãy bắt đầu với Giới thiệu hoặc một mẫu.',

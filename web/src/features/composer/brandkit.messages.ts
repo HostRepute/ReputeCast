@@ -1,0 +1,32 @@
+import { defineMessages } from '@/i18n'
+
+/** The brand kit in the composer (CO-11): the gallery banner, synced blocks and their notice. */
+export const mbk = defineMessages('composer.brandkit', {
+  banner: '<b>Start from your brand kit</b> Logo, colours and fonts from your website, applied to every template and new block.',
+  setUp: 'Set up brand kit',
+  defaultColours: 'Shown in default colours until you set up the brand kit',
+  synced: 'Synced',
+  syncedHeader: 'Header + logo',
+  syncedFooter: 'Footer + unsubscribe',
+  syncedHeaderNotice: 'Synced Header.',
+  syncedFooterNotice: 'Synced Footer.',
+  syncedNoticeBody: 'It changes in the brand kit, and every draft and scheduled email holding it follows.',
+  editInBrandKit: 'Edit in Brand kit',
+  syncedBlock: 'Synced block',
+  syncedNamedNotice: 'Synced block “{name}”.',
+  syncedGone: 'This synced block was deleted from the brand kit.',
+  syncedGoneBody: 'Nothing changes it any more. Unlink it to edit it in this email.',
+  unlink: 'Unlink',
+  unlinked: 'Unlinked from the synced block',
+  unlinkedDetail: 'The section is part of this email only now: edit it here. Undo puts the link back.',
+  saveSyncedTitle: 'Synced block',
+  saveSyncedLead: 'Reuse this section in other emails. Edit it once in the brand kit and every draft holding it follows.',
+  saveSynced: 'Save as synced block…',
+  saveSyncedDialog: 'Save as synced block',
+  saveSyncedDialogLead: 'The section goes to the brand kit, and this email holds the synced block in its place. Insert it in other emails from Blocks › Your blocks.',
+  syncedName: 'Name',
+  saveSyncedConfirm: 'Save synced block',
+  saveSyncedFailed: "Couldn't save the synced block: {error}",
+  savedSynced: '“{name}” saved as a synced block',
+  savedSyncedDetail: 'Insert it from Blocks › Your blocks. Edit it in the brand kit: every draft holding it follows.',
+})

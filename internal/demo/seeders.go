@@ -61,6 +61,9 @@ var (
 	// agency accounts: Acme stays without agency mode; the agency sample is
 	// Northwind Studio, loaded on its own by SeedNorthwind (seed_agency.go)
 	seedAgency = noop
+	// the brand kit: Acme's logos, colours, fonts and buttons, and the synced
+	// Header and Footer Weekly Digest #142 holds (seed_brandkit.go)
+	seedBrandKit = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }

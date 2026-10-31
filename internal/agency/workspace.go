@@ -183,7 +183,7 @@ func (s *Service) Gallery(ctx context.Context, ws *store.Workspace, kind string)
 	perm := editPermission(kinds[0])
 	out.CanUse = p.Can(perm)
 	if !out.CanUse {
-		out.Reason = mCopyNeedsHere.Text(l, i18n.Args{"permission": string(perm)})
+		out.Reason = mCopyNeedsHere.Text(l, i18n.Args{"kind": kinds[0]})
 	}
 	out.Role = api.RoleName(l, p.RoleKey, p.RoleName)
 	copies, err := s.Q.AgencyCopiesOfWorkspace(ctx, ws.ID)

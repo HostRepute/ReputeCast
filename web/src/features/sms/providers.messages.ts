@@ -93,7 +93,7 @@ export const m = defineMessages('smsProviders', {
   spent: 'Spent {amount}',
   alertAt: 'Alert at {alert}%',
   raiseBudget: 'Raise the budget',
-  needsManage: 'Needs providers:manage · {names}',
+  needsManage: 'Your role can’t raise the budget. {names, select, none {} other {Ask {names}.}}',
   // Senders.
   sendersTitle: 'Senders · {count}',
   sendersLead: 'Numbers and sender IDs, and the carriers’ approval each one needs before it can send.',
@@ -140,7 +140,7 @@ export const m = defineMessages('smsProviders', {
   seeTerms: 'See the terms page you’ll get',
   readOnlyTitle: '{name} · {role}',
   readOnlyText:
-    'You can see providers, senders, costs and reports. Credentials are never shown, and changes need providers:manage. {helpers, select, none {} other {Ask {helpers}.}}',
+    'You can see providers, senders, costs and reports. Credentials are never shown, and your role can’t make changes. {helpers, select, none {} other {Ask {helpers}.}}',
   errorTitle: 'Couldn’t load your SMS providers',
   errorText: 'Sending isn’t affected: texts keep going out and receipts are stored as they arrive.',
   retry: 'Retry',

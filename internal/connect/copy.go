@@ -251,7 +251,11 @@ func chips(l i18n.Lang, d providers.Descriptor, c adapterCopy) []ConnectChip {
 	case "Registered":
 		add("webhooks", "yes", mChipWebhooks, nil)
 	default:
-		add("webhooks", "yes", mChipWebhooksVia, i18n.Args{"via": caps.Webhooks})
+		if caps.EventQueue != "" {
+			add("webhooks", "yes", mChipWebhooksOrQueue, i18n.Args{"via": caps.Webhooks, "queue": caps.EventQueue})
+		} else {
+			add("webhooks", "yes", mChipWebhooksVia, i18n.Args{"via": caps.Webhooks})
+		}
 	}
 	switch caps.DomainAPI {
 	case "full":
@@ -306,6 +310,9 @@ func chips(l i18n.Lang, d providers.Descriptor, c adapterCopy) []ConnectChip {
 		add("quota", "yes", mChipQuotaDiscovery, nil)
 	} else {
 		add("quota", "partial", mChipQuotaManual, nil)
+	}
+	if caps.Tenants {
+		add("tenant", "yes", mChipTenant, nil)
 	}
 	return out
 }

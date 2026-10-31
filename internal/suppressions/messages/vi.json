@@ -1,4 +1,8 @@
 {
+  "scope.tenant": "danh sách của tenant · {tenant}",
+  "scope.accountReadOnly": "danh sách cấp tài khoản · chỉ đọc",
+  "scope.domain": "theo từng tên miền gửi",
+  "detail.accountReadOnly": "Mọi ứng dụng trên tài khoản AWS này dùng chung danh sách cấp tài khoản của {provider}, nên ReputeCast chỉ đọc danh sách đó. Hãy thiết lập một tenant cho không gian làm việc này để đồng bộ hai chiều.",
   "scope.account": "danh sách cấp tài khoản",
   "scope.stream": "theo từng luồng",
   "scope.enforced": "áp dụng trước khi gửi",

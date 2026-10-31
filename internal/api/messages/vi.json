@@ -22,7 +22,7 @@
   "problem.integrationsOff": "Khóa API này thuộc về một tích hợp, nhưng máy chủ này không hỗ trợ tích hợp.",
   "problem.integrationKeyRevoked": "Khóa này đã bị thu hồi. Hãy kết nối lại {integration} trong Cài đặt › Tích hợp để nhận khóa mới.",
   "problem.integrationKeyExpired": "Khóa này đã hết hạn ngày {date, date}. Hãy kết nối lại {integration} trong Cài đặt › Tích hợp để nhận khóa mới.",
-  "problem.ownerLeft": "Thành viên sở hữu khóa này đã rời không gian làm việc nên khóa đã mất mọi quyền. Người có quyền integrations:manage có thể tiếp quản khóa trong Cài đặt › Tích hợp › {integration}; khóa vẫn giữ nguyên.",
+  "problem.ownerLeft": "Thành viên sở hữu khóa này đã rời không gian làm việc nên khóa đã mất mọi quyền. Người có quyền quản lý tích hợp có thể tiếp quản khóa trong Cài đặt › Tích hợp › {integration}; khóa vẫn giữ nguyên.",
 
   "notFound.apiKey": "Không tìm thấy khóa API.",
   "notFound.mcpAgent": "Không tìm thấy tác tử MCP.",
@@ -96,6 +96,7 @@
   "notFound.pushSubscription": "Không tìm thấy lượt đăng ký thông báo đẩy.",
   "notFound.question": "Không tìm thấy câu hỏi.",
   "notFound.readinessRun": "Không tìm thấy lần kiểm tra độ sẵn sàng gửi.",
+  "notFound.fixes": "Không tìm thấy các bản sửa.",
   "notFound.recommendation": "Không tìm thấy đề xuất.",
   "notFound.recommendationsPage": "Không tìm thấy trang đề xuất.",
   "notFound.referralLink": "Không tìm thấy liên kết giới thiệu.",

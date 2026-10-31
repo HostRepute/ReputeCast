@@ -36,7 +36,10 @@ type Connection struct {
 	Error   *StepError `json:"error,omitempty"`
 
 	// Amazon SES
-	Access           string            `json:"access,omitempty"` // role, keys
+	Access string `json:"access,omitempty"` // role, keys
+	// Events is how SES events come back: "webhook" (SNS calls the public
+	// URL) or "queue" (an SQS queue ReputeCast polls, PR-4).
+	Events           string            `json:"events,omitempty"`
 	ExternalID       string            `json:"external_id,omitempty"`
 	RoleARN          string            `json:"role_arn,omitempty"`
 	Region           string            `json:"region,omitempty"`
@@ -85,17 +88,23 @@ type ProvisionState struct {
 	// Label is what the step does; Text what was done (`backticks` = code).
 	Label  string     `json:"label"`
 	Text   string     `json:"text,omitempty"`
-	Status string     `json:"status"` // waiting, running, done, failed
+	Status string     `json:"status"` // waiting, running, done, failed, deferred (the event check waits for a verified domain)
 	At     *time.Time `json:"at,omitempty"`
 	// Error is the provider's error ("AccessDenied: ses:CreateConfigurationSet"),
 	// Hint the likely cause.
 	Error string `json:"error,omitempty"`
 	Hint  string `json:"hint,omitempty"`
-	// Attempts counts runs of a step that waits (SNS confirmation).
+	// Attempts counts runs of a step that waits (SNS confirmation, the
+	// event check).
 	Attempts int `json:"attempts,omitempty"`
-	// Texts are the messages of Label, Text, Error and Hint, by those names
-	// in lower case; "reason" is the message of an Error that is a code and
-	// a reason ("ECONNREFUSED: localhost only works on this machine").
+	// Note qualifies what was done, under it ("the SES mailbox simulator;
+	// it doesn't affect your bounce or complaint rates").
+	Note string `json:"note,omitempty"`
+	// MessageID is the event check's message (PR-3).
+	MessageID string `json:"message_id,omitempty"`
+	// Texts are the messages of Label, Text, Error, Hint and Note, by those
+	// names in lower case; "reason" is the message of an Error that is a code
+	// and a reason ("ECONNREFUSED: localhost only works on this machine").
 	Texts map[string]i18n.Text `json:"texts,omitempty"`
 }
 
@@ -141,9 +150,20 @@ type WebhookState struct {
 	PublicURL    string         `json:"public_url,omitempty"`
 	SelfTest     *SelfTestState `json:"self_test,omitempty"`
 	Registration *Registration  `json:"registration,omitempty"`
+	// CanTest: the provider sends a test event on request (PR-9:
+	// reachability is checked from outside, never by calling ourselves).
+	CanTest bool `json:"can_test,omitempty"`
+	// TestEventAt is when the provider was asked to send a test event to
+	// the endpoint; TestEventErr its refusal; TestArrivedAt when the first
+	// event after it arrived.
+	TestEventAt   *time.Time `json:"test_event_at,omitempty"`
+	TestEventErr  string     `json:"test_event_err,omitempty"`
+	TestArrivedAt *time.Time `json:"test_arrived_at,omitempty"`
 }
 
-// SelfTestState is the endpoint self-test.
+// SelfTestState is the endpoint check made before a provider calls it:
+// the address must be public and resolve (PR-9: ReputeCast never calls its
+// own URL to prove it can be reached; only the provider calling it does).
 type SelfTestState struct {
 	OK bool      `json:"ok"`
 	At time.Time `json:"at"`

@@ -177,13 +177,22 @@ func Delete[I, O any](a huma.API, o Op, h func(context.Context, *I) (*O, error))
 
 // accessOf returns the access requirement of an operation.
 func accessOf(op *huma.Operation) Access {
+	a, _ := AccessOf(op)
+	return a
+}
+
+// AccessOf returns the access requirement the middleware enforces on an
+// operation, and whether it declares one (an operation that doesn't is
+// public). Tests walk the registered operations with it.
+func AccessOf(op *huma.Operation) (Access, bool) {
 	if op == nil {
-		return Public
+		return Public, false
 	}
-	if a, ok := op.Metadata[accessMetaKey].(Access); ok {
-		return a
+	a, ok := op.Metadata[accessMetaKey].(Access)
+	if !ok {
+		return Public, false
 	}
-	return Public
+	return a, true
 }
 
 // WorkspaceInput is embedded by inputs of workspace operations.

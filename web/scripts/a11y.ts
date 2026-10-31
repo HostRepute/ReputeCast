@@ -5,6 +5,12 @@
  *   node scripts/a11y.ts                          # every screen at 1440 and 390
  *   node scripts/a11y.ts --only Campaigns,Main    # some boards' screens
  *   node scripts/a11y.ts --widths 834 --out ../tmp/a11y
+ *   node scripts/a11y.ts --widths 390 --targets   # also target sizes
+ *
+ * --targets adds the design system's target rule (design/design-system,
+ * "Targets"): standalone controls at least 44px on phone widths (767px and
+ * below) and 24px elsewhere; links inside running text are exempt, and a
+ * checkbox or radio counts its whole label.
  *
  * Needs the API and web dev servers with the demo data. Writes report.json
  * to --out and prints the violations per rule, worst first. States that
@@ -30,6 +36,25 @@ const out = resolve(opt('out', '../tmp/a11y')!)
 const workspace = 'acme-newsletter'
 const axePath = createRequire(import.meta.url).resolve('axe-core/axe.min.js')
 const axeOptions = { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] }, resultTypes: ['violations'] }
+const targets = args.includes('--targets')
+// Reported like an axe rule. A string, like the axe call below.
+const targetCheck = `(() => {
+  const min = innerWidth <= 767 ? 44 : 24
+  const nodes = []
+  for (const el of document.querySelectorAll('main :is(button, a[href], select, textarea, summary, [role=switch], input:not([type=hidden]))')) {
+    if (el.closest('[inert], [aria-hidden=true]')) continue
+    const st = getComputedStyle(el)
+    if (st.visibility === 'hidden' || (el.tagName === 'A' && st.display === 'inline')) continue
+    // A checkbox or radio is hit through its label too: take the larger of the two.
+    const label = /^(checkbox|radio)$/.test(el.type) && (el.closest('label') || (el.id && document.querySelector('label[for="' + CSS.escape(el.id) + '"]')))
+    const r = [el, label].filter(Boolean).map((x) => x.getBoundingClientRect()).sort((a, b) => b.width * b.height - a.width * a.height)[0]
+    // Visually hidden controls (a file input behind its button) aren't pointer targets.
+    if (r.width <= 1 || r.height <= 1 || (r.width >= min - 0.5 && r.height >= min - 0.5)) continue
+    const name = (el.getAttribute('aria-label') || el.textContent || el.value || el.name || '').trim().replace(/\\s+/g, ' ').slice(0, 40)
+    nodes.push({ target: [el.tagName.toLowerCase() + ' "' + name + '" ' + Math.round(r.width) + 'x' + Math.round(r.height)], html: el.outerHTML.slice(0, 200) })
+  }
+  return nodes.length ? [{ id: 'target-size-' + min, impact: 'moderate', help: 'Targets are at least ' + min + 'px', helpUrl: 'design/design-system/README.md', nodes }] : []
+})()`
 
 type Node = { target: string[]; html: string; failureSummary?: string }
 type Violation = { id: string; impact: string | null; help: string; helpUrl: string; nodes: Node[] }
@@ -143,6 +168,7 @@ async function main() {
           await page.addScriptTag({ path: axePath })
           // A string, like the other QA scripts: they compile without the DOM types.
           const violations = (await page.evaluate(`axe.run(document, ${JSON.stringify(axeOptions)}).then((r) => r.violations)`)) as Violation[]
+          if (targets) violations.push(...((await page.evaluate(targetCheck)) as Violation[]))
           findings.push({ path, width, violations })
           console.log(`${String(violations.length).padStart(3)} rule(s)  ${width}  ${path}`)
         } catch (err) {

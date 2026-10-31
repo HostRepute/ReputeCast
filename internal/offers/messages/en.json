@@ -47,6 +47,10 @@
   "composer.option.months": "{offer} · {price} a month for {months, plural, one {# month} other {# months}}",
   "composer.option.once": "{offer} · {price} for the first {period, select, year {year} other {month}}",
   "page.button": "Get {tier} for {price}",
+  "page.codeExpiredText": { "message": "{offer} codes work for a limited time. These are the normal prices.", "note": "the upgrade page opened with a referral reward's code past its date; offer: the offer's name" },
+  "page.codeExpiredTitle": "This code has expired",
+  "page.codeUsedText": { "message": "Each {offer} code works once. These are the normal prices.", "note": "the upgrade page opened with a referral reward's single-use code that was already used; offer: the offer's name" },
+  "page.codeUsedTitle": "This code has been used",
   "page.endedText": "{offer} has ended. These are the normal prices.",
   "page.endedTextOn": "{offer} ran until {date}. These are the normal prices.",
   "page.endedTitle": "This offer has ended",
@@ -82,6 +86,8 @@
   "problem.oneRetention": "“{name}” is already the retention offer. End it first: the cancel page shows one offer at most.",
   "problem.percent": "Enter a percentage from 1 to 100.",
   "problem.ways": "Let readers get it by code, by link, or both.",
+  "referral.applies": { "message": "{tier} · {period, select, month {monthly} year {yearly} other {{period}}}", "note": "what a referral reward offer applies to, in Grow › Referrals; tier: a paid tier's short name" },
+  "referral.discount": { "message": "{type, select, percent {{percent}% off} other {{amount} off}} {duration, select, once {once} months {for {months, plural, one {# month} other {# months}}} other {forever}}", "note": "a referral reward offer's discount in Grow › Referrals (\"100% off for 3 months\"); amount: money with its currency" },
 
   "problem.notFound": "Offer not found.",
   "sync.unreachable": { "message": "unreachable", "note": "the payment provider didn't answer when an offer was saved there; shown after “Saving in Stripe failed:”" }

@@ -199,14 +199,28 @@ func (q *Queries) VisibilityFields(ctx context.Context, workspaceID uuid.UUID) (
 }
 
 const visibilityGetCount = `-- name: VisibilityGetCount :one
-SELECT campaign_id, workspace_id, rules_hash, audience_hash, total, versions, shown, factors, counted_at, duration_ms
+SELECT campaign_id, workspace_id, rules_hash, audience_hash, total, versions, shown, factors, samples, counted_at, duration_ms
 FROM visibility_counts
 WHERE campaign_id = $1
 `
 
-func (q *Queries) VisibilityGetCount(ctx context.Context, campaignID uuid.UUID) (VisibilityCount, error) {
+type VisibilityGetCountRow struct {
+	CampaignID   uuid.UUID       `json:"campaignId"`
+	WorkspaceID  uuid.UUID       `json:"workspaceId"`
+	RulesHash    string          `json:"rulesHash"`
+	AudienceHash string          `json:"audienceHash"`
+	Total        int64           `json:"total"`
+	Versions     json.RawMessage `json:"versions"`
+	Shown        json.RawMessage `json:"shown"`
+	Factors      json.RawMessage `json:"factors"`
+	Samples      json.RawMessage `json:"samples"`
+	CountedAt    time.Time       `json:"countedAt"`
+	DurationMs   int32           `json:"durationMs"`
+}
+
+func (q *Queries) VisibilityGetCount(ctx context.Context, campaignID uuid.UUID) (VisibilityGetCountRow, error) {
 	row := q.db.QueryRow(ctx, visibilityGetCount, campaignID)
-	var i VisibilityCount
+	var i VisibilityGetCountRow
 	err := row.Scan(
 		&i.CampaignID,
 		&i.WorkspaceID,
@@ -216,6 +230,7 @@ func (q *Queries) VisibilityGetCount(ctx context.Context, campaignID uuid.UUID) 
 		&i.Versions,
 		&i.Shown,
 		&i.Factors,
+		&i.Samples,
 		&i.CountedAt,
 		&i.DurationMs,
 	)
@@ -358,12 +373,92 @@ func (q *Queries) VisibilityRecipients(ctx context.Context, arg VisibilityRecipi
 	return items, nil
 }
 
+const visibilityRecipientsAmong = `-- name: VisibilityRecipientsAmong :many
+SELECT c.id, c.email, c.first_name, c.last_name, c.tier, c.language, c.tags, c.attributes, c.role_address,
+       (c.broadcasts_stopped_at IS NOT NULL)::boolean AS broadcasts_stopped,
+       coalesce((SELECT array_agg(m.list_id) FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'), '{}')::uuid[] AS list_ids,
+       EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email) AS suppressed
+FROM contacts c
+WHERE c.id = ANY($1::uuid[]) AND c.workspace_id = $2 AND c.status = 'active' AND c.erased_at IS NULL
+  AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($3::uuid[]) AND ll.deleted_at IS NULL)))
+       OR c.id = ANY($4::uuid[]))
+  AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY($5::uuid[]))
+  AND NOT (c.id = ANY($6::uuid[]))
+ORDER BY c.created_at, c.id
+`
+
+type VisibilityRecipientsAmongParams struct {
+	Among           []uuid.UUID `json:"among"`
+	WorkspaceID     uuid.UUID   `json:"workspaceId"`
+	Lists           []uuid.UUID `json:"lists"`
+	Contacts        []uuid.UUID `json:"contacts"`
+	ExcludeLists    []uuid.UUID `json:"excludeLists"`
+	ExcludeContacts []uuid.UUID `json:"excludeContacts"`
+}
+
+type VisibilityRecipientsAmongRow struct {
+	ID                uuid.UUID       `json:"id"`
+	Email             string          `json:"email"`
+	FirstName         string          `json:"firstName"`
+	LastName          string          `json:"lastName"`
+	Tier              string          `json:"tier"`
+	Language          string          `json:"language"`
+	Tags              []string        `json:"tags"`
+	Attributes        json.RawMessage `json:"attributes"`
+	RoleAddress       bool            `json:"roleAddress"`
+	BroadcastsStopped bool            `json:"broadcastsStopped"`
+	ListIds           []uuid.UUID     `json:"listIds"`
+	Suppressed        bool            `json:"suppressed"`
+}
+
+// VisibilityRecipients for some contacts only (a count's samples), read by
+// id: the same conditions, the same columns.
+func (q *Queries) VisibilityRecipientsAmong(ctx context.Context, arg VisibilityRecipientsAmongParams) ([]VisibilityRecipientsAmongRow, error) {
+	rows, err := q.db.Query(ctx, visibilityRecipientsAmong,
+		arg.Among,
+		arg.WorkspaceID,
+		arg.Lists,
+		arg.Contacts,
+		arg.ExcludeLists,
+		arg.ExcludeContacts,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []VisibilityRecipientsAmongRow{}
+	for rows.Next() {
+		var i VisibilityRecipientsAmongRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.FirstName,
+			&i.LastName,
+			&i.Tier,
+			&i.Language,
+			&i.Tags,
+			&i.Attributes,
+			&i.RoleAddress,
+			&i.BroadcastsStopped,
+			&i.ListIds,
+			&i.Suppressed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const visibilitySaveCount = `-- name: VisibilitySaveCount :exec
-INSERT INTO visibility_counts (campaign_id, workspace_id, rules_hash, audience_hash, total, versions, shown, factors, counted_at, duration_ms)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+INSERT INTO visibility_counts (campaign_id, workspace_id, rules_hash, audience_hash, total, versions, shown, factors, samples, counted_at, duration_ms)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 ON CONFLICT (campaign_id) DO UPDATE SET
     rules_hash = EXCLUDED.rules_hash, audience_hash = EXCLUDED.audience_hash, total = EXCLUDED.total, versions = EXCLUDED.versions,
-    shown = EXCLUDED.shown, factors = EXCLUDED.factors, counted_at = EXCLUDED.counted_at, duration_ms = EXCLUDED.duration_ms
+    shown = EXCLUDED.shown, factors = EXCLUDED.factors, samples = EXCLUDED.samples, counted_at = EXCLUDED.counted_at, duration_ms = EXCLUDED.duration_ms
 `
 
 type VisibilitySaveCountParams struct {
@@ -375,6 +470,7 @@ type VisibilitySaveCountParams struct {
 	Versions     json.RawMessage `json:"versions"`
 	Shown        json.RawMessage `json:"shown"`
 	Factors      json.RawMessage `json:"factors"`
+	Samples      json.RawMessage `json:"samples"`
 	CountedAt    time.Time       `json:"countedAt"`
 	DurationMs   int32           `json:"durationMs"`
 }
@@ -389,6 +485,7 @@ func (q *Queries) VisibilitySaveCount(ctx context.Context, arg VisibilitySaveCou
 		arg.Versions,
 		arg.Shown,
 		arg.Factors,
+		arg.Samples,
 		arg.CountedAt,
 		arg.DurationMs,
 	)

@@ -12,7 +12,7 @@ import { Loading, Skeleton } from '@/components/ui/Feedback'
 import { toast } from '@/components/ui/Toast'
 import { T, useT, type MessageDescriptor } from '@/i18n'
 import { andList, clock, count, dayMonthDate, dayMonthYear, inZone, orList } from '@/lib/format'
-import { useMe, useWorkspace } from '@/lib/session'
+import { deniedReason, useMe, useWorkspace } from '@/lib/session'
 import { browserName, throwIfForbidden } from './common'
 import { platformNames } from './Previews'
 import { ReportError } from './ReportPage'
@@ -124,7 +124,7 @@ function Review({ d, onRecheck, rechecking }: { d: Review; onRecheck: () => void
                 <Button
                   variant="primary"
                   onClick={() => setConfirming(true)}
-                  disabledReason={blocks ? t(m.blockedReason) : !d.access.canSend ? t(m.noPermission, { perms: andList(d.access.missing) }) : undefined}
+                  disabledReason={blocks ? t(m.blockedReason) : !d.access.canSend ? deniedReason('push:send', d.access.helpers, t(m.sendAction)) : undefined}
                 >
                   {sendLabel}
                 </Button>
@@ -207,7 +207,7 @@ function Review({ d, onRecheck, rechecking }: { d: Review; onRecheck: () => void
                   className="w-full"
                   icon="send"
                   onClick={() => setConfirming(true)}
-                  disabledReason={blocks ? t(m.blockedReason) : !sendable ? t(m.noPermission, { perms: andList(d.access.missing) }) : undefined}
+                  disabledReason={blocks ? t(m.blockedReason) : !sendable ? deniedReason('push:send', d.access.helpers, t(m.sendAction)) : undefined}
                 >
                   {sendLabel}
                 </Button>
@@ -296,7 +296,7 @@ function Verdict({
     text = (
       <T
         msg={d.approval.required && !d.access.canSend ? m.approvalText : d.approval.required ? m.approvalTextRules : m.approvalText}
-        values={{ perm: <span className="mono">{'push:send'}</span>, helpers: orList(helpers) }}
+        values={{ helpers: orList(helpers) }}
       />
     )
   } else if (approved) {
@@ -436,7 +436,7 @@ function CheckRow({ c, d }: { c: Check; d: Review }) {
       detail =
         c.status === 'pass' ? (
           c.author ? (
-            <T msg={m.approvalOk} values={{ name: c.author, perm: <span className="mono">{'push:send'}</span> }} />
+            <T msg={m.approvalOk} values={{ name: c.author }} />
           ) : (
             t(m.approvalOkAnon)
           )
@@ -446,7 +446,6 @@ function CheckRow({ c, d }: { c: Check; d: Review }) {
             values={{
               name: c.author ?? '',
               role: c.authorRole || me.workspace.roleName,
-              perms: <span className="mono">{andList(c.missing)}</span>,
               helpers: orList(c.helpers),
             }}
           />

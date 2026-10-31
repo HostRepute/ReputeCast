@@ -9,7 +9,7 @@ import { Table, Td, Th } from '@/components/ui/Table'
 import { useT, type MessageDescriptor } from '@/i18n'
 import { clockSeconds, dayMonthDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
-import { ChannelSwitch } from '@/features/channels/ChannelSwitch'
+import { ChannelMenu } from '@/features/channels/ChannelMenu'
 import { browserName, PushTabs, throwIfForbidden } from './common'
 import { m } from './messages'
 
@@ -39,7 +39,7 @@ export function PushEventsPage() {
       documentTitle={t(m.docTitleEvents)}
       filters={
         <>
-          <ChannelSwitch current="push" />
+          <ChannelMenu current="push" />
           <PushTabs />
         </>
       }

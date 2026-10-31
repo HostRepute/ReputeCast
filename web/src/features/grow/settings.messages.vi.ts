@@ -123,7 +123,7 @@ export default translate(ms, {
   editEmailsLink: 'Sửa email',
   // Danger zone.
   dangerTitle: 'Vùng nguy hiểm',
-  dangerCaption: 'Cần quyền grow:edit · cả hai thao tác đều được ghi nhật ký',
+  dangerCaption: 'Chỉ dành cho người có thể sửa chương trình giới thiệu · cả hai thao tác đều được ghi nhật ký',
   offTitle: 'Tắt chương trình',
   offText: 'Liên kết dẫn đến trang đăng ký thông thường, khối Giới thiệu bị ẩn và trang phần thưởng báo rằng chương trình đang tạm dừng. Phần thưởng đã đạt vẫn dùng được.',
   onTitle: 'Bật chương trình',
@@ -155,8 +155,8 @@ export default translate(ms, {
   reload: 'Tải lại',
   problems: '{count, plural, other {# lỗi cần sửa}}',
   leaveText: 'Thay đổi của bạn với cài đặt giới thiệu chưa được lưu.',
-  readOnlyText: 'Bạn xem được mọi cài đặt. Để thay đổi, bạn cần quyền <mono>grow:edit</mono>. Hãy hỏi {helpers}.',
-  readOnlyTextNoHelpers: 'Bạn xem được mọi cài đặt. Để thay đổi, bạn cần quyền <mono>grow:edit</mono>.',
+  readOnlyText: 'Bạn xem được mọi cài đặt. Vai trò của bạn không thể thay đổi các cài đặt này. Hãy hỏi {helpers}.',
+  readOnlyTextNoHelpers: 'Bạn xem được mọi cài đặt. Vai trò của bạn không thể thay đổi các cài đặt này.',
   loadError: 'Không tải được cài đặt',
   loadingLabel: 'Đang tải cài đặt',
 })

@@ -99,7 +99,7 @@ export const m = defineMessages('forms.pages', {
   noMatch: 'No issue matches “{search}”.',
   noIssues: 'No issues yet. Sent campaigns of the published lists appear here.',
   hiddenBadge: 'Hidden',
-  needsEdit: 'Editing the archive needs the forms:edit permission.',
+  needsEdit: "Your role can't edit the archive.",
   show: 'Show',
   hide: 'Hide',
   range: '{from} to {to} of {total}',

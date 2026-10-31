@@ -18,7 +18,7 @@ export const m = defineMessages('pushReview', {
   blockedTitle: '{n, plural, one {# check blocks} other {# checks block}} the send',
   blockedText: 'Fix it in the editor or in push setup, then check again. Checked {time}.',
   approvalTitle: "Ready, once it's approved",
-  approvalText: 'Every check passed. Sending a push campaign needs {perm}, so {helpers} approves it.',
+  approvalText: "Every check passed. Your role can't send push campaigns, so {helpers} approves it.",
   approvalTextRules: 'Every check passed. This campaign matches an approval rule, so {helpers} approves it.',
   pendingTitle: 'Waiting for approval',
   pendingText: 'Requested {time} by {name}. {helpers} can approve; the send starts when they do, or at the scheduled time.',
@@ -89,9 +89,9 @@ export const m = defineMessages('pushReview', {
   imageOk: '{w} × {h}, {ratio}, {size} · shown by Chrome on Windows and Android',
   imageWarn: '{w} × {h}, {ratio}, {size} · Chrome shows images at 2:1, under 1 MB and at least 360 wide',
   imageNone: 'No image · Chrome on Windows and Android show the text only',
-  approvalOk: 'No rule matches · {name} can send push campaigns ({perm})',
+  approvalOk: 'No rule matches · {name} can send push campaigns',
   approvalOkAnon: 'No rule matches',
-  approvalNeeds: '{name} is a {role}: sending needs {perms}. {helpers} can approve.',
+  approvalNeeds: "{name} is a {role}, which can't send push campaigns. {helpers} can approve.",
 
   // Audience card
   audienceTitle: 'Audience',
@@ -143,5 +143,6 @@ export const m = defineMessages('pushReview', {
   requested: 'Approval requested',
   cancel: 'Cancel',
   blockedReason: 'Fix the blocking checks first.',
-  noPermission: 'Sending needs {perms}.',
+  // Send is off without the send permissions (deniedReason, src/lib/session.tsx).
+  sendAction: 'Sending push campaigns',
 })

@@ -3,7 +3,6 @@ package visibility
 import (
 	"context"
 	"slices"
-	"sort"
 	"strings"
 
 	"github.com/google/uuid"
@@ -207,7 +206,11 @@ type VisibilityPreviewContact struct {
 }
 
 // PreviewContacts picks contacts who get each version, so a person can
-// preview them all from the canvas.
+// preview them all from the canvas: one for each version, up to 12 and
+// those with the most recipients first, then one for each other language,
+// up to 16 in all. They are the count's samples while those still get
+// their version; otherwise, and for a member limited to some lists, they
+// are found in the audience again.
 func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, p *authz.Principal, campaignID uuid.UUID) ([]VisibilityPreviewContact, error) {
 	out := []VisibilityPreviewContact{}
 	c, err := s.Q.VisibilityCampaign(ctx, store.VisibilityCampaignParams{WorkspaceID: ws.ID, ID: campaignID})
@@ -227,6 +230,26 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, p *a
 	if err != nil {
 		return out, err
 	}
+	res, err := s.tally(ctx, ws, campaignID, c.Audience, e, n, false)
+	if err != nil {
+		return out, err
+	}
+	if res.Tally.Samples.Versions == nil {
+		// Counted before counts kept their samples: count once more.
+		if res, err = s.tally(ctx, ws, campaignID, c.Audience, e, n, true); err != nil {
+			return out, err
+		}
+	}
+	vs := Versions(e, res.Tally, "")
+	if p == nil || len(p.Scope.Lists) == 0 {
+		facts, err := s.audienceFacts(ctx, ws.ID, a, segs, e, res.Tally.Samples.ids())
+		if err != nil {
+			return out, err
+		}
+		if picked, every := pickPreviews(e, n, vs, res.Tally.Samples, facts); every {
+			return picked, nil
+		}
+	}
 	recipients, err := FinalRecipients(ctx, s.Q, s.Segments, ws.ID, a, segs)
 	if err != nil {
 		return out, err
@@ -243,28 +266,73 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, p *a
 	if err := loadExtra(ctx, s.Q, ws.ID, byID, e); err != nil {
 		return out, err
 	}
-	res, err := s.tally(ctx, ws, campaignID, c.Audience, e, n, false)
-	if err != nil {
-		return out, err
+	sm := newSampler()
+	for _, f := range recipients {
+		sm.add(Decide(e, f, n).Hidden.String(), f)
 	}
-	vs := Versions(e, res.Tally, "")
-	numbers := map[string]int{}
+	picked, _ := pickPreviews(e, n, vs, sm.samples(), byID)
+	return picked, nil
+}
+
+// ids are the contacts of the samples, each once.
+func (sm Samples) ids() []uuid.UUID {
+	seen := map[uuid.UUID]bool{}
+	out := []uuid.UUID{}
+	add := func(id uuid.UUID) {
+		if !seen[id] {
+			seen[id] = true
+			out = append(out, id)
+		}
+	}
+	for _, id := range sm.Versions {
+		add(id)
+	}
+	for _, l := range sm.Languages {
+		add(l.ID)
+	}
+	return out
+}
+
+// audienceFacts reads what conditions need about the contacts ids that are
+// still in the audience, as FinalRecipients leaves it.
+func (s *Service) audienceFacts(ctx context.Context, wsID uuid.UUID, a Audience, segs Segments, e Email, ids []uuid.UUID) (map[uuid.UUID]*Facts, error) {
+	some, err := finalRecipients(ctx, s.Q, s.Segments, wsID, a, segs, ids)
+	if err != nil {
+		return nil, err
+	}
+	facts := make(map[uuid.UUID]*Facts, len(some))
+	for _, f := range some {
+		facts[f.ID] = f
+	}
+	return facts, loadExtra(ctx, s.Q, wsID, facts, e)
+}
+
+// pickPreviews is the preview contacts from samples: the sample of each
+// version that still gets it, up to 12, then the sample of each language
+// none of them reads, up to 16 in all. every is false when a version among
+// the first 12 has no such sample.
+func pickPreviews(e Email, n *Names, vs []VisibilityVersion, sm Samples, facts map[uuid.UUID]*Facts) (out []VisibilityPreviewContact, every bool) {
+	out, every = []VisibilityPreviewContact{}, true
+	numbers := make(map[string]int, len(vs))
 	for _, v := range vs {
 		numbers[v.key()] = v.Number
 	}
-	// Prefer contacts with a name, the way the composer's preview does.
-	sort.SliceStable(recipients, func(i, j int) bool {
-		return (recipients[i].FirstName != "") && (recipients[j].FirstName == "")
-	})
-	picked := map[int]bool{}
 	langs := map[string]bool{}
-	for _, f := range recipients {
-		d := Decide(e, f, n)
-		num := numbers[d.Hidden.String()]
-		if num == 0 || picked[num] || len(out) >= 12 {
+	for _, v := range vs {
+		if len(out) >= 12 {
+			break
+		}
+		key := v.key()
+		f := facts[sm.Versions[key]]
+		if f == nil {
+			every = false
 			continue
 		}
-		picked[num] = true
+		d := Decide(e, f, n)
+		if d.Hidden.String() != key {
+			every = false
+			continue
+		}
 		trait := languageName(n.Lang, f.Language)
 		for _, b := range e.Blocks {
 			if !d.Hidden[b.ID] {
@@ -276,20 +344,23 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, p *a
 			trait = languageName(n.Lang, "en")
 		}
 		langs[baseLanguage(f.Language)] = true
-		out = append(out, VisibilityPreviewContact{ID: f.ID.String(), Name: f.Name(), Email: f.Email, Language: f.Language, Trait: trait, Version: num})
+		out = append(out, VisibilityPreviewContact{ID: f.ID.String(), Name: f.Name(), Email: f.Email, Language: f.Language, Trait: trait, Version: v.Number})
 	}
-	sort.SliceStable(out, func(i, j int) bool { return out[i].Version < out[j].Version })
 	// One contact per other language, for emails in several languages.
-	for _, f := range recipients {
-		l := baseLanguage(f.Language)
-		if l == "" || langs[l] || len(out) >= 16 {
+	for _, l := range sm.Languages {
+		if len(out) >= 16 {
+			break
+		}
+		f := facts[l.ID]
+		if f == nil || langs[l.Language] {
 			continue
 		}
-		langs[l] = true
+		langs[l.Language] = true
 		d := Decide(e, f, n)
-		out = append(out, VisibilityPreviewContact{ID: f.ID.String(), Name: f.Name(), Email: f.Email, Language: f.Language, Trait: languageName(n.Lang, f.Language), Version: numbers[d.Hidden.String()]})
+		out = append(out, VisibilityPreviewContact{ID: f.ID.String(), Name: f.Name(), Email: f.Email, Language: f.Language, Trait: languageName(n.Lang, f.Language),
+			Version: numbers[d.Hidden.String()]})
 	}
-	return out, nil
+	return out, every
 }
 
 // blockTrait is the short name of what a shown block's rule reads: the

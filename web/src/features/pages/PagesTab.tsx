@@ -612,7 +612,7 @@ function ReadOnlyNote({ d }: { d: Overview }) {
       <div className="flex min-w-0 flex-col gap-1">
         <span className="font-bold">{name ? t(m.readOnlyTitle, { name, role }) : t(m.readOnlyRole, { role })}</span>
         <div>
-          <T msg={d.editors.length ? m.readOnly : m.readOnlyNobody} values={{ helpers: orList(d.editors), code: (c) => <span className="mono">{c}</span> }} />
+          <T msg={d.editors.length ? m.readOnly : m.readOnlyNobody} values={{ helpers: orList(d.editors) }} />
         </div>
       </div>
     </div>

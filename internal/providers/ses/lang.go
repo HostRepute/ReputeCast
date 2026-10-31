@@ -34,6 +34,16 @@ var (
 	mDoneConfirm    = msgs.M("provision.confirmDone")
 	mDoneConfigSet  = msgs.M("provision.configSetDone")
 	mStatusIncident = msgs.M("status.incident")
+
+	mStepTenant      = msgs.M("provision.tenant")
+	mDoneTenant      = msgs.M("provision.tenantDone")
+	mNoteTenant      = msgs.M("provision.tenantNote")
+	mStepQueue       = msgs.M("provision.queue")
+	mDoneQueue       = msgs.M("provision.queueDone")
+	mStepQueuePolicy = msgs.M("provision.queuePolicy")
+	mDoneQueuePolicy = msgs.M("provision.queuePolicyDone")
+
+	mDedicatedIPsDenied = msgs.M("error.dedicatedIpsDenied")
 )
 
 // say returns a message's English and the message, kept for its readers.

@@ -78,9 +78,9 @@ const store = translate(cm, {
 
   readOnlyTitle: 'Chỉ đọc · {name}, {role}',
   readOnlyBody:
-    'Bạn xem được cửa hàng, việc đồng bộ, ghi nhận doanh thu và hoạt động của nó. Kết nối, cấu hình và ngắt kết nối cửa hàng cần quyền <mono>integrations:manage</mono>. Hãy hỏi {helpers}.',
+    'Bạn xem được cửa hàng, việc đồng bộ, ghi nhận doanh thu và hoạt động của nó. Vai trò của bạn không thể kết nối, cấu hình hay ngắt kết nối cửa hàng. Hãy hỏi {helpers}.',
   readOnlyAlone:
-    'Bạn xem được cửa hàng, việc đồng bộ, ghi nhận doanh thu và hoạt động của nó. Kết nối, cấu hình và ngắt kết nối cửa hàng cần quyền <mono>integrations:manage</mono>.',
+    'Bạn xem được cửa hàng, việc đồng bộ, ghi nhận doanh thu và hoạt động của nó. Vai trò của bạn không thể kết nối, cấu hình hay ngắt kết nối cửa hàng.',
 
   statOrders: 'Đơn hàng · {days} ngày',
   statOrdersSub: '{amount} tại cửa hàng',
