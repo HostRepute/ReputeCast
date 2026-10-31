@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/webhooks"
 )
 
 var (
@@ -648,6 +649,11 @@ func (s *Service) publishTx(ctx context.Context, tx pgx.Tx, ws *store.Workspace,
 	}
 	wsID := ws.ID
 	before := map[string]any{"status": a.Status, "live_version": a.LiveVersion}
+	// automation.published for the workspace's endpoints (review 2026-11 EN-6).
+	if _, err := webhooks.Emit(ctx, tx, ws.ID, ws.Slug, "automation.published", map[string]any{"automation_id": a.ID.String(), "name": a.Name,
+		"version": version, "migration": migration, "changes": changes, "contacts_moved": moved}); err != nil {
+		return err
+	}
 	return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "automation.publish", TargetType: "automation", TargetID: a.ID.String(), TargetName: a.Name,
 		Before: before, After: map[string]any{"status": StatusLive, "live_version": version},
 		Metadata: map[string]any{"migration": migration, "changes": changes, "contacts_moved": moved}})

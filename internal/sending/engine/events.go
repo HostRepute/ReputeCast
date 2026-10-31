@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -50,4 +51,23 @@ func campaignData(id uuid.UUID, name string, kv ...any) map[string]any {
 		}
 	}
 	return d
+}
+
+// emitSent queues email.sent for messages that just left (review 2026-11
+// EN-6). A batch's messages are of one workspace; when none of its
+// endpoints takes the event nothing more is read.
+func emitSent(ctx context.Context, tx pgx.Tx, ids []uuid.UUID, at time.Time) error {
+	var ws uuid.UUID
+	if err := tx.QueryRow(ctx, `SELECT workspace_id FROM messages WHERE id = $1`, ids[0]).Scan(&ws); err != nil {
+		return err
+	}
+	if ok, err := webhooks.Listens(ctx, tx, ws, webhooks.EmailSent); err != nil || !ok {
+		return err
+	}
+	for _, id := range ids {
+		if err := webhooks.EmitEmail(ctx, tx, ws, id, webhooks.EmailSent, at, nil); err != nil {
+			return err
+		}
+	}
+	return nil
 }

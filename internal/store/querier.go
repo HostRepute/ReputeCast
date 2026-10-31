@@ -1612,12 +1612,17 @@ type Querier interface {
 	// probe); the rest wait and replay once the endpoint answers 2xx again. The
 	// probes are found once per failing endpoint, not once per waiting delivery.
 	HooksDue(ctx context.Context, lim int32) ([]uuid.UUID, error)
+	// What an email.* event says about the message.
+	HooksEmailMessage(ctx context.Context, id uuid.UUID) (HooksEmailMessageRow, error)
 	HooksFinishDelivery(ctx context.Context, arg HooksFinishDeliveryParams) error
 	HooksGet(ctx context.Context, arg HooksGetParams) (Webhook, error)
 	HooksGetDelivery(ctx context.Context, arg HooksGetDeliveryParams) (HooksGetDeliveryRow, error)
 	HooksInsertDelivery(ctx context.Context, arg HooksInsertDeliveryParams) error
 	// Outgoing webhooks and their delivery log.
 	HooksList(ctx context.Context, workspaceID uuid.UUID) ([]HooksListRow, error)
+	// Whether any endpoint of the workspace takes the event (a cheap check
+	// before building a payload per message).
+	HooksListen(ctx context.Context, arg HooksListenParams) (bool, error)
 	// Endpoints subscribed to an event: exact name, "group.*" or "*".
 	HooksMatching(ctx context.Context, arg HooksMatchingParams) ([]HooksMatchingRow, error)
 	HooksPurgeDeliveries(ctx context.Context) (int64, error)

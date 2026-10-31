@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/webhooks"
 )
 
 // Clicks settle before they count (review AN-2). A scanner that follows
@@ -213,6 +214,13 @@ func (s *Service) countClick(ctx context.Context, tx pgx.Tx, q *store.Queries, b
 	}
 	if m.Stream == "transactional" && s.Transactional != nil && (firstOpen || firstClick) {
 		if err := s.Transactional.Engagement(ctx, tx, m.ID, firstClick, at); err != nil {
+			return err
+		}
+	}
+	// email.clicked, once per message, for a person's settled click (review
+	// 2026-11 EN-6).
+	if firstClick && (m.Stream == "broadcast" || m.Stream == "automation") {
+		if err := webhooks.EmitEmail(ctx, tx, m.WorkspaceID, m.ID, webhooks.EmailClicked, at, func(d *webhooks.EmailEvent) { d.URL = url }); err != nil {
 			return err
 		}
 	}

@@ -2,12 +2,14 @@ package app
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/automations"
@@ -15,9 +17,12 @@ import (
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/liquid"
+	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
+	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/tracking"
+	"github.com/hostrepute/reputecast/internal/webhooks"
 )
 
 // Sending engine, live monitor and tracking.
@@ -145,7 +150,34 @@ func init() {
 	normalizerHooks = append(normalizerHooks, func(a *App) ingest.MessageHook {
 		return (&engine.Engine{Q: a.Q, Now: time.Now}).InDoubtHook()
 	})
+	// Provider reports about campaign and automation email go to the
+	// workspace's endpoints as email.* events (review 2026-11 EN-6).
+	normalizerHooks = append(normalizerHooks, func(*App) ingest.MessageHook {
+		return func(ctx context.Context, tx pgx.Tx, p store.Provider, id uuid.UUID, stream string, ev providers.Event) error {
+			if stream != "broadcast" && stream != "automation" {
+				return nil
+			}
+			event := emailEvents[ev.Type]
+			if event == "" {
+				return nil
+			}
+			at := ev.OccurredAt
+			if at.IsZero() {
+				at = time.Now()
+			}
+			return webhooks.EmitEmail(ctx, tx, p.WorkspaceID, id, event, at, func(d *webhooks.EmailEvent) {
+				d.Reason = strings.TrimSpace(ev.OriginalCode + " " + ev.Diagnostic)
+			})
+		}
+	})
 	// The automations engine's "Send email" step goes through the sending
 	// engine (routing, failover, rendering, tracking, delivery).
 	automationMailer = func(a *App) automations.Mailer { return engine.AutomationMailer{E: sendingEngine(a)} }
+}
+
+// emailEvents are the provider events campaign and automation email report.
+var emailEvents = map[providers.EventType]string{
+	providers.EventDelivered: webhooks.EmailDelivered, providers.EventDeferred: webhooks.EmailDeferred,
+	providers.EventHardBounce: webhooks.EmailBounced, providers.EventSoftBounce: webhooks.EmailBounced,
+	providers.EventComplaint: webhooks.EmailComplained,
 }
