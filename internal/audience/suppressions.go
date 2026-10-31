@@ -84,10 +84,13 @@ type SuppressionItem struct {
 	Address string `json:"address"`
 	Group   bool   `json:"group"`
 	// Rows in an import group.
-	Rows     int64             `json:"rows"`
-	ImportID string            `json:"importId,omitempty"`
-	Reasons  []string          `json:"reasons"`
-	Source   SuppressionSource `json:"source"`
+	Rows     int64  `json:"rows"`
+	ImportID string `json:"importId,omitempty"`
+	// Upload is set when the group is a CSV upload (ImportID is then the
+	// upload's id), which can be removed whole (review 2026-11 AU-14).
+	Upload  bool              `json:"upload,omitempty"`
+	Reasons []string          `json:"reasons"`
+	Source  SuppressionSource `json:"source"`
 	// OriginalCode is the provider's code ("550 5.1.1 user unknown") or a note.
 	OriginalCode string    `json:"originalCode"`
 	At           time.Time `json:"at"`
@@ -215,7 +218,7 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 		if err != nil {
 			return out, api.Invalid("import", mImportGroup.Text(l, nil))
 		}
-		fs.add("s.import_id = ?", id)
+		fs.add("(s.import_id = ? OR s.upload_id = ?)", id, id)
 	}
 	group := strings.TrimSpace(f.Q) == "" && f.Import == "" && !strings.HasPrefix(f.Source, "import:")
 	cte := `WITH f AS (SELECT s.* FROM suppressions s WHERE ` + fs.where + `),
@@ -223,12 +226,12 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 		SELECT false AS grp, f.id, f.email, ARRAY[f.reason] AS reasons, f.source, f.source_provider_id, f.original_code, f.created_at,
 		       f.campaign_id, f.automation_id, f.automation_step, f.context,
 		       CASE WHEN f.reason IN ('unsubscribe', 'role') THEN 'marketing' ELSE f.scope END, f.import_id, 1::bigint AS n, f.created_by, f.texts
-		FROM f WHERE NOT ` + fmt.Sprint(group) + ` OR f.import_id IS NULL
+		FROM f WHERE NOT ` + fmt.Sprint(group) + ` OR coalesce(f.import_id, f.upload_id) IS NULL
 		UNION ALL
 		SELECT true, (array_agg(f.id ORDER BY f.created_at, f.id))[1], '', array_agg(DISTINCT f.reason), 'import', NULL, max(f.original_code),
 		       max(f.created_at), NULL, NULL, '', max(f.context), CASE WHEN bool_or(f.scope = 'all') THEN 'all' ELSE 'marketing' END,
-		       f.import_id, count(*)::bigint, NULL, (array_agg(f.texts ORDER BY f.original_code DESC, f.context DESC))[1]
-		FROM f WHERE ` + fmt.Sprint(group) + ` AND f.import_id IS NOT NULL GROUP BY f.import_id
+		       coalesce(f.import_id, f.upload_id), count(*)::bigint, NULL, (array_agg(f.texts ORDER BY f.original_code DESC, f.context DESC))[1]
+		FROM f WHERE ` + fmt.Sprint(group) + ` AND coalesce(f.import_id, f.upload_id) IS NOT NULL GROUP BY coalesce(f.import_id, f.upload_id)
 	)`
 	countSQL := cte + ` SELECT count(*), coalesce(sum(n), 0)::bigint FROM r`
 	if !pg.Exact {
@@ -267,11 +270,13 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 		SELECT r.grp, r.id, r.email, r.reasons, r.source, r.original_code, r.created_at, r.campaign_id, r.automation_step,
 		       r.context, r.scope, r.import_id, r.n, r.texts,
 		       coalesce(p.name, ''), coalesce(p.adapter, ''), coalesce(u.name, ''), coalesce(i.source, ''), coalesce(i.file_name, ''),
-		       coalesce(cp.name, ''), coalesce(a.name, '')
+		       coalesce(cp.name, ''), coalesce(a.name, ''), su.id IS NOT NULL, coalesce(su.file_name, ''), coalesce(uu.name, '')
 		FROM r
 		LEFT JOIN providers p ON p.id = r.source_provider_id
 		LEFT JOIN users u ON u.id = r.created_by
 		LEFT JOIN imports i ON i.id = r.import_id
+		LEFT JOIN suppression_uploads su ON su.id = r.import_id AND r.grp
+		LEFT JOIN users uu ON uu.id = su.created_by
 		LEFT JOIN campaigns cp ON cp.id = r.campaign_id
 		LEFT JOIN automations a ON a.id = r.automation_id
 		%s
@@ -286,11 +291,16 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 		var it SuppressionItem
 		var id uuid.UUID
 		var campaignID, importID *uuid.UUID
-		var email, source, step, provName, adapter, userName, impSource, fileName, campaign, automation string
+		var email, source, step, provName, adapter, userName, impSource, fileName, campaign, automation, uploadFile, uploader string
 		var texts json.RawMessage
 		if err := rows.Scan(&it.Group, &id, &email, &it.Reasons, &source, &it.OriginalCode, &it.At, &campaignID, &step,
-			&it.Context, &it.Scope, &importID, &it.Rows, &texts, &provName, &adapter, &userName, &impSource, &fileName, &campaign, &automation); err != nil {
+			&it.Context, &it.Scope, &importID, &it.Rows, &texts, &provName, &adapter, &userName, &impSource, &fileName, &campaign, &automation,
+			&it.Upload, &uploadFile, &uploader); err != nil {
 			return out, err
+		}
+		if it.Upload {
+			// A CSV upload: its file, by whom.
+			fileName, source, userName = uploadFile, "csv", uploader
 		}
 		marks = append(marks, contactCursor{Sort: "suppressions", Values: []any{cursorValue(it.At)}, ID: id})
 		it.OriginalCode, it.Context = KeptIn(l, texts, "original_code", it.OriginalCode), suppressions.DetailIn(l, KeptIn(l, texts, "context", it.Context))
@@ -768,8 +778,14 @@ func (s *Service) addUploaded(ctx context.Context, ws *store.Workspace, emails [
 	actor := actorID(ctx)
 	where := kept(mContextCSVUpload, i18n.Args{"file": fileName})
 	texts := KeptTexts(map[string]i18n.Text{"context": where.Text})
+	upload := uuid.Must(uuid.NewV7())
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
+		// The upload is one group the list shows and can take off whole (AU-14).
+		if err := q.SuppressionUploadInsert(ctx, store.SuppressionUploadInsertParams{ID: upload, WorkspaceID: ws.ID, FileName: fileName, Reason: reason, Note: note,
+			CreatedBy: actor, At: s.now()}); err != nil {
+			return err
+		}
 		for _, raw := range emails {
 			e, problem := emailaddr.Check(raw)
 			if problem != "" {
@@ -780,7 +796,7 @@ func (s *Service) addUploaded(ctx context.Context, ws *store.Workspace, emails [
 			}
 			_, err := q.InsertSuppression(ctx, store.InsertSuppressionParams{
 				ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, Email: e, Reason: reason, Source: "csv", OriginalCode: note,
-				CreatedBy: actor, Scope: scopeFor(reason), Context: where.English, Texts: texts, CreatedAt: s.now(),
+				CreatedBy: actor, Scope: scopeFor(reason), Context: where.English, Texts: texts, CreatedAt: s.now(), UploadID: &upload,
 			})
 			if errors.Is(err, pgx.ErrNoRows) {
 				res.Already++
@@ -924,4 +940,77 @@ func (s *Service) PullFromProviders(ctx context.Context, ws *store.Workspace, bo
 		out.Providers = append(out.Providers, pp)
 	}
 	return out, nil
+}
+
+// RemoveUploadInput says why a whole upload comes off the list.
+type RemoveUploadInput struct {
+	Reason string `json:"reason" minLength:"3" maxLength:"300"`
+}
+
+// RemoveUploadResult says how many addresses came off.
+type RemoveUploadResult struct {
+	Removed int64 `json:"removed"`
+}
+
+// RemoveUpload takes a whole CSV upload off the suppression list (review
+// 2026-11 AU-14), as removing each address would: contacts suppressed by
+// a bounce or a complaint go back to pending, the others to active. One
+// audit entry, with the reason.
+func (s *Service) RemoveUpload(ctx context.Context, ws *store.Workspace, id uuid.UUID, in RemoveUploadInput) (RemoveUploadResult, error) {
+	var out RemoveUploadResult
+	reason := strings.TrimSpace(in.Reason)
+	if reason == "" {
+		return out, api.Invalid("body.reason", say(ctx, mRemoveReason, nil))
+	}
+	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		up, err := q.SuppressionUploadGet(ctx, store.SuppressionUploadGetParams{WorkspaceID: ws.ID, ID: id})
+		if err != nil {
+			return api.MapError(err, "Upload")
+		}
+		rows, err := tx.Query(ctx, `DELETE FROM suppressions WHERE workspace_id = $1 AND upload_id = $2 RETURNING email, reason`, ws.ID, id)
+		if err != nil {
+			return err
+		}
+		var blocking, other []string
+		for rows.Next() {
+			var e, r string
+			if err := rows.Scan(&e, &r); err != nil {
+				rows.Close()
+				return err
+			}
+			switch r {
+			case "hard_bounce", "complaint", "spam_trap", "invalid":
+				blocking = append(blocking, e)
+			default:
+				other = append(other, e)
+			}
+			out.Removed++
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return err
+		}
+		if len(blocking) > 0 {
+			if _, err := tx.Exec(ctx, `UPDATE contacts SET consent = 'pending', status = 'active', updated_at = now() WHERE workspace_id = $1 AND email = ANY ($2) AND erased_at IS NULL`, ws.ID, blocking); err != nil {
+				return err
+			}
+			if _, err := tx.Exec(ctx, `UPDATE list_memberships lm SET status = 'pending' FROM contacts c
+				WHERE c.id = lm.contact_id AND c.workspace_id = $1 AND c.email = ANY ($2) AND lm.status = 'subscribed'`, ws.ID, blocking); err != nil {
+				return err
+			}
+		}
+		if len(other) > 0 {
+			if _, err := tx.Exec(ctx, `UPDATE contacts SET status = 'active', updated_at = now() WHERE workspace_id = $1 AND email = ANY ($2) AND erased_at IS NULL AND status = 'suppressed'`, ws.ID, other); err != nil {
+				return err
+			}
+		}
+		now := s.now()
+		if err := q.SuppressionUploadRemoved(ctx, store.SuppressionUploadRemovedParams{ID: id, At: &now, RemovedBy: actorID(ctx), RemovedReason: reason}); err != nil {
+			return err
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "suppression.upload_remove", TargetType: "suppression_upload", TargetID: id.String(),
+			TargetName: up.FileName, Reason: reason, Metadata: map[string]any{"removed": out.Removed, "uploadedAt": up.CreatedAt}})
+	})
+	return out, err
 }

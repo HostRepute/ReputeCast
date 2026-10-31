@@ -22,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
+	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/segments"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -646,12 +647,12 @@ func (s *Service) sendConfirmation(ctx context.Context, ws *store.Workspace, c s
 	if err != nil {
 		return false, url, err
 	}
-	name := strings.TrimSpace(c.FirstName)
-	if name == "" {
-		name = "there"
+	msg, err := s.confirmationMessage(ctx, ws, c, url)
+	if err != nil {
+		s.ReleaseOptInSend(ctx, c.ID, claimed)
+		return false, url, err
 	}
-	text := fmt.Sprintf("Hi %s,\n\nPlease confirm that you want to receive email from %s:\n\n%s\n\nIf you didn't ask for this, ignore this email and you won't hear from us.\n", name, ws.Name, url)
-	if _, err := s.Mail.SendSystem(ctx, mailMessage(ws, c, "Confirm your subscription to "+ws.Name, text)); err != nil {
+	if _, err := s.Mail.SendSystem(ctx, msg); err != nil {
 		s.ReleaseOptInSend(ctx, c.ID, claimed)
 		return false, url, nil
 	}
@@ -848,4 +849,23 @@ func (s *Service) changeEmail(ctx context.Context, tx pgx.Tx, ws *store.Workspac
 		return c, err
 	}
 	return after, nil
+}
+
+// confirmationMessage is the opt-in email for c: the forms' branded one in
+// the contact's language when wired (AU-15), plain English otherwise.
+func (s *Service) confirmationMessage(ctx context.Context, ws *store.Workspace, c store.Contact, url string) (mailer.Message, error) {
+	if s.ConfirmationEmail != nil {
+		msg, err := s.ConfirmationEmail(ctx, ws, c.ID, c.Language, url)
+		if err != nil {
+			return mailer.Message{}, err
+		}
+		msg.Kind = "optin_confirmation"
+		return msg, nil
+	}
+	name := strings.TrimSpace(c.FirstName)
+	if name == "" {
+		name = "there"
+	}
+	text := fmt.Sprintf("Hi %s,\n\nPlease confirm that you want to receive email from %s:\n\n%s\n\nIf you didn't ask for this, ignore this email and you won't hear from us.\n", name, ws.Name, url)
+	return mailMessage(ws, c, "Confirm your subscription to "+ws.Name, text), nil
 }

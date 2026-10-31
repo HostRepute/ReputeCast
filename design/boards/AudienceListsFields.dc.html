@@ -214,12 +214,12 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
     <main class="content lf" id="main" style="padding:20px 28px;display:flex;flex-direction:column;gap:16px">
   <section class="card" aria-labelledby="lists-h">
     <div class="sec"><div style="display:flex;flex-direction:column;gap:2px"><h2 class="h2" id="lists-h">Lists · 4</h2><span class="k">What contacts subscribe to. Forms, imports and the preference center add to them.</span></div><button class="btn pri">New list</button></div>
-    <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>List</th><th>Subscribed</th><th>Opt-in</th><th>Shown in the preference center</th><th><span class="vh">Actions</span></th></tr></thead>
+    <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>List</th><th>Subscribed</th><th>Opt-in</th><th><span class="vh">Actions</span></th></tr></thead>
     <tbody>
-      <tr><td><b>Weekly Digest</b><div class="k">The Tuesday newsletter</div></td><td class="n">31,904</td><td><span class="badge ok">Double opt-in</span></td><td>Yes</td><td style="text-align:right"><button class="btn sm">Rename</button> <button class="btn sm">Opt-in mode</button></td></tr>
-      <tr><td><b>Product Updates</b><div class="k">Release notes, monthly</div></td><td class="n">12,480</td><td><span class="badge mut">Single opt-in</span></td><td>Yes</td><td style="text-align:right"><button class="btn sm">Rename</button> <button class="btn sm">Opt-in mode</button></td></tr>
-      <tr><td><b>Beta Program</b></td><td class="n">2,115</td><td><span class="badge ok">Double opt-in</span></td><td>No</td><td style="text-align:right"><button class="btn sm">Rename</button> <button class="btn sm">Opt-in mode</button></td></tr>
-      <tr><td><b>Acme Summit 2026</b></td><td class="n">338</td><td><span class="badge mut">Single opt-in</span></td><td>No</td><td style="text-align:right"><button class="btn sm">Rename</button> <button class="btn sm">Opt-in mode</button></td></tr>
+      <tr><td><b>Weekly Digest</b><div class="k">The Tuesday newsletter</div></td><td class="n">31,904</td><td><span class="badge ok">Double opt-in</span></td><td style="text-align:right"><button class="btn sm">Rename</button> <button class="btn sm">Opt-in mode</button></td></tr>
+      <tr><td><b>Product Updates</b><div class="k">Release notes, monthly</div></td><td class="n">12,480</td><td><span class="badge mut">Single opt-in</span></td><td style="text-align:right"><button class="btn sm">Rename</button> <button class="btn sm">Opt-in mode</button></td></tr>
+      <tr><td><b>Beta Program</b></td><td class="n">2,115</td><td><span class="badge ok">Double opt-in</span></td><td style="text-align:right"><button class="btn sm">Rename</button> <button class="btn sm">Opt-in mode</button></td></tr>
+      <tr><td><b>Acme Summit 2026</b></td><td class="n">338</td><td><span class="badge mut">Single opt-in</span></td><td style="text-align:right"><button class="btn sm">Rename</button> <button class="btn sm">Opt-in mode</button></td></tr>
     </tbody></table></div>
   </section>
   <section class="card" aria-labelledby="fields-h">
@@ -230,11 +230,11 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
       <tr><td><b>Company size</b></td><td class="mono">company_size</td><td>Number</td><td class="n">9,114</td><td>1 segment</td><td style="text-align:right"><button class="btn sm">Edit</button> <button class="btn sm">Delete</button></td></tr>
       <tr><td><b>Trial ends</b></td><td class="mono">trial_end</td><td>Date</td><td class="n">1,204</td><td>1 automation · Liquid in 2 templates</td><td style="text-align:right"><button class="btn sm">Edit</button> <button class="btn sm">Delete</button></td></tr>
       <tr><td><b>MRR</b></td><td class="mono">mrr</td><td>Number</td><td class="n">3,980</td><td><span class="k">Nothing</span></td><td style="text-align:right"><button class="btn sm">Edit</button> <button class="btn sm">Delete</button></td></tr>
-      <tr><td><b>Industry</b> <span class="badge warn">Deleted · restorable until 30 Nov</span></td><td class="mono">industry</td><td>Text</td><td class="n">–</td><td><span class="k">Values being removed</span></td><td style="text-align:right"><button class="btn sm">Restore</button></td></tr>
+      <tr><td><b>Industry</b> <span class="badge warn">Deleted · restorable until 30 Nov</span></td><td class="mono">industry</td><td>Text</td><td class="n">–</td><td><span class="k">Values kept until 30 Nov</span></td><td style="text-align:right"><button class="btn sm">Restore</button></td></tr>
     </tbody></table></div>
   </section>
   <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start">
-    <div class="dlg"><header>New list</header><div class="body"><div class="field"><label class="lbl" for="ln">Name</label><input id="ln" class="in" value="Partner news"></div><div class="field"><span class="lbl">Opt-in</span><label><input type="radio" name="oi" checked> Double opt-in · they confirm by email</label><label><input type="radio" name="oi"> Single opt-in</label></div><label><input type="checkbox" checked> Show in the preference center</label></div><footer><button class="btn">Cancel</button><button class="btn pri">Create list</button></footer></div>
+    <div class="dlg"><header>New list</header><div class="body"><div class="field"><label class="lbl" for="ln">Name</label><input id="ln" class="in" value="Partner news"></div><div class="field"><span class="lbl">Opt-in</span><label><input type="radio" name="oi" checked> Double opt-in · they confirm by email</label><label><input type="radio" name="oi"> Single opt-in</label></div></div><footer><button class="btn">Cancel</button><button class="btn pri">Create list</button></footer></div>
     <div class="dlg"><header>Delete the field “Plan”?</header><div class="body"><span>It's used in places that stop working without it:</span>
       <div class="use"><span style="flex:1"><b>Segment</b> · Team plan, engaged</span><a href="#">Open</a></div>
       <div class="use"><span style="flex:1"><b>Segment</b> · Business accounts</span><a href="#">Open</a></div>

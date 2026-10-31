@@ -24851,6 +24851,67 @@
         ],
         "type": "object"
       },
+      "DeletedField": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "deletedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "display": {
+            "enum": [
+              "",
+              "currency"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "restoreUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "text",
+              "number",
+              "date",
+              "boolean",
+              "select"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "deletedAt",
+          "restoreUntil",
+          "id",
+          "key",
+          "label",
+          "type",
+          "options",
+          "display",
+          "createdAt"
+        ],
+        "type": "object"
+      },
       "DeliverabilityAssetBlocklists": {
         "additionalProperties": false,
         "properties": {
@@ -32905,6 +32966,33 @@
         ],
         "type": "object"
       },
+      "FieldImpact": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "uses": {
+            "items": {
+              "$ref": "#/components/schemas/Use"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "label",
+          "uses"
+        ],
+        "type": "object"
+      },
       "FieldSource": {
         "additionalProperties": false,
         "properties": {
@@ -32946,6 +33034,51 @@
         },
         "required": [
           "items"
+        ],
+        "type": "object"
+      },
+      "FieldUsage": {
+        "additionalProperties": false,
+        "properties": {
+          "filled": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "uses": {
+            "items": {
+              "$ref": "#/components/schemas/Use"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "uses"
+        ],
+        "type": "object"
+      },
+      "FieldsOverview": {
+        "additionalProperties": false,
+        "properties": {
+          "deleted": {
+            "items": {
+              "$ref": "#/components/schemas/DeletedField"
+            },
+            "type": "array"
+          },
+          "usage": {
+            "items": {
+              "$ref": "#/components/schemas/FieldUsage"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "usage",
+          "deleted"
         ],
         "type": "object"
       },
@@ -64634,6 +64767,33 @@
         ],
         "type": "object"
       },
+      "RemoveUploadInput": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 300,
+            "minLength": 3,
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "type": "object"
+      },
+      "RemoveUploadResult": {
+        "additionalProperties": false,
+        "properties": {
+          "removed": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "removed"
+        ],
+        "type": "object"
+      },
       "Rename-passkeyRequest": {
         "additionalProperties": false,
         "properties": {
@@ -73032,6 +73192,29 @@
         "required": [
           "match",
           "conditions"
+        ],
+        "type": "object"
+      },
+      "SegmentImpact": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "uses": {
+            "items": {
+              "$ref": "#/components/schemas/Use"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "uses"
         ],
         "type": "object"
       },
@@ -83121,6 +83304,30 @@
         ],
         "type": "object"
       },
+      "SunsetDryRun": {
+        "additionalProperties": false,
+        "properties": {
+          "erase": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "from": {
+            "description": "The first run's day (2026-12-01), in the workspace's time zone",
+            "type": "string"
+          },
+          "kept": {
+            "description": "Paid members, kept until their subscription ends",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "erase",
+          "kept",
+          "from"
+        ],
+        "type": "object"
+      },
       "SunsetPolicy": {
         "additionalProperties": false,
         "properties": {
@@ -83135,6 +83342,10 @@
             "maximum": 3650,
             "minimum": 2,
             "type": "integer"
+          },
+          "confirmErase": {
+            "maxLength": 10,
+            "type": "string"
           },
           "countMachineOpens": {
             "type": "boolean"
@@ -83345,6 +83556,9 @@
           },
           "source": {
             "$ref": "#/components/schemas/SuppressionSource"
+          },
+          "upload": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -91247,6 +91461,35 @@
           "received",
           "size",
           "chunkBytes"
+        ],
+        "type": "object"
+      },
+      "Use": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "segment",
+              "form",
+              "scoring",
+              "automation",
+              "campaign",
+              "digest",
+              "view"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "name"
         ],
         "type": "object"
       },
@@ -111989,6 +112232,75 @@
           }
         ],
         "summary": "Save the sunset policy (applies at the next nightly run)",
+        "tags": [
+          "Audience"
+        ],
+        "x-access": "workspace",
+        "x-permission": "lists:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/audience/sunset-policy/dry-run": {
+      "get": {
+        "operationId": "sunset-erase-dry-run",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "months",
+            "schema": {
+              "default": 12,
+              "format": "int64",
+              "maximum": 120,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SunsetDryRun"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How many contacts erasing after N months in Sunset would erase first (nothing changes)",
         "tags": [
           "Audience"
         ],
@@ -136323,8 +136635,66 @@
         "x-permission": "lists:manage"
       }
     },
+    "/api/v1/workspaces/{workspace}/fields/overview": {
+      "get": {
+        "operationId": "fields-overview",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldsOverview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What uses each custom field, how many contacts have a value, and deleted fields",
+        "tags": [
+          "Audience"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
+      }
+    },
     "/api/v1/workspaces/{workspace}/fields/{id}": {
       "delete": {
+        "description": "The field leaves forms, segments, views and exports at once; its values stay on contacts for 30 days, then the maintenance pass removes them. Audited.",
         "operationId": "delete-field",
         "parameters": [
           {
@@ -136374,7 +136744,7 @@
             "bearer": []
           }
         ],
-        "summary": "Delete a custom field and its values",
+        "summary": "Delete a custom field (restorable for 30 days, then its values go)",
         "tags": [
           "Audience"
         ],
@@ -136449,6 +136819,138 @@
           }
         ],
         "summary": "Change a custom field's label, options or display",
+        "tags": [
+          "Audience"
+        ],
+        "x-access": "workspace",
+        "x-permission": "lists:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/fields/{id}/impact": {
+      "get": {
+        "operationId": "get-field-impact",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldImpact"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What deleting a custom field would affect",
+        "tags": [
+          "Audience"
+        ],
+        "x-access": "workspace",
+        "x-permission": "lists:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/fields/{id}/restore": {
+      "post": {
+        "operationId": "restore-field",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomFieldDef"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore a custom field deleted in the last 30 days, with its values",
         "tags": [
           "Audience"
         ],
@@ -161130,6 +161632,74 @@
         "x-permission": "subscribers:view"
       }
     },
+    "/api/v1/workspaces/{workspace}/segments/{segment}/impact": {
+      "get": {
+        "operationId": "get-segment-impact",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Segment id",
+            "in": "path",
+            "name": "segment",
+            "required": true,
+            "schema": {
+              "description": "Segment id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SegmentImpact"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What deleting a segment would affect (review 2026-11 AU-11)",
+        "tags": [
+          "Segments"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
+      }
+    },
     "/api/v1/workspaces/{workspace}/send-defaults": {
       "put": {
         "description": "Whether sends leave out the unengaged contacts of the sunset policy, and when a sender types the recipient count.",
@@ -169720,6 +170290,82 @@
           }
         ],
         "summary": "Add addresses from a CSV file",
+        "tags": [
+          "Suppressions"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/suppressions/uploads/{id}/remove": {
+      "post": {
+        "operationId": "remove-suppression-upload",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveUploadInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoveUploadResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take a whole CSV upload off the suppression list (needs a reason, logged)",
         "tags": [
           "Suppressions"
         ],

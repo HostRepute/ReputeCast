@@ -46,6 +46,10 @@ type Service struct {
 	// the exports' files.
 	Jobs     func() *jobs.Client
 	FilesDir string
+	// ConfirmationEmail builds the opt-in email the team sends from the app
+	// as the forms' branded, localized one (AU-15; internal/app wires it);
+	// nil: plain text in English.
+	ConfirmationEmail func(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, language, link string) (mailer.Message, error)
 }
 
 // SourceNamer names contacts' sources: by contact, for the contacts whose

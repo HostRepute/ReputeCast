@@ -3043,6 +3043,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/audience/sunset-policy/dry-run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How many contacts erasing after N months in Sunset would erase first (nothing changes) */
+        get: operations["sunset-erase-dry-run"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/audit": {
         parameters: {
             query?: never;
@@ -8122,6 +8139,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/fields/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What uses each custom field, how many contacts have a value, and deleted fields */
+        get: operations["fields-overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/fields/{id}": {
         parameters: {
             query?: never;
@@ -8132,12 +8166,49 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Delete a custom field and its values */
+        /**
+         * Delete a custom field (restorable for 30 days, then its values go)
+         * @description The field leaves forms, segments, views and exports at once; its values stay on contacts for 30 days, then the maintenance pass removes them. Audited.
+         */
         delete: operations["delete-field"];
         options?: never;
         head?: never;
         /** Change a custom field's label, options or display */
         patch: operations["update-field"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/fields/{id}/impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What deleting a custom field would affect */
+        get: operations["get-field-impact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/fields/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a custom field deleted in the last 30 days, with its values */
+        post: operations["restore-field"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/workspaces/{workspace}/forms": {
@@ -13472,6 +13543,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/segments/{segment}/impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What deleting a segment would affect (review 2026-11 AU-11) */
+        get: operations["get-segment-impact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/send-defaults": {
         parameters: {
             query?: never;
@@ -15330,6 +15418,23 @@ export interface paths {
         put?: never;
         /** Add addresses from a CSV file */
         post: operations["upload-suppressions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/suppressions/uploads/{id}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take a whole CSV upload off the suppression list (needs a reason, logged) */
+        post: operations["remove-suppression-upload"];
         delete?: never;
         options?: never;
         head?: never;
@@ -24767,6 +24872,22 @@ export interface components {
         CustomFieldList: {
             items: components["schemas"]["CustomFieldDef"][];
         };
+        DeletedField: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            deletedAt: string;
+            /** @enum {string} */
+            display: "" | "currency";
+            id: string;
+            key: string;
+            label: string;
+            options: string[];
+            /** Format: date-time */
+            restoreUntil: string;
+            /** @enum {string} */
+            type: "text" | "number" | "date" | "boolean" | "select";
+        };
         DeliverabilityAssetBlocklists: {
             /** Format: date-time */
             checkedAt?: string;
@@ -27048,6 +27169,12 @@ export interface components {
             required: boolean;
             secret: boolean;
         };
+        FieldImpact: {
+            id: string;
+            key: string;
+            label: string;
+            uses: components["schemas"]["Use"][];
+        };
         FieldSource: {
             /** Format: date-time */
             at: string;
@@ -27058,6 +27185,16 @@ export interface components {
         };
         FieldSources: {
             items: components["schemas"]["FieldSource"][];
+        };
+        FieldUsage: {
+            /** Format: int64 */
+            filled?: number;
+            id: string;
+            uses: components["schemas"]["Use"][];
+        };
+        FieldsOverview: {
+            deleted: components["schemas"]["DeletedField"][];
+            usage: components["schemas"]["FieldUsage"][];
         };
         FinishInput: {
             /** @description Connect without the ReputeCast plugin: products and orders only */
@@ -36227,6 +36364,13 @@ export interface components {
         RemoveSuppressionInput: {
             reason: string;
         };
+        RemoveUploadInput: {
+            reason: string;
+        };
+        RemoveUploadResult: {
+            /** Format: int64 */
+            removed: number;
+        };
         "Rename-passkeyRequest": {
             name: string;
         };
@@ -38619,6 +38763,11 @@ export interface components {
              * @enum {string}
              */
             match: "all" | "any";
+        };
+        SegmentImpact: {
+            id: string;
+            name: string;
+            uses: components["schemas"]["Use"][];
         };
         SegmentInput: {
             definition?: components["schemas"]["SegmentDefinition"];
@@ -41470,11 +41619,23 @@ export interface components {
              */
             language: "en" | "vi";
         };
+        SunsetDryRun: {
+            /** Format: int64 */
+            erase: number;
+            /** @description The first run's day (2026-12-01), in the workspace's time zone */
+            from: string;
+            /**
+             * Format: int64
+             * @description Paid members, kept until their subscription ends
+             */
+            kept: number;
+        };
         SunsetPolicy: {
             /** Format: int64 */
             activeDays: number;
             /** Format: int64 */
             atRiskDays: number;
+            confirmErase?: string;
             countMachineOpens: boolean;
             deleteAfter: boolean;
             /** Format: int64 */
@@ -41549,6 +41710,7 @@ export interface components {
             /** @enum {string} */
             scope: "all" | "marketing";
             source: components["schemas"]["SuppressionSource"];
+            upload?: boolean;
         };
         SuppressionList: {
             counts: components["schemas"]["SuppressionCountsView"];
@@ -43819,6 +43981,12 @@ export interface components {
             received: number;
             /** Format: int64 */
             size: number;
+        };
+        Use: {
+            id: string;
+            /** @enum {string} */
+            kind: "segment" | "form" | "scoring" | "automation" | "campaign" | "digest" | "view";
+            name: string;
         };
         VariableUse: {
             /** Format: int64 */
@@ -53199,6 +53367,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SunsetPolicy"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "sunset-erase-dry-run": {
+        parameters: {
+            query?: {
+                months?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SunsetDryRun"];
                 };
             };
             /** @description Error */
@@ -64920,6 +65122,38 @@ export interface operations {
             };
         };
     };
+    "fields-overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldsOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "delete-field": {
         parameters: {
             query?: never;
@@ -64967,6 +65201,72 @@ export interface operations {
                 "application/json": components["schemas"]["CustomFieldInput"];
             };
         };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFieldDef"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-field-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldImpact"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "restore-field": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -77408,6 +77708,40 @@ export interface operations {
             };
         };
     };
+    "get-segment-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Segment id */
+                segment: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SegmentImpact"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "update-send-defaults": {
         parameters: {
             query?: never;
@@ -81685,6 +82019,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuppressionUploadResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-suppression-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoveUploadInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoveUploadResult"];
                 };
             };
             /** @description Error */

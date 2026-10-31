@@ -74,6 +74,17 @@ func (q contactsQuery) filter() ContactFilter {
 		PushWhatsAppFilter: q.PushWhatsAppQuery.filter(), ProductsFilter: q.ProductsQuery.filter(), StoreFilter: q.StoreQuery.filter(), ChannelFilter: q.ChannelQuery.filter()}
 }
 
+type uploadRemoveInput struct {
+	api.WorkspaceInput
+	ID   string `path:"id" format:"uuid"`
+	Body RemoveUploadInput
+}
+
+type dryRunInput struct {
+	api.WorkspaceInput
+	Months int `query:"months" minimum:"1" maximum:"120" default:"12"`
+}
+
 type jobPathInput struct {
 	api.WorkspaceInput
 	ID string `path:"id" format:"uuid"`
@@ -172,6 +183,12 @@ func Register(h huma.API, s *Service, box Box) {
 	api.Get(h, api.Op{ID: "list-health", Path: ws + "/audience/health", Summary: "Tiers, tier trend, sunset policy and health per list", Tags: tags, Access: view},
 		func(ctx context.Context, in *api.WorkspaceInput) (*api.Body[ListHealth], error) {
 			out, err := s.Health(ctx, api.WorkspaceFrom(ctx))
+			return api.OK(out), err
+		})
+	api.Get(h, api.Op{ID: "sunset-erase-dry-run", Path: ws + "/audience/sunset-policy/dry-run", Summary: "How many contacts erasing after N months in Sunset would erase first (nothing changes)",
+		Tags: tags, Access: manage},
+		func(ctx context.Context, in *dryRunInput) (*api.Body[SunsetDryRun], error) {
+			out, err := s.SunsetDryRun(ctx, api.WorkspaceFrom(ctx), in.Months)
 			return api.OK(out), err
 		})
 	api.Put(h, api.Op{ID: "save-sunset-policy", Path: ws + "/audience/sunset-policy", Summary: "Save the sunset policy (applies at the next nightly run)", Tags: tags, Access: manage},
@@ -372,9 +389,29 @@ func Register(h huma.API, s *Service, box Box) {
 			out, err := s.UpdateField(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.ID), in.Body)
 			return api.OK(out), err
 		})
-	api.Delete(h, api.Op{ID: "delete-field", Path: ws + "/fields/{id}", Summary: "Delete a custom field and its values", Tags: tags, Access: manage},
+	api.Delete(h, api.Op{ID: "delete-field", Path: ws + "/fields/{id}", Summary: "Delete a custom field (restorable for 30 days, then its values go)",
+		Description: "The field leaves forms, segments, views and exports at once; its values stay on contacts for 30 days, then the maintenance pass removes them. Audited.",
+		Tags:        tags, Access: manage},
 		func(ctx context.Context, in *AudienceIDInput) (*api.Empty, error) {
 			return api.NoContent, s.DeleteField(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.ID))
+		})
+	// Lists & fields (review 2026-11 AU-11).
+	api.Get(h, api.Op{ID: "fields-overview", Path: ws + "/fields/overview", Summary: "What uses each custom field, how many contacts have a value, and deleted fields",
+		Tags: tags, Access: view},
+		func(ctx context.Context, in *api.WorkspaceInput) (*api.Body[FieldsOverview], error) {
+			out, err := s.FieldsOverview(ctx, api.WorkspaceFrom(ctx))
+			return api.OK(out), err
+		})
+	api.Get(h, api.Op{ID: "get-field-impact", Path: ws + "/fields/{id}/impact", Summary: "What deleting a custom field would affect", Tags: tags, Access: manage},
+		func(ctx context.Context, in *AudienceIDInput) (*api.Body[FieldImpact], error) {
+			out, err := s.FieldImpact(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.ID))
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "restore-field", Path: ws + "/fields/{id}/restore", Summary: "Restore a custom field deleted in the last 30 days, with its values",
+		Tags: tags, Access: manage},
+		func(ctx context.Context, in *AudienceIDInput) (*api.Body[CustomFieldDef], error) {
+			out, err := s.RestoreField(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.ID))
+			return api.OK(out), err
 		})
 
 	// Suppression list
@@ -392,6 +429,16 @@ func Register(h huma.API, s *Service, box Box) {
 	api.Post(h, api.Op{ID: "remove-suppression", Path: ws + "/suppressions/{id}/remove", Summary: "Take an address off the suppression list (needs a reason, logged)", Tags: stags, Access: edit},
 		func(ctx context.Context, in *idBody[RemoveSuppressionInput]) (*api.Empty, error) {
 			return api.NoContent, s.RemoveSuppression(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.ID), in.Body)
+		})
+	api.Post(h, api.Op{ID: "remove-suppression-upload", Path: ws + "/suppressions/uploads/{id}/remove", Summary: "Take a whole CSV upload off the suppression list (needs a reason, logged)",
+		Tags: stags, Access: edit},
+		func(ctx context.Context, in *uploadRemoveInput) (*api.Body[RemoveUploadResult], error) {
+			id, err := uuid.Parse(in.ID)
+			if err != nil {
+				return nil, api.NotFound("Upload")
+			}
+			out, err := s.RemoveUpload(ctx, api.WorkspaceFrom(ctx), id, in.Body)
+			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "export-suppressions", Path: ws + "/suppressions/export", Summary: "Export the suppression list as CSV (logged)", Tags: stags, Access: api.Workspace(authz.SubscribersExport)},
 		func(ctx context.Context, in *api.WorkspaceInput) (*File, error) {

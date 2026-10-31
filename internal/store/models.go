@@ -1224,6 +1224,20 @@ type CustomField struct {
 	Position    int32           `json:"position"`
 }
 
+type CustomFieldsDeleted struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Key         string          `json:"key"`
+	Label       string          `json:"label"`
+	Type        string          `json:"type"`
+	Options     json.RawMessage `json:"options"`
+	Display     string          `json:"display"`
+	Position    int32           `json:"position"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	DeletedAt   time.Time       `json:"deletedAt"`
+	DeletedBy   *uuid.UUID      `json:"deletedBy"`
+}
+
 type DeliverabilityAssetCheck struct {
 	WorkspaceID uuid.UUID       `json:"workspaceId"`
 	Asset       string          `json:"asset"`
@@ -3762,6 +3776,14 @@ type Segment struct {
 type SegmentMember struct {
 	SegmentID uuid.UUID `json:"segmentId"`
 	ContactID uuid.UUID `json:"contactId"`
+	EnteredAt time.Time `json:"enteredAt"`
+}
+
+type SegmentMemberEvent struct {
+	SegmentID uuid.UUID `json:"segmentId"`
+	ContactID uuid.UUID `json:"contactId"`
+	Kind      string    `json:"kind"`
+	At        time.Time `json:"at"`
 }
 
 type Sender struct {
@@ -4603,6 +4625,20 @@ type Suppression struct {
 	ImportID         *uuid.UUID      `json:"importId"`
 	Texts            json.RawMessage `json:"texts"`
 	Seq              int64           `json:"seq"`
+	UploadID         *uuid.UUID      `json:"uploadId"`
+}
+
+type SuppressionUpload struct {
+	ID            uuid.UUID  `json:"id"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	FileName      string     `json:"fileName"`
+	Reason        string     `json:"reason"`
+	Note          string     `json:"note"`
+	CreatedBy     *uuid.UUID `json:"createdBy"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	RemovedAt     *time.Time `json:"removedAt"`
+	RemovedBy     *uuid.UUID `json:"removedBy"`
+	RemovedReason string     `json:"removedReason"`
 }
 
 type Survey struct {

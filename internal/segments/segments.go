@@ -19,6 +19,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/dependents"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -373,10 +374,9 @@ func (s *Service) snapshot(ctx context.Context, ws *store.Workspace, in SegmentI
 // the count (a count that timed out keeps the last one).
 func (s *Service) storeCount(ctx context.Context, q *store.Queries, id uuid.UUID, res SegmentCountResult, counted bool, ids []uuid.UUID) error {
 	if ids != nil {
-		if err := q.ClearSegmentMembers(ctx, id); err != nil {
-			return err
-		}
-		if err := q.AddSegmentMembers(ctx, store.AddSegmentMembersParams{SegmentID: id, ContactIds: ids}); err != nil {
+		// A diff, so members keep when they entered and the leavers are
+		// recorded (review 2026-11 AU-16).
+		if _, err := q.ReplaceSegmentMembers(ctx, store.ReplaceSegmentMembersParams{SegmentID: id, ContactIds: ids, At: s.now()}); err != nil {
 			return err
 		}
 	}
@@ -424,6 +424,28 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 			Before: map[string]any{"name": seg.Name, "mode": seg.Mode, "definition": seg.Definition, "sql": seg.Sql},
 		})
 	})
+}
+
+// SegmentImpact is what deleting a segment would affect: campaigns and
+// digests sending to it, automations using it, saved views and other
+// segments built on it.
+type SegmentImpact struct {
+	ID   string           `json:"id"`
+	Name string           `json:"name"`
+	Uses []dependents.Use `json:"uses"`
+}
+
+// Impact lists what uses a segment.
+func (s *Service) Impact(ctx context.Context, ws *store.Workspace, id uuid.UUID) (SegmentImpact, error) {
+	seg, err := s.Q.GetSegment(ctx, store.GetSegmentParams{WorkspaceID: ws.ID, ID: id})
+	if err != nil {
+		return SegmentImpact{}, err
+	}
+	idx, err := dependents.Load(ctx, s.Pool, ws.ID)
+	if err != nil {
+		return SegmentImpact{}, err
+	}
+	return SegmentImpact{ID: seg.ID.String(), Name: seg.Name, Uses: idx.Segment(seg.ID)}, nil
 }
 
 // Condition is a saved segment as a condition on contacts aliased c, for

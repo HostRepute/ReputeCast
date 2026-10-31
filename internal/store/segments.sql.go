@@ -13,31 +13,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const addSegmentMembers = `-- name: AddSegmentMembers :exec
-INSERT INTO segment_members (segment_id, contact_id)
-SELECT $1, unnest($2::uuid[])
-ON CONFLICT DO NOTHING
-`
-
-type AddSegmentMembersParams struct {
-	SegmentID  uuid.UUID   `json:"segmentId"`
-	ContactIds []uuid.UUID `json:"contactIds"`
-}
-
-func (q *Queries) AddSegmentMembers(ctx context.Context, arg AddSegmentMembersParams) error {
-	_, err := q.db.Exec(ctx, addSegmentMembers, arg.SegmentID, arg.ContactIds)
-	return err
-}
-
-const clearSegmentMembers = `-- name: ClearSegmentMembers :exec
-DELETE FROM segment_members WHERE segment_id = $1
-`
-
-func (q *Queries) ClearSegmentMembers(ctx context.Context, segmentID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, clearSegmentMembers, segmentID)
-	return err
-}
-
 const contactSources = `-- name: ContactSources :many
 SELECT source, count(*)::bigint AS n
 FROM contacts
@@ -272,6 +247,49 @@ func (q *Queries) RecentSentCampaigns(ctx context.Context, workspaceID uuid.UUID
 		return nil, err
 	}
 	return items, nil
+}
+
+const replaceSegmentMembers = `-- name: ReplaceSegmentMembers :one
+WITH want AS (
+    SELECT DISTINCT unnest($1::uuid[]) AS contact_id
+), gone AS (
+    DELETE FROM segment_members sm WHERE sm.segment_id = $2
+      AND NOT EXISTS (SELECT 1 FROM want w WHERE w.contact_id = sm.contact_id)
+    RETURNING sm.contact_id
+), added AS (
+    INSERT INTO segment_members (segment_id, contact_id, entered_at)
+    SELECT $2, w.contact_id, $3::timestamptz FROM want w
+    ON CONFLICT DO NOTHING
+    RETURNING contact_id
+), events AS (
+    INSERT INTO segment_member_events (segment_id, contact_id, kind, at)
+    SELECT $2, g.contact_id, 'left', $3::timestamptz FROM gone g
+    UNION ALL
+    SELECT $2, a.contact_id, 'entered', $3::timestamptz FROM added a
+    RETURNING kind
+)
+SELECT (SELECT count(*) FROM events WHERE kind = 'entered')::bigint AS entered,
+       (SELECT count(*) FROM events WHERE kind = 'left')::bigint AS left_count
+`
+
+type ReplaceSegmentMembersParams struct {
+	ContactIds []uuid.UUID `json:"contactIds"`
+	SegmentID  uuid.UUID   `json:"segmentId"`
+	At         time.Time   `json:"at"`
+}
+
+type ReplaceSegmentMembersRow struct {
+	Entered   int64 `json:"entered"`
+	LeftCount int64 `json:"leftCount"`
+}
+
+// A refresh as a diff (review 2026-11 AU-16): members that stay keep their
+// entered_at; those who leave and those who come in each get an event.
+func (q *Queries) ReplaceSegmentMembers(ctx context.Context, arg ReplaceSegmentMembersParams) (ReplaceSegmentMembersRow, error) {
+	row := q.db.QueryRow(ctx, replaceSegmentMembers, arg.ContactIds, arg.SegmentID, arg.At)
+	var i ReplaceSegmentMembersRow
+	err := row.Scan(&i.Entered, &i.LeftCount)
+	return i, err
 }
 
 const segmentMemberIDs = `-- name: SegmentMemberIDs :many

@@ -60,6 +60,9 @@ var (
 	mViewName         = msgs.M("problem.viewName")
 	mCursor           = msgs.M("problem.cursor")
 	mViewColumn       = msgs.M("problem.viewColumn")
+	mFieldKeyDeleted  = msgs.M("problem.fieldKeyDeleted")
+	mConfirmErase     = msgs.M("problem.confirmErase")
+	mRemoveReason     = msgs.M("problem.removeReason")
 	// Background jobs in the tray (AU-4).
 	mJobExportTitle      = msgs.M("job.exportTitle")
 	mJobResendTitle      = msgs.M("job.resendTitle")

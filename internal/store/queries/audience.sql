@@ -154,6 +154,32 @@ RETURNING *;
 -- name: DeleteCustomField :execrows
 DELETE FROM custom_fields WHERE workspace_id = @workspace_id AND id = @id;
 
+-- name: CustomFieldSetAside :exec
+-- A deleted field waits 30 days (review 2026-11 AU-11).
+INSERT INTO custom_fields_deleted (id, workspace_id, key, label, type, options, display, position, created_at, deleted_at, deleted_by)
+SELECT cf.id, cf.workspace_id, cf.key, cf.label, cf.type, cf.options, cf.display, cf.position, cf.created_at, @at::timestamptz, sqlc.narg(deleted_by)
+FROM custom_fields cf WHERE cf.workspace_id = @workspace_id AND cf.id = @id;
+
+-- name: DeletedCustomFields :many
+SELECT * FROM custom_fields_deleted WHERE workspace_id = @workspace_id ORDER BY deleted_at DESC;
+
+-- name: DeletedCustomFieldByKey :one
+SELECT * FROM custom_fields_deleted WHERE workspace_id = @workspace_id AND key = @key;
+
+-- name: CustomFieldRestore :one
+WITH f AS (
+    DELETE FROM custom_fields_deleted d WHERE d.workspace_id = @workspace_id AND d.id = @id RETURNING *
+)
+INSERT INTO custom_fields (id, workspace_id, key, label, type, options, display, position, created_at)
+SELECT f.id, f.workspace_id, f.key, f.label, f.type, f.options, f.display, f.position, f.created_at FROM f
+RETURNING *;
+
+-- name: DeletedCustomFieldsDue :many
+SELECT * FROM custom_fields_deleted WHERE deleted_at < @before::timestamptz ORDER BY deleted_at LIMIT 50;
+
+-- name: DeletedCustomFieldGone :exec
+DELETE FROM custom_fields_deleted WHERE id = @id;
+
 -- name: GetContact :one
 SELECT * FROM contacts WHERE workspace_id = @workspace_id AND id = @id AND erased_at IS NULL;
 
@@ -283,9 +309,10 @@ SELECT * FROM suppressions WHERE workspace_id = @workspace_id AND email = @email
 
 -- name: InsertSuppression :one
 INSERT INTO suppressions (id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by,
-                          scope, campaign_id, automation_id, automation_step, context, import_id, created_at, texts)
+                          scope, campaign_id, automation_id, automation_step, context, import_id, created_at, texts, upload_id)
 VALUES (@id, @workspace_id, @email, @reason, @source, @source_provider_id, @original_code, @detail, @created_by,
-        @scope, @campaign_id, @automation_id, @automation_step, @context, @import_id, @created_at, coalesce(sqlc.narg(texts)::jsonb, '{}'))
+        @scope, @campaign_id, @automation_id, @automation_step, @context, @import_id, @created_at, coalesce(sqlc.narg(texts)::jsonb, '{}'),
+        sqlc.narg(upload_id))
 ON CONFLICT (workspace_id, email) DO NOTHING
 RETURNING *;
 
@@ -425,3 +452,13 @@ SELECT id, file_key FROM audience_jobs WHERE file_key <> '' AND expires_at < @no
 
 -- name: AudienceJobFileGone :exec
 UPDATE audience_jobs SET file_key = '' WHERE id = @id;
+
+-- name: SuppressionUploadInsert :exec
+INSERT INTO suppression_uploads (id, workspace_id, file_name, reason, note, created_by, created_at)
+VALUES (@id, @workspace_id, @file_name, @reason, @note, sqlc.narg(created_by), @at);
+
+-- name: SuppressionUploadGet :one
+SELECT * FROM suppression_uploads WHERE workspace_id = @workspace_id AND id = @id;
+
+-- name: SuppressionUploadRemoved :exec
+UPDATE suppression_uploads SET removed_at = @at, removed_by = sqlc.narg(removed_by), removed_reason = @removed_reason WHERE id = @id;

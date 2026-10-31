@@ -127,6 +127,12 @@ func Register(h huma.API, s *Service) {
 		func(ctx context.Context, in *SegmentPathInput) (*api.Empty, error) {
 			return api.NoContent, Problem(ctx, s.Delete(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.ID)))
 		})
+	api.Get(h, api.Op{ID: "get-segment-impact", Path: base + "/{segment}/impact", Summary: "What deleting a segment would affect (review 2026-11 AU-11)",
+		Tags: tags, Access: view},
+		func(ctx context.Context, in *SegmentPathInput) (*api.Body[SegmentImpact], error) {
+			out, err := s.Impact(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.ID))
+			return api.OK(out), Problem(ctx, err)
+		})
 	api.Post(h, api.Op{ID: "count-segment", Path: base + "/{segment}/count", Summary: "Count a saved segment again and store the result", Tags: tags, Access: view},
 		func(ctx context.Context, in *SegmentPathInput) (*api.Body[SegmentCountResult], error) {
 			ws := api.WorkspaceFrom(ctx)

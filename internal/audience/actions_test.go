@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -266,4 +267,61 @@ func TestJoinedBetweenAndImportFilters(t *testing.T) {
 		t.Fatalf("from the import: %d", page.Total)
 	}
 	c.Do(http.MethodGet, fmt.Sprintf("%s/contacts?import=%s", base, "nope"), nil).MustStatus(t, 422)
+}
+
+// Review 2026-11 AU-15: the opt-in email the team sends from the app is the
+// forms' branded one, in the contact's language, naming the lists they are
+// pending on.
+func TestTeamOptInEmailIsTheBrandedOne(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	mail := &sentMail{}
+	env.App.Mail = mail
+	ws, err := env.App.Q.GetWorkspaceBySlug(ctx, "acme-newsletter")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var list uuid.UUID
+	var listName string
+	if err := env.App.Pool.QueryRow(ctx, `SELECT id, name FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL AND double_opt_in ORDER BY created_at LIMIT 1`, ws.ID).Scan(&list, &listName); err != nil {
+		t.Fatal(err)
+	}
+	svc := env.App.Audience()
+	for _, c := range []struct{ email, language, greeting, lead string }{
+		{"new.reader@example.com", "en", "Hi Mai,", "Please confirm that you'd like " + listName},
+		{"ban.doc@example.vn", "vi", "Chào Mai,", "Hãy xác nhận rằng bạn muốn nhận"},
+	} {
+		if c.language == "vi" {
+			// The public pages in Vietnamese: the demo's aren't set up, and
+			// then the email falls back to the pages' language, as forms do.
+			if _, err := env.App.Pool.Exec(ctx, `UPDATE public_page_settings SET copy_language = 'vi' WHERE workspace_id = $1`, ws.ID); err != nil {
+				t.Fatal(err)
+			}
+		}
+		id := uuid.Must(uuid.NewV7())
+		if _, err := env.App.Pool.Exec(ctx, `INSERT INTO contacts (id, workspace_id, email, first_name, language, consent) VALUES ($1, $2, $3, 'Mai', $4, 'pending')`,
+			id, ws.ID, c.email, c.language); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := env.App.Pool.Exec(ctx, `INSERT INTO list_memberships (list_id, contact_id, status, source) VALUES ($1, $2, 'pending', 'team')`, list, id); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := svc.ResendOptIn(ctx, &ws, id); err != nil {
+			t.Fatal(err)
+		}
+		var got *mailer.Message
+		for i := range mail.sent {
+			if mail.sent[i].To == c.email {
+				got = &mail.sent[i]
+			}
+		}
+		if got == nil {
+			t.Fatalf("%s: no email", c.email)
+		}
+		if !strings.Contains(got.Text, c.greeting) || !strings.Contains(got.Text, c.lead) || !strings.Contains(got.HTML, "<html lang=\""+c.language+"\"") ||
+			!strings.Contains(got.Text, "/confirm/") || got.Kind != "optin_confirmation" {
+			t.Fatalf("%s: %q\n%s", c.email, got.Subject, got.Text)
+		}
+	}
 }

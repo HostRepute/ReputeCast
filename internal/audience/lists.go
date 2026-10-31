@@ -164,6 +164,11 @@ func (s *Service) CreateField(ctx context.Context, ws *store.Workspace, in Custo
 	if !fieldKeyRe.MatchString(key) {
 		return CustomFieldDef{}, api.Invalid("body.key", say(ctx, mFieldKey, nil))
 	}
+	// A deleted field keeps its key until its values are gone (AU-11).
+	if d, err := s.Q.DeletedCustomFieldByKey(ctx, store.DeletedCustomFieldByKeyParams{WorkspaceID: ws.ID, Key: key}); err == nil {
+		return CustomFieldDef{}, api.Err(409, "field_deleted", say(ctx, mFieldKeyDeleted, i18n.Args{"key": key,
+			"date": i18n.LangFrom(ctx).Region.DayMonth(d.DeletedAt.AddDate(0, 0, fieldRestoreDays))})).WithMeta("fieldId", d.ID.String())
+	}
 	if reservedKeys[key] {
 		return CustomFieldDef{}, api.Invalid("body.key", say(ctx, mFieldBuiltin, i18n.Args{"key": key}))
 	}
@@ -213,26 +218,6 @@ func (s *Service) UpdateField(ctx context.Context, ws *store.Workspace, id uuid.
 			Before: fieldDef(before), After: fieldDef(f)})
 	})
 	return fieldDef(f), err
-}
-
-// DeleteField removes a field and its values from every contact.
-func (s *Service) DeleteField(ctx context.Context, ws *store.Workspace, id uuid.UUID) error {
-	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		f, err := q.GetCustomField(ctx, store.GetCustomFieldParams{WorkspaceID: ws.ID, ID: id})
-		if err != nil {
-			return api.MapError(err, "Field")
-		}
-		if _, err := q.DeleteCustomField(ctx, store.DeleteCustomFieldParams{WorkspaceID: ws.ID, ID: id}); err != nil {
-			return err
-		}
-		tag, err := tx.Exec(ctx, `UPDATE contacts SET attributes = attributes - $2::text WHERE workspace_id = $1 AND attributes ? $2::text`, ws.ID, f.Key)
-		if err != nil {
-			return err
-		}
-		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "field.delete", TargetType: "custom_field", TargetID: id.String(), TargetName: f.Key,
-			Before: fieldDef(f), Metadata: map[string]any{"valuesRemoved": tag.RowsAffected()}})
-	})
 }
 
 func nonNil(xs []string) []string {

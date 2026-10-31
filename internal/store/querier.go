@@ -99,7 +99,6 @@ type Querier interface {
 	AccessibilityUpsertPolicy(ctx context.Context, arg AccessibilityUpsertPolicyParams) error
 	// The draft or running import the wizard resumes.
 	ActiveImport(ctx context.Context, workspaceID uuid.UUID) (Import, error)
-	AddSegmentMembers(ctx context.Context, arg AddSegmentMembersParams) error
 	// Adds the keys the workspace's branding doesn't have; never overwrites.
 	AgencyAddBrandingKeys(ctx context.Context, arg AgencyAddBrandingKeysParams) error
 	AgencyAddSendingDefaults(ctx context.Context, arg AgencyAddSendingDefaultsParams) error
@@ -578,7 +577,6 @@ type Querier interface {
 	ClaimAutomationEvents(ctx context.Context, arg ClaimAutomationEventsParams) ([]ClaimAutomationEventsRow, error)
 	// Runs ready to move on, in flows that are live (paused flows hold their runs).
 	ClaimDueAutomationRuns(ctx context.Context, arg ClaimDueAutomationRunsParams) ([]ClaimDueAutomationRunsRow, error)
-	ClearSegmentMembers(ctx context.Context, segmentID uuid.UUID) error
 	ClearSignInThrottle(ctx context.Context, email string) error
 	ClearUserLockout(ctx context.Context, id uuid.UUID) error
 	CommentGet(ctx context.Context, arg CommentGetParams) (CommentGetRow, error)
@@ -1059,6 +1057,9 @@ type Querier interface {
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
+	CustomFieldRestore(ctx context.Context, arg CustomFieldRestoreParams) (CustomField, error)
+	// A deleted field waits 30 days (review 2026-11 AU-11).
+	CustomFieldSetAside(ctx context.Context, arg CustomFieldSetAsideParams) error
 	DeleteAutomationStepSecret(ctx context.Context, arg DeleteAutomationStepSecretParams) (int64, error)
 	DeleteAvatar(ctx context.Context, userID uuid.UUID) (int64, error)
 	DeleteChallenge(ctx context.Context, id uuid.UUID) error
@@ -1083,6 +1084,10 @@ type Querier interface {
 	DeleteSegment(ctx context.Context, arg DeleteSegmentParams) (int64, error)
 	DeleteStaleThrottle(ctx context.Context) (int64, error)
 	DeleteSuppression(ctx context.Context, arg DeleteSuppressionParams) (int64, error)
+	DeletedCustomFieldByKey(ctx context.Context, arg DeletedCustomFieldByKeyParams) (CustomFieldsDeleted, error)
+	DeletedCustomFieldGone(ctx context.Context, id uuid.UUID) error
+	DeletedCustomFields(ctx context.Context, workspaceID uuid.UUID) ([]CustomFieldsDeleted, error)
+	DeletedCustomFieldsDue(ctx context.Context, before time.Time) ([]CustomFieldsDeleted, error)
 	// Which streams each provider serves, as primary (in a split) or fallback.
 	DeliverabilityProviderStreams(ctx context.Context, workspaceID uuid.UUID) ([]DeliverabilityProviderStreamsRow, error)
 	DeliverabilityWarmupPlans(ctx context.Context, workspaceID uuid.UUID) ([]DeliverabilityWarmupPlansRow, error)
@@ -3124,6 +3129,9 @@ type Querier interface {
 	// Real renders from the workspace's own rendering service (CO-13).
 	RenderingServiceGet(ctx context.Context, workspaceID uuid.UUID) (RenderingServiceGetRow, error)
 	RenderingServiceUpsert(ctx context.Context, arg RenderingServiceUpsertParams) error
+	// A refresh as a diff (review 2026-11 AU-16): members that stay keep their
+	// entered_at; those who leave and those who come in each get an event.
+	ReplaceSegmentMembers(ctx context.Context, arg ReplaceSegmentMembersParams) (ReplaceSegmentMembersRow, error)
 	// A campaign's bounces for the sender's reputation or policy by mailbox
 	// provider and sending provider, with the provider's addresses (the
 	// report's insights, review AN-15).
@@ -4193,6 +4201,9 @@ type Querier interface {
 	// the providers domain) and, for providers without a suppression API, the
 	// addresses their bounce and complaint events added to the shared list.
 	SuppressionSyncStates(ctx context.Context, workspaceID uuid.UUID) ([]SuppressionSyncStatesRow, error)
+	SuppressionUploadGet(ctx context.Context, arg SuppressionUploadGetParams) (SuppressionUpload, error)
+	SuppressionUploadInsert(ctx context.Context, arg SuppressionUploadInsertParams) error
+	SuppressionUploadRemoved(ctx context.Context, arg SuppressionUploadRemovedParams) error
 	// Every response, for the results and the exports.
 	SurveyAllResponses(ctx context.Context, surveyID uuid.UUID) ([]SurveyAllResponsesRow, error)
 	SurveyByNumber(ctx context.Context, number int64) (SurveyByNumberRow, error)
