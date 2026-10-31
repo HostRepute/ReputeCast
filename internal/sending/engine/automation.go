@@ -297,6 +297,16 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 		msg, err := e.composeAutomation(ctx, r, row, cache)
 		if err != nil {
 			out.drop(row.ID, "failed", err.Error())
+			// The flow shows "step failing" with why (no sender, a deleted
+			// version, a Liquid error) instead of failing quietly (review
+			// 2026-11 EN-5); the alert counts every failure.
+			if row.AutomationID != nil && row.AutomationNode != nil {
+				detail, _ := json.Marshal(map[string]any{"error": clip(err.Error(), 300), "compose": true})
+				if aerr := e.Q.OpenAutomationAlert(ctx, store.OpenAutomationAlertParams{ID: uuid.Must(uuid.NewV7()), AutomationID: *row.AutomationID, Kind: "step_failing",
+					NodeID: *row.AutomationNode, Detail: detail, Failures: 1, At: now}); aerr != nil {
+					e.log().WarnContext(ctx, "open an automation alert", "err", aerr)
+				}
+			}
 			continue
 		}
 		batch = append(batch, pending{row, msg})

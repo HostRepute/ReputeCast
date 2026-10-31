@@ -120,7 +120,9 @@ func (e *Engine) PumpSim(ctx context.Context, now time.Time) (int, *time.Time, e
 			if t, ok := touched[p.ID]; !ok || r.DueAt.After(t) {
 				touched[p.ID] = r.DueAt
 			}
-			if m.Stream == "automation" && e.Automations != nil {
+			// Without a normalizer (some tests) the step counts the event
+			// here; otherwise the normalizer's hook does (wire_automations).
+			if m.Stream == "automation" && e.Automations != nil && e.Normalizer == nil {
 				kind := map[string]string{"delivered": "delivered", "hard_bounce": "bounced", "complaint": "complained"}[r.Kind]
 				if kind != "" {
 					if err := e.Automations.RecordMessageEvent(ctx, q, automations.MessageEvent{MessageID: m.ID, Type: kind, At: r.DueAt}); err != nil {

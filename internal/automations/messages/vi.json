@@ -1,5 +1,9 @@
 {
   "type.trigger": "Trình kích hoạt",
+  "notify.attentionTitle": "Một tự động hóa cần chú ý",
+  "notify.stepFailing": "“{name}”: một bước liên tục bị lỗi ({error}). Liên hệ ở bước đó sẽ chờ hoặc bỏ qua cho đến khi được sửa.",
+  "notify.stepFailingPlain": "“{name}”: một bước liên tục bị lỗi. Liên hệ ở bước đó sẽ chờ hoặc bỏ qua cho đến khi được sửa.",
+  "notify.sendingHeld": "“{name}”: email của nó đang bị giữ, không ai nhận được cho đến khi sự cố gửi được khắc phục.",
   "type.delay": "Trì hoãn",
   "type.email": "Gửi email",
   "type.branch": "Rẽ nhánh",

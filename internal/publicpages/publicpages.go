@@ -68,13 +68,17 @@ var templateFS embed.FS
 var staticFS embed.FS
 
 type Handler struct {
-	Pool     *pgxpool.Pool
-	Q        *store.Queries
-	Forms    *forms.Service
-	Audience *audience.Service
-	Tokens   *linktoken.Signer
-	URLs     publicurl.Builder
-	Log      *slog.Logger
+	Pool *pgxpool.Pool
+	Q    *store.Queries
+	// MessageUnsubscribed, optional, is told inside the transaction when a
+	// contact unsubscribes from a message (an automation step counts it;
+	// review 2026-11 EN-5).
+	MessageUnsubscribed func(ctx context.Context, q *store.Queries, messageID uuid.UUID, at time.Time) error
+	Forms               *forms.Service
+	Audience            *audience.Service
+	Tokens              *linktoken.Signer
+	URLs                publicurl.Builder
+	Log                 *slog.Logger
 	// SPA answers root paths on hosts that aren't a custom domain.
 	SPA http.Handler
 	// LandingURL is where "Sent with ReputeCast" points.

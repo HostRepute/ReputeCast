@@ -129,6 +129,71 @@ func (q *Queries) AutomationAddListMembership(ctx context.Context, arg Automatio
 	return err
 }
 
+const automationAlertNotified = `-- name: AutomationAlertNotified :exec
+UPDATE automation_alerts SET notified_at = $1 WHERE id = $2
+`
+
+type AutomationAlertNotifiedParams struct {
+	At *time.Time `json:"at"`
+	ID uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) AutomationAlertNotified(ctx context.Context, arg AutomationAlertNotifiedParams) error {
+	_, err := q.db.Exec(ctx, automationAlertNotified, arg.At, arg.ID)
+	return err
+}
+
+const automationAlertsToNotify = `-- name: AutomationAlertsToNotify :many
+SELECT al.id, al.kind, al.node_id, al.detail, a.id AS automation_id, a.name, a.workspace_id, w.slug
+FROM automation_alerts al
+JOIN automations a ON a.id = al.automation_id AND a.deleted_at IS NULL
+JOIN workspaces w ON w.id = a.workspace_id
+WHERE al.resolved_at IS NULL AND al.notified_at IS NULL
+ORDER BY al.first_at
+LIMIT 100
+`
+
+type AutomationAlertsToNotifyRow struct {
+	ID           uuid.UUID       `json:"id"`
+	Kind         string          `json:"kind"`
+	NodeID       string          `json:"nodeId"`
+	Detail       json.RawMessage `json:"detail"`
+	AutomationID uuid.UUID       `json:"automationId"`
+	Name         string          `json:"name"`
+	WorkspaceID  uuid.UUID       `json:"workspaceId"`
+	Slug         string          `json:"slug"`
+}
+
+// Alerts opened since the last scan that nobody was told about yet.
+func (q *Queries) AutomationAlertsToNotify(ctx context.Context) ([]AutomationAlertsToNotifyRow, error) {
+	rows, err := q.db.Query(ctx, automationAlertsToNotify)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationAlertsToNotifyRow{}
+	for rows.Next() {
+		var i AutomationAlertsToNotifyRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Kind,
+			&i.NodeID,
+			&i.Detail,
+			&i.AutomationID,
+			&i.Name,
+			&i.WorkspaceID,
+			&i.Slug,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const automationContact = `-- name: AutomationContact :one
 SELECT id, email, first_name, last_name, status, timezone, tags, attributes, erased_at
 FROM contacts WHERE id = $1

@@ -1,12 +1,15 @@
 package app
 
 import (
+	"context"
 	"sync"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/demo"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
@@ -16,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/publicpages"
 	"github.com/hostrepute/reputecast/internal/server"
+	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/web"
 )
 
@@ -108,6 +112,10 @@ func (a *App) publicPages() *publicpages.Handler {
 	}
 	h := &publicpages.Handler{
 		Pool: a.Pool, Q: a.Q, Forms: fs, Audience: a.audience(), Tokens: a.Links, URLs: a.URLs, Log: a.Log,
+		// An unsubscribe from an automation email counts on its step.
+		MessageUnsubscribed: func(ctx context.Context, q *store.Queries, id uuid.UUID, at time.Time) error {
+			return (&automations.Service{Q: a.Q, Log: a.Log}).RecordMessageEvent(ctx, q, automations.MessageEvent{MessageID: id, Type: "unsubscribed", At: at})
+		},
 		// Root paths on hosts that aren't a custom domain stay the web app's.
 		SPA:           server.NewSPA(web.Dist()),
 		Notifications: publicNotifications(a),

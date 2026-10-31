@@ -388,6 +388,9 @@ type Querier interface {
 	AutomationActiveRunVersions(ctx context.Context) ([]AutomationActiveRunVersionsRow, error)
 	AutomationAddContactTag(ctx context.Context, arg AutomationAddContactTagParams) error
 	AutomationAddListMembership(ctx context.Context, arg AutomationAddListMembershipParams) error
+	AutomationAlertNotified(ctx context.Context, arg AutomationAlertNotifiedParams) error
+	// Alerts opened since the last scan that nobody was told about yet.
+	AutomationAlertsToNotify(ctx context.Context) ([]AutomationAlertsToNotifyRow, error)
 	AutomationContact(ctx context.Context, id uuid.UUID) (AutomationContactRow, error)
 	// Whether a contact bought the product (any product when empty) since a
 	// time, not refunded in full.

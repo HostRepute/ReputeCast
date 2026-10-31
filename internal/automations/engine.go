@@ -7,13 +7,17 @@ import (
 	"fmt"
 	"hash/fnv"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -1076,6 +1080,9 @@ func (s *Service) Scan(ctx context.Context) error {
 	if err := s.releaseHeld(ctx); err != nil {
 		return fmt.Errorf("held email: %w", err)
 	}
+	if err := s.notifyAlerts(ctx, now); err != nil {
+		return fmt.Errorf("alert notifications: %w", err)
+	}
 	if err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		rows, err := q.ListRetiringAutomationVersions(ctx)
@@ -1328,4 +1335,45 @@ func (s *Service) RecordMessageEvent(ctx context.Context, q *store.Queries, ev M
 		return fmt.Errorf("automations: unknown message event %q", ev.Type)
 	}
 	return b.flush(ctx, q)
+}
+
+// notifyAlerts tells the people who edit automations, once, about each
+// alert opened since the last scan: a step that keeps failing, sending held
+// (review 2026-11 EN-5).
+func (s *Service) notifyAlerts(ctx context.Context, now time.Time) error {
+	rows, err := s.Q.AutomationAlertsToNotify(ctx)
+	if err != nil {
+		return err
+	}
+	for _, r := range rows {
+		var detail struct {
+			Error  string `json:"error"`
+			Status int    `json:"status"`
+		}
+		_ = json.Unmarshal(r.Detail, &detail)
+		body := msg("notify.sendingHeld").Keep(i18n.Args{"name": r.Name})
+		if r.Kind == "step_failing" {
+			why := strings.TrimSuffix(detail.Error, ".")
+			if why == "" && detail.Status > 0 {
+				why = "HTTP " + strconv.Itoa(detail.Status)
+			}
+			body = msg("notify.stepFailingPlain").Keep(i18n.Args{"name": r.Name})
+			if why != "" {
+				body = msg("notify.stepFailing").Keep(i18n.Args{"name": r.Name, "error": why})
+			}
+		}
+		ws := r.WorkspaceID
+		if err := notify.ToMembersWith(ctx, s.Pool, ws, authz.AutomationsEdit, notify.Notification{
+			WorkspaceID: &ws, Kind: notify.KindAutomationAttention, Severity: "warn",
+			TitleText: msg("notify.attentionTitle").Keep(nil), BodyText: body,
+			Link: "/w/" + r.Slug + "/automations/" + r.AutomationID.String(),
+			Data: map[string]any{"automationId": r.AutomationID.String(), "kind": r.Kind, "nodeId": r.NodeID},
+		}); err != nil {
+			return err
+		}
+		if err := s.Q.AutomationAlertNotified(ctx, store.AutomationAlertNotifiedParams{ID: r.ID, At: &now}); err != nil {
+			return err
+		}
+	}
+	return nil
 }

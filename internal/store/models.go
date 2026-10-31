@@ -446,6 +446,7 @@ type AutomationAlert struct {
 	FirstAt      time.Time       `json:"firstAt"`
 	LastAt       time.Time       `json:"lastAt"`
 	ResolvedAt   *time.Time      `json:"resolvedAt"`
+	NotifiedAt   *time.Time      `json:"notifiedAt"`
 }
 
 type AutomationEmail struct {
