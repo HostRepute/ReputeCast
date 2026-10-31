@@ -399,6 +399,9 @@ type Querier interface {
 	// ── Automations: the "Placed an order" goal ─────────────────────────────
 	// The contact placed an order since a time (in one store, or any).
 	AutomationContactOrdered(ctx context.Context, arg AutomationContactOrderedParams) (bool, error)
+	// The contact paused email on the preference center (30 or 90 days), as
+	// campaigns read it (sending.sql's audience).
+	AutomationContactPaused(ctx context.Context, arg AutomationContactPausedParams) (bool, error)
 	AutomationContactSentEvent(ctx context.Context, arg AutomationContactSentEventParams) (bool, error)
 	AutomationContactSuppressed(ctx context.Context, arg AutomationContactSuppressedParams) (bool, error)
 	// Contacts whose date field (plus the offset) is today in the workspace's

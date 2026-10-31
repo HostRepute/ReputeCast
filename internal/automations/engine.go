@@ -536,6 +536,17 @@ func (e *executor) email(ctx context.Context, n AutomationNode) (string, string,
 		e.stat(n.ID).Dropped++
 		return "", "", true, e.finish(ctx, "exited", "suppressed")
 	}
+	// A contact who paused email on the preference center gets none until
+	// the pause ends, as with campaigns: the email is skipped and the flow
+	// goes on (review 2026-11 DP-5). Other channels don't read the pause.
+	paused, err := e.q.AutomationContactPaused(ctx, store.AutomationContactPausedParams{ContactID: e.run.ContactID, Now: e.now})
+	if err != nil {
+		return "", "", true, err
+	}
+	if paused {
+		e.stat(n.ID).Skipped++
+		return next, "", false, nil
+	}
 	if w := cfg.SendWindow; w != nil && w.Enabled {
 		if at, inside := nextWindow(e.now, contactLoc(c.Timezone, e.s.workspaceTZ(ctx, e.q, e.run.WorkspaceID)), w.Start, w.End); !inside {
 			if e.st.Wait != "window" {

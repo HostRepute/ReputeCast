@@ -237,6 +237,24 @@ func (q *Queries) AutomationContactInWorkspace(ctx context.Context, arg Automati
 	return i, err
 }
 
+const automationContactPaused = `-- name: AutomationContactPaused :one
+SELECT EXISTS (SELECT 1 FROM contact_preferences WHERE contact_id = $1 AND paused_until > $2::timestamptz)
+`
+
+type AutomationContactPausedParams struct {
+	ContactID uuid.UUID `json:"contactId"`
+	Now       time.Time `json:"now"`
+}
+
+// The contact paused email on the preference center (30 or 90 days), as
+// campaigns read it (sending.sql's audience).
+func (q *Queries) AutomationContactPaused(ctx context.Context, arg AutomationContactPausedParams) (bool, error) {
+	row := q.db.QueryRow(ctx, automationContactPaused, arg.ContactID, arg.Now)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const automationContactSentEvent = `-- name: AutomationContactSentEvent :one
 SELECT EXISTS (
     SELECT 1 FROM automation_events
