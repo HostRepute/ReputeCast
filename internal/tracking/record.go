@@ -18,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/webhooks"
 )
 
 // Opens and clicks are recorded in batches (group commit), each in one
@@ -248,6 +249,13 @@ func (s *Service) count(ctx context.Context, tx pgx.Tx, q *store.Queries, b *bat
 	}
 	if m.Stream == "automation" && s.Automations != nil && firstOpen {
 		if err := s.Automations.RecordMessageEvent(ctx, q, automations.MessageEvent{MessageID: m.ID, Type: "opened", Machine: v.Machine, At: at}); err != nil {
+			return err
+		}
+	}
+	// email.opened, once per message; machine opens say so (review 2026-11
+	// EN-6).
+	if firstOpen && (m.Stream == "broadcast" || m.Stream == "automation") {
+		if err := webhooks.EmitEmail(ctx, tx, m.WorkspaceID, m.ID, webhooks.EmailOpened, at, func(d *webhooks.EmailEvent) { d.Machine = v.Machine }); err != nil {
 			return err
 		}
 	}

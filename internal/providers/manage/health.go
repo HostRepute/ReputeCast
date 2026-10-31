@@ -27,6 +27,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/webhooks"
 )
 
 // Health thresholds.
@@ -701,6 +702,11 @@ func (s *Service) onDown(ctx context.Context, tx pgx.Tx, ws store.Workspace, p s
 		return err
 	}
 	wsID := ws.ID
+	// provider.down for the workspace's endpoints (review 2026-11 EN-6).
+	if _, err := webhooks.Emit(ctx, tx, ws.ID, ws.Slug, "provider.down", map[string]any{"provider_id": p.ID.String(), "name": p.Name, "adapter": p.Adapter,
+		"reason": h.Down.Reason, "error": errText, "since": h.Down.Since.UTC(), "failed_over": auto, "held": held}); err != nil {
+		return err
+	}
 	return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Actor: systemActor, Action: "provider.down", TargetType: "provider", TargetID: p.ID.String(), TargetName: p.Name,
 		Metadata: map[string]any{"reason": h.Down.Reason, "error": errText, "failed_over": auto, "held": held}})
 }
@@ -763,6 +769,10 @@ func (s *Service) onRecovered(ctx context.Context, tx pgx.Tx, ws store.Workspace
 		return err
 	}
 	wsID := ws.ID
+	if _, err := webhooks.Emit(ctx, tx, ws.ID, ws.Slug, "provider.recovered", map[string]any{"provider_id": p.ID.String(), "name": p.Name, "adapter": p.Adapter,
+		"down_minutes": minutes, "at": now.UTC()}); err != nil {
+		return err
+	}
 	return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Actor: systemActor, Action: "provider.recovered", TargetType: "provider", TargetID: p.ID.String(), TargetName: p.Name,
 		Metadata: map[string]any{"down_minutes": minutes}})
 }

@@ -144,3 +144,17 @@ WHERE (state = 'dead' AND coalesce(last_attempt_at, created_at) < now() - interv
 -- A worker that died mid-attempt leaves a row in 'delivering'; give it back.
 UPDATE webhook_deliveries SET state = 'retrying', next_attempt_at = now(), enqueued_at = NULL
 WHERE state = 'delivering' AND last_attempt_at < now() - interval '5 minutes';
+
+-- name: HooksListen :one
+-- Whether any endpoint of the workspace takes the event (a cheap check
+-- before building a payload per message).
+SELECT webhook_listens(@workspace_id::uuid, @event::text)::boolean;
+
+-- name: HooksEmailMessage :one
+-- What an email.* event says about the message.
+SELECT m.id, m.stream, m.email, m.contact_id, m.campaign_id, m.automation_id, coalesce(m.automation_node, '')::text AS automation_node,
+       coalesce(p.name, '')::text AS provider, coalesce(m.provider_message_id, '')::text AS provider_message_id, m.mailbox_provider, w.slug
+FROM messages m
+JOIN workspaces w ON w.id = m.workspace_id
+LEFT JOIN providers p ON p.id = m.provider_id
+WHERE m.id = @id;

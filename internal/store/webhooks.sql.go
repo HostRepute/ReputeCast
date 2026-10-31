@@ -251,6 +251,49 @@ func (q *Queries) HooksDue(ctx context.Context, lim int32) ([]uuid.UUID, error) 
 	return items, nil
 }
 
+const hooksEmailMessage = `-- name: HooksEmailMessage :one
+SELECT m.id, m.stream, m.email, m.contact_id, m.campaign_id, m.automation_id, coalesce(m.automation_node, '')::text AS automation_node,
+       coalesce(p.name, '')::text AS provider, coalesce(m.provider_message_id, '')::text AS provider_message_id, m.mailbox_provider, w.slug
+FROM messages m
+JOIN workspaces w ON w.id = m.workspace_id
+LEFT JOIN providers p ON p.id = m.provider_id
+WHERE m.id = $1
+`
+
+type HooksEmailMessageRow struct {
+	ID                uuid.UUID  `json:"id"`
+	Stream            string     `json:"stream"`
+	Email             string     `json:"email"`
+	ContactID         *uuid.UUID `json:"contactId"`
+	CampaignID        *uuid.UUID `json:"campaignId"`
+	AutomationID      *uuid.UUID `json:"automationId"`
+	AutomationNode    string     `json:"automationNode"`
+	Provider          string     `json:"provider"`
+	ProviderMessageID string     `json:"providerMessageId"`
+	MailboxProvider   string     `json:"mailboxProvider"`
+	Slug              string     `json:"slug"`
+}
+
+// What an email.* event says about the message.
+func (q *Queries) HooksEmailMessage(ctx context.Context, id uuid.UUID) (HooksEmailMessageRow, error) {
+	row := q.db.QueryRow(ctx, hooksEmailMessage, id)
+	var i HooksEmailMessageRow
+	err := row.Scan(
+		&i.ID,
+		&i.Stream,
+		&i.Email,
+		&i.ContactID,
+		&i.CampaignID,
+		&i.AutomationID,
+		&i.AutomationNode,
+		&i.Provider,
+		&i.ProviderMessageID,
+		&i.MailboxProvider,
+		&i.Slug,
+	)
+	return i, err
+}
+
 const hooksFinishDelivery = `-- name: HooksFinishDelivery :exec
 UPDATE webhook_deliveries
 SET state = $1, attempt = attempt + 1, status_code = $2, duration_ms = $3,
@@ -484,6 +527,24 @@ func (q *Queries) HooksList(ctx context.Context, workspaceID uuid.UUID) ([]Hooks
 		return nil, err
 	}
 	return items, nil
+}
+
+const hooksListen = `-- name: HooksListen :one
+SELECT webhook_listens($1::uuid, $2::text)::boolean
+`
+
+type HooksListenParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Event       string    `json:"event"`
+}
+
+// Whether any endpoint of the workspace takes the event (a cheap check
+// before building a payload per message).
+func (q *Queries) HooksListen(ctx context.Context, arg HooksListenParams) (bool, error) {
+	row := q.db.QueryRow(ctx, hooksListen, arg.WorkspaceID, arg.Event)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const hooksMatching = `-- name: HooksMatching :many

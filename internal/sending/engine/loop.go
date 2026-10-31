@@ -1052,6 +1052,9 @@ func (e *Engine) record(ctx context.Context, q *store.Queries, tx pgx.Tx, campai
 		if err := q.SendingMarkSent(ctx, store.SendingMarkSentParams{At: &now, Ids: out.sentIDs, ProviderMessageIds: out.sentPMID}); err != nil {
 			return err
 		}
+		if err := emitSent(ctx, tx, out.sentIDs, now); err != nil {
+			return err
+		}
 	}
 	if len(out.retryIDs) > 0 {
 		if err := q.SendingRetryLater(ctx, store.SendingRetryLaterParams{Ids: out.retryIDs, Ats: out.retryAt, Errors: out.retryErr}); err != nil {
