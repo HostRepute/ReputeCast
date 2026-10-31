@@ -67,6 +67,15 @@ jobs:
     env:
       REPUTECAST_TEST_DATABASE_URL: postgres://reputecast:reputecast@localhost:5432/postgres?sslmode=disable
     steps:
+      # A runner guarantees only 14 GB of free disk, and the Go jobs can need
+      # more: go keeps each package it compiles twice, in its build cache and
+      # in its work directory, until the command ends. The runner comes with
+      # toolsets none of these jobs use; this removes the largest.
+      - name: Free disk space
+        run: |
+          before=$(df -h --output=avail / | tail -1 | xargs)
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          echo "::notice title=Disk space::$before free, $(df -h --output=avail / | tail -1 | xargs) after removing unused toolsets"
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
@@ -93,6 +102,12 @@ jobs:
     # Apart from the test shards: go vet alone takes about half an hour on
     # a runner, and neither check needs Postgres.
     steps:
+      # As in the go job.
+      - name: Free disk space
+        run: |
+          before=$(df -h --output=avail / | tail -1 | xargs)
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          echo "::notice title=Disk space::$before free, $(df -h --output=avail / | tail -1 | xargs) after removing unused toolsets"
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
@@ -118,6 +133,12 @@ jobs:
         # 197 packages. A part compiles only the copies its own tests need.
         part: [1, 2, 3]
     steps:
+      # As in the go job.
+      - name: Free disk space
+        run: |
+          before=$(df -h --output=avail / | tail -1 | xargs)
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          echo "::notice title=Disk space::$before free, $(df -h --output=avail / | tail -1 | xargs) after removing unused toolsets"
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
