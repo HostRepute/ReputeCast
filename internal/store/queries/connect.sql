@@ -50,10 +50,12 @@ VALUES (@id, @workspace_id, @adapter, @name, @label, @config, @credentials_enc, 
 RETURNING *;
 
 -- name: ConnectUpdateProvider :one
--- Settings and credentials from a repeated connection step (new key, other region).
+-- Settings and credentials from a repeated connection step (new key, other
+-- region). The sending IPs are left to the IP check and to people (they
+-- change apart from this, and writing back what was read would undo them).
 UPDATE providers
 SET label = @label, config = @config, credentials_enc = @credentials_enc, status = @status, status_detail = @status_detail,
-    ip_mode = @ip_mode, ips = @ips::text[], health = @health, last_checked_at = @checked_at
+    health = @health, last_checked_at = @checked_at
 WHERE id = @id
 RETURNING *;
 
@@ -87,12 +89,37 @@ SELECT * FROM messages WHERE workspace_id = @workspace_id AND id = @id;
 SELECT * FROM delivery_events WHERE message_id = @message_id ORDER BY occurred_at, received_at;
 
 -- name: ConnectFirstWebhook :one
--- The first webhook payload about a message (its provider message id is in
--- the body) a provider sent in a window after the send: the test send's
--- "event came back" step, with the body to name the event.
-SELECT received_at, body FROM provider_raw_events
-WHERE provider_id = @provider_id AND source = 'webhook' AND received_at >= @since AND received_at < @until
+-- The first event payload about a message (its provider message id is in
+-- the body) a provider sent in a window after the send, by webhook or
+-- through the queue ReputeCast polls (PR-4): the test send's "event came
+-- back" step and the setup's event check (PR-3), with the body to name the
+-- event and how it came.
+SELECT received_at, body, source FROM provider_raw_events
+WHERE provider_id = @provider_id AND source IN ('webhook', 'queue') AND received_at >= @since AND received_at < @until
   AND position(convert_to(@provider_message_id::text, 'UTF8') IN body) > 0
+ORDER BY received_at
+LIMIT 1;
+
+-- name: ConnectDeliveryEvent :one
+-- The delivery event of a message, reported for its recipient by webhook or
+-- through the queue ReputeCast polls (PR-3, PR-4), once normalized: the SES
+-- event check passes on the mailbox simulator's Delivery event, not on the
+-- Send event SES publishes first (review R3.A1).
+SELECT e.received_at, r.source
+FROM delivery_events e
+JOIN provider_raw_events r ON r.id = e.raw_event_id
+WHERE e.provider_id = @provider_id::uuid AND e.type = 'delivered' AND r.source IN ('webhook', 'queue')
+  AND (e.message_id = @message_id::uuid OR e.provider_message_id = @provider_message_id::text)
+  AND lower(e.recipient) = lower(@recipient::text)
+  AND e.received_at >= @since AND e.received_at < @until
+ORDER BY e.received_at
+LIMIT 1;
+
+-- name: ConnectFirstEventSince :one
+-- The first event a provider delivered after a time, by webhook or queue:
+-- its endpoint was reached from outside (PR-9).
+SELECT received_at, source FROM provider_raw_events
+WHERE provider_id = @provider_id AND source IN ('webhook', 'queue') AND received_at >= @since
 ORDER BY received_at
 LIMIT 1;
 

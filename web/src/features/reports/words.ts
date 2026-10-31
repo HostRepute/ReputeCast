@@ -1,7 +1,7 @@
 import type { Schemas } from '@/api/client'
 import type { Tone } from '@/components/ui/Badge'
 import { t } from '@/i18n'
-import { andList, clock, count, decimal, longDate, pct, shortDate, trimPct } from '@/lib/format'
+import { andList, clock, count, decimal, longDate, pct, shortDate } from '@/lib/format'
 import { m } from './messages'
 
 export type CampaignReport = Schemas['CampaignReport']
@@ -50,7 +50,7 @@ export function statusBadge(c: ReportInfo): { tone: Tone; text: string } {
   return { tone: 'neutral', text: t(m.statusDraft) }
 }
 
-/** "All subscribers · A/B subject, winner B · results final after 72 h". */
+/** "All subscribers · A/B subject, winner B · results final since Sun 12 Oct, 12:41". */
 export function headerCaption(c: ReportInfo): string {
   const parts: string[] = []
   if (c.audience) parts.push(c.audience)
@@ -58,7 +58,8 @@ export function headerCaption(c: ReportInfo): string {
   if (c.origin) {
     parts.push(t(m.importedFrom, { origin: `${c.origin[0]!.toUpperCase()}${c.origin.slice(1)}` }))
   } else if (c.status === 'sent' || c.status === 'cancelled') {
-    if (c.final) parts.push(t(m.resultsFinal))
+    if (c.final && c.finalAt) parts.push(t(m.resultsFinalSince, { day: shortDate(c.finalAt), time: clock(c.finalAt) }))
+    else if (c.final) parts.push(t(m.resultsFinal))
     else if (c.finalAt) parts.push(t(m.resultsComing, { day: shortDate(c.finalAt), time: clock(c.finalAt) }))
   } else if (c.status === 'sending' || c.status === 'paused') {
     parts.push(t(m.resultsLive))
@@ -69,13 +70,6 @@ export function headerCaption(c: ReportInfo): string {
 /** "SES 43,182 · Postal 4,798" */
 export function sentByLine(h: Schemas['ReportHeadline']): string {
   return h.sentBy.map((p) => `${p.short} ${count(p.count)}`).join(' · ')
-}
-
-/** "0.60% · 144 expired deferrals" */
-export function bounceLine(h: Schemas['ReportHeadline'], final: boolean): string {
-  const rate = pct2(h.bounceRate)
-  if (!h.undelivered) return rate
-  return final ? t(m.bounceExpired, { rate, n: h.undelivered, count: count(h.undelivered) }) : t(m.bounceNotYet, { rate, count: count(h.undelivered) })
 }
 
 /** "1.8 s" */
@@ -112,50 +106,102 @@ export function providerNote(x: Schemas['ReportProviderTable']): string | null {
   if (!warm) return null
   const lead = x.columns.find((c) => c !== warm && c.sent > 0)
   const engaged = warm.engagedFirst ? 'yes' : 'no'
-  if (!lead || lead.humanOpenRate === undefined || warm.humanOpenRate === undefined) {
+  // Human opens of measurable recipients: Apple Mail's share doesn't move the gap.
+  const opens = (c: Schemas['ReportProviderColumn']) => c.humanOpenRateMeasurable ?? c.humanOpenRate
+  const a = lead ? opens(lead) : undefined
+  const b = opens(warm)
+  if (a === undefined || b === undefined) {
     return t(m.warmupDay, { engaged, provider: warm.short, day: warm.warmupDay ?? 0 })
   }
-  const gap = Math.abs(Number(lead.humanOpenRate.toFixed(1)) - Number(warm.humanOpenRate.toFixed(1)))
-  return t(m.warmupGap, { engaged, normal: gap <= 3 ? 'yes' : 'no', provider: warm.short, day: warm.warmupDay ?? 0, gap: decimal(gap, 1) })
+  const gap = Math.abs(Number(a.toFixed(1)) - Number(b.toFixed(1)))
+  return t(m.warmupGapOpens, { engaged, normal: gap <= 3 ? 'yes' : 'no', provider: warm.short, day: warm.warmupDay ?? 0, gap: decimal(gap, 1) })
 }
 
-/** "62% of human opens happened within 6 hours; A/B winner B went out at 12:00, which is the second rise." */
-export function engagementNote(e: Schemas['ReportEngagement'], final: boolean): string | null {
+/**
+ * "62% of human opens came within 6 hours. The samples went out at 10:00;
+ * the steep rise starts at 12:00, when B went to the other 38,384."
+ */
+export function engagementNote(e: Schemas['ReportEngagement'], final: boolean, startedAt?: string, remaining?: number): string | null {
   if (!e.available || e.humanWithin6h === undefined) return null
   if (e.hours < 6) return t(m.coming)
   const share = pct(Math.round(e.humanWithin6h), 0)
   const done = final ? 'yes' : 'no'
-  if (e.rollout) return t(m.within6hRollout, { final: done, share, variant: e.rollout.variant, time: clock(e.rollout.at) })
-  return t(m.within6h, { final: done, share })
+  if (e.rollout && startedAt && remaining) {
+    return t(m.within6hRolloutNew, { final: done, share, start: clock(startedAt), time: clock(e.rollout.at), variant: e.rollout.variant, count: count(remaining) })
+  }
+  return t(m.within6hNew, { final: done, share })
 }
 
-/** "Email preferences" reads "email preferences" mid-sentence; one-word names keep their capital. */
-function lowerFirst(s: string) {
-  return s.includes(' ') ? s[0]!.toLowerCase() + s.slice(1) : s
+/** Metrics whose rates keep two decimals (0.24%, 0.04%, 0.60%). */
+const smallRates = new Set(['unsubscribes', 'complaints', 'bounces'])
+
+export interface TileComparison {
+  /** ▲ or ▼ (aria-hidden), and "Up" or "Down" for screen readers. */
+  arrow: string
+  direction: string
+  text: string
+  tone: 'pos' | 'neg' | 'neu'
 }
 
-/** "Links with under 5% of clicks are grouped: “Other” 13% covers 9 links including email preferences and view in browser." */
-export function clickNote(x: Schemas['ReportClickMap']): string | null {
-  if (!x.other) return null
-  const labels = x.other.labels.map(lowerFirst)
-  const values = { threshold: trimPct(x.threshold), share: pct(Math.round(x.other.share), 0), n: x.other.links }
-  return labels.length ? t(m.clickNoteIncluding, { ...values, labels: andList(labels) }) : t(m.clickNote, values)
+/** "▲ 2.4% vs your last 6 issues": a tile's change against the median of the last issues. */
+export function comparison(c: Schemas['ReportComparisons'], metric: Schemas['ReportComparison']['metric']): TileComparison | undefined {
+  const x = c.tiles.find((tile) => tile.metric === metric)
+  if (!x || c.issues <= 0) return undefined
+  const digits = x.unit === 'percent' ? 1 : smallRates.has(metric) ? 2 : 1
+  const size = Math.abs(x.change)
+  const tone = x.tone === 'good' ? 'pos' : x.tone === 'bad' ? 'neg' : 'neu'
+  if (Number(size.toFixed(digits)) === 0) return { arrow: '=', direction: '', text: t(m.sameAsLast, { n: c.issues }), tone: 'neu' }
+  const change = x.unit === 'percent' ? pct(size, digits) : t(m.points, { n: decimal(size, digits) })
+  const up = x.change > 0
+  return { arrow: up ? '▲' : '▼', direction: t(up ? m.up : m.down), text: t(m.vsLast, { change, n: c.issues }), tone }
+}
+
+/**
+ * A tile's trend line, read out: "Up over your last 6 issues, from 49.9% to
+ * 52.8%" (review AN-11). It runs from the oldest of the earlier issues to
+ * this one, and says the same as the numbers the tile shows: the change is
+ * up or down when they differ at the tile's precision.
+ */
+export function trendLabel(x: Schemas['ReportComparison']): string | undefined {
+  const v = x.trend
+  if (!v || v.length < 2) return undefined
+  const fmt = (n: number) => (x.metric === 'sent' ? count(n) : pct(n, smallRates.has(x.metric) ? 2 : 1))
+  const first = v[0]!
+  const now = v[v.length - 1]!
+  const from = fmt(first)
+  const to = fmt(now)
+  const dir = from === to ? 'same' : now > first ? 'up' : 'down'
+  return t(m.trendLine, { dir, n: v.length - 1, from, to })
+}
+
+/** "193 hard, 79 soft, 16 blocked or other", after the rate of sent. */
+export function bounceSub(h: Schemas['ReportHeadline'], final: boolean): string {
+  const rate = pct2(h.bounceRate)
+  if (!final) return t(m.bouncesSoFar, { rate })
+  const other = Math.max(0, h.bounces - h.hardBounces - h.softBounces)
+  const values = { rate, hard: count(h.hardBounces), soft: count(h.softBounces), other: count(other) }
+  return other > 0 ? t(m.bouncesSub, values) : t(m.bouncesHardSoft, values)
+}
+
+/** "Gmail and iCloud don't report complaints". */
+export function notReportedLine(h: Schemas['ReportHeadline']): string | null {
+  const by = h.notReportedBy ?? []
+  if (!by.length) return null
+  return t(m.notReportedBy, { n: by.length, providers: andList(by) })
+}
+
+/** A scale's top for the bars and the chart: 10%, 20%, 50%… above the largest value. */
+export function niceMax(v: number): { max: number; step: number } {
+  for (const step of [1, 2, 5, 10, 20, 25]) {
+    if (v <= step * 5) return { max: Math.max(step, Math.ceil(v / step) * step), step }
+  }
+  return { max: 100, step: 20 }
 }
 
 /** "28 people chose “fewer emails” instead of leaving and moved to the monthly frequency." */
 export function fewerNote(n: number): string | null {
   if (n <= 0) return null
   return t(m.fewer, { n, count: count(n) })
-}
-
-/** The A/B badge: "Winner B · 98% confidence", "Testing · decides at 12:00", "Not significant yet · 81% confidence". */
-export function abBadge(x: Schemas['ReportABTest']): { tone: Tone; text: string } {
-  const confidence = x.confidence !== undefined ? pct(Math.min(99, Math.round(x.confidence)), 0) : undefined
-  if (x.state === 'testing') return { tone: 'info', text: x.decidedAt ? t(m.abTestingAt, { time: clock(x.decidedAt) }) : t(m.abTesting) }
-  const variant = x.winner ?? ''
-  if (x.state === 'decided' && x.significant) return { tone: 'ok', text: confidence ? t(m.abWinnerConf, { variant, confidence }) : t(m.abWinner, { variant }) }
-  if (x.state === 'decided') return { tone: 'warn', text: confidence ? t(m.abChosenConf, { variant, confidence }) : t(m.abChosen, { variant }) }
-  return { tone: 'warn', text: confidence ? t(m.abNotYetConf, { confidence }) : t(m.abNotYet) }
 }
 
 /** "How the winner was picked", as sentences. */

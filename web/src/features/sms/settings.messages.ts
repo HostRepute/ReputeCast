@@ -14,7 +14,7 @@ export const m = defineMessages('smsSettingsSummary', {
   cost: 'Cost · {month}',
   budget: 'SMS budget · {month}',
   spentOf: '<b>{spent}</b> of {budget}',
-  alerts: 'Alerts at {alert}% and 100%. At 100%, campaigns can’t start and SMS steps wait until someone with providers:manage raises it.',
+  alerts: 'Alerts at {alert}% and 100%. At 100%, campaigns can’t start and SMS steps wait until someone who can manage providers raises it.',
   noBudget: 'No monthly budget: {spend} so far in {month}.',
   foot: 'Senders, routes by country, quiet hours, the rules and the budget live on Sending providers › SMS.',
   changeBudget: 'Change the budget',

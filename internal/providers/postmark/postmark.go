@@ -563,6 +563,33 @@ func (p *Provider) AddSuppressions(ctx context.Context, emails []string) error {
 	return nil
 }
 
+// RemoveSuppressions implements providers.SuppressionRemover: Postmark
+// reactivates the addresses on every stream ReputeCast sends through (it
+// keeps spam complaints, which can't be removed).
+func (p *Provider) RemoveSuppressions(ctx context.Context, emails []string) error {
+	for _, stream := range p.streams() {
+		for i := 0; i < len(emails); i += 50 {
+			j := min(i+50, len(emails))
+			type entry struct{ EmailAddress string }
+			body := struct{ Suppressions []entry }{}
+			for _, e := range emails[i:j] {
+				body.Suppressions = append(body.Suppressions, entry{EmailAddress: e})
+			}
+			path := apiclient.Path("/message-streams/%s/suppressions/delete", stream)
+			if err := p.api.Do(ctx, "POST /message-streams/suppressions/delete", http.MethodPost, path, body, nil); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// SuppressionScope implements providers.SuppressionScoper: Postmark keeps a
+// suppression list per message stream of the workspace's server.
+func (p *Provider) SuppressionScope() providers.SuppressionScope {
+	return providers.SuppressionScope{Scope: providers.SuppressionScopeStream, Writable: true}
+}
+
 func (p *Provider) streams() []string {
 	out := []string{p.s.MessageStream}
 	if p.s.BroadcastStream != "" && p.s.BroadcastStream != p.s.MessageStream {

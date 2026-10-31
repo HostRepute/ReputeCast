@@ -34,7 +34,7 @@ export default translate(m, {
   moreSheetNavLabel: 'Các mục khác',
   moreSheetSwitcherRole: '{role} · chuyển không gian làm việc',
 
-  switcherLabel: '{workspace}, {role}. Chuyển không gian làm việc',
+  switcherLabel: '{workspace}, {role}, chuyển không gian làm việc',
   switcherMenuLabel: 'Không gian làm việc',
   switcherHeading: 'Không gian làm việc của bạn',
   switcherWorkspaceLine: '{role} · {count, plural, other {# người đăng ký}}',
@@ -60,7 +60,7 @@ export default translate(m, {
   breadcrumbLabel: 'Đường dẫn',
   sectionTabsLabel: 'Các mục',
 
-  userMenuLabel: 'Menu tài khoản của {name}',
+  userMenuLabel: '{name}, menu tài khoản',
   userMenuContentLabel: 'Tài khoản',
   userMenuAccount: 'Tài khoản và bảo mật',
   userMenuNotifications: 'Tùy chọn thông báo',

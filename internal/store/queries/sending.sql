@@ -209,6 +209,7 @@ SELECT page.id::uuid AS id,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)::boolean AS suppressed,
        coalesce((SELECT p.paused_until > @now::timestamptz FROM contact_preferences p WHERE p.contact_id = c.id), false)::boolean AS paused,
        coalesce(c.language, '')::text AS language,
+       coalesce(c.timezone, '')::text AS timezone,
        (excluded.contact_id IS NOT NULL)::boolean AS excluded_list,
        (excluded_staged.contact_id IS NOT NULL)::boolean AS excluded_segment,
        coalesce(member_lists.lists, '{}'::uuid[])::uuid[] AS lists,
@@ -274,12 +275,14 @@ WHERE cr.campaign_id = @campaign_id AND cr.provider_id = d.provider_id;
 -- name: SendingClaim :many
 -- Claims up to lim queued messages of one sending provider and mailbox
 -- provider in the send's shuffled order, skipping rows another worker
--- holds. A claim older than the stale time belonged to a worker that died.
+-- holds. A claim is never taken over: one that stayed claimed past the
+-- stale time belonged to a call whose answer was lost, and the guard
+-- settles it (SendingRequeueStale, SendingMarkInDoubt).
 WITH picked AS (
     SELECT m.id FROM messages m
     WHERE m.campaign_id = @campaign_id AND m.provider_id = @provider_id AND m.mailbox_provider = @mailbox_provider
       AND m.status = 'queued'
-      AND (m.claimed_at IS NULL OR m.claimed_at < @stale::timestamptz)
+      AND m.claimed_at IS NULL
       AND (m.next_attempt_at IS NULL OR m.next_attempt_at <= @now::timestamptz)
     ORDER BY m.send_order, m.id
     LIMIT @lim
@@ -287,9 +290,9 @@ WITH picked AS (
 ), upd AS (
     UPDATE messages m SET claimed_at = @now::timestamptz, attempts = m.attempts + 1
     FROM picked WHERE m.id = picked.id
-    RETURNING m.id, m.workspace_id, m.contact_id, m.email, m.variant, m.mailbox_provider, m.attempts, m.language, m.hidden_blocks
+    RETURNING m.id, m.workspace_id, m.contact_id, m.email, m.variant, m.ab_rollout, m.mailbox_provider, m.attempts, m.language, m.hidden_blocks
 )
-SELECT upd.id, upd.contact_id, upd.email, upd.variant, upd.mailbox_provider, upd.attempts, upd.language, upd.hidden_blocks,
+SELECT upd.id, upd.contact_id, upd.email, upd.variant, upd.ab_rollout, upd.mailbox_provider, upd.attempts, upd.language, upd.hidden_blocks,
        coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name,
        coalesce(c.attributes, '{}'::jsonb)::jsonb AS attributes, coalesce(c.tier, '')::text AS tier,
        coalesce(c.source, '')::text AS source, (c.last_human_open_at IS NOT NULL)::boolean AS engaged,
@@ -313,8 +316,11 @@ WHERE m.id = x.id;
 
 -- name: SendingMarkUnsent :exec
 -- Messages that will never be sent: rejected by the provider, failed after
--- every retry, or dropped (suppressed during the send, contact erased).
-UPDATE messages m SET status = x.status, claimed_at = NULL, next_attempt_at = NULL, error = x.err
+-- every retry, or dropped (suppressed during the send, contact erased); or
+-- in doubt, when the call that handed them over may have reached the
+-- provider: doubt_at keeps that call's time (its claim).
+UPDATE messages m SET status = x.status, claimed_at = NULL, next_attempt_at = NULL, error = x.err,
+    doubt_at = CASE WHEN x.status = 'in_doubt' THEN coalesce(m.claimed_at, now()) ELSE m.doubt_at END
 FROM (SELECT unnest(@ids::uuid[]) AS id, unnest(@statuses::text[]) AS status, unnest(@errors::text[]) AS err) AS x
 WHERE m.id = x.id;
 
@@ -352,19 +358,23 @@ DELETE FROM sending_rate_windows WHERE provider_id = ANY(@provider_ids::uuid[]) 
 
 -- name: SendingQueueState :many
 -- What is left of a campaign per sending and mailbox provider: queued (and
--- when the next retry is due) and held for the A/B winner.
-SELECT provider_id, mailbox_provider, status,
+-- when the next retry is due), held for the A/B winner or the canary
+-- (hold_reason), and in doubt.
+SELECT provider_id, mailbox_provider, status, hold_reason,
        count(*)::bigint AS n,
        count(*) FILTER (WHERE next_attempt_at IS NOT NULL AND next_attempt_at > @now::timestamptz)::bigint AS waiting,
        coalesce(min(next_attempt_at), 'epoch'::timestamptz)::timestamptz AS next_at,
        coalesce(max(next_attempt_at), 'epoch'::timestamptz)::timestamptz AS last_at
 FROM messages
-WHERE campaign_id = @campaign_id AND status IN ('queued', 'held')
-GROUP BY provider_id, mailbox_provider, status;
+WHERE campaign_id = @campaign_id AND status IN ('queued', 'held', 'in_doubt')
+GROUP BY provider_id, mailbox_provider, status, hold_reason;
 
 -- name: SendingCounters :many
+-- opened_machine is every open no person made: privacy-protected opens
+-- (Apple Mail Privacy Protection) and scanners' (the report shows them
+-- apart, internal/counters).
 SELECT provider_id, mailbox_provider, variant, sent, delivered, deferred, hard_bounced, soft_bounced, complained, rejected,
-       opened_human, opened_machine, clicked, unsubscribed
+       opened_human, (opened_machine + opened_privacy)::bigint AS opened_machine, clicked, unsubscribed
 FROM campaign_counters WHERE campaign_id = @campaign_id;
 
 -- name: SendingSentSince :many
@@ -380,10 +390,6 @@ FROM messages
 WHERE campaign_id = @campaign_id AND status IN ('failed', 'cancelled', 'rejected') AND sent_at IS NULL
 GROUP BY provider_id, mailbox_provider, status;
 
--- name: SendingReleaseHeld :execrows
--- The A/B winner goes to everyone who waited for it.
-UPDATE messages SET status = 'queued', variant = @variant WHERE campaign_id = @campaign_id AND status = 'held' AND variant = '';
-
 -- name: SendingCancelRemaining :execrows
 -- Cancels what is left of a campaign, or of one sending or mailbox provider.
 UPDATE messages SET status = 'cancelled', claimed_at = NULL, error = @reason
@@ -392,9 +398,12 @@ WHERE campaign_id = @campaign_id AND status IN ('queued', 'held')
   AND (sqlc.narg(mailbox_provider)::text IS NULL OR mailbox_provider = sqlc.narg(mailbox_provider)::text);
 
 -- name: SendingMoveRemaining :execrows
--- Moves what is left of one provider's share to another provider.
-UPDATE messages SET provider_id = @to_provider, claimed_at = NULL, next_attempt_at = NULL
-WHERE campaign_id = @campaign_id AND provider_id = @from_provider AND status IN ('queued', 'held');
+-- Moves what is left of one provider's share to another provider. Messages
+-- keep their status, so A/B holdouts stay held for the winner and canary
+-- holdouts for the canary; a batch in flight on the old provider stays
+-- there (its answer is recorded, or it ends in doubt).
+UPDATE messages SET provider_id = @to_provider, next_attempt_at = NULL
+WHERE campaign_id = @campaign_id AND provider_id = @from_provider AND status IN ('queued', 'held') AND claimed_at IS NULL;
 
 -- name: SendingRemainingOn :one
 SELECT count(*)::bigint FROM messages WHERE campaign_id = @campaign_id AND provider_id = @provider_id AND status IN ('queued', 'held');
@@ -566,11 +575,17 @@ SELECT DISTINCT provider_id::uuid AS provider_id FROM messages
 WHERE status = 'queued' AND campaign_id IS NULL AND stream = 'automation' AND provider_id IS NOT NULL;
 
 -- name: SendingOutboxClaim :many
+-- Claims queued automation emails of one provider; a stale claim is never
+-- taken over (SendingOutboxRequeueStale, SendingOutboxMarkInDoubt). Mail to
+-- the mailbox providers in full_mailboxes (gmail, outlook, yahoo, icloud or
+-- other), whose part of a warming provider's cap is used up today, stays
+-- queued (PR-8, R3.L6b), so it never blocks mail to the others.
 WITH picked AS (
     SELECT m.id FROM messages m
     WHERE m.provider_id = @provider_id AND m.status = 'queued' AND m.campaign_id IS NULL AND m.stream = 'automation'
-      AND (m.claimed_at IS NULL OR m.claimed_at < @stale::timestamptz)
+      AND m.claimed_at IS NULL
       AND (m.next_attempt_at IS NULL OR m.next_attempt_at <= @now::timestamptz)
+      AND (CASE WHEN m.mailbox_provider IN ('gmail', 'outlook', 'yahoo', 'icloud') THEN m.mailbox_provider ELSE 'other' END) <> ALL(@full_mailboxes::text[])
     ORDER BY m.id
     LIMIT @lim
     FOR UPDATE SKIP LOCKED

@@ -13,6 +13,7 @@ type Row = Schemas['ConnectDoneRow']
 
 const ROW_BADGE: Record<Row['status'], { tone: 'ok' | 'neutral' | 'bad' | 'warn'; label: MessageDescriptor }> = {
   done: { tone: 'ok', label: m.stateDone },
+  verified: { tone: 'ok', label: m.stateVerified },
   skipped: { tone: 'neutral', label: m.stateSkipped },
   failed: { tone: 'bad', label: m.stateFailed },
   pending: { tone: 'warn', label: m.statePending },
@@ -26,7 +27,7 @@ export function DonePage({ setup }: { setup: Schemas['ConnectSetup'] }) {
   return (
     <WizardLayout title={t(m.title)} badge={<Badge tone="ok">{t(ms.doneBadge)}</Badge>} exit={false}>
       {/* The summary isn't a wizard step: as on the board it keeps its 40 px × 28 px padding at every width. */}
-      <main id="main" tabIndex={-1} className="mx-auto box-border flex w-full max-w-[860px] flex-col gap-[18px] px-7 py-10">
+      <main id="main" tabIndex={-1} className="cn-done mx-auto box-border flex w-full max-w-[860px] flex-col gap-[18px] px-7 py-10">
         <div className="flex flex-wrap items-center gap-[18px]">
           <svg width="56" height="56" viewBox="0 0 40 40" aria-hidden="true" className="pop">
             <circle cx="20" cy="20" r="19" fill="#BBF7D0" />
@@ -47,7 +48,9 @@ export function DonePage({ setup }: { setup: Schemas['ConnectSetup'] }) {
           </div>
           {done.rows.map((r) => (
             <div key={r.lead} className="cn-row lg">
-              <Badge tone={ROW_BADGE[r.status].tone}>{t(ROW_BADGE[r.status].label)}</Badge>
+              <Badge tone={ROW_BADGE[r.status].tone} dot>
+                {t(ROW_BADGE[r.status].label)}
+              </Badge>
               <span className="cn-row-text min-w-0">
                 <strong>{r.lead}</strong>
                 <Ticks text={r.text} />

@@ -234,7 +234,8 @@ SELECT provider_id,
        coalesce(sum(calls), 0)::bigint    AS calls,
        coalesce(sum(errors), 0)::bigint   AS errors,
        coalesce(sum(messages), 0)::bigint AS messages,
-       coalesce(max(messages), 0)::bigint AS peak_minute
+       coalesce(max(messages), 0)::bigint AS peak_minute,
+       coalesce(sum(rejected), 0)::bigint AS rejected
 FROM provider_call_windows
 WHERE provider_id = ANY($1::uuid[]) AND minute >= $2
 GROUP BY provider_id
@@ -251,6 +252,7 @@ type ProvCallWindowTotalsRow struct {
 	Errors     int64     `json:"errors"`
 	Messages   int64     `json:"messages"`
 	PeakMinute int64     `json:"peakMinute"`
+	Rejected   int64     `json:"rejected"`
 }
 
 // API calls, failures and messages per provider since a time (rolling windows).
@@ -269,6 +271,7 @@ func (q *Queries) ProvCallWindowTotals(ctx context.Context, arg ProvCallWindowTo
 			&i.Errors,
 			&i.Messages,
 			&i.PeakMinute,
+			&i.Rejected,
 		); err != nil {
 			return nil, err
 		}
@@ -337,7 +340,10 @@ SELECT provider_id,
        coalesce(sum(complained), 0)::bigint  AS complained,
        coalesce(sum(api_calls), 0)::bigint   AS api_calls,
        coalesce(sum(api_errors), 0)::bigint  AS api_errors,
-       coalesce(sum(cost_micros), 0)::bigint AS cost_micros
+       coalesce(sum(cost_micros), 0)::bigint AS cost_micros,
+       coalesce(sum(delivered_reporting), 0)::bigint AS delivered_reporting,
+       coalesce(sum(complained) FILTER (WHERE delivered_reporting IS NOT NULL), 0)::bigint AS complained_reporting,
+       coalesce(sum(delivered) FILTER (WHERE delivered_reporting IS NOT NULL), 0)::bigint AS delivered_counted
 FROM provider_daily_stats
 WHERE provider_id = ANY($1::uuid[]) AND day BETWEEN $2::date AND $3::date
 GROUP BY provider_id
@@ -350,17 +356,22 @@ type ProvDailyTotalsParams struct {
 }
 
 type ProvDailyTotalsRow struct {
-	ProviderID uuid.UUID `json:"providerId"`
-	Sent       int64     `json:"sent"`
-	Delivered  int64     `json:"delivered"`
-	Bounced    int64     `json:"bounced"`
-	Complained int64     `json:"complained"`
-	ApiCalls   int64     `json:"apiCalls"`
-	ApiErrors  int64     `json:"apiErrors"`
-	CostMicros int64     `json:"costMicros"`
+	ProviderID          uuid.UUID `json:"providerId"`
+	Sent                int64     `json:"sent"`
+	Delivered           int64     `json:"delivered"`
+	Bounced             int64     `json:"bounced"`
+	Complained          int64     `json:"complained"`
+	ApiCalls            int64     `json:"apiCalls"`
+	ApiErrors           int64     `json:"apiErrors"`
+	CostMicros          int64     `json:"costMicros"`
+	DeliveredReporting  int64     `json:"deliveredReporting"`
+	ComplainedReporting int64     `json:"complainedReporting"`
+	DeliveredCounted    int64     `json:"deliveredCounted"`
 }
 
 // Totals per provider over [since, until] (dates).
+// The complaint rate's base (review F-2): complaints and deliveries at
+// mailbox providers that report complaints, on the days that counted them.
 func (q *Queries) ProvDailyTotals(ctx context.Context, arg ProvDailyTotalsParams) ([]ProvDailyTotalsRow, error) {
 	rows, err := q.db.Query(ctx, provDailyTotals, arg.ProviderIds, arg.Since, arg.Until)
 	if err != nil {
@@ -379,6 +390,9 @@ func (q *Queries) ProvDailyTotals(ctx context.Context, arg ProvDailyTotalsParams
 			&i.ApiCalls,
 			&i.ApiErrors,
 			&i.CostMicros,
+			&i.DeliveredReporting,
+			&i.ComplainedReporting,
+			&i.DeliveredCounted,
 		); err != nil {
 			return nil, err
 		}
@@ -443,7 +457,7 @@ func (q *Queries) ProvEndFailovers(ctx context.Context, arg ProvEndFailoversPara
 }
 
 const provGet = `-- name: ProvGet :one
-SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at FROM providers
+SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at, ip_source FROM providers
 WHERE workspace_id = $1 AND id = $2 AND disconnected_at IS NULL
 `
 
@@ -479,12 +493,13 @@ func (q *Queries) ProvGet(ctx context.Context, arg ProvGetParams) (Provider, err
 		&i.ConnectedBy,
 		&i.ConnectedAt,
 		&i.DisconnectedAt,
+		&i.IpSource,
 	)
 	return i, err
 }
 
 const provGetAny = `-- name: ProvGetAny :one
-SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at FROM providers WHERE id = $1
+SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at, ip_source FROM providers WHERE id = $1
 `
 
 func (q *Queries) ProvGetAny(ctx context.Context, id uuid.UUID) (Provider, error) {
@@ -514,12 +529,13 @@ func (q *Queries) ProvGetAny(ctx context.Context, id uuid.UUID) (Provider, error
 		&i.ConnectedBy,
 		&i.ConnectedAt,
 		&i.DisconnectedAt,
+		&i.IpSource,
 	)
 	return i, err
 }
 
 const provGetByWebhookToken = `-- name: ProvGetByWebhookToken :one
-SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at FROM providers
+SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at, ip_source FROM providers
 WHERE webhook_token = $1 AND adapter = $2 AND disconnected_at IS NULL
 `
 
@@ -555,6 +571,7 @@ func (q *Queries) ProvGetByWebhookToken(ctx context.Context, arg ProvGetByWebhoo
 		&i.ConnectedBy,
 		&i.ConnectedAt,
 		&i.DisconnectedAt,
+		&i.IpSource,
 	)
 	return i, err
 }
@@ -775,7 +792,7 @@ func (q *Queries) ProvLastConfirmed(ctx context.Context, arg ProvLastConfirmedPa
 
 const provListActive = `-- name: ProvListActive :many
 
-SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at FROM providers
+SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at, ip_source FROM providers
 WHERE workspace_id = $1 AND disconnected_at IS NULL
 ORDER BY connected_at, name
 `
@@ -815,6 +832,7 @@ func (q *Queries) ProvListActive(ctx context.Context, workspaceID uuid.UUID) ([]
 			&i.ConnectedBy,
 			&i.ConnectedAt,
 			&i.DisconnectedAt,
+			&i.IpSource,
 		); err != nil {
 			return nil, err
 		}
@@ -827,7 +845,7 @@ func (q *Queries) ProvListActive(ctx context.Context, workspaceID uuid.UUID) ([]
 }
 
 const provListAllActive = `-- name: ProvListAllActive :many
-SELECT p.id, p.workspace_id, p.adapter, p.name, p.label, p.config, p.credentials_enc, p.webhook_token, p.webhook_secret_enc, p.status, p.status_detail, p.ip_mode, p.ips, p.capabilities, p.limits, p.health, p.pricing, p.tracking, p.last_event_at, p.last_checked_at, p.connected_by, p.connected_at, p.disconnected_at FROM providers p
+SELECT p.id, p.workspace_id, p.adapter, p.name, p.label, p.config, p.credentials_enc, p.webhook_token, p.webhook_secret_enc, p.status, p.status_detail, p.ip_mode, p.ips, p.capabilities, p.limits, p.health, p.pricing, p.tracking, p.last_event_at, p.last_checked_at, p.connected_by, p.connected_at, p.disconnected_at, p.ip_source FROM providers p
 JOIN workspaces w ON w.id = p.workspace_id AND w.deleted_at IS NULL
 WHERE p.disconnected_at IS NULL
 ORDER BY p.workspace_id, p.connected_at
@@ -867,6 +885,7 @@ func (q *Queries) ProvListAllActive(ctx context.Context) ([]Provider, error) {
 			&i.ConnectedBy,
 			&i.ConnectedAt,
 			&i.DisconnectedAt,
+			&i.IpSource,
 		); err != nil {
 			return nil, err
 		}
@@ -876,6 +895,43 @@ func (q *Queries) ProvListAllActive(ctx context.Context) ([]Provider, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const provLockForIPs = `-- name: ProvLockForIPs :one
+SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at, ip_source FROM providers WHERE id = $1 AND disconnected_at IS NULL FOR UPDATE
+`
+
+// A connected provider, locked while its sending IPs change.
+func (q *Queries) ProvLockForIPs(ctx context.Context, id uuid.UUID) (Provider, error) {
+	row := q.db.QueryRow(ctx, provLockForIPs, id)
+	var i Provider
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Adapter,
+		&i.Name,
+		&i.Label,
+		&i.Config,
+		&i.CredentialsEnc,
+		&i.WebhookToken,
+		&i.WebhookSecretEnc,
+		&i.Status,
+		&i.StatusDetail,
+		&i.IpMode,
+		&i.Ips,
+		&i.Capabilities,
+		&i.Limits,
+		&i.Health,
+		&i.Pricing,
+		&i.Tracking,
+		&i.LastEventAt,
+		&i.LastCheckedAt,
+		&i.ConnectedBy,
+		&i.ConnectedAt,
+		&i.DisconnectedAt,
+		&i.IpSource,
+	)
+	return i, err
 }
 
 const provMembersWithNames = `-- name: ProvMembersWithNames :many
@@ -958,12 +1014,13 @@ func (q *Queries) ProvRawEventsByHour(ctx context.Context, arg ProvRawEventsByHo
 }
 
 const provRecordCall = `-- name: ProvRecordCall :exec
-INSERT INTO provider_call_windows (provider_id, minute, calls, errors, messages)
-VALUES ($1, date_trunc('minute', $2::timestamptz), 1, $3, $4)
+INSERT INTO provider_call_windows (provider_id, minute, calls, errors, messages, rejected)
+VALUES ($1, date_trunc('minute', $2::timestamptz), 1, $3, $4, $5)
 ON CONFLICT (provider_id, minute) DO UPDATE
 SET calls = provider_call_windows.calls + 1,
     errors = provider_call_windows.errors + EXCLUDED.errors,
-    messages = provider_call_windows.messages + EXCLUDED.messages
+    messages = provider_call_windows.messages + EXCLUDED.messages,
+    rejected = provider_call_windows.rejected + EXCLUDED.rejected
 `
 
 type ProvRecordCallParams struct {
@@ -971,6 +1028,7 @@ type ProvRecordCallParams struct {
 	At         time.Time `json:"at"`
 	Errors     int32     `json:"errors"`
 	Messages   int32     `json:"messages"`
+	Rejected   int32     `json:"rejected"`
 }
 
 func (q *Queries) ProvRecordCall(ctx context.Context, arg ProvRecordCallParams) error {
@@ -979,6 +1037,7 @@ func (q *Queries) ProvRecordCall(ctx context.Context, arg ProvRecordCallParams) 
 		arg.At,
 		arg.Errors,
 		arg.Messages,
+		arg.Rejected,
 	)
 	return err
 }
@@ -1013,23 +1072,27 @@ func (q *Queries) ProvRecordDaily(ctx context.Context, arg ProvRecordDailyParams
 }
 
 const provRecordOutcome = `-- name: ProvRecordOutcome :exec
-INSERT INTO provider_daily_stats (provider_id, day, delivered, bounced, complained)
-VALUES ($1, $2::date, $3, $4, $5)
+INSERT INTO provider_daily_stats (provider_id, day, delivered, bounced, complained, delivered_reporting)
+VALUES ($1, $2::date, $3, $4, $5, $6::bigint)
 ON CONFLICT (provider_id, day) DO UPDATE
 SET delivered = provider_daily_stats.delivered + EXCLUDED.delivered,
     bounced = provider_daily_stats.bounced + EXCLUDED.bounced,
-    complained = provider_daily_stats.complained + EXCLUDED.complained
+    complained = provider_daily_stats.complained + EXCLUDED.complained,
+    delivered_reporting = provider_daily_stats.delivered_reporting + EXCLUDED.delivered_reporting
 `
 
 type ProvRecordOutcomeParams struct {
-	ProviderID uuid.UUID `json:"providerId"`
-	Day        time.Time `json:"day"`
-	Delivered  int64     `json:"delivered"`
-	Bounced    int64     `json:"bounced"`
-	Complained int64     `json:"complained"`
+	ProviderID         uuid.UUID `json:"providerId"`
+	Day                time.Time `json:"day"`
+	Delivered          int64     `json:"delivered"`
+	Bounced            int64     `json:"bounced"`
+	Complained         int64     `json:"complained"`
+	DeliveredReporting int64     `json:"deliveredReporting"`
 }
 
-// Delivery outcomes counted from normalized events (bounce and complaint rates).
+// Delivery outcomes counted from normalized events (bounce and complaint
+// rates). delivered_reporting counts the deliveries at mailbox providers
+// that report complaints; a day counted before it existed stays unknown.
 func (q *Queries) ProvRecordOutcome(ctx context.Context, arg ProvRecordOutcomeParams) error {
 	_, err := q.db.Exec(ctx, provRecordOutcome,
 		arg.ProviderID,
@@ -1037,6 +1100,7 @@ func (q *Queries) ProvRecordOutcome(ctx context.Context, arg ProvRecordOutcomePa
 		arg.Delivered,
 		arg.Bounced,
 		arg.Complained,
+		arg.DeliveredReporting,
 	)
 	return err
 }
@@ -1247,6 +1311,44 @@ func (q *Queries) ProvSentThroughSince(ctx context.Context, arg ProvSentThroughS
 	var n int64
 	err := row.Scan(&n)
 	return n, err
+}
+
+const provSetIPSource = `-- name: ProvSetIPSource :exec
+UPDATE providers SET ip_source = $1 WHERE id = $2
+`
+
+type ProvSetIPSourceParams struct {
+	IpSource json.RawMessage `json:"ipSource"`
+	ID       uuid.UUID       `json:"id"`
+}
+
+// Where a provider's sending IPs come from, the IPs unchanged (a check
+// that failed keeps them).
+func (q *Queries) ProvSetIPSource(ctx context.Context, arg ProvSetIPSourceParams) error {
+	_, err := q.db.Exec(ctx, provSetIPSource, arg.IpSource, arg.ID)
+	return err
+}
+
+const provSetIPs = `-- name: ProvSetIPs :exec
+UPDATE providers SET ip_mode = $1, ips = $2::text[], ip_source = $3 WHERE id = $4
+`
+
+type ProvSetIPsParams struct {
+	IpMode   string          `json:"ipMode"`
+	Ips      []string        `json:"ips"`
+	IpSource json.RawMessage `json:"ipSource"`
+	ID       uuid.UUID       `json:"id"`
+}
+
+// A provider's sending IPs (sorted, each once) and where they come from.
+func (q *Queries) ProvSetIPs(ctx context.Context, arg ProvSetIPsParams) error {
+	_, err := q.db.Exec(ctx, provSetIPs,
+		arg.IpMode,
+		arg.Ips,
+		arg.IpSource,
+		arg.ID,
+	)
+	return err
 }
 
 const provSetRouteStatus = `-- name: ProvSetRouteStatus :execrows

@@ -276,3 +276,76 @@
     min-width: 100%;
   }
 }
+
+/* A catalog card's facts (SetupCatalog, PR-13): label, then value. */
+.cn-facts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.cn-facts dt {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 500;
+}
+.cn-facts dd {
+  margin: 0;
+}
+.cn-facts dd.bk {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.cn-facts dd.bk svg {
+  flex: none;
+  margin-top: 2px;
+}
+/* A card's capabilities and prices, folded under Details. */
+details.cn-det {
+  border-top: 1px solid var(--line-2);
+  padding-top: 4px;
+}
+details.cn-det summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  list-style: none;
+}
+details.cn-det summary::-webkit-details-marker {
+  display: none;
+}
+details.cn-det[open] summary svg {
+  transform: rotate(180deg);
+}
+/* Help me choose: the recommendation and its runner-up. */
+.cn-rec {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid #99f6e4;
+  border-radius: 8px;
+  background: #f0fdfa;
+}
+@media (max-width: 767px) {
+  details.cn-det summary {
+    min-height: 44px;
+  }
+  /* Setup on phones: every button and field is at least 44 px (PR-15), on
+     the done page too (SetupDone). */
+  .cn-head .btn,
+  .cn-wiz .btn,
+  .cn-done .btn {
+    min-height: 44px;
+  }
+  .cn-wiz input.in,
+  .cn-wiz select.in {
+    height: 44px;
+  }
+}
+

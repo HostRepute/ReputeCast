@@ -4,6 +4,7 @@ import { m } from './messages'
 /** Loading: tiles and a chart, shaped like the report (ReportStates). */
 export function ReportSkeleton() {
   const t = useT()
+  // Eight tiles, four across, as the loading state of ReportStates draws them.
   const tiles: [number, number, number][] = [
     [60, 90, 110],
     [60, 90, 70],
@@ -11,13 +12,15 @@ export function ReportSkeleton() {
     [90, 90, 120],
     [50, 90, 90],
     [80, 60, 50],
+    [70, 50, 130],
+    [90, 60, 110],
   ]
   return (
     <div className="flex flex-col gap-3.5" aria-busy="true">
       <span className="vh" role="status">
         {t(m.loading)}
       </span>
-      <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]">
+      <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
         {tiles.map(([a, b, c], i) => (
           <div key={i} className="card flex flex-col gap-1.5 px-4 py-3.5">
             <span className="rep-sk" style={{ width: a, height: 12 }} />

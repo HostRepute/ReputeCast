@@ -7,11 +7,13 @@ import (
 	"errors"
 	"math"
 	"net/http"
+	"net/mail"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/contracttest"
 	"github.com/hostrepute/reputecast/internal/providers/simulator"
@@ -166,5 +168,53 @@ func TestOutlookComplaintsScenario(t *testing.T) {
 	}
 	if gmail["complaint"] > 0.1 {
 		t.Errorf("the scenario only affects Outlook: Gmail complaints %.2f%%", gmail["complaint"])
+	}
+}
+
+// Gmail and Apple never report a complaint (review F-2), so the demo
+// transport plans none there, in any scenario. One planned there would
+// count among a send's complaints while complaint rates leave that mailbox
+// provider's delivered mail out: it could pause the whole send before the
+// mailbox provider whose readers complain.
+func TestNoComplaintsWhereNotReported(t *testing.T) {
+	for _, scenario := range simulator.Scenarios {
+		p := newSim(t, map[string]any{"demo": true, "mimic": "ses", "scenario": scenario})
+		for _, mbp := range []string{mailbox.Gmail, mailbox.Outlook, mailbox.Yahoo, mailbox.ICloud, mailbox.Other} {
+			if mailbox.ReportsComplaints(mbp) {
+				continue
+			}
+			got := plan(t, p, 20000, map[string]string{simulator.TagMailbox: mbp, simulator.TagEngaged: "false", simulator.TagTier: "sunset"})
+			if got["complaint"] > 0 {
+				t.Errorf("%s scenario: %s complaints %.3f%%, but %s doesn't report complaints", scenario, mbp, got["complaint"], mbp)
+			}
+		}
+	}
+}
+
+// The normal scenario throttles about one Postal call in 250; the steady
+// one never does, so a send's timing is the engine's rules alone.
+func TestSteadyNeverThrottles(t *testing.T) {
+	ctx := context.Background()
+	at := time.Date(2026, 10, 14, 9, 0, 0, 0, time.UTC)
+	throttled := func(scenario string) int {
+		sim := newSim(t, map[string]any{"demo": true, "mimic": "postal", "scenario": scenario})
+		n := 0
+		for i := range 5000 {
+			msg := providers.Message{ID: uuid.New(), To: mail.Address{Address: "reader@example.com"}}
+			_, err := sim.Send(simulator.WithNow(ctx, at.Add(time.Duration(i)*time.Millisecond)), []providers.Message{msg})
+			var ce *providers.CallError
+			if errors.As(err, &ce) && ce.Throttled {
+				n++
+			} else if err != nil {
+				t.Fatalf("%s: %v", scenario, err)
+			}
+		}
+		return n
+	}
+	if n := throttled(simulator.ScenarioNormal); n < 5 || n > 60 {
+		t.Fatalf("normal: %d of 5000 calls throttled, want about 20", n)
+	}
+	if n := throttled(simulator.ScenarioSteady); n != 0 {
+		t.Fatalf("steady: %d calls throttled", n)
 	}
 }

@@ -166,7 +166,7 @@ export const mp = defineMessages('automations.panels', {
   publicOnly: 'Public addresses only. Contacts continue past the step even if the call fails.',
   signingSecret: 'Signing secret',
   notSet: 'Not set',
-  secretReason: 'Editing needs automations:edit.',
+  secretReason: "Your role can't edit automations.",
   replace: 'Replace',
   set: 'Set',
   secretSaved: 'Signing secret saved',

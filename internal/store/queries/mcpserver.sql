@@ -20,20 +20,6 @@ SELECT coalesce(sum(sent), 0)::bigint AS sent, coalesce(sum(delivered), 0)::bigi
        coalesce(sum(clicked), 0)::bigint AS clicked, coalesce(sum(unsubscribed), 0)::bigint AS unsubscribed
 FROM campaign_counters WHERE campaign_id = @campaign_id;
 
--- name: McpCampaignByProvider :many
-SELECT p.name AS provider, coalesce(sum(c.sent), 0)::bigint AS sent, coalesce(sum(c.delivered), 0)::bigint AS delivered,
-       coalesce(sum(c.hard_bounced + c.soft_bounced), 0)::bigint AS bounced, coalesce(sum(c.complained), 0)::bigint AS complained
-FROM campaign_counters c JOIN providers p ON p.id = c.provider_id
-WHERE c.campaign_id = @campaign_id
-GROUP BY p.name ORDER BY sent DESC;
-
--- name: McpCampaignByMailbox :many
-SELECT c.mailbox_provider, coalesce(sum(c.sent), 0)::bigint AS sent, coalesce(sum(c.delivered), 0)::bigint AS delivered,
-       coalesce(sum(c.opened_human), 0)::bigint AS opened_human, coalesce(sum(c.complained), 0)::bigint AS complained
-FROM campaign_counters c
-WHERE c.campaign_id = @campaign_id
-GROUP BY c.mailbox_provider ORDER BY sent DESC;
-
 -- name: McpLatestReadiness :one
 SELECT verdict, checks, estimates, ran_at FROM readiness_runs WHERE campaign_id = @campaign_id ORDER BY ran_at DESC LIMIT 1;
 
@@ -74,18 +60,6 @@ WHERE workspace_id = @workspace_id AND listed ORDER BY impact DESC, asset;
 -- name: McpPostmaster :many
 SELECT DISTINCT ON (domain) domain, day, spam_rate, domain_reputation, ip_reputation
 FROM postmaster_daily WHERE workspace_id = @workspace_id ORDER BY domain, day DESC;
-
--- name: McpCreateDraft :one
-INSERT INTO campaigns (id, workspace_id, name, status, subject, preheader, mjml, created_by, updated_by)
-VALUES (@id, @workspace_id, @name, 'draft', @subject, @preheader, @mjml, @created_by, @created_by)
-RETURNING id, name, status, version, created_at;
-
--- name: McpUpdateDraft :one
-UPDATE campaigns
-SET subject = coalesce(sqlc.narg(subject), subject), preheader = coalesce(sqlc.narg(preheader), preheader),
-    mjml = coalesce(sqlc.narg(mjml), mjml), version = version + 1, updated_at = now(), updated_by = @updated_by
-WHERE id = @id AND workspace_id = @workspace_id AND status IN ('draft','approval','approved') AND deleted_at IS NULL
-RETURNING id, name, status, version, subject, preheader;
 
 -- name: McpCreateSegment :one
 INSERT INTO segments (id, workspace_id, name, description, mode, definition, created_by)

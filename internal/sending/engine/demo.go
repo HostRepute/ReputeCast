@@ -31,6 +31,10 @@ type DemoSendOptions struct {
 	ABWindow time.Duration
 	// Reset clears an earlier send of the campaign first.
 	Reset bool
+	// Canary is the canary choice (auto, on, off); "" runs one in the
+	// normal scenario, as on the LiveMonitor and LiveMonitorCanary boards,
+	// and none in the others.
+	Canary string
 }
 
 // DemoSendResult describes the started send.
@@ -157,7 +161,15 @@ func (e *Engine) DemoSend(ctx context.Context, o DemoSendOptions) (DemoSendResul
 	}
 	prev := e.Now
 	e.Now = func() time.Time { return start }
-	err = e.StartWith(ctx, c.ID, StartOptions{By: sofia, Now: true, Scenario: o.Scenario, ABWindow: o.ABWindow, ApprovedBy: &marcus, ApprovedAt: &approvedAt, ScheduledBy: &linh})
+	canary := o.Canary
+	if canary == "" {
+		canary = CanaryOff
+		if o.Scenario == "" || o.Scenario == "normal" {
+			canary = CanaryOn
+		}
+	}
+	err = e.StartWith(ctx, c.ID, StartOptions{By: sofia, Now: true, Scenario: o.Scenario, ABWindow: o.ABWindow, ApprovedBy: &marcus, ApprovedAt: &approvedAt,
+		ScheduledBy: &linh, Canary: canary})
 	e.Now = prev
 	if err == nil {
 		err = e.prepare(ctx, c.ID, start)
@@ -173,6 +185,9 @@ func (e *Engine) DemoSend(ctx context.Context, o DemoSendOptions) (DemoSendResul
 			// demo providers' rate windows over them first, or a real-time
 			// send in those seconds would leave it no room.
 			if err = e.Q.SendingClearWindows(ctx, store.SendingClearWindowsParams{ProviderIds: ids, FromSec: t.Unix() - 1, ToSec: end.Unix() + 1}); err != nil {
+				break
+			}
+			if err = e.Q.SendingClearMailboxWindows(ctx, store.SendingClearMailboxWindowsParams{WorkspaceID: ws.ID, FromSec: t.Unix() - 10, ToSec: end.Unix() + 1}); err != nil {
 				break
 			}
 			var done bool
@@ -232,8 +247,10 @@ func (e *Engine) resetDemo(ctx context.Context, id uuid.UUID) error {
 			       WHERE campaign_id = $1 AND sent_at IS NOT NULL AND provider_id IS NOT NULL GROUP BY 1, 2) x
 			 WHERE d.provider_id = x.provider_id AND d.day = x.day`,
 			`UPDATE provider_daily_stats d SET delivered = greatest(d.delivered - x.delivered, 0),
-			     bounced = greatest(d.bounced - x.bounced, 0), complained = greatest(d.complained - x.complained, 0)
+			     bounced = greatest(d.bounced - x.bounced, 0), complained = greatest(d.complained - x.complained, 0),
+			     delivered_reporting = greatest(d.delivered_reporting - x.reporting, 0)
 			 FROM (SELECT provider_id, occurred_at::date AS day, count(*) FILTER (WHERE type = 'delivered') AS delivered,
+			              count(*) FILTER (WHERE type = 'delivered' AND mailbox_provider NOT IN ('gmail', 'icloud')) AS reporting,
 			              count(*) FILTER (WHERE type = 'hard_bounce') AS bounced, count(*) FILTER (WHERE type = 'complaint') AS complained
 			       FROM delivery_events WHERE campaign_id = $1 AND provider_id IS NOT NULL GROUP BY 1, 2) x
 			 WHERE d.provider_id = x.provider_id AND d.day = x.day`,
@@ -250,15 +267,17 @@ func (e *Engine) resetDemo(ctx context.Context, id uuid.UUID) error {
 			 UPDATE contacts c SET status = 'active', updated_at = now()
 			 FROM gone WHERE c.workspace_id = gone.workspace_id AND c.email = gone.email
 			   AND c.status = CASE gone.reason WHEN 'hard_bounce' THEN 'bounced' ELSE 'complained' END`,
-			// Moving a held share shifted the warming provider's plan by a day.
+			// Moving a held share noted it in the warming provider's plan (and,
+			// before warm-up plans moved by counted days, shifted it by a day).
 			`WITH shifted AS (
 			     DELETE FROM warmup_events ev USING warmup_plans p, campaigns c
 			     WHERE c.id = $1 AND c.started_at IS NOT NULL AND ev.plan_id = p.id
 			       AND p.provider_id IN (SELECT provider_id FROM campaign_routes WHERE campaign_id = $1)
-			       AND ev.kind = 'settings' AND ev.title = 'Schedule shifted by a day.' AND ev.occurred_at >= c.started_at
-			     RETURNING ev.plan_id
+			       AND ev.kind = 'settings' AND ev.title IN ('Schedule shifted by a day.', 'Share moved during an outage.') AND ev.occurred_at >= c.started_at
+			     RETURNING ev.plan_id, ev.title
 			 )
-			 UPDATE warmup_plans p SET start_date = p.start_date - 1 FROM (SELECT DISTINCT plan_id FROM shifted) s WHERE p.id = s.plan_id`,
+			 UPDATE warmup_plans p SET start_date = p.start_date - 1
+			 FROM (SELECT DISTINCT plan_id FROM shifted WHERE title = 'Schedule shifted by a day.') s WHERE p.id = s.plan_id`,
 			`DELETE FROM sending_sim_events WHERE campaign_id = $1`,
 			`DELETE FROM delivery_events WHERE campaign_id = $1`,
 			`DELETE FROM tracking_link_clicks WHERE message_id IN (SELECT id FROM messages WHERE campaign_id = $1)`,

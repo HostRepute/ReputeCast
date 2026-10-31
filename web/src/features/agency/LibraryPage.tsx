@@ -266,7 +266,7 @@ function ApplyDialog({ tpl, onClose }: { tpl: Template; onClose: () => void }) {
             />
           </div>
           {p.skipped.length ? (
-            <Note tone="warn">{t(lm.planSkipped, { parts: formatList(p.skipped.map((s) => t(lm.skippedPart, { part: partName(t, s.part), permission: s.permission }))) })}</Note>
+            <Note tone="warn">{t(lm.planSkipped, { parts: formatList(p.skipped.map((s) => partName(t, s.part))) })}</Note>
           ) : null}
           <div className="note n">
             <Icon name="info" size={16} className="text-ink-2" />

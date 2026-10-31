@@ -268,7 +268,7 @@ function KeysCard({ s, onCreate }: { s: Setup; onCreate: () => void }) {
           <span className="k">
             <T
               msg={s.keyHelpers.length ? ms.keysForbidden : ms.keysForbiddenNoNames}
-              values={{ permission: <span className="mono">{'apikeys:manage'}</span>, names: s.keyHelpers.join(', ') }}
+              values={{ names: s.keyHelpers.join(', ') }}
             />
           </span>
         )}

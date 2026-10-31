@@ -22,6 +22,9 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
+	"github.com/hostrepute/reputecast/internal/linkrule"
+	"github.com/hostrepute/reputecast/internal/linktoken"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	provstate "github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/secrets"
@@ -63,6 +66,13 @@ type Service struct {
 	Now    func() time.Time
 	// Languages adds results per language; nil leaves them out.
 	Languages *languages.Service
+	// Links reads the view-online pages new subscribers came from (an
+	// issue's forwards); nil leaves those out.
+	Links *linktoken.Signer
+	// RetryAudience counts who an audience goes to, as Review & send counts
+	// them (Send Readiness): what a retry of blocked addresses would reach.
+	// Nil counts the blocked addresses alone.
+	RetryAudience func(ctx context.Context, ws *store.Workspace, audience json.RawMessage) (int64, error)
 }
 
 func (s *Service) now() time.Time {
@@ -116,6 +126,15 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 	if c.Note != "" {
 		info.Notes = append(info.Notes, c.Note)
 	}
+	// Messages left out while in doubt (review GS-1): the live monitor's
+	// "Leave them out" says the report shows them as not sent, in doubt.
+	leftOut, err := s.Q.ReportLeftOutInDoubt(ctx, &c.ID)
+	if err != nil {
+		return out, err
+	}
+	if leftOut > 0 {
+		info.Notes = append(info.Notes, mNoteInDoubt.Text(l, i18n.Args{"count": leftOut}))
+	}
 	if c.CompletedAt != nil {
 		fa := c.CompletedAt.Add(FinalAfter)
 		info.FinalAt = &fa
@@ -149,8 +168,12 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 		}
 		out.NotSent = ns
 		out.Headline.SentBy = []ReportProviderCount{}
+		out.Headline.NotReportedBy = []string{}
+		out.Comparisons = ReportComparisons{Tiles: []ReportComparison{}, Unavailable: "not_final"}
 		out.Engagement.Points = []ReportEngagementPoint{}
 		out.ClickMap.Links = []ReportLink{}
+		out.ClickMap.Variants = []ReportVariantClickMap{}
+		out.Insights = []ReportInsight{}
 		out.Providers.Columns = []ReportProviderColumn{}
 		out.Bounces.Rows = []ReportBounceRow{}
 		out.Unsubscribes.Reasons = []ReportUnsubscribeReason{}
@@ -166,7 +189,16 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 		return out, err
 	}
 	out.Headline, out.Mailboxes = headline(cells, c.Origin)
+	if out.Comparisons, err = s.compare(ctx, ws, c, cells, info.Final); err != nil {
+		return out, err
+	}
+	if out.Growth, err = s.growth(ctx, ws, c); err != nil {
+		return out, err
+	}
 	if out.Providers, err = s.providerTable(ctx, c, cells, routes, loc); err != nil {
+		return out, err
+	}
+	if err := s.trackingSources(ctx, c, &out.Providers, provs); err != nil {
 		return out, err
 	}
 	hourly, err := s.Q.ReportHourly(ctx, store.ReportHourlyParams{CampaignID: c.ID, MaxHour: 71})
@@ -178,7 +210,14 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 	if err != nil {
 		return out, err
 	}
-	out.ClickMap = clickMap(l, c.Html, links)
+	if out.ClickMap, err = s.clickMaps(ctx, l, c, ab, links); err != nil {
+		return out, err
+	}
+	// The send's bot clicks: on every link, whichever variant's or language
+	// version's email the map shows.
+	for _, lk := range links {
+		out.Headline.BotClicks += lk.BotClicks
+	}
 	if s.Languages != nil {
 		if out.Languages, err = s.Languages.CampaignResults(ctx, ws, c.ID, c.Audience); err != nil {
 			return out, err
@@ -193,7 +232,7 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 						mine = append(mine, l)
 					}
 				}
-				out.ClickMap = clickMap(l, html, mine)
+				out.ClickMap = clickMap(l, linkrule.Mark(html), mine, linkrule.Rows(html))
 				out.ClickMap.Language = lang
 				if lang == "" && len(out.Languages.ClickMaps) > 0 {
 					out.ClickMap.Language = out.Languages.ClickMaps[0].Language
@@ -218,10 +257,13 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 	} else {
 		out.Unsubscribes = unsubscribes(l, out.Headline.Unsubscribes, reasons)
 	}
+	if out.Insights, err = s.insights(ctx, l, ws, c, &out); err != nil {
+		return out, err
+	}
 	if ab != nil && len(ab.Variants) >= 2 {
-		t := abResult(l, ab, cells, c, now)
+		t := abResult(l, ab, parseSendAB(c.SendAb), cells, c, now)
 		out.ABTest = &t
-		if t.State == "decided" && t.RolloutAt != nil && c.StartedAt != nil {
+		if t.State != "testing" && t.RolloutAt != nil && c.StartedAt != nil && t.Remaining > 0 {
 			out.Engagement.Rollout = &ReportRollout{Variant: t.Winner, At: *t.RolloutAt, Hour: round(t.RolloutAt.Sub(*c.StartedAt).Hours(), 2)}
 		}
 	}
@@ -288,7 +330,7 @@ func (s *Service) audienceLabel(ctx context.Context, wsID uuid.UUID, raw json.Ra
 
 // counts sums a slice of counter cells.
 type counts struct {
-	sent, delivered, hard, soft, complained, rejected, human, machine, clicked, unsub int64
+	sent, delivered, hard, soft, complained, rejected, human, privacy, machine, clicked, unsub int64
 }
 
 func (a *counts) add(c store.ReportCounterCellsRow) {
@@ -299,15 +341,21 @@ func (a *counts) add(c store.ReportCounterCellsRow) {
 	a.complained += c.Complained
 	a.rejected += c.Rejected
 	a.human += c.OpenedHuman
+	a.privacy += c.OpenedPrivacy
 	a.machine += c.OpenedMachine
 	a.clicked += c.Clicked
 	a.unsub += c.Unsubscribed
 }
 
+// measurable are the delivered recipients whose opens can be measured:
+// all but the privacy-protected (Apple Mail opened them on delivery).
+func (a counts) measurable() int64 { return max(a.delivered-a.privacy, 0) }
+
 func (a counts) rates() ReportRates {
 	return ReportRates{
 		Sent: a.sent, Delivered: a.delivered,
 		DeliveredRate: rate(a.delivered, a.sent), HumanOpenRate: rate(a.human, a.delivered), MachineOpenRate: rate(a.machine, a.delivered),
+		Measurable: a.measurable(), HumanOpenRateMeasurable: rate(a.human, a.measurable()), PrivacyOpenRate: rate(a.privacy, a.delivered),
 		ClickRate: rate(a.clicked, a.delivered), BounceRate: rate(a.hard+a.soft, a.sent), ComplaintRate: rate(a.complained, a.delivered),
 		UnsubscribeRate: rate(a.unsub, a.delivered),
 	}
@@ -351,21 +399,41 @@ func headline(cells []store.ReportCounterCellsRow, origin string) (ReportHeadlin
 	h := ReportHeadline{
 		Sent: all.sent, SentBy: []ReportProviderCount{}, Delivered: all.delivered, DeliveredRate: rate(all.delivered, all.sent),
 		HumanOpens: all.human, HumanOpenRate: rate(all.human, all.delivered), MachineOpens: all.machine, MachineOpenRate: rate(all.machine, all.delivered),
+		Measurable: all.measurable(), HumanOpenRateMeasurable: rate(all.human, all.measurable()), PrivacyOpens: all.privacy, PrivacyOpenRate: rate(all.privacy, all.delivered),
 		Clicks: all.clicked, ClickRate: rate(all.clicked, all.delivered), ClickToOpen: rate(all.clicked, all.human),
 		Unsubscribes: all.unsub, UnsubscribeRate: rate(all.unsub, all.delivered), Complaints: all.complained, ComplaintRate: rate(all.complained, all.delivered),
 		Bounces: all.hard + all.soft, HardBounces: all.hard, SoftBounces: all.soft, BounceRate: rate(all.hard+all.soft, all.sent), Rejected: all.rejected,
 	}
-	h.Undelivered = max(all.sent-all.delivered-all.hard-all.soft-all.rejected, 0)
+	// Undelivered: sent, and neither delivered nor bounced (yet). Rejected
+	// messages were never sent: a provider that drops a message it took
+	// takes it back out of sent (internal/counters).
+	h.Undelivered = max(all.sent-all.delivered-all.hard-all.soft, 0)
 	for _, id := range order {
 		h.SentBy = append(h.SentBy, *byProvider[id])
 	}
 	sort.SliceStable(h.SentBy, func(i, j int) bool { return h.SentBy[i].Count > h.SentBy[j].Count })
+	// Complaints only where they are reported (review F-2): Gmail and
+	// iCloud never tell senders, so their rate is n/a with the reason, and
+	// the headline's rate where reported leaves their deliveries out.
 	rows := []ReportMailboxRow{}
+	h.NotReportedBy = []string{}
+	var reported counts
 	for _, m := range mailboxes {
-		if c := byMailbox[m.key]; c != nil && c.sent > 0 {
-			rows = append(rows, ReportMailboxRow{Key: m.key, Name: m.name, ReportRates: c.rates()})
+		c := byMailbox[m.key]
+		if c == nil || c.sent == 0 {
+			continue
 		}
+		r := ReportMailboxRow{Key: m.key, Name: m.name, ReportRates: c.rates()}
+		if mailbox.ReportsComplaints(m.key) {
+			reported.delivered += c.delivered
+			reported.complained += c.complained
+		} else {
+			r.ComplaintRate, r.ComplaintRateNA = nil, mailbox.NotReported
+			h.NotReportedBy = append(h.NotReportedBy, m.name)
+		}
+		rows = append(rows, r)
 	}
+	h.ComplaintRateReported = rate(reported.complained, reported.delivered)
 	return h, rows
 }
 
@@ -464,6 +532,46 @@ func (s *Service) providerTable(ctx context.Context, c store.ReportCampaignRow, 
 	return out, nil
 }
 
+// trackingSources says, for each sending provider of the send, whose
+// tracking counted its opens and clicks and how its deliveries and bounces
+// are known (ReportStates' tracking source notes). A provider whose own
+// tracking is kept counted the send when it reported its opens or clicks.
+func (s *Service) trackingSources(ctx context.Context, c store.ReportCampaignRow, t *ReportProviderTable, provs []store.Provider) error {
+	byID := make(map[string]store.Provider, len(provs))
+	for _, p := range provs {
+		byID[p.ID.String()] = p
+	}
+	for i := range t.Columns {
+		col := &t.Columns[i]
+		col.TrackedBy, col.Events = "reputecast", "none"
+		col.DeliveryInferred = col.Adapter == "smtp"
+		p, ok := byID[col.ProviderID]
+		if !ok {
+			continue
+		}
+		switch provstate.Caps(p).Webhooks {
+		case "SNS":
+			col.Events = "sns"
+		case "Bounce mailbox":
+			col.Events = "bounce_mailbox"
+		case "":
+		default:
+			col.Events = "webhook"
+		}
+		if provstate.TrackingOf(p).Mode != "provider" {
+			continue
+		}
+		reported, err := s.Q.ReportProviderTracked(ctx, store.ReportProviderTrackedParams{CampaignID: c.ID, ProviderID: p.ID})
+		if err != nil {
+			return err
+		}
+		if reported {
+			col.TrackedBy = "provider"
+		}
+	}
+	return nil
+}
+
 // hoursSoFar is how many hours of the 72-hour window have passed.
 func hoursSoFar(c store.ReportCampaignRow, info ReportCampaignInfo, now time.Time) int {
 	if info.Final || c.StartedAt == nil {
@@ -487,15 +595,16 @@ func engagement(rows []store.ReportHourlyRow, delivered int64, hours int) Report
 		last = max(last, int(r.Hour)+1)
 	}
 	end := max(min(hours, 72), min(last, 72))
-	var h, m, k int64
+	var h, p, m, k int64
 	out.Points = append(out.Points, ReportEngagementPoint{Hour: 0})
 	var at6 int64
 	for i := 0; i < end; i++ {
 		r := byHour[i]
 		h += r.OpenedHuman
+		p += r.OpenedPrivacy
 		m += r.OpenedMachine
 		k += r.Clicked
-		out.Points = append(out.Points, ReportEngagementPoint{Hour: i + 1, HumanOpens: h, MachineOpens: m, Clicks: k})
+		out.Points = append(out.Points, ReportEngagementPoint{Hour: i + 1, HumanOpens: h, PrivacyOpens: p, MachineOpens: m, Clicks: k})
 		if i+1 == 6 {
 			at6 = h
 		}
@@ -510,12 +619,20 @@ func engagement(rows []store.ReportHourlyRow, delivered int64, hours int) Report
 	return out
 }
 
-// clickMap sizes each link against all link clicks and groups the small ones.
-func clickMap(l i18n.Lang, html string, rows []store.ReportLinksRow) ReportClickMap {
+// clickMap sizes each link against all link clicks and groups the small
+// ones. A link's human clicks count each person once (a repeat click on the
+// same link doesn't add one), so the map's total is people per link: 2,996
+// people can make 3,412 human clicks across the links (Report board).
+//
+// lines are the email's rows of links (linkrule.Rows): a row whose links
+// are all under the threshold is one entry instead of joining "Other".
+func clickMap(l i18n.Lang, html string, rows []store.ReportLinksRow, lines [][]int) ReportClickMap {
 	rows = groupPersonal(l, rows)
-	out := ReportClickMap{HTML: html, Available: strings.TrimSpace(html) != "", Links: []ReportLink{}, Threshold: LinkThreshold}
+	out := ReportClickMap{HTML: html, Available: strings.TrimSpace(html) != "", Links: []ReportLink{}, Threshold: LinkThreshold, Rows: []ReportLinkRow{},
+		Variants: []ReportVariantClickMap{}}
 	for _, r := range rows {
-		out.Total += r.Clicks
+		out.Total += r.UniqueClicks
+		out.BotTotal += r.BotClicks
 	}
 	var other ReportLinkGroup
 	type labelled struct {
@@ -524,18 +641,64 @@ func clickMap(l i18n.Lang, html string, rows []store.ReportLinksRow) ReportClick
 	}
 	var grouped []labelled
 	for _, r := range rows {
-		l := ReportLink{ID: r.ID.String(), URL: r.Url, Label: linkLabel(r.Label, r.Url), Position: int(r.Position), Clicks: r.Clicks, UniqueClicks: r.UniqueClicks}
+		l := ReportLink{ID: r.ID.String(), URL: r.Url, Label: linkLabel(r.Label, r.Url), Position: int(r.Position), Clicks: r.Clicks, UniqueClicks: r.UniqueClicks,
+			BotClicks: r.BotClicks}
 		if out.Total > 0 {
-			l.Share = round(float64(r.Clicks)/float64(out.Total)*100, 1)
+			l.Share = round(float64(r.UniqueClicks)/float64(out.Total)*100, 1)
 		}
 		l.Grouped = l.Share < LinkThreshold
 		l.Hot = l.Share >= HotShare
-		if l.Grouped && r.Clicks > 0 {
-			other.Links++
-			other.Clicks += r.Clicks
-			grouped = append(grouped, labelled{l.Label, r.Clicks})
-		}
 		out.Links = append(out.Links, l)
+	}
+	// Rows of small links: one entry each.
+	inRow := map[int]bool{}
+	byPos := map[int]int{}
+	last := -1
+	for i, lk := range out.Links {
+		byPos[lk.Position] = i
+		last = max(last, lk.Position)
+	}
+	for _, line := range lines {
+		row := ReportLinkRow{Positions: []int{}, Labels: []string{}}
+		small := true
+		for _, p := range line {
+			i, ok := byPos[p]
+			if !ok || !out.Links[i].Grouped {
+				small = false
+				break
+			}
+			lk := out.Links[i]
+			row.Positions = append(row.Positions, p)
+			row.Labels = append(row.Labels, lk.Label)
+			row.Clicks += lk.UniqueClicks
+			row.BotClicks += lk.BotClicks
+		}
+		if !small || len(row.Positions) < 2 {
+			continue
+		}
+		switch {
+		case row.Positions[0] <= 1:
+			row.Place = "header"
+		case row.Positions[len(row.Positions)-1] == last:
+			row.Place = "footer"
+		default:
+			row.Place = "body"
+		}
+		if out.Total > 0 {
+			row.Share = round(float64(row.Clicks)/float64(out.Total)*100, 1)
+		}
+		for _, p := range row.Positions {
+			inRow[p] = true
+			out.Links[byPos[p]].Grouped = false
+		}
+		out.Rows = append(out.Rows, row)
+	}
+	for _, lk := range out.Links {
+		if lk.Grouped && !inRow[lk.Position] && lk.UniqueClicks > 0 {
+			other.Links++
+			other.Clicks += lk.UniqueClicks
+			grouped = append(grouped, labelled{lk.Label, lk.UniqueClicks})
+		}
 	}
 	if other.Links > 0 && out.Total > 0 {
 		other.Share = round(float64(other.Clicks)/float64(out.Total)*100, 1)
@@ -571,6 +734,7 @@ func groupPersonal(l i18n.Lang, rows []store.ReportLinksRow) []store.ReportLinks
 		}
 		out[at].Clicks += r.Clicks
 		out[at].UniqueClicks += r.UniqueClicks
+		out[at].BotClicks += r.BotClicks
 	}
 	return out
 }
@@ -637,163 +801,6 @@ func unsubscribes(l i18n.Lang, total int64, rows []store.ReportUnsubscribeReason
 		}
 		return a.Count > b.Count
 	})
-	return out
-}
-
-// abConfig is the A/B test stored on the campaign. Decision is the snapshot
-// the sending engine records when the test window closes: per variant, the
-// recipients whose result could be measured and how many converted on the
-// metric (machine opens excluded).
-type abConfig struct {
-	Kind     string `json:"kind"`
-	Variants []struct {
-		Key     string `json:"key"`
-		Subject string `json:"subject"`
-		Label   string `json:"label"`
-	} `json:"variants"`
-	TestPercent   float64    `json:"test_percent"`
-	Metric        string     `json:"metric"`
-	DurationHours float64    `json:"duration_hours"`
-	Winner        string     `json:"winner"`
-	DecidedAt     *time.Time `json:"decided_at"`
-	Decision      *struct {
-		Variants []struct {
-			Key         string `json:"key"`
-			Eligible    int64  `json:"eligible"`
-			Conversions int64  `json:"conversions"`
-		} `json:"variants"`
-	} `json:"decision"`
-}
-
-func parseAB(raw json.RawMessage) *abConfig {
-	if len(raw) == 0 || string(raw) == "null" {
-		return nil
-	}
-	var c abConfig
-	if json.Unmarshal(raw, &c) != nil || c.Kind == "" {
-		return nil
-	}
-	return &c
-}
-
-// abResult compares the variants: the decision snapshot when there is one,
-// else each test sample's results so far, with a two-proportion z-test on
-// the metric between the leader and the runner-up.
-func abResult(l i18n.Lang, cfg *abConfig, cells []store.ReportCounterCellsRow, c store.ReportCampaignRow, now time.Time) ReportABTest {
-	metric := cfg.Metric
-	if metric != "clicks" {
-		metric = "human_opens"
-	}
-	out := ReportABTest{Kind: cfg.Kind, Label: abLabel(l, cfg.Kind), Metric: metric, WindowHours: cfg.DurationHours, Winner: cfg.Winner, Variants: []ReportABVariant{}}
-	if out.Label == "" {
-		out.Label = strings.ReplaceAll(cfg.Kind, "_", " ")
-	}
-	if out.Kind != "content" && out.Kind != "send_time" {
-		out.Kind = "subject"
-	}
-	byVariant := map[string]*counts{}
-	var total, rollout int64
-	for _, cell := range cells {
-		total += cell.Sent
-		if cell.Variant == "" {
-			rollout += cell.Sent
-			continue
-		}
-		if byVariant[cell.Variant] == nil {
-			byVariant[cell.Variant] = &counts{}
-		}
-		byVariant[cell.Variant].add(cell)
-	}
-	type result struct{ x, n int64 }
-	results := map[string]result{}
-	for _, v := range cfg.Variants {
-		a := byVariant[v.Key]
-		if a == nil {
-			a = &counts{}
-		}
-		label := v.Subject
-		if label == "" {
-			label = v.Label
-		}
-		if label == "" && v.Key == "A" && out.Kind == "subject" {
-			// The composer keeps variant A's subject on the campaign.
-			label = c.Subject
-		}
-		rv := ReportABVariant{Key: v.Key, Label: label, Recipients: a.sent, HumanOpenRate: rate(a.human, a.delivered), ClickRate: rate(a.clicked, a.delivered),
-			ComplaintRate: rate(a.complained, a.delivered), Winner: v.Key == cfg.Winner}
-		if total > 0 {
-			rv.SamplePercent = round(float64(a.sent)/float64(total)*100, 1)
-		}
-		if rv.Winner {
-			rv.Remaining = rollout
-		}
-		x := a.human
-		if metric == "clicks" {
-			x = a.clicked
-		}
-		results[v.Key] = result{x, a.delivered}
-		out.Variants = append(out.Variants, rv)
-	}
-	if cfg.Decision != nil && len(cfg.Decision.Variants) >= 2 {
-		results = map[string]result{}
-		for _, d := range cfg.Decision.Variants {
-			results[d.Key] = result{d.Conversions, d.Eligible}
-		}
-	}
-	// Leader: the winner when there is one, else the best rate; runner-up:
-	// the best of the rest.
-	keys := make([]string, 0, len(out.Variants))
-	for _, v := range out.Variants {
-		keys = append(keys, v.Key)
-	}
-	rateOf := func(k string) float64 {
-		r := results[k]
-		if r.n <= 0 {
-			return -1
-		}
-		return float64(r.x) / float64(r.n)
-	}
-	sort.SliceStable(keys, func(i, j int) bool { return rateOf(keys[i]) > rateOf(keys[j]) })
-	leader := keys[0]
-	if cfg.Winner != "" {
-		leader = cfg.Winner
-	}
-	runner := ""
-	for _, k := range keys {
-		if k != leader {
-			runner = k
-			break
-		}
-	}
-	if runner != "" {
-		r1, r2 := results[runner], results[leader]
-		if lift, _, p, ok := ZTest(r1.x, r1.n, r2.x, r2.n); ok {
-			l := round(lift, 1)
-			pv := round(p, 4)
-			conf := round((1-p)*100, 1)
-			out.Lift, out.PValue, out.Confidence = &l, &pv, &conf
-			out.Significant = p < Significance && lift > 0
-		}
-	}
-	window := time.Duration(cfg.DurationHours * float64(time.Hour))
-	switch {
-	case cfg.Winner != "":
-		out.State = "decided"
-		out.Remaining = rollout
-		if cfg.DecidedAt != nil {
-			out.DecidedAt = cfg.DecidedAt
-		} else if c.StartedAt != nil && window > 0 {
-			t := c.StartedAt.Add(window)
-			out.DecidedAt = &t
-		}
-		out.RolloutAt = out.DecidedAt
-	case c.StartedAt != nil && window > 0 && now.Before(c.StartedAt.Add(window)):
-		out.State = "testing"
-		t := c.StartedAt.Add(window)
-		out.DecidedAt = &t
-	default:
-		out.State = "no_winner"
-	}
 	return out
 }
 

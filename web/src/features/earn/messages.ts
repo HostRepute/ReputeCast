@@ -21,7 +21,7 @@ export const me = defineMessages('earn', {
   testBannerTitle: 'Only test payments so far',
   testBannerText: 'Only test payments so far. Checkout uses Stripe’s test cards and nothing is charged. Test paid members are labelled Test and left out of every number.',
   testBannerAction: 'Connect your live key',
-  forbiddenTitle: 'Earn needs earn:view',
+  forbiddenTitle: 'Your role can’t see Earn',
   forbiddenBadge: '403 · {role}',
   forbiddenAsk: 'Ask {names}.',
   forbiddenDrafts: 'As a {role} you can still add Sponsor and Upgrade blocks and paid-only sections to drafts.',

@@ -1,10 +1,15 @@
 import { getI18n, t } from '@/i18n'
-import { clock } from '@/lib/format'
+import { clock, decimal } from '@/lib/format'
 import { m } from './messages'
 
 /** "64 KB" — sizes are shown in whole KB, as Gmail counts them. */
 export function kb(bytes: number | undefined | null): string {
   return `${Math.round((bytes ?? 0) / 1024)} KB`
+}
+
+/** "3.1 MB" from a megabyte up, "212 KB" below: an upload's size before it was compressed. */
+export function fileSize(bytes: number): string {
+  return bytes < 1 << 20 ? kb(bytes) : `${decimal(Math.round((bytes / (1 << 20)) * 10) / 10, 1)} MB`
 }
 
 /** "9:00 AM" as inbox lists show it; another region format shows its own clock. */

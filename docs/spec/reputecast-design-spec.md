@@ -123,8 +123,8 @@ Each check is Pass, Warn or Block, and each comes with a fix. Send Readiness als
 - A sunset policy.
 - One suppression list shared by every provider, which can import each provider's existing suppressions.
 
-### 5.7 Provider onboarding in about 10 minutes
-The user picks a provider from a catalog. The connection step depends on the provider:
+### 5.7 Provider onboarding
+The user picks a provider from a catalog. With access to the domain's DNS, connecting takes 10–15 minutes on AWS and longer off it; a new Amazon SES account also waits about a day for production access (review 2026-10, PR-15: the UI never promises less). The connection step depends on the provider:
 - **Amazon SES:** CloudFormation or IAM keys, auto-created SNS topics and configuration sets, sandbox detection and a guided production-access request.
 - **API providers:** paste an API key. ReputeCast registers webhooks and fetches the required DNS records automatically where the provider's API allows it.
 - **Postal:** server URL and API key.

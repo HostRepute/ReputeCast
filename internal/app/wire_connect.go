@@ -25,7 +25,7 @@ func (a *App) connectService() *connect.Service {
 	return &connect.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Factory: a.providerFactory(),
 		Domains:      a.domainsService(),
-		Routing:      &routing.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
+		Routing:      &routing.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Mailbox: a.mailboxClassifier()},
 		Suppressions: a.suppressionSync(),
 		Providers:    a.providersService(),
 		Deliver:      a.deliverer(),

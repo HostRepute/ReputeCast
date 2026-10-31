@@ -30,10 +30,14 @@ export const m = defineMessages('connect', {
   /** Under "Streams" while it's the current step; the provider's short name ("SES"). */
   stepStreamsCurrent: 'What {provider} will carry',
   stepStreamsCurrentNoName: 'What it will carry',
-  stepsFoot: 'Most people finish in about 10 minutes. You can add more providers later and send through several at once.',
+  /** Under the stepper: how long setup takes, honestly (PR-15). */
+  stepsFoot:
+    "Most setups take 10–15 minutes; Amazon SES takes longer when ReputeCast doesn't run on AWS, and a new AWS account can wait up to 24 hours for production access. You can add more providers later and send through several at once.",
 
   // ── Status badges of a row ───────────────────────────────────────────
   stateDone: 'Done',
+  /** Events arrived (SetupDone, PR-3). */
+  stateVerified: 'Verified',
   stateFailed: 'Failed',
   stateSkipped: 'Skipped',
   statePending: 'Pending',
@@ -47,7 +51,7 @@ export const m = defineMessages('connect', {
     "{what, select, zone {Couldn't copy the zone file} secret {Couldn't copy the webhook secret} url {Couldn't copy the webhook URL} other {Couldn't copy the {label} value}}",
   copyBlocked: 'Your browser blocked the clipboard. Select the text and copy it instead.',
 
-  // ── Read-only notes (the permission is {perm}) ───────────────────────
-  readOnlyCatalog: 'You can look at the catalog and at setups others started. Connecting a provider needs the {perm} permission.',
-  readOnlySetup: 'You can follow this setup. Connecting or changing a provider needs the {perm} permission.',
+  // ── Read-only notes ──────────────────────────────────────────────────
+  readOnlyCatalog: "You can look at the catalog and at setups others started. Your role can't connect providers.",
+  readOnlySetup: "You can follow this setup. Your role can't connect or change providers.",
 })

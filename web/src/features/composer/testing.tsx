@@ -1,0 +1,122 @@
+import { vi } from 'vitest'
+import type { Campaign, ComposerCtxData, ComposerState } from './context'
+
+/** A draft as the composer loads it, for component tests. */
+export function testCampaign(patch: Partial<Campaign> = {}): Campaign {
+  return {
+    id: '01970000-0000-7000-8000-0000000000c1',
+    name: 'Weekly Digest #142',
+    status: 'draft',
+    subject: 'Three launches, one deprecation, and the roadmap for Q4',
+    preheader: "Feature flags are GA, audit log exports, and what we're retiring in November.",
+    replyTo: '',
+    audience: { lists: [], segments: [], excludeLists: [], excludeSegments: [] },
+    audienceLabel: 'Weekly Digest',
+    audienceCount: 31192,
+    editorMode: 'visual',
+    mjml: '<mjml><mj-body><mj-section><mj-column><mj-text>Hi</mj-text></mj-column></mj-section></mj-body></mjml>',
+    html: '<p>Hi</p>',
+    plainText: 'Hi',
+    version: 14,
+    versionCount: 14,
+    contentHash: 'h',
+    settings: { minify: false },
+    createdAt: '2026-10-25T09:00:00Z',
+    updatedAt: '2026-10-25T09:38:00Z',
+    updatedBy: 'Linh Nguyen',
+    autosavedAt: '2026-10-25T09:38:00Z',
+    route: { source: 'campaign', shares: [] },
+    access: {
+      editable: true,
+      canEdit: true,
+      canSend: true,
+      sendHelpers: [],
+      canManageRouting: true,
+      canSendTestToOthers: true,
+      canEditTemplates: true,
+      canViewContacts: true,
+    },
+    language: '',
+    sourceLanguage: '',
+    ...patch,
+  } as Campaign
+}
+
+/** The composer's workspace context, for component tests. */
+export function testContext(patch: Partial<ComposerCtxData> = {}): ComposerCtxData {
+  return {
+    senders: [],
+    lists: [],
+    segments: [],
+    tokens: [
+      { key: 'first_name', label: 'First name', kind: 'contact', fallback: 'there' },
+      { key: 'last_name', label: 'Last name', kind: 'contact' },
+      { key: 'plan', label: 'Plan', kind: 'custom', fallback: 'free' },
+      { key: 'unsubscribe_url', label: 'Unsubscribe link', kind: 'system' },
+    ],
+    members: [],
+    broadcastRoute: { source: 'rule', shares: [] },
+    postalAddress: 'Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105',
+    publicUrl: 'https://reputecast.acme.io',
+    senderDomains: [],
+    ...patch,
+  } as ComposerCtxData
+}
+
+/** A composer state with every action mocked; override what a test needs. */
+export function testComposer(patch: Partial<ComposerState> = {}): ComposerState {
+  const campaign = patch.campaign ?? testCampaign()
+  return {
+    slug: 'acme-newsletter',
+    campaign,
+    context: testContext(),
+    ge: null,
+    editor: null,
+    selected: null,
+    view: 'visual',
+    device: 'desktop',
+    variant: 'A',
+    setView: vi.fn(),
+    setDevice: vi.fn(),
+    setVariant: vi.fn(),
+    name: campaign.name,
+    subject: campaign.subject,
+    preheader: campaign.preheader,
+    abTest: campaign.abTest ?? null,
+    setName: vi.fn(),
+    commitName: vi.fn(),
+    setSubject: vi.fn(),
+    setPreheader: vi.fn(),
+    setABTest: vi.fn(),
+    head: '',
+    setHead: vi.fn(),
+    status: { kind: 'saved', at: '2026-10-25T09:38:00Z', version: campaign.version },
+    save: vi.fn(async () => true),
+    hasUnsaved: () => false,
+    currentVersion: () => campaign.version,
+    currentMjml: () => campaign.mjml,
+    compileCurrent: () => ({ html: campaign.html, errors: [] }),
+    loadContent: vi.fn(),
+    reloadFromServer: vi.fn(async () => {}),
+    onSettingsChanged: vi.fn(),
+    registerLeaveCheck: () => () => {},
+    setCodeDirty: vi.fn(),
+    isEmpty: false,
+    darkCanvas: false,
+    setDarkCanvas: vi.fn(),
+    assetTarget: null,
+    setAssetTarget: vi.fn(),
+    previewSlot: null,
+    setPreviewSlot: vi.fn(),
+    checks: undefined,
+    checksPending: false,
+    rightTab: 'style',
+    setRightTab: vi.fn(),
+    leftTab: 'blocks',
+    setLeftTab: vi.fn(),
+    openDialog: vi.fn(),
+    rev: 0,
+    canEdit: true,
+    ...patch,
+  }
+}

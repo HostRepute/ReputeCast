@@ -139,8 +139,8 @@ export const msp = defineMessages('earn.sponsors', {
   linkByHand: 'Link a campaign by hand',
   // Read-only, loading and errors.
   readOnlyTitle: 'Read-only · {name}, {role}',
-  readOnlyText: 'You can see sponsors, bookings and reports. Managing them needs {permission}. Ask {helpers}.',
-  readOnlyNoHelpers: 'You can see sponsors, bookings and reports. Managing them needs {permission}.',
+  readOnlyText: 'You can see sponsors, bookings and reports. Your role can’t manage them. Ask {helpers}.',
+  readOnlyNoHelpers: 'You can see sponsors, bookings and reports. Your role can’t manage them.',
   errorTitle: 'Couldn’t load bookings',
   errorText: 'Sponsor blocks already in drafts keep their creative.',
   loadingLabel: 'Loading sponsors',

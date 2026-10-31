@@ -138,8 +138,8 @@ export const po = defineMessages('products.order', {
   restore: 'Restore access',
   revokedNoLink: 'Access is revoked. Restore it before sending a new link.',
   noRestoreRefunded: 'This order was refunded in full, so its download stays revoked.',
-  ordersNote: 'Sending links, revoking and restoring access need <mono>orders:manage</mono>. Refunds happen in Stripe.',
-  ordersNoteAsk: 'Sending links, revoking and restoring access need <mono>orders:manage</mono>. Refunds happen in Stripe. Ask {helpers}.',
+  ordersNote: 'Your role can’t send new links, revoke access or restore it. Refunds happen in Stripe.',
+  ordersNoteAsk: 'Your role can’t send new links, revoke access or restore it. Refunds happen in Stripe. Ask {helpers}.',
   // Send a new link.
   sendEyebrow: 'Order {number}',
   sendTitle: 'Send a new link to {email}?',

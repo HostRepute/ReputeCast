@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Campaign report, loading, empty and error states</title>
+<title>Campaign report states</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -53,7 +53,7 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
 /* responsive shell */
 @media (max-width:1100px){
   .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
-  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .brand-t,.side .ws{display:none}.side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .side .nav a{justify-content:center;padding:0!important;height:44px}
   .side .nav svg{width:20px;height:20px}
   .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
@@ -138,9 +138,39 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 .ws .av{font-weight:700}
 /* switches: a disabled switch looks disabled */
 .tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+/* report states: cards, bars, banner, panels, notes */
+.h2{margin:0;font-size:15px;font-weight:600}
+.chd{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.banner{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:10px;font-size:13.5px;flex-wrap:wrap}
+.panes{display:flex;flex-wrap:wrap;gap:1px;background:#EEF0F3;border-radius:0 0 9px 9px;overflow:hidden}
+.panes > *{background:#fff;min-width:0;box-sizing:border-box}
+.note{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:8px;background:#F9FAFB;border:1px solid #E3E6EB;font-size:13px;color:#4B5563}
+.tile{position:relative}
+@media (min-width:768px) and (max-width:1100px){.t6{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media (max-width:767px){.content .btn{min-height:44px}}
+
+/* phones: every top-bar target is at least 44px (tabs, links, fields, buttons, the bell and the account menu) */
+@media (max-width:767px){.top .tabs a{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box}.top a:not(.btn){min-height:44px}.top .btn,.top .in,.top select,.top input{min-height:44px;box-sizing:border-box}.top .ibtn{width:44px;height:44px;box-sizing:border-box}.top .ubtn{min-height:44px;box-sizing:border-box}.top nav[aria-label="Breadcrumb"] a{min-width:44px;justify-content:center}.top .chsw a{min-height:44px!important}}
+/* tables, the segmented control and image placeholders (as Report draws them) */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:10px 8px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:normal}
+.tbl td{padding:10px 8px;border-bottom:1px solid #EEF0F3;vertical-align:middle;white-space:normal}
+.tbl td.mono,.tbl td .mono{overflow-wrap:anywhere}
+.tbl td.n{white-space:nowrap}
+.tbl tr:last-child td,.tbl tr:last-child th{border-bottom:0}
+.tbl td.r,.tbl th.r{text-align:right}
+.tbl td.wrap{white-space:normal;min-width:200px}
+.tbl tbody th,.tbl tfoot th{text-align:left;font-size:13px;font-weight:600;color:#0B1220;text-transform:none;letter-spacing:0;padding:10px 8px;border-bottom:1px solid #EEF0F3;white-space:normal;vertical-align:middle}
+.ph{display:flex;align-items:center;justify-content:center;background:#E9ECF0;color:#5B6472;font-size:11px;font-weight:500;border:1px dashed #C9CED6}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;flex:none}
+.seg button{height:30px;padding:0 11px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#4B5563;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button:first-child{border-radius:7px 0 0 7px}.seg button:last-child{border-radius:0 7px 7px 0}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button.on{background:#0B1220;color:#fff}
 </style>
 </helmet>
-<h1 class="vh">Campaign report, loading, empty and error states</h1>
+<h1 class="vh">Campaign report states: loading, empty, error, results still coming in, no clear A/B winner and tracking source notes</h1>
 <div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh">
   <a href="#main" class="skip">Skip to content</a>
   <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
@@ -148,19 +178,19 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
       <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
       <span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span>
     </a>
-    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Acme Newsletter, your role Owner"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Acme Newsletter, Owner, switch workspace"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
     <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px" aria-label="Main">
-      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
-      <a href="Campaigns.dc.html" class="on" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
-      <a href="AutomationsList.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
-      <a href="Transactional.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
-      <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
-      <a href="GrowOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
-      <a href="EarnOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
-      <a href="FormBuilder.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
-      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
-      <a href="Providers.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
-      <a href="WorkspaceSettings.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="Main.dc.html" title="Overview"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html" class="on" aria-current="page" title="Campaigns"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html" class="xm" title="Automations"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Transactional.dc.html" class="xm" title="Transactional"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
+      <a href="Contacts.dc.html" title="Audience"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="GrowOverview.dc.html" class="xm" title="Grow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
+      <a href="EarnOverview.dc.html" class="xm" title="Earn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
+      <a href="FormBuilder.dc.html" class="xm" title="Forms &amp; pages"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html" title="Deliverability"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html" class="xm" title="Sending providers"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html" class="xm" title="Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
       <a href="ShellMore.dc.html" class="more" aria-label="More: Automations, Transactional, Grow, Earn, Forms & pages, Sending providers, Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">More</span></a>
     </nav>
   </aside>
@@ -168,19 +198,21 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
     <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
       <nav aria-label="Breadcrumb" style="display:flex;align-items:center;gap:8px;font-size:13px"><a href="Campaigns.dc.html" style="color:#5B6472">Campaigns</a><span class="k">/</span><span style="font-weight:600">Report</span></nav>
-          <div class="tools" style="margin-left:auto"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div>
+          <div class="tools" style="margin-left:auto"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Linh Nguyen, account menu"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div>
     </header>
 
     <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:28px">
       <section style="display:flex;flex-direction:column;gap:14px" aria-label="Loading state">
         <div class="strip"><span class="dot" style="color:#6B7280"></span>Loading · aggregating 184,000 events</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px" aria-busy="true">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px" aria-busy="true">
           <div class="card tile"><span class="sk" style="width:60px;height:12px"></span><span class="sk" style="width:90px;height:26px"></span><span class="sk" style="width:110px;height:12px"></span></div>
           <div class="card tile"><span class="sk" style="width:60px;height:12px"></span><span class="sk" style="width:90px;height:26px"></span><span class="sk" style="width:70px;height:12px"></span></div>
           <div class="card tile"><span class="sk" style="width:80px;height:12px"></span><span class="sk" style="width:90px;height:26px"></span><span class="sk" style="width:100px;height:12px"></span></div>
           <div class="card tile"><span class="sk" style="width:90px;height:12px"></span><span class="sk" style="width:90px;height:26px"></span><span class="sk" style="width:120px;height:12px"></span></div>
           <div class="card tile"><span class="sk" style="width:50px;height:12px"></span><span class="sk" style="width:90px;height:26px"></span><span class="sk" style="width:90px;height:12px"></span></div>
           <div class="card tile"><span class="sk" style="width:80px;height:12px"></span><span class="sk" style="width:60px;height:26px"></span><span class="sk" style="width:50px;height:12px"></span></div>
+          <div class="card tile"><span class="sk" style="width:70px;height:12px"></span><span class="sk" style="width:50px;height:26px"></span><span class="sk" style="width:130px;height:12px"></span></div>
+          <div class="card tile"><span class="sk" style="width:60px;height:12px"></span><span class="sk" style="width:60px;height:26px"></span><span class="sk" style="width:110px;height:12px"></span></div>
         </div>
         <div class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px" aria-busy="true"><span class="sk" style="width:220px;height:16px"></span><span class="sk" style="height:200px"></span></div>
       </section>
@@ -197,18 +229,18 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 
       <section style="display:flex;flex-direction:column;gap:14px" aria-label="Error state">
         <div class="strip"><span class="dot" style="color:#F87171"></span>Error · part of the report is unavailable</div>
-        <div role="alert" style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border-radius:10px;background:#FEF2F2;border:1px solid #FECACA">
+        <div role="alert" style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border-radius:10px;background:#FFF5F5;border:1px solid #FCA5A5">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#B91C1C" stroke-width="1.8" aria-hidden="true"><circle cx="10" cy="10" r="8"></circle><path d="M10 6v5M10 13.5v.5" stroke-linecap="round"></path></svg>
           <div style="display:flex;flex-direction:column;gap:4px;flex:1 1 300px">
             <span style="font-weight:600;color:#991B1B">Event ingestion is 12 minutes behind</span>
-            <span style="font-size:13px;color:#7F1D1D">The SNS queue for Amazon SES backed up at 09:28 (2,410 events waiting). Delivered, open and click counts below are complete up to 09:28 and will catch up on their own. Postal and Postmark events are current.</span>
+            <span style="font-size:13px;color:#4B5563">The SNS queue for Amazon SES backed up at 09:28 (2,410 events waiting). Delivered, open and click counts below are complete up to 09:28 and will catch up on their own. Postal and Postmark events are current.</span>
             <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap"><button class="btn sm">Refresh</button><a href="ProvidersEvents.dc.html" class="btn sm">View event queue</a></div>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;opacity:.75">
           <div class="card tile" style="border-color:#FCA5A5"><span class="k">Delivered</span><span class="n" style="font-size:22px">46,902</span><span class="badge warn" style="align-self:flex-start">as of 09:28</span></div>
           <div class="card tile" style="border-color:#FCA5A5"><span class="k">Human opens</span><span class="n" style="font-size:22px">18,974</span><span class="badge warn" style="align-self:flex-start">as of 09:28</span></div>
-          <div class="card tile"><span class="k">Clicks</span><span class="n" style="font-size:22px">2,901</span><span class="k">current</span></div>
+          <div class="card tile"><span class="k">Human clicks</span><span class="n" style="font-size:22px">2,901</span><span class="k">current</span></div>
           <div class="card tile"><span class="k">Bounces</span><span class="n" style="font-size:22px">281</span><span class="k">current</span></div>
           <div class="card tile"><span class="k">Complaints</span><span class="n" style="font-size:22px">19</span><span class="k">current</span></div>
         </div>
@@ -218,11 +250,96 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
           <button class="btn sm">Show clicks as a table</button>
         </div>
       </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Results still coming in">
+        <div class="strip"><span class="dot" style="color:#6B7280"></span>Results still coming in · within 72 h of the last message</div>
+        <div style="display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap">
+          <span style="font-weight:600">Weekly Digest #143</span>
+          <span class="badge ok"><span class="dot"></span>Sent · Tue 21 Oct, 09:00 to 12:41</span>
+          <span class="k">Weekly Digest · 31,604 recipients · A/B subject, no clear winner</span>
+        </div>
+        <div class="banner" style="background:#DBEAFE;border:1px solid #BFDBFE">
+          <span class="badge info"><span class="dot"></span>Still coming in</span>
+          <span style="flex:1 1 320px;min-width:0"><b>Results are still coming in · final on Fri 24 Oct, 12:41.</b> Opens, clicks, complaints and late bounces keep arriving for 72 hours after the last message. Until then the numbers can still rise, and nothing is compared with your last 6 issues.</span>
+          <button class="btn sm" type="button">Email me when it's final</button>
+        </div>
+        <div class="t6" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
+          <div class="card tile"><span class="k">Delivered</span><span class="n" style="font-size:22px">31,317</span><span class="k">99.1% so far · 91 still being retried</span></div>
+          <div class="card tile"><span class="k">Human opens</span><span class="n" style="font-size:22px">11,604</span><span class="k">37.1% of delivered · 47.4% of measurable, so far</span></div>
+          <div class="card tile"><span class="k">Privacy-protected</span><span class="n" style="font-size:22px;color:#5B6472">6,832</span><span class="k">21.8% of delivered so far</span></div>
+          <div class="card tile"><span class="k">Human clicks</span><span class="n" style="font-size:22px">1,690</span><span class="k">5.4% so far · click-to-open 14.6%</span></div>
+          <div class="card tile"><span class="k">Bounces</span><span class="n" style="font-size:22px">196</span><span class="k">0.62% of sent so far</span></div>
+          <div class="card tile"><span class="k">Complaints</span><span class="n" style="font-size:22px">11</span><span class="k">0.04% of delivered so far · Gmail and iCloud don't report complaints</span></div>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="A/B test without a clear winner">
+        <div class="strip"><span class="dot" style="color:#6B7280"></span>A/B without a clear winner · Weekly Digest #143</div>
+        <section class="card" aria-labelledby="ab0-h" style="display:flex;flex-direction:column">
+          <div class="chd"><h2 id="ab0-h" class="h2">A/B test · subject line</h2><span class="badge mut"><span class="dot"></span>No clear winner</span></div>
+          <p style="margin:0;padding:12px 18px;border-bottom:1px solid #EEF0F3;font-size:14px">B was 0.4 pts ahead at 61% confidence, so everyone else got A (your default).</p>
+          <div class="panes">
+            <div style="flex:1 1 300px;padding:16px 18px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span class="badge mut">A · your default</span><span class="k">3,160 recipients · 10% sample, then 25,284 remaining</span></div>
+              <span style="font-weight:600">Three launches this week, and the Postgres partitioning deep dive</span>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:13px"><span>Human clicks at 12:00</span><b class="n">3.6%</b></div>
+              <div class="bar" style="height:10px;border-radius:999px" role="img" aria-label="A: 3.6% human clicks at 12:00, on a 0 to 10% scale"><i style="width:36%;background:#0B1220;border-radius:0 999px 999px 0"></i></div>
+              <span class="k">Human opens 38.9% of measurable at 12:00</span>
+            </div>
+            <div style="flex:1 1 300px;padding:16px 18px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span class="badge mut">B</span><span class="k">3,160 recipients · 10% sample</span></div>
+              <span style="font-weight:600">The Postgres partitioning deep dive, plus three launches</span>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:13px"><span>Human clicks at 12:00</span><b class="n">4.0%</b></div>
+              <div class="bar" style="height:10px;border-radius:999px" role="img" aria-label="B: 4.0% human clicks at 12:00, on a 0 to 10% scale"><i style="width:40%;background:#0B1220;border-radius:0 999px 999px 0"></i></div>
+              <span class="k">Human opens 39.6% of measurable at 12:00</span>
+            </div>
+            <div style="flex:1 1 300px;padding:16px 18px;display:flex;flex-direction:column;gap:6px;font-size:13px">
+              <span style="font-weight:600">How it was decided</span>
+              <span class="k">Two-proportion z-test on human clicks 3 h after the sample went out (B 4.0%, A 3.6%); at least 500 recipients per variant. A winner needs 95% confidence, so the remaining 25,284 got A, your default, at 12:00.</span>
+              <span class="k">Both versions' final numbers arrive on Fri 24 Oct, 12:41. The bars run from 0% to 10%.</span>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Investigate: retry after fixing">
+        <div class="strip"><span class="dot" style="color:#6B7280"></span>Investigate · blocked for the sender’s reputation · Retry after fixing sends the issue again, once, to the blocked still on the list</div>
+        <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start"><div class="card" role="dialog" aria-labelledby="inv1-h" style="flex:1 1 560px;min-width:0;padding:20px 22px;display:flex;flex-direction:column;gap:14px;box-shadow:0 12px 32px rgba(15,23,42,.12)"><h2 id="inv1-h" style="margin:0;font-size:18px;font-weight:700">Blocked · policy or reputation · 11</h2><p style="margin:0;color:#4B5563;font-size:13.5px">What each provider said about these blocks. The addresses are valid and are never suppressed for them.</p><div style="overflow-x:auto"><table class="tbl"><thead><tr><th scope="col">Provider and code</th><th scope="col">What the provider said</th><th scope="col" class="r">Count</th></tr></thead><tbody><tr><td class="mono" style="font-size:12px;white-space:nowrap">Postal 550 5.7.1</td><td class="wrap">550 5.7.1 Unfortunately, messages from [203.0.113.40] weren't sent. Please contact your Internet service provider since part of their network is on our block list (S3150).</td><td class="r n">11</td></tr></tbody></table></div><section aria-labelledby="rt1-h" style="display:flex;flex-direction:column;gap:8px;border:1px solid #E3E6EB;border-radius:10px;padding:12px 14px"><h3 id="rt1-h" style="margin:0;font-size:14px;font-weight:600">Retry after fixing</h3><p style="margin:0;font-size:13px;color:#4B5563">Once the block is fixed, send this issue again to the 9 blocked addresses still on your list. Each gets it once, and it goes out from Review &amp; send with its checks. 2 more unsubscribed or were suppressed since, and are left out.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" type="button">Retry 9 after fixing</button></div></section><div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;border-top:1px solid #EEF0F3;padding-top:14px"><button class="btn" type="button">Close</button><a href="Deliverability.dc.html" class="btn pri">Check delisting</a></div></div><div style="flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:14px"><div class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:10px"><span class="k">After the retry is drafted</span><section aria-labelledby="rt2-h" style="display:flex;flex-direction:column;gap:8px;border:1px solid #E3E6EB;border-radius:10px;padding:12px 14px"><h3 id="rt2-h" style="margin:0;font-size:14px;font-weight:600">Retry after fixing</h3><p style="margin:0;font-size:13px;color:#4B5563">The retry is a draft: October Product Update · retry. Send it from Review &amp; send once the block is fixed.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><a href="SendReadiness.dc.html" class="btn sm">Open in Review &amp; send</a></div></section></div><div class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:10px"><span class="k">After it went out</span><section aria-labelledby="rt3-h" style="display:flex;flex-direction:column;gap:8px;border:1px solid #E3E6EB;border-radius:10px;padding:12px 14px"><h3 id="rt3-h" style="margin:0;font-size:14px;font-weight:600">Retry after fixing</h3><p style="margin:0;font-size:13px;color:#4B5563">The retry went out on Tue 21 Oct: October Product Update · retry.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><a href="Report.dc.html" class="btn sm">Open its report</a></div></section></div><div class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:10px"><span class="k">On the retry’s own report</span><section aria-labelledby="rt4-h" style="display:flex;flex-direction:column;gap:8px;border:1px solid #E3E6EB;border-radius:10px;padding:12px 14px"><h3 id="rt4-h" style="margin:0;font-size:14px;font-weight:600">Retry after fixing</h3><p style="margin:0;font-size:13px;color:#4B5563">This issue is a retry of October Product Update, so its blocked addresses aren’t retried again. Check the block with your provider first.</p></section></div></div></div>
+      </section>
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="A/B test decided before decisions were kept">
+        <div class="strip"><span class="dot" style="color:#6B7280"></span>A/B decided before decisions were kept · Weekly Digest #131 · the winner is known, its confidence isn’t, so none is claimed</div>
+        <section class="card" aria-labelledby="ab2-h" style="display:flex;flex-direction:column"><div class="chd"><h2 id="ab2-h" class="h2">A/B test · subject line</h2><span class="badge mut"><span class="dot"></span>B chosen · confidence not recorded</span></div><div class="panes"><div style="flex:1 1 300px;padding:16px 18px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span class="badge mut">A</span><span class="k">3,160 recipients · 10% sample</span></div><span style="font-weight:600">Three launches this week, and the Postgres partitioning deep dive</span><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:13px"><span>Human clicks</span><b class="n">3.6%</b></div><div class="bar" style="height:10px;border-radius:999px" role="img" aria-label="A: 3.6% human clicks, on a 0 to 10% scale"><i style="width:36%;background:#8B94A3;border-radius:0 999px 999px 0"></i></div><span class="k">Human opens 38.9% of measurable · complaints 0.03%</span></div><div style="flex:1 1 300px;padding:16px 18px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span class="badge ok">B · chosen</span><span class="k">3,160 recipients · 10% sample, then 25,284 remaining</span></div><span style="font-weight:600">The Postgres partitioning deep dive, plus three launches</span><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:13px"><span>Human clicks</span><b class="n">4.4%</b></div><div class="bar" style="height:10px;border-radius:999px" role="img" aria-label="B: 4.4% human clicks, on a 0 to 10% scale"><i style="width:44%;background:#0F766E;border-radius:0 999px 999px 0"></i></div><span class="k">Human opens 41.0% of measurable · complaints 0.04%</span></div><div style="flex:1 1 300px;padding:16px 18px;display:flex;flex-direction:column;gap:6px;font-size:13px"><span style="font-weight:600">How the winner was picked</span><span class="k">This test was decided before ReputeCast kept a record of each decision, so how sure it was isn’t known. The remaining 25,284 got B at 12:00.</span><span class="k">The bars show human clicks after 72 h, on a 0 to 10% scale.</span></div></div></section>
+      </section>
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Click map of an A/B test on content">
+        <div class="strip"><span class="dot" style="color:#6B7280"></span>A/B test on content · each variant is its own email, so there is no map of everyone’s clicks: the map starts on variant A, and the picker shows B</div>
+        <section class="card" aria-labelledby="cm2-h" style="padding:18px 20px;display:flex;flex-direction:column;gap:14px"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px 16px"><h2 id="cm2-h" class="h2">Click map</h2><div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px"><label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#4B5563">Recipients<select class="in" style="height:30px"><option selected>Variant A</option><option>Variant B</option></select></label><div class="seg" role="group" aria-label="Clicks to show"><button type="button" class="on" aria-pressed="true">Human clicks</button><button type="button" aria-pressed="false">Bot clicks</button></div></div></div><div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start"><div aria-hidden="true" style="flex:0 1 340px;min-width:0;margin:0 auto"><div style="position:relative;width:100%;background:#fff;border:1px solid #E3E6EB;font-family:Georgia,serif;font-size:9px;color:#374151"><div style="padding:10px"><div class="ph" style="height:60px;margin-bottom:6px">Hero image</div><div style="font-size:12px;font-weight:700;color:#0B1220">Variant A · Three launches this week</div><div>Feature flags, audit log exports and the v1 retirement.</div></div><div style="padding:0 10px 10px;display:flex;gap:8px"><span style="display:inline-block;padding:4px 7px;background:#0F766E;color:#fff;font-family:'IBM Plex Sans',sans-serif;font-size:8px;font-weight:600;border-radius:3px">Read the docs · 58%</span><span style="display:inline-block;padding:4px 7px;border:1px solid #0F766E;color:#0F766E;font-family:'IBM Plex Sans',sans-serif;font-size:8px;font-weight:600;border-radius:3px">See changelog · 42%</span></div></div></div><div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:10px"><p class="k" style="margin:0">Share of 412 human clicks by variant A’s recipients, each person once per link.</p><div style="overflow-x:auto"><table class="tbl"><caption class="vh">Human clicks per link</caption><thead><tr><th scope="col">Link</th><th scope="col" class="r">Human clicks</th><th scope="col" class="r">Share</th></tr></thead><tbody><tr><th scope="row">Read the docs<span class="k mono" style="display:block;font-weight:400">docs.acme.io/flags</span></th><td class="r n">239</td><td class="r n">58.0%</td></tr><tr><th scope="row">See changelog<span class="k mono" style="display:block;font-weight:400">acme.io/changelog</span></th><td class="r n">173</td><td class="r n">42.0%</td></tr></tbody><tfoot><tr><th scope="row">All links</th><td class="r n">412</td><td class="r n">100%</td></tr></tfoot></table></div></div></div></section>
+      </section>
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Tracking source notes">
+        <div class="strip"><span class="dot" style="color:#6B7280"></span>Tracking source notes · when a provider tracked the send, or delivery can only be inferred</div>
+        <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+          <section class="card" aria-labelledby="src1-h" style="flex:1 1 420px;min-width:0;padding:16px 18px;display:flex;flex-direction:column;gap:12px">
+            <h2 id="src1-h" class="h2">A send through Postmark, with Postmark's tracking kept</h2>
+            <div class="note"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:2px"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:600;color:#0B1220">Opens and clicks come from Postmark's tracking for this send.</span><span>You chose “Keep Postmark's tracking, ignore ours” in Sending providers, so ReputeCast added no pixel and rewrote no links. Opens are still sorted into human, privacy-protected and scanner opens from the user agent and IP that Postmark passes on. <a href="ProvidersEvents.dc.html">Change it in Sending providers</a></span></div></div>
+            <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:10px">
+              <div class="card tile"><span class="k">Human opens</span><span class="n" style="font-size:22px">949</span><span class="k">48.6% of measurable · from Postmark</span></div>
+              <div class="card tile"><span class="k">Human clicks</span><span class="n" style="font-size:22px">233</span><span class="k">9.3% of delivered · from Postmark</span></div>
+            </div>
+          </section>
+          <section class="card" aria-labelledby="src2-h" style="flex:1 1 420px;min-width:0;padding:16px 18px;display:flex;flex-direction:column;gap:12px">
+            <h2 id="src2-h" class="h2">A send through an SMTP relay</h2>
+            <div class="note"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:2px"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:600;color:#0B1220">Delivered is inferred: no bounce arrived within 72 h.</span><span>The relay accepted each message (250 OK) but can't report what happened next, so a message that hasn't bounced after 72 hours counts as delivered. Opens and clicks are tracked as usual. <a href="SetupSMTP.dc.html">What SMTP can and can't do</a></span></div></div>
+            <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:10px">
+              <div class="card tile"><span class="k">Delivered</span><span class="n" style="font-size:22px">2,081</span><span class="k">99.2% of sent</span><span class="badge mut" style="align-self:flex-start">Inferred</span></div>
+              <div class="card tile"><span class="k">Bounces</span><span class="n" style="font-size:22px">17</span><span class="k">0.81% of sent · from the bounce mailbox</span></div>
+            </div>
+          </section>
+        </div>
+      </section>
     </main>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1337}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3855}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};

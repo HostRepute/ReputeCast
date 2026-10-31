@@ -37,7 +37,7 @@ export default translate(m, {
   laterProvider_list: 'danh sách hủy nhận của chính nhà cung cấp',
   laterManual: 'thủ công',
   showing:
-    'Hiển thị {shown} trên {total} · số điện thoại được che một phần. Các lý do khác ngoài hủy nhận qua tin nhắn có thể được gỡ kèm lý do; việc này cần quyền subscribers:edit và được ghi vào nhật ký kiểm tra.',
+    'Hiển thị {shown} trên {total} · số điện thoại được che một phần. Người có thể sửa liên hệ gỡ được các lý do khác ngoài hủy nhận qua tin nhắn, kèm lý do; mỗi lần gỡ đều được ghi vào nhật ký kiểm tra.',
   previous: 'Trước',
   next: 'Sau',
   empty: 'Chưa có số nào trong danh sách chặn gửi SMS.',

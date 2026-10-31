@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -345,6 +346,30 @@ func TestCompareFindsCopiesLateAndDeletesThem(t *testing.T) {
 	}
 	if d.Counts.NotArrived != 0 || d.Counts.Found != 6 {
 		t.Fatalf("after the late copy: found %d, not arrived %d", d.Counts.Found, d.Counts.NotArrived)
+	}
+
+	// Review & send reads the result per mailbox provider (SR-9): Inbox,
+	// Promotions and Spam at Gmail, Yahoo and GMX, whichever provider
+	// carried the copies, in the seed dialog's order.
+	tests, err := f.svc.Tests(f.ctx, &f.ws)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var row *placement.PlacementTestRow
+	for i := range tests.Tests {
+		if tests.Tests[i].ID == d.ID {
+			row = &tests.Tests[i]
+		}
+	}
+	if row == nil {
+		t.Fatal("the test isn't listed")
+	}
+	got := []string{}
+	for _, m := range row.Mailboxes {
+		got = append(got, fmt.Sprintf("%s %s inbox %d %s %d spam %d of %d", m.Provider, m.Name, m.Counts.Inbox, m.Tab, m.Counts.Tab, m.Counts.Spam, m.Counts.Copies))
+	}
+	if want := []string{"gmail Gmail inbox 0 Promotions 2 spam 0 of 2", "yahoo Yahoo inbox 1  0 spam 1 of 2", "gmx GMX inbox 2  0 spam 0 of 2"}; !slices.Equal(got, want) {
+		t.Fatalf("per mailbox provider:\n%s", strings.Join(got, "\n"))
 	}
 
 	// The copy detail shows the headers that matter.

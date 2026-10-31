@@ -1,6 +1,6 @@
 import { $api } from '@/api/client'
 import { useOptionalWorkspace } from '@/lib/session'
-import type { Channel } from './ChannelSwitch'
+import type { Channel } from './channel'
 
 /** Whether a channel is set up in the current workspace (false while loading). */
 export function useChannelSetUp(channel: Channel): boolean {

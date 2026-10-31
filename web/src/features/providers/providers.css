@@ -150,10 +150,31 @@
     border-radius: 3px 3px 0 0;
   }
 
-  /* Table cell spacing that differs per board */
-  .tbl.pv-9 td {
-    padding: 9px 12px;
+  /* Warm-up log: the date keeps to one line and the entry wraps beside it */
+  .pv-log-date {
+    flex: none;
+    min-width: 76px;
     white-space: nowrap;
+  }
+
+  /* Warm-up: today's caps by mailbox provider (.mtbl, tr.tot) */
+  .tbl.pv-mtbl td,
+  .tbl.pv-mtbl th {
+    padding: 7px 8px;
+  }
+  .tbl.pv-mtbl tr.tot td {
+    font-weight: 600;
+    border-top: 1px solid var(--line);
+  }
+
+  /* Table cell spacing that differs per board. The warm-up ramp's cells
+     wrap (except .nw) so the Counted column stays inside its card. */
+  .tbl.pv-9 td {
+    padding: 9px 10px;
+  }
+  .tbl.pv-9 th {
+    padding-left: 10px;
+    padding-right: 10px;
   }
   .tbl.pv-10 td {
     padding: 10px 12px;
@@ -202,5 +223,239 @@
 @media (max-width: 767px) {
   .drow:has(> .pv-replace) {
     flex-wrap: wrap;
+  }
+}
+
+/* The ordered split (ProvidersRouting, PR-14): the bar pictures the list. */
+.pv-sbar {
+  display: flex;
+  height: 12px;
+  gap: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line-2, #eef0f3);
+}
+.pv-sbar i {
+  display: block;
+  height: 100%;
+}
+.pv-wl {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.pv-wl li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 8px 8px;
+  border-top: 1px solid var(--line-2, #eef0f3);
+}
+.pv-wl li:first-child {
+  border-top: 0;
+}
+.pv-wl li[draggable='true'] {
+  cursor: grab;
+}
+.pv-wl li.dragging {
+  opacity: 0.5;
+}
+.pv-wl li.over {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.pv-grip {
+  flex: none;
+  color: var(--ink-3);
+}
+.pv-wn {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.pv-wn .k {
+  font-weight: 500;
+}
+.pv-mv {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+.pv-ib {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+}
+.pv-ib:hover {
+  background: #f3f4f6;
+}
+.pv-ib:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: #fff;
+}
+/* The route tester's Recipient / Campaign switch: pills, as on the board. */
+.seg.pv-seg {
+  align-self: flex-start;
+  gap: 4px;
+  padding: 3px;
+  overflow: visible;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #f9fafb;
+}
+.seg.pv-seg button {
+  min-height: 30px;
+  height: auto;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.seg.pv-seg button + button {
+  border-left: 0;
+}
+.seg.pv-seg button:hover {
+  background: var(--line-2, #eef0f3);
+  color: var(--ink);
+}
+.seg.pv-seg button[aria-pressed='true'] {
+  background: var(--ink);
+  color: #fff;
+}
+@media (max-width: 767px) {
+  .seg.pv-seg button {
+    min-height: 44px;
+  }
+}
+/* A held share's choices (ProvidersOutage): one card per way to continue. */
+.pv-dec {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: 12px;
+}
+.pv-dopt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-warn-line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.pv-dopt > .btn {
+  align-self: flex-start;
+}
+/* A failover target's checks: a mark, then the finding. */
+.pv-chk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+}
+.pv-chk li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.pv-chk li.y svg {
+  color: var(--ok-fg);
+}
+.pv-chk li.x svg {
+  color: var(--bad-fg);
+}
+.pv-chk li.u svg {
+  color: var(--ink-3);
+}
+.pv-chk li.w svg {
+  color: var(--warn-fg);
+}
+/* Listed under a choice, one finding a line. */
+.pv-chk.col {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 3px;
+}
+.pv-chk.col li {
+  align-items: flex-start;
+  gap: 6px;
+}
+.pv-chk.col li svg {
+  flex: none;
+  margin-top: 2px;
+}
+/* The unsaved-changes bar stays at the bottom of the screen while the
+   routing scrolls. */
+.pv-unsaved {
+  position: sticky;
+  bottom: 16px;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(11, 18, 32, 0.08);
+}
+/* A stream's Primary and Fallback: side by side, one above the other on phones. */
+.pv-fsel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  gap: 14px;
+}
+.pv-fsel > * {
+  min-width: 0;
+}
+@media (max-width: 767px) {
+  .pv-fsel {
+    grid-template-columns: 1fr;
+  }
+  /* Standalone choices (the failover policy, a condition's "then") are
+     44 px tall on phones, as ProvidersRoutingPhone draws its controls. */
+  label.pv-tg {
+    min-height: 44px;
+  }
+  .pv-ib {
+    width: 44px;
+    height: 44px;
+  }
+  .pv-wl li {
+    gap: 8px;
+    padding: 8px;
+  }
+  .pv-unsaved {
+    bottom: 72px;
+  }
+  .pv-unsaved .btn {
+    min-height: 44px;
+  }
+  /* The sending IPs dialog's buttons are 44 px, as ProvidersStates draws them. */
+  .pv-ipdlg .btn {
+    min-height: 44px;
+  }
+  .pv-ipdlg .btn.ic {
+    width: 44px;
   }
 }

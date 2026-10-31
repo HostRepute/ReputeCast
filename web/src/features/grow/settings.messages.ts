@@ -119,7 +119,7 @@ export const ms = defineMessages('grow.settings', {
   editEmailsLink: 'Edit the emails',
   // Danger zone.
   dangerTitle: 'Danger zone',
-  dangerCaption: 'Needs grow:edit · both actions are logged',
+  dangerCaption: 'Only for people who can edit the referral program · both actions are logged',
   offTitle: 'Turn the program off',
   offText: 'Links lead to the normal subscribe page, Referral blocks are hidden and the hub says the program is paused. Earned rewards stay available.',
   onTitle: 'Turn the program on',
@@ -147,8 +147,8 @@ export const ms = defineMessages('grow.settings', {
   reload: 'Reload',
   problems: '{count, plural, one {# problem to fix} other {# problems to fix}}',
   leaveText: 'Your changes to the referral settings aren’t saved.',
-  readOnlyText: 'You can see every setting. Changing them needs <mono>grow:edit</mono>. Ask {helpers}.',
-  readOnlyTextNoHelpers: 'You can see every setting. Changing them needs <mono>grow:edit</mono>.',
+  readOnlyText: "You can see every setting. Your role can't change them. Ask {helpers}.",
+  readOnlyTextNoHelpers: "You can see every setting. Your role can't change them.",
   loadError: "Couldn't load the settings",
   loadingLabel: 'Loading the settings',
 })

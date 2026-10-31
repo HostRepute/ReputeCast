@@ -197,7 +197,7 @@ export default translate(m, {
   turnOn: 'Tạo khóa và bật thông báo đẩy',
   turningOn: 'Đang tạo khóa…',
   seeDesigner: 'Xem trình thiết kế lời nhắc',
-  turnOnNote: 'Cần quyền {perm}. Bật thông báo đẩy không hỏi ai điều gì cho đến khi bạn xuất bản một lời nhắc.',
+  turnOnNote: 'Chỉ người có thể quản lý nhà cung cấp mới bật được thông báo đẩy. Bật thông báo đẩy không hỏi ai điều gì cho đến khi bạn xuất bản một lời nhắc.',
   pushOn: 'Đã bật thông báo đẩy. Hãy thêm một trang, rồi xuất bản một lời nhắc.',
 
   // Worker states
@@ -234,7 +234,7 @@ export default translate(m, {
 
   // Read-only
   readOnlyTitle: 'Chỉ xem · {name}, {role}',
-  readOnlyText: 'Bạn có thể xem trang, người đăng ký và lời nhắc. Thay đổi khóa và trang cần quyền {perm}, và khóa riêng tư không bao giờ hiện cho bất kỳ ai.',
+  readOnlyText: 'Bạn có thể xem trang, người đăng ký và lời nhắc. Vai trò của bạn không thể thay đổi khóa hay trang, và khóa riêng tư không bao giờ hiện cho bất kỳ ai.',
   askHelpers: 'Hãy hỏi {helpers}.',
 
   // Load states

@@ -336,7 +336,9 @@ WHERE automation_id = @automation_id AND status IN ('active', 'waiting');
 
 -- name: WakeAutomationBranchRuns :execrows
 -- Runs waiting at a branch for an open or click: wake them as soon as the
--- email they wait on has one, instead of at the end of the window.
+-- email they wait on has one, instead of at the end of the window. A click
+-- is a person's once it settled as one (review AN-2): a scanner's click is
+-- filed as a bot's, and one still waiting to settle wakes nobody yet.
 UPDATE automation_runs r SET next_at = @now
 WHERE r.status = 'waiting' AND r.next_at > @now AND r.state ->> 'wait' = 'branch'
   AND (r.state ->> 'message') IS NOT NULL
@@ -344,7 +346,7 @@ WHERE r.status = 'waiting' AND r.next_at > @now AND r.state ->> 'wait' = 'branch
     SELECT 1 FROM delivery_events de
     WHERE de.message_id = (r.state ->> 'message')::uuid
       AND ((r.state ->> 'want' = 'opened' AND de.type = 'open' AND (NOT coalesce((r.state ->> 'human')::boolean, false) OR NOT de.machine))
-        OR (r.state ->> 'want' = 'clicked' AND de.type = 'click')));
+        OR (r.state ->> 'want' = 'clicked' AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending')));
 
 -- name: AutomationContact :one
 SELECT id, email, first_name, last_name, status, timezone, tags, attributes, erased_at
@@ -366,20 +368,25 @@ WHERE automation_id = @automation_id AND automation_node = @node_id AND contact_
 ORDER BY queued_at DESC LIMIT 1;
 
 -- name: AutomationMessageEngaged :one
+-- Whether an email was opened or clicked: clicks only once they settled as
+-- a person's (review AN-2).
 SELECT EXISTS (
     SELECT 1 FROM delivery_events de
     WHERE de.message_id = @message_id
       AND ((@want::text = 'opened' AND de.type = 'open' AND (NOT @human_only::boolean OR NOT de.machine))
-        OR (@want::text = 'clicked' AND de.type = 'click' AND (@url_contains::text = '' OR de.url ILIKE '%' || @url_contains::text || '%'))));
+        OR (@want::text = 'clicked' AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending'
+            AND (@url_contains::text = '' OR de.url ILIKE '%' || @url_contains::text || '%'))));
 
 -- name: AutomationEngaged :one
--- Whether the contact opened or clicked any email of this flow since a time.
+-- Whether the contact opened or clicked any email of this flow since a time
+-- (a person's settled clicks only, review AN-2).
 SELECT EXISTS (
     SELECT 1 FROM delivery_events de
     JOIN messages m ON m.id = de.message_id
     WHERE de.contact_id = @contact_id AND m.automation_id = @automation_id AND de.occurred_at >= @since
       AND ((@want::text = 'opened' AND de.type = 'open' AND (NOT @human_only::boolean OR NOT de.machine))
-        OR (@want::text = 'clicked' AND de.type = 'click' AND (@url_contains::text = '' OR de.url ILIKE '%' || @url_contains::text || '%'))));
+        OR (@want::text = 'clicked' AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending'
+            AND (@url_contains::text = '' OR de.url ILIKE '%' || @url_contains::text || '%'))));
 
 -- name: AutomationContactSentEvent :one
 SELECT EXISTS (
@@ -525,7 +532,8 @@ JOIN automation_versions v ON v.automation_id = r.automation_id AND v.version = 
 WHERE r.status IN ('active', 'waiting') AND a.status = 'live' AND a.deleted_at IS NULL;
 
 -- name: AutomationGoalRunsEngaged :many
--- Runs whose contact opened or clicked an email of this flow since entering.
+-- Runs whose contact opened or clicked an email of this flow since entering
+-- (a person's settled clicks only, review AN-2).
 SELECT r.id, r.node_id FROM automation_runs r
 WHERE r.automation_id = @automation_id AND r.version = @version AND r.status IN ('active', 'waiting')
   AND EXISTS (
@@ -533,7 +541,8 @@ WHERE r.automation_id = @automation_id AND r.version = @version AND r.status IN 
     JOIN messages m ON m.id = de.message_id
     WHERE de.contact_id = r.contact_id AND m.automation_id = r.automation_id AND de.occurred_at >= r.entered_at
       AND ((@want::text = 'opened' AND de.type = 'open' AND (NOT @human_only::boolean OR NOT de.machine))
-        OR (@want::text = 'clicked' AND de.type = 'click' AND (@url_contains::text = '' OR de.url ILIKE '%' || @url_contains::text || '%'))))
+        OR (@want::text = 'clicked' AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending'
+            AND (@url_contains::text = '' OR de.url ILIKE '%' || @url_contains::text || '%'))))
 LIMIT 1000
 FOR UPDATE OF r SKIP LOCKED;
 

@@ -785,7 +785,8 @@ export function TransactionalComposer({
     view: composerView,
     device,
     variant: 'A',
-    setView: (v: View) => setView(v === 'preview' ? 'text' : v),
+    // Write mode is the campaign composer's (CO-9): transactional templates open Design.
+    setView: (v: View) => setView(v === 'preview' ? 'text' : v === 'write' ? 'visual' : v),
     setDevice: (d: DeviceId) => onSearch({ ...search, device: d === 'mobile' ? 'mobile' : undefined }),
     setVariant: () => undefined,
     name,

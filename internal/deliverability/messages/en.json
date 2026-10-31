@@ -2,6 +2,7 @@
   "status": { "message": "{status, select, healthy {Healthy} degraded {Degraded} down {Down} sandbox {Sandbox} warming_up {Warming up} paused {Paused} other {{raw}}}", "note": "a sending provider's status, on its account health card" },
   "name.selfHosted": { "message": "{name} (self-hosted)", "note": "a self-hosted provider's name (Postal), never translated" },
   "rate.bounce": "Bounce rate",
+  "rate.tooFew": {"message": "Not enough mail yet: {count, plural, one {# message} other {# messages}} in the last 7 days, and rates are judged from {min, number}.", "note": "under a provider’s bounce and complaint rates when too few messages were sent to judge them"},
   "rate.complaint": "Complaint rate",
   "rate.spamComplaint": { "message": "Spam complaint rate", "note": "Postmark's name for its complaint rate" },
   "threshold.reviewPause": { "message": "review {review}, pause {pause}", "note": "SES's own enforcement levels: it reviews the account above the first rate and pauses it above the second" },

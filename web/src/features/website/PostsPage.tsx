@@ -93,7 +93,7 @@ export function PostsPage({ overview, search, onSearch }: { overview: Overview; 
   const open = search.post ? d?.posts.find((p) => p.id === search.post) : undefined
   return (
     <WebsitePage view="posts" overview={overview} actions={actions}>
-      {!canEdit && !canPublish ? <ReadOnlyNote msg={m.readOnlyPosts} helpers={overview.helpers.publish} perms={{ edit: 'website:edit', publish: 'website:publish' }} /> : null}
+      {!canEdit && !canPublish ? <ReadOnlyNote msg={m.readOnlyPosts} helpers={overview.helpers.publish} /> : null}
       <div className="ws-stats">
         <Stat label={t(mp.statViews)} value={count(n.views)} sub={t(mp.statViewsSub)} />
         <Stat label={t(mp.statVisitors)} value={count(n.visitors)} sub={t(mp.statVisitorsSub)} />

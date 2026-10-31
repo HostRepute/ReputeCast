@@ -616,6 +616,39 @@
   }
 
   /* Links in card footers. */
+  /* Review & send's card (SendReadiness): header, then the last result beside its buttons. */
+  .pl-rv {
+    display: flex;
+    flex-direction: column;
+  }
+  .pl-rv-h {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line-2);
+    flex-wrap: wrap;
+  }
+  .pl-rv-b {
+    display: flex;
+    align-items: center;
+    gap: 14px 20px;
+    padding: 14px 16px;
+    flex-wrap: wrap;
+  }
+  .pl-rv-last {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1 1 280px;
+    min-width: 0;
+  }
+  .pl-rv-last .pl-pbar {
+    max-width: 360px;
+    border-radius: 999px;
+    background: var(--line-2);
+  }
   .pl-lnk {
     display: inline-flex;
     align-items: center;

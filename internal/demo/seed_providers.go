@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/authn"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/warmup"
@@ -39,6 +40,7 @@ type demoProvider struct {
 	health                                            state.Health
 	pricing                                           state.Pricing
 	tracking                                          state.Tracking
+	ipSource                                          state.IPSource // none: insertProvider fills it
 	connected, lastEvent                              time.Duration
 }
 
@@ -46,48 +48,8 @@ func seedProvidersImpl(ctx context.Context, s *Seeder) error {
 	ws := s.WS()
 	loc := state.Location(ws.Timezone)
 	checked := s.Ago(time.Minute)
+	provs := acmeProviders(checked)
 	sesCaps := capsOf("ses")
-	pmCaps := capsOf("postmark")
-	pmCaps.Pricing = "plan, $15 per month"
-	postalCaps := capsOf("postal")
-	provs := []demoProvider{
-		{
-			key: "ses", adapter: "ses", name: "Amazon SES", label: "us-east-1", status: state.Healthy, detail: "Production · no enforcement", ipMode: "shared",
-			config: map[string]any{"demo": true, "region": "us-east-1", "configuration_set": "rc-broadcasts", "access": "role",
-				"role_arn": "arn:aws:iam::123456789012:role/reputecast-ses", "topic_arns": []string{"arn:aws:sns:us-east-1:123456789012:reputecast-acme-newsletter"}},
-			caps:   sesCaps,
-			limits: state.Limits{Bounce: state.Limit{Limit: 5, Review: 5, Pause: 10, Label: "SES"}, Complaint: state.Limit{Limit: 0.1, Review: 0.1, Pause: 0.5, Label: "SES"}},
-			health: state.Health{Quota: &state.Quota{Kind: "rolling_24h", Max: 50000, Used: 2140}, Rate: &state.Rate{Max: 14, PeakToday: 14},
-				Account: "Production · no enforcement", LastSuccessAt: &checked, LastSuccessOp: "GetAccount"},
-			pricing:   state.Pricing{Model: "metered", Per1000: 0.10, Source: "AWS pricing"},
-			tracking:  state.Tracking{Detail: "Configuration set rc-broadcasts: open and click tracking off. Custom redirect domain not needed.", Scope: "Configuration set rc-broadcasts", Mode: "reputecast", CheckedAt: &checked},
-			connected: 210 * 24 * time.Hour, lastEvent: 2 * time.Minute,
-		},
-		{
-			key: "postmark", adapter: "postmark", name: "Postmark", label: "Transactional stream", status: state.Healthy, detail: "Approved · 10,000 per month plan", ipMode: "shared",
-			config: map[string]any{"demo": true, "server": "Acme Newsletter", "server_id": 4821, "message_stream": "outbound", "monthly_limit": 10000},
-			caps:   pmCaps,
-			limits: state.Limits{Bounce: state.Limit{Limit: 10, Label: "Postmark"}, Complaint: state.Limit{Limit: 0.1, Label: "Postmark"}},
-			health: state.Health{Quota: &state.Quota{Kind: "monthly_plan", Max: 10000, Used: 3412}, Rate: &state.Rate{PeakToday: 3},
-				Account: "Approved · 10,000 per month plan", LastSuccessAt: &checked, LastSuccessOp: "GET /server",
-				// Postmark reports its own rates (outbound stats).
-				Reputation: &state.Reputation{Bounce: 0.2, Complaint: 0.01, Window: "7 d", CheckedAt: checked}},
-			pricing: state.Pricing{Model: "plan", Monthly: 15, NextTier: &state.NextTier{Adds: 50000, Price: 115}},
-			tracking: state.Tracking{OpenPixel: true, LinkRewrite: true, Scope: "Transactional stream", Mode: "reputecast", CheckedAt: &checked,
-				Detail: "Server setting TrackOpens is on, and TrackLinks is HtmlAndText. Opens on System and Automations mail would count twice, and links get rewritten to click.pstmrk.it before ReputeCast's redirect."},
-			connected: 210 * 24 * time.Hour, lastEvent: 6 * time.Minute,
-		},
-		{
-			key: "postal", adapter: "postal", name: "Postal", label: "self-hosted · mta.acme.io", status: state.WarmingUp, detail: "Warming up · day 9 of 21", ipMode: "dedicated", ips: []string{"203.0.113.25"},
-			config:    map[string]any{"demo": true, "server_url": "https://mta.acme.io", "version": "3.3.4"},
-			caps:      postalCaps,
-			limits:    state.Limits{Bounce: state.Limit{Limit: 2, Label: "warm-up guard"}, Complaint: state.Limit{Limit: 0.1}},
-			health:    state.Health{Account: "Postal 3.3.4 · reachable", Version: "3.3.4", LastSuccessAt: &checked, LastSuccessOp: "POST /api/v1/messages/message"},
-			pricing:   state.Pricing{Model: "self_hosted", Monthly: 24},
-			tracking:  state.Tracking{Detail: "Track clicks and opens disabled on the mail server; no link rewriting.", Scope: "mail server mta.acme.io", Mode: "reputecast", CheckedAt: &checked},
-			connected: 8*24*time.Hour + 2*time.Hour, lastEvent: time.Minute,
-		},
-	}
 	linh := s.Users["linh@acme.io"]
 	for _, p := range provs {
 		id := ID()
@@ -101,16 +63,21 @@ func seedProvidersImpl(ctx context.Context, s *Seeder) error {
 		return err
 	}
 
-	// Routing: Broadcasts SES 90 / Postal 10 with two conditions, Automations
-	// SES → Postmark, System Postmark → SES.
+	// Routing (ProvidersRouting): Broadcasts SES 90 / Postal 10 with two
+	// conditions, the Beta Program list on SES only and product
+	// announcements from updates.acme.io split SES 70 / Postal 30 (a
+	// condition can split by weight, PR-12); strict mailbox providers get
+	// their own lower caps from Postal's warm-up instead of a condition.
+	// Automations SES → Postmark, System Postmark → SES.
 	beta := s.Lists["Beta Program"]
 	rules := []struct {
 		stream, name, conditions, splits string
 		priority                         int
 		fallback                         *uuid.UUID
 	}{
-		{"broadcast", "Outlook and iCloud are strict with new IPs", `{"mailbox_providers":["outlook","icloud"]}`, `[{"provider_id":"` + ses.String() + `","weight":100}]`, 10, nil},
-		{"broadcast", "small, high-value list", `{"lists":["` + beta.String() + `"]}`, `[{"provider_id":"` + ses.String() + `","weight":100}]`, 20, nil},
+		{"broadcast", "small, high-value list", `{"lists":["` + beta.String() + `"]}`, `[{"provider_id":"` + ses.String() + `","weight":100}]`, 10, nil},
+		{"broadcast", "product announcements", `{"sender_domains":["updates.acme.io"]}`,
+			`[{"provider_id":"` + ses.String() + `","weight":70},{"provider_id":"` + postal.String() + `","weight":30}]`, 20, nil},
 		{"broadcast", "", `{}`, `[{"provider_id":"` + ses.String() + `","weight":90},{"provider_id":"` + postal.String() + `","weight":10}]`, 100, nil},
 		{"automation", "", `{}`, `[{"provider_id":"` + ses.String() + `","weight":100}]`, 100, &postmark},
 		{"system", "", `{}`, `[{"provider_id":"` + postmark.String() + `","weight":100}]`, 100, &ses},
@@ -128,11 +95,12 @@ func seedProvidersImpl(ctx context.Context, s *Seeder) error {
 		}
 	}
 
-	// Postal's warm-up: 21 days, day 9 today (the workspace's calendar day,
-	// which the warm-up job counts in), one slowdown on day 6.
+	// Postal's warm-up: 21 counted days, started eleven days ago (the
+	// workspace's calendar), eight counted, so today is day 9; one slowdown
+	// on day 6.
 	plan := postalPlan()
 	wsNow := s.Now.In(loc)
-	start := time.Date(wsNow.Year(), wsNow.Month(), wsNow.Day(), 0, 0, 0, 0, loc).AddDate(0, 0, -8)
+	start := time.Date(wsNow.Year(), wsNow.Month(), wsNow.Day(), 0, 0, 0, 0, loc).AddDate(0, 0, -len(postalDays))
 	if err := seedWarmup(ctx, s, postal, start, plan, loc, linh.ID); err != nil {
 		return err
 	}
@@ -142,14 +110,17 @@ func seedProvidersImpl(ctx context.Context, s *Seeder) error {
 	}
 
 	// Suppression sync per provider (Postal and SMTP have no suppression API:
-	// ReputeCast enforces the shared list before sending).
+	// ReputeCast enforces the shared list before sending). Only hard bounces
+	// and complaints that apply to all mail are pushed (PR-1); SES gets them
+	// on the workspace's tenant list (Events & sync board).
 	pushed := s.Ago(time.Minute)
 	for _, row := range []struct {
 		id             uuid.UUID
+		scope          string
 		pulled, pushed int64
-	}{{ses, 612, 1262}, {postmark, 188, 1686}} {
-		if _, err := s.Tx.Exec(ctx, `INSERT INTO provider_suppression_sync (provider_id, mode, last_push_at, last_pull_at, pushed, pulled, pending, status)
-			VALUES ($1, 'two_way', $2, $2, $3, $4, 0, 'ok')`, row.id, pushed, row.pushed, row.pulled); err != nil {
+	}{{ses, "tenant", 612, 886}, {postmark, "stream", 188, 1310}} {
+		if _, err := s.Tx.Exec(ctx, `INSERT INTO provider_suppression_sync (provider_id, mode, last_push_at, last_pull_at, pushed, pulled, pending, status, scope)
+			VALUES ($1, 'two_way', $2, $2, $3, $4, 0, 'ok', $5)`, row.id, pushed, row.pushed, row.pulled, row.scope); err != nil {
 			return err
 		}
 	}
@@ -231,11 +202,25 @@ func insertProvider(ctx context.Context, s *Seeder, id, wsID uuid.UUID, p demoPr
 	health, _ := json.Marshal(p.health)
 	pricing, _ := json.Marshal(p.pricing)
 	tracking, _ := json.Marshal(p.tracking)
+	// Where the sending IPs come from (review GS-10): the provider's API,
+	// checked with the rest, or the member who connected it, by hand.
+	src := p.ipSource
+	switch {
+	case src.From == "" && p.caps.ReportsIPs:
+		src = state.IPSource{From: state.IPsFromProvider, CheckedAt: &checked}
+	case src.From == state.IPsFromPerson && src.SetByName == "":
+		u := by
+		src.SetBy = &u
+		if err := s.Tx.QueryRow(ctx, `SELECT name FROM users WHERE id = $1`, by).Scan(&src.SetByName); err != nil {
+			return err
+		}
+	}
+	ipSource, _ := json.Marshal(src)
 	_, err = s.Tx.Exec(ctx, `INSERT INTO providers (id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail,
-		ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
+		ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, ip_source)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
 		id, wsID, p.adapter, p.name, p.label, cfg, creds, token, whsec, p.status, p.detail,
-		p.ipMode, ips, caps, limits, health, pricing, tracking, s.Ago(p.lastEvent), checked, by, s.Ago(p.connected))
+		p.ipMode, ips, caps, limits, health, pricing, tracking, s.Ago(p.lastEvent), checked, by, s.Ago(p.connected), ipSource)
 	return err
 }
 
@@ -284,47 +269,88 @@ func postalPlan() []warmup.Day {
 	return out
 }
 
-// postalDays are the finished warm-up days: sent, bounce and complaint
-// rates (percent) as on the warm-up board.
+// postalDays are Postal's warm-up days so far, one per calendar day from
+// the day the plan started (ProvidersWarmup): the plan's day, its cap,
+// what went out and the rates (percent). Sunday sent nothing, so day 5
+// repeated on Monday; a guard tripped on day 6 (bounces 2.3%), so the cap
+// held at 2,600 for two healthy days with the plan staying on day 6 until
+// the second one completed it, and the ramp resumed one step up, day 7 at
+// 3,600 (R3.L6d).
 var postalDays = []struct {
-	sent              int64
+	day               int
+	cap, plan, sent   int64
 	bounce, complaint float64
-	slowed, held      bool
+	// delivered is the mail delivered at mailbox providers that report
+	// complaints (the complaint rate's denominator).
+	delivered, complained int64
+	counted, slowed, held bool
+	healthy               int
 }{
-	{200, 0.5, 0, false, false}, {400, 0.8, 0, false, false}, {700, 0.6, 0, false, false}, {1200, 1.0, 0, false, false}, {1800, 1.2, 0, false, false},
-	{2600, 2.3, 0.04, true, false}, {2600, 0.8, 0.04, false, true}, {4798, 0.9, 0.05, false, false},
+	{day: 1, cap: 200, sent: 200, bounce: 0.5, delivered: 100, counted: true},
+	{day: 2, cap: 400, sent: 400, bounce: 0.5, delivered: 200, counted: true},
+	{day: 3, cap: 700, sent: 700, bounce: 0.5, delivered: 350, counted: true},
+	{day: 4, cap: 1200, sent: 1200, bounce: 0.5, delivered: 600, counted: true},
+	{day: 5, cap: 1800, sent: 0},
+	{day: 5, cap: 1800, sent: 1800, bounce: 0.4, complaint: 0.06, delivered: 1667, complained: 1, counted: true},
+	{day: 6, cap: 2600, sent: 2600, bounce: 2.3, complaint: 0.04, delivered: 2500, complained: 1, slowed: true},
+	{day: 6, cap: 2600, sent: 2600, bounce: 0.2, complaint: 0.04, delivered: 2500, complained: 1, held: true, healthy: 1},
+	{day: 6, cap: 2600, sent: 2600, bounce: 0.8, complaint: 0.04, delivered: 2500, complained: 1, counted: true, held: true, healthy: 2},
+	{day: 7, cap: 3600, sent: 3500, bounce: 0.7, complaint: 0.04, delivered: 2400, complained: 1, counted: true},
+	{day: 8, cap: 4800, sent: 4798, bounce: 0.9, complaint: 0.06, delivered: 3333, complained: 2, counted: true},
 }
 
-func seedWarmup(ctx context.Context, s *Seeder, provider uuid.UUID, start time.Time, sched []warmup.Day, loc *time.Location, by uuid.UUID) error {
+// seedWarmup writes Postal's plan as the daily job leaves it after the
+// days above: started eleven days ago, eight days counted, so the plan's
+// day 1 (start_date) moved on by the three days that didn't move it (the
+// Sunday, the slowdown and the first healthy day under its hold) and today
+// is day 9.
+func seedWarmup(ctx context.Context, s *Seeder, provider uuid.UUID, started time.Time, sched []warmup.Day, loc *time.Location, by uuid.UUID) error {
 	progress := []warmup.Result{}
+	missed := 0
 	for i, d := range postalDays {
-		day := i + 1
-		cap := sched[i].Volume
-		if d.held {
-			cap = postalDays[i-1].sent
+		b, c := d.bounce, d.complaint
+		res := warmup.Result{Day: d.day, Date: started.AddDate(0, 0, i).Format("2006-01-02"), Cap: d.cap, PlannedCap: d.plan, Sent: d.sent,
+			Bounced: int64(math.Round(float64(d.sent) * b / 100)), Complained: d.complained, Delivered: d.delivered,
+			Counted: d.counted, Judged: d.sent >= warmup.DefaultMinSample, Short: float64(d.sent) < math.Ceil(float64(d.cap)*warmup.CountShare), Slowed: d.slowed,
+			Held: d.held, Healthy: d.healthy}
+		if d.sent > 0 {
+			res.Bounce = &b
 		}
-		progress = append(progress, warmup.Result{Day: day, Date: start.AddDate(0, 0, i).Format("2006-01-02"), Cap: cap, Sent: d.sent,
-			Bounce: d.bounce, Complaint: d.complaint, Slowed: d.slowed, Held: d.held})
+		if d.delivered > 0 {
+			res.Complaint = &c
+		}
+		if d.slowed {
+			res.Metric = "bounce"
+		}
+		if !d.counted {
+			missed++
+		}
+		progress = append(progress, res)
 	}
 	sb, _ := json.Marshal(sched)
 	pb, _ := json.Marshal(progress)
 	id := ID()
-	startDate := time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, time.UTC)
-	if _, err := s.Tx.Exec(ctx, `INSERT INTO warmup_plans (id, provider_id, ip, start_date, days, schedule, engaged_first, slowdown_bounce, slowdown_complaint,
-		status, status_detail, progress, guard_action, spread_mailbox, created_by, created_at, updated_at)
-		VALUES ($1,$2,'203.0.113.25',$3,21,$4,true,2.0,0.10,'active','',$5,'hold',true,$6,$7,$7)`, id, provider, startDate, sb, pb, by, start.Add(9*time.Hour)); err != nil {
+	date := func(t time.Time) time.Time { return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC) }
+	startedOn := date(started)
+	startDate := date(started.AddDate(0, 0, missed))
+	through := date(started.AddDate(0, 0, len(postalDays)-1))
+	if _, err := s.Tx.Exec(ctx, `INSERT INTO warmup_plans (id, provider_id, ip, start_date, started_on, evaluated_through, days, schedule, engaged_first,
+		slowdown_bounce, slowdown_complaint, status, status_detail, progress, guard_action, spread_mailbox, overflow, created_by, created_at, updated_at)
+		VALUES ($1,$2,'203.0.113.25',$3,$4,$5,21,$6,true,2.0,0.10,'active','',$7,'hold',true,true,$8,$9,$9)`,
+		id, provider, startDate, startedOn, through, sb, pb, by, started.Add(9*time.Hour)); err != nil {
 		return err
 	}
-	dayAt := func(day int, h int) time.Time { return start.AddDate(0, 0, day-1).Add(time.Duration(h) * time.Hour) }
+	dayAt := func(i int, h int) time.Time { return started.AddDate(0, 0, i).Add(time.Duration(h) * time.Hour) }
 	log := []struct {
 		at          time.Time
 		kind, title string
 		body        string
 	}{
-		{dayAt(1, 9), "started", "", "Plan started by Linh Nguyen: 21 days, engaged-first."},
-		{dayAt(6, 23), "slowdown", "Automatic slowdown.", "Bounces hit 2.3% (guard 2%), mostly Yahoo 421 deferrals that turned into soft bounces. Day 7 cap held at 2,600 and the Yahoo throttle dropped to 1 /s."},
-		{dayAt(7, 23), "resumed", "", "Ramp resumed: bounces back to 0.8%."},
-		{dayAt(8, 23), "day_complete", "", `Day 8 complete: 4,798 sent inside "October Product Update", bounce 0.9%.`},
+		{dayAt(0, 9), "started", "", "Plan started by Linh Nguyen: 21 counted days, engaged-first."},
+		{dayAt(4, 23), "day_complete", "", "Nothing sent, so day 5 repeated on " + started.AddDate(0, 0, 5).Weekday().String() + "."},
+		{dayAt(6, 23), "slowdown", "Automatic slowdown.", "Bounces hit 2.3% (guard 2%), mostly Yahoo. Day 6 didn't count; the cap holds at 2,600 until 2 healthy days in a row."},
+		{dayAt(8, 23), "resumed", "", "Second healthy day at the held cap (bounces 0.8%), so the ramp resumes with day 7 at 3,600."},
+		{dayAt(10, 23), "day_complete", "", `Day 8 counted: 4,798 sent inside "October Product Update", bounce 0.9%.`},
 	}
 	for _, e := range log {
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO warmup_events (id, plan_id, occurred_at, kind, title, body) VALUES ($1,$2,$3,$4,$5,$6)`, ID(), id, e.at, e.kind, e.title, e.body); err != nil {
@@ -372,7 +398,7 @@ func seedDailyStats(ctx context.Context, s *Seeder, loc *time.Location, sched []
 		for d := weekStart; d.Before(monthStart); d = d.AddDate(0, 0, 1) {
 			rows = append(rows, dailyRow{day: d, sent: sp.month / int64(max(days, 7))})
 		}
-		spreadOutcomes(rows, weekStart, sp.bounce, sp.complaint)
+		spreadOutcomes(rows, weekStart, sp.bounce, sp.complaint, reportingShare())
 		for _, r := range rows {
 			if err := insertDaily(ctx, s, sp.id, r, sp.errRate, sp.perCall); err != nil {
 				return err
@@ -388,7 +414,7 @@ func seedDailyStats(ctx context.Context, s *Seeder, loc *time.Location, sched []
 	for i, d := range postalDays {
 		postalRows = append(postalRows, dailyRow{day: startDay.AddDate(0, 0, i), sent: d.sent})
 	}
-	spreadOutcomes(postalRows, weekStart, 0.9, 0.05)
+	spreadOutcomes(postalRows, weekStart, 0.9, 0.05, warmupReportingShare())
 	for _, r := range postalRows {
 		if err := insertDaily(ctx, s, postal, r, 0.4, 1); err != nil {
 			return err
@@ -398,24 +424,53 @@ func seedDailyStats(ctx context.Context, s *Seeder, loc *time.Location, sched []
 	return nil
 }
 
-// dailyRow is one provider_daily_stats row of the demo.
+// dailyRow is one provider_daily_stats row of the demo. reporting is what
+// was delivered to mailbox providers that report complaints (the sample's
+// mix: everything but Gmail and iCloud), the base of the complaint rate.
 type dailyRow struct {
 	day                       time.Time
 	sent, bounced, complained int64
+	reporting                 int64
 	cost                      int64
+}
+
+// reportingShare is the part of the sample's mail that goes to mailbox
+// providers that report complaints (review F-2): the audience's mix.
+func reportingShare() float64 {
+	var all, reporting int
+	for mbp, n := range audMailboxTotals {
+		all += n
+		if mailbox.ReportsComplaints(mbp) {
+			reporting += n
+		}
+	}
+	return float64(reporting) / float64(all)
+}
+
+// warmupReportingShare is that part for a warming provider that caps each
+// mailbox provider separately (Postal): its days follow the caps' split.
+func warmupReportingShare() float64 {
+	var reporting int
+	for _, sh := range warmup.MailboxShares {
+		if mailbox.ReportsComplaints(sh.Mailbox) {
+			reporting += sh.Percent
+		}
+	}
+	return float64(reporting) / 100
 }
 
 // spreadOutcomes sets bounces and complaints so the rows from weekStart on
 // add up to exactly the given rates (percent); older rows get the same
 // rates rounded per day.
-func spreadOutcomes(rows []dailyRow, weekStart time.Time, bounce, complaint float64) {
+func spreadOutcomes(rows []dailyRow, weekStart time.Time, bounce, complaint, share float64) {
 	var weekSent int64
 	var idx []int
 	var weights []float64
 	for i, r := range rows {
 		if r.day.Before(weekStart) {
 			rows[i].bounced = int64(math.Round(float64(r.sent) * bounce / 100))
-			rows[i].complained = int64(math.Round(float64(r.sent-rows[i].bounced) * complaint / 100))
+			rows[i].reporting = int64(math.Round(float64(r.sent-rows[i].bounced) * share))
+			rows[i].complained = int64(math.Round(float64(rows[i].reporting) * complaint / 100))
 			continue
 		}
 		idx = append(idx, i)
@@ -423,13 +478,15 @@ func spreadOutcomes(rows []dailyRow, weekStart time.Time, bounce, complaint floa
 		weekSent += r.sent
 	}
 	bounced := Split(int64(math.Round(float64(weekSent)*bounce/100)), weights)
-	var weekBounced int64
-	for _, b := range bounced {
-		weekBounced += b
-	}
-	complained := Split(int64(math.Round(float64(weekSent-weekBounced)*complaint/100)), weights)
+	var weekReporting int64
 	for j, i := range idx {
-		rows[i].bounced, rows[i].complained = bounced[j], complained[j]
+		rows[i].bounced = bounced[j]
+		rows[i].reporting = int64(math.Round(float64(rows[i].sent-bounced[j]) * share))
+		weekReporting += rows[i].reporting
+	}
+	complained := Split(int64(math.Round(float64(weekReporting)*complaint/100)), weights)
+	for j, i := range idx {
+		rows[i].complained = complained[j]
 	}
 }
 
@@ -440,11 +497,12 @@ func insertDaily(ctx context.Context, s *Seeder, provider uuid.UUID, r dailyRow,
 		calls = 1
 	}
 	errs := int64(math.Round(float64(calls) * errRate / 100))
-	_, err := s.Tx.Exec(ctx, `INSERT INTO provider_daily_stats (provider_id, day, sent, delivered, bounced, complained, api_calls, api_errors, cost_micros)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+	_, err := s.Tx.Exec(ctx, `INSERT INTO provider_daily_stats (provider_id, day, sent, delivered, bounced, complained, api_calls, api_errors, cost_micros, delivered_reporting)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
 		ON CONFLICT (provider_id, day) DO UPDATE SET sent = EXCLUDED.sent, delivered = EXCLUDED.delivered, bounced = EXCLUDED.bounced,
-		complained = EXCLUDED.complained, api_calls = EXCLUDED.api_calls, api_errors = EXCLUDED.api_errors, cost_micros = EXCLUDED.cost_micros`,
-		provider, r.day, r.sent, delivered, r.bounced, r.complained, calls, errs, r.cost)
+		complained = EXCLUDED.complained, api_calls = EXCLUDED.api_calls, api_errors = EXCLUDED.api_errors, cost_micros = EXCLUDED.cost_micros,
+		delivered_reporting = EXCLUDED.delivered_reporting`,
+		provider, r.day, r.sent, delivered, r.bounced, r.complained, calls, errs, r.cost, r.reporting)
 	return err
 }
 
@@ -490,9 +548,14 @@ func seedSuppressionsIfEmpty(ctx context.Context, s *Seeder) error {
 				at = g.at
 			}
 			code := map[string]string{"hard_bounce": "550 5.1.1", "complaint": "abuse"}[g.reason]
-			rows = append(rows, []any{ID(), ws.ID, email, g.reason, g.source, g.provider, code, at})
+			// Unsubscribes stop marketing only, as the unsubscribe page writes them.
+			scope := "all"
+			if g.reason == "unsubscribe" {
+				scope = "marketing"
+			}
+			rows = append(rows, []any{ID(), ws.ID, email, g.reason, g.source, g.provider, code, at, scope})
 		}
-		if _, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"suppressions"}, []string{"id", "workspace_id", "email", "reason", "source", "source_provider_id", "original_code", "created_at"}, pgx.CopyFromRows(rows)); err != nil {
+		if _, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"suppressions"}, []string{"id", "workspace_id", "email", "reason", "source", "source_provider_id", "original_code", "created_at", "scope"}, pgx.CopyFromRows(rows)); err != nil {
 			return err
 		}
 	}
@@ -717,4 +780,59 @@ func seedCommunityAdapters(ctx context.Context, s *Seeder) error {
 		}
 	}
 	return nil
+}
+
+// acmeProviders are the sample's three connections (Providers board): demo
+// connections that never send. The full demo and the sample workspace
+// (PR-13) both use them.
+func acmeProviders(checked time.Time) []demoProvider {
+	sesCaps := capsOf("ses")
+	pmCaps := capsOf("postmark")
+	pmCaps.Pricing = "plan, $15 per month"
+	postalCaps := capsOf("postal")
+	// Postal's API doesn't list the server's IPs: the member who connected
+	// it set 203.0.113.25 by hand a few minutes later.
+	postalIPsSet := checked.Add(-(8*24*time.Hour + 2*time.Hour) + 12*time.Minute)
+	return []demoProvider{
+		{
+			key: "ses", adapter: "ses", name: "Amazon SES", label: "us-east-1", status: state.Healthy, detail: "Production · no enforcement", ipMode: "shared",
+			config: map[string]any{"demo": true, "region": "us-east-1", "configuration_set": "rc-broadcasts", "access": "role",
+				"role_arn": "arn:aws:iam::123456789012:role/reputecast-ses", "topic_arns": []string{"arn:aws:sns:us-east-1:123456789012:reputecast-acme-newsletter"},
+				// The workspace's SES tenant: its own suppression list and
+				// reputation policy (PR-11, Providers and Events & sync boards).
+				"tenant": "acme-newsletter", "tenant_reputation_policy": "standard"},
+			caps:   sesCaps,
+			limits: state.Limits{Bounce: state.Limit{Limit: 5, Review: 5, Pause: 10, Label: "SES"}, Complaint: state.Limit{Limit: 0.1, Review: 0.1, Pause: 0.5, Label: "SES"}},
+			health: state.Health{Quota: &state.Quota{Kind: "rolling_24h", Max: 50000, Used: 2140}, Rate: &state.Rate{Max: 14, PeakToday: 14},
+				Account: "Production · no enforcement", LastSuccessAt: &checked, LastSuccessOp: "GetAccount"},
+			pricing:   state.Pricing{Model: "metered", Per1000: 0.10, Source: "AWS pricing"},
+			tracking:  state.Tracking{Detail: "Configuration set rc-broadcasts: open and click tracking off. Custom redirect domain not needed.", Scope: "Configuration set rc-broadcasts", Mode: "reputecast", CheckedAt: &checked},
+			connected: 210 * 24 * time.Hour, lastEvent: 2 * time.Minute,
+		},
+		{
+			key: "postmark", adapter: "postmark", name: "Postmark", label: "Transactional stream", status: state.Healthy, detail: "Approved · 10,000 per month plan", ipMode: "shared",
+			config: map[string]any{"demo": true, "server": "Acme Newsletter", "server_id": 4821, "message_stream": "outbound", "monthly_limit": 10000},
+			caps:   pmCaps,
+			limits: state.Limits{Bounce: state.Limit{Limit: 10, Label: "Postmark"}, Complaint: state.Limit{Limit: 0.1, Label: "Postmark"}},
+			health: state.Health{Quota: &state.Quota{Kind: "monthly_plan", Max: 10000, Used: 3412}, Rate: &state.Rate{PeakToday: 3},
+				Account: "Approved · 10,000 per month plan", LastSuccessAt: &checked, LastSuccessOp: "GET /server",
+				// Postmark reports its own rates (outbound stats).
+				Reputation: &state.Reputation{Bounce: 0.2, Complaint: 0.01, Window: "7 d", CheckedAt: checked}},
+			pricing: state.Pricing{Model: "plan", Monthly: 15, NextTier: &state.NextTier{Adds: 50000, Price: 115}},
+			tracking: state.Tracking{OpenPixel: true, LinkRewrite: true, Scope: "Transactional stream", Mode: "reputecast", CheckedAt: &checked,
+				Detail: "Server setting TrackOpens is on, and TrackLinks is HtmlAndText. Opens on System and Automations mail would count twice, and links get rewritten to click.pstmrk.it before ReputeCast's redirect."},
+			connected: 210 * 24 * time.Hour, lastEvent: 6 * time.Minute,
+		},
+		{
+			key: "postal", adapter: "postal", name: "Postal", label: "self-hosted · mta.acme.io", status: state.WarmingUp, detail: "Warming up · day 9 of 21", ipMode: "dedicated", ips: []string{"203.0.113.25"},
+			config:    map[string]any{"demo": true, "server_url": "https://mta.acme.io", "version": "3.3.4"},
+			caps:      postalCaps,
+			limits:    state.Limits{Bounce: state.Limit{Limit: 2, Label: "warm-up guard"}, Complaint: state.Limit{Limit: 0.1}},
+			health:    state.Health{Account: "Postal 3.3.4 · reachable", Version: "3.3.4", LastSuccessAt: &checked, LastSuccessOp: "POST /api/v1/messages/message"},
+			pricing:   state.Pricing{Model: "self_hosted", Monthly: 24},
+			tracking:  state.Tracking{Detail: "Track clicks and opens disabled on the mail server; no link rewriting.", Scope: "mail server mta.acme.io", Mode: "reputecast", CheckedAt: &checked},
+			ipSource:  state.IPSource{From: state.IPsFromPerson, SetAt: &postalIPsSet},
+			connected: 8*24*time.Hour + 2*time.Hour, lastEvent: time.Minute,
+		},
+	}
 }

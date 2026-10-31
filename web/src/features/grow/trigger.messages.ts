@@ -15,5 +15,5 @@ export const m = defineMessages('grow.trigger', {
   explain: 'Starts when a referrer reaches the milestone, whether or not the milestone sends its own email. The milestone and reward tokens work in this flow’s emails.',
   noMilestones: 'No referral program has milestones yet, so nothing starts this flow.',
   setUp: 'Set up referrals',
-  needs: 'Choosing this trigger needs automations:edit.',
+  needs: 'Only people who can edit automations can choose this trigger.',
 })

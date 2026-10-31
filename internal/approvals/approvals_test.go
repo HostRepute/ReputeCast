@@ -13,6 +13,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/app"
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/readiness/readinesstest"
 	"github.com/hostrepute/reputecast/internal/sending"
 )
 
@@ -23,6 +24,8 @@ type fakeStarter struct {
 	canceled []uuid.UUID
 	// rechecks are the send-time rechecks handed over with each start.
 	rechecks []sending.Recheck
+	// canaries are the canary choices Review & send handed over (C1).
+	canaries []string
 }
 
 func (f *fakeStarter) Start(ctx context.Context, id, _ uuid.UUID) error {
@@ -32,6 +35,7 @@ func (f *fakeStarter) Start(ctx context.Context, id, _ uuid.UUID) error {
 	if rc, ok := sending.RecheckFrom(ctx, id); ok {
 		f.rechecks = append(f.rechecks, rc)
 	}
+	f.canaries = append(f.canaries, sending.CanaryFrom(ctx, id))
 	return nil
 }
 func (f *fakeStarter) Pause(context.Context, uuid.UUID, uuid.UUID, string) error { return nil }
@@ -52,7 +56,12 @@ type review struct {
 	}
 	Scheduled *struct{ By string }
 	Stale     bool
-	Run       *struct {
+	// Typed: an unusual send asks for the count to be typed (SR-13).
+	Typed struct {
+		Needed  bool
+		Reasons []string
+	}
+	Run *struct {
 		ID      string
 		Verdict string
 		Counts  struct{ Passed, Warnings, Blocks int }
@@ -152,13 +161,14 @@ func TestReviewAndApprovals(t *testing.T) {
 	digest := campaignID(t, linh, "Weekly Digest #142")
 	flash := campaignID(t, linh, "Flash sale: 48 hours only")
 
-	// The sample data: Weekly Digest approved and ready with two warnings,
-	// the flash sale blocked, November waiting for Marcus or Linh.
+	// The sample data: Weekly Digest approved and ready with two warnings
+	// (the UCEPROTECT listing and the UTM rule), the flash sale blocked,
+	// November waiting for Marcus or Linh.
 	r := getReview(t, linh, digest)
 	if r.Run == nil || r.Run.Verdict != "warnings" || r.Run.Counts.Warnings != 2 || r.Stale || !r.Approval.Valid {
 		t.Fatalf("weekly digest: %+v", r)
 	}
-	if r.Run.Estimates.Audience.Final != 31604 {
+	if r.Run.Estimates.Audience.Final != 31192 {
 		t.Fatalf("final recipients: %d", r.Run.Estimates.Audience.Final)
 	}
 	r = getReview(t, linh, flash)
@@ -228,7 +238,9 @@ func TestReviewAndApprovals(t *testing.T) {
 	toMarcus, toLinh := n.notes("marcus@acme.io", "approval_invalidated"), n.notes("linh@acme.io", "approval_invalidated")
 	newSubject := "November Product Update: faster exports, a new API and self-hosted sending"
 	daniel.Do("PUT", ws+"/campaigns/"+nov+"/content", map[string]any{"baseVersion": full["version"], "subject": newSubject, "preheader": full["preheader"],
-		"mjml": full["mjml"], "html": full["html"], "label": "subject", "source": "manual"}).MustStatus(t, 200)
+		"mjml": full["mjml"], "html": full["html"], "label": "subject", "source": "manual",
+		// The composer asked first: the editor agreed that saving cancels the approval.
+		"cancelApproval": true}).MustStatus(t, 200)
 	r = getReview(t, daniel, nov)
 	if r.Approval.Valid || r.Approval.Request == nil || r.Approval.Request.Status != "invalidated" || r.Approval.Request.InvalidatedReason != "subject changed" {
 		t.Fatalf("invalidated: %+v", r.Approval.Request)
@@ -248,26 +260,41 @@ func TestReviewAndApprovals(t *testing.T) {
 		ID, Status, FollowsID string
 		ChangesSince          []struct{ Field string }
 	}
+	// The campaign changed since the checks ran: they run again first (in
+	// the background), and Marcus approves once they finish.
+	if p := marcus.Do("POST", ws+"/approvals/"+reqID+"/decision", map[string]any{"decision": "approve"}).MustStatus(t, 409).Problem(t); p["code"] != "readiness_running" {
+		t.Fatalf("approve before the checks ran again: %v", p)
+	}
+	readinesstest.Work(t, env)
 	marcus.Do("POST", ws+"/approvals/"+reqID+"/decision", map[string]any{"decision": "approve"}).MustStatus(t, 200).JSON(t, &dec)
 	if dec.Status != "approved" || dec.ID == reqID || dec.FollowsID != reqID || len(dec.ChangesSince) != 1 || dec.ChangesSince[0].Field != "subject" {
 		t.Fatalf("approve the new version: %+v", dec)
 	}
 
-	// Daniel schedules it as approved: warnings confirmed, the count typed.
+	// Daniel schedules it as approved: warnings confirmed. A routine send
+	// (its lists' usual audience, a domain and providers that sent before)
+	// isn't confirmed by typing the count (SR-13).
 	r = getReview(t, daniel, nov)
 	if r.Stale || r.Run == nil || !r.Approval.Valid {
 		t.Fatalf("approved and fresh after the edit: %+v", r)
 	}
+	if r.Typed.Needed {
+		t.Fatalf("a routine send doesn't ask for the count: %+v", r.Typed)
+	}
 	final := fmt.Sprint(r.Run.Estimates.Audience.Final)
-	daniel.Do("POST", ws+"/approvals/"+dec.ID+"/schedule", map[string]any{"runId": r.Run.ID, "acknowledged": warnings(r)}).MustStatus(t, 422) // the count isn't typed
 	if len(warnings(r)) > 0 {
 		daniel.Do("POST", ws+"/approvals/"+dec.ID+"/schedule", map[string]any{"runId": r.Run.ID, "confirm": final}).MustStatus(t, 422) // warnings not confirmed
 	}
 	scheduled := n.audit("campaign.scheduled", nov)
 	var sent struct{ Status string }
-	daniel.Do("POST", ws+"/approvals/"+dec.ID+"/schedule", map[string]any{"runId": r.Run.ID, "acknowledged": warnings(r), "confirm": final}).MustStatus(t, 200).JSON(t, &sent)
+	daniel.Do("POST", ws+"/approvals/"+dec.ID+"/schedule", map[string]any{"runId": r.Run.ID, "acknowledged": warnings(r), "confirm": final, "canary": "maybe"}).MustStatus(t, 422)
+	// The canary choice (review GS-10, C1) goes to the sending engine with the start.
+	daniel.Do("POST", ws+"/approvals/"+dec.ID+"/schedule", map[string]any{"runId": r.Run.ID, "acknowledged": warnings(r), "confirm": final, "canary": "on"}).MustStatus(t, 200).JSON(t, &sent)
 	if sent.Status != "scheduled" || len(starter.started) != 1 || n.audit("campaign.scheduled", nov) != scheduled+1 {
 		t.Fatalf("scheduled: %+v %v", sent, starter.started)
+	}
+	if !slices.Equal(starter.canaries, []string{"on"}) {
+		t.Fatalf("canary choices %q, want the review's", starter.canaries)
 	}
 	if r = getReview(t, daniel, nov); r.Campaign.Status != "scheduled" || r.Scheduled == nil || r.Stale {
 		t.Fatalf("the review shows the scheduled send: %+v", r.Campaign)
@@ -340,7 +367,7 @@ func TestReadinessRunAndFixes(t *testing.T) {
 		Groups      []struct{ Key string }
 	}
 	runs := n.audit("readiness.run", digest)
-	linh.Do("POST", ws+"/campaigns/"+digest+"/readiness", nil).MustStatus(t, 200).JSON(t, &run)
+	readinesstest.Post(t, env, linh, ws+"/campaigns/"+digest+"/readiness").MustStatus(t, 200).JSON(t, &run)
 	// Seven groups of 1.0, Accessibility, and Languages when an email goes
 	// out in several languages (the sample's #142 does).
 	if run.ID == "" || run.Counts.Total < 20 || len(run.Groups) < 8 {
@@ -369,7 +396,7 @@ func TestReadinessRunAndFixes(t *testing.T) {
 		{"action": "replace_link", "params": map[string]string{"from": "https://nowhere.example/x", "to": "https://acme.io/sale"}},
 	}}).MustStatus(t, 422)
 	saves, updates := n.audit("campaign.content.save", flash), n.audit("campaign.update", flash)
-	linh.Do("POST", ws+"/campaigns/"+flash+"/readiness/fixes", map[string]any{"fixes": []map[string]any{{"action": "insert_footer"}, {"action": "exclude_sunset"}}}).MustStatus(t, 200).JSON(t, &out)
+	readinesstest.Fix(t, env, linh, ws+"/campaigns/"+flash+"/readiness/fixes", map[string]any{"fixes": []map[string]any{{"action": "insert_footer"}, {"action": "exclude_sunset"}}}).MustStatus(t, 200).JSON(t, &out)
 	if len(out.Applied) != 2 || out.Run == nil {
 		t.Fatalf("fixes: %+v", out)
 	}
@@ -485,8 +512,9 @@ func TestSendRecheck(t *testing.T) {
 	}
 }
 
-// Sending now runs Send Readiness once: the run the send starts with is
-// handed to the sending engine, which doesn't run the checks again.
+// Sending now starts on the run the person just confirmed (it must be
+// recent): it is handed to the sending engine, which doesn't run the checks
+// again, and nothing runs inside the request (SR-8).
 func TestSendNowRunsReadinessOnce(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
@@ -508,25 +536,45 @@ func TestSendNowRunsReadinessOnce(t *testing.T) {
 		}
 		return n, latest
 	}
+	send := func(run string, want int) *apptest.Response {
+		return linh.Do("POST", ws+"/campaigns/"+digest+"/bypass", map[string]any{"runId": run, "acknowledged": warnings(r),
+			"confirm": fmt.Sprint(r.Run.Estimates.Audience.Final), "schedule": map[string]any{"mode": "now"},
+			"reason": "Customer-facing outage notice, approved verbally by Marcus.", "password": "reputecast-demo"}).MustStatus(t, want)
+	}
+	// The seeded run is hours old: for a send that starts now the checks
+	// run again first, in the background (SR-8), and nothing is sent.
+	if p := send(r.Run.ID, 409).Problem(t); p["code"] != "readiness_old" {
+		t.Fatalf("an old run: %v", p)
+	}
+	if len(starter.rechecks) != 0 {
+		t.Fatal("the send started on an old run")
+	}
+	readinesstest.Work(t, env)
+	r = getReview(t, linh, digest)
 	before, _ := sendTimeRuns()
+	var runs int
+	countRuns := func() int {
+		if err := env.App.Pool.QueryRow(context.Background(), `SELECT count(*) FROM readiness_runs WHERE campaign_id = $1`, digest).Scan(&runs); err != nil {
+			t.Fatal(err)
+		}
+		return runs
+	}
+	stored := countRuns()
 	var sent struct {
 		Status     string
 		Recipients int64
 	}
-	linh.Do("POST", ws+"/campaigns/"+digest+"/bypass", map[string]any{"runId": r.Run.ID, "acknowledged": warnings(r),
-		"confirm": fmt.Sprint(r.Run.Estimates.Audience.Final), "schedule": map[string]any{"mode": "now"},
-		"reason": "Customer-facing outage notice, approved verbally by Marcus.", "password": "reputecast-demo"}).MustStatus(t, 200).JSON(t, &sent)
+	send(r.Run.ID, 200).JSON(t, &sent)
 	if sent.Status != "sending" {
 		t.Fatalf("sent: %+v", sent)
 	}
-	after, latest := sendTimeRuns()
-	if after != before+1 {
-		t.Fatalf("send-time runs: %d, then %d; want one more", before, after)
+	// The run the person confirmed is the send's check: nothing runs
+	// inside the request, and the engine starts on that run.
+	if after, _ := sendTimeRuns(); after != before || countRuns() != stored {
+		t.Fatalf("a run inside the request: %d runs, then %d", stored, runs)
 	}
-	// The fresh run counts the demo's contacts, so its audience can differ
-	// from the seeded run's (DESIGN_INVENTORY row 94).
-	if len(starter.rechecks) != 1 || starter.rechecks[0].RunID != latest || starter.rechecks[0].Verdict == "blocked" || starter.rechecks[0].Audience == 0 {
-		t.Fatalf("the engine should start on the send-time run %s: %+v", latest, starter.rechecks)
+	if len(starter.rechecks) != 1 || starter.rechecks[0].RunID != r.Run.ID || starter.rechecks[0].Verdict == "blocked" || starter.rechecks[0].Audience == 0 {
+		t.Fatalf("the engine should start on the confirmed run %s: %+v", r.Run.ID, starter.rechecks)
 	}
 }
 
@@ -556,9 +604,11 @@ func TestScheduledSendLosesItsApproval(t *testing.T) {
 		}
 	}
 
-	// Approved, then scheduled by Daniel.
+	// Approved, then scheduled by Daniel on checks that ran just now (what
+	// he confirms is what the send-time recheck compares with, SR-3).
 	r := getReview(t, daniel, nov)
 	marcus.Do("POST", ws+"/approvals/"+r.Approval.Request.ID+"/decision", map[string]any{"decision": "approve"}).MustStatus(t, 200)
+	readinesstest.Post(t, env, daniel, ws+"/campaigns/"+nov+"/readiness").MustStatus(t, 200)
 	r = getReview(t, daniel, nov)
 	daniel.Do("POST", ws+"/approvals/"+r.Approval.Request.ID+"/schedule", map[string]any{"runId": r.Run.ID, "acknowledged": warnings(r),
 		"confirm": fmt.Sprint(r.Run.Estimates.Audience.Final)}).MustStatus(t, 200)
@@ -568,7 +618,9 @@ func TestScheduledSendLosesItsApproval(t *testing.T) {
 	var full map[string]any
 	daniel.Do("GET", ws+"/campaigns/"+nov, nil).MustStatus(t, 200).JSON(t, &full)
 	daniel.Do("PUT", ws+"/campaigns/"+nov+"/content", map[string]any{"baseVersion": full["version"], "subject": "November Product Update: faster exports, a new API and self-hosted sending",
-		"preheader": full["preheader"], "mjml": full["mjml"], "html": full["html"], "label": "subject", "source": "manual"}).MustStatus(t, 200)
+		"preheader": full["preheader"], "mjml": full["mjml"], "html": full["html"], "label": "subject", "source": "manual",
+		// The composer asked first: the editor agreed that saving cancels the approval.
+		"cancelApproval": true}).MustStatus(t, 200)
 	r = getReview(t, daniel, nov)
 	if r.Campaign.Status != "scheduled" || r.Approval.Request == nil || r.Approval.Request.Status != "invalidated" {
 		t.Fatalf("invalidated, still scheduled: %s %+v", r.Campaign.Status, r.Approval.Request)
@@ -714,11 +766,13 @@ func TestApprovalWebhookEvents(t *testing.T) {
 	var full map[string]any
 	daniel.Do("GET", ws+"/campaigns/"+nov, nil).MustStatus(t, 200).JSON(t, &full)
 	daniel.Do("PUT", ws+"/campaigns/"+nov+"/content", map[string]any{"baseVersion": full["version"], "subject": "November Product Update: faster exports and a new API",
-		"preheader": full["preheader"], "mjml": full["mjml"], "html": full["html"], "label": "subject", "source": "manual"}).MustStatus(t, 200)
+		"preheader": full["preheader"], "mjml": full["mjml"], "html": full["html"], "label": "subject", "source": "manual",
+		// The composer asked first: the editor agreed that saving cancels the approval.
+		"cancelApproval": true}).MustStatus(t, 200)
 	if _, err := env.App.Pool.Exec(ctx, `DELETE FROM link_domain_listings WHERE domain = 'acme.io'`); err != nil {
 		t.Fatal(err)
 	}
-	daniel.Do("POST", ws+"/campaigns/"+nov+"/readiness", nil).MustStatus(t, 200)
+	readinesstest.Post(t, env, daniel, ws+"/campaigns/"+nov+"/readiness").MustStatus(t, 200)
 	daniel.Do("POST", ws+"/campaigns/"+nov+"/approval", map[string]any{}).MustStatus(t, 201)
 	if queued("approval.requested") != 1 {
 		t.Fatal("approval.requested is queued")

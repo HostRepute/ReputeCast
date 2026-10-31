@@ -1,7 +1,42 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { setCatalogLoader, setLocale, t, type Catalog, type MessageDescriptor } from '@/i18n'
 import { bandOf, bandRange } from './bands'
+import { m } from './messages'
 import { capInline, capText, ruleFor, ruleProblems, ruleWhen, signed, type Rule } from './ruleText'
+import { m as mt } from './trigger.messages'
 import { changesOf, sameConfig, type Config } from './useScoringDraft'
+
+// X-1: Scoring says what the reader's role can't do, or who can, in words. A
+// permission key (scoring:edit, automations:edit…) never shows.
+const permissionKey = /\b[a-z]+:(?:view|edit|review|connect|export|import|create|delete|manage|send|publish|verify)\b/
+const english = import.meta.glob<Record<string, Record<string, MessageDescriptor>>>('./**/*messages.ts', { eager: true })
+const vietnamese = import.meta.glob<Catalog>('./**/*messages.vi.ts', { eager: true, import: 'default' })
+
+describe("Scoring's copy", () => {
+  afterEach(() => setLocale('en'))
+
+  it('names no permission key, in English or Vietnamese', () => {
+    const en = Object.values(english).flatMap((file) => Object.values(file).flatMap((group) => Object.values(group)))
+    const vi = Object.values(vietnamese).flatMap((catalog) => Object.entries(catalog))
+    expect(en.length).toBeGreaterThan(0)
+    expect(vi.length).toBeGreaterThan(0)
+    for (const d of en) expect(d.message, d.id).not.toMatch(permissionKey)
+    for (const [id, text] of vi) expect(text, id).not.toMatch(permissionKey)
+  })
+
+  it('says what the role can’t do, and whom to ask', async () => {
+    expect(t(m.readOnlyAsk, { helpers: 'Sofia Rossi, Marcus Chen or Linh Nguyen' })).toBe(
+      "You can see every rule, the spread and who is in each band. Your role can't edit scoring rules, decay or bands. Ask Sofia Rossi, Marcus Chen or Linh Nguyen.",
+    )
+    expect(t(mt.needs)).toBe('Only people who can edit automations can choose this trigger.')
+    setCatalogLoader('vi', async () => Object.assign({}, ...Object.values(vietnamese)))
+    await setLocale('vi')
+    expect(t(m.readOnlyNoAsk)).toBe(
+      'Bạn xem được mọi quy tắc, phân bố điểm và những ai ở từng mức. Vai trò của bạn không thể sửa quy tắc chấm điểm, mức giảm dần hay mức điểm.',
+    )
+    expect(t(mt.needs)).toBe('Chỉ người có thể sửa tự động hóa mới chọn được trình kích hoạt này.')
+  })
+})
 
 const rules: Rule[] = [
   { id: 'r1', kind: 'open', points: 2, enabled: true, cap: { kind: 'points_week', points: 6 } },

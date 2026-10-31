@@ -16,6 +16,8 @@ export interface ChangeTracker {
   /** True when a section or element was added or removed since the last take(). */
   structural(): boolean
   note(label: string): void
+  /** Words are being typed in a text (its model changes only when the editing ends). */
+  typing(c: Component): void
   dispose(): void
 }
 
@@ -96,6 +98,7 @@ export function trackChanges(editor: Editor): ChangeTracker {
     peek: () => labels.slice(0, 3),
     structural: () => structural,
     note: add,
+    typing: (c: Component) => onContent(c),
     dispose() {
       editor.off('component:update:attributes', attrHandler)
       editor.off('component:update:content', contentHandler)

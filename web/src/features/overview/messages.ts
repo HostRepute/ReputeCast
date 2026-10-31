@@ -10,7 +10,6 @@ export const m = defineMessages('overview', {
   title: 'Overview',
   subtitleNoDomain: '{day} · no sending domain yet',
   newCampaign: 'New campaign',
-  connectFirst: 'Connect a sending provider first: the composer unlocks when a provider is assigned to the Broadcasts stream.',
   retryNow: 'Retry now',
   viewEventLog: 'View event log',
   restCurrent: 'The rest of the Overview is current.',
@@ -52,7 +51,7 @@ export const m = defineMessages('overview', {
   openReadiness: 'Open Send Readiness',
   viewCampaign: 'View campaign',
   editCampaign: 'Edit campaign',
-  nextPending: 'No campaigns yet. The composer unlocks when a provider is assigned to the Broadcasts stream.',
+  nextPending: 'No campaigns yet. Write one now; scheduling and sending unlock when a provider is assigned to the Broadcasts stream.',
   notChecked: 'Not checked yet',
   blockedBy: '{n, plural, one {Blocked by # check} other {Blocked by # checks}}',
   blocked: 'Blocked',
@@ -146,7 +145,15 @@ export const m = defineMessages('overview', {
   welcomeLead:
     "ReputeCast sends through a sending provider you control. Connect one now, and this page fills up with sender health, provider limits and your first campaign's readiness.",
   stepConnect: 'Connect a sending provider',
-  stepConnectLine: 'Amazon SES, Postmark, Mailgun, SendGrid, Resend, Brevo, your own Postal server or any SMTP server. About 10 minutes.',
+  stepConnectLine:
+    "Amazon SES, Postmark, Mailgun, SendGrid, Resend, Brevo, your own Postal server or any SMTP server. Most setups take 10–15 minutes; Amazon SES takes longer when ReputeCast doesn't run on AWS, and a new AWS account can wait up to 24 hours for production access.",
+  /** PR-13: campaigns can be written before a provider is connected. */
+  writeFirst: 'Write your first campaign now; sending unlocks once a provider is connected.',
+  /** PR-13: the first-run screen loads the demo into its own workspace. */
+  exploreDemo: 'Explore with demo data',
+  exploreDemoLine: 'Loads Acme sample data into a separate demo workspace. Nothing is sent.',
+  exploreDemoBusy: 'Loading the demo…',
+  exploreDemoFailed: "Couldn't load the demo workspace",
   chooseProvider: 'Choose a provider',
   browseAdapters: 'Browse community adapters',
   stepVerify: 'Verify your sending domain',

@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -31,6 +32,25 @@ type Service struct {
 	Q     *store.Queries
 	Audit *audit.Logger
 	Now   func() time.Time
+	// Mailbox classifies an address that isn't a contact from its domain's
+	// MX records (internal/mailbox); nil uses the domain name only.
+	Mailbox MailboxClassifier
+	// WarmupToday is a warming provider's allowance today, for vetting it
+	// as a failover target; WarmCap its cap on a day, for the campaign
+	// simulation. Both come from internal/warmup, which imports routing.
+	WarmupToday func(ctx context.Context, providerID uuid.UUID) *state.WarmupToday
+	WarmCap     func(ctx context.Context, providerID uuid.UUID, at time.Time) (WarmCap, bool)
+	// LookupMX finds a domain's first MX host for the route tester; nil
+	// asks DNS.
+	LookupMX func(ctx context.Context, domain string) string
+	// SimulateLimit is how many recipients a campaign simulation reads
+	// before it scales to the audience (0: 200,000).
+	SimulateLimit int64
+}
+
+// MailboxClassifier is the part of mailbox.Classifier the route tester uses.
+type MailboxClassifier interface {
+	ForEmail(ctx context.Context, email string) mailbox.Class
 }
 
 func (s *Service) now() time.Time {
@@ -42,9 +62,22 @@ func (s *Service) now() time.Time {
 
 // Load reads a workspace's routing set.
 func Load(ctx context.Context, q *store.Queries, wsID uuid.UUID) (Set, error) {
+	st, err := loadStored(ctx, q, wsID)
+	return st.set, err
+}
+
+// stored is the routing as stored: the set, each stream's version and the
+// policy rows.
+type stored struct {
+	set      Set
+	versions map[providers.Stream]string
+	policies []store.StreamPolicy
+}
+
+func loadStored(ctx context.Context, q *store.Queries, wsID uuid.UUID) (stored, error) {
 	rows, err := q.RoutingListRules(ctx, wsID)
 	if err != nil {
-		return Set{}, err
+		return stored{}, err
 	}
 	set := Set{Policies: map[providers.Stream]Policy{}}
 	for _, r := range rows {
@@ -55,12 +88,12 @@ func Load(ctx context.Context, q *store.Queries, wsID uuid.UUID) (Set, error) {
 	}
 	pols, err := q.RoutingListPolicies(ctx, wsID)
 	if err != nil {
-		return Set{}, err
+		return stored{}, err
 	}
 	for _, p := range pols {
 		set.Policies[providers.Stream(p.Stream)] = Policy(p.Failover)
 	}
-	return set, nil
+	return stored{set: set, versions: streamVersions(rows, pols), policies: pols}, nil
 }
 
 // Route decides the provider for one recipient with the saved rules. The
@@ -81,12 +114,18 @@ type RoutingSplit struct {
 }
 
 // RoutingCondition is a rule evaluated before the split: IF field matches
-// one of values THEN only providerId.
+// one of values THEN providerId only, or a weighted split of its own
+// (PR-12), sticky per recipient like the stream's split.
 type RoutingCondition struct {
-	Field      string   `json:"field" enum:"mailbox_provider,list,sender_domain,category" doc:"category: a transactional category (Transactional stream only)"`
-	Values     []string `json:"values" minItems:"1" maxItems:"50"`
-	ProviderID string   `json:"providerId" format:"uuid"`
-	Note       string   `json:"note,omitempty" maxLength:"120"`
+	Field  string   `json:"field" enum:"mailbox_provider,list,sender_domain,category" doc:"category: a transactional category (Transactional stream only)"`
+	Values []string `json:"values" minItems:"1" maxItems:"50"`
+	// ProviderID is the one provider the condition sends to; with Splits it
+	// is the first of them.
+	ProviderID string `json:"providerId,omitempty" format:"uuid"`
+	// Splits, when set, split the matching recipients by weight (adding up
+	// to 100) instead of sending them all to one provider.
+	Splits []RoutingSplit `json:"splits,omitempty" maxItems:"5"`
+	Note   string         `json:"note,omitempty" maxLength:"120"`
 }
 
 // RoutingStreamInput is one stream's routing in a save.
@@ -101,9 +140,14 @@ type RoutingStreamInput struct {
 	// Priority (Transactional only): transactional messages go first within
 	// the rate of a provider that also sends a campaign.
 	Priority *bool `json:"priority,omitempty"`
+	// BaseVersion is the stream's version the edit started from (the
+	// stream's version in the routing read). When the stream changed since,
+	// the save is refused with 409 code routing_changed and nothing is saved.
+	BaseVersion string `json:"baseVersion,omitempty" maxLength:"32"`
 }
 
-// RoutingSaveInput replaces the routing of the streams it lists.
+// RoutingSaveInput replaces the routing of the streams it lists; the
+// streams it leaves out stay exactly as they are.
 type RoutingSaveInput struct {
 	Streams []RoutingStreamInput `json:"streams" minItems:"1" maxItems:"4"`
 	// AcknowledgeBulkTerms keeps a Broadcast route that a provider's terms
@@ -129,7 +173,12 @@ type RoutingVolume struct {
 
 // RoutingStreamView is one stream's saved routing.
 type RoutingStreamView struct {
-	Stream     string                 `json:"stream" enum:"broadcast,automation,system,transactional"`
+	Stream string `json:"stream" enum:"broadcast,automation,system,transactional"`
+	// Version changes whenever the stream's routing changes; send it back as
+	// baseVersion when saving the stream.
+	Version string `json:"version"`
+	// Splits are in the order they were saved: the order only changes how
+	// the split reads, never who goes where.
 	Splits     []RoutingSplit         `json:"splits"`
 	Fallback   string                 `json:"fallback"`
 	Failover   string                 `json:"failover" enum:"automatic,pause_and_ask,warm_only"`
@@ -143,6 +192,30 @@ type RoutingStreamView struct {
 	// SenderDomains (Transactional only) are the domains marked for
 	// transactional mail ("notify.acme.io").
 	SenderDomains []string `json:"senderDomains,omitempty"`
+	// FailoverVet is what's checked before the stream fails over: its
+	// fallback, or the split's other provider (PR-14).
+	FailoverVet *RoutingTargetVet `json:"failoverVet,omitempty"`
+}
+
+// RoutingVetCheck is one check of a failover target (state.Vet).
+type RoutingVetCheck struct {
+	Key    string `json:"key" enum:"available,bulk_terms,sandbox,domain,quota,warm"`
+	Result string `json:"result" enum:"pass,warn,fail,unknown"`
+	// Left is what the quota or today's warm-up cap has left.
+	Left *int64 `json:"left,omitempty"`
+	// Period is what a quota's Left counts: today ("day") or this month
+	// ("month"); empty when the provider sets no quota.
+	Period string `json:"period,omitempty" enum:"day,month"`
+}
+
+// RoutingTargetVet is a failover target and its checks.
+type RoutingTargetVet struct {
+	ProviderID string            `json:"providerId"`
+	Provider   string            `json:"provider"`
+	Checks     []RoutingVetCheck `json:"checks"`
+	// WarmupDay of WarmupDays while the target warms up.
+	WarmupDay  int `json:"warmupDay,omitempty"`
+	WarmupDays int `json:"warmupDays,omitempty"`
 }
 
 // RoutingTerms is one row of "What each connected provider's terms allow".
@@ -195,8 +268,11 @@ type RoutingNamed struct {
 
 // RoutingShared is the "Shared across providers" card.
 type RoutingShared struct {
-	Suppressions int64      `json:"suppressions"`
-	SyncedAt     *time.Time `json:"syncedAt,omitempty"`
+	Suppressions int64 `json:"suppressions"`
+	// Pushed counts the suppressions providers get: hard bounces and
+	// complaints that apply to all mail (review PR-1).
+	Pushed   int64      `json:"pushed"`
+	SyncedAt *time.Time `json:"syncedAt,omitempty"`
 }
 
 // RoutingConfig is the routing screen.
@@ -217,10 +293,11 @@ type RoutingConfig struct {
 
 // Get returns the routing screen for a workspace.
 func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, error) {
-	set, err := Load(ctx, s.Q, ws.ID)
+	st, err := loadStored(ctx, s.Q, ws.ID)
 	if err != nil {
 		return RoutingConfig{}, err
 	}
+	set := st.set
 	facts, provs, err := s.facts(ctx, ws)
 	if err != nil {
 		return RoutingConfig{}, err
@@ -243,6 +320,14 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 	for _, d := range domains {
 		out.SenderDomains = append(out.SenderDomains, d.Domain)
 	}
+	// Domains a condition names can be tested too, set up here or not.
+	for _, r := range set.Rules {
+		for _, d := range r.Conditions.SenderDomains {
+			if !slices.Contains(out.SenderDomains, d) {
+				out.SenderDomains = append(out.SenderDomains, d)
+			}
+		}
+	}
 	categoryNames := map[string]string{}
 	if cats, err := s.Q.TxnRouteCategories(ctx, ws.ID); err == nil {
 		for _, c := range cats {
@@ -263,21 +348,24 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 	if err != nil {
 		return RoutingConfig{}, err
 	}
-	pols, err := s.Q.RoutingListPolicies(ctx, ws.ID)
-	if err != nil {
-		return RoutingConfig{}, err
-	}
 	acks := map[string]*time.Time{}
 	priority := true
-	for _, p := range pols {
+	for _, p := range st.policies {
 		acks[p.Stream] = p.BulkTermsAckAt
 		if p.Stream == string(StreamTransactional) {
 			priority = p.Priority
 		}
 	}
 	volumes := s.volumes(ctx, ws)
+	// The default sender's verification per provider (failover checks).
+	var sender map[string]string
+	if raw, err := s.Q.RoutingDefaultSenderVerification(ctx, ws.ID); err == nil {
+		sender = map[string]string{}
+		_ = json.Unmarshal(raw, &sender)
+	}
 	for _, stream := range Streams {
-		v := RoutingStreamView{Stream: string(stream), Splits: []RoutingSplit{}, Failover: string(set.Policy(stream)), Conditions: []RoutingConditionView{}, BulkTermsAcknowledgedAt: acks[string(stream)], Volume: volumes[stream]}
+		v := RoutingStreamView{Stream: string(stream), Version: st.versions[stream], Splits: []RoutingSplit{}, Failover: string(set.Policy(stream)), Conditions: []RoutingConditionView{},
+			BulkTermsAcknowledgedAt: acks[string(stream)], Volume: volumes[stream]}
 		if stream == StreamTransactional {
 			pr := priority
 			v.Priority, v.SenderDomains = &pr, txDomains
@@ -298,7 +386,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 			c := conditionView(l, r, listNames, categoryNames)
 			v.Conditions = append(v.Conditions, c)
 		}
-		slices.SortStableFunc(v.Splits, func(a, b RoutingSplit) int { return b.Weight - a.Weight })
+		v.FailoverVet = s.failoverVet(ctx, ws, stream, v, provs, sender)
 		out.Streams = append(out.Streams, v)
 	}
 	if saved, err := s.Q.RoutingSaved(ctx, ws.ID); err == nil {
@@ -308,12 +396,35 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 		return RoutingConfig{}, err
 	}
 	out.Shared.Suppressions, _ = s.Q.SuppCount(ctx, ws.ID)
+	if summary, err := s.Q.SuppPushSummary(ctx, ws.ID); err == nil {
+		for _, r := range summary {
+			if r.Pushed {
+				out.Shared.Pushed += r.N
+			}
+		}
+	}
 	out.Shared.SyncedAt = s.syncedAt(ctx, provs)
 	return out, nil
 }
 
+// quotaPeriod is what a provider's quota kind counts.
+func quotaPeriod(kind string) string {
+	switch kind {
+	case "rolling_24h", "daily", "warmup_daily":
+		return "day"
+	case "monthly_plan", "monthly":
+		return "month"
+	}
+	return ""
+}
+
 func conditionView(l i18n.Lang, r Rule, listNames, categoryNames map[string]string) RoutingConditionView {
 	c := RoutingConditionView{RoutingCondition: RoutingCondition{ProviderID: r.Splits[0].ProviderID.String(), Note: r.Name}}
+	if len(r.Splits) > 1 {
+		for _, sp := range r.Splits {
+			c.Splits = append(c.Splits, RoutingSplit{ProviderID: sp.ProviderID.String(), Weight: sp.Weight})
+		}
+	}
 	switch {
 	case len(r.Conditions.Categories) > 0:
 		c.Field, c.Values = "category", r.Conditions.Categories
@@ -360,7 +471,8 @@ func (s *Service) facts(ctx context.Context, ws *store.Workspace) (map[uuid.UUID
 	out := []RoutingProvider{}
 	for _, p := range provs {
 		caps := state.Caps(p)
-		f := Facts{ID: p.ID, Name: p.Name, Short: state.Short(p.Name, p.Adapter), Adapter: p.Adapter, Status: p.Status, Bulk: caps.Bulk, BulkAllowed: caps.BulkAllowed()}
+		f := Facts{ID: p.ID, Name: p.Name, Short: state.Short(p.Name, p.Adapter), Adapter: p.Adapter, Status: p.Status, Bulk: caps.Bulk, BulkAllowed: caps.BulkAllowed(),
+			Available: state.Available(p)}
 		rp := RoutingProvider{ID: p.ID.String(), Name: p.Name, Short: f.Short, Label: p.Label, Adapter: p.Adapter, Color: state.Color(p.Adapter), Status: p.Status,
 			Bulk: string(caps.Bulk), BulkAllowed: f.BulkAllowed, ShareSteps: []RoutingShareStep{}, Terms: []RoutingTerms{}}
 		if d, ok := providers.Lookup(p.Adapter); ok {
@@ -523,9 +635,9 @@ func toSet(ctx context.Context, in RoutingSaveInput, base Set) (Set, error) {
 		}
 		out.Rules = append(out.Rules, def)
 		for j, c := range st.Conditions {
-			id, err := uuid.Parse(c.ProviderID)
+			splits, err := conditionSplits(ctx, c, i, j)
 			if err != nil {
-				return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].providerId", i, j), say(ctx, "problem.pickConditionProvider", nil))
+				return Set{}, err
 			}
 			values := []string{}
 			for _, v := range c.Values {
@@ -569,7 +681,7 @@ func toSet(ctx context.Context, in RoutingSaveInput, base Set) (Set, error) {
 				cond.SenderDomains = values
 			}
 			out.Rules = append(out.Rules, Rule{ID: uuid.Must(uuid.NewV7()), Stream: stream, Priority: 10 * (j + 1), Name: strings.TrimSpace(c.Note),
-				Conditions: cond, Splits: []Split{{ProviderID: id, Weight: 100}}, Fallback: fallback, Enabled: true})
+				Conditions: cond, Splits: splits, Fallback: fallback, Enabled: true})
 		}
 	}
 	for _, r := range base.Rules {
@@ -580,17 +692,44 @@ func toSet(ctx context.Context, in RoutingSaveInput, base Set) (Set, error) {
 	return out, nil
 }
 
-// Save replaces the routing of the streams in the input.
+// conditionSplits is where a condition sends its recipients: one provider,
+// or a split by weight (a 0% share is left out; Validate checks the rest).
+func conditionSplits(ctx context.Context, c RoutingCondition, i, j int) ([]Split, error) {
+	if len(c.Splits) == 0 {
+		id, err := uuid.Parse(c.ProviderID)
+		if err != nil {
+			return nil, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].providerId", i, j), say(ctx, "problem.pickConditionProvider", nil))
+		}
+		return []Split{{ProviderID: id, Weight: 100}}, nil
+	}
+	out := []Split{}
+	for k, sp := range c.Splits {
+		id, err := uuid.Parse(sp.ProviderID)
+		if err != nil {
+			return nil, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].splits[%d].providerId", i, j, k), say(ctx, "problem.pickConditionProvider", nil))
+		}
+		if sp.Weight == 0 && len(c.Splits) > 1 {
+			continue
+		}
+		out = append(out, Split{ProviderID: id, Weight: sp.Weight})
+	}
+	if len(out) == 1 {
+		out[0].Weight = 100
+	}
+	return out, nil
+}
+
+// CodeRoutingChanged is the problem code of a save whose base version is
+// stale: someone (or the warm-up planner) changed a stream since the edit
+// began. Its meta "streams" lists the streams that changed.
+const CodeRoutingChanged = "routing_changed"
+
+// Save replaces the routing of the streams in the input and leaves the
+// others exactly as stored. A stream sent with a baseVersion that is no
+// longer its version is refused with 409 (CodeRoutingChanged): nothing is
+// saved, so a tab left open never overwrites newer routing.
 func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveInput) (RoutingConfig, error) {
 	before, err := s.Get(ctx, ws)
-	if err != nil {
-		return RoutingConfig{}, err
-	}
-	base, err := Load(ctx, s.Q, ws.ID)
-	if err != nil {
-		return RoutingConfig{}, err
-	}
-	set, err := toSet(ctx, in, base)
 	if err != nil {
 		return RoutingConfig{}, err
 	}
@@ -598,7 +737,11 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveI
 	if err != nil {
 		return RoutingConfig{}, err
 	}
-	// Lists named in conditions must belong to the workspace.
+	saving := map[providers.Stream]bool{}
+	for _, st := range in.Streams {
+		saving[providers.Stream(st.Stream)] = true
+	}
+	// Lists and categories named in conditions must belong to the workspace.
 	lists, err := s.Q.RoutingLists(ctx, ws.ID)
 	if err != nil {
 		return RoutingConfig{}, err
@@ -607,44 +750,13 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveI
 	for _, l := range lists {
 		known[l.ID.String()] = true
 	}
-	for _, r := range set.Rules {
-		for _, l := range r.Conditions.Lists {
-			if !known[l] {
-				return RoutingConfig{}, api.Invalid("body.streams", say(ctx, "problem.unknownList", nil))
-			}
-		}
-	}
-	if cats, err := s.Q.TxnRouteCategories(ctx, ws.ID); err == nil {
-		knownCat := map[string]bool{}
-		for _, c := range cats {
-			knownCat[c.ID.String()] = true
-		}
-		for _, r := range set.Rules {
-			for _, c := range r.Conditions.Categories {
-				if !knownCat[c] {
-					return RoutingConfig{}, api.Invalid("body.streams", say(ctx, "problem.unknownCategory", nil))
-				}
-			}
-		}
-	} else {
+	cats, err := s.Q.TxnRouteCategories(ctx, ws.ID)
+	if err != nil {
 		return RoutingConfig{}, err
 	}
-	issues := Validate(i18n.LangFrom(ctx), set, facts)
-	if Blocking(issues) {
-		for _, i := range issues {
-			if i.Blocking {
-				return RoutingConfig{}, api.Err(http.StatusUnprocessableEntity, api.CodeValidation, i.Message).WithMeta("issues", issues)
-			}
-		}
-	}
-	bulk := []RoutingIssue{}
-	for _, i := range issues {
-		if i.Code == IssueBulkTerms {
-			bulk = append(bulk, i)
-		}
-	}
-	if len(bulk) > 0 && !in.AcknowledgeBulkTerms {
-		return RoutingConfig{}, api.Err(http.StatusConflict, "bulk_terms", say(ctx, "problem.bulkTerms", i18n.Args{"issue": bulk[0].Message})).WithMeta("issues", bulk)
+	knownCat := map[string]bool{}
+	for _, c := range cats {
+		knownCat[c.ID.String()] = true
 	}
 	p := api.PrincipalFrom(ctx)
 	var by *uuid.UUID
@@ -655,10 +767,76 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveI
 	now := s.now()
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if err := q.RoutingDeleteRules(ctx, ws.ID); err != nil {
+		if err := q.RoutingLock(ctx, ws.ID); err != nil {
+			return err
+		}
+		base, err := loadStored(ctx, q, ws.ID)
+		if err != nil {
+			return err
+		}
+		var stale []string
+		for _, st := range in.Streams {
+			if st.BaseVersion != "" && st.BaseVersion != base.versions[providers.Stream(st.Stream)] {
+				stale = append(stale, st.Stream)
+			}
+		}
+		if len(stale) > 0 {
+			return api.Err(http.StatusConflict, CodeRoutingChanged, say(ctx, "problem.changed", nil)).WithMeta("streams", stale)
+		}
+		set, err := toSet(ctx, in, base.set)
+		if err != nil {
 			return err
 		}
 		for _, r := range set.Rules {
+			if !saving[r.Stream] {
+				continue
+			}
+			for _, l := range r.Conditions.Lists {
+				if !known[l] {
+					return api.Invalid("body.streams", say(ctx, "problem.unknownList", nil))
+				}
+			}
+			for _, c := range r.Conditions.Categories {
+				if !knownCat[c] {
+					return api.Invalid("body.streams", say(ctx, "problem.unknownCategory", nil))
+				}
+			}
+		}
+		// Only the streams being saved can stop the save: a problem in a
+		// stream left as it is stays on screen as a warning of its own.
+		issues := []RoutingIssue{}
+		for _, i := range Validate(i18n.LangFrom(ctx), set, facts) {
+			if saving[providers.Stream(i.Stream)] {
+				issues = append(issues, i)
+			}
+		}
+		for _, i := range issues {
+			if i.Blocking {
+				return api.Err(http.StatusUnprocessableEntity, api.CodeValidation, i.Message).WithMeta("issues", issues)
+			}
+		}
+		bulk := []RoutingIssue{}
+		for _, i := range issues {
+			if i.Code == IssueBulkTerms {
+				bulk = append(bulk, i)
+			}
+		}
+		if len(bulk) > 0 && !in.AcknowledgeBulkTerms {
+			return api.Err(http.StatusConflict, "bulk_terms", say(ctx, "problem.bulkTerms", i18n.Args{"issue": bulk[0].Message})).WithMeta("issues", bulk)
+		}
+		names := make([]string, 0, len(saving))
+		for _, st := range Streams {
+			if saving[st] {
+				names = append(names, string(st))
+			}
+		}
+		if err := q.RoutingDeleteStreamRules(ctx, store.RoutingDeleteStreamRulesParams{WorkspaceID: ws.ID, Streams: names}); err != nil {
+			return err
+		}
+		for _, r := range set.Rules {
+			if !saving[r.Stream] {
+				continue
+			}
 			conds, _ := json.Marshal(r.Conditions)
 			splits, _ := json.Marshal(r.Splits)
 			if err := q.RoutingInsertRule(ctx, store.RoutingInsertRuleParams{
@@ -669,6 +847,9 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveI
 			}
 		}
 		for _, stream := range Streams {
+			if !saving[stream] {
+				continue
+			}
 			params := store.RoutingUpsertPolicyParams{WorkspaceID: ws.ID, Stream: string(stream), Failover: string(set.Policy(stream))}
 			if stream == providers.StreamBroadcast && len(bulk) > 0 {
 				params.BulkTermsAckAt, params.BulkTermsAckBy = &now, by
@@ -685,17 +866,65 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveI
 			}
 		}
 		wsID := ws.ID
-		meta := map[string]any{}
+		meta := map[string]any{"streams": names}
 		if len(bulk) > 0 {
 			meta["acknowledged_bulk_terms"] = bulk
 		}
+		prev := []RoutingStreamView{}
+		for _, v := range before.Streams {
+			if saving[providers.Stream(v.Stream)] {
+				prev = append(prev, v)
+			}
+		}
 		return s.Audit.LogWith(ctx, q, audit.Event{
 			WorkspaceID: &wsID, Action: "routing.update", TargetType: "routing", TargetID: ws.ID.String(), TargetName: ws.Name,
-			Before: before.Streams, After: in.Streams, Metadata: meta,
+			Before: prev, After: in.Streams, Metadata: meta,
 		})
 	})
 	if err != nil {
 		return RoutingConfig{}, err
 	}
 	return s.Get(ctx, ws)
+}
+
+// failoverVet checks the stream's failover target the way a failover
+// would (state.Vet): its fallback, or for a split the other provider.
+func (s *Service) failoverVet(ctx context.Context, ws *store.Workspace, stream providers.Stream, v RoutingStreamView, provs []RoutingProvider,
+	sender map[string]string) *RoutingTargetVet {
+	target := v.Fallback
+	if target == "" && stream == providers.StreamBroadcast && len(v.Splits) > 1 {
+		target = v.Splits[1].ProviderID
+	}
+	id, err := uuid.Parse(target)
+	if err != nil {
+		return nil
+	}
+	p, err := s.Q.ProvGet(ctx, store.ProvGetParams{WorkspaceID: ws.ID, ID: id})
+	if err != nil {
+		return nil
+	}
+	load := state.Load{Broadcast: stream == providers.StreamBroadcast, Sender: sender}
+	if s.WarmupToday != nil {
+		load.Warmup = s.WarmupToday(ctx, p.ID)
+	}
+	vet := state.Vet(p, load)
+	out := &RoutingTargetVet{ProviderID: p.ID.String(), Provider: p.Name, Checks: []RoutingVetCheck{}}
+	for _, c := range vet.Checks {
+		// Availability and bulk terms show only when they fail: the
+		// stream card says them elsewhere.
+		if (c.Key == state.VetAvailable || c.Key == state.VetBulkTerms) && c.Result == state.VetPass {
+			continue
+		}
+		rc := RoutingVetCheck{Key: c.Key, Result: c.Result, Left: c.Left}
+		if c.Key == state.VetQuota {
+			rc.Period = quotaPeriod(c.Detail)
+		}
+		out.Checks = append(out.Checks, rc)
+	}
+	for _, rp := range provs {
+		if rp.ID == out.ProviderID && rp.WarmingUp {
+			out.WarmupDay, out.WarmupDays = rp.WarmupDay, rp.WarmupDays
+		}
+	}
+	return out
 }

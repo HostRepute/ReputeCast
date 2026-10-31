@@ -88,6 +88,7 @@ type overview struct {
 	Providers []struct {
 		Name, Badge, Tone string
 		Bounce, Complaint rateView
+		NotJudged         string
 		Note              *struct{ Label, Value string }
 	}
 	Blocklists struct {
@@ -473,3 +474,51 @@ func TestBuiltinCheck(t *testing.T) {
 // delistingRequested is the blocklist incident's detail, whatever day the
 // demo's delisting request falls on.
 var delistingRequested = regexp.MustCompile(`Delisting requested \d{1,2} [A-Z][a-z]{2}, pending\.$`)
+
+// R1.L5c: the provider card judges ReputeCast's own 7-day rates by Send
+// Readiness's rule: below 500 messages, one bounce among three messages
+// shows as 33% without a tone or a bar, and the card says there isn't
+// enough mail yet. A provider with enough mail is judged as before.
+func TestProviderRatesNeedEnoughMail(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	exec := func(sql string, args ...any) {
+		t.Helper()
+		if _, err := env.App.Pool.Exec(ctx, sql, args...); err != nil {
+			t.Fatalf("%s: %v", sql, err)
+		}
+	}
+	postal := `(SELECT id FROM providers WHERE adapter = 'postal' AND workspace_id = (SELECT id FROM workspaces WHERE slug = 'acme-newsletter'))`
+	exec(`DELETE FROM provider_daily_stats WHERE provider_id = ` + postal + ` AND day >= current_date - 10`)
+	exec(`INSERT INTO provider_daily_stats (provider_id, day, sent, delivered, bounced) VALUES (` + postal + `, (now() AT TIME ZONE 'America/New_York')::date, 3, 2, 1)`)
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	var o overview
+	c.Do("GET", "/workspaces/acme-newsletter/deliverability", nil).MustStatus(t, 200).JSON(t, &o)
+	judged := 0
+	for _, p := range o.Providers {
+		if p.Name != "Postal (self-hosted)" {
+			if p.NotJudged == "" {
+				judged++
+			}
+			continue
+		}
+		if p.Bounce.Value == nil || *p.Bounce.Value != 33.33 || p.Bounce.Tone != "ok" || p.Bounce.Usage != 0 || p.Complaint.Tone != "ok" ||
+			p.NotJudged != "Not enough mail yet: 3 messages in the last 7 days, and rates are judged from 500." {
+			t.Fatalf("Postal with 3 messages: %+v", p)
+		}
+	}
+	if judged == 0 {
+		t.Fatal("providers with enough mail are judged as before")
+	}
+	vi := env.Client()
+	vi.SignInDemo("linh@acme.io")
+	vi.Header = http.Header{"Accept-Language": {"vi"}}
+	vi.Do("GET", "/workspaces/acme-newsletter/deliverability", nil).MustStatus(t, 200).JSON(t, &o)
+	for _, p := range o.Providers {
+		if strings.HasPrefix(p.Name, "Postal") && p.NotJudged != "Chưa đủ thư: 3 thư trong 7 ngày qua, tỷ lệ chỉ được đánh giá từ 500 thư." {
+			t.Errorf("in Vietnamese: %q", p.NotJudged)
+		}
+	}
+}

@@ -1,3 +1,4 @@
+import type { Catalog, MessageDescriptor } from '@/i18n'
 import { numberIn } from '@/features/senders/ProvidersSettingsPage'
 import type { Setup } from './api'
 import { viewStep } from './SetupWizard'
@@ -62,5 +63,27 @@ describe('sending defaults', () => {
     expect(numberIn('no limit')).toBe(0)
     expect(numberIn('')).toBe(0)
     expect(numberIn('soon')).toBeUndefined()
+  })
+})
+
+// X-1: connecting a provider and the sender settings say what the reader's
+// role can't do, or who can, in words (providers:manage never shows).
+const permissionKey = /\b[a-z]+:(?:view|edit|send|pause|approve|publish|content|create|import|export|delete|verify|manage|sql|share|hostrepute|invite|use|run|review|connect|transfer|usage|library)\b/
+const english = import.meta.glob<Record<string, Record<string, MessageDescriptor>>>(['./**/*messages.ts', '../senders/**/*messages.ts'], { eager: true })
+const vietnamese = import.meta.glob<Catalog>(['./**/*messages.vi.ts', '../senders/**/*messages.vi.ts'], { eager: true, import: 'default' })
+
+describe('connect and senders copy', () => {
+  it('names no permission key, in English or Vietnamese', () => {
+    const en = Object.values(english).flatMap((file) => Object.values(file).flatMap((group) => Object.values(group)))
+    const vi = Object.values(vietnamese).flatMap((catalog) => Object.entries(catalog))
+    expect(en.length).toBeGreaterThan(0)
+    expect(vi.length).toBeGreaterThan(0)
+    for (const d of en) {
+      expect(d.message, d.id).not.toMatch(permissionKey)
+      // Nor does a call site pass one in: no {perm}, {perms} or {permission}
+      // to fill, but for Cloudflare's own permission name in the token hint.
+      if (d.id !== 'connect.domain.tokenHint') expect(d.message, d.id).not.toMatch(/\{perm(?:s|ission)?\}/)
+    }
+    for (const [id, text] of vi) expect(text, id).not.toMatch(permissionKey)
   })
 })

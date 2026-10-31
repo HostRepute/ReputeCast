@@ -22,12 +22,16 @@ var (
 	mInterrupted = msgs.M("problem.interrupted")
 	mEmpty       = msgs.M("problem.empty")
 	mTooLarge    = msgs.M("problem.tooLarge")
-	mWebP        = msgs.M("problem.webp")
-	mSVG         = msgs.M("problem.svg")
-	mNotImage    = msgs.M("problem.notImage")
-	mDamaged     = msgs.M("problem.damaged")
-	mDimensions  = msgs.M("problem.dimensions")
-	mNotFound    = msgs.M("problem.notFound")
+	// An upload is compressed before it's stored, so it may be larger.
+	mUploadTooLarge = msgs.M("problem.uploadTooLarge")
+	mGIFTooLarge    = msgs.M("problem.gifTooLarge")
+	mStillTooLarge  = msgs.M("problem.stillTooLarge")
+	mWebP           = msgs.M("problem.webp")
+	mSVG            = msgs.M("problem.svg")
+	mNotImage       = msgs.M("problem.notImage")
+	mDamaged        = msgs.M("problem.damaged")
+	mDimensions     = msgs.M("problem.dimensions")
+	mNotFound       = msgs.M("problem.notFound")
 )
 
 // say writes a message in the request's language.

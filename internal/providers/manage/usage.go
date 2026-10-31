@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -23,8 +24,54 @@ type Usage struct {
 	// Bounce7d and Complaint7d are percentages over the last seven days
 	// (today included); nil when nothing was sent or delivered. When the
 	// provider reports its own rates (state.ReputationOf), those are used.
-	Bounce7d    *float64 `json:"bounce7d,omitempty"`
-	Complaint7d *float64 `json:"complaint7d,omitempty"`
+	// Complaint7d counts only mail delivered to mailbox providers that
+	// report complaints (review F-2); ComplaintReason says why it is nil.
+	Bounce7d        *float64 `json:"bounce7d,omitempty"`
+	Complaint7d     *float64 `json:"complaint7d,omitempty"`
+	ComplaintReason string   `json:"complaintReason,omitempty" enum:"no_data,not_reported"`
+	// Sent7d is the mail ReputeCast counted over the same seven days, and
+	// ProviderReported is true when the rates are the provider's own.
+	Sent7d           int64 `json:"sent7d"`
+	ProviderReported bool  `json:"providerReported,omitempty"`
+}
+
+// MinRateVolume is how many messages ReputeCast's own 7-day rates need
+// before they judge a provider (a warning, a block, a bar turning amber or
+// red): one bounce among three messages isn't a 33% bounce rate (SR-5,
+// R1.L5c). Rates a provider measures itself are judged as they come. The
+// guard pauses a send on a mailbox provider's rates after 500 messages too.
+const MinRateVolume = 500
+
+// TooFewToJudge reports whether the 7-day rates rest on too little mail to
+// judge the provider: ReputeCast counted them itself over fewer than
+// MinRateVolume messages. Send Readiness and Deliverability's provider card
+// both go by it.
+func TooFewToJudge(providerReported bool, sent int64) bool {
+	return !providerReported && sent > 0 && sent < MinRateVolume
+}
+
+// TooFewToJudge is TooFewToJudge for the usage's own rates.
+func (u Usage) TooFewToJudge() bool { return TooFewToJudge(u.ProviderReported, u.Sent7d) }
+
+// Why a complaint rate is empty (review F-3).
+const (
+	RateNoData      = "no_data"
+	RateNotReported = mailbox.NotReported
+)
+
+// ComplaintRate is a provider's complaint rate over days of totals, in
+// percent: complaints over the mail delivered to mailbox providers that
+// report complaints, on the days that counted it (review F-2). Without
+// such mail it is nil, with the reason.
+func ComplaintRate(t store.ProvDailyTotalsRow) (*float64, string) {
+	switch {
+	case t.DeliveredReporting > 0:
+		v := round2(float64(t.ComplainedReporting) / float64(t.DeliveredReporting) * 100)
+		return &v, ""
+	case t.DeliveredCounted > 0:
+		return nil, RateNotReported
+	}
+	return nil, RateNoData
 }
 
 // UsageOf returns the usage of each given provider of a workspace. Providers
@@ -59,18 +106,15 @@ func UsageOf(ctx context.Context, q *store.Queries, ws *store.Workspace, provs [
 	}
 	for _, p := range provs {
 		m, w := byMonth[p.ID], byWeek[p.ID]
-		u := Usage{MonthSent: m.Sent, MonthCost: round2(costToDate(p, m))}
+		u := Usage{MonthSent: m.Sent, MonthCost: round2(costToDate(p, m)), Sent7d: w.Sent}
 		if w.Sent > 0 {
 			v := round2(float64(w.Bounced) / float64(w.Sent) * 100)
 			u.Bounce7d = &v
 		}
-		if w.Delivered > 0 {
-			v := round2(float64(w.Complained) / float64(w.Delivered) * 100)
-			u.Complaint7d = &v
-		}
+		u.Complaint7d, u.ComplaintReason = ComplaintRate(w)
 		if r := state.ReputationOf(state.HealthOf(p), now); r != nil {
 			b, c := r.Bounce, r.Complaint
-			u.Bounce7d, u.Complaint7d = &b, &c
+			u.Bounce7d, u.Complaint7d, u.ComplaintReason, u.ProviderReported = &b, &c, "", true
 		}
 		out[p.ID] = u
 	}

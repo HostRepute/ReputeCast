@@ -136,10 +136,10 @@ export default translate(mf, {
   footnote:
     'Địa chỉ chỉ hiện với nhóm. Trang phần thưởng của {name} hiện từ Lượt giới thiệu 1 đến Lượt giới thiệu {count} kèm ngày, không bao giờ cho biết ai đã đăng ký.',
   footnoteNoAddresses:
-    'Địa chỉ chỉ hiện với thành viên có quyền subscribers:view. Trang phần thưởng của {name} hiện các lượt giới thiệu theo số thứ tự, không bao giờ cho biết ai đã đăng ký.',
+    'Địa chỉ chỉ hiện với thành viên có thể xem liên hệ. Trang phần thưởng của {name} hiện các lượt giới thiệu theo số thứ tự, không bao giờ cho biết ai đã đăng ký.',
   noReferrals: 'Chưa có lượt đăng ký nào qua liên kết này.',
-  readOnly: 'Để tạm dừng liên kết, gửi lại phần thưởng và sao chép liên kết nhận thưởng, bạn cần quyền <mono>grow:review</mono>. Hãy hỏi {helpers}.',
-  readOnlyNoHelpers: 'Để tạm dừng liên kết, gửi lại phần thưởng và sao chép liên kết nhận thưởng, bạn cần quyền <mono>grow:review</mono>.',
+  readOnly: 'Vai trò của bạn không thể tạm dừng liên kết, gửi lại phần thưởng hay sao chép liên kết nhận thưởng. Hãy hỏi {helpers}.',
+  readOnlyNoHelpers: 'Vai trò của bạn không thể tạm dừng liên kết, gửi lại phần thưởng hay sao chép liên kết nhận thưởng.',
   panelError: 'Không tải được người giới thiệu này',
   panelLoading: 'Đang tải người giới thiệu',
   // Pause dialog.

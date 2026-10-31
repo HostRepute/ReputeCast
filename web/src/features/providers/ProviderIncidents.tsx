@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useState, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
@@ -18,6 +18,7 @@ import { failoverText, Fact, sinceText, streamName, type ProviderCard, type Stre
 import { mi } from './incidents.messages'
 import { m } from './messages'
 import { mo } from './overview.messages'
+import { mr } from './routing.messages'
 
 type Outage = Schemas['ProvidersOverview']['outage'] & {}
 type OutageStream = Schemas['ProviderOutageStream']
@@ -119,6 +120,11 @@ export function OutageAlert({ outage }: { outage: Outage }) {
           <OutageColumn key={s.stream} s={s} outage={outage} last={i === columns.length - 1} />
         ))}
       </Grid>
+      {columns
+        .filter((s) => s.state === 'waiting' && s.campaign && !s.campaign.decision)
+        .map((s) => (
+          <HeldDecision key={s.stream} s={s} outage={outage} />
+        ))}
     </section>
   )
 }
@@ -196,9 +202,47 @@ function OutageColumn({ s, outage, last }: { s: OutageStream; outage: Outage; la
   )
 }
 
-/** A broadcast whose share on the down provider waits for a decision. */
+/** A broadcast whose share on the down provider waits for a decision: where it stands, or what was decided. */
 function HeldCampaign({ s, outage }: { s: OutageStream; outage: Outage }) {
   const t = useT()
+  const { slug } = useWorkspace()
+  const c = s.campaign!
+  if (c.decision) {
+    return (
+      <span className="text-[13px]">
+        {c.decision === 'wait'
+          ? t(mi.decidedWait, { name: c.name, provider: outage.short, minutes: s.switchBackMinutes })
+          : c.decision === 'move'
+            ? t(mi.decidedMove, { name: c.name })
+            : t(mi.decidedCancel, { name: c.name })}{' '}
+        <Link to="/w/$workspace/campaigns/$campaignId/live" params={{ workspace: slug, campaignId: c.id }}>
+          {t(mi.openLive)}
+        </Link>
+      </span>
+    )
+  }
+  const through = c.planned > 0 ? Math.round((c.sent / c.planned) * 100) : 0
+  const others = c.otherShares.map((o) => `${o.short} (${pct(o.percent, 0)})`)
+  const policy = s.policy === 'warm_only' ? t(mi.policyWarmOnly) : t(mi.policyPause)
+  return (
+    <>
+      <span className="text-[13px]">
+        {t(mi.heldLine, { name: c.name, through: pct(through, 0), provider: outage.short, sent: count(c.sent), held: count(c.held) })}
+        {others.length ? ` ${t(mi.othersKeep, { count: others.length, others: andList(others) })}` : ''} {policy}
+      </span>
+      <span className="k">{t(mi.chooseBelow)}</span>
+    </>
+  )
+}
+
+/**
+ * What happens to a held share (ProvidersOutage): wait for the provider, or
+ * move to a target whose checks (review GS-5, PR-7: state.Vet) are listed
+ * under its button, or cancel. A target that failed a check can't be chosen.
+ */
+function HeldDecision({ s, outage }: { s: OutageStream; outage: Outage }) {
+  const t = useT()
+  const id = useId()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const refresh = useRefreshProviders()
@@ -227,45 +271,33 @@ function HeldCampaign({ s, outage }: { s: OutageStream; outage: Outage }) {
     },
     onError: (e) => toast({ kind: 'error', title: t(mi.decisionFailed), detail: errorMessage(e) }),
   })
-  const through = c.planned > 0 ? Math.round((c.sent / c.planned) * 100) : 0
-  const others = c.otherShares.map((o) => `${o.short} (${pct(o.percent, 0)})`)
-  const policy = s.policy === 'warm_only' ? t(mi.policyWarmOnly) : t(mi.policyPause)
   const run = (action: 'wait' | 'move' | 'cancel', target?: string) =>
     decide.mutate({ params: { path: { workspace: slug, providerId: outage.providerId, campaignId: c.id } }, body: { action, targetProviderId: target } })
-  if (c.decision) {
-    return (
-      <span className="text-[13px]">
-        {c.decision === 'wait'
-          ? t(mi.decidedWait, { name: c.name, provider: outage.short, minutes: s.switchBackMinutes })
-          : c.decision === 'move'
-            ? t(mi.decidedMove, { name: c.name })
-            : t(mi.decidedCancel, { name: c.name })}{' '}
-        <Link to="/w/$workspace/campaigns/$campaignId/live" params={{ workspace: slug, campaignId: c.id }}>
-          {t(mi.openLive)}
-        </Link>
-      </span>
-    )
-  }
+  // Waiting is the recommendation unless a target passed every check.
+  const moveRecommended = s.alternatives.some((a) => a.recommended)
   const target = confirm?.target?.short ?? ''
   return (
-    <>
-      <span className="text-[13px]">
-        {t(mi.heldLine, { name: c.name, through: pct(through, 0), provider: outage.short, sent: count(c.sent), held: count(c.held) })}
-        {others.length ? ` ${t(mi.othersKeep, { count: others.length, others: andList(others) })}` : ''} {policy}
-      </span>
-      <div className="pv-decide mt-1 flex flex-wrap gap-2">
-        <Button size="sm" variant="primary" disabledReason={sendReason} loading={decide.isPending && decide.variables?.body.action === 'wait'} onClick={() => run('wait')}>
-          {t(mi.waitAutoResume, { provider: outage.short })}
-        </Button>
-        {s.alternatives.map((a) => (
-          <Button key={a.providerId} size="sm" disabledReason={sendReason} onClick={() => setConfirm({ action: 'move', target: a })}>
-            {a.exceedsCap ? t(mi.moveToOverCap, { provider: a.short }) : a.warmingUp ? t(mi.moveToWarming, { provider: a.short }) : t(mi.moveTo, { provider: a.short })}
-          </Button>
-        ))}
-        <Button size="sm" variant="danger" disabledReason={pauseReason} onClick={() => setConfirm({ action: 'cancel' })}>
-          {t(mi.cancelSend)}
-        </Button>
+    <div className="flex flex-col gap-3 rounded-b-[10px] border-t border-line-2 bg-warn-tint px-[22px] pt-4 pb-[18px]">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1.5">
+        <h2 className="h2" id={id}>
+          {t(mi.heldTitle, { count: c.held, stream: s.stream })}
+        </h2>
+        <span className="k">{t(mi.checksFirst)}</span>
       </div>
+      <div className="pv-dec pv-decide" role="group" aria-labelledby={id}>
+        <div className="pv-dopt">
+          <Button size="sm" variant="primary" disabledReason={sendReason} loading={decide.isPending && decide.variables?.body.action === 'wait'} onClick={() => run('wait')}>
+            {t(mi.waitAutoResume, { provider: outage.short })}
+          </Button>
+          <span className="k">{t(mi.waitNote, { recommended: moveRecommended ? 'no' : 'yes', minutes: s.switchBackMinutes, provider: outage.short })}</span>
+        </div>
+        {s.alternatives.map((a) => (
+          <MoveOption key={a.providerId} a={a} reason={sendReason} onMove={() => setConfirm({ action: 'move', target: a })} />
+        ))}
+      </div>
+      <Button size="sm" variant="danger" className="self-start" disabledReason={pauseReason} onClick={() => setConfirm({ action: 'cancel' })}>
+        {t(mi.cancelSend)}
+      </Button>
       <Dialog
         open={confirm?.action === 'move'}
         onOpenChange={(o) => !o && setConfirm(null)}
@@ -299,8 +331,69 @@ function HeldCampaign({ s, outage }: { s: OutageStream; outage: Outage }) {
           </>
         }
       />
-    </>
+    </div>
   )
+}
+
+/** One target to move the held share to, with what ReputeCast checked about it. */
+function MoveOption({ a, reason, onMove }: { a: Schemas['ProviderFailoverAlternative']; reason?: string; onMove: () => void }) {
+  const t = useT()
+  const id = useId()
+  return (
+    <div className="pv-dopt">
+      <Button size="sm" aria-describedby={id} disabledReason={reason ?? (a.allowed ? undefined : t(mi.moveRefused, { provider: a.short }))} onClick={onMove}>
+        {a.exceedsCap ? t(mi.moveToOverCap, { provider: a.short }) : t(mi.moveTo, { provider: a.short })}
+      </Button>
+      {a.recommended ? <span className="k">{t(mi.moveRecommended)}</span> : null}
+      <ul className="pv-chk col" id={id} aria-label={t(mi.checksOn, { provider: a.short })}>
+        {shownChecks(a.checks).map((c) => (
+          <li key={c.key} className={vetMark[c.result as VetResult] ?? 'u'}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              {c.result === 'pass' ? <path d="m3.5 8.5 3 3 6-7" /> : c.result === 'fail' ? <path d="m4.5 4.5 7 7M11.5 4.5l-7 7" /> : <path d="M4 8h8" />}
+            </svg>
+            {vetLine(c)}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/**
+ * As the board lists a target: its domain, quota and warm-up always, then
+ * any other check that didn't pass (available, bulk terms, sandbox).
+ */
+const vetOrder = ['domain', 'quota', 'warm', 'bulk_terms', 'available', 'sandbox']
+function shownChecks(checks: Schemas['VetCheck'][]) {
+  return checks.filter((c) => vetOrder.indexOf(c.key) < 3 || c.result !== 'pass').sort((a, b) => vetOrder.indexOf(a.key) - vetOrder.indexOf(b.key))
+}
+
+type VetResult = 'pass' | 'warn' | 'fail' | 'unknown'
+const vetMark: Record<VetResult, string> = { pass: 'y', warn: 'w', fail: 'x', unknown: 'u' }
+
+/**
+ * A check's line: the server's sentence when the check didn't pass (in the
+ * reader's language, with its numbers), else the short phrase the routing
+ * screen uses for the same check.
+ */
+function vetLine(c: Schemas['VetCheck']): string {
+  if (c.text) return c.text
+  const result = 'pass'
+  switch (c.key) {
+    case 'domain':
+      return tt(mr.checkDomain, { result })
+    case 'quota':
+      return tt(mr.checkQuota, { result, shape: c.left !== undefined ? 'left' : 'none', left: count(c.left ?? 0), period: 'none' })
+    case 'warm':
+      return tt(mr.checkWarm, { result, hasDay: 'no', day: 0, days: 0 })
+    case 'sandbox':
+      return tt(mr.checkSandbox, { result })
+    case 'available':
+      return tt(mr.checkAvailable, { result })
+    case 'bulk_terms':
+      return tt(mr.checkBulk, { result })
+  }
+  return c.key
 }
 
 const severityTone: Record<Schemas['ProviderIncidentEntry']['severity'], Tone> = { info: 'neutral', ok: 'ok', warn: 'warn', bad: 'bad' }
@@ -339,11 +432,15 @@ export function SilentAlert({ silent }: { silent: Silent }) {
   const reason = usePermissionReason('providers:manage')
   const path = { workspace: slug, providerId: silent.providerId }
   const test = $api.useMutation('post', '/api/v1/workspaces/{workspace}/providers/{providerId}/webhook/test', {
+    // PR-9: the provider was asked for a test event; it proves the endpoint
+    // reachable by arriving, so the toast says it was asked, not received.
     onSuccess: (r) =>
       toast({
-        kind: r.endpointOk ? 'success' : 'error',
-        title: r.endpointOk ? t(mi.testReceived) : t(mi.testFailed),
-        detail: r.providerTest ? (r.providerTestDetail ?? r.endpointDetail) : r.endpointDetail,
+        kind: r.providerTest ? 'success' : 'error',
+        title: r.providerTest ? t(mi.testRequested) : t(mi.testFailed),
+        detail: [r.providerTest ? t(mi.testRequestedDetail, { provider: silent.short }) : r.providerTestDetail, r.endpointOk ? '' : r.endpointDetail]
+          .filter(Boolean)
+          .join(' '),
       }),
     onError: (e) => toast({ kind: 'error', title: t(mi.testFailed), detail: errorMessage(e) }),
   })
@@ -359,6 +456,7 @@ export function SilentAlert({ silent }: { silent: Silent }) {
     onError: (e) => toast({ kind: 'error', title: t(mi.backfillFailed), detail: errorMessage(e) }),
   })
   const [manual, setManual] = useState(false)
+  const noteId = useId()
   const now = useNow()
   const minutes = (now.getTime() - new Date(silent.since).getTime()) / 60000
   const hours = Math.floor(minutes / 60)
@@ -387,23 +485,37 @@ export function SilentAlert({ silent }: { silent: Silent }) {
           <span className="text-[20px] font-bold tracking-[-0.01em] text-[#78350F]">
             {hours >= 1 ? t(mi.silentForHours, { provider: silent.short, hours }) : t(mi.silentFor, { provider: silent.short, duration: duration(minutes) })}
           </span>
-          <span className="text-[#78350F]">
-            {t(mi.silentBody, { time: clock(silent.since), provider: silent.short, count: count(silent.accepted), held: silent.broadcastShareHeld ? 'yes' : 'no' })}
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-2.5">
-          {silent.canSendTest ? (
-            <Button disabledReason={reason} loading={test.isPending} onClick={() => test.mutate({ params: { path } })}>
-              {t(mi.sendTestEvent)}
-            </Button>
+          {silent.overdue > 0 ? (
+            <span className="flex flex-wrap items-center gap-2 text-[#78350F]">
+              <Badge tone="warn" dot>
+                {t(mi.eventsOverdue)}
+              </Badge>
+              <span className="font-semibold">{t(mi.overdueLine, { count: silent.overdue, hours: Math.max(hours, 6) })}</span>
+            </span>
           ) : null}
-          <Button disabledReason={reason} loading={register.isPending} onClick={() => (silent.canRegister ? register.mutate({ params: { path } }) : setManual(true))}>
-            {t(mi.reregister)}
-          </Button>
-          {silent.canBackfill ? (
-            <Button variant="primary" disabledReason={reason} loading={backfill.isPending} onClick={() => backfill.mutate({ params: { path } })}>
-              {t(mi.backfillFrom, { provider: silent.short })}
+          <span className="text-[#78350F]">{t(mi.silentBody, { time: clock(silent.since), provider: silent.short, count: count(silent.accepted) })}</span>
+          {silent.broadcastShareHeld ? <span className="font-semibold text-[#78350F]">{t(mi.silentNoFailover, { provider: silent.short })}</span> : null}
+        </div>
+        <div className="flex max-w-[360px] flex-col items-end gap-1.5 max-md:max-w-none max-md:items-start">
+          <div className="flex flex-wrap justify-end gap-2.5 max-md:justify-start">
+            {silent.canSendTest ? (
+              <Button disabledReason={reason} loading={test.isPending} onClick={() => test.mutate({ params: { path } })}>
+                {t(mi.sendTestEvent)}
+              </Button>
+            ) : null}
+            <Button disabledReason={reason} loading={register.isPending} onClick={() => (silent.canRegister ? register.mutate({ params: { path } }) : setManual(true))}>
+              {t(mi.reregister)}
             </Button>
+            {silent.canBackfill ? (
+              <Button variant="primary" aria-describedby={noteId} disabledReason={reason} loading={backfill.isPending} onClick={() => backfill.mutate({ params: { path } })}>
+                {t(mi.checkNow)}
+              </Button>
+            ) : null}
+          </div>
+          {silent.canBackfill ? (
+            <span className="k text-right max-md:text-left" id={noteId}>
+              {t(mi.checkNowNote, { count: silent.overdue, provider: silent.short })}
+            </span>
           ) : null}
         </div>
       </div>
@@ -433,6 +545,12 @@ export function SilentAlert({ silent }: { silent: Silent }) {
           <ImpactRow k={t(mi.impactUnknown)}>
             <span className="n">{count(silent.accepted)}</span>
           </ImpactRow>
+          <ImpactRow k={t(mi.impactOverdue)} sub>
+            <span className="n">{count(silent.overdue)}</span>
+          </ImpactRow>
+          <ImpactRow k={t(mi.impactInGrace)} sub>
+            <span className="n">{count(silent.inGrace)}</span>
+          </ImpactRow>
           <ImpactRow k={t(mi.impactCampaigns)}>
             <span className="n">
               {silent.campaigns.length}
@@ -452,9 +570,9 @@ export function SilentAlert({ silent }: { silent: Silent }) {
   )
 }
 
-function ImpactRow({ k, children }: { k: string; children: ReactNode }) {
+function ImpactRow({ k, children, sub }: { k: string; children: ReactNode; sub?: boolean }) {
   return (
-    <div className="flex justify-between gap-3 text-[13px] max-md:flex-wrap">
+    <div className={cn('flex justify-between gap-3 text-[13px] max-md:flex-wrap', sub && 'pl-3.5 text-ink-2')}>
       <span>{k}</span>
       {children}
     </div>
@@ -585,7 +703,7 @@ export function AuthBanner({ af, onUpdate }: { af: AuthFailure; onUpdate: () => 
   const words = credentialWords(af.down.credentialLabel)
   const failing = af.streams.filter((s) => s.role !== 'fallback' && s.state === 'failover_active')
   const clauses = failing.map((s, i) => {
-    const values = { stream: streamName[s.stream as Stream], mail: t(mi.streamMail, { stream: s.stream }), fallback: s.fallback ?? '' }
+    const values = { first: i === 0 ? 'yes' : 'no', stream: streamName[s.stream as Stream], mail: t(mi.streamMail, { stream: s.stream }), fallback: s.fallback ?? '' }
     return i === failing.length - 1 ? t(mi.authFailingOverRerouted, { ...values, count: count(af.rerouted) }) : t(mi.authFailingOver, values)
   })
   return (

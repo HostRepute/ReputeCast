@@ -27,7 +27,7 @@
   "problem.fieldBuiltin": { "message": "{key} is a built-in field.", "note": "key: a field's key, like email" },
   "problem.fieldMoney": "Only number fields can show as money.",
   "problem.fieldExists": { "message": "A field with the key {key} already exists.", "note": "key: a custom field's key, like plan" },
-  "problem.paidNeedsEarn": { "message": "Filtering by paid status needs earn:view.", "note": "earn:view is a permission key, never translated" },
+  "problem.paidNeedsEarn": "Your role can't see paid members, so it can't filter by paid status.",
   "problem.pickPaid": "Pick a paid status.",
   "problem.policyActive": { "message": "Active needs at least 1 day.", "note": "Active, At risk, Cooling and Sunset are the engagement tiers" },
   "problem.policyAtRisk": { "message": "At risk must start after {days} days so Cooling has room.", "note": "days: a number of days" },

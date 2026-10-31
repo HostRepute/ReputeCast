@@ -23,6 +23,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/paidaccess"
+	"github.com/hostrepute/reputecast/internal/retryaudience"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/templates"
 )
@@ -65,6 +66,13 @@ type dbAudience struct {
 	ExcludeTiers    []string `json:"exclude_tiers,omitempty"`
 	Paid            string   `json:"paid,omitempty"`
 	PaidTier        string   `json:"paid_tier,omitempty"`
+	// IncludeSunset and IncludeUnengaged are set on Review & send (the
+	// sunset policy's override, "Include them"); a save keeps them.
+	IncludeSunset    bool  `json:"include_sunset,omitempty"`
+	IncludeUnengaged *bool `json:"include_unengaged,omitempty"`
+	// RetryOf makes the campaign a retry of an issue (retry.go): a save
+	// keeps it, so the retry still goes only to the blocked addresses.
+	RetryOf string `json:"retry_of,omitempty"`
 }
 
 func audienceFromDB(raw json.RawMessage) ComposerAudience {
@@ -115,6 +123,13 @@ type ComposerABTest struct {
 	// BestTime sends each recipient at their usual open time (send-time tests).
 	BestTime bool   `json:"bestTime,omitempty"`
 	Winner   string `json:"winner,omitempty"`
+	// The decision rule (review AN-1): a variant wins only when every
+	// variant reached MinSample recipients (500 when unset) and its lead is
+	// significant at Confidence (0.95 when unset); otherwise the rest get
+	// NoWinner: "default", the first variant (A).
+	MinSample  int     `json:"minSample,omitempty" minimum:"0" maximum:"1000000" doc:"Recipients each variant needs before a winner can be picked (default 500)"`
+	Confidence float64 `json:"confidence,omitempty" minimum:"0" maximum:"0.999" doc:"How sure the test must be (default 0.95)"`
+	NoWinner   string  `json:"noWinner,omitempty" enum:"default" doc:"What the rest get without a clear winner: default, the first variant"`
 }
 
 // dbABTest is the stored shape of campaigns.ab_test.
@@ -126,6 +141,9 @@ type dbABTest struct {
 	DurationHours int             `json:"duration_hours"`
 	BestTime      bool            `json:"best_time,omitempty"`
 	Winner        string          `json:"winner,omitempty"`
+	MinSample     int             `json:"min_sample,omitempty"`
+	Confidence    float64         `json:"confidence,omitempty"`
+	NoWinner      string          `json:"no_winner,omitempty"`
 	Extra         json.RawMessage `json:"-"`
 }
 
@@ -146,7 +164,8 @@ func abFromDB(raw json.RawMessage) *ComposerABTest {
 	if json.Unmarshal(raw, &d) != nil || d.Kind == "" {
 		return nil
 	}
-	out := &ComposerABTest{Kind: d.Kind, TestPercent: d.TestPercent, Metric: d.Metric, DurationHours: d.DurationHours, BestTime: d.BestTime, Winner: d.Winner, Variants: []ComposerABVariant{}}
+	out := &ComposerABTest{Kind: d.Kind, TestPercent: d.TestPercent, Metric: d.Metric, DurationHours: d.DurationHours, BestTime: d.BestTime, Winner: d.Winner,
+		MinSample: d.MinSample, Confidence: d.Confidence, NoWinner: d.NoWinner, Variants: []ComposerABVariant{}}
 	if out.Metric == "" {
 		out.Metric = "human_opens"
 	}
@@ -160,7 +179,8 @@ func (t *ComposerABTest) toDB() json.RawMessage {
 	if t == nil {
 		return nil
 	}
-	d := dbABTest{Kind: t.Kind, TestPercent: t.TestPercent, Metric: t.Metric, DurationHours: t.DurationHours, BestTime: t.BestTime, Winner: t.Winner}
+	d := dbABTest{Kind: t.Kind, TestPercent: t.TestPercent, Metric: t.Metric, DurationHours: t.DurationHours, BestTime: t.BestTime, Winner: t.Winner,
+		MinSample: t.MinSample, Confidence: t.Confidence, NoWinner: t.NoWinner}
 	for _, v := range t.Variants {
 		d.Variants = append(d.Variants, dbABVariant(v))
 	}
@@ -248,6 +268,9 @@ type ComposerCampaign struct {
 	// composer opens in digest mode (internal/digests).
 	DigestID   string `json:"digestId,omitempty"`
 	DigestRole string `json:"digestRole,omitempty" enum:"template,next,issue,"`
+	// Approval is the campaign's pending or approved request: editing
+	// cancels it, so the composer asks first.
+	Approval *ComposerApproval `json:"approval,omitempty"`
 }
 
 var editableStatuses = map[string]bool{"draft": true, "approval": true, "approved": true, "scheduled": true}
@@ -300,6 +323,9 @@ func (s *Service) DetailIn(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		d.Readiness = &ReadinessSummary{Verdict: run.Verdict, Issues: run.Issues}
 	}
 	d.Access = s.access(ctx, ws, p, r.Status, r.StartedAt)
+	if d.Approval, err = s.openApproval(ctx, s.Q, id); err != nil {
+		return ComposerCampaign{}, err
+	}
 	if src := s.sourceLanguage(ctx, ws, id); src != "" {
 		d.SourceLanguage, d.Language = src, src
 		if lang != "" && lang != src {
@@ -426,18 +452,8 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	var ab json.RawMessage
 	var audience json.RawMessage = []byte(`{}`)
 	var count *int64
-	var sender *uuid.UUID
+	sender := s.defaultSender(ctx, ws)
 	source := "create"
-	if def, err := s.Q.ComposerDefaultSender(ctx, ws.ID); err == nil && def.SenderID != "" {
-		if u, err := uuid.Parse(def.SenderID); err == nil {
-			sender = &u
-		}
-	}
-	if sender == nil {
-		if senders, err := s.Q.ListComposerSenders(ctx, ws.ID); err == nil && len(senders) > 0 {
-			sender = &senders[0].ID
-		}
-	}
 	switch {
 	case in.TemplateID != "":
 		if s.Templates == nil {
@@ -467,7 +483,11 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			abt.Winner = ""
 			ab = abt.toDB()
 		}
-		audience, count = c.Audience, c.AudienceCount
+		// A copy of a retry is a campaign of its own, to the whole audience.
+		audience, count = retryaudience.Without(c.Audience), c.AudienceCount
+		if _, retry := retryaudience.Of(c.Audience); retry {
+			count = nil
+		}
 		// A scoped member's copy keeps the audience only if they could pick it.
 		if len(p.Scope.Lists) > 0 && s.checkAudience(ctx, s.Q, ws, p, audienceFromDB(c.Audience)) != nil {
 			audience, count = []byte(`{}`), nil
@@ -481,38 +501,92 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		label = mVersionCopiedFrom.Text(i18n.Default, i18n.Args{"name": c.Name})
 		source = "duplicate"
 	}
-	if src != "" && html == "" {
-		html = mjml.Compile(src).HTML
+	if src != "" {
+		// A template's or another campaign's HTML is stored only when it shows
+		// and does what its MJML says (CO-3).
+		checked, _, errs := mjml.Checked(src, html)
+		if errs != nil {
+			checked = ""
+		}
+		html = checked
 	}
 	html = accessibility.FinalizeStored(ctx, s.Q, ws.ID, accessibility.OwnerCampaign, uuid.Nil, 0, html)
-	id := uuid.Must(uuid.NewV7())
-	now := s.now()
-	actor := p.UserID
-	var autosaved *time.Time
-	if src != "" {
-		autosaved = &now
-	}
-	plain := contentcheck.PlainText(html)
-	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		if err := q.InsertComposerCampaign(ctx, store.InsertComposerCampaignParams{
-			ID: id, WorkspaceID: ws.ID, Name: name, Subject: subject, Preheader: preheader, SenderID: sender, Audience: audience, AudienceCount: count,
-			Mjml: src, Html: html, PlainText: plain, AbTest: ab, ContentHash: ContentHash(subject, preheader, src, html, ab),
-			CreatedBy: &actor, Now: now, AutosavedAt: autosaved,
-		}); err != nil {
-			return err
-		}
-		if err := q.InsertComposerVersion(ctx, store.InsertComposerVersionParams{CampaignID: id, Version: 1, Subject: subject, Preheader: preheader, Mjml: src, Html: html,
-			PlainText: plain, AbTest: ab, SavedBy: &actor, SavedAt: now, Label: label, Source: source, SizeBytes: int32(len(html))}); err != nil {
-			return err
-		}
-		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.create", TargetType: "campaign", TargetID: id.String(), TargetName: name,
+	id, err := s.insertDraft(ctx, ws, p, draftRow{name: name, subject: subject, preheader: preheader, mjml: src, html: html, label: label, source: source,
+		ab: ab, audience: audience, count: count, sender: sender},
+		&audit.Event{WorkspaceID: &ws.ID, Action: "campaign.create", TargetType: "campaign", TargetName: name,
 			After: map[string]any{"name": name, "templateId": in.TemplateID, "fromCampaignId": in.FromCampaignID}})
-	})
 	if err != nil {
 		return ComposerCampaign{}, err
 	}
 	return s.Detail(ctx, ws, p, id)
+}
+
+// defaultSender is the sender a new draft starts with: the workspace's
+// default, or its first sender.
+func (s *Service) defaultSender(ctx context.Context, ws *store.Workspace) *uuid.UUID {
+	if def, err := s.Q.ComposerDefaultSender(ctx, ws.ID); err == nil && def.SenderID != "" {
+		if u, err := uuid.Parse(def.SenderID); err == nil {
+			return &u
+		}
+	}
+	if senders, err := s.Q.ListComposerSenders(ctx, ws.ID); err == nil && len(senders) > 0 {
+		return &senders[0].ID
+	}
+	return nil
+}
+
+// draftRow is a new draft as it's first stored: its content, audience and
+// sender, and its first version's label and source.
+type draftRow struct {
+	name, subject, preheader, mjml, html, label, source string
+	ab, audience                                        json.RawMessage
+	count                                               *int64
+	sender                                              *uuid.UUID
+}
+
+// insertDraft stores a new draft and its first version. event, when set, is
+// the creation's audit entry (its target is filled in); without it the
+// caller writes one.
+func (s *Service) insertDraft(ctx context.Context, ws *store.Workspace, p *authz.Principal, d draftRow, event *audit.Event) (uuid.UUID, error) {
+	id := uuid.Must(uuid.NewV7())
+	now := s.now()
+	actor := userRef(p)
+	var autosaved *time.Time
+	if d.mjml != "" {
+		autosaved = &now
+	}
+	plain := contentcheck.PlainText(d.html)
+	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if err := q.InsertComposerCampaign(ctx, store.InsertComposerCampaignParams{
+			ID: id, WorkspaceID: ws.ID, Name: d.name, Subject: d.subject, Preheader: d.preheader, SenderID: d.sender, Audience: d.audience, AudienceCount: d.count,
+			Mjml: d.mjml, Html: d.html, PlainText: plain, AbTest: d.ab, ContentHash: ContentHash(d.subject, d.preheader, d.mjml, d.html, d.ab),
+			CreatedBy: actor, Now: now, AutosavedAt: autosaved,
+		}); err != nil {
+			return err
+		}
+		if err := q.InsertComposerVersion(ctx, store.InsertComposerVersionParams{CampaignID: id, Version: 1, Subject: d.subject, Preheader: d.preheader, Mjml: d.mjml, Html: d.html,
+			PlainText: plain, AbTest: d.ab, SavedBy: actor, SavedAt: now, Label: d.label, Source: d.source, SizeBytes: int32(len(d.html))}); err != nil {
+			return err
+		}
+		if event == nil {
+			return nil
+		}
+		e := *event
+		e.TargetID = id.String()
+		return s.Audit.LogWith(ctx, q, e)
+	})
+	return id, err
+}
+
+// userRef is the person behind an action, for the columns that name one
+// (nil for a key nobody created any more).
+func userRef(p *authz.Principal) *uuid.UUID {
+	if p == nil || p.UserID == uuid.Nil {
+		return nil
+	}
+	id := p.UserID
+	return &id
 }
 
 // ComposerUpdateCampaign changes what isn't versioned content: name, sender,
@@ -642,13 +716,13 @@ func normalizeAudience(a ComposerAudience) ComposerAudience {
 // member only targets lists in their scope.
 func (s *Service) checkAudience(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, a ComposerAudience) error {
 	l := i18n.LangFrom(ctx)
-	lists, err := q.ComposerAudienceLists(ctx, ws.ID)
+	lists, err := q.ComposerListIDs(ctx, ws.ID)
 	if err != nil {
 		return err
 	}
 	known := map[string]bool{}
-	for _, l := range lists {
-		known[l.ID.String()] = true
+	for _, id := range lists {
+		known[id.String()] = true
 	}
 	for _, id := range append(append([]string{}, a.Lists...), a.ExcludeLists...) {
 		if !known[id] {

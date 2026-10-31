@@ -153,12 +153,6 @@ WHERE ai.workspace_id = @workspace_id AND ai.list_id = ANY (@lists::uuid[]) AND 
 ORDER BY coalesce(c.started_at, c.completed_at, c.created_at) DESC
 LIMIT 1;
 
--- name: PublicBumpUnsubscribed :exec
-INSERT INTO campaign_counters (campaign_id, provider_id, mailbox_provider, variant, unsubscribed)
-VALUES (@campaign_id, @provider_id, @mailbox_provider, @variant, 1)
-ON CONFLICT (campaign_id, provider_id, mailbox_provider, variant) DO UPDATE
-SET unsubscribed = campaign_counters.unsubscribed + 1;
-
 -- name: PublicInsertUnsubscribeEvent :exec
 INSERT INTO delivery_events (id, workspace_id, message_id, campaign_id, contact_id, provider_id, type, occurred_at, received_at,
                              mailbox_provider, original_type, user_agent, ip, recipient, source)

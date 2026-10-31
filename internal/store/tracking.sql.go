@@ -70,82 +70,6 @@ func (q *Queries) TrackingBumpAutomationLink(ctx context.Context, arg TrackingBu
 	return err
 }
 
-const trackingBumpCounters = `-- name: TrackingBumpCounters :exec
-INSERT INTO campaign_counters (campaign_id, provider_id, mailbox_provider, variant, opened_human, opened_machine, clicked)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-ON CONFLICT (campaign_id, provider_id, mailbox_provider, variant) DO UPDATE
-SET opened_human = campaign_counters.opened_human + EXCLUDED.opened_human,
-    opened_machine = campaign_counters.opened_machine + EXCLUDED.opened_machine,
-    clicked = campaign_counters.clicked + EXCLUDED.clicked
-`
-
-type TrackingBumpCountersParams struct {
-	CampaignID      uuid.UUID `json:"campaignId"`
-	ProviderID      uuid.UUID `json:"providerId"`
-	MailboxProvider string    `json:"mailboxProvider"`
-	Variant         string    `json:"variant"`
-	OpenedHuman     int64     `json:"openedHuman"`
-	OpenedMachine   int64     `json:"openedMachine"`
-	Clicked         int64     `json:"clicked"`
-}
-
-func (q *Queries) TrackingBumpCounters(ctx context.Context, arg TrackingBumpCountersParams) error {
-	_, err := q.db.Exec(ctx, trackingBumpCounters,
-		arg.CampaignID,
-		arg.ProviderID,
-		arg.MailboxProvider,
-		arg.Variant,
-		arg.OpenedHuman,
-		arg.OpenedMachine,
-		arg.Clicked,
-	)
-	return err
-}
-
-const trackingBumpHourly = `-- name: TrackingBumpHourly :exec
-INSERT INTO campaign_hourly (campaign_id, hour, opened_human, opened_machine, clicked)
-VALUES ($1, $2, $3, $4, $5)
-ON CONFLICT (campaign_id, hour) DO UPDATE
-SET opened_human = campaign_hourly.opened_human + EXCLUDED.opened_human,
-    opened_machine = campaign_hourly.opened_machine + EXCLUDED.opened_machine,
-    clicked = campaign_hourly.clicked + EXCLUDED.clicked
-`
-
-type TrackingBumpHourlyParams struct {
-	CampaignID    uuid.UUID `json:"campaignId"`
-	Hour          int32     `json:"hour"`
-	OpenedHuman   int64     `json:"openedHuman"`
-	OpenedMachine int64     `json:"openedMachine"`
-	Clicked       int64     `json:"clicked"`
-}
-
-func (q *Queries) TrackingBumpHourly(ctx context.Context, arg TrackingBumpHourlyParams) error {
-	_, err := q.db.Exec(ctx, trackingBumpHourly,
-		arg.CampaignID,
-		arg.Hour,
-		arg.OpenedHuman,
-		arg.OpenedMachine,
-		arg.Clicked,
-	)
-	return err
-}
-
-const trackingBumpLink = `-- name: TrackingBumpLink :exec
-UPDATE campaign_links SET clicks = clicks + 1, unique_clicks = unique_clicks + $1
-WHERE campaign_id = $2 AND position = $3
-`
-
-type TrackingBumpLinkParams struct {
-	UniqueClicks int64     `json:"uniqueClicks"`
-	CampaignID   uuid.UUID `json:"campaignId"`
-	Position     int32     `json:"position"`
-}
-
-func (q *Queries) TrackingBumpLink(ctx context.Context, arg TrackingBumpLinkParams) error {
-	_, err := q.db.Exec(ctx, trackingBumpLink, arg.UniqueClicks, arg.CampaignID, arg.Position)
-	return err
-}
-
 const trackingCampaignLinks = `-- name: TrackingCampaignLinks :many
 SELECT position, url FROM campaign_links WHERE campaign_id = $1 ORDER BY position
 `
@@ -175,6 +99,35 @@ func (q *Queries) TrackingCampaignLinks(ctx context.Context, campaignID uuid.UUI
 	return items, nil
 }
 
+const trackingClassifyEvent = `-- name: TrackingClassifyEvent :exec
+UPDATE delivery_events
+SET class = $1, machine = $2, diagnostic = $3, link = $4, ip = $5
+WHERE id = $6
+`
+
+type TrackingClassifyEventParams struct {
+	Class      string      `json:"class"`
+	Machine    bool        `json:"machine"`
+	Diagnostic string      `json:"diagnostic"`
+	Link       *int32      `json:"link"`
+	Ip         *netip.Addr `json:"ip"`
+	ID         uuid.UUID   `json:"id"`
+}
+
+// An open or click the sending provider reported (stored by ingest),
+// classified in place (review AN-4).
+func (q *Queries) TrackingClassifyEvent(ctx context.Context, arg TrackingClassifyEventParams) error {
+	_, err := q.db.Exec(ctx, trackingClassifyEvent,
+		arg.Class,
+		arg.Machine,
+		arg.Diagnostic,
+		arg.Link,
+		arg.Ip,
+		arg.ID,
+	)
+	return err
+}
+
 const trackingContactVars = `-- name: TrackingContactVars :one
 SELECT email, first_name, last_name, attributes FROM contacts WHERE id = $1
 `
@@ -198,6 +151,66 @@ func (q *Queries) TrackingContactVars(ctx context.Context, id uuid.UUID) (Tracki
 	return i, err
 }
 
+const trackingDueClicks = `-- name: TrackingDueClicks :many
+SELECT p.event_id, p.message_id, p.link, p.url, p.clicked_at,
+       coalesce(e.user_agent, '')::text AS user_agent, e.ip,
+       (coalesce(e.original_type, 'ReputeCast tracking') <> 'ReputeCast tracking')::boolean AS reported
+FROM tracking_pending_clicks p
+LEFT JOIN delivery_events e ON e.id = p.event_id
+WHERE p.settle_at <= $1
+ORDER BY p.message_id, p.clicked_at, p.event_id
+LIMIT $2
+FOR UPDATE OF p SKIP LOCKED
+`
+
+type TrackingDueClicksParams struct {
+	Now time.Time `json:"now"`
+	Lim int32     `json:"lim"`
+}
+
+type TrackingDueClicksRow struct {
+	EventID   uuid.UUID   `json:"eventId"`
+	MessageID uuid.UUID   `json:"messageId"`
+	Link      int32       `json:"link"`
+	Url       string      `json:"url"`
+	ClickedAt time.Time   `json:"clickedAt"`
+	UserAgent string      `json:"userAgent"`
+	Ip        *netip.Addr `json:"ip"`
+	Reported  bool        `json:"reported"`
+}
+
+// Pending clicks due to settle, each message's together and in message
+// order (the order writers lock messages in), with what the click sent;
+// reported: the sending provider reported it (review AN-4).
+func (q *Queries) TrackingDueClicks(ctx context.Context, arg TrackingDueClicksParams) ([]TrackingDueClicksRow, error) {
+	rows, err := q.db.Query(ctx, trackingDueClicks, arg.Now, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TrackingDueClicksRow{}
+	for rows.Next() {
+		var i TrackingDueClicksRow
+		if err := rows.Scan(
+			&i.EventID,
+			&i.MessageID,
+			&i.Link,
+			&i.Url,
+			&i.ClickedAt,
+			&i.UserAgent,
+			&i.Ip,
+			&i.Reported,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const trackingFirstLinkClick = `-- name: TrackingFirstLinkClick :one
 INSERT INTO tracking_link_clicks (message_id, link, clicked_at) VALUES ($1, $2, $3)
 ON CONFLICT DO NOTHING
@@ -219,9 +232,9 @@ func (q *Queries) TrackingFirstLinkClick(ctx context.Context, arg TrackingFirstL
 
 const trackingInsertEvent = `-- name: TrackingInsertEvent :exec
 INSERT INTO delivery_events (id, workspace_id, message_id, campaign_id, contact_id, provider_id, type, occurred_at, received_at,
-                             mailbox_provider, original_type, diagnostic, machine, url, user_agent, ip, recipient, source)
+                             mailbox_provider, original_type, diagnostic, machine, url, user_agent, ip, recipient, source, class, link)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
-        $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
 `
 
 type TrackingInsertEventParams struct {
@@ -243,8 +256,12 @@ type TrackingInsertEventParams struct {
 	Ip              *netip.Addr `json:"ip"`
 	Recipient       string      `json:"recipient"`
 	Source          string      `json:"source"`
+	Class           string      `json:"class"`
+	Link            *int32      `json:"link"`
 }
 
+// class is how tracking classified the open or click (human, privacy,
+// machine; human, bot); link the clicked link's position.
 func (q *Queries) TrackingInsertEvent(ctx context.Context, arg TrackingInsertEventParams) error {
 	_, err := q.db.Exec(ctx, trackingInsertEvent,
 		arg.ID,
@@ -265,81 +282,10 @@ func (q *Queries) TrackingInsertEvent(ctx context.Context, arg TrackingInsertEve
 		arg.Ip,
 		arg.Recipient,
 		arg.Source,
+		arg.Class,
+		arg.Link,
 	)
 	return err
-}
-
-const trackingMarkClick = `-- name: TrackingMarkClick :one
-WITH old AS (SELECT opened_at, human_opened_at, clicked_at FROM messages WHERE id = $2 FOR UPDATE)
-UPDATE messages m
-SET clicked_at = coalesce(m.clicked_at, $1::timestamptz),
-    opened_at = coalesce(m.opened_at, $1::timestamptz),
-    human_opened_at = coalesce(m.human_opened_at, $1::timestamptz)
-FROM old
-WHERE m.id = $2
-RETURNING (old.clicked_at IS NULL)::boolean AS first_click,
-          (old.opened_at IS NULL)::boolean AS first_open,
-          (old.human_opened_at IS NULL)::boolean AS first_human,
-          old.opened_at AS prev_opened_at
-`
-
-type TrackingMarkClickParams struct {
-	At time.Time `json:"at"`
-	ID uuid.UUID `json:"id"`
-}
-
-type TrackingMarkClickRow struct {
-	FirstClick   bool       `json:"firstClick"`
-	FirstOpen    bool       `json:"firstOpen"`
-	FirstHuman   bool       `json:"firstHuman"`
-	PrevOpenedAt *time.Time `json:"prevOpenedAt"`
-}
-
-// A click counts as a human open too.
-func (q *Queries) TrackingMarkClick(ctx context.Context, arg TrackingMarkClickParams) (TrackingMarkClickRow, error) {
-	row := q.db.QueryRow(ctx, trackingMarkClick, arg.At, arg.ID)
-	var i TrackingMarkClickRow
-	err := row.Scan(
-		&i.FirstClick,
-		&i.FirstOpen,
-		&i.FirstHuman,
-		&i.PrevOpenedAt,
-	)
-	return i, err
-}
-
-const trackingMarkOpen = `-- name: TrackingMarkOpen :one
-WITH old AS (SELECT opened_at, human_opened_at FROM messages WHERE id = $3 FOR UPDATE)
-UPDATE messages m
-SET opened_at = coalesce(m.opened_at, $1::timestamptz),
-    human_opened_at = CASE WHEN $2::boolean THEN coalesce(m.human_opened_at, $1::timestamptz) ELSE m.human_opened_at END
-FROM old
-WHERE m.id = $3
-RETURNING (old.opened_at IS NULL)::boolean AS first_open,
-          (old.human_opened_at IS NULL AND $2::boolean)::boolean AS first_human,
-          old.opened_at AS prev_opened_at
-`
-
-type TrackingMarkOpenParams struct {
-	At    time.Time `json:"at"`
-	Human bool      `json:"human"`
-	ID    uuid.UUID `json:"id"`
-}
-
-type TrackingMarkOpenRow struct {
-	FirstOpen    bool       `json:"firstOpen"`
-	FirstHuman   bool       `json:"firstHuman"`
-	PrevOpenedAt *time.Time `json:"prevOpenedAt"`
-}
-
-// Records an open on a message and says what changed, so counters move
-// once per message: the first open, or the first human open after a
-// machine prefetch (prev_opened_at is when that prefetch was).
-func (q *Queries) TrackingMarkOpen(ctx context.Context, arg TrackingMarkOpenParams) (TrackingMarkOpenRow, error) {
-	row := q.db.QueryRow(ctx, trackingMarkOpen, arg.At, arg.Human, arg.ID)
-	var i TrackingMarkOpenRow
-	err := row.Scan(&i.FirstOpen, &i.FirstHuman, &i.PrevOpenedAt)
-	return i, err
 }
 
 const trackingMessage = `-- name: TrackingMessage :one
@@ -401,6 +347,347 @@ func (q *Queries) TrackingMessage(ctx context.Context, id uuid.UUID) (TrackingMe
 	return i, err
 }
 
+const trackingMessageClicks = `-- name: TrackingMessageClicks :many
+SELECT occurred_at, coalesce(link, -2)::integer AS link, class, url
+FROM delivery_events
+WHERE message_id = $1 AND type = 'click' AND occurred_at BETWEEN $2 AND $3
+ORDER BY occurred_at
+`
+
+type TrackingMessageClicksParams struct {
+	MessageID *uuid.UUID `json:"messageId"`
+	FromAt    time.Time  `json:"fromAt"`
+	UntilAt   time.Time  `json:"untilAt"`
+}
+
+type TrackingMessageClicksRow struct {
+	OccurredAt time.Time `json:"occurredAt"`
+	Link       int32     `json:"link"`
+	Class      string    `json:"class"`
+	Url        string    `json:"url"`
+}
+
+// A message's clicks between two times (bursts, the hidden link); link -1
+// is the hidden link, -2 a link that isn't one of the email's (a provider
+// reported it, review AN-4).
+func (q *Queries) TrackingMessageClicks(ctx context.Context, arg TrackingMessageClicksParams) ([]TrackingMessageClicksRow, error) {
+	rows, err := q.db.Query(ctx, trackingMessageClicks, arg.MessageID, arg.FromAt, arg.UntilAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TrackingMessageClicksRow{}
+	for rows.Next() {
+		var i TrackingMessageClicksRow
+		if err := rows.Scan(
+			&i.OccurredAt,
+			&i.Link,
+			&i.Class,
+			&i.Url,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const trackingNetworkAdd = `-- name: TrackingNetworkAdd :one
+INSERT INTO tracking_networks (cidr, name, class, source, note, created_by)
+VALUES ($1::cidr, $2, $3, 'admin', $4, $5)
+ON CONFLICT (cidr) DO NOTHING
+RETURNING cidr::text AS cidr
+`
+
+type TrackingNetworkAddParams struct {
+	Cidr      netip.Prefix `json:"cidr"`
+	Name      string       `json:"name"`
+	Class     string       `json:"class"`
+	Note      string       `json:"note"`
+	CreatedBy *uuid.UUID   `json:"createdBy"`
+}
+
+func (q *Queries) TrackingNetworkAdd(ctx context.Context, arg TrackingNetworkAddParams) (string, error) {
+	row := q.db.QueryRow(ctx, trackingNetworkAdd,
+		arg.Cidr,
+		arg.Name,
+		arg.Class,
+		arg.Note,
+		arg.CreatedBy,
+	)
+	var cidr string
+	err := row.Scan(&cidr)
+	return cidr, err
+}
+
+const trackingNetworkDelete = `-- name: TrackingNetworkDelete :one
+DELETE FROM tracking_networks WHERE cidr = $1::cidr AND source = 'admin'
+RETURNING cidr::text AS cidr, name, class, note
+`
+
+type TrackingNetworkDeleteRow struct {
+	Cidr  string `json:"cidr"`
+	Name  string `json:"name"`
+	Class string `json:"class"`
+	Note  string `json:"note"`
+}
+
+// Only networks an admin added can be removed; the built-in ones come with
+// releases.
+func (q *Queries) TrackingNetworkDelete(ctx context.Context, cidr netip.Prefix) (TrackingNetworkDeleteRow, error) {
+	row := q.db.QueryRow(ctx, trackingNetworkDelete, cidr)
+	var i TrackingNetworkDeleteRow
+	err := row.Scan(
+		&i.Cidr,
+		&i.Name,
+		&i.Class,
+		&i.Note,
+	)
+	return i, err
+}
+
+const trackingNetworkList = `-- name: TrackingNetworkList :many
+SELECT n.cidr::text AS cidr, n.name, n.class, n.source, n.note, n.created_at, coalesce(u.name, '')::text AS created_by_name
+FROM tracking_networks n
+LEFT JOIN users u ON u.id = n.created_by
+ORDER BY (n.source = 'admin') DESC, n.class, n.name, n.cidr
+`
+
+type TrackingNetworkListRow struct {
+	Cidr          string    `json:"cidr"`
+	Name          string    `json:"name"`
+	Class         string    `json:"class"`
+	Source        string    `json:"source"`
+	Note          string    `json:"note"`
+	CreatedAt     time.Time `json:"createdAt"`
+	CreatedByName string    `json:"createdByName"`
+}
+
+// Networks of privacy proxies and mail scanners, the ones admins added
+// first, with who added them.
+func (q *Queries) TrackingNetworkList(ctx context.Context) ([]TrackingNetworkListRow, error) {
+	rows, err := q.db.Query(ctx, trackingNetworkList)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TrackingNetworkListRow{}
+	for rows.Next() {
+		var i TrackingNetworkListRow
+		if err := rows.Scan(
+			&i.Cidr,
+			&i.Name,
+			&i.Class,
+			&i.Source,
+			&i.Note,
+			&i.CreatedAt,
+			&i.CreatedByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const trackingNextSettle = `-- name: TrackingNextSettle :one
+SELECT coalesce(min(settle_at), 'epoch'::timestamptz)::timestamptz FROM tracking_pending_clicks
+`
+
+func (q *Queries) TrackingNextSettle(ctx context.Context) (time.Time, error) {
+	row := q.db.QueryRow(ctx, trackingNextSettle)
+	var column_1 time.Time
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const trackingPendingClick = `-- name: TrackingPendingClick :exec
+INSERT INTO tracking_pending_clicks (event_id, message_id, link, url, clicked_at, settle_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+`
+
+type TrackingPendingClickParams struct {
+	EventID   uuid.UUID `json:"eventId"`
+	MessageID uuid.UUID `json:"messageId"`
+	Link      int32     `json:"link"`
+	Url       string    `json:"url"`
+	ClickedAt time.Time `json:"clickedAt"`
+	SettleAt  time.Time `json:"settleAt"`
+}
+
+// A click that looks like a person's waits to settle (review AN-2).
+func (q *Queries) TrackingPendingClick(ctx context.Context, arg TrackingPendingClickParams) error {
+	_, err := q.db.Exec(ctx, trackingPendingClick,
+		arg.EventID,
+		arg.MessageID,
+		arg.Link,
+		arg.Url,
+		arg.ClickedAt,
+		arg.SettleAt,
+	)
+	return err
+}
+
+const trackingRetryClaim = `-- name: TrackingRetryClaim :many
+UPDATE tracking_retry r
+SET attempts = r.attempts + 1, next_at = $1
+WHERE r.id IN (SELECT t.id FROM tracking_retry t WHERE t.next_at <= $2 AND t.attempts < $3 ORDER BY t.next_at, t.id LIMIT $4 FOR UPDATE SKIP LOCKED)
+RETURNING r.id, r.message_id, r.event, r.attempts
+`
+
+type TrackingRetryClaimParams struct {
+	NextAt      time.Time `json:"nextAt"`
+	Now         time.Time `json:"now"`
+	MaxAttempts int32     `json:"maxAttempts"`
+	Lim         int32     `json:"lim"`
+}
+
+type TrackingRetryClaimRow struct {
+	ID        int64           `json:"id"`
+	MessageID uuid.UUID       `json:"messageId"`
+	Event     json.RawMessage `json:"event"`
+	Attempts  int32           `json:"attempts"`
+}
+
+// Takes due events for one retry: they are put off by the backoff first,
+// so a worker that dies leaves them for a later run.
+func (q *Queries) TrackingRetryClaim(ctx context.Context, arg TrackingRetryClaimParams) ([]TrackingRetryClaimRow, error) {
+	rows, err := q.db.Query(ctx, trackingRetryClaim,
+		arg.NextAt,
+		arg.Now,
+		arg.MaxAttempts,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TrackingRetryClaimRow{}
+	for rows.Next() {
+		var i TrackingRetryClaimRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.MessageID,
+			&i.Event,
+			&i.Attempts,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const trackingRetryDone = `-- name: TrackingRetryDone :exec
+DELETE FROM tracking_retry WHERE id = ANY($1::bigint[])
+`
+
+func (q *Queries) TrackingRetryDone(ctx context.Context, ids []int64) error {
+	_, err := q.db.Exec(ctx, trackingRetryDone, ids)
+	return err
+}
+
+const trackingRetryFailed = `-- name: TrackingRetryFailed :exec
+UPDATE tracking_retry SET error = $1 WHERE id = ANY($2::bigint[])
+`
+
+type TrackingRetryFailedParams struct {
+	Error string  `json:"error"`
+	Ids   []int64 `json:"ids"`
+}
+
+func (q *Queries) TrackingRetryFailed(ctx context.Context, arg TrackingRetryFailedParams) error {
+	_, err := q.db.Exec(ctx, trackingRetryFailed, arg.Error, arg.Ids)
+	return err
+}
+
+const trackingRetryPark = `-- name: TrackingRetryPark :exec
+INSERT INTO tracking_retry (message_id, event, next_at, error)
+SELECT unnest($1::uuid[]), unnest($2::jsonb[]), $3, $4
+`
+
+type TrackingRetryParkParams struct {
+	MessageIds []uuid.UUID       `json:"messageIds"`
+	Events     []json.RawMessage `json:"events"`
+	NextAt     time.Time         `json:"nextAt"`
+	Error      string            `json:"error"`
+}
+
+// Opens and clicks a batch couldn't record, kept for the tracking.retry job.
+func (q *Queries) TrackingRetryPark(ctx context.Context, arg TrackingRetryParkParams) error {
+	_, err := q.db.Exec(ctx, trackingRetryPark,
+		arg.MessageIds,
+		arg.Events,
+		arg.NextAt,
+		arg.Error,
+	)
+	return err
+}
+
+const trackingRetryPending = `-- name: TrackingRetryPending :one
+SELECT count(*)::bigint FROM tracking_retry WHERE attempts < $1
+`
+
+func (q *Queries) TrackingRetryPending(ctx context.Context, maxAttempts int32) (int64, error) {
+	row := q.db.QueryRow(ctx, trackingRetryPending, maxAttempts)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const trackingRetryPurge = `-- name: TrackingRetryPurge :execrows
+DELETE FROM tracking_retry WHERE created_at < $1
+`
+
+// Events that kept failing for 30 days are dropped (the error stays in the
+// log of each attempt).
+func (q *Queries) TrackingRetryPurge(ctx context.Context, before time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, trackingRetryPurge, before)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const trackingSettleEvent = `-- name: TrackingSettleEvent :exec
+UPDATE delivery_events SET class = $1, machine = $2, diagnostic = $3 WHERE id = $4
+`
+
+type TrackingSettleEventParams struct {
+	Class      string    `json:"class"`
+	Machine    bool      `json:"machine"`
+	Diagnostic string    `json:"diagnostic"`
+	ID         uuid.UUID `json:"id"`
+}
+
+func (q *Queries) TrackingSettleEvent(ctx context.Context, arg TrackingSettleEventParams) error {
+	_, err := q.db.Exec(ctx, trackingSettleEvent,
+		arg.Class,
+		arg.Machine,
+		arg.Diagnostic,
+		arg.ID,
+	)
+	return err
+}
+
+const trackingSettled = `-- name: TrackingSettled :exec
+DELETE FROM tracking_pending_clicks WHERE event_id = ANY($1::uuid[])
+`
+
+func (q *Queries) TrackingSettled(ctx context.Context, ids []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, trackingSettled, ids)
+	return err
+}
+
 const trackingSourceLabel = `-- name: TrackingSourceLabel :one
 SELECT coalesce(c.name, a.name, '')::text
 FROM messages m
@@ -416,46 +703,150 @@ func (q *Queries) TrackingSourceLabel(ctx context.Context, id uuid.UUID) (string
 	return column_1, err
 }
 
-const trackingTouchContactClick = `-- name: TrackingTouchContactClick :exec
-UPDATE contacts
-SET last_click_at = greatest(coalesce(last_click_at, $1::timestamptz), $1::timestamptz),
-    last_open_at = greatest(coalesce(last_open_at, $1::timestamptz), $1::timestamptz),
-    last_human_open_at = greatest(coalesce(last_human_open_at, $1::timestamptz), $1::timestamptz),
-    last_open_machine = false,
-    last_activity_at = greatest(coalesce(last_activity_at, $1::timestamptz), $1::timestamptz),
+const trackingTouchContacts = `-- name: TrackingTouchContacts :exec
+UPDATE contacts c
+SET last_open_at = CASE WHEN x.opened IS NULL THEN c.last_open_at ELSE greatest(coalesce(c.last_open_at, x.opened), x.opened) END,
+    last_human_open_at = CASE WHEN x.human IS NULL THEN c.last_human_open_at ELSE greatest(coalesce(c.last_human_open_at, x.human), x.human) END,
+    last_click_at = CASE WHEN x.clicked IS NULL THEN c.last_click_at ELSE greatest(coalesce(c.last_click_at, x.clicked), x.clicked) END,
+    last_open_machine = CASE WHEN x.opened IS NOT NULL AND (c.last_open_at IS NULL OR x.opened >= c.last_open_at) THEN x.machine ELSE c.last_open_machine END,
+    last_activity_at = greatest(coalesce(c.last_activity_at, x.activity), x.activity),
     updated_at = now()
-WHERE id = $2
+FROM (
+    -- 'epoch' stands for "none" in the time arrays.
+    SELECT unnest($1::uuid[]) AS id, nullif(unnest($2::timestamptz[]), 'epoch') AS opened, nullif(unnest($3::timestamptz[]), 'epoch') AS human,
+           nullif(unnest($4::timestamptz[]), 'epoch') AS clicked, unnest($5::boolean[]) AS machine, unnest($6::timestamptz[]) AS activity
+) x
+WHERE c.id = x.id AND c.id IN (SELECT cc.id FROM contacts cc WHERE cc.id = ANY($1::uuid[]) ORDER BY cc.id FOR UPDATE)
 `
 
-type TrackingTouchContactClickParams struct {
-	At time.Time `json:"at"`
-	ID uuid.UUID `json:"id"`
+type TrackingTouchContactsParams struct {
+	Ids      []uuid.UUID `json:"ids"`
+	Opened   []time.Time `json:"opened"`
+	Human    []time.Time `json:"human"`
+	Clicked  []time.Time `json:"clicked"`
+	Machine  []bool      `json:"machine"`
+	Activity []time.Time `json:"activity"`
 }
 
-func (q *Queries) TrackingTouchContactClick(ctx context.Context, arg TrackingTouchContactClickParams) error {
-	_, err := q.db.Exec(ctx, trackingTouchContactClick, arg.At, arg.ID)
+// A batch's opens and clicks on contacts, one row per contact in id order
+// (the last lock a tracking batch takes). opened is the latest open, human
+// the latest person's open or click, clicked the latest click; machine says
+// the latest open was a machine's.
+func (q *Queries) TrackingTouchContacts(ctx context.Context, arg TrackingTouchContactsParams) error {
+	_, err := q.db.Exec(ctx, trackingTouchContacts,
+		arg.Ids,
+		arg.Opened,
+		arg.Human,
+		arg.Clicked,
+		arg.Machine,
+		arg.Activity,
+	)
 	return err
 }
 
-const trackingTouchContactOpen = `-- name: TrackingTouchContactOpen :exec
-UPDATE contacts
-SET last_open_at = greatest(coalesce(last_open_at, $1::timestamptz), $1::timestamptz),
-    last_human_open_at = CASE WHEN $2::boolean THEN greatest(coalesce(last_human_open_at, $1::timestamptz), $1::timestamptz) ELSE last_human_open_at END,
-    last_open_machine = CASE WHEN last_open_at IS NULL OR $1::timestamptz >= last_open_at THEN NOT $2::boolean ELSE last_open_machine END,
-    last_activity_at = greatest(coalesce(last_activity_at, $1::timestamptz), $1::timestamptz),
-    updated_at = now()
-WHERE id = $3
+const trackingUserAgentAdd = `-- name: TrackingUserAgentAdd :one
+INSERT INTO tracking_user_agents (pattern, kind, name, source, note, created_by)
+VALUES ($1, $2, $3, 'admin', $4, $5)
+ON CONFLICT (pattern) DO NOTHING
+RETURNING pattern, created_at
 `
 
-type TrackingTouchContactOpenParams struct {
-	At    time.Time `json:"at"`
-	Human bool      `json:"human"`
-	ID    uuid.UUID `json:"id"`
+type TrackingUserAgentAddParams struct {
+	Pattern   string     `json:"pattern"`
+	Kind      string     `json:"kind"`
+	Name      string     `json:"name"`
+	Note      string     `json:"note"`
+	CreatedBy *uuid.UUID `json:"createdBy"`
 }
 
-// last_open_at counts every open, last_human_open_at only people's (tiers
-// and the sunset policy use it); last_open_machine says what the latest was.
-func (q *Queries) TrackingTouchContactOpen(ctx context.Context, arg TrackingTouchContactOpenParams) error {
-	_, err := q.db.Exec(ctx, trackingTouchContactOpen, arg.At, arg.Human, arg.ID)
-	return err
+type TrackingUserAgentAddRow struct {
+	Pattern   string    `json:"pattern"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+func (q *Queries) TrackingUserAgentAdd(ctx context.Context, arg TrackingUserAgentAddParams) (TrackingUserAgentAddRow, error) {
+	row := q.db.QueryRow(ctx, trackingUserAgentAdd,
+		arg.Pattern,
+		arg.Kind,
+		arg.Name,
+		arg.Note,
+		arg.CreatedBy,
+	)
+	var i TrackingUserAgentAddRow
+	err := row.Scan(&i.Pattern, &i.CreatedAt)
+	return i, err
+}
+
+const trackingUserAgentDelete = `-- name: TrackingUserAgentDelete :one
+DELETE FROM tracking_user_agents WHERE pattern = $1 AND source = 'admin'
+RETURNING pattern, kind, name, note
+`
+
+type TrackingUserAgentDeleteRow struct {
+	Pattern string `json:"pattern"`
+	Kind    string `json:"kind"`
+	Name    string `json:"name"`
+	Note    string `json:"note"`
+}
+
+// Only user agents an admin added can be removed; the built-in ones come
+// with releases.
+func (q *Queries) TrackingUserAgentDelete(ctx context.Context, pattern string) (TrackingUserAgentDeleteRow, error) {
+	row := q.db.QueryRow(ctx, trackingUserAgentDelete, pattern)
+	var i TrackingUserAgentDeleteRow
+	err := row.Scan(
+		&i.Pattern,
+		&i.Kind,
+		&i.Name,
+		&i.Note,
+	)
+	return i, err
+}
+
+const trackingUserAgentList = `-- name: TrackingUserAgentList :many
+SELECT a.pattern, a.kind, a.name, a.source, a.note, a.created_at, coalesce(u.name, '')::text AS created_by_name
+FROM tracking_user_agents a
+LEFT JOIN users u ON u.id = a.created_by
+ORDER BY (a.source = 'admin') DESC, char_length(a.pattern) DESC, a.pattern
+`
+
+type TrackingUserAgentListRow struct {
+	Pattern       string    `json:"pattern"`
+	Kind          string    `json:"kind"`
+	Name          string    `json:"name"`
+	Source        string    `json:"source"`
+	Note          string    `json:"note"`
+	CreatedAt     time.Time `json:"createdAt"`
+	CreatedByName string    `json:"createdByName"`
+}
+
+// The user agents of machines, and the words of people's devices a rule
+// takes for machines (review AN-2): admins' first, then the longest, so the
+// most specific pattern names a user agent.
+func (q *Queries) TrackingUserAgentList(ctx context.Context) ([]TrackingUserAgentListRow, error) {
+	rows, err := q.db.Query(ctx, trackingUserAgentList)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TrackingUserAgentListRow{}
+	for rows.Next() {
+		var i TrackingUserAgentListRow
+		if err := rows.Scan(
+			&i.Pattern,
+			&i.Kind,
+			&i.Name,
+			&i.Source,
+			&i.Note,
+			&i.CreatedAt,
+			&i.CreatedByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

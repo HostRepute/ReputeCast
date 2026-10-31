@@ -1,3 +1,4 @@
+import { setCatalogLoader, setLocale, t as tx } from '@/i18n'
 import { approvalMode, heldNote, heldSentence } from './ApprovalCard'
 import {
   acknowledgedKeys,
@@ -7,7 +8,10 @@ import {
   confirmNote,
   countsLine,
   countsShort,
-  fixAllLabel,
+  dismissedWarnings,
+  ctaLabel,
+  ctaShort,
+  ctaWhen,
   linkParts,
   localDateWords,
   minutes,
@@ -15,9 +19,12 @@ import {
   primaryFix,
   scheduleSentence,
   scheduleShort,
-  sendLabel,
   sendsIn,
+  skippedKind,
   thresholdError,
+  verdictHeading,
+  verdictName,
+  verdictShort,
   waitShort,
   waitWords,
   type Check,
@@ -25,6 +32,9 @@ import {
   type Run,
   type Thresholds,
 } from './logic'
+import { m } from './messages'
+import vietnamese from './messages.vi'
+import { sendLockReason } from './parts'
 
 const check = (over: Partial<Check>): Check => ({ key: 'k', group: 'content', status: 'pass', title: 'A check', fixes: [], ...over }) as Check
 
@@ -39,19 +49,45 @@ describe('verdict copy', () => {
     const fix = { kind: 'apply', action: 'insert_footer', label: 'Insert footer block' } as Check['fixes'][number]
     const all = [check({ status: 'block', fixes: [fix] }), check({ status: 'block', fixes: [fix] }), check({ status: 'block', fixes: [fix] })]
     const counts = { passed: 17, warnings: 2, blocks: 3, unknown: 0, total: 22 }
-    expect(blockedLine(counts, all)).toBe(
-      '3 blocking issues, 2 warnings, 17 checks passed. Sending stays disabled until every block is fixed. Each one has a one-click fix below.',
-    )
-    expect(blockedLine(counts, [all[0]!, check({ status: 'block' }), check({ status: 'block' })])).toMatch(/1 of them has a one-click fix below\.$/)
-    expect(blockedLine({ ...counts, blocks: 1 }, [all[0]!])).toMatch(/It has a one-click fix below\.$/)
+    expect(blockedLine(counts, all)).toBe('3 blocks · 2 warnings · 17 passed. Sending stays disabled until every block is fixed. Each one has a fix below.')
+    expect(blockedLine(counts, [all[0]!, check({ status: 'block' }), check({ status: 'block' })])).toMatch(/1 of them has a fix below\.$/)
+    expect(blockedLine({ ...counts, blocks: 1 }, [all[0]!])).toMatch(/It has a fix below\.$/)
+    expect(verdictShort({ verdict: 'blocked', counts } as Run)).toBe('Blocked · 3 to fix')
+    expect(verdictShort({ verdict: 'warnings', counts: { ...counts, blocks: 0 } } as Run)).toBe('Ready with warnings · 2 to review')
   })
 
-  it('labels the actions as on the boards', () => {
-    expect(fixAllLabel('warn', 2)).toBe('Fix both warnings')
-    expect(fixAllLabel('block', 3)).toBe('Apply all 3 fixes')
-    expect(fixAllLabel('block', 1)).toBe('Apply the fix')
-    expect(sendLabel('at', 31604)).toBe('Schedule send to 31,604 recipients')
-    expect(sendLabel('now', 47842)).toBe('Send to 47,842 recipients')
+  it('says which skipped checks were accepted, and never calls a blocked send ready (SR-13)', () => {
+    const counts = { passed: 27, warnings: 0, blocks: 0, unknown: 2, total: 29 }
+    const skipped = (key: string) => check({ key, status: 'unknown' })
+    const ready = {
+      verdict: 'ready',
+      counts,
+      checks: [skipped('reputation.domain_blocklists'), skipped('reputation.ip_blocklists.203.0.113.25'), check({})],
+      unknownAcceptedAt: '2026-10-14T13:44:00Z',
+    } as Run
+    expect(verdictHeading(ready)).toBe('Ready · blocklist checks skipped')
+    expect(verdictHeading({ ...ready, unknownAcceptedAt: undefined })).toBe('Ready')
+    expect(verdictHeading({ ...ready, verdict: 'warnings', counts: { ...counts, warnings: 2 } })).toBe('Ready with warnings · blocklist checks skipped')
+    expect(verdictHeading({ ...ready, checks: [skipped('links.blocklists'), skipped('content.compile')] })).toBe('Ready · 2 checks skipped')
+    expect(verdictHeading({ ...ready, checks: [skipped('accessibility.run')] })).toBe('Ready · 1 check skipped')
+    expect(verdictHeading({ ...ready, verdict: 'blocked', counts: { ...counts, blocks: 1 } })).toBe('Blocked · 1 to fix')
+    // Cards and badges name the verdict without counts, and say what was skipped too.
+    expect(verdictName(ready)).toBe('Ready · blocklist checks skipped')
+    expect(verdictName({ ...ready, verdict: 'warnings', checks: [skipped('links.blocklists'), skipped('links.respond')] })).toBe('Ready with warnings · 2 checks skipped')
+    expect(verdictName({ ...ready, unknownAcceptedAt: undefined, verdict: 'warnings' })).toBe('Ready with warnings')
+    expect(verdictName({ ...ready, verdict: 'blocked' })).toBe('Blocked')
+  })
+
+  it('puts the schedule in the main action (SR-13)', () => {
+    const at = { mode: 'at', date: '2026-10-14', time: '09:00', timezone: 'America/New_York' } as Review['schedule']
+    expect(ctaLabel(at, 31192)).toBe('Schedule for Wed 14 Oct, 09:00 ET')
+    expect(ctaLabel({ ...at, mode: 'best_time' }, 31192)).toBe('Schedule best time from Wed 14 Oct, 09:00 ET')
+    expect(ctaLabel({ mode: 'now' } as Review['schedule'], 31192)).toBe('Send now to 31,192')
+    expect(ctaWhen(at)).toBe('Wed 14 Oct, 09:00 ET')
+    expect(ctaWhen({ ...at, mode: 'best_time' })).toBe('Best time from Wed 14 Oct')
+    expect(ctaWhen({ mode: 'now' } as Review['schedule'])).toBe('Sends within a minute')
+    expect(ctaShort(at, 31192)).toBe('Schedule · 31,192')
+    expect(ctaShort({ mode: 'now' } as Review['schedule'], 31192)).toBe('Send now · 31,192')
     expect(confirmNote(2)).toBe("You'll confirm the audience and the two warnings on the next step.")
     expect(confirmNote(0)).toBe("You'll confirm the audience on the next step.")
   })
@@ -110,6 +146,18 @@ describe('confirmation', () => {
       ],
     } as Run
     expect(acknowledgements(run).map((a) => a.key)).toEqual(['audience.unengaged', 'reputation.ip'])
+  })
+
+  it('counts a warning dismissed in the composer as confirmed, and still lists it (CO-14)', () => {
+    const dismissal = { id: 'd1', by: 'Linh Nguyen', reason: 'decorative', reasonText: 'the image is decorative', at: '2026-10-12T13:00:00Z', count: 1 } as Check['dismissal']
+    const run = {
+      checks: [
+        check({ key: 'content.alt_text', status: 'warn', title: '1 of 7 images has no alt text', dismissal }),
+        check({ key: 'links.shortener', status: 'warn', ack: 'I understand a link goes through bit.ly.' }),
+      ],
+    } as Run
+    expect(acknowledgements(run).map((a) => a.key)).toEqual(['links.shortener'])
+    expect(dismissedWarnings(run).map((c) => c.key)).toEqual(['content.alt_text'])
   })
 
   it('confirms warnings worded the same with one checkbox', () => {
@@ -221,5 +269,55 @@ describe('approval states', () => {
     expect(heldNote([check({ group: 'links', status: 'block' })])).toMatch(/^Fixing the link changes the content/)
     expect(heldNote([check({ group: 'routing', status: 'block' })])).toMatch(/^Changing the route invalidates the approval/)
     expect(heldNote([check({ group: 'links', status: 'block' }), check({ group: 'content', status: 'block' })])).toMatch(/^Fixing a block in the campaign/)
+  })
+})
+
+describe('skipped checks (R1.U8)', () => {
+  const unknown = (...groups: string[]) => ({ checks: groups.map((group, i) => check({ key: `k${i}`, group: group as Check['group'], status: 'unknown' })) }) as Run
+
+  it('continues with provider data only when every skipped check is sender reputation', () => {
+    expect(skippedKind(unknown('reputation', 'reputation'))).toBe('provider')
+    expect(tx(m.continueLabel, { kind: skippedKind(unknown('reputation')) })).toBe('Continue with provider data only')
+  })
+
+  it('continues without the skipped checks when content, links or accessibility couldn’t run', () => {
+    for (const groups of [['content'], ['reputation', 'links'], ['accessibility']]) {
+      expect(skippedKind(unknown(...groups))).toBe('skipped')
+    }
+    expect(tx(m.continueLabel, { kind: 'skipped' })).toBe('Continue without the skipped checks')
+    expect(tx(m.continueNote, { kind: 'skipped' })).toBe(
+      "“Continue without the skipped checks” records the skipped checks in the campaign's audit trail and re-tries them during the send.",
+    )
+  })
+})
+
+describe('sending locked while a change is saved (R1.U4)', () => {
+  const free = { canSend: true, helpers: ['Marcus Chen'], changing: false, blocks: 0, stale: false }
+
+  it('locks the send, with why, while a fix is on its way', () => {
+    expect(sendLockReason(free)).toBeUndefined()
+    expect(sendLockReason({ ...free, changing: true })).toBe('Sending is locked while your change is saved.')
+    expect(sendLockReason({ ...free, changing: true, blocks: 2, stale: true })).toBe('Sending is locked while your change is saved.')
+  })
+
+  it('names who can send first, then blocks, skipped checks and staleness', () => {
+    expect(sendLockReason({ ...free, canSend: false, changing: true })).toBe('Marcus Chen can send it.')
+    expect(sendLockReason({ ...free, blocks: 1 })).toBe('Fix the blocking issue first.')
+    expect(sendLockReason({ ...free, incomplete: 'provider' })).toBe("Some checks couldn't run. Retry them, or continue with provider data only.")
+    expect(sendLockReason({ ...free, incomplete: 'skipped' })).toBe("Some checks couldn't run. Retry them, or continue without them.")
+    expect(sendLockReason({ ...free, stale: true })).toBe('The campaign changed since the checks ran. Run them again first.')
+  })
+})
+
+describe('Vietnamese group headings (R1.U1)', () => {
+  afterEach(async () => {
+    await setLocale('en')
+  })
+
+  it('reads as the report words them, in the board’s “·” format', async () => {
+    setCatalogLoader('vi', async () => vietnamese)
+    await setLocale('vi')
+    expect(tx(m.needsAttention, { count: 2 })).toBe('Cần xử lý · 2')
+    expect(tx(m.passedTitle, { count: 27 })).toBe('Đã đạt · 27')
   })
 })

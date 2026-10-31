@@ -45,9 +45,79 @@ func (q *Queries) ConnectCreateList(ctx context.Context, arg ConnectCreateListPa
 	return err
 }
 
+const connectDeliveryEvent = `-- name: ConnectDeliveryEvent :one
+SELECT e.received_at, r.source
+FROM delivery_events e
+JOIN provider_raw_events r ON r.id = e.raw_event_id
+WHERE e.provider_id = $1::uuid AND e.type = 'delivered' AND r.source IN ('webhook', 'queue')
+  AND (e.message_id = $2::uuid OR e.provider_message_id = $3::text)
+  AND lower(e.recipient) = lower($4::text)
+  AND e.received_at >= $5 AND e.received_at < $6
+ORDER BY e.received_at
+LIMIT 1
+`
+
+type ConnectDeliveryEventParams struct {
+	ProviderID        uuid.UUID `json:"providerId"`
+	MessageID         uuid.UUID `json:"messageId"`
+	ProviderMessageID string    `json:"providerMessageId"`
+	Recipient         string    `json:"recipient"`
+	Since             time.Time `json:"since"`
+	Until             time.Time `json:"until"`
+}
+
+type ConnectDeliveryEventRow struct {
+	ReceivedAt time.Time `json:"receivedAt"`
+	Source     string    `json:"source"`
+}
+
+// The delivery event of a message, reported for its recipient by webhook or
+// through the queue ReputeCast polls (PR-3, PR-4), once normalized: the SES
+// event check passes on the mailbox simulator's Delivery event, not on the
+// Send event SES publishes first (review R3.A1).
+func (q *Queries) ConnectDeliveryEvent(ctx context.Context, arg ConnectDeliveryEventParams) (ConnectDeliveryEventRow, error) {
+	row := q.db.QueryRow(ctx, connectDeliveryEvent,
+		arg.ProviderID,
+		arg.MessageID,
+		arg.ProviderMessageID,
+		arg.Recipient,
+		arg.Since,
+		arg.Until,
+	)
+	var i ConnectDeliveryEventRow
+	err := row.Scan(&i.ReceivedAt, &i.Source)
+	return i, err
+}
+
+const connectFirstEventSince = `-- name: ConnectFirstEventSince :one
+SELECT received_at, source FROM provider_raw_events
+WHERE provider_id = $1 AND source IN ('webhook', 'queue') AND received_at >= $2
+ORDER BY received_at
+LIMIT 1
+`
+
+type ConnectFirstEventSinceParams struct {
+	ProviderID uuid.UUID `json:"providerId"`
+	Since      time.Time `json:"since"`
+}
+
+type ConnectFirstEventSinceRow struct {
+	ReceivedAt time.Time `json:"receivedAt"`
+	Source     string    `json:"source"`
+}
+
+// The first event a provider delivered after a time, by webhook or queue:
+// its endpoint was reached from outside (PR-9).
+func (q *Queries) ConnectFirstEventSince(ctx context.Context, arg ConnectFirstEventSinceParams) (ConnectFirstEventSinceRow, error) {
+	row := q.db.QueryRow(ctx, connectFirstEventSince, arg.ProviderID, arg.Since)
+	var i ConnectFirstEventSinceRow
+	err := row.Scan(&i.ReceivedAt, &i.Source)
+	return i, err
+}
+
 const connectFirstWebhook = `-- name: ConnectFirstWebhook :one
-SELECT received_at, body FROM provider_raw_events
-WHERE provider_id = $1 AND source = 'webhook' AND received_at >= $2 AND received_at < $3
+SELECT received_at, body, source FROM provider_raw_events
+WHERE provider_id = $1 AND source IN ('webhook', 'queue') AND received_at >= $2 AND received_at < $3
   AND position(convert_to($4::text, 'UTF8') IN body) > 0
 ORDER BY received_at
 LIMIT 1
@@ -63,11 +133,14 @@ type ConnectFirstWebhookParams struct {
 type ConnectFirstWebhookRow struct {
 	ReceivedAt time.Time `json:"receivedAt"`
 	Body       []byte    `json:"body"`
+	Source     string    `json:"source"`
 }
 
-// The first webhook payload about a message (its provider message id is in
-// the body) a provider sent in a window after the send: the test send's
-// "event came back" step, with the body to name the event.
+// The first event payload about a message (its provider message id is in
+// the body) a provider sent in a window after the send, by webhook or
+// through the queue ReputeCast polls (PR-4): the test send's "event came
+// back" step and the setup's event check (PR-3), with the body to name the
+// event and how it came.
 func (q *Queries) ConnectFirstWebhook(ctx context.Context, arg ConnectFirstWebhookParams) (ConnectFirstWebhookRow, error) {
 	row := q.db.QueryRow(ctx, connectFirstWebhook,
 		arg.ProviderID,
@@ -76,7 +149,7 @@ func (q *Queries) ConnectFirstWebhook(ctx context.Context, arg ConnectFirstWebho
 		arg.ProviderMessageID,
 	)
 	var i ConnectFirstWebhookRow
-	err := row.Scan(&i.ReceivedAt, &i.Body)
+	err := row.Scan(&i.ReceivedAt, &i.Body, &i.Source)
 	return i, err
 }
 
@@ -85,7 +158,7 @@ INSERT INTO providers (id, workspace_id, adapter, name, label, config, credentia
                        status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, connected_by, connected_at, last_checked_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
         $10, $11, $12, $13::text[], $14, $15, $16, $17, $18, $19, $19)
-RETURNING id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at
+RETURNING id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at, ip_source
 `
 
 type ConnectInsertProviderParams struct {
@@ -157,6 +230,7 @@ func (q *Queries) ConnectInsertProvider(ctx context.Context, arg ConnectInsertPr
 		&i.ConnectedBy,
 		&i.ConnectedAt,
 		&i.DisconnectedAt,
+		&i.IpSource,
 	)
 	return i, err
 }
@@ -186,7 +260,7 @@ func (q *Queries) ConnectListNames(ctx context.Context, workspaceID uuid.UUID) (
 }
 
 const connectMessage = `-- name: ConnectMessage :one
-SELECT id, workspace_id, stream, campaign_id, automation_id, automation_node, contact_id, email, variant, provider_id, provider_message_id, mailbox_provider, status, queued_at, sent_at, delivered_at, opened_at, clicked_at, error, kind, failover, route_note, attempts, next_attempt_at, claimed_at, content_ref, human_opened_at, send_order, language, contact_language, language_reason, hidden_blocks FROM messages WHERE workspace_id = $1 AND id = $2
+SELECT id, workspace_id, stream, campaign_id, automation_id, automation_node, contact_id, email, variant, provider_id, provider_message_id, mailbox_provider, status, queued_at, sent_at, delivered_at, opened_at, clicked_at, error, kind, failover, route_note, attempts, next_attempt_at, claimed_at, content_ref, human_opened_at, send_order, language, contact_language, language_reason, hidden_blocks, canary, hold_reason, deferred_at, soft_bounced_at, unsubscribed_at, privacy_opened_at, ab_rollout, doubt_at FROM messages WHERE workspace_id = $1 AND id = $2
 `
 
 type ConnectMessageParams struct {
@@ -230,12 +304,20 @@ func (q *Queries) ConnectMessage(ctx context.Context, arg ConnectMessageParams) 
 		&i.ContactLanguage,
 		&i.LanguageReason,
 		&i.HiddenBlocks,
+		&i.Canary,
+		&i.HoldReason,
+		&i.DeferredAt,
+		&i.SoftBouncedAt,
+		&i.UnsubscribedAt,
+		&i.PrivacyOpenedAt,
+		&i.AbRollout,
+		&i.DoubtAt,
 	)
 	return i, err
 }
 
 const connectMessageEvents = `-- name: ConnectMessageEvents :many
-SELECT id, workspace_id, message_id, campaign_id, contact_id, provider_id, raw_event_id, type, occurred_at, mailbox_provider, original_type, original_code, diagnostic, bounce_class, machine, url, user_agent, ip, recipient, provider_message_id, source, received_at, dedupe_key FROM delivery_events WHERE message_id = $1 ORDER BY occurred_at, received_at
+SELECT id, workspace_id, message_id, campaign_id, contact_id, provider_id, raw_event_id, type, occurred_at, mailbox_provider, original_type, original_code, diagnostic, bounce_class, machine, url, user_agent, ip, recipient, provider_message_id, source, received_at, dedupe_key, class, link FROM delivery_events WHERE message_id = $1 ORDER BY occurred_at, received_at
 `
 
 func (q *Queries) ConnectMessageEvents(ctx context.Context, messageID *uuid.UUID) ([]DeliveryEvent, error) {
@@ -271,6 +353,8 @@ func (q *Queries) ConnectMessageEvents(ctx context.Context, messageID *uuid.UUID
 			&i.Source,
 			&i.ReceivedAt,
 			&i.DedupeKey,
+			&i.Class,
+			&i.Link,
 		); err != nil {
 			return nil, err
 		}
@@ -328,7 +412,7 @@ func (q *Queries) ConnectProviderRouted(ctx context.Context, arg ConnectProvider
 }
 
 const connectProvidersWithSecrets = `-- name: ConnectProvidersWithSecrets :many
-SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at FROM providers
+SELECT id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at, ip_source FROM providers
 WHERE workspace_id = $1 AND disconnected_at IS NULL AND webhook_secret_enc IS NOT NULL
 ORDER BY connected_at
 `
@@ -367,6 +451,7 @@ func (q *Queries) ConnectProvidersWithSecrets(ctx context.Context, workspaceID u
 			&i.ConnectedBy,
 			&i.ConnectedAt,
 			&i.DisconnectedAt,
+			&i.IpSource,
 		); err != nil {
 			return nil, err
 		}
@@ -477,9 +562,9 @@ func (q *Queries) ConnectSuppressionSyncMode(ctx context.Context, arg ConnectSup
 const connectUpdateProvider = `-- name: ConnectUpdateProvider :one
 UPDATE providers
 SET label = $1, config = $2, credentials_enc = $3, status = $4, status_detail = $5,
-    ip_mode = $6, ips = $7::text[], health = $8, last_checked_at = $9
-WHERE id = $10
-RETURNING id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at
+    health = $6, last_checked_at = $7
+WHERE id = $8
+RETURNING id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, webhook_secret_enc, status, status_detail, ip_mode, ips, capabilities, limits, health, pricing, tracking, last_event_at, last_checked_at, connected_by, connected_at, disconnected_at, ip_source
 `
 
 type ConnectUpdateProviderParams struct {
@@ -488,14 +573,14 @@ type ConnectUpdateProviderParams struct {
 	CredentialsEnc []byte          `json:"credentialsEnc"`
 	Status         string          `json:"status"`
 	StatusDetail   string          `json:"statusDetail"`
-	IpMode         string          `json:"ipMode"`
-	Ips            []string        `json:"ips"`
 	Health         json.RawMessage `json:"health"`
 	CheckedAt      *time.Time      `json:"checkedAt"`
 	ID             uuid.UUID       `json:"id"`
 }
 
-// Settings and credentials from a repeated connection step (new key, other region).
+// Settings and credentials from a repeated connection step (new key, other
+// region). The sending IPs are left to the IP check and to people (they
+// change apart from this, and writing back what was read would undo them).
 func (q *Queries) ConnectUpdateProvider(ctx context.Context, arg ConnectUpdateProviderParams) (Provider, error) {
 	row := q.db.QueryRow(ctx, connectUpdateProvider,
 		arg.Label,
@@ -503,8 +588,6 @@ func (q *Queries) ConnectUpdateProvider(ctx context.Context, arg ConnectUpdatePr
 		arg.CredentialsEnc,
 		arg.Status,
 		arg.StatusDetail,
-		arg.IpMode,
-		arg.Ips,
 		arg.Health,
 		arg.CheckedAt,
 		arg.ID,
@@ -534,6 +617,7 @@ func (q *Queries) ConnectUpdateProvider(ctx context.Context, arg ConnectUpdatePr
 		&i.ConnectedBy,
 		&i.ConnectedAt,
 		&i.DisconnectedAt,
+		&i.IpSource,
 	)
 	return i, err
 }

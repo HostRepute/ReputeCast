@@ -46,7 +46,17 @@ export const me = defineMessages('providers.events', {
 
   // ── Suppression sync ─────────────────────────────────────────────────
   syncTitle: 'Shared suppression list sync',
-  syncLine: '{count, plural, one {# address} other {# addresses}} · a bounce at one provider stops mail everywhere',
+  syncLine: '{count, plural, one {# address} other {# addresses}} · a hard bounce or complaint at one provider stops mail everywhere',
+  /** What the sync pushes to providers and what stays in ReputeCast (PR-1). {count} is formatted ("1,498"). */
+  pushedLead: 'Pushed to providers:',
+  pushedBody: 'hard bounces and complaints that apply to all mail ({count}).',
+  keptBody: 'Unsubscribes and other marketing-only suppressions ({marketing}) stay in ReputeCast so password resets and receipts still arrive. Manual entries and other suppressions that apply to all mail ({manual}) stay here too, and ReputeCast still blocks them for all mail.',
+  removalsTenant: "Removals sync too. {provider} gets them on the workspace's tenant list, not your whole AWS account.",
+  removalsReadOnly: "Removals sync too. {provider}'s account-level list is shared by every app on your AWS account, so ReputeCast only reads it.",
+  removals: 'Removals sync too.',
+  syncCaption: 'Suppression sync per sending provider',
+  pushedChips: 'Pushed',
+  keptChips: 'Kept in ReputeCast',
   syncAll: 'Sync all now',
   syncLoadFailed: "Couldn't load the sync status",
   colDirection: 'Direction',
@@ -71,11 +81,17 @@ export const me = defineMessages('providers.events', {
   reasonComplaint: 'complaint',
   reasonUnsubscribed: 'unsubscribed',
   reasonManual: 'manual',
+  reasonRole: 'role address',
+  reasonImported: 'imported',
+  reasonSpamTrap: 'spam trap',
+  reasonInvalid: 'invalid',
   openSuppressions: 'Open suppression list',
   syncQueued: '{count, plural, one {Syncing # provider} other {Syncing # providers}}',
   nothingToSync: 'Nothing to sync',
-  syncDetail: 'Pulled addresses join the shared list; the list is pushed back out.',
+  syncDetail: 'Pulled addresses join the shared list; hard bounces and complaints are pushed back out.',
   syncFailed: "The sync didn't start",
+  /** Addresses a provider still has to add or remove. */
+  pending: '{count, plural, one {# pending} other {# pending}}',
 
   // ── Provider-side tracking ───────────────────────────────────────────
   trackingTitle: 'Provider-side tracking check',

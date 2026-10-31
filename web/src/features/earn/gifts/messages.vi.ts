@@ -71,7 +71,7 @@ export default translate(mg, {
   giftsTitle: 'Quà tặng',
   giftsCaption: 'Mọi quà tặng đã mua trên {host}. Thời gian theo múi giờ của người mua.',
   giftsCaptionRo:
-    'Không có menu cho từng dòng: đổi ngày giao, gửi lại hoặc sao chép liên kết nhận quà cần quyền <mono>earn:manage</mono>.',
+    'Không có menu cho từng dòng: vai trò của bạn không thể đổi ngày giao, gửi lại hoặc sao chép liên kết nhận quà.',
   search: 'Người mua, người nhận hoặc email',
   searchLabel: 'Tìm quà tặng',
   filterLabel: 'Lọc quà tặng',
@@ -166,11 +166,11 @@ export default translate(mg, {
   // Read-only and errors.
   readOnlyTitle: 'Chỉ xem · {name}, {role}',
   readOnlyBoth:
-    'Bạn có thể xem quà tặng và trạng thái của chúng. Thay đổi tùy chọn quà tặng hoặc trang quà tặng cần quyền <mono>earn:edit</mono>, và thay đổi một quà tặng cần quyền <mono>earn:manage</mono>. Hãy hỏi {helpers}.',
+    'Bạn có thể xem quà tặng và trạng thái của chúng. Vai trò của bạn không thể thay đổi tùy chọn quà tặng, trang quà tặng hay chính các quà tặng. Hãy hỏi {helpers}.',
   readOnlyEdit:
-    'Bạn có thể xem và thay đổi quà tặng. Thay đổi tùy chọn quà tặng hoặc trang quà tặng cần quyền <mono>earn:edit</mono>. Hãy hỏi {helpers}.',
+    'Bạn có thể xem và thay đổi quà tặng. Vai trò của bạn không thể thay đổi tùy chọn quà tặng hay trang quà tặng. Hãy hỏi {helpers}.',
   readOnlyManage:
-    'Thay đổi một quà tặng (ngày giao, gửi lại, sao chép liên kết nhận quà) cần quyền <mono>earn:manage</mono>. Hãy hỏi {helpers}.',
+    'Vai trò của bạn không thể đổi ngày giao, gửi lại hay sao chép liên kết nhận quà của một quà tặng. Hãy hỏi {helpers}.',
   // Fills {helpers} in "Ask {helpers}." above when nobody can be named.
   helpersFallback: 'chủ sở hữu không gian làm việc',
   errorTitle: 'Không tải được quà tặng',

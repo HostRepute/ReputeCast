@@ -44,32 +44,6 @@ VALUES (@id, @workspace_id, @message_id, @campaign_id, @contact_id, @provider_id
 ON CONFLICT (provider_id, dedupe_key) WHERE dedupe_key <> '' DO NOTHING
 RETURNING id;
 
--- name: IngestUpdateMessage :exec
--- Moves a message forward: delivered/deferred are replaced by bounces and
--- complaints, never the other way round.
-UPDATE messages
-SET status = CASE
-        WHEN @status::text = 'complained' THEN 'complained'
-        WHEN @status::text = 'bounced' AND status <> 'complained' THEN 'bounced'
-        WHEN @status::text = 'rejected' AND status IN ('queued', 'sent', 'deferred', 'held') THEN 'rejected'
-        WHEN @status::text = 'delivered' AND status IN ('queued', 'sent', 'deferred', 'held') THEN 'delivered'
-        WHEN @status::text = 'deferred' AND status IN ('queued', 'sent', 'held') THEN 'deferred'
-        ELSE status END,
-    delivered_at = CASE WHEN @status::text = 'delivered' THEN coalesce(delivered_at, @at::timestamptz) ELSE delivered_at END,
-    error = CASE WHEN @status::text IN ('bounced', 'rejected', 'deferred') AND @error::text <> '' THEN @error::text ELSE error END
-WHERE id = @id;
-
--- name: IngestBumpCounters :exec
-INSERT INTO campaign_counters (campaign_id, provider_id, mailbox_provider, variant, delivered, deferred, hard_bounced, soft_bounced, complained, rejected)
-VALUES (@campaign_id, @provider_id, @mailbox_provider, @variant, @delivered, @deferred, @hard_bounced, @soft_bounced, @complained, @rejected)
-ON CONFLICT (campaign_id, provider_id, mailbox_provider, variant) DO UPDATE
-SET delivered = campaign_counters.delivered + EXCLUDED.delivered,
-    deferred = campaign_counters.deferred + EXCLUDED.deferred,
-    hard_bounced = campaign_counters.hard_bounced + EXCLUDED.hard_bounced,
-    soft_bounced = campaign_counters.soft_bounced + EXCLUDED.soft_bounced,
-    complained = campaign_counters.complained + EXCLUDED.complained,
-    rejected = campaign_counters.rejected + EXCLUDED.rejected;
-
 -- name: IngestAddSuppression :one
 INSERT INTO suppressions (id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_at)
 VALUES (@id, @workspace_id, @email, @reason, @source, @source_provider_id, @original_code, @detail, @created_at)

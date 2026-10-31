@@ -143,6 +143,6 @@ export const mt = defineMessages('earn.tier', {
   savedSyncFailed: '{tier} saved; Stripe didn’t answer',
   errName: 'Name the tier.',
   errPrice: 'Give the tier a monthly or a yearly price.',
-  readOnly: 'Changing plans and offers needs {permission}. Ask {helpers}.',
-  readOnlyNoHelpers: 'Changing plans and offers needs {permission}.',
+  readOnly: 'Your role can’t change plans and offers. Ask {helpers}.',
+  readOnlyNoHelpers: 'Your role can’t change plans and offers.',
 })

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/tracking"
 )
 
@@ -17,7 +18,8 @@ import (
 // region. Their values are formatted here rather than by the message: a
 // value's name says how ("…Rate" a rate per second with at most one
 // decimal, "…Pct" a percentage with two decimals below 1% and one above,
-// "…Day" a day without its year, "mailbox" a mailbox provider's key, any
+// "…Day" a day without its year, "mailbox" a mailbox provider's key (it
+// reads as the provider's name: "Outlook", "Other"), any
 // other number a count), which writes the English exactly as the engine
 // always has.
 
@@ -30,6 +32,7 @@ type detailTexts struct {
 	Options         []optionTexts `json:"options,omitempty"`
 	RiskText        i18n.Text     `json:"riskText,omitzero"`
 	WarmupNote      i18n.Text     `json:"warmupNote,omitzero"`
+	MoveChecks      []i18n.Text   `json:"moveChecks,omitempty"`
 }
 
 type causeTexts struct {
@@ -116,6 +119,19 @@ func (d *IncidentDetail) setWarmupNote(t i18n.Text) {
 	d.kept().WarmupNote = t
 }
 
+// setMoveChecks sets the checks a move's target passed.
+func (d *IncidentDetail) setMoveChecks(checks []moveCheck) {
+	if d.Move == nil {
+		return
+	}
+	k := d.kept()
+	d.Move.Checks, k.MoveChecks = nil, nil
+	for _, c := range checks {
+		d.Move.Checks = append(d.Move.Checks, MoveCheck{Key: c.key, Result: c.result, Text: sentence(i18n.Default, c.text)})
+		k.MoveChecks = append(k.MoveChecks, c.text)
+	}
+}
+
 // setRisk sets the move's reputation risk.
 func (d *IncidentDetail) setRisk(risk string, t i18n.Text) {
 	if d.Move == nil {
@@ -135,7 +151,7 @@ func sentence(l i18n.Lang, t i18n.Text) string {
 	if err != nil {
 		return ""
 	}
-	args := make(i18n.Args, len(t.Args)+1)
+	args := make(i18n.Args, len(t.Args))
 	for k, v := range t.Args {
 		args[k] = value(l, k, v)
 	}
@@ -150,6 +166,10 @@ func value(l i18n.Lang, name string, v any) any {
 	r := l.Region
 	switch x := v.(type) {
 	case string:
+		if name == "mailbox" && slices.Contains(routing.MailboxProviders, x) {
+			// A mailbox provider's key reads as its name ("Outlook", "Other").
+			return mailboxIn(l, x)
+		}
 		if strings.HasSuffix(name, "Day") {
 			if t, err := time.Parse(time.RFC3339, x); err == nil {
 				return r.DayMonth(t)
@@ -284,6 +304,14 @@ func (d IncidentDetail) In(l i18n.Lang) IncidentDetail {
 	if d.Move != nil {
 		m := *d.Move
 		m.RiskText = in(m.RiskText, t.RiskText)
+		if d.Move.Checks != nil {
+			m.Checks = slices.Clone(d.Move.Checks)
+			for i := range m.Checks {
+				if i < len(t.MoveChecks) {
+					m.Checks[i].Text = in(m.Checks[i].Text, t.MoveChecks[i])
+				}
+			}
+		}
 		out.Move = &m
 	}
 	out.WarmupNote = in(d.WarmupNote, t.WarmupNote)
@@ -308,12 +336,13 @@ func mailboxNamesIn(l i18n.Lang, names []string) []string {
 
 // liveText is what a snapshot needs to be written in another language.
 type liveText struct {
-	via        []viaPart
-	audience   audienceParts
-	shared     []string // SharedStreams' streams
-	failovers  []string // Failovers' streams
-	held       []string // MailboxesHeld's keys
-	continuing []string // Continuing's keys
+	via         []viaPart
+	audience    audienceParts
+	shared      []string // SharedStreams' streams
+	failovers   []string // Failovers' streams
+	held        []string // MailboxesHeld's keys
+	continuing  []string // Continuing's keys
+	notReported []string // Totals.NotReported's keys
 }
 
 // viaPart is one way a send's events arrive: SNS, the bounce mailbox or a
@@ -431,6 +460,10 @@ func (s LiveSnapshot) In(l i18n.Lang) LiveSnapshot {
 	for i := range out.DeliveredMix {
 		out.DeliveredMix[i].Name = mailboxIn(l, out.DeliveredMix[i].Key)
 	}
+	out.Providers = slices.Clone(s.Providers)
+	for i := range out.Providers {
+		out.Providers[i].WarmupHold = out.Providers[i].WarmupHold.In(l)
+	}
 	routes := make([]string, 0, len(s.Routes))
 	for _, r := range s.Routes {
 		routes = append(routes, r.Short+" "+l.Region.Percent(r.Percent, 0))
@@ -440,6 +473,7 @@ func (s LiveSnapshot) In(l i18n.Lang) LiveSnapshot {
 	}
 	if t := s.text; t != nil {
 		out.MailboxesHeld, out.Continuing = keysIn(l, t.held), keysIn(l, t.continuing)
+		out.Totals.NotReported = keysIn(l, t.notReported)
 		out.SharedStreams = make([]string, len(t.shared))
 		for i, st := range t.shared {
 			out.SharedStreams[i] = streamIn(l, st)

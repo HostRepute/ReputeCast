@@ -35,7 +35,7 @@ export default translate(ma, {
   save: 'Lưu',
   saved: 'Đã lưu phân bổ',
   savedText: 'Đã ghi vào nhật ký kiểm tra.',
-  readOnly: 'Thay đổi phân bổ cần quyền <mono>payments:manage</mono>.',
+  readOnly: 'Vai trò của bạn không thể thay đổi phân bổ.',
   // The conversions log.
   logTitle: 'Nhật ký chuyển đổi',
   logAll: '{count, plural, =1 {Lượt chuyển đổi duy nhất là} other {Cả # lượt chuyển đổi đều là}} “{name}” trị giá {value}, từ {sender}',

@@ -111,11 +111,15 @@ func (q *Queries) CampaignTotalsSince(ctx context.Context, arg CampaignTotalsSin
 }
 
 const composerAudienceLists = `-- name: ComposerAudienceLists :many
-SELECT l.id, l.name,
-       (SELECT count(*) FROM list_memberships m
-        JOIN contacts c ON c.id = m.contact_id
-        WHERE m.list_id = l.id AND m.status = 'subscribed' AND c.status = 'active' AND c.erased_at IS NULL)::bigint AS subscribers
+SELECT l.id, l.name, coalesce(n.subscribers, 0)::bigint AS subscribers
 FROM lists l
+LEFT JOIN (
+  SELECT m.list_id, count(*) AS subscribers
+  FROM list_memberships m
+  JOIN contacts c ON c.id = m.contact_id
+  WHERE c.workspace_id = $1 AND m.status = 'subscribed' AND c.status = 'active' AND c.erased_at IS NULL
+  GROUP BY m.list_id
+) n ON n.list_id = l.id
 WHERE l.workspace_id = $1 AND l.deleted_at IS NULL
 ORDER BY l.created_at
 `
@@ -127,6 +131,7 @@ type ComposerAudienceListsRow struct {
 }
 
 // Lists with their subscribed, active contacts (suppressed addresses excluded).
+// The workspace's memberships are counted in one pass, not list by list.
 func (q *Queries) ComposerAudienceLists(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceListsRow, error) {
 	rows, err := q.db.Query(ctx, composerAudienceLists, workspaceID)
 	if err != nil {
@@ -197,27 +202,6 @@ type ComposerCountListAudienceParams struct {
 // (restorable for 30 days) adds nobody; as an exclusion it still excludes.
 func (q *Queries) ComposerCountListAudience(ctx context.Context, arg ComposerCountListAudienceParams) (int64, error) {
 	row := q.db.QueryRow(ctx, composerCountListAudience, arg.WorkspaceID, arg.Lists, arg.ExcludeLists)
-	var column_1 int64
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
-const composerCountMissingField = `-- name: ComposerCountMissingField :one
-SELECT count(DISTINCT c.id)::bigint
-FROM contacts c
-JOIN list_memberships m ON m.contact_id = c.id
-WHERE c.workspace_id = $1 AND c.status = 'active' AND c.erased_at IS NULL
-  AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($2::uuid[]) AND ll.deleted_at IS NULL)) AND c.first_name = ''
-`
-
-type ComposerCountMissingFieldParams struct {
-	WorkspaceID uuid.UUID   `json:"workspaceId"`
-	Lists       []uuid.UUID `json:"lists"`
-}
-
-// Audience contacts whose first name is empty (they see the fallback).
-func (q *Queries) ComposerCountMissingField(ctx context.Context, arg ComposerCountMissingFieldParams) (int64, error) {
-	row := q.db.QueryRow(ctx, composerCountMissingField, arg.WorkspaceID, arg.Lists)
 	var column_1 int64
 	err := row.Scan(&column_1)
 	return column_1, err
@@ -315,8 +299,33 @@ func (q *Queries) ComposerLatestReadiness(ctx context.Context, campaignID uuid.U
 	return i, err
 }
 
+const composerListIDs = `-- name: ComposerListIDs :many
+SELECT id FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL
+`
+
+// The lists an audience may name.
+func (q *Queries) ComposerListIDs(ctx context.Context, workspaceID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, composerListIDs, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const composerLockCampaign = `-- name: ComposerLockCampaign :one
-SELECT c.id, c.status, c.version, c.subject, c.preheader, c.mjml, c.html, c.ab_test, c.content_hash, c.content_settings,
+SELECT c.id, c.status, c.version, c.subject, c.preheader, c.mjml, c.html, c.plain_text, c.ab_test, c.content_hash, c.content_settings,
        c.updated_by, c.autosaved_at, c.updated_at,
        coalesce(u.name, '')::text AS updated_by_name
 FROM campaigns c
@@ -338,6 +347,7 @@ type ComposerLockCampaignRow struct {
 	Preheader       string          `json:"preheader"`
 	Mjml            string          `json:"mjml"`
 	Html            string          `json:"html"`
+	PlainText       string          `json:"plainText"`
 	AbTest          json.RawMessage `json:"abTest"`
 	ContentHash     string          `json:"contentHash"`
 	ContentSettings json.RawMessage `json:"contentSettings"`
@@ -359,6 +369,7 @@ func (q *Queries) ComposerLockCampaign(ctx context.Context, arg ComposerLockCamp
 		&i.Preheader,
 		&i.Mjml,
 		&i.Html,
+		&i.PlainText,
 		&i.AbTest,
 		&i.ContentHash,
 		&i.ContentSettings,
@@ -825,7 +836,7 @@ func (q *Queries) GetComposerSender(ctx context.Context, arg GetComposerSenderPa
 
 const getComposerVersion = `-- name: GetComposerVersion :one
 SELECT v.campaign_id, v.version, v.subject, v.preheader, v.mjml, v.html, v.plain_text, v.ab_test, v.saved_by, v.saved_at, v.label, v.source, v.size_bytes,
-       coalesce(u.name, '')::text AS saved_by_name
+       v.name, coalesce(u.name, '')::text AS saved_by_name
 FROM campaign_versions v
 LEFT JOIN users u ON u.id = v.saved_by
 WHERE v.campaign_id = $1 AND v.version = $2
@@ -850,6 +861,7 @@ type GetComposerVersionRow struct {
 	Label       string          `json:"label"`
 	Source      string          `json:"source"`
 	SizeBytes   int32           `json:"sizeBytes"`
+	Name        string          `json:"name"`
 	SavedByName string          `json:"savedByName"`
 }
 
@@ -870,6 +882,7 @@ func (q *Queries) GetComposerVersion(ctx context.Context, arg GetComposerVersion
 		&i.Label,
 		&i.Source,
 		&i.SizeBytes,
+		&i.Name,
 		&i.SavedByName,
 	)
 	return i, err
@@ -1368,7 +1381,7 @@ func (q *Queries) ProviderNames(ctx context.Context, workspaceID uuid.UUID) ([]P
 
 const pruneComposerVersions = `-- name: PruneComposerVersions :execrows
 DELETE FROM campaign_versions v
-WHERE v.campaign_id = $1 AND v.source = 'autosave' AND v.version <> 1
+WHERE v.campaign_id = $1 AND v.source = 'autosave' AND v.version <> 1 AND v.name = ''
   AND v.version <= (SELECT max(x.version) FROM campaign_versions x WHERE x.campaign_id = $1) - $2::int
 `
 
@@ -1377,8 +1390,8 @@ type PruneComposerVersionsParams struct {
 	Keep       int32     `json:"keep"`
 }
 
-// Keeps the newest @keep versions; the first version and anything that is
-// not an autosave (restores, imports, ⌘S) are always kept.
+// Keeps the newest @keep versions; the first version, named versions and
+// anything that is not an autosave (restores, imports, ⌘S) are always kept.
 func (q *Queries) PruneComposerVersions(ctx context.Context, arg PruneComposerVersionsParams) (int64, error) {
 	result, err := q.db.Exec(ctx, pruneComposerVersions, arg.CampaignID, arg.Keep)
 	if err != nil {

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 )
 
 // The Northwind Studio sample: seven clients and the agency's own
@@ -139,6 +140,36 @@ func TestOverviewOfTheSample(t *testing.T) {
 	if !slices.Equal(names, []string{"Season pass early bird", "Studio notes #18", "Weekend gear sale, by email and text", "Wine club: November box"}) ||
 		o.NextAfter == nil || o.NextAfter.Name != "Holiday blend pre-order" {
 		t.Fatalf("sends: %v then %+v", names, o.NextAfter)
+	}
+}
+
+// Gmail and iCloud never report complaints (review F-2): the clients' sent
+// campaigns hold none there.
+func TestSampleComplaintsOnlyWhereReported(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedNorthwind()
+	rows, err := env.App.Pool.Query(context.Background(), `SELECT mailbox_provider, sum(complained)::bigint FROM campaign_counters GROUP BY 1`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	complained := int64(0)
+	for rows.Next() {
+		var mbp string
+		var n int64
+		if err := rows.Scan(&mbp, &n); err != nil {
+			t.Fatal(err)
+		}
+		if n > 0 && !mailbox.ReportsComplaints(mbp) {
+			t.Errorf("%d complaints at %s, which doesn't report them", n, mbp)
+		}
+		complained += n
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	if complained == 0 {
+		t.Fatal("the sample's sends hold no complaints at all")
 	}
 }
 
@@ -494,7 +525,11 @@ func TestLibraryCopiesAndNewerVersions(t *testing.T) {
 	var v staffView
 	p["tomas"].Do("GET", "/agency/staff", nil).MustStatus(t, 200).JSON(t, &v)
 	p["tomas"].Do("PATCH", "/agency/staff/"+v.staff(t, "Mei Lin"), map[string]any{"level": "account_manager", "permissions": []string{"agency:view", "agency:usage"}}).MustStatus(t, 204)
-	p["mei"].Do("PATCH", "/agency/library/"+hero, map[string]any{"name": "Holiday hero"}).MustStatus(t, 403)
+	var refused struct{ Detail string }
+	p["mei"].Do("PATCH", "/agency/library/"+hero, map[string]any{"name": "Holiday hero"}).MustStatus(t, 403).JSON(t, &refused)
+	if !strings.HasPrefix(refused.Detail, "You can't change the library or workspace templates.") || strings.Contains(refused.Detail, "agency:") {
+		t.Fatalf("refusal: %q", refused.Detail)
+	}
 	p["mei"].Do("GET", "/agency/library/"+hero, nil).MustStatus(t, 200)
 	// Narrowing never adds: agency:manage isn't an account manager's.
 	p["tomas"].Do("PATCH", "/agency/staff/"+v.staff(t, "Mei Lin"), map[string]any{"level": "account_manager", "permissions": []string{"agency:manage"}}).MustStatus(t, 422)

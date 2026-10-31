@@ -43,6 +43,13 @@ const composerDigestFooter = `    <!-- rc:footer -->
       </mj-column>
     </mj-section>`
 
+// syncedSection marks a section as the brand kit's synced block of a kind
+// (mjml.AttrSynced): Weekly Digest #142 holds the kit's Header and Footer
+// (seed_brandkit.go). Like every rc-* attribute it stays out of the HTML.
+func syncedSection(section, kind string) string {
+	return strings.Replace(section, "<mj-section ", `<mj-section rc-synced="`+kind+`" `, 1)
+}
+
 func composerButton(href, label string) string {
 	return `<mj-button href="` + href + `" css-class="rc-btn-block" align="left" background-color="#0F766E" color="#ffffff" font-family="` + composerPlexFont + `" font-size="13px" font-weight="600" border-radius="6px" inner-padding="9px 14px" padding="0px">` + label + `</mj-button>`
 }
@@ -70,7 +77,7 @@ func composerDigestCards(padding string) string {
 func composerDigestMJML(stage int, subject, preheader string) string {
 	var b strings.Builder
 	b.WriteString("<mjml>\n" + fmt.Sprintf(composerDigestHead, composerXMLText(subject), composerXMLText(preheader)) + "\n  <mj-body width=\"600px\" background-color=\"#F3F4F6\">\n")
-	b.WriteString(composerDigestHeader + "\n")
+	b.WriteString(syncedSection(composerDigestHeader, "header") + "\n")
 	headline, intro := "Three launches, one deprecation, and the roadmap for Q4", `Hi {{ first_name | default: "there" }}, here's what shipped this week at Acme, what we're retiring in November, and where the next quarter is headed.`
 	if stage < 9 {
 		headline, intro = "This week at Acme", `Hi {{ first_name | default: "there" }}, the launches, guides and changelog highlights of the week.`
@@ -102,7 +109,7 @@ func composerDigestMJML(stage int, subject, preheader string) string {
     </mj-section>
 `)
 	}
-	b.WriteString(composerDigestFooter + "\n  </mj-body>\n</mjml>\n")
+	b.WriteString(syncedSection(composerDigestFooter, "footer") + "\n  </mj-body>\n</mjml>\n")
 	return b.String()
 }
 

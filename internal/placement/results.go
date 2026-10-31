@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -267,6 +268,60 @@ func providerResults(t store.PlacementTest, copies []store.PlacementCopy) []Plac
 	return out
 }
 
+// PlacementMailboxResult is where a test's copies landed at one mailbox
+// provider (Gmail, Outlook.com, Yahoo…), whichever sending provider carried
+// them: Review & send's placement card shows Inbox, Promotions and Spam per
+// mailbox provider (SR-9).
+type PlacementMailboxResult struct {
+	Provider string `json:"provider" doc:"The seed mailbox provider's key (gmail)"`
+	Name     string `json:"name" doc:"Gmail, Outlook.com, Yahoo"`
+	// Tab is the inbox tab the provider sorts bulk mail into ("Promotions"
+	// at Gmail, "Other" at Outlook.com), empty for providers without tabs.
+	Tab    string          `json:"tab,omitempty"`
+	Counts PlacementCounts `json:"counts"`
+}
+
+// mailboxResults counts a test's copies per mailbox provider, in the order
+// the seed dialog lists the providers.
+func mailboxResults(copies []store.PlacementCopy) []PlacementMailboxResult {
+	by := map[string][]store.PlacementCopy{}
+	for _, c := range copies {
+		by[c.SeedProvider] = append(by[c.SeedProvider], c)
+	}
+	keys := make([]string, 0, len(by))
+	for _, p := range seedbox.Providers {
+		if _, ok := by[p.Key]; ok {
+			keys = append(keys, p.Key)
+		}
+	}
+	for _, k := range slices.Sorted(maps.Keys(by)) {
+		if !slices.Contains(keys, k) {
+			keys = append(keys, k)
+		}
+	}
+	out := make([]PlacementMailboxResult, 0, len(keys))
+	for _, k := range keys {
+		name := k
+		if p, ok := seedbox.ProviderOf(k); ok {
+			name = p.Name
+		}
+		out = append(out, PlacementMailboxResult{Provider: k, Name: name, Tab: bulkTab(k), Counts: countCopies(by[k], nil)})
+	}
+	return out
+}
+
+// bulkTab is the inbox tab a mailbox provider sorts bulk mail into, "" for
+// providers without tabs.
+func bulkTab(key string) string {
+	switch {
+	case seedbox.IsGoogle(key):
+		return "Promotions"
+	case seedbox.IsMicrosoft(key):
+		return "Other"
+	}
+	return ""
+}
+
 // PlacementTestRow is a test in the list and the trend.
 type PlacementTestRow struct {
 	ID             string     `json:"id"`
@@ -292,14 +347,16 @@ type PlacementTestRow struct {
 	LateUntil       *time.Time                `json:"lateUntil,omitempty" doc:"Late copies found until then update the result"`
 	FinishedAt      *time.Time                `json:"finishedAt,omitempty"`
 	Providers       []PlacementProviderResult `json:"providers"`
-	Counts          PlacementCounts           `json:"counts"`
+	// Mailboxes are the copies per mailbox provider (SR-9).
+	Mailboxes []PlacementMailboxResult `json:"mailboxes"`
+	Counts    PlacementCounts          `json:"counts"`
 }
 
 func testRow(l i18n.Lang, t store.PlacementTest, startedBy, color string, copies []store.PlacementCopy) PlacementTestRow {
 	r := PlacementTestRow{ID: t.ID.String(), Name: NameIn(l, t.Name, t.ContentName), ContentKind: t.ContentKind, ContentName: t.ContentName, ContentNote: t.ContentNote,
 		ContentKey: t.ContentKey, ContentVersion: int(t.ContentVersion), ContentAt: t.ContentAt, Personalization: t.Personalization, Origin: t.Origin,
 		Through: t.Through, Status: t.Status, StartedAt: t.StartedAt, StartedBy: startedBy, StartedByColor: color, LastSentAt: t.LastSentAt, WaitUntil: t.WaitUntil,
-		LateUntil: t.LateUntil, FinishedAt: t.FinishedAt, Providers: providerResults(t, copies), Counts: countCopies(copies, nil)}
+		LateUntil: t.LateUntil, FinishedAt: t.FinishedAt, Providers: providerResults(t, copies), Mailboxes: mailboxResults(copies), Counts: countCopies(copies, nil)}
 	if t.ContentID != nil {
 		r.ContentID = t.ContentID.String()
 	}

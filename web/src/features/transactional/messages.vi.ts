@@ -49,7 +49,7 @@ const common = translate(mt, {
   retry: 'Thử lại',
   loading: 'Đang tải…',
   forbiddenTitle: 'Vai trò của bạn không xem được thư giao dịch',
-  forbiddenBody: 'Giao dịch cần quyền {permission}. Hãy hỏi Chủ sở hữu hoặc Quản trị viên của {workspace}.',
+  forbiddenBody: 'Vai trò của bạn không xem được thư giao dịch. Hãy hỏi Chủ sở hữu hoặc Quản trị viên của {workspace}.',
 })
 
 const overview = translate(mo, {

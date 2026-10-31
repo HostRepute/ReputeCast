@@ -434,7 +434,7 @@ export function zonedParts(d: string | number | Date): DateParts {
  * A calendar day ("2026-10-14", in no timezone) in the region format:
  * "Wednesday 14 Oct 2026" (longDate), "Nov 4" (monthDay), "Nov 4, 2026" (date).
  */
-export function calendarDate(day: string, kind: 'longDate' | 'monthDay' | 'date' = 'longDate'): string {
+export function calendarDate(day: string, kind: 'longDate' | 'monthDay' | 'date' | 'shortDate' = 'longDate'): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day)
   if (!m) return day
   const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])))

@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { Note } from '@/components/ui/Note'
 import { T, useT } from '@/i18n'
-import { andList, count, dayMonthDate, orList, rate, shortDate } from '@/lib/format'
+import { andList, count, dayMonthDate, rate, shortDate } from '@/lib/format'
 import { roleName } from '@/lib/roles'
 import { useCan, useMe, useWorkspace } from '@/lib/session'
 import { day, money } from '../format'
@@ -20,7 +20,6 @@ type Revenue = Schemas['CampaignRevenue']
 type TT = ReturnType<typeof useT>
 
 const WS = '/api/v1/workspaces/{workspace}' as const
-const mono = (c: ReactNode) => <span className="mono">{c}</span>
 
 /**
  * A sent campaign's Revenue and Sponsor sections (EarnInReport): upgrades,
@@ -28,17 +27,21 @@ const mono = (c: ReactNode) => <span className="mono">{c}</span>
  * issue's sponsor with its report. Shown in the report, never on a shared
  * read-only link.
  */
-export function CampaignEarn({ campaignId }: { campaignId: string }) {
+export function CampaignEarn({ campaignId, conversionsInReport }: { campaignId: string; conversionsInReport?: boolean }) {
   const { slug } = useWorkspace()
   const canView = useCan('earn:view')
   const path = { params: { path: { workspace: slug, id: campaignId } } }
   const rev = $api.useQuery('get', `${WS}/campaigns/{id}/revenue`, path)
   const sp = $api.useQuery('get', `${WS}/campaigns/{id}/sponsor`, path, { enabled: canView })
   const booking = sp.data?.booking
-  if (!rev.data?.active && !booking && !rev.error) return null
+  // The report's "Growth & revenue from this issue" shows an email
+  // without upgrade links' conversions (review AN-12); its full Revenue
+  // section stays for upgrades.
+  const shown = rev.data?.active && !(conversionsInReport && !rev.data.locked && !rev.data.hasUpgradeLinks && rev.data.upgrades === 0)
+  if (!shown && !booking && !rev.error) return null
   return (
     <>
-      {rev.error ? <RevenueError error={rev.error} onRetry={() => void rev.refetch()} /> : rev.data?.active ? <RevenueSection r={rev.data} /> : null}
+      {rev.error ? <RevenueError error={rev.error} onRetry={() => void rev.refetch()} /> : shown && rev.data ? <RevenueSection r={rev.data} /> : null}
       {booking ? <SponsorSection b={booking} /> : null}
     </>
   )
@@ -102,7 +105,7 @@ function Locked({ r }: { r: Revenue }) {
           <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
             <span className="font-bold">{t(mrp.lockedTitle, { name: user?.name || user?.email || '', role })}</span>
             <div>
-              <T msg={r.helpers.length ? mrp.locked : mrp.lockedNoHelpers} values={{ mono, helpers: orList(r.helpers) }} />
+              <T msg={r.helpers.length ? mrp.locked : mrp.lockedNoHelpers} values={{ helpers: andList(r.helpers) }} />
             </div>
           </div>
         </div>

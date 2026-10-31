@@ -8,7 +8,8 @@ export type ComposerCtxData = Schemas['ComposerContext']
 export type Checks = Schemas['ComposerChecks']
 export type Issue = Schemas['ContentCheckIssue']
 export type ABTest = Schemas['ComposerABTest']
-export type View = 'visual' | 'mjml' | 'html' | 'preview'
+/** Write is the document mode (CO-9); visual is Design; mjml and html are Code. */
+export type View = 'visual' | 'write' | 'mjml' | 'html' | 'preview'
 
 export type SaveStatus =
   | { kind: 'new' }
@@ -57,13 +58,32 @@ export interface ComposerState {
   setHead(h: string): void
 
   status: SaveStatus
-  /** Saves a version now. `manual` shows the saved card unless `quiet`; `force` overrides a conflict. */
-  save(opts?: { manual?: boolean; quiet?: boolean; force?: boolean; background?: boolean; source?: 'autosave' | 'manual' | 'import' | 'template'; label?: string }): Promise<boolean>
+  /**
+   * Saves a version now. `manual` shows the saved card unless `quiet`; `force` overrides a conflict;
+   * `stash` keeps the edits in the history under the current version (Load theirs); `background`
+   * (timed autosaves) saves the words of a text being typed without ending its editing.
+   * Resolves false when nothing could be saved (conflict, offline, error).
+   */
+  save(opts?: {
+    manual?: boolean
+    quiet?: boolean
+    force?: boolean
+    stash?: boolean
+    background?: boolean
+    source?: 'autosave' | 'manual' | 'import' | 'template' | 'recovered'
+    label?: string
+  }): Promise<boolean>
+  /** Edits not saved yet (typed, waiting, or a save that failed). */
+  hasUnsaved?(): boolean
+  /** What A/B variant `key` sends, unsaved edits included (previews). */
+  variantContent?(key: string): { subject: string; preheader: string; html: string }
+  /** The version the editor is on (the last one it saved or loaded). */
+  currentVersion?(): number
   /** Full MJML of the current content (head with title and preview + canvas). */
   currentMjml(): string
   compileCurrent(): { html: string; errors: { line: number; message: string; tagName: string }[] } | null
   /** Replaces the whole content (template, import, code view, restore); empty string resets to the gallery. */
-  loadContent(mjml: string, how: { source: 'template' | 'import' | 'code' | 'restore' | 'reload'; label?: string }): void
+  loadContent(mjml: string, how: { source: 'template' | 'import' | 'code' | 'restore' | 'reload' | 'recovered'; label?: string }): void
   /** Loads the latest saved version (after a restore, or to take someone else's save). */
   reloadFromServer(): Promise<void>
   /** Content settings changed on the server (minify): re-run the checks. */
@@ -85,9 +105,16 @@ export interface ComposerState {
 
   checks: Checks | undefined
   checksPending: boolean
+  /** The last check run failed: `checks` are the previous results, stale (CO-7). */
+  checksFailure?: { reason: 'network' | 'server' } | null
+  /** A run succeeded again after a failure ("Checked just now"). */
+  checksRecovered?: boolean
+  retryChecks?(): void
   /** The inspector's tab; Web is the website's (features/website/composer), while it's on. */
-  rightTab: 'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'
-  setRightTab(t: 'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'): void
+  rightTab: RightTab
+  setRightTab(t: RightTab): void
+  /** A comment thread to show (a mention's link: ?panel=comments&thread=…), CO-10. */
+  thread?: string
   leftTab: 'blocks' | 'layers' | 'templates'
   setLeftTab(t: 'blocks' | 'layers' | 'templates'): void
   openDialog(d: ComposerDialog): void
@@ -97,6 +124,9 @@ export interface ComposerState {
   /** A language picked that has no version (internal/languages): the canvas gives way to "No … version". */
   missingLanguage?: string
 }
+
+/** The inspector's tabs (Comments: CO-10). */
+export type RightTab = 'style' | 'settings' | 'deliverability' | 'accessibility' | 'web' | 'comments'
 
 export type ComposerDialog = 'versions' | 'assets' | 'import' | 'sendTest' | 'saveTemplate' | 'shortcuts' | 'compare' | null
 

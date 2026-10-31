@@ -48,6 +48,21 @@ WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS 
   AND NOT (c.id = ANY(@exclude_contacts::uuid[]))
 ORDER BY c.created_at, c.id;
 
+-- name: VisibilityRecipientsAmong :many
+-- VisibilityRecipients for some contacts only (a count's samples), read by
+-- id: the same conditions, the same columns.
+SELECT c.id, c.email, c.first_name, c.last_name, c.tier, c.language, c.tags, c.attributes, c.role_address,
+       (c.broadcasts_stopped_at IS NOT NULL)::boolean AS broadcasts_stopped,
+       coalesce((SELECT array_agg(m.list_id) FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'), '{}')::uuid[] AS list_ids,
+       EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email) AS suppressed
+FROM contacts c
+WHERE c.id = ANY(@among::uuid[]) AND c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS NULL
+  AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY(@lists::uuid[]) AND ll.deleted_at IS NULL)))
+       OR c.id = ANY(@contacts::uuid[]))
+  AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY(@exclude_lists::uuid[]))
+  AND NOT (c.id = ANY(@exclude_contacts::uuid[]))
+ORDER BY c.created_at, c.id;
+
 -- name: VisibilityContactFacts :many
 -- What conditions read about some contacts (a send's audience page, a
 -- preview).
@@ -66,16 +81,16 @@ WHERE a.workspace_id = @workspace_id AND a.action IN ('segment.delete', 'list.de
 ORDER BY a.target_type, a.target_id, a.target_name, a.occurred_at DESC;
 
 -- name: VisibilityGetCount :one
-SELECT campaign_id, workspace_id, rules_hash, audience_hash, total, versions, shown, factors, counted_at, duration_ms
+SELECT campaign_id, workspace_id, rules_hash, audience_hash, total, versions, shown, factors, samples, counted_at, duration_ms
 FROM visibility_counts
 WHERE campaign_id = @campaign_id;
 
 -- name: VisibilitySaveCount :exec
-INSERT INTO visibility_counts (campaign_id, workspace_id, rules_hash, audience_hash, total, versions, shown, factors, counted_at, duration_ms)
-VALUES (@campaign_id, @workspace_id, @rules_hash, @audience_hash, @total, @versions, @shown, @factors, @counted_at, @duration_ms)
+INSERT INTO visibility_counts (campaign_id, workspace_id, rules_hash, audience_hash, total, versions, shown, factors, samples, counted_at, duration_ms)
+VALUES (@campaign_id, @workspace_id, @rules_hash, @audience_hash, @total, @versions, @shown, @factors, @samples, @counted_at, @duration_ms)
 ON CONFLICT (campaign_id) DO UPDATE SET
     rules_hash = EXCLUDED.rules_hash, audience_hash = EXCLUDED.audience_hash, total = EXCLUDED.total, versions = EXCLUDED.versions,
-    shown = EXCLUDED.shown, factors = EXCLUDED.factors, counted_at = EXCLUDED.counted_at, duration_ms = EXCLUDED.duration_ms;
+    shown = EXCLUDED.shown, factors = EXCLUDED.factors, samples = EXCLUDED.samples, counted_at = EXCLUDED.counted_at, duration_ms = EXCLUDED.duration_ms;
 
 -- name: VisibilityCampaign :one
 SELECT c.id, c.name, c.status, c.audience, c.mjml, c.html, c.ab_test, c.schedule, c.scheduled_at

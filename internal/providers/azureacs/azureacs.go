@@ -105,6 +105,8 @@ func Descriptor() providers.Descriptor {
 			Bulk:      providers.BulkAllowed,
 			Webhooks:  "Event Grid",
 			BatchSize: 1,
+			// ACS's DKIM signature doesn't cover List-Unsubscribe.
+			OneClick: providers.OneClickUnsigned,
 			// Pricing and every other text people read (the terms' note,
 			// the Adapters tab's words, the fields' labels and hints) are in
 			// messages/en.json: WithMessages fills them.

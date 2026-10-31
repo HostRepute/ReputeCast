@@ -10,7 +10,7 @@ import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { Skeleton } from '@/components/ui/Feedback'
 import { toast } from '@/components/ui/Toast'
 import { AudienceTabs } from '@/features/audience/AudienceTabs'
-import { formatList, T, useT } from '@/i18n'
+import { formatList, useT } from '@/i18n'
 import { clock } from '@/lib/format'
 import { deniedReason, useCan, useWorkspace } from '@/lib/session'
 import { m } from './messages'
@@ -311,10 +311,7 @@ function ReadOnlyNote({ helpers }: { helpers: string[] }) {
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
         <span className="font-bold">{t(m.readOnly)}</span>
         <div>
-          <T
-            msg={names.length ? m.readOnlyAsk : m.readOnlyNoAsk}
-            values={{ helpers: orNames(names), mono: (c) => <span className="mono">{c}</span> }}
-          />
+          {t(names.length ? m.readOnlyAsk : m.readOnlyNoAsk, { helpers: orNames(names) })}
         </div>
       </div>
     </div>

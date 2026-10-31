@@ -35,15 +35,18 @@ import (
 // Adapter is the transport's key.
 const Adapter = "simulator"
 
-// Scenarios.
+// Scenarios. Steady is normal without the provider throttling a call now
+// and then: a send's timing is the engine's rules alone, as an estimate
+// plays them.
 const (
 	ScenarioNormal            = "normal"
 	ScenarioOutlookComplaints = "outlook-complaints"
 	ScenarioPostalOutage      = "postal-outage"
+	ScenarioSteady            = "steady"
 )
 
 // Scenarios lists the valid scenario names.
-var Scenarios = []string{ScenarioNormal, ScenarioOutlookComplaints, ScenarioPostalOutage}
+var Scenarios = []string{ScenarioNormal, ScenarioOutlookComplaints, ScenarioPostalOutage, ScenarioSteady}
 
 // Outage timing of the postal-outage scenario, measured from the send's start.
 const (
@@ -201,9 +204,13 @@ func (p *Provider) outageError(now time.Time) error {
 }
 
 // throttled is true for about one call in a thousand (SES) or 250 (Postal),
-// the API error rates on the boards. The draw depends on the call's time
-// too, so a retry of the same message isn't throttled again for sure.
+// the API error rates on the boards, and never in the steady scenario. The
+// draw depends on the call's time too, so a retry of the same message isn't
+// throttled again for sure.
 func (p *Provider) throttled(id uuid.UUID, now time.Time) bool {
+	if p.s.Scenario == ScenarioSteady {
+		return false
+	}
 	h := binary.BigEndian.Uint32(id[12:16]) ^ uint32(now.UnixNano()/int64(time.Millisecond))*2654435761
 	r := float64(h) / float64(math.MaxUint32)
 	limit := 0.001
@@ -287,13 +294,17 @@ type Event struct {
 // the board's human open rate divided by 0.6. machine (privacy proxies
 // fetching on delivery) is a little above the board's share, because a
 // person who opens after a proxy fetch turns the open human. click is the
-// share of people who open and then click.
+// share of people who open and then click. complaint is what the mailbox
+// provider reports: Gmail and Apple never tell senders about a complaint
+// (review F-2, mailbox.ReportsComplaints), so theirs is 0 whatever their
+// readers do. One planned there would count among a send's complaints
+// while complaint rates leave that mailbox provider's delivered mail out.
 type mailboxRates struct {
 	bounce, complaint, deferral, human, machine, click float64
 }
 
 var rates = map[string]mailboxRates{
-	"gmail":   {bounce: 0.4, complaint: 0.02, deferral: 0.2, human: 18.0, machine: 5.7, click: 23},
+	"gmail":   {bounce: 0.4, complaint: 0.0, deferral: 0.2, human: 18.0, machine: 5.7, click: 23},
 	"outlook": {bounce: 1.1, complaint: 0.05, deferral: 0.4, human: 13.4, machine: 3.3, click: 20},
 	"yahoo":   {bounce: 0.7, complaint: 0.03, deferral: 2.0, human: 15.7, machine: 4.7, click: 21},
 	"icloud":  {bounce: 0.4, complaint: 0.0, deferral: 0.2, human: 7.5, machine: 5.6, click: 18},
@@ -347,7 +358,7 @@ func (p *Provider) Plan(m providers.Message) []Event {
 		return out
 	case roll < rt.bounce+rt.deferral:
 		def := sec(1, 8)
-		out = append(out, p.deferral(mbp, def))
+		out = append(out, p.deferral(mbp, def, rng(m.ID, 0x7553_5304).Float64() < 0.025))
 		deliveredAt = def + 5*time.Minute + sec(0, 40)
 	}
 	out = append(out, Event{Kind: "delivered", After: deliveredAt, OriginalType: p.deliveredType(), Code: p.deliveredCode()})
@@ -461,12 +472,15 @@ func (p *Provider) softBounce(mbp string, after time.Duration) Event {
 	return Event{Kind: "soft_bounce", After: after, OriginalType: typ, Code: "452 4.2.2", Diagnostic: "mailbox full", BounceClass: "mailbox_full"}
 }
 
-func (p *Provider) deferral(mbp string, after time.Duration) Event {
+// deferral is a deferral's event. Yahoo says TSS04 in about one deferral
+// in forty, as on the boards ("TSS04: 1 of 10 replies" in ten minutes),
+// so the demo's reply rule acts only when Yahoo really pushes back.
+func (p *Provider) deferral(mbp string, after time.Duration, tss04 bool) Event {
 	typ := "DeliveryDelay"
 	if p.s.Mimic == "postal" {
 		typ = "MessageDelayed"
 	}
-	if mbp == "yahoo" {
+	if mbp == "yahoo" && tss04 {
 		return Event{Kind: "deferred", After: after, OriginalType: typ, Code: "421 4.7.0 TSS04", Diagnostic: "retry in 5 min", BounceClass: "temporary"}
 	}
 	return Event{Kind: "deferred", After: after, OriginalType: typ, Code: "451 4.7.1", Diagnostic: "temporarily deferred, retry in 5 min", BounceClass: "temporary"}

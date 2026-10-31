@@ -115,11 +115,18 @@ func reportCSV(r CampaignReport, loc *time.Location) []byte {
 	row("Sent", num(h.Sent), "", "")
 	row("Delivered", num(h.Delivered), pctText(h.DeliveredRate, 2), "sent")
 	row("Human opens", num(h.HumanOpens), pctText(h.HumanOpenRate, 2), "delivered")
-	row("Machine opens", num(h.MachineOpens), pctText(h.MachineOpenRate, 2), "delivered")
-	row("Clicks", num(h.Clicks), pctText(h.ClickRate, 2), "delivered")
+	row("Human opens, of measurable", num(h.Measurable), pctText(h.HumanOpenRateMeasurable, 2), "measurable (delivered minus privacy-protected)")
+	row("Privacy-protected opens", num(h.PrivacyOpens), pctText(h.PrivacyOpenRate, 2), "delivered")
+	row("Scanner opens (left out)", num(h.MachineOpens), "", "")
+	row("Human clicks (people)", num(h.Clicks), pctText(h.ClickRate, 2), "delivered")
 	row("Click-to-open", "", pctText(h.ClickToOpen, 2), "human opens")
+	row("Bot clicks (left out)", num(h.BotClicks), "", "")
 	row("Unsubscribes", num(h.Unsubscribes), pctText(h.UnsubscribeRate, 2), "delivered")
 	row("Complaints", num(h.Complaints), pctText(h.ComplaintRate, 2), "delivered")
+	if len(h.NotReportedBy) > 0 {
+		row("Complaints where reported", "", pctText(h.ComplaintRateReported, 2), "delivered by mailbox providers that report complaints")
+		row("Don't report complaints", strings.Join(h.NotReportedBy, ", "), "", "")
+	}
 	row("Bounces", num(h.Bounces), pctText(h.BounceRate, 2), "sent")
 	row("Hard bounces", num(h.HardBounces), "", "")
 	row("Soft bounces", num(h.SoftBounces), "", "")
@@ -130,15 +137,20 @@ func reportCSV(r CampaignReport, loc *time.Location) []byte {
 	row()
 
 	if len(r.Mailboxes) > 0 {
-		row("Mailbox provider", "Sent", "Delivered", "Human opens", "Machine opens", "Clicks", "Bounces", "Complaints", "Unsubscribes")
+		row("Mailbox provider", "Sent", "Delivered", "Human opens, of measurable", "Privacy-protected", "Human clicks", "Bounces", "Complaints", "Unsubscribes")
 		for _, m := range r.Mailboxes {
-			row(m.Name, num(m.Sent), pctText(m.DeliveredRate, 2), pctText(m.HumanOpenRate, 2), pctText(m.MachineOpenRate, 2), pctText(m.ClickRate, 2),
-				pctText(m.BounceRate, 2), pctText(m.ComplaintRate, 2), pctText(m.UnsubscribeRate, 2))
+			complaints := pctText(m.ComplaintRate, 2)
+			if m.ComplaintRateNA != "" {
+				complaints = "n/a (not reported)"
+			}
+			row(m.Name, num(m.Sent), pctText(m.DeliveredRate, 2), pctText(m.HumanOpenRateMeasurable, 2), pctText(m.PrivacyOpenRate, 2), pctText(m.ClickRate, 2),
+				pctText(m.BounceRate, 2), complaints, pctText(m.UnsubscribeRate, 2))
 		}
 		row()
 	}
 	if len(r.Providers.Columns) > 0 {
-		row("Sending provider", "Sent", "Delivered", "Human opens", "Clicks", "Bounces", "Complaints", "Median time to delivery (s)", "Cost (USD)")
+		row("Sending provider", "Sent", "Delivered", "Human opens, of measurable", "Privacy-protected", "Human clicks", "Bounces", "Complaints",
+			"Median time to delivery (s)", "Cost (USD)")
 		for _, p := range r.Providers.Columns {
 			median, cost := "", ""
 			if p.MedianDeliveryMs != nil {
@@ -147,8 +159,8 @@ func reportCSV(r CampaignReport, loc *time.Location) []byte {
 			if p.Cost != nil {
 				cost = strconv.FormatFloat(*p.Cost, 'f', 2, 64)
 			}
-			row(p.Name, num(p.Sent), pctText(p.DeliveredRate, 2), pctText(p.HumanOpenRate, 2), pctText(p.ClickRate, 2), pctText(p.BounceRate, 2),
-				pctText(p.ComplaintRate, 2), median, cost)
+			row(p.Name, num(p.Sent), pctText(p.DeliveredRate, 2), pctText(p.HumanOpenRateMeasurable, 2), pctText(p.PrivacyOpenRate, 2), pctText(p.ClickRate, 2),
+				pctText(p.BounceRate, 2), pctText(p.ComplaintRate, 2), median, cost)
 		}
 		row()
 	}
@@ -165,17 +177,29 @@ func reportCSV(r CampaignReport, loc *time.Location) []byte {
 		row()
 	}
 	if r.Engagement.Available {
-		row("Hours after send", "Human opens (cumulative)", "Machine opens (cumulative)", "Clicks (cumulative)")
+		row("Hours after send", "Human opens (cumulative)", "Privacy-protected opens (cumulative)", "Human clicks (cumulative)")
 		for _, p := range r.Engagement.Points {
-			row(strconv.Itoa(p.Hour), num(p.HumanOpens), num(p.MachineOpens), num(p.Clicks))
+			row(strconv.Itoa(p.Hour), num(p.HumanOpens), num(p.PrivacyOpens), num(p.Clicks))
 		}
 		row()
 	}
-	if len(r.ClickMap.Links) > 0 {
-		row("Link", "URL", "Clicks", "Unique clicks", "Share of clicks")
+	switch {
+	case r.ClickMap.PerVariant:
+		// A test on content: each variant's email has its own links, each a
+		// share of that email's clicks.
+		row("A/B variant", "Link", "URL", "Human clicks", "People who clicked", "Share of the variant's human clicks", "Bot clicks (left out)")
+		for _, v := range r.ClickMap.Variants {
+			for _, l := range v.Links {
+				share := strconv.FormatFloat(l.Share, 'f', 1, 64) + "%"
+				row(v.Key, l.Label, l.URL, num(l.Clicks), num(l.UniqueClicks), share, num(l.BotClicks))
+			}
+		}
+		row()
+	case len(r.ClickMap.Links) > 0:
+		row("Link", "URL", "Human clicks", "People who clicked", "Share of human clicks", "Bot clicks (left out)")
 		for _, l := range r.ClickMap.Links {
 			share := strconv.FormatFloat(l.Share, 'f', 1, 64) + "%"
-			row(l.Label, l.URL, num(l.Clicks), num(l.UniqueClicks), share)
+			row(l.Label, l.URL, num(l.Clicks), num(l.UniqueClicks), share, num(l.BotClicks))
 		}
 		row()
 	}
@@ -199,7 +223,7 @@ func reportCSV(r CampaignReport, loc *time.Location) []byte {
 		row()
 	}
 	if t := r.ABTest; t != nil {
-		row("A/B variant", "Label", "Recipients", "Human opens", "Clicks", "Complaints", "Winner", "Got the winner after the test")
+		row("A/B variant", "Label", "Recipients", "Human opens, of measurable", "Human clicks", "Complaints", "Winner", "Got the winner after the test")
 		for _, v := range t.Variants {
 			winner := ""
 			if v.Winner {

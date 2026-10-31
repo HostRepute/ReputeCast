@@ -61,7 +61,7 @@ label.opt input{margin-top:3px}
 /* responsive shell */
 @media (max-width:1100px){
   .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
-  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .brand-t,.side .ws{display:none}.side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .side .nav a{justify-content:center;padding:0!important;height:44px}
   .side .nav svg{width:20px;height:20px}
   .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
@@ -146,6 +146,73 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 .ws .av{font-weight:700}
 /* switches: a disabled switch looks disabled */
 .tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+
+/* live monitor: freshness, live summary, threshold states, footnotes, rate steppers */
+.fresh{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5B6472;font-weight:500;white-space:nowrap}
+.fresh .dot{color:#15803D}
+.fresh.stale .dot{color:#B45309}
+.sumline{margin:0;display:flex;align-items:flex-start;gap:8px;font-size:13px;color:#0B1220;line-height:1.45}
+.sumline svg{flex:none;margin-top:2px}
+.thr{display:flex;flex-direction:column;gap:6px}
+.thr-h{display:flex;justify-content:space-between;align-items:center;gap:6px 12px;flex-wrap:wrap;font-size:13px}
+.thr-h > span:first-child{display:flex;flex-direction:column;gap:1px;min-width:0}
+.thr-h b{font-weight:600}
+.thr-v{display:flex;flex-wrap:wrap;gap:2px 8px;font-size:12.5px;color:#4B5563}
+.thr-v .n{color:#0B1220}
+.fn{margin:0;font-size:12px;color:#5B6472;font-weight:500;line-height:1.45}
+.fns{display:flex;flex-direction:column;gap:4px;padding:12px 18px;border-top:1px solid #EEF0F3}
+.ratep{border-top:1px solid #EEF0F3;background:#F9FAFB;padding:14px 18px 16px;display:flex;flex-direction:column;gap:10px}
+.rrow{display:grid;grid-template-columns:minmax(110px,150px) minmax(110px,150px) auto minmax(0,1fr);align-items:center;gap:8px 14px;font-size:13px;padding:4px 0}
+.rrow .nm{display:flex;gap:8px;align-items:center;font-weight:600}
+.stp{display:inline-flex;align-items:stretch;border:1px solid #8B94A3;border-radius:8px;background:#FFFFFF;overflow:hidden;flex:none}
+.stp button{width:36px;height:36px;border:0;background:#FFFFFF;color:#0B1220;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;font:inherit}
+.stp button:hover{background:#F3F4F6}
+.stp button:disabled{color:#9CA3AF;cursor:not-allowed;background:#FFFFFF}
+.stp output{min-width:86px;display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-variant-numeric:tabular-nums;font-size:13px;border-left:1px solid #E3E6EB;border-right:1px solid #E3E6EB}
+.chg{font-weight:600;color:#0B1220}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+@media (max-width:767px){
+  .rrow{grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:8px 0;border-bottom:1px solid #EEF0F3}
+  .rrow .was{grid-column:1 / -1;order:3}
+  .rrow .eff{grid-column:1 / -1;order:4}
+  .stp button{width:44px;height:44px}
+  .sc-host .fresh{white-space:normal}
+}
+/* phone: events wrap by field, never inside a timestamp */
+@media (max-width:767px){
+  .ev{flex-wrap:wrap;gap:4px 10px;padding:10px 12px}
+  .sc-host .ev .mono{overflow-wrap:normal;white-space:nowrap}
+  .ev > span:last-child{flex:1 1 100%}
+}
+/* phone: the header's Pause / Cancel move into a sticky bar above the tab bar */
+.pbar{display:none}
+@media (max-width:767px){
+  .top .hdr-act{display:none!important}
+  .pbar{display:flex;position:sticky;bottom:57px;z-index:20;gap:8px;align-items:stretch;padding:10px 12px;margin:0 -12px -12px;background:#FFFFFF;border-top:1px solid #E3E6EB}
+  .pbar .btn{min-height:44px}
+  .pbar .menu{bottom:52px;right:0;min-width:220px}
+}
+/* phone: small buttons and menu items still give a 44px target */
+@media (max-width:767px){
+  .btn.sm{min-height:44px!important}
+  .content .btn,.top .btn{min-height:44px}
+  .content .thr-links a{min-height:44px!important}
+  .pbar .menu a,.pbar .menu button{min-height:44px}
+}
+
+/* decision cards: the chosen card carries the accent */
+label.opt.sel{border-color:#0F766E;background:#F0FDFA}
+.chks{margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:3px}
+.chks > span{display:flex;gap:6px;align-items:flex-start;font-size:12px;color:#4B5563;font-weight:500}
+.chks > span svg{flex:none;margin-top:2px}
+label.opt input{flex:none}
+@media (max-width:767px){
+  .dec-act{flex-direction:column-reverse!important;align-items:stretch!important}
+  .dec-act .btn{width:100%;min-height:44px!important}
+}
+
+/* phones: every top-bar target is at least 44px (tabs, links, fields, buttons, the bell and the account menu) */
+@media (max-width:767px){.top .tabs a{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box}.top a:not(.btn){min-height:44px}.top .btn,.top .in,.top select,.top input{min-height:44px;box-sizing:border-box}.top .ibtn{width:44px;height:44px;box-sizing:border-box}.top .ubtn{min-height:44px;box-sizing:border-box}.top nav[aria-label="Breadcrumb"] a{min-width:44px;justify-content:center}.top .chsw a{min-height:44px!important}}
 </style>
 </helmet>
 <h1 class="vh">Live sending monitor, auto-paused</h1>
@@ -156,19 +223,19 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
       <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
       <span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span>
     </a>
-    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Acme Newsletter, your role Owner"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Acme Newsletter, Owner, switch workspace"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
     <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px" aria-label="Main">
-      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
-      <a href="Campaigns.dc.html" class="on" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
-      <a href="AutomationsList.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
-      <a href="Transactional.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
-      <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
-      <a href="GrowOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
-      <a href="EarnOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
-      <a href="FormBuilder.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
-      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
-      <a href="Providers.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
-      <a href="WorkspaceSettings.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="Main.dc.html" title="Overview"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html" class="on" aria-current="page" title="Campaigns"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html" class="xm" title="Automations"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Transactional.dc.html" class="xm" title="Transactional"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
+      <a href="Contacts.dc.html" title="Audience"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="GrowOverview.dc.html" class="xm" title="Grow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
+      <a href="EarnOverview.dc.html" class="xm" title="Earn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
+      <a href="FormBuilder.dc.html" class="xm" title="Forms &amp; pages"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html" title="Deliverability"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html" class="xm" title="Sending providers"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html" class="xm" title="Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
       <a href="ShellMore.dc.html" class="more" aria-label="More: Automations, Transactional, Grow, Earn, Forms & pages, Sending providers, Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">More</span></a>
     </nav>
   </aside>
@@ -182,33 +249,36 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
       <span class="k">Started by Sofia Rossi · approved by Marcus Chen, Oct 10 16:20</span>
       <span class="badge bad"><span class="dot"></span>Auto-paused · Outlook</span>
       <span class="badge ok"><span class="dot"></span>Other mailbox providers still sending</span>
+      <span class="fresh"><span class="dot"></span>Live · updated 1 s ago</span>
       <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <span class="k">Events live · last 1 s ago · anyone with campaigns:pause can stop a send; resume needs campaigns:send</span>
+        <span class="k">Anyone who can send can pause · Linh Nguyen and Marcus Chen can resume</span>
         <a href="LiveMonitor.dc.html" class="btn">Back to live view</a>
-      <div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
+      <div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Linh Nguyen, account menu"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
     </header>
 
     <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
-      <section role="alert" class="card" style="border-color:#FCA5A5;display:flex;flex-direction:column">
+      <section class="card" style="border-color:#FCA5A5;display:flex;flex-direction:column" aria-labelledby="pa-title">
         <div style="display:flex;gap:18px;align-items:flex-start;padding:20px 22px;background:#FEF2F2;border-radius:10px 10px 0 0;flex-wrap:wrap">
           <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#FECACA"></circle><path d="M15 13v14M25 13v14" stroke="#991B1B" stroke-width="3.5" stroke-linecap="round"></path></svg>
           <div style="display:flex;flex-direction:column;gap:4px;flex:1 1 320px">
-            <span style="font-size:20px;font-weight:700;letter-spacing:-.01em;color:#7F1D1D">Outlook complaint rate reached 0.18% (limit 0.10%)</span>
-            <span style="color:#7F1D1D">Tripped at 09:21:14, after 4,115 of 6,637 Outlook recipients were sent. 7 complaints out of 3,980 delivered. ReputeCast held the remaining 2,522 Outlook recipients. Gmail, Yahoo, iCloud and Other continue, now 71% complete overall.</span>
+            <div role="alert"><h2 id="pa-title" style="margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em;color:#7F1D1D">Outlook complaint rate reached 0.18% (limit 0.10%)</h2></div>
+            <span style="color:#7F1D1D">Tripped at 09:21:14, after 4,115 of 6,551 Outlook recipients were sent. 7 complaints out of 3,980 delivered. ReputeCast held the remaining 2,436 Outlook recipients. Gmail, Yahoo, iCloud and Other continue, now 72% complete overall.</span>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0">
           <div style="padding:18px 22px;display:flex;flex-direction:column;gap:10px;border-right:1px solid #EEF0F3">
-            <h2 class="h2">What tripped</h2>
+            <h3 class="h2">What tripped</h3>
             <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Outlook complaints</span><span class="n" style="color:#991B1B">7 of 3,980 · 0.18%</span></div>
-            <div class="bar" style="height:8px"><i style="width:100%;background:#B91C1C"></i></div>
+            <div class="bar" style="height:8px" aria-hidden="true"><i style="width:100%;background:#B91C1C"></i></div>
+            <div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#4B5563"><span class="badge bad" style="flex:none"><span class="dot"></span>Tripped</span><span>7 complaints in 3,980 delivered · enough evidence (needs 5 events and 500 delivered)</span></div>
             <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Limit, per mailbox provider</span><span class="n">0.10%</span></div>
-            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Campaign-wide complaints</span><span class="n">9 of 22,071 · 0.04%</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Yahoo and Other complaints</span><span class="n">2 of 6,046 · 0.03%</span></div>
             <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Outlook bounces</span><span class="n">1.1% of 2.0%</span></div>
             <span class="k">Microsoft's SmartScreen uses complaint rate directly; staying under 0.1% protects placement for every later send.</span>
+            <p class="fn" style="padding:8px 10px;border-radius:8px;background:#F9FAFB;border:1px solid #E3E6EB">Complaints keep arriving for up to 72 h; ReputeCast keeps watching after the send ends.</p>
           </div>
           <div style="padding:18px 22px;display:flex;flex-direction:column;gap:10px;border-right:1px solid #EEF0F3">
-            <h2 class="h2">Likely causes</h2>
+            <h3 class="h2">Likely causes</h3>
             <ol style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:13px">
               <li><strong>Imported Outlook contacts with unclear consent.</strong> 2,118 Outlook recipients came from the Mailchimp import on 18 Sep with "pending" consent and have never opened. 5 of the 7 complaints are from this group.</li>
               <li><strong>First send to these contacts from news.acme.io.</strong> They last heard from acme.com via Mailchimp; the new sender domain looks unfamiliar.</li>
@@ -216,78 +286,215 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
             </ol>
           </div>
           <div style="padding:18px 22px;display:flex;flex-direction:column;gap:10px">
-            <h2 class="h2">Recommended</h2>
+            <h3 class="h2">Recommended</h3>
             <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:13px">
-              <li>Exclude the 1,420 never-engaged Outlook imports from the remaining 2,522. Expected complaint rate after the change: about 0.06%.</li>
+              <li>Exclude the 1,420 never-engaged Outlook imports from the remaining 2,436. Expected complaint rate after the change: about 0.06%.</li>
               <li>Lower the Outlook rate to 2 /s for the rest of this send.</li>
               <li>Move those 1,420 contacts into the "Re-permission" automation instead of this broadcast.</li>
             </ul>
           </div>
         </div>
         <div style="padding:18px 22px;border-top:1px solid #EEF0F3;display:flex;flex-direction:column;gap:12px">
-          <h2 class="h2">Choose how to continue</h2>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
-            <label class="opt"><input type="radio" name="act"><span><span style="font-weight:600">Resume as is</span><br><span class="k">Send to all 2,522 remaining Outlook recipients. The threshold stays armed and will pause again at the next complaint.</span></span></label>
-            <label class="opt" style="border-color:#0F766E;background:#F0FDFA"><input type="radio" name="act" checked><span><span style="font-weight:600">Resume with changes (recommended)</span><br><span class="k">Exclude 1,420 never-engaged imports, send to 1,102 at 2 /s, add the excluded contacts to Re-permission.</span></span></label>
-            <label class="opt"><input type="radio" name="act"><span><span style="font-weight:600">Cancel the Outlook share</span><br><span class="k">Skip the remaining 2,522 Outlook recipients. The rest of the campaign finishes normally.</span></span></label>
+          <h3 class="h2" id="pa-choose">Choose how to continue</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px" role="radiogroup" aria-labelledby="pa-choose">
+            <label class="opt {{optAsIs}}"><input type="radio" name="act" checked="{{chAsIs}}" onChange="{{pickAsIs}}"><span><span style="font-weight:600">Resume as is</span><br><span class="k">Send to all 2,436 remaining Outlook recipients. The threshold re-arms from the current counts, so only new complaints can pause it again. At today's 0.18%, expect about 4 more.</span></span></label>
+            <label class="opt {{optChanges}}"><input type="radio" name="act" checked="{{chChanges}}" onChange="{{pickChanges}}"><span><span style="font-weight:600">Resume with changes (recommended)</span><br><span class="k">Exclude 1,420 never-engaged imports, send to 1,016 at 2 /s, add the excluded contacts to Re-permission.</span></span></label>
+            <label class="opt {{optCancel}}"><input type="radio" name="act" checked="{{chCancel}}" onChange="{{pickCancel}}"><span><span style="font-weight:600">Cancel the Outlook share</span><br><span class="k">Skip the remaining 2,436 Outlook recipients. The rest of the campaign finishes normally.</span></span></label>
           </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
-            <button class="btn" style="color:#991B1B;border-color:#FCA5A5">Cancel whole campaign</button>
-            <a href="LiveMonitor.dc.html" class="btn pri" style="min-height:40px;padding:0 18px" title="Resuming needs campaigns:send">Resume with changes</a>
+          <div class="dec-act" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center">
+            <button class="btn" type="button" style="color:#991B1B;border-color:#FCA5A5">Cancel whole campaign…</button>
+            <sc-if value="{{isResume}}" hint-placeholder-val="{{true}}"><a href="LiveMonitor.dc.html" class="btn pri" style="min-height:40px;padding:0 18px">{{primaryLabel}}</a></sc-if>
+            <sc-if value="{{chCancel}}" hint-placeholder-val="{{false}}"><button class="btn" type="button" style="min-height:40px;padding:0 18px;background:#B91C1C;border-color:#B91C1C;color:#FFFFFF">Cancel the Outlook share</button></sc-if>
           </div>
         </div>
       </section>
 
-      <section class="card" style="padding:20px 22px;display:flex;flex-direction:column;gap:12px">
+      <section class="card" style="padding:20px 22px;display:flex;flex-direction:column;gap:12px" aria-label="Progress">
         <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
-          <span class="n" style="font-size:34px;letter-spacing:-.02em">71%</span>
-          <span style="font-size:15px">22,440 of 31,604 sent · 2,522 held</span>
-          <span class="k" style="margin-left:auto">Started 09:00:04 · paused route since 09:21:14 · ETA for the rest 9 min</span>
+          <span class="n" style="font-size:34px;letter-spacing:-.02em">72%</span>
+          <span style="font-size:15px">22,440 of 31,192 sent · 2,436 held</span>
+          <span class="k" style="margin-left:auto">Started 09:00:04 · Outlook held since 09:21:14 · the rest: SES done about {{sesDone}} · Postal about {{postalDone}}</span>
         </div>
-        <div class="bar" style="height:12px;border-radius:6px;display:flex;gap:2px;background:#EEF0F3">
-          <i style="width:63.9%;background:#4a3aa7;border-radius:6px 0 0 6px"></i>
-          <i style="width:7.1%;background:#e87ba4;border-radius:0"></i>
-          <i style="width:8%;background:#FCA5A5;border-radius:0"></i>
+        <!-- The only polite live region on this screen; the pause itself is announced once by the banner heading (role="alert"). -->
+        <p class="sumline" aria-live="polite"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="#FEE2E2"></circle><path d="M6.2 5.2v5.6M9.8 5.2v5.6" stroke="#991B1B" stroke-width="1.8" stroke-linecap="round"></path></svg><span>{{summary}}</span></p>
+        <div class="bar" style="height:12px;border-radius:6px;display:flex;gap:2px;background:#EEF0F3" role="img" aria-label="Amazon SES 20,196 sent, Postal 2,244 sent, 2,436 Outlook recipients held, 6,316 queued">
+          <i style="width:64.7%;background:#4a3aa7;border-radius:6px 0 0 6px"></i>
+          <i style="width:7.2%;background:#e87ba4;border-radius:0"></i>
+          <i style="width:7.8%;background:#FCA5A5;border-radius:0"></i>
         </div>
-        <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13px">
+        <div style="display:flex;gap:8px 18px;flex-wrap:wrap;font-size:13px">
           <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#4a3aa7"></span>Amazon SES 20,196 · 14.1 /s</span>
           <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#e87ba4"></span>Postal 2,244 · 2.0 /s</span>
-          <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#FCA5A5"></span>Held, Outlook 2,522</span>
-          <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#C9CED6"></span>Queued 6,642</span>
+          <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#FCA5A5"></span>Held, Outlook 2,436</span>
+          <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#C9CED6"></span>Queued 6,316</span>
         </div>
       </section>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
-        <div class="card tile"><span class="k">Delivered</span><span class="n" style="font-size:26px">22,071</span><span class="k">98.4% of sent</span></div>
-        <div class="card tile"><span class="k">Bounced</span><span class="n" style="font-size:26px">154</span><span class="k">0.69% · 121 hard, 33 soft</span></div>
-        <div class="card tile" style="border-color:#FCA5A5"><span class="k">Complained</span><span class="n" style="font-size:26px;color:#991B1B">9</span><span class="k">0.04% overall · Outlook 0.18%</span></div>
+        <div class="card tile"><span class="k">Delivered</span><span class="n" style="font-size:26px">22,071</span><span class="k">98.4% of sent · 215 deferred, retrying</span></div>
+        <div class="card tile"><span class="k">Bounced</span><span class="n" style="font-size:26px">154</span><span class="k">0.69% · 112 unknown user, 9 block/policy, 33 soft</span></div>
+        <div class="card tile" style="border-color:#FCA5A5"><span class="k">Complained</span><span class="n" style="font-size:26px;color:#991B1B">9</span><span class="k">Outlook 7 · Yahoo 1 · Other 1 · Gmail and iCloud n/a</span></div>
         <div class="card tile"><span class="k">Opened</span><span class="n" style="font-size:26px">3,604</span><span class="k">16.3% · 2,480 human, 1,124 machine</span></div>
         <div class="card tile"><span class="k">Clicked</span><span class="n" style="font-size:26px">521</span><span class="k">2.4%</span></div>
       </div>
 
-      <section class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px"><h2 class="h2">Per mailbox provider</h2><span class="k">thresholds apply per mailbox provider</span></div>
-        <div style="overflow-x:auto">
+      <section class="card" id="pa-mbx">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;flex-direction:column;gap:2px"><h2 class="h2">Per mailbox provider</h2><span class="k">thresholds apply per mailbox provider</span></div>
+          <button class="btn sm" type="button" aria-expanded="{{ratesOpen}}" aria-controls="pa-rates" onClick="{{toggleRates}}">Adjust rates</button>
+        </div>
+        <sc-if value="{{ratesOpen}}" hint-placeholder-val="{{false}}">
+          <div class="ratep" id="pa-rates">
+            <div style="display:flex;flex-direction:column;gap:2px"><h3 class="h2" style="font-size:14px">Rates per mailbox provider</h3><span class="k">For the mailbox providers still sending, on every route.</span></div>
+            <div class="rrow"><span class="nm"><span class="dot" style="color:#eb6834"></span>Outlook</span><span class="k was">held since 09:21</span><span class="k" style="grid-column:span 2">Set its rate when you resume; the recommended change uses 2 /s.</span></div>
+            <div class="rrow"><span class="nm"><span class="dot" style="color:#2a78d6"></span>Gmail</span><span class="k was">{{r.gmail.was}}</span><div class="stp" role="group" aria-label="Gmail rate"><button type="button" aria-label="Lower Gmail rate" onClick="{{r.gmail.dec}}" disabled="{{r.gmail.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.gmail.label}}</output><button type="button" aria-label="Raise Gmail rate" onClick="{{r.gmail.inc}}" disabled="{{r.gmail.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.gmail.effect}}</span></div>
+            <div class="rrow"><span class="nm"><span class="dot" style="color:#1baf7a"></span>Yahoo</span><span class="k was">{{r.yahoo.was}}</span><div class="stp" role="group" aria-label="Yahoo rate"><button type="button" aria-label="Lower Yahoo rate" onClick="{{r.yahoo.dec}}" disabled="{{r.yahoo.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.yahoo.label}}</output><button type="button" aria-label="Raise Yahoo rate" onClick="{{r.yahoo.inc}}" disabled="{{r.yahoo.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.yahoo.effect}}</span></div>
+            <div class="rrow"><span class="nm"><span class="dot" style="color:#eda100"></span>iCloud</span><span class="k was">{{r.icloud.was}}</span><div class="stp" role="group" aria-label="iCloud rate"><button type="button" aria-label="Lower iCloud rate" onClick="{{r.icloud.dec}}" disabled="{{r.icloud.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.icloud.label}}</output><button type="button" aria-label="Raise iCloud rate" onClick="{{r.icloud.inc}}" disabled="{{r.icloud.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.icloud.effect}}</span></div>
+            <div class="rrow"><span class="nm"><span class="dot" style="color:#8b94a3"></span>Other</span><span class="k was">{{r.other.was}}</span><div class="stp" role="group" aria-label="Other rate"><button type="button" aria-label="Lower Other rate" onClick="{{r.other.dec}}" disabled="{{r.other.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.other.label}}</output><button type="button" aria-label="Raise Other rate" onClick="{{r.other.inc}}" disabled="{{r.other.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.other.effect}}</span></div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:4px">
+              <span style="font-size:13px"><span class="k">The rest of the send: </span><span class="n">{{wholeEffect}}</span></span>
+              <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn" type="button" onClick="{{cancelRates}}">Cancel</button>
+                <button class="btn pri" type="button" onClick="{{applyRates}}" disabled="{{noChange}}">Apply</button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+        <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Per mailbox provider table, scrolls sideways on small screens">
           <table class="tbl">
-            <thead><tr><th scope="col">Mailbox provider</th><th scope="col" class="r">Sent</th><th scope="col" class="r">Remaining</th><th scope="col" class="r">Delivered</th><th scope="col" class="r">Bounce</th><th scope="col" class="r">Complaint · limit 0.10%</th><th scope="col" class="r">Rate</th><th scope="col">Status</th></tr></thead>
+            <thead><tr><th scope="col">Mailbox provider</th><th scope="col" class="r">Sent</th><th scope="col" class="r">Remaining</th><th scope="col" class="r">Delivered</th><th scope="col" class="r">Deferred · 10 min</th><th scope="col" class="r">Bounce</th><th scope="col" class="r">Complaint · limit 0.10%</th><th scope="col" class="r">Rate</th><th scope="col">Status</th></tr></thead>
             <tbody>
-              <tr style="background:#FFF5F5"><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#eb6834"></span>Outlook</span></td><td class="r n">4,115</td><td class="r n">2,522</td><td class="r n">96.7%</td><td class="r n">1.1%</td><td class="r n" style="color:#991B1B">0.18%</td><td class="r">held</td><td><span class="badge bad">Paused 09:21</span></td></tr>
-              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#2a78d6"></span>Gmail</span></td><td class="r n">10,412</td><td class="r n">4,126</td><td class="r n">99.3%</td><td class="r n">0.4%</td><td class="r n">0.02%</td><td class="r">full</td><td><span class="badge ok">Sending</span></td></tr>
-              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#1baf7a"></span>Yahoo</span></td><td class="r n">2,034</td><td class="r n">810</td><td class="r n">99.0%</td><td class="r n">0.7%</td><td class="r n">0.03%</td><td class="r">4 /s</td><td><span class="badge ok">Sending</span></td></tr>
-              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#eda100"></span>iCloud</span></td><td class="r n">1,802</td><td class="r n">726</td><td class="r n">99.4%</td><td class="r n">0.4%</td><td class="r n">0.00%</td><td class="r">3 /s</td><td><span class="badge ok">Sending</span></td></tr>
-              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#8b94a3"></span>Other</span></td><td class="r n">4,077</td><td class="r n">980</td><td class="r n">98.9%</td><td class="r n">0.8%</td><td class="r n">0.03%</td><td class="r">full</td><td><span class="badge ok">Sending</span></td></tr>
+              <tr style="background:#FFF5F5"><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#eb6834"></span>Outlook</span></td><td class="r n">4,115</td><td class="r n">2,436</td><td class="r n">96.7%</td><td class="r n">0.0%</td><td class="r n">1.1%</td><td class="r n" style="color:#991B1B">0.18%</td><td class="r">held</td><td><span class="badge bad"><span class="dot"></span>Paused 09:21</span></td></tr>
+              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#2a78d6"></span>Gmail</span></td><td class="r n">10,412</td><td class="r n">3,936</td><td class="r n">99.3%</td><td class="r n">0.3%</td><td class="r n">0.4%</td><td class="r k" aria-describedby="pa-fn-cmp">n/a</td><td class="r">{{rates.gmail}}</td><td><span class="badge ok"><span class="dot"></span>Sending</span></td></tr>
+              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#1baf7a"></span>Yahoo</span></td><td class="r n">2,034</td><td class="r n">773</td><td class="r n">99.0%</td><td class="r n">2.8%</td><td class="r n">0.7%</td><td class="r n">0.05%</td><td class="r">{{rates.yahoo}}</td><td><span class="badge ok"><span class="dot"></span>Sending</span></td></tr>
+              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#eda100"></span>iCloud</span></td><td class="r n">1,802</td><td class="r n">693</td><td class="r n">99.4%</td><td class="r n">0.2%</td><td class="r n">0.4%</td><td class="r k" aria-describedby="pa-fn-cmp">n/a</td><td class="r">{{rates.icloud}}</td><td><span class="badge ok"><span class="dot"></span>Sending</span></td></tr>
+              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#8b94a3"></span>Other</span></td><td class="r n">4,077</td><td class="r n">914</td><td class="r n">98.9%</td><td class="r n">0.5%</td><td class="r n">0.8%</td><td class="r n">0.02%</td><td class="r">{{rates.other}}</td><td><span class="badge ok"><span class="dot"></span>Sending</span></td></tr>
             </tbody>
           </table>
+        </div>
+        <div class="fns">
+          <p class="fn" id="pa-fn-cmp">n/a: Gmail and iCloud don't report complaints per message. Gmail's spam rate from Postmaster Tools: 0.04% yesterday.</p>
+          <p class="fn">Gmail includes Google Workspace and Outlook includes Microsoft 365 recipients (found from MX records). Deferred is the share of delivery attempts in the last 10 minutes that the mailbox provider asked to retry later.</p>
         </div>
       </section>
     </main>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1421}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1646}}'>
 class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { ratesOpen: false, applied: null, draft: null, note: '', streamPaused: false, moreOpen: false, choice: 'changes' };
+  }
+  cfg() {
+    // Paused view at 09:21:44. Outlook (2,436) is held; the providers below still send the other 6,316.
+    return {
+      now: 9 * 3600 + 21 * 60 + 44,
+      mailboxes: [
+        { key: 'gmail', name: 'Gmail', left: 3936, rate: 0 },
+        { key: 'yahoo', name: 'Yahoo', left: 773, rate: 4 },
+        { key: 'icloud', name: 'iCloud', left: 693, rate: 3 },
+        { key: 'other', name: 'Other', left: 914, rate: 0 }
+      ],
+      ses: { left: 5441, rate: 14.1 },
+      postal: { left: 875, rate: 2.0 },
+      summary: 'Outlook paused at 09:21:14 and waits for your decision. Gmail, Yahoo, iCloud and Other are still sending.'
+    };
+  }
   renderVals() {
-    return {};
+    var self = this;
+    var s = this.state;
+    var c = this.cfg();
+    var LEVELS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 0];
+    var base = {};
+    c.mailboxes.forEach(function (m) { base[m.key] = m.rate; });
+    var applied = s.applied || base;
+    var draft = s.draft || applied;
+    function lab(v) { return v === 0 ? 'full rate' : v + ' /s'; }
+    function clock(sec) {
+      var m = Math.round((c.now + sec) / 60);
+      var h = Math.floor(m / 60), mm = m % 60;
+      return (h < 10 ? '0' : '') + h + ':' + (mm < 10 ? '0' : '') + mm;
+    }
+    function mbTime(m, rates) { var v = rates[m.key]; return v > 0 ? m.left / v : 0; }
+    function sesTime(rates) {
+      var t = c.ses.left / c.ses.rate;
+      c.mailboxes.forEach(function (m) { t = Math.max(t, mbTime(m, rates)); });
+      return t;
+    }
+    function postalTime() { return c.postal.left / c.postal.rate; }
+    function whole(rates) { return Math.max(sesTime(rates), postalTime()); }
+    var r = {};
+    var changed = [];
+    var rates = {};
+    c.mailboxes.forEach(function (m) {
+      var v = draft[m.key];
+      var was = applied[m.key];
+      var i = LEVELS.indexOf(v);
+      var isChanged = v !== was;
+      if (isChanged) changed.push(m.name + ' ' + lab(v));
+      var effect = '';
+      if (isChanged) {
+        var t0 = mbTime(m, applied), t1 = mbTime(m, draft);
+        if (t1 && t0) effect = 'finishes about ' + clock(t1) + ' instead of ' + clock(t0);
+        else if (t1) effect = 'finishes about ' + clock(t1);
+        else effect = 'limited only by the sending provider';
+      }
+      rates[m.key] = lab(was);
+      r[m.key] = {
+        label: lab(v),
+        was: isChanged ? 'was ' + lab(was) : 'now ' + lab(was),
+        effect: effect,
+        atMin: i === 0,
+        atMax: v === 0,
+        dec: function () { var d = Object.assign({}, draft); d[m.key] = LEVELS[Math.max(0, i - 1)]; self.setState({ draft: d }); },
+        inc: function () { var d = Object.assign({}, draft); d[m.key] = LEVELS[Math.min(LEVELS.length - 1, i + 1)]; self.setState({ draft: d }); }
+      };
+    });
+    var w0 = whole(applied), w1 = whole(draft);
+    var diff = Math.round((c.now + w1) / 60) - Math.round((c.now + w0) / 60);
+    var wholeEffect = changed.length === 0 ? 'about ' + clock(w0) + ' (no change yet)'
+      : 'about ' + clock(w0) + ' → about ' + clock(w1) + (diff > 0 ? ' (' + diff + ' min later)' : diff < 0 ? ' (' + (-diff) + ' min sooner)' : ' (same minute)');
+    return {
+      r: r,
+      rates: rates,
+      wholeEffect: wholeEffect,
+      noChange: changed.length === 0,
+      ratesOpen: !!s.ratesOpen,
+      summary: s.note || c.summary,
+      sesDone: clock(sesTime(applied)),
+      postalDone: clock(postalTime()),
+      streamPaused: !!s.streamPaused,
+      streamLive: !s.streamPaused,
+      streamBtn: s.streamPaused ? 'Resume updates' : 'Pause updates',
+      chAsIs: s.choice === 'asis',
+      chChanges: s.choice === 'changes',
+      chCancel: s.choice === 'cancel',
+      optAsIs: s.choice === 'asis' ? 'sel' : '',
+      optChanges: s.choice === 'changes' ? 'sel' : '',
+      optCancel: s.choice === 'cancel' ? 'sel' : '',
+      isResume: s.choice !== 'cancel',
+      primaryLabel: s.choice === 'asis' ? 'Resume as is' : 'Resume with changes',
+      pickAsIs: function () { self.setState({ choice: 'asis' }); },
+      pickChanges: function () { self.setState({ choice: 'changes' }); },
+      pickCancel: function () { self.setState({ choice: 'cancel' }); },
+      moreOpen: !!s.moreOpen,
+      toggleMore: function () { self.setState({ moreOpen: !s.moreOpen }); },
+      openRatesFromMenu: function () { self.setState({ moreOpen: false, ratesOpen: true, draft: Object.assign({}, applied) }); },
+      toggleStream: function () { self.setState({ streamPaused: !s.streamPaused }); },
+      toggleRates: function () { self.setState({ ratesOpen: !s.ratesOpen, draft: s.ratesOpen ? null : Object.assign({}, applied) }); },
+      cancelRates: function () { self.setState({ ratesOpen: false, draft: null }); },
+      applyRates: function () {
+        if (!changed.length) return;
+        self.setState({
+          applied: Object.assign({}, draft),
+          draft: null,
+          ratesOpen: false,
+          note: 'Rates changed: ' + changed.join(', ') + '. The rest of the send now finishes about ' + clock(w1) + '; Outlook stays held.'
+        });
+      }
+    };
   }
 }
 </script>

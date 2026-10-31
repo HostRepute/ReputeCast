@@ -112,7 +112,7 @@ function Services({ o, search }: { o: Overview; search: ServicesSearch }) {
           <div className="flex min-w-0 flex-col gap-1">
             <b className="font-bold">{t(m.readOnlyTitle, { name: me?.user.name ?? '', role: roleName({ key: ws.workspace.roleKey, name: ws.workspace.roleName }) })}</b>
             <span>
-              <T msg={o.manageHelpers.length ? m.readOnly : m.readOnlyNobody} values={{ helpers: orList(o.manageHelpers), code: (c) => <span className="mono">{c}</span> }} />
+              <T msg={o.manageHelpers.length ? m.readOnly : m.readOnlyNobody} values={{ helpers: orList(o.manageHelpers) }} />
             </span>
           </div>
         </div>
@@ -431,7 +431,7 @@ function LowCredits({ v, onTest }: { v: ServiceView; onTest: () => void }) {
         </div>
       </div>
       <span className="k">
-        <T msg={m.lowCreditsFoot} values={{ limit: LOW_CREDITS, code: (c) => <span className="mono">{c}</span> }} />
+        <T msg={m.lowCreditsFoot} values={{ limit: LOW_CREDITS }} />
       </span>
     </section>
   )

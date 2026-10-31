@@ -1,6 +1,7 @@
 package team
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -14,9 +15,9 @@ func TestTeamWordsInTheReadersLanguage(t *testing.T) {
 	en, vi := i18n.Default, i18n.For(i18n.Vietnamese)
 	helpers := []string{"Linh Nguyen", "Marcus Chen"}
 	cases := []struct{ got, want string }{
-		{readOnlyReason(en, false, helpers), "You can view the team. Inviting needs the team:invite permission and changing roles needs team:manage. Ask Linh Nguyen or Marcus Chen."},
-		{readOnlyReason(en, true, nil), "You can invite people with roles you hold. Changing roles needs team:manage."},
-		{readOnlyReason(vi, false, helpers), "Bạn có thể xem nhóm. Mời thành viên cần quyền team:invite và đổi vai trò cần team:manage. Hãy nhờ Linh Nguyen hoặc Marcus Chen."},
+		{readOnlyReason(en, false, helpers), "You can view the team. Your role can't invite people or change members' roles. Ask Linh Nguyen or Marcus Chen."},
+		{readOnlyReason(en, true, nil), "You can invite people with roles you hold. Your role can't change members' roles."},
+		{readOnlyReason(vi, false, helpers), "Bạn có thể xem nhóm. Vai trò của bạn không thể mời người khác hay đổi vai trò của thành viên. Hãy nhờ Linh Nguyen hoặc Marcus Chen."},
 		{mNoteInstanceAdmin.Text(en, nil), "instance admin"},
 		{mNoteBreakGlass.Text(vi, nil), "tài khoản khẩn cấp"},
 	}
@@ -46,7 +47,32 @@ func TestInviteWordsInTheReadersLanguage(t *testing.T) {
 		{signInSummary(en, pol), "Invitees pick a password or continue with Google or GitHub."},
 		{signInSummary(vi, store.InstanceSetting{}), "Người được mời tự đặt mật khẩu và có thể thêm khóa truy cập."},
 		{owner, "Only a transfer of ownership makes someone the Owner."},
-		{missing[:len("Bạn không cấp được vai trò này vì bạn không có ")], "Bạn không cấp được vai trò này vì bạn không có "},
+		{missing[:len("Bạn không cấp được vai trò này vì vai trò này có “")], "Bạn không cấp được vai trò này vì vai trò này có “"},
+	}
+	for _, c := range cases {
+		if c.got != c.want {
+			t.Errorf("got %q, want %q", c.got, c.want)
+		}
+	}
+	if !strings.Contains(missing, "“Gửi hoặc lên lịch chiến dịch”") || !strings.HasSuffix(missing, "”, còn vai trò của bạn thì không.") {
+		t.Errorf("can't grant, in Vietnamese: %q", missing)
+	}
+}
+
+// What you can't grant, or what someone's role has that yours doesn't, is
+// named by the permissions' labels in the reader's language, never their
+// keys (review X-1); the problem's permission field keeps a key for API
+// clients.
+func TestMissingPermissionsByTheirLabels(t *testing.T) {
+	en, vi := i18n.Default, i18n.For(i18n.Vietnamese)
+	_, some := canGrantRole(en, authz.NewSet(authz.CampaignsView), "custom", false, authz.NewSet(authz.CampaignsSend, authz.SubscribersExport))
+	outrank := outrankError(i18n.WithLang(context.Background(), vi), "Marcus Chen", []authz.Permission{authz.WorkspaceDelete})
+	cases := []struct{ got, want string }{
+		{some, "You can't grant this role because it includes “Send or schedule campaigns”, “Export contacts” and “View contacts”, which your role doesn't."},
+		{outrankError(context.Background(), "Marcus Chen", []authz.Permission{authz.TeamManage, authz.WorkspaceDelete}).Detail,
+			"You can't change Marcus Chen's access: their role includes “Manage roles and remove members” and “Delete the workspace”, which yours doesn't."},
+		{outrank.Detail, "Bạn không thay đổi được quyền truy cập của Marcus Chen: vai trò của họ có “Xóa không gian làm việc”, còn vai trò của bạn thì không."},
+		{outrank.Permission, "workspace:delete"},
 	}
 	for _, c := range cases {
 		if c.got != c.want {

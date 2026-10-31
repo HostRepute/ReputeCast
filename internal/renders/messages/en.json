@@ -1,0 +1,12 @@
+{
+  "problem.unknownService": "Choose Litmus or Mailgun Inspect.",
+  "problem.unknownClient": {"message": "{service} doesn't list {client} for this account. Test the connection to refresh its clients.", "note": "client: the service's own client id, OL2019; service: Litmus or Mailgun Inspect"},
+  "problem.notConnected": "No rendering service is connected to this workspace.",
+  "problem.stillRunning": "A render of this campaign is still running. Its screenshots appear as they arrive.",
+  "problem.refused": {"message": "{service} refused the API key. Check it in your {service} account and paste it again.", "note": "service: Litmus or Mailgun Inspect"},
+  "problem.unreachable": {"message": "{service} couldn't be reached ({reason}). Try again in a minute.", "note": "reason: a short technical reason, Timed out"},
+  "problem.failed": {"message": "{service} answered with an error (HTTP {status}). Try again in a minute.", "note": "status: an HTTP status code, 500"},
+  "render.gaveUp": "{service} didn't finish within 15 minutes. Render again to retry.",
+  "render.disconnected": "{service} was disconnected before the screenshots arrived.",
+  "render.noScreenshots": "{service} couldn't capture any of the clients."
+}

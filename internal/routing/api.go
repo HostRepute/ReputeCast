@@ -40,6 +40,15 @@ func Register(h huma.API, s *Service) {
 			out, err := s.Save(ctx, api.WorkspaceFrom(ctx), in.Body)
 			return api.OK(out), err
 		})
+	api.Post(h, api.Op{ID: "test-route-campaign", Path: "/workspaces/{workspace}/routing/test-campaign",
+		Summary: "Where the next broadcast's recipients go, on the saved routing and an unsaved one", Tags: tags, Access: api.Workspace(authz.ProvidersView)},
+		func(ctx context.Context, in *struct {
+			api.WorkspaceInput
+			Body RouteCampaignInput
+		}) (*api.Body[RouteCampaignResult], error) {
+			out, err := s.SimulateCampaign(ctx, api.WorkspaceFrom(ctx), in.Body)
+			return api.OK(out), err
+		})
 	api.Post(h, api.Op{ID: "test-route", Path: "/workspaces/{workspace}/routing/test", Summary: "Which provider would send this email?",
 		Tags: tags, Access: api.Workspace(authz.ProvidersView)},
 		func(ctx context.Context, in *testInput) (*api.Body[RouteTestResult], error) {

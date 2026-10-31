@@ -93,13 +93,20 @@ func (s *Service) startProvisioning(ctx context.Context, p store.Provider, st *S
 	}
 	suffix := s.provisionSuffix(ctx, p)
 	st.Connection.ProvisionSuffix = suffix
-	in := providers.ProvisionInput{WebhookURL: s.webhookURL(p, ""), Suffix: suffix}
+	in := s.provisionInput(ctx, p, *st)
 	for _, step := range pv.ProvisionSteps(ctx, in) {
 		row := ProvisionState{Key: step.Key, Label: step.Label, Status: "waiting"}
 		row.keep("label", step.LabelText)
 		rows = append(rows, row)
 	}
-	// No provider can reach a private public URL: say so before creating anything.
+	// The setup is done once a real event came back (PR-3).
+	rows = append(rows, eventRows(adapter)...)
+	// No provider can reach a private public URL: say so before creating
+	// anything (events through a queue need no public URL).
+	if in.Events == providers.EventsQueue {
+		st.Connection.Provisioning = rows
+		return
+	}
 	if reach := s.reachable(ctx, in.WebhookURL, p); !reach.OK && reach.Private {
 		for i := range rows {
 			if rows[i].Status == "waiting" {
@@ -112,6 +119,17 @@ func (s *Service) startProvisioning(ctx context.Context, p store.Provider, st *S
 		return
 	}
 	st.Connection.Provisioning = rows
+}
+
+// provisionInput is what the provider's provisioning steps need: where
+// events go (the webhook or a queue, PR-4) and the workspace's tenant
+// (PR-11, named after the workspace).
+func (s *Service) provisionInput(ctx context.Context, p store.Provider, st State) providers.ProvisionInput {
+	in := providers.ProvisionInput{WebhookURL: s.webhookURL(p, ""), Suffix: st.Connection.ProvisionSuffix, Events: st.Connection.Events}
+	if ws, err := s.Q.GetWorkspace(ctx, p.WorkspaceID); err == nil {
+		in.Tenant = ws.Slug
+	}
+	return in
 }
 
 // queueProvisioning queues provisioning and the region scan of a setup.
@@ -260,7 +278,9 @@ func (s *Service) RunProvisioning(ctx context.Context, setupID uuid.UUID) (bool,
 		state := decodeState(st.State)
 		idx := -1
 		for i, r := range state.Connection.Provisioning {
-			if r.Status == "failed" {
+			// A failed step waits for a retry; the event check waits for a
+			// verified domain.
+			if r.Status == "failed" || r.Status == statusDeferred {
 				return false, nil
 			}
 			if r.Status == "waiting" || r.Status == "running" {
@@ -269,6 +289,10 @@ func (s *Service) RunProvisioning(ctx context.Context, setupID uuid.UUID) (bool,
 			}
 		}
 		if idx < 0 {
+			if hasEventRows(state.Connection.Provisioning) {
+				// The resources were recorded before the event check ran.
+				return false, nil
+			}
 			return false, s.finishProvisioning(ctx, st, state)
 		}
 		p, err := s.Q.ProvGetAny(ctx, *st.ProviderID)
@@ -280,6 +304,23 @@ func (s *Service) RunProvisioning(ctx context.Context, setupID uuid.UUID) (bool,
 			if err := s.setRow(ctx, setupID, row.Key, func(r *ProvisionState) { r.Status = "running" }); err != nil {
 				return false, err
 			}
+		}
+		if row.Key == eventSendKey || row.Key == eventCheckKey {
+			if row.Key == eventSendKey && row.Attempts == 0 {
+				// Every resource exists: record them before the event check,
+				// which may wait for a verified domain.
+				if err := s.finishProvisioning(ctx, st, state); err != nil {
+					return false, err
+				}
+				if err := s.setRow(ctx, setupID, row.Key, func(r *ProvisionState) { r.Attempts = 1 }); err != nil {
+					return false, err
+				}
+			}
+			again, stop, err := s.runEventStep(ctx, st, state, p, row)
+			if err != nil || again || stop {
+				return again, err
+			}
+			continue
 		}
 		if manage.IsDemo(p) {
 			// Demo providers have no account to provision.
@@ -301,7 +342,7 @@ func (s *Service) RunProvisioning(ctx context.Context, setupID uuid.UUID) (bool,
 		if !ok {
 			return false, nil
 		}
-		in := providers.ProvisionInput{WebhookURL: s.webhookURL(p, ""), Suffix: state.Connection.ProvisionSuffix}
+		in := s.provisionInput(ctx, p, state)
 		cctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 		res, perr := pv.Provision(cctx, row.Key, in)
 		cancel()
@@ -345,8 +386,9 @@ func (s *Service) RunProvisioning(ctx context.Context, setupID uuid.UUID) (bool,
 		}
 		if err := s.setRow(ctx, setupID, row.Key, func(r *ProvisionState) {
 			r.clearProblem()
-			r.Status, r.At, r.Text = "done", &now, res.Done
+			r.Status, r.At, r.Text, r.Note = "done", &now, res.Done, res.Note
 			r.keep("text", res.DoneText)
+			r.keep("note", res.NoteText)
 		}); err != nil {
 			return false, err
 		}
@@ -415,12 +457,27 @@ func (s *Service) RetryProvisioning(ctx context.Context, ws *store.Workspace, ra
 	}
 	st, err := s.update(ctx, ws, cur.ID, "provider.provision_retry", map[string]any{"provider": p.Name}, func(_ *store.ProviderSetup, state *State) error {
 		n := 0
-		for i := range state.Connection.Provisioning {
-			r := &state.Connection.Provisioning[i]
-			if r.Status == "failed" {
-				r.clearProblem()
-				r.Status, r.Attempts = "waiting", 0
-				n++
+		rows := state.Connection.Provisioning
+		for i := range rows {
+			r := &rows[i]
+			if r.Status != "failed" {
+				continue
+			}
+			r.clearProblem()
+			r.Status, r.Attempts = "waiting", 0
+			n++
+			switch r.Key {
+			case eventSendKey:
+				// The resources were recorded already.
+				r.Attempts = 1
+			case eventCheckKey:
+				// No event came back: the check sends a new message.
+				for j := range rows {
+					if rows[j].Key == eventSendKey {
+						rows[j].clearProblem()
+						rows[j].Status, rows[j].MessageID, rows[j].Attempts = "waiting", "", 1
+					}
+				}
 			}
 		}
 		if n == 0 {
@@ -431,9 +488,9 @@ func (s *Service) RetryProvisioning(ctx context.Context, ws *store.Workspace, ra
 	if err != nil {
 		return ConnectSetup{}, err
 	}
-	// The public URL may still be private.
+	// The public URL may still be private (events through a queue need none).
 	state := decodeState(st.State)
-	if reach := s.reachable(ctx, s.webhookURL(p, ""), p); !reach.OK && reach.Private {
+	if reach := s.reachable(ctx, s.webhookURL(p, ""), p); state.Connection.Events != providers.EventsQueue && !reach.OK && reach.Private {
 		now := s.now()
 		for i := range state.Connection.Provisioning {
 			if state.Connection.Provisioning[i].Status == "waiting" {
@@ -493,9 +550,9 @@ func (s *Service) SetRegion(ctx context.Context, ws *store.Workspace, rawID stri
 	delete(cfg, "configuration_set")
 	b := built{settings: cfg, creds: s.currentCreds(&p), label: in.Region}
 	quota := providers.Quota{}
+	var adapter providers.Provider
 	if !manage.IsDemo(p) {
-		adapter, err := newAdapter(d, p.ID, ws.ID, b, s.Factory.WebhookSecret(p), s.httpClient())
-		if err != nil {
+		if adapter, err = newAdapter(d, p.ID, ws.ID, b, s.Factory.WebhookSecret(p), s.httpClient()); err != nil {
 			return ConnectSetup{}, err
 		}
 		if v, ok := adapter.(providers.Verifier); ok {
@@ -523,10 +580,12 @@ func (s *Service) SetRegion(ctx context.Context, ws *store.Workspace, rawID stri
 	hb, _ := json.Marshal(h)
 	now := s.now()
 	if _, err := s.Q.ConnectUpdateProvider(ctx, store.ConnectUpdateProviderParams{ID: p.ID, Label: in.Region, Config: cb, CredentialsEnc: p.CredentialsEnc,
-		Status: statusWord, StatusDetail: quota.Account, IpMode: p.IpMode, Ips: p.Ips, Health: hb, CheckedAt: &now}); err != nil {
+		Status: statusWord, StatusDetail: quota.Account, Health: hb, CheckedAt: &now}); err != nil {
 		return ConnectSetup{}, err
 	}
 	p.Config = cb
+	// Dedicated IPs belong to a region: the new one's are read again.
+	p = s.refreshIPs(ctx, p, adapter)
 	st, err := s.update(ctx, ws, cur.ID, "provider.region_change", map[string]any{"before": before, "after": in.Region}, func(_ *store.ProviderSetup, state *State) error {
 		state.Connection.Region = in.Region
 		state.Connection.Summary = in.Region + " · " + map[bool]string{true: "sandbox", false: "production"}[quota.Sandbox]
@@ -545,6 +604,119 @@ func (s *Service) SetRegion(ctx context.Context, ws *store.Workspace, rawID stri
 				r.keep("text", i18n.Text{})
 			}
 			rows = append(rows, r)
+		}
+		state.Connection.Provisioning = rows
+		return nil
+	})
+	if err != nil {
+		return ConnectSetup{}, err
+	}
+	if c := s.jobs(); c != nil {
+		if _, err := c.Insert(ctx, ProvisionArgs{SetupID: st.ID}, nil); err != nil {
+			return ConnectSetup{}, err
+		}
+	}
+	return s.View(ctx, ws, st)
+}
+
+// ConnectEventsInput picks how SES events reach ReputeCast (PR-4).
+type ConnectEventsInput struct {
+	Events string `json:"events" enum:"webhook,queue"`
+}
+
+// SetEvents switches an SES connection between SNS calling the webhook and
+// an SQS queue ReputeCast polls: the event path is set up again, and the
+// event check runs again through it.
+func (s *Service) SetEvents(ctx context.Context, ws *store.Workspace, rawID string, in ConnectEventsInput) (ConnectSetup, error) {
+	cur, err := s.setup(ctx, ws, rawID)
+	if err != nil {
+		return ConnectSetup{}, err
+	}
+	if cur.Status == "abandoned" {
+		return ConnectSetup{}, conflict(ctx, mProblemCancelled, nil)
+	}
+	d, err := descriptor(ctx, cur.Adapter)
+	if err != nil {
+		return ConnectSetup{}, err
+	}
+	if flowOf(d) != "ses" {
+		return ConnectSetup{}, conflict(ctx, mProblemEventsMode, i18n.Args{"name": d.Name})
+	}
+	before := decodeState(cur.State).Connection.Events
+	if before == "" {
+		before = "webhook"
+	}
+	if cur.ProviderID == nil {
+		// Not connected yet: the choice applies when it connects.
+		out, err := s.update(ctx, ws, cur.ID, "provider.events_mode", map[string]any{"before": before, "after": in.Events}, func(_ *store.ProviderSetup, state *State) error {
+			state.Connection.Events = in.Events
+			return nil
+		})
+		if err != nil {
+			return ConnectSetup{}, err
+		}
+		return s.View(ctx, ws, out)
+	}
+	p, err := s.provider(ctx, ws, cur)
+	if err != nil {
+		return ConnectSetup{}, err
+	}
+	cfg := currentSettings(&p)
+	if in.Events == providers.EventsQueue {
+		cfg["events"] = providers.EventsQueue
+	} else {
+		delete(cfg, "events")
+		delete(cfg, "queue_url")
+		delete(cfg, "queue_arn")
+	}
+	cb, _ := json.Marshal(cfg)
+	p.Config = cb
+	st, err := s.updateWith(ctx, ws, cur.ID, "provider.events_mode", map[string]any{"before": before, "after": in.Events}, func(q *store.Queries, _ *store.ProviderSetup, state *State) error {
+		// The provider's settings change with the setup and its audit entry.
+		if err := q.ConnectSetProviderConfig(ctx, store.ConnectSetProviderConfigParams{ID: p.ID, Config: cb}); err != nil {
+			return err
+		}
+		state.Connection.Events = in.Events
+		var adapter providers.Provider
+		if a, err := s.Factory.Open(ctx, p); err == nil {
+			adapter = a
+		}
+		pv, ok := adapter.(providers.Provisioner)
+		if !ok && !manage.IsDemo(p) {
+			return nil
+		}
+		// Keep the access and account rows; the rest runs again through the
+		// new path, and the event check with it.
+		rows := []ProvisionState{}
+		for _, r := range state.Connection.Provisioning {
+			if r.Key == "verify" || r.Key == "account" {
+				rows = append(rows, r)
+			}
+		}
+		in := s.provisionInput(ctx, p, *state)
+		if ok {
+			for _, step := range pv.ProvisionSteps(ctx, in) {
+				row := ProvisionState{Key: step.Key, Label: step.Label, Status: "waiting"}
+				row.keep("label", step.LabelText)
+				rows = append(rows, row)
+			}
+			rows = append(rows, eventRows(adapter)...)
+		} else {
+			for _, r := range state.Connection.Provisioning {
+				if r.Key != "verify" && r.Key != "account" {
+					r.clearProblem()
+					r.Status, r.Text, r.Note, r.At, r.Attempts, r.MessageID = "waiting", "", "", nil, 0, ""
+					r.keep("text", i18n.Text{})
+					r.keep("note", i18n.Text{})
+					rows = append(rows, r)
+				}
+			}
+		}
+		for i := range rows {
+			if rows[i].Key == eventSendKey {
+				// The resources were recorded already.
+				rows[i].Attempts = 1
+			}
 		}
 		state.Connection.Provisioning = rows
 		return nil
@@ -678,4 +850,14 @@ func (s *Service) ScanRegions(ctx context.Context, setupID uuid.UUID) error {
 		_, err = s.save(ctx, q, cur, state)
 		return err
 	})
+}
+
+// hasEventRows reports whether a setup has the event check (PR-3).
+func hasEventRows(rows []ProvisionState) bool {
+	for _, r := range rows {
+		if r.Key == eventSendKey || r.Key == eventCheckKey {
+			return true
+		}
+	}
+	return false
 }

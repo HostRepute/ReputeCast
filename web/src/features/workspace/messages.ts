@@ -39,7 +39,7 @@ export const m = defineMessages('workspace', {
   noRule: 'Never: no rule is on',
   approvers: 'Approvers',
   approversValue:
-    'Members with campaigns:approve: {hasApprovers, select, yes {{names}} other {nobody yet}} · {count, plural, one {# approval} other {# approvals}} required',
+    'Members who can approve campaigns: {hasApprovers, select, yes {{names}} other {nobody yet}} · {count, plural, one {# approval} other {# approvals}} required',
   automations: 'Automations',
   automationsOn: 'Publishing needs approval',
   automationsOff: 'Publishing does not need approval',
@@ -107,7 +107,7 @@ export const m = defineMessages('workspace', {
   recommended: 'Recommended',
   exportBody: 'Export everything first: contacts with consent, campaigns as MJML, reports as CSV, audit log as JSON.',
   exportButton: 'Export everything first',
-  exportNeeds: 'Exporting contacts needs the subscribers:export permission.',
+  exportNeeds: "Your role can't export contacts.",
   // name: the workspace's name, which must be typed as it is.
   typeName: 'Type <b>{name}</b> to confirm',
   mustMatch: 'Must match exactly.',

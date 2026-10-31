@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
@@ -66,7 +68,14 @@ func (w *DailyWorker) Work(ctx context.Context, _ *river.Job[DailyArgs]) error {
 
 var systemActor = &audit.Actor{Type: authz.ActorSystem, Name: "System"}
 
-// Evaluate brings one plan up to date. Running it twice a day is harmless.
+// Evaluate brings one plan up to date (PR-8): it judges every finished
+// day of the workspace's calendar since the last run, moves the plan on by
+// the days that counted (a day that didn't count repeats), holds the cap
+// after a guard trips until two healthy days in a row without moving the
+// plan meanwhile (the ramp resumes from the held cap, Hold.Moves), raises
+// the Broadcast share on schedule and finishes the plan once every day
+// counted. A paused plan isn't judged: its days wait. Running it twice a
+// day is harmless.
 func (s *Service) Evaluate(ctx context.Context, planID uuid.UUID) error {
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -87,98 +96,147 @@ func (s *Service) Evaluate(ctx context.Context, planID uuid.UUID) error {
 		}
 		loc := state.Location(ws.Timezone)
 		now := s.now()
+		today := dateIn(now, loc)
 		plan := ParsePlan(r.Schedule, r.Progress)
-		today := state.WarmupDay(r.StartDate, now, loc)
-		start := time.Date(r.StartDate.Year(), r.StartDate.Month(), r.StartDate.Day(), 0, 0, 0, 0, time.UTC)
+		start := localDate(r.StartDate, loc)
+		from := localDate(r.StartedOn, loc)
+		evaluated := r.EvaluatedThrough
+		if evaluated != nil {
+			from = localDate(*evaluated, loc).AddDate(0, 0, 1)
+		}
+		hold := Hold{Cap: r.HeldCap, Streak: int(r.HealthyStreak)}
+		guards := Guards{Bounce: r.SlowdownBounce, Complaint: r.SlowdownComplaint, MinSample: int64(r.MinSample), Action: r.GuardAction}
+		days := int(r.Days)
 		status, detail := r.Status, kept{English: r.StatusDetail}
 		detailTexts := r.Texts
 		setStatus := func(st string, d kept) {
 			status, detail, detailTexts = st, d, textsJSON(map[string]i18n.Text{"status_detail": d.Text})
 		}
 		events := []store.WarmupAddEventParams{}
-		addEvent := func(kind string, title, body kept) {
-			events = append(events, store.WarmupAddEventParams{ID: newID(), PlanID: r.ID, OccurredAt: now, Kind: kind, Title: title.English, Body: body.English,
+		addEvent := func(at time.Time, kind string, title, body kept) {
+			events = append(events, store.WarmupAddEventParams{ID: newID(), PlanID: r.ID, OccurredAt: at, Kind: kind, Title: title.English, Body: body.English,
 				Texts: textsJSON(map[string]i18n.Text{"title": title.Text, "body": body.Text})})
 		}
-		// Record every finished day that has no final result yet.
-		for d := 1; d < today && d <= int(r.Days); d++ {
-			if res, ok := plan.Result(d); ok && (res.Sent > 0 || res.Date != "" && !res.Held) {
-				continue
+		for d := from; d.Before(today); d = d.AddDate(0, 0, 1) {
+			day := dayNumber(start, d)
+			if day > days {
+				break
 			}
-			date := start.AddDate(0, 0, d-1)
-			stats, err := q.WarmupDailyStats(ctx, store.WarmupDailyStatsParams{ProviderID: r.ProviderID, Since: date, Until: date})
+			planned := plan.PlannedCap(day)
+			dayCap := hold.CapFor(planned)
+			st, err := dayStats(ctx, q, r.ProviderID, d, d.AddDate(0, 0, 1))
 			if err != nil {
 				return err
 			}
-			var st store.WarmupDailyStatsRow
-			if len(stats) == 1 {
-				st = stats[0]
+			v := Judge(st, dayCap, guards)
+			res := Result{Day: day, Date: d.Format("2006-01-02"), Cap: dayCap, Sent: st.Sent, Bounced: st.Bounced, Complained: st.Complained, Delivered: st.Delivered,
+				Bounce: v.Bounce, Complaint: v.Complaint,
+				Counted: v.Counted, Judged: v.Judged, Short: v.Short, Slowed: v.Tripped, Metric: v.Metric, Held: hold.Cap != nil}
+			if hold.Cap != nil && planned != dayCap {
+				res.PlannedCap = planned
 			}
-			res := Result{Day: d, Date: date.Format("2006-01-02"), Cap: plan.Cap(d), Sent: st.Sent}
-			if prev, ok := plan.Result(d); ok && prev.Held {
-				res.Held = true
+			prevCap := plan.PlannedCap(max(day-1, 1))
+			next, step := hold.After(v, dayCap, prevCap, r.GuardAction)
+			if step == HoldHealthy || step == HoldEnded {
+				res.Healthy = hold.Streak + 1
 			}
-			if st.Sent > 0 {
-				res.Bounce = round1(float64(st.Bounced) / float64(st.Sent) * 100)
-			}
-			if st.Delivered > 0 {
-				res.Complaint = round2(float64(st.Complained) / float64(st.Delivered) * 100)
-			}
-			tripped := st.Sent > 0 && (res.Bounce > r.SlowdownBounce || res.Complaint > r.SlowdownComplaint)
-			res.Slowed = tripped
+			// A healthy day under a hold proves the held cap but doesn't
+			// move the plan on, so the cap never jumps when the hold ends.
+			moves := hold.Moves(v, step, planned)
+			res.Counted = moves
 			plan.set(res)
-			switch {
-			case tripped:
-				// "Bounces hit 2.3% (guard 2%), mostly Yahoo. Day 7 cap held at 4,000."
-				args := i18n.Args{"metric": "bounce", "rate": res.Bounce / 100, "guard": r.SlowdownBounce / 100, "guardDigits": digits(r.SlowdownBounce)}
-				if res.Complaint > r.SlowdownComplaint {
-					args = i18n.Args{"metric": "complaint", "rate": res.Complaint / 100, "guard": r.SlowdownComplaint / 100, "guardDigits": digits(r.SlowdownComplaint)}
+			// The log entry is dated on the day it is about.
+			at := d.AddDate(0, 0, 1).Add(-time.Second)
+			bounce := 0.0
+			if v.Bounce != nil {
+				bounce = *v.Bounce / 100
+			}
+			switch step {
+			case HoldStarted, HoldPause:
+				args := i18n.Args{"metric": "bounce", "rate": bounce, "guard": r.SlowdownBounce / 100, "guardDigits": digits(r.SlowdownBounce)}
+				if v.Metric == "complaint" && v.Complaint != nil {
+					args = i18n.Args{"metric": "complaint", "rate": *v.Complaint / 100, "guard": r.SlowdownComplaint / 100, "guardDigits": digits(r.SlowdownComplaint)}
 				}
-				mb := dominantMailbox(ctx, tx, r.ProviderID, date)
+				mb := dominantMailbox(ctx, tx, r.ProviderID, d)
 				args["mailbox"] = mailboxArg(mb, routing.MailboxName(mb))
-				title := keep("log.slowdownTitle", nil)
-				switch r.GuardAction {
-				case "pause":
-					setStatus("paused", keep("status.pausedByGuard", i18n.Args{"day": d}))
-					addEvent("slowdown", title, keep("log.slowdown", with(args, "action", "pause")))
-				case "step_back":
-					capNext := plan.Cap(max(d-1, 1))
-					plan.set(Result{Day: d + 1, Cap: capNext, Held: true})
-					setStatus("slowed", keep("status.steppedBack", i18n.Args{"day": d}))
-					addEvent("slowdown", title, keep("log.slowdown", with(args, "action", "step_back", "day", d+1, "cap", capNext)))
-				default:
-					capNext := res.Cap
-					plan.set(Result{Day: d + 1, Cap: capNext, Held: true})
-					setStatus("slowed", keep("status.capHeld", i18n.Args{"day": d + 1}))
-					addEvent("slowdown", title, keep("log.slowdown", with(args, "action", "hold", "day", d+1, "cap", capNext)))
+				action := r.GuardAction
+				if step == HoldPause {
+					action = "pause"
+					setStatus("paused", keep("status.pausedByGuard", i18n.Args{"day": day}))
+				} else {
+					setStatus("slowed", keep("status.held", i18n.Args{"cap": *next.Cap, "healthy": HealthyDays}))
 				}
-			case res.Held && st.Sent > 0:
+				addEvent(at, "slowdown", keep("log.slowdownTitle", nil), keep("log.slowdownCounted", with(args, "action", action, "day", day, "cap", *next.Cap, "healthy", HealthyDays)))
+			case HoldHealthy:
+				// The table says "healthy day 1 of 2"; the log keeps what changed.
+			case HoldEnded:
 				setStatus("active", kept{})
-				addEvent("resumed", kept{}, keep("log.rampResumed", i18n.Args{"bounce": res.Bounce / 100}))
-			case st.Sent > 0:
-				args := i18n.Args{"day": d, "sent": st.Sent, "bounce": res.Bounce / 100, "inside": "no", "campaign": ""}
-				if name := campaignOn(ctx, tx, r.ProviderID, date); name != "" {
-					args["inside"], args["campaign"] = "yes", name
+				// The ramp resumes from the held cap: the next day, or the
+				// day the guard tripped after a step back.
+				nextDay := day
+				if moves {
+					nextDay = min(day+1, days)
 				}
-				addEvent("day_complete", kept{}, keep("log.dayComplete", args))
+				addEvent(at, "resumed", kept{}, keep("log.holdEnded", i18n.Args{"bounce": bounce, "day": nextDay, "cap": plan.PlannedCap(nextDay)}))
+			default:
+				// The log keeps what changed: a day a campaign used, a day
+				// that didn't count. Quiet counted days are in the table.
+				switch {
+				case v.Counted:
+					if name := campaignOn(ctx, tx, r.ProviderID, d); name != "" {
+						addEvent(at, "day_complete", kept{}, keep("log.dayCounted", i18n.Args{"day": day, "sent": st.Sent, "bounce": bounce, "inside": "yes", "campaign": name}))
+					}
+				default:
+					addEvent(at, "day_complete", kept{}, keep("log.dayShort", i18n.Args{"day": day, "sent": st.Sent, "cap": dayCap, "weekday": weekdayKey(d.AddDate(0, 0, 1))}))
+				}
+			}
+			hold = next
+			if !moves {
+				// The day repeats: the plan's day 1 moves a day later.
+				start = start.AddDate(0, 0, 1)
+			}
+			dd := d
+			evaluated = &dd
+			if step == HoldPause {
+				break
 			}
 		}
+		todayDay := dayNumber(start, today)
 		// Raise the Broadcast share on schedule.
-		if today >= 2 && today <= int(r.Days) && plan.Share(today) != plan.Share(today-1) && plan.Share(today) > 0 {
-			if raised, err := s.raiseShare(ctx, tx, ws, r.ProviderID, plan.Share(today)); err != nil {
+		if status != "paused" && todayDay >= 2 && todayDay <= days && plan.Share(todayDay) != plan.Share(todayDay-1) && plan.Share(todayDay) > 0 {
+			if raised, err := s.raiseShare(ctx, tx, ws, r.ProviderID, plan.Share(todayDay)); err != nil {
 				return err
 			} else if raised {
-				addEvent("share_raised", kept{}, keep("log.shareRaised", i18n.Args{"share": float64(plan.Share(today)) / 100, "day": today}))
+				addEvent(now, "share_raised", kept{}, keep("log.shareRaised", i18n.Args{"share": float64(plan.Share(todayDay)) / 100, "day": todayDay}))
 			}
 		}
-		if today > int(r.Days) {
+		if todayDay > days && status != "paused" {
 			setStatus("done", keep("status.complete", nil))
-			addEvent("done", keep("log.doneTitle", nil), keep("log.done", i18n.Args{"provider": r.ProviderName}))
+			addEvent(now, "done", keep("log.doneTitle", nil), keep("log.done", i18n.Args{"provider": r.ProviderName}))
 			if _, err := tx.Exec(ctx, `UPDATE providers SET status = 'healthy', status_detail = '' WHERE id = $1 AND status = 'warming_up'`, r.ProviderID); err != nil {
 				return err
 			}
 		} else if status != "done" {
-			if _, err := tx.Exec(ctx, `UPDATE providers SET status_detail = $2 WHERE id = $1 AND status = 'warming_up'`, r.ProviderID, fmt.Sprintf("Warming up · day %d of %d", max(today, 1), r.Days)); err != nil {
+			if _, err := tx.Exec(ctx, `UPDATE providers SET status_detail = $2 WHERE id = $1 AND status = 'warming_up'`, r.ProviderID, fmt.Sprintf("Warming up · day %d of %d", min(max(todayDay, 1), days), r.Days)); err != nil {
+				return err
+			}
+		}
+		var heldCap *int64
+		if hold.Cap != nil {
+			c := *hold.Cap
+			heldCap = &c
+		}
+		var through *time.Time
+		if evaluated != nil {
+			t := dayUTC(*evaluated)
+			through = &t
+		}
+		if err := q.WarmupMove(ctx, store.WarmupMoveParams{ID: r.ID, StartDate: dayUTC(start), EvaluatedThrough: through, HeldCap: heldCap, HealthyStreak: int32(hold.Streak)}); err != nil {
+			return err
+		}
+		if status == "paused" && r.Status != "paused" {
+			at := now
+			if err := q.WarmupSetStatus(ctx, store.WarmupSetStatusParams{ID: r.ID, Status: status, StatusDetail: detail.English, PausedAt: &at, Texts: detailTexts}); err != nil {
 				return err
 			}
 		}
@@ -200,15 +258,26 @@ func (s *Service) Evaluate(ctx context.Context, planID uuid.UUID) error {
 	})
 }
 
-// set records a day's result, replacing an earlier one.
-func (p *Plan) set(r Result) {
-	for i := range p.Progress {
-		if p.Progress[i].Day == r.Day {
-			p.Progress[i] = r
-			return
+// weekdayKey is a date's weekday for the messages' select ("monday").
+func weekdayKey(d time.Time) string { return strings.ToLower(d.Weekday().String()) }
+
+// dayStats is what a provider sent on one of the workspace's days. Only
+// mailbox providers that report complaints count toward the complaint rate.
+func dayStats(ctx context.Context, q *store.Queries, providerID uuid.UUID, from, until time.Time) (DayStats, error) {
+	rows, err := q.WarmupDayStats(ctx, store.WarmupDayStatsParams{ProviderID: &providerID, Since: from, Until: until})
+	if err != nil {
+		return DayStats{}, err
+	}
+	var st DayStats
+	for _, r := range rows {
+		st.Sent += r.Sent
+		st.Bounced += r.Bounced
+		if mailbox.ReportsComplaints(r.MailboxProvider) {
+			st.Complained += r.Complained
+			st.Delivered += r.Delivered
 		}
 	}
-	p.Progress = append(p.Progress, r)
+	return st, nil
 }
 
 // raiseShare sets the provider's weight in the Broadcasts default split,

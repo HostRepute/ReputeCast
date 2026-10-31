@@ -2,7 +2,7 @@
   "pricing": "0,10 US$ cho mỗi 1.000 email",
   "dedicatedIps": "không bắt buộc, 24,95 US$ mỗi IP mỗi tháng",
   "terms.0.note": "Cần quyền gửi chính thức; tài khoản phải luôn ở dưới ngưỡng trả thư và khiếu nại của SES.",
-  "events": "Webhook qua SNS",
+  "events": "Webhook qua SNS hoặc hàng đợi SQS",
   "domainSetup": "API",
   "suppressionMode": "Hai chiều",
   "field.region.label": "Khu vực",
@@ -32,5 +32,15 @@
   "provision.confirmDone": "Đã xác nhận đăng ký SNS (đã nhận bắt tay)",
   "provision.configSetDone": "Đã tạo configuration set `{name}` có đích sự kiện, tắt theo dõi",
 
-  "status.incident": "AWS báo có sự cố SES ở {region}."
+  "provision.tenant": "Tạo tenant `{tenant}`",
+  "provision.tenantDone": "Đã tạo tenant `{tenant}`",
+  "provision.tenantNote": "Danh sách chặn gửi và uy tín{hasPolicy, select, yes { theo chính sách {policy}} other {}} riêng của workspace này, chỉ tạm dừng tenant này",
+  "provision.queue": "Tạo SNS topic `{topic}` và một hàng đợi SQS đăng ký vào topic đó",
+  "provision.queueDone": "Đã tạo SNS topic `{topic}` và một hàng đợi SQS đăng ký vào topic đó: `{queue}`",
+  "provision.queuePolicy": "Giới hạn hàng đợi chỉ nhận từ topic đó và bắt đầu đọc mỗi {seconds} giây",
+  "provision.queuePolicyDone": "Đã giới hạn hàng đợi chỉ nhận từ topic đó và bắt đầu đọc mỗi {seconds} giây",
+
+  "status.incident": "AWS báo có sự cố SES ở {region}.",
+
+  "error.dedicatedIpsDenied": "Vai trò hoặc khóa truy cập mà ReputeCast dùng không được phép liệt kê các IP riêng của tài khoản: hãy cho phép ses:GetDedicatedIps trong chính sách IAM của chúng (mẫu CloudFormation đã cho phép), rồi kiểm tra lại."
 }

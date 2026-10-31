@@ -37,7 +37,7 @@ const (
 // read with q (the demo gives the Weekly Digest's readers their languages
 // inside its transaction).
 func FinalRecipients(ctx context.Context, q *store.Queries, wsID uuid.UUID, audience, sunsetPolicy json.RawMessage, now time.Time) ([]Recipient, error) {
-	_, out, err := (&Service{}).computeAudience(ctx, q, wsID, ParseAudience(audience), sunsetDays(sunsetPolicy), now)
+	_, out, err := (&Service{}).computeAudience(ctx, q, wsID, ParseAudience(audience), sunsetDays(sunsetPolicy), now, true)
 	return out, err
 }
 
@@ -45,7 +45,13 @@ func FinalRecipients(ctx context.Context, q *store.Queries, wsID uuid.UUID, audi
 type VersionReport struct {
 	Language string
 	Report   contentcheck.ContentCheckReport
+	// TrackedBytes is the version's HTML as sent, with tracking (SR-7).
+	TrackedBytes int
 }
+
+// sentBytes is the size Gmail measures: the HTML as sent when it was
+// measured, the HTML otherwise.
+func sentBytes(r contentcheck.ContentCheckReport, tracked int) int { return max(r.SizeBytes, tracked) }
 
 // langArg is a content language's name for a message: written in each
 // reader's language, unless the name given isn't the catalog's.
@@ -270,14 +276,15 @@ func (b *builder) everyVersion() {
 			for _, v := range all {
 				parts = append(parts, tx("languages.ratioPart", A{"language": ArgLanguage(v.Language), "share": ArgPercent(math.Round(v.Report.ImageShare * 100))}))
 			}
-			c.Title = tx("languages.ratioEvery", A{"limit": ArgPercent(60)})
+			c.Title = tx("languages.ratioEvery", A{"limit": ArgPercent(contentcheck.ImageShareLimit * 100)})
 			c.Detail = tx("languages.ratioEveryDetail", A{"parts": argJoin(" · ", parts), "images": b.f.Content.Report.Images})
 		case "content.size":
 			parts := []Text{}
+			all[0].TrackedBytes = b.f.Content.TrackedBytes
 			for _, v := range all {
-				parts = append(parts, tx("languages.sizePart", A{"language": ArgLanguage(v.Language), "kb": int(math.Round(float64(v.Report.SizeBytes) / 1024))}))
+				parts = append(parts, tx("languages.sizePart", A{"language": ArgLanguage(v.Language), "kb": int(math.Round(float64(sentBytes(v.Report, v.TrackedBytes)) / 1024))}))
 			}
-			c.Title = tx("languages.sizeEvery", A{"clip": 102})
+			c.Title = tx("languages.sizeEvery", A{"clip": 102, "tracked": yes(b.f.Content.TrackedBytes > 0)})
 			c.Detail = tx("languages.sizeEveryDetail", A{"parts": argJoin(" · ", parts), "clip": 102})
 		case "content.plain_text":
 			c.Title = tx("languages.plainEvery", nil)
@@ -297,22 +304,30 @@ func (b *builder) everyVersion() {
 		name := ArgLanguage(v.Language)
 		open := link(tx("fix.openLanguage", A{"language": name}), b.href("/campaigns/"+b.f.Campaign.ID+"/edit?language="+v.Language))
 		r := v.Report
-		if len(r.SubjectHeuristics) > 0 && len(b.f.Content.Report.SubjectHeuristics) == 0 {
+		src := b.f.Content.Report
+		if len(r.SubjectHeuristics) > 0 && len(src.SubjectHeuristics) == 0 {
 			b.add(check{Key: "content.spam." + v.Language, Group: GroupContent, Status: Warn, Label: tx("label.spamTriggersIn", A{"language": name}),
 				Title:  tx("languages.versionSpam", A{"language": name, "count": len(r.SubjectHeuristics)}),
 				Detail: heuristicsText(r.SubjectHeuristics), Ack: tx("languages.versionSpamAck", A{"language": name}),
 				Fixes: []fix{open}})
+		} else if places := spamPlaces(r, false); len(places) > 0 && len(spamPlaces(src, true)) == 0 {
+			// The version's preheader or body trips heuristics the source's
+			// doesn't (SR-7).
+			b.add(check{Key: "content.spam." + v.Language, Group: GroupContent, Status: Warn, Label: tx("label.spamTriggersIn", A{"language": name}),
+				Title:  tx("languages.versionSpamAny", A{"language": name}),
+				Detail: joined(" · ", places), Ack: tx("languages.versionSpamAnyAck", A{"language": name}),
+				Fixes: []fix{open}})
 		}
-		if r.SizeBytes >= contentcheck.NearClipBytes && b.f.Content.Report.SizeBytes < contentcheck.NearClipBytes {
-			kb := int(math.Round(float64(r.SizeBytes) / 1024))
+		if sent := sentBytes(r, v.TrackedBytes); sent >= contentcheck.NearClipBytes && sentBytes(b.f.Content.Report, b.f.Content.TrackedBytes) < contentcheck.NearClipBytes {
+			kb := int(math.Round(float64(sent) / 1024))
 			b.add(check{Key: "content.size." + v.Language, Group: GroupContent, Status: Warn, Label: tx("label.htmlSizeIn", A{"language": name}),
 				Title:  tx("languages.versionSize", A{"language": name, "kb": kb, "clip": 102}),
 				Detail: tx("languages.versionSizeDetail", nil), Ack: tx("languages.versionSizeAck", A{"language": name, "kb": kb}),
 				Fixes: []fix{open}})
 		}
-		if r.ImageShare >= 0.6 && b.f.Content.Report.ImageShare < 0.6 {
+		if r.ImageShare >= contentcheck.ImageShareLimit && b.f.Content.Report.ImageShare < contentcheck.ImageShareLimit {
 			b.add(check{Key: "content.image_ratio." + v.Language, Group: GroupContent, Status: Warn, Label: tx("label.imageRatioIn", A{"language": name}),
-				Title: tx("languages.versionRatio", A{"language": name, "share": ArgPercent(math.Round(r.ImageShare * 100)), "limit": ArgPercent(60)}),
+				Title: tx("languages.versionRatio", A{"language": name, "share": ArgPercent(math.Round(r.ImageShare * 100)), "limit": ArgPercent(contentcheck.ImageShareLimit * 100)}),
 				Ack:   tx("languages.versionRatioAck", A{"language": name}),
 				Fixes: []fix{open}})
 		}

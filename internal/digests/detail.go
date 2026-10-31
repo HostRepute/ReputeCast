@@ -367,16 +367,9 @@ func (s *Service) approvalsPreview(ctx context.Context, ws *store.Workspace, d s
 	return out
 }
 
-// needsApproval is whether the next issue would need approval.
-func (s *Service) needsApproval(ctx context.Context, ws *store.Workspace, d store.Digest) bool {
-	tpl, err := s.template(ctx, d)
-	if err != nil || tpl == nil {
-		return false
-	}
-	a, err := s.audienceOf(ctx, ws, tpl.Audience)
-	if err != nil {
-		return false
-	}
+// needsApproval is whether the next issue would need approval, made from
+// the template tpl for the audience a.
+func (s *Service) needsApproval(ctx context.Context, ws *store.Workspace, d store.Digest, tpl *store.DigestCampaignTemplateRow, a DigestAudience) bool {
 	r, err := s.routeOf(ctx, ws, tpl.RouteOverride, s.now())
 	if err != nil {
 		return false

@@ -191,10 +191,12 @@ SELECT EXISTS (SELECT 1 FROM unsubscribe_feedback WHERE contact_id = @contact_id
 
 -- name: ContactEngagementSince :one
 -- Emails sent to a contact since a date (Broadcasts and Automations), how
--- many were opened by a person and how many were clicked.
+-- many were opened by a person and how many a person clicked: bot clicks
+-- and clicks still waiting to settle aren't a person's (review AN-2).
 SELECT count(*)::bigint AS emails,
        count(*) FILTER (WHERE EXISTS (SELECT 1 FROM delivery_events de WHERE de.message_id = m.id AND de.type = 'open' AND NOT de.machine))::bigint AS human_opened,
-       count(*) FILTER (WHERE EXISTS (SELECT 1 FROM delivery_events de WHERE de.message_id = m.id AND de.type = 'click'))::bigint AS clicked
+       count(*) FILTER (WHERE EXISTS (SELECT 1 FROM delivery_events de WHERE de.message_id = m.id AND de.type = 'click' AND NOT de.machine
+                                       AND de.class <> 'pending'))::bigint AS clicked
 FROM messages m
 WHERE m.contact_id = @contact_id AND m.stream IN ('broadcast', 'automation') AND m.queued_at >= @since;
 

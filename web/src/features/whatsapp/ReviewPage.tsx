@@ -11,7 +11,7 @@ import { toast } from '@/components/ui/Toast'
 import { ReportError } from '@/features/push/ReportPage'
 import { useT } from '@/i18n'
 import { andList, clock, count, dayMonthDate, money } from '@/lib/format'
-import { useWorkspace } from '@/lib/session'
+import { deniedReason, useWorkspace } from '@/lib/session'
 import { throwIfForbidden } from './common'
 import { CheckRow, laterDay } from './Checks'
 import { m } from './campaign.messages'
@@ -99,7 +99,7 @@ function ReviewCard({ d }: { d: Review }) {
         onError: (e) => toast({ kind: 'error', title: errorMessage(e) }),
       },
     )
-  const blockedReason = blocks ? t(m.blockedReason) : !d.access.canSend ? t(m.noPermission, { perms: andList(d.access.missing) }) : undefined
+  const blockedReason = blocks ? t(m.blockedReason) : !d.access.canSend ? deniedReason('whatsapp:send', d.access.helpers, t(m.sendAction)) : undefined
   return (
     <section className="card">
       <div className="px-head">

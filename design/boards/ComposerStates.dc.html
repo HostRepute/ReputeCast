@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Campaign composer, loading, error and saved states</title>
+<title>Campaign composer states</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -14,24 +14,45 @@
 body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;line-height:1.45}
 a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
 .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
-.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 12px;border-radius:7px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
 .btn:hover{background:#F3F4F6;color:#0B1220}
 .btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
-.btn.sm{min-height:28px;padding:0 9px;font-size:12px}
+.btn.ic{width:32px;padding:0}
 .badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
-.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
 .dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
 .k{font-size:12px;color:#5B6472;font-weight:500}
-.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
-.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
-.spin{width:16px;height:16px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
-.ver{display:flex;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid #EEF0F3;font-size:12.5px}
+.in{height:32px;padding:0 9px;border:1px solid #D4D8DF;border-radius:7px;background:#fff;font:inherit;font-size:12.5px;color:#0B1220;box-sizing:border-box;min-width:0}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.grp{padding:10px 12px 4px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5B6472}
+.blk{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;font-size:11.5px;font-weight:500;color:#374151;cursor:grab;text-align:center}
+.blk svg{width:22px;height:22px;stroke:#374151;fill:none;stroke-width:1.5}
+.blk.rc{border-color:#99F6E4;background:#F0FDFA}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:7px;overflow:hidden}
+.seg button{height:30px;padding:0 10px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#5B6472;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.seg button.on{background:#0B1220;color:#fff}
+.email{width:600px;background:#fff;box-shadow:0 1px 3px rgba(11,18,32,.12);font-family:Georgia,'Times New Roman',serif;color:#1F2937;flex:none}
+.sec{position:relative;padding:16px 24px}
+.sec:hover{outline:1px dashed #93C5FD;outline-offset:-1px}
+.ph{display:flex;align-items:center;justify-content:center;background:#E9ECF0;color:#5B6472;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:500;border:1px dashed #C9CED6}
+.tb{position:absolute;top:-30px;right:-2px;display:flex;background:#1D4ED8;border-radius:6px 6px 0 0;padding:2px}
+.tb button{width:26px;height:26px;border:0;background:none;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.tb svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:1.8}
+.lab{position:absolute;top:-30px;left:-2px;background:#1D4ED8;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:600;padding:0 8px;height:26px;display:inline-flex;align-items:center;border-radius:6px 6px 0 0;margin-top:2px}
+.prop{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-bottom:1px solid #EEF0F3}
+.prop .t{font-size:12px;font-weight:600}
+.row4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.sw{width:22px;height:22px;border-radius:5px;border:1px solid #D4D8DF;flex:none}
+.bc{display:flex;align-items:center;gap:6px;font-size:12px;color:#5B6472}
+.bc b{color:#0B1220;font-weight:600}
 
 /* responsive shell */
 @media (max-width:1100px){
   .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
-  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .brand-t,.side .ws{display:none}.side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .side .nav a{justify-content:center;padding:0!important;height:44px}
   .side .nav svg{width:20px;height:20px}
   .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
@@ -104,65 +125,404 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
   .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
 }
+/* ===== compact composer chrome: one top bar + one Inbox strip (shared by the composer boards) ===== */
+.cbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 16px;background:#FFFFFF;border-bottom:1px solid #E3E6EB;box-sizing:border-box;position:relative;z-index:30}
+.cbar .btn{min-height:36px;padding:0 12px;font-size:13px;border-radius:8px;white-space:nowrap}
+.cbar .btn.ic{width:36px;padding:0}
+.cbar svg{flex:none}
+.cb-left{display:flex;align-items:center;gap:10px;min-width:0}
+.cb-id{display:flex;align-items:center;gap:8px;min-width:0}
+.cb-name{height:36px;width:164px;min-width:0;padding:0 8px;margin-left:-2px;border:1px solid transparent;border-radius:8px;background:transparent;font:inherit;font-size:15px;font-weight:700;color:#0B1220;box-sizing:border-box;text-overflow:ellipsis}
+.cb-name:hover{border-color:#D4D8DF}
+.cb-name:focus{border-color:#8B94A3;background:#FFFFFF}
+.cb-name::placeholder{color:#5B6472;font-weight:600}
+.stchip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;background:#EEF0F3;color:#4B5563;font-size:12px;font-weight:600;white-space:nowrap;flex:none;box-sizing:border-box}
+.stchip.ok{background:#DCFCE7;color:#166534}.stchip.warn{background:#FEF3C7;color:#92400E}.stchip.bad{background:#FEE2E2;color:#991B1B}
+.cb-pres{display:flex;align-items:center;gap:8px;flex:none;padding-left:10px;border-left:1px solid #E3E6EB;min-height:28px}
+.pav{position:relative;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:#EDE9FE;color:#5B21B6;flex:none}
+.pav i{position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:50%;background:#15803D;border:2px solid #FFFFFF;box-sizing:border-box}
+.cb-pres .pt{font-size:12px;font-weight:500;color:#5B6472;white-space:nowrap}
+.cb-mid{display:flex;align-items:center;gap:8px;margin-left:auto}
+.modes{display:inline-flex;align-items:center;gap:2px;padding:2px;border:1px solid #D4D8DF;border-radius:9px;background:#FFFFFF;flex:none;box-sizing:border-box}
+.modes a,.modes button{border:0;background:transparent;font:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 12px;border-radius:7px;color:#4B5563;font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none;box-sizing:border-box}
+.modes a:hover,.modes button:hover{background:#F3F4F6;color:#0B1220}
+.modes a[aria-selected="true"],.modes button[aria-selected="true"]{background:#0B1220;color:#FFFFFF}
+.devt{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.devt button{width:38px;height:34px;border:0;background:#FFFFFF;color:#4B5563;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.devt button + button{border-left:1px solid #E3E6EB}
+.devt button[aria-pressed="true"]{background:#0B1220;color:#FFFFFF}
+.devt button:disabled{color:#5B6472;opacity:.55;cursor:not-allowed}
+.cb-end{display:flex;align-items:center;gap:8px;margin-left:auto}
+.cb-end .btn .bi{display:none}
+.modes a svg{display:none}
+.langb .ln{color:#5B6472;font-weight:500}
+.cb-go{display:flex;align-items:center}
+.rsend .rs-b{font-weight:600}
+.btn.pri.rs-stop{background:#B91C1C;border-color:#B91C1C;color:#FFFFFF}.btn.pri.rs-stop:hover{background:#991B1B;color:#FFFFFF}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn.sm{min-height:28px;padding:0 10px;font-size:12px}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}.btn.danger:hover{background:#FFF5F5;color:#991B1B}
+.btn.ghost{border-color:transparent;background:transparent}.btn.ghost:hover{background:#F3F4F6}
+.nt-phone{display:none}
+
+/* Inbox strip */
+.istrip{display:flex;align-items:center;gap:10px;min-height:40px;padding:4px 16px;background:#F9FAFB;border-bottom:1px solid #E3E6EB;box-sizing:border-box;font-size:12.5px;position:relative;z-index:20}
+.is-l{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;flex:none}
+.is-sum{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 auto;margin:0;white-space:nowrap;overflow:hidden}
+.is-i{display:inline-flex;align-items:center;gap:5px;min-width:0;overflow:hidden}
+.is-i.sub{flex:0 1 auto;max-width:330px}.is-i.pre{flex:0 1 auto;max-width:280px}.is-i.to,.is-i.via{flex:none}
+.is-k{color:#5B6472;font-weight:500;flex:none}
+.is-v{color:#0B1220;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.is-v.none{color:#5B6472;font-weight:500;font-style:italic}
+.is-sep{color:#5B6472;flex:none}
+.is-flag{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:999px;background:#FEF3C7;color:#92400E;font-size:11.5px;font-weight:600;flex:none}
+.is-edit{flex:none;margin-left:auto}
+.ipanel{display:flex;flex-wrap:wrap;gap:16px 20px;padding:14px 16px 16px;background:#FFFFFF;border-bottom:1px solid #E3E6EB;box-sizing:border-box;position:relative;z-index:19}
+.ip-in{flex:3 1 520px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.ip-row{display:flex;flex-wrap:wrap;gap:10px 14px}
+.ip-row > label,.ip-row > div{flex:1 1 260px;min-width:0}
+.ip-send{flex:1 1 300px;max-width:440px;min-width:0;display:flex;flex-direction:column;gap:10px;padding:12px 14px;border:1px solid #E3E6EB;border-radius:10px;background:#F9FAFB;box-sizing:border-box}
+.ip-h{margin:0;font-size:13px;font-weight:700;color:#0B1220;display:flex;align-items:center;gap:8px}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563;min-width:0}
+.lbl .in{width:100%}
+.lbl .k{font-weight:500}
+.gmail{display:flex;align-items:center;gap:12px;min-height:40px;padding:0 12px;border:1px solid #E3E6EB;border-radius:8px;background:#FFFFFF;font-size:13px;white-space:nowrap;overflow:hidden;box-sizing:border-box}
+.gmail .gf{font-weight:700;flex:none;width:126px;overflow:hidden;text-overflow:ellipsis}
+.gmail .gs{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.gmail .gs b{font-weight:700}
+.gmail .gs span{color:#5B6472}
+.gmail .gt{margin-left:auto;font-size:12px;font-weight:600;color:#5B6472;flex:none}
+.route{display:flex;align-items:center;gap:8px;min-height:36px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#FFFFFF;color:#0B1220;font-size:12.5px;font-weight:600;text-decoration:none;box-sizing:border-box}
+.route:hover{background:#F3F4F6;color:#0B1220}
+.route .rb{display:flex;gap:2px;width:72px;height:8px;flex:none}
+.route .rb i{display:block;height:100%;border-radius:999px}
+
+/* editor body */
+.cwrap{display:flex;flex:1 1 auto;align-items:stretch;min-height:0}
+.lp{flex:0 0 248px;width:248px;background:#FFFFFF;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;min-width:0;box-sizing:border-box}
+.cv{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;background:#E9ECF0;position:relative}
+.rp{flex:0 0 320px;width:320px;background:#FFFFFF;border-left:1px solid #E3E6EB;display:flex;flex-direction:column;min-width:0;box-sizing:border-box}
+.ptab button{padding:0 6px;white-space:nowrap}
+.ptab button .n{font-weight:600;color:#5B6472}
+.ptab button.on .n{color:#0B1220}
+.cfoot{display:flex;align-items:center;gap:6px 16px;flex-wrap:wrap;padding:8px 16px;background:#FFFFFF;border-top:1px solid #E3E6EB;font-size:12px;box-sizing:border-box}
+.cfoot .hint{display:flex;flex-wrap:wrap;gap:4px 12px;color:#5B6472;font-weight:500}
+.kbd{display:inline-flex;align-items:center;height:20px;padding:0 6px;border:1px solid #D4D8DF;border-bottom-width:2px;border-radius:5px;background:#FFFFFF;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;font-weight:500;color:#374151;margin-right:4px}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.h2{margin:0;font-size:15px;font-weight:600}
+.note{display:flex;gap:8px 10px;align-items:flex-start;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.45;box-sizing:border-box}
+.note > :last-child{flex:1 1 auto;min-width:0}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+
+/* tablet: canvas first, panels stack below it */
+@media (max-width:1100px){
+  .cbar{padding:10px 16px}
+  .cb-left{order:1;flex:1 1 calc(100% - 300px)}
+  .cb-go{order:2}
+  .cb-mid{order:3;margin-left:0}
+  .cb-end{order:4;margin-left:auto}
+  .cb-pres .pt{display:none}
+  .is-i.pre{display:none}
+  .is-i.pre + .is-sep{display:none}
+  .ip-send{max-width:none;flex-basis:100%}
+  .cwrap{flex-wrap:wrap}
+  .cv{order:1;flex:1 1 100%}
+  .lp{order:2;flex:1 1 300px;width:auto;border-right:1px solid #E3E6EB;border-top:1px solid #E3E6EB}
+  .rp{order:3;flex:1 1 300px;width:auto;border-left:0;border-top:1px solid #E3E6EB}
+}
+/* phone */
+@media (max-width:767px){
+  .cbar{padding:8px 12px;gap:8px}
+  .cbar .btn{min-height:44px}
+  .cbar .btn.ic{width:44px}
+  .cb-left{flex:1 1 calc(100% - 160px);gap:8px}
+  .cb-id{flex-direction:column;align-items:flex-start;gap:2px}
+  .cb-name{width:100%;height:44px;font-size:15px;padding:0 4px;margin-left:-4px}
+  .stchip{height:auto;min-height:20px;font-size:11.5px;padding:2px 8px;white-space:normal;line-height:1.25;max-width:100%}
+  .cb-id{gap:0}
+  .cb-pres{display:none}
+  .cb-mid{flex:1 1 auto;min-width:0}
+  .modes{flex:1 1 auto;padding:0;gap:0;overflow:hidden}
+  .modes a,.modes button{flex:1 1 0%;height:44px;padding:0 8px;border-radius:0}
+  .modes a svg{display:none}
+  .devt{display:none}
+  .cb-end{margin-left:0;gap:6px;flex-wrap:nowrap}
+  .cb-end .btn{width:44px;padding:0}
+  .cb-end .btn .bi{display:inline}
+  .cb-end .btn .bt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .langb .ln,.langb .chev{display:none}
+  .rsend{flex-direction:column;align-items:flex-start;justify-content:center;gap:0;line-height:1.2;padding:4px 12px!important;white-space:nowrap!important}
+  .rsend .rs-dot{display:none}
+  .rsend .rs-b{font-size:11px;font-weight:600}
+  .nt-phone{display:inline}
+  .istrip{flex-wrap:wrap;padding:8px 12px;gap:6px 10px}
+  .is-sum{flex-wrap:wrap;white-space:normal;flex:1 1 100%;order:3;gap:4px 8px}
+  .is-sep{display:none}
+  .is-i{flex:1 1 100%!important;max-width:100%!important}
+  .is-i.pre{display:inline-flex}
+  .is-edit{min-height:44px!important}
+  .btn.sm{min-height:44px}
+  .ipanel{padding:12px}
+  .ipanel .in,.ipanel select.in{height:44px}
+  .route{min-height:44px}
+  .gmail{flex-wrap:wrap;white-space:normal;padding:8px 12px;gap:2px 10px}
+  .gmail .gf{width:auto}
+  .gmail .gs{flex:1 1 100%;order:3}
+  .cfoot{padding:8px 12px}
+  footer.cfoot a{min-height:44px;display:inline-flex;align-items:center}
+  .in,select.in{height:44px}
+  label.rad{min-height:44px}
+  .ptab button{height:44px}
+  .lp,.rp{flex:1 1 100%}
+}
+
+/* ===== Composer states ===== */
+.strip{display:flex;align-items:center;gap:10px;margin:0;padding:8px 12px;border-radius:8px;background:#0B1220;color:#FFFFFF;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.ver{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-top:1px solid #EEF0F3;font-size:12.5px}
+.ver > span:nth-child(2){flex:1 1 220px;min-width:0}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(380px,100%),1fr));gap:16px;align-items:start}
+.mf{border:1px solid #E3E6EB;border-radius:10px;overflow:hidden;background:#FFFFFF;position:relative;display:flex;flex-direction:column}
+.mf .cbar{z-index:2}
+.mf .cb-name{display:block!important;line-height:34px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mf-cv{background:#E9ECF0;padding:20px 24px 0;display:flex;justify-content:center;height:132px;overflow:hidden;box-sizing:border-box}
+.mf-cv .email{width:600px;max-width:100%}
+.mf-cv .ph{height:120px}
+.bnr{display:flex;gap:10px 14px;align-items:flex-start;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid #E3E6EB;font-size:13px}
+.bnr.w{background:#FFFBEB;border-bottom-color:#FCD34D;color:#78350F}
+.bnr.b{background:#FFF5F5;border-bottom-color:#FCA5A5;color:#7F1D1D}
+.bnr .bi{flex:none;margin-top:2px}
+.bnr .bt{flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.bnr .bt b{font-weight:600;color:#0B1220}
+.bnr .ba{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:100%}
+.choice{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;background:#FFFFFF;color:#374151;font-size:12.5px}
+.pop{position:absolute;z-index:5;background:#FFFFFF;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:12.5px;box-sizing:border-box}
+.pop.tip{background:#0B1220;border-color:#0B1220;color:#FFFFFF;font-weight:600;padding:8px 10px;box-shadow:0 12px 30px rgba(11,18,32,.25)}
+.ovl{position:absolute;inset:0;background:rgba(11,18,32,.45);display:flex;align-items:flex-start;justify-content:center;padding:56px 16px 24px;box-sizing:border-box;z-index:6}
+.dlg{width:100%;max-width:520px;display:flex;flex-direction:column;background:#FFFFFF;border-radius:12px;box-shadow:0 24px 60px rgba(11,18,32,.3);font-size:13.5px}
+.dh{padding:18px 22px 0;display:flex;flex-direction:column;gap:6px}
+.dh h3{margin:0;font-size:17px;font-weight:700}
+.db{padding:14px 22px 16px;display:flex;flex-direction:column;gap:12px}
+.df{padding:14px 22px 18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid #EEF0F3;align-items:center}
+.pop.sv{top:62px;left:240px;width:310px}
+.pop.tt{top:62px;right:200px}
+/* quick review on a phone: the Composer board's phone rules, in a 390 px frame */
+.mfp{width:390px;max-width:100%;min-height:680px;align-self:flex-start}
+.mfp .mf-cv{height:auto;flex:1;padding:12px 8px 96px}
+.mfp .mf-cv .email{width:100%}
+.mfp .qscrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:61}
+.mfp .ts{display:flex;flex-direction:column;position:absolute;left:0;right:0;bottom:65px;max-height:72%;overflow:auto;z-index:62;border:1px solid #E3E6EB;border-bottom:0;border-radius:10px 10px 0 0;box-shadow:0 -12px 32px rgba(11,18,32,.16);background:#FFFFFF}
+.mfp .qsheet-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px 6px 12px;border-bottom:1px solid #EEF0F3}
+.mfp .qsheet-h h3{margin:0;font-size:15px;font-weight:600}
+.mfp .qsheet-h .btn.ic{width:44px;min-height:44px;border-color:transparent}
+.mfp .tsb{display:flex;flex-direction:column;gap:12px;padding:12px}
+.mfp .qbar{display:flex;position:absolute;left:0;right:0;bottom:0;z-index:63;gap:2px;padding:6px;background:#FFFFFF;border-top:1px solid #E3E6EB;box-sizing:border-box}
+.mfp .qbar button{flex:1 1 0%;min-width:0;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;border-radius:10px;background:none;color:#4B5563;font:inherit;font-size:11px;font-weight:600;cursor:pointer;position:relative;padding:0 2px}
+.mfp .qbar button[aria-expanded="true"]{background:#E3F1EE;color:#0F766E}
+.mfp .qbar button.qap{color:#0F766E}
+.mfp .qbar .qn{position:absolute;top:4px;right:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#FEF3C7;color:#92400E;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.mfp .qbar .qn.c{background:#EEF0F3;color:#4B5563}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;font-size:12.5px;margin:0}
+.kv dt{color:#5B6472;font-weight:500;margin:0}.kv dd{margin:0;min-width:0}
+@media (max-width:1100px){
+  .choices{grid-template-columns:1fr}
+  .pop.sv{top:112px;left:16px}
+  .pop.tt{top:112px;right:16px}
+}
+@media (max-width:767px){
+  .stw{padding:12px!important;gap:16px!important}
+  .mf .cbar .cb-end .btn:not(.keep){display:none}
+  .mf-cv{padding:12px 8px 0;height:110px}
+  .bnr{padding:12px}
+  .bnr .ba .btn{min-height:44px}
+  .choice .btn{min-height:44px}
+  .ovl{padding:24px 12px}
+  .df .btn{min-height:44px;flex:1 1 140px}
+  .kv{grid-template-columns:1fr}
+  .pop.sv{top:186px;left:12px;right:12px;width:auto}
+  .pop.tt{top:128px;right:12px}
+  .ld-side{display:none!important}
+}
 </style>
 </helmet>
-<h1 class="vh">Campaign composer, loading, error and saved states</h1>
-<div style="min-height:100vh;display:flex;flex-direction:column;gap:24px;padding:24px 28px;box-sizing:border-box">
+<h1 class="vh">Composer states: loading, recovered edits, conflict, approval, approving on a phone, save failed, MJML error and saved</h1>
+<div class="stw" style="min-height:100vh;display:flex;flex-direction:column;gap:24px;padding:24px 28px;box-sizing:border-box">
 
-  <section style="display:flex;flex-direction:column;gap:12px" aria-label="Loading state">
-    <div class="strip"><span class="dot" style="color:#6B7280"></span>Loading · opening a campaign, compiling MJML</div>
-    <div class="card" style="display:flex;flex-direction:column;overflow:hidden" aria-busy="true">
-      <div style="display:flex;gap:12px;align-items:center;padding:10px 16px;border-bottom:1px solid #E3E6EB"><span class="sk" style="width:32px;height:32px"></span><span class="sk" style="width:180px;height:18px"></span><span class="sk" style="width:120px;height:22px;border-radius:999px"></span><span class="sk" style="width:300px;height:32px;margin-left:auto"></span></div>
-      <div style="display:flex;flex-wrap:wrap;min-height:300px">
-        <div style="flex:1 1 272px;max-width:272px;border-right:1px solid #E3E6EB;padding:12px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;align-content:start"><span class="sk" style="height:58px"></span><span class="sk" style="height:58px"></span><span class="sk" style="height:58px"></span><span class="sk" style="height:58px"></span><span class="sk" style="height:58px"></span><span class="sk" style="height:58px"></span></div>
-        <div style="flex:999 1 400px;background:#E9ECF0;display:flex;align-items:center;justify-content:center;gap:12px;padding:24px"><span class="spin" style="width:24px;height:24px"></span><div style="display:flex;flex-direction:column"><span style="font-weight:600">Compiling Weekly Digest #142 from MJML</span><span class="k">Version 15 · 212 lines · usually under a second</span></div></div>
-        <div style="flex:1 1 300px;max-width:300px;border-left:1px solid #E3E6EB;padding:12px;display:flex;flex-direction:column;gap:10px"><span class="sk" style="height:14px;width:60%"></span><span class="sk" style="height:32px"></span><span class="sk" style="height:32px"></span><span class="sk" style="height:32px"></span></div>
+  <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="s-load">
+    <h2 class="strip" id="s-load"><span class="dot" style="color:#9CA3AF"></span>Loading · opening a campaign, compiling MJML</h2>
+    <div class="card" style="display:flex;flex-direction:column;overflow:hidden" aria-busy="true" aria-label="Composer loading">
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid #E3E6EB"><span class="sk" style="width:36px;height:36px"></span><span class="sk" style="width:170px;height:20px"></span><span class="sk" style="width:120px;height:24px;border-radius:999px"></span><span class="sk ld-side" style="width:200px;height:36px;margin-left:auto"></span><span class="sk" style="width:150px;height:36px;margin-left:auto"></span></div>
+      <div style="display:flex;gap:12px;align-items:center;padding:10px 16px;border-bottom:1px solid #E3E6EB;background:#F9FAFB"><span class="sk" style="width:46px;height:12px"></span><span class="sk" style="width:min(520px,60%);height:12px"></span><span class="sk" style="width:44px;height:28px;margin-left:auto"></span></div>
+      <div style="display:flex;flex-wrap:wrap;min-height:260px">
+        <div class="ld-side" style="flex:0 0 248px;border-right:1px solid #E3E6EB;padding:12px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;align-content:start;box-sizing:border-box"><span class="sk" style="height:58px"></span><span class="sk" style="height:58px"></span><span class="sk" style="height:58px"></span><span class="sk" style="height:58px"></span><span class="sk" style="height:58px"></span><span class="sk" style="height:58px"></span></div>
+        <div style="flex:999 1 300px;background:#E9ECF0;display:flex;align-items:center;justify-content:center;gap:12px;padding:24px"><span class="spin" style="width:24px;height:24px" aria-hidden="true"></span><div style="display:flex;flex-direction:column"><span style="font-weight:600">Compiling Weekly Digest #142 from MJML</span><span class="k">Version 15 · 212 lines · usually under a second</span></div></div>
+        <div class="ld-side" style="flex:0 0 320px;border-left:1px solid #E3E6EB;padding:12px;display:flex;flex-direction:column;gap:10px;box-sizing:border-box"><span class="sk" style="height:14px;width:60%"></span><span class="sk" style="height:32px"></span><span class="sk" style="height:32px"></span><span class="sk" style="height:32px"></span></div>
       </div>
     </div>
   </section>
 
-  <section style="display:flex;flex-direction:column;gap:12px" aria-label="Error state">
-    <div class="strip"><span class="dot" style="color:#F87171"></span>Error · autosave failed</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px">
-      <div role="alert" class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;border-color:#FCA5A5">
-        <div style="display:flex;gap:10px;align-items:center"><span class="badge bad"><span class="dot"></span>Not saved</span><span style="font-weight:600">Couldn't save version 16: you're offline</span></div>
-        <span class="k">Your edits since 09:39 are kept in this browser. ReputeCast retries every 10 seconds and saves as soon as the connection is back. Don't close the tab.</span>
-        <div style="display:flex;gap:8px"><button class="btn sm pri">Retry now</button><button class="btn sm">Download MJML as backup</button></div>
+  <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="s-rec">
+    <h2 class="strip" id="s-rec"><span class="dot" style="color:#FBBF24"></span>Recovered edits · unsaved work found in this browser</h2>
+    <div class="mf">
+      <header class="cbar">
+        <div class="cb-left">
+          <span class="btn ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m10 3-5 5 5 5"></path></svg></span>
+          <div class="cb-id"><span class="cb-name" style="display:inline-flex;align-items:center">Weekly Digest #142</span><span class="stchip"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Saved 09:30 · v13</span></div>
+        </div>
+        <div class="cb-mid"><div class="modes" aria-hidden="true"><a aria-selected="false">Write</a><a aria-selected="true">Design</a><a aria-selected="false">Code</a></div></div>
+        <div class="cb-end"><span class="btn" aria-hidden="true"><span class="bt">Preview</span></span><span class="btn" aria-hidden="true"><span class="bt">Send test</span></span></div>
+        <div class="cb-go"><span class="btn pri rsend" aria-hidden="true"><span class="rs-a">Review &amp; send</span><span class="rs-dot">·</span><span class="rs-b">2 warnings</span></span></div>
+      </header>
+      <div class="bnr w" role="status">
+        <svg class="bi" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9"></path><path d="M2.5 2.5v3h3"></path><path d="M8 5.2V8l2 1.3"></path></svg>
+        <span class="bt"><b>4 minutes of edits from this browser weren't saved (09:31–09:35).</b><span>They're only on this device. Restoring saves them as v14 on top of v13; discarding can't be undone.</span></span>
+        <span class="ba"><button type="button" class="btn sm pri">Restore them</button><button type="button" class="btn sm danger">Discard</button></span>
       </div>
-      <div role="alert" class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;border-color:#FCD34D">
-        <div style="display:flex;gap:10px;align-items:center"><span class="badge warn"><span class="dot"></span>Conflict</span><span style="font-weight:600">Marcus Chen saved version 16 at 09:41 while you were editing</span></div>
-        <span class="k">Both of you changed the hero section. Keeping yours makes a new version 17 on top of Maya's; nothing is lost either way.</span>
-        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm pri">Keep mine as v17</button><button class="btn sm">Load Maya's v16</button><button class="btn sm">Compare</button></div>
+      <div class="mf-cv" aria-hidden="true"><div class="email"><div class="sec" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid #EEF0F3"><div class="ph" style="width:96px;height:28px">Logo</div><div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472">Blog · Docs · Changelog</div></div><div class="sec"><div class="ph">Hero image</div></div></div></div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="s-conf">
+    <h2 class="strip" id="s-conf"><span class="dot" style="color:#FBBF24"></span>Conflict · someone else saved while you were editing</h2>
+    <div class="mf">
+      <header class="cbar">
+        <div class="cb-left">
+          <span class="btn ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m10 3-5 5 5 5"></path></svg></span>
+          <div class="cb-id"><span class="cb-name" style="display:inline-flex;align-items:center">Weekly Digest #142</span><span class="stchip warn"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3v6M8 12v.5"></path></svg>Not saved · conflict</span></div>
+          <div class="cb-pres"><span class="pav" role="img" aria-label="Marcus Chen, editing">MC<i></i></span><span class="pt" aria-hidden="true">Marcus Chen editing</span></div>
+        </div>
+        <div class="cb-mid"><div class="modes" aria-hidden="true"><a aria-selected="false">Write</a><a aria-selected="true">Design</a><a aria-selected="false">Code</a></div></div>
+        <div class="cb-end"><span class="btn" aria-hidden="true"><span class="bt">Preview</span></span><span class="btn" aria-hidden="true"><span class="bt">Send test</span></span></div>
+        <div class="cb-go"><span class="btn pri rsend" aria-hidden="true"><span class="rs-a">Review &amp; send</span><span class="rs-dot">·</span><span class="rs-b">2 warnings</span></span></div>
+      </header>
+      <div class="bnr w" role="alert">
+        <svg class="bi" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="4" cy="3.5" r="1.6"></circle><circle cx="4" cy="12.5" r="1.6"></circle><circle cx="12" cy="8" r="1.6"></circle><path d="M4 5.1v5.8M5.4 4.3c3 .7 5 1.8 5.3 2.4"></path></svg>
+        <span class="bt"><b>Marcus Chen saved v15 while you were editing.</b><span>You both changed the hero section. Your edits stay in this browser until you choose; nothing is lost either way.</span></span>
+        <div class="choices" role="group" aria-label="Resolve the conflict">
+          <div class="choice"><button type="button" class="btn sm pri" aria-describedby="ch-mine">Keep mine</button><span id="ch-mine">Saves yours as v16 on top of v15. Marcus's v15 stays in version history.</span></div>
+          <div class="choice"><button type="button" class="btn sm" aria-describedby="ch-cmp">Compare</button><span id="ch-cmp">Shows both versions side by side, so you can take sections from each.</span></div>
+          <div class="choice"><button type="button" class="btn sm" aria-describedby="ch-theirs">Load theirs</button><span id="ch-theirs">Saves your version as v15 (yours) first, then opens Marcus's v15.</span></div>
+        </div>
       </div>
-      <div role="alert" class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;border-color:#FCA5A5">
-        <div style="display:flex;gap:10px;align-items:center"><span class="badge bad"><span class="dot"></span>MJML error</span><span style="font-weight:600">Line 31: unclosed &lt;mj-column&gt;</span></div>
-        <span class="k">The canvas keeps the last good version. Fix the code view or revert the last change.</span>
-        <div style="display:flex;gap:8px"><a href="ComposerCode.dc.html" class="btn sm pri">Open code view at line 31</a><button class="btn sm">Undo last change</button></div>
+      <div class="mf-cv" aria-hidden="true"><div class="email"><div class="sec" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid #EEF0F3"><div class="ph" style="width:96px;height:28px">Logo</div><div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472">Blog · Docs · Changelog</div></div><div class="sec"><div class="ph">Hero image</div></div></div></div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="s-appr">
+    <h2 class="strip" id="s-appr"><span class="dot" style="color:#FBBF24"></span>Approval · editing an approved campaign asks first</h2>
+    <div class="mf" style="min-height:440px">
+      <header class="cbar">
+        <div class="cb-left">
+          <span class="btn ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m10 3-5 5 5 5"></path></svg></span>
+          <div class="cb-id"><span class="cb-name" style="display:inline-flex;align-items:center">Weekly Digest #142</span><span class="stchip ok"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Approved · v16</span></div>
+        </div>
+        <div class="cb-mid"><div class="modes" aria-hidden="true"><a aria-selected="false">Write</a><a aria-selected="true">Design</a><a aria-selected="false">Code</a></div></div>
+        <div class="cb-end"><span class="btn" aria-hidden="true"><span class="bt">Preview</span></span><span class="btn" aria-hidden="true"><span class="bt">Send test</span></span></div>
+        <div class="cb-go"><span class="btn pri rsend" aria-hidden="true"><span class="rs-a">Scheduled</span><span class="rs-dot">·</span><span class="rs-b">Thu 09:00</span></span></div>
+      </header>
+      <div class="mf-cv" aria-hidden="true" style="height:auto;flex:1"><div class="email"><div class="sec" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid #EEF0F3"><div class="ph" style="width:96px;height:28px">Logo</div><div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472">Blog · Docs · Changelog</div></div><div class="sec"><div class="ph" style="height:180px">Hero image</div></div></div></div>
+      <div class="ovl">
+        <div class="dlg" role="dialog" aria-labelledby="dlg-appr-h" aria-describedby="dlg-appr-d">
+          <div class="dh"><span class="badge warn" style="align-self:flex-start"><span class="dot"></span>Approval will be cancelled</span><h3 id="dlg-appr-h">Edit an approved campaign?</h3></div>
+          <div class="db">
+            <p id="dlg-appr-d" style="margin:0">Editing cancels Marcus Chen's approval. The campaign needs approval again before it can send.</p>
+            <dl class="kv"><dt>Approved</dt><dd>By Marcus Chen at 09:52 · snapshot v16</dd><dt>Schedule</dt><dd>Thu 09:00 stays in place, but the send won't start without a new approval</dd><dt>Next</dt><dd>When you request approval again, Marcus and Linh get what changed since v16</dd></dl>
+          </div>
+          <div class="df"><button type="button" class="btn">Cancel</button><button type="button" class="btn pri">Edit anyway</button></div>
+        </div>
       </div>
     </div>
   </section>
 
-  <section style="display:flex;flex-direction:column;gap:12px" aria-label="Saved state and version history">
-    <div class="strip"><span class="dot" style="color:#4ADE80"></span>Success · saved, with version history</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;align-items:start">
+  <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="s-appr-ph">
+    <h2 class="strip" id="s-appr-ph"><span class="dot" style="color:#FBBF24"></span>Approval · on a phone, a request waiting for your decision</h2>
+    <div class="mf mfp">
+      <div class="bnr w">
+        <svg class="bi" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="m5.2 8.3 1.9 1.8L10.9 6"></path></svg>
+        <span class="bt"><b>Waiting for approval since 09:30 · v16, requested by Daniel Park.</b><span>Editing withdraws the request; the campaign then needs approval again.</span></span>
+        <span class="ba"><span class="btn" aria-hidden="true" style="min-height:44px">Edit</span></span>
+      </div>
+      <div class="mf-cv" aria-hidden="true"><div class="email"><div class="sec" style="display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid #EEF0F3"><div class="ph" style="width:96px;height:28px">Logo</div></div><div class="sec" style="padding:16px"><div class="ph" style="height:150px">Hero image</div></div></div></div>
+      <div class="qscrim"></div>
+      <div class="ts" role="dialog" aria-labelledby="ap-ph-h">
+        <div class="qsheet-h"><h3 id="ap-ph-h">Approve “Weekly Digest #142”?</h3><span class="btn ic" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m4 4 8 8M12 4l-8 8"></path></svg></span></div>
+        <div class="tsb">
+          <span>Daniel Park asked for approval of v16 at 09:30.</span>
+          <dl class="kv"><dt>Needed</dt><dd>1 of 2</dd></dl>
+          <div class="note n"><span>Approving covers this exact snapshot. If Daniel edits the content, audience, route or schedule, or the audience moves more than 10%, the approval is invalidated and you see the diff.</span></div>
+          <button type="button" class="btn pri" style="min-height:44px">Approve</button>
+          <a href="ApprovalReview.dc.html" class="btn" style="min-height:44px">Review request</a>
+        </div>
+      </div>
+      <div class="qbar" role="group" aria-label="Quick review">
+        <button type="button"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M11 2.5 13.5 5 6 12.5l-3.5 1 1-3.5z"></path></svg>Edit text</button>
+        <button type="button" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Inbox</button>
+        <button type="button" aria-expanded="false" aria-label="Checks, 2 warnings"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg>Checks<span class="qn" aria-hidden="true">2</span></button>
+        <button type="button" aria-expanded="false" aria-label="Comments, 2 open"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z"></path></svg>Comments<span class="qn c" aria-hidden="true">2</span></button>
+        <button type="button" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7"></path></svg>Send test</button>
+        <button type="button" class="qap" aria-expanded="true"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Approve</button>
+      </div>
+    </div>
+    <p class="k" style="margin:0;max-width:720px">Approve shows only to an approver who didn't ask for the request and hasn't decided yet, the approval page's own rules. It decides as the page does; Review request opens the page, with Request changes and Reject.</p>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="s-err">
+    <h2 class="strip" id="s-err"><span class="dot" style="color:#F87171"></span>Error · save failed, MJML error</h2>
+    <div class="mf" style="min-height:300px">
+      <header class="cbar">
+        <div class="cb-left">
+          <span class="btn ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m10 3-5 5 5 5"></path></svg></span>
+          <div class="cb-id" style="position:relative"><span class="cb-name" style="display:inline-flex;align-items:center">Weekly Digest #142</span><span class="stchip bad" aria-describedby="save-why"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3v6M8 12v.5"></path></svg>Couldn't save · retrying in 10 s</span></div>
+        </div>
+        <div class="cb-mid"><div class="modes" aria-hidden="true"><a aria-selected="false">Write</a><a aria-selected="true">Design</a><a aria-selected="false">Code</a></div></div>
+        <div class="cb-end" style="position:relative"><span class="btn" aria-hidden="true"><span class="bt">Preview</span></span><button type="button" class="btn keep" aria-disabled="true" aria-describedby="test-why" title="Send test needs the latest save"><svg class="bi" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7"></path></svg><span class="bt">Send test</span></button></div>
+        <div class="cb-go"><span class="btn pri rsend" aria-hidden="true"><span class="rs-a">Review &amp; send</span><span class="rs-dot">·</span><span class="rs-b">2 warnings</span></span></div>
+      </header>
+      <span class="vh" role="status">Couldn't save. Your edits are kept in this browser.</span>
+      <div class="mf-cv" aria-hidden="true" style="height:auto;flex:1"><div class="email"><div class="sec" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid #EEF0F3"><div class="ph" style="width:96px;height:28px">Logo</div><div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472">Blog · Docs · Changelog</div></div><div class="sec"><div class="ph" style="height:150px">Hero image</div></div></div></div>
+      <div class="pop sv" id="save-why">
+        <span><b style="font-weight:600">Your edits are kept in this browser.</b> The connection dropped at 09:39; ReputeCast retries every 10 seconds and saves as v16 as soon as it can. Keep this tab open.</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn sm pri">Retry now</button><button type="button" class="btn sm">Download MJML as a backup</button></div>
+      </div>
+      <div class="pop tip tt" id="test-why">Send test needs the latest save</div>
+    </div>
+    <div class="sgrid">
+      <div role="alert" class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;border-color:#FCA5A5">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="badge bad"><span class="dot"></span>MJML error</span><span style="font-weight:600">Line 31: unclosed &lt;mj-column&gt;</span></div>
+        <span class="k">The email keeps the last good version. Fix it in Code or undo the last change.</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><a href="ComposerCode.dc.html" class="btn sm pri">Open Code at line 31</a><button type="button" class="btn sm">Undo last change</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="s-ok">
+    <h2 class="strip" id="s-ok"><span class="dot" style="color:#4ADE80"></span>Success · saved, with version history</h2>
+    <div class="sgrid">
       <div class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;border-color:#86EFAC">
-        <div style="display:flex;gap:10px;align-items:center"><span class="badge ok"><span class="dot"></span>Saved</span><span style="font-weight:600">Version 16 saved at 09:42 · autosave every 30 s and on every structural change</span></div>
-        <span class="k">Saved as a reusable template too: "Acme digest v4" is now in Templates.</span>
-        <div style="display:flex;gap:8px"><a href="Composer.dc.html" class="btn sm">Back to editor</a><a href="SendReadiness.dc.html" class="btn sm pri">Review &amp; send</a></div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="badge ok"><span class="dot"></span>Saved</span><span style="font-weight:600">Version 16 saved at 09:42 · autosave every 30 s and on every structural change</span></div>
+        <span class="k">Saved as a reusable template too: “Acme digest v4” is now in Templates.</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><a href="Composer.dc.html" class="btn sm">Back to editor</a><a href="SendReadiness.dc.html" class="btn sm pri">Review &amp; send</a></div>
       </div>
       <div class="card" style="display:flex;flex-direction:column">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px"><span style="font-weight:600">Version history · Weekly Digest #142</span><button class="btn sm">Compare two versions</button></div>
-        <div class="ver" style="background:#F0FDFA"><span class="mono k" style="width:38px">v16</span><span style="flex:1"><b>Current</b> · 09:42 · Linh Nguyen · hero copy, A/B subject B</span><span class="badge ok">Live draft</span></div>
-        <div class="ver"><span class="mono k" style="width:38px">v15</span><span style="flex:1">09:39 · Linh Nguyen · mobile column widths</span><button class="btn sm">Restore</button></div>
-        <div class="ver"><span class="mono k" style="width:38px">v14</span><span style="flex:1">09:38 · Linh Nguyen · 2-column section padding</span><button class="btn sm">Restore</button></div>
-        <div class="ver"><span class="mono k" style="width:38px">v9</span><span style="flex:1">Sat 11 Oct · Marcus Chen · article cards, links</span><button class="btn sm">Restore</button></div>
-        <div class="ver"><span class="mono k" style="width:38px">v1</span><span style="flex:1">Fri 10 Oct · created from template "Acme digest v3"</span><button class="btn sm">Restore</button></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px"><span style="font-weight:600">Version history · Weekly Digest #142</span><button type="button" class="btn sm">Compare two versions</button></div>
+        <div class="ver" style="background:#F0FDFA"><span class="mono k" style="width:38px">v16</span><span><b>Current</b> · 09:42 · Linh Nguyen · hero copy, A/B subject B</span><span class="badge ok">Live draft</span></div>
+        <div class="ver"><span class="mono k" style="width:38px">v15</span><span>09:39 · Linh Nguyen · pasted the v1 API section from Google Docs</span><button type="button" class="btn sm">Restore</button></div>
+        <div class="ver"><span class="mono k" style="width:38px">v14</span><span>09:38 · Linh Nguyen · 2-column section padding</span><button type="button" class="btn sm">Restore</button></div>
+        <div class="ver"><span class="mono k" style="width:38px">v9</span><span>Sat 11 Oct · Marcus Chen · article cards, links</span><button type="button" class="btn sm">Restore</button></div>
+        <div class="ver"><span class="mono k" style="width:38px">v1</span><span>Fri 10 Oct · created from template “Acme digest v3”</span><button type="button" class="btn sm">Restore</button></div>
       </div>
     </div>
   </section>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1034}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3404}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};

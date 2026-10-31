@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Campaign composer, editing a two-column section</title>
+<title>Campaign composer, Design mode, editing a two-column section</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -52,7 +52,7 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
 /* responsive shell */
 @media (max-width:1100px){
   .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
-  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .brand-t,.side .ws{display:none}.side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .side .nav a{justify-content:center;padding:0!important;height:44px}
   .side .nav svg{width:20px;height:20px}
   .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
@@ -125,126 +125,562 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
   .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
 }
+/* ===== compact composer chrome: one top bar + one Inbox strip (shared by the composer boards) ===== */
+.cbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 16px;background:#FFFFFF;border-bottom:1px solid #E3E6EB;box-sizing:border-box;position:relative;z-index:30}
+.cbar .btn{min-height:36px;padding:0 12px;font-size:13px;border-radius:8px;white-space:nowrap}
+.cbar .btn.ic{width:36px;padding:0}
+.cbar svg{flex:none}
+.cb-left{display:flex;align-items:center;gap:10px;min-width:0}
+.cb-id{display:flex;align-items:center;gap:8px;min-width:0}
+.cb-name{height:36px;width:164px;min-width:0;padding:0 8px;margin-left:-2px;border:1px solid transparent;border-radius:8px;background:transparent;font:inherit;font-size:15px;font-weight:700;color:#0B1220;box-sizing:border-box;text-overflow:ellipsis}
+.cb-name:hover{border-color:#D4D8DF}
+.cb-name:focus{border-color:#8B94A3;background:#FFFFFF}
+.cb-name::placeholder{color:#5B6472;font-weight:600}
+.stchip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;background:#EEF0F3;color:#4B5563;font-size:12px;font-weight:600;white-space:nowrap;flex:none;box-sizing:border-box}
+.stchip.ok{background:#DCFCE7;color:#166534}.stchip.warn{background:#FEF3C7;color:#92400E}.stchip.bad{background:#FEE2E2;color:#991B1B}
+.cb-pres{display:flex;align-items:center;gap:8px;flex:none;padding-left:10px;border-left:1px solid #E3E6EB;min-height:28px}
+.pav{position:relative;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:#EDE9FE;color:#5B21B6;flex:none}
+.pav i{position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:50%;background:#15803D;border:2px solid #FFFFFF;box-sizing:border-box}
+.cb-pres .pt{font-size:12px;font-weight:500;color:#5B6472;white-space:nowrap}
+.cb-mid{display:flex;align-items:center;gap:8px;margin-left:auto}
+.modes{display:inline-flex;align-items:center;gap:2px;padding:2px;border:1px solid #D4D8DF;border-radius:9px;background:#FFFFFF;flex:none;box-sizing:border-box}
+.modes a,.modes button{border:0;background:transparent;font:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 12px;border-radius:7px;color:#4B5563;font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none;box-sizing:border-box}
+.modes a:hover,.modes button:hover{background:#F3F4F6;color:#0B1220}
+.modes a[aria-selected="true"],.modes button[aria-selected="true"]{background:#0B1220;color:#FFFFFF}
+.devt{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.devt button{width:38px;height:34px;border:0;background:#FFFFFF;color:#4B5563;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.devt button + button{border-left:1px solid #E3E6EB}
+.devt button[aria-pressed="true"]{background:#0B1220;color:#FFFFFF}
+.devt button:disabled{color:#5B6472;opacity:.55;cursor:not-allowed}
+.cb-end{display:flex;align-items:center;gap:8px;margin-left:auto}
+.cb-end .btn .bi{display:none}
+.modes a svg{display:none}
+.langb .ln{color:#5B6472;font-weight:500}
+.cb-go{display:flex;align-items:center}
+.rsend .rs-b{font-weight:600}
+.btn.pri.rs-stop{background:#B91C1C;border-color:#B91C1C;color:#FFFFFF}.btn.pri.rs-stop:hover{background:#991B1B;color:#FFFFFF}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn.sm{min-height:28px;padding:0 10px;font-size:12px}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}.btn.danger:hover{background:#FFF5F5;color:#991B1B}
+.btn.ghost{border-color:transparent;background:transparent}.btn.ghost:hover{background:#F3F4F6}
+.nt-phone{display:none}
+
+/* Inbox strip */
+.istrip{display:flex;align-items:center;gap:10px;min-height:40px;padding:4px 16px;background:#F9FAFB;border-bottom:1px solid #E3E6EB;box-sizing:border-box;font-size:12.5px;position:relative;z-index:20}
+.is-l{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;flex:none}
+.is-sum{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 auto;margin:0;white-space:nowrap;overflow:hidden}
+.is-i{display:inline-flex;align-items:center;gap:5px;min-width:0;overflow:hidden}
+.is-i.sub{flex:0 1 auto;max-width:330px}.is-i.pre{flex:0 1 auto;max-width:280px}.is-i.to,.is-i.via{flex:none}
+.is-k{color:#5B6472;font-weight:500;flex:none}
+.is-v{color:#0B1220;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.is-v.none{color:#5B6472;font-weight:500;font-style:italic}
+.is-sep{color:#5B6472;flex:none}
+.is-flag{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:999px;background:#FEF3C7;color:#92400E;font-size:11.5px;font-weight:600;flex:none}
+.is-edit{flex:none;margin-left:auto}
+.ipanel{display:flex;flex-wrap:wrap;gap:16px 20px;padding:14px 16px 16px;background:#FFFFFF;border-bottom:1px solid #E3E6EB;box-sizing:border-box;position:relative;z-index:19}
+.ip-in{flex:3 1 520px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.ip-row{display:flex;flex-wrap:wrap;gap:10px 14px}
+.ip-row > label,.ip-row > div{flex:1 1 260px;min-width:0}
+.ip-send{flex:1 1 300px;max-width:440px;min-width:0;display:flex;flex-direction:column;gap:10px;padding:12px 14px;border:1px solid #E3E6EB;border-radius:10px;background:#F9FAFB;box-sizing:border-box}
+.ip-h{margin:0;font-size:13px;font-weight:700;color:#0B1220;display:flex;align-items:center;gap:8px}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563;min-width:0}
+.lbl .in{width:100%}
+.lbl .k{font-weight:500}
+.gmail{display:flex;align-items:center;gap:12px;min-height:40px;padding:0 12px;border:1px solid #E3E6EB;border-radius:8px;background:#FFFFFF;font-size:13px;white-space:nowrap;overflow:hidden;box-sizing:border-box}
+.gmail .gf{font-weight:700;flex:none;width:126px;overflow:hidden;text-overflow:ellipsis}
+.gmail .gs{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.gmail .gs b{font-weight:700}
+.gmail .gs span{color:#5B6472}
+.gmail .gt{margin-left:auto;font-size:12px;font-weight:600;color:#5B6472;flex:none}
+.route{display:flex;align-items:center;gap:8px;min-height:36px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#FFFFFF;color:#0B1220;font-size:12.5px;font-weight:600;text-decoration:none;box-sizing:border-box}
+.route:hover{background:#F3F4F6;color:#0B1220}
+.route .rb{display:flex;gap:2px;width:72px;height:8px;flex:none}
+.route .rb i{display:block;height:100%;border-radius:999px}
+
+/* editor body */
+.cwrap{display:flex;flex:1 1 auto;align-items:stretch;min-height:0}
+.lp{flex:0 0 248px;width:248px;background:#FFFFFF;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;min-width:0;box-sizing:border-box}
+.cv{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;background:#E9ECF0;position:relative}
+.rp{flex:0 0 320px;width:320px;background:#FFFFFF;border-left:1px solid #E3E6EB;display:flex;flex-direction:column;min-width:0;box-sizing:border-box}
+.ptab button{padding:0 6px;white-space:nowrap}
+.ptab button .n{font-weight:600;color:#5B6472}
+.ptab button.on .n{color:#0B1220}
+.cfoot{display:flex;align-items:center;gap:6px 16px;flex-wrap:wrap;padding:8px 16px;background:#FFFFFF;border-top:1px solid #E3E6EB;font-size:12px;box-sizing:border-box}
+.cfoot .hint{display:flex;flex-wrap:wrap;gap:4px 12px;color:#5B6472;font-weight:500}
+.kbd{display:inline-flex;align-items:center;height:20px;padding:0 6px;border:1px solid #D4D8DF;border-bottom-width:2px;border-radius:5px;background:#FFFFFF;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;font-weight:500;color:#374151;margin-right:4px}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.h2{margin:0;font-size:15px;font-weight:600}
+.note{display:flex;gap:8px 10px;align-items:flex-start;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.45;box-sizing:border-box}
+.note > :last-child{flex:1 1 auto;min-width:0}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+
+/* tablet: canvas first, panels stack below it */
+@media (max-width:1100px){
+  .cbar{padding:10px 16px}
+  .cb-left{order:1;flex:1 1 calc(100% - 300px)}
+  .cb-go{order:2}
+  .cb-mid{order:3;margin-left:0}
+  .cb-end{order:4;margin-left:auto}
+  .cb-pres .pt{display:none}
+  .is-i.pre{display:none}
+  .is-i.pre + .is-sep{display:none}
+  .ip-send{max-width:none;flex-basis:100%}
+  .cwrap{flex-wrap:wrap}
+  .cv{order:1;flex:1 1 100%}
+  .lp{order:2;flex:1 1 300px;width:auto;border-right:1px solid #E3E6EB;border-top:1px solid #E3E6EB}
+  .rp{order:3;flex:1 1 300px;width:auto;border-left:0;border-top:1px solid #E3E6EB}
+}
+/* phone */
+@media (max-width:767px){
+  .cbar{padding:8px 12px;gap:8px}
+  .cbar .btn{min-height:44px}
+  .cbar .btn.ic{width:44px}
+  .cb-left{flex:1 1 calc(100% - 160px);gap:8px}
+  .cb-id{flex-direction:column;align-items:flex-start;gap:2px}
+  .cb-name{width:100%;height:44px;font-size:15px;padding:0 4px;margin-left:-4px}
+  .stchip{height:auto;min-height:20px;font-size:11.5px;padding:2px 8px;white-space:normal;line-height:1.25;max-width:100%}
+  .cb-id{gap:0}
+  .cb-pres{display:none}
+  .cb-mid{flex:1 1 auto;min-width:0}
+  .modes{flex:1 1 auto;padding:0;gap:0;overflow:hidden}
+  .modes a,.modes button{flex:1 1 0%;height:44px;padding:0 8px;border-radius:0}
+  .modes a svg{display:none}
+  .devt{display:none}
+  .cb-end{margin-left:0;gap:6px;flex-wrap:nowrap}
+  .cb-end .btn{width:44px;padding:0}
+  .cb-end .btn .bi{display:inline}
+  .cb-end .btn .bt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .langb .ln,.langb .chev{display:none}
+  .rsend{flex-direction:column;align-items:flex-start;justify-content:center;gap:0;line-height:1.2;padding:4px 12px!important;white-space:nowrap!important}
+  .rsend .rs-dot{display:none}
+  .rsend .rs-b{font-size:11px;font-weight:600}
+  .nt-phone{display:inline}
+  .istrip{flex-wrap:wrap;padding:8px 12px;gap:6px 10px}
+  .is-sum{flex-wrap:wrap;white-space:normal;flex:1 1 100%;order:3;gap:4px 8px}
+  .is-sep{display:none}
+  .is-i{flex:1 1 100%!important;max-width:100%!important}
+  .is-i.pre{display:inline-flex}
+  .is-edit{min-height:44px!important}
+  .btn.sm{min-height:44px}
+  .ipanel{padding:12px}
+  .ipanel .in,.ipanel select.in{height:44px}
+  .route{min-height:44px}
+  .gmail{flex-wrap:wrap;white-space:normal;padding:8px 12px;gap:2px 10px}
+  .gmail .gf{width:auto}
+  .gmail .gs{flex:1 1 100%;order:3}
+  .cfoot{padding:8px 12px}
+  footer.cfoot a{min-height:44px;display:inline-flex;align-items:center}
+  .in,select.in{height:44px}
+  label.rad{min-height:44px}
+  .ptab button{height:44px}
+  .lp,.rp{flex:1 1 100%}
+}
+
+/* ===== Composer (Design mode) ===== */
+.cvs{flex:1 1 auto;overflow:auto;padding:28px 24px 40px;display:flex;justify-content:center;align-items:flex-start;position:relative}
+.ctools{position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:4px;padding:3px;background:#FFFFFF;border:1px solid #E3E6EB;border-radius:9px;z-index:5}
+.ctools .btn.ic{width:32px;min-height:32px;border-color:transparent}
+.ctools .btn.ic:hover{background:#F3F4F6}
+.ctools select.in{height:30px;border-color:transparent;padding:0 4px;font-weight:600;color:#374151;width:auto}
+.email{box-sizing:border-box;max-width:100%}
+.email.mob{width:375px}
+.email .cols{display:flex;gap:16px}
+.email .col{min-width:0;position:relative}
+.email.mob .cols{flex-direction:column}
+.email.mob .col{flex:none!important}
+.email .e-h1{margin:0 0 10px;font-size:26px;line-height:1.2;font-weight:700;color:#0B1220}
+.email.mob .e-h1{font-size:23px}
+.email .e-h2{margin:0 0 6px;font-size:17px;line-height:1.3;font-weight:700;color:#0B1220}
+.email .e-p{margin:0;font-size:15px;line-height:1.55}
+.email .e-btn{display:inline-block;padding:9px 14px;border-radius:6px;background:#0F766E;color:#FFFFFF;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600}
+.selsec{outline:2px solid #1D4ED8;outline-offset:-2px;margin-top:30px}
+.selb{outline:2px solid #1D4ED8;outline-offset:2px}
+.cvs .sec,.cvs .col,.cvs .ph,.cvs .e-btn{cursor:pointer}
+.lab{font-weight:600}
+.lab .lm{font-weight:500;opacity:.85;margin-left:6px}
+.hero{position:relative}
+.lq{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 9px;margin:0 1px;border-radius:999px;border:1px solid transparent;background:#E3F1EE;color:#0F766E;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600;line-height:1;vertical-align:1px;cursor:pointer;white-space:nowrap}
+.lq .fb{font-weight:500;color:#115E59}
+.lq:hover,.lq[aria-expanded="true"]{border-color:#0F766E}
+.lqpop{position:absolute;left:24px;bottom:88px;width:320px;max-width:calc(100% - 48px);background:#FFFFFF;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;color:#0B1220;z-index:8;box-sizing:border-box}
+.lqpop .ph-h{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lqpop .ph-h b{font-size:13px}
+.lqpop .lqprev{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:8px;background:#F9FAFB;border:1px solid #EEF0F3;font-size:12.5px}
+.lqpop .lqprev b{font-weight:600}
+.lqpop code{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;color:#4B5563;background:#F3F4F6;border-radius:6px;padding:4px 6px;overflow-wrap:anywhere}
+.lqpop .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.lqpop::after{content:"";position:absolute;left:28px;bottom:-7px;width:12px;height:12px;background:#FFFFFF;border-right:1px solid #D4D8DF;border-bottom:1px solid #D4D8DF;transform:rotate(45deg)}
+.pin{position:absolute;right:-44px;width:30px;height:30px;border-radius:50% 50% 50% 4px;border:2px solid #FFFFFF;box-shadow:0 1px 3px rgba(11,18,32,.18);display:inline-flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:700;cursor:pointer;padding:0}
+.pin::before{content:"";position:absolute;inset:-7px}
+.qnote{display:none}
+/* left panel */
+.lp .lpb{display:flex;flex-direction:column;min-height:0}
+.lp .lhelp{margin:0;padding:8px 12px 0;line-height:1.6}
+.blk .sy{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:#0F766E}
+.tree{list-style:none;margin:0;padding:6px 8px 12px;font-size:12.5px}
+.tree ul{list-style:none;margin:0;padding:0 0 0 16px}
+.tree .ti{display:flex;align-items:center;gap:6px;min-height:30px;padding:0 8px;border-radius:7px;color:#374151;cursor:pointer}
+.tree .ti:hover{background:#F3F4F6}
+.tree .ti.sel{background:#E3F1EE;color:#0F766E;font-weight:600}
+.tree .ti .tk{margin-left:auto;font-size:11px;color:#5B6472;font-weight:500}
+.tree .ti.sel .tk{color:#0F766E}
+/* right panel */
+.rp-sel{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-bottom:1px solid #EEF0F3}
+.rp-sel .rt{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rp-sel b{font-weight:600}
+.seg.full{display:flex}
+.seg.full button{flex:1 1 0;justify-content:center}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button[aria-pressed="true"]{background:#0B1220;color:#FFFFFF}
+.swr{display:flex;flex-wrap:wrap;gap:6px}
+.swb{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 9px 0 5px;border:1px solid #D4D8DF;border-radius:8px;background:#FFFFFF;font:inherit;font-size:12px;font-weight:600;color:#374151;cursor:pointer}
+.swb .sw{width:20px;height:20px;border-radius:5px}
+.swb[aria-pressed="true"]{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E;color:#0B1220}
+.colopt{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.co{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 6px 6px;border:1px solid #D4D8DF;border-radius:8px;background:#FFFFFF;font:inherit;font-size:12px;font-weight:600;color:#374151;cursor:pointer}
+.co .cb{display:flex;gap:3px;width:100%;height:18px}
+.co .cb i{display:block;border-radius:3px;background:#C9CED6}
+.co[aria-pressed="true"]{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E;color:#0B1220}
+.co[aria-pressed="true"] .cb i{background:#0F766E}
+.adv{border-bottom:1px solid #EEF0F3}
+.adv > summary{display:flex;flex-direction:column;gap:2px;padding:10px 12px 10px 30px;cursor:pointer;list-style:none;position:relative;font-size:12px;font-weight:600}
+.adv > summary::-webkit-details-marker{display:none}
+.adv > summary::before{content:"";position:absolute;left:13px;top:15px;width:6px;height:6px;border-right:1.6px solid #4B5563;border-bottom:1.6px solid #4B5563;transform:rotate(-45deg)}
+.adv[open] > summary::before{transform:rotate(45deg);top:13px}
+.adv > summary .k{font-weight:500}
+.adv .advb{display:flex;flex-direction:column;gap:10px;padding:0 12px 12px}
+.adv .advb .prop{padding:0;border:0}
+.rp-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;margin-top:auto;border-top:1px solid #EEF0F3}
+label.rad{display:flex;align-items:center;gap:8px;min-height:30px;font-size:13px;color:#0B1220;cursor:pointer}
+label.tgl{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:32px;font-size:13px;color:#0B1220;cursor:pointer}
+input[type=checkbox].tg{appearance:none;-webkit-appearance:none;width:36px;height:22px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tg::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#FFFFFF}
+input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:checked::after{left:16px}
+.ck-sum{display:flex;flex-direction:column;padding:4px 12px 8px;border-bottom:1px solid #EEF0F3}
+.ck-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:8px 0;border-top:1px solid #EEF0F3}
+.ck-row:first-child{border-top:0}
+.ck-row .ck-k{font-weight:600}
+.ck-row .k{grid-column:1 / -1}
+.iss{display:flex;flex-direction:column;gap:8px;padding:12px;border-bottom:1px solid #EEF0F3}
+.iss .t{display:flex;gap:8px;align-items:flex-start;font-weight:600}
+.iss .acts{display:flex;gap:6px;flex-wrap:wrap}
+.ckp{margin:0;padding:0 12px 10px 30px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:#374151}
+.ckp li::marker{color:#15803D}
+.cm{display:flex;flex-direction:column;gap:8px;padding:12px;border-bottom:1px solid #EEF0F3}
+.cm .ch{display:flex;align-items:center;gap:8px}
+.cm .ch b{font-weight:600}
+.cm .anc{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;padding:2px 8px;border-radius:6px;background:#F3F4F6;font-size:12px;color:#4B5563;font-weight:500}
+.cm .tx{margin:0;font-size:13px;line-height:1.5}
+.cm textarea.in{height:auto;min-height:64px;padding:8px 9px;resize:vertical;line-height:1.45;width:100%}
+.mn{position:relative}
+.mnl{list-style:none;margin:4px 0 0;padding:4px;border:1px solid #D4D8DF;border-radius:8px;background:#FFFFFF;box-shadow:0 12px 32px rgba(11,18,32,.16);display:flex;flex-direction:column;gap:2px}
+.mnl button{display:flex;align-items:center;gap:8px;width:100%;min-height:34px;padding:0 8px;border:0;border-radius:6px;background:none;font:inherit;font-size:12.5px;color:#0B1220;text-align:left;cursor:pointer}
+.mnl button:hover{background:#F3F4F6}
+.mnl .av{width:22px;height:22px;font-size:9.5px}
+/* phone: quick review, not the builder */
+.qbar{display:none}
+.qsheet-h{display:none}
+.qscrim{display:none}
+.ts{display:none}
+@media (max-width:1100px){
+  .ctools{position:static;align-self:flex-start;margin:0 0 12px}
+  .cvs{flex-direction:column;align-items:center}
+  .pin{right:-38px}
+}
+@media (max-width:767px){
+  .ds .istrip{display:none}
+  .ds .cb-end .hide-ds{display:none}
+  .ds .lp{display:none}
+  .ds .rp{display:none}
+  .ds .rp.as-sheet,.ds .ipanel.as-sheet,.ds .ts.on{display:flex;flex-direction:column;position:fixed;left:0;right:0;bottom:65px;max-height:72vh;overflow:auto;z-index:62;border:1px solid #E3E6EB;border-bottom:0;border-radius:10px 10px 0 0;box-shadow:0 -12px 32px rgba(11,18,32,.16);background:#FFFFFF}
+  .ds .ipanel{display:none}
+  .ds .ipanel.as-sheet{flex-wrap:nowrap;padding:0 12px 16px}
+  .ds .ipanel.as-sheet .ip-send{max-width:none}
+  .ds .rp.as-sheet .ptab,.ds .rp.as-sheet .rp-sel{display:none}
+  .ds .qsheet-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px 6px 12px;border-bottom:1px solid #EEF0F3;position:sticky;top:0;background:#FFFFFF;z-index:1}
+  .ds .ipanel.as-sheet .qsheet-h{margin:0 -12px}
+  .ds .qsheet-h h2{margin:0;font-size:15px;font-weight:600}
+  .ds .qsheet-h .btn.ic{width:44px;min-height:44px;border-color:transparent}
+  .ds .qscrim.on{display:block;position:fixed;inset:0;background:rgba(11,18,32,.32);z-index:61}
+  .ds .ts .tsb{display:flex;flex-direction:column;gap:12px;padding:12px}
+  .ds .cfoot{display:none}
+  .ds .lab,.ds .tb,.ds .ctools,.ds .lqpop{display:none}
+  .ds .selsec{outline:none;margin-top:0}
+  .ds .selb{outline:none}
+  .ds .email,.ds .email.mob{width:100%}
+  .ds .email .cols{flex-direction:column}
+  .ds .email .col{flex:none!important}
+  .ds .email .sec{padding-left:16px!important;padding-right:16px!important}
+  .ds .email .e-h1{font-size:23px}
+  .ds .cvs{padding:12px 8px 96px}
+  .ds .pin{right:6px}
+  .ds .qnote{display:flex;margin:0 0 12px;width:100%;max-width:600px}
+  .ds .qbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:63;gap:2px;padding:6px;background:#FFFFFF;border-top:1px solid #E3E6EB;box-sizing:border-box}
+  .ds .qbar button{flex:1 1 0%;min-width:0;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;border-radius:10px;background:none;color:#4B5563;font:inherit;font-size:11px;font-weight:600;cursor:pointer;position:relative;padding:0 2px}
+  .ds .qbar button[aria-expanded="true"],.ds .qbar button[aria-pressed="true"]{background:#E3F1EE;color:#0F766E}
+  .ds .qbar button.qap{color:#0F766E}
+  .ds .ts .kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;font-size:12.5px;margin:0}
+  .ds .ts .kv dt{color:#5B6472;font-weight:500;margin:0}.ds .ts .kv dd{margin:0}
+  .ds .qbar .qn{position:absolute;top:4px;right:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#FEF3C7;color:#92400E;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+  .ds .qbar .qn.c{background:#EEF0F3;color:#4B5563}
+  .ds.edittext .e-p,.ds.edittext .e-h1,.ds.edittext .e-h2{outline:1px dashed #0F766E;outline-offset:3px;border-radius:2px}
+}
+/* Templates tab (R4.U4): each template's real email, laid out at 600 px and
+   drawn small, as ComposerEmpty's gallery draws it. Blank keeps its outline. */
+.tpls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tpls .tpl{display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid #E3E6EB;border-radius:10px;background:#FFFFFF;cursor:pointer;text-align:left;font:inherit;font-size:12px;font-weight:600;color:#0B1220;min-width:0;min-height:44px}
+.tpls .tpl:hover{border-color:#0F766E}
+.tpls .thumb{display:flex;justify-content:center;height:86px;padding:5px 8px 0;border:1px solid #E3E6EB;border-radius:7px;background:#F3F4F6;overflow:hidden;box-sizing:border-box}
+.tpls .lv{display:block;width:72px;height:81px;flex:none;overflow:hidden;background:#FFFFFF;border-radius:3px 3px 0 0;box-shadow:0 0 0 1px #E3E6EB}
+.tpls .lv.blank{display:flex;flex-direction:column;gap:4px;padding:5px 5px 0;box-sizing:border-box}
+.tpls .lv.blank .bh{display:block;padding-bottom:4px;border-bottom:1px solid #EEF0F3}
+.tpls .lv.blank .bh i{display:block;width:16px;height:4px;border-radius:2px;background:#0B1220}
+.tpls .lv.blank .be{flex:1 1 auto;border:1px dashed #C9CED6;border-radius:3px}
+.tpls .lv.blank .bf{display:flex;flex-direction:column;align-items:center;gap:2px;margin:0 -5px;padding:4px 5px;background:#F3F4F6}
+.tpls .lv.blank .bf i{display:block;width:70%;height:2px;border-radius:2px;background:#C9CED6}
+.tpls .lv.blank .bf i + i{width:45%}
+.tpls .e6{display:block;width:600px;transform:scale(.12);transform-origin:0 0;background:#FFFFFF;font:400 15px/1.55 Georgia,'Times New Roman',serif;color:#1F2937;text-align:left}
+.tpls .e6 i,.tpls .e6 b,.tpls .e6 > span,.tpls .e6 .es > span,.tpls .e6 .ecol > span > span{display:block}
+.tpls .e6 .eh{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #EEF0F3;font:12px 'IBM Plex Sans',system-ui,sans-serif;color:#5B6472}
+.tpls .e6 .elg{width:120px;height:32px;border-radius:4px;background:#0B1220}
+.tpls .e6 .eim{height:230px;margin-bottom:16px;border-radius:2px;background:#E3E6EB}
+.tpls .e6 .es{padding:20px 24px 8px}
+.tpls .e6 .h1{margin:0 0 10px;font-size:26px;line-height:1.2;font-weight:700;color:#0B1220}
+.tpls .e6 .h2{margin:0 0 6px;font-size:17px;line-height:1.3;font-weight:700;color:#0B1220}
+.tpls .e6 .p{margin:0 0 12px}
+.tpls .e6 .ebt{display:inline-block!important;padding:9px 14px;border-radius:6px;background:#0F766E;color:#FFFFFF;font:600 13px 'IBM Plex Sans',system-ui,sans-serif}
+.tpls .e6 .ecol{display:flex;gap:16px;padding:16px 24px}
+.tpls .e6 .ecol > span{display:block;flex:1 1 0%;min-width:0;font-size:14px;line-height:1.5}
+.tpls .e6 .ecol .eim{height:130px;margin-bottom:10px}
+.tpls .e6 .ef{padding:18px 24px;background:#F3F4F6;text-align:center;font:12px/1.6 'IBM Plex Sans',system-ui,sans-serif;color:#5B6472}
+.tpls .e6 .ef b{display:inline;font-weight:400;color:#0F766E}
+
 </style>
 </helmet>
-<div style="min-height:100vh;display:flex;flex-direction:column">
-  <a href="#main" class="skip">Skip to content</a>
-  <header style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB">
-    <a href="Campaigns.dc.html" class="btn ic" aria-label="Back to campaigns"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a>
-    <div style="display:flex;flex-direction:column;gap:0;min-width:0">
-      <label class="k" for="cname" style="font-size:11px">Campaign</label>
-      <input id="cname" value="Weekly Digest #142" style="border:0;padding:0;min-height:28px;font:inherit;font-size:15px;font-weight:700;color:#0B1220;background:none;min-width:200px">
+<div class="{{rootCls}}" style="min-height:100vh;display:flex;flex-direction:column">
+  <a href="#main" class="skip">Skip to the email canvas</a>
+  <h1 class="vh">Composer, Design mode: Weekly Digest #142, editing a two-column section</h1>
+
+  <header class="cbar">
+    <div class="cb-left">
+      <a href="Campaigns.dc.html" class="btn ic" aria-label="Back to campaigns"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a>
+      <div class="cb-id">
+        <label class="vh" for="cname">Campaign name</label>
+        <input id="cname" class="cb-name" value="Weekly Digest #142">
+        <span class="stchip" role="status"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Saved 09:38 · v14</span>
+      </div>
+      <div class="cb-pres" role="group" aria-label="Also in this campaign">
+        <span class="pav" role="img" aria-label="Marcus Chen, viewing" title="Marcus Chen · viewing">MC<i></i></span>
+        <span class="pt" aria-hidden="true">Marcus Chen viewing</span>
+      </div>
     </div>
-    <span class="badge mut">Draft · autosaved 09:38 · v14</span>
-    <button class="btn" type="button" data-p2b="lsw" aria-haspopup="listbox" aria-expanded="false" aria-label="Language version: English, the source. 3 of 4 workspace languages have a version. Change language" style="gap:8px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg><span>English</span><span class="badge info" style="height:20px;font-size:11px">Source · 3 of 4 languages</span><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-left:12px">
-      <button class="btn" aria-label="Audience"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg>Weekly Digest · 31,604</button>
-      <button class="btn">From: Acme Newsletter &lt;digest@news.acme.io&gt;</button>
-      <a href="ProvidersRouting.dc.html" class="btn"><span class="dot" style="color:#4a3aa7"></span>SES 90% <span class="dot" style="color:#e87ba4"></span>Postal 10%</a>
+    <div class="cb-mid">
+      <div class="modes" role="tablist" aria-label="Editing mode">
+        <a role="tab" href="ComposerWrite.dc.html" aria-selected="false" tabindex="-1">Write</a>
+        <a role="tab" href="Composer.dc.html" aria-selected="true" aria-controls="main">Design</a>
+        <a role="tab" href="ComposerCode.dc.html" aria-selected="false" tabindex="-1">Code</a>
+      </div>
+      <div class="devt" role="group" aria-label="Canvas width">
+        <button type="button" aria-pressed="{{devDesk}}" aria-label="Desktop, 600 px" title="Desktop · 600 px" onClick="{{setDesk}}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.2"></rect><path d="M5.5 14h5M8 11v3"></path></svg></button>
+        <button type="button" aria-pressed="{{devMob}}" aria-label="Mobile, 375 px" title="Mobile · 375 px" onClick="{{setMob}}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="4.5" y="1.5" width="7" height="13" rx="1.5"></rect><path d="M7.2 12.5h1.6"></path></svg></button>
+      </div>
     </div>
-    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
-      <a href="ComposerPreview.dc.html" class="btn">Preview</a>
-      <button class="btn">Send test</button>
-      <a href="SendReadiness.dc.html" class="btn pri">Review &amp; send</a>
+    <div class="cb-end">
+      <button type="button" class="btn langb" aria-haspopup="listbox" aria-expanded="false" aria-label="Language: English, the source. 3 of 4 workspace languages have a version. Change language"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg><span class="bt">English</span><span class="ln">· 3 of 4</span><svg class="chev" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+      <a href="ComposerPreview.dc.html" class="btn"><svg class="bi" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"></path><circle cx="8" cy="8" r="2"></circle></svg><span class="bt">Preview</span></a>
+      <button type="button" class="btn hide-ds"><svg class="bi" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7"></path></svg><span class="bt">Send test</span></button>
+    </div>
+    <div class="cb-go">
+      <a href="SendReadiness.dc.html" class="btn pri rsend" aria-label="Review and send. Readiness: ready with 2 warnings"><span class="rs-a">Review &amp; send</span><span class="rs-dot" aria-hidden="true">·</span><span class="rs-b">2 warnings</span></a>
     </div>
   </header>
 
-  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB">
-    <label style="display:flex;flex-direction:column;gap:2px;flex:2 1 320px"><span class="k" style="font-size:11px">Subject · Variant A</span><input class="in" value="Three launches, one deprecation, and the roadmap for Q4"></label>
-    <label style="display:flex;flex-direction:column;gap:2px;flex:2 1 320px"><span class="k" style="font-size:11px">Preheader</span><input class="in" value="Feature flags are GA, audit log exports, and what we're retiring in November."></label>
-    <div style="flex:3 1 360px;display:flex;flex-direction:column;gap:2px;min-width:0"><span class="k" style="font-size:11px">Inbox preview · Gmail</span>
-      <div style="display:flex;gap:10px;align-items:center;height:32px;padding:0 10px;border:1px solid #E3E6EB;border-radius:7px;background:#F9FAFB;font-size:12.5px;white-space:nowrap;overflow:hidden">
-        <span style="font-weight:700;width:120px;overflow:hidden;text-overflow:ellipsis">Acme Newsletter</span>
-        <span style="overflow:hidden;text-overflow:ellipsis"><b style="font-weight:600">Three launches, one deprecation, and the roadmap for Q4</b><span style="color:#5B6472"> - Feature flags are GA, audit log exports, and what we're retiring in November.</span></span>
-        <span class="k" style="margin-left:auto">9:00 AM</span>
+  <div class="istrip" role="region" aria-label="Inbox">
+    <span class="is-l"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Inbox</span>
+    <p class="is-sum">
+      <span class="is-i sub"><span class="is-k">Subject:</span><span class="is-v">Three launches, one deprecation, and the roadmap for Q4</span></span>
+      <span class="is-sep" aria-hidden="true">·</span>
+      <span class="is-i pre"><span class="is-k">Preheader:</span><span class="is-v">Feature flags are GA, audit log exports, and what we're retiring in November.</span></span>
+      <span class="is-sep" aria-hidden="true">·</span>
+      <span class="is-i to"><span class="is-k">To</span><span class="is-v">Weekly Digest · 31,192</span></span>
+      <span class="is-sep" aria-hidden="true">·</span>
+      <span class="is-i via"><span class="is-k">via</span><span class="is-v"><span class="dot" style="color:#4a3aa7;margin-right:4px"></span>SES 90% / <span class="dot" style="color:#e87ba4;margin:0 4px 0 2px"></span>Postal 10%</span></span>
+    </p>
+    <button type="button" class="btn sm is-edit" aria-expanded="{{inboxOpen}}" aria-controls="{{ipCtl}}" onClick="{{toggleInbox}}">{{inboxBtn}}</button>
+  </div>
+
+  <sc-if value="{{inboxOpen}}" hint-placeholder-val="{{false}}">
+  <div id="ipanel" class="{{ipCls}}" role="region" aria-label="Subject, preheader and recipients">
+    <div class="qsheet-h"><h2>Inbox</h2><button type="button" class="btn ic" aria-label="Close" onClick="{{closeSheet}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"></path></svg></button></div>
+    <div class="ip-in">
+      <div class="ip-row">
+        <label class="lbl">Subject · variant A<input class="in" value="Three launches, one deprecation, and the roadmap for Q4"><span class="k">55 characters · Gmail shows about 70 on desktop, 35 on iPhone</span></label>
+        <label class="lbl">Subject · variant B<input class="in" value="What shipped this week, and what we're retiring"><span class="k">A/B test on 20%, winner by clicks after 2 hours · <a href="ComposerPreview.dc.html">Test settings</a></span></label>
+      </div>
+      <label class="lbl">Preheader<input class="in" value="Feature flags are GA, audit log exports, and what we're retiring in November."><span class="k">77 characters · shown after the subject in most inboxes</span></label>
+      <div class="lbl"><span>Inbox preview · Gmail, desktop</span>
+        <div class="gmail"><span class="gf">Acme Newsletter</span><span class="gs"><b>Three launches, one deprecation, and the roadmap for Q4</b><span> - Feature flags are GA, audit log exports, and what we're retiring in November.</span></span><span class="gt">9:00 AM</span></div>
+      </div>
+    </div>
+    <div class="ip-send" role="group" aria-labelledby="sendto">
+      <h2 class="ip-h" id="sendto">Sending to</h2>
+      <label class="lbl">Audience<select class="in"><option>Weekly Digest · 31,192 recipients</option><option>Product Updates</option><option>Beta Program</option><option>All subscribers · 47,842</option></select><span class="k">After suppressions, duplicates and your sunset policy, which leaves out 412 unengaged contacts</span></label>
+      <label class="lbl">From<select class="in"><option>Acme Newsletter &lt;digest@news.acme.io&gt;</option><option>Acme Product &lt;product@news.acme.io&gt;</option></select></label>
+      <div class="lbl"><span id="route-l">Route</span>
+        <a href="ProvidersRouting.dc.html" class="route"><span class="rb" aria-hidden="true"><i style="flex:9;background:#4a3aa7"></i><i style="flex:1;background:#e87ba4"></i></span>Broadcasts · SES 90% / Postal 10%<svg style="margin-left:auto" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 4 4 4-4 4"></path></svg></a>
+        <span class="k">Postal is warming up, day 9 of 21, so it takes 10%.</span>
       </div>
     </div>
   </div>
+  </sc-if>
 
-  <div style="display:flex;flex-wrap:wrap;flex:1;align-items:stretch">
-    <aside class="cpanel" style="flex:1 1 272px;max-width:272px;background:#fff;border-right:1px solid #E3E6EB;display:flex;flex-direction:column">
-      <div class="ptab" role="tablist"><button class="on" role="tab">Blocks</button><button role="tab">Layers</button><button role="tab">Templates</button></div>
-      <div style="padding:8px 12px"><input aria-label="Search blocks" class="in" placeholder="Search blocks" style="width:100%"></div>
-      <div class="grp">Layout · MJML</div>
-      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px">
-        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect></svg>1 column</div>
-        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="8" height="14" rx="2"></rect><rect x="13" y="5" width="8" height="14" rx="2"></rect></svg>2 columns</div>
-        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="2" y="5" width="6" height="14" rx="1.5"></rect><rect x="9" y="5" width="6" height="14" rx="1.5"></rect><rect x="16" y="5" width="6" height="14" rx="1.5"></rect></svg>3 columns</div>
-        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"></rect><rect x="6" y="7" width="12" height="10" rx="1"></rect></svg>Wrapper</div>
-        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 15h10M7 11h6"></path></svg>Hero</div>
-        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12h18M12 3v18"></path></svg>Group</div>
+  <div class="cwrap">
+    <aside class="lp" aria-label="Blocks, layers and templates">
+      <div class="ptab" role="tablist" aria-label="Left panel">
+        <button type="button" role="tab" id="lt-blocks" aria-controls="{{lBlocksCtl}}" aria-selected="{{lBlocks}}" tabindex="{{lBlocksTi}}" class="{{lBlocksCls}}" onClick="{{goBlocks}}" onKeyDown="{{ltKey}}">Blocks</button>
+        <button type="button" role="tab" id="lt-layers" aria-controls="{{lLayersCtl}}" aria-selected="{{lLayers}}" tabindex="{{lLayersTi}}" class="{{lLayersCls}}" onClick="{{goLayers}}" onKeyDown="{{ltKey}}">Layers</button>
+        <button type="button" role="tab" id="lt-templates" aria-controls="{{lTemplatesCtl}}" aria-selected="{{lTemplates}}" tabindex="{{lTemplatesTi}}" class="{{lTemplatesCls}}" onClick="{{goTemplates}}" onKeyDown="{{ltKey}}">Templates</button>
       </div>
-      <div class="grp">Content · MJML</div>
-      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px">
-        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>Text</div>
-        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m3 16 5-5 4 4 3-3 6 6"></path><circle cx="16" cy="9" r="1.5"></circle></svg>Image</div>
-        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="4"></rect></svg>Button</div>
-        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12h18"></path></svg>Divider</div>
-        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6v12M20 6v12M8 12h8"></path></svg>Spacer</div>
-        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"></circle><circle cx="12" cy="12" r="2.5"></circle><circle cx="18" cy="12" r="2.5"></circle></svg>Social</div>
-        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"></path></svg>Navbar</div>
-        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m8 7-4 5 4 5M16 7l4 5-4 5"></path></svg>Raw HTML</div>
-        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 9h8M8 13h8"></path></svg>Table</div>
+      <sc-if value="{{lBlocks}}" hint-placeholder-val="{{true}}">
+      <div class="lpb" id="lp-blocks" role="tabpanel" aria-labelledby="lt-blocks">
+        <div style="padding:8px 12px 2px"><input aria-label="Search blocks" class="in" placeholder="Search blocks" style="width:100%"></div>
+        <p class="k lhelp">Drag a block onto the email, or select it and press Enter to add it under the selected section.</p>
+        <div class="grp">Layout</div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px">
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect></svg>1 column</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="8" height="14" rx="2"></rect><rect x="13" y="5" width="8" height="14" rx="2"></rect></svg>2 columns</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="2" y="5" width="6" height="14" rx="1.5"></rect><rect x="9" y="5" width="6" height="14" rx="1.5"></rect><rect x="16" y="5" width="6" height="14" rx="1.5"></rect></svg>3 columns</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 15h10M7 11h6"></path></svg>Hero</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"></rect><rect x="6" y="7" width="12" height="10" rx="1"></rect></svg>Wrapper</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6v12M20 6v12M8 12h8"></path></svg>Spacer</div>
+        </div>
+        <div class="grp">Content</div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px">
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>Text</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m3 16 5-5 4 4 3-3 6 6"></path><circle cx="16" cy="9" r="1.5"></circle></svg>Image</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="4"></rect></svg>Button</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12h18"></path></svg>Divider</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"></circle><circle cx="12" cy="12" r="2.5"></circle><circle cx="18" cy="12" r="2.5"></circle></svg>Social</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"></path></svg>Navbar</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 9h8M8 13h8"></path></svg>Table</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m8 7-4 5 4 5M16 7l4 5-4 5"></path></svg>Raw HTML</div>
+        </div>
+        <div class="grp">Your blocks</div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 12px">
+          <div class="blk rc" draggable="true" tabindex="0" role="button" aria-label="Header with logo, synced block"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="7.5" cy="9.5" r="1.5"></circle><path d="M12 9h6"></path></svg>Header + logo<span class="sy" aria-hidden="true">Synced</span></div>
+          <div class="blk rc" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M6 8h12M6 12h8M6 16h6"></path></svg>Article card</div>
+          <div class="blk rc" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><rect x="6" y="6" width="12" height="7" rx="1"></rect><path d="M6 17h6"></path></svg>Product card</div>
+          <div class="blk rc" draggable="true" tabindex="0" role="button" aria-label="Footer with unsubscribe link, synced block"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="12" width="18" height="8" rx="2"></rect><path d="M6 16h8"></path></svg>Footer + unsubscribe<span class="sy" aria-hidden="true">Synced</span></div>
+          <!-- R4.A3: any section saved as a synced block joins Your blocks under its name. -->
+          <div class="blk rc" draggable="true" tabindex="0" role="button" aria-label="Webinar banner, synced block"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"></path></svg>Webinar banner<span class="sy" aria-hidden="true">Synced</span></div>
+          <div class="blk rc" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"></path></svg>Saved sections · 4</div>
+        </div>
       </div>
-      <div class="grp">ReputeCast blocks</div>
-      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px">
-        <div class="blk rc" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="7.5" cy="9.5" r="1.5"></circle><path d="M12 9h6"></path></svg>Header + logo</div>
-        <div class="blk rc" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M6 8h12M6 12h8M6 16h6"></path></svg>Article card</div>
-        <div class="blk rc" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><rect x="6" y="6" width="12" height="7" rx="1"></rect><path d="M6 17h6"></path></svg>Product card</div>
-        <div class="blk rc" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="12" width="18" height="8" rx="2"></rect><path d="M6 16h8"></path></svg>Footer + unsubscribe</div>
-        <div class="blk rc" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"></path></svg>Saved sections · 4</div>
+      </sc-if>
+      <sc-if value="{{lLayers}}" hint-placeholder-val="{{false}}">
+      <div class="lpb" id="lp-layers" role="tabpanel" aria-labelledby="lt-layers">
+        <p class="k lhelp">Use <span class="kbd">↑</span><span class="kbd">↓</span>to move between layers, <span class="kbd">→</span>to open one, <span class="kbd">←</span>to close it and <span class="kbd">Enter</span>to select it on the email.</p>
+        <ul class="tree" role="tree" aria-label="Layers of the email">
+          <li role="treeitem" aria-expanded="true" aria-selected="false"><span class="ti">Email body</span>
+            <ul role="group">
+              <li role="treeitem" aria-selected="false"><span class="ti">Header + logo<span class="tk">Synced</span></span></li>
+              <li role="treeitem" aria-selected="false"><span class="ti">Hero<span class="tk">Image, heading, text</span></span></li>
+              <li role="treeitem" aria-expanded="true" aria-selected="true" tabindex="0"><span class="ti sel">Feature highlights<span class="tk">2 columns</span></span>
+                <ul role="group">
+                  <li role="treeitem" aria-selected="false"><span class="ti">Column 1 · Feature flags</span></li>
+                  <li role="treeitem" aria-selected="false"><span class="ti">Column 2 · Audit log</span></li>
+                </ul>
+              </li>
+              <li role="treeitem" aria-selected="false"><span class="ti">Divider</span></li>
+              <li role="treeitem" aria-selected="false"><span class="ti">Retiring the v1 API</span></li>
+              <li role="treeitem" aria-selected="false"><span class="ti">Footer + unsubscribe<span class="tk">Synced</span></span></li>
+            </ul>
+          </li>
+        </ul>
       </div>
+      </sc-if>
+      <sc-if value="{{lTemplates}}" hint-placeholder-val="{{false}}">
+      <div class="lpb" id="lp-templates" role="tabpanel" aria-labelledby="lt-templates" style="padding:12px;gap:10px">
+        <p class="k" style="margin:0">A template replaces the whole email. The current one moves to version history first, so nothing is lost.</p>
+        <!-- R4.U4: each template's real email, drawn small (a sandboxed frame in the app, loaded as the tile comes into view). -->
+        <div class="tpls">
+          <button type="button" class="tpl"><span class="thumb" aria-hidden="true"><span class="lv blank"><span class="bh"><i></i></span><span class="be"></span><span class="bf"><i></i><i></i></span></span></span><span>Blank</span></button>
+          <button type="button" class="tpl"><span class="thumb" aria-hidden="true"><span class="lv"><span class="e6"><span class="eh"><i class="elg"></i><span>Blog · Docs · Changelog</span></span><span class="es"><i class="eim"></i><b class="h1">A headline that says what’s inside this week</b><span class="p">Hi there, two or three sentences on what this issue covers and why it matters to the reader.</span></span><span class="ecol"><span><i class="eim"></i><b class="h2">First article title</b><span class="p">One or two sentences that make people want to read the rest.</span><span class="ebt">Read the article</span></span><span><i class="eim"></i><b class="h2">Second article title</b><span class="p">One or two sentences that make people want to read the rest.</span><span class="ebt">Read the article</span></span></span><span class="ef">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><b>Unsubscribe</b> · <b>Email preferences</b> · <b>View in browser</b></span></span></span></span><span>Weekly digest</span></button>
+          <button type="button" class="tpl"><span class="thumb" aria-hidden="true"><span class="lv"><span class="e6"><span class="eh"><i class="elg"></i></span><span class="es" style="padding:24px 24px 28px"><i class="eim" style="height:250px;margin-bottom:18px"></i><b class="h1">Announce the one thing that changed</b><span class="p">Hi there, say what’s new, who it’s for and what they can do with it today. Keep it to one idea so the button has one job.</span><span class="ebt">See what’s new</span></span><span class="ef">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><b>Unsubscribe</b> · <b>Email preferences</b> · <b>View in browser</b></span></span></span></span><span>Product update</span></button>
+          <button type="button" class="tpl"><span class="thumb" aria-hidden="true"><span class="lv"><span class="e6"><span class="eh"><i class="elg"></i><span>Blog · Docs · Changelog</span></span><span class="es"><b class="h1">This week at Acme: three launches and a deprecation</b><span class="p">Hi there, here’s what shipped, what we’re retiring in November and what’s next.</span></span><span class="ecol"><span><i class="eim"></i><b class="h2">Faster exports</b><span class="p">CSV exports of any size now finish in seconds.</span><span class="ebt">Read more</span></span><span><i class="eim"></i><b class="h2">Saved views</b><span class="p">Keep the filters you use most, one click away.</span><span class="ebt">Read more</span></span></span><span class="ef">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><b>Unsubscribe</b> · <b>Email preferences</b> · <b>View in browser</b></span></span></span></span><span>Acme digest v3</span></button>
+        </div>
+        <a href="ComposerEmpty.dc.html" class="btn" style="align-self:flex-start">Open the template gallery</a>
+        <a href="BrandKit.dc.html" class="btn" style="align-self:flex-start">Brand kit</a>
+      </div>
+      </sc-if>
     </aside>
 
-    <section role="main" id="main" style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;background:#E9ECF0">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;background:#fff;border-bottom:1px solid #E3E6EB">
-        <div class="seg" role="group" aria-label="Device"><button class="on">Desktop · 600</button><button>Mobile · 375</button></div>
-        <div class="seg" role="group" aria-label="View"><button class="on">Visual</button><button>MJML</button><button>HTML</button></div>
-        <div style="display:flex;gap:4px"><button class="btn ic" aria-label="Undo"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 4 2 8l4 4M2 8h8a4 4 0 0 1 0 8"></path></svg></button><button class="btn ic" aria-label="Redo" disabled style="opacity:.5"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m10 4 4 4-4 4M14 8H6a4 4 0 0 0 0 8"></path></svg></button></div>
-        <div class="seg" role="group" aria-label="Variant"><button class="on">Variant A</button><button>Variant B · subject only</button><button>+</button></div>
-        <span class="k" style="margin-left:auto">Zoom 100% · ⌘Z undo · ⌘S save · ⌘/ shortcuts</span>
-      </div>
-
-      <div style="flex:1;overflow:auto;padding:28px 24px 40px;display:flex;justify-content:center">
-        <div class="email">
-          <div class="sec" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid #EEF0F3">
+    <main id="main" class="cv" tabindex="-1">
+      <div class="cvs">
+        <div class="ctools" role="group" aria-label="Undo, redo and zoom">
+          <button type="button" class="btn ic" aria-label="Undo"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 4 2 8l4 4M2 8h8a4 4 0 0 1 0 8"></path></svg></button>
+          <button type="button" class="btn ic" aria-label="Redo, nothing to redo" aria-disabled="true"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m10 4 4 4-4 4M14 8H6a4 4 0 0 0 0 8"></path></svg></button>
+          <select class="in" aria-label="Zoom"><option>100%</option><option>75%</option><option>Fit</option></select>
+        </div>
+        <div class="note i qnote"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" style="margin-top:2px;flex:none"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v4M8 4.9v.2"></path></svg><div><b>Quick review on this screen.</b> Edit text, the subject and comments here. Drag-and-drop layout editing works on larger screens.</div></div>
+        <div class="{{emailCls}}">
+          <div class="{{syncCls}}" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid #EEF0F3" onClick="{{selSynced}}">
             <div class="ph" style="width:96px;height:28px">Logo · 96×28</div>
             <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472">Blog · Docs · Changelog</div>
           </div>
-          <div class="sec" style="padding:20px 24px 8px">
-            <div class="ph" style="height:180px;margin-bottom:16px">Hero image · 552×180 · alt "Q4 roadmap illustration"</div>
-            <h1 style="margin:0 0 10px;font-size:26px;line-height:1.2;font-weight:700;color:#0B1220">Three launches, one deprecation, and the roadmap for Q4</h1>
-            <p style="margin:0;font-size:15px;line-height:1.55">Hi {{tok}}, here's what shipped this week at Acme, what we're retiring in November, and where the next quarter is headed.</p>
+          <div class="{{heroCls}}" style="padding:20px 24px 8px" onClick="{{selHero}}">
+            <div class="ph" style="height:180px;margin-bottom:16px">Hero image · 552×180 · alt “Q4 roadmap illustration”</div>
+            <h2 class="e-h1">Three launches, one deprecation, and the roadmap for Q4</h2>
+            <p class="e-p">Hi <button type="button" class="lq" aria-expanded="{{popOpen}}" aria-controls="{{popCtl}}" aria-label="Personalization: first name, fallback there. Edit" onClick="{{togglePop}}">First name <span class="fb">· fallback “there”</span></button>, here's what shipped this week at Acme, what we're retiring in November, and where the next quarter is headed.</p>
+            <sc-if value="{{popOpen}}" hint-placeholder-val="{{true}}">
+            <div class="lqpop" id="lqpop" role="dialog" aria-label="Personalization: first name">
+              <div class="ph-h"><b>Personalization</b><span class="k">Saved as Liquid</span></div>
+              <label class="lbl">Field<select class="in"><option>First name</option><option>Last name</option><option>Company</option><option>Plan</option><option>City</option></select></label>
+              <label class="lbl">Fallback<input class="in" value="there"><span class="k">1,817 of 31,192 recipients have no first name and see “there”.</span></label>
+              <div class="lqprev"><span>Sam Rivera sees <b>Hi Sam,</b></span><span>Without a first name: <b>Hi there,</b></span></div>
+              <code>{{tok}}</code>
+              <div class="row"><button type="button" class="btn sm">Remove</button><button type="button" class="btn sm pri" onClick="{{togglePop}}">Done</button></div>
+            </div>
+            </sc-if>
           </div>
 
-          <div class="sec" style="outline:2px solid #1D4ED8;outline-offset:-2px;padding:16px 24px;margin-top:30px">
-            <span class="lab">mj-section · 2 columns</span>
-            <div class="tb" role="toolbar" aria-label="Component tools">
-              <button aria-label="Select parent"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 10 4-4 4 4"></path></svg></button>
-              <button aria-label="Move"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="M8 2v12M2 8h12M5 5 8 2l3 3M5 11l3 3 3-3"></path></svg></button>
-              <button aria-label="Duplicate"><svg aria-hidden="true" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1.5"></rect><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"></path></svg></button>
-              <button aria-label="Delete"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="M3 4h10M6 4V2.5h4V4M5 4l.6 9h4.8L11 4"></path></svg></button>
+          <div class="{{secCls}}" style="{{secStyle}}" onClick="{{selSection}}">
+            <sc-if value="{{isSection}}" hint-placeholder-val="{{true}}">
+            <span class="lab">Section · 2 columns<span class="lm">Feature highlights</span></span>
+            <div class="tb" role="toolbar" aria-label="Section tools">
+              <button type="button" aria-label="Select parent"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 10 4-4 4 4"></path></svg></button>
+              <button type="button" aria-label="Move, or use Alt and arrow keys"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="M8 2v12M2 8h12M5 5 8 2l3 3M5 11l3 3 3-3"></path></svg></button>
+              <button type="button" aria-label="Duplicate"><svg aria-hidden="true" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1.5"></rect><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"></path></svg></button>
+              <button type="button" aria-label="Delete"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="M3 4h10M6 4V2.5h4V4M5 4l.6 9h4.8L11 4"></path></svg></button>
             </div>
-            <div style="display:flex;gap:16px">
-              <div style="flex:1;outline:1px dashed #93C5FD;outline-offset:2px">
-                <div class="ph" style="height:120px;margin-bottom:10px">Image · 268×120</div>
-                <h2 style="margin:0 0 6px;font-size:17px;line-height:1.3;color:#0B1220">Feature flags are generally available</h2>
-                <p style="margin:0 0 10px;font-size:14px;line-height:1.5;color:#374151">Target rollouts by plan, region or percentage, with an audit trail for every change.</p>
-                <a href="https://docs.acme.io/flags" style="display:inline-block;padding:9px 14px;border-radius:6px;background:#0F766E;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600">Read the docs</a>
+            </sc-if>
+            <div class="cols">
+              <div class="{{colCls}}" style="{{c1Style}}" onClick="{{selColumn}}">
+                <div class="{{imgCls}}" style="height:120px;margin-bottom:10px" onClick="{{selImage}}">Image · alt “Feature flag targeting rules”</div>
+                <h3 class="e-h2">Feature flags are generally available</h3>
+                <p class="{{textCls}}" style="margin:0 0 10px;font-size:14px;line-height:1.5;color:#374151" onClick="{{selText}}">Target rollouts by plan, region or percentage, with an audit trail for every change.</p>
+                <a href="https://docs.acme.io/flags" class="{{btnCls}}" onClick="{{selButton}}">Read the docs</a>
+                <button type="button" class="pin" style="bottom:3px;left:128px;right:auto;background:#EDE9FE;color:#5B21B6" aria-label="Comment by Marcus Chen on this button. Open comments" onClick="{{goComments}}">MC</button>
               </div>
-              <div style="flex:1;outline:1px dashed #93C5FD;outline-offset:2px">
-                <div class="ph" style="height:120px;margin-bottom:10px">Image · 268×120</div>
-                <h2 style="margin:0 0 6px;font-size:17px;line-height:1.3;color:#0B1220">Audit log exports</h2>
+              <div class="col" style="{{c2Style}}">
+                <div class="ph" style="height:120px;margin-bottom:10px">Image · alt “Audit log export settings”</div>
+                <h3 class="e-h2">Audit log exports</h3>
                 <p style="margin:0 0 10px;font-size:14px;line-height:1.5;color:#374151">Stream every workspace event to S3 or your SIEM, with 13 months of history.</p>
-                <a href="https://acme.io/changelog" style="display:inline-block;padding:9px 14px;border-radius:6px;background:#0F766E;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600">See the changelog</a>
+                <a href="https://acme.io/changelog" class="e-btn">See the changelog</a>
               </div>
             </div>
           </div>
 
-          <div class="sec" style="padding:8px 24px"><div style="border-top:1px solid #E3E6EB"></div></div>
+          <div class="{{divCls}}" style="padding:8px 24px" onClick="{{selDivider}}"><div style="border-top:1px solid #E3E6EB"></div></div>
           <div class="sec" style="padding:8px 24px 16px">
-            <h2 style="margin:0 0 6px;font-size:17px;color:#0B1220">Retiring the v1 API on 30 November</h2>
+            <h3 class="e-h2">Retiring the v1 API on 30 November</h3>
             <p style="margin:0;font-size:14px;line-height:1.5;color:#374151">If you still call api.acme.io/v1, the migration guide covers every endpoint. Most teams finish in an afternoon.</p>
+            <button type="button" class="pin" style="top:4px;background:#DBEAFE;color:#1E40AF" aria-label="Comment by Sofia Rossi on this heading. Open comments" onClick="{{goComments}}">SR</button>
           </div>
           <div class="sec" style="padding:18px 24px;background:#F3F4F6;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472;text-align:center;line-height:1.6">
             Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br>
@@ -252,37 +688,508 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
           </div>
         </div>
       </div>
-    </section>
+    </main>
 
-    <aside class="cpanel" style="flex:1 1 300px;max-width:300px;background:#fff;border-left:1px solid #E3E6EB;display:flex;flex-direction:column">
-      <div class="ptab" role="tablist"><button class="on" role="tab">Style</button><button role="tab">Settings</button><button role="tab">Accessibility</button></div>
-      <div style="padding:10px 12px;border-bottom:1px solid #EEF0F3;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">mj-section</span><span class="k">2 columns · only properties MJML supports</span></div>
-      <div class="prop"><span class="t">Background</span><div style="display:flex;gap:8px;align-items:center"><span class="sw" style="background:#FFFFFF"></span><input aria-label="Background" class="in mono" value="#FFFFFF" style="flex:1"><button class="btn" style="min-height:30px">Image</button></div></div>
-      <div class="prop"><span class="t">Padding</span><div class="row4"><label class="k" style="display:flex;flex-direction:column;gap:2px">Top<input class="in" value="16"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Right<input class="in" value="24"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Bottom<input class="in" value="16"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Left<input class="in" value="24"></label></div></div>
-      <div class="prop"><span class="t">Alignment</span><div class="seg"><button>Left</button><button class="on">Center</button><button>Right</button></div></div>
-      <div class="prop"><span class="t">Column widths</span><div class="row2"><label class="k" style="display:flex;flex-direction:column;gap:2px">Column 1<input class="in" value="50%"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Column 2<input class="in" value="50%"></label></div></div>
-      <div class="prop"><span class="t">Border</span><div class="row2"><select aria-label="Border" class="in"><option>None</option><option>Solid</option><option>Dashed</option></select><input class="in" aria-label="Padding" value="0px"></div></div>
-      <div class="prop"><span class="t">Border radius</span><input aria-label="Border radius" class="in" value="0px"></div>
-      <div class="prop"><span class="t">Typography · inherited by children</span><div class="row2"><select aria-label="Typography · inherited by children" class="in"><option>Georgia</option><option>Helvetica</option><option>Arial</option></select><input class="in" aria-label="Font size" value="14px"></div><div class="row2"><div style="display:flex;gap:6px;align-items:center"><span class="sw" style="background:#374151"></span><input class="in mono" aria-label="Text colour" value="#374151" style="flex:1"></div><input class="in" value="1.5" aria-label="Line height"></div></div>
-      <div style="padding:10px 12px;display:flex;flex-direction:column;gap:6px;margin-top:auto;border-top:1px solid #EEF0F3">
-        <span class="k">Deliverability on this section</span>
-        <span class="badge ok" style="align-self:flex-start">2 images with alt text · 2 links OK</span>
+    <aside class="{{rpCls}}" aria-label="Selected section">
+      <div class="qsheet-h"><h2>{{sheetTitle}}</h2><button type="button" class="btn ic" aria-label="Close" onClick="{{closeSheet}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"></path></svg></button></div>
+      <div class="ptab" role="tablist" aria-label="Section panel">
+        <button type="button" role="tab" id="rt-style" aria-controls="{{rStyleCtl}}" aria-selected="{{rStyle}}" tabindex="{{rStyleTi}}" class="{{rStyleCls}}" onClick="{{goStyle}}" onKeyDown="{{rtKey}}">Style</button>
+        <button type="button" role="tab" id="rt-settings" aria-controls="{{rSettingsCtl}}" aria-selected="{{rSettings}}" tabindex="{{rSettingsTi}}" class="{{rSettingsCls}}" onClick="{{goSettings}}" onKeyDown="{{rtKey}}">Settings</button>
+        <button type="button" role="tab" id="rt-checks" aria-controls="{{rChecksCtl}}" aria-selected="{{rChecks}}" tabindex="{{rChecksTi}}" class="{{rChecksCls}}" onClick="{{goChecks}}" onKeyDown="{{rtKey}}" aria-label="Checks, 2 warnings">Checks <span class="n">· 2</span></button>
+        <button type="button" role="tab" id="rt-comments" aria-controls="{{rCommentsCtl}}" aria-selected="{{rComments}}" tabindex="{{rCommentsTi}}" class="{{rCommentsCls}}" onClick="{{goComments}}" onKeyDown="{{rtKey}}" aria-label="Comments, 2 open">Comments <span class="n">· 2</span></button>
       </div>
+      <div class="rp-sel">
+        <div class="rt"><b>{{selTitle}}</b><span class="k">{{selSub}}</span></div>
+        <span class="k">Style is shared by all 3 language versions.</span>
+      </div>
+
+      <sc-if value="{{rStyle}}" hint-placeholder-val="{{true}}">
+      <div id="rp-style" role="tabpanel" aria-labelledby="rt-style" style="display:flex;flex-direction:column;flex:1">
+        <!-- Each block's Style panel is in the writer's words, its MJML attributes in Advanced (R4.U3): select a block on the email. -->
+        <!-- A synced block (the Header here; a named one reads "Synced block “Webinar banner”.") changes in the brand kit: its fields stay read-only, and Unlink makes it this email's own (R4.A3). -->
+        <sc-if value="{{isSynced}}" hint-placeholder-val="{{false}}">
+        <div class="note i" role="note" style="margin:12px 16px 0"><div style="display:flex;flex-direction:column;gap:6px">
+          <span><b>Synced Header.</b> It changes in the brand kit, and every draft and scheduled email holding it follows.</span>
+          <span style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px"><a href="BrandKit.dc.html" style="font-weight:600;text-decoration:underline">Edit in Brand kit</a><button type="button" class="btn sm">Unlink</button></span>
+        </div></div>
+        </sc-if>
+        <sc-if value="{{isSection}}" hint-placeholder-val="{{true}}">
+        <div class="prop"><span class="t" id="sp-l">Spacing</span>
+          <div class="seg full" role="group" aria-labelledby="sp-l">
+            <button type="button" aria-pressed="{{spS}}" onClick="{{setSpS}}">S</button><button type="button" aria-pressed="{{spM}}" onClick="{{setSpM}}">M</button><button type="button" aria-pressed="{{spL}}" onClick="{{setSpL}}">L</button>
+          </div>
+          <span class="k">{{spaceHint}}</span>
+        </div>
+        <div class="prop"><span class="t" id="bg-l">Background</span>
+          <div class="swr" role="group" aria-labelledby="bg-l">
+            <button type="button" class="swb" aria-pressed="{{bgW}}" onClick="{{setBgW}}"><span class="sw" style="background:#FFFFFF"></span>White</button>
+            <button type="button" class="swb" aria-pressed="{{bgG}}" onClick="{{setBgG}}"><span class="sw" style="background:#F3F4F6"></span>Grey</button>
+            <button type="button" class="swb" aria-pressed="{{bgT}}" onClick="{{setBgT}}"><span class="sw" style="background:#F0FDFA"></span>Tint</button>
+            <button type="button" class="swb" style="padding:0 9px">Image…</button>
+          </div>
+        </div>
+        <div class="prop"><span class="t" id="al-l">Alignment</span>
+          <div class="seg full" role="group" aria-labelledby="al-l">
+            <button type="button" aria-pressed="{{alL}}" onClick="{{setAlL}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2.5 4h11M2.5 8h7M2.5 12h9"></path></svg>Left</button><button type="button" aria-pressed="{{alC}}" onClick="{{setAlC}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2.5 4h11M4.5 8h7M3.5 12h9"></path></svg>Center</button><button type="button" aria-pressed="{{alR}}" onClick="{{setAlR}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2.5 4h11M6.5 8h7M4.5 12h9"></path></svg>Right</button>
+          </div>
+        </div>
+        <div class="prop"><span class="t" id="co-l">Columns</span>
+          <div class="colopt" role="group" aria-labelledby="co-l">
+            <button type="button" class="co" aria-pressed="{{co50}}" onClick="{{setCo50}}"><span class="cb" aria-hidden="true"><i style="flex:1"></i><i style="flex:1"></i></span>50/50</button>
+            <button type="button" class="co" aria-pressed="{{co60}}" onClick="{{setCo60}}"><span class="cb" aria-hidden="true"><i style="flex:3"></i><i style="flex:2"></i></span>60/40</button>
+            <button type="button" class="co" aria-pressed="{{co40}}" onClick="{{setCo40}}"><span class="cb" aria-hidden="true"><i style="flex:2"></i><i style="flex:3"></i></span>40/60</button>
+          </div>
+          <span class="k">On phones the columns stack, the left one first.</span>
+        </div>
+        <div class="prop"><label class="t" for="tstyle">Text style</label>
+          <select id="tstyle" class="in"><option>Body · Georgia 14 px, dark grey</option><option>Small · Georgia 13 px</option><option>Large · Georgia 16 px</option></select>
+        </div>
+        <details class="adv">
+          <summary><span>Advanced (MJML attributes)</span><span class="k">{{advSum}}</span></summary>
+          <div class="advb">
+            <div class="prop"><span class="t">Padding · mj-section padding</span><div class="row4"><label class="k" style="display:flex;flex-direction:column;gap:2px">Top<input class="in" value="{{padV}}"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Right<input class="in" value="24"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Bottom<input class="in" value="{{padV}}"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Left<input class="in" value="24"></label></div></div>
+            <div class="prop"><span class="t">Border</span><div class="row2"><select aria-label="Border style" class="in"><option>None</option><option>Solid</option><option>Dashed</option></select><input class="in" aria-label="Border width" value="0px"></div></div>
+            <div class="prop"><label class="t" for="brad">Border radius</label><input id="brad" class="in" value="0px"></div>
+            <div class="prop"><label class="t" for="mjcls">mj-class</label><input id="mjcls" class="in mono" placeholder="none"></div>
+          </div>
+        </details>
+        </sc-if>
+
+        <sc-if value="{{isText}}" hint-placeholder-val="{{false}}">
+        <div class="prop"><label class="t" for="tx-st">Text style</label>
+          <select id="tx-st" class="in"><option>Body · Georgia 14 px</option><option>Small · Georgia 13 px</option><option>Large · Georgia 16 px</option></select>
+        </div>
+        <div class="prop"><span class="t" id="tx-w">Weight</span>
+          <div class="seg full" role="group" aria-labelledby="tx-w"><button type="button" aria-pressed="true">Regular</button><button type="button" aria-pressed="false">Bold</button></div>
+        </div>
+        <div class="prop"><span class="t" id="tx-al">Alignment</span>
+          <div class="seg full" role="group" aria-labelledby="tx-al"><button type="button" aria-pressed="true">Left</button><button type="button" aria-pressed="false">Center</button><button type="button" aria-pressed="false">Right</button></div>
+        </div>
+        <div class="prop"><span class="t" id="tx-sp">Spacing</span>
+          <div class="seg full" role="group" aria-labelledby="tx-sp"><button type="button" aria-pressed="false">S</button><button type="button" aria-pressed="true">M</button><button type="button" aria-pressed="false">L</button></div>
+          <span class="k">10 px above and below</span>
+        </div>
+        <details class="adv">
+          <summary><span>Advanced (MJML attributes)</span><span class="k">padding 10 0 10 0</span></summary>
+          <div class="advb">
+            <div class="prop"><span class="t">Padding · mj-text padding</span><div class="row4"><label class="k" style="display:flex;flex-direction:column;gap:2px">Top<input class="in" value="10"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Right<input class="in" value="0"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Bottom<input class="in" value="10"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Left<input class="in" value="0"></label></div></div>
+            <div class="prop"><span class="t">Typography</span><div class="row2"><select aria-label="Font" class="in"><option>Georgia</option></select><input class="in" aria-label="Font size" value="14px"></div><div class="row2"><input class="in" aria-label="Text colour" value="#374151"><input class="in" aria-label="Line height" value="1.5"></div></div>
+            <div class="prop"><label class="t" for="tx-fw">Weight · mj-text font-weight</label><select id="tx-fw" class="in"><option>Regular</option><option>Medium</option><option>Semibold</option><option>Bold</option></select></div>
+          </div>
+        </details>
+        </sc-if>
+
+        <sc-if value="{{isButton}}" hint-placeholder-val="{{false}}">
+        <div class="prop"><label class="t" for="bt-c">Button colour</label>
+          <div style="display:flex;gap:8px;align-items:center"><span aria-hidden="true" style="width:30px;height:30px;border-radius:7px;background:#0F766E;flex:none"></span><input id="bt-c" class="in mono" value="#0F766E" style="flex:1"></div>
+          <span class="k">White text on #0F766E is 5.5:1, enough for any size.</span>
+        </div>
+        <div class="prop"><span class="t" id="bt-sz">Size</span>
+          <div class="seg full" role="group" aria-labelledby="bt-sz"><button type="button" aria-pressed="false">Small</button><button type="button" aria-pressed="true">Medium</button><button type="button" aria-pressed="false">Large</button></div>
+        </div>
+        <div class="prop"><span class="t" id="bt-w">Width</span>
+          <div class="seg full" role="group" aria-labelledby="bt-w"><button type="button" aria-pressed="true">Fit the text</button><button type="button" aria-pressed="false">Full width</button></div>
+        </div>
+        <div class="prop"><span class="t" id="bt-cr">Corners</span>
+          <div class="seg full" role="group" aria-labelledby="bt-cr"><button type="button" aria-pressed="false">Square</button><button type="button" aria-pressed="true">Rounded</button><button type="button" aria-pressed="false">Pill</button></div>
+        </div>
+        <div class="prop"><span class="t" id="bt-al">Alignment</span>
+          <div class="seg full" role="group" aria-labelledby="bt-al"><button type="button" aria-pressed="true">Left</button><button type="button" aria-pressed="false">Center</button><button type="button" aria-pressed="false">Right</button></div>
+        </div>
+        <div class="prop"><span class="t" id="bt-sp">Spacing</span>
+          <div class="seg full" role="group" aria-labelledby="bt-sp"><button type="button" aria-pressed="false">S</button><button type="button" aria-pressed="true">M</button><button type="button" aria-pressed="false">L</button></div>
+          <span class="k">10 px above and below</span>
+        </div>
+        <details class="adv">
+          <summary><span>Advanced (MJML attributes)</span><span class="k">padding 10 0 10 0 · inner padding 10 25</span></summary>
+          <div class="advb">
+            <div class="prop"><label class="t" for="bt-ip">Inner padding</label><input id="bt-ip" class="in" value="10px 25px"></div>
+            <div class="prop"><span class="t">Outer padding</span><div class="row4"><label class="k" style="display:flex;flex-direction:column;gap:2px">Top<input class="in" value="10"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Right<input class="in" value="0"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Bottom<input class="in" value="10"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Left<input class="in" value="0"></label></div></div>
+            <div class="prop"><label class="t" for="bt-br">Border radius</label><input id="bt-br" class="in" value="6px"></div>
+            <div class="prop"><label class="t" for="bt-wd">Width · mj-button width</label><input id="bt-wd" class="in" placeholder="auto"></div>
+          </div>
+        </details>
+        </sc-if>
+
+        <sc-if value="{{isImage}}" hint-placeholder-val="{{false}}">
+        <div class="prop"><span class="t">Size</span>
+          <div class="row2"><label class="k" style="display:flex;flex-direction:column;gap:2px">Width<input class="in" value="264px"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Height<input class="in" placeholder="auto"></label></div>
+        </div>
+        <div class="prop"><span class="t" id="im-al">Alignment</span>
+          <div class="seg full" role="group" aria-labelledby="im-al"><button type="button" aria-pressed="false">Left</button><button type="button" aria-pressed="true">Center</button><button type="button" aria-pressed="false">Right</button></div>
+        </div>
+        <div class="prop"><span class="t" id="im-cr">Corners</span>
+          <div class="seg full" role="group" aria-labelledby="im-cr"><button type="button" aria-pressed="true">Square</button><button type="button" aria-pressed="false">Rounded</button></div>
+        </div>
+        <div class="prop"><span class="t" id="im-sp">Spacing</span>
+          <div class="seg full" role="group" aria-labelledby="im-sp"><button type="button" aria-pressed="false">S</button><button type="button" aria-pressed="true">M</button><button type="button" aria-pressed="false">L</button></div>
+          <span class="k">10 px above and below</span>
+        </div>
+        <details class="adv">
+          <summary><span>Advanced (MJML attributes)</span><span class="k">padding 10 0 10 0</span></summary>
+          <div class="advb">
+            <div class="prop"><span class="t">Padding · mj-image padding</span><div class="row4"><label class="k" style="display:flex;flex-direction:column;gap:2px">Top<input class="in" value="10"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Right<input class="in" value="0"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Bottom<input class="in" value="10"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Left<input class="in" value="0"></label></div></div>
+            <div class="prop"><label class="t" for="im-br">Border radius</label><input id="im-br" class="in" value="0px"></div>
+          </div>
+        </details>
+        </sc-if>
+
+        <sc-if value="{{isColumn}}" hint-placeholder-val="{{false}}">
+        <div class="prop"><span class="t" id="cl-bg">Background</span>
+          <div class="swr" role="group" aria-labelledby="cl-bg">
+            <button type="button" class="swb" aria-pressed="true"><span class="sw" style="background:#FFFFFF"></span>White</button>
+            <button type="button" class="swb" aria-pressed="false"><span class="sw" style="background:#F3F4F6"></span>Grey</button>
+            <button type="button" class="swb" aria-pressed="false"><span class="sw" style="background:#F0FDFA"></span>Tint</button>
+          </div>
+        </div>
+        <div class="prop"><span class="t" id="cl-sp">Space inside</span>
+          <div class="seg full" role="group" aria-labelledby="cl-sp"><button type="button" aria-pressed="true">None</button><button type="button" aria-pressed="false">S</button><button type="button" aria-pressed="false">M</button><button type="button" aria-pressed="false">L</button></div>
+          <span class="k">No space inside</span>
+        </div>
+        <div class="prop"><span class="t" id="cl-cr">Corners</span>
+          <div class="seg full" role="group" aria-labelledby="cl-cr"><button type="button" aria-pressed="true">Square</button><button type="button" aria-pressed="false">Rounded</button></div>
+        </div>
+        <details class="adv">
+          <summary><span>Advanced (MJML attributes)</span><span class="k">padding 0 0 0 0</span></summary>
+          <div class="advb">
+            <div class="prop"><span class="t">Padding · mj-column padding</span><div class="row4"><label class="k" style="display:flex;flex-direction:column;gap:2px">Top<input class="in" value="0"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Right<input class="in" value="0"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Bottom<input class="in" value="0"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Left<input class="in" value="0"></label></div></div>
+            <div class="prop"><span class="t">Border</span><div class="row2"><select aria-label="Border style" class="in"><option>None</option><option>Solid</option><option>Dashed</option></select><input class="in" aria-label="Border width" value="0px"></div></div>
+            <div class="prop"><label class="t" for="cl-br">Border radius</label><input id="cl-br" class="in" value="0px"></div>
+          </div>
+        </details>
+        </sc-if>
+
+        <sc-if value="{{isHero}}" hint-placeholder-val="{{false}}">
+        <div class="prop"><span class="t" id="hr-bg">Background</span>
+          <div class="swr" role="group" aria-labelledby="hr-bg">
+            <button type="button" class="swb" aria-pressed="true"><span class="sw" style="background:#FFFFFF"></span>White</button>
+            <button type="button" class="swb" aria-pressed="false"><span class="sw" style="background:#F3F4F6"></span>Grey</button>
+            <button type="button" class="swb" aria-pressed="false"><span class="sw" style="background:#F0FDFA"></span>Tint</button>
+            <button type="button" class="swb" style="padding:0 9px">Image…</button>
+          </div>
+        </div>
+        <div class="prop"><span class="t" id="hr-sp">Spacing</span>
+          <div class="seg full" role="group" aria-labelledby="hr-sp"><button type="button" aria-pressed="true">S</button><button type="button" aria-pressed="false">M</button><button type="button" aria-pressed="false">L</button></div>
+          <span class="k">24 px above and below</span>
+        </div>
+        <div class="prop"><span class="t" id="hr-va">Vertical alignment</span>
+          <div class="seg full" role="group" aria-labelledby="hr-va"><button type="button" aria-pressed="true">Top</button><button type="button" aria-pressed="false">Middle</button><button type="button" aria-pressed="false">Bottom</button></div>
+        </div>
+        <details class="adv">
+          <summary><span>Advanced (MJML attributes)</span><span class="k">padding 24 24 24 24</span></summary>
+          <div class="advb">
+            <div class="prop"><span class="t">Padding · mj-hero padding</span><div class="row4"><label class="k" style="display:flex;flex-direction:column;gap:2px">Top<input class="in" value="24"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Right<input class="in" value="24"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Bottom<input class="in" value="24"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Left<input class="in" value="24"></label></div></div>
+            <div class="prop"><label class="t" for="hr-h">Height</label><input id="hr-h" class="in" placeholder="auto"></div>
+          </div>
+        </details>
+        </sc-if>
+
+        <sc-if value="{{isDivider}}" hint-placeholder-val="{{false}}">
+        <div class="prop"><span class="t" id="dv-l">Line</span>
+          <div class="seg full" role="group" aria-labelledby="dv-l"><button type="button" aria-pressed="true">Thin</button><button type="button" aria-pressed="false">Medium</button><button type="button" aria-pressed="false">Thick</button></div>
+        </div>
+        <div class="prop"><span class="t" id="dv-s">Line style</span>
+          <div class="seg full" role="group" aria-labelledby="dv-s"><button type="button" aria-pressed="true">Solid</button><button type="button" aria-pressed="false">Dashed</button><button type="button" aria-pressed="false">Dotted</button></div>
+        </div>
+        <div class="prop"><label class="t" for="dv-c">Line colour</label>
+          <div style="display:flex;gap:8px;align-items:center"><span aria-hidden="true" style="width:30px;height:30px;border-radius:7px;background:#E3E6EB;flex:none"></span><input id="dv-c" class="in mono" value="#E3E6EB" style="flex:1"></div>
+        </div>
+        <div class="prop"><span class="t" id="dv-ln">Length</span>
+          <div class="seg full" role="group" aria-labelledby="dv-ln"><button type="button" aria-pressed="true">Full</button><button type="button" aria-pressed="false">Wide</button><button type="button" aria-pressed="false">Short</button></div>
+        </div>
+        <div class="prop"><span class="t" id="dv-sp">Spacing</span>
+          <div class="seg full" role="group" aria-labelledby="dv-sp"><button type="button" aria-pressed="true">S</button><button type="button" aria-pressed="false">M</button><button type="button" aria-pressed="false">L</button></div>
+          <span class="k">4 px above and below</span>
+        </div>
+        <details class="adv">
+          <summary><span>Advanced (MJML attributes)</span><span class="k">padding 4 24 4 24</span></summary>
+          <div class="advb">
+            <div class="prop"><span class="t">Line · mj-divider border</span><div class="row2"><select aria-label="Line style" class="in"><option>Solid</option><option>Dashed</option><option>Dotted</option></select><input class="in" aria-label="Line width" value="1px"></div></div>
+            <div class="prop"><span class="t">Padding · mj-divider padding</span><div class="row4"><label class="k" style="display:flex;flex-direction:column;gap:2px">Top<input class="in" value="4"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Right<input class="in" value="24"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Bottom<input class="in" value="4"></label><label class="k" style="display:flex;flex-direction:column;gap:2px">Left<input class="in" value="24"></label></div></div>
+          </div>
+        </details>
+        </sc-if>
+
+        <div class="rp-foot"><span class="badge ok"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Pass</span><span class="k">This section: 2 images with alt text, 2 links work</span></div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{rSettings}}" hint-placeholder-val="{{false}}">
+      <div id="rp-settings" role="tabpanel" aria-labelledby="rt-settings" style="display:flex;flex-direction:column;flex:1">
+        <div class="prop"><label class="t" for="lname">Name in Layers</label><input id="lname" class="in" value="Feature highlights"></div>
+        <div class="prop" role="radiogroup" aria-labelledby="vis-l"><span class="t" id="vis-l">Who sees this section</span>
+          <label class="rad"><input type="radio" name="vis" checked>Everyone</label>
+          <label class="rad"><input type="radio" name="vis">Only contacts who match a rule</label>
+          <span class="k">Conditional sections show up in Preview when you preview as a contact.</span>
+        </div>
+        <div class="prop"><span class="t">Show on</span>
+          <label class="tgl">Desktop<input type="checkbox" class="tg" checked></label>
+          <label class="tgl">Phones<input type="checkbox" class="tg" checked></label>
+        </div>
+        <details class="adv">
+          <summary><span>Advanced (MJML attributes)</span><span class="k">css-class, full-width</span></summary>
+          <div class="advb">
+            <div class="prop"><label class="t" for="csscls">css-class</label><input id="csscls" class="in mono" value="features"></div>
+            <label class="tgl">full-width<input type="checkbox" class="tg"></label>
+          </div>
+        </details>
+        <!-- R4.A3: any section (not one that is synced already) can become a synced block. -->
+        <sc-if value="{{isSection}}" hint-placeholder-val="{{true}}">
+        <div class="prop"><span class="t">Synced block</span>
+          <span class="k">Reuse this section in other emails. Edit it once in the brand kit and every draft holding it follows.</span>
+          <button type="button" class="btn sm" style="align-self:flex-start">Save as synced block…</button>
+        </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{rChecks}}" hint-placeholder-val="{{false}}">
+      <div id="rp-checks" role="tabpanel" aria-labelledby="rt-checks" style="display:flex;flex-direction:column;flex:1">
+        <div class="ck-sum">
+          <div class="ck-row"><span class="ck-k">Deliverability</span><span class="badge ok"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Pass</span><span class="k">0 issues in this email</span></div>
+          <div class="ck-row"><span class="ck-k">Accessibility</span><span class="badge ok"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Pass</span><span class="k">0 issues in English, Spanish and German</span></div>
+          <div class="ck-row"><span class="ck-k">Workspace rules</span><span class="badge warn"><span class="dot"></span>1 warning</span><span class="k">Links need UTM tags</span></div>
+          <div class="ck-row"><span class="ck-k">Sender reputation</span><span class="badge warn"><span class="dot"></span>1 warning</span><span class="k">From Review &amp; send · blocklists checked 09:00</span></div>
+        </div>
+        <div class="iss" style="background:#FFFBEB"><div class="t"><span class="badge warn">Warn</span><span>2 of 14 links have no utm_campaign</span></div><span class="k">A workspace rule Marcus Chen added in <a href="SettingsSendingRules.dc.html">Sending rules</a>. ReputeCast counts clicks either way; the tag is for your web analytics.</span><div class="acts"><button type="button" class="btn sm">Add utm_campaign=weekly-digest-142</button><a href="SendReadiness.dc.html" class="btn sm">Preview the 2 links</a></div></div>
+        <div class="iss" style="background:#FFFBEB"><div class="t"><span class="badge warn">Warn</span><span>Postal IP 203.0.113.25 is on 1 of 84 IP blocklists (UCEPROTECT Level 3)</span></div><span class="k">Low impact: few mailbox providers use that list. Postal carries 10% of this send; you can send it all through SES instead.</span><div class="acts"><a href="SendReadiness.dc.html" class="btn sm">Open in Review &amp; send</a></div></div>
+        <details class="adv">
+          <summary><span>10 content checks passed</span><span class="k">Size, links, images, unsubscribe, contrast, headings</span></summary>
+          <ul class="ckp">
+            <li>64 KB of Gmail's 102 KB clipping limit</li>
+            <li>7 of 7 images have alt text</li>
+            <li>14 links work, none on a blocklist</li>
+            <li>Unsubscribe link and postal address in the footer</li>
+            <li>No spam triggers in subject, preheader or body</li>
+            <li>Image-to-text ratio 38%, under 60%</li>
+            <li>All text 4.5:1 or more against its background</li>
+            <li>Headings in order</li>
+            <li>Link text says where each link goes</li>
+            <li>Language marked as English</li>
+          </ul>
+        </details>
+        <p class="k" style="margin:0;padding:10px 12px">Checks rerun as you edit. Review &amp; send runs the full set before anything sends.</p>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{rComments}}" hint-placeholder-val="{{false}}">
+      <div id="rp-comments" role="tabpanel" aria-labelledby="rt-comments" style="display:flex;flex-direction:column;flex:1">
+        <div class="cm">
+          <div class="ch"><span class="av" style="background:#EDE9FE;color:#5B21B6" aria-hidden="true">MC</span><b>Marcus Chen</b><span class="k">09:36</span></div>
+          <span class="anc">On the button “Read the docs”</span>
+          <p class="tx">Can we link the changelog instead?</p>
+          <div class="mn">
+            <label class="vh" for="reply1">Reply to Marcus Chen</label>
+            <textarea id="reply1" class="in" placeholder="Reply, or type @ to mention someone" value="{{reply}}" onInput="{{onReply}}"></textarea>
+            <sc-if value="{{mentionOpen}}" hint-placeholder-val="{{false}}">
+            <ul class="mnl" aria-label="People to mention">
+              <sc-for list="{{mentions}}" as="m" hint-placeholder-count="3">
+              <li><button type="button" onClick="{{m.pick}}"><span class="av" style="{{m.avStyle}}" aria-hidden="true">{{m.ini}}</span>{{m.name}}<span class="k" style="margin-left:auto">{{m.role}}</span></button></li>
+              </sc-for>
+            </ul>
+            </sc-if>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="k" style="flex:1 1 140px">People you @mention get an email and can reply from it.</span><button type="button" class="btn sm">Resolve</button><button type="button" class="btn sm pri">Reply</button></div>
+        </div>
+        <div class="cm">
+          <div class="ch"><span class="av" style="background:#DBEAFE;color:#1E40AF" aria-hidden="true">SR</span><b>Sofia Rossi</b><span class="k">Yesterday 16:12</span></div>
+          <span class="anc">On the heading “Retiring the v1 API on 30 November”</span>
+          <p class="tx">Can we add the exact cut-off time in UTC?</p>
+          <div style="display:flex;gap:8px"><button type="button" class="btn sm">Reply</button><button type="button" class="btn sm">Resolve</button></div>
+        </div>
+        <p class="k" style="margin:0;padding:10px 12px">3 resolved comments are in version history.</p>
+      </div>
+      </sc-if>
     </aside>
   </div>
 
-  <footer style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 16px;background:#fff;border-top:1px solid #E3E6EB">
-    <div class="bc"><span>mjml</span><span>›</span><span>mj-body</span><span>›</span><b>mj-section</b><span>›</span><span>mj-column × 2</span></div>
-    <span class="k" style="margin-left:auto">English · 64 KB of 102 KB · 7 images · 14 links · Accessibility: all clear</span>
-    <span class="badge ok"><span class="dot"></span>No warnings</span>
+  <footer class="cfoot">
+    <nav class="bc" aria-label="Selection path"><span>Email</span><span aria-hidden="true">›</span><span>Body</span><span aria-hidden="true">›</span><b>{{crumb}}</b></nav>
+    <span class="hint"><span><span class="kbd">Enter</span>edits text</span><span><span class="kbd">Esc</span>selects parent</span><span><span class="kbd">⌘Z</span>undo</span><span><span class="kbd">⌘/</span>shortcuts</span></span>
+    <span class="k" style="margin-left:auto">64 KB of 102 KB · 7 images · 14 links</span>
     <a href="ComposerStates.dc.html" class="k">Version history · 14 versions</a>
   </footer>
+
+  <div class="{{scrimCls}}" onClick="{{closeSheet}}"></div>
+  <sc-if value="{{sheetTest}}" hint-placeholder-val="{{false}}">
+  <div class="ts on" role="dialog" aria-labelledby="ts-h">
+    <div class="qsheet-h"><h2 id="ts-h">Send a test</h2><button type="button" class="btn ic" aria-label="Close" onClick="{{closeSheet}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"></path></svg></button></div>
+    <div class="tsb">
+      <label class="lbl">Send to<input class="in" type="email" value="linh@acme.io"></label>
+      <span class="k">Variant A, as Sam Rivera. Tests go out through SES and don't count in reports.</span>
+      <button type="button" class="btn pri" style="min-height:44px">Send test</button>
+    </div>
+  </div>
+  </sc-if>
+  <sc-if value="{{sheetText}}" hint-placeholder-val="{{false}}">
+  <div class="ts on" role="dialog" aria-labelledby="tx-h">
+    <div class="qsheet-h"><h2 id="tx-h">Edit text</h2><button type="button" class="btn ic" aria-label="Close" onClick="{{closeSheet}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"></path></svg></button></div>
+    <div class="tsb"><span>Tap any outlined text on the email to change it. Bold, italic, links and personalization work here; layout stays as it is.</span></div>
+  </div>
+  </sc-if>
+  <sc-if value="{{sheetApprove}}" hint-placeholder-val="{{false}}">
+  <div class="ts on" role="dialog" aria-labelledby="ap-h">
+    <div class="qsheet-h"><h2 id="ap-h">Approve “Weekly Digest #142”?</h2><button type="button" class="btn ic" aria-label="Close" onClick="{{closeSheet}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"></path></svg></button></div>
+    <div class="tsb">
+      <span>Daniel Park asked for approval of v16 at 09:30.</span>
+      <dl class="kv"><dt>Needed</dt><dd>1 of 2</dd></dl>
+      <div class="note n"><span>Approving covers this exact snapshot. If Daniel edits the content, audience, route or schedule, or the audience moves more than 10%, the approval is invalidated and you see the diff.</span></div>
+      <button type="button" class="btn pri" style="min-height:44px">Approve</button>
+      <a href="ApprovalReview.dc.html" class="btn" style="min-height:44px">Review request</a>
+    </div>
+  </div>
+  </sc-if>
+
+  <div class="qbar" role="group" aria-label="Quick review">
+    <button type="button" aria-pressed="{{qText}}" onClick="{{openText}}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M11 2.5 13.5 5 6 12.5l-3.5 1 1-3.5z"></path></svg>Edit text</button>
+    <button type="button" aria-expanded="{{qInbox}}" onClick="{{openInbox}}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Inbox</button>
+    <button type="button" aria-expanded="{{qChecks}}" onClick="{{openChecks}}" aria-label="Checks, 2 warnings"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg>Checks<span class="qn" aria-hidden="true">2</span></button>
+    <button type="button" aria-expanded="{{qComments}}" onClick="{{openComments}}" aria-label="Comments, 2 open"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z"></path></svg>Comments<span class="qn c" aria-hidden="true">2</span></button>
+    <button type="button" aria-expanded="{{qTest}}" onClick="{{openTest}}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7"></path></svg>Send test</button>
+    <!-- While a request waits for this person's decision (an approver who didn't ask for it): Approve. ComposerStates draws it. -->
+    <sc-if value="{{waiting}}" hint-placeholder-val="{{false}}">
+    <button type="button" class="qap" aria-expanded="{{qApprove}}" onClick="{{openApprove}}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Approve</button>
+    </sc-if>
+  </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1325}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1120}}'>
 class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    // waiting: a request waits for this person's decision (quick review's Approve, R4.U6).
+    // sel: the block whose Style panel shows (R4.U3); select another on the email.
+    this.state = { inbox: false, dev: 'desktop', ltab: 'blocks', rtab: 'style', pop: true, space: 'M', bg: 'white', align: 'left', cols: '50', sheet: null, reply: '', waiting: false, sel: 'section' };
+  }
+  tabKey(order, key, prefix) {
+    var self = this;
+    return function (e) {
+      var i = order.indexOf(self.state[key]);
+      var n = -1;
+      if (e.key === 'ArrowRight') n = (i + 1) % order.length;
+      else if (e.key === 'ArrowLeft') n = (i + order.length - 1) % order.length;
+      else if (e.key === 'Home') n = 0;
+      else if (e.key === 'End') n = order.length - 1;
+      if (n < 0) return;
+      e.preventDefault();
+      var o = {}; o[key] = order[n];
+      self.setState(o);
+      setTimeout(function () { var el = document.getElementById(prefix + order[n]); if (el) el.focus(); }, 0);
+    };
+  }
   renderVals() {
-    return { tok: '{' + '{ first_name | "there" }' + '}' };
+    var s = this.state;
+    var self = this;
+    function set(o) { return function () { self.setState(o); }; }
+    var pads = { S: '8px', M: '16px', L: '28px' };
+    var bgs = { white: '#FFFFFF', grey: '#F3F4F6', tint: '#F0FDFA' };
+    var flex = { '50': ['1 1 0%', '1 1 0%'], '60': ['3 1 0%', '2 1 0%'], '40': ['2 1 0%', '3 1 0%'] };
+    var sheetTitles = { checks: 'Checks', comments: 'Comments', inbox: 'Inbox', test: 'Send a test', text: 'Edit text', approve: 'Approve' };
+    var o = '{' + '{', c = '}' + '}';
+    var team = [
+      { name: 'Linh Nguyen', ini: 'LN', role: 'Owner', avStyle: 'background:#DBEAFE;color:#1E40AF' },
+      { name: 'Sofia Rossi', ini: 'SR', role: 'Editor', avStyle: 'background:#DBEAFE;color:#1E40AF' },
+      { name: 'Daniel Park', ini: 'DP', role: 'Content Writer', avStyle: 'background:#FEF3C7;color:#92400E' }
+    ];
+    var m = /@([A-Za-z]*)$/.exec(s.reply || '');
+    var q = m ? m[1].toLowerCase() : '';
+    var mentions = m ? team.filter(function (p) { return p.name.toLowerCase().indexOf(q) === 0 || p.name.split(' ')[1].toLowerCase().indexOf(q) === 0; }).map(function (p) {
+      return Object.assign({}, p, { pick: function () { self.setState({ reply: s.reply.replace(/@([A-Za-z]*)$/, '@' + p.name + ' ') }); } });
+    }) : [];
+    function tab(cur, id, panel) { return { sel: cur === id, ti: cur === id ? '0' : '-1', cls: cur === id ? 'on' : '', ctl: cur === id ? panel : undefined }; }
+    var lb = tab(s.ltab, 'blocks', 'lp-blocks'), ll = tab(s.ltab, 'layers', 'lp-layers'), lt = tab(s.ltab, 'templates', 'lp-templates');
+    var rs = tab(s.rtab, 'style', 'rp-style'), rse = tab(s.rtab, 'settings', 'rp-settings'), rc = tab(s.rtab, 'checks', 'rp-checks'), rco = tab(s.rtab, 'comments', 'rp-comments');
+    var panelSheet = s.sheet === 'checks' || s.sheet === 'comments';
+    var sels = {
+      section: ['Section · 2 columns', 'Feature highlights', 'Feature highlights · 2 columns'],
+      text: ['Text', 'Column 1 · Feature flags', 'Feature highlights · Column 1 · Text'],
+      button: ['Button', 'Read the docs', 'Feature highlights · Column 1 · Button'],
+      image: ['Image', 'Feature flag targeting rules', 'Feature highlights · Column 1 · Image'],
+      column: ['Column 1 of 2', 'Feature highlights', 'Feature highlights · Column 1'],
+      hero: ['Hero', 'Three launches, one deprecation', 'Hero'],
+      divider: ['Divider', 'Before “Retiring the v1 API”', 'Divider'],
+      synced: ['Section · synced', 'Header + logo', 'Header']
+    };
+    var cur = sels[s.sel] || sels.section;
+    function pick(sel) {
+      return function (e) {
+        if (e) {
+          e.stopPropagation();
+          if (sel === 'button' && e.preventDefault) e.preventDefault();
+          // The personalization chip and comment pins keep their own clicks.
+          if (e.target && e.target.closest && e.target.closest('.lq, .lqpop, .pin')) return;
+        }
+        self.setState({ sel: sel, rtab: 'style' });
+      };
+    }
+    function selCls(base, sel) { return base + (s.sel === sel ? ' selb' : ''); }
+    return {
+      isSection: s.sel === 'section', isText: s.sel === 'text', isButton: s.sel === 'button', isImage: s.sel === 'image',
+      isColumn: s.sel === 'column', isHero: s.sel === 'hero', isDivider: s.sel === 'divider', isSynced: s.sel === 'synced',
+      selTitle: cur[0], selSub: cur[1], crumb: cur[2],
+      secCls: 'sec' + (s.sel === 'section' ? ' selsec' : ''),
+      heroCls: selCls('sec hero', 'hero'), colCls: selCls('col', 'column'), imgCls: selCls('ph', 'image'),
+      textCls: selCls('', 'text'), btnCls: selCls('e-btn', 'button'), divCls: selCls('sec', 'divider'), syncCls: selCls('sec', 'synced'),
+      selSection: pick('section'), selHero: pick('hero'), selColumn: pick('column'), selImage: pick('image'),
+      selText: pick('text'), selButton: pick('button'), selDivider: pick('divider'), selSynced: pick('synced'),
+      rootCls: 'ds' + (s.sheet === 'text' ? ' edittext' : ''),
+      tok: o + ' first_name | default: "there" ' + c,
+      inboxOpen: s.inbox,
+      inboxBtn: s.inbox ? 'Done' : 'Edit',
+      toggleInbox: function () { self.setState({ inbox: !s.inbox, sheet: null }); },
+      ipCls: 'ipanel' + (s.sheet === 'inbox' ? ' as-sheet' : ''),
+      devDesk: s.dev === 'desktop', devMob: s.dev === 'mobile',
+      setDesk: set({ dev: 'desktop' }), setMob: set({ dev: 'mobile' }),
+      emailCls: 'email' + (s.dev === 'mobile' ? ' mob' : ''),
+      popOpen: s.pop,
+      togglePop: function () { self.setState({ pop: !s.pop }); },
+      lBlocksCtl: lb.ctl, lLayersCtl: ll.ctl, lTemplatesCtl: lt.ctl,
+      rStyleCtl: rs.ctl, rSettingsCtl: rse.ctl, rChecksCtl: rc.ctl, rCommentsCtl: rco.ctl,
+      ipCtl: s.inbox ? 'ipanel' : undefined,
+      popCtl: s.pop ? 'lqpop' : undefined,
+      lBlocks: lb.sel, lBlocksTi: lb.ti, lBlocksCls: lb.cls,
+      lLayers: ll.sel, lLayersTi: ll.ti, lLayersCls: ll.cls,
+      lTemplates: lt.sel, lTemplatesTi: lt.ti, lTemplatesCls: lt.cls,
+      goBlocks: set({ ltab: 'blocks' }), goLayers: set({ ltab: 'layers' }), goTemplates: set({ ltab: 'templates' }),
+      ltKey: this.tabKey(['blocks', 'layers', 'templates'], 'ltab', 'lt-'),
+      rStyle: rs.sel, rStyleTi: rs.ti, rStyleCls: rs.cls,
+      rSettings: rse.sel, rSettingsTi: rse.ti, rSettingsCls: rse.cls,
+      rChecks: rc.sel, rChecksTi: rc.ti, rChecksCls: rc.cls,
+      rComments: rco.sel, rCommentsTi: rco.ti, rCommentsCls: rco.cls,
+      goStyle: set({ rtab: 'style' }), goSettings: set({ rtab: 'settings' }), goChecks: set({ rtab: 'checks' }),
+      goComments: function () { self.setState({ rtab: 'comments', sheet: (typeof window !== 'undefined' && window.innerWidth < 768) ? 'comments' : s.sheet }); },
+      rtKey: this.tabKey(['style', 'settings', 'checks', 'comments'], 'rtab', 'rt-'),
+      rpCls: 'rp' + (panelSheet ? ' as-sheet' : ''),
+      sheetTitle: sheetTitles[s.sheet] || 'Section',
+      spS: s.space === 'S', spM: s.space === 'M', spL: s.space === 'L',
+      setSpS: set({ space: 'S' }), setSpM: set({ space: 'M' }), setSpL: set({ space: 'L' }),
+      spaceHint: (s.space === 'S' ? '8 px' : s.space === 'M' ? '16 px' : '28 px') + ' above and below, 24 px at the sides',
+      padV: pads[s.space].replace('px', ''),
+      advSum: 'padding ' + pads[s.space].replace('px', '') + ' 24 ' + pads[s.space].replace('px', '') + ' 24 · no border · radius 0',
+      bgW: s.bg === 'white', bgG: s.bg === 'grey', bgT: s.bg === 'tint',
+      setBgW: set({ bg: 'white' }), setBgG: set({ bg: 'grey' }), setBgT: set({ bg: 'tint' }),
+      alL: s.align === 'left', alC: s.align === 'center', alR: s.align === 'right',
+      setAlL: set({ align: 'left' }), setAlC: set({ align: 'center' }), setAlR: set({ align: 'right' }),
+      co50: s.cols === '50', co60: s.cols === '60', co40: s.cols === '40',
+      setCo50: set({ cols: '50' }), setCo60: set({ cols: '60' }), setCo40: set({ cols: '40' }),
+      secStyle: 'padding:' + pads[s.space] + ' 24px;background:' + bgs[s.bg] + ';text-align:' + s.align,
+      c1Style: 'flex:' + flex[s.cols][0], c2Style: 'flex:' + flex[s.cols][1],
+      reply: s.reply,
+      onReply: function (e) { self.setState({ reply: e.target.value }); },
+      mentionOpen: mentions.length > 0,
+      mentions: mentions,
+      scrimCls: 'qscrim' + (s.sheet && s.sheet !== 'text' ? ' on' : ''),
+      closeSheet: function () { self.setState({ sheet: null, inbox: s.sheet === 'inbox' ? false : s.inbox }); },
+      sheetTest: s.sheet === 'test', sheetText: s.sheet === 'text', sheetApprove: s.sheet === 'approve',
+      qText: s.sheet === 'text', qInbox: s.sheet === 'inbox', qChecks: s.sheet === 'checks', qComments: s.sheet === 'comments', qTest: s.sheet === 'test', qApprove: s.sheet === 'approve',
+      waiting: s.waiting,
+      openApprove: function () { self.setState({ sheet: s.sheet === 'approve' ? null : 'approve' }); },
+      openText: function () { self.setState({ sheet: s.sheet === 'text' ? null : 'text' }); },
+      openInbox: function () { self.setState(s.sheet === 'inbox' ? { sheet: null, inbox: false } : { sheet: 'inbox', inbox: true }); },
+      openChecks: function () { self.setState(s.sheet === 'checks' ? { sheet: null } : { sheet: 'checks', rtab: 'checks' }); },
+      openComments: function () { self.setState(s.sheet === 'comments' ? { sheet: null } : { sheet: 'comments', rtab: 'comments' }); },
+      openTest: function () { self.setState({ sheet: s.sheet === 'test' ? null : 'test' }); }
+    };
   }
 }
 </script>

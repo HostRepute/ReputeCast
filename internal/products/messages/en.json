@@ -57,7 +57,7 @@
   "order.alreadyRevoked": "Access to this order's download is revoked already.",
   "order.refundedNoRestore": "This order was refunded in full, so its download stays revoked.",
   "order.test": "Test orders never move money. Use Stripe's test dashboard to refund them.",
-  "order.exportPeople": "Exporting orders needs subscribers:export, because orders hold buyers' addresses.",
+  "order.exportPeople": "Exporting orders is for people who can export contacts, because orders hold buyers' addresses.",
   "notify.deliveryFailedTitle": "Product delivery failed",
   "notify.deliveryFailedBody": { "message": "The delivery email of order {order} ({product}) to {email} wasn't sent: {reason, select, template_missing {the product has no delivery template} other {{detail}}}. The buyer has the download on the thank-you page; send a new link once it's fixed.", "note": "detail: what Transactional answered, in English (template_not_published…)" },
   "notify.disputeTitle": "Dispute opened",

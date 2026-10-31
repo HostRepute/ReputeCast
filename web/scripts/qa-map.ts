@@ -42,6 +42,13 @@ export const entries: Entry[] = [
   { board: 'ComposerWarnings', path: `${ws}/campaigns/{campaign:Flash sale: 48 hours only}/edit?select=1&panel=deliverability` },
   { board: 'ComposerCode', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/edit?view=mjml` },
   { board: 'ComposerPreview', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/edit?view=preview` },
+  // Write mode and the brand kit (review 2026-10, CO-9, CO-11).
+  { board: 'ComposerWrite', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/edit?view=write`, widths: [1440] },
+  { board: 'ComposerWritePhone', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/edit?view=write`, widths: [390] },
+  { board: 'BrandKit', path: `${ws}/settings/brand-kit`, widths: [1440] },
+  { board: 'BrandKitPhone', path: `${ws}/settings/brand-kit`, widths: [390] },
+  { board: 'SettingsSendingRules', path: `${ws}/settings/sending-rules`, widths: [1440, 834] },
+  { board: 'SettingsSendingRulesPhone', path: `${ws}/settings/sending-rules`, widths: [390] },
   // Daniel Park signs in with SSO only: reproduce by hand (a dev session for daniel@acme.io).
   { board: 'ComposerRequestApproval', manual: true },
   // Weekly Digest #142 is scheduled in the demo (SendReadinessStates · scheduled); SendReadiness is
@@ -63,6 +70,9 @@ export const entries: Entry[] = [
   { board: 'LiveMonitorPaused', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live`, widths: [1440, 834] },
   { board: 'LiveMonitorPausedPhone', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live`, widths: [390] },
   { board: 'LiveMonitorOutage', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live` },
+  // A send starting with a canary (the normal scenario runs one; --elapsed 8m shows its watch).
+  { board: 'LiveMonitorCanary', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live`, widths: [1440, 834] },
+  { board: 'LiveMonitorCanaryPhone', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live`, widths: [390] },
   // Connecting, stream lost and complete: reproduce by hand (see CONTRIBUTING.md).
   { board: 'LiveMonitorStates', manual: true },
   // Marcus Chen signs in with SSO only; Linh is an approver too and sees the same list.
@@ -74,8 +84,15 @@ export const entries: Entry[] = [
   { board: 'Providers', path: `${ws}/providers` },
   { board: 'ProvidersRouting', path: `${ws}/providers/routing` },
   { board: 'ProvidersWarmup', path: `${ws}/providers/warmup` },
+  { board: 'ProvidersTrafficRules', path: `${ws}/providers/traffic-rules`, widths: [1440, 834] },
+  { board: 'ProvidersTrafficRulesPhone', path: `${ws}/providers/traffic-rules`, widths: [390] },
   { board: 'ProvidersEvents', path: `${ws}/providers/events` },
   { board: 'ProvidersAdapters', path: `${ws}/providers/adapters` },
+  // Demo providers keep their seeded state (the health job leaves them alone), so the
+  // postal-outage send holds Postal's share on the live monitor but not on Providers:
+  // set providers.status and health.down (reason outage or auth) or health.webhooks
+  // .silentSince by hand in a dev database. The bulk-terms warning shows once the
+  // Broadcasts fallback is set to Postmark's transactional stream (no save needed).
   { board: 'ProvidersOutage', manual: true },
   { board: 'ProvidersWebhooksSilent', manual: true },
   { board: 'ProvidersBulkWarning', manual: true },

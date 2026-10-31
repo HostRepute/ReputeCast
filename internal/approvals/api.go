@@ -95,7 +95,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "send-campaign", Path: "/workspaces/{workspace}/campaigns/{campaignId}/send", Summary: "Schedule or start a campaign after Send Readiness",
-		Description: "Needs a fresh, unblocked Send Readiness run, every warning confirmed, the recipient count typed for large sends, and an approval when the policy asks for one.",
+		Description: "Needs a fresh, unblocked Send Readiness run, every warning confirmed, the recipient count typed for unusual sends (a much larger audience than usual, a first send to a list, from a domain or through a provider, a reputation warning above low impact), and an approval when the policy asks for one.",
 		Tags:        review, Access: api.WorkspaceHuman(authz.CampaignsSend)},
 		func(ctx context.Context, in *sendInput) (*api.Body[ReviewSendResult], error) {
 			id, err := in.ID()

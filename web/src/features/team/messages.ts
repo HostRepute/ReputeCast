@@ -9,8 +9,8 @@ export const m = defineMessages('team', {
   nothingChanged: 'Nothing was changed.',
   retry: 'Retry',
   readOnly: 'Read-only',
-  readOnlyNote: 'You can view the team. Inviting needs the <mono>team:invite</mono> permission and changing roles needs <mono>team:manage</mono>.',
-  readOnlyNoteAsk: 'You can view the team. Inviting needs the <mono>team:invite</mono> permission and changing roles needs <mono>team:manage</mono>. Ask {helpers}.',
+  readOnlyNote: "You can view the team. Your role can't invite people or change members' roles.",
+  readOnlyNoteAsk: "You can view the team. Your role can't invite people or change members' roles. Ask {helpers}.",
 
   members: 'Members',
   membersCaption: 'Everyone with access to {workspace}',

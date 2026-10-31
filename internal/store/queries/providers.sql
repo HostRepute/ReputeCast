@@ -26,6 +26,8 @@ WHERE webhook_token = @webhook_token AND adapter = @adapter AND disconnected_at 
 
 -- name: ProvDailyTotals :many
 -- Totals per provider over [since, until] (dates).
+-- The complaint rate's base (review F-2): complaints and deliveries at
+-- mailbox providers that report complaints, on the days that counted them.
 SELECT provider_id,
        coalesce(sum(sent), 0)::bigint        AS sent,
        coalesce(sum(delivered), 0)::bigint   AS delivered,
@@ -33,7 +35,10 @@ SELECT provider_id,
        coalesce(sum(complained), 0)::bigint  AS complained,
        coalesce(sum(api_calls), 0)::bigint   AS api_calls,
        coalesce(sum(api_errors), 0)::bigint  AS api_errors,
-       coalesce(sum(cost_micros), 0)::bigint AS cost_micros
+       coalesce(sum(cost_micros), 0)::bigint AS cost_micros,
+       coalesce(sum(delivered_reporting), 0)::bigint AS delivered_reporting,
+       coalesce(sum(complained) FILTER (WHERE delivered_reporting IS NOT NULL), 0)::bigint AS complained_reporting,
+       coalesce(sum(delivered) FILTER (WHERE delivered_reporting IS NOT NULL), 0)::bigint AS delivered_counted
 FROM provider_daily_stats
 WHERE provider_id = ANY(@provider_ids::uuid[]) AND day BETWEEN @since::date AND @until::date
 GROUP BY provider_id;
@@ -44,18 +49,20 @@ SELECT provider_id,
        coalesce(sum(calls), 0)::bigint    AS calls,
        coalesce(sum(errors), 0)::bigint   AS errors,
        coalesce(sum(messages), 0)::bigint AS messages,
-       coalesce(max(messages), 0)::bigint AS peak_minute
+       coalesce(max(messages), 0)::bigint AS peak_minute,
+       coalesce(sum(rejected), 0)::bigint AS rejected
 FROM provider_call_windows
 WHERE provider_id = ANY(@provider_ids::uuid[]) AND minute >= @since
 GROUP BY provider_id;
 
 -- name: ProvRecordCall :exec
-INSERT INTO provider_call_windows (provider_id, minute, calls, errors, messages)
-VALUES (@provider_id, date_trunc('minute', @at::timestamptz), 1, @errors, @messages)
+INSERT INTO provider_call_windows (provider_id, minute, calls, errors, messages, rejected)
+VALUES (@provider_id, date_trunc('minute', @at::timestamptz), 1, @errors, @messages, @rejected)
 ON CONFLICT (provider_id, minute) DO UPDATE
 SET calls = provider_call_windows.calls + 1,
     errors = provider_call_windows.errors + EXCLUDED.errors,
-    messages = provider_call_windows.messages + EXCLUDED.messages;
+    messages = provider_call_windows.messages + EXCLUDED.messages,
+    rejected = provider_call_windows.rejected + EXCLUDED.rejected;
 
 -- name: ProvRecordDaily :exec
 INSERT INTO provider_daily_stats (provider_id, day, sent, api_calls, api_errors, cost_micros)
@@ -67,13 +74,16 @@ SET sent = provider_daily_stats.sent + EXCLUDED.sent,
     cost_micros = provider_daily_stats.cost_micros + EXCLUDED.cost_micros;
 
 -- name: ProvRecordOutcome :exec
--- Delivery outcomes counted from normalized events (bounce and complaint rates).
-INSERT INTO provider_daily_stats (provider_id, day, delivered, bounced, complained)
-VALUES (@provider_id, @day::date, @delivered, @bounced, @complained)
+-- Delivery outcomes counted from normalized events (bounce and complaint
+-- rates). delivered_reporting counts the deliveries at mailbox providers
+-- that report complaints; a day counted before it existed stays unknown.
+INSERT INTO provider_daily_stats (provider_id, day, delivered, bounced, complained, delivered_reporting)
+VALUES (@provider_id, @day::date, @delivered, @bounced, @complained, @delivered_reporting::bigint)
 ON CONFLICT (provider_id, day) DO UPDATE
 SET delivered = provider_daily_stats.delivered + EXCLUDED.delivered,
     bounced = provider_daily_stats.bounced + EXCLUDED.bounced,
-    complained = provider_daily_stats.complained + EXCLUDED.complained;
+    complained = provider_daily_stats.complained + EXCLUDED.complained,
+    delivered_reporting = provider_daily_stats.delivered_reporting + EXCLUDED.delivered_reporting;
 
 -- name: ProvPurgeCallWindows :execrows
 DELETE FROM provider_call_windows WHERE minute < @before;
@@ -97,6 +107,19 @@ UPDATE providers SET label = @label, pricing = @pricing, limits = @limits WHERE 
 
 -- name: ProvUpdateTracking :exec
 UPDATE providers SET tracking = @tracking WHERE id = @id;
+
+-- name: ProvLockForIPs :one
+-- A connected provider, locked while its sending IPs change.
+SELECT * FROM providers WHERE id = @id AND disconnected_at IS NULL FOR UPDATE;
+
+-- name: ProvSetIPs :exec
+-- A provider's sending IPs (sorted, each once) and where they come from.
+UPDATE providers SET ip_mode = @ip_mode, ips = @ips::text[], ip_source = @ip_source WHERE id = @id;
+
+-- name: ProvSetIPSource :exec
+-- Where a provider's sending IPs come from, the IPs unchanged (a check
+-- that failed keeps them).
+UPDATE providers SET ip_source = @ip_source WHERE id = @id;
 
 -- name: ProvDisconnect :exec
 UPDATE providers SET disconnected_at = now(), status = 'paused', status_detail = 'Disconnected' WHERE id = @id;

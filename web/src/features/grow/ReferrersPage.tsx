@@ -432,7 +432,7 @@ function PanelBody({ p, programId, listName, onClose }: { p: Panel; programId: s
       <div className="gw-sheet-body">
         {!canReview ? (
           <Note tone="neutral">
-            <T msg={p.helpers.review.length ? mf.readOnly : mf.readOnlyNoHelpers} values={{ helpers: orNames(p.helpers.review), mono }} />
+            {t(p.helpers.review.length ? mf.readOnly : mf.readOnlyNoHelpers, { helpers: orNames(p.helpers.review) })}
           </Note>
         ) : null}
         {paused ? (

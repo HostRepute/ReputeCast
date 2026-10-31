@@ -112,7 +112,7 @@ function AccessEditor({ data, overview }: { data: Access; overview: Overview }) 
   const paidBlocked = !data.payments.connected ? t(ma.connectToUsePaid) : data.tiers.length === 0 ? t(ma.tierFirst) : undefined
   return (
     <WebsitePage view="access" overview={overview} actions={actions}>
-      {ro ? <ReadOnlyNote msg={m.readOnlyAccess} helpers={overview.helpers.manage} perms={{ perm: 'website:manage' }} /> : null}
+      {ro ? <ReadOnlyNote msg={m.readOnlyAccess} helpers={overview.helpers.manage} /> : null}
       {!data.payments.connected ? (
         <Note tone="neutral">
           <div className="flex flex-col gap-2">

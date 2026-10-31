@@ -1,0 +1,156 @@
+import { defineMessages } from '@/i18n'
+
+/**
+ * Sending providers › Traffic rules (ProvidersTrafficRules; review GS-11,
+ * GS-12, GS-10 and GS-6; C9): thresholds by bounce type, mailbox provider
+ * response rules, canary defaults and the complaint watch after a send.
+ */
+export const m = defineMessages('traffic', {
+  loading: 'Loading the traffic rules',
+  loadFailed: "Couldn't load the traffic rules",
+  loadFailedBody: 'Sends keep using the saved rules.',
+  retry: 'Try again',
+
+  // Saving.
+  save: 'Save rules',
+  saved: 'Traffic rules saved',
+  savedDetail: "New sends use them; a campaign's own limits from Review & send still come first.",
+  saveFailed: "The traffic rules weren't saved",
+  /** {ago} is relative ("2 days ago", "just now"). */
+  savedBy: 'Saved {ago} by {name}',
+  savedAgo: 'Saved {ago}',
+  defaults: 'Defaults, not changed yet',
+  unsaved: 'Unsaved changes',
+  readOnly: 'You can see these rules. People who can manage sending providers change them.',
+  fixFirst: '{count, plural, one {Fix the highlighted field before saving.} other {Fix the # highlighted fields before saving.}}',
+
+  // Thresholds by bounce type.
+  thresholdsTitle: 'Thresholds by bounce type',
+  thresholdsCaption: 'Workspace defaults for every send. A campaign can change them in <b>Review & send</b>.',
+  workspaceDefault: 'Workspace default',
+  blockTitle: 'Block/policy bounces',
+  blockBody: 'Rejections for reputation, policy or content, such as Outlook S3150 or Gmail 550 5.7.1.',
+  unknownTitle: 'Unknown user',
+  unknownBody: "Addresses that don't exist (550 5.1.1). Many at once point to an old or bought list.",
+  softTitle: 'Soft bounces and deferrals',
+  softBody: 'Temporary 4xx replies: the mailbox provider is asking you to slow down or try later.',
+  complaintTitle: 'Complaints',
+  complaintBody:
+    "Counted only where mailbox providers report them: Outlook, Yahoo and some in Other. Gmail and iCloud don't report complaints per message.",
+  at: 'At',
+  pctMailbox: '% at one mailbox provider',
+  pctSend: '% of the send',
+  pctOver: '% over',
+  atOneMailbox: 'at one mailbox provider',
+  minutes: '{minutes} min',
+  thresholdAction:
+    '{action, select, pause_mailbox {Pause that mailbox provider} slow {Slow it to half rate} pause_send {Pause the send} warn {Warn} other {{action}}}',
+  /** {rule} is a heading ("Unknown user"); {level} is first or second. */
+  limitLabel: '{rule}{level, select, first {, first level} second {, second level} other {}}: limit in percent',
+  actionLabel: '{rule}{level, select, first {, first level} second {, second level} other {}}: action',
+  windowLabel: '{rule}{level, select, first {, first level} second {, second level} other {}}: time window',
+  thresholdsNote:
+    "Every threshold waits for at least 5 events and 500 delivered to that mailbox provider, then trips only when there's enough evidence that the rate is really above the limit. Complaints and block/policy bounces don't wait that long: from 3, a rate clearly over the limit trips however small the send. Block/policy bounces are also judged on the last 10 minutes alone, so a mailbox provider that starts blocking late in a large send trips too. Until then the live monitor shows it as “Collecting evidence”.",
+  pctRange: 'Enter a number from {min} to {max}.',
+  levelsOrder: 'The first level must be lower than the second.',
+
+  // Mailbox provider responses (reply rules).
+  repliesTitle: 'Mailbox provider responses',
+  repliesCaption: 'Rules that match the text of SMTP replies, on every route. A rule acts as soon as its count is reached, before any rate threshold.',
+  rulesOn: '{on} of {total} on',
+  noRules: 'No reply rules yet. Add one for a reply a mailbox provider sends when it wants you to slow down.',
+  ruleHead: '<b>{mailbox}</b> · reply contains <c>{code}</c>',
+  ruleWhen:
+    '{count, plural, one {On the first reply} other {After {count} replies in {window} min}}',
+  ruleAction:
+    '{action, select, slow {Slow {mailbox} to 50%} pause {Pause {mailbox}} pause_route {Pause {mailbox} on that route and alert} other {Alert only}}',
+  ruleDuration: '{kind, select, until {until someone resumes} other {for {duration}}}',
+  ruleMeansNew: 'Added just now; not matched yet.',
+  lastMatched: 'Last matched: {when}',
+  lastMatchedIn: '{date} · {campaign}',
+  never: 'never',
+  ruleSwitch: '{mailbox} replies containing {code}',
+  remove: 'Remove',
+  removeRule: 'Remove the {mailbox} {code} rule',
+  addRule: 'Add rule',
+  fieldMailbox: 'Mailbox provider',
+  fieldContains: 'Reply contains',
+  containsPlaceholder: 'e.g. 4.7.650',
+  fieldWhen: 'When',
+  whenOption: '{count, plural, one {First reply} other {# replies in 10 min}}',
+  fieldAction: 'Action',
+  actionOption:
+    '{action, select, slow {Slow it to 50%} pause {Pause that mailbox provider} pause_route {Pause it on that route and alert} other {Alert only}}',
+  fieldDuration: 'Duration',
+  durationOption: '{kind, select, until {Until someone resumes} other {{duration}}}',
+  containsNeeded: 'Enter the reply text to match, for example TSS04.',
+  containsHelp: 'Matched as plain text, not case-sensitive, anywhere in the SMTP reply.',
+  ruleAdded: 'Rule added. Save the rules to use it.',
+  ruleRemoved: 'Rule removed. Save the rules to apply it.',
+
+  // Canary defaults.
+  canaryTitle: 'Canary defaults',
+  canaryCaption: 'A canary sends to a small, engaged slice first and holds everyone else until it passes.',
+  canaryOn: 'On',
+  canaryOff: 'Off',
+  runWhen: 'Run a canary when',
+  reasonNewDomain: 'The sending domain or IP is new',
+  /** Review GS-10: only the dedicated IPs Providers lists are checked; a shared pool's are the provider's. */
+  reasonNewDomainHint: "the domain's first 30 days, or a dedicated IP listed on Providers that never sent for this workspace",
+  reasonNeverMailed: 'Some recipients never got mail from this domain',
+  reasonNeverMailedHint: 'for example contacts imported since the last send',
+  reasonOverUsual: 'The audience is over 2× the usual size',
+  reasonOverUsualHint: 'usual: {usual}, the median of the last 8 sends',
+  reasonOverUsualNone: 'usual: the median of the last 8 sends, once there are some',
+  size: 'Size',
+  sizeUnit: '% most engaged',
+  seeds: '{count, plural, =0 {Add the seed mailboxes} one {Add the seed mailbox} other {Add the # seed mailboxes}}',
+  seedsNone: 'No seed mailboxes connected yet: add them in Deliverability › Placement tests.',
+  watchTime: 'Watch time',
+  gates: 'Gates',
+  gateBounce: 'Bounces',
+  gateBlock: 'Block/policy bounces',
+  gateDeferral: 'Deferrals',
+  gateComplaint: 'Complaints, per mailbox provider',
+  gateSeeds: 'Seeds in spam, at most',
+  gateSeedsOf: 'of {count}',
+  gateLabel: 'Canary gate, {gate}: limit in percent',
+  gateSeedsLabel: 'Canary gate, seed mailboxes in spam: at most',
+  canaryNote:
+    "The canary starts at the scheduled time and everyone else waits for it, so a send with a canary finishes about {minutes} minutes later. When the watch ends and every gate with enough evidence passes, the send continues by itself; if a gate fails, it stays held and you're asked. Gates still collecting evidence don't hold the send; they become its thresholds.",
+
+  // After the send.
+  afterTitle: 'After the send',
+  afterCaption: 'Complaints keep arriving for days after delivery.',
+  watchFor: 'Watch complaints after the send ends',
+  hours: '{hours, select, 168 {7 days} other {{hours} h}}',
+  alertTitle: 'Alert when a mailbox provider passes its complaint limit during the watch',
+  alertWho: 'In the app and by email to {names}, who can resume sends',
+  alertWhoNobody: 'In the app and by email to the people who can resume sends',
+  postmasterTitle: "Read Gmail's daily spam rate from Postmaster Tools",
+  postmasterBody: 'Gmail reports one rate per day for the whole domain, not single complaints. Alert above {limit}.',
+  lateNote: 'Late complaints add the contact to the suppression list and count in the campaign report.',
+
+  // The side panel.
+  asideLabel: 'How traffic rules work',
+  howTitle: 'How these rules apply',
+  how1: "A campaign's limits from Review & send replace these defaults for that campaign.",
+  how2: 'Reply rules act as soon as their count is reached, before any rate threshold.',
+  how3: 'An action applies to one mailbox provider unless it says “the send”.',
+  how4: 'Slowdowns end by themselves after their time. Pauses wait for someone who can resume: {names}.',
+  how4Nobody: 'Slowdowns end by themselves after their time. Pauses wait for someone who can resume sends.',
+  how5: 'Every action shows in the live monitor and in <a>Events & sync</a>.',
+  legendTitle: 'What the live monitor shows',
+  legendCollecting: 'Collecting evidence',
+  legendCollectingBody: "Fewer than 5 events or 500 delivered, and not clearly over the limit; it can't trip yet. Grey bar.",
+  legendWatching: 'Watching',
+  legendWatchingBody: 'Enough evidence and inside the limit.',
+  legendNear: 'Close to the limit',
+  legendNearBody: 'At 90% of the limit or more.',
+  legendTripped: 'Tripped',
+  legendTrippedBody: 'Enough evidence that the rate is above the limit; the action ran.',
+  recentTitle: 'Recent actions',
+  recentCaption: 'last 30 days',
+  recentNone: 'Nothing tripped in the last 30 days.',
+  allEvents: 'All events in Events & sync',
+})

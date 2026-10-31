@@ -140,3 +140,10 @@ func Path(format string, args ...string) string {
 	}
 	return fmt.Sprintf(format, esc...)
 }
+
+// NotFound reports whether a call failed with 404 (an address that isn't on
+// a list any more, a resource already gone).
+func NotFound(err error) bool {
+	var ce *providers.CallError
+	return errors.As(err, &ce) && ce.Status == http.StatusNotFound
+}

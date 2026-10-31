@@ -1,6 +1,10 @@
 package manage
 
-import "time"
+import (
+	"time"
+
+	"github.com/hostrepute/reputecast/internal/providers/state"
+)
 
 // ProviderStatusCount is one entry of "2 Healthy · 1 Warming up".
 type ProviderStatusCount struct {
@@ -25,9 +29,12 @@ type ProvidersSummary struct {
 	MonthStart time.Time `json:"monthStart"`
 	CostToDate float64   `json:"costToDate" doc:"Dollars"`
 	// CostPer1000 is the blended cost per 1,000 emails this month.
-	CostPer1000  *float64   `json:"costPer1000,omitempty"`
-	Suppressions int64      `json:"suppressions"`
-	SyncedAt     *time.Time `json:"syncedAt,omitempty"`
+	CostPer1000  *float64 `json:"costPer1000,omitempty"`
+	Suppressions int64    `json:"suppressions"`
+	// Pushed counts the suppressions providers get: hard bounces and
+	// complaints that apply to all mail (review PR-1).
+	Pushed   int64      `json:"pushed"`
+	SyncedAt *time.Time `json:"syncedAt,omitempty"`
 	// InSync is true when every provider that syncs is up to date.
 	InSync bool `json:"inSync"`
 	// CheckedAt is the oldest of the providers' last health checks.
@@ -49,11 +56,15 @@ type ProviderStreamRole struct {
 
 // ProviderLimitRate is a bounce or complaint rate against the provider's limit.
 type ProviderLimitRate struct {
-	Value  *float64 `json:"value,omitempty" doc:"Percent over the last 7 days"`
-	Limit  float64  `json:"limit"`
-	Review float64  `json:"review,omitempty"`
-	Pause  float64  `json:"pause,omitempty"`
-	Label  string   `json:"label,omitempty"`
+	Value *float64 `json:"value,omitempty" doc:"Percent over the last 7 days"`
+	// Reason says why Value is empty (review F-3): nothing delivered in
+	// the last 7 days, or only to mailbox providers that don't report
+	// complaints (Gmail, iCloud).
+	Reason string  `json:"reason,omitempty" enum:"no_data,not_reported"`
+	Limit  float64 `json:"limit"`
+	Review float64 `json:"review,omitempty"`
+	Pause  float64 `json:"pause,omitempty"`
+	Label  string  `json:"label,omitempty"`
 	// Stale is true while webhooks are silent: the rate stopped updating.
 	Stale bool `json:"stale"`
 }
@@ -110,6 +121,9 @@ type ProviderWarmupBrief struct {
 	SentToday int64   `json:"sentToday"`
 	Rate      float64 `json:"rate"`
 	Share     int     `json:"share"`
+	// TransactionalOverCap is how many transactional messages went out over
+	// today's cap: they never wait for the warm-up (review R3.L6b).
+	TransactionalOverCap int64 `json:"transactionalOverCap"`
 }
 
 // ProviderCallError is one failed call.
@@ -149,13 +163,16 @@ type ProviderCard struct {
 	Roles       []ProviderStreamRole `json:"roles"`
 	IPMode      string               `json:"ipMode" enum:"shared,dedicated"`
 	IPs         []string             `json:"ips"`
+	IPSource    ProviderIPSource     `json:"ipSource" doc:"Where ipMode and ips come from, and whether people set them by hand"`
 	Webhook     ProviderWebhookFeed  `json:"webhook"`
 	ErrorRate7d *float64             `json:"errorRate7d,omitempty" doc:"Percent of API calls that failed"`
-	ErrorRate3m *float64             `json:"errorRate3m,omitempty"`
+	ErrorRate3m *float64             `json:"errorRate3m,omitempty" doc:"Percent of API calls that failed in the last 3 minutes; omitted when there were none"`
 	// AccountKind says how to label Account: "account" ("Account status")
 	// or "server" ("Server", self-hosted).
-	AccountKind  string                    `json:"accountKind" enum:"account,server"`
-	Account      string                    `json:"account"`
+	AccountKind string `json:"accountKind" enum:"account,server"`
+	Account     string `json:"account"`
+	// Tenant is the workspace's own SES tenant (PR-11).
+	Tenant       *ProviderTenant           `json:"tenant,omitempty"`
 	Bounce       ProviderLimitRate         `json:"bounce"`
 	Complaint    ProviderLimitRate         `json:"complaint"`
 	Quota        ProviderQuotaUse          `json:"quota"`
@@ -172,6 +189,29 @@ type ProviderCard struct {
 	// Credentials lists the secret fields (never their values) so the
 	// settings dialog can offer "Replace".
 	Credentials []ProviderCredentialField `json:"credentials"`
+}
+
+// ProviderIPSource is where a provider's sending IPs come from (review
+// GS-10): the canary's new-IP trigger, Send Readiness's IP blocklist rows
+// and warm-up read them.
+type ProviderIPSource struct {
+	// From is "provider" when its API lists them (ReputeCast asks when the
+	// provider is connected and every day), "manual" when a person set them,
+	// "none" when nobody has yet.
+	From string `json:"from" enum:"provider,manual,none"`
+	// Editable is true when people set them by hand: the provider's API
+	// doesn't list them.
+	Editable bool `json:"editable"`
+	// CheckedAt is the provider's last answer.
+	CheckedAt *time.Time `json:"checkedAt,omitempty"`
+	// Error says why the last check failed, in the reader's language; the
+	// IPs are what the last answer said.
+	Error   string     `json:"error,omitempty"`
+	ErrorAt *time.Time `json:"errorAt,omitempty"`
+	// SetBy names who set them by hand (a member, an API key or an agent),
+	// SetAt when.
+	SetBy string     `json:"setBy,omitempty"`
+	SetAt *time.Time `json:"setAt,omitempty"`
 }
 
 // ProviderCredentialField is a write-only credential of a provider.
@@ -222,8 +262,14 @@ type ProviderFailoverAlternative struct {
 	Short      string `json:"short"`
 	WarmingUp  bool   `json:"warmingUp"`
 	// ExceedsCap: the held recipients don't fit in today's warm-up cap.
-	ExceedsCap  bool `json:"exceedsCap"`
+	ExceedsCap bool `json:"exceedsCap"`
+	// Allowed is false when one of the target checks failed: moving there
+	// is refused. Recommended: every check passed.
+	Allowed     bool `json:"allowed"`
 	Recommended bool `json:"recommended"`
+	// Checks are what was checked about the target for the held share
+	// (available, bulk terms, sandbox, sender domain, quota, warm-up).
+	Checks []state.VetCheck `json:"checks"`
 }
 
 // ProviderOutageStream is how one stream is handling an outage.
@@ -246,6 +292,11 @@ type ProviderOutageStream struct {
 	Campaign          *ProviderHeldCampaign         `json:"campaign,omitempty"`
 	Alternatives      []ProviderFailoverAlternative `json:"alternatives"`
 	SwitchBackMinutes int                           `json:"switchBackMinutes"`
+	// FallbackChecks are the checks the fallback was vetted with before any
+	// mail moved to it (PR-7): all passed while a failover is active; a
+	// failed one says why the stream waits instead. Each carries its
+	// sentence in the reader's language.
+	FallbackChecks []state.VetCheck `json:"fallbackChecks"`
 }
 
 // ProviderQuotaForecast says when a provider taking failover runs out of quota.
@@ -275,7 +326,7 @@ type ProviderOutage struct {
 	Short      string                  `json:"short"`
 	Since      time.Time               `json:"since"`
 	Down       ProviderDownState       `json:"down"`
-	ErrorRate  *float64                `json:"errorRate,omitempty"`
+	ErrorRate  *float64                `json:"errorRate,omitempty" doc:"Percent of API calls that failed in the last 3 minutes; omitted when there were none"`
 	Codes      []string                `json:"codes"`
 	Operation  string                  `json:"operation"`
 	Streams    []ProviderOutageStream  `json:"streams"`
@@ -319,11 +370,15 @@ type ProviderAwaitingMessage struct {
 
 // ProviderWebhooksSilent is the webhooks-silent banner and diagnosis.
 type ProviderWebhooksSilent struct {
-	ProviderID         string                 `json:"providerId"`
-	Provider           string                 `json:"provider"`
-	Short              string                 `json:"short"`
-	Since              time.Time              `json:"since"`
-	Accepted           int64                  `json:"accepted"`
+	ProviderID string    `json:"providerId"`
+	Provider   string    `json:"provider"`
+	Short      string    `json:"short"`
+	Since      time.Time `json:"since"`
+	Accepted   int64     `json:"accepted"`
+	// Overdue messages were sent more than 30 minutes ago and still have no
+	// event; InGrace are still inside those 30 minutes (PR-6).
+	Overdue            int64                  `json:"overdue"`
+	InGrace            int64                  `json:"inGrace"`
 	Campaigns          []ProviderNamedCount   `json:"campaigns"`
 	BroadcastShareHeld bool                   `json:"broadcastShareHeld"`
 	Checks             []ProviderWebhookCheck `json:"checks"`
@@ -359,4 +414,13 @@ type ProviderAuthFailure struct {
 	Down       ProviderDownState      `json:"down"`
 	Rerouted   int64                  `json:"rerouted"`
 	Streams    []ProviderOutageStream `json:"streams"`
+}
+
+// ProviderTenant is the workspace's own SES tenant: its own suppression
+// list and reputation policy.
+type ProviderTenant struct {
+	Name string `json:"name"`
+	// Policy is the reputation policy's name ("Standard"); empty while SES
+	// hasn't said.
+	Policy string `json:"policy,omitempty"`
 }

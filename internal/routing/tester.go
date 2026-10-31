@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net"
 	"strings"
 	"time"
 
@@ -39,13 +40,16 @@ type RouteTestSplit struct {
 // RouteTestStep is one step of the decision, in order.
 type RouteTestStep struct {
 	// Kind: stream, condition, split, primary, suppression, held.
-	Kind     string           `json:"kind" enum:"stream,condition,split,primary,suppression,held"`
-	Stream   string           `json:"stream,omitempty"`
-	Field    string           `json:"field,omitempty"`
-	Value    string           `json:"value,omitempty"`
-	Provider string           `json:"provider,omitempty"`
-	Bucket   int              `json:"bucket"`
-	Splits   []RouteTestSplit `json:"splits,omitempty"`
+	Kind     string `json:"kind" enum:"stream,condition,split,primary,suppression,held"`
+	Stream   string `json:"stream,omitempty"`
+	Field    string `json:"field,omitempty"`
+	Value    string `json:"value,omitempty"`
+	Provider string `json:"provider,omitempty"`
+	// Bucket (0–99) is where the address falls in a two-provider split: the
+	// first provider listed owns the buckets below its weight. Absent for
+	// other splits, which are just as sticky but have no single bucket.
+	Bucket *int             `json:"bucket,omitempty"`
+	Splits []RouteTestSplit `json:"splits,omitempty"`
 	// Conditions is how many conditions the stream has (stream step).
 	Conditions int `json:"conditions"`
 	// Warming names a provider of the default split that is warming up
@@ -72,16 +76,22 @@ type RouteTestFallback struct {
 
 // RouteTestResult answers "Which provider would send this email?".
 type RouteTestResult struct {
-	ProviderID      string            `json:"providerId"`
-	Provider        string            `json:"provider"`
-	Short           string            `json:"short"`
-	Color           string            `json:"color" enum:"ses,postal,postmark,other"`
-	MailboxProvider string            `json:"mailboxProvider"`
-	DKIMSelector    string            `json:"dkimSelector"`
-	Cost            RouteTestCost     `json:"cost"`
-	Steps           []RouteTestStep   `json:"steps"`
-	Fallback        RouteTestFallback `json:"fallback"`
-	Suppressed      bool              `json:"suppressed"`
+	ProviderID      string `json:"providerId"`
+	Provider        string `json:"provider"`
+	Short           string `json:"short"`
+	Color           string `json:"color" enum:"ses,postal,postmark,other"`
+	MailboxProvider string `json:"mailboxProvider"`
+	// MailboxDetail names the hosting behind a company domain ("Google
+	// Workspace"), found from its MX records; empty for consumer domains.
+	MailboxDetail string `json:"mailboxDetail,omitempty"`
+	// MX is the domain's first MX host, where the mailbox provider comes
+	// from; empty when DNS didn't answer.
+	MX           string            `json:"mx,omitempty"`
+	DKIMSelector string            `json:"dkimSelector"`
+	Cost         RouteTestCost     `json:"cost"`
+	Steps        []RouteTestStep   `json:"steps"`
+	Fallback     RouteTestFallback `json:"fallback"`
+	Suppressed   bool              `json:"suppressed"`
 	// Held is true when the provider can't take mail right now.
 	Held bool `json:"held"`
 }
@@ -112,9 +122,11 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 		}
 	}
 	// A known contact carries its mailbox provider (from MX) and lists.
+	detail := ""
 	if c, err := s.Q.RoutingContact(ctx, store.RoutingContactParams{WorkspaceID: ws.ID, Email: email}); err == nil {
 		if c.MailboxProvider != "" && c.MailboxProvider != Other {
 			rcpt.MailboxProvider = c.MailboxProvider
+			detail = c.MailboxDetail
 		}
 		if in.ListID == "" {
 			for _, l := range c.ListIds {
@@ -125,7 +137,12 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 		return RouteTestResult{}, err
 	}
 	if rcpt.MailboxProvider == "" {
-		rcpt.MailboxProvider = MailboxProvider(email)
+		if s.Mailbox != nil {
+			cl := s.Mailbox.ForEmail(ctx, email)
+			rcpt.MailboxProvider, detail = cl.Provider, cl.Detail
+		} else {
+			rcpt.MailboxProvider = MailboxProvider(email)
+		}
 	}
 	d, ok := set.Resolve(rcpt)
 	if !ok {
@@ -148,7 +165,7 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 		return RouteTestResult{}, err
 	}
 	out := RouteTestResult{ProviderID: p.ID.String(), Provider: p.Name, Short: state.Short(p.Name, p.Adapter), Color: state.Color(p.Adapter),
-		MailboxProvider: rcpt.MailboxProvider, Steps: []RouteTestStep{}}
+		MailboxProvider: rcpt.MailboxProvider, MailboxDetail: detail, Steps: []RouteTestStep{}, MX: s.mxOf(ctx, email)}
 	conditions := 0
 	for _, r := range set.StreamRules(stream) {
 		if !r.Conditions.Empty() {
@@ -191,9 +208,25 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 				step.Warming = f.Short
 			}
 		}
+		// A condition that splits by weight (PR-12) says its split too.
+		if d.Split {
+			if d.Bucket >= 0 {
+				b := d.Bucket
+				step.Bucket = &b
+			}
+			for _, sp := range d.Rule.Splits {
+				if pp, ok := byID[sp.ProviderID]; ok {
+					step.Splits = append(step.Splits, RouteTestSplit{Short: state.Short(pp.Name, pp.Adapter), Weight: sp.Weight})
+				}
+			}
+		}
 		out.Steps = append(out.Steps, step)
 	case d.Split:
-		step := RouteTestStep{Kind: "split", Bucket: d.Bucket, Provider: p.Name}
+		step := RouteTestStep{Kind: "split", Provider: p.Name}
+		if d.Bucket >= 0 {
+			b := d.Bucket
+			step.Bucket = &b
+		}
 		for _, sp := range d.Rule.Splits {
 			if pp, ok := byID[sp.ProviderID]; ok {
 				step.Splits = append(step.Splits, RouteTestSplit{Short: state.Short(pp.Name, pp.Adapter), Weight: sp.Weight})
@@ -288,4 +321,25 @@ func (s *Service) cost(ctx context.Context, p store.Provider) RouteTestCost {
 	per1000 := pr.Per1000
 	per := per1000 / 1000
 	return RouteTestCost{Basis: "metered", PerMessage: &per, Per1000: &per1000}
+}
+
+// mxOf is the first MX host of an address's domain (lowest preference).
+func (s *Service) mxOf(ctx context.Context, email string) string {
+	domain := email[strings.LastIndexByte(email, '@')+1:]
+	if s.LookupMX != nil {
+		return s.LookupMX(ctx, domain)
+	}
+	cctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	mx, err := net.DefaultResolver.LookupMX(cctx, domain)
+	if err != nil || len(mx) == 0 {
+		return ""
+	}
+	best := mx[0]
+	for _, m := range mx[1:] {
+		if m.Pref < best.Pref {
+			best = m
+		}
+	}
+	return strings.TrimSuffix(best.Host, ".")
 }

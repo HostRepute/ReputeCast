@@ -96,7 +96,7 @@ export default translate(m, {
   previewTitle: 'Bản xem trước trang trả lời',
   previewLoading: 'Đang dựng trang trả lời…',
   previewFailed: 'Không hiện được trang trả lời. {detail}',
-  readOnly: 'Bạn có thể mở phần cài đặt của cuộc bình chọn và xem trước trang trả lời. Để sửa, bạn cần quyền campaigns:edit.',
+  readOnly: 'Bạn có thể mở phần cài đặt của cuộc bình chọn và xem trước trang trả lời. Vai trò của bạn không thể sửa cuộc bình chọn.',
   problems: 'Cuộc bình chọn này chưa hoàn chỉnh: {problems}',
 
   // What a new Poll block and a new 0–10 scale say until the author

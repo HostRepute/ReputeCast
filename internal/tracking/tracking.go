@@ -21,7 +21,6 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"net/netip"
 	"net/url"
 	"strings"
 	"sync"
@@ -32,6 +31,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
@@ -81,11 +81,19 @@ type Service struct {
 	// referral.* links) to personalized links; nil adds none.
 	Recipients func() []liquid.RecipientData
 
+	// Audit records the instance admin's changes to the machine networks.
+	Audit *audit.Logger
+
 	once  sync.Once
 	in    chan *pending
 	mu    sync.Mutex
 	links map[uuid.UUID]linkSet
-	burst map[uuid.UUID][]clickMark
+	nets  netCache
+	uas   agentCache
+	// backlog holds opens and clicks that couldn't be recorded nor kept
+	// for a retry (the database was unreachable); the writer tries them
+	// again.
+	backlog []sending.Engagement
 }
 
 // HumanClick is a person's click, as Clicked hears of it.
@@ -112,11 +120,6 @@ type ClickTarget struct {
 type linkSet struct {
 	urls  map[int]string
 	until time.Time
-}
-
-type clickMark struct {
-	link int
-	at   time.Time
 }
 
 type pending struct {
@@ -180,6 +183,8 @@ func (s *Service) Routes(r chi.Router) {
 	r.Head("/t/o/{token}", s.open)
 	r.Get("/t/c/{token}", s.click)
 	r.Head("/t/c/{token}", s.click)
+	r.Get("/t/h/{token}", s.honeypot)
+	r.Head("/t/h/{token}", s.honeypot)
 }
 
 func noStore(h http.Header) {
@@ -248,6 +253,22 @@ func (s *Service) click(w http.ResponseWriter, r *http.Request) {
 	// the signed token, the URL in that campaign's links, an http(s) URL):
 	// never a URL taken from the request.
 	http.Redirect(w, r, target, http.StatusFound) //nolint:gosec // G710: see target
+}
+
+// honeypot answers the hidden link of a tracked email. No person can see
+// it, so whatever follows it is a machine: the click is recorded as a
+// bot's, and the clicks around it settle as the same scanner's.
+func (s *Service) honeypot(w http.ResponseWriter, r *http.Request) {
+	noStore(w.Header())
+	if c, err := s.Links.Verify(chi.URLParam(r, "token"), linktoken.Honeypot); err == nil && c.MessageID != uuid.Nil {
+		ev := sending.Engagement{MessageID: c.MessageID, Click: true, Link: HoneypotLink, UserAgent: r.UserAgent(), IP: clientIP(r), Method: r.Method, At: s.now()}
+		ctx, cancel := context.WithTimeout(r.Context(), 150*time.Millisecond)
+		if err := s.enqueue(ctx, ev); err != nil && !errors.Is(err, context.DeadlineExceeded) {
+			s.log().WarnContext(r.Context(), "record hidden link", "err", err)
+		}
+		cancel()
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // gone answers a tracked link that no longer works, in the language the
@@ -423,8 +444,12 @@ func (s *Service) enqueue(ctx context.Context, ev sending.Engagement) error {
 	select {
 	case s.in <- p:
 	default:
-		// The writer is far behind: write this one directly.
-		return s.RecordEngagement(ctx, []sending.Engagement{ev})
+		// The writer is far behind: write this one directly (kept for a
+		// retry when that fails too).
+		if err := s.RecordEngagement(ctx, []sending.Engagement{ev}); err != nil {
+			s.park([]sending.Engagement{ev}, err)
+		}
+		return nil
 	}
 	select {
 	case err := <-p.done:
@@ -434,8 +459,24 @@ func (s *Service) enqueue(ctx context.Context, ev sending.Engagement) error {
 	}
 }
 
+// retryEvery is how often the writer tries its in-memory backlog again.
+const retryEvery = 15 * time.Second
+
 func (s *Service) loop() {
-	for first := range s.in {
+	tick := time.NewTicker(retryEvery)
+	defer tick.Stop()
+	for {
+		var first *pending
+		select {
+		case p, ok := <-s.in:
+			if !ok {
+				return
+			}
+			first = p
+		case <-tick.C:
+			s.retryMemory()
+			continue
+		}
 		batch := []*pending{first}
 		timer := time.NewTimer(batchWindow)
 	collect:
@@ -456,193 +497,14 @@ func (s *Service) loop() {
 		err := s.RecordEngagement(ctx, evs)
 		cancel()
 		if err != nil {
-			s.log().Warn("record opens and clicks", "events", len(evs), "err", err)
+			// Kept for a retry: the request that brought it doesn't wait.
+			s.park(evs, err)
+			err = nil
 		}
 		for _, p := range batch {
 			p.done <- err
 		}
 	}
-}
-
-// RecordEngagement implements sending.Recorder: it classifies and records a
-// batch of opens and clicks in one transaction.
-func (s *Service) RecordEngagement(ctx context.Context, evs []sending.Engagement) error {
-	if len(evs) == 0 {
-		return nil
-	}
-	return sending.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		for _, ev := range evs {
-			if err := s.apply(ctx, tx, q, ev); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-}
-
-// apply records one open or click.
-func (s *Service) apply(ctx context.Context, tx pgx.Tx, q *store.Queries, ev sending.Engagement) error {
-	m, err := q.TrackingMessage(ctx, ev.MessageID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	if m.Kind == placementKind {
-		return nil // placement test copies: opens and clicks are never counted
-	}
-	since := time.Duration(-1)
-	if m.SentAt != nil {
-		since = ev.At.Sub(*m.SentAt)
-	}
-	ip, _ := netip.ParseAddr(ev.IP)
-	sig := Signal{UserAgent: ev.UserAgent, IP: ip, Method: ev.Method, SinceSend: since}
-	var v Verdict
-	link := ""
-	if ev.Click {
-		v = ClassifyClick(sig, s.isBurst(ev))
-		if urls, err := s.linksOf(ctx, q, m); err == nil {
-			link = urls[ev.Link]
-		}
-	} else {
-		v = ClassifyOpen(sig)
-	}
-	typ := "open"
-	if ev.Click {
-		typ = "click"
-	}
-	diag := v.Client
-	if v.Machine {
-		diag = v.Reason
-	}
-	var ipPtr *netip.Addr
-	if ip.IsValid() {
-		ipPtr = &ip
-	}
-	label, _ := q.TrackingSourceLabel(ctx, m.ID)
-	mid := m.ID
-	if err := q.TrackingInsertEvent(ctx, store.TrackingInsertEventParams{
-		ID: uuid.Must(uuid.NewV7()), WorkspaceID: m.WorkspaceID, MessageID: &mid, CampaignID: m.CampaignID, ContactID: m.ContactID, ProviderID: m.ProviderID,
-		Type: typ, OccurredAt: ev.At, ReceivedAt: ev.At, MailboxProvider: m.MailboxProvider, OriginalType: "ReputeCast tracking", Diagnostic: clip(diag, 1000),
-		Machine: v.Machine, Url: clip(link, 2048), UserAgent: clip(ev.UserAgent, 500), Ip: ipPtr, Recipient: m.Email, Source: label,
-	}); err != nil {
-		return err
-	}
-	if v.Machine && ev.Click {
-		return nil // bot clicks are logged, never counted
-	}
-	var human, machine, clicked int64
-	var prevOpen *time.Time // when a machine prefetch opened it, if a person now does
-	firstOpen, firstClick := false, false
-	if ev.Click {
-		r, err := q.TrackingMarkClick(ctx, store.TrackingMarkClickParams{ID: m.ID, At: ev.At})
-		if err != nil {
-			return err
-		}
-		firstOpen, firstClick = r.FirstOpen, r.FirstClick
-		if r.FirstClick {
-			clicked = 1
-		}
-		if r.FirstHuman {
-			human = 1
-			if !r.FirstOpen {
-				machine, prevOpen = -1, r.PrevOpenedAt // a machine prefetch came first; now a person
-			}
-		}
-		if m.CampaignID != nil {
-			unique := int64(0)
-			if _, err := q.TrackingFirstLinkClick(ctx, store.TrackingFirstLinkClickParams{MessageID: m.ID, Link: int32(ev.Link), At: ev.At}); err == nil {
-				unique = 1
-			} else if !errors.Is(err, pgx.ErrNoRows) {
-				return err
-			}
-			if err := q.TrackingBumpLink(ctx, store.TrackingBumpLinkParams{CampaignID: *m.CampaignID, Position: int32(ev.Link), UniqueClicks: unique}); err != nil {
-				return err
-			}
-		} else if ref := refOf(m.ContentRef); ref.Email != uuid.Nil {
-			if err := q.TrackingBumpAutomationLink(ctx, store.TrackingBumpAutomationLinkParams{EmailID: ref.Email, Version: int32(ref.Version), Language: ref.Language, Position: int32(ev.Link)}); err != nil {
-				return err
-			}
-		}
-		if m.ContactID != nil {
-			if err := q.TrackingTouchContactClick(ctx, store.TrackingTouchContactClickParams{ID: *m.ContactID, At: ev.At}); err != nil {
-				return err
-			}
-		}
-		if s.Clicked != nil {
-			if err := s.Clicked(ctx, q, HumanClick{WorkspaceID: m.WorkspaceID, MessageID: m.ID, CampaignID: m.CampaignID, ContactID: m.ContactID, Stream: m.Stream,
-				URL: link, At: ev.At}); err != nil {
-				return err
-			}
-		}
-	} else {
-		r, err := q.TrackingMarkOpen(ctx, store.TrackingMarkOpenParams{ID: m.ID, At: ev.At, Human: !v.Machine})
-		if err != nil {
-			return err
-		}
-		firstOpen = r.FirstOpen
-		switch {
-		case r.FirstOpen && !v.Machine:
-			human = 1
-		case r.FirstOpen && v.Machine:
-			machine = 1
-		case r.FirstHuman:
-			human, machine, prevOpen = 1, -1, r.PrevOpenedAt
-		}
-		if m.ContactID != nil {
-			if err := q.TrackingTouchContactOpen(ctx, store.TrackingTouchContactOpenParams{ID: *m.ContactID, At: ev.At, Human: !v.Machine}); err != nil {
-				return err
-			}
-		}
-	}
-	// A person opening after a machine prefetch moves the open from machine
-	// to human (+1, -1): the deltas cancel out in a sum, so test each one.
-	if m.CampaignID != nil && m.ProviderID != nil && (human != 0 || machine != 0 || clicked != 0) {
-		if err := q.TrackingBumpCounters(ctx, store.TrackingBumpCountersParams{CampaignID: *m.CampaignID, ProviderID: *m.ProviderID, MailboxProvider: m.MailboxProvider,
-			Variant: m.Variant, OpenedHuman: human, OpenedMachine: machine, Clicked: clicked}); err != nil {
-			return err
-		}
-		hourOf := func(at time.Time) int32 {
-			if m.CampaignStartedAt == nil {
-				return 0
-			}
-			return int32(min(max(at.Sub(*m.CampaignStartedAt).Hours(), 0), 720))
-		}
-		hh, hm := max(human, 0), max(machine, 0)
-		if hh+hm+clicked > 0 {
-			if err := q.TrackingBumpHourly(ctx, store.TrackingBumpHourlyParams{CampaignID: *m.CampaignID, Hour: hourOf(ev.At), OpenedHuman: hh, OpenedMachine: hm, Clicked: clicked}); err != nil {
-				return err
-			}
-		}
-		// The open moved from machine to human: take the prefetch out of the
-		// hour it was counted in, so the engagement chart adds up to the
-		// counters.
-		if machine < 0 && prevOpen != nil {
-			if err := q.TrackingBumpHourly(ctx, store.TrackingBumpHourlyParams{CampaignID: *m.CampaignID, Hour: hourOf(*prevOpen), OpenedMachine: -1}); err != nil {
-				return err
-			}
-		}
-	}
-	if m.Stream == "transactional" && s.Transactional != nil && (firstOpen || firstClick) {
-		if err := s.Transactional.Engagement(ctx, tx, m.ID, ev.Click && firstClick, ev.At); err != nil {
-			return err
-		}
-	}
-	if m.Stream == "automation" && s.Automations != nil {
-		if firstOpen {
-			if err := s.Automations.RecordMessageEvent(ctx, q, automations.MessageEvent{MessageID: m.ID, Type: "opened", Machine: v.Machine && !ev.Click, At: ev.At}); err != nil {
-				return err
-			}
-		}
-		if firstClick {
-			if err := s.Automations.RecordMessageEvent(ctx, q, automations.MessageEvent{MessageID: m.ID, Type: "clicked", At: ev.At}); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 func (s *Service) linksOf(ctx context.Context, q *store.Queries, m store.TrackingMessageRow) (map[int]string, error) {
@@ -708,32 +570,6 @@ func refOf(raw json.RawMessage) contentRef {
 	var r contentRef
 	_ = json.Unmarshal(raw, &r)
 	return r
-}
-
-// isBurst remembers clicks per message for a few seconds: a message that
-// clicked two other links in the last five seconds is a scanner following
-// every link.
-func (s *Service) isBurst(ev sending.Engagement) bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.burst == nil {
-		s.burst = map[uuid.UUID][]clickMark{}
-	}
-	if len(s.burst) > 10000 {
-		s.burst = map[uuid.UUID][]clickMark{}
-	}
-	marks := s.burst[ev.MessageID][:0:0]
-	others := map[int]bool{}
-	for _, m := range s.burst[ev.MessageID] {
-		if ev.At.Sub(m.at) <= 5*time.Second && ev.At.Sub(m.at) >= 0 {
-			marks = append(marks, m)
-			if m.link != ev.Link {
-				others[m.link] = true
-			}
-		}
-	}
-	s.burst[ev.MessageID] = append(marks, clickMark{link: ev.Link, at: ev.At})
-	return len(others) >= 2
 }
 
 func clip(s string, n int) string {

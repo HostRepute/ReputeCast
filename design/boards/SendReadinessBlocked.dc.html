@@ -63,7 +63,7 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
 /* responsive shell */
 @media (max-width:1100px){
   .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
-  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .brand-t,.side .ws{display:none}.side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .side .nav a{justify-content:center;padding:0!important;height:44px}
   .side .nav svg{width:20px;height:20px}
   .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
@@ -148,6 +148,109 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 .ws .av{font-weight:700}
 /* switches: a disabled switch looks disabled */
 .tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+/* blocked rework: review fixes in a drawer, consequences under each fix, no guessed URLs */
+.verdict{display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:12px;background:#FEF2F2;border:1px solid #FCA5A5;flex-wrap:wrap}
+.verdict .vtx{display:flex;flex-direction:column;gap:2px;flex:1 1 300px;min-width:0}
+.verdict .vt{margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em;line-height:1.25;color:#7F1D1D}
+.verdict .vs{margin:0;color:#7F1D1D}
+.verdict .vact{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.cols{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+.srow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"b t f" "b d d";column-gap:12px;row-gap:8px;padding:12px 16px;border-top:1px solid #EEF0F3;align-items:start}
+.srow > .badge{grid-area:b;margin-top:1px}
+.srow > .rt{grid-area:t}
+.srow > .fixes{grid-area:f;display:flex;gap:10px;align-items:flex-start;justify-content:flex-end;flex-wrap:wrap}
+.srow > .more{grid-area:d;min-width:0}
+.srow > .tech{grid-area:d;min-width:0}
+.tech > summary{display:inline-flex;align-items:center;gap:6px;min-height:24px;font-size:12px;font-weight:600;color:#0F766E;border-radius:6px;list-style:none;cursor:pointer}
+.tech > summary::-webkit-details-marker{display:none}
+.tech > summary:hover{color:#115E59}
+.tech[open] > summary .chev{transform:rotate(180deg)}
+.tpanel{margin-top:6px;padding:12px 14px;background:#F9FAFB;border:1px solid #E3E6EB;border-radius:8px;display:flex;flex-direction:column;gap:10px}
+.tdl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 14px;margin:0;font-size:12.5px}
+.tdl dt{color:#5B6472;font-weight:500;margin:0}.tdl dd{margin:0;color:#0B1220}
+.fix{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.fix .k{font-size:11.5px}
+.btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+.repl{display:flex;flex-direction:column;gap:10px;padding:12px 14px;background:#FFFFFF;border:1px solid #E3E6EB;border-radius:8px}
+.repl .acts{display:flex;gap:8px;flex-wrap:wrap}
+.sugs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.sug{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;width:100%;min-height:36px;padding:6px 10px;border:1px solid #D4D8DF;border-radius:8px;background:#FFFFFF;font:inherit;font-size:13px;text-align:left;color:#0B1220;cursor:pointer;box-sizing:border-box}
+.sug:hover{background:#F3F4F6}
+.sug .mono{font-size:12.5px;font-weight:500}
+.ovr{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.rail{flex:1 1 340px;max-width:420px;min-width:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-content:start;align-items:start}
+.rail > .card{padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.railend{grid-column:1 / -1;display:flex;flex-direction:column;gap:8px}
+@media (max-width:1100px){.rail{max-width:none}}
+@media (max-width:767px){
+  .verdict{padding:16px;gap:12px}
+  .verdict .vact{width:100%}
+  .verdict .vact .btn{flex:1 1 auto;min-height:44px}
+  .srow{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"b t" "b f" "b d";row-gap:10px}
+  .srow > .fixes{flex-direction:column;align-items:stretch;justify-content:flex-start}
+  .fix{align-items:stretch}
+  .content .btn{min-height:44px}
+  .tech > summary{min-height:44px}
+  .tdl{grid-template-columns:minmax(0,1fr)}
+  .content .in{min-height:44px}
+  .sug{min-height:44px}
+  .rail{grid-template-columns:minmax(0,1fr)}
+}
+
+/* review 3 fixes: the drawer from SendReadinessFixes, opened from the verdict; Escape, Cancel and the close button return focus */
+.bdw{position:fixed;inset:0;z-index:60;display:flex;justify-content:flex-end}
+.bdw .scrim{position:absolute;inset:0;background:rgba(11,18,32,.45)}
+.drw{position:relative;width:560px;max-width:100%;height:100%;overflow-y:auto;background:#FFFFFF;border-left:1px solid #E3E6EB;box-shadow:-18px 0 40px rgba(11,18,32,.18);display:flex;flex-direction:column;box-sizing:border-box}
+.dwh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #EEF0F3}
+.dwh .col2{display:flex;flex-direction:column;gap:2px;flex:1 1 auto;min-width:0}
+.dwh h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em;line-height:1.25}
+.dwb{padding:18px 22px;display:flex;flex-direction:column;gap:16px;flex:1 1 auto}
+.dwf{position:sticky;bottom:0;display:flex;flex-direction:column;gap:10px;padding:14px 22px 18px;border-top:1px solid #EEF0F3;background:#FFFFFF}
+.dwf .acts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.fxc{border:1px solid #E3E6EB;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:12px;background:#FFFFFF}
+.fxc.on{border-color:#0F766E;background:#F0FDFA}
+.fxl{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+.fxl input{margin-top:3px;flex:none;width:18px;height:18px}
+.fxl .fxt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.fxl .t{font-weight:600;font-size:14px}
+.ba{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:stretch}
+.ba .arr{align-self:center}
+.bab{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;background:#FFFFFF;min-width:0}
+.rbar{display:flex;gap:2px;height:10px;border-radius:999px;overflow:hidden;background:#EEF0F3}
+.rbar i{display:block;height:100%}
+.cq{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 14px;margin:0;font-size:13px}
+.cq dt{color:#5B6472;font-weight:500;margin:0}.cq dd{margin:0}
+.diff{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;border:1px solid #E3E6EB;border-radius:8px;overflow:hidden;background:#FFFFFF}
+.diff div{padding:6px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.diff .del{background:#FEF2F2;color:#991B1B}.diff .add{background:#F0FDF4;color:#166534}
+.diff .cap{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:600;color:#4B5563;background:#F9FAFB;border-bottom:1px solid #EEF0F3}
+.urls{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;min-width:0}
+.urls legend{padding:0;margin-bottom:6px}
+.urls .sug input{flex:none;width:16px;height:16px;margin:0}
+.next{list-style:none;margin:0;padding:12px 14px;border:1px solid #E3E6EB;border-radius:8px;background:#F9FAFB;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.next li{display:flex;gap:10px;align-items:flex-start}
+.next .num{width:22px;height:22px;border-radius:50%;border:1.5px solid #9AA3B2;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none;color:#4B5563;box-sizing:border-box}
+.xbtn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;flex:none;cursor:pointer;padding:0}
+.xbtn:hover{background:#F3F4F6;color:#0B1220}
+@media (max-width:1100px){.drw{width:520px}}
+@media (max-width:767px){
+  .bdw .scrim{display:none}
+  .drw{width:100%;border-left:0;box-shadow:none}
+  .dwh{padding:14px 12px 12px}
+  .dwb{padding:14px 12px}
+  .dwf{padding:12px}
+  .dwf .acts{flex-direction:column-reverse;align-items:stretch}
+  .dwf .btn{min-height:44px}
+  .xbtn{width:44px;height:44px}
+  .ba{grid-template-columns:minmax(0,1fr)}
+  .ba .arr{transform:rotate(90deg);justify-self:center}
+  .cq{grid-template-columns:minmax(0,1fr)}
+  .cq dd{margin-bottom:6px}
+  .fxc .btn{min-height:44px}
+}
+
+/* phones: every top-bar target is at least 44px (tabs, links, fields, buttons, the bell and the account menu) */
+@media (max-width:767px){.top .tabs a{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box}.top a:not(.btn){min-height:44px}.top .btn,.top .in,.top select,.top input{min-height:44px;box-sizing:border-box}.top .ibtn{width:44px;height:44px;box-sizing:border-box}.top .ubtn{min-height:44px;box-sizing:border-box}.top nav[aria-label="Breadcrumb"] a{min-width:44px;justify-content:center}.top .chsw a{min-height:44px!important}}
 </style>
 </helmet>
 <h1 class="vh">Review and send, blocked</h1>
@@ -158,19 +261,19 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
       <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
       <span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span>
     </a>
-    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Acme Newsletter, your role Owner"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Acme Newsletter, Owner, switch workspace"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
     <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px" aria-label="Main">
-      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
-      <a href="Campaigns.dc.html" class="on" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
-      <a href="AutomationsList.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
-      <a href="Transactional.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
-      <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
-      <a href="GrowOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
-      <a href="EarnOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
-      <a href="FormBuilder.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
-      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
-      <a href="Providers.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
-      <a href="WorkspaceSettings.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="Main.dc.html" title="Overview"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html" class="on" aria-current="page" title="Campaigns"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html" class="xm" title="Automations"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Transactional.dc.html" class="xm" title="Transactional"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
+      <a href="Contacts.dc.html" title="Audience"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="GrowOverview.dc.html" class="xm" title="Grow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
+      <a href="EarnOverview.dc.html" class="xm" title="Earn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
+      <a href="FormBuilder.dc.html" class="xm" title="Forms &amp; pages"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html" title="Deliverability"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html" class="xm" title="Sending providers"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html" class="xm" title="Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
       <a href="ShellMore.dc.html" class="more" aria-label="More: Automations, Transactional, Grow, Earn, Forms & pages, Sending providers, Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">More</span></a>
     </nav>
     <div class="sidefoot" style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
@@ -192,55 +295,107 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
         <span class="badge mut">Draft · autosaved 1 min ago</span>
         <a href="ComposerWarnings.dc.html" class="btn">Back to editor</a>
         <button class="btn">Re-run checks</button>
-      <div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
+      <div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Linh Nguyen, account menu"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
     </header>
 
     <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
-      <section role="alert" style="display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:12px;background:#FEF2F2;border:1px solid #FCA5A5;flex-wrap:wrap">
+      <section class="verdict" role="status" aria-labelledby="v-title">
         <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#FECACA"></circle><path d="M13 13l14 14M27 13 13 27" stroke="#991B1B" stroke-width="3" stroke-linecap="round"></path></svg>
-        <div style="display:flex;flex-direction:column;gap:2px;flex:1 1 300px">
-          <span style="font-size:20px;font-weight:700;letter-spacing:-.01em;color:#7F1D1D">Blocked</span>
-          <span style="color:#7F1D1D">3 blocking issues, 2 warnings, 24 checks passed. Sending stays disabled until every block is fixed. Each one has a one-click fix below.</span>
+        <div class="vtx">
+          <h2 class="vt" id="v-title">Blocked · 3 to fix</h2>
+          <p class="vs">3 blocks · 2 warnings · 24 passed. Sending stays disabled until every block is fixed; each one has a fix below.</p>
+          <sc-if value="{{hasApplied}}" hint-placeholder-val="{{false}}"><p class="vs" style="font-weight:600">{{appliedMsg}}</p></sc-if>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn dng">Apply all 3 fixes</button>
-          <button class="btn pri" disabled style="opacity:.45;cursor:not-allowed;min-height:40px;padding:0 18px">Send to 47,842 recipients</button>
+        <div class="vact">
+          <button type="button" class="btn pri" id="bl-review" aria-haspopup="dialog" onClick="{{openFixes}}" style="min-height:40px;padding:0 18px">Review 3 fixes</button>
+          <button type="button" class="btn" aria-disabled="true" title="Fix the 3 blocking issues first" style="min-height:40px;padding:0 18px">Send to 47,842 recipients</button>
         </div>
       </section>
 
-      <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+      <div class="cols">
         <section class="card" style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column" aria-label="Send Readiness checklist">
           <div class="grp" style="background:#FEF2F2"><h2 class="h2" style="color:#991B1B">Blocking issues · 3</h2><span class="k" style="color:#991B1B">Fix these first</span></div>
-          <div class="row" style="background:#FFF5F5"><span class="badge bad">Block</span><div class="rt"><span class="t">Compliance: the email body has no unsubscribe link or postal address</span><span class="k">The footer block was deleted in the editor at 09:31. ReputeCast adds List-Unsubscribe headers automatically, but Gmail and Yahoo bulk-sender rules and CAN-SPAM also require a visible link and address in the body.</span></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm dng">Insert footer block</button><a href="ComposerWarnings.dc.html" class="btn sm">Open in editor</a></div></div>
-          <div class="row" style="background:#FFF5F5"><span class="badge bad">Block</span><div class="rt"><span class="t">Links: go.acme-promo.link is listed on SURBL and Spamhaus DBL</span><span class="k">Used by the "Claim your discount" button. Mail that links to a blocklisted domain is filtered by Gmail, Outlook and most corporate gateways regardless of your own reputation.</span></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm dng">Replace with acme.io/sale</button><a href="ComposerWarnings.dc.html" class="btn sm">Edit link</a></div></div>
-          <div class="row" style="background:#FFF5F5"><span class="badge bad">Block</span><div class="rt"><span class="t">Routing: Postal is Down and Broadcasts failover is set to pause and ask</span><span class="k">mta.acme.io has refused connections since 08:52 (ECONNREFUSED on port 25 and 443). 10% of this send has no healthy provider. SES is Healthy with 47,860 of 50,000 quota free.</span></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm dng">Send 100% via SES</button><a href="ProvidersOutage.dc.html" class="btn sm">Check Postal</a></div></div>
+          <div class="srow" style="background:#FFF5F5">
+            <span class="badge bad"><span class="dot"></span>Block</span>
+            <div class="rt"><span class="t">Compliance: the email body has no unsubscribe link or postal address</span><span class="k">The footer block was deleted in the editor at 09:31. ReputeCast adds List-Unsubscribe headers automatically, but Gmail and Yahoo bulk-sender rules and CAN-SPAM also require a visible link and address in the body.</span></div>
+            <div class="fixes">
+              <div class="fix"><button type="button" class="btn sm" aria-describedby="bf1">Insert footer block</button><span class="k" id="bf1">Adds 1 KB</span></div>
+              <div class="fix"><a href="ComposerWarnings.dc.html" class="btn sm">Open in editor</a></div>
+            </div>
+          </div>
+          <div class="srow" style="background:#FFF5F5">
+            <span class="badge bad"><span class="dot"></span>Block</span>
+            <div class="rt"><span class="t">Links: go.acme-promo.link is listed on SURBL and Spamhaus DBL</span><span class="k">Used by the "Claim your discount" button. Mail that links to a blocklisted domain is filtered by Gmail, Outlook and most corporate gateways regardless of your own reputation.</span></div>
+            <div class="fixes">
+              <div class="fix"><button type="button" class="btn sm" aria-expanded="{{replOpen}}" aria-controls="repl" aria-describedby="bf2" onClick="{{toggleRepl}}">Replace link</button><span class="k" id="bf2">You pick the URL</span></div>
+              <div class="fix"><a href="ComposerWarnings.dc.html" class="btn sm">Edit link</a></div>
+            </div>
+            <sc-if value="{{replOpen}}" hint-placeholder-val="{{true}}">
+              <div class="more">
+                <div class="repl" id="repl">
+                  <label class="lbl" for="new-url" style="font-size:13px;color:#0B1220">New URL for the “Claim your discount” button<input id="new-url" class="in mono" type="url" value="{{url}}" onChange="{{onUrl}}" placeholder="https://" aria-describedby="new-url-help" style="width:100%"></label>
+                  <span class="k" id="new-url-help">ReputeCast doesn't guess the address. Pick one of this email's own links, or paste the sale page's URL; it's checked on SURBL and Spamhaus DBL before the link changes.</span>
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <span class="ovr" id="sug-h">From this email's own domains</span>
+                    <ul class="sugs" aria-labelledby="sug-h">
+                      <li><button type="button" class="sug" onClick="{{pick1}}"><span class="mono">https://acme.io/pricing</span><span class="k">used by “Compare plans”</span></button></li>
+                      <li><button type="button" class="sug" onClick="{{pick2}}"><span class="mono">https://acme.io/pricing/annual</span><span class="k">used by the header image</span></button></li>
+                      <li><button type="button" class="sug" onClick="{{pick3}}"><span class="mono">https://acme.io/blog/annual-plans</span><span class="k">used by “Read the announcement”</span></button></li>
+                    </ul>
+                  </div>
+                  <div class="acts">
+                    <sc-if value="{{hasUrl}}" hint-placeholder-val="{{false}}"><button type="button" class="btn sm pri">Check and replace</button></sc-if>
+                    <sc-if value="{{noUrl}}" hint-placeholder-val="{{true}}"><button type="button" class="btn sm pri" aria-disabled="true" title="Enter or pick a URL first">Check and replace</button></sc-if>
+                    <button type="button" class="btn sm" onClick="{{cancelRepl}}">Cancel</button>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+          <div class="srow" style="background:#FFF5F5">
+            <span class="badge bad"><span class="dot"></span>Block</span>
+            <div class="rt"><span class="t">Routing: Postal is Down and Broadcasts failover is set to pause and ask</span><span class="k">mta.acme.io has refused connections since 08:52. 10% of this send has no healthy provider. SES is Healthy with 47,860 of 50,000 quota free.</span></div>
+            <div class="fixes">
+              <div class="fix"><button type="button" class="btn sm" aria-describedby="bf3">Send 100% via SES</button><span class="k" id="bf3">+6 min · +$0.48</span></div>
+              <div class="fix"><a href="ProvidersOutage.dc.html" class="btn sm">Check Postal</a></div>
+            </div>
+            <details class="tech"><summary><span>Technical details</span><svg class="chev" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></summary><div class="tpanel"><dl class="tdl"><dt>Error</dt><dd>ECONNREFUSED on port 25 and 443</dd></dl></div></details>
+          </div>
 
           <div class="grp"><h2 class="h2">Warnings · 2</h2></div>
-          <div class="row" style="background:#FFFBEB"><span class="badge warn">Warn</span><div class="rt"><span class="t">Content: subject line "FLASH SALE!!! 48 HOURS ONLY" trips 3 spam heuristics</span><span class="k">All caps, repeated punctuation and urgency phrasing. Suggested: "48-hour sale on annual plans"</span></div><button class="btn sm">Use suggestion</button></div>
-          <div class="row" style="background:#FFFBEB"><span class="badge warn">Warn</span><div class="rt"><span class="t">Audience: 1,604 Sunset-tier contacts included</span><span class="k">The sunset policy would normally exclude them; this campaign overrides it. Excluding them changes the audience to 46,238.</span></div><button class="btn sm">Exclude 1,604</button></div>
+          <div class="srow" style="background:#FFFBEB">
+            <span class="badge warn"><span class="dot"></span>Warn</span>
+            <div class="rt"><span class="t">Content: subject line "FLASH SALE!!! 48 HOURS ONLY" trips 3 spam heuristics</span><span class="k">All caps, repeated punctuation and urgency phrasing. Suggested: "48-hour sale on annual plans"</span></div>
+            <div class="fixes"><div class="fix"><button type="button" class="btn sm" aria-describedby="bw1">Use suggestion</button><span class="k" id="bw1">Changes the subject</span></div></div>
+          </div>
+          <div class="srow" style="background:#FFFBEB">
+            <span class="badge warn"><span class="dot"></span>Warn</span>
+            <div class="rt"><span class="t">Audience: 1,604 Sunset-tier contacts included</span><span class="k">The sunset policy would normally exclude them; this campaign overrides it.</span></div>
+            <div class="fixes"><div class="fix"><button type="button" class="btn sm" aria-describedby="bw2">Exclude 1,604</button><span class="k" id="bw2">Audience becomes 46,238</span></div></div>
+          </div>
 
           <div class="grp"><h2 class="h2">Passed · 24</h2><span class="k">Collapsed</span></div>
-          <div class="row"><span class="badge ok">Pass</span><div class="rt"><span class="t">Sender reputation: news.acme.io clean on 84 of 84 blocklists; SES bounce 0.6%, complaints 0.04%</span></div></div>
-          <div class="row"><span class="badge ok">Pass</span><div class="rt"><span class="t">Authentication: SPF, DKIM, DMARC p=quarantine and custom MAIL FROM verified for SES</span></div></div>
-          <div class="row"><span class="badge ok">Pass</span><div class="rt"><span class="t">Content: 71 KB of 102 KB, image ratio 44%, 9 of 9 images have alt text, plain-text generated</span></div></div>
-          <div class="row"><span class="badge ok">Pass</span><div class="rt"><span class="t">Links: 11 of 12 links respond; the blocklisted one is counted above</span></div></div>
-          <div class="row"><span class="badge ok">Pass</span><div class="rt"><span class="t">Compliance: List-Unsubscribe and List-Unsubscribe-Post headers present</span></div></div>
-          <div class="row"><span class="badge ok">Pass</span><div class="rt"><span class="t">Audience: 0 recently bounced, 31 role addresses excluded, 371 suppressed</span></div></div>
-          <div class="row"><span class="badge ok">Pass</span><div class="rt"><span class="t">Routing: SES terms allow bulk marketing; provider-side tracking is off</span></div><button class="btn sm">Show all 24</button></div>
+          <div class="row"><span class="badge ok"><span class="dot"></span>Pass</span><div class="rt"><span class="t">Sender reputation: news.acme.io and acme.io clean on 84 of 84 blocklists; SES bounce 0.6%, complaints 0.04%</span></div></div>
+          <div class="row"><span class="badge ok"><span class="dot"></span>Pass</span><div class="rt"><span class="t">Authentication: SPF, DKIM, DMARC p=quarantine and custom MAIL FROM verified for SES</span></div></div>
+          <div class="row"><span class="badge ok"><span class="dot"></span>Pass</span><div class="rt"><span class="t">Content: 71 KB of 102 KB, image ratio 44%, 9 of 9 images have alt text, plain-text generated</span></div></div>
+          <div class="row"><span class="badge ok"><span class="dot"></span>Pass</span><div class="rt"><span class="t">Links: 11 of 12 links respond; the blocklisted one is counted above</span></div></div>
+          <div class="row"><span class="badge ok"><span class="dot"></span>Pass</span><div class="rt"><span class="t">Compliance: List-Unsubscribe and List-Unsubscribe-Post headers present</span></div></div>
+          <div class="row"><span class="badge ok"><span class="dot"></span>Pass</span><div class="rt"><span class="t">Audience: 0 recently bounced, 31 role addresses excluded, 340 suppressed</span></div></div>
+          <div class="row"><span class="badge ok"><span class="dot"></span>Pass</span><div class="rt"><span class="t">Routing: SES terms allow bulk marketing; provider-side tracking is off</span></div><button type="button" class="btn sm">Show all 24</button></div>
         </section>
 
-        <aside style="flex:1 1 340px;max-width:420px;display:flex;flex-direction:column;gap:16px">
-          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
-            <h2 class="h2">Audience</h2>
+        <aside class="rail" aria-label="Audience, route and schedule">
+          <section class="card" aria-labelledby="h-aud">
+            <h2 class="h2" id="h-aud">Audience</h2>
             <div class="sum"><span>All subscribers</span><span class="n">48,213</span></div>
-            <div class="sum" style="color:#5B6472"><span>Suppression list (shared)</span><span class="n">−371</span></div>
+            <div class="sum" style="color:#5B6472"><span>Suppression list (shared)</span><span class="n">−340</span></div>
             <div class="sum" style="color:#5B6472"><span>Role addresses</span><span class="n">−31</span></div>
-            <div class="sum" style="color:#5B6472"><span>Sunset-tier override</span><span class="n">+0</span></div>
-            <div class="sum" style="border-top:1px solid #E3E6EB;padding-top:10px;font-size:15px"><span style="font-weight:600">Final recipients</span><span class="n" style="font-size:20px">47,842</span></div>
+            <div class="sum" style="color:#5B6472"><span>Sunset tier, included by override</span><span class="n">−0</span></div>
+            <div class="sum" style="border-top:1px solid #E3E6EB;padding-top:10px;font-size:15px;align-items:baseline"><span style="font-weight:600">Final recipients</span><span class="n" style="font-size:20px">47,842</span></div>
           </section>
 
-          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;border-color:#FCA5A5">
-            <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="h2">Route breakdown</h2><span class="badge bad">1 route down</span></div>
+          <section class="card" style="border-color:#FCA5A5" aria-labelledby="h-route">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2 class="h2" id="h-route">Route breakdown</h2><span class="badge bad"><span class="dot"></span>1 route down</span></div>
             <div style="display:flex;flex-direction:column;gap:6px">
               <div class="sum"><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#4a3aa7"></span>Amazon SES · 90% · Healthy</span><span class="n">43,058</span></div>
               <div class="bar"><i style="width:90%;background:#4a3aa7"></i></div>
@@ -252,42 +407,251 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
             <span class="k">Moving the Postal share to SES adds $0.48 and 6 minutes.</span>
           </section>
 
-          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
-            <h2 class="h2">Throttling per mailbox provider</h2>
+          <section class="card" aria-labelledby="h-thr" style="gap:10px">
+            <h2 class="h2" id="h-thr">Throttling per mailbox provider</h2>
             <div class="sum"><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#2a78d6"></span>Gmail · 22,007</span><span class="n">full rate</span></div>
             <div class="sum"><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#eb6834"></span>Outlook · 10,047</span><span class="n">5 /s</span></div>
             <div class="sum"><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#1baf7a"></span>Yahoo · 4,306</span><span class="n">4 /s</span></div>
             <div class="sum"><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#eda100"></span>iCloud · 3,827</span><span class="n">3 /s</span></div>
             <div class="sum"><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#8b94a3"></span>Other · 7,655</span><span class="n">full rate</span></div>
+            <span class="k">Gmail includes Google Workspace and Outlook includes Microsoft 365 recipients, found from MX records.</span>
           </section>
 
-          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
-            <h2 class="h2">Auto-pause thresholds</h2>
-            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
-              <label class="lbl">Bounce rate<input class="in" value="2.0 %"></label>
-              <label class="lbl">Complaint rate<input class="in" value="0.10 %"></label>
-              <label class="lbl">Complaints, per mailbox provider<input class="in" value="0.10 %"></label>
-              <label class="lbl">Provider errors over 3 min<input class="in" value="5 %"></label>
+          <section class="card" aria-labelledby="h-ap">
+            <h2 class="h2" id="h-ap">Auto-pause thresholds</h2>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:end">
+              <label class="lbl">Bounce rate, %<input class="in" inputmode="decimal" defaultValue="2.0"></label>
+              <label class="lbl">Complaint rate, %<input class="in" inputmode="decimal" defaultValue="0.10"></label>
+              <label class="lbl">Complaints per mailbox provider, %<input class="in" inputmode="decimal" defaultValue="0.10"></label>
+              <label class="lbl">Provider errors over 3 min, %<input class="in" inputmode="decimal" defaultValue="5"></label>
             </div>
           </section>
 
-          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px;opacity:.6">
-            <h2 class="h2">Scheduling</h2>
-            <span class="k">Available once the blocking issues are fixed.</span>
+          <section class="card" aria-labelledby="h-test" style="gap:10px">
+            <h2 class="h2" id="h-test">Test sends</h2>
+            <span class="k" id="test-hint">Send a test to check your fixes before the checks clear.</span>
+            <div style="display:flex;gap:8px"><label class="vh" for="test-email">Test address</label><input id="test-email" class="in" defaultValue="linh@acme.io" aria-describedby="test-hint" style="flex:1;min-width:0"><button class="btn" type="button">Send test</button></div>
+            <span class="k">Tests go through SES only while Postal is down.</span>
           </section>
 
-          <button class="btn pri" disabled style="min-height:44px;font-size:14px;opacity:.45;cursor:not-allowed">Send to 47,842 recipients</button>
-          <span class="k" style="text-align:center">Disabled: 3 blocking issues.</span>
+          <section class="card" aria-labelledby="h-sched" style="gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2 class="h2" id="h-sched">Scheduling</h2><span class="badge mut"><span class="dot"></span>Locked</span></div>
+            <span class="k">Available once the 3 blocking issues are fixed.</span>
+          </section>
+
+          <div class="railend">
+            <button type="button" class="btn pri" aria-disabled="true" aria-describedby="send-why" title="Fix the 3 blocking issues first" style="min-height:44px;font-size:14px">Send to 47,842 recipients</button>
+            <span class="k" id="send-why" style="text-align:center">Disabled: 3 blocking issues.</span>
+          </div>
         </aside>
       </div>
     </main>
   </div>
+  <sc-if value="{{fxOpen}}" hint-placeholder-val="{{false}}">
+  <div class="bdw">
+    <div class="scrim" aria-hidden="true" onClick="{{closeFixes}}"></div>
+    <section class="drw" role="dialog" aria-modal="true" aria-labelledby="bfx-title" aria-describedby="bfx-desc" onKeyDown="{{onDrawerKey}}">
+      <div class="dwh">
+        <div class="col2">
+          <h2 id="bfx-title" tabindex="-1">Review 3 fixes</h2>
+          <span class="k" id="bfx-desc">Flash sale: 48 hours only · pick the fixes to apply. Each one shows what changes before you apply it.</span>
+        </div>
+        <button type="button" class="xbtn" aria-label="Close" onClick="{{closeFixes}}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button>
+      </div>
+
+      <div class="dwb">
+        <div class="{{fx1Cls}}">
+          <label class="fxl"><input type="checkbox" checked="{{f1}}" onChange="{{toggle1}}"><span class="fxt"><span class="t">Insert the footer block</span><span class="k">Fixes: the email body has no unsubscribe link or postal address</span></span></label>
+          <div class="diff" role="group" aria-label="Footer block, added after the last section">
+            <div class="cap">Footer block · added after the last section</div>
+            <div class="add">+ Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105</div>
+            <div class="add">+ Unsubscribe · Email preferences · View in browser</div>
+          </div>
+          <dl class="cq">
+            <dt>Audience</dt><dd>No change · 47,842 recipients</dd>
+            <dt>Duration</dt><dd>No change</dd>
+            <dt>Cost</dt><dd>No change</dd>
+            <dt>Content</dt><dd>71 KB becomes 72 KB, still under Gmail's 102 KB clip</dd>
+          </dl>
+          <span class="k">It's the Brand kit's synced footer, so it matches your other emails. <a href="BrandKit.dc.html">Brand kit</a></span>
+        </div>
+
+        <div class="{{fx2Cls}}">
+          <label class="fxl"><input type="checkbox" checked="{{f2}}" onChange="{{toggle2}}"><span class="fxt"><span class="t">Replace the link in the “Claim your discount” button</span><span class="k">Fixes: go.acme-promo.link is listed on SURBL and Spamhaus DBL</span></span></label>
+          <div class="diff" role="group" aria-label="Claim your discount button">
+            <div class="cap">“Claim your discount” button</div>
+            <div class="del">− https://go.acme-promo.link/sale</div>
+            <sc-if value="{{hasUrl}}" hint-placeholder-val="{{false}}"><div class="add">+ {{url}}</div></sc-if>
+            <sc-if value="{{noUrl}}" hint-placeholder-val="{{true}}"><div class="k">+ the URL you pick below</div></sc-if>
+          </div>
+          <fieldset class="urls">
+            <legend class="ovr">New URL · from this email's own domains</legend>
+            <label class="sug"><input type="radio" name="bfx-url" checked="{{u1}}" onChange="{{pickD1}}"><span class="mono">https://acme.io/pricing</span><span class="k">used by “Compare plans”</span></label>
+            <label class="sug"><input type="radio" name="bfx-url" checked="{{u2}}" onChange="{{pickD2}}"><span class="mono">https://acme.io/pricing/annual</span><span class="k">used by the header image</span></label>
+            <label class="sug"><input type="radio" name="bfx-url" checked="{{u3}}" onChange="{{pickD3}}"><span class="mono">https://acme.io/blog/annual-plans</span><span class="k">used by “Read the announcement”</span></label>
+          </fieldset>
+          <span class="k">ReputeCast doesn't guess the address. The new URL is checked on SURBL and Spamhaus DBL before the link changes. To paste another URL, use Replace link on the page.</span>
+          <dl class="cq">
+            <dt>Audience</dt><dd>No change</dd>
+            <dt>Duration</dt><dd>No change</dd>
+            <dt>Cost</dt><dd>No change</dd>
+            <dt>Content</dt><dd>1 link changes; the other 11 stay as they are</dd>
+          </dl>
+        </div>
+
+        <div class="{{fx3Cls}}">
+          <label class="fxl"><input type="checkbox" checked="{{f3}}" onChange="{{toggle3}}"><span class="fxt"><span class="t">Send 100% via SES</span><span class="k">Fixes: Postal is Down and Broadcasts failover is set to pause and ask</span></span></label>
+          <div class="ba">
+            <div class="bab">
+              <span class="ovr">Before</span>
+              <div class="rbar" aria-hidden="true"><i style="width:90%;background:#4a3aa7"></i><i style="width:10%;background:#e87ba4"></i></div>
+              <span style="font-size:12.5px;display:flex;flex-direction:column"><span><span class="n">SES 90%</span> · 43,058</span><span><span class="n">Postal 10%</span> · 4,784, held while it's down</span></span>
+            </div>
+            <svg class="arr" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"></path></svg>
+            <div class="bab">
+              <span class="ovr">After</span>
+              <div class="rbar" aria-hidden="true"><i style="width:100%;background:#4a3aa7"></i></div>
+              <span style="font-size:12.5px;display:flex;flex-direction:column"><span><span class="n">SES 100%</span> · 47,842</span><span><span class="n">Postal 0%</span> · 0</span></span>
+            </div>
+          </div>
+          <dl class="cq">
+            <dt>Audience</dt><dd>No change · 47,842 recipients</dd>
+            <dt>Duration</dt><dd>About 57 min instead of 51 min (+6 min)</dd>
+            <dt>Cost</dt><dd>+$0.48 for Postal's 4,784 recipients, $4.78 in all</dd>
+            <dt>SES quota</dt><dd>Uses 47,842 of the 47,860 left today</dd>
+          </dl>
+          <span class="k">Applies to this campaign only; the Broadcasts route stays SES 90 / Postal 10. You can also <a href="ProvidersOutage.dc.html">check Postal</a>, which doesn't change this send.</span>
+        </div>
+
+        <section aria-labelledby="bfx-next" style="display:flex;flex-direction:column;gap:8px">
+          <h3 id="bfx-next" class="h2" style="font-size:13px">What happens next</h3>
+          <ol class="next">
+            <li><span class="num" aria-hidden="true">1</span><span>The fixes you pick are saved as a new version of the campaign.</span></li>
+            <li><span class="num" aria-hidden="true">2</span><span>Sending stays locked while checks re-run (about 15 s).</span></li>
+            <li><span class="num" aria-hidden="true">3</span><span>You're back on Review &amp; send with the new verdict. The 2 warnings stay for you to review.</span></li>
+          </ol>
+        </section>
+      </div>
+
+      <div class="dwf">
+        <div role="status" aria-live="polite" style="display:flex;flex-direction:column;gap:2px">
+          <span style="font-weight:600;font-size:13px">{{fxHead}}</span>
+          <span class="k">{{fxBody}}</span>
+        </div>
+        <span class="k">Every fix is saved as a new version you can undo from Version history.</span>
+        <div class="acts">
+          <button type="button" class="btn" onClick="{{closeFixes}}">Cancel</button>
+          <sc-if value="{{canApply}}" hint-placeholder-val="{{false}}"><button type="button" class="btn pri" onClick="{{applyFixes}}" style="min-height:40px;padding:0 18px">{{applyLabel}}</button></sc-if>
+          <sc-if value="{{cannotApply}}" hint-placeholder-val="{{true}}"><button type="button" class="btn pri" aria-disabled="true" title="{{applyWhy}}" style="min-height:40px;padding:0 18px">{{applyLabel}}</button></sc-if>
+        </div>
+      </div>
+    </section>
+  </div>
+  </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1373}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1623}}'>
 class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { replOpen: true, url: '', fxOpen: false, f1: true, f2: true, f3: true, applied: 0 };
+  }
+  setInert(on) {
+    var app = document.querySelector('.app');
+    if (!app) return;
+    for (var i = 0; i < app.children.length; i++) {
+      var c = app.children[i];
+      if (c.classList && c.classList.contains('bdw')) continue;
+      if (on) c.setAttribute('inert', ''); else c.removeAttribute('inert');
+    }
+    document.body.style.overflow = on ? 'hidden' : '';
+  }
+  openDrawer() {
+    var self = this;
+    this.setState({ fxOpen: true }, function () {
+      setTimeout(function () { self.setInert(true); var t = document.getElementById('bfx-title'); if (t) t.focus(); }, 0);
+    });
+  }
+  closeDrawer(extra) {
+    var self = this;
+    var next = { fxOpen: false };
+    if (extra) for (var k in extra) next[k] = extra[k];
+    this.setState(next, function () {
+      setTimeout(function () { self.setInert(false); var b = document.getElementById('bl-review'); if (b) b.focus(); }, 0);
+    });
+  }
+  componentWillUnmount() { this.setInert(false); }
   renderVals() {
-    return {};
+    var self = this;
+    var st = this.state;
+    var url = st.url || '';
+    var set = function (u) { return function () { self.setState({ url: u }); }; };
+    var pickD = function (u) { return function () { self.setState({ url: u, f2: true }); }; };
+    var hasUrl = url.trim().length > 0;
+    var n = (st.f1 ? 1 : 0) + (st.f2 ? 1 : 0) + (st.f3 ? 1 : 0);
+    var left = 3 - n;
+    var needUrl = st.f2 && !hasUrl;
+    var head, body;
+    if (n === 0) {
+      head = 'No fixes selected';
+      body = 'All 3 blocks stay, and sending stays disabled.';
+    } else {
+      head = 'After ' + (n === 3 ? 'all 3 fixes' : n === 2 ? 'these 2 fixes' : 'this fix') + ': ' +
+        (left === 0 ? 'nothing blocks the send' : left + (left === 1 ? ' block' : ' blocks') + ' left');
+      body = needUrl ? 'Pick the new URL for the “Claim your discount” button first.' :
+        left === 0 ? 'If the re-run passes, 2 warnings stay for you to review. Sending 47,842 through SES takes about 57 min and costs $4.78.' :
+        'Sending stays disabled until every block is fixed.';
+    }
+    var close = function () { self.closeDrawer(); };
+    return {
+      replOpen: st.replOpen,
+      toggleRepl: function () { self.setState({ replOpen: !self.state.replOpen }); },
+      cancelRepl: function () { self.setState({ replOpen: false, url: '' }); },
+      url: url,
+      onUrl: function (e) { self.setState({ url: e.target.value }); },
+      hasUrl: hasUrl,
+      noUrl: !hasUrl,
+      pick1: set('https://acme.io/pricing'),
+      pick2: set('https://acme.io/pricing/annual'),
+      pick3: set('https://acme.io/blog/annual-plans'),
+      fxOpen: st.fxOpen,
+      openFixes: function () { self.openDrawer(); },
+      closeFixes: close,
+      onDrawerKey: function (e) {
+        if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+        if (e.key !== 'Tab') return;
+        var box = e.currentTarget;
+        var f = Array.prototype.filter.call(box.querySelectorAll('a[href], button, input, [tabindex="0"]'), function (el) {
+          return !el.disabled && el.getClientRects().length > 0;
+        });
+        if (!f.length) return;
+        var first = f[0], last = f[f.length - 1], a = document.activeElement;
+        if (e.shiftKey && (a === first || a === document.getElementById('bfx-title'))) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && a === last) { e.preventDefault(); first.focus(); }
+      },
+      f1: st.f1, f2: st.f2, f3: st.f3,
+      fx1Cls: st.f1 ? 'fxc on' : 'fxc',
+      fx2Cls: st.f2 ? 'fxc on' : 'fxc',
+      fx3Cls: st.f3 ? 'fxc on' : 'fxc',
+      toggle1: function () { self.setState({ f1: !self.state.f1 }); },
+      toggle2: function () { self.setState({ f2: !self.state.f2 }); },
+      toggle3: function () { self.setState({ f3: !self.state.f3 }); },
+      u1: url === 'https://acme.io/pricing',
+      u2: url === 'https://acme.io/pricing/annual',
+      u3: url === 'https://acme.io/blog/annual-plans',
+      pickD1: pickD('https://acme.io/pricing'),
+      pickD2: pickD('https://acme.io/pricing/annual'),
+      pickD3: pickD('https://acme.io/blog/annual-plans'),
+      fxHead: head,
+      fxBody: body,
+      canApply: n > 0 && !needUrl,
+      cannotApply: n === 0 || needUrl,
+      applyWhy: n === 0 ? 'Select at least one fix' : 'Pick the new URL first',
+      applyLabel: n === 0 ? 'Apply fixes and re-run checks' : 'Apply ' + n + (n === 1 ? ' fix' : ' fixes') + ' and re-run checks',
+      applyFixes: function () { self.closeDrawer({ applied: n }); },
+      hasApplied: st.applied > 0,
+      appliedMsg: st.applied + (st.applied === 1 ? ' fix' : ' fixes') + ' saved as a new version. Checks are running again; the verdict updates in about 15 s.'
+    };
   }
 }
 </script>

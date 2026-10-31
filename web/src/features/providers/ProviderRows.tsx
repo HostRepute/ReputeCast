@@ -27,6 +27,7 @@ import {
 } from './common'
 import { m } from './messages'
 import { mo } from './overview.messages'
+import { SendingIPsFact } from './SendingIPs'
 
 /** One provider per row inside the providers card; rows are separated by a line. */
 export function RowShell({ children, className, last }: { children: ReactNode; className?: string; last?: boolean }) {
@@ -73,14 +74,6 @@ export function RoleBadges({ card, outage, silentHeld, down }: { card: ProviderC
         )
       })}
     </>
-  )
-}
-
-function ipsText(card: ProviderCard) {
-  return card.ipMode === 'dedicated' && card.ips.length ? (
-    <span className="mono">{tt(mo.ipsDedicated, { ips: card.ips.join(', ') })}</span>
-  ) : (
-    <span>{tt(mo.ipsShared)}</span>
   )
 }
 
@@ -141,6 +134,13 @@ function rateMeter(card: ProviderCard, mode: 'normal' | 'outage' = 'normal'): Re
   return <Meter label={label} value={value} percent={r.max > 0 ? (r.now / r.max) * 100 : 0} color="var(--accent)" />
 }
 
+/** Why a provider's complaint rate is n/a (review F-3). */
+function rateReason(reason: Schemas['ProviderLimitRate']['reason']): string | undefined {
+  if (reason === 'not_reported') return tt(mo.rateNotReported)
+  if (reason === 'no_data') return tt(mo.rateNoData)
+  return undefined
+}
+
 function rateMeters(card: ProviderCard, stale = false, short = false) {
   const b = card.bounce
   const c = card.complaint
@@ -149,15 +149,17 @@ function rateMeters(card: ProviderCard, stale = false, short = false) {
     <>
       <Meter
         label={limitLabel('Bounce', b, short)}
-        value={withStale(bouncePct(b.value), b.value !== undefined)}
+        value={b.value !== undefined ? withStale(bouncePct(b.value), true) : b.reason ? tt(mo.rateNA) : bouncePct(b.value)}
+        note={b.value === undefined && b.reason === 'no_data' ? tt(mo.rateNoSends) : undefined}
         percent={b.value !== undefined ? (b.value / b.limit) * 100 : 0}
         color={rateColor(b.value, b.limit, stale)}
       />
       <Meter
         label={limitLabel('Complaint', c, short)}
-        value={withStale(complaintPct(c.value), c.value !== undefined)}
+        value={c.value !== undefined ? withStale(complaintPct(c.value), true) : c.reason ? tt(mo.rateNA) : complaintPct(c.value)}
         percent={c.value !== undefined ? (c.value / c.limit) * 100 : 0}
         color={rateColor(c.value, c.limit, stale)}
+        note={c.value === undefined ? rateReason(c.reason) : undefined}
       />
     </>
   )
@@ -226,7 +228,7 @@ export function ProviderRow({ card, monthStart, last, onSettings }: { card: Prov
           </div>
         ) : null}
         <div className="flex flex-col gap-1 text-[13px]">
-          <Fact className="pv-fact" k={t(mo.factIps)}>{ipsText(card)}</Fact>
+          <SendingIPsFact card={card} />
           <Fact className="pv-fact" k={t(mo.factWebhooks)}>
             <span>{webhookText(card)}</span>
           </Fact>
@@ -236,6 +238,13 @@ export function ProviderRow({ card, monthStart, last, onSettings }: { card: Prov
           <Fact className="pv-fact" k={card.accountKind === 'server' ? t(mo.factServer) : t(mo.factAccountStatus)}>
             <span>{card.account || '—'}</span>
           </Fact>
+          {card.tenant ? (
+            // PR-11: the workspace sends as its own SES tenant.
+            <p className="m-0 mt-0.5 rounded-[8px] border border-line bg-ground-3 px-2.5 py-2">
+              <span className="k">{t(mo.factTenant)}</span> <span className="font-semibold">{card.tenant.name}</span> ·{' '}
+              {card.tenant.policy ? t(mo.tenantLine, { policy: card.tenant.policy }) : t(mo.tenantLineNoPolicy)}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
           {card.warmup ? (
@@ -258,6 +267,7 @@ export function ProviderRow({ card, monthStart, last, onSettings }: { card: Prov
       <div className="flex flex-[1_1_260px] flex-col gap-3">
         {rateMeters(card)}
         {quotaMeter(card, 'normal')}
+        {card.warmup?.transactionalOverCap ? <span className="k">{t(mo.warmupOverCap, { count: card.warmup.transactionalOverCap })}</span> : null}
         {rateMeter(card)}
         <CostGrid card={card} monthStart={monthStart} />
       </div>
@@ -292,7 +302,7 @@ export function DownRow({ card, outage }: { card: ProviderCard; outage: Schemas[
         </div>
         <div className="flex flex-col gap-1 text-[13px]">
           <Fact className="pv-fact" k={t(mo.factErrorRate3m)}>
-            <span className="n text-bad-fg">{outage.errorRate !== undefined ? pct(Math.round(outage.errorRate), 0) : '—'}</span>
+            {outage.errorRate !== undefined ? <span className="n text-bad-fg">{pct(Math.round(outage.errorRate), 0)}</span> : <span className="k">{t(mo.errorRateNoCalls)}</span>}
           </Fact>
           <Fact className="pv-fact" k={t(mo.factLastSuccess)}>
             <span>{down.lastSuccessAt ? clockSeconds(down.lastSuccessAt) : t(mo.noneRecorded)}</span>
@@ -342,7 +352,7 @@ export function OutageRow({ card, outage, last }: { card: ProviderCard; outage: 
             <span>{webhookText(card, false)}</span>
           </Fact>
           <Fact className="pv-fact" k={t(mo.factErrorRate3m)}>
-            <span className="n">{pct(card.errorRate3m ?? 0)}</span>
+            {card.errorRate3m !== undefined ? <span className="n">{pct(card.errorRate3m)}</span> : <span className="k">{t(mo.errorRateNoCalls)}</span>}
           </Fact>
         </div>
       </div>
@@ -428,7 +438,7 @@ export function SilentRow({ card, silent }: { card: ProviderCard; silent: Schema
           <Fact className="pv-fact" k={t(mo.factErrorRate7d)}>
             <span className="n">{pct(card.errorRate7d ?? 0)}</span>
           </Fact>
-          <Fact className="pv-fact" k={t(mo.factIps)}>{ipsText(card)}</Fact>
+          <SendingIPsFact card={card} />
         </div>
       </div>
       <div className="flex flex-[1_1_260px] flex-col gap-3">
@@ -496,7 +506,7 @@ export function CompactRow({ card, silent, last }: { card: ProviderCard; silent:
         {t(mo.compactRates, {
           bounce: bouncePct(card.bounce.value),
           bounceLimit: limitPct(card.bounce.limit),
-          complaint: complaintPct(card.complaint.value),
+          complaint: card.complaint.value !== undefined || !card.complaint.reason ? complaintPct(card.complaint.value) : t(mo.rateNA),
           complaintLimit: limitPct(card.complaint.limit),
           quota: q.kind === 'rolling_24h' ? 'rolling' : q.kind === 'monthly_plan' ? 'plan' : 'none',
           used: count(q.used),

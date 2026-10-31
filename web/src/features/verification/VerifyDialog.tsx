@@ -257,7 +257,7 @@ export function VerifyDialog({
             <div className="note n" role="note">
               <Icon name="info" size={16} className="mt-px flex-none text-ink-3" />
               <span>
-                <T msg={e.verifyHelpers.length ? m.cantVerify : m.cantVerifyNobody} values={{ name: e.serviceName ?? '', helpers: orList(e.verifyHelpers), code: (c) => <span className="mono">{c}</span> }} />
+                <T msg={e.verifyHelpers.length ? m.cantVerify : m.cantVerifyNobody} values={{ name: e.serviceName ?? '', helpers: orList(e.verifyHelpers) }} />
               </span>
             </div>
           ) : null}

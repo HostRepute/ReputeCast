@@ -49,7 +49,7 @@ func shortName(l i18n.Lang, e EventType) string { return named(l, "short."+e.Key
 // eventLabel is an event type's row name in the preferences: "Send auto-paused".
 func eventLabel(l i18n.Lang, e EventType) string { return named(l, "event."+e.Key, e.Label) }
 
-// eventAudience says who gets an event type: "Everyone with campaigns:pause".
+// eventAudience says who gets an event type: "People who can send campaigns".
 func eventAudience(l i18n.Lang, e EventType) string {
 	if e.Audience == "" {
 		return ""

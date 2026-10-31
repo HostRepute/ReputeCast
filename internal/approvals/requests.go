@@ -85,8 +85,10 @@ func (s *Service) ruleFacts(ctx context.Context, ws *store.Workspace, c store.Re
 	return f, nil
 }
 
-// freshRun returns the latest run when it still describes the campaign,
-// running the checks first when it doesn't.
+// freshRun returns the latest run when it still describes the campaign.
+// When it doesn't, the checks are queued to run again (in the background:
+// no readiness work happens inside a request) and the request is refused
+// until they finish.
 func (s *Service) freshRun(ctx context.Context, ws *store.Workspace, c store.ReadinessCampaignRow, trigger string, by *uuid.UUID) (*readiness.ReadinessRun, error) {
 	run, err := s.Readiness.Latest(ctx, c.ID)
 	if err != nil {
@@ -95,14 +97,10 @@ func (s *Service) freshRun(ctx context.Context, ws *store.Workspace, c store.Rea
 	if run != nil && run.Fingerprint == s.Readiness.CurrentFingerprint(ctx, ws, c) {
 		return run, nil
 	}
-	fresh, err := s.Readiness.Run(ctx, ws, c.ID, readiness.RunOptions{Trigger: trigger, By: by})
-	if errors.Is(err, readiness.ErrRunning) {
-		return nil, api.Err(http.StatusConflict, "readiness_running", say(ctx, mReadinessRunning, nil))
-	}
-	if err != nil {
+	if _, err := s.Readiness.Start(ctx, ws, c.ID, readiness.RunOptions{Trigger: trigger, By: by}); err != nil && !errors.Is(err, readiness.ErrRunning) {
 		return nil, err
 	}
-	return &fresh, nil
+	return nil, api.Err(http.StatusConflict, "readiness_running", say(ctx, mReadinessRunning, nil))
 }
 
 // buildSnapshot records what a request covers.

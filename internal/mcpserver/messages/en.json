@@ -43,6 +43,7 @@
   "detail.languageChanged": { "message": "{language}: {fields}", "note": "language: the version's language, named in the reader's language (its label form)" },
   "detail.languageUnchanged": "{language}: no change",
   "detail.count": { "message": "{n} of {total}", "note": "how many of all the campaigns an agent listed" },
+  "detail.reportShared": { "message": "Read-only link to {campaign}", "note": "an agent made a read-only link to a campaign's report" },
   "detail.draft": "draft",
   "detail.textDraft": "text draft",
   "detail.pushDraft": "push draft",

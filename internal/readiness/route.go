@@ -17,7 +17,7 @@ import (
 
 // Audience counts the final recipients of a stored audience definition.
 func (s *Service) Audience(ctx context.Context, ws *store.Workspace, raw json.RawMessage) (AudienceFacts, error) {
-	f, _, err := s.computeAudience(ctx, s.Q, ws.ID, ParseAudience(raw), sunsetDays(ws.SunsetPolicy), s.now())
+	f, _, err := s.computeAudience(ctx, s.Q, ws.ID, ParseAudience(raw), sunsetDays(ws.SunsetPolicy), s.now(), false)
 	return f, err
 }
 

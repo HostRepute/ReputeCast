@@ -22,8 +22,8 @@ export const mcs = defineMessages('earn.sponsors.composer', {
   noneNoIssue: 'No sponsor slot covers this email’s list. This block will be hidden.',
   noDate: 'This email has no send date yet. Once it’s scheduled, the block fills itself from that issue’s booking; until then it’s hidden.',
   // helpers: names joined as "A or B".
-  noPrice: 'The price and the booking live in Earn, which needs earn:view. Ask {helpers}.',
-  noPriceAlone: 'The price and the booking live in Earn, which needs earn:view.',
+  noPrice: 'The price and the booking live in Earn, which your role can’t see. Ask {helpers}.',
+  noPriceAlone: 'The price and the booking live in Earn, which your role can’t see.',
   creative: 'Creative',
   creativeNote: 'Shown as the sponsor sends it. You can change the layout, the label and Visibility.',
   layout: 'Layout',

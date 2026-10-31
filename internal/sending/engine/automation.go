@@ -14,7 +14,6 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/automations"
-	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/media"
@@ -24,6 +23,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/warmup"
 )
 
 // AutomationMailer is the automations engine's "Send email" step: it routes
@@ -45,7 +45,7 @@ func (m AutomationMailer) QueueAutomationEmail(ctx context.Context, tx pgx.Tx, o
 		contactLanguage = c.Language
 	}
 	if mbp == "" {
-		mbp = routing.MailboxProvider(o.To)
+		mbp = m.E.mailboxFor(ctx, o.To)
 	}
 	pid, err := m.E.automationRoute(ctx, q, o.WorkspaceID, o.Route, o.To, mbp)
 	if err != nil {
@@ -155,10 +155,17 @@ func (e *Engine) RunOutbox(ctx context.Context, budget time.Duration) (time.Dura
 	start := e.now()
 	cache := map[string]*outboxTemplate{}
 	transports := map[uuid.UUID]*runRoute{}
+	var settledAt time.Time
 	for {
 		now := e.now()
 		if now.Sub(start) >= budget {
 			return 0, false, nil
+		}
+		if now.Sub(settledAt) >= settleEvery {
+			settledAt = now
+			if err := e.settleOutboxStale(ctx, now); err != nil {
+				return 0, false, err
+			}
 		}
 		ids, err := e.Q.SendingOutboxProviders(ctx)
 		if err != nil {
@@ -189,6 +196,9 @@ func (e *Engine) RunOutbox(ctx context.Context, budget time.Duration) (time.Dura
 
 // OutboxStep sends one second's automation emails (tests and fast-forward).
 func (e *Engine) OutboxStep(ctx context.Context, now time.Time) (int, error) {
+	if err := e.settleOutboxStale(ctx, now); err != nil {
+		return 0, err
+	}
 	ids, err := e.Q.SendingOutboxProviders(ctx)
 	if err != nil {
 		return 0, err
@@ -224,6 +234,7 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 		if s, ok := r.transport.(*simulator.Provider); ok {
 			r.sim = s
 		}
+		r.infers = r.transport != nil && r.transport.Capabilities().InfersDelivery
 		r.rate = e.rateOf(ctx, e.Q, p, time.UTC, now)
 		if pr := state.PricingOf(p); pr.Model == "metered" {
 			r.micros = int64(math.Round(pr.Per1000 * 1000))
@@ -240,11 +251,25 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 		return 0, nil
 	}
 	want := max(int(math.Floor(r.rate.PerSecond)), 1)
+	// A warming provider's automation mail counts toward its cap, per
+	// mailbox provider when the plan caps them separately; what the cap or
+	// a paused plan stops stays queued (held, never dropped) or goes
+	// through a warm Automations fallback when the plan allows it (PR-8,
+	// R3.L6b).
+	warm, full, err := e.outboxWarm(ctx, r.provider, now)
+	if err != nil {
+		return 0, err
+	}
+	if left := warm.left(); left <= 0 {
+		return 0, nil
+	} else if left < int64(want) {
+		want = int(left)
+	}
 	granted, err := e.reserveAfterTransactional(ctx, pid, now.Unix(), want, int(math.Ceil(r.rate.PerSecond)), now)
 	if err != nil || granted <= 0 {
 		return 0, err
 	}
-	rows, err := e.Q.SendingOutboxClaim(ctx, store.SendingOutboxClaimParams{ProviderID: &pid, Stale: now.Add(-staleClaim), Now: now, Lim: int32(granted)})
+	rows, err := e.Q.SendingOutboxClaim(ctx, store.SendingOutboxClaimParams{ProviderID: &pid, Now: now, Lim: int32(granted), FullMailboxes: full})
 	if err != nil || len(rows) == 0 {
 		return 0, err
 	}
@@ -255,6 +280,12 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 	}
 	var batch []pending
 	for _, row := range rows {
+		if !warm.take(row.MailboxProvider) {
+			// Its mailbox provider's part of today's cap filled up within
+			// this tick: it waits with the rest.
+			out.release = append(out.release, row.ID)
+			continue
+		}
 		switch {
 		case row.Gone:
 			out.drop(row.ID, "cancelled", "The contact was erased, unsubscribed or suppressed before the email went out.")
@@ -279,18 +310,23 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 		for i, p := range chunk {
 			msgs[i] = p.msg
 		}
-		cctx, cancel := context.WithTimeout(simulator.WithNow(ctx, now), 30*time.Second)
+		cctx, cancel := e.callContext(ctx, now)
 		res, callErr := r.transport.Send(cctx, msgs)
 		cancel()
 		if callErr == nil && len(res) != len(msgs) {
 			callErr = &providers.CallError{Op: "Send", Message: "the provider didn't answer for every message", Temporary: true}
 		}
 		e.recordCall(key, now, callErr)
-		if err := manage.RecordSend(ctx, e.Pool, r.provider, res, callErr, now); err != nil {
+		if err := manage.RecordSend(context.WithoutCancel(ctx), e.Pool, r.provider, res, callErr, now); err != nil {
 			e.log().WarnContext(ctx, "record provider call", "provider", pid, "err", err)
 		}
 		if callErr != nil {
+			doubt := outcomeUnknown(callErr) && idempotency(r.transport) == 0
 			for _, p := range chunk {
+				if doubt {
+					out.doubt(p.row.ID)
+					continue
+				}
 				out.retry(p.row.ID, int(p.row.Attempts), now, callText(callErr))
 			}
 			for _, p := range batch {
@@ -309,6 +345,11 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 				if r.sim != nil {
 					out.sims = append(out.sims, simRows(p.row.WorkspaceID, nil, p.row.ID, pid, now, r.sim.Plan(p.msg))...)
 				}
+				if r.infers {
+					out.sims = append(out.sims, inferredRow(p.row.WorkspaceID, nil, p.row.ID, pid, now))
+				}
+			case sendErrUnknown(rr.Err) && idempotency(r.transport) == 0:
+				out.doubt(p.row.ID)
 			case rr.Err.Temporary:
 				out.retry(p.row.ID, int(p.row.Attempts), now, rr.Err.Error())
 			default:
@@ -316,24 +357,31 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 			}
 		}
 	}
-	err = db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
+	err = e.recordOutcome(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		return e.record(ctx, store.New(tx), tx, uuid.Nil, pid, &out, now)
 	})
 	if err == nil && len(out.sims) > 0 {
 		e.insert(ctx, SimArgs{}, nil)
 	}
+	// Automation mail builds an IP's history too (canary.go).
+	if err == nil && len(out.sentIDs) > 0 {
+		e.noteIPs(ctx, r, now)
+	}
 	return len(out.sentIDs), err
 }
 
 // failOverOutbox moves a down provider's queued automation emails to the
-// Automations fallback.
+// Automations fallback, as the stream's failover policy allows and when the
+// fallback can take them (vetted as every move is, review GS-5); otherwise
+// the mail waits for its provider.
 func (e *Engine) failOverOutbox(ctx context.Context, p store.Provider) error {
 	set, err := routing.Load(ctx, e.Q, p.WorkspaceID)
 	if err != nil {
 		return err
 	}
 	def, ok := set.Default(providers.StreamAutomation)
-	if !ok || def.Fallback == nil || *def.Fallback == p.ID {
+	policy := set.Policy(providers.StreamAutomation)
+	if !ok || def.Fallback == nil || *def.Fallback == p.ID || policy == routing.PauseAndAsk {
 		return nil
 	}
 	fb, err := e.Q.ProvGetAny(ctx, *def.Fallback)
@@ -343,7 +391,16 @@ func (e *Engine) failOverOutbox(ctx context.Context, p store.Provider) error {
 	if err != nil {
 		return err
 	}
-	if !state.Available(fb) {
+	n, err := e.Q.SendingOutboxQueuedOn(ctx, &p.ID)
+	if err != nil || n == 0 {
+		return err
+	}
+	loc := time.UTC
+	if ws, err := e.Q.GetWorkspace(ctx, p.WorkspaceID); err == nil {
+		loc = state.Location(ws.Timezone)
+	}
+	vet := state.Vet(fb, state.Load{Messages: n, Warmup: warmup.Today(ctx, e.Q, fb.ID, e.now(), loc)})
+	if !vet.Allowed() || (policy == routing.WarmOnly && vet.Warming()) {
 		return nil
 	}
 	_, err = e.Pool.Exec(ctx, `UPDATE messages SET provider_id = $2, claimed_at = NULL
@@ -439,6 +496,7 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 		for _, l := range ot.tpl.Links {
 			links[LinkVar(l.Position)] = e.URLs.Click(sign(linktoken.Click, uint32(l.Position)))
 		}
+		links[HoneypotVar] = e.URLs.Honeypot(sign(linktoken.Honeypot, 0))
 	}
 	if e.Store != nil && len(ref.Ctx) > 0 {
 		for k, v := range e.Store.Vars(ctx, ref.Ctx) {

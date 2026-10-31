@@ -228,11 +228,7 @@ func canGrantRole(l i18n.Lang, granter authz.Set, key string, builtin bool, perm
 		return false, mGrantOwner.Text(l, nil)
 	}
 	if missing := granter.Missing(perms); len(missing) > 0 {
-		keys := make([]string, len(missing))
-		for i, m := range missing {
-			keys[i] = string(m)
-		}
-		return false, mGrantMissing.Text(l, i18n.Args{"permissions": strings.Join(keys, ", ")})
+		return false, mGrantMissing.Text(l, i18n.Args{"permissions": permissionList(l, missing)})
 	}
 	return true, ""
 }

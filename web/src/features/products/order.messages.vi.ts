@@ -138,9 +138,9 @@ export default translate(po, {
   restore: 'Khôi phục quyền truy cập',
   revokedNoLink: 'Quyền truy cập đã bị thu hồi. Hãy khôi phục trước khi gửi liên kết mới.',
   noRestoreRefunded: 'Đơn hàng này đã được hoàn tiền toàn bộ, nên quyền tải xuống vẫn bị thu hồi.',
-  ordersNote: 'Gửi liên kết, thu hồi và khôi phục quyền truy cập cần quyền <mono>orders:manage</mono>. Việc hoàn tiền diễn ra trên Stripe.',
+  ordersNote: 'Vai trò của bạn không thể gửi liên kết mới, thu hồi hay khôi phục quyền truy cập. Việc hoàn tiền diễn ra trên Stripe.',
   ordersNoteAsk:
-    'Gửi liên kết, thu hồi và khôi phục quyền truy cập cần quyền <mono>orders:manage</mono>. Việc hoàn tiền diễn ra trên Stripe. Hãy hỏi {helpers}.',
+    'Vai trò của bạn không thể gửi liên kết mới, thu hồi hay khôi phục quyền truy cập. Việc hoàn tiền diễn ra trên Stripe. Hãy hỏi {helpers}.',
   // Send a new link.
   sendEyebrow: 'Đơn hàng {number}',
   sendTitle: 'Gửi liên kết mới đến {email}?',

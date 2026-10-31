@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/media"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -50,12 +51,27 @@ func (s *Service) SetAvatar(ctx context.Context, data []byte) (AccountProfile, e
 	if cfg.Width > avatarMaxSide || cfg.Height > avatarMaxSide || cfg.Width < 16 || cfg.Height < 16 {
 		return AccountProfile{}, api.Invalid("body.data", say(ctx, msgs.M("problem.photoSize"), "min", 16, "max", avatarMaxSide))
 	}
+	// Decoding, and the square squareThumbnail crops, must fit the memory an
+	// upload may take: a progressive JPEG can claim a gigabyte within
+	// 6,000 px a side.
+	side := int64(min(cfg.Width, cfg.Height))
+	if cost, _, _, ok := media.DecodeCost(data); !ok || cost+4*side*side > media.DecodeBudget {
+		return AccountProfile{}, api.Invalid("body.data", say(ctx, msgs.M("problem.photoUnreadable")))
+	}
+	// One image is decoded at a time across ReputeCast (media.DecodeSlot).
+	release, err := media.DecodeSlot(ctx)
+	if err != nil {
+		return AccountProfile{}, err
+	}
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
+		release()
 		return AccountProfile{}, api.Invalid("body.data", say(ctx, msgs.M("problem.photoUnreadable")))
 	}
 	var buf bytes.Buffer
-	if err := png.Encode(&buf, squareThumbnail(img, avatarSize)); err != nil {
+	err = png.Encode(&buf, squareThumbnail(img, avatarSize))
+	release()
+	if err != nil {
 		return AccountProfile{}, err
 	}
 	now := s.now()

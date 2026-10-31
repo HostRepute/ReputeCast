@@ -76,6 +76,15 @@ func seedAudienceImpl(ctx context.Context, s *Seeder) error {
 		{"saved views", func() error { return audSavedViews(ctx, s) }},
 		{"rollups", func() error { return audRollups(ctx, s, a, bits) }},
 		{"import draft", func() error { return audStageDraft(ctx, s, a) }},
+		// Planner statistics for the contacts and memberships just written:
+		// the seeders after this one pick their people by joining the two,
+		// and without statistics each join reads a list's members again for
+		// every contact (a billion rows, minutes). audSeedLate analyzes
+		// again once every seeder has run.
+		{"statistics", func() error {
+			_, err := s.Tx.Exec(ctx, `ANALYZE contacts, list_memberships, lists`)
+			return err
+		}},
 	}
 	for _, st := range steps {
 		if err := st.fn(); err != nil {
@@ -94,7 +103,7 @@ func audToday(s *Seeder, hour, minute int) time.Time {
 }
 
 // audTierRun is the last nightly tier run on the real clock: 03:00 today in
-// the workspace timezone, or yesterday when it isn't 03:00 yet. (The design
+// the workspace timezone, or yesterday until 03:10. (The design
 // day can lag the real date; the tier job compares against the real one, and
 // an older run would make it recompute every tier as soon as the server
 // starts.)
@@ -105,7 +114,10 @@ func audTierRun(s *Seeder) time.Time {
 	}
 	n := s.Now.In(loc)
 	t := time.Date(n.Year(), n.Month(), n.Day(), audTierHour, 0, 0, 0, loc)
-	if t.After(s.Now) {
+	// The Cooling contacts who opened after the run need room before now:
+	// a seed at 03:02 put their opens in the future, where scores don't
+	// count them.
+	if t.After(s.Now.Add(-10 * time.Minute)) {
 		t = t.AddDate(0, 0, -1)
 	}
 	return t

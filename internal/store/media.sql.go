@@ -100,40 +100,53 @@ func (q *Queries) HideMediaAsset(ctx context.Context, arg HideMediaAssetParams) 
 }
 
 const insertMediaAsset = `-- name: InsertMediaAsset :one
-INSERT INTO media_assets (id, workspace_id, file_name, content_type, size_bytes, width, height, has_alpha, sha256, data, created_by, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+INSERT INTO media_assets (id, workspace_id, file_name, content_type, size_bytes, width, height, has_alpha, sha256, data, created_by, created_at,
+                          original_size_bytes, original_width, original_height, original_content_type)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+        $13, $14, $15, $16)
 ON CONFLICT (workspace_id, sha256) DO UPDATE SET hidden_at = NULL
-RETURNING id, file_name, content_type, size_bytes, width, height, has_alpha, created_at, (xmax = 0) AS inserted
+RETURNING id, file_name, content_type, size_bytes, width, height, has_alpha, created_at, (xmax = 0) AS inserted,
+          original_size_bytes, original_width, original_height, original_content_type
 `
 
 type InsertMediaAssetParams struct {
-	ID          uuid.UUID  `json:"id"`
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	FileName    string     `json:"fileName"`
-	ContentType string     `json:"contentType"`
-	SizeBytes   int32      `json:"sizeBytes"`
-	Width       int32      `json:"width"`
-	Height      int32      `json:"height"`
-	HasAlpha    bool       `json:"hasAlpha"`
-	Sha256      []byte     `json:"sha256"`
-	Data        []byte     `json:"data"`
-	CreatedBy   *uuid.UUID `json:"createdBy"`
-	CreatedAt   time.Time  `json:"createdAt"`
+	ID                  uuid.UUID  `json:"id"`
+	WorkspaceID         uuid.UUID  `json:"workspaceId"`
+	FileName            string     `json:"fileName"`
+	ContentType         string     `json:"contentType"`
+	SizeBytes           int32      `json:"sizeBytes"`
+	Width               int32      `json:"width"`
+	Height              int32      `json:"height"`
+	HasAlpha            bool       `json:"hasAlpha"`
+	Sha256              []byte     `json:"sha256"`
+	Data                []byte     `json:"data"`
+	CreatedBy           *uuid.UUID `json:"createdBy"`
+	CreatedAt           time.Time  `json:"createdAt"`
+	OriginalSizeBytes   *int32     `json:"originalSizeBytes"`
+	OriginalWidth       *int32     `json:"originalWidth"`
+	OriginalHeight      *int32     `json:"originalHeight"`
+	OriginalContentType *string    `json:"originalContentType"`
 }
 
 type InsertMediaAssetRow struct {
-	ID          uuid.UUID `json:"id"`
-	FileName    string    `json:"fileName"`
-	ContentType string    `json:"contentType"`
-	SizeBytes   int32     `json:"sizeBytes"`
-	Width       int32     `json:"width"`
-	Height      int32     `json:"height"`
-	HasAlpha    bool      `json:"hasAlpha"`
-	CreatedAt   time.Time `json:"createdAt"`
-	Inserted    bool      `json:"inserted"`
+	ID                  uuid.UUID `json:"id"`
+	FileName            string    `json:"fileName"`
+	ContentType         string    `json:"contentType"`
+	SizeBytes           int32     `json:"sizeBytes"`
+	Width               int32     `json:"width"`
+	Height              int32     `json:"height"`
+	HasAlpha            bool      `json:"hasAlpha"`
+	CreatedAt           time.Time `json:"createdAt"`
+	Inserted            bool      `json:"inserted"`
+	OriginalSizeBytes   *int32    `json:"originalSizeBytes"`
+	OriginalWidth       *int32    `json:"originalWidth"`
+	OriginalHeight      *int32    `json:"originalHeight"`
+	OriginalContentType *string   `json:"originalContentType"`
 }
 
 // Uploading the same bytes twice returns the existing asset (and shows it again).
+// sha256 is the uploaded file's; data may be its resized, compressed copy,
+// and the original_* columns then say what was uploaded.
 func (q *Queries) InsertMediaAsset(ctx context.Context, arg InsertMediaAssetParams) (InsertMediaAssetRow, error) {
 	row := q.db.QueryRow(ctx, insertMediaAsset,
 		arg.ID,
@@ -148,6 +161,10 @@ func (q *Queries) InsertMediaAsset(ctx context.Context, arg InsertMediaAssetPara
 		arg.Data,
 		arg.CreatedBy,
 		arg.CreatedAt,
+		arg.OriginalSizeBytes,
+		arg.OriginalWidth,
+		arg.OriginalHeight,
+		arg.OriginalContentType,
 	)
 	var i InsertMediaAssetRow
 	err := row.Scan(
@@ -160,12 +177,17 @@ func (q *Queries) InsertMediaAsset(ctx context.Context, arg InsertMediaAssetPara
 		&i.HasAlpha,
 		&i.CreatedAt,
 		&i.Inserted,
+		&i.OriginalSizeBytes,
+		&i.OriginalWidth,
+		&i.OriginalHeight,
+		&i.OriginalContentType,
 	)
 	return i, err
 }
 
 const listMediaAssets = `-- name: ListMediaAssets :many
 SELECT a.id, a.file_name, a.content_type, a.size_bytes, a.width, a.height, a.has_alpha, a.created_at,
+       a.original_size_bytes, a.original_width, a.original_height, a.original_content_type,
        coalesce(u.name, '')::text AS created_by_name
 FROM media_assets a
 LEFT JOIN users u ON u.id = a.created_by
@@ -180,15 +202,19 @@ type ListMediaAssetsParams struct {
 }
 
 type ListMediaAssetsRow struct {
-	ID            uuid.UUID `json:"id"`
-	FileName      string    `json:"fileName"`
-	ContentType   string    `json:"contentType"`
-	SizeBytes     int32     `json:"sizeBytes"`
-	Width         int32     `json:"width"`
-	Height        int32     `json:"height"`
-	HasAlpha      bool      `json:"hasAlpha"`
-	CreatedAt     time.Time `json:"createdAt"`
-	CreatedByName string    `json:"createdByName"`
+	ID                  uuid.UUID `json:"id"`
+	FileName            string    `json:"fileName"`
+	ContentType         string    `json:"contentType"`
+	SizeBytes           int32     `json:"sizeBytes"`
+	Width               int32     `json:"width"`
+	Height              int32     `json:"height"`
+	HasAlpha            bool      `json:"hasAlpha"`
+	CreatedAt           time.Time `json:"createdAt"`
+	OriginalSizeBytes   *int32    `json:"originalSizeBytes"`
+	OriginalWidth       *int32    `json:"originalWidth"`
+	OriginalHeight      *int32    `json:"originalHeight"`
+	OriginalContentType *string   `json:"originalContentType"`
+	CreatedByName       string    `json:"createdByName"`
 }
 
 func (q *Queries) ListMediaAssets(ctx context.Context, arg ListMediaAssetsParams) ([]ListMediaAssetsRow, error) {
@@ -209,6 +235,10 @@ func (q *Queries) ListMediaAssets(ctx context.Context, arg ListMediaAssetsParams
 			&i.Height,
 			&i.HasAlpha,
 			&i.CreatedAt,
+			&i.OriginalSizeBytes,
+			&i.OriginalWidth,
+			&i.OriginalHeight,
+			&i.OriginalContentType,
 			&i.CreatedByName,
 		); err != nil {
 			return nil, err

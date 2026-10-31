@@ -20,12 +20,16 @@ import (
 // number of messages the provider accepted and their cost); the health job
 // after every check.
 func RecordCall(ctx context.Context, q store.DBTX, p store.Provider, op string, callErr error, accepted int, at time.Time) error {
+	return recordCall(ctx, q, p, op, callErr, accepted, 0, at)
+}
+
+func recordCall(ctx context.Context, q store.DBTX, p store.Provider, op string, callErr error, accepted, rejected int, at time.Time) error {
 	qs := store.New(q)
 	errs := int32(0)
 	if callErr != nil {
 		errs = 1
 	}
-	if err := qs.ProvRecordCall(ctx, store.ProvRecordCallParams{ProviderID: p.ID, At: at, Errors: errs, Messages: int32(accepted)}); err != nil {
+	if err := qs.ProvRecordCall(ctx, store.ProvRecordCallParams{ProviderID: p.ID, At: at, Errors: errs, Messages: int32(accepted), Rejected: int32(rejected)}); err != nil {
 		return err
 	}
 	cost := int64(0)
@@ -48,13 +52,20 @@ func RecordCall(ctx context.Context, q store.DBTX, p store.Provider, op string, 
 	return err
 }
 
-// RecordSend records the outcome of one Send call: the call itself and how
-// many messages the provider accepted.
+// RecordSend records the outcome of one Send call: the call itself, how
+// many messages the provider accepted and how many it refused for good
+// (PR-7: the health job watches the share refused). The last refusal is
+// kept with the provider's own code and words for the incident.
 func RecordSend(ctx context.Context, q store.DBTX, p store.Provider, results []providers.SendResult, callErr error, at time.Time) error {
-	accepted := 0
+	accepted, rejected := 0, 0
+	var last *providers.SendError
 	for _, r := range results {
-		if r.Err == nil {
+		switch {
+		case r.Err == nil:
 			accepted++
+		case !r.Err.Temporary:
+			rejected++
+			last = r.Err
 		}
 	}
 	op := "Send"
@@ -62,7 +73,16 @@ func RecordSend(ctx context.Context, q store.DBTX, p store.Provider, results []p
 	if errors.As(callErr, &ce) && ce.Op != "" {
 		op = ce.Op
 	}
-	return RecordCall(ctx, q, p, op, callErr, accepted, at)
+	if err := recordCall(ctx, q, p, op, callErr, accepted, rejected, at); err != nil {
+		return err
+	}
+	if last == nil {
+		return nil
+	}
+	rec := state.CallRecord{At: at.UTC(), Op: op, Code: last.Code, Message: last.Message}
+	b, _ := json.Marshal(rec)
+	_, err := q.Exec(ctx, `UPDATE providers SET health = jsonb_set(coalesce(health, '{}'::jsonb), '{lastRejection}', $2::jsonb) WHERE id = $1`, p.ID, b)
+	return err
 }
 
 // CallRecordOf describes a failed call for the recent-errors list.

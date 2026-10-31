@@ -37,6 +37,10 @@ type ConnectSESInput struct {
 	AccessKeyID     string `json:"accessKeyId,omitempty" maxLength:"128"`
 	SecretAccessKey string `json:"secretAccessKey,omitempty" maxLength:"256"`
 	Region          string `json:"region,omitempty" maxLength:"32"`
+	// Events is how SES events reach ReputeCast: SNS calling the public URL
+	// (webhook), or an SQS queue ReputeCast polls (queue: no public URL
+	// needed, works behind NAT). Empty keeps the setup's choice.
+	Events string `json:"events,omitempty" enum:"webhook,queue"`
 }
 
 // ConnectSMTPInput is the outgoing server of the SMTP path.
@@ -138,7 +142,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 		if in.SES == nil {
 			return ConnectSetup{}, api.Invalid("body.ses", mProblemChooseAccess.Text(l, nil))
 		}
-		b, err = s.sesConfig(l, prov, state, *in.SES)
+		b, err = s.sesConfig(ctx, l, prov, state, *in.SES)
 	case "smtp":
 		if in.SMTP == nil {
 			return ConnectSetup{}, api.Invalid("body.smtp", mProblemEnterSMTP.Text(l, nil))
@@ -227,6 +231,15 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 			accountID, _ = ai.AccountID(cctx)
 			cancel()
 		}
+		// Who the keys belong to ("for IAM user reputecast-ses"), read with
+		// the account.
+		if cn, ok := adapter.(interface{ CallerARN() string }); ok {
+			if user, found := strings.CutPrefix(callerName(cn.CallerARN()), "user/"); found {
+				b.settings["iam_user"] = user
+			} else {
+				delete(b.settings, "iam_user")
+			}
+		}
 	}
 	if accountID != "" {
 		b.settings["account_id"] = accountID
@@ -235,6 +248,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 	if err != nil {
 		return ConnectSetup{}, err
 	}
+	p = s.refreshIPs(ctx, p, adapter)
 	state.Connection.Status, state.Connection.At, state.Connection.Error = "connected", &now, nil
 	state.Connection.Account, state.Connection.AccountText, state.Connection.AccountID = quota.Account, quota.AccountText, accountID
 	state.Connection.Settings = map[string]string{}
@@ -246,6 +260,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 	switch flow {
 	case "ses":
 		state.Connection.Access, state.Connection.Region = in.SES.Access, stringOf(b.settings["region"])
+		state.Connection.Events = sesEvents(in.SES.Events, state)
 		state.Connection.RoleARN = stringOf(b.settings["role_arn"])
 		state.Connection.Summary = state.Connection.Region + " · " + map[bool]string{true: "sandbox", false: "production"}[quota.Sandbox]
 		s.startProvisioning(ctx, p, &state, quota, now)
@@ -266,6 +281,23 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 		s.queueProvisioning(ctx, out.ID)
 	}
 	return s.View(ctx, ws, out)
+}
+
+// refreshIPs asks a provider whose API lists the account's sending IPs for
+// them (review GS-10), with the credentials just checked: the canary's
+// new-IP trigger, Send Readiness's IP blocklist rows and warm-up read them.
+// A provider that can't answer keeps its IPs and says why on Sending
+// providers; connecting goes on.
+func (s *Service) refreshIPs(ctx context.Context, p store.Provider, adapter providers.Provider) store.Provider {
+	if s.Providers == nil || adapter == nil {
+		return p
+	}
+	fresh, err := s.Providers.RefreshIPsWith(ctx, p, adapter, manage.IPsOnConnect)
+	if err != nil {
+		s.log().WarnContext(ctx, "sending IPs at connect", "provider", p.ID, "err", err)
+		return p
+	}
+	return fresh
 }
 
 func stringOf(v any) string {
@@ -473,9 +505,17 @@ func contains(xs []string, s string) bool {
 var roleARN = regexp.MustCompile(`^arn:aws[a-z-]*:iam::\d{12}:role/[\w+=,.@/-]+$`)
 
 // sesConfig is the SES path: role (from the stack's output) or keys.
-func (s *Service) sesConfig(l i18n.Lang, prov *store.Provider, state State, in ConnectSESInput) (built, error) {
+func (s *Service) sesConfig(ctx context.Context, l i18n.Lang, prov *store.Provider, state State, in ConnectSESInput) (built, error) {
 	b := built{settings: currentSettings(prov), creds: map[string]any{}}
 	delete(b.settings, "demo")
+	events := sesEvents(in.Events, state)
+	if events == providers.EventsQueue {
+		b.settings["events"] = providers.EventsQueue
+	} else {
+		delete(b.settings, "events")
+		delete(b.settings, "queue_url")
+		delete(b.settings, "queue_arn")
+	}
 	region := strings.TrimSpace(in.Region)
 	if region == "" {
 		region = state.Connection.Region
@@ -493,6 +533,11 @@ func (s *Service) sesConfig(l i18n.Lang, prov *store.Provider, state State, in C
 		}
 		if !roleARN.MatchString(arn) {
 			return b, api.Invalid("body.ses.roleArn", mProblemRoleARN.Text(l, nil))
+		}
+		// Off AWS, assuming the stack's role needs AWS credentials of this
+		// server's own (PR-5): without them the role can't be used.
+		if h := s.host(ctx); !h.BaseCredentials {
+			return b, api.Invalid("body.ses.access", mProblemRoleNeedsKeys.Text(l, nil))
 		}
 		b.settings["role_arn"], b.settings["external_id"] = arn, state.Connection.ExternalID
 	default:
@@ -513,8 +558,44 @@ func (s *Service) sesConfig(l i18n.Lang, prov *store.Provider, state State, in C
 		delete(b.settings, "role_arn")
 		delete(b.settings, "external_id")
 		b.creds["access_key_id"], b.creds["secret_access_key"] = id, secret
+		// The key's id is shown masked ("AKIA••••••••7QXP"); the secret never.
+		b.settings["access_key_hint"] = maskKeyID(id)
+	}
+	if in.Access == "role" {
+		delete(b.settings, "access_key_hint")
+		delete(b.settings, "iam_user")
 	}
 	return b, nil
+}
+
+// maskKeyID keeps the first and last four characters of an access key id.
+func maskKeyID(id string) string {
+	if len(id) < 12 {
+		return strings.Repeat("•", len(id))
+	}
+	return id[:4] + strings.Repeat("•", 8) + id[len(id)-4:]
+}
+
+// callerName is the resource part of a caller ARN
+// ("arn:aws:iam::123456789012:user/reputecast-ses" → "user/reputecast-ses").
+func callerName(arn string) string {
+	parts := strings.SplitN(arn, ":", 6)
+	if len(parts) < 6 {
+		return ""
+	}
+	return parts[5]
+}
+
+// sesEvents is the events path an SES setup uses: the one asked for, else
+// the setup's choice, else the webhook.
+func sesEvents(asked string, state State) string {
+	switch {
+	case asked != "":
+		return asked
+	case state.Connection.Events != "":
+		return state.Connection.Events
+	}
+	return "webhook"
 }
 
 // numberIn reads the first number of "5 per second" or "20,000".
@@ -743,7 +824,7 @@ func (s *Service) saveProvider(ctx context.Context, ws *store.Workspace, d provi
 		if prov != nil {
 			var err error
 			out, err = q.ConnectUpdateProvider(ctx, store.ConnectUpdateProviderParams{ID: id, Label: b.label, Config: cfg, CredentialsEnc: sealed, Status: statusWord,
-				StatusDetail: detail, IpMode: prov.IpMode, Ips: prov.Ips, Health: health, CheckedAt: &now})
+				StatusDetail: detail, Health: health, CheckedAt: &now})
 			if err != nil {
 				return err
 			}
@@ -819,8 +900,11 @@ func skippedRegistration(now time.Time) *Registration {
 	return r
 }
 
-// setupEvents tests the webhook endpoint the way the provider would reach
-// it and, when reachable, registers it at the provider.
+// setupEvents registers the webhook at the provider and asks the provider
+// for a test webhook, which proves from outside that the endpoint can be
+// reached (PR-9). ReputeCast never calls its own URL: the address check
+// before only spots addresses no provider can reach (localhost, private
+// addresses, names that don't resolve), to name the likely cause.
 func (s *Service) setupEvents(ctx context.Context, d providers.Descriptor, p store.Provider, st *State, now time.Time) {
 	w := st.Connection.Webhook
 	if w == nil {
@@ -837,15 +921,13 @@ func (s *Service) setupEvents(ctx context.Context, d providers.Descriptor, p sto
 	}
 	w.Mode = "webhook"
 	w.URL = s.webhookURL(p, w.PublicURL)
-	reach := s.reachable(ctx, w.URL, p)
-	w.SelfTest = &reach
-	if !reach.OK {
-		w.Registration = skippedRegistration(now)
-		st.Connection.Webhook = w
-		return
-	}
+	w.TestEventAt, w.TestEventErr, w.TestArrivedAt = nil, "", nil
+	w.SelfTest = s.addressCheck(ctx, w.URL, now)
 	if manage.IsDemo(p) {
+		// A demo provider has nothing to register and answers at once.
 		w.Registration = &Registration{Status: "done", At: now}
+		w.CanTest = true
+		w.TestEventAt, w.TestArrivedAt = &now, &now
 		st.Connection.Webhook = w
 		return
 	}
@@ -855,6 +937,7 @@ func (s *Service) setupEvents(ctx context.Context, d providers.Descriptor, p sto
 		st.Connection.Webhook = w
 		return
 	}
+	_, w.CanTest = adapter.(providers.WebhookTester)
 	wr, ok := adapter.(providers.WebhookRegistrar)
 	if !ok {
 		reg := &Registration{Status: "manual", At: now}
@@ -869,12 +952,46 @@ func (s *Service) setupEvents(ctx context.Context, d providers.Descriptor, p sto
 	cancel()
 	if err != nil {
 		w.Registration = &Registration{Status: "failed", At: now, Detail: callMessage(err), DetailText: callText(err)}
-	} else {
-		reg := &Registration{Status: "done", At: now}
-		reg.Detail, reg.DetailText = webhookEvents(d)
-		w.Registration = reg
+		st.Connection.Webhook = w
+		return
 	}
+	reg := &Registration{Status: "done", At: now}
+	reg.Detail, reg.DetailText = webhookEvents(d)
+	w.Registration = reg
 	st.Connection.Webhook = w
+	s.requestTestEvent(ctx, adapter, w)
+}
+
+// requestTestEvent asks the provider to send a test event to the webhook
+// (when it can); the wizard waits a minute for it to arrive.
+func (s *Service) requestTestEvent(ctx context.Context, adapter providers.Provider, w *WebhookState) {
+	wt, ok := adapter.(providers.WebhookTester)
+	if !ok {
+		return
+	}
+	at := s.now()
+	w.TestEventAt, w.TestEventErr, w.TestArrivedAt = &at, "", nil
+	cctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	err := wt.SendTestEvent(cctx, w.URL)
+	cancel()
+	if err != nil {
+		w.TestEventErr = callMessage(err)
+	}
+}
+
+// addressCheck looks at a webhook address without calling it: localhost,
+// private addresses and names that don't resolve can't be reached by any
+// provider. OK says nothing was found; only the provider calling the
+// address proves it reachable.
+func (s *Service) addressCheck(ctx context.Context, url string, now time.Time) *SelfTestState {
+	if s.Reachable != nil {
+		r := s.Reachable(ctx, url, store.Provider{})
+		return &r
+	}
+	if bad := Preflight(ctx, url, now, s.AllowPrivateURL); bad != nil {
+		return bad
+	}
+	return &SelfTestState{OK: true, At: now}
 }
 
 // manualSecret says whether a provider whose webhook is set up by hand
@@ -944,17 +1061,20 @@ func (s *Service) WebhookSecret(ctx context.Context, ws *store.Workspace, rawID 
 	return ConnectWebhookSecret{URL: w.URL, Secret: secret, Header: w.SecretHeader}, nil
 }
 
-// reachable runs the endpoint self-test (tests replace it).
+// reachable checks a webhook address without calling it (tests replace
+// it): see addressCheck.
 func (s *Service) reachable(ctx context.Context, url string, p store.Provider) SelfTestState {
 	if s.Reachable != nil {
 		return s.Reachable(ctx, url, p)
 	}
-	return SelfTest(ctx, url, p.WebhookToken, s.now(), s.AllowPrivateURL)
+	return *s.addressCheck(ctx, url, s.now())
 }
 
 // SelfTest checks that a webhook URL can be reached from the internet:
 // localhost and private addresses fail up front (no provider can reach
-// them), then the endpoint must answer a signed self-test with 200.
+// them), then the endpoint must answer a signed self-test with 200. The
+// provider setup no longer uses it (PR-9: a provider calling the endpoint
+// proves it reachable); other integrations still do.
 func SelfTest(ctx context.Context, rawURL, token string, now time.Time, allowPrivate bool) SelfTestState {
 	out := SelfTestState{At: now}
 	u, err := url.Parse(rawURL)

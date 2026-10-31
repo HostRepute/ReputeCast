@@ -2,6 +2,7 @@ package reports_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -20,7 +21,10 @@ type report struct {
 	}
 	Headline struct {
 		Sent, Delivered, HumanOpens, MachineOpens, Clicks, Unsubscribes, Complaints, Bounces, Undelivered int64
-		DeliveredRate, HumanOpenRate, ClickToOpen                                                         float64
+		PrivacyOpens, Measurable                                                                          int64
+		DeliveredRate, HumanOpenRate, ClickToOpen, HumanOpenRateMeasurable, PrivacyOpenRate               float64
+		ComplaintRateReported                                                                             *float64
+		NotReportedBy                                                                                     []string
 		SentBy                                                                                            []struct {
 			Short string
 			Count int64
@@ -32,6 +36,17 @@ type report struct {
 		HumanWithin6h float64
 		Points        []struct{ Hour int }
 		Rollout       *struct{ Variant string }
+	}
+	Growth struct {
+		NewSubscribers, Forwards, Referrals, WebPost, WebViews int64
+	}
+	Comparisons struct {
+		Issues      int
+		Unavailable string
+		Tiles       []struct {
+			Metric, Unit, Tone string
+			Change, Median     float64
+		}
 	}
 	Backlog *struct {
 		Minutes   int
@@ -45,11 +60,22 @@ type report struct {
 		Available bool
 		HTML      string
 		Total     int64
+		BotTotal  int64
 		Links     []struct {
-			Label   string
-			Share   float64
-			Grouped bool
-			Hot     bool
+			Label                string
+			Position             int
+			Share                float64
+			Grouped              bool
+			Hot                  bool
+			UniqueClicks, Clicks int64
+			BotClicks            int64
+		}
+		Rows []struct {
+			Place     string
+			Labels    []string
+			Positions []int
+			Share     float64
+			Clicks    int64
 		}
 		Other *struct {
 			Share float64
@@ -134,9 +160,19 @@ func TestCampaignReport(t *testing.T) {
 	c.Do("GET", base, nil).MustStatus(t, 200).JSON(t, &r)
 	h := r.Headline
 	// The Report board's headline (and the spec's sample data).
-	if h.Sent != 47980 || h.Delivered != 47548 || h.HumanOpens != 19590 || h.MachineOpens != 8844 || h.Clicks != 2996 ||
+	if h.Sent != 47980 || h.Delivered != 47548 || h.HumanOpens != 19590 || h.MachineOpens != 1240 || h.Clicks != 2996 ||
 		h.Unsubscribes != 112 || h.Complaints != 19 || h.Bounces != 288 || h.Undelivered != 144 {
 		t.Fatalf("headline: %+v", h)
+	}
+	// Opens in three buckets, and the measurable rate (review AN-10):
+	// "41.2% of delivered · 52.8% of measurable".
+	if h.PrivacyOpens != 10436 || h.Measurable != 37112 || fmt.Sprintf("%.1f", h.HumanOpenRate) != "41.2" || fmt.Sprintf("%.1f", h.HumanOpenRateMeasurable) != "52.8" ||
+		fmt.Sprintf("%.1f", h.PrivacyOpenRate) != "21.9" {
+		t.Fatalf("open buckets: %+v", h)
+	}
+	// Complaints where they are reported (review F-2).
+	if len(h.NotReportedBy) != 2 || h.NotReportedBy[0] != "Gmail" || h.NotReportedBy[1] != "iCloud" || h.ComplaintRateReported == nil || fmt.Sprintf("%.2f", *h.ComplaintRateReported) != "0.09" {
+		t.Fatalf("complaints where reported: %+v", h)
 	}
 	if len(h.SentBy) != 2 || h.SentBy[0].Short != "SES" || h.SentBy[0].Count != 43182 || h.SentBy[1].Count != 4798 {
 		t.Fatalf("sent by: %+v", h.SentBy)
@@ -147,6 +183,22 @@ func TestCampaignReport(t *testing.T) {
 	final := r.Campaign.FinalAt != nil && !time.Now().Before(*r.Campaign.FinalAt)
 	if r.Campaign.Final != final || r.Campaign.Audience != "All subscribers" || len(r.Campaign.Notes) == 0 || r.Campaign.Notes[0] != "A/B subject, winner B" {
 		t.Fatalf("campaign: %+v", r.Campaign)
+	}
+	// Each tile compares with the median of the last issues to the same
+	// audience (review AN-11): only Welcome to news.acme.io went to all
+	// subscribers before; the Weekly Digest has its own six.
+	if want := map[bool]string{true: "", false: "not_final"}[final]; r.Comparisons.Unavailable != want || (final && r.Comparisons.Issues != 1) {
+		t.Fatalf("comparisons: %+v", r.Comparisons)
+	}
+	// The growth the issue brought (review AN-12): the board's 38 new
+	// subscribers, 9 from forwards, 12 referrals and 17 from the web post.
+	if g := r.Growth; g.NewSubscribers != 38 || g.Forwards != 9 || g.Referrals != 12 || g.WebPost != 17 || g.WebViews == 0 {
+		t.Fatalf("growth: %+v", g)
+	}
+	var wd report
+	c.Do("GET", "/workspaces/acme-newsletter/campaigns/"+campaignID(t, c, "Weekly Digest #141")+"/report", nil).MustStatus(t, 200).JSON(t, &wd)
+	if wd.Comparisons.Issues != 6 || len(wd.Comparisons.Tiles) != 8 || wd.Comparisons.Tiles[0].Metric != "sent" || wd.Comparisons.Tiles[0].Unit != "percent" {
+		t.Fatalf("Weekly Digest #141 comparisons: %+v", wd.Comparisons)
 	}
 	if !r.Engagement.Available || len(r.Engagement.Points) != 73 || r.Engagement.HumanWithin6h < 61.5 || r.Engagement.HumanWithin6h >= 62.5 ||
 		r.Engagement.Rollout == nil || r.Engagement.Rollout.Variant != "B" {
@@ -163,7 +215,7 @@ func TestCampaignReport(t *testing.T) {
 	wantBounces := map[string]struct {
 		n     int64
 		state string
-	}{"unknown_user": {171, "auto"}, "domain_invalid": {22, "auto"}, "mailbox_full": {41, "retry"}, "deferral_expired": {38, "retry"}, "blocked": {11, "add"}, "other": {5, "review"}}
+	}{"unknown_user": {171, "auto"}, "domain_invalid": {22, "auto"}, "mailbox_full": {41, "retry"}, "deferral_expired": {38, "retry"}, "blocked": {11, "investigate"}, "other": {5, "review"}}
 	if r.Bounces.Total != 288 || len(r.Bounces.Rows) != 6 {
 		t.Fatalf("bounces: %+v", r.Bounces)
 	}
@@ -181,17 +233,26 @@ func TestCampaignReport(t *testing.T) {
 		t.Fatalf("unsubscribes: %+v", u)
 	}
 	ab := r.ABTest
-	if ab == nil || ab.State != "decided" || ab.Winner != "B" || !ab.Significant || ab.Lift != 2.8 || ab.Confidence < 97 || ab.Confidence >= 99 || ab.Remaining != 38384 ||
+	// The board's card: B won on clicks with 98% confidence (3.4% against
+	// 2.6% when it was decided).
+	if ab == nil || ab.State != "decided" || ab.Winner != "B" || !ab.Significant || ab.Lift != 0.8 || ab.Confidence < 97.5 || ab.Confidence >= 98.5 || ab.Remaining != 38384 ||
 		len(ab.Variants) != 2 || ab.Variants[0].Recipients != 4798 || !ab.Variants[1].Winner ||
 		ab.Variants[0].Label != "October Product Update: three launches" || ab.Variants[1].Label != "What shipped in October, and what we're retiring" {
 		t.Fatalf("A/B: %+v", ab)
 	}
 	// The click map is drawn over the email as sent (the composer's
-	// content): every click is on one of its links, "Read the docs" draws
-	// the most, and the links under 5% are grouped.
+	// content): 2,996 people made 3,412 human clicks across its links (each
+	// person once per link), "Read the docs" draws the most, the navigation
+	// row is one entry and the other links under 5% are grouped.
 	cm := r.ClickMap
-	if !cm.Available || cm.Total != 2996 || len(cm.Links) == 0 {
-		t.Fatalf("click map: %+v", cm.Links)
+	if !cm.Available || cm.Total != 3412 || cm.BotTotal != 1108 || len(cm.Links) != 10 {
+		t.Fatalf("click map: %d %d %+v", cm.Total, cm.BotTotal, cm.Links)
+	}
+	inRow := map[int]bool{}
+	for _, row := range cm.Rows {
+		for _, p := range row.Positions {
+			inRow[p] = true
+		}
 	}
 	sum, grouped, top := 0.0, 0, cm.Links[0]
 	for _, l := range cm.Links {
@@ -202,23 +263,25 @@ func TestCampaignReport(t *testing.T) {
 		if l.Grouped {
 			grouped++
 		}
-		if l.Grouped != (l.Share < 5) || l.Hot != (l.Share >= 20) {
-			t.Errorf("%s at %v%%: grouped %v, hot %v", l.Label, l.Share, l.Grouped, l.Hot)
+		if l.Grouped != (l.Share < 5 && !inRow[l.Position]) || l.Hot != (l.Share >= 20) || l.Clicks < l.UniqueClicks || l.BotClicks < 110 || l.BotClicks > 111 {
+			t.Errorf("%s at %v%%: grouped %v, hot %v, %d clicks by %d, %d bots", l.Label, l.Share, l.Grouped, l.Hot, l.Clicks, l.UniqueClicks, l.BotClicks)
 		}
 	}
-	if top.Label != "Read the docs" || sum < 99.5 || sum > 100.5 || cm.Other == nil || cm.Other.Links != grouped {
+	if top.Label != "Read the docs" || top.UniqueClicks != 1297 || sum < 99.5 || sum > 100.5 || cm.Other == nil || cm.Other.Links != grouped {
 		t.Fatalf("click map: top %+v, shares add to %v, other %+v, %d grouped", top, sum, cm.Other, grouped)
 	}
-	// The board's bubbles: 38%, 24%, 19% and 6%, and "Other" 13% over 9 links.
+	// The board's table: 38%, 24% and 19%, "Header links" 6% and "Other"
+	// 13% (the images; preferences and view in browser aren't tracked).
 	shown := map[string]float64{}
 	for _, l := range cm.Links {
-		if !l.Grouped {
+		if !l.Grouped && !inRow[l.Position] {
 			shown[l.Label] = l.Share
 		}
 	}
-	if len(shown) != 4 || shown["Read the docs"] != 38 || shown["See changelog"] != 24 || shown["Read the guide"] != 19 || shown["Docs"] != 6 ||
-		cm.Other.Share != 13 || cm.Other.Links != 9 {
-		t.Fatalf("click map: %v, other %+v", shown, cm.Other)
+	if len(shown) != 3 || shown["Read the docs"] != 38 || shown["See changelog"] != 24 || shown["Read the guide"] != 19 ||
+		len(cm.Rows) != 1 || cm.Rows[0].Place != "header" || strings.Join(cm.Rows[0].Labels, ",") != "Blog,Docs,Changelog" || cm.Rows[0].Share != 6 || cm.Rows[0].Clicks != 205 ||
+		cm.Other.Share != 13 || cm.Other.Links != 4 {
+		t.Fatalf("click map: %v, rows %+v, other %+v", shown, cm.Rows, cm.Other)
 	}
 
 	// History imported from Brevo: its totals, and nothing ReputeCast can't
@@ -287,7 +350,8 @@ func TestReportExportAndSuppress(t *testing.T) {
 		t.Fatalf("disposition %q", cd)
 	}
 	body := string(res.Body)
-	for _, want := range []string{"Campaign report,October Product Update", "Gmail,22071", "Hard · unknown user,171", "Too many emails,41", "Two-proportion z-test"} {
+	for _, want := range []string{"Campaign report,October Product Update", "Gmail,22071", "Hard · unknown user,171", "Too many emails,41", "Two-proportion z-test",
+		"Privacy-protected opens,10436", "Scanner opens (left out),1240", "n/a (not reported)", "Bot clicks (left out),1108"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("CSV lacks %q", want)
 		}
@@ -301,21 +365,28 @@ func TestReportExportAndSuppress(t *testing.T) {
 		t.Fatalf("export audit entries: %d %v", n, err)
 	}
 
-	// Soft bounces are retried, not suppressed.
+	// Soft bounces are retried, not suppressed; addresses blocked for the
+	// sender's reputation are valid and are never suppressed (review AN-7).
 	c.Do("POST", base+"/bounces/mailbox_full/suppress", nil).MustStatus(t, 409)
+	if p := c.Do("POST", base+"/bounces/blocked/suppress", nil).MustStatus(t, 409).Problem(t); !strings.Contains(fmt.Sprint(p["detail"]), "sending IP or domain") {
+		t.Fatalf("blocked: %v", p)
+	}
 	var sr struct{ Added, Already int }
-	c.Do("POST", base+"/bounces/blocked/suppress", nil).MustStatus(t, 200).JSON(t, &sr)
-	if sr.Added != 11 {
+	c.Do("POST", base+"/bounces/other/suppress", nil).MustStatus(t, 200).JSON(t, &sr)
+	if sr.Added != 5 {
 		t.Fatalf("suppressed: %+v", sr)
 	}
 	var r report
 	c.Do("GET", base, nil).MustStatus(t, 200).JSON(t, &r)
 	for _, row := range r.Bounces.Rows {
-		if row.Type == "blocked" && (row.Suppression != "suppressed" || row.Unsuppressed != 0) {
-			t.Fatalf("blocked after suppressing: %+v", row)
+		if row.Type == "other" && (row.Suppression != "suppressed" || row.Unsuppressed != 0) {
+			t.Fatalf("other after suppressing: %+v", row)
+		}
+		if row.Type == "blocked" && row.Suppression != "investigate" {
+			t.Fatalf("blocked: %+v", row)
 		}
 	}
-	c.Do("POST", base+"/bounces/blocked/suppress", nil).MustStatus(t, 409)
+	c.Do("POST", base+"/bounces/other/suppress", nil).MustStatus(t, 409)
 	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action = 'suppression.add'`).Scan(&n); err != nil || n != 1 {
 		t.Fatalf("suppression audit: %d %v", n, err)
 	}
@@ -363,18 +434,33 @@ func TestReportShares(t *testing.T) {
 	// Nothing to share before a campaign is sent.
 	c.Do("POST", "/workspaces/acme-newsletter/campaigns/"+campaignID(t, c, "Weekly Digest #142")+"/report/shares", map[string]any{}).MustStatus(t, 409)
 
-	// The demo already shares this report once (the Report board's link).
+	// The demo already shares this report twice (the Report board's links).
+	type includes struct{ Cost, Warmup, Email bool }
 	var list struct {
-		Items []struct{ ID, URL string }
+		Items []struct {
+			ID, URL   string
+			ExpiresAt *time.Time
+			Includes  includes
+		}
 	}
 	c.Do("GET", base+"/shares", nil).MustStatus(t, 200).JSON(t, &list)
 	seeded := len(list.Items)
-	if seeded != 1 || list.Items[0].URL == "" {
+	if seeded != 2 || list.Items[0].URL == "" || !list.Items[0].Includes.Cost || list.Items[1].Includes.Cost || !list.Items[1].Includes.Email {
 		t.Fatalf("seeded links: %+v", list)
 	}
 
-	var link struct{ ID, URL string }
+	// A new link expires after 30 days and shares only the numbers unless
+	// more is chosen (review AN-16).
+	var link struct {
+		ID, URL   string
+		ExpiresAt *time.Time
+		Includes  includes
+	}
 	c.Do("POST", base+"/shares", map[string]any{}).MustStatus(t, 201).JSON(t, &link)
+	if link.ExpiresAt == nil || time.Until(*link.ExpiresAt) < 29*24*time.Hour || time.Until(*link.ExpiresAt) > 31*24*time.Hour || link.Includes != (includes{}) {
+		t.Fatalf("a new link: %+v", link)
+	}
+	c.Do("POST", base+"/shares", map[string]any{"expiresInDays": 365}).MustStatus(t, 422)
 	prefix := env.App.URLs.Report("")
 	if !strings.HasPrefix(link.URL, prefix) || len(link.URL)-len(prefix) != 22 {
 		t.Fatalf("link %q", link.URL)
@@ -405,6 +491,18 @@ func TestReportShares(t *testing.T) {
 	if shared.Workspace != "Acme Newsletter" || shared.Report.Campaign.ID != "" || shared.Report.Headline.Sent != 47980 {
 		t.Fatalf("shared: %s %+v", shared.Workspace, shared.Report.Campaign)
 	}
+	if shared.Report.ClickMap.HTML != "" || shared.Report.Providers.Columns[0].Cost != nil {
+		t.Fatalf("a link without the email or the cost shares them: %+v", shared.Report.Providers.Columns[0])
+	}
+	// With the email and the cost per provider, chosen.
+	var full struct{ ID, URL string }
+	c.Do("POST", base+"/shares", map[string]any{"includeEmail": true, "includeCost": true, "expiresInDays": 7}).MustStatus(t, 201).JSON(t, &full)
+	var both struct{ Report report }
+	anon.Do("GET", "/shared-reports/"+strings.TrimPrefix(full.URL, prefix), nil).MustStatus(t, 200).JSON(t, &both)
+	if both.Report.ClickMap.HTML == "" || both.Report.Providers.Columns[0].Cost == nil {
+		t.Fatalf("a link with the email and the cost: %+v", both.Report.Providers.Columns[0])
+	}
+	c.Do("DELETE", base+"/shares/"+full.ID, nil).MustStatus(t, 204)
 	if strings.Contains(string(res.Body), "reader.") || strings.Contains(string(res.Body), "former.reader") || strings.Contains(string(res.Body), oct) {
 		t.Fatal("the shared report leaks addresses or ids")
 	}
@@ -430,7 +528,7 @@ func TestReportShares(t *testing.T) {
 		}
 	}
 	var n int
-	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action IN ('report_share.create', 'report_share.revoke')`).Scan(&n); err != nil || n != 3 {
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action IN ('report_share.create', 'report_share.revoke')`).Scan(&n); err != nil || n != 5 {
 		t.Fatalf("share audit entries: %d %v", n, err)
 	}
 	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE after::text LIKE '%' || $1 || '%' OR metadata::text LIKE '%' || $1 || '%'`, token).Scan(&n); err != nil || n != 0 {

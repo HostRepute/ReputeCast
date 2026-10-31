@@ -1,6 +1,8 @@
 package app
 
 import (
+	"time"
+
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/hostrepute/reputecast/internal/campaigns"
@@ -13,32 +15,42 @@ import (
 
 func init() {
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
-		s := &campaigns.Service{
-			Pool: a.Pool, Q: a.Q, Audit: a.Audit,
-			Templates: &templates.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
-			Mail:      func() mailer.Sender { return a.Mail },
-			URLs:      a.URLs,
-			Checker: &contentcheck.Checker{
-				Blocklist: contentcheck.StoreBlocklist{Q: a.Q},
-				Prober:    linkProber(a),
-				Extra:     contentExtras(a),
-			},
-			// Saves re-check the campaign's open approval.
-			AfterChange: CampaignChangeHook(a),
-			// ?language= reaches the campaign's language versions.
-			Translations: campaignTranslations(a),
-			// Test emails get their poll links and the contact's version.
-			Extras: campaignExtras(a),
-			// Other domains' checks (the Sponsor block's creative).
-			More: campaignMore(a),
-			// SMS rows of the list (wire_texting.go).
-			Channels: campaignChannelRows(a),
-			// Previews and test sends show Grow's blocks for the reader.
-			Recipients: func() []liquid.RecipientData { return recipientData(a) },
-		}
+		s := a.campaigns()
 		campaigns.Register(h, s)
 		campaigns.RegisterComposer(h, s)
 	})
+}
+
+// campaigns is the campaign domain as the API uses it (real renders read
+// its previews too, wire_renders.go).
+func (a *App) campaigns() *campaigns.Service {
+	return &campaigns.Service{
+		Pool: a.Pool, Q: a.Q, Audit: a.Audit,
+		Templates: &templates.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Brand: a.brandKit()},
+		Mail:      func() mailer.Sender { return a.Mail },
+		URLs:      a.URLs,
+		Checker: &contentcheck.Checker{
+			// Link domains looked up live on Spamhaus DBL and SURBL, within
+			// the composer's 2 s budget (SR-1).
+			Blocklist: linkBlocklist(a, 2*time.Second),
+			Prober:    linkProber(a),
+			Extra:     contentExtras(a),
+		},
+		// Saves re-check the campaign's open approval.
+		AfterChange: CampaignChangeHook(a),
+		// ?language= reaches the campaign's language versions.
+		Translations: campaignTranslations(a),
+		// Test emails get their poll links and the contact's version.
+		Extras: campaignExtras(a),
+		// Other domains' checks (the Sponsor block's creative).
+		More: campaignMore(a),
+		// SMS rows of the list (wire_texting.go).
+		Channels: campaignChannelRows(a),
+		// Previews and test sends show Grow's blocks for the reader.
+		Recipients: func() []liquid.RecipientData { return recipientData(a) },
+		// Review links' tokens are sealed (CO-10).
+		Box: a.Secrets,
+	}
 }
 
 // campaignChannelRows fills in the list's rows of other channels'

@@ -68,7 +68,7 @@ export const me = defineMessages('grow.email', {
   cancel: 'Cancel',
   loadError: "Couldn't open the milestone email",
   loading: 'Opening the milestone email',
-  readOnly: 'Changing milestone emails needs <mono>grow:edit</mono>.',
+  readOnly: "Your role can't change milestone emails.",
   leave: 'Your changes to this milestone email aren’t saved.',
   editorFailed: "The editor couldn't start",
 })

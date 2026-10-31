@@ -76,6 +76,9 @@ func Descriptor() providers.Descriptor {
 			Bulk:      providers.BulkYourPolicy,
 			Webhooks:  "Bounce mailbox",
 			BatchSize: BatchSize,
+			// A server's 250 is the only answer plain SMTP gives: delivery is
+			// inferred from it (review GS-7).
+			InfersDelivery: true,
 			// Pricing and every other text people read (the terms' note,
 			// the Adapters tab's words, the fields' labels and hints) are in
 			// messages/en.json: WithMessages fills them.
@@ -147,7 +150,12 @@ func (p *Provider) Capabilities() providers.Capabilities { return Descriptor().C
 func (p *Provider) BounceMailbox() *bouncebox.Config { return p.s.BounceMailbox }
 
 func (p *Provider) client() (*gomail.Client, error) {
-	opts := []gomail.Option{gomail.WithPort(p.s.Port), gomail.WithTimeout(30 * time.Second)}
+	// Delivery status notifications are asked for (success, failure, delay;
+	// headers only) where the server announces DSN: go-mail leaves the
+	// parameters out for a server that doesn't.
+	opts := []gomail.Option{gomail.WithPort(p.s.Port), gomail.WithTimeout(30 * time.Second),
+		gomail.WithDSNMailReturnType(gomail.DSNMailReturnHeadersOnly),
+		gomail.WithDSNRcptNotifyType(gomail.DSNRcptNotifySuccess, gomail.DSNRcptNotifyFailure, gomail.DSNRcptNotifyDelay)}
 	if p.s.HELO != "" {
 		opts = append(opts, gomail.WithHELO(p.s.HELO))
 	}

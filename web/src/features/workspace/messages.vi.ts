@@ -30,7 +30,7 @@ export default translate(m, {
   noRule: 'Không bao giờ: chưa bật quy tắc nào',
   approvers: 'Người phê duyệt',
   approversValue:
-    'Thành viên có campaigns:approve: {hasApprovers, select, yes {{names}} other {chưa có ai}} · cần {count, plural, other {# lượt phê duyệt}}',
+    'Thành viên có thể phê duyệt chiến dịch: {hasApprovers, select, yes {{names}} other {chưa có ai}} · cần {count, plural, other {# lượt phê duyệt}}',
   automations: 'Tự động hóa',
   automationsOn: 'Xuất bản cần phê duyệt',
   automationsOff: 'Xuất bản không cần phê duyệt',
@@ -92,7 +92,7 @@ export default translate(m, {
   recommended: 'Khuyên dùng',
   exportBody: 'Hãy xuất mọi thứ trước: liên hệ kèm thông tin đồng ý, chiến dịch dạng MJML, báo cáo dạng CSV, nhật ký kiểm tra dạng JSON.',
   exportButton: 'Xuất mọi thứ trước',
-  exportNeeds: 'Xuất liên hệ cần quyền subscribers:export.',
+  exportNeeds: 'Vai trò của bạn không thể xuất liên hệ.',
   typeName: 'Nhập <b>{name}</b> để xác nhận',
   mustMatch: 'Phải khớp chính xác.',
   typeToEnable: 'Hãy nhập tên không gian làm việc để bật nút này',

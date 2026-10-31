@@ -142,7 +142,7 @@ export const m = defineMessages('pollReport', {
   /** A comment's line on phones, under the quote. */
   commentBy: '{who} · {when}',
   commentByAnswer: '{answer} · {who} · {when}',
-  showing: 'Showing {shown} of {total} · names are shown to people with subscribers:view',
+  showing: 'Showing {shown} of {total} · names are shown to people who can view contacts',
   previous: 'Previous',
   next: 'Next',
   noComments: 'No comments yet.',

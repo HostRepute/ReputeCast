@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review and send, review 2 fixes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500}
+.nav a:hover{background:#EEF0F3;color:#0B1220}.nav a.on{background:#E3F1EE;color:#0F766E}
+.nav svg{width:16px;height:16px;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.in{height:36px;padding:0 10px;border:1px solid #D4D8DF;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.h2{margin:0;font-size:15px;font-weight:600}
+.grp{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:#F9FAFB;border-top:1px solid #E3E6EB}
+.grp:first-of-type{border-top:0;border-radius:10px 10px 0 0}
+.row{display:flex;gap:12px;align-items:flex-start;padding:11px 16px;border-top:1px solid #EEF0F3}
+.rt{display:flex;flex-direction:column;gap:2px;flex:1 1 200px;min-width:0}
+.t{font-weight:500}
+.sum{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+label.rad{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;cursor:pointer}
+label.rad input{margin-top:3px}
+
+
+/* shell additions: workspace switcher, notification bell, user menu */
+.ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
+.ws:hover{background:#F3F4F6}
+.ws .wsn{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.ws .wsn b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws .wsn span{font-size:11px;color:#5B6472;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ibtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;cursor:pointer;padding:0;flex:none}
+.ibtn:hover{background:#F3F4F6}
+.ibtn .cnt{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#B91C1C;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ubtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.ubtn:hover{background:#F3F4F6}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu a:hover,.menu button:hover{background:#F3F4F6;color:#0B1220}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+@media (max-width:767px){.tools{margin-left:0}.menu{min-width:0;max-width:calc(100vw - 24px)}}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .brand-t,.side .ws{display:none}.side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+.tscroll{overflow-x:auto;max-width:100%;contain:inline-size}
+.tscroll>table{min-width:100%}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* nav: phones show four sections plus More */
+.side .nav a.more{display:none}
+@media (max-width:767px){.side .nav a.xm{display:none!important}.side .nav a.more{display:flex}.side .nav a.more.on{background:#E3F1EE;color:#0F766E}}
+/* shell: the icon rail keeps only the import button (the footer's inline display:flex beat the rail rule) */
+@media (max-width:1100px){.side .sidefoot > :not(.btn){display:none!important}}
+/* shell: avatar initials sit in the middle */
+.av{display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ubtn .av{border-radius:50%;font-weight:700}
+.ws .av{font-weight:700}
+/* switches: a disabled switch looks disabled */
+.tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+/* readiness rework: verdict first, issues first, passes collapsed */
+.verdict{display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:12px;background:#FFFBEB;border:1px solid #FCD34D;flex-wrap:wrap}
+.verdict .vtx{display:flex;flex-direction:column;gap:2px;flex:1 1 300px;min-width:0}
+.verdict .vt{margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em;line-height:1.25;color:#78350F}
+.verdict .vs{margin:0;color:#78350F}
+.verdict .vact{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.cols{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+.lcol{flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.cardh{display:flex;align-items:center;justify-content:space-between;gap:6px 12px;padding:14px 16px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap}
+.cardh .col2{display:flex;flex-direction:column;gap:2px;min-width:0}
+.cardh.warnh{background:#FFFBEB;border-bottom-color:#FCD34D;border-radius:10px 10px 0 0}
+.cardh.warnh .h2{color:#92400E}
+.srow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"b t f" "b d d";column-gap:12px;row-gap:6px;padding:14px 16px;border-top:1px solid #EEF0F3;align-items:start}
+.srow.first{border-top:0}
+.srow > .badge{grid-area:b;margin-top:1px}
+.srow > .st{grid-area:t;font-weight:500;min-width:0}
+.srow > .fixes{grid-area:f;display:flex;gap:10px;align-items:flex-start;justify-content:flex-end;flex-wrap:wrap}
+.srow > .tech{grid-area:d;min-width:0}
+.fix{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.fix .k{font-size:11.5px}
+details > summary{list-style:none;cursor:pointer}
+details > summary::-webkit-details-marker{display:none}
+details > summary .chev{transition:none;flex:none}
+details[open] > summary .chev{transform:rotate(180deg)}
+details[open] > summary .sh-c,details:not([open]) > summary .sh-o{display:none}
+.tech > summary{display:inline-flex;align-items:center;gap:6px;min-height:24px;font-size:12px;font-weight:600;color:#0F766E;border-radius:6px}
+.tech > summary:hover{color:#115E59}
+.tpanel{margin-top:6px;padding:12px 14px;background:#F9FAFB;border:1px solid #E3E6EB;border-radius:8px;display:flex;flex-direction:column;gap:10px}
+.tdl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 14px;margin:0;font-size:12.5px}
+.tdl dt{color:#5B6472;font-weight:500;margin:0}.tdl dd{margin:0;color:#0B1220}
+.raw{margin:0;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;color:#0B1220}
+.pbody{display:flex;align-items:center;gap:14px 20px;padding:14px 16px;flex-wrap:wrap}
+.plast{display:flex;flex-direction:column;gap:6px;flex:1 1 280px;min-width:0}
+.pbar{display:flex;gap:2px;height:8px;border-radius:999px;overflow:hidden;background:#EEF0F3;max-width:360px}
+.pbar i{display:block;height:100%}
+.pchips{list-style:none;margin:0;padding:14px 16px;display:flex;flex-wrap:wrap;gap:8px}
+.pchip{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0 10px;border-radius:999px;background:#F9FAFB;border:1px solid #E3E6EB;font-size:12.5px;font-weight:500;color:#0B1220;box-sizing:border-box}
+.pchip .n{font-size:12.5px}
+.allc > summary{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-top:1px solid #EEF0F3;font-size:13px;font-weight:600;color:#0F766E;border-radius:0 0 10px 10px}
+.allc > summary:hover{background:#F9FAFB;color:#115E59}
+.allc[open] > summary{border-radius:0}
+.allc .grp:first-of-type{border-radius:0}
+.allc .grp{border-top:1px solid #E3E6EB}
+.h3{margin:0;font-size:13px;font-weight:600}
+.rail{flex:1 1 340px;max-width:420px;min-width:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-content:start;align-items:start}
+.rail > .card{padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.railend{grid-column:1 / -1;display:flex;flex-direction:column;gap:8px}
+.inset{padding:12px 14px;background:#F9FAFB;border:1px solid #E3E6EB;border-radius:8px;display:flex;flex-direction:column;gap:4px}
+.lnk{background:none;border:0;padding:0;margin:0;font:inherit;font-size:12px;font-weight:600;color:#0F766E;text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px;cursor:pointer;min-height:24px}
+.lnk:hover{color:#115E59}
+.disc > summary{display:inline-flex;align-items:center;gap:6px;min-height:36px;font-size:13px;font-weight:600;color:#0F766E;border-radius:6px}
+.disc > summary:hover{color:#115E59}
+.disc .dgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:6px;align-items:end}
+.radbox{border:1px solid #E3E6EB;border-radius:8px;display:flex;flex-direction:column}
+.radbox.on{border-color:#0F766E;background:#F0FDFA}
+.radbox label.radl{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;cursor:pointer}
+.radbox label.radl input{margin-top:3px;flex:none}
+.radbox .dt{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 12px 12px 38px}
+.radbox .dt select{grid-column:1 / -1}
+.actbar{display:none}
+@media (max-width:1100px){
+  .rail{max-width:none}
+}
+@media (max-width:767px){
+  .verdict{padding:16px;gap:12px}
+  .verdict .vact{width:100%}
+  .verdict .vact .btn{flex:1 1 auto;min-height:44px}
+  .cta-wide{display:none!important}
+  .srow{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"b t" "b f" "b d";row-gap:10px}
+  .srow > .fixes{flex-direction:column;align-items:stretch;justify-content:flex-start}
+  .fix{align-items:stretch}
+  .content .btn{min-height:44px}
+  .tech > summary{min-height:44px}
+  .disc > summary{min-height:44px}
+  .tdl{grid-template-columns:minmax(0,1fr)}
+  .tdl dd{margin-bottom:6px}
+  .rail{grid-template-columns:minmax(0,1fr)}
+  .radbox .dt{padding-left:12px}
+  .disc .dgrid{grid-template-columns:minmax(0,1fr)}
+  .pchip{min-height:32px}
+  .lnk{min-height:44px;display:inline-flex;align-items:center}
+  .content .in{min-height:44px}
+  .app .mainc{padding-bottom:140px}
+  .actbar{display:flex;position:fixed;left:0;right:0;bottom:57px;z-index:45;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#FFFFFF;border-top:1px solid #E3E6EB;box-sizing:border-box}
+  .actbar .abm{display:flex;flex-direction:column;gap:1px;min-width:0;line-height:1.3}
+  .actbar .abm b{font-size:13px;font-weight:600}
+  .actbar .btn{min-height:44px;flex:none}
+}
+
+/* fixes drawer over the dimmed Review & send page */
+.bgapp{position:absolute;inset:0;overflow:hidden;display:flex;align-items:stretch;opacity:.6}
+.bgapp .cols{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+.bgapp .lcol{flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.bgapp .rail{flex:1 1 340px;max-width:420px;display:flex;flex-direction:column;gap:16px}
+.bgapp .rail > .card{padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.45);z-index:55}
+.dwrap{position:relative;z-index:60;display:flex;justify-content:flex-end;width:100%;min-height:100vh}
+.drw{width:560px;max-width:100%;background:#FFFFFF;border-left:1px solid #E3E6EB;box-shadow:-18px 0 40px rgba(11,18,32,.18);display:flex;flex-direction:column;box-sizing:border-box}
+.dwh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #EEF0F3}
+.dwh .col2{display:flex;flex-direction:column;gap:2px;flex:1 1 auto;min-width:0}
+.dwh h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em;line-height:1.25}
+.dwb{padding:18px 22px;display:flex;flex-direction:column;gap:16px;flex:1 1 auto}
+.dwf{position:sticky;bottom:0;display:flex;flex-direction:column;gap:10px;padding:14px 22px 18px;border-top:1px solid #EEF0F3;background:#FFFFFF}
+.dwf .acts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.fxc{border:1px solid #E3E6EB;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:12px;background:#FFFFFF}
+.fxc.on{border-color:#0F766E;background:#F0FDFA}
+.fxl{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+.fxl input{margin-top:3px;flex:none;width:18px;height:18px}
+.fxl .fxt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.fxl .t{font-weight:600;font-size:14px}
+.ba{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:stretch}
+.ba .arr{align-self:center}
+.bab{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;background:#FFFFFF;min-width:0}
+.ovr{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.rbar{display:flex;gap:2px;height:10px;border-radius:999px;overflow:hidden;background:#EEF0F3}
+.rbar i{display:block;height:100%}
+.cq{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 14px;margin:0;font-size:13px}
+.cq dt{color:#5B6472;font-weight:500;margin:0}.cq dd{margin:0}
+.diff{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;border:1px solid #E3E6EB;border-radius:8px;overflow:hidden;background:#FFFFFF}
+.diff div{padding:6px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.diff .del{background:#FEF2F2;color:#991B1B}.diff .add{background:#F0FDF4;color:#166534}
+.diff .cap{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:600;color:#4B5563;background:#F9FAFB;border-bottom:1px solid #EEF0F3}
+.next{list-style:none;margin:0;padding:12px 14px;border:1px solid #E3E6EB;border-radius:8px;background:#F9FAFB;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.next li{display:flex;gap:10px;align-items:flex-start}
+.next .num{width:22px;height:22px;border-radius:50%;border:1.5px solid #9AA3B2;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none;color:#4B5563;box-sizing:border-box}
+.xbtn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;flex:none}
+.xbtn:hover{background:#F3F4F6;color:#0B1220}
+.btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+@media (max-width:1100px){.drw{width:520px}.bgapp .side .nav > span{justify-content:center;padding:0!important;height:44px}.bgapp .side .nav svg{width:20px;height:20px}}
+@media (max-width:767px){
+  .bgapp,.scrim{display:none}
+  .dwrap{min-height:100vh}
+  .drw{width:100%;border-left:0;box-shadow:none}
+  .dwh{padding:14px 12px 12px}
+  .dwb{padding:14px 12px}
+  .dwf{padding:12px}
+  .dwf .acts{flex-direction:column-reverse;align-items:stretch}
+  .dwf .btn{min-height:44px}
+  .xbtn{width:44px;height:44px}
+  .ba{grid-template-columns:minmax(0,1fr)}
+  .ba .arr{transform:rotate(90deg);justify-self:center}
+  .cq{grid-template-columns:minmax(0,1fr)}
+  .cq dd{margin-bottom:6px}
+  .fxc .btn{min-height:44px}
+}
+
+/* phones: every top-bar target is at least 44px (tabs, links, fields, buttons, the bell and the account menu) */
+@media (max-width:767px){.top .tabs a{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box}.top a:not(.btn){min-height:44px}.top .btn,.top .in,.top select,.top input{min-height:44px;box-sizing:border-box}.top .ibtn{width:44px;height:44px;box-sizing:border-box}.top .ubtn{min-height:44px;box-sizing:border-box}.top nav[aria-label="Breadcrumb"] a{min-width:44px;justify-content:center}.top .chsw a{min-height:44px!important}}
+</style>
+</helmet>
+<h1 class="vh">Review 2 fixes, Weekly Digest #142</h1>
+<div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh;position:relative">
+  <a href="#main" class="skip">Skip to the fixes</a>
+  <div class="bgapp" aria-hidden="true">
+    <div class="side" style="flex:0 0 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
+      <span style="display:flex;align-items:center;gap:10px;padding:6px 8px;color:#0B1220"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span></span>
+      <div class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px">
+        <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" style="flex:none"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></span>
+        <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;background:#E3F1EE;color:#0F766E;font-weight:500"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" style="flex:none"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></span>
+        <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" style="flex:none"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></span>
+        <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" style="flex:none"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></span>
+        <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" style="flex:none"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></span>
+        <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" style="flex:none"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></span>
+        <span style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;color:#4B5563"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" style="flex:none"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></span>
+      </div>
+    </div>
+    <div class="mainc" style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column">
+      <div class="top" style="display:flex;align-items:center;gap:12px;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB;min-height:36px">
+        <span style="font-size:13px;color:#5B6472">Campaigns / Weekly Digest #142 / <span style="font-weight:600;color:#0B1220">Review &amp; send</span></span>
+      </div>
+      <div class="content" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+        <div class="verdict">
+          <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#FDE68A"></circle><path d="M20 11v11M20 27v1" stroke="#92400E" stroke-width="3" stroke-linecap="round"></path></svg>
+          <div class="vtx"><span class="vt">Ready with warnings · 2 to review</span><span class="vs">27 passed · 2 warnings · 0 blocks · checked 09:40, checks run again 15 min before the send</span></div>
+          <div class="vact"><span class="btn">Review 2 fixes</span><span class="btn pri" style="min-height:40px;padding:0 18px">Schedule for Tue 14 Oct, 09:00 ET</span></div>
+        </div>
+        <div class="cols">
+          <div class="lcol">
+            <div class="card">
+              <div class="cardh warnh"><span class="h2">Needs attention · 2</span></div>
+              <div class="srow first"><span class="badge warn"><span class="dot"></span>Warn</span><span class="st">Postal IP 203.0.113.25 is listed on 1 of 84 IP blocklists (UCEPROTECT L3, low impact)</span><span class="fixes"><span class="btn sm">Request delisting</span><span class="btn sm">Send via SES only</span></span></div>
+              <div class="srow"><span class="badge warn"><span class="dot"></span>Warn</span><span class="st">Workspace rule: links need UTM tags · 2 of 14 links have no utm_campaign</span><span class="fixes"><span class="btn sm">Add utm_campaign=weekly-digest-142</span></span></div>
+            </div>
+            <div class="card"><div class="cardh"><span class="h2">Placement test</span><span class="badge mut">Optional</span></div><div class="pbody" style="flex-direction:column;align-items:flex-start;gap:4px"><span class="k">Last result · Sun 12 Oct · Weekly Digest #142</span><span>SES · Inbox 8 · Promotions 2 · Spam 0</span><span>Postal · Inbox 5 · Promotions 2 · Spam 2 · Not arrived 1</span></div></div>
+            <div class="card"><div class="cardh"><span class="h2">Passed · 27</span></div><div class="pchips"><span class="pchip">Sender reputation 3</span><span class="pchip">Authentication 5</span><span class="pchip">Content 6</span><span class="pchip">Links 2</span><span class="pchip">Compliance 3</span><span class="pchip">Audience 3</span><span class="pchip">Routing 3</span></div></div>
+          </div>
+          <div class="rail">
+            <div class="card"><span class="h2">Audience</span><div class="sum"><span>Weekly Digest list</span><span class="n">31,988</span></div><div class="sum"><span>Final recipients</span><span class="n">31,192</span></div></div>
+            <div class="card"><span class="h2">Route breakdown</span><div class="sum"><span>Amazon SES · 90%</span><span class="n">28,073</span></div><div class="bar"><i style="width:90%;background:#4a3aa7"></i></div><div class="sum"><span>Postal · 10%</span><span class="n">3,119</span></div><div class="bar"><i style="width:10%;background:#e87ba4"></i></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="scrim" aria-hidden="true"></div>
+
+  <main class="dwrap" id="main">
+    <section class="drw" role="dialog" aria-modal="true" aria-labelledby="fx-title" aria-describedby="fx-desc">
+      <div class="dwh">
+        <div class="col2">
+          <h2 id="fx-title">Review 2 fixes</h2>
+          <span class="k" id="fx-desc">Weekly Digest #142 · pick the fixes to apply. Each one shows what changes before you apply it.</span>
+        </div>
+        <a href="SendReadiness.dc.html" class="xbtn" aria-label="Close and go back to Review &amp; send"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></a>
+      </div>
+
+      <div class="dwb">
+        <div class="{{fx1Cls}}">
+          <label class="fxl"><input type="checkbox" checked="{{f1}}" onChange="{{toggle1}}"><span class="fxt"><span class="t">Send via SES only</span><span class="k">Fixes: Postal IP 203.0.113.25 is listed on UCEPROTECT L3 (low impact)</span></span></label>
+          <div class="ba">
+            <div class="bab">
+              <span class="ovr">Before</span>
+              <div class="rbar" aria-hidden="true"><i style="width:90%;background:#4a3aa7"></i><i style="width:10%;background:#e87ba4"></i></div>
+              <span style="font-size:12.5px;display:flex;flex-direction:column"><span><span class="n">SES 90%</span> · 28,073</span><span><span class="n">Postal 10%</span> · 3,119</span></span>
+            </div>
+            <svg class="arr" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"></path></svg>
+            <div class="bab">
+              <span class="ovr">After</span>
+              <div class="rbar" aria-hidden="true"><i style="width:100%;background:#4a3aa7"></i></div>
+              <span style="font-size:12.5px;display:flex;flex-direction:column"><span><span class="n">SES 100%</span> · 31,192</span><span><span class="n">Postal 0%</span> · 0</span></span>
+            </div>
+          </div>
+          <dl class="cq">
+            <dt>Audience</dt><dd>No change · 31,192 recipients</dd>
+            <dt>Duration</dt><dd>Everyone done about 11:34 instead of 11:31 (+3 min)</dd>
+            <dt>Cost</dt><dd>$3.12 instead of $2.81 (+$0.31)</dd>
+            <dt>Warm-up</dt><dd>Postal's warm-up cap for today (6,000) goes unused</dd>
+          </dl>
+          <span class="k">Applies to this campaign only; the Broadcasts route stays SES 90 / Postal 10. You can also <a href="Deliverability.dc.html">request delisting</a>, which doesn't change this send.</span>
+        </div>
+
+        <div class="{{fx2Cls}}">
+          <label class="fxl"><input type="checkbox" checked="{{f2}}" onChange="{{toggle2}}"><span class="fxt"><span class="t">Add utm_campaign=weekly-digest-142 to 2 links</span><span class="k">Fixes: workspace rule “Links need UTM tags”</span></span></label>
+          <div class="diff" role="group" aria-label="Link 1 of 2, See the roadmap button">
+            <div class="cap">“See the roadmap” button</div>
+            <div class="del">− https://acme.io/roadmap?utm_source=newsletter&amp;utm_medium=email</div>
+            <div class="add">+ https://acme.io/roadmap?utm_source=newsletter&amp;utm_medium=email&amp;utm_campaign=weekly-digest-142</div>
+          </div>
+          <div class="diff" role="group" aria-label="Link 2 of 2, Full changelog link">
+            <div class="cap">“Full changelog” link</div>
+            <div class="del">− https://docs.acme.io/changelog?utm_source=newsletter&amp;utm_medium=email</div>
+            <div class="add">+ https://docs.acme.io/changelog?utm_source=newsletter&amp;utm_medium=email&amp;utm_campaign=weekly-digest-142</div>
+          </div>
+          <dl class="cq">
+            <dt>Audience</dt><dd>No change</dd>
+            <dt>Duration</dt><dd>No change</dd>
+            <dt>Cost</dt><dd>No change</dd>
+            <dt>Content</dt><dd>2 links change; the other 12 already carry the tag</dd>
+          </dl>
+          <div><a href="ComposerPreview.dc.html" class="btn sm">Preview the email with this fix</a></div>
+        </div>
+
+        <section aria-labelledby="fx-next" style="display:flex;flex-direction:column;gap:8px">
+          <h3 id="fx-next" class="h2" style="font-size:13px">What happens next</h3>
+          <ol class="next">
+            <li><span class="num" aria-hidden="true">1</span><span>The fixes you pick are saved as version 15 of the campaign.</span></li>
+            <li><span class="num" aria-hidden="true">2</span><span>Sending stays locked while checks re-run (about 15 s).</span></li>
+            <li><span class="num" aria-hidden="true">3</span><span>You're back on Review &amp; send with the new verdict, and the schedule button tells you what it will do.</span></li>
+          </ol>
+        </section>
+      </div>
+
+      <div class="dwf">
+        <div role="status" aria-live="polite" style="display:flex;flex-direction:column;gap:2px">
+          <span style="font-weight:600;font-size:13px">{{summaryHead}}</span>
+          <span class="k">{{summaryBody}}</span>
+        </div>
+        <span class="k">Undo on Review &amp; send puts the campaign back as it was until it changes again. Every fix to the email is also kept in Version history.</span>
+        <div class="acts">
+          <a href="SendReadiness.dc.html" class="btn">Cancel</a>
+          <sc-if value="{{hasAny}}" hint-placeholder-val="{{true}}"><a href="SendReadinessStates.dc.html" class="btn pri" style="min-height:40px;padding:0 18px">{{applyLabel}}</a></sc-if>
+          <sc-if value="{{noneSelected}}" hint-placeholder-val="{{false}}"><button type="button" class="btn pri" aria-disabled="true" title="Select at least one fix" style="min-height:40px;padding:0 18px">Apply fixes and re-run checks</button></sc-if>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1325}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { f1: true, f2: true };
+  }
+  renderVals() {
+    var self = this;
+    var f1 = this.state.f1, f2 = this.state.f2;
+    var n = (f1 ? 1 : 0) + (f2 ? 1 : 0);
+    var head, body;
+    if (n === 0) {
+      head = 'No fixes selected';
+      body = 'Both warnings stay; you confirm them before sending.';
+    } else {
+      head = 'After ' + (n === 2 ? 'both fixes' : 'this fix') + ': 31,192 recipients · everyone done about ' + (f1 ? '11:34' : '11:31') + ' · ' + (f1 ? '$3.12' : '$2.81');
+      body = n === 2 ? 'If the re-run passes, nothing is left to review.' : '1 warning stays for you to confirm before sending.';
+    }
+    return {
+      f1: f1,
+      f2: f2,
+      fx1Cls: f1 ? 'fxc on' : 'fxc',
+      fx2Cls: f2 ? 'fxc on' : 'fxc',
+      toggle1: function () { self.setState({ f1: !self.state.f1 }); },
+      toggle2: function () { self.setState({ f2: !self.state.f2 }); },
+      hasAny: n > 0,
+      noneSelected: n === 0,
+      applyLabel: n === 2 ? 'Apply 2 fixes and re-run checks' : 'Apply 1 fix and re-run checks',
+      summaryHead: head,
+      summaryBody: body
+    };
+  }
+}
+</script>
+</body>
+</html>

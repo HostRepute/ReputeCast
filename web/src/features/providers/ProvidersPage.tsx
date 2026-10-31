@@ -171,7 +171,13 @@ function Summary({ data }: { data: Overview }) {
       <Tile
         label={t(mo.tileSuppression)}
         value={count(s.suppressions)}
-        sub={s.syncedAt ? (s.inSync ? t(mo.syncedAll, { time: clock(s.syncedAt) }) : t(mo.syncing, { time: clock(s.syncedAt) })) : t(mo.enforced)}
+        sub={
+          s.syncedAt
+            ? s.inSync
+              ? t(mo.pushedAll, { count: s.pushed, time: clock(s.syncedAt) })
+              : t(mo.syncing, { time: clock(s.syncedAt) })
+            : t(mo.enforced)
+        }
       />
     </Grid>
   )

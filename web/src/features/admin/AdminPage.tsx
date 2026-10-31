@@ -20,7 +20,7 @@ export function hostOf(url?: string) {
 }
 
 /**
- * The Instance admin frame (A5 §5.10) with its six section tabs. Everyone but
+ * The Instance admin frame (A5 §5.10) with its section tabs. Everyone but
  * instance admins gets the 403 state.
  */
 export function AdminPage({

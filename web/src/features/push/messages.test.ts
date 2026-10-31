@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { t } from '@/i18n'
+import { t, type Catalog, type MessageDescriptor } from '@/i18n'
+import { deniedReason } from '@/lib/session'
 import { m as approval } from './approval.messages'
 import { m as step } from './automation.messages'
 import { m as composer } from './composer.messages'
 import { m as setup } from './messages'
+import { m as review } from './review.messages'
+import { m as waCampaign } from '@/features/whatsapp/campaign.messages'
 import { m as waStep } from '@/features/whatsapp/automation.messages'
 
 // The push and WhatsApp messages with ICU selects, plurals and quoted braces.
@@ -38,5 +41,31 @@ describe('push and WhatsApp messages', () => {
     expect(t(step.reach, { linked: 612, contacts: 874 })).toBe('612 of the 874 contacts in this flow have a linked subscription.')
     expect(t(step.reach, { linked: 1, contacts: 1240 })).toBe('1 of the 1,240 contacts in this flow has a linked subscription.')
     expect(t(step.nodeLinked, { n: 612 })).toBe('612 linked subscriptions')
+  })
+})
+
+// X-1: push and WhatsApp say what the reader's role can't do, or who can, in
+// words (push:send and whatsapp:send never show).
+const permissionKey = /\b[a-z]+:(?:view|edit|send|pause|approve|publish|content|create|import|export|delete|verify|manage|sql|share|hostrepute|invite|use|run|review|connect|transfer|usage|library)\b/
+const english = import.meta.glob<Record<string, Record<string, MessageDescriptor>>>(['./**/*messages.ts', '../whatsapp/**/*messages.ts'], { eager: true })
+const vietnamese = import.meta.glob<Catalog>(['./**/*messages.vi.ts', '../whatsapp/**/*messages.vi.ts'], { eager: true, import: 'default' })
+
+describe('push and WhatsApp copy', () => {
+  it('names no permission key, in English or Vietnamese', () => {
+    const en = Object.values(english).flatMap((file) => Object.values(file).flatMap((group) => Object.values(group)))
+    const vi = Object.values(vietnamese).flatMap((catalog) => Object.entries(catalog))
+    expect(en.length).toBeGreaterThan(0)
+    expect(vi.length).toBeGreaterThan(0)
+    for (const d of en) {
+      expect(d.message, d.id).not.toMatch(permissionKey)
+      // Nor does a call site pass one in: no {perm}, {perms} or {permission} to fill.
+      expect(d.message, d.id).not.toMatch(/\{perm(?:s|ission)?\}/)
+    }
+    for (const [id, text] of vi) expect(text, id).not.toMatch(permissionKey)
+  })
+
+  it('says why Send is off in words', () => {
+    expect(deniedReason('push:send', ['Marcus Chen'], t(review.sendAction))).toBe("Sending push campaigns needs a permission you don't have. Ask Marcus Chen.")
+    expect(deniedReason('whatsapp:send', [], t(waCampaign.sendAction))).toBe("Sending WhatsApp campaigns needs a permission you don't have.")
   })
 })

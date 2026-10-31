@@ -34,7 +34,9 @@ var (
 	mMJML      = msgs.M("problem.mjml")
 	mNameTaken = msgs.M("problem.nameTaken")
 	mNotFound  = msgs.M("problem.notFound")
-	mAddress   = msgs.M("sample.address")
+	// The gallery's preview of a template whose MJML doesn't compile.
+	mPreviewCompile = msgs.M("problem.previewCompile")
+	mAddress        = msgs.M("sample.address")
 )
 
 // sampleRe is a sample text of a starter: %%T:weekly.intro%%, with

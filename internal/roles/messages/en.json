@@ -28,7 +28,7 @@
   "approvals.sendApprove": "Holders can send and approve other members' sends; they can't approve their own",
   "approvals.approve": "Holders can approve other members' sends",
   "approvals.send": "Holders can send; the approval policy still applies to large or risky sends",
-  "approvals.request": "Holders can request approval for sends because they have campaigns:edit without campaigns:send",
+  "approvals.request": "Holders can request approval for sends because they can edit campaigns but can't send them",
   "approvals.none": "Holders can't send or request approval",
 
   "audit.permissions": { "message": "{count, plural, one {# permission} other {# permissions}}", "note": "the audit log's summary of a new role" },

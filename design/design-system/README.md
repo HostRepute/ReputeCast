@@ -149,7 +149,7 @@ An envelope whose flap is a check, on a 32-unit grid: teal `accent` square with 
 
 ## Voice
 
-English, plain, specific. Say what happened and what to do: "Outlook complaints hit 0.18% (limit 0.10%). 2,522 held, everything else still sending." Numbers before adjectives, provider names exact, no exclamation marks, no "oops".
+English, plain, specific. Say what happened and what to do: "Outlook complaints hit 0.18% (limit 0.10%). 2,436 held, everything else still sending." Numbers before adjectives, provider names exact, no exclamation marks, no "oops".
 
 ## Responsive artboards
 

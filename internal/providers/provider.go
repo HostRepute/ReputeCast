@@ -66,13 +66,40 @@ type Capabilities struct {
 	// RemovesWebhook is true when the adapter removes the webhook it
 	// registered once the provider is removed (WebhookUnregistrar).
 	RemovesWebhook bool `json:"removesWebhook"`
+	// OneClick is how the provider carries the List-Unsubscribe and
+	// List-Unsubscribe-Post headers ReputeCast adds: "" as given, signed
+	// with the domain's DKIM key; OneClickReplaced when it sets its own;
+	// OneClickUnsigned when its DKIM signature doesn't cover them, so
+	// Gmail and Yahoo may not offer one-click unsubscribe.
+	OneClick string `json:"oneClick,omitempty"`
+	// EventQueue names the queue the adapter can take its events from
+	// instead of webhooks ("SQS", review PR-4); empty for none.
+	EventQueue string `json:"eventQueue,omitempty"`
+	// Tenants is true when each workspace sends as its own tenant at the
+	// provider, with its own suppression list and reputation (SES, PR-11).
+	Tenants bool `json:"tenants,omitempty"`
 	// PricingText and DedicatedIPsText are the messages Pricing and
 	// DedicatedIPs come from (text.go). They are kept with the capability
 	// snapshot of a connected provider, so it reads in each reader's
 	// language later.
 	PricingText      i18n.Text `json:"pricingText,omitzero"`
 	DedicatedIPsText i18n.Text `json:"dedicatedIpsText,omitzero"`
+	// InfersDelivery: the provider reports no deliveries (plain SMTP), so
+	// a message counts as delivered once the server accepts it ("delivered
+	// (inferred)"); bounces and complaints still arrive as reports.
+	InfersDelivery bool `json:"infersDelivery,omitempty"`
+	// ReportsIPs is true when the adapter lists the account's dedicated
+	// sending IPs (IPReporter): ReputeCast keeps them up to date. Without
+	// it, people set a provider's IPs by hand.
+	ReportsIPs bool `json:"reportsIps,omitempty"`
 }
+
+// How a provider carries the one-click unsubscribe headers
+// (Capabilities.OneClick).
+const (
+	OneClickReplaced = "replaced"
+	OneClickUnsigned = "unsigned"
+)
 
 // Message is one email to one recipient, already rendered and personalized.
 type Message struct {
@@ -145,7 +172,10 @@ type Event struct {
 	BounceClass string
 	URL         string // clicks
 	UserAgent   string
-	Raw         json.RawMessage
+	// IP is the address that opened or clicked, when the provider reports
+	// it (its tracking classifies privacy proxies and scanners by network).
+	IP  string
+	Raw json.RawMessage
 }
 
 // Provider is the contract every adapter implements.
@@ -223,9 +253,48 @@ type Suppression struct {
 }
 
 // SuppressionSyncer is implemented by providers with a suppression list API.
+// ReputeCast pushes only hard bounces and complaints that apply to all mail
+// (never unsubscribes: those stop marketing, not a password reset).
 type SuppressionSyncer interface {
 	ListSuppressions(ctx context.Context, since time.Time) ([]Suppression, error)
 	AddSuppressions(ctx context.Context, emails []string) error
+}
+
+// SuppressionReasonAdder is implemented by providers whose suppression list
+// keeps a reason (Amazon SES: BOUNCE or COMPLAINT): the sync uses it instead
+// of AddSuppressions so a complaint is pushed as a complaint.
+type SuppressionReasonAdder interface {
+	AddSuppressionsWithReason(ctx context.Context, list []Suppression) error
+}
+
+// SuppressionRemover is implemented by providers whose suppression list API
+// can take an address off: the sync removes there what left the shared list.
+type SuppressionRemover interface {
+	RemoveSuppressions(ctx context.Context, emails []string) error
+}
+
+// Suppression list scopes: where a provider's list lives.
+const (
+	SuppressionScopeAccount = "account" // the provider account's own list
+	SuppressionScopeTenant  = "tenant"  // an Amazon SES tenant's own list (one per workspace)
+	SuppressionScopeStream  = "stream"  // per message stream (Postmark)
+	SuppressionScopeDomain  = "domain"  // per sending domain (Mailgun)
+)
+
+// SuppressionScope says where a provider's suppression list lives and
+// whether ReputeCast may write to it.
+type SuppressionScope struct {
+	Scope string
+	// Writable is false for a list shared with mail ReputeCast doesn't send
+	// (an Amazon SES account-level list without a tenant): the sync only
+	// reads it, so other apps on that account are never affected.
+	Writable bool
+}
+
+// SuppressionScoper is implemented by providers whose list scope depends on
+// the connection; others are a writable account-level list.
+type SuppressionScoper interface {
+	SuppressionScope() SuppressionScope
 }
 
 // Verifier is implemented by adapters that can check credentials at connect time.

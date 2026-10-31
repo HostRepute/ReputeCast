@@ -58,6 +58,80 @@ func (q *Queries) SuppCount(ctx context.Context, workspaceID uuid.UUID) (int64, 
 	return column_1, err
 }
 
+const suppEntriesAdd = `-- name: SuppEntriesAdd :exec
+INSERT INTO provider_suppression_entries (provider_id, email, origin, seq, synced_at)
+SELECT $1::uuid, unnest($2::text[]), $3::text, unnest($4::bigint[]), $5::timestamptz
+ON CONFLICT (provider_id, email) DO NOTHING
+`
+
+type SuppEntriesAddParams struct {
+	ProviderID uuid.UUID `json:"providerId"`
+	Emails     []string  `json:"emails"`
+	Origin     string    `json:"origin"`
+	Seqs       []int64   `json:"seqs"`
+	SyncedAt   time.Time `json:"syncedAt"`
+}
+
+// Records addresses a provider's list now holds. A pulled address that was
+// pushed before stays "pushed".
+func (q *Queries) SuppEntriesAdd(ctx context.Context, arg SuppEntriesAddParams) error {
+	_, err := q.db.Exec(ctx, suppEntriesAdd,
+		arg.ProviderID,
+		arg.Emails,
+		arg.Origin,
+		arg.Seqs,
+		arg.SyncedAt,
+	)
+	return err
+}
+
+const suppEntriesDelete = `-- name: SuppEntriesDelete :exec
+DELETE FROM provider_suppression_entries WHERE provider_id = $1 AND email = ANY($2::text[])
+`
+
+type SuppEntriesDeleteParams struct {
+	ProviderID uuid.UUID `json:"providerId"`
+	Emails     []string  `json:"emails"`
+}
+
+func (q *Queries) SuppEntriesDelete(ctx context.Context, arg SuppEntriesDeleteParams) error {
+	_, err := q.db.Exec(ctx, suppEntriesDelete, arg.ProviderID, arg.Emails)
+	return err
+}
+
+const suppEntriesKnown = `-- name: SuppEntriesKnown :many
+SELECT email FROM provider_suppression_entries WHERE provider_id = $1 AND email = ANY($2::text[])
+`
+
+type SuppEntriesKnownParams struct {
+	ProviderID uuid.UUID `json:"providerId"`
+	Emails     []string  `json:"emails"`
+}
+
+// Which of these addresses a provider's list already holds as far as
+// ReputeCast knows (pushed there, or pulled before): a pull skips them, so
+// an address a person removed from the shared list isn't pulled back in
+// before its removal reaches the provider.
+func (q *Queries) SuppEntriesKnown(ctx context.Context, arg SuppEntriesKnownParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, suppEntriesKnown, arg.ProviderID, arg.Emails)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var email string
+		if err := rows.Scan(&email); err != nil {
+			return nil, err
+		}
+		items = append(items, email)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const suppImportSources = `-- name: SuppImportSources :many
 SELECT source, count(*)::bigint AS n, min(created_at)::timestamptz AS first_at
 FROM suppressions
@@ -92,34 +166,69 @@ func (q *Queries) SuppImportSources(ctx context.Context, workspaceID uuid.UUID) 
 	return items, nil
 }
 
-const suppLatestCreated = `-- name: SuppLatestCreated :one
-SELECT coalesce(max(created_at), '-infinity'::timestamptz)::timestamptz FROM suppressions WHERE workspace_id = $1
-`
-
-func (q *Queries) SuppLatestCreated(ctx context.Context, workspaceID uuid.UUID) (time.Time, error) {
-	row := q.db.QueryRow(ctx, suppLatestCreated, workspaceID)
-	var column_1 time.Time
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
 const suppPendingCount = `-- name: SuppPendingCount :one
-SELECT count(*)::bigint FROM suppressions
-WHERE workspace_id = $1 AND created_at > $2
-  AND (source_provider_id IS NULL OR source_provider_id <> $3)
+SELECT ((SELECT count(*) FROM suppressions s
+         WHERE s.workspace_id = $1 AND s.scope = 'all' AND s.reason IN ('hard_bounce', 'complaint')
+           AND (s.source_provider_id IS NULL OR s.source_provider_id <> $2)
+           AND NOT EXISTS (SELECT 1 FROM provider_suppression_entries e WHERE e.provider_id = $2 AND e.email = s.email))
+      + (SELECT count(*) FROM provider_suppression_entries e
+         WHERE e.provider_id = $2
+           AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = $1 AND s.email = e.email
+                           AND (e.origin = 'pulled' OR (s.scope = 'all' AND s.reason IN ('hard_bounce', 'complaint'))))))::bigint
 `
 
 type SuppPendingCountParams struct {
 	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	Since       time.Time  `json:"since"`
 	ProviderID  *uuid.UUID `json:"providerId"`
 }
 
+// What a sync still has to do for a provider: suppressions to push plus
+// entries to remove.
 func (q *Queries) SuppPendingCount(ctx context.Context, arg SuppPendingCountParams) (int64, error) {
-	row := q.db.QueryRow(ctx, suppPendingCount, arg.WorkspaceID, arg.Since, arg.ProviderID)
+	row := q.db.QueryRow(ctx, suppPendingCount, arg.WorkspaceID, arg.ProviderID)
 	var column_1 int64
 	err := row.Scan(&column_1)
 	return column_1, err
+}
+
+const suppPushSummary = `-- name: SuppPushSummary :many
+SELECT reason, scope, (scope = 'all' AND reason IN ('hard_bounce', 'complaint'))::boolean AS pushed, count(*)::bigint AS n
+FROM suppressions WHERE workspace_id = $1
+GROUP BY reason, scope ORDER BY pushed DESC, n DESC, reason
+`
+
+type SuppPushSummaryRow struct {
+	Reason string `json:"reason"`
+	Scope  string `json:"scope"`
+	Pushed bool   `json:"pushed"`
+	N      int64  `json:"n"`
+}
+
+// The shared list by reason and scope, and whether providers get it (PR-1:
+// hard bounces and complaints that apply to all mail).
+func (q *Queries) SuppPushSummary(ctx context.Context, workspaceID uuid.UUID) ([]SuppPushSummaryRow, error) {
+	rows, err := q.db.Query(ctx, suppPushSummary, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SuppPushSummaryRow{}
+	for rows.Next() {
+		var i SuppPushSummaryRow
+		if err := rows.Scan(
+			&i.Reason,
+			&i.Scope,
+			&i.Pushed,
+			&i.N,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const suppReasonCounts = `-- name: SuppReasonCounts :many
@@ -152,7 +261,7 @@ func (q *Queries) SuppReasonCounts(ctx context.Context, workspaceID uuid.UUID) (
 }
 
 const suppSyncGet = `-- name: SuppSyncGet :one
-SELECT provider_id, mode, last_push_at, last_pull_at, pushed, pulled, pending, status, status_detail FROM provider_suppression_sync WHERE provider_id = $1
+SELECT provider_id, mode, last_push_at, last_pull_at, pushed, pulled, pending, status, status_detail, scope, push_seq, removed FROM provider_suppression_sync WHERE provider_id = $1
 `
 
 func (q *Queries) SuppSyncGet(ctx context.Context, providerID uuid.UUID) (ProviderSuppressionSync, error) {
@@ -168,13 +277,16 @@ func (q *Queries) SuppSyncGet(ctx context.Context, providerID uuid.UUID) (Provid
 		&i.Pending,
 		&i.Status,
 		&i.StatusDetail,
+		&i.Scope,
+		&i.PushSeq,
+		&i.Removed,
 	)
 	return i, err
 }
 
 const suppSyncList = `-- name: SuppSyncList :many
 
-SELECT provider_id, mode, last_push_at, last_pull_at, pushed, pulled, pending, status, status_detail FROM provider_suppression_sync WHERE provider_id = ANY($1::uuid[])
+SELECT provider_id, mode, last_push_at, last_pull_at, pushed, pulled, pending, status, status_detail, scope, push_seq, removed FROM provider_suppression_sync WHERE provider_id = ANY($1::uuid[])
 `
 
 // Sync of the shared suppression list with each provider. The list
@@ -198,6 +310,9 @@ func (q *Queries) SuppSyncList(ctx context.Context, providerIds []uuid.UUID) ([]
 			&i.Pending,
 			&i.Status,
 			&i.StatusDetail,
+			&i.Scope,
+			&i.PushSeq,
+			&i.Removed,
 		); err != nil {
 			return nil, err
 		}
@@ -210,12 +325,13 @@ func (q *Queries) SuppSyncList(ctx context.Context, providerIds []uuid.UUID) ([]
 }
 
 const suppSyncUpsert = `-- name: SuppSyncUpsert :exec
-INSERT INTO provider_suppression_sync (provider_id, mode, last_push_at, last_pull_at, pushed, pulled, pending, status, status_detail)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO provider_suppression_sync (provider_id, mode, last_push_at, last_pull_at, pushed, pulled, pending, status, status_detail, scope, push_seq, removed)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 ON CONFLICT (provider_id) DO UPDATE
 SET mode = EXCLUDED.mode, last_push_at = EXCLUDED.last_push_at, last_pull_at = EXCLUDED.last_pull_at,
     pushed = EXCLUDED.pushed, pulled = EXCLUDED.pulled, pending = EXCLUDED.pending,
-    status = EXCLUDED.status, status_detail = EXCLUDED.status_detail
+    status = EXCLUDED.status, status_detail = EXCLUDED.status_detail,
+    scope = EXCLUDED.scope, push_seq = EXCLUDED.push_seq, removed = EXCLUDED.removed
 `
 
 type SuppSyncUpsertParams struct {
@@ -228,6 +344,9 @@ type SuppSyncUpsertParams struct {
 	Pending      int64      `json:"pending"`
 	Status       string     `json:"status"`
 	StatusDetail string     `json:"statusDetail"`
+	Scope        string     `json:"scope"`
+	PushSeq      int64      `json:"pushSeq"`
+	Removed      int64      `json:"removed"`
 }
 
 func (q *Queries) SuppSyncUpsert(ctx context.Context, arg SuppSyncUpsertParams) error {
@@ -241,21 +360,24 @@ func (q *Queries) SuppSyncUpsert(ctx context.Context, arg SuppSyncUpsertParams) 
 		arg.Pending,
 		arg.Status,
 		arg.StatusDetail,
+		arg.Scope,
+		arg.PushSeq,
+		arg.Removed,
 	)
 	return err
 }
 
 const suppToPush = `-- name: SuppToPush :many
-SELECT email, reason FROM suppressions
-WHERE workspace_id = $1 AND created_at > $2
-  AND (source_provider_id IS NULL OR source_provider_id <> $3)
-ORDER BY created_at
-LIMIT $4
+SELECT s.email, s.reason, s.seq FROM suppressions s
+WHERE s.workspace_id = $1 AND s.scope = 'all' AND s.reason IN ('hard_bounce', 'complaint')
+  AND (s.source_provider_id IS NULL OR s.source_provider_id <> $2)
+  AND NOT EXISTS (SELECT 1 FROM provider_suppression_entries e WHERE e.provider_id = $2 AND e.email = s.email)
+ORDER BY s.seq
+LIMIT $3
 `
 
 type SuppToPushParams struct {
 	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	Since       time.Time  `json:"since"`
 	ProviderID  *uuid.UUID `json:"providerId"`
 	Lim         int32      `json:"lim"`
 }
@@ -263,17 +385,15 @@ type SuppToPushParams struct {
 type SuppToPushRow struct {
 	Email  string `json:"email"`
 	Reason string `json:"reason"`
+	Seq    int64  `json:"seq"`
 }
 
-// Addresses of the shared list created after a time that didn't come from
-// the provider being pushed to (no point echoing its own list back).
+// PR-1: suppressions a provider's list should hold and doesn't yet, in
+// insert order: hard bounces and complaints that apply to all mail (never
+// unsubscribes, role addresses or manual marketing-only entries, which
+// would stop a password reset), not the provider's own (no echo).
 func (q *Queries) SuppToPush(ctx context.Context, arg SuppToPushParams) ([]SuppToPushRow, error) {
-	rows, err := q.db.Query(ctx, suppToPush,
-		arg.WorkspaceID,
-		arg.Since,
-		arg.ProviderID,
-		arg.Lim,
-	)
+	rows, err := q.db.Query(ctx, suppToPush, arg.WorkspaceID, arg.ProviderID, arg.Lim)
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +401,50 @@ func (q *Queries) SuppToPush(ctx context.Context, arg SuppToPushParams) ([]SuppT
 	items := []SuppToPushRow{}
 	for rows.Next() {
 		var i SuppToPushRow
-		if err := rows.Scan(&i.Email, &i.Reason); err != nil {
+		if err := rows.Scan(&i.Email, &i.Reason, &i.Seq); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const suppToRemove = `-- name: SuppToRemove :many
+SELECT e.email, e.origin FROM provider_suppression_entries e
+WHERE e.provider_id = $1
+  AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = $2 AND s.email = e.email
+                  AND (e.origin = 'pulled' OR (s.scope = 'all' AND s.reason IN ('hard_bounce', 'complaint'))))
+ORDER BY e.email
+LIMIT $3
+`
+
+type SuppToRemoveParams struct {
+	ProviderID  uuid.UUID `json:"providerId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Lim         int32     `json:"lim"`
+}
+
+type SuppToRemoveRow struct {
+	Email  string `json:"email"`
+	Origin string `json:"origin"`
+}
+
+// Entries of a provider's list that left the shared list: a pushed one
+// whose suppression is gone (or no longer applies to all mail), a pulled
+// one someone removed from the shared list.
+func (q *Queries) SuppToRemove(ctx context.Context, arg SuppToRemoveParams) ([]SuppToRemoveRow, error) {
+	rows, err := q.db.Query(ctx, suppToRemove, arg.ProviderID, arg.WorkspaceID, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SuppToRemoveRow{}
+	for rows.Next() {
+		var i SuppToRemoveRow
+		if err := rows.Scan(&i.Email, &i.Origin); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

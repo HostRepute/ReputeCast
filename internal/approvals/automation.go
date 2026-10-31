@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
@@ -81,7 +82,7 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 	if len(req.Missing) > 0 {
 		perm := req.Missing[0]
 		m := memberByID(ms, &req.By)
-		rm := match(RuleAuthorLacksSend, mRuleAutomationLacks, mRuleLacksSendShort, mRuleLacksSendShort, i18n.Args{"permission": string(perm)})
+		rm := lacksStepMatch(perm)
 		if m != nil {
 			rm.Author, rm.Role = m.Name, m.RoleName
 		}
@@ -130,6 +131,23 @@ func pluralWord(n int, one, many string) string {
 		return one
 	}
 	return many
+}
+
+// lacksStepMatch is the rule a flow matches when one of its steps sends on
+// a channel its author can't send on. The label names the channel in the
+// reader's words, never the permission key (review X-1): "sms" for
+// sms:send; any other permission reads as a step the author can't publish.
+func lacksStepMatch(perm authz.Permission) ApprovalRuleMatch {
+	channel := ""
+	switch perm {
+	case authz.SMSSend:
+		channel = "sms"
+	case authz.PushSend:
+		channel = "push"
+	case authz.WhatsAppSend:
+		channel = "whatsapp"
+	}
+	return match(RuleAuthorLacksSend, mRuleAutomationLacks, mRuleLacksSendShort, mRuleLacksSendShort, i18n.Args{"channel": channel})
 }
 
 // completePublish publishes an approved automation version.

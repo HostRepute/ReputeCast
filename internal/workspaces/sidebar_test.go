@@ -89,7 +89,7 @@ func TestSidebarSections(t *testing.T) {
 	c.Do("PUT", ws+"/settings/sidebar/campaigns", map[string]any{"shown": false}).MustStatus(t, 422)
 	v := env.Client()
 	v.SignInDemo("aisha@acme.io")
-	if p := v.Do("PUT", ws+"/settings/sidebar/grow", map[string]any{"shown": false}).MustStatus(t, 403).Problem(t); !strings.Contains(p["detail"].(string), "workspace:manage") {
+	if p := v.Do("PUT", ws+"/settings/sidebar/grow", map[string]any{"shown": false}).MustStatus(t, 403).Problem(t); p["permission"] != "workspace:manage" || !strings.Contains(p["detail"].(string), "Linh Nguyen") {
 		t.Fatalf("viewer: %v", p)
 	}
 	// Members who can't change it still get what the sidebar hides.

@@ -86,7 +86,8 @@ export function WebChip() {
   else state = t(mc.chipWithSend)
   const open = c.rightTab === 'web'
   return (
-    <button type="button" className={`wchip${open ? ' on' : ''}`} aria-pressed={open} onClick={() => c.setRightTab('web')}>
+    // The composer's top bar may show the state as its dot only: the title says it.
+    <button type="button" className={`wchip${open ? ' on' : ''}`} aria-pressed={open} title={state} onClick={() => c.setRightTab('web')}>
       <Icon name="globe" size={14} />
       {t(mc.web)}
       <span className="wcs">

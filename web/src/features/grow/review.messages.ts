@@ -101,8 +101,8 @@ export const mv = defineMessages('grow.review', {
   emptyText: 'Suspicious referrals wait here instead of counting. You’ll get a notification when one arrives.',
   emptyFiltered: 'No held referral matches these filters.',
   clearFilters: 'Clear filters',
-  readOnly: 'Deciding needs <mono>grow:review</mono>. Ask {helpers}.',
-  readOnlyNoHelpers: 'Deciding needs <mono>grow:review</mono>.',
+  readOnly: "Your role can't decide on held referrals. Ask {helpers}.",
+  readOnlyNoHelpers: "Your role can't decide on held referrals.",
   loadError: "Couldn't load the review queue",
   loadingLabel: 'Loading the review queue',
 })

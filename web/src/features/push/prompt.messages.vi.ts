@@ -38,7 +38,7 @@ export default translate(m, {
   deleteTitle: 'Xóa “{name}”?',
   deleteText: 'Người đọc sẽ không còn được hỏi. Các lượt đăng ký mà lời nhắc này mang về vẫn được giữ, cùng bản ghi đồng ý của chúng.',
   deleted: 'Đã xóa “{name}”',
-  readOnly: 'Chỉ xem: thay đổi lời nhắc cần quyền {perm}.',
+  readOnly: 'Chỉ xem: vai trò của bạn không thể thay đổi lời nhắc.',
 
   // Form and type
   form: 'Biểu mẫu',

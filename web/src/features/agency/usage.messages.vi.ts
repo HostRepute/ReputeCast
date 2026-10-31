@@ -8,7 +8,7 @@ export default translate(m, {
   monthPartial: '{month} · đến hôm nay',
   exportCsv: 'Xuất CSV',
   loadFailed: 'Không tải được mức sử dụng',
-  readOnly: 'Chỉ xem · không có quyền agency:usage',
+  readOnly: 'Chỉ xem',
   tileEmails: 'Email',
   tileEmailsSub: '{n, plural, other {mọi luồng, # không gian làm việc}}',
   tileSegments: 'Đoạn tin SMS',

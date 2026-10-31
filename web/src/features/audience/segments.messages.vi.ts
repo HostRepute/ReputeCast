@@ -58,10 +58,10 @@ export default translate(m, {
   generated: 'SQL được tạo',
   readOnly: 'chỉ đọc',
   copied: 'Đã sao chép SQL',
-  needsSql: 'Cần quyền segments:sql',
+  needsSql: 'Cần vai trò có thể viết phân khúc SQL',
   sqlOff: 'Phân khúc SQL đang tắt trên cơ sở dữ liệu này; quản trị viên có thể bật.',
   openSql: 'Mở trong trình soạn SQL',
-  needsSqlNote: 'cần quyền segments:sql',
+  needsSqlNote: 'cần vai trò có thể viết phân khúc SQL',
   countAndSaved: 'Số lượng và phân khúc đã lưu',
 
   // ── Live count ───────────────────────────────────────────────────────

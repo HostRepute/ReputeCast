@@ -1,7 +1,7 @@
 # Design inventory
 
 The prototype (`design/boards`, exported from the ReputeCast canvas) has 29
-pages and 430 artboards: 288 desktop boards (1440 px; public pages 720 px)
+pages and 442 artboards: 294 desktop boards (1440 px; public pages 720 px)
 plus Tablet (834 px) and Phone (390 px) boards that render the same markup at
 narrower widths. This inventory maps every board to the spec section it
 implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
@@ -65,6 +65,7 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | `ProvidersOutage.dc.html` | Providers · outage | — |
 | `ProvidersRouting.dc.html` | Routing rules & route tester | phone, tablet |
 | `ProvidersStates.dc.html` | Providers · empty / loading / error | — |
+| `ProvidersTrafficRules.dc.html` | Traffic rules · thresholds by bounce type, deferrals, mailbox-provider response rules (review GS-11, GS-12) | phone |
 | `ProvidersWarmup.dc.html` | Warm-up planner | — |
 | `ProvidersWebhooksSilent.dc.html` | Providers · webhooks silent | — |
 
@@ -77,8 +78,9 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | `ComposerEmpty.dc.html` | Composer · empty canvas | — |
 | `ComposerMobile.dc.html` | Composer · mobile preview | — |
 | `ComposerPreview.dc.html` | Composer · client previews & A/B | — |
-| `ComposerStates.dc.html` | Composer · loading / error / saved | — |
+| `ComposerStates.dc.html` | Composer · loading / error / saved / recovered edits / conflict / approval cancel / save failed | — |
 | `ComposerWarnings.dc.html` | Composer · inline warnings | — |
+| `ComposerWrite.dc.html` | Composer · Write mode (slash menu, paste cleanup, comments, share for review; review CO-9, CO-10) | phone |
 
 ### 7.5 Review & send
 
@@ -87,17 +89,19 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | `SendReadiness.dc.html` | Review & send · ready with warnings | phone, tablet |
 | `SendReadinessBlocked.dc.html` | Review & send · blocked | phone |
 | `SendReadinessConfirm.dc.html` | Review & send · confirm | — |
-| `SendReadinessStates.dc.html` | Review & send · running / error / scheduled | — |
+| `SendReadinessFixes.dc.html` | Review & send · review fixes drawer (review SR-13) | phone |
+| `SendReadinessStates.dc.html` | Review & send · running / error / scheduled / re-running / checks skipped / held / unusual-send confirm | — |
 
 ### 7.6 Live sending monitor
 
 | Board | Screen / states | Responsive boards |
 |---|---|---|
 | `LiveMonitor.dc.html` | Live monitor · sending | tablet |
+| `LiveMonitorCanary.dc.html` | Live monitor · canary phase (review GS-10) | phone |
 | `LiveMonitorMobile.dc.html` | Live monitor · mobile | — |
 | `LiveMonitorOutage.dc.html` | Live monitor · provider outage | — |
 | `LiveMonitorPaused.dc.html` | Live monitor · auto-paused | phone |
-| `LiveMonitorStates.dc.html` | Live monitor · connecting / complete / error | — |
+| `LiveMonitorStates.dc.html` | Live monitor · connecting / stale / error / rates / complete | — |
 
 ### 7.7 Campaign report
 
@@ -167,6 +171,8 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | `SettingsMCP.dc.html` | Settings · MCP server | — |
 | `SettingsProviders.dc.html` | Settings · sending providers | — |
 | `SettingsSenders.dc.html` | Settings · senders & domains | phone, tablet |
+| `SettingsSendingRules.dc.html` | Settings · sending rules (review SR-10) | phone |
+| `BrandKit.dc.html` | Settings · brand kit (review CO-11) | phone |
 | `SettingsStates.dc.html` | Settings · empty / loading / error | — |
 
 ### 8. Landing page & README banner
@@ -516,6 +522,51 @@ The expansion pages also change existing boards. These changes are live on the c
 | Phase 1 (24 boards) | Transactional stream in routing, streams and suppressions; categories in preferences; keys, audit and API for transactional mail | 1 |
 
 Layout fixes made at the same time to boards already on the canvas: avatar initials centred; the tablet rail no longer shows the sidebar footer; tables that were cut off in their cards now fit (Contacts, ListHealth, SettingsSenders, SettingsMCP, AutomationsList, ProvidersEvents, ProvidersWarmup, ProvidersAdapters, InstanceUsers, LiveMonitor, ApprovalPolicy); the "API keys and MCP agents moved" card has its padding.
+
+## Review 2026-10 (M33–M39)
+
+The October 2026 review of the five core features (`docs/spec/reputecast-review-2026-10.md`)
+redesigned their boards and added twelve (six desktop boards, each with a phone board). The
+canvas and `design/boards` carry the changes.
+
+| Boards | Change | IDs |
+|---|---|---|
+| `SendReadiness*`, `SendReadinessFixes`, `SettingsSendingRules` | Issues first, passes grouped, technical details, a fixes drawer with consequences, real progress while checks re-run, the schedule in the main action, a sticky action bar on phones, typed confirmation only for unusual sends, emergency send in a menu, workspace sending rules | SR-1–SR-13 |
+| `LiveMonitor*`, `LiveMonitorCanary`, `ProvidersTrafficRules` | Collecting-evidence and stale-data states, n/a for complaints Gmail and iCloud don't report, people instead of permission keys, one polite live summary, Pause primary on phones, rates per mailbox provider, the canary phase, traffic rules | GS-1–GS-14 |
+| `Providers*`, `ProvidersRouting`, `ProvidersWarmup`, `Setup*`, `OverviewEmpty` | One channel button, a Traffic rules tab, an ordered split with keyboard moves, impact preview and unsaved-changes bar, campaign simulation in the route tester, failover triggers and target checks, warm-up by volume with per-mailbox caps, honest setup time, verified events, SES tenants, Help me choose | PR-1–PR-15 |
+| `Composer*`, `ComposerWrite`, `BrandKit` | Compact chrome with an Inbox strip, Liquid chips with a fallback editor, a writer-friendly style panel, dismissing warnings with a reason, recovered edits and conflicts, quick review on phones, Write mode, brand kit | CO-1–CO-14 |
+| `Report*`, `ReportStates`, `AISegmentReport` | Comparison on every tile, a y-axis, human and bot clicks on the click map, three open buckets with the measurable open rate, insights with actions, an honest A/B card, growth and revenue per issue, share options | AN-1–AN-16 |
+| Every Settings board | Tabs: General, Brand kit, Senders, Providers, Sending rules, Team, Roles, Approvals, Keys & MCP, Webhooks, Integrations, Audit log | SR-10, CO-11 |
+| Every app-shell board | The workspace switcher's and user menu's names start with their visible text; the tablet rail's links keep their names when labels are hidden; 44 px top-bar targets on phones | X-1 |
+| `StressReviewVi`, `StressReviewPseudo` | Rebuilt on the new Review & send layout | X-2 |
+| 71 boards outside the review: team, contacts, segments, approvals, automations, verification, Earn, SMS, push, WhatsApp, Grow, referrals, polls, surveys, pages, website, products, transactional, digests, AI, agency, scoring, placement, languages, notifications | Locked notes, refused actions, errors and notification audiences say who can act in words ("Ask Marcus Chen or Linh Nguyen", "People who can send campaigns"); keys stay only where people set them or read records: the roles editor, API-key scopes, MCP agent permissions, integration key scopes and the audit log | X-1 |
+
+The boards tell these stories, which the screens' demo data follows:
+
+- **Weekly Digest #142** goes to 31,192 recipients: 31,604 in its lists minus 412 unengaged contacts the sunset policy leaves out (SES 28,073 · Postal 3,119, $2.81). Its warnings are the Postal IP listing and the UTM rule. The #143 boards keep 31,604, with no unengaged contacts left out.
+- **Two #142 scenarios:** Review & send plans it with an A/B test (sample 09:00–09:07, winner at 11:00, done about 11:31). The live monitor boards show it without the test: a canary passed at 09:20, the auto-pause at 09:21 holds 2,436 Outlook recipients, and it finishes about 09:51. `ReportLanguages` shows a third, three-language send.
+- **Placement tests** use the demo's 10 seed mailboxes (the boards say "seed inboxes"; the app keeps M24's word); Review & send's card shows #142's test of Sun 12 Oct.
+- Deliberate differences from the boards are listed under "Conflicts between the design and the spec" (#517 onwards).
+
+### Audit against the report (M40)
+
+M40 read the code against the report item by item
+(`docs/spec/reputecast-review-2026-10-traceability.md`) and finished what was done only in part.
+These boards changed or are new; the canvas carries them.
+
+| Boards | Change | Report items |
+|---|---|---|
+| `SendReadiness`, `SendReadinessStates`, `SendReadinessFixes`, `SendReadinessBlocked`, `SendReadinessAccessibility`, `StressReviewVi`, `StressReviewPseudo` | The placement card counts Inbox, Promotions (Outlook: Other) and Spam per mailbox provider; records, headers and codes sit in technical details, on passed rows too; applied fixes have an Undo button; the Vietnamese groups read "Cần xử lý" and "Đã đạt"; no board claims that only the checks a fix touches run again (every check runs) | R1.A1, R1.U1, R1.U2, R1.U3 |
+| `DeliverabilityStates` | A provider with too little mail to judge: "Not enough mail yet" | R1.L5 |
+| `LiveMonitorStates`, `LiveMonitorStatesPhone` (new), `LiveMonitorOutage`, `LiveMonitor`, `LiveMonitorMobile`, `LiveMonitorTablet`, `LiveMonitorCanary`, `LiveMonitorCanaryPhone`, `ProvidersTrafficRules`, `ProvidersTrafficRulesPhone` | The decision on messages in doubt; an outage share reads "Testing" while it tests its provider; which providers recognize a resend; complaints and blocks clearly over the limit trip early; a new sending IP starts a canary; 44 px trigger rows on phones | R2.L2, R2.L3, R2.L7, R2.A1, R2.A2, R2.A5 |
+| `ProvidersWarmup`, `ProvidersRouting`, `ProvidersStates`, `SetupSES`, `SetupCatalog`, `OverviewEmpty`, `Landing` | A held warm-up day, the ramp resuming from the held cap, the demo's history counting 8 of 11 days; the impact sentence for every stream; four new states (the tester's cap hold, a provider down in the tester, a failed refresh that keeps the edits, a refused save in the bulk-terms view); the Delivery event check; setup time said honestly; 44 px failover cards on phones | R3.L3, R3.L6, R3.A1, R3.U4, R3.U6 |
+| `SmsProviders`, `SmsRouting`, `SmsStates`, `PushSetup`, `WhatsAppChannel`, `DSExpansion` | One channel menu heads Email, SMS, Push and WhatsApp | R3.U5 |
+| `Providers`, `ProvidersPhone`, `ProvidersTablet`, `ProvidersStates`, `SetupSES` | Each provider's sending IPs with where they come from: read from its API daily, with Check again after a failed check, or set by hand with Edit; the edit dialog and a refused private address; the SES policy allows `ses:GetDedicatedIps` | R2.A1 |
+| `Composer`, `ComposerStates`, `ComposerEmpty`, `BrandKit` | Plain style controls for every block, raw attributes under Advanced; Approve in the phone's quick review; real emails in the template tiles; Save as synced block, Your blocks and Unlink; named synced blocks in the brand kit | R4.U3, R4.U4, R4.U6, R4.A3 |
+| `Report`, `ReportPhone`, `ReportStates` | Trend lines on the tiles; Retry after fixing in the Investigate dialog; an A/B test decided before decisions were kept; a content test's click map per variant | R5.L1, R5.L5, R5.L6, R5.A2 |
+| `InstanceBotFilter`, `InstanceBotFilterDialogs`, `InstanceBotFilterPhone`, `InstanceBotFilterTablet` (new); a Bot filter tab on `AuditInstance`, `InstanceAuth`, `InstanceSettings`, `InstanceUserDialogs`, `InstanceUsers`, `SSOSetup`, `SSOStates` | Instance admins edit the bot filter's user agents and networks; built-in entries are folded under one line; an added user agent is a machine (a scanner) or a person's device | R5.L2 |
+
+Deliberate differences are #556 onwards below.
 
 ## Conflicts between the design and the spec
 
@@ -1027,3 +1078,51 @@ When they disagree we follow the design for UI and the spec for behaviour.
 | 514 | Lists you're not on, on the confirmation page | PublicConfirm: the Product Updates row at 70% opacity, so its "Not subscribed. Add it…" line reads at 3.1:1 | WCAG 1.4.3: text at 4.5:1 or more | Only the list's name and dot fade; the line keeps its grey (#5B6472, 6.2:1) and the Add it link its accent. |
 | 515 | The signed-in reader's pill in the site header | PublicAccount and PublicSiteStates: the pill shows the initials and first name ("SR", "Sam") and aria-label names it "Your account, signed in as Sam Rivera" | WCAG 2.5.3 (label in name): the initials the pill shows aren't in its name | The pill looks the same, in the site header and the public pages' bar; its initials and first name are hidden from screen readers, and a visually hidden "Your account, signed in as Sam Rivera" names it. |
 | 516 | A stale provider's numbers on the Overview | OverviewStates: the bounce, complaint and quota rows of a provider whose data is stale at 70% opacity, so their labels read at 3.1:1 | WCAG 1.4.3: text at 4.5:1 or more | Only the bars fade; the labels keep their grey and the values take it, so the card still reads as stale. |
+| 517 | Failover trigger copy (review PR-7, PR-14) | ProvidersRouting: each stream's trigger in the board's words | F-6: the UI says only what the code does | Each stream states the health check's real rule (error rate or two failed probes) and the checks its target must pass (`state.Vet`). |
+| 518 | Help me choose's runner-up (review PR-13) | SetupCatalog: Mailgun at $35 as the runner-up | Prices come from each adapter's price list | The ranking (bulk terms, then capabilities ReputeCast uses, then price at your volume) names Resend at $20 for the board's inputs. |
+| 519 | Postal's capabilities (review PR-1, PR-15) | Providers, ProvidersEvents, ProvidersAdapters: Postal syncs suppressions two-way and sets up DKIM through its API | Postal's API has neither a suppression list nor domain setup | Postal shows "Manual DNS" and "Local only · Enforced locally": ReputeCast checks its list before every send to Postal; the catalog's chips for those capabilities are struck through. Brevo is pull-only and Azure local-only for the same reason. |
+| 520 | SES events (review PR-3, PR-4) | ProvidersAdapters: "SNS webhooks" | SES events can also come through an SQS queue ReputeCast polls | The catalog reads "SNS webhooks or an SQS queue". |
+| 521 | The route tester's Campaign tab (review PR-14) | ProvidersRouting: the next broadcast's whole audience | Requests are bounded | The simulation runs the audience's lists without segments, on its first 200,000 recipients, and scales the counts. |
+| 522 | Warm-up log (review PR-8) | ProvidersWarmup: "mostly Yahoo 421 deferrals that turned into soft bounces … the Yahoo throttle dropped to 1 /s" | The log writes what the guard measured | The demo's entry reads as production writes it: "Bounces hit 2.3% (guard 2%), mostly Yahoo. Day 6 didn't count; …". The warm-up page keeps M24's "Placement during this warm-up" card (#314). |
+| 523 | Event log page size | ProvidersEvents: "Showing 9 of 184,312 events" | The log pages through 25 events | 25 rows a page; the demo's count is its own. |
+| 524 | Placement seeds' name (review SR-9, GS-10) | Review & send, LiveMonitorCanary, PlacementStates: "seed inboxes" | Placement › Seed mailboxes (M24) and the glossary | The app keeps "seed mailboxes" (VI "hộp thư thử"). |
+| 525 | Comparing with earlier issues (review AN-11) | Report: each tile against the last issues | Issues are the sends to the same lists and segments | The median of the last six such issues once results are final; the demo has one earlier issue to compare with. Issues counted before privacy-protected opens were split out aren't compared on opens. |
+| 526 | Report numbers that follow the demo (review AN-5, AN-2, AN-13) | Report: web views 2,410, bot clicks 74 on 15 links, "Other" under 1%, Outlook 101 bounces | Numbers come from the demo's data through the report's own queries | Web views 9,874 (as WebsitePosts says), bot clicks 1,108 on 10 links, "Other" under 5%, Outlook 100 bounces. System links (unsubscribe, preferences, view online) are never tracked. |
+| 527 | The click-map insight (review AN-15) | Report: "Make a segment from this link" | Segments can't be built from a link's clickers | The insight's action is "Show on the click map". |
+| 528 | The report's error state (review AN-15) | ReportStates: five tiles | The report's tiles are eight | The error state keeps the eight tiles with their n/a. The report keeps the Store orders and Web cards of M28 and M30. |
+| 529 | Keeping an AI summary (review AN-6) | Report board note: keeping a summary isn't audited | CLAUDE.md: every state-changing action writes an audit entry | Keeping and removing a summary are audited. AISegmentReport still shows "Summarize results" while a summary is kept; the app follows the Report boards and hides it. |
+| 530 | Share links (review AN-16) | Report: expiry options including "Never" | Links are revocable and expire | 1 to 90 days, 30 by default. |
+| 531 | Opens and clicks a provider tracked (review AN-4) | ReportStates: the provider's events sorted like ReputeCast's own | Bot checks by address need the reader's IP | Only SES passes the IP with its events; other providers' opens and clicks are sorted by user agent and timing only. |
+| 532 | The Sending-to drawer (review CO-14) | Composer: audience, sender and route as selects | The composer's pickers check permissions and counts | The drawer uses the existing audience, sender and route pickers. |
+| 533 | Dismissed warnings and the Checks rows (review CO-14) | ComposerWarnings: "stays listed in Review & send"; Checks rows "Workspace rules" and "Sender reputation" | Those rows are Send Readiness data | Dismissals stay listed (and counted as acknowledged) in the composer's Checks and in Review & send once both show them; the composer's "Review & send · N" counts content and accessibility checks. |
+| 534 | Accessibility in Checks (review CO-14) | Composer: accessibility findings mixed into the issue list | M19's accessibility panel has its own fixes | Checks holds the full accessibility panel as a section. |
+| 535 | Canvas tools (review CO-14) | Composer: no row for Email · Web, Preview as or Show all blocks | Those come from M17, M21 and M28 | They sit in a small floating row above the email; the variant switch shows only for content tests, and a subject test starts from the Inbox panel ("A/B test the subject"), B starting as A. |
+| 536 | The top bar at 1440 (review CO-14) | Composer: the web-version chip with its words, Assist with its label | One row at 1440 | Below 1680 px the web-version chip shows its state as a dot (with a tooltip) and below 1600 px Assist shows only its sparkle; both are hidden on phones. |
+| 537 | Phones (review CO-14) | ComposerPhone: quick review's "Edit text", canvas tools in Design, Send test in Write | 44 px targets and a readable email on 390 px | Quick review edits by tapping the text under a status bar; canvas tools and the status bar are hidden in Design; Write mode leaves Send test to the menu. |
+| 538 | Collaboration details (review CO-10) | ComposerStates: replying to a mention by email; a reviewer page board | Mentions are notifications | A mention emails a link to the thread (no reply by email); the reviewer page reuses the report layout; presence isn't audited (comments, links and their revocation are). |
+| 539 | The live monitor's canary and rates (review GS-10, GS-13, GS-14) | LiveMonitorCanary: "Why it runs" names the import date; the rates note on its own mailbox-card line | The canary's reasons are rules, not import records | The reason line names the rule without the import date; the demo's canary is chosen in Review & send, so it says so; the rates note sits in the progress card's summary line; the phone thresholds footnote is longer than the board's. |
+| 540 | Notices without a board (review GS-11, GS-12, CO-4, PR-8) | — | Slow-downs, warnings, reply-rule alerts, render errors and warm-up holds need words on the monitor | Built from the existing Banner and the warm-up hold copy of M35: who decides, the choices (Wait, Move to a vetted provider, Cancel the rest) and until when. |
+| 541 | Traffic rules details (review GS-12) | ProvidersTrafficRules: "usual" names a campaign; Review & send as a link; a canary-defaults note | Rules hold workspace defaults | "Usual" is the median audience without a campaign name; "Review & send" is bold text; the defaults note is left out; the phone "Add rule" form is one column; some rows omit durations. |
+| 542 | Guard defaults (review GS-10, GS-11, GS-7) | Boards show the thresholds of one send | Defaults apply to every send | Automatic canaries need 1,000 recipients or more; deferrals slow down at 15% over 10 minutes and pause at 40%; a reply rule's pause is a decision with choices; a success DSN counts once; sends sharing a mailbox provider's window get a fair share each. |
+| 543 | Finish times with a warm-up cap (review GS-8, PR-8) | LiveMonitor: one finish time | A route waiting for tomorrow's cap finishes later | Route, mailbox provider and send ETAs count the wait for the cap in the workspace's calendar days; they assume each next day's cap is at least today's, so they may run long. |
+| 544 | The demo's link-shortener rule (review SR-10) | SettingsSendingRules: "No URL shorteners" blocks | November Product Update links through bit.ly on purpose and its approvals expect "Ready with warnings" | The demo's rule warns. |
+| 545 | Review & send's main action (review SR-13) | SendReadinessBlocked: "Send to N recipients" | One wording for the main action | "Send now to 31,192" and "Schedule for Wed 14 Oct, 09:00 ET", as SendReadiness draws them, on every state. |
+| 546 | Typed confirmation (review SR-13) | SendReadinessConfirm: typed count on the demo's November Product Update | Only unusual sends ask for the count | November Product Update is a routine send, so it confirms with a click. |
+| 547 | Technical details (review SR-13, SR-1) | SendReadiness: raw DNS answers under every blocklist | HostRepute's data has no raw answers | Raw lines show only when the blocklist's answers are known (the demo seeds UCEPROTECT's). |
+| 548 | #142's numbers on Review & send (review SR-11, SR-10) | Per-language counts that add up to 31,604; "2 of 14" links without utm_campaign | 412 unengaged contacts are left out; a re-run checks every link | It goes to 31,192; a run made after the seed finds every link without utm_campaign, while the seeded run shows the board's "2 of 14". |
+| 549 | Postmaster in the bulk-sender check (review SR-12) | "Compliant" with Gmail's spam rate | The rate is in the Gmail Postmaster card | The detail leaves the rate out. |
+| 550 | The blocked board's fixes (review SR-13) | "Replace link · you pick the URL" | A picker for one link isn't built | The fix opens the link in the composer. The composer's rule card offers "Open in Review & send" instead of "Add utm_campaign=…": that fix edits stored content while the editor may hold unsaved edits. |
+| 551 | Dismissed warnings on Review & send (review SR-13, CO-14) | "Dismissed by {name}: {reason}" | The composer writes "Dismissed by {name} · {reason}" | Both screens read the composer's way; a dismissed warning still counts in the verdict ("Ready with warnings · N to review"), acknowledged rather than hidden. |
+| 552 | A provider's rates without data (review F-2, F-3) | Providers: "complaint 0.04% of 0.1%" on every card | Complaints count only mail delivered where they are reported; unknown is not zero | A card whose last 7 days went only to Gmail and iCloud reads "n/a" with "Gmail and iCloud don't report complaints"; one with nothing delivered reads "n/a" with "Nothing delivered in the last 7 days" (bounces: "Nothing sent…"). Days counted before the complaint base existed are left out, never read as 0%. |
+| 553 | Silent webhooks' actions (review PR-6, PR-9) | ProvidersWebhooksSilent: "Check now" and "Open setup" | A provider's test event and webhook re-registration have no other place in the app | "Check now" (the poll of the provider's message API, with the board's note) is the primary action; "Send test event" and "Re-register webhook" stay on the card in place of "Open setup", so the fix is one click away. |
+| 554 | An API error rate without calls (review F-3) | ProvidersOutage: "96%" from the calls of the last 3 minutes | A held share makes no calls, and unknown is not zero | With no calls in the window the card reads "n/a · no calls" and the banner leaves out "on N% of calls". |
+| 555 | Permission keys outside the review (review X-1) | Team, verification, Earn, SMS and other boards printed keys such as `sms:send` in locked notes, errors and notification audiences | X-1: copy names people or roles, never a key | Resolved in the design: M39 redrew those 71 boards to say it in words, as every screen and the server's problems do ("Sending SMS campaigns needs a permission you don't have. Ask Marcus Chen or Linh Nguyen."; "People who can send campaigns"). The roles editor, API-key scopes, MCP agent permissions, integration key scopes and the audit log keep the keys, on the boards and in the app. |
+| 556 | Channel menu on phones (review PR-15) | `SmsProviders`, `PushSetup`, `WhatsAppChannel`: the menu opens left-aligned and runs off a 390 px screen | Every target stays on screen | On phones the menu opens from the button's end. |
+| 557 | The route tester's overflow provider (review PR-14) | `ProvidersRouting`: "SES" | Names as the provider cards write them | The tester writes the provider's full name ("Amazon SES"). |
+| 558 | Reply rules in the demo (review GS-12) | `ProvidersTrafficRules`: three reply rules | Every new workspace starts with the default rules, four with Yahoo's TS04 on its own | The demo keeps the board's three rules; a new workspace gets four. |
+| 559 | A new sending IP on Review & send (review GS-10) | No board draws the canary section of Review & send's confirmation | A dedicated IP that never sent for the workspace starts a canary | Review & send's confirmation and the live monitor give the reason in a sentence: "The sending IP 203.0.113.24 on Postal has never sent mail for this workspace." |
+| 560 | The demo brand kit's blocks (review CO-11) | `BrandKit`: a "Webinar banner" named block | Demo data stays consistent with the sends it describes | The demo seeds only the Header and Footer: the campaign the banner belongs to, Partner webinar, carries an approval of its exact content, which a new block would change. A named block appears once someone saves one. |
+| 561 | Button style in the older contrast board (review CO-14) | `ComposerContrast`: text colour, font and padding at the top of the button's Style panel | The panel speaks the writer's words | Those attributes sit under Advanced, as on `Composer`. |
+| 562 | Placement in Review & send (review SR-9) | `SendReadiness`: a row per sending provider | SR-9: Inbox, Promotions and Spam per mailbox provider | Resolved in the design: the board counts per mailbox provider, with a "Through SES: …" line when routes are compared. |
+| 563 | Content test click maps (review AN-5) | `ReportStates`: one map per variant | A map of everyone would draw B's links on A's email | No "Everyone" map for a content test; a subject or sender test keeps it. |
+| 564 | An IP the blocklist checks haven't reached (review GS-10, F-3) | No board draws it: the boards' IPs are all checked | A provider can start listing an IP after Deliverability's last daily blocklist run; unknown is not clean | Send Readiness shows an Unknown row, "Postal IP 198.51.100.40 isn't checked on IP blocklists yet", with a link to Deliverability to run the checks. |

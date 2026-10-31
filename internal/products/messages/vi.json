@@ -57,7 +57,7 @@
   "order.alreadyRevoked": "Quyền tải xuống của đơn hàng này đã bị thu hồi rồi.",
   "order.refundedNoRestore": "Đơn hàng này đã được hoàn tiền toàn bộ, nên quyền tải xuống vẫn bị thu hồi.",
   "order.test": "Đơn thử nghiệm không bao giờ chuyển tiền. Hãy dùng bảng điều khiển thử nghiệm của Stripe để hoàn tiền.",
-  "order.exportPeople": "Xuất đơn hàng cần quyền subscribers:export, vì đơn hàng chứa địa chỉ email của người mua.",
+  "order.exportPeople": "Chỉ người có thể xuất liên hệ mới xuất được đơn hàng, vì đơn hàng chứa địa chỉ email của người mua.",
   "notify.deliveryFailedTitle": "Giao sản phẩm thất bại",
   "notify.deliveryFailedBody": "Email giao hàng của đơn hàng {order} ({product}) đến {email} chưa được gửi: {reason, select, template_missing {sản phẩm chưa có mẫu email giao hàng} other {{detail}}}. Người mua có thể tải xuống trên trang cảm ơn; hãy gửi liên kết mới khi lỗi đã được khắc phục.",
   "notify.disputeTitle": "Tranh chấp được mở",

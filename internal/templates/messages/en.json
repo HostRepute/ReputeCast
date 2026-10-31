@@ -18,6 +18,7 @@
   "problem.mjml": {"message": "The MJML doesn't parse: {error}", "note": "error: the MJML parser's explanation, in English"},
   "problem.nameTaken": {"message": "A {kind, select, section {saved section} other {template}} called “{name}” already exists. Pick another name.", "note": "name: the workspace's template or saved section name"},
   "problem.notFound": "Template not found.",
+  "problem.previewCompile": {"message": "This template's MJML doesn't compile, so it has no preview: {error}", "note": "the gallery shows a template's compiled email; error: the MJML compiler's explanation, in English"},
 
   "sample.address": {"message": "Your company · Street and number · City, postcode", "note": "The sample content of the starter templates below goes into the email, so it is written for its readers. This line stands in a footer until the workspace sets its postal address."},
   "sample.footer.unsubscribe": "Unsubscribe",

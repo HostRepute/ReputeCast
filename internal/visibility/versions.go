@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/paidaccess"
+	"github.com/hostrepute/reputecast/internal/retryaudience"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -33,8 +34,15 @@ type Audience struct {
 	ExcludeTiers2   []string `json:"excludeTiers"`
 	IncludeSunset   bool     `json:"include_sunset"`
 	IncludeSunset2  bool     `json:"includeSunset"`
+	// IncludeUnengaged includes or leaves out the unengaged (the sunset
+	// tier); unset, a send leaves them out (SR-11).
+	IncludeUnengaged  *bool `json:"include_unengaged"`
+	IncludeUnengaged2 *bool `json:"includeUnengaged"`
 	// Paid is who on the lists gets a paid-only campaign (Earn).
 	Paid paidaccess.Audience `json:"-"`
+	// RetryOf is the issue a retry campaign sends again to the addresses
+	// that were blocked for the sender's reputation (review AN-7).
+	RetryOf uuid.UUID `json:"-"`
 }
 
 // ParseAudience reads campaigns.audience (both key styles).
@@ -42,11 +50,28 @@ func ParseAudience(raw json.RawMessage) Audience {
 	var a Audience
 	_ = json.Unmarshal(raw, &a)
 	a.Paid = paidaccess.Parse(raw)
+	a.RetryOf, _ = retryaudience.Of(raw)
 	a.ExcludeLists = append(a.ExcludeLists, a.ExcludeLists2...)
 	a.ExcludeSegments = append(a.ExcludeSegments, a.ExcludeSegs2...)
 	a.ExcludeTiers = append(a.ExcludeTiers, a.ExcludeTiers2...)
 	a.IncludeSunset = a.IncludeSunset || a.IncludeSunset2
+	if a.IncludeUnengaged == nil {
+		a.IncludeUnengaged = a.IncludeUnengaged2
+	}
 	return a
+}
+
+// leavesOutUnengaged reports whether a send leaves out the unengaged (the
+// sunset tier): as the campaign says, else by default (byDefault) unless
+// it overrides the sunset policy, as Send Readiness counts them (SR-11).
+func (a Audience) leavesOutUnengaged(byDefault bool) bool {
+	switch {
+	case slices.Contains(a.ExcludeTiers, "sunset"):
+		return true
+	case a.IncludeUnengaged != nil:
+		return !*a.IncludeUnengaged
+	}
+	return byDefault && !a.IncludeSunset
 }
 
 // Empty reports whether the audience selects nobody.
@@ -65,8 +90,18 @@ func (a Audience) hash() string {
 	if a.IncludeSunset {
 		parts = append(parts, "sunset")
 	}
+	switch {
+	case a.IncludeUnengaged == nil:
+	case *a.IncludeUnengaged:
+		parts = append(parts, "unengaged:in")
+	default:
+		parts = append(parts, "unengaged:out")
+	}
 	if a.Paid.Set() {
 		parts = append(parts, "paid:"+a.Paid.Who+":"+a.Paid.Tier)
+	}
+	if a.RetryOf != uuid.Nil {
+		parts = append(parts, "retry:"+a.RetryOf.String())
 	}
 	sum := sha256.Sum256([]byte(strings.Join(parts, "|")))
 	return hex.EncodeToString(sum[:12])
@@ -92,7 +127,13 @@ func uuids(in []string) []uuid.UUID {
 // Readiness counts them (suppressed, role and duplicate addresses and
 // contacts the sunset policy stopped left out), with what conditions read.
 func FinalRecipients(ctx context.Context, q *store.Queries, segs SegmentResolver, wsID uuid.UUID, a Audience, ruleSegments Segments) ([]*Facts, error) {
-	if a.Empty() {
+	return finalRecipients(ctx, q, segs, wsID, a, ruleSegments, nil)
+}
+
+// finalRecipients is FinalRecipients, for the contacts among only when
+// among isn't nil: those of them still in the audience.
+func finalRecipients(ctx context.Context, q *store.Queries, segs SegmentResolver, wsID uuid.UUID, a Audience, ruleSegments Segments, among []uuid.UUID) ([]*Facts, error) {
+	if a.Empty() || among != nil && len(among) == 0 {
 		return []*Facts{}, nil
 	}
 	members := func(ids []string) ([]uuid.UUID, error) {
@@ -117,7 +158,18 @@ func FinalRecipients(ctx context.Context, q *store.Queries, segs SegmentResolver
 	if err != nil {
 		return nil, err
 	}
-	rows, err := q.VisibilityRecipients(ctx, store.VisibilityRecipientsParams{WorkspaceID: wsID, Lists: uuids(a.Lists), Contacts: in, ExcludeLists: uuids(a.ExcludeLists), ExcludeContacts: out})
+	var rows []store.VisibilityRecipientsRow
+	if among == nil {
+		rows, err = q.VisibilityRecipients(ctx, store.VisibilityRecipientsParams{WorkspaceID: wsID, Lists: uuids(a.Lists), Contacts: in, ExcludeLists: uuids(a.ExcludeLists), ExcludeContacts: out})
+	} else {
+		var some []store.VisibilityRecipientsAmongRow
+		some, err = q.VisibilityRecipientsAmong(ctx, store.VisibilityRecipientsAmongParams{Among: among, WorkspaceID: wsID, Lists: uuids(a.Lists), Contacts: in,
+			ExcludeLists: uuids(a.ExcludeLists), ExcludeContacts: out})
+		rows = make([]store.VisibilityRecipientsRow, len(some))
+		for i, r := range some {
+			rows[i] = store.VisibilityRecipientsRow(r)
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -127,11 +179,23 @@ func FinalRecipients(ctx context.Context, q *store.Queries, segs SegmentResolver
 	if err != nil {
 		return nil, err
 	}
+	// A retry goes only to its issue's blocked addresses (review AN-7).
+	retry := retryaudience.Keep{}
+	if a.RetryOf != uuid.Nil {
+		if retry, err = retryaudience.LoadIssue(ctx, q, wsID, a.RetryOf, uuid.Nil); err != nil {
+			return nil, err
+		}
+	}
 	seen := make(map[string]bool, len(rows))
 	excludeSunset := slices.Contains(a.ExcludeTiers, "sunset")
+	byDefault := true
+	if d, err := q.SendDefaults(ctx, wsID); err == nil {
+		byDefault = d.ExcludeUnengaged
+	}
+	leaveOut := a.leavesOutUnengaged(byDefault)
 	res := make([]*Facts, 0, len(rows))
 	for _, r := range rows {
-		if !keep.Keeps(r.ID) {
+		if !keep.Keeps(r.ID) || !retry.Keeps(r.ID) {
 			continue
 		}
 		if r.Suppressed || r.RoleAddress || emailaddr.IsRole(r.Email) {
@@ -145,7 +209,7 @@ func FinalRecipients(ctx context.Context, q *store.Queries, segs SegmentResolver
 		if r.BroadcastsStopped && (!a.IncludeSunset || excludeSunset) {
 			continue
 		}
-		if slices.Contains(a.ExcludeTiers, r.Tier) {
+		if slices.Contains(a.ExcludeTiers, r.Tier) || leaveOut && r.Tier == "sunset" {
 			continue
 		}
 		res = append(res, newFacts(r.ID, r.Email, r.FirstName, r.LastName, r.Tier, r.Language, r.Tags, r.Attributes, r.ListIds, ruleSegments))
@@ -182,6 +246,66 @@ type Tally struct {
 	ByHidden map[string]int64
 	// Shown counts, for each block, the recipients who see it.
 	Shown map[string]int64
+	// Samples are the contacts to preview the versions as.
+	Samples Samples
+}
+
+// Samples are, for each version (Hidden.String()) and each base language of
+// an audience, its first recipient with a first name, else its first one:
+// the contacts the composer previews the email as (PreviewContacts).
+type Samples struct {
+	Versions map[string]uuid.UUID `json:"versions"`
+	// Languages go from the one most recipients read to the fewest.
+	Languages []LanguageSample `json:"languages"`
+}
+
+// LanguageSample is the contact a base language ("es") is previewed as.
+type LanguageSample struct {
+	Language string    `json:"language"`
+	ID       uuid.UUID `json:"id"`
+}
+
+// sampler picks Samples from recipients decided in audience order.
+type sampler struct {
+	versions, languages map[string]*Facts
+	readers             map[string]int64
+}
+
+func newSampler() *sampler {
+	return &sampler{versions: map[string]*Facts{}, languages: map[string]*Facts{}, readers: map[string]int64{}}
+}
+
+// add is a recipient who gets the version key.
+func (s *sampler) add(key string, f *Facts) {
+	if cur, ok := s.versions[key]; !ok || cur.FirstName == "" && f.FirstName != "" {
+		s.versions[key] = f
+	}
+	l := baseLanguage(f.Language)
+	if l == "" {
+		return
+	}
+	s.readers[l]++
+	if cur, ok := s.languages[l]; !ok || cur.FirstName == "" && f.FirstName != "" {
+		s.languages[l] = f
+	}
+}
+
+func (s *sampler) samples() Samples {
+	out := Samples{Versions: make(map[string]uuid.UUID, len(s.versions)), Languages: make([]LanguageSample, 0, len(s.languages))}
+	for k, f := range s.versions {
+		out.Versions[k] = f.ID
+	}
+	for l, f := range s.languages {
+		out.Languages = append(out.Languages, LanguageSample{Language: l, ID: f.ID})
+	}
+	sort.Slice(out.Languages, func(i, j int) bool {
+		a, b := out.Languages[i].Language, out.Languages[j].Language
+		if s.readers[a] != s.readers[b] {
+			return s.readers[a] > s.readers[b]
+		}
+		return a < b
+	})
+	return out
 }
 
 // Count decides every recipient and tallies the versions.
@@ -190,16 +314,20 @@ func Count(e Email, recipients []*Facts, n *Names) Tally {
 	for _, b := range e.Blocks {
 		t.Shown[b.ID] = 0
 	}
+	sm := newSampler()
 	for _, f := range recipients {
 		d := Decide(e, f, n)
+		key := d.Hidden.String()
 		t.Total++
-		t.ByHidden[d.Hidden.String()]++
+		t.ByHidden[key]++
 		for _, b := range e.Blocks {
 			if !d.Hidden[b.ID] {
 				t.Shown[b.ID]++
 			}
 		}
+		sm.add(key, f)
 	}
+	t.Samples = sm.samples()
 	return t
 }
 

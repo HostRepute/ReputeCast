@@ -14,7 +14,7 @@ export default translate(m, {
   cost: 'Chi phí · {month}',
   budget: 'Ngân sách SMS · {month}',
   spentOf: '<b>{spent}</b> trên {budget}',
-  alerts: 'Cảnh báo ở {alert}% và 100%. Ở 100%, chiến dịch không bắt đầu được và các bước SMS phải chờ đến khi người có quyền providers:manage nâng ngân sách.',
+  alerts: 'Cảnh báo ở {alert}% và 100%. Ở 100%, chiến dịch không bắt đầu được và các bước SMS phải chờ đến khi người có thể quản lý nhà cung cấp nâng ngân sách.',
   noBudget: 'Chưa có ngân sách hằng tháng: đã chi {spend} trong {month}.',
   foot: 'Người gửi, tuyến theo quốc gia, giờ yên lặng, quy tắc và ngân sách nằm ở Nhà cung cấp gửi thư › SMS.',
   changeBudget: 'Đổi ngân sách',
