@@ -149,6 +149,7 @@ export const mp = defineMessages('automations.panels', {
   everyYear: 'Every year',
   reentry: 'Re-entry',
   oncePerContact: 'Once per contact',
+  oncePerYear: 'Once a year per contact',
   everyTime: "Every time, once they've left",
   entered: 'Entered <b>{value}</b>',
 

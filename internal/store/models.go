@@ -494,6 +494,9 @@ type AutomationEvent struct {
 	OccurredAt  time.Time       `json:"occurredAt"`
 	ProcessedAt *time.Time      `json:"processedAt"`
 	Enrolled    int32           `json:"enrolled"`
+	Attempts    int16           `json:"attempts"`
+	LastError   string          `json:"lastError"`
+	RetryAt     *time.Time      `json:"retryAt"`
 }
 
 type AutomationMessageVar struct {
@@ -514,6 +517,8 @@ type AutomationRun struct {
 	FinishedAt    *time.Time      `json:"finishedAt"`
 	NodeEnteredAt time.Time       `json:"nodeEnteredAt"`
 	ExitReason    string          `json:"exitReason"`
+	Attempts      int16           `json:"attempts"`
+	LastError     string          `json:"lastError"`
 }
 
 type AutomationStepSecret struct {

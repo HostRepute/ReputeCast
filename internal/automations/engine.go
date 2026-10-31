@@ -88,6 +88,48 @@ func addKey(raw json.RawMessage, key string, n int64) json.RawMessage {
 	return out
 }
 
+// merge adds another buffer's counts to b.
+func (b statsBuf) merge(o statsBuf) {
+	for k, src := range o {
+		dst, ok := b[k]
+		if !ok {
+			b[k] = src
+			continue
+		}
+		dst.Entered += src.Entered
+		dst.Completed += src.Completed
+		dst.Waiting += src.Waiting
+		dst.Exited += src.Exited
+		dst.Dropped += src.Dropped
+		dst.GoalReached += src.GoalReached
+		dst.Skipped += src.Skipped
+		dst.Failed += src.Failed
+		dst.Sent += src.Sent
+		dst.Delivered += src.Delivered
+		dst.Bounced += src.Bounced
+		dst.Complained += src.Complained
+		dst.Opened += src.Opened
+		dst.OpenedHuman += src.OpenedHuman
+		dst.Clicked += src.Clicked
+		dst.Unsubscribed += src.Unsubscribed
+		dst.BranchYes += src.BranchYes
+		dst.BranchNo += src.BranchNo
+		dst.Paths = mergeKeys(dst.Paths, src.Paths)
+		dst.Providers = mergeKeys(dst.Providers, src.Providers)
+	}
+}
+
+// mergeKeys adds two {key: count} objects.
+func mergeKeys(a, b json.RawMessage) json.RawMessage {
+	m := map[string]int64{}
+	_ = json.Unmarshal(b, &m)
+	out := a
+	for k, n := range m {
+		out = addKey(out, k, n)
+	}
+	return out
+}
+
 func (b statsBuf) flush(ctx context.Context, q *store.Queries) error {
 	for _, p := range b {
 		if err := q.BumpAutomationStepStats(ctx, *p); err != nil {
@@ -137,7 +179,8 @@ func (s *Service) Dispatch(ctx context.Context) (int, error) {
 func (s *Service) dispatchBatch(ctx context.Context, limit int32) (started int, more bool, err error) {
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		events, err := q.ClaimAutomationEvents(ctx, limit)
+		now := s.now()
+		events, err := q.ClaimAutomationEvents(ctx, store.ClaimAutomationEventsParams{Now: now, Lim: limit})
 		if err != nil {
 			return err
 		}
@@ -145,7 +188,6 @@ func (s *Service) dispatchBatch(ctx context.Context, limit int32) (started int, 
 		if len(events) == 0 {
 			return nil
 		}
-		now := s.now()
 		stats := statsBuf{}
 		type cacheKey struct {
 			ws   uuid.UUID
@@ -153,40 +195,88 @@ func (s *Service) dispatchBatch(ctx context.Context, limit int32) (started int, 
 		}
 		live := map[cacheKey][]store.LiveAutomationsForTriggerRow{}
 		for _, ev := range events {
-			k := cacheKey{ev.WorkspaceID, ev.Kind}
-			flows, ok := live[k]
-			if !ok {
-				if flows, err = q.LiveAutomationsForTrigger(ctx, store.LiveAutomationsForTriggerParams{WorkspaceID: ev.WorkspaceID, Kind: ev.Kind}); err != nil {
-					return err
+			// Each event in its own savepoint: one that fails is counted
+			// and retried later, and the others go on (review 2026-11 EN-1).
+			mine := statsBuf{}
+			enrolled, err := savepoint(ctx, tx, func(sp pgx.Tx) (int, error) {
+				sq := store.New(sp)
+				k := cacheKey{ev.WorkspaceID, ev.Kind}
+				flows, ok := live[k]
+				if !ok {
+					var err error
+					if flows, err = sq.LiveAutomationsForTrigger(ctx, store.LiveAutomationsForTriggerParams{WorkspaceID: ev.WorkspaceID, Kind: ev.Kind}); err != nil {
+						return 0, err
+					}
+					live[k] = flows
 				}
-				live[k] = flows
-			}
-			enrolled := 0
-			if len(flows) > 0 {
-				c, err := q.AutomationContact(ctx, ev.ContactID)
-				if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-					return err
-				}
-				if err == nil && c.Status == "active" && c.ErasedAt == nil {
-					for _, f := range flows {
-						ok, err := s.enroll(ctx, q, stats, f, ev, now)
-						if err != nil {
-							return err
-						}
-						if ok {
-							enrolled++
+				enrolled := 0
+				if len(flows) > 0 {
+					c, err := sq.AutomationContact(ctx, ev.ContactID)
+					if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+						return 0, err
+					}
+					if err == nil && c.Status == "active" && c.ErasedAt == nil {
+						for _, f := range flows {
+							ok, err := s.enroll(ctx, sq, mine, f, ev, now)
+							if err != nil {
+								return 0, err
+							}
+							if ok {
+								enrolled++
+							}
 						}
 					}
 				}
+				return enrolled, sq.MarkAutomationEventProcessed(ctx, store.MarkAutomationEventProcessedParams{ID: ev.ID, Enrolled: int32(enrolled)})
+			})
+			if err != nil {
+				giveUp := ev.Attempts+1 >= maxAttempts
+				s.log().WarnContext(ctx, "automation event failed", "event", ev.ID, "kind", ev.Kind, "attempt", ev.Attempts+1, "err", err)
+				if ferr := q.FailAutomationEvent(ctx, store.FailAutomationEventParams{ID: ev.ID, Error: clipError(err), RetryAt: now.Add(backoff(ev.Attempts)), GiveUp: giveUp}); ferr != nil {
+					return ferr
+				}
+				continue
 			}
-			if err := q.MarkAutomationEventProcessed(ctx, store.MarkAutomationEventProcessedParams{ID: ev.ID, Enrolled: int32(enrolled)}); err != nil {
-				return err
-			}
+			stats.merge(mine)
 			started += enrolled
 		}
 		return stats.flush(ctx, q)
 	})
 	return started, more, err
+}
+
+// maxAttempts is how often an automation event or run is tried before it
+// is set aside (an event) or fails with an alert (a run).
+const maxAttempts = 5
+
+// backoff is the wait before a failed event's or run's next try: 1, 2, 4,
+// 8 minutes.
+func backoff(attempts int16) time.Duration {
+	return time.Minute << min(max(attempts, 0), 4)
+}
+
+// clipError keeps a failure's message short enough to store.
+func clipError(err error) string {
+	msg := err.Error()
+	if len(msg) > 500 {
+		msg = msg[:500]
+	}
+	return msg
+}
+
+// savepoint runs fn in a savepoint of tx, rolled back if fn fails.
+func savepoint[T any](ctx context.Context, tx pgx.Tx, fn func(pgx.Tx) (T, error)) (T, error) {
+	var zero T
+	sp, err := tx.Begin(ctx)
+	if err != nil {
+		return zero, err
+	}
+	out, err := fn(sp)
+	if err != nil {
+		_ = sp.Rollback(ctx)
+		return zero, err
+	}
+	return out, sp.Commit(ctx)
 }
 
 // triggerMatches decides whether an event starts a flow.
@@ -279,6 +369,13 @@ func (s *Service) enroll(ctx context.Context, q *store.Queries, stats statsBuf, 
 				return false, err
 			}
 		}
+	} else if t.Kind == TriggerDateField && t.Yearly && t.Reentry != "always" {
+		// A yearly date (a birthday, an anniversary) lets a contact through
+		// once a year, not once ever (review 2026-11 EN-2).
+		again, err := q.AutomationRunEnteredSince(ctx, store.AutomationRunEnteredSinceParams{AutomationID: f.ID, ContactID: ev.ContactID, Since: now.AddDate(0, 0, -300)})
+		if err != nil || again {
+			return false, err
+		}
 	} else if t.Reentry != "always" && !pollReentry(t, ev) {
 		exists, err := q.AutomationRunExists(ctx, store.AutomationRunExistsParams{AutomationID: f.ID, ContactID: ev.ContactID})
 		if err != nil || exists {
@@ -329,18 +426,50 @@ func (s *Service) tickBatch(ctx context.Context, limit int32) (int, error) {
 		stats := statsBuf{}
 		cache := &graphCache{s: s, q: q, m: map[string]AutomationGraph{}}
 		for _, r := range runs {
-			g, err := cache.get(ctx, r.AutomationID, r.Version)
+			// Each run in its own savepoint: one that fails is counted,
+			// tried again later and, after five tries, fails with a "step
+			// failing" alert; the others go on (review 2026-11 EN-1).
+			mine := statsBuf{}
+			_, err := savepoint(ctx, tx, func(sp pgx.Tx) (struct{}, error) {
+				g, err := cache.get(ctx, r.AutomationID, r.Version)
+				if err != nil {
+					return struct{}{}, err
+				}
+				ex := &executor{s: s, tx: sp, q: store.New(sp), stats: mine, g: g, now: now, run: r, st: parseState(r.State)}
+				return struct{}{}, ex.advance(ctx)
+			})
 			if err != nil {
-				return err
+				if ferr := s.failRun(ctx, q, r, now, err); ferr != nil {
+					return ferr
+				}
+				continue
 			}
-			ex := &executor{s: s, tx: tx, q: q, stats: stats, g: g, now: now, run: r, st: parseState(r.State)}
-			if err := ex.advance(ctx); err != nil {
-				return fmt.Errorf("run %s at %s: %w", r.ID, r.NodeID, err)
-			}
+			stats.merge(mine)
 		}
 		return stats.flush(ctx, q)
 	})
 	return count, err
+}
+
+// failRun counts a run's failed step: tried again after a backoff, or
+// failed for good after maxAttempts with a "step failing" alert naming the
+// step and the error.
+func (s *Service) failRun(ctx context.Context, q *store.Queries, r store.ClaimDueAutomationRunsRow, now time.Time, cause error) error {
+	giveUp := r.Attempts+1 >= maxAttempts
+	s.log().WarnContext(ctx, "automation run failed", "run", r.ID, "automation", r.AutomationID, "step", r.NodeID, "attempt", r.Attempts+1, "err", cause)
+	next := now.Add(backoff(r.Attempts))
+	if giveUp {
+		next = now
+	}
+	if err := q.FailAutomationRun(ctx, store.FailAutomationRunParams{ID: r.ID, Error: clipError(cause), NextAt: next, GiveUp: giveUp}); err != nil {
+		return err
+	}
+	if !giveUp {
+		return nil
+	}
+	detail, _ := json.Marshal(map[string]any{"error": clipError(cause), "run": r.ID.String()})
+	return q.OpenAutomationAlert(ctx, store.OpenAutomationAlertParams{ID: uuid.Must(uuid.NewV7()), AutomationID: r.AutomationID, Kind: "step_failing",
+		NodeID: r.NodeID, Detail: detail, Failures: 1, At: now})
 }
 
 // executor moves one run through its flow.
@@ -640,7 +769,7 @@ func (e *executor) branch(ctx context.Context, n AutomationNode) (string, string
 			}
 		}
 	} else if c != nil && (c.Kind == "opened" || c.Kind == "clicked") {
-		met, msg, sentAt, err := e.engaged(ctx, c)
+		met, msg, sentAt, pending, err := e.engaged(ctx, c)
 		if err != nil {
 			return "", "", true, err
 		}
@@ -654,6 +783,10 @@ func (e *executor) branch(ctx context.Context, n AutomationNode) (string, string
 			deadline := base
 			if c.Within != nil {
 				deadline = base.Add(c.Within.Duration())
+			}
+			// The email hasn't left yet: its window hasn't started.
+			if pending && c.Within != nil {
+				deadline = e.now.Add(pendingRecheck)
 			}
 			if e.now.Before(deadline) {
 				if e.st.Wait != "branch" {
@@ -683,30 +816,46 @@ func (e *executor) branch(ctx context.Context, n AutomationNode) (string, string
 }
 
 // engaged reports whether the contact opened or clicked the email the
-// condition is about (any email of the flow when Step is empty).
-func (e *executor) engaged(ctx context.Context, c *AutomationCondition) (met bool, msg string, sentAt time.Time, err error) {
+// condition is about (any email of the flow when Step is empty). sentAt is
+// when that email left; pending is true while it is still queued or held
+// (an outage, a warm-up cap), so the window hasn't started (review 2026-11
+// EN-3).
+func (e *executor) engaged(ctx context.Context, c *AutomationCondition) (met bool, msg string, sentAt time.Time, pending bool, err error) {
 	if c.Step != "" {
 		if id, ok := e.st.Messages[c.Step]; ok {
 			msg = id
 		} else if m, err := e.q.AutomationRunMessage(ctx, store.AutomationRunMessageParams{AutomationID: &e.run.AutomationID, NodeID: &c.Step, ContactID: &e.run.ContactID}); err == nil {
 			msg = m.ID.String()
-			sentAt = m.QueuedAt
 		} else if !errors.Is(err, pgx.ErrNoRows) {
-			return false, "", sentAt, err
+			return false, "", sentAt, false, err
 		}
 		if msg == "" {
-			return false, "", sentAt, nil
+			return false, "", sentAt, false, nil
 		}
 		mid, ok := stepID(msg)
 		if !ok {
-			return false, "", sentAt, nil
+			return false, "", sentAt, false, nil
+		}
+		if m, err := e.q.AutomationMessageSentAt(ctx, mid); err == nil {
+			switch {
+			case m.SentAt != nil:
+				sentAt = *m.SentAt
+			case m.Status == "queued" || m.Status == "held":
+				pending = true
+			}
+		} else if !errors.Is(err, pgx.ErrNoRows) {
+			return false, "", sentAt, false, err
 		}
 		met, err = e.q.AutomationMessageEngaged(ctx, store.AutomationMessageEngagedParams{MessageID: &mid, Want: c.Kind, HumanOnly: c.HumanOnly, UrlContains: c.URLContains})
-		return met, msg, sentAt, err
+		return met, msg, sentAt, pending, err
 	}
 	met, err = e.q.AutomationEngaged(ctx, store.AutomationEngagedParams{ContactID: &e.run.ContactID, AutomationID: &e.run.AutomationID, Since: e.run.EnteredAt, Want: c.Kind, HumanOnly: c.HumanOnly, UrlContains: c.URLContains})
-	return met, "", sentAt, err
+	return met, "", sentAt, false, err
 }
+
+// pendingRecheck is how often a branch waiting on an email that hasn't left
+// looks again.
+const pendingRecheck = 15 * time.Minute
 
 // eval checks a condition right now.
 func (e *executor) eval(ctx context.Context, c *AutomationCondition) (bool, error) {
@@ -719,7 +868,7 @@ func (e *executor) eval(ctx context.Context, c *AutomationCondition) (bool, erro
 	}
 	switch c.Kind {
 	case "opened", "clicked":
-		met, _, _, err := e.engaged(ctx, c)
+		met, _, _, _, err := e.engaged(ctx, c)
 		return met, err
 	case "tag":
 		ct, err := e.contact(ctx)

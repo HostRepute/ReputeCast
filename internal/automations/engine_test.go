@@ -163,7 +163,11 @@ func TestEngineRunsAFlowEndToEnd(t *testing.T) {
 	if _, status, _ = run(t, env, flow, quiet); status != "waiting" {
 		t.Fatalf("quiet contact should still wait, is %s", status)
 	}
-	// An hour later the window closes: the "No" path tags the contact.
+	// The email leaves (the window starts then, not when it was queued);
+	// an hour later the window closes: the "No" path tags the contact.
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE messages SET status = 'sent', sent_at = $2 WHERE contact_id = $1 AND stream = 'automation'`, quiet, clk.now()); err != nil {
+		t.Fatal(err)
+	}
 	clk.advance(61 * time.Minute)
 	if _, err := svc.Tick(ctx); err != nil {
 		t.Fatal(err)
@@ -498,5 +502,227 @@ func TestEmailStepsSkipPausedContacts(t *testing.T) {
 	}
 	if skipped != 1 {
 		t.Fatalf("the email step counted %d skips, want 1", skipped)
+	}
+}
+
+// EN-3: an "opened within an hour" branch waits while its email is held
+// (an outage, a warm-up cap) and gives the whole hour once it leaves.
+func TestBranchWindowStartsWhenTheEmailLeaves(t *testing.T) {
+	env, c := signedIn(t, "linh@acme.io")
+	ctx := context.Background()
+	clk := &clock{t: time.Now()}
+	svc := engine(env, clk)
+	emailID := newEmail(t, c, "Test · held")
+	product := listID(t, env, "Product Updates")
+	flow := publishFlow(t, c, "Held flow", automations.AutomationGraph{
+		Nodes: []automations.AutomationNode{
+			node("t", automations.NodeTrigger, automations.AutomationNodeData{Trigger: &automations.AutomationTrigger{Kind: automations.TriggerJoinedList, ListID: product}}),
+			node("m", automations.NodeEmail, automations.AutomationNodeData{Email: &automations.AutomationEmailStep{EmailID: emailID, EmailVersion: 1, Subject: "Hello"}}),
+			node("b", automations.NodeBranch, automations.AutomationNodeData{Condition: &automations.AutomationCondition{Kind: "opened", Step: "m", Within: &automations.AutomationDuration{Amount: 1, Unit: "hours"}}}),
+			node("g", automations.NodeGoal, automations.AutomationNodeData{}),
+			node("cold", automations.NodeList, automations.AutomationNodeData{Action: &automations.AutomationListAction{Kind: "add_tag", Tag: "cold"}}),
+		},
+		Edges: []automations.AutomationEdge{link("t", "m", ""), link("m", "b", ""), link("b", "g", "yes"), link("b", "cold", "no")},
+	})
+	held := addContact(t, env, "held.mail@example.com", nil)
+	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO list_memberships (list_id, contact_id, status, source, subscribed_at) VALUES ($1,$2,'subscribed','form:test',now())`, product, held); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Dispatch(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Tick(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE messages SET status = 'held' WHERE contact_id = $1 AND stream = 'automation'`, held); err != nil {
+		t.Fatal(err)
+	}
+	// Two hours held: the window hasn't started, the contact still waits.
+	for range 8 {
+		clk.advance(15 * time.Minute)
+		if _, err := svc.Tick(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if nodeID, status, _ := run(t, env, flow, held); nodeID != "b" || status != "waiting" {
+		t.Fatalf("after two hours held the run is at %s %s; it should still wait", nodeID, status)
+	}
+	// It leaves; 50 minutes later it still waits, after 61 it goes down No.
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE messages SET status = 'sent', sent_at = $2 WHERE contact_id = $1 AND stream = 'automation'`, held, clk.now()); err != nil {
+		t.Fatal(err)
+	}
+	clk.advance(50 * time.Minute)
+	if _, err := svc.Tick(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, status, _ := run(t, env, flow, held); status != "waiting" {
+		t.Fatalf("50 minutes after the email left the run is %s", status)
+	}
+	clk.advance(11 * time.Minute)
+	if _, err := svc.Tick(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if nodeID, status, _ := run(t, env, flow, held); nodeID != "cold" || status != "completed" {
+		t.Fatalf("after the window the run is at %s %s", nodeID, status)
+	}
+}
+
+// EN-4: "skip if they got an email in the last N hours" counts campaign and
+// automation email only; a password reset doesn't hold back a welcome email.
+func TestSkipRuleIgnoresTransactionalMail(t *testing.T) {
+	env, c := signedIn(t, "linh@acme.io")
+	ctx := context.Background()
+	clk := &clock{t: time.Now()}
+	svc := engine(env, clk)
+	emailID := newEmail(t, c, "Test · skip rule")
+	product := listID(t, env, "Product Updates")
+	flow := publishFlow(t, c, "Skip flow", automations.AutomationGraph{
+		Nodes: []automations.AutomationNode{
+			node("t", automations.NodeTrigger, automations.AutomationNodeData{Trigger: &automations.AutomationTrigger{Kind: automations.TriggerJoinedList, ListID: product}}),
+			node("m", automations.NodeEmail, automations.AutomationNodeData{Email: &automations.AutomationEmailStep{EmailID: emailID, EmailVersion: 1, Subject: "Hello", SkipRecentHours: 24}}),
+		},
+		Edges: []automations.AutomationEdge{link("t", "m", "")},
+	})
+	reset := addContact(t, env, "just.reset@example.com", nil)
+	cancelled := addContact(t, env, "cancelled.mail@example.com", nil)
+	mailed := addContact(t, env, "just.mailed@example.com", nil)
+	for _, m := range []struct {
+		c              uuid.UUID
+		stream, status string
+	}{{reset, "transactional", "delivered"}, {cancelled, "broadcast", "cancelled"}, {mailed, "broadcast", "delivered"}} {
+		if _, err := env.App.Pool.Exec(ctx, `INSERT INTO messages (id, workspace_id, contact_id, stream, email, status, queued_at)
+			SELECT gen_random_uuid(), workspace_id, id, $2, email, $3, now() - interval '1 hour' FROM contacts WHERE id = $1`, m.c, m.stream, m.status); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := env.App.Pool.Exec(ctx, `INSERT INTO list_memberships (list_id, contact_id, status, source, subscribed_at) VALUES ($1,$2,'subscribed','form:test',now())`, product, m.c); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := svc.Dispatch(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Tick(ctx); err != nil {
+		t.Fatal(err)
+	}
+	got := func(id uuid.UUID) int {
+		var n int
+		if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM messages WHERE contact_id = $1 AND stream = 'automation'`, id).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		return n
+	}
+	if got(reset) != 1 || got(cancelled) != 1 {
+		t.Fatalf("a transactional or cancelled message held back the email: reset %d, cancelled %d", got(reset), got(cancelled))
+	}
+	if got(mailed) != 0 {
+		t.Fatalf("a campaign email an hour ago didn't skip the step")
+	}
+	_ = flow
+}
+
+// EN-2: in a workspace east of UTC (Auckland), a date trigger whose local
+// time falls on the previous UTC day fires once, not once a minute until
+// UTC midnight; a yearly one lets the contact through again next year.
+func TestDateTriggersEastOfUTC(t *testing.T) {
+	env, c := signedIn(t, "linh@acme.io")
+	ctx := context.Background()
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE workspaces SET timezone = 'Pacific/Auckland' WHERE slug = 'acme-newsletter'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO custom_fields (id, workspace_id, key, label, type) SELECT $1, id, 'birthday', 'Birthday', 'date' FROM workspaces WHERE slug = 'acme-newsletter'`, uuid.Must(uuid.NewV7())); err != nil {
+		t.Fatal(err)
+	}
+	akl, _ := time.LoadLocation("Pacific/Auckland")
+	// 10:00 in Auckland is the previous day in UTC.
+	n := time.Now().In(akl)
+	clk := &clock{t: time.Date(n.Year(), n.Month(), n.Day(), 10, 0, 0, 0, akl)}
+	svc := engine(env, clk)
+	emailID := newEmail(t, c, "Test · birthday")
+	flow := publishFlow(t, c, "Birthday", automations.AutomationGraph{
+		Nodes: []automations.AutomationNode{
+			node("t", automations.NodeTrigger, automations.AutomationNodeData{Trigger: &automations.AutomationTrigger{Kind: automations.TriggerDateField, Field: "birthday", Yearly: true, At: "09:00", Reentry: "always"}}),
+			node("m", automations.NodeEmail, automations.AutomationNodeData{Email: &automations.AutomationEmailStep{EmailID: emailID, EmailVersion: 1, Subject: "Happy birthday"}}),
+		},
+		Edges: []automations.AutomationEdge{link("t", "m", "")},
+	})
+	born := addContact(t, env, "birthday@example.com", map[string]any{"birthday": clk.now().In(akl).AddDate(-30, 0, 0).Format("2006-01-02")})
+	for range 5 { // the scan runs every minute
+		if err := svc.Scan(ctx); err != nil {
+			t.Fatal(err)
+		}
+		clk.advance(time.Minute)
+	}
+	var events int
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM automation_events WHERE contact_id = $1 AND kind = 'date_field'`, born).Scan(&events); err != nil {
+		t.Fatal(err)
+	}
+	if events != 1 {
+		t.Fatalf("%d birthday events in five minutes, want 1", events)
+	}
+	if _, err := svc.Dispatch(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Tick(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, status, _ := run(t, env, flow, born); status != "completed" {
+		t.Fatalf("birthday run: %s", status)
+	}
+}
+
+// EN-1: one run that fails doesn't hold up the others in its batch; it is
+// tried again later and, after five tries, fails with a "step failing"
+// alert on its flow.
+func TestFailingRunDoesNotStallOthers(t *testing.T) {
+	env, c := signedIn(t, "linh@acme.io")
+	ctx := context.Background()
+	clk := &clock{t: time.Now()}
+	svc := engine(env, clk)
+	emailID := newEmail(t, c, "Test · poison")
+	product := listID(t, env, "Product Updates")
+	flow := publishFlow(t, c, "Poison flow", automations.AutomationGraph{
+		Nodes: []automations.AutomationNode{
+			node("t", automations.NodeTrigger, automations.AutomationNodeData{Trigger: &automations.AutomationTrigger{Kind: automations.TriggerJoinedList, ListID: product}}),
+			node("m", automations.NodeEmail, automations.AutomationNodeData{Email: &automations.AutomationEmailStep{EmailID: emailID, EmailVersion: 1, Subject: "Hello"}}),
+		},
+		Edges: []automations.AutomationEdge{link("t", "m", "")},
+	})
+	good := addContact(t, env, "good.run@example.com", nil)
+	bad := addContact(t, env, "bad.run@example.com", nil)
+	for _, id := range []uuid.UUID{good, bad} {
+		if _, err := env.App.Pool.Exec(ctx, `INSERT INTO list_memberships (list_id, contact_id, status, source, subscribed_at) VALUES ($1,$2,'subscribed','form:test',now())`, product, id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := svc.Dispatch(ctx); err != nil {
+		t.Fatal(err)
+	}
+	// The bad run points at a version that doesn't exist: it fails every time.
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE automation_runs SET version = 999 WHERE contact_id = $1`, bad); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Tick(ctx); err != nil {
+		t.Fatalf("one bad run failed the whole tick: %v", err)
+	}
+	if _, status, _ := run(t, env, flow, good); status != "completed" {
+		t.Fatalf("the good run is %s; a bad run in its batch held it up", status)
+	}
+	for range 5 {
+		clk.advance(10 * time.Minute)
+		if _, err := svc.Tick(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var status, lastErr string
+	var attempts int
+	if err := env.App.Pool.QueryRow(ctx, `SELECT status, attempts, last_error FROM automation_runs WHERE contact_id = $1`, bad).Scan(&status, &attempts, &lastErr); err != nil {
+		t.Fatal(err)
+	}
+	if status != "failed" || attempts != 5 || lastErr == "" {
+		t.Fatalf("bad run: %s after %d attempts (%q)", status, attempts, lastErr)
+	}
+	var alerts int
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM automation_alerts WHERE automation_id = $1 AND kind = 'step_failing' AND resolved_at IS NULL`, flow).Scan(&alerts); err != nil || alerts != 1 {
+		t.Fatalf("%d step_failing alerts (%v)", alerts, err)
 	}
 }

@@ -270,12 +270,30 @@ INSERT INTO automation_events (workspace_id, kind, contact_id, ref, payload, occ
 VALUES (@workspace_id, @kind, @contact_id, @ref, @payload, @occurred_at);
 
 -- name: ClaimAutomationEvents :many
-SELECT id, workspace_id, kind, contact_id, ref, payload, occurred_at
+-- Events to dispatch, oldest first; one that failed waits for its retry.
+SELECT id, workspace_id, kind, contact_id, ref, payload, occurred_at, attempts
 FROM automation_events
-WHERE processed_at IS NULL
+WHERE processed_at IS NULL AND (retry_at IS NULL OR retry_at <= @now::timestamptz)
 ORDER BY id
 LIMIT @lim
 FOR UPDATE SKIP LOCKED;
+
+-- name: FailAutomationEvent :exec
+-- Counts a failed dispatch: retried after @retry_at, or set aside (processed,
+-- nobody enrolled) once @give_up.
+UPDATE automation_events SET attempts = attempts + 1, last_error = @error, retry_at = @retry_at::timestamptz,
+    processed_at = CASE WHEN @give_up::boolean THEN now() ELSE NULL END
+WHERE id = @id;
+
+-- name: FailAutomationRun :exec
+-- Counts a failed step: the run tries again at @next_at, or fails for good
+-- once @give_up.
+UPDATE automation_runs SET attempts = attempts + 1, last_error = @error,
+    next_at = CASE WHEN @give_up::boolean THEN NULL ELSE @next_at::timestamptz END,
+    status = CASE WHEN @give_up::boolean THEN 'failed' ELSE status END,
+    exit_reason = CASE WHEN @give_up::boolean THEN 'error' ELSE exit_reason END,
+    finished_at = CASE WHEN @give_up::boolean THEN @next_at::timestamptz ELSE finished_at END
+WHERE id = @id;
 
 -- name: MarkAutomationEventProcessed :exec
 UPDATE automation_events SET processed_at = now(), enrolled = @enrolled WHERE id = @id;
@@ -302,7 +320,7 @@ ON CONFLICT DO NOTHING;
 -- name: ClaimDueAutomationRuns :many
 -- Runs ready to move on, in flows that are live (paused flows hold their runs).
 SELECT r.id, r.automation_id, r.version, r.contact_id, r.node_id, r.status, r.state, r.entered_at, r.node_entered_at, r.next_at,
-       a.workspace_id
+       a.workspace_id, r.attempts
 FROM automation_runs r
 JOIN automations a ON a.id = r.automation_id
 WHERE r.status IN ('active', 'waiting') AND r.next_at <= @now AND a.status = 'live' AND a.deleted_at IS NULL
@@ -356,7 +374,12 @@ FROM contacts WHERE id = @id;
 SELECT EXISTS (SELECT 1 FROM list_memberships WHERE list_id = @list_id AND contact_id = @contact_id AND status = 'subscribed');
 
 -- name: AutomationContactEmailedSince :one
-SELECT EXISTS (SELECT 1 FROM messages WHERE contact_id = @contact_id AND queued_at >= @since);
+-- "Skip if the contact received any email in the last N hours": campaign
+-- and automation email that went or is going out. Transactional and System
+-- mail (a password reset) and messages that never left don't count
+-- (review 2026-11 EN-4).
+SELECT EXISTS (SELECT 1 FROM messages WHERE contact_id = @contact_id AND queued_at >= @since
+                 AND stream IN ('broadcast', 'automation') AND status NOT IN ('rejected', 'failed', 'cancelled'));
 
 -- name: AutomationContactPaused :one
 -- The contact paused email on the preference center (30 or 90 days), as
@@ -365,6 +388,10 @@ SELECT EXISTS (SELECT 1 FROM contact_preferences WHERE contact_id = @contact_id 
 
 -- name: AutomationContactSuppressed :one
 SELECT EXISTS (SELECT 1 FROM suppressions WHERE workspace_id = @workspace_id AND email = @email);
+
+-- name: AutomationMessageSentAt :one
+-- When an automation email actually left (NULL while it is queued or held).
+SELECT status, sent_at FROM messages WHERE id = @id;
 
 -- name: AutomationRunMessage :one
 -- The message a run's email step queued (for branch checks).
@@ -509,8 +536,13 @@ WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS 
             ELSE substr(c.attributes ->> @field::text, 1, 10)::date END + @offset_days::int, 'MM-DD') = to_char(@today::date, 'MM-DD')))
   AND NOT EXISTS (SELECT 1 FROM automation_events e
                   WHERE e.workspace_id = c.workspace_id AND e.contact_id = c.id AND e.kind = 'date_field'
-                    AND e.ref = @field::text AND e.occurred_at >= @today::date)
+                    AND e.ref = @field::text AND (e.occurred_at AT TIME ZONE @tz::text)::date >= @today::date)
 LIMIT 5000;
+
+-- name: AutomationRunEnteredSince :one
+-- A run of the contact in the flow started after @since (a yearly date
+-- trigger lets a contact through once a year).
+SELECT EXISTS (SELECT 1 FROM automation_runs WHERE automation_id = @automation_id AND contact_id = @contact_id AND entered_at > @since::timestamptz);
 
 -- name: AutomationContactByEmail :one
 SELECT id, status FROM contacts WHERE workspace_id = @workspace_id AND email = @email AND erased_at IS NULL;

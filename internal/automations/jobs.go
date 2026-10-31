@@ -40,15 +40,17 @@ type TickWorker struct {
 	S *Service
 }
 
-// Work implements river.Worker.
+// Work implements river.Worker. Runs move on even when starting new ones
+// failed (review 2026-11 EN-1).
 func (w *TickWorker) Work(ctx context.Context, _ *river.Job[TickArgs]) error {
+	var errs []error
 	if _, err := w.S.Dispatch(ctx); err != nil {
-		return fmt.Errorf("dispatch: %w", err)
+		errs = append(errs, fmt.Errorf("dispatch: %w", err))
 	}
 	if _, err := w.S.Tick(ctx); err != nil {
-		return fmt.Errorf("tick: %w", err)
+		errs = append(errs, fmt.Errorf("tick: %w", err))
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 // Timeout keeps one tick from overlapping the next for long.

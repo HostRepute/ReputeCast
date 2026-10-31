@@ -119,8 +119,9 @@ type AutomationTrigger struct {
 	OffsetDays int    `json:"offsetDays,omitempty" minimum:"-365" maximum:"365"`
 	Yearly     bool   `json:"yearly,omitempty"`
 	At         string `json:"at,omitempty" maxLength:"5"`
-	// Reentry: "once" (default) lets a contact through the flow one time;
-	// "always" lets them enter again after they leave.
+	// Reentry: "once" (default) lets a contact through the flow one time (a
+	// yearly date trigger: once a year); "always" lets them enter again
+	// after they leave.
 	Reentry string `json:"reentry,omitempty" maxLength:"8"`
 	// Score crosses: the score rises to Threshold or more, or falls below
 	// it, at most once per contact in OnceInDays days (0: no limit).
