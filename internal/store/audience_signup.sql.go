@@ -53,16 +53,20 @@ const signupConfirmPending = `-- name: SignupConfirmPending :many
 UPDATE list_memberships
 SET status = 'subscribed', subscribed_at = $1::timestamptz, unsubscribed_at = NULL
 WHERE contact_id = $2 AND status = 'pending'
+  AND (cardinality($3::uuid[]) = 0 OR list_id = ANY ($3::uuid[]))
 RETURNING list_id
 `
 
 type SignupConfirmPendingParams struct {
-	At        time.Time `json:"at"`
-	ContactID uuid.UUID `json:"contactId"`
+	At        time.Time   `json:"at"`
+	ContactID uuid.UUID   `json:"contactId"`
+	Lists     []uuid.UUID `json:"lists"`
 }
 
+// Confirms the contact's pending lists: those of the link's signup, or all
+// of them for a link not sent for one signup (an empty array).
 func (q *Queries) SignupConfirmPending(ctx context.Context, arg SignupConfirmPendingParams) ([]uuid.UUID, error) {
-	rows, err := q.db.Query(ctx, signupConfirmPending, arg.At, arg.ContactID)
+	rows, err := q.db.Query(ctx, signupConfirmPending, arg.At, arg.ContactID, arg.Lists)
 	if err != nil {
 		return nil, err
 	}

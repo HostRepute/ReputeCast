@@ -48,6 +48,7 @@
   "problem.contactExists": "{email} is already a contact. Open their profile to change lists.",
   "problem.workspaceLists": "Pick lists from this workspace.",
   "problem.optinSuppressed": "{email} is on the suppression list, so no opt-in email can be sent.",
+  "problem.optinCooldown": "A confirmation email went to {email} a few minutes ago, or five already went today. Try again after {time}.",
   "problem.alreadySuppressed": "{email} is already on the suppression list.",
   "problem.score": "Scores go from 0 to 100.",
   "problem.amount": "Type an amount, like 100 or 250.50.",
@@ -100,6 +101,7 @@
 
   "failure.suppressed": { "message": "on the suppression list ({reason}); needs a new opt-in", "note": "reason: a reason.* name in lower case, like hard bounce" },
   "failure.refused": "the System provider refused the email",
+  "failure.cooldown": "a confirmation email went to this address in the last 10 minutes, or five went today",
   "note.alreadySuppressed": "{count, plural, other {# were already on the suppression list.}}",
 
   "source.preference_center": { "message": "the preference center", "note": "where a consent change came from, inside a sentence: Unsubscribed in the preference center" },

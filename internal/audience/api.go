@@ -218,12 +218,18 @@ func Register(h huma.API, s *Service, box Box) {
 			return api.OK(PreferenceLinkResult{URL: url}), err
 		})
 	api.Get(h, api.Op{ID: "export-contact", Path: ws + "/contacts/{contact}/export", Summary: "Everything stored about one contact, as JSON (GDPR, logged)", Tags: tags, Access: api.Workspace(authz.SubscribersExport)},
-		func(ctx context.Context, in *ContactPathInput) (*File, error) {
-			b, name, err := s.ExportContact(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.Contact))
+		func(ctx context.Context, in *ContactPathInput) (*huma.StreamResponse, error) {
+			ex, err := s.ExportContact(ctx, api.WorkspaceFrom(ctx), uuid.MustParse(in.Contact))
 			if err != nil {
 				return nil, err
 			}
-			return download(b, "application/json", name), nil
+			return &huma.StreamResponse{Body: func(hctx huma.Context) {
+				hctx.SetHeader("Content-Type", "application/json")
+				hctx.SetHeader("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, ex.Name))
+				hctx.SetHeader("Cache-Control", "no-store")
+				hctx.SetStatus(200)
+				_ = ex.Write(hctx.BodyWriter())
+			}}, nil
 		})
 
 	// Lists and custom fields

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
 	"github.com/hostrepute/reputecast/internal/integrations"
@@ -1324,5 +1325,58 @@ func TestSendTransactionalEmail(t *testing.T) {
 	r = call(t, env, key.Secret, "GET", ws+"/integration/templates", nil, nil)
 	if r.Status != http.StatusForbidden || code(t, r) != "integration_operation_denied" {
 		t.Errorf("templates without the action: %d %s", r.Status, r.Body)
+	}
+}
+
+// DP-1: erasing a contact sends contact.erased to endpoints that listen,
+// with who and when and why but no address; nothing is queued when no
+// endpoint listens.
+func TestContactErasedEvent(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	l := env.Client()
+	l.SignInDemo("linh@acme.io")
+	rows, err := env.App.Pool.Query(ctx, `SELECT c.id::text FROM contacts c JOIN workspaces w ON w.id = c.workspace_id
+		WHERE w.slug = 'acme-newsletter' AND c.erased_at IS NULL
+		AND NOT EXISTS (SELECT 1 FROM paid_subscriptions ps WHERE ps.contact_id = c.id AND ps.ended_at IS NULL AND ps.kind = 'stripe') ORDER BY c.id LIMIT 2`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil || len(ids) != 2 {
+		t.Fatalf("two contacts to erase: %v %v", ids, err)
+	}
+	id, other := ids[0], ids[1]
+	var address string
+	if err := env.App.Pool.QueryRow(ctx, `SELECT email FROM contacts WHERE id = $1`, id).Scan(&address); err != nil {
+		t.Fatal(err)
+	}
+	// No endpoint listens: nothing queued.
+	l.Do("POST", ws+"/contacts/erase", map[string]any{"ids": []string{other}, "confirm": 1}).MustStatus(t, 200)
+	var queued int
+	_ = env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM webhook_contact_events WHERE event = 'contact.erased'`).Scan(&queued)
+	if queued != 0 {
+		t.Fatalf("queued %d contact.erased events without a listener", queued)
+	}
+
+	var created struct{ Webhook struct{ ID string } }
+	l.Do("POST", ws+"/webhooks", map[string]any{"name": "CRM", "url": "https://crm.example.com/hook", "events": []string{"contact.erased"}}).
+		MustStatus(t, 201).JSON(t, &created)
+	l.Do("POST", ws+"/contacts/erase", map[string]any{"ids": []string{id}, "confirm": 1}).MustStatus(t, 200)
+	if _, err := hubService(env).DeliverContactEvents(ctx, 500); err != nil {
+		t.Fatal(err)
+	}
+	var payload []byte
+	if err := env.App.Pool.QueryRow(ctx, `SELECT payload FROM webhook_deliveries WHERE webhook_id = $1 AND event = 'contact.erased'`, created.Webhook.ID).Scan(&payload); err != nil {
+		t.Fatalf("no contact.erased delivery: %v", err)
+	}
+	var got struct {
+		Type string
+		Data map[string]any
+	}
+	_ = json.Unmarshal(payload, &got)
+	if got.Data["contact_id"] != id || got.Data["reason"] != "team" || got.Data["erased_at"] == nil || strings.Contains(string(payload), address) || got.Data["email"] != nil {
+		t.Fatalf("payload %s", payload)
 	}
 }

@@ -75,7 +75,10 @@ func (s *Service) DeliverContactEvents(ctx context.Context, limit int) (int, err
 		listNames := map[uuid.UUID]map[uuid.UUID]string{}
 		for _, e := range evs {
 			c, ok := contacts[e.ContactID]
-			if !ok || c.ErasedAt != nil {
+			// contact.erased says only who and when: the contact has no data
+			// left to send (review 2026-11 DP-1).
+			erased := e.Event == "contact.erased"
+			if !erased && (!ok || c.ErasedAt != nil) {
 				continue
 			}
 			slug, ok := slugs[e.WorkspaceID]
@@ -93,6 +96,15 @@ func (s *Service) DeliverContactEvents(ctx context.Context, limit int) (int, err
 					}
 				}
 				listNames[e.WorkspaceID] = names
+			}
+			if erased {
+				data := map[string]any{}
+				_ = json.Unmarshal(e.Data, &data)
+				data["contact_id"] = e.ContactID.String()
+				if _, err := webhooks.Emit(ctx, tx, e.WorkspaceID, slug, e.Event, data); err != nil {
+					return err
+				}
+				continue
 			}
 			data := ContactEventData(c)
 			var extra map[string]any

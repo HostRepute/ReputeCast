@@ -182,13 +182,16 @@ ORDER BY paid_at LIMIT 200;
 
 -- name: GiftsDue :many
 -- Paid gifts whose delivery time has come.
+-- A gift whose buyer and recipient were both erased has no one to go to.
 SELECT * FROM earn_gifts WHERE status = 'paid' AND (deliver_at IS NULL OR deliver_at <= @now::timestamptz)
+  AND (recipient_email <> '' OR buyer_email <> '')
 ORDER BY deliver_at NULLS FIRST LIMIT 200;
 
 -- name: GiftsToRemind :many
 -- Delivered a week ago, not redeemed, not reminded yet, the link still good.
 SELECT * FROM earn_gifts WHERE status = 'delivered' AND reminded_at IS NULL AND delivered_at <= @week_ago::timestamptz
   AND (link_expires_at IS NULL OR link_expires_at > @now::timestamptz)
+  AND (recipient_email <> '' OR buyer_email <> '')
 ORDER BY delivered_at LIMIT 200;
 
 -- name: GiftsToExpire :many

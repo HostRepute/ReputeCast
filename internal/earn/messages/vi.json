@@ -1,4 +1,6 @@
 {
+  "erase.paidMembers": "{n, plural, other {# liên hệ}} vẫn đang trả phí qua Stripe. Hãy hủy gói trả phí của họ trong Earn › Hội viên trả phí trước; xóa ở đây không khiến Stripe ngừng thu tiền.",
+
   "cancel.notCancelable": "Không thể hủy thuê bao này ở đây: thuê bao đã kết thúc, hoặc không được thanh toán qua Stripe.",
   "cancel.notConnected": "Stripe chưa được kết nối nên ReputeCast không thể hủy thuê bao. Hãy hủy thuê bao trong Stripe.",
 

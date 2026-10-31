@@ -47,19 +47,11 @@ func (h *Handler) evidence(r *http.Request, source string) audience.PublicEviden
 	return audience.PublicEvidence{Source: source, IP: clientIP(r), UserAgent: r.UserAgent(), At: h.now()}
 }
 
-// confirm completes double opt-in. GET is the link in the email (HEAD,
-// what link scanners send, never confirms).
-func (h *Handler) confirm(w http.ResponseWriter, r *http.Request) {
-	s, ok := h.siteOr404(w, r)
-	if !ok {
-		return
-	}
-	c, ok := h.claims(s, chi.URLParam(r, "token"), linktoken.Confirm)
-	if !ok {
-		h.notFound(w, r, s)
-		return
-	}
-	res, err := h.Forms.Confirm(r.Context(), s.ws, c.ContactID, h.evidence(r, audience.SourceConfirmLink))
+// confirmDo completes double opt-in from the page's Confirm button: the
+// lists of the signup the link was sent for (or every pending list), then
+// the confirmed page.
+func (h *Handler) confirmDo(w http.ResponseWriter, r *http.Request, s *site, c linktoken.Claims) {
+	res, err := h.Forms.Confirm(r.Context(), s.ws, c.ContactID, c.MessageID, h.evidence(r, audience.SourceConfirmLink))
 	if errors.Is(err, audience.ErrContactGone) {
 		h.notFound(w, r, s)
 		return
@@ -79,6 +71,12 @@ func (h *Handler) confirm(w http.ResponseWriter, r *http.Request) {
 			Text: pl.Labels.Text("confirm.blocked.text", i18n.Args{"publisher": s.set.Branding.PublisherName})}, true)
 		return
 	}
+	h.confirmedPage(w, r, s, pc, pl)
+}
+
+// confirmedPage is "You're in": the lists, the next issue, the download and
+// Grow's section.
+func (h *Handler) confirmedPage(w http.ResponseWriter, r *http.Request, s *site, pc audience.PublicContact, pl pageLang) {
 	body, err := h.confirmBody(r.Context(), s, pc, pl)
 	if err != nil {
 		h.serverError(w, r, s, err)
