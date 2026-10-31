@@ -1344,10 +1344,12 @@ func (q *Queries) GiftsAbandon(ctx context.Context, arg GiftsAbandonParams) (int
 
 const giftsDue = `-- name: GiftsDue :many
 SELECT id, workspace_id, mode, option_id, tier_id, months, amount_cents, currency, status, buyer_name, buyer_email, in_person, recipient_name, recipient_email, message, deliver_at, timezone, code, stripe_session_id, payment_intent, stripe_customer, paid_at, delivered_at, reminded_at, link_expires_at, redeemed_at, redeemed_email, redeemed_contact, subscription_id, ending_sent_at, refunded_at, message_purged_at, created_at, updated_at, receipt_sent_at, email_status FROM earn_gifts WHERE status = 'paid' AND (deliver_at IS NULL OR deliver_at <= $1::timestamptz)
+  AND (recipient_email <> '' OR buyer_email <> '')
 ORDER BY deliver_at NULLS FIRST LIMIT 200
 `
 
 // Paid gifts whose delivery time has come.
+// A gift whose buyer and recipient were both erased has no one to go to.
 func (q *Queries) GiftsDue(ctx context.Context, now time.Time) ([]EarnGift, error) {
 	rows, err := q.db.Query(ctx, giftsDue, now)
 	if err != nil {
@@ -1635,6 +1637,7 @@ func (q *Queries) GiftsToReceipt(ctx context.Context, since time.Time) ([]EarnGi
 const giftsToRemind = `-- name: GiftsToRemind :many
 SELECT id, workspace_id, mode, option_id, tier_id, months, amount_cents, currency, status, buyer_name, buyer_email, in_person, recipient_name, recipient_email, message, deliver_at, timezone, code, stripe_session_id, payment_intent, stripe_customer, paid_at, delivered_at, reminded_at, link_expires_at, redeemed_at, redeemed_email, redeemed_contact, subscription_id, ending_sent_at, refunded_at, message_purged_at, created_at, updated_at, receipt_sent_at, email_status FROM earn_gifts WHERE status = 'delivered' AND reminded_at IS NULL AND delivered_at <= $1::timestamptz
   AND (link_expires_at IS NULL OR link_expires_at > $2::timestamptz)
+  AND (recipient_email <> '' OR buyer_email <> '')
 ORDER BY delivered_at LIMIT 200
 `
 

@@ -119,7 +119,8 @@ func (h *Handler) growRoutes(r chi.Router) {
 	r.Get("/recommends/{token}", h.recommendsPage)
 	r.Head("/recommends/{token}", h.headOnly)
 	r.Post("/recommends/{token}", h.recommendsPost)
-	r.Post("/confirm/{token}", h.confirmRecommend)
+	// POST /confirm/{token} with rec reaches confirmRecommend through
+	// confirmPost (confirm.go).
 }
 
 // growPaths are the Grow pages a custom domain answers at its root.

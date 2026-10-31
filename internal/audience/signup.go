@@ -367,10 +367,11 @@ type ConfirmResult struct {
 	Blocked bool
 }
 
-// Confirm completes double opt-in for every pending list of a contact
-// inside tx. The consent text the contact agreed to at signup is copied
-// onto the confirmation, so each confirmed list carries its own evidence.
-func (s *Service) Confirm(ctx context.Context, tx pgx.Tx, ws *store.Workspace, contactID uuid.UUID, ev PublicEvidence) (ConfirmResult, error) {
+// Confirm completes double opt-in inside tx for the contact's pending lists
+// among lists (nil: every pending list). The consent text the contact agreed
+// to at signup is copied onto the confirmation, so each confirmed list
+// carries its own evidence.
+func (s *Service) Confirm(ctx context.Context, tx pgx.Tx, ws *store.Workspace, contactID uuid.UUID, lists []uuid.UUID, ev PublicEvidence) (ConfirmResult, error) {
 	q := store.New(tx)
 	c, err := q.SignupContactByID(ctx, store.SignupContactByIDParams{WorkspaceID: ws.ID, ID: contactID})
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -392,7 +393,10 @@ func (s *Service) Confirm(ctx context.Context, tx pgx.Tx, ws *store.Workspace, c
 		return out, err
 	}
 	at := ev.at()
-	lists, err := q.SignupConfirmPending(ctx, store.SignupConfirmPendingParams{ContactID: c.ID, At: at})
+	if lists == nil {
+		lists = []uuid.UUID{}
+	}
+	lists, err = q.SignupConfirmPending(ctx, store.SignupConfirmPendingParams{ContactID: c.ID, At: at, Lists: lists})
 	if err != nil {
 		return out, err
 	}

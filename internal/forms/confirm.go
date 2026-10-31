@@ -27,9 +27,13 @@ import (
 // confirmation waits and the job retries for three days.
 var errNoSystemMail = errors.New("forms: no System provider")
 
-// ConfirmURL is the double opt-in link of a contact (App.URLs.Confirm).
-func (s *Service) ConfirmURL(ws *store.Workspace, contactID uuid.UUID) string {
-	return s.URLs.Confirm(ws.Slug, s.Tokens.Sign(linktoken.Claims{Kind: linktoken.Confirm, WorkspaceID: ws.ID, ContactID: contactID}))
+// ConfirmURL is the double opt-in link of a contact (App.URLs.Confirm). It
+// carries the day it was issued, so it works for 30 days, and the signup it
+// was sent for (uuid.Nil: none), whose lists alone it confirms (review
+// 2026-11 DP-3).
+func (s *Service) ConfirmURL(ws *store.Workspace, contactID, submissionID uuid.UUID) string {
+	return s.URLs.Confirm(ws.Slug, s.Tokens.Sign(linktoken.Claims{Kind: linktoken.Confirm, WorkspaceID: ws.ID, ContactID: contactID,
+		MessageID: submissionID, Link: linktoken.IssueDay(s.now())}))
 }
 
 // sendConfirmation emails the confirmation link of one submission on the
@@ -73,10 +77,35 @@ func (s *Service) sendConfirmation(ctx context.Context, ws *store.Workspace, set
 		// Confirmed some other way (a re-permission email, the team).
 		return s.Q.FormSubmissionSettle(ctx, store.FormSubmissionSettleParams{ID: submissionID, At: ptrTime(s.now())})
 	}
-	msg := ConfirmationEmailIn(pages.Labels(code), set.Branding, pc.FirstName, names, s.ConfirmURL(ws, contactID), reminder)
+	// One confirmation email per address every 10 minutes and five a day,
+	// whatever asks for it (review 2026-11 DP-3). A resubmission whose lists
+	// an email sent in the last day already covers needs none; a reminder
+	// held back is skipped; anything else waits for the job's next pass.
+	claimed, err := s.Audience.ClaimOptInSend(ctx, contactID)
+	if errors.Is(err, audience.ErrOptInCooldown) {
+		now := s.now()
+		if reminder {
+			return s.Q.FormSubmissionMarkReminded(ctx, store.FormSubmissionMarkRemindedParams{ID: submissionID, At: &now})
+		}
+		var covered bool
+		if err := s.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM form_submissions f, form_submissions this
+			WHERE this.id = $1 AND f.contact_id = this.contact_id AND f.id <> this.id AND f.confirmed_at IS NULL
+			  AND f.confirm_sent_at > $2 AND f.list_ids @> this.list_ids)`, submissionID, now.Add(-24*time.Hour)).Scan(&covered); err != nil {
+			return err
+		}
+		if covered {
+			return s.Q.FormSubmissionMarkSent(ctx, store.FormSubmissionMarkSentParams{ID: submissionID, At: &now})
+		}
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	msg := ConfirmationEmailIn(pages.Labels(code), set.Branding, pc.FirstName, names, s.ConfirmURL(ws, contactID, submissionID), reminder)
 	msg.WorkspaceID, msg.To, msg.ToName = &ws.ID, pc.Email, pc.FirstName
 	provider, err := m.SendSystem(ctx, msg)
 	if err != nil {
+		s.Audience.ReleaseOptInSend(ctx, contactID, claimed)
 		_ = s.Q.FormSubmissionMarkAttempt(ctx, submissionID)
 		if errors.Is(err, mailer.ErrNoSystemProvider) {
 			return errNoSystemMail
@@ -102,6 +131,29 @@ func (s *Service) sendConfirmation(ctx context.Context, ws *store.Workspace, set
 		}
 		return s.Audience.RecordOptInSent(ctx, q, contactID, pending, audience.PublicEvidence{Source: "system", Note: note, At: now})
 	})
+}
+
+// ResendConfirmation emails a new confirmation link to a contact who opened
+// an expired one: for their latest signup still waiting, else for every
+// list they are pending on. The limit on confirmation emails applies; an
+// email it holds back is simply not sent (the page says the same either
+// way).
+func (s *Service) ResendConfirmation(ctx context.Context, ws *store.Workspace, contactID uuid.UUID) error {
+	var subID uuid.UUID
+	var lang string
+	err := s.Pool.QueryRow(ctx, `SELECT id, language FROM form_submissions WHERE contact_id = $1 AND double_opt_in AND confirmed_at IS NULL
+		ORDER BY created_at DESC LIMIT 1`, contactID).Scan(&subID, &lang)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return s.Audience.SendConfirmationFromLink(ctx, ws, contactID)
+	}
+	if err != nil {
+		return err
+	}
+	set, err := s.settings(ctx, ws)
+	if err != nil {
+		return err
+	}
+	return s.sendConfirmation(ctx, ws, set, subID, contactID, false, lang)
 }
 
 // ConfirmationEmail is the double opt-in email in English.
@@ -156,21 +208,30 @@ func confirmationEmail(l pagelabels.Set, b Branding, firstName string, lists []s
 }
 
 // Confirm completes double opt-in for a contact from the confirmation
-// link: the audience confirms the pending lists; the forms they came from
-// count the confirmation on the day of the submission and start their
-// "form submitted" automations.
-func (s *Service) Confirm(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, ev audience.PublicEvidence) (audience.ConfirmResult, error) {
+// link: the audience confirms the pending lists of the signup the link was
+// sent for (submissionID; uuid.Nil or a signup that is gone: every pending
+// list); the forms they came from count the confirmation on the day of the
+// submission and start their "form submitted" automations.
+func (s *Service) Confirm(ctx context.Context, ws *store.Workspace, contactID, submissionID uuid.UUID, ev audience.PublicEvidence) (audience.ConfirmResult, error) {
 	var res audience.ConfirmResult
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		var lists []uuid.UUID
+		if submissionID != uuid.Nil {
+			if sub, err := q.FormSubmissionOfContact(ctx, store.FormSubmissionOfContactParams{ID: submissionID, ContactID: contactID}); err == nil {
+				lists = sub.ListIds
+			} else if !errors.Is(err, pgx.ErrNoRows) {
+				return err
+			}
+		}
 		var err error
-		res, err = s.Audience.Confirm(ctx, tx, ws, contactID, ev)
+		res, err = s.Audience.Confirm(ctx, tx, ws, contactID, lists, ev)
 		if err != nil || len(res.Confirmed) == 0 {
 			return err
 		}
 		if err := s.signupConfirmed(ctx, tx, ws, ConfirmEvent{ContactID: contactID, Lists: res.Confirmed, IP: ev.IP, At: ev.At}); err != nil {
 			return err
 		}
-		q := store.New(tx)
 		rows, err := q.FormSubmissionsConfirm(ctx, store.FormSubmissionsConfirmParams{ContactID: contactID, At: ptrTime(ev.At)})
 		if err != nil {
 			return err

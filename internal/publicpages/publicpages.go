@@ -142,7 +142,7 @@ func (h *Handler) log() *slog.Logger {
 }
 
 // pages are the templates, each rendered inside layout.html.
-var pages = []string{"subscribe", "confirm", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "category", "poll", "survey", "upgrade", "welcome", "smsterms",
+var pages = []string{"subscribe", "confirm", "confirm-ask", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "category", "poll", "survey", "upgrade", "welcome", "smsterms",
 	"cancel", "gift", "giftdone", "redeem", "sponsorreport", "grow-hub", "grow-join", "grow-board", "grow-recommends", "grow-request"}
 
 // Init parses the templates; Routes calls it.
@@ -227,6 +227,9 @@ func (h *Handler) pageRoutes(r chi.Router) {
 	r.Post("/subscribe/{form}", h.subscribePost)
 	r.Get("/confirm/{token}", h.confirm)
 	r.Head("/confirm/{token}", h.headOnly)
+	// Only the page's Confirm button confirms; the same URL also takes
+	// "Send a new link" and the recommendations' Subscribe buttons.
+	r.Post("/confirm/{token}", h.confirmPost)
 	r.Get("/preferences", h.requestPage)
 	r.Post("/preferences", h.requestPost)
 	r.Get("/preferences/{token}", h.preferencesPage)

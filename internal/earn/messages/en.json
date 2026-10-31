@@ -1,4 +1,6 @@
 {
+  "erase.paidMembers": "{n, plural, one {# contact still pays} other {# contacts still pay}} through Stripe. Cancel their paid subscription in Earn › Paid members first; erasing it here wouldn't stop Stripe from charging.",
+
   "cancel.notCancelable": "This subscription can't be canceled here: it has already ended, or it isn't billed through Stripe.",
   "cancel.notConnected": "Stripe isn't connected, so ReputeCast can't cancel the subscription. Cancel it in Stripe instead.",
 

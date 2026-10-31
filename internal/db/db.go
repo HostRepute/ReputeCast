@@ -83,8 +83,70 @@ func gooseProvider(pool *pgxpool.Pool, logger *slog.Logger) (*goose.Provider, *s
 	return p, sqlDB, nil
 }
 
-// MigrateUp applies all pending goose migrations, then River's migrations.
+// migrateLockKey is the session advisory lock (pg_try_advisory_lock(int,
+// int)) that one migrator holds at a time, so replicas started together with
+// --auto-migrate never run a migration twice.
+const (
+	migrateLockClass = 0x7263 // "rc"
+	migrateLockID    = 1
+)
+
+// migrateLockPoll and migrateLockWait bound how a second migrator waits.
+var (
+	migrateLockPoll = 2 * time.Second
+	migrateLockWait = 15 * time.Minute
+)
+
+// withMigrateLock runs fn while this process holds the migration lock. It
+// polls pg_try_advisory_lock on a dedicated connection rather than blocking
+// in pg_advisory_lock: a blocked waiter holds a snapshot, and a migration
+// building an index CONCURRENTLY would wait for it forever. The lock covers
+// goose and River together.
+func withMigrateLock(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger, fn func() error) error {
+	if pool.Config().MaxConns < 2 {
+		return errors.New("migrate: the database pool needs at least 2 connections")
+	}
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("migrate lock: %w", err)
+	}
+	defer conn.Release()
+	deadline := time.Now().Add(migrateLockWait)
+	logged := false
+	for {
+		var got bool
+		if err := conn.QueryRow(ctx, "SELECT pg_try_advisory_lock($1, $2)", migrateLockClass, migrateLockID).Scan(&got); err != nil {
+			return fmt.Errorf("migrate lock: %w", err)
+		}
+		if got {
+			break
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("migrate: another migrator held the lock for %s", migrateLockWait)
+		}
+		if !logged {
+			logger.Info("waiting for another migrator to finish")
+			logged = true
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(migrateLockPoll):
+		}
+	}
+	defer func() {
+		_, _ = conn.Exec(context.WithoutCancel(ctx), "SELECT pg_advisory_unlock($1, $2)", migrateLockClass, migrateLockID)
+	}()
+	return fn()
+}
+
+// MigrateUp applies all pending goose migrations, then River's migrations,
+// holding the migration lock throughout.
 func MigrateUp(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger) error {
+	return withMigrateLock(ctx, pool, logger, func() error { return migrateUp(ctx, pool, logger) })
+}
+
+func migrateUp(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger) error {
 	p, sqlDB, err := gooseProvider(pool, logger)
 	if err != nil {
 		return err
@@ -111,8 +173,13 @@ func MigrateUp(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger) err
 	return nil
 }
 
-// MigrateDown rolls back the latest goose migration.
+// MigrateDown rolls back the latest goose migration, holding the migration
+// lock.
 func MigrateDown(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger) error {
+	return withMigrateLock(ctx, pool, logger, func() error { return migrateDown(ctx, pool, logger) })
+}
+
+func migrateDown(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger) error {
 	p, sqlDB, err := gooseProvider(pool, logger)
 	if err != nil {
 		return err

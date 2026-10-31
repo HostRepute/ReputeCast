@@ -61,9 +61,12 @@ SET status = excluded.status,
                            ELSE list_memberships.unsubscribed_at END;
 
 -- name: SignupConfirmPending :many
+-- Confirms the contact's pending lists: those of the link's signup, or all
+-- of them for a link not sent for one signup (an empty array).
 UPDATE list_memberships
 SET status = 'subscribed', subscribed_at = @at::timestamptz, unsubscribed_at = NULL
 WHERE contact_id = @contact_id AND status = 'pending'
+  AND (cardinality(@lists::uuid[]) = 0 OR list_id = ANY (@lists::uuid[]))
 RETURNING list_id;
 
 -- name: SignupUnsubscribeAll :many

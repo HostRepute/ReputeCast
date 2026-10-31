@@ -137,7 +137,7 @@ type AutomationStepStats struct {
 	Exited       int64                     `json:"exited" doc:"Finished the flow at this step"`
 	Dropped      int64                     `json:"dropped" doc:"Left early: filtered out, unsubscribed or removed"`
 	GoalReached  int64                     `json:"goalReached"`
-	Skipped      int64                     `json:"skipped" doc:"Emails skipped by a rule"`
+	Skipped      int64                     `json:"skipped" doc:"Emails skipped by a rule, or because the contact paused email on the preference center"`
 	Failed       int64                     `json:"failed" doc:"Webhook calls that failed"`
 	Sent         int64                     `json:"sent"`
 	Delivered    int64                     `json:"delivered"`

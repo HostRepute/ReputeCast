@@ -48,6 +48,7 @@
   "problem.contactExists": "{email} đã là một liên hệ. Hãy mở hồ sơ của họ để đổi danh sách.",
   "problem.workspaceLists": "Hãy chọn các danh sách của không gian làm việc này.",
   "problem.optinSuppressed": "{email} đang trong danh sách chặn gửi, nên không gửi được email xác nhận đăng ký.",
+  "problem.optinCooldown": "Một email xác nhận vừa được gửi tới {email} vài phút trước, hoặc hôm nay đã gửi đủ năm email. Hãy thử lại sau {time}.",
   "problem.alreadySuppressed": "{email} đã có trong danh sách chặn gửi.",
   "problem.score": "Điểm nằm trong khoảng từ 0 đến 100.",
   "problem.amount": "Hãy nhập một số tiền, ví dụ 100 hoặc 250.50.",
@@ -100,6 +101,7 @@
 
   "failure.suppressed": "đang trong danh sách chặn gửi ({reason}); cần một lần đồng ý đăng ký mới",
   "failure.refused": "nhà cung cấp của luồng Hệ thống đã từ chối email",
+  "failure.cooldown": "địa chỉ này vừa nhận email xác nhận trong 10 phút qua, hoặc hôm nay đã nhận đủ năm email",
   "note.alreadySuppressed": "{count, plural, other {# địa chỉ đã có sẵn trong danh sách chặn gửi.}}",
 
   "source.preference_center": "trung tâm tùy chọn",

@@ -281,6 +281,7 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
         <EraseDialog
           onClose={() => setErasing(false)}
           ids={ids}
+          stripe={summary.data?.stripe ?? false}
           onDone={() => {
             setSelection({})
             setErasing(false)

@@ -33,6 +33,15 @@ func Register(h huma.API, s *Service) {
 			return api.NoContent, s.UpdateGeneral(ctx, api.WorkspaceFrom(ctx), in.Body)
 		})
 
+	api.Put(h, api.Op{ID: "update-workspace-retention", Path: base + "/settings/retention", Summary: "Change how long unconfirmed signups and open and click details are kept",
+		Tags: tags, Access: api.Workspace(authz.WorkspaceManage), Status: 204},
+		func(ctx context.Context, in *struct {
+			api.WorkspaceInput
+			Body WorkspaceRetention
+		}) (*api.Empty, error) {
+			return api.NoContent, s.UpdateRetention(ctx, api.WorkspaceFrom(ctx), in.Body)
+		})
+
 	registerSidebar(h, s, tags, base)
 
 	api.Post(h, api.Op{ID: "transfer-workspace", Path: base + "/transfer", Summary: "Make another member the Owner; you become an Admin", Tags: tags, Access: api.WorkspaceHuman(authz.WorkspaceTransfer), Status: 204},

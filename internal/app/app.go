@@ -245,9 +245,7 @@ func (a *App) Handler() http.Handler {
 		}
 		_, _ = w.Write([]byte("ready"))
 	})
-	if a.Cfg.Metrics.Enabled && a.Cfg.Metrics.Addr == "" {
-		r.Handle("/metrics", promhttp.HandlerFor(a.Metrics, promhttp.HandlerOpts{}))
-	}
+	mountMetrics(r, a.Cfg.Metrics, promhttp.HandlerFor(a.Metrics, promhttp.HandlerOpts{}))
 
 	// Cross-origin protection (Go 1.25+): rejects cross-site browser requests
 	// that change state. Provider webhooks and public form posts come from
@@ -332,15 +330,7 @@ func (a *App) Run(ctx context.Context) error {
 			}
 		}()
 	}
-	var metricsSrv *http.Server
-	if a.Cfg.Metrics.Enabled && a.Cfg.Metrics.Addr != "" {
-		metricsSrv = &http.Server{Addr: a.Cfg.Metrics.Addr, Handler: promhttp.HandlerFor(a.Metrics, promhttp.HandlerOpts{}), ReadHeaderTimeout: 5 * time.Second}
-		go func() {
-			if err := metricsSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				errCh <- fmt.Errorf("metrics: %w", err)
-			}
-		}()
-	}
+	metricsSrv := a.serveMetrics()
 	go a.followPublicURL(ctx)
 	if a.Cfg.HasRole(config.RoleWorker) {
 		if err := a.Jobs.Start(ctx); err != nil {
@@ -360,9 +350,7 @@ func (a *App) Run(ctx context.Context) error {
 	if srv != nil {
 		_ = srv.Shutdown(shutdownCtx)
 	}
-	if metricsSrv != nil {
-		_ = metricsSrv.Shutdown(shutdownCtx)
-	}
+	shutdownMetrics(shutdownCtx, metricsSrv)
 	if a.Cfg.HasRole(config.RoleWorker) {
 		if err := a.Jobs.Stop(shutdownCtx); err != nil {
 			a.Log.Warn("workers did not stop cleanly", "err", err)

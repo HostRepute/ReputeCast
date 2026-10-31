@@ -10157,6 +10157,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "stripe": {
+            "type": "boolean"
+          },
           "suppressions": {
             "format": "int64",
             "type": "integer"
@@ -10175,7 +10178,8 @@
           "suppressions",
           "tiers",
           "lists",
-          "paidTiers"
+          "paidTiers",
+          "stripe"
         ],
         "type": "object"
       },
@@ -12789,7 +12793,7 @@
             "type": "integer"
           },
           "skipped": {
-            "description": "Emails skipped by a rule",
+            "description": "Emails skipped by a rule, or because the contact paused email on the preference center",
             "format": "int64",
             "type": "integer"
           },
@@ -22198,7 +22202,8 @@
           "code": {
             "enum": [
               "suppressed",
-              "refused"
+              "refused",
+              "cooldown"
             ],
             "type": "string"
           },
@@ -100533,6 +100538,39 @@
         ],
         "type": "object"
       },
+      "WorkspaceRetention": {
+        "additionalProperties": false,
+        "properties": {
+          "eventDetailDays": {
+            "enum": [
+              0,
+              30,
+              90,
+              180,
+              365,
+              730
+            ],
+            "format": "int32",
+            "type": "integer"
+          },
+          "unconfirmedEraseDays": {
+            "enum": [
+              0,
+              14,
+              30,
+              60,
+              90
+            ],
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "unconfirmedEraseDays",
+          "eventDetailDays"
+        ],
+        "type": "object"
+      },
       "WorkspaceSender": {
         "additionalProperties": false,
         "properties": {
@@ -100619,6 +100657,9 @@
           "reason": {
             "type": "string"
           },
+          "retention": {
+            "$ref": "#/components/schemas/WorkspaceRetention"
+          },
           "senders": {
             "items": {
               "$ref": "#/components/schemas/WorkspaceSender"
@@ -100647,7 +100688,8 @@
           "canDelete",
           "hasPassword",
           "helpers",
-          "hiddenSections"
+          "hiddenSections",
+          "retention"
         ],
         "type": "object"
       },
@@ -127255,32 +127297,7 @@
         ],
         "responses": {
           "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "contentEncoding": "base64",
-                  "type": "string"
-                }
-              }
-            },
-            "description": "OK",
-            "headers": {
-              "Cache-Control": {
-                "schema": {
-                  "type": "string"
-                }
-              },
-              "Content-Disposition": {
-                "schema": {
-                  "type": "string"
-                }
-              },
-              "Content-Type": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
+            "description": "OK"
           },
           "default": {
             "content": {
@@ -161415,6 +161432,66 @@
         ],
         "x-access": "workspace",
         "x-permission": "providers:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/settings/retention": {
+      "put": {
+        "operationId": "update-workspace-retention",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceRetention"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change how long unconfirmed signups and open and click details are kept",
+        "tags": [
+          "Workspaces"
+        ],
+        "x-access": "workspace",
+        "x-permission": "workspace:manage"
       }
     },
     "/api/v1/workspaces/{workspace}/settings/sidebar/{section}": {

@@ -210,8 +210,8 @@ func TestPartnerLinks(t *testing.T) {
 	acme.exec(`UPDATE partner_links SET limit_until = NULL`)
 
 	// Sam confirms on Ops Weekly: Acme counts it, without learning who.
-	tok := ops.env.App.Links.Sign(linktoken.Claims{Kind: linktoken.Confirm, WorkspaceID: ops.ws.ID, ContactID: contact})
-	ops.env.Client().Do("GET", "/p/"+ops.ws.Slug+"/confirm/"+tok, nil).MustStatus(t, 200)
+	tok := ops.env.App.Links.Sign(linktoken.Claims{Kind: linktoken.Confirm, WorkspaceID: ops.ws.ID, ContactID: contact, Link: linktoken.IssueDay(time.Now())})
+	ops.env.Client().DoRaw("POST", "/p/"+ops.ws.Slug+"/confirm/"+tok, "application/x-www-form-urlencoded", strings.NewReader("do=confirm")).MustStatus(t, 200)
 	if n, err := ops.s.SendNotices(ctx); err != nil || n != 1 {
 		t.Fatalf("notices: %d %v", n, err)
 	}

@@ -14,6 +14,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/erasure"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/publicurl"
@@ -37,6 +38,9 @@ type Service struct {
 	// SourceNames names sources a label can't (Grow: "Referral · Sam
 	// Rivera", "Partner · Ops Weekly"); nil: none.
 	SourceNames SourceNamer
+	// Erasure is every package's personal data about contacts, for erasing
+	// and exporting (internal/app fills it; nil: the audience's own only).
+	Erasure *erasure.Registry
 }
 
 // SourceNamer names contacts' sources: by contact, for the contacts whose
@@ -92,6 +96,9 @@ type AudienceSummary struct {
 	// PaidTiers are the Earn tiers of the Paid status filter, lowest first;
 	// empty without tiers or without earn:view (no Paid filter or column).
 	PaidTiers []AudiencePaidTier `json:"paidTiers"`
+	// Stripe: the workspace keeps paid members in Stripe (connected now or
+	// before), so erasing contacts reminds that Stripe keeps its records.
+	Stripe bool `json:"stripe"`
 }
 
 // Summary returns the counts shown in the Audience header.
@@ -119,6 +126,9 @@ func (s *Service) Summary(ctx context.Context, ws *store.Workspace) (AudienceSum
 			CreatedAt: l.CreatedAt, Origin: l.Origin})
 	}
 	if out.PaidTiers, err = s.paidTiers(ctx, s.Q, ws.ID); err != nil {
+		return out, err
+	}
+	if err := s.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payment_connections WHERE workspace_id = $1 AND status <> 'setup')`, ws.ID).Scan(&out.Stripe); err != nil {
 		return out, err
 	}
 	return out, nil

@@ -81,7 +81,8 @@ func TestFormLanguages(t *testing.T) {
 		if err != nil || link.Path == "" {
 			t.Fatalf("no confirmation link in:\n%s", sent[0].Text)
 		}
-		must(t, do(t, env, http.MethodGet, link.Path, nil, hdr{"Accept-Language": "de"}), 200, `<html lang="es" dir="ltr">`, "Ya estás dentro")
+		must(t, do(t, env, http.MethodGet, link.Path, nil, hdr{"Accept-Language": "de"}), 200, `<html lang="es" dir="ltr">`, "Confirma tu suscripción")
+		must(t, confirmClick(t, env, link.Path, hdr{"Accept-Language": "de"}), 200, `<html lang="es" dir="ltr">`, "Ya estás dentro")
 	})
 
 	t.Run("a language that isn't Live falls back", func(t *testing.T) {
@@ -97,7 +98,7 @@ func TestFormLanguages(t *testing.T) {
 			t.Fatalf("confirmation email: %+v", sent)
 		}
 		if link, err := url.Parse(linkIn.FindString(sent[0].Text)); err == nil && link.Path != "" {
-			must(t, do(t, env, http.MethodGet, link.Path, nil, hdr{"Accept-Language": "vi"}), 200, `<html lang="en" dir="ltr">`, "You're in")
+			must(t, confirmClick(t, env, link.Path, hdr{"Accept-Language": "vi"}), 200, `<html lang="en" dir="ltr">`, "You're in")
 		} else {
 			t.Fatalf("no confirmation link in:\n%s", sent[0].Text)
 		}

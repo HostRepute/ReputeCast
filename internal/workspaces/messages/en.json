@@ -1,6 +1,7 @@
 {
   "problem.name": "Give the workspace a name.",
   "problem.timezone": "Unknown timezone.",
+  "problem.retention": "Pick one of the offered periods.",
   "problem.sender": "Pick a sender of this workspace.",
   "problem.signedInOwner": "Only a signed-in Owner can transfer ownership.",
   "problem.password": "That password isn't right.",

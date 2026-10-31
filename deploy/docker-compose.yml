@@ -38,6 +38,9 @@ services:
       REPUTECAST_AUTO_INSTALL: "true"
       # Set when ReputeCast runs behind a reverse proxy (CIDRs or IPs):
       # REPUTECAST_HTTP__TRUSTED_PROXIES: 172.16.0.0/12
+      # Prometheus metrics listen on port 9464 inside the container (not
+      # published). To scrape the main port instead, set a bearer token:
+      # REPUTECAST_METRICS__TOKEN: change-me-at-least-16-chars
     volumes:
       - appdata:/var/lib/reputecast
 
