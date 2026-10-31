@@ -55,7 +55,7 @@ const (
 	// KindAutomationAttention: a flow's step keeps failing or its sending is
 	// held (review 2026-11 EN-5).
 	KindAutomationAttention = "automation_attention"
-	KindDigestDraftReady  = "digest_draft_ready"  // draft mode: an issue is a draft to send through Review & send
+	KindDigestDraftReady    = "digest_draft_ready" // draft mode: an issue is a draft to send through Review & send
 	// AI assistant (design expansion, phase 3).
 	KindAIUsage       = "ai_usage"        // this month's AI use reached 80% of the cap, or the cap
 	KindAIKeyRejected = "ai_key_rejected" // the model provider rejected the workspace's key
