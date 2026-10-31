@@ -141,6 +141,10 @@ VALUES (@id, @workspace_id, @mode, sqlc.narg(option_id), sqlc.narg(tier_id), @mo
 -- name: GiftSetSession :exec
 UPDATE earn_gifts SET stripe_session_id = @session, updated_at = @at::timestamptz WHERE id = @id;
 
+-- name: GiftPaymentFailed :exec
+-- A delayed payment (a bank debit) didn't clear: the gift is abandoned.
+UPDATE earn_gifts SET status = 'abandoned', updated_at = @at::timestamptz WHERE id = @id AND status IN ('checkout','abandoned');
+
 -- name: GiftPaid :exec
 -- The payment went through: the gift waits for its delivery date.
 UPDATE earn_gifts SET status = 'paid', paid_at = @at::timestamptz, payment_intent = @payment_intent, stripe_customer = @stripe_customer,

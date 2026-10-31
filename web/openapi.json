@@ -8457,6 +8457,9 @@
             },
             "type": "array"
           },
+          "nextCursor": {
+            "type": "string"
+          },
           "policy": {
             "$ref": "#/components/schemas/ApprovalPolicySummary"
           }
@@ -52866,6 +52869,7 @@
               "downloaded",
               "refunded",
               "dispute_opened",
+              "dispute_updated",
               "dispute_closed",
               "access_revoked",
               "access_restored",
@@ -111026,6 +111030,29 @@
               "format": "int64",
               "maximum": 3650,
               "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The nextCursor of the page before",
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "description": "The nextCursor of the page before",
+              "maxLength": 80,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 1,
               "type": "integer"
             }
           }

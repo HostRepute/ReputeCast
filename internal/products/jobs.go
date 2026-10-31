@@ -42,5 +42,6 @@ func RegisterJobs(reg *jobs.Registry, s *Service) {
 	river.AddWorker(reg.Workers, &deliverWorker{S: s})
 	river.AddWorker(reg.Workers, &confirmWorker{S: s})
 	river.AddWorker(reg.Workers, &sweepWorker{S: s})
+	river.AddWorker(reg.Workers, &paymentFailedWorker{S: s})
 	reg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return SweepArgs{}, nil }, false)
 }

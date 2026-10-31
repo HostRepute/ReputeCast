@@ -1194,6 +1194,21 @@ func (q *Queries) GiftPaid(ctx context.Context, arg GiftPaidParams) error {
 	return err
 }
 
+const giftPaymentFailed = `-- name: GiftPaymentFailed :exec
+UPDATE earn_gifts SET status = 'abandoned', updated_at = $1::timestamptz WHERE id = $2 AND status IN ('checkout','abandoned')
+`
+
+type GiftPaymentFailedParams struct {
+	At time.Time `json:"at"`
+	ID uuid.UUID `json:"id"`
+}
+
+// A delayed payment (a bank debit) didn't clear: the gift is abandoned.
+func (q *Queries) GiftPaymentFailed(ctx context.Context, arg GiftPaymentFailedParams) error {
+	_, err := q.db.Exec(ctx, giftPaymentFailed, arg.At, arg.ID)
+	return err
+}
+
 const giftReceiptSent = `-- name: GiftReceiptSent :exec
 UPDATE earn_gifts SET receipt_sent_at = $1::timestamptz, updated_at = $1::timestamptz WHERE id = $2
 `

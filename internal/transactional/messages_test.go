@@ -125,7 +125,7 @@ func TestMessageLog(t *testing.T) {
 	if p := get(url.Values{"key": {keyID}}); len(p.Items) != 3 {
 		t.Fatalf("key filter: %d", len(p.Items))
 	}
-	for _, q := range []string{"pwreset-7f3a91", "u_48213", "onboarding", "sam.rivera", reset.ID} {
+	for _, q := range []string{"pwreset-7f3a91", "PWRESET-7F3A91", "u_48213", "onboarding", "Onboarding", "sam.rivera", reset.ID, strings.ToUpper(reset.ID)} {
 		if p := get(url.Values{"q": {q}}); len(p.Items) != 1 {
 			t.Fatalf("search %q: %d", q, len(p.Items))
 		}

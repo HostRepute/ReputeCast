@@ -60,6 +60,7 @@ export const m = defineMessages('approvals', {
   emptyFiltered: 'Clear the filters or pick a longer date range to see more.',
   emptyNone: 'Requests appear here once someone asks for an approval.',
   tableCaption: 'Approval requests',
+  showOlder: 'Show older requests',
   colCampaign: 'Campaign',
   colAuthor: 'Author',
   colAudience: 'Audience',

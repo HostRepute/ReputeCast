@@ -1,6 +1,7 @@
-import { keepPreviousData } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { $api, errorMessage, type Schemas } from '@/api/client'
+import { errorMessage, http, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
@@ -42,15 +43,24 @@ export function InboxPage({ search }: { search: InboxSearch }) {
   const navigate = useNavigate()
   const status = search.status ?? 'all'
   const days = search.days ?? 30
-  const list = $api.useQuery(
-    'get',
-    '/api/v1/workspaces/{workspace}/approvals',
-    { params: { path: { workspace: slug }, query: { status, author: search.author, approver: search.approver, days } } },
-    { placeholderData: keepPreviousData },
-  )
+  // Pages of 50, pending first; the key starts like $api's, so the app's
+  // invalidations of the inbox reach it.
+  const query = { status, author: search.author, approver: search.approver, days }
+  const list = useInfiniteQuery({
+    queryKey: ['get', '/api/v1/workspaces/{workspace}/approvals', { params: { path: { workspace: slug }, query } }, 'pages'],
+    queryFn: async ({ pageParam, signal }) =>
+      (await http.GET('/api/v1/workspaces/{workspace}/approvals', { params: { path: { workspace: slug }, query: { ...query, cursor: pageParam || undefined } }, signal })).data!,
+    initialPageParam: '',
+    getNextPageParam: (last: Schemas['ApprovalList']) => last.nextCursor || undefined,
+    placeholderData: keepPreviousData,
+  })
+  const data = useMemo(() => {
+    const first = list.data?.pages[0]
+    return first ? { ...first, items: list.data!.pages.flatMap((p) => p.items) } : undefined
+  }, [list.data])
   const set = (patch: Partial<InboxSearch>) =>
     void navigate({ to: '/w/$workspace/approvals', params: { workspace: slug }, search: { ...search, ...patch }, replace: true })
-  const counts = list.data?.counts
+  const counts = data?.counts
   const label = (s: InboxStatus, v?: number) => (v !== undefined ? t(m.filterCount, { status: s, count: count(v) }) : t(m.filter, { status: s }))
   return (
     <Page
@@ -76,13 +86,20 @@ export function InboxPage({ search }: { search: InboxSearch }) {
         <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => list.refetch()}>{t(common.retry)}</Button>}>
           {errorMessage(list.error)} {t(m.nothingChanged)}
         </ErrorPanel>
-      ) : list.isPending ? (
+      ) : !data ? (
         <InboxSkeleton />
       ) : (
         <>
-          <RequestsCard data={list.data} status={status} search={search} days={days} onFilter={set} />
+          <RequestsCard
+            data={data}
+            status={status}
+            search={search}
+            days={days}
+            onFilter={set}
+            more={list.hasNextPage ? { loading: list.isFetchingNextPage, onMore: () => void list.fetchNextPage() } : undefined}
+          />
           <div className="grid gap-5 [grid-template-columns:repeat(auto-fill,minmax(min(380px,100%),1fr))]">
-            <PolicyCard policy={list.data.policy} canManage={list.data.canManage} />
+            <PolicyCard policy={data.policy} canManage={data.canManage} />
           </div>
         </>
       )}
@@ -96,12 +113,15 @@ function RequestsCard({
   search,
   days,
   onFilter,
+  more,
 }: {
   data: Schemas['ApprovalList']
   status: InboxStatus
   search: InboxSearch
   days: number
   onFilter: (p: Partial<InboxSearch>) => void
+  /** Set while older requests are left to load. */
+  more?: { loading: boolean; onMore: () => void }
 }) {
   const t = useT()
   const now = useNow()
@@ -218,6 +238,13 @@ function RequestsCard({
           </tbody>
         </AccessTable>
       )}
+      {more ? (
+        <div className="row justify-center border-t border-line-2 px-4.5 py-3">
+          <Button size="sm" loading={more.loading} onClick={more.onMore}>
+            {t(m.showOlder)}
+          </Button>
+        </div>
+      ) : null}
     </section>
   )
 }

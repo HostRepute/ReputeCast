@@ -11,18 +11,20 @@ import (
 
 // eventKinds maps Stripe's event types onto the contract's kinds.
 var eventKinds = map[string]payments.EventKind{
-	"checkout.session.completed":           payments.EventCheckoutCompleted,
-	"customer.subscription.created":        payments.EventSubscriptionCreated,
-	"customer.subscription.updated":        payments.EventSubscriptionUpdated,
-	"customer.subscription.deleted":        payments.EventSubscriptionDeleted,
-	"customer.subscription.trial_will_end": payments.EventTrialEnding,
-	"invoice.paid":                         payments.EventInvoicePaid,
-	"invoice.payment_failed":               payments.EventPaymentFailed,
-	"invoice.upcoming":                     payments.EventInvoiceUpcoming,
-	"charge.refunded":                      payments.EventRefunded,
-	"charge.dispute.created":               payments.EventDisputeOpened,
-	"customer.updated":                     payments.EventCustomerUpdated,
-	"customer.deleted":                     payments.EventCustomerDeleted,
+	"checkout.session.completed":               payments.EventCheckoutCompleted,
+	"checkout.session.async_payment_succeeded": payments.EventCheckoutAsyncPaid,
+	"checkout.session.async_payment_failed":    payments.EventCheckoutAsyncFailed,
+	"customer.subscription.created":            payments.EventSubscriptionCreated,
+	"customer.subscription.updated":            payments.EventSubscriptionUpdated,
+	"customer.subscription.deleted":            payments.EventSubscriptionDeleted,
+	"customer.subscription.trial_will_end":     payments.EventTrialEnding,
+	"invoice.paid":                             payments.EventInvoicePaid,
+	"invoice.payment_failed":                   payments.EventPaymentFailed,
+	"invoice.upcoming":                         payments.EventInvoiceUpcoming,
+	"charge.refunded":                          payments.EventRefunded,
+	"charge.dispute.created":                   payments.EventDisputeOpened,
+	"customer.updated":                         payments.EventCustomerUpdated,
+	"customer.deleted":                         payments.EventCustomerDeleted,
 }
 
 // idOf reads a field that is an id or an expanded object.
@@ -104,7 +106,7 @@ func parseEvent(raw []byte) (payments.Event, error) {
 		if err = json.Unmarshal(e.Data.Object, &d); err == nil {
 			out.Charge = &payments.Charge{ID: idOf(d.Charge), Amount: d.Amount, Currency: d.Currency}
 		}
-	case payments.EventCheckoutCompleted:
+	case payments.EventCheckoutCompleted, payments.EventCheckoutAsyncPaid, payments.EventCheckoutAsyncFailed:
 		var cs payments.CheckoutSession
 		if cs, err = parseCheckout(e.Data.Object); err == nil {
 			out.Checkout = &cs

@@ -2,8 +2,10 @@ package products
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
@@ -20,18 +22,34 @@ const TemplateKey = "product-delivery"
 const CategoryName = "Purchases"
 
 // ensureTemplate makes the delivery template (product-delivery, a draft
-// in the Essential "Purchases" category) when the workspace has none.
-// ReputeCast makes it, so a person who can't change Transactional
-// settings can still start a product; publishing it stays theirs. Its name,
-// its category's and its content are in the workspace's default language.
+// in the Essential "Purchases" category) when the workspace has none, and
+// beside it the notice of a bank payment that failed after checkout
+// (product-payment-failed). ReputeCast makes them, so a person who can't
+// change Transactional settings can still start a product; publishing them
+// stays theirs. Their names, their category's and their content are in the
+// workspace's default language.
 func (s *Service) ensureTemplate(ctx context.Context, ws *store.Workspace) (*uuid.UUID, error) {
-	if t, err := s.Q.ProductTemplateByKey(ctx, store.ProductTemplateByKeyParams{WorkspaceID: ws.ID, Key: TemplateKey}); err == nil {
+	id, err := s.ensureStarter(ctx, ws, TemplateKey, "template.deliveryName")
+	if err != nil || id == nil {
+		return id, err
+	}
+	if _, err := s.ensureStarter(ctx, ws, FailedTemplateKey, "template.failedName"); err != nil {
+		return nil, err
+	}
+	return id, nil
+}
+
+// ensureStarter makes the template key from its starter, named by the
+// label name, unless the workspace has it.
+func (s *Service) ensureStarter(ctx context.Context, ws *store.Workspace, key, name string) (*uuid.UUID, error) {
+	if t, err := s.Q.ProductTemplateByKey(ctx, store.ProductTemplateByKeyParams{WorkspaceID: ws.ID, Key: key}); err == nil {
 		return &t.ID, nil
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
 	}
 	if s.Transactional == nil || s.Transactional() == nil {
 		return nil, nil
 	}
-	ts := s.Transactional()
 	sys := &authz.Principal{Type: authz.ActorSystem, Name: "ReputeCast", WorkspaceID: ws.ID,
 		Permissions: authz.Set{authz.TransactionalPublish: {}, authz.TransactionalEdit: {}}}
 	cat, err := s.purchasesCategory(ctx, ws, sys)
@@ -39,7 +57,7 @@ func (s *Service) ensureTemplate(ctx context.Context, ws *store.Workspace) (*uui
 		return nil, err
 	}
 	l := pagelabels.Lang(s.defaultLanguage(ctx, ws.ID))
-	t, err := ts.CreateTemplate(ctx, ws, sys, transactional.TransactionalTemplateCreate{Name: word(l, "template.deliveryName", nil), Key: TemplateKey, Starter: TemplateKey,
+	t, err := s.Transactional().CreateTemplate(ctx, ws, sys, transactional.TransactionalTemplateCreate{Name: word(l, name, nil), Key: key, Starter: key,
 		CategoryID: cat.String(), Origin: map[string]any{"source": "products"}})
 	if err != nil {
 		return nil, err

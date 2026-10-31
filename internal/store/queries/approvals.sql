@@ -59,6 +59,14 @@ JOIN campaigns c ON c.id = r.campaign_id AND c.deleted_at IS NULL AND c.status I
 JOIN workspaces w ON w.id = r.workspace_id AND w.deleted_at IS NULL
 WHERE r.status IN ('pending', 'approved') AND r.subject_type = 'campaign';
 
+-- name: ApprovalOpenRequestsIn :many
+-- Open campaign requests of one workspace (re-checked when its inbox opens).
+SELECT r.id, r.workspace_id, r.campaign_id
+FROM approval_requests r
+JOIN campaigns c ON c.id = r.campaign_id AND c.deleted_at IS NULL AND c.status IN ('draft', 'approval', 'approved', 'scheduled')
+JOIN workspaces w ON w.id = r.workspace_id AND w.deleted_at IS NULL
+WHERE r.workspace_id = @workspace_id AND r.status IN ('pending', 'approved') AND r.subject_type = 'campaign';
+
 -- name: ApprovalSetStatus :exec
 UPDATE approval_requests SET status = @status, decided_at = sqlc.narg(decided_at), decided_by = sqlc.narg(decided_by) WHERE id = @id;
 
@@ -149,10 +157,36 @@ WHERE r.workspace_id = @workspace_id AND r.status <> 'bypassed'
   AND (sqlc.narg(author)::uuid IS NULL OR r.requested_by = sqlc.narg(author)::uuid)
   AND (sqlc.narg(approver)::uuid IS NULL OR r.decided_by = sqlc.narg(approver)::uuid
        OR EXISTS (SELECT 1 FROM approval_decisions y WHERE y.request_id = r.id AND y.approver_id = sqlc.narg(approver)::uuid))
-  AND NOT EXISTS (SELECT 1 FROM approval_requests n WHERE n.previous_id = r.id AND n.status <> 'bypassed' AND r.status IN ('invalidated') AND n.requested_at > r.requested_at
-                  AND @hide_replaced::boolean)
-ORDER BY CASE r.status WHEN 'pending' THEN 0 ELSE 1 END, r.requested_at DESC
-LIMIT 200;
+  AND (sqlc.narg(status)::text IS NULL OR r.status = sqlc.narg(status)::text)
+  -- Keyset paging in the inbox's order: pending first, then newest.
+  AND (sqlc.narg(after_at)::timestamptz IS NULL
+       OR (CASE r.status WHEN 'pending' THEN 0 ELSE 1 END) > @after_rank::int
+       OR (CASE r.status WHEN 'pending' THEN 0 ELSE 1 END) = @after_rank::int
+          AND (r.requested_at, r.id) < (sqlc.narg(after_at)::timestamptz, sqlc.narg(after_id)::uuid))
+ORDER BY CASE r.status WHEN 'pending' THEN 0 ELSE 1 END, r.requested_at DESC, r.id DESC
+LIMIT @lim;
+
+-- name: ApprovalListCounts :many
+-- The inbox tabs' numbers, for the same filters as ApprovalList.
+SELECT r.status, count(*)::bigint AS n
+FROM approval_requests r
+WHERE r.workspace_id = @workspace_id AND r.status <> 'bypassed'
+  AND (@all_requests::boolean OR r.requested_by = @viewer::uuid)
+  AND r.requested_at >= @since::timestamptz
+  AND (sqlc.narg(author)::uuid IS NULL OR r.requested_by = sqlc.narg(author)::uuid)
+  AND (sqlc.narg(approver)::uuid IS NULL OR r.decided_by = sqlc.narg(approver)::uuid
+       OR EXISTS (SELECT 1 FROM approval_decisions y WHERE y.request_id = r.id AND y.approver_id = sqlc.narg(approver)::uuid))
+GROUP BY r.status;
+
+-- name: ApprovalListAuthors :many
+-- Who asked for approval in the inbox's period (the Author filter).
+SELECT DISTINCT r.requested_by AS id, u.name
+FROM approval_requests r
+JOIN users u ON u.id = r.requested_by
+WHERE r.workspace_id = @workspace_id AND r.status <> 'bypassed'
+  AND (@all_requests::boolean OR r.requested_by = @viewer::uuid)
+  AND r.requested_at >= @since::timestamptz
+ORDER BY u.name, r.requested_by;
 
 -- name: ApprovalPendingForWorkspace :many
 SELECT r.id, r.requested_at, coalesce((r.snapshot ->> 'audience_count')::bigint, 0)::bigint AS audience_count,

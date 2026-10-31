@@ -12,9 +12,9 @@ import (
 
 // The payments event log's groups of event types.
 var eventGroups = map[string][]string{
-	"payments": {"invoice.paid", "checkout.session.completed", "invoice.upcoming"},
-	"failures": {"invoice.payment_failed"},
-	"refunds":  {"charge.refunded", "charge.dispute.created"},
+	"payments": {"invoice.paid", "checkout.session.completed", "checkout.session.async_payment_succeeded", "invoice.upcoming"},
+	"failures": {"invoice.payment_failed", "checkout.session.async_payment_failed"},
+	"refunds":  {"charge.refunded", "charge.dispute.created", "charge.dispute.updated", "charge.dispute.closed"},
 	"changes":  {"customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted", "customer.updated"},
 	"trials":   {"customer.subscription.trial_will_end"},
 }

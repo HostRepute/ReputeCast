@@ -14,7 +14,7 @@ export default translate(m, {
   lowest: 'Điểm thấp nhất',
   highest: 'Điểm cao nhất',
   and: 'đến',
-  growthSource: 'Nguồn tăng trưởng',
+  growthSource: 'Nguồn',
   anySource: 'Mọi nguồn',
   sourceContacts: '{name} · {count, number}',
   utmSource: 'Nguồn UTM',

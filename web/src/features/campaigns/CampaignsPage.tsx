@@ -428,6 +428,7 @@ function PageLink({ page, disabled, status, q, channel, children }: { page: numb
 function RowActions({ c }: { c: Schemas['CampaignListItem'] }) {
   const t = useT()
   const { slug } = useWorkspace()
+  const editReason = usePermissionReason('campaigns:edit')
   const params = { workspace: slug, campaignId: c.id }
   switch (c.status) {
     case 'scheduled':
@@ -461,7 +462,15 @@ function RowActions({ c }: { c: Schemas['CampaignListItem'] }) {
           <ButtonLink size="sm" to="/w/$workspace/campaigns/$campaignId/report" params={params}>
             {t(m.report)}
           </ButtonLink>
-          <Button size="sm">{t(m.duplicate)}</Button>
+          {editReason ? (
+            <Button size="sm" disabledReason={editReason}>
+              {t(m.duplicate)}
+            </Button>
+          ) : (
+            <ButtonLink size="sm" to="/w/$workspace/campaigns/new" params={{ workspace: slug }} search={{ from: c.id }}>
+              {t(m.duplicate)}
+            </ButtonLink>
+          )}
         </>
       )
   }

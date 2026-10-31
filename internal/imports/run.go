@@ -92,8 +92,13 @@ func (s *Service) Start(ctx context.Context, ws *store.Workspace, id uuid.UUID) 
 	conn := parseConnection(imp.Connection)
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if err := q.StartImport(ctx, store.StartImportParams{ID: imp.ID, Progress: mustJSON(ImportProgress{Total: total, Batches: batches, BatchSize: BatchSize})}); err != nil {
+		n, err := q.StartImport(ctx, store.StartImportParams{ID: imp.ID, Progress: mustJSON(ImportProgress{Total: total, Batches: batches, BatchSize: BatchSize})})
+		if err != nil {
 			return err
+		}
+		if n == 0 {
+			// Another request started it since it was read (review 2026-11 EN-7).
+			return api.Conflict(say(ctx, mStarted, nil))
 		}
 		if err := s.log(ctx, q, imp.ID, "start", s.startLine(ctx, ws, imp, conn, opts, cm, total)...); err != nil {
 			return err

@@ -261,6 +261,19 @@
   "starter.product-delivery.sample.file": "tệp PDF, 4,2 MB",
   "starter.product-delivery.sample.expires_on": "22 thg 10, 2026",
   "starter.product-delivery.test.1.file": "3 tệp, 38 MB",
+  "starter.product-payment-failed.name": "Thanh toán không thành công",
+  "starter.product-payment-failed.description": "Khi khoản thanh toán qua ngân hàng cho một sản phẩm số thất bại sau khi thanh toán",
+  "starter.product-payment-failed.subject": "Khoản thanh toán cho '{{ product_name }}' không thành công",
+  "starter.product-payment-failed.preheader": "Bạn chưa bị trừ tiền. Bạn có thể thử lại.",
+  "starter.product-payment-failed.heading": "Khoản thanh toán không thành công",
+  "starter.product-payment-failed.body.0": "Chào '{{ first_name }}',",
+  "starter.product-payment-failed.body.1": "Ngân hàng của bạn chưa hoàn tất khoản thanh toán cho '{{ product_name }}', nên đơn hàng chưa được tạo và bạn chưa bị trừ tiền.",
+  "starter.product-payment-failed.button": "Thử lại",
+  "starter.product-payment-failed.bodyAfter.0": "Nếu bạn nghĩ đây là nhầm lẫn, hãy hỏi ngân hàng của bạn hoặc thanh toán bằng cách khác.",
+  "starter.product-payment-failed.why": "Bạn nhận email này vì bạn đã bắt đầu mua hàng tại '{{ site }}'. Không thể tắt email mua hàng.",
+  "starter.product-payment-failed.test.0": "Một người mua",
+  "starter.product-payment-failed.default.first_name": "bạn",
+  "starter.product-payment-failed.default.site": "chúng tôi",
 
   "publish.soonDefault": "sớm"
 }

@@ -53,6 +53,8 @@ type listInput struct {
 	Author   string `query:"author" doc:"Requester user id"`
 	Approver string `query:"approver" doc:"Approver user id"`
 	Days     int    `query:"days" minimum:"0" maximum:"3650" default:"30" doc:"Requested in the last N days (0: all)"`
+	Cursor   string `query:"cursor" maxLength:"80" doc:"The nextCursor of the page before"`
+	Limit    int    `query:"limit" minimum:"1" maximum:"100" default:"50"`
 }
 
 type decisionInput struct {
@@ -138,7 +140,7 @@ func Register(h huma.API, s *Service) {
 	api.Get(h, api.Op{ID: "list-approvals", Path: "/workspaces/{workspace}/approvals", Summary: "The approval inbox: approvers see every request, authors their own",
 		Tags: tags, Access: api.Workspace(authz.CampaignsView)},
 		func(ctx context.Context, in *listInput) (*api.Body[ApprovalList], error) {
-			out, err := s.List(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), ListParams{Status: in.Status, Author: in.Author, Approver: in.Approver, Days: in.Days})
+			out, err := s.List(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), ListParams{Status: in.Status, Author: in.Author, Approver: in.Approver, Days: in.Days, Cursor: in.Cursor, Limit: in.Limit})
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-approval", Path: "/workspaces/{workspace}/approvals/{approvalId}", Summary: "An approval request with its snapshot, readiness, diff and discussion",

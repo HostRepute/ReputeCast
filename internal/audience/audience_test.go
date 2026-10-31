@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -101,6 +102,18 @@ func TestAudienceDemo(t *testing.T) {
 			t.Fatal("updating a contact wrote no audit entry")
 		}
 		viewer.Do(http.MethodPatch, ws+"/contacts/"+id, map[string]any{"tags": []string{}}).MustStatus(t, 403)
+
+		// Review 2026-11 EN-7: tags are stored lower-case, so typing "VIP"
+		// in the search or the tag filter still finds the contact.
+		for _, q := range []string{"tag=VIP", "tag=%20Vip%20", "q=VIP"} {
+			var found struct {
+				Items []struct{ ID string }
+			}
+			c.Do(http.MethodGet, ws+"/contacts?"+q, nil).MustStatus(t, 200).JSON(t, &found)
+			if !slices.ContainsFunc(found.Items, func(it struct{ ID string }) bool { return it.ID == id }) {
+				t.Fatalf("%s: the vip contact is missing", q)
+			}
+		}
 	})
 
 	t.Run("list health", func(t *testing.T) {

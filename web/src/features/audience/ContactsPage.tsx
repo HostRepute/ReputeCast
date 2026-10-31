@@ -17,7 +17,7 @@ import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
 import { AddressCheckFilter } from '@/features/verification/AddressCheck'
 import { AudienceTabs, useAudienceSummary } from './AudienceTabs'
 import { AddContactDialog, BulkDialog, BulkResultPanel, EraseDialog, SaveViewDialog, type BulkKind } from './ContactDialogs'
-import { BandSelect, ScoreCell, ScoreGrowthChips, ScoreGrowthFields, scoreGrowthMoreKeys, ScoreHeader, useTotalLine, type ScoreGrowthDraft } from '@/features/scoring/ContactsScore'
+import { BandSelect, GrowthSourceField, ScoreCell, ScoreGrowthChips, ScoreGrowthFields, scoreGrowthMoreKeys, ScoreHeader, useTotalLine, type ScoreGrowthDraft } from '@/features/scoring/ContactsScore'
 import { fileName, saveBlob } from './download'
 import { consentFilterLabel, consentLabel, consentTone, mailboxColor, mailboxes, mailboxLabel, tierClass, tierColor, tierLabel, tiers, type Consent, type Mailbox, type Tier } from './labels'
 import { LanguageFilter } from '@/features/page-languages/contacts'
@@ -28,7 +28,7 @@ import './audience.css'
 import { ChannelChips } from '@/features/push/ContactFilters'
 import { MembersChips } from '@/features/website/elsewhere'
 import { SmsContactFilters, usePhoneColumn } from '@/features/sms/ContactFilters'
-import { t, useT, type MessageDescriptor } from '@/i18n'
+import { t, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { m as cfm } from '@/features/sms/contactfilters.messages'
 import { m as am } from './messages'
@@ -334,22 +334,6 @@ function SavedViews({ views, filter, onPick, onSave }: { views?: Schemas['Contac
   )
 }
 
-const sourceOptions: [string, MessageDescriptor][] = [
-  ['import:brevo', m.sourceBrevo],
-  ['import:mailchimp', m.sourceMailchimp],
-  ['import:csv', m.sourceCsv],
-  ['form:docs', m.sourceFormDocs],
-  ['form:blog', m.sourceFormBlog],
-  ['form:footer', m.sourceFormFooter],
-  ['form:pricing', m.sourceFormPricing],
-  ['form:popup', m.sourcePopup],
-  ['api', m.sourceApi],
-  ['app', m.sourceApp],
-  // Grow (design expansion, X15): any referral, any partner.
-  ['referral', m.sourceReferral],
-  ['partner', m.sourcePartner],
-]
-
 function Filters({
   search,
   total,
@@ -454,7 +438,6 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
   const { slug } = useWorkspace()
   const [open, setOpen] = useState(false)
   const segments = $api.useQuery('get', '/api/v1/workspaces/{workspace}/segments', { params: { path: { workspace: slug } } }, { enabled: open })
-  const [source, setSource] = useState(search.source ?? '')
   const [tag, setTag] = useState(search.tag ?? '')
   const [after, setAfter] = useState(search.joinedAfter ?? '')
   const [segment, setSegment] = useState(search.segment ?? '')
@@ -465,7 +448,6 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
   const toggle = (o: boolean) => {
     if (o) {
       // Opening shows the filters that apply now.
-      setSource(search.source ?? '')
       setTag(search.tag ?? '')
       setAfter(search.joinedAfter ?? '')
       setSegment(search.segment ?? '')
@@ -484,16 +466,8 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
       className="max-h-(--radix-popover-content-available-height) w-[360px] gap-3 overflow-y-auto p-3.5"
       trigger={<button className="btn">{n ? tr(m.moreFiltersCount, { n }) : tr(m.moreFilters)}</button>}
     >
-      <Field label={tr(m.source)}>
-        <Select value={source} onChange={(e) => setSource(e.target.value)}>
-          <option value="">{tr(m.anySource)}</option>
-          {sourceOptions.map(([v, l]) => (
-            <option key={v} value={v}>
-              {tr(l)}
-            </option>
-          ))}
-        </Select>
-      </Field>
+      {/* Source: how each contact first joined, from this workspace's own sources (review 2026-11 EN-7). */}
+      <GrowthSourceField value={extra.growthSource} onChange={(growthSource) => setExtra({ ...extra, growthSource })} open={open} />
       <Field label={tr(m.tag)}>
         <Input value={tag} onChange={(e) => setTag(e.target.value)} placeholder={'customer'} />
       </Field>
@@ -510,7 +484,7 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
           ))}
         </Select>
       </Field>
-      <ScoreGrowthFields draft={extra} onChange={setExtra} open={open} />
+      <ScoreGrowthFields draft={extra} onChange={setExtra} />
       <StoreContactFields draft={stores} onChange={setStores} open={open} />
       <div className="flex justify-end gap-2">
         <Button
@@ -532,7 +506,7 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
           size="sm"
           variant="primary"
           onClick={() => {
-            onChange({ source: source || undefined, tag: tag.trim() || undefined, joinedAfter: after || undefined, segment: segment || undefined, ...extra, ...stores })
+            onChange({ tag: tag.trim() || undefined, joinedAfter: after || undefined, segment: segment || undefined, ...extra, ...stores })
             setOpen(false)
           }}
         >

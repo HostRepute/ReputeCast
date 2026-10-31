@@ -146,10 +146,10 @@ func compileGrowthText(t *sqlText, c SegmentCondition) {
 		t.bind(str(v))
 	case "contains":
 		t.raw(col + " LIKE ")
-		t.bind(str("%" + escapeLike(v) + "%"))
+		t.bind(str("%" + db.EscapeLike(v) + "%"))
 	case "ends_with":
 		t.raw(col + " LIKE ")
-		t.bind(str("%" + escapeLike(v)))
+		t.bind(str("%" + db.EscapeLike(v)))
 	default:
 		t.raw(col + " = ")
 		t.bind(str(v))

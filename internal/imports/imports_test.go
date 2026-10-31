@@ -8,7 +8,9 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/google/uuid"
@@ -175,7 +177,21 @@ func TestCSVImport(t *testing.T) {
 		t.Fatalf("preview: %+v", p)
 	}
 
-	c.Do(http.MethodPost, base+"/imports/"+id+"/start", nil).MustStatus(t, 200)
+	// Review 2026-11 EN-7: of several clicks at once, one starts the import;
+	// the others are told it has started, and it runs once.
+	statuses := make([]int, 5)
+	var wg sync.WaitGroup
+	for i := range statuses {
+		wg.Go(func() { statuses[i] = c.Do(http.MethodPost, base+"/imports/"+id+"/start", nil).Status })
+	}
+	wg.Wait()
+	if slices.Sort(statuses); !slices.Equal(statuses, []int{200, 409, 409, 409, 409}) {
+		t.Fatalf("five starts at once: %v", statuses)
+	}
+	var starts int
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action = 'import.start' AND target_id = $1`, id).Scan(&starts); err != nil || starts != 1 {
+		t.Fatalf("import.start audited %d times (%v)", starts, err)
+	}
 	if err := svc.Run(ctx, uuid.MustParse(id)); err != nil {
 		t.Fatalf("run: %v", err)
 	}

@@ -125,6 +125,12 @@ func (Verifier) ParsePayment(body []byte) (payments.Payment, error) {
 		if p.Mode != "payment" {
 			p.Kind = payments.PaymentOther
 		}
+	case "checkout.session.async_payment_failed":
+		p, err = parsePaymentSession(e.Data.Object)
+		p.Kind = payments.PaymentFailed
+		if p.Mode != "payment" {
+			p.Kind = payments.PaymentOther
+		}
 	case "charge.refunded":
 		p, err = parsePaymentCharge(e.Data.Object, e.Data.Previous)
 		p.Kind = payments.PaymentRefunded

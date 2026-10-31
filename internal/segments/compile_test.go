@@ -68,20 +68,22 @@ func TestCompileQueryBindsValues(t *testing.T) {
 		t.Fatal(err)
 	}
 	q, args := Compile(d, wsID, custom).Query(2)
-	if strings.Contains(q, "DROP TABLE") || strings.Contains(q, "'team'") {
+	if strings.Contains(strings.ToLower(q), "drop table") || strings.Contains(q, "'team'") {
 		t.Fatalf("values must be bound, not inlined:\n%s", q)
 	}
 	if !strings.Contains(q, "c.workspace_id = $2") || !strings.Contains(q, "NOT $7 = ANY (c.tags)") || !strings.Contains(q, "< $9::date") {
 		t.Fatalf("placeholders:\n%s", q)
 	}
-	if len(args) != 9 || args[0] != wsID || args[5] != "churned'; DROP TABLE contacts; --" || args[6] != float64(50) {
+	if len(args) != 9 || args[0] != wsID || args[5] != "churned'; drop table contacts; --" || args[6] != float64(50) {
 		t.Fatalf("args: %#v", args)
 	}
 	if args[8] != `%acme\_io\%` {
 		t.Fatalf("LIKE pattern must escape wildcards: %v", args[8])
 	}
 	disp := Compile(d, wsID, custom).Display()
-	if !strings.Contains(disp, `'churned''; DROP TABLE contacts; --'`) {
+	// Tags are stored lower-case, and so is the value they're matched with
+	// (review 2026-11 EN-7).
+	if !strings.Contains(disp, `'churned''; drop table contacts; --'`) {
 		t.Fatalf("display must quote safely:\n%s", disp)
 	}
 }

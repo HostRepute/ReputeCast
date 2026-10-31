@@ -352,7 +352,7 @@ type ProductOrderDownloads struct {
 
 // ProductOrderEvent is one line of the order's activity.
 type ProductOrderEvent struct {
-	Kind string    `json:"kind" enum:"checkout_started,paid,delivery_sent,delivery_delivered,delivery_failed,downloaded,refunded,dispute_opened,dispute_closed,access_revoked,access_restored,new_link,buyer_asked"`
+	Kind string    `json:"kind" enum:"checkout_started,paid,delivery_sent,delivery_delivered,delivery_failed,downloaded,refunded,dispute_opened,dispute_updated,dispute_closed,access_revoked,access_restored,new_link,buyer_asked"`
 	At   time.Time `json:"at"`
 	// By is the person, "" for the system or the buyer.
 	By string `json:"by"`

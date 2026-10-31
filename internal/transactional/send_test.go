@@ -566,6 +566,15 @@ func TestSendBatch(t *testing.T) {
 	if n := s.step(); n != 2 {
 		t.Fatalf("sent %d", n)
 	}
+	// Review 2026-11 EN-7: the log finds a batch's messages ("batch-1#0",
+	// "batch-1#3"…) by its key, whatever the case typed.
+	for _, q := range []string{"batch-1", "BATCH-1"} {
+		var log struct{ Items []struct{ ID string } }
+		s.owner.Do(http.MethodGet, base+"/messages?q="+q, nil).MustStatus(t, 200).JSON(t, &log)
+		if len(log.Items) != 3 {
+			t.Fatalf("log search %q: %d messages, want 3", q, len(log.Items))
+		}
+	}
 	// More than 100 is refused whole.
 	many := []any{}
 	for i := range 101 {

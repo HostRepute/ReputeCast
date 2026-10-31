@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/db"
 )
 
 // The builder compiles to one SQL text against the segment views (contacts
@@ -67,12 +69,6 @@ func num(v float64) arg {
 // quote renders a standard SQL string literal (standard_conforming_strings
 // is on, so only the quote needs doubling).
 func quote(s string) string { return "'" + strings.ReplaceAll(s, "'", "''") + "'" }
-
-// escapeLike escapes LIKE wildcards in a value used as a pattern.
-func escapeLike(s string) string {
-	r := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
-	return r.Replace(s)
-}
 
 // Compiled is a builder segment rendered to SQL.
 type Compiled struct {
@@ -152,7 +148,7 @@ func condition(t *sqlText, c SegmentCondition, custom map[string]CustomField) {
 		switch c.Op {
 		case "ends_with":
 			t.raw("split_part(c.email, '@', 2) LIKE ")
-			t.bind(str("%" + escapeLike(strings.ToLower(strings.TrimSpace(c.Value)))))
+			t.bind(str("%" + db.EscapeLike(strings.ToLower(strings.TrimSpace(c.Value)))))
 		case "is_not":
 			t.raw("split_part(c.email, '@', 2) <> ")
 			t.bind(str(strings.ToLower(strings.TrimSpace(c.Value))))
@@ -172,7 +168,8 @@ func condition(t *sqlText, c SegmentCondition, custom map[string]CustomField) {
 		if c.Op == "has_not" {
 			t.raw("NOT ")
 		}
-		t.bind(str(strings.TrimSpace(c.Value)))
+		// Tags are stored lower-case.
+		t.bind(str(strings.ToLower(strings.TrimSpace(c.Value))))
 		t.raw(" = ANY (c.tags)")
 	case "last_open":
 		switch c.Op {
@@ -274,7 +271,7 @@ func customCondition(t *sqlText, key string, f CustomField, c SegmentCondition) 
 			t.bind(str(c.Value))
 		case "contains":
 			t.raw(text + " ILIKE ")
-			t.bind(str("%" + escapeLike(c.Value) + "%"))
+			t.bind(str("%" + db.EscapeLike(c.Value) + "%"))
 		default:
 			t.raw(text + " = ")
 			t.bind(str(c.Value))

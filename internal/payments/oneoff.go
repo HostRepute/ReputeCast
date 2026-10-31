@@ -63,7 +63,10 @@ const (
 	PaymentDisputeOpened  PaymentKind = "dispute_opened"
 	PaymentDisputeUpdated PaymentKind = "dispute_updated"
 	PaymentDisputeClosed  PaymentKind = "dispute_closed"
-	PaymentOther          PaymentKind = "other"
+	// PaymentFailed: a delayed payment method (a bank debit) didn't clear
+	// after the checkout completed.
+	PaymentFailed PaymentKind = "failed"
+	PaymentOther  PaymentKind = "other"
 )
 
 // Payment is a one-time payment as an event, or a checkout, reports it.

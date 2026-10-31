@@ -170,7 +170,7 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 	l := i18n.LangFrom(ctx)
 	fs := filterSQL{where: "s.workspace_id = $1", args: []any{ws.ID}}
 	if q := strings.TrimSpace(strings.ToLower(f.Q)); q != "" {
-		fs.add("s.email LIKE ?", "%"+escapeLike(q)+"%")
+		fs.add("s.email LIKE ?", "%"+db.EscapeLike(q)+"%")
 	}
 	if f.Reason != "" {
 		fs.add("s.reason = ?", f.Reason)

@@ -207,6 +207,7 @@
   "label.automationChange": {"message": "{kind, select, added {added} removed {removed} other {changed}}: {title}", "note": "a change in the automation version an approval publishes; title: the step, from the automation's diff"},
   "note.comment": {"message": "{name}: “{comment}”", "note": "the inbox's line under a request sent back or rejected"},
   "note.cancelled": "cancelled by the author",
+  "inbox.cursor": "This page of the inbox is out of date. Reload it.",
   "policy.warming": {"message": "{provider} is warming up, day {day} of {days}", "note": "Settings › Approvals, what the warming rule matches today; provider: Postal (mta.acme.io)"},
   "policy.connected": "{days, plural, one {{provider} was connected # day ago} other {{provider} was connected # days ago}}",
 

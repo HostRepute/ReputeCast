@@ -110,6 +110,14 @@ func TestGrowOverview(t *testing.T) {
 	if len(people.Items) != 1 || people.Items[0].Name != "Sam Rivera" {
 		t.Fatalf("referrers: %+v", people)
 	}
+	// Review 2026-11 EN-7: "%" and "_" are searched for, not wildcards.
+	for _, q := range []string{"%25", "s_m.rivera", "SAM.RIVERA"} {
+		var found struct{ Items []struct{ Name string } }
+		c.Do("GET", p+"/referrers?q="+q, nil).MustStatus(t, 200).JSON(t, &found)
+		if want := map[bool]int{true: 1, false: 0}[q == "SAM.RIVERA"]; len(found.Items) != want {
+			t.Fatalf("referrers ?q=%s: %d, want %d", q, len(found.Items), want)
+		}
+	}
 	var panel struct {
 		Code      string
 		Referrals []struct{ Number int }

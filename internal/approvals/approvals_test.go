@@ -209,6 +209,35 @@ func TestReviewAndApprovals(t *testing.T) {
 		t.Fatalf("pending tab: %+v", inbox.Items)
 	}
 
+	// Review 2026-11 EN-7: the inbox pages in SQL, pending first and then
+	// newest, so every request is reached and the tab counts stay whole.
+	var seen []string
+	cursor := ""
+	for page := 0; ; page++ {
+		var p struct {
+			Items      []struct{ ID, Status string }
+			Counts     struct{ Pending, All int }
+			NextCursor string
+		}
+		marcus.Do("GET", ws+"/approvals?status=all&limit=2&cursor="+cursor, nil).MustStatus(t, 200).JSON(t, &p)
+		if p.Counts.All != 9 || p.Counts.Pending != 2 || len(p.Items) > 2 {
+			t.Fatalf("page %d: %+v", page, p)
+		}
+		if page == 0 && (p.Items[0].Status != "pending" || p.Items[1].Status != "pending") {
+			t.Fatalf("pending first: %+v", p.Items)
+		}
+		for _, it := range p.Items {
+			seen = append(seen, it.ID)
+		}
+		if cursor = p.NextCursor; cursor == "" {
+			break
+		}
+	}
+	if slices.Sort(seen); len(slices.Compact(seen)) != 9 {
+		t.Fatalf("paging reached %d distinct requests, want 9", len(seen))
+	}
+	marcus.Do("GET", ws+"/approvals?cursor=not-a-cursor", nil).MustStatus(t, 422)
+
 	// Permissions: Viewers read, never decide or run checks; authors never
 	// approve their own campaign.
 	aisha.Do("GET", ws+"/campaigns/"+nov+"/review", nil).MustStatus(t, 200)

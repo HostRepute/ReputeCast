@@ -207,6 +207,7 @@
   "label.automationChange": "{kind, select, added {đã thêm} removed {đã xóa} other {đã đổi}}: {title}",
   "note.comment": "{name}: “{comment}”",
   "note.cancelled": "tác giả đã rút lại",
+  "inbox.cursor": "Trang này của hộp thư đã cũ. Hãy tải lại.",
   "policy.warming": "{provider} đang khởi động, ngày {day}/{days}",
   "policy.connected": "{provider} được kết nối {days} ngày trước",
 

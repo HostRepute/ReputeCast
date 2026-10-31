@@ -118,6 +118,11 @@ export const po = defineMessages('products.order', {
   evDisputeOpened: 'Dispute opened',
   evDisputeOpenedDetail: 'Stripe: {event} · “{reason}” · respond by {date}',
   evDisputeOpenedDetailNoDue: 'Stripe: {event} · “{reason}”',
+  evDisputeUpdated: 'Dispute updated',
+  evDisputeUpdatedDetail:
+    'Stripe: {event} · {state, select, needs_response {needs your response} warning_needs_response {needs your response} under_review {under review} warning_under_review {under review} other {{state}}} · respond by {date}',
+  evDisputeUpdatedDetailNoDue:
+    'Stripe: {event} · {state, select, needs_response {needs your response} warning_needs_response {needs your response} under_review {under review} warning_under_review {under review} other {{state}}}',
   evDisputeWon: 'Dispute won',
   evDisputeLost: 'Dispute lost',
   evRevoked: 'Access revoked',

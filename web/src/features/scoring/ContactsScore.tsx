@@ -83,11 +83,34 @@ export function useTotalLine() {
 
 export type ScoreGrowthDraft = Pick<ScoreGrowthSearch, (typeof scoreGrowthMoreKeys)[number]>
 
-/** The score range and how contacts first joined, inside More filters. */
-export function ScoreGrowthFields({ draft, onChange, open }: { draft: ScoreGrowthDraft; onChange: (d: ScoreGrowthDraft) => void; open: boolean }) {
+/**
+ * Source, under More filters: the sources this workspace's contacts joined
+ * through (Audience › Growth), biggest first, with how many.
+ */
+export function GrowthSourceField({ value, onChange, open }: { value?: string; onChange: (v: string | undefined) => void; open: boolean }) {
   const t = useT()
   const { slug } = useWorkspace()
   const sources = $api.useQuery('get', '/api/v1/workspaces/{workspace}/growth/sources', { params: { path: { workspace: slug } } }, { enabled: open })
+  const items = sources.data?.items ?? []
+  return (
+    <Field label={t(m.growthSource)}>
+      <Select value={value ?? ''} aria-busy={sources.isFetching || undefined} onChange={(e) => onChange(e.target.value || undefined)}>
+        <option value="">{t(m.anySource)}</option>
+        {/* A filter from a link shows before the list has loaded. */}
+        {value && !items.some((s) => s.source.key === value) ? <option value={value}>{value}</option> : null}
+        {items.map((s) => (
+          <option key={s.source.key} value={s.source.key}>
+            {t(m.sourceContacts, { name: sourceName(s.source), count: s.contacts })}
+          </option>
+        ))}
+      </Select>
+    </Field>
+  )
+}
+
+/** The score range, UTM and referring domain, inside More filters. */
+export function ScoreGrowthFields({ draft, onChange }: { draft: ScoreGrowthDraft; onChange: (d: ScoreGrowthDraft) => void }) {
+  const t = useT()
   const num = (v: string) => (v === '' ? undefined : Math.max(0, Math.min(100, Math.round(Number(v)))))
   const text = (v: string) => v.trim() || undefined
   return (
@@ -100,16 +123,6 @@ export function ScoreGrowthFields({ draft, onChange, open }: { draft: ScoreGrowt
           <Input className="num" type="number" min={0} max={100} style={{ width: 80 }} aria-label={t(m.highest)} value={draft.scoreTo ?? ''} onChange={(e) => onChange({ ...draft, scoreTo: num(e.target.value) })} />
         </div>
       </div>
-      <Field label={t(m.growthSource)}>
-        <Select value={draft.growthSource ?? ''} onChange={(e) => onChange({ ...draft, growthSource: e.target.value || undefined })}>
-          <option value="">{t(m.anySource)}</option>
-          {(sources.data?.items ?? []).map((s) => (
-            <option key={s.source.key} value={s.source.key}>
-              {t(m.sourceContacts, { name: sourceName(s.source), count: s.contacts })}
-            </option>
-          ))}
-        </Select>
-      </Field>
       <div className="grid grid-cols-3 gap-2">
         <Field label={t(m.utmSource)}>
           <Input value={draft.utmSource ?? ''} onChange={(e) => onChange({ ...draft, utmSource: text(e.target.value) })} />

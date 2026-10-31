@@ -261,6 +261,19 @@
   "starter.product-delivery.sample.file": "the PDF, 4.2 MB",
   "starter.product-delivery.sample.expires_on": "22 Oct 2026",
   "starter.product-delivery.test.1.file": "the 3 files, 38 MB",
+  "starter.product-payment-failed.name": "Payment didn't go through",
+  "starter.product-payment-failed.description": "When a bank payment for a digital product fails after checkout",
+  "starter.product-payment-failed.subject": "Your payment for '{{ product_name }}' didn't go through",
+  "starter.product-payment-failed.preheader": "Nothing was charged. You can try again.",
+  "starter.product-payment-failed.heading": "Your payment didn't go through",
+  "starter.product-payment-failed.body.0": "Hi '{{ first_name }}',",
+  "starter.product-payment-failed.body.1": "Your bank didn't complete the payment for '{{ product_name }}', so the order wasn't placed and nothing was charged.",
+  "starter.product-payment-failed.button": "Try again",
+  "starter.product-payment-failed.bodyAfter.0": "If you think this is a mistake, check with your bank or pay another way.",
+  "starter.product-payment-failed.why": "You get this email because you started a purchase at '{{ site }}'. Purchase emails can't be turned off.",
+  "starter.product-payment-failed.test.0": "A buyer",
+  "starter.product-payment-failed.default.first_name": "there",
+  "starter.product-payment-failed.default.site": { "message": "us", "note": "what “you started a purchase at …” says without the site's address" },
 
   "publish.soonDefault": { "message": "soon", "note": "the default the publish dialog suggests for a date variable that recent calls didn't send, as in “Your trial ends …”. It becomes the template's content, so it's written in the workspace's language" }
 }

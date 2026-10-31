@@ -88,7 +88,7 @@ FROM referral_links rl
 JOIN contacts c ON c.id = rl.contact_id
 LEFT JOIN agg a ON a.link_id = rl.id
 WHERE rl.program_id = $1 AND (a.link_id IS NOT NULL OR rl.status = 'paused')
-  AND ($2 = '' OR lower(c.email) LIKE '%' || lower($2) || '%' OR lower(c.first_name || ' ' || c.last_name) LIKE '%' || lower($2) || '%')
+  AND ($2 = '' OR lower(c.email) LIKE '%' || $2 || '%' OR lower(c.first_name || ' ' || c.last_name) LIKE '%' || $2 || '%')
   AND (NOT $3::boolean OR coalesce(a.held, 0) > 0)
   AND (NOT $4::boolean OR rl.status = 'paused')
   AND ($5::int = 0
@@ -112,7 +112,7 @@ func (s *Service) Referrers(ctx context.Context, ws *store.Workspace, programID 
 	viewer := api.PrincipalFrom(ctx)
 	out := ReferralReferrerList{Items: []ReferralReferrerRow{}, Page: p.Page, MilestoneCounts: []ReferralMilestoneCnt{},
 		ShowAddresses: viewer.Can(authz.SubscribersView), Helpers: s.helperSets(ctx, ws.ID)}
-	rows, err := s.Pool.Query(ctx, referrersSQL, programID, strings.TrimSpace(p.Query), p.Held, p.Paused, p.Milestone, p.PageSize, (p.Page-1)*p.PageSize)
+	rows, err := s.Pool.Query(ctx, referrersSQL, programID, db.EscapeLike(strings.ToLower(strings.TrimSpace(p.Query))), p.Held, p.Paused, p.Milestone, p.PageSize, (p.Page-1)*p.PageSize)
 	if err != nil {
 		return out, err
 	}

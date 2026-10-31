@@ -78,6 +78,9 @@ WHERE id = @id;
 -- name: PayConnectionKeyRejected :exec
 UPDATE payment_connections SET key_rejected_at = coalesce(key_rejected_at, @at::timestamptz), updated_at = @at WHERE id = @id;
 
+-- name: PayConnectionWebhookEvents :exec
+UPDATE payment_connections SET webhook_events = @webhook_events, updated_at = @at WHERE id = @id;
+
 -- name: PayConnectionWebhookMissing :exec
 UPDATE payment_connections SET webhook_missing_at = coalesce(webhook_missing_at, @at::timestamptz), updated_at = @at WHERE id = @id;
 

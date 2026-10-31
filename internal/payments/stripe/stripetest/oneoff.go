@@ -136,6 +136,21 @@ func (f *Fake) Dispute(mode payments.Mode, chargeID, reason string, dueBy int64)
 	return id, f.emitLocked(d, "charge.dispute.created", dp, nil, mode == payments.Live), nil
 }
 
+// UpdateDispute moves an open dispute to status ("under_review" once
+// evidence is in) and sends charge.dispute.updated.
+func (f *Fake) UpdateDispute(mode payments.Mode, disputeID, status string) (Event, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	d := f.modes[mode]
+	dp, ok := d.objects[disputeID]
+	if !ok {
+		return Event{}, fmt.Errorf("stripetest: no dispute %s", disputeID)
+	}
+	prev := obj{"status": dp["status"]}
+	dp["status"] = status
+	return f.emitLocked(d, "charge.dispute.updated", dp, prev, mode == payments.Live), nil
+}
+
 // CloseDispute closes a dispute, won or lost, and sends charge.dispute.closed.
 func (f *Fake) CloseDispute(mode payments.Mode, disputeID string, won bool) (Event, error) {
 	f.mu.Lock()
