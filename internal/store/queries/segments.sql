@@ -31,13 +31,29 @@ UPDATE segments
 SET cached_count = @cached_count, counted_at = @counted_at, count_ms = @count_ms, tier_counts = @tier_counts
 WHERE id = @id;
 
--- name: ClearSegmentMembers :exec
-DELETE FROM segment_members WHERE segment_id = @segment_id;
-
--- name: AddSegmentMembers :exec
-INSERT INTO segment_members (segment_id, contact_id)
-SELECT @segment_id, unnest(@contact_ids::uuid[])
-ON CONFLICT DO NOTHING;
+-- name: ReplaceSegmentMembers :one
+-- A refresh as a diff (review 2026-11 AU-16): members that stay keep their
+-- entered_at; those who leave and those who come in each get an event.
+WITH want AS (
+    SELECT DISTINCT unnest(@contact_ids::uuid[]) AS contact_id
+), gone AS (
+    DELETE FROM segment_members sm WHERE sm.segment_id = @segment_id
+      AND NOT EXISTS (SELECT 1 FROM want w WHERE w.contact_id = sm.contact_id)
+    RETURNING sm.contact_id
+), added AS (
+    INSERT INTO segment_members (segment_id, contact_id, entered_at)
+    SELECT @segment_id, w.contact_id, @at::timestamptz FROM want w
+    ON CONFLICT DO NOTHING
+    RETURNING contact_id
+), events AS (
+    INSERT INTO segment_member_events (segment_id, contact_id, kind, at)
+    SELECT @segment_id, g.contact_id, 'left', @at::timestamptz FROM gone g
+    UNION ALL
+    SELECT @segment_id, a.contact_id, 'entered', @at::timestamptz FROM added a
+    RETURNING kind
+)
+SELECT (SELECT count(*) FROM events WHERE kind = 'entered')::bigint AS entered,
+       (SELECT count(*) FROM events WHERE kind = 'left')::bigint AS left_count;
 
 -- name: SegmentMemberIDs :many
 SELECT sm.contact_id FROM segment_members sm

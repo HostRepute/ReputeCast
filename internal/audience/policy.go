@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/erasure"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -40,6 +43,57 @@ type SunsetPolicy struct {
 	// DeleteAfter erases contacts after DeleteAfterMonths in Sunset.
 	DeleteAfter       bool `json:"deleteAfter"`
 	DeleteAfterMonths int  `json:"deleteAfterMonths" minimum:"1" maximum:"120"`
+	// ConfirmErase is "ERASE", typed after the dry run, to turn erasing on
+	// (review 2026-11 AU-12). It is not stored.
+	ConfirmErase string `json:"confirmErase,omitempty" maxLength:"10"`
+}
+
+// SunsetDryRun is what turning on "erase after N months in Sunset" would
+// do: how many contacts the first run erases, how many it keeps because
+// they still pay, and the day it runs.
+type SunsetDryRun struct {
+	Erase int64  `json:"erase"`
+	Kept  int64  `json:"kept" doc:"Paid members, kept until their subscription ends"`
+	From  string `json:"from" doc:"The first run's day (2026-12-01), in the workspace's time zone"`
+}
+
+// SunsetDryRun counts the contacts in Sunset for months or more, as the
+// next nightly run would find them, without erasing anyone.
+func (s *Service) SunsetDryRun(ctx context.Context, ws *store.Workspace, months int) (SunsetDryRun, error) {
+	if months < 1 || months > 120 {
+		return SunsetDryRun{}, api.Invalid("deleteAfterMonths", say(ctx, mPolicyDelete, nil))
+	}
+	now := s.now()
+	loc := workspaceLocation(ws)
+	out := SunsetDryRun{From: now.In(loc).AddDate(0, 0, 1).Format("2006-01-02")}
+	err := pgx.BeginTxFunc(ctx, s.Pool, pgx.TxOptions{AccessMode: pgx.ReadOnly}, func(tx pgx.Tx) error {
+		rows, err := tx.Query(ctx, `SELECT id, email, phone FROM contacts WHERE workspace_id = $1 AND erased_at IS NULL AND tier = 'sunset'
+			AND sunset_at <= $2::timestamptz - make_interval(months => $3)`, ws.ID, now, months)
+		if err != nil {
+			return err
+		}
+		subjects, err := pgx.CollectRows(rows, func(r pgx.CollectableRow) (erasure.Subject, error) {
+			var su erasure.Subject
+			return su, r.Scan(&su.ID, &su.Email, &su.Phone)
+		})
+		if err != nil || len(subjects) == 0 {
+			return err
+		}
+		refusals, err := s.registry().Guard(ctx, tx, &erasure.Batch{WorkspaceID: ws.ID, Subjects: subjects, Reason: erasure.ReasonPolicy, At: now})
+		if err != nil {
+			return err
+		}
+		kept := map[uuid.UUID]bool{}
+		for _, r := range refusals {
+			for _, id := range r.IDs {
+				kept[id] = true
+			}
+		}
+		out.Kept = int64(len(kept))
+		out.Erase = int64(len(subjects)) - out.Kept
+		return nil
+	})
+	return out, err
 }
 
 // policyDoc is how the policy is stored on the workspace (snake_case, and
@@ -135,6 +189,15 @@ func (s *Service) SavePolicy(ctx context.Context, ws *store.Workspace, p SunsetP
 		return p, err
 	}
 	before := ParsePolicy(ws.SunsetPolicy)
+	// Turning erasing on needs the typed word after the dry run.
+	if p.Enabled && p.DeleteAfter && (!before.Enabled || !before.DeleteAfter) && strings.TrimSpace(p.ConfirmErase) != "ERASE" {
+		dry, err := s.SunsetDryRun(ctx, ws, p.DeleteAfterMonths)
+		if err != nil {
+			return p, err
+		}
+		return p, api.Err(409, "confirm_erase", say(ctx, mConfirmErase, nil)).WithMeta("erase", dry.Erase).WithMeta("kept", dry.Kept).WithMeta("from", dry.From)
+	}
+	p.ConfirmErase = ""
 	if p.Enabled && (!before.Enabled || before.EnabledAt == "") {
 		p.EnabledAt = s.now().In(workspaceLocation(ws)).Format("2006-01-02")
 	} else if p.Enabled {

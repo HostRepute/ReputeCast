@@ -138,9 +138,6 @@ func (s *Service) RiskySegment(ctx context.Context, ws *store.Workspace, campaig
 		err := tx.QueryRow(ctx, `SELECT id FROM segments WHERE workspace_id = $1 AND name = $2 AND refresh = 'static'`, ws.ID, name).Scan(&id)
 		switch {
 		case err == nil:
-			if err := q.ClearSegmentMembers(ctx, id); err != nil {
-				return err
-			}
 		case errors.Is(err, pgx.ErrNoRows):
 			id = uuid.Must(uuid.NewV7())
 			def, _ := json.Marshal(map[string]any{"op": "and", "groups": []any{}})
@@ -160,7 +157,8 @@ func (s *Service) RiskySegment(ctx context.Context, ws *store.Workspace, campaig
 		for i, c := range contacts {
 			ids[i] = c.ID
 		}
-		return q.AddSegmentMembers(ctx, store.AddSegmentMembersParams{SegmentID: id, ContactIds: ids})
+		_, err = q.ReplaceSegmentMembers(ctx, store.ReplaceSegmentMembersParams{SegmentID: id, ContactIds: ids, At: time.Now()})
+		return err
 	})
 	return id, err
 }

@@ -58,8 +58,8 @@ func (w *RetentionWorker) Timeout(*river.Job[RetentionArgs]) time.Duration { ret
 
 // Work implements river.Worker.
 func (w *RetentionWorker) Work(ctx context.Context, _ *river.Job[RetentionArgs]) error {
-	// Exports past their seven days go with the hourly retention pass.
-	return errors.Join(w.Svc.RunRetention(ctx, w.Log), w.Svc.SweepJobFiles(ctx))
+	// Exports past their seven days and fields deleted 30 days ago go too.
+	return errors.Join(w.Svc.RunRetention(ctx, w.Log), w.Svc.SweepJobFiles(ctx), w.Svc.PurgeDeletedFields(ctx))
 }
 
 // RetentionRun is what one run did in one workspace.

@@ -156,6 +156,43 @@ func (s *Service) ResendConfirmation(ctx context.Context, ws *store.Workspace, c
 	return s.sendConfirmation(ctx, ws, set, subID, contactID, false, lang)
 }
 
+// AppConfirmation is the double opt-in email the team sends from the app
+// (Add contact, Resend opt-in, bulk resend, import re-permission; review
+// 2026-11 AU-15): the forms' branded email, in the contact's language when
+// the public pages offer it (else their fallback), naming the lists the
+// contact is still pending on. link is the confirmation link.
+func (s *Service) AppConfirmation(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, language, link string) (mailer.Message, error) {
+	set, err := s.settings(ctx, ws)
+	if err != nil {
+		return mailer.Message{}, err
+	}
+	pc, err := s.Audience.LoadPublicContact(ctx, s.Q, ws, contactID)
+	if err != nil {
+		return mailer.Message{}, err
+	}
+	lists, err := s.Audience.PublicLists(ctx, s.Q, ws)
+	if err != nil {
+		return mailer.Message{}, err
+	}
+	pages, err := s.loadPagesCopy(ctx, s.Q, ws, set)
+	if err != nil {
+		return mailer.Message{}, err
+	}
+	code := languages.Base(language)
+	if code == "" || !pages.Live(code) {
+		code = pages.Fallback()
+	}
+	var names []string
+	for _, l := range lists {
+		if pc.Lists[l.ID] == "pending" {
+			names = append(names, pages.ListName(code, l))
+		}
+	}
+	msg := ConfirmationEmailIn(pages.Labels(code), set.Branding, pc.FirstName, names, link, false)
+	msg.WorkspaceID, msg.To, msg.ToName = &ws.ID, pc.Email, pc.FirstName
+	return msg, nil
+}
+
 // ConfirmationEmail is the double opt-in email in English.
 func ConfirmationEmail(b Branding, firstName string, lists []string, link string, reminder bool) mailer.Message {
 	return ConfirmationEmailIn(pagelabels.English(), b, firstName, lists, link, reminder)

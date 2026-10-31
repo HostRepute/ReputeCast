@@ -762,6 +762,61 @@ func (q *Queries) CreateSavedView(ctx context.Context, arg CreateSavedViewParams
 	return i, err
 }
 
+const customFieldRestore = `-- name: CustomFieldRestore :one
+WITH f AS (
+    DELETE FROM custom_fields_deleted d WHERE d.workspace_id = $1 AND d.id = $2 RETURNING id, workspace_id, key, label, type, options, display, position, created_at, deleted_at, deleted_by
+)
+INSERT INTO custom_fields (id, workspace_id, key, label, type, options, display, position, created_at)
+SELECT f.id, f.workspace_id, f.key, f.label, f.type, f.options, f.display, f.position, f.created_at FROM f
+RETURNING id, workspace_id, key, label, type, options, created_at, display, position
+`
+
+type CustomFieldRestoreParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+func (q *Queries) CustomFieldRestore(ctx context.Context, arg CustomFieldRestoreParams) (CustomField, error) {
+	row := q.db.QueryRow(ctx, customFieldRestore, arg.WorkspaceID, arg.ID)
+	var i CustomField
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Key,
+		&i.Label,
+		&i.Type,
+		&i.Options,
+		&i.CreatedAt,
+		&i.Display,
+		&i.Position,
+	)
+	return i, err
+}
+
+const customFieldSetAside = `-- name: CustomFieldSetAside :exec
+INSERT INTO custom_fields_deleted (id, workspace_id, key, label, type, options, display, position, created_at, deleted_at, deleted_by)
+SELECT cf.id, cf.workspace_id, cf.key, cf.label, cf.type, cf.options, cf.display, cf.position, cf.created_at, $1::timestamptz, $2
+FROM custom_fields cf WHERE cf.workspace_id = $3 AND cf.id = $4
+`
+
+type CustomFieldSetAsideParams struct {
+	At          time.Time  `json:"at"`
+	DeletedBy   *uuid.UUID `json:"deletedBy"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ID          uuid.UUID  `json:"id"`
+}
+
+// A deleted field waits 30 days (review 2026-11 AU-11).
+func (q *Queries) CustomFieldSetAside(ctx context.Context, arg CustomFieldSetAsideParams) error {
+	_, err := q.db.Exec(ctx, customFieldSetAside,
+		arg.At,
+		arg.DeletedBy,
+		arg.WorkspaceID,
+		arg.ID,
+	)
+	return err
+}
+
 const deleteCustomField = `-- name: DeleteCustomField :execrows
 DELETE FROM custom_fields WHERE workspace_id = $1 AND id = $2
 `
@@ -811,6 +866,115 @@ func (q *Queries) DeleteSuppression(ctx context.Context, arg DeleteSuppressionPa
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const deletedCustomFieldByKey = `-- name: DeletedCustomFieldByKey :one
+SELECT id, workspace_id, key, label, type, options, display, position, created_at, deleted_at, deleted_by FROM custom_fields_deleted WHERE workspace_id = $1 AND key = $2
+`
+
+type DeletedCustomFieldByKeyParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Key         string    `json:"key"`
+}
+
+func (q *Queries) DeletedCustomFieldByKey(ctx context.Context, arg DeletedCustomFieldByKeyParams) (CustomFieldsDeleted, error) {
+	row := q.db.QueryRow(ctx, deletedCustomFieldByKey, arg.WorkspaceID, arg.Key)
+	var i CustomFieldsDeleted
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Key,
+		&i.Label,
+		&i.Type,
+		&i.Options,
+		&i.Display,
+		&i.Position,
+		&i.CreatedAt,
+		&i.DeletedAt,
+		&i.DeletedBy,
+	)
+	return i, err
+}
+
+const deletedCustomFieldGone = `-- name: DeletedCustomFieldGone :exec
+DELETE FROM custom_fields_deleted WHERE id = $1
+`
+
+func (q *Queries) DeletedCustomFieldGone(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deletedCustomFieldGone, id)
+	return err
+}
+
+const deletedCustomFields = `-- name: DeletedCustomFields :many
+SELECT id, workspace_id, key, label, type, options, display, position, created_at, deleted_at, deleted_by FROM custom_fields_deleted WHERE workspace_id = $1 ORDER BY deleted_at DESC
+`
+
+func (q *Queries) DeletedCustomFields(ctx context.Context, workspaceID uuid.UUID) ([]CustomFieldsDeleted, error) {
+	rows, err := q.db.Query(ctx, deletedCustomFields, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CustomFieldsDeleted{}
+	for rows.Next() {
+		var i CustomFieldsDeleted
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.Key,
+			&i.Label,
+			&i.Type,
+			&i.Options,
+			&i.Display,
+			&i.Position,
+			&i.CreatedAt,
+			&i.DeletedAt,
+			&i.DeletedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const deletedCustomFieldsDue = `-- name: DeletedCustomFieldsDue :many
+SELECT id, workspace_id, key, label, type, options, display, position, created_at, deleted_at, deleted_by FROM custom_fields_deleted WHERE deleted_at < $1::timestamptz ORDER BY deleted_at LIMIT 50
+`
+
+func (q *Queries) DeletedCustomFieldsDue(ctx context.Context, before time.Time) ([]CustomFieldsDeleted, error) {
+	rows, err := q.db.Query(ctx, deletedCustomFieldsDue, before)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CustomFieldsDeleted{}
+	for rows.Next() {
+		var i CustomFieldsDeleted
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.Key,
+			&i.Label,
+			&i.Type,
+			&i.Options,
+			&i.Display,
+			&i.Position,
+			&i.CreatedAt,
+			&i.DeletedAt,
+			&i.DeletedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getAudienceState = `-- name: GetAudienceState :one
@@ -1050,7 +1214,7 @@ func (q *Queries) GetSavedView(ctx context.Context, arg GetSavedViewParams) (Sav
 }
 
 const getSuppression = `-- name: GetSuppression :one
-SELECT id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id, texts, seq FROM suppressions WHERE workspace_id = $1 AND id = $2
+SELECT id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id, texts, seq, upload_id FROM suppressions WHERE workspace_id = $1 AND id = $2
 `
 
 type GetSuppressionParams struct {
@@ -1080,12 +1244,13 @@ func (q *Queries) GetSuppression(ctx context.Context, arg GetSuppressionParams) 
 		&i.ImportID,
 		&i.Texts,
 		&i.Seq,
+		&i.UploadID,
 	)
 	return i, err
 }
 
 const getSuppressionByEmail = `-- name: GetSuppressionByEmail :one
-SELECT id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id, texts, seq FROM suppressions WHERE workspace_id = $1 AND email = $2
+SELECT id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id, texts, seq, upload_id FROM suppressions WHERE workspace_id = $1 AND email = $2
 `
 
 type GetSuppressionByEmailParams struct {
@@ -1115,6 +1280,7 @@ func (q *Queries) GetSuppressionByEmail(ctx context.Context, arg GetSuppressionB
 		&i.ImportID,
 		&i.Texts,
 		&i.Seq,
+		&i.UploadID,
 	)
 	return i, err
 }
@@ -1201,11 +1367,12 @@ func (q *Queries) InsertConsentEvent(ctx context.Context, arg InsertConsentEvent
 
 const insertSuppression = `-- name: InsertSuppression :one
 INSERT INTO suppressions (id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by,
-                          scope, campaign_id, automation_id, automation_step, context, import_id, created_at, texts)
+                          scope, campaign_id, automation_id, automation_step, context, import_id, created_at, texts, upload_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
-        $10, $11, $12, $13, $14, $15, $16, coalesce($17::jsonb, '{}'))
+        $10, $11, $12, $13, $14, $15, $16, coalesce($17::jsonb, '{}'),
+        $18)
 ON CONFLICT (workspace_id, email) DO NOTHING
-RETURNING id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id, texts, seq
+RETURNING id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id, texts, seq, upload_id
 `
 
 type InsertSuppressionParams struct {
@@ -1226,6 +1393,7 @@ type InsertSuppressionParams struct {
 	ImportID         *uuid.UUID      `json:"importId"`
 	CreatedAt        time.Time       `json:"createdAt"`
 	Texts            json.RawMessage `json:"texts"`
+	UploadID         *uuid.UUID      `json:"uploadId"`
 }
 
 func (q *Queries) InsertSuppression(ctx context.Context, arg InsertSuppressionParams) (Suppression, error) {
@@ -1247,6 +1415,7 @@ func (q *Queries) InsertSuppression(ctx context.Context, arg InsertSuppressionPa
 		arg.ImportID,
 		arg.CreatedAt,
 		arg.Texts,
+		arg.UploadID,
 	)
 	var i Suppression
 	err := row.Scan(
@@ -1268,6 +1437,7 @@ func (q *Queries) InsertSuppression(ctx context.Context, arg InsertSuppressionPa
 		&i.ImportID,
 		&i.Texts,
 		&i.Seq,
+		&i.UploadID,
 	)
 	return i, err
 }
@@ -2193,6 +2363,82 @@ func (q *Queries) SuppressionSyncStates(ctx context.Context, workspaceID uuid.UU
 		return nil, err
 	}
 	return items, nil
+}
+
+const suppressionUploadGet = `-- name: SuppressionUploadGet :one
+SELECT id, workspace_id, file_name, reason, note, created_by, created_at, removed_at, removed_by, removed_reason FROM suppression_uploads WHERE workspace_id = $1 AND id = $2
+`
+
+type SuppressionUploadGetParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+func (q *Queries) SuppressionUploadGet(ctx context.Context, arg SuppressionUploadGetParams) (SuppressionUpload, error) {
+	row := q.db.QueryRow(ctx, suppressionUploadGet, arg.WorkspaceID, arg.ID)
+	var i SuppressionUpload
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.FileName,
+		&i.Reason,
+		&i.Note,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.RemovedAt,
+		&i.RemovedBy,
+		&i.RemovedReason,
+	)
+	return i, err
+}
+
+const suppressionUploadInsert = `-- name: SuppressionUploadInsert :exec
+INSERT INTO suppression_uploads (id, workspace_id, file_name, reason, note, created_by, created_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+`
+
+type SuppressionUploadInsertParams struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	FileName    string     `json:"fileName"`
+	Reason      string     `json:"reason"`
+	Note        string     `json:"note"`
+	CreatedBy   *uuid.UUID `json:"createdBy"`
+	At          time.Time  `json:"at"`
+}
+
+func (q *Queries) SuppressionUploadInsert(ctx context.Context, arg SuppressionUploadInsertParams) error {
+	_, err := q.db.Exec(ctx, suppressionUploadInsert,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.FileName,
+		arg.Reason,
+		arg.Note,
+		arg.CreatedBy,
+		arg.At,
+	)
+	return err
+}
+
+const suppressionUploadRemoved = `-- name: SuppressionUploadRemoved :exec
+UPDATE suppression_uploads SET removed_at = $1, removed_by = $2, removed_reason = $3 WHERE id = $4
+`
+
+type SuppressionUploadRemovedParams struct {
+	At            *time.Time `json:"at"`
+	RemovedBy     *uuid.UUID `json:"removedBy"`
+	RemovedReason string     `json:"removedReason"`
+	ID            uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) SuppressionUploadRemoved(ctx context.Context, arg SuppressionUploadRemovedParams) error {
+	_, err := q.db.Exec(ctx, suppressionUploadRemoved,
+		arg.At,
+		arg.RemovedBy,
+		arg.RemovedReason,
+		arg.ID,
+	)
+	return err
 }
 
 const tierRunWorkspaces = `-- name: TierRunWorkspaces :many
