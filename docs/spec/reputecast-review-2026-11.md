@@ -134,7 +134,7 @@ Found while building M41 (added to the backlog):
 | DP-8 | An import keeps its uploaded file (`imports.file_data`) and its report and skipped-row CSVs, which hold every address it read, until the import is deleted; erasing a contact doesn't reach them. Strip erased addresses from kept files and reports, or expire them after the import finishes. | ⏳ |
 | DP-9 | Earn › Paid members lists an erased member's ended subscription under the placeholder address; show "Erased contact" instead. | ⏳ |
 
-## Engines and events, correct (M42) ⏳
+## Engines and events, correct (M42) ✅
 
 | ID | What | Done when | Size | Board |
 |---|---|---|---|---|
@@ -145,6 +145,53 @@ Found while building M41 (added to the backlog):
 | EN-5 | Automation step statistics from real providers: the ingest normalizer calls `RecordMessageEvent` for automation messages (delivered, bounced, complained) and the unsubscribe path records unsubscribes. Steps report Queued, Sent (on outbox success), Failed and Cancelled separately. Emails that fail to compose (no sender, deleted version, Liquid error) open a `step_failing` alert, and a new notification kind, "An automation needs attention", reaches the bell and email. | A `sendtest` run through a webhook-based provider shows per-step Delivered and Bounced; a compose failure notifies. | M | AutomationsList and AutomationFlow already draw the step numbers; Notifications preferences gain one row |
 | EN-6 | Every catalog event is emitted: `email.*` from webhook normalization and the tracking recorder (only human, settled opens and clicks; batched per endpoint so a 1M send doesn't make 1M HTTP calls), `provider.down` and `provider.recovered` from provider health, `automation.published` from publish, `contact.erased` from erase, `campaign.scheduled` when an email campaign is scheduled without approval. | A test fails when a catalog event has no emitter (like `internal/store/writers_test.go`); a send through `sendtest` delivers each `email.*` event to an endpoint. | M | — |
 | EN-7 | The small bugs of Fix first #9: Duplicate on sent rows links to `/campaigns/new?from=` like the report; the Source filter reads `/growth/sources`; tag search and filters lower-case their input; referrer search escapes LIKE wildcards (`internal/referrals/referrers.go:91`); starting an import twice is refused with 409 (`internal/store/queries/imports.sql:53-55`); the transactional log matches idempotency keys case-insensitively and finds a batch by its key; the approvals inbox filters status and counts in SQL with keyset paging; Stripe's failed async payment and dispute update are subscribed, recorded, and the buyer is emailed. | One test per bug. | S each | — |
+
+What M42 built (31 October 2026):
+
+- **EN-1** the automation engine dispatches each event and advances each run in its own savepoint;
+  a failure counts an attempt and waits (1, 2, 4, 8, 16 minutes), and the fifth sets it aside with a
+  `step_failing` alert. The tick job runs dispatch and advance even when one of them fails
+  (`TestFailingRunDoesNotStallOthers`; migration 03370).
+- **EN-2** date triggers dedupe on the workspace's local date (`TestDateTriggersEastOfUTC`); a
+  yearly trigger fires once a year per contact, which the trigger panel now says ("Once a year per
+  contact"). Contact-local times stay AT-7.
+- **EN-3** "Opened or clicked within" counts from when the email left; while it is queued or held,
+  the branch checks again every 15 minutes (`TestBranchWindowStartsWhenTheEmailLeaves`).
+- **EN-4** the skip rule counts campaign and automation email that was sent
+  (`TestSkipRuleIgnoresTransactionalMail`).
+- **EN-5** delivered, bounced, complained and unsubscribed reach a step's numbers from real
+  providers' webhooks and the unsubscribe page, once (`TestProviderEventsCountOnAutomationSteps`).
+  An email that can't be composed opens a `step_failing` alert, and alerts notify the people who
+  edit automations once ("An automation needs attention", bell and email; migration 03371,
+  `TestAlertNotifiesOnce`). The per-step Queued and Sent split moved to AT-13, with the step
+  analytics it feeds.
+- **EN-6** `email.sent`, `delivered`, `deferred`, `bounced`, `complained`, `opened` (with `machine`)
+  and `clicked` go to webhooks for campaign and automation mail; `provider.down` and
+  `provider.recovered` from provider health; `automation.published` from publishing.
+  `campaign.scheduled` was already sent by Review & send. Each emitter first asks whether any
+  endpoint listens, so a workspace without webhooks reads nothing more.
+  `TestEveryWebhookEventHasAnEmitter` fails when the catalog offers an event no code sends;
+  `TestEmailEventsReachWebhooks` follows a bounce to its delivery. Batching per endpoint is EN-8.
+- **EN-7** one test each: Duplicate on sent rows (`CampaignsPage.test.tsx`); the Source filter
+  reads the workspace's sources, and the two source fields under More filters became one
+  (`ContactsScore.test.tsx`); tag search, the tag filter and segments lower-case their input; one
+  LIKE escaper (`db.EscapeLike`) for referrer search and the four packages that had their own;
+  concurrent import starts (one 200, the rest 409); the transactional log's search ignores case and
+  finds a batch by its key; the approvals inbox filters, counts and pages in SQL with a cursor and
+  "Show older requests"; Stripe's `checkout.session.async_payment_failed` and
+  `charge.dispute.updated` are subscribed, and webhooks registered earlier get them from the hourly
+  check (`payments.webhook_events_added`, audited). A failed bank debit marks the product checkout
+  failed and emails the buyer through `product-payment-failed`, a starter made beside the delivery
+  template and sent once published; dispute updates go on the order's timeline; the payments log
+  names product outcomes.
+
+Found while building M42 (added to the backlog):
+
+| ID | What | Status |
+|---|---|---|
+| EN-8 | `email.*` webhooks are one delivery per event, like the catalog's other events. A 1M send to an endpoint that takes `email.delivered` queues 1M deliveries; batch them per endpoint (one POST with up to 100 events) behind a setting on the endpoint. | ⏳ |
+| EN-9 | A gift paid by bank debit was never marked paid: Earn didn't route `checkout.session.async_payment_succeeded` to gifts. Fixed with EN-7 (paid when it clears, abandoned when it fails); the gift's buyer isn't emailed about a failed debit, since gifts have no such template yet. | Fixed; email ⏳ |
+| EN-10 | `product-payment-failed` is made as a draft. Products › a product's publish checks list the delivery template only; add a non-blocking line for the notice so it gets published. | ⏳ |
 
 ## Audience at 1M contacts (M43) ⏳
 
