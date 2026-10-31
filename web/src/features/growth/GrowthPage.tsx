@@ -22,6 +22,8 @@ import { colorOf, GrowthChart, seriesName } from './GrowthChart'
 import { m } from './messages'
 import { dayOf, factor, isImport, ratePct, signedCount, sourceLine, sourceName } from './sourceText'
 import '@/features/scoring/scoring.css'
+import { TargetVerify } from '@/features/verification/HealthEntry'
+import { m as vm } from '@/features/verification/messages'
 import './growth.css'
 
 type Data = Schemas['GrowthPage']
@@ -527,6 +529,7 @@ function FlagNote({ r, d, slug, phone }: { r: Row; d: Data; slug: string; phone?
         <span>{t(bounces ? m.flagBodyBounces : m.flagBodyComplaints, { name: r.source.name, factor: f, rate, workspace })}</span>
         <div className="mt-1.5 flex flex-wrap gap-2">
           <ContactsLink r={r} label={t(m.seeContacts, { count: n })} />
+          <TargetVerify target={{ kind: 'selection', filter: { growthSource: r.source.key } }} origin="growth" from={t(vm.fromGrowth, { name: r.source.name })} />
           {phone ? null : (
             <ButtonLink size="sm" to="/w/$workspace/settings/keys" params={{ workspace: slug }}>
               {t(m.openKey)}

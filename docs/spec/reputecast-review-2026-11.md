@@ -193,7 +193,7 @@ Found while building M42 (added to the backlog):
 | EN-9 | A gift paid by bank debit was never marked paid: Earn didn't route `checkout.session.async_payment_succeeded` to gifts. Fixed with EN-7 (paid when it clears, abandoned when it fails); the gift's buyer isn't emailed about a failed debit, since gifts have no such template yet. | Fixed; email ⏳ |
 | EN-10 | `product-payment-failed` is made as a draft. Products › a product's publish checks list the delivery template only; add a non-blocking line for the notice so it gets published. | ⏳ |
 
-## Audience at 1M contacts (M43) ⏳
+## Audience at 1M contacts (M43) ✅
 
 | ID | What | Done when | Size | Board |
 |---|---|---|---|---|
@@ -216,6 +216,64 @@ Found while building M42 (added to the backlog):
 
 Riskiest part: AU-1 and AU-2 on large tables (index builds must not lock; the count line changes,
 D5). AU-5 depends on AU-4's jobs.
+
+What M43 built (31 October 2026):
+
+- **AU-1** Contacts and Suppressions page with keyset cursors in every order (last activity, score,
+  joined, last open, email); each order has an index ending in the id. Counts stop at 10,000 and
+  the line reads "1 to 50 of 10,000+ · Count all"; Count all asks for the exact number
+  (`TestContactsPageWithCursors`, `TestContactCountStopsAtTenThousand`; migration 03372). The 1M
+  seed benchmarks wait for OP-9's seed (AU-17); `TestContactQueriesUseIndexes` checks each plan's
+  index use in CI.
+- **AU-2** trigram GIN indexes on email and name, built concurrently; a whole address matches
+  through the unique index (`TestContactQueriesUseIndexes`).
+- **AU-3** a segment filters Contacts as a subquery; SQL segments, which run as their own role,
+  still resolve first (`TestSegmentFilterIsASubquery`). Saved-view counts are cached for ten
+  minutes on Contacts and List health (`TestSavedViewsKeepCountsAndChange`; migration 03373).
+- **AU-4** exports of any size and bulk Resend opt-in run as background jobs in batches, followed
+  in the jobs tray; an export is kept 7 days for whoever started it, and a resend skips the
+  confirmed, the suppressed and DP-3's cooldown and says how many of each
+  (`TestExportRunsInTheBackground`, `TestBulkResendReportsWhatItDid`; migration 03374).
+- **AU-5** after a whole page is selected, "Select all N matching" reaches every contact the view
+  matches, counted exactly first; "Export this view" (`ContactsPage.test.tsx`).
+- **AU-6** Remove from list and Remove tag, in bulk and on the profile, recorded as the team's
+  change (consent action `removed`), never as an unsubscribe (`TestRemoveFromListAndTag`;
+  migration 03375).
+- **AU-7** a contact's address can be corrected unless another contact has it or it is
+  suppressed; the history keeps the old one (`TestCorrectAnAddress`).
+- **AU-8** saved view chips have a menu: rename, save the current filters and columns, delete.
+- **AU-9** a column chooser with custom fields, saved with the view; Score, Last open, Joined and
+  Contact sort.
+- **AU-10** joined between two days in the workspace's time zone, the contacts of one import
+  ("View these contacts" on the import report), and a tag the import puts on every row
+  (`TestJoinedBetweenAndImportFilters`).
+- **AU-11** Audience › Lists & fields: lists (create, rename, opt-in mode, delete) and custom
+  fields with how many contacts have a value and what uses each (segments, forms, scoring rules,
+  automations, unsent campaigns, digests, saved views, Liquid; `internal/dependents`). Deleting a
+  field or a segment lists those uses first. A deleted field keeps its values for 30 days and can be
+  restored as it was; then the hourly pass strips them (`TestFieldsAndSegmentsShowWhatUsesThem`,
+  `ListsFieldsPage.test.tsx`; migration 03376).
+- **AU-12** List health's policy card has a switch and takes the days before Broadcasts stop and the
+  months before erasing. Turning erasing on, or erasing sooner than before, first shows the dry run
+  (how many contacts, from which night, how many paid members are kept) and takes the typed word
+  ERASE (`TestSunsetErasingNeedsTheDryRun`, `SunsetPolicy.test.tsx`).
+- **AU-13** Verify addresses from a Contacts selection or view, a saved segment and a flagged growth
+  source, all through the one verify dialog (`TargetVerify.test.tsx`).
+- **AU-14** a CSV upload of suppressions is one group on the list, with who uploaded it, and comes
+  off whole with a reason, as removing each address would; one audit entry
+  (`TestRemoveASuppressionUpload`, `RemoveUpload.test.tsx`; migration 03377).
+- **AU-15** the team's opt-in emails (Add contact, Resend, bulk resend, import re-permission) are the
+  forms' branded, localized email naming the pending lists (`TestTeamOptInEmailIsTheBrandedOne`).
+- **AU-16** a static segment's refresh is a diff: members keep the time they entered, and each entry
+  and exit is recorded (`TestSegmentsKeepWhenMembersEnteredAndLeft`; migration 03378).
+
+Found while building M43 (added to the backlog):
+
+| ID | What | Status |
+|---|---|---|
+| AU-17 | The 1M-seed benchmarks of AU-1 and AU-2 (page 1 and page 400 under 200 ms, search under 150 ms) need OP-9's seed; run them with M47. | ⏳ (M47) |
+| AU-18 | What-uses-it checks read segments, forms, scoring, automations, unsent campaigns, digests and saved views, but not transactional templates, SMS and WhatsApp templates or a form's own confirmation email; a field used only there reads "Nothing". Add them to `internal/dependents`. | ⏳ |
+| AU-19 | A saved view has no address of its own, so "Saved view · Name" in a what-uses-it list can't open it; Contacts could take `?view=`. | ⏳ |
 
 ## Automations, complete (M44) ⏳
 

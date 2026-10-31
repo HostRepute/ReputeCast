@@ -1,10 +1,12 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { $api, ApiError, errorMessage, type Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Page } from '@/components/shell/Page'
 import { Badge, type Tone } from '@/components/ui/Badge'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { Toggle } from '@/components/ui/Field'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Menu, MenuItem } from '@/components/ui/Menu'
@@ -192,7 +194,7 @@ function parseDays(s: string) {
   return m ? Number(m[0]) : NaN
 }
 
-function PolicyCard({ h }: { h: Health }) {
+export function PolicyCard({ h }: { h: Health }) {
   const tr = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
@@ -206,29 +208,55 @@ function PolicyCard({ h }: { h: Health }) {
   const [reengage, setReengage] = useState(p.reengage)
   const [stop, setStop] = useState(p.stopBroadcasts)
   const [del, setDel] = useState(p.deleteAfter)
+  const [enabled, setEnabled] = useState(p.enabled)
+  const [stopDays, setStopDays] = useState(String(p.stopAfterDays))
+  const [months, setMonths] = useState(String(p.deleteAfterMonths))
   const [err, setErr] = useState<string | null>(null)
+  // The policy waiting for the typed ERASE after the dry run (AU-12).
+  const [confirming, setConfirming] = useState<Policy>()
+  const put = async (body: Policy) => {
+    await save.mutateAsync({ params: { path: { workspace: slug } }, body })
+    await qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/audience/health'] })
+    toast({ kind: 'success', title: t(m.policySaved), detail: t(m.policySavedBody, { time: '03:00' }) })
+  }
   const submit = async () => {
     setErr(null)
     const body: Policy = {
       ...p,
+      enabled,
       activeDays: parseDays(active),
       atRiskDays: parseDays(atRisk),
       sunsetDays: parseDays(sunset),
       countMachineOpens: machine,
       reengage,
       stopBroadcasts: stop,
+      stopAfterDays: Number(stopDays),
       deleteAfter: del,
+      deleteAfterMonths: Number(months),
     }
     if ([body.activeDays, body.atRiskDays, body.sunsetDays].some((n) => !Number.isFinite(n))) {
       setErr(t(m.thresholdsNumbers))
       return
     }
+    if (!Number.isInteger(body.stopAfterDays) || body.stopAfterDays < 1 || body.stopAfterDays > 365) {
+      setErr(t(m.stopRange))
+      return
+    }
+    if (!Number.isInteger(body.deleteAfterMonths) || body.deleteAfterMonths < 1 || body.deleteAfterMonths > 120) {
+      setErr(t(m.deleteRange))
+      return
+    }
+    // Turning erasing on, or erasing sooner, shows the dry run first.
+    const wasErasing = p.enabled && p.deleteAfter
+    if (body.enabled && body.deleteAfter && (!wasErasing || body.deleteAfterMonths < p.deleteAfterMonths)) {
+      setConfirming(body)
+      return
+    }
     try {
-      await save.mutateAsync({ params: { path: { workspace: slug } }, body })
-      await qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/audience/health'] })
-      toast({ kind: 'success', title: t(m.policySaved), detail: t(m.policySavedBody, { time: '03:00' }) })
+      await put(body)
     } catch (e) {
-      setErr(errorMessage(e))
+      if (e instanceof ApiError && e.problem.code === 'confirm_erase') setConfirming(body)
+      else setErr(errorMessage(e))
     }
   }
   const winBack = h.winBackRate !== undefined && h.winBackRate !== null ? ` · ${tr(m.winBack, { rate: pct(h.winBackRate) })}` : ''
@@ -245,16 +273,20 @@ function PolicyCard({ h }: { h: Health }) {
         <h2 className="h2" id="policy-h">
           {tr(m.policyTitle)}
         </h2>
-        {p.enabled ? (
-          <Badge tone="ok" dot>
-            {p.enabledAt ? tr(m.onSince, { date: calDay(p.enabledAt) }) : tr(m.onSinceToday)}
-          </Badge>
-        ) : (
-          <Badge tone="neutral">{tr(common.off)}</Badge>
-        )}
+        <span className="flex items-center gap-2.5">
+          {p.enabled ? (
+            <Badge tone="ok" dot>
+              {p.enabledAt ? tr(m.onSince, { date: calDay(p.enabledAt) }) : tr(m.onSinceToday)}
+            </Badge>
+          ) : (
+            <Badge tone="neutral">{tr(common.off)}</Badge>
+          )}
+          <Toggle label={tr(m.policySwitch)} hideLabel checked={enabled} disabled={Boolean(reason)} onChange={(e) => setEnabled(e.target.checked)} />
+        </span>
       </div>
       <form
         className="flex flex-col gap-3 px-4.5 py-4"
+        noValidate
         onSubmit={(e) => {
           e.preventDefault()
           void submit()
@@ -296,13 +328,47 @@ function PolicyCard({ h }: { h: Health }) {
         <label className="flex items-start gap-2.5 text-[13px]">
           <input type="checkbox" className="mt-[3px]" checked={stop} onChange={(e) => setStop(e.target.checked)} />
           <span>
-            {tr(m.stopBroadcasts, { n: p.stopAfterDays })} <span className="k">{tr(m.stopNote)}</span>
+            <T
+              msg={m.stopBroadcasts}
+              values={{
+                n: () => (
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={365}
+                    aria-label={tr(m.stopDays)}
+                    className="in mx-1 inline-block h-[26px] w-16 px-1.5 py-0.5 align-baseline"
+                    value={stopDays}
+                    onChange={(e) => setStopDays(e.target.value)}
+                  />
+                ),
+              }}
+            />{' '}
+            <span className="k">{tr(m.stopNote)}</span>
           </span>
         </label>
         <label className="flex items-start gap-2.5 text-[13px]">
           <input type="checkbox" className="mt-[3px]" checked={del} onChange={(e) => setDel(e.target.checked)} />
           <span>
-            {tr(m.deleteAfter, { n: p.deleteAfterMonths })} <span className="k">{del ? tr(m.deleteOn) : tr(m.deleteOff)}</span>
+            <T
+              msg={m.deleteAfter}
+              values={{
+                n: () => (
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={120}
+                    aria-label={tr(m.deleteMonths)}
+                    className="in mx-1 inline-block h-[26px] w-16 px-1.5 py-0.5 align-baseline"
+                    value={months}
+                    onChange={(e) => setMonths(e.target.value)}
+                  />
+                ),
+              }}
+            />{' '}
+            <span className="k">{del ? tr(m.deleteOn) : tr(m.deleteOff)}</span>
           </span>
         </label>
         <div className="flex gap-2 max-md:flex-wrap">
@@ -325,7 +391,60 @@ function PolicyCard({ h }: { h: Health }) {
           <T msg={m.thisWeek} values={{ text: weekText, b: (c) => <strong>{c}</strong> }} />
         </div>
       ) : null}
+      {confirming ? (
+        <EraseDryRunDialog
+          policy={confirming}
+          sooner={p.enabled && p.deleteAfter}
+          onClose={() => setConfirming(undefined)}
+          onConfirm={() => put({ ...confirming, confirmErase: 'ERASE' })}
+        />
+      ) : null}
     </section>
+  )
+}
+
+/**
+ * Before erasing starts or comes sooner: how many contacts the first run
+ * erases, from which day, who is kept, and a typed ERASE (AU-12, Dialogs
+ * board "Sunset policy · dry run").
+ */
+function EraseDryRunDialog({ policy, sooner, onClose, onConfirm }: { policy: Policy; sooner: boolean; onClose: () => void; onConfirm: () => Promise<unknown> }) {
+  const tr = useT()
+  const { slug } = useWorkspace()
+  const months = policy.deleteAfterMonths
+  const dry = $api.useQuery('get', '/api/v1/workspaces/{workspace}/audience/sunset-policy/dry-run', { params: { path: { workspace: slug }, query: { months } } })
+  const d = dry.data
+  const b = (c: ReactNode) => <b>{c}</b>
+  return (
+    <ConfirmDialog
+      open
+      onOpenChange={(o) => !o && onClose()}
+      badge={tr(m.eraseBadge)}
+      title={tr(sooner ? m.eraseSoonerTitle : m.eraseTitle)}
+      description={null}
+      confirmLabel={tr(m.eraseConfirm)}
+      onConfirm={onConfirm}
+      typedConfirmation={{ label: tr(m.eraseType), expected: 'ERASE' }}
+    >
+      {dry.isError ? (
+        <Note tone="bad">{errorMessage(dry.error)}</Note>
+      ) : !d ? (
+        <span className="k" role="status">
+          {tr(m.eraseChecking)}
+        </span>
+      ) : (
+        <Note tone="warn">
+          <span>
+            {d.erase > 0 ? (
+              <T msg={m.eraseBody} values={{ n: d.erase, count: count(d.erase), months, date: calDay(d.from, 0, true), b }} />
+            ) : (
+              tr(m.eraseBodyNone, { months, date: calDay(d.from, 0, true) })
+            )}{' '}
+            {d.kept > 0 ? tr(m.eraseKept, { n: d.kept, count: count(d.kept) }) : tr(m.eraseKeptNone)}
+          </span>
+        </Note>
+      )}
+    </ConfirmDialog>
   )
 }
 

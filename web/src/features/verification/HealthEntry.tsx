@@ -4,7 +4,7 @@ import { useT } from '@/i18n'
 import { dayMonthDate } from '@/lib/format'
 import { useCan, useMe } from '@/lib/session'
 import { m } from './messages'
-import { useOverview } from './shared'
+import { useOverview, type Target } from './shared'
 import { tierName, VerifyDialog } from './VerifyDialog'
 
 /** The tiers' English names: how the API labels a tier's verification. */
@@ -81,5 +81,24 @@ export function ReadinessVerifyDialog({ campaignId, campaignName, onClose }: { c
       from={t(m.fromReadiness, { campaign: campaignName, name: me?.user.name ?? '' })}
       onStarted={onClose}
     />
+  )
+}
+
+/**
+ * Verify addresses for a saved segment (review 2026-11 AU-13, segment
+ * builder) or for the contacts a flagged growth source brought in (Growth).
+ */
+export function TargetVerify({ target, origin, from, size = 'sm' }: { target: Target; origin: 'segments' | 'growth'; from: string; size?: 'sm' | 'md' }) {
+  const t = useT()
+  const can = useCan('subscribers:verify')
+  const [open, setOpen] = useState(false)
+  if (!can) return null
+  return (
+    <>
+      <Button size={size} onClick={() => setOpen(true)}>
+        {t(m.verifyTitle)}
+      </Button>
+      {open ? <VerifyDialog open onOpenChange={setOpen} target={target} origin={origin} from={from} /> : null}
+    </>
   )
 }

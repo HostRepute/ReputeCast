@@ -44,6 +44,7 @@ import { Route as WWorkspaceAppApprovalsApprovalIdRouteImport } from './routes/w
 import { Route as WWorkspaceAppAudienceIndexRouteImport } from './routes/w/$workspace/_app/audience/index'
 import { Route as WWorkspaceAppAudienceGrowthRouteImport } from './routes/w/$workspace/_app/audience/growth'
 import { Route as WWorkspaceAppAudienceHealthRouteImport } from './routes/w/$workspace/_app/audience/health'
+import { Route as WWorkspaceAppAudienceListsRouteImport } from './routes/w/$workspace/_app/audience/lists'
 import { Route as WWorkspaceAppAudienceScoringRouteImport } from './routes/w/$workspace/_app/audience/scoring'
 import { Route as WWorkspaceAppAudienceSuppressionsRouteImport } from './routes/w/$workspace/_app/audience/suppressions'
 import { Route as WWorkspaceAppAutomationsIndexRouteImport } from './routes/w/$workspace/_app/automations/index'
@@ -353,6 +354,12 @@ const WWorkspaceAppAudienceHealthRoute =
   WWorkspaceAppAudienceHealthRouteImport.update({
     id: '/audience/health',
     path: '/audience/health',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppAudienceListsRoute =
+  WWorkspaceAppAudienceListsRouteImport.update({
+    id: '/audience/lists',
+    path: '/audience/lists',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppAudienceScoringRoute =
@@ -1129,6 +1136,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
   '/w/$workspace/audience/growth': typeof WWorkspaceAppAudienceGrowthRoute
   '/w/$workspace/audience/health': typeof WWorkspaceAppAudienceHealthRoute
+  '/w/$workspace/audience/lists': typeof WWorkspaceAppAudienceListsRoute
   '/w/$workspace/audience/scoring': typeof WWorkspaceAppAudienceScoringRoute
   '/w/$workspace/audience/suppressions': typeof WWorkspaceAppAudienceSuppressionsRoute
   '/w/$workspace/deliverability/connect': typeof WWorkspaceAppDeliverabilityConnectRoute
@@ -1287,6 +1295,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
   '/w/$workspace/audience/growth': typeof WWorkspaceAppAudienceGrowthRoute
   '/w/$workspace/audience/health': typeof WWorkspaceAppAudienceHealthRoute
+  '/w/$workspace/audience/lists': typeof WWorkspaceAppAudienceListsRoute
   '/w/$workspace/audience/scoring': typeof WWorkspaceAppAudienceScoringRoute
   '/w/$workspace/audience/suppressions': typeof WWorkspaceAppAudienceSuppressionsRoute
   '/w/$workspace/deliverability/connect': typeof WWorkspaceAppDeliverabilityConnectRoute
@@ -1449,6 +1458,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
   '/w/$workspace/_app/audience/growth': typeof WWorkspaceAppAudienceGrowthRoute
   '/w/$workspace/_app/audience/health': typeof WWorkspaceAppAudienceHealthRoute
+  '/w/$workspace/_app/audience/lists': typeof WWorkspaceAppAudienceListsRoute
   '/w/$workspace/_app/audience/scoring': typeof WWorkspaceAppAudienceScoringRoute
   '/w/$workspace/_app/audience/suppressions': typeof WWorkspaceAppAudienceSuppressionsRoute
   '/w/$workspace/_app/deliverability/connect': typeof WWorkspaceAppDeliverabilityConnectRoute
@@ -1611,6 +1621,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/approvals/$approvalId'
     | '/w/$workspace/audience/growth'
     | '/w/$workspace/audience/health'
+    | '/w/$workspace/audience/lists'
     | '/w/$workspace/audience/scoring'
     | '/w/$workspace/audience/suppressions'
     | '/w/$workspace/deliverability/connect'
@@ -1769,6 +1780,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/approvals/$approvalId'
     | '/w/$workspace/audience/growth'
     | '/w/$workspace/audience/health'
+    | '/w/$workspace/audience/lists'
     | '/w/$workspace/audience/scoring'
     | '/w/$workspace/audience/suppressions'
     | '/w/$workspace/deliverability/connect'
@@ -1930,6 +1942,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/approvals/$approvalId'
     | '/w/$workspace/_app/audience/growth'
     | '/w/$workspace/_app/audience/health'
+    | '/w/$workspace/_app/audience/lists'
     | '/w/$workspace/_app/audience/scoring'
     | '/w/$workspace/_app/audience/suppressions'
     | '/w/$workspace/_app/deliverability/connect'
@@ -2315,6 +2328,13 @@ declare module '@tanstack/react-router' {
       path: '/audience/health'
       fullPath: '/w/$workspace/audience/health'
       preLoaderRoute: typeof WWorkspaceAppAudienceHealthRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/audience/lists': {
+      id: '/w/$workspace/_app/audience/lists'
+      path: '/audience/lists'
+      fullPath: '/w/$workspace/audience/lists'
+      preLoaderRoute: typeof WWorkspaceAppAudienceListsRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/audience/scoring': {
@@ -3213,6 +3233,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppApprovalsApprovalIdRoute: typeof WWorkspaceAppApprovalsApprovalIdRoute
   WWorkspaceAppAudienceGrowthRoute: typeof WWorkspaceAppAudienceGrowthRoute
   WWorkspaceAppAudienceHealthRoute: typeof WWorkspaceAppAudienceHealthRoute
+  WWorkspaceAppAudienceListsRoute: typeof WWorkspaceAppAudienceListsRoute
   WWorkspaceAppAudienceScoringRoute: typeof WWorkspaceAppAudienceScoringRoute
   WWorkspaceAppAudienceSuppressionsRoute: typeof WWorkspaceAppAudienceSuppressionsRoute
   WWorkspaceAppDeliverabilityConnectRoute: typeof WWorkspaceAppDeliverabilityConnectRoute
@@ -3332,6 +3353,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppApprovalsApprovalIdRoute: WWorkspaceAppApprovalsApprovalIdRoute,
   WWorkspaceAppAudienceGrowthRoute: WWorkspaceAppAudienceGrowthRoute,
   WWorkspaceAppAudienceHealthRoute: WWorkspaceAppAudienceHealthRoute,
+  WWorkspaceAppAudienceListsRoute: WWorkspaceAppAudienceListsRoute,
   WWorkspaceAppAudienceScoringRoute: WWorkspaceAppAudienceScoringRoute,
   WWorkspaceAppAudienceSuppressionsRoute:
     WWorkspaceAppAudienceSuppressionsRoute,

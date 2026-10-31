@@ -18,7 +18,7 @@ import { AudienceTabs } from './AudienceTabs'
 import { shortProvider } from './ContactsPage'
 import { fileName, saveBlob } from './download'
 import { providerColor } from './labels'
-import { AddSuppressionsDialog, ImportSuppressionsDialog, RemoveSuppressionDialog } from './SuppressionDialogs'
+import { AddSuppressionsDialog, ImportSuppressionsDialog, RemoveSuppressionDialog, RemoveUploadDialog } from './SuppressionDialogs'
 import './audience.css'
 import { SmsSuppressions, SuppressionChannels, type SmsSuppressionSearch } from '@/features/sms/Suppressions'
 import { m as am } from './messages'
@@ -91,6 +91,7 @@ export function SuppressionsPage({ search }: { search: SuppressionsSearch }) {
   )
   const [dialog, setDialog] = useState<'add' | 'import' | null>(null)
   const [removing, setRemoving] = useState<Item | null>(null)
+  const [removingGroup, setRemovingGroup] = useState<Item | null>(null)
   const editReason = usePermissionReason('subscribers:edit')
   const exportReason = usePermissionReason('subscribers:export')
   const go = (next: SuppressionsSearch) => void navigate({ to: '/w/$workspace/audience/suppressions', params: { workspace: slug }, search: next })
@@ -153,6 +154,7 @@ export function SuppressionsPage({ search }: { search: SuppressionsSearch }) {
             filtered={filtered}
             editReason={editReason}
             onRemove={setRemoving}
+            onRemoveGroup={setRemovingGroup}
             onGroup={(id) => setFilter({ import: id, q: undefined })}
             onPage={(dir) =>
               dir === 'next'
@@ -170,6 +172,7 @@ export function SuppressionsPage({ search }: { search: SuppressionsSearch }) {
       {dialog === 'add' ? <AddSuppressionsDialog onClose={() => setDialog(null)} /> : null}
       {dialog === 'import' ? <ImportSuppressionsDialog onClose={() => setDialog(null)} /> : null}
       {removing ? <RemoveSuppressionDialog item={removing} onClose={() => setRemoving(null)} /> : null}
+      {removingGroup ? <RemoveUploadDialog item={removingGroup} onClose={() => setRemovingGroup(null)} /> : null}
     </Page>
   )
 }
@@ -380,6 +383,7 @@ function Table({
   filtered,
   editReason,
   onRemove,
+  onRemoveGroup,
   onGroup,
   onPage,
   onClear,
@@ -389,6 +393,7 @@ function Table({
   filtered: boolean
   editReason?: string
   onRemove: (it: Item) => void
+  onRemoveGroup: (it: Item) => void
   onGroup: (importId: string) => void
   onPage: (dir: 'next' | 'prev') => void
   onClear: () => void
@@ -438,9 +443,22 @@ function Table({
                 <td>{it.scope === 'marketing' ? <Badge tone="info">{tr(m.marketingOnly)}</Badge> : <Badge tone="neutral">{tr(m.allMail)}</Badge>}</td>
                 <td>
                   {it.group && it.importId ? (
-                    <Button size="sm" onClick={() => onGroup(it.importId!)} aria-label={tr(m.viewRowsLabel, { n: it.rows, count: count(it.rows), address: it.address })}>
-                      {tr(m.viewRows)}
-                    </Button>
+                    <span className="flex flex-wrap justify-end gap-1.5">
+                      <Button size="sm" onClick={() => onGroup(it.importId!)} aria-label={tr(m.viewRowsLabel, { n: it.rows, count: count(it.rows), address: it.address })}>
+                        {tr(m.viewRows)}
+                      </Button>
+                      {it.upload ? (
+                        <Button
+                          size="sm"
+                          className="dline"
+                          disabledReason={editReason}
+                          onClick={() => onRemoveGroup(it)}
+                          aria-label={tr(m.removeGroupLabel, { n: it.rows, count: count(it.rows), file: it.address })}
+                        >
+                          {tr(m.removeGroup)}
+                        </Button>
+                      ) : null}
+                    </span>
                   ) : (
                     <Button size="sm" disabledReason={editReason} onClick={() => onRemove(it)} aria-label={tr(m.removeLabel, { address: it.address })}>
                       {tr(m.remove)}

@@ -41711,6 +41711,7 @@ export interface components {
             scope: "all" | "marketing";
             source: components["schemas"]["SuppressionSource"];
             upload?: boolean;
+            uploadedBy?: string;
         };
         SuppressionList: {
             counts: components["schemas"]["SuppressionCountsView"];

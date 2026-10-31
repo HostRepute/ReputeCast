@@ -5,9 +5,9 @@ import { Dialog } from '@/components/ui/Dialog'
 import { Field, Input, OptionCard, Select, Textarea } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { t, useT } from '@/i18n'
+import { T, t, useT } from '@/i18n'
 import { common } from '@/i18n/common'
-import { andList, count } from '@/lib/format'
+import { andList, count, dayMonthDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { useInvalidateAudience } from './ContactDialogs'
 import { m as cm } from './contacts.messages'
@@ -175,6 +175,67 @@ export function RemoveSuppressionDialog({ item, onClose }: { item: Item; onClose
       >
         {err ? <Note tone="bad">{err}</Note> : null}
         <Field label={tr(cm.reason)} hint={tr(m.removeHint)} error={touched && short ? tr(m.sayWhy) : undefined}>
+          <Input value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} placeholder={tr(m.removePlaceholder)} autoFocus />
+        </Field>
+      </form>
+    </Dialog>
+  )
+}
+
+/** Remove group: a whole CSV upload comes off the list, with a reason (AU-14). */
+export function RemoveUploadDialog({ item, onClose }: { item: Item; onClose: () => void }) {
+  const tr = useT()
+  const { slug } = useWorkspace()
+  const invalidate = useInvalidateAudience()
+  const remove = $api.useMutation('post', '/api/v1/workspaces/{workspace}/suppressions/uploads/{id}/remove')
+  const [reason, setReason] = useState('')
+  const [err, setErr] = useState<string | null>(null)
+  const [touched, setTouched] = useState(false)
+  const short = reason.trim().length < 3
+  const n = { n: item.rows, count: count(item.rows) }
+  const submit = async () => {
+    setTouched(true)
+    setErr(null)
+    if (short || !item.importId) return
+    try {
+      const out = await remove.mutateAsync({ params: { path: { workspace: slug, id: item.importId } }, body: { reason: reason.trim() } })
+      await invalidate()
+      onClose()
+      toast({ kind: 'success', title: t(m.removedGroup, { n: out.removed, count: count(out.removed), file: item.address }), detail: t(m.removedBody) })
+    } catch (e) {
+      setErr(errorMessage(e))
+    }
+  }
+  return (
+    <Dialog
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={tr(m.removeGroupTitle, n)}
+      description={
+        <T
+          msg={m.removeGroupBody}
+          values={{ file: item.address, by: item.uploadedBy || 'none', date: dayMonthDate(item.at), b: (c) => <b className="font-semibold text-ink">{c}</b> }}
+        />
+      }
+      footer={
+        <>
+          <Button onClick={onClose}>{tr(common.cancel)}</Button>
+          <Button variant="danger-primary" loading={remove.isPending} onClick={() => void submit()}>
+            {tr(m.removeGroupButton, n)}
+          </Button>
+        </>
+      }
+    >
+      <form
+        className="flex flex-col gap-3.5"
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault()
+          void submit()
+        }}
+      >
+        {err ? <Note tone="bad">{err}</Note> : null}
+        <Field label={tr(m.removeGroupReason)} error={touched && short ? tr(m.sayWhy) : undefined}>
           <Input value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} placeholder={tr(m.removePlaceholder)} autoFocus />
         </Field>
       </form>

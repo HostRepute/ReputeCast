@@ -83559,6 +83559,9 @@
           },
           "upload": {
             "type": "boolean"
+          },
+          "uploadedBy": {
+            "type": "string"
           }
         },
         "required": [
