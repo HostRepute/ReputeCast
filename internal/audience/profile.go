@@ -21,6 +21,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/segments"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -604,7 +605,7 @@ func (s *Service) CreateContact(ctx context.Context, ws *store.Workspace, in New
 	}
 	out := NewContactResult{ID: c.ID.String()}
 	if double {
-		sent, url := s.sendConfirmation(ctx, ws, c)
+		sent, url, _ := s.sendConfirmation(ctx, ws, c)
 		out.ConfirmationSent = sent
 		if !sent {
 			out.ConfirmURL = url
@@ -613,20 +614,28 @@ func (s *Service) CreateContact(ctx context.Context, ws *store.Workspace, in New
 	return out, nil
 }
 
-// confirmURL is the double opt-in link of a contact.
+// confirmURL is the double opt-in link of a contact: it confirms every list
+// the contact is pending on and works for 30 days (linktoken.ConfirmValid).
 func (s *Service) confirmURL(ws *store.Workspace, contactID uuid.UUID) string {
 	if s.Links == nil {
 		return ""
 	}
-	return s.URLs.Confirm(ws.Slug, s.Links.Sign(linkClaims(ws.ID, contactID, linkConfirm)))
+	c := linkClaims(ws.ID, contactID, linkConfirm)
+	c.Link = linktoken.IssueDay(s.now())
+	return s.URLs.Confirm(ws.Slug, s.Links.Sign(c))
 }
 
 // sendConfirmation emails the double opt-in link through the System stream.
-// It reports whether the email went out and returns the link either way.
-func (s *Service) sendConfirmation(ctx context.Context, ws *store.Workspace, c store.Contact) (bool, string) {
+// It reports whether the email went out and returns the link either way;
+// err is an *OptInCooldown when one went to the contact too recently.
+func (s *Service) sendConfirmation(ctx context.Context, ws *store.Workspace, c store.Contact) (bool, string, error) {
 	url := s.confirmURL(ws, c.ID)
 	if s.Mail == nil || !s.Mail.SystemAvailable(ctx, &ws.ID) {
-		return false, url
+		return false, url, nil
+	}
+	claimed, err := s.ClaimOptInSend(ctx, c.ID)
+	if err != nil {
+		return false, url, err
 	}
 	name := strings.TrimSpace(c.FirstName)
 	if name == "" {
@@ -634,9 +643,10 @@ func (s *Service) sendConfirmation(ctx context.Context, ws *store.Workspace, c s
 	}
 	text := fmt.Sprintf("Hi %s,\n\nPlease confirm that you want to receive email from %s:\n\n%s\n\nIf you didn't ask for this, ignore this email and you won't hear from us.\n", name, ws.Name, url)
 	if _, err := s.Mail.SendSystem(ctx, mailMessage(ws, c, "Confirm your subscription to "+ws.Name, text)); err != nil {
-		return false, url
+		s.ReleaseOptInSend(ctx, c.ID, claimed)
+		return false, url, nil
 	}
-	return true, url
+	return true, url, nil
 }
 
 // SendConfirmations emails the double opt-in link to contacts waiting for
@@ -657,7 +667,7 @@ func (s *Service) SendConfirmations(ctx context.Context, ws *store.Workspace, id
 	sent := 0
 	note := kept(mNoteConfirmSent, nil)
 	for _, c := range contacts {
-		if ok, _ := s.sendConfirmation(ctx, ws, c); ok {
+		if ok, _, _ := s.sendConfirmation(ctx, ws, c); ok {
 			sent++
 			_ = s.Q.InsertConsentEvent(ctx, store.InsertConsentEventParams{ID: uuid.Must(uuid.NewV7()), ContactID: c.ID, Action: "optin_sent", Source: "repermission",
 				Note: note.English, Texts: KeptTexts(map[string]i18n.Text{"note": note.Text}), OccurredAt: s.now()})
@@ -681,7 +691,15 @@ func (s *Service) ResendOptIn(ctx context.Context, ws *store.Workspace, id uuid.
 	if _, err := s.Q.GetSuppressionByEmail(ctx, store.GetSuppressionByEmailParams{WorkspaceID: ws.ID, Email: c.Email}); err == nil {
 		return OptInResendResult{}, api.Conflict(say(ctx, mOptinSuppressed, i18n.Args{"email": c.Email}))
 	}
-	sent, url := s.sendConfirmation(ctx, ws, c)
+	sent, url, err := s.sendConfirmation(ctx, ws, c)
+	var cool *OptInCooldown
+	if errors.As(err, &cool) {
+		return OptInResendResult{}, api.Conflict(say(ctx, mOptinCooldown, i18n.Args{"email": c.Email,
+			"time": cool.Until.In(workspaceLocation(ws)).Format("15:04")}))
+	}
+	if err != nil {
+		return OptInResendResult{}, err
+	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if sent {

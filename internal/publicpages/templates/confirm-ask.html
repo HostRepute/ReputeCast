@@ -1,0 +1,25 @@
+{{define "content"}}{{with .Body}}<main class="card" id="main">
+  {{template "brand" $}}
+  {{if eq .Mode "sent"}}<div class="headrow">
+    <svg class="tick" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19"></circle><path d="M12 15h16v11H12zM12 15.5l8 6 8-6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg>
+    <h1 class="h26">{{$.T "confirm.sent.heading"}}</h1>
+  </div>
+  <p class="lead">{{if .Unavailable}}{{$.T "confirm.sent.unavailable"}}{{else}}{{$.H "confirm.sent.text" "email" .Email}}{{end}}</p>
+  {{else if eq .Mode "expired"}}<h1 class="h26">{{$.T "confirm.expired.heading"}}</h1>
+  <p class="lead">{{$.H "confirm.expired.text" "email" .Email}}</p>
+  <form class="cfform" method="post" action="{{.Action}}">
+    <input type="hidden" name="do" value="resend">
+    <input type="hidden" name="_lang" value="{{$.Lang}}">
+    <button class="btn-pri" type="submit">{{$.T "confirm.expired.button"}}</button>
+  </form>
+  {{else}}<h1 class="h26">{{$.T "confirm.ask.heading"}}</h1>
+  <p class="lead">{{if .Lists}}{{$.H "confirm.ask.lead" "email" .Email "lists" .Lists "publisher" .Publisher}}{{else}}{{$.H "confirm.ask.leadAny" "email" .Email "publisher" .Publisher}}{{end}}</p>
+  <form class="cfform" method="post" action="{{.Action}}">
+    <input type="hidden" name="do" value="confirm">
+    <input type="hidden" name="_lang" value="{{$.Lang}}">
+    <button class="btn-pri" type="submit">{{$.T "confirm.ask.button"}}</button>
+  </form>
+  <p class="cfnote">{{$.T "confirm.ask.ignore"}}</p>
+  {{end}}
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">{{- template "rcplain" .}}</footer>{{end}}

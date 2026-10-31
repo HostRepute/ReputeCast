@@ -1509,7 +1509,10 @@ INSERT INTO store_customers (id, store_id, workspace_id, external_id, contact_id
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
     $11, $12, $13, $14, $15::timestamptz)
 ON CONFLICT (store_id, external_id) DO UPDATE SET contact_id = coalesce(EXCLUDED.contact_id, store_customers.contact_id),
-    email = EXCLUDED.email, first_name = EXCLUDED.first_name, last_name = EXCLUDED.last_name, country = EXCLUDED.country,
+    email = CASE WHEN EXISTS (SELECT 1 FROM contacts ec WHERE ec.id = store_customers.contact_id AND ec.erased_at IS NOT NULL) THEN store_customers.email ELSE EXCLUDED.email END,
+    first_name = CASE WHEN EXISTS (SELECT 1 FROM contacts ec WHERE ec.id = store_customers.contact_id AND ec.erased_at IS NOT NULL) THEN store_customers.first_name ELSE EXCLUDED.first_name END,
+    last_name = CASE WHEN EXISTS (SELECT 1 FROM contacts ec WHERE ec.id = store_customers.contact_id AND ec.erased_at IS NOT NULL) THEN store_customers.last_name ELSE EXCLUDED.last_name END,
+    country = CASE WHEN EXISTS (SELECT 1 FROM contacts ec WHERE ec.id = store_customers.contact_id AND ec.erased_at IS NOT NULL) THEN store_customers.country ELSE EXCLUDED.country END,
     marketing = EXCLUDED.marketing, opt_in_level = EXCLUDED.opt_in_level, consent_at = EXCLUDED.consent_at,
     joined_list_at = coalesce(store_customers.joined_list_at, EXCLUDED.joined_list_at),
     updated_at_store = greatest(store_customers.updated_at_store, EXCLUDED.updated_at_store)
@@ -1534,6 +1537,8 @@ type CommerceCustomerUpsertParams struct {
 	At             time.Time  `json:"at"`
 }
 
+// A customer whose contact was erased keeps its emptied name and address
+// when the store syncs it again (review 2026-11 DP-1).
 func (q *Queries) CommerceCustomerUpsert(ctx context.Context, arg CommerceCustomerUpsertParams) (StoreCustomer, error) {
 	row := q.db.QueryRow(ctx, commerceCustomerUpsert,
 		arg.ID,

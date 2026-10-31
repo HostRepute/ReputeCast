@@ -126,6 +126,8 @@ type WorkspaceSettings struct {
 	Helpers []string `json:"helpers"`
 	// HiddenSections are the sections hidden from the sidebar (Sidebar sections).
 	HiddenSections []string `json:"hiddenSections" enum:"transactional,grow,earn"`
+	// Retention is Data retention (review 2026-11 DP-4, DP-6).
+	Retention WorkspaceRetention `json:"retention"`
 }
 
 type policy struct {
@@ -202,6 +204,7 @@ func (s *Service) Settings(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		Helpers: access.Helpers(ctx, s.Q, ws.ID, authz.WorkspaceManage),
 	}
 	out.HiddenSections = HiddenSections(ws)
+	out.Retention = retentionOf(ws)
 	if ws.DefaultSenderID != nil {
 		out.DefaultSenderID = ws.DefaultSenderID.String()
 	}

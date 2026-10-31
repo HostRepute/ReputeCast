@@ -13568,6 +13568,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/settings/retention": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change how long unconfirmed signups and open and click details are kept */
+        put: operations["update-workspace-retention"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/settings/sidebar/{section}": {
         parameters: {
             query?: never;
@@ -20498,6 +20515,7 @@ export interface components {
             paidTiers: components["schemas"]["AudiencePaidTier"][];
             /** Format: int64 */
             segments: number;
+            stripe: boolean;
             /** Format: int64 */
             suppressions: number;
             tiers: components["schemas"]["AudienceTierCounts"];
@@ -21280,7 +21298,7 @@ export interface components {
             sent: number;
             /**
              * Format: int64
-             * @description Emails skipped by a rule
+             * @description Emails skipped by a rule, or because the contact paused email on the preference center
              */
             skipped: number;
             /** Format: int64 */
@@ -23903,7 +23921,7 @@ export interface components {
         };
         ContactBulkFailure: {
             /** @enum {string} */
-            code: "suppressed" | "refused";
+            code: "suppressed" | "refused" | "cooldown";
             email: string;
             reason: string;
         };
@@ -46288,6 +46306,18 @@ export interface components {
             invited: number;
             signIn: string;
         };
+        WorkspaceRetention: {
+            /**
+             * Format: int32
+             * @enum {integer}
+             */
+            eventDetailDays: 0 | 30 | 90 | 180 | 365 | 730;
+            /**
+             * Format: int32
+             * @enum {integer}
+             */
+            unconfirmedEraseDays: 0 | 14 | 30 | 60 | 90;
+        };
         WorkspaceSender: {
             email: string;
             id: string;
@@ -46309,6 +46339,7 @@ export interface components {
             members: components["schemas"]["WorkspaceMembersSummary"];
             name: string;
             reason?: string;
+            retention: components["schemas"]["WorkspaceRetention"];
             senders: components["schemas"]["WorkspaceSender"][];
             slug: string;
             timezone: string;
@@ -60370,14 +60401,9 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
-                    "Cache-Control"?: string;
-                    "Content-Disposition"?: string;
-                    "Content-Type"?: string;
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": string;
-                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -77545,6 +77571,40 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SettingsRotationResult"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-workspace-retention": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceRetention"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {

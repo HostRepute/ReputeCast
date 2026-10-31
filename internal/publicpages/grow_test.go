@@ -121,7 +121,7 @@ func TestGrowPages(t *testing.T) {
 
 	// "While you're here" on the confirmation page.
 	confirm := sign(env, linktoken.Confirm, ids.ws, friend, uuid.Nil)
-	must(t, get(t, env, "/p/"+wsSlug+"/confirm/"+confirm), 200, "While you're here: newsletters Acme recommends", "Ops Weekly", "Fabrikam Engineering Letter")
+	must(t, confirmClick(t, env, "/p/"+wsSlug+"/confirm/"+confirm, nil), 200, "While you're here: newsletters Acme recommends", "Ops Weekly", "Fabrikam Engineering Letter")
 
 	// The app's previews (Referrals › Settings, the set-up guide): inert,
 	// and nothing is recorded.

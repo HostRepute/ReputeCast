@@ -66,6 +66,7 @@ function General({ s }: { s: Schemas['WorkspaceSettings'] }) {
       <AccessibilityCard />
       <ApprovalsCard s={s} />
       <MembersCard s={s} />
+      <RetentionCard key={`${s.retention.unconfirmedEraseDays}|${s.retention.eventDetailDays}`} s={s} />
       <section className="card" style={{ borderColor: '#FCA5A5' }} aria-labelledby="danger-h">
         <CardSection title={<span id="danger-h">{t(m.dangerTitle)}</span>} caption={t(m.dangerCaption)} />
         <div className="pad col gap-3.5">
@@ -210,6 +211,82 @@ function WorkspaceCard({ s }: { s: Schemas['WorkspaceSettings'] }) {
           </Button>
         </div>
         <UnsavedChangesGuard dirty={s.canManage && dirty && !save.isPending} description={t(m.unsaved)} />
+      </div>
+    </section>
+  )
+}
+
+const unconfirmedChoices = [0, 14, 30, 60, 90] as const
+const detailChoices = [30, 90, 180, 365, 730, 0] as const
+
+/** Data retention (review 2026-11 DP-4, DP-6): how long unconfirmed signups and open and click details are kept. */
+function RetentionCard({ s }: { s: Schemas['WorkspaceSettings'] }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  const qc = useQueryClient()
+  const [unconfirmed, setUnconfirmed] = useState<number>(s.retention.unconfirmedEraseDays)
+  const [detail, setDetail] = useState<number>(s.retention.eventDetailDays)
+  const [error, setError] = useState<string>()
+  const save = $api.useMutation('put', '/api/v1/workspaces/{workspace}/settings/retention')
+  const dirty = unconfirmed !== s.retention.unconfirmedEraseDays || detail !== s.retention.eventDetailDays
+  const submit = () => {
+    setError(undefined)
+    save.mutate(
+      {
+        params: { path: { workspace: slug } },
+        body: {
+          unconfirmedEraseDays: unconfirmed as Schemas['WorkspaceRetention']['unconfirmedEraseDays'],
+          eventDetailDays: detail as Schemas['WorkspaceRetention']['eventDetailDays'],
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({ title: t(m.saved) })
+          void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/settings'] })
+        },
+        onError: (e) => setError(errorMessage(e)),
+      },
+    )
+  }
+  return (
+    <section className="card" aria-labelledby="retention-h">
+      <CardSection title={<span id="retention-h">{t(m.retentionTitle)}</span>} caption={t(m.retentionCaption)} />
+      <div className="pad col gap-3.5">
+        <div className="grid grid-cols-2 gap-3.5 max-md:grid-cols-1">
+          <label className="lbl">
+            {t(m.unconfirmedLabel)}
+            <select className="in" value={unconfirmed} onChange={(e) => setUnconfirmed(Number(e.target.value))} disabled={!s.canManage}>
+              {unconfirmedChoices.map((d) => (
+                <option key={d} value={d}>
+                  {d === 0 ? t(m.retentionNever) : t(m.retentionDays, { n: d })}
+                </option>
+              ))}
+            </select>
+            <span className="k font-medium">{t(m.unconfirmedHint)}</span>
+          </label>
+          <label className="lbl">
+            {t(m.detailLabel)}
+            <select className="in" value={detail} onChange={(e) => setDetail(Number(e.target.value))} disabled={!s.canManage}>
+              {detailChoices.map((d) => (
+                <option key={d} value={d}>
+                  {d === 0 ? t(m.retentionKeep) : d < 180 ? t(m.retentionDays, { n: d }) : t(m.retentionMonths, { n: Math.round(d / 30.4) })}
+                </option>
+              ))}
+            </select>
+            <span className="k font-medium">{t(m.detailHint)}</span>
+          </label>
+        </div>
+        {error ? (
+          <div className="note b" role="alert">
+            <span>{error}</span>
+          </div>
+        ) : null}
+        <div className="row justify-end">
+          <Button variant="primary" size="sm" loading={save.isPending} disabledReason={s.canManage ? undefined : s.reason} onClick={submit}>
+            {t(common.save)}
+          </Button>
+        </div>
+        <UnsavedChangesGuard dirty={s.canManage && dirty && !save.isPending} description={t(m.retentionUnsaved)} />
       </div>
     </section>
   )

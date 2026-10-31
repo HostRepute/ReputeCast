@@ -3,6 +3,7 @@ package forms
 import (
 	"encoding/base64"
 	"encoding/binary"
+	"net/netip"
 	"net/url"
 	"slices"
 	"strings"
@@ -143,6 +144,20 @@ func (l *limiter) allow(key string, perMinute int, now time.Time) bool {
 	}
 	b.seen = now
 	return b.lim.AllowN(now, 1)
+}
+
+// ClientKey names a client for rate limits: an IPv4 address itself, an IPv6
+// address by its /64. A household, a phone or a server is given a whole
+// /64, so rotating addresses inside it stays one client (review 2026-11
+// DP-3).
+func ClientKey(a netip.Addr) string {
+	a = a.Unmap()
+	if a.Is6() {
+		if p, err := a.Prefix(64); err == nil {
+			return p.String()
+		}
+	}
+	return a.String()
 }
 
 // Rate limits on public submissions beyond the per-IP limit of each form.

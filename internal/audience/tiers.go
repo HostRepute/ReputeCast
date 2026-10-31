@@ -15,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/erasure"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -88,6 +89,8 @@ func tierRunDue(now time.Time, tz string, last *time.Time) bool {
 func RegisterJobs(reg *jobs.Registry, s *Service, log *slog.Logger) {
 	river.AddWorker(reg.Workers, &TiersWorker{Svc: s, Log: log})
 	reg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return TiersArgs{}, nil }, true)
+	river.AddWorker(reg.Workers, &RetentionWorker{Svc: s, Log: log})
+	reg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return RetentionArgs{}, nil }, true)
 }
 
 // TierRun reports what a run changed.
@@ -97,6 +100,9 @@ type TierRun struct {
 	LeftSunset        int64 `json:"leftSunset"`
 	StoppedBroadcasts int64 `json:"stoppedBroadcasts"`
 	Erased            int64 `json:"erased"`
+	// ErasedSkipped are sunset contacts due for deletion who still pay
+	// through Stripe; they are erased once their subscription ends.
+	ErasedSkipped int64 `json:"erasedSkipped"`
 }
 
 // RecomputeTiers assigns tiers from engagement under the workspace's policy,
@@ -149,10 +155,14 @@ func (s *Service) RecomputeTiers(ctx context.Context, wsID uuid.UUID) (TierRun, 
 			if err != nil {
 				return err
 			}
-			if err := eraseContacts(ctx, tx, ids); err != nil {
+			// Contacts who still pay through Stripe are skipped: they come
+			// back on the next run, once canceled.
+			erased, refused, err := s.erase(ctx, tx, wsID, ids, erasure.ReasonPolicy, false)
+			if err != nil {
 				return err
 			}
-			out.Erased = int64(len(ids))
+			out.Erased = int64(len(erased))
+			out.ErasedSkipped = int64(len(refused))
 		}
 		if err := s.writeRollups(ctx, tx, &ws, now, loc); err != nil {
 			return err

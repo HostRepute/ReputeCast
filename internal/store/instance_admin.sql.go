@@ -965,7 +965,7 @@ func (q *Queries) InstanceAdminUsersInGrace(ctx context.Context) ([]InstanceAdmi
 }
 
 const instanceAdminWorkspace = `-- name: InstanceAdminWorkspace :one
-SELECT id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, audit_stream_demo, default_automation_sender_id, default_system_sender_id, sending_defaults, hidden_sections FROM workspaces WHERE id = $1
+SELECT id, slug, name, timezone, default_sender_id, approval_policy, sunset_policy, branding, send_thresholds, audit_retention_days, audit_stream_url, created_by, created_at, updated_at, deleted_at, mcp_settings, audit_stream_enabled, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, audit_stream_demo, default_automation_sender_id, default_system_sender_id, sending_defaults, hidden_sections, unconfirmed_erase_days, event_detail_days FROM workspaces WHERE id = $1
 `
 
 func (q *Queries) InstanceAdminWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error) {
@@ -998,6 +998,8 @@ func (q *Queries) InstanceAdminWorkspace(ctx context.Context, id uuid.UUID) (Wor
 		&i.DefaultSystemSenderID,
 		&i.SendingDefaults,
 		&i.HiddenSections,
+		&i.UnconfirmedEraseDays,
+		&i.EventDetailDays,
 	)
 	return i, err
 }

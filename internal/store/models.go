@@ -2251,6 +2251,11 @@ type NotificationSetting struct {
 	UpdatedAt    time.Time  `json:"updatedAt"`
 }
 
+type OptinSend struct {
+	ContactID uuid.UUID `json:"contactId"`
+	SentAt    time.Time `json:"sentAt"`
+}
+
 type Page struct {
 	ID               uuid.UUID       `json:"id"`
 	WorkspaceID      uuid.UUID       `json:"workspaceId"`
@@ -5715,6 +5720,8 @@ type Workspace struct {
 	DefaultSystemSenderID     *uuid.UUID      `json:"defaultSystemSenderId"`
 	SendingDefaults           json.RawMessage `json:"sendingDefaults"`
 	HiddenSections            []string        `json:"hiddenSections"`
+	UnconfirmedEraseDays      int32           `json:"unconfirmedEraseDays"`
+	EventDetailDays           int32           `json:"eventDetailDays"`
 }
 
 type WorkspaceLanguage struct {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -58,5 +59,17 @@ func TestSignatureMismatch(t *testing.T) {
 	}
 	if _, err := a.Verify(a.Sign(c), Open); errors.Is(err, ErrSignature) {
 		t.Error("another kind is malformed, not a signature mismatch")
+	}
+}
+
+// DP-3: a confirmation link works for 30 days after the day it was issued.
+func TestExpired(t *testing.T) {
+	issued := time.Date(2026, 10, 1, 15, 0, 0, 0, time.UTC)
+	c := Claims{Kind: Confirm, Link: IssueDay(issued)}
+	if Expired(c, ConfirmValid, issued.Add(30*24*time.Hour)) {
+		t.Fatal("expired on day 30")
+	}
+	if !Expired(c, ConfirmValid, issued.Add(32*24*time.Hour)) {
+		t.Fatal("still valid on day 32")
 	}
 }

@@ -19,7 +19,8 @@ func (a *App) audience() *audience.Service {
 	return &audience.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Segments: a.segments(), Mail: a.Mail, Links: a.Links, URLs: a.URLs,
 		// Poll answers and survey responses, what the contact bought, and
 		// their store orders and abandoned checkouts (X20).
-		Answers: audience.ActivitySources{audienceAnswers(a), audiencePurchases(a), audienceStores(a)}, SourceNames: audienceSourceNames(a)}
+		Answers: audience.ActivitySources{audienceAnswers(a), audiencePurchases(a), audienceStores(a)}, SourceNames: audienceSourceNames(a),
+		Erasure: erasureRegistry()}
 }
 
 // audiencePurchases adds what a contact bought to the timeline; the

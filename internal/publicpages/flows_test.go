@@ -117,7 +117,7 @@ func TestConfirmationLinksWithoutSystemMail(t *testing.T) {
 
 	// The link subscribes the person once they open it.
 	u, _ := url.Parse(link.URL)
-	must(t, get(t, env, u.Path), 200, "You're in, Lee")
+	must(t, confirmClick(t, env, u.Path, nil), 200, "You're in, Lee")
 	if st := membership(t, env, lee, ids.digest); st != "subscribed" {
 		t.Fatalf("Weekly Digest is %s after the click", st)
 	}
@@ -160,6 +160,10 @@ func TestConfirmationsJob(t *testing.T) {
 
 	// No click in 24 hours: one reminder, and only one.
 	if _, err := env.App.Pool.Exec(ctx, `UPDATE form_submissions SET confirm_sent_at = now() - interval '25 hours', created_at = now() - interval '25 hours' WHERE contact_id = $1`, late); err != nil {
+		t.Fatal(err)
+	}
+	// The first email was a day ago for the confirmation email limit too.
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE optin_sends SET sent_at = sent_at - interval '25 hours' WHERE contact_id = $1`, late); err != nil {
 		t.Fatal(err)
 	}
 	for range 2 {

@@ -141,6 +141,13 @@ func get(t *testing.T, env *apptest.Env, path string) resp {
 	return do(t, env, http.MethodGet, path, nil, nil)
 }
 
+// confirmClick presses the Confirm button of a confirmation link's page:
+// opening the link only asks (review 2026-11 DP-3).
+func confirmClick(t *testing.T, env *apptest.Env, path string, h hdr) resp {
+	t.Helper()
+	return do(t, env, http.MethodPost, path, url.Values{"do": {"confirm"}}, h)
+}
+
 // must fails unless r has status and every text in want.
 func must(t *testing.T, r resp, status int, want ...string) {
 	t.Helper()
@@ -334,8 +341,16 @@ func TestHostedSubscribePage(t *testing.T) {
 			t.Fatalf("a HEAD request confirmed the subscription (%s)", st)
 		}
 	})
-	t.Run("the confirmation link", func(t *testing.T) {
+	t.Run("opening the link only asks", func(t *testing.T) {
 		r := get(t, env, confirmPath)
+		must(t, r, 200, "Confirm your subscription", "Confirm that <strong>"+email+"</strong> should get Weekly Digest from Acme.",
+			`<input type="hidden" name="do" value="confirm">`, "sign up? Ignore this page")
+		if st := membership(t, env, jordan, ids.digest); st != "pending" {
+			t.Fatalf("opening the link confirmed the subscription (%s); link scanners open every link", st)
+		}
+	})
+	t.Run("the confirmation link", func(t *testing.T) {
+		r := confirmClick(t, env, confirmPath, nil)
 		must(t, r, 200, "You're in, Jordan", "Your subscription for <strong>"+email+"</strong> is confirmed",
 			"Weekly Digest", "Tuesdays at 09:00 your time.", "Product Updates", "if you'd like release news too.",
 			"from 127.0.0.1 · kept as proof of consent", "Email preferences")
@@ -363,8 +378,9 @@ func TestHostedSubscribePage(t *testing.T) {
 		if s.Confirmed != before.Confirmed+1 || s.Pending != before.Pending {
 			t.Errorf("confirmed %d pending %d after the click (before %+v)", s.Confirmed, s.Pending, before)
 		}
-		// A second click shows the page again and changes nothing.
+		// Opening the link again shows the page again and changes nothing.
 		must(t, get(t, env, confirmPath), 200, "You're in")
+		must(t, confirmClick(t, env, confirmPath, nil), 200, "You're in")
 		if n := count(t, env, `SELECT count(*) FROM consent_events WHERE contact_id = $1 AND action = 'confirmed'`, jordan); n != 1 {
 			t.Errorf("%d confirmation events after two clicks, want 1", n)
 		}
@@ -816,7 +832,7 @@ func TestDoubleOptInEmail(t *testing.T) {
 	if h := do(t, env, http.MethodHead, u.Path, nil, nil); h.Status != 200 || membership(t, env, mira, ids.digest) != "pending" {
 		t.Fatalf("HEAD: %d, %s", h.Status, membership(t, env, mira, ids.digest))
 	}
-	must(t, get(t, env, u.Path), 200, "You're in, Mira", "mira.okafor@fastmail.com")
+	must(t, confirmClick(t, env, u.Path, nil), 200, "You're in, Mira", "mira.okafor@fastmail.com")
 	if membership(t, env, mira, ids.digest) != "subscribed" || membership(t, env, mira, ids.updates) != "subscribed" {
 		t.Fatal("the click didn't confirm both lists")
 	}

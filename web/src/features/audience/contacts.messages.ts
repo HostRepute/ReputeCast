@@ -176,4 +176,6 @@ export const m = defineMessages('audience.contacts', {
   eraseButton: '{n, plural, one {Erase {count} contact} other {Erase {count} contacts}}',
   eraseNote: 'Their addresses are kept on the suppression list, so an erased contact is never emailed again, even if an import brings them back.',
   typeLabel: 'Type {n} to confirm',
+  eraseStripe: 'Stripe keeps its own records of paid members. Delete the customer in Stripe too if you need to.',
+  erasePaidLink: 'Open Earn › Paid members',
 })

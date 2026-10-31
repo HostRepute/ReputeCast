@@ -905,6 +905,36 @@ func (q *Queries) FormSubmissionMarkSent(ctx context.Context, arg FormSubmission
 	return err
 }
 
+const formSubmissionOfContact = `-- name: FormSubmissionOfContact :one
+SELECT id, workspace_id, form_id, contact_id, list_ids, double_opt_in, created_at, confirm_sent_at, send_attempts, reminded_at, confirmed_at, language FROM form_submissions WHERE id = $1 AND contact_id = $2
+`
+
+type FormSubmissionOfContactParams struct {
+	ID        uuid.UUID `json:"id"`
+	ContactID uuid.UUID `json:"contactId"`
+}
+
+// The signup a confirmation link was sent for.
+func (q *Queries) FormSubmissionOfContact(ctx context.Context, arg FormSubmissionOfContactParams) (FormSubmission, error) {
+	row := q.db.QueryRow(ctx, formSubmissionOfContact, arg.ID, arg.ContactID)
+	var i FormSubmission
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.FormID,
+		&i.ContactID,
+		&i.ListIds,
+		&i.DoubleOptIn,
+		&i.CreatedAt,
+		&i.ConfirmSentAt,
+		&i.SendAttempts,
+		&i.RemindedAt,
+		&i.ConfirmedAt,
+		&i.Language,
+	)
+	return i, err
+}
+
 const formSubmissionSettle = `-- name: FormSubmissionSettle :exec
 UPDATE form_submissions SET confirmed_at = $1 WHERE id = $2 AND confirmed_at IS NULL
 `
@@ -922,10 +952,12 @@ func (q *Queries) FormSubmissionSettle(ctx context.Context, arg FormSubmissionSe
 }
 
 const formSubmissionsConfirm = `-- name: FormSubmissionsConfirm :many
-UPDATE form_submissions
+UPDATE form_submissions fs
 SET confirmed_at = $1
-WHERE contact_id = $2 AND double_opt_in AND confirmed_at IS NULL
-RETURNING id, form_id, created_at
+WHERE fs.contact_id = $2 AND fs.double_opt_in AND fs.confirmed_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = fs.contact_id
+                  AND m.status = 'pending' AND m.list_id = ANY (fs.list_ids))
+RETURNING fs.id, fs.form_id, fs.created_at
 `
 
 type FormSubmissionsConfirmParams struct {
@@ -939,8 +971,9 @@ type FormSubmissionsConfirmRow struct {
 	CreatedAt time.Time  `json:"createdAt"`
 }
 
-// Marks a contact's waiting submissions confirmed; returns the form and the
-// day each was submitted, so the day's confirmed count moves.
+// Marks a contact's waiting submissions confirmed once none of their lists
+// is still pending; returns the form and the day each was submitted, so the
+// day's confirmed count moves.
 func (q *Queries) FormSubmissionsConfirm(ctx context.Context, arg FormSubmissionsConfirmParams) ([]FormSubmissionsConfirmRow, error) {
 	rows, err := q.db.Query(ctx, formSubmissionsConfirm, arg.At, arg.ContactID)
 	if err != nil {

@@ -602,7 +602,7 @@ func TestConfirmationPageOffersTheFormDownload(t *testing.T) {
 		t.Fatal("no contact")
 	}
 	confirm := "/p/acme-newsletter/confirm/" + sign(e.env, linktoken.Confirm, e.ids.ws, contact, uuid.Nil)
-	r = get(t, e.env, confirm)
+	r = confirmClick(t, e.env, confirm, nil)
 	works := fmt.Sprintf("The download link on this page works for %d days.", days)
 	if days == 1 {
 		works = "The download link on this page works for 1 day."
@@ -634,7 +634,7 @@ func TestConfirmationPageOffersTheFormDownload(t *testing.T) {
 	if !ok {
 		t.Fatal("no contact")
 	}
-	r = get(t, e.env, "/p/acme-newsletter/confirm/"+sign(e.env, linktoken.Confirm, e.ids.ws, other, uuid.Nil))
+	r = confirmClick(t, e.env, "/p/acme-newsletter/confirm/"+sign(e.env, linktoken.Confirm, e.ids.ws, other, uuid.Nil), nil)
 	must(t, r, http.StatusOK)
 	lacks(t, r, "Download (")
 	if sfLeadLink.MatchString(r.Body) {

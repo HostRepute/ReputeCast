@@ -191,9 +191,18 @@ func (s *Service) submit(ctx context.Context, ws *store.Workspace, set *Settings
 	limits := s.rates()
 	ip := "unknown"
 	if sub.IP != nil {
-		ip = sub.IP.String()
+		ip = ClientKey(*sub.IP)
 	}
-	if !limits.allow("ip:"+ws.ID.String()+":"+ip, c.Spam.RateLimitPerIP, now) || !limits.allow("form:"+formKey(c), formSubmitsPerMinute, now) {
+	if !limits.allow("ip:"+ws.ID.String()+":"+ip, c.Spam.RateLimitPerIP, now) {
+		s.recordReject(ctx, ws, c, "rate_limit", sub.Origin)
+		return Outcome{Status: OutcomeRateLimited, Message: l.Text("error.rateLimited", nil)}
+	}
+	// A form flooded from many addresses at once asks every submission for
+	// the Turnstile check while it lasts, when the workspace has Turnstile
+	// keys, even if the form doesn't ask for it otherwise; without keys the
+	// flood is refused (review 2026-11 DP-3).
+	flood := !limits.allow("form:"+formKey(c), formSubmitsPerMinute, now)
+	if flood && set.TurnstileSiteKey() == "" {
 		s.recordReject(ctx, ws, c, "rate_limit", sub.Origin)
 		return Outcome{Status: OutcomeRateLimited, Message: l.Text("error.rateLimited", nil)}
 	}
@@ -208,7 +217,7 @@ func (s *Service) submit(ctx context.Context, ws *store.Workspace, set *Settings
 		}
 		return Outcome{Status: OutcomeSubscribed}
 	}
-	suspicious, expired := false, false
+	suspicious, expired := flood, false
 	if !sub.Plain {
 		age, ok := s.tokenAge(formKey(c), sub.Token, now)
 		switch {
@@ -236,7 +245,7 @@ func (s *Service) submit(ctx context.Context, ws *store.Workspace, set *Settings
 		}
 	}
 	if suspicious {
-		if c.Spam.Turnstile && set.TurnstileSiteKey() != "" {
+		if (c.Spam.Turnstile || flood) && set.TurnstileSiteKey() != "" {
 			id, err := s.holdForChallenge(ctx, ws, c, sub)
 			if err != nil {
 				s.log().ErrorContext(ctx, "hold submission for turnstile", "err", err)

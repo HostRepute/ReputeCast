@@ -173,4 +173,6 @@ export default translate(m, {
   eraseButton: '{n, plural, other {Xóa vĩnh viễn {count} liên hệ}}',
   eraseNote: 'Địa chỉ của họ được giữ trong danh sách chặn gửi, nên liên hệ đã xóa không bao giờ nhận email nữa, kể cả khi một lần nhập đưa họ trở lại.',
   typeLabel: 'Nhập {n} để xác nhận',
+  eraseStripe: 'Stripe giữ hồ sơ riêng của hội viên trả phí. Nếu cần, hãy xóa cả khách hàng trong Stripe.',
+  erasePaidLink: 'Mở Earn › Hội viên trả phí',
 })

@@ -106,12 +106,19 @@ INSERT INTO form_submissions (id, workspace_id, form_id, contact_id, list_ids, d
 VALUES (@id, @workspace_id, @form_id, @contact_id, @list_ids, @double_opt_in, @language, @at, @confirmed_at);
 
 -- name: FormSubmissionsConfirm :many
--- Marks a contact's waiting submissions confirmed; returns the form and the
--- day each was submitted, so the day's confirmed count moves.
-UPDATE form_submissions
+-- Marks a contact's waiting submissions confirmed once none of their lists
+-- is still pending; returns the form and the day each was submitted, so the
+-- day's confirmed count moves.
+UPDATE form_submissions fs
 SET confirmed_at = @at
-WHERE contact_id = @contact_id AND double_opt_in AND confirmed_at IS NULL
-RETURNING id, form_id, created_at;
+WHERE fs.contact_id = @contact_id AND fs.double_opt_in AND fs.confirmed_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = fs.contact_id
+                  AND m.status = 'pending' AND m.list_id = ANY (fs.list_ids))
+RETURNING fs.id, fs.form_id, fs.created_at;
+
+-- name: FormSubmissionOfContact :one
+-- The signup a confirmation link was sent for.
+SELECT * FROM form_submissions WHERE id = @id AND contact_id = @contact_id;
 
 -- name: FormSubmissionsToSend :many
 -- Double opt-in confirmations that couldn't go out yet (no System provider,

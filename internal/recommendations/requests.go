@@ -376,10 +376,21 @@ func (s *Service) sendOptIn(ctx context.Context, wsID, contactID uuid.UUID, list
 	}
 	var listName string
 	_ = s.Pool.QueryRow(ctx, `SELECT name FROM lists WHERE id = $1`, *list).Scan(&listName)
-	msg := forms.PartnerConfirmationEmail(set.Branding, pc.FirstName, []string{listName}, s.Forms.ConfirmURL(&ws, contactID), source)
+	// The confirmation email limit applies to partner signups too (review
+	// 2026-11 DP-3): held back, the request waits until the next may go.
+	claimed, err := s.Audience.ClaimOptInSend(ctx, contactID)
+	var cool *audience.OptInCooldown
+	if errors.As(err, &cool) {
+		return "queued", ptr(cool.Until), nil
+	}
+	if err != nil {
+		return "queued", ptr(now.Add(5 * time.Minute)), err
+	}
+	msg := forms.PartnerConfirmationEmail(set.Branding, pc.FirstName, []string{listName}, s.Forms.ConfirmURL(&ws, contactID, uuid.Nil), source)
 	msg.WorkspaceID, msg.To, msg.ToName = &ws.ID, pc.Email, pc.FirstName
 	provider, err := m.SendSystem(ctx, msg)
 	if err != nil {
+		s.Audience.ReleaseOptInSend(ctx, contactID, claimed)
 		if errors.Is(err, mailer.ErrNoSystemProvider) {
 			return "queued", ptr(now.Add(10 * time.Minute)), nil
 		}

@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { $api, errorMessage, type Schemas } from '@/api/client'
+import { $api, ApiError, errorMessage, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
@@ -12,7 +12,7 @@ import { toast } from '@/components/ui/Toast'
 import { t, useT, type MessageDescriptor } from '@/i18n'
 import { common } from '@/i18n/common'
 import { count } from '@/lib/format'
-import { useWorkspace } from '@/lib/session'
+import { useCan, useWorkspace } from '@/lib/session'
 import { m } from './contacts.messages'
 
 type ListSummary = Schemas['AudienceListSummary']
@@ -377,14 +377,21 @@ export function BulkResultPanel({ result, onDismiss }: { result: Schemas['Contac
   )
 }
 
-/** Delete: erase personal data, confirmed by typing the number of contacts. */
-export function EraseDialog({ onClose, ids, onDone }: { onClose: () => void; ids: string[]; onDone: () => void }) {
+/**
+ * Delete: erase personal data, confirmed by typing the number of contacts.
+ * A workspace with paid members says Stripe keeps its own records; an erase
+ * refused because some contacts still pay through Stripe says so, with the
+ * way to Earn › Members (review 2026-11 DP-1).
+ */
+export function EraseDialog({ onClose, ids, onDone, stripe = false }: { onClose: () => void; ids: string[]; onDone: () => void; stripe?: boolean }) {
   const tr = useT()
   const { slug } = useWorkspace()
+  const canEarn = useCan('earn:view')
   const invalidate = useInvalidateAudience()
   const erase = $api.useMutation('post', '/api/v1/workspaces/{workspace}/contacts/erase')
   const [typed, setTyped] = useState('')
   const [err, setErr] = useState<string | null>(null)
+  const [paid, setPaid] = useState<string | null>(null)
   const n = ids.length
   const ok = typed.replace(/[,\s]/g, '') === String(n)
   const submit = async () => {
@@ -398,6 +405,11 @@ export function EraseDialog({ onClose, ids, onDone }: { onClose: () => void; ids
         detail: t(m.erasedBody),
       })
     } catch (e) {
+      if (e instanceof ApiError && e.code === 'paid_members') {
+        setPaid(e.problem.detail ?? errorMessage(e))
+        setErr(null)
+        return
+      }
       setErr(errorMessage(e))
     }
   }
@@ -419,6 +431,20 @@ export function EraseDialog({ onClose, ids, onDone }: { onClose: () => void; ids
     >
       <div className="flex flex-col gap-3.5">
         <Note tone="info">{tr(m.eraseNote)}</Note>
+        {stripe ? <Note tone="info">{tr(m.eraseStripe)}</Note> : null}
+        {paid ? (
+          <Note tone="warn">
+            {paid}
+            {canEarn ? (
+              <>
+                {' '}
+                <Link to="/w/$workspace/earn/members" params={{ workspace: slug }}>
+                  {tr(m.erasePaidLink)}
+                </Link>
+              </>
+            ) : null}
+          </Note>
+        ) : null}
         <Field label={tr(m.typeLabel, { n: String(n) })} error={err ?? undefined}>
           <Input value={typed} onChange={(e) => setTyped(e.target.value)} inputMode="numeric" autoComplete="off" />
         </Field>

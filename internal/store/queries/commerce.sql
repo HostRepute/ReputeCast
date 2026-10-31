@@ -300,8 +300,13 @@ INSERT INTO store_customers (id, store_id, workspace_id, external_id, contact_id
     opt_in_level, consent_at, joined_list_at, updated_at_store, created_at)
 VALUES (@id, @store_id, @workspace_id, @external_id, sqlc.narg(contact_id), @email, @first_name, @last_name, @country, @marketing,
     @opt_in_level, sqlc.narg(consent_at), sqlc.narg(joined_list_at), sqlc.narg(updated_at_store), @at::timestamptz)
+-- A customer whose contact was erased keeps its emptied name and address
+-- when the store syncs it again (review 2026-11 DP-1).
 ON CONFLICT (store_id, external_id) DO UPDATE SET contact_id = coalesce(EXCLUDED.contact_id, store_customers.contact_id),
-    email = EXCLUDED.email, first_name = EXCLUDED.first_name, last_name = EXCLUDED.last_name, country = EXCLUDED.country,
+    email = CASE WHEN EXISTS (SELECT 1 FROM contacts ec WHERE ec.id = store_customers.contact_id AND ec.erased_at IS NOT NULL) THEN store_customers.email ELSE EXCLUDED.email END,
+    first_name = CASE WHEN EXISTS (SELECT 1 FROM contacts ec WHERE ec.id = store_customers.contact_id AND ec.erased_at IS NOT NULL) THEN store_customers.first_name ELSE EXCLUDED.first_name END,
+    last_name = CASE WHEN EXISTS (SELECT 1 FROM contacts ec WHERE ec.id = store_customers.contact_id AND ec.erased_at IS NOT NULL) THEN store_customers.last_name ELSE EXCLUDED.last_name END,
+    country = CASE WHEN EXISTS (SELECT 1 FROM contacts ec WHERE ec.id = store_customers.contact_id AND ec.erased_at IS NOT NULL) THEN store_customers.country ELSE EXCLUDED.country END,
     marketing = EXCLUDED.marketing, opt_in_level = EXCLUDED.opt_in_level, consent_at = EXCLUDED.consent_at,
     joined_list_at = coalesce(store_customers.joined_list_at, EXCLUDED.joined_list_at),
     updated_at_store = greatest(store_customers.updated_at_store, EXCLUDED.updated_at_store)

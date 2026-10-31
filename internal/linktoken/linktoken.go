@@ -149,6 +149,17 @@ func IssueDay(t time.Time) uint32 {
 // IssuedOn is the day an expiring token was issued.
 func IssuedOn(day uint32) time.Time { return issueEpoch.Add(time.Duration(day) * 24 * time.Hour) }
 
+// ConfirmValid is how long a double opt-in confirmation link works (review
+// 2026-11 DP-3). A Confirm token carries the day it was issued in Link and,
+// when it was sent for one signup, the form submission in MessageID.
+const ConfirmValid = 30 * 24 * time.Hour
+
+// Expired reports whether a token issued on the day in c.Link is older than
+// valid at now. The issue day counts whole, so a link gets a day's grace.
+func Expired(c Claims, valid time.Duration, now time.Time) bool {
+	return now.Sub(IssuedOn(c.Link)) > valid+24*time.Hour
+}
+
 func (s *Signer) mac(b []byte) []byte {
 	m := hmac.New(sha256.New, s.key)
 	m.Write(b)

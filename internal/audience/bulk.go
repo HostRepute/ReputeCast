@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/erasure"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/segments"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -45,7 +47,7 @@ type ContactBulkFailure struct {
 	Reason string `json:"reason"`
 	// Code says why for screens that word it themselves: suppressed (on the
 	// suppression list) or refused (the System provider refused the email).
-	Code string `json:"code" enum:"suppressed,refused"`
+	Code string `json:"code" enum:"suppressed,refused,cooldown"`
 }
 
 // ContactBulkResult reports a bulk action ("Added 2,116 of 2,118 contacts to
@@ -194,7 +196,13 @@ func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, in ContactBulkI
 		}
 		note := kept(mNoteConfirmSent, nil)
 		for _, c := range contacts {
-			if sent, _ := s.sendConfirmation(ctx, ws, c); sent {
+			sent, _, serr := s.sendConfirmation(ctx, ws, c)
+			if errors.Is(serr, ErrOptInCooldown) {
+				out.Failed++
+				out.Failures = appendFailure(out.Failures, c.Email, "cooldown", mFailCooldown.Text(lang, nil))
+				continue
+			}
+			if sent {
 				out.Done++
 				_ = s.Q.InsertConsentEvent(ctx, store.InsertConsentEventParams{ID: uuid.Must(uuid.NewV7()), ContactID: c.ID, Action: "optin_sent", Source: "team",
 					Note: note.English, Texts: KeptTexts(map[string]i18n.Text{"note": note.Text}), ActorID: actor, OccurredAt: s.now()})
@@ -217,9 +225,13 @@ type ContactEraseInput struct {
 	Confirm int64 `json:"confirm" doc:"The number of contacts, typed to confirm"`
 }
 
-// Erase removes personal data of the selected contacts: names, fields,
-// tags, list memberships, consent history and preferences go; the address
-// is replaced. Suppressions stay, so an erased address is never mailed again.
+// Erase removes personal data of the selected contacts from every table that
+// holds it (the erasure registry): names, fields, tags, phone numbers, list
+// memberships, consent history, preferences and what other features kept
+// about them go; the address is replaced. Suppressions stay, so an erased
+// address is never mailed again. Contacts who still pay through Stripe
+// can't be erased until their subscription is canceled: the whole erase is
+// refused (409 paid_members) so the typed count is the count erased.
 func (s *Service) Erase(ctx context.Context, ws *store.Workspace, in ContactEraseInput) (ContactBulkResult, error) {
 	out := ContactBulkResult{Action: "erase", Failures: []ContactBulkFailure{}}
 	ids, err := s.selectIDs(ctx, ws, in.Selection)
@@ -231,52 +243,18 @@ func (s *Service) Erase(ctx context.Context, ws *store.Workspace, in ContactEras
 		return out, api.Invalid("body.confirm", say(ctx, mEraseConfirm, i18n.Args{"n": strconv.FormatInt(out.Matched, 10)}))
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		if err := eraseContacts(ctx, tx, ids); err != nil {
+		erased, _, err := s.erase(ctx, tx, ws.ID, ids, erasure.ReasonTeam, true)
+		if err != nil {
 			return err
 		}
-		out.Done = out.Matched
-		ev := audit.Event{WorkspaceID: &ws.ID, Action: "contacts.erase", TargetType: "contact", Metadata: map[string]any{"count": out.Done}}
+		out.Done = int64(len(erased))
+		ev := audit.Event{WorkspaceID: &ws.ID, Action: "contacts.erase", TargetType: "contact", Metadata: map[string]any{"count": out.Done, "reason": string(erasure.ReasonTeam)}}
 		if len(ids) == 1 {
 			ev.TargetID = ids[0].String()
 		}
 		return s.Audit.LogWith(ctx, store.New(tx), ev)
 	})
 	return out, err
-}
-
-// eraseContacts scrubs personal data in place (the rows stay so campaign
-// statistics keep adding up).
-func eraseContacts(ctx context.Context, tx pgx.Tx, ids []uuid.UUID) error {
-	stmts := []string{
-		`DELETE FROM list_memberships WHERE contact_id = ANY ($1)`,
-		`DELETE FROM consent_events WHERE contact_id = ANY ($1)`,
-		`DELETE FROM contact_preferences WHERE contact_id = ANY ($1)`,
-		`DELETE FROM segment_members WHERE contact_id = ANY ($1)`,
-		`UPDATE messages SET email = '' WHERE contact_id = ANY ($1)`,
-		`UPDATE delivery_events SET ip = NULL, user_agent = '', url = '' WHERE contact_id = ANY ($1)`,
-		// Poll answers and survey responses still count, unlinked; what the
-		// person wrote goes (design expansion, X11).
-		`UPDATE poll_answers SET contact_id = NULL, message_id = NULL, comment = '' WHERE contact_id = ANY ($1)`,
-		`UPDATE survey_responses SET contact_id = NULL, message_id = NULL,
-		    answers = (SELECT coalesce(jsonb_object_agg(e.k, e.v), '{}'::jsonb) FROM jsonb_each(survey_responses.answers) AS e(k, v) WHERE jsonb_typeof(e.v) <> 'string')
-		 WHERE contact_id = ANY ($1)`,
-		// Grow: a referrer's link, hub and rewards go; the referrals they
-		// made, and their own referral, stay counted without an address.
-		`DELETE FROM referral_rewards WHERE contact_id = ANY ($1)`,
-		`DELETE FROM referral_links WHERE contact_id = ANY ($1)`,
-		`UPDATE referrals SET ip = NULL WHERE contact_id = ANY ($1)`,
-		`UPDATE partner_requests_in SET contact_id = NULL WHERE contact_id = ANY ($1)`,
-		`UPDATE contacts SET erased_at = now(), email = 'erased-' || id || '@erased.invalid', first_name = '', last_name = '', company = '',
-		    country = '', timezone = '', language = '', tags = '{}', attributes = '{}', consent_evidence = '{}', mailbox_detail = '',
-		    status = 'suppressed', updated_at = now()
-		 WHERE id = ANY ($1)`,
-	}
-	for _, q := range stmts {
-		if _, err := tx.Exec(ctx, q, ids); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 type failureRow struct {

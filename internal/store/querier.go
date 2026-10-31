@@ -625,6 +625,8 @@ type Querier interface {
 	// The store page's consent numbers.
 	CommerceCustomerStats(ctx context.Context, storeID uuid.UUID) (CommerceCustomerStatsRow, error)
 	CommerceCustomerToldStore(ctx context.Context, arg CommerceCustomerToldStoreParams) error
+	// A customer whose contact was erased keeps its emptied name and address
+	// when the store syncs it again (review 2026-11 DP-1).
 	CommerceCustomerUpsert(ctx context.Context, arg CommerceCustomerUpsertParams) (StoreCustomer, error)
 	CommerceDeleteStoreCheckouts(ctx context.Context, storeID uuid.UUID) error
 	CommerceDeleteStoreCollections(ctx context.Context, storeID uuid.UUID) error
@@ -1407,11 +1409,14 @@ type Querier interface {
 	FormSubmissionMarkAttempt(ctx context.Context, id uuid.UUID) error
 	FormSubmissionMarkReminded(ctx context.Context, arg FormSubmissionMarkRemindedParams) error
 	FormSubmissionMarkSent(ctx context.Context, arg FormSubmissionMarkSentParams) error
+	// The signup a confirmation link was sent for.
+	FormSubmissionOfContact(ctx context.Context, arg FormSubmissionOfContactParams) (FormSubmission, error)
 	// A contact confirmed some other way (re-permission, the team): nothing
 	// to send or remind any more.
 	FormSubmissionSettle(ctx context.Context, arg FormSubmissionSettleParams) error
-	// Marks a contact's waiting submissions confirmed; returns the form and the
-	// day each was submitted, so the day's confirmed count moves.
+	// Marks a contact's waiting submissions confirmed once none of their lists
+	// is still pending; returns the form and the day each was submitted, so the
+	// day's confirmed count moves.
 	FormSubmissionsConfirm(ctx context.Context, arg FormSubmissionsConfirmParams) ([]FormSubmissionsConfirmRow, error)
 	// Confirmations sent more than 24 hours ago without a click: one reminder.
 	FormSubmissionsToRemind(ctx context.Context, arg FormSubmissionsToRemindParams) ([]FormSubmissionsToRemindRow, error)
@@ -1544,6 +1549,7 @@ type Querier interface {
 	// Checkouts never paid within a day.
 	GiftsAbandon(ctx context.Context, arg GiftsAbandonParams) (int64, error)
 	// Paid gifts whose delivery time has come.
+	// A gift whose buyer and recipient were both erased has no one to go to.
 	GiftsDue(ctx context.Context, now time.Time) ([]EarnGift, error)
 	// Redeemed gifts whose access ends within a week, not told yet.
 	GiftsEnding(ctx context.Context, arg GiftsEndingParams) ([]GiftsEndingRow, error)
@@ -3166,6 +3172,21 @@ type Querier interface {
 	ResolveAutomationAlert(ctx context.Context, arg ResolveAutomationAlertParams) (int64, error)
 	RestoreList(ctx context.Context, id uuid.UUID) (List, error)
 	ResumeAutomation(ctx context.Context, arg ResumeAutomationParams) error
+	// Clears the IP address and user agent of up to @lim opens and clicks older
+	// than @cutoff in campaigns and automations (or of a message since deleted).
+	// Counters, classes and links stay, so reports read the same.
+	RetentionClearEventDetail(ctx context.Context, arg RetentionClearEventDetailParams) (int64, error)
+	// Confirmation email claims older than a day no longer limit anything.
+	RetentionOptInSendsPurge(ctx context.Context, before time.Time) (int64, error)
+	// Contacts a double opt-in signup created who never confirmed, older than
+	// @before, with nothing else tying them to the workspace: never confirmed,
+	// imported or resubscribed, nothing since @before, no subscribed list, no
+	// campaign or automation email, no SMS or push subscription, no paid
+	// access and no order. Contacts the team added or imported are never due.
+	RetentionUnconfirmedDue(ctx context.Context, arg RetentionUnconfirmedDueParams) ([]uuid.UUID, error)
+	// Data retention (review 2026-11 DP-4, DP-6).
+	// Workspaces with a retention setting on, and their settings.
+	RetentionWorkspaces(ctx context.Context) ([]RetentionWorkspacesRow, error)
 	RetireAutomationVersion(ctx context.Context, arg RetireAutomationVersionParams) error
 	// Retries of an issue's blocked addresses (review AN-7, R5.L5).
 	// Who a retry of an issue may go to: the contacts whose email a mailbox
@@ -3898,6 +3919,8 @@ type Querier interface {
 	// Unsubscribes block Broadcasts and Automations; System mail (password
 	// resets, receipts) still reaches the contact.
 	SignupAddUnsubscribe(ctx context.Context, arg SignupAddUnsubscribeParams) error
+	// Confirms the contact's pending lists: those of the link's signup, or all
+	// of them for a link not sent for one signup (an empty array).
 	SignupConfirmPending(ctx context.Context, arg SignupConfirmPendingParams) ([]uuid.UUID, error)
 	// Audience · public self-service (internal/audience/signup.go): signups from
 	// forms and the hosted page, double opt-in confirmations, the preference
@@ -4928,6 +4951,7 @@ type Querier interface {
 	WsSetMCPSettings(ctx context.Context, arg WsSetMCPSettingsParams) error
 	WsSoftDelete(ctx context.Context, id uuid.UUID) error
 	WsUpdateGeneral(ctx context.Context, arg WsUpdateGeneralParams) (WsUpdateGeneralRow, error)
+	WsUpdateRetention(ctx context.Context, arg WsUpdateRetentionParams) error
 }
 
 var _ Querier = (*Queries)(nil)

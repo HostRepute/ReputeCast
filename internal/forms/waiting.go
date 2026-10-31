@@ -133,5 +133,5 @@ func (s *Service) WaitingLink(ctx context.Context, ws *store.Workspace, formID, 
 		Metadata: map[string]any{"form": f.Name, "formId": f.ID.String(), "submission": sub.ID.String()}}); err != nil {
 		return SignupFormConfirmLink{}, err
 	}
-	return SignupFormConfirmLink{URL: s.ConfirmURL(ws, sub.ContactID), Email: n.Email}, nil
+	return SignupFormConfirmLink{URL: s.ConfirmURL(ws, sub.ContactID, sub.ID), Email: n.Email}, nil
 }

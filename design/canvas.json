@@ -1979,19 +1979,19 @@
   },
   "WorkspaceSettings.dc.html": {
    "expand": "fill",
-   "h": 1259,
+   "h": 1559,
    "is_interactive": true,
    "page": "team",
-   "title": "Workspace settings · general, approvals, danger zone",
+   "title": "Workspace settings · general, data retention, approvals, danger zone",
    "w": 1440,
    "x": 1560,
    "y": 0
   },
   "WorkspaceSettingsPhone.dc.html": {
-   "h": 2179,
+   "h": 2599,
    "is_interactive": true,
    "page": "team",
-   "title": "Workspace settings · general, approvals, danger zone · phone",
+   "title": "Workspace settings · general, data retention, approvals, danger zone · phone",
    "w": 390,
    "x": 0,
    "y": 11284
@@ -4316,6 +4316,16 @@
    "title": "Client approver · reviewing a send (Jane Morales) · phone",
    "page": "p8-channels",
    "is_interactive": true
+  },
+  "PublicConfirmStates.dc.html": {
+   "expand": "fill",
+   "h": 2320,
+   "is_interactive": true,
+   "page": "forms",
+   "title": "Public · opt-in confirmation · confirm button, expired link, new link sent",
+   "w": 1440,
+   "x": 7040,
+   "y": 0
   }
  },
  "createdOnFiles": {
@@ -4509,7 +4519,7 @@
   },
   "t-forms": {
    "kind": "title1",
-   "maxW": 6960,
+   "maxW": 8480,
    "page": "forms",
    "text": "7.12 Forms & public pages",
    "w": 240,
@@ -5474,6 +5484,7 @@
   "FormBuilder.dc.html",
   "PublicSubscribe.dc.html",
   "PublicConfirm.dc.html",
+  "PublicConfirmStates.dc.html",
   "PublicPreferences.dc.html",
   "PublicUnsubscribe.dc.html",
   "PublicArchive.dc.html",

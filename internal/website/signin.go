@@ -520,7 +520,7 @@ func (s *Service) finish(ctx context.Context, ws *store.Workspace, link store.We
 	switch link.Purpose {
 	case PurposeSignup:
 		if len(link.Lists) > 0 {
-			res, err := s.Forms.Confirm(ctx, ws, link.ContactID, ev)
+			res, err := s.Forms.Confirm(ctx, ws, link.ContactID, uuid.Nil, ev)
 			if err != nil {
 				return nil, err
 			}

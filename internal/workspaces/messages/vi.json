@@ -1,6 +1,7 @@
 {
   "problem.name": "Hãy đặt tên cho không gian làm việc.",
   "problem.timezone": "Múi giờ không xác định.",
+  "problem.retention": "Hãy chọn một trong các khoảng thời gian có sẵn.",
   "problem.sender": "Hãy chọn một người gửi của không gian làm việc này.",
   "problem.signedInOwner": "Chỉ Chủ sở hữu đã đăng nhập mới có thể chuyển quyền sở hữu.",
   "problem.password": "Mật khẩu đó không đúng.",
