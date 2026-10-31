@@ -54,14 +54,24 @@ Until the owner decides otherwise, the build follows these.
   issues (M20) are marked weekly or monthly and reach readers who chose that rhythm as well as
   "Every issue" readers who are on the digest's lists. A campaign marked "Announcement" reaches
   everyone on its lists whatever they chose. Readers with no choice are "Every issue".
-- **D2 Erasure of money records.** As the Earn brief says (§3.16), erasing a contact removes their
-  paid status and timeline (the existing `EarnErasePaid` and `EarnEraseTimeline` queries), and the
-  dialog says Stripe keeps its own records. Orders, gifts and conversions, which the brief doesn't
-  cover, are anonymized: name, email, phone and free text go; amounts and dates stay, so revenue
-  already counted still adds up.
+- **D2 Erasure of money records** (confirmed by the owner, 31 October 2026). A contact who still
+  pays through Stripe (trialing, active or past due) can't be erased: the erase is refused with the
+  way to Earn › Paid members, and the sunset policy's auto-erase skips them until the subscription
+  ends; nothing is canceled behind anyone's back. Ended subscriptions are anonymized, not deleted
+  (deleting them would cascade into `earn_mrr_changes` and change past MRR): billing address,
+  Stripe ids, cancel reason and notes go, amounts and dates stay. The paid timeline is deleted, as
+  the Earn brief says (§3.16), and the dialog says Stripe keeps its own records. Complimentary and
+  gift access ends. Orders, gifts and conversions are anonymized the same way.
 - **D3 Retention.** The IP address and user agent of marketing opens and clicks are cleared after 12
   months by default (a workspace setting from 30 days to "keep"); counters, scores, tiers and A/B
   decisions are kept. Signups never confirmed are erased after 30 days (a setting, on by default).
+  Both settings sit on Settings › General › Data retention (rather than on the forms, since a
+  contact can come from several forms).
+- **D7 Paused contacts in automations** (owner, 31 October 2026). An automation email to a contact
+  who paused email on the preference center is skipped, counted as a skip, and the flow goes on,
+  as campaigns leave them out. SMS, push and WhatsApp steps don't read the email pause.
+- **D8 Metrics** (owner, 31 October 2026). `/metrics` listens on its own port, `:9464` by default;
+  the main listener serves it only to a bearer token (`metrics.token`) and answers 404 otherwise.
 - **D4 Deleting campaigns.** Drafts and cancelled campaigns can be deleted (restorable for 30 days,
   like lists). Sent campaigns are archived, never deleted: reports, web posts, retries and approvals
   still point at them.
@@ -72,7 +82,7 @@ Until the owner decides otherwise, the build follows these.
   (charts are drawn as SVG) and react-hook-form is used in one file. Nothing is removed or swapped
   without the owner's answer (`CLAUDE.md`); FE-6 asks the question and records it.
 
-## Consent and data protection (M41) ⏳
+## Consent and data protection (M41) ✅
 
 | ID | What | Done when | Size | Board |
 |---|---|---|---|---|
@@ -86,6 +96,43 @@ Until the owner decides otherwise, the build follows these.
 
 Riskiest part: DP-1's money records and DP-6's retention must not change any number a report or
 revenue page shows beyond what D2 removes. Both are tested by comparing those numbers before and after.
+
+What M41 built (31 October 2026):
+
+- **DP-1** `internal/erasure`: a registry of 21 sources (one per package that keeps personal data
+  about contacts, the audience's own last), wired in `internal/app/wire_erasure.go`. Erasing walks it
+  for the API, the sunset auto-erase and the unconfirmed-signup purge; Earn's guard refuses live
+  Stripe payers (409 `paid_members`). `contact.erased` goes out through the contact-event queue only
+  when an endpoint listens, without the address. `TestErasureCoversPersonalData` fails when a table
+  with personal-data columns is in no source and not exempted with a reason (it caught
+  `optin_sends` while M41 was built); `TestEraseLeavesNothingPersonal` erases demo contacts drawn
+  from every registered table and searches every table of the workspace for their addresses and
+  phone numbers; `TestErasureKeepsRevenueNumbers` compares the revenue overview before and after.
+  The erase dialog and its refusal are drawn on `Dialogs.dc.html`.
+- **DP-2** the contact export streams with no cap, a section per source (omitted with the reason
+  when the caller lacks the section's permission), `cut` and `complete`
+  (`TestContactExportIsComplete`, 10,050 emails).
+- **DP-3** `/confirm/{token}` asks with one button; only the POST confirms. Links carry their issue
+  day (30 days) and the signup they were sent for, whose lists alone they confirm; links without a
+  day work while the signup is recent. `optin_sends` and `audience.ClaimOptInSend` hold every send
+  path (forms, retries, reminders, the team, imports, partner signups) to one email every 10
+  minutes and five a day. IPv6 is keyed by /64; a form flooded past 120 submissions a minute asks
+  for Turnstile while the workspace has keys. Board: `PublicConfirmStates.dc.html`.
+- **DP-4, DP-6** Settings › General › Data retention (`update-workspace-retention`) and the hourly
+  `audience.retention` job: event detail cleared in batches (`TestRetentionClearsDetailKeepsReports`
+  compares a campaign report before and after), unconfirmed signups erased through the registry
+  (`TestRetentionErasesUnconfirmedSignups`). Board: `WorkspaceSettings.dc.html`.
+- **DP-5** `AutomationContactPaused` in the email step (`TestEmailStepsSkipPausedContacts`).
+- **DP-7** `metrics.addr` `:9464`, `metrics.token`, `withMigrateLock` around goose and River
+  (`TestConcurrentMigratorsRunEachMigrationOnce`).
+- Migrations 03360–03363.
+
+Found while building M41 (added to the backlog):
+
+| ID | What | Status |
+|---|---|---|
+| DP-8 | An import keeps its uploaded file (`imports.file_data`) and its report and skipped-row CSVs, which hold every address it read, until the import is deleted; erasing a contact doesn't reach them. Strip erased addresses from kept files and reports, or expire them after the import finishes. | ⏳ |
+| DP-9 | Earn › Paid members lists an erased member's ended subscription under the placeholder address; show "Erased contact" instead. | ⏳ |
 
 ## Engines and events, correct (M42) ⏳
 

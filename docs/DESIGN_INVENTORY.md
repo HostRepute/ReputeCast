@@ -159,6 +159,7 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | `FormsStates.dc.html` | Forms · empty / loading / error | — |
 | `PublicArchive.dc.html` | Public · newsletter archive | — |
 | `PublicConfirm.dc.html` | Public · opt-in confirmation | — |
+| `PublicConfirmStates.dc.html` | Public · opt-in confirmation · confirm button, expired link, new link sent (review 2026-11 DP-3) | phone frames |
 | `PublicPreferences.dc.html` | Public · preference center | phone |
 | `PublicSubscribe.dc.html` | Public · subscribe | phone |
 | `PublicUnsubscribe.dc.html` | Public · unsubscribe | — |
@@ -201,7 +202,7 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | Board | Screen / states | Responsive boards |
 |---|---|---|
 | `AuthScreens.dc.html` | Sign in, two-factor, invite, reset | phone |
-| `Dialogs.dc.html` | Confirmation dialogs · destructive, protective, bulk results | — |
+| `Dialogs.dc.html` | Confirmation dialogs · destructive (incl. Erase contacts and its paid-member refusal, review 2026-11 DP-1), protective, bulk results | — |
 | `Feedback.dc.html` | Feedback · toasts, undo, jobs, validation, empty results, shortcuts | — |
 | `SystemStates.dc.html` | System states · 404, 403, 500, session, offline, maintenance, quota, limits | — |
 
@@ -234,7 +235,7 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | `TeamMember.dc.html` | Team · member detail (Daniel Park) | — |
 | `TeamViewer.dc.html` | Team · as a Viewer (read-only) | — |
 | `WorkspaceDialogs.dc.html` | Workspace · transfer ownership, delete | — |
-| `WorkspaceSettings.dc.html` | Workspace settings · general, approvals, danger zone | phone |
+| `WorkspaceSettings.dc.html` | Workspace settings · general, data retention (review 2026-11 DP-4, DP-6), approvals, danger zone | phone |
 
 ### A5.10 Instance admin & SSO
 
@@ -1126,3 +1127,6 @@ When they disagree we follow the design for UI and the spec for behaviour.
 | 562 | Placement in Review & send (review SR-9) | `SendReadiness`: a row per sending provider | SR-9: Inbox, Promotions and Spam per mailbox provider | Resolved in the design: the board counts per mailbox provider, with a "Through SES: …" line when routes are compared. |
 | 563 | Content test click maps (review AN-5) | `ReportStates`: one map per variant | A map of everyone would draw B's links on A's email | No "Everyone" map for a content test; a subject or sender test keeps it. |
 | 564 | An IP the blocklist checks haven't reached (review GS-10, F-3) | No board draws it: the boards' IPs are all checked | A provider can start listing an IP after Deliverability's last daily blocklist run; unknown is not clean | Send Readiness shows an Unknown row, "Postal IP 198.51.100.40 isn't checked on IP blocklists yet", with a link to Deliverability to run the checks. |
+| 565 | Unconfirmed signups' retention (review 2026-11 DP-4) | `WorkspaceSettings`: Data retention, drawn in M41 | The review's row put the setting on the forms' double opt-in settings | On Settings › General › Data retention: a contact can come from several forms, so the setting is the workspace's. |
+| 566 | Opening a confirmation link (review 2026-11 DP-3) | `PublicConfirm` draws only "You're in"; `PublicConfirmStates` (M41) draws the Confirm button first | The spec's double opt-in confirmed on the click | The link asks; only the button confirms, so link scanners can't confirm bot signups. A link with nothing left to confirm shows "You're in" as before. |
+| 567 | The erase dialog (review 2026-11 DP-1) | No board drew it before M41; `Dialogs` now draws it with the Stripe line and the paid-member refusal | — | The Stripe line shows only in workspaces that have connected Stripe. |
