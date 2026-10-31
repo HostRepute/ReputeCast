@@ -195,11 +195,22 @@ type UpdatesConfig struct {
 	Repo  string `koanf:"repo"`
 }
 
-// MetricsConfig configures the Prometheus endpoint.
+// MetricsConfig configures the Prometheus endpoint. By default /metrics is
+// served on its own listener (Addr, ":9464"), which a reverse proxy never
+// exposes. The main listener answers /metrics only to a request carrying
+// Token as a bearer token; without a token it answers 404 there.
 type MetricsConfig struct {
 	Enabled bool   `koanf:"enabled"`
-	Addr    string `koanf:"addr"` // empty serves /metrics on the main listener
+	Addr    string `koanf:"addr"`  // the metrics listener; empty serves none
+	Token   string `koanf:"token"` // lets the main listener serve /metrics; never logged
 }
+
+// MetricsDefaultAddr is where /metrics listens unless configured otherwise
+// (the Prometheus exporter default for applications).
+const MetricsDefaultAddr = ":9464"
+
+// metricsTokenMin is the shortest bearer token the main listener accepts.
+const metricsTokenMin = 16
 
 // ProvidersConfig configures calls to sending-provider APIs.
 type ProvidersConfig struct {
@@ -246,7 +257,7 @@ func Defaults() Config {
 		Auth:    AuthConfig{SessionLifetime: 14 * 24 * time.Hour, SessionIdle: 12 * time.Hour, CookieName: "rc_session", CookieSecure: true, BreachedCheck: false, PasswordMinLength: 12},
 		Worker:  WorkerConfig{Concurrency: 50},
 		Updates: UpdatesConfig{Check: true, Repo: "hostrepute/reputecast"},
-		Metrics: MetricsConfig{Enabled: true},
+		Metrics: MetricsConfig{Enabled: true, Addr: MetricsDefaultAddr},
 		HostRepute: HostReputeConfig{ //nolint:gosec // G101: public endpoint URLs and client ID, not credentials
 			APIURL:    "https://api.hostrepute.com/v1",
 			AuthURL:   "https://app.hostrepute.com/oauth/authorize",
@@ -358,6 +369,9 @@ func (c *Config) Validate() error {
 	}
 	if c.Auth.PasswordMinLength < 8 {
 		errs = append(errs, errors.New("auth.password_min_length must be at least 8"))
+	}
+	if c.Metrics.Token != "" && len(c.Metrics.Token) < metricsTokenMin {
+		errs = append(errs, fmt.Errorf("metrics.token must be at least %d characters", metricsTokenMin))
 	}
 	return errors.Join(errs...)
 }

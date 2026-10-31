@@ -25,7 +25,8 @@ has one name everywhere: `REPUTECAST_PUBLIC_URL`.
 | `REPUTECAST_ROLES` | `web,worker,ingest` | Same as `--role`. |
 | `REPUTECAST_WORKER__CONCURRENCY` | `50` | Concurrent jobs per worker process. |
 | `REPUTECAST_LOG__LEVEL` / `__FORMAT` | `info` / `text` | `debug…error`; `json` for log shippers. |
-| `REPUTECAST_METRICS__ENABLED` / `__ADDR` | `true` / main listener | Prometheus metrics at `/metrics`; set an address to serve them on a separate port. |
+| `REPUTECAST_METRICS__ENABLED` / `__ADDR` | `true` / `:9464` | Prometheus metrics at `/metrics` on their own listener. Keep that port off the internet (the Docker image doesn't publish it). Empty `__ADDR` serves no separate listener. |
+| `REPUTECAST_METRICS__TOKEN` | — | At least 16 characters. Also serves `/metrics` on the main listener, to a request with `Authorization: Bearer <token>`; without it the main listener answers `/metrics` with 404. |
 | `REPUTECAST_UPDATES__CHECK` | `true` | Daily check of GitHub releases (only the version number is fetched). Can also be turned off in Instance admin. ReputeCast never sends usage data anywhere. |
 | `REPUTECAST_AUTH__COOKIE_SECURE` | `true` | Secure session cookie (always on when the public URL is https). |
 | `REPUTECAST_PROVIDERS__ALLOW_PRIVATE_NETWORKS` | `false` | Let provider URLs entered in a workspace (a Postal server, a generic HTTP adapter) and community adapters' addresses (a sidecar; plain `http://` only there) resolve to loopback or private addresses, for providers on your own network. Cloud metadata and link-local addresses are always refused. |
