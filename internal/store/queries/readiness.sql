@@ -28,7 +28,11 @@ SELECT c.id, c.email, c.mailbox_provider, c.tier, c.role_address, c.language,
              THEN coalesce((SELECT array_agg(m.list_id) FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'), '{}')
              ELSE '{}' END)::uuid[] AS list_ids,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email) AS suppressed,
-       EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = c.id AND e.type IN ('soft_bounce', 'hard_bounce') AND e.occurred_at > @bounced_since::timestamptz) AS bounced
+       EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = c.id AND e.type IN ('soft_bounce', 'hard_bounce') AND e.occurred_at > @bounced_since::timestamptz) AS bounced,
+       -- Over the workspace's marketing cap (review 2026-11 AT-9).
+       (@cap_count::int > 0 AND (SELECT count(*) FROM messages mm
+           WHERE mm.contact_id = c.id AND mm.stream IN ('broadcast', 'automation') AND mm.queued_at > @cap_since::timestamptz
+             AND mm.status NOT IN ('failed', 'cancelled', 'rejected') AND (sqlc.narg(campaign_id)::uuid IS NULL OR mm.campaign_id IS DISTINCT FROM sqlc.narg(campaign_id)::uuid)) >= @cap_count::int)::boolean AS over_cap
 FROM contacts c
 WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS NULL
   AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY(@lists::uuid[]) AND ll.deleted_at IS NULL)))
@@ -266,3 +270,7 @@ UPDATE readiness_fix_batches SET undone_at = NULL, undone_by = NULL WHERE id = @
 SELECT route_override, audience, content_settings FROM campaigns
 WHERE workspace_id = @workspace_id AND id = @id AND deleted_at IS NULL
 FOR UPDATE;
+
+-- name: SetWorkspaceMarketingCap :exec
+-- The workspace's marketing cap (review 2026-11 AT-9).
+UPDATE workspaces SET marketing_cap_count = @count, marketing_cap_days = @days WHERE id = @id;

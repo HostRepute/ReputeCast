@@ -1535,7 +1535,7 @@ func (q *Queries) ListGrowthSince(ctx context.Context, arg ListGrowthSinceParams
 const listImpactAutomations = `-- name: ListImpactAutomations :many
 SELECT id, name FROM automations
 WHERE workspace_id = $1 AND deleted_at IS NULL AND status = 'live'
-  AND trigger ->> 'kind' = 'joined_list' AND trigger ->> 'listId' = $2::text
+  AND triggers @> jsonb_build_array(jsonb_build_object('kind', 'joined_list', 'listId', $2::text))
 ORDER BY name, id
 `
 

@@ -307,6 +307,22 @@ func (q *Queries) AutomationContactInWorkspace(ctx context.Context, arg Automati
 	return i, err
 }
 
+const automationContactOnList = `-- name: AutomationContactOnList :one
+SELECT EXISTS (SELECT 1 FROM list_memberships WHERE list_id = $1 AND contact_id = $2 AND status IN ('pending', 'subscribed'))
+`
+
+type AutomationContactOnListParams struct {
+	ListID    uuid.UUID `json:"listId"`
+	ContactID uuid.UUID `json:"contactId"`
+}
+
+func (q *Queries) AutomationContactOnList(ctx context.Context, arg AutomationContactOnListParams) (bool, error) {
+	row := q.db.QueryRow(ctx, automationContactOnList, arg.ListID, arg.ContactID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const automationContactPaused = `-- name: AutomationContactPaused :one
 SELECT EXISTS (SELECT 1 FROM contact_preferences WHERE contact_id = $1 AND paused_until > $2::timestamptz)
 `
@@ -366,6 +382,32 @@ func (q *Queries) AutomationContactSuppressed(ctx context.Context, arg Automatio
 	return exists, err
 }
 
+const automationContactZones = `-- name: AutomationContactZones :many
+SELECT DISTINCT coalesce(timezone, '')::text AS zone FROM contacts
+WHERE workspace_id = $1 AND status = 'active' AND erased_at IS NULL
+`
+
+// The time zones a workspace's contacts have (” for none).
+func (q *Queries) AutomationContactZones(ctx context.Context, workspaceID uuid.UUID) ([]string, error) {
+	rows, err := q.db.Query(ctx, automationContactZones, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var zone string
+		if err := rows.Scan(&zone); err != nil {
+			return nil, err
+		}
+		items = append(items, zone)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const automationDateFieldMatches = `-- name: AutomationDateFieldMatches :many
 SELECT c.id FROM contacts c
 WHERE c.workspace_id = $1 AND c.status = 'active' AND c.erased_at IS NULL
@@ -382,6 +424,9 @@ WHERE c.workspace_id = $1 AND c.status = 'active' AND c.erased_at IS NULL
   AND NOT EXISTS (SELECT 1 FROM automation_events e
                   WHERE e.workspace_id = c.workspace_id AND e.contact_id = c.id AND e.kind = 'date_field'
                     AND e.ref = $2::text AND (e.occurred_at AT TIME ZONE $3::text)::date >= $6::date)
+  -- At each contact's own time (review 2026-11 AT-7): only the contacts
+  -- whose time zone is one of these.
+  AND (NOT $7::boolean OR coalesce(c.timezone, '') = ANY($8::text[]))
 LIMIT 5000
 `
 
@@ -392,6 +437,8 @@ type AutomationDateFieldMatchesParams struct {
 	Yearly      bool      `json:"yearly"`
 	OffsetDays  int32     `json:"offsetDays"`
 	Today       time.Time `json:"today"`
+	ByZone      bool      `json:"byZone"`
+	Zones       []string  `json:"zones"`
 }
 
 // Contacts whose date field (plus the offset) is today in the workspace's
@@ -404,6 +451,8 @@ func (q *Queries) AutomationDateFieldMatches(ctx context.Context, arg Automation
 		arg.Yearly,
 		arg.OffsetDays,
 		arg.Today,
+		arg.ByZone,
+		arg.Zones,
 	)
 	if err != nil {
 		return nil, err
@@ -759,6 +808,54 @@ func (q *Queries) AutomationGoalRunsTagged(ctx context.Context, arg AutomationGo
 	return items, nil
 }
 
+const automationLinkCampaigns = `-- name: AutomationLinkCampaigns :many
+SELECT id, name FROM campaigns
+WHERE workspace_id = $1 AND deleted_at IS NULL AND status IN ('scheduled', 'sending', 'paused', 'sent', 'approved')
+ORDER BY coalesce(started_at, scheduled_at, created_at) DESC, id
+LIMIT 100
+`
+
+type AutomationLinkCampaignsRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+// Campaigns a "Clicked a link" trigger can listen to: the sent ones, the
+// latest first, and those still to go out (AT-10).
+func (q *Queries) AutomationLinkCampaigns(ctx context.Context, workspaceID uuid.UUID) ([]AutomationLinkCampaignsRow, error) {
+	rows, err := q.db.Query(ctx, automationLinkCampaigns, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationLinkCampaignsRow{}
+	for rows.Next() {
+		var i AutomationLinkCampaignsRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationLinkClickListened = `-- name: AutomationLinkClickListened :one
+SELECT EXISTS (SELECT 1 FROM automations a
+               WHERE a.workspace_id = $1 AND a.status = 'live' AND a.deleted_at IS NULL
+                 AND a.triggers @> '[{"kind": "link_clicked"}]'::jsonb)
+`
+
+// Whether a live flow starts on a link click in this workspace (AT-10).
+func (q *Queries) AutomationLinkClickListened(ctx context.Context, workspaceID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, automationLinkClickListened, workspaceID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const automationLists = `-- name: AutomationLists :many
 SELECT id, name FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
 `
@@ -825,6 +922,30 @@ func (q *Queries) AutomationLostWebhookRuns(ctx context.Context, before time.Tim
 		return nil, err
 	}
 	return items, nil
+}
+
+const automationMarketingSent = `-- name: AutomationMarketingSent :one
+SELECT count(*)::bigint AS n, coalesce(min(queued_at), $1::timestamptz)::timestamptz AS oldest FROM messages
+WHERE contact_id = $2 AND stream IN ('broadcast', 'automation') AND queued_at > $1::timestamptz AND status NOT IN ('failed', 'cancelled', 'rejected')
+`
+
+type AutomationMarketingSentParams struct {
+	Since     time.Time  `json:"since"`
+	ContactID *uuid.UUID `json:"contactId"`
+}
+
+type AutomationMarketingSentRow struct {
+	N      int64     `json:"n"`
+	Oldest time.Time `json:"oldest"`
+}
+
+// Campaign and automation emails a contact got since a time, and the
+// oldest of them (AT-9).
+func (q *Queries) AutomationMarketingSent(ctx context.Context, arg AutomationMarketingSentParams) (AutomationMarketingSentRow, error) {
+	row := q.db.QueryRow(ctx, automationMarketingSent, arg.Since, arg.ContactID)
+	var i AutomationMarketingSentRow
+	err := row.Scan(&i.N, &i.Oldest)
+	return i, err
 }
 
 const automationMessageEngaged = `-- name: AutomationMessageEngaged :one
@@ -898,6 +1019,56 @@ func (q *Queries) AutomationMessageSentAt(ctx context.Context, id uuid.UUID) (Au
 	var i AutomationMessageSentAtRow
 	err := row.Scan(&i.Status, &i.SentAt)
 	return i, err
+}
+
+const automationOverdueRunIDs = `-- name: AutomationOverdueRunIDs :many
+SELECT id FROM automation_runs
+WHERE automation_id = $1 AND status IN ('active', 'waiting') AND next_at <= $2
+ORDER BY next_at, id
+`
+
+type AutomationOverdueRunIDsParams struct {
+	AutomationID uuid.UUID  `json:"automationId"`
+	Now          *time.Time `json:"now"`
+}
+
+// The overdue runs, the longest waiting first (resume, "spread over N hours").
+func (q *Queries) AutomationOverdueRunIDs(ctx context.Context, arg AutomationOverdueRunIDsParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, automationOverdueRunIDs, arg.AutomationID, arg.Now)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationOverdueRuns = `-- name: AutomationOverdueRuns :one
+SELECT count(*)::bigint FROM automation_runs
+WHERE automation_id = $1 AND status IN ('active', 'waiting') AND next_at <= $2
+`
+
+type AutomationOverdueRunsParams struct {
+	AutomationID uuid.UUID  `json:"automationId"`
+	Now          *time.Time `json:"now"`
+}
+
+// Runs whose wait ended while the flow was paused (AT-4).
+func (q *Queries) AutomationOverdueRuns(ctx context.Context, arg AutomationOverdueRunsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, automationOverdueRuns, arg.AutomationID, arg.Now)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const automationProviderSendsSince = `-- name: AutomationProviderSendsSince :many
@@ -1069,6 +1240,45 @@ func (q *Queries) AutomationRunExists(ctx context.Context, arg AutomationRunExis
 	return exists, err
 }
 
+const automationRunGroups = `-- name: AutomationRunGroups :many
+SELECT version, node_id, count(*)::bigint AS n
+FROM automation_runs
+WHERE automation_id = $1 AND status IN ('active', 'waiting') AND version <> $2
+GROUP BY version, node_id
+`
+
+type AutomationRunGroupsParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	Version      int32     `json:"version"`
+}
+
+type AutomationRunGroupsRow struct {
+	Version int32  `json:"version"`
+	NodeID  string `json:"nodeId"`
+	N       int64  `json:"n"`
+}
+
+// Where the contacts on older versions are, for moving them to a new one.
+func (q *Queries) AutomationRunGroups(ctx context.Context, arg AutomationRunGroupsParams) ([]AutomationRunGroupsRow, error) {
+	rows, err := q.db.Query(ctx, automationRunGroups, arg.AutomationID, arg.Version)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationRunGroupsRow{}
+	for rows.Next() {
+		var i AutomationRunGroupsRow
+		if err := rows.Scan(&i.Version, &i.NodeID, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const automationRunMessage = `-- name: AutomationRunMessage :one
 SELECT id, queued_at, status FROM messages
 WHERE automation_id = $1 AND automation_node = $2 AND contact_id = $3
@@ -1093,6 +1303,130 @@ func (q *Queries) AutomationRunMessage(ctx context.Context, arg AutomationRunMes
 	var i AutomationRunMessageRow
 	err := row.Scan(&i.ID, &i.QueuedAt, &i.Status)
 	return i, err
+}
+
+const automationRunsAtNode = `-- name: AutomationRunsAtNode :many
+SELECT r.id, r.contact_id, r.status, r.node_entered_at, r.entered_at, r.next_at,
+       coalesce(r.state ->> 'wait', '')::text AS wait,
+       c.email, c.first_name, c.last_name
+FROM automation_runs r
+JOIN contacts c ON c.id = r.contact_id
+WHERE r.automation_id = $1 AND r.node_id = $2 AND r.status IN ('active', 'waiting')
+  AND (NOT $3::boolean OR (r.node_entered_at, r.id) < ($4::timestamptz, $5::uuid))
+ORDER BY r.node_entered_at DESC, r.id DESC
+LIMIT $6
+`
+
+type AutomationRunsAtNodeParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	NodeID       string    `json:"nodeId"`
+	After        bool      `json:"after"`
+	AfterAt      time.Time `json:"afterAt"`
+	AfterID      uuid.UUID `json:"afterId"`
+	Lim          int32     `json:"lim"`
+}
+
+type AutomationRunsAtNodeRow struct {
+	ID            uuid.UUID  `json:"id"`
+	ContactID     uuid.UUID  `json:"contactId"`
+	Status        string     `json:"status"`
+	NodeEnteredAt time.Time  `json:"nodeEnteredAt"`
+	EnteredAt     time.Time  `json:"enteredAt"`
+	NextAt        *time.Time `json:"nextAt"`
+	Wait          string     `json:"wait"`
+	Email         string     `json:"email"`
+	FirstName     string     `json:"firstName"`
+	LastName      string     `json:"lastName"`
+}
+
+// The contacts at a step, the latest to arrive first, after a cursor
+// (review 2026-11 AT-2).
+func (q *Queries) AutomationRunsAtNode(ctx context.Context, arg AutomationRunsAtNodeParams) ([]AutomationRunsAtNodeRow, error) {
+	rows, err := q.db.Query(ctx, automationRunsAtNode,
+		arg.AutomationID,
+		arg.NodeID,
+		arg.After,
+		arg.AfterAt,
+		arg.AfterID,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationRunsAtNodeRow{}
+	for rows.Next() {
+		var i AutomationRunsAtNodeRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ContactID,
+			&i.Status,
+			&i.NodeEnteredAt,
+			&i.EnteredAt,
+			&i.NextAt,
+			&i.Wait,
+			&i.Email,
+			&i.FirstName,
+			&i.LastName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationSegments = `-- name: AutomationSegments :many
+SELECT id, name FROM segments WHERE workspace_id = $1 ORDER BY name, id
+`
+
+type AutomationSegmentsRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+// Segments a "Enters a segment" trigger can start on (AT-10).
+func (q *Queries) AutomationSegments(ctx context.Context, workspaceID uuid.UUID) ([]AutomationSegmentsRow, error) {
+	rows, err := q.db.Query(ctx, automationSegments, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationSegmentsRow{}
+	for rows.Next() {
+		var i AutomationSegmentsRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationSkipOverdue = `-- name: AutomationSkipOverdue :execrows
+UPDATE automation_runs SET state = state || '{"skipEmail": true}'::jsonb
+WHERE automation_id = $1 AND status IN ('active', 'waiting') AND next_at <= $2
+`
+
+type AutomationSkipOverdueParams struct {
+	AutomationID uuid.UUID  `json:"automationId"`
+	Now          *time.Time `json:"now"`
+}
+
+// Resume, "skip overdue emails": the overdue runs skip the next email they
+// reach.
+func (q *Queries) AutomationSkipOverdue(ctx context.Context, arg AutomationSkipOverdueParams) (int64, error) {
+	result, err := q.db.Exec(ctx, automationSkipOverdue, arg.AutomationID, arg.Now)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const automationStepFailures = `-- name: AutomationStepFailures :many
@@ -1381,6 +1715,42 @@ func (q *Queries) AutomationUnsubscribeAll(ctx context.Context, contactID uuid.U
 	return err
 }
 
+const automationWatchedSegments = `-- name: AutomationWatchedSegments :many
+SELECT DISTINCT s.id, s.workspace_id, s.watched_at
+FROM automations a
+CROSS JOIN LATERAL jsonb_array_elements(a.triggers) t
+JOIN segments s ON s.id::text = t.value ->> 'segmentId' AND s.workspace_id = a.workspace_id
+WHERE a.status = 'live' AND a.deleted_at IS NULL AND t.value ->> 'kind' IN ('segment_entered', 'segment_left')
+  AND s.refresh <> 'static'
+`
+
+type AutomationWatchedSegmentsRow struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	WatchedAt   *time.Time `json:"watchedAt"`
+}
+
+// Dynamic segments a live flow starts on entering or leaving (AT-10).
+func (q *Queries) AutomationWatchedSegments(ctx context.Context) ([]AutomationWatchedSegmentsRow, error) {
+	rows, err := q.db.Query(ctx, automationWatchedSegments)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationWatchedSegmentsRow{}
+	for rows.Next() {
+		var i AutomationWatchedSegmentsRow
+		if err := rows.Scan(&i.ID, &i.WorkspaceID, &i.WatchedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const automationWorkspaceStatsSince = `-- name: AutomationWorkspaceStatsSince :many
 SELECT s.automation_id,
        sum(s.sent)::bigint AS sent, sum(s.delivered)::bigint AS delivered,
@@ -1650,6 +2020,87 @@ func (q *Queries) ClaimDueAutomationRuns(ctx context.Context, arg ClaimDueAutoma
 	return items, nil
 }
 
+const clearFinishedRunState = `-- name: ClearFinishedRunState :execrows
+UPDATE automation_runs r SET state = '{}'::jsonb
+WHERE r.id IN (SELECT x.id FROM automation_runs x WHERE x.finished_at IS NOT NULL AND x.finished_at < $1 AND x.state <> '{}'::jsonb LIMIT 5000)
+`
+
+// A finished run's trigger data (an order's details…) goes after 90 days (AT-8).
+func (q *Queries) ClearFinishedRunState(ctx context.Context, before *time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, clearFinishedRunState, before)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const contactAutomationRuns = `-- name: ContactAutomationRuns :many
+SELECT x.id, x.automation_id, x.name, x.version, x.node_id, x.status, x.exit_reason, x.entered_at, x.node_entered_at, x.finished_at, x.graph FROM (
+    SELECT DISTINCT ON (r.automation_id) r.id, r.automation_id, a.name, r.version, r.node_id, r.status, r.exit_reason,
+           r.entered_at, r.node_entered_at, r.finished_at, v.graph
+    FROM automation_runs r
+    JOIN automations a ON a.id = r.automation_id AND a.deleted_at IS NULL
+    JOIN automation_versions v ON v.automation_id = r.automation_id AND v.version = r.version
+    WHERE r.contact_id = $1 AND a.workspace_id = $2
+    ORDER BY r.automation_id, r.entered_at DESC
+) x
+ORDER BY (x.status IN ('active', 'waiting')) DESC, x.entered_at DESC
+LIMIT 50
+`
+
+type ContactAutomationRunsParams struct {
+	ContactID   uuid.UUID `json:"contactId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+type ContactAutomationRunsRow struct {
+	ID            uuid.UUID       `json:"id"`
+	AutomationID  uuid.UUID       `json:"automationId"`
+	Name          string          `json:"name"`
+	Version       int32           `json:"version"`
+	NodeID        string          `json:"nodeId"`
+	Status        string          `json:"status"`
+	ExitReason    string          `json:"exitReason"`
+	EnteredAt     time.Time       `json:"enteredAt"`
+	NodeEnteredAt time.Time       `json:"nodeEnteredAt"`
+	FinishedAt    *time.Time      `json:"finishedAt"`
+	Graph         json.RawMessage `json:"graph"`
+}
+
+// The flows a contact is in or went through, the latest run of each, the
+// ones in progress first (AT-2).
+func (q *Queries) ContactAutomationRuns(ctx context.Context, arg ContactAutomationRunsParams) ([]ContactAutomationRunsRow, error) {
+	rows, err := q.db.Query(ctx, contactAutomationRuns, arg.ContactID, arg.WorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ContactAutomationRunsRow{}
+	for rows.Next() {
+		var i ContactAutomationRunsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.AutomationID,
+			&i.Name,
+			&i.Version,
+			&i.NodeID,
+			&i.Status,
+			&i.ExitReason,
+			&i.EnteredAt,
+			&i.NodeEnteredAt,
+			&i.FinishedAt,
+			&i.Graph,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const countAutomationHeldMessages = `-- name: CountAutomationHeldMessages :one
 SELECT count(*)::bigint FROM messages WHERE automation_id = $1 AND status = 'held'
 `
@@ -1726,6 +2177,23 @@ func (q *Queries) CountAutomationInFlowByNode(ctx context.Context, automationID 
 	return items, nil
 }
 
+const countAutomationRunsAtNode = `-- name: CountAutomationRunsAtNode :one
+SELECT count(*)::bigint FROM automation_runs
+WHERE automation_id = $1 AND node_id = $2 AND status IN ('active', 'waiting')
+`
+
+type CountAutomationRunsAtNodeParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	NodeID       string    `json:"nodeId"`
+}
+
+func (q *Queries) CountAutomationRunsAtNode(ctx context.Context, arg CountAutomationRunsAtNodeParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countAutomationRunsAtNode, arg.AutomationID, arg.NodeID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const countAutomationsByStatus = `-- name: CountAutomationsByStatus :many
 SELECT status, count(*)::bigint AS n FROM automations
 WHERE workspace_id = $1 AND deleted_at IS NULL
@@ -1760,7 +2228,7 @@ func (q *Queries) CountAutomationsByStatus(ctx context.Context, workspaceID uuid
 const createAutomation = `-- name: CreateAutomation :one
 INSERT INTO automations (id, workspace_id, name, description, status, template_key, draft_version, trigger, created_by, updated_by)
 VALUES ($1, $2, $3, $4, 'draft', $5, 1, $6, $7, $7)
-RETURNING id, workspace_id, name, description, status, template_key, live_version, draft_version, trigger, created_by, created_at, updated_at, deleted_at, paused_at, paused_by, pause_reason, draft_revision, updated_by
+RETURNING id, workspace_id, name, description, status, template_key, live_version, draft_version, trigger, created_by, created_at, updated_at, deleted_at, paused_at, paused_by, pause_reason, draft_revision, updated_by, triggers
 `
 
 type CreateAutomationParams struct {
@@ -1803,6 +2271,7 @@ func (q *Queries) CreateAutomation(ctx context.Context, arg CreateAutomationPara
 		&i.PauseReason,
 		&i.DraftRevision,
 		&i.UpdatedBy,
+		&i.Triggers,
 	)
 	return i, err
 }
@@ -1920,7 +2389,7 @@ func (q *Queries) FailAutomationRun(ctx context.Context, arg FailAutomationRunPa
 }
 
 const getAutomation = `-- name: GetAutomation :one
-SELECT a.id, a.workspace_id, a.name, a.description, a.status, a.template_key, a.live_version, a.draft_version, a.trigger, a.created_by, a.created_at, a.updated_at, a.deleted_at, a.paused_at, a.paused_by, a.pause_reason, a.draft_revision, a.updated_by, coalesce(pu.name, '')::text AS paused_by_name
+SELECT a.id, a.workspace_id, a.name, a.description, a.status, a.template_key, a.live_version, a.draft_version, a.trigger, a.created_by, a.created_at, a.updated_at, a.deleted_at, a.paused_at, a.paused_by, a.pause_reason, a.draft_revision, a.updated_by, a.triggers, coalesce(pu.name, '')::text AS paused_by_name
 FROM automations a
 LEFT JOIN users pu ON pu.id = a.paused_by
 WHERE a.workspace_id = $1 AND a.id = $2 AND a.deleted_at IS NULL
@@ -1950,6 +2419,7 @@ type GetAutomationRow struct {
 	PauseReason   string          `json:"pauseReason"`
 	DraftRevision int64           `json:"draftRevision"`
 	UpdatedBy     *uuid.UUID      `json:"updatedBy"`
+	Triggers      json.RawMessage `json:"triggers"`
 	PausedByName  string          `json:"pausedByName"`
 }
 
@@ -1975,6 +2445,7 @@ func (q *Queries) GetAutomation(ctx context.Context, arg GetAutomationParams) (G
 		&i.PauseReason,
 		&i.DraftRevision,
 		&i.UpdatedBy,
+		&i.Triggers,
 		&i.PausedByName,
 	)
 	return i, err
@@ -2762,7 +3233,7 @@ SELECT a.id, a.workspace_id, a.live_version, a.trigger, v.graph
 FROM automations a
 JOIN automation_versions v ON v.automation_id = a.id AND v.version = a.live_version
 WHERE a.workspace_id = $1 AND a.status = 'live' AND a.deleted_at IS NULL
-  AND a.trigger ->> 'kind' = $2::text
+  AND a.triggers @> jsonb_build_array(jsonb_build_object('kind', $2::text))
 `
 
 type LiveAutomationsForTriggerParams struct {
@@ -2806,7 +3277,7 @@ func (q *Queries) LiveAutomationsForTrigger(ctx context.Context, arg LiveAutomat
 }
 
 const lockAutomation = `-- name: LockAutomation :one
-SELECT id, workspace_id, name, description, status, template_key, live_version, draft_version, trigger, created_by, created_at, updated_at, deleted_at, paused_at, paused_by, pause_reason, draft_revision, updated_by FROM automations WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR UPDATE
+SELECT id, workspace_id, name, description, status, template_key, live_version, draft_version, trigger, created_by, created_at, updated_at, deleted_at, paused_at, paused_by, pause_reason, draft_revision, updated_by, triggers FROM automations WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR UPDATE
 `
 
 type LockAutomationParams struct {
@@ -2836,6 +3307,55 @@ func (q *Queries) LockAutomation(ctx context.Context, arg LockAutomationParams) 
 		&i.PauseReason,
 		&i.DraftRevision,
 		&i.UpdatedBy,
+		&i.Triggers,
+	)
+	return i, err
+}
+
+const lockAutomationRun = `-- name: LockAutomationRun :one
+SELECT r.id, r.automation_id, r.version, r.node_id, r.status, r.contact_id, a.name, a.workspace_id,
+       c.email, c.first_name, c.last_name
+FROM automation_runs r
+JOIN automations a ON a.id = r.automation_id AND a.deleted_at IS NULL
+JOIN contacts c ON c.id = r.contact_id
+WHERE r.id = $1 AND a.workspace_id = $2
+FOR UPDATE OF r
+`
+
+type LockAutomationRunParams struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+type LockAutomationRunRow struct {
+	ID           uuid.UUID `json:"id"`
+	AutomationID uuid.UUID `json:"automationId"`
+	Version      int32     `json:"version"`
+	NodeID       string    `json:"nodeId"`
+	Status       string    `json:"status"`
+	ContactID    uuid.UUID `json:"contactId"`
+	Name         string    `json:"name"`
+	WorkspaceID  uuid.UUID `json:"workspaceId"`
+	Email        string    `json:"email"`
+	FirstName    string    `json:"firstName"`
+	LastName     string    `json:"lastName"`
+}
+
+func (q *Queries) LockAutomationRun(ctx context.Context, arg LockAutomationRunParams) (LockAutomationRunRow, error) {
+	row := q.db.QueryRow(ctx, lockAutomationRun, arg.ID, arg.WorkspaceID)
+	var i LockAutomationRunRow
+	err := row.Scan(
+		&i.ID,
+		&i.AutomationID,
+		&i.Version,
+		&i.NodeID,
+		&i.Status,
+		&i.ContactID,
+		&i.Name,
+		&i.WorkspaceID,
+		&i.Email,
+		&i.FirstName,
+		&i.LastName,
 	)
 	return i, err
 }
@@ -2852,6 +3372,140 @@ type MarkAutomationEventProcessedParams struct {
 func (q *Queries) MarkAutomationEventProcessed(ctx context.Context, arg MarkAutomationEventProcessedParams) error {
 	_, err := q.db.Exec(ctx, markAutomationEventProcessed, arg.Enrolled, arg.ID)
 	return err
+}
+
+const markSegmentWatched = `-- name: MarkSegmentWatched :exec
+UPDATE segments SET watched_at = $1 WHERE id = $2
+`
+
+type MarkSegmentWatchedParams struct {
+	At *time.Time `json:"at"`
+	ID uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) MarkSegmentWatched(ctx context.Context, arg MarkSegmentWatchedParams) error {
+	_, err := q.db.Exec(ctx, markSegmentWatched, arg.At, arg.ID)
+	return err
+}
+
+const migrateRunsEnd = `-- name: MigrateRunsEnd :execrows
+UPDATE automation_runs
+SET version = $1, status = 'completed', finished_at = $2, next_at = NULL, exit_reason = 'migrated'
+WHERE automation_id = $3 AND status IN ('active', 'waiting') AND version = $4 AND node_id = $5
+`
+
+type MigrateRunsEndParams struct {
+	Version      int32      `json:"version"`
+	Now          *time.Time `json:"now"`
+	AutomationID uuid.UUID  `json:"automationId"`
+	FromVersion  int32      `json:"fromVersion"`
+	NodeID       string     `json:"nodeId"`
+}
+
+// Publish, "move": runs at a dropped step with nothing after it finish.
+func (q *Queries) MigrateRunsEnd(ctx context.Context, arg MigrateRunsEndParams) (int64, error) {
+	result, err := q.db.Exec(ctx, migrateRunsEnd,
+		arg.Version,
+		arg.Now,
+		arg.AutomationID,
+		arg.FromVersion,
+		arg.NodeID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const migrateRunsForward = `-- name: MigrateRunsForward :execrows
+UPDATE automation_runs
+SET version = $1, node_id = $2, state = '{}'::jsonb, node_entered_at = $3, status = 'active', next_at = $3
+WHERE automation_id = $4 AND status IN ('active', 'waiting') AND version = $5 AND node_id = $6
+`
+
+type MigrateRunsForwardParams struct {
+	Version      int32     `json:"version"`
+	ToNode       string    `json:"toNode"`
+	Now          time.Time `json:"now"`
+	AutomationID uuid.UUID `json:"automationId"`
+	FromVersion  int32     `json:"fromVersion"`
+	NodeID       string    `json:"nodeId"`
+}
+
+// Publish, "move": runs at a step the new version dropped go on at the next
+// step it still has.
+func (q *Queries) MigrateRunsForward(ctx context.Context, arg MigrateRunsForwardParams) (int64, error) {
+	result, err := q.db.Exec(ctx, migrateRunsForward,
+		arg.Version,
+		arg.ToNode,
+		arg.Now,
+		arg.AutomationID,
+		arg.FromVersion,
+		arg.NodeID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const migrateRunsKeep = `-- name: MigrateRunsKeep :execrows
+UPDATE automation_runs SET version = $1
+WHERE automation_id = $2 AND status IN ('active', 'waiting') AND version = $3 AND node_id = $4
+`
+
+type MigrateRunsKeepParams struct {
+	Version      int32     `json:"version"`
+	AutomationID uuid.UUID `json:"automationId"`
+	FromVersion  int32     `json:"fromVersion"`
+	NodeID       string    `json:"nodeId"`
+}
+
+// Publish, "move": runs at a step the new version still has move as they are.
+func (q *Queries) MigrateRunsKeep(ctx context.Context, arg MigrateRunsKeepParams) (int64, error) {
+	result, err := q.db.Exec(ctx, migrateRunsKeep,
+		arg.Version,
+		arg.AutomationID,
+		arg.FromVersion,
+		arg.NodeID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const migrateRunsRetimeDelay = `-- name: MigrateRunsRetimeDelay :execrows
+UPDATE automation_runs
+SET version = $1,
+    next_at = node_entered_at + make_interval(0, 0, 0, 0, 0, 0, $2::float8),
+    state = jsonb_build_object('wait', 'delay', 'until', node_entered_at + make_interval(0, 0, 0, 0, 0, 0, $2::float8))
+          || (CASE WHEN jsonb_exists(state, 'skipEmail') THEN jsonb_build_object('skipEmail', state -> 'skipEmail') ELSE '{}'::jsonb END)
+WHERE automation_id = $3 AND status = 'waiting' AND version = $4 AND node_id = $5
+`
+
+type MigrateRunsRetimeDelayParams struct {
+	Version      int32     `json:"version"`
+	DelaySeconds float64   `json:"delaySeconds"`
+	AutomationID uuid.UUID `json:"automationId"`
+	FromVersion  int32     `json:"fromVersion"`
+	NodeID       string    `json:"nodeId"`
+}
+
+// Publish, "move": runs waiting at a delay that changed wait from when they
+// reached it, by the new delay.
+func (q *Queries) MigrateRunsRetimeDelay(ctx context.Context, arg MigrateRunsRetimeDelayParams) (int64, error) {
+	result, err := q.db.Exec(ctx, migrateRunsRetimeDelay,
+		arg.Version,
+		arg.DelaySeconds,
+		arg.AutomationID,
+		arg.FromVersion,
+		arg.NodeID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const openAutomationAlert = `-- name: OpenAutomationAlert :exec
@@ -3019,6 +3673,24 @@ func (q *Queries) RetireAutomationVersion(ctx context.Context, arg RetireAutomat
 	return err
 }
 
+const seedSegmentMembers = `-- name: SeedSegmentMembers :exec
+INSERT INTO segment_members (segment_id, contact_id, entered_at)
+SELECT $1, unnest($2::uuid[]), $3::timestamptz
+ON CONFLICT DO NOTHING
+`
+
+type SeedSegmentMembersParams struct {
+	SegmentID  uuid.UUID   `json:"segmentId"`
+	ContactIds []uuid.UUID `json:"contactIds"`
+	At         time.Time   `json:"at"`
+}
+
+// A watched segment's first evaluation: its members, no events.
+func (q *Queries) SeedSegmentMembers(ctx context.Context, arg SeedSegmentMembersParams) error {
+	_, err := q.db.Exec(ctx, seedSegmentMembers, arg.SegmentID, arg.ContactIds, arg.At)
+	return err
+}
+
 const setAutomationDraft = `-- name: SetAutomationDraft :exec
 UPDATE automations
 SET draft_version = $1, draft_revision = draft_revision + 1, updated_by = $2, updated_at = now(),
@@ -3067,6 +3739,23 @@ func (q *Queries) SetAutomationLive(ctx context.Context, arg SetAutomationLivePa
 		arg.UpdatedBy,
 		arg.ID,
 	)
+	return err
+}
+
+const setAutomationRunsNextAt = `-- name: SetAutomationRunsNextAt :exec
+UPDATE automation_runs SET next_at = d.due
+FROM (SELECT unnest($1::uuid[]) AS run_id, unnest($2::timestamptz[]) AS due) d
+WHERE automation_runs.id = d.run_id
+`
+
+type SetAutomationRunsNextAtParams struct {
+	Ids  []uuid.UUID `json:"ids"`
+	Dues []time.Time `json:"dues"`
+}
+
+// Sets each run's next time (resume, "spread over N hours").
+func (q *Queries) SetAutomationRunsNextAt(ctx context.Context, arg SetAutomationRunsNextAtParams) error {
+	_, err := q.db.Exec(ctx, setAutomationRunsNextAt, arg.Ids, arg.Dues)
 	return err
 }
 
@@ -3121,7 +3810,7 @@ func (q *Queries) UpdateAutomationDraftGraph(ctx context.Context, arg UpdateAuto
 const updateAutomationMeta = `-- name: UpdateAutomationMeta :one
 UPDATE automations SET name = $1, description = $2, updated_by = $3, updated_at = now()
 WHERE id = $4
-RETURNING id, workspace_id, name, description, status, template_key, live_version, draft_version, trigger, created_by, created_at, updated_at, deleted_at, paused_at, paused_by, pause_reason, draft_revision, updated_by
+RETURNING id, workspace_id, name, description, status, template_key, live_version, draft_version, trigger, created_by, created_at, updated_at, deleted_at, paused_at, paused_by, pause_reason, draft_revision, updated_by, triggers
 `
 
 type UpdateAutomationMetaParams struct {
@@ -3158,6 +3847,7 @@ func (q *Queries) UpdateAutomationMeta(ctx context.Context, arg UpdateAutomation
 		&i.PauseReason,
 		&i.DraftRevision,
 		&i.UpdatedBy,
+		&i.Triggers,
 	)
 	return i, err
 }
@@ -3240,4 +3930,20 @@ func (q *Queries) WakeAutomationBranchRuns(ctx context.Context, now *time.Time) 
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const workspaceMarketingCap = `-- name: WorkspaceMarketingCap :one
+SELECT marketing_cap_count, marketing_cap_days FROM workspaces WHERE id = $1
+`
+
+type WorkspaceMarketingCapRow struct {
+	MarketingCapCount int32 `json:"marketingCapCount"`
+	MarketingCapDays  int32 `json:"marketingCapDays"`
+}
+
+func (q *Queries) WorkspaceMarketingCap(ctx context.Context, id uuid.UUID) (WorkspaceMarketingCapRow, error) {
+	row := q.db.QueryRow(ctx, workspaceMarketingCap, id)
+	var i WorkspaceMarketingCapRow
+	err := row.Scan(&i.MarketingCapCount, &i.MarketingCapDays)
+	return i, err
 }

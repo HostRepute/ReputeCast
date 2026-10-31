@@ -114,6 +114,10 @@ type AudienceFacts struct {
 	Duplicates int64
 	// Stopped counts contacts the sunset policy stopped Broadcasts to.
 	Stopped int64
+	// OverCap counts contacts over the workspace's marketing cap, left out
+	// (review 2026-11 AT-9); CapCount and CapDays are the cap.
+	OverCap           int64
+	CapCount, CapDays int
 	// SunsetOverride is true when the campaign overrides the sunset policy;
 	// StoppedIncluded counts the stopped contacts it sends to anyway.
 	SunsetOverride  bool

@@ -10,6 +10,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/ingest"
+	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -59,6 +60,12 @@ func newAutomations(a *App) *automations.Service {
 		Languages:     automationLanguages(a),
 		StoreRevenue:  automationStoreRevenue(a),
 		StoreEmail:    automationStoreEmail(a),
+		// Segment triggers (review 2026-11 AT-10) and test sends (AT-3).
+		SegmentMembers: func(ctx context.Context, ws, seg uuid.UUID) ([]uuid.UUID, error) {
+			return a.segments().ContactIDs(ctx, ws, seg)
+		},
+		Mail: func() mailer.Sender { return a.Mail },
+		URLs: a.URLs,
 	}
 }
 

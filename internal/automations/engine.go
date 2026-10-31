@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -49,6 +50,10 @@ type runState struct {
 	// Vars is the trigger's Liquid data ({{ order.product_name }}), kept
 	// with each email the run sends (products.go).
 	Vars map[string]any `json:"vars,omitempty"`
+	// SkipEmail skips the next email the run reaches: its wait ended
+	// while the flow was paused and it resumed with "skip overdue
+	// emails" (review 2026-11 AT-4).
+	SkipEmail bool `json:"skipEmail,omitempty"`
 }
 
 func parseState(raw []byte) runState {
@@ -320,8 +325,33 @@ func triggerMatches(t AutomationTrigger, ev store.ClaimAutomationEventsRow) bool
 		return milestoneTriggerMatches(t, ev)
 	case TriggerOrderPlaced, TriggerFirstOrder, TriggerAbandonedCheckout:
 		return storeTriggerMatches(t, ev)
+	case TriggerSegmentEntered, TriggerSegmentLeft:
+		return t.SegmentID == ev.Ref
+	case TriggerLinkClicked:
+		if t.Source != "" && t.Source != ev.Ref {
+			return false
+		}
+		if t.URLContains == "" {
+			return true
+		}
+		var p struct {
+			URL string `json:"url"`
+		}
+		_ = json.Unmarshal(ev.Payload, &p)
+		return strings.Contains(strings.ToLower(p.URL), strings.ToLower(t.URLContains))
 	}
 	return false
+}
+
+// matchingTrigger is the first of a flow's triggers the event starts
+// (review 2026-11 AT-11), or nil.
+func matchingTrigger(first AutomationTrigger, ev store.ClaimAutomationEventsRow) *AutomationTrigger {
+	for _, t := range first.Triggers() {
+		if t.Kind == ev.Kind && triggerMatches(t, ev) {
+			return &t
+		}
+	}
+	return nil
 }
 
 // milestoneTriggerMatches: the trigger's milestone, or any milestone of its
@@ -348,11 +378,18 @@ func stepID(s string) (uuid.UUID, bool) {
 }
 
 func (s *Service) enroll(ctx context.Context, q *store.Queries, stats statsBuf, f store.LiveAutomationsForTriggerRow, ev store.ClaimAutomationEventsRow, now time.Time) (bool, error) {
-	var t AutomationTrigger
-	decoded := json.Unmarshal(f.Trigger, &t) == nil
-	if !decoded || !triggerMatches(t, ev) || f.LiveVersion == nil {
+	var first AutomationTrigger
+	if json.Unmarshal(f.Trigger, &first) != nil || f.LiveVersion == nil {
 		return false, nil
 	}
+	m := matchingTrigger(first, ev)
+	if m == nil {
+		return false, nil
+	}
+	// The kind's own rules are the matching trigger's; re-entry is the
+	// flow's, on its first trigger.
+	t := *m
+	t.Reentry, t.ReentryDays = first.Reentry, first.ReentryDays
 	if t.Kind == TriggerScoreCrosses {
 		if ok, err := scoreTriggerAllows(ctx, q, t, f.ID, ev.ContactID, now); err != nil || !ok {
 			return false, err
@@ -377,6 +414,12 @@ func (s *Service) enroll(ctx context.Context, q *store.Queries, stats statsBuf, 
 		// A yearly date (a birthday, an anniversary) lets a contact through
 		// once a year, not once ever (review 2026-11 EN-2).
 		again, err := q.AutomationRunEnteredSince(ctx, store.AutomationRunEnteredSinceParams{AutomationID: f.ID, ContactID: ev.ContactID, Since: now.AddDate(0, 0, -300)})
+		if err != nil || again {
+			return false, err
+		}
+	} else if t.Reentry == "days" && t.ReentryDays > 0 {
+		// At most once every N days (review 2026-11 AT-6).
+		again, err := q.AutomationRunEnteredSince(ctx, store.AutomationRunEnteredSinceParams{AutomationID: f.ID, ContactID: ev.ContactID, Since: now.AddDate(0, 0, -t.ReentryDays)})
 		if err != nil || again {
 			return false, err
 		}
@@ -510,6 +553,9 @@ func (e *executor) contact(ctx context.Context) (*store.AutomationContactRow, er
 const maxStepsPerTick = 60
 
 func (e *executor) advance(ctx context.Context) error {
+	if left, err := e.leftTheList(ctx); err != nil || left {
+		return err
+	}
 	for i := 0; i < maxStepsPerTick; i++ {
 		n := e.g.Node(e.run.NodeID)
 		if n == nil {
@@ -527,6 +573,25 @@ func (e *executor) advance(ctx context.Context) error {
 		}
 	}
 	return e.save(ctx, &e.now)
+}
+
+// leftTheList ends the run of a contact who left the list of a Joined list
+// flow that lets them go with it (review 2026-11 AT-8).
+func (e *executor) leftTheList(ctx context.Context) (bool, error) {
+	tn := e.g.Trigger()
+	if tn == nil || tn.Data.Trigger == nil || !tn.Data.Trigger.ExitOnLeave || tn.Data.Trigger.Kind != TriggerJoinedList {
+		return false, nil
+	}
+	list, ok := stepID(tn.Data.Trigger.ListID)
+	if !ok {
+		return false, nil
+	}
+	in, err := e.q.AutomationContactOnList(ctx, store.AutomationContactOnListParams{ListID: list, ContactID: e.run.ContactID})
+	if err != nil || in {
+		return false, err
+	}
+	e.stat(e.run.NodeID).Dropped++
+	return true, e.finish(ctx, "exited", "left_list")
 }
 
 // step runs the current step. It returns the next node (or "" with the path
@@ -617,7 +682,7 @@ func (e *executor) moveOn(ctx context.Context, from AutomationNode, next, path s
 	e.run.NodeID = next
 	e.run.NodeEnteredAt = e.now
 	e.run.Status = "active"
-	e.st = runState{Messages: e.st.Messages, Event: e.st.Event, Ctx: e.st.Ctx, Vars: e.st.Vars}
+	e.st = runState{Messages: e.st.Messages, Event: e.st.Event, Ctx: e.st.Ctx, Vars: e.st.Vars, SkipEmail: e.st.SkipEmail}
 	e.stat(next).Entered++
 	return nil
 }
@@ -680,6 +745,27 @@ func (e *executor) email(ctx context.Context, n AutomationNode) (string, string,
 		e.stat(n.ID).Skipped++
 		return next, "", false, nil
 	}
+	// The email the contact missed while the flow was paused, when it
+	// resumed with "skip overdue emails" (review 2026-11 AT-4).
+	if e.st.SkipEmail {
+		e.st.SkipEmail = false
+		e.stat(n.ID).Skipped++
+		return next, "", false, nil
+	}
+	// The workspace's marketing cap, with campaigns (AT-9): wait until the
+	// contact is under it, or skip the email.
+	if over, until, err := e.overCap(ctx); err != nil {
+		return "", "", true, err
+	} else if over {
+		if cfg.OverCap == "skip" {
+			e.stat(n.ID).Skipped++
+			return next, "", false, nil
+		}
+		if e.st.Wait != "cap" {
+			e.stat(n.ID).Waiting++
+		}
+		return "", "", true, e.wait(ctx, "cap", until)
+	}
 	if w := cfg.SendWindow; w != nil && w.Enabled {
 		if at, inside := nextWindow(e.now, contactLoc(c.Timezone, e.s.workspaceTZ(ctx, e.q, e.run.WorkspaceID)), w.Start, w.End); !inside {
 			if e.st.Wait != "window" {
@@ -741,6 +827,22 @@ func (e *executor) email(ctx context.Context, n AutomationNode) (string, string,
 	}
 	e.st.Messages[n.ID] = queued.MessageID.String()
 	return next, "", false, nil
+}
+
+// overCap reports whether the contact got the workspace's marketing cap of
+// campaign and automation emails already, and when the oldest of them
+// leaves the window.
+func (e *executor) overCap(ctx context.Context) (bool, time.Time, error) {
+	limit, err := e.q.WorkspaceMarketingCap(ctx, e.run.WorkspaceID)
+	if err != nil || limit.MarketingCapCount <= 0 {
+		return false, time.Time{}, err
+	}
+	days := time.Duration(limit.MarketingCapDays) * 24 * time.Hour
+	got, err := e.q.AutomationMarketingSent(ctx, store.AutomationMarketingSentParams{ContactID: &e.run.ContactID, Since: e.now.Add(-days)})
+	if err != nil || got.N < int64(limit.MarketingCapCount) {
+		return false, time.Time{}, err
+	}
+	return true, got.Oldest.Add(days + time.Minute), nil
 }
 
 // branch evaluates a condition. Engagement conditions (opened / clicked)
@@ -1098,6 +1200,15 @@ func (s *Service) Scan(ctx context.Context) error {
 	}); err != nil {
 		return fmt.Errorf("retire versions: %w", err)
 	}
+	if err := s.watchSegments(ctx, now); err != nil {
+		return fmt.Errorf("segments: %w", err)
+	}
+	// A finished run's trigger data (an order's details) goes after 90
+	// days (review 2026-11 AT-8).
+	before := now.Add(-90 * 24 * time.Hour)
+	if _, err := s.Q.ClearFinishedRunState(ctx, &before); err != nil {
+		return fmt.Errorf("finished runs: %w", err)
+	}
 	week := now.Add(-7 * 24 * time.Hour)
 	if _, err := s.Q.PurgeAutomationEvents(ctx, &week); err != nil {
 		return err
@@ -1208,27 +1319,134 @@ func (s *Service) fireDateTriggers(ctx context.Context, now time.Time) error {
 		if json.Unmarshal(r.Trigger, &t) != nil || t.Field == "" {
 			continue
 		}
-		loc := contactLoc("", r.Timezone)
-		local := now.In(loc)
 		at := t.At
 		if at == "" {
 			at = "09:00"
 		}
-		if h, m, ok := hhmm(at); ok && local.Hour()*60+local.Minute() < h*60+m {
-			continue
-		}
-		today := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, time.UTC)
-		ids, err := s.Q.AutomationDateFieldMatches(ctx, store.AutomationDateFieldMatchesParams{WorkspaceID: r.WorkspaceID, Field: t.Field, Tz: loc.String(), Yearly: t.Yearly, OffsetDays: int32(t.OffsetDays), Today: today})
-		if err != nil {
-			return err
-		}
-		for _, id := range ids {
-			if err := s.Q.InsertAutomationEvent(ctx, store.InsertAutomationEventParams{WorkspaceID: r.WorkspaceID, Kind: TriggerDateField, ContactID: id, Ref: t.Field, Payload: json.RawMessage(`{}`), OccurredAt: now}); err != nil {
+		// The workspace's time, or each contact's own (review 2026-11
+		// AT-7): contacts are grouped by the zone they resolve to, a zone
+		// unknown or missing being the workspace's.
+		groups := map[string][]string{contactLoc("", r.Timezone).String(): nil}
+		if t.ContactTime {
+			zones, err := s.contactZones(ctx, r.WorkspaceID)
+			if err != nil {
 				return err
+			}
+			groups = map[string][]string{}
+			for _, z := range zones {
+				name := contactLoc(z, r.Timezone).String()
+				groups[name] = append(groups[name], z)
+			}
+		}
+		for name, zones := range groups {
+			loc, err := time.LoadLocation(name)
+			if err != nil {
+				loc = time.UTC
+			}
+			local := now.In(loc)
+			if h, m, ok := hhmm(at); ok && local.Hour()*60+local.Minute() < h*60+m {
+				continue
+			}
+			today := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, time.UTC)
+			ids, err := s.Q.AutomationDateFieldMatches(ctx, store.AutomationDateFieldMatchesParams{WorkspaceID: r.WorkspaceID, Field: t.Field, Tz: loc.String(), Yearly: t.Yearly,
+				OffsetDays: int32(t.OffsetDays), Today: today, ByZone: t.ContactTime, Zones: zones})
+			if err != nil {
+				return err
+			}
+			for _, id := range ids {
+				if err := s.Q.InsertAutomationEvent(ctx, store.InsertAutomationEventParams{WorkspaceID: r.WorkspaceID, Kind: TriggerDateField, ContactID: id, Ref: t.Field, Payload: json.RawMessage(`{}`), OccurredAt: now}); err != nil {
+					return err
+				}
 			}
 		}
 	}
 	return nil
+}
+
+// zoneCache keeps each workspace's contact time zones for an hour: the
+// scan runs every minute and the zones barely change.
+var zoneCache = struct {
+	sync.Mutex
+	m map[uuid.UUID]cachedZones
+}{m: map[uuid.UUID]cachedZones{}}
+
+type cachedZones struct {
+	zones []string
+	at    time.Time
+}
+
+func (s *Service) contactZones(ctx context.Context, ws uuid.UUID) ([]string, error) {
+	zoneCache.Lock()
+	c, ok := zoneCache.m[ws]
+	zoneCache.Unlock()
+	if ok && time.Since(c.at) < time.Hour {
+		return c.zones, nil
+	}
+	zones, err := s.Q.AutomationContactZones(ctx, ws)
+	if err != nil {
+		return nil, err
+	}
+	zoneCache.Lock()
+	zoneCache.m[ws] = cachedZones{zones: zones, at: time.Now()}
+	zoneCache.Unlock()
+	return zones, nil
+}
+
+// watchSegments evaluates the dynamic segments live flows start on
+// entering or leaving (review 2026-11 AT-10). The first evaluation only
+// records the members; each later one is a diff whose entries and exits
+// become trigger events (segment_member_events, AU-16).
+func (s *Service) watchSegments(ctx context.Context, now time.Time) error {
+	if s.SegmentMembers == nil {
+		return nil
+	}
+	segs, err := s.Q.AutomationWatchedSegments(ctx)
+	if err != nil {
+		return err
+	}
+	for _, sg := range segs {
+		if sg.WatchedAt != nil && now.Sub(*sg.WatchedAt) < segmentWatchEvery {
+			continue
+		}
+		ids, err := s.SegmentMembers(ctx, sg.WorkspaceID, sg.ID)
+		if err != nil {
+			// One segment that can't be counted (a timeout, SQL that no
+			// longer runs) doesn't stop the others.
+			s.log().WarnContext(ctx, "automations: segment not evaluated", "segment", sg.ID, "err", err)
+			continue
+		}
+		err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+			q := store.New(tx)
+			if sg.WatchedAt == nil {
+				if err := q.SeedSegmentMembers(ctx, store.SeedSegmentMembersParams{SegmentID: sg.ID, ContactIds: ids, At: now}); err != nil {
+					return err
+				}
+			} else if _, err := q.ReplaceSegmentMembers(ctx, store.ReplaceSegmentMembersParams{SegmentID: sg.ID, ContactIds: ids, At: now}); err != nil {
+				return err
+			}
+			return q.MarkSegmentWatched(ctx, store.MarkSegmentWatchedParams{ID: sg.ID, At: &now})
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// segmentWatchEvery is how often a watched segment is evaluated.
+const segmentWatchEvery = 10 * time.Minute
+
+// EmitLinkClicked queues a "Clicked a link" trigger event for a person's
+// settled click in a campaign or an automation email (review 2026-11
+// AT-10), when a live flow of the workspace starts on one. ref is
+// "campaign:<id>" or "email:<id>".
+func EmitLinkClicked(ctx context.Context, q *store.Queries, ws, contact uuid.UUID, ref, url string, at time.Time) error {
+	listened, err := q.AutomationLinkClickListened(ctx, ws)
+	if err != nil || !listened {
+		return err
+	}
+	payload, _ := json.Marshal(map[string]string{"url": url})
+	return q.InsertAutomationEvent(ctx, store.InsertAutomationEventParams{WorkspaceID: ws, Kind: TriggerLinkClicked, ContactID: contact, Ref: ref, Payload: payload, OccurredAt: at})
 }
 
 func (s *Service) requeueWebhooks(ctx context.Context, now time.Time) error {

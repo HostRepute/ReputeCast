@@ -61,7 +61,7 @@ func (q *Queries) CountWorkspaceSegments(ctx context.Context, workspaceID uuid.U
 const createSegment = `-- name: CreateSegment :one
 INSERT INTO segments (id, workspace_id, name, description, mode, refresh, definition, sql, created_by, updated_by)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
-RETURNING id, workspace_id, name, description, mode, definition, sql, cached_count, counted_at, created_by, created_at, updated_at, refresh, count_ms, tier_counts, updated_by
+RETURNING id, workspace_id, name, description, mode, definition, sql, cached_count, counted_at, created_by, created_at, updated_at, refresh, count_ms, tier_counts, updated_by, watched_at
 `
 
 type CreateSegmentParams struct {
@@ -106,6 +106,7 @@ func (q *Queries) CreateSegment(ctx context.Context, arg CreateSegmentParams) (S
 		&i.CountMs,
 		&i.TierCounts,
 		&i.UpdatedBy,
+		&i.WatchedAt,
 	)
 	return i, err
 }
@@ -128,7 +129,7 @@ func (q *Queries) DeleteSegment(ctx context.Context, arg DeleteSegmentParams) (i
 }
 
 const getSegment = `-- name: GetSegment :one
-SELECT id, workspace_id, name, description, mode, definition, sql, cached_count, counted_at, created_by, created_at, updated_at, refresh, count_ms, tier_counts, updated_by FROM segments WHERE workspace_id = $1 AND id = $2
+SELECT id, workspace_id, name, description, mode, definition, sql, cached_count, counted_at, created_by, created_at, updated_at, refresh, count_ms, tier_counts, updated_by, watched_at FROM segments WHERE workspace_id = $1 AND id = $2
 `
 
 type GetSegmentParams struct {
@@ -156,6 +157,7 @@ func (q *Queries) GetSegment(ctx context.Context, arg GetSegmentParams) (Segment
 		&i.CountMs,
 		&i.TierCounts,
 		&i.UpdatedBy,
+		&i.WatchedAt,
 	)
 	return i, err
 }
@@ -348,7 +350,7 @@ UPDATE segments
 SET name = $1, description = $2, mode = $3, refresh = $4, definition = $5, sql = $6,
     updated_by = $7, updated_at = now()
 WHERE workspace_id = $8 AND id = $9
-RETURNING id, workspace_id, name, description, mode, definition, sql, cached_count, counted_at, created_by, created_at, updated_at, refresh, count_ms, tier_counts, updated_by
+RETURNING id, workspace_id, name, description, mode, definition, sql, cached_count, counted_at, created_by, created_at, updated_at, refresh, count_ms, tier_counts, updated_by, watched_at
 `
 
 type UpdateSegmentParams struct {
@@ -393,6 +395,7 @@ func (q *Queries) UpdateSegment(ctx context.Context, arg UpdateSegmentParams) (S
 		&i.CountMs,
 		&i.TierCounts,
 		&i.UpdatedBy,
+		&i.WatchedAt,
 	)
 	return i, err
 }

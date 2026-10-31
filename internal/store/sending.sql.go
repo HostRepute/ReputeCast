@@ -231,21 +231,21 @@ WITH page AS (
     -- staged segment members), so a page reads about a page per source
     -- wherever the cursor is, not every member after it.
     SELECT DISTINCT u.id FROM (
-        SELECT x.id FROM unnest(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($3::uuid[]) AND ll.deleted_at IS NULL)) AS l(list_id)
+        SELECT x.id FROM unnest(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($6::uuid[]) AND ll.deleted_at IS NULL)) AS l(list_id)
         CROSS JOIN LATERAL (
             SELECT m.contact_id AS id FROM list_memberships m
-            WHERE m.list_id = l.list_id AND m.contact_id > $4::uuid AND m.status = 'subscribed'
+            WHERE m.list_id = l.list_id AND m.contact_id > $7::uuid AND m.status = 'subscribed'
             ORDER BY m.contact_id
-            LIMIT $5
+            LIMIT $8
         ) x
         UNION ALL
         (SELECT st.contact_id FROM campaign_audience_stage st
-         WHERE st.campaign_id = $6 AND NOT st.exclude AND st.contact_id > $4::uuid
+         WHERE st.campaign_id = $4 AND NOT st.exclude AND st.contact_id > $7::uuid
          ORDER BY st.contact_id
-         LIMIT $5)
+         LIMIT $8)
     ) u
     ORDER BY u.id
-    LIMIT $5
+    LIMIT $8
 ), ids AS (
     -- One array of the page's ids: the lookups below see a list of known
     -- size (an index lookup or a hashed check) instead of a join the
@@ -254,15 +254,15 @@ WITH page AS (
 ), member_lists AS (
     SELECT m.contact_id, array_agg(m.list_id ORDER BY m.list_id)::uuid[] AS lists
     FROM list_memberships m
-    WHERE m.contact_id = ANY((SELECT a FROM ids)::uuid[]) AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($3::uuid[]) AND ll.deleted_at IS NULL)) AND m.status = 'subscribed'
+    WHERE m.contact_id = ANY((SELECT a FROM ids)::uuid[]) AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($6::uuid[]) AND ll.deleted_at IS NULL)) AND m.status = 'subscribed'
     GROUP BY m.contact_id
 ), excluded AS (
     SELECT DISTINCT x.contact_id
     FROM list_memberships x
-    WHERE x.contact_id = ANY((SELECT a FROM ids)::uuid[]) AND x.list_id = ANY($7::uuid[]) AND x.status = 'subscribed'
+    WHERE x.contact_id = ANY((SELECT a FROM ids)::uuid[]) AND x.list_id = ANY($9::uuid[]) AND x.status = 'subscribed'
 ), excluded_staged AS (
     SELECT st.contact_id FROM campaign_audience_stage st
-    WHERE st.campaign_id = $6 AND st.exclude AND st.contact_id = ANY((SELECT a FROM ids)::uuid[])
+    WHERE st.campaign_id = $4 AND st.exclude AND st.contact_id = ANY((SELECT a FROM ids)::uuid[])
 )
 SELECT page.id::uuid AS id,
        coalesce(c.email, '')::text AS email, coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name,
@@ -274,10 +274,14 @@ SELECT page.id::uuid AS id,
        coalesce((SELECT p.paused_until > $1::timestamptz FROM contact_preferences p WHERE p.contact_id = c.id), false)::boolean AS paused,
        coalesce(c.language, '')::text AS language,
        coalesce(c.timezone, '')::text AS timezone,
+       -- Over the workspace's marketing cap (review 2026-11 AT-9).
+       ($2::int > 0 AND (SELECT count(*) FROM messages mm
+           WHERE mm.contact_id = c.id AND mm.stream IN ('broadcast', 'automation') AND mm.queued_at > $3::timestamptz
+             AND mm.status NOT IN ('failed', 'cancelled', 'rejected') AND mm.campaign_id IS DISTINCT FROM $4::uuid) >= $2::int)::boolean AS over_cap,
        (excluded.contact_id IS NOT NULL)::boolean AS excluded_list,
        (excluded_staged.contact_id IS NOT NULL)::boolean AS excluded_segment,
        coalesce(member_lists.lists, '{}'::uuid[])::uuid[] AS lists,
-       (c.id IS NULL OR c.erased_at IS NOT NULL OR c.workspace_id <> $2::uuid)::boolean AS gone
+       (c.id IS NULL OR c.erased_at IS NOT NULL OR c.workspace_id <> $5::uuid)::boolean AS gone
 FROM page
 LEFT JOIN contacts c ON c.id = page.id
 LEFT JOIN member_lists ON member_lists.contact_id = page.id
@@ -288,11 +292,13 @@ ORDER BY page.id
 
 type SendingAudiencePageParams struct {
 	Now          time.Time   `json:"now"`
+	CapCount     int32       `json:"capCount"`
+	CapSince     time.Time   `json:"capSince"`
+	CampaignID   uuid.UUID   `json:"campaignId"`
 	WorkspaceID  uuid.UUID   `json:"workspaceId"`
 	Lists        []uuid.UUID `json:"lists"`
 	After        uuid.UUID   `json:"after"`
 	Lim          int32       `json:"lim"`
-	CampaignID   uuid.UUID   `json:"campaignId"`
 	ExcludeLists []uuid.UUID `json:"excludeLists"`
 }
 
@@ -315,6 +321,7 @@ type SendingAudiencePageRow struct {
 	Paused          bool            `json:"paused"`
 	Language        string          `json:"language"`
 	Timezone        string          `json:"timezone"`
+	OverCap         bool            `json:"overCap"`
 	ExcludedList    bool            `json:"excludedList"`
 	ExcludedSegment bool            `json:"excludedSegment"`
 	Lists           []uuid.UUID     `json:"lists"`
@@ -331,11 +338,13 @@ type SendingAudiencePageRow struct {
 func (q *Queries) SendingAudiencePage(ctx context.Context, arg SendingAudiencePageParams) ([]SendingAudiencePageRow, error) {
 	rows, err := q.db.Query(ctx, sendingAudiencePage,
 		arg.Now,
+		arg.CapCount,
+		arg.CapSince,
+		arg.CampaignID,
 		arg.WorkspaceID,
 		arg.Lists,
 		arg.After,
 		arg.Lim,
-		arg.CampaignID,
 		arg.ExcludeLists,
 	)
 	if err != nil {
@@ -364,6 +373,7 @@ func (q *Queries) SendingAudiencePage(ctx context.Context, arg SendingAudiencePa
 			&i.Paused,
 			&i.Language,
 			&i.Timezone,
+			&i.OverCap,
 			&i.ExcludedList,
 			&i.ExcludedSegment,
 			&i.Lists,

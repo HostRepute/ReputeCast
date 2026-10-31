@@ -41,6 +41,11 @@ type sendDefaultsInput struct {
 	Body SendDefaults
 }
 
+type marketingCapInput struct {
+	api.WorkspaceInput
+	Body MarketingCap
+}
+
 // registerRules adds Settings › Sending rules (SR-10): anyone who can see
 // campaigns reads the rules; workspace:manage changes them (audited).
 func registerRules(h huma.API, s *Service) {
@@ -83,6 +88,13 @@ func registerRules(h huma.API, s *Service) {
 		Tags:        tags, Access: api.WorkspaceHuman(authz.WorkspaceManage)},
 		func(ctx context.Context, in *sendDefaultsInput) (*api.Body[SendingRulesView], error) {
 			out, err := s.SaveSendDefaults(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
+			return api.OK(out), err
+		})
+	api.Put(h, api.Op{ID: "update-marketing-cap", Path: "/workspaces/{workspace}/marketing-cap", Summary: "Set the most campaign and automation emails a contact gets in a number of days",
+		Description: "Count 0 turns the cap off. Campaigns leave out contacts over it; automation emails wait or are skipped, as each step says.",
+		Tags:        tags, Access: api.WorkspaceHuman(authz.WorkspaceManage)},
+		func(ctx context.Context, in *marketingCapInput) (*api.Body[SendingRulesView], error) {
+			out, err := s.SaveMarketingCap(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
 			return api.OK(out), err
 		})
 }

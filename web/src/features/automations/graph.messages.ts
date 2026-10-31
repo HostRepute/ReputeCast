@@ -35,9 +35,12 @@ export const mg = defineMessages('automations.graph', {
   kindOrderPlaced: 'Order placed',
   kindFirstOrder: 'First order',
   kindAbandonedCheckout: 'Abandoned checkout',
+  kindSegmentEntered: 'Enters a segment',
+  kindSegmentLeft: 'Leaves a segment',
+  kindLinkClicked: 'Clicked a link',
   /** After the type in a trigger's header, shown in capitals: "Trigger · joined list". */
   kindWord:
-    '{kind, select, joined_list {joined list} form_submitted {form submitted} tag_added {tag added} api_event {api event} date_field {date field} score_crosses {score crosses} poll_answered {poll answered} bought_product {bought product} milestone_reached {milestone reached} order_placed {order placed} first_order {first order} abandoned_checkout {abandoned checkout} other {{kind}}}',
+    '{kind, select, joined_list {joined list} form_submitted {form submitted} tag_added {tag added} api_event {api event} date_field {date field} score_crosses {score crosses} poll_answered {poll answered} bought_product {bought product} milestone_reached {milestone reached} order_placed {order placed} first_order {first order} abandoned_checkout {abandoned checkout} segment_entered {enters a segment} segment_left {leaves a segment} link_clicked {clicked a link} other {{kind}}}',
 
   /** A wait or a window: "10 minutes", "2 days". */
   duration:
@@ -49,6 +52,11 @@ export const mg = defineMessages('automations.graph', {
   aForm: 'a form',
   aPollOrSurvey: 'a poll or survey',
   aStore: 'a store',
+  aSegment: 'a segment',
+  anEmail: 'an email',
+  anyCampaignOrEmail: 'any campaign or email',
+  /** A flow with more than one trigger: "Weekly Digest, or vip". */
+  orTrigger: '{first}, or {second}',
   anyEmail: 'any email',
 
   // Conditions, in lower case: "Opened step 1 within 2 days?", "Only contacts tagged vip".

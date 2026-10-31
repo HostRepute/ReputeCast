@@ -95,7 +95,7 @@ ORDER BY name, id;
 -- Live automations that start when someone joins the list.
 SELECT id, name FROM automations
 WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND status = 'live'
-  AND trigger ->> 'kind' = 'joined_list' AND trigger ->> 'listId' = @id::text
+  AND triggers @> jsonb_build_array(jsonb_build_object('kind', 'joined_list', 'listId', @id::text))
 ORDER BY name, id;
 
 -- name: ListImpactCampaigns :many

@@ -418,6 +418,7 @@ type Querier interface {
 	AutomationContactEmailedSince(ctx context.Context, arg AutomationContactEmailedSinceParams) (bool, error)
 	AutomationContactInList(ctx context.Context, arg AutomationContactInListParams) (bool, error)
 	AutomationContactInWorkspace(ctx context.Context, arg AutomationContactInWorkspaceParams) (AutomationContactInWorkspaceRow, error)
+	AutomationContactOnList(ctx context.Context, arg AutomationContactOnListParams) (bool, error)
 	// ── Automations: the "Placed an order" goal ─────────────────────────────
 	// The contact placed an order since a time (in one store, or any).
 	AutomationContactOrdered(ctx context.Context, arg AutomationContactOrderedParams) (bool, error)
@@ -426,6 +427,8 @@ type Querier interface {
 	AutomationContactPaused(ctx context.Context, arg AutomationContactPausedParams) (bool, error)
 	AutomationContactSentEvent(ctx context.Context, arg AutomationContactSentEventParams) (bool, error)
 	AutomationContactSuppressed(ctx context.Context, arg AutomationContactSuppressedParams) (bool, error)
+	// The time zones a workspace's contacts have ('' for none).
+	AutomationContactZones(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
 	// Contacts whose date field (plus the offset) is today in the workspace's
 	// timezone; yearly triggers match the day and month every year.
 	AutomationDateFieldMatches(ctx context.Context, arg AutomationDateFieldMatchesParams) ([]uuid.UUID, error)
@@ -447,9 +450,17 @@ type Querier interface {
 	// Runs whose contact placed an order since entering the flow.
 	AutomationGoalRunsOrdered(ctx context.Context, arg AutomationGoalRunsOrderedParams) ([]AutomationGoalRunsOrderedRow, error)
 	AutomationGoalRunsTagged(ctx context.Context, arg AutomationGoalRunsTaggedParams) ([]AutomationGoalRunsTaggedRow, error)
+	// Campaigns a "Clicked a link" trigger can listen to: the sent ones, the
+	// latest first, and those still to go out (AT-10).
+	AutomationLinkCampaigns(ctx context.Context, workspaceID uuid.UUID) ([]AutomationLinkCampaignsRow, error)
+	// Whether a live flow starts on a link click in this workspace (AT-10).
+	AutomationLinkClickListened(ctx context.Context, workspaceID uuid.UUID) (bool, error)
 	AutomationLists(ctx context.Context, workspaceID uuid.UUID) ([]AutomationListsRow, error)
 	// Runs waiting on a webhook call whose job never ran (lost or not enqueued).
 	AutomationLostWebhookRuns(ctx context.Context, before time.Time) ([]AutomationLostWebhookRunsRow, error)
+	// Campaign and automation emails a contact got since a time, and the
+	// oldest of them (AT-9).
+	AutomationMarketingSent(ctx context.Context, arg AutomationMarketingSentParams) (AutomationMarketingSentRow, error)
 	// Whether an email was opened or clicked: clicks only once they settled as
 	// a person's (review AN-2).
 	AutomationMessageEngaged(ctx context.Context, arg AutomationMessageEngagedParams) (bool, error)
@@ -464,6 +475,10 @@ type Querier interface {
 	AutomationMilestoneRunExists(ctx context.Context, arg AutomationMilestoneRunExistsParams) (bool, error)
 	// The milestones a "Reached a milestone" trigger can start on.
 	AutomationMilestones(ctx context.Context, workspaceID uuid.UUID) ([]AutomationMilestonesRow, error)
+	// The overdue runs, the longest waiting first (resume, "spread over N hours").
+	AutomationOverdueRunIDs(ctx context.Context, arg AutomationOverdueRunIDsParams) ([]uuid.UUID, error)
+	// Runs whose wait ended while the flow was paused (AT-4).
+	AutomationOverdueRuns(ctx context.Context, arg AutomationOverdueRunsParams) (int64, error)
 	// What the trigger "Answered a poll or survey" can point at, by the ref
 	// its events carry ("poll:<id>", "survey:<id>").
 	AutomationPollRefs(ctx context.Context, workspaceID uuid.UUID) ([]AutomationPollRefsRow, error)
@@ -480,13 +495,23 @@ type Querier interface {
 	// trigger lets a contact through once a year).
 	AutomationRunEnteredSince(ctx context.Context, arg AutomationRunEnteredSinceParams) (bool, error)
 	AutomationRunExists(ctx context.Context, arg AutomationRunExistsParams) (bool, error)
+	// Where the contacts on older versions are, for moving them to a new one.
+	AutomationRunGroups(ctx context.Context, arg AutomationRunGroupsParams) ([]AutomationRunGroupsRow, error)
 	// The message a run's email step queued (for branch checks).
 	AutomationRunMessage(ctx context.Context, arg AutomationRunMessageParams) (AutomationRunMessageRow, error)
+	// The contacts at a step, the latest to arrive first, after a cursor
+	// (review 2026-11 AT-2).
+	AutomationRunsAtNode(ctx context.Context, arg AutomationRunsAtNodeParams) ([]AutomationRunsAtNodeRow, error)
 	// A refund makes the contact leave the "Bought a product" flows of that
 	// product (or of any product) they're in.
 	AutomationRunsExitBought(ctx context.Context, arg AutomationRunsExitBoughtParams) ([]AutomationRunsExitBoughtRow, error)
 	// Whether a contact entered a "Score crosses…" automation recently, or is in it.
 	AutomationScoreRunSince(ctx context.Context, arg AutomationScoreRunSinceParams) (bool, error)
+	// Segments a "Enters a segment" trigger can start on (AT-10).
+	AutomationSegments(ctx context.Context, workspaceID uuid.UUID) ([]AutomationSegmentsRow, error)
+	// Resume, "skip overdue emails": the overdue runs skip the next email they
+	// reach.
+	AutomationSkipOverdue(ctx context.Context, arg AutomationSkipOverdueParams) (int64, error)
 	// The latest alert per webhook step, open or resolved (for the publish diff).
 	AutomationStepFailures(ctx context.Context, automationID uuid.UUID) ([]AutomationStepFailuresRow, error)
 	// Paths taken out of branches and splits.
@@ -500,6 +525,8 @@ type Querier interface {
 	AutomationStoreRefs(ctx context.Context, workspaceID uuid.UUID) ([]AutomationStoreRefsRow, error)
 	AutomationTopTags(ctx context.Context, workspaceID uuid.UUID) ([]AutomationTopTagsRow, error)
 	AutomationUnsubscribeAll(ctx context.Context, contactID uuid.UUID) error
+	// Dynamic segments a live flow starts on entering or leaving (AT-10).
+	AutomationWatchedSegments(ctx context.Context) ([]AutomationWatchedSegmentsRow, error)
 	// Totals per automation since a day, for the KPI row.
 	AutomationWorkspaceStatsSince(ctx context.Context, arg AutomationWorkspaceStatsSinceParams) ([]AutomationWorkspaceStatsSinceRow, error)
 	// The brand kit and its synced blocks (CO-11).
@@ -577,6 +604,8 @@ type Querier interface {
 	ClaimAutomationEvents(ctx context.Context, arg ClaimAutomationEventsParams) ([]ClaimAutomationEventsRow, error)
 	// Runs ready to move on, in flows that are live (paused flows hold their runs).
 	ClaimDueAutomationRuns(ctx context.Context, arg ClaimDueAutomationRunsParams) ([]ClaimDueAutomationRunsRow, error)
+	// A finished run's trigger data (an order's details…) goes after 90 days (AT-8).
+	ClearFinishedRunState(ctx context.Context, before *time.Time) (int64, error)
 	ClearSignInThrottle(ctx context.Context, email string) error
 	ClearUserLockout(ctx context.Context, id uuid.UUID) error
 	CommentGet(ctx context.Context, arg CommentGetParams) (CommentGetRow, error)
@@ -898,6 +927,9 @@ type Querier interface {
 	ConsumeHostReputeOAuthState(ctx context.Context, stateHash []byte) (HostreputeOauthState, error)
 	ConsumePasswordReset(ctx context.Context, tokenHash []byte) (PasswordReset, error)
 	ContactActivityCount(ctx context.Context, contactID *uuid.UUID) (int64, error)
+	// The flows a contact is in or went through, the latest run of each, the
+	// ones in progress first (AT-2).
+	ContactAutomationRuns(ctx context.Context, arg ContactAutomationRunsParams) ([]ContactAutomationRunsRow, error)
 	ContactChoseFewer(ctx context.Context, contactID *uuid.UUID) (bool, error)
 	ContactConsentEvents(ctx context.Context, contactID uuid.UUID) ([]ContactConsentEventsRow, error)
 	// Emails sent to a contact since a date (Broadcasts and Automations), how
@@ -952,6 +984,7 @@ type Querier interface {
 	CountAutomationHeldMessages(ctx context.Context, automationID *uuid.UUID) (int64, error)
 	CountAutomationInFlow(ctx context.Context, automationIds []uuid.UUID) ([]CountAutomationInFlowRow, error)
 	CountAutomationInFlowByNode(ctx context.Context, automationID uuid.UUID) ([]CountAutomationInFlowByNodeRow, error)
+	CountAutomationRunsAtNode(ctx context.Context, arg CountAutomationRunsAtNodeParams) (int64, error)
 	CountAutomationsByStatus(ctx context.Context, workspaceID uuid.UUID) ([]CountAutomationsByStatusRow, error)
 	CountCampaigns(ctx context.Context, arg CountCampaignsParams) (int64, error)
 	CountCampaignsByStatus(ctx context.Context, workspaceID uuid.UUID) ([]CountCampaignsByStatusRow, error)
@@ -2095,6 +2128,7 @@ type Querier interface {
 	// Live flows a trigger event enrolls into.
 	LiveAutomationsForTrigger(ctx context.Context, arg LiveAutomationsForTriggerParams) ([]LiveAutomationsForTriggerRow, error)
 	LockAutomation(ctx context.Context, arg LockAutomationParams) (Automation, error)
+	LockAutomationRun(ctx context.Context, arg LockAutomationRunParams) (LockAutomationRunRow, error)
 	LockDeletedList(ctx context.Context, arg LockDeletedListParams) (List, error)
 	LockList(ctx context.Context, arg LockListParams) (List, error)
 	// Applies a domain's classification to every contact still waiting for it.
@@ -2112,6 +2146,7 @@ type Querier interface {
 	MarkHostReputeTokenRejected(ctx context.Context, arg MarkHostReputeTokenRejectedParams) (int64, error)
 	MarkNotificationRead(ctx context.Context, arg MarkNotificationReadParams) (int64, error)
 	MarkReinviteRequested(ctx context.Context, id uuid.UUID) (int64, error)
+	MarkSegmentWatched(ctx context.Context, arg MarkSegmentWatchedParams) error
 	McpAddSuppression(ctx context.Context, arg McpAddSuppressionParams) (uuid.UUID, error)
 	McpAutomations(ctx context.Context, workspaceID uuid.UUID) ([]McpAutomationsRow, error)
 	McpBlocklists(ctx context.Context, workspaceID uuid.UUID) ([]McpBlocklistsRow, error)
@@ -2133,6 +2168,16 @@ type Querier interface {
 	McpSearchContacts(ctx context.Context, arg McpSearchContactsParams) ([]McpSearchContactsRow, error)
 	McpSendingDomains(ctx context.Context, workspaceID uuid.UUID) ([]McpSendingDomainsRow, error)
 	McpSetRoutingSplits(ctx context.Context, arg McpSetRoutingSplitsParams) error
+	// Publish, "move": runs at a dropped step with nothing after it finish.
+	MigrateRunsEnd(ctx context.Context, arg MigrateRunsEndParams) (int64, error)
+	// Publish, "move": runs at a step the new version dropped go on at the next
+	// step it still has.
+	MigrateRunsForward(ctx context.Context, arg MigrateRunsForwardParams) (int64, error)
+	// Publish, "move": runs at a step the new version still has move as they are.
+	MigrateRunsKeep(ctx context.Context, arg MigrateRunsKeepParams) (int64, error)
+	// Publish, "move": runs waiting at a delay that changed wait from when they
+	// reached it, by the new delay.
+	MigrateRunsRetimeDelay(ctx context.Context, arg MigrateRunsRetimeDelayParams) (int64, error)
 	// A live signup offer by its code or link (case-insensitive).
 	OfferByCode(ctx context.Context, arg OfferByCodeParams) (EarnOffer, error)
 	// A referral reward's single-use code, by the code a reader brings.
@@ -3554,6 +3599,8 @@ type Querier interface {
 	ScoringVersionInsert(ctx context.Context, arg ScoringVersionInsertParams) error
 	// Workspaces that set up scoring, with what the jobs need.
 	ScoringWorkspaces(ctx context.Context) ([]ScoringWorkspacesRow, error)
+	// A watched segment's first evaluation: its members, no events.
+	SeedSegmentMembers(ctx context.Context, arg SeedSegmentMembersParams) error
 	SegmentMemberIDs(ctx context.Context, segmentID uuid.UUID) ([]uuid.UUID, error)
 	// The products the segment builder offers: published first, then the rest
 	// that ever sold.
@@ -3919,6 +3966,8 @@ type Querier interface {
 	// that was never published (live flows keep the live trigger).
 	SetAutomationDraft(ctx context.Context, arg SetAutomationDraftParams) error
 	SetAutomationLive(ctx context.Context, arg SetAutomationLiveParams) error
+	// Sets each run's next time (resume, "spread over N hours").
+	SetAutomationRunsNextAt(ctx context.Context, arg SetAutomationRunsNextAtParams) error
 	SetAvatarUpdatedAt(ctx context.Context, arg SetAvatarUpdatedAtParams) error
 	SetDeliverabilityBlocklistDelisting(ctx context.Context, arg SetDeliverabilityBlocklistDelistingParams) error
 	SetHostReputeMonitored(ctx context.Context, arg SetHostReputeMonitoredParams) error
@@ -3951,6 +4000,8 @@ type Querier interface {
 	// Account & security, passkeys, password resets, email changes, invitations
 	// (accept side) and the first sign-in (internal/accounts).
 	SetUserWebAuthnID(ctx context.Context, arg SetUserWebAuthnIDParams) error
+	// The workspace's marketing cap (review 2026-11 AT-9).
+	SetWorkspaceMarketingCap(ctx context.Context, arg SetWorkspaceMarketingCapParams) error
 	// The latest setup that connected a provider.
 	SetupByProvider(ctx context.Context, providerID *uuid.UUID) (ProviderSetup, error)
 	// Connect a sending provider (the setup wizard), Settings › Providers
@@ -4997,6 +5048,7 @@ type Querier interface {
 	WordPressSiteReport(ctx context.Context, arg WordPressSiteReportParams) error
 	WordPressSiteSetRule(ctx context.Context, arg WordPressSiteSetRuleParams) error
 	WordPressSites(ctx context.Context, workspaceID uuid.UUID) ([]WordPressSitesRow, error)
+	WorkspaceMarketingCap(ctx context.Context, id uuid.UUID) (WorkspaceMarketingCapRow, error)
 	WorkspaceProviders(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceProvidersRow, error)
 	WorkspaceTierHistory(ctx context.Context, arg WorkspaceTierHistoryParams) ([]WorkspaceTierHistoryRow, error)
 	WsAuditSettings(ctx context.Context, id uuid.UUID) (WsAuditSettingsRow, error)

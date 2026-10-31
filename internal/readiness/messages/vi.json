@@ -481,6 +481,7 @@
   "estimate.duplicates": "Trùng lặp",
   "estimate.sunsetOverride": "Ghi đè nhóm Ngừng gửi dần",
   "estimate.sunsetStopped": "Chính sách ngừng gửi dần (đã dừng Gửi hàng loạt)",
+  "estimate.overCap": "Vượt giới hạn email marketing ({count} trong {days} ngày)",
   "estimate.unengaged": "Không tương tác từ {days, number} ngày (chính sách ngừng gửi dần)",
   "estimate.selfHosted": "tự lưu trữ",
   "estimate.plan": "theo gói",
@@ -1016,6 +1017,8 @@
   "problem.ruleText": "Hãy nhập đoạn văn bản cần tìm.",
   "problem.ruleGone": "Quy tắc gửi này không còn nữa.",
   "problem.typedMultiple": "Hãy nhập hệ số từ 1,1 đến 20.",
+  "problem.capCount": "Hãy nhập số email tối đa từ 0 (không giới hạn) đến 50.",
+  "problem.capDays": "Hãy nhập số ngày từ 1 đến 90.",
   "problem.paramThere": "Mọi liên kết đều đã có {param}.",
 
   "rules.whoCanChange": "{names, select, none {Vai trò của bạn không đổi được quy tắc gửi.} other {Vai trò của bạn không đổi được quy tắc gửi: {names} có thể đổi.}}",

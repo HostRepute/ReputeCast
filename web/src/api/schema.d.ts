@@ -3246,6 +3246,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/automation-emails/{id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Render an email as a contact gets it */
+        post: operations["preview-automation-email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automation-emails/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send an email as a test through the System route (logged) */
+        post: operations["test-automation-email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/automations": {
         parameters: {
             query?: never;
@@ -3497,8 +3531,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Resume a paused automation */
+        /** Resume a paused automation, saying what happens to contacts whose wait ended meanwhile */
         post: operations["resume-automation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/runs/{run}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take a contact out of a flow now (needs a reason, logged) */
+        post: operations["remove-automation-contact"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3548,6 +3599,23 @@ export interface paths {
         };
         /** Delivery log of a webhook step */
         get: operations["list-automation-webhook-calls"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/steps/{node}/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The contacts at a step, the latest to arrive first */
+        get: operations["list-automation-step-contacts"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6018,6 +6086,23 @@ export interface paths {
          * @description A personal view is its creator's only. Audited as contact_view.update.
          */
         patch: operations["update-contact-view"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contactId}/automations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The flows a contact is in or went through, and where */
+        get: operations["list-contact-automations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/workspaces/{workspace}/contacts/{contactId}/channels": {
@@ -10802,6 +10887,26 @@ export interface paths {
         put?: never;
         /** Restore a list deleted in the last 30 days */
         post: operations["restore-list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/marketing-cap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the most campaign and automation emails a contact gets in a number of days
+         * @description Count 0 turns the cap off. Campaigns leave out contacts over it; automation emails wait or are skipped, as each step says.
+         */
+        put: operations["update-marketing-cap"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -20960,6 +21065,25 @@ export interface components {
             value?: string;
             within?: components["schemas"]["AutomationDuration"];
         };
+        AutomationContactRun: {
+            automationId: string;
+            /** Format: date-time */
+            enteredAt: string;
+            exitReason?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            name: string;
+            nodeId: string;
+            runId: string;
+            /** @enum {string} */
+            status: "active" | "completed" | "exited" | "goal" | "failed";
+            step: string;
+            /** Format: date-time */
+            stepSince: string;
+        };
+        AutomationContactRuns: {
+            items: components["schemas"]["AutomationContactRun"][];
+        };
         AutomationCreateBody: {
             /**
              * Format: uuid
@@ -20999,6 +21123,8 @@ export interface components {
             /** Format: int64 */
             liveVersion?: number;
             name: string;
+            /** Format: int64 */
+            overdue: number;
             pauseReason?: string;
             /** Format: date-time */
             pausedAt?: string;
@@ -21101,16 +21227,55 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        AutomationEmailPreview: {
+            contact: string;
+            html: string;
+            preheader: string;
+            problems: string[];
+            subject: string;
+        };
+        AutomationEmailPreviewInput: {
+            /**
+             * Format: uuid
+             * @description Personalize as this contact; without one the fallbacks show
+             */
+            contactId?: string;
+            /**
+             * Format: int64
+             * @description Defaults to the latest version
+             */
+            version?: number;
+        };
         AutomationEmailStep: {
             emailId?: string;
             /** Format: int64 */
             emailVersion?: number;
+            /** @enum {string} */
+            overCap?: "wait" | "skip" | "";
             route?: string;
             sendWindow?: components["schemas"]["AutomationSendWindow"];
             skipListId?: string;
             /** Format: int64 */
             skipRecentHours?: number;
             subject?: string;
+        };
+        AutomationEmailTestInput: {
+            automationId?: string;
+            /**
+             * Format: uuid
+             * @description Personalize as this contact; without one the fallbacks show
+             */
+            contactId?: string;
+            to: string[];
+            /**
+             * Format: int64
+             * @description Defaults to the latest version
+             */
+            version?: number;
+        };
+        AutomationEmailTestResult: {
+            provider: string;
+            sent: string[];
         };
         AutomationEmailUpdateBody: {
             html: string;
@@ -21299,6 +21464,7 @@ export interface components {
             name: string;
         };
         AutomationOptions: {
+            campaigns: components["schemas"]["AutomationOptionItem"][];
             emails: components["schemas"]["AutomationEmailOption"][];
             events: string[];
             fields: components["schemas"]["AutomationFieldOption"][];
@@ -21308,6 +21474,7 @@ export interface components {
             products: components["schemas"]["AutomationOptionItem"][];
             providers: components["schemas"]["AutomationRouteProvider"][];
             scoreBands?: components["schemas"]["ScoringBands"];
+            segments: components["schemas"]["AutomationOptionItem"][];
             tags: string[];
         };
         AutomationPathCount: {
@@ -21446,6 +21613,21 @@ export interface components {
             /** @description HH:MM, recipient-local */
             start: string;
         };
+        AutomationSequenceStep: {
+            /** Format: int64 */
+            clicked: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: int64 */
+            next?: number;
+            nodeId: string;
+            /** Format: int64 */
+            openedHuman: number;
+            /** Format: int64 */
+            sent: number;
+            /** Format: int64 */
+            unsubscribed: number;
+        };
         AutomationSplitVariant: {
             key: string;
             /** Format: int64 */
@@ -21468,6 +21650,7 @@ export interface components {
             entered: number;
             /** Format: int64 */
             inFlow: number;
+            sequence: components["schemas"]["AutomationSequenceStep"][];
             /** Format: date-time */
             since: string;
             steps: components["schemas"]["AutomationStepStats"][];
@@ -21481,6 +21664,26 @@ export interface components {
             live: number;
             /** Format: int64 */
             paused: number;
+        };
+        AutomationStepContact: {
+            contactId: string;
+            email: string;
+            /** Format: date-time */
+            enteredAt: string;
+            name: string;
+            runId: string;
+            /** Format: date-time */
+            since: string;
+            /** Format: date-time */
+            until?: string;
+            /** @enum {string} */
+            wait: "delay" | "branch" | "window" | "webhook" | "cap" | "";
+        };
+        AutomationStepContacts: {
+            items: components["schemas"]["AutomationStepContact"][];
+            next?: string;
+            /** Format: int64 */
+            total: number;
         };
         AutomationStepStats: {
             /** Format: int64 */
@@ -21558,21 +21761,24 @@ export interface components {
         AutomationTrigger: {
             /** Format: int64 */
             afterHours?: number;
+            also?: components["schemas"]["AutomationTrigger"][];
             /** @enum {string} */
             answerOp?: "any" | "is" | "is_not";
             answers?: number[];
             at?: string;
             collections?: string[];
             confirmedOnly?: boolean;
+            contactTime?: boolean;
             /** @enum {string} */
             direction?: "rises" | "falls";
             event?: string;
+            exitOnLeave?: boolean;
             field?: string;
             firstOnly?: boolean;
             formId?: string;
             includeImports?: boolean;
             /** @enum {string} */
-            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "bought_product" | "milestone_reached" | "order_placed" | "first_order" | "abandoned_checkout";
+            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "bought_product" | "milestone_reached" | "order_placed" | "first_order" | "abandoned_checkout" | "segment_entered" | "segment_left" | "link_clicked";
             listId?: string;
             milestoneId?: string;
             /** Format: int64 */
@@ -21588,11 +21794,16 @@ export interface components {
             programId?: string;
             reentry?: string;
             /** Format: int64 */
+            reentryDays?: number;
+            segmentId?: string;
+            /** Format: int64 */
             skipDays?: number;
+            source?: string;
             store?: string;
             tag?: string;
             /** Format: int64 */
             threshold?: number;
+            urlContains?: string;
             yearly?: boolean;
         };
         AutomationVersionGraph: {
@@ -30601,6 +30812,12 @@ export interface components {
         MarkInput: {
             blocks?: string[];
         };
+        MarketingCap: {
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            days: number;
+        };
         Me: {
             instance: components["schemas"]["MeInstance"];
             /** @enum {string} */
@@ -36361,6 +36578,9 @@ export interface components {
             /** @enum {string} */
             status?: "up_to_date" | "outdated" | "draft" | "held";
         };
+        RemoveRunInput: {
+            reason: string;
+        };
         RemoveSuppressionInput: {
             reason: string;
         };
@@ -37084,6 +37304,15 @@ export interface components {
             /** Format: double */
             rate?: number;
             source?: string;
+        };
+        ResumeInput: {
+            /**
+             * @description Defaults to send
+             * @enum {string}
+             */
+            overdue?: "send" | "skip" | "spread" | "";
+            /** Format: int64 */
+            spreadHours?: number;
         };
         RevenueActivity: {
             accessPaused: boolean;
@@ -39070,6 +39299,7 @@ export interface components {
             canManage: boolean;
             defaults: components["schemas"]["SendDefaults"];
             managers: string[];
+            marketingCap: components["schemas"]["MarketingCap"];
             reason?: string;
             rules: components["schemas"]["SendingRule"][];
             /** Format: int64 */
@@ -53944,6 +54174,80 @@ export interface operations {
             };
         };
     };
+    "preview-automation-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationEmailPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationEmailPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-automation-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationEmailTestInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationEmailTestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-automations": {
         parameters: {
             query?: {
@@ -54583,7 +54887,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ResumeInput"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -54593,6 +54901,43 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AutomationDetail"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-automation-contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+                run: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoveRunInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -54698,6 +55043,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AutomationWebhookCalls"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-automation-step-contacts": {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Automation id */
+                id: string;
+                node: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationStepContacts"];
                 };
             };
             /** @description Error */
@@ -60351,6 +60734,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ContactSavedView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-contact-automations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationContactRuns"];
                 };
             };
             /** @description Error */
@@ -71289,6 +71705,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ListRestore"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-marketing-cap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarketingCap"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendingRulesView"];
                 };
             };
             /** @description Error */

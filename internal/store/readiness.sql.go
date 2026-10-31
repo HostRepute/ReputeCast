@@ -928,18 +928,25 @@ SELECT c.id, c.email, c.mailbox_provider, c.tier, c.role_address, c.language,
              THEN coalesce((SELECT array_agg(m.list_id) FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'), '{}')
              ELSE '{}' END)::uuid[] AS list_ids,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email) AS suppressed,
-       EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = c.id AND e.type IN ('soft_bounce', 'hard_bounce') AND e.occurred_at > $2::timestamptz) AS bounced
+       EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = c.id AND e.type IN ('soft_bounce', 'hard_bounce') AND e.occurred_at > $2::timestamptz) AS bounced,
+       -- Over the workspace's marketing cap (review 2026-11 AT-9).
+       ($3::int > 0 AND (SELECT count(*) FROM messages mm
+           WHERE mm.contact_id = c.id AND mm.stream IN ('broadcast', 'automation') AND mm.queued_at > $4::timestamptz
+             AND mm.status NOT IN ('failed', 'cancelled', 'rejected') AND ($5::uuid IS NULL OR mm.campaign_id IS DISTINCT FROM $5::uuid)) >= $3::int)::boolean AS over_cap
 FROM contacts c
-WHERE c.workspace_id = $3 AND c.status = 'active' AND c.erased_at IS NULL
-  AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($4::uuid[]) AND ll.deleted_at IS NULL)))
-       OR c.id = ANY($5::uuid[]))
-  AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY($6::uuid[]))
-  AND NOT (c.id = ANY($7::uuid[]))
+WHERE c.workspace_id = $6 AND c.status = 'active' AND c.erased_at IS NULL
+  AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($7::uuid[]) AND ll.deleted_at IS NULL)))
+       OR c.id = ANY($8::uuid[]))
+  AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY($9::uuid[]))
+  AND NOT (c.id = ANY($10::uuid[]))
 `
 
 type ReadinessRecipientsParams struct {
 	WithLists       bool        `json:"withLists"`
 	BouncedSince    time.Time   `json:"bouncedSince"`
+	CapCount        int32       `json:"capCount"`
+	CapSince        time.Time   `json:"capSince"`
+	CampaignID      *uuid.UUID  `json:"campaignId"`
 	WorkspaceID     uuid.UUID   `json:"workspaceId"`
 	Lists           []uuid.UUID `json:"lists"`
 	Contacts        []uuid.UUID `json:"contacts"`
@@ -959,6 +966,7 @@ type ReadinessRecipientsRow struct {
 	ListIds           []uuid.UUID `json:"listIds"`
 	Suppressed        bool        `json:"suppressed"`
 	Bounced           bool        `json:"bounced"`
+	OverCap           bool        `json:"overCap"`
 }
 
 // The audience before suppressions and exclusions by address: active
@@ -971,6 +979,9 @@ func (q *Queries) ReadinessRecipients(ctx context.Context, arg ReadinessRecipien
 	rows, err := q.db.Query(ctx, readinessRecipients,
 		arg.WithLists,
 		arg.BouncedSince,
+		arg.CapCount,
+		arg.CapSince,
+		arg.CampaignID,
 		arg.WorkspaceID,
 		arg.Lists,
 		arg.Contacts,
@@ -996,6 +1007,7 @@ func (q *Queries) ReadinessRecipients(ctx context.Context, arg ReadinessRecipien
 			&i.ListIds,
 			&i.Suppressed,
 			&i.Bounced,
+			&i.OverCap,
 		); err != nil {
 			return nil, err
 		}
@@ -1364,5 +1376,21 @@ func (q *Queries) ReadinessUpdateProgress(ctx context.Context, arg ReadinessUpda
 		arg.CampaignID,
 		arg.RunID,
 	)
+	return err
+}
+
+const setWorkspaceMarketingCap = `-- name: SetWorkspaceMarketingCap :exec
+UPDATE workspaces SET marketing_cap_count = $1, marketing_cap_days = $2 WHERE id = $3
+`
+
+type SetWorkspaceMarketingCapParams struct {
+	Count int32     `json:"count"`
+	Days  int32     `json:"days"`
+	ID    uuid.UUID `json:"id"`
+}
+
+// The workspace's marketing cap (review 2026-11 AT-9).
+func (q *Queries) SetWorkspaceMarketingCap(ctx context.Context, arg SetWorkspaceMarketingCapParams) error {
+	_, err := q.db.Exec(ctx, setWorkspaceMarketingCap, arg.Count, arg.Days, arg.ID)
 	return err
 }

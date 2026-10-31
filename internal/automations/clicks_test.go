@@ -76,6 +76,11 @@ func TestClickConditionsCountPeopleOnly(t *testing.T) {
 	if node, status, _ := run(t, env, branchFlow, scanned); node != "b" || status != "waiting" {
 		t.Fatalf("the scanned contact waits at the branch, is at %s %s", node, status)
 	}
+	// The emails leave now: the branch's hour counts from then (review
+	// 2026-11 EN-3).
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE messages SET status = 'sent', sent_at = $1 WHERE automation_id IN ($2::uuid, $3::uuid)`, clk.now(), branchFlow, goalFlow); err != nil {
+		t.Fatal(err)
+	}
 	// A scanner follows three links of each email within two seconds: each
 	// click looks like a person's on its own, so it waits to settle.
 	at := clk.now().Add(5 * time.Minute)

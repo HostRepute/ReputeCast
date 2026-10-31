@@ -158,6 +158,8 @@ describe('the automation trigger and goal', () => {
     lists: [],
     milestones: [],
     products: [{ id: fg, name: 'The Deliverability Field Guide' }],
+    segments: [],
+    campaigns: [],
     providers: [],
     tags: [],
   })

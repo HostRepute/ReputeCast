@@ -4346,6 +4346,16 @@
    "w": 1440,
    "x": 9120,
    "y": 0
+  },
+  "AutomationsComplete.dc.html": {
+   "expand": "fill",
+   "h": 2588,
+   "is_interactive": true,
+   "page": "automations",
+   "title": "Automations, complete · manage flows, contacts at a step, test send, resume, triggers, marketing cap, sequence stats",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
   }
  },
  "createdOnFiles": {
@@ -4449,7 +4459,7 @@
   },
   "t-automations": {
    "kind": "title1",
-   "maxW": 6000,
+   "maxW": 7520,
    "page": "automations",
    "text": "7.10 Automations — React Flow canvas",
    "w": 240,
@@ -5489,6 +5499,7 @@
   "AutomationFlow.dc.html",
   "AutomationPublish.dc.html",
   "AutomationsStates.dc.html",
+  "AutomationsComplete.dc.html",
   "AutomationsListTablet.dc.html",
   "AutomationFlowTablet.dc.html",
   "AutomationsListPhone.dc.html",

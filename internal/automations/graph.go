@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
@@ -40,7 +42,36 @@ const (
 	// TriggerMilestoneReached starts when a referrer reaches a referral
 	// milestone (Grow), once per contact per milestone.
 	TriggerMilestoneReached = "milestone_reached"
+	// TriggerSegmentEntered and TriggerSegmentLeft start when a contact
+	// enters or leaves a segment (review 2026-11 AT-10, from AU-16's
+	// segment_member_events).
+	TriggerSegmentEntered = "segment_entered"
+	TriggerSegmentLeft    = "segment_left"
+	// TriggerLinkClicked starts on a person's settled click in a campaign
+	// or an automation email (AT-10).
+	TriggerLinkClicked = "link_clicked"
 )
+
+// alsoKinds are the triggers that can be the second or third of a flow
+// (AT-11): the ones an event matches on its own, with no rules of their
+// own about who enters.
+var alsoKinds = []string{TriggerJoinedList, TriggerFormSubmitted, TriggerTagAdded, TriggerAPIEvent, TriggerSegmentEntered, TriggerSegmentLeft, TriggerLinkClicked}
+
+// Triggers returns a flow's triggers: the first, then those in its Also.
+func (t *AutomationTrigger) Triggers() []AutomationTrigger {
+	if t == nil || t.Kind == "" {
+		return nil
+	}
+	first := *t
+	first.Also = nil
+	out := []AutomationTrigger{first}
+	for _, a := range t.Also {
+		if a.Kind != "" {
+			out = append(out, a)
+		}
+	}
+	return out
+}
 
 // Branch paths.
 const (
@@ -104,7 +135,7 @@ type AutomationNodeData struct {
 
 // AutomationTrigger says which contacts enter the flow.
 type AutomationTrigger struct {
-	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,poll_answered,bought_product,milestone_reached,order_placed,first_order,abandoned_checkout"`
+	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,poll_answered,bought_product,milestone_reached,order_placed,first_order,abandoned_checkout,segment_entered,segment_left,link_clicked"`
 	// Joined list: the list, whether to wait for double opt-in, and whether
 	// contacts added by an import count.
 	ListID         string `json:"listId,omitempty" maxLength:"40"`
@@ -121,8 +152,23 @@ type AutomationTrigger struct {
 	At         string `json:"at,omitempty" maxLength:"5"`
 	// Reentry: "once" (default) lets a contact through the flow one time (a
 	// yearly date trigger: once a year); "always" lets them enter again
-	// after they leave.
-	Reentry string `json:"reentry,omitempty" maxLength:"8"`
+	// after they leave; "days" at most once every ReentryDays days
+	// (review 2026-11 AT-6).
+	Reentry     string `json:"reentry,omitempty" maxLength:"8"`
+	ReentryDays int    `json:"reentryDays,omitempty" minimum:"0" maximum:"3650"`
+	// ExitOnLeave ends a Joined list flow's runs when the contact leaves
+	// the list (AT-8).
+	ExitOnLeave bool `json:"exitOnLeave,omitempty"`
+	// ContactTime fires a date trigger at At in each contact's own time
+	// zone, the workspace's when they have none (AT-7).
+	ContactTime bool `json:"contactTime,omitempty"`
+	// Enters or leaves a segment: the segment (AT-10).
+	SegmentID string `json:"segmentId,omitempty" maxLength:"40"`
+	// Clicked a link: in a campaign ("campaign:<id>") or an automation
+	// email ("email:<id>"), any of them when empty, and optionally only
+	// links whose address contains URLContains (AT-10).
+	Source      string `json:"source,omitempty" maxLength:"60"`
+	URLContains string `json:"urlContains,omitempty" maxLength:"200"`
 	// Score crosses: the score rises to Threshold or more, or falls below
 	// it, at most once per contact in OnceInDays days (0: no limit).
 	Direction  string `json:"direction,omitempty" enum:"rises,falls"`
@@ -153,6 +199,10 @@ type AutomationTrigger struct {
 	FirstOnly   bool     `json:"firstOnly,omitempty"`
 	AfterHours  int      `json:"afterHours,omitempty" minimum:"0" maximum:"24"`
 	SkipDays    *int     `json:"skipDays,omitempty" minimum:"0" maximum:"30"`
+	// Also holds up to two more triggers, any of which enrols (review
+	// 2026-11 AT-11). Re-entry and leaving with the list are the first
+	// trigger's; the others never carry their own Also.
+	Also []AutomationTrigger `json:"also,omitempty" maxItems:"2"`
 }
 
 // AutomationDuration is a delay or a time window.
@@ -173,6 +223,10 @@ type AutomationEmailStep struct {
 	SkipRecentHours int `json:"skipRecentHours,omitempty" minimum:"0" maximum:"720"`
 	// SkipListID skips the email for members of this list.
 	SkipListID string `json:"skipListId,omitempty" maxLength:"40"`
+	// OverCap is what happens when the contact is over the workspace's
+	// marketing cap (review 2026-11 AT-9): "wait" (default) until they're
+	// under it, or "skip" the email.
+	OverCap string `json:"overCap,omitempty" enum:"wait,skip,"`
 }
 
 // AutomationSendWindow holds email until the recipient's local time is inside it.
@@ -505,6 +559,10 @@ type Refs struct {
 	// Field Guide".
 	Milestones map[string]string
 	Stores     map[string]string // store id → name (connected stores)
+	Segments   map[string]string // id → name (AT-10)
+	// Sources are what a "Clicked a link" trigger can listen to:
+	// "campaign:<id>" and "email:<id>" → name.
+	Sources map[string]string
 	// milestones are the same milestones' parts, to name them in each
 	// reader's language.
 	milestones map[string]milestone
@@ -552,6 +610,23 @@ var (
 	mProblemTime24                  = msg("problem.time24")
 	mProblemTriggerMilestoneDeleted = msg("problem.triggerMilestoneDeleted")
 	mProblemReentry                 = msg("problem.reentry")
+	mProblemReentryDays             = msg("problem.reentryDays")
+	mProblemExitOnLeave             = msg("problem.exitOnLeave")
+	mProblemAlsoMany                = msg("problem.alsoMany")
+	mProblemAlsoKind                = msg("problem.alsoKind")
+	mProblemAlsoNested              = msg("problem.alsoNested")
+	mProblemPickSegment             = msg("problem.pickSegment")
+	mProblemTriggerSegmentDeleted   = msg("problem.triggerSegmentDeleted")
+	mProblemLinkSource              = msg("problem.linkSource")
+	mProblemCursor                  = msg("problem.cursor")
+	mProblemRemoveReason            = msg("problem.removeReason")
+	mProblemRunFinished             = msg("problem.runFinished")
+	mProblemOverdue                 = msg("problem.overdue")
+	mProblemSpreadHours             = msg("problem.spreadHours")
+	mProblemTestTo                  = msg("problem.testTo")
+	mProblemTestOwn                 = msg("problem.testOwn")
+	mProblemNoSystemRoute           = msg("problem.noSystemRoute")
+	mProblemTestRefused             = msg("problem.testRefused")
 	mProblemDelayMissing            = msg("problem.delayMissing")
 	mProblemDelayMax                = msg("problem.delayMax")
 	mProblemPickEmail               = msg("problem.pickEmail")
@@ -726,66 +801,37 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 			bad("trigger_kind", txt(mProblemTriggerKind))
 			break
 		}
-		switch t.Kind {
-		case TriggerJoinedList:
-			if t.ListID == "" {
-				bad("missing_ref", txt(mProblemPickJoinList))
-			} else if !listExists(t.ListID) {
-				bad("missing_ref", txt(mProblemTriggerListDeleted))
-			}
-		case TriggerFormSubmitted:
-			if t.FormID == "" {
-				bad("missing_ref", txt(mProblemPickForm))
-			} else if refs != nil {
-				if _, ok := refs.Forms[t.FormID]; !ok {
-					bad("missing_ref", txt(mProblemTriggerFormDeleted))
-				}
-			}
-		case TriggerTagAdded:
-			if !reTag.MatchString(t.Tag) {
-				bad("invalid_tag", txt(mProblemTriggerTag))
-			}
-		case TriggerAPIEvent:
-			if !reEvent.MatchString(t.Event) {
-				bad("invalid_event", txt(mProblemTriggerEvent))
-			}
-		case TriggerBoughtProduct:
-			checkProduct(t.ProductID, refs, bad)
-		case TriggerPollAnswered:
-			if t.Poll == "" {
-				bad("missing_ref", txt(mProblemPickPoll))
-			} else if refs != nil && refs.Polls != nil {
-				if _, ok := refs.Polls[t.Poll]; !ok {
-					bad("missing_ref", txt(mProblemTriggerPollDeleted))
-				}
-			}
-		case TriggerDateField:
-			if t.Field == "" {
-				bad("missing_ref", txt(mProblemPickDateField))
-			} else if refs != nil && t.Field != "created_at" {
-				if typ, ok := refs.Fields[t.Field]; !ok {
-					bad("missing_ref", txt(mProblemTriggerFieldDeleted))
-				} else if typ != "date" {
-					bad("invalid_field", txt(mProblemTriggerFieldType))
-				}
-			}
-			if t.At != "" && !reHHMM.MatchString(t.At) {
-				bad("invalid_time", txt(mProblemTime24))
+		extra := func(p []configProblem) { out = append(out, p...) }
+		checkTrigger(t, refs, bad, extra)
+		// Up to two more triggers of the kinds an event matches alone
+		// (review 2026-11 AT-11).
+		if len(t.Also) > 2 {
+			bad("many_triggers", txt(mProblemAlsoMany))
+		}
+		for i := range t.Also {
+			a := &t.Also[i]
+			switch {
+			case a.Kind == "":
+				bad("trigger_kind", txt(mProblemTriggerKind))
+			case !slices.Contains(alsoKinds, a.Kind):
+				bad("also_kind", txt(mProblemAlsoKind))
+			case len(a.Also) > 0:
+				bad("also_nested", txt(mProblemAlsoNested))
+			default:
+				checkTrigger(a, refs, bad, extra)
 			}
 		}
-		if t.Kind == TriggerScoreCrosses {
-			out = append(out, checkScoreTrigger(t)...)
-		}
-		if t.Kind == TriggerMilestoneReached && t.MilestoneID != "" && refs != nil && refs.Milestones != nil {
-			if _, ok := refs.Milestones[t.MilestoneID]; !ok {
-				bad("missing_ref", txt(mProblemTriggerMilestoneDeleted))
+		switch t.Reentry {
+		case "", "once", "always":
+		case "days":
+			if t.ReentryDays < 1 {
+				bad("invalid_reentry", txt(mProblemReentryDays))
 			}
-		}
-		if isStoreTrigger(t.Kind) {
-			out = append(out, checkStoreTrigger(t, refs)...)
-		}
-		if t.Reentry != "" && t.Reentry != "once" && t.Reentry != "always" {
+		default:
 			bad("invalid_reentry", txt(mProblemReentry))
+		}
+		if t.ExitOnLeave && t.Kind != TriggerJoinedList {
+			bad("invalid_exit", txt(mProblemExitOnLeave))
 		}
 	case NodeDelay:
 		if d.Delay == nil || d.Delay.Amount <= 0 {
@@ -918,6 +964,97 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 		}
 	}
 	return out
+}
+
+// checkTrigger checks one trigger's settings (the first of a flow, or one
+// of its others).
+func checkTrigger(t *AutomationTrigger, refs *Refs, bad func(string, i18n.Text), extra func([]configProblem)) {
+	listExists := func(id string) bool {
+		if refs == nil {
+			return true
+		}
+		_, ok := refs.Lists[id]
+		return ok
+	}
+	switch t.Kind {
+	case TriggerJoinedList:
+		if t.ListID == "" {
+			bad("missing_ref", txt(mProblemPickJoinList))
+		} else if !listExists(t.ListID) {
+			bad("missing_ref", txt(mProblemTriggerListDeleted))
+		}
+	case TriggerFormSubmitted:
+		if t.FormID == "" {
+			bad("missing_ref", txt(mProblemPickForm))
+		} else if refs != nil {
+			if _, ok := refs.Forms[t.FormID]; !ok {
+				bad("missing_ref", txt(mProblemTriggerFormDeleted))
+			}
+		}
+	case TriggerTagAdded:
+		if !reTag.MatchString(t.Tag) {
+			bad("invalid_tag", txt(mProblemTriggerTag))
+		}
+	case TriggerAPIEvent:
+		if !reEvent.MatchString(t.Event) {
+			bad("invalid_event", txt(mProblemTriggerEvent))
+		}
+	case TriggerBoughtProduct:
+		checkProduct(t.ProductID, refs, bad)
+	case TriggerPollAnswered:
+		if t.Poll == "" {
+			bad("missing_ref", txt(mProblemPickPoll))
+		} else if refs != nil && refs.Polls != nil {
+			if _, ok := refs.Polls[t.Poll]; !ok {
+				bad("missing_ref", txt(mProblemTriggerPollDeleted))
+			}
+		}
+	case TriggerDateField:
+		if t.Field == "" {
+			bad("missing_ref", txt(mProblemPickDateField))
+		} else if refs != nil && t.Field != "created_at" {
+			if typ, ok := refs.Fields[t.Field]; !ok {
+				bad("missing_ref", txt(mProblemTriggerFieldDeleted))
+			} else if typ != "date" {
+				bad("invalid_field", txt(mProblemTriggerFieldType))
+			}
+		}
+		if t.At != "" && !reHHMM.MatchString(t.At) {
+			bad("invalid_time", txt(mProblemTime24))
+		}
+	}
+	if t.Kind == TriggerScoreCrosses {
+		extra(checkScoreTrigger(t))
+	}
+	if t.Kind == TriggerMilestoneReached && t.MilestoneID != "" && refs != nil && refs.Milestones != nil {
+		if _, ok := refs.Milestones[t.MilestoneID]; !ok {
+			bad("missing_ref", txt(mProblemTriggerMilestoneDeleted))
+		}
+	}
+	if isStoreTrigger(t.Kind) {
+		extra(checkStoreTrigger(t, refs))
+	}
+	switch t.Kind {
+	case TriggerSegmentEntered, TriggerSegmentLeft:
+		if t.SegmentID == "" {
+			bad("missing_ref", txt(mProblemPickSegment))
+		} else if refs != nil && refs.Segments != nil {
+			if _, ok := refs.Segments[t.SegmentID]; !ok {
+				bad("missing_ref", txt(mProblemTriggerSegmentDeleted))
+			}
+		}
+	case TriggerLinkClicked:
+		if t.Source != "" {
+			kind, id, ok := strings.Cut(t.Source, ":")
+			if _, err := uuid.Parse(id); !ok || err != nil || (kind != "campaign" && kind != "email") {
+				bad("missing_ref", txt(mProblemLinkSource))
+			} else if refs != nil && refs.Sources != nil {
+				if _, ok := refs.Sources[t.Source]; !ok {
+					bad("missing_ref", txt(mProblemLinkSource))
+				}
+			}
+		}
+	}
 }
 
 // webhookURLProblem says what's wrong with a webhook step's URL, as

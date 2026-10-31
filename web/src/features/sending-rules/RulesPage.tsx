@@ -13,6 +13,7 @@ import { common } from '@/i18n/common'
 import { andList, clock, decimal, shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
+import { MarketingCapCard } from './MarketingCapCard'
 import { m } from './messages'
 import './sending-rules.css'
 
@@ -166,7 +167,11 @@ function RulesBody({ view }: { view: View }) {
           }}
           onCancel={() => setEditing(null)}
         />
-        <DefaultsCard key={JSON.stringify(view.defaults)} view={view} read={read} reason={reason} onSaved={refresh} />
+        <div className="flex min-w-0 flex-col gap-5">
+          <DefaultsCard key={JSON.stringify(view.defaults)} view={view} read={read} reason={reason} onSaved={refresh} />
+          {/* The marketing cap (review 2026-11 AT-9). */}
+          <MarketingCapCard key={JSON.stringify(view.marketingCap)} cap={view.marketingCap} read={read} reason={reason} onSaved={refresh} />
+        </div>
       </div>
     </>
   )

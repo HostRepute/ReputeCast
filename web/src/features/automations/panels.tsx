@@ -30,6 +30,10 @@ import {
   type StepType,
   type TriggerConfig,
 } from './graph'
+import { m as mc } from './complete.messages'
+import { EmailTestFields, OverCapChoice } from './emailtest'
+import { AlsoTriggers, NewKindFields, ReentryDays } from './triggers'
+import { StepContactsButton } from './people'
 import { mg } from './graph.messages'
 import { mp } from './panels.messages'
 import type { StepStats } from './view'
@@ -540,6 +544,8 @@ export function StepPanel(p: StepPanelProps) {
                 {tr(mp.preview)}
               </Button>
             </div>
+            {/* Preview as a contact and Send test (review 2026-11 AT-3). */}
+            <EmailTestFields automationId={p.automationId} emailId={d.email?.emailId} version={d.email?.emailVersion} />
           </Prop>
           {d.email?.emailId ? (
             <StepLanguages
@@ -578,6 +584,10 @@ export function StepPanel(p: StepPanelProps) {
             </Check>
           </Prop>
           <SkipRules {...p} />
+          {/* The workspace's marketing cap (review 2026-11 AT-9). */}
+          <Prop title={tr(mc.overCap)} id="p-overcap">
+            <OverCapChoice value={d.email?.overCap} disabled={disabled} onChange={(v) => set({ email: { ...d.email, overCap: v === 'skip' ? 'skip' : undefined } })} />
+          </Prop>
           {p.hasStats && st ? (
             <Prop title={tr(mp.liveStats)} id="p-stats">
               <div className="fe-stats">
@@ -704,6 +714,7 @@ function TriggerProps({ graph, node, options, editable, onChange, stats, hasStat
   const disabled = !editable
   const set = (patch: Partial<TriggerConfig>) => onChange({ ...node.data, trigger: { ...t, ...patch } })
   const stores = useStoreTriggerOptions().data?.stores
+  const { me } = useWorkspace()
   return (
     <>
       <Prop title={tr(mp.startsWhen)} id="p-kind">
@@ -714,7 +725,10 @@ function TriggerProps({ graph, node, options, editable, onChange, stats, hasStat
           value={t.kind}
           onChange={(e) => {
             const kind = e.target.value as TriggerConfig['kind']
-            onChange({ ...node.data, trigger: { reentry: t.reentry, ...(kind === 'score_crosses' ? scoreTriggerDefaults(options?.scoreBands) : {}), ...storeTriggerDefaults(kind, stores), kind } })
+            onChange({
+              ...node.data,
+              trigger: { reentry: t.reentry, reentryDays: t.reentryDays, also: t.also, ...(kind === 'score_crosses' ? scoreTriggerDefaults(options?.scoreBands) : {}), ...storeTriggerDefaults(kind, stores), kind },
+            })
           }}
         >
           {TRIGGER_KINDS.map((k) => (
@@ -739,8 +753,14 @@ function TriggerProps({ graph, node, options, editable, onChange, stats, hasStat
             <Check checked={Boolean(t.includeImports)} disabled={disabled} onChange={(v) => set({ includeImports: v || undefined })}>
               {tr(mp.includeImports)}
             </Check>
+            {/* Leave the flow with the list (review 2026-11 AT-8). */}
+            <Check checked={Boolean(t.exitOnLeave)} disabled={disabled} onChange={(v) => set({ exitOnLeave: v || undefined })}>
+              {tr(mc.exitOnLeave, { list: options?.lists.find((l) => l.id === t.listId)?.name ?? tr(mc.theList) })}
+            </Check>
           </>
         ) : null}
+        {/* Segments and links (review 2026-11 AT-10). */}
+        <NewKindFields t={t} set={set} options={options} disabled={disabled} />
         {t.kind === 'form_submitted' ? (
           <select className="in" aria-label={tr(mp.form)} disabled={disabled} value={t.formId ?? ''} onChange={(e) => set({ formId: e.target.value })}>
             <option value="">{tr(mp.pickForm)}</option>
@@ -809,8 +829,14 @@ function TriggerProps({ graph, node, options, editable, onChange, stats, hasStat
                 {tr(mp.everyYear)}
               </Check>
             </div>
+            {/* At each contact's own time (review 2026-11 AT-7). */}
+            <Check checked={Boolean(t.contactTime)} disabled={disabled} onChange={(v) => set({ contactTime: v || undefined })}>
+              {tr(mc.contactTime, { time: t.at || '09:00' })} <span className="k">· {tr(mc.contactTimeHint, { zone: me.timezone })}</span>
+            </Check>
           </>
         ) : null}
+        {/* Up to two more triggers (review 2026-11 AT-11). */}
+        <AlsoTriggers t={t} set={set} options={options} disabled={disabled} />
       </Prop>
       {t.kind === 'score_crosses' || t.kind === 'milestone_reached' ? null : (
         <Prop title={tr(mp.reentry)} id="p-reentry">
@@ -818,12 +844,14 @@ function TriggerProps({ graph, node, options, editable, onChange, stats, hasStat
             id="p-reentry"
             disabled={disabled}
             value={t.reentry ?? 'once'}
-            onChange={(v) => set({ reentry: v })}
+            onChange={(v) => set({ reentry: v, reentryDays: v === 'days' ? (t.reentryDays ?? 30) : undefined })}
             options={[
               { value: 'once', label: tr(t.kind === 'date_field' && t.yearly ? mp.oncePerYear : mp.oncePerContact) },
               { value: 'always', label: tr(mp.everyTime) },
+              { value: 'days', label: tr(mc.reentryDays) },
             ]}
           />
+          {t.reentry === 'days' ? <ReentryDays value={t.reentryDays} disabled={disabled} onChange={(n) => set({ reentryDays: n })} /> : null}
         </Prop>
       )}
       {hasStats && stats ? (
@@ -973,7 +1001,21 @@ function ListProps({ node, options, editable, onChange }: StepPanelProps) {
 }
 
 /** Right panel › Stats: the selected step's numbers and, for webhooks, the delivery log. */
-export function StepStatsPanel({ node, stats: st, automationId, hasStats }: { node: FlowNode; stats?: StepStats; automationId: string; hasStats: boolean }) {
+export function StepStatsPanel({
+  node,
+  stats: st,
+  automationId,
+  hasStats,
+  automationName = '',
+  stepName = '',
+}: {
+  node: FlowNode
+  stats?: StepStats
+  automationId: string
+  hasStats: boolean
+  automationName?: string
+  stepName?: string
+}) {
   const tr = useT()
   const { slug } = useWorkspace()
   const calls = $api.useQuery(
@@ -1023,6 +1065,8 @@ export function StepStatsPanel({ node, stats: st, automationId, hasStats }: { no
           {st.providers.length > 0 ? (
             <span className="k">{st.providers.map((p) => (p.fallback ? tr(mp.providerFailover, { provider: p.short, count: count(p.sent) }) : `${p.short} ${count(p.sent)}`)).join(' · ')}</span>
           ) : null}
+          {/* Who is at the step now (review 2026-11 AT-2). */}
+          {hasStats ? <StepContactsButton automationId={automationId} automationName={automationName} nodeId={node.id} step={stepName || typeName(node.type)} here={st.inFlowNow} /> : null}
         </div>
       ) : (
         <div className="fe-prop">

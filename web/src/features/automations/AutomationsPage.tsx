@@ -15,6 +15,7 @@ import { ct, RevenueCell } from '@/features/commerce/automation'
 import { t as tt, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { m } from './messages'
+import { FlowRowMenu } from './manage'
 import { AutomationStatusBadge } from './StatusBadge'
 import { EmptyAutomations, StarterTemplates, TemplateGrid } from './TemplateCards'
 import './automations.css'
@@ -288,9 +289,12 @@ function AutomationTable({ items }: { items: Item[] }) {
                   dash
                 )}
                 <Td>
-                  <ButtonLink size="sm" to="/w/$workspace/automations/$automationId" params={params}>
-                    {a.status === 'draft' ? t(m.edit) : t(m.open)}
-                  </ButtonLink>
+                  <span className="flex items-center justify-end gap-1.5">
+                    <ButtonLink size="sm" to="/w/$workspace/automations/$automationId" params={params}>
+                      {a.status === 'draft' ? t(m.edit) : t(m.open)}
+                    </ButtonLink>
+                    <FlowRowMenu flow={{ id: a.id, name: a.name, status: a.status, inFlow: a.inFlow }} />
+                  </span>
                 </Td>
               </tr>
             )

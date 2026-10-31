@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automations, complete · manage flows, contacts at a step, test send, resume, triggers, cap, analytics</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.sboard{width:1440px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:22px}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.strip span{font-weight:500;text-transform:none;letter-spacing:0;color:#CBD5E1}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+figcaption{font-size:12px;color:#5B6472;font-weight:600}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}
+.btn.dpri{background:#B91C1C;border-color:#B91C1C;color:#fff}
+.btn[aria-disabled=true]{opacity:.5}
+.linkbtn{background:none;border:0;padding:0;font:inherit;font-size:13px;font-weight:600;color:#0F766E;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.t1{background:#104281;color:#fff}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font-size:12.5px;font-weight:500;color:#374151}
+.chip.on{background:#E3F1EE;border-color:#99F6E4;color:#0F766E;font-weight:600}
+.chip .more{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-right:-6px;border-radius:6px;border:0;background:transparent;color:inherit;cursor:pointer}
+.in{height:36px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box}
+.in.err{border-color:#B91C1C}
+.lbl{font-size:12px;font-weight:600;color:#374151}
+.field{display:flex;flex-direction:column;gap:6px}
+.hint{font-size:12px;color:#5B6472}
+.errt{font-size:12px;color:#991B1B;font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:10px 12px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl th button{display:inline-flex;align-items:center;gap:4px;background:none;border:0;padding:0;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer}
+.tbl th[aria-sort] button{color:#0B1220}
+.tbl td{padding:10px 12px;border-bottom:1px solid #EEF0F3;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.tbl tr.sel td{background:#F0FDFA}
+.foot{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-top:1px solid #EEF0F3;flex-wrap:wrap;gap:8px}
+.bulk{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 12px;background:#F0FDFA;border:1px solid #99F6E4;border-radius:10px}
+.banner{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;padding:9px 12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;font-size:13px}
+.menu{background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:240px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;width:100%}
+.menu button:hover,.menu button.hl{background:#F3F4F6}
+.menu button.red{color:#991B1B}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+.menu label{display:flex;align-items:center;gap:10px;min-height:32px;padding:0 10px;border-radius:8px;font-size:13px}
+.pop{background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:14px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box}
+.dlg{background:#fff;border-radius:12px;box-shadow:0 24px 64px rgba(11,18,32,.24);display:flex;flex-direction:column;box-sizing:border-box;border:1px solid #E3E6EB}
+.dlg header{padding:18px 20px 6px;font-size:17px;font-weight:700}
+.dlg .body{padding:6px 20px 14px;display:flex;flex-direction:column;gap:12px;color:#374151}
+.dlg footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #EEF0F3}
+.note{display:flex;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px}
+.note.w{background:#FFFBEB;border:1px solid #FDE68A;color:#78350F}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.sec{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #EEF0F3}
+.h2{font-size:15px;font-weight:700;margin:0}
+.lrow{display:flex;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid #EEF0F3}
+.lrow:first-of-type{border-top:0}
+.tag{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 4px 0 8px;border-radius:6px;background:#EEF0F3;font-size:12px;font-weight:600;color:#374151}
+.tag button{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:0;border-radius:4px;background:transparent;color:#5B6472;cursor:pointer}
+.sw{display:inline-flex;align-items:center;width:34px;height:20px;border-radius:999px;background:#0F766E;padding:2px;box-sizing:border-box;justify-content:flex-end}
+.sw.off{background:#C9CED6;justify-content:flex-start}
+.sw i{width:16px;height:16px;border-radius:50%;background:#fff;display:block}
+.spin{width:12px;height:12px;border-radius:50%;border:2px solid #CBD5E1;border-top-color:#0F766E;display:inline-block}
+.drawer{background:#fff;border:1px solid #E3E6EB;border-radius:12px;box-shadow:0 24px 64px rgba(11,18,32,.18);display:flex;flex-direction:column}
+.stack{display:flex;flex-direction:column;gap:8px}
+.tcard{border:1px solid #99F6E4;background:#F0FDFA;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.tcard .ey{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#0F766E}
+.or{align-self:center;font-size:11px;font-weight:700;letter-spacing:.06em;color:#5B6472}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;font-size:13px}
+.opt.on{border-color:#0F766E;background:#F0FDFA}
+.opt input{margin-top:3px}
+.wf{display:flex;justify-content:space-between;padding:8px 14px;border-top:1px solid #EEF0F3;font-size:13px}
+.wf:first-child{border-top:0}
+.bar{height:8px;border-radius:4px;background:#E3E6EB;overflow:hidden}.bar i{display:block;height:100%;background:#4338CA}
+</style>
+</helmet>
+<div class="sboard" data-wrap="1">
+
+<div class="strip">1 · Manage flows <span>A flow can be duplicated or deleted from the list, and a draft discarded in the editor. Deleting a live flow says how many contacts are in it and offers Pause instead.</span></div>
+<div class="grid three">
+  <figure><figcaption>Automations list · a row's menu</figcaption>
+    <section class="card"><div class="lrow"><span style="flex:1;min-width:0"><b>Welcome series</b><br><span class="k">Joined Weekly Digest · 1,284 in the flow</span></span><span class="badge ok"><span class="dot"></span>Live</span><button class="btn sm" aria-label="More actions for Welcome series" aria-expanded="true">⋯</button></div></section>
+    <div class="menu" role="menu" style="align-self:flex-end"><button role="menuitem">Open</button><button role="menuitem">Duplicate</button><hr><button role="menuitem" class="red">Delete…</button></div>
+  </figure>
+  <figure><figcaption>Delete a live flow</figcaption>
+    <div class="dlg"><header>Delete Welcome series?</header><div class="body"><span><b>1,284 contacts</b> are in this flow. They leave it at once and get none of its remaining emails; their lists and tags stay. Its reports and versions go too.</span><div class="field"><label class="lbl" for="dn">Type Welcome series to confirm</label><input id="dn" class="in" value=""></div></div><footer><button class="btn">Pause instead</button><button class="btn">Cancel</button><button class="btn dpri" aria-disabled="true">Delete flow</button></footer></div>
+  </figure>
+  <figure><figcaption>Editor header · discard the draft</figcaption>
+    <div class="card" style="padding:10px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="badge warn">Unpublished changes · 3</span><button class="btn sm" style="margin-left:auto">Discard draft</button><button class="btn sm">Version history</button><button class="btn sm pri">Publish v4</button></div>
+    <div class="dlg"><header>Discard 3 unpublished changes?</header><div class="body"><span>The draft goes back to the live version, v3. Contacts in the flow aren't affected.</span></div><footer><button class="btn">Keep editing</button><button class="btn dpri">Discard changes</button></footer></div>
+  </figure>
+</div>
+
+<div class="strip">2 · Who is at a step <span>Each step opens the contacts at it, newest first, a page at a time. Removing someone from a flow is logged with your name. The contact's profile lists the flows they're in and where.</span></div>
+<div class="grid">
+  <figure><figcaption>Step panel · Contacts at this step</figcaption>
+    <aside class="drawer" aria-label="Contacts at Wait 2 days"><div class="sec"><div><h3 class="h2">Wait 2 days · 412 contacts</h3><span class="k">Newest first</span></div><button class="btn sm" aria-label="Close">×</button></div>
+      <div class="lrow"><span style="flex:1;min-width:0"><b>Maya Patel</b> <span class="k mono">maya@example.com</span><br><span class="k">Here since today 09:12 · moves on Thu 2 Nov, 09:12</span></span><button class="btn sm danger">Remove from flow</button></div>
+      <div class="lrow"><span style="flex:1;min-width:0"><b>Tom Becker</b> <span class="k mono">tom@example.org</span><br><span class="k">Here since yesterday 18:40 · moves on Wed 1 Nov, 18:40</span></span><button class="btn sm danger">Remove from flow</button></div>
+      <div class="lrow"><span style="flex:1;min-width:0"><b>—</b> <span class="k mono">ines@example.net</span><br><span class="k">Here since 29 Oct · held for the send window</span></span><button class="btn sm danger">Remove from flow</button></div>
+      <div class="foot"><span class="k">3 of 412</span><button class="btn sm">Show more</button></div>
+    </aside>
+  </figure>
+  <figure><figcaption>Contact profile · Automations card</figcaption>
+    <section class="card"><div class="sec"><h3 class="h2">Automations · 2</h3></div>
+      <div class="lrow"><span style="flex:1;min-width:0"><a href="#"><b>Welcome series</b></a><br><span class="k">At "Wait 2 days" since today 09:12 · entered 30 Oct</span></span><span class="badge info">In progress</span><button class="btn sm danger">Remove</button></div>
+      <div class="lrow"><span style="flex:1;min-width:0"><a href="#"><b>Re-engagement</b></a><br><span class="k">Finished 12 Sep · reached the goal</span></span><span class="badge ok">Done</span></div>
+    </section>
+    <div class="dlg"><header>Remove Maya Patel from Welcome series?</header><div class="body"><span>They leave the flow now and get none of its remaining emails. They can enter again only if the flow's re-entry setting allows.</span><div class="field"><label class="lbl" for="rr">Why (kept in the audit log)</label><input id="rr" class="in" value="Asked to stop the onboarding emails"></div></div><footer><button class="btn">Cancel</button><button class="btn dpri">Remove from flow</button></footer></div>
+  </figure>
+</div>
+
+<div class="strip">3 · Test an email and resume a paused flow <span>An email step can be previewed as a real contact and sent as a test, as campaigns are. Resuming asks what to do with delays that ended during the pause, within warm-up caps and quiet hours.</span></div>
+<div class="grid">
+  <figure><figcaption>Email panel · Preview as and Send test</figcaption>
+    <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><span class="lbl">Email</span><select class="in"><option>Welcome · step 1 "You're in" · v5</option></select>
+      <div class="field"><label class="lbl" for="pa">Preview as</label><input id="pa" class="in" value="maya@example.com"><span class="hint">Liquid fills in with this contact's fields.</span></div>
+      <div class="field"><label class="lbl" for="st">Send a test to</label><div style="display:flex;gap:8px"><input id="st" class="in" style="flex:1" value="linh@acme.io"><button class="btn">Send test</button></div><span class="hint">Goes through the System route with "[Test]" in the subject; no stats.</span></div>
+      <div class="note i"><span>Test sent to linh@acme.io as Maya Patel.</span></div>
+    </section>
+  </figure>
+  <figure><figcaption>Resume a paused flow</figcaption>
+    <div class="dlg"><header>Resume Welcome series?</header><div class="body"><span><b>412 contacts</b> had a delay end while the flow was paused. What should happen to them?</span>
+      <label class="opt on"><input type="radio" name="od" checked><span><b>Send now</b><br><span class="k">They move on at once, within warm-up caps and quiet hours.</span></span></label>
+      <label class="opt"><input type="radio" name="od"><span><b>Skip overdue emails</b><br><span class="k">The email they missed is skipped; they continue at the step after it.</span></span></label>
+      <label class="opt"><input type="radio" name="od"><span><b>Spread over <input class="in" style="width:56px;height:28px" value="6" aria-label="Hours"> hours</b><br><span class="k">About 69 an hour, so a backlog doesn't land at once.</span></span></label>
+    </div><footer><button class="btn">Cancel</button><button class="btn pri">Resume</button></footer></div>
+  </figure>
+</div>
+
+<div class="strip">4 · Triggers <span>Up to three triggers start a flow; any of them enrols. Re-entry can wait N days, a date can fire at the contact's own time, a list flow can let contacts go when they leave the list, and two new triggers listen to segments and links.</span></div>
+<div class="grid three">
+  <figure><figcaption>Trigger panel · a stack of up to three</figcaption>
+    <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div class="stack">
+      <div class="tcard"><span class="ey">Trigger 1 · Joined list</span><b>Weekly Digest</b><span class="k">double opt-in confirmed only</span></div>
+      <span class="or">OR</span>
+      <div class="tcard"><span class="ey">Trigger 2 · Tag added</span><b>vip</b><button class="linkbtn" style="align-self:flex-start">Remove trigger</button></div>
+      <button class="btn sm" style="align-self:flex-start">Add another trigger</button></div>
+      <div class="field"><label class="lbl" for="re">Re-entry</label><select id="re" class="in"><option>Once</option><option>Every time</option><option selected>Once every N days</option></select><span style="display:flex;gap:8px;align-items:center;font-size:13px">Once every <input class="in" style="width:64px" value="30" aria-label="Days between entries"> days</span></div>
+      <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px"><input type="checkbox" checked style="margin-top:3px"><span>Leave the flow when they leave Weekly Digest</span></label>
+    </section>
+  </figure>
+  <figure><figcaption>Date field · at the contact's own time</figcaption>
+    <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div class="tcard"><span class="ey">Trigger · Date field</span><b>Birthday · every year at 09:00</b></div>
+      <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px"><input type="checkbox" checked style="margin-top:3px"><span>At 09:00 in each contact's time zone <span class="k">· the workspace's (Europe/Berlin) when a contact has none</span></span></label>
+    </section>
+  </figure>
+  <figure><figcaption>Trigger picker · new kinds</figcaption>
+    <div class="menu" role="listbox"><div class="mh">Audience</div><button>Joined list</button><button>Tag added</button><button class="hl">Enters a segment</button><button>Leaves a segment</button><div class="mh">Engagement</div><button>Clicked a link</button><button>Score crosses</button></div>
+    <section class="card" style="padding:12px 14px;display:flex;flex-direction:column;gap:8px"><div class="field"><label class="lbl">Clicked a link in</label><select class="in"><option>October Product Update (campaign)</option></select></div><div class="field"><label class="lbl">Link contains (optional)</label><input class="in" value="/pricing"></div><span class="hint">Human clicks only, after bot filtering settles (about 10 minutes).</span></section>
+  </figure>
+</div>
+
+<div class="strip">5 · A marketing cap for the whole workspace <span>At most N marketing emails in X days per contact, campaigns and automations together. Automation emails over the cap wait or are skipped, per step; Review &amp; send shows how many the cap leaves out.</span></div>
+<div class="grid three">
+  <figure><figcaption>Settings › Sending rules · Marketing cap</figcaption>
+    <section class="card"><div class="sec"><div><h3 class="h2">Marketing cap</h3><span class="k">Transactional and System mail never count</span></div><span class="sw" role="switch" aria-checked="true" aria-label="Marketing cap"><i></i></span></div>
+      <div style="padding:14px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px">At most <input class="in" style="width:56px" value="3" aria-label="Emails"> marketing emails in <input class="in" style="width:56px" value="7" aria-label="Days"> days per contact, campaigns and automations together.</div></section>
+  </figure>
+  <figure><figcaption>Email step · over the cap</figcaption>
+    <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span class="lbl">When a contact is over the marketing cap</span><label class="opt on"><input type="radio" name="oc" checked><span><b>Wait</b> until they're under it again</span></label><label class="opt"><input type="radio" name="oc"><span><b>Skip</b> this email and carry on</span></label></section>
+  </figure>
+  <figure><figcaption>Review &amp; send · the waterfall's line</figcaption>
+    <section class="card"><div class="wf"><span>Weekly Digest</span><span class="n">31,988</span></div><div class="wf"><span>Suppressed</span><span class="n">−412</span></div><div class="wf"><span>Over the marketing cap (3 in 7 days)</span><span class="n">−1,204</span></div><div class="wf"><b>Will receive</b><b class="n">30,372</b></div></section>
+  </figure>
+</div>
+
+<div class="strip">6 · Publishing a new trigger, and how a sequence performs <span>A live flow's trigger changes by publishing; the diff says who is affected. Each email step shows delivered, human opens, clicks, unsubscribes and how many go on to the next email.</span></div>
+<div class="grid">
+  <figure><figcaption>Publish diff · the trigger changed</figcaption>
+    <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span class="badge warn" style="align-self:flex-start">Trigger changed</span><span><b>Joined Weekly Digest</b> → <b>Joined Weekly Digest, or Tag added vip</b></span><span class="k">New contacts enter on either from the moment v4 is live. The 1,284 already in the flow aren't affected.</span></section>
+  </figure>
+  <figure><figcaption>Stats · the sequence</figcaption>
+    <section class="card"><table class="tbl"><thead><tr><th scope="col">Email</th><th scope="col">Delivered</th><th scope="col">Human opens</th><th scope="col">Clicks</th><th scope="col">Unsubs</th><th scope="col">On to next</th></tr></thead><tbody>
+      <tr><td>Step 1 "You're in"</td><td class="n">1,262</td><td class="n">61.2%</td><td class="n">14.0%</td><td class="n">0.4%</td><td><div style="display:flex;gap:8px;align-items:center"><div class="bar" style="width:80px"><i style="width:92%"></i></div><span class="n">92%</span></div></td></tr>
+      <tr><td>Step 2 "Three things"</td><td class="n">1,148</td><td class="n">48.9%</td><td class="n">9.1%</td><td class="n">0.6%</td><td><div style="display:flex;gap:8px;align-items:center"><div class="bar" style="width:80px"><i style="width:81%"></i></div><span class="n">81%</span></div></td></tr>
+      <tr><td>Step 3 "Set up your first flag"</td><td class="n">921</td><td class="n">44.0%</td><td class="n">12.3%</td><td class="n">0.3%</td><td><span class="k">Last email</span></td></tr>
+    </tbody></table></section>
+  </figure>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -30,8 +30,11 @@ export default translate(mg, {
   kindOrderPlaced: 'Đặt hàng',
   kindFirstOrder: 'Đơn hàng đầu tiên',
   kindAbandonedCheckout: 'Bỏ dở thanh toán',
+  kindSegmentEntered: 'Vào một phân khúc',
+  kindSegmentLeft: 'Rời một phân khúc',
+  kindLinkClicked: 'Nhấp vào một liên kết',
   kindWord:
-    '{kind, select, joined_list {vào danh sách} form_submitted {gửi biểu mẫu} tag_added {được gắn thẻ} api_event {sự kiện API} date_field {trường ngày} score_crosses {điểm vượt ngưỡng} poll_answered {trả lời bình chọn} bought_product {mua sản phẩm} milestone_reached {đạt mốc} order_placed {đặt hàng} first_order {đơn hàng đầu tiên} abandoned_checkout {bỏ dở thanh toán} other {{kind}}}',
+    '{kind, select, joined_list {vào danh sách} form_submitted {gửi biểu mẫu} tag_added {được gắn thẻ} api_event {sự kiện API} date_field {trường ngày} score_crosses {điểm vượt ngưỡng} poll_answered {trả lời bình chọn} bought_product {mua sản phẩm} milestone_reached {đạt mốc} order_placed {đặt hàng} first_order {đơn hàng đầu tiên} abandoned_checkout {bỏ dở thanh toán} segment_entered {vào phân khúc} segment_left {rời phân khúc} link_clicked {nhấp liên kết} other {{kind}}}',
 
   duration: '{unit, select, minutes {{n} phút} hours {{n} giờ} weeks {{n} tuần} other {{n} ngày}}',
 
@@ -40,6 +43,10 @@ export default translate(mg, {
   aForm: 'một biểu mẫu',
   aPollOrSurvey: 'một bình chọn hoặc khảo sát',
   aStore: 'một cửa hàng',
+  aSegment: 'một phân khúc',
+  anEmail: 'một email',
+  anyCampaignOrEmail: 'bất kỳ chiến dịch hoặc email nào',
+  orTrigger: '{first}, hoặc {second}',
   anyEmail: 'bất kỳ email nào',
 
   condOpened: 'đã mở {step}',

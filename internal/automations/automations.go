@@ -22,6 +22,8 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -66,6 +68,14 @@ type Service struct {
 	// voice, with its checkout items or product grid (internal/commerce).
 	// Nil without stores: the starter's plain email.
 	StoreEmail func(ctx context.Context, wsID, storeID uuid.UUID, key string) (EmailContent, bool)
+	// SegmentMembers evaluates a saved segment (internal/segments), for
+	// the segment triggers (review 2026-11 AT-10). Nil: segments aren't
+	// watched.
+	SegmentMembers func(ctx context.Context, wsID, segmentID uuid.UUID) ([]uuid.UUID, error)
+	// Mail sends test emails through the System route and URLs builds the
+	// links they carry (AT-3).
+	Mail func() mailer.Sender
+	URLs publicurl.Builder
 }
 
 func (s *Service) now() time.Time {
@@ -180,6 +190,24 @@ func (s *Service) loadRefs(ctx context.Context, q *store.Queries, wsID uuid.UUID
 	}
 	for _, p := range provs {
 		r.Providers[p.ID.String()] = p.Name
+	}
+	r.Segments, r.Sources = map[string]string{}, map[string]string{}
+	segs, err := q.AutomationSegments(ctx, wsID)
+	if err != nil {
+		return nil, err
+	}
+	for _, sg := range segs {
+		r.Segments[sg.ID.String()] = sg.Name
+	}
+	camps, err := q.AutomationLinkCampaigns(ctx, wsID)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range camps {
+		r.Sources["campaign:"+c.ID.String()] = c.Name
+	}
+	for id, name := range r.EmailNames {
+		r.Sources["email:"+id] = name
 	}
 	ms, err := q.AutomationMilestones(ctx, wsID)
 	if err != nil {

@@ -236,9 +236,16 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 			}
 		}
 	}
+	// The workspace's marketing cap, with automations (review 2026-11 AT-9).
+	limit, err := q.WorkspaceMarketingCap(ctx, wsID)
+	if err != nil {
+		return out, nil, err
+	}
+	out.CapCount, out.CapDays = int(limit.MarketingCapCount), int(limit.MarketingCapDays)
 	rows, err := q.ReadinessRecipients(ctx, store.ReadinessRecipientsParams{
 		WithLists: withRecipients, BouncedSince: now.AddDate(0, 0, -30), WorkspaceID: wsID, Lists: ids(def.Lists), Contacts: contacts,
 		ExcludeLists: ids(def.ExcludeLists), ExcludeContacts: exclude,
+		CapCount: limit.MarketingCapCount, CapSince: now.AddDate(0, 0, -int(limit.MarketingCapDays)),
 	})
 	if err != nil {
 		return out, nil, err
@@ -317,6 +324,10 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 		}
 		if sunset && r.Tier == "sunset" {
 			out.SunsetExcluded++
+			continue
+		}
+		if r.OverCap {
+			out.OverCap++
 			continue
 		}
 		out.Final++

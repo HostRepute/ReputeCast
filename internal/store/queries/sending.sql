@@ -210,6 +210,10 @@ SELECT page.id::uuid AS id,
        coalesce((SELECT p.paused_until > @now::timestamptz FROM contact_preferences p WHERE p.contact_id = c.id), false)::boolean AS paused,
        coalesce(c.language, '')::text AS language,
        coalesce(c.timezone, '')::text AS timezone,
+       -- Over the workspace's marketing cap (review 2026-11 AT-9).
+       (@cap_count::int > 0 AND (SELECT count(*) FROM messages mm
+           WHERE mm.contact_id = c.id AND mm.stream IN ('broadcast', 'automation') AND mm.queued_at > @cap_since::timestamptz
+             AND mm.status NOT IN ('failed', 'cancelled', 'rejected') AND mm.campaign_id IS DISTINCT FROM @campaign_id::uuid) >= @cap_count::int)::boolean AS over_cap,
        (excluded.contact_id IS NOT NULL)::boolean AS excluded_list,
        (excluded_staged.contact_id IS NOT NULL)::boolean AS excluded_segment,
        coalesce(member_lists.lists, '{}'::uuid[])::uuid[] AS lists,

@@ -275,7 +275,7 @@ Found while building M43 (added to the backlog):
 | AU-18 | What-uses-it checks read segments, forms, scoring, automations, unsent campaigns, digests and saved views, but not transactional templates, SMS and WhatsApp templates or a form's own confirmation email; a field used only there reads "Nothing". Add them to `internal/dependents`. | ⏳ |
 | AU-19 | A saved view has no address of its own, so "Saved view · Name" in a what-uses-it list can't open it; Contacts could take `?view=`. | ⏳ |
 
-## Automations, complete (M44) ⏳
+## Automations, complete (M44) ✅
 
 Depends on M42.
 
@@ -297,6 +297,59 @@ Depends on M42.
 
 Riskiest part: AT-4 (overdue delays must respect warm-up caps and quiet hours) and AT-9 (one cap
 read by two senders without double counting).
+
+What M44 built (31 October 2026):
+
+- **AT-1** the Automations list has a row menu (Open, Duplicate, Delete…); deleting a flow that went
+  live says how many contacts are in it, asks for its name and offers Pause instead. The editor's
+  header has Discard draft, back to the live version (`complete.test.tsx`).
+- **AT-2** a step's Stats panel opens the contacts at the step, the latest first, 25 at a time with
+  Show more; each can be removed from the flow with a reason, logged as
+  `automation.contact_remove` and counted as "left early" at the step. The contact profile has an
+  Automations card with the flows the contact is in or went through and where
+  (`TestContactsAtAStepAndRemovingOne`; migration 03380 indexes the runs by step and by contact).
+- **AT-3** an email step can be previewed as a contact and sent as a test through the System route,
+  "[Test]" in the subject, no stats; without the send permission only to one's own address, as
+  campaigns (`TestPreviewAndTestSendAnAutomationEmail`).
+- **AT-4** resuming a flow whose contacts' waits ended during the pause asks: send now (warm-up caps
+  and quiet hours apply as always), skip the email they missed, or spread them over 1 to 72 hours
+  (`TestResumeWithOverdueContacts`).
+- **AT-5** publishing with "move" moves contacts a step at a time, one statement per version and
+  step: 20,000 waiting contacts move in well under five seconds (`TestPublishMovesManyContactsQuickly`).
+- **AT-6** re-entry "once every N days" for every trigger (`TestMoreTriggersAndReentryAfterDays`).
+- **AT-7** a date trigger can fire at each contact's own time, the workspace's for contacts without
+  a time zone (`TestDateTriggersAtTheContactsTime`).
+- **AT-8** a Joined list flow can let contacts go when they leave the list: the database wakes their
+  runs and the engine ends them with the step's numbers; a finished run's trigger data is cleared
+  after 90 days (`TestLeavingTheListEndsTheRun`).
+- **AT-9** Settings › Sending rules › Marketing cap: at most N campaign and automation emails in X
+  days per contact. Campaigns leave out contacts over it (Review & send's audience shows the line;
+  the send excludes them as "capped"); an automation email waits until the contact is under it, or
+  is skipped, as its step says (`TestMarketingCap`; migration 03379).
+- **AT-10** "Enters a segment" and "Leaves a segment": dynamic segments a live flow listens to are
+  evaluated every 10 minutes, the first time only recording members; static ones on refresh.
+  "Clicked a link" starts on a person's settled click in a campaign or an automation email, the link
+  address optionally containing some text (`TestSegmentAndLinkTriggers`).
+- **AT-11** a flow starts on up to three triggers, any of which enrols: the trigger card holds the
+  stack. The second and third are the event kinds (list, form, tag, API event, segment, link); date,
+  score, store, product and milestone triggers keep their own entry rules and stay first. The Exit
+  step already ended one path while the others go on. `automations.triggers` lists every trigger so
+  "does a live flow listen to this?" reads one indexed array.
+- **AT-12** a live flow's trigger changes by publishing; the publish diff says new contacts enter on
+  the new trigger from the moment the version is live and how many already in the flow aren't
+  affected.
+- **AT-13** the flow's Stats panel lists the sequence: each email's delivered, human opens, clicks,
+  unsubscribes and the share that went on to the next email (`TestSequenceFollowsTheEmails`).
+
+Also fixed: `TestClickConditionsCountPeopleOnly` never marked its emails sent, so since EN-3 (M42)
+its branch waited forever; it now does.
+
+Found while building M44 (added to the backlog):
+
+| ID | What | Status |
+|---|---|---|
+| AT-14 | The welcome prompt, Scoring's list of flows, the products and pages helpers and score ingest still read a flow's first trigger: a flow whose second trigger joins a list isn't that list's welcome series. Read `automations.triggers` there too. | ⏳ |
+| AT-15 | Watched segments are all evaluated every 10 minutes; a slow SQL segment delays the others. Time each one and back off the slow ones, with a note on the trigger. | ⏳ |
 
 ## Campaigns and everyday sending (M45) ⏳
 

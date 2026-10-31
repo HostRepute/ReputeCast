@@ -380,14 +380,21 @@ func Register(h huma.API, s *Service) {
 			out, err := s.Get(ctx, ws, id)
 			return api.OK(out), err
 		})
-	api.Post(h, api.Op{ID: "resume-automation", Path: "/workspaces/{workspace}/automations/{id}/resume", Summary: "Resume a paused automation", Tags: tags, Access: publish},
-		func(ctx context.Context, in *AutomationIDParam) (*api.Body[AutomationDetail], error) {
+	api.Post(h, api.Op{ID: "resume-automation", Path: "/workspaces/{workspace}/automations/{id}/resume", Summary: "Resume a paused automation, saying what happens to contacts whose wait ended meanwhile", Tags: tags, Access: publish},
+		func(ctx context.Context, in *struct {
+			AutomationIDParam
+			Body *ResumeInput
+		}) (*api.Body[AutomationDetail], error) {
 			id, err := parseID(in.ID, "Automation")
 			if err != nil {
 				return nil, err
 			}
 			ws := api.WorkspaceFrom(ctx)
-			if err := s.Resume(ctx, ws, actorID(ctx), id); err != nil {
+			body := ResumeInput{}
+			if in.Body != nil {
+				body = *in.Body
+			}
+			if err := s.Resume(ctx, ws, actorID(ctx), id, body); err != nil {
 				return nil, err
 			}
 			out, err := s.Get(ctx, ws, id)
@@ -409,6 +416,79 @@ func Register(h huma.API, s *Service) {
 			}
 			calls, err := s.WebhookCalls(ctx, api.WorkspaceFrom(ctx), id, in.Node, in.Limit)
 			return api.OK(AutomationWebhookCalls{Calls: calls}), err
+		})
+	api.Get(h, api.Op{ID: "list-automation-step-contacts", Path: "/workspaces/{workspace}/automations/{id}/steps/{node}/contacts", Summary: "The contacts at a step, the latest to arrive first",
+		Tags: tags, Access: api.Workspace(authz.SubscribersView)},
+		func(ctx context.Context, in *struct {
+			AutomationIDParam
+			Node   string `path:"node" maxLength:"40"`
+			Cursor string `query:"cursor" maxLength:"200"`
+			Limit  int    `query:"limit" minimum:"1" maximum:"100" default:"25"`
+		}) (*api.Body[AutomationStepContacts], error) {
+			id, err := parseID(in.ID, "Automation")
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.StepContacts(ctx, api.WorkspaceFrom(ctx), id, in.Node, in.Cursor, in.Limit)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "remove-automation-contact", Path: "/workspaces/{workspace}/automations/{id}/runs/{run}/remove", Summary: "Take a contact out of a flow now (needs a reason, logged)",
+		Tags: tags, Access: publish, Status: http.StatusNoContent},
+		func(ctx context.Context, in *struct {
+			AutomationIDParam
+			Run  string `path:"run" maxLength:"40"`
+			Body RemoveRunInput
+		}) (*api.Empty, error) {
+			id, err := parseID(in.ID, "Automation")
+			if err != nil {
+				return nil, err
+			}
+			run, err := parseID(in.Run, "Run")
+			if err != nil {
+				return nil, err
+			}
+			return api.NoContent, s.RemoveRun(ctx, api.WorkspaceFrom(ctx), id, run, in.Body)
+		})
+	api.Get(h, api.Op{ID: "list-contact-automations", Path: "/workspaces/{workspace}/contacts/{contactId}/automations", Summary: "The flows a contact is in or went through, and where",
+		Tags: tags, Access: api.Workspace(authz.SubscribersView)},
+		func(ctx context.Context, in *struct {
+			api.WorkspaceInput
+			ContactID string `path:"contactId" maxLength:"40"`
+		}) (*api.Body[AutomationContactRuns], error) {
+			id, err := parseID(in.ContactID, "Contact")
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.ContactRuns(ctx, api.WorkspaceFrom(ctx), id)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "preview-automation-email", Path: "/workspaces/{workspace}/automation-emails/{id}/preview", Summary: "Render an email as a contact gets it",
+		Tags: tags, Access: view},
+		func(ctx context.Context, in *struct {
+			api.WorkspaceInput
+			ID   string `path:"id" maxLength:"40"`
+			Body AutomationEmailPreviewInput
+		}) (*api.Body[AutomationEmailPreview], error) {
+			id, err := parseID(in.ID, "Email")
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.PreviewEmail(ctx, api.WorkspaceFrom(ctx), id, in.Body)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "test-automation-email", Path: "/workspaces/{workspace}/automation-emails/{id}/test", Summary: "Send an email as a test through the System route (logged)",
+		Tags: tags, Access: edit},
+		func(ctx context.Context, in *struct {
+			api.WorkspaceInput
+			ID   string `path:"id" maxLength:"40"`
+			Body AutomationEmailTestInput
+		}) (*api.Body[AutomationEmailTestResult], error) {
+			id, err := parseID(in.ID, "Email")
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.TestEmail(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Body)
+			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "create-automation-email", Path: "/workspaces/{workspace}/automation-emails", Summary: "Create an email for a send step", Tags: tags, Access: edit, Status: http.StatusCreated},
 		func(ctx context.Context, in *emailCreateInput) (*api.Body[AutomationEmailOption], error) {

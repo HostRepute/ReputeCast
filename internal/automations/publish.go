@@ -3,7 +3,6 @@ package automations
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"math"
 	"net/http"
 	"slices"
@@ -189,15 +188,19 @@ func (s *Service) loadPublish(ctx context.Context, q *store.Queries, ws *store.W
 	if st.live != nil {
 		from = *st.live
 	}
+	if st.inflow, err = q.CountAutomationInFlowByNode(ctx, a.ID); err != nil {
+		return nil, err
+	}
+	var inFlow int64
+	for _, n := range st.inflow {
+		inFlow += n.N
+	}
 	st.items = Diff(from, st.draft, DiffContext{
-		FromRefs: st.refs, ToVersion: int(a.DraftVersion), Loc: workspaceLoc(ws), Failures: st.failures,
+		FromRefs: st.refs, ToVersion: int(a.DraftVersion), Loc: workspaceLoc(ws), Failures: st.failures, InFlow: &inFlow,
 		checkText: func(emailID string, version int) i18n.Text { return s.checkEmail(ctx, q, ws.ID, emailID, version) },
 	})
 	st.items = s.languageDiff(ctx, q, ws, from, st.draft, st.items)
 	st.issues = validate(l, st.draft, st.refs)
-	if st.inflow, err = q.CountAutomationInFlowByNode(ctx, a.ID); err != nil {
-		return nil, err
-	}
 	return st, nil
 }
 
@@ -731,51 +734,60 @@ func keptText(raw json.RawMessage) i18n.Text {
 
 // migrateRuns moves contacts on older versions to the new one at their
 // current step. Steps that no longer exist hand the contact to the next step
-// that does; a changed delay restarts from when the contact reached it.
+// that does; a changed delay restarts from when the contact reached it. It
+// moves them a step at a time, one statement per version and step, so
+// 200,000 waiting contacts move in seconds (review 2026-11 AT-5).
 func (s *Service) migrateRuns(ctx context.Context, q *store.Queries, a store.Automation, version int32, g AutomationGraph) (int64, error) {
-	runs, err := q.ListAutomationRunsForMigration(ctx, store.ListAutomationRunsForMigrationParams{AutomationID: a.ID, Version: version})
+	groups, err := q.AutomationRunGroups(ctx, store.AutomationRunGroupsParams{AutomationID: a.ID, Version: version})
 	if err != nil {
 		return 0, err
 	}
 	graphs := map[int32]AutomationGraph{}
 	now := s.now()
 	var moved int64
-	for _, r := range runs {
-		old, ok := graphs[r.Version]
+	for _, gr := range groups {
+		old, ok := graphs[gr.Version]
 		if !ok {
-			v, err := q.GetAutomationVersion(ctx, store.GetAutomationVersionParams{AutomationID: a.ID, Version: r.Version})
+			v, err := q.GetAutomationVersion(ctx, store.GetAutomationVersionParams{AutomationID: a.ID, Version: gr.Version})
 			if err != nil {
 				return moved, err
 			}
 			old = s.graphOf(v.Graph)
-			graphs[r.Version] = old
+			graphs[gr.Version] = old
 		}
-		node := r.NodeID
-		state := r.State
-		nextAt := r.NextAt
-		enteredAt := r.NodeEnteredAt
-		status := r.Status
-		if g.Node(node) == nil {
-			node = forwardTo(old, g, node)
-			state = json.RawMessage(`{}`)
-			enteredAt = now
-			status = "active"
-			nextAt = &now
-		} else if n := g.Node(node); n.Type == NodeDelay && n.Data.Delay != nil && r.Status == "waiting" {
-			until := r.NodeEnteredAt.Add(n.Data.Delay.Duration())
-			nextAt = &until
-			state = json.RawMessage(fmt.Sprintf(`{"wait":"delay","until":%q}`, until.UTC().Format(time.RFC3339Nano)))
-		}
-		if node == "" {
-			if err := q.UpdateAutomationRun(ctx, store.UpdateAutomationRunParams{ID: r.ID, Version: version, NodeID: r.NodeID, Status: "completed", State: state, NodeEnteredAt: enteredAt, FinishedAt: &now, ExitReason: "migrated"}); err != nil {
+		at := store.MigrateRunsKeepParams{Version: version, AutomationID: a.ID, FromVersion: gr.Version, NodeID: gr.NodeID}
+		n := g.Node(gr.NodeID)
+		switch {
+		case n == nil:
+			to := forwardTo(old, g, gr.NodeID)
+			if to == "" {
+				if _, err := q.MigrateRunsEnd(ctx, store.MigrateRunsEndParams{Version: version, Now: &now, AutomationID: a.ID, FromVersion: gr.Version, NodeID: gr.NodeID}); err != nil {
+					return moved, err
+				}
+				continue
+			}
+			k, err := q.MigrateRunsForward(ctx, store.MigrateRunsForwardParams{Version: version, ToNode: to, Now: now, AutomationID: a.ID, FromVersion: gr.Version, NodeID: gr.NodeID})
+			if err != nil {
 				return moved, err
 			}
-			continue
+			moved += k
+		case n.Type == NodeDelay && n.Data.Delay != nil:
+			// Waiting at a delay: wait by the new one, from when they
+			// reached it; the others at the step move as they are.
+			k, err := q.MigrateRunsRetimeDelay(ctx, store.MigrateRunsRetimeDelayParams{Version: version, DelaySeconds: n.Data.Delay.Duration().Seconds(),
+				AutomationID: a.ID, FromVersion: gr.Version, NodeID: gr.NodeID})
+			if err != nil {
+				return moved, err
+			}
+			moved += k
+			fallthrough
+		default:
+			k, err := q.MigrateRunsKeep(ctx, at)
+			if err != nil {
+				return moved, err
+			}
+			moved += k
 		}
-		if err := q.UpdateAutomationRun(ctx, store.UpdateAutomationRunParams{ID: r.ID, Version: version, NodeID: node, Status: status, State: state, NodeEnteredAt: enteredAt, NextAt: nextAt}); err != nil {
-			return moved, err
-		}
-		moved++
 	}
 	return moved, nil
 }
@@ -827,8 +839,27 @@ func (s *Service) Pause(ctx context.Context, ws *store.Workspace, by uuid.UUID, 
 	})
 }
 
-// Resume restarts a paused flow; delays that ended meanwhile run right away.
-func (s *Service) Resume(ctx context.Context, ws *store.Workspace, by uuid.UUID, id uuid.UUID) error {
+// ResumeInput says what happens to contacts whose wait ended while the
+// flow was paused (review 2026-11 AT-4): "send" moves them on now, within
+// warm-up caps and quiet hours as always; "skip" skips the email they
+// missed; "spread" moves them on evenly over SpreadHours.
+type ResumeInput struct {
+	Overdue     string `json:"overdue,omitempty" enum:"send,skip,spread," doc:"Defaults to send"`
+	SpreadHours int    `json:"spreadHours,omitempty" minimum:"0" maximum:"72"`
+}
+
+// Resume restarts a paused flow.
+func (s *Service) Resume(ctx context.Context, ws *store.Workspace, by uuid.UUID, id uuid.UUID, in ResumeInput) error {
+	l := langOf(ctx)
+	switch in.Overdue {
+	case "", "send", "skip":
+	case "spread":
+		if in.SpreadHours < 1 || in.SpreadHours > 72 {
+			return api.Invalid("body.spreadHours", say(l, txt(mProblemSpreadHours)))
+		}
+	default:
+		return api.Invalid("body.overdue", say(l, txt(mProblemOverdue)))
+	}
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		a, err := q.LockAutomation(ctx, store.LockAutomationParams{WorkspaceID: ws.ID, ID: id})
@@ -836,14 +867,48 @@ func (s *Service) Resume(ctx context.Context, ws *store.Workspace, by uuid.UUID,
 			return api.MapError(err, "Automation")
 		}
 		if a.Status != StatusPaused {
-			return api.Conflict(say(langOf(ctx), txt(mProblemResumeNot)))
+			return api.Conflict(say(l, txt(mProblemResumeNot)))
+		}
+		now := s.now()
+		var overdue int64
+		switch in.Overdue {
+		case "skip":
+			if overdue, err = q.AutomationSkipOverdue(ctx, store.AutomationSkipOverdueParams{AutomationID: id, Now: &now}); err != nil {
+				return err
+			}
+		case "spread":
+			ids, err := q.AutomationOverdueRunIDs(ctx, store.AutomationOverdueRunIDsParams{AutomationID: id, Now: &now})
+			if err != nil {
+				return err
+			}
+			span := time.Duration(in.SpreadHours) * time.Hour
+			dues := make([]time.Time, len(ids))
+			for i := range ids {
+				dues[i] = now.Add(time.Duration(float64(span) * float64(i) / float64(len(ids))))
+			}
+			if err := q.SetAutomationRunsNextAt(ctx, store.SetAutomationRunsNextAtParams{Ids: ids, Dues: dues}); err != nil {
+				return err
+			}
+			overdue = int64(len(ids))
+		default:
+			if overdue, err = q.AutomationOverdueRuns(ctx, store.AutomationOverdueRunsParams{AutomationID: id, Now: &now}); err != nil {
+				return err
+			}
 		}
 		if err := q.ResumeAutomation(ctx, store.ResumeAutomationParams{ID: id, UpdatedBy: &by}); err != nil {
 			return err
 		}
+		choice := in.Overdue
+		if choice == "" {
+			choice = "send"
+		}
+		meta := map[string]any{"overdue": overdue, "choice": choice}
+		if choice == "spread" {
+			meta["spreadHours"] = in.SpreadHours
+		}
 		wsID := ws.ID
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "automation.resume", TargetType: "automation", TargetID: id.String(), TargetName: a.Name,
-			Before: map[string]any{"status": a.Status}, After: map[string]any{"status": StatusLive}})
+			Before: map[string]any{"status": a.Status}, After: map[string]any{"status": StatusLive}, Metadata: meta})
 	})
 	if err == nil {
 		s.kick(ctx, nil)
