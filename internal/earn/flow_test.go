@@ -90,7 +90,7 @@ func (f *flow) connect() {
 	}
 	f.c.Do(http.MethodPost, f.base+"/connections/"+conn.ID+"/finish", map[string]any{"taxAtCheckout": true, "pricesIncludeTax": false,
 		"portal": map[string]any{"updateCard": true, "invoices": true, "billingEmail": true, "switchPeriod": true, "cancel": true}}).MustStatus(t, 200).JSON(t, &fin)
-	if fin.Connection.Status != "connected" || fin.Drafts != 8 {
+	if fin.Connection.Status != "connected" || fin.Drafts != len(earn.MemberEmailOrder) {
 		t.Fatalf("finish: %+v", fin)
 	}
 }

@@ -228,6 +228,7 @@ export const ms = defineMessages('earn.settings', {
   whenRenewal: '7 days before a yearly renewal',
   whenCanceled: 'a cancellation is confirmed',
   whenGiftPurchased: 'a gift is bought',
+  whenGiftPaymentFailed: "a gift's bank payment fails",
   whenGiftReceived: 'on the gift’s delivery date',
   whenGiftEnding: '7 days before a gift ends',
   senderTitle: 'Sender and route',

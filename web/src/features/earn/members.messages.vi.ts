@@ -176,6 +176,7 @@ export default translate(mm, {
   emailRenewal: 'Nhắc gia hạn',
   emailCanceled: 'Đã hủy gói hội viên',
   emailGiftPurchased: 'Biên lai quà tặng',
+  emailGiftPaymentFailed: 'Thanh toán quà tặng thất bại',
   emailGiftReceived: 'Quà tặng của bạn',
   emailGiftEnding: 'Quà tặng sắp kết thúc',
   // Dialogs.

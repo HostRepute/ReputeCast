@@ -368,7 +368,7 @@ func TestGiftsTab(t *testing.T) {
 	if n.Sold != 11 || n.SoldCents != 65600 || n.Delivered != 9 || n.Redeemed != 8 || n.Waiting != 1 || n.Scheduled != 2 || n.WithAccess != 8 || n.NextAt == nil {
 		t.Fatalf("numbers: %+v", n)
 	}
-	if len(v.Options) != 2 || !v.Page.On || v.Page.LinkMonths != 12 || len(v.Emails) != 3 || v.Ending == nil || !v.CanEdit || !v.CanManage {
+	if len(v.Options) != 2 || !v.Page.On || v.Page.LinkMonths != 12 || len(v.Emails) != 4 || v.Emails[1].Email != "gift_payment_failed" || v.Ending == nil || !v.CanEdit || !v.CanManage {
 		t.Fatalf("tab: %d options, page %+v, %d emails, ending %+v", len(v.Options), v.Page, len(v.Emails), v.Ending)
 	}
 	var list gifts.GiftList
@@ -479,5 +479,31 @@ func TestGiftPaidByBankDebit(t *testing.T) {
 	}
 	if o := outcome("checkout.session.async_payment_failed"); o != "gift_payment_failed" {
 		t.Errorf("failed outcome: %s", o)
+	}
+	// Review 2026-11 EN-9: the buyer is told, once, with the member email
+	// gift-payment-failed (made for a workspace that predates it).
+	if err := g.Tick(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := g.Tick(ctx); err != nil {
+		t.Fatal(err)
+	}
+	gf = s.giftBySession(failed)
+	if gf.FailedNoticeAt == nil || s.events(gf.ID)["payment_failed_email"] != 1 {
+		t.Fatalf("the buyer wasn't told: %+v %v", gf, s.events(gf.ID))
+	}
+	var kept int
+	if err := s.env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM earn_member_emails e JOIN transactional_templates t ON t.id = e.template_id
+		WHERE e.workspace_id = $1 AND e.email = 'gift_payment_failed' AND t.key = 'gift-payment-failed'`, s.ws.ID).Scan(&kept); err != nil || kept != 1 {
+		t.Fatalf("the member email's template: %d (%v)", kept, err)
+	}
+	var sent int
+	if err := s.env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM transactional_messages WHERE workspace_id = $1 AND template_key = 'gift-payment-failed'`, s.ws.ID).Scan(&sent); err != nil {
+		t.Fatal(err)
+	}
+	var live int
+	_ = s.env.App.Pool.QueryRow(ctx, `SELECT coalesce(live_version, 0) FROM transactional_templates WHERE workspace_id = $1 AND key = 'gift-payment-failed'`, s.ws.ID).Scan(&live)
+	if (live > 0) != (sent == 1) {
+		t.Fatalf("sent %d with the template at version %d: it goes only once published", sent, live)
 	}
 }

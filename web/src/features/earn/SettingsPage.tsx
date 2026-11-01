@@ -89,6 +89,7 @@ function emailWhen(t: ReturnType<typeof useT>, email: string): string {
       renewal_reminder: t(ms.whenRenewal),
       canceled: t(ms.whenCanceled),
       gift_purchased: t(ms.whenGiftPurchased),
+      gift_payment_failed: t(ms.whenGiftPaymentFailed),
       gift_received: t(ms.whenGiftReceived),
       gift_ending: t(ms.whenGiftEnding),
     }[email] ?? ''

@@ -27265,7 +27265,7 @@ export interface components {
             /** Format: int64 */
             draftVersion: number;
             /** @enum {string} */
-            email: "welcome" | "trial_ending" | "payment_failed" | "renewal_reminder" | "canceled" | "gift_purchased" | "gift_received" | "gift_ending";
+            email: "welcome" | "trial_ending" | "payment_failed" | "renewal_reminder" | "canceled" | "gift_purchased" | "gift_payment_failed" | "gift_received" | "gift_ending";
             /** Format: int64 */
             liveVersion: number;
             name: string;
@@ -27978,7 +27978,7 @@ export interface components {
             /** Format: int64 */
             draftVersion: number;
             /** @enum {string} */
-            email: "gift_purchased" | "gift_received" | "gift_ending";
+            email: "gift_purchased" | "gift_payment_failed" | "gift_received" | "gift_ending";
             /** Format: int64 */
             liveVersion: number;
             name: string;

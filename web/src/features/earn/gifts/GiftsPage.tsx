@@ -761,6 +761,8 @@ function EmailsCard({ v, short }: { v: View; short: string }) {
     switch (e.email) {
       case 'gift_purchased':
         return t(mg.eReceipt)
+      case 'gift_payment_failed':
+        return t(mg.eFailed)
       case 'gift_received':
         return t(mg.eReceived)
       default:

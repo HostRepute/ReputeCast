@@ -138,6 +138,7 @@ export default translate(mg, {
   emailsCaption: 'Đây là mẫu giao dịch, nên chúng đến được cả người đọc đã hủy đăng ký nhận thư tiếp thị.',
   eName: '{email, select, gift_purchased {Biên lai quà tặng} gift_received {Quà tặng của bạn} other {Quà tặng sắp kết thúc}}',
   eReceipt: 'Gửi người mua, ngay khi họ thanh toán.',
+  eFailed: 'Gửi người mua, khi khoản thanh toán qua ngân hàng không thành công.',
   eReceived: 'Gửi người nhận vào ngày giao, kèm liên kết nhận quà. Gửi lại sau 7 ngày nếu quà chưa được nhận.',
   eEnding: '7 ngày trước khi quà tặng kết thúc, kèm nút “Giữ {tier}”. Chỉ được gửi sau khi đã xuất bản.',
   eEndingLive: '7 ngày trước khi quà tặng kết thúc, kèm nút “Giữ {tier}”.',

@@ -31341,6 +31341,7 @@
               "renewal_reminder",
               "canceled",
               "gift_purchased",
+              "gift_payment_failed",
               "gift_received",
               "gift_ending"
             ],
@@ -33918,6 +33919,7 @@
           "email": {
             "enum": [
               "gift_purchased",
+              "gift_payment_failed",
               "gift_received",
               "gift_ending"
             ],

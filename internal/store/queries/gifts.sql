@@ -142,8 +142,19 @@ VALUES (@id, @workspace_id, @mode, sqlc.narg(option_id), sqlc.narg(tier_id), @mo
 UPDATE earn_gifts SET stripe_session_id = @session, updated_at = @at::timestamptz WHERE id = @id;
 
 -- name: GiftPaymentFailed :exec
--- A delayed payment (a bank debit) didn't clear: the gift is abandoned.
-UPDATE earn_gifts SET status = 'abandoned', updated_at = @at::timestamptz WHERE id = @id AND status IN ('checkout','abandoned');
+-- A delayed payment (a bank debit) didn't clear: the gift is abandoned and
+-- its buyer is told (review 2026-11 EN-9).
+UPDATE earn_gifts SET status = 'abandoned', payment_failed_at = coalesce(payment_failed_at, @at::timestamptz), updated_at = @at::timestamptz
+WHERE id = @id AND status IN ('checkout','abandoned');
+
+-- name: GiftsToTellFailed :many
+-- Gifts whose bank payment failed and whose buyer hasn't been told yet (not
+-- for failures more than a week old).
+SELECT * FROM earn_gifts WHERE status = 'abandoned' AND payment_failed_at > @since::timestamptz AND failed_notice_at IS NULL AND buyer_email <> ''
+ORDER BY payment_failed_at LIMIT 200;
+
+-- name: GiftFailedNoticeSent :exec
+UPDATE earn_gifts SET failed_notice_at = @at::timestamptz, updated_at = @at::timestamptz WHERE id = @id;
 
 -- name: GiftPaid :exec
 -- The payment went through: the gift waits for its delivery date.

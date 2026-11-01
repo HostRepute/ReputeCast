@@ -1539,6 +1539,8 @@ type EarnGift struct {
 	UpdatedAt       time.Time  `json:"updatedAt"`
 	ReceiptSentAt   *time.Time `json:"receiptSentAt"`
 	EmailStatus     string     `json:"emailStatus"`
+	PaymentFailedAt *time.Time `json:"paymentFailedAt"`
+	FailedNoticeAt  *time.Time `json:"failedNoticeAt"`
 }
 
 type EarnGiftEvent struct {

@@ -35,7 +35,7 @@ func TestTransactionalDemo(t *testing.T) {
 		}
 	}
 	c.Do("GET", base+"/templates?period=7d", nil).MustStatus(t, 200).JSON(t, &list)
-	// Earn's eight member emails (phase 6) are in the list too, in their
+	// Earn's member emails (phase 6, and EN-9's ninth) are in the list too, in their
 	// Memberships category, and the products' product-delivery (X19) in
 	// Purchases; the boards' numbers are Acme Cloud's six.
 	items := list.Items[:0]

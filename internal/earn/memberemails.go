@@ -27,7 +27,8 @@ var ErrNoRoute = errors.New("earn: no Transactional route")
 // ErrSuppressed means the address is suppressed for all mail.
 var ErrSuppressed = errors.New("earn: the recipient is suppressed")
 
-// The eight member emails (brief 3.8), in the settings table's order.
+// The member emails (brief 3.8, and review 2026-11 EN-9's gift payment
+// failure), in the settings table's order.
 const (
 	EmailWelcome         = "welcome"
 	EmailTrialEnding     = "trial_ending"
@@ -37,10 +38,13 @@ const (
 	EmailGiftPurchased   = "gift_purchased"
 	EmailGiftReceived    = "gift_received"
 	EmailGiftEnding      = "gift_ending"
+	// EmailGiftPaymentFailed tells a gift's buyer their bank payment
+	// didn't go through (review 2026-11 EN-9).
+	EmailGiftPaymentFailed = "gift_payment_failed"
 )
 
 // MemberEmailOrder lists them in order.
-var MemberEmailOrder = []string{EmailWelcome, EmailTrialEnding, EmailPaymentFailed, EmailRenewalReminder, EmailCanceled, EmailGiftPurchased, EmailGiftReceived, EmailGiftEnding}
+var MemberEmailOrder = []string{EmailWelcome, EmailTrialEnding, EmailPaymentFailed, EmailRenewalReminder, EmailCanceled, EmailGiftPurchased, EmailGiftPaymentFailed, EmailGiftReceived, EmailGiftEnding}
 
 // starter is a member email's template as the drafts start.
 type starter struct {
@@ -106,6 +110,13 @@ var starters = []starter{
 		body:    []string{"Hi {{ first_name }},", "You gave {{ recipient }} {{ gift }} of {{ tier }} for {{ amount }}. {{ delivery_line }}", "Stripe emails the payment's receipt separately."},
 		vars: vars(TemplateVariable{Name: "recipient", Type: "text", Required: true, Sample: "Karim"}, TemplateVariable{Name: "gift", Type: "text", Required: true, Sample: "a year"},
 			TemplateVariable{Name: "amount", Type: "text", Required: true, Sample: "$80.00"}, TemplateVariable{Name: "delivery_line", Type: "text", Sample: "It arrives on 24 Dec at 08:00.", Default: ""})},
+	{email: EmailGiftPaymentFailed, key: "gift-payment-failed", name: "Gift payment failed", description: "When a gift's bank payment fails",
+		subject: "Your gift of {{ tier }} wasn't paid", preheader: "The bank payment didn't go through.",
+		heading: "Your payment didn't go through",
+		body:    []string{"Hi {{ first_name }},", "Your bank payment of {{ amount }} for {{ gift }} of {{ tier }} didn't go through, so the gift won't be sent.", "Nothing was charged. You can buy the gift again whenever you like."},
+		button:  "Buy the gift again", href: "{{ gift_url }}",
+		vars: vars(TemplateVariable{Name: "gift", Type: "text", Required: true, Sample: "a year"}, TemplateVariable{Name: "amount", Type: "text", Required: true, Sample: "$80.00"},
+			TemplateVariable{Name: "gift_url", Type: "url", Required: true, Sample: "https://news.example/gift"})},
 	{email: EmailGiftReceived, key: "gift-received", name: "Your gift", description: "On the gift's delivery date",
 		subject: "{{ giver }} gave you {{ gift }} of {{ tier }}", preheader: "No card needed to start.",
 		heading: "A gift from {{ giver }}",
@@ -234,6 +245,19 @@ func (st starter) mjmlIn(l i18n.Lang, product, address string) string {
 // ensureMemberEmails creates the Memberships category and the member
 // emails' drafts the workspace doesn't have yet. It returns how many it
 // created.
+// EnsureMemberEmailDrafts makes, as ReputeCast, the member emails' drafts
+// a workspace that already has some lacks: an email added after the
+// workspace connected Stripe (review 2026-11 EN-9's gift payment failure).
+// Publishing them stays the workspace's.
+func (s *Service) EnsureMemberEmailDrafts(ctx context.Context, ws *store.Workspace) (int, error) {
+	if s.Mailer == nil {
+		return 0, nil
+	}
+	sys := &authz.Principal{Type: authz.ActorSystem, Name: "ReputeCast", WorkspaceID: ws.ID,
+		Permissions: authz.Set{authz.TransactionalPublish: {}, authz.TransactionalEdit: {}}}
+	return s.ensureMemberEmails(ctx, ws, sys)
+}
+
 func (s *Service) ensureMemberEmails(ctx context.Context, ws *store.Workspace, p *authz.Principal) (int, error) {
 	have, err := s.Q.EarnMemberEmails(ctx, ws.ID)
 	if err != nil {

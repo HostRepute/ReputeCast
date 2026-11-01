@@ -115,7 +115,7 @@ type GiftTier struct {
 
 // GiftEmail is one of the three gift emails and its template's state.
 type GiftEmail struct {
-	Email        string `json:"email" enum:"gift_purchased,gift_received,gift_ending"`
+	Email        string `json:"email" enum:"gift_purchased,gift_payment_failed,gift_received,gift_ending"`
 	TemplateID   string `json:"templateId,omitempty"`
 	Template     string `json:"template"`
 	Name         string `json:"name"`
@@ -413,7 +413,7 @@ func (s *Service) numbers(ctx context.Context, ws *store.Workspace, mode string,
 	return out, nil
 }
 
-// emails reads the three gift emails' templates and, while gift-ending
+// emails reads the gift emails' templates and, while gift-ending
 // isn't published, when its first reminder is due.
 func (s *Service) emails(ctx context.Context, ws *store.Workspace, p *authz.Principal, mode string, out *GiftsView) error {
 	me, err := s.Earn.MemberEmails(ctx, ws, p)

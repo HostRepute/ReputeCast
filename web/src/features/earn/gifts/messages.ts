@@ -125,6 +125,7 @@ export const mg = defineMessages('earn.gifts', {
   emailsCaption: 'Transactional templates, so they reach readers who unsubscribed from marketing.',
   eName: '{email, select, gift_purchased {Gift receipt} gift_received {Your gift} other {Gift ending}}',
   eReceipt: 'To the buyer, as soon as they pay.',
+  eFailed: "To the buyer, when their bank payment doesn't go through.",
   eReceived: 'To the recipient on the delivery date, with the redeem link. Sent again after 7 days if the gift isn’t redeemed.',
   eEnding: '7 days before a gift ends, with “Keep {tier}”. Not sent until it’s published.',
   eEndingLive: '7 days before a gift ends, with “Keep {tier}”.',

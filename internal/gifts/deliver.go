@@ -61,6 +61,19 @@ func (s *Service) sendReceipt(ctx context.Context, ws *store.Workspace, g store.
 	return s.Earn.SendMemberEmailIn(ctx, ws, earn.EmailGiftPurchased, g.BuyerEmail, g.BuyerName, texts(earn.PageLang), "gift:"+g.ID.String()+":receipt", texts)
 }
 
+// sendFailed tells a gift's buyer their bank payment didn't go through,
+// with the gift page to buy it again (review 2026-11 EN-9).
+func (s *Service) sendFailed(ctx context.Context, ws *store.Workspace, g store.EarnGift) earn.MemberEmailResult {
+	_, short, _ := s.tierOf(ctx, ws, g)
+	data := map[string]any{"tier": short, "gift": period(earn.PageLang, int(g.Months)), "amount": earn.MoneyCents(g.AmountCents, g.Currency),
+		"gift_url": s.Earn.PageURL(ctx, ws, "gift")}
+	if f := firstName(g.BuyerName); f != "" {
+		data["first_name"] = f
+	}
+	texts := func(l i18n.Lang) map[string]any { return map[string]any{"gift": period(l, int(g.Months))} }
+	return s.Earn.SendMemberEmailIn(ctx, ws, earn.EmailGiftPaymentFailed, g.BuyerEmail, g.BuyerName, data, "gift:"+g.ID.String()+":payment_failed", texts)
+}
+
 // sendGift sends "Your gift" with the redeem link: to the recipient, or
 // to the buyer for an in-person gift. key tells the sends apart (the
 // delivery, the reminder, a resend). The gift's length is in the email's
@@ -167,6 +180,35 @@ func (s *Service) Tick(ctx context.Context) error {
 				return err
 			}
 			return event(ctx, q, g.ID, "receipt", now, nil, r.MessageID, emailData(earn.EmailGiftPurchased, r))
+		}); err != nil {
+			return err
+		}
+	}
+	// A bank payment that failed: the buyer is told once (review 2026-11
+	// EN-9), not for failures more than a week old.
+	failed, err := s.Q.GiftsToTellFailed(ctx, now.Add(-7*24*time.Hour))
+	if err != nil {
+		return err
+	}
+	drafted := map[uuid.UUID]bool{}
+	for _, g := range failed {
+		ws := wsOf(g.WorkspaceID)
+		if ws == nil {
+			continue
+		}
+		if !drafted[ws.ID] {
+			drafted[ws.ID] = true
+			if _, err := s.Earn.EnsureMemberEmailDrafts(ctx, ws); err != nil {
+				s.log().WarnContext(ctx, "gift payment failed draft", "workspace", ws.ID, "err", err)
+			}
+		}
+		r := s.sendFailed(ctx, ws, g)
+		if err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+			q := store.New(tx)
+			if err := q.GiftFailedNoticeSent(ctx, store.GiftFailedNoticeSentParams{At: now, ID: g.ID}); err != nil {
+				return err
+			}
+			return event(ctx, q, g.ID, "payment_failed_email", now, nil, r.MessageID, emailData(earn.EmailGiftPaymentFailed, r))
 		}); err != nil {
 			return err
 		}

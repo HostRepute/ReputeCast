@@ -390,6 +390,8 @@ export function memberEmailName(t: ReturnType<typeof useT>, email: string, tier:
       return t(mm.emailCanceled)
     case 'gift_purchased':
       return t(mm.emailGiftPurchased)
+    case 'gift_payment_failed':
+      return t(mm.emailGiftPaymentFailed)
     case 'gift_received':
       return t(mm.emailGiftReceived)
     case 'gift_ending':

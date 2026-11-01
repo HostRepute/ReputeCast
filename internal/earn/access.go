@@ -510,7 +510,7 @@ func (s *Service) SavePages(ctx context.Context, ws *store.Workspace, p *authz.P
 
 // EarnMemberEmail is one member email on Earn › Settings › Member emails.
 type EarnMemberEmail struct {
-	Email      string `json:"email" enum:"welcome,trial_ending,payment_failed,renewal_reminder,canceled,gift_purchased,gift_received,gift_ending"`
+	Email      string `json:"email" enum:"welcome,trial_ending,payment_failed,renewal_reminder,canceled,gift_purchased,gift_payment_failed,gift_received,gift_ending"`
 	TemplateID string `json:"templateId,omitempty"`
 	Template   string `json:"template"`
 	Name       string `json:"name"`
@@ -548,6 +548,17 @@ func (s *Service) MemberEmails(ctx context.Context, ws *store.Workspace, p *auth
 	rows, err := s.Q.EarnMemberEmails(ctx, ws.ID)
 	if err != nil {
 		return out, err
+	}
+	// A workspace that connected Stripe before an email was added gets its
+	// draft now (review 2026-11 EN-9).
+	if len(rows) > 0 && len(rows) < len(starters) {
+		if n, err := s.EnsureMemberEmailDrafts(ctx, ws); err != nil {
+			s.log().WarnContext(ctx, "member email drafts", "workspace", ws.ID, "err", err)
+		} else if n > 0 {
+			if rows, err = s.Q.EarnMemberEmails(ctx, ws.ID); err != nil {
+				return out, err
+			}
+		}
 	}
 	byEmail := map[string]*uuid.UUID{}
 	ids := []uuid.UUID{}

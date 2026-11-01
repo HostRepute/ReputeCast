@@ -246,6 +246,7 @@ export default translate(ms, {
   whenRenewal: '7 ngày trước kỳ gia hạn hằng năm',
   whenCanceled: 'việc hủy thuê bao được xác nhận',
   whenGiftPurchased: 'có người mua quà tặng',
+  whenGiftPaymentFailed: 'khoản thanh toán qua ngân hàng cho quà tặng thất bại',
   whenGiftReceived: 'đến ngày giao quà tặng',
   whenGiftEnding: '7 ngày trước khi quà tặng kết thúc',
   senderTitle: 'Người gửi và tuyến gửi',

@@ -1615,6 +1615,7 @@ type Querier interface {
 	GiftEndingSent(ctx context.Context, arg GiftEndingSentParams) error
 	GiftEventInsert(ctx context.Context, arg GiftEventInsertParams) error
 	GiftExpired(ctx context.Context, arg GiftExpiredParams) error
+	GiftFailedNoticeSent(ctx context.Context, arg GiftFailedNoticeSentParams) error
 	// The first gift-ending reminder due: the redeemed gift whose access ends
 	// first, and who gave it.
 	GiftFirstEnding(ctx context.Context, arg GiftFirstEndingParams) (GiftFirstEndingRow, error)
@@ -1645,7 +1646,8 @@ type Querier interface {
 	GiftPageSet(ctx context.Context, arg GiftPageSetParams) error
 	// The payment went through: the gift waits for its delivery date.
 	GiftPaid(ctx context.Context, arg GiftPaidParams) error
-	// A delayed payment (a bank debit) didn't clear: the gift is abandoned.
+	// A delayed payment (a bank debit) didn't clear: the gift is abandoned and
+	// its buyer is told (review 2026-11 EN-9).
 	GiftPaymentFailed(ctx context.Context, arg GiftPaymentFailedParams) error
 	GiftReceiptSent(ctx context.Context, arg GiftReceiptSentParams) error
 	GiftRedeemed(ctx context.Context, arg GiftRedeemedParams) error
@@ -1669,6 +1671,9 @@ type Querier interface {
 	GiftsToReceipt(ctx context.Context, since time.Time) ([]EarnGift, error)
 	// Delivered a week ago, not redeemed, not reminded yet, the link still good.
 	GiftsToRemind(ctx context.Context, arg GiftsToRemindParams) ([]EarnGift, error)
+	// Gifts whose bank payment failed and whose buyer hasn't been told yet (not
+	// for failures more than a week old).
+	GiftsToTellFailed(ctx context.Context, since time.Time) ([]EarnGift, error)
 	// A contact's attribution, for the profile's join line.
 	GrowthContactTouch(ctx context.Context, contactID uuid.UUID) (ContactGrowth, error)
 	GrowthFormsOf(ctx context.Context, workspaceID uuid.UUID) ([]GrowthFormsOfRow, error)

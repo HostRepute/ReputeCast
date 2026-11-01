@@ -159,6 +159,7 @@ export const mm = defineMessages('earn.members', {
   emailRenewal: 'Renewal reminder',
   emailCanceled: 'Membership canceled',
   emailGiftPurchased: 'Gift receipt',
+  emailGiftPaymentFailed: 'Gift payment failed',
   emailGiftReceived: 'Your gift',
   emailGiftEnding: 'Gift ending',
   // Dialogs.

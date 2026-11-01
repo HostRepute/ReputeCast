@@ -32,7 +32,7 @@ func (q *Queries) GiftAccessNow(ctx context.Context, arg GiftAccessNowParams) (i
 }
 
 const giftByCode = `-- name: GiftByCode :one
-SELECT g.id, g.workspace_id, g.mode, g.option_id, g.tier_id, g.months, g.amount_cents, g.currency, g.status, g.buyer_name, g.buyer_email, g.in_person, g.recipient_name, g.recipient_email, g.message, g.deliver_at, g.timezone, g.code, g.stripe_session_id, g.payment_intent, g.stripe_customer, g.paid_at, g.delivered_at, g.reminded_at, g.link_expires_at, g.redeemed_at, g.redeemed_email, g.redeemed_contact, g.subscription_id, g.ending_sent_at, g.refunded_at, g.message_purged_at, g.created_at, g.updated_at, g.receipt_sent_at, g.email_status, coalesce(t.name, '')::text AS tier_name, coalesce(t.list_ids, '{}')::uuid[] AS list_ids,
+SELECT g.id, g.workspace_id, g.mode, g.option_id, g.tier_id, g.months, g.amount_cents, g.currency, g.status, g.buyer_name, g.buyer_email, g.in_person, g.recipient_name, g.recipient_email, g.message, g.deliver_at, g.timezone, g.code, g.stripe_session_id, g.payment_intent, g.stripe_customer, g.paid_at, g.delivered_at, g.reminded_at, g.link_expires_at, g.redeemed_at, g.redeemed_email, g.redeemed_contact, g.subscription_id, g.ending_sent_at, g.refunded_at, g.message_purged_at, g.created_at, g.updated_at, g.receipt_sent_at, g.email_status, g.payment_failed_at, g.failed_notice_at, coalesce(t.name, '')::text AS tier_name, coalesce(t.list_ids, '{}')::uuid[] AS list_ids,
        coalesce(t.benefits, '{}')::text[] AS benefits, s.current_period_end AS access_ends
 FROM earn_gifts g
 LEFT JOIN earn_tiers t ON t.id = g.tier_id
@@ -93,6 +93,8 @@ func (q *Queries) GiftByCode(ctx context.Context, arg GiftByCodeParams) (GiftByC
 		&i.EarnGift.UpdatedAt,
 		&i.EarnGift.ReceiptSentAt,
 		&i.EarnGift.EmailStatus,
+		&i.EarnGift.PaymentFailedAt,
+		&i.EarnGift.FailedNoticeAt,
 		&i.TierName,
 		&i.ListIds,
 		&i.Benefits,
@@ -102,7 +104,7 @@ func (q *Queries) GiftByCode(ctx context.Context, arg GiftByCodeParams) (GiftByC
 }
 
 const giftByIntentForUpdate = `-- name: GiftByIntentForUpdate :one
-SELECT id, workspace_id, mode, option_id, tier_id, months, amount_cents, currency, status, buyer_name, buyer_email, in_person, recipient_name, recipient_email, message, deliver_at, timezone, code, stripe_session_id, payment_intent, stripe_customer, paid_at, delivered_at, reminded_at, link_expires_at, redeemed_at, redeemed_email, redeemed_contact, subscription_id, ending_sent_at, refunded_at, message_purged_at, created_at, updated_at, receipt_sent_at, email_status FROM earn_gifts WHERE workspace_id = $1 AND mode = $2 AND payment_intent = $3 AND payment_intent <> '' FOR UPDATE
+SELECT id, workspace_id, mode, option_id, tier_id, months, amount_cents, currency, status, buyer_name, buyer_email, in_person, recipient_name, recipient_email, message, deliver_at, timezone, code, stripe_session_id, payment_intent, stripe_customer, paid_at, delivered_at, reminded_at, link_expires_at, redeemed_at, redeemed_email, redeemed_contact, subscription_id, ending_sent_at, refunded_at, message_purged_at, created_at, updated_at, receipt_sent_at, email_status, payment_failed_at, failed_notice_at FROM earn_gifts WHERE workspace_id = $1 AND mode = $2 AND payment_intent = $3 AND payment_intent <> '' FOR UPDATE
 `
 
 type GiftByIntentForUpdateParams struct {
@@ -151,12 +153,14 @@ func (q *Queries) GiftByIntentForUpdate(ctx context.Context, arg GiftByIntentFor
 		&i.UpdatedAt,
 		&i.ReceiptSentAt,
 		&i.EmailStatus,
+		&i.PaymentFailedAt,
+		&i.FailedNoticeAt,
 	)
 	return i, err
 }
 
 const giftBySession = `-- name: GiftBySession :one
-SELECT g.id, g.workspace_id, g.mode, g.option_id, g.tier_id, g.months, g.amount_cents, g.currency, g.status, g.buyer_name, g.buyer_email, g.in_person, g.recipient_name, g.recipient_email, g.message, g.deliver_at, g.timezone, g.code, g.stripe_session_id, g.payment_intent, g.stripe_customer, g.paid_at, g.delivered_at, g.reminded_at, g.link_expires_at, g.redeemed_at, g.redeemed_email, g.redeemed_contact, g.subscription_id, g.ending_sent_at, g.refunded_at, g.message_purged_at, g.created_at, g.updated_at, g.receipt_sent_at, g.email_status, coalesce(t.name, '')::text AS tier_name, coalesce(t.list_ids, '{}')::uuid[] AS list_ids
+SELECT g.id, g.workspace_id, g.mode, g.option_id, g.tier_id, g.months, g.amount_cents, g.currency, g.status, g.buyer_name, g.buyer_email, g.in_person, g.recipient_name, g.recipient_email, g.message, g.deliver_at, g.timezone, g.code, g.stripe_session_id, g.payment_intent, g.stripe_customer, g.paid_at, g.delivered_at, g.reminded_at, g.link_expires_at, g.redeemed_at, g.redeemed_email, g.redeemed_contact, g.subscription_id, g.ending_sent_at, g.refunded_at, g.message_purged_at, g.created_at, g.updated_at, g.receipt_sent_at, g.email_status, g.payment_failed_at, g.failed_notice_at, coalesce(t.name, '')::text AS tier_name, coalesce(t.list_ids, '{}')::uuid[] AS list_ids
 FROM earn_gifts g LEFT JOIN earn_tiers t ON t.id = g.tier_id
 WHERE g.workspace_id = $1 AND g.stripe_session_id = $2 AND g.stripe_session_id <> ''
 `
@@ -212,6 +216,8 @@ func (q *Queries) GiftBySession(ctx context.Context, arg GiftBySessionParams) (G
 		&i.EarnGift.UpdatedAt,
 		&i.EarnGift.ReceiptSentAt,
 		&i.EarnGift.EmailStatus,
+		&i.EarnGift.PaymentFailedAt,
+		&i.EarnGift.FailedNoticeAt,
 		&i.TierName,
 		&i.ListIds,
 	)
@@ -219,7 +225,7 @@ func (q *Queries) GiftBySession(ctx context.Context, arg GiftBySessionParams) (G
 }
 
 const giftBySessionForUpdate = `-- name: GiftBySessionForUpdate :one
-SELECT id, workspace_id, mode, option_id, tier_id, months, amount_cents, currency, status, buyer_name, buyer_email, in_person, recipient_name, recipient_email, message, deliver_at, timezone, code, stripe_session_id, payment_intent, stripe_customer, paid_at, delivered_at, reminded_at, link_expires_at, redeemed_at, redeemed_email, redeemed_contact, subscription_id, ending_sent_at, refunded_at, message_purged_at, created_at, updated_at, receipt_sent_at, email_status FROM earn_gifts WHERE workspace_id = $1 AND mode = $2 AND stripe_session_id = $3 AND stripe_session_id <> '' FOR UPDATE
+SELECT id, workspace_id, mode, option_id, tier_id, months, amount_cents, currency, status, buyer_name, buyer_email, in_person, recipient_name, recipient_email, message, deliver_at, timezone, code, stripe_session_id, payment_intent, stripe_customer, paid_at, delivered_at, reminded_at, link_expires_at, redeemed_at, redeemed_email, redeemed_contact, subscription_id, ending_sent_at, refunded_at, message_purged_at, created_at, updated_at, receipt_sent_at, email_status, payment_failed_at, failed_notice_at FROM earn_gifts WHERE workspace_id = $1 AND mode = $2 AND stripe_session_id = $3 AND stripe_session_id <> '' FOR UPDATE
 `
 
 type GiftBySessionForUpdateParams struct {
@@ -268,6 +274,8 @@ func (q *Queries) GiftBySessionForUpdate(ctx context.Context, arg GiftBySessionF
 		&i.UpdatedAt,
 		&i.ReceiptSentAt,
 		&i.EmailStatus,
+		&i.PaymentFailedAt,
+		&i.FailedNoticeAt,
 	)
 	return i, err
 }
@@ -426,6 +434,20 @@ func (q *Queries) GiftExpired(ctx context.Context, arg GiftExpiredParams) error 
 	return err
 }
 
+const giftFailedNoticeSent = `-- name: GiftFailedNoticeSent :exec
+UPDATE earn_gifts SET failed_notice_at = $1::timestamptz, updated_at = $1::timestamptz WHERE id = $2
+`
+
+type GiftFailedNoticeSentParams struct {
+	At time.Time `json:"at"`
+	ID uuid.UUID `json:"id"`
+}
+
+func (q *Queries) GiftFailedNoticeSent(ctx context.Context, arg GiftFailedNoticeSentParams) error {
+	_, err := q.db.Exec(ctx, giftFailedNoticeSent, arg.At, arg.ID)
+	return err
+}
+
 const giftFirstEnding = `-- name: GiftFirstEnding :one
 SELECT g.buyer_name, g.in_person, g.recipient_name, g.redeemed_email, s.current_period_end AS access_ends
 FROM earn_gifts g JOIN paid_subscriptions s ON s.id = g.subscription_id
@@ -464,7 +486,7 @@ func (q *Queries) GiftFirstEnding(ctx context.Context, arg GiftFirstEndingParams
 }
 
 const giftForUpdate = `-- name: GiftForUpdate :one
-SELECT id, workspace_id, mode, option_id, tier_id, months, amount_cents, currency, status, buyer_name, buyer_email, in_person, recipient_name, recipient_email, message, deliver_at, timezone, code, stripe_session_id, payment_intent, stripe_customer, paid_at, delivered_at, reminded_at, link_expires_at, redeemed_at, redeemed_email, redeemed_contact, subscription_id, ending_sent_at, refunded_at, message_purged_at, created_at, updated_at, receipt_sent_at, email_status FROM earn_gifts WHERE id = $1 FOR UPDATE
+SELECT id, workspace_id, mode, option_id, tier_id, months, amount_cents, currency, status, buyer_name, buyer_email, in_person, recipient_name, recipient_email, message, deliver_at, timezone, code, stripe_session_id, payment_intent, stripe_customer, paid_at, delivered_at, reminded_at, link_expires_at, redeemed_at, redeemed_email, redeemed_contact, subscription_id, ending_sent_at, refunded_at, message_purged_at, created_at, updated_at, receipt_sent_at, email_status, payment_failed_at, failed_notice_at FROM earn_gifts WHERE id = $1 FOR UPDATE
 `
 
 func (q *Queries) GiftForUpdate(ctx context.Context, id uuid.UUID) (EarnGift, error) {
@@ -507,12 +529,14 @@ func (q *Queries) GiftForUpdate(ctx context.Context, id uuid.UUID) (EarnGift, er
 		&i.UpdatedAt,
 		&i.ReceiptSentAt,
 		&i.EmailStatus,
+		&i.PaymentFailedAt,
+		&i.FailedNoticeAt,
 	)
 	return i, err
 }
 
 const giftGet = `-- name: GiftGet :one
-SELECT g.id, g.workspace_id, g.mode, g.option_id, g.tier_id, g.months, g.amount_cents, g.currency, g.status, g.buyer_name, g.buyer_email, g.in_person, g.recipient_name, g.recipient_email, g.message, g.deliver_at, g.timezone, g.code, g.stripe_session_id, g.payment_intent, g.stripe_customer, g.paid_at, g.delivered_at, g.reminded_at, g.link_expires_at, g.redeemed_at, g.redeemed_email, g.redeemed_contact, g.subscription_id, g.ending_sent_at, g.refunded_at, g.message_purged_at, g.created_at, g.updated_at, g.receipt_sent_at, g.email_status, coalesce(t.name, '')::text AS tier_name, coalesce(t.list_ids, '{}')::uuid[] AS list_ids,
+SELECT g.id, g.workspace_id, g.mode, g.option_id, g.tier_id, g.months, g.amount_cents, g.currency, g.status, g.buyer_name, g.buyer_email, g.in_person, g.recipient_name, g.recipient_email, g.message, g.deliver_at, g.timezone, g.code, g.stripe_session_id, g.payment_intent, g.stripe_customer, g.paid_at, g.delivered_at, g.reminded_at, g.link_expires_at, g.redeemed_at, g.redeemed_email, g.redeemed_contact, g.subscription_id, g.ending_sent_at, g.refunded_at, g.message_purged_at, g.created_at, g.updated_at, g.receipt_sent_at, g.email_status, g.payment_failed_at, g.failed_notice_at, coalesce(t.name, '')::text AS tier_name, coalesce(t.list_ids, '{}')::uuid[] AS list_ids,
        s.current_period_end AS access_ends
 FROM earn_gifts g
 LEFT JOIN earn_tiers t ON t.id = g.tier_id
@@ -572,6 +596,8 @@ func (q *Queries) GiftGet(ctx context.Context, arg GiftGetParams) (GiftGetRow, e
 		&i.EarnGift.UpdatedAt,
 		&i.EarnGift.ReceiptSentAt,
 		&i.EarnGift.EmailStatus,
+		&i.EarnGift.PaymentFailedAt,
+		&i.EarnGift.FailedNoticeAt,
 		&i.TierName,
 		&i.ListIds,
 		&i.AccessEnds,
@@ -632,7 +658,7 @@ func (q *Queries) GiftInsert(ctx context.Context, arg GiftInsertParams) error {
 }
 
 const giftList = `-- name: GiftList :many
-SELECT g.id, g.workspace_id, g.mode, g.option_id, g.tier_id, g.months, g.amount_cents, g.currency, g.status, g.buyer_name, g.buyer_email, g.in_person, g.recipient_name, g.recipient_email, g.message, g.deliver_at, g.timezone, g.code, g.stripe_session_id, g.payment_intent, g.stripe_customer, g.paid_at, g.delivered_at, g.reminded_at, g.link_expires_at, g.redeemed_at, g.redeemed_email, g.redeemed_contact, g.subscription_id, g.ending_sent_at, g.refunded_at, g.message_purged_at, g.created_at, g.updated_at, g.receipt_sent_at, g.email_status, coalesce(t.name, '')::text AS tier_name, coalesce(t.list_ids, '{}')::uuid[] AS list_ids,
+SELECT g.id, g.workspace_id, g.mode, g.option_id, g.tier_id, g.months, g.amount_cents, g.currency, g.status, g.buyer_name, g.buyer_email, g.in_person, g.recipient_name, g.recipient_email, g.message, g.deliver_at, g.timezone, g.code, g.stripe_session_id, g.payment_intent, g.stripe_customer, g.paid_at, g.delivered_at, g.reminded_at, g.link_expires_at, g.redeemed_at, g.redeemed_email, g.redeemed_contact, g.subscription_id, g.ending_sent_at, g.refunded_at, g.message_purged_at, g.created_at, g.updated_at, g.receipt_sent_at, g.email_status, g.payment_failed_at, g.failed_notice_at, coalesce(t.name, '')::text AS tier_name, coalesce(t.list_ids, '{}')::uuid[] AS list_ids,
        s.current_period_end AS access_ends
 FROM earn_gifts g
 LEFT JOIN earn_tiers t ON t.id = g.tier_id
@@ -715,6 +741,8 @@ func (q *Queries) GiftList(ctx context.Context, arg GiftListParams) ([]GiftListR
 			&i.EarnGift.UpdatedAt,
 			&i.EarnGift.ReceiptSentAt,
 			&i.EarnGift.EmailStatus,
+			&i.EarnGift.PaymentFailedAt,
+			&i.EarnGift.FailedNoticeAt,
 			&i.TierName,
 			&i.ListIds,
 			&i.AccessEnds,
@@ -730,7 +758,7 @@ func (q *Queries) GiftList(ctx context.Context, arg GiftListParams) ([]GiftListR
 }
 
 const giftNeedsLook = `-- name: GiftNeedsLook :many
-SELECT g.id, g.workspace_id, g.mode, g.option_id, g.tier_id, g.months, g.amount_cents, g.currency, g.status, g.buyer_name, g.buyer_email, g.in_person, g.recipient_name, g.recipient_email, g.message, g.deliver_at, g.timezone, g.code, g.stripe_session_id, g.payment_intent, g.stripe_customer, g.paid_at, g.delivered_at, g.reminded_at, g.link_expires_at, g.redeemed_at, g.redeemed_email, g.redeemed_contact, g.subscription_id, g.ending_sent_at, g.refunded_at, g.message_purged_at, g.created_at, g.updated_at, g.receipt_sent_at, g.email_status, coalesce(t.name, '')::text AS tier_name, coalesce(t.list_ids, '{}')::uuid[] AS list_ids
+SELECT g.id, g.workspace_id, g.mode, g.option_id, g.tier_id, g.months, g.amount_cents, g.currency, g.status, g.buyer_name, g.buyer_email, g.in_person, g.recipient_name, g.recipient_email, g.message, g.deliver_at, g.timezone, g.code, g.stripe_session_id, g.payment_intent, g.stripe_customer, g.paid_at, g.delivered_at, g.reminded_at, g.link_expires_at, g.redeemed_at, g.redeemed_email, g.redeemed_contact, g.subscription_id, g.ending_sent_at, g.refunded_at, g.message_purged_at, g.created_at, g.updated_at, g.receipt_sent_at, g.email_status, g.payment_failed_at, g.failed_notice_at, coalesce(t.name, '')::text AS tier_name, coalesce(t.list_ids, '{}')::uuid[] AS list_ids
 FROM earn_gifts g LEFT JOIN earn_tiers t ON t.id = g.tier_id
 WHERE g.workspace_id = $1 AND g.mode = $2
   AND ((g.status = 'delivered' AND g.delivered_at <= $3::timestamptz) OR (g.status = 'refunded' AND g.refunded_at >= $4::timestamptz))
@@ -803,6 +831,8 @@ func (q *Queries) GiftNeedsLook(ctx context.Context, arg GiftNeedsLookParams) ([
 			&i.EarnGift.UpdatedAt,
 			&i.EarnGift.ReceiptSentAt,
 			&i.EarnGift.EmailStatus,
+			&i.EarnGift.PaymentFailedAt,
+			&i.EarnGift.FailedNoticeAt,
 			&i.TierName,
 			&i.ListIds,
 		); err != nil {
@@ -817,7 +847,7 @@ func (q *Queries) GiftNeedsLook(ctx context.Context, arg GiftNeedsLookParams) ([
 }
 
 const giftNextScheduled = `-- name: GiftNextScheduled :one
-SELECT g.id, g.workspace_id, g.mode, g.option_id, g.tier_id, g.months, g.amount_cents, g.currency, g.status, g.buyer_name, g.buyer_email, g.in_person, g.recipient_name, g.recipient_email, g.message, g.deliver_at, g.timezone, g.code, g.stripe_session_id, g.payment_intent, g.stripe_customer, g.paid_at, g.delivered_at, g.reminded_at, g.link_expires_at, g.redeemed_at, g.redeemed_email, g.redeemed_contact, g.subscription_id, g.ending_sent_at, g.refunded_at, g.message_purged_at, g.created_at, g.updated_at, g.receipt_sent_at, g.email_status FROM earn_gifts g
+SELECT g.id, g.workspace_id, g.mode, g.option_id, g.tier_id, g.months, g.amount_cents, g.currency, g.status, g.buyer_name, g.buyer_email, g.in_person, g.recipient_name, g.recipient_email, g.message, g.deliver_at, g.timezone, g.code, g.stripe_session_id, g.payment_intent, g.stripe_customer, g.paid_at, g.delivered_at, g.reminded_at, g.link_expires_at, g.redeemed_at, g.redeemed_email, g.redeemed_contact, g.subscription_id, g.ending_sent_at, g.refunded_at, g.message_purged_at, g.created_at, g.updated_at, g.receipt_sent_at, g.email_status, g.payment_failed_at, g.failed_notice_at FROM earn_gifts g
 WHERE g.workspace_id = $1 AND g.mode = $2 AND g.status = 'paid'
 ORDER BY g.deliver_at NULLS FIRST, g.paid_at LIMIT 1
 `
@@ -867,6 +897,8 @@ func (q *Queries) GiftNextScheduled(ctx context.Context, arg GiftNextScheduledPa
 		&i.UpdatedAt,
 		&i.ReceiptSentAt,
 		&i.EmailStatus,
+		&i.PaymentFailedAt,
+		&i.FailedNoticeAt,
 	)
 	return i, err
 }
@@ -1195,7 +1227,8 @@ func (q *Queries) GiftPaid(ctx context.Context, arg GiftPaidParams) error {
 }
 
 const giftPaymentFailed = `-- name: GiftPaymentFailed :exec
-UPDATE earn_gifts SET status = 'abandoned', updated_at = $1::timestamptz WHERE id = $2 AND status IN ('checkout','abandoned')
+UPDATE earn_gifts SET status = 'abandoned', payment_failed_at = coalesce(payment_failed_at, $1::timestamptz), updated_at = $1::timestamptz
+WHERE id = $2 AND status IN ('checkout','abandoned')
 `
 
 type GiftPaymentFailedParams struct {
@@ -1203,7 +1236,8 @@ type GiftPaymentFailedParams struct {
 	ID uuid.UUID `json:"id"`
 }
 
-// A delayed payment (a bank debit) didn't clear: the gift is abandoned.
+// A delayed payment (a bank debit) didn't clear: the gift is abandoned and
+// its buyer is told (review 2026-11 EN-9).
 func (q *Queries) GiftPaymentFailed(ctx context.Context, arg GiftPaymentFailedParams) error {
 	_, err := q.db.Exec(ctx, giftPaymentFailed, arg.At, arg.ID)
 	return err
@@ -1358,7 +1392,7 @@ func (q *Queries) GiftsAbandon(ctx context.Context, arg GiftsAbandonParams) (int
 }
 
 const giftsDue = `-- name: GiftsDue :many
-SELECT id, workspace_id, mode, option_id, tier_id, months, amount_cents, currency, status, buyer_name, buyer_email, in_person, recipient_name, recipient_email, message, deliver_at, timezone, code, stripe_session_id, payment_intent, stripe_customer, paid_at, delivered_at, reminded_at, link_expires_at, redeemed_at, redeemed_email, redeemed_contact, subscription_id, ending_sent_at, refunded_at, message_purged_at, created_at, updated_at, receipt_sent_at, email_status FROM earn_gifts WHERE status = 'paid' AND (deliver_at IS NULL OR deliver_at <= $1::timestamptz)
+SELECT id, workspace_id, mode, option_id, tier_id, months, amount_cents, currency, status, buyer_name, buyer_email, in_person, recipient_name, recipient_email, message, deliver_at, timezone, code, stripe_session_id, payment_intent, stripe_customer, paid_at, delivered_at, reminded_at, link_expires_at, redeemed_at, redeemed_email, redeemed_contact, subscription_id, ending_sent_at, refunded_at, message_purged_at, created_at, updated_at, receipt_sent_at, email_status, payment_failed_at, failed_notice_at FROM earn_gifts WHERE status = 'paid' AND (deliver_at IS NULL OR deliver_at <= $1::timestamptz)
   AND (recipient_email <> '' OR buyer_email <> '')
 ORDER BY deliver_at NULLS FIRST LIMIT 200
 `
@@ -1411,6 +1445,8 @@ func (q *Queries) GiftsDue(ctx context.Context, now time.Time) ([]EarnGift, erro
 			&i.UpdatedAt,
 			&i.ReceiptSentAt,
 			&i.EmailStatus,
+			&i.PaymentFailedAt,
+			&i.FailedNoticeAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1423,7 +1459,7 @@ func (q *Queries) GiftsDue(ctx context.Context, now time.Time) ([]EarnGift, erro
 }
 
 const giftsEnding = `-- name: GiftsEnding :many
-SELECT g.id, g.workspace_id, g.mode, g.option_id, g.tier_id, g.months, g.amount_cents, g.currency, g.status, g.buyer_name, g.buyer_email, g.in_person, g.recipient_name, g.recipient_email, g.message, g.deliver_at, g.timezone, g.code, g.stripe_session_id, g.payment_intent, g.stripe_customer, g.paid_at, g.delivered_at, g.reminded_at, g.link_expires_at, g.redeemed_at, g.redeemed_email, g.redeemed_contact, g.subscription_id, g.ending_sent_at, g.refunded_at, g.message_purged_at, g.created_at, g.updated_at, g.receipt_sent_at, g.email_status, s.current_period_end AS access_ends FROM earn_gifts g JOIN paid_subscriptions s ON s.id = g.subscription_id
+SELECT g.id, g.workspace_id, g.mode, g.option_id, g.tier_id, g.months, g.amount_cents, g.currency, g.status, g.buyer_name, g.buyer_email, g.in_person, g.recipient_name, g.recipient_email, g.message, g.deliver_at, g.timezone, g.code, g.stripe_session_id, g.payment_intent, g.stripe_customer, g.paid_at, g.delivered_at, g.reminded_at, g.link_expires_at, g.redeemed_at, g.redeemed_email, g.redeemed_contact, g.subscription_id, g.ending_sent_at, g.refunded_at, g.message_purged_at, g.created_at, g.updated_at, g.receipt_sent_at, g.email_status, g.payment_failed_at, g.failed_notice_at, s.current_period_end AS access_ends FROM earn_gifts g JOIN paid_subscriptions s ON s.id = g.subscription_id
 WHERE g.status = 'redeemed' AND g.ending_sent_at IS NULL AND s.ended_at IS NULL AND s.kind = 'gift'
   AND s.current_period_end > $1::timestamptz AND s.current_period_end <= $2::timestamptz
 ORDER BY s.current_period_end LIMIT 200
@@ -1486,6 +1522,8 @@ func (q *Queries) GiftsEnding(ctx context.Context, arg GiftsEndingParams) ([]Gif
 			&i.EarnGift.UpdatedAt,
 			&i.EarnGift.ReceiptSentAt,
 			&i.EarnGift.EmailStatus,
+			&i.EarnGift.PaymentFailedAt,
+			&i.EarnGift.FailedNoticeAt,
 			&i.AccessEnds,
 		); err != nil {
 			return nil, err
@@ -1525,7 +1563,7 @@ func (q *Queries) GiftsPurgeMessages(ctx context.Context, arg GiftsPurgeMessages
 }
 
 const giftsToExpire = `-- name: GiftsToExpire :many
-SELECT id, workspace_id, mode, option_id, tier_id, months, amount_cents, currency, status, buyer_name, buyer_email, in_person, recipient_name, recipient_email, message, deliver_at, timezone, code, stripe_session_id, payment_intent, stripe_customer, paid_at, delivered_at, reminded_at, link_expires_at, redeemed_at, redeemed_email, redeemed_contact, subscription_id, ending_sent_at, refunded_at, message_purged_at, created_at, updated_at, receipt_sent_at, email_status FROM earn_gifts WHERE status = 'delivered' AND link_expires_at <= $1::timestamptz LIMIT 500
+SELECT id, workspace_id, mode, option_id, tier_id, months, amount_cents, currency, status, buyer_name, buyer_email, in_person, recipient_name, recipient_email, message, deliver_at, timezone, code, stripe_session_id, payment_intent, stripe_customer, paid_at, delivered_at, reminded_at, link_expires_at, redeemed_at, redeemed_email, redeemed_contact, subscription_id, ending_sent_at, refunded_at, message_purged_at, created_at, updated_at, receipt_sent_at, email_status, payment_failed_at, failed_notice_at FROM earn_gifts WHERE status = 'delivered' AND link_expires_at <= $1::timestamptz LIMIT 500
 `
 
 func (q *Queries) GiftsToExpire(ctx context.Context, now time.Time) ([]EarnGift, error) {
@@ -1574,6 +1612,8 @@ func (q *Queries) GiftsToExpire(ctx context.Context, now time.Time) ([]EarnGift,
 			&i.UpdatedAt,
 			&i.ReceiptSentAt,
 			&i.EmailStatus,
+			&i.PaymentFailedAt,
+			&i.FailedNoticeAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1586,7 +1626,7 @@ func (q *Queries) GiftsToExpire(ctx context.Context, now time.Time) ([]EarnGift,
 }
 
 const giftsToReceipt = `-- name: GiftsToReceipt :many
-SELECT id, workspace_id, mode, option_id, tier_id, months, amount_cents, currency, status, buyer_name, buyer_email, in_person, recipient_name, recipient_email, message, deliver_at, timezone, code, stripe_session_id, payment_intent, stripe_customer, paid_at, delivered_at, reminded_at, link_expires_at, redeemed_at, redeemed_email, redeemed_contact, subscription_id, ending_sent_at, refunded_at, message_purged_at, created_at, updated_at, receipt_sent_at, email_status FROM earn_gifts WHERE status IN ('paid','delivered','redeemed') AND receipt_sent_at IS NULL AND paid_at IS NOT NULL
+SELECT id, workspace_id, mode, option_id, tier_id, months, amount_cents, currency, status, buyer_name, buyer_email, in_person, recipient_name, recipient_email, message, deliver_at, timezone, code, stripe_session_id, payment_intent, stripe_customer, paid_at, delivered_at, reminded_at, link_expires_at, redeemed_at, redeemed_email, redeemed_contact, subscription_id, ending_sent_at, refunded_at, message_purged_at, created_at, updated_at, receipt_sent_at, email_status, payment_failed_at, failed_notice_at FROM earn_gifts WHERE status IN ('paid','delivered','redeemed') AND receipt_sent_at IS NULL AND paid_at IS NOT NULL
   AND paid_at > $1::timestamptz
 ORDER BY paid_at LIMIT 200
 `
@@ -1638,6 +1678,8 @@ func (q *Queries) GiftsToReceipt(ctx context.Context, since time.Time) ([]EarnGi
 			&i.UpdatedAt,
 			&i.ReceiptSentAt,
 			&i.EmailStatus,
+			&i.PaymentFailedAt,
+			&i.FailedNoticeAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1650,7 +1692,7 @@ func (q *Queries) GiftsToReceipt(ctx context.Context, since time.Time) ([]EarnGi
 }
 
 const giftsToRemind = `-- name: GiftsToRemind :many
-SELECT id, workspace_id, mode, option_id, tier_id, months, amount_cents, currency, status, buyer_name, buyer_email, in_person, recipient_name, recipient_email, message, deliver_at, timezone, code, stripe_session_id, payment_intent, stripe_customer, paid_at, delivered_at, reminded_at, link_expires_at, redeemed_at, redeemed_email, redeemed_contact, subscription_id, ending_sent_at, refunded_at, message_purged_at, created_at, updated_at, receipt_sent_at, email_status FROM earn_gifts WHERE status = 'delivered' AND reminded_at IS NULL AND delivered_at <= $1::timestamptz
+SELECT id, workspace_id, mode, option_id, tier_id, months, amount_cents, currency, status, buyer_name, buyer_email, in_person, recipient_name, recipient_email, message, deliver_at, timezone, code, stripe_session_id, payment_intent, stripe_customer, paid_at, delivered_at, reminded_at, link_expires_at, redeemed_at, redeemed_email, redeemed_contact, subscription_id, ending_sent_at, refunded_at, message_purged_at, created_at, updated_at, receipt_sent_at, email_status, payment_failed_at, failed_notice_at FROM earn_gifts WHERE status = 'delivered' AND reminded_at IS NULL AND delivered_at <= $1::timestamptz
   AND (link_expires_at IS NULL OR link_expires_at > $2::timestamptz)
   AND (recipient_email <> '' OR buyer_email <> '')
 ORDER BY delivered_at LIMIT 200
@@ -1708,6 +1750,74 @@ func (q *Queries) GiftsToRemind(ctx context.Context, arg GiftsToRemindParams) ([
 			&i.UpdatedAt,
 			&i.ReceiptSentAt,
 			&i.EmailStatus,
+			&i.PaymentFailedAt,
+			&i.FailedNoticeAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const giftsToTellFailed = `-- name: GiftsToTellFailed :many
+SELECT id, workspace_id, mode, option_id, tier_id, months, amount_cents, currency, status, buyer_name, buyer_email, in_person, recipient_name, recipient_email, message, deliver_at, timezone, code, stripe_session_id, payment_intent, stripe_customer, paid_at, delivered_at, reminded_at, link_expires_at, redeemed_at, redeemed_email, redeemed_contact, subscription_id, ending_sent_at, refunded_at, message_purged_at, created_at, updated_at, receipt_sent_at, email_status, payment_failed_at, failed_notice_at FROM earn_gifts WHERE status = 'abandoned' AND payment_failed_at > $1::timestamptz AND failed_notice_at IS NULL AND buyer_email <> ''
+ORDER BY payment_failed_at LIMIT 200
+`
+
+// Gifts whose bank payment failed and whose buyer hasn't been told yet (not
+// for failures more than a week old).
+func (q *Queries) GiftsToTellFailed(ctx context.Context, since time.Time) ([]EarnGift, error) {
+	rows, err := q.db.Query(ctx, giftsToTellFailed, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []EarnGift{}
+	for rows.Next() {
+		var i EarnGift
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.Mode,
+			&i.OptionID,
+			&i.TierID,
+			&i.Months,
+			&i.AmountCents,
+			&i.Currency,
+			&i.Status,
+			&i.BuyerName,
+			&i.BuyerEmail,
+			&i.InPerson,
+			&i.RecipientName,
+			&i.RecipientEmail,
+			&i.Message,
+			&i.DeliverAt,
+			&i.Timezone,
+			&i.Code,
+			&i.StripeSessionID,
+			&i.PaymentIntent,
+			&i.StripeCustomer,
+			&i.PaidAt,
+			&i.DeliveredAt,
+			&i.RemindedAt,
+			&i.LinkExpiresAt,
+			&i.RedeemedAt,
+			&i.RedeemedEmail,
+			&i.RedeemedContact,
+			&i.SubscriptionID,
+			&i.EndingSentAt,
+			&i.RefundedAt,
+			&i.MessagePurgedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ReceiptSentAt,
+			&i.EmailStatus,
+			&i.PaymentFailedAt,
+			&i.FailedNoticeAt,
 		); err != nil {
 			return nil, err
 		}
