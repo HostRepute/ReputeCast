@@ -13,7 +13,7 @@ import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { count, orList } from '@/lib/format'
 import { roleName } from '@/lib/roles'
-import { useMe, useWorkspace } from '@/lib/session'
+import { useCan, useMe, useWorkspace } from '@/lib/session'
 import { EARN, EarnPage } from '../EarnPage'
 import { day, money } from '../format'
 import { DeliveryDialog, OptionDialog } from './GiftDialogs'
@@ -21,6 +21,8 @@ import { GiftIcon, giftWhen } from './parts'
 import { mg } from './messages'
 import './gifts.css'
 import { useDebounced } from '@/lib/hooks'
+import { downloadCsv } from '@/lib/download'
+import { m as dm } from '@/lib/download.messages'
 
 type View = Schemas['GiftsView']
 type Row = Schemas['GiftRow']
@@ -361,6 +363,7 @@ function GiftsTable({ v, setDialog }: { v: View; setDialog: (d: PageDialog) => v
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
   const q = useDebounced(search.trim(), 250)
+  const canExport = useCan('subscribers:export')
   // The page goes back to the first when the filter or the search changes.
   const key = `${filter}|${q}`
   const [paged, setPaged] = useState({ key, page: 1 })
@@ -384,10 +387,22 @@ function GiftsTable({ v, setDialog }: { v: View; setDialog: (d: PageDialog) => v
           </h2>
           <span className="k">{v.canManage ? t(mg.giftsCaption, { host: v.page.host }) : t(mg.giftsCaptionRo)}</span>
         </div>
-        <label className="gf-search">
-          <Icon name="search" size={14} />
-          <input aria-label={t(mg.searchLabel)} placeholder={t(mg.search)} value={search} onChange={(e) => setSearch(e.target.value)} />
-        </label>
+        <span className="flex flex-wrap items-center gap-2">
+          <label className="gf-search">
+            <Icon name="search" size={14} />
+            <input aria-label={t(mg.searchLabel)} placeholder={t(mg.search)} value={search} onChange={(e) => setSearch(e.target.value)} />
+          </label>
+          {/* The gifts the filter shows, as CSV (review 2026-11 EA-2). */}
+          <Button
+            size="sm"
+            icon={canExport ? undefined : 'lock'}
+            disabled={!canExport}
+            title={canExport ? undefined : t(dm.needs)}
+            onClick={() => void downloadCsv(`${EARN}/gifts/export`, { path: { workspace: slug }, query: { status: filter, q: q || undefined } }, 'gifts.csv')}
+          >
+            {t(dm.exportCsv)}
+          </Button>
+        </span>
       </div>
       <div className="gf-fchips" role="group" aria-label={t(mg.filterLabel)}>
         {filters.map((f) => (

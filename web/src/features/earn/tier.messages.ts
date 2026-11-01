@@ -145,4 +145,5 @@ export const mt = defineMessages('earn.tier', {
   errPrice: 'Give the tier a monthly or a yearly price.',
   readOnly: 'Your role can’t change plans and offers. Ask {helpers}.',
   readOnlyNoHelpers: 'Your role can’t change plans and offers.',
+  leaveTier: "Your changes to this tier aren't saved.",
 })

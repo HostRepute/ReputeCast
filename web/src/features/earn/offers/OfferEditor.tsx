@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { $api, ApiError, errorMessage, type Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Page } from '@/components/shell/Page'
@@ -21,6 +21,7 @@ import { EndOfferDialog } from './EndOfferDialog'
 import { discounted, discountLine, forLine, howLine, offOf, tiersLine } from './lines'
 import { mof } from './messages'
 import './offers.css'
+import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 
 type Detail = Schemas['OfferDetail']
 type Offer = Schemas['Offer']
@@ -143,6 +144,9 @@ function OfferForm({ d }: { d: Detail }) {
   const status = useEarnStatus()
   const plans = $api.useQuery('get', `${EARN}/plans`, { params: { path: { workspace: slug } } })
   const [f, setF] = useState<Form>(() => toForm(d))
+  // What was last saved: leaving with anything else asks first (EA-1).
+  const [savedForm, setSavedForm] = useState(() => JSON.stringify(toForm(d)))
+  const [goTo, setGoTo] = useState<string>()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [ending, setEnding] = useState(false)
   const create = $api.useMutation('post', `${EARN}/offers`)
@@ -195,8 +199,14 @@ function OfferForm({ d }: { d: Detail }) {
     setErrors({})
     if (r.sync === 'failed') toast({ kind: 'error', title: t(mof.saved, { name: r.name }), detail: t(mof.syncFailed, { provider, error: r.syncError ?? '' }) })
     else toast({ kind: 'success', title: r.sync === 'synced' ? t(mof.savedStripe, { name: r.name, provider }) : t(mof.saved, { name: r.name }) })
-    if (isNew) void navigate({ to: '/w/$workspace/earn/plans/offers/$offerId', params: { workspace: slug, offerId: r.id }, replace: true })
+    setSavedForm(JSON.stringify(f))
+    // A new offer moves to its own address once the guard knows it's saved.
+    if (isNew) setGoTo(r.id)
   }
+  useEffect(() => {
+    if (goTo) void navigate({ to: '/w/$workspace/earn/plans/offers/$offerId', params: { workspace: slug, offerId: goTo }, replace: true })
+  }, [goTo, navigate, slug])
+  const dirty = JSON.stringify(f) !== savedForm
   const save = () => {
     setErrors({})
     if (isNew) create.mutate({ params: { path: { workspace: slug } }, body: body() }, { onSuccess: onSaved, onError })
@@ -217,6 +227,7 @@ function OfferForm({ d }: { d: Detail }) {
   const benefits = plans.data?.tiers.find((x) => x.id === o.applies[0]?.tierId)?.benefits ?? []
   return (
     <Page title={title} breadcrumb={crumbs} badges={<ProviderChip status={status.data} />} actions={actions}>
+      {ro ? null : <UnsavedChangesGuard dirty={dirty && !goTo} description={t(mof.leaveOffer)} />}
       <div className="flex flex-col gap-4">
         {ro ? <ReadOnlyNote helpers={d.helpers} /> : null}
         {d.state === 'missing' && !ro ? (
