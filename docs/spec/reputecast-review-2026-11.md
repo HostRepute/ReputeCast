@@ -754,9 +754,13 @@ Checked at the end of M51:
 - **Accessibility.** An axe sweep (WCAG 2.0, 2.1 and 2.2 A and AA) of every screen at 1440 and 390 px
   (`web/scripts/a11y.ts`). Its one violation, the saved views' 22px menu buttons, is fixed. The design
   system's stricter 44px rule on phones went from 1,451 controls under it to 730, as buttons and fields
-  became 44px tall there. The rest are switches, filter chips and links inside rows.
+  became 44px tall there. The rest are switches, filter chips and links inside rows. Run again after the
+  step trails, NoResults and the colour tokens landed: 251 screens and widths, no violations.
 - **Security.** `pnpm audit` found two advisories in seroval, which TanStack Router pulls in; it is
   pinned to the patched 1.6.11. A CI job now runs govulncheck and `pnpm audit` (it couldn't run here).
+  Its first runs found two reachable advisories in golang.org/x/net's HTML parser and renderer
+  (GO-2026-6866, GO-2026-6860), which the page sanitizer and the template previews call; x/net is now
+  v0.62.0, which fixes both.
 
 - **OP-13** the Load test workflow ran on a pull request labelled `load-test` (GitHub runs a hand-started
   workflow only from the default branch). Every call met its target one at a time; pages (p95 50 ms) and
