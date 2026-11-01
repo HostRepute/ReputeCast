@@ -129,8 +129,14 @@ queue on the same four cores. A CPU profile of the send call showed most of
 it compiling and checking the template's MJML on every message; a version is
 now compiled once per process, which cut the send call's CPU by a quarter.
 Search, a median 52 ms on its own at a million contacts against 7 ms at
-200,000, grows with the table rather than with its matches, which points at
-its plan; that is the next thing to look at.
+200,000, grows with the table rather than with its matches. Its plan is the
+right one (EXPLAIN ANALYZE at 200,000: a BitmapOr of the email and name
+trigram indexes and the tags index, 11 rows, 6 ms, the GIN pending lists
+empty); the cost is the email trigram index itself. Every sample address
+contains "load", so two of the six trigrams of "load4242" are in every row,
+and their posting lists grow with the table. That is a worst case real lists
+don't have, and a search on its own meets its target; ten people searching
+at once on four shared cores don't.
 
 The approvals inbox with 1,000 open requests (`TestInboxAtAThousandRequests`,
 review 2026-11 AP-3): 118 to 200 ms when every request was checked
