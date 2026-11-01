@@ -33405,6 +33405,7 @@ export interface components {
         };
         ProductCheck: {
             account?: string;
+            advisory?: boolean;
             /** Format: date-time */
             at?: string;
             /** Format: int64 */
@@ -33415,7 +33416,7 @@ export interface components {
             draft?: boolean;
             file?: string;
             /** @enum {string} */
-            key: "stripe" | "file" | "price" | "template" | "route" | "cover_alt" | "sales_page";
+            key: "stripe" | "file" | "price" | "template" | "route" | "cover_alt" | "sales_page" | "failed_notice";
             mode?: string;
             ok: boolean;
             path?: string;

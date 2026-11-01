@@ -24,7 +24,7 @@ import { useCan, useMe, useWorkspace } from '@/lib/session'
 import { me } from '../earn/messages'
 import { PRODUCT, invalidateProducts, uploadCover, type ProductDetail } from './api'
 import { pe } from './editor.messages'
-import { ChecksCard, DefaultPage, NumbersCard, ShopCard, checkRows, useSiteFrame, type Preview } from './EditorAside'
+import { ChecksCard, DefaultPage, NumbersCard, ShopCard, blockingRows, checkRows, useSiteFrame, type Preview } from './EditorAside'
 import { EditorFiles } from './EditorFiles'
 import { SHORT_MAX, changed, fieldOf, toFields, toForm, validate, type Form, type FormErrors } from './editorForm'
 import { bareUrl, changesText, currencySymbol, day, fileSize, money, priceWord } from './format'
@@ -167,7 +167,7 @@ function Editor({ detail, crumbs }: { detail: ProductDetail; crumbs: (name: stri
       if (!next) return
       d = next
     }
-    const failing = checkRows(t, d).filter((r) => !r.ok).length
+    const failing = blockingRows(checkRows(t, d)).length
     if (failing) {
       toast({ kind: 'error', title: t(pe.publishFailed), detail: t(pe.fixChecksReason, { count: failing }) })
       return

@@ -52770,6 +52770,9 @@
           "account": {
             "type": "string"
           },
+          "advisory": {
+            "type": "boolean"
+          },
           "at": {
             "format": "date-time",
             "type": "string"
@@ -52797,7 +52800,8 @@
               "template",
               "route",
               "cover_alt",
-              "sales_page"
+              "sales_page",
+              "failed_notice"
             ],
             "type": "string"
           },

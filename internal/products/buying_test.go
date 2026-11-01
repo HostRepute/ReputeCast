@@ -999,7 +999,30 @@ func TestDelayedPaymentThatFails(t *testing.T) {
 	if sent() != 0 {
 		t.Fatal("a draft notice was sent")
 	}
+	// Review 2026-11 EN-10: the product's publish checks name the notice
+	// while it is a draft, without blocking publishing.
+	notice := func() (found, ok, advisory bool) {
+		var d struct {
+			Checks []struct {
+				Key          string
+				OK, Advisory bool
+			}
+		}
+		s.owner.Do("GET", ws+"/products/"+s.fieldGuide.String(), nil).MustStatus(t, 200).JSON(t, &d)
+		for _, c := range d.Checks {
+			if c.Key == "failed_notice" {
+				return true, c.OK, c.Advisory
+			}
+		}
+		return false, false, false
+	}
+	if found, ok, advisory := notice(); !found || ok || !advisory {
+		t.Fatalf("draft notice check: found %v ok %v advisory %v", found, ok, advisory)
+	}
 	s.owner.Do("POST", ws+"/transactional/templates/product-payment-failed/publish", map[string]any{"baseRevision": revision}).MustStatus(t, 200)
+	if found, ok, _ := notice(); !found || !ok {
+		t.Fatalf("published notice check: found %v ok %v", found, ok)
+	}
 	if err := s.svc.SendPaymentFailed(s.ctx, co.ID); err != nil {
 		t.Fatal(err)
 	}
