@@ -221,7 +221,7 @@ func (s *Service) healthCheck(ctx context.Context, c store.PaymentConnection) er
 			return s.notifyAttention(ctx, &ws, c, "webhook_missing", now)
 		case err == nil:
 			if err := s.syncWebhookEvents(ctx, &ws, c, client); err != nil {
-				s.log().Warn("earn: couldn't add the new webhook events", "connection", c.ID, "err", err)
+				s.log().WarnContext(ctx, "earn: couldn't add the new webhook events", "connection", c.ID, "err", err)
 			}
 		}
 	}

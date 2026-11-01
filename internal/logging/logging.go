@@ -21,7 +21,7 @@ func New(w io.Writer, level, format string) *slog.Logger {
 	} else {
 		h = slog.NewTextHandler(w, opts)
 	}
-	return slog.New(h)
+	return slog.New(ContextHandler{h})
 }
 
 // ParseLevel maps a level name to a slog.Level, defaulting to info.

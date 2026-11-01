@@ -36,6 +36,7 @@ var (
 	mIntegrationKeyRevoked = msgs.M("problem.integrationKeyRevoked")
 	mIntegrationKeyExpired = msgs.M("problem.integrationKeyExpired")
 	mOwnerLeft             = msgs.M("problem.ownerLeft")
+	mSessionRateLimited    = msgs.M("problem.sessionRateLimited")
 )
 
 // fixed maps the English of problems written without the request's

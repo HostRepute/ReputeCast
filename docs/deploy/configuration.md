@@ -16,16 +16,17 @@ has one name everywhere: `REPUTECAST_PUBLIC_URL`.
 | `REPUTECAST_PUBLIC_URL` | `http://localhost:8080` | The address people and providers reach. (`REPUTECAST_HTTP__PUBLIC_URL`, its earlier name, still works when `REPUTECAST_PUBLIC_URL` isn't set.) Used for webhooks, SSO redirects, passkeys, public pages and links in emails. Use `https://` in production. An address saved in Instance admin › Instance & updates replaces it for links, pages and webhooks (moving provider webhooks with it); HTTPS-only cookies and HSTS follow this setting, so keep the two the same. |
 | `REPUTECAST_HTTP__TRUSTED_PROXIES` | — | Comma-separated CIDRs or IPs of your reverse proxies; only then is `X-Forwarded-For` trusted. |
 | `REPUTECAST_HTTP__RATE_LIMIT_AUTH` | `30` | Sign-in requests per minute per client IP (on top of per-email lockout). |
-| `REPUTECAST_HTTP__RATE_LIMIT_API` | `600` | API requests per minute per API key (per IP for browser sessions). |
+| `REPUTECAST_HTTP__RATE_LIMIT_API` | `600` | API requests per minute: per API key, per signed-in browser session, and per IP for calls with neither. |
+| `REPUTECAST_HTTP__RATE_LIMIT_IP` | `6000` | API requests per minute from signed-in browsers at one address together (an office behind one NAT shares it; each session still has `RATE_LIMIT_API`). Limits are counted by each web process: behind a load balancer with N web processes, a caller can reach N times them. |
 | `REPUTECAST_SECRETS__KEY` | — | Base64 32-byte key that encrypts provider credentials, OIDC secrets and TOTP seeds. If unset, `REPUTECAST_SECRETS__KEY_FILE` is used. |
 | `REPUTECAST_SECRETS__KEY_FILE` | `data/secret.key` (`/var/lib/reputecast/secret.key` in Docker) | Created with a fresh key on first start. **Back it up with the database**; without it, stored credentials can't be decrypted. |
-| `REPUTECAST_SECRETS__PREVIOUS_KEYS` | — | Old keys during a rotation (values sealed with them still open). |
+| `REPUTECAST_SECRETS__PREVIOUS_KEYS` | — | Old keys during a rotation (values sealed with them still open). After `reputecast secrets reseal` reports nothing left on a key, wait a day and remove it ([rotating the key](backup-restore.md#rotating-the-secret-key)). |
 | `REPUTECAST_FILES__DIR` | `files` next to the secret key file (`data/files`, `/var/lib/reputecast/files` in Docker) | Uploaded files: digital products and lead magnets. They stay out of the database, so back the folder up, and give every process the same folder when you split roles. |
 | `REPUTECAST_I18N__PSEUDO_LOCALE` | `false` | Offers "Pseudo (+40%)" in Language & region outside development, to check layouts with longer text on a staging instance. |
 | `REPUTECAST_ROLES` | `web,worker,ingest` | Same as `--role`. |
 | `REPUTECAST_WORKER__CONCURRENCY` | `50` | Concurrent jobs per worker process. |
 | `REPUTECAST_LOG__LEVEL` / `__FORMAT` | `info` / `text` | `debug…error`; `json` for log shippers. |
-| `REPUTECAST_METRICS__ENABLED` / `__ADDR` | `true` / `:9464` | Prometheus metrics at `/metrics` on their own listener. Keep that port off the internet (the Docker image doesn't publish it). Empty `__ADDR` serves no separate listener. |
+| `REPUTECAST_METRICS__ENABLED` / `__ADDR` | `true` / `:9464` | Prometheus metrics at `/metrics` on their own listener, which also answers `/healthz` and `/readyz`. Keep that port off the internet (the Docker image doesn't publish it). Empty `__ADDR` serves no separate listener, except in a worker-only process, which always opens it for health checks. |
 | `REPUTECAST_METRICS__TOKEN` | — | At least 16 characters. Also serves `/metrics` on the main listener, to a request with `Authorization: Bearer <token>`; without it the main listener answers `/metrics` with 404. |
 | `REPUTECAST_UPDATES__CHECK` | `true` | Daily check of GitHub releases (only the version number is fetched). Can also be turned off in Instance admin. ReputeCast never sends usage data anywhere. |
 | `REPUTECAST_AUTH__COOKIE_SECURE` | `true` | Secure session cookie (always on when the public URL is https). |

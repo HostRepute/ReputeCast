@@ -16,3 +16,11 @@ func envBool(key string, def bool) bool {
 	}
 	return b
 }
+
+// envOr returns the environment variable key, or def when it is unset.
+func envOr(key, def string) string {
+	if v, ok := os.LookupEnv(key); ok {
+		return v
+	}
+	return def
+}

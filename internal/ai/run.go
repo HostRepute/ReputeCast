@@ -155,7 +155,7 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 			s.keyRejected(logCtx, ws, c, e)
 		}
 		if err := s.Q.AIRequestInsert(logCtx, row); err != nil {
-			s.log().Warn("ai: log a failed request", "err", err)
+			s.log().WarnContext(ctx, "ai: log a failed request", "err", err)
 		}
 		if row.Outcome == OutcomeCancelled {
 			return result{}, ctx.Err()
@@ -184,7 +184,7 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	} else if out.JSON == nil && t.req.JSON {
 		row.Outcome, row.OutcomeDetail = OutcomeError, "unreadable answer"
 		if err := s.Q.AIRequestInsert(logCtx, row); err != nil {
-			s.log().Warn("ai: log a request", "err", err)
+			s.log().WarnContext(ctx, "ai: log a request", "err", err)
 		}
 		return result{}, problem(ctx, http.StatusBadGateway, codeProviderError, mUnreadable, i18n.Args{"provider": c.providerName()})
 	}
@@ -206,7 +206,7 @@ func (s *Service) finish(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		return
 	}
 	if _, err := s.Q.AIRequestSetOutcome(context.WithoutCancel(ctx), store.AIRequestSetOutcomeParams{ID: id, WorkspaceID: ws.ID, UserID: uid, Outcome: outcome, OutcomeDetail: detail, DecidedAt: ptr(s.now())}); err != nil {
-		s.log().Warn("ai: record an outcome", "err", err)
+		s.log().WarnContext(ctx, "ai: record an outcome", "err", err)
 	}
 }
 
@@ -305,7 +305,7 @@ func (s *Service) keyRejected(ctx context.Context, ws *store.Workspace, c *conne
 			Link: "/w/" + ws.Slug + "/settings/integrations/ai"}
 	})
 	if err != nil {
-		s.log().Warn("ai: notify a rejected key", "err", err)
+		s.log().WarnContext(ctx, "ai: notify a rejected key", "err", err)
 	}
 }
 
@@ -341,7 +341,7 @@ func (s *Service) afterUse(ctx context.Context, ws *store.Workspace, c *connecti
 			return notify.Notification{Kind: notify.KindAIUsage, Severity: "bad", Title: mNotifyCapTitle.Text(l, nil), Body: body.Text(l, args(l)), Link: link,
 				Data: map[string]any{"share": 100}}
 		}); err != nil {
-			s.log().Warn("ai: notify the cap", "err", err)
+			s.log().WarnContext(ctx, "ai: notify the cap", "err", err)
 		}
 		return
 	}
@@ -359,7 +359,7 @@ func (s *Service) afterUse(ctx context.Context, ws *store.Workspace, c *connecti
 		return notify.Notification{Kind: notify.KindAIUsage, Severity: "warn", Title: mNotifyUsageTitle.Text(l, nil), Body: body.Text(l, args(l)), Link: link,
 			Data: map[string]any{"share": 80}}
 	}); err != nil {
-		s.log().Warn("ai: notify the usage", "err", err)
+		s.log().WarnContext(ctx, "ai: notify the usage", "err", err)
 	}
 }
 

@@ -30,7 +30,7 @@ type RetentionWorker struct {
 func (w *RetentionWorker) Work(ctx context.Context, _ *river.Job[RetentionArgs]) error {
 	n, err := w.S.Purge(ctx)
 	if err == nil && n > 0 {
-		w.S.log().Info("ai: activity log purged", "rows", n)
+		w.S.log().InfoContext(ctx, "ai: activity log purged", "rows", n)
 	}
 	return err
 }

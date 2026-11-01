@@ -6,6 +6,7 @@ package jobs
 import (
 	"context"
 	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -13,6 +14,9 @@ import (
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/riverqueue/river/rivertype"
+
+	"github.com/hostrepute/reputecast/internal/logging"
+	"github.com/hostrepute/reputecast/internal/opsmetrics"
 )
 
 // Queue names. Sending has its own queue so a large broadcast never starves
@@ -67,6 +71,8 @@ func NewClient(pool *pgxpool.Pool, reg *Registry, o Options) (*Client, error) {
 		// context is cancelled. A send loop then stops between batches,
 		// with the batch in flight sent and recorded (internal/sending).
 		SoftStopTimeout: SoftStopTimeout,
+		// Every log line of a job names it (review 2026-11 OP-7).
+		Middleware: []rivertype.Middleware{&jobContext{}},
 	}
 	if o.Run {
 		c := max(o.Concurrency, 4)
@@ -82,14 +88,32 @@ func NewClient(pool *pgxpool.Pool, reg *Registry, o Options) (*Client, error) {
 	return river.NewClient(riverpgxv5.New(pool), cfg)
 }
 
+// jobContext starts a job's log fields: its kind and id.
+type jobContext struct{ river.MiddlewareDefaults }
+
+func (*jobContext) Work(ctx context.Context, job *rivertype.JobRow, doInner func(context.Context) error) error {
+	return doInner(logging.WithJob(ctx, job.Kind+":"+strconv.FormatInt(job.ID, 10)))
+}
+
 type errorHandler struct{ log *slog.Logger }
 
 func (h *errorHandler) HandleError(ctx context.Context, job *rivertype.JobRow, err error) *river.ErrorHandlerResult {
 	h.log.WarnContext(ctx, "job failed", "kind", job.Kind, "id", job.ID, "attempt", job.Attempt, "err", err)
+	opsmetrics.JobFailures.WithLabelValues(job.Kind, failureOutcome(job)).Inc()
 	return nil
 }
 
 func (h *errorHandler) HandlePanic(ctx context.Context, job *rivertype.JobRow, panicVal any, trace string) *river.ErrorHandlerResult {
 	h.log.ErrorContext(ctx, "job panicked", "kind", job.Kind, "id", job.ID, "panic", panicVal, "trace", trace)
+	opsmetrics.JobFailures.WithLabelValues(job.Kind, "panic").Inc()
 	return nil
+}
+
+// failureOutcome says whether a failed attempt is retried or the job is
+// discarded (out of attempts).
+func failureOutcome(job *rivertype.JobRow) string {
+	if job.Attempt >= job.MaxAttempts {
+		return "discarded"
+	}
+	return "retry"
 }

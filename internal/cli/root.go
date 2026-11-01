@@ -62,6 +62,8 @@ func newRoot() *cobra.Command {
 		newOpenAPICmd(),
 		newSecretsCmd(o),
 		newAdapterCmd(o),
+		newHealthcheckCmd(o),
+		newDoctorCmd(o),
 		newVersionCmd(),
 	)
 	return root

@@ -139,9 +139,14 @@ type HTTPConfig struct {
 	// TrustedProxies lists CIDRs whose X-Forwarded-For header is trusted.
 	TrustedProxies []string `koanf:"trusted_proxies"`
 	// RateLimitAuth and RateLimitAPI are requests per minute: sign-in
-	// endpoints per client IP, and the API per key (or IP for sessions).
-	RateLimitAuth   int           `koanf:"rate_limit_auth"`
-	RateLimitAPI    int           `koanf:"rate_limit_api"`
+	// endpoints per client IP, and the API per key, per signed-in session,
+	// or per IP for anonymous calls.
+	RateLimitAuth int `koanf:"rate_limit_auth"`
+	RateLimitAPI  int `koanf:"rate_limit_api"`
+	// RateLimitIP caps, per minute, the API requests of signed-in browsers
+	// from one address together: each session has RateLimitAPI, and an
+	// office behind one NAT shares this (review 2026-11 OP-6).
+	RateLimitIP     int           `koanf:"rate_limit_ip"`
 	ReadTimeout     time.Duration `koanf:"read_timeout"`
 	WriteTimeout    time.Duration `koanf:"write_timeout"`
 	ShutdownTimeout time.Duration `koanf:"shutdown_timeout"`
@@ -242,6 +247,7 @@ func Defaults() Config {
 			PublicURL:       "http://localhost:8080",
 			RateLimitAuth:   30,
 			RateLimitAPI:    600,
+			RateLimitIP:     6000,
 			ReadTimeout:     30 * time.Second,
 			WriteTimeout:    60 * time.Second,
 			ShutdownTimeout: 20 * time.Second,

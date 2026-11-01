@@ -1,6 +1,9 @@
 package app
 
 import (
+	"context"
+	"time"
+
 	"github.com/hostrepute/reputecast/internal/erasure"
 	"github.com/hostrepute/reputecast/internal/ingest"
 )
@@ -13,3 +16,9 @@ func ErasureExempt() map[string]string { return erasureExempt }
 
 // NormalizerOf is the app's webhook normalizer, with its hooks.
 func NormalizerOf(a *App) *ingest.Normalizer { return a.normalizer() }
+
+// WatchSchema starts the schema gate as Run does, polling every poll.
+func WatchSchema(ctx context.Context, a *App, poll time.Duration) <-chan struct{} {
+	schemaPoll = poll
+	return a.watchSchema(ctx)
+}

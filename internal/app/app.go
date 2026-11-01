@@ -11,6 +11,7 @@ import (
 	"net/netip"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -29,6 +30,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/opsmetrics"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/sending"
@@ -65,6 +67,11 @@ type App struct {
 	PublicURL *publicurl.Source
 
 	httpMetrics *server.HTTPMetrics
+	// schema is behind while migrations are pending (schema.go); workersUp
+	// once the worker role's job client runs.
+	schema    schemaGate
+	workersUp atomic.Bool
+	runs      bool // Run was called (tests use Handler alone)
 
 	policyMu    sync.Mutex
 	policy      api.Policy
@@ -78,12 +85,12 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 	if err != nil {
 		return nil, err
 	}
-	box, master, err := secretKeys(cfg, log)
+	box, master, previous, err := secretKeys(cfg, log)
 	if err != nil {
 		pool.Close()
 		return nil, err
 	}
-	links, err := linktoken.NewSigner(master)
+	links, err := linktoken.NewSigner(master, previous...)
 	if err != nil {
 		pool.Close()
 		return nil, err
@@ -106,12 +113,17 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 		PublicURL: pub,
 	}
 	a.Metrics.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	opsmetrics.Register(a.Metrics, a.Pool, jobs.QueueDefault, jobs.QueueSending, jobs.QueueEvents, jobs.QueueSystem, jobs.QueueMaintenance)
 	a.Auth = &api.Authenticator{
 		Q:          q,
 		Audit:      a.Audit,
 		Log:        log,
 		CookieName: cfg.Auth.CookieName,
 		Policy:     a.authPolicy,
+	}
+	if cfg.HTTP.RateLimitAPI > 0 {
+		a.Auth.SessionLimit = server.NewSessionLimiter(cfg.HTTP.RateLimitAPI).Allow
+		a.Auth.SessionLimitPerMinute = cfg.HTTP.RateLimitAPI
 	}
 	registerJobs(a)
 	for _, hook := range startHooks {
@@ -136,17 +148,18 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 // SecretBox loads the encryption key (from config or the key file) and
 // returns the box that seals secrets at rest.
 func SecretBox(cfg *config.Config, log *slog.Logger) (*secrets.Box, error) {
-	box, _, err := secretKeys(cfg, log)
+	box, _, _, err := secretKeys(cfg, log)
 	return box, err
 }
 
-// secretKeys returns the secrets box and the current master key.
-func secretKeys(cfg *config.Config, log *slog.Logger) (*secrets.Box, []byte, error) {
+// secretKeys returns the secrets box, the current master key and the
+// previous ones.
+func secretKeys(cfg *config.Config, log *slog.Logger) (*secrets.Box, []byte, [][]byte, error) {
 	keyStr := cfg.Secrets.Key
 	if keyStr == "" {
 		k, created, err := secrets.LoadOrCreateKeyFile(cfg.Secrets.KeyFile)
 		if err != nil {
-			return nil, nil, fmt.Errorf("secret key file %s: %w", cfg.Secrets.KeyFile, err)
+			return nil, nil, nil, fmt.Errorf("secret key file %s: %w", cfg.Secrets.KeyFile, err)
 		}
 		if created {
 			log.Warn("generated a new secret key; back it up together with the database", "file", cfg.Secrets.KeyFile)
@@ -155,18 +168,18 @@ func secretKeys(cfg *config.Config, log *slog.Logger) (*secrets.Box, []byte, err
 	}
 	cur, err := config.DecodeKey(keyStr)
 	if err != nil {
-		return nil, nil, fmt.Errorf("secret key: %w", err)
+		return nil, nil, nil, fmt.Errorf("secret key: %w", err)
 	}
 	var prev [][]byte
 	for _, p := range cfg.Secrets.PreviousKeys {
 		k, err := config.DecodeKey(p)
 		if err != nil {
-			return nil, nil, fmt.Errorf("previous secret key: %w", err)
+			return nil, nil, nil, fmt.Errorf("previous secret key: %w", err)
 		}
 		prev = append(prev, k)
 	}
 	box, err := secrets.New(cur, prev...)
-	return box, cur, err
+	return box, cur, prev, err
 }
 
 // authPolicy returns the instance authentication policy, cached for 30 s.
@@ -224,6 +237,7 @@ func (a *App) Handler() http.Handler {
 	}
 	r.Use(a.httpMetrics.Middleware)
 	r.Use(middleware.RequestID)
+	r.Use(server.LogContext)
 	// Forwarding headers from proxies that aren't trusted (wire_proxycheck.go).
 	r.Use(proxyDetector(a).Middleware)
 	r.Use(server.RealIP(trustedProxies(a.Cfg.HTTP.TrustedProxies, a.Log)))
@@ -231,20 +245,10 @@ func (a *App) Handler() http.Handler {
 	r.Use(middleware.Recoverer)
 	r.Use(server.AuditContext)
 	r.Use(server.SecurityHeaders(strings.HasPrefix(a.Cfg.HTTP.PublicURL, "https://")))
+	r.Use(a.readOnlyGuard)
 
-	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "text/plain")
-		_, _ = w.Write([]byte("ok"))
-	})
-	r.Get("/readyz", func(w http.ResponseWriter, req *http.Request) {
-		ctx, cancel := context.WithTimeout(req.Context(), 2*time.Second)
-		defer cancel()
-		if err := a.Pool.Ping(ctx); err != nil {
-			http.Error(w, "database unavailable", http.StatusServiceUnavailable)
-			return
-		}
-		_, _ = w.Write([]byte("ready"))
-	})
+	r.Get("/healthz", healthz)
+	r.Get("/readyz", a.readyz)
 	mountMetrics(r, a.Cfg.Metrics, promhttp.HandlerFor(a.Metrics, promhttp.HandlerOpts{}))
 
 	// Cross-origin protection (Go 1.25+): rejects cross-site browser requests
@@ -257,7 +261,8 @@ func (a *App) Handler() http.Handler {
 	r.Group(func(r chi.Router) {
 		r.Use(a.crossOrigin(cop))
 		if a.Cfg.HTTP.RateLimitAPI > 0 {
-			r.Use(server.RateLimits{AuthPerMinute: a.Cfg.HTTP.RateLimitAuth, APIPerMinute: a.Cfg.HTTP.RateLimitAPI}.Middleware())
+			r.Use(server.RateLimits{AuthPerMinute: a.Cfg.HTTP.RateLimitAuth, APIPerMinute: a.Cfg.HTTP.RateLimitAPI,
+				IPPerMinute: a.Cfg.HTTP.RateLimitIP, SessionCookie: a.Cfg.Auth.CookieName}.Middleware())
 		}
 		r.Use(middleware.Compress(5, "application/json", "application/problem+json", "text/html", "text/css", "text/plain", "application/javascript", "image/svg+xml"))
 		if a.Cfg.HasRole(config.RoleWeb) {
@@ -278,6 +283,31 @@ func (a *App) Handler() http.Handler {
 		r.Handle("/*", server.NewSPA(web.Dist()))
 	}
 	return r
+}
+
+// healthz answers while the process runs (liveness).
+func healthz(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	_, _ = w.Write([]byte("ok"))
+}
+
+// readyz answers 200 when the process can do its work: the database
+// answers, its schema has every migration this release needs, and in a
+// worker the job client runs (review 2026-11 OP-2).
+func (a *App) readyz(w http.ResponseWriter, req *http.Request) {
+	ctx, cancel := context.WithTimeout(req.Context(), 2*time.Second)
+	defer cancel()
+	w.Header().Set("Content-Type", "text/plain")
+	switch {
+	case a.Pool.Ping(ctx) != nil:
+		http.Error(w, "database unavailable", http.StatusServiceUnavailable)
+	case a.readOnly():
+		http.Error(w, "database schema behind this release: run `reputecast migrate up`", http.StatusServiceUnavailable)
+	case a.Cfg.HasRole(config.RoleWorker) && a.runs && !a.workersUp.Load():
+		http.Error(w, "workers not started", http.StatusServiceUnavailable)
+	default:
+		_, _ = w.Write([]byte("ready"))
+	}
 }
 
 // apiNotFound answers unknown /api paths with a problem document instead of
@@ -314,6 +344,8 @@ func trustedProxies(cidrs []string, log *slog.Logger) []netip.Prefix {
 // Run serves HTTP (web/ingest roles) and runs workers (worker role) until ctx ends.
 func (a *App) Run(ctx context.Context) error {
 	errCh := make(chan error, 3)
+	a.runs = true
+	schemaReady := a.watchSchema(ctx)
 	var srv *http.Server
 	if a.Cfg.HasRole(config.RoleWeb) || a.Cfg.HasRole(config.RoleIngest) {
 		srv = &http.Server{
@@ -335,10 +367,20 @@ func (a *App) Run(ctx context.Context) error {
 	metricsSrv := a.serveMetrics()
 	go a.followPublicURL(ctx)
 	if a.Cfg.HasRole(config.RoleWorker) {
-		if err := a.Jobs.Start(ctx); err != nil {
-			return fmt.Errorf("start workers: %w", err)
-		}
-		a.Log.Info("workers started", "concurrency", a.Cfg.Worker.Concurrency)
+		// Workers wait for the schema: they write everywhere.
+		go func() {
+			select {
+			case <-ctx.Done():
+				return
+			case <-schemaReady:
+			}
+			if err := a.Jobs.Start(ctx); err != nil {
+				errCh <- fmt.Errorf("start workers: %w", err)
+				return
+			}
+			a.workersUp.Store(true)
+			a.Log.Info("workers started", "concurrency", a.Cfg.Worker.Concurrency)
+		}()
 	}
 
 	var runErr error
@@ -353,7 +395,7 @@ func (a *App) Run(ctx context.Context) error {
 		_ = srv.Shutdown(shutdownCtx)
 	}
 	shutdownMetrics(shutdownCtx, metricsSrv)
-	if a.Cfg.HasRole(config.RoleWorker) {
+	if a.workersUp.Load() {
 		if err := a.Jobs.Stop(shutdownCtx); err != nil {
 			a.Log.Warn("workers did not stop cleanly", "err", err)
 		}

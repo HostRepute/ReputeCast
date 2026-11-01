@@ -12,7 +12,9 @@ import { useSyncExternalStore } from 'react'
  *               (the network works but ReputeCast doesn't answer)
  *   maintenance set while the API answers 503 with code "maintenance" or
  *               "read_only" (problem meta: version, startedBy, startedAt,
- *               etaSeconds, notesUrl)
+ *               etaSeconds, notesUrl), or while any answer carries
+ *               X-ReputeCast-Read-Only (the database is being upgraded:
+ *               reads work, so the banner shows before the first write)
  *   rateLimit   set while the API answers 429 "rate_limited"; cleared when
  *               Retry-After has passed
  */
@@ -25,6 +27,8 @@ export interface Maintenance {
   etaSeconds?: number
   notesUrl?: string
   detail?: string
+  /** Learned from the read-only header, so a read without it clears it. */
+  fromHeader?: boolean
 }
 
 export interface RateLimit {
@@ -174,6 +178,18 @@ export const systemStatusMiddleware: Middleware = {
     if (!isApi(request.url)) return undefined
     if (state.connection !== 'online') markOnline()
     if (response.status !== 401) set({ lastActivity: Date.now() })
+    const readOnly = response.headers.get('X-ReputeCast-Read-Only')
+    if (readOnly && !state.maintenance) {
+      set({
+        maintenance: {
+          version: response.headers.get('X-ReputeCast-Upgrade-Version') ?? undefined,
+          startedAt: response.headers.get('X-ReputeCast-Upgrade-Since') ?? undefined,
+          fromHeader: true,
+        },
+      })
+    } else if (!readOnly && response.ok && state.maintenance?.fromHeader) {
+      set({ maintenance: undefined })
+    }
     if (response.status === 429 || response.status === 503) {
       let problem: { code?: string; detail?: string; meta?: Record<string, unknown> } = {}
       try {

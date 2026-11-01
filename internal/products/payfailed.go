@@ -71,7 +71,7 @@ func (s *Service) SendPaymentFailed(ctx context.Context, checkoutID uuid.UUID) e
 		return err
 	}
 	if t.Version == 0 {
-		s.log().Info("products: payment failed email not sent: its template isn't published", "workspace", ws.ID, "checkout", co.ID)
+		s.log().InfoContext(ctx, "products: payment failed email not sent: its template isn't published", "workspace", ws.ID, "checkout", co.ID)
 		return nil
 	}
 	p, err := s.Q.ProductAny(ctx, co.ProductID)
@@ -101,7 +101,7 @@ func (s *Service) SendPaymentFailed(ctx context.Context, checkoutID uuid.UUID) e
 	if status >= 300 {
 		var res struct{ Code, Detail string }
 		_ = json.Unmarshal(body, &res)
-		s.log().Warn("products: payment failed email refused", "workspace", ws.ID, "checkout", co.ID, "code", res.Code, "detail", res.Detail)
+		s.log().WarnContext(ctx, "products: payment failed email refused", "workspace", ws.ID, "checkout", co.ID, "code", res.Code, "detail", res.Detail)
 	}
 	return nil
 }

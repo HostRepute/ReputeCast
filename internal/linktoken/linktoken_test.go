@@ -73,3 +73,31 @@ func TestExpired(t *testing.T) {
 		t.Fatal("still valid on day 32")
 	}
 }
+
+// After a key rotation, links in emails already sent still verify: the
+// previous key checks them, while new links are signed with the new key.
+func TestPreviousKeysStillVerify(t *testing.T) {
+	oldKey, newKey := make([]byte, 32), append(make([]byte, 31), 9)
+	before, _ := NewSigner(oldKey)
+	c := Claims{Kind: Unsubscribe, WorkspaceID: uuid.New(), MessageID: uuid.New(), ContactID: uuid.New()}
+	sent := before.Sign(c)
+
+	after, err := NewSigner(newKey, oldKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := after.Verify(sent, Unsubscribe); err != nil || got != c {
+		t.Fatalf("an old link after the rotation: %+v %v", got, err)
+	}
+	fresh := after.Sign(c)
+	if fresh == sent {
+		t.Fatal("new links use the new key")
+	}
+	if _, err := before.Verify(fresh, Unsubscribe); !errors.Is(err, ErrSignature) {
+		t.Fatalf("the old key alone doesn't verify new links: %v", err)
+	}
+	dropped, _ := NewSigner(newKey)
+	if _, err := dropped.Verify(sent, Unsubscribe); !errors.Is(err, ErrSignature) {
+		t.Fatalf("once the old key is dropped: %v", err)
+	}
+}

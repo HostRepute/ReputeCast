@@ -7,10 +7,15 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
+	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -244,4 +249,126 @@ func Tx(ctx context.Context, pool *pgxpool.Pool, fn func(pgx.Tx) error) (err err
 		return err
 	}
 	return tx.Commit(ctx)
+}
+
+// SchemaState compares the database's schema with the migrations this
+// binary carries (review 2026-11 OP-2, OP-3).
+type SchemaState struct {
+	// Expected is the newest migration this binary carries; Applied the
+	// newest the database has.
+	Expected, Applied int64
+	// Pending are this binary's migrations the database doesn't have yet.
+	Pending []int64
+	// Newer is true when the database has migrations this binary doesn't
+	// know: a newer release migrated it.
+	Newer bool
+	// RiverCurrent is true when the job queue's own migrations are applied.
+	RiverCurrent bool
+}
+
+// Current reports whether every migration this binary needs is applied.
+func (s SchemaState) Current() bool { return len(s.Pending) == 0 && s.RiverCurrent }
+
+// Schema reads the schema's state. It is one small query per table, cheap
+// enough for a readiness probe.
+func Schema(ctx context.Context, pool *pgxpool.Pool) (SchemaState, error) {
+	var st SchemaState
+	carried, err := migrationVersions()
+	if err != nil {
+		return st, err
+	}
+	if len(carried) > 0 {
+		st.Expected = carried[len(carried)-1]
+	}
+	applied := map[int64]bool{}
+	rows, err := pool.Query(ctx, `SELECT DISTINCT ON (version_id) version_id, is_applied FROM goose_db_version ORDER BY version_id, id DESC`)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if !errors.As(err, &pgErr) || pgErr.Code != "42P01" { // an empty database has no table yet
+			return st, err
+		}
+	} else {
+		for rows.Next() {
+			var v int64
+			var ok bool
+			if err := rows.Scan(&v, &ok); err != nil {
+				rows.Close()
+				return st, err
+			}
+			if ok && v > 0 {
+				applied[v] = true
+				st.Applied = max(st.Applied, v)
+			}
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return st, err
+		}
+	}
+	known := make(map[int64]bool, len(carried))
+	for _, v := range carried {
+		known[v] = true
+		if !applied[v] {
+			st.Pending = append(st.Pending, v)
+		}
+	}
+	for v := range applied {
+		if !known[v] {
+			st.Newer = true
+			break
+		}
+	}
+	migrator, err := rivermigrate.New(riverpgxv5.New(pool), nil)
+	if err != nil {
+		return st, err
+	}
+	if existing, err := migrator.ExistingVersions(ctx); err == nil {
+		all := migrator.AllVersions()
+		st.RiverCurrent = len(all) == 0 || len(existing) > 0 && existing[len(existing)-1].Version >= all[len(all)-1].Version
+	}
+	return st, nil
+}
+
+// migrationVersions lists the versions of the embedded migrations, in
+// order.
+func migrationVersions() ([]int64, error) {
+	names, err := fs.Glob(migrations.FS, "*.sql")
+	if err != nil {
+		return nil, err
+	}
+	out := make([]int64, 0, len(names))
+	for _, n := range names {
+		digits, _, _ := strings.Cut(n, "_")
+		v, err := strconv.ParseInt(digits, 10, 64)
+		if err != nil {
+			continue
+		}
+		out = append(out, v)
+	}
+	slices.Sort(out)
+	return out, nil
+}
+
+// SetUpSegmentsRole runs again what migrations 00008 and 00151 do for SQL
+// segments: create the reputecast_segments role when the app's user may,
+// grant it to the app's user, and own the function segments run through.
+// pg_dump doesn't carry roles, so a database restored on a new server
+// needs it once the role exists there (docs/deploy/backup-restore.md).
+func SetUpSegmentsRole(ctx context.Context, pool *pgxpool.Pool) error {
+	for _, name := range []string{"00008_segment_role.sql", "00151_segment_runner.sql"} {
+		b, err := fs.ReadFile(migrations.FS, name)
+		if err != nil {
+			return err
+		}
+		body := string(b)
+		start := strings.Index(body, "-- +goose StatementBegin")
+		end := strings.Index(body, "-- +goose StatementEnd")
+		if start < 0 || end < start {
+			return fmt.Errorf("%s: no statement block", name)
+		}
+		if _, err := pool.Exec(ctx, body[start+len("-- +goose StatementBegin"):end]); err != nil {
+			return fmt.Errorf("%s: %w", name, err)
+		}
+	}
+	return nil
 }

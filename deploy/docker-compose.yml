@@ -43,6 +43,35 @@ services:
       # REPUTECAST_METRICS__TOKEN: change-me-at-least-16-chars
     volumes:
       - appdata:/var/lib/reputecast
+    # Ready once the database answers and its schema has every migration
+    # this release needs (/readyz); a worker-only container answers on the
+    # metrics port, which `reputecast healthcheck` tries next.
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/reputecast", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 2m
+
+  # To run background workers in their own container, add --role=web,ingest
+  # to the app (command: ["serve", "--role=web,ingest"]) and uncomment:
+  # worker:
+  #   image: ${REPUTECAST_IMAGE:-ghcr.io/hostrepute/reputecast}:${REPUTECAST_VERSION:-latest}
+  #   restart: unless-stopped
+  #   command: ["worker"]
+  #   depends_on:
+  #     app:
+  #       condition: service_healthy
+  #   environment:
+  #     REPUTECAST_DATABASE__URL: postgres://reputecast:${POSTGRES_PASSWORD:-reputecast}@postgres:5432/reputecast?sslmode=disable
+  #     REPUTECAST_PUBLIC_URL: ${REPUTECAST_PUBLIC_URL:-http://localhost:8080}
+  #   volumes:
+  #     - appdata:/var/lib/reputecast
+  #   healthcheck:
+  #     test: ["CMD", "/usr/local/bin/reputecast", "healthcheck"]
+  #     interval: 15s
+  #     timeout: 5s
+  #     retries: 4
 
 volumes:
   pgdata:

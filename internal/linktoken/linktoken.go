@@ -70,10 +70,33 @@ type Claims struct {
 }
 
 // Signer signs and verifies tokens with a key derived from the instance key.
-type Signer struct{ key []byte }
+// Tokens signed with a previous instance key still verify, so links in
+// emails already sent keep working after a key rotation (review 2026-11
+// OP-5).
+type Signer struct {
+	key      []byte
+	previous [][]byte
+}
 
-// NewSigner derives the signing key from the instance master key with HKDF.
-func NewSigner(master []byte) (*Signer, error) {
+// NewSigner derives the signing key from the instance master key with HKDF,
+// and the verifying keys of the previous master keys.
+func NewSigner(master []byte, previous ...[]byte) (*Signer, error) {
+	key, err := derive(master)
+	if err != nil {
+		return nil, err
+	}
+	s := &Signer{key: key}
+	for _, p := range previous {
+		k, err := derive(p)
+		if err != nil {
+			return nil, err
+		}
+		s.previous = append(s.previous, k)
+	}
+	return s, nil
+}
+
+func derive(master []byte) ([]byte, error) {
 	if len(master) < 32 {
 		return nil, errors.New("linktoken: master key too short")
 	}
@@ -81,7 +104,7 @@ func NewSigner(master []byte) (*Signer, error) {
 	if _, err := io.ReadFull(hkdf.New(sha256.New, master, nil, []byte("reputecast/linktoken/v1")), key); err != nil {
 		return nil, err
 	}
-	return &Signer{key: key}, nil
+	return key, nil
 }
 
 // Sign returns a URL-safe token.
@@ -109,7 +132,7 @@ func (s *Signer) Verify(token string, want Kind) (Claims, error) {
 	if n <= 0 || 50+n != len(body) || link > 1<<31 {
 		return Claims{}, ErrInvalid
 	}
-	if !hmac.Equal(sig, s.mac(body)) {
+	if !hmac.Equal(sig, s.mac(body)) && !s.signedBefore(sig, body) {
 		return Claims{}, ErrSignature
 	}
 	var c Claims
@@ -160,8 +183,20 @@ func Expired(c Claims, valid time.Duration, now time.Time) bool {
 	return now.Sub(IssuedOn(c.Link)) > valid+24*time.Hour
 }
 
-func (s *Signer) mac(b []byte) []byte {
-	m := hmac.New(sha256.New, s.key)
+func (s *Signer) mac(b []byte) []byte { return macWith(s.key, b) }
+
+func macWith(key, b []byte) []byte {
+	m := hmac.New(sha256.New, key)
 	m.Write(b)
 	return m.Sum(nil)[:16]
+}
+
+// signedBefore reports whether a previous key signed body.
+func (s *Signer) signedBefore(sig, body []byte) bool {
+	for _, k := range s.previous {
+		if hmac.Equal(sig, macWith(k, body)) {
+			return true
+		}
+	}
+	return false
 }

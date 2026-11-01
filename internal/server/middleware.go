@@ -11,9 +11,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/logging"
 )
 
 // RealIP sets r.RemoteAddr from X-Forwarded-For / X-Real-IP, but only when the
@@ -183,6 +185,23 @@ func RedactPath(p string) string {
 	return p
 }
 
+// LogContext starts the request's log fields (review 2026-11 OP-7): its id
+// and its route pattern; the API adds the workspace and the caller. Every
+// line logged with the request's context carries them.
+func LogContext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rc := chi.RouteContext(r.Context())
+		route := func() string {
+			if rc == nil {
+				return ""
+			}
+			return rc.RoutePattern()
+		}
+		ctx := logging.WithRequest(r.Context(), middleware.GetReqID(r.Context()), route)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 // RequestLogger logs one line per request at info (errors at warn/error).
 func RequestLogger(log *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -203,14 +222,18 @@ func RequestLogger(log *slog.Logger) func(http.Handler) http.Handler {
 			case strings.HasPrefix(r.URL.Path, "/assets/") || r.URL.Path == "/healthz" || r.URL.Path == "/readyz":
 				level = slog.LevelDebug
 			}
-			log.Log(r.Context(), level, "http",
+			attrs := []any{
 				"method", r.Method,
 				"path", RedactPath(r.URL.Path),
 				"status", status,
 				"bytes", ww.BytesWritten(),
 				"duration_ms", time.Since(start).Milliseconds(),
-				"request_id", middleware.GetReqID(r.Context()),
-			)
+			}
+			if logging.FieldsFrom(r.Context()) == nil {
+				// Without LogContext the line names its request itself.
+				attrs = append(attrs, "request_id", middleware.GetReqID(r.Context()))
+			}
+			log.Log(r.Context(), level, "http", attrs...)
 		})
 	}
 }
