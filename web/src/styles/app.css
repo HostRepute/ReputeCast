@@ -323,6 +323,21 @@
   .btn.sm.ic {
     width: 30px;
   }
+  /* Touch widths: buttons and fields are 44px targets, as the design
+     system's Targets rule asks (review 2026-11 a11y sweep). Text in them
+     keeps its size; only the tap area grows. In this layer, so a screen
+     that sizes a control itself still decides. */
+  @media (max-width: 767px) {
+    .btn,
+    .btn.sm,
+    .btn.xs {
+      min-height: 44px;
+    }
+    .btn.ic,
+    .btn.sm.ic {
+      width: 44px;
+    }
+  }
   .btn.wide {
     width: 100%;
   }
@@ -549,6 +564,11 @@
   }
   /* The boards leave placeholders at the browser's default grey (#757575,
      4.6:1 on white); ink-4 drew them lighter than every board does. */
+  @media (max-width: 767px) {
+    .in:not(textarea) {
+      height: 44px;
+    }
+  }
   .in::placeholder {
     color: #757575;
   }
