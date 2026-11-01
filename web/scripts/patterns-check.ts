@@ -9,6 +9,9 @@
 //     of their own (a dialog's or a checklist's) and no other file may;
 //   - "Show more" under a list read page by page is Pager (components/ui/
 //     Pager), never a button calling fetchNextPage itself;
+//   - a page's select-all checkbox is SelectAll (components/ui/SelectAll)
+//     with useSelection (lib/selection); Contacts keeps its table's own,
+//     which selects every contact matching a filter across pages;
 //   - no file gains hex colours: colours come from the tokens in
 //     styles/app.css. scripts/hex-baseline.json holds what each file had
 //     when the check began; a file may only go down. `--update` writes the
@@ -51,6 +54,8 @@ for (const p of files(src)) {
     problems.push(`${rel}: draw a wizard's steps with Stepper from components/ui/Stepper`)
   if (/onClick=\{\(\) => (?:void )?\w+\.fetchNextPage\(\)\}/.test(text) && rel !== 'src/components/ui/Pager.tsx')
     problems.push(`${rel}: show the next page with Pager from components/ui/Pager`)
+  if (/\.indeterminate = /.test(text) && rel !== 'src/components/ui/SelectAll.tsx' && rel !== 'src/features/audience/ContactsPage.tsx')
+    problems.push(`${rel}: draw a select-all checkbox with SelectAll from components/ui/SelectAll`)
   if (/messages(\.vi)?\.ts$/.test(rel)) continue
   const n = (text.match(hex) ?? []).length
   if (n) counts[rel] = n
@@ -71,4 +76,4 @@ if (problems.length) {
   console.error(problems.join('\n'))
   process.exit(1)
 }
-console.log(`Patterns: switches, steppers, pagers and useDebounced shared; ${total} hex colours left in ${Object.keys(counts).length} files (none added).`)
+console.log(`Patterns: switches, steppers, pagers, select-all and useDebounced shared; ${total} hex colours left in ${Object.keys(counts).length} files (none added).`)

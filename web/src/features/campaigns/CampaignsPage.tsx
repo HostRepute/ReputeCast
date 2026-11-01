@@ -32,6 +32,8 @@ import type { Channel } from '@/features/channels/channel'
 import { m as chm } from '@/features/channels/messages'
 import { SmsCampaignHead, SmsCampaignRow } from '@/features/sms/CampaignRow'
 import { ChannelCampaignRow } from '@/features/push/CampaignRow'
+import { SelectAll } from '@/components/ui/SelectAll'
+import { useSelection } from '@/lib/selection'
 
 export type CampaignFilter = 'all' | 'drafts' | 'scheduled' | 'sending' | 'sent' | 'recurring' | 'paid' | 'archived' | 'deleted'
 
@@ -428,27 +430,14 @@ function CampaignTable({ data, page, status, search, top }: { data: Schemas['Cam
   // deleted campaigns are only restored, one at a time.
   const canEdit = useCan('campaigns:edit')
   const selectable = canEdit && status !== 'deleted'
-  const [picked, setPicked] = useState<Set<string>>(() => new Set())
   const [action, setAction] = useState<RowAction>()
-  const pageKey = data.items.map((c) => c.id).join()
-  const [seenKey, setSeenKey] = useState(pageKey)
-  if (seenKey !== pageKey) {
-    // Another page or filter: what was picked is out of view.
-    setSeenKey(pageKey)
-    setPicked(new Set([...picked].filter((id) => data.items.some((c) => c.id === id))))
-  }
-  const selected = data.items.filter((c) => picked.has(c.id))
-  const toggle = (id: string, on: boolean) =>
-    setPicked((prev) => {
-      const next = new Set(prev)
-      if (on) next.add(id)
-      else next.delete(id)
-      return next
-    })
-  const all = data.items.length > 0 && selected.length === data.items.length
+  // Another page or filter: what was picked is out of view and drops out.
+  const sel = useSelection(data.items.map((c) => c.id))
+  const selected = data.items.filter((c) => sel.has(c.id))
+  const toggle = sel.toggle
   const pick = (c: Schemas['CampaignListItem']) =>
     selectable ? (
-      <input type="checkbox" className="mt-[3px] shrink-0" checked={picked.has(c.id)} aria-label={t(mm.selectOne, { name: c.name })} onChange={(e) => toggle(c.id, e.target.checked)} />
+      <input type="checkbox" className="mt-[3px] shrink-0" checked={sel.has(c.id)} aria-label={t(mm.selectOne, { name: c.name })} onChange={(e) => toggle(c.id, e.target.checked)} />
     ) : undefined
   // Everything in the ⋯ menu but Report needs campaigns:edit: viewers get none.
   const menu = (c: Schemas['CampaignListItem']) => (status === 'deleted' ? <RestoreButton c={c} /> : canEdit ? <RowMenu c={c} onAction={setAction} /> : null)
@@ -457,7 +446,7 @@ function CampaignTable({ data, page, status, search, top }: { data: Schemas['Cam
       {top}
       {selected.length ? (
         <div className="border-b border-line-2 p-2.5">
-          <BulkBar selected={selected} archivedTab={status === 'archived'} onClear={() => setPicked(new Set())} />
+          <BulkBar selected={selected} archivedTab={status === 'archived'} onClear={sel.clear} />
         </div>
       ) : null}
       {/* The board's key and provider cells wrap; a long audience ("Weekly Digest + Product
@@ -474,12 +463,12 @@ function CampaignTable({ data, page, status, search, top }: { data: Schemas['Cam
         <thead>
           {/* Phase 8: with SMS chosen, texts' own columns (opt-outs and cost instead of opens). */}
           {channel === 'sms' ? (
-            <SmsCampaignHead lead={selectable ? <SelectAll all={all} some={selected.length > 0} onChange={(on) => setPicked(on ? new Set(data.items.map((c) => c.id)) : new Set())} /> : undefined} />
+            <SmsCampaignHead lead={selectable ? <SelectAll all={sel.all} some={sel.some} label={t(mm.selectAll)} onChange={(on) => sel.setMany(data.items.map((c) => c.id), on)} /> : undefined} />
           ) : (
             <tr>
               <Th>
                 <span className="inline-flex items-center gap-2">
-                  {selectable ? <SelectAll all={all} some={selected.length > 0} onChange={(on) => setPicked(on ? new Set(data.items.map((c) => c.id)) : new Set())} /> : null}
+                  {selectable ? <SelectAll all={sel.all} some={sel.some} label={t(mm.selectAll)} onChange={(on) => sel.setMany(data.items.map((c) => c.id), on)} /> : null}
                   {t(m.campaign)}
                 </span>
               </Th>
@@ -508,17 +497,17 @@ function CampaignTable({ data, page, status, search, top }: { data: Schemas['Cam
                   web={web && channel !== 'sms' ? <span className="k">–</span> : undefined}
                   lead={pick(c)}
                   more={menu(c)}
-                  selected={picked.has(c.id)}
+                  selected={sel.has(c.id)}
                 />
               )
             // Push and WhatsApp (X22): their own composer, review and report.
             if ((c.channel === 'push' || c.channel === 'whatsapp') && channel !== 'sms')
-              return <ChannelCampaignRow key={c.id} c={c} web={web ? <span className="k">–</span> : undefined} lead={pick(c)} more={menu(c)} selected={picked.has(c.id)} />
+              return <ChannelCampaignRow key={c.id} c={c} web={web ? <span className="k">–</span> : undefined} lead={pick(c)} more={menu(c)} selected={sel.has(c.id)} />
             const sent = ['sent', 'sending', 'paused', 'cancelled', 'failed'].includes(c.status)
             const editable = ['draft', 'approval', 'approved', 'scheduled'].includes(c.status) && status !== 'deleted'
             const line = status === 'deleted' ? deletedLine(c) : subtitle(c)
             return (
-              <tr key={c.id} className={picked.has(c.id) ? 'sel' : undefined}>
+              <tr key={c.id} className={sel.has(c.id) ? 'sel' : undefined}>
                 <Td>
                   <div className="flex items-start gap-2">
                     {pick(c)}
@@ -605,22 +594,6 @@ function CampaignTable({ data, page, status, search, top }: { data: Schemas['Cam
       </div>
       <RowActionDialogs action={action} onClose={() => setAction(undefined)} />
     </section>
-  )
-}
-
-/** Picks every row of the page, or none; mixed while some are picked. */
-function SelectAll({ all, some, onChange }: { all: boolean; some: boolean; onChange: (on: boolean) => void }) {
-  const t = useT()
-  return (
-    <input
-      type="checkbox"
-      checked={all}
-      ref={(el) => {
-        if (el) el.indeterminate = some && !all
-      }}
-      aria-label={t(mm.selectAll)}
-      onChange={(e) => onChange(e.target.checked)}
-    />
   )
 }
 

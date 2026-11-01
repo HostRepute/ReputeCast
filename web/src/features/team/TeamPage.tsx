@@ -22,6 +22,8 @@ import { AgencyMemberManaged, AgencyMemberSource } from '../agency/WorkspacePart
 import { DeactivateDialog } from './DeactivateDialog'
 import { InviteDialog } from './InviteDialog'
 import { m as tm } from './messages'
+import { SelectAll } from '@/components/ui/SelectAll'
+import { useSelection, type Selection } from '@/lib/selection'
 
 export interface TeamSearch {
   q?: string
@@ -99,8 +101,9 @@ function MembersCard({ list, search, hideMembers }: { list: Schemas['TeamMemberL
   const t = useT()
   const { slug, me } = useWorkspace()
   const now = useNow()
-  const [selected, setSelected] = useState<string[]>([])
   const items = hideMembers ? [] : list.items
+  // Only members others can act on are picked; a member who leaves the list drops out.
+  const sel = useSelection(list.items.filter((m) => !m.you).map((m) => m.id))
   const manage = list.canManage
   const filtered = Boolean(search.q || search.role || search.status || search.twofa)
   return (
@@ -118,7 +121,7 @@ function MembersCard({ list, search, hideMembers }: { list: Schemas['TeamMemberL
           <span className="k">{t(tm.counts, { members: list.counts.members, invited: list.counts.invited })}</span>
         )}
       </div>
-      {manage ? <BulkBar list={list} selected={selected} setSelected={setSelected} /> : null}
+      {manage ? <BulkBar list={list} sel={sel} /> : null}
       <AccessTable caption={t(tm.members)}>
         <thead>
           <tr>
@@ -145,8 +148,8 @@ function MembersCard({ list, search, hideMembers }: { list: Schemas['TeamMemberL
                 m={m}
                 now={now}
                 manage={manage}
-                selected={selected.includes(m.id)}
-                onSelect={(on) => setSelected((s) => (on ? [...s, m.id] : s.filter((x) => x !== m.id)))}
+                selected={sel.has(m.id)}
+                onSelect={(on) => sel.toggle(m.id, on)}
                 slug={slug}
               />
             ))
@@ -323,18 +326,17 @@ function clean(s: TeamSearch): TeamSearch {
 }
 
 /** Bulk bar: change role, require two-factor now, deactivate. */
-function BulkBar({ list, selected, setSelected }: { list: Schemas['TeamMemberList']; selected: string[]; setSelected: (s: string[]) => void }) {
+function BulkBar({ list, sel }: { list: Schemas['TeamMemberList']; sel: Selection }) {
   const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
-  const selectable = list.items.filter((m) => !m.you)
+  const selected = sel.selected
   const roles = useMemo(() => bulkRoles(list.roles), [list.roles])
   const [roleKey, setRoleKey] = useState(roles[0]?.key ?? '')
   const [deactivating, setDeactivating] = useState(false)
   const [result, setResult] = useState<{ action: 'change_role' | 'require_2fa'; role?: string; res: Schemas['TeamBulkResult'] }>()
   const bulk = $api.useMutation('post', '/api/v1/workspaces/{workspace}/members/bulk')
-  const all = selectable.length > 0 && selectable.every((m) => selected.includes(m.id))
-  const none = selected.length === 0
+  const none = !sel.some
   const reason = none ? t(tm.selectFirst) : undefined
   const run = (action: 'change_role' | 'require_2fa') =>
     bulk.mutate(
@@ -345,7 +347,7 @@ function BulkBar({ list, selected, setSelected }: { list: Schemas['TeamMemberLis
           const role = roles.find((r) => r.key === roleKey)
           if (res.skipped.length) setResult({ action, role: role ? roleName(role) : undefined, res })
           else toast({ title: tt(action === 'change_role' ? tm.roleChanged : tm.required2FA, { count: res.changed }) })
-          setSelected([])
+          sel.clear()
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/members'] })
         },
         onError: (e) => toast({ kind: 'error', title: tt(action === 'change_role' ? tm.roleChangeFailed : tm.require2FAFailed), detail: errorMessage(e) }),
@@ -355,14 +357,11 @@ function BulkBar({ list, selected, setSelected }: { list: Schemas['TeamMemberLis
   return (
     <div className="row gap-2 border-b border-line-2 bg-ground-2 px-4.5 py-2.5">
       <label className="row gap-2 text-[13px]">
-        <input
-          type="checkbox"
-          checked={!none}
-          ref={(el) => {
-            if (el) el.indeterminate = !none && !all
-          }}
-          onChange={() => setSelected(all || !none ? [] : selectable.map((m) => m.id))}
-          aria-label={none ? t(tm.selectAll) : t(tm.clearSelection)}
+        <SelectAll
+          all={sel.all}
+          some={sel.some}
+          label={sel.all ? t(tm.clearSelection) : t(tm.selectAll)}
+          onChange={(on) => (on ? sel.setMany(list.items.filter((m) => !m.you).map((m) => m.id), true) : sel.clear())}
         />
         {t(tm.selected, { count: selected.length })}
       </label>
@@ -406,7 +405,7 @@ function BulkBar({ list, selected, setSelected }: { list: Schemas['TeamMemberLis
           open
           onOpenChange={setDeactivating}
           onDone={() => {
-            setSelected([])
+            sel.clear()
             setDeactivating(false)
           }}
         />

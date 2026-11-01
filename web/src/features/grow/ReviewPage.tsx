@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { $api, errorMessage, http, type Schemas } from '@/api/client'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
@@ -15,6 +15,8 @@ import { useCan, useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import { mv } from './review.messages'
 import { GROW, GrowPage, LoadError, ProgramNav, orNames, useGrowRefresh, useReferralPrograms } from './shared'
+import { SelectAll } from '@/components/ui/SelectAll'
+import { useSelection } from '@/lib/selection'
 
 type Queue = Schemas['ReferralReviewQueue']
 type Group = Schemas['ReferralReviewGroup']
@@ -68,17 +70,10 @@ function Queue({ d, programId, listName, search, onSearch }: { d: Queue; program
   const t = useT()
   const { slug } = useWorkspace()
   const canReview = useCan('grow:review')
-  const [picked, setSelected] = useState<Set<string>>(new Set())
   // Referrals no longer held drop out of the selection.
-  const ids = useMemo(() => new Set(d.groups.flatMap((g) => g.items.map((x) => x.id))), [d])
-  const selected = useMemo(() => new Set([...picked].filter((id) => ids.has(id))), [picked, ids])
-  const toggle = (id: string, on: boolean) =>
-    setSelected((cur) => {
-      const next = new Set(cur)
-      if (on) next.add(id)
-      else next.delete(id)
-      return next
-    })
+  const sel = useSelection(d.groups.flatMap((g) => g.items.map((x) => x.id)))
+  const selected = new Set(sel.selected)
+  const toggle = sel.toggle
   const filtered = Boolean(search.signal || search.referrer)
   const signalName = (k: string) => (k === 'burst' ? t(mv.sigBurst) : k === 'shared_ip' ? t(mv.sigShared) : t(mv.sigNumbered))
   if (!d.groups.length && !filtered) {
@@ -137,7 +132,7 @@ function Queue({ d, programId, listName, search, onSearch }: { d: Queue; program
             programId={programId}
             selected={selected}
             onToggle={toggle}
-            onSelectAll={(on) => g.items.forEach((x) => toggle(x.id, on))}
+            onSelectAll={(on) => sel.setMany(g.items.map((x) => x.id), on)}
           />
         ))
       ) : (
@@ -148,7 +143,7 @@ function Queue({ d, programId, listName, search, onSearch }: { d: Queue; program
           </Button>
         </section>
       )}
-      {canReview && selected.size ? <DecisionBar d={d} programId={programId} selected={selected} onDone={() => setSelected(new Set())} /> : null}
+      {canReview && selected.size ? <DecisionBar d={d} programId={programId} selected={selected} onDone={sel.clear} /> : null}
     </>
   )
 }
@@ -227,16 +222,7 @@ function GroupCard({
       <div className="sec flex-wrap" style={{ alignItems: 'flex-start' }}>
         <div className="flex min-w-0 flex-[1_1_380px] items-start gap-3">
           {canReview ? (
-            <input
-              type="checkbox"
-              className="mt-2"
-              aria-label={t(mv.selectAll, { count: g.items.length, name: r.name })}
-              checked={all}
-              ref={(el) => {
-                if (el) el.indeterminate = some && !all
-              }}
-              onChange={(e) => onSelectAll(e.target.checked)}
-            />
+            <SelectAll className="mt-2" all={all} some={some} label={t(mv.selectAll, { count: g.items.length, name: r.name })} onChange={onSelectAll} />
           ) : null}
           <Avatar name={r.name} size={36} color="muted" />
           <div className="flex min-w-0 flex-col gap-0.5">

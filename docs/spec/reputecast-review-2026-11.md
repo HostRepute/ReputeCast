@@ -728,9 +728,10 @@ What M51 built (1 November 2026):
 - **FE-9** the first load is 390 KB gzipped (439 KB before): routes' checks import only small modules,
   and an agency's menu loads for its staff only. The budget is 400 KB.
 - **FE-3b, in part** `ui/Stepper` for the five setup wizards with the numbered card, `ui/Pager` for the
-  eight lists read page by page, the payments log's no-match state; the patterns check refuses new
-  hand-made ones. Left: seven compact step bars of dialogs and checklists (listed in the check),
-  NoResults in place of the remaining lists' own no-match lines, and one bulk-selection pattern.
+  eight lists read page by page, one bulk-selection pattern (`useSelection` with `ui/SelectAll`: Campaigns,
+  Grow › Review, Team; Contacts keeps its select-all-matching table), the payments log's no-match state;
+  the patterns check refuses new hand-made ones. Left: seven compact step bars of dialogs and checklists
+  (listed in the check), and NoResults in place of the remaining lists' own no-match lines.
 - **FE-5b, in part** 272 hex colours that equal a token became the token (1,166 → 895). Left: SVG
   attributes and chart colours, avatar and workspace palettes, and colours with no token yet; brand
   kit, email previews and MJML defaults keep theirs by design.
