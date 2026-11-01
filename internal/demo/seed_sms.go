@@ -5,7 +5,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"math"
 	"net/url"
 	"strings"
 	"time"
@@ -28,7 +30,9 @@ import (
 // suppression list and the "Acme Summit reminders" automation.
 //
 // Days are the design's: today is Wednesday 15 October (designDay(0)); the
-// campaign went out yesterday at 10:00 in each recipient's time zone.
+// campaign went out yesterday at 10:00 in each recipient's time zone. The
+// providers page counts this month's texts, so earlier in a month the texts
+// move into it (smsCalendar).
 
 func init() { seedSMS = seedSMSImpl }
 
@@ -51,9 +55,115 @@ const TwilioDemoWebhookSecret = "demo-twilio-shared-key-secret-acme-summit" //no
 // smsDay is a day of the design's October at a local time: smsDay(14, 10,
 // 0, chicago) is yesterday 10:00 in Chicago.
 func (s *Seeder) smsDay(day, hour, minute int, loc *time.Location) time.Time {
-	base := s.designDay(15-day, 12, 0)
-	y, m, d := base.Date()
-	return time.Date(y, m, d, hour, minute, 0, 0, loc)
+	return s.smsCalendar().day(day, hour, minute, loc)
+}
+
+// smsTextDay is smsDay for the texts the providers page counts this month
+// and the registrations their confirmations follow (smsCalendar.textDay).
+func (s *Seeder) smsTextDay(day, hour, minute int, loc *time.Location) time.Time {
+	return s.smsCalendar().textDay(day, hour, minute, loc)
+}
+
+func (s *Seeder) smsCalendar() smsCalendar {
+	if c, ok := s.Extra["smsCalendar"].(smsCalendar); ok {
+		return c
+	}
+	zone := "America/New_York"
+	if tz := s.WS().Timezone; tz != "" {
+		zone = tz
+	}
+	c := smsCalendarAt(s.Now, smsLoc(zone))
+	if s.Extra != nil {
+		s.Extra["smsCalendar"] = c
+	}
+	return c
+}
+
+// smsCalendar lays out the sample's days. The design's today is the 15th:
+// its texts, from Marcus's first test on the 1st to the campaign on the
+// 14th, all fall in the month the providers page counts (Sent 1,731, $39.51
+// this month). Earlier in a month the design's first days are last month's,
+// so the texts of days 1 to 13 (the first test, the registrations and their
+// confirmations) spread in order over the month's days before the campaign
+// was written, at the same clock times; the campaign still went out
+// yesterday at 10:00 in each recipient's time zone. Everything else keeps
+// the design's days.
+//
+// A month's first days can't hold them: the campaign is written the day
+// before it goes out, and on the 1st texts reach the Pacific coast inside
+// quiet hours (09:00–20:00) only from 12:00 New York time. Until the
+// design's today is the 3rd the texts stay together in the month before,
+// today on the 1st at the latest (SMSReadAt).
+type smsCalendar struct {
+	today time.Time // design day 15: a date, as midnight UTC
+	first time.Time // the date the texts of design day 1 fall on
+}
+
+// smsCalendarAt is the calendar of a seed at now, in a workspace whose month
+// starts in zone.
+func smsCalendarAt(now time.Time, zone *time.Location) smsCalendar {
+	today := smsDate((&Seeder{Now: now}).designDay(0, 12, 0))
+	n := now.In(zone)
+	month := time.Date(n.Year(), n.Month(), 1, 0, 0, 0, 0, time.UTC)
+	c := smsCalendar{today: today, first: today.AddDate(0, 0, -14)}
+	switch {
+	case today.AddDate(0, 0, -2).Before(month):
+		if today.After(month) {
+			c.today = month
+		}
+		c.first = c.today.AddDate(0, 0, -14)
+	case c.first.Before(month):
+		c.first = month
+	}
+	return c
+}
+
+func smsDate(t time.Time) time.Time {
+	y, m, d := t.Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+}
+
+// day is design day d at a local time.
+func (c smsCalendar) day(d, hour, minute int, loc *time.Location) time.Time {
+	t := c.today.AddDate(0, 0, d-15)
+	return time.Date(t.Year(), t.Month(), t.Day(), hour, minute, 0, 0, loc)
+}
+
+// textDay is design day d for the texts the month counts: days 1 to 13
+// spread in order from c.first to the design's day 13; the others as day.
+func (c smsCalendar) textDay(d, hour, minute int, loc *time.Location) time.Time {
+	if d >= 13 {
+		return c.day(d, hour, minute, loc)
+	}
+	span := int(c.today.AddDate(0, 0, -2).Sub(c.first) / (24 * time.Hour))
+	t := c.first.AddDate(0, 0, int(math.Round(float64((d-1)*span)/12)))
+	return time.Date(t.Year(), t.Month(), t.Day(), hour, minute, 0, 0, loc)
+}
+
+// SMSReadAt is when to read the SMS sample's numbers for this month (the
+// providers page's tiles, the month's spend and test texts) in a demo
+// seeded at about now: now, or, when a month's first days left its texts in
+// the month before (smsCalendar), that month's last minute. Tests stop the
+// SMS clock there (apptest's SMSClock).
+func SMSReadAt(ctx context.Context, db interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}, now time.Time) (time.Time, error) {
+	var last *time.Time
+	var tz string
+	if err := db.QueryRow(ctx, `SELECT max(m.sent_at), w.timezone FROM channel_messages m JOIN campaigns c ON c.id = m.campaign_id
+		JOIN workspaces w ON w.id = c.workspace_id
+		WHERE w.slug = 'acme-newsletter' AND c.name = 'Summit: 8 days to go' AND m.kind = 'campaign' GROUP BY w.timezone`).Scan(&last, &tz); err != nil {
+		return time.Time{}, fmt.Errorf("the SMS sample's campaign: %w", err)
+	}
+	if last == nil {
+		return time.Time{}, errors.New("the SMS sample's campaign sent nothing")
+	}
+	l := last.In(smsLoc(tz))
+	next := time.Date(l.Year(), l.Month()+1, 1, 0, 0, 0, 0, l.Location())
+	if now.Before(next) {
+		return now, nil
+	}
+	return next.Add(-time.Minute), nil
 }
 
 func smsLoc(name string) *time.Location {

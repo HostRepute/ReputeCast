@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 
@@ -28,6 +27,8 @@ import (
 func TestSMSInVietnamese(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
+	// The month's spend reads in the sample's month.
+	clock := env.SMSClock()
 	ctx := context.Background()
 	w := workspace(t, env)
 	linh := env.Client()
@@ -119,7 +120,7 @@ func TestSMSInVietnamese(t *testing.T) {
 
 	// The health job finds the credentials rejected: the provider's answer
 	// keeps its status, ReputeCast's words read in the reader's language.
-	s, tw, _ := service(env, time.Now)
+	s, tw, _ := service(env, clock)
 	tw.Rejected = true
 	prov, err := env.App.Q.SmsProvider(ctx, store.SmsProviderParams{ID: uuid.MustParse(twilio), WorkspaceID: w.ID})
 	if err != nil {

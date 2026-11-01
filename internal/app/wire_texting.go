@@ -114,6 +114,9 @@ func (x approvalChannelsAdapter) ChannelReview(ctx context.Context, ws *store.Wo
 	return newApprovals(x.a).ChannelReview(ctx, ws, p, id)
 }
 
+// Texting is the SMS domain (tests set its clock).
+func (a *App) Texting() *texting.Service { return a.texting() }
+
 func (a *App) texting() *texting.Service {
 	textingMu.Lock()
 	if s, ok := textingServices[a]; ok {

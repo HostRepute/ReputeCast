@@ -136,7 +136,9 @@ each other, keep the per-row numbers and let totals be computed.
   `apptest.SeedDemo`. When its numbers move with time
   (scores decaying, "the last 30 days"), stop the domain's clock at the seed's
   moment, as the scoring tests do with `App.Scoring().Now` (`seeded` in
-  `internal/scoring/scoring_test.go`).
+  `internal/scoring/scoring_test.go`). Tests that read the SMS sample's
+  numbers for this month call `env.SMSClock()`: in a month's first days the
+  sample keeps its texts in the month before (`demo.SMSReadAt`).
 - Run with the compose Postgres: `REPUTECAST_TEST_DATABASE_URL=postgres://reputecast:reputecast@localhost:5433/postgres?sslmode=disable go test ./...`.
   When several people (or worktrees) test against the same server, add
   `-p 4`: each package's app keeps a small pool, but many packages at once

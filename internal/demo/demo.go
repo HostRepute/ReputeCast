@@ -76,7 +76,7 @@ type Seeder struct {
 // verification, seeded with the senders but needing the providers).
 func (s *Seeder) After(fn func(context.Context, *Seeder) error) { s.after = append(s.after, fn) }
 
-// seedClock is the demo's "now"; tests seed other days with it.
+// seedClock is the demo's "now".
 var seedClock = time.Now
 
 // ID returns a fresh UUIDv7.
@@ -91,6 +91,11 @@ func (s *Seeder) WS() store.Workspace { return s.Workspaces["acme-newsletter"] }
 // Seed loads the demo data in one transaction. It is idempotent: when the
 // demo owner already exists nothing happens.
 func Seed(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secrets.Box, log *slog.Logger) (*Result, error) {
+	return seedAt(ctx, pool, cfg, box, log, seedClock())
+}
+
+// seedAt is Seed as of now (tests seed other days with it).
+func seedAt(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secrets.Box, log *slog.Logger, now time.Time) (*Result, error) {
 	res := &Result{OwnerEmail: "linh@acme.io", Password: Password, TOTPSecret: TOTPSecret}
 	var exists bool
 	if err := pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM users WHERE email = 'linh@acme.io')`).Scan(&exists); err != nil {
@@ -106,7 +111,7 @@ func Seed(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secr
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
 	s := &Seeder{
-		Tx: tx, Q: store.New(tx), Box: box, Cfg: cfg, Now: seedClock(), Log: log,
+		Tx: tx, Q: store.New(tx), Box: box, Cfg: cfg, Now: now, Log: log,
 		Users: map[string]store.User{}, Workspaces: map[string]store.Workspace{}, Roles: map[string]store.Role{},
 		Lists: map[string]uuid.UUID{}, Providers: map[string]uuid.UUID{}, Campaigns: map[string]uuid.UUID{},
 		Senders: map[string]uuid.UUID{}, Domains: map[string]uuid.UUID{}, Extra: map[string]any{},

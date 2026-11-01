@@ -18,6 +18,8 @@ import (
 func TestSMSTools(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
+	// The month's numbers read in the sample's month.
+	env.SMSClock()
 	c := env.Client()
 	c.SignInDemo("linh@acme.io")
 	var agent struct{ Secret string }
