@@ -88,7 +88,9 @@ func TestSystemTab(t *testing.T) {
 		}
 	}
 
-	path := func(id int64, action string) string { return "/admin/system/jobs/" + strconv.FormatInt(id, 10) + "/" + action }
+	path := func(id int64, action string) string {
+		return "/admin/system/jobs/" + strconv.FormatInt(id, 10) + "/" + action
+	}
 	var res struct{ State string }
 	admin.Do("POST", path(gaveUp, "retry"), nil).MustStatus(t, 200).JSON(t, &res)
 	if res.State != "available" {
