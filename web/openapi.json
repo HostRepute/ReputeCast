@@ -169616,6 +169616,81 @@
         "x-permission": "providers:manage"
       }
     },
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/export": {
+      "get": {
+        "operationId": "export-sponsor-bookings",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Every booking with its slot, issue, sponsor, price, payment and reach, as CSV (logged)",
+        "tags": [
+          "Sponsors"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:view"
+      }
+    },
     "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}": {
       "get": {
         "operationId": "get-sponsor-booking",
@@ -170355,6 +170430,92 @@
           }
         ],
         "summary": "A sent booking's report: who got the block, human opens and clicks",
+        "tags": [
+          "Sponsors"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/report/export": {
+      "get": {
+        "operationId": "export-sponsor-report",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A sent booking's report as CSV (logged)",
         "tags": [
           "Sponsors"
         ],

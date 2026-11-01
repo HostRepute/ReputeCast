@@ -2,8 +2,10 @@ package sponsors
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
@@ -318,6 +320,30 @@ func Register(h huma.API, s *Service) {
 			}
 			out, err := s.Report(ctx, api.WorkspaceFrom(ctx), id)
 			return api.OK(out), err
+		})
+	api.Get(h, api.Op{ID: "export-sponsor-report", Path: ws + "/sponsor-bookings/{id}/report/export", Summary: "A sent booking's report as CSV (logged)",
+		Tags: tags, Access: view},
+		func(ctx context.Context, in *idPath) (*SponsorsFile, error) {
+			id, err := in.id(ctx)
+			if err != nil {
+				return nil, err
+			}
+			wsp := api.WorkspaceFrom(ctx)
+			body, r, err := s.ExportReport(ctx, wsp, id)
+			if err != nil {
+				return nil, err
+			}
+			return csvDownload(fmt.Sprintf("%s-sponsor-report-%d.csv", wsp.Slug, r.Issue), body), nil
+		})
+	api.Get(h, api.Op{ID: "export-sponsor-bookings", Path: ws + "/sponsor-bookings/export", Summary: "Every booking with its slot, issue, sponsor, price, payment and reach, as CSV (logged)",
+		Tags: tags, Access: view},
+		func(ctx context.Context, _ *api.WorkspaceInput) (*SponsorsFile, error) {
+			wsp := api.WorkspaceFrom(ctx)
+			body, _, err := s.ExportBookings(ctx, wsp)
+			if err != nil {
+				return nil, err
+			}
+			return csvDownload(fmt.Sprintf("%s-sponsor-bookings-%s.csv", wsp.Slug, time.Now().UTC().Format(time.DateOnly)), body), nil
 		})
 	api.Get(h, api.Op{ID: "list-sponsor-shares", Path: ws + "/sponsor-bookings/{id}/shares", Summary: "A booking's active read-only links", Tags: tags, Access: share},
 		func(ctx context.Context, in *idPath) (*api.Body[SponsorShareList], error) {

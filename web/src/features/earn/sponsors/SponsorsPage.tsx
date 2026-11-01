@@ -11,6 +11,8 @@ import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { andList, count, dayMonthYear, orList, pct, shortDate, weekdayName } from '@/lib/format'
 import { roleName } from '@/lib/roles'
+import { downloadCsv } from '@/lib/download'
+import { m as dm } from '@/lib/download.messages'
 import { useMe, useWorkspace } from '@/lib/session'
 import { EarnPage } from '../EarnPage'
 import { day, money } from '../format'
@@ -149,6 +151,7 @@ function Body({
   setDialog: (d: PageDialog) => void
 }) {
   const t = useT()
+  const { slug } = useWorkspace()
   const tab = search.tab ?? 'bookings'
   const rows = [...data.past, ...data.upcoming]
   const canManage = data.canManage
@@ -224,6 +227,13 @@ function Body({
                 <option value="recent">{t(msp.rangeRecent)}</option>
                 <option value="all">{t(msp.rangeAll)}</option>
               </select>
+              {/* Every booking as CSV (review 2026-11 EA-2b). */}
+              <Button
+                size="sm"
+                onClick={() => void downloadCsv('/api/v1/workspaces/{workspace}/sponsor-bookings/export', { path: { workspace: slug } }, 'sponsor-bookings.csv')}
+              >
+                {t(dm.exportCsv)}
+              </Button>
             </div>
           ) : canManage && tab === 'sponsors' ? (
             <Button size="sm" icon="plus" onClick={() => setDialog({ kind: 'sponsor' })}>
