@@ -11,6 +11,7 @@ import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { andList, clock, decimal, shortDate } from '@/lib/format'
+import { useOptimistic } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { MarketingCapCard } from './MarketingCapCard'
@@ -77,15 +78,17 @@ function RulesBody({ view }: { view: View }) {
   const reason = read ? view.reason : undefined
   const refresh = () => qc.invalidateQueries({ queryKey: ['get', listPath] })
 
-  const save = async (rule: Rule, patch: Partial<RuleInput>, done: string) => {
+  const save = async (rule: Rule, patch: Partial<RuleInput>, done: string): Promise<boolean> => {
     setBusyRule(rule.id)
     try {
       const body: RuleInput = { ...inputOf(rule), ...patch }
       await http.PUT(rulePath, { params: { path: { workspace: slug, ruleId: rule.id } }, body })
       toast({ kind: 'success', title: done })
       await refresh()
+      return true
     } catch (e) {
       toast({ kind: 'error', title: t(m.ruleFailed), detail: errorMessage(e) })
+      return false
     } finally {
       setBusyRule(undefined)
     }
@@ -195,11 +198,12 @@ function RuleRow({
   busy: boolean
   onSeverity: (v: Severity) => void
   onScope: (v: Scope) => void
-  onToggle: (v: boolean) => void
+  onToggle: (v: boolean) => Promise<boolean>
   onEdit: () => void
 }) {
   const t = useT()
   const tr = r.triggered
+  const [enabled, setEnabled] = useOptimistic(r.enabled)
   return (
     <tr aria-busy={busy || undefined}>
       <td className="sr-rn">
@@ -223,8 +227,9 @@ function RuleRow({
       </td>
       <td data-label={t(m.colStatus)} className="sr-st">
         <label className="sr-stat">
-          <SwitchInput checked={r.enabled} disabled={read || busy} aria-label={r.name} onChange={(e) => onToggle(e.target.checked)} />
-          <span>{r.enabled ? t(m.on) : t(m.off)}</span>
+          {/* On or off at once; back if the save fails (review 2026-11 FE-7b). */}
+          <SwitchInput checked={enabled} disabled={read} aria-label={r.name} onChange={(e) => void setEnabled(e.target.checked, () => onToggle(e.target.checked))} />
+          <span>{enabled ? t(m.on) : t(m.off)}</span>
         </label>
       </td>
       <td data-label={t(m.colTriggered)} className="sr-lt">

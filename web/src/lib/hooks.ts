@@ -92,3 +92,29 @@ export function useDebounced<T>(value: T, ms: number): T {
   }, [value, ms])
   return v
 }
+
+/**
+ * A value changed by the person and saved in the background (review 2026-11
+ * FE-7b): it shows the new value at once, keeps showing it while the save
+ * runs and until the server's value catches up, and goes back when the save
+ * fails. `save` answers whether it was saved; a failing save says why
+ * itself (a toast).
+ */
+export function useOptimistic<T>(server: T): [T, (next: T, save: () => Promise<boolean>) => Promise<boolean>] {
+  const [shown, setShown] = useState<{ value: T }>()
+  // A new value from the server replaces what was shown, whatever it is
+  // (React's "adjust state when a prop changes" pattern, no effect).
+  const [seen, setSeen] = useState(server)
+  if (!Object.is(seen, server)) {
+    setSeen(server)
+    setShown(undefined)
+  }
+  const value = shown ? shown.value : server
+  const change = async (next: T, save: () => Promise<boolean>) => {
+    setShown({ value: next })
+    const ok = await save().catch(() => false)
+    if (!ok) setShown(undefined)
+    return ok
+  }
+  return [value, change]
+}
