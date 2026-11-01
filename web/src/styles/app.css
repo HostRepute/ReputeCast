@@ -482,6 +482,10 @@
   .tbl tbody tr.clickable:hover td {
     background: var(--ground-3);
   }
+  /* A row picked for a bulk action (CampaignsComplete board). */
+  .tbl tbody tr.sel td {
+    background: var(--accent-tint);
+  }
   /* position: relative keeps visually hidden labels in header cells inside
      the scroller, so they never widen the page. */
   .tscroll {

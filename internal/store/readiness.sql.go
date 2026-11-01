@@ -932,13 +932,17 @@ SELECT c.id, c.email, c.mailbox_provider, c.tier, c.role_address, c.language,
        -- Over the workspace's marketing cap (review 2026-11 AT-9).
        ($3::int > 0 AND (SELECT count(*) FROM messages mm
            WHERE mm.contact_id = c.id AND mm.stream IN ('broadcast', 'automation') AND mm.queued_at > $4::timestamptz
-             AND mm.status NOT IN ('failed', 'cancelled', 'rejected') AND ($5::uuid IS NULL OR mm.campaign_id IS DISTINCT FROM $5::uuid)) >= $3::int)::boolean AS over_cap
+             AND mm.status NOT IN ('failed', 'cancelled', 'rejected') AND ($5::uuid IS NULL OR mm.campaign_id IS DISTINCT FROM $5::uuid)) >= $3::int)::boolean AS over_cap,
+       -- The rhythm they chose doesn't take this campaign (review 2026-11
+       -- CA-6): frequencies lists the choices it reaches, empty (or NULL) for all.
+       (coalesce(cardinality($6::text[]), 0) > 0
+        AND NOT coalesce((SELECT p.frequency FROM contact_preferences p WHERE p.contact_id = c.id), 'all') = ANY($6::text[]))::boolean AS off_cadence
 FROM contacts c
-WHERE c.workspace_id = $6 AND c.status = 'active' AND c.erased_at IS NULL
-  AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($7::uuid[]) AND ll.deleted_at IS NULL)))
-       OR c.id = ANY($8::uuid[]))
-  AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY($9::uuid[]))
-  AND NOT (c.id = ANY($10::uuid[]))
+WHERE c.workspace_id = $7 AND c.status = 'active' AND c.erased_at IS NULL
+  AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($8::uuid[]) AND ll.deleted_at IS NULL)))
+       OR c.id = ANY($9::uuid[]))
+  AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY($10::uuid[]))
+  AND NOT (c.id = ANY($11::uuid[]))
 `
 
 type ReadinessRecipientsParams struct {
@@ -947,6 +951,7 @@ type ReadinessRecipientsParams struct {
 	CapCount        int32       `json:"capCount"`
 	CapSince        time.Time   `json:"capSince"`
 	CampaignID      *uuid.UUID  `json:"campaignId"`
+	Frequencies     []string    `json:"frequencies"`
 	WorkspaceID     uuid.UUID   `json:"workspaceId"`
 	Lists           []uuid.UUID `json:"lists"`
 	Contacts        []uuid.UUID `json:"contacts"`
@@ -967,6 +972,7 @@ type ReadinessRecipientsRow struct {
 	Suppressed        bool        `json:"suppressed"`
 	Bounced           bool        `json:"bounced"`
 	OverCap           bool        `json:"overCap"`
+	OffCadence        bool        `json:"offCadence"`
 }
 
 // The audience before suppressions and exclusions by address: active
@@ -982,6 +988,7 @@ func (q *Queries) ReadinessRecipients(ctx context.Context, arg ReadinessRecipien
 		arg.CapCount,
 		arg.CapSince,
 		arg.CampaignID,
+		arg.Frequencies,
 		arg.WorkspaceID,
 		arg.Lists,
 		arg.Contacts,
@@ -1008,6 +1015,7 @@ func (q *Queries) ReadinessRecipients(ctx context.Context, arg ReadinessRecipien
 			&i.Suppressed,
 			&i.Bounced,
 			&i.OverCap,
+			&i.OffCadence,
 		); err != nil {
 			return nil, err
 		}

@@ -12,6 +12,8 @@ import { focusCanvas } from './editor/keys'
 import { blockAdded, blockContent, componentLabel, mjChildren, sectionOf, tagOf } from './editor/labels'
 import { BlockIcon, ToolIcon } from './icons'
 import { PickTile } from './Gallery'
+import { matchesSearch, TemplateMenu } from './TemplateMenu'
+import { mt } from './templates.messages'
 import { TemplatePicture } from './Thumb'
 import { isDigestTemplate } from '@/features/digests/composer/DigestMode'
 import { LayerMark, LayersNote } from '@/features/conditional/Canvas'
@@ -425,6 +427,8 @@ function TemplatesTab({ sectionsRef }: { sectionsRef: RefObject<HTMLDivElement |
     { staleTime: 60_000 },
   )
   const [confirm, setConfirm] = useState<{ id: string; name: string } | null>(null)
+  // Review 2026-11 CA-8: the gallery searches templates and sections by name.
+  const [q, setQ] = useState('')
   if (g.isPending) return <p className="k p-3">{tr(mc.loadingTemplates)}</p>
   if (g.isError) return <p className="k p-3">{tr(m.templatesFailed, { error: errorMessage(g.error) })}</p>
   const use = async (id: string, name: string) => {
@@ -436,10 +440,22 @@ function TemplatesTab({ sectionsRef }: { sectionsRef: RefObject<HTMLDivElement |
     const { data } = await http.GET('/api/v1/workspaces/{workspace}/templates/{templateId}', { params: { path: { workspace: c.slug, templateId: id } } })
     if (data) insertBlock(c, { kind: 'section', content: data.mjml, label: name })
   }
-  const all = [...g.data.starters, ...g.data.templates]
+  const all = [...g.data.starters, ...g.data.templates].filter((t) => matchesSearch(t.name, q))
+  const sections = g.data.sections.filter((s) => matchesSearch(s.name, q))
   return (
     <div className="flex flex-col gap-2 p-3">
       <span className="k">{tr(mc.templatesLead)}</span>
+      <div className="flex items-center gap-2">
+        <label className="vh" htmlFor="tpl-search">
+          {tr(mt.search)}
+        </label>
+        <input id="tpl-search" type="search" className="in min-w-0 flex-1" placeholder={tr(mt.search)} value={q} onChange={(e) => setQ(e.target.value)} />
+        {q.trim() ? (
+          <span className="k shrink-0" role="status">
+            {tr(mt.found, { count: all.length + sections.length })}
+          </span>
+        ) : null}
+      </div>
       <div className="grid grid-cols-2 gap-2">
         {all.map((t) => (
           <PickTile
@@ -449,19 +465,24 @@ function TemplatesTab({ sectionsRef }: { sectionsRef: RefObject<HTMLDivElement |
             name={t.name}
             disabled={!c.canEdit}
             onPick={() => setConfirm({ id: t.id, name: t.name })}
-          />
+          >
+            {t.builtin ? null : <TemplateMenu tpl={{ id: t.id, name: t.name, kind: 'template', description: t.description }} className="tpl-more" />}
+          </PickTile>
         ))}
       </div>
       <div ref={sectionsRef} className="mt-2 flex flex-col gap-1.5">
         <span className="font-semibold">{tr(mc.savedSectionsCount, { count: g.data.sections.length })}</span>
-        {g.data.sections.map((s) => (
-          <button key={s.id} type="button" className="blk rc" style={{ flexDirection: 'row', justifyContent: 'flex-start', padding: '8px 10px' }} disabled={!c.canEdit || !c.editor} onClick={() => void insertSection(s.id, s.name)}>
-            <BlockIcon name="saved" />
-            <span className="flex flex-col items-start text-left">
-              <span className="font-semibold">{s.name}</span>
-              <span className="k">{s.description || tr(mc.savedSection)}</span>
-            </span>
-          </button>
+        {sections.map((s) => (
+          <div key={s.id} className="flex items-center gap-1.5">
+            <button type="button" className="blk rc min-w-0 flex-1" style={{ flexDirection: 'row', justifyContent: 'flex-start', padding: '8px 10px' }} disabled={!c.canEdit || !c.editor} onClick={() => void insertSection(s.id, s.name)}>
+              <BlockIcon name="saved" />
+              <span className="flex min-w-0 flex-col items-start text-left">
+                <span className="font-semibold">{s.name}</span>
+                <span className="k">{s.description || tr(mc.savedSection)}</span>
+              </span>
+            </button>
+            <TemplateMenu tpl={{ id: s.id, name: s.name, kind: 'section', description: s.description }} />
+          </div>
         ))}
         {c.canEdit && c.campaign.access.canEditTemplates ? (
           <button type="button" className="btn sm self-start" onClick={() => c.openDialog('saveTemplate')} disabled={!c.editor}>

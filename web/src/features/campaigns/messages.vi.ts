@@ -4,15 +4,15 @@ import { m } from './messages'
 export default translate(m, {
   title: 'Chiến dịch',
   filterLabel: 'Bộ lọc',
-  filter: '{filter, select, drafts {Bản nháp} scheduled {Đã lên lịch} sending {Đang gửi} sent {Đã gửi} other {Tất cả}}',
-  filterCount: '{filter, select, drafts {Bản nháp} scheduled {Đã lên lịch} sending {Đang gửi} sent {Đã gửi} other {Tất cả}} · {count}',
+  filter: '{filter, select, drafts {Bản nháp} scheduled {Đã lên lịch} sending {Đang gửi} sent {Đã gửi} archived {Đã lưu trữ} deleted {Đã xóa} other {Tất cả}}',
+  filterCount: '{filter, select, drafts {Bản nháp} scheduled {Đã lên lịch} sending {Đang gửi} sent {Đã gửi} archived {Đã lưu trữ} deleted {Đã xóa} other {Tất cả}} · {count}',
   search: 'Tìm chiến dịch',
   newCampaign: 'Chiến dịch mới',
 
   loadFailed: 'Không tải được chiến dịch',
   nothingChanged: 'Không có gì bị thay đổi.',
   noMatch: 'Không có chiến dịch nào khớp với “{query}”',
-  noStatus: '{status, select, drafts {Không có bản nháp nào} scheduled {Không có chiến dịch nào đã lên lịch} sending {Không có chiến dịch nào đang gửi} sent {Không có chiến dịch nào đã gửi} other {Không có chiến dịch nào}}',
+  noStatus: '{status, select, drafts {Không có bản nháp nào} scheduled {Không có chiến dịch nào đã lên lịch} sending {Không có chiến dịch nào đang gửi} sent {Không có chiến dịch nào đã gửi} archived {Không có chiến dịch nào đã lưu trữ} deleted {Không có gì bị xóa trong 30 ngày qua} other {Không có chiến dịch nào}}',
   showAll: 'Hiện mọi chiến dịch',
   noMatchBody: '{count} chiến dịch trong không gian làm việc này. Hãy xóa từ khóa tìm kiếm hoặc chọn bộ lọc khác.',
   emptyTitle: 'Chưa có chiến dịch nào',

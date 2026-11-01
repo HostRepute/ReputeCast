@@ -88,7 +88,7 @@ func (s *Service) CatalogIn(ctx context.Context, ws *store.Workspace, l i18n.Lan
 			for _, l := range lists {
 				f.Options = append(f.Options, SegmentOption{Value: l.ID.String(), Label: l.Name})
 			}
-		case "opened_campaign":
+		case "opened_campaign", "received_campaign", "clicked_campaign":
 			for _, c := range campaigns {
 				f.Options = append(f.Options, SegmentOption{Value: c.ID.String(), Label: c.Name})
 			}

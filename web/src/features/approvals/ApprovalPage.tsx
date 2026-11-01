@@ -11,7 +11,7 @@ import { Dialog } from '@/components/ui/Dialog'
 import { EmptyState, ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
-import { ago, andList, count, money, monthDayTime, orList, pct } from '@/lib/format'
+import { ago, andList, count, inZone, money, monthDayTime, orList, pct } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useCan, useMe, usePermissionReason, useWorkspace } from '@/lib/session'
 import { AccessTable } from '@/features/access/parts'
@@ -753,7 +753,10 @@ function ScheduleNoteCard({ detail: d }: { detail: Detail }) {
       : s.at
         ? s.mode === 'best_time'
           ? t(mr.bestTime, { when: zonedWhen(s.at, s.timezone) })
-          : zonedWhen(s.at, s.timezone)
+          : s.mode === 'local'
+            ? // The wall time, as it first comes in UTC+14 (review 2026-11 CA-5).
+              t(mr.localTime, { time: inZone(s.at, 'Pacific/Kiritimati').time, day: inZone(s.at, 'Pacific/Kiritimati').date })
+            : zonedWhen(s.at, s.timezone)
         : t(mr.notScheduled)
   const scheduled = s ? t(mr.estimated, { when, duration: s.minutes >= 60 ? minutes(s.minutes) : t(mr.estimatedMinutes, { n: s.minutes }) }) : when
   return (

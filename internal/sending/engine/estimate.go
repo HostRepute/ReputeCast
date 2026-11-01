@@ -52,6 +52,10 @@ type Estimate struct {
 	// BestTime is true when each recipient gets it at their usual open
 	// hour, within 24 hours of the start.
 	BestTime bool `json:"bestTime,omitempty"`
+	// LocalTime is true when each recipient gets it at the same time of
+	// day in their own time zone: over about 26 hours from the start
+	// (review 2026-11 CA-5).
+	LocalTime bool `json:"localTime,omitempty"`
 }
 
 // EstimateProvider is one route of the send.
@@ -118,7 +122,12 @@ func (e *Engine) Estimate(ctx context.Context, campaignID uuid.UUID, o EstimateO
 	plan := simPlan{start: start, loc: loc, throttles: sendThrottles(ws.SendingDefaults, o.Throttles)}
 	var sc schedule
 	_ = json.Unmarshal(cc.Schedule, &sc)
-	plan.bestTime = sc.Mode == "best_time"
+	switch sc.Mode {
+	case "best_time":
+		plan.spread = 24 * time.Hour
+	case "local":
+		plan.spread = localSpread
+	}
 	ids := make([]uuid.UUID, 0, len(o.Recipients))
 	for id := range o.Recipients {
 		ids = append(ids, id)
@@ -156,8 +165,14 @@ type simPlan struct {
 	routes    []*simRoute
 	throttles map[string]float64
 	ab        *EstimateAB
-	bestTime  bool
+	// spread is how long after the start the recipients' own times run:
+	// 24 hours for best time, about 26 for local time (0: at once).
+	spread time.Duration
 }
+
+// localSpread is how far apart the same wall time is in the earliest
+// (UTC+14) and the latest (UTC-12) zones.
+const localSpread = 26 * time.Hour
 
 // simRoute is one provider's share in an estimate.
 type simRoute struct {
@@ -233,7 +248,7 @@ func dayKey(t time.Time, loc *time.Location) string { return t.In(loc).Format("2
 // winner and best time spreads the audience over 24 hours. Stretches in
 // which nothing can move are skipped to the next thing that frees mail.
 func (e *Engine) simulate(p simPlan) Estimate {
-	out := Estimate{Start: p.start, End: p.start, Throttles: p.throttles, BestTime: p.bestTime, Providers: []EstimateProvider{}}
+	out := Estimate{Start: p.start, End: p.start, Throttles: p.throttles, BestTime: p.spread == 24*time.Hour, LocalTime: p.spread == localSpread, Providers: []EstimateProvider{}}
 	rs := &runState{queue: map[queueKey]queueCell{}, throttles: p.throttles, tokens: map[string]float64{}, holds: map[string]hold{}}
 	// A cell's A/B rest waits for the winner.
 	rest := map[queueKey]int64{}
@@ -283,8 +298,8 @@ func (e *Engine) simulate(p simPlan) Estimate {
 		// What is due: the sample (everyone once the winner is picked), and
 		// with best time, each hour's part of it.
 		due := 1.0
-		if p.bestTime {
-			due = math.Min(1, (t.Sub(p.start).Hours()+1)/24)
+		if p.spread > 0 {
+			due = math.Min(1, (t.Sub(p.start).Hours()+1)/p.spread.Hours())
 		}
 		var left, ready int64
 		for k, c := range rs.queue {
@@ -425,7 +440,7 @@ func (p simPlan) nextEvent(t time.Time, decided bool, quotaFree time.Time) (time
 	if !decided && p.ab.DecideAt != nil {
 		consider(*p.ab.DecideAt)
 	}
-	if p.bestTime && t.Before(p.start.Add(24*time.Hour)) {
+	if p.spread > 0 && t.Before(p.start.Add(p.spread)) {
 		consider(p.start.Add(t.Sub(p.start).Truncate(time.Hour) + time.Hour))
 	}
 	for _, r := range p.routes {

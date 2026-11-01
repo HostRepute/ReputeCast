@@ -116,6 +116,21 @@ func Register(h huma.API, s *Service) {
 			}
 			return api.NoContent, s.Unschedule(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 		})
+	api.Post(h, api.Op{ID: "reschedule-campaign", Path: "/workspaces/{workspace}/campaigns/{campaignId}/reschedule", Summary: "Move a scheduled campaign to another time (logged)",
+		Description: "Send Readiness checks it again before it goes out. An approved campaign's time is part of its approval: unschedule it and ask again instead.",
+		Tags:        review, Access: api.WorkspaceHuman(authz.CampaignsSend), Status: 204},
+		func(ctx context.Context, in *struct {
+			// The exported type itself: huma reads the path parameters of
+			// exported embedded fields only (not of the alias's).
+			readiness.ReadinessCampaignPath
+			Body readiness.ReadinessSchedule
+		}) (*api.Empty, error) {
+			id, err := in.ID()
+			if err != nil {
+				return nil, err
+			}
+			return api.NoContent, s.Reschedule(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Body)
+		})
 	api.Post(h, api.Op{ID: "bypass-approval", Path: "/workspaces/{workspace}/campaigns/{campaignId}/bypass", Summary: "Send without approval (Owners, with a reason)",
 		Description: "Logged as campaign.approval_bypassed with the reason and the snapshot; every approver is notified. Send Readiness still runs and a Blocked result still stops the send.",
 		Tags:        review, Access: api.WorkspaceHuman(authz.CampaignsSend)},

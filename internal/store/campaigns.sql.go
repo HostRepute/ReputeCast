@@ -26,6 +26,74 @@ func (q *Queries) BroadcastDefaultSplit(ctx context.Context, workspaceID uuid.UU
 	return splits, err
 }
 
+const campaignCalendar = `-- name: CampaignCalendar :many
+SELECT c.id, c.name, c.status, c.channel, c.audience_count, c.schedule,
+       coalesce(c.started_at, c.scheduled_at)::timestamptz AS at,
+       c.digest_id, c.digest_role, coalesce(dg.name, '')::text AS digest_name,
+       coalesce(t.sent, 0)::bigint AS sent
+FROM campaigns c
+LEFT JOIN digests dg ON dg.id = c.digest_id
+LEFT JOIN LATERAL (SELECT sum(cc.sent) AS sent FROM campaign_counters cc WHERE cc.campaign_id = c.id) t ON true
+WHERE c.workspace_id = $1 AND c.deleted_at IS NULL AND c.digest_role IN ('', 'issue')
+  AND c.status IN ('scheduled', 'sending', 'paused', 'sent')
+  AND coalesce(c.started_at, c.scheduled_at) >= $2 AND coalesce(c.started_at, c.scheduled_at) < $3
+ORDER BY 7, c.id
+LIMIT 1000
+`
+
+type CampaignCalendarParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	FromAt      *time.Time `json:"fromAt"`
+	ToAt        *time.Time `json:"toAt"`
+}
+
+type CampaignCalendarRow struct {
+	ID            uuid.UUID       `json:"id"`
+	Name          string          `json:"name"`
+	Status        string          `json:"status"`
+	Channel       string          `json:"channel"`
+	AudienceCount *int64          `json:"audienceCount"`
+	Schedule      json.RawMessage `json:"schedule"`
+	At            time.Time       `json:"at"`
+	DigestID      *uuid.UUID      `json:"digestId"`
+	DigestRole    string          `json:"digestRole"`
+	DigestName    string          `json:"digestName"`
+	Sent          int64           `json:"sent"`
+}
+
+// Scheduled and sent campaigns and digest issues between two times (CA-3).
+func (q *Queries) CampaignCalendar(ctx context.Context, arg CampaignCalendarParams) ([]CampaignCalendarRow, error) {
+	rows, err := q.db.Query(ctx, campaignCalendar, arg.WorkspaceID, arg.FromAt, arg.ToAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CampaignCalendarRow{}
+	for rows.Next() {
+		var i CampaignCalendarRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Status,
+			&i.Channel,
+			&i.AudienceCount,
+			&i.Schedule,
+			&i.At,
+			&i.DigestID,
+			&i.DigestRole,
+			&i.DigestName,
+			&i.Sent,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const campaignCostSince = `-- name: CampaignCostSince :many
 SELECT p.name AS provider_name, p.adapter, coalesce(sum(cr.cost_micros), 0)::bigint AS cost_micros
 FROM campaign_routes cr
@@ -60,6 +128,71 @@ func (q *Queries) CampaignCostSince(ctx context.Context, arg CampaignCostSincePa
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const campaignFollowUpCounts = `-- name: CampaignFollowUpCounts :one
+WITH r AS (
+    SELECT DISTINCT m.contact_id FROM messages m
+    WHERE m.campaign_id = $1 AND m.status IN ('sent', 'delivered', 'deferred') AND m.contact_id IS NOT NULL
+)
+SELECT count(*)::bigint AS received,
+       count(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = r.contact_id AND e.campaign_id = $1 AND e.type = 'open'))::bigint AS non_openers,
+       count(*) FILTER (WHERE EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = r.contact_id AND e.campaign_id = $1 AND e.type = 'open')
+                          AND NOT EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = r.contact_id AND e.campaign_id = $1 AND e.type = 'open'
+                                            AND NOT e.machine AND e.class <> 'pending'))::bigint AS machine_only,
+       count(*) FILTER (WHERE EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = r.contact_id AND e.campaign_id = $1 AND e.type = 'click'
+                                     AND NOT e.machine AND e.class <> 'pending'))::bigint AS clickers
+FROM r
+`
+
+type CampaignFollowUpCountsRow struct {
+	Received    int64 `json:"received"`
+	NonOpeners  int64 `json:"nonOpeners"`
+	MachineOnly int64 `json:"machineOnly"`
+	Clickers    int64 `json:"clickers"`
+}
+
+// Who a follow-up would reach (review 2026-11 CA-4): those who got the
+// campaign, those with no open at all, those whose only opens are
+// privacy-protected (left out of a resend), and the people who clicked.
+func (q *Queries) CampaignFollowUpCounts(ctx context.Context, campaignID *uuid.UUID) (CampaignFollowUpCountsRow, error) {
+	row := q.db.QueryRow(ctx, campaignFollowUpCounts, campaignID)
+	var i CampaignFollowUpCountsRow
+	err := row.Scan(
+		&i.Received,
+		&i.NonOpeners,
+		&i.MachineOnly,
+		&i.Clickers,
+	)
+	return i, err
+}
+
+const campaignTagsInUse = `-- name: CampaignTagsInUse :many
+SELECT DISTINCT t::text AS tag FROM campaigns c, unnest(c.tags) t
+WHERE c.workspace_id = $1 AND c.deleted_at IS NULL
+ORDER BY 1
+LIMIT 200
+`
+
+// The workspace's campaign tags, for the filter and the bulk bar (CA-2).
+func (q *Queries) CampaignTagsInUse(ctx context.Context, workspaceID uuid.UUID) ([]string, error) {
+	rows, err := q.db.Query(ctx, campaignTagsInUse, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var tag string
+		if err := rows.Scan(&tag); err != nil {
+			return nil, err
+		}
+		items = append(items, tag)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -108,6 +241,25 @@ func (q *Queries) CampaignTotalsSince(ctx context.Context, arg CampaignTotalsSin
 		&i.Clicked,
 	)
 	return i, err
+}
+
+const closeCampaignApprovals = `-- name: CloseCampaignApprovals :execrows
+UPDATE approval_requests SET status = 'invalidated', invalidated_reason = $1
+WHERE campaign_id = $2 AND status IN ('pending', 'approved', 'changes_requested')
+`
+
+type CloseCampaignApprovalsParams struct {
+	Reason     string     `json:"reason"`
+	CampaignID *uuid.UUID `json:"campaignId"`
+}
+
+// A deleted campaign's open approval requests close (CA-1).
+func (q *Queries) CloseCampaignApprovals(ctx context.Context, arg CloseCampaignApprovalsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, closeCampaignApprovals, arg.Reason, arg.CampaignID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const composerAudienceLists = `-- name: ComposerAudienceLists :many
@@ -202,6 +354,33 @@ type ComposerCountListAudienceParams struct {
 // (restorable for 30 days) adds nobody; as an exclusion it still excludes.
 func (q *Queries) ComposerCountListAudience(ctx context.Context, arg ComposerCountListAudienceParams) (int64, error) {
 	row := q.db.QueryRow(ctx, composerCountListAudience, arg.WorkspaceID, arg.Lists, arg.ExcludeLists)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const composerCountListRhythm = `-- name: ComposerCountListRhythm :one
+SELECT count(DISTINCT c.id)::bigint
+FROM contact_preferences p
+JOIN contacts c ON c.id = p.contact_id
+WHERE p.frequency <> 'all' AND c.workspace_id = $1 AND c.status = 'active' AND c.erased_at IS NULL
+  AND EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'
+              AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($2::uuid[]) AND ll.deleted_at IS NULL)))
+  AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY($3::uuid[]))
+  AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)
+`
+
+type ComposerCountListRhythmParams struct {
+	WorkspaceID  uuid.UUID   `json:"workspaceId"`
+	Lists        []uuid.UUID `json:"lists"`
+	ExcludeLists []uuid.UUID `json:"excludeLists"`
+}
+
+// The lists' subscribers (as ComposerCountListAudience counts them) who
+// chose a weekly or monthly rhythm (review 2026-11 CA-6). It starts from
+// the preferences, which only readers who chose something have.
+func (q *Queries) ComposerCountListRhythm(ctx context.Context, arg ComposerCountListRhythmParams) (int64, error) {
+	row := q.db.QueryRow(ctx, composerCountListRhythm, arg.WorkspaceID, arg.Lists, arg.ExcludeLists)
 	var column_1 int64
 	err := row.Scan(&column_1)
 	return column_1, err
@@ -643,43 +822,93 @@ func (q *Queries) ComposerVersionSources(ctx context.Context, arg ComposerVersio
 
 const countCampaigns = `-- name: CountCampaigns :one
 SELECT count(*) FROM campaigns c
-WHERE c.workspace_id = $1 AND c.deleted_at IS NULL
+WHERE c.workspace_id = $1
   AND c.digest_role IN ('', 'issue')
-  AND ($2::text = 'all'
+  -- Archived and deleted campaigns have tabs of their own (review 2026-11 CA-1).
+  AND CASE WHEN $2::text = 'deleted' THEN c.deleted_at IS NOT NULL AND c.deleted_at > $3::timestamptz
+           ELSE c.deleted_at IS NULL END
+  AND CASE WHEN $2::text = 'archived' THEN c.archived_at IS NOT NULL
+           WHEN $2::text = 'deleted' THEN true
+           ELSE c.archived_at IS NULL END
+  AND ($2::text IN ('all', 'archived', 'deleted')
        OR ($2 = 'drafts' AND c.status IN ('draft', 'approval', 'approved'))
        OR ($2 = 'scheduled' AND c.status = 'scheduled')
        OR ($2 = 'sending' AND c.status IN ('sending', 'paused'))
        OR ($2 = 'sent' AND c.status IN ('sent', 'cancelled', 'failed')))
-  AND ($3::text = '' OR c.name ILIKE '%' || $3::text || '%')
+  -- Names and subjects (CA-2); the caller escapes LIKE's wildcards.
+  AND ($4::text = '' OR c.name ILIKE '%' || $4::text || '%' OR c.subject ILIKE '%' || $4::text || '%')
   -- The channel filter: All, Email, SMS, Push, WhatsApp (design expansion phase 8).
-  AND ($4::text = '' OR c.channel = $4::text)
-  AND (NOT $5::boolean OR c.audience ->> 'paid' = 'paid')
+  AND ($5::text = '' OR c.channel = $5::text)
+  AND (NOT $6::boolean OR c.audience ->> 'paid' = 'paid')
+  -- When it went or goes out, its sender, a list of its audience, a tag (CA-2).
+  AND ($7::timestamptz IS NULL OR coalesce(c.started_at, c.scheduled_at, c.updated_at) >= $7::timestamptz)
+  AND ($8::timestamptz IS NULL OR coalesce(c.started_at, c.scheduled_at, c.updated_at) < $8::timestamptz)
+  AND ($9::uuid IS NULL OR c.sender_id = $9::uuid)
+  AND ($10::text = '' OR jsonb_exists(coalesce(c.audience -> 'lists', '[]'::jsonb), $10::text))
+  AND ($11::text = '' OR $11::text = ANY (c.tags))
 `
 
 type CountCampaignsParams struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
-	StatusGroup string    `json:"statusGroup"`
-	Query       string    `json:"query"`
-	Channel     string    `json:"channel"`
-	PaidOnly    bool      `json:"paidOnly"`
+	WorkspaceID  uuid.UUID  `json:"workspaceId"`
+	StatusGroup  string     `json:"statusGroup"`
+	DeletedSince time.Time  `json:"deletedSince"`
+	Query        string     `json:"query"`
+	Channel      string     `json:"channel"`
+	PaidOnly     bool       `json:"paidOnly"`
+	FromAt       *time.Time `json:"fromAt"`
+	ToAt         *time.Time `json:"toAt"`
+	SenderID     *uuid.UUID `json:"senderId"`
+	ListID       string     `json:"listId"`
+	Tag          string     `json:"tag"`
 }
 
 func (q *Queries) CountCampaigns(ctx context.Context, arg CountCampaignsParams) (int64, error) {
 	row := q.db.QueryRow(ctx, countCampaigns,
 		arg.WorkspaceID,
 		arg.StatusGroup,
+		arg.DeletedSince,
 		arg.Query,
 		arg.Channel,
 		arg.PaidOnly,
+		arg.FromAt,
+		arg.ToAt,
+		arg.SenderID,
+		arg.ListID,
+		arg.Tag,
 	)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
+const countCampaignsArchivedDeleted = `-- name: CountCampaignsArchivedDeleted :one
+SELECT count(*) FILTER (WHERE deleted_at IS NULL AND archived_at IS NOT NULL)::bigint AS archived,
+       count(*) FILTER (WHERE deleted_at > $1::timestamptz)::bigint AS deleted
+FROM campaigns
+WHERE workspace_id = $2 AND digest_role IN ('', 'issue') AND (archived_at IS NOT NULL OR deleted_at IS NOT NULL)
+`
+
+type CountCampaignsArchivedDeletedParams struct {
+	DeletedSince time.Time `json:"deletedSince"`
+	WorkspaceID  uuid.UUID `json:"workspaceId"`
+}
+
+type CountCampaignsArchivedDeletedRow struct {
+	Archived int64 `json:"archived"`
+	Deleted  int64 `json:"deleted"`
+}
+
+// The Archived and Deleted tabs' counts (review 2026-11 CA-1).
+func (q *Queries) CountCampaignsArchivedDeleted(ctx context.Context, arg CountCampaignsArchivedDeletedParams) (CountCampaignsArchivedDeletedRow, error) {
+	row := q.db.QueryRow(ctx, countCampaignsArchivedDeleted, arg.DeletedSince, arg.WorkspaceID)
+	var i CountCampaignsArchivedDeletedRow
+	err := row.Scan(&i.Archived, &i.Deleted)
+	return i, err
+}
+
 const countCampaignsByStatus = `-- name: CountCampaignsByStatus :many
 SELECT status, count(*)::bigint AS n FROM campaigns
-WHERE workspace_id = $1 AND deleted_at IS NULL AND digest_role IN ('', 'issue')
+WHERE workspace_id = $1 AND deleted_at IS NULL AND archived_at IS NULL AND digest_role IN ('', 'issue')
 GROUP BY status
 `
 
@@ -698,6 +927,60 @@ func (q *Queries) CountCampaignsByStatus(ctx context.Context, workspaceID uuid.U
 	for rows.Next() {
 		var i CountCampaignsByStatusRow
 		if err := rows.Scan(&i.Status, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const digestIssuesDue = `-- name: DigestIssuesDue :many
+SELECT di.id, di.digest_id, d.name, di.send_at, di.status, di.campaign_id
+FROM digest_issues di
+JOIN digests d ON d.id = di.digest_id
+WHERE d.workspace_id = $1 AND di.send_at >= $2 AND di.send_at < $3
+  AND di.status NOT IN ('sent', 'skipped', 'not_sent')
+  AND (di.campaign_id IS NULL OR NOT EXISTS (SELECT 1 FROM campaigns c WHERE c.id = di.campaign_id AND c.status IN ('scheduled', 'sending', 'paused', 'sent')))
+ORDER BY di.send_at
+LIMIT 500
+`
+
+type DigestIssuesDueParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	FromAt      *time.Time `json:"fromAt"`
+	ToAt        *time.Time `json:"toAt"`
+}
+
+type DigestIssuesDueRow struct {
+	ID         uuid.UUID  `json:"id"`
+	DigestID   uuid.UUID  `json:"digestId"`
+	Name       string     `json:"name"`
+	SendAt     *time.Time `json:"sendAt"`
+	Status     string     `json:"status"`
+	CampaignID *uuid.UUID `json:"campaignId"`
+}
+
+// Digest issues still to come between two times, from their schedule (CA-3).
+func (q *Queries) DigestIssuesDue(ctx context.Context, arg DigestIssuesDueParams) ([]DigestIssuesDueRow, error) {
+	rows, err := q.db.Query(ctx, digestIssuesDue, arg.WorkspaceID, arg.FromAt, arg.ToAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DigestIssuesDueRow{}
+	for rows.Next() {
+		var i DigestIssuesDueRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.DigestID,
+			&i.Name,
+			&i.SendAt,
+			&i.Status,
+			&i.CampaignID,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1064,8 +1347,43 @@ func (q *Queries) ListCampaignRouteShares(ctx context.Context, campaignIds []uui
 }
 
 const listCampaigns = `-- name: ListCampaigns :many
+WITH page AS (
+    SELECT c.id FROM campaigns c
+    WHERE c.workspace_id = $2
+      AND c.digest_role IN ('', 'issue')
+      -- Archived and deleted campaigns have tabs of their own (review 2026-11 CA-1).
+      AND CASE WHEN $1::text = 'deleted' THEN c.deleted_at IS NOT NULL AND c.deleted_at > $3::timestamptz
+               ELSE c.deleted_at IS NULL END
+      AND CASE WHEN $1::text = 'archived' THEN c.archived_at IS NOT NULL
+               WHEN $1::text = 'deleted' THEN true
+               ELSE c.archived_at IS NULL END
+      AND ($1::text IN ('all', 'archived', 'deleted')
+           OR ($1 = 'drafts' AND c.status IN ('draft', 'approval', 'approved'))
+           OR ($1 = 'scheduled' AND c.status = 'scheduled')
+           OR ($1 = 'sending' AND c.status IN ('sending', 'paused'))
+           OR ($1 = 'sent' AND c.status IN ('sent', 'cancelled', 'failed'))
+           OR ($1 = 'recent' AND c.status IN ('sending', 'paused', 'sent', 'cancelled', 'failed')))
+      -- Names and subjects (CA-2); the caller escapes LIKE's wildcards.
+      AND ($4::text = '' OR c.name ILIKE '%' || $4::text || '%' OR c.subject ILIKE '%' || $4::text || '%')
+      -- The channel filter: All, Email, SMS, Push, WhatsApp (design expansion phase 8).
+      AND ($5::text = '' OR c.channel = $5::text)
+      AND (NOT $6::boolean OR c.audience ->> 'paid' = 'paid')
+      -- When it went or goes out, its sender, a list of its audience, a tag (CA-2).
+      AND ($7::timestamptz IS NULL OR coalesce(c.started_at, c.scheduled_at, c.updated_at) >= $7::timestamptz)
+      AND ($8::timestamptz IS NULL OR coalesce(c.started_at, c.scheduled_at, c.updated_at) < $8::timestamptz)
+      AND ($9::uuid IS NULL OR c.sender_id = $9::uuid)
+      AND ($10::text = '' OR jsonb_exists(coalesce(c.audience -> 'lists', '[]'::jsonb), $10::text))
+      AND ($11::text = '' OR $11::text = ANY (c.tags))
+    ORDER BY CASE WHEN $1::text = 'recent' THEN 0
+                  ELSE CASE c.status WHEN 'sending' THEN 0 WHEN 'paused' THEN 0 WHEN 'scheduled' THEN 1 WHEN 'approval' THEN 2 WHEN 'approved' THEN 2 WHEN 'draft' THEN 3 ELSE 4 END END,
+         CASE WHEN c.status = 'scheduled' THEN c.scheduled_at END ASC,
+         coalesce(c.started_at, c.updated_at) DESC,
+         c.id DESC
+    LIMIT $13 OFFSET $12
+)
 SELECT c.id, c.name, c.status, c.audience, c.audience_count, c.ab_test, c.scheduled_at, c.schedule,
        c.created_at, c.updated_at, c.started_at, c.completed_at, c.origin, c.note, c.channel,
+       c.tags, c.archived_at, c.deleted_at, c.subject,
        coalesce(u.name, '')::text AS updated_by_name,
        coalesce(t.sent, 0)::bigint AS sent,
        coalesce(t.delivered, 0)::bigint AS delivered,
@@ -1079,7 +1397,8 @@ SELECT c.id, c.name, c.status, c.audience, c.audience_count, c.ab_test, c.schedu
        dgi.prepared_at AS digest_prepared_at, dgi.send_at AS digest_send_at,
        coalesce((SELECT ar.id::text FROM approval_requests ar WHERE ar.campaign_id = c.id AND ar.status IN ('pending', 'approved') ORDER BY ar.requested_at DESC LIMIT 1), '')::text AS digest_approval_id,
        coalesce((SELECT ar.status FROM approval_requests ar WHERE ar.campaign_id = c.id AND ar.status IN ('pending', 'approved') ORDER BY ar.requested_at DESC LIMIT 1), '')::text AS digest_approval_status
-FROM campaigns c
+FROM page
+JOIN campaigns c ON c.id = page.id
 LEFT JOIN users u ON u.id = c.updated_by
 LEFT JOIN digests dg ON dg.id = c.digest_id AND c.digest_role = 'issue'
 LEFT JOIN LATERAL (
@@ -1097,32 +1416,27 @@ LEFT JOIN LATERAL (
             WHERE e ->> 'status' = 'block' OR (rr.verdict <> 'blocked' AND e ->> 'status' = 'warn')) AS issues
     FROM readiness_runs rr WHERE rr.campaign_id = c.id ORDER BY rr.ran_at DESC LIMIT 1
 ) r ON c.status IN ('draft', 'approval', 'approved', 'scheduled')
-WHERE c.workspace_id = $1 AND c.deleted_at IS NULL
-  AND c.digest_role IN ('', 'issue')
-  AND ($2::text = 'all'
-       OR ($2 = 'drafts' AND c.status IN ('draft', 'approval', 'approved'))
-       OR ($2 = 'scheduled' AND c.status = 'scheduled')
-       OR ($2 = 'sending' AND c.status IN ('sending', 'paused'))
-       OR ($2 = 'sent' AND c.status IN ('sent', 'cancelled', 'failed')))
-  AND ($3::text = '' OR c.name ILIKE '%' || $3::text || '%')
-  -- The channel filter: All, Email, SMS, Push, WhatsApp (design expansion phase 8).
-  AND ($4::text = '' OR c.channel = $4::text)
-  AND (NOT $5::boolean OR c.audience ->> 'paid' = 'paid')
-ORDER BY CASE c.status WHEN 'sending' THEN 0 WHEN 'paused' THEN 0 WHEN 'scheduled' THEN 1 WHEN 'approval' THEN 2 WHEN 'approved' THEN 2 WHEN 'draft' THEN 3 ELSE 4 END,
+ORDER BY CASE WHEN $1::text = 'recent' THEN 0
+              ELSE CASE c.status WHEN 'sending' THEN 0 WHEN 'paused' THEN 0 WHEN 'scheduled' THEN 1 WHEN 'approval' THEN 2 WHEN 'approved' THEN 2 WHEN 'draft' THEN 3 ELSE 4 END END,
          CASE WHEN c.status = 'scheduled' THEN c.scheduled_at END ASC,
          coalesce(c.started_at, c.updated_at) DESC,
          c.id DESC
-LIMIT $7 OFFSET $6
 `
 
 type ListCampaignsParams struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
-	StatusGroup string    `json:"statusGroup"`
-	Query       string    `json:"query"`
-	Channel     string    `json:"channel"`
-	PaidOnly    bool      `json:"paidOnly"`
-	Off         int32     `json:"off"`
-	Lim         int32     `json:"lim"`
+	StatusGroup  string     `json:"statusGroup"`
+	WorkspaceID  uuid.UUID  `json:"workspaceId"`
+	DeletedSince time.Time  `json:"deletedSince"`
+	Query        string     `json:"query"`
+	Channel      string     `json:"channel"`
+	PaidOnly     bool       `json:"paidOnly"`
+	FromAt       *time.Time `json:"fromAt"`
+	ToAt         *time.Time `json:"toAt"`
+	SenderID     *uuid.UUID `json:"senderId"`
+	ListID       string     `json:"listId"`
+	Tag          string     `json:"tag"`
+	Off          int32      `json:"off"`
+	Lim          int32      `json:"lim"`
 }
 
 type ListCampaignsRow struct {
@@ -1141,6 +1455,10 @@ type ListCampaignsRow struct {
 	Origin               string          `json:"origin"`
 	Note                 string          `json:"note"`
 	Channel              string          `json:"channel"`
+	Tags                 []string        `json:"tags"`
+	ArchivedAt           *time.Time      `json:"archivedAt"`
+	DeletedAt            *time.Time      `json:"deletedAt"`
+	Subject              string          `json:"subject"`
 	UpdatedByName        string          `json:"updatedByName"`
 	Sent                 int64           `json:"sent"`
 	Delivered            int64           `json:"delivered"`
@@ -1159,14 +1477,23 @@ type ListCampaignsRow struct {
 }
 
 // One page of the campaigns list. Status groups: drafts = draft, approval,
-// approved; sending = sending, paused; sent = sent, cancelled, failed.
+// approved; sending = sending, paused; sent = sent, cancelled, failed;
+// archived and deleted (CA-1); recent = everything that went out, latest
+// start first (Overview). The page's ids are chosen first and only they
+// are joined to their numbers (review 2026-11 CA-7).
 func (q *Queries) ListCampaigns(ctx context.Context, arg ListCampaignsParams) ([]ListCampaignsRow, error) {
 	rows, err := q.db.Query(ctx, listCampaigns,
-		arg.WorkspaceID,
 		arg.StatusGroup,
+		arg.WorkspaceID,
+		arg.DeletedSince,
 		arg.Query,
 		arg.Channel,
 		arg.PaidOnly,
+		arg.FromAt,
+		arg.ToAt,
+		arg.SenderID,
+		arg.ListID,
+		arg.Tag,
 		arg.Off,
 		arg.Lim,
 	)
@@ -1193,6 +1520,10 @@ func (q *Queries) ListCampaigns(ctx context.Context, arg ListCampaignsParams) ([
 			&i.Origin,
 			&i.Note,
 			&i.Channel,
+			&i.Tags,
+			&i.ArchivedAt,
+			&i.DeletedAt,
+			&i.Subject,
 			&i.UpdatedByName,
 			&i.Sent,
 			&i.Delivered,
@@ -1349,6 +1680,50 @@ func (q *Queries) ListWorkspaceLists(ctx context.Context, workspaceID uuid.UUID)
 	return items, nil
 }
 
+const lockCampaignForManage = `-- name: LockCampaignForManage :one
+SELECT c.id, c.name, c.status, c.channel, c.deleted_at, c.archived_at, c.tags, c.digest_role,
+       EXISTS (SELECT 1 FROM messages m WHERE m.campaign_id = c.id AND m.status NOT IN ('queued', 'held', 'cancelled', 'failed', 'rejected'))::boolean AS sent_any
+FROM campaigns c
+WHERE c.workspace_id = $1 AND c.id = $2
+FOR UPDATE OF c
+`
+
+type LockCampaignForManageParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+type LockCampaignForManageRow struct {
+	ID         uuid.UUID  `json:"id"`
+	Name       string     `json:"name"`
+	Status     string     `json:"status"`
+	Channel    string     `json:"channel"`
+	DeletedAt  *time.Time `json:"deletedAt"`
+	ArchivedAt *time.Time `json:"archivedAt"`
+	Tags       []string   `json:"tags"`
+	DigestRole string     `json:"digestRole"`
+	SentAny    bool       `json:"sentAny"`
+}
+
+// A campaign about to be deleted, restored, archived or tagged, with what
+// decides which of those it allows (review 2026-11 CA-1).
+func (q *Queries) LockCampaignForManage(ctx context.Context, arg LockCampaignForManageParams) (LockCampaignForManageRow, error) {
+	row := q.db.QueryRow(ctx, lockCampaignForManage, arg.WorkspaceID, arg.ID)
+	var i LockCampaignForManageRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Status,
+		&i.Channel,
+		&i.DeletedAt,
+		&i.ArchivedAt,
+		&i.Tags,
+		&i.DigestRole,
+		&i.SentAny,
+	)
+	return i, err
+}
+
 const providerNames = `-- name: ProviderNames :many
 SELECT id, name, adapter FROM providers WHERE workspace_id = $1 AND disconnected_at IS NULL
 `
@@ -1400,6 +1775,22 @@ func (q *Queries) PruneComposerVersions(ctx context.Context, arg PruneComposerVe
 	return result.RowsAffected(), nil
 }
 
+const purgeDeletedCampaigns = `-- name: PurgeDeletedCampaigns :execrows
+DELETE FROM campaigns c
+WHERE c.id IN (SELECT x.id FROM campaigns x WHERE x.deleted_at IS NOT NULL AND x.deleted_at < $1 LIMIT 500)
+  AND NOT EXISTS (SELECT 1 FROM messages m WHERE m.campaign_id = c.id AND m.status NOT IN ('queued', 'held', 'cancelled', 'failed', 'rejected'))
+`
+
+// Deleted campaigns go for good 30 days on (CA-1); one that sent anything
+// never was deletable, but the check stays.
+func (q *Queries) PurgeDeletedCampaigns(ctx context.Context, before *time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeDeletedCampaigns, before)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const saveComposerContent = `-- name: SaveComposerContent :exec
 UPDATE campaigns
 SET subject = $1, preheader = $2, mjml = $3, html = $4, plain_text = $5,
@@ -1438,5 +1829,87 @@ func (q *Queries) SaveComposerContent(ctx context.Context, arg SaveComposerConte
 		arg.WorkspaceID,
 		arg.ID,
 	)
+	return err
+}
+
+const setCampaignArchived = `-- name: SetCampaignArchived :exec
+UPDATE campaigns SET archived_at = $1, archived_by = $2, updated_at = $3 WHERE id = $4
+`
+
+type SetCampaignArchivedParams struct {
+	ArchivedAt *time.Time `json:"archivedAt"`
+	ArchivedBy *uuid.UUID `json:"archivedBy"`
+	Now        time.Time  `json:"now"`
+	ID         uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) SetCampaignArchived(ctx context.Context, arg SetCampaignArchivedParams) error {
+	_, err := q.db.Exec(ctx, setCampaignArchived,
+		arg.ArchivedAt,
+		arg.ArchivedBy,
+		arg.Now,
+		arg.ID,
+	)
+	return err
+}
+
+const setCampaignDeleted = `-- name: SetCampaignDeleted :exec
+UPDATE campaigns SET deleted_at = $1, deleted_by = $2, updated_at = $3 WHERE id = $4
+`
+
+type SetCampaignDeletedParams struct {
+	DeletedAt *time.Time `json:"deletedAt"`
+	DeletedBy *uuid.UUID `json:"deletedBy"`
+	Now       time.Time  `json:"now"`
+	ID        uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) SetCampaignDeleted(ctx context.Context, arg SetCampaignDeletedParams) error {
+	_, err := q.db.Exec(ctx, setCampaignDeleted,
+		arg.DeletedAt,
+		arg.DeletedBy,
+		arg.Now,
+		arg.ID,
+	)
+	return err
+}
+
+const setCampaignDraftStatus = `-- name: SetCampaignDraftStatus :exec
+UPDATE campaigns SET status = 'draft' WHERE id = $1 AND status IN ('approval', 'approved')
+`
+
+// A deleted campaign whose approval closed is a plain draft again (CA-1).
+func (q *Queries) SetCampaignDraftStatus(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, setCampaignDraftStatus, id)
+	return err
+}
+
+const setCampaignScheduleDraft = `-- name: SetCampaignScheduleDraft :exec
+UPDATE campaigns SET schedule = $1 WHERE id = $2 AND status = 'draft'
+`
+
+type SetCampaignScheduleDraftParams struct {
+	Schedule json.RawMessage `json:"schedule"`
+	ID       uuid.UUID       `json:"id"`
+}
+
+// A follow-up's suggested time, for Review & send (CA-4).
+func (q *Queries) SetCampaignScheduleDraft(ctx context.Context, arg SetCampaignScheduleDraftParams) error {
+	_, err := q.db.Exec(ctx, setCampaignScheduleDraft, arg.Schedule, arg.ID)
+	return err
+}
+
+const setCampaignTags = `-- name: SetCampaignTags :exec
+UPDATE campaigns SET tags = $1, updated_at = $2 WHERE id = $3
+`
+
+type SetCampaignTagsParams struct {
+	Tags []string  `json:"tags"`
+	Now  time.Time `json:"now"`
+	ID   uuid.UUID `json:"id"`
+}
+
+func (q *Queries) SetCampaignTags(ctx context.Context, arg SetCampaignTagsParams) error {
+	_, err := q.db.Exec(ctx, setCampaignTags, arg.Tags, arg.Now, arg.ID)
 	return err
 }

@@ -160,6 +160,7 @@ function atWhen(s: Schedule): string {
 /** When the send goes out: "Tue 14 Oct, 09:00 ET", "Best time from Tue 14 Oct", "Sends within a minute". */
 export function ctaWhen(s: Schedule): string {
   if (s.mode === 'now' || !s.date || !s.time) return t(m.ctaWhenNow)
+  if (s.mode === 'local') return t(m.ctaWhenLocal, { day: calendarDate(s.date, 'shortDate'), time: timeOfDay(s.time) })
   return s.mode === 'best_time' ? t(m.ctaWhenBest, { day: calendarDate(s.date, 'shortDate') }) : atWhen(s)
 }
 
@@ -170,6 +171,8 @@ export function ctaWhen(s: Schedule): string {
  */
 export function ctaLabel(s: Schedule, recipients: number): string {
   if (s.mode === 'now' || !s.date || !s.time) return t(m.ctaNow, { count: count(recipients) })
+  // Review 2026-11 CA-5: the same wall time in each recipient's zone.
+  if (s.mode === 'local') return t(m.ctaLocal, { time: timeOfDay(s.time), day: calendarDate(s.date, 'shortDate') })
   return s.mode === 'best_time' ? t(m.ctaBest, { when: atWhen(s) }) : t(m.ctaAt, { when: atWhen(s) })
 }
 

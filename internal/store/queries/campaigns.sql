@@ -1,8 +1,46 @@
 -- name: ListCampaigns :many
 -- One page of the campaigns list. Status groups: drafts = draft, approval,
--- approved; sending = sending, paused; sent = sent, cancelled, failed.
+-- approved; sending = sending, paused; sent = sent, cancelled, failed;
+-- archived and deleted (CA-1); recent = everything that went out, latest
+-- start first (Overview). The page's ids are chosen first and only they
+-- are joined to their numbers (review 2026-11 CA-7).
+WITH page AS (
+    SELECT c.id FROM campaigns c
+    WHERE c.workspace_id = @workspace_id
+      AND c.digest_role IN ('', 'issue')
+      -- Archived and deleted campaigns have tabs of their own (review 2026-11 CA-1).
+      AND CASE WHEN @status_group::text = 'deleted' THEN c.deleted_at IS NOT NULL AND c.deleted_at > @deleted_since::timestamptz
+               ELSE c.deleted_at IS NULL END
+      AND CASE WHEN @status_group::text = 'archived' THEN c.archived_at IS NOT NULL
+               WHEN @status_group::text = 'deleted' THEN true
+               ELSE c.archived_at IS NULL END
+      AND (@status_group::text IN ('all', 'archived', 'deleted')
+           OR (@status_group = 'drafts' AND c.status IN ('draft', 'approval', 'approved'))
+           OR (@status_group = 'scheduled' AND c.status = 'scheduled')
+           OR (@status_group = 'sending' AND c.status IN ('sending', 'paused'))
+           OR (@status_group = 'sent' AND c.status IN ('sent', 'cancelled', 'failed'))
+           OR (@status_group = 'recent' AND c.status IN ('sending', 'paused', 'sent', 'cancelled', 'failed')))
+      -- Names and subjects (CA-2); the caller escapes LIKE's wildcards.
+      AND (@query::text = '' OR c.name ILIKE '%' || @query::text || '%' OR c.subject ILIKE '%' || @query::text || '%')
+      -- The channel filter: All, Email, SMS, Push, WhatsApp (design expansion phase 8).
+      AND (@channel::text = '' OR c.channel = @channel::text)
+      AND (NOT @paid_only::boolean OR c.audience ->> 'paid' = 'paid')
+      -- When it went or goes out, its sender, a list of its audience, a tag (CA-2).
+      AND (sqlc.narg(from_at)::timestamptz IS NULL OR coalesce(c.started_at, c.scheduled_at, c.updated_at) >= sqlc.narg(from_at)::timestamptz)
+      AND (sqlc.narg(to_at)::timestamptz IS NULL OR coalesce(c.started_at, c.scheduled_at, c.updated_at) < sqlc.narg(to_at)::timestamptz)
+      AND (sqlc.narg(sender_id)::uuid IS NULL OR c.sender_id = sqlc.narg(sender_id)::uuid)
+      AND (@list_id::text = '' OR jsonb_exists(coalesce(c.audience -> 'lists', '[]'::jsonb), @list_id::text))
+      AND (@tag::text = '' OR @tag::text = ANY (c.tags))
+    ORDER BY CASE WHEN @status_group::text = 'recent' THEN 0
+                  ELSE CASE c.status WHEN 'sending' THEN 0 WHEN 'paused' THEN 0 WHEN 'scheduled' THEN 1 WHEN 'approval' THEN 2 WHEN 'approved' THEN 2 WHEN 'draft' THEN 3 ELSE 4 END END,
+         CASE WHEN c.status = 'scheduled' THEN c.scheduled_at END ASC,
+         coalesce(c.started_at, c.updated_at) DESC,
+         c.id DESC
+    LIMIT @lim OFFSET @off
+)
 SELECT c.id, c.name, c.status, c.audience, c.audience_count, c.ab_test, c.scheduled_at, c.schedule,
        c.created_at, c.updated_at, c.started_at, c.completed_at, c.origin, c.note, c.channel,
+       c.tags, c.archived_at, c.deleted_at, c.subject,
        coalesce(u.name, '')::text AS updated_by_name,
        coalesce(t.sent, 0)::bigint AS sent,
        coalesce(t.delivered, 0)::bigint AS delivered,
@@ -16,7 +54,8 @@ SELECT c.id, c.name, c.status, c.audience, c.audience_count, c.ab_test, c.schedu
        dgi.prepared_at AS digest_prepared_at, dgi.send_at AS digest_send_at,
        coalesce((SELECT ar.id::text FROM approval_requests ar WHERE ar.campaign_id = c.id AND ar.status IN ('pending', 'approved') ORDER BY ar.requested_at DESC LIMIT 1), '')::text AS digest_approval_id,
        coalesce((SELECT ar.status FROM approval_requests ar WHERE ar.campaign_id = c.id AND ar.status IN ('pending', 'approved') ORDER BY ar.requested_at DESC LIMIT 1), '')::text AS digest_approval_status
-FROM campaigns c
+FROM page
+JOIN campaigns c ON c.id = page.id
 LEFT JOIN users u ON u.id = c.updated_by
 LEFT JOIN digests dg ON dg.id = c.digest_id AND c.digest_role = 'issue'
 LEFT JOIN LATERAL (
@@ -34,41 +73,50 @@ LEFT JOIN LATERAL (
             WHERE e ->> 'status' = 'block' OR (rr.verdict <> 'blocked' AND e ->> 'status' = 'warn')) AS issues
     FROM readiness_runs rr WHERE rr.campaign_id = c.id ORDER BY rr.ran_at DESC LIMIT 1
 ) r ON c.status IN ('draft', 'approval', 'approved', 'scheduled')
-WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL
-  AND c.digest_role IN ('', 'issue')
-  AND (@status_group::text = 'all'
-       OR (@status_group = 'drafts' AND c.status IN ('draft', 'approval', 'approved'))
-       OR (@status_group = 'scheduled' AND c.status = 'scheduled')
-       OR (@status_group = 'sending' AND c.status IN ('sending', 'paused'))
-       OR (@status_group = 'sent' AND c.status IN ('sent', 'cancelled', 'failed')))
-  AND (@query::text = '' OR c.name ILIKE '%' || @query::text || '%')
-  -- The channel filter: All, Email, SMS, Push, WhatsApp (design expansion phase 8).
-  AND (@channel::text = '' OR c.channel = @channel::text)
-  AND (NOT @paid_only::boolean OR c.audience ->> 'paid' = 'paid')
-ORDER BY CASE c.status WHEN 'sending' THEN 0 WHEN 'paused' THEN 0 WHEN 'scheduled' THEN 1 WHEN 'approval' THEN 2 WHEN 'approved' THEN 2 WHEN 'draft' THEN 3 ELSE 4 END,
+ORDER BY CASE WHEN @status_group::text = 'recent' THEN 0
+              ELSE CASE c.status WHEN 'sending' THEN 0 WHEN 'paused' THEN 0 WHEN 'scheduled' THEN 1 WHEN 'approval' THEN 2 WHEN 'approved' THEN 2 WHEN 'draft' THEN 3 ELSE 4 END END,
          CASE WHEN c.status = 'scheduled' THEN c.scheduled_at END ASC,
          coalesce(c.started_at, c.updated_at) DESC,
-         c.id DESC
-LIMIT @lim OFFSET @off;
+         c.id DESC;
 
 -- name: CountCampaigns :one
 SELECT count(*) FROM campaigns c
-WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL
+WHERE c.workspace_id = @workspace_id
   AND c.digest_role IN ('', 'issue')
-  AND (@status_group::text = 'all'
+  -- Archived and deleted campaigns have tabs of their own (review 2026-11 CA-1).
+  AND CASE WHEN @status_group::text = 'deleted' THEN c.deleted_at IS NOT NULL AND c.deleted_at > @deleted_since::timestamptz
+           ELSE c.deleted_at IS NULL END
+  AND CASE WHEN @status_group::text = 'archived' THEN c.archived_at IS NOT NULL
+           WHEN @status_group::text = 'deleted' THEN true
+           ELSE c.archived_at IS NULL END
+  AND (@status_group::text IN ('all', 'archived', 'deleted')
        OR (@status_group = 'drafts' AND c.status IN ('draft', 'approval', 'approved'))
        OR (@status_group = 'scheduled' AND c.status = 'scheduled')
        OR (@status_group = 'sending' AND c.status IN ('sending', 'paused'))
        OR (@status_group = 'sent' AND c.status IN ('sent', 'cancelled', 'failed')))
-  AND (@query::text = '' OR c.name ILIKE '%' || @query::text || '%')
+  -- Names and subjects (CA-2); the caller escapes LIKE's wildcards.
+  AND (@query::text = '' OR c.name ILIKE '%' || @query::text || '%' OR c.subject ILIKE '%' || @query::text || '%')
   -- The channel filter: All, Email, SMS, Push, WhatsApp (design expansion phase 8).
   AND (@channel::text = '' OR c.channel = @channel::text)
-  AND (NOT @paid_only::boolean OR c.audience ->> 'paid' = 'paid');
+  AND (NOT @paid_only::boolean OR c.audience ->> 'paid' = 'paid')
+  -- When it went or goes out, its sender, a list of its audience, a tag (CA-2).
+  AND (sqlc.narg(from_at)::timestamptz IS NULL OR coalesce(c.started_at, c.scheduled_at, c.updated_at) >= sqlc.narg(from_at)::timestamptz)
+  AND (sqlc.narg(to_at)::timestamptz IS NULL OR coalesce(c.started_at, c.scheduled_at, c.updated_at) < sqlc.narg(to_at)::timestamptz)
+  AND (sqlc.narg(sender_id)::uuid IS NULL OR c.sender_id = sqlc.narg(sender_id)::uuid)
+  AND (@list_id::text = '' OR jsonb_exists(coalesce(c.audience -> 'lists', '[]'::jsonb), @list_id::text))
+  AND (@tag::text = '' OR @tag::text = ANY (c.tags));
 
 -- name: CountCampaignsByStatus :many
 SELECT status, count(*)::bigint AS n FROM campaigns
-WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND digest_role IN ('', 'issue')
+WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND archived_at IS NULL AND digest_role IN ('', 'issue')
 GROUP BY status;
+
+-- name: CountCampaignsArchivedDeleted :one
+-- The Archived and Deleted tabs' counts (review 2026-11 CA-1).
+SELECT count(*) FILTER (WHERE deleted_at IS NULL AND archived_at IS NOT NULL)::bigint AS archived,
+       count(*) FILTER (WHERE deleted_at > @deleted_since::timestamptz)::bigint AS deleted
+FROM campaigns
+WHERE workspace_id = @workspace_id AND digest_role IN ('', 'issue') AND (archived_at IS NOT NULL OR deleted_at IS NOT NULL);
 
 -- name: ListCampaignRouteShares :many
 -- Per-provider share of each campaign: planned recipients and what was sent.
@@ -237,6 +285,19 @@ WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS 
   AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY(@exclude_lists::uuid[]))
   AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email);
 
+-- name: ComposerCountListRhythm :one
+-- The lists' subscribers (as ComposerCountListAudience counts them) who
+-- chose a weekly or monthly rhythm (review 2026-11 CA-6). It starts from
+-- the preferences, which only readers who chose something have.
+SELECT count(DISTINCT c.id)::bigint
+FROM contact_preferences p
+JOIN contacts c ON c.id = p.contact_id
+WHERE p.frequency <> 'all' AND c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS NULL
+  AND EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'
+              AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY(@lists::uuid[]) AND ll.deleted_at IS NULL)))
+  AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY(@exclude_lists::uuid[]))
+  AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email);
+
 -- name: ComposerPreviewContacts :many
 -- Contacts to preview as: the campaign's audience first, people with a first name first.
 SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier, c.language
@@ -294,3 +355,91 @@ LEFT JOIN users u ON u.id = v.saved_by
 WHERE v.campaign_id = @campaign_id
 ORDER BY v.version DESC
 LIMIT @lim;
+
+-- name: LockCampaignForManage :one
+-- A campaign about to be deleted, restored, archived or tagged, with what
+-- decides which of those it allows (review 2026-11 CA-1).
+SELECT c.id, c.name, c.status, c.channel, c.deleted_at, c.archived_at, c.tags, c.digest_role,
+       EXISTS (SELECT 1 FROM messages m WHERE m.campaign_id = c.id AND m.status NOT IN ('queued', 'held', 'cancelled', 'failed', 'rejected'))::boolean AS sent_any
+FROM campaigns c
+WHERE c.workspace_id = @workspace_id AND c.id = @id
+FOR UPDATE OF c;
+
+-- name: SetCampaignDeleted :exec
+UPDATE campaigns SET deleted_at = sqlc.narg(deleted_at), deleted_by = sqlc.narg(deleted_by), updated_at = @now WHERE id = @id;
+
+-- name: SetCampaignArchived :exec
+UPDATE campaigns SET archived_at = sqlc.narg(archived_at), archived_by = sqlc.narg(archived_by), updated_at = @now WHERE id = @id;
+
+-- name: SetCampaignTags :exec
+UPDATE campaigns SET tags = @tags, updated_at = @now WHERE id = @id;
+
+-- name: CloseCampaignApprovals :execrows
+-- A deleted campaign's open approval requests close (CA-1).
+UPDATE approval_requests SET status = 'invalidated', invalidated_reason = @reason
+WHERE campaign_id = @campaign_id AND status IN ('pending', 'approved', 'changes_requested');
+
+-- name: PurgeDeletedCampaigns :execrows
+-- Deleted campaigns go for good 30 days on (CA-1); one that sent anything
+-- never was deletable, but the check stays.
+DELETE FROM campaigns c
+WHERE c.id IN (SELECT x.id FROM campaigns x WHERE x.deleted_at IS NOT NULL AND x.deleted_at < @before LIMIT 500)
+  AND NOT EXISTS (SELECT 1 FROM messages m WHERE m.campaign_id = c.id AND m.status NOT IN ('queued', 'held', 'cancelled', 'failed', 'rejected'));
+
+-- name: CampaignTagsInUse :many
+-- The workspace's campaign tags, for the filter and the bulk bar (CA-2).
+SELECT DISTINCT t::text AS tag FROM campaigns c, unnest(c.tags) t
+WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL
+ORDER BY 1
+LIMIT 200;
+
+-- name: CampaignCalendar :many
+-- Scheduled and sent campaigns and digest issues between two times (CA-3).
+SELECT c.id, c.name, c.status, c.channel, c.audience_count, c.schedule,
+       coalesce(c.started_at, c.scheduled_at)::timestamptz AS at,
+       c.digest_id, c.digest_role, coalesce(dg.name, '')::text AS digest_name,
+       coalesce(t.sent, 0)::bigint AS sent
+FROM campaigns c
+LEFT JOIN digests dg ON dg.id = c.digest_id
+LEFT JOIN LATERAL (SELECT sum(cc.sent) AS sent FROM campaign_counters cc WHERE cc.campaign_id = c.id) t ON true
+WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL AND c.digest_role IN ('', 'issue')
+  AND c.status IN ('scheduled', 'sending', 'paused', 'sent')
+  AND coalesce(c.started_at, c.scheduled_at) >= @from_at AND coalesce(c.started_at, c.scheduled_at) < @to_at
+ORDER BY 7, c.id
+LIMIT 1000;
+
+-- name: DigestIssuesDue :many
+-- Digest issues still to come between two times, from their schedule (CA-3).
+SELECT di.id, di.digest_id, d.name, di.send_at, di.status, di.campaign_id
+FROM digest_issues di
+JOIN digests d ON d.id = di.digest_id
+WHERE d.workspace_id = @workspace_id AND di.send_at >= @from_at AND di.send_at < @to_at
+  AND di.status NOT IN ('sent', 'skipped', 'not_sent')
+  AND (di.campaign_id IS NULL OR NOT EXISTS (SELECT 1 FROM campaigns c WHERE c.id = di.campaign_id AND c.status IN ('scheduled', 'sending', 'paused', 'sent')))
+ORDER BY di.send_at
+LIMIT 500;
+
+-- name: SetCampaignDraftStatus :exec
+-- A deleted campaign whose approval closed is a plain draft again (CA-1).
+UPDATE campaigns SET status = 'draft' WHERE id = @id AND status IN ('approval', 'approved');
+
+-- name: CampaignFollowUpCounts :one
+-- Who a follow-up would reach (review 2026-11 CA-4): those who got the
+-- campaign, those with no open at all, those whose only opens are
+-- privacy-protected (left out of a resend), and the people who clicked.
+WITH r AS (
+    SELECT DISTINCT m.contact_id FROM messages m
+    WHERE m.campaign_id = @campaign_id AND m.status IN ('sent', 'delivered', 'deferred') AND m.contact_id IS NOT NULL
+)
+SELECT count(*)::bigint AS received,
+       count(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = r.contact_id AND e.campaign_id = @campaign_id AND e.type = 'open'))::bigint AS non_openers,
+       count(*) FILTER (WHERE EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = r.contact_id AND e.campaign_id = @campaign_id AND e.type = 'open')
+                          AND NOT EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = r.contact_id AND e.campaign_id = @campaign_id AND e.type = 'open'
+                                            AND NOT e.machine AND e.class <> 'pending'))::bigint AS machine_only,
+       count(*) FILTER (WHERE EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = r.contact_id AND e.campaign_id = @campaign_id AND e.type = 'click'
+                                     AND NOT e.machine AND e.class <> 'pending'))::bigint AS clickers
+FROM r;
+
+-- name: SetCampaignScheduleDraft :exec
+-- A follow-up's suggested time, for Review & send (CA-4).
+UPDATE campaigns SET schedule = @schedule WHERE id = @id AND status = 'draft';

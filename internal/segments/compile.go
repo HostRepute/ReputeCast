@@ -195,10 +195,33 @@ func condition(t *sqlText, c SegmentCondition, custom map[string]CustomField) {
 		t.raw(indent + "AND e.occurred_at >= " + interval(c) + ")")
 	case "opened_campaign":
 		id, _ := uuid.Parse(c.Value)
-		if c.Op == "not_opened" {
+		if c.Op == "not_opened" || c.Op == "not_opened_any" {
 			t.raw("NOT ")
 		}
-		t.raw("EXISTS (SELECT 1 FROM events e WHERE e.contact_id = c.id" + indent + "AND e.type = 'open' AND e.human = true AND e.campaign_id = ")
+		// "not_opened_any": no open at all, a privacy-protected one included
+		// (it may be a person's): a follow-up leaves those readers out
+		// rather than mail them again (review 2026-11 CA-4).
+		human := " AND e.human = true"
+		if c.Op == "not_opened_any" {
+			human = ""
+		}
+		t.raw("EXISTS (SELECT 1 FROM events e WHERE e.contact_id = c.id" + indent + "AND e.type = 'open'" + human + " AND e.campaign_id = ")
+		t.bind(uid(id))
+		t.raw(")")
+	case "received_campaign":
+		id, _ := uuid.Parse(c.Value)
+		if c.Op == "not_received" {
+			t.raw("NOT ")
+		}
+		t.raw("EXISTS (SELECT 1 FROM public.messages m WHERE m.contact_id = c.id" + indent + "AND m.status IN ('sent', 'delivered', 'deferred') AND m.campaign_id = ")
+		t.bind(uid(id))
+		t.raw(")")
+	case "clicked_campaign":
+		id, _ := uuid.Parse(c.Value)
+		if c.Op == "not_clicked" {
+			t.raw("NOT ")
+		}
+		t.raw("EXISTS (SELECT 1 FROM events e WHERE e.contact_id = c.id" + indent + "AND e.type = 'click' AND e.human = true AND e.campaign_id = ")
 		t.bind(uid(id))
 		t.raw(")")
 	case "joined":

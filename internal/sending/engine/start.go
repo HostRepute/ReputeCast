@@ -59,6 +59,26 @@ type schedule struct {
 	Mode     string     `json:"mode"`
 	At       *time.Time `json:"at"`
 	Timezone string     `json:"timezone"`
+	// Local is the wall time of mode "local" ("2026-10-14 09:00"): each
+	// recipient gets it then in their own zone, Timezone for contacts
+	// without one; At is that time in the earliest zone (UTC+14).
+	Local string `json:"local"`
+}
+
+// localAt is when the "local" schedule reaches a recipient in zone tz
+// (the schedule's zone when tz is empty or unknown).
+func (sc schedule) localAt(tz string) (time.Time, bool) {
+	if sc.Local == "" {
+		return time.Time{}, false
+	}
+	loc, err := time.LoadLocation(tz)
+	if tz == "" || err != nil {
+		if loc, err = time.LoadLocation(sc.Timezone); err != nil {
+			loc = time.UTC
+		}
+	}
+	t, err := time.ParseInLocation("2006-01-02 15:04", sc.Local, loc)
+	return t, err == nil
 }
 
 var systemActor = &audit.Actor{Type: authz.ActorSystem, Name: "System"}
@@ -119,8 +139,10 @@ func (e *Engine) StartWith(ctx context.Context, campaignID uuid.UUID, o StartOpt
 	var sc schedule
 	_ = json.Unmarshal(c.Schedule, &sc)
 	// "best_time" starts at the time too, then gives each recipient their
-	// usual open hour within the next 24 hours (the audience build).
-	if !o.Now && (sc.Mode == "at" || sc.Mode == "best_time") && sc.At != nil && sc.At.After(now.Add(5*time.Second)) {
+	// usual open hour within the next 24 hours (the audience build);
+	// "local" starts at its time in the earliest zone, then gives each
+	// recipient the same wall time in their own zone.
+	if !o.Now && (sc.Mode == "at" || sc.Mode == "best_time" || sc.Mode == "local") && sc.At != nil && sc.At.After(now.Add(5*time.Second)) {
 		return e.schedule(ctx, c, *sc.At, o)
 	}
 	rc, checked := sending.RecheckFrom(ctx, campaignID)

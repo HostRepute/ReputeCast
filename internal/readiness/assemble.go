@@ -2189,6 +2189,11 @@ func (b *builder) estimates() ReadinessEstimates {
 		if a.Duplicates > 0 {
 			addRow(tx("estimate.duplicates", nil), a.Duplicates, "minus")
 		}
+		// Readers whose chosen rhythm the campaign doesn't reach (review
+		// 2026-11 CA-6).
+		if a.OffCadence > 0 {
+			addRow(tx("estimate.cadence", A{"digest": firstNonEmpty(a.DigestFrequency, "none")}), a.OffCadence, "minus")
+		}
 		switch {
 		case a.SunsetOverride:
 			addRow(tx("estimate.sunsetOverride", nil), a.StoppedIncluded, "plus")
@@ -2319,7 +2324,7 @@ func (b *builder) estimates() ReadinessEstimates {
 // limit, Postal's warm-up ramp and today's cap, throttling per mailbox
 // provider and the 2-hour A/B wait").
 func (b *builder) timeline(est *engine.Estimate) (*ReadinessTimeline, Text) {
-	out := &ReadinessTimeline{Start: est.Start, End: est.End, Open: est.Open, BestTime: est.BestTime, Basis: []string{"rate"}}
+	out := &ReadinessTimeline{Start: est.Start, End: est.End, Open: est.Open, BestTime: est.BestTime, LocalTime: est.LocalTime, Basis: []string{"rate"}}
 	parts := []any{tx("basis.rate", nil)}
 	short := map[string]string{}
 	for _, s := range b.f.Route.Shares {
@@ -2366,6 +2371,10 @@ func (b *builder) timeline(est *engine.Estimate) (*ReadinessTimeline, Text) {
 	if est.BestTime {
 		out.Basis = append(out.Basis, "best_time")
 		parts = append(parts, tx("basis.bestTime", nil))
+	}
+	if est.LocalTime {
+		out.Basis = append(out.Basis, "local_time")
+		parts = append(parts, tx("basis.localTime", nil))
 	}
 	label := tx("basis.sentence", A{"parts": ArgAnd(parts)})
 	out.BasisLabel = label.en()

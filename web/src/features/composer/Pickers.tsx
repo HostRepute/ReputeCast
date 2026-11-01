@@ -14,7 +14,10 @@ function useUpdateCampaign() {
   const { slug, campaign } = useComposer()
   const qc = useQueryClient()
   const m = $api.useMutation('patch', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}')
-  return (body: { audience?: { lists: string[]; segments: string[]; excludeLists: string[]; paid?: Who; paidTier?: string }; senderId?: string }, done?: () => void) =>
+  return (
+    body: { audience?: { lists: string[]; segments: string[]; excludeLists: string[]; paid?: Who; paidTier?: string; cadence?: Cadence }; senderId?: string },
+    done?: () => void,
+  ) =>
     m.mutate(
       { params: { path: { workspace: slug, campaignId: campaign.id } }, body },
       {
@@ -28,6 +31,9 @@ function useUpdateCampaign() {
     )
 }
 
+/** A campaign's audience cadence (review 2026-11 CA-6, D1): "" is a regular issue. */
+type Cadence = '' | 'regular' | 'announcement'
+
 /** Audience picker with the live recipient count. */
 export function AudiencePicker() {
   const { campaign, context, slug, canEdit } = useComposer()
@@ -39,7 +45,8 @@ export function AudiencePicker() {
   // Who on the lists (Earn): everyone, paid members only or free subscribers only.
   const [who, setWho] = useState<Who>(campaign.audience.paid ?? '')
   const [paidTier, setPaidTier] = useState(campaign.audience.paidTier ?? '')
-  const [live, setLive] = useState<{ count: number; approximate: boolean } | null>(null)
+  const [cadence, setCadence] = useState<Cadence>(campaign.audience.cadence ?? '')
+  const [live, setLive] = useState<{ count: number; approximate: boolean; choseRhythm: number } | null>(null)
   const update = useUpdateCampaign()
 
   const onOpenChange = (o: boolean) => {
@@ -49,6 +56,7 @@ export function AudiencePicker() {
       setExclude(campaign.audience.excludeLists)
       setWho(campaign.audience.paid ?? '')
       setPaidTier(campaign.audience.paidTier ?? '')
+      setCadence(campaign.audience.cadence ?? '')
     }
     setOpen(o)
   }
@@ -59,7 +67,7 @@ export function AudiencePicker() {
     const h = window.setTimeout(() => {
       void http
         .POST('/api/v1/workspaces/{workspace}/campaigns/audience-count', { params: { path: { workspace: slug } }, body: { lists, segments, excludeLists: exclude, paid: who, paidTier: who === 'paid' ? paidTier : '' } })
-        .then(({ data }) => data && setLive({ count: data.count, approximate: data.approximate }))
+        .then(({ data }) => data && setLive({ count: data.count, approximate: data.approximate, choseRhythm: data.choseRhythm }))
         .catch(() => setLive(null))
     }, 250)
     return () => window.clearTimeout(h)
@@ -79,7 +87,7 @@ export function AudiencePicker() {
   )
   if (!canEdit) return trigger
   return (
-    <Popover trigger={trigger} open={open} onOpenChange={onOpenChange} align="start" label={t(mm.audience)} className="w-[340px] max-w-[calc(100vw-24px)]">
+    <Popover trigger={trigger} open={open} onOpenChange={onOpenChange} align="start" label={t(mm.audience)} className="max-h-[min(680px,var(--radix-popover-content-available-height))] w-[340px] max-w-[calc(100vw-24px)] overflow-y-auto">
       <div className="flex flex-col gap-1 p-1">
         <span className="mh">{t(mm.sendTo)}</span>
         {context.lists.map((l) => (
@@ -117,14 +125,30 @@ export function AudiencePicker() {
             setPaidTier(tier)
           }}
         />
-        <div className="mt-1 flex items-center gap-2 border-t border-line-2 px-2.5 pt-2.5 pb-1">
+        <fieldset className="m-0 flex flex-col gap-1 border-0 px-0 pt-1 pb-0">
+          <legend className="mh">{t(mm.cadence)}</legend>
+          {(['', 'announcement'] as const).map((k) => {
+            const on = k === '' ? cadence !== 'announcement' : cadence === 'announcement'
+            return (
+            <label key={k} className={`chk items-start rounded-lg px-2.5 py-1.5 hover:bg-ground ${on ? 'bg-accent-tint' : ''}`}>
+              <input type="radio" name="composer-cadence" className="mt-[3px]" checked={on} onChange={() => setCadence(k)} />
+              <span className="flex flex-1 flex-col font-semibold">
+                {t(k === '' ? mm.cadenceRegular : mm.cadenceAnnouncement)}
+                <span className="k font-normal">{k === '' ? t(mm.cadenceRegularHint, { count: live?.choseRhythm ?? 0 }) : t(mm.cadenceAnnouncementHint)}</span>
+              </span>
+            </label>
+            )
+          })}
+        </fieldset>
+        {/* The count and Apply stay in view however many lists and segments there are. */}
+        <div className="sticky bottom-0 mt-1 flex items-center gap-2 border-t border-line-2 bg-surface px-2.5 pt-2.5 pb-1">
           <span className="k flex-1" role="status" aria-live="polite">
             {nothing ? t(mm.pickAudience) : live ? t(mm.recipientsAfter, { approximate: live.approximate ? 'yes' : 'no', count: count(live.count) }) : t(mm.counting)}
           </span>
           <button
             type="button"
-            className="btn pri sm"
-            onClick={() => update({ audience: { lists, segments, excludeLists: exclude, paid: who, paidTier: who === 'paid' ? paidTier : '' } }, () => setOpen(false))}
+            className="btn pri sm w-auto shrink-0"
+            onClick={() => update({ audience: { lists, segments, excludeLists: exclude, paid: who, paidTier: who === 'paid' ? paidTier : '', cadence: cadence || 'regular' } }, () => setOpen(false))}
             disabled={!lists.length && !segments.length}
           >
             {t(mm.apply)}

@@ -37,7 +37,20 @@ function paths(channel: Channel) {
  * its channel tag, the sites (push) or Meta (WhatsApp) it goes through,
  * shown or delivered, and clicks; no opens.
  */
-export function ChannelCampaignRow({ c, web }: { c: Item; web?: ReactNode }) {
+export function ChannelCampaignRow({
+  c,
+  web,
+  lead,
+  more,
+  selected,
+}: {
+  c: Item
+  web?: ReactNode
+  /** The row's checkbox and its ⋯ menu on the campaigns list (review 2026-11 CA-2). */
+  lead?: ReactNode
+  more?: ReactNode
+  selected?: boolean
+}) {
   const t = useT()
   const { slug } = useWorkspace()
   const channel = c.channel as Channel
@@ -66,12 +79,17 @@ export function ChannelCampaignRow({ c, web }: { c: Item; web?: ReactNode }) {
     </Link>
   )
   return (
-    <tr>
+    <tr className={selected ? 'sel' : undefined}>
       <Td>
-        <Truncate text={c.name}>{name}</Truncate>
-        <div className="k">
-          <ChannelTag channel={channel} />
-          {[when, ...c.notes].join(' · ')}
+        <div className="flex items-start gap-2">
+          {lead}
+          <div className="min-w-0 flex-1">
+            <Truncate text={c.name}>{name}</Truncate>
+            <div className="k">
+              <ChannelTag channel={channel} />
+              {[when, ...c.notes].join(' · ')}
+            </div>
+          </div>
         </div>
       </Td>
       <Td>
@@ -111,6 +129,7 @@ export function ChannelCampaignRow({ c, web }: { c: Item; web?: ReactNode }) {
       <Td>
         <div className="row-actions flex flex-wrap justify-end gap-1.5">
           <Actions c={c} channel={channel} />
+          {more}
         </div>
       </Td>
     </tr>

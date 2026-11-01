@@ -3866,6 +3866,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive, unarchive, delete or tag campaigns together */
+        post: operations["bulk-campaigns"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scheduled and sent campaigns and digest issues between two days */
+        get: operations["campaign-calendar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/summary": {
         parameters: {
             query?: never;
@@ -3875,6 +3909,23 @@ export interface paths {
         };
         /** Totals across campaigns sent in the last N days */
         get: operations["campaigns-summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The tags campaigns carry */
+        get: operations["list-campaign-tags"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3894,7 +3945,8 @@ export interface paths {
         get: operations["get-campaign"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete a draft or a campaign that sent nothing (restorable for 30 days) */
+        delete: operations["delete-campaign"];
         options?: never;
         head?: never;
         /** Rename a campaign or change its sender, reply-to, audience or content settings */
@@ -3972,6 +4024,23 @@ export interface paths {
         put?: never;
         /** Ask the approvers to approve this send */
         post: operations["request-approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a sent campaign (its report and web post stay) */
+        post: operations["archive-campaign"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4124,6 +4193,24 @@ export interface paths {
         put?: never;
         /** Copy a campaign into a new draft */
         post: operations["duplicate-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/follow-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who a follow-up would reach: non-openers and clickers */
+        get: operations["campaign-follow-up-counts"];
+        put?: never;
+        /** Make a follow-up draft for non-openers or clickers */
+        post: operations["create-campaign-follow-up"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5061,6 +5148,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/reschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move a scheduled campaign to another time (logged)
+         * @description Send Readiness checks it again before it goes out. An approved campaign's time is part of its approval: unschedule it and ask again instead.
+         */
+        post: operations["reschedule-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bring back a campaign deleted in the last 30 days */
+        post: operations["restore-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/retry": {
         parameters: {
             query?: never;
@@ -5190,6 +5314,23 @@ export interface paths {
          * @description Goes through the System route. Without campaigns:send, test emails can only go to your own address.
          */
         post: operations["send-campaign-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put an archived campaign back on the list */
+        post: operations["unarchive-campaign"];
         delete?: never;
         options?: never;
         head?: never;
@@ -22079,6 +22220,47 @@ export interface components {
             title?: string;
             version?: string;
         };
+        CampaignBulkInput: {
+            /** @enum {string} */
+            action: "archive" | "unarchive" | "delete" | "tag" | "untag";
+            ids: string[];
+            tag?: string;
+        };
+        CampaignBulkResult: {
+            /** Format: int64 */
+            done: number;
+            skipped: components["schemas"]["CampaignBulkSkip"][];
+        };
+        CampaignBulkSkip: {
+            id: string;
+            name: string;
+            reason: string;
+        };
+        CampaignCalendar: {
+            /** Format: date-time */
+            from: string;
+            items: components["schemas"]["CampaignCalendarItem"][];
+            /** Format: date-time */
+            to: string;
+        };
+        CampaignCalendarItem: {
+            /** Format: date-time */
+            at: string;
+            campaignId?: string;
+            channel: string;
+            digestId?: string;
+            id: string;
+            /** @enum {string} */
+            kind: "scheduled" | "sent" | "digest_issue";
+            local?: boolean;
+            localTime?: string;
+            name: string;
+            /** Format: int64 */
+            recipients?: number;
+            /** Format: int64 */
+            sent: number;
+            status: string;
+        };
         CampaignChip: {
             campaignId: string;
             sponsor: string;
@@ -22115,6 +22297,29 @@ export interface components {
             /** Format: date-time */
             sendAt?: string;
         };
+        CampaignFollowUpCounts: {
+            /** Format: int64 */
+            clickers: number;
+            /** Format: int64 */
+            machineOnly: number;
+            /**
+             * Format: int64
+             * @description No open at all
+             */
+            nonOpeners: number;
+            /** Format: int64 */
+            received: number;
+            /** Format: date-time */
+            sentAt?: string;
+            subject: string;
+        };
+        CampaignFollowUpInput: {
+            /** Format: int64 */
+            delayHours?: number;
+            /** @enum {string} */
+            kind: "non_openers" | "clickers";
+            subject: string;
+        };
         CampaignInput: {
             /** Format: uuid */
             campaignId?: string;
@@ -22133,6 +22338,8 @@ export interface components {
             total: number;
         };
         CampaignListItem: {
+            /** Format: date-time */
+            archivedAt?: string;
             audience: string;
             blocked: boolean;
             /** @enum {string} */
@@ -22143,6 +22350,8 @@ export interface components {
             cost?: number;
             /** Format: date-time */
             createdAt: string;
+            /** Format: date-time */
+            deletedAt?: string;
             /** Format: double */
             delivered?: number;
             digest?: components["schemas"]["CampaignDigestRef"];
@@ -22167,6 +22376,8 @@ export interface components {
             startedAt?: string;
             /** @enum {string} */
             status: "draft" | "approval" | "approved" | "scheduled" | "sending" | "paused" | "sent" | "cancelled" | "failed";
+            subject: string;
+            tags: string[];
             timezone?: string;
             /** Format: date-time */
             updatedAt: string;
@@ -22290,6 +22501,10 @@ export interface components {
             /** Format: int64 */
             all: number;
             /** Format: int64 */
+            archived: number;
+            /** Format: int64 */
+            deleted: number;
+            /** Format: int64 */
             drafts: number;
             /** Format: int64 */
             paidOnly: number;
@@ -22325,6 +22540,9 @@ export interface components {
             humanOpens?: number;
             /** Format: int64 */
             sent: number;
+        };
+        CampaignTags: {
+            tags: string[];
         };
         CampaignUpgradeLine: {
             /** Format: int64 */
@@ -23150,6 +23368,8 @@ export interface components {
             version: number;
         };
         ComposerAudience: {
+            /** @enum {string} */
+            cadence?: "regular" | "announcement" | "";
             excludeLists: string[];
             excludeSegments: string[];
             lists: string[];
@@ -23161,9 +23381,16 @@ export interface components {
         ComposerAudienceCount: {
             approximate: boolean;
             /** Format: int64 */
+            choseRhythm: number;
+            /** Format: int64 */
             count: number;
         };
         ComposerAudienceInput: {
+            /**
+             * @description regular (default): readers who get every issue; announcement: everyone, whatever rhythm they chose
+             * @enum {string}
+             */
+            cadence?: "regular" | "announcement" | "";
             excludeLists?: string[];
             excludeSegments?: string[];
             lists?: string[];
@@ -35366,7 +35593,7 @@ export interface components {
             readonly at?: string;
             date?: string;
             /** @enum {string} */
-            mode: "now" | "at" | "best_time";
+            mode: "now" | "at" | "best_time" | "local";
             time?: string;
             timezone?: string;
         };
@@ -35413,6 +35640,7 @@ export interface components {
             bestTime?: boolean;
             /** Format: date-time */
             end: string;
+            localTime?: boolean;
             open?: boolean;
             /** Format: date-time */
             start: string;
@@ -55517,9 +55745,14 @@ export interface operations {
     "list-campaigns": {
         parameters: {
             query?: {
-                status?: "all" | "drafts" | "scheduled" | "sending" | "sent";
-                /** @description Search by name */
+                status?: "all" | "drafts" | "scheduled" | "sending" | "sent" | "archived" | "deleted";
+                /** @description Search names and subjects */
                 q?: string;
+                from?: string;
+                to?: string;
+                sender?: string;
+                list?: string;
+                tag?: string;
                 /** @description Only this channel's campaigns */
                 channel?: "email" | "sms" | "push" | "whatsapp";
                 /** @description Only campaigns sent to paid members only */
@@ -55663,6 +55896,79 @@ export interface operations {
             };
         };
     };
+    "bulk-campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampaignBulkInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignBulkResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "campaign-calendar": {
+        parameters: {
+            query: {
+                /** @description First day (the workspace's time zone) */
+                from: string;
+                /** @description Day after the last */
+                to: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignCalendar"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "campaigns-summary": {
         parameters: {
             query?: {
@@ -55684,6 +55990,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CampaignSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-campaign-tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignTags"];
                 };
             };
             /** @description Error */
@@ -55721,6 +56059,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ComposerCampaign"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -55999,6 +56368,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ApprovalRequested"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "archive-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -56312,6 +56712,76 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "campaign-follow-up-counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignFollowUpCounts"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-campaign-follow-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampaignFollowUpInput"];
+            };
+        };
         responses: {
             /** @description Created */
             201: {
@@ -58420,6 +58890,72 @@ export interface operations {
             };
         };
     };
+    "reschedule-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadinessSchedule"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "restore-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "retry-campaign-blocked": {
         parameters: {
             query?: never;
@@ -58681,6 +59217,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ComposerTestSendResult"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "unarchive-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {

@@ -496,6 +496,60 @@ func (s *Service) Unschedule(ctx context.Context, ws *store.Workspace, p *authz.
 	})
 }
 
+// Reschedule moves a scheduled email campaign to another time (review
+// 2026-11 CA-3, the calendar's drag and its Reschedule button). Send
+// Readiness checks it again before it goes out, as any scheduled send. An
+// approval covers its time, so an approved campaign goes back through
+// approval instead.
+func (s *Service) Reschedule(ctx context.Context, ws *store.Workspace, p *authz.Principal, campaignID uuid.UUID, in readiness.ReadinessSchedule) error {
+	c, err := s.Readiness.Campaign(ctx, ws, campaignID)
+	if err != nil {
+		return err
+	}
+	if c.Status != "scheduled" {
+		return api.Conflict(say(ctx, mNotScheduled, nil))
+	}
+	if open, err := s.open(ctx, c.ID); err == nil && open != nil && open.Status == "approved" {
+		return api.Err(http.StatusConflict, "approval_covers_time", say(ctx, mRescheduleApproved, nil))
+	}
+	if in.Mode == "" {
+		in.Mode = "at"
+	}
+	if in.Mode == "now" {
+		return api.Invalid("body.mode", say(ctx, mRescheduleFuture, nil))
+	}
+	sched, at, err := in.Resolve(ctx, "body")
+	if err != nil {
+		return err
+	}
+	now := s.now()
+	if at == nil || !at.After(now.Add(time.Minute)) {
+		return api.Invalid("body.time", say(ctx, mRescheduleFuture, nil))
+	}
+	sb, _ := json.Marshal(sched)
+	if err := s.starter().Cancel(ctx, c.ID, p.UserID); err != nil && !errors.Is(err, sending.ErrUnavailable) {
+		return err
+	}
+	restore := func() {
+		_ = s.Q.ApprovalScheduleCampaign(ctx, store.ApprovalScheduleCampaignParams{Schedule: c.Schedule, ScheduledAt: c.ScheduledAt, UpdatedBy: c.UpdatedBy, Now: c.UpdatedAt,
+			WorkspaceID: ws.ID, ID: c.ID})
+		_ = s.starter().Start(ctx, c.ID, p.UserID)
+	}
+	if err := s.Q.ApprovalUnschedule(ctx, store.ApprovalUnscheduleParams{Status: "draft", UpdatedBy: &p.UserID, Now: now, WorkspaceID: ws.ID, ID: c.ID}); err != nil {
+		return err
+	}
+	if err := s.Q.ApprovalScheduleCampaign(ctx, store.ApprovalScheduleCampaignParams{Schedule: sb, ScheduledAt: at, UpdatedBy: &p.UserID, Now: now, WorkspaceID: ws.ID, ID: c.ID}); err != nil {
+		restore()
+		return err
+	}
+	if err := s.starter().Start(ctx, c.ID, p.UserID); err != nil {
+		restore()
+		return startProblem(ctx, err)
+	}
+	return s.Audit.Log(ctx, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.rescheduled", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
+		Before: map[string]any{"scheduled_at": c.ScheduledAt}, After: map[string]any{"scheduled_at": at, "timezone": sched.Timezone}})
+}
+
 // CheckSendTime is the recheck when a send starts (add-on 3.8): Send
 // Readiness runs again and the approval must still cover the campaign. It
 // returns an error wrapping sending.ErrNotReady when the send must not

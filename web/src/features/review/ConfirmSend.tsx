@@ -4,7 +4,7 @@ import { ApiError } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Field, Select } from '@/components/ui/Field'
-import { clock, count, money } from '@/lib/format'
+import { calendarDate, clock, count, money } from '@/lib/format'
 import { confirmLanguages } from '@/features/languages/review'
 import { mr } from '@/features/languages/messages'
 import { newIPsText } from '@/features/live/canary'
@@ -116,7 +116,9 @@ export function ConfirmSend({
   const when =
     schedule.mode === 'now'
       ? t(m.whenNow)
-      : schedule.mode === 'best_time'
+      : schedule.mode === 'local' && schedule.date && schedule.time
+        ? t(m.whenLocal, { time: schedule.time, day: calendarDate(schedule.date, 'shortDate'), hasRecheck: recheck ? 'yes' : 'no', recheck })
+        : schedule.mode === 'best_time'
         ? t(m.whenBest, { when: scheduleSentence(schedule), hasRecheck: recheck ? 'yes' : 'no', recheck })
         : t(m.whenAt, { when: scheduleSentence(schedule), hasRecheck: recheck ? 'yes' : 'no', recheck })
   const excluded = [

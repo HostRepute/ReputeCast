@@ -274,6 +274,9 @@ type ReadinessTimeline struct {
 	End      time.Time `json:"end"`
 	Open     bool      `json:"open,omitempty"`
 	BestTime bool      `json:"bestTime,omitempty"`
+	// LocalTime: each recipient gets it at the same wall time in their
+	// own zone, over about 26 hours (review 2026-11 CA-5).
+	LocalTime bool `json:"localTime,omitempty"`
 	// AB is the A/B test's timeline; nil without a test.
 	AB *ReadinessABTimeline `json:"ab,omitempty"`
 	// Basis names what the estimate includes; BasisLabel says it ("The

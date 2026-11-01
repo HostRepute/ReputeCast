@@ -307,3 +307,28 @@ func TestAssembleUncheckedIP(t *testing.T) {
 		t.Fatalf("the checked IP lost its verdict: %+v", c)
 	}
 }
+
+// The audience lines name readers whose chosen rhythm the campaign doesn't
+// reach (review 2026-11 CA-6), and the timeline says a local-time send runs
+// over about 26 hours (CA-5).
+func TestAssembleCadenceLine(t *testing.T) {
+	for digestFreq, label := range map[string]string{"": "Chose a weekly or monthly rhythm", "weekly": "Chose the monthly best-of", "monthly": "Chose the weekly roundup"} {
+		f := digest()
+		f.Audience.OffCadence, f.Audience.DigestFrequency = 120, digestFreq
+		rows := readiness.Assemble(f).Estimates.Audience.Rows
+		found := false
+		for _, r := range rows {
+			if r.Label == label && r.Count == 120 && r.Kind == "minus" {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("digest %q: no %q line in %+v", digestFreq, label, rows)
+		}
+	}
+	for _, r := range readiness.Assemble(digest()).Estimates.Audience.Rows {
+		if strings.HasPrefix(r.Label, "Chose") {
+			t.Fatalf("a line for nobody: %+v", r)
+		}
+	}
+}

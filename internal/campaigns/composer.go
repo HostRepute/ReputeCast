@@ -41,6 +41,10 @@ type ComposerAudience struct {
 	// members ("Insider and above"); empty for any paid tier.
 	Paid     string `json:"paid,omitempty" enum:"paid,free,"`
 	PaidTier string `json:"paidTier,omitempty"`
+	// Cadence (review 2026-11 CA-6, D1): a regular issue reaches readers
+	// who get every issue; an announcement reaches everyone on its lists
+	// whatever rhythm they chose. Empty is regular.
+	Cadence string `json:"cadence,omitempty" enum:"regular,announcement,"`
 }
 
 // ComposerAudienceInput is an audience in requests (every part optional).
@@ -51,6 +55,7 @@ type ComposerAudienceInput struct {
 	ExcludeSegments []string `json:"excludeSegments,omitempty" maxItems:"100"`
 	Paid            string   `json:"paid,omitempty" enum:"paid,free," doc:"paid: paid members only; free: free subscribers only; empty: everyone on the lists"`
 	PaidTier        string   `json:"paidTier,omitempty" doc:"With paid: the lowest tier (the tier and above); empty for any paid tier"`
+	Cadence         string   `json:"cadence,omitempty" enum:"regular,announcement," doc:"regular (default): readers who get every issue; announcement: everyone, whatever rhythm they chose"`
 }
 
 func (in ComposerAudienceInput) def() ComposerAudience {
@@ -66,6 +71,7 @@ type dbAudience struct {
 	ExcludeTiers    []string `json:"exclude_tiers,omitempty"`
 	Paid            string   `json:"paid,omitempty"`
 	PaidTier        string   `json:"paid_tier,omitempty"`
+	Cadence         string   `json:"cadence,omitempty"`
 	// IncludeSunset and IncludeUnengaged are set on Review & send (the
 	// sunset policy's override, "Include them"); a save keeps them.
 	IncludeSunset    bool  `json:"include_sunset,omitempty"`
@@ -80,13 +86,21 @@ func audienceFromDB(raw json.RawMessage) ComposerAudience {
 	_ = json.Unmarshal(raw, &a)
 	p := paidaccess.Parse(raw)
 	return ComposerAudience{Lists: nonNil(a.Lists), Segments: nonNil(a.Segments), ExcludeLists: nonNil(a.ExcludeLists), ExcludeSegments: nonNil(a.ExcludeSegments),
-		Paid: p.Who, PaidTier: p.Tier}
+		Paid: p.Who, PaidTier: p.Tier, Cadence: a.Cadence}
 }
 
 func (a ComposerAudience) toDB(prev json.RawMessage) json.RawMessage {
 	var d dbAudience
 	_ = json.Unmarshal(prev, &d) // keeps exclude_tiers set elsewhere
 	d.Lists, d.Segments, d.ExcludeLists, d.ExcludeSegments, d.Paid, d.PaidTier = a.Lists, a.Segments, a.ExcludeLists, a.ExcludeSegments, a.Paid, a.PaidTier
+	// Cadence: "regular" makes it a regular issue again; left out, the
+	// campaign keeps its own (a save that doesn't know it can't drop it).
+	switch a.Cadence {
+	case "regular":
+		d.Cadence = ""
+	case "announcement":
+		d.Cadence = a.Cadence
+	}
 	b, _ := json.Marshal(d)
 	return b
 }

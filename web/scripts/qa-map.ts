@@ -31,6 +31,8 @@ export const entries: Entry[] = [
   { board: 'OverviewEmpty', manual: true },
   { board: 'OverviewStates', manual: true },
   { board: 'Campaigns', path: `${ws}/campaigns` },
+  { board: 'CampaignsCalendar', path: `${ws}/campaigns/calendar` },
+  { board: 'CampaignsComplete', manual: true },
   { board: 'Report', path: `${ws}/campaigns/{campaign:October Product Update}/report` },
   { board: 'ReportStates', manual: true },
   { board: 'Composer', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/edit?select=2` },

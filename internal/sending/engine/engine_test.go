@@ -27,6 +27,13 @@ func TestSending(t *testing.T) {
 	t.Run("Tracking", func(t *testing.T) { testTracking(t, s.Fixture(t, "Tracking")) })
 	t.Run("DemoSendReset", func(t *testing.T) { testDemoReset(t, s.Fixture(t, "Demo reset")) })
 	t.Run("BestTime", func(t *testing.T) { testBestTime(t, s.Fixture(t, "Best time")) })
+	t.Run("LocalTime", func(t *testing.T) { testLocalTime(t, s.Fixture(t, "Local time")) })
+	t.Run("Cadence", func(t *testing.T) {
+		testCadence(t, s.Fixture(t, "Cadence regular"), "", "", 3)
+		testCadence(t, s.Fixture(t, "Cadence monthly digest"), "", "monthly", 4)
+		testCadence(t, s.Fixture(t, "Cadence weekly digest"), "", "weekly", 5)
+		testCadence(t, s.Fixture(t, "Cadence announcement"), "announcement", "weekly", 6)
+	})
 	t.Run("AudienceFromSeveralLists", func(t *testing.T) { testSeveralLists(t, s.Fixture(t, "Several lists")) })
 	t.Run("Languages", func(t *testing.T) { testLanguages(t, s.Fixture(t, "Languages")) })
 	t.Run("AutomationLanguages", func(t *testing.T) { testAutomationLanguages(t, s.Fixture(t, "Automation languages")) })
@@ -79,6 +86,74 @@ func testBestTime(t *testing.T, f *sendtest.Fixture) {
 	}
 	if _, done, err := f.E.Drive(f.Ctx, f.Campaign, f.Start, want.Sub(f.Start)+time.Minute); err != nil || !done {
 		t.Fatalf("the send didn't finish at the last recipient's hour: done=%v err=%v", done, err)
+	}
+}
+
+// testLocalTime sends at the same wall time in each recipient's zone, the
+// schedule's for contacts without one (review 2026-11 CA-5): the send
+// starts when the time first comes (UTC+14) and each recipient waits for
+// theirs.
+func testLocalTime(t *testing.T, f *sendtest.Fixture) {
+	f.Exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.Campaign)
+	f.AddContacts(sendtest.ContactSpec{N: 4, Mailbox: "gmail", Domain: "gmail.com", Engaged: true})
+	zones := []string{"Asia/Ho_Chi_Minh", "America/New_York", "Pacific/Kiritimati", ""}
+	f.Exec(`UPDATE contacts c SET timezone = ($2::text[])[x.n]
+		FROM (SELECT c.id, row_number() OVER (ORDER BY c.id) AS n FROM contacts c JOIN list_memberships m ON m.contact_id = c.id WHERE m.list_id = $1) x
+		WHERE c.id = x.id`, f.List, zones)
+	day := f.Start.UTC().AddDate(0, 0, 3).Format(time.DateOnly)
+	first, _ := time.ParseInLocation("2006-01-02 15:04", day+" 09:00", time.FixedZone("UTC+14", 14*3600))
+	f.Exec(`UPDATE campaigns SET schedule = $2 WHERE id = $1`, f.Campaign,
+		fmt.Sprintf(`{"mode":"local","at":%q,"timezone":"Europe/Berlin","local":%q}`, first.UTC().Format(time.RFC3339), day+" 09:00"))
+	if err := f.E.Start(f.Ctx, f.Campaign, f.Sofia); err != nil {
+		t.Fatal(err)
+	}
+	if f.Status() != "scheduled" {
+		t.Fatalf("a local-time send is %s, want scheduled", f.Status())
+	}
+	var at time.Time
+	if err := f.Env.App.Pool.QueryRow(f.Ctx, `SELECT scheduled_at FROM campaigns WHERE id = $1`, f.Campaign).Scan(&at); err != nil || !at.Equal(first) {
+		t.Fatalf("scheduled for %v (%v), want the earliest zone's %v", at, err, first)
+	}
+	f.StartSend(engine.StartOptions{})
+	for _, z := range zones {
+		loc, _ := time.LoadLocation(z)
+		if z == "" {
+			loc, _ = time.LoadLocation("Europe/Berlin")
+		}
+		want, _ := time.ParseInLocation("2006-01-02 15:04", day+" 09:00", loc)
+		if n := f.Count(`SELECT count(*) FROM messages m JOIN contacts c ON c.id = m.contact_id
+			WHERE m.campaign_id = $1 AND coalesce(c.timezone, '') = $2 AND m.next_attempt_at = $3`, f.Campaign, z, want); n != 1 {
+			f.Dump()
+			t.Fatalf("zone %q: %d recipients due at %v, want 1", z, n, want)
+		}
+	}
+}
+
+// testCadence: readers who chose a weekly or monthly rhythm get only what
+// takes it (review 2026-11 CA-6, D1): a regular campaign reaches "Every
+// issue" readers, a digest issue its rhythm's readers too, an announcement
+// everyone. Of six readers, three get every issue, two the weekly roundup
+// and one the monthly best-of.
+func testCadence(t *testing.T, f *sendtest.Fixture, cadence, digest string, want int64) {
+	t.Helper()
+	f.Exec(`UPDATE campaigns SET ab_test = NULL, audience = audience || jsonb_build_object('cadence', $2::text) WHERE id = $1`, f.Campaign, cadence)
+	f.AddContacts(sendtest.ContactSpec{N: 6, Mailbox: "gmail", Domain: "gmail.com", Engaged: true})
+	f.Exec(`INSERT INTO contact_preferences (contact_id, frequency)
+		SELECT x.id, (ARRAY['all', 'weekly', 'weekly', 'monthly'])[x.n] FROM (
+			SELECT c.id, row_number() OVER (ORDER BY c.id) AS n FROM contacts c JOIN list_memberships m ON m.contact_id = c.id WHERE m.list_id = $1) x
+		WHERE x.n <= 4`, f.List)
+	if digest != "" {
+		d := uuid.Must(uuid.NewV7())
+		f.Exec(`INSERT INTO digests (id, workspace_id, name, schedule) VALUES ($1, $2, $3, jsonb_build_object('frequency', $4::text))`, d, f.WS, "Digest "+digest+" "+d.String()[:8], digest)
+		f.Exec(`INSERT INTO digest_issues (id, digest_id, workspace_id, status, campaign_id) VALUES ($1, $2, $3, 'prepared', $4)`, uuid.Must(uuid.NewV7()), d, f.WS, f.Campaign)
+	}
+	f.StartSend(engine.StartOptions{})
+	if n := f.Count(`SELECT count(*) FROM messages WHERE campaign_id = $1`, f.Campaign); n != want {
+		f.Dump()
+		t.Fatalf("cadence %q, digest %q: %d recipients, want %d", cadence, digest, n, want)
+	}
+	if n := f.Count(`SELECT coalesce((excluded->>'cadence')::bigint, 0) FROM campaign_sends WHERE campaign_id = $1`, f.Campaign); n != 6-want {
+		t.Fatalf("cadence %q, digest %q: %d counted out for their rhythm, want %d", cadence, digest, n, 6-want)
 	}
 }
 

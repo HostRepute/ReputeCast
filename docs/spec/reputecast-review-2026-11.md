@@ -351,7 +351,7 @@ Found while building M44 (added to the backlog):
 | AT-14 | The welcome prompt, Scoring's list of flows, the products and pages helpers and score ingest still read a flow's first trigger: a flow whose second trigger joins a list isn't that list's welcome series. Read `automations.triggers` there too. | ⏳ |
 | AT-15 | Watched segments are all evaluated every 10 minutes; a slow SQL segment delays the others. Time each one and back off the slow ones, with a note on the trigger. | ⏳ |
 
-## Campaigns and everyday sending (M45) ⏳
+## Campaigns and everyday sending (M45) ✅
 
 | ID | What | Done when | Size | Board |
 |---|---|---|---|---|
@@ -366,6 +366,61 @@ Found while building M44 (added to the backlog):
 
 Riskiest part: CA-6 changes audience counts everywhere they appear; CA-1 must leave every reference
 to a sent campaign working.
+
+What M45 built (1 November 2026):
+
+- **CA-1** a campaign row's ⋯ menu deletes a draft, or a cancelled or failed campaign that sent
+  nothing: it goes to a Deleted tab, restorable for 30 days (a toast offers Undo), its open approval
+  request closes and an approval-waiting draft is a plain draft again; maintenance removes it 30
+  days on. A sent campaign is archived instead, never deleted: it leaves the list for an Archived tab
+  and its report, web post and retries stay. Every channel, each change audited
+  (`campaign.delete`, `campaign.restore`, `campaign.archive`, `campaign.unarchive`;
+  `TestDeleteArchiveRestore`; migrations 03381–03382).
+- **CA-2** rows can be selected (page by page) for a bulk bar: add or remove a tag, archive, delete
+  or unarchive; each campaign is done on its own and those that can't are skipped with why. Tags
+  are lower case and show after the name. The list filters by when it went or goes out (7 or 30
+  days, this quarter, custom), sender, a list of its audience and tag; search reaches subjects, with
+  LIKE's wildcards taken literally. A scheduled row has Unschedule (`TestBulkTagsAndFilters`,
+  `manage.test.tsx`).
+- **CA-3** Campaigns › Calendar shows scheduled and sent campaigns and digest issues to come by
+  month or week (a list on phones). A scheduled email can be dragged to another day or moved with
+  Reschedule (the keyboard's way); the move is audited as `campaign.rescheduled` and Send Readiness
+  checks it again before it goes out. An approved time is part of its approval and isn't moved
+  (`TestCalendar`, `TestReschedule`).
+- **CA-4** a sent campaign's report has Follow up: resend to people who didn't open (opens through
+  privacy proxies alone count as unknown and are left out, as the report counts them) or send to
+  people who clicked (scanners' clicks don't count), as a draft with the same content, a subject of
+  its own and a suggested time one or two days after the original. Its audience is a dynamic segment
+  on two new conditions, Received campaign and Clicked campaign, and Opened campaign gains "didn't
+  open at all" (`TestFollowUp`).
+- **CA-5** Review & send can send at the same time of day in each recipient's time zone, the chosen
+  zone for contacts without one. The send starts when that time first comes (UTC+14) and each
+  recipient waits for theirs; the estimate and its timeline cover about 26 hours
+  (`TestSending/LocalTime`, `TestEstimateLocalTime`, `TestScheduleLocalAt`).
+- **CA-6** a campaign is a regular issue or an announcement (the composer's Sending to drawer, with
+  how many readers chose another rhythm). A regular issue reaches "Every issue" readers; a weekly or
+  monthly digest issue also reaches readers who chose that rhythm; an announcement reaches everyone.
+  The audience build, Send Readiness's counts (a line in the waterfall), the approval snapshot and
+  so the reports follow (`TestSending/Cadence`, `TestAssembleCadenceLine`, `internal/cadence`).
+- **CA-7** the campaigns list chooses the page of ids first and joins its numbers to them; Overview's
+  Recent is one page of everything that went out, without the list's totals
+  (`TestOverviewRecentIsOneLightPage`, `TestListTenThousandCampaigns`).
+- **CA-8** the composer's Templates tab searches templates and sections by name; a saved one's ⋯ menu
+  renames it, replaces a template with the email open now, or deletes it.
+
+Also fixed: two operations never received their campaign id, because huma reads path parameters
+only through exported embedded fields (`reschedule-campaign` embedded an alias, the follow-up input
+an unexported type); the composer's audience drawer grew taller than the screen with many lists and
+segments, and now scrolls with Apply in view.
+
+Found while building M45 (added to the backlog):
+
+| ID | What | Status |
+|---|---|---|
+| CA-9 | The calendar moves email campaigns only: texts, push and WhatsApp keep their own schedule. Give them the same reschedule. | ⏳ |
+| CA-10 | Calendar items don't say whether an approval covers the time, so Reschedule on an approved campaign is refused only after the dialog. Carry the approval state and offer "Unschedule and ask again". | ⏳ |
+| CA-11 | A test that every operation's path parameters reach its handler, so an input embedding an unexported or aliased type fails CI instead of answering 404. | ⏳ |
+| CA-12 | The status tabs count the whole workspace while filters are on; count within the filters, or say so. | ⏳ |
 
 ## Transactional, approvals, polls and integrations (M46) ⏳
 

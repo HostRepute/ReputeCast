@@ -538,13 +538,24 @@ type Querier interface {
 	BumpAutomationStepStats(ctx context.Context, arg BumpAutomationStepStatsParams) error
 	BumpChallengeAttempts(ctx context.Context, id uuid.UUID) (int32, error)
 	BumpNotificationEmailAttempts(ctx context.Context, arg BumpNotificationEmailAttemptsParams) error
+	// Scheduled and sent campaigns and digest issues between two times (CA-3).
+	CampaignCalendar(ctx context.Context, arg CampaignCalendarParams) ([]CampaignCalendarRow, error)
 	CampaignCostSince(ctx context.Context, arg CampaignCostSinceParams) ([]CampaignCostSinceRow, error)
+	// The frequency of the digest a campaign is an issue of ("" when it isn't
+	// one): weekly and monthly issues reach readers who chose that rhythm.
+	CampaignDigestFrequency(ctx context.Context, campaignID uuid.UUID) (string, error)
+	// Who a follow-up would reach (review 2026-11 CA-4): those who got the
+	// campaign, those with no open at all, those whose only opens are
+	// privacy-protected (left out of a resend), and the people who clicked.
+	CampaignFollowUpCounts(ctx context.Context, campaignID *uuid.UUID) (CampaignFollowUpCountsRow, error)
 	CampaignRenderInsert(ctx context.Context, arg CampaignRenderInsertParams) error
 	// A render of this campaign still running, if any.
 	CampaignRenderPending(ctx context.Context, arg CampaignRenderPendingParams) (uuid.UUID, error)
 	// What the service answered when it was asked again.
 	CampaignRenderUpdate(ctx context.Context, arg CampaignRenderUpdateParams) error
 	CampaignRendersList(ctx context.Context, arg CampaignRendersListParams) ([]CampaignRendersListRow, error)
+	// The workspace's campaign tags, for the filter and the bulk bar (CA-2).
+	CampaignTagsInUse(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
 	CampaignTotalsSince(ctx context.Context, arg CampaignTotalsSinceParams) (CampaignTotalsSinceRow, error)
 	// Campaigns whose content holds a synced block (an element with
 	// rc-synced="<kind>"), oldest first (CO-11). pattern is
@@ -608,6 +619,8 @@ type Querier interface {
 	ClearFinishedRunState(ctx context.Context, before *time.Time) (int64, error)
 	ClearSignInThrottle(ctx context.Context, email string) error
 	ClearUserLockout(ctx context.Context, id uuid.UUID) error
+	// A deleted campaign's open approval requests close (CA-1).
+	CloseCampaignApprovals(ctx context.Context, arg CloseCampaignApprovalsParams) (int64, error)
 	CommentGet(ctx context.Context, arg CommentGetParams) (CommentGetRow, error)
 	CommentInsert(ctx context.Context, arg CommentInsertParams) error
 	CommentResolve(ctx context.Context, arg CommentResolveParams) (int64, error)
@@ -848,6 +861,10 @@ type Querier interface {
 	// Recipients of lists minus excluded lists and suppressions. A deleted list
 	// (restorable for 30 days) adds nobody; as an exclusion it still excludes.
 	ComposerCountListAudience(ctx context.Context, arg ComposerCountListAudienceParams) (int64, error)
+	// The lists' subscribers (as ComposerCountListAudience counts them) who
+	// chose a weekly or monthly rhythm (review 2026-11 CA-6). It starts from
+	// the preferences, which only readers who chose something have.
+	ComposerCountListRhythm(ctx context.Context, arg ComposerCountListRhythmParams) (int64, error)
 	// For each field an email uses, how many of the audience have no value for
 	// it (they see the fallback, or nothing): the contacts of the lists minus
 	// the excluded lists and suppressions, as ComposerCountListAudience counts
@@ -987,6 +1004,8 @@ type Querier interface {
 	CountAutomationRunsAtNode(ctx context.Context, arg CountAutomationRunsAtNodeParams) (int64, error)
 	CountAutomationsByStatus(ctx context.Context, workspaceID uuid.UUID) ([]CountAutomationsByStatusRow, error)
 	CountCampaigns(ctx context.Context, arg CountCampaignsParams) (int64, error)
+	// The Archived and Deleted tabs' counts (review 2026-11 CA-1).
+	CountCampaignsArchivedDeleted(ctx context.Context, arg CountCampaignsArchivedDeletedParams) (CountCampaignsArchivedDeletedRow, error)
 	CountCampaignsByStatus(ctx context.Context, workspaceID uuid.UUID) ([]CountCampaignsByStatusRow, error)
 	CountDeliverabilityIncidents(ctx context.Context, arg CountDeliverabilityIncidentsParams) (int64, error)
 	CountImportRows(ctx context.Context, importID uuid.UUID) (int64, error)
@@ -1196,6 +1215,8 @@ type Querier interface {
 	DigestIssues(ctx context.Context, arg DigestIssuesParams) ([]DigestIssuesRow, error)
 	// Digest issues of campaigns (the approvals inbox, Review & send, the report).
 	DigestIssuesByCampaigns(ctx context.Context, arg DigestIssuesByCampaignsParams) ([]DigestIssuesByCampaignsRow, error)
+	// Digest issues still to come between two times, from their schedule (CA-3).
+	DigestIssuesDue(ctx context.Context, arg DigestIssuesDueParams) ([]DigestIssuesDueRow, error)
 	// Issues the minute job moves along: being collected (their preparation
 	// may be due), retried, prepared, held, in draft or sending.
 	DigestIssuesInFlight(ctx context.Context, digestID uuid.UUID) ([]DigestIssue, error)
@@ -2052,7 +2073,10 @@ type Querier interface {
 	// Per-provider share of each campaign: planned recipients and what was sent.
 	ListCampaignRouteShares(ctx context.Context, campaignIds []uuid.UUID) ([]ListCampaignRouteSharesRow, error)
 	// One page of the campaigns list. Status groups: drafts = draft, approval,
-	// approved; sending = sending, paused; sent = sent, cancelled, failed.
+	// approved; sending = sending, paused; sent = sent, cancelled, failed;
+	// archived and deleted (CA-1); recent = everything that went out, latest
+	// start first (Overview). The page's ids are chosen first and only they
+	// are joined to their numbers (review 2026-11 CA-7).
 	ListCampaigns(ctx context.Context, arg ListCampaignsParams) ([]ListCampaignsRow, error)
 	ListComposerSenders(ctx context.Context, workspaceID uuid.UUID) ([]ListComposerSendersRow, error)
 	ListComposerVersions(ctx context.Context, arg ListComposerVersionsParams) ([]ListComposerVersionsRow, error)
@@ -2129,6 +2153,9 @@ type Querier interface {
 	LiveAutomationsForTrigger(ctx context.Context, arg LiveAutomationsForTriggerParams) ([]LiveAutomationsForTriggerRow, error)
 	LockAutomation(ctx context.Context, arg LockAutomationParams) (Automation, error)
 	LockAutomationRun(ctx context.Context, arg LockAutomationRunParams) (LockAutomationRunRow, error)
+	// A campaign about to be deleted, restored, archived or tagged, with what
+	// decides which of those it allows (review 2026-11 CA-1).
+	LockCampaignForManage(ctx context.Context, arg LockCampaignForManageParams) (LockCampaignForManageRow, error)
 	LockDeletedList(ctx context.Context, arg LockDeletedListParams) (List, error)
 	LockList(ctx context.Context, arg LockListParams) (List, error)
 	// Applies a domain's classification to every contact still waiting for it.
@@ -2798,6 +2825,9 @@ type Querier interface {
 	PurgeAuditEvents(ctx context.Context, arg PurgeAuditEventsParams) (int64, error)
 	PurgeAutomationEvents(ctx context.Context, before *time.Time) (int64, error)
 	PurgeAutomationWebhookCalls(ctx context.Context, before time.Time) (int64, error)
+	// Deleted campaigns go for good 30 days on (CA-1); one that sent anything
+	// never was deletable, but the check stays.
+	PurgeDeletedCampaigns(ctx context.Context, before *time.Time) (int64, error)
 	// Past the 30 days a deleted list can be restored: the list and its
 	// memberships go for good. Contacts and suppressions stay.
 	PurgeDeletedLists(ctx context.Context, before *time.Time) (int64, error)
@@ -3969,6 +3999,13 @@ type Querier interface {
 	// Sets each run's next time (resume, "spread over N hours").
 	SetAutomationRunsNextAt(ctx context.Context, arg SetAutomationRunsNextAtParams) error
 	SetAvatarUpdatedAt(ctx context.Context, arg SetAvatarUpdatedAtParams) error
+	SetCampaignArchived(ctx context.Context, arg SetCampaignArchivedParams) error
+	SetCampaignDeleted(ctx context.Context, arg SetCampaignDeletedParams) error
+	// A deleted campaign whose approval closed is a plain draft again (CA-1).
+	SetCampaignDraftStatus(ctx context.Context, id uuid.UUID) error
+	// A follow-up's suggested time, for Review & send (CA-4).
+	SetCampaignScheduleDraft(ctx context.Context, arg SetCampaignScheduleDraftParams) error
+	SetCampaignTags(ctx context.Context, arg SetCampaignTagsParams) error
 	SetDeliverabilityBlocklistDelisting(ctx context.Context, arg SetDeliverabilityBlocklistDelistingParams) error
 	SetHostReputeMonitored(ctx context.Context, arg SetHostReputeMonitoredParams) error
 	SetImportConnection(ctx context.Context, arg SetImportConnectionParams) error

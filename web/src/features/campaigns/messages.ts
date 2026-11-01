@@ -4,15 +4,15 @@ import { defineMessages } from '@/i18n'
 export const m = defineMessages('campaigns', {
   title: 'Campaigns',
   filterLabel: 'Filter',
-  filter: '{filter, select, drafts {Drafts} scheduled {Scheduled} sending {Sending} sent {Sent} other {All}}',
-  filterCount: '{filter, select, drafts {Drafts} scheduled {Scheduled} sending {Sending} sent {Sent} other {All}} · {count}',
+  filter: '{filter, select, drafts {Drafts} scheduled {Scheduled} sending {Sending} sent {Sent} archived {Archived} deleted {Deleted} other {All}}',
+  filterCount: '{filter, select, drafts {Drafts} scheduled {Scheduled} sending {Sending} sent {Sent} archived {Archived} deleted {Deleted} other {All}} · {count}',
   search: 'Search campaigns',
   newCampaign: 'New campaign',
 
   loadFailed: "Couldn't load campaigns",
   nothingChanged: 'Nothing was changed.',
   noMatch: 'No campaigns match “{query}”',
-  noStatus: '{status, select, drafts {No drafts campaigns} scheduled {No scheduled campaigns} sending {No sending campaigns} sent {No sent campaigns} other {No campaigns}}',
+  noStatus: '{status, select, drafts {No drafts campaigns} scheduled {No scheduled campaigns} sending {No sending campaigns} sent {No sent campaigns} archived {No archived campaigns} deleted {Nothing deleted in the last 30 days} other {No campaigns}}',
   showAll: 'Show all campaigns',
   noMatchBody: '{count, plural, one {# campaign} other {# campaigns}} in this workspace. Clear the search or pick another filter.',
   emptyTitle: 'No campaigns yet',

@@ -367,6 +367,7 @@ export default translate(m, {
   ctaNow: 'Gửi ngay cho {count} người',
   ctaAt: 'Lên lịch vào {when}',
   ctaBest: 'Lên lịch giờ tốt nhất từ {when}',
+  ctaLocal: 'Lên lịch {time} giờ địa phương từ {day}',
   ctaWhen: '{day}, {time} {zone}',
   ctaShortNow: 'Gửi ngay · {count}',
   ctaShortAt: 'Lên lịch · {count}',
@@ -421,6 +422,7 @@ export default translate(m, {
   ruleNeedsApproval:
     '{mine, select, yes {Vai trò của bạn} other {Vai trò của {author}}}{hasRole, select, yes { ({role})} other {}} cần được phê duyệt để gửi: {names, select, none {chưa có ai khác phê duyệt được} other {{names} có thể phê duyệt}}',
   ctaWhenBest: 'Giờ tốt nhất từ {day}',
+  ctaWhenLocal: '{day}, {time} giờ địa phương',
   finalRecipients: 'Người nhận cuối cùng',
   routeBreakdown: 'Phân bổ tuyến',
   routesDown: '{count, plural, other {# tuyến gặp sự cố}}',
@@ -441,6 +443,7 @@ export default translate(m, {
   abTimes: 'Mẫu {from}–{to} · chọn bản thắng lúc {decide} · tất cả xong khoảng {end}',
   abTimesManual: 'Mẫu {from}–{to} · phần còn lại chờ bạn chọn bản thắng',
   bestTimeLine: 'Mỗi liên hệ nhận thư vào giờ họ hay mở, trong vòng 24 giờ · xong khoảng {end}',
+  localTimeLine: 'Mỗi liên hệ nhận thư lúc {time} theo giờ của họ, trong khoảng 25 giờ · xong khoảng {end}',
   overDays: '{duration} trong {days} ngày',
   throttling: 'Giới hạn tốc độ theo nhà cung cấp hộp thư',
   fullRate: 'tốc độ tối đa',
@@ -459,6 +462,9 @@ export default translate(m, {
   modeAtCaption: 'Một ngày và giờ ở bất kỳ múi giờ nào',
   modeBest: 'Giờ tốt nhất cho từng người nhận',
   modeBestCaption: 'Mỗi liên hệ nhận thư vào giờ họ thường mở, trong vòng 24 giờ kể từ {time}',
+  modeLocal: 'Lúc {time} theo múi giờ của từng người nhận',
+  modeLocalCaption: '{day}. Bắt đầu ở Kiritimati (UTC+14) và kết thúc ở Pago Pago (UTC−11), 25 giờ sau đó; liên hệ không có múi giờ dùng {zone}.',
+  modeLocalCaptionIdle: 'Cùng một giờ trong ngày dù người đọc ở đâu, như tin nhắn SMS',
   testSends: 'Thư gửi thử',
   testAddress: 'Địa chỉ gửi thử',
   sendTestButton: 'Gửi thử',
@@ -475,6 +481,8 @@ export default translate(m, {
   whenNow: 'Việc gửi bắt đầu trong vòng một phút sau khi xác nhận. Kiểm tra độ sẵn sàng chạy lại khi bắt đầu, và một mục Chặn sẽ dừng lần gửi.',
   whenBest:
     'Mỗi liên hệ nhận thư vào giờ họ thường mở, trong vòng 24 giờ kể từ {when}. {hasRecheck, select, yes {Các mục kiểm tra chạy lại lúc {recheck}} other {Các mục kiểm tra chạy lại trước khi gửi}}; lần gửi bị tạm giữ để xem lại nếu có mục chuyển sang Chặn hoặc số người nhận thay đổi hơn 10%.',
+  whenLocal:
+    'Lúc {time} theo múi giờ của từng người nhận vào {day}, bắt đầu ở nơi giờ đó đến sớm nhất (UTC+14). {hasRecheck, select, yes {Các mục kiểm tra chạy lại lúc {recheck}} other {Các mục kiểm tra chạy lại trước khi gửi}}; lần gửi bị tạm giữ để xem lại nếu có mục chuyển sang Chặn hoặc số người nhận thay đổi hơn 10%.',
   whenAt:
     '{when}. {hasRecheck, select, yes {Các mục kiểm tra chạy lại lúc {recheck}} other {Các mục kiểm tra chạy lại trước khi gửi}}; lần gửi bị tạm giữ để xem lại nếu có mục chuyển sang Chặn hoặc số người nhận thay đổi hơn 10%.',
   excludedSuppressed: '{count} bị chặn gửi',

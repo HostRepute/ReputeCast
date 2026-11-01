@@ -4356,6 +4356,26 @@
    "w": 1440,
    "x": 6080,
    "y": 0
+  },
+  "CampaignsComplete.dc.html": {
+   "expand": "fill",
+   "h": 2225,
+   "is_interactive": true,
+   "page": "report",
+   "title": "Campaigns, everyday · delete and archive, filters, tags and bulk, follow-ups, local time, cadence, templates",
+   "w": 1440,
+   "x": 4560,
+   "y": 0
+  },
+  "CampaignsCalendar.dc.html": {
+   "expand": "fill",
+   "h": 1027,
+   "is_interactive": true,
+   "page": "report",
+   "title": "Campaigns › Calendar · scheduled and sent by month and week, drag to reschedule",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
   }
  },
  "createdOnFiles": {
@@ -4792,7 +4812,7 @@
   },
   "t-report": {
    "kind": "title1",
-   "maxW": 4480,
+   "maxW": 7520,
    "page": "report",
    "text": "7.7 Campaigns & campaign report",
    "w": 240,
@@ -5472,6 +5492,8 @@
   "LiveMonitorCanaryPhone.dc.html",
   "LiveMonitorStatesPhone.dc.html",
   "Campaigns.dc.html",
+  "CampaignsCalendar.dc.html",
+  "CampaignsComplete.dc.html",
   "Report.dc.html",
   "ReportStates.dc.html",
   "CampaignsTablet.dc.html",

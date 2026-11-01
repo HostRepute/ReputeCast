@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import type { components } from '@/api/schema'
 import { json, mockApi } from '@/test/api'
 import { renderInWorkspace, workspaceMe } from '@/test/app'
@@ -9,6 +9,8 @@ type Item = components['schemas']['CampaignListItem']
 const sent: Item = {
   id: '0192f0a0-0000-7000-8000-000000000001',
   name: 'October digest',
+  subject: 'What happened in October',
+  tags: [],
   status: 'sent',
   channel: 'email',
   audience: 'All subscribers',
@@ -28,6 +30,9 @@ function mock() {
     'GET /api/v1/workspaces/acme-newsletter/campaigns': () =>
       json({ items: [sent], total: 1, page: 1, pageSize: 25, counts: { all: 1, drafts: 0, paidOnly: 0, scheduled: 0, sending: 0, sent: 1 } }),
     'GET /api/v1/workspaces/acme-newsletter/campaigns/summary': () => json({ days: 30, campaigns: 1, sent: 1200, cost: 0, costBy: [] }),
+    'GET /api/v1/workspaces/acme-newsletter/senders': () => json({ senders: [], providers: [], helpers: [], canManage: false }),
+    'GET /api/v1/workspaces/acme-newsletter/lists': () => json({ items: [] }),
+    'GET /api/v1/workspaces/acme-newsletter/campaigns/tags': () => json({ tags: [] }),
   })
 }
 
@@ -37,9 +42,11 @@ describe('CampaignsPage', () => {
   // Review 2026-11 EN-7: Duplicate on a sent row opens a copy, like the report.
   it('duplicates a sent campaign from its row', async () => {
     mock()
-    await renderInWorkspace(<CampaignsPage search={{}} />, { me: workspaceMe({ permissions: ['campaigns:view', 'campaigns:edit'] }) })
-    const link = await screen.findByRole('link', { name: 'Duplicate' })
-    expect(link).toHaveAttribute('href', `/w/acme-newsletter/campaigns/new?from=${sent.id}`)
+    const { router } = await renderInWorkspace(<CampaignsPage search={{}} />, { me: workspaceMe({ permissions: ['campaigns:view', 'campaigns:edit'] }) })
+    // Review 2026-11 CA-1: from the row's ⋯ menu.
+    fireEvent.keyDown(await screen.findByRole('button', { name: 'More actions for October digest' }), { key: 'Enter' })
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Duplicate' }))
+    await waitFor(() => expect(router.state.location.href).toBe(`/w/acme-newsletter/campaigns/new?from=${sent.id}`))
   })
 
   it('explains why a viewer cannot duplicate', async () => {

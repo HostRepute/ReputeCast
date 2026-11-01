@@ -29,6 +29,7 @@ import './reports.css'
 import { CampaignEarn } from '@/features/earn/revenue/CampaignEarn'
 import { ReportWebSection } from '@/features/website/elsewhere'
 import { m } from './messages'
+import { FollowUpMenu } from '@/features/campaigns/followup'
 
 type BounceRow = Schemas['ReportBounceRow']
 
@@ -467,6 +468,8 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
             <Button disabledReason={shareReason} onClick={() => void share()}>
               {t(m.shareLink)}
             </Button>
+            {/* Review 2026-11 CA-4: resend to non-openers, or send to clickers. */}
+            {r?.campaign.status === 'sent' ? <FollowUpMenu campaign={{ id: campaignId, name }} size="md" /> : null}
             {editReason ? (
               <Button variant="primary" disabledReason={editReason}>
                 {t(m.duplicate)}

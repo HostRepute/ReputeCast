@@ -75,7 +75,14 @@ type Schedule struct {
 	Mode     string `json:"mode"`
 	At       string `json:"at,omitempty"`
 	Timezone string `json:"timezone,omitempty"`
+	// Local is mode "local"'s wall time ("2026-10-14 09:00"): each recipient
+	// gets it then in their own zone, Timezone's for contacts without one;
+	// At is that time in the earliest zone (review 2026-11 CA-5).
+	Local string `json:"local,omitempty"`
 }
+
+// earliestZone is the first zone a wall time reaches (Kiribati, UTC+14).
+var earliestZone = time.FixedZone("UTC+14", 14*3600)
 
 // ParseSchedule reads campaigns.schedule (mode "now" when unset).
 func ParseSchedule(raw json.RawMessage) Schedule {
@@ -134,7 +141,10 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 			s.Log.WarnContext(ctx, "mailbox classification before Send Readiness", "campaign", c.ID, "err", err)
 		}
 	}
-	def := ParseAudience(c.Audience)
+	def, err := campaignAudience(ctx, s.Q, c.ID, c.Audience)
+	if err != nil {
+		return f, fmt.Errorf("audience: %w", err)
+	}
 	aud, recipients, err := s.computeAudience(ctx, s.Q, ws.ID, def, sunsetDays(ws.SunsetPolicy), now, true)
 	if err != nil {
 		return f, fmt.Errorf("audience: %w", err)

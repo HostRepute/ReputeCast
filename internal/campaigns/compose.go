@@ -145,6 +145,10 @@ type ComposerAudienceCount struct {
 	// count is used, so overlaps may be counted twice until Send Readiness
 	// computes the final number.
 	Approximate bool `json:"approximate"`
+	// ChoseRhythm counts the lists' subscribers who chose a weekly or
+	// monthly rhythm on the preference center: a regular issue leaves them
+	// out, an announcement reaches them (review 2026-11 CA-6).
+	ChoseRhythm int64 `json:"choseRhythm"`
 }
 
 // CountAudience counts the recipients of a definition.
@@ -203,6 +207,13 @@ func (s *Service) countAudience(ctx context.Context, q *store.Queries, wsID uuid
 			}
 		}
 		out.Approximate = true
+	}
+	if len(def.Lists) > 0 {
+		n, err := q.ComposerCountListRhythm(ctx, store.ComposerCountListRhythmParams{WorkspaceID: wsID, Lists: ids(def.Lists), ExcludeLists: ids(def.ExcludeLists)})
+		if err != nil {
+			return out, err
+		}
+		out.ChoseRhythm = n
 	}
 	return out, nil
 }

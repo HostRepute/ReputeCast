@@ -85,14 +85,18 @@ var builtinFields = map[string]fieldSpec{
 	"last_open":        {KindPeriod, []string{"in_last", "not_in_last", "never"}},
 	"opened":           {KindPeriod, []string{"in_last", "not_in_last"}},
 	"clicked":          {KindPeriod, []string{"in_last", "not_in_last"}},
-	"opened_campaign":  {KindCampaign, []string{"opened", "not_opened"}},
-	"joined":           {KindPeriod, []string{"in_last", "not_in_last"}},
+	"opened_campaign":  {KindCampaign, []string{"opened", "not_opened", "not_opened_any"}},
+	// Follow-ups from a report (review 2026-11 CA-4): who got a campaign,
+	// and who clicked in it.
+	"received_campaign": {KindCampaign, []string{"received", "not_received"}},
+	"clicked_campaign":  {KindCampaign, []string{"clicked", "not_clicked"}},
+	"joined":            {KindPeriod, []string{"in_last", "not_in_last"}},
 }
 
 // builtinOrder is the order of fields in the builder's select.
 var builtinOrder = []string{
 	"mailbox_provider", "email_domain", "list", "tier", "last_open", "opened", "clicked",
-	"opened_campaign", "consent", "source", "tag", "country", "language", "joined",
+	"opened_campaign", "received_campaign", "clicked_campaign", "consent", "source", "tag", "country", "language", "joined",
 }
 
 // Enum values of the built-in enum fields: the value and, for a name that

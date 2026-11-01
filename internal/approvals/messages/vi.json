@@ -47,6 +47,8 @@
   "problem.blockedAsStarted": "Độ sẵn sàng gửi đã chặn lần gửi ngay khi bắt đầu, nên chưa có gì được gửi.",
   "problem.blockedAsStartedReason": "Độ sẵn sàng gửi đã chặn lần gửi ngay khi bắt đầu, nên chưa có gì được gửi: {reason}.",
   "problem.notScheduled": "Chiến dịch chưa được lên lịch.",
+  "problem.rescheduleApproved": "Chiến dịch này đã được phê duyệt cho thời điểm hiện tại. Hãy hủy lịch và xin phê duyệt cho thời điểm mới.",
+  "problem.rescheduleFuture": "Hãy chọn thời điểm cách bây giờ ít nhất một phút.",
   "problem.noClientApprover": "Lần gửi này cần phê duyệt của khách hàng, nhưng chưa ai ở {workspace} có thể phê duyệt. Hãy mời người duyệt của khách hàng trong Cài đặt › Nhóm với vai trò Người duyệt phía khách hàng.",
   "problem.signoffNotClient": "Phê duyệt của khách hàng chỉ dành cho không gian làm việc của khách hàng thuộc một agency. Hãy bật chế độ agency trong Quản trị hệ thống › Hệ thống và cập nhật trước.",
   "problem.audienceMin": "Hãy nhập số người nhận, ví dụ {example, number}.",
@@ -153,6 +155,7 @@
   "schedule.now": "Gửi ngay",
   "schedule.at": "{at}",
   "schedule.best": "Giờ tốt nhất trong vòng 24 giờ từ {at}",
+  "schedule.local": "{at} theo múi giờ của từng người nhận",
 
   "invalid.fields": "đã thay đổi {fields}",
   "invalid.moved": "số người nhận đã thay đổi {moved}",

@@ -595,6 +595,12 @@ func scheduleKept(raw json.RawMessage, loc *time.Location) keptValue {
 	if s.Timezone != "" {
 		loc = state.Location(s.Timezone)
 	}
+	if s.Mode == "local" {
+		// The wall time, as the schedule's zone has it.
+		if lt, err := time.ParseInLocation("2006-01-02 15:04", s.Local, loc); err == nil {
+			return keptValue{Text: mScheduleLocal.Keep(i18n.Args{"at": lt.Format(time.RFC3339)})}
+		}
+	}
 	at := i18n.Args{"at": t.In(loc).Format(time.RFC3339)}
 	if s.Mode == "best_time" {
 		return keptValue{Text: mScheduleBest.Keep(at)}
