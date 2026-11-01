@@ -67,7 +67,8 @@ func workspace(t *testing.T, env *apptest.Env) *store.Workspace {
 
 func TestSMSDemo(t *testing.T) {
 	env := apptest.New(t)
-	env.SeedDemo()
+	// This month's texts and spend: seeded mid-month, so they hold on any day.
+	env.SeedDemoAt(apptest.MidMonth())
 	linh := env.Client()
 	linh.SignInDemo("linh@acme.io")
 

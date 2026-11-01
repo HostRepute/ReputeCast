@@ -17,7 +17,8 @@ import (
 // without providers:view it's told so.
 func TestSMSTools(t *testing.T) {
 	env := apptest.New(t)
-	env.SeedDemo()
+	// The overview's month: seeded mid-month, so it holds on any day.
+	env.SeedDemoAt(apptest.MidMonth())
 	c := env.Client()
 	c.SignInDemo("linh@acme.io")
 	var agent struct{ Secret string }

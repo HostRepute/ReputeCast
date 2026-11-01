@@ -65,6 +65,9 @@ type App struct {
 	// minute (review 2026-11 OP-12); audited contact changes drop a
 	// workspace's.
 	Counts *countcache.Cache
+	// Now is the clock of the services that read it (texting); nil is the
+	// wall clock. Tests that seed the sample at a fixed moment set it.
+	Now func() time.Time
 	// URLs builds public links (tracking, unsubscribe, preferences, archive,
 	// shared reports, provider webhooks) on the instance's public URL.
 	URLs publicurl.Builder
@@ -424,4 +427,12 @@ func (a *App) Run(ctx context.Context) error {
 	}
 	a.Log.Info("stopped")
 	return runErr
+}
+
+// now is the app's clock: Now, else the wall clock.
+func (a *App) now() time.Time {
+	if a.Now != nil {
+		return a.Now()
+	}
+	return time.Now()
 }

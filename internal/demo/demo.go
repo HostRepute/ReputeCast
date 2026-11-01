@@ -91,6 +91,13 @@ func (s *Seeder) WS() store.Workspace { return s.Workspaces["acme-newsletter"] }
 // Seed loads the demo data in one transaction. It is idempotent: when the
 // demo owner already exists nothing happens.
 func Seed(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secrets.Box, log *slog.Logger) (*Result, error) {
+	return SeedAt(ctx, pool, cfg, box, log, seedClock())
+}
+
+// SeedAt loads the demo data as seeded at a given moment: tests whose
+// numbers depend on the calendar (this month's SMS spend) seed at a moment
+// when the design's days fit in one month.
+func SeedAt(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secrets.Box, log *slog.Logger, at time.Time) (*Result, error) {
 	res := &Result{OwnerEmail: "linh@acme.io", Password: Password, TOTPSecret: TOTPSecret}
 	var exists bool
 	if err := pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM users WHERE email = 'linh@acme.io')`).Scan(&exists); err != nil {
@@ -106,7 +113,7 @@ func Seed(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secr
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
 	s := &Seeder{
-		Tx: tx, Q: store.New(tx), Box: box, Cfg: cfg, Now: seedClock(), Log: log,
+		Tx: tx, Q: store.New(tx), Box: box, Cfg: cfg, Now: at, Log: log,
 		Users: map[string]store.User{}, Workspaces: map[string]store.Workspace{}, Roles: map[string]store.Role{},
 		Lists: map[string]uuid.UUID{}, Providers: map[string]uuid.UUID{}, Campaigns: map[string]uuid.UUID{},
 		Senders: map[string]uuid.UUID{}, Domains: map[string]uuid.UUID{}, Extra: map[string]any{},

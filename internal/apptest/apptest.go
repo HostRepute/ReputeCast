@@ -62,6 +62,12 @@ type sample struct {
 
 var demoSample, northwindSample sample
 
+// midMonthSamples are the demo seeded at fixed moments (SeedDemoAt), by key.
+var (
+	midMonthMu      sync.Mutex
+	midMonthSamples = map[string]*sample{}
+)
+
 // The time zones of the samples' workspaces, where their numbers count
 // whole days (Growth's last 30 days, a form's stats).
 var (
@@ -355,6 +361,56 @@ func (e *Env) SeedDemo() {
 	if err := os.CopyFS(e.App.Cfg.FilesDir(), os.DirFS(files)); err != nil {
 		e.T.Fatalf("demo files: %v", err)
 	}
+}
+
+// MidMonth is a moment in the past when the sample's design days (the 1st
+// to the 15th of a month, "today" the 15th) fit in one calendar month: the
+// 20th of last month at noon in New York. A test whose numbers count "this
+// month" (the SMS spend) seeds there with SeedDemoAt, so it holds on any
+// day of the month.
+func MidMonth() time.Time {
+	ny, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		ny = time.UTC
+	}
+	n := time.Now().In(ny)
+	return time.Date(n.Year(), n.Month()-1, 20, 12, 0, 0, 0, ny)
+}
+
+// SeedDemoAt loads the Acme demo as seeded at a given moment and runs the
+// app's clock (App.Now) from there, so the services that read it see the
+// sample's days where they were seeded.
+func (e *Env) SeedDemoAt(at time.Time) {
+	e.T.Helper()
+	ctx := context.Background()
+	key := "demo_at_" + strconv.FormatInt(at.Unix(), 10)
+	if demo.SkipTransactional {
+		key = "demonotx_at_" + strconv.FormatInt(at.Unix(), 10)
+	}
+	midMonthMu.Lock()
+	smp := midMonthSamples[key]
+	if smp == nil {
+		smp = &sample{}
+		midMonthSamples[key] = smp
+	}
+	midMonthMu.Unlock()
+	name, files, err := smp.template(ctx, key, acmeZones, func(pool *pgxpool.Pool, dir string) error {
+		cfg := *e.App.Cfg
+		cfg.Files.Dir = dir
+		_, err := demo.SeedAt(ctx, pool, &cfg, e.App.Secrets, slog.New(slog.NewTextHandler(io.Discard, nil)), at)
+		return err
+	})
+	if err != nil {
+		e.T.Fatalf("seed demo: %v", err)
+	}
+	e.stop()
+	e.start(testdb.NewFrom(e.T, name))
+	e.T.Cleanup(e.stop)
+	if err := os.CopyFS(e.App.Cfg.FilesDir(), os.DirFS(files)); err != nil {
+		e.T.Fatalf("demo files: %v", err)
+	}
+	started := time.Now()
+	e.App.Now = func() time.Time { return at.Add(time.Since(started)) }
 }
 
 // SeedNorthwind loads the agency sample (Northwind Studio and its seven

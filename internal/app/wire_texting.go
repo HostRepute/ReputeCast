@@ -135,7 +135,7 @@ func (a *App) texting() *texting.Service {
 		resolver = demo.SMSDNSOverlay(resolver, a.URLs)
 	}
 	s := &texting.Service{
-		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Log: a.Log, URLs: a.URLs,
+		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Log: a.Log, URLs: a.URLs, Now: a.now,
 		Jobs:     func() *jobs.Client { return a.Jobs },
 		HTTP:     guard.Client(30 * time.Second),
 		DNS:      resolver,
