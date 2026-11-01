@@ -357,6 +357,26 @@ func (e *Env) SeedDemo() {
 	}
 }
 
+// SMSClock is the clock the demo's SMS numbers for this month read with
+// (demo.SMSReadAt), for the app's SMS domain and the SMS services a test
+// builds itself. In a month's first days the sample keeps its texts in the
+// month before: the app's SMS clock (texting.Service.Now) stops at that
+// month's last minute. Otherwise it runs. Call it after SeedDemo.
+func (e *Env) SMSClock() func() time.Time {
+	e.T.Helper()
+	now := time.Now()
+	at, err := demo.SMSReadAt(context.Background(), e.App.Pool, now)
+	if err != nil {
+		e.T.Fatalf("SMS clock: %v", err)
+	}
+	if at.Equal(now) {
+		return time.Now
+	}
+	clock := func() time.Time { return at }
+	e.App.Texting().Now = clock
+	return clock
+}
+
 // SeedNorthwind loads the agency sample (Northwind Studio and its seven
 // clients) into the test database instead of the Acme demo.
 func (e *Env) SeedNorthwind() {

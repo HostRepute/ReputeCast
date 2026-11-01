@@ -224,7 +224,7 @@ func smsRegistrants(ctx context.Context, s *Seeder, st *smsState) error {
 			return smsPerson{id: ID(), first: first, last: last, email: email, isNew: true, tz: tz, company: companies[rng.IntN(len(companies))]}
 		}
 	}
-	regStart, regEnd := s.smsDay(2, 9, 0, chicago), s.smsDay(13, 20, 0, chicago)
+	regStart, regEnd := s.smsTextDay(2, 9, 0, chicago), s.smsTextDay(13, 20, 0, chicago)
 	regAt := func() time.Time {
 		return regStart.Add(time.Duration(rng.Int64N(int64(regEnd.Sub(regStart))))).Truncate(time.Second)
 	}
@@ -263,7 +263,7 @@ func smsRegistrants(ctx context.Context, s *Seeder, st *smsState) error {
 			emails[n.email] = true
 		}
 		if n.key == "sam" {
-			p.registered, p.ip = s.smsDay(2, 14, 6, chicago), "203.0.113.77"
+			p.registered, p.ip = s.smsTextDay(2, 14, 6, chicago), "203.0.113.77"
 		}
 		add(p)
 		namedAt[n.key] = len(people) - 1
@@ -375,13 +375,13 @@ func smsRegistrants(ctx context.Context, s *Seeder, st *smsState) error {
 				}
 			}
 			if p.phone == "+447700902290" {
-				p.registered = s.smsDay(2, 17, 58, smsLoc("Europe/London"))
+				p.registered = s.smsTextDay(2, 17, 58, smsLoc("Europe/London"))
 			}
 			if p.phone == "+17085550161" {
-				p.registered = s.smsDay(3, 11, 14, chicago)
+				p.registered = s.smsTextDay(3, 11, 14, chicago)
 			}
 			if p.phone == "+12195550144" {
-				p.registered = s.smsDay(4, 16, 39, chicago)
+				p.registered = s.smsTextDay(4, 16, 39, chicago)
 			}
 			add(p)
 		}
@@ -803,7 +803,7 @@ func smsWrite(ctx context.Context, s *Seeder, st *smsState, people []smsPerson, 
 			stopAt := final.Add(time.Duration(2+rng.IntN(20)) * time.Minute)
 			word := "STOP"
 			if p.phone == "+447700902290" {
-				stopAt, word = s.smsDay(2, 18, 22, smsLoc("Europe/London")), "Stop"
+				stopAt, word = s.smsTextDay(2, 18, 22, smsLoc("Europe/London")), "Stop"
 			}
 			stopped = &stopAt
 			status = "opted_out"
@@ -998,8 +998,8 @@ func smsWrite(ctx context.Context, s *Seeder, st *smsState, people []smsPerson, 
 			s.smsDay(13, 16, 20, chicago)})
 	}
 	// Six test texts, all to Marcus: the wizard's and five of the campaign.
-	testAt := []time.Time{s.smsDay(1, 10, 31, chicago), s.smsDay(13, 15, 41, chicago), s.smsDay(13, 16, 4, chicago), s.smsDay(13, 16, 6, chicago),
-		s.smsDay(13, 16, 15, chicago), s.smsDay(14, 9, 31, chicago)}
+	testAt := []time.Time{s.smsTextDay(1, 10, 31, chicago), s.smsTextDay(13, 15, 41, chicago), s.smsTextDay(13, 16, 4, chicago), s.smsTextDay(13, 16, 6, chicago),
+		s.smsTextDay(13, 16, 15, chicago), s.smsTextDay(14, 9, 31, chicago)}
 	for i, at := range testAt {
 		id := ID()
 		var camp *uuid.UUID

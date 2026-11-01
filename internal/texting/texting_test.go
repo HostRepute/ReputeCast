@@ -68,6 +68,8 @@ func workspace(t *testing.T, env *apptest.Env) *store.Workspace {
 func TestSMSDemo(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
+	// The month's numbers read in the sample's month.
+	env.SMSClock()
 	linh := env.Client()
 	linh.SignInDemo("linh@acme.io")
 

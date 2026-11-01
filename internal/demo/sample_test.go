@@ -41,6 +41,14 @@ func sampleDay(now time.Time) time.Time {
 // and cloned for each test.
 func seededSample(t *testing.T) (*pgxpool.Pool, *secrets.Box, time.Time) {
 	t.Helper()
+	at := sampleDay(time.Now())
+	pool, box := seededAt(t, at)
+	return pool, box, at
+}
+
+// seededAt is seededSample for a seed at another moment.
+func seededAt(t *testing.T, at time.Time) (*pgxpool.Pool, *secrets.Box) {
+	t.Helper()
 	if testing.Short() {
 		t.Skip("seeds the whole demo")
 	}
@@ -48,17 +56,14 @@ func seededSample(t *testing.T) (*pgxpool.Pool, *secrets.Box, time.Time) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	at := sampleDay(time.Now())
-	name, _, err := testdb.Shared(context.Background(), "demosample"+at.Format("20060102"), func(pool *pgxpool.Pool, dir string) error {
+	name, _, err := testdb.Shared(context.Background(), "sample"+at.UTC().Format("20060102t1504"), func(pool *pgxpool.Pool, dir string) error {
 		cfg := config.Defaults()
 		cfg.Files.Dir = dir // the sample product files (X19)
-		defer func(clock func() time.Time) { seedClock = clock }(seedClock)
-		seedClock = func() time.Time { return at }
-		_, err := Seed(context.Background(), pool, &cfg, box, slog.New(slog.NewTextHandler(io.Discard, nil)))
+		_, err := seedAt(context.Background(), pool, &cfg, box, slog.New(slog.NewTextHandler(io.Discard, nil)), at)
 		return err
 	})
 	if err != nil {
 		t.Fatalf("seed: %v", err)
 	}
-	return testdb.NewFrom(t, name), box, at
+	return testdb.NewFrom(t, name), box
 }
