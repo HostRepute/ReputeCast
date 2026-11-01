@@ -820,6 +820,84 @@ func (q *Queries) ComposerVersionSources(ctx context.Context, arg ComposerVersio
 	return items, nil
 }
 
+const countCampaignTabs = `-- name: CountCampaignTabs :one
+SELECT count(*) FILTER (WHERE c.deleted_at IS NULL AND c.archived_at IS NULL)::bigint AS all_live,
+       count(*) FILTER (WHERE c.deleted_at IS NULL AND c.archived_at IS NULL AND c.status IN ('draft', 'approval', 'approved'))::bigint AS drafts,
+       count(*) FILTER (WHERE c.deleted_at IS NULL AND c.archived_at IS NULL AND c.status = 'scheduled')::bigint AS scheduled,
+       count(*) FILTER (WHERE c.deleted_at IS NULL AND c.archived_at IS NULL AND c.status IN ('sending', 'paused'))::bigint AS sending,
+       count(*) FILTER (WHERE c.deleted_at IS NULL AND c.archived_at IS NULL
+                          AND c.status NOT IN ('draft', 'approval', 'approved', 'scheduled', 'sending', 'paused'))::bigint AS sent,
+       count(*) FILTER (WHERE c.deleted_at IS NULL AND c.archived_at IS NULL AND c.audience ->> 'paid' = 'paid')::bigint AS paid_only,
+       count(*) FILTER (WHERE c.deleted_at IS NULL AND c.archived_at IS NOT NULL)::bigint AS archived,
+       count(*) FILTER (WHERE c.deleted_at > $1::timestamptz)::bigint AS deleted
+FROM campaigns c
+WHERE c.workspace_id = $2
+  AND c.digest_role IN ('', 'issue')
+  AND (c.deleted_at IS NULL OR c.deleted_at > $1::timestamptz)
+  AND ($3::text = '' OR c.name ILIKE '%' || $3::text || '%' OR c.subject ILIKE '%' || $3::text || '%')
+  AND ($4::text = '' OR c.channel = $4::text)
+  AND (NOT $5::boolean OR c.audience ->> 'paid' = 'paid')
+  AND ($6::timestamptz IS NULL OR coalesce(c.started_at, c.scheduled_at, c.updated_at) >= $6::timestamptz)
+  AND ($7::timestamptz IS NULL OR coalesce(c.started_at, c.scheduled_at, c.updated_at) < $7::timestamptz)
+  AND ($8::uuid IS NULL OR c.sender_id = $8::uuid)
+  AND ($9::text = '' OR jsonb_exists(coalesce(c.audience -> 'lists', '[]'::jsonb), $9::text))
+  AND ($10::text = '' OR $10::text = ANY (c.tags))
+`
+
+type CountCampaignTabsParams struct {
+	DeletedSince time.Time  `json:"deletedSince"`
+	WorkspaceID  uuid.UUID  `json:"workspaceId"`
+	Query        string     `json:"query"`
+	Channel      string     `json:"channel"`
+	PaidOnly     bool       `json:"paidOnly"`
+	FromAt       *time.Time `json:"fromAt"`
+	ToAt         *time.Time `json:"toAt"`
+	SenderID     *uuid.UUID `json:"senderId"`
+	ListID       string     `json:"listId"`
+	Tag          string     `json:"tag"`
+}
+
+type CountCampaignTabsRow struct {
+	AllLive   int64 `json:"allLive"`
+	Drafts    int64 `json:"drafts"`
+	Scheduled int64 `json:"scheduled"`
+	Sending   int64 `json:"sending"`
+	Sent      int64 `json:"sent"`
+	PaidOnly  int64 `json:"paidOnly"`
+	Archived  int64 `json:"archived"`
+	Deleted   int64 `json:"deleted"`
+}
+
+// The tabs' counts within the list's filters (review 2026-11 CA-12): the
+// same filters as CountCampaigns, but every status group at once; paid_only
+// counts the campaigns for paid members among them.
+func (q *Queries) CountCampaignTabs(ctx context.Context, arg CountCampaignTabsParams) (CountCampaignTabsRow, error) {
+	row := q.db.QueryRow(ctx, countCampaignTabs,
+		arg.DeletedSince,
+		arg.WorkspaceID,
+		arg.Query,
+		arg.Channel,
+		arg.PaidOnly,
+		arg.FromAt,
+		arg.ToAt,
+		arg.SenderID,
+		arg.ListID,
+		arg.Tag,
+	)
+	var i CountCampaignTabsRow
+	err := row.Scan(
+		&i.AllLive,
+		&i.Drafts,
+		&i.Scheduled,
+		&i.Sending,
+		&i.Sent,
+		&i.PaidOnly,
+		&i.Archived,
+		&i.Deleted,
+	)
+	return i, err
+}
+
 const countCampaigns = `-- name: CountCampaigns :one
 SELECT count(*) FROM campaigns c
 WHERE c.workspace_id = $1
@@ -879,62 +957,6 @@ func (q *Queries) CountCampaigns(ctx context.Context, arg CountCampaignsParams) 
 	var count int64
 	err := row.Scan(&count)
 	return count, err
-}
-
-const countCampaignsArchivedDeleted = `-- name: CountCampaignsArchivedDeleted :one
-SELECT count(*) FILTER (WHERE deleted_at IS NULL AND archived_at IS NOT NULL)::bigint AS archived,
-       count(*) FILTER (WHERE deleted_at > $1::timestamptz)::bigint AS deleted
-FROM campaigns
-WHERE workspace_id = $2 AND digest_role IN ('', 'issue') AND (archived_at IS NOT NULL OR deleted_at IS NOT NULL)
-`
-
-type CountCampaignsArchivedDeletedParams struct {
-	DeletedSince time.Time `json:"deletedSince"`
-	WorkspaceID  uuid.UUID `json:"workspaceId"`
-}
-
-type CountCampaignsArchivedDeletedRow struct {
-	Archived int64 `json:"archived"`
-	Deleted  int64 `json:"deleted"`
-}
-
-// The Archived and Deleted tabs' counts (review 2026-11 CA-1).
-func (q *Queries) CountCampaignsArchivedDeleted(ctx context.Context, arg CountCampaignsArchivedDeletedParams) (CountCampaignsArchivedDeletedRow, error) {
-	row := q.db.QueryRow(ctx, countCampaignsArchivedDeleted, arg.DeletedSince, arg.WorkspaceID)
-	var i CountCampaignsArchivedDeletedRow
-	err := row.Scan(&i.Archived, &i.Deleted)
-	return i, err
-}
-
-const countCampaignsByStatus = `-- name: CountCampaignsByStatus :many
-SELECT status, count(*)::bigint AS n FROM campaigns
-WHERE workspace_id = $1 AND deleted_at IS NULL AND archived_at IS NULL AND digest_role IN ('', 'issue')
-GROUP BY status
-`
-
-type CountCampaignsByStatusRow struct {
-	Status string `json:"status"`
-	N      int64  `json:"n"`
-}
-
-func (q *Queries) CountCampaignsByStatus(ctx context.Context, workspaceID uuid.UUID) ([]CountCampaignsByStatusRow, error) {
-	rows, err := q.db.Query(ctx, countCampaignsByStatus, workspaceID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []CountCampaignsByStatusRow{}
-	for rows.Next() {
-		var i CountCampaignsByStatusRow
-		if err := rows.Scan(&i.Status, &i.N); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const digestIssuesDue = `-- name: DigestIssuesDue :many

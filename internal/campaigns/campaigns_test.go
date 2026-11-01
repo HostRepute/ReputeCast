@@ -52,6 +52,19 @@ func TestListCampaigns(t *testing.T) {
 	if len(list.Items) != 13 {
 		t.Fatalf("page size: %d", len(list.Items))
 	}
+	// Review 2026-11 CA-12: with a filter on, the tabs count within it.
+	var sms struct {
+		Total  int64 `json:"total"`
+		Counts struct{ All, Drafts, Scheduled, Sending, Sent int64 }
+	}
+	c.Do("GET", "/workspaces/acme-newsletter/campaigns?channel=sms&pageSize=5", nil).MustStatus(t, 200).JSON(t, &sms)
+	if sms.Total != 2 || sms.Counts.All != 2 || sms.Counts.Drafts != 1 || sms.Counts.Sent != 1 || sms.Counts.Scheduled != 0 {
+		t.Fatalf("SMS tabs: total %d %+v", sms.Total, sms.Counts)
+	}
+	c.Do("GET", "/workspaces/acme-newsletter/campaigns?q=Summit&status=drafts&pageSize=5", nil).MustStatus(t, 200).JSON(t, &sms)
+	if sms.Counts.All != 3 || sms.Counts.Drafts != 2 || sms.Counts.Sent != 1 || sms.Total != 2 {
+		t.Fatalf("searching Summit: total %d %+v", sms.Total, sms.Counts)
+	}
 	first := list.Items[0]
 	if first.Name != "Weekly Digest #142" || first.Status != "scheduled" || first.Readiness == nil || first.Readiness.Issues != 2 {
 		t.Fatalf("scheduled campaign first: %+v", first)
