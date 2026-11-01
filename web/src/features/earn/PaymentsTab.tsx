@@ -12,11 +12,13 @@ import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
 import { ago, clock, count, dayMonthDate, dayMonthYear, logTime, monthDayTime } from '@/lib/format'
-import { useWorkspace } from '@/lib/session'
+import { useCan, useWorkspace } from '@/lib/session'
 import { EARN } from './EarnPage'
 import { cancelReason, countryName, day, money } from './format'
 import { me } from './messages'
 import { ms } from './settings.messages'
+import { downloadCsv } from '@/lib/download'
+import { m as dm } from '@/lib/download.messages'
 
 type Payments = Schemas['EarnPayments']
 type Conn = Schemas['EarnConnection']
@@ -551,6 +553,7 @@ function EventLog({ test }: { test: boolean }) {
   const [q, setQ] = useState('')
   const [group, setGroup] = useState<Group>('all')
   const [range, setRange] = useState<Range>('7d')
+  const canExport = useCan('subscribers:export')
   const [page, setPage] = useState(1)
   const log = $api.useQuery('get', `${EARN}/payments/events`, { params: { path: { workspace: slug }, query: { q, group, range, page, pageSize: 8, test } } }, { placeholderData: (p) => p })
   const d = log.data
@@ -563,6 +566,16 @@ function EventLog({ test }: { test: boolean }) {
           </h2>
           <span className="k">{t(ms.logCaption)}</span>
         </div>
+        {/* The events the filter shows, as CSV (review 2026-11 EA-2). */}
+        <Button
+          size="sm"
+          icon={canExport ? undefined : 'lock'}
+          disabled={!canExport}
+          title={canExport ? undefined : t(dm.needs)}
+          onClick={() => void downloadCsv(`${EARN}/payments/events/export`, { path: { workspace: slug }, query: { q: q || undefined, group, range, test } }, 'payment-events.csv')}
+        >
+          {t(dm.exportCsv)}
+        </Button>
       </div>
       <div className="ea-logf grid gap-2.5 px-5 pb-3">
         <label className="ea-search">

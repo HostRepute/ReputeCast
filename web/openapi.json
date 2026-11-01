@@ -138105,6 +138105,161 @@
         "x-permission": "earn:view"
       }
     },
+    "/api/v1/workspaces/{workspace}/earn/payments/events/export": {
+      "get": {
+        "operationId": "export-payment-events",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "A group of event types",
+            "explode": false,
+            "in": "query",
+            "name": "group",
+            "schema": {
+              "default": "all",
+              "description": "A group of event types",
+              "enum": [
+                "all",
+                "payments",
+                "failures",
+                "refunds",
+                "changes",
+                "trials"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "How far back (raw events are kept 90 days)",
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "7d",
+              "description": "How far back (raw events are kept 90 days)",
+              "enum": [
+                "24h",
+                "7d",
+                "30d",
+                "90d"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Search the event type, the event id, the paid member or the raw event",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Search the event type, the event id, the paid member or the raw event",
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Include test-mode events",
+            "explode": false,
+            "in": "query",
+            "name": "test",
+            "schema": {
+              "description": "Include test-mode events",
+              "type": "boolean"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "default": 1,
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "default": 8,
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The payments event log a filter shows, as CSV (it holds members' addresses; logged)",
+        "tags": [
+          "Earn"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:export"
+      }
+    },
     "/api/v1/workspaces/{workspace}/earn/plans": {
       "get": {
         "operationId": "get-earn-plans",

@@ -251,4 +251,6 @@ export const mm = defineMessages('earn.members', {
   tlCanceledAtEnd: 'Canceled at the period’s end by {name}',
   tlAudited: 'recorded in the audit log',
   tlImportConsent: 'consent “Imported from {platform} (paid member)”',
+  rowsPerPage: 'Rows per page',
+  perPage: '{count, number} a page',
 })

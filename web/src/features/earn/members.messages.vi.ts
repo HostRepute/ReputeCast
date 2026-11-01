@@ -270,4 +270,6 @@ export default translate(mm, {
   tlCanceledAtEnd: '{name} đã hủy, có hiệu lực vào cuối chu kỳ',
   tlAudited: 'đã ghi vào nhật ký kiểm tra',
   tlImportConsent: 'sự đồng ý “Nhập từ {platform} (hội viên trả phí)”',
+  rowsPerPage: 'Số dòng mỗi trang',
+  perPage: '{count, number} dòng mỗi trang',
 })

@@ -25,6 +25,8 @@ import { mm } from './members.messages'
 import { me } from './messages'
 
 export type MembersSearch = {
+  /** Rows per page: 8 (the default), 25, 50 or 100. */
+  size?: 8 | 25 | 50 | 100
   status?: Status
   q?: string
   tier?: string
@@ -77,7 +79,7 @@ export function MembersPage({ search, onSearch }: { search: MembersSearch; onSea
     before: search.before,
     test: search.test,
     page: search.page ?? 1,
-    pageSize: 8,
+    pageSize: search.size ?? 8,
   }
   const list = $api.useQuery('get', `${EARN}/members`, { params: { path: { workspace: slug }, query } }, { placeholderData: (p) => p })
   const d = list.data
@@ -212,7 +214,19 @@ export function MembersPage({ search, onSearch }: { search: MembersSearch; onSea
                 <Button size="sm" disabled={(search.page ?? 1) <= 1} onClick={() => set({ page: (search.page ?? 1) - 1 })}>
                   {t(mm.previous)}
                 </Button>
-                <Button size="sm" disabled={(search.page ?? 1) * 8 >= d.total} onClick={() => set({ page: (search.page ?? 1) + 1 })}>
+                <select
+                  className="in h-[30px]"
+                  aria-label={t(mm.rowsPerPage)}
+                  value={search.size ?? 8}
+                  onChange={(e) => onSearch({ ...search, size: Number(e.target.value) as MembersSearch['size'], page: undefined })}
+                >
+                  {[8, 25, 50, 100].map((n) => (
+                    <option key={n} value={n}>
+                      {t(mm.perPage, { count: n })}
+                    </option>
+                  ))}
+                </select>
+                <Button size="sm" disabled={(search.page ?? 1) * (search.size ?? 8) >= d.total} onClick={() => set({ page: (search.page ?? 1) + 1 })}>
                   {t(mm.next)}
                 </Button>
               </div>

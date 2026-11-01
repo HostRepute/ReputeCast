@@ -333,6 +333,7 @@ function Tiles({ o }: { o: Overview }) {
 /** MRR · last 12 months, or why it's too early for it. */
 function MrrCard({ o, provider }: { o: Overview; provider: string }) {
   const t = useT()
+  const [view, setView] = useState<'chart' | 'table'>('chart')
   const c = o.chart
   const cur = o.currency
   const style = { flex: '2 1 520px', minWidth: 0 }
@@ -386,7 +387,42 @@ function MrrCard({ o, provider }: { o: Overview; provider: string }) {
           <Delta cents={c.deltaCents} pctValue={c.deltaPct} currency={cur} />
           <span className="k">{t(mr.chartSince, { date: dayMonthYear(c.since), arr: money(o.tiles.arrCents, cur, 'never') })}</span>
         </div>
-        <MrrChart chart={c} currency={cur} desc={desc} />
+        {/* A table view of the same points (review 2026-11 EA-3; Growth's toggle). */}
+        <Segmented<'chart' | 'table'>
+          label={t(mr.mrrViewLabel)}
+          value={view}
+          onChange={setView}
+          items={[
+            { value: 'chart', label: t(mr.viewChart) },
+            { value: 'table', label: t(mr.viewTable) },
+          ]}
+        />
+        {view === 'chart' ? (
+          <MrrChart chart={c} currency={cur} desc={desc} />
+        ) : (
+          <div className="tscroll">
+            <table className="tbl" aria-label={t(mr.chartTitle)}>
+              <thead>
+                <tr>
+                  <th scope="col">{t(mr.colMonth)}</th>
+                  <th scope="col" className="text-right">
+                    {t(mr.colMrr)}
+                  </th>
+                  <th scope="col">{t(mr.colFrom)}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {c.points.map((p) => (
+                  <tr key={p.at}>
+                    <td>{dayMonthYear(p.at)}</td>
+                    <td className="text-right tabular-nums">{money(p.mrrCents, cur, 'never')}</td>
+                    <td>{p.history ? t(mr.fromHistory, { platform: platform || t(mr.theProvider) }) : t(mr.fromLive)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
         {c.marks.length || c.historyUntil ? (
           <div className="er-legend">
             {c.marks.map((m) => (

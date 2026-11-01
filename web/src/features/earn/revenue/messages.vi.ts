@@ -301,4 +301,9 @@ export default translate(mr, {
   sponsorLine: '{sponsor} · {price} · nội dung tài trợ đến hạn vào {date}',
   sponsorLineShort: '{sponsor} · {price}',
   openLine: '{slot} · {price}',
+  colMonth: 'Tháng',
+  colFrom: 'Nguồn',
+  theProvider: 'Nhà cung cấp',
+  fromLive: 'ReputeCast',
+  mrrViewLabel: 'Cách xem MRR',
 })
