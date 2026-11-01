@@ -6748,6 +6748,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/conversions/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The conversions log as CSV (logged) */
+        get: operations["export-conversions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/delete": {
         parameters: {
             query?: never;
@@ -7670,6 +7687,23 @@ export interface paths {
         };
         /** Earn › Gifts: the numbers, the gift options and page, the gift emails and the gifts that need a look */
         get: operations["get-gifts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/gifts/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The gifts a filter shows, as CSV (they hold buyers' and recipients' addresses; logged) */
+        get: operations["export-gifts"];
         put?: never;
         post?: never;
         delete?: never;
@@ -62722,6 +62756,41 @@ export interface operations {
             };
         };
     };
+    "export-conversions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "delete-workspace": {
         parameters: {
             query?: never;
@@ -64685,6 +64754,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GiftsView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-gifts": {
+        parameters: {
+            query?: {
+                /** @description The filter (all by default) */
+                status?: "all" | "scheduled" | "not_redeemed" | "redeemed" | "expired" | "refunded";
+                /** @description Buyer, recipient or email */
+                q?: string;
+                /** @description The page (20 gifts each) */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
                 };
             };
             /** @description Error */

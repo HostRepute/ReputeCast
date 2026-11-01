@@ -2,7 +2,9 @@ package revenue
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
@@ -24,6 +26,14 @@ type campaignInput struct {
 type attributionInput struct {
 	api.WorkspaceInput
 	Body AttributionInput
+}
+
+// ConversionsFile is a CSV download.
+type ConversionsFile struct {
+	ContentType        string `header:"Content-Type"`
+	ContentDisposition string `header:"Content-Disposition"`
+	CacheControl       string `header:"Cache-Control"`
+	Body               []byte
 }
 
 type conversionsInput struct {
@@ -85,6 +95,17 @@ func Register(h huma.API, s *Service) {
 		func(ctx context.Context, in *api.WorkspaceInput) (*api.Body[ConversionResult], error) {
 			out, err := s.TestConversion(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx))
 			return api.OK(out), err
+		})
+	api.Get(h, api.Op{ID: "export-conversions", Path: ws + "/conversions/export", Summary: "The conversions log as CSV (logged)", Tags: tags,
+		Access: api.Workspace(authz.SubscribersExport)},
+		func(ctx context.Context, in *api.WorkspaceInput) (*ConversionsFile, error) {
+			w := api.WorkspaceFrom(ctx)
+			body, _, err := s.ExportConversions(ctx, w)
+			if err != nil {
+				return nil, err
+			}
+			name := fmt.Sprintf("%s-conversions-%s.csv", w.Slug, time.Now().UTC().Format("2006-01-02"))
+			return &ConversionsFile{ContentType: "text/csv; charset=utf-8", ContentDisposition: `attachment; filename="` + name + `"`, CacheControl: "no-store", Body: body}, nil
 		})
 	api.Get(h, api.Op{ID: "list-conversions", Path: ws + "/conversions", Summary: "The conversions log, newest first", Tags: tags, Access: view},
 		func(ctx context.Context, in *conversionsInput) (*api.Body[ConversionList], error) {

@@ -153,4 +153,5 @@ export default translate(mt, {
   errPrice: 'Hãy đặt giá theo tháng hoặc theo năm cho gói.',
   readOnly: 'Vai trò của bạn không thể thay đổi gói và ưu đãi. Hãy hỏi {helpers}.',
   readOnlyNoHelpers: 'Vai trò của bạn không thể thay đổi gói và ưu đãi.',
+  leaveTier: 'Thay đổi của bạn với hạng này chưa được lưu.',
 })

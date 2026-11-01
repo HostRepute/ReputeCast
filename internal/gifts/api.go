@@ -2,7 +2,9 @@ package gifts
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
@@ -10,6 +12,14 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
 )
+
+// GiftsFile is a CSV download.
+type GiftsFile struct {
+	ContentType        string `header:"Content-Type"`
+	ContentDisposition string `header:"Content-Disposition"`
+	CacheControl       string `header:"Cache-Control"`
+	Body               []byte
+}
 
 type listInput struct {
 	api.WorkspaceInput
@@ -77,6 +87,17 @@ func Register(h huma.API, s *Service) {
 		func(ctx context.Context, in *listInput) (*api.Body[GiftList], error) {
 			out, err := s.List(ctx, api.WorkspaceFrom(ctx), in.Status, in.Search, in.Page)
 			return api.OK(out), err
+		})
+	api.Get(h, api.Op{ID: "export-gifts", Path: base + "/export", Summary: "The gifts a filter shows, as CSV (they hold buyers' and recipients' addresses; logged)",
+		Tags: tags, Access: api.Workspace(authz.SubscribersExport)},
+		func(ctx context.Context, in *listInput) (*GiftsFile, error) {
+			ws := api.WorkspaceFrom(ctx)
+			body, _, err := s.Export(ctx, ws, in.Status, in.Search)
+			if err != nil {
+				return nil, err
+			}
+			name := fmt.Sprintf("%s-gifts-%s.csv", ws.Slug, time.Now().UTC().Format("2006-01-02"))
+			return &GiftsFile{ContentType: "text/csv; charset=utf-8", ContentDisposition: `attachment; filename="` + name + `"`, CacheControl: "no-store", Body: body}, nil
 		})
 	api.Post(h, api.Op{ID: "create-gift-option", Path: base + "/options", Summary: "Add a gift option: a tier for a period at a one-time price",
 		Tags: tags, Access: edit, Status: http.StatusCreated},

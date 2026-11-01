@@ -230,4 +230,5 @@ export const mof = defineMessages('earn.offers', {
   giftsOption: '{tier} for {months, plural, =12 {a year} =24 {2 years} one {a month} other {# months}}, {price}',
   giftsNone: '<b>Gift options:</b> none yet',
   giftsLink: 'Manage them in Gifts',
+  leaveOffer: "Your changes to this offer aren't saved.",
 })

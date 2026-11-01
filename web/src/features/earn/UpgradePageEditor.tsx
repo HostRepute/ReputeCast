@@ -17,6 +17,7 @@ import { me } from './messages'
 import { mp } from './plans.messages'
 import { Grip, moved, useReorder } from './Reorder'
 import './earn.css'
+import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 
 type Editor = Schemas['EarnUpgradeEditor']
 type UpgradePage = Schemas['UpgradePage']
@@ -113,6 +114,15 @@ function EditorBody({ editor }: { editor: Editor }) {
         onError: (e) => toast({ kind: 'error', title: errorMessage(e) }),
       },
     )
+  // Leaving with changes asks first (review 2026-11 EA-1).
+  const guard = ro ? null : (
+    <UnsavedChangesGuard
+      dirty={dirty}
+      description={t(mp.leaveUpgradePage)}
+      saveLabel={t(mp.publish)}
+      onSave={() => save.mutateAsync({ params: { path: { workspace: slug } }, body: { ...page, order } })}
+    />
+  )
   const actions = ro ? null : (
     <>
       <Button onClick={() => (dirty ? setPage(editor.page) : void navigate({ to: '/w/$workspace/earn/plans', params: { workspace: slug } }))}>{t(mp.discard)}</Button>
@@ -123,6 +133,7 @@ function EditorBody({ editor }: { editor: Editor }) {
   )
   return (
     <Frame editor={editor} actions={actions}>
+      {guard}
       <div className="ea-editor">
         <aside className="ea-editor-side" aria-label={t(mp.optionsLabel)}>
           {ro ? (

@@ -115,4 +115,5 @@ export const mp = defineMessages('earn.plans', {
   unsaved: 'Unsaved changes',
   liveAt: 'Live · {host}',
   notLiveAt: 'Not live · {host}',
+  leaveUpgradePage: "Your changes to the upgrade page aren't published.",
 })

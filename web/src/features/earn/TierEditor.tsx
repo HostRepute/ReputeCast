@@ -1,12 +1,12 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { $api, ApiError, errorMessage, type Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor } from '@/components/ui/Button'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ConfirmDialog, UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Menu, MenuItem } from '@/components/ui/Menu'
 import { Note } from '@/components/ui/Note'
@@ -102,6 +102,9 @@ function TierForm({ tier, plans, account }: { tier?: Tier; plans: Plans; account
   const [archiving, setArchiving] = useState(false)
   // A save whose prices didn't all reach Stripe: the tier as saved, with its steps.
   const [failed, setFailed] = useState<Tier>()
+  // Leaving with unsaved changes asks first (review 2026-11 EA-1); a save
+  // marks the tier saved before it navigates.
+  const [leaving, setLeaving] = useState<'plans' | string>()
   const create = $api.useMutation('post', `${EARN}/tiers`)
   const update = $api.useMutation('put', `${EARN}/tiers/{id}`)
   const del = $api.useMutation('delete', `${EARN}/tiers/{id}`)
@@ -124,12 +127,16 @@ function TierForm({ tier, plans, account }: { tier?: Tier; plans: Plans; account
     if (r.syncError) {
       setFailed(r.tier)
       toast({ kind: 'error', title: t(mt.savedSyncFailed, { tier: r.tier.name }), detail: r.syncError })
-      if (!tier) void navigate({ to: '/w/$workspace/earn/plans/tiers/$tierId', params: { workspace: slug, tierId: r.tier.id }, replace: true })
+      if (!tier) setLeaving(r.tier.id)
       return
     }
     toast({ kind: 'success', title: plans.connected ? t(mt.savedStripe, { tier: r.tier.name }) : t(mt.saved, { tier: r.tier.name }) })
-    back()
+    setLeaving('plans')
   }
+  useEffect(() => {
+    if (leaving === 'plans') back()
+    else if (leaving) void navigate({ to: '/w/$workspace/earn/plans/tiers/$tierId', params: { workspace: slug, tierId: leaving }, replace: true })
+  }, [leaving]) // eslint-disable-line react-hooks/exhaustive-deps
   const onError = (e: unknown) => {
     if (e instanceof ApiError && e.problem.errors?.length) {
       const next: Record<string, string> = {}
@@ -156,6 +163,11 @@ function TierForm({ tier, plans, account }: { tier?: Tier; plans: Plans; account
     submit()
   }
   const busy = create.isPending || update.isPending
+  const pristine = useMemo(
+    () => JSON.stringify({ ...saved, benefits: saved.benefits.map((b) => b.trim()).filter(Boolean), monthly: tier && !saved.monthly ? 0 : saved.monthly, yearly: tier && !saved.yearly ? 0 : saved.yearly }),
+    [saved, tier],
+  )
+  const dirty = !ro && !leaving && JSON.stringify(body) !== pristine
   const title = tier ? tier.name : t(mt.newTier)
   const named = Boolean(tier?.shortName || body.name.trim())
   const short = tier?.shortName || body.name.trim() || t(mt.untitled)
@@ -188,6 +200,7 @@ function TierForm({ tier, plans, account }: { tier?: Tier; plans: Plans; account
   )
   return (
     <Frame title={title} actions={actions}>
+      <UnsavedChangesGuard dirty={dirty} description={t(mt.leaveTier)} />
       {ro ? (
         <Note tone="neutral">
           <T msg={plans.helpers.length ? mt.readOnly : mt.readOnlyNoHelpers} values={{ helpers: orList(plans.helpers) }} />

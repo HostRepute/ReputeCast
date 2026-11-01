@@ -255,4 +255,5 @@ export default translate(mof, {
   giftsOption: '{tier} trong {months, plural, =12 {một năm} =24 {2 năm} =1 {một tháng} other {# tháng}}, {price}',
   giftsNone: '<b>Tùy chọn quà tặng:</b> chưa có',
   giftsLink: 'Quản lý trong Quà tặng',
+  leaveOffer: 'Thay đổi của bạn với ưu đãi này chưa được lưu.',
 })

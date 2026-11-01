@@ -11,7 +11,7 @@ import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { ago, clock, count, dayMonthDate, dayMonthYear } from '@/lib/format'
-import { useMe, useWorkspace } from '@/lib/session'
+import { useCan, useMe, useWorkspace } from '@/lib/session'
 import { CreateKeyDialog } from '@/features/keys/CreateKeyDialog'
 import { KeySecretDialog } from '@/features/keys/KeySecretDialog'
 import { CodeBox, type CodeLang } from '@/features/transactional/shared'
@@ -22,6 +22,8 @@ import { CampaignLink } from '../sponsors/parts'
 import { ma } from './attribution.messages'
 import { RevenueCard } from './RevenueOverview'
 import './revenue.css'
+import { downloadCsv } from '@/lib/download'
+import { m as dm } from '@/lib/download.messages'
 
 type Settings = Schemas['AttributionSettings']
 type TT = ReturnType<typeof useT>
@@ -262,6 +264,7 @@ function ConversionsLog({ s }: { s: Settings }) {
   const { slug } = useWorkspace()
   const [limit, setLimit] = useState(5)
   const [now] = useState(() => Date.now())
+  const canExport = useCan('subscribers:export')
   const q = $api.useQuery('get', CONVERSIONS, { params: { path: { workspace: slug }, query: { limit } } }, { placeholderData: keepPreviousData })
   const sum = s.summary
   const cur = s.currency
@@ -274,6 +277,20 @@ function ConversionsLog({ s }: { s: Settings }) {
       : t(ma.logNone)
   return (
     <RevenueCard title={t(ma.logTitle)} sub={sub}>
+      {q.data?.items.length ? (
+        <div className="er-pad flex justify-end pb-0">
+          {/* The whole log as CSV (review 2026-11 EA-2). */}
+          <Button
+            size="sm"
+            icon={canExport ? undefined : 'lock'}
+            disabled={!canExport}
+            title={canExport ? undefined : t(dm.needs)}
+            onClick={() => void downloadCsv(`${CONVERSIONS}/export`, { path: { workspace: slug } }, 'conversions.csv')}
+          >
+            {t(dm.exportCsv)}
+          </Button>
+        </div>
+      ) : null}
       {q.error ? (
         <div className="er-pad">
           <Note tone="bad" label={t(ma.logError)}>

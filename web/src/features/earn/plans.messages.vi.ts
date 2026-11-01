@@ -120,4 +120,5 @@ export default translate(mp, {
   unsaved: 'Thay đổi chưa lưu',
   liveAt: 'Đang chạy · {host}',
   notLiveAt: 'Chưa chạy · {host}',
+  leaveUpgradePage: 'Thay đổi của bạn với trang nâng cấp chưa được xuất bản.',
 })

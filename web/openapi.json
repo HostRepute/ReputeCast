@@ -131447,6 +131447,81 @@
         "x-permission": "conversions:create"
       }
     },
+    "/api/v1/workspaces/{workspace}/conversions/export": {
+      "get": {
+        "operationId": "export-conversions",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The conversions log as CSV (logged)",
+        "tags": [
+          "Earn"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:export"
+      }
+    },
     "/api/v1/workspaces/{workspace}/delete": {
       "post": {
         "operationId": "delete-workspace",
@@ -135306,6 +135381,122 @@
         ],
         "x-access": "workspace",
         "x-permission": "earn:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/gifts/export": {
+      "get": {
+        "operationId": "export-gifts",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The filter (all by default)",
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "description": "The filter (all by default)",
+              "enum": [
+                "all",
+                "scheduled",
+                "not_redeemed",
+                "redeemed",
+                "expired",
+                "refunded"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Buyer, recipient or email",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Buyer, recipient or email",
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "description": "The page (20 gifts each)",
+            "explode": false,
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "description": "The page (20 gifts each)",
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The gifts a filter shows, as CSV (they hold buyers' and recipients' addresses; logged)",
+        "tags": [
+          "Gifts"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:export"
       }
     },
     "/api/v1/workspaces/{workspace}/earn/gifts/list": {
