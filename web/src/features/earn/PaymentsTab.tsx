@@ -12,7 +12,7 @@ import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
 import { ago, clock, count, dayMonthDate, dayMonthYear, logTime, monthDayTime } from '@/lib/format'
-import { useCan, useWorkspace } from '@/lib/session'
+import { deniedReason, useCan, useWorkspace } from '@/lib/session'
 import { EARN } from './EarnPage'
 import { cancelReason, countryName, day, money } from './format'
 import { me } from './messages'
@@ -571,7 +571,7 @@ function EventLog({ test }: { test: boolean }) {
           size="sm"
           icon={canExport ? undefined : 'lock'}
           disabled={!canExport}
-          title={canExport ? undefined : t(dm.needs)}
+          title={canExport ? undefined : deniedReason('subscribers:export')}
           onClick={() => void downloadCsv(`${EARN}/payments/events/export`, { path: { workspace: slug }, query: { q: q || undefined, group, range, test } }, 'payment-events.csv')}
         >
           {t(dm.exportCsv)}

@@ -13,7 +13,7 @@ import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { count, orList } from '@/lib/format'
 import { roleName } from '@/lib/roles'
-import { useCan, useMe, useWorkspace } from '@/lib/session'
+import { deniedReason, useCan, useMe, useWorkspace } from '@/lib/session'
 import { EARN, EarnPage } from '../EarnPage'
 import { day, money } from '../format'
 import { DeliveryDialog, OptionDialog } from './GiftDialogs'
@@ -397,7 +397,7 @@ function GiftsTable({ v, setDialog }: { v: View; setDialog: (d: PageDialog) => v
             size="sm"
             icon={canExport ? undefined : 'lock'}
             disabled={!canExport}
-            title={canExport ? undefined : t(dm.needs)}
+            title={canExport ? undefined : deniedReason('subscribers:export')}
             onClick={() => void downloadCsv(`${EARN}/gifts/export`, { path: { workspace: slug }, query: { status: filter, q: q || undefined } }, 'gifts.csv')}
           >
             {t(dm.exportCsv)}
