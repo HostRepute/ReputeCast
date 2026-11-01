@@ -467,6 +467,7 @@ function UsedBy({ uses }: { uses: Use[] }) {
     campaigns: n('campaign'),
     digests: n('digest'),
     views: n('view'),
+    transactional: n('transactional'),
   })
   return <span>{line.replace(/^ · /, '')}</span>
 }

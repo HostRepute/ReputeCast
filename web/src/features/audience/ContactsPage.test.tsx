@@ -55,12 +55,36 @@ function serve(record: { lists: URL[]; bulk: unknown[] }) {
     if (path === '/audience') {
       return json({ contacts: 1048213, lists: [], paidTiers: [], segments: 0, stripe: false, suppressions: 0, tiers: { active: 0, atRisk: 0, cooling: 0, sunset: 0 } })
     }
-    if (path === '/contacts/views') return json({ all: 1048213, items: [] })
+    if (path === '/contacts/views')
+      return json({
+        all: 1048213,
+        items: [{ id: 'view-1', name: 'Team accounts', filters: { tier: 'active', tag: 'team' }, columns: ['email', 'field:plan'], count: 12, createdAt: '2026-10-01T09:00:00Z' }],
+      })
     if (path === '/jobs') return json({ items: [] })
     // Everything else on the page (channels, website, languages…) is off here.
     return json({ title: 'Not Found', status: 404, detail: 'not here' }, 404)
   })
 }
+
+describe("A saved view's own address (review 2026-11 AU-19)", () => {
+  afterEach(() => setTestFetch(undefined))
+
+  it("opens ?view= with the view's filters and columns, reading no list before", async () => {
+    const record = { lists: [] as URL[], bulk: [] as unknown[] }
+    serve(record)
+    const { router } = await renderInWorkspace(<ContactsPage search={{ view: 'view-1' } as never} />, { path: '/w/acme-newsletter/audience?view=view-1', me: editor })
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ tier: 'active', tag: 'team', cols: 'email,field:plan' }))
+    expect(router.state.location.search).not.toHaveProperty('view')
+    expect(record.lists).toHaveLength(0)
+  })
+
+  it('says so when the view was deleted', async () => {
+    serve({ lists: [], bulk: [] })
+    const { router } = await renderInWorkspace(<ContactsPage search={{ view: 'gone' } as never} />, { path: '/w/acme-newsletter/audience?view=gone', me: editor })
+    expect(await screen.findByText('That saved view was deleted')).toBeInTheDocument()
+    await waitFor(() => expect(router.state.location.search).not.toHaveProperty('view'))
+  })
+})
 
 describe('Contacts at scale (review 2026-11 AU-1, AU-5, D5)', () => {
   afterEach(() => setTestFetch(undefined))

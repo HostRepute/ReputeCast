@@ -87,6 +87,8 @@ const search = z.object({
   // The page's keyset cursor (AU-1) and the columns shown (AU-9).
   cursor: z.string().max(600).optional().catch(undefined),
   cols: z.string().max(600).optional().catch(undefined),
+  /** A saved view's own address: it opens with the view's filters and columns (review 2026-11 AU-19). */
+  view: z.string().uuid().optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/w/$workspace/_app/audience/')({

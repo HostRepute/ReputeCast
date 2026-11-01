@@ -43,7 +43,7 @@ export default translate(m, {
   typeBoolean: 'Có / không',
   typeSelect: 'Lựa chọn',
   nothing: 'Không có',
-  usedBy: '{segments, plural, =0 {} other {# phân nhóm}}{forms, plural, =0 {} other { · # biểu mẫu}}{scoring, plural, =0 {} other { · quy tắc chấm điểm}}{automations, plural, =0 {} other { · # tự động hóa}}{campaigns, plural, =0 {} other { · # chiến dịch}}{digests, plural, =0 {} other { · # bản tin tổng hợp}}{views, plural, =0 {} other { · # chế độ xem}}',
+  usedBy: '{segments, plural, =0 {} other {# phân nhóm}}{forms, plural, =0 {} other { · # biểu mẫu}}{scoring, plural, =0 {} other { · quy tắc chấm điểm}}{automations, plural, =0 {} other { · # tự động hóa}}{campaigns, plural, =0 {} other { · # chiến dịch}}{digests, plural, =0 {} other { · # bản tin tổng hợp}}{views, plural, =0 {} other { · # chế độ xem}}{transactional, plural, =0 {} other { · # mẫu giao dịch}}',
   notCounted: 'Chưa đếm',
   notCountedHint: 'Việc đếm mất quá lâu với lượng liên hệ này.',
   edit: 'Sửa',
@@ -75,5 +75,7 @@ export default translate(m, {
   kindCampaign: 'Chiến dịch',
   kindDigest: 'Bản tin tổng hợp',
   kindView: 'Chế độ xem đã lưu',
+  kindTransactional: 'Mẫu email giao dịch',
+  viewMissing: 'Chế độ xem đã lưu đó đã bị xoá',
   loadFailed: 'Không tải được danh sách và trường',
 })

@@ -47,6 +47,19 @@ function UseLink({ u }: { u: Use }) {
           {tr(m.open)}
         </Link>
       )
+    // A saved view's own address (review 2026-11 AU-19).
+    case 'view':
+      return (
+        <Link to="/w/$workspace/audience" params={{ workspace: slug }} search={{ view: u.id }}>
+          {tr(m.open)}
+        </Link>
+      )
+    case 'transactional':
+      return (
+        <Link to="/w/$workspace/transactional/templates/$templateId" params={{ workspace: slug, templateId: u.id }}>
+          {tr(m.open)}
+        </Link>
+      )
   }
   return null
 }
@@ -59,6 +72,7 @@ const kindLabel: Record<Use['kind'], () => string> = {
   campaign: () => t(m.kindCampaign),
   digest: () => t(m.kindDigest),
   view: () => t(m.kindView),
+  transactional: () => t(m.kindTransactional),
 }
 
 /** What a field or segment is used by, before it's deleted (AU-11). */

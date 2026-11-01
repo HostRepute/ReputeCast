@@ -42,7 +42,7 @@ export const m = defineMessages('audience.listsFields', {
   typeBoolean: 'Yes / no',
   typeSelect: 'Choice',
   nothing: 'Nothing',
-  usedBy: '{segments, plural, =0 {} one {# segment} other {# segments}}{forms, plural, =0 {} one { · # form} other { · # forms}}{scoring, plural, =0 {} other { · scoring rules}}{automations, plural, =0 {} one { · # automation} other { · # automations}}{campaigns, plural, =0 {} one { · # campaign} other { · # campaigns}}{digests, plural, =0 {} one { · # digest} other { · # digests}}{views, plural, =0 {} one { · # view} other { · # views}}',
+  usedBy: '{segments, plural, =0 {} one {# segment} other {# segments}}{forms, plural, =0 {} one { · # form} other { · # forms}}{scoring, plural, =0 {} other { · scoring rules}}{automations, plural, =0 {} one { · # automation} other { · # automations}}{campaigns, plural, =0 {} one { · # campaign} other { · # campaigns}}{digests, plural, =0 {} one { · # digest} other { · # digests}}{views, plural, =0 {} one { · # view} other { · # views}}{transactional, plural, =0 {} one { · # transactional template} other { · # transactional templates}}',
   notCounted: 'Not counted',
   notCountedHint: 'Counting took too long on this audience.',
   edit: 'Edit',
@@ -74,5 +74,7 @@ export const m = defineMessages('audience.listsFields', {
   kindCampaign: 'Campaign',
   kindDigest: 'Digest',
   kindView: 'Saved view',
+  kindTransactional: 'Transactional template',
+  viewMissing: 'That saved view was deleted',
   loadFailed: "Couldn't load lists and fields",
 })

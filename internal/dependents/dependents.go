@@ -1,7 +1,9 @@
 // Package dependents finds what uses a custom field or a segment before it
 // is deleted (review 2026-11 AU-11): segments, forms, scoring rules,
-// automations, campaigns not sent yet, digests, saved views and Liquid in
-// their content. It reads each kind once and matches in memory, so a page
+// automations, campaigns not sent yet (with their SMS, push and WhatsApp
+// content), digests, saved views, transactional templates and Liquid in
+// their content (AU-18). A form's confirmation email is built from its
+// branding and the contact's first name only, so it names no custom field. It reads each kind once and matches in memory, so a page
 // listing every field asks a handful of queries.
 package dependents
 
@@ -23,11 +25,14 @@ const (
 	KindCampaign   = "campaign"
 	KindDigest     = "digest"
 	KindView       = "view"
+	// KindTransactional is a transactional template, its draft or live
+	// version (review 2026-11 AU-18).
+	KindTransactional = "transactional"
 )
 
 // Use is one thing that would stop working without the field or segment.
 type Use struct {
-	Kind string `json:"kind" enum:"segment,form,scoring,automation,campaign,digest,view"`
+	Kind string `json:"kind" enum:"segment,form,scoring,automation,campaign,digest,view,transactional"`
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }
@@ -49,7 +54,7 @@ type item struct {
 type Index struct{ items []item }
 
 // Load reads the workspace's segments, forms, scoring rules, automations,
-// unsent campaigns, digests and saved views. A row's deleted_at, where the
+// unsent campaigns, digests, saved views and transactional templates. A row's deleted_at, where the
 // table has one, leaves it out.
 func Load(ctx context.Context, q Querier, ws uuid.UUID) (Index, error) {
 	var idx Index
@@ -80,10 +85,21 @@ func Load(ctx context.Context, q Querier, ws uuid.UUID) (Index, error) {
 			WHERE c.workspace_id = $1`},
 		{KindAutomation, `SELECT DISTINCT ON (a.id) a.id, a.name, v.graph::text, '' FROM automations a JOIN automation_versions v ON v.automation_id = a.id
 			WHERE a.workspace_id = $1 AND a.deleted_at IS NULL ORDER BY a.id, v.version DESC`},
-		{KindCampaign, `SELECT c.id, c.name, (to_jsonb(c) - 'html')::text || ' ' || c.html, '' FROM campaigns c
+		// A text's body, a push's message and a WhatsApp campaign's
+		// variables ({"source": "field", "field": "plan"}) are in their
+		// channel's table (AU-18).
+		{KindCampaign, `SELECT c.id, c.name, (to_jsonb(c) - 'html')::text || ' ' || c.html
+				|| ' ' || coalesce((SELECT s.body FROM sms_campaigns s WHERE s.campaign_id = c.id), '')
+				|| ' ' || coalesce((SELECT to_jsonb(p)::text FROM push_campaigns p WHERE p.campaign_id = c.id), '')
+				|| ' ' || coalesce((SELECT w.variables::text FROM whatsapp_campaigns w WHERE w.campaign_id = c.id), ''), ''
+			FROM campaigns c
 			WHERE c.workspace_id = $1 AND c.deleted_at IS NULL AND c.status IN ('draft', 'approval', 'approved', 'scheduled')`},
 		{KindDigest, `SELECT d.id, d.name, to_jsonb(d)::text, '' FROM digests d WHERE d.workspace_id = $1 AND to_jsonb(d)->>'deleted_at' IS NULL`},
 		{KindView, `SELECT v.id, v.name, v.filters::text || ' ' || array_to_string(v.columns, ' '), '' FROM saved_views v WHERE v.workspace_id = $1`},
+		{KindTransactional, `SELECT t.id, t.name, concat_ws(' ', t.subject, t.preheader, t.mjml, t.html, t.plain_text, t.variables::text,
+				(SELECT concat_ws(' ', v.subject, v.preheader, v.mjml, v.html, v.plain_text) FROM transactional_template_versions v
+				 WHERE v.template_id = t.id AND v.version = t.live_version)), ''
+			FROM transactional_templates t WHERE t.workspace_id = $1 AND t.deleted_at IS NULL AND t.archived_at IS NULL`},
 	} {
 		if err := add(k.kind, k.sql); err != nil {
 			return idx, err
