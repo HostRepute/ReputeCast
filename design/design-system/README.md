@@ -88,7 +88,7 @@ Elevation: `shadow-sm` for menus, `shadow-md` for hover lifts and dragged nodes,
 
 **Nav**: 36px items, 8px radius, icon plus label; active item `accent-soft` fill with `accent` text. The rail shows only icons with a tooltip; the phone tab bar shows the five primary destinations.
 
-**Stepper** (wizards): 26px numbered circles; done steps `ok-bg` with a check, current step `accent`, upcoming steps outlined `line-strong`. One stepper serves every setup wizard: the current step is marked for screen readers, a finished one is read as "Done: Provider", and on phones the strip scrolls sideways and takes keyboard focus while it does. Dialogs and checklists keep their compact step bar.
+**Stepper** (wizards): 26px numbered circles; done steps `ok-bg` with a check, current step `accent`, upcoming steps outlined `line-strong`. One stepper serves every setup wizard: the current step is marked for screen readers, a finished one is read as "Done: Provider", and on phones the strip scrolls sideways and takes keyboard focus while it does. A wizard inside a dialog draws its steps on one line with **StepTrail** ("✓ Store address › 2 Create the app › 3 Paste the token"): 20px circles, a finished step ticked in `ok`, the current one filled with `accent`, later ones dashed while they can't be reached; Earn's dialogs use its soft variant. Both live in `components/ui/Stepper`, with their styles in `styles/app.css`.
 
 **Status rows** (readiness, timeline): a badge, a sentence that states the finding, and the fix or detail link on the right. Blocked rows come first, then warnings, then passes.
 
@@ -104,7 +104,7 @@ Elevation: `shadow-sm` for menus, `shadow-md` for hover lifts and dragged nodes,
 
 **Show more**: a list read page by page ends in one button with the page's own label ("Load 50 more"). It says it is loading and can't fetch the same page twice, it goes once the last page is in, and the list's own line says how many are shown.
 
-**No results**: a search or filter that finds nothing says what was searched and offers the way back ("Clear search and filters"); it is never an empty table or the "nothing yet" state.
+**No results**: a search or filter that finds nothing says what was searched and offers the way back ("Clear search and filters"); it is never an empty table or the "nothing yet" state. A page's list draws it with `NoResults` (no border when it sits inside a card); a table draws it as its `EmptyRow`; a menu, picker or popover says it in one line.
 
 **Switches** change at once and go back, with a message, when the server refuses; they never grey out while they save. Reordering that saves at once (Grow's recommendations) works the same way.
 

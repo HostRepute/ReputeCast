@@ -600,8 +600,8 @@ Found while building M48 (added to the backlog):
 
 | ID | What | Status |
 |---|---|---|
-| FE-3b | `ui/Stepper` for the eight wizards, `ui/Pager` for the paged lists, `NoResults` on every search and filter, one bulk-selection pattern; the patterns check learns each as it lands. | In part (M51) |
-| FE-5b | Move the 1,166 hex colours in TSX to tokens, file by file, lowering `hex-baseline.json` to zero outside the brand kit and email previews. | In part (M51) |
+| FE-3b | `ui/Stepper` for the eight wizards, `ui/Pager` for the paged lists, `NoResults` on every search and filter, one bulk-selection pattern; the patterns check learns each as it lands. | ✅ M51 |
+| FE-5b | Move the 1,166 hex colours in TSX to tokens, file by file, lowering `hex-baseline.json` to zero outside the brand kit and email previews. | In part (M51): 682 left |
 | FE-7b | Optimistic switches (with a shared hook) and reordering, rolled back on a refused request. | ✅ M51 |
 | FE-9 | The first load is 433 KB gzipped: every route's module (its search schema) is preloaded. Split the route tree so a page loads only its own. | ✅ M51 |
 | FE-10 | The command palette searches settings by tab name only; the board shows single settings ("Send weekdays only"). An index of settings rows. | ✅ M51 |
@@ -728,14 +728,18 @@ What M51 built (1 November 2026):
   `internal/countcache`).
 - **FE-9** the first load is 390 KB gzipped (439 KB before): routes' checks import only small modules,
   and an agency's menu loads for its staff only. The budget is 400 KB.
-- **FE-3b, in part** `ui/Stepper` for the five setup wizards with the numbered card, `ui/Pager` for the
-  eight lists read page by page, one bulk-selection pattern (`useSelection` with `ui/SelectAll`: Campaigns,
-  Grow › Review, Team; Contacts keeps its select-all-matching table), the payments log's no-match state;
-  the patterns check refuses new hand-made ones. Left: seven compact step bars of dialogs and checklists
-  (listed in the check), and NoResults in place of the remaining lists' own no-match lines.
-- **FE-5b, in part** 272 hex colours that equal a token became the token (1,166 → 895). Left: SVG
-  attributes and chart colours, avatar and workspace palettes, and colours with no token yet; brand
-  kit, email previews and MJML defaults keep theirs by design.
+- **FE-3b** `ui/Stepper` for the six setup wizards with the numbered card (the import wizard too), and
+  its one-line form `StepTrail` for the four wizards inside dialogs (integrations, store connect, Earn
+  import, transactional import); `ui/Pager` for the eight lists read page by page; one bulk-selection
+  pattern (`useSelection` with `ui/SelectAll`: Campaigns, Grow › Review, Team; Contacts keeps its
+  select-all-matching table); `NoResults` on every page list that a search or filter can empty (fifteen
+  pages), `EmptyRow` inside tables. The patterns check refuses new hand-made steppers, pagers and
+  select-alls; only first sign-in's vertical list and Earn's setup checklist, which aren't step bars,
+  mark a step themselves.
+- **FE-5b, in part** hex colours that equal a token became the token: 272 in classes and styles, then
+  212 in SVG and chart attributes, which browsers resolve with `var()` (1,166 → 682). Left: avatar and
+  workspace palettes, chart series colours and colours with no token yet; brand kit, email previews and
+  MJML defaults keep theirs by design.
 
 Checked at the end of M51:
 - **Accessibility.** An axe sweep (WCAG 2.0, 2.1 and 2.2 A and AA) of every screen at 1440 and 390 px
@@ -746,7 +750,7 @@ Checked at the end of M51:
   pinned to the patched 1.6.11. A CI job now runs govulncheck and `pnpm audit` (it couldn't run here).
 
 Still open: OP-11 (a later release, by design), OP-13 (the k6 numbers come from a run of the Load test
-workflow; k6 can't run here), and the rest of FE-3b and FE-5b above.
+workflow; k6 can't run here), and the rest of FE-5b above.
 
 ## Competitor benchmark
 
