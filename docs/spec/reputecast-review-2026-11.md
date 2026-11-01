@@ -189,8 +189,8 @@ Found while building M42 (added to the backlog):
 
 | ID | What | Status |
 |---|---|---|
-| EN-8 | `email.*` webhooks are one delivery per event, like the catalog's other events. A 1M send to an endpoint that takes `email.delivered` queues 1M deliveries; batch them per endpoint (one POST with up to 100 events) behind a setting on the endpoint. | ⏳ |
-| EN-9 | A gift paid by bank debit was never marked paid: Earn didn't route `checkout.session.async_payment_succeeded` to gifts. Fixed with EN-7 (paid when it clears, abandoned when it fails); the gift's buyer isn't emailed about a failed debit, since gifts have no such template yet. | Fixed; email ⏳ |
+| EN-8 | `email.*` webhooks are one delivery per event, like the catalog's other events. A 1M send to an endpoint that takes `email.delivered` queues 1M deliveries; batch them per endpoint (one POST with up to 100 events) behind a setting on the endpoint. | ✅ M51 |
+| EN-9 | A gift paid by bank debit was never marked paid: Earn didn't route `checkout.session.async_payment_succeeded` to gifts. Fixed with EN-7 (paid when it clears, abandoned when it fails); the gift's buyer isn't emailed about a failed debit, since gifts have no such template yet. | ✅ M51 |
 | EN-10 | `product-payment-failed` is made as a draft. Products › a product's publish checks list the delivery template only; add a non-blocking line for the notice so it gets published. | ✅ M50 |
 
 ## Audience at 1M contacts (M43) ✅
@@ -349,7 +349,7 @@ Found while building M44 (added to the backlog):
 | ID | What | Status |
 |---|---|---|
 | AT-14 | The welcome prompt, Scoring's list of flows, the products and pages helpers and score ingest still read a flow's first trigger: a flow whose second trigger joins a list isn't that list's welcome series. Read `automations.triggers` there too. | ✅ M50 |
-| AT-15 | Watched segments are all evaluated every 10 minutes; a slow SQL segment delays the others. Time each one and back off the slow ones, with a note on the trigger. | ⏳ |
+| AT-15 | Watched segments are all evaluated every 10 minutes; a slow SQL segment delays the others. Time each one and back off the slow ones, with a note on the trigger. | ✅ M51 |
 
 ## Campaigns and everyday sending (M45) ✅
 
@@ -417,7 +417,7 @@ Found while building M45 (added to the backlog):
 
 | ID | What | Status |
 |---|---|---|
-| CA-9 | The calendar moves email campaigns only: texts, push and WhatsApp keep their own schedule. Give them the same reschedule. | ⏳ |
+| CA-9 | The calendar moves email campaigns only: texts, push and WhatsApp keep their own schedule. Give them the same reschedule. | ✅ M51 |
 | CA-10 | Calendar items don't say whether an approval covers the time, so Reschedule on an approved campaign is refused only after the dialog. Carry the approval state and offer "Unschedule and ask again". | ✅ M50 |
 | CA-11 | A test that every operation's path parameters reach its handler, so an input embedding an unexported or aliased type fails CI instead of answering 404. | ✅ M50 |
 | CA-12 | The status tabs count the whole workspace while filters are on; count within the filters, or say so. | ✅ M50 |
@@ -484,8 +484,8 @@ Found while building M46 (added to the backlog):
 
 | ID | What | Status |
 |---|---|---|
-| TX-7 | Scheduled messages can be moved one at a time; a batch sent with one send_at can't be cancelled together. Cancel or move a batch by its idempotency key. | ⏳ |
-| AP-3 | The approvals inbox's 1,000-request benchmark: the stale-only re-check is tested for correctness, not timed. | ⏳ |
+| TX-7 | Scheduled messages can be moved one at a time; a batch sent with one send_at can't be cancelled together. Cancel or move a batch by its idempotency key. | ✅ M51 |
+| AP-3 | The approvals inbox's 1,000-request benchmark: the stale-only re-check is tested for correctness, not timed. | ✅ M51 |
 | OP-x | `TestUsageAndRebill` counts a workspace added in the first hours of a month (in the agency's time zone) in the month before; pin its clock. | ✅ M50 |
 
 ## Operations (M47) ✅
@@ -550,9 +550,9 @@ Found while building M47 (added to the backlog):
 
 | ID | What | Status |
 |---|---|---|
-| OP-11 | Convert `delivery_events` at upgrade in a later release, once instances have run the opt-in command; then drop the legacy unique dedupe index. | ⏳ |
-| OP-12 | A segment count (about a second for two conditions on a million contacts) and the audience header counts (about 300 ms) read every contact: a count cache. | ⏳ |
-| OP-13 | Record the k6 numbers from a run of the Load test workflow in `docs/deploy/performance.md` (k6 couldn't run where these numbers were taken). | ⏳ |
+| OP-11 | Convert `delivery_events` at upgrade in a later release, once instances have run the opt-in command; then drop the legacy unique dedupe index. | ⏳ later release |
+| OP-12 | A segment count (about a second for two conditions on a million contacts) and the audience header counts (about 300 ms) read every contact: a count cache. | ✅ M51 |
+| OP-13 | Record the k6 numbers from a run of the Load test workflow in `docs/deploy/performance.md` (k6 couldn't run where these numbers were taken). | ⏳ CI run |
 
 ## Frontend foundation (M48) ✅
 
@@ -600,11 +600,11 @@ Found while building M48 (added to the backlog):
 
 | ID | What | Status |
 |---|---|---|
-| FE-3b | `ui/Stepper` for the eight wizards, `ui/Pager` for the paged lists, `NoResults` on every search and filter, one bulk-selection pattern; the patterns check learns each as it lands. | ⏳ |
-| FE-5b | Move the 1,166 hex colours in TSX to tokens, file by file, lowering `hex-baseline.json` to zero outside the brand kit and email previews. | ⏳ |
-| FE-7b | Optimistic switches (with a shared hook) and reordering, rolled back on a refused request. | ⏳ |
-| FE-9 | The first load is 433 KB gzipped: every route's module (its search schema) is preloaded. Split the route tree so a page loads only its own. | ⏳ |
-| FE-10 | The command palette searches settings by tab name only; the board shows single settings ("Send weekdays only"). An index of settings rows. | ⏳ |
+| FE-3b | `ui/Stepper` for the eight wizards, `ui/Pager` for the paged lists, `NoResults` on every search and filter, one bulk-selection pattern; the patterns check learns each as it lands. | In part (M51) |
+| FE-5b | Move the 1,166 hex colours in TSX to tokens, file by file, lowering `hex-baseline.json` to zero outside the brand kit and email previews. | In part (M51) |
+| FE-7b | Optimistic switches (with a shared hook) and reordering, rolled back on a refused request. | ✅ M51 |
+| FE-9 | The first load is 433 KB gzipped: every route's module (its search schema) is preloaded. Split the route tree so a page loads only its own. | ✅ M51 |
+| FE-10 | The command palette searches settings by tab name only; the board shows single settings ("Send weekdays only"). An index of settings rows. | ✅ M51 |
 
 ## Earn and other channels (M49) ✅
 
@@ -637,9 +637,9 @@ Found while building M49 (added to the backlog):
 | ID | What | Status |
 |---|---|---|
 | EA-2b | CSV exports of sponsor bookings and sponsor reports, like the other Earn lists. | ✅ M50 |
-| EA-4 | Growth of paid members by tier and billing period on Earn › Overview. | ⏳ |
-| EA-5 | Money paths against the in-process Stripe fake: offer limits and end dates, gift link transfer and expiry, "end access at once", legacy prices. | ⏳ |
-| CH-2 | Behaviour tests for SMS auto-pause, push and WhatsApp retries, expired push subscriptions and the channel retention sweeps. | ⏳ |
+| EA-4 | Growth of paid members by tier and billing period on Earn › Overview. | ✅ M51 |
+| EA-5 | Money paths against the in-process Stripe fake: offer limits and end dates, gift link transfer and expiry, "end access at once", legacy prices. | ✅ M51 |
+| CH-2 | Behaviour tests for SMS auto-pause, push and WhatsApp retries, expired push subscriptions and the channel retention sweeps. | ✅ M51 |
 | EA-6 | UI tests for the Earn editors' leave guards and the exports' buttons (Earn has no web tests yet). | ✅ M50 |
 
 ## Integration and audit (M50) ✅
@@ -696,9 +696,47 @@ From the backlog the milestones found, M50 built:
 - **EA-6** Earn's first UI tests: the offer editor's leave guard and the gifts export
   (`earnUi.test.tsx`).
 
-Still open, carried to the roadmap's next milestone (M51): EN-8, EN-9's email, AT-15, CA-9, TX-7,
-AP-3, OP-11 (a later release by design), OP-12, OP-13, FE-3b, FE-5b, FE-7b, FE-9, FE-10, EA-4, EA-5
-and CH-2. The traceability page says what each needs.
+Still open after M50 went to M51 below.
+
+## Review backlog (M51)
+
+What M51 built (1 November 2026):
+
+- **AP-3** the approvals inbox timed at 1,000 open requests: 118 ms when each was checked recently, as it
+  re-checks only stale requests (`TestInboxAtAThousandRequests`, `docs/deploy/performance.md`).
+- **FE-10** single settings in the command palette, found by the words their page shows.
+- **FE-7b** switches and the order of your recommendations change at once and go back when the server
+  refuses, through one hook (`useOptimistic`, `optimistic.test.tsx`). Other reorderable lists edit a
+  draft that is saved as a whole.
+- **TX-7** a batch of scheduled messages moves or is cancelled together, by its Idempotency-Key
+  (`TestBatchMovedAndCancelledTogether`). Board: TransactionalComplete.
+- **EN-9** a gift's failed bank payment tells the buyer: a ninth member email, Gift payment failed
+  (`TestGiftRemindersExpiryAndRefunds`). Boards: EarnSettingsTabs, EarnGifts.
+- **AT-15** a slow watched segment is checked every twenty times its evaluation time (10 minutes to
+  2 hours), after the quick ones (`TestSlowWatchedSegmentsBackOff`). Board: AutomationsComplete.
+- **CH-2** behaviour tests: SMS auto-pause, push and WhatsApp retries, the channels' retention sweeps.
+- **EA-5** money paths against the Stripe fake: cancel now or at period end, a legacy price, a forwarded
+  gift link.
+- **EA-4** growth of paid members by tier and period on Earn › Overview ("+38 · −9"). Board: EarnOverview.
+- **EN-8** an endpoint can take its `email.*` events in batches of up to 100 (`email.batch`)
+  (`TestEmailEventsInBatches`). Board: TransactionalComplete.
+- **CA-9** the calendar moves texts, push and WhatsApp campaigns too: texts are re-planned per recipient
+  zone inside quiet hours; push takes one time for everyone (`TestCalendarMovesTexts`,
+  `TestCalendarMovesPush`, `TestCalendarMovesWhatsApp`). Board: CampaignsCalendar.
+- **OP-12** the counts that read every contact are kept for a minute and dropped by this instance's
+  audited changes (`TestCountsAreKeptUntilTheAudienceChanges`, `internal/countcache`).
+- **FE-9** the first load is 390 KB gzipped (439 KB before): routes' checks import only small modules,
+  and an agency's menu loads for its staff only. The budget is 400 KB.
+- **FE-3b, in part** `ui/Stepper` for the five setup wizards with the numbered card, `ui/Pager` for the
+  eight lists read page by page, the payments log's no-match state; the patterns check refuses new
+  hand-made ones. Left: seven compact step bars of dialogs and checklists (listed in the check),
+  NoResults in place of the remaining lists' own no-match lines, and one bulk-selection pattern.
+- **FE-5b, in part** 272 hex colours that equal a token became the token (1,166 → 895). Left: SVG
+  attributes and chart colours, avatar and workspace palettes, and colours with no token yet; brand
+  kit, email previews and MJML defaults keep theirs by design.
+
+Still open: OP-11 (a later release, by design), OP-13 (the k6 numbers come from a run of the Load test
+workflow; k6 can't run here), and the rest of FE-3b and FE-5b above.
 
 ## Competitor benchmark
 

@@ -1,14 +1,15 @@
 # Review 2026-11: every row, traced to code and tests
 
 [`reputecast-review-2026-11.md`](reputecast-review-2026-11.md) filed the November 2026 detail review
-as rows (DP-, EN-, AU-, AT-, CA-, TX-, AP-, IN-, OP-, FE-, EA-, CH-, X-), and milestones M41–M50 built
-them. This page reads each row against the code at the end of M50 (1 November 2026): its status,
+as rows (DP-, EN-, AU-, AT-, CA-, TX-, AP-, IN-, OP-, FE-, EA-, CH-, X-), and milestones M41–M51 built
+them. This page reads each row against the code at the end of M51 (1 November 2026): its status,
 where it lives and the tests that pin it. It is the review's X-5.
 
 Statuses:
 
 - **Done (M4x)**: built as the row asks, in that milestone, pinned by the tests named.
 - **Done in M50**: found while building M41–M49 and put on the backlog; M50 built it.
+- **Done (M51)**: left open at the end of M50; M51, the review backlog, built it.
 - **In part**: what was built, and the "b" row that holds the rest.
 - **Open**: not built; why, and what it needs. These rows stay ⏳ in the review and move to the
   roadmap's next milestone.
@@ -18,21 +19,21 @@ added writes an audit entry; where the row's test checks the entry, it says so (
 
 ## Summary
 
-| Area | Rows | Done | Done in M50 | In part | Open |
-|---|---|---|---|---|---|
-| Consent and data protection (DP) | 9 | 7 | 2 | 0 | 0 |
-| Engines and events (EN) | 10 | 7 | 1 | 1 (EN-9) | 1 (EN-8) |
-| Audience (AU) | 19 | 17 | 2 | 0 | 0 |
-| Automations (AT) | 15 | 13 | 1 | 0 | 1 (AT-15) |
-| Campaigns (CA) | 12 | 8 | 3 | 0 | 1 (CA-9) |
-| Transactional (TX) | 7 | 6 | 0 | 0 | 1 (TX-7) |
-| Approvals, polls (AP) | 3 | 2 | 0 | 0 | 1 (AP-3) |
-| Integrations (IN) | 4 | 4 | 0 | 0 | 0 |
-| Operations (OP) | 14 | 10 | 1 (OP-x) | 0 | 3 (OP-11–13) |
-| Frontend (FE) | 10 + 3 | 5 | 0 | 3 (FE-3, FE-5, FE-7) | 5 (FE-3b, FE-5b, FE-7b, FE-9, FE-10) |
-| Earn (EA) | 6 + 1 | 3 | 2 (EA-2b, EA-6) | 0 | 2 (EA-4, EA-5) |
-| Other channels (CH) | 2 | 1 | 0 | 0 | 1 (CH-2) |
-| Integration and audit (X) | 5 | 5 | — | — | — |
+| Area | Rows | Done | Done in M50 | Done in M51 | In part | Open |
+|---|---|---|---|---|---|---|
+| Consent and data protection (DP) | 9 | 7 | 2 | 0 | 0 | 0 |
+| Engines and events (EN) | 10 | 7 | 1 | 2 (EN-8, EN-9) | 0 | 0 |
+| Audience (AU) | 19 | 17 | 2 | 0 | 0 | 0 |
+| Automations (AT) | 15 | 13 | 1 | 1 (AT-15) | 0 | 0 |
+| Campaigns (CA) | 12 | 8 | 3 | 1 (CA-9) | 0 | 0 |
+| Transactional (TX) | 7 | 6 | 0 | 1 (TX-7) | 0 | 0 |
+| Approvals, polls (AP) | 3 | 2 | 0 | 1 (AP-3) | 0 | 0 |
+| Integrations (IN) | 4 | 4 | 0 | 0 | 0 | 0 |
+| Operations (OP) | 14 | 10 | 1 (OP-x) | 1 (OP-12) | 0 | 2 (OP-11 by design, OP-13) |
+| Frontend (FE) | 10 + 5 | 5 | 0 | 3 (FE-7b, FE-9, FE-10) | 5 (FE-3, FE-5, FE-7; FE-3b, FE-5b) | 0 |
+| Earn (EA) | 6 + 1 | 3 | 2 (EA-2b, EA-6) | 2 (EA-4, EA-5) | 0 | 0 |
+| Other channels (CH) | 2 | 1 | 0 | 1 (CH-2) | 0 | 0 |
+| Integration and audit (X) | 5 | 5 | — | — | — | — |
 
 ## Fix first
 
@@ -80,8 +81,8 @@ names one, with a line in the import's log. Board: MigrationDone.
 | EN-5 | Real providers' events reach automation steps | Done (M42) | `internal/sending/engine`, `internal/automations` | `TestProviderEventsCountOnAutomationSteps`, `TestAlertNotifiesOnce` |
 | EN-6 | Every webhook event in the catalog is sent | Done (M42) | `internal/webhooks`, emitters | `TestEveryWebhookEventHasAnEmitter`, `TestEmailEventsReachWebhooks` |
 | EN-7 | The smaller bugs | Done (M42) | as listed in the review | `CampaignsPage.test.tsx`, `ContactsScore.test.tsx`, `TestCompileQueryBindsValues`, `TestReviewAndApprovals`, `InboxPage.test.tsx`, `TestDelayedPaymentThatFails`, `TestDisputes`, `TestGiftPaidByBankDebit` |
-| EN-8 | Batched `email.*` webhook deliveries | Open | — | A per-endpoint batching setting and a delivery format change; needs a board line on the endpoint page. |
-| EN-9 | A gift paid by bank debit | In part | `internal/gifts/hooks.go` | `TestGiftPaidByBankDebit`. Open: the buyer's "payment failed" email, a ninth member email (catalog, check constraint, settings table and board). |
+| EN-8 | Batched `email.*` webhook deliveries | Done (M51) | `internal/webhooks/batch.go`, migrations 03387–03388, `WebhookDialog` | `TestEmailEventsInBatches` (250 events → 100/100/50, held while paused, audited), `WebhookDialog.test.tsx` |
+| EN-9 | A gift paid by bank debit | Done (M51) | `internal/gifts/hooks.go`, `internal/gifts/deliver.go`, `internal/earn/memberemails.go` (gift-payment-failed), migration 03385 | `TestGiftPaidByBankDebit`, `TestGiftRemindersExpiryAndRefunds` |
 | EN-10 | Products' publish checks name the payment-failed notice | Done in M50 | `internal/products/catalog.go` (`failed_notice`, advisory), `web/src/features/products/EditorAside.tsx` | `TestDelayedPaymentThatFails`, `products/checks.test.ts`. Boards: ProductEditor, ProductEditorStates |
 
 ## Audience at 1M contacts (M43)
@@ -129,7 +130,7 @@ first name, so it can't name a custom field and isn't read.
 | AT-12 | Change a live flow's trigger by publishing | Done (M44) | publish diff | `complete.test.tsx` |
 | AT-13 | Sequence stats | Done (M44) | `internal/automations/detail.go` | `TestSequenceFollowsTheEmails`, `complete.test.tsx` |
 | AT-14 | Helpers read every trigger | Done in M50 | welcome prompt, score ingest, integrations hub, push audience, held-campaign action; scoring, products, store and date queries | `TestWelcomePromptReadsEveryTrigger`, `TestAutomationEmailListsReadEveryTrigger`, the scoring, commerce, products, push, integrations and automations suites |
-| AT-15 | Back off slow watched segments | Open | — | Time each evaluation and skip slow ones for a while, with a note on the trigger panel; needs a board line. |
+| AT-15 | Back off slow watched segments | Done (M51) | `internal/automations/engine.go` (`WatchInterval`), migration 03386, the trigger panel's note | `TestSlowWatchedSegmentsBackOff`, `triggers.test.tsx` |
 
 ## Campaigns (M45)
 
@@ -143,7 +144,7 @@ first name, so it can't name a custom field and isn't read.
 | CA-6 | Cadence | Done (M45) | sending audience | `TestSending/Cadence`, `TestAssembleCadenceLine` |
 | CA-7 | A light list at scale | Done (M45) | `internal/campaigns/list.go` | `TestListTenThousandCampaigns`, `TestOverviewRecentIsOneLightPage` |
 | CA-8 | Template gallery search and menu | Done (M45) | composer Templates tab | composer tests (visual QA) |
-| CA-9 | Calendar moves texts, push and WhatsApp | Open | — | Each channel's schedule is held per recipient zone and quiet window (`sms_sends`, push and WhatsApp sends); a move has to re-plan them. Needs a reschedule operation per channel. |
+| CA-9 | Calendar moves texts, push and WhatsApp | Done (M51) | `internal/approvals/send.go` (`ChannelMove`), `internal/texting/move.go`, `internal/push/move.go`, `internal/whatsapp/move.go`, `CalendarPage` | `TestCalendarMovesTexts`, `TestCalendarMovesPush`, `TestCalendarMovesWhatsApp`, `manage.test.tsx` (audited) |
 | CA-10 | Calendar knows an approval covers the time | Done in M50 | `CampaignCalendar` (`approved`), `ApprovedMoveDialog` | `TestReschedule`, `manage.test.tsx`. Board: CampaignsCalendar |
 | CA-11 | Parameters Huma can't set fail CI | Done in M50 | `internal/api/params.go` (checked at registration) | `TestParametersReachTheHandler`, `TestRegisterOperationsWithoutConfig` |
 | CA-12 | Tabs count within the filters | Done in M50 | `CountCampaignTabs` | `TestListCampaigns` |
@@ -158,10 +159,10 @@ first name, so it can't name a custom field and isn't read.
 | TX-4 | Shared rate buckets | Done (M46) | token buckets in Postgres | `TestTakeTokensSharedAcrossNodes` |
 | TX-5 | Send test from a template | Done (M46) | template editor | `TestSendTemplateTest` |
 | TX-6 | SMTP relay limits | Done (M46) | `internal/smtprelay` | `TestGuardBlocksRepeatedFailedLogins`, `TestLimitListenerCapsConnections` |
-| TX-7 | Cancel or move a batch by its key | Open | — | An operation over the messages of one idempotency key and a batch line on the message page. |
+| TX-7 | Cancel or move a batch by its key | Done (M51) | `internal/transactional/schedule.go` (`CancelBatch`, `RescheduleBatch`), the message page's "Which messages" | `TestBatchMovedAndCancelledTogether` (audited) |
 | AP-1 | Approvals inbox re-checks only stale requests | Done (M46) | `internal/approvals/inbox.go` | `TestInboxSearchAndStaleChecks` |
 | AP-2 | Survey results in SQL; load failures said | Done (M46) | `internal/polls` | polls suite (visual QA for the failure states) |
-| AP-3 | Time the inbox at 1,000 requests | Open | — | A benchmark beside `TestInboxSearchAndStaleChecks`. |
+| AP-3 | Time the inbox at 1,000 requests | Done (M51) | `docs/deploy/performance.md` | `TestInboxAtAThousandRequests` |
 | IN-1 | Old webhook secret signs a day | Done (M46) | `internal/webhooks` | `TestRotationKeepsTheOldSecretSigningADay` |
 | IN-2 | Failing endpoint notification | Done (M46) | `internal/webhooks` | `TestRotationKeepsTheOldSecretSigningADay` |
 | IN-3 | More MCP tools | Done (M46) | `internal/mcpserver` | `TestM46Tools` |
@@ -183,8 +184,8 @@ first name, so it can't name a custom field and isn't read.
 | OP-10 | Instance admin › System | Done (M47) | `internal/instance/system.go` | `TestSystemTab`, `SystemPage.test.tsx` (audited) |
 | OP-x | Rebill test at a month's start | Done in M50 | `internal/demo/seed_agency.go` | `TestUsageAndRebill` (failed on 1 November before the fix) |
 | OP-11 | Convert `delivery_events` at upgrade | Open (by design) | — | A later release, once instances ran the opt-in command. |
-| OP-12 | Count cache for segments and header counts | Open | — | A cache with invalidation on contact writes; measured need at 1M contacts (about 1 s). |
-| OP-13 | Record k6 numbers | Open | — | k6 couldn't run where M47's numbers were taken; the Load test workflow records them. |
+| OP-12 | Count cache for segments and header counts | Done (M51) | `internal/countcache`, the audit log's observer, `audience.Summary`, `segments.Preview` | `TestCountsAreKeptUntilTheAudienceChanges`, `countcache_test.go` |
+| OP-13 | Record k6 numbers | Open | — | k6 can't run where these milestones were built; a run of the Load test workflow records them in `docs/deploy/performance.md`. |
 
 ## Frontend foundation (M48)
 
@@ -198,11 +199,11 @@ first name, so it can't name a custom field and isn't read.
 | FE-6 | Stack question recorded | Done (M48) | `docs/TECH_STACK.md` note 12 | — (owner's answer pending) |
 | FE-7 | Optimistic updates | In part | notifications | `NotificationsPopover.test.tsx`. Rest: FE-7b |
 | FE-8 | CI smoke, axe and bundle budget | Done (M48) | `web/e2e/smoke.spec.ts`, `web/scripts/bundle-budget.ts` | CI `smoke` job |
-| FE-3b | Stepper, Pager, NoResults, one bulk pattern | Open | — | Eight wizards and the paged lists to move over, each with its patterns-check rule. |
-| FE-5b | 1,166 hex colours to tokens | Open | — | File by file, lowering the baseline. |
-| FE-7b | Optimistic switches and reordering | Open | — | A shared hook with rollback. |
-| FE-9 | Split the route tree | Open | — | The first load (433 KB gzipped) preloads every route's search schema. |
-| FE-10 | Settings rows in the palette | Open | — | An index of settings rows with their tab. |
+| FE-3b | Stepper, Pager, NoResults, one bulk pattern | In part (M51) | `components/ui/Stepper.tsx` (five wizards), `components/ui/Pager.tsx` (eight lists), the payments log's no-match state, `web/scripts/patterns-check.ts` | `Stepper.test.tsx`, `Pager.test.tsx`, `eventLog.test.tsx`, `pnpm lint`. Left: seven compact step bars (listed in the check), NoResults for the lists that draw their own no-match line, one bulk-selection pattern. |
+| FE-5b | 1,166 hex colours to tokens | In part (M51) | 87 files; `web/scripts/hex-baseline.json` | `pnpm lint` (1,166 → 895). Left: SVG attributes and charts, avatar and workspace palettes, colours with no token yet. |
+| FE-7b | Optimistic switches and reordering | Done (M51) | `useOptimistic` in `web/src/lib/hooks.ts`: sending rules' switches, recommendations' order | `optimistic.test.tsx` |
+| FE-9 | Split the route tree | Done (M51) | `integrations/platforms.ts`, `pages/templateKeys.ts`, the lazy agency menu, `web/scripts/bundle-budget.ts` (400 KB) | `pnpm budget`: first load 390 KB gzipped (439 KB before) |
+| FE-10 | Settings rows in the palette | Done (M51) | `web/src/features/settings/settingsIndex.ts`, `CommandPalette` | `CommandPalette.test.tsx` |
 
 ## Earn and other channels (M49)
 
@@ -212,11 +213,11 @@ first name, so it can't name a custom field and isn't read.
 | EA-2 | Audited exports: gifts, conversions, payment events | Done (M49) | `internal/gifts/export.go`, `internal/revenue/export.go`, `internal/earn/eventexport.go` | `TestEarnExports`, `earnUi.test.tsx` (audited) |
 | EA-2b | Sponsor bookings and reports as CSV | Done in M50 | `internal/sponsors/export.go` | `TestSponsorReportCountsOnlyBlockRecipients` (audited). Boards: EarnSponsors, EarnBooking |
 | EA-3 | Table views and page sizes | Done (M49) | `RevenueOverview.tsx`, `MembersPage.tsx` | visual QA |
-| EA-4 | Paid growth by tier and period | Open | — | A chart and table on Earn › Overview; needs its board first. |
-| EA-5 | Money paths against the Stripe fake | Open | — | Table tests for offer limits and end dates, gift link transfer and expiry, "end access at once", legacy prices. |
+| EA-4 | Paid growth by tier and period | Done (M51) | `RevenueTierGrowth`, `RevenueOverview`'s "Joined · left" | `TestMRRMovementAndChurnFromTheLedger` (growth by tier and period), `earnUi.test.tsx` |
+| EA-5 | Money paths against the Stripe fake | Done (M51) | `internal/earn/flow_test.go`, `internal/gifts/gifts_test.go` | `TestCancelNowOrAtThePeriodEnd`, `TestLegacyPriceStaysForItsMembers`, `TestForwardedGiftLinkGoesToWhoeverRedeems` |
 | EA-6 | Earn UI tests | Done in M50 | — | `earnUi.test.tsx` |
 | CH-1 | Channel campaigns deleted, archived, tagged | Done (M49) | unified Campaigns list | `TestChannelCampaignsDeleteArchiveAndTag` |
-| CH-2 | Channel behaviour tests | Open | — | SMS auto-pause, push and WhatsApp retries, expired push subscriptions, retention sweeps. |
+| CH-2 | Channel behaviour tests | Done (M51) | `internal/texting/behaviour_test.go`, `internal/push/push_test.go`, `internal/whatsapp/whatsapp_test.go`, `internal/app/channel_sweeps_test.go` | `TestSMSAutoPause`, `TestSMSRetentionSweep`, `TestPushRetriesABusyService`, `TestWhatsAppRetriesWhenMetaSlowsDown`, `TestChannelRetentionSweeps` |
 
 ## Integration and audit (M50)
 
