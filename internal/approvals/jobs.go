@@ -195,6 +195,8 @@ func (s *Service) Tick(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		// Requests that share an audience or route count it once per tick.
+		ctx := withCheckMemo(ctx)
 		for _, r := range open {
 			if r.CampaignID == nil {
 				continue

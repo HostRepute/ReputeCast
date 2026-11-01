@@ -161,11 +161,15 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	// since their campaign last changed, less than revalidateFresh ago, and
 	// the background job keeps them so (review 2026-11 AP-1).
 	if open, err := s.Q.ApprovalOpenRequestsIn(ctx, store.ApprovalOpenRequestsInParams{WorkspaceID: ws.ID, StaleBefore: s.now().Add(-revalidateFresh)}); err == nil {
+		ids := make([]uuid.UUID, 0, len(open))
 		for _, r := range open {
 			if r.CampaignID != nil {
-				_, _ = s.Revalidate(ctx, ws, *r.CampaignID)
+				ids = append(ids, *r.CampaignID)
 			}
 		}
+		// A request that can't be checked now is listed as it stands; the
+		// background job tries it again.
+		_ = s.recheck(ctx, ws, ids)
 	}
 	since := time.Time{}
 	if f.Days > 0 {

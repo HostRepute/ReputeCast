@@ -200,7 +200,7 @@ func (s *Service) current(ctx context.Context, ws *store.Workspace, c store.Read
 	if c.SenderID != nil {
 		cur.SenderID = c.SenderID.String()
 	}
-	aud, err := s.Readiness.Audience(ctx, ws, c.Audience)
+	aud, err := s.audienceFacts(ctx, ws, c.Audience)
 	if err != nil {
 		return cur, err
 	}
@@ -208,7 +208,7 @@ func (s *Service) current(ctx context.Context, ws *store.Workspace, c store.Read
 	if !aud.Empty {
 		cur.AudienceCount = aud.Final
 	}
-	rc, err := s.Readiness.Route(ctx, ws, c.RouteOverride)
+	rc, err := s.routeConfig(ctx, ws, c.RouteOverride)
 	if err != nil {
 		return cur, err
 	}

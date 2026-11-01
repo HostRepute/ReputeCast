@@ -58,9 +58,13 @@ an event costs 0.05 ms more afterwards: its dedupe key goes to its own table
 The k6 scripts weren't run for these numbers; the workflow runs them.
 
 The approvals inbox with 1,000 open requests (`TestInboxAtAThousandRequests`,
-review 2026-11 AP-3): 118 ms when every request was checked recently, as
-the inbox re-checks only stale ones; 2.3 s when ten campaigns had changed,
-about 230 ms for each request it checks again with Send Readiness.
+review 2026-11 AP-3): 118 to 200 ms when every request was checked
+recently, as the inbox re-checks only stale ones; 460 ms when ten campaigns
+had changed (2.3 s before, and 14 s on a CI runner). The stale requests are
+checked four at a time, and those that send to the same audience or route
+count it once: an audience count is most of a check's cost. The background
+job that re-checks every open request each five minutes shares counts the
+same way.
 
 Slow counts that read every contact are kept for a minute (review 2026-11
 OP-12): the Audience header's counts (about 300 ms on a million contacts)

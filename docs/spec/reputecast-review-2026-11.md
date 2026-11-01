@@ -703,7 +703,9 @@ Still open after M50 went to M51 below.
 What M51 built (1 November 2026):
 
 - **AP-3** the approvals inbox timed at 1,000 open requests: 118 ms when each was checked recently, as it
-  re-checks only stale requests (`TestInboxAtAThousandRequests`, `docs/deploy/performance.md`).
+  re-checks only stale requests, and 460 ms after ten campaigns changed (2.3 s before): stale requests are
+  checked four at a time and share audience counts (`TestInboxAtAThousandRequests`,
+  `docs/deploy/performance.md`).
 - **FE-10** single settings in the command palette, found by the words their page shows.
 - **FE-7b** switches and the order of your recommendations change at once and go back when the server
   refuses, through one hook (`useOptimistic`, `optimistic.test.tsx`). Other reorderable lists edit a
