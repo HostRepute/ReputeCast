@@ -93,9 +93,12 @@ What the run showed, and what changed:
   email trigram index reads posting lists that hold the whole table for each
   search, and a search also counted its matches with a second scan. The
   first page now counts its own rows when they are all the matches, so a
-  search that finds a few contacts reads the indexes once. On four shared
-  cores the server, Postgres and k6 compete; the next run records the
-  result.
+  search that finds a few contacts reads the indexes once. Measured here
+  on 200,000 contacts (4 vCPUs, the same data and machine before and
+  after), ten people browsing at once went from 403 to 472 requests a
+  second, p95 from 65 ms to 55 ms, and a search's median from 9 ms to
+  7 ms. On the runner the server, Postgres and k6 share four cores; the
+  next run records the result there.
 - **Sending.** send.js sent through an owner's session, and a person's
   sessions share 50 messages a second: the 52% that weren't accepted were
   that limit's 429s, as designed. It now sends with a send-only key at 1,000
