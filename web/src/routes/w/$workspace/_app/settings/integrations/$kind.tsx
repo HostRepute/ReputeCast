@@ -1,6 +1,6 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { AppPage } from '@/features/integrations/AppPage'
-import { isPlatform } from '@/features/integrations/shared'
+import { isPlatform } from '@/features/integrations/platforms'
 
 /** Settings › Integrations › Zapier, Make or n8n. */
 export const Route = createFileRoute('/w/$workspace/_app/settings/integrations/$kind')({

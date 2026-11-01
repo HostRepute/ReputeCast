@@ -1,7 +1,7 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { DropdownMenu } from 'radix-ui'
+import { lazy, Suspense, useEffect } from 'react'
 import { useAgencyMe } from '@/features/agency/api'
-import { AgencySwitcherMenu } from '@/features/agency/AgencySwitcher'
 import { m as am } from '@/features/agency/messages'
 import { useT } from '@/i18n'
 import { roleName } from '@/lib/roles'
@@ -9,6 +9,10 @@ import { useMe, useWorkspace } from '@/lib/session'
 import { Icon } from '../icons/Icon'
 import { Avatar } from '../ui/Avatar'
 import { m } from './messages'
+
+// An agency's menu loads only for its staff (review 2026-11 FE-9).
+const loadAgencyMenu = () => import('@/features/agency/AgencySwitcher')
+const AgencySwitcherMenu = lazy(() => loadAgencyMenu().then((x) => ({ default: x.AgencySwitcherMenu })))
 
 const wsColors = ['#0F766E', '#1D4ED8', '#7C3AED', '#B45309', '#BE185D', '#047857']
 
@@ -37,6 +41,10 @@ export function WorkspaceSwitcher({ variant = 'sidebar' }: { variant?: 'sidebar'
   // A client's tile keeps the agency's colour for it everywhere.
   const mine = staff ? [...staff.clients, ...(staff.agencyWorkspace ? [staff.agencyWorkspace] : [])].find((c) => c.workspace.slug === slug) : undefined
   const tile = mine?.workspace.color ?? wsColor(idx)
+  // Fetched as soon as we know, so the menu opens at once.
+  useEffect(() => {
+    if (staff) void loadAgencyMenu()
+  }, [staff])
   return (
     <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger asChild>
@@ -77,7 +85,9 @@ export function WorkspaceSwitcher({ variant = 'sidebar' }: { variant?: 'sidebar'
           aria-label={t(m.switcherMenuLabel)}
         >
           {staff ? (
-            <AgencySwitcherMenu agency={staff} current={variant === 'agency' ? undefined : slug} />
+            <Suspense fallback={null}>
+              <AgencySwitcherMenu agency={staff} current={variant === 'agency' ? undefined : slug} />
+            </Suspense>
           ) : (
             <>
           <DropdownMenu.Label className="mh">{t(m.switcherHeading)}</DropdownMenu.Label>

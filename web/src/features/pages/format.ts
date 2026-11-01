@@ -1,6 +1,7 @@
 import type { LinkProps } from '@tanstack/react-router'
 import { $api, type Schemas } from '@/api/client'
 import { useWorkspace } from '@/lib/session'
+import { TEMPLATE_KEYS } from './templateKeys'
 
 export type Overview = Schemas['PagesOverview']
 export type PageRow = Schemas['PageListItem']
@@ -8,8 +9,7 @@ export type Shop = Schemas['PagesShop']
 export type TemplateKey = PageRow['template']
 export type PageStatus = PageRow['status']
 
-/** The six templates of "New page", in the picker's order. */
-export const TEMPLATE_KEYS = ['about', 'lead_magnet', 'launch', 'webinar', 'sales', 'blank'] as const satisfies readonly TemplateKey[]
+export { TEMPLATE_KEYS } from './templateKeys'
 
 /** The statuses, in the status filter's order. */
 export const STATUSES = ['published', 'scheduled', 'draft', 'unpublished'] as const satisfies readonly PageStatus[]

@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, useChildMatches } from '@tanstack/react-router'
 import { z } from 'zod'
-import { TEMPLATE_KEYS } from '@/features/pages/format'
+import { TEMPLATE_KEYS } from '@/features/pages/templateKeys'
 import { PagesTab } from '@/features/pages/PagesTab'
 
 const search = z.object({

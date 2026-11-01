@@ -11,9 +11,11 @@ import { gzipSync } from 'node:zlib'
 const KB = 1024
 const budget = {
   // index.html's script and the chunks it preloads, with its stylesheets.
-  // 433 KB on 1 November 2026: every route's module (its search schema)
-  // is preloaded; splitting them is in the review's backlog (FE-9).
-  initial: 450 * KB,
+  // 390 KB after review 2026-11 FE-9 (433 KB before): a route's search
+  // schema and checks load with the app, so they import only small modules
+  // (integrations/platforms.ts, pages/templateKeys.ts), never a feature's
+  // pages or copy; an agency's menu loads for its staff only.
+  initial: 400 * KB,
   // Any one lazy chunk (the email composer's editor is the largest).
   chunk: 400 * KB,
   // Every script of the app.

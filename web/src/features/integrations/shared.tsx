@@ -10,6 +10,7 @@ import { aiCatalogCapabilities, aiEntryLine, aiEntryName, aiMaintainer } from '@
 import { paymentCapabilities, paymentEntryLine, paymentEntryName, paymentLetters, paymentMaintainer } from '@/features/earn/entries'
 import { cm } from '@/features/commerce/messages'
 import { m } from './messages'
+import type { PlatformKind } from './platforms'
 import './integrations.css'
 
 export type Hub = Schemas['IntegrationHub']
@@ -24,7 +25,7 @@ export type ItemLock = Schemas['IntegrationItemLock']
 export type Secret = Schemas['IntegrationSecret']
 export type Site = Schemas['IntegrationSite']
 export type WordPressPage = Schemas['IntegrationWordPressPage']
-export type PlatformKind = App['kind']
+export type { PlatformKind } from './platforms'
 export type ConnectKind = PlatformKind | 'wordpress'
 export type Status = Entry['status']
 
@@ -32,9 +33,7 @@ export const base = '/api/v1/workspaces/{workspace}/integrations' as const
 export const PLUGIN_URL = 'https://wordpress.org/plugins/reputecast/'
 export const KNOWN_PLUGIN = '1.4.0'
 
-export function isPlatform(k: string): k is PlatformKind {
-  return k === 'zapier' || k === 'make' || k === 'n8n'
-}
+export { isPlatform } from './platforms'
 
 /** The catalog: groups, entries and the attention banners. */
 export function useHub() {
