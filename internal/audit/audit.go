@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/netip"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -87,6 +88,19 @@ type Logger struct {
 	q   store.Querier
 	log *slog.Logger
 	now func() time.Time
+
+	mu        sync.RWMutex
+	observers []func(workspaceID uuid.UUID, action string)
+}
+
+// Observe calls fn after each workspace entry is written: every state
+// change writes one, so it is how in-process caches learn of changes (the
+// count cache, review 2026-11 OP-12). fn runs on the writer's goroutine,
+// possibly inside a transaction that later rolls back; it must be quick.
+func (l *Logger) Observe(fn func(workspaceID uuid.UUID, action string)) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.observers = append(l.observers, fn)
 }
 
 // New returns an audit logger.
@@ -145,6 +159,13 @@ func (l *Logger) LogWith(ctx context.Context, q store.Querier, e Event) error {
 	if err := q.InsertAuditEvent(ctx, params); err != nil {
 		l.log.ErrorContext(ctx, "audit write failed", "action", e.Action, "err", err)
 		return err
+	}
+	if e.WorkspaceID != nil {
+		l.mu.RLock()
+		for _, fn := range l.observers {
+			fn(*e.WorkspaceID, e.Action)
+		}
+		l.mu.RUnlock()
 	}
 	return nil
 }

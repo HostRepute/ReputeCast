@@ -39495,6 +39495,7 @@ export interface components {
             value?: string;
         };
         SegmentCountResult: {
+            cached?: boolean;
             /** Format: int64 */
             count: number;
             generatedSql: string;

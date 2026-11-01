@@ -62,11 +62,18 @@ review 2026-11 AP-3): 118 ms when every request was checked recently, as
 the inbox re-checks only stale ones; 2.3 s when ten campaigns had changed,
 about 230 ms for each request it checks again with Send Readiness.
 
+Counts that read every contact are kept for a minute (review 2026-11
+OP-12): the Audience header's counts (about 300 ms on a million contacts)
+and a segment preview's count (about a second for two conditions). The
+same request within the minute answers from memory, and readers asking at
+the same time share one count. A change made through ReputeCast (a
+contact, list, import, field or suppression: anything that writes an audit
+entry) drops the workspace's counts on that instance at once; a change
+another instance makes, or a public signup, shows within the minute. A
+segment preview says `cached` when its count was kept.
+
 ## Worth a look next
 
-- The segment count (about a second for two conditions on a million
-  contacts) and the audience summary's header counts. Both read every
-  contact; a count cache would help.
 - The campaign report (about 300 ms for 975,000 recipients). The load data
   set's campaigns were generated, not sent, so they have no live counters:
   profile it again on a real send.

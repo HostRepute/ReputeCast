@@ -15,5 +15,5 @@ func init() {
 // segments returns the segments service (shared by the audience and the
 // tier job, which recounts segments nightly).
 func (a *App) segments() *segments.Service {
-	return &segments.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, SQL: &segments.SQLRunner{Pool: a.Pool}}
+	return &segments.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, SQL: &segments.SQLRunner{Pool: a.Pool}, Counts: a.Counts}
 }

@@ -7,6 +7,8 @@ package segments
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,6 +20,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/countcache"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/dependents"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -28,6 +31,9 @@ type Service struct {
 	Q     *store.Queries
 	Audit *audit.Logger
 	SQL   *SQLRunner
+	// Counts keeps previews' counts for a minute (review 2026-11 OP-12);
+	// nil counts every time.
+	Counts *countcache.Cache
 	// CountTimeout bounds builder counts (SQL mode uses SQL.Timeout).
 	CountTimeout time.Duration
 	Now          func() time.Time
@@ -233,6 +239,10 @@ type SegmentCountResult struct {
 	Ms    int64          `json:"ms" doc:"How long the count took"`
 	// GeneratedSQL is the builder's SQL with values inlined (builder mode).
 	GeneratedSQL string `json:"generatedSql"`
+	// Cached: the same definition was counted within the last minute and
+	// nothing this instance did has changed the audience since (review
+	// 2026-11 OP-12). Ms is that count's time.
+	Cached bool `json:"cached,omitempty"`
 }
 
 // Preview counts an unsaved definition or SQL.
@@ -241,12 +251,35 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, in SegmentIn
 	if err != nil {
 		return SegmentCountResult{}, err
 	}
-	return s.count(ctx, ws, compiled, sql)
+	asked := time.Now()
+	out, at, err := countcache.Get(ctx, s.Counts, ws.ID, previewKey(compiled, sql), func(ctx context.Context) (SegmentCountResult, error) {
+		return s.count(ctx, ws, compiled, sql)
+	})
+	out.Cached = err == nil && at.Before(asked)
+	return out, err
+}
+
+// previewKey names a definition's count in the count cache: its query and
+// arguments, or its SQL.
+func previewKey(compiled *Compiled, userSQL string) string {
+	h := sha256.New()
+	if compiled != nil {
+		q, args := compiled.Query(2)
+		b, _ := json.Marshal(args)
+		h.Write([]byte(q))
+		h.Write([]byte{0})
+		h.Write(b)
+	} else {
+		h.Write([]byte("sql\x00" + userSQL))
+	}
+	return "segment.preview:" + hex.EncodeToString(h.Sum(nil))
 }
 
 func (s *Service) count(ctx context.Context, ws *store.Workspace, compiled *Compiled, userSQL string) (SegmentCountResult, error) {
 	var out SegmentCountResult
-	total, err := s.Q.AudienceCounts(ctx, ws.ID)
+	total, _, err := countcache.Get(ctx, s.Counts, ws.ID, "contacts.total", func(ctx context.Context) (store.AudienceCountsRow, error) {
+		return s.Q.AudienceCounts(ctx, ws.ID)
+	})
 	if err != nil {
 		return out, err
 	}

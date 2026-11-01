@@ -7,6 +7,7 @@ package audience
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/countcache"
 	"github.com/hostrepute/reputecast/internal/erasure"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/linktoken"
@@ -28,6 +30,9 @@ type Service struct {
 	Q        *store.Queries
 	Audit    *audit.Logger
 	Segments *segments.Service
+	// Counts keeps the header's counts for a minute (review 2026-11
+	// OP-12); nil counts every time.
+	Counts *countcache.Cache
 	// Mail sends opt-in confirmations through the System stream.
 	Mail  mailer.Sender
 	Links *linktoken.Signer
@@ -110,29 +115,51 @@ type AudienceSummary struct {
 	Stripe bool `json:"stripe"`
 }
 
-// Summary returns the counts shown in the Audience header.
+// headerCounts are the Summary's counts that read every contact,
+// membership or suppression of the workspace: kept by the count cache.
+type headerCounts struct {
+	counts       store.AudienceCountsRow
+	suppressions int64
+	lists        []AudienceListSummary
+}
+
+func (s *Service) headerCounts(ctx context.Context, ws uuid.UUID) (headerCounts, error) {
+	var h headerCounts
+	var err error
+	if h.counts, err = s.Q.AudienceCounts(ctx, ws); err != nil {
+		return h, err
+	}
+	if h.suppressions, err = s.Q.CountWorkspaceSuppressions(ctx, ws); err != nil {
+		return h, err
+	}
+	lists, err := s.Q.ListListsWithCounts(ctx, ws)
+	if err != nil {
+		return h, err
+	}
+	h.lists = make([]AudienceListSummary, 0, len(lists))
+	for _, l := range lists {
+		h.lists = append(h.lists, AudienceListSummary{ID: l.ID.String(), Name: l.Name, Description: l.Description, DoubleOptIn: l.DoubleOptIn, Subscribed: l.Subscribed,
+			Pending: l.Pending, CreatedAt: l.CreatedAt, Origin: l.Origin})
+	}
+	return h, nil
+}
+
+// Summary returns the counts shown in the Audience header. The counts that
+// read every contact are kept for a minute, and dropped when this instance
+// changes the audience (review 2026-11 OP-12).
 func (s *Service) Summary(ctx context.Context, ws *store.Workspace) (AudienceSummary, error) {
-	c, err := s.Q.AudienceCounts(ctx, ws.ID)
+	h, _, err := countcache.Get(ctx, s.Counts, ws.ID, "audience.header", func(ctx context.Context) (headerCounts, error) { return s.headerCounts(ctx, ws.ID) })
 	if err != nil {
 		return AudienceSummary{}, err
 	}
-	out := AudienceSummary{Contacts: c.Contacts, Tiers: AudienceTierCounts{c.Active, c.Cooling, c.AtRisk, c.Sunset}, Lists: []AudienceListSummary{}}
+	c := h.counts
+	out := AudienceSummary{Contacts: c.Contacts, Tiers: AudienceTierCounts{c.Active, c.Cooling, c.AtRisk, c.Sunset}, Suppressions: h.suppressions,
+		Lists: slices.Clone(h.lists)}
 	if out.Segments, err = s.Q.CountWorkspaceSegments(ctx, ws.ID); err != nil {
-		return out, err
-	}
-	if out.Suppressions, err = s.Q.CountWorkspaceSuppressions(ctx, ws.ID); err != nil {
 		return out, err
 	}
 	if st, err := s.Q.GetAudienceState(ctx, ws.ID); err == nil {
 		out.TiersComputedAt = st.TiersComputedAt
-	}
-	lists, err := s.Q.ListListsWithCounts(ctx, ws.ID)
-	if err != nil {
-		return out, err
-	}
-	for _, l := range lists {
-		out.Lists = append(out.Lists, AudienceListSummary{ID: l.ID.String(), Name: l.Name, Description: l.Description, DoubleOptIn: l.DoubleOptIn, Subscribed: l.Subscribed, Pending: l.Pending,
-			CreatedAt: l.CreatedAt, Origin: l.Origin})
 	}
 	if out.PaidTiers, err = s.paidTiers(ctx, s.Q, ws.ID); err != nil {
 		return out, err

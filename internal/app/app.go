@@ -18,6 +18,7 @@ import (
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
@@ -26,6 +27,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/config"
+	"github.com/hostrepute/reputecast/internal/countcache"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/linktoken"
@@ -59,6 +61,9 @@ type App struct {
 	Sending sending.Starter
 	// Links signs open, click, unsubscribe and preference tokens in emails.
 	Links *linktoken.Signer
+	// Counts keeps the audience counts that read every contact for a minute
+	// (review 2026-11 OP-12); audited contact changes drop a workspace's.
+	Counts *countcache.Cache
 	// URLs builds public links (tracking, unsubscribe, preferences, archive,
 	// shared reports, provider webhooks) on the instance's public URL.
 	URLs publicurl.Builder
@@ -111,7 +116,13 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 		Links:     links,
 		URLs:      publicurl.From(pub),
 		PublicURL: pub,
+		Counts:    countcache.New(0, 0, nil),
 	}
+	a.Audit.Observe(func(ws uuid.UUID, action string) {
+		if countcache.AudienceChange(action) {
+			a.Counts.Changed(ws)
+		}
+	})
 	a.Metrics.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	opsmetrics.Register(a.Metrics, a.Pool, jobs.QueueDefault, jobs.QueueSending, jobs.QueueEvents, jobs.QueueSystem, jobs.QueueMaintenance)
 	a.Auth = &api.Authenticator{

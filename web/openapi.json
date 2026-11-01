@@ -73902,6 +73902,9 @@
       "SegmentCountResult": {
         "additionalProperties": false,
         "properties": {
+          "cached": {
+            "type": "boolean"
+          },
           "count": {
             "format": "int64",
             "type": "integer"
