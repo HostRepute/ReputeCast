@@ -227,7 +227,13 @@ export function CalendarPage({ search }: { search: CalendarSearch }) {
           </>
         )}
       </section>
-      {moving ? <RescheduleDialog item={moving.item} day={moving.day} onClose={() => setMoving(undefined)} /> : null}
+      {moving ? (
+        moving.item.approved ? (
+          <ApprovedMoveDialog item={moving.item} onClose={() => setMoving(undefined)} />
+        ) : (
+          <RescheduleDialog item={moving.item} day={moving.day} onClose={() => setMoving(undefined)} />
+        )
+      ) : null}
     </Page>
   )
 }
@@ -392,6 +398,57 @@ function CalendarEvent({
 }
 
 /** Moves a scheduled email to another day and time; Send Readiness rechecks it before it goes out. */
+/**
+ * An approved campaign's time is part of its approval (review 2026-11
+ * CA-10): moving it means unscheduling it and asking again, said before
+ * anyone picks a new time.
+ */
+export function ApprovedMoveDialog({ item, onClose }: { item: Item; onClose: () => void }) {
+  const tr = useT()
+  const { slug } = useWorkspace()
+  const navigate = useNavigate()
+  const refresh = useRefreshCampaigns()
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string>()
+  const unschedule = async () => {
+    setBusy(true)
+    setErr(undefined)
+    try {
+      await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/unschedule', { params: { path: { workspace: slug, campaignId: item.id } } })
+      await refresh()
+      toast({ kind: 'success', title: t(mk.unscheduledAsk, { name: item.name }) })
+      onClose()
+      void navigate({ to: '/w/$workspace/campaigns/$campaignId/review', params: { workspace: slug, campaignId: item.id } })
+    } catch (e) {
+      setErr(errorMessage(e))
+      setBusy(false)
+    }
+  }
+  return (
+    <Dialog
+      open
+      onOpenChange={(o) => !o && onClose()}
+      size="sm"
+      title={tr(mk.approvedTitle, { name: item.name })}
+      footer={
+        <>
+          <Button onClick={onClose}>{tr(common.cancel)}</Button>
+          <Button variant="primary" loading={busy} onClick={() => void unschedule()}>
+            {tr(mk.unscheduleAsk)}
+          </Button>
+        </>
+      }
+    >
+      <p className="m-0 text-[13.5px]">{tr(mk.approvedBody, { when: `${calendarDate(dayKey(item.at), 'shortDate')}, ${clock(item.at).slice(0, 5)}` })}</p>
+      {err ? (
+        <Note tone="bad" className="mt-3">
+          {err}
+        </Note>
+      ) : null}
+    </Dialog>
+  )
+}
+
 export function RescheduleDialog({ item, day, onClose }: { item: Item; day: Day; onClose: () => void }) {
   const tr = useT()
   const { slug } = useWorkspace()

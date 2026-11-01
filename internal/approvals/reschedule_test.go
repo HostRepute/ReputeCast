@@ -30,9 +30,37 @@ func TestReschedule(t *testing.T) {
 	if p["code"] != "approval_covers_time" {
 		t.Fatalf("an approved time: %+v", p)
 	}
+	// Review 2026-11 CA-10: the calendar says an approval covers the time.
+	approvedOnCalendar := func() bool {
+		var cal struct {
+			Items []struct {
+				ID       string
+				Approved bool
+			}
+		}
+		var at time.Time
+		if err := env.App.Pool.QueryRow(ctx, `SELECT scheduled_at FROM campaigns WHERE id = $1`, id).Scan(&at); err != nil {
+			t.Fatal(err)
+		}
+		q := "?from=" + at.AddDate(0, 0, -1).Format(time.DateOnly) + "&to=" + at.AddDate(0, 0, 2).Format(time.DateOnly)
+		linh.Do(http.MethodGet, "/workspaces/acme-newsletter/campaigns/calendar"+q, nil).MustStatus(t, http.StatusOK).JSON(t, &cal)
+		for _, it := range cal.Items {
+			if it.ID == id {
+				return it.Approved
+			}
+		}
+		t.Fatal("the campaign isn't on the calendar")
+		return false
+	}
+	if !approvedOnCalendar() {
+		t.Fatal("the calendar doesn't say the approval covers the time")
+	}
 	// Without an approval in force, it moves.
 	if _, err := env.App.Pool.Exec(ctx, `UPDATE approval_requests SET status = 'invalidated' WHERE campaign_id = $1 AND status IN ('pending', 'approved')`, id); err != nil {
 		t.Fatal(err)
+	}
+	if approvedOnCalendar() {
+		t.Fatal("no approval covers the time any more")
 	}
 	linh.Do(http.MethodPost, path, map[string]any{"mode": "at", "date": "2001-01-01", "time": "10:30", "timezone": "America/New_York"}).MustStatus(t, http.StatusUnprocessableEntity)
 	linh.Do(http.MethodPost, path, map[string]any{"mode": "now"}).MustStatus(t, http.StatusUnprocessableEntity)

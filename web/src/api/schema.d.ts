@@ -22449,6 +22449,7 @@ export interface components {
             to: string;
         };
         CampaignCalendarItem: {
+            approved?: boolean;
             /** Format: date-time */
             at: string;
             campaignId?: string;

@@ -209,6 +209,31 @@ describe('Campaigns › Calendar (review 2026-11 CA-3)', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: /^Move to/ }))
     await waitFor(() => expect(moved).toEqual([{ mode: 'at', date: '2030-01-11', time: '09:00', timezone: 'UTC' }]))
   })
+
+  // Review 2026-11 CA-10: an approval covers the time, so the calendar says
+  // so before anyone picks a new one, and offers to unschedule and ask again.
+  it('offers an approved campaign "Unschedule and ask again" instead of a new time', async () => {
+    let unscheduled = 0
+    mockApi({
+      'GET /api/v1/workspaces/acme-newsletter/campaigns/calendar': () =>
+        json({
+          from: '2030-01-07T00:00:00Z',
+          to: '2030-01-14T00:00:00Z',
+          items: [{ kind: 'scheduled', id: draft.id, name: 'Flash sale', channel: 'email', status: 'scheduled', at: '2030-01-08T09:00:00Z', sent: 0, approved: true }],
+        }),
+      [`POST /api/v1/workspaces/acme-newsletter/campaigns/${draft.id}/unschedule`]: () => {
+        unscheduled++
+        return new Response(null, { status: 204 })
+      },
+    })
+    const { router } = await renderInWorkspace(<CalendarPage search={{ view: 'week', date: '2030-01-08' }} />, { me: editor })
+    fireEvent.click(await screen.findByRole('button', { name: 'Reschedule Flash sale' }))
+    const dialog = await screen.findByRole('dialog', { name: '"Flash sale" is approved for this time' })
+    expect(within(dialog).queryByLabelText('Day')).not.toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Unschedule and ask again' }))
+    await waitFor(() => expect(unscheduled).toBe(1))
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/w/acme-newsletter/campaigns/${draft.id}/review`))
+  })
 })
 
 describe('Follow-ups from a report (review 2026-11 CA-4)', () => {
