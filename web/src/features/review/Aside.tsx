@@ -6,7 +6,7 @@ import { Field, Select } from '@/components/ui/Field'
 import { Grid } from '@/components/ui/Layout'
 import { formatList, getI18n, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { clock, count, decimal } from '@/lib/format'
+import { calendarDate, clock, count, decimal, inZone, timeOfDay } from '@/lib/format'
 import {
   defaultScheduleAt,
   dollars,
@@ -225,6 +225,9 @@ function TimelineInset({ timeline }: { timeline: NonNullable<Run['estimates']['r
         </>
       ) : timeline.bestTime ? (
         <span className="n text-[13px]">{t(m.bestTimeLine, { end: clock(timeline.end) })}</span>
+      ) : timeline.localTime ? (
+        // The send starts as the wall time comes in UTC+14 (Kiritimati).
+        <span className="n text-[13px]">{t(m.localTimeLine, { time: inZone(timeline.start, 'Pacific/Kiritimati').time, end: clock(timeline.end) })}</span>
       ) : (
         <span className="n text-[13px]">{t(m.finishesAbout, { end: clock(timeline.end), start: clock(timeline.start) })}</span>
       )}
@@ -473,6 +476,12 @@ export function SchedulingCard({
   const options: { mode: Schedule['mode']; title: string; caption: string }[] = [
     { mode: 'now', title: t(m.modeNow), caption: abHours ? t(m.modeNowCaptionAb, { hours: abHours }) : t(m.modeNowCaption) },
     { mode: 'at', title: t(m.modeAt), caption: draft.mode === 'at' && at ? at : t(m.modeAtCaption) },
+    // Review 2026-11 CA-5: the same time of day in each recipient's zone.
+    {
+      mode: 'local',
+      title: t(m.modeLocal, { time: draft.mode === 'local' && draft.time ? timeOfDay(draft.time) : '09:00' }),
+      caption: draft.mode === 'local' && draft.date ? t(m.modeLocalCaption, { day: calendarDate(draft.date, 'shortDate'), zone: zoneLabel(tz) }) : t(m.modeLocalCaptionIdle),
+    },
     {
       mode: 'best_time',
       title: t(m.modeBest),

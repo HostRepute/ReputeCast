@@ -47,6 +47,8 @@
   "problem.blockedAsStarted": "Send Readiness blocked the send as it started, so nothing was sent.",
   "problem.blockedAsStartedReason": {"message": "Send Readiness blocked the send as it started, so nothing was sent: {reason}.", "note": "reason: what blocked it, from Send Readiness or the approval"},
   "problem.notScheduled": "The campaign isn't scheduled.",
+  "problem.rescheduleApproved": "This campaign was approved for its time. Unschedule it and ask for approval at the new time.",
+  "problem.rescheduleFuture": "Pick a time at least a minute from now.",
   "problem.noClientApprover": {"message": "This send needs client sign-off, and nobody at {workspace} can give it yet. Invite the client's approver in Settings › Team with the Client approver role.", "note": "workspace: the client workspace's name. Client approver is a role's name"},
   "problem.signoffNotClient": "Client sign-off is for the client workspaces of an agency. Turn agency mode on in Instance admin › Instance & updates first.",
   "problem.audienceMin": {"message": "Enter a number of recipients, like {example, number}.", "note": "example: 10000"},
@@ -153,6 +155,7 @@
   "schedule.now": "Send now",
   "schedule.at": {"message": "{at}", "note": "at: the scheduled moment, Nov 4, 09:00"},
   "schedule.best": {"message": "Best time within 24 h of {at}", "note": "at: the scheduled moment, Nov 4, 09:00"},
+  "schedule.local": {"message": "{at} in each recipient's time zone", "note": "at: the wall time, Nov 4, 09:00"},
 
   "invalid.fields": {"message": "{fields} changed", "note": "why an approval no longer covers a campaign; fields: subject and a link. The screens may add after approval (invalid.afterApproval)"},
   "invalid.moved": {"message": "audience moved {moved}", "note": "moved: how far the audience moved since the request, +14%"},

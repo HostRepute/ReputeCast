@@ -57,8 +57,14 @@ func (w *CleanupWorker) Work(ctx context.Context, _ *river.Job[CleanupArgs]) err
 	if err != nil {
 		return err
 	}
-	if sessions+challenges+purged+lists > 0 {
-		w.Log.InfoContext(ctx, "cleanup", "sessions", sessions, "challenges", challenges, "audit_events", purged, "deleted_lists", lists)
+	// Deleted campaigns go for good 30 days on (review 2026-11 CA-1).
+	campaignsBefore := time.Now().AddDate(0, 0, -30)
+	campaigns, err := q.PurgeDeletedCampaigns(ctx, &campaignsBefore)
+	if err != nil {
+		return err
+	}
+	if sessions+challenges+purged+lists+campaigns > 0 {
+		w.Log.InfoContext(ctx, "cleanup", "sessions", sessions, "challenges", challenges, "audit_events", purged, "deleted_lists", lists, "deleted_campaigns", campaigns)
 	}
 	return nil
 }

@@ -675,6 +675,14 @@ label.tg {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
+/* A saved template's ⋯ menu sits over the tile's pick button (review 2026-11 CA-8). */
+.tpl.pick .tpl-more {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+  background: var(--surface);
+}
 .tpl.pick:has(.tpl-pick:disabled):hover {
   border-color: var(--line);
 }

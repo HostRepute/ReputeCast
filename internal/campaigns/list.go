@@ -15,6 +15,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/mailer"
@@ -148,6 +149,11 @@ type CampaignListItem struct {
 	// PaidOnly is a campaign for paid members only (Earn): its "Paid only"
 	// badge.
 	PaidOnly bool `json:"paidOnly"`
+	// Subject, Tags, ArchivedAt and DeletedAt (review 2026-11 CA-1, CA-2).
+	Subject    string     `json:"subject"`
+	Tags       []string   `json:"tags"`
+	ArchivedAt *time.Time `json:"archivedAt,omitempty"`
+	DeletedAt  *time.Time `json:"deletedAt,omitempty"`
 }
 
 // CampaignDigestRef is the digest an issue belongs to (internal/digests).
@@ -181,6 +187,10 @@ type CampaignStatusCounts struct {
 	Sent      int64 `json:"sent"`
 	// PaidOnly counts the campaigns for paid members only (Earn).
 	PaidOnly int64 `json:"paidOnly"`
+	// Archived and Deleted are the tabs of review 2026-11 CA-1 (deleted:
+	// restorable, the last 30 days).
+	Archived int64 `json:"archived"`
+	Deleted  int64 `json:"deleted"`
 }
 
 // CampaignList is one page of campaigns.
@@ -201,6 +211,16 @@ type ListParams struct {
 	PaidOnly bool
 	Page     int
 	PageSize int
+	// From and To bound when a campaign went or goes out; Sender, List
+	// (one of its audience's lists) and Tag narrow the list (review
+	// 2026-11 CA-2).
+	From, To *time.Time
+	Sender   *uuid.UUID
+	List     string
+	Tag      string
+	// ItemsOnly skips the totals and the tab counts (Overview's "Recent",
+	// review 2026-11 CA-7).
+	ItemsOnly bool
 }
 
 // List returns one page of campaigns with their route and readiness.
@@ -214,20 +234,24 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p ListParams) (
 	if p.Status == "" {
 		p.Status = "all"
 	}
-	q := strings.TrimSpace(p.Query)
+	q := db.EscapeLike(strings.TrimSpace(p.Query))
+	deletedSince := s.now().Add(-RestoreWindow)
 	rows, err := s.Q.ListCampaigns(ctx, store.ListCampaignsParams{
 		WorkspaceID: ws.ID, StatusGroup: p.Status, Query: q, Channel: p.Channel, PaidOnly: p.PaidOnly, Lim: int32(p.PageSize), Off: int32((p.Page - 1) * p.PageSize),
+		DeletedSince: deletedSince, FromAt: p.From, ToAt: p.To, SenderID: p.Sender, ListID: p.List, Tag: p.Tag,
 	})
 	if err != nil {
 		return CampaignList{}, err
 	}
-	total, err := s.Q.CountCampaigns(ctx, store.CountCampaignsParams{WorkspaceID: ws.ID, StatusGroup: p.Status, Query: q, Channel: p.Channel, PaidOnly: p.PaidOnly})
-	if err != nil {
-		return CampaignList{}, err
-	}
-	counts, err := s.counts(ctx, ws.ID)
-	if err != nil {
-		return CampaignList{}, err
+	total, counts := int64(len(rows)), CampaignStatusCounts{}
+	if !p.ItemsOnly {
+		if total, err = s.Q.CountCampaigns(ctx, store.CountCampaignsParams{WorkspaceID: ws.ID, StatusGroup: p.Status, Query: q, Channel: p.Channel, PaidOnly: p.PaidOnly,
+			DeletedSince: deletedSince, FromAt: p.From, ToAt: p.To, SenderID: p.Sender, ListID: p.List, Tag: p.Tag}); err != nil {
+			return CampaignList{}, err
+		}
+		if counts, err = s.counts(ctx, ws.ID); err != nil {
+			return CampaignList{}, err
+		}
 	}
 	labels, err := s.audienceLabeler(ctx, ws.ID)
 	if err != nil {
@@ -255,8 +279,13 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p ListParams) (
 	}
 	out := CampaignList{Items: make([]CampaignListItem, 0, len(rows)), Total: total, Page: p.Page, PageSize: p.PageSize, Counts: counts}
 	for _, r := range rows {
+		tags := r.Tags
+		if tags == nil {
+			tags = []string{}
+		}
 		it := CampaignListItem{
 			ID: r.ID.String(), Name: r.Name, Channel: r.Channel, Status: r.Status, Audience: labels(r.Audience), Recipients: r.AudienceCount,
+			Subject: r.Subject, Tags: tags, ArchivedAt: r.ArchivedAt, DeletedAt: r.DeletedAt,
 			PaidOnly:  paidaccess.Parse(r.Audience).Who == paidaccess.Paid,
 			CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt, UpdatedBy: r.UpdatedByName, ScheduledAt: r.ScheduledAt, StartedAt: r.StartedAt,
 			Origin: r.Origin, Notes: []string{}, Routes: routes[r.ID],
@@ -334,6 +363,11 @@ func (s *Service) counts(ctx context.Context, wsID uuid.UUID) (CampaignStatusCou
 		return CampaignStatusCounts{}, err
 	}
 	c.PaidOnly = paid
+	ad, err := s.Q.CountCampaignsArchivedDeleted(ctx, store.CountCampaignsArchivedDeletedParams{WorkspaceID: wsID, DeletedSince: s.now().Add(-RestoreWindow)})
+	if err != nil {
+		return CampaignStatusCounts{}, err
+	}
+	c.Archived, c.Deleted = ad.Archived, ad.Deleted
 	return c, nil
 }
 

@@ -204,7 +204,11 @@ func (s *Service) excludeRisky(ctx context.Context, ws *store.Workspace, p *auth
 	if s.Verification == nil {
 		return "", api.Conflict(say(ctx, "problem.noAddressChecks", nil))
 	}
-	aud, recipients, err := s.computeAudience(ctx, s.Q, ws.ID, ParseAudience(c.Audience), sunsetDays(ws.SunsetPolicy), s.now(), true)
+	def, err := campaignAudience(ctx, s.Q, c.ID, c.Audience)
+	if err != nil {
+		return "", err
+	}
+	aud, recipients, err := s.computeAudience(ctx, s.Q, ws.ID, def, sunsetDays(ws.SunsetPolicy), s.now(), true)
 	if err != nil {
 		return "", err
 	}
@@ -220,7 +224,7 @@ func (s *Service) excludeRisky(ctx context.Context, ws *store.Workspace, p *auth
 	if err := json.Unmarshal(c.Audience, &raw); err != nil || raw == nil {
 		raw = map[string]any{}
 	}
-	def := ParseAudience(c.Audience)
+	def = ParseAudience(c.Audience)
 	if def.Empty() {
 		return "", api.Invalid("body.fixes", say(ctx, "problem.pickAudience", nil))
 	}

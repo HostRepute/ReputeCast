@@ -118,6 +118,12 @@ type AudienceFacts struct {
 	// (review 2026-11 AT-9); CapCount and CapDays are the cap.
 	OverCap           int64
 	CapCount, CapDays int
+	// OffCadence counts readers whose chosen rhythm the campaign doesn't
+	// reach (review 2026-11 CA-6); Announcement is a campaign that reaches
+	// every rhythm, DigestFrequency a digest issue's frequency.
+	OffCadence      int64
+	Announcement    bool
+	DigestFrequency string
 	// SunsetOverride is true when the campaign overrides the sunset policy;
 	// StoppedIncluded counts the stopped contacts it sends to anyway.
 	SunsetOverride  bool

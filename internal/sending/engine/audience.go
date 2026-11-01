@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/cadence"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/i18n"
@@ -120,6 +121,9 @@ type Excluded struct {
 	// Capped counts contacts over the workspace's marketing cap (review
 	// 2026-11 AT-9).
 	Capped int64 `json:"capped"`
+	// Cadence counts readers whose chosen rhythm (weekly, monthly) this
+	// campaign doesn't reach (review 2026-11 CA-6).
+	Cadence int64 `json:"cadence"`
 }
 
 // Content is what a send renders, captured at start (campaign_sends.content).
@@ -342,10 +346,15 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 		return err
 	}
 	capSince := now.AddDate(0, 0, -int(limit.MarketingCapDays))
+	// The rhythms the campaign reaches (review 2026-11 CA-6).
+	freqs, err := e.frequencies(ctx, campaignID, cc.Audience)
+	if err != nil {
+		return err
+	}
 	for {
 		rows, err := e.Q.SendingAudiencePage(ctx, store.SendingAudiencePageParams{
 			Now: now, ExcludeLists: def.ExcludeLists, CampaignID: campaignID, Lists: def.Lists, WorkspaceID: cc.WorkspaceID, After: cursor, Lim: pageSize,
-			CapCount: limit.MarketingCapCount, CapSince: capSince,
+			CapCount: limit.MarketingCapCount, CapSince: capSince, Frequencies: freqs,
 		})
 		if err != nil {
 			return err
@@ -387,6 +396,13 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			}
 			pid := rt.provider
 			variant, status, next := assignVariant(ab, c.ID, sendAt.in(c.Timezone))
+			if sc.Mode == "local" && next == nil {
+				// Local time: the same wall time in the contact's own zone
+				// (review 2026-11 CA-5); a time already past goes at once.
+				if t, ok := sc.localAt(c.Timezone); ok && t.After(now) {
+					next = &t
+				}
+			}
 			if h, ok := hours[c.ID]; ok && next == nil {
 				// Best time: the hour the contact usually opens at, within
 				// 24 hours; contacts who never opened go at the start.
@@ -611,6 +627,8 @@ func eligibility(c store.SendingAudiencePageRow, def audienceDef, dup bool) stri
 		return "duplicate"
 	case c.Paused:
 		return "paused"
+	case c.OffCadence:
+		return "cadence"
 	case c.SunsetStopped && !def.sendsToStopped():
 		return "sunset"
 	case slices.Contains(def.ExcludeTiers, c.Tier):
@@ -645,6 +663,8 @@ func (x *Excluded) add(why string) {
 		x.Tiers++
 	case "cap":
 		x.Capped++
+	case "cadence":
+		x.Cadence++
 	}
 }
 
@@ -758,6 +778,24 @@ func (e *Engine) usualOpenHours(ctx context.Context, rows []store.SendingAudienc
 		}
 	}
 	return out
+}
+
+// frequencies are the preference-center rhythms a campaign reaches: its
+// audience's cadence, and its digest's frequency for a digest issue
+// (cadence.Frequencies); empty reaches everyone.
+func (e *Engine) frequencies(ctx context.Context, campaignID uuid.UUID, audience json.RawMessage) ([]string, error) {
+	var a struct {
+		Cadence string `json:"cadence"`
+	}
+	_ = json.Unmarshal(audience, &a)
+	digest, err := e.Q.CampaignDigestFrequency(ctx, campaignID)
+	if err != nil {
+		return nil, err
+	}
+	if f := cadence.Frequencies(a.Cadence, digest); f != nil {
+		return f, nil
+	}
+	return []string{}, nil // a NULL array would make every check NULL
 }
 
 // nextAtHour is when a contact who usually opens at hour (UTC) gets a send

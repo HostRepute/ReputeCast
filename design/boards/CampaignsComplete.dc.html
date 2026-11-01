@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Campaigns, everyday · delete and archive, filters, tags and bulk, follow-ups, local time, cadence, templates</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.sboard{width:1440px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:22px}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.strip span{font-weight:500;text-transform:none;letter-spacing:0;color:#CBD5E1}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+figcaption{font-size:12px;color:#5B6472;font-weight:600}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}
+.btn.dpri{background:#B91C1C;border-color:#B91C1C;color:#fff}
+.btn[aria-disabled=true]{opacity:.5}
+.linkbtn{background:none;border:0;padding:0;font:inherit;font-size:13px;font-weight:600;color:#0F766E;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.t1{background:#104281;color:#fff}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font-size:12.5px;font-weight:500;color:#374151}
+.chip.on{background:#E3F1EE;border-color:#99F6E4;color:#0F766E;font-weight:600}
+.chip .more{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-right:-6px;border-radius:6px;border:0;background:transparent;color:inherit;cursor:pointer}
+.in{height:36px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box}
+.in.err{border-color:#B91C1C}
+.lbl{font-size:12px;font-weight:600;color:#374151}
+.field{display:flex;flex-direction:column;gap:6px}
+.hint{font-size:12px;color:#5B6472}
+.errt{font-size:12px;color:#991B1B;font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:10px 12px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl th button{display:inline-flex;align-items:center;gap:4px;background:none;border:0;padding:0;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer}
+.tbl th[aria-sort] button{color:#0B1220}
+.tbl td{padding:10px 12px;border-bottom:1px solid #EEF0F3;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.tbl tr.sel td{background:#F0FDFA}
+.foot{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-top:1px solid #EEF0F3;flex-wrap:wrap;gap:8px}
+.bulk{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 12px;background:#F0FDFA;border:1px solid #99F6E4;border-radius:10px}
+.banner{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;padding:9px 12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;font-size:13px}
+.menu{background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:240px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;width:100%}
+.menu button:hover,.menu button.hl{background:#F3F4F6}
+.menu button.red{color:#991B1B}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+.menu label{display:flex;align-items:center;gap:10px;min-height:32px;padding:0 10px;border-radius:8px;font-size:13px}
+.pop{background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:14px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box}
+.dlg{background:#fff;border-radius:12px;box-shadow:0 24px 64px rgba(11,18,32,.24);display:flex;flex-direction:column;box-sizing:border-box;border:1px solid #E3E6EB}
+.dlg header{padding:18px 20px 6px;font-size:17px;font-weight:700}
+.dlg .body{padding:6px 20px 14px;display:flex;flex-direction:column;gap:12px;color:#374151}
+.dlg footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #EEF0F3}
+.note{display:flex;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px}
+.note.w{background:#FFFBEB;border:1px solid #FDE68A;color:#78350F}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.sec{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #EEF0F3}
+.h2{font-size:15px;font-weight:700;margin:0}
+.lrow{display:flex;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid #EEF0F3}
+.lrow:first-of-type{border-top:0}
+.tag{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 4px 0 8px;border-radius:6px;background:#EEF0F3;font-size:12px;font-weight:600;color:#374151}
+.tag button{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:0;border-radius:4px;background:transparent;color:#5B6472;cursor:pointer}
+.sw{display:inline-flex;align-items:center;width:34px;height:20px;border-radius:999px;background:#0F766E;padding:2px;box-sizing:border-box;justify-content:flex-end}
+.sw.off{background:#C9CED6;justify-content:flex-start}
+.sw i{width:16px;height:16px;border-radius:50%;background:#fff;display:block}
+.spin{width:12px;height:12px;border-radius:50%;border:2px solid #CBD5E1;border-top-color:#0F766E;display:inline-block}
+.drawer{background:#fff;border:1px solid #E3E6EB;border-radius:12px;box-shadow:0 24px 64px rgba(11,18,32,.18);display:flex;flex-direction:column}
+.stack{display:flex;flex-direction:column;gap:8px}
+.tcard{border:1px solid #99F6E4;background:#F0FDFA;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.tcard .ey{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#0F766E}
+.or{align-self:center;font-size:11px;font-weight:700;letter-spacing:.06em;color:#5B6472}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;font-size:13px}
+.opt.on{border-color:#0F766E;background:#F0FDFA}
+.opt input{margin-top:3px}
+.wf{display:flex;justify-content:space-between;padding:8px 14px;border-top:1px solid #EEF0F3;font-size:13px}
+.wf:first-child{border-top:0}
+.bar{height:8px;border-radius:4px;background:#E3E6EB;overflow:hidden}.bar i{display:block;height:100%;background:#4338CA}
+.ftr{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px}
+.tagp{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;background:#EEF2FF;color:#3730A3;font-size:11.5px;font-weight:600}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-top:1px solid #E3E6EB;border-left:1px solid #E3E6EB}
+.cal>div{min-height:104px;border-right:1px solid #E3E6EB;border-bottom:1px solid #E3E6EB;padding:6px;display:flex;flex-direction:column;gap:4px;font-size:12px;box-sizing:border-box}
+.cal .dh{min-height:0;padding:6px 8px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;background:#F9FAFB}
+.cal .dn{font-weight:600;color:#374151}
+.cal .out{background:#FAFAFB;color:#9AA3B2}
+.cal .today .dn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#0F766E;color:#fff}
+.ev{display:flex;flex-direction:column;gap:1px;padding:4px 6px;border-radius:6px;font-size:11.5px;line-height:1.3;border-left:3px solid}
+.ev.s{background:#EFF6FF;border-color:#2563EB;color:#1E3A8A;cursor:grab}
+.ev.d{background:#F0FDFA;border-color:#0F766E;color:#134E4A}
+.ev.g{background:#FEF3C7;border-color:#D97706;color:#78350F}
+.ev.drag{box-shadow:0 8px 20px rgba(11,18,32,.2);transform:rotate(-1deg)}
+.ev.drop{outline:2px dashed #2563EB;outline-offset:2px}
+</style>
+</helmet>
+<div class="sboard" data-wrap="1">
+
+<div class="strip">1 · Delete and archive <span>Drafts and campaigns that sent nothing can be deleted, restorable for 30 days; sent ones are archived, never deleted: their reports, web posts, retries and approvals keep working (D4).</span></div>
+<div class="grid three">
+  <figure><figcaption>A row's menu · sent and draft</figcaption>
+    <section class="card"><div class="lrow"><span style="flex:1;min-width:0"><b>October Product Update</b><br><span class="k">Thu 9 Oct · 10:00</span></span><span class="badge ok"><span class="dot"></span>Sent</span><button class="btn sm" aria-label="More actions for October Product Update" aria-expanded="true">⋯</button></div></section>
+    <div class="menu" role="menu" style="align-self:flex-end"><button role="menuitem">Report</button><button role="menuitem">Duplicate</button><button role="menuitem">Follow up…</button><hr><button role="menuitem">Archive</button></div>
+    <div class="menu" role="menu" style="align-self:flex-end"><button role="menuitem">Edit</button><button role="menuitem">Duplicate</button><button role="menuitem">Add tag…</button><hr><button role="menuitem" class="red">Delete…</button></div>
+  </figure>
+  <figure><figcaption>Delete a draft</figcaption>
+    <div class="dlg"><header>Delete "Flash sale: 48 hours only"?</header><div class="body"><span>It goes to Deleted, where it can be restored for 30 days; then it's gone for good. Its approval request is closed.</span></div><footer><button class="btn">Cancel</button><button class="btn dpri">Delete campaign</button></footer></div>
+    <div class="note i"><span>Deleted "Flash sale: 48 hours only". <button class="linkbtn">Undo</button></span></div>
+  </figure>
+  <figure><figcaption>Archive a sent campaign · the Archived tab</figcaption>
+    <div class="dlg"><header>Archive "October Product Update"?</header><div class="body"><span>It leaves the list. Its report, its web post and any retry stay where they are, and it can be unarchived from the Archived tab.</span></div><footer><button class="btn">Cancel</button><button class="btn pri">Archive</button></footer></div>
+    <div class="card ftr"><span class="chip">All · 49</span><span class="chip">Sent · 45</span><span class="chip on">Archived · 12</span><span class="chip">Deleted · 2</span></div>
+  </figure>
+</div>
+
+<div class="strip">2 · Many campaigns <span>Search names and subjects, filter by date, sender, audience and tag, select rows and act on them together; a scheduled row can be unscheduled where it is.</span></div>
+<div class="grid">
+  <figure><figcaption>Filters and tags</figcaption>
+    <section class="card"><div class="ftr"><input class="in" style="width:240px" placeholder="Search name or subject" aria-label="Search campaigns"><select class="in" aria-label="Sent or scheduled"><option>Any date</option><option>Last 7 days</option><option selected>Last 30 days</option><option>This quarter</option><option>Custom…</option></select><select class="in" aria-label="Sender"><option>Any sender</option></select><select class="in" aria-label="Audience"><option>Any audience</option></select><select class="in" aria-label="Tag"><option>Any tag</option><option>product</option><option>promo</option></select><button class="linkbtn">Clear filters</button></div>
+      <div class="lrow"><span style="flex:1;min-width:0"><b>Weekly Digest #142</b> <span class="tagp">digest</span><br><span class="k">Tue 14 Oct · 09:00 America/New_York</span></span><span class="badge info"><span class="dot"></span>Scheduled</span><button class="btn sm">Unschedule</button><button class="btn sm">Edit</button></div>
+      <div class="lrow"><span style="flex:1;min-width:0"><b>October Product Update</b> <span class="tagp">product</span> <span class="tagp">Q4</span><br><span class="k">Thu 9 Oct · 10:00 · A/B subject</span></span><span class="badge ok"><span class="dot"></span>Sent</span><button class="btn sm">Report</button></div>
+    </section>
+  </figure>
+  <figure><figcaption>Selected: the bulk bar</figcaption>
+    <div class="bulk"><span style="font-weight:600;font-size:13px">3 selected</span><button class="btn sm">Add tag</button><button class="btn sm">Remove tag</button><button class="btn sm">Archive</button><button class="btn sm danger">Delete</button><button class="linkbtn" style="margin-left:auto">Clear</button></div>
+    <div class="note i"><span>Archived 2 campaigns. 1 wasn't: drafts are deleted, not archived.</span></div>
+    <div class="pop" style="width:300px"><span class="lbl">Add a tag to 3 campaigns</span><input class="in" value="Q4" list="tags"><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn sm">Cancel</button><button class="btn sm pri">Add tag</button></div></div>
+  </figure>
+</div>
+
+<div class="strip">3 · Follow-ups from a report <span>Resend to people who didn't open (human opens only, privacy-protected opens counted as unknown, not as opened) or send to clickers: a new draft with that audience and a subject of its own.</span></div>
+<div class="grid">
+  <figure><figcaption>Report header · Follow up</figcaption>
+    <div class="card" style="padding:10px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b style="flex:1">October Product Update</b><button class="btn sm">Duplicate</button><button class="btn sm" aria-expanded="true">Follow up ▾</button></div>
+    <div class="menu" role="menu" style="align-self:flex-end"><button role="menuitem">Resend to non-openers…</button><button role="menuitem">Send to clickers…</button></div>
+  </figure>
+  <figure><figcaption>Resend to non-openers</figcaption>
+    <div class="dlg"><header>Resend to people who didn't open</header><div class="body"><span><b>26,012 contacts</b> got "October Product Update" and haven't opened it. 3,104 opened only through Apple Mail Privacy Protection: they count as unknown and are left out.</span>
+      <div class="field"><label class="lbl" for="fs">New subject</label><input id="fs" class="in" value="In case you missed it: what's new in October"></div>
+      <div class="field"><label class="lbl" for="fw">Send</label><select id="fw" class="in"><option>2 days after the original (Sat 11 Oct, 10:00)</option><option>Now</option></select></div>
+      <span class="k">Creates a draft with the same content. Suppressions, unsubscribes and the marketing cap apply as usual.</span></div><footer><button class="btn">Cancel</button><button class="btn pri">Create the follow-up</button></footer></div>
+  </figure>
+</div>
+
+<div class="strip">4 · Sending time and cadence <span>Send at the same local time in each recipient's time zone, as texts already do. A campaign is a regular issue or an announcement; readers who chose a weekly or monthly rhythm get only digests of that rhythm and announcements (D1).</span></div>
+<div class="grid three">
+  <figure><figcaption>Review &amp; send · Schedule</figcaption>
+    <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span class="lbl">When</span>
+      <label class="opt"><input type="radio" name="w"><span><b>Now</b></span></label>
+      <label class="opt"><input type="radio" name="w"><span><b>At a set time</b> <span class="k">· Tue 14 Oct, 09:00 America/New_York</span></span></label>
+      <label class="opt on"><input type="radio" name="w" checked><span><b>At 09:00 in each recipient's time zone</b><br><span class="k">Tue 14 Oct. Starts in Kiritimati (UTC+14) and finishes in Pago Pago (UTC−11), 25 hours later; contacts without a time zone get America/New_York.</span></span></label>
+      <label class="opt"><input type="radio" name="w"><span><b>Best time</b> <span class="k">· each reader's usual open hour</span></span></label></section>
+  </figure>
+  <figure><figcaption>Sending to · cadence</figcaption>
+    <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span class="lbl">This campaign is</span>
+      <label class="opt on"><input type="radio" name="cd" checked><span><b>A regular issue</b><br><span class="k">Reaches readers who get every issue. 1,204 chose a weekly or monthly rhythm and are left out.</span></span></label>
+      <label class="opt"><input type="radio" name="cd"><span><b>An announcement</b><br><span class="k">Reaches everyone on its lists, whatever rhythm they chose. Keep it for news that matters to all.</span></span></label></section>
+  </figure>
+  <figure><figcaption>Review &amp; send · the waterfall's line</figcaption>
+    <section class="card"><div class="wf"><span>Weekly Digest</span><span class="n">31,988</span></div><div class="wf"><span>Suppressed</span><span class="n">−412</span></div><div class="wf"><span>Chose a weekly or monthly rhythm</span><span class="n">−1,204</span></div><div class="wf"><b>Will receive</b><b class="n">30,372</b></div></section>
+  </figure>
+</div>
+
+<div class="strip">5 · Saved templates and sections <span>The gallery searches saved templates and sections by name; each tile's menu renames it, replaces it with the email open in the composer, or deletes it.</span></div>
+<div class="grid">
+  <figure><figcaption>Gallery · search and a tile's menu</figcaption>
+    <section class="card" style="padding:12px 14px;display:flex;flex-direction:column;gap:10px"><div style="display:flex;gap:8px;align-items:center"><input class="in" style="flex:1" placeholder="Search templates and sections" value="digest" aria-label="Search templates"><span class="k">3 found</span></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><div class="card" style="padding:10px;display:flex;flex-direction:column;gap:6px"><div style="height:70px;background:#F3F4F6;border-radius:6px"></div><span style="display:flex;align-items:center;gap:6px"><b style="flex:1;font-size:12.5px">Weekly digest</b><button class="btn sm" aria-label="More actions for Weekly digest" aria-expanded="true">⋯</button></span></div><div class="card" style="padding:10px"><div style="height:70px;background:#F3F4F6;border-radius:6px"></div><b style="font-size:12.5px">Digest header</b></div><div class="card" style="padding:10px"><div style="height:70px;background:#F3F4F6;border-radius:6px"></div><b style="font-size:12.5px">Digest footer</b></div></div></section>
+    <div class="menu" role="menu"><button role="menuitem">Rename…</button><button role="menuitem">Replace with this email</button><hr><button role="menuitem" class="red">Delete…</button></div>
+  </figure>
+  <figure><figcaption>Replace a template</figcaption>
+    <div class="dlg"><header>Replace "Weekly digest" with this email?</header><div class="body"><span>New emails made from it start from the email open now. Emails already made from it don't change.</span></div><footer><button class="btn">Cancel</button><button class="btn pri">Replace template</button></footer></div>
+  </figure>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -110,10 +110,48 @@ func TestEstimateQuota(t *testing.T) {
 // Best time: each hour's part goes at its hour, within 24 hours.
 func TestEstimateBestTime(t *testing.T) {
 	p := plan(route("ses", 14, map[string]int64{"gmail": 24000}))
-	p.bestTime = true
+	p.spread = 24 * time.Hour
 	est := (&Engine{}).simulate(p)
 	if got := est.End.Sub(estStart); got < 23*time.Hour || got > 24*time.Hour+time.Minute {
 		t.Fatalf("best time: %s", got)
+	}
+	if !est.BestTime || est.LocalTime {
+		t.Fatalf("flags: best %v local %v", est.BestTime, est.LocalTime)
+	}
+}
+
+// Local time: the same wall time reaches every zone over about 26 hours
+// (review 2026-11 CA-5).
+func TestEstimateLocalTime(t *testing.T) {
+	p := plan(route("ses", 14, map[string]int64{"gmail": 26000}))
+	p.spread = localSpread
+	est := (&Engine{}).simulate(p)
+	if got := est.End.Sub(estStart); got < 25*time.Hour || got > 26*time.Hour+time.Minute {
+		t.Fatalf("local time: %s", got)
+	}
+	if !est.LocalTime || est.BestTime {
+		t.Fatalf("flags: best %v local %v", est.BestTime, est.LocalTime)
+	}
+}
+
+// A local-time schedule reaches each zone at its wall time; a contact
+// without a known zone gets the schedule's.
+func TestScheduleLocalAt(t *testing.T) {
+	sc := schedule{Mode: "local", Local: "2026-11-04 09:00", Timezone: "Europe/Berlin"}
+	for tz, want := range map[string]string{
+		"Asia/Ho_Chi_Minh":   "2026-11-04T02:00:00Z",
+		"America/New_York":   "2026-11-04T14:00:00Z",
+		"Pacific/Kiritimati": "2026-11-03T19:00:00Z",
+		"":                   "2026-11-04T08:00:00Z",
+		"Not/AZone":          "2026-11-04T08:00:00Z",
+	} {
+		got, ok := sc.localAt(tz)
+		if !ok || got.UTC().Format(time.RFC3339) != want {
+			t.Errorf("%q: %v %v, want %s", tz, got.UTC(), ok, want)
+		}
+	}
+	if _, ok := (schedule{Mode: "at"}).localAt("UTC"); ok {
+		t.Fatal("a schedule without a wall time has no local time")
 	}
 }
 

@@ -135,6 +135,7 @@ export const mr = defineMessages('approvals.review', {
   scheduled: 'Scheduled',
   sendNow: 'Send now',
   bestTime: 'Best time per recipient within 24 h of {when}',
+  localTime: "{time} in each recipient's time zone on {day}",
   notScheduled: 'Not scheduled yet',
   estimated: '{when} · estimated {duration} at current rate limits',
   estimatedMinutes: '{n, plural, one {# minute} other {# minutes}}',

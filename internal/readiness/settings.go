@@ -64,7 +64,9 @@ func (t ReadinessThresholds) toDB(stored json.RawMessage) json.RawMessage {
 // time in a time zone, or at each recipient's usual open time within 24 h of
 // that time.
 type ReadinessSchedule struct {
-	Mode string `json:"mode" enum:"now,at,best_time"`
+	// Mode "local" sends at Date and Time in each recipient's own zone
+	// (Timezone's for contacts without one).
+	Mode string `json:"mode" enum:"now,at,best_time,local"`
 	// Date and Time are local to Timezone ("2026-10-14", "09:00").
 	Date     string `json:"date,omitempty" pattern:"^\\d{4}-\\d{2}-\\d{2}$"`
 	Time     string `json:"time,omitempty" pattern:"^([01]\\d|2[0-3]):[0-5]\\d$"`
@@ -88,6 +90,9 @@ func ScheduleView(raw json.RawMessage, wsTZ string) ReadinessSchedule {
 			out.Date, out.Time, out.At = lt.Format("2006-01-02"), lt.Format("15:04"), &t
 		}
 	}
+	if d, tm, ok := strings.Cut(s.Local, " "); ok && s.Mode == "local" {
+		out.Date, out.Time = d, tm
+	}
 	return out
 }
 
@@ -97,7 +102,7 @@ func (in ReadinessSchedule) Resolve(ctx context.Context, field string) (Schedule
 	switch in.Mode {
 	case "now", "":
 		return Schedule{Mode: "now"}, nil, nil
-	case "at", "best_time":
+	case "at", "best_time", "local":
 	default:
 		return Schedule{}, nil, api.Invalid(field+".mode", say(ctx, "problem.pickWhen", nil))
 	}
@@ -109,6 +114,13 @@ func (in ReadinessSchedule) Resolve(ctx context.Context, field string) (Schedule
 	at, err := time.ParseInLocation("2006-01-02 15:04", in.Date+" "+in.Time, loc)
 	if err != nil {
 		return Schedule{}, nil, api.Invalid(field+".date", say(ctx, "problem.pickDateTime", nil))
+	}
+	if in.Mode == "local" {
+		// The send starts when the time first comes, in UTC+14; the
+		// stored wall time is what each recipient's zone gets.
+		local := in.Date + " " + in.Time
+		first, _ := time.ParseInLocation("2006-01-02 15:04", local, earliestZone)
+		return Schedule{Mode: "local", At: first.UTC().Format(time.RFC3339), Timezone: tz, Local: local}, &first, nil
 	}
 	return Schedule{Mode: in.Mode, At: at.UTC().Format(time.RFC3339), Timezone: tz}, &at, nil
 }

@@ -133,6 +133,7 @@ export default translate(mr, {
   scheduled: 'Lịch gửi',
   sendNow: 'Gửi ngay',
   bestTime: 'Giờ tốt nhất cho từng người nhận, trong vòng 24 giờ từ {when}',
+  localTime: '{time} theo múi giờ của từng người nhận vào {day}',
   notScheduled: 'Chưa lên lịch',
   estimated: '{when} · ước tính {duration} với giới hạn tốc độ hiện tại',
   estimatedMinutes: '{n} phút',

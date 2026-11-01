@@ -325,6 +325,8 @@ var (
 	mBlockedAsStarted       = msgs.M("problem.blockedAsStarted")
 	mBlockedAsStartedReason = msgs.M("problem.blockedAsStartedReason")
 	mNotScheduled           = msgs.M("problem.notScheduled")
+	mRescheduleApproved     = msgs.M("problem.rescheduleApproved")
+	mRescheduleFuture       = msgs.M("problem.rescheduleFuture")
 	mNoClientApprover       = msgs.M("problem.noClientApprover")
 	mSignoffNotClient       = msgs.M("problem.signoffNotClient")
 	mAudienceMin            = msgs.M("problem.audienceMin")

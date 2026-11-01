@@ -32,7 +32,11 @@ SELECT c.id, c.email, c.mailbox_provider, c.tier, c.role_address, c.language,
        -- Over the workspace's marketing cap (review 2026-11 AT-9).
        (@cap_count::int > 0 AND (SELECT count(*) FROM messages mm
            WHERE mm.contact_id = c.id AND mm.stream IN ('broadcast', 'automation') AND mm.queued_at > @cap_since::timestamptz
-             AND mm.status NOT IN ('failed', 'cancelled', 'rejected') AND (sqlc.narg(campaign_id)::uuid IS NULL OR mm.campaign_id IS DISTINCT FROM sqlc.narg(campaign_id)::uuid)) >= @cap_count::int)::boolean AS over_cap
+             AND mm.status NOT IN ('failed', 'cancelled', 'rejected') AND (sqlc.narg(campaign_id)::uuid IS NULL OR mm.campaign_id IS DISTINCT FROM sqlc.narg(campaign_id)::uuid)) >= @cap_count::int)::boolean AS over_cap,
+       -- The rhythm they chose doesn't take this campaign (review 2026-11
+       -- CA-6): frequencies lists the choices it reaches, empty (or NULL) for all.
+       (coalesce(cardinality(@frequencies::text[]), 0) > 0
+        AND NOT coalesce((SELECT p.frequency FROM contact_preferences p WHERE p.contact_id = c.id), 'all') = ANY(@frequencies::text[]))::boolean AS off_cadence
 FROM contacts c
 WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS NULL
   AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY(@lists::uuid[]) AND ll.deleted_at IS NULL)))

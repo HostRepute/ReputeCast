@@ -208,6 +208,10 @@ SELECT page.id::uuid AS id,
        (c.broadcasts_stopped_at IS NOT NULL)::boolean AS sunset_stopped,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)::boolean AS suppressed,
        coalesce((SELECT p.paused_until > @now::timestamptz FROM contact_preferences p WHERE p.contact_id = c.id), false)::boolean AS paused,
+       -- The rhythm they chose doesn't take this campaign (review 2026-11
+       -- CA-6): frequencies lists the choices it reaches, empty (or NULL) for all.
+       (coalesce(cardinality(@frequencies::text[]), 0) > 0
+        AND NOT coalesce((SELECT p.frequency FROM contact_preferences p WHERE p.contact_id = c.id), 'all') = ANY(@frequencies::text[]))::boolean AS off_cadence,
        coalesce(c.language, '')::text AS language,
        coalesce(c.timezone, '')::text AS timezone,
        -- Over the workspace's marketing cap (review 2026-11 AT-9).
@@ -655,3 +659,9 @@ GROUP BY e.contact_id;
 -- language was removed) goes out in the source instead.
 UPDATE messages SET content_ref = content_ref - 'language', language = @language, language_reason = 'not_offered'
 WHERE id = @id;
+
+-- name: CampaignDigestFrequency :one
+-- The frequency of the digest a campaign is an issue of ("" when it isn't
+-- one): weekly and monthly issues reach readers who chose that rhythm.
+SELECT coalesce((SELECT d.schedule->>'frequency' FROM digest_issues i JOIN digests d ON d.id = i.digest_id
+                 WHERE i.campaign_id = @campaign_id::uuid LIMIT 1), '')::text AS frequency;

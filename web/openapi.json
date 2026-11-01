@@ -14461,6 +14461,162 @@
         ],
         "type": "object"
       },
+      "CampaignBulkInput": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "archive",
+              "unarchive",
+              "delete",
+              "tag",
+              "untag"
+            ],
+            "type": "string"
+          },
+          "ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "type": "array"
+          },
+          "tag": {
+            "maxLength": 40,
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids",
+          "action"
+        ],
+        "type": "object"
+      },
+      "CampaignBulkResult": {
+        "additionalProperties": false,
+        "properties": {
+          "done": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "skipped": {
+            "items": {
+              "$ref": "#/components/schemas/CampaignBulkSkip"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "done",
+          "skipped"
+        ],
+        "type": "object"
+      },
+      "CampaignBulkSkip": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "CampaignCalendar": {
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CampaignCalendarItem"
+            },
+            "type": "array"
+          },
+          "to": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "items"
+        ],
+        "type": "object"
+      },
+      "CampaignCalendarItem": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "campaignId": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "digestId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "scheduled",
+              "sent",
+              "digest_issue"
+            ],
+            "type": "string"
+          },
+          "local": {
+            "type": "boolean"
+          },
+          "localTime": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "channel",
+          "status",
+          "at",
+          "sent"
+        ],
+        "type": "object"
+      },
       "CampaignChip": {
         "additionalProperties": false,
         "properties": {
@@ -14589,6 +14745,71 @@
         ],
         "type": "object"
       },
+      "CampaignFollowUpCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "clickers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "machineOnly": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nonOpeners": {
+            "description": "No open at all",
+            "format": "int64",
+            "type": "integer"
+          },
+          "received": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "received",
+          "nonOpeners",
+          "machineOnly",
+          "clickers",
+          "subject"
+        ],
+        "type": "object"
+      },
+      "CampaignFollowUpInput": {
+        "additionalProperties": false,
+        "properties": {
+          "delayHours": {
+            "format": "int64",
+            "maximum": 720,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "non_openers",
+              "clickers"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 998,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "subject"
+        ],
+        "type": "object"
+      },
       "CampaignInput": {
         "additionalProperties": false,
         "properties": {
@@ -14637,6 +14858,10 @@
       "CampaignListItem": {
         "additionalProperties": false,
         "properties": {
+          "archivedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
           "audience": {
             "type": "string"
           },
@@ -14661,6 +14886,10 @@
             "type": "number"
           },
           "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "deletedAt": {
             "format": "date-time",
             "type": "string"
           },
@@ -14738,6 +14967,15 @@
             ],
             "type": "string"
           },
+          "subject": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "timezone": {
             "type": "string"
           },
@@ -14761,7 +14999,9 @@
           "updatedBy",
           "routes",
           "notes",
-          "paidOnly"
+          "paidOnly",
+          "subject",
+          "tags"
         ],
         "type": "object"
       },
@@ -15164,6 +15404,14 @@
             "format": "int64",
             "type": "integer"
           },
+          "archived": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "deleted": {
+            "format": "int64",
+            "type": "integer"
+          },
           "drafts": {
             "format": "int64",
             "type": "integer"
@@ -15191,7 +15439,9 @@
           "scheduled",
           "sending",
           "sent",
-          "paidOnly"
+          "paidOnly",
+          "archived",
+          "deleted"
         ],
         "type": "object"
       },
@@ -15252,6 +15502,21 @@
           "sent",
           "cost",
           "costBy"
+        ],
+        "type": "object"
+      },
+      "CampaignTags": {
+        "additionalProperties": false,
+        "properties": {
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "tags"
         ],
         "type": "object"
       },
@@ -18188,6 +18453,14 @@
       "ComposerAudience": {
         "additionalProperties": false,
         "properties": {
+          "cadence": {
+            "enum": [
+              "regular",
+              "announcement",
+              ""
+            ],
+            "type": "string"
+          },
           "excludeLists": {
             "items": {
               "type": "string"
@@ -18238,6 +18511,10 @@
           "approximate": {
             "type": "boolean"
           },
+          "choseRhythm": {
+            "format": "int64",
+            "type": "integer"
+          },
           "count": {
             "format": "int64",
             "type": "integer"
@@ -18245,13 +18522,23 @@
         },
         "required": [
           "count",
-          "approximate"
+          "approximate",
+          "choseRhythm"
         ],
         "type": "object"
       },
       "ComposerAudienceInput": {
         "additionalProperties": false,
         "properties": {
+          "cadence": {
+            "description": "regular (default): readers who get every issue; announcement: everyone, whatever rhythm they chose",
+            "enum": [
+              "regular",
+              "announcement",
+              ""
+            ],
+            "type": "string"
+          },
           "excludeLists": {
             "items": {
               "type": "string"
@@ -60866,7 +61153,8 @@
             "enum": [
               "now",
               "at",
-              "best_time"
+              "best_time",
+              "local"
             ],
             "type": "string"
           },
@@ -61035,6 +61323,9 @@
           "end": {
             "format": "date-time",
             "type": "string"
+          },
+          "localTime": {
+            "type": "boolean"
           },
           "open": {
             "type": "boolean"
@@ -116796,19 +117087,66 @@
                 "drafts",
                 "scheduled",
                 "sending",
-                "sent"
+                "sent",
+                "archived",
+                "deleted"
               ],
               "type": "string"
             }
           },
           {
-            "description": "Search by name",
+            "description": "Search names and subjects",
             "explode": false,
             "in": "query",
             "name": "q",
             "schema": {
-              "description": "Search by name",
+              "description": "Search names and subjects",
               "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "pattern": "^(\\d{4}-\\d{2}-\\d{2})?$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "pattern": "^(\\d{4}-\\d{2}-\\d{2})?$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "sender",
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "list",
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "tag",
+            "schema": {
+              "maxLength": 40,
               "type": "string"
             }
           },
@@ -117100,6 +117438,154 @@
         "x-permission": "campaigns:view"
       }
     },
+    "/api/v1/workspaces/{workspace}/campaigns/bulk": {
+      "post": {
+        "operationId": "bulk-campaigns",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampaignBulkInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignBulkResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Archive, unarchive, delete or tag campaigns together",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/calendar": {
+      "get": {
+        "operationId": "campaign-calendar",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "First day (the workspace's time zone)",
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "description": "First day (the workspace's time zone)",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Day after the last",
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "description": "Day after the last",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignCalendar"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Scheduled and sent campaigns and digest issues between two days",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
     "/api/v1/workspaces/{workspace}/campaigns/summary": {
       "get": {
         "operationId": "campaigns-summary",
@@ -117169,7 +117655,121 @@
         "x-permission": "campaigns:view"
       }
     },
+    "/api/v1/workspaces/{workspace}/campaigns/tags": {
+      "get": {
+        "operationId": "list-campaign-tags",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignTags"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The tags campaigns carry",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}": {
+      "delete": {
+        "operationId": "delete-campaign",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a draft or a campaign that sent nothing (restorable for 30 days)",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      },
       "get": {
         "operationId": "get-campaign",
         "parameters": [
@@ -117787,6 +118387,65 @@
         "summary": "Ask the approvers to approve this send",
         "tags": [
           "Approvals"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/archive": {
+      "post": {
+        "operationId": "archive-campaign",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Archive a sent campaign (its report and web post stay)",
+        "tags": [
+          "Campaigns"
         ],
         "x-access": "workspace",
         "x-permission": "campaigns:edit"
@@ -118445,6 +119104,146 @@
           }
         ],
         "summary": "Copy a campaign into a new draft",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/follow-up": {
+      "get": {
+        "operationId": "campaign-follow-up-counts",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignFollowUpCounts"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Who a follow-up would reach: non-openers and clickers",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "reports:view"
+      },
+      "post": {
+        "operationId": "create-campaign-follow-up",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampaignFollowUpInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerCampaign"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Make a follow-up draft for non-openers or clickers",
         "tags": [
           "Campaigns"
         ],
@@ -122822,6 +123621,132 @@
         "x-permission": "reports:share"
       }
     },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/reschedule": {
+      "post": {
+        "description": "Send Readiness checks it again before it goes out. An approved campaign's time is part of its approval: unschedule it and ask again instead.",
+        "operationId": "reschedule-campaign",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadinessSchedule"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Move a scheduled campaign to another time (logged)",
+        "tags": [
+          "Review \u0026 send"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:send"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/restore": {
+      "post": {
+        "operationId": "restore-campaign",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Bring back a campaign deleted in the last 30 days",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/retry": {
       "post": {
         "description": "Once a block for the sender's reputation or policy is fixed, the addresses it bounced (valid ones, never suppressed for it) get the campaign again, once each: a draft that goes out from Review \u0026 send like any campaign. Addresses suppressed or unsubscribed since are left out. A campaign has one retry at a time; a retry isn't retried again.",
@@ -123362,6 +124287,65 @@
           }
         ],
         "summary": "Send a test email of the saved content",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/unarchive": {
+      "post": {
+        "operationId": "unarchive-campaign",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put an archived campaign back on the list",
         "tags": [
           "Campaigns"
         ],

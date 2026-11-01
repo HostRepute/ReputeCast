@@ -13,6 +13,20 @@ import (
 	"github.com/google/uuid"
 )
 
+const campaignDigestFrequency = `-- name: CampaignDigestFrequency :one
+SELECT coalesce((SELECT d.schedule->>'frequency' FROM digest_issues i JOIN digests d ON d.id = i.digest_id
+                 WHERE i.campaign_id = $1::uuid LIMIT 1), '')::text AS frequency
+`
+
+// The frequency of the digest a campaign is an issue of ("" when it isn't
+// one): weekly and monthly issues reach readers who chose that rhythm.
+func (q *Queries) CampaignDigestFrequency(ctx context.Context, campaignID uuid.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, campaignDigestFrequency, campaignID)
+	var frequency string
+	err := row.Scan(&frequency)
+	return frequency, err
+}
+
 const sendingABTotals = `-- name: SendingABTotals :many
 SELECT variant, coalesce(sum(sent), 0)::bigint AS sent, coalesce(sum(delivered), 0)::bigint AS delivered,
        coalesce(sum(opened_human), 0)::bigint AS opened_human, coalesce(sum(clicked), 0)::bigint AS clicked
@@ -231,21 +245,21 @@ WITH page AS (
     -- staged segment members), so a page reads about a page per source
     -- wherever the cursor is, not every member after it.
     SELECT DISTINCT u.id FROM (
-        SELECT x.id FROM unnest(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($6::uuid[]) AND ll.deleted_at IS NULL)) AS l(list_id)
+        SELECT x.id FROM unnest(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($7::uuid[]) AND ll.deleted_at IS NULL)) AS l(list_id)
         CROSS JOIN LATERAL (
             SELECT m.contact_id AS id FROM list_memberships m
-            WHERE m.list_id = l.list_id AND m.contact_id > $7::uuid AND m.status = 'subscribed'
+            WHERE m.list_id = l.list_id AND m.contact_id > $8::uuid AND m.status = 'subscribed'
             ORDER BY m.contact_id
-            LIMIT $8
+            LIMIT $9
         ) x
         UNION ALL
         (SELECT st.contact_id FROM campaign_audience_stage st
-         WHERE st.campaign_id = $4 AND NOT st.exclude AND st.contact_id > $7::uuid
+         WHERE st.campaign_id = $5 AND NOT st.exclude AND st.contact_id > $8::uuid
          ORDER BY st.contact_id
-         LIMIT $8)
+         LIMIT $9)
     ) u
     ORDER BY u.id
-    LIMIT $8
+    LIMIT $9
 ), ids AS (
     -- One array of the page's ids: the lookups below see a list of known
     -- size (an index lookup or a hashed check) instead of a join the
@@ -254,15 +268,15 @@ WITH page AS (
 ), member_lists AS (
     SELECT m.contact_id, array_agg(m.list_id ORDER BY m.list_id)::uuid[] AS lists
     FROM list_memberships m
-    WHERE m.contact_id = ANY((SELECT a FROM ids)::uuid[]) AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($6::uuid[]) AND ll.deleted_at IS NULL)) AND m.status = 'subscribed'
+    WHERE m.contact_id = ANY((SELECT a FROM ids)::uuid[]) AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($7::uuid[]) AND ll.deleted_at IS NULL)) AND m.status = 'subscribed'
     GROUP BY m.contact_id
 ), excluded AS (
     SELECT DISTINCT x.contact_id
     FROM list_memberships x
-    WHERE x.contact_id = ANY((SELECT a FROM ids)::uuid[]) AND x.list_id = ANY($9::uuid[]) AND x.status = 'subscribed'
+    WHERE x.contact_id = ANY((SELECT a FROM ids)::uuid[]) AND x.list_id = ANY($10::uuid[]) AND x.status = 'subscribed'
 ), excluded_staged AS (
     SELECT st.contact_id FROM campaign_audience_stage st
-    WHERE st.campaign_id = $4 AND st.exclude AND st.contact_id = ANY((SELECT a FROM ids)::uuid[])
+    WHERE st.campaign_id = $5 AND st.exclude AND st.contact_id = ANY((SELECT a FROM ids)::uuid[])
 )
 SELECT page.id::uuid AS id,
        coalesce(c.email, '')::text AS email, coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name,
@@ -272,16 +286,20 @@ SELECT page.id::uuid AS id,
        (c.broadcasts_stopped_at IS NOT NULL)::boolean AS sunset_stopped,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)::boolean AS suppressed,
        coalesce((SELECT p.paused_until > $1::timestamptz FROM contact_preferences p WHERE p.contact_id = c.id), false)::boolean AS paused,
+       -- The rhythm they chose doesn't take this campaign (review 2026-11
+       -- CA-6): frequencies lists the choices it reaches, empty (or NULL) for all.
+       (coalesce(cardinality($2::text[]), 0) > 0
+        AND NOT coalesce((SELECT p.frequency FROM contact_preferences p WHERE p.contact_id = c.id), 'all') = ANY($2::text[]))::boolean AS off_cadence,
        coalesce(c.language, '')::text AS language,
        coalesce(c.timezone, '')::text AS timezone,
        -- Over the workspace's marketing cap (review 2026-11 AT-9).
-       ($2::int > 0 AND (SELECT count(*) FROM messages mm
-           WHERE mm.contact_id = c.id AND mm.stream IN ('broadcast', 'automation') AND mm.queued_at > $3::timestamptz
-             AND mm.status NOT IN ('failed', 'cancelled', 'rejected') AND mm.campaign_id IS DISTINCT FROM $4::uuid) >= $2::int)::boolean AS over_cap,
+       ($3::int > 0 AND (SELECT count(*) FROM messages mm
+           WHERE mm.contact_id = c.id AND mm.stream IN ('broadcast', 'automation') AND mm.queued_at > $4::timestamptz
+             AND mm.status NOT IN ('failed', 'cancelled', 'rejected') AND mm.campaign_id IS DISTINCT FROM $5::uuid) >= $3::int)::boolean AS over_cap,
        (excluded.contact_id IS NOT NULL)::boolean AS excluded_list,
        (excluded_staged.contact_id IS NOT NULL)::boolean AS excluded_segment,
        coalesce(member_lists.lists, '{}'::uuid[])::uuid[] AS lists,
-       (c.id IS NULL OR c.erased_at IS NOT NULL OR c.workspace_id <> $5::uuid)::boolean AS gone
+       (c.id IS NULL OR c.erased_at IS NOT NULL OR c.workspace_id <> $6::uuid)::boolean AS gone
 FROM page
 LEFT JOIN contacts c ON c.id = page.id
 LEFT JOIN member_lists ON member_lists.contact_id = page.id
@@ -292,6 +310,7 @@ ORDER BY page.id
 
 type SendingAudiencePageParams struct {
 	Now          time.Time   `json:"now"`
+	Frequencies  []string    `json:"frequencies"`
 	CapCount     int32       `json:"capCount"`
 	CapSince     time.Time   `json:"capSince"`
 	CampaignID   uuid.UUID   `json:"campaignId"`
@@ -319,6 +338,7 @@ type SendingAudiencePageRow struct {
 	SunsetStopped   bool            `json:"sunsetStopped"`
 	Suppressed      bool            `json:"suppressed"`
 	Paused          bool            `json:"paused"`
+	OffCadence      bool            `json:"offCadence"`
 	Language        string          `json:"language"`
 	Timezone        string          `json:"timezone"`
 	OverCap         bool            `json:"overCap"`
@@ -338,6 +358,7 @@ type SendingAudiencePageRow struct {
 func (q *Queries) SendingAudiencePage(ctx context.Context, arg SendingAudiencePageParams) ([]SendingAudiencePageRow, error) {
 	rows, err := q.db.Query(ctx, sendingAudiencePage,
 		arg.Now,
+		arg.Frequencies,
 		arg.CapCount,
 		arg.CapSince,
 		arg.CampaignID,
@@ -371,6 +392,7 @@ func (q *Queries) SendingAudiencePage(ctx context.Context, arg SendingAudiencePa
 			&i.SunsetStopped,
 			&i.Suppressed,
 			&i.Paused,
+			&i.OffCadence,
 			&i.Language,
 			&i.Timezone,
 			&i.OverCap,
@@ -550,7 +572,7 @@ func (q *Queries) SendingBumpCounters(ctx context.Context, arg SendingBumpCounte
 }
 
 const sendingCampaign = `-- name: SendingCampaign :one
-SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings, digest_id, digest_role, channel, canary FROM campaigns WHERE id = $1 AND deleted_at IS NULL
+SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings, digest_id, digest_role, channel, canary, archived_at, archived_by, deleted_by, tags FROM campaigns WHERE id = $1 AND deleted_at IS NULL
 `
 
 func (q *Queries) SendingCampaign(ctx context.Context, id uuid.UUID) (Campaign, error) {
@@ -595,6 +617,10 @@ func (q *Queries) SendingCampaign(ctx context.Context, id uuid.UUID) (Campaign, 
 		&i.DigestRole,
 		&i.Channel,
 		&i.Canary,
+		&i.ArchivedAt,
+		&i.ArchivedBy,
+		&i.DeletedBy,
+		&i.Tags,
 	)
 	return i, err
 }
@@ -690,7 +716,7 @@ func (q *Queries) SendingCampaignContext(ctx context.Context, id uuid.UUID) (Sen
 
 const sendingCampaignForUpdate = `-- name: SendingCampaignForUpdate :one
 
-SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings, digest_id, digest_role, channel, canary FROM campaigns WHERE id = $1 AND deleted_at IS NULL FOR UPDATE
+SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings, digest_id, digest_role, channel, canary, archived_at, archived_by, deleted_by, tags FROM campaigns WHERE id = $1 AND deleted_at IS NULL FOR UPDATE
 `
 
 // Sending engine and live monitor (spec 5.3, 7.6).
@@ -736,12 +762,16 @@ func (q *Queries) SendingCampaignForUpdate(ctx context.Context, id uuid.UUID) (C
 		&i.DigestRole,
 		&i.Channel,
 		&i.Canary,
+		&i.ArchivedAt,
+		&i.ArchivedBy,
+		&i.DeletedBy,
+		&i.Tags,
 	)
 	return i, err
 }
 
 const sendingCampaignInWorkspace = `-- name: SendingCampaignInWorkspace :one
-SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings, digest_id, digest_role, channel, canary FROM campaigns WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
+SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings, digest_id, digest_role, channel, canary, archived_at, archived_by, deleted_by, tags FROM campaigns WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type SendingCampaignInWorkspaceParams struct {
@@ -791,6 +821,10 @@ func (q *Queries) SendingCampaignInWorkspace(ctx context.Context, arg SendingCam
 		&i.DigestRole,
 		&i.Channel,
 		&i.Canary,
+		&i.ArchivedAt,
+		&i.ArchivedBy,
+		&i.DeletedBy,
+		&i.Tags,
 	)
 	return i, err
 }

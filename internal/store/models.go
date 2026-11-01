@@ -674,6 +674,10 @@ type Campaign struct {
 	DigestRole      string          `json:"digestRole"`
 	Channel         string          `json:"channel"`
 	Canary          string          `json:"canary"`
+	ArchivedAt      *time.Time      `json:"archivedAt"`
+	ArchivedBy      *uuid.UUID      `json:"archivedBy"`
+	DeletedBy       *uuid.UUID      `json:"deletedBy"`
+	Tags            []string        `json:"tags"`
 }
 
 type CampaignAudienceStage struct {

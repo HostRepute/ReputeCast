@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/cadence"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/providers"
@@ -48,6 +49,29 @@ type AudienceDef struct {
 	// addresses blocked for the sender's reputation (review AN-7); a fix
 	// that edits the audience keeps it.
 	RetryOf string `json:"retry_of,omitempty"`
+	// Cadence is the campaign's audience cadence ("" regular, or
+	// "announcement"); DigestFrequency is its digest's frequency when it is
+	// a digest issue. Together they say which rhythms chosen on the
+	// preference center it reaches (review 2026-11 CA-6).
+	Cadence         string `json:"cadence,omitempty"`
+	DigestFrequency string `json:"-"`
+}
+
+// campaignAudience is a campaign's audience definition, with its digest's
+// frequency when it is a digest issue.
+func campaignAudience(ctx context.Context, q *store.Queries, campaignID uuid.UUID, raw json.RawMessage) (AudienceDef, error) {
+	def := ParseAudience(raw)
+	freq, err := q.CampaignDigestFrequency(ctx, campaignID)
+	def.DigestFrequency = freq
+	return def, err
+}
+
+// frequencies are the rhythms the audience reaches; empty reaches all.
+func (a AudienceDef) frequencies() []string {
+	if f := cadence.Frequencies(a.Cadence, a.DigestFrequency); f != nil {
+		return f
+	}
+	return []string{}
 }
 
 // ParseAudience reads a stored audience definition.
@@ -242,10 +266,11 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 		return out, nil, err
 	}
 	out.CapCount, out.CapDays = int(limit.MarketingCapCount), int(limit.MarketingCapDays)
+	out.Announcement, out.DigestFrequency = def.Cadence == cadence.Announcement, def.DigestFrequency
 	rows, err := q.ReadinessRecipients(ctx, store.ReadinessRecipientsParams{
 		WithLists: withRecipients, BouncedSince: now.AddDate(0, 0, -30), WorkspaceID: wsID, Lists: ids(def.Lists), Contacts: contacts,
 		ExcludeLists: ids(def.ExcludeLists), ExcludeContacts: exclude,
-		CapCount: limit.MarketingCapCount, CapSince: now.AddDate(0, 0, -int(limit.MarketingCapDays)),
+		CapCount: limit.MarketingCapCount, CapSince: now.AddDate(0, 0, -int(limit.MarketingCapDays)), Frequencies: def.frequencies(),
 	})
 	if err != nil {
 		return out, nil, err
@@ -313,6 +338,12 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 			continue
 		}
 		seen[key] = true
+		if r.OffCadence {
+			// They chose a weekly or monthly rhythm this campaign doesn't
+			// reach (review 2026-11 CA-6).
+			out.OffCadence++
+			continue
+		}
 		if r.BroadcastsStopped {
 			// The sunset policy stopped Broadcasts to them, unless the
 			// campaign overrides it.

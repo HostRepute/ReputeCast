@@ -44,11 +44,20 @@ function NameLink({ c }: { c: Item }) {
 }
 
 /** The campaigns table's columns with SMS chosen: opt-outs and cost instead of opens (brief §6). */
-export function SmsCampaignHead() {
+export function SmsCampaignHead({ lead }: { lead?: ReactNode } = {}) {
   const t = useT()
   return (
     <tr>
-      <Th>{t(cm.campaign)}</Th>
+      <Th>
+        {lead ? (
+          <span className="inline-flex items-center gap-2">
+            {lead}
+            {t(cm.campaign)}
+          </span>
+        ) : (
+          t(cm.campaign)
+        )}
+      </Th>
       <Th>{t(cm.status)}</Th>
       <Th>{t(cm.audience)}</Th>
       <Th align="right">{t(cm.recipients)}</Th>
@@ -70,7 +79,22 @@ export function SmsCampaignHead() {
  * no opens, since texts have none. With SMS chosen, the opt-outs and the
  * cost take the opens' place.
  */
-export function SmsCampaignRow({ c, textColumns, web }: { c: Item; textColumns?: boolean; web?: ReactNode }) {
+export function SmsCampaignRow({
+  c,
+  textColumns,
+  web,
+  lead,
+  more,
+  selected,
+}: {
+  c: Item
+  textColumns?: boolean
+  web?: ReactNode
+  /** The row's checkbox and its ⋯ menu on the campaigns list (review 2026-11 CA-2). */
+  lead?: ReactNode
+  more?: ReactNode
+  selected?: boolean
+}) {
   const t = useT()
   const at = c.status === 'scheduled' ? c.scheduledAt : c.startedAt
   const when = at
@@ -81,14 +105,19 @@ export function SmsCampaignRow({ c, textColumns, web }: { c: Item; textColumns?:
           ? t(cm.edited, { time: clock(c.updatedAt), name: c.updatedBy })
           : t(cm.created, { time: clock(c.createdAt) })
   return (
-    <tr>
+    <tr className={selected ? 'sel' : undefined}>
       <Td>
-        <Truncate text={c.name}>
-          <NameLink c={c} />
-        </Truncate>
-        <div className="k">
-          <ChannelTag channel="sms" />
-          {[when, ...c.notes].join(' · ')}
+        <div className="flex items-start gap-2">
+          {lead}
+          <div className="min-w-0 flex-1">
+            <Truncate text={c.name}>
+              <NameLink c={c} />
+            </Truncate>
+            <div className="k">
+              <ChannelTag channel="sms" />
+              {[when, ...c.notes].join(' · ')}
+            </div>
+          </div>
         </div>
       </Td>
       <Td>
@@ -137,6 +166,7 @@ export function SmsCampaignRow({ c, textColumns, web }: { c: Item; textColumns?:
       <Td>
         <div className="row-actions flex flex-wrap justify-end gap-1.5">
           <Actions c={c} />
+          {more}
         </div>
       </Td>
     </tr>

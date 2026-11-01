@@ -1,6 +1,6 @@
 import { keepPreviousData } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useId, useState, type ReactNode } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Button, ButtonLink } from '@/components/ui/Button'
@@ -12,8 +12,10 @@ import { Truncate } from '@/components/ui/Truncate'
 import { t as tt, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { clock, count, money, pct, rate, shortDate } from '@/lib/format'
-import { usePermissionReason, useWorkspace } from '@/lib/session'
+import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
 import { m } from './messages'
+import { BulkBar, CalendarLink, deletedLine, RestoreButton, RowActionDialogs, RowMenu, TagPills, UnscheduleButton, type RowAction } from './manage'
+import { mm } from './manage.messages'
 import { RouteBadges } from './RouteBadges'
 import { CampaignStatusBadge } from './StatusBadge'
 import { NewCampaignDialog } from '@/features/digests/TypePicker'
@@ -31,7 +33,9 @@ import { m as chm } from '@/features/channels/messages'
 import { SmsCampaignHead, SmsCampaignRow } from '@/features/sms/CampaignRow'
 import { ChannelCampaignRow } from '@/features/push/CampaignRow'
 
-export type CampaignFilter = 'all' | 'drafts' | 'scheduled' | 'sending' | 'sent' | 'recurring' | 'paid'
+export type CampaignFilter = 'all' | 'drafts' | 'scheduled' | 'sending' | 'sent' | 'recurring' | 'paid' | 'archived' | 'deleted'
+
+export type CampaignWhen = '7d' | '30d' | 'quarter' | 'custom'
 
 export interface CampaignsSearch {
   status?: CampaignFilter
@@ -39,9 +43,56 @@ export interface CampaignsSearch {
   page?: number
   /** Phase 8: only one channel's campaigns. */
   channel?: Channel
+  /** Review 2026-11 CA-2: when it went or goes out (from and to with custom), its sender, a list, a tag. */
+  when?: CampaignWhen
+  from?: string
+  to?: string
+  sender?: string
+  list?: string
+  tag?: string
 }
 
 const PAGE_SIZE = 25
+
+/** YYYY-MM-DD of a local day. */
+function isoDay(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** The days a "when" filter covers: from (inclusive) and to (the day after the last). */
+export function whenRange(s: CampaignsSearch, now = new Date()): { from?: string; to?: string } {
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+  switch (s.when) {
+    case '7d':
+      return { from: isoDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6)), to: isoDay(tomorrow) }
+    case '30d':
+      return { from: isoDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29)), to: isoDay(tomorrow) }
+    case 'quarter':
+      return { from: isoDay(new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1)), to: isoDay(new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3 + 3, 1)) }
+    case 'custom': {
+      // "To" is the last day shown; the API takes the day after it.
+      const to = s.to ? new Date(`${s.to}T00:00:00`) : undefined
+      return { from: s.from, to: to ? isoDay(new Date(to.getFullYear(), to.getMonth(), to.getDate() + 1)) : undefined }
+    }
+  }
+  return {}
+}
+
+/** The list's search with a change, back on the first page; "all" is the default status. */
+function nextSearch(s: CampaignsSearch, patch: Partial<CampaignsSearch>): CampaignsSearch {
+  const n: CampaignsSearch = { ...s, page: undefined, ...patch }
+  if (n.status === 'all') n.status = undefined
+  if (!n.q) n.q = undefined
+  if (n.when !== 'custom') {
+    n.from = undefined
+    n.to = undefined
+  }
+  return n
+}
+
+function filtered(s: CampaignsSearch) {
+  return Boolean(s.when || s.sender || s.list || s.tag)
+}
 
 /** 7.7 Campaigns list: KPIs for the last 30 days, filters and the table. */
 export function CampaignsPage({ search }: { search: CampaignsSearch }) {
@@ -51,6 +102,7 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
   const page = search.page ?? 1
   const newReason = usePermissionReason('campaigns:edit')
   const navigate = useNavigate()
+  const range = whenRange(search)
   const list = $api.useQuery(
     'get',
     '/api/v1/workspaces/{workspace}/campaigns',
@@ -63,6 +115,11 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
           paidOnly: status === 'paid' || undefined,
           q: search.q ?? '',
           channel: search.channel,
+          from: range.from,
+          to: range.to,
+          sender: search.sender,
+          list: search.list,
+          tag: search.tag,
           page,
           pageSize: PAGE_SIZE,
         },
@@ -73,20 +130,23 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
   const counts = list.data?.counts
   // "New campaign" asks what kind first: Regular or Recurring digest (DigestSetup).
   const [picking, setPicking] = useState(false)
-  // Phase 8: the channel chips head the table once a second channel is set up.
-  const channels = (
-    <ChannelFilter
-      value={search.channel}
-      onChange={(channel) => void navigate({ to: '/w/$workspace/campaigns', params: { workspace: slug }, search: { status: search.status, q: search.q, channel } })}
-    />
+  const go = (patch: Partial<CampaignsSearch>) => void navigate({ to: '/w/$workspace/campaigns', params: { workspace: slug }, search: nextSearch(search, patch) })
+  // Phase 8: the channel chips head the table once a second channel is set up;
+  // the filters of CA-2 follow them.
+  const top = (
+    <>
+      <ChannelFilter value={search.channel} onChange={(channel) => go({ channel })} />
+      {status === 'deleted' ? null : <FiltersBar search={search} onChange={go} />}
+    </>
   )
   return (
     <Page
       title={t(m.title)}
-      filters={<CampaignFilters status={status} counts={counts} q={search.q} channel={search.channel} />}
+      filters={<CampaignFilters status={status} counts={counts} search={search} />}
       actions={
         <>
-          <SearchBox initial={search.q ?? ''} status={status} channel={search.channel} />
+          <CalendarLink />
+          <SearchBox initial={search.q ?? ''} search={search} />
           {newReason ? (
             <Button variant="primary" disabledReason={newReason}>
               {t(m.newCampaign)}
@@ -110,19 +170,19 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
       ) : list.isPending ? (
         <TableSkeleton />
       ) : list.data.total === 0 ? (
-        search.q || status !== 'all' || search.channel ? (
+        search.q || status !== 'all' || search.channel || filtered(search) ? (
           <>
-          {search.channel ? <section className="card">{channels}</section> : null}
-          <EmptyState
-            title={search.q ? t(m.noMatch, { query: search.q }) : search.channel && status === 'all' ? t(chm.noChannelCampaigns, { channel: search.channel }) : t(m.noStatus, { status })}
-            action={
-              <Link className="btn" to="/w/$workspace/campaigns" params={{ workspace: slug }}>
-                {t(m.showAll)}
-              </Link>
-            }
-          >
-            {t(m.noMatchBody, { count: list.data.counts.all })}
-          </EmptyState>
+            {search.channel || filtered(search) ? <section className="card">{top}</section> : null}
+            <EmptyState
+              title={search.q ? t(m.noMatch, { query: search.q }) : search.channel && status === 'all' ? t(chm.noChannelCampaigns, { channel: search.channel }) : t(m.noStatus, { status })}
+              action={
+                <Link className="btn" to="/w/$workspace/campaigns" params={{ workspace: slug }}>
+                  {t(m.showAll)}
+                </Link>
+              }
+            >
+              {t(m.noMatchBody, { count: list.data.counts.all })}
+            </EmptyState>
           </>
         ) : (
           <EmptyState
@@ -139,13 +199,13 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
           </EmptyState>
         )
       ) : (
-        <CampaignTable data={list.data} page={page} status={status} q={search.q} channel={search.channel} top={channels} />
+        <CampaignTable data={list.data} page={page} status={status} search={search} top={top} />
       )}
     </Page>
   )
 }
 
-function CampaignFilters({ status, counts, q, channel }: { status: CampaignFilter; counts?: Schemas['CampaignStatusCounts']; q?: string; channel?: Channel }) {
+function CampaignFilters({ status, counts, search }: { status: CampaignFilter; counts?: Schemas['CampaignStatusCounts']; search: CampaignsSearch }) {
   const t = useT()
   const digests = useDigestCount()
   const { slug } = useWorkspace()
@@ -156,9 +216,7 @@ function CampaignFilters({ status, counts, q, channel }: { status: CampaignFilte
       label={t(m.filterLabel)}
       className="ml-3 max-md:ml-0"
       value={status}
-      onChange={(next) =>
-        void navigate({ to: '/w/$workspace/campaigns', params: { workspace: slug }, search: { status: next === 'all' ? undefined : next, q: q || undefined, channel } })
-      }
+      onChange={(next) => void navigate({ to: '/w/$workspace/campaigns', params: { workspace: slug }, search: nextSearch(search, { status: next }) })}
       items={[
         { value: 'all', label: label('all', counts?.all) },
         { value: 'drafts', label: label('drafts', counts?.drafts) },
@@ -167,12 +225,15 @@ function CampaignFilters({ status, counts, q, channel }: { status: CampaignFilte
         { value: 'sent', label: label('sent', counts?.sent) },
         { value: 'recurring', label: digests !== undefined ? t(dm.recurringTabCount, { count: digests }) : t(dm.recurringTab) },
         ...(counts?.paidOnly || status === 'paid' ? [{ value: 'paid' as const, label: t(mc.paidOnlyFilter, { count: count(counts?.paidOnly ?? 0) }) }] : []),
+        // Review 2026-11 CA-1: archived sent campaigns, and deleted ones while they can come back.
+        ...(counts?.archived || status === 'archived' ? [{ value: 'archived' as const, label: label('archived', counts?.archived) }] : []),
+        ...(counts?.deleted || status === 'deleted' ? [{ value: 'deleted' as const, label: label('deleted', counts?.deleted) }] : []),
       ]}
     />
   )
 }
 
-function SearchBox({ initial, status, channel }: { initial: string; status: CampaignFilter; channel?: Channel }) {
+function SearchBox({ initial, search }: { initial: string; search: CampaignsSearch }) {
   const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
@@ -180,22 +241,107 @@ function SearchBox({ initial, status, channel }: { initial: string; status: Camp
   useEffect(() => {
     if (value === initial) return
     const h = window.setTimeout(() => {
-      void navigate({
-        to: '/w/$workspace/campaigns',
-        params: { workspace: slug },
-        search: { status: status === 'all' ? undefined : status, q: value.trim() || undefined, channel },
-        replace: true,
-      })
+      void navigate({ to: '/w/$workspace/campaigns', params: { workspace: slug }, search: nextSearch(search, { q: value.trim() || undefined }), replace: true })
     }, 250)
     return () => window.clearTimeout(h)
-  }, [value, initial, navigate, slug, status, channel])
+  }, [value, initial, navigate, slug, search])
   return (
     <>
       <label className="vh" htmlFor="campaign-search">
         {t(m.search)}
       </label>
-      <input id="campaign-search" type="search" className="in w-[220px] max-md:w-full" placeholder={t(m.search)} value={value} onChange={(e) => setValue(e.target.value)} />
+      <input
+        id="campaign-search"
+        type="search"
+        className="in w-[220px] max-md:w-full"
+        placeholder={t(mm.searchPlaceholder)}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+      />
     </>
+  )
+}
+
+/** When, sender, audience list and tag (CampaignsComplete board, strip 2). */
+function FiltersBar({ search, onChange }: { search: CampaignsSearch; onChange: (patch: Partial<CampaignsSearch>) => void }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  const id = useId()
+  const senders = $api.useQuery('get', '/api/v1/workspaces/{workspace}/senders', { params: { path: { workspace: slug } } })
+  const lists = $api.useQuery('get', '/api/v1/workspaces/{workspace}/lists', { params: { path: { workspace: slug } } })
+  const tags = $api.useQuery('get', '/api/v1/workspaces/{workspace}/campaigns/tags', { params: { path: { workspace: slug } } })
+  const tagList = tags.data?.tags ?? []
+  return (
+    <div className="flex flex-wrap items-end gap-2 border-b border-line-2 px-3 py-2.5" role="group" aria-label={t(mm.filtersLabel)}>
+      <label className="vh" htmlFor={`${id}-when`}>
+        {t(mm.whenLabel)}
+      </label>
+      <select id={`${id}-when`} className="in max-md:flex-1" value={search.when ?? ''} onChange={(e) => onChange({ when: (e.target.value || undefined) as CampaignWhen | undefined })}>
+        <option value="">{t(mm.whenAny)}</option>
+        <option value="7d">{t(mm.when7)}</option>
+        <option value="30d">{t(mm.when30)}</option>
+        <option value="quarter">{t(mm.whenQuarter)}</option>
+        <option value="custom">{t(mm.whenCustom)}</option>
+      </select>
+      {search.when === 'custom' ? (
+        <>
+          <span className="field">
+            <label className="lbl" htmlFor={`${id}-from`}>
+              {t(mm.from)}
+            </label>
+            <input id={`${id}-from`} type="date" className="in" value={search.from ?? ''} max={search.to} onChange={(e) => onChange({ when: 'custom', from: e.target.value || undefined, to: search.to })} />
+          </span>
+          <span className="field">
+            <label className="lbl" htmlFor={`${id}-to`}>
+              {t(mm.to)}
+            </label>
+            <input id={`${id}-to`} type="date" className="in" value={search.to ?? ''} min={search.from} onChange={(e) => onChange({ when: 'custom', from: search.from, to: e.target.value || undefined })} />
+          </span>
+        </>
+      ) : null}
+      <label className="vh" htmlFor={`${id}-sender`}>
+        {t(mm.senderLabel)}
+      </label>
+      <select id={`${id}-sender`} className="in max-w-[220px] max-md:max-w-none max-md:flex-1" value={search.sender ?? ''} onChange={(e) => onChange({ sender: e.target.value || undefined })}>
+        <option value="">{t(mm.senderAny)}</option>
+        {(senders.data?.senders ?? []).map((x) => (
+          <option key={x.id} value={x.id}>
+            {x.name ? `${x.name} · ${x.email}` : x.email}
+          </option>
+        ))}
+      </select>
+      <label className="vh" htmlFor={`${id}-list`}>
+        {t(mm.listLabel)}
+      </label>
+      <select id={`${id}-list`} className="in max-w-[200px] max-md:max-w-none max-md:flex-1" value={search.list ?? ''} onChange={(e) => onChange({ list: e.target.value || undefined })}>
+        <option value="">{t(mm.listAny)}</option>
+        {(lists.data?.items ?? []).map((l) => (
+          <option key={l.id} value={l.id}>
+            {l.name}
+          </option>
+        ))}
+      </select>
+      {tagList.length || search.tag ? (
+        <>
+          <label className="vh" htmlFor={`${id}-tag`}>
+            {t(mm.tagLabel)}
+          </label>
+          <select id={`${id}-tag`} className="in max-md:flex-1" value={search.tag ?? ''} onChange={(e) => onChange({ tag: e.target.value || undefined })}>
+            <option value="">{t(mm.tagAny)}</option>
+            {[...new Set([...tagList, ...(search.tag ? [search.tag] : [])])].map((tag) => (
+              <option key={tag} value={tag}>
+                {tag}
+              </option>
+            ))}
+          </select>
+        </>
+      ) : null}
+      {filtered(search) ? (
+        <Button size="sm" variant="ghost" className="mb-[3px] self-end" onClick={() => onChange({ when: undefined, sender: undefined, list: undefined, tag: undefined })}>
+          {t(mm.clearFilters)}
+        </Button>
+      ) : null}
+    </div>
   )
 }
 
@@ -268,18 +414,52 @@ function subtitle(c: Schemas['CampaignListItem']) {
   return parts.join(' · ')
 }
 
-function CampaignTable({ data, page, status, q, channel, top }: { data: Schemas['CampaignList']; page: number; status: CampaignFilter; q?: string; channel?: Channel; top?: ReactNode }) {
+function CampaignTable({ data, page, status, search, top }: { data: Schemas['CampaignList']; page: number; status: CampaignFilter; search: CampaignsSearch; top?: ReactNode }) {
   const t = useT()
   const { slug } = useWorkspace()
+  const channel = search.channel
   const from = (page - 1) * data.pageSize
   const shown = from + data.items.length
   const params = (id: string) => ({ workspace: slug, campaignId: id })
   const sponsors = useSponsorChips()
   // The website's Web column (features/website), while it's on.
   const web = useCampaignWebStates(data.items.map((c) => c.id))
+  // Review 2026-11 CA-2: rows are selected for bulk actions, page by page;
+  // deleted campaigns are only restored, one at a time.
+  const canEdit = useCan('campaigns:edit')
+  const selectable = canEdit && status !== 'deleted'
+  const [picked, setPicked] = useState<Set<string>>(() => new Set())
+  const [action, setAction] = useState<RowAction>()
+  const pageKey = data.items.map((c) => c.id).join()
+  const [seenKey, setSeenKey] = useState(pageKey)
+  if (seenKey !== pageKey) {
+    // Another page or filter: what was picked is out of view.
+    setSeenKey(pageKey)
+    setPicked(new Set([...picked].filter((id) => data.items.some((c) => c.id === id))))
+  }
+  const selected = data.items.filter((c) => picked.has(c.id))
+  const toggle = (id: string, on: boolean) =>
+    setPicked((prev) => {
+      const next = new Set(prev)
+      if (on) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  const all = data.items.length > 0 && selected.length === data.items.length
+  const pick = (c: Schemas['CampaignListItem']) =>
+    selectable ? (
+      <input type="checkbox" className="mt-[3px] shrink-0" checked={picked.has(c.id)} aria-label={t(mm.selectOne, { name: c.name })} onChange={(e) => toggle(c.id, e.target.checked)} />
+    ) : undefined
+  // Everything in the ⋯ menu but Report needs campaigns:edit: viewers get none.
+  const menu = (c: Schemas['CampaignListItem']) => (status === 'deleted' ? <RestoreButton c={c} /> : canEdit ? <RowMenu c={c} onAction={setAction} /> : null)
   return (
     <section className="card" aria-label={t(m.title)}>
       {top}
+      {selected.length ? (
+        <div className="border-b border-line-2 p-2.5">
+          <BulkBar selected={selected} archivedTab={status === 'archived'} onClear={() => setPicked(new Set())} />
+        </div>
+      ) : null}
       {/* The board's key and provider cells wrap; a long audience ("Weekly Digest + Product
           Updates") wraps too, so the actions stay in view at 1440 as on the board. */}
       <Table
@@ -294,10 +474,15 @@ function CampaignTable({ data, page, status, q, channel, top }: { data: Schemas[
         <thead>
           {/* Phase 8: with SMS chosen, texts' own columns (opt-outs and cost instead of opens). */}
           {channel === 'sms' ? (
-            <SmsCampaignHead />
+            <SmsCampaignHead lead={selectable ? <SelectAll all={all} some={selected.length > 0} onChange={(on) => setPicked(on ? new Set(data.items.map((c) => c.id)) : new Set())} /> : undefined} />
           ) : (
             <tr>
-              <Th>{t(m.campaign)}</Th>
+              <Th>
+                <span className="inline-flex items-center gap-2">
+                  {selectable ? <SelectAll all={all} some={selected.length > 0} onChange={(on) => setPicked(on ? new Set(data.items.map((c) => c.id)) : new Set())} /> : null}
+                  {t(m.campaign)}
+                </span>
+              </Th>
               <Th>{t(m.status)}</Th>
               {web ? <Th>{t(me.colWeb)}</Th> : null}
               <Th>{t(m.audience)}</Th>
@@ -316,40 +501,57 @@ function CampaignTable({ data, page, status, q, channel, top }: { data: Schemas[
           {data.items.map((c) => {
             if (c.channel === 'sms')
               return (
-                <SmsCampaignRow key={c.id} c={c} textColumns={channel === 'sms'} web={web && channel !== 'sms' ? <span className="k">–</span> : undefined} />
+                <SmsCampaignRow
+                  key={c.id}
+                  c={c}
+                  textColumns={channel === 'sms'}
+                  web={web && channel !== 'sms' ? <span className="k">–</span> : undefined}
+                  lead={pick(c)}
+                  more={menu(c)}
+                  selected={picked.has(c.id)}
+                />
               )
             // Push and WhatsApp (X22): their own composer, review and report.
             if ((c.channel === 'push' || c.channel === 'whatsapp') && channel !== 'sms')
-              return <ChannelCampaignRow key={c.id} c={c} web={web ? <span className="k">–</span> : undefined} />
+              return <ChannelCampaignRow key={c.id} c={c} web={web ? <span className="k">–</span> : undefined} lead={pick(c)} more={menu(c)} selected={picked.has(c.id)} />
             const sent = ['sent', 'sending', 'paused', 'cancelled', 'failed'].includes(c.status)
-            const editable = ['draft', 'approval', 'approved', 'scheduled'].includes(c.status)
+            const editable = ['draft', 'approval', 'approved', 'scheduled'].includes(c.status) && status !== 'deleted'
+            const line = status === 'deleted' ? deletedLine(c) : subtitle(c)
             return (
-              <tr key={c.id}>
+              <tr key={c.id} className={picked.has(c.id) ? 'sel' : undefined}>
                 <Td>
-                  {/* A name too long for the column ends in an ellipsis, whole on hover and focus. */}
-                  <Truncate text={c.name}>
-                    {editable ? (
-                      <Link to="/w/$workspace/campaigns/$campaignId/edit" params={params(c.id)} className="font-semibold text-ink no-underline">
-                        {c.name}
-                      </Link>
-                    ) : c.status === 'sending' || c.status === 'paused' ? (
-                      <Link to="/w/$workspace/campaigns/$campaignId/live" params={params(c.id)} className="font-semibold text-ink no-underline">
-                        {c.name}
-                      </Link>
-                    ) : (
-                      <Link to="/w/$workspace/campaigns/$campaignId/report" params={params(c.id)} className="font-semibold text-ink no-underline">
-                        {c.name}
-                      </Link>
-                    )}
-                  </Truncate>
-                  {c.digest || sponsors.has(c.id) ? (
-                    <div className="my-1 flex flex-wrap gap-1.5">
-                      {c.digest ? <DigestBadgeLink digest={c.digest} /> : null}
-                      {sponsors.has(c.id) ? <SponsorChip sponsor={sponsors.get(c.id) ?? ''} /> : null}
+                  <div className="flex items-start gap-2">
+                    {pick(c)}
+                    <div className="min-w-0 flex-1">
+                      {/* A name too long for the column ends in an ellipsis, whole on hover and focus. */}
+                      <Truncate text={c.name}>
+                        {status === 'deleted' ? (
+                          <span className="font-semibold text-ink">{c.name}</span>
+                        ) : editable ? (
+                          <Link to="/w/$workspace/campaigns/$campaignId/edit" params={params(c.id)} className="font-semibold text-ink no-underline">
+                            {c.name}
+                          </Link>
+                        ) : c.status === 'sending' || c.status === 'paused' ? (
+                          <Link to="/w/$workspace/campaigns/$campaignId/live" params={params(c.id)} className="font-semibold text-ink no-underline">
+                            {c.name}
+                          </Link>
+                        ) : (
+                          <Link to="/w/$workspace/campaigns/$campaignId/report" params={params(c.id)} className="font-semibold text-ink no-underline">
+                            {c.name}
+                          </Link>
+                        )}
+                      </Truncate>
+                      <TagPills tags={c.tags} />
+                      {c.digest || sponsors.has(c.id) ? (
+                        <div className="my-1 flex flex-wrap gap-1.5">
+                          {c.digest ? <DigestBadgeLink digest={c.digest} /> : null}
+                          {sponsors.has(c.id) ? <SponsorChip sponsor={sponsors.get(c.id) ?? ''} /> : null}
+                        </div>
+                      ) : null}
+                      {c.paidOnly ? <PaidOnlyBadge className="my-1" /> : null}
+                      <div className="k">{line}</div>
                     </div>
-                  ) : null}
-                  {c.paidOnly ? <PaidOnlyBadge className="my-1" /> : null}
-                  <div className="k">{subtitle(c)}</div>
+                  </div>
                 </Td>
                 <Td>
                   {c.digest && (c.digest.issueStatus === 'waiting' || c.digest.issueStatus === 'held') ? (
@@ -379,7 +581,8 @@ function CampaignTable({ data, page, status, q, channel, top }: { data: Schemas[
                 <Td>{c.origin ? <span className="k">{t(m.imported, { origin: originName(c.origin) })}</span> : <RouteBadges routes={c.routes} sent={sent} />}</Td>
                 <Td>
                   <div className="row-actions flex flex-wrap justify-end gap-1.5">
-                    <RowActions c={c} />
+                    {status === 'deleted' ? null : <RowActions c={c} />}
+                    {menu(c)}
                   </div>
                 </Td>
               </tr>
@@ -392,19 +595,36 @@ function CampaignTable({ data, page, status, q, channel, top }: { data: Schemas[
           {t(m.showing, { range: data.items.length === data.total ? count(data.total) : `${count(from + 1)}–${count(shown)}`, total: count(data.total) })}
         </span>
         <div className="flex gap-1.5">
-          <PageLink page={page - 1} disabled={page <= 1} status={status} q={q} channel={channel}>
+          <PageLink page={page - 1} disabled={page <= 1} search={search}>
             {t(m.previous)}
           </PageLink>
-          <PageLink page={page + 1} disabled={shown >= data.total} status={status} q={q} channel={channel}>
+          <PageLink page={page + 1} disabled={shown >= data.total} search={search}>
             {t(m.next)}
           </PageLink>
         </div>
       </div>
+      <RowActionDialogs action={action} onClose={() => setAction(undefined)} />
     </section>
   )
 }
 
-function PageLink({ page, disabled, status, q, channel, children }: { page: number; disabled: boolean; status: CampaignFilter; q?: string; channel?: Channel; children: string }) {
+/** Picks every row of the page, or none; mixed while some are picked. */
+function SelectAll({ all, some, onChange }: { all: boolean; some: boolean; onChange: (on: boolean) => void }) {
+  const t = useT()
+  return (
+    <input
+      type="checkbox"
+      checked={all}
+      ref={(el) => {
+        if (el) el.indeterminate = some && !all
+      }}
+      aria-label={t(mm.selectAll)}
+      onChange={(e) => onChange(e.target.checked)}
+    />
+  )
+}
+
+function PageLink({ page, disabled, search, children }: { page: number; disabled: boolean; search: CampaignsSearch; children: string }) {
   const { slug } = useWorkspace()
   if (disabled) {
     return (
@@ -414,12 +634,7 @@ function PageLink({ page, disabled, status, q, channel, children }: { page: numb
     )
   }
   return (
-    <Link
-      className="btn sm"
-      to="/w/$workspace/campaigns"
-      params={{ workspace: slug }}
-      search={{ status: status === 'all' ? undefined : status, q: q || undefined, channel, page: page > 1 ? page : undefined }}
-    >
+    <Link className="btn sm" to="/w/$workspace/campaigns" params={{ workspace: slug }} search={{ ...nextSearch(search, {}), page: page > 1 ? page : undefined }}>
       {children}
     </Link>
   )
@@ -443,6 +658,8 @@ function RowActions({ c }: { c: Schemas['CampaignListItem'] }) {
               {r.verdict === 'blocked' ? t(m.blockingIssues, { count: r.issues }) : t(m.readiness, { count: r.issues })}
             </ButtonLink>
           ) : null}
+          {/* Review 2026-11 CA-2: a scheduled campaign is unscheduled where it is. */}
+          {c.status === 'scheduled' ? <UnscheduleButton c={c} /> : null}
           <ButtonLink size="sm" to="/w/$workspace/campaigns/$campaignId/edit" params={params}>
             {t(m.edit)}
           </ButtonLink>
@@ -462,15 +679,13 @@ function RowActions({ c }: { c: Schemas['CampaignListItem'] }) {
           <ButtonLink size="sm" to="/w/$workspace/campaigns/$campaignId/report" params={params}>
             {t(m.report)}
           </ButtonLink>
+          {/* Review 2026-11 CA-1: people who can edit duplicate from the row's ⋯ menu;
+              others see why they can't. */}
           {editReason ? (
             <Button size="sm" disabledReason={editReason}>
               {t(m.duplicate)}
             </Button>
-          ) : (
-            <ButtonLink size="sm" to="/w/$workspace/campaigns/new" params={{ workspace: slug }} search={{ from: c.id }}>
-              {t(m.duplicate)}
-            </ButtonLink>
-          )}
+          ) : null}
         </>
       )
   }

@@ -383,6 +383,7 @@ export const m = defineMessages('review', {
   ctaNow: 'Send now to {count}',
   ctaAt: 'Schedule for {when}',
   ctaBest: 'Schedule best time from {when}',
+  ctaLocal: 'Schedule {time} local from {day}',
   ctaWhen: '{day}, {time} {zone}',
   ctaShortNow: 'Send now · {count}',
   ctaShortAt: 'Schedule · {count}',
@@ -436,6 +437,7 @@ export const m = defineMessages('review', {
   ruleNeedsApproval:
     "{mine, select, yes {Your role} other {{author}'s role}}{hasRole, select, yes {, {role},} other {}} needs an approval to send: {names, select, none {nobody else can approve it yet} other {{names} can approve}}",
   ctaWhenBest: 'Best time from {day}',
+  ctaWhenLocal: '{day}, {time} local',
   finalRecipients: 'Final recipients',
   routeBreakdown: 'Route breakdown',
   routesDown: '{count, plural, one {# route down} other {# routes down}}',
@@ -456,6 +458,7 @@ export const m = defineMessages('review', {
   abTimes: 'Sample {from}–{to} · winner picked {decide} · everyone done about {end}',
   abTimesManual: 'Sample {from}–{to} · the rest waits for you to pick the winner',
   bestTimeLine: 'Each contact gets it at their usual open time, within 24 hours · done about {end}',
+  localTimeLine: 'Each contact gets it at {time} their time, over about 25 hours · done about {end}',
   overDays: '{duration} over {days} days',
   throttling: 'Throttling per mailbox provider',
   fullRate: 'full rate',
@@ -474,6 +477,9 @@ export const m = defineMessages('review', {
   modeAtCaption: 'A date and time in any time zone',
   modeBest: 'Best time per recipient',
   modeBestCaption: 'Each contact gets it at their usual open time, within 24 h of {time}',
+  modeLocal: "At {time} in each recipient's time zone",
+  modeLocalCaption: '{day}. Starts in Kiritimati (UTC+14) and finishes in Pago Pago (UTC−11), 25 hours later; contacts without a time zone get {zone}.',
+  modeLocalCaptionIdle: 'The same time of day wherever each reader is, as texts do',
   testSends: 'Test sends',
   testAddress: 'Test address',
   sendTestButton: 'Send test',
@@ -491,6 +497,8 @@ export const m = defineMessages('review', {
   whenNow: 'Sending starts within a minute of confirming. Send Readiness runs again as it starts, and a Block stops the send.',
   whenBest:
     'Each contact gets it at their usual open time, within 24 h of {when}. {hasRecheck, select, yes {Checks run again at {recheck}} other {Checks run again before the send}}; the send is held for review if a check turns to Block or the audience changes by more than 10%.',
+  whenLocal:
+    "At {time} in each recipient's time zone on {day}, starting where that time comes first (UTC+14). {hasRecheck, select, yes {Checks run again at {recheck}} other {Checks run again before the send}}; the send is held for review if a check turns to Block or the audience changes by more than 10%.",
   whenAt:
     '{when}. {hasRecheck, select, yes {Checks run again at {recheck}} other {Checks run again before the send}}; the send is held for review if a check turns to Block or the audience changes by more than 10%.',
   excludedSuppressed: '{count} suppressed',

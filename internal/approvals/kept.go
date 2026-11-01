@@ -68,7 +68,8 @@ func withRuleTexts(rules []ApprovalRuleMatch, texts map[string]ruleTexts) []Appr
 }
 
 var (
-	mScheduleNow  = msgs.M("schedule.now")
-	mScheduleAt   = msgs.M("schedule.at")
-	mScheduleBest = msgs.M("schedule.best")
+	mScheduleNow   = msgs.M("schedule.now")
+	mScheduleAt    = msgs.M("schedule.at")
+	mScheduleBest  = msgs.M("schedule.best")
+	mScheduleLocal = msgs.M("schedule.local")
 )
