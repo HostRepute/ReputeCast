@@ -556,3 +556,138 @@ func TestOlderWebhooksGetNewEvents(t *testing.T) {
 		t.Fatalf("stored %v, audited %d times", stored, audits)
 	}
 }
+
+// Review 2026-11 EA-5: "End access now" ends a paid subscription in Stripe
+// and here at once; "At the end of the period" keeps access with the date it
+// ends. Both are on the member's timeline and in the audit log, and neither
+// can be cancelled twice.
+func TestCancelNowOrAtThePeriodEnd(t *testing.T) {
+	f := newFlow(t)
+	f.connect()
+	f.createTier()
+	join := func(email string) string {
+		t.Helper()
+		form := url.Values{"tier": {f.tier}, "period": {"month"}}
+		r := f.c.DoRaw(http.MethodPost, "/p/"+f.ws.Slug+"/upgrade/checkout", "application/x-www-form-urlencoded", strings.NewReader(form.Encode()))
+		session := strings.TrimPrefix(r.Header.Get("Location"), "https://checkout.stripe.com/c/pay/")
+		evs, err := f.fake.CompleteCheckout(payments.Test, session, stripetest.CheckoutOptions{Email: email})
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.deliver(time.Now(), evs...)
+		f.apply()
+		for _, r := range f.members("with_access") {
+			if r.Email == email {
+				return r.ID
+			}
+		}
+		t.Fatalf("%s isn't a paid member", email)
+		return ""
+	}
+	now, later := join("now@flow.example"), join("later@flow.example")
+	type member struct {
+		Status   string
+		CancelAt *time.Time
+		Next     string
+	}
+	var a, b member
+	f.c.Do(http.MethodPost, f.base+"/members/"+now+"/cancel", map[string]any{"when": "now", "note": "Asked by email", "email": false}).MustStatus(t, 200).JSON(t, &a)
+	f.c.Do(http.MethodPost, f.base+"/members/"+later+"/cancel", map[string]any{"when": "period_end", "email": false}).MustStatus(t, 200).JSON(t, &b)
+	if a.Status != "canceled" || a.Next != "ended" {
+		t.Fatalf("ended now: %+v", a)
+	}
+	if b.Status == "canceled" || b.CancelAt == nil {
+		t.Fatalf("at the period's end: %+v", b)
+	}
+	stripeStatus := func(memberID string) (string, bool) {
+		t.Helper()
+		var sid string
+		if err := f.env.App.Pool.QueryRow(context.Background(), `SELECT stripe_subscription_id FROM paid_subscriptions WHERE id = $1`, memberID).Scan(&sid); err != nil {
+			t.Fatal(err)
+		}
+		o := f.fake.Get(payments.Test, sid)
+		atEnd, _ := o["cancel_at_period_end"].(bool)
+		return fmt.Sprint(o["status"]), atEnd
+	}
+	if st, _ := stripeStatus(now); st != "canceled" {
+		t.Fatalf("Stripe still bills the ended one: %s", st)
+	}
+	if st, atEnd := stripeStatus(later); st == "canceled" || !atEnd {
+		t.Fatalf("Stripe for the period-end one: %s, at end %v", st, atEnd)
+	}
+	if n := f.count(`SELECT count(*) FROM audit_events WHERE workspace_id = $1 AND action = 'paid_member.subscription_canceled'`, f.ws.ID); n != 2 {
+		t.Fatalf("audit entries: %d", n)
+	}
+	f.c.Do(http.MethodPost, f.base+"/members/"+now+"/cancel", map[string]any{"when": "now", "email": false}).MustStatus(t, 409)
+}
+
+// Review 2026-11 EA-5: a tier's new price is for new members; members on the
+// old one keep paying it, shown as a legacy price, and Stripe's old price
+// stops taking new subscriptions.
+func TestLegacyPriceStaysForItsMembers(t *testing.T) {
+	f := newFlow(t)
+	f.connect()
+	f.createTier()
+	checkout := func() string {
+		t.Helper()
+		form := url.Values{"tier": {f.tier}, "period": {"month"}}
+		r := f.c.DoRaw(http.MethodPost, "/p/"+f.ws.Slug+"/upgrade/checkout", "application/x-www-form-urlencoded", strings.NewReader(form.Encode()))
+		return strings.TrimPrefix(r.Header.Get("Location"), "https://checkout.stripe.com/c/pay/")
+	}
+	first := checkout()
+	oldPrice, _, _, _ := f.fake.Session(payments.Test, first)
+	evs, err := f.fake.CompleteCheckout(payments.Test, first, stripetest.CheckoutOptions{Email: "early@flow.example"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.deliver(time.Now(), evs...)
+	f.apply()
+
+	// $8 a month becomes $10.
+	var saved struct {
+		Tier struct {
+			Prices []struct {
+				Period, Status, StripeTestID string
+				AmountCents                  int64 `json:"amountCents"`
+			}
+		}
+	}
+	f.c.Do(http.MethodPut, f.base+"/tiers/"+f.tier, map[string]any{"name": "Flow Weekly Insider", "benefits": []string{"A deep dive every week"}, "monthly": 1000,
+		"yearly": 8000, "trialDays": 14, "lists": []string{f.list}, "accessRank": 1, "visibility": "public", "highlight": "Most popular"}).MustStatus(t, 200).JSON(t, &saved)
+	current, legacy := "", ""
+	for _, p := range saved.Tier.Prices {
+		if p.Period != "month" {
+			continue
+		}
+		switch p.Status {
+		case "current":
+			current = p.StripeTestID
+			if p.AmountCents != 1000 {
+				t.Fatalf("the current monthly price: %+v", p)
+			}
+		case "legacy":
+			legacy = p.StripeTestID
+		}
+	}
+	if current == "" || current == oldPrice || legacy != oldPrice {
+		t.Fatalf("prices after the change: current %q, legacy %q, was %q: %+v", current, legacy, oldPrice, saved.Tier.Prices)
+	}
+	// A new reader pays the new price; the early one keeps the old one.
+	if p, _, _, _ := f.fake.Session(payments.Test, checkout()); p != current {
+		t.Fatalf("a new checkout charges %q, want %q", p, current)
+	}
+	var list struct {
+		Items []struct {
+			Email       string
+			Legacy      bool
+			AmountCents int64 `json:"amountCents"`
+		}
+	}
+	f.c.Do(http.MethodGet, f.base+"/members?test=true&status=with_access", nil).MustStatus(t, 200).JSON(t, &list)
+	if len(list.Items) != 1 || list.Items[0].Email != "early@flow.example" || !list.Items[0].Legacy || list.Items[0].AmountCents != 800 {
+		t.Fatalf("the early member: %+v", list.Items)
+	}
+	if o := f.fake.Get(payments.Test, oldPrice); o["active"] != false {
+		t.Fatalf("Stripe's old price still takes new subscriptions: %v", o["active"])
+	}
+}

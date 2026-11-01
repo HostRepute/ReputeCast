@@ -507,3 +507,32 @@ func TestGiftPaidByBankDebit(t *testing.T) {
 		t.Fatalf("sent %d with the template at version %d: it goes only once published", sent, live)
 	}
 }
+
+// Review 2026-11 EA-5: a gift link passed on to someone else works for them:
+// the gift goes to whoever redeems it first, with their own address, and
+// the recipient it was meant for finds it used.
+func TestForwardedGiftLinkGoesToWhoeverRedeems(t *testing.T) {
+	s := newSample(t)
+	ctx := context.Background()
+	g := s.env.App.Gifts()
+	var code, meantFor string
+	if err := s.env.App.Pool.QueryRow(ctx, `SELECT code, recipient_email FROM earn_gifts WHERE workspace_id = $1 AND status = 'delivered' AND mode = 'live'
+		AND recipient_email <> '' AND (link_expires_at IS NULL OR link_expires_at > now()) ORDER BY delivered_at LIMIT 1`, s.ws.ID).Scan(&code, &meantFor); err != nil {
+		t.Fatalf("a delivered gift in the demo: %v", err)
+	}
+	done, err := g.Redeem(ctx, &s.ws, code, gifts.RedeemInput{Email: "Forwarded.Friend@Example.com"})
+	if err != nil || done.State != "redeemed" {
+		t.Fatalf("redeemed by a friend: %+v %v", done, err)
+	}
+	gf := s.gift(code)
+	if gf.Status != gifts.StatusRedeemed || gf.RedeemedEmail != "forwarded.friend@example.com" || gf.RedeemedContact == nil {
+		t.Fatalf("the forwarded gift: %+v", gf)
+	}
+	var email string
+	if err := s.env.App.Pool.QueryRow(ctx, `SELECT email FROM contacts WHERE id = $1`, *gf.RedeemedContact).Scan(&email); err != nil || email != "forwarded.friend@example.com" {
+		t.Fatalf("the access went to %q (%v)", email, err)
+	}
+	if again, err := g.Redeem(ctx, &s.ws, code, gifts.RedeemInput{Email: meantFor}); err != nil || again.State != "used" {
+		t.Fatalf("the recipient it was meant for: %+v %v", again, err)
+	}
+}
