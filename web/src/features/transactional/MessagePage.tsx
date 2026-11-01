@@ -18,6 +18,8 @@ import { useWorkspace } from '@/lib/session'
 import { ml } from './log.messages'
 import { LogPhoneList, RejectionExplain, useLanguageName, useLog, useRangeLabel, type LogSearch } from './MessagesPage'
 import { mt } from './messages'
+import { ScheduledCard, SuppressionActions } from './schedule'
+import { msc } from './schedule.messages'
 import { CategoryCell, secs, sizeText, StatusBadge, TxTabs } from './shared'
 
 type Detail = Schemas['TransactionalMessageDetail']
@@ -280,9 +282,14 @@ function MessageDetail({ d }: { d: Detail }) {
           />
         </Note>
       ) : null}
+      {d.status === 'scheduled' ? (
+        <div style={{ margin: '14px 22px 0' }}>
+          <ScheduledCard d={d} />
+        </div>
+      ) : null}
       {d.rejection || d.status === 'failed' ? (
         <div style={{ margin: '14px 22px 0' }}>
-          <RejectionExplain it={d} />
+          <RejectionExplain it={d} actions={<SuppressionActions d={d} />} />
         </div>
       ) : null}
       <div className="grid items-start gap-[22px]" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(360px, 100%), 1fr))', padding: '18px 22px 22px' }}>
@@ -467,6 +474,8 @@ function entryText(t: ReturnType<typeof useT>, d: Detail, e: Entry): { title: st
     }
     case 'scheduled':
       return { title: t(ml.evScheduled), detail: d.sendAt ? stamp(d.sendAt) : '' }
+    case 'cancelled':
+      return { title: t(msc.evCancelled), detail: e.detail ? t(msc.evCancelledBy, { name: e.detail }) : '' }
     case 'routed': {
       const which = d.route.failedOver ? 'fallback' : 'primary'
       return {
@@ -716,7 +725,14 @@ function ContentPanel({ d }: { d: Detail }) {
   const html = q.data?.html
   const marked = useMemo(() => (html ? markValues(html, (d.request.body as { data?: unknown } | undefined)?.data) : ''), [html, d.request.body])
   let body: ReactNode
-  if (c.removedAt) body = <Note tone="neutral">{t(ml.contentRemoved, { date: dayMonthYear(c.removedAt), days: c.retentionDays, until: dayMonthYear(c.metadataUntil) })}</Note>
+  if (c.removedAt)
+    body = (
+      <Note tone="neutral">
+        {d.status === 'cancelled'
+          ? t(ml.contentCancelled, { date: dayMonthYear(c.removedAt), until: dayMonthYear(c.metadataUntil) })
+          : t(ml.contentRemoved, { date: dayMonthYear(c.removedAt), days: c.retentionDays, until: dayMonthYear(c.metadataUntil) })}
+      </Note>
+    )
   else if (!c.available) {
     // Stopped before sending, a workspace that keeps no content, or a
     // message sent while it kept none.

@@ -8541,7 +8541,8 @@
             "enum": [
               "now",
               "at",
-              "best_time"
+              "best_time",
+              "local"
             ],
             "type": "string"
           },
@@ -9404,7 +9405,8 @@
             "enum": [
               "now",
               "at",
-              "best_time"
+              "best_time",
+              "local"
             ],
             "type": "string"
           },
@@ -9496,7 +9498,8 @@
             "enum": [
               "now",
               "at",
-              "best_time"
+              "best_time",
+              "local"
             ],
             "type": "string"
           },
@@ -88150,6 +88153,7 @@
           },
           "status": {
             "enum": [
+              "scheduled",
               "queued",
               "sent",
               "delivered",
@@ -88157,6 +88161,7 @@
               "bounced",
               "complained",
               "rejected",
+              "cancelled",
               "failed",
               "test"
             ],
@@ -88783,6 +88788,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "cancelled": {
+            "format": "int64",
+            "type": "integer"
+          },
           "complained": {
             "format": "int64",
             "type": "integer"
@@ -88807,6 +88816,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "scheduled": {
+            "format": "int64",
+            "type": "integer"
+          },
           "sent": {
             "format": "int64",
             "type": "integer"
@@ -88826,7 +88839,9 @@
           "complained",
           "rejected",
           "failed",
-          "test"
+          "test",
+          "scheduled",
+          "cancelled"
         ],
         "type": "object"
       },
@@ -88928,6 +88943,7 @@
           },
           "status": {
             "enum": [
+              "scheduled",
               "queued",
               "sent",
               "delivered",
@@ -88935,6 +88951,7 @@
               "bounced",
               "complained",
               "rejected",
+              "cancelled",
               "failed",
               "test"
             ],
@@ -89184,6 +89201,7 @@
           },
           "status": {
             "enum": [
+              "scheduled",
               "queued",
               "sent",
               "delivered",
@@ -89191,6 +89209,7 @@
               "bounced",
               "complained",
               "rejected",
+              "cancelled",
               "failed",
               "test"
             ],
@@ -90166,6 +90185,20 @@
         ],
         "type": "object"
       },
+      "TransactionalRescheduleInput": {
+        "additionalProperties": false,
+        "properties": {
+          "sendAt": {
+            "description": "The new send time, up to 72 hours from now",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sendAt"
+        ],
+        "type": "object"
+      },
       "TransactionalResendState": {
         "additionalProperties": false,
         "properties": {
@@ -90281,6 +90314,30 @@
           "configured",
           "priority",
           "conditions"
+        ],
+        "type": "object"
+      },
+      "TransactionalSchedule": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sendAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "scheduled",
+              "cancelled"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status"
         ],
         "type": "object"
       },
@@ -91342,6 +91399,86 @@
         ],
         "type": "object"
       },
+      "TransactionalTemplateTestInput": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "additionalProperties": {},
+            "description": "Data to render with instead of a test data set",
+            "type": "object"
+          },
+          "html": {
+            "maxLength": 2500000,
+            "type": "string"
+          },
+          "mjml": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "plainText": {
+            "maxLength": 500000,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "sendTo": {
+            "maxLength": 254,
+            "minLength": 3,
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 998,
+            "type": "string"
+          },
+          "testData": {
+            "description": "The name of a test data set",
+            "maxLength": 80,
+            "type": "string"
+          },
+          "to": {
+            "$ref": "#/components/schemas/TransactionalAddress"
+          },
+          "variables": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalVariable"
+            },
+            "maxItems": 200,
+            "type": "array"
+          },
+          "version": {
+            "description": "draft (default), live, or a version number",
+            "examples": [
+              "draft"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "sendTo"
+        ],
+        "type": "object"
+      },
+      "TransactionalTemplateTestResult": {
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "sentTo": {
+            "type": "string"
+          },
+          "testData": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sentTo",
+          "provider"
+        ],
+        "type": "object"
+      },
       "TransactionalTemplateUpdate": {
         "additionalProperties": false,
         "properties": {
@@ -91476,6 +91613,7 @@
               "accepted",
               "rendered",
               "scheduled",
+              "cancelled",
               "routed",
               "handed",
               "retry",
@@ -95267,6 +95405,10 @@
             "$ref": "#/components/schemas/WebhookManagedBy"
           },
           "name": {
+            "type": "string"
+          },
+          "previousSecretUntil": {
+            "format": "date-time",
             "type": "string"
           },
           "queued": {
@@ -112177,6 +112319,17 @@
               "maximum": 3650,
               "minimum": 0,
               "type": "integer"
+            }
+          },
+          {
+            "description": "Search the campaigns, flows, templates and pages asked about by name",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Search the campaigns, flows, templates and pages asked about by name",
+              "maxLength": 200,
+              "type": "string"
             }
           },
           {
@@ -174616,6 +174769,7 @@
               "default": "all",
               "enum": [
                 "all",
+                "scheduled",
                 "queued",
                 "sent",
                 "delivered",
@@ -174623,6 +174777,7 @@
                 "bounced",
                 "complained",
                 "rejected",
+                "cancelled",
                 "failed",
                 "test"
               ],
@@ -174965,6 +175120,7 @@
               "default": "all",
               "enum": [
                 "all",
+                "scheduled",
                 "queued",
                 "sent",
                 "delivered",
@@ -174972,6 +175128,7 @@
                 "bounced",
                 "complained",
                 "rejected",
+                "cancelled",
                 "failed",
                 "test"
               ],
@@ -175220,6 +175377,75 @@
         "x-permission": "transactional:view"
       }
     },
+    "/api/v1/workspaces/{workspace}/transactional/messages/{messageId}/cancel": {
+      "post": {
+        "description": "The log keeps it as cancelled and webhooks get message.cancelled. 409 not_scheduled once it is on its way. Audited.",
+        "operationId": "cancel-transactional-message",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The message ID the send API answered",
+            "in": "path",
+            "name": "messageId",
+            "required": true,
+            "schema": {
+              "description": "The message ID the send API answered",
+              "maxLength": 36,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalSchedule"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel a message scheduled with send_at before its send time",
+        "tags": [
+          "Transactional messages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:send"
+      }
+    },
     "/api/v1/workspaces/{workspace}/transactional/messages/{messageId}/content": {
       "get": {
         "description": "Content can hold personal data: it needs transactional:content and every view is audited. Sensitive values are masked. Answers 410 content_removed after the content retention.",
@@ -175287,6 +175513,85 @@
         ],
         "x-access": "workspace",
         "x-permission": "transactional:content"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/messages/{messageId}/reschedule": {
+      "post": {
+        "description": "Up to 72 hours from now, like send_at. 409 not_scheduled once it is on its way. Audited.",
+        "operationId": "reschedule-transactional-message",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The message ID the send API answered",
+            "in": "path",
+            "name": "messageId",
+            "required": true,
+            "schema": {
+              "description": "The message ID the send API answered",
+              "maxLength": 36,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalRescheduleInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalSchedule"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Move a scheduled message to another send time",
+        "tags": [
+          "Transactional messages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:send"
       }
     },
     "/api/v1/workspaces/{workspace}/transactional/messages/{messageId}/resend": {
@@ -177326,6 +177631,85 @@
         ],
         "x-access": "workspace",
         "x-permission": "transactional:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/test": {
+      "post": {
+        "description": "Goes through the System route with [Test] in the subject; nothing goes to the message log. Without transactional:send, only to your own address.",
+        "operationId": "send-transactional-template-test",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalTemplateTestInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalTemplateTestResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Send the draft (or a version) as a test email, filled with a test data set",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:edit"
       }
     },
     "/api/v1/workspaces/{workspace}/transactional/templates/{template}/versions": {

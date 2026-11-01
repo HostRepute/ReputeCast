@@ -1,0 +1,33 @@
+import { translate } from '@/i18n'
+import { msc } from './schedule.messages'
+
+export default translate(msc, {
+  goesOut: 'Gửi lúc {when} ({zone}), {in}.',
+  reschedule: 'Dời lịch…',
+  cancelSend: 'Hủy gửi…',
+  cancelTitle: 'Hủy tin nhắn này?',
+  cancelBody: 'Tin nhắn sẽ không được gửi đến {email}. Nhật ký vẫn giữ tin nhắn với trạng thái Đã hủy; nội dung bị xóa ngay. Các webhook theo dõi message.cancelled sẽ được báo.',
+  cancelBadge: 'Hủy gửi',
+  keepIt: 'Giữ lại',
+  cancelling: 'Đang hủy…',
+  cancelled: 'Đã hủy tin nhắn',
+  moveTitle: 'Dời thời điểm gửi',
+  dayAndTime: 'Ngày và giờ',
+  day: 'Ngày',
+  time: 'Giờ',
+  moveHint: 'Tối đa 72 giờ tới, như send_at cho phép. Theo múi giờ {zone}.',
+  moveTo: 'Dời sang {when}',
+  moved: 'Đã dời sang {when}',
+  evCancelled: 'Đã hủy',
+  evCancelledBy: 'bởi {name} · nội dung đã bị xóa',
+  removeSuppression: 'Gỡ khỏi danh sách chặn gửi…',
+  openSuppression: 'Mở mục chặn gửi',
+  removeTitle: 'Gỡ {email} khỏi danh sách chặn gửi?',
+  removeBody: 'Email có thể đến địa chỉ này trở lại.',
+  removeBounce: 'Địa chỉ được thêm vì bị trả lại hoặc bị khiếu nại: email marketing chờ họ xác nhận đăng ký lại; email transactional vẫn được gửi.',
+  reason: 'Lý do (được lưu trong nhật ký kiểm tra)',
+  reasonShort: 'Hãy nói lý do bằng vài từ.',
+  removeConfirm: 'Gỡ khỏi danh sách',
+  removing: 'Đang gỡ…',
+  removed: '{email} đã được gỡ khỏi danh sách chặn gửi',
+})

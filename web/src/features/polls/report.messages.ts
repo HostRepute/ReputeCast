@@ -145,6 +145,7 @@ export const m = defineMessages('pollReport', {
   showing: 'Showing {shown} of {total} · names are shown to people who can view contacts',
   previous: 'Previous',
   next: 'Next',
+  commentsFailed: "Couldn't load the comments",
   noComments: 'No comments yet.',
   noMatch: 'No comment matches “{query}”.',
 

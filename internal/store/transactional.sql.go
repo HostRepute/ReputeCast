@@ -464,6 +464,16 @@ func (q *Queries) TxnAppendAttempts(ctx context.Context, arg TxnAppendAttemptsPa
 	return err
 }
 
+const txnCancelScheduled = `-- name: TxnCancelScheduled :exec
+UPDATE messages SET status = 'cancelled', next_attempt_at = NULL, claimed_at = NULL, error = 'cancelled before its send time'
+WHERE id = $1 AND status = 'queued'
+`
+
+func (q *Queries) TxnCancelScheduled(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, txnCancelScheduled, id)
+	return err
+}
+
 const txnCategories = `-- name: TxnCategories :many
 SELECT c.id, c.workspace_id, c.name, c.kind, c.description, c.position, c.created_by, c.created_at, c.updated_at,
        (SELECT count(*) FROM transactional_templates t WHERE t.category_id = c.id AND t.deleted_at IS NULL)::bigint AS templates,
@@ -663,7 +673,9 @@ const txnContactMessages = `-- name: TxnContactMessages :many
 SELECT t.message_id, t.accepted_at, t.template_key, t.template_name, t.source, t.subject, t.test, t.reject_reason, t.category_name,
        coalesce(p.name, '')::text AS provider_name, m.delivered_at,
        (CASE WHEN t.test THEN 'test'
+             WHEN t.cancelled_at IS NOT NULL THEN 'cancelled'
              WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+             WHEN m.status = 'queued' AND m.next_attempt_at IS NOT NULL AND m.next_attempt_at = t.send_at THEN 'scheduled'
              WHEN m.status = 'held' THEN 'queued'
              ELSE m.status END)::text AS status
 FROM transactional_messages t
@@ -1171,7 +1183,9 @@ WITH log AS (
            t.failed_over_from, coalesce(fp.name, '')::text AS failed_over_from_name, t.failed_over_at,
            t.key_id, t.key_name, t.idempotency_key, t.tags, t.metadata, t.category_name, t.category_kind, t.workspace_id, m.language,
            (CASE WHEN t.test THEN 'test'
+                 WHEN t.cancelled_at IS NOT NULL THEN 'cancelled'
                  WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+                 WHEN m.status = 'queued' AND m.next_attempt_at IS NOT NULL AND m.next_attempt_at = t.send_at THEN 'scheduled'
                  WHEN m.status = 'held' THEN 'queued'
                  ELSE m.status END)::text AS status
     FROM transactional_messages t
@@ -1264,8 +1278,8 @@ type TxnLogRow struct {
 }
 
 // The message log, newest first. status is what the log shows: test,
-// rejected, queued, sent, delivered, deferred, bounced, complained or
-// failed. before_* pages back; after_* returns only newer messages (live).
+// cancelled, rejected, scheduled (waiting for send_at), queued, sent,
+// delivered, deferred, bounced, complained or failed. before_* pages back; after_* returns only newer messages (live).
 func (q *Queries) TxnLog(ctx context.Context, arg TxnLogParams) ([]TxnLogRow, error) {
 	rows, err := q.db.Query(ctx, txnLog,
 		arg.Status,
@@ -1341,7 +1355,9 @@ func (q *Queries) TxnLog(ctx context.Context, arg TxnLogParams) ([]TxnLogRow, er
 
 const txnLogCounts = `-- name: TxnLogCounts :many
 SELECT (CASE WHEN t.test THEN 'test'
+             WHEN t.cancelled_at IS NOT NULL THEN 'cancelled'
              WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+             WHEN m.status = 'queued' AND m.next_attempt_at IS NOT NULL AND m.next_attempt_at = t.send_at THEN 'scheduled'
              WHEN m.status = 'held' THEN 'queued'
              ELSE m.status END)::text AS status,
        count(*)::bigint AS n
@@ -1469,6 +1485,21 @@ func (q *Queries) TxnLogTemplates(ctx context.Context, workspaceID uuid.UUID) ([
 	return items, nil
 }
 
+const txnMarkCancelled = `-- name: TxnMarkCancelled :exec
+UPDATE transactional_messages SET cancelled_at = $1, cancelled_by = $2 WHERE message_id = $3
+`
+
+type TxnMarkCancelledParams struct {
+	At *time.Time `json:"at"`
+	By string     `json:"by"`
+	ID uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) TxnMarkCancelled(ctx context.Context, arg TxnMarkCancelledParams) error {
+	_, err := q.db.Exec(ctx, txnMarkCancelled, arg.At, arg.By, arg.ID)
+	return err
+}
+
 const txnMarkEmitted = `-- name: TxnMarkEmitted :exec
 UPDATE transactional_messages SET events_emitted = array_append(events_emitted, $1::text) WHERE message_id = $2
 `
@@ -1575,7 +1606,7 @@ SELECT t.message_id, t.workspace_id, t.source, t.template_id, t.template_key, t.
        t.category_kind, t.key_id, t.key_name, t.user_id, t.ip, t.idempotency_key, t.subject, t.from_email, t.from_name, t.reply_to, t.to_name,
        t.cc, t.bcc, t.tags, t.metadata, t.data, t.data_keys, t.sensitive, t.attachments, t.size_bytes, t.test, t.test_delivered, t.send_at,
        t.reject_reason, t.reject_detail, t.track_opens, t.track_clicks, t.route, t.attempts, t.failed_over_from, t.failed_over_at, t.provider_since,
-       t.accepted_at, t.rendered_at, t.content_expires_at, t.content_removed_at, t.resent_from,
+       t.accepted_at, t.rendered_at, t.content_expires_at, t.content_removed_at, t.resent_from, t.cancelled_at, t.cancelled_by,
        m.email, m.contact_id, m.provider_id, coalesce(m.provider_message_id, '')::text AS provider_message_id, m.mailbox_provider,
        m.status AS raw_status, m.error, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at,
        m.language, m.contact_language, m.language_reason,
@@ -1587,7 +1618,9 @@ SELECT t.message_id, t.workspace_id, t.source, t.template_id, t.template_key, t.
        EXISTS (SELECT 1 FROM transactional_message_content x WHERE x.message_id = t.message_id)::boolean AS has_content,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = t.workspace_id AND s.email = m.email AND s.reason = 'role')::boolean AS role_address,
        (CASE WHEN t.test THEN 'test'
+             WHEN t.cancelled_at IS NOT NULL THEN 'cancelled'
              WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+             WHEN m.status = 'queued' AND m.next_attempt_at IS NOT NULL AND m.next_attempt_at = t.send_at THEN 'scheduled'
              WHEN m.status = 'held' THEN 'queued'
              ELSE m.status END)::text AS status
 FROM transactional_messages t
@@ -1651,6 +1684,8 @@ type TxnMessageDetailRow struct {
 	ContentExpiresAt   *time.Time      `json:"contentExpiresAt"`
 	ContentRemovedAt   *time.Time      `json:"contentRemovedAt"`
 	ResentFrom         *uuid.UUID      `json:"resentFrom"`
+	CancelledAt        *time.Time      `json:"cancelledAt"`
+	CancelledBy        string          `json:"cancelledBy"`
 	Email              string          `json:"email"`
 	ContactID          *uuid.UUID      `json:"contactId"`
 	ProviderID         *uuid.UUID      `json:"providerId"`
@@ -1725,6 +1760,8 @@ func (q *Queries) TxnMessageDetail(ctx context.Context, arg TxnMessageDetailPara
 		&i.ContentExpiresAt,
 		&i.ContentRemovedAt,
 		&i.ResentFrom,
+		&i.CancelledAt,
+		&i.CancelledBy,
 		&i.Email,
 		&i.ContactID,
 		&i.ProviderID,
@@ -2317,6 +2354,7 @@ SELECT m.id, m.workspace_id, t.provider_since, t.route, t.attempts AS tried
 FROM messages m JOIN transactional_messages t ON t.message_id = m.id
 WHERE m.provider_id = $1 AND m.status = 'queued' AND m.stream = 'transactional'
   AND (m.claimed_at IS NULL OR m.claimed_at < $2::timestamptz)
+  AND (m.next_attempt_at IS NULL OR m.next_attempt_at <= $3::timestamptz)
 ORDER BY m.id
 LIMIT 500
 `
@@ -2324,6 +2362,7 @@ LIMIT 500
 type TxnOutboxQueuedOnParams struct {
 	ProviderID *uuid.UUID `json:"providerId"`
 	Stale      time.Time  `json:"stale"`
+	Now        time.Time  `json:"now"`
 }
 
 type TxnOutboxQueuedOnRow struct {
@@ -2335,8 +2374,10 @@ type TxnOutboxQueuedOnRow struct {
 }
 
 // Queued transactional messages of a provider (failover when it is down).
+// A message waiting for its send_at stays until its time: moving it would
+// send it at once (review 2026-11 TX-1).
 func (q *Queries) TxnOutboxQueuedOn(ctx context.Context, arg TxnOutboxQueuedOnParams) ([]TxnOutboxQueuedOnRow, error) {
-	rows, err := q.db.Query(ctx, txnOutboxQueuedOn, arg.ProviderID, arg.Stale)
+	rows, err := q.db.Query(ctx, txnOutboxQueuedOn, arg.ProviderID, arg.Stale, arg.Now)
 	if err != nil {
 		return nil, err
 	}
@@ -2437,6 +2478,61 @@ func (q *Queries) TxnOverviewStats(ctx context.Context, arg TxnOverviewStatsPara
 	return i, err
 }
 
+const txnRateBucketLock = `-- name: TxnRateBucketLock :one
+INSERT INTO transactional_rate_buckets AS b (bucket_key, tokens, refilled_at)
+VALUES ($1, $2::float8, $3::timestamptz)
+ON CONFLICT (bucket_key) DO UPDATE SET bucket_key = EXCLUDED.bucket_key
+RETURNING b.tokens, b.refilled_at
+`
+
+type TxnRateBucketLockParams struct {
+	BucketKey uuid.UUID `json:"bucketKey"`
+	Burst     float64   `json:"burst"`
+	Now       time.Time `json:"now"`
+}
+
+type TxnRateBucketLockRow struct {
+	Tokens     float64   `json:"tokens"`
+	RefilledAt time.Time `json:"refilledAt"`
+}
+
+// A key's send-rate bucket, created full and locked until the transaction
+// ends, so every web node takes from the same tokens (review 2026-11 TX-4).
+func (q *Queries) TxnRateBucketLock(ctx context.Context, arg TxnRateBucketLockParams) (TxnRateBucketLockRow, error) {
+	row := q.db.QueryRow(ctx, txnRateBucketLock, arg.BucketKey, arg.Burst, arg.Now)
+	var i TxnRateBucketLockRow
+	err := row.Scan(&i.Tokens, &i.RefilledAt)
+	return i, err
+}
+
+const txnRateBucketSet = `-- name: TxnRateBucketSet :exec
+UPDATE transactional_rate_buckets SET tokens = $1::float8, refilled_at = $2::timestamptz WHERE bucket_key = $3
+`
+
+type TxnRateBucketSetParams struct {
+	Tokens     float64   `json:"tokens"`
+	RefilledAt time.Time `json:"refilledAt"`
+	BucketKey  uuid.UUID `json:"bucketKey"`
+}
+
+func (q *Queries) TxnRateBucketSet(ctx context.Context, arg TxnRateBucketSetParams) error {
+	_, err := q.db.Exec(ctx, txnRateBucketSet, arg.Tokens, arg.RefilledAt, arg.BucketKey)
+	return err
+}
+
+const txnRateBucketsPurge = `-- name: TxnRateBucketsPurge :execrows
+DELETE FROM transactional_rate_buckets WHERE refilled_at < $1::timestamptz
+`
+
+// Buckets idle for an hour are full again: they go.
+func (q *Queries) TxnRateBucketsPurge(ctx context.Context, before time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, txnRateBucketsPurge, before)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const txnRecentCallKeys = `-- name: TxnRecentCallKeys :many
 SELECT m.message_id, m.accepted_at, m.data_keys, m.template_version, m.data, m.sensitive, mm.email
 FROM transactional_messages m
@@ -2527,6 +2623,34 @@ func (q *Queries) TxnRejectedCallsForTemplate(ctx context.Context, arg TxnReject
 		return nil, err
 	}
 	return items, nil
+}
+
+const txnRescheduleMessage = `-- name: TxnRescheduleMessage :exec
+UPDATE messages SET next_attempt_at = $1 WHERE id = $2 AND status = 'queued'
+`
+
+type TxnRescheduleMessageParams struct {
+	SendAt *time.Time `json:"sendAt"`
+	ID     uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) TxnRescheduleMessage(ctx context.Context, arg TxnRescheduleMessageParams) error {
+	_, err := q.db.Exec(ctx, txnRescheduleMessage, arg.SendAt, arg.ID)
+	return err
+}
+
+const txnRescheduleSendAt = `-- name: TxnRescheduleSendAt :exec
+UPDATE transactional_messages SET send_at = $1 WHERE message_id = $2
+`
+
+type TxnRescheduleSendAtParams struct {
+	SendAt *time.Time `json:"sendAt"`
+	ID     uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) TxnRescheduleSendAt(ctx context.Context, arg TxnRescheduleSendAtParams) error {
+	_, err := q.db.Exec(ctx, txnRescheduleSendAt, arg.SendAt, arg.ID)
+	return err
 }
 
 const txnRetentionContentDue = `-- name: TxnRetentionContentDue :many
@@ -2849,6 +2973,49 @@ func (q *Queries) TxnSMTPFromAddresses(ctx context.Context, arg TxnSMTPFromAddre
 		return nil, err
 	}
 	return items, nil
+}
+
+const txnScheduledForUpdate = `-- name: TxnScheduledForUpdate :one
+SELECT m.status, m.next_attempt_at, m.claimed_at, m.email, t.send_at, t.template_name, t.template_key, t.cancelled_at, t.test
+FROM messages m JOIN transactional_messages t ON t.message_id = m.id
+WHERE m.id = $1 AND t.workspace_id = $2
+FOR UPDATE OF m
+`
+
+type TxnScheduledForUpdateParams struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+type TxnScheduledForUpdateRow struct {
+	Status        string     `json:"status"`
+	NextAttemptAt *time.Time `json:"nextAttemptAt"`
+	ClaimedAt     *time.Time `json:"claimedAt"`
+	Email         string     `json:"email"`
+	SendAt        *time.Time `json:"sendAt"`
+	TemplateName  string     `json:"templateName"`
+	TemplateKey   string     `json:"templateKey"`
+	CancelledAt   *time.Time `json:"cancelledAt"`
+	Test          bool       `json:"test"`
+}
+
+// A message waiting for its send time, locked while it is cancelled or
+// moved (review 2026-11 TX-1); the outbox claims skip locked rows.
+func (q *Queries) TxnScheduledForUpdate(ctx context.Context, arg TxnScheduledForUpdateParams) (TxnScheduledForUpdateRow, error) {
+	row := q.db.QueryRow(ctx, txnScheduledForUpdate, arg.ID, arg.WorkspaceID)
+	var i TxnScheduledForUpdateRow
+	err := row.Scan(
+		&i.Status,
+		&i.NextAttemptAt,
+		&i.ClaimedAt,
+		&i.Email,
+		&i.SendAt,
+		&i.TemplateName,
+		&i.TemplateKey,
+		&i.CancelledAt,
+		&i.Test,
+	)
+	return i, err
 }
 
 const txnSenderByEmail = `-- name: TxnSenderByEmail :one

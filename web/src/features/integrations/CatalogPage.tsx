@@ -8,6 +8,7 @@ import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Feedback'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { T, useT, type MessageDescriptor } from '@/i18n'
+import { useApiReference } from '@/lib/apiReference'
 import { ago, money } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 import { AIGroupLink, AIGroupNote, AIModelCard, aiGroupLine } from '@/features/ai/catalog'
@@ -17,7 +18,6 @@ import { StoreAction, StoreBadge, StoreFact } from '@/features/commerce/catalog'
 import { ConnectDialog } from './ConnectDialog'
 import { m } from './messages'
 import {
-  API_REFERENCE,
   AttentionIcon,
   capabilities,
   entryLine,
@@ -72,6 +72,7 @@ const MAX_BANNERS = 3
 
 /** Settings › Integrations: the catalog (IntegrationsCatalog, IntegrationsStates). */
 export function CatalogPage() {
+  const apiReference = useApiReference()
   const { slug } = useWorkspace()
   const t = useT()
   const q = useHub()
@@ -109,7 +110,7 @@ export function CatalogPage() {
       <div className="row justify-center gap-x-2.5 gap-y-2 py-1 pb-1.5 text-center">
         <Icon name="code" size={15} className="text-ink-3" />
         <span className="text-[13px] text-ink-2">{t(m.footer)}</span>
-        <a href={API_REFERENCE} className="ih-lnk" target="_blank" rel="noopener noreferrer">
+        <a href={apiReference} className="ih-lnk" target="_blank" rel="noopener noreferrer">
           {t(m.apiReference)} <Icon name="external" size={13} />
           <span className="vh">{t(m.newTab)}</span>
         </a>
@@ -294,6 +295,7 @@ function AlertBanner({ alert, entry }: { alert: Hub['alerts'][number]; entry?: E
 
 /** One catalog card: tile, name, status, line, capabilities, the reason it needs attention, a fact and an action. */
 function EntryCard({ entry: e, canManage, onConnect }: { entry: Entry; canManage: boolean; onConnect: (k: PlatformKind) => void }) {
+  const apiReference = useApiReference()
   const { slug } = useWorkspace()
   const t = useT()
   const canHostRepute = useCan('integrations:hostrepute')
@@ -345,7 +347,7 @@ function EntryCard({ entry: e, canManage, onConnect }: { entry: Entry; canManage
     )
   } else if (e.key === 'api') {
     action = (
-      <ButtonAnchor size="sm" href={API_REFERENCE} iconRight="external">
+      <ButtonAnchor size="sm" href={apiReference} iconRight="external">
         {t(m.open)}
         <span className="vh">{t(m.newTab)}</span>
       </ButtonAnchor>
@@ -458,6 +460,7 @@ function Fact({ entry: e }: { entry: Entry }) {
 }
 
 function NoResults({ query, onClear }: { query: string; onClear: () => void }) {
+  const apiReference = useApiReference()
   const { slug } = useWorkspace()
   const t = useT()
   const params = (kind: PlatformKind) => ({ workspace: slug, kind })
@@ -483,7 +486,7 @@ function NoResults({ query, onClear }: { query: string; onClear: () => void }) {
           msg={m.buildYourOwn}
           values={{
             a: (c) => (
-              <a href={API_REFERENCE} target="_blank" rel="noopener noreferrer">
+              <a href={apiReference} target="_blank" rel="noopener noreferrer">
                 {c}
               </a>
             ),

@@ -1499,6 +1499,40 @@ func (q *Queries) SurveyAllResponses(ctx context.Context, surveyID uuid.UUID) ([
 	return items, nil
 }
 
+const surveyAnsweredCounts = `-- name: SurveyAnsweredCounts :many
+SELECT a.key::text AS question_key, count(*)::bigint AS n
+FROM survey_responses r
+CROSS JOIN LATERAL jsonb_each(r.answers) a
+WHERE r.survey_id = $1 AND r.kind <> 'test' AND r.completed_at IS NOT NULL AND jsonb_typeof(a.value) <> 'null'
+GROUP BY 1
+`
+
+type SurveyAnsweredCountsRow struct {
+	QuestionKey string `json:"questionKey"`
+	N           int64  `json:"n"`
+}
+
+// How many completed responses answered each question.
+func (q *Queries) SurveyAnsweredCounts(ctx context.Context, surveyID uuid.UUID) ([]SurveyAnsweredCountsRow, error) {
+	rows, err := q.db.Query(ctx, surveyAnsweredCounts, surveyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SurveyAnsweredCountsRow{}
+	for rows.Next() {
+		var i SurveyAnsweredCountsRow
+		if err := rows.Scan(&i.QuestionKey, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const surveyByNumber = `-- name: SurveyByNumber :one
 SELECT s.id, s.workspace_id, s.number, s.slug, s.name, s.description, s.status, s.questions, s.settings, s.closes_at, s.published_at, s.closed_at
 FROM surveys s
@@ -1826,6 +1860,43 @@ func (q *Queries) SurveyLinkedCampaigns(ctx context.Context, arg SurveyLinkedCam
 	return items, nil
 }
 
+const surveyPickCounts = `-- name: SurveyPickCounts :many
+SELECT a.key::text AS question_key, (p.value #>> '{}')::numeric::int AS pick, count(*)::bigint AS n
+FROM survey_responses r
+CROSS JOIN LATERAL jsonb_each(r.answers) a
+CROSS JOIN LATERAL jsonb_array_elements(CASE jsonb_typeof(a.value) WHEN 'array' THEN a.value WHEN 'number' THEN jsonb_build_array(a.value) ELSE '[]'::jsonb END) p
+WHERE r.survey_id = $1 AND r.kind <> 'test' AND r.completed_at IS NOT NULL AND jsonb_typeof(p.value) = 'number'
+GROUP BY 1, 2
+`
+
+type SurveyPickCountsRow struct {
+	QuestionKey string `json:"questionKey"`
+	Pick        int32  `json:"pick"`
+	N           int64  `json:"n"`
+}
+
+// How many completed responses picked each option of each question: an
+// answer is an option's number, or a list of them.
+func (q *Queries) SurveyPickCounts(ctx context.Context, surveyID uuid.UUID) ([]SurveyPickCountsRow, error) {
+	rows, err := q.db.Query(ctx, surveyPickCounts, surveyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SurveyPickCountsRow{}
+	for rows.Next() {
+		var i SurveyPickCountsRow
+		if err := rows.Scan(&i.QuestionKey, &i.Pick, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const surveyResponseInsert = `-- name: SurveyResponseInsert :exec
 INSERT INTO survey_responses (id, survey_id, workspace_id, contact_id, message_id, kind, test_email, answers, source, started_at, completed_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $10)
@@ -1892,6 +1963,35 @@ func (q *Queries) SurveyResponseOfContact(ctx context.Context, arg SurveyRespons
 		&i.CompletedAt,
 		&i.UpdatedAt,
 		&i.Changes,
+	)
+	return i, err
+}
+
+const surveyResponseTotals = `-- name: SurveyResponseTotals :one
+SELECT count(*)::bigint AS started,
+       count(*) FILTER (WHERE r.completed_at IS NOT NULL)::bigint AS completed,
+       count(*) FILTER (WHERE r.kind = 'non_contact')::bigint AS non_contacts,
+       count(*) FILTER (WHERE r.completed_at IS NULL AND r.source = 'poll')::bigint AS poll_only
+FROM survey_responses r
+WHERE r.survey_id = $1 AND r.kind <> 'test'
+`
+
+type SurveyResponseTotalsRow struct {
+	Started     int64 `json:"started"`
+	Completed   int64 `json:"completed"`
+	NonContacts int64 `json:"nonContacts"`
+	PollOnly    int64 `json:"pollOnly"`
+}
+
+// A survey's responses in numbers (review 2026-11 AP-2: counted in SQL).
+func (q *Queries) SurveyResponseTotals(ctx context.Context, surveyID uuid.UUID) (SurveyResponseTotalsRow, error) {
+	row := q.db.QueryRow(ctx, surveyResponseTotals, surveyID)
+	var i SurveyResponseTotalsRow
+	err := row.Scan(
+		&i.Started,
+		&i.Completed,
+		&i.NonContacts,
+		&i.PollOnly,
 	)
 	return i, err
 }
@@ -2028,6 +2128,92 @@ func (q *Queries) SurveySlugTaken(ctx context.Context, arg SurveySlugTakenParams
 	var column_1 bool
 	err := row.Scan(&column_1)
 	return column_1, err
+}
+
+const surveyTextAnswerCount = `-- name: SurveyTextAnswerCount :one
+SELECT count(*)::bigint
+FROM survey_responses r
+WHERE r.survey_id = $1 AND r.kind <> 'test' AND r.completed_at IS NOT NULL
+  AND jsonb_typeof(r.answers -> $2::text) = 'string' AND (r.answers ->> $2::text) <> ''
+  AND ($3::text = '' OR strpos(lower(r.answers ->> $2::text), lower($3::text)) > 0)
+`
+
+type SurveyTextAnswerCountParams struct {
+	SurveyID    uuid.UUID `json:"surveyId"`
+	QuestionKey string    `json:"questionKey"`
+	Search      string    `json:"search"`
+}
+
+func (q *Queries) SurveyTextAnswerCount(ctx context.Context, arg SurveyTextAnswerCountParams) (int64, error) {
+	row := q.db.QueryRow(ctx, surveyTextAnswerCount, arg.SurveyID, arg.QuestionKey, arg.Search)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const surveyTextAnswers = `-- name: SurveyTextAnswers :many
+SELECT r.id, r.completed_at, (r.answers ->> $1::text)::text AS answer, r.contact_id,
+       coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name, coalesce(c.email, '')::text AS email
+FROM survey_responses r
+LEFT JOIN contacts c ON c.id = r.contact_id
+WHERE r.survey_id = $2 AND r.kind <> 'test' AND r.completed_at IS NOT NULL
+  AND jsonb_typeof(r.answers -> $1::text) = 'string' AND (r.answers ->> $1::text) <> ''
+  AND ($3::text = '' OR strpos(lower(r.answers ->> $1::text), lower($3::text)) > 0)
+ORDER BY r.completed_at DESC, r.id DESC
+LIMIT $5 OFFSET $4
+`
+
+type SurveyTextAnswersParams struct {
+	QuestionKey string    `json:"questionKey"`
+	SurveyID    uuid.UUID `json:"surveyId"`
+	Search      string    `json:"search"`
+	Off         int32     `json:"off"`
+	Lim         int32     `json:"lim"`
+}
+
+type SurveyTextAnswersRow struct {
+	ID          uuid.UUID  `json:"id"`
+	CompletedAt *time.Time `json:"completedAt"`
+	Answer      string     `json:"answer"`
+	ContactID   *uuid.UUID `json:"contactId"`
+	FirstName   string     `json:"firstName"`
+	LastName    string     `json:"lastName"`
+	Email       string     `json:"email"`
+}
+
+// A page of a text question's answers, newest first, optionally searched.
+func (q *Queries) SurveyTextAnswers(ctx context.Context, arg SurveyTextAnswersParams) ([]SurveyTextAnswersRow, error) {
+	rows, err := q.db.Query(ctx, surveyTextAnswers,
+		arg.QuestionKey,
+		arg.SurveyID,
+		arg.Search,
+		arg.Off,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SurveyTextAnswersRow{}
+	for rows.Next() {
+		var i SurveyTextAnswersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CompletedAt,
+			&i.Answer,
+			&i.ContactID,
+			&i.FirstName,
+			&i.LastName,
+			&i.Email,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const surveyUpdate = `-- name: SurveyUpdate :exec

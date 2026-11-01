@@ -256,6 +256,7 @@ export const m = defineMessages('surveys', {
   textQuestion: '{type}, {required} · {count, plural, one {# answer} other {# answers}}',
   searchAnswers: 'Search {count, plural, one {# answer} other {# answers}}',
   showingNewest: 'Showing {shown} of {total} · newest first',
+  textAnswersFailed: "Couldn't load the answers",
   noTextAnswers: 'No answers yet.',
   noTextMatch: 'No answer matches “{query}”.',
   responsesTitle: 'Responses · {count} completed',
@@ -272,6 +273,7 @@ export const m = defineMessages('surveys', {
   showingResponses: 'Showing {shown} of {total} · contacts are shown to people who can view contacts',
   previous: 'Previous',
   next: 'Next',
+  responsesFailed: "Couldn't load the responses",
   noResponses: 'No completed responses yet.',
   quote: '“{text}”',
 

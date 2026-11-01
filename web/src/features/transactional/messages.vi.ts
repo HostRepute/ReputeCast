@@ -40,6 +40,7 @@ const common = translate(mt, {
   statusRejected: 'Bị từ chối',
   statusFailed: 'Thất bại',
   statusTest: 'Thử nghiệm',
+  statusScheduled: 'Đã lên lịch',
   statusCancelled: 'Đã hủy',
   raw: 'Thư thô (SMTP)',
   copy: 'Sao chép',

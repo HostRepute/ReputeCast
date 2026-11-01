@@ -1,0 +1,33 @@
+import { defineMessages } from '@/i18n'
+
+/** Transactional › a message's detail: scheduled sends and suppressed recipients (review 2026-11 TX-1, TX-2; TransactionalComplete board). */
+export const msc = defineMessages('transactional.schedule', {
+  goesOut: 'Goes out {when} ({zone}), {in}.',
+  reschedule: 'Reschedule…',
+  cancelSend: 'Cancel send…',
+  cancelTitle: 'Cancel this message?',
+  cancelBody: "It won't be sent to {email}. The log keeps it as Cancelled; its content is removed now. Webhooks listening to message.cancelled are told.",
+  cancelBadge: 'Cancel send',
+  keepIt: 'Keep it',
+  cancelling: 'Cancelling…',
+  cancelled: 'Message cancelled',
+  moveTitle: 'Move the send',
+  dayAndTime: 'Day and time',
+  day: 'Day',
+  time: 'Time',
+  moveHint: 'Up to 72 hours ahead, as send_at allows. In {zone}.',
+  moveTo: 'Move to {when}',
+  moved: 'Moved to {when}',
+  evCancelled: 'Cancelled',
+  evCancelledBy: 'by {name} · content removed',
+  removeSuppression: 'Remove from suppression list…',
+  openSuppression: 'Open suppression',
+  removeTitle: 'Remove {email} from the suppression list?',
+  removeBody: 'Email can reach this address again.',
+  removeBounce: 'It was added for a bounce or a complaint: marketing waits for them to confirm their subscription again; transactional email goes through.',
+  reason: 'Reason (kept in the audit log)',
+  reasonShort: 'Say why, in a few words.',
+  removeConfirm: 'Remove from list',
+  removing: 'Removing…',
+  removed: '{email} is off the suppression list',
+})

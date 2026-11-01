@@ -275,7 +275,9 @@ func (s *Service) revalidate(ctx context.Context, ws *store.Workspace, campaignI
 	snap := ParseSnapshot(open.Snapshot)
 	changes := diff(snap, cur, state.Location(ws.Timezone))
 	if len(changes) == 0 {
-		return nil, nil
+		// Still covered: the inbox needn't check it again until the
+		// campaign changes or the check is old (review 2026-11 AP-1).
+		return nil, s.Q.ApprovalMarkRevalidated(ctx, store.ApprovalMarkRevalidatedParams{ID: open.ID, At: s.now()})
 	}
 	return changes, s.invalidate(ctx, ws, open, c, changes)
 }

@@ -330,7 +330,7 @@ func (o *TransactionalOutbox) reroute(ctx context.Context, now time.Time) error 
 		if perr == nil {
 			name = p.Name
 		}
-		rows, err := o.E.Q.TxnOutboxQueuedOn(ctx, store.TxnOutboxQueuedOnParams{ProviderID: &pid, Stale: now.Add(-staleClaim)})
+		rows, err := o.E.Q.TxnOutboxQueuedOn(ctx, store.TxnOutboxQueuedOnParams{ProviderID: &pid, Stale: now.Add(-staleClaim), Now: now})
 		if err != nil {
 			return err
 		}

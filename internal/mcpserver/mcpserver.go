@@ -77,6 +77,9 @@ type Service struct {
 	// unavailable). Agents never send them.
 	Push     PushDrafts
 	WhatsApp WhatsAppDrafts
+	// Automations reads a flow's Stats panel numbers (review 2026-11 IN-3;
+	// nil: get_automation without them).
+	Automations AutomationStats
 
 	limiters sync.Map // agent id → *limiter
 }

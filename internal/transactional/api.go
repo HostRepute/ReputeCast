@@ -152,6 +152,17 @@ func RegisterTemplates(h huma.API, s *Service) {
 			out, err := s.Preview(ctx, api.WorkspaceFrom(ctx), in.Template, in.Body)
 			return api.OK(out), err
 		})
+	// Review 2026-11 TX-5: the editor's Send test, with a test data set.
+	api.Post(h, api.Op{ID: "send-transactional-template-test", Path: Base + "/templates/{template}/test", Summary: "Send the draft (or a version) as a test email, filled with a test data set",
+		Description: "Goes through the System route with [Test] in the subject; nothing goes to the message log. Without transactional:send, only to your own address.",
+		Tags:        tagTemplates, Access: api.WorkspaceHuman(authz.TransactionalEdit), MaxBodyBytes: 8 << 20},
+		func(ctx context.Context, in *struct {
+			TemplatePath
+			Body TransactionalTemplateTestInput
+		}) (*api.Body[TransactionalTemplateTestResult], error) {
+			out, err := s.SendTemplateTest(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Template, in.Body)
+			return api.OK(out), err
+		})
 	api.Post(h, api.Op{ID: "check-transactional-template", Path: Base + "/templates/{template}/checks", Summary: "Run the template's checks on the draft or the editor's unsaved content",
 		Description: "The composer's content checks (size, alt text, links, plain text; unsubscribe link and footer address for Optional categories) and the transactional ones: Liquid errors, undeclared and unused variables, test data that fails to render, a sensitive variable in the subject, tracking on an Essential template.",
 		Tags:        tagTemplates, Access: view, MaxBodyBytes: 8 << 20},

@@ -2,7 +2,7 @@
 
 -- name: HooksList :many
 SELECT h.id, h.workspace_id, h.name, h.description, h.url, h.events, h.enabled, h.created_by, h.created_at,
-       h.last_status, h.last_delivery_at, h.failing_since, h.secret_rotated_at, h.paused_at,
+       h.last_status, h.last_delivery_at, h.failing_since, h.secret_rotated_at, h.paused_at, h.previous_secret_until,
        coalesce(s.total, 0)::bigint AS total_24h, coalesce(s.ok, 0)::bigint AS ok_24h,
        coalesce(q.queued, 0)::bigint AS queued
 FROM webhooks h
@@ -34,7 +34,10 @@ WHERE id = @id AND workspace_id = @workspace_id
 RETURNING *;
 
 -- name: HooksSetSecret :exec
-UPDATE webhooks SET secret_enc = @secret_enc, secret_rotated_at = now(), updated_at = now()
+-- The new secret signs at once; the one it replaces keeps signing beside
+-- it until previous_until, so receivers can switch (review 2026-11 IN-1).
+UPDATE webhooks SET previous_secret_enc = secret_enc, previous_secret_until = sqlc.narg(previous_until)::timestamptz,
+       secret_enc = @secret_enc, secret_rotated_at = now(), updated_at = now()
 WHERE id = @id AND workspace_id = @workspace_id;
 
 -- name: HooksSetEnabled :exec
@@ -79,7 +82,8 @@ UPDATE webhook_deliveries d SET state = 'delivering', last_attempt_at = now()
 FROM webhooks h
 WHERE d.id = @id AND h.id = d.webhook_id AND h.enabled
   AND d.state IN ('pending','retrying') AND (d.next_attempt_at IS NULL OR d.next_attempt_at <= now() + interval '5 seconds')
-RETURNING d.id, d.webhook_id, d.event, d.event_id, d.payload, d.attempt, d.max_attempts, h.url, h.secret_enc, h.workspace_id, h.demo;
+RETURNING d.id, d.webhook_id, d.event, d.event_id, d.payload, d.attempt, d.max_attempts, h.url, h.secret_enc, h.workspace_id, h.demo,
+          h.previous_secret_enc, h.previous_secret_until;
 
 -- name: HooksFinishDelivery :exec
 UPDATE webhook_deliveries
@@ -158,3 +162,16 @@ FROM messages m
 JOIN workspaces w ON w.id = m.workspace_id
 LEFT JOIN providers p ON p.id = m.provider_id
 WHERE m.id = @id;
+
+-- name: HooksAlertFailing :one
+-- Marks a failing endpoint as alerted, once per failing spell: after an
+-- hour of failures, or when a delivery is given up on (review 2026-11
+-- IN-2). No row when there is nothing to tell.
+UPDATE webhooks h SET alerted_at = sqlc.arg(now)::timestamptz
+FROM workspaces w
+WHERE h.id = sqlc.arg(id)::uuid AND w.id = h.workspace_id AND h.failing_since IS NOT NULL
+  AND (h.failing_since <= sqlc.arg(failing_before)::timestamptz OR sqlc.arg(dead)::boolean)
+  AND (h.alerted_at IS NULL OR h.alerted_at < h.failing_since)
+RETURNING h.id, h.workspace_id, w.slug, h.url, h.failing_since,
+          (SELECT count(*) FROM webhook_deliveries d WHERE d.webhook_id = h.id AND d.state IN ('retrying', 'dead') AND d.last_attempt_at >= h.failing_since)::bigint AS failed,
+          (SELECT count(*) FROM webhook_deliveries d WHERE d.webhook_id = h.id AND d.state = 'dead' AND d.last_attempt_at >= h.failing_since)::bigint AS dead;

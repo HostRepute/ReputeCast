@@ -89,6 +89,20 @@ type Relay struct {
 	wake    chan struct{}
 	// sessions counts open SMTP sessions, so a stop lets them finish.
 	sessions atomic.Int64
+	// limits caps connections and blocks addresses that keep failing to
+	// log in (review 2026-11 TX-6).
+	limits     *guard
+	limitsOnce sync.Once
+}
+
+// guard is the relay's connection and login limits.
+func (r *Relay) guard() *guard {
+	r.limitsOnce.Do(func() {
+		if r.limits == nil {
+			r.limits = newGuard()
+		}
+	})
+	return r.limits
 }
 
 func (r *Relay) wakeCh() chan struct{} {
@@ -264,8 +278,9 @@ func (r *Relay) start(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("listen on %s: %w", st.tls.Addr, err)
 	}
 	st.listeners = []net.Listener{l1, l2}
-	go func() { _ = st.starttls.Serve(l1) }()
-	go func() { _ = st.tls.Serve(tls.NewListener(l2, tlsCfg)) }()
+	g := r.guard()
+	go func() { _ = st.starttls.Serve(limitListener{Listener: l1, g: g}) }()
+	go func() { _ = st.tls.Serve(tls.NewListener(limitListener{Listener: l2, g: g}, tlsCfg)) }()
 	r.mu.Lock()
 	r.running = st
 	r.mu.Unlock()
@@ -338,12 +353,27 @@ func (s *session) AuthMechanisms() []string { return []string{sasl.Plain, sasl.L
 // Auth implements smtp.AuthSession.
 func (s *session) Auth(mech string) (sasl.Server, error) {
 	check := func(username, password string) error {
+		var ip netip.Addr
+		if s.ip != nil {
+			ip = *s.ip
+		}
+		g, now := s.relay.guard(), s.relay.now()
+		if wait := g.blocked(ip, now); wait > 0 {
+			return &smtp.SMTPError{Code: 454, EnhancedCode: smtp.EnhancedCode{4, 7, 0},
+				Message: fmt.Sprintf("Too many failed logins from your address, try again in %d minutes", int(wait.Minutes())+1)}
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 		cred, err := s.relay.Sender.AuthenticateSMTP(ctx, username, password, s.ip)
 		if err != nil {
-			return authError(err)
+			reply := authError(err)
+			var se *smtp.SMTPError
+			if errors.As(reply, &se) && se.Code == 535 && g.failed(ip, now) {
+				s.relay.log().Warn("smtp relay: failed logins, address blocked", "ip", ip.String(), "for", AuthBlock)
+			}
+			return reply
 		}
+		g.succeeded(ip)
 		s.cred = &cred
 		return nil
 	}

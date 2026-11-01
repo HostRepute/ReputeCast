@@ -60,12 +60,20 @@ JOIN workspaces w ON w.id = r.workspace_id AND w.deleted_at IS NULL
 WHERE r.status IN ('pending', 'approved') AND r.subject_type = 'campaign';
 
 -- name: ApprovalOpenRequestsIn :many
--- Open campaign requests of one workspace (re-checked when its inbox opens).
+-- Open campaign requests of one workspace that may be stale, re-checked
+-- when its inbox opens: never checked, the campaign changed since, or
+-- checked before stale_before (review 2026-11 AP-1). The rest wait for the
+-- background job.
 SELECT r.id, r.workspace_id, r.campaign_id
 FROM approval_requests r
 JOIN campaigns c ON c.id = r.campaign_id AND c.deleted_at IS NULL AND c.status IN ('draft', 'approval', 'approved', 'scheduled')
 JOIN workspaces w ON w.id = r.workspace_id AND w.deleted_at IS NULL
-WHERE r.workspace_id = @workspace_id AND r.status IN ('pending', 'approved') AND r.subject_type = 'campaign';
+WHERE r.workspace_id = @workspace_id AND r.status IN ('pending', 'approved') AND r.subject_type = 'campaign'
+  AND (r.revalidated_at IS NULL OR r.revalidated_at < c.updated_at OR r.revalidated_at < @stale_before::timestamptz);
+
+-- name: ApprovalMarkRevalidated :exec
+-- The request still covers its campaign as of at.
+UPDATE approval_requests SET revalidated_at = @at::timestamptz WHERE id = @id AND status IN ('pending', 'approved');
 
 -- name: ApprovalSetStatus :exec
 UPDATE approval_requests SET status = @status, decided_at = sqlc.narg(decided_at), decided_by = sqlc.narg(decided_by) WHERE id = @id;
@@ -158,6 +166,8 @@ WHERE r.workspace_id = @workspace_id AND r.status <> 'bypassed'
   AND (sqlc.narg(approver)::uuid IS NULL OR r.decided_by = sqlc.narg(approver)::uuid
        OR EXISTS (SELECT 1 FROM approval_decisions y WHERE y.request_id = r.id AND y.approver_id = sqlc.narg(approver)::uuid))
   AND (sqlc.narg(status)::text IS NULL OR r.status = sqlc.narg(status)::text)
+  -- What it asks about, by name (review 2026-11 AP-1); the caller escapes LIKE's wildcards.
+  AND (@q::text = '' OR coalesce(c.name, a.name, t.name, wp.title, pg.name, '') ILIKE '%' || @q::text || '%')
   -- Keyset paging in the inbox's order: pending first, then newest.
   AND (sqlc.narg(after_at)::timestamptz IS NULL
        OR (CASE r.status WHEN 'pending' THEN 0 ELSE 1 END) > @after_rank::int
@@ -170,12 +180,18 @@ LIMIT @lim;
 -- The inbox tabs' numbers, for the same filters as ApprovalList.
 SELECT r.status, count(*)::bigint AS n
 FROM approval_requests r
+LEFT JOIN campaigns c ON c.id = r.campaign_id
+LEFT JOIN automations a ON a.id = r.automation_id
+LEFT JOIN transactional_templates t ON t.id = r.transactional_template_id
+LEFT JOIN website_posts wp ON wp.id = r.website_post_id
+LEFT JOIN pages pg ON pg.id = r.website_page_id
 WHERE r.workspace_id = @workspace_id AND r.status <> 'bypassed'
   AND (@all_requests::boolean OR r.requested_by = @viewer::uuid)
   AND r.requested_at >= @since::timestamptz
   AND (sqlc.narg(author)::uuid IS NULL OR r.requested_by = sqlc.narg(author)::uuid)
   AND (sqlc.narg(approver)::uuid IS NULL OR r.decided_by = sqlc.narg(approver)::uuid
        OR EXISTS (SELECT 1 FROM approval_decisions y WHERE y.request_id = r.id AND y.approver_id = sqlc.narg(approver)::uuid))
+  AND (@q::text = '' OR coalesce(c.name, a.name, t.name, wp.title, pg.name, '') ILIKE '%' || @q::text || '%')
 GROUP BY r.status;
 
 -- name: ApprovalListAuthors :many

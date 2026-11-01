@@ -270,6 +270,7 @@ export const entries: Entry[] = [
   { board: 'TransactionalMessage', path: `${ws}/transactional/messages/0192f1c4-7b2e-7c51-9d0a-3f5e8b1a2c44`, widths: [1440] },
   { board: 'TransactionalMessagePhone', path: `${ws}/transactional/messages/0192f1c4-7b2e-7c51-9d0a-3f5e8b1a2c44`, widths: [390] },
   { board: 'TransactionalMessageStates', manual: true },
+  { board: 'TransactionalComplete', manual: true },
   { board: 'TransactionalSetup', path: `${ws}/transactional/setup`, widths: [1440] },
   { board: 'TransactionalSetupStates', manual: true },
   { board: 'TransactionalSettings', path: `${ws}/transactional/settings`, widths: [1440] },

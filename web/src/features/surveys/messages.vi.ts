@@ -264,6 +264,7 @@ export default translate(m, {
   textQuestion: '{type}, {required} · {count, plural, other {# câu trả lời}}',
   searchAnswers: 'Tìm trong {count, plural, other {# câu trả lời}}',
   showingNewest: 'Hiển thị {shown} trên {total} · mới nhất trước',
+  textAnswersFailed: 'Không tải được câu trả lời',
   noTextAnswers: 'Chưa có câu trả lời nào.',
   noTextMatch: 'Không có câu trả lời nào khớp với “{query}”.',
   responsesTitle: 'Lượt trả lời · {count} đã hoàn thành',
@@ -280,6 +281,7 @@ export default translate(m, {
   showingResponses: 'Hiển thị {shown} trên {total} · chỉ người có thể xem liên hệ mới thấy liên hệ',
   previous: 'Trước',
   next: 'Sau',
+  responsesFailed: 'Không tải được lượt trả lời',
   noResponses: 'Chưa có lượt trả lời nào hoàn thành.',
   quote: '“{text}”',
 

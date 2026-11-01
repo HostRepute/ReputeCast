@@ -37,7 +37,7 @@ const (
 )
 
 // Log statuses.
-var logStatuses = []string{"queued", "sent", "delivered", "deferred", "bounced", "complained", "rejected", "failed", "test"}
+var logStatuses = []string{"scheduled", "queued", "sent", "delivered", "deferred", "bounced", "complained", "rejected", "cancelled", "failed", "test"}
 
 // TransactionalRef names something.
 type TransactionalRef struct {
@@ -107,7 +107,7 @@ type TransactionalLogItem struct {
 	Raw      bool                      `json:"raw"`
 	Subject  string                    `json:"subject"`
 	Provider *TransactionalRef         `json:"provider,omitempty"`
-	Status   string                    `json:"status" enum:"queued,sent,delivered,deferred,bounced,complained,rejected,failed,test"`
+	Status   string                    `json:"status" enum:"scheduled,queued,sent,delivered,deferred,bounced,complained,rejected,cancelled,failed,test"`
 	// DeliveryMs is how long after the call it was delivered.
 	DeliveryMs    *int64                  `json:"deliveryMs,omitempty"`
 	Deferrals     int                     `json:"deferrals"`
@@ -150,6 +150,10 @@ type TransactionalLogCounts struct {
 	Rejected   int64 `json:"rejected"`
 	Failed     int64 `json:"failed"`
 	Test       int64 `json:"test"`
+	// Scheduled wait for their send_at; Cancelled were cancelled before
+	// it (review 2026-11 TX-1).
+	Scheduled int64 `json:"scheduled"`
+	Cancelled int64 `json:"cancelled"`
 }
 
 // TransactionalLogFilters are the log's filter choices.
@@ -443,32 +447,22 @@ func (s *Service) MessageLog(ctx context.Context, ws *store.Workspace, f LogFilt
 			out.Next = encodeCursor(last.AcceptedAt, last.MessageID)
 		}
 	}
-	counts, err := s.Q.TxnLogCounts(ctx, store.TxnLogCountsParams{WorkspaceID: ws.ID, Since: p.Since, Until: p.Until, Template: p.Template, ProviderID: p.ProviderID, KeyID: p.KeyID, Q: p.Q})
-	if err != nil {
-		return out, err
-	}
-	for _, c := range counts {
-		out.Counts.All += c.N
-		switch c.Status {
-		case "queued":
-			out.Counts.Queued += c.N
-		case "sent":
-			out.Counts.Sent += c.N
-		case "delivered":
-			out.Counts.Delivered += c.N
-		case "deferred":
-			out.Counts.Deferred += c.N
-		case "bounced":
-			out.Counts.Bounced += c.N
-		case "complained":
-			out.Counts.Complained += c.N
-		case "rejected":
-			out.Counts.Rejected += c.N
-		case "failed":
-			out.Counts.Failed += c.N
-		case "test":
-			out.Counts.Test += c.N
+	// The status counts: a fresh page counts them (and keeps them for a
+	// minute); the live poll's "only newer" reuses them (review 2026-11 TX-3).
+	key, now := countsKey(ws.ID, f), s.now()
+	if c, ok := s.counts.get(key, now); ok && f.After != "" {
+		out.Counts = c
+	} else {
+		if out.Counts, err = s.logCounts(ctx, ws.ID, p); err != nil {
+			return out, err
 		}
+		s.counts.put(key, out.Counts, now)
+	}
+	if f.After != "" {
+		// The poll's answer carries the new rows and the numbers; the page
+		// it updates keeps its filters and settings.
+		out.Filters = TransactionalLogFilters{Templates: []TransactionalRef{}, Providers: []TransactionalRef{}, Keys: []TransactionalRef{}}
+		return out, nil
 	}
 	if out.Filters, err = s.logFilters(ctx, ws.ID); err != nil {
 		return out, err
@@ -478,6 +472,43 @@ func (s *Service) MessageLog(ctx context.Context, ws *store.Workspace, f LogFilt
 	}
 	if pr := api.PrincipalFrom(ctx); pr != nil {
 		out.CanExport = pr.Can(authz.TransactionalContent)
+	}
+	return out, nil
+}
+
+// logCounts counts the log's messages per status for its filters.
+func (s *Service) logCounts(ctx context.Context, wsID uuid.UUID, p store.TxnLogParams) (TransactionalLogCounts, error) {
+	var out TransactionalLogCounts
+	counts, err := s.Q.TxnLogCounts(ctx, store.TxnLogCountsParams{WorkspaceID: wsID, Since: p.Since, Until: p.Until, Template: p.Template, ProviderID: p.ProviderID, KeyID: p.KeyID, Q: p.Q})
+	if err != nil {
+		return out, err
+	}
+	for _, c := range counts {
+		out.All += c.N
+		switch c.Status {
+		case "queued":
+			out.Queued += c.N
+		case "sent":
+			out.Sent += c.N
+		case "delivered":
+			out.Delivered += c.N
+		case "deferred":
+			out.Deferred += c.N
+		case "bounced":
+			out.Bounced += c.N
+		case "complained":
+			out.Complained += c.N
+		case "rejected":
+			out.Rejected += c.N
+		case "failed":
+			out.Failed += c.N
+		case "test":
+			out.Test += c.N
+		case "scheduled":
+			out.Scheduled += c.N
+		case "cancelled":
+			out.Cancelled += c.N
+		}
 	}
 	return out, nil
 }
@@ -512,7 +543,7 @@ func (s *Service) logFilters(ctx context.Context, wsID uuid.UUID) (Transactional
 // TransactionalTimelineEntry is one step of a message's life.
 type TransactionalTimelineEntry struct {
 	At   time.Time `json:"at"`
-	Kind string    `json:"kind" enum:"accepted,rendered,scheduled,routed,handed,retry,failed_over,failed,rejected,not_delivered,delivered,deferred,bounced,complained,opened,clicked,provider_rejected,webhook"`
+	Kind string    `json:"kind" enum:"accepted,rendered,scheduled,cancelled,routed,handed,retry,failed_over,failed,rejected,not_delivered,delivered,deferred,bounced,complained,opened,clicked,provider_rejected,webhook"`
 	// Provider is who handed, retried, delivered or bounced.
 	Provider          string `json:"provider,omitempty"`
 	ProviderMessageID string `json:"providerMessageId,omitempty"`
@@ -830,6 +861,10 @@ func (s *Service) Message(ctx context.Context, ws *store.Workspace, id uuid.UUID
 			}
 		}
 		tl = append(tl, e)
+	}
+	if r.CancelledAt != nil {
+		// Cancelled before its send time (review 2026-11 TX-1); Detail is who.
+		tl = append(tl, TransactionalTimelineEntry{At: *r.CancelledAt, Kind: "cancelled", Detail: r.CancelledBy})
 	}
 	if r.RawStatus == "failed" && (len(tried) == 0 || !tried[len(tried)-1].GaveUp) {
 		tl = append(tl, TransactionalTimelineEntry{At: lastAt(tl), Kind: "failed", Detail: routing.DeliveryErrorIn(l, r.Error)})
@@ -1191,7 +1226,7 @@ func (s *Service) Resend(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 	if err != nil {
 		return TransactionalSendResult{}, err
 	}
-	if err := s.rateLimit(c, 1); err != nil {
+	if err := s.rateLimit(ctx, c, 1); err != nil {
 		return TransactionalSendResult{}, err
 	}
 	p, err := s.prepare(ctx, ws, c, in, s.now())
@@ -1304,7 +1339,7 @@ type TransactionalContactMessage struct {
 	Template *TransactionalLogTemplate `json:"template,omitempty"`
 	Raw      bool                      `json:"raw"`
 	Subject  string                    `json:"subject"`
-	Status   string                    `json:"status" enum:"queued,sent,delivered,deferred,bounced,complained,rejected,failed,test"`
+	Status   string                    `json:"status" enum:"scheduled,queued,sent,delivered,deferred,bounced,complained,rejected,cancelled,failed,test"`
 	Provider string                    `json:"provider,omitempty"`
 	Category string                    `json:"category,omitempty"`
 	// DeliveryMs: from the call to the delivery event, once delivered.

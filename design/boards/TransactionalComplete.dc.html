@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transactional, approvals and integrations · scheduled sends, suppression, test sends, inbox search, result errors, webhook secrets and alerts</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.sboard{width:1440px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:22px}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.strip span{font-weight:500;text-transform:none;letter-spacing:0;color:#CBD5E1}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+figcaption{font-size:12px;color:#5B6472;font-weight:600}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}
+.btn.dpri{background:#B91C1C;border-color:#B91C1C;color:#fff}
+.btn[aria-disabled=true]{opacity:.5}
+.linkbtn{background:none;border:0;padding:0;font:inherit;font-size:13px;font-weight:600;color:#0F766E;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.t1{background:#104281;color:#fff}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font-size:12.5px;font-weight:500;color:#374151}
+.chip.on{background:#E3F1EE;border-color:#99F6E4;color:#0F766E;font-weight:600}
+.chip .more{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-right:-6px;border-radius:6px;border:0;background:transparent;color:inherit;cursor:pointer}
+.in{height:36px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box}
+.in.err{border-color:#B91C1C}
+.lbl{font-size:12px;font-weight:600;color:#374151}
+.field{display:flex;flex-direction:column;gap:6px}
+.hint{font-size:12px;color:#5B6472}
+.errt{font-size:12px;color:#991B1B;font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:10px 12px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl th button{display:inline-flex;align-items:center;gap:4px;background:none;border:0;padding:0;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer}
+.tbl th[aria-sort] button{color:#0B1220}
+.tbl td{padding:10px 12px;border-bottom:1px solid #EEF0F3;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.tbl tr.sel td{background:#F0FDFA}
+.foot{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-top:1px solid #EEF0F3;flex-wrap:wrap;gap:8px}
+.bulk{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 12px;background:#F0FDFA;border:1px solid #99F6E4;border-radius:10px}
+.banner{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;padding:9px 12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;font-size:13px}
+.menu{background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:240px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;width:100%}
+.menu button:hover,.menu button.hl{background:#F3F4F6}
+.menu button.red{color:#991B1B}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+.menu label{display:flex;align-items:center;gap:10px;min-height:32px;padding:0 10px;border-radius:8px;font-size:13px}
+.pop{background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:14px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box}
+.dlg{background:#fff;border-radius:12px;box-shadow:0 24px 64px rgba(11,18,32,.24);display:flex;flex-direction:column;box-sizing:border-box;border:1px solid #E3E6EB}
+.dlg header{padding:18px 20px 6px;font-size:17px;font-weight:700}
+.dlg .body{padding:6px 20px 14px;display:flex;flex-direction:column;gap:12px;color:#374151}
+.dlg footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #EEF0F3}
+.note{display:flex;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px}
+.note.w{background:#FFFBEB;border:1px solid #FDE68A;color:#78350F}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.sec{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #EEF0F3}
+.h2{font-size:15px;font-weight:700;margin:0}
+.lrow{display:flex;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid #EEF0F3}
+.lrow:first-of-type{border-top:0}
+.tag{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 4px 0 8px;border-radius:6px;background:#EEF0F3;font-size:12px;font-weight:600;color:#374151}
+.tag button{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:0;border-radius:4px;background:transparent;color:#5B6472;cursor:pointer}
+.sw{display:inline-flex;align-items:center;width:34px;height:20px;border-radius:999px;background:#0F766E;padding:2px;box-sizing:border-box;justify-content:flex-end}
+.sw.off{background:#C9CED6;justify-content:flex-start}
+.sw i{width:16px;height:16px;border-radius:50%;background:#fff;display:block}
+.spin{width:12px;height:12px;border-radius:50%;border:2px solid #CBD5E1;border-top-color:#0F766E;display:inline-block}
+.drawer{background:#fff;border:1px solid #E3E6EB;border-radius:12px;box-shadow:0 24px 64px rgba(11,18,32,.18);display:flex;flex-direction:column}
+.stack{display:flex;flex-direction:column;gap:8px}
+.tcard{border:1px solid #99F6E4;background:#F0FDFA;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.tcard .ey{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#0F766E}
+.or{align-self:center;font-size:11px;font-weight:700;letter-spacing:.06em;color:#5B6472}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;font-size:13px}
+.opt.on{border-color:#0F766E;background:#F0FDFA}
+.opt input{margin-top:3px}
+.wf{display:flex;justify-content:space-between;padding:8px 14px;border-top:1px solid #EEF0F3;font-size:13px}
+.wf:first-child{border-top:0}
+.bar{height:8px;border-radius:4px;background:#E3E6EB;overflow:hidden}.bar i{display:block;height:100%;background:#4338CA}
+.ftr{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px}
+.tagp{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;background:#EEF2FF;color:#3730A3;font-size:11.5px;font-weight:600}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-top:1px solid #E3E6EB;border-left:1px solid #E3E6EB}
+.cal>div{min-height:104px;border-right:1px solid #E3E6EB;border-bottom:1px solid #E3E6EB;padding:6px;display:flex;flex-direction:column;gap:4px;font-size:12px;box-sizing:border-box}
+.cal .dh{min-height:0;padding:6px 8px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;background:#F9FAFB}
+.cal .dn{font-weight:600;color:#374151}
+.cal .out{background:#FAFAFB;color:#9AA3B2}
+.cal .today .dn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#0F766E;color:#fff}
+.ev{display:flex;flex-direction:column;gap:1px;padding:4px 6px;border-radius:6px;font-size:11.5px;line-height:1.3;border-left:3px solid}
+.ev.s{background:#EFF6FF;border-color:#2563EB;color:#1E3A8A;cursor:grab}
+.ev.d{background:#F0FDFA;border-color:#0F766E;color:#134E4A}
+.ev.g{background:#FEF3C7;border-color:#D97706;color:#78350F}
+.ev.drag{box-shadow:0 8px 20px rgba(11,18,32,.2);transform:rotate(-1deg)}
+.ev.drop{outline:2px dashed #2563EB;outline-offset:2px}
+.tl{display:flex;flex-direction:column;gap:0;padding:6px 16px 12px}
+.tl .li{display:flex;gap:10px;padding:8px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.tl .li:first-child{border-top:0}
+.tl .li .t{width:110px;color:#5B6472;font-variant-numeric:tabular-nums;flex:none}
+.code{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;background:#0B1220;color:#E2E8F0;border-radius:8px;padding:10px 12px;white-space:pre-wrap;word-break:break-all}
+textarea.in{height:auto;min-height:72px;padding:8px 10px;resize:vertical}
+.err-card{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:14px 16px;border:1px solid #FCA5A5;background:#FEF2F2;border-radius:10px;font-size:13px;color:#7F1D1D}
+.prefrow{display:grid;grid-template-columns:1fr 70px 70px;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid #EEF0F3;font-size:13px}
+.prefrow:first-child{border-top:0}
+.prefrow .c{display:flex;justify-content:center}
+</style>
+</helmet>
+<div class="sboard" data-wrap="1">
+<div class="strip">1 · Scheduled messages <span>A message sent with send_at waits in the outbox. Until it goes, it can be cancelled or moved, by API and here; both are logged, and cancelling sends message.cancelled to webhooks.</span></div>
+<div class="grid three">
+  <figure><figcaption>Message detail · scheduled</figcaption>
+    <section class="card"><div class="sec"><span style="display:flex;flex-direction:column;gap:2px"><b>Order #4821 shipped</b><span class="k">to maya@northwind.io · order-shipped v7 · key "Shop backend"</span></span><span class="badge info"><span class="dot"></span>Scheduled</span></div>
+      <div class="lrow"><span class="k" style="flex:1">Goes out Tue 4 Nov, 09:00 (America/New_York), in 2 days 14 hours.</span><button class="btn sm">Reschedule…</button><button class="btn sm danger">Cancel send…</button></div>
+      <div class="tl"><div class="li"><span class="t">Sat 1 Nov 18:40</span><span>Accepted from the API · scheduled for Tue 4 Nov, 09:00</span></div></div></section>
+  </figure>
+  <figure><figcaption>Cancel a scheduled message</figcaption>
+    <div class="dlg"><header>Cancel this message?</header><div class="body"><span>It won't be sent to maya@northwind.io. The log keeps it as Cancelled; its content is removed now. Webhooks listening to message.cancelled are told.</span></div><footer><button class="btn">Keep it</button><button class="btn dpri">Cancel send</button></footer></div>
+    <div class="dlg"><header>Move the send</header><div class="body"><div class="field"><span class="lbl">Day and time</span><div style="display:flex;gap:8px;flex-wrap:wrap"><input class="in" value="2026-11-05" style="width:150px"><input class="in" value="09:00" style="width:90px"><select class="in" style="flex:1;min-width:0"><option>America/New_York (ET)</option></select></div><span class="k">Up to 30 days ahead, as send_at allows.</span></div></div><footer><button class="btn">Cancel</button><button class="btn pri">Move to Wed 5 Nov, 09:00</button></footer></div>
+  </figure>
+  <figure><figcaption>Cancelled · the detail and the log</figcaption>
+    <section class="card"><div class="sec"><b>Order #4821 shipped</b><span class="badge mut"><span class="dot"></span>Cancelled</span></div>
+      <div class="tl"><div class="li"><span class="t">Sat 1 Nov 18:40</span><span>Accepted from the API · scheduled for Tue 4 Nov, 09:00</span></div><div class="li"><span class="t">Sat 1 Nov 19:02</span><span>Cancelled by Linh Nguyen · content removed</span></div></div></section>
+    <section class="card"><div class="lrow"><span style="flex:1"><b>maya@northwind.io</b><br><span class="k">order-shipped · 18:40</span></span><span class="badge info"><span class="dot"></span>Scheduled · Tue 09:00</span></div><div class="lrow"><span style="flex:1"><b>sam@acme.io</b><br><span class="k">password-reset · 18:12</span></span><span class="badge mut"><span class="dot"></span>Cancelled</span></div></section>
+    <div class="code">POST /api/v1/messages/{id}/cancel → 200 {"status":"cancelled"}
+POST /api/v1/messages/{id}/reschedule {"sendAt":"2026-11-05T14:00:00Z"}</div>
+  </figure>
+</div>
+<div class="strip">2 · A suppressed recipient <span>The message detail removes the address from the suppression list where the rejection is explained, with a reason that goes to the audit log.</span></div>
+<div class="grid">
+  <figure><figcaption>Rejected: on the suppression list</figcaption>
+    <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><span class="badge bad" style="align-self:flex-start"><span class="dot"></span>Rejected · suppressed</span><span>sam@acme.io is on the suppression list since Mon 13 Oct (hard bounce from Gmail). Nothing was sent.</span><span style="display:flex;gap:8px"><button class="btn sm">Remove from suppression list…</button><button class="btn sm">Open suppression</button></span></section>
+  </figure>
+  <figure><figcaption>Remove, with a reason</figcaption>
+    <div class="dlg"><header>Remove sam@acme.io from the suppression list?</header><div class="body"><span>Email can reach this address again. It was added for a hard bounce: marketing waits for them to confirm their subscription again; transactional email goes through.</span><div class="field"><label class="lbl" for="rr">Reason (kept in the audit log)</label><textarea id="rr" class="in">They fixed their mailbox, confirmed by support ticket #4410.</textarea></div></div><footer><button class="btn">Cancel</button><button class="btn pri">Remove from list</button></footer></div>
+  </figure>
+</div>
+<div class="strip">3 · Send test from a template draft <span>The template editor's Send test sends the draft, filled with one of its test data sets, through the System route: "[Test]" in the subject, no stats. Without transactional:send, only to one's own address.</span></div>
+<div class="grid">
+  <figure><figcaption>Template header · Send test</figcaption>
+    <div class="card" style="padding:10px 12px;display:flex;gap:8px;align-items:center"><b style="flex:1">order-shipped · draft v8</b><button class="btn sm">Versions</button><button class="btn sm" aria-expanded="true">Send test ▾</button><button class="btn sm pri">Publish v8…</button></div>
+    <div class="pop" style="width:340px;align-self:flex-end"><div class="field"><label class="lbl" for="tt">Send to</label><input id="tt" class="in" value="linh@acme.io"></div><div class="field"><label class="lbl" for="td">Fill it with</label><select id="td" class="in"><option>Test data · Shipped, two items</option><option>Test data · Shipped, gift</option></select></div><span class="k">The draft as it is now, through the System route. Placement tests are under Test inbox placement.</span><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn sm pri">Send test</button></div></div>
+  </figure>
+  <figure><figcaption>Sent</figcaption>
+    <div class="note i"><span>Test sent to linh@acme.io with "Shipped, two items". It isn't counted in the log's numbers.</span></div>
+  </figure>
+</div>
+<div class="strip">4 · Approvals and results <span>The approvals inbox searches by campaign name. Survey answers, poll comments and responses say when they failed to load, instead of "No comments".</span></div>
+<div class="grid">
+  <figure><figcaption>Approvals inbox · search</figcaption>
+    <section class="card"><div class="ftr"><input class="in" style="width:260px" value="product update" aria-label="Search by campaign name"><span class="chip on">Waiting for me · 2</span><span class="chip">Open · 5</span><span class="chip">Decided</span></div><div class="lrow"><span style="flex:1"><b>November Product Update</b><br><span class="k">Daniel Park · asked 2 h ago · 47,912 recipients</span></span><span class="badge warn"><span class="dot"></span>Waiting</span></div></section>
+  </figure>
+  <figure><figcaption>Comments that didn't load</figcaption>
+    <div class="err-card"><b>Couldn't load the comments</b><span>The server didn't answer. Nothing was lost.</span><button class="btn sm">Try again</button></div>
+  </figure>
+</div>
+<div class="strip">5 · Webhooks and the API <span>A rotated secret keeps signing beside the new one for 24 hours. An endpoint that keeps failing tells the people who manage webhooks. The API reference is this instance's own.</span></div>
+<div class="grid three">
+  <figure><figcaption>Endpoint · just rotated</figcaption>
+    <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><span class="lbl">Signing secret</span><span class="mono">whsec_••••••••••••7Qx2</span><div class="note i"><span>Until Sun 2 Nov, 19:02 each delivery is signed with both secrets: X-ReputeCast-Signature holds two comma-separated signatures, the new secret's first. Accept a delivery if either matches, then switch your receiver to the new secret.</span></div></section>
+  </figure>
+  <figure><figcaption>Notifications · a new row</figcaption>
+    <section class="card"><div class="prefrow"><span class="k">Integrations</span><span class="k c">In app</span><span class="k c">Email</span></div><div class="prefrow"><span><b>A webhook endpoint is failing</b><br><span class="k">After an hour of failures, or a delivery given up on. People who manage webhooks.</span></span><span class="c"><span class="sw"><i></i></span></span><span class="c"><span class="sw"><i></i></span></span></div></section>
+    <div class="note w"><span><b>https://hooks.acme.io/rc is failing</b> · 41 deliveries failed since 17:55 (HTTP 502). 3 were given up on. Open the endpoint</span></div>
+  </figure>
+  <figure><figcaption>API reference</figcaption>
+    <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span class="lbl">API reference</span><span>OpenAPI 3.1 of this instance, version 1.9.0</span><span style="display:flex;gap:8px"><a class="btn sm" href="#">Open the reference</a><a class="btn sm" href="#">openapi.json</a></span><span class="k">Served by your ReputeCast at /api/reference, so it always matches the version you run.</span></section>
+  </figure>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

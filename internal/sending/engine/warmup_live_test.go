@@ -47,7 +47,8 @@ func TestWarmupHoldOnTheLiveMonitor(t *testing.T) {
 	if h.PlanID != plan || h.Held != 30 || h.Paused || h.Decision != "" || h.Until == nil || h.Since == nil || h.Cap == 0 {
 		t.Fatalf("hold %+v", h)
 	}
-	if !h.Until.After(at) || h.Until.Sub(at) > 24*time.Hour {
+	// Within a day: 25 hours on the day a clock falls back.
+	if !h.Until.After(at) || h.Until.Sub(at) > 25*time.Hour {
 		t.Fatalf("waits until %v at %v: tomorrow's cap starts within a day", h.Until, at)
 	}
 	movable := false

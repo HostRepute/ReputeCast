@@ -14,6 +14,7 @@ import { ManagedWebhookCaption, ManagedWebhookView } from '@/features/integratio
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { T, t as tt, useT } from '@/i18n'
 import { common } from '@/i18n/common'
+import { useApiReference } from '@/lib/apiReference'
 import { clock, clockSeconds, count, dayMonthDate, logTime } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useCan, useWorkspace } from '@/lib/session'
@@ -23,12 +24,12 @@ import { m } from './messages'
 import { attemptsText, endpointText, eventText, hostOf, responseBadge, statusBadge, successText, type Delivery, type Webhook } from './parts'
 import { WebhookDialog, WebhookSecretDialog } from './WebhookDialog'
 
-const API_DOCS = 'https://github.com/hostrepute/reputecast/blob/main/docs/api/README.md'
 
 const mono = (c: ReactNode) => <span className="mono">{c}</span>
 
 /** A5 §5.10 Webhooks (SettingsAPI): outgoing endpoints, signature check and the delivery log. */
 export function WebhooksPage() {
+  const apiReference = useApiReference()
   const t = useT()
   const { slug } = useWorkspace()
   const can = useCan('webhooks:manage')
@@ -45,7 +46,7 @@ export function WebhooksPage() {
         // This board's action row doesn't centre its items, so the buttons
         // stretch to the 38px bell beside them.
         <>
-          <ButtonAnchor href={API_DOCS} className="self-stretch">
+          <ButtonAnchor href={apiReference} className="self-stretch">
             {t(m.apiReference)}
           </ButtonAnchor>
           <ButtonLink to="/w/$workspace/settings/keys" params={{ workspace: slug }} className="self-stretch">
@@ -193,6 +194,8 @@ function EndpointsCard({ items, onAdd, onEdit }: { items?: Webhook[]; onAdd: () 
                         {w.name}
                         {w.description ? ` · ${w.description}` : ''}
                         {w.secretRotatedAt ? ` · ${t(m.secretRotated, { date: dayMonthDate(w.secretRotatedAt) })}` : ''}
+                        {/* Review 2026-11 IN-1: the replaced secret signs too, for a day. */}
+                        {w.previousSecretUntil ? ` · ${t(m.bothSecrets, { until: `${dayMonthDate(w.previousSecretUntil)}, ${clock(w.previousSecretUntil)}` })}` : ''}
                       </div>
                     )}
                   </Td>
@@ -244,7 +247,8 @@ function VerifyCard({ header }: { header: string }) {
         {`const sig = createHmac("sha256", secret)
   .update(\`\${timestamp}.\${rawBody}\`)
   .digest("hex");
-if (!timingSafeEqual(sig, header)) throw 401;`}
+// After a rotation the header holds two signatures for a day.
+if (!header.split(",").some((s) => timingSafeEqual(sig, s.trim()))) throw 401;`}
       </ScrollPre>
       <span className="k">
         <T msg={m.payloadNote} values={{ sample: `{ "type": "email.bounced", "subtype": "hard", "provider": "ses", "provider_code": "550 5.1.1", … }`, mono }} />

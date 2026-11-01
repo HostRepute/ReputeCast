@@ -174,7 +174,9 @@ GET    /api/v1/workspaces/{workspace}/integration/forms           → { "items":
 - Payloads and signatures are the Webhooks page's: the body is the event
   envelope; `X-ReputeCast-Signature` is the hex HMAC-SHA256 of
   `{timestamp}.{raw body}` with the secret, and `X-ReputeCast-Timestamp` is the
-  Unix time. Reject anything older than 5 minutes. Failed deliveries retry for
+  Unix time. For 24 hours after the secret is rotated the signature header
+  holds two comma-separated signatures, the new secret's first; accept a
+  delivery when either matches. Reject anything older than 5 minutes. Failed deliveries retry for
   6 hours (8 attempts), then wait 7 days in the dead-letter queue.
 - The sample endpoint answers a fixed, realistic payload of the event for the
   app's field mapping (Lucía Fernández, Weekly Digest), so mapping works before

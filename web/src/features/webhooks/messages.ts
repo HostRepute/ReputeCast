@@ -38,6 +38,7 @@ export const m = defineMessages('webhooks', {
   colSuccess: 'Success · 24 h',
   colStatus: 'Status',
   colActions: 'Actions',
+  bothSecrets: 'the old secret signs too until {until}',
   secretRotated: 'secret rotated {date}',
   editNamed: 'Edit {host}',
 

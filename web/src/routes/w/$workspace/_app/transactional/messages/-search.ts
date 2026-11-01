@@ -9,5 +9,5 @@ export const logSearch = z.object({
   range: z.enum(['1h', '24h', '7d', '30d', 'custom']).optional().catch(undefined),
   from: z.string().max(10).optional().catch(undefined),
   to: z.string().max(10).optional().catch(undefined),
-  status: z.enum(['all', 'queued', 'sent', 'delivered', 'deferred', 'bounced', 'complained', 'rejected', 'failed', 'test']).optional().catch(undefined),
+  status: z.enum(['all', 'scheduled', 'queued', 'sent', 'delivered', 'deferred', 'bounced', 'complained', 'rejected', 'cancelled', 'failed', 'test']).optional().catch(undefined),
 })

@@ -58,7 +58,9 @@ func TestReschedule(t *testing.T) {
 	if err := env.App.Pool.QueryRow(ctx, `SELECT scheduled_at, schedule->>'local' FROM campaigns WHERE id = $1`, id).Scan(&at, &local); err != nil || !at.Equal(first) || local != future+" 10:30" {
 		t.Fatalf("local time: %v %q (%v), want %v", at, local, err, first)
 	}
-	var rv struct{ Schedule struct{ Mode, Date, Time string } }
+	var rv struct {
+		Schedule struct{ Mode, Date, Time string }
+	}
 	linh.Do(http.MethodGet, "/workspaces/acme-newsletter/campaigns/"+id+"/review", nil).MustStatus(t, 200).JSON(t, &rv)
 	if rv.Schedule.Mode != "local" || rv.Schedule.Date != future || rv.Schedule.Time != "10:30" {
 		t.Fatalf("Review & send shows %+v", rv.Schedule)

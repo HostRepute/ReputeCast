@@ -339,6 +339,7 @@ type ApprovalRequest struct {
 	WebsitePostID           *uuid.UUID      `json:"websitePostId"`
 	WebsitePageID           *uuid.UUID      `json:"websitePageId"`
 	InvalidatedReasonText   json.RawMessage `json:"invalidatedReasonText"`
+	RevalidatedAt           *time.Time      `json:"revalidatedAt"`
 }
 
 type ArchiveIssue struct {
@@ -4871,6 +4872,8 @@ type TransactionalMessage struct {
 	ContentRemovedAt *time.Time      `json:"contentRemovedAt"`
 	ResentFrom       *uuid.UUID      `json:"resentFrom"`
 	EventsEmitted    []string        `json:"eventsEmitted"`
+	CancelledAt      *time.Time      `json:"cancelledAt"`
+	CancelledBy      string          `json:"cancelledBy"`
 }
 
 type TransactionalMessageContent struct {
@@ -4895,6 +4898,12 @@ type TransactionalOutbox struct {
 	MessageID uuid.UUID `json:"messageId"`
 	Sealed    []byte    `json:"sealed"`
 	CreatedAt time.Time `json:"createdAt"`
+}
+
+type TransactionalRateBucket struct {
+	BucketKey  uuid.UUID `json:"bucketKey"`
+	Tokens     float64   `json:"tokens"`
+	RefilledAt time.Time `json:"refilledAt"`
 }
 
 type TransactionalRejectedCall struct {
@@ -5293,23 +5302,26 @@ type WarmupPlan struct {
 }
 
 type Webhook struct {
-	ID              uuid.UUID  `json:"id"`
-	WorkspaceID     uuid.UUID  `json:"workspaceId"`
-	Name            string     `json:"name"`
-	Url             string     `json:"url"`
-	Events          []string   `json:"events"`
-	SecretEnc       []byte     `json:"secretEnc"`
-	Enabled         bool       `json:"enabled"`
-	CreatedBy       *uuid.UUID `json:"createdBy"`
-	CreatedAt       time.Time  `json:"createdAt"`
-	LastStatus      *int32     `json:"lastStatus"`
-	LastDeliveryAt  *time.Time `json:"lastDeliveryAt"`
-	FailingSince    *time.Time `json:"failingSince"`
-	Description     string     `json:"description"`
-	SecretRotatedAt *time.Time `json:"secretRotatedAt"`
-	PausedAt        *time.Time `json:"pausedAt"`
-	UpdatedAt       time.Time  `json:"updatedAt"`
-	Demo            bool       `json:"demo"`
+	ID                  uuid.UUID  `json:"id"`
+	WorkspaceID         uuid.UUID  `json:"workspaceId"`
+	Name                string     `json:"name"`
+	Url                 string     `json:"url"`
+	Events              []string   `json:"events"`
+	SecretEnc           []byte     `json:"secretEnc"`
+	Enabled             bool       `json:"enabled"`
+	CreatedBy           *uuid.UUID `json:"createdBy"`
+	CreatedAt           time.Time  `json:"createdAt"`
+	LastStatus          *int32     `json:"lastStatus"`
+	LastDeliveryAt      *time.Time `json:"lastDeliveryAt"`
+	FailingSince        *time.Time `json:"failingSince"`
+	Description         string     `json:"description"`
+	SecretRotatedAt     *time.Time `json:"secretRotatedAt"`
+	PausedAt            *time.Time `json:"pausedAt"`
+	UpdatedAt           time.Time  `json:"updatedAt"`
+	Demo                bool       `json:"demo"`
+	PreviousSecretEnc   []byte     `json:"previousSecretEnc"`
+	PreviousSecretUntil *time.Time `json:"previousSecretUntil"`
+	AlertedAt           *time.Time `json:"alertedAt"`
 }
 
 type WebhookContactEvent struct {

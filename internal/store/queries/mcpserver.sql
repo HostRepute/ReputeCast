@@ -84,3 +84,62 @@ LIMIT 1;
 
 -- name: McpSetRoutingSplits :exec
 UPDATE routing_rules SET splits = @splits, updated_at = now() WHERE id = @id AND workspace_id = @workspace_id;
+
+-- name: McpContact :one
+-- One contact for get_contact (review 2026-11 IN-3), by id or address.
+SELECT c.id, c.email, c.first_name, c.last_name, c.status, c.tier, c.consent, c.language, c.timezone, c.source, c.tags,
+       c.created_at, c.last_open_at, c.last_human_open_at,
+       coalesce((SELECT array_agg(l.name ORDER BY l.name) FROM list_memberships m JOIN lists l ON l.id = m.list_id AND l.deleted_at IS NULL
+                 WHERE m.contact_id = c.id AND m.status = 'subscribed'), '{}')::text[] AS lists
+FROM contacts c
+WHERE c.workspace_id = @workspace_id AND c.erased_at IS NULL
+  AND (c.id = sqlc.narg(id)::uuid OR lower(c.email) = lower(@email::text))
+LIMIT 1;
+
+-- name: McpLists :many
+SELECT l.id, l.name, l.description, l.double_opt_in, l.created_at,
+       (SELECT count(*) FROM list_memberships m WHERE m.list_id = l.id AND m.status = 'subscribed')::bigint AS subscribed
+FROM lists l
+WHERE l.workspace_id = @workspace_id AND l.deleted_at IS NULL
+ORDER BY l.created_at;
+
+-- name: McpForms :many
+SELECT f.id, f.name, f.kind, f.status, f.double_opt_in, f.updated_at,
+       (SELECT count(*) FROM form_submissions s WHERE s.form_id = f.id AND s.created_at > now() - interval '30 days')::bigint AS submissions_30d
+FROM forms f
+WHERE f.workspace_id = @workspace_id
+ORDER BY f.updated_at DESC
+LIMIT 100;
+
+-- name: McpApprovals :many
+-- The approvals queue: open requests first, then the last 30 days' decisions.
+SELECT r.id, r.subject_type, r.status, r.requested_at, r.decided_at,
+       coalesce(c.name, a.name, t.name, wp.title, pg.name, '')::text AS subject_name,
+       coalesce(u.name, '')::text AS requested_by,
+       coalesce((r.snapshot ->> 'audience_count')::bigint, 0)::bigint AS audience_count
+FROM approval_requests r
+LEFT JOIN users u ON u.id = r.requested_by
+LEFT JOIN campaigns c ON c.id = r.campaign_id
+LEFT JOIN automations a ON a.id = r.automation_id
+LEFT JOIN transactional_templates t ON t.id = r.transactional_template_id
+LEFT JOIN website_posts wp ON wp.id = r.website_post_id
+LEFT JOIN pages pg ON pg.id = r.website_page_id
+WHERE r.workspace_id = @workspace_id AND r.status <> 'bypassed'
+  AND (r.status IN ('pending', 'approved') OR r.requested_at > now() - interval '30 days')
+ORDER BY CASE r.status WHEN 'pending' THEN 0 ELSE 1 END, r.requested_at DESC
+LIMIT 100;
+
+-- name: McpOffers :many
+SELECT o.id, o.name, o.kind, o.status, o.discount_type, o.percent_off, o.amount_off, o.currency, o.duration, o.duration_months,
+       o.by_code, o.code, o.by_link, o.redeem_limit, o.ends_at,
+       (SELECT count(*) FROM earn_offer_uses x WHERE x.offer_id = o.id)::bigint AS uses
+FROM earn_offers o
+WHERE o.workspace_id = @workspace_id
+ORDER BY o.status, o.name
+LIMIT 100;
+
+-- name: McpChannelCampaign :one
+-- A text, push or WhatsApp campaign an agent proposes to send.
+SELECT c.id, c.name, c.status, c.channel FROM campaigns c
+WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL AND (c.id = sqlc.narg(id)::uuid OR c.name = @name::text)
+ORDER BY c.updated_at DESC LIMIT 1;

@@ -154,6 +154,7 @@ export const ml = defineMessages('transactional.log', {
   contentMasked: '{names} {count, plural, one {was} other {were}} never stored, so {count, plural, one {it shows} other {they show}} a placeholder.',
   contentMaskedLink: '{names} was never stored, so the button shows a placeholder link.',
   contentRemoved: 'The content was removed on {date}, after {days} days. Metadata and events stay until {until}.',
+  contentCancelled: 'The content was removed when the message was cancelled, on {date}. Metadata and events stay until {until}.',
   contentNotKept: "This workspace doesn't keep rendered content. Metadata and events stay until {until}.",
   contentNotStored: "This message's rendered content wasn't kept. Metadata and events stay until {until}.",
   contentNotSent: 'Nothing was sent, so no content was kept. Metadata and events stay until {until}.',

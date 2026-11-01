@@ -1,6 +1,6 @@
-import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { errorMessage, http, type Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Page } from '@/components/shell/Page'
@@ -20,7 +20,7 @@ import { secs, StatusBadge, TxTabs } from './shared'
 export type LogItem = Schemas['TransactionalLogItem']
 type Log = Schemas['TransactionalLog']
 export type LogRange = '1h' | '24h' | '7d' | '30d' | 'custom'
-export type LogStatus = 'all' | 'delivered' | 'deferred' | 'bounced' | 'complained' | 'rejected' | 'failed' | 'test' | 'queued' | 'sent'
+export type LogStatus = 'all' | 'delivered' | 'deferred' | 'bounced' | 'complained' | 'rejected' | 'failed' | 'test' | 'queued' | 'sent' | 'scheduled' | 'cancelled'
 
 export interface LogSearch {
   q?: string
@@ -60,33 +60,82 @@ export function logQuery(slug: string, s: LogSearch, extra: { before?: string; a
 /** Messages on a page of the log, as the boards draw it. */
 const PAGE = 10
 
-/** One page of the log, newest first; the first page updates every 10 seconds unless paused. */
+/**
+ * Asks every 10 seconds for messages newer than the first page's newest and
+ * puts them on top of it, with the status counts (kept a minute on the
+ * server): the page itself isn't fetched again (review 2026-11 TX-3).
+ */
+function useLivePoll(s: LogSearch, newest: string | undefined, live: boolean, merge: (fresh: Log) => void) {
+  const { slug } = useWorkspace()
+  const poll = useQuery({
+    queryKey: ['transactional-log-live', slug, s, newest ?? ''],
+    queryFn: async () => {
+      const { data } = await http.GET(`${API}/messages`, logQuery(slug, s, { after: newest, limit: 100 }))
+      return data as Log
+    },
+    enabled: live && !!newest,
+    refetchInterval: 10_000,
+    // The page was just fetched: the first poll waits its 10 seconds.
+    staleTime: 9_000,
+  })
+  const fresh = poll.data
+  useEffect(() => {
+    if (fresh) merge(fresh)
+  }, [fresh, merge])
+}
+
+/** Puts a poll's newer messages on top of a page, keeping its length. */
+function mergeNewer(page: Log, fresh: Log, limit: number): Log {
+  if (!fresh.items.length) return { ...page, counts: fresh.counts }
+  const seen = new Set(page.items.map((it) => it.id))
+  const items = [...fresh.items.filter((it) => !seen.has(it.id)), ...page.items].slice(0, limit)
+  return { ...page, items, counts: fresh.counts, newest: fresh.newest || page.newest }
+}
+
+/** One page of the log, newest first; the first page takes new messages every 10 seconds unless paused. */
 function useLogPage(s: LogSearch, before: string | undefined, live: boolean) {
   const { slug } = useWorkspace()
-  return useQuery({
-    queryKey: ['transactional-log-page', slug, s, before ?? ''],
+  const qc = useQueryClient()
+  const key = useMemo(() => ['transactional-log-page', slug, s, before ?? ''], [slug, s, before])
+  const q = useQuery({
+    queryKey: key,
     queryFn: async () => {
       const { data } = await http.GET(`${API}/messages`, logQuery(slug, s, { before, limit: PAGE }))
       return data as Log
     },
-    refetchInterval: live && !before ? 10_000 : false,
     placeholderData: keepPreviousData,
   })
+  const merge = useCallback((fresh: Log) => qc.setQueryData<Log>(key, (page) => (page ? mergeNewer(page, fresh, PAGE) : page)), [qc, key])
+  useLivePoll(s, q.data?.newest, live && !before && !q.isPlaceholderData, merge)
+  return q
 }
 
-/** The log, `first` messages and then 25 at a time, with live updates every 10 seconds unless paused (the message detail's list). */
+/** The log, `first` messages and then 25 at a time, with new messages every 10 seconds unless paused (the message detail's list). */
 export function useLog(s: LogSearch, live: boolean, first = 25) {
   const { slug } = useWorkspace()
-  return useInfiniteQuery({
-    queryKey: ['transactional-log', slug, s, first],
+  const qc = useQueryClient()
+  const key = useMemo(() => ['transactional-log', slug, s, first], [slug, s, first])
+  const q = useInfiniteQuery({
+    queryKey: key,
     initialPageParam: undefined as string | undefined,
     queryFn: async ({ pageParam }) => {
       const { data } = await http.GET(`${API}/messages`, logQuery(slug, s, { before: pageParam, limit: pageParam ? 25 : first }))
       return data as Log
     },
     getNextPageParam: (last) => last.next || undefined,
-    refetchInterval: live ? 10_000 : false,
   })
+  const merge = useCallback(
+    (fresh: Log) =>
+      qc.setQueryData<InfiniteData<Log, string | undefined>>(key, (data) => {
+        if (!data?.pages[0]) return data
+        // The first page grows: the pages after it still start where they did.
+        const firstPage = mergeNewer(data.pages[0], fresh, data.pages[0].items.length + fresh.items.length)
+        return { ...data, pages: [firstPage, ...data.pages.slice(1)] }
+      }),
+    [qc, key],
+  )
+  useLivePoll(s, q.data?.pages[0]?.newest, live, merge)
+  return q
 }
 
 /** The range the log's footer words: "in the last 24 hours", "from 2026-10-01 to 2026-10-15". */
@@ -428,6 +477,9 @@ function StatusChips({ counts, value, onChange }: { counts?: Schemas['Transactio
     { key: 'test', label: t(mt.statusTest), n: counts?.test },
   ]
   if (counts?.queued) chips.splice(1, 0, { key: 'queued', label: t(mt.statusQueued), n: counts.queued })
+  // Review 2026-11 TX-1: messages waiting for send_at, and those cancelled before it.
+  if (counts?.scheduled || value === 'scheduled') chips.splice(1, 0, { key: 'scheduled', label: t(mt.statusScheduled), n: counts?.scheduled })
+  if (counts?.cancelled || value === 'cancelled') chips.splice(chips.length - 1, 0, { key: 'cancelled', label: t(mt.statusCancelled), n: counts?.cancelled })
   return (
     <>
       {chips.map((c) => (

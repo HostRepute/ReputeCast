@@ -93,6 +93,8 @@ export function statusTone(status: string): Tone {
       return 'bad'
     case 'test':
       return 'purple'
+    case 'scheduled':
+      return 'info'
   }
   return 'neutral'
 }
@@ -121,6 +123,8 @@ export function useStatusLabel() {
         return t(mt.statusTest)
       case 'cancelled':
         return t(mt.statusCancelled)
+      case 'scheduled':
+        return t(mt.statusScheduled)
     }
     return status
   }
