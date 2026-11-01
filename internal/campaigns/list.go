@@ -178,7 +178,8 @@ type ReadinessSummary struct {
 	Issues int64 `json:"issues"`
 }
 
-// CampaignStatusCounts feeds the All / Drafts / Scheduled / Sending / Sent tabs.
+// CampaignStatusCounts feeds the All / Drafts / Scheduled / Sending / Sent
+// tabs, counted within the list's filters (review 2026-11 CA-12).
 type CampaignStatusCounts struct {
 	All       int64 `json:"all"`
 	Drafts    int64 `json:"drafts"`
@@ -249,9 +250,14 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p ListParams) (
 			DeletedSince: deletedSince, FromAt: p.From, ToAt: p.To, SenderID: p.Sender, ListID: p.List, Tag: p.Tag}); err != nil {
 			return CampaignList{}, err
 		}
-		if counts, err = s.counts(ctx, ws.ID); err != nil {
+		// The tabs count within the filters (review 2026-11 CA-12).
+		tabs, err := s.Q.CountCampaignTabs(ctx, store.CountCampaignTabsParams{WorkspaceID: ws.ID, DeletedSince: deletedSince, Query: q, Channel: p.Channel,
+			PaidOnly: p.PaidOnly, FromAt: p.From, ToAt: p.To, SenderID: p.Sender, ListID: p.List, Tag: p.Tag})
+		if err != nil {
 			return CampaignList{}, err
 		}
+		counts = CampaignStatusCounts{All: tabs.AllLive, Drafts: tabs.Drafts, Scheduled: tabs.Scheduled, Sending: tabs.Sending, Sent: tabs.Sent,
+			PaidOnly: tabs.PaidOnly, Archived: tabs.Archived, Deleted: tabs.Deleted}
 	}
 	labels, err := s.audienceLabeler(ctx, ws.ID)
 	if err != nil {
@@ -337,38 +343,6 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p ListParams) (
 		s.Channels.FillChannelRows(ctx, ws, out.Items)
 	}
 	return out, nil
-}
-
-func (s *Service) counts(ctx context.Context, wsID uuid.UUID) (CampaignStatusCounts, error) {
-	rows, err := s.Q.CountCampaignsByStatus(ctx, wsID)
-	if err != nil {
-		return CampaignStatusCounts{}, err
-	}
-	var c CampaignStatusCounts
-	for _, r := range rows {
-		c.All += r.N
-		switch r.Status {
-		case "draft", "approval", "approved":
-			c.Drafts += r.N
-		case "scheduled":
-			c.Scheduled += r.N
-		case "sending", "paused":
-			c.Sending += r.N
-		default:
-			c.Sent += r.N
-		}
-	}
-	paid, err := s.Q.CountCampaigns(ctx, store.CountCampaignsParams{WorkspaceID: wsID, StatusGroup: "all", PaidOnly: true})
-	if err != nil {
-		return CampaignStatusCounts{}, err
-	}
-	c.PaidOnly = paid
-	ad, err := s.Q.CountCampaignsArchivedDeleted(ctx, store.CountCampaignsArchivedDeletedParams{WorkspaceID: wsID, DeletedSince: s.now().Add(-RestoreWindow)})
-	if err != nil {
-		return CampaignStatusCounts{}, err
-	}
-	c.Archived, c.Deleted = ad.Archived, ad.Deleted
-	return c, nil
 }
 
 // audienceLabeler turns an audience definition into "Weekly Digest" or

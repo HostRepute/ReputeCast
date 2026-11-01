@@ -1013,10 +1013,11 @@ type Querier interface {
 	CountAutomationInFlowByNode(ctx context.Context, automationID uuid.UUID) ([]CountAutomationInFlowByNodeRow, error)
 	CountAutomationRunsAtNode(ctx context.Context, arg CountAutomationRunsAtNodeParams) (int64, error)
 	CountAutomationsByStatus(ctx context.Context, workspaceID uuid.UUID) ([]CountAutomationsByStatusRow, error)
+	// The tabs' counts within the list's filters (review 2026-11 CA-12): the
+	// same filters as CountCampaigns, but every status group at once; paid_only
+	// counts the campaigns for paid members among them.
+	CountCampaignTabs(ctx context.Context, arg CountCampaignTabsParams) (CountCampaignTabsRow, error)
 	CountCampaigns(ctx context.Context, arg CountCampaignsParams) (int64, error)
-	// The Archived and Deleted tabs' counts (review 2026-11 CA-1).
-	CountCampaignsArchivedDeleted(ctx context.Context, arg CountCampaignsArchivedDeletedParams) (CountCampaignsArchivedDeletedRow, error)
-	CountCampaignsByStatus(ctx context.Context, workspaceID uuid.UUID) ([]CountCampaignsByStatusRow, error)
 	CountDeliverabilityIncidents(ctx context.Context, arg CountDeliverabilityIncidentsParams) (int64, error)
 	CountImportRows(ctx context.Context, importID uuid.UUID) (int64, error)
 	CountNotifications(ctx context.Context, arg CountNotificationsParams) (CountNotificationsRow, error)

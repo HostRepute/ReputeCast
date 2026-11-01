@@ -106,17 +106,31 @@ WHERE c.workspace_id = @workspace_id
   AND (@list_id::text = '' OR jsonb_exists(coalesce(c.audience -> 'lists', '[]'::jsonb), @list_id::text))
   AND (@tag::text = '' OR @tag::text = ANY (c.tags));
 
--- name: CountCampaignsByStatus :many
-SELECT status, count(*)::bigint AS n FROM campaigns
-WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND archived_at IS NULL AND digest_role IN ('', 'issue')
-GROUP BY status;
-
--- name: CountCampaignsArchivedDeleted :one
--- The Archived and Deleted tabs' counts (review 2026-11 CA-1).
-SELECT count(*) FILTER (WHERE deleted_at IS NULL AND archived_at IS NOT NULL)::bigint AS archived,
-       count(*) FILTER (WHERE deleted_at > @deleted_since::timestamptz)::bigint AS deleted
-FROM campaigns
-WHERE workspace_id = @workspace_id AND digest_role IN ('', 'issue') AND (archived_at IS NOT NULL OR deleted_at IS NOT NULL);
+-- name: CountCampaignTabs :one
+-- The tabs' counts within the list's filters (review 2026-11 CA-12): the
+-- same filters as CountCampaigns, but every status group at once; paid_only
+-- counts the campaigns for paid members among them.
+SELECT count(*) FILTER (WHERE c.deleted_at IS NULL AND c.archived_at IS NULL)::bigint AS all_live,
+       count(*) FILTER (WHERE c.deleted_at IS NULL AND c.archived_at IS NULL AND c.status IN ('draft', 'approval', 'approved'))::bigint AS drafts,
+       count(*) FILTER (WHERE c.deleted_at IS NULL AND c.archived_at IS NULL AND c.status = 'scheduled')::bigint AS scheduled,
+       count(*) FILTER (WHERE c.deleted_at IS NULL AND c.archived_at IS NULL AND c.status IN ('sending', 'paused'))::bigint AS sending,
+       count(*) FILTER (WHERE c.deleted_at IS NULL AND c.archived_at IS NULL
+                          AND c.status NOT IN ('draft', 'approval', 'approved', 'scheduled', 'sending', 'paused'))::bigint AS sent,
+       count(*) FILTER (WHERE c.deleted_at IS NULL AND c.archived_at IS NULL AND c.audience ->> 'paid' = 'paid')::bigint AS paid_only,
+       count(*) FILTER (WHERE c.deleted_at IS NULL AND c.archived_at IS NOT NULL)::bigint AS archived,
+       count(*) FILTER (WHERE c.deleted_at > @deleted_since::timestamptz)::bigint AS deleted
+FROM campaigns c
+WHERE c.workspace_id = @workspace_id
+  AND c.digest_role IN ('', 'issue')
+  AND (c.deleted_at IS NULL OR c.deleted_at > @deleted_since::timestamptz)
+  AND (@query::text = '' OR c.name ILIKE '%' || @query::text || '%' OR c.subject ILIKE '%' || @query::text || '%')
+  AND (@channel::text = '' OR c.channel = @channel::text)
+  AND (NOT @paid_only::boolean OR c.audience ->> 'paid' = 'paid')
+  AND (sqlc.narg(from_at)::timestamptz IS NULL OR coalesce(c.started_at, c.scheduled_at, c.updated_at) >= sqlc.narg(from_at)::timestamptz)
+  AND (sqlc.narg(to_at)::timestamptz IS NULL OR coalesce(c.started_at, c.scheduled_at, c.updated_at) < sqlc.narg(to_at)::timestamptz)
+  AND (sqlc.narg(sender_id)::uuid IS NULL OR c.sender_id = sqlc.narg(sender_id)::uuid)
+  AND (@list_id::text = '' OR jsonb_exists(coalesce(c.audience -> 'lists', '[]'::jsonb), @list_id::text))
+  AND (@tag::text = '' OR @tag::text = ANY (c.tags));
 
 -- name: ListCampaignRouteShares :many
 -- Per-provider share of each campaign: planned recipients and what was sent.
