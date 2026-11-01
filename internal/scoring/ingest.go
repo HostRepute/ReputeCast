@@ -26,14 +26,15 @@ const ingestOverlap = 2 * time.Minute
 // its settling job can run late.
 const settleLookback = "15 minutes"
 
-// listsSQL is an email's lists: a campaign's audience lists, or the list
-// that starts an automation.
+// listsSQL is an email's lists: a campaign's audience lists, or the lists
+// that start an automation, from any of its triggers (review 2026-11 AT-14).
 const listsSQL = `CASE
     WHEN cp.id IS NOT NULL THEN coalesce(ARRAY(
         SELECT x::uuid FROM jsonb_array_elements_text(CASE WHEN jsonb_typeof(cp.audience -> 'lists') = 'array' THEN cp.audience -> 'lists' ELSE '[]'::jsonb END) x
         WHERE x ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'), '{}'::uuid[])
-    WHEN a.trigger ->> 'kind' = 'joined_list' AND (a.trigger ->> 'listId') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-        THEN ARRAY[(a.trigger ->> 'listId')::uuid]
+    WHEN a.id IS NOT NULL THEN coalesce(ARRAY(
+        SELECT DISTINCT (t ->> 'listId')::uuid FROM jsonb_array_elements(a.triggers) t
+        WHERE t ->> 'kind' = 'joined_list' AND (t ->> 'listId') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'), '{}'::uuid[])
     ELSE '{}'::uuid[] END`
 
 var ingestSQL = []string{

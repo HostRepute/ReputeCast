@@ -120,7 +120,7 @@ const commerceAbandonedCartEmailedSince = `-- name: CommerceAbandonedCartEmailed
 SELECT EXISTS (
     SELECT 1 FROM messages m JOIN automations a ON a.id = m.automation_id
     WHERE m.contact_id = $1 AND m.queued_at >= $2 AND a.workspace_id = $3
-      AND a.trigger ->> 'kind' = 'abandoned_checkout')
+      AND a.triggers @> '[{"kind": "abandoned_checkout"}]'::jsonb)
 `
 
 type CommerceAbandonedCartEmailedSinceParams struct {
@@ -139,8 +139,11 @@ func (q *Queries) CommerceAbandonedCartEmailedSince(ctx context.Context, arg Com
 }
 
 const commerceAbandonedFlows = `-- name: CommerceAbandonedFlows :many
-SELECT id, workspace_id, trigger, live_version, updated_at FROM automations
-WHERE status = 'live' AND trigger ->> 'kind' = 'abandoned_checkout'
+SELECT a.id, a.workspace_id, ac.t::jsonb AS trigger, a.live_version, a.updated_at
+FROM automations a
+CROSS JOIN LATERAL jsonb_array_elements(a.triggers) AS ac (t)
+WHERE a.status = 'live' AND a.deleted_at IS NULL AND a.triggers @> '[{"kind": "abandoned_checkout"}]'::jsonb
+  AND ac.t ->> 'kind' = 'abandoned_checkout'
 `
 
 type CommerceAbandonedFlowsRow struct {
@@ -151,7 +154,8 @@ type CommerceAbandonedFlowsRow struct {
 	UpdatedAt   time.Time       `json:"updatedAt"`
 }
 
-// Live automations started by abandoned checkouts.
+// Live automations started by abandoned checkouts: one row per such
+// trigger, whichever of the flow's triggers it is (review 2026-11 AT-14).
 func (q *Queries) CommerceAbandonedFlows(ctx context.Context) ([]CommerceAbandonedFlowsRow, error) {
 	rows, err := q.db.Query(ctx, commerceAbandonedFlows)
 	if err != nil {
@@ -3462,14 +3466,18 @@ func (q *Queries) CommerceStoreDisconnected(ctx context.Context, arg CommerceSto
 }
 
 const commerceStoreFlows = `-- name: CommerceStoreFlows :many
-SELECT id, name, status, trigger, pause_reason FROM automations
-WHERE workspace_id = $1 AND trigger ->> 'kind' IN ('order_placed', 'first_order', 'abandoned_checkout') AND trigger ->> 'store' = $2::text
-ORDER BY created_at
+SELECT a.id, a.name, a.status, st.t::jsonb AS trigger, a.pause_reason
+FROM automations a
+CROSS JOIN LATERAL (SELECT t FROM jsonb_array_elements(a.triggers) WITH ORDINALITY AS e (t, n)
+                    WHERE t ->> 'kind' IN ('order_placed', 'first_order', 'abandoned_checkout') AND t ->> 'store' = $1::text
+                    ORDER BY n LIMIT 1) st
+WHERE a.workspace_id = $2 AND a.deleted_at IS NULL
+ORDER BY a.created_at
 `
 
 type CommerceStoreFlowsParams struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
 	Store       string    `json:"store"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
 }
 
 type CommerceStoreFlowsRow struct {
@@ -3480,9 +3488,10 @@ type CommerceStoreFlowsRow struct {
 	PauseReason string          `json:"pauseReason"`
 }
 
-// Live and paused automations started by a store's triggers.
+// Live and paused automations started by a store's triggers, with the
+// first trigger that names the store (review 2026-11 AT-14).
 func (q *Queries) CommerceStoreFlows(ctx context.Context, arg CommerceStoreFlowsParams) ([]CommerceStoreFlowsRow, error) {
-	rows, err := q.db.Query(ctx, commerceStoreFlows, arg.WorkspaceID, arg.Store)
+	rows, err := q.db.Query(ctx, commerceStoreFlows, arg.Store, arg.WorkspaceID)
 	if err != nil {
 		return nil, err
 	}

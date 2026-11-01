@@ -273,24 +273,27 @@ func (s *Service) StepEstimate(ctx context.Context, ws *store.Workspace, automat
 		return out, err
 	}
 	out.Window, out.Quiet = g.Window.String(), g.Quiet
-	// The flow's contacts: those its trigger will bring in (a date field
-	// set, a list's members), and those already in it.
-	var trigger []byte
-	if err := s.Pool.QueryRow(ctx, `SELECT trigger FROM automations WHERE id = $1 AND workspace_id = $2`, automationID, ws.ID).Scan(&trigger); err != nil {
+	// The flow's contacts: those its triggers will bring in (a date field
+	// set, a list's members), from any of them (review 2026-11 AT-14), and
+	// those already in it.
+	var found bool
+	if err := s.Pool.QueryRow(ctx, `SELECT true FROM automations WHERE id = $1 AND workspace_id = $2`, automationID, ws.ID).Scan(&found); err != nil {
 		return out, err
 	}
-	var t automations.AutomationTrigger
-	_ = json.Unmarshal(trigger, &t)
-	err = s.Pool.QueryRow(ctx, `WITH c AS (
+	err = s.Pool.QueryRow(ctx, `WITH tr AS (
+			SELECT t FROM automations a CROSS JOIN LATERAL jsonb_array_elements(a.triggers) t WHERE a.id = $1 AND a.workspace_id = $2),
+		c AS (
 			SELECT r.contact_id FROM automation_runs r WHERE r.automation_id = $1 AND r.status IN ('active','waiting')
 			UNION
-			SELECT ct.id FROM contacts ct WHERE $3 = 'date_field' AND ct.workspace_id = $2 AND ct.status = 'active' AND ct.erased_at IS NULL
-			  AND (ct.attributes ->> $4) ~ '^\d{4}-\d{2}-\d{2}'
+			SELECT ct.id FROM contacts ct JOIN tr ON tr.t ->> 'kind' = 'date_field'
+			WHERE ct.workspace_id = $2 AND ct.status = 'active' AND ct.erased_at IS NULL
+			  AND (ct.attributes ->> (tr.t ->> 'field')) ~ '^\d{4}-\d{2}-\d{2}'
 			UNION
-			SELECT lm.contact_id FROM list_memberships lm WHERE $3 = 'joined_list' AND lm.list_id::text = $5 AND lm.status = 'subscribed')
+			SELECT lm.contact_id FROM list_memberships lm JOIN tr ON tr.t ->> 'kind' = 'joined_list' AND lm.list_id::text = tr.t ->> 'listId'
+			WHERE lm.status = 'subscribed')
 		SELECT (SELECT count(*) FROM c),
 			(SELECT count(DISTINCT s.contact_id) FROM push_subscriptions s JOIN c ON c.contact_id = s.contact_id WHERE s.workspace_id = $2 AND s.removed_at IS NULL),
 			(SELECT count(*) FROM push_subscriptions s JOIN c ON c.contact_id = s.contact_id WHERE s.workspace_id = $2 AND s.removed_at IS NULL)`,
-		automationID, ws.ID, t.Kind, t.Field, t.ListID).Scan(&out.Contacts, &out.Linked, &out.Subscriptions)
+		automationID, ws.ID).Scan(&out.Contacts, &out.Linked, &out.Subscriptions)
 	return out, err
 }

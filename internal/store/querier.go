@@ -437,6 +437,8 @@ type Querier interface {
 	// Contacts whose date field (plus the offset) is today in the workspace's
 	// timezone; yearly triggers match the day and month every year.
 	AutomationDateFieldMatches(ctx context.Context, arg AutomationDateFieldMatchesParams) ([]uuid.UUID, error)
+	// Live flows' date triggers, one row per trigger, whichever of the flow's
+	// triggers it is (review 2026-11 AT-14).
 	AutomationDateTriggers(ctx context.Context) ([]AutomationDateTriggersRow, error)
 	// Whether the contact opened or clicked any email of this flow since a time
 	// (a person's settled clicks only, review AN-2).
@@ -508,7 +510,8 @@ type Querier interface {
 	// (review 2026-11 AT-2).
 	AutomationRunsAtNode(ctx context.Context, arg AutomationRunsAtNodeParams) ([]AutomationRunsAtNodeRow, error)
 	// A refund makes the contact leave the "Bought a product" flows of that
-	// product (or of any product) they're in.
+	// product (or of any product) they're in, whichever of the flow's triggers
+	// it is (review 2026-11 AT-14).
 	AutomationRunsExitBought(ctx context.Context, arg AutomationRunsExitBoughtParams) ([]AutomationRunsExitBoughtRow, error)
 	// Whether a contact entered a "Score crosses…" automation recently, or is in it.
 	AutomationScoreRunSince(ctx context.Context, arg AutomationScoreRunSinceParams) (bool, error)
@@ -636,7 +639,8 @@ type Querier interface {
 	// The skip rule: the contact got an email from an abandoned-cart flow
 	// (one started by abandoned checkouts) since a time.
 	CommerceAbandonedCartEmailedSince(ctx context.Context, arg CommerceAbandonedCartEmailedSinceParams) (bool, error)
-	// Live automations started by abandoned checkouts.
+	// Live automations started by abandoned checkouts: one row per such
+	// trigger, whichever of the flow's triggers it is (review 2026-11 AT-14).
 	CommerceAbandonedFlows(ctx context.Context) ([]CommerceAbandonedFlowsRow, error)
 	CommerceActivity(ctx context.Context, arg CommerceActivityParams) ([]StoreActivity, error)
 	// ── Activity ────────────────────────────────────────────────────────────
@@ -783,7 +787,8 @@ type Querier interface {
 	CommerceStoreByToken(ctx context.Context, webhookToken *string) (Store, error)
 	CommerceStoreDelete(ctx context.Context, id uuid.UUID) error
 	CommerceStoreDisconnected(ctx context.Context, arg CommerceStoreDisconnectedParams) error
-	// Live and paused automations started by a store's triggers.
+	// Live and paused automations started by a store's triggers, with the
+	// first trigger that names the store (review 2026-11 AT-14).
 	CommerceStoreFlows(ctx context.Context, arg CommerceStoreFlowsParams) ([]CommerceStoreFlowsRow, error)
 	// The WooCommerce store at a WordPress site's address.
 	CommerceStoreForSite(ctx context.Context, arg CommerceStoreForSiteParams) (CommerceStoreForSiteRow, error)
@@ -1899,7 +1904,7 @@ type Querier interface {
 	IntegrationDraftVersion(ctx context.Context, arg IntegrationDraftVersionParams) error
 	// Contacts for event payloads, with their lists.
 	IntegrationEventContacts(ctx context.Context, ids []uuid.UUID) ([]IntegrationEventContactsRow, error)
-	// Live automations with their trigger and graph, to name the flows an API
+	// Live automations with their triggers and graph, to name the flows an API
 	// event starts or ends ("which starts the Onboarding automation").
 	IntegrationEventFlows(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationEventFlowsRow, error)
 	// The first call made with a key (the "waiting for a first call" timeline).
@@ -3624,7 +3629,9 @@ type Querier interface {
 	ScoringInsertTriggerEvents(ctx context.Context, arg ScoringInsertTriggerEventsParams) error
 	ScoringLinkLabels(ctx context.Context, campaignIds []uuid.UUID) ([]ScoringLinkLabelsRow, error)
 	ScoringListsOf(ctx context.Context, workspaceID uuid.UUID) ([]ScoringListsOfRow, error)
-	// Automations that start on "Score crosses…", live or not.
+	// Automations that start on "Score crosses…", live or not: one row per
+	// such trigger, whichever of the flow's triggers it is (review 2026-11
+	// AT-14).
 	ScoringLiveTriggers(ctx context.Context, workspaceID uuid.UUID) ([]ScoringLiveTriggersRow, error)
 	// What a message was: the campaign or the automation and step.
 	ScoringMessageLabels(ctx context.Context, ids []uuid.UUID) ([]ScoringMessageLabelsRow, error)
@@ -5075,7 +5082,8 @@ type Querier interface {
 	WelcomeDismissedLists(ctx context.Context, workspaceID uuid.UUID) ([]uuid.UUID, error)
 	WelcomeForm(ctx context.Context, arg WelcomeFormParams) (WelcomeFormRow, error)
 	WelcomeImport(ctx context.Context, arg WelcomeImportParams) (WelcomeImportRow, error)
-	// Automations that start on a list or a form, with their status.
+	// Automations that start on a list or a form, with their status: any of
+	// their triggers (review 2026-11 AT-14).
 	WelcomeListTriggers(ctx context.Context, workspaceID uuid.UUID) ([]WelcomeListTriggersRow, error)
 	// Welcome-series prompts (add-on transactional §6).
 	// The workspace's lists, newest first.

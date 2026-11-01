@@ -728,12 +728,16 @@ func (s *Service) eventFlows(ctx context.Context, wsID uuid.UUID) *eventFlows {
 		return out
 	}
 	for _, r := range rows {
-		var t struct {
+		// Any of the flow's triggers (review 2026-11 AT-14).
+		var ts []struct {
 			Kind  string `json:"kind"`
 			Event string `json:"event"`
 		}
-		if json.Unmarshal(r.Trigger, &t) == nil && t.Kind == "api_event" && t.Event != "" {
-			out.starts[t.Event] = append(out.starts[t.Event], r.Name)
+		_ = json.Unmarshal(r.Triggers, &ts)
+		for _, t := range ts {
+			if t.Kind == "api_event" && t.Event != "" && !slices.Contains(out.starts[t.Event], r.Name) {
+				out.starts[t.Event] = append(out.starts[t.Event], r.Name)
+			}
 		}
 		var g struct {
 			Nodes []struct {

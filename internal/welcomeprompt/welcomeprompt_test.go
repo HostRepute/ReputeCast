@@ -186,3 +186,32 @@ func TestWelcomePromptProblemsInVietnamese(t *testing.T) {
 		t.Errorf("English: %v", p["detail"])
 	}
 }
+
+// Review 2026-11 AT-14: a live flow whose second trigger is "Joined list"
+// welcomes that list too.
+func TestWelcomePromptReadsEveryTrigger(t *testing.T) {
+	env := apptest.New(t)
+	ctx := context.Background()
+	owner := env.CreateUser(apptest.UserOpts{Email: "owner@example.com", Name: "Olive Owner"})
+	ws := env.CreateWorkspace("Prompts", owner.ID)
+	c := env.Client()
+	c.SignIn("owner@example.com", "")
+	base := "/workspaces/" + ws.Slug
+	lists := map[string]string{}
+	for _, name := range []string{"Weekly Digest", "Beta Program"} {
+		var l struct{ ID string }
+		c.Do(http.MethodPost, base+"/lists", map[string]any{"name": name}).MustStatus(t, 201).JSON(t, &l)
+		lists[name] = l.ID
+	}
+	var auto struct{ ID string }
+	c.Do(http.MethodPost, base+"/automations", map[string]any{"template": "welcome-series", "list": lists["Weekly Digest"]}).MustStatus(t, 201).JSON(t, &auto)
+	trig, _ := json.Marshal(map[string]any{"kind": "tag_added", "tag": "vip", "also": []map[string]any{{"kind": "joined_list", "listId": lists["Beta Program"]}}})
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE automations SET status = 'live', live_version = 1, trigger = $2 WHERE id = $1`, auto.ID, trig); err != nil {
+		t.Fatal(err)
+	}
+	var r promptResult
+	c.Do(http.MethodGet, base+"/welcome-prompt?context=health", nil).MustStatus(t, 200).JSON(t, &r)
+	if r.Prompt == nil || r.Prompt.ListName != "Weekly Digest" || len(r.Prompt.CoveredLists) != 1 || r.Prompt.CoveredLists[0] != "Beta Program" {
+		t.Fatalf("Beta Program is welcomed by the flow's second trigger: %+v", r.Prompt)
+	}
+}

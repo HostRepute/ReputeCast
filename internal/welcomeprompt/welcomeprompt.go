@@ -89,24 +89,28 @@ func (s *Service) coverage(ctx context.Context, ws uuid.UUID) (coverage, error) 
 		return c, err
 	}
 	for _, r := range rows {
-		var t trigger
-		if json.Unmarshal(r.Trigger, &t) != nil {
+		var ts []trigger
+		if json.Unmarshal(r.Triggers, &ts) != nil {
 			continue
 		}
-		switch t.Kind {
-		case "joined_list":
-			id, err := uuid.Parse(t.ListID)
-			if err != nil {
-				continue
-			}
-			if r.Status == "live" {
-				c.lists[id] = true
-			} else if _, ok := c.drafts[id]; !ok {
-				c.drafts[id] = r.ID
-			}
-		case "form_submitted":
-			if id, err := uuid.Parse(t.FormID); err == nil && r.Status == "live" {
-				c.forms[id] = true
+		// Any of a flow's triggers counts: a flow that also starts when
+		// someone joins the list welcomes that list (review 2026-11 AT-14).
+		for _, t := range ts {
+			switch t.Kind {
+			case "joined_list":
+				id, err := uuid.Parse(t.ListID)
+				if err != nil {
+					continue
+				}
+				if r.Status == "live" {
+					c.lists[id] = true
+				} else if _, ok := c.drafts[id]; !ok {
+					c.drafts[id] = r.ID
+				}
+			case "form_submitted":
+				if id, err := uuid.Parse(t.FormID); err == nil && r.Status == "live" {
+					c.forms[id] = true
+				}
 			}
 		}
 	}

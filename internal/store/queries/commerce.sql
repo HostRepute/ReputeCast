@@ -508,22 +508,31 @@ SELECT outcome, count(*)::bigint AS n FROM store_checkout_entries WHERE automati
 SELECT EXISTS (
     SELECT 1 FROM messages m JOIN automations a ON a.id = m.automation_id
     WHERE m.contact_id = @contact_id AND m.queued_at >= @since AND a.workspace_id = @workspace_id
-      AND a.trigger ->> 'kind' = 'abandoned_checkout');
+      AND a.triggers @> '[{"kind": "abandoned_checkout"}]'::jsonb);
 
 -- name: CommerceAbandonedFlows :many
--- Live automations started by abandoned checkouts.
-SELECT id, workspace_id, trigger, live_version, updated_at FROM automations
-WHERE status = 'live' AND trigger ->> 'kind' = 'abandoned_checkout';
+-- Live automations started by abandoned checkouts: one row per such
+-- trigger, whichever of the flow's triggers it is (review 2026-11 AT-14).
+SELECT a.id, a.workspace_id, ac.t::jsonb AS trigger, a.live_version, a.updated_at
+FROM automations a
+CROSS JOIN LATERAL jsonb_array_elements(a.triggers) AS ac (t)
+WHERE a.status = 'live' AND a.deleted_at IS NULL AND a.triggers @> '[{"kind": "abandoned_checkout"}]'::jsonb
+  AND ac.t ->> 'kind' = 'abandoned_checkout';
 
 -- name: CommerceFlowLiveSince :one
 -- When an automation's live version was published.
 SELECT published_at FROM automation_versions WHERE automation_id = @automation_id AND version = @version;
 
 -- name: CommerceStoreFlows :many
--- Live and paused automations started by a store's triggers.
-SELECT id, name, status, trigger, pause_reason FROM automations
-WHERE workspace_id = @workspace_id AND trigger ->> 'kind' IN ('order_placed', 'first_order', 'abandoned_checkout') AND trigger ->> 'store' = @store::text
-ORDER BY created_at;
+-- Live and paused automations started by a store's triggers, with the
+-- first trigger that names the store (review 2026-11 AT-14).
+SELECT a.id, a.name, a.status, st.t::jsonb AS trigger, a.pause_reason
+FROM automations a
+CROSS JOIN LATERAL (SELECT t FROM jsonb_array_elements(a.triggers) WITH ORDINALITY AS e (t, n)
+                    WHERE t ->> 'kind' IN ('order_placed', 'first_order', 'abandoned_checkout') AND t ->> 'store' = @store::text
+                    ORDER BY n LIMIT 1) st
+WHERE a.workspace_id = @workspace_id AND a.deleted_at IS NULL
+ORDER BY a.created_at;
 
 -- name: CommercePauseFlow :execrows
 UPDATE automations SET status = 'paused', paused_at = @at::timestamptz, paused_by = NULL, pause_reason = @reason WHERE id = @id AND status = 'live';

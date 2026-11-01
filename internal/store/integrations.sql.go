@@ -877,7 +877,7 @@ func (q *Queries) IntegrationEventContacts(ctx context.Context, ids []uuid.UUID)
 }
 
 const integrationEventFlows = `-- name: IntegrationEventFlows :many
-SELECT a.name, a.trigger, v.graph
+SELECT a.name, a.triggers, v.graph
 FROM automations a
 JOIN automation_versions v ON v.automation_id = a.id AND v.version = a.live_version
 WHERE a.workspace_id = $1 AND a.status = 'live' AND a.deleted_at IS NULL
@@ -885,12 +885,12 @@ ORDER BY a.name
 `
 
 type IntegrationEventFlowsRow struct {
-	Name    string          `json:"name"`
-	Trigger json.RawMessage `json:"trigger"`
-	Graph   json.RawMessage `json:"graph"`
+	Name     string          `json:"name"`
+	Triggers json.RawMessage `json:"triggers"`
+	Graph    json.RawMessage `json:"graph"`
 }
 
-// Live automations with their trigger and graph, to name the flows an API
+// Live automations with their triggers and graph, to name the flows an API
 // event starts or ends ("which starts the Onboarding automation").
 func (q *Queries) IntegrationEventFlows(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationEventFlowsRow, error) {
 	rows, err := q.db.Query(ctx, integrationEventFlows, workspaceID)
@@ -901,7 +901,7 @@ func (q *Queries) IntegrationEventFlows(ctx context.Context, workspaceID uuid.UU
 	items := []IntegrationEventFlowsRow{}
 	for rows.Next() {
 		var i IntegrationEventFlowsRow
-		if err := rows.Scan(&i.Name, &i.Trigger, &i.Graph); err != nil {
+		if err := rows.Scan(&i.Name, &i.Triggers, &i.Graph); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

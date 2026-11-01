@@ -137,7 +137,9 @@ UPDATE automation_runs r SET status = 'exited', finished_at = $1::timestamptz, n
 FROM automations a
 WHERE a.id = r.automation_id AND a.workspace_id = $2 AND a.deleted_at IS NULL
   AND r.contact_id = $3 AND r.status IN ('active', 'waiting')
-  AND a.trigger ->> 'kind' = 'bought_product' AND coalesce(a.trigger ->> 'productId', '') IN ('', $4::text)
+  AND a.triggers @> '[{"kind": "bought_product"}]'::jsonb
+  AND EXISTS (SELECT 1 FROM jsonb_array_elements(a.triggers) t
+              WHERE t ->> 'kind' = 'bought_product' AND coalesce(t ->> 'productId', '') IN ('', $4::text))
 RETURNING r.id, r.automation_id, r.version, r.node_id
 `
 
@@ -156,7 +158,8 @@ type AutomationRunsExitBoughtRow struct {
 }
 
 // A refund makes the contact leave the "Bought a product" flows of that
-// product (or of any product) they're in.
+// product (or of any product) they're in, whichever of the flow's triggers
+// it is (review 2026-11 AT-14).
 func (q *Queries) AutomationRunsExitBought(ctx context.Context, arg AutomationRunsExitBoughtParams) ([]AutomationRunsExitBoughtRow, error) {
 	rows, err := q.db.Query(ctx, automationRunsExitBought,
 		arg.At,

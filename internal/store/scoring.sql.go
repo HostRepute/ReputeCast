@@ -755,14 +755,16 @@ func (q *Queries) ScoringListsOf(ctx context.Context, workspaceID uuid.UUID) ([]
 }
 
 const scoringLiveTriggers = `-- name: ScoringLiveTriggers :many
-SELECT a.id, a.name, a.status, a.trigger, a.created_by, a.live_version, a.created_at,
+SELECT a.id, a.name, a.status, st.t::jsonb AS trigger, a.created_by, a.live_version, a.created_at,
        coalesce(u.name, '')::text AS created_by_name,
        coalesce((SELECT min(v.published_at) FROM automation_versions v WHERE v.automation_id = a.id AND v.published_at IS NOT NULL), '0001-01-01T00:00:00Z'::timestamptz)::timestamptz AS live_since,
        (SELECT count(*) FROM automation_runs r WHERE r.automation_id = a.id)::bigint AS entered
 FROM automations a
+CROSS JOIN LATERAL jsonb_array_elements(a.triggers) WITH ORDINALITY AS st (t, n)
 LEFT JOIN users u ON u.id = a.created_by
-WHERE a.workspace_id = $1 AND a.deleted_at IS NULL AND a.trigger ->> 'kind' = 'score_crosses'
-ORDER BY a.created_at
+WHERE a.workspace_id = $1 AND a.deleted_at IS NULL AND a.triggers @> '[{"kind": "score_crosses"}]'::jsonb
+  AND st.t ->> 'kind' = 'score_crosses'
+ORDER BY a.created_at, a.id, st.n
 `
 
 type ScoringLiveTriggersRow struct {
@@ -778,7 +780,9 @@ type ScoringLiveTriggersRow struct {
 	Entered       int64           `json:"entered"`
 }
 
-// Automations that start on "Score crosses…", live or not.
+// Automations that start on "Score crosses…", live or not: one row per
+// such trigger, whichever of the flow's triggers it is (review 2026-11
+// AT-14).
 func (q *Queries) ScoringLiveTriggers(ctx context.Context, workspaceID uuid.UUID) ([]ScoringLiveTriggersRow, error) {
 	rows, err := q.db.Query(ctx, scoringLiveTriggers, workspaceID)
 	if err != nil {

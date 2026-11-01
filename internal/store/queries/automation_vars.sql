@@ -9,12 +9,15 @@ SELECT vars FROM automation_message_vars WHERE message_id = @message_id;
 
 -- name: AutomationRunsExitBought :many
 -- A refund makes the contact leave the "Bought a product" flows of that
--- product (or of any product) they're in.
+-- product (or of any product) they're in, whichever of the flow's triggers
+-- it is (review 2026-11 AT-14).
 UPDATE automation_runs r SET status = 'exited', finished_at = @at::timestamptz, next_at = NULL, exit_reason = 'refunded'
 FROM automations a
 WHERE a.id = r.automation_id AND a.workspace_id = @workspace_id AND a.deleted_at IS NULL
   AND r.contact_id = @contact_id AND r.status IN ('active', 'waiting')
-  AND a.trigger ->> 'kind' = 'bought_product' AND coalesce(a.trigger ->> 'productId', '') IN ('', @product_id::text)
+  AND a.triggers @> '[{"kind": "bought_product"}]'::jsonb
+  AND EXISTS (SELECT 1 FROM jsonb_array_elements(a.triggers) t
+              WHERE t ->> 'kind' = 'bought_product' AND coalesce(t ->> 'productId', '') IN ('', @product_id::text))
 RETURNING r.id, r.automation_id, r.version, r.node_id;
 
 -- name: AutomationGoalRunsBought :many
