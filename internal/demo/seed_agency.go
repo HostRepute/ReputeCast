@@ -295,6 +295,12 @@ func (n *nwSeed) workspaces(ctx context.Context) error {
 		created := n.onBoards(c.since)
 		if c.key == "wwi" {
 			created = n.at(0, 9, 40)
+			// Added "today" on the boards: in a month's first hours that
+			// is still the month before in Chicago, where Usage (months in
+			// UTC) would count it last month (review 2026-11 OP-x).
+			if month := time.Date(n.Now.UTC().Year(), n.Now.UTC().Month(), 1, 0, 0, 0, 0, time.UTC); created.Before(month) {
+				created = month
+			}
 		}
 		ws, err := workspaces.Create(ctx, n.Tx, workspaces.CreateParams{Name: c.name, Timezone: c.tz, Owner: nadia.ID, Source: "agency"})
 		if err != nil {
