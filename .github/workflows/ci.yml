@@ -157,7 +157,7 @@ jobs:
           restore-keys: |
             golangci-${{ matrix.part }}-${{ hashFiles('go.sum') }}-
             golangci-${{ matrix.part }}-
-      - uses: golangci/golangci-lint-action@v8
+      - uses: golangci/golangci-lint-action@v9
         with:
           version: v2.14.0
           args: ${{ steps.part.outputs.packages }}
