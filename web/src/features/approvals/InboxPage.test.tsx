@@ -57,4 +57,18 @@ describe('InboxPage', () => {
     expect(cursors).toEqual([null, '1.1760950400000000.req-2'])
     expect(screen.queryByRole('button', { name: 'Show older requests' })).not.toBeInTheDocument()
   })
+
+  // Review 2026-11 FE-3b: a search that finds nothing says so, with the way back.
+  it('offers to clear a search that finds nothing', async () => {
+    mockApi({ 'GET /api/v1/workspaces/acme-newsletter/approvals': () => json(page([])) })
+    const { router } = await renderInWorkspace(<InboxPage search={{ q: 'nothing like this', author: 'u-1' }} />, {
+      me: workspaceMe({ permissions: ['campaigns:view', 'campaigns:approve'] }),
+    })
+    const clear = await screen.findByRole('button', { name: 'Clear search and filters' })
+    const box = clear.closest('[role="status"]') as HTMLElement
+    expect(within(box).getByText('Clear the filters or pick a longer date range to see more.')).toBeInTheDocument()
+    await act(async () => fireEvent.click(clear))
+    expect(router.state.location.search).not.toHaveProperty('q')
+    expect(router.state.location.search).not.toHaveProperty('author')
+  })
 })

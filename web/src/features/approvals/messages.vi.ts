@@ -60,6 +60,7 @@ export default translate(m, {
   emptyTitleDays:
     '{status, select, pending {Không có yêu cầu nào đang chờ trong {days} ngày qua} approved {Không có yêu cầu nào được phê duyệt trong {days} ngày qua} changes_requested {Không có yêu cầu nào cần thay đổi trong {days} ngày qua} rejected {Không có yêu cầu nào bị từ chối trong {days} ngày qua} invalidated {Không có yêu cầu nào mất hiệu lực trong {days} ngày qua} other {Không có yêu cầu nào trong {days} ngày qua}}',
   emptyFiltered: 'Hãy xóa bộ lọc hoặc chọn khoảng thời gian dài hơn để xem thêm.',
+  clearFilters: 'Xoá tìm kiếm và bộ lọc',
   emptyNone: 'Yêu cầu sẽ hiện ở đây khi có người yêu cầu phê duyệt.',
   tableCaption: 'Yêu cầu phê duyệt',
   showOlder: 'Xem các yêu cầu cũ hơn',

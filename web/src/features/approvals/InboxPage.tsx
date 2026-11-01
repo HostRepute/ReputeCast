@@ -21,6 +21,7 @@ import { m } from './messages'
 import { ApprovalStatusBadge, decidedText } from './parts'
 import { PostBadge, postLine, postRoute, postWhen } from '@/features/website/elsewhere'
 import { ChannelTag } from '@/features/channels/ChannelFilter'
+import { NoResults } from '@/components/ui/NoResults'
 
 export type InboxStatus = 'pending' | 'approved' | 'changes_requested' | 'rejected' | 'invalidated' | 'all'
 
@@ -168,10 +169,21 @@ function RequestsCard({
           </select>
         </div>
       </div>
-      {data.items.length === 0 ? (
+      {data.items.length === 0 && filtered ? (
+        // A search or filter that finds nothing says so, with the way back (review 2026-11 FE-3b).
+        <div className="pad">
+          <NoResults
+            className="border-0"
+            title={days ? t(m.emptyTitleDays, { status, days: count(days) }) : t(m.emptyTitleYet, { status })}
+            actions={<Button onClick={() => onFilter({ author: undefined, approver: undefined, q: undefined, days: undefined })}>{t(m.clearFilters)}</Button>}
+          >
+            {t(m.emptyFiltered)}
+          </NoResults>
+        </div>
+      ) : data.items.length === 0 ? (
         <div className="pad">
           <div className="note n flex-col items-center justify-center gap-1.5! p-[22px]! text-center" role="status">
-            {status === 'pending' && !filtered ? (
+            {status === 'pending' ? (
               <>
                 <span className="font-semibold">{t(m.emptyPendingTitle)}</span>
                 <span className="k">{t(m.emptyPendingBody)}</span>
@@ -179,7 +191,7 @@ function RequestsCard({
             ) : (
               <>
                 <span className="font-semibold">{days ? t(m.emptyTitleDays, { status, days: count(days) }) : t(m.emptyTitleYet, { status })}</span>
-                <span className="k">{filtered ? t(m.emptyFiltered) : t(m.emptyNone)}</span>
+                <span className="k">{t(m.emptyNone)}</span>
               </>
             )}
           </div>

@@ -20,6 +20,7 @@ import { MilestoneBadges } from './ResultsPage'
 import { m } from './messages'
 import { mf } from './referrers.messages'
 import { GROW, GrowPage, LoadError, ProgramNav, copy, fileKind, fileSize, mono, orNames, useGrowRefresh, useReferralPrograms } from './shared'
+import { NoResults } from '@/components/ui/NoResults'
 
 type Row = Schemas['ReferralReferrerRow']
 type Panel = Schemas['ReferralReferrerPanel']
@@ -282,21 +283,25 @@ function Empty({ q, filtered, list, onClear }: { q?: string; filtered: boolean; 
   const t = useT()
   const { slug } = useWorkspace()
   return (
-    <div className="flex flex-col items-center gap-3 px-7 py-11 text-center">
-      <span className="text-[17px] font-bold">{q ? t(mf.emptySearch, { q }) : filtered ? t(mf.emptyFilter) : t(mf.emptyNone)}</span>
-      {filtered ? (
-        <>
-          <span className="max-w-[560px] text-ink-2">{t(mf.emptyText, { list })}</span>
-          <div className="flex flex-wrap justify-center gap-2">
-            <Button onClick={onClear}>{q ? t(mf.clearSearch) : t(mf.clearFilters)}</Button>
-            {q ? (
-              <ButtonLink to="/w/$workspace/audience" params={{ workspace: slug }} search={{ q } as never}>
-                {t(mf.searchContacts)}
-              </ButtonLink>
-            ) : null}
-          </div>
-        </>
-      ) : null}
+    <div className="px-7 py-6">
+      <NoResults
+        className="border-0"
+        title={q ? t(mf.emptySearch, { q }) : filtered ? t(mf.emptyFilter) : t(mf.emptyNone)}
+        actions={
+          filtered ? (
+            <>
+              <Button onClick={onClear}>{q ? t(mf.clearSearch) : t(mf.clearFilters)}</Button>
+              {q ? (
+                <ButtonLink to="/w/$workspace/audience" params={{ workspace: slug }} search={{ q } as never}>
+                  {t(mf.searchContacts)}
+                </ButtonLink>
+              ) : null}
+            </>
+          ) : undefined
+        }
+      >
+        {filtered ? t(mf.emptyText, { list }) : undefined}
+      </NoResults>
     </div>
   )
 }

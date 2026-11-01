@@ -25,6 +25,7 @@ import { pm } from './messages'
 import { OrderPanel } from './OrderPanel'
 import { Cover, DownloadCell, IconNote, OrderStatus } from './parts'
 import './products.css'
+import { NoResults } from '@/components/ui/NoResults'
 
 type Overview = Schemas['ProductsOverview']
 type Item = Schemas['ProductListItem']
@@ -464,16 +465,18 @@ function OrdersCard({ data, search, onSearch }: { data: Overview; search: Produc
         <div className="pad" aria-busy="true">
           <Skeleton w="100%" h={180} />
         </div>
+      ) : o.items.length === 0 && (search.q || search.product || search.status || search.date) ? (
+        // A search or filter that finds nothing says so, with the way back (review 2026-11 FE-3b).
+        <div className="px-[18px] py-6">
+          <NoResults
+            className="border-0"
+            title={search.q ? t(pm.noOrdersSearch, { q: search.q }) : t(pm.noOrdersFilter)}
+            actions={<Button onClick={() => onSearch({ period: search.period }, true)}>{t(pm.clearFilters)}</Button>}
+          />
+        </div>
       ) : o.items.length === 0 ? (
-        <div className="flex flex-wrap items-center gap-3 px-[18px] py-6">
-          <span className="k">
-            {search.q ? t(pm.noOrdersSearch, { q: search.q }) : search.product || search.status || search.date ? t(pm.noOrdersFilter) : t(pm.noOrders)}
-          </span>
-          {search.q || search.product || search.status || search.date ? (
-            <Button size="sm" onClick={() => onSearch({ period: search.period }, true)}>
-              {t(pm.clearFilters)}
-            </Button>
-          ) : null}
+        <div className="px-[18px] py-6">
+          <span className="k">{t(pm.noOrders)}</span>
         </div>
       ) : (
         <OrdersTable list={o} selected={search.order} onOpen={(id) => onSearch({ ...search, order: id })} />

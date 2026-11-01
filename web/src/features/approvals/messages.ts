@@ -59,6 +59,7 @@ export const m = defineMessages('approvals', {
   emptyTitleDays:
     '{status, select, pending {No pending requests in the last {days} days} approved {No approved requests in the last {days} days} changes_requested {No changes-requested requests in the last {days} days} rejected {No rejected requests in the last {days} days} invalidated {No invalidated requests in the last {days} days} other {No requests in the last {days} days}}',
   emptyFiltered: 'Clear the filters or pick a longer date range to see more.',
+  clearFilters: 'Clear search and filters',
   emptyNone: 'Requests appear here once someone asks for an approval.',
   tableCaption: 'Approval requests',
   showOlder: 'Show older requests',
