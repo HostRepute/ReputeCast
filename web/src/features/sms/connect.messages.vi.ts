@@ -6,7 +6,6 @@ export default translate(m, {
   stepOf: 'Bước {n}/5',
   exit: 'Thoát thiết lập',
   steps: 'Các bước thiết lập',
-  done: 'Đã xong: {step}',
   s1: 'Nhà cung cấp',
   s1sub: 'Chọn từ danh mục',
   s2: 'Kết nối',

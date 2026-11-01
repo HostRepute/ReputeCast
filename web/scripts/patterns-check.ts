@@ -4,6 +4,9 @@
 //   - a switch is drawn with SwitchInput or Toggle (components/ui/Field),
 //     never a hand-made <input role="switch">;
 //   - useDebounced comes from lib/hooks, never a local copy;
+//   - a wizard's steps are drawn by Stepper (components/ui/Stepper, review
+//     2026-11 FE-3b); the files in ownSteps still draw a compact step bar
+//     of their own (a dialog's or a checklist's) and no other file may;
 //   - no file gains hex colours: colours come from the tokens in
 //     styles/app.css. scripts/hex-baseline.json holds what each file had
 //     when the check began; a file may only go down. `--update` writes the
@@ -26,6 +29,15 @@ function files(dir: string): string[] {
 }
 
 const hex = /#[0-9A-Fa-f]{6}\b|['"`]#[0-9A-Fa-f]{3}['"`]/g
+const ownSteps = new Set([
+  'src/features/auth/SetupPage.tsx',
+  'src/features/commerce/ConnectStoreDialog.tsx',
+  'src/features/earn/ImportDialog.tsx',
+  'src/features/earn/Overview.tsx',
+  'src/features/imports/ImportFrame.tsx',
+  'src/features/integrations/ConnectDialog.tsx',
+  'src/features/transactional-import/ImportDialog.tsx',
+])
 const problems: string[] = []
 const counts: Record<string, number> = {}
 for (const p of files(src)) {
@@ -33,6 +45,8 @@ for (const p of files(src)) {
   const text = readFileSync(p, 'utf8')
   if (/role="switch"/.test(text) && rel !== 'src/components/ui/Field.tsx') problems.push(`${rel}: draw switches with SwitchInput or Toggle from components/ui/Field`)
   if (/function useDebounced\b/.test(text) && rel !== 'src/lib/hooks.ts') problems.push(`${rel}: import useDebounced from lib/hooks instead of a local copy`)
+  if (/aria-current=(?:"step"|\{[^}]*'step')/.test(text) && rel !== 'src/components/ui/Stepper.tsx' && !ownSteps.has(rel))
+    problems.push(`${rel}: draw a wizard's steps with Stepper from components/ui/Stepper`)
   if (/messages(\.vi)?\.ts$/.test(rel)) continue
   const n = (text.match(hex) ?? []).length
   if (n) counts[rel] = n
@@ -53,4 +67,4 @@ if (problems.length) {
   console.error(problems.join('\n'))
   process.exit(1)
 }
-console.log(`Patterns: switches and useDebounced shared; ${total} hex colours left in ${Object.keys(counts).length} files (none added).`)
+console.log(`Patterns: switches, steppers and useDebounced shared; ${total} hex colours left in ${Object.keys(counts).length} files (none added).`)

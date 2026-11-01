@@ -9,7 +9,6 @@ export const mu = defineMessages('grow.setup', {
   done: 'Done',
   saveExit: 'Save and exit',
   stepsLabel: 'Guide steps',
-  doneLabel: 'Done:',
   // The rail.
   s1: 'List',
   s2: 'Milestones and rewards',

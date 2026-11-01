@@ -11,7 +11,6 @@ export default translate(mu, {
   home: 'Trang chủ ReputeCast',
   stepBadge: 'Bước {n}/5',
   doneBadge: 'Xong',
-  doneStep: '<vh>Đã xong: </vh>{step}',
   exit: 'Thoát hướng dẫn',
   stepsLabel: 'Các bước hướng dẫn',
   sender: 'Người gửi',

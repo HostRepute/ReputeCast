@@ -19,7 +19,6 @@ export const mc = defineMessages('earn.connect', {
   sSettings: 'Settings',
   sSettingsSub: 'Currency, tax, portal',
   sDone: 'Done',
-  done: 'Done: ',
   // Step 1.
   chooseTitle: 'Choose a payment provider',
   chooseLead: 'Readers pay you through your own account with the provider. ReputeCast takes no fee and never holds the money; only the provider’s own fees apply.',

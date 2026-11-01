@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
@@ -10,14 +10,13 @@ import { toast } from '@/components/ui/Toast'
 import { ConnectChannels } from '@/features/channels/ConnectChannels'
 import { WizardLayout } from '@/features/connect/Wizard'
 import { formatList, T, useT } from '@/i18n'
-import { cn } from '@/lib/cn'
 import { clockSeconds, decimal } from '@/lib/format'
-import { useOverflowX } from '@/lib/hooks'
 import { deniedReason, useWorkspace } from '@/lib/session'
 import { Capabilities, CopyRow, countryName, CountryName, registrationBadge, useKindName, useRefreshSms } from './common'
 import { m } from './connect.messages'
 import { AddSenderIdDialog } from './SenderDialogs'
 import './sms.css'
+import { Stepper } from '@/components/ui/Stepper'
 
 export type SmsStep = 'connection' | 'senders' | 'test' | 'countries'
 export interface SmsWizardSearch {
@@ -39,51 +38,20 @@ function StepBadge({ n }: { n: number }) {
   return <Badge tone="neutral">{t(m.stepOf, { n })}</Badge>
 }
 
-/** The five steps of the SMS path, the connect wizard's stepper markup. */
-function Stepper({ current, lines }: { current: number; lines?: Record<number, string> }) {
+/** The five steps of the SMS path, on the shared stepper. */
+function SmsSteps({ current, lines }: { current: number; lines?: Record<number, string> }) {
   const t = useT()
-  const ref = useRef<HTMLElement>(null)
-  // On phones the steps are one sideways-scrolling strip: while it scrolls it
-  // takes keyboard focus, as the email wizard's does (WCAG 2.1.1).
-  const scrolls = useOverflowX(ref)
-  return (
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-    <nav ref={ref} className="card cn-steps" aria-label={t(m.steps)} tabIndex={scrolls ? 0 : undefined}>
-      {STEPS.map((d, i) => {
-        const n = i + 1
-        const done = n < current
-        const cur = n === current
-        const sub = lines?.[n] ?? (current === 1 || cur ? t(d.sub) : '')
-        return (
-          <div key={n} className={cn('step cn-step', cur && 'cur', done && 'done')} aria-current={cur ? 'step' : undefined}>
-            <span className="num" aria-hidden="true">
-              {done ? '✓' : n}
-            </span>
-            <div>
-              <div className="font-semibold">
-                {done ? (
-                  <>
-                    <span className="vh">{t(m.done, { step: t(d.title) })}</span>
-                    <span aria-hidden="true">{t(d.title)}</span>
-                  </>
-                ) : (
-                  t(d.title)
-                )}
-              </div>
-              {sub ? <div className="k">{sub}</div> : null}
-            </div>
-          </div>
-        )
-      })}
-      {current === 1 ? <div className="cn-foot k mt-2.5 border-t border-line-2 pt-3">{t(m.stepperFoot)}</div> : null}
-    </nav>
-  )
+  const steps = STEPS.map((d, i) => {
+    const n = i + 1
+    return { key: String(n), title: t(d.title), line: lines?.[n] ?? (current === 1 || n === current ? t(d.sub) : '') }
+  })
+  return <Stepper label={t(m.steps)} current={current} steps={steps} foot={current === 1 ? t(m.stepperFoot) : undefined} />
 }
 
 function Body({ current, lines, children }: { current: number; lines?: Record<number, string>; children: ReactNode }) {
   return (
     <div className="cn-wiz">
-      <Stepper current={current} lines={lines} />
+      <SmsSteps current={current} lines={lines} />
       <main className="cn-main" id="main" tabIndex={-1}>
         {children}
       </main>

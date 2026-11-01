@@ -10,7 +10,6 @@ export default translate(mu, {
   done: 'Xong',
   saveExit: 'Lưu và thoát',
   stepsLabel: 'Các bước hướng dẫn',
-  doneLabel: 'Đã xong:',
   // The rail.
   s1: 'Danh sách',
   s2: 'Mốc thưởng và phần thưởng',

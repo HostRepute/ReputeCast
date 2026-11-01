@@ -7,7 +7,6 @@ export const mu = defineMessages('transactional.guide', {
   home: 'ReputeCast home',
   stepBadge: 'Step {n} of 5',
   doneBadge: 'Done',
-  doneStep: '<vh>Done: </vh>{step}',
   exit: 'Exit guide',
   stepsLabel: 'Guide steps',
   sender: 'Sender',

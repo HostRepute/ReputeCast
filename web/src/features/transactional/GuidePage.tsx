@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useRef, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Icon, LogoMark } from '@/components/icons/Icon'
 import { SystemBanners } from '@/components/shell/SystemBanners'
@@ -13,7 +13,7 @@ import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { andList, count, decimal } from '@/lib/format'
-import { useDocumentTitle, useNow, useOverflowX } from '@/lib/hooks'
+import { useDocumentTitle, useNow } from '@/lib/hooks'
 import { useMe, usePermissionReason, useWorkspace } from '@/lib/session'
 import '@/features/connect/connect.css'
 import type { Stream } from '@/features/providers/common'
@@ -23,6 +23,7 @@ import { stampMs } from './MessagePage'
 import { mt } from './messages'
 import { CodeBox, secs, sizeText, type CodeLang } from './shared'
 import { SwitchInput } from '@/components/ui/Field'
+import { Stepper } from '@/components/ui/Stepper'
 
 const API = '/api/v1/workspaces/{workspace}/transactional' as const
 const W = '/api/v1/workspaces/{workspace}' as const
@@ -195,10 +196,6 @@ type Sender = Setup['senders'][number]
 
 function Steps({ current, sender, setup, ov, tpl, keyName }: { current: GuideStep; sender?: Sender; setup: Setup; ov: Overview; tpl: LiveTpl; keyName?: string }) {
   const t = useT()
-  const ref = useRef<HTMLElement>(null)
-  // On phones the steps are one sideways strip: while it scrolls it takes
-  // keyboard focus, so it can be read without a mouse (as in the setup wizard).
-  const scrolls = useOverflowX(ref)
   const n = current === 'done' ? 6 : current
   const route = ov.route.primary ? (ov.route.fallback ? `${ov.route.primary.name} → ${ov.route.fallback.name}` : ov.route.primary.name) : ''
   const items: { title: string; line: string }[] = [
@@ -208,29 +205,7 @@ function Steps({ current, sender, setup, ov, tpl, keyName }: { current: GuideSte
     { title: t(mu.key), line: keyName ?? setup.keys[0]?.name ?? '' },
     { title: t(mu.watch), line: t(mu.watchLine) },
   ]
-  return (
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-    <nav ref={ref} className="card cn-steps" aria-label={t(mu.stepsLabel)} tabIndex={scrolls ? 0 : undefined}>
-      {items.map((d, i) => {
-        const k = i + 1
-        const done = k < n
-        const cur = k === n
-        return (
-          <div key={d.title} className={cn('step cn-step', cur && 'cur', done && 'done')} aria-current={cur ? 'step' : undefined}>
-            <span className="num" aria-hidden="true">
-              {done ? <Icon name="check" size={14} /> : k}
-            </span>
-            <div>
-              <div className="font-semibold">
-                {done ? <T msg={mu.doneStep} values={{ step: d.title, vh: (c) => <span className="vh">{c}</span> }} /> : d.title}
-              </div>
-              {d.line ? <div className="k">{d.line}</div> : null}
-            </div>
-          </div>
-        )
-      })}
-    </nav>
-  )
+  return <Stepper label={t(mu.stepsLabel)} current={n} steps={items.map((d) => ({ key: d.title, title: d.title, line: d.line }))} />
 }
 
 /** A step's panel: the card with its badge, title and lead (steps 1 to 4). */

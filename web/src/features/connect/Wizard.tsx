@@ -1,18 +1,18 @@
 import { Link } from '@tanstack/react-router'
-import { useRef, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { LogoMark } from '@/components/icons/Icon'
 import { SystemBanners } from '@/components/shell/SystemBanners'
 import { Badge } from '@/components/ui/Badge'
 import { ButtonLink } from '@/components/ui/Button'
 import { Row } from '@/components/ui/Layout'
 import { m as shell } from '@/components/shell/messages'
-import { T, t as tt, useT, type MessageDescriptor } from '@/i18n'
-import { cn } from '@/lib/cn'
-import { useDocumentTitle, useOverflowX } from '@/lib/hooks'
+import { t as tt, useT, type MessageDescriptor } from '@/i18n'
+import { useDocumentTitle } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import type { Setup } from './api'
 import { m } from './messages'
 import './connect.css'
+import { Stepper } from '@/components/ui/Stepper'
 
 /**
  * The setup wizard's page: its own top bar (brand, title, step badge, Exit
@@ -70,7 +70,7 @@ export function StepBadge({ n }: { n: number }) {
 export function WizardBody({ current, setup, children }: { current: number; setup?: Setup; children: ReactNode }) {
   return (
     <div className="cn-wiz">
-      <Stepper current={current} setup={setup} />
+      <WizardSteps current={current} setup={setup} />
       <main className="cn-main" id="main" tabIndex={-1}>
         {children}
       </main>
@@ -134,38 +134,15 @@ export function stepLine(n: number, current: number, setup?: Pick<Setup, 'summar
 }
 
 /** The six steps, each with its line (stepLine). */
-export function Stepper({ current, setup }: { current: number; setup?: Setup }) {
+function WizardSteps({ current, setup }: { current: number; setup?: Setup }) {
   const t = useT()
-  const ref = useRef<HTMLElement>(null)
-  // On phones the steps are one sideways-scrolling strip: while it scrolls it
-  // takes keyboard focus, so it can be read without a mouse (WCAG 2.1.1).
-  const scrolls = useOverflowX(ref)
   return (
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-    <nav ref={ref} className="card cn-steps" aria-label={t(m.stepsLabel)} tabIndex={scrolls ? 0 : undefined}>
-      {STEP_DEFS.map((d, i) => {
-        const n = i + 1
-        const done = n < current
-        const cur = n === current
-        const sub = stepLine(n, current, setup)
-        return (
-          <div key={d.key} className={cn('step cn-step', cur && 'cur', done && 'done')} aria-current={cur ? 'step' : undefined}>
-            <span className="num" aria-hidden="true">
-              {done ? '✓' : n}
-            </span>
-            <div>
-              <div className="font-semibold">
-                {done ? <T msg={m.stepDone} values={{ step: t(d.title), vh: (c) => <span className="vh">{c}</span> }} /> : t(d.title)}
-              </div>
-              {sub ? <div className="k">{sub}</div> : null}
-            </div>
-          </div>
-        )
-      })}
-      {current === 1 ? (
-        <div className="cn-foot k mt-2.5 border-t border-line-2 pt-3">{t(m.stepsFoot)}</div>
-      ) : null}
-    </nav>
+    <Stepper
+      label={t(m.stepsLabel)}
+      current={current}
+      steps={STEP_DEFS.map((d, i) => ({ key: d.key, title: t(d.title), line: stepLine(i + 1, current, setup) }))}
+      foot={current === 1 ? t(m.stepsFoot) : undefined}
+    />
   )
 }
 

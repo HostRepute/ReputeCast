@@ -15,7 +15,7 @@ import { toast } from '@/components/ui/Toast'
 import { T as Msg, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { clock, clockSeconds, orList } from '@/lib/format'
-import { useDocumentTitle, useScrollRegion } from '@/lib/hooks'
+import { useDocumentTitle } from '@/lib/hooks'
 import { roleName } from '@/lib/roles'
 import { useCan, useWorkspace } from '@/lib/session'
 import '../connect/connect.css'
@@ -24,6 +24,7 @@ import { EARN } from './EarnPage'
 import { countryName } from './format'
 import { resourceName } from './PaymentsTab'
 import './earn.css'
+import { Stepper } from '@/components/ui/Stepper'
 
 type Conn = Schemas['EarnConnection']
 export type ConnectSearch = { id?: string; step?: 'provider' | 'key' | 'check' | 'webhook' | 'settings' | 'done'; mode?: 'live' | 'test' }
@@ -115,8 +116,6 @@ function Layout({ badge, children }: { badge: ReactNode; children: ReactNode }) 
 
 function Steps({ current, conn, pay }: { current: number; conn?: Conn; pay?: Schemas['EarnPayments'] }) {
   const t = useT()
-  // On phones the steps scroll sideways; the nav is reachable from the keyboard then.
-  const [stepsRef, steps] = useScrollRegion<HTMLElement>()
   const perms = pay?.permissions.length ?? 13
   const events = pay?.webhookEvents.length ?? 12
   const defs = [
@@ -127,29 +126,7 @@ function Steps({ current, conn, pay }: { current: number; conn?: Conn; pay?: Sch
     { title: t(mc.sSettings), sub: t(mc.sSettingsSub) },
     { title: t(mc.sDone), sub: '' },
   ]
-  return (
-    <nav ref={stepsRef} className="card cn-steps" aria-label={t(mc.stepsLabel)} tabIndex={steps.tabIndex}>
-      {defs.map((d, i) => {
-        const n = i + 1
-        const done = n < current
-        const cur = n === current
-        return (
-          <div key={d.title} className={cn('step cn-step', cur && 'cur', done && 'done')} aria-current={cur ? 'step' : undefined}>
-            <span className="num" aria-hidden="true">
-              {done ? '✓' : n}
-            </span>
-            <div>
-              <div className="font-semibold">
-                {done ? <span className="vh">{t(mc.done)}</span> : null}
-                {d.title}
-              </div>
-              {d.sub ? <div className="k">{d.sub}</div> : null}
-            </div>
-          </div>
-        )
-      })}
-    </nav>
-  )
+  return <Stepper label={t(mc.stepsLabel)} current={current} steps={defs.map((d) => ({ key: d.title, title: d.title, line: d.sub }))} />
 }
 
 function StepCard({ n, title, lead, children, footer, done }: { n: number; title: ReactNode; lead?: ReactNode; children?: ReactNode; footer?: ReactNode; done?: boolean }) {

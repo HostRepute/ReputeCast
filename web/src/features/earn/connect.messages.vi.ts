@@ -25,7 +25,6 @@ export default translate(mc, {
   sSettings: 'Cài đặt',
   sSettingsSub: 'Tiền tệ, thuế, cổng khách hàng',
   sDone: 'Hoàn tất',
-  done: 'Đã xong: ',
   // Step 1.
   chooseTitle: 'Chọn nhà cung cấp thanh toán',
   chooseLead:

@@ -10,7 +10,6 @@ export default translate(m, {
 
   // ── Stepper ──────────────────────────────────────────────────────────
   stepsLabel: 'Các bước thiết lập',
-  stepDone: '<vh>Xong:</vh> {step}',
   stepProvider: 'Nhà cung cấp',
   stepProviderLine: 'Chọn từ danh mục',
   stepConnection: 'Kết nối',

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { $api, errorMessage, http, type Schemas } from '@/api/client'
 import { Icon, LogoMark } from '@/components/icons/Icon'
 import { SystemBanners } from '@/components/shell/SystemBanners'
@@ -13,7 +13,7 @@ import { toast } from '@/components/ui/Toast'
 import { formatList, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { clock, count, shortDate } from '@/lib/format'
-import { useDocumentTitle, useOverflowX } from '@/lib/hooks'
+import { useDocumentTitle } from '@/lib/hooks'
 import { useCan, useMe, useWorkspace } from '@/lib/session'
 import type { Program } from './ProgramHeader'
 import { PreviewButton } from './Previews'
@@ -24,6 +24,7 @@ import { mu } from './setup.messages'
 import { GROW, fileSize, orNames, useGrowRefresh } from './shared'
 import '@/features/connect/connect.css'
 import './grow.css'
+import { Stepper } from '@/components/ui/Stepper'
 
 type Checks = Schemas['ReferralChecks']
 
@@ -145,8 +146,6 @@ function Frame({ step, resumed, programId, saveStep, children }: { step: number;
 
 function Rail({ step, p, list }: { step: number; p?: Program; list: Schemas['ReferralProgramList'] }) {
   const t = useT()
-  const ref = useRef<HTMLElement>(null)
-  const scrolls = useOverflowX(ref)
   const ms = $api.useQuery(
     'get',
     `${GROW}/referrals/{program}/milestones`,
@@ -166,28 +165,11 @@ function Rail({ step, p, list }: { step: number; p?: Program; list: Schemas['Ref
     { title: t(mu.s5), hint: t(mu.s5Hint), done: '' },
   ]
   return (
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-    <nav ref={ref} className="card cn-steps" aria-label={t(mu.stepsLabel)} tabIndex={scrolls ? 0 : undefined}>
-      {items.map((x, i) => {
-        const n = i + 1
-        const done = n < step
-        const cur = n === step
-        return (
-          <div key={x.title} className={cn('step cn-step', cur && 'cur', done && 'done')} aria-current={cur ? 'step' : undefined}>
-            <span className="num" aria-hidden="true">
-              {done ? <Icon name="check" size={12} strokeWidth={2.6} /> : n}
-            </span>
-            <div>
-              <div className="font-semibold">
-                {done ? <span className="vh">{t(mu.doneLabel)} </span> : null}
-                {x.title}
-              </div>
-              <div className="k">{done && x.done ? x.done : x.hint}</div>
-            </div>
-          </div>
-        )
-      })}
-    </nav>
+    <Stepper
+      label={t(mu.stepsLabel)}
+      current={step}
+      steps={items.map((x, i) => ({ key: x.title, title: x.title, line: i + 1 < step && x.done ? x.done : x.hint }))}
+    />
   )
 }
 

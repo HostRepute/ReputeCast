@@ -14,7 +14,6 @@ export const m = defineMessages('connect', {
   // ── Stepper ──────────────────────────────────────────────────────────
   stepsLabel: 'Setup steps',
   /** A step behind the current one: "Done:" is read by screen readers only. */
-  stepDone: '<vh>Done:</vh> {step}',
   stepProvider: 'Provider',
   stepProviderLine: 'Pick from the catalog',
   stepConnection: 'Connection',
