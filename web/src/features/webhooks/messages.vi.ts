@@ -110,6 +110,8 @@ export default translate(m, {
   eventsLegend: 'Sự kiện · {events}',
   eventsLegendNone: 'Sự kiện · chưa chọn',
   allGroup: 'Mọi sự kiện {group} <mono>{pattern}</mono>',
+  batchLabel: 'Gửi sự kiện email theo lô',
+  batchHint: 'Mỗi yêu cầu mang tối đa 100 sự kiện <mono>email.*</mono>, dưới dạng <mono>email.batch</mono>. Ít yêu cầu hơn khi gửi lớn; các sự kiện khác vẫn gửi từng cái.',
   sendTest: 'Gửi sự kiện thử',
   rotateSecret: 'Xoay vòng khóa bí mật để ký',
   resume: 'Tiếp tục endpoint',

@@ -164,7 +164,7 @@ POST /api/v1/messages/{id}/reschedule {"sendAt":"2026-11-05T14:00:00Z"}</div>
     <div class="err-card"><b>Couldn't load the comments</b><span>The server didn't answer. Nothing was lost.</span><button class="btn sm">Try again</button></div>
   </figure>
 </div>
-<div class="strip">5 · Webhooks and the API <span>A rotated secret keeps signing beside the new one for 24 hours. An endpoint that keeps failing tells the people who manage webhooks. The API reference is this instance's own.</span></div>
+<div class="strip">5 · Webhooks and the API <span>A rotated secret keeps signing beside the new one for 24 hours. An endpoint that keeps failing tells the people who manage webhooks. The API reference is this instance's own. An endpoint can take its email events in batches.</span></div>
 <div class="grid three">
   <figure><figcaption>Endpoint · just rotated</figcaption>
     <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><span class="lbl">Signing secret</span><span class="mono">whsec_••••••••••••7Qx2</span><div class="note i"><span>Until Sun 2 Nov, 19:02 each delivery is signed with both secrets: X-ReputeCast-Signature holds two comma-separated signatures, the new secret's first. Accept a delivery if either matches, then switch your receiver to the new secret.</span></div></section>
@@ -172,6 +172,9 @@ POST /api/v1/messages/{id}/reschedule {"sendAt":"2026-11-05T14:00:00Z"}</div>
   <figure><figcaption>Notifications · a new row</figcaption>
     <section class="card"><div class="prefrow"><span class="k">Integrations</span><span class="k c">In app</span><span class="k c">Email</span></div><div class="prefrow"><span><b>A webhook endpoint is failing</b><br><span class="k">After an hour of failures, or a delivery given up on. People who manage webhooks.</span></span><span class="c"><span class="sw"><i></i></span></span><span class="c"><span class="sw"><i></i></span></span></div></section>
     <div class="note w"><span><b>https://hooks.acme.io/rc is failing</b> · 41 deliveries failed since 17:55 (HTTP 502). 3 were given up on. Open the endpoint</span></div>
+  </figure>
+  <figure><figcaption>Endpoint · email events in batches</figcaption>
+    <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><span class="lbl">Events · email.*, campaign.started</span><div style="display:flex;gap:12px;align-items:center;border:1px solid #E5E7EB;border-radius:8px;padding:10px 14px"><span class="sw" role="img" aria-label="On"><i></i></span><span style="display:flex;flex-direction:column;gap:1px"><b>Send email events in batches</b><span class="k">One request carries up to 100 <span class="mono">email.*</span> events, as <span class="mono">email.batch</span>. Fewer requests for large sends; other events still go one by one.</span></span></div><span class="k">Delivery log: <span class="mono">email.batch</span> · 100 events · 200 in 184 ms</span></section>
   </figure>
   <figure><figcaption>API reference</figcaption>
     <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span class="lbl">API reference</span><span>OpenAPI 3.1 of this instance, version 1.9.0</span><span style="display:flex;gap:8px"><a class="btn sm" href="#">Open the reference</a><a class="btn sm" href="#">openapi.json</a></span><span class="k">Served by your ReputeCast at /api/reference, so it always matches the version you run.</span></section>

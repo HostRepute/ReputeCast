@@ -95740,6 +95740,9 @@
       "WebhookInput": {
         "additionalProperties": false,
         "properties": {
+          "batchEmail": {
+            "type": "boolean"
+          },
           "description": {
             "maxLength": 120,
             "type": "string"
@@ -95888,6 +95891,9 @@
       "WebhookView": {
         "additionalProperties": false,
         "properties": {
+          "batchEmail": {
+            "type": "boolean"
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
@@ -95969,6 +95975,7 @@
           "url",
           "events",
           "enabled",
+          "batchEmail",
           "status",
           "createdAt",
           "total24h",

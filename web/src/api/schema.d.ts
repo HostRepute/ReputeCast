@@ -45791,6 +45791,7 @@ export interface components {
             name: string;
         };
         WebhookInput: {
+            batchEmail?: boolean;
             description?: string;
             events: string[];
             name: string;
@@ -45829,6 +45830,7 @@ export interface components {
             delivery: components["schemas"]["WebhookDeliveryView"];
         };
         WebhookView: {
+            batchEmail: boolean;
             /** Format: date-time */
             createdAt: string;
             description: string;

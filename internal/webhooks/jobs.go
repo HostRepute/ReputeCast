@@ -53,8 +53,9 @@ func (w *DeliverWorker) Work(ctx context.Context, job *river.Job[DeliverArgs]) e
 	return nil
 }
 
-// DispatchArgs is the periodic sweep that queues due deliveries (emitted
-// by other domains inside their transactions) and purges old ones.
+// DispatchArgs is the periodic sweep that folds waiting email.* events into
+// batches, queues due deliveries (emitted by other domains inside their
+// transactions) and purges old ones.
 type DispatchArgs struct{}
 
 // Kind implements river.JobArgs.
@@ -76,6 +77,9 @@ type DispatchWorker struct {
 func (w *DispatchWorker) Work(ctx context.Context, _ *river.Job[DispatchArgs]) error {
 	q := w.S.Q
 	if err := q.HooksStaleDelivering(ctx); err != nil {
+		return err
+	}
+	if _, err := w.S.foldBatches(ctx, batchesPerSweep); err != nil {
 		return err
 	}
 	ids, err := q.HooksDue(ctx, 500)

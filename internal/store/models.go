@@ -5337,6 +5337,7 @@ type Webhook struct {
 	PreviousSecretEnc   []byte     `json:"previousSecretEnc"`
 	PreviousSecretUntil *time.Time `json:"previousSecretUntil"`
 	AlertedAt           *time.Time `json:"alertedAt"`
+	BatchEmail          bool       `json:"batchEmail"`
 }
 
 type WebhookContactEvent struct {

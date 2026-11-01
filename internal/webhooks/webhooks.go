@@ -229,7 +229,11 @@ func Emit(ctx context.Context, q store.DBTX, workspaceID uuid.UUID, workspaceSlu
 	now := time.Now()
 	for _, h := range hooks {
 		state := "pending"
-		if !h.Enabled {
+		switch {
+		case h.BatchEmail && strings.HasPrefix(event, "email."):
+			// Folded into one delivery with others by the dispatcher (EN-8).
+			state = "batching"
+		case !h.Enabled:
 			state = "held"
 		}
 		if err := qs.HooksInsertDelivery(ctx, store.HooksInsertDeliveryParams{
@@ -291,6 +295,9 @@ type WebhookView struct {
 	URL         string   `json:"url"`
 	Events      []string `json:"events"`
 	Enabled     bool     `json:"enabled"`
+	// BatchEmail sends email.* events in batches of up to 100 (review
+	// 2026-11 EN-8).
+	BatchEmail bool `json:"batchEmail"`
 	// Status is new (no delivery yet), healthy, failing or paused.
 	Status          string     `json:"status" enum:"new,healthy,failing,paused"`
 	LastStatus      *int32     `json:"lastStatus,omitempty"`
@@ -321,7 +328,7 @@ type WebhookList struct {
 
 func toView(h store.HooksListRow) WebhookView {
 	v := WebhookView{
-		ID: h.ID.String(), Name: h.Name, Description: h.Description, URL: h.Url, Events: h.Events, Enabled: h.Enabled,
+		ID: h.ID.String(), Name: h.Name, Description: h.Description, URL: h.Url, Events: h.Events, Enabled: h.Enabled, BatchEmail: h.BatchEmail,
 		LastStatus: h.LastStatus, LastDeliveryAt: h.LastDeliveryAt, FailingSince: h.FailingSince, CreatedAt: h.CreatedAt,
 		Total24h: h.Total24h, Queued: h.Queued,
 	}
@@ -389,6 +396,9 @@ type WebhookInput struct {
 	Description string   `json:"description,omitempty" maxLength:"120"`
 	URL         string   `json:"url" maxLength:"500"`
 	Events      []string `json:"events" minItems:"1" maxItems:"40"`
+	// BatchEmail sends the endpoint's email.* events as one POST with up to
+	// 100 events (type email.batch) instead of one POST each.
+	BatchEmail bool `json:"batchEmail,omitempty"`
 }
 
 // WebhookCreated carries the signing secret, shown once.
@@ -437,13 +447,13 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	creator := p.UserID
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		h, err := q.HooksCreate(ctx, store.HooksCreateParams{ID: id, WorkspaceID: ws.ID, Name: name, Description: strings.TrimSpace(in.Description), Url: u, Events: events, SecretEnc: enc, CreatedBy: &creator})
+		h, err := q.HooksCreate(ctx, store.HooksCreateParams{ID: id, WorkspaceID: ws.ID, Name: name, Description: strings.TrimSpace(in.Description), Url: u, Events: events, BatchEmail: in.BatchEmail, SecretEnc: enc, CreatedBy: &creator})
 		if err != nil {
 			return err
 		}
-		out = WebhookCreated{Webhook: toView(store.HooksListRow{ID: h.ID, WorkspaceID: h.WorkspaceID, Name: h.Name, Description: h.Description, Url: h.Url, Events: h.Events, Enabled: h.Enabled, CreatedAt: h.CreatedAt}), Secret: secret}
+		out = WebhookCreated{Webhook: toView(store.HooksListRow{ID: h.ID, WorkspaceID: h.WorkspaceID, Name: h.Name, Description: h.Description, Url: h.Url, Events: h.Events, Enabled: h.Enabled, BatchEmail: h.BatchEmail, CreatedAt: h.CreatedAt}), Secret: secret}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "webhook.created", TargetType: "webhook", TargetID: id.String(), TargetName: u,
-			After: map[string]any{"url": u, "events": events, "name": name}, Metadata: map[string]any{"summary": strings.Join(events, ", "), "permission": string(authz.WebhooksManage)}})
+			After: map[string]any{"url": u, "events": events, "name": name, "batchEmail": in.BatchEmail}, Metadata: map[string]any{"summary": strings.Join(events, ", "), "permission": string(authz.WebhooksManage)}})
 	})
 	return out, err
 }
@@ -468,14 +478,15 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 	var out WebhookView
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		h, err := q.HooksUpdate(ctx, store.HooksUpdateParams{ID: id, WorkspaceID: ws.ID, Name: name, Description: strings.TrimSpace(in.Description), Url: u, Events: events})
+		h, err := q.HooksUpdate(ctx, store.HooksUpdateParams{ID: id, WorkspaceID: ws.ID, Name: name, Description: strings.TrimSpace(in.Description), Url: u, Events: events, BatchEmail: in.BatchEmail})
 		if err != nil {
 			return err
 		}
-		out = toView(store.HooksListRow{ID: h.ID, WorkspaceID: h.WorkspaceID, Name: h.Name, Description: h.Description, Url: h.Url, Events: h.Events, Enabled: h.Enabled, CreatedAt: h.CreatedAt,
+		out = toView(store.HooksListRow{ID: h.ID, WorkspaceID: h.WorkspaceID, Name: h.Name, Description: h.Description, Url: h.Url, Events: h.Events, Enabled: h.Enabled, BatchEmail: h.BatchEmail, CreatedAt: h.CreatedAt,
 			LastStatus: h.LastStatus, LastDeliveryAt: h.LastDeliveryAt, FailingSince: h.FailingSince, SecretRotatedAt: h.SecretRotatedAt})
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "webhook.updated", TargetType: "webhook", TargetID: id.String(), TargetName: u,
-			Before: map[string]any{"url": old.Url, "events": old.Events, "name": old.Name}, After: map[string]any{"url": u, "events": events, "name": name},
+			Before:   map[string]any{"url": old.Url, "events": old.Events, "name": old.Name, "batchEmail": old.BatchEmail},
+			After:    map[string]any{"url": u, "events": events, "name": name, "batchEmail": in.BatchEmail},
 			Metadata: map[string]any{"permission": string(authz.WebhooksManage)}})
 	})
 	return out, err

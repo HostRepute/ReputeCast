@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
+import { Toggle } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { T, t as tt, useT } from '@/i18n'
@@ -59,6 +60,9 @@ export function WebhookDialog({
   const [name, setName] = useState(webhook?.name ?? '')
   const [description, setDescription] = useState(webhook?.description ?? '')
   const [picked, setPicked] = useState<string[]>(webhook?.events ?? [])
+  const [batchEmail, setBatchEmail] = useState(webhook?.batchEmail ?? false)
+  // Batching only changes email.* events (review 2026-11 EN-8), so the switch shows once one is picked.
+  const takesEmail = picked.some((e) => e === '*' || e.startsWith('email.'))
   const [error, setError] = useState<{ field?: string; message: string }>()
   const [busy, setBusy] = useState<string>()
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -83,7 +87,7 @@ export function WebhookDialog({
       setError({ field: 'events', message: t(m.eventsRequired) })
       return
     }
-    const body = { url: url.trim(), name: name.trim() || hostOf(url.trim()), description: description.trim() || undefined, events: picked }
+    const body = { url: url.trim(), name: name.trim() || hostOf(url.trim()), description: description.trim() || undefined, events: picked, batchEmail: takesEmail && batchEmail }
     if (webhook) {
       update.mutate(
         { params: { path: { workspace: slug, webhookId: webhook.id } }, body },
@@ -242,6 +246,15 @@ export function WebhookDialog({
           </span>
         ) : null}
       </fieldset>
+      {takesEmail ? (
+        <Toggle
+          className="rounded-lg border border-line px-3.5 py-2.5"
+          checked={batchEmail}
+          onChange={(e) => setBatchEmail(e.target.checked)}
+          label={t(m.batchLabel)}
+          description={<T msg={m.batchHint} values={{ mono }} />}
+        />
+      ) : null}
       {webhook ? (
         <div className="row gap-2">
           <Button size="sm" loading={busy === 'test'} onClick={() => void act('test')}>

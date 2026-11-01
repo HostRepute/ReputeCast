@@ -1702,6 +1702,10 @@ type Querier interface {
 	// hour of failures, or when a delivery is given up on (review 2026-11
 	// IN-2). No row when there is nothing to tell.
 	HooksAlertFailing(ctx context.Context, arg HooksAlertFailingParams) (HooksAlertFailingRow, error)
+	// Endpoints with email.* events waiting to be folded into a batch (review
+	// 2026-11 EN-8), whether or not they still batch: a switched-off setting
+	// still sends what was waiting.
+	HooksBatching(ctx context.Context) ([]HooksBatchingRow, error)
 	// Takes a due delivery for one attempt. Returns no row when someone else has it.
 	HooksClaimDelivery(ctx context.Context, id uuid.UUID) (HooksClaimDeliveryRow, error)
 	HooksCreate(ctx context.Context, arg HooksCreateParams) (Webhook, error)
@@ -1736,6 +1740,9 @@ type Querier interface {
 	HooksSetSecret(ctx context.Context, arg HooksSetSecretParams) error
 	// A worker that died mid-attempt leaves a row in 'delivering'; give it back.
 	HooksStaleDelivering(ctx context.Context) error
+	// Takes an endpoint's oldest waiting events, up to @lim, for one batch.
+	// RETURNING doesn't keep the order: the caller sorts by created_at, id.
+	HooksTakeBatch(ctx context.Context, arg HooksTakeBatchParams) ([]HooksTakeBatchRow, error)
 	// A demo endpoint stays one only while its address is unchanged.
 	HooksUpdate(ctx context.Context, arg HooksUpdateParams) (Webhook, error)
 	// The sending domains an asset list is built from (with the records their

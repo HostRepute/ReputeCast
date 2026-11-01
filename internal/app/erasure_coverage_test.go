@@ -58,6 +58,7 @@ var erasureExempt = map[string]string{
 	"sponsors":             "a sponsor's business contact",
 	"stores":               "the shop's web address",
 	"wordpress_sites":      "the WordPress site's web address",
+	"webhooks":             "an endpoint's settings (batch_email is a switch, not an address)",
 	"report_shares":        "a boolean (include the email), not an address",
 	"referral_programs":    "a boolean (the same-IP rule), not an address",
 	"recommendation_daily": "a count of recommendations shown in email",

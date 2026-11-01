@@ -64,6 +64,42 @@ func (q *Queries) HooksAlertFailing(ctx context.Context, arg HooksAlertFailingPa
 	return i, err
 }
 
+const hooksBatching = `-- name: HooksBatching :many
+SELECT h.id, h.enabled, w.slug FROM webhooks h
+JOIN workspaces w ON w.id = h.workspace_id
+WHERE EXISTS (SELECT 1 FROM webhook_deliveries d WHERE d.webhook_id = h.id AND d.state = 'batching')
+ORDER BY h.id
+`
+
+type HooksBatchingRow struct {
+	ID      uuid.UUID `json:"id"`
+	Enabled bool      `json:"enabled"`
+	Slug    string    `json:"slug"`
+}
+
+// Endpoints with email.* events waiting to be folded into a batch (review
+// 2026-11 EN-8), whether or not they still batch: a switched-off setting
+// still sends what was waiting.
+func (q *Queries) HooksBatching(ctx context.Context) ([]HooksBatchingRow, error) {
+	rows, err := q.db.Query(ctx, hooksBatching)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []HooksBatchingRow{}
+	for rows.Next() {
+		var i HooksBatchingRow
+		if err := rows.Scan(&i.ID, &i.Enabled, &i.Slug); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const hooksClaimDelivery = `-- name: HooksClaimDelivery :one
 UPDATE webhook_deliveries d SET state = 'delivering', last_attempt_at = now()
 FROM webhooks h
@@ -112,9 +148,9 @@ func (q *Queries) HooksClaimDelivery(ctx context.Context, id uuid.UUID) (HooksCl
 }
 
 const hooksCreate = `-- name: HooksCreate :one
-INSERT INTO webhooks (id, workspace_id, name, description, url, events, secret_enc, enabled, created_by, secret_rotated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, now())
-RETURNING id, workspace_id, name, url, events, secret_enc, enabled, created_by, created_at, last_status, last_delivery_at, failing_since, description, secret_rotated_at, paused_at, updated_at, demo, previous_secret_enc, previous_secret_until, alerted_at
+INSERT INTO webhooks (id, workspace_id, name, description, url, events, batch_email, secret_enc, enabled, created_by, secret_rotated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, $9, now())
+RETURNING id, workspace_id, name, url, events, secret_enc, enabled, created_by, created_at, last_status, last_delivery_at, failing_since, description, secret_rotated_at, paused_at, updated_at, demo, previous_secret_enc, previous_secret_until, alerted_at, batch_email
 `
 
 type HooksCreateParams struct {
@@ -124,6 +160,7 @@ type HooksCreateParams struct {
 	Description string     `json:"description"`
 	Url         string     `json:"url"`
 	Events      []string   `json:"events"`
+	BatchEmail  bool       `json:"batchEmail"`
 	SecretEnc   []byte     `json:"secretEnc"`
 	CreatedBy   *uuid.UUID `json:"createdBy"`
 }
@@ -136,6 +173,7 @@ func (q *Queries) HooksCreate(ctx context.Context, arg HooksCreateParams) (Webho
 		arg.Description,
 		arg.Url,
 		arg.Events,
+		arg.BatchEmail,
 		arg.SecretEnc,
 		arg.CreatedBy,
 	)
@@ -161,6 +199,7 @@ func (q *Queries) HooksCreate(ctx context.Context, arg HooksCreateParams) (Webho
 		&i.PreviousSecretEnc,
 		&i.PreviousSecretUntil,
 		&i.AlertedAt,
+		&i.BatchEmail,
 	)
 	return i, err
 }
@@ -386,7 +425,7 @@ func (q *Queries) HooksFinishDelivery(ctx context.Context, arg HooksFinishDelive
 }
 
 const hooksGet = `-- name: HooksGet :one
-SELECT id, workspace_id, name, url, events, secret_enc, enabled, created_by, created_at, last_status, last_delivery_at, failing_since, description, secret_rotated_at, paused_at, updated_at, demo, previous_secret_enc, previous_secret_until, alerted_at FROM webhooks WHERE id = $1 AND workspace_id = $2
+SELECT id, workspace_id, name, url, events, secret_enc, enabled, created_by, created_at, last_status, last_delivery_at, failing_since, description, secret_rotated_at, paused_at, updated_at, demo, previous_secret_enc, previous_secret_until, alerted_at, batch_email FROM webhooks WHERE id = $1 AND workspace_id = $2
 `
 
 type HooksGetParams struct {
@@ -418,6 +457,7 @@ func (q *Queries) HooksGet(ctx context.Context, arg HooksGetParams) (Webhook, er
 		&i.PreviousSecretEnc,
 		&i.PreviousSecretUntil,
 		&i.AlertedAt,
+		&i.BatchEmail,
 	)
 	return i, err
 }
@@ -515,7 +555,7 @@ func (q *Queries) HooksInsertDelivery(ctx context.Context, arg HooksInsertDelive
 const hooksList = `-- name: HooksList :many
 
 SELECT h.id, h.workspace_id, h.name, h.description, h.url, h.events, h.enabled, h.created_by, h.created_at,
-       h.last_status, h.last_delivery_at, h.failing_since, h.secret_rotated_at, h.paused_at, h.previous_secret_until,
+       h.last_status, h.last_delivery_at, h.failing_since, h.secret_rotated_at, h.paused_at, h.previous_secret_until, h.batch_email,
        coalesce(s.total, 0)::bigint AS total_24h, coalesce(s.ok, 0)::bigint AS ok_24h,
        coalesce(q.queued, 0)::bigint AS queued
 FROM webhooks h
@@ -526,7 +566,7 @@ LEFT JOIN LATERAL (
 ) s ON true
 LEFT JOIN LATERAL (
     SELECT count(*) AS queued FROM webhook_deliveries d
-    WHERE d.webhook_id = h.id AND d.state IN ('pending','retrying','held','delivering')
+    WHERE d.webhook_id = h.id AND d.state IN ('pending','retrying','held','delivering','batching')
 ) q ON true
 WHERE h.workspace_id = $1
 ORDER BY h.created_at
@@ -548,6 +588,7 @@ type HooksListRow struct {
 	SecretRotatedAt     *time.Time `json:"secretRotatedAt"`
 	PausedAt            *time.Time `json:"pausedAt"`
 	PreviousSecretUntil *time.Time `json:"previousSecretUntil"`
+	BatchEmail          bool       `json:"batchEmail"`
 	Total24h            int64      `json:"total24h"`
 	Ok24h               int64      `json:"ok24h"`
 	Queued              int64      `json:"queued"`
@@ -579,6 +620,7 @@ func (q *Queries) HooksList(ctx context.Context, workspaceID uuid.UUID) ([]Hooks
 			&i.SecretRotatedAt,
 			&i.PausedAt,
 			&i.PreviousSecretUntil,
+			&i.BatchEmail,
 			&i.Total24h,
 			&i.Ok24h,
 			&i.Queued,
@@ -612,7 +654,7 @@ func (q *Queries) HooksListen(ctx context.Context, arg HooksListenParams) (bool,
 }
 
 const hooksMatching = `-- name: HooksMatching :many
-SELECT id, enabled FROM webhooks
+SELECT id, enabled, batch_email FROM webhooks
 WHERE workspace_id = $1
   AND ($2::text = ANY(events) OR split_part($2::text, '.', 1) || '.*' = ANY(events) OR '*' = ANY(events))
 `
@@ -623,8 +665,9 @@ type HooksMatchingParams struct {
 }
 
 type HooksMatchingRow struct {
-	ID      uuid.UUID `json:"id"`
-	Enabled bool      `json:"enabled"`
+	ID         uuid.UUID `json:"id"`
+	Enabled    bool      `json:"enabled"`
+	BatchEmail bool      `json:"batchEmail"`
 }
 
 // Endpoints subscribed to an event: exact name, "group.*" or "*".
@@ -637,7 +680,7 @@ func (q *Queries) HooksMatching(ctx context.Context, arg HooksMatchingParams) ([
 	items := []HooksMatchingRow{}
 	for rows.Next() {
 		var i HooksMatchingRow
-		if err := rows.Scan(&i.ID, &i.Enabled); err != nil {
+		if err := rows.Scan(&i.ID, &i.Enabled, &i.BatchEmail); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -796,11 +839,56 @@ func (q *Queries) HooksStaleDelivering(ctx context.Context) error {
 	return err
 }
 
+const hooksTakeBatch = `-- name: HooksTakeBatch :many
+DELETE FROM webhook_deliveries
+WHERE id IN (
+    SELECT d.id FROM webhook_deliveries d
+    WHERE d.webhook_id = $1 AND d.state = 'batching'
+    ORDER BY d.created_at, d.id
+    LIMIT $2
+    FOR UPDATE SKIP LOCKED
+)
+RETURNING id, payload, created_at
+`
+
+type HooksTakeBatchParams struct {
+	WebhookID uuid.UUID `json:"webhookId"`
+	Lim       int32     `json:"lim"`
+}
+
+type HooksTakeBatchRow struct {
+	ID        uuid.UUID       `json:"id"`
+	Payload   json.RawMessage `json:"payload"`
+	CreatedAt time.Time       `json:"createdAt"`
+}
+
+// Takes an endpoint's oldest waiting events, up to @lim, for one batch.
+// RETURNING doesn't keep the order: the caller sorts by created_at, id.
+func (q *Queries) HooksTakeBatch(ctx context.Context, arg HooksTakeBatchParams) ([]HooksTakeBatchRow, error) {
+	rows, err := q.db.Query(ctx, hooksTakeBatch, arg.WebhookID, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []HooksTakeBatchRow{}
+	for rows.Next() {
+		var i HooksTakeBatchRow
+		if err := rows.Scan(&i.ID, &i.Payload, &i.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const hooksUpdate = `-- name: HooksUpdate :one
-UPDATE webhooks SET name = $1, description = $2, url = $3, events = $4,
+UPDATE webhooks SET name = $1, description = $2, url = $3, events = $4, batch_email = $5,
     demo = demo AND url = $3, updated_at = now()
-WHERE id = $5 AND workspace_id = $6
-RETURNING id, workspace_id, name, url, events, secret_enc, enabled, created_by, created_at, last_status, last_delivery_at, failing_since, description, secret_rotated_at, paused_at, updated_at, demo, previous_secret_enc, previous_secret_until, alerted_at
+WHERE id = $6 AND workspace_id = $7
+RETURNING id, workspace_id, name, url, events, secret_enc, enabled, created_by, created_at, last_status, last_delivery_at, failing_since, description, secret_rotated_at, paused_at, updated_at, demo, previous_secret_enc, previous_secret_until, alerted_at, batch_email
 `
 
 type HooksUpdateParams struct {
@@ -808,6 +896,7 @@ type HooksUpdateParams struct {
 	Description string    `json:"description"`
 	Url         string    `json:"url"`
 	Events      []string  `json:"events"`
+	BatchEmail  bool      `json:"batchEmail"`
 	ID          uuid.UUID `json:"id"`
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 }
@@ -819,6 +908,7 @@ func (q *Queries) HooksUpdate(ctx context.Context, arg HooksUpdateParams) (Webho
 		arg.Description,
 		arg.Url,
 		arg.Events,
+		arg.BatchEmail,
 		arg.ID,
 		arg.WorkspaceID,
 	)
@@ -844,6 +934,7 @@ func (q *Queries) HooksUpdate(ctx context.Context, arg HooksUpdateParams) (Webho
 		&i.PreviousSecretEnc,
 		&i.PreviousSecretUntil,
 		&i.AlertedAt,
+		&i.BatchEmail,
 	)
 	return i, err
 }

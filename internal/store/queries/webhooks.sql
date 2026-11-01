@@ -2,7 +2,7 @@
 
 -- name: HooksList :many
 SELECT h.id, h.workspace_id, h.name, h.description, h.url, h.events, h.enabled, h.created_by, h.created_at,
-       h.last_status, h.last_delivery_at, h.failing_since, h.secret_rotated_at, h.paused_at, h.previous_secret_until,
+       h.last_status, h.last_delivery_at, h.failing_since, h.secret_rotated_at, h.paused_at, h.previous_secret_until, h.batch_email,
        coalesce(s.total, 0)::bigint AS total_24h, coalesce(s.ok, 0)::bigint AS ok_24h,
        coalesce(q.queued, 0)::bigint AS queued
 FROM webhooks h
@@ -13,7 +13,7 @@ LEFT JOIN LATERAL (
 ) s ON true
 LEFT JOIN LATERAL (
     SELECT count(*) AS queued FROM webhook_deliveries d
-    WHERE d.webhook_id = h.id AND d.state IN ('pending','retrying','held','delivering')
+    WHERE d.webhook_id = h.id AND d.state IN ('pending','retrying','held','delivering','batching')
 ) q ON true
 WHERE h.workspace_id = @workspace_id
 ORDER BY h.created_at;
@@ -22,13 +22,13 @@ ORDER BY h.created_at;
 SELECT * FROM webhooks WHERE id = @id AND workspace_id = @workspace_id;
 
 -- name: HooksCreate :one
-INSERT INTO webhooks (id, workspace_id, name, description, url, events, secret_enc, enabled, created_by, secret_rotated_at)
-VALUES (@id, @workspace_id, @name, @description, @url, @events, @secret_enc, true, @created_by, now())
+INSERT INTO webhooks (id, workspace_id, name, description, url, events, batch_email, secret_enc, enabled, created_by, secret_rotated_at)
+VALUES (@id, @workspace_id, @name, @description, @url, @events, @batch_email, @secret_enc, true, @created_by, now())
 RETURNING *;
 
 -- name: HooksUpdate :one
 -- A demo endpoint stays one only while its address is unchanged.
-UPDATE webhooks SET name = @name, description = @description, url = @url, events = @events,
+UPDATE webhooks SET name = @name, description = @description, url = @url, events = @events, batch_email = @batch_email,
     demo = demo AND url = @url, updated_at = now()
 WHERE id = @id AND workspace_id = @workspace_id
 RETURNING *;
@@ -49,13 +49,35 @@ DELETE FROM webhooks WHERE id = @id AND workspace_id = @workspace_id;
 
 -- name: HooksMatching :many
 -- Endpoints subscribed to an event: exact name, "group.*" or "*".
-SELECT id, enabled FROM webhooks
+SELECT id, enabled, batch_email FROM webhooks
 WHERE workspace_id = @workspace_id
   AND (@event::text = ANY(events) OR split_part(@event::text, '.', 1) || '.*' = ANY(events) OR '*' = ANY(events));
 
 -- name: HooksInsertDelivery :exec
 INSERT INTO webhook_deliveries (id, webhook_id, event, event_id, payload, attempt, state, next_attempt_at, max_attempts)
 VALUES (@id, @webhook_id, @event, @event_id, @payload, 0, @state, @next_attempt_at, @max_attempts);
+
+-- name: HooksBatching :many
+-- Endpoints with email.* events waiting to be folded into a batch (review
+-- 2026-11 EN-8), whether or not they still batch: a switched-off setting
+-- still sends what was waiting.
+SELECT h.id, h.enabled, w.slug FROM webhooks h
+JOIN workspaces w ON w.id = h.workspace_id
+WHERE EXISTS (SELECT 1 FROM webhook_deliveries d WHERE d.webhook_id = h.id AND d.state = 'batching')
+ORDER BY h.id;
+
+-- name: HooksTakeBatch :many
+-- Takes an endpoint's oldest waiting events, up to @lim, for one batch.
+-- RETURNING doesn't keep the order: the caller sorts by created_at, id.
+DELETE FROM webhook_deliveries
+WHERE id IN (
+    SELECT d.id FROM webhook_deliveries d
+    WHERE d.webhook_id = @webhook_id AND d.state = 'batching'
+    ORDER BY d.created_at, d.id
+    LIMIT @lim
+    FOR UPDATE SKIP LOCKED
+)
+RETURNING id, payload, created_at;
 
 -- name: HooksDeliveries :many
 SELECT d.id, d.webhook_id, d.event, d.event_id, d.attempt, d.max_attempts, d.state, d.status_code, d.duration_ms,

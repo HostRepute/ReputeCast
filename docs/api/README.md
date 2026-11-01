@@ -58,6 +58,28 @@ Each request is a JSON `POST` with these headers:
 | `X-ReputeCast-Timestamp` | Unix time in seconds. |
 | `X-ReputeCast-Signature` | Hex HMAC-SHA256 of `<timestamp>.<raw body>`, keyed with the endpoint's signing secret (`whsec_…`). For 24 hours after the secret is rotated it holds two comma-separated signatures, the new secret's first: accept a delivery when either matches. |
 
+An endpoint can take its `email.*` events in batches (the endpoint's "Send
+email events in batches" switch, `batchEmail` in the API). It then gets one
+request of type `email.batch` with up to 100 events, oldest first, about every
+15 seconds while events come in. Each item of `data.events` is the envelope the
+event would have been posted as alone; other events still go one by one.
+
+```json
+{
+  "id": "0193…",
+  "type": "email.batch",
+  "created_at": "2026-11-01T09:00:15Z",
+  "workspace": "acme-newsletter",
+  "data": {
+    "count": 2,
+    "events": [
+      { "id": "0193…", "type": "email.delivered", "created_at": "2026-11-01T09:00:02Z", "workspace": "acme-newsletter", "data": { "message_id": "…", "to": "ana@example.com", "at": "2026-11-01T09:00:02Z" } },
+      { "id": "0193…", "type": "email.opened", "created_at": "2026-11-01T09:00:09Z", "workspace": "acme-newsletter", "data": { "message_id": "…", "to": "ana@example.com", "at": "2026-11-01T09:00:09Z" } }
+    ]
+  }
+}
+```
+
 Verify the signature against the raw body, and refuse old timestamps:
 
 ```js
