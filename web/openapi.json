@@ -14564,6 +14564,9 @@
       "CampaignCalendarItem": {
         "additionalProperties": false,
         "properties": {
+          "approved": {
+            "type": "boolean"
+          },
           "at": {
             "format": "date-time",
             "type": "string"

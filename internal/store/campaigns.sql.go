@@ -30,7 +30,9 @@ const campaignCalendar = `-- name: CampaignCalendar :many
 SELECT c.id, c.name, c.status, c.channel, c.audience_count, c.schedule,
        coalesce(c.started_at, c.scheduled_at)::timestamptz AS at,
        c.digest_id, c.digest_role, coalesce(dg.name, '')::text AS digest_name,
-       coalesce(t.sent, 0)::bigint AS sent
+       coalesce(t.sent, 0)::bigint AS sent,
+       -- An approval covers its time (review 2026-11 CA-10).
+       EXISTS (SELECT 1 FROM approval_requests ar WHERE ar.campaign_id = c.id AND ar.status = 'approved')::boolean AS approved
 FROM campaigns c
 LEFT JOIN digests dg ON dg.id = c.digest_id
 LEFT JOIN LATERAL (SELECT sum(cc.sent) AS sent FROM campaign_counters cc WHERE cc.campaign_id = c.id) t ON true
@@ -59,6 +61,7 @@ type CampaignCalendarRow struct {
 	DigestRole    string          `json:"digestRole"`
 	DigestName    string          `json:"digestName"`
 	Sent          int64           `json:"sent"`
+	Approved      bool            `json:"approved"`
 }
 
 // Scheduled and sent campaigns and digest issues between two times (CA-3).
@@ -83,6 +86,7 @@ func (q *Queries) CampaignCalendar(ctx context.Context, arg CampaignCalendarPara
 			&i.DigestRole,
 			&i.DigestName,
 			&i.Sent,
+			&i.Approved,
 		); err != nil {
 			return nil, err
 		}

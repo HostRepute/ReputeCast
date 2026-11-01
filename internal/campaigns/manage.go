@@ -304,6 +304,9 @@ type CampaignCalendarItem struct {
 	DigestID  string `json:"digestId,omitempty"`
 	// CampaignID is the campaign of a digest issue, once there is one.
 	CampaignID string `json:"campaignId,omitempty"`
+	// Approved: an approval covers a scheduled campaign's time, so moving
+	// it means unscheduling and asking again (review 2026-11 CA-10).
+	Approved bool `json:"approved,omitempty"`
 }
 
 // CampaignCalendar is the calendar between two times.
@@ -343,6 +346,7 @@ func (s *Service) Calendar(ctx context.Context, ws *store.Workspace, from, to ti
 		if r.DigestID != nil {
 			it.DigestID = r.DigestID.String()
 		}
+		it.Approved = r.Approved && r.Status == "scheduled"
 		out.Items = append(out.Items, it)
 	}
 	issues, err := s.Q.DigestIssuesDue(ctx, store.DigestIssuesDueParams{WorkspaceID: ws.ID, FromAt: &from, ToAt: &to})
