@@ -340,7 +340,7 @@ func (s *Service) runExport(ctx context.Context, ws *store.Workspace, row store.
 	if row.AfterID == nil {
 		flags = os.O_CREATE | os.O_WRONLY | os.O_TRUNC
 	}
-	f, err := os.OpenFile(path, flags, 0o600)
+	f, err := os.OpenFile(filepath.Clean(path), flags, 0o600)
 	if err != nil {
 		return row.Done, err
 	}

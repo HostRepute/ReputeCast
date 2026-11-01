@@ -64,7 +64,7 @@ func TestRotationKeepsTheOldSecretSigningADay(t *testing.T) {
 	}
 	c.Do("GET", ws+"/webhooks", nil).MustStatus(t, 200).JSON(t, &list)
 	for _, it := range list.Items {
-		if it.ID == created.Webhook.ID && (it.PreviousSecretUntil == nil || it.PreviousSecretUntil.Sub(time.Now()) < 23*time.Hour) {
+		if it.ID == created.Webhook.ID && (it.PreviousSecretUntil == nil || time.Until(*it.PreviousSecretUntil) < 23*time.Hour) {
 			t.Fatalf("the overlap shows: %+v", it)
 		}
 	}

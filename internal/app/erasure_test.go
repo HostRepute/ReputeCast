@@ -2,6 +2,7 @@ package app_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"slices"
@@ -60,7 +61,7 @@ func TestEraseLeavesNothingPersonal(t *testing.T) {
 			var id uuid.UUID
 			err := pool.QueryRow(ctx, fmt.Sprintf(`SELECT c.id FROM %s t JOIN contacts c ON c.id = %s
 				WHERE c.workspace_id = $1 AND c.erased_at IS NULL AND NOT %s ORDER BY c.id LIMIT 1`, pgx.Identifier{tb.Name}.Sanitize(), link, livePayer), ws).Scan(&id)
-			if err == pgx.ErrNoRows {
+			if errors.Is(err, pgx.ErrNoRows) {
 				unsampled = append(unsampled, tb.Name)
 				continue
 			}
@@ -175,7 +176,7 @@ func TestEraseLeavesNothingPersonal(t *testing.T) {
 		err := pool.QueryRow(ctx, `SELECT left(t::text, 300) FROM `+pgx.Identifier{tbl}.Sanitize()+` t WHERE `+scope+`t::text ~* $1 LIMIT 1`, args...).Scan(&sample)
 		if err == nil {
 			t.Errorf("%s still mentions an erased contact's address or phone number: %s", tbl, sample)
-		} else if err != pgx.ErrNoRows {
+		} else if !errors.Is(err, pgx.ErrNoRows) {
 			t.Fatalf("%s: %v", tbl, err)
 		}
 	}

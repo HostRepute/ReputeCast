@@ -40,7 +40,7 @@ func TestKeptForTheTTLAndDroppedOnChange(t *testing.T) {
 		}
 		return v
 	}
-	if get(ws) != 1 || get(ws) != 1 {
+	if first, second := get(ws), get(ws); first != 1 || second != 1 {
 		t.Fatal("a second read within the TTL counts again")
 	}
 	clk.add(59 * time.Second)

@@ -380,8 +380,8 @@ func stepID(s string) (uuid.UUID, bool) {
 
 func (s *Service) enroll(ctx context.Context, q *store.Queries, stats statsBuf, f store.LiveAutomationsForTriggerRow, ev store.ClaimAutomationEventsRow, now time.Time) (bool, error) {
 	var first AutomationTrigger
-	if json.Unmarshal(f.Trigger, &first) != nil || f.LiveVersion == nil {
-		return false, nil
+	if err := json.Unmarshal(f.Trigger, &first); err != nil || f.LiveVersion == nil {
+		return false, nil //nolint:nilerr // an unreadable trigger or a flow with no live version enrolls no one; the event goes on to the others
 	}
 	m := matchingTrigger(first, ev)
 	if m == nil {

@@ -69,7 +69,7 @@ func (a *App) serveMetrics() *http.Server {
 		}
 		addr = config.MetricsDefaultAddr
 	}
-	ln, err := net.Listen("tcp", addr)
+	ln, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", addr)
 	if err != nil {
 		a.Log.Error("metrics listener not started", "addr", addr, "err", err)
 		return nil

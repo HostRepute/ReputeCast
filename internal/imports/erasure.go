@@ -199,9 +199,6 @@ func fileNames(kind string, data []byte, erased map[string]bool) bool {
 // normalAddress is a cell as an address to compare: trimmed, lower-cased,
 // without the quote formulaSafe puts before a leading "=+-@".
 func normalAddress(v string) string {
-	v = strings.TrimSpace(v)
-	if strings.HasPrefix(v, "'") {
-		v = v[1:]
-	}
+	v = strings.TrimPrefix(strings.TrimSpace(v), "'")
 	return strings.ToLower(v)
 }

@@ -80,7 +80,7 @@ func TestRateLimitsBrowsersShareAHigherCap(t *testing.T) {
 		t.Fatalf("over the address's cap: %d", c)
 	}
 	// Anonymous calls from the same address have their own, smaller budget.
-	if do("") != http.StatusOK || do("") != http.StatusOK || do("") != http.StatusTooManyRequests {
+	if first, second, third := do(""), do(""), do(""); first != http.StatusOK || second != http.StatusOK || third != http.StatusTooManyRequests {
 		t.Fatal("anonymous calls keep the per-address limit")
 	}
 }

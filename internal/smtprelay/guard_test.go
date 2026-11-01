@@ -52,7 +52,7 @@ func TestLimitListenerCapsConnections(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer raw.Close()
+	defer func() { _ = raw.Close() }()
 	g := newGuard()
 	g.maxPerIP = 2
 	l := limitListener{Listener: raw, g: g}
@@ -75,11 +75,11 @@ func TestLimitListenerCapsConnections(t *testing.T) {
 		return c
 	}
 	a, b := dial(), dial()
-	defer a.Close()
-	defer b.Close()
+	defer func() { _ = a.Close() }()
+	defer func() { _ = b.Close() }()
 	first, second := <-accepted, <-accepted
 	third := dial()
-	defer third.Close()
+	defer func() { _ = third.Close() }()
 	_ = third.SetReadDeadline(time.Now().Add(5 * time.Second))
 	line, _ := bufio.NewReader(third).ReadString('\n')
 	if !strings.HasPrefix(line, "421 4.7.0") {
@@ -87,7 +87,7 @@ func TestLimitListenerCapsConnections(t *testing.T) {
 	}
 	_ = first.Close()
 	fourth := dial()
-	defer fourth.Close()
+	defer func() { _ = fourth.Close() }()
 	select {
 	case c := <-accepted:
 		_ = c.Close()

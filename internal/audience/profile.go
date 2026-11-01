@@ -654,7 +654,7 @@ func (s *Service) sendConfirmation(ctx context.Context, ws *store.Workspace, c s
 	}
 	if _, err := s.Mail.SendSystem(ctx, msg); err != nil {
 		s.ReleaseOptInSend(ctx, c.ID, claimed)
-		return false, url, nil
+		return false, url, nil //nolint:nilerr // not sent: the caller shows the link to send by hand
 	}
 	return true, url, nil
 }

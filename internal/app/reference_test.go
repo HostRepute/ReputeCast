@@ -19,10 +19,10 @@ func TestAPIReference(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	b, _ := io.ReadAll(res.Body)
 	page := string(b)
-	if res.StatusCode != 200 || !strings.HasPrefix(res.Header.Get("Content-Type"), "text/html") {
+	if res.StatusCode != http.StatusOK || !strings.HasPrefix(res.Header.Get("Content-Type"), "text/html") {
 		t.Fatalf("status %d %s", res.StatusCode, res.Header.Get("Content-Type"))
 	}
 	for _, want := range []string{"Version " + version.Get().Version, "/workspaces/{workspace}/transactional/messages/{messageId}/cancel", "transactional:send", `href="/api/openapi.json"`} {

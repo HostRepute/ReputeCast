@@ -10,6 +10,7 @@ package opsmetrics
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -58,7 +59,8 @@ var counters = []prometheus.Collector{ProviderMessages, ProviderCalls, JobFailur
 func Register(reg prometheus.Registerer, pool *pgxpool.Pool, queues ...string) {
 	for _, c := range counters {
 		if err := reg.Register(c); err != nil {
-			if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
+			var already prometheus.AlreadyRegisteredError
+			if !errors.As(err, &already) {
 				panic(err)
 			}
 		}

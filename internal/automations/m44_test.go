@@ -71,11 +71,8 @@ func TestContactsAtAStepAndRemovingOne(t *testing.T) {
 		},
 		Edges: []automations.AutomationEdge{link("t", "d", ""), link("d", "m", "")},
 	})
-	var people []uuid.UUID
 	for _, e := range []string{"step1@example.com", "step2@example.com", "step3@example.com"} {
-		id := addContact(t, env, e, nil)
-		people = append(people, id)
-		joinList(t, env, product, id)
+		joinList(t, env, product, addContact(t, env, e, nil))
 	}
 	if _, err := svc.Dispatch(ctx); err != nil {
 		t.Fatal(err)
