@@ -1,0 +1,285 @@
+{
+ "upgradePage": {
+  "url": "http://news.acme.io/upgrade",
+  "host": "news.acme.io/upgrade",
+  "live": true,
+  "testMode": false,
+  "visits": 4180,
+  "checkoutsStarted": 309,
+  "completed": 163,
+  "trials": 112,
+  "paidAtOnce": 51,
+  "testCheckoutUrl": "http://news.acme.io/upgrade?test=AaMBoZSUKjN7RIqkWyE9cNMTAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACztB6moEOE9yp1quwDMIuUNEqA"
+ },
+ "free": {
+  "list": {
+   "id": "01a19494-2a88-71fb-aa15-9df6f34a285c",
+   "name": "Weekly Digest"
+  },
+  "line": "the Weekly Digest, every Tuesday",
+  "text": "The weekly issue, with what shipped and what's next, and the public archive.",
+  "readers": 31988
+ },
+ "tiers": [
+  {
+   "id": "01a19494-bc9f-75e0-8198-23d0f671e40c",
+   "name": "Weekly Digest Insider",
+   "shortName": "Insider",
+   "slug": "insider",
+   "description": "A members-only deep dive every Tuesday, on top of the free Weekly Digest.",
+   "benefits": [
+    "A members-only deep dive every Tuesday",
+    "The full archive of deep dives",
+    "Quarterly roadmap calls with the Acme team",
+    "Reply to any issue and an editor answers"
+   ],
+   "trialDays": 14,
+   "lists": [
+    {
+     "id": "01a19494-2a88-71fb-aa15-9df6f34a285c",
+     "name": "Weekly Digest"
+    }
+   ],
+   "accessRank": 1,
+   "visibility": "public",
+   "highlight": "Most popular",
+   "monthly": {
+    "id": "01a19494-bca1-7ccc-ba3b-b2217c2408e8",
+    "period": "month",
+    "amountCents": 800,
+    "currency": "usd",
+    "status": "current",
+    "stripeLiveId": "price_1Q8mL2aB",
+    "stripeTestId": "price_test_1Q8mT2aB",
+    "stripeId": "price_1Q8mL2aB",
+    "stripeUrl": "https://dashboard.stripe.com/prices/price_1Q8mL2aB",
+    "origin": "mapped",
+    "members": 465,
+    "paying": 431,
+    "discounted": 12,
+    "offers": [
+     {
+      "label": "Stay for half price",
+      "count": 12
+     }
+    ]
+   },
+   "yearly": {
+    "id": "01a19494-bca1-7ccd-af77-e915dd74c959",
+    "period": "year",
+    "amountCents": 8000,
+    "currency": "usd",
+    "status": "current",
+    "stripeLiveId": "price_1Q8mL5cD",
+    "stripeTestId": "price_test_1Q8mT5cD",
+    "stripeId": "price_1Q8mL5cD",
+    "stripeUrl": "https://dashboard.stripe.com/prices/price_1Q8mL5cD",
+    "origin": "mapped",
+    "members": 696,
+    "paying": 693,
+    "discounted": 45,
+    "offers": [
+     {
+      "label": "FALL26",
+      "count": 45
+     }
+    ]
+   },
+   "prices": [
+    {
+     "id": "01a19494-bca1-7ccc-ba3b-b2217c2408e8",
+     "period": "month",
+     "amountCents": 800,
+     "currency": "usd",
+     "status": "current",
+     "stripeLiveId": "price_1Q8mL2aB",
+     "stripeTestId": "price_test_1Q8mT2aB",
+     "stripeId": "price_1Q8mL2aB",
+     "stripeUrl": "https://dashboard.stripe.com/prices/price_1Q8mL2aB",
+     "origin": "mapped",
+     "members": 465,
+     "paying": 431,
+     "discounted": 12,
+     "offers": [
+      {
+       "label": "Stay for half price",
+       "count": 12
+      }
+     ]
+    },
+    {
+     "id": "01a19494-bca1-7ccd-af77-e915dd74c959",
+     "period": "year",
+     "amountCents": 8000,
+     "currency": "usd",
+     "status": "current",
+     "stripeLiveId": "price_1Q8mL5cD",
+     "stripeTestId": "price_test_1Q8mT5cD",
+     "stripeId": "price_1Q8mL5cD",
+     "stripeUrl": "https://dashboard.stripe.com/prices/price_1Q8mL5cD",
+     "origin": "mapped",
+     "members": 696,
+     "paying": 693,
+     "discounted": 45,
+     "offers": [
+      {
+       "label": "FALL26",
+       "count": 45
+      }
+     ]
+    }
+   ],
+   "paying": 1124,
+   "payingMonthly": 431,
+   "payingYearly": 693,
+   "trialing": 37,
+   "mrrCents": 796000,
+   "includes": [],
+   "productId": "prod_QmA8x2Lw",
+   "productUrl": "https://dashboard.stripe.com/products/prod_QmA8x2Lw",
+   "syncStatus": "synced",
+   "syncSteps": [
+    {
+     "step": "product",
+     "status": "done"
+    },
+    {
+     "step": "prices",
+     "status": "done"
+    }
+   ],
+   "syncedAt": "2026-10-04T14:03:00Z",
+   "origin": "import",
+   "hiddenLink": "news.acme.io/upgrade/insider",
+   "createdAt": "2026-10-04T14:03:00Z",
+   "canDelete": false,
+   "discountedYearly": 45
+  },
+  {
+   "id": "01a19494-bc9f-75e1-af06-1943b3041b16",
+   "name": "Founding member",
+   "shortName": "Founding member",
+   "slug": "founding-member",
+   "description": "For readers who want to back Acme's writing, with Insider included.",
+   "benefits": [
+    "Everything in Insider",
+    "Your name in the annual thank-you issue",
+    "Early access to Acme betas"
+   ],
+   "trialDays": 0,
+   "lists": [
+    {
+     "id": "01a19494-2a88-71fb-aa15-9df6f34a285c",
+     "name": "Weekly Digest"
+    }
+   ],
+   "accessRank": 2,
+   "visibility": "public",
+   "yearly": {
+    "id": "01a19494-bca1-7cce-bfed-da02f0bcc972",
+    "period": "year",
+    "amountCents": 20000,
+    "currency": "usd",
+    "status": "current",
+    "stripeLiveId": "price_1Q8mM1eF",
+    "stripeTestId": "price_test_1Q8mU1eF",
+    "stripeId": "price_1Q8mM1eF",
+    "stripeUrl": "https://dashboard.stripe.com/prices/price_1Q8mM1eF",
+    "origin": "mapped",
+    "members": 60,
+    "paying": 60,
+    "discounted": 0,
+    "offers": []
+   },
+   "prices": [
+    {
+     "id": "01a19494-bca1-7cce-bfed-da02f0bcc972",
+     "period": "year",
+     "amountCents": 20000,
+     "currency": "usd",
+     "status": "current",
+     "stripeLiveId": "price_1Q8mM1eF",
+     "stripeTestId": "price_test_1Q8mU1eF",
+     "stripeId": "price_1Q8mM1eF",
+     "stripeUrl": "https://dashboard.stripe.com/prices/price_1Q8mM1eF",
+     "origin": "mapped",
+     "members": 60,
+     "paying": 60,
+     "discounted": 0,
+     "offers": []
+    }
+   ],
+   "paying": 60,
+   "payingMonthly": 0,
+   "payingYearly": 60,
+   "trialing": 0,
+   "mrrCents": 100000,
+   "includes": [
+    "Insider"
+   ],
+   "productId": "prod_QmA9fM3k",
+   "productUrl": "https://dashboard.stripe.com/products/prod_QmA9fM3k",
+   "syncStatus": "synced",
+   "syncSteps": [
+    {
+     "step": "product",
+     "status": "done"
+    },
+    {
+     "step": "prices",
+     "status": "done"
+    }
+   ],
+   "syncedAt": "2026-10-04T14:03:00Z",
+   "origin": "import",
+   "hiddenLink": "news.acme.io/upgrade/founding-member",
+   "createdAt": "2026-10-04T14:03:00Z",
+   "canDelete": false,
+   "discountedYearly": 0
+  }
+ ],
+ "currency": "usd",
+ "connected": true,
+ "canEdit": true,
+ "helpers": [
+  "Marcus Chen"
+ ],
+ "lists": [
+  {
+   "id": "01a19494-da64-7a24-8c1d-a3ff4027021c",
+   "name": "Acme Merch"
+  },
+  {
+   "id": "01a19494-cc11-7b00-b1be-1c57f93bd75b",
+   "name": "Acme Summit 2026"
+  },
+  {
+   "id": "01a19494-2a89-7d7a-88c9-415ed2cf9e56",
+   "name": "Beta Program"
+  },
+  {
+   "id": "01a19494-d66e-7c04-b8f4-3a40aee91006",
+   "name": "DMARC live · 14 Nov"
+  },
+  {
+   "id": "01a19494-d66e-7c05-bb98-2fb0a23a2bc3",
+   "name": "Launch Kit waitlist"
+  },
+  {
+   "id": "01a19494-2a89-7875-a0be-4cc4c16aa326",
+   "name": "Product Updates"
+  },
+  {
+   "id": "01a19494-2a88-71fb-aa15-9df6f34a285c",
+   "name": "Weekly Digest"
+  }
+ ],
+ "brand": {
+  "publisher": "Acme",
+  "accent": "#4338CA",
+  "ground": "#F5F3FF",
+  "soft": "#DDD6FE",
+  "text": "#4338CA",
+  "onAccent": "#FFFFFF"
+ }
+}

@@ -1,0 +1,64 @@
+{
+ "id": "",
+ "name": "",
+ "kind": "signup",
+ "discountType": "percent",
+ "currency": "",
+ "duration": "once",
+ "applies": [],
+ "byCode": false,
+ "code": "",
+ "byLink": false,
+ "newOnly": false,
+ "minPaidMonths": 0,
+ "codeDays": 60,
+ "status": "live",
+ "state": "draft",
+ "startedAt": "0001-01-01T00:00:00Z",
+ "sync": "draft",
+ "stripe": {
+  "missing": false
+ },
+ "results": {
+  "redemptions": 0,
+  "newMembers": 0,
+  "mrrCents": 0,
+  "shown": 0,
+  "accepted": 0,
+  "codesIssued": 0,
+  "codesRedeemed": 0
+ },
+ "codes": [],
+ "choices": [
+  {
+   "tierId": "01a19494-bc9f-75e0-8198-23d0f671e40c",
+   "tier": "Weekly Digest Insider",
+   "short": "Insider",
+   "period": "month",
+   "priceCents": 800,
+   "currency": "usd"
+  },
+  {
+   "tierId": "01a19494-bc9f-75e0-8198-23d0f671e40c",
+   "tier": "Weekly Digest Insider",
+   "short": "Insider",
+   "period": "year",
+   "priceCents": 8000,
+   "currency": "usd"
+  },
+  {
+   "tierId": "01a19494-bc9f-75e1-af06-1943b3041b16",
+   "tier": "Founding member",
+   "short": "Founding member",
+   "period": "year",
+   "priceCents": 20000,
+   "currency": "usd"
+  }
+ ],
+ "account": "Acme Media",
+ "provider": "Stripe",
+ "connected": true,
+ "canEdit": true,
+ "helpers": [],
+ "upgradeHost": "news.acme.io/upgrade"
+}
