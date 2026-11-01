@@ -29,6 +29,7 @@ export default translate(m, {
   colSuccess: 'Thành công · 24 giờ',
   colStatus: 'Trạng thái',
   colActions: 'Thao tác',
+  bothSecrets: 'khóa bí mật cũ vẫn ký cùng đến {until}',
   secretRotated: 'đã xoay vòng khóa bí mật ngày {date}',
   editNamed: 'Sửa {host}',
 

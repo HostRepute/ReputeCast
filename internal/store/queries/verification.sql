@@ -182,10 +182,14 @@ WHERE c.workspace_id = @workspace_id AND c.contact_id = ANY(@contact_ids::uuid[]
 
 -- name: VerifChecksByEmail :many
 -- The latest results of the contacts with these addresses (Send Readiness).
+-- The addresses drive the join through (workspace_id, email): matching
+-- them with = ANY let the planner probe the trigram index once per
+-- contact, minutes for a 40,000-recipient audience.
 SELECT ct.email, c.result, c.reason, c.service, c.checked_at
-FROM contact_address_checks c
-JOIN contacts ct ON ct.id = c.contact_id
-WHERE c.workspace_id = @workspace_id AND ct.email = ANY(@emails::text[]);
+FROM unnest(@emails::text[]) AS e(email)
+JOIN contacts ct ON ct.workspace_id = @workspace_id AND ct.email = e.email
+JOIN contact_address_checks c ON c.contact_id = ct.id
+WHERE c.workspace_id = @workspace_id;
 
 -- name: VerifContactsByEmail :many
 SELECT id, email FROM contacts WHERE workspace_id = @workspace_id AND email = ANY(@emails::text[]) AND erased_at IS NULL;

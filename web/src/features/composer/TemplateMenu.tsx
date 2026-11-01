@@ -85,7 +85,7 @@ function RenameDialog({ tpl, onClose }: { tpl: SavedTemplate; onClose: () => voi
       if (!data) return
       await http.PUT('/api/v1/workspaces/{workspace}/templates/{templateId}', {
         params: { path: { workspace: c.slug, templateId: tpl.id } },
-        body: { name: name.trim(), description: description.trim() || undefined, mjml: data.mjml, html: data.html || undefined },
+        body: { kind: tpl.kind, name: name.trim(), description: description.trim() || undefined, mjml: data.mjml, html: data.html || undefined },
       })
       await refresh()
       toast({ kind: 'success', title: t(mt.renamed, { name: name.trim() }) })
@@ -155,7 +155,7 @@ function ReplaceDialog({ tpl, onClose }: { tpl: SavedTemplate; onClose: () => vo
       onConfirm={async () => {
         await http.PUT('/api/v1/workspaces/{workspace}/templates/{templateId}', {
           params: { path: { workspace: c.slug, templateId: tpl.id } },
-          body: { name: tpl.name, description: tpl.description || undefined, mjml: c.currentMjml(), html: c.compileCurrent()?.html },
+          body: { kind: tpl.kind, name: tpl.name, description: tpl.description || undefined, mjml: c.currentMjml(), html: c.compileCurrent()?.html },
         })
         await refresh()
         toast({ kind: 'success', title: t(mt.replaced, { name: tpl.name }) })

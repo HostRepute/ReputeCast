@@ -162,6 +162,7 @@ export default translate(ml, {
   contentMasked: '{count, plural, other {{names} không bao giờ được lưu, nên hiển thị giá trị giữ chỗ.}}',
   contentMaskedLink: '{names} không bao giờ được lưu, nên nút hiển thị một liên kết giữ chỗ.',
   contentRemoved: 'Nội dung đã bị xóa ngày {date}, sau {days} ngày. Metadata và sự kiện được giữ đến {until}.',
+  contentCancelled: 'Nội dung đã bị xóa khi thư bị hủy, ngày {date}. Metadata và sự kiện được giữ đến {until}.',
   contentNotKept: 'Không gian làm việc này không lưu nội dung đã kết xuất. Metadata và sự kiện được giữ đến {until}.',
   contentNotStored: 'Nội dung đã kết xuất của thư này không được lưu. Metadata và sự kiện được giữ đến {until}.',
   contentNotSent: 'Không có gì được gửi, nên không có nội dung nào được lưu. Metadata và sự kiện được giữ đến {until}.',

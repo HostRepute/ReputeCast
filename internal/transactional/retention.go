@@ -77,6 +77,10 @@ func (s *Service) Retain(ctx context.Context) (RetentionResult, error) {
 	if out.RejectedCalls, err = s.Q.TxnRetentionRejectedCalls(ctx, now.Add(-RejectedCallRetention)); err != nil {
 		return out, err
 	}
+	// Send-rate buckets idle for an hour are full again (TX-4).
+	if _, err = s.Q.TxnRateBucketsPurge(ctx, now.Add(-time.Hour)); err != nil {
+		return out, err
+	}
 	return out, nil
 }
 

@@ -148,6 +148,7 @@ export default translate(m, {
   showing: 'Hiển thị {shown} trên {total} · chỉ người có thể xem liên hệ mới thấy tên',
   previous: 'Trước',
   next: 'Sau',
+  commentsFailed: 'Không tải được nhận xét',
   noComments: 'Chưa có nhận xét nào.',
   noMatch: 'Không có nhận xét nào khớp với “{query}”.',
 

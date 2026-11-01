@@ -7,6 +7,8 @@ const search = z.object({
   author: z.string().uuid().optional().catch(undefined),
   approver: z.string().uuid().optional().catch(undefined),
   days: z.coerce.number().int().min(0).max(3650).optional().catch(undefined),
+  // Review 2026-11 AP-1: search by what the requests are about.
+  q: z.string().max(200).optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/w/$workspace/_app/approvals/')({

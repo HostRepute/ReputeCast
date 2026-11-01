@@ -310,6 +310,8 @@ type Querier interface {
 	// The inbox tabs' numbers, for the same filters as ApprovalList.
 	ApprovalListCounts(ctx context.Context, arg ApprovalListCountsParams) ([]ApprovalListCountsRow, error)
 	ApprovalLock(ctx context.Context, arg ApprovalLockParams) (ApprovalRequest, error)
+	// The request still covers its campaign as of at.
+	ApprovalMarkRevalidated(ctx context.Context, arg ApprovalMarkRevalidatedParams) error
 	ApprovalMarkScheduled(ctx context.Context, arg ApprovalMarkScheduledParams) error
 	ApprovalMarkSending(ctx context.Context, arg ApprovalMarkSendingParams) error
 	ApprovalMember(ctx context.Context, arg ApprovalMemberParams) (ApprovalMemberRow, error)
@@ -320,8 +322,11 @@ type Querier interface {
 	ApprovalOpenHold(ctx context.Context, campaignID uuid.UUID) (CampaignIncident, error)
 	// Open campaign requests of every workspace (the revalidation job).
 	ApprovalOpenRequests(ctx context.Context) ([]ApprovalOpenRequestsRow, error)
-	// Open campaign requests of one workspace (re-checked when its inbox opens).
-	ApprovalOpenRequestsIn(ctx context.Context, workspaceID uuid.UUID) ([]ApprovalOpenRequestsInRow, error)
+	// Open campaign requests of one workspace that may be stale, re-checked
+	// when its inbox opens: never checked, the campaign changed since, or
+	// checked before stale_before (review 2026-11 AP-1). The rest wait for the
+	// background job.
+	ApprovalOpenRequestsIn(ctx context.Context, arg ApprovalOpenRequestsInParams) ([]ApprovalOpenRequestsInRow, error)
 	// Whether an enabled webhook posts campaign.paused to Slack (Review & send says who hears about a held send).
 	ApprovalPauseAlertsSlack(ctx context.Context, workspaceID uuid.UUID) (bool, error)
 	ApprovalPendingForWorkspace(ctx context.Context, workspaceID uuid.UUID) ([]ApprovalPendingForWorkspaceRow, error)
@@ -1679,6 +1684,10 @@ type Querier interface {
 	GrowthWorkspaces(ctx context.Context) ([]GrowthWorkspacesRow, error)
 	HealthViews(ctx context.Context, workspaceID uuid.UUID) ([]SavedView, error)
 	HideMediaAsset(ctx context.Context, arg HideMediaAssetParams) (int64, error)
+	// Marks a failing endpoint as alerted, once per failing spell: after an
+	// hour of failures, or when a delivery is given up on (review 2026-11
+	// IN-2). No row when there is nothing to tell.
+	HooksAlertFailing(ctx context.Context, arg HooksAlertFailingParams) (HooksAlertFailingRow, error)
 	// Takes a due delivery for one attempt. Returns no row when someone else has it.
 	HooksClaimDelivery(ctx context.Context, id uuid.UUID) (HooksClaimDeliveryRow, error)
 	HooksCreate(ctx context.Context, arg HooksCreateParams) (Webhook, error)
@@ -1708,6 +1717,8 @@ type Querier interface {
 	// Retry now / Retry all failed / Replay: back to pending for an immediate attempt.
 	HooksRequeue(ctx context.Context, arg HooksRequeueParams) ([]uuid.UUID, error)
 	HooksSetEnabled(ctx context.Context, arg HooksSetEnabledParams) error
+	// The new secret signs at once; the one it replaces keeps signing beside
+	// it until previous_until, so receivers can switch (review 2026-11 IN-1).
 	HooksSetSecret(ctx context.Context, arg HooksSetSecretParams) error
 	// A worker that died mid-attempt leaves a row in 'delivering'; give it back.
 	HooksStaleDelivering(ctx context.Context) error
@@ -2175,20 +2186,29 @@ type Querier interface {
 	MarkReinviteRequested(ctx context.Context, id uuid.UUID) (int64, error)
 	MarkSegmentWatched(ctx context.Context, arg MarkSegmentWatchedParams) error
 	McpAddSuppression(ctx context.Context, arg McpAddSuppressionParams) (uuid.UUID, error)
+	// The approvals queue: open requests first, then the last 30 days' decisions.
+	McpApprovals(ctx context.Context, workspaceID uuid.UUID) ([]McpApprovalsRow, error)
 	McpAutomations(ctx context.Context, workspaceID uuid.UUID) ([]McpAutomationsRow, error)
 	McpBlocklists(ctx context.Context, workspaceID uuid.UUID) ([]McpBlocklistsRow, error)
 	McpCampaignRoutes(ctx context.Context, campaignID uuid.UUID) ([]McpCampaignRoutesRow, error)
 	McpCampaignTotals(ctx context.Context, campaignID uuid.UUID) (McpCampaignTotalsRow, error)
+	// A text, push or WhatsApp campaign an agent proposes to send.
+	McpChannelCampaign(ctx context.Context, arg McpChannelCampaignParams) (McpChannelCampaignRow, error)
+	// One contact for get_contact (review 2026-11 IN-3), by id or address.
+	McpContact(ctx context.Context, arg McpContactParams) (McpContactRow, error)
 	McpCreateSegment(ctx context.Context, arg McpCreateSegmentParams) (McpCreateSegmentRow, error)
 	McpDefaultRoutingRule(ctx context.Context, arg McpDefaultRoutingRuleParams) (McpDefaultRoutingRuleRow, error)
 	// Read models behind the MCP server's tools. Writes go through the
 	// owning domain's rules; these queries only read or make small, audited changes.
 	// A campaign by id or by exact (case-insensitive) name, newest first.
 	McpFindCampaign(ctx context.Context, arg McpFindCampaignParams) (McpFindCampaignRow, error)
+	McpForms(ctx context.Context, workspaceID uuid.UUID) ([]McpFormsRow, error)
 	McpGetRoutingRule(ctx context.Context, arg McpGetRoutingRuleParams) (McpGetRoutingRuleRow, error)
 	McpLatestReadiness(ctx context.Context, campaignID uuid.UUID) (McpLatestReadinessRow, error)
 	// A list by its name, for MCP tools that take a list name.
 	McpListByName(ctx context.Context, arg McpListByNameParams) (uuid.UUID, error)
+	McpLists(ctx context.Context, workspaceID uuid.UUID) ([]McpListsRow, error)
+	McpOffers(ctx context.Context, workspaceID uuid.UUID) ([]McpOffersRow, error)
 	McpPostmaster(ctx context.Context, workspaceID uuid.UUID) ([]McpPostmasterRow, error)
 	McpProviders(ctx context.Context, workspaceID uuid.UUID) ([]McpProvidersRow, error)
 	McpRouting(ctx context.Context, workspaceID uuid.UUID) ([]McpRoutingRow, error)
@@ -4294,6 +4314,8 @@ type Querier interface {
 	SuppressionUploadRemoved(ctx context.Context, arg SuppressionUploadRemovedParams) error
 	// Every response, for the results and the exports.
 	SurveyAllResponses(ctx context.Context, surveyID uuid.UUID) ([]SurveyAllResponsesRow, error)
+	// How many completed responses answered each question.
+	SurveyAnsweredCounts(ctx context.Context, surveyID uuid.UUID) ([]SurveyAnsweredCountsRow, error)
 	SurveyByNumber(ctx context.Context, number int64) (SurveyByNumberRow, error)
 	SurveyBySlug(ctx context.Context, arg SurveyBySlugParams) (SurveyBySlugRow, error)
 	SurveyContactResponses(ctx context.Context, arg SurveyContactResponsesParams) ([]SurveyContactResponsesRow, error)
@@ -4304,12 +4326,20 @@ type Querier interface {
 	// that continues to it).
 	// A poll names the survey by its id, however the attribute is escaped.
 	SurveyLinkedCampaigns(ctx context.Context, arg SurveyLinkedCampaignsParams) ([]SurveyLinkedCampaignsRow, error)
+	// How many completed responses picked each option of each question: an
+	// answer is an option's number, or a list of them.
+	SurveyPickCounts(ctx context.Context, surveyID uuid.UUID) ([]SurveyPickCountsRow, error)
 	SurveyResponseInsert(ctx context.Context, arg SurveyResponseInsertParams) error
 	SurveyResponseOfContact(ctx context.Context, arg SurveyResponseOfContactParams) (SurveyResponse, error)
+	// A survey's responses in numbers (review 2026-11 AP-2: counted in SQL).
+	SurveyResponseTotals(ctx context.Context, surveyID uuid.UUID) (SurveyResponseTotalsRow, error)
 	SurveyResponseUpdate(ctx context.Context, arg SurveyResponseUpdateParams) error
 	SurveyResponses(ctx context.Context, arg SurveyResponsesParams) ([]SurveyResponsesRow, error)
 	SurveySetStatus(ctx context.Context, arg SurveySetStatusParams) error
 	SurveySlugTaken(ctx context.Context, arg SurveySlugTakenParams) (bool, error)
+	SurveyTextAnswerCount(ctx context.Context, arg SurveyTextAnswerCountParams) (int64, error)
+	// A page of a text question's answers, newest first, optionally searched.
+	SurveyTextAnswers(ctx context.Context, arg SurveyTextAnswersParams) ([]SurveyTextAnswersRow, error)
 	SurveyUpdate(ctx context.Context, arg SurveyUpdateParams) error
 	SurveysList(ctx context.Context, workspaceID uuid.UUID) ([]SurveysListRow, error)
 	// A named block (R4.A3); the Header and Footer stay.
@@ -4488,6 +4518,7 @@ type Querier interface {
 	// The approved request a publish relied on remembers the version it made live.
 	TxnApprovalMarkPublished(ctx context.Context, arg TxnApprovalMarkPublishedParams) error
 	TxnApprovalPending(ctx context.Context, templateID *uuid.UUID) (TxnApprovalPendingRow, error)
+	TxnCancelScheduled(ctx context.Context, id uuid.UUID) error
 	// Categories with their template counts and opt-outs.
 	TxnCategories(ctx context.Context, workspaceID uuid.UUID) ([]TxnCategoriesRow, error)
 	TxnCategory(ctx context.Context, arg TxnCategoryParams) (TransactionalCategory, error)
@@ -4521,8 +4552,8 @@ type Querier interface {
 	// the integration it belongs to, if any.
 	TxnKey(ctx context.Context, arg TxnKeyParams) (TxnKeyRow, error)
 	// The message log, newest first. status is what the log shows: test,
-	// rejected, queued, sent, delivered, deferred, bounced, complained or
-	// failed. before_* pages back; after_* returns only newer messages (live).
+	// cancelled, rejected, scheduled (waiting for send_at), queued, sent,
+	// delivered, deferred, bounced, complained or failed. before_* pages back; after_* returns only newer messages (live).
 	TxnLog(ctx context.Context, arg TxnLogParams) ([]TxnLogRow, error)
 	// The log's numbers per status for the same filters.
 	TxnLogCounts(ctx context.Context, arg TxnLogCountsParams) ([]TxnLogCountsRow, error)
@@ -4531,6 +4562,7 @@ type Querier interface {
 	TxnLogKeys(ctx context.Context, workspaceID uuid.UUID) ([]TxnLogKeysRow, error)
 	// Templates for the log's template filter, archived ones included.
 	TxnLogTemplates(ctx context.Context, workspaceID uuid.UUID) ([]TxnLogTemplatesRow, error)
+	TxnMarkCancelled(ctx context.Context, arg TxnMarkCancelledParams) error
 	TxnMarkEmitted(ctx context.Context, arg TxnMarkEmittedParams) error
 	TxnMarkFailed(ctx context.Context, arg TxnMarkFailedParams) error
 	TxnMarkFailedOver(ctx context.Context, arg TxnMarkFailedOverParams) error
@@ -4576,16 +4608,26 @@ type Querier interface {
 	// Providers with transactional mail to send now.
 	TxnOutboxProviders(ctx context.Context, now time.Time) ([]uuid.UUID, error)
 	// Queued transactional messages of a provider (failover when it is down).
+	// A message waiting for its send_at stays until its time: moving it would
+	// send it at once (review 2026-11 TX-1).
 	TxnOutboxQueuedOn(ctx context.Context, arg TxnOutboxQueuedOnParams) ([]TxnOutboxQueuedOnRow, error)
 	// The workspace's numbers over a period (Raw SMTP mail included). Test
 	// messages count only with include_test; keys counts every API key that
 	// called in the period, test-mode keys included ("from 2 keys and the SMTP
 	// relay").
 	TxnOverviewStats(ctx context.Context, arg TxnOverviewStatsParams) (TxnOverviewStatsRow, error)
+	// A key's send-rate bucket, created full and locked until the transaction
+	// ends, so every web node takes from the same tokens (review 2026-11 TX-4).
+	TxnRateBucketLock(ctx context.Context, arg TxnRateBucketLockParams) (TxnRateBucketLockRow, error)
+	TxnRateBucketSet(ctx context.Context, arg TxnRateBucketSetParams) error
+	// Buckets idle for an hour are full again: they go.
+	TxnRateBucketsPurge(ctx context.Context, before time.Time) (int64, error)
 	// What the template's calls of a period sent: per call, the variable
 	// names (the breaking-change check of the publish dialog).
 	TxnRecentCallKeys(ctx context.Context, arg TxnRecentCallKeysParams) ([]TxnRecentCallKeysRow, error)
 	TxnRejectedCallsForTemplate(ctx context.Context, arg TxnRejectedCallsForTemplateParams) ([]TxnRejectedCallsForTemplateRow, error)
+	TxnRescheduleMessage(ctx context.Context, arg TxnRescheduleMessageParams) error
+	TxnRescheduleSendAt(ctx context.Context, arg TxnRescheduleSendAtParams) error
 	// A workspace's messages whose rendered content is past its retention
 	// (expired, or sent before cutoff), up to lim.
 	TxnRetentionContentDue(ctx context.Context, arg TxnRetentionContentDueParams) ([]uuid.UUID, error)
@@ -4613,6 +4655,9 @@ type Querier interface {
 	TxnRouteTemplates(ctx context.Context, workspaceID uuid.UUID) ([]TxnRouteTemplatesRow, error)
 	// From addresses mail arriving through the SMTP relay used lately.
 	TxnSMTPFromAddresses(ctx context.Context, arg TxnSMTPFromAddressesParams) ([]string, error)
+	// A message waiting for its send time, locked while it is cancelled or
+	// moved (review 2026-11 TX-1); the outbox claims skip locked rows.
+	TxnScheduledForUpdate(ctx context.Context, arg TxnScheduledForUpdateParams) (TxnScheduledForUpdateRow, error)
 	TxnSenderByEmail(ctx context.Context, arg TxnSenderByEmailParams) (TxnSenderByEmailRow, error)
 	TxnSenderByID(ctx context.Context, arg TxnSenderByIDParams) (TxnSenderByIDRow, error)
 	// The workspace's senders with their domain's transactional flag and
@@ -4716,6 +4761,9 @@ type Querier interface {
 	// addresses checked in the last 90 days"), with the latest check's day.
 	VerifCheckedSince(ctx context.Context, arg VerifCheckedSinceParams) ([]VerifCheckedSinceRow, error)
 	// The latest results of the contacts with these addresses (Send Readiness).
+	// The addresses drive the join through (workspace_id, email): matching
+	// them with = ANY let the planner probe the trigram index once per
+	// contact, minutes for a 40,000-recipient audience.
 	VerifChecksByEmail(ctx context.Context, arg VerifChecksByEmailParams) ([]VerifChecksByEmailRow, error)
 	VerifConsentEvents(ctx context.Context, arg VerifConsentEventsParams) error
 	VerifContactCheck(ctx context.Context, arg VerifContactCheckParams) (ContactAddressCheck, error)

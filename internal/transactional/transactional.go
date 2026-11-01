@@ -159,7 +159,8 @@ type Service struct {
 	Outbox func(ctx context.Context, tx pgx.Tx) error
 	Now    func() time.Time
 
-	limiter keyLimiter
+	// counts are the log's status counts, reused for a minute (TX-3).
+	counts countsCache
 }
 
 func (s *Service) now() time.Time {

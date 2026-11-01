@@ -263,13 +263,15 @@ export function TestSplit({
 /**
  * The transactional template editor's Send test menu: "Run a placement
  * test…" with the published version and a test data set, through the
- * Transactional route. (The editor has no test email of a draft; see
- * DESIGN_INVENTORY #151.)
+ * Transactional route, and (review 2026-11 TX-5) a test email of the
+ * draft through the System route.
  */
-export function TemplateTestMenu({ templateId, published }: { templateId: string; published: boolean }) {
+export function TemplateTestMenu({ templateId, published, sendLabel, onSendTest }: { templateId: string; published: boolean; sendLabel?: string; onSendTest?: () => void }) {
   const t = useT()
   return (
     <TestMenu
+      sendLabel={sendLabel}
+      onSendTest={onSendTest}
       trigger={
         <button type="button" className="btn">
           {t(m.sendTest)}

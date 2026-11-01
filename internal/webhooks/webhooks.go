@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"slices"
@@ -33,6 +34,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/netguard"
+	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/version"
@@ -96,6 +98,7 @@ var Events = []WebhookEventInfo{
 	{Name: "message.failed", Group: "Transactional messages"},
 	{Name: "message.opened", Group: "Transactional messages"},
 	{Name: "message.clicked", Group: "Transactional messages"},
+	{Name: "message.cancelled", Group: "Transactional messages"},
 	{Name: "form.submitted", Group: "Forms"},
 	// Grow (design expansion phase 5): referral programs.
 	{Name: "referral.counted", Group: "Referrals"},
@@ -247,13 +250,20 @@ func Sign(secret string, timestamp int64, body []byte) string {
 	return hex.EncodeToString(m.Sum(nil))
 }
 
-// Verify checks a signature and rejects timestamps older than tolerance.
+// Verify checks a signature header and rejects timestamps older than
+// tolerance. After a rotation the header holds two comma-separated
+// signatures; either matching is enough.
 func Verify(secret, signature string, timestamp int64, body []byte, now time.Time, tolerance time.Duration) bool {
 	if d := now.Sub(time.Unix(timestamp, 0)); d > tolerance || d < -tolerance {
 		return false
 	}
-	want := Sign(secret, timestamp, body)
-	return hmac.Equal([]byte(want), []byte(signature))
+	want := []byte(Sign(secret, timestamp, body))
+	for _, s := range strings.Split(signature, ",") {
+		if hmac.Equal(want, []byte(strings.TrimSpace(s))) {
+			return true
+		}
+	}
+	return false
 }
 
 // NewSecret returns a new signing secret ("whsec_…").
@@ -286,10 +296,13 @@ type WebhookView struct {
 	LastDeliveryAt  *time.Time `json:"lastDeliveryAt,omitempty"`
 	FailingSince    *time.Time `json:"failingSince,omitempty"`
 	SecretRotatedAt *time.Time `json:"secretRotatedAt,omitempty" doc:"Set when the secret was replaced after creation"`
-	CreatedAt       time.Time  `json:"createdAt"`
-	Total24h        int64      `json:"total24h" doc:"Deliveries attempted in the last 24 hours"`
-	Success24h      *float64   `json:"success24h,omitempty" doc:"Percent delivered in the last 24 hours"`
-	Queued          int64      `json:"queued" doc:"Deliveries waiting for an attempt or a retry"`
+	// PreviousSecretUntil: until then the replaced secret signs beside the
+	// new one (review 2026-11 IN-1).
+	PreviousSecretUntil *time.Time `json:"previousSecretUntil,omitempty"`
+	CreatedAt           time.Time  `json:"createdAt"`
+	Total24h            int64      `json:"total24h" doc:"Deliveries attempted in the last 24 hours"`
+	Success24h          *float64   `json:"success24h,omitempty" doc:"Percent delivered in the last 24 hours"`
+	Queued              int64      `json:"queued" doc:"Deliveries waiting for an attempt or a retry"`
 	// ManagedBy is set for endpoints an integration created: their URL,
 	// events and secret change only in the integration.
 	ManagedBy *WebhookManagedBy `json:"managedBy,omitempty"`
@@ -316,6 +329,9 @@ func toView(h store.HooksListRow) WebhookView {
 	}
 	if h.SecretRotatedAt != nil && h.SecretRotatedAt.Sub(h.CreatedAt) > time.Minute {
 		v.SecretRotatedAt = h.SecretRotatedAt
+	}
+	if h.PreviousSecretUntil != nil && h.PreviousSecretUntil.After(time.Now()) {
+		v.PreviousSecretUntil = h.PreviousSecretUntil
 	}
 	if h.Total24h > 0 {
 		pct := float64(h.Ok24h) / float64(h.Total24h) * 100
@@ -488,7 +504,13 @@ type WebhookSecretResult struct {
 	Secret string `json:"secret"`
 }
 
-// RotateSecret replaces the signing secret. Deliveries sign with the new one at once.
+// PreviousSecretGrace is how long a replaced secret keeps signing beside
+// the new one (review 2026-11 IN-1).
+const PreviousSecretGrace = 24 * time.Hour
+
+// RotateSecret replaces the signing secret. Deliveries sign with the new
+// one at once and, for PreviousSecretGrace, with the replaced one too:
+// X-ReputeCast-Signature then holds both, comma-separated, the new first.
 func (s *Service) RotateSecret(ctx context.Context, ws *store.Workspace, id uuid.UUID) (WebhookSecretResult, error) {
 	old, err := s.Q.HooksGet(ctx, store.HooksGetParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
@@ -504,7 +526,8 @@ func (s *Service) RotateSecret(ctx context.Context, ws *store.Workspace, id uuid
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if err := q.HooksSetSecret(ctx, store.HooksSetSecretParams{ID: id, WorkspaceID: ws.ID, SecretEnc: enc}); err != nil {
+		until := s.now().Add(PreviousSecretGrace)
+		if err := q.HooksSetSecret(ctx, store.HooksSetSecretParams{ID: id, WorkspaceID: ws.ID, SecretEnc: enc, PreviousUntil: &until}); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "webhook.secret_rotated", TargetType: "webhook", TargetID: id.String(), TargetName: old.Url,
@@ -782,7 +805,14 @@ func (s *Service) Attempt(ctx context.Context, deliveryID uuid.UUID) (*time.Time
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "ReputeCast-Webhooks/"+version.Get().Version)
-	req.Header.Set(HeaderSignature, Sign(secret, ts, d.Payload))
+	sig := Sign(secret, ts, d.Payload)
+	if d.PreviousSecretUntil != nil && s.now().Before(*d.PreviousSecretUntil) && len(d.PreviousSecretEnc) > 0 {
+		// The replaced secret's signature too, after the new one's.
+		if prev, err := s.Box.OpenString(d.PreviousSecretEnc, secretAD(d.WebhookID)); err == nil {
+			sig += "," + Sign(prev, ts, d.Payload)
+		}
+	}
+	req.Header.Set(HeaderSignature, sig)
 	req.Header.Set(HeaderTimestamp, strconv.FormatInt(ts, 10))
 	req.Header.Set(HeaderEvent, d.Event)
 	req.Header.Set(HeaderDelivery, d.ID.String())
@@ -830,6 +860,11 @@ func (s *Service) finish(ctx context.Context, d store.HooksClaimDeliveryRow, cod
 		}
 		return q.HooksRecordResult(ctx, store.HooksRecordResultParams{ID: d.WebhookID, LastStatus: status, Ok: ok})
 	})
+	if err == nil && !ok {
+		if aerr := s.alertFailing(ctx, d.WebhookID, state == "dead", errText); aerr != nil {
+			slog.WarnContext(ctx, "webhook failing alert", "webhook", d.WebhookID, "err", aerr)
+		}
+	}
 	if err == nil && code != nil && *code == http.StatusGone && s.Managed != nil {
 		// Zapier's REST Hooks: a 410 means the workflow is gone. Managed
 		// endpoints are removed; others keep retrying as usual.
@@ -837,6 +872,33 @@ func (s *Service) finish(ctx context.Context, d store.HooksClaimDeliveryRow, cod
 		return nil, nil
 	}
 	return next, err
+}
+
+// alertFailing tells the people who manage webhooks, once per failing
+// spell, that an endpoint keeps failing: after an hour of failures, or as
+// soon as a delivery is given up on (review 2026-11 IN-2).
+func (s *Service) alertFailing(ctx context.Context, id uuid.UUID, dead bool, why string) error {
+	now := s.now()
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		h, err := q.HooksAlertFailing(ctx, store.HooksAlertFailingParams{Now: now, ID: id, FailingBefore: now.Add(-time.Hour), Dead: dead})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		since := ""
+		if h.FailingSince != nil {
+			since = h.FailingSince.UTC().Format("2006-01-02 15:04 UTC")
+		}
+		n := notify.Notification{Kind: notify.KindWebhookFailing, Severity: "bad",
+			TitleText: msgs.M("notify.failingTitle").Keep(i18n.Args{"url": h.Url}),
+			BodyText:  msgs.M("notify.failingBody").Keep(i18n.Args{"count": h.Failed, "since": since, "status": why, "dead": h.Dead}),
+			Link:      "/w/" + h.Slug + "/settings/webhooks",
+			Data:      map[string]any{"webhook": id.String(), "failed": h.Failed, "dead": h.Dead}}
+		return notify.ToMembersWith(ctx, tx, h.WorkspaceID, authz.WebhooksManage, n)
+	})
 }
 
 func plural(n int, one, many string) string {

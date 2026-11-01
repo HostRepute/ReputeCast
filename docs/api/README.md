@@ -39,7 +39,7 @@ Events:
 | Approvals | `approval.requested`, `approval.decided` |
 | Sending providers | `provider.down`, `provider.recovered` |
 | Automations | `automation.published` |
-| Transactional messages | `message.sent`, `message.delivered`, `message.deferred`, `message.bounced`, `message.complained`, `message.rejected`, `message.failed`, `message.opened`, `message.clicked` |
+| Transactional messages | `message.sent`, `message.delivered`, `message.deferred`, `message.bounced`, `message.complained`, `message.rejected`, `message.failed`, `message.opened`, `message.clicked`, `message.cancelled` |
 | Forms | `form.submitted` |
 | Referrals | `referral.counted`, `referral.held`, `referral.not_counted`, `referral.milestone_reached`, `referral.reward_sent`, `referral.reward_failed` |
 | Paid members | `subscription.trial_started`, `subscription.started`, `subscription.renewed`, `subscription.payment_failed`, `subscription.cancel_scheduled`, `subscription.ended`, `subscription.changed`, `access.complimentary_granted`, `access.complimentary_ended`, `gift.purchased`, `gift.redeemed`, `conversion.recorded` |
@@ -56,7 +56,7 @@ Each request is a JSON `POST` with these headers:
 | `X-ReputeCast-Event` | The event name. |
 | `X-ReputeCast-Delivery` | The delivery id, the same on every retry. |
 | `X-ReputeCast-Timestamp` | Unix time in seconds. |
-| `X-ReputeCast-Signature` | Hex HMAC-SHA256 of `<timestamp>.<raw body>`, keyed with the endpoint's signing secret (`whsec_…`). |
+| `X-ReputeCast-Signature` | Hex HMAC-SHA256 of `<timestamp>.<raw body>`, keyed with the endpoint's signing secret (`whsec_…`). For 24 hours after the secret is rotated it holds two comma-separated signatures, the new secret's first: accept a delivery when either matches. |
 
 Verify the signature against the raw body, and refuse old timestamps:
 

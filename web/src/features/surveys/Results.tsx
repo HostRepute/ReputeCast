@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { $api, errorMessage, http, type Schemas } from '@/api/client'
 import { Button } from '@/components/ui/Button'
 import { toast } from '@/components/ui/Toast'
+import { LoadFailed } from '@/components/ui/LoadFailed'
 import { T, useT } from '@/i18n'
 import { clock, count, pct, shortDate } from '@/lib/format'
 import { deniedReason, useCan, useWorkspace } from '@/lib/session'
@@ -116,6 +117,8 @@ function TextAnswers({ s, r }: { s: Survey; r: QResult }) {
             </li>
           ))}
         </ul>
+      ) : res.isError ? (
+        <LoadFailed title={t(m.textAnswersFailed)} onRetry={() => void res.refetch()} style={{ margin: '10px 0' }} />
       ) : (
         <p className="k" style={{ padding: '10px 0' }}>
           {res.isPending ? '…' : search ? t(m.noTextMatch, { query: search }) : t(m.noTextAnswers)}
@@ -227,6 +230,8 @@ function Responses({ s }: { s: Survey }) {
             </tbody>
           </table>
         </div>
+      ) : res.isError ? (
+        <LoadFailed title={t(m.responsesFailed)} onRetry={() => void res.refetch()} style={{ margin: '4px 20px 18px' }} />
       ) : (
         <p className="k" style={{ padding: '4px 20px 18px' }}>
           {res.isPending ? '…' : t(m.noResponses)}

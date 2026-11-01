@@ -48,6 +48,7 @@ export default translate(m, {
   filterByAuthor: 'Lọc theo tác giả',
   anyAuthor: 'Mọi tác giả',
   filterByApprover: 'Lọc theo người phê duyệt',
+  searchByName: 'Tìm theo tên chiến dịch',
   anyApprover: 'Mọi người phê duyệt',
   dateRange: 'Khoảng thời gian',
   lastDays: '{days} ngày qua',

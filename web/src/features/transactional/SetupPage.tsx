@@ -465,7 +465,7 @@ function RelayCard({ s, onCreate }: { s: Setup; onCreate: () => void }) {
   )
 }
 
-const messageEvents = ['message.sent', 'message.delivered', 'message.deferred', 'message.bounced', 'message.complained', 'message.rejected', 'message.failed', 'message.opened', 'message.clicked']
+const messageEvents = ['message.sent', 'message.delivered', 'message.deferred', 'message.bounced', 'message.complained', 'message.rejected', 'message.failed', 'message.opened', 'message.clicked', 'message.cancelled']
 
 function EventsCard() {
   const t = useT()

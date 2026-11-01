@@ -88,14 +88,15 @@ func (q *Queries) VerifCheckedSince(ctx context.Context, arg VerifCheckedSincePa
 
 const verifChecksByEmail = `-- name: VerifChecksByEmail :many
 SELECT ct.email, c.result, c.reason, c.service, c.checked_at
-FROM contact_address_checks c
-JOIN contacts ct ON ct.id = c.contact_id
-WHERE c.workspace_id = $1 AND ct.email = ANY($2::text[])
+FROM unnest($1::text[]) AS e(email)
+JOIN contacts ct ON ct.workspace_id = $2 AND ct.email = e.email
+JOIN contact_address_checks c ON c.contact_id = ct.id
+WHERE c.workspace_id = $2
 `
 
 type VerifChecksByEmailParams struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
 	Emails      []string  `json:"emails"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
 }
 
 type VerifChecksByEmailRow struct {
@@ -107,8 +108,11 @@ type VerifChecksByEmailRow struct {
 }
 
 // The latest results of the contacts with these addresses (Send Readiness).
+// The addresses drive the join through (workspace_id, email): matching
+// them with = ANY let the planner probe the trigram index once per
+// contact, minutes for a 40,000-recipient audience.
 func (q *Queries) VerifChecksByEmail(ctx context.Context, arg VerifChecksByEmailParams) ([]VerifChecksByEmailRow, error) {
-	rows, err := q.db.Query(ctx, verifChecksByEmail, arg.WorkspaceID, arg.Emails)
+	rows, err := q.db.Query(ctx, verifChecksByEmail, arg.Emails, arg.WorkspaceID)
 	if err != nil {
 		return nil, err
 	}

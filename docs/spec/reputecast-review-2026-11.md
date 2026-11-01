@@ -422,7 +422,7 @@ Found while building M45 (added to the backlog):
 | CA-11 | A test that every operation's path parameters reach its handler, so an input embedding an unexported or aliased type fails CI instead of answering 404. | ⏳ |
 | CA-12 | The status tabs count the whole workspace while filters are on; count within the filters, or say so. | ⏳ |
 
-## Transactional, approvals, polls and integrations (M46) ⏳
+## Transactional, approvals, polls and integrations (M46) ✅
 
 | ID | What | Done when | Size | Board |
 |---|---|---|---|---|
@@ -438,6 +438,55 @@ Found while building M45 (added to the backlog):
 | IN-2 | Endpoints that start failing or dead-letter deliveries notify the workspace ("A webhook endpoint is failing"). | Test. | S | Notifications preferences gain one row |
 | IN-3 | MCP read tools: `get_contact`, lists, forms, automation detail and report, the approvals queue, offers; `propose_send` for SMS, push and WhatsApp like email's `schedule_campaign`. | Tests per tool; permissions checked like the REST operations. | M | — |
 | IN-4 | The in-app API reference links to the instance's own `/api/openapi` and a self-hosted reference page, not GitHub's main branch. | Test: the link carries the running version. | S | — |
+
+What M46 built (1 November 2026):
+
+- **TX-1** a message sent with `send_at` can be cancelled or moved until it goes, by API
+  (`cancel-transactional-message`, `reschedule-transactional-message`, keys that can send) and on
+  its detail page (Reschedule…, Cancel send…). A cancel removes the sealed payload, keeps the message
+  in the log as Cancelled with who did it, and sends `message.cancelled` to webhooks; both changes
+  are audited. The log shows Scheduled and Cancelled with their own counts. Failover no longer moves
+  a message before its send time (`TestCancelAndRescheduleScheduled`; migration 03383).
+- **TX-2** a message rejected for a suppressed address offers "Remove from suppression list…" with
+  a reason (audited) and "Open suppression" where the rejection is explained (`schedule.test.tsx`).
+- **TX-3** the log's live updates ask every 10 seconds for newer messages only and put them on top;
+  the status counts are kept for a minute (`TestLogLivePoll`).
+- **TX-4** each key's send rate is a token bucket in Postgres, so every web node takes from the same
+  tokens; idle buckets go with the transactional retention job (`TestTakeTokensSharedAcrossNodes`).
+- **TX-5** the template editor's Send test sends the draft, filled with a test data set, through the
+  System route with "[Test]" in the subject; it never reaches the log. Without transactional:send,
+  only to one's own address (`TestSendTemplateTest`).
+- **TX-6** the SMTP relay refuses connections over 500 per node and 20 per address with 421, and an
+  address with five failed logins in ten minutes is refused for fifteen (`TestGuardBlocksRepeatedFailedLogins`,
+  `TestLimitListenerCapsConnections`).
+- **AP-1** the approvals inbox re-checks on load only the requests that may be stale (never checked,
+  their campaign changed since, or checked more than ten minutes ago); the background job keeps the
+  rest. It searches by name (`TestInboxSearchAndStaleChecks`; `approval_requests.revalidated_at`).
+- **AP-2** survey results and text answers are counted, searched and paged in SQL; poll comments,
+  text answers and responses say when they failed to load, with Try again.
+- **IN-1** a rotated webhook secret keeps signing beside the new one for 24 hours:
+  `X-ReputeCast-Signature` holds both, comma-separated, the new first (`TestRotationKeepsTheOldSecretSigningADay`).
+- **IN-2** an endpoint failing for an hour, or one whose delivery was given up on, tells the people
+  who manage webhooks once per failing spell (notification "A webhook endpoint is failing").
+- **IN-3** MCP tools `get_contact`, `list_lists`, `list_forms`, `get_automation` (with the Stats
+  panel's numbers), `list_approvals`, `list_offers` and `propose_send` for texts, push and WhatsApp,
+  each behind its REST operation's permission (`TestM46Tools`).
+- **IN-4** the instance serves its own API reference at `/api/reference`, rendered from its OpenAPI
+  document with no outside assets; the app's links open it with the running version (`TestAPIReference`).
+
+Also fixed: Send Readiness's address checks matched the audience's addresses with `= ANY`, which made
+Postgres probe the trigram index once per contact: minutes for a 40,000-recipient audience (the
+approvals suite timed out on it). The addresses now drive a join through `(workspace_id, email)`:
+45 ms for 10,000. CA-6's waterfall line now sits before the sunset lines, in the order the send
+excludes.
+
+Found while building M46 (added to the backlog):
+
+| ID | What | Status |
+|---|---|---|
+| TX-7 | Scheduled messages can be moved one at a time; a batch sent with one send_at can't be cancelled together. Cancel or move a batch by its idempotency key. | ⏳ |
+| AP-3 | The approvals inbox's 1,000-request benchmark: the stale-only re-check is tested for correctness, not timed. | ⏳ |
+| OP-x | `TestUsageAndRebill` counts a workspace added in the first hours of a month (in the agency's time zone) in the month before; pin its clock. | ⏳ |
 
 ## Operations (M47) ⏳
 

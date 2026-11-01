@@ -18,4 +18,5 @@ export const m = defineMessages('ui', {
   unsavedChanges: 'Unsaved changes',
   stay: 'Stay',
   leaveWithoutSaving: 'Leave without saving',
+  loadFailedBody: "The server didn't answer. Nothing was lost.",
 })

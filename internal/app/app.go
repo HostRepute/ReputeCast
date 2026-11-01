@@ -264,6 +264,8 @@ func (a *App) Handler() http.Handler {
 			hapi := humachi.New(r, NewHumaConfig())
 			hapi.UseMiddleware(a.Auth.Middleware(hapi))
 			registerAPI(a, hapi)
+			// The API reference of this instance (review 2026-11 IN-4).
+			r.Get("/api/reference", referenceHandler(hapi))
 			r.Handle("/api/*", http.HandlerFunc(apiNotFound))
 			registerPublic(a, r)
 		}

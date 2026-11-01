@@ -31,7 +31,7 @@ type ApprovalSnapshotSummary struct {
 	RouteText    string     `json:"routeText"`
 	SplitLabel   string     `json:"splitLabel"`
 	ScheduleText string     `json:"scheduleText"`
-	ScheduleMode string     `json:"scheduleMode" enum:"now,at,best_time"`
+	ScheduleMode string     `json:"scheduleMode" enum:"now,at,best_time,local"`
 	ScheduleAt   *time.Time `json:"scheduleAt,omitempty"`
 	Timezone     string     `json:"timezone,omitempty"`
 }

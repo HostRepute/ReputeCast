@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -11,6 +12,8 @@ import { m } from './messages'
 import { useTx } from './state'
 import { ComposerLanguageSwitcher } from '@/features/languages/composerParts'
 import { TemplateTestMenu } from '@/features/placement/EntryPoints'
+import { TemplateTestDialog } from './TestSend'
+import { mts } from './testsend.messages'
 
 /** "Account · Essential" */
 export function useCategoryLabel(): string {
@@ -141,6 +144,7 @@ export function TxHeader() {
   const t = useT()
   const c = useComposer()
   const tx = useTx()
+  const [testing, setTesting] = useState(false)
   const tpl = tx.template
   const category = useCategoryLabel()
   return (
@@ -191,7 +195,13 @@ export function TxHeader() {
       <ComposerLanguageSwitcher />
       <div className="flex flex-wrap items-center gap-2" style={{ marginLeft: 'auto' }}>
         <Button onClick={tx.openVersions}>{t(m.versions)}</Button>
-        <TemplateTestMenu templateId={tpl.id} published={tpl.liveVersion != null} />
+        <TemplateTestMenu
+          templateId={tpl.id}
+          published={tpl.liveVersion != null}
+          sendLabel={t(mts.menuItem)}
+          onSendTest={tx.canEdit ? () => setTesting(true) : undefined}
+        />
+        {testing ? <TemplateTestDialog onClose={() => setTesting(false)} /> : null}
         <PublishButton />
       </div>
     </header>

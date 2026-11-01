@@ -1,5 +1,5 @@
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { errorMessage, http, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
@@ -10,7 +10,7 @@ import { FilterTabs } from '@/components/ui/Tabs'
 import { t as tt, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { ago, count, monthDay, monthDayTime, orList } from '@/lib/format'
-import { useNow } from '@/lib/hooks'
+import { useDebounced, useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { AccessTable, PersonCell } from '@/features/access/parts'
 import { waitShort } from '@/features/review/logic'
@@ -29,6 +29,8 @@ export interface InboxSearch {
   author?: string
   approver?: string
   days?: number
+  /** Searches what the requests are about by name (review 2026-11 AP-1). */
+  q?: string
 }
 
 type Item = Schemas['ApprovalListItem']
@@ -45,7 +47,7 @@ export function InboxPage({ search }: { search: InboxSearch }) {
   const days = search.days ?? 30
   // Pages of 50, pending first; the key starts like $api's, so the app's
   // invalidations of the inbox reach it.
-  const query = { status, author: search.author, approver: search.approver, days }
+  const query = { status, author: search.author, approver: search.approver, days, q: search.q || undefined }
   const list = useInfiniteQuery({
     queryKey: ['get', '/api/v1/workspaces/{workspace}/approvals', { params: { path: { workspace: slug }, query } }, 'pages'],
     queryFn: async ({ pageParam, signal }) =>
@@ -125,7 +127,7 @@ function RequestsCard({
 }) {
   const t = useT()
   const now = useNow()
-  const filtered = Boolean(search.author || search.approver) || days !== 30
+  const filtered = Boolean(search.author || search.approver || search.q) || days !== 30
   // Requests for a recurring digest's issues carry its badge.
   const issues = useIssueInfos(data.items.flatMap((it) => (it.campaignId ? [it.campaignId] : []))).data?.items ?? []
   const issueOf = new Map(issues.map((x) => [x.campaignId, x]))
@@ -139,6 +141,7 @@ function RequestsCard({
           <span className="k">{data.allRequests ? t(m.requestsCaptionAll) : t(m.requestsCaptionOwn)}</span>
         </div>
         <div className="ap-filters row gap-2!">
+          <InboxQuery value={search.q ?? ''} onChange={(q) => onFilter({ q: q || undefined })} />
           {data.allRequests ? (
             <select className="in w-[150px] max-md:min-w-full" aria-label={t(m.filterByAuthor)} value={search.author ?? ''} onChange={(e) => onFilter({ author: e.target.value || undefined })}>
               <option value="">{t(m.anyAuthor)}</option>
@@ -360,5 +363,29 @@ function InboxSkeleton() {
         </div>
       ))}
     </Loading>
+  )
+}
+
+/** Search by campaign, flow, template or page name, as you type (review 2026-11 AP-1). */
+function InboxQuery({ value, onChange }: { value: string; onChange: (q: string) => void }) {
+  const t = useT()
+  const [text, setText] = useState(value)
+  const [shown, setShown] = useState(value)
+  if (shown !== value) {
+    // Changed elsewhere (Back, a link): what's typed follows.
+    setShown(value)
+    setText(value)
+  }
+  const typed = useDebounced(text.trim(), 300)
+  // Only what was typed is sent: a value changed elsewhere isn't undone by
+  // the typing it replaced.
+  const sent = useRef(typed)
+  useEffect(() => {
+    if (typed === sent.current) return
+    sent.current = typed
+    if (typed !== value) onChange(typed)
+  }, [typed, value, onChange])
+  return (
+    <input type="search" className="in w-[220px] max-md:min-w-full" aria-label={t(m.searchByName)} placeholder={t(m.searchByName)} value={text} onChange={(e) => setText(e.target.value)} />
   )
 }

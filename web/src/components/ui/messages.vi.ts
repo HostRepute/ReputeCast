@@ -18,4 +18,5 @@ export default translate(m, {
   unsavedChanges: 'Chưa lưu thay đổi',
   stay: 'Ở lại',
   leaveWithoutSaving: 'Rời đi mà không lưu',
+  loadFailedBody: 'Máy chủ không phản hồi. Không có gì bị mất.',
 })

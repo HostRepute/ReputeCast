@@ -4376,6 +4376,16 @@
    "w": 1440,
    "x": 6080,
    "y": 0
+  },
+  "TransactionalComplete.dc.html": {
+   "expand": "fill",
+   "h": 1856,
+   "is_interactive": true,
+   "page": "p1-transactional",
+   "title": "Transactional, approvals and integrations · scheduled sends, suppression removal, test sends, inbox search, result errors, webhook secrets and alerts",
+   "w": 1440,
+   "x": 9360,
+   "y": 5598
   }
  },
  "createdOnFiles": {
@@ -4957,7 +4967,7 @@
    "y": 5298,
    "text": "Messages, setup and settings · the live log, every message outcome, the HTTP API, send-only keys, the SMTP relay, categories and delivery alerts.",
    "kind": "title1",
-   "maxW": 9240,
+   "maxW": 10800,
    "page": "p1-transactional"
   },
   "t-p1-transactional-3": {
@@ -5653,6 +5663,7 @@
   "TransactionalMessages.dc.html",
   "TransactionalMessage.dc.html",
   "TransactionalMessageStates.dc.html",
+  "TransactionalComplete.dc.html",
   "TransactionalSetup.dc.html",
   "TransactionalSetupStates.dc.html",
   "TransactionalSettings.dc.html",

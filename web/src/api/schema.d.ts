@@ -16229,6 +16229,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/transactional/messages/{messageId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a message scheduled with send_at before its send time
+         * @description The log keeps it as cancelled and webhooks get message.cancelled. 409 not_scheduled once it is on its way. Audited.
+         */
+        post: operations["cancel-transactional-message"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/transactional/messages/{messageId}/content": {
         parameters: {
             query?: never;
@@ -16243,6 +16263,26 @@ export interface paths {
         get: operations["get-transactional-message-content"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/messages/{messageId}/reschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move a scheduled message to another send time
+         * @description Up to 72 hours from now, like send_at. 409 not_scheduled once it is on its way. Audited.
+         */
+        post: operations["reschedule-transactional-message"];
         delete?: never;
         options?: never;
         head?: never;
@@ -16651,6 +16691,26 @@ export interface paths {
         put?: never;
         /** Publish an earlier version again (roll back, or undo a publish) */
         post: operations["rollback-transactional-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send the draft (or a version) as a test email, filled with a test data set
+         * @description Goes through the System route with [Test] in the subject; nothing goes to the message log. Without transactional:send, only to your own address.
+         */
+        post: operations["send-transactional-template-test"];
         delete?: never;
         options?: never;
         head?: never;
@@ -20512,7 +20572,7 @@ export interface components {
             /** Format: date-time */
             scheduleAt?: string;
             /** @enum {string} */
-            scheduleMode: "now" | "at" | "best_time";
+            scheduleMode: "now" | "at" | "best_time" | "local";
             /** Format: date-time */
             sentAt?: string;
             /** @enum {string} */
@@ -20738,7 +20798,7 @@ export interface components {
             /** Format: int64 */
             minutes: number;
             /** @enum {string} */
-            mode: "now" | "at" | "best_time";
+            mode: "now" | "at" | "best_time" | "local";
             timezone: string;
         };
         ApprovalShare: {
@@ -20764,7 +20824,7 @@ export interface components {
             /** Format: date-time */
             scheduleAt?: string;
             /** @enum {string} */
-            scheduleMode: "now" | "at" | "best_time";
+            scheduleMode: "now" | "at" | "best_time" | "local";
             scheduleText: string;
             splitLabel: string;
             subject: string;
@@ -43233,7 +43293,7 @@ export interface components {
             provider?: string;
             raw: boolean;
             /** @enum {string} */
-            status: "queued" | "sent" | "delivered" | "deferred" | "bounced" | "complained" | "rejected" | "failed" | "test";
+            status: "scheduled" | "queued" | "sent" | "delivered" | "deferred" | "bounced" | "complained" | "rejected" | "cancelled" | "failed" | "test";
             subject: string;
             template?: components["schemas"]["TransactionalLogTemplate"];
         };
@@ -43419,6 +43479,8 @@ export interface components {
             /** Format: int64 */
             bounced: number;
             /** Format: int64 */
+            cancelled: number;
+            /** Format: int64 */
             complained: number;
             /** Format: int64 */
             deferred: number;
@@ -43430,6 +43492,8 @@ export interface components {
             queued: number;
             /** Format: int64 */
             rejected: number;
+            /** Format: int64 */
+            scheduled: number;
             /** Format: int64 */
             sent: number;
             /** Format: int64 */
@@ -43470,7 +43534,7 @@ export interface components {
             rejection?: components["schemas"]["TransactionalRejection"];
             roleAddress: boolean;
             /** @enum {string} */
-            status: "queued" | "sent" | "delivered" | "deferred" | "bounced" | "complained" | "rejected" | "failed" | "test";
+            status: "scheduled" | "queued" | "sent" | "delivered" | "deferred" | "bounced" | "complained" | "rejected" | "cancelled" | "failed" | "test";
             subject: string;
             template?: components["schemas"]["TransactionalLogTemplate"];
             testDelivered: boolean;
@@ -43550,7 +43614,7 @@ export interface components {
             softBounces?: number;
             source: string;
             /** @enum {string} */
-            status: "queued" | "sent" | "delivered" | "deferred" | "bounced" | "complained" | "rejected" | "failed" | "test";
+            status: "scheduled" | "queued" | "sent" | "delivered" | "deferred" | "bounced" | "complained" | "rejected" | "cancelled" | "failed" | "test";
             subject: string;
             suppression?: components["schemas"]["TransactionalSuppressionInfo"];
             tags: string[];
@@ -43848,6 +43912,13 @@ export interface components {
             path: string;
             smtp: boolean;
         };
+        TransactionalRescheduleInput: {
+            /**
+             * Format: date-time
+             * @description The new send time, up to 72 hours from now
+             */
+            sendAt: string;
+        };
         TransactionalResendState: {
             available: boolean;
             /** @enum {string} */
@@ -43879,6 +43950,13 @@ export interface components {
             primary?: components["schemas"]["TransactionalRef"];
             priority: boolean;
             system?: components["schemas"]["TransactionalRef"];
+        };
+        TransactionalSchedule: {
+            id: string;
+            /** Format: date-time */
+            sendAt?: string;
+            /** @enum {string} */
+            status: "scheduled" | "cancelled";
         };
         TransactionalSend: {
             attachments?: components["schemas"]["TransactionalAttachmentInput"][];
@@ -44206,6 +44284,32 @@ export interface components {
             /** Format: int64 */
             usedByProducts?: number;
         };
+        TransactionalTemplateTestInput: {
+            /** @description Data to render with instead of a test data set */
+            data?: {
+                [key: string]: unknown;
+            };
+            html?: string;
+            mjml?: string;
+            plainText?: string;
+            preheader?: string;
+            sendTo: string;
+            subject?: string;
+            /** @description The name of a test data set */
+            testData?: string;
+            to?: components["schemas"]["TransactionalAddress"];
+            variables?: components["schemas"]["TransactionalVariable"][];
+            /**
+             * @description draft (default), live, or a version number
+             * @example draft
+             */
+            version?: string;
+        };
+        TransactionalTemplateTestResult: {
+            provider: string;
+            sentTo: string;
+            testData?: string;
+        };
         TransactionalTemplateUpdate: {
             categoryId?: string;
             description?: string;
@@ -44243,7 +44347,7 @@ export interface components {
             down?: boolean;
             event?: string;
             /** @enum {string} */
-            kind: "accepted" | "rendered" | "scheduled" | "routed" | "handed" | "retry" | "failed_over" | "failed" | "rejected" | "not_delivered" | "delivered" | "deferred" | "bounced" | "complained" | "opened" | "clicked" | "provider_rejected" | "webhook";
+            kind: "accepted" | "rendered" | "scheduled" | "cancelled" | "routed" | "handed" | "retry" | "failed_over" | "failed" | "rejected" | "not_delivered" | "delivered" | "deferred" | "bounced" | "complained" | "opened" | "clicked" | "provider_rejected" | "webhook";
             machine?: boolean;
             provider?: string;
             providerMessageId?: string;
@@ -45331,6 +45435,8 @@ export interface components {
             lastStatus?: number;
             managedBy?: components["schemas"]["WebhookManagedBy"];
             name: string;
+            /** Format: date-time */
+            previousSecretUntil?: string;
             /**
              * Format: int64
              * @description Deliveries waiting for an attempt or a retry
@@ -53435,6 +53541,8 @@ export interface operations {
                 approver?: string;
                 /** @description Requested in the last N days (0: all) */
                 days?: number;
+                /** @description Search the campaigns, flows, templates and pages asked about by name */
+                q?: string;
                 /** @description The nextCursor of the page before */
                 cursor?: string;
                 limit?: number;
@@ -84268,7 +84376,7 @@ export interface operations {
     "list-transactional-messages": {
         parameters: {
             query?: {
-                status?: "all" | "queued" | "sent" | "delivered" | "deferred" | "bounced" | "complained" | "rejected" | "failed" | "test";
+                status?: "all" | "scheduled" | "queued" | "sent" | "delivered" | "deferred" | "bounced" | "complained" | "rejected" | "cancelled" | "failed" | "test";
                 /** @description A template's ID, or raw for mail that arrived by SMTP */
                 template?: string;
                 /** @description A sending provider's ID */
@@ -84398,7 +84506,7 @@ export interface operations {
     "export-transactional-messages": {
         parameters: {
             query?: {
-                status?: "all" | "queued" | "sent" | "delivered" | "deferred" | "bounced" | "complained" | "rejected" | "failed" | "test";
+                status?: "all" | "scheduled" | "queued" | "sent" | "delivered" | "deferred" | "bounced" | "complained" | "rejected" | "cancelled" | "failed" | "test";
                 /** @description A template's ID, or raw for mail that arrived by SMTP */
                 template?: string;
                 /** @description A sending provider's ID */
@@ -84484,6 +84592,40 @@ export interface operations {
             };
         };
     };
+    "cancel-transactional-message": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The message ID the send API answered */
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalSchedule"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-transactional-message-content": {
         parameters: {
             query?: never;
@@ -84505,6 +84647,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TransactionalContent"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reschedule-transactional-message": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The message ID the send API answered */
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalRescheduleInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalSchedule"];
                 };
             };
             /** @description Error */
@@ -85481,6 +85661,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TransactionalPublished"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-transactional-template-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalTemplateTestInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalTemplateTestResult"];
                 };
             };
             /** @description Error */

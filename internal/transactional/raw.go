@@ -187,7 +187,7 @@ func (s *Service) SendRaw(ctx context.Context, cred SMTPCredential, m RawMessage
 	if len(m.Recipients) > MaxRawRecipients {
 		return nil, problemInvalid("rcpt", fmt.Sprintf("Send to at most %d recipients per message.", MaxRawRecipients))
 	}
-	if err := s.rateLimit(c, len(m.Recipients)); err != nil {
+	if err := s.rateLimit(ctx, c, len(m.Recipients)); err != nil {
 		return nil, err
 	}
 	q := s.Q

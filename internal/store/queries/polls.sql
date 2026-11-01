@@ -361,3 +361,49 @@ UNION ALL
 SELECT ('survey:' || s.id::text)::text AS ref, s.name AS name
 FROM surveys s
 WHERE s.workspace_id = @workspace_id AND s.deleted_at IS NULL;
+
+-- name: SurveyResponseTotals :one
+-- A survey's responses in numbers (review 2026-11 AP-2: counted in SQL).
+SELECT count(*)::bigint AS started,
+       count(*) FILTER (WHERE r.completed_at IS NOT NULL)::bigint AS completed,
+       count(*) FILTER (WHERE r.kind = 'non_contact')::bigint AS non_contacts,
+       count(*) FILTER (WHERE r.completed_at IS NULL AND r.source = 'poll')::bigint AS poll_only
+FROM survey_responses r
+WHERE r.survey_id = @survey_id AND r.kind <> 'test';
+
+-- name: SurveyAnsweredCounts :many
+-- How many completed responses answered each question.
+SELECT a.key::text AS question_key, count(*)::bigint AS n
+FROM survey_responses r
+CROSS JOIN LATERAL jsonb_each(r.answers) a
+WHERE r.survey_id = @survey_id AND r.kind <> 'test' AND r.completed_at IS NOT NULL AND jsonb_typeof(a.value) <> 'null'
+GROUP BY 1;
+
+-- name: SurveyPickCounts :many
+-- How many completed responses picked each option of each question: an
+-- answer is an option's number, or a list of them.
+SELECT a.key::text AS question_key, (p.value #>> '{}')::numeric::int AS pick, count(*)::bigint AS n
+FROM survey_responses r
+CROSS JOIN LATERAL jsonb_each(r.answers) a
+CROSS JOIN LATERAL jsonb_array_elements(CASE jsonb_typeof(a.value) WHEN 'array' THEN a.value WHEN 'number' THEN jsonb_build_array(a.value) ELSE '[]'::jsonb END) p
+WHERE r.survey_id = @survey_id AND r.kind <> 'test' AND r.completed_at IS NOT NULL AND jsonb_typeof(p.value) = 'number'
+GROUP BY 1, 2;
+
+-- name: SurveyTextAnswers :many
+-- A page of a text question's answers, newest first, optionally searched.
+SELECT r.id, r.completed_at, (r.answers ->> @question_key::text)::text AS answer, r.contact_id,
+       coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name, coalesce(c.email, '')::text AS email
+FROM survey_responses r
+LEFT JOIN contacts c ON c.id = r.contact_id
+WHERE r.survey_id = @survey_id AND r.kind <> 'test' AND r.completed_at IS NOT NULL
+  AND jsonb_typeof(r.answers -> @question_key::text) = 'string' AND (r.answers ->> @question_key::text) <> ''
+  AND (@search::text = '' OR strpos(lower(r.answers ->> @question_key::text), lower(@search::text)) > 0)
+ORDER BY r.completed_at DESC, r.id DESC
+LIMIT @lim OFFSET @off;
+
+-- name: SurveyTextAnswerCount :one
+SELECT count(*)::bigint
+FROM survey_responses r
+WHERE r.survey_id = @survey_id AND r.kind <> 'test' AND r.completed_at IS NOT NULL
+  AND jsonb_typeof(r.answers -> @question_key::text) = 'string' AND (r.answers ->> @question_key::text) <> ''
+  AND (@search::text = '' OR strpos(lower(r.answers ->> @question_key::text), lower(@search::text)) > 0);

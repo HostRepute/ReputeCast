@@ -15,6 +15,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/liquid"
@@ -52,7 +53,7 @@ type ApprovalListItem struct {
 	AudienceNow *int64 `json:"audienceNow,omitempty"`
 	Route       string `json:"route"`
 	// Schedule: the snapshot's schedule, or when it was sent.
-	ScheduleMode string     `json:"scheduleMode" enum:"now,at,best_time"`
+	ScheduleMode string     `json:"scheduleMode" enum:"now,at,best_time,local"`
 	ScheduleAt   *time.Time `json:"scheduleAt,omitempty"`
 	SentAt       *time.Time `json:"sentAt,omitempty"`
 	RequestedAt  time.Time  `json:"requestedAt"`
@@ -107,6 +108,8 @@ type ListParams struct {
 	Author   string
 	Approver string
 	Days     int
+	// Query searches what the requests ask about by name.
+	Query string
 	// Cursor is a page's NextCursor; Limit is the page size (50, at most 100).
 	Cursor string
 	Limit  int
@@ -144,14 +147,20 @@ func readInboxCursor(ctx context.Context, cursor string, p *store.ApprovalListPa
 	return api.Invalid("query.cursor", say(ctx, mInboxCursor, nil))
 }
 
+// revalidateFresh is how long a check of an open request stands when its
+// campaign hasn't changed: the background job re-checks every 5 minutes.
+const revalidateFresh = 10 * time.Minute
+
 // List returns the approval inbox: approvers see every request, others
 // their own.
 func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Principal, f ListParams) (ApprovalList, error) {
 	out := ApprovalList{Items: []ApprovalListItem{}, Authors: []ApprovalFilterOption{}, Approvers: []ApprovalFilterOption{}, AllRequests: p.Can(authz.CampaignsApprove),
 		CanManage: p.Can(authz.WorkspaceManage)}
-	// The workspace's open requests are re-checked first, so the inbox
-	// never lists a stale approval.
-	if open, err := s.Q.ApprovalOpenRequestsIn(ctx, ws.ID); err == nil {
+	// The workspace's open requests that may be stale are re-checked first,
+	// so the inbox never lists a stale approval; the others were checked
+	// since their campaign last changed, less than revalidateFresh ago, and
+	// the background job keeps them so (review 2026-11 AP-1).
+	if open, err := s.Q.ApprovalOpenRequestsIn(ctx, store.ApprovalOpenRequestsInParams{WorkspaceID: ws.ID, StaleBefore: s.now().Add(-revalidateFresh)}); err == nil {
 		for _, r := range open {
 			if r.CampaignID != nil {
 				_, _ = s.Revalidate(ctx, ws, *r.CampaignID)
@@ -168,7 +177,8 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	}
 	// Filters, tab counts and paging run in SQL, so no request is lost past
 	// a fixed number of rows (review 2026-11 EN-7).
-	params := store.ApprovalListParams{WorkspaceID: ws.ID, AllRequests: out.AllRequests, Viewer: p.UserID, Since: since, Lim: int32(limit + 1)}
+	params := store.ApprovalListParams{WorkspaceID: ws.ID, AllRequests: out.AllRequests, Viewer: p.UserID, Since: since, Lim: int32(limit + 1),
+		Q: db.EscapeLike(strings.TrimSpace(f.Query))}
 	if id, err := uuid.Parse(f.Author); err == nil {
 		params.Author = &id
 	}
@@ -189,7 +199,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		rows = rows[:limit]
 		out.NextCursor = inboxCursor(rows[limit-1])
 	}
-	counts, err := s.Q.ApprovalListCounts(ctx, store.ApprovalListCountsParams{WorkspaceID: ws.ID, AllRequests: params.AllRequests, Viewer: params.Viewer,
+	counts, err := s.Q.ApprovalListCounts(ctx, store.ApprovalListCountsParams{WorkspaceID: ws.ID, AllRequests: params.AllRequests, Viewer: params.Viewer, Q: params.Q,
 		Since: since, Author: params.Author, Approver: params.Approver})
 	if err != nil {
 		return out, err
@@ -400,7 +410,7 @@ type ApprovalShare struct {
 
 // ApprovalScheduleView is the schedule part of a request.
 type ApprovalScheduleView struct {
-	Mode     string     `json:"mode" enum:"now,at,best_time"`
+	Mode     string     `json:"mode" enum:"now,at,best_time,local"`
 	At       *time.Time `json:"at,omitempty"`
 	Timezone string     `json:"timezone"`
 	Minutes  int        `json:"minutes"`

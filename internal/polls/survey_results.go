@@ -49,42 +49,34 @@ func (s *Service) SurveyResultsOf(ctx context.Context, ws *store.Workspace, id u
 		return SurveyResults{}, api.MapError(err, "Survey")
 	}
 	qs, _ := decodeSurvey(sv.Questions, sv.Settings)
-	rows, err := s.Q.SurveyAllResponses(ctx, sv.ID)
+	// Counted in SQL, however many responses there are (review 2026-11 AP-2).
+	totals, err := s.Q.SurveyResponseTotals(ctx, sv.ID)
 	if err != nil {
 		return SurveyResults{}, err
 	}
-	out := SurveyResults{Questions: []SurveyQuestionResult{}}
+	out := SurveyResults{Questions: []SurveyQuestionResult{}, Started: totals.Started, Completed: totals.Completed, NonContacts: totals.NonContacts, PollOnly: totals.PollOnly}
+	byKey := make(map[string]int, len(qs))
 	counts := make([]map[int]int64, len(qs))
 	answered := make([]int64, len(qs))
-	for i := range counts {
-		counts[i] = map[int]int64{}
+	for i, q := range qs {
+		byKey[q.Key], counts[i] = i, map[int]int64{}
 	}
-	for _, r := range rows {
-		out.Started++
-		if r.Kind == AnswererNonContact {
-			out.NonContacts++
+	ans, err := s.Q.SurveyAnsweredCounts(ctx, sv.ID)
+	if err != nil {
+		return SurveyResults{}, err
+	}
+	for _, a := range ans {
+		if i, ok := byKey[a.QuestionKey]; ok {
+			answered[i] = a.N
 		}
-		if r.CompletedAt == nil {
-			if r.Source == "poll" {
-				out.PollOnly++
-			}
-			continue
-		}
-		out.Completed++
-		var answers map[string]any
-		_ = json.Unmarshal(r.Answers, &answers)
-		for i, q := range qs {
-			v, ok := answers[q.Key]
-			if !ok || v == nil {
-				continue
-			}
-			answered[i]++
-			if q.Type == QuestionShort || q.Type == QuestionLong {
-				continue
-			}
-			for _, k := range pickedKeys(v) {
-				counts[i][k]++
-			}
+	}
+	picks, err := s.Q.SurveyPickCounts(ctx, sv.ID)
+	if err != nil {
+		return SurveyResults{}, err
+	}
+	for _, p := range picks {
+		if i, ok := byKey[p.QuestionKey]; ok && qs[i].Type != QuestionShort && qs[i].Type != QuestionLong {
+			counts[i][int(p.Pick)] += p.N
 		}
 	}
 	out.CompletionPercent = percent(out.Completed, out.Started)
@@ -201,36 +193,32 @@ func (s *Service) TextAnswers(ctx context.Context, ws *store.Workspace, p *authz
 	}
 	names := p.Can(authz.SubscribersView)
 	out := SurveyTextAnswerList{Items: []SurveyTextAnswer{}, Names: names}
-	rows, err := s.Q.SurveyAllResponses(ctx, sv.ID)
+	// Searched and paged in SQL (review 2026-11 AP-2).
+	if offset < 0 {
+		offset = 0
+	}
+	needle := strings.TrimSpace(search)
+	total, err := s.Q.SurveyTextAnswerCount(ctx, store.SurveyTextAnswerCountParams{SurveyID: sv.ID, QuestionKey: key, Search: needle})
 	if err != nil {
 		return out, err
 	}
-	needle := strings.ToLower(strings.TrimSpace(search))
-	var all []SurveyTextAnswer
+	rows, err := s.Q.SurveyTextAnswers(ctx, store.SurveyTextAnswersParams{SurveyID: sv.ID, QuestionKey: key, Search: needle, Lim: int32(limit), Off: int32(offset)})
+	if err != nil {
+		return out, err
+	}
+	out.Total = total
 	for _, r := range rows {
-		if r.CompletedAt == nil {
-			continue
+		a := SurveyTextAnswer{Text: r.Answer}
+		if r.CompletedAt != nil {
+			a.At = *r.CompletedAt
 		}
-		var answers map[string]any
-		_ = json.Unmarshal(r.Answers, &answers)
-		text, _ := answers[key].(string)
-		if text == "" || (needle != "" && !strings.Contains(strings.ToLower(text), needle)) {
-			continue
-		}
-		a := SurveyTextAnswer{Text: text, At: *r.CompletedAt}
 		if names && r.ContactID != nil {
 			a.Contact = strings.TrimSpace(r.FirstName + " " + r.LastName)
 			if a.Contact == "" {
 				a.Contact = r.Email
 			}
 		}
-		all = append(all, a)
-	}
-	slices.SortStableFunc(all, func(a, b SurveyTextAnswer) int { return b.At.Compare(a.At) })
-	out.Total = int64(len(all))
-	if offset < len(all) {
-		end := min(offset+limit, len(all))
-		out.Items = append(out.Items, all[max(offset, 0):end]...)
+		out.Items = append(out.Items, a)
 	}
 	return out, nil
 }

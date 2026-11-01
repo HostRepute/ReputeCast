@@ -41,6 +41,65 @@ func (q *Queries) McpAddSuppression(ctx context.Context, arg McpAddSuppressionPa
 	return id, err
 }
 
+const mcpApprovals = `-- name: McpApprovals :many
+SELECT r.id, r.subject_type, r.status, r.requested_at, r.decided_at,
+       coalesce(c.name, a.name, t.name, wp.title, pg.name, '')::text AS subject_name,
+       coalesce(u.name, '')::text AS requested_by,
+       coalesce((r.snapshot ->> 'audience_count')::bigint, 0)::bigint AS audience_count
+FROM approval_requests r
+LEFT JOIN users u ON u.id = r.requested_by
+LEFT JOIN campaigns c ON c.id = r.campaign_id
+LEFT JOIN automations a ON a.id = r.automation_id
+LEFT JOIN transactional_templates t ON t.id = r.transactional_template_id
+LEFT JOIN website_posts wp ON wp.id = r.website_post_id
+LEFT JOIN pages pg ON pg.id = r.website_page_id
+WHERE r.workspace_id = $1 AND r.status <> 'bypassed'
+  AND (r.status IN ('pending', 'approved') OR r.requested_at > now() - interval '30 days')
+ORDER BY CASE r.status WHEN 'pending' THEN 0 ELSE 1 END, r.requested_at DESC
+LIMIT 100
+`
+
+type McpApprovalsRow struct {
+	ID            uuid.UUID  `json:"id"`
+	SubjectType   string     `json:"subjectType"`
+	Status        string     `json:"status"`
+	RequestedAt   time.Time  `json:"requestedAt"`
+	DecidedAt     *time.Time `json:"decidedAt"`
+	SubjectName   string     `json:"subjectName"`
+	RequestedBy   string     `json:"requestedBy"`
+	AudienceCount int64      `json:"audienceCount"`
+}
+
+// The approvals queue: open requests first, then the last 30 days' decisions.
+func (q *Queries) McpApprovals(ctx context.Context, workspaceID uuid.UUID) ([]McpApprovalsRow, error) {
+	rows, err := q.db.Query(ctx, mcpApprovals, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []McpApprovalsRow{}
+	for rows.Next() {
+		var i McpApprovalsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.SubjectType,
+			&i.Status,
+			&i.RequestedAt,
+			&i.DecidedAt,
+			&i.SubjectName,
+			&i.RequestedBy,
+			&i.AudienceCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const mcpAutomations = `-- name: McpAutomations :many
 SELECT id, name, status, trigger, updated_at FROM automations
 WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 100
@@ -195,6 +254,97 @@ func (q *Queries) McpCampaignTotals(ctx context.Context, campaignID uuid.UUID) (
 	return i, err
 }
 
+const mcpChannelCampaign = `-- name: McpChannelCampaign :one
+SELECT c.id, c.name, c.status, c.channel FROM campaigns c
+WHERE c.workspace_id = $1 AND c.deleted_at IS NULL AND (c.id = $2::uuid OR c.name = $3::text)
+ORDER BY c.updated_at DESC LIMIT 1
+`
+
+type McpChannelCampaignParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ID          *uuid.UUID `json:"id"`
+	Name        string     `json:"name"`
+}
+
+type McpChannelCampaignRow struct {
+	ID      uuid.UUID `json:"id"`
+	Name    string    `json:"name"`
+	Status  string    `json:"status"`
+	Channel string    `json:"channel"`
+}
+
+// A text, push or WhatsApp campaign an agent proposes to send.
+func (q *Queries) McpChannelCampaign(ctx context.Context, arg McpChannelCampaignParams) (McpChannelCampaignRow, error) {
+	row := q.db.QueryRow(ctx, mcpChannelCampaign, arg.WorkspaceID, arg.ID, arg.Name)
+	var i McpChannelCampaignRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Status,
+		&i.Channel,
+	)
+	return i, err
+}
+
+const mcpContact = `-- name: McpContact :one
+SELECT c.id, c.email, c.first_name, c.last_name, c.status, c.tier, c.consent, c.language, c.timezone, c.source, c.tags,
+       c.created_at, c.last_open_at, c.last_human_open_at,
+       coalesce((SELECT array_agg(l.name ORDER BY l.name) FROM list_memberships m JOIN lists l ON l.id = m.list_id AND l.deleted_at IS NULL
+                 WHERE m.contact_id = c.id AND m.status = 'subscribed'), '{}')::text[] AS lists
+FROM contacts c
+WHERE c.workspace_id = $1 AND c.erased_at IS NULL
+  AND (c.id = $2::uuid OR lower(c.email) = lower($3::text))
+LIMIT 1
+`
+
+type McpContactParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ID          *uuid.UUID `json:"id"`
+	Email       string     `json:"email"`
+}
+
+type McpContactRow struct {
+	ID              uuid.UUID  `json:"id"`
+	Email           string     `json:"email"`
+	FirstName       string     `json:"firstName"`
+	LastName        string     `json:"lastName"`
+	Status          string     `json:"status"`
+	Tier            string     `json:"tier"`
+	Consent         string     `json:"consent"`
+	Language        string     `json:"language"`
+	Timezone        string     `json:"timezone"`
+	Source          string     `json:"source"`
+	Tags            []string   `json:"tags"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	LastOpenAt      *time.Time `json:"lastOpenAt"`
+	LastHumanOpenAt *time.Time `json:"lastHumanOpenAt"`
+	Lists           []string   `json:"lists"`
+}
+
+// One contact for get_contact (review 2026-11 IN-3), by id or address.
+func (q *Queries) McpContact(ctx context.Context, arg McpContactParams) (McpContactRow, error) {
+	row := q.db.QueryRow(ctx, mcpContact, arg.WorkspaceID, arg.ID, arg.Email)
+	var i McpContactRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.FirstName,
+		&i.LastName,
+		&i.Status,
+		&i.Tier,
+		&i.Consent,
+		&i.Language,
+		&i.Timezone,
+		&i.Source,
+		&i.Tags,
+		&i.CreatedAt,
+		&i.LastOpenAt,
+		&i.LastHumanOpenAt,
+		&i.Lists,
+	)
+	return i, err
+}
+
 const mcpCreateSegment = `-- name: McpCreateSegment :one
 INSERT INTO segments (id, workspace_id, name, description, mode, definition, created_by)
 VALUES ($1, $2, $3, $4, 'builder', $5, $6)
@@ -323,6 +473,53 @@ func (q *Queries) McpFindCampaign(ctx context.Context, arg McpFindCampaignParams
 	return i, err
 }
 
+const mcpForms = `-- name: McpForms :many
+SELECT f.id, f.name, f.kind, f.status, f.double_opt_in, f.updated_at,
+       (SELECT count(*) FROM form_submissions s WHERE s.form_id = f.id AND s.created_at > now() - interval '30 days')::bigint AS submissions_30d
+FROM forms f
+WHERE f.workspace_id = $1
+ORDER BY f.updated_at DESC
+LIMIT 100
+`
+
+type McpFormsRow struct {
+	ID             uuid.UUID `json:"id"`
+	Name           string    `json:"name"`
+	Kind           string    `json:"kind"`
+	Status         string    `json:"status"`
+	DoubleOptIn    bool      `json:"doubleOptIn"`
+	UpdatedAt      time.Time `json:"updatedAt"`
+	Submissions30d int64     `json:"submissions30d"`
+}
+
+func (q *Queries) McpForms(ctx context.Context, workspaceID uuid.UUID) ([]McpFormsRow, error) {
+	rows, err := q.db.Query(ctx, mcpForms, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []McpFormsRow{}
+	for rows.Next() {
+		var i McpFormsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Kind,
+			&i.Status,
+			&i.DoubleOptIn,
+			&i.UpdatedAt,
+			&i.Submissions30d,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const mcpGetRoutingRule = `-- name: McpGetRoutingRule :one
 SELECT r.id, r.stream, r.priority, r.name, r.conditions, r.splits, r.fallback_provider_id, r.enabled
 FROM routing_rules r WHERE r.workspace_id = $1 AND r.id = $2
@@ -381,6 +578,116 @@ func (q *Queries) McpLatestReadiness(ctx context.Context, campaignID uuid.UUID) 
 		&i.RanAt,
 	)
 	return i, err
+}
+
+const mcpLists = `-- name: McpLists :many
+SELECT l.id, l.name, l.description, l.double_opt_in, l.created_at,
+       (SELECT count(*) FROM list_memberships m WHERE m.list_id = l.id AND m.status = 'subscribed')::bigint AS subscribed
+FROM lists l
+WHERE l.workspace_id = $1 AND l.deleted_at IS NULL
+ORDER BY l.created_at
+`
+
+type McpListsRow struct {
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	DoubleOptIn bool      `json:"doubleOptIn"`
+	CreatedAt   time.Time `json:"createdAt"`
+	Subscribed  int64     `json:"subscribed"`
+}
+
+func (q *Queries) McpLists(ctx context.Context, workspaceID uuid.UUID) ([]McpListsRow, error) {
+	rows, err := q.db.Query(ctx, mcpLists, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []McpListsRow{}
+	for rows.Next() {
+		var i McpListsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.DoubleOptIn,
+			&i.CreatedAt,
+			&i.Subscribed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const mcpOffers = `-- name: McpOffers :many
+SELECT o.id, o.name, o.kind, o.status, o.discount_type, o.percent_off, o.amount_off, o.currency, o.duration, o.duration_months,
+       o.by_code, o.code, o.by_link, o.redeem_limit, o.ends_at,
+       (SELECT count(*) FROM earn_offer_uses x WHERE x.offer_id = o.id)::bigint AS uses
+FROM earn_offers o
+WHERE o.workspace_id = $1
+ORDER BY o.status, o.name
+LIMIT 100
+`
+
+type McpOffersRow struct {
+	ID             uuid.UUID  `json:"id"`
+	Name           string     `json:"name"`
+	Kind           string     `json:"kind"`
+	Status         string     `json:"status"`
+	DiscountType   string     `json:"discountType"`
+	PercentOff     *int32     `json:"percentOff"`
+	AmountOff      *int64     `json:"amountOff"`
+	Currency       string     `json:"currency"`
+	Duration       string     `json:"duration"`
+	DurationMonths *int32     `json:"durationMonths"`
+	ByCode         bool       `json:"byCode"`
+	Code           string     `json:"code"`
+	ByLink         bool       `json:"byLink"`
+	RedeemLimit    *int32     `json:"redeemLimit"`
+	EndsAt         *time.Time `json:"endsAt"`
+	Uses           int64      `json:"uses"`
+}
+
+func (q *Queries) McpOffers(ctx context.Context, workspaceID uuid.UUID) ([]McpOffersRow, error) {
+	rows, err := q.db.Query(ctx, mcpOffers, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []McpOffersRow{}
+	for rows.Next() {
+		var i McpOffersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Kind,
+			&i.Status,
+			&i.DiscountType,
+			&i.PercentOff,
+			&i.AmountOff,
+			&i.Currency,
+			&i.Duration,
+			&i.DurationMonths,
+			&i.ByCode,
+			&i.Code,
+			&i.ByLink,
+			&i.RedeemLimit,
+			&i.EndsAt,
+			&i.Uses,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const mcpPostmaster = `-- name: McpPostmaster :many

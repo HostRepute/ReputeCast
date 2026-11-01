@@ -4,6 +4,7 @@ import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
+import { LoadFailed } from '@/components/ui/LoadFailed'
 import { formatList, T, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { useNow } from '@/lib/hooks'
@@ -642,6 +643,9 @@ function Comments({ p }: { p: PollResults }) {
             })}
           </ul>
         </>
+      ) : res.isError ? (
+        // Review 2026-11 AP-2: a failed request says so, not "No comments".
+        <LoadFailed title={t(m.commentsFailed)} onRetry={() => void res.refetch()} style={{ margin: '4px 20px 16px' }} />
       ) : (
         <p className="k" style={{ padding: '4px 20px 16px' }}>
           {res.isPending ? '…' : search ? t(m.noMatch, { query: search }) : t(m.noComments)}

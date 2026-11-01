@@ -35,6 +35,7 @@ export const mt = defineMessages('transactional.common', {
   statusRejected: 'Rejected',
   statusFailed: 'Failed',
   statusTest: 'Test',
+  statusScheduled: 'Scheduled',
   statusCancelled: 'Cancelled',
   raw: 'Raw (SMTP)',
   copy: 'Copy',

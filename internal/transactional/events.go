@@ -26,6 +26,9 @@ const (
 	EventFailed     = "message.failed"
 	EventOpened     = "message.opened"
 	EventClicked    = "message.clicked"
+	// EventCancelled: a scheduled message was cancelled before its send
+	// time (review 2026-11 TX-1).
+	EventCancelled = "message.cancelled"
 )
 
 // TransactionalMessageEvent is the data of a message.* webhook event.
@@ -101,7 +104,8 @@ func displayStatus(status, reject string, test bool) string {
 	case "held":
 		return "queued"
 	case "cancelled":
-		return "rejected"
+		// Cancelled before its send time (review 2026-11 TX-1).
+		return "cancelled"
 	}
 	return status
 }

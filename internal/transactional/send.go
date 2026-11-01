@@ -947,7 +947,7 @@ func (s *Service) logRejectedCall(ctx context.Context, ws *store.Workspace, c ca
 
 // rateLimit applies the caller's send rate (per key; people share 50 per
 // second per workspace member).
-func (s *Service) rateLimit(c caller, n int) error {
+func (s *Service) rateLimit(ctx context.Context, c caller, n int) error {
 	id, per := uuid.Nil, 50
 	switch {
 	case c.key != nil:
@@ -955,7 +955,11 @@ func (s *Service) rateLimit(c caller, n int) error {
 	case c.p != nil:
 		id = c.p.UserID
 	}
-	if ok, wait := s.limiter.allow(id, per, n, s.now()); !ok {
+	ok, wait, err := s.takeTokens(ctx, id, per, n, s.now())
+	if err != nil {
+		return err
+	}
+	if !ok {
 		secs := retrySeconds(wait)
 		return retryAfter(problem(http.StatusTooManyRequests, CodeRateLimited,
 			fmt.Sprintf("This key sends at most %d messages per second. Wait %d %s (Retry-After) and send again with the same idempotency key.", per, secs, plural(secs, "second", "seconds"))), secs)
@@ -998,7 +1002,7 @@ func (s *Service) Send(ctx context.Context, ws *store.Workspace, in Transactiona
 	if err != nil {
 		return 0, nil, err
 	}
-	if err := s.rateLimit(c, 1); err != nil {
+	if err := s.rateLimit(ctx, c, 1); err != nil {
 		return 0, nil, err
 	}
 	hash := requestHash(in)
@@ -1065,7 +1069,7 @@ func (s *Service) SendBatch(ctx context.Context, ws *store.Workspace, in Transac
 	if err != nil {
 		return nil, err
 	}
-	if err := s.rateLimit(c, len(in.Messages)); err != nil {
+	if err := s.rateLimit(ctx, c, len(in.Messages)); err != nil {
 		return nil, err
 	}
 	hash := requestHash(in)

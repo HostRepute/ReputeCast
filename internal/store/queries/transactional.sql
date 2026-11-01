@@ -382,10 +382,13 @@ ORDER BY upd.id;
 
 -- name: TxnOutboxQueuedOn :many
 -- Queued transactional messages of a provider (failover when it is down).
+-- A message waiting for its send_at stays until its time: moving it would
+-- send it at once (review 2026-11 TX-1).
 SELECT m.id, m.workspace_id, t.provider_since, t.route, t.attempts AS tried
 FROM messages m JOIN transactional_messages t ON t.message_id = m.id
 WHERE m.provider_id = @provider_id AND m.status = 'queued' AND m.stream = 'transactional'
   AND (m.claimed_at IS NULL OR m.claimed_at < @stale::timestamptz)
+  AND (m.next_attempt_at IS NULL OR m.next_attempt_at <= @now::timestamptz)
 ORDER BY m.id
 LIMIT 500;
 
@@ -490,8 +493,8 @@ GROUP BY 1, 2;
 
 -- name: TxnLog :many
 -- The message log, newest first. status is what the log shows: test,
--- rejected, queued, sent, delivered, deferred, bounced, complained or
--- failed. before_* pages back; after_* returns only newer messages (live).
+-- cancelled, rejected, scheduled (waiting for send_at), queued, sent,
+-- delivered, deferred, bounced, complained or failed. before_* pages back; after_* returns only newer messages (live).
 WITH log AS (
     SELECT t.message_id, t.accepted_at, m.email, m.contact_id, t.to_name, t.source, t.template_key, t.template_name, t.template_version, t.subject,
            m.provider_id, coalesce(p.name, '')::text AS provider_name, m.error, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at,
@@ -499,7 +502,9 @@ WITH log AS (
            t.failed_over_from, coalesce(fp.name, '')::text AS failed_over_from_name, t.failed_over_at,
            t.key_id, t.key_name, t.idempotency_key, t.tags, t.metadata, t.category_name, t.category_kind, t.workspace_id, m.language,
            (CASE WHEN t.test THEN 'test'
+                 WHEN t.cancelled_at IS NOT NULL THEN 'cancelled'
                  WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+                 WHEN m.status = 'queued' AND m.next_attempt_at IS NOT NULL AND m.next_attempt_at = t.send_at THEN 'scheduled'
                  WHEN m.status = 'held' THEN 'queued'
                  ELSE m.status END)::text AS status
     FROM transactional_messages t
@@ -536,7 +541,9 @@ LIMIT @lim;
 -- name: TxnLogCounts :many
 -- The log's numbers per status for the same filters.
 SELECT (CASE WHEN t.test THEN 'test'
+             WHEN t.cancelled_at IS NOT NULL THEN 'cancelled'
              WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+             WHEN m.status = 'queued' AND m.next_attempt_at IS NOT NULL AND m.next_attempt_at = t.send_at THEN 'scheduled'
              WHEN m.status = 'held' THEN 'queued'
              ELSE m.status END)::text AS status,
        count(*)::bigint AS n
@@ -571,7 +578,7 @@ SELECT t.message_id, t.workspace_id, t.source, t.template_id, t.template_key, t.
        t.category_kind, t.key_id, t.key_name, t.user_id, t.ip, t.idempotency_key, t.subject, t.from_email, t.from_name, t.reply_to, t.to_name,
        t.cc, t.bcc, t.tags, t.metadata, t.data, t.data_keys, t.sensitive, t.attachments, t.size_bytes, t.test, t.test_delivered, t.send_at,
        t.reject_reason, t.reject_detail, t.track_opens, t.track_clicks, t.route, t.attempts, t.failed_over_from, t.failed_over_at, t.provider_since,
-       t.accepted_at, t.rendered_at, t.content_expires_at, t.content_removed_at, t.resent_from,
+       t.accepted_at, t.rendered_at, t.content_expires_at, t.content_removed_at, t.resent_from, t.cancelled_at, t.cancelled_by,
        m.email, m.contact_id, m.provider_id, coalesce(m.provider_message_id, '')::text AS provider_message_id, m.mailbox_provider,
        m.status AS raw_status, m.error, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at,
        m.language, m.contact_language, m.language_reason,
@@ -583,7 +590,9 @@ SELECT t.message_id, t.workspace_id, t.source, t.template_id, t.template_key, t.
        EXISTS (SELECT 1 FROM transactional_message_content x WHERE x.message_id = t.message_id)::boolean AS has_content,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = t.workspace_id AND s.email = m.email AND s.reason = 'role')::boolean AS role_address,
        (CASE WHEN t.test THEN 'test'
+             WHEN t.cancelled_at IS NOT NULL THEN 'cancelled'
              WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+             WHEN m.status = 'queued' AND m.next_attempt_at IS NOT NULL AND m.next_attempt_at = t.send_at THEN 'scheduled'
              WHEN m.status = 'held' THEN 'queued'
              ELSE m.status END)::text AS status
 FROM transactional_messages t
@@ -650,7 +659,9 @@ DELETE FROM transactional_rejected_calls WHERE at < @before::timestamptz;
 SELECT t.message_id, t.accepted_at, t.template_key, t.template_name, t.source, t.subject, t.test, t.reject_reason, t.category_name,
        coalesce(p.name, '')::text AS provider_name, m.delivered_at,
        (CASE WHEN t.test THEN 'test'
+             WHEN t.cancelled_at IS NOT NULL THEN 'cancelled'
              WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+             WHEN m.status = 'queued' AND m.next_attempt_at IS NOT NULL AND m.next_attempt_at = t.send_at THEN 'scheduled'
              WHEN m.status = 'held' THEN 'queued'
              ELSE m.status END)::text AS status
 FROM transactional_messages t
@@ -827,3 +838,39 @@ WHERE workspace_id = @workspace_id AND source = 'smtp' AND accepted_at >= @since
 
 -- name: TxnSetDomainTransactional :exec
 UPDATE sending_domains SET transactional = @transactional WHERE id = @id;
+
+-- name: TxnScheduledForUpdate :one
+-- A message waiting for its send time, locked while it is cancelled or
+-- moved (review 2026-11 TX-1); the outbox claims skip locked rows.
+SELECT m.status, m.next_attempt_at, m.claimed_at, m.email, t.send_at, t.template_name, t.template_key, t.cancelled_at, t.test
+FROM messages m JOIN transactional_messages t ON t.message_id = m.id
+WHERE m.id = @id AND t.workspace_id = @workspace_id
+FOR UPDATE OF m;
+
+-- name: TxnCancelScheduled :exec
+UPDATE messages SET status = 'cancelled', next_attempt_at = NULL, claimed_at = NULL, error = 'cancelled before its send time'
+WHERE id = @id AND status = 'queued';
+
+-- name: TxnMarkCancelled :exec
+UPDATE transactional_messages SET cancelled_at = @at, cancelled_by = @by WHERE message_id = @id;
+
+-- name: TxnRescheduleMessage :exec
+UPDATE messages SET next_attempt_at = @send_at WHERE id = @id AND status = 'queued';
+
+-- name: TxnRescheduleSendAt :exec
+UPDATE transactional_messages SET send_at = @send_at WHERE message_id = @id;
+
+-- name: TxnRateBucketLock :one
+-- A key's send-rate bucket, created full and locked until the transaction
+-- ends, so every web node takes from the same tokens (review 2026-11 TX-4).
+INSERT INTO transactional_rate_buckets AS b (bucket_key, tokens, refilled_at)
+VALUES (@bucket_key, @burst::float8, @now::timestamptz)
+ON CONFLICT (bucket_key) DO UPDATE SET bucket_key = EXCLUDED.bucket_key
+RETURNING b.tokens, b.refilled_at;
+
+-- name: TxnRateBucketSet :exec
+UPDATE transactional_rate_buckets SET tokens = @tokens::float8, refilled_at = @refilled_at::timestamptz WHERE bucket_key = @bucket_key;
+
+-- name: TxnRateBucketsPurge :execrows
+-- Buckets idle for an hour are full again: they go.
+DELETE FROM transactional_rate_buckets WHERE refilled_at < @before::timestamptz;

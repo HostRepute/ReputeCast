@@ -47,6 +47,7 @@ export const m = defineMessages('approvals', {
   filterByAuthor: 'Filter by author',
   anyAuthor: 'Any author',
   filterByApprover: 'Filter by approver',
+  searchByName: 'Search by campaign name',
   anyApprover: 'Any approver',
   dateRange: 'Date range',
   lastDays: 'Last {days} days',

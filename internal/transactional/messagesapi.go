@@ -13,7 +13,7 @@ import (
 
 type logInput struct {
 	api.WorkspaceInput
-	Status   string `query:"status" enum:"all,queued,sent,delivered,deferred,bounced,complained,rejected,failed,test" default:"all"`
+	Status   string `query:"status" enum:"all,scheduled,queued,sent,delivered,deferred,bounced,complained,rejected,cancelled,failed,test" default:"all"`
 	Template string `query:"template" maxLength:"64" doc:"A template's ID, or raw for mail that arrived by SMTP"`
 	Provider string `query:"provider" maxLength:"36" doc:"A sending provider's ID"`
 	Key      string `query:"key" maxLength:"36" doc:"An API key's ID"`
@@ -137,6 +137,33 @@ func RegisterMessages(h huma.API, s *Service) {
 				return nil, err
 			}
 			return &resendOutput{Status: http.StatusAccepted, Body: out}, nil
+		})
+	// Review 2026-11 TX-1: a scheduled message can be cancelled or moved
+	// before its send time, by people and by keys that can send.
+	api.Post(h, api.Op{ID: "cancel-transactional-message", Path: Base + "/messages/{messageId}/cancel", Summary: "Cancel a message scheduled with send_at before its send time",
+		Description: "The log keeps it as cancelled and webhooks get message.cancelled. 409 not_scheduled once it is on its way. Audited.",
+		Tags:        tagLog, Access: api.Workspace(authz.TransactionalSend)},
+		func(ctx context.Context, in *MessagePath) (*api.Body[TransactionalSchedule], error) {
+			id, err := messageID(ctx, in.MessageID)
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.CancelScheduled(ctx, api.WorkspaceFrom(ctx), id)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "reschedule-transactional-message", Path: Base + "/messages/{messageId}/reschedule", Summary: "Move a scheduled message to another send time",
+		Description: "Up to 72 hours from now, like send_at. 409 not_scheduled once it is on its way. Audited.",
+		Tags:        tagLog, Access: api.Workspace(authz.TransactionalSend)},
+		func(ctx context.Context, in *struct {
+			MessagePath
+			Body TransactionalRescheduleInput
+		}) (*api.Body[TransactionalSchedule], error) {
+			id, err := messageID(ctx, in.MessageID)
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.Reschedule(ctx, api.WorkspaceFrom(ctx), id, in.Body)
+			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-transactional-overview", Path: Base + "/overview", Summary: "The period's numbers, the route, alerts, incidents and the keys that can send",
 		Description: "The Templates tab's header and side cards, and the Overview's Transactional card.", Tags: tagLog, Access: view},

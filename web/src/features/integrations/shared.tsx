@@ -29,7 +29,6 @@ export type ConnectKind = PlatformKind | 'wordpress'
 export type Status = Entry['status']
 
 export const base = '/api/v1/workspaces/{workspace}/integrations' as const
-export const API_REFERENCE = 'https://github.com/hostrepute/reputecast/blob/main/docs/api/README.md'
 export const PLUGIN_URL = 'https://wordpress.org/plugins/reputecast/'
 export const KNOWN_PLUGIN = '1.4.0'
 
