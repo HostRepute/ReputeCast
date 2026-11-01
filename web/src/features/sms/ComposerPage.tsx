@@ -315,7 +315,7 @@ function RouteBar({ data }: { data: Campaign }) {
       <span className="k">{t(m.route)}</span>
       {data.routes.map((r) =>
         r.skipped ? (
-          <span key={r.countries.join()} className="sms-pill" style={{ background: '#FFFBEB', borderColor: '#FCD34D', color: '#92400E' }}>
+          <span key={r.countries.join()} className="sms-pill" style={{ background: 'var(--color-warn-tint)', borderColor: '#FCD34D', color: 'var(--warn-fg)' }}>
             {t(m.routeSkipped, { region: regionLabel(r.countries), reason: holdWord(t, r.skipped), count: count(r.recipients) })}
           </span>
         ) : (
@@ -500,7 +500,7 @@ function LengthSection({
         </Note>
       ) : null}
       {replaced ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-[#f9fafb] px-3 py-2 text-[13px]" role="status">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-ground-3 px-3 py-2 text-[13px]" role="status">
           <Icon name="check" size={14} />
           <span className="font-semibold">{t(m.replaced, { char: replaced.chars, with: replaced.with })}</span>
           <span className="k">· {t(m.replacedSegments, { segments: replaced.segments, before: replaced.was })}</span>
@@ -579,7 +579,7 @@ function PersonalizationSection({ data, live }: { data: Campaign; live: ReturnTy
   if (!live.fields.length) {
     return (
       <Section title={t(m.personalization)}>
-        <span className="k text-[#374151]">{t(m.noFields, { characters: live.count.characters })}</span>
+        <span className="k text-ink-nav">{t(m.noFields, { characters: live.count.characters })}</span>
       </Section>
     )
   }
@@ -595,7 +595,7 @@ function PersonalizationSection({ data, live }: { data: Campaign; live: ReturnTy
         </span>
       ) : null}
       {c.longest && c.longest.segments > 1 ? (
-        <span className="k text-[#374151]">
+        <span className="k text-ink-nav">
           {t(m.longest, {
             count: c.spread.filter((s) => s.segments > 1).reduce((n, s) => n + s.recipients, 0),
             field,
@@ -867,17 +867,17 @@ function CostSection({ data }: { data: Campaign }) {
       <div>
         {data.costs.map((c) =>
           c.skipped && c.skipped >= c.recipients ? (
-            <div key={c.country} className="smc-crow" style={{ background: '#FFFBEB', margin: '0 -16px', padding: '9px 16px' }}>
+            <div key={c.country} className="smc-crow" style={{ background: 'var(--color-warn-tint)', margin: '0 -16px', padding: '9px 16px' }}>
               <div className="cl">
                 <CountryName code={c.country} />
-                <span className="k" style={{ color: '#92400E' }}>
+                <span className="k" style={{ color: 'var(--warn-fg)' }}>
                   <T msg={m.skippedLine} values={{ count: count(c.skipped), sender: c.sender, reason: holdWord(t, c.skipReason ?? ''), b: (x) => <b className="n">{x}</b> }} />
                 </span>
               </div>
               <div className="cr">
                 <span className="n">{money(0)}</span>
                 {c.pendingPrice ? (
-                  <span className="k" style={{ color: '#92400E' }}>
+                  <span className="k" style={{ color: 'var(--warn-fg)' }}>
                     {t(m.skippedPrice, { price: price(c.pendingPrice) })}
                   </span>
                 ) : null}

@@ -77,7 +77,7 @@ export function ImportVerifyCard({ importId, rows, onSkip }: { importId: string;
     )
   }
   return (
-    <section className="card min-w-0" style={{ borderColor: '#99F6E4' }}>
+    <section className="card min-w-0" style={{ borderColor: 'var(--accent-line)' }}>
       <div className="sec">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h3 className="h2">{t(m.importVerifyTitle, { name })}</h3>

@@ -243,7 +243,7 @@ function SettingsForm({ s, cats }: { s: Settings; cats: Schemas['TransactionalCa
               <span className="k" style={{ color: 'var(--ink-nav)' }}>
                 {t(mg.previewCaption)}
               </span>
-              <div className="flex flex-col gap-3 rounded-[10px] border border-line px-4 py-3.5" style={{ background: '#FBFBFC' }} aria-hidden="true">
+              <div className="flex flex-col gap-3 rounded-[10px] border border-line px-4 py-3.5" style={{ background: 'var(--color-side)' }} aria-hidden="true">
                 <span className="font-bold">{t(mg.previewHeading, { product: s.productName })}</span>
                 {optional.length === 0 ? <span className="k">{t(mg.previewNoOptional)}</span> : null}
                 {optional.map((c) => (
@@ -319,7 +319,7 @@ function SettingRow({ title, body, children }: { title: string; body: string; ch
     <div className="flex flex-wrap items-start justify-between gap-4 border-t border-line-2" style={{ padding: '14px 18px' }}>
       <div className="flex min-w-0 flex-col gap-[3px]" style={{ flex: '1 1 380px' }}>
         <span className="font-semibold">{title}</span>
-        <span className="k" style={{ color: '#4B5563' }}>
+        <span className="k" style={{ color: 'var(--ink-2)' }}>
           {body}
         </span>
       </div>

@@ -268,7 +268,7 @@ function AssignmentCell({ row, member, onDenied }: { row: Row; member: Member; o
                   disabled={!r.grantable || current}
                   onSelect={() => void assign(r.id ?? '')}
                   className="h-auto! items-start! py-2!"
-                  style={current ? { background: '#F0FDFA' } : undefined}
+                  style={current ? { background: 'var(--accent-tint)' } : undefined}
                 >
                   <span className="flex min-w-0 flex-1 flex-col" style={{ opacity: r.grantable || current ? 1 : 0.55 }}>
                     <b className="text-[13px]">{roleName(r)}</b>

@@ -895,7 +895,7 @@ function SyncFailedCard({ tier, currency, busy, onRetry }: { tier: Tier; currenc
             const detail = s.step === 'product' ? (s.id ?? '') : pricePer(t, s.amountCents ?? 0, currency, s.step)
             return (
               <div key={s.step} className="ea-ev">
-                <span className="ic" style={{ background: done ? '#dcfce7' : s.status === 'failed' ? 'var(--bad-tint)' : 'var(--line-2)' }}>
+                <span className="ic" style={{ background: done ? 'var(--ok-bg)' : s.status === 'failed' ? 'var(--bad-tint)' : 'var(--line-2)' }}>
                   <Icon name={done ? 'check' : s.status === 'failed' ? 'close' : 'clock'} size={14} strokeWidth={2.2} />
                 </span>
                 <div className="tx">

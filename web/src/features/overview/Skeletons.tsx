@@ -4,7 +4,7 @@ import { m } from './messages'
 
 /** The states board's grey block (6px corners). */
 function Sk({ w, h, r, style }: { w?: number | string; h: number; r?: number; style?: CSSProperties }) {
-  return <span className="block rounded-md bg-[#E9ECF0]" style={{ width: w, height: h, borderRadius: r, ...style }} aria-hidden="true" />
+  return <span className="block rounded-md bg-skeleton" style={{ width: w, height: h, borderRadius: r, ...style }} aria-hidden="true" />
 }
 
 /** Loading "Sender health": title, link, the ring and four lines (OverviewStates). */

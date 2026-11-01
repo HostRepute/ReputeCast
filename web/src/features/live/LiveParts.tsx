@@ -389,7 +389,7 @@ export function ProviderTable({ s, outage }: { s: Snapshot; outage?: Incident })
             const held = decision && (p.routeStatus === 'held' || p.id === outage?.providerId)
             const note = providerNote(p, decision)
             return (
-              <tr key={p.id} className={held ? 'bg-[#FFFBEB]' : undefined}>
+              <tr key={p.id} className={held ? 'bg-warn-tint' : undefined}>
                 <Td>
                   <span className="flex items-center gap-2">
                     <Dot color={providerColor[p.color]} />
@@ -554,7 +554,7 @@ export function ThresholdsCard({ s, campaignId, edit }: { s: Snapshot; campaignI
             </div>
           </div>
         ))}
-        <div className="flex items-center rounded-lg border border-line bg-[#F9FAFB] px-3 py-2.5">
+        <div className="flex items-center rounded-lg border border-line bg-ground-3 px-3 py-2.5">
           <p className="lv-fn">{t(mm.thresholdsFootnote)}</p>
         </div>
       </div>

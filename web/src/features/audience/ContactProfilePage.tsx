@@ -197,7 +197,7 @@ function Summary({ p }: { p: Profile }) {
   const lastOpen = s.lastOpenAt ? (s.lastOpenMachine ? tr(m.machineOpen, { date: shortDate(s.lastOpenAt) }) : shortDate(s.lastOpenAt)) : tr(m.never)
   return (
     <section className="card flex flex-wrap items-center gap-4.5 px-5.5 py-5" aria-label={tr(m.summary)}>
-      <span className="inline-flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#DBEAFE] text-[18px] font-bold text-[#1E40AF]" aria-hidden="true">
+      <span className="inline-flex h-[52px] w-[52px] items-center justify-center rounded-full bg-info-bg text-[18px] font-bold text-info-fg" aria-hidden="true">
         {initials(p)}
       </span>
       <div className="flex flex-[1_1_260px] flex-col gap-0.5">

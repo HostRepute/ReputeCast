@@ -700,7 +700,7 @@ function PaywallPreview({ data, draft, as, tiersOK }: { data: Access; draft: Acc
           <b>{meterRow ? pw.free : pw.heading}</b>
           <div className="frm">
             <span>{t(ma.emailPlaceholder)}</span>
-            <span className="up" style={{ flex: 'none', color: '#0B1220' }}>
+            <span className="up" style={{ flex: 'none', color: 'var(--ink)' }}>
               {pw.signup}
             </span>
           </div>

@@ -113,7 +113,7 @@ export function NotificationsRow({ tx, product, essential }: { tx: Activity; pro
   const t = useT()
   return (
     <li className="ev">
-      <span className="ic" style={{ background: '#EEF0F3', color: '#4B5563' }}>
+      <span className="ic" style={{ background: 'var(--line-2)', color: 'var(--ink-2)' }}>
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
           <path d="M3 8h10" />
         </svg>

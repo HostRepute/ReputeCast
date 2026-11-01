@@ -63,7 +63,7 @@ export function ManagedByCard() {
   if (!data?.managed) return null
   return (
     <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-2.5 py-2" aria-label={t(m.managedBy, { agency: data.agency ?? '' })}>
-      <ClientTile ws={{ initials: data.agencyInitials ?? '', color: '#0B1220' }} size={22} />
+      <ClientTile ws={{ initials: data.agencyInitials ?? '', color: 'var(--ink)' }} size={22} />
       <div className="flex min-w-0 flex-col leading-[1.25]">
         <span className="text-[12px] font-semibold">{t(m.managedBy, { agency: data.agency ?? '' })}</span>
         {data.contact ? <span className="k text-[11px]">{t(m.yourContact, { name: data.contact.name })}</span> : null}
@@ -95,7 +95,7 @@ export function AgencyMemberSource({ userId, source }: { userId?: string; source
   return (
     <span className="flex flex-col gap-0.5">
       <span className="flex items-center gap-1.5">
-        <ClientTile ws={{ initials: data.agencyInitials ?? '', color: '#0B1220' }} size={16} style={{ fontSize: 7, borderRadius: 4 }} />
+        <ClientTile ws={{ initials: data.agencyInitials ?? '', color: 'var(--ink)' }} size={16} style={{ fontSize: 7, borderRadius: 4 }} />
         {t(m.via, { agency: data.agency ?? '' })}
       </span>
       {line ? <span className="k">{line}</span> : null}
@@ -165,10 +165,10 @@ export function AgencySheetEntry({ onFollow }: { onFollow: () => void }) {
       to="/w/$workspace/agency"
       params={{ workspace: agency.home }}
       className="flex items-center gap-2.5 rounded-[10px] border px-3 py-2.5 text-ink! no-underline"
-      style={{ borderColor: '#99D5C9', background: '#F0FDFA' }}
+      style={{ borderColor: '#99D5C9', background: 'var(--accent-tint)' }}
       onClick={onFollow}
     >
-      <ClientTile ws={{ initials: agency.initials, color: '#0B1220' }} size={28} />
+      <ClientTile ws={{ initials: agency.initials, color: 'var(--ink)' }} size={28} />
       <span className="flex min-w-0 flex-1 flex-col">
         <b className="text-[13.5px]">{t(m.agencyEntry, { agency: agency.name })}</b>
         <span className="k">{t(m.agencyEntrySheetLine)}</span>

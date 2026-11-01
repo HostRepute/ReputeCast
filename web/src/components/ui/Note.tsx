@@ -47,8 +47,8 @@ export function Banner({
 }) {
   const styles = {
     bad: 'border-bad-line bg-bad-tint',
-    warn: 'border-[#FDE68A] bg-[#FFFBEB]',
-    info: 'border-[#BFDBFE] bg-[#EFF6FF]',
+    warn: 'border-warn-line bg-warn-tint',
+    info: 'border-info-line bg-info-tint',
     ok: 'border-ok-line bg-ok-tint',
   }[tone]
   return (

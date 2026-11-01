@@ -52,7 +52,7 @@ export function AgencyGeneralCard() {
       />
       <div className="pad col gap-3.5">
         <div className="note n items-center! flex-nowrap!">
-          <ClientTile ws={{ initials: data.agencyInitials ?? '', color: '#0B1220' }} size={28} style={{ borderRadius: 7, fontSize: 11 }} />
+          <ClientTile ws={{ initials: data.agencyInitials ?? '', color: 'var(--ink)' }} size={28} style={{ borderRadius: 7, fontSize: 11 }} />
           <div className="flex min-w-0 flex-auto flex-col gap-0.5">
             <span className="font-bold">{t(m.managedBy, { agency })}</span>
             <span>{contact ? t(m.managedLine, { name: contact.name, email: contact.email, agency }) : t(m.managedLineNoContact, { agency })}</span>

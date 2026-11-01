@@ -85,7 +85,7 @@ export function SearchPage() {
             {d.library.length ? (
               <div className="flex flex-col border-t border-line-2 px-4 py-3">
                 <span className="mb-1.5 flex items-center gap-2">
-                  <span className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-md text-accent" style={{ background: '#E3F1EE' }} aria-hidden="true">
+                  <span className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-md text-accent" style={{ background: 'var(--accent-soft)' }} aria-hidden="true">
                     <Icon name="layers" size={13} />
                   </span>
                   <b>{t(sm.libraryGroup, { agency: agency?.name ?? '' })}</b>

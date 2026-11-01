@@ -240,8 +240,8 @@ function Sending({ r }: { r: Report }) {
       <div className="pad flex flex-col gap-3">
         <div className="bar stack" style={{ height: 10 }} role="img" aria-label={t(m.sendingTitle, { sent: count(tl.sent), total: count(total) })}>
           <i style={{ width: `${pctOf(tl.delivered, total)}%`, background: 'var(--accent)' }} />
-          <i style={{ width: `${pctOf(tl.queued, total)}%`, background: '#99F6E4' }} />
-          <i style={{ width: `${pctOf(tl.failed, total)}%`, background: '#B91C1C' }} />
+          <i style={{ width: `${pctOf(tl.queued, total)}%`, background: 'var(--accent-line)' }} />
+          <i style={{ width: `${pctOf(tl.failed, total)}%`, background: 'var(--bad-strong)' }} />
         </div>
         <div className="sms-bm-l">
           <span>
@@ -249,11 +249,11 @@ function Sending({ r }: { r: Report }) {
             {t(m.sDelivered, { count: count(tl.delivered) })}
           </span>
           <span>
-            <span className="sms-bsw" style={{ background: '#99F6E4' }} />
+            <span className="sms-bsw" style={{ background: 'var(--accent-line)' }} />
             {t(m.sWaiting, { count: count(tl.queued) })}
           </span>
           <span>
-            <span className="sms-bsw" style={{ background: '#B91C1C' }} />
+            <span className="sms-bsw" style={{ background: 'var(--bad-strong)' }} />
             {t(m.sFailed, { count: count(tl.failed) })}
           </span>
           <span>
@@ -431,7 +431,7 @@ function Outage({ r }: { r: Report }) {
   })
   const region = regionSentence(o.countries)
   return (
-    <section className="card flex min-w-0 flex-col" style={{ borderColor: '#FCA5A5' }}>
+    <section className="card flex min-w-0 flex-col" style={{ borderColor: 'var(--bad-line)' }}>
       <div className="sec">
         <h2 className="h2">{t(m.outageTitle, { provider: o.provider })}</h2>
         <div className="flex flex-wrap gap-2">
@@ -746,7 +746,7 @@ function ByCountry({ r }: { r: Report }) {
           <tbody>
             {r.countries.map((c) =>
               c.skipped && !c.sent ? (
-                <tr key={c.country} style={{ background: '#FFFBEB' }}>
+                <tr key={c.country} style={{ background: 'var(--color-warn-tint)' }}>
                   <td className="nw">
                     <CountryName code={c.country} />
                   </td>
@@ -812,7 +812,7 @@ function ByCountry({ r }: { r: Report }) {
       </div>
       <div className="sms-only-phone">
         {r.countries.map((c) => (
-          <div key={c.country} className="flex flex-col gap-1 border-t border-line-2 px-4 py-3" style={c.skipped && !c.sent ? { background: '#FFFBEB' } : undefined}>
+          <div key={c.country} className="flex flex-col gap-1 border-t border-line-2 px-4 py-3" style={c.skipped && !c.sent ? { background: 'var(--color-warn-tint)' } : undefined}>
             <span className="flex items-center justify-between gap-2">
               <CountryName code={c.country} />
               {c.skipped && !c.sent ? <Badge tone="warn">{t(m.skipped, { count: count(c.skipped) })}</Badge> : <span className="n">{money(c.cost)}</span>}

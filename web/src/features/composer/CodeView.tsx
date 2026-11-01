@@ -43,23 +43,23 @@ const mjmlColors = ViewPlugin.fromClass(
 const darkTheme = EditorView.theme(
   {
     '&': { color: '#D1D5DB', backgroundColor: 'transparent', height: '100%' },
-    '.cm-content': { caretColor: '#F9FAFB', padding: 0 },
+    '.cm-content': { caretColor: 'var(--ground-3)', padding: 0 },
     // The board's dark pane draws line numbers lighter than the light one (.code .ln), 6.9:1.
-    '.cm-gutters': { backgroundColor: 'transparent', color: '#9CA3AF', border: 0 },
+    '.cm-gutters': { backgroundColor: 'transparent', color: 'var(--ink-4)', border: 0 },
     '.cm-lineNumbers .cm-gutterElement': { minWidth: '28px', padding: '0 16px 0 0', textAlign: 'right' },
     '.cm-activeLine': { backgroundColor: 'rgba(255,255,255,.04)' },
     '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': { backgroundColor: 'rgba(147,197,253,.28) !important' },
-    '.cm-cursor': { borderLeftColor: '#F9FAFB' },
+    '.cm-cursor': { borderLeftColor: 'var(--ground-3)' },
     '.mj-tg': { color: '#93C5FD' },
-    '.mj-at': { color: '#FDE68A' },
+    '.mj-at': { color: 'var(--color-warn-line)' },
     '.mj-st': { color: '#86EFAC' },
-    '.mj-cm': { color: '#9CA3AF' },
+    '.mj-cm': { color: 'var(--ink-4)' },
   },
   { dark: true },
 )
 
 const lightTheme = EditorView.theme({
-  '&': { color: '#374151', backgroundColor: 'transparent', height: '100%' },
+  '&': { color: 'var(--ink-nav)', backgroundColor: 'transparent', height: '100%' },
   '.cm-content': { padding: 0 },
   '.cm-gutters': { backgroundColor: 'transparent', color: '#6B7280', border: 0 },
   '.cm-lineNumbers .cm-gutterElement': { minWidth: '28px', padding: '0 16px 0 0', textAlign: 'right' },
@@ -128,8 +128,8 @@ function Pane({ title, aside, dark, children }: { title: string; aside: string; 
     // Flex bases include the 18 px side padding, as the board's content-box panes: they stack below about 870 px.
     <div className={dark ? 'cmp-code' : 'cmp-html'} style={{ flex: dark ? '1 1 456px' : '1 1 416px' }}>
       <div className="flex items-center justify-between gap-3" style={{ marginBottom: 10 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: dark ? '#9CA3AF' : 'var(--ink-3)' }}>{title}</span>
-        <span className={dark ? undefined : 'k'} style={dark ? { fontSize: 11, color: '#9CA3AF' } : undefined}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: dark ? 'var(--ink-4)' : 'var(--ink-3)' }}>{title}</span>
+        <span className={dark ? undefined : 'k'} style={dark ? { fontSize: 11, color: 'var(--ink-4)' } : undefined}>
           {aside}
         </span>
       </div>
@@ -248,7 +248,7 @@ export function CodeView({ aside }: { aside?: ReactNode } = {}) {
           ) : null}
         </div>
         {failed ? (
-          <div role="alert" className="card mx-4 mt-4 flex flex-col" style={{ padding: '16px 18px', gap: 10, borderColor: '#FCA5A5' }}>
+          <div role="alert" className="card mx-4 mt-4 flex flex-col" style={{ padding: '16px 18px', gap: 10, borderColor: 'var(--bad-line)' }}>
             <div className="flex flex-wrap items-center gap-2.5">
               <Badge tone="bad" dot>
                 {tr(mk.mjmlError)}
@@ -298,7 +298,7 @@ export function CodeView({ aside }: { aside?: ReactNode } = {}) {
           >
             <TabPanel value="compile" className="flex flex-1 flex-col" tabIndex={-1}>
               {result ? (
-                <div className="crow" style={{ background: errors.length ? 'var(--bad-tint)' : '#F0FDF4' }}>
+                <div className="crow" style={{ background: errors.length ? 'var(--bad-tint)' : 'var(--ok-tint)' }}>
                   <Badge tone={errors.length ? 'bad' : 'ok'}>{errors.length ? tr(mk.error) : tr(mk.ok)}</Badge>
                   <span>{tr(mk.compiledIn, { ms: result.ms, errors: errors.length, warnings: warnings.length })}</span>
                 </div>

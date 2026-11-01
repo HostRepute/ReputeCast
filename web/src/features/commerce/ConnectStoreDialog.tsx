@@ -255,7 +255,7 @@ function Address({ platform, onCancel, onDone }: { platform: Platform; onCancel:
           onChange={(e) => setAddress(e.target.value)}
           aria-invalid={err ? true : undefined}
           aria-describedby={err ? 'cs-address-err' : undefined}
-          style={err ? { borderColor: '#B91C1C' } : undefined}
+          style={err ? { borderColor: 'var(--bad-strong)' } : undefined}
           autoComplete="off"
           spellCheck={false}
           autoFocus
@@ -407,7 +407,7 @@ function Keys({ st, refused, onBack, onDone }: { st: ConnectState; refused: bool
           autoComplete="off"
           aria-invalid={err ? true : undefined}
           aria-describedby="cs-secret-note"
-          style={err ? { borderColor: '#B91C1C' } : undefined}
+          style={err ? { borderColor: 'var(--bad-strong)' } : undefined}
         />
         {err ? (
           <FieldError id="cs-secret-note">{err}</FieldError>
@@ -637,7 +637,7 @@ function WooKey({ st, onBack, onDone }: { st: ConnectState; onBack: () => void; 
           autoComplete="off"
           aria-invalid={err ? true : undefined}
           aria-describedby="cs-key-note"
-          style={err ? { borderColor: '#B91C1C' } : undefined}
+          style={err ? { borderColor: 'var(--bad-strong)' } : undefined}
         />
         {err ? (
           <FieldError id="cs-key-note">{err}</FieldError>
@@ -700,7 +700,7 @@ function Plugin({ st, onBack, onDone }: { st: ConnectState; onBack: () => void; 
           </span>
         ) : (
           <>
-            <span className="flex items-center gap-2 text-[13px] font-semibold text-[#991B1B]" role="status">
+            <span className="flex items-center gap-2 text-[13px] font-semibold text-bad-fg" role="status">
               <AttentionIcon size={14} color="#991B1B" />
               {t(cc.pluginNotFound, { host })}
             </span>

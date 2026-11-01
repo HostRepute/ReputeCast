@@ -253,7 +253,7 @@ function Rejected({ panel, item, brand }: { panel: Panel; item: Item; brand?: It
     onError: (e) => toast({ kind: 'error', title: errorMessage(e) }),
   })
   return (
-    <div className="flex flex-col gap-3 rounded-lg border p-3.5" style={{ borderColor: '#FCA5A5' }}>
+    <div className="flex flex-col gap-3 rounded-lg border p-3.5" style={{ borderColor: 'var(--bad-line)' }}>
       <Note tone="bad">
         <span className="flex flex-col gap-1">
           <span className="font-bold">{t(m.rejectedTitle)}</span>
@@ -320,7 +320,7 @@ function ByCountry({ panel }: { panel: Panel }) {
                 ? t(m.setByHand, { name })
                 : readLine(panel, t)
         return (
-          <div key={i.country} className="sms-srow items-center" style={{ borderTop: n === 0 ? 0 : undefined, background: hold ? '#FFFBEB' : undefined }}>
+          <div key={i.country} className="sms-srow items-center" style={{ borderTop: n === 0 ? 0 : undefined, background: hold ? 'var(--color-warn-tint)' : undefined }}>
             <div className="tx" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <CountryName code={i.country} />
               <span className="k">{sub}</span>

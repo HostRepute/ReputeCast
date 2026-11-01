@@ -300,7 +300,7 @@ function HelpMeChoose({
                 <span className="k">{t(mc.rankLine)}</span>
               </div>
               {second && secondPrice ? (
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[#99f6e4] pt-2.5 text-[13px]">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-accent-line pt-2.5 text-[13px]">
                   <span className="k font-semibold">{t(mc.runnerUp)}</span>
                   <span className="min-w-0 flex-[1_1_260px]">
                     <span className="font-semibold">{second.name}</span> ·{' '}

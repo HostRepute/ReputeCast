@@ -91,7 +91,7 @@ export function DisconnectStoreDialog({ page: p, onOpenChange }: { page: StorePa
         <div className={`cm-choice${del ? ' on' : ''}`}>
           <input id="cm-delete" type="radio" name="cm-store-data" checked={del} onChange={() => setDel(true)} aria-describedby="cm-delete-sub" />
           <span className="flex min-w-0 flex-1 flex-col gap-1.5">
-            <label htmlFor="cm-delete" className="cursor-pointer font-semibold text-[#991B1B]">
+            <label htmlFor="cm-delete" className="cursor-pointer font-semibold text-bad-fg">
               {t(cc.dcDelete)}
             </label>
             <span className="k" id="cm-delete-sub">

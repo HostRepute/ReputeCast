@@ -230,7 +230,7 @@ function ProductPanel({ c }: { c: Component }) {
       </Prop>
       <Prop>
         <span className="t">{t(m.afterPayment)}</span>
-        <span className="k" style={{ color: '#374151' }}>
+        <span className="k" style={{ color: 'var(--ink-nav)' }}>
           {tpl?.template ? t(m.afterPaymentText, { template: tpl.template, version: tpl.version ?? 1 }) : t(m.afterPaymentPlain)}
         </span>
       </Prop>

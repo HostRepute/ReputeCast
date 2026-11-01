@@ -46,13 +46,13 @@ const liquidColors = ViewPlugin.fromClass(
 
 const dark = EditorView.theme(
   {
-    '&': { color: '#E5E7EB', backgroundColor: 'transparent', height: '100%' },
-    '.cm-content': { caretColor: '#F9FAFB', padding: '10px 0' },
-    '.cm-gutters': { backgroundColor: 'transparent', color: '#9CA3AF', border: 0 },
+    '&': { color: 'var(--dark-text)', backgroundColor: 'transparent', height: '100%' },
+    '.cm-content': { caretColor: 'var(--ground-3)', padding: '10px 0' },
+    '.cm-gutters': { backgroundColor: 'transparent', color: 'var(--ink-4)', border: 0 },
     '.cm-lineNumbers .cm-gutterElement': { minWidth: '24px', padding: '0 12px 0 8px', textAlign: 'right' },
     '.cm-activeLine': { backgroundColor: 'rgba(255,255,255,.04)' },
     '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': { backgroundColor: 'rgba(147,197,253,.28) !important' },
-    '.cm-cursor': { borderLeftColor: '#F9FAFB' },
+    '.cm-cursor': { borderLeftColor: 'var(--ground-3)' },
     '.tx-k': { color: '#93C5FD' },
     '.tx-s': { color: '#86EFAC' },
     '.tx-l': { color: '#FCD34D' },
@@ -62,11 +62,11 @@ const dark = EditorView.theme(
 )
 
 const light = EditorView.theme({
-  '&': { color: '#1F2937', backgroundColor: 'transparent', height: '100%' },
+  '&': { color: 'var(--dark-line)', backgroundColor: 'transparent', height: '100%' },
   '.cm-content': { padding: '10px 0' },
   '.cm-gutters': { backgroundColor: 'transparent', color: '#6B7280', border: 0 },
   '.cm-lineNumbers .cm-gutterElement': { minWidth: '24px', padding: '0 12px 0 8px', textAlign: 'right' },
-  '.tx-q': { color: '#5B21B6', backgroundColor: '#EDE9FE', borderRadius: '3px' },
+  '.tx-q': { color: 'var(--purple-fg)', backgroundColor: 'var(--purple-bg)', borderRadius: '3px' },
 })
 
 /**

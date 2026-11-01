@@ -247,7 +247,7 @@ function ShownOnce({ created, smtp, setup, onClose }: { created: Created; smtp: 
           </dd>
         </dl>
       ) : (
-        <div className="flex items-center gap-2 rounded-lg border border-line px-3 py-2.5" style={{ background: '#F9FAFB' }}>
+        <div className="flex items-center gap-2 rounded-lg border border-line px-3 py-2.5" style={{ background: 'var(--ground-3)' }}>
           <Icon name="key" size={16} />
           <span className="mono flex-1" style={{ overflowWrap: 'anywhere' }}>
             {created.secret}

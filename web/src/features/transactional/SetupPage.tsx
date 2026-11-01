@@ -150,7 +150,7 @@ function ApiCard({ s }: { s: Setup }) {
           </tbody>
         </table>
       </TableScroll>
-      <div className="pad flex flex-col gap-3.5" style={{ borderTop: '1px solid #EEF0F3' }}>
+      <div className="pad flex flex-col gap-3.5" style={{ borderTop: '1px solid var(--line-2)' }}>
         <dl className="kv">
           <dt>{t(ms.auth)}</dt>
           <dd>

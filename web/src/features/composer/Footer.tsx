@@ -129,7 +129,7 @@ export function SizeSummary() {
   const links = t(m.links, { count: r.links, blocklisted: r.linksBlocklisted, broken: r.linksBroken })
   const near = r.sizeBytes >= 85 * 1024
   return (
-    <span className="k" style={{ marginLeft: 'auto', ...(issues.length && (near || (!a11y && r.imagesMissingAlt) || extra) ? { color: '#92400E', fontWeight: 600 } : {}) }}>
+    <span className="k" style={{ marginLeft: 'auto', ...(issues.length && (near || (!a11y && r.imagesMissingAlt) || extra) ? { color: 'var(--warn-fg)', fontWeight: 600 } : {}) }}>
       {language ? `${language} · ` : ''}
       {sizes ?? t(m.sizeOf, { size: kb(r.sizeBytes) })} · {images} · {links}
       <AccessibilityClear />

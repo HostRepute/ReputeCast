@@ -57,7 +57,7 @@ export function GrowthCard({ a }: { a: Schemas['OverviewAudience'] }) {
             <div key={l.id}>
               <div className="k">{l.name}</div>
               <div className="n">{count(l.contacts)}</div>
-              <div className="k" style={{ color: l.net > 0 ? '#166534' : l.net < 0 ? '#991B1B' : undefined }}>
+              <div className="k" style={{ color: l.net > 0 ? 'var(--ok-fg)' : l.net < 0 ? 'var(--bad-fg)' : undefined }}>
                 {delta(l.net)}
               </div>
             </div>

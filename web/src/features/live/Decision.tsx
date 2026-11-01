@@ -63,7 +63,7 @@ export function DecisionView({
 
 const tones = {
   bad: { border: 'border-bad-line', head: 'bg-[#FEF2F2]', text: 'text-[#7F1D1D]' },
-  warn: { border: 'border-[#FCD34D]', head: 'bg-[#FFFBEB]', text: 'text-[#78350F]' },
+  warn: { border: 'border-[#FCD34D]', head: 'bg-warn-tint', text: 'text-[#78350F]' },
 }
 
 function IncidentPanel({ s, incident, actions, can, onCancelAll }: { s: Snapshot; incident: Incident; actions: LiveActions; can: LivePermissions; onCancelAll: () => void }) {

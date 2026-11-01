@@ -102,7 +102,7 @@ export function SourceFailed({ d }: { d: Detail }) {
   const { slug } = useWorkspace()
   const e = d.error
   return (
-    <div role="alert" className="card flex flex-col gap-2 border-[#FCA5A5] px-4.5 py-4">
+    <div role="alert" className="card flex flex-col gap-2 border-bad-line px-4.5 py-4">
       <div className="flex items-center gap-2.5">
         <Badge tone="bad">{e?.status ? String(e.status) : t(m.error)}</Badge>
         <span className="font-semibold">{e?.code === 'source_auth_failed' ? t(m.keyRejected, { source: d.sourceName }) : t(m.readFailed, { source: d.sourceName })}</span>

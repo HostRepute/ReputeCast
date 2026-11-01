@@ -293,7 +293,7 @@ function RowDetail({ row, view }: { row: Row; view: View }) {
   const t = useT()
   const r = row.rebill
   return (
-    <div className="grid gap-5 rounded-lg border border-[#BFE5DD] bg-[#F0FDFA] px-4 py-3.5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(200px,100%),1fr))' }}>
+    <div className="grid gap-5 rounded-lg border border-[#BFE5DD] bg-accent-tint px-4 py-3.5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(200px,100%),1fr))' }}>
       <div className="flex flex-col gap-1.5">
         <b className="text-[13px]">{t(um.byStream)}</b>
         {row.streams.length ? (

@@ -176,7 +176,7 @@ function MemberRow({
   const active = m.status === 'active'
   const reactivate = useReactivate()
   return (
-    <tr style={active ? undefined : { color: '#5B6472' }}>
+    <tr style={active ? undefined : { color: 'var(--ink-3)' }}>
       <Td>
         <div className="flex min-w-0 items-center gap-2.5">
           {manage ? (

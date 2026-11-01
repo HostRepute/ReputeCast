@@ -818,7 +818,7 @@ function CostCard({ data }: { data: Review }) {
           <span className="inline-flex items-center gap-2">
             <CountryChips codes={[c.country]} />
             {c.skipped >= c.recipients && c.skipped > 0 ? (
-              <span className="k" style={{ color: '#92400E' }}>
+              <span className="k" style={{ color: 'var(--warn-fg)' }}>
                 {t(m.skipped, { count: count(c.skipped) })}
               </span>
             ) : (
@@ -924,7 +924,7 @@ function ApprovalsCard({ data }: { data: Review }) {
     return (
       <Card title={t(m.approvalRequired)} aside={<Badge tone="warn">{t(m.rulesMatched, { count: a.rules.length })}</Badge>}>
         {a.rules.map((r) => (
-          <span key={r.key} className="text-[13px] text-[#374151]">
+          <span key={r.key} className="text-[13px] text-ink-nav">
             {r.label}
           </span>
         ))}
@@ -950,7 +950,7 @@ function ApprovalsCard({ data }: { data: Review }) {
   const p = data.policy
   return (
     <Card title={t(m.approvals)}>
-      <span className="text-[13px] text-[#374151]">
+      <span className="text-[13px] text-ink-nav">
         {t(m.noApprovalWhy, {
           audience: p.audienceRule ? 'yes' : 'no',
           min: count(p.audienceMin),

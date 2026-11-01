@@ -575,7 +575,7 @@ function LogTable({ items }: { items: LogItem[] }) {
                           <Link
                             to="/w/$workspace/transactional/templates/$templateId"
                             params={{ workspace: slug, templateId: it.template.key }}
-                            style={{ color: '#0B1220', fontWeight: 600 }}
+                            style={{ color: 'var(--ink)', fontWeight: 600 }}
                           >
                             {it.template.name}
                           </Link>
@@ -584,7 +584,7 @@ function LogTable({ items }: { items: LogItem[] }) {
                         ) : (
                           <span style={{ fontWeight: 600 }}>{templateName(t, it)}</span>
                         )}
-                        <span className="k" style={{ color: '#4B5563' }}>
+                        <span className="k" style={{ color: 'var(--ink-2)' }}>
                           {it.subject}
                         </span>
                       </div>
@@ -648,7 +648,7 @@ export function LogPhoneList({ items, current, compact }: { items: LogItem[]; cu
             to="/w/$workspace/transactional/messages/$messageId"
             params={{ workspace: slug, messageId: it.id }}
             className="flex items-start gap-2.5 border-t border-line-2 px-4 py-[11px]"
-            style={{ color: '#0B1220', ...(on ? { background: '#F0FDFA', boxShadow: 'inset 3px 0 0 #0F766E' } : null) }}
+            style={{ color: 'var(--ink)', ...(on ? { background: 'var(--accent-tint)', boxShadow: 'inset 3px 0 0 var(--accent)' } : null) }}
             aria-current={on ? 'true' : undefined}
           >
             <span className="mono k flex-none" style={{ paddingTop: 2 }}>
@@ -658,7 +658,7 @@ export function LogPhoneList({ items, current, compact }: { items: LogItem[]; cu
               <span className="mono overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: 12.5 }}>
                 {it.email}
               </span>
-              <span className="k" style={{ color: '#4B5563' }}>
+              <span className="k" style={{ color: 'var(--ink-2)' }}>
                 {templateName(t, it)}
                 {detail ? ` · ${detail}` : ''}
               </span>

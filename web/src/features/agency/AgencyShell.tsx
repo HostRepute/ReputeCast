@@ -59,7 +59,7 @@ function AgencySidebar() {
   const level = agency?.staff?.level === 'agency_manager' ? t(m.levelAgencyManager) : t(m.levelAccountManager)
   const host = (
     <>
-      <span className="dot" style={{ color: '#15803D' }} aria-hidden="true" />
+      <span className="dot" style={{ color: 'var(--ok-bar)' }} aria-hidden="true" />
       <span className="flex min-w-0 flex-col leading-[1.25]">
         <span className="truncate text-[12px] font-semibold">{agency?.host}</span>
         <span className="k text-[11px]">{t(m.hostLine, { clients: agency?.clientCount ?? 0, agency: agency?.agencyWorkspace ? 1 : 0 })}</span>
@@ -172,7 +172,7 @@ export function AgencySearchBox({ initial = '', width = 260 }: { initial?: strin
   return (
     <form role="search" onSubmit={submit} className="max-md:w-full">
       <label
-        className="flex h-9 items-center gap-2 rounded-lg border border-[#8B94A3] bg-white px-2.5 max-md:w-full!"
+        className="flex h-9 items-center gap-2 rounded-lg border border-line-input bg-white px-2.5 max-md:w-full!"
         style={{ width, maxWidth: '100%', boxSizing: 'border-box' }}
       >
         <Icon name="search" size={15} className="text-ink-3" />

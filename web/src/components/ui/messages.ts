@@ -21,4 +21,6 @@ export const m = defineMessages('ui', {
   partFailed: "This part couldn't show",
   partFailedBody: 'The rest of the page works. Retry, or reload the page if it keeps happening.',
   loadFailedBody: "The server didn't answer. Nothing was lost.",
+  // Read before a finished step's name by screen readers ("Done: Provider").
+  stepDone: 'Done:',
 })

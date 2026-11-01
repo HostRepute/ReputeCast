@@ -104,7 +104,7 @@ export function StreamLostBanner({ title, body, onReconnect, busy }: { title: st
 export function StaleBanner({ title, body, onReconnect }: { title: string; body: string; onReconnect: () => void }) {
   const t = useT()
   return (
-    <div className="flex flex-wrap items-center gap-4 rounded-[12px] border border-[#FCD34D] bg-[#FFFBEB] px-5 py-4">
+    <div className="flex flex-wrap items-center gap-4 rounded-[12px] border border-[#FCD34D] bg-warn-tint px-5 py-4">
       <svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
         <circle cx="20" cy="20" r="19" fill="#FEF3C7" />
         <path d="M20 12v8l5 3" stroke="#92400E" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />

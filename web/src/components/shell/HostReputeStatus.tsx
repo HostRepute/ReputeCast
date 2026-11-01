@@ -10,9 +10,9 @@ export function useHostReputeLine(): { color: string; title: string; line: strin
   const t = useT()
   const hr = me.hostRepute
   if (hr?.status === 'connected') {
-    return { color: '#15803D', title: t(m.hostReputeConnected), line: t(m.hostReputeSynced, { team: hr.teamName, ago: ago(hr.lastSyncAt) }) }
+    return { color: 'var(--ok-bar)', title: t(m.hostReputeConnected), line: t(m.hostReputeSynced, { team: hr.teamName, ago: ago(hr.lastSyncAt) }) }
   }
-  if (hr) return { color: '#B45309', title: t(m.hostReputeAttention), line: t(m.hostReputeReconnect) }
+  if (hr) return { color: 'var(--warn-bar)', title: t(m.hostReputeAttention), line: t(m.hostReputeReconnect) }
   return { color: '#6B7280', title: t(m.hostReputeConnect), line: t(m.hostReputeOptional) }
 }
 

@@ -30,7 +30,7 @@ export function SetupCard({ row, setup }: { row: AgencyClientRow; setup: Setup }
       </div>
       <div className="flex items-center gap-2.5 px-[18px] pb-2.5">
         <span className="bar flex-1" aria-hidden="true">
-          <i style={{ width: `${setup.total ? (setup.done / setup.total) * 100 : 0}%`, background: '#0F766E' }} />
+          <i style={{ width: `${setup.total ? (setup.done / setup.total) * 100 : 0}%`, background: 'var(--accent)' }} />
         </span>
         <span className="k">{t(m.setupSteps, { done: setup.done, total: setup.total })}</span>
       </div>
@@ -42,7 +42,7 @@ export function SetupCard({ row, setup }: { row: AgencyClientRow; setup: Setup }
             <li key={s.key} className="flex items-center gap-2.5 border-t border-line-2 px-[18px] py-2.5">
               <span
                 className="inline-flex h-[22px] w-[22px] flex-none items-center justify-center rounded-full border text-[11px] font-semibold"
-                style={s.done ? { background: '#DCFCE7', borderColor: '#BBF7D0', color: '#166534' } : { borderColor: '#D4D8DF', color: '#4B5563' }}
+                style={s.done ? { background: 'var(--ok-bg)', borderColor: 'var(--ok-line)', color: 'var(--ok-fg)' } : { borderColor: 'var(--line-strong)', color: 'var(--ink-2)' }}
               >
                 {s.done ? <Icon name="check" size={12} /> : i + 1}
               </span>

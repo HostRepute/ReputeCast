@@ -144,20 +144,20 @@ export function SmsCatalogPage() {
                 aria-checked={on}
                 onClick={() => setPicked(i.adapter)}
                 className="card flex min-w-0 flex-col gap-2.5 px-4 py-3.5 text-left"
-                style={on ? { borderColor: '#0F766E', boxShadow: '0 0 0 1px #0F766E' } : undefined}
+                style={on ? { borderColor: 'var(--accent)', boxShadow: '0 0 0 1px var(--accent)' } : undefined}
               >
                 <span className="flex flex-wrap items-center justify-between gap-2.5">
                   <span className="text-[15px] font-bold">{i.name}</span>
                   {on ? <Badge tone="ok">{t(m.selected)}</Badge> : i.connected ? <Badge tone="neutral">{t(m.connected)}</Badge> : null}
                 </span>
-                <span className="k text-[#4B5563]">{i.summary}</span>
+                <span className="k text-ink-2">{i.summary}</span>
                 <Capabilities badges={i.badges} short />
               </button>
             )
           })}
-          <div className="card flex min-w-0 flex-col gap-2.5 px-4 py-3.5" style={{ borderStyle: 'dashed', background: '#FBFBFC' }}>
+          <div className="card flex min-w-0 flex-col gap-2.5 px-4 py-3.5" style={{ borderStyle: 'dashed', background: 'var(--color-side)' }}>
             <span className="text-[15px] font-bold">{t(m.another)}</span>
-            <span className="k text-[#4B5563]">{t(m.anotherText)}</span>
+            <span className="k text-ink-2">{t(m.anotherText)}</span>
             <ButtonLink size="sm" className="self-start" to="/w/$workspace/providers/adapters" params={{ workspace: slug }}>
               {t(m.manageAdapters)}
             </ButtonLink>
@@ -312,7 +312,7 @@ function Connection({ item, search, onSearch }: StepProps) {
       </div>
       <div className="sms-cbox">
         <span className="text-[13px] font-semibold">{item.webhooks === 'registered' ? t(m.webhooksApi, { name: item.name }) : t(m.webhooksManual, { name: item.name })}</span>
-        <span className="k text-[#374151]">{item.webhooks === 'registered' ? t(m.webhooksApiText, { name: item.name }) : t(m.webhooksManualText, { name: item.name })}</span>
+        <span className="k text-ink-nav">{item.webhooks === 'registered' ? t(m.webhooksApiText, { name: item.name }) : t(m.webhooksManualText, { name: item.name })}</span>
       </div>
       {item.webhooks === 'registered' ? <Note tone="neutral">{t(m.webhooksNote)}</Note> : null}
       <Footer back={<Button onClick={() => void navigate({ to: '/w/$workspace/providers/connect/sms', params: { workspace: slug } })}>{t(m.back)}</Button>}>
@@ -395,7 +395,7 @@ function Senders({ item, providerId, search, onSearch }: StepProps & { providerI
       </div>
       <div className="sms-cbox">
         <span className="text-[13px] font-semibold">{t(m.fromProvider, { name: item.name })}</span>
-        <span className="k text-[#374151]">
+        <span className="k text-ink-nav">
           {fastest ? t(m.fromProviderText, { rate: t(m.rate, { n: fastest.throughput }), kind: kindName(fastest.kind).toLowerCase(), name: item.name }) : t(m.fromProviderGeneric, { name: item.name })}
         </span>
       </div>

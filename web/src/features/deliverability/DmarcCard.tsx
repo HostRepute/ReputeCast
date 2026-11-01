@@ -55,7 +55,7 @@ export function DmarcCard({ d, className }: { d: Schemas['DeliverabilityDMARCSum
             <tr key={s.label} className={s.known ? undefined : 'bg-bad-tint'}>
               <Td>
                 <span className="flex items-center gap-2">
-                  <span className="dot" style={{ color: s.known ? providerColor(s.adapter) : '#B91C1C' }} aria-hidden="true" />
+                  <span className="dot" style={{ color: s.known ? providerColor(s.adapter) : 'var(--bad-strong)' }} aria-hidden="true" />
                   {s.label}
                 </span>
                 {s.known ? null : <div className="k">{t(md.notYourProvider)}</div>}

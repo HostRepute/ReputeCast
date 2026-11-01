@@ -165,7 +165,7 @@ function Trend({ h }: { h: Health }) {
       </div>
       <div className="flex h-[200px] items-end gap-1.5" role="img" aria-label={desc}>
         {weeks.map((w, i) => (
-          <div key={w.day} className="wk" style={i === h.policyWeek ? { outline: '1px dashed #9AA3B2', outlineOffset: 2 } : undefined}>
+          <div key={w.day} className="wk" style={i === h.policyWeek ? { outline: '1px dashed var(--color-muted-line)', outlineOffset: 2 } : undefined}>
             <i style={{ height: Math.round(w.active * 200), background: tierColor.active }} />
             <i style={{ height: Math.round(w.cooling * 200), background: tierColor.cooling }} />
             <i style={{ height: Math.round(w.atRisk * 200), background: tierColor.at_risk }} />
@@ -387,7 +387,7 @@ export function PolicyCard({ h }: { h: Health }) {
         </div>
       </form>
       {p.enabled && (week.entering > 0 || week.stopping > 0) ? (
-        <div className="rounded-b-[10px] border-t border-line-2 bg-[#FFFBEB] px-4.5 py-3 text-[13px]" role="status">
+        <div className="rounded-b-[10px] border-t border-line-2 bg-warn-tint px-4.5 py-3 text-[13px]" role="status">
           <T msg={m.thisWeek} values={{ text: weekText, b: (c) => <strong>{c}</strong> }} />
         </div>
       ) : null}
@@ -499,7 +499,7 @@ function PerList({ h }: { h: Health }) {
               ]
               const warn = r.healthTone !== 'ok'
               return (
-                <tr key={`${r.kind}:${r.id}`} className={warn ? 'bg-[#FFFBEB]' : undefined}>
+                <tr key={`${r.kind}:${r.id}`} className={warn ? 'bg-warn-tint' : undefined}>
                   <td className="font-semibold">
                     {r.kind === 'view' ? (
                       <>

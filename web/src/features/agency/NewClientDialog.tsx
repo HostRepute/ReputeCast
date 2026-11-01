@@ -215,7 +215,7 @@ export function NewClientDialog({ open, onOpenChange }: { open: boolean; onOpenC
         </div>
       </div>
       {tpl ? (
-        <div className="flex flex-col gap-1.5 rounded-lg border border-line bg-[#F9FAFB] px-3.5 py-3">
+        <div className="flex flex-col gap-1.5 rounded-lg border border-line bg-ground-3 px-3.5 py-3">
           <b className="text-[13.5px]">{t(m.tplAdds, { name: tpl.name })}</b>
           {templateLines(t, tpl).map((l) => (
             <span key={l} className="flex items-start gap-2 text-[13px]">
@@ -256,8 +256,8 @@ export function TemplateApplied({ created, onClose }: { created: Created; onClos
   const setup = created.setup
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start gap-3 rounded-lg border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3">
-        <Icon name="check" size={18} className="mt-0.5 text-[#15803D]" />
+      <div className="flex flex-wrap items-start gap-3 rounded-lg border border-ok-line bg-ok-tint px-4 py-3">
+        <Icon name="check" size={18} className="mt-0.5 text-ok-bar" />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <b>{t(m.readyTitle, { name: created.workspace.name })}</b>
           <span className="k">
@@ -288,7 +288,7 @@ export function TemplateApplied({ created, onClose }: { created: Created; onClos
               const link = nextStepLinks[s.key]
               return (
                 <div key={s.key} className="flex items-center gap-2.5 border-t border-line-2 py-2 first-of-type:border-t-0">
-                  <span className="inline-flex h-[22px] w-[22px] flex-none items-center justify-center rounded-full border border-[#D4D8DF] text-[11px] font-semibold text-ink-2">
+                  <span className="inline-flex h-[22px] w-[22px] flex-none items-center justify-center rounded-full border border-line-strong text-[11px] font-semibold text-ink-2">
                     {i + 1}
                   </span>
                   <span className="flex-1 text-[13px]">{t(stepLabels[s.key] ?? m.stepProvider)}</span>
@@ -329,7 +329,7 @@ export function PlanAdded({ plan, title }: { plan: Plan; title?: string }) {
       <b className="text-[13.5px]">{title ?? t(m.added)}</b>
       {lines.map((l) => (
         <span key={l} className="flex items-start gap-2 text-[13px]">
-          <Icon name="check" size={13} className="mt-0.5 flex-none text-[#15803D]" />
+          <Icon name="check" size={13} className="mt-0.5 flex-none text-ok-bar" />
           {l}
         </span>
       ))}

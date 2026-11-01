@@ -828,7 +828,7 @@ function IdentityCard({ draft, set, ro, data }: { draft: HomeNavInput; set: Sett
         </div>
         <div className="flex min-w-0 flex-col gap-3">
           <div className="flex items-center gap-3">
-            <span className="inline-flex flex-none items-center justify-center overflow-hidden rounded-[8px] border border-line bg-[#f5f3ff]" style={{ width: 96, height: 50 }}>
+            <span className="inline-flex flex-none items-center justify-center overflow-hidden rounded-[8px] border border-line bg-publisher-ground" style={{ width: 96, height: 50 }}>
               {id.socialImage ? (
                 <img src={id.socialImage} alt={t(mh.socialImageAlt)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (

@@ -411,7 +411,7 @@ function HealthCard({ card, canManage, onCredentials }: { card: Card; canManage:
   const countries = card.held.length ? regionLabel(card.held) : card.countries.length ? regionLabel(card.countries) : 'none'
   const silent = card.status === 'degraded'
   return (
-    <section className="card min-w-0" style={{ borderColor: silent ? '#FCD34D' : '#FCA5A5' }}>
+    <section className="card min-w-0" style={{ borderColor: silent ? '#FCD34D' : 'var(--bad-line)' }}>
       <div className="sec">
         <div className="flex flex-wrap items-center gap-2.5">
           <span className="text-[16px] font-bold">{card.name}</span>
@@ -509,7 +509,7 @@ function BudgetReached({ data }: { data: Overview }) {
   const tl = data.tiles
   const month = monthName(tl.month, 'long')
   return (
-    <section className="card flex min-w-0 flex-col gap-3 px-5 py-[18px]" style={{ borderColor: '#FCA5A5' }}>
+    <section className="card flex min-w-0 flex-col gap-3 px-5 py-[18px]" style={{ borderColor: 'var(--bad-line)' }}>
       <Note tone="bad">
         <span className="flex flex-col gap-1">
           <span className="font-bold">{t(m.budgetReached)}</span>
@@ -654,7 +654,7 @@ function Senders({
                   <b className="mono text-[13px] font-semibold">{r.label || r.value}</b>
                   <CountryChips codes={r.countries} />
                 </span>
-                <span className="k text-[#374151]">
+                <span className="k text-ink-nav">
                   {kindName(r.kind)} · <ProviderDot name={r.provider} color={providerColor(order, r.provider)} gap={5} />
                   {r.throughput && r.canSend ? ` · ${t(sm.perSecond, { n: r.throughput })}` : ''} · {phoneRoute(r, t)}
                 </span>
@@ -735,7 +735,7 @@ function RoutingSummary({ data, order }: { data: Overview; order: string[] }) {
             <div
               key={r.id}
               className="flex min-w-0 flex-[1_1_230px] flex-col gap-1.5 px-5 py-4"
-              style={{ borderTop: '1px solid var(--line-2)', background: r.skipped ? '#FFFBEB' : undefined }}
+              style={{ borderTop: '1px solid var(--line-2)', background: r.skipped ? 'var(--color-warn-tint)' : undefined }}
             >
               <span className="font-semibold">{regionLabel(r.countries)}</span>
               <span className="inline-flex items-center gap-2 text-[13px]">
@@ -750,7 +750,7 @@ function RoutingSummary({ data, order }: { data: Overview; order: string[] }) {
                   )}
                 </span>
               </span>
-              <span className="k" style={r.skipped ? { color: '#92400E' } : undefined}>
+              <span className="k" style={r.skipped ? { color: 'var(--warn-fg)' } : undefined}>
                 {r.skipped ? t(m.skippedUntil, { sender: r.sender }) : r.fallback ? t(m.fallbackVia, { provider: r.fallbackProvider, sender: r.fallback }) : t(m.fallbackNone)}
               </span>
             </div>
@@ -759,7 +759,7 @@ function RoutingSummary({ data, order }: { data: Overview; order: string[] }) {
         <div className="flex min-w-0 flex-[1_1_230px] flex-col gap-1.5 px-5 py-4" style={{ borderTop: '1px solid var(--line-2)' }}>
           <span className="font-semibold">{t(m.otherCountries)}</span>
           <span className="inline-flex items-center gap-2 text-[13px]">
-            <span className="dot" style={{ color: '#8B94A3' }} aria-hidden="true" />
+            <span className="dot" style={{ color: 'var(--line-input)' }} aria-hidden="true" />
             {data.other === 'route' && data.otherSender ? data.otherSender : t(m.dontSend)}
           </span>
           <span className="k">{data.other === 'route' && data.otherSender ? t(m.elsewhereVia, { sender: data.otherSender }) : t(m.elsewhereNone)}</span>

@@ -887,16 +887,16 @@ function AttributionCard({ page: p }: { page: Page_ }) {
               aria-label={t(cm.attrBar, { credited: count(a.creditedRevenue / 100), other: count(other / 100) })}
             >
               {/* No orders yet: the empty track alone. */}
-              {a.creditedRevenue > 0 ? <span style={{ flex: a.creditedRevenue, background: '#0F766E' }} /> : null}
-              {other > 0 ? <span style={{ flex: other, background: '#C9CED6' }} /> : null}
+              {a.creditedRevenue > 0 ? <span style={{ flex: a.creditedRevenue, background: 'var(--accent)' }} /> : null}
+              {other > 0 ? <span style={{ flex: other, background: 'var(--line-hover)' }} /> : null}
             </div>
             <div className="flex flex-wrap gap-3.5 text-[12px] text-ink-nav">
               <span className="inline-flex items-center gap-1.5">
-                <span className="size-2.5 rounded-[3px] bg-[#0F766E]" />
+                <span className="size-2.5 rounded-[3px] bg-accent" />
                 {t(cm.attrCredited, { amount: money(a.creditedRevenue, cur) })}
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="size-2.5 rounded-[3px] bg-[#C9CED6]" />
+                <span className="size-2.5 rounded-[3px] bg-line-hover" />
                 {t(cm.attrOther, { amount: money(other, cur) })}
               </span>
             </div>

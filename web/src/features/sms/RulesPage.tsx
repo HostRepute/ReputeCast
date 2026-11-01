@@ -227,7 +227,7 @@ function Routes({ data, ro }: { data: Rules; ro: boolean }) {
           {data.routes.map((r) => {
             const b = registrationBadge(r.registration, t)
             return (
-              <tr key={r.id} style={r.skipped ? { background: '#FFFBEB' } : undefined}>
+              <tr key={r.id} style={r.skipped ? { background: 'var(--color-warn-tint)' } : undefined}>
                 <td>
                   <CountryChips codes={r.countries} named />
                 </td>
@@ -501,7 +501,7 @@ function QuietHours({
               {t(m.legendWindow, { from: form.quietFrom, to: form.quietTo })}
             </span>
             <span>
-              <span className="sms-bsw" style={{ background: '#E3F1EE', border: '1px solid #99F6E4', boxSizing: 'border-box' }} />
+              <span className="sms-bsw" style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)', boxSizing: 'border-box' }} />
               {t(m.legendLimit)}
             </span>
             {z ? (
@@ -530,7 +530,7 @@ function QuietHours({
         ) : null}
         <div className="sms-cbox">
           <span className="text-[13px] font-semibold">{t(m.whoseZone)}</span>
-          <span className="k text-[#374151]">{t(m.whoseZoneText)}</span>
+          <span className="k text-ink-nav">{t(m.whoseZoneText)}</span>
           {data.assumed ? (
             <span className="text-[13px]">
               <T msg={m.assumed} values={{ count: data.assumed, b: (c) => <b className="n">{c}</b> }} />{' '}
@@ -566,7 +566,7 @@ function ToggleRow({
     <div className="sms-srow">
       <div className="tx">
         <span className="font-semibold">{title}</span>
-        <span className="k text-[#4B5563]">{text}</span>
+        <span className="k text-ink-2">{text}</span>
         {children}
       </div>
       <div className="ct">
@@ -715,7 +715,7 @@ function ReplyField({ label, keyword, value, ro, onChange }: { label: string; ke
         />
       </Field>
       <div className="flex flex-wrap justify-between gap-2">
-        <span className="k" style={c.segments > 1 ? { color: '#92400E' } : undefined}>
+        <span className="k" style={c.segments > 1 ? { color: 'var(--warn-fg)' } : undefined}>
           {t(m.counter, { characters: c.characters, segments: Math.max(c.segments, 1), encoding: c.encoding === 'gsm7' ? 'GSM-7' : 'UCS-2' })}
         </span>
         <span className="k">{t(m.sentOnce)}</span>
@@ -778,7 +778,7 @@ function TesterResult({ r, color }: { r: Schemas['SmsRouteTest']; color: string 
   const place = placeOf(r.zone)
   const b = registrationBadge(r.registration, t)
   return (
-    <div className="flex flex-col gap-3 rounded-[10px] border border-line px-4 py-3.5" style={{ background: '#FBFBFC' }}>
+    <div className="flex flex-col gap-3 rounded-[10px] border border-line px-4 py-3.5" style={{ background: 'var(--color-side)' }}>
       {r.route === 'none' ? (
         <Note tone="warn" role="note">
           {t(m.noRoute, { country: countryName(r.country) })}
@@ -1127,7 +1127,7 @@ function MessageRules({ data, form, set, ro }: { data: Rules; form: Form; set: <
       <div className="sms-srow" style={{ borderTop: 0 }}>
         <div className="tx">
           <span className="font-semibold">{t(m.brandPrefix)}</span>
-          <span className="k text-[#4B5563]">{t(m.brandPrefixText, { count: prefixLen })}</span>
+          <span className="k text-ink-2">{t(m.brandPrefixText, { count: prefixLen })}</span>
         </div>
         <div className="ct">
           <input className="in" type="text" aria-label={t(m.brandPrefix)} style={{ width: 140 }} disabled={ro} value={form.brandPrefix} onChange={(e) => set('brandPrefix', e.target.value)} />
@@ -1136,7 +1136,7 @@ function MessageRules({ data, form, set, ro }: { data: Rules; form: Form; set: <
       <div className="sms-srow">
         <div className="tx">
           <span className="font-semibold">{t(m.optOutText)}</span>
-          <span className="k text-[#4B5563]">{t(m.optOutTextText, { count: optOutLen })}</span>
+          <span className="k text-ink-2">{t(m.optOutTextText, { count: optOutLen })}</span>
           <label className="mt-1 flex items-center gap-2 text-[13px]">
             <input type="checkbox" checked={form.optOutInSteps} disabled={ro} onChange={(e) => set('optOutInSteps', e.target.checked)} />
             {t(m.optOutInSteps)}
@@ -1202,7 +1202,7 @@ function ShortDomain({ data, ro }: { data: Rules; ro: boolean }) {
             {d.domain ? <span className="mono font-semibold">{d.domain}</span> : null}
             {badge}
           </span>
-          <span className="k text-[#4B5563]">{d.domain ? t(m.shortDomainText, { target: d.target }) : t(m.shortDomainNone)}</span>
+          <span className="k text-ink-2">{d.domain ? t(m.shortDomainText, { target: d.target }) : t(m.shortDomainNone)}</span>
         </div>
         <div className="ct">
           {d.domain ? (
@@ -1253,10 +1253,10 @@ function ShortDomain({ data, ro }: { data: Rules; ro: boolean }) {
         </div>
       ) : null}
       {d.domain ? (
-        <div className="sms-srow" style={{ background: '#F9FAFB' }}>
+        <div className="sms-srow" style={{ background: 'var(--ground-3)' }}>
           <div className="tx">
             <span className="inline-flex items-center gap-2 font-semibold">{t(m.monitorTitle, { domain: d.domain })}</span>
-            <span className="k text-[#4B5563]">{t(m.monitorText)}</span>
+            <span className="k text-ink-2">{t(m.monitorText)}</span>
           </div>
           <div className="ct">
             <Link to="/w/$workspace/settings/integrations/hostrepute" params={{ workspace: slug }} className="btn sm">

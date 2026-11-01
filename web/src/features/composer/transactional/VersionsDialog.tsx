@@ -80,7 +80,7 @@ function Compare({ target, onBack }: { target: CompareTarget; onBack: () => void
         // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         <div className="mono overflow-auto rounded-lg border border-line" style={{ maxHeight: '60vh', fontSize: 12, lineHeight: 1.6 }} tabIndex={0} role="region" aria-label={t(mp.compareLabel)}>
           {lines.map((l, i) => (
-            <div key={i} style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', padding: '0 10px', background: l.kind === 'add' ? '#DCFCE7' : l.kind === 'del' ? '#FEE2E2' : undefined, color: l.kind === 'fold' ? 'var(--ink-3)' : undefined }}>
+            <div key={i} style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', padding: '0 10px', background: l.kind === 'add' ? 'var(--ok-bg)' : l.kind === 'del' ? 'var(--bad-bg)' : undefined, color: l.kind === 'fold' ? 'var(--ink-3)' : undefined }}>
               <span aria-hidden="true" style={{ display: 'inline-block', width: 14 }}>
                 {l.kind === 'add' ? '+' : l.kind === 'del' ? '−' : ' '}
               </span>

@@ -222,7 +222,7 @@ function HostReputeCard({ conn, onLimit }: { conn: Connection; onLimit: (l: Limi
           </thead>
           <tbody>
             {conn.assets.map((a) => (
-              <tr key={a.asset} className={a.monitored ? undefined : 'bg-[#FFFBEB]'}>
+              <tr key={a.asset} className={a.monitored ? undefined : 'bg-warn-tint'}>
                 <Td>
                   <span className="mono">{a.asset}</span>
                 </Td>

@@ -36,7 +36,7 @@ export function FullPageState({
   actions?: ReactNode
   footnote?: ReactNode
 }) {
-  const ico = { neutral: undefined, warn: { background: '#FEF3C7', color: '#92400E' }, bad: { background: '#FEE2E2', color: '#991B1B' } }[tone as 'neutral' | 'warn' | 'bad']
+  const ico = { neutral: undefined, warn: { background: 'var(--warn-bg)', color: 'var(--warn-fg)' }, bad: { background: 'var(--bad-bg)', color: 'var(--bad-fg)' } }[tone as 'neutral' | 'warn' | 'bad']
   return (
     <section className="card full">
       <div className="ico" style={ico}>

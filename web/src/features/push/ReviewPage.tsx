@@ -312,10 +312,10 @@ function Verdict({
     text = t(m.readyText, { n: passed, time: at })
   }
   const colors = {
-    ok: { border: '#BBF7D0', bg: '#F0FDF4', ring: '#DCFCE7', fg: '#14532D', icon: '#15803D' },
+    ok: { border: 'var(--ok-line)', bg: '#F0FDF4', ring: '#DCFCE7', fg: '#14532D', icon: '#15803D' },
     warn: { border: '#FCD34D', bg: '#FFFBEB', ring: '#FEF3C7', fg: '#78350F', icon: '#B45309' },
-    bad: { border: '#FCA5A5', bg: '#FFF5F5', ring: '#FEE2E2', fg: '#7F1D1D', icon: '#B91C1C' },
-    info: { border: '#BFDBFE', bg: '#EFF6FF', ring: '#DBEAFE', fg: '#1E3A8A', icon: '#1E40AF' },
+    bad: { border: 'var(--bad-line)', bg: '#FFF5F5', ring: '#FEE2E2', fg: '#7F1D1D', icon: '#B91C1C' },
+    info: { border: 'var(--color-info-line)', bg: '#EFF6FF', ring: '#DBEAFE', fg: '#1E3A8A', icon: '#1E40AF' },
   }[tone]
   return (
     <section className="card flex flex-wrap items-center gap-3.5 px-5 py-4" style={{ borderColor: colors.border, background: colors.bg }} role={tone === 'bad' ? 'alert' : 'status'}>

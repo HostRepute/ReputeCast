@@ -753,7 +753,7 @@ function ContentPanel({ d }: { d: Detail }) {
   else if (!q.data) body = <Skeleton w="100%" h={320} />
   else if (view === 'html')
     body = (
-      <div className="flex justify-center rounded-[10px] border border-line p-4" style={{ background: '#E9ECF0' }}>
+      <div className="flex justify-center rounded-[10px] border border-line p-4" style={{ background: 'var(--color-skeleton)' }}>
         <iframe
           title={t(ml.renderedLabel)}
           sandbox=""

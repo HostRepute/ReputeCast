@@ -168,7 +168,7 @@ function Card({ tone, badge, title, children, actions }: { tone: 'ok' | 'warn' |
           {title}
         </span>
       </div>
-      <span className="k" style={{ color: '#374151' }}>
+      <span className="k" style={{ color: 'var(--ink-nav)' }}>
         {children}
       </span>
       <div className="flex flex-wrap gap-2">{actions}</div>

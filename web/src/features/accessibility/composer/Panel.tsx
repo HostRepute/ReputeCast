@@ -309,7 +309,7 @@ function Fixes({ issue, report, lang }: { issue: Issue; report: Report; lang: st
         <div className="a11y-sugs">
           {f.suggestions.map((s) => (
             <div key={s.color} className="a11y-sug">
-              <span className="a11y-aa" style={{ background: f.target === 'background' ? s.color : (f.against ?? '#FFFFFF'), color: f.target === 'background' ? (f.against ?? '#FFFFFF') : s.color }} aria-hidden="true">
+              <span className="a11y-aa" style={{ background: f.target === 'background' ? s.color : (f.against ?? 'var(--surface)'), color: f.target === 'background' ? (f.against ?? 'var(--surface)') : s.color }} aria-hidden="true">
                 {/* A sample of the letters, the same in every language. */}
                 {'Aa'}
               </span>

@@ -361,7 +361,7 @@ function ColorField({ label, value, readOnly, error, onChange }: { label: string
       {label}
       {/* On phones the board wraps the hex value under the swatch. */}
       <div className="flex items-center gap-2 max-md:flex-wrap">
-        <span className="fs-sw" style={{ background: ok ? value : '#ffffff' }}>
+        <span className="fs-sw" style={{ background: ok ? value : 'var(--surface)' }}>
           <input
             type="color"
             aria-label={tr(m.picker, { label })}

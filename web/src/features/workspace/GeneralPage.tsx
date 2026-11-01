@@ -67,7 +67,7 @@ function General({ s }: { s: Schemas['WorkspaceSettings'] }) {
       <ApprovalsCard s={s} />
       <MembersCard s={s} />
       <RetentionCard key={`${s.retention.unconfirmedEraseDays}|${s.retention.eventDetailDays}`} s={s} />
-      <section className="card" style={{ borderColor: '#FCA5A5' }} aria-labelledby="danger-h">
+      <section className="card" style={{ borderColor: 'var(--bad-line)' }} aria-labelledby="danger-h">
         <CardSection title={<span id="danger-h">{t(m.dangerTitle)}</span>} caption={t(m.dangerCaption)} />
         <div className="pad col gap-3.5">
           <div className="row justify-between rounded-lg border border-line px-3.5 py-3">

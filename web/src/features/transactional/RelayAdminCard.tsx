@@ -156,8 +156,8 @@ function RelayForm({ r }: { r: Relay }) {
           >
             {checks.length ? (
               checks.map((c, i) => (
-                <div key={c.key} role="listitem" className="flex items-center gap-2.5 py-2 text-[13px]" style={i ? { borderTop: '1px solid #EEF0F3' } : undefined}>
-                  <span className="flex" style={{ color: c.ok ? '#15803D' : '#B91C1C' }}>
+                <div key={c.key} role="listitem" className="flex items-center gap-2.5 py-2 text-[13px]" style={i ? { borderTop: '1px solid var(--line-2)' } : undefined}>
+                  <span className="flex" style={{ color: c.ok ? 'var(--ok-bar)' : 'var(--bad-strong)' }}>
                     <Icon name={c.ok ? 'check' : 'alertCircle'} size={14} />
                   </span>
                   <span className="flex-1">{c.detail}</span>

@@ -34,7 +34,7 @@ export function AgencySwitcherMenu({ agency, current }: { agency: AgencyMe; curr
     <>
       {searching ? (
         <div className="px-1.5 pt-1 pb-1.5">
-          <label className="flex h-9 items-center gap-2 rounded-lg border border-[#8B94A3] bg-white px-2.5">
+          <label className="flex h-9 items-center gap-2 rounded-lg border border-line-input bg-white px-2.5">
             <Icon name="search" size={15} className="text-ink-3" />
             <input
               value={q}
@@ -49,8 +49,8 @@ export function AgencySwitcherMenu({ agency, current }: { agency: AgencyMe; curr
       ) : null}
       {home && !q.trim() ? (
         <DropdownMenu.Item asChild onSelect={() => navigate({ to: '/w/$workspace/agency', params: { workspace: home } })}>
-          <Link to="/w/$workspace/agency" params={{ workspace: home }} className="h-auto! py-2!" style={{ background: '#F0FDFA' }}>
-            <ClientTile ws={{ initials: agency.initials, color: '#0B1220' }} size={28} />
+          <Link to="/w/$workspace/agency" params={{ workspace: home }} className="h-auto! py-2!" style={{ background: 'var(--accent-tint)' }}>
+            <ClientTile ws={{ initials: agency.initials, color: 'var(--ink)' }} size={28} />
             <span className="col min-w-0 flex-1" style={{ gap: 0 }}>
               <b className="text-[13px]">{t(m.agencyEntry, { agency: agency.name })}</b>
               <span className="k">{t(m.agencyEntryLine)}</span>
@@ -124,7 +124,7 @@ function ClientItem({ row, current }: { row: AgencyClientRow; current?: string }
         to="/w/$workspace"
         params={{ workspace: row.workspace.slug }}
         aria-current={row.workspace.slug === current ? 'true' : undefined}
-        style={row.workspace.slug === current ? { background: '#E3F1EE' } : undefined}
+        style={row.workspace.slug === current ? { background: 'var(--accent-soft)' } : undefined}
         className="h-auto! py-1!"
       >
         <ClientTile ws={row.workspace} size={26} />

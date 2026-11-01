@@ -50,7 +50,7 @@ export function WorkspaceSwitcher({ variant = 'sidebar' }: { variant?: 'sidebar'
       <DropdownMenu.Trigger asChild>
         {variant === 'agency' && staff ? (
           <button className="ws" type="button" aria-label={t(m.switcherLabel, { workspace: staff.name, role: t(am.agencySub) })}>
-            <span className="av" style={{ width: 24, height: 24, fontSize: 10, background: '#0B1220', color: '#fff', borderRadius: 6 }} aria-hidden="true" data-initials={staff.initials} />
+            <span className="av" style={{ width: 24, height: 24, fontSize: 10, background: 'var(--ink)', color: '#fff', borderRadius: 6 }} aria-hidden="true" data-initials={staff.initials} />
             <span className="wsn">
               <b>{staff.name}</b> <span>{t(am.agencySub)}</span>
             </span>
@@ -93,7 +93,7 @@ export function WorkspaceSwitcher({ variant = 'sidebar' }: { variant?: 'sidebar'
           <DropdownMenu.Label className="mh">{t(m.switcherHeading)}</DropdownMenu.Label>
           {list.map((w, i) => (
             <DropdownMenu.Item key={w.id} asChild onSelect={() => navigate({ to: '/w/$workspace', params: { workspace: w.slug } })}>
-              <Link to="/w/$workspace" params={{ workspace: w.slug }} aria-current={w.slug === slug ? 'true' : undefined} style={w.slug === slug ? { background: '#E3F1EE' } : undefined}>
+              <Link to="/w/$workspace" params={{ workspace: w.slug }} aria-current={w.slug === slug ? 'true' : undefined} style={w.slug === slug ? { background: 'var(--accent-soft)' } : undefined}>
                 <span className="av" style={{ width: 26, height: 26, fontSize: 10, background: wsColor(i), color: '#fff', borderRadius: 6 }} aria-hidden="true">
                   {initials(w.name)}
                 </span>

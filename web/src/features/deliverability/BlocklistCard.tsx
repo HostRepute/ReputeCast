@@ -51,7 +51,7 @@ export function BlocklistCard({ b, connected, canConnect }: { b: Schemas['Delive
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.source} className={r.listed ? 'bg-[#FFFBEB]' : undefined}>
+              <tr key={r.source} className={r.listed ? 'bg-warn-tint' : undefined}>
                 <Td className="font-semibold">{r.source}</Td>
                 <Td className="mono">{r.assets.join(', ')}</Td>
                 <Td>{r.listed ? <Badge tone={r.impact === 'high' ? 'bad' : 'warn'}>{t(m.listed)}</Badge> : <Badge tone="ok">{t(m.clean)}</Badge>}</Td>

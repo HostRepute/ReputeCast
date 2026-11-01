@@ -834,9 +834,9 @@ function Trials({ o }: { o: Overview }) {
         <Stack
           label={t(mr.trialsBar, { paid: tr.becamePaid, canceled: tr.canceled, trialing: tr.trialing })}
           parts={[
-            { color: '#2a78d6', value: tr.becamePaid, text: t(mr.becamePaid, { count: count(tr.becamePaid) }) },
-            { color: '#8b94a3', value: tr.canceled, text: t(mr.canceled, { count: count(tr.canceled) }) },
-            { color: '#1baf7a', value: tr.trialing, text: t(mr.stillTrialing, { count: count(tr.trialing) }) },
+            { color: 'var(--chart-gmail)', value: tr.becamePaid, text: t(mr.becamePaid, { count: count(tr.becamePaid) }) },
+            { color: 'var(--line-input)', value: tr.canceled, text: t(mr.canceled, { count: count(tr.canceled) }) },
+            { color: 'var(--chart-yahoo)', value: tr.trialing, text: t(mr.stillTrialing, { count: count(tr.trialing) }) },
           ]}
         />
         <div className="flex flex-wrap items-center justify-between gap-2.5">
@@ -967,9 +967,9 @@ function Cancellations({ o }: { o: Overview }) {
             <Stack
               label={t(mr.cancelBar, { kept: c.kept, continued: c.continued, undecided: c.undecided })}
               parts={[
-                { color: '#2a78d6', value: c.kept, text: c.keptTier ? t(mr.keptOffer, { tier: c.keptTier, count: count(c.kept) }) : t(mr.keptOfferPlain, { count: count(c.kept) }) },
-                { color: '#eb6834', value: c.continued, text: t(mr.wentOn, { count: count(c.continued) }) },
-                { color: '#8b94a3', value: c.undecided, text: t(mr.undecided, { count: count(c.undecided) }) },
+                { color: 'var(--chart-gmail)', value: c.kept, text: c.keptTier ? t(mr.keptOffer, { tier: c.keptTier, count: count(c.kept) }) : t(mr.keptOfferPlain, { count: count(c.kept) }) },
+                { color: 'var(--chart-outlook)', value: c.continued, text: t(mr.wentOn, { count: count(c.continued) }) },
+                { color: 'var(--line-input)', value: c.undecided, text: t(mr.undecided, { count: count(c.undecided) }) },
               ]}
             />
             <div className="flex flex-col gap-2">

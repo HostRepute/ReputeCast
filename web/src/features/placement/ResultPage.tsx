@@ -584,7 +584,7 @@ function GuidanceCard({ g, d }: { g: Guidance; d: TestDetail }) {
   }
   return (
     <section className="card min-w-0" style={{ borderColor: '#FCD34D' }} aria-label={t(m.guidanceLabel)}>
-      <div className="sec" style={{ background: '#FFFBEB', borderRadius: '10px 10px 0 0', borderBottomColor: '#FDE68A' }}>
+      <div className="sec" style={{ background: 'var(--color-warn-tint)', borderRadius: '10px 10px 0 0', borderBottomColor: 'var(--color-warn-line)' }}>
         <div className="flex min-w-0 flex-nowrap items-start gap-2.5">
           <span className="mt-0.5 inline-flex flex-none">
             <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#B45309" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -605,7 +605,7 @@ function GuidanceCard({ g, d }: { g: Guidance; d: TestDetail }) {
         </div>
       </div>
       <div className="pad flex flex-col gap-3.5">
-        <p className="m-0 max-w-[880px] text-[14px] leading-[1.55] text-[#1F2937]">{cause}</p>
+        <p className="m-0 max-w-[880px] text-[14px] leading-[1.55] text-dark-line">{cause}</p>
         <div className="flex flex-col gap-1">
           <span className="k font-semibold text-ink-nav!">{t(m.lookAt)}</span>
           <div className="pl-chk2">

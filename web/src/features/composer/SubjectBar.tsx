@@ -82,7 +82,7 @@ export function SubjectBar() {
               readOnly={!c.canEdit}
               maxLength={998}
               aria-invalid={(spam && editingA) || undefined}
-              style={spam && editingA ? { borderColor: '#F59E0B', background: '#FFFBEB' } : digest ? { fontSize: 12 } : undefined}
+              style={spam && editingA ? { borderColor: '#F59E0B', background: 'var(--color-warn-tint)' } : digest ? { fontSize: 12 } : undefined}
             />
             {digest ? null : <IdeasButton />}
           </span>

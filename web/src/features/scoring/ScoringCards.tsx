@@ -120,7 +120,7 @@ export function SpreadCard({
             {t(m.legendAfter)}
           </span>
           <span>
-            <span className="sc-sw" style={{ background: '#D4D8DF' }} />
+            <span className="sc-sw" style={{ background: 'var(--line-strong)' }} />
             {t(m.legendNow)}
           </span>
         </div>

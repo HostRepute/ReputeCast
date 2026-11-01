@@ -110,7 +110,7 @@ export function Motion({ playing, reduced }: { playing: boolean; reduced: boolea
       )
     }
     const rest = { transform: 'translateX(-50%) scale(1)', background: '#fff', borderColor: '#6B7280' }
-    const lit = { transform: 'translateX(-50%) scale(1.7)', background: '#0F766E', borderColor: '#0F766E' }
+    const lit = { transform: 'translateX(-50%) scale(1.7)', background: 'var(--accent)', borderColor: 'var(--accent)' }
     const flash = (selector: string, s: number) => {
       const el = root.querySelector(selector)
       if (!el) return

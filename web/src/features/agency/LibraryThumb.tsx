@@ -35,7 +35,7 @@ export function LibraryThumb({ item, height = 104 }: { item: Item; height?: numb
     const n = Math.min(3, Math.max(2, (item.steps ?? 3) - 1))
     const ys = n === 3 ? [10, 40, 72] : [20, 60]
     return (
-      <svg {...box} style={{ display: 'block', background: '#F3F4F6' }}>
+      <svg {...box} style={{ display: 'block', background: 'var(--ground)' }}>
         <rect width="220" height="104" fill="#F3F4F6" />
         {ys.slice(1).map((y, i) => (
           <path key={y} d={`M110 ${ys[i]! + 20}v${y - ys[i]! - 20}`} stroke="#9AA3B2" strokeWidth="1.5" />
@@ -54,7 +54,7 @@ export function LibraryThumb({ item, height = 104 }: { item: Item; height?: numb
   }
   if (item.kind === 'sms') {
     return (
-      <svg {...box} style={{ display: 'block', background: '#F3F4F6' }}>
+      <svg {...box} style={{ display: 'block', background: 'var(--ground)' }}>
         <rect width="220" height="104" fill="#F3F4F6" />
         <path d="M44 18h132a8 8 0 0 1 8 8v40a8 8 0 0 1-8 8H76l-14 12V74H44a8 8 0 0 1-8-8V26a8 8 0 0 1 8-8z" fill="#FFFFFF" stroke="#E3E6EB" />
         <rect x="48" y="30" width="96" height="5" rx="2.5" fill="#9AA3B2" />
@@ -66,7 +66,7 @@ export function LibraryThumb({ item, height = 104 }: { item: Item; height?: numb
   }
   if (item.kind === 'transactional') {
     return (
-      <svg {...box} style={{ display: 'block', background: '#F3F4F6' }}>
+      <svg {...box} style={{ display: 'block', background: 'var(--ground)' }}>
         <rect width="220" height="104" fill="#F3F4F6" />
         <rect x="52" y="8" width="116" height="96" rx="3" fill="#FFFFFF" stroke="#E3E6EB" />
         <rect x="60" y="16" width="34" height="5" rx="2.5" fill="#0B1220" />
@@ -81,7 +81,7 @@ export function LibraryThumb({ item, height = 104 }: { item: Item; height?: numb
   if (item.kind === 'template') {
     const block = bg ?? tint(accent)
     return (
-      <svg {...box} style={{ display: 'block', background: '#F3F4F6' }}>
+      <svg {...box} style={{ display: 'block', background: 'var(--ground)' }}>
         <rect width="220" height="104" fill="#F3F4F6" />
         <rect x="40" y="8" width="140" height="96" rx="3" fill="#FFFFFF" stroke="#E3E6EB" />
         <rect x="48" y="16" width="40" height="5" rx="2.5" fill="#0B1220" />
@@ -100,7 +100,7 @@ export function LibraryThumb({ item, height = 104 }: { item: Item; height?: numb
     const w = 56
     const gap = (220 - n * w) / (n + 1)
     return (
-      <svg {...box} style={{ display: 'block', background: '#F3F4F6' }}>
+      <svg {...box} style={{ display: 'block', background: 'var(--ground)' }}>
         <rect width="220" height="104" fill="#F3F4F6" />
         {Array.from({ length: n }, (_, i) => {
           const x = gap + i * (w + gap)

@@ -164,7 +164,7 @@ function SeedDetails({ c }: { c: Canary }) {
         <div className="lv-seedbar" role="img" aria-label={t(mc.seedsBar, { seeds: c.seeds, inbox: p.inbox, promotions: p.promotions, spam: p.spam })}>
           {total > 0 ? (
             <>
-              <i style={{ flex: `${p.inbox} 1 0%`, background: 'var(--ok-strong, #15803d)' }} />
+              <i style={{ flex: `${p.inbox} 1 0%`, background: 'var(--ok-strong, var(--ok-bar))' }} />
               <i style={{ flex: `${p.promotions} 1 0%`, background: '#93c5fd' }} />
               <i style={{ flex: `${p.spam} 1 0%`, background: 'var(--bad-strong)' }} />
             </>

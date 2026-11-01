@@ -320,7 +320,7 @@ function WebhooksCard({ setup, webhook: w, reason }: { setup: Schemas['ConnectSe
   const org = orgDomain(setup.domain.suggested)
   return (
     <section className={cn('card flex flex-col', problem && 'border-[#FCD34D]')} aria-labelledby="hooks-h">
-      <div className={cn('flex flex-col gap-1 px-5 py-4', problem && 'rounded-t-[10px] bg-[#FFFBEB]')}>
+      <div className={cn('flex flex-col gap-1 px-5 py-4', problem && 'rounded-t-[10px] bg-warn-tint')}>
         <div className="flex flex-wrap items-center gap-2.5">
           <h3 className="h2" id="hooks-h">
             {t(mn.webhooksTitle)}

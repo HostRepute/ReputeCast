@@ -537,7 +537,7 @@ function DayRow({ plan, row: d }: { plan: WarmupPlan; row: WarmupRow }) {
   }
   const rate = (v: number | undefined, digits: number) => (ahead ? '–' : isToday && !d.judged ? t(mw.notJudged) : v !== undefined ? pct(v, digits) : '–')
   return (
-    <tr className={cn(guard && 'bg-[#FFFBEB]', isToday && 'bg-accent-tint')}>
+    <tr className={cn(guard && 'bg-warn-tint', isToday && 'bg-accent-tint')}>
       <Td className={cn(isToday && 'font-bold')}>{d.day}</Td>
       <Td className={cn('nw', isToday && 'font-bold')}>
         {shortDate(d.date)}

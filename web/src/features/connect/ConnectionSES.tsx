@@ -497,7 +497,7 @@ function SandboxCard({ setup, sandbox: sb, reason }: { setup: Schemas['ConnectSe
     )
   return (
     <section className="card flex flex-col border-[#FCD34D]" aria-label={t(mses.sandboxBadge, { region: sb.region })}>
-      <div className="flex flex-wrap items-start gap-3.5 rounded-t-[10px] bg-[#FFFBEB] px-5 py-4">
+      <div className="flex flex-wrap items-start gap-3.5 rounded-t-[10px] bg-warn-tint px-5 py-4">
         <Badge tone="warn" dot className="h-6">
           {t(mses.sandboxBadge, { region: sb.region })}
         </Badge>

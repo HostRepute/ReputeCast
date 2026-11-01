@@ -413,7 +413,7 @@ function WarningOverlays({ host, tick }: { host: HTMLElement | null; tick: numbe
               {issue.tag}
             </button>
             {issue.url && issue.id.startsWith('links.') ? (
-              <span className="mono" style={{ position: 'absolute', zIndex: 2, top: box.top + box.height + 10, left: box.left - 40, width: box.width + 80, textAlign: 'center', fontSize: 11, color: tone === 'b' ? '#991B1B' : '#92400E', pointerEvents: 'none' }}>
+              <span className="mono" style={{ position: 'absolute', zIndex: 2, top: box.top + box.height + 10, left: box.left - 40, width: box.width + 80, textAlign: 'center', fontSize: 11, color: tone === 'b' ? 'var(--bad-fg)' : 'var(--warn-fg)', pointerEvents: 'none' }}>
                 {issue.url.replace(/^https?:\/\//, '')}
               </span>
             ) : null}
@@ -436,10 +436,10 @@ function MissingFooter({ width }: { width: number }) {
         <ToolIcon name="warn" size={12} strokeWidth={2} />
         {issue.tag || t(mc.noFooterTag)}
       </button>
-      <span style={{ fontSize: 12.5, color: '#991B1B' }}>{when ? t(mc.footerDeleted, { time: clock(when) }) : t(mc.footerMissing)}</span>
+      <span style={{ fontSize: 12.5, color: 'var(--bad-fg)' }}>{when ? t(mc.footerDeleted, { time: clock(when) }) : t(mc.footerMissing)}</span>
       <br />
       {c.canEdit ? (
-        <button type="button" className="btn sm" style={{ marginTop: 8, borderColor: '#FCA5A5', color: '#991B1B' }} onClick={() => insertFooter(c)}>
+        <button type="button" className="btn sm" style={{ marginTop: 8, borderColor: 'var(--bad-line)', color: 'var(--bad-fg)' }} onClick={() => insertFooter(c)}>
           {t(mc.insertFooter)}
         </button>
       ) : null}

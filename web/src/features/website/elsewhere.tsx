@@ -78,8 +78,8 @@ export function ReviewWebLine({ campaignId }: { campaignId: string }) {
   const vis = p.visibility === 'paid' ? t(me.visPaid) : p.visibility === 'members' ? t(me.visMembers) : t(me.visPublic)
   const when = p.publishMode === 'with_send' ? t(me.webWithSend) : p.publishMode === 'at' && p.publishAt ? t(me.webAt, { date: dateTime(p.publishAt) }) : t(me.webNow)
   return (
-    <section className="card flex items-start gap-3 px-[18px] py-3.5" style={{ borderColor: '#BFDBFE', background: '#F8FBFF' }} aria-labelledby="rv-web-h">
-      <span className="inline-flex h-[28px] w-[28px] flex-none items-center justify-center rounded-full bg-[#DBEAFE] text-[#1E40AF]" aria-hidden="true">
+    <section className="card flex items-start gap-3 px-[18px] py-3.5" style={{ borderColor: 'var(--color-info-line)', background: '#F8FBFF' }} aria-labelledby="rv-web-h">
+      <span className="inline-flex h-[28px] w-[28px] flex-none items-center justify-center rounded-full bg-info-bg text-info-fg" aria-hidden="true">
         <Icon name="globe" size={15} />
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -154,7 +154,7 @@ export function ReportWebSection({ campaignId }: { campaignId: string }) {
                     <span>{x.label}</span>
                     <b className="num">{count(x.views)}</b>
                   </span>
-                  <span className="block h-[6px] overflow-hidden rounded-full bg-[#EEF0F3]" aria-hidden="true">
+                  <span className="block h-[6px] overflow-hidden rounded-full bg-line-2" aria-hidden="true">
                     <span className="block h-full rounded-full bg-accent" style={{ width: `${Math.max(2, Math.round((x.views / max) * 100))}%` }} />
                   </span>
                 </li>

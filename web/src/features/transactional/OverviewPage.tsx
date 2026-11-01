@@ -131,7 +131,7 @@ function RouteRow({ o, period, onPeriod }: { o: Overview; period: TxPeriod; onPe
         <div className="tx-flowr" aria-label={t(mo.routeLabel)}>
           <span className="k">{t(mo.route)}</span>
           <span className="tx-pill">
-            <span className="dot" style={{ color: o.failover ? '#B91C1C' : '#15803D' }} />
+            <span className="dot" style={{ color: o.failover ? 'var(--bad-strong)' : 'var(--ok-bar)' }} />
             {r.primary.name}
           </span>
           {r.fallback ? (
@@ -354,7 +354,7 @@ function TemplatesCard({ q, period }: { q: { data?: Schemas['TransactionalTempla
                                 <Link
                                   to="/w/$workspace/transactional/templates/$templateId"
                                   params={{ workspace: slug, templateId: it.key }}
-                                  style={{ color: '#0B1220', fontWeight: 600 }}
+                                  style={{ color: 'var(--ink)', fontWeight: 600 }}
                                 >
                                   {it.name}
                                 </Link>
@@ -376,7 +376,7 @@ function TemplatesCard({ q, period }: { q: { data?: Schemas['TransactionalTempla
                             </td>
                             <td className="r tx-num">{st.sent ? deliveredPct(st.deliveryRate) : '—'}</td>
                             <td className="r tx-num">
-                              {st.sent ? <span style={warnBounce ? { color: '#92400E', fontWeight: 600 } : undefined}>{bouncePct(st.bounceRate)}</span> : '—'}
+                              {st.sent ? <span style={warnBounce ? { color: 'var(--warn-fg)', fontWeight: 600 } : undefined}>{bouncePct(st.bounceRate)}</span> : '—'}
                               {warnBounce && st.bounced ? <div className="k">{t(mo.bouncedOf, { bounced: count(st.bounced), sent: count(st.sent) })}</div> : null}
                               {st.complained ? <div className="k">{t(mo.complaintOne, { count: st.complained })}</div> : null}
                             </td>
@@ -397,7 +397,7 @@ function TemplatesCard({ q, period }: { q: { data?: Schemas['TransactionalTempla
                     to="/w/$workspace/transactional/templates/$templateId"
                     params={{ workspace: slug, templateId: it.key }}
                     className="flex flex-col gap-1.5 border-t border-line-2 px-4 py-3"
-                    style={{ color: '#0B1220' }}
+                    style={{ color: 'var(--ink)' }}
                   >
                     <span className="flex items-center justify-between gap-2">
                       <b className="font-semibold">{it.name}</b>
@@ -566,7 +566,7 @@ function IncidentsCard({ o }: { o: Overview }) {
         {o.incidents.length === 0 ? <p className="k my-2">{t(mo.noIncidents)}</p> : null}
         {o.incidents.map((a) => (
           <div key={a.id} className="tx-ev">
-            <span className="ic" style={a.kind === 'failover' ? { background: '#DBEAFE', color: '#1E40AF' } : { background: '#FEF3C7', color: '#92400E' }}>
+            <span className="ic" style={a.kind === 'failover' ? { background: 'var(--info-bg)', color: 'var(--info-fg)' } : { background: 'var(--warn-bg)', color: 'var(--warn-fg)' }}>
               <Icon name={a.kind === 'failover' ? 'arrowRight' : 'clock'} size={14} />
             </span>
             <div className="tx">
@@ -742,7 +742,7 @@ function FailoverCard({ o }: { o: Overview }) {
   const f = o.failover!
   const since = clock(f.since)
   return (
-    <section className="card flex flex-col gap-3" style={{ padding: '16px 18px', borderColor: '#BFDBFE', background: '#F8FBFF' }} role="status">
+    <section className="card flex flex-col gap-3" style={{ padding: '16px 18px', borderColor: 'var(--color-info-line)', background: '#F8FBFF' }} role="status">
       <div className="row" style={{ justifyContent: 'space-between' }}>
         <span className="inline-flex items-center gap-2 font-bold">
           <Icon name="alertCircle" size={16} />
@@ -753,15 +753,15 @@ function FailoverCard({ o }: { o: Overview }) {
         </Badge>
       </div>
       <div className="tx-flowr">
-        <span className="tx-pill" style={{ borderColor: '#FCA5A5', background: '#FFF5F5' }}>
-          <span className="dot" style={{ color: '#B91C1C' }} />
+        <span className="tx-pill" style={{ borderColor: 'var(--bad-line)', background: 'var(--bad-tint)' }}>
+          <span className="dot" style={{ color: 'var(--bad-strong)' }} />
           {f.code ? t(mo.failoverFrom, { from: f.from.name, code: f.code, since }) : t(mo.failoverFromNoCode, { from: f.from.name, since })}
         </span>
         <span className="arw" aria-hidden="true">
           →
         </span>
-        <span className="tx-pill" style={{ borderColor: '#86EFAC', background: '#F0FDF4' }}>
-          <span className="dot" style={{ color: '#15803D' }} />
+        <span className="tx-pill" style={{ borderColor: '#86EFAC', background: 'var(--ok-tint)' }}>
+          <span className="dot" style={{ color: 'var(--ok-bar)' }} />
           {t(mo.failoverTo, { to: f.to.name })}
         </span>
         <span className="k">{t(mo.failoverPolicy)}</span>
@@ -805,7 +805,7 @@ function FirstRun() {
         <ol className="m-0 mt-1.5 flex list-none flex-wrap justify-center gap-2 p-0">
           {steps.map((s, i) => (
             <li key={s} className="chip" style={{ height: 30 }}>
-              <span className="tx-num" style={{ fontWeight: 700, color: '#0F766E' }}>
+              <span className="tx-num" style={{ fontWeight: 700, color: 'var(--accent)' }}>
                 {i + 1}
               </span>
               {s}

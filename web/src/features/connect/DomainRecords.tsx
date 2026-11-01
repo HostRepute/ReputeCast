@@ -124,7 +124,7 @@ export function DomainRecordsCard({ detail, title }: { detail: DomainDetail; tit
         </thead>
         <tbody>
           {detail.records.map((r) => (
-            <tr key={r.key} className={cn((r.status === 'pending' || stale(r)) && 'bg-[#FFFBEB]', (r.status === 'missing' || (r.status === 'wrong_value' && !stale(r))) && 'bg-bad-tint')}>
+            <tr key={r.key} className={cn((r.status === 'pending' || stale(r)) && 'bg-warn-tint', (r.status === 'missing' || (r.status === 'wrong_value' && !stale(r))) && 'bg-bad-tint')}>
               <td className="font-semibold">
                 {r.label}
                 {r.note ? <div className="k">{r.note}</div> : null}
@@ -178,7 +178,7 @@ function RecordBadge({ record: r }: { record: DomainRecord }) {
   if (stale(r)) {
     return (
       <Badge tone="warn">
-        <span className="spin sm" style={{ borderTopColor: '#92400E' }} aria-hidden="true" />
+        <span className="spin sm" style={{ borderTopColor: 'var(--warn-fg)' }} aria-hidden="true" />
         {r.statusText || t(md.statusPending)}
       </Badge>
     )
@@ -189,7 +189,7 @@ function RecordBadge({ record: r }: { record: DomainRecord }) {
     case 'pending':
       return (
         <Badge tone="warn">
-          <span className="spin sm" style={{ borderTopColor: '#92400E' }} aria-hidden="true" />
+          <span className="spin sm" style={{ borderTopColor: 'var(--warn-fg)' }} aria-hidden="true" />
           {r.statusText || t(md.statusPending)}
         </Badge>
       )

@@ -38,7 +38,7 @@ export function LibraryPage() {
       title={t(m.navLibrary)}
       subtitle={lib.data && templates.data ? t(lm.subtitle, { items: total, templates: templates.data.length }) : undefined}
       actions={
-        <label className="flex h-9 items-center gap-2 rounded-lg border border-[#8B94A3] bg-white px-2.5 max-md:w-full" style={{ width: 260, maxWidth: '100%' }}>
+        <label className="flex h-9 items-center gap-2 rounded-lg border border-line-input bg-white px-2.5 max-md:w-full" style={{ width: 260, maxWidth: '100%' }}>
           <Icon name="search" size={15} className="text-ink-3" />
           <input
             type="search"
@@ -142,7 +142,7 @@ function TemplateCard({ tpl, canEdit, onApply, onEdit }: { tpl: Template; canEdi
         </span>
       </div>
       <div className="flex flex-col gap-1.5">
-        <span className="k font-semibold text-[#374151]!">{t(lm.setsUp)}</span>
+        <span className="k font-semibold text-ink-nav!">{t(lm.setsUp)}</span>
         <div className="flex flex-wrap gap-1.5">
           {setsUpChips(t, tpl).map((c) => (
             <span key={c} className="chip h-auto! min-h-[26px] whitespace-normal! py-[3px]!">
@@ -152,7 +152,7 @@ function TemplateCard({ tpl, canEdit, onApply, onEdit }: { tpl: Template; canEdi
         </div>
       </div>
       <div className="flex flex-col gap-1.5">
-        <span className="k font-semibold text-[#374151]!">{t(lm.usedBy, { n: tpl.usedBy.length })}</span>
+        <span className="k font-semibold text-ink-nav!">{t(lm.usedBy, { n: tpl.usedBy.length })}</span>
         {tpl.usedBy.length ? (
           <div className="flex flex-wrap items-center gap-2">
             <span className="flex flex-wrap gap-1">
@@ -230,7 +230,7 @@ function ApplyDialog({ tpl, onClose }: { tpl: Template; onClose: () => void }) {
           ))}
         </Select>
       </Field>
-      {client ? <span className="text-[#374151]">{t(lm.applyIntro, { client: client.name })}</span> : null}
+      {client ? <span className="text-ink-nav">{t(lm.applyIntro, { client: client.name })}</span> : null}
       {plan.isError ? (
         <span className="err" role="alert">
           {errorMessage(plan.error)}
@@ -285,19 +285,19 @@ function PlanGroup({ title, added = [], renamed = [], unchanged = [] }: { title:
       <span className="font-semibold">{title}</span>
       {added.map((l) => (
         <span key={l} className="flex items-start gap-2 text-[13px]">
-          <Icon name="plus" size={14} className="mt-0.5 flex-none text-[#15803D]" />
+          <Icon name="plus" size={14} className="mt-0.5 flex-none text-ok-bar" />
           {l}
         </span>
       ))}
       {renamed.map((l) => (
         <span key={l} className="flex items-start gap-2 text-[13px]">
-          <Icon name="edit" size={14} className="mt-0.5 flex-none text-[#B45309]" />
+          <Icon name="edit" size={14} className="mt-0.5 flex-none text-warn-bar" />
           {l}
         </span>
       ))}
       {unchanged.map((l) => (
         <span key={l} className="flex items-start gap-2 text-[13px]">
-          <Icon name="check" size={14} className="mt-0.5 flex-none text-[#15803D]" />
+          <Icon name="check" size={14} className="mt-0.5 flex-none text-ok-bar" />
           {l}
         </span>
       ))}
@@ -489,7 +489,7 @@ function SharedLibrary({ filter, setFilter }: { filter: string; setFilter: (v: s
               <span className="k">{t(lm.libraryCaption, { agency: agency?.name ?? '' })}</span>
             </div>
             <div>
-              <label className="flex h-9 items-center gap-2 rounded-lg border border-[#8B94A3] bg-white px-2.5" style={{ width: 220, maxWidth: '100%' }}>
+              <label className="flex h-9 items-center gap-2 rounded-lg border border-line-input bg-white px-2.5" style={{ width: 220, maxWidth: '100%' }}>
                 <Icon name="search" size={15} className="text-ink-3" />
                 <input
                   value={filter}
@@ -558,7 +558,7 @@ function ItemCard({ item, selected, onSelect }: { item: Item; selected: boolean;
   return (
     <article
       className="card flex min-w-0 flex-col overflow-hidden"
-      style={selected ? { borderColor: '#0F766E', boxShadow: 'inset 0 0 0 1px #0F766E' } : undefined}
+      style={selected ? { borderColor: 'var(--accent)', boxShadow: 'inset 0 0 0 1px var(--accent)' } : undefined}
       aria-current={selected ? 'true' : undefined}
     >
       <LibraryThumb item={item} />
@@ -573,7 +573,7 @@ function ItemCard({ item, selected, onSelect }: { item: Item; selected: boolean;
           <span className="k">v{item.version}</span>
         </span>
         <span className="k">{item.updatedBy ? t(lm.updatedOn, { date: dayMonth(item.updatedAt), name: item.updatedBy }) : dayMonth(item.updatedAt)}</span>
-        <span className="k" style={{ color: item.behind ? '#92400E' : '#4B5563' }}>
+        <span className="k" style={{ color: item.behind ? 'var(--warn-fg)' : 'var(--ink-2)' }}>
           {usage(t, item)}
         </span>
         <div className="mt-auto pt-1.5">
@@ -673,7 +673,7 @@ function ItemDetail({ id, canEdit }: { id: string; canEdit: boolean }) {
         </div>
         {item.fields.length ? (
           <div className="flex flex-col gap-1.5">
-            <span className="k font-semibold text-[#374151]!">{t(lm.fieldsNeeded)}</span>
+            <span className="k font-semibold text-ink-nav!">{t(lm.fieldsNeeded)}</span>
             <div className="flex flex-wrap gap-1.5">
               {item.fields.map((f) => (
                 <span key={f.key} className="flex items-center gap-1.5">
@@ -685,7 +685,7 @@ function ItemDetail({ id, canEdit }: { id: string; canEdit: boolean }) {
           </div>
         ) : null}
         <div className="flex flex-col">
-          <span className="k mb-0.5 font-semibold text-[#374151]!">{t(lm.versions)}</span>
+          <span className="k mb-0.5 font-semibold text-ink-nav!">{t(lm.versions)}</span>
           {d.versions.map((v, i) => (
             <div key={v.version} className="ag-mrow flex-nowrap! items-start! gap-2.5!">
               <Badge tone={i === 0 ? 'ok' : 'neutral'}>v{v.version}</Badge>
@@ -698,7 +698,7 @@ function ItemDetail({ id, canEdit }: { id: string; canEdit: boolean }) {
         </div>
         {d.copies.length ? (
           <div className="flex flex-col">
-            <span className="k mb-0.5 font-semibold text-[#374151]!">
+            <span className="k mb-0.5 font-semibold text-ink-nav!">
               {behind.length ? t(lm.copiesBehind, { n: behind.length }) : t(lm.copies)}
             </span>
             {d.copies.map((c) => (
@@ -712,7 +712,7 @@ function ItemDetail({ id, canEdit }: { id: string; canEdit: boolean }) {
         ) : null}
         {d.diff && d.diff.lines.length ? (
           <div className="diff">
-            <div className="ctx font-semibold" style={{ background: '#F9FAFB' }}>
+            <div className="ctx font-semibold" style={{ background: 'var(--ground-3)' }}>
               {t(lm.diffHead, { from: d.diff.from, to: d.diff.to })}
             </div>
             {d.diff.lines.map((l, i) => (

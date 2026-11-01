@@ -723,8 +723,8 @@ function EmptyCover({ kind }: { kind: 'guide' | 'kit' | 'planner' }) {
   const abs = (s: Record<string, string | number>) => ({ position: 'absolute' as const, ...s })
   if (kind === 'guide') {
     return (
-      <span style={{ ...box, background: '#0B1220' }} aria-hidden="true">
-        <span style={abs({ left: 0, right: 0, top: '58%', height: '14%', background: '#4338CA' })} />
+      <span style={{ ...box, background: 'var(--ink)' }} aria-hidden="true">
+        <span style={abs({ left: 0, right: 0, top: '58%', height: '14%', background: 'var(--publisher-accent)' })} />
         <span style={abs({ left: 0, right: 0, top: '72%', height: '6%', background: '#3730A3' })} />
       </span>
     )
@@ -732,7 +732,7 @@ function EmptyCover({ kind }: { kind: 'guide' | 'kit' | 'planner' }) {
   if (kind === 'kit') {
     const sq = (left: string, top: string, background: string) => <span style={abs({ left, top, width: '34%', height: '22%', borderRadius: 2, background })} />
     return (
-      <span style={{ ...box, background: '#EDE9FE' }} aria-hidden="true">
+      <span style={{ ...box, background: 'var(--purple-bg)' }} aria-hidden="true">
         {sq('12%', '24%', '#4338CA')}
         {sq('54%', '24%', '#fff')}
         {sq('12%', '52%', '#fff')}
@@ -742,7 +742,7 @@ function EmptyCover({ kind }: { kind: 'guide' | 'kit' | 'planner' }) {
   }
   return (
     <span style={{ ...box, background: '#fff', border: '1px solid #DDD6FE', boxSizing: 'border-box' }} aria-hidden="true">
-      <span style={abs({ left: '14%', right: '14%', top: '12%', height: '12%', borderRadius: 2, background: '#4338CA' })} />
+      <span style={abs({ left: '14%', right: '14%', top: '12%', height: '12%', borderRadius: 2, background: 'var(--publisher-accent)' })} />
       {['40%', '55%', '70%', '85%'].map((top) => (
         <span key={top} style={abs({ left: '14%', right: '14%', top, height: 1, background: '#DDD6FE' })} />
       ))}

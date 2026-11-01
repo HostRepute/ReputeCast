@@ -788,7 +788,7 @@ function TemplateStep({ onBack, onNext }: { onBack: () => void; onNext: (key: st
                 role="radio"
                 aria-checked={on}
                 className={cn('flex flex-col items-start gap-1 rounded-[10px] p-3.5 text-left', on ? 'border-2 border-accent' : 'border border-line bg-white')}
-                style={on ? { background: '#F0FDFA' } : undefined}
+                style={on ? { background: 'var(--accent-tint)' } : undefined}
                 onClick={() => setPicked(s.key)}
               >
                 <span className="font-semibold">{s.name}</span>
@@ -964,11 +964,11 @@ function timelineRows(t: Tr, d: Detail, provider: string): Row[] {
 function TimelineRow({ r }: { r: Row }) {
   return (
     <div className="tx-ev">
-      <span className="ic" style={{ background: r.state === 'done' ? '#DCFCE7' : r.state === 'bad' ? '#FEE2E2' : r.state === 'wait' ? '#EEF0F3' : '#F3F4F6' }}>
+      <span className="ic" style={{ background: r.state === 'done' ? 'var(--ok-bg)' : r.state === 'bad' ? 'var(--bad-bg)' : r.state === 'wait' ? 'var(--line-2)' : 'var(--ground)' }}>
         {r.state === 'wait' ? <span className="spin sm" aria-hidden="true" /> : r.state === 'done' ? <Icon name="check" size={14} /> : r.state === 'bad' ? <Icon name="alertCircle" size={14} /> : null}
       </span>
       <div className="tx">
-        <span className="font-semibold" style={r.state === 'todo' || r.state === 'wait' ? { color: '#5B6472' } : undefined}>
+        <span className="font-semibold" style={r.state === 'todo' || r.state === 'wait' ? { color: 'var(--ink-3)' } : undefined}>
           {r.title}
         </span>
         {r.detail ? <span className="k">{r.detail}</span> : null}
@@ -1132,7 +1132,7 @@ function WatchStep({
         </section>
         <section
           className="card flex min-w-0 flex-col"
-          style={{ flex: '1 1 420px', padding: '18px 20px', borderColor: rejected ? '#FCA5A5' : undefined }}
+          style={{ flex: '1 1 420px', padding: '18px 20px', borderColor: rejected ? 'var(--bad-line)' : undefined }}
           aria-labelledby="tx-guide-timeline"
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1215,7 +1215,7 @@ function Done({ sender, setup, ov, tpl, picked }: { sender?: Sender; setup: Setu
   return (
     <section className="card flex flex-col gap-3.5" style={{ padding: '22px 24px' }} aria-labelledby="tx-guide-done">
       <div className="flex items-center gap-2.5">
-        <span className="inline-flex size-9 items-center justify-center rounded-full" style={{ background: '#DCFCE7', color: '#166534' }}>
+        <span className="inline-flex size-9 items-center justify-center rounded-full" style={{ background: 'var(--ok-bg)', color: 'var(--ok-fg)' }}>
           <Icon name="check" size={18} />
         </span>
         <h2 className="tx-ttl" style={{ fontSize: 20 }} id="tx-guide-done">

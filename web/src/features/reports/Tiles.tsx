@@ -279,7 +279,7 @@ export function MeasurableDisclosure({ r }: { r: CampaignReport }) {
           <span className="k">{t(m.ofDeliveredCount, { count: values.delivered })}</span>
           <div className="rep-stk" role="img" aria-label={t(m.stackLabel, values)}>
             <i style={{ width: `${share(h.humanOpens)}%`, background: 'var(--ink)' }} />
-            <i style={{ width: `${share(h.privacyOpens)}%`, background: '#B4BAC5' }} />
+            <i style={{ width: `${share(h.privacyOpens)}%`, background: 'var(--chart-machine)' }} />
           </div>
           <div className="rep-leg" aria-hidden="true">
             <span>
@@ -291,7 +291,7 @@ export function MeasurableDisclosure({ r }: { r: CampaignReport }) {
               {t(m.stackMeasurable, { count: values.rest, rate: pct1(share(rest)) })}
             </span>
             <span>
-              <span className="rep-sw" style={{ background: '#B4BAC5' }} />
+              <span className="rep-sw" style={{ background: 'var(--chart-machine)' }} />
               {t(m.stackPrivacy, { count: values.privacy, rate: pct1(share(h.privacyOpens)) })}
             </span>
           </div>

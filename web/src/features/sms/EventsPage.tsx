@@ -167,7 +167,7 @@ export function SmsEventsPage({ search, onSearch }: { search: EventSearch; onSea
                   <td className="mono nw">{clockSeconds(e.at)}</td>
                   <td className="nw">{e.provider}</td>
                   <td>
-                    <span className="mono inline-block rounded-md bg-[#F3F4F6] px-[7px] py-[3px] text-[12px]">{e.raw}</span>
+                    <span className="mono inline-block rounded-md bg-ground px-[7px] py-[3px] text-[12px]">{e.raw}</span>
                   </td>
                   <td className="nw">
                     <Badge tone={normalizedTone[e.normalized] ?? 'neutral'}>{normalizedWord[e.normalized] ? t(normalizedWord[e.normalized]!) : e.normalized}</Badge>
@@ -304,7 +304,7 @@ function InboundDialog({ e, onClose }: { e: Event; onClose: () => void }) {
           </div>
         ))}
         <div className="sms-ev">
-          <span className="ic" style={{ background: '#F3F4F6' }} aria-hidden="true" />
+          <span className="ic" style={{ background: 'var(--ground)' }} aria-hidden="true" />
           <div className="tx">
             <span className="font-semibold">{t(m.received)}</span>
             <span className="mono k">{t(m.receivedText, { raw: e.raw })}</span>

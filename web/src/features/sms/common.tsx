@@ -357,13 +357,13 @@ export function BudgetMeter({
           </span>
           {send ? (
             <span>
-              <span className="sms-bsw" style={{ background: 'repeating-linear-gradient(135deg, #0f766e 0 3px, #99f6e4 3px 6px)' }} />
+              <span className="sms-bsw" style={{ background: 'repeating-linear-gradient(135deg, var(--accent) 0 3px, var(--accent-line) 3px 6px)' }} />
               {t(m.bmThisSend, { amount: money(send) })}
             </span>
           ) : null}
           {over > 0 && send ? (
             <span>
-              <span className="sms-bsw" style={{ background: 'repeating-linear-gradient(135deg, #b91c1c 0 3px, #fca5a5 3px 6px)' }} />
+              <span className="sms-bsw" style={{ background: 'repeating-linear-gradient(135deg, var(--bad-strong) 0 3px, var(--bad-line) 3px 6px)' }} />
               {t(m.bmOver, { amount: money(over) })}
             </span>
           ) : null}

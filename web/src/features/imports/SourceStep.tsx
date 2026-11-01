@@ -319,7 +319,7 @@ function FileCard({ d, busy, onFile }: { d: Detail; busy: boolean; onFile: (f: F
     const first = bad[0]
     const more = bad.slice(1).map((b) => count(b.line))
     return (
-      <div role="alert" className="card flex flex-col gap-2 border-[#FCA5A5] px-4.5 py-4">
+      <div role="alert" className="card flex flex-col gap-2 border-bad-line px-4.5 py-4">
         {picker}
         <div className="flex items-center gap-2.5">
           <Badge tone="bad">{t(m.fileBadge)}</Badge>
@@ -445,7 +445,7 @@ function ConnectCard({ d }: { d: Detail }) {
     // The card title already says who rejected the key.
     const body = msg.replace(/^.*? rejected the API key:\s*/, '')
     return (
-      <div role="alert" className="card flex flex-col gap-2 border-[#FCA5A5] px-4.5 py-4">
+      <div role="alert" className="card flex flex-col gap-2 border-bad-line px-4.5 py-4">
         <div className="flex items-center gap-2.5">
           <Badge tone="bad">{d.error?.status ?? 401}</Badge>
           <span className="font-semibold">{t(m.keyRejected, { source: d.sourceName })}</span>
@@ -469,7 +469,7 @@ function ConnectCard({ d }: { d: Detail }) {
               autoComplete="off"
               placeholder={t(m.pasteAgain)}
               aria-invalid="true"
-              style={{ borderColor: '#DC2626', background: '#FFF5F5' }}
+              style={{ borderColor: 'var(--bad-bar)', background: 'var(--bad-tint)' }}
               value={key}
               onChange={(e) => setKey(e.target.value)}
             />
