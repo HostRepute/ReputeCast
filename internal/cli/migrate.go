@@ -37,6 +37,30 @@ func newMigrateCmd(o *rootOpts) *cobra.Command {
 			return nil
 		}),
 	}, &cobra.Command{
+		Use:   "segments-role",
+		Short: "Set up the role SQL segments run as again (after restoring on a new server)",
+		Long: "pg_dump doesn't carry roles. After restoring on a new server, create the role (as a superuser,\n" +
+			"unless the app's user has CREATEROLE):\n\n" +
+			"  CREATE ROLE reputecast_segments NOLOGIN NOINHERIT;\n  GRANT reputecast_segments TO <app user>;\n\n" +
+			"then run this, which hands the segment function back to the role. Safe to run again.",
+		RunE: run(func(cmd *cobra.Command) error {
+			cfg, _, err := o.load(cmd)
+			if err != nil {
+				return err
+			}
+			pool, err := db.Open(cmd.Context(), cfg.Database.URL, 2)
+			if err != nil {
+				return err
+			}
+			defer pool.Close()
+			if err := db.SetUpSegmentsRole(cmd.Context(), pool); err != nil {
+				return err
+			}
+			c := segmentsRoleCheck(cmd.Context(), pool)
+			_, err = fmt.Fprintln(cmd.OutOrStdout(), c.text)
+			return err
+		}),
+	}, &cobra.Command{
 		Use:   "down",
 		Short: "Roll back the latest migration",
 		RunE: run(func(cmd *cobra.Command) error {

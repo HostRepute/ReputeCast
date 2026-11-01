@@ -43,6 +43,16 @@ describe('system status middleware', () => {
     expect(getSystemStatus().maintenance).toBeUndefined()
   })
 
+  it('shows read-only maintenance from the upgrade header on a read, and clears it when the header goes', async () => {
+    const headers = { 'X-ReputeCast-Read-Only': 'upgrade', 'X-ReputeCast-Upgrade-Version': '1.6.0', 'X-ReputeCast-Upgrade-Since': '2026-11-01T02:00:00Z' }
+    await respond(new Response('{}', { status: 200, headers }))
+    expect(getSystemStatus().maintenance).toMatchObject({ version: '1.6.0', startedAt: '2026-11-01T02:00:00Z' })
+    await respond(new Response('{}', { status: 200, headers }))
+    expect(getSystemStatus().maintenance).toBeDefined()
+    await respond(new Response('{}', { status: 200 }))
+    expect(getSystemStatus().maintenance).toBeUndefined()
+  })
+
   it('marks the server unreachable when fetch fails, and online again when it answers', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
     ;(systemStatusMiddleware.onError as OnError)({ request: req(), error: new TypeError('Failed to fetch'), schemaPath: '', params: {}, options: {} as never, id: '1' })

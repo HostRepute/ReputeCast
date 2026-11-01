@@ -32,9 +32,9 @@ func newServeCmd(o *rootOpts) *cobra.Command {
 				if err := db.MigrateUp(ctx, a.Pool, log); err != nil {
 					return err
 				}
-			} else if pending, err := db.HasPending(ctx, a.Pool, log); err == nil && pending {
-				log.Warn("database has pending migrations; run `reputecast migrate up` or pass --auto-migrate")
 			}
+			// Without --auto-migrate, a schema behind this release is served
+			// read-only until `reputecast migrate up` runs (app/schema.go).
 			if autoInstall {
 				if res, err := installIfEmpty(ctx, a.Q, cfg, installInput{}); err != nil {
 					return err

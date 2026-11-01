@@ -46,26 +46,41 @@ func bearerMatches(req *http.Request, want [sha256.Size]byte) bool {
 // serveMetrics starts the metrics listener when one is configured. A
 // listener that can't bind (another ReputeCast process on the host already
 // serves the port) is logged and skipped: metrics never stop the process.
+//
+// The listener also answers /healthz and /readyz, so a worker-only process,
+// which has no HTTP listener of its own, can be health-checked (review
+// 2026-11 OP-2); such a process opens it even with metrics turned off.
 func (a *App) serveMetrics() *http.Server {
 	m := a.Cfg.Metrics
-	if !m.Enabled {
+	healthOnly := !a.Cfg.HasRole(config.RoleWeb) && !a.Cfg.HasRole(config.RoleIngest)
+	if !m.Enabled && !healthOnly {
 		return nil
 	}
-	if m.Token != "" {
+	if m.Enabled && m.Token != "" {
 		a.Log.Info("metrics on the main listener", "auth", "bearer")
 	}
-	if m.Addr == "" {
-		if m.Token == "" {
-			a.Log.Warn("metrics are enabled but not served: set metrics.addr or metrics.token")
+	addr := m.Addr
+	if addr == "" {
+		if !healthOnly {
+			if m.Token == "" {
+				a.Log.Warn("metrics are enabled but not served: set metrics.addr or metrics.token")
+			}
+			return nil
 		}
-		return nil
+		addr = config.MetricsDefaultAddr
 	}
-	ln, err := net.Listen("tcp", m.Addr)
+	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		a.Log.Error("metrics listener not started", "addr", m.Addr, "err", err)
+		a.Log.Error("metrics listener not started", "addr", addr, "err", err)
 		return nil
 	}
-	srv := &http.Server{Handler: promhttp.HandlerFor(a.Metrics, promhttp.HandlerOpts{}), ReadHeaderTimeout: 5 * time.Second}
+	mux := http.NewServeMux()
+	if m.Enabled {
+		mux.Handle("GET /metrics", promhttp.HandlerFor(a.Metrics, promhttp.HandlerOpts{}))
+	}
+	mux.HandleFunc("GET /healthz", healthz)
+	mux.HandleFunc("GET /readyz", a.readyz)
+	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second}
 	a.Log.Info("metrics listening", "addr", ln.Addr().String())
 	go func() {
 		if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {

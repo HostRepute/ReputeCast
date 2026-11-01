@@ -118,6 +118,10 @@ func (b *Box) OpenString(ciphertext []byte, ad string) (string, error) {
 	return string(pt), err
 }
 
+// CurrentKeyID is the id new values carry at bytes 1–4: the first 4 bytes of
+// SHA-256 of the current key.
+func (b *Box) CurrentKeyID() [4]byte { return b.current.id }
+
 // NeedsRotation reports whether ciphertext was sealed with a previous key.
 func (b *Box) NeedsRotation(ciphertext []byte) bool {
 	return len(ciphertext) >= 5 && !bytes.Equal(ciphertext[1:5], b.current.id[:])

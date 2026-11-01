@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/opsmetrics"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -68,6 +69,7 @@ func RecordSend(ctx context.Context, q store.DBTX, p store.Provider, results []p
 			last = r.Err
 		}
 	}
+	countSend(p.Adapter, results, callErr)
 	op := "Send"
 	var ce *providers.CallError
 	if errors.As(callErr, &ce) && ce.Op != "" {
@@ -107,3 +109,32 @@ func CallRecordOf(op string, err error, at time.Time) state.CallRecord {
 
 // newID returns a fresh UUIDv7.
 func newID() uuid.UUID { return uuid.Must(uuid.NewV7()) }
+
+// countSend counts a send call and its messages for /metrics (review
+// 2026-11 OP-1).
+func countSend(adapter string, results []providers.SendResult, callErr error) {
+	if callErr != nil {
+		opsmetrics.ProviderCalls.WithLabelValues(adapter, "error").Inc()
+		if n := len(results); n > 0 {
+			opsmetrics.ProviderMessages.WithLabelValues(adapter, opsmetrics.Failed).Add(float64(n))
+		}
+		return
+	}
+	opsmetrics.ProviderCalls.WithLabelValues(adapter, "ok").Inc()
+	var accepted, rejected, deferred float64
+	for _, r := range results {
+		switch {
+		case r.Err == nil:
+			accepted++
+		case r.Err.Temporary:
+			deferred++
+		default:
+			rejected++
+		}
+	}
+	for result, n := range map[string]float64{opsmetrics.Accepted: accepted, opsmetrics.Rejected: rejected, opsmetrics.Deferred: deferred} {
+		if n > 0 {
+			opsmetrics.ProviderMessages.WithLabelValues(adapter, result).Add(n)
+		}
+	}
+}

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/logging"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -81,6 +83,12 @@ type Authenticator struct {
 	// Integrations knows what integration keys may call and logs their
 	// calls. Without it integration keys are refused.
 	Integrations Integrations
+	// SessionLimit, when set, counts a signed-in browser session's request
+	// and says whether it may go on, or how long to wait (review 2026-11
+	// OP-6: a team behind one office NAT no longer shares one budget).
+	SessionLimit func(session string) (ok bool, wait time.Duration)
+	// SessionLimitPerMinute is the limit, for the problem's text.
+	SessionLimitPerMinute int
 }
 
 // caller is who a request comes from: a person or a key, and for an
@@ -120,6 +128,15 @@ func (a *Authenticator) Middleware(hapi huma.API) func(huma.Context, func(huma.C
 			return
 		}
 		p, u, s := c.p, c.u, c.s
+		if s != nil && a.SessionLimit != nil {
+			if ok, wait := a.SessionLimit(s.ID.String()); !ok {
+				secs := max(int(wait.Seconds()+0.999), 1)
+				hctx.SetHeader("Retry-After", strconv.Itoa(secs))
+				a.write(hapi, hctx, Err(http.StatusTooManyRequests, CodeRateLimited,
+					mSessionRateLimited.Text(i18n.LangFrom(ctx), i18n.Args{"max": a.SessionLimitPerMinute, "seconds": secs})))
+				return
+			}
+		}
 		if u != nil {
 			// Problems from here on read in the member's language too.
 			ctx = i18n.WithLang(ctx, RequestLang(hctx.Header("Accept-Language"), u))
@@ -190,6 +207,10 @@ func (a *Authenticator) Middleware(hapi huma.API) func(huma.Context, func(huma.C
 		}
 		ctx = context.WithValue(ctx, principalKey, p)
 		ctx = audit.WithPrincipal(ctx, p)
+		logging.SetCaller(ctx, callerLabel(p))
+		if ws := WorkspaceFrom(ctx); ws != nil {
+			logging.SetWorkspace(ctx, ws.Slug)
+		}
 		if u != nil {
 			ctx = context.WithValue(ctx, userKey, u)
 		}
@@ -202,6 +223,18 @@ func (a *Authenticator) Middleware(hapi huma.API) func(huma.Context, func(huma.C
 			return
 		}
 		next(huma.WithContext(hctx, ctx))
+	}
+}
+
+// callerLabel names a caller in log lines by kind and id, never by name.
+func callerLabel(p *authz.Principal) string {
+	switch p.Type {
+	case authz.ActorUser:
+		return "user:" + p.ID.String()
+	case authz.ActorMCPAgent:
+		return "agent:" + p.ID.String()
+	default:
+		return "key:" + p.ID.String()
 	}
 }
 

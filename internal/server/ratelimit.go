@@ -21,7 +21,13 @@ import (
 // with Retry-After and an RFC 9457 body.
 type RateLimits struct {
 	AuthPerMinute int // per IP on /api/v1/auth/*
-	APIPerMinute  int // per API key, or per IP without one
+	APIPerMinute  int // per API key, or per IP without a key or a session
+	// IPPerMinute caps the requests of signed-in browsers from one address
+	// together; each session is limited to APIPerMinute after sign-in is
+	// checked (SessionLimiter). Zero means ten times APIPerMinute.
+	IPPerMinute int
+	// SessionCookie is the session cookie's name.
+	SessionCookie string
 }
 
 func (rl RateLimits) Middleware() func(http.Handler) http.Handler {
@@ -31,9 +37,18 @@ func (rl RateLimits) Middleware() func(http.Handler) http.Handler {
 	api := httprate.LimitBy(rl.APIPerMinute, time.Minute, keyByCredential,
 		httprate.WithLimitHandler(limited("rateLimit.api")),
 	)
+	perIP := rl.IPPerMinute
+	if perIP <= 0 {
+		perIP = rl.APIPerMinute * 10
+	}
+	browsers := httprate.LimitBy(perIP, time.Minute, func(r *http.Request) (string, error) {
+		ip, err := keyByIP(r)
+		return "browsers:" + ip, err
+	}, httprate.WithLimitHandler(limited("rateLimit.api")))
 	return func(next http.Handler) http.Handler {
 		authed := auth(next)
 		limitedAPI := api(next)
+		limitedBrowsers := browsers(next)
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch {
 			case strings.HasPrefix(r.URL.Path, "/api/v1/auth/"):
@@ -42,6 +57,9 @@ func (rl RateLimits) Middleware() func(http.Handler) http.Handler {
 				// Transactional sends have their own rate, set on each key
 				// (50 per second by default), applied by the send API.
 				next.ServeHTTP(w, r)
+			case strings.HasPrefix(r.URL.Path, "/api/") && rl.signedInBrowser(r):
+				// The session's own limit applies once sign-in is checked.
+				limitedBrowsers.ServeHTTP(w, r)
 			case strings.HasPrefix(r.URL.Path, "/api/"):
 				limitedAPI.ServeHTTP(w, r)
 			default:
@@ -58,6 +76,17 @@ func transactionalSend(r *http.Request) bool {
 		return false
 	}
 	return strings.HasSuffix(r.URL.Path, "/transactional/messages") || strings.HasSuffix(r.URL.Path, "/transactional/messages/batch")
+}
+
+// signedInBrowser reports whether r carries a session cookie and no API
+// key. The cookie isn't checked here; a forged one fails sign-in, and the
+// address's cap still holds.
+func (rl RateLimits) signedInBrowser(r *http.Request) bool {
+	if rl.SessionCookie == "" || r.Header.Get("Authorization") != "" {
+		return false
+	}
+	c, err := r.Cookie(rl.SessionCookie)
+	return err == nil && c.Value != ""
 }
 
 // keyByCredential buckets requests by API key (hashed) when one is sent,

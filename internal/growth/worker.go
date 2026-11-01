@@ -77,11 +77,11 @@ func (s *Service) Tick(ctx context.Context) error {
 	for _, r := range rows {
 		ws, err := s.Q.GetWorkspace(ctx, r.ID)
 		if err != nil {
-			s.log().Warn("growth: workspace not readable", "workspace", r.Slug, "error", err)
+			s.log().WarnContext(ctx, "growth: workspace not readable", "workspace", r.Slug, "error", err)
 			continue
 		}
 		if err := s.Attribute(ctx, &ws); err != nil {
-			s.log().Warn("growth: attribution failed", "workspace", r.Slug, "error", err)
+			s.log().WarnContext(ctx, "growth: attribution failed", "workspace", r.Slug, "error", err)
 			errs = append(errs, fmt.Errorf("%s: %w", r.Slug, err))
 		}
 	}
@@ -103,7 +103,7 @@ func (s *Service) RollupAll(ctx context.Context, only uuid.UUID) error {
 			continue
 		}
 		if err := s.Rollup(ctx, r.ID, r.Timezone, r.RolledUpThrough); err != nil {
-			s.log().Warn("growth: rollup failed", "workspace", r.Slug, "error", err)
+			s.log().WarnContext(ctx, "growth: rollup failed", "workspace", r.Slug, "error", err)
 			errs = append(errs, fmt.Errorf("%s: %w", r.Slug, err))
 		}
 	}

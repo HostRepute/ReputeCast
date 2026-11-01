@@ -35,6 +35,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/notify"
+	"github.com/hostrepute/reputecast/internal/opsmetrics"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/version"
@@ -860,6 +861,9 @@ func (s *Service) finish(ctx context.Context, d store.HooksClaimDeliveryRow, cod
 		}
 		return q.HooksRecordResult(ctx, store.HooksRecordResultParams{ID: d.WebhookID, LastStatus: status, Ok: ok})
 	})
+	if err == nil {
+		opsmetrics.WebhookDeliveries.WithLabelValues(state).Inc()
+	}
 	if err == nil && !ok {
 		if aerr := s.alertFailing(ctx, d.WebhookID, state == "dead", errText); aerr != nil {
 			slog.WarnContext(ctx, "webhook failing alert", "webhook", d.WebhookID, "err", aerr)

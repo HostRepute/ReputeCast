@@ -33,5 +33,7 @@ ENV REPUTECAST_HTTP__ADDR=:8080 \
 VOLUME ["/var/lib/reputecast"]
 EXPOSE 8080 9464
 USER nonroot:nonroot
+# Ready once the database answers and the schema is current (/readyz).
+HEALTHCHECK --interval=15s --timeout=5s --start-period=2m --retries=4 CMD ["/usr/local/bin/reputecast", "healthcheck"]
 ENTRYPOINT ["/usr/local/bin/reputecast"]
 CMD ["serve", "--auto-migrate", "--auto-install"]

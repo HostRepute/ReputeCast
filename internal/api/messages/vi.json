@@ -150,5 +150,6 @@
   "role.editor": "Biên tập viên",
   "role.viewer": "Người xem",
   "role.client_approver": "Người duyệt phía khách hàng",
-  "role.client_viewer": "Người xem phía khách hàng"
+  "role.client_viewer": "Người xem phía khách hàng",
+  "problem.sessionRateLimited": "Phiên này gửi quá nhiều yêu cầu: tối đa {max, number} yêu cầu mỗi phút. Yêu cầu sẽ tiếp tục sau {seconds, number} giây."
 }

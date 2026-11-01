@@ -150,5 +150,6 @@
   "role.editor": "Editor",
   "role.viewer": "Viewer",
   "role.client_approver": { "message": "Client approver", "note": "an agency's client roles, built in in client workspaces" },
-  "role.client_viewer": "Client viewer"
+  "role.client_viewer": "Client viewer",
+  "problem.sessionRateLimited": { "message": "Too many requests from this session: at most {max, number} a minute. Requests resume in {seconds, number} s.", "note": "the 429 problem when one signed-in browser session sends too many API requests" }
 }

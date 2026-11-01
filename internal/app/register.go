@@ -2,14 +2,18 @@ package app
 
 import (
 	"context"
+	"net/http"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/hostrepute/reputecast/internal/accounts"
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/maintenance"
 	"github.com/hostrepute/reputecast/internal/meta"
+	"github.com/hostrepute/reputecast/internal/opsmetrics"
 )
 
 // Domains plug themselves in from their own file in this package
@@ -54,9 +58,45 @@ func registerPublic(a *App, r chi.Router) {
 
 // registerIngest adds provider webhook endpoints under /hooks/.
 func registerIngest(a *App, r chi.Router) {
-	for _, reg := range ingestRegistrars {
-		reg(a, r)
-	}
+	r.Group(func(r chi.Router) {
+		r.Use(countIngest)
+		for _, reg := range ingestRegistrars {
+			reg(a, r)
+		}
+	})
+}
+
+// countIngest counts provider webhook requests by channel and result
+// (review 2026-11 OP-1).
+func countIngest(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || !strings.HasPrefix(r.URL.Path, "/hooks/") {
+			next.ServeHTTP(w, r)
+			return
+		}
+		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+		next.ServeHTTP(ww, r)
+		channel := "email"
+		switch seg, _, _ := strings.Cut(strings.TrimPrefix(r.URL.Path, "/hooks/"), "/"); seg {
+		case "sms", "whatsapp", "stripe":
+			channel = seg
+		case "shopify", "woocommerce":
+			channel = "store"
+		}
+		result := "stored"
+		switch st := ww.Status(); {
+		case st == 0 || st < 300:
+		case st == http.StatusUnauthorized || st == http.StatusForbidden:
+			result = "rejected"
+		case st == http.StatusNotFound:
+			result = "unknown"
+		case st >= 500:
+			result = "retry_later"
+		default:
+			result = "invalid"
+		}
+		opsmetrics.IngestRequests.WithLabelValues(channel, result).Inc()
+	})
 }
 
 // registerJobs adds River workers and periodic jobs.

@@ -86,10 +86,14 @@ reachable from the internet. See [Reverse proxy and TLS](reverse-proxy.md).
 | `reputecast worker` | Runs only background jobs (same as `serve --role=worker`). |
 | `reputecast install` | Applies migrations and creates the first Owner (an instance admin with break-glass sign-in). |
 | `reputecast migrate up\|down\|status` | Manages the schema. |
+| `reputecast migrate segments-role` | Hands the SQL segments function back to its role after a restore on a new server ([backup and restore](backup-restore.md)). |
+| `reputecast doctor` | Checks the database, schema, secret key, files folder and roles; run it after a restore or a move. |
+| `reputecast healthcheck [--live]` | Asks the local process's `/readyz` (or `/healthz`); exits 1 when it isn't ready. For container health checks. |
 | `reputecast user reset-password --email …` | Prints a one-time reset link. Works before any sending provider exists. |
 | `reputecast user reset-2fa --email … --reason …` | Removes the authenticator app; the reason goes to the audit log. |
 | `reputecast user make-admin\|unlock --email …` | Sets the instance admin flag, or clears a sign-in lockout. |
 | `reputecast secrets generate-key` | Prints a new encryption key. |
+| `reputecast secrets reseal [--dry-run]` | Re-encrypts every stored secret with the current key, so a previous key can be dropped. |
 | `reputecast adapter install\|set-url\|secret\|check\|list\|remove` | Installs a community adapter from its manifest, tells ReputeCast where its process runs and issues its signing secret ([adapters guide](../adapters.md#community-adapters)). |
 | `reputecast openapi [--yaml]` | Prints the OpenAPI 3.1 document. |
 | `reputecast seed` | Loads the Acme demo data (development only). |
@@ -101,6 +105,14 @@ reachable from the internet. See [Reverse proxy and TLS](reverse-proxy.md).
 - Docker: `docker compose pull && docker compose up -d`. Migrations run at
   start.
 - Binary: replace it, then run `reputecast migrate up`.
+
+A process whose database is missing migrations it needs serves read-only:
+pages and the API read as usual with a banner ("ReputeCast is being
+upgraded"), writes answer 503 `maintenance`, provider webhooks are still
+stored, workers wait, and `/readyz` answers 503 so a load balancer keeps
+using the previous release. It carries on by itself once `reputecast migrate
+up` (or another process's `--auto-migrate`) has run. Downgrades are covered
+in [backup and restore](backup-restore.md#downgrades).
 
 Read the [release notes](https://github.com/hostrepute/reputecast/releases)
 first. Instance admin › Instance & updates shows the running version and the
@@ -115,6 +127,10 @@ are encrypted with that key. Back up the uploaded files folder as well
 (`REPUTECAST_FILES__DIR`, `files` next to the key file): digital products and
 lead magnets live there, not in the database.
 
+[Backup and restore](backup-restore.md) has the restore runbook (including
+the role SQL segments run as, which `pg_dump` doesn't carry), key rotation
+and the downgrade policy.
+
 ## Scaling
 
 One process runs everything. For more throughput, run several
@@ -125,7 +141,11 @@ need the same uploaded files folder.
 ## Health checks and metrics
 
 - `/healthz`: liveness.
-- `/readyz`: the database is reachable.
+- `/readyz`: ready to work: the database answers, its schema has every
+  migration this release needs and, in a worker, the workers run. A
+  worker-only process answers both on the metrics listener (`:9464`).
+  `reputecast healthcheck` asks them for container health checks; the
+  Docker image and `deploy/docker-compose.yml` use it.
 - `/metrics`: Prometheus metrics on their own listener, `:9464` by default
   (`REPUTECAST_METRICS__ADDR`). Don't publish that port or proxy it. To
   scrape the main listener instead, set `REPUTECAST_METRICS__TOKEN` and send
@@ -144,6 +164,27 @@ need the same uploaded files folder.
   Without a token the main listener answers `/metrics` with 404. Earlier
   versions served `/metrics` openly on the main listener: when you upgrade,
   point Prometheus at port 9464 or set a token.
+
+Besides the HTTP and Go runtime metrics, every process exports:
+
+| Metric | What it measures |
+|---|---|
+| `reputecast_jobs{queue,kind,state}` | Background jobs waiting, scheduled, retrying, running or discarded. |
+| `reputecast_job_queue_lag_seconds{queue}` | How long the oldest due job has waited. Alert when it grows. |
+| `reputecast_job_failures_total{kind,outcome}` | Failed attempts: `retry`, `discarded` (out of attempts) or `panic`. |
+| `reputecast_provider_messages_total{provider,result}` | Messages handed to providers: `accepted`, `rejected`, `deferred`, `failed`. |
+| `reputecast_provider_calls_total{provider,result}` | Send calls: `ok` or `error`. |
+| `reputecast_ingest_requests_total{channel,result}` | Provider webhooks received: `stored`, `rejected` (signature), `unknown`, `invalid`, `retry_later`. |
+| `reputecast_ingest_pending{channel}`, `reputecast_ingest_lag_seconds{channel}` | Stored webhook events not normalized yet, and the oldest one's age. |
+| `reputecast_webhook_deliveries_total{result}` | Outgoing webhook attempts: `delivered`, `retrying`, `dead`. |
+| `reputecast_webhook_deliveries_pending`, `reputecast_webhook_deliveries_lag_seconds` | Outgoing webhooks waiting, and how long the oldest due one has. |
+| `reputecast_db_pool_*` | The database pool: connections by state, size, acquires, waits. |
+| `reputecast_metrics_scrape_errors` | Queue readings that failed at the last scrape. |
+
+Queue readings come from the database at most every 15 seconds, whatever
+the scrape interval. Log lines of a request carry its `request_id`, `route`,
+`workspace` and `caller` (`user:<id>`, `key:<id>` or `agent:<id>`); a job's
+carry `job` (`kind:id`).
 
 Several processes started with `--auto-migrate` take turns: one runs the
 migrations while the others wait for it (up to 15 minutes). Migrations need
