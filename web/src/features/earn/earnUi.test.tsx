@@ -1,13 +1,15 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { Link } from '@tanstack/react-router'
 import { json, mockApi } from '@/test/api'
 import { renderInWorkspace, workspaceMe } from '@/test/app'
 import gifts from './__fixtures__/gifts.json'
 import offerNew from './__fixtures__/offer-new.json'
 import plans from './__fixtures__/plans.json'
+import revenue from './__fixtures__/revenue.json'
 import status from './__fixtures__/status.json'
 import { GiftsPage } from './gifts/GiftsPage'
 import { OfferEditorPage } from './offers/OfferEditor'
+import { RevenueOverview } from './revenue/RevenueOverview'
 
 const EARN = '/api/v1/workspaces/acme-newsletter/earn'
 
@@ -84,5 +86,19 @@ describe('Earn editors and exports', () => {
     fireEvent.click(button)
     await waitFor(() => expect(exported).toBe(1))
     expect(await screen.findByText('Exported as CSV')).toBeInTheDocument()
+  })
+
+  // Review 2026-11 EA-4: growth of paid members by tier and billing period.
+  it('shows who joined and left each tier and period in the period', async () => {
+    unmock = mockApi({
+      [`GET ${EARN}/revenue`]: () => json(revenue),
+      [`GET ${EARN}/status`]: () => json(status),
+    })
+    await renderInWorkspace(<RevenueOverview />, { me: workspaceMe({ permissions: ['earn:view', 'reports:view'] }) })
+    const table = await screen.findByRole('table', { name: 'By tier and period' })
+    expect(within(table).getByRole('columnheader', { name: 'Joined · left, 30 days' })).toBeInTheDocument()
+    expect(within(table).getByText('12 joined and 3 left in the last 30 days')).toBeInTheDocument()
+    // The total adds the rows up.
+    expect(within(table).getByText('17 joined and 4 left in the last 30 days')).toBeInTheDocument()
   })
 })

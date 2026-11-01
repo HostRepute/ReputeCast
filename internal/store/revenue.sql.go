@@ -1648,6 +1648,58 @@ func (q *Queries) RevenueSponsorNeeds(ctx context.Context, arg RevenueSponsorNee
 	return items, nil
 }
 
+const revenueTierGrowth = `-- name: RevenueTierGrowth :many
+SELECT s.tier_id, s.period,
+       count(*) FILTER (WHERE s.started_at >= $1 AND s.started_at < $2 AND s.status <> 'trialing')::bigint AS joined,
+       count(*) FILTER (WHERE s.ended_at >= $1 AND s.ended_at < $2)::bigint AS left_
+FROM paid_subscriptions s
+WHERE s.workspace_id = $3 AND s.mode = 'live' AND s.kind = 'stripe' AND s.period <> ''
+  AND ((s.started_at >= $1 AND s.started_at < $2) OR (s.ended_at >= $1 AND s.ended_at < $2))
+GROUP BY 1, 2
+`
+
+type RevenueTierGrowthParams struct {
+	FromAt      time.Time `json:"fromAt"`
+	ToAt        time.Time `json:"toAt"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+type RevenueTierGrowthRow struct {
+	TierID *uuid.UUID `json:"tierId"`
+	Period string     `json:"period"`
+	Joined int64      `json:"joined"`
+	Left   int64      `json:"left"`
+}
+
+// Paid members who joined and who left each tier and period in a window
+// (review 2026-11 EA-4): a subscription that started in it and isn't still
+// in its trial, and one that ended in it. Live mode only; gifts and complimentary
+// access aren't paid.
+func (q *Queries) RevenueTierGrowth(ctx context.Context, arg RevenueTierGrowthParams) ([]RevenueTierGrowthRow, error) {
+	rows, err := q.db.Query(ctx, revenueTierGrowth, arg.FromAt, arg.ToAt, arg.WorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueTierGrowthRow{}
+	for rows.Next() {
+		var i RevenueTierGrowthRow
+		if err := rows.Scan(
+			&i.TierID,
+			&i.Period,
+			&i.Joined,
+			&i.Left,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const revenueTierPrices = `-- name: RevenueTierPrices :many
 SELECT tier_id, period, amount_cents, currency FROM earn_prices WHERE workspace_id = $1 AND status = 'current'
 `

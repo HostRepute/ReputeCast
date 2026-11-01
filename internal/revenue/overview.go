@@ -116,7 +116,7 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 			fail("chart", err)
 		}
 	}
-	if err := s.tiers(ctx, ws, &out); err != nil {
+	if err := s.tiers(ctx, ws, from, to, &out); err != nil {
 		fail("tiers", err)
 	}
 	if err := s.trials(ctx, ws, from, to, &out); err != nil {
@@ -255,7 +255,7 @@ func (s *Service) chart(ctx context.Context, ws *store.Workspace, out *RevenueOv
 
 // tiers is paying members and MRR by tier and period today, with the
 // offers some of them are on.
-func (s *Service) tiers(ctx context.Context, ws *store.Workspace, out *RevenueOverview) error {
+func (s *Service) tiers(ctx context.Context, ws *store.Workspace, from, to time.Time, out *RevenueOverview) error {
 	rows, err := s.Q.RevenueByTier(ctx, ws.ID)
 	if err != nil {
 		return err
@@ -303,6 +303,31 @@ func (s *Service) tiers(ctx context.Context, ws *store.Workspace, out *RevenueOv
 	}
 	for i := range out.Tiers {
 		out.Tiers[i].MRRCents = mrr(out.Tiers[i].MRRCents)
+	}
+	// Who joined and left each tier and period in the window (EA-4); a tier
+	// and period whose members all left still shows, with none paying.
+	growth, err := s.Q.RevenueTierGrowth(ctx, store.RevenueTierGrowthParams{WorkspaceID: ws.ID, FromAt: from, ToAt: to})
+	if err != nil {
+		return err
+	}
+	names := map[string]string{}
+	for _, t := range all {
+		names[t.ID.String()] = t.Name
+	}
+	for _, g := range growth {
+		id := ""
+		if g.TierID != nil {
+			id = g.TierID.String()
+		}
+		key := id + ":" + g.Period
+		i, ok := index[key]
+		if !ok {
+			out.Tiers = append(out.Tiers, RevenueTierRow{TierID: id, Tier: names[id], Period: g.Period, Offers: []RevenueTierOffer{}, Includes: []string{},
+				PriceCents: priceOf[key]})
+			i = len(out.Tiers) - 1
+			index[key] = i
+		}
+		out.Tiers[i].Joined, out.Tiers[i].Left = g.Joined, g.Left
 	}
 	return nil
 }

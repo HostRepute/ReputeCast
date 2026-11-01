@@ -3471,6 +3471,11 @@ type Querier interface {
 	// Bookings that need a person soon: a creative still waiting, or a
 	// sponsor's payment not recorded for an issue that went out.
 	RevenueSponsorNeeds(ctx context.Context, arg RevenueSponsorNeedsParams) ([]RevenueSponsorNeedsRow, error)
+	// Paid members who joined and who left each tier and period in a window
+	// (review 2026-11 EA-4): a subscription that started in it and isn't still
+	// in its trial, and one that ended in it. Live mode only; gifts and complimentary
+	// access aren't paid.
+	RevenueTierGrowth(ctx context.Context, arg RevenueTierGrowthParams) ([]RevenueTierGrowthRow, error)
 	RevenueTierPrices(ctx context.Context, workspaceID uuid.UUID) ([]RevenueTierPricesRow, error)
 	// The workspace's tiers by access rank (a higher tier includes the lower).
 	RevenueTiers(ctx context.Context, workspaceID uuid.UUID) ([]RevenueTiersRow, error)

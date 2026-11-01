@@ -1,0 +1,594 @@
+{
+ "period": "30d",
+ "from": "2026-10-02T00:00:00-04:00",
+ "to": "2026-11-01T14:13:46.125655895Z",
+ "currency": "usd",
+ "account": "Acme Media",
+ "tooEarly": false,
+ "dataSince": "2023-12-10T15:06:00Z",
+ "connectedAt": "2026-10-03T18:10:00Z",
+ "hadHistory": true,
+ "tiles": {
+  "mrrCents": 896000,
+  "mrrDeltaCents": 41800,
+  "mrrDeltaPct": 4.89346757199719,
+  "arrCents": 10752000,
+  "members": 1184,
+  "membersDelta": 65,
+  "new": 96,
+  "churned": 31,
+  "trialing": 37,
+  "churnRate": 2.7703306523681857,
+  "churnBase": 1119,
+  "freeToPaidRate": 0.20216637228405437,
+  "freeToPaid": 95,
+  "freeBase": 46991,
+  "giftsCents": 65600,
+  "sponsorsCents": 225000
+ },
+ "chart": {
+  "points": [
+   {
+    "at": "2025-11-01T04:00:00Z",
+    "mrrCents": 590467,
+    "history": true
+   },
+   {
+    "at": "2025-12-01T05:00:00Z",
+    "mrrCents": 610533,
+    "history": true
+   },
+   {
+    "at": "2026-01-01T05:00:00Z",
+    "mrrCents": 632800,
+    "history": true
+   },
+   {
+    "at": "2026-02-01T05:00:00Z",
+    "mrrCents": 665667,
+    "history": true
+   },
+   {
+    "at": "2026-03-01T05:00:00Z",
+    "mrrCents": 694733,
+    "history": true
+   },
+   {
+    "at": "2026-04-01T04:00:00Z",
+    "mrrCents": 728200,
+    "history": true
+   },
+   {
+    "at": "2026-05-01T04:00:00Z",
+    "mrrCents": 749733,
+    "history": true
+   },
+   {
+    "at": "2026-06-01T04:00:00Z",
+    "mrrCents": 775400,
+    "history": true
+   },
+   {
+    "at": "2026-07-01T04:00:00Z",
+    "mrrCents": 793667,
+    "history": true
+   },
+   {
+    "at": "2026-08-01T04:00:00Z",
+    "mrrCents": 828600,
+    "history": true
+   },
+   {
+    "at": "2026-09-01T04:00:00Z",
+    "mrrCents": 849000,
+    "history": true
+   },
+   {
+    "at": "2026-10-01T04:00:00Z",
+    "mrrCents": 854200,
+    "history": true
+   },
+   {
+    "at": "2026-10-04T14:06:00Z",
+    "mrrCents": 854200,
+    "history": false
+   },
+   {
+    "at": "2026-11-01T14:13:46.136849Z",
+    "mrrCents": 896000,
+    "history": false
+   }
+  ],
+  "historyUntil": "2026-10-04T14:06:00Z",
+  "marks": [
+   {
+    "n": 1,
+    "kind": "moved",
+    "at": "2026-10-04T14:06:00Z",
+    "name": "substack"
+   },
+   {
+    "n": 2,
+    "kind": "offer",
+    "at": "2026-10-17T13:00:00Z",
+    "name": "FALL26"
+   }
+  ],
+  "startCents": 590467,
+  "endCents": 896000,
+  "deltaCents": 305533,
+  "deltaPct": 51.74429731043394,
+  "since": "2025-11-01T00:00:00-04:00"
+ },
+ "movement": {
+  "fromCents": 854200,
+  "fromMembers": 1119,
+  "toCents": 896000,
+  "toMembers": 1184,
+  "new": {
+   "cents": 69200,
+   "count": 96
+  },
+  "reactivated": {
+   "cents": 0,
+   "count": 0
+  },
+  "expansion": {
+   "cents": 2600,
+   "count": 3
+  },
+  "contraction": {
+   "cents": -6000,
+   "count": 21
+  },
+  "churned": {
+   "cents": -24000,
+   "count": 31
+  }
+ },
+ "tiers": [
+  {
+   "tierId": "01a19494-bc9f-75e0-8198-23d0f671e40c",
+   "tier": "Weekly Digest Insider",
+   "period": "month",
+   "members": 431,
+   "mrrCents": 340000,
+   "priceCents": 800,
+   "offers": [
+    {
+     "name": "Stay for half price",
+     "members": 12,
+     "paidCents": 400,
+     "duration": "months",
+     "months": 3
+    }
+   ],
+   "includes": [],
+   "joined": 12,
+   "left": 3
+  },
+  {
+   "tierId": "01a19494-bc9f-75e0-8198-23d0f671e40c",
+   "tier": "Weekly Digest Insider",
+   "period": "year",
+   "members": 693,
+   "mrrCents": 456000,
+   "priceCents": 8000,
+   "offers": [
+    {
+     "name": "FALL26",
+     "members": 45,
+     "paidCents": 6400,
+     "duration": "once"
+    }
+   ],
+   "includes": [],
+   "joined": 4,
+   "left": 0
+  },
+  {
+   "tierId": "01a19494-bc9f-75e1-af06-1943b3041b16",
+   "tier": "Founding member",
+   "period": "year",
+   "members": 60,
+   "mrrCents": 100000,
+   "priceCents": 20000,
+   "offers": [],
+   "includes": [
+    "Weekly Digest Insider"
+   ],
+   "joined": 1,
+   "left": 1
+  }
+ ],
+ "trials": {
+  "started": 112,
+  "trialing": 37,
+  "ended": 75,
+  "becamePaid": 45,
+  "canceled": 30,
+  "endingSoon": 29,
+  "endingFrom": {
+   "kind": "campaign",
+   "id": "01a19494-4d91-77ae-bc45-a07d2096ff17",
+   "name": "Weekly Digest #141",
+   "count": 16
+  }
+ },
+ "conversions": {
+  "count": 64,
+  "valueCents": 185600,
+  "currency": "usd",
+  "since": "2026-10-23T01:59:56.824092Z",
+  "byEmail": [
+   {
+    "kind": "campaign",
+    "id": "01a19494-4d8b-708e-bb43-60331fc4cd81",
+    "name": "October Product Update",
+    "byToken": 19,
+    "byEmail": 4,
+    "count": 23,
+    "valueCents": 66700
+   }
+  ],
+  "uncredited": {
+   "cents": 118900,
+   "count": 41
+  },
+  "name": "Upgraded to Team plan",
+  "typicalCents": 2900,
+  "sender": "Acme Cloud",
+  "latest": [
+   {
+    "at": "2026-11-01T00:36:20.403849Z",
+    "valueCents": 2900,
+    "currency": "usd",
+    "matched": "click_token",
+    "credited": "October Product Update",
+    "campaignId": "01a19494-4d8b-708e-bb43-60331fc4cd81"
+   },
+   {
+    "at": "2026-11-01T00:08:20.403849Z",
+    "valueCents": 2900,
+    "currency": "usd",
+    "matched": "email",
+    "credited": ""
+   },
+   {
+    "at": "2026-10-31T20:53:36.53649Z",
+    "valueCents": 2900,
+    "currency": "usd",
+    "matched": "click_token",
+    "credited": "October Product Update",
+    "campaignId": "01a19494-4d8b-708e-bb43-60331fc4cd81"
+   }
+  ],
+  "otherCurrency": 0,
+  "total": 64
+ },
+ "cancellations": {
+  "visits": 43,
+  "kept": 12,
+  "continued": 26,
+  "undecided": 5,
+  "keptOffer": "Stay for half price",
+  "keptTier": "Weekly Digest Insider",
+  "reasons": [
+   {
+    "reason": "not_reading",
+    "count": 14
+   },
+   {
+    "reason": "too_expensive",
+    "count": 11
+   },
+   {
+    "reason": "not_for_me",
+    "count": 6
+   },
+   {
+    "reason": "switching",
+    "count": 3
+   },
+   {
+    "reason": "other",
+    "count": 4
+   },
+   {
+    "reason": "none",
+    "count": 5
+   }
+  ],
+  "offerId": "01a19494-be6a-7ca4-b457-1a3841a27853"
+ },
+ "freeToPaid": {
+  "rows": [
+   {
+    "key": "form:01a19494-5151-749e-9cf8-b9c9f253ff8d",
+    "kind": "form",
+    "name": "Newsletter signup",
+    "formKind": "embedded",
+    "atStart": 11946,
+    "joined": 731,
+    "base": 12677,
+    "paid": 31,
+    "rate": 0.24453735110830638,
+    "tooFew": false
+   },
+   {
+    "key": "form:01a19494-5157-79a9-bfa8-469f9e2d826a",
+    "kind": "form",
+    "name": "Footer mini form",
+    "formKind": "embedded",
+    "atStart": 8577,
+    "joined": 612,
+    "base": 9189,
+    "paid": 21,
+    "rate": 0.22853411687887693,
+    "tooFew": false
+   },
+   {
+    "key": "import:01a19494-2a8a-7b61-81f0-93d2e7ac1de4",
+    "kind": "import",
+    "name": "Brevo",
+    "atStart": 0,
+    "joined": 7390,
+    "base": 7390,
+    "paid": 6,
+    "rate": 0.08119079837618402,
+    "tooFew": false
+   },
+   {
+    "key": "carried:import:csv",
+    "kind": "carried",
+    "name": "CSV",
+    "atStart": 5684,
+    "joined": 0,
+    "base": 5684,
+    "paid": 19,
+    "rate": 0.3342716396903589,
+    "tooFew": false
+   },
+   {
+    "key": "other",
+    "kind": "other",
+    "name": "",
+    "atStart": 9520,
+    "joined": 2531,
+    "base": 12051,
+    "paid": 18,
+    "rate": 0.14936519790888725,
+    "tooFew": false,
+    "others": 7
+   }
+  ],
+  "total": {
+   "key": "total",
+   "kind": "total",
+   "name": "",
+   "atStart": 35727,
+   "joined": 11264,
+   "base": 46991,
+   "paid": 95,
+   "rate": 0.20216637228405437,
+   "tooFew": false
+  },
+  "direct": 1,
+  "all": 96
+ },
+ "upgrades": {
+  "rows": [
+   {
+    "kind": "campaign",
+    "id": "01a19494-4da0-7a07-80c3-4a63bee60fcd",
+    "name": "Welcome to news.acme.io",
+    "sentAt": "2026-10-07T15:00:00Z",
+    "members": 11,
+    "mrrCents": 8800
+   },
+   {
+    "kind": "campaign",
+    "id": "01a19494-4d9c-7bf2-82e8-9465495f6b45",
+    "name": "Weekly Digest #139",
+    "sentAt": "2026-10-12T13:00:00Z",
+    "members": 19,
+    "mrrCents": 14000
+   },
+   {
+    "kind": "campaign",
+    "id": "01a19494-4d98-7bde-b88d-f393b2315dfa",
+    "name": "Weekly Digest #140",
+    "sentAt": "2026-10-19T13:00:00Z",
+    "members": 16,
+    "mrrCents": 11600
+   },
+   {
+    "kind": "campaign",
+    "id": "01a19494-4d91-77ae-bc45-a07d2096ff17",
+    "name": "Weekly Digest #141",
+    "sentAt": "2026-10-26T13:00:00Z",
+    "members": 9,
+    "mrrCents": 8200
+   },
+   {
+    "kind": "automation",
+    "name": "Welcome series",
+    "members": 12,
+    "mrrCents": 7200
+   },
+   {
+    "kind": "none",
+    "name": "",
+    "members": 29,
+    "mrrCents": 19400
+   }
+  ],
+  "total": {
+   "cents": 69200,
+   "count": 96
+  },
+  "window": 7
+ },
+ "needs": [
+  {
+   "kind": "past_due",
+   "count": 14
+  },
+  {
+   "kind": "offer",
+   "name": "FALL26",
+   "used": 45,
+   "limit": 100,
+   "endsAt": "2026-11-17T04:59:00Z",
+   "targetId": "01a19494-be6a-7ca3-bc7c-adcc4804c305"
+  },
+  {
+   "kind": "creative",
+   "issue": 143,
+   "list": "Weekly Digest",
+   "sponsor": "Northwind Analytics",
+   "due": "2026-11-02T12:00:00-05:00",
+   "targetId": "01a19494-be60-7a71-8787-45ef7eb4a99c"
+  },
+  {
+   "kind": "sponsor_payment",
+   "issue": 142,
+   "list": "Weekly Digest",
+   "sponsor": "Contoso Cloud",
+   "due": "2026-11-13T12:00:00-05:00",
+   "targetId": "01a19494-be5f-7278-9861-9e37354bac52"
+  },
+  {
+   "kind": "member_email",
+   "targetId": "01a19494-bcc5-7751-951a-76381dea8ec7",
+   "template": "gift-ending"
+  }
+ ],
+ "activity": [
+  {
+   "kind": "refunded",
+   "at": "2026-10-29T20:32:00Z",
+   "contactId": "01a19494-2b70-745e-b4bf-017fd6e1410c",
+   "name": "Marta Kowalski",
+   "firstName": "Marta",
+   "tier": "Weekly Digest Insider",
+   "period": "year",
+   "amountCents": -8000,
+   "currency": "usd",
+   "data": {
+    "amount": 8000
+   },
+   "sourceKind": "import",
+   "source": "Imported from Substack",
+   "priceCents": 8000,
+   "accessPaused": false,
+   "canceledBy": "Marcus Chen"
+  },
+  {
+   "kind": "payment_failed",
+   "at": "2026-10-29T13:12:00Z",
+   "contactId": "01a19494-2a95-72b8-9013-808b64b438db",
+   "name": "Grace Okafor",
+   "firstName": "Grace",
+   "tier": "Weekly Digest Insider",
+   "period": "month",
+   "amountCents": 800,
+   "currency": "usd",
+   "data": {
+    "reason": "Your card has insufficient funds.",
+    "retry": "2026-11-01T14:12:00Z"
+   },
+   "sourceKind": "import",
+   "source": "Imported from Substack",
+   "priceCents": 800,
+   "accessPaused": false
+  },
+  {
+   "kind": "offer_applied",
+   "at": "2026-10-28T18:20:00Z",
+   "contactId": "01a19494-2aee-7229-b261-0c81e2501c6f",
+   "name": "Mateo Silva",
+   "firstName": "Mateo",
+   "tier": "Weekly Digest Insider",
+   "period": "month",
+   "currency": "",
+   "data": {
+    "offer": "Stay for half price"
+   },
+   "sourceKind": "import",
+   "source": "Imported from Substack",
+   "priceCents": 800,
+   "offerCents": 400,
+   "offerEndsAt": "2027-01-28T16:00:00Z",
+   "accessPaused": false
+  },
+  {
+   "kind": "cancel_scheduled",
+   "at": "2026-10-28T15:05:00Z",
+   "contactId": "01a19494-2b8b-7547-bb9f-ff1f671dd501",
+   "name": "Olga Bennett",
+   "firstName": "Olga",
+   "tier": "Weekly Digest Insider",
+   "period": "month",
+   "currency": "",
+   "data": {
+    "date": "2026-11-18T23:30:00Z",
+    "reason": "not_reading"
+   },
+   "sourceKind": "import",
+   "source": "Imported from Substack",
+   "priceCents": 800,
+   "accessPaused": false,
+   "sawOffer": "Stay for half price"
+  },
+  {
+   "kind": "gift_redeemed",
+   "at": "2026-10-27T22:05:00Z",
+   "contactId": "01a19494-2a95-71c0-86f9-cf7fbfd72536",
+   "name": "Lena Fischer",
+   "firstName": "Lena",
+   "tier": "Weekly Digest Insider",
+   "period": "",
+   "currency": "",
+   "data": {
+    "from": "Priya Natarajan",
+    "months": 12
+   },
+   "sourceKind": "gift",
+   "source": "Gift from Priya Natarajan",
+   "priceCents": 0,
+   "endsAt": "2027-10-27T22:05:00Z",
+   "accessPaused": false
+  },
+  {
+   "kind": "subscribed",
+   "at": "2026-10-23T13:52:00Z",
+   "contactId": "01a19494-2a94-7d7a-901b-de80382fdc55",
+   "name": "Sam Rivera",
+   "firstName": "Sam",
+   "tier": "Weekly Digest Insider",
+   "period": "year",
+   "amountCents": 6400,
+   "currency": "",
+   "data": {
+    "lists": "already",
+    "offer": "FALL26",
+    "period": "year",
+    "tier": "Weekly Digest Insider"
+   },
+   "sourceKind": "campaign",
+   "source": "Weekly Digest #141",
+   "priceCents": 8000,
+   "offerCents": 6400,
+   "offerEndsAt": "2027-10-23T13:52:00Z",
+   "accessPaused": false
+  }
+ ],
+ "failed": [],
+ "readOnly": false,
+ "helpers": [],
+ "canEdit": true,
+ "canManage": true,
+ "canPayments": true,
+ "canSponsors": true
+}

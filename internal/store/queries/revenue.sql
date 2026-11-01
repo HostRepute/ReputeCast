@@ -35,6 +35,19 @@ WHERE s.workspace_id = @workspace_id AND s.mode = 'live' AND earn_arr_cents(s.ki
 GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9
 ORDER BY 3, 2, 4, 6;
 
+-- name: RevenueTierGrowth :many
+-- Paid members who joined and who left each tier and period in a window
+-- (review 2026-11 EA-4): a subscription that started in it and isn't still
+-- in its trial, and one that ended in it. Live mode only; gifts and complimentary
+-- access aren't paid.
+SELECT s.tier_id, s.period,
+       count(*) FILTER (WHERE s.started_at >= @from_at AND s.started_at < @to_at AND s.status <> 'trialing')::bigint AS joined,
+       count(*) FILTER (WHERE s.ended_at >= @from_at AND s.ended_at < @to_at)::bigint AS left_
+FROM paid_subscriptions s
+WHERE s.workspace_id = @workspace_id AND s.mode = 'live' AND s.kind = 'stripe' AND s.period <> ''
+  AND ((s.started_at >= @from_at AND s.started_at < @to_at) OR (s.ended_at >= @from_at AND s.ended_at < @to_at))
+GROUP BY 1, 2;
+
 -- name: RevenueAttributionSettings :one
 SELECT attribution_days, click_token_on, click_token_domains, currency FROM earn_settings WHERE workspace_id = @workspace_id;
 

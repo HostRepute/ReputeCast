@@ -38090,6 +38090,10 @@ export interface components {
         RevenueTierRow: {
             includes: string[];
             /** Format: int64 */
+            joined: number;
+            /** Format: int64 */
+            left: number;
+            /** Format: int64 */
             members: number;
             /** Format: int64 */
             mrrCents: number;

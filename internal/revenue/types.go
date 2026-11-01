@@ -145,6 +145,10 @@ type RevenueTierRow struct {
 	Offers     []RevenueTierOffer `json:"offers"`
 	// Includes names the lower tiers it gives access to.
 	Includes []string `json:"includes"`
+	// Joined and Left are the paid members who started and who ended in
+	// the overview's period (review 2026-11 EA-4): its growth.
+	Joined int64 `json:"joined"`
+	Left   int64 `json:"left"`
 }
 
 // RevenueTrials is the period's trials and what became of them.

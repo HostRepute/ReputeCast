@@ -696,7 +696,12 @@ function Tiers({ o }: { o: Overview }) {
   const { slug } = useWorkspace()
   const cur = o.currency
   const rows = o.tiers
-  const total = rows.reduce((s, r) => ({ members: s.members + r.members, mrr: s.mrr + r.mrrCents }), { members: 0, mrr: 0 })
+  const total = rows.reduce((s, r) => ({ members: s.members + r.members, mrr: s.mrr + r.mrrCents, joined: s.joined + r.joined, left: s.left + r.left }), {
+    members: 0,
+    mrr: 0,
+    joined: 0,
+    left: 0,
+  })
   const name = (r: Schemas['RevenueTierRow']) => t(mr.tierPeriod, { tier: r.tier, period: r.period })
   return (
     <Card
@@ -724,6 +729,10 @@ function Tiers({ o }: { o: Overview }) {
                     <th scope="col" className="r">
                       {t(mr.colMrr)}
                     </th>
+                    {/* Growth by tier and period (review 2026-11 EA-4). */}
+                    <th scope="col" className="r">
+                      {t(mr.colGrowth, { period: o.period })}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -737,6 +746,9 @@ function Tiers({ o }: { o: Overview }) {
                       </td>
                       <td className="r num">{count(r.members)}</td>
                       <td className="r num">{money(r.mrrCents, cur, 'never')}</td>
+                      <td className="r num">
+                        <Growth r={r} period={o.period} />
+                      </td>
                     </tr>
                   ))}
                   <tr className="total">
@@ -748,6 +760,11 @@ function Tiers({ o }: { o: Overview }) {
                     </td>
                     <td className="r num">
                       <b>{money(total.mrr, cur, 'never')}</b>
+                    </td>
+                    <td className="r num">
+                      <b>
+                        <Growth r={total} period={o.period} />
+                      </b>
                     </td>
                   </tr>
                 </tbody>
@@ -764,6 +781,7 @@ function Tiers({ o }: { o: Overview }) {
                 <span className="k">
                   {t(mr.tierMembers, { count: r.members })} · {tierNote(t, r, cur)}
                 </span>
+                <span className="k">{t(mr.growthLabel, { joined: r.joined, left: r.left, period: o.period })}</span>
               </div>
             ))}
             <div className="er-lrow">
@@ -783,6 +801,20 @@ function Tiers({ o }: { o: Overview }) {
         </>
       )}
     </Card>
+  )
+}
+
+/** "+3 · −1", read out as "3 joined and 1 left in the last 30 days". */
+function Growth({ r, period }: { r: { joined: number; left: number }; period: string }) {
+  const t = useT()
+  const label = t(mr.growthLabel, { joined: r.joined, left: r.left, period })
+  return (
+    <>
+      <span aria-hidden="true" title={label}>
+        {t(mr.growthCell, { joined: count(r.joined), left: count(r.left) })}
+      </span>
+      <span className="vh">{label}</span>
+    </>
   )
 }
 

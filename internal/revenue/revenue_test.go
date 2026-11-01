@@ -110,6 +110,16 @@ func TestMRRMovementAndChurnFromTheLedger(t *testing.T) {
 	if len(ov.Failed) > 0 {
 		t.Fatalf("failed cards: %v", ov.Failed)
 	}
+	// Review 2026-11 EA-4: growth by tier and period. Insider monthly: the
+	// churned reader came back (joined) and left once before; the trial
+	// isn't a paid member yet. Insider yearly: the new member.
+	growth := map[string][2]int64{}
+	for _, r := range ov.Tiers {
+		growth[r.Tier+"/"+r.Period] = [2]int64{r.Joined, r.Left}
+	}
+	if growth["Insider/month"] != [2]int64{1, 1} || growth["Insider/year"] != [2]int64{1, 0} {
+		t.Fatalf("growth by tier and period: %v", growth)
+	}
 	// Now: a, past due, scheduled ($8 each), new ($80/year), offer ($4),
 	// upgraded ($200/year), the reactivated reader ($8).
 	wantArr := int64(9600 + 9600 + 9600 + 8000 + 4800 + 20000 + 9600)

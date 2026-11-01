@@ -68599,6 +68599,14 @@
             },
             "type": "array"
           },
+          "joined": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "left": {
+            "format": "int64",
+            "type": "integer"
+          },
           "members": {
             "format": "int64",
             "type": "integer"
@@ -68635,7 +68643,9 @@
           "mrrCents",
           "priceCents",
           "offers",
-          "includes"
+          "includes",
+          "joined",
+          "left"
         ],
         "type": "object"
       },
