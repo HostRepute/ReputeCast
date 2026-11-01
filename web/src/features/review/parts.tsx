@@ -17,11 +17,11 @@ export function VerdictIcon({ kind, size = 40 }: { kind: 'warn' | 'bad' | 'ok' |
     <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
       <circle cx="20" cy="20" r="19" fill={circle} />
       {kind === 'ok' ? (
-        <path d="m12 20.5 5.5 5.5L28 15" stroke="#166534" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <path d="m12 20.5 5.5 5.5L28 15" stroke="var(--ok-fg)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
       ) : kind === 'bad' ? (
-        <path d="M13 13l14 14M27 13 13 27" stroke="#991B1B" strokeWidth="3" strokeLinecap="round" />
+        <path d="M13 13l14 14M27 13 13 27" stroke="var(--bad-fg)" strokeWidth="3" strokeLinecap="round" />
       ) : (
-        <path d="M20 11v11M20 27v1" stroke={kind === 'warn' ? '#92400E' : '#991B1B'} strokeWidth="3" strokeLinecap="round" />
+        <path d="M20 11v11M20 27v1" stroke={kind === 'warn' ? 'var(--warn-fg)' : 'var(--bad-fg)'} strokeWidth="3" strokeLinecap="round" />
       )}
     </svg>
   )

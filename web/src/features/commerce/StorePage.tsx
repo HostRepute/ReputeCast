@@ -518,7 +518,7 @@ function NoPlugin({ page: p }: { page: Page_ }) {
 
 function CheckSvg() {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#15803D" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--ok-bar)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="m3 8 3.5 3.5L13 5" />
     </svg>
   )
@@ -526,7 +526,7 @@ function CheckSvg() {
 
 function CrossSvg() {
   return (
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#B91C1C" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--bad-strong)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M4 4l8 8M12 4l-8 8" />
     </svg>
   )
@@ -566,7 +566,7 @@ function Stats({ page: p }: { page: Page_ }) {
 
 function Bolt() {
   return (
-    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#0F766E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M9 1.5 3.5 9H8l-1 5.5L12.5 7H8z" />
     </svg>
   )
@@ -574,7 +574,7 @@ function Bolt() {
 
 function Bag() {
   return (
-    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#0F766E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M3 5.5h10l-.8 8.5H3.8z" />
       <path d="M5.8 5.5V4.6a2.2 2.2 0 0 1 4.4 0v.9" />
     </svg>
@@ -583,7 +583,7 @@ function Bag() {
 
 function Check() {
   return (
-    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#0F766E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="m3 8 3.5 3.5L13 5" />
     </svg>
   )

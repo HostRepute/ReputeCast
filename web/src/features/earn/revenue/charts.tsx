@@ -145,7 +145,7 @@ function MrrSvg({ v, chart, currency, desc }: { v: LineVariant; chart: Chart; cu
       {live.length > 1 ? <polyline points={poly(live)} fill="none" stroke={LINE} strokeWidth={2.4} strokeLinejoin="round" strokeLinecap="round" /> : null}
       {marks.map(({ m, mx, my }) => (
         <g key={`${m.kind}-${m.n}`} aria-hidden="true">
-          <line x1={mx} x2={mx} y1={my} y2={v.bottom} stroke="#8B94A3" strokeDasharray="2 3" />
+          <line x1={mx} x2={mx} y1={my} y2={v.bottom} stroke="var(--line-input)" strokeDasharray="2 3" />
           <circle cx={mx} cy={my} r={8} fill={INK} />
           <text x={mx} y={my + 4} textAnchor="middle" fontSize={10.5} fontWeight={700} fill="#fff" fontFamily={FONT}>
             {m.n}
@@ -315,11 +315,11 @@ function MovementSvg({ v, movement, currency, desc }: { v: BarVariant; movement:
             {ends && base > 0 ? (
               <path d={`M${(x - 1).toFixed(1)} ${v.base - 9} ${zigzag(bw)}`} fill="none" stroke="#fff" strokeWidth={2.2} aria-hidden="true" />
             ) : null}
-            {next !== null ? <line x1={x + bw} x2={x + slot} y1={y(next)} y2={y(next)} stroke="#8B94A3" strokeDasharray="2 2" /> : null}
+            {next !== null ? <line x1={x + bw} x2={x + slot} y1={y(next)} y2={y(next)} stroke="var(--line-input)" strokeDasharray="2 2" /> : null}
             <text x={x + bw / 2} y={yTop - 7} textAnchor="middle" fontSize={valueSize} fontWeight={700} fill={INK} fontFamily={FONT}>
               {values[i]}
             </text>
-            <text x={x + bw / 2} y={v.catY} textAnchor="middle" fontSize={nameSize} fontWeight={600} fill="#374151" fontFamily={FONT}>
+            <text x={x + bw / 2} y={v.catY} textAnchor="middle" fontSize={nameSize} fontWeight={600} fill="var(--ink-nav)" fontFamily={FONT}>
               {names[i]}
             </text>
             <text x={x + bw / 2} y={v.countY} textAnchor="middle" fontSize={11} fill={MUTED} fontFamily={FONT}>

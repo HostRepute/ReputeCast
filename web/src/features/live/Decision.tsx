@@ -272,7 +272,7 @@ function Choice({
 
 function CheckTick() {
   return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#15803D" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--ok-bar)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="m3 8.5 3.2 3L13 4.5" />
     </svg>
   )
@@ -280,7 +280,7 @@ function CheckTick() {
 
 function CheckDash() {
   return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#B45309" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--warn-bar)" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
       <path d="M4 8h8" />
     </svg>
   )
@@ -418,7 +418,7 @@ function PauseIcon() {
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
       <circle cx="20" cy="20" r="19" fill="#FECACA" />
-      <path d="M15 13v14M25 13v14" stroke="#991B1B" strokeWidth="3.5" strokeLinecap="round" />
+      <path d="M15 13v14M25 13v14" stroke="var(--bad-fg)" strokeWidth="3.5" strokeLinecap="round" />
     </svg>
   )
 }
@@ -427,8 +427,8 @@ function PauseIcon() {
 function InDoubtIcon() {
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
-      <circle cx="20" cy="20" r="19" fill="#FDE68A" />
-      <path d="M15.5 15.5a4.5 4.5 0 1 1 6.2 4.2c-1.1.5-1.7 1.4-1.7 2.6v.7M20 27.5v.5" stroke="#92400E" strokeWidth="3" strokeLinecap="round" fill="none" />
+      <circle cx="20" cy="20" r="19" fill="var(--color-warn-line)" />
+      <path d="M15.5 15.5a4.5 4.5 0 1 1 6.2 4.2c-1.1.5-1.7 1.4-1.7 2.6v.7M20 27.5v.5" stroke="var(--warn-fg)" strokeWidth="3" strokeLinecap="round" fill="none" />
     </svg>
   )
 }
@@ -436,8 +436,8 @@ function InDoubtIcon() {
 function OutageIcon() {
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
-      <circle cx="20" cy="20" r="19" fill="#FDE68A" />
-      <path d="M20 11v11M20 27v1" stroke="#92400E" strokeWidth="3" strokeLinecap="round" />
+      <circle cx="20" cy="20" r="19" fill="var(--color-warn-line)" />
+      <path d="M20 11v11M20 27v1" stroke="var(--warn-fg)" strokeWidth="3" strokeLinecap="round" />
     </svg>
   )
 }

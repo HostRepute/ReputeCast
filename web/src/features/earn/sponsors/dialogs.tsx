@@ -222,19 +222,19 @@ export function ShareDialog({ bookingId, sponsorId, issue, sponsor, onClose }: {
         <div className="sp-sees">
           <span className="text-[13px] font-semibold">{t(mb.seesTitle)}</span>
           <div>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#15803D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--ok-bar)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               {ok}
             </svg>
             <span>{t(mb.sees1)}</span>
           </div>
           <div>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#15803D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--ok-bar)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               {ok}
             </svg>
             <span>{t(mb.sees2)}</span>
           </div>
           <div>
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#991B1B" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--bad-fg)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M4 4l8 8M12 4l-8 8" />
             </svg>
             <span>{t(mb.sees3)}</span>

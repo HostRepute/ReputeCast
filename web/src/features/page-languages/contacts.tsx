@@ -141,7 +141,7 @@ export function ContactLanguageField({ p }: { p: Profile }) {
 /** The warning sign of the boards' warn notes. */
 export function WarnIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#B45309" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="flex-none">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--warn-bar)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="flex-none">
       <circle cx="8" cy="8" r="6.2" />
       <path d="M8 4.8v3.6M8 10.9v.1" />
     </svg>

@@ -185,8 +185,8 @@ export function MiniSpark({ values }: { values: number[] }) {
   const area = `M1.0,${h} ${pts.map(([x, y]) => `L${x.toFixed(1)},${y.toFixed(1)}`).join(' ')} L${(w - 1).toFixed(1)},${h} Z`
   return (
     <svg className="block flex-none" width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
-      <path d={area} fill="#0F766E" opacity=".10" />
-      <polyline points={line} fill="none" stroke="#0F766E" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
+      <path d={area} fill="var(--accent)" opacity=".10" />
+      <polyline points={line} fill="none" stroke="var(--accent)" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   )
 }

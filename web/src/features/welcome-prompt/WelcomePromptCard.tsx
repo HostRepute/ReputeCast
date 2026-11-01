@@ -40,7 +40,7 @@ export function WelcomePromptCard({ where, className, raised }: { where: Welcome
       className={cn('card flex flex-wrap items-center gap-3.5 border-accent-line bg-accent-tint px-4.5 py-3.5', raised && 'shadow-[0_1px_2px_rgba(11,18,32,.06)]', className)}
       aria-label={t(m.label)}
     >
-      <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="#0F766E" strokeWidth="1.6" aria-hidden="true" className="flex-none">
+      <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="var(--accent)" strokeWidth="1.6" aria-hidden="true" className="flex-none">
         <circle cx="4" cy="3" r="2" />
         <circle cx="4" cy="13" r="2" />
         <circle cx="12" cy="8" r="2" />

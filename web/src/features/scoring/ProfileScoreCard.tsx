@@ -380,10 +380,10 @@ function LineSvg({ v, s, firstScored, desc }: { v: LineVariant; s: Score; firstS
   const last = pts.length - 1
   const joinX = firstScored > 0 ? x(firstScored) : undefined
   const labels: ReactNode[] = [
-    <text key="a" x={v.x0} y={v.labelY} textAnchor="start" fontSize={11} fill="#5B6472" fontFamily={FONT}>
+    <text key="a" x={v.x0} y={v.labelY} textAnchor="start" fontSize={11} fill="var(--ink-3)" fontFamily={FONT}>
       {pts.length ? dayMonthDate(day(pts[0]!.day)) : ''}
     </text>,
-    <text key="c" x={v.x1} y={v.labelY} textAnchor="end" fontSize={11} fill="#5B6472" fontFamily={FONT}>
+    <text key="c" x={v.x1} y={v.labelY} textAnchor="end" fontSize={11} fill="var(--ink-3)" fontFamily={FONT}>
       {pts.length ? dayMonthDate(day(pts[last]!.day)) : ''}
     </text>,
   ]
@@ -394,7 +394,7 @@ function LineSvg({ v, s, firstScored, desc }: { v: LineVariant; s: Score; firstS
   const endW = pts.length ? textWidth(dayMonthDate(day(pts[last]!.day)), 11) : 0
   if (joinX !== undefined && joinX - half - 6 > v.x0 + startW && joinX + half + 6 < v.x1 - endW) {
     labels.push(
-      <text key="b" x={joinX} y={v.labelY} textAnchor="middle" fontSize={11} fill="#5B6472" fontFamily={FONT}>
+      <text key="b" x={joinX} y={v.labelY} textAnchor="middle" fontSize={11} fill="var(--ink-3)" fontFamily={FONT}>
         {joinLabel}
       </text>,
     )
@@ -403,8 +403,8 @@ function LineSvg({ v, s, firstScored, desc }: { v: LineVariant; s: Score; firstS
     <svg width="100%" viewBox={`0 0 ${v.w} ${v.h}`} role="img" aria-label={desc} style={{ display: 'block', maxWidth: '100%' }}>
       {ticks.map((k, i) => (
         <g key={k}>
-          <line x1={v.x0} x2={v.x1} y1={y(k)} y2={y(k)} stroke={i === 0 ? '#C9CED6' : '#EEF0F3'} strokeWidth={1} />
-          <text x={v.x0 - 6} y={y(k) + 4} textAnchor="end" fontSize={11} fill="#5B6472" fontFamily={FONT}>
+          <line x1={v.x0} x2={v.x1} y1={y(k)} y2={y(k)} stroke={i === 0 ? 'var(--line-hover)' : 'var(--line-2)'} strokeWidth={1} />
+          <text x={v.x0 - 6} y={y(k) + 4} textAnchor="end" fontSize={11} fill="var(--ink-3)" fontFamily={FONT}>
             {k}
           </text>
         </g>
@@ -414,7 +414,7 @@ function LineSvg({ v, s, firstScored, desc }: { v: LineVariant; s: Score; firstS
         return (
           <g key={b} aria-hidden="true">
             <rect x={v.legendX} y={yy - 9} width={7} height={7} rx={2} fill={bandColor[b]} />
-            <text x={v.legendX + 10} y={yy - 3} fontSize={11} fill="#374151" fontWeight={600} fontFamily={FONT}>
+            <text x={v.legendX + 10} y={yy - 3} fontSize={11} fill="var(--ink-nav)" fontWeight={600} fontFamily={FONT}>
               {bandName(b)}
             </text>
           </g>
@@ -423,18 +423,18 @@ function LineSvg({ v, s, firstScored, desc }: { v: LineVariant; s: Score; firstS
       {joinX !== undefined ? (
         <>
           {joinX - v.x0 > 110 ? (
-            <text x={(v.x0 + joinX) / 2} y={y(30)} textAnchor="middle" fontSize={11} fill="#5B6472" fontFamily={FONT}>
+            <text x={(v.x0 + joinX) / 2} y={y(30)} textAnchor="middle" fontSize={11} fill="var(--ink-3)" fontFamily={FONT}>
               {t(m.notYet)}
             </text>
           ) : null}
-          <line x1={joinX} x2={joinX} y1={v.top} y2={v.base} stroke="#C9CED6" strokeWidth={1} />
+          <line x1={joinX} x2={joinX} y1={v.top} y2={v.base} stroke="var(--line-hover)" strokeWidth={1} />
         </>
       ) : null}
       {d ? <path d={d} fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" /> : null}
       {firstScored >= 0 ? (
         <>
           <circle cx={x(last)} cy={y(s.score)} r={5} fill="var(--accent)" stroke="#fff" strokeWidth={2} />
-          <text x={x(last) - 8} y={y(s.score) - 8} textAnchor="end" fontSize={12} fontWeight={700} fill="#0B1220" fontFamily={FONT}>
+          <text x={x(last) - 8} y={y(s.score) - 8} textAnchor="end" fontSize={12} fontWeight={700} fill="var(--ink)" fontFamily={FONT}>
             {s.score}
           </text>
         </>

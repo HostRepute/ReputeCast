@@ -36,7 +36,7 @@ function AlertIcon({ color }: { color: string }) {
 
 function GlobeIcon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4B5563" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-2)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="8" cy="8" r="6.2" />
       <path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z" />
     </svg>
@@ -45,7 +45,7 @@ function GlobeIcon() {
 
 function EyeOffIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#5B6472" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M2 2l12 12M6.6 6.6a2 2 0 0 0 2.8 2.8M4.2 4.3C2.9 5.2 2 6.5 1.5 8c1.1 2.9 3.6 4.5 6.5 4.5 1.3 0 2.5-.3 3.6-.9M8 3.5c2.9 0 5.4 1.6 6.5 4.5-.3.9-.8 1.7-1.4 2.4" />
     </svg>
   )
@@ -681,7 +681,7 @@ function AddSite({ data, addRef }: { data: PushSetup; addRef: RefObject<HTMLInpu
         </Step>
         <Step n={2} title={t(m.step2Title)} text={t(m.step2Text)}>
           <div className="px-file">
-            <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="#4B5563" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="var(--ink-2)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M9.5 1.5H4A1.5 1.5 0 0 0 2.5 3v10A1.5 1.5 0 0 0 4 14.5h8a1.5 1.5 0 0 0 1.5-1.5V5.5z" />
               <path d="M9.5 1.5v4h4M5.5 8.5h5M5.5 11h5" />
             </svg>

@@ -477,7 +477,7 @@ function Ev({ tone, title, text, at }: { tone: string; title: string; text: Reac
   return (
     <div className="sms-ev">
       <span className="ic" style={{ background: tone }} aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#0B1220" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--ink)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="m3.5 8.5 3 3 6-7" />
         </svg>
       </span>

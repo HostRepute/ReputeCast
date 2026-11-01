@@ -30,8 +30,8 @@ export function DonePage({ setup }: { setup: Schemas['ConnectSetup'] }) {
       <main id="main" tabIndex={-1} className="cn-done mx-auto box-border flex w-full max-w-[860px] flex-col gap-[18px] px-7 py-10">
         <div className="flex flex-wrap items-center gap-[18px]">
           <svg width="56" height="56" viewBox="0 0 40 40" aria-hidden="true" className="pop">
-            <circle cx="20" cy="20" r="19" fill="#BBF7D0" />
-            <path d="m12 20.5 5.5 5.5L28 15" stroke="#166534" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <circle cx="20" cy="20" r="19" fill="var(--ok-line)" />
+            <path d="m12 20.5 5.5 5.5L28 15" stroke="var(--ok-fg)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
           </svg>
           <div className="flex flex-col gap-1">
             <h2 className="m-0 text-[26px] font-bold tracking-[-0.02em]">{done.title}</h2>

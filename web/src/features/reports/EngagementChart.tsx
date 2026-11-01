@@ -65,19 +65,19 @@ export function EngagementChart({ e, startedAt, final, remaining }: { e: Schemas
     <div className="rep-leg">
       <span>
         <svg width="16" height="4" aria-hidden="true">
-          <line x1="0" y1="2" x2="16" y2="2" stroke="#0B1220" strokeWidth="2.5" />
+          <line x1="0" y1="2" x2="16" y2="2" stroke="var(--ink)" strokeWidth="2.5" />
         </svg>
         {t(m.seriesHuman)}
       </span>
       <span>
         <svg width="16" height="4" aria-hidden="true">
-          <line x1="0" y1="2" x2="16" y2="2" stroke="#B4BAC5" strokeWidth="2.5" strokeDasharray="4 3" />
+          <line x1="0" y1="2" x2="16" y2="2" stroke="var(--chart-machine)" strokeWidth="2.5" strokeDasharray="4 3" />
         </svg>
         {t(m.seriesPrivacy)}
       </span>
       <span>
         <svg width="16" height="4" aria-hidden="true">
-          <line x1="0" y1="2" x2="16" y2="2" stroke="#0F766E" strokeWidth="2.5" />
+          <line x1="0" y1="2" x2="16" y2="2" stroke="var(--accent)" strokeWidth="2.5" />
         </svg>
         {t(m.seriesClicks)}
       </span>
@@ -131,10 +131,10 @@ export function EngagementChart({ e, startedAt, final, remaining }: { e: Schemas
                 className="block overflow-visible"
               >
                 {ticks.map((v) => (
-                  <line key={v} x1="0" y1={H - (v / max) * H} x2={W} y2={H - (v / max) * H} stroke={v === 0 ? '#D4D8DF' : '#EEF0F3'} vectorEffect="non-scaling-stroke" />
+                  <line key={v} x1="0" y1={H - (v / max) * H} x2={W} y2={H - (v / max) * H} stroke={v === 0 ? 'var(--line-strong)' : 'var(--line-2)'} vectorEffect="non-scaling-stroke" />
                 ))}
                 {rollout ? (
-                  <line x1={hourX(rollout.hour)} y1="0" x2={hourX(rollout.hour)} y2={H} stroke="#8B94A3" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
+                  <line x1={hourX(rollout.hour)} y1="0" x2={hourX(rollout.hour)} y2={H} stroke="var(--line-input)" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
                 ) : null}
                 {SERIES.map((s) => (
                   <path

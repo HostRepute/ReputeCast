@@ -437,13 +437,13 @@ function MrrCard({ o, provider }: { o: Overview; provider: string }) {
               <>
                 <span>
                   <svg width="22" height="6" aria-hidden="true">
-                    <line x1="0" y1="3" x2="22" y2="3" stroke="#0F766E" strokeWidth="2" strokeDasharray="5 4" />
+                    <line x1="0" y1="3" x2="22" y2="3" stroke="var(--accent)" strokeWidth="2" strokeDasharray="5 4" />
                   </svg>
                   {t(mr.fromHistory, { provider })}
                 </span>
                 <span>
                   <svg width="22" height="6" aria-hidden="true">
-                    <line x1="0" y1="3" x2="22" y2="3" stroke="#0F766E" strokeWidth="2.4" />
+                    <line x1="0" y1="3" x2="22" y2="3" stroke="var(--accent)" strokeWidth="2.4" />
                   </svg>
                   {t(mr.sinceMove)}
                 </span>

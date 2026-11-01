@@ -245,21 +245,21 @@ function ClicksChart({ r }: { r: Report }) {
     <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t(m.clicksTitle)} className="block max-w-full">
       {ticks.map((v, i) => (
         <g key={i}>
-          <line x1={x0} x2={x1} y1={y(v)} y2={y(v)} stroke="#EEF0F3" />
-          <text x={36} y={y(v) + 4} textAnchor="end" fontSize="11" fill="#5B6472" fontFamily={font}>
+          <line x1={x0} x2={x1} y1={y(v)} y2={y(v)} stroke="var(--line-2)" />
+          <text x={36} y={y(v) + 4} textAnchor="end" fontSize="11" fill="var(--ink-3)" fontFamily={font}>
             {count(v)}
           </text>
         </g>
       ))}
-      <path d={area} fill="#0F766E" opacity=".10" />
-      <polyline points={pts.join(' ')} fill="none" stroke="#0F766E" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-      <text x={x0} y={166} textAnchor="start" fontSize="11" fill="#5B6472" fontFamily={font}>
+      <path d={area} fill="var(--accent)" opacity=".10" />
+      <polyline points={pts.join(' ')} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      <text x={x0} y={166} textAnchor="start" fontSize="11" fill="var(--ink-3)" fontFamily={font}>
         {r.sentAt ? clock(r.sentAt) : t(m.clicksStart)}
       </text>
-      <text x={(x0 + x1) / 2} y={166} textAnchor="middle" fontSize="11" fill="#5B6472" fontFamily={font}>
+      <text x={(x0 + x1) / 2} y={166} textAnchor="middle" fontSize="11" fill="var(--ink-3)" fontFamily={font}>
         {t(m.plusHours, { n: 12 })}
       </text>
-      <text x={x1} y={166} textAnchor="end" fontSize="11" fill="#5B6472" fontFamily={font}>
+      <text x={x1} y={166} textAnchor="end" fontSize="11" fill="var(--ink-3)" fontFamily={font}>
         {t(m.plusHours, { n: 24 })}
       </text>
     </svg>

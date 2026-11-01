@@ -7,7 +7,7 @@ import type { ReactNode } from 'react'
 export function StateAlert({ title, children, actions }: { title: ReactNode; children: ReactNode; actions?: ReactNode }) {
   return (
     <div role="alert" className="flex items-start gap-3.5 rounded-[10px] border border-[#FECACA] bg-[#FEF2F2] px-4 py-3.5">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#B91C1C" strokeWidth="1.8" aria-hidden="true" className="flex-none">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--bad-strong)" strokeWidth="1.8" aria-hidden="true" className="flex-none">
         <circle cx="10" cy="10" r="8" />
         <path d="M10 6v5M10 13.5v.5" strokeLinecap="round" />
       </svg>

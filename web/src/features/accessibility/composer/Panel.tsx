@@ -153,7 +153,7 @@ export function AccessibilityPanel({ language }: { language?: string }) {
 function PanelNote({ bad, children }: { bad?: boolean; children: ReactNode }) {
   return (
     <div className={bad ? 'note b' : 'note n'} role={bad ? 'alert' : 'note'}>
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={bad ? '#B91C1C' : '#4B5563'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={bad ? 'var(--bad-strong)' : 'var(--ink-2)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <circle cx="8" cy="8" r="6.2" />
         <path d={bad ? 'M8 4.8v3.6M8 10.9v.1' : 'M8 7.2v3.8M8 5v.1'} />
       </svg>
@@ -454,7 +454,7 @@ function Passing({ report, open }: { report: Report; open: boolean }) {
       <div className="a11y-pass-rows">
         {rows.map((r) => (
           <div key={r.title} className="a11y-pass-row">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#15803D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--ok-bar)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="m3 8 3.5 3.5L13 5" />
             </svg>
             <span className="flex flex-1 flex-col gap-px">

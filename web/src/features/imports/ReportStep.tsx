@@ -171,8 +171,8 @@ function Summary({ d, now }: { d: Detail; now: number }) {
       <div className="flex flex-wrap items-center gap-4.5">
         {d.status === 'done' ? (
           <svg width="56" height="56" viewBox="0 0 40 40" aria-hidden="true">
-            <circle cx="20" cy="20" r="19" fill="#BBF7D0" />
-            <path d="m12 20.5 5.5 5.5L28 15" stroke="#166534" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <circle cx="20" cy="20" r="19" fill="var(--ok-line)" />
+            <path d="m12 20.5 5.5 5.5L28 15" stroke="var(--ok-fg)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
           </svg>
         ) : null}
         <div className="flex flex-col gap-1">

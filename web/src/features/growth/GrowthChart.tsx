@@ -156,17 +156,17 @@ function ChartSvg({ v, chart, bs, includeImports, desc }: { v: Variant; chart: C
         const y = zero - n * per
         return (
           <g key={n}>
-            <line x1={v.left} x2={v.right} y1={y} y2={y} stroke={n === 0 ? '#9AA3B2' : '#EEF0F3'} strokeWidth={n === 0 ? 1.2 : 1} />
-            <text x={v.left - 8} y={y + 4} textAnchor="end" fontSize={11} fill="#5B6472" fontFamily={FONT}>
+            <line x1={v.left} x2={v.right} y1={y} y2={y} stroke={n === 0 ? 'var(--color-muted-line)' : 'var(--line-2)'} strokeWidth={n === 0 ? 1.2 : 1} />
+            <text x={v.left - 8} y={y + 4} textAnchor="end" fontSize={11} fill="var(--ink-3)" fontFamily={FONT}>
               {tickLabel(n)}
             </text>
           </g>
         )
       })}
-      <text x={v.left} y={14} fontSize={11} fontWeight={600} fill="#374151" fontFamily={FONT}>
+      <text x={v.left} y={14} fontSize={11} fontWeight={600} fill="var(--ink-nav)" fontFamily={FONT}>
         {t(m.axisJoined)}
       </text>
-      <text x={v.left + 4} y={v.leftY} fontSize={11} fontWeight={600} fill="#374151" fontFamily={FONT}>
+      <text x={v.left + 4} y={v.leftY} fontSize={11} fontWeight={600} fill="var(--ink-nav)" fontFamily={FONT}>
         {t(m.axisLeft)}
       </text>
       {bs.map((b, i) => {
@@ -202,7 +202,7 @@ function ChartSvg({ v, chart, bs, includeImports, desc }: { v: Variant; chart: C
       })}
       {bs.map((b, i) =>
         i % every === 0 ? (
-          <text key={b.day} x={x0(i) + bar / 2} y={v.labelY} textAnchor="middle" fontSize={11} fill="#5B6472" fontFamily={FONT}>
+          <text key={b.day} x={x0(i) + bar / 2} y={v.labelY} textAnchor="middle" fontSize={11} fill="var(--ink-3)" fontFamily={FONT}>
             {dayMonthDate(dayOf(b.day))}
           </text>
         ) : null,
@@ -214,9 +214,9 @@ function ChartSvg({ v, chart, bs, includeImports, desc }: { v: Variant; chart: C
         const lx = x + 6 + w <= v.w - 2 ? x + 6 : x - 6 - w
         return (
           <g key={`imp-${b.day}`} aria-hidden="true">
-            <line x1={x} x2={x} y1={20} y2={v.labelY - 12} stroke="#0B1220" strokeWidth={1.4} strokeDasharray="4 3" />
-            <rect x={lx} y={18} width={w} height={20} rx={5} fill="#0B1220" />
-            <text x={lx + 4} y={32} fontSize={11} fontWeight={600} fill="#FFFFFF" fontFamily={FONT}>
+            <line x1={x} x2={x} y1={20} y2={v.labelY - 12} stroke="var(--ink)" strokeWidth={1.4} strokeDasharray="4 3" />
+            <rect x={lx} y={18} width={w} height={20} rx={5} fill="var(--ink)" />
+            <text x={lx + 4} y={32} fontSize={11} fontWeight={600} fill="var(--surface)" fontFamily={FONT}>
               {label}
             </text>
           </g>
@@ -224,9 +224,9 @@ function ChartSvg({ v, chart, bs, includeImports, desc }: { v: Variant; chart: C
       })}
       {tip && hover !== null ? (
         <g aria-hidden="true" pointerEvents="none">
-          <rect x={x0(hover) - 3} y={20} width={bar + 6} height={v.labelY - 16 - 20} rx={4} fill="none" stroke="#0B1220" strokeWidth={1.4} />
-          <rect x={tip.x} y={4} width={tip.w} height={tip.h} rx={6} fill="#0B1220" />
-          <text x={tip.x + 10} y={22} fontSize={11.5} fill="#FFFFFF" fontWeight={600} fontFamily={FONT}>
+          <rect x={x0(hover) - 3} y={20} width={bar + 6} height={v.labelY - 16 - 20} rx={4} fill="none" stroke="var(--ink)" strokeWidth={1.4} />
+          <rect x={tip.x} y={4} width={tip.w} height={tip.h} rx={6} fill="var(--ink)" />
+          <text x={tip.x + 10} y={22} fontSize={11.5} fill="var(--surface)" fontWeight={600} fontFamily={FONT}>
             {tip.title}
           </text>
           {tip.items.map((it, k) => {
@@ -235,7 +235,7 @@ function ChartSvg({ v, chart, bs, includeImports, desc }: { v: Variant; chart: C
             return (
               <g key={k}>
                 <rect x={cx} y={cy} width={8} height={8} rx={2} fill={it.color} />
-                <text x={cx + 13} y={cy + 8} fontSize={11.5} fill="#E5E7EB" fontFamily={FONT}>
+                <text x={cx + 13} y={cy + 8} fontSize={11.5} fill="var(--dark-text)" fontFamily={FONT}>
                   {it.text}
                 </text>
               </g>

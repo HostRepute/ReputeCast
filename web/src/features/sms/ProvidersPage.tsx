@@ -775,7 +775,7 @@ function EmptyProviders() {
   const { slug } = useWorkspace()
   return (
     <div className="card sms-empty">
-      <svg width="40" height="40" viewBox="0 0 16 16" fill="none" stroke="#0F766E" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <svg width="40" height="40" viewBox="0 0 16 16" fill="none" stroke="var(--accent)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M3 2.5h10A1.5 1.5 0 0 1 14.5 4v6a1.5 1.5 0 0 1-1.5 1.5H7.6L4.5 14v-2.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5z" />
       </svg>
       <span className="tt">{t(m.emptyTitle)}</span>

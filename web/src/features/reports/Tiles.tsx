@@ -316,7 +316,7 @@ export function MeasurableDisclosure({ r }: { r: CampaignReport }) {
 export function InfoNote({ title, children, id }: { title?: ReactNode; children: ReactNode; id?: string }) {
   return (
     <div className="rep-note" id={id}>
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5B6472" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <circle cx="8" cy="8" r="6.2" />
         <path d="M8 7.2v3.8M8 5v.1" />
       </svg>

@@ -543,26 +543,26 @@ function ChartSvg({ c, aria, labels }: { c: ChartShape; aria: string; labels?: b
     <svg width="100%" viewBox={`0 0 ${c.w} ${c.h}`} role="img" aria-label={aria} style={{ display: 'block', maxWidth: '100%' }}>
       {c.grid.map((g) => (
         <g key={g.v}>
-          <line x1={c.x0} x2={c.x1} y1={g.y} y2={g.y} stroke="#EEF0F3" />
-          <text x={c.x0 - 8} y={g.y + 4} textAnchor="end" fontSize="11" fill="#5B6472">
+          <line x1={c.x0} x2={c.x1} y1={g.y} y2={g.y} stroke="var(--line-2)" />
+          <text x={c.x0 - 8} y={g.y + 4} textAnchor="end" fontSize="11" fill="var(--ink-3)">
             {count(g.v)}
           </text>
         </g>
       ))}
-      <path d={c.area} fill="#0F766E" opacity=".10" />
-      <polyline points={c.line} fill="none" stroke="#0F766E" strokeWidth="2" strokeLinejoin="round" />
+      <path d={c.area} fill="var(--accent)" opacity=".10" />
+      <polyline points={c.line} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" />
       {c.marks.map((mk, i) => (
         <g key={i}>
-          <circle cx={mk.x} cy={mk.y} r="3" fill="#0F766E" />
+          <circle cx={mk.x} cy={mk.y} r="3" fill="var(--accent)" />
           {labels && mk.label ? (
-            <text x={mk.x - 2} y={mk.y - 9} textAnchor="middle" fontSize="11" fontWeight="600" fill="#374151">
+            <text x={mk.x - 2} y={mk.y - 9} textAnchor="middle" fontSize="11" fontWeight="600" fill="var(--ink-nav)">
               {mk.label}
             </text>
           ) : null}
         </g>
       ))}
       {c.ticks.map((tk, i) => (
-        <text key={i} x={tk.x} y={c.base} textAnchor={i === c.ticks.length - 1 ? 'end' : 'middle'} fontSize="11" fill="#5B6472">
+        <text key={i} x={tk.x} y={c.base} textAnchor={i === c.ticks.length - 1 ? 'end' : 'middle'} fontSize="11" fill="var(--ink-3)">
           {tk.label}
         </text>
       ))}

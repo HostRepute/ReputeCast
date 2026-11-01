@@ -238,7 +238,7 @@ function Result({ d, copy, crumbs }: { d: TestDetail; copy?: string; crumbs: { l
 
 function InfoIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4B5563" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-px flex-none">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--ink-2)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-px flex-none">
       <circle cx="8" cy="8" r="6.2" />
       <path d="M8 7.2v3.8M8 5v.1" />
     </svg>
@@ -473,18 +473,18 @@ function ProviderCard({ p, live, warn }: { p: ProviderResult; live: boolean; war
 function LookIcon({ kind }: { kind: 'ok' | 'lead' | 'bad' }) {
   if (kind === 'ok')
     return (
-      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#15803D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ok-bar)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="m3 8 3.5 3.5L13 5" />
       </svg>
     )
   if (kind === 'bad')
     return (
-      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#B91C1C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--bad-strong)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="m4 4 8 8M12 4l-8 8" />
       </svg>
     )
   return (
-    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#B45309" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--warn-bar)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M3 8h10M9 4l4 4-4 4" />
     </svg>
   )
@@ -587,7 +587,7 @@ function GuidanceCard({ g, d }: { g: Guidance; d: TestDetail }) {
       <div className="sec" style={{ background: 'var(--color-warn-tint)', borderRadius: '10px 10px 0 0', borderBottomColor: 'var(--color-warn-line)' }}>
         <div className="flex min-w-0 flex-nowrap items-start gap-2.5">
           <span className="mt-0.5 inline-flex flex-none">
-            <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#B45309" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="var(--warn-bar)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="8" cy="8" r="6.2" />
               <path d="M8 4.8v3.6M8 10.9v.1" />
             </svg>

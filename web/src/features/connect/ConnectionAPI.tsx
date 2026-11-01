@@ -194,7 +194,7 @@ function KeyField({
       />
       {error ? (
         <span id={errId} role="alert" className="mt-1 flex items-start gap-2 font-medium text-bad-fg">
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#B91C1C" strokeWidth="1.8" aria-hidden="true" className="mt-px flex-none">
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="var(--bad-strong)" strokeWidth="1.8" aria-hidden="true" className="mt-px flex-none">
             <circle cx="10" cy="10" r="8" />
             <path d="M10 6v5M10 13.5v.5" strokeLinecap="round" />
           </svg>

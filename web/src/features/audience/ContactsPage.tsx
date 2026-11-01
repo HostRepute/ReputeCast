@@ -1072,8 +1072,8 @@ function AudienceEmpty({ lists }: { lists: Schemas['AudienceListSummary'][] }) {
   return (
     <section className="card flex flex-col items-center gap-3 border-dashed px-7 py-10 text-center">
       <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true">
-        <circle cx="22" cy="20" r="8" fill="none" stroke="#9AA3B2" strokeWidth="2" />
-        <path d="M8 44a14 14 0 0 1 28 0M38 14a7 7 0 0 1 0 12M50 44a12 12 0 0 0-9-11.5" fill="none" stroke="#9AA3B2" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="22" cy="20" r="8" fill="none" stroke="var(--color-muted-line)" strokeWidth="2" />
+        <path d="M8 44a14 14 0 0 1 28 0M38 14a7 7 0 0 1 0 12M50 44a12 12 0 0 0-9-11.5" fill="none" stroke="var(--color-muted-line)" strokeWidth="2" strokeLinecap="round" />
       </svg>
       <h2 className="m-0 text-[18px] font-bold">{tr(m.emptyTitle)}</h2>
       <span className="max-w-[520px] text-ink-2">

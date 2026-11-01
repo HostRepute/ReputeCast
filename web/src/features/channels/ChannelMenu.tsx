@@ -85,7 +85,7 @@ export function ChannelMenu({ current }: { current: Channel }) {
         {channelIcon[c]}
         <span className="flex-1">{t(channelName[c])}</span>
         {on ? (
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#0F766E" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="m3 8.5 3.2 3L13 4.5" />
           </svg>
         ) : null}

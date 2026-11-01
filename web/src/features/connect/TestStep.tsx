@@ -205,7 +205,7 @@ function EventIcon({ status }: { status: 'done' | 'waiting' | 'failed' }) {
   if (status === 'done') {
     return (
       <span className="ic bg-ok-bg">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#166534" strokeWidth="2" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--ok-fg)" strokeWidth="2" aria-hidden="true">
           <path d="m3 8 3.5 3.5L13 5" />
         </svg>
         <span className="vh">{t(m.stateDone)}</span>
@@ -215,7 +215,7 @@ function EventIcon({ status }: { status: 'done' | 'waiting' | 'failed' }) {
   if (status === 'failed') {
     return (
       <span className="ic bg-bad-bg">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#991B1B" strokeWidth="2" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--bad-fg)" strokeWidth="2" aria-hidden="true">
           <path d="M4 4l8 8M12 4l-8 8" />
         </svg>
         <span className="vh">{t(m.stateFailed)}</span>

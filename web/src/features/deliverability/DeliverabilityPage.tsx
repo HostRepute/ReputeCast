@@ -322,7 +322,7 @@ function ConnectInvite({ canConnect }: { canConnect: boolean }) {
   return (
     <section className="card flex flex-wrap items-center gap-5 border-accent-line bg-accent-tint px-5.5 py-5" aria-labelledby="h-invite">
       <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
-        <rect width="44" height="44" rx="11" fill="#0F766E" />
+        <rect width="44" height="44" rx="11" fill="var(--accent)" />
         <path d="M22 9 33 13.5v8c0 6-4.6 10.6-11 13-6.4-2.4-11-7-11-13v-8z" fill="none" stroke="#fff" strokeWidth="2" strokeLinejoin="round" />
         <path d="m16.5 22 3.6 3.6 7.4-7.6" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
@@ -400,7 +400,7 @@ function UnreachableAlert({ o }: { o: Overview }) {
     : t(m.unreachableFallbackRuns)
   return (
     <div role="alert" className="flex items-start gap-3.5 rounded-[10px] border border-[#FECACA] bg-[#FEF2F2] px-4 py-3.5 max-md:flex-wrap">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#B91C1C" strokeWidth="1.8" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--bad-strong)" strokeWidth="1.8" aria-hidden="true">
         <circle cx="10" cy="10" r="8" />
         <path d="M10 6v5M10 13.5v.5" strokeLinecap="round" />
       </svg>

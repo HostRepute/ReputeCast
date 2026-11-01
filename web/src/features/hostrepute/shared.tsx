@@ -18,7 +18,7 @@ export const integrationsPath = '/api/v1/workspaces/{workspace}/integrations' as
  */
 export function ShieldMark({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="#0F766E" strokeWidth="1.6" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="var(--accent)" strokeWidth="1.6" aria-hidden="true">
       <path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" strokeLinejoin="round" />
       <path d="m5.5 8 1.8 1.8L10.8 6" />
     </svg>

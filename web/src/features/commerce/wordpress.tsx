@@ -20,11 +20,11 @@ function Line({ ok, children }: { ok: boolean; children: string }) {
   return (
     <li>
       {ok ? (
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#15803D" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--ok-bar)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="m3 8 3.5 3.5L13 5" />
         </svg>
       ) : (
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#B45309" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--warn-bar)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M8 3v6M8 12v.5" />
         </svg>
       )}

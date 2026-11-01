@@ -318,16 +318,16 @@ function CanaryIcon({ phase }: { phase: Canary['phase'] }) {
     return (
       <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
         <circle cx="20" cy="20" r="19" fill="#FECACA" />
-        <path d="M20 11v11M20 27v1" stroke="#991B1B" strokeWidth="3" strokeLinecap="round" />
+        <path d="M20 11v11M20 27v1" stroke="var(--bad-fg)" strokeWidth="3" strokeLinecap="round" />
       </svg>
     )
   }
   const stopped = phase === 'stopped'
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
-      <circle cx="20" cy="20" r="19" fill={stopped ? '#E5E7EB' : '#CCFBF1'} />
-      <path d="M10 20s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z" stroke={stopped ? '#4B5563' : '#0F766E'} strokeWidth="2.2" fill="none" strokeLinejoin="round" />
-      <circle cx="20" cy="20" r="2.6" fill={stopped ? '#4B5563' : '#0F766E'} />
+      <circle cx="20" cy="20" r="19" fill={stopped ? 'var(--dark-text)' : 'var(--accent-glow)'} />
+      <path d="M10 20s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z" stroke={stopped ? 'var(--ink-2)' : 'var(--accent)'} strokeWidth="2.2" fill="none" strokeLinejoin="round" />
+      <circle cx="20" cy="20" r="2.6" fill={stopped ? 'var(--ink-2)' : 'var(--accent)'} />
     </svg>
   )
 }

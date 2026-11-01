@@ -123,7 +123,7 @@ export function ScoreRing({
   const filled = (Math.max(0, Math.min(100, score)) / 100) * c
   return (
     <svg width={size} height={size} viewBox="0 0 112 112" role="img" aria-label={label}>
-      <circle cx="56" cy="56" r={r} fill="none" stroke="#EEF0F3" strokeWidth="10" />
+      <circle cx="56" cy="56" r={r} fill="none" stroke="var(--line-2)" strokeWidth="10" />
       <circle
         cx="56"
         cy="56"
@@ -135,7 +135,7 @@ export function ScoreRing({
         strokeDasharray={`${filled.toFixed(1)} ${c.toFixed(0)}`}
         transform="rotate(-90 56 56)"
       />
-      <text x="56" y="52" textAnchor="middle" fontFamily="IBM Plex Sans, sans-serif" fontSize="30" fontWeight="700" fill="#0B1220">
+      <text x="56" y="52" textAnchor="middle" fontFamily="IBM Plex Sans, sans-serif" fontSize="30" fontWeight="700" fill="var(--ink)">
         {score}
       </text>
       <text x="56" y="72" textAnchor="middle" fontFamily="IBM Plex Sans, sans-serif" fontSize="12" fontWeight="600" fill={verdictColor}>
@@ -205,8 +205,8 @@ export function Sparkline({
         strokeLinecap="round"
         vectorEffect="non-scaling-stroke"
       />
-      {baseline ? <line x1="0" y1={height - 2} x2={w} y2={height - 2} stroke="#E3E6EB" strokeWidth="1" vectorEffect="non-scaling-stroke" /> : null}
-      {last && end ? <circle cx={end.x.toFixed(1)} cy={end.y.toFixed(1)} r={r} fill={last} stroke="#FFFFFF" strokeWidth="1.5" /> : null}
+      {baseline ? <line x1="0" y1={height - 2} x2={w} y2={height - 2} stroke="var(--line)" strokeWidth="1" vectorEffect="non-scaling-stroke" /> : null}
+      {last && end ? <circle cx={end.x.toFixed(1)} cy={end.y.toFixed(1)} r={r} fill={last} stroke="var(--surface)" strokeWidth="1.5" /> : null}
     </svg>
   )
 }

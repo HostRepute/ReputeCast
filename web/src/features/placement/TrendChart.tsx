@@ -124,7 +124,7 @@ function Chart({ bars, seeds }: { bars: Bar[]; seeds: number }) {
           return (
             <g key={String(v)}>
               <line x1={LEFT} x2={RIGHT} y1={f1(y)} y2={f1(y)} stroke={stroke as string} />
-              <text x={44} y={f1(y + 4)} textAnchor="end" fontSize={11} fill="#5B6472" fontFamily={FONT}>
+              <text x={44} y={f1(y + 4)} textAnchor="end" fontSize={11} fill="var(--ink-3)" fontFamily={FONT}>
                 {text}
               </text>
             </g>
@@ -166,11 +166,11 @@ function Chart({ bars, seeds }: { bars: Bar[]; seeds: number }) {
               {nodes}
               {showLabel ? (
                 <>
-                  <text x={f1(cx)} y={258} textAnchor="middle" fontSize={11} fill="#374151" fontFamily={FONT}>
+                  <text x={f1(cx)} y={258} textAnchor="middle" fontSize={11} fill="var(--ink-nav)" fontFamily={FONT}>
                     {dayMonthDate(b.test.startedAt)}
                   </text>
                   <rect x={f1(cx + 6 - tw / 2 - 12)} y={265} width={8} height={8} rx={2} fill={providerColor(b.provider.adapter)} />
-                  <text x={f1(cx + 6)} y={273} textAnchor="middle" fontSize={11} fill="#5B6472" fontFamily={FONT}>
+                  <text x={f1(cx + 6)} y={273} textAnchor="middle" fontSize={11} fill="var(--ink-3)" fontFamily={FONT}>
                     {name}
                   </text>
                 </>
@@ -196,13 +196,13 @@ function Tip({ bar, i, slot, bw, unit }: { bar: Bar; i: number; slot: number; bw
   const top = BASE - bar.provider.counts.copies * unit
   return (
     <g pointerEvents="none">
-      <rect x={f1(x - 3)} y={f1(top - 3)} width={f1(bw + 6)} height={f1(BASE + 2 - (top - 3))} rx={5} fill="none" stroke="#0B1220" strokeWidth={1.5} />
-      <rect x={f1(left)} y={2} width={f1(w)} height={44} rx={6} fill="#0B1220" />
-      <path d={`M${f1(cx - 6)},46 l6,6 l6,-6 z`} fill="#0B1220" />
-      <text x={f1(left + 11)} y={20} fontSize={11.5} fill="#FFFFFF" fontWeight={600} fontFamily={FONT}>
+      <rect x={f1(x - 3)} y={f1(top - 3)} width={f1(bw + 6)} height={f1(BASE + 2 - (top - 3))} rx={5} fill="none" stroke="var(--ink)" strokeWidth={1.5} />
+      <rect x={f1(left)} y={2} width={f1(w)} height={44} rx={6} fill="var(--ink)" />
+      <path d={`M${f1(cx - 6)},46 l6,6 l6,-6 z`} fill="var(--ink)" />
+      <text x={f1(left + 11)} y={20} fontSize={11.5} fill="var(--surface)" fontWeight={600} fontFamily={FONT}>
         {title}
       </text>
-      <text x={f1(left + 11)} y={36} fontSize={11.5} fill="#C9CED6" fontWeight={400} fontFamily={FONT}>
+      <text x={f1(left + 11)} y={36} fontSize={11.5} fill="var(--line-hover)" fontWeight={400} fontFamily={FONT}>
         {sub}
       </text>
     </g>

@@ -444,7 +444,7 @@ function Designer({ data }: { data: Prompt }) {
 
 function WarnIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#B45309" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--warn-bar)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="8" cy="8" r="6.2" />
       <path d="M8 4.8v3.6M8 10.9v.1" />
     </svg>
@@ -454,20 +454,20 @@ function WarnIcon() {
 function StyleIcon({ style }: { style: PushPromptConfig['style'] }) {
   return (
     <svg width="44" height="30" viewBox="0 0 44 30" aria-hidden="true">
-      <rect x=".5" y=".5" width="43" height="29" rx="4" fill="#fff" stroke="#C9CED6" />
+      <rect x=".5" y=".5" width="43" height="29" rx="4" fill="#fff" stroke="var(--line-hover)" />
       {style === 'bar' ? (
         <>
-          <rect x="5" y="20" width="34" height="6" rx="2" fill="#4338CA" />
-          <rect x="6" y="5" width="20" height="3" rx="1.5" fill="#D4D8DF" />
-          <rect x="6" y="11" width="28" height="3" rx="1.5" fill="#E3E6EB" />
+          <rect x="5" y="20" width="34" height="6" rx="2" fill="var(--publisher-accent)" />
+          <rect x="6" y="5" width="20" height="3" rx="1.5" fill="var(--line-strong)" />
+          <rect x="6" y="11" width="28" height="3" rx="1.5" fill="var(--line)" />
         </>
       ) : null}
-      {style === 'dialog' ? <rect x="11" y="8" width="22" height="14" rx="2.5" fill="#4338CA" /> : null}
+      {style === 'dialog' ? <rect x="11" y="8" width="22" height="14" rx="2.5" fill="var(--publisher-accent)" /> : null}
       {style === 'bell' ? (
         <>
-          <rect x="6" y="5" width="20" height="3" rx="1.5" fill="#D4D8DF" />
-          <rect x="6" y="11" width="28" height="3" rx="1.5" fill="#E3E6EB" />
-          <circle cx="35" cy="22" r="4" fill="#4338CA" />
+          <rect x="6" y="5" width="20" height="3" rx="1.5" fill="var(--line-strong)" />
+          <rect x="6" y="11" width="28" height="3" rx="1.5" fill="var(--line)" />
+          <circle cx="35" cy="22" r="4" fill="var(--publisher-accent)" />
         </>
       ) : null}
     </svg>

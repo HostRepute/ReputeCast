@@ -117,7 +117,7 @@ function Merch({ p, h }: { p: Product; h: number }) {
   if (p.imageUrl) return <img src={p.imageUrl} alt={p.imageAlt || p.title} className="cm-merch" style={{ width: '100%', height: h, objectFit: 'cover' }} />
   return (
     <span className="cm-merch" style={{ width: '100%', height: h }} role="img" aria-label={p.imageAlt || p.title}>
-      <svg width="34" height="24" viewBox="0 0 40 28" fill="none" stroke="#9AA3B2" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <svg width="34" height="24" viewBox="0 0 40 28" fill="none" stroke="var(--color-muted-line)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M13 4l-8 5 3 5 4-2v14h16V12l4 2 3-5-8-5c-1 2-3 3-7 3s-6-1-7-3z" />
       </svg>
     </span>

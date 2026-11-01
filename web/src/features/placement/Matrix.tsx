@@ -91,11 +91,11 @@ export function FolderBadge({ c }: { c: CopyView }) {
 
 function Check({ ok, size = 11 }: { ok: boolean; size?: number }) {
   return ok ? (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="#15803D" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="var(--ok-bar)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="m3 8 3.5 3.5L13 5" />
     </svg>
   ) : (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="#B91C1C" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="var(--bad-strong)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="m4 4 8 8M12 4l-8 8" />
     </svg>
   )

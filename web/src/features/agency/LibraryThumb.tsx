@@ -36,16 +36,16 @@ export function LibraryThumb({ item, height = 104 }: { item: Item; height?: numb
     const ys = n === 3 ? [10, 40, 72] : [20, 60]
     return (
       <svg {...box} style={{ display: 'block', background: 'var(--ground)' }}>
-        <rect width="220" height="104" fill="#F3F4F6" />
+        <rect width="220" height="104" fill="var(--ground)" />
         {ys.slice(1).map((y, i) => (
-          <path key={y} d={`M110 ${ys[i]! + 20}v${y - ys[i]! - 20}`} stroke="#9AA3B2" strokeWidth="1.5" />
+          <path key={y} d={`M110 ${ys[i]! + 20}v${y - ys[i]! - 20}`} stroke="var(--color-muted-line)" strokeWidth="1.5" />
         ))}
         {ys.map((y, i) => {
           const mid = i === Math.floor(ys.length / 2) && ys.length === 3
           return (
             <g key={y}>
-              <rect x="74" y={y} width="72" height={mid ? 22 : 20} rx="6" fill={mid ? '#E3F1EE' : '#FFFFFF'} stroke={mid ? '#0F766E' : '#C9CED6'} />
-              <rect x="86" y={y + (mid ? 9 : 8)} width="48" height="4" rx="2" fill={mid ? '#0F766E' : '#9AA3B2'} />
+              <rect x="74" y={y} width="72" height={mid ? 22 : 20} rx="6" fill={mid ? 'var(--accent-soft)' : 'var(--surface)'} stroke={mid ? 'var(--accent)' : 'var(--line-hover)'} />
+              <rect x="86" y={y + (mid ? 9 : 8)} width="48" height="4" rx="2" fill={mid ? 'var(--accent)' : 'var(--color-muted-line)'} />
             </g>
           )
         })}
@@ -55,25 +55,25 @@ export function LibraryThumb({ item, height = 104 }: { item: Item; height?: numb
   if (item.kind === 'sms') {
     return (
       <svg {...box} style={{ display: 'block', background: 'var(--ground)' }}>
-        <rect width="220" height="104" fill="#F3F4F6" />
-        <path d="M44 18h132a8 8 0 0 1 8 8v40a8 8 0 0 1-8 8H76l-14 12V74H44a8 8 0 0 1-8-8V26a8 8 0 0 1 8-8z" fill="#FFFFFF" stroke="#E3E6EB" />
-        <rect x="48" y="30" width="96" height="5" rx="2.5" fill="#9AA3B2" />
-        <rect x="48" y="41" width="122" height="5" rx="2.5" fill="#9AA3B2" />
+        <rect width="220" height="104" fill="var(--ground)" />
+        <path d="M44 18h132a8 8 0 0 1 8 8v40a8 8 0 0 1-8 8H76l-14 12V74H44a8 8 0 0 1-8-8V26a8 8 0 0 1 8-8z" fill="var(--surface)" stroke="var(--line)" />
+        <rect x="48" y="30" width="96" height="5" rx="2.5" fill="var(--color-muted-line)" />
+        <rect x="48" y="41" width="122" height="5" rx="2.5" fill="var(--color-muted-line)" />
         <rect x="48" y="52" width="70" height="5" rx="2.5" fill="#1D4ED8" opacity=".7" />
-        <rect x="48" y="63" width="84" height="4" rx="2" fill="#C9CED6" />
+        <rect x="48" y="63" width="84" height="4" rx="2" fill="var(--line-hover)" />
       </svg>
     )
   }
   if (item.kind === 'transactional') {
     return (
       <svg {...box} style={{ display: 'block', background: 'var(--ground)' }}>
-        <rect width="220" height="104" fill="#F3F4F6" />
-        <rect x="52" y="8" width="116" height="96" rx="3" fill="#FFFFFF" stroke="#E3E6EB" />
-        <rect x="60" y="16" width="34" height="5" rx="2.5" fill="#0B1220" />
-        <rect x="60" y="30" width="80" height="6" rx="3" fill="#9AA3B2" />
-        <rect x="60" y="42" width="100" height="4" rx="2" fill="#C9CED6" />
-        <rect x="60" y="50" width="92" height="4" rx="2" fill="#C9CED6" />
-        <rect x="60" y="62" width="100" height="18" rx="2" fill="#F9FAFB" stroke="#EEF0F3" />
+        <rect width="220" height="104" fill="var(--ground)" />
+        <rect x="52" y="8" width="116" height="96" rx="3" fill="var(--surface)" stroke="var(--line)" />
+        <rect x="60" y="16" width="34" height="5" rx="2.5" fill="var(--ink)" />
+        <rect x="60" y="30" width="80" height="6" rx="3" fill="var(--color-muted-line)" />
+        <rect x="60" y="42" width="100" height="4" rx="2" fill="var(--line-hover)" />
+        <rect x="60" y="50" width="92" height="4" rx="2" fill="var(--line-hover)" />
+        <rect x="60" y="62" width="100" height="18" rx="2" fill="var(--ground-3)" stroke="var(--line-2)" />
         <rect x="60" y="86" width="40" height="10" rx="3" fill={accent} />
       </svg>
     )
@@ -82,12 +82,12 @@ export function LibraryThumb({ item, height = 104 }: { item: Item; height?: numb
     const block = bg ?? tint(accent)
     return (
       <svg {...box} style={{ display: 'block', background: 'var(--ground)' }}>
-        <rect width="220" height="104" fill="#F3F4F6" />
-        <rect x="40" y="8" width="140" height="96" rx="3" fill="#FFFFFF" stroke="#E3E6EB" />
-        <rect x="48" y="16" width="40" height="5" rx="2.5" fill="#0B1220" />
+        <rect width="220" height="104" fill="var(--ground)" />
+        <rect x="40" y="8" width="140" height="96" rx="3" fill="var(--surface)" stroke="var(--line)" />
+        <rect x="48" y="16" width="40" height="5" rx="2.5" fill="var(--ink)" />
         <rect x="48" y="28" width="124" height="34" rx="2" fill={block} />
-        <rect x="48" y="68" width="100" height="5" rx="2.5" fill="#9AA3B2" />
-        <rect x="48" y="78" width="84" height="5" rx="2.5" fill="#C9CED6" />
+        <rect x="48" y="68" width="100" height="5" rx="2.5" fill="var(--color-muted-line)" />
+        <rect x="48" y="78" width="84" height="5" rx="2.5" fill="var(--line-hover)" />
         <rect x="48" y="88" width="44" height="10" rx="3" fill={accent} />
       </svg>
     )
@@ -101,14 +101,14 @@ export function LibraryThumb({ item, height = 104 }: { item: Item; height?: numb
     const gap = (220 - n * w) / (n + 1)
     return (
       <svg {...box} style={{ display: 'block', background: 'var(--ground)' }}>
-        <rect width="220" height="104" fill="#F3F4F6" />
+        <rect width="220" height="104" fill="var(--ground)" />
         {Array.from({ length: n }, (_, i) => {
           const x = gap + i * (w + gap)
           return (
             <g key={i}>
-              <rect x={x} y="14" width={w} height="44" rx="5" fill="#FFFFFF" stroke="#E3E6EB" />
-              <rect x={x} y="64" width="44" height="5" rx="2.5" fill="#9AA3B2" />
-              <rect x={x} y="74" width="30" height="5" rx="2.5" fill="#C9CED6" />
+              <rect x={x} y="14" width={w} height="44" rx="5" fill="var(--surface)" stroke="var(--line)" />
+              <rect x={x} y="64" width="44" height="5" rx="2.5" fill="var(--color-muted-line)" />
+              <rect x={x} y="74" width="30" height="5" rx="2.5" fill="var(--line-hover)" />
               <rect x={x} y="84" width="38" height="10" rx="5" fill={accent} />
             </g>
           )
@@ -140,7 +140,7 @@ export function LibraryThumb({ item, height = 104 }: { item: Item; height?: numb
     <svg {...box} style={{ display: 'block', background: fill }}>
       <rect width="220" height="104" fill={fill} />
       {dots.map(([x, y, r]) => (
-        <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill="#FFFFFF" opacity=".75" />
+        <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill="var(--surface)" opacity=".75" />
       ))}
       <rect x="52" y={hasButton ? 40 : 44} width="116" height="9" rx="4.5" fill={mark} />
       <rect x="70" y={hasButton ? 55 : 59} width="80" height="5" rx="2.5" fill={mark} opacity=".6" />
