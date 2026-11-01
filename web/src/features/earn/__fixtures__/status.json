@@ -1,0 +1,10 @@
+{
+ "provider": "stripe",
+ "providerName": "Stripe",
+ "account": "Acme Media",
+ "mode": "live",
+ "health": "connected",
+ "testOnly": false,
+ "canManage": true,
+ "upgradeUrl": "http://news.acme.io/upgrade"
+}

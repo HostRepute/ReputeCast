@@ -1,0 +1,123 @@
+{
+ "mode": "live",
+ "connected": true,
+ "provider": "Stripe",
+ "currency": "usd",
+ "numbers": {
+  "sold": 11,
+  "soldCents": 65600,
+  "byMonths": [
+   {
+    "months": 12,
+    "count": 7
+   },
+   {
+    "months": 3,
+    "count": 4
+   }
+  ],
+  "delivered": 9,
+  "redeemed": 8,
+  "waiting": 1,
+  "scheduled": 2,
+  "nextAt": "2026-11-17T14:00:00Z",
+  "nextTimezone": "America/New_York",
+  "withAccess": 8
+ },
+ "options": [
+  {
+   "id": "01a19494-beee-7edf-bc40-ad438b629a8b",
+   "tierId": "01a19494-bc9f-75e0-8198-23d0f671e40c",
+   "tier": "Weekly Digest Insider",
+   "short": "Insider",
+   "months": 3,
+   "amountCents": 2400,
+   "currency": "usd",
+   "sold": 4,
+   "soldCents": 9600
+  },
+  {
+   "id": "01a19494-beee-7ee0-9193-3a68d99402e0",
+   "tierId": "01a19494-bc9f-75e0-8198-23d0f671e40c",
+   "tier": "Weekly Digest Insider",
+   "short": "Insider",
+   "months": 12,
+   "amountCents": 8000,
+   "currency": "usd",
+   "sold": 7,
+   "soldCents": 56000
+  }
+ ],
+ "page": {
+  "on": true,
+  "url": "http://news.acme.io/gift",
+  "host": "news.acme.io/gift",
+  "linkMonths": 12,
+  "changedBy": "Linh Nguyen",
+  "changedAt": "2026-10-04T15:30:00Z"
+ },
+ "tiers": [
+  {
+   "id": "01a19494-bc9f-75e0-8198-23d0f671e40c",
+   "name": "Weekly Digest Insider",
+   "short": "Insider",
+   "monthlyCents": 800,
+   "yearlyCents": 8000
+  },
+  {
+   "id": "01a19494-bc9f-75e1-af06-1943b3041b16",
+   "name": "Founding member",
+   "short": "Founding member",
+   "monthlyCents": 0,
+   "yearlyCents": 20000
+  }
+ ],
+ "listNames": [
+  "Weekly Digest"
+ ],
+ "emails": [
+  {
+   "email": "gift_purchased",
+   "templateId": "01a19494-bcbe-70e7-a008-9d244aae29b4",
+   "template": "gift-purchased",
+   "name": "Gift receipt",
+   "status": "live",
+   "liveVersion": 1,
+   "draftVersion": 0
+  },
+  {
+   "email": "gift_received",
+   "templateId": "01a19494-bcc2-70b3-9ede-d4021adcb5db",
+   "template": "gift-received",
+   "name": "Your gift",
+   "status": "live",
+   "liveVersion": 1,
+   "draftVersion": 0
+  },
+  {
+   "email": "gift_ending",
+   "templateId": "01a19494-bcc5-7751-951a-76381dea8ec7",
+   "template": "gift-ending",
+   "name": "Gift ending",
+   "status": "draft",
+   "liveVersion": 0,
+   "draftVersion": 1
+  }
+ ],
+ "fromName": "Acme Newsletter",
+ "fromEmail": "digest@news.acme.io",
+ "categoryName": "Memberships",
+ "categoryKind": "essential",
+ "routePrimary": "Postmark",
+ "ending": {
+  "due": "2027-01-17T00:00:00Z",
+  "buyer": "Tomasz Nowak",
+  "inPerson": false,
+  "recipient": "Alice Bergstrom",
+  "templateId": "01a19494-bcc5-7751-951a-76381dea8ec7"
+ },
+ "needsLook": [],
+ "canEdit": true,
+ "canManage": true,
+ "helpers": []
+}
