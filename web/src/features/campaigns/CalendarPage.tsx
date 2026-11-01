@@ -64,8 +64,23 @@ const reviews = { email: '/w/$workspace/campaigns/$campaignId/review', sms: '/w/
 type ChannelKey = keyof typeof reports
 const channelOf = (c: string): ChannelKey => (c in reports ? (c as ChannelKey) : 'email')
 
-/** Only an email campaign's time moves here (Send Readiness's reschedule). */
-const movable = (it: Item) => it.kind === 'scheduled' && it.channel === 'email'
+/** A scheduled campaign moves on any channel; texts, push and WhatsApp re-plan their own sends (review 2026-11 CA-9). */
+const movable = (it: Item) => it.kind === 'scheduled'
+
+/** Takes a scheduled campaign back to a draft, on its own channel's operation. */
+function unscheduleOn(channel: ChannelKey, workspace: string, campaignId: string) {
+  const path = { params: { path: { workspace, campaignId } } }
+  switch (channel) {
+    case 'sms':
+      return http.POST('/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/unschedule', path)
+    case 'push':
+      return http.POST('/api/v1/workspaces/{workspace}/push-campaigns/{campaignId}/unschedule', path)
+    case 'whatsapp':
+      return http.POST('/api/v1/workspaces/{workspace}/whatsapp-campaigns/{campaignId}/unschedule', path)
+    default:
+      return http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/unschedule', path)
+  }
+}
 
 /** Campaigns › Calendar: scheduled and sent campaigns and digest issues by month or week (CA-3). */
 export function CalendarPage({ search }: { search: CalendarSearch }) {
@@ -397,7 +412,6 @@ function CalendarEvent({
   )
 }
 
-/** Moves a scheduled email to another day and time; Send Readiness rechecks it before it goes out. */
 /**
  * An approved campaign's time is part of its approval (review 2026-11
  * CA-10): moving it means unscheduling it and asking again, said before
@@ -414,11 +428,12 @@ export function ApprovedMoveDialog({ item, onClose }: { item: Item; onClose: () 
     setBusy(true)
     setErr(undefined)
     try {
-      await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/unschedule', { params: { path: { workspace: slug, campaignId: item.id } } })
+      const ch = channelOf(item.channel)
+      await unscheduleOn(ch, slug, item.id)
       await refresh()
       toast({ kind: 'success', title: t(mk.unscheduledAsk, { name: item.name }) })
       onClose()
-      void navigate({ to: '/w/$workspace/campaigns/$campaignId/review', params: { workspace: slug, campaignId: item.id } })
+      void navigate({ to: reviews[ch], params: { workspace: slug, campaignId: item.id } })
     } catch (e) {
       setErr(errorMessage(e))
       setBusy(false)
@@ -449,6 +464,11 @@ export function ApprovedMoveDialog({ item, onClose }: { item: Item; onClose: () 
   )
 }
 
+/**
+ * Moves a scheduled campaign to another day and time: Send Readiness
+ * rechecks an email before it goes out; texts, push and WhatsApp keep quiet
+ * hours in each recipient's zone (CA-9).
+ */
 export function RescheduleDialog({ item, day, onClose }: { item: Item; day: Day; onClose: () => void }) {
   const tr = useT()
   const { slug } = useWorkspace()
@@ -461,6 +481,7 @@ export function RescheduleDialog({ item, day, onClose }: { item: Item; day: Day;
   const [err, setErr] = useState<string>()
   const today = dayKey(new Date())
   const when = `${calendarDate(date, 'shortDate')}, ${time}`
+  const email = channelOf(item.channel) === 'email'
   const save = async () => {
     if (!date || !/^\d{2}:\d{2}$/.test(time) || date < today) {
       setErr(tr(mk.pickFuture))
@@ -489,7 +510,7 @@ export function RescheduleDialog({ item, day, onClose }: { item: Item; day: Day;
       title={tr(mk.moveTitle, { name: item.name })}
       footer={
         <>
-          <Link className="btn mr-auto" to="/w/$workspace/campaigns/$campaignId/review" params={{ workspace: slug, campaignId: item.id }}>
+          <Link className="btn mr-auto" to={reviews[channelOf(item.channel)]} params={{ workspace: slug, campaignId: item.id }}>
             {tr(mk.openReview)}
           </Link>
           <Button onClick={onClose}>{tr(common.cancel)}</Button>
@@ -520,7 +541,7 @@ export function RescheduleDialog({ item, day, onClose }: { item: Item; day: Day;
             <input id={`${id}-time`} type="time" className="in" value={time} onChange={(e) => setTime(e.target.value)} aria-describedby={`${id}-hint`} />
           </div>
           <span className="k" id={`${id}-hint`}>
-            {item.local ? tr(mk.localHint, { zone }) : tr(mk.zoneHint, { zone })}
+            {email ? (item.local ? tr(mk.localHint, { zone }) : tr(mk.zoneHint, { zone })) : item.local ? tr(mk.channelLocalHint, { zone }) : tr(mk.channelZoneHint, { zone })}
           </span>
         </fieldset>
         {err ? <Note tone="bad">{err}</Note> : null}

@@ -177,7 +177,7 @@ describe('Campaigns › Calendar (review 2026-11 CA-3)', () => {
     expect(viewDays('week', '2026-10-14')).toHaveLength(7)
   })
 
-  it('moves a scheduled email from the week view, and only an email', async () => {
+  it('moves a scheduled email from the week view', async () => {
     const moved: unknown[] = []
     let asked = ''
     mockApi({
@@ -202,12 +202,59 @@ describe('Campaigns › Calendar (review 2026-11 CA-3)', () => {
     expect(await screen.findByText('Flash sale')).toBeInTheDocument()
     expect(asked).toBe('?from=2030-01-07&to=2030-01-14')
     expect(screen.getByText('10:00 local · scheduled')).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: /^Reschedule/ })).toHaveLength(1)
+    expect(screen.getAllByRole('button', { name: /^Reschedule/ })).toHaveLength(2)
     fireEvent.click(screen.getByRole('button', { name: 'Reschedule Flash sale' }))
     const dialog = await screen.findByRole('dialog', { name: 'Move "Flash sale"?' })
     fireEvent.change(within(dialog).getByLabelText('Day'), { target: { value: '2030-01-11' } })
     fireEvent.click(within(dialog).getByRole('button', { name: /^Move to/ }))
     await waitFor(() => expect(moved).toEqual([{ mode: 'at', date: '2030-01-11', time: '09:00', timezone: 'UTC' }]))
+  })
+
+  // Review 2026-11 CA-9: texts, push and WhatsApp move on the same calendar.
+  it('moves a text at its local time, and says quiet hours still apply', async () => {
+    const moved: unknown[] = []
+    mockApi({
+      'GET /api/v1/workspaces/acme-newsletter/campaigns/calendar': () =>
+        json({
+          from: '2030-01-07T00:00:00Z',
+          to: '2030-01-14T00:00:00Z',
+          items: [{ kind: 'scheduled', id: 'sms-1', name: 'Summit', channel: 'sms', status: 'scheduled', at: '2030-01-09T10:00:00Z', sent: 0, local: true, localTime: '10:00' }],
+        }),
+      'POST /api/v1/workspaces/acme-newsletter/campaigns/sms-1/reschedule': async (r) => {
+        moved.push(await r.json())
+        return new Response(null, { status: 204 })
+      },
+    })
+    await renderInWorkspace(<CalendarPage search={{ view: 'week', date: '2030-01-08' }} />, { me: editor })
+    fireEvent.click(await screen.findByRole('button', { name: 'Reschedule Summit' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Move "Summit"?' })
+    expect(within(dialog).getByText(/inside quiet hours/)).toBeInTheDocument()
+    expect(within(dialog).getByRole('link', { name: 'Open Review & send' })).toHaveAttribute('href', '/w/acme-newsletter/campaigns/sms-1/sms-review')
+    fireEvent.change(within(dialog).getByLabelText('Day'), { target: { value: '2030-01-12' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Move to/ }))
+    await waitFor(() => expect(moved).toEqual([{ mode: 'local', date: '2030-01-12', time: '10:00', timezone: 'UTC' }]))
+  })
+
+  it('unschedules an approved push campaign on its own channel', async () => {
+    let unscheduled = 0
+    mockApi({
+      'GET /api/v1/workspaces/acme-newsletter/campaigns/calendar': () =>
+        json({
+          from: '2030-01-07T00:00:00Z',
+          to: '2030-01-14T00:00:00Z',
+          items: [{ kind: 'scheduled', id: 'push-1', name: 'Flags', channel: 'push', status: 'scheduled', at: '2030-01-08T15:00:00Z', sent: 0, approved: true }],
+        }),
+      'POST /api/v1/workspaces/acme-newsletter/push-campaigns/push-1/unschedule': () => {
+        unscheduled++
+        return new Response(null, { status: 204 })
+      },
+    })
+    const { router } = await renderInWorkspace(<CalendarPage search={{ view: 'week', date: '2030-01-08' }} />, { me: editor })
+    fireEvent.click(await screen.findByRole('button', { name: 'Reschedule Flags' }))
+    const dialog = await screen.findByRole('dialog', { name: '"Flags" is approved for this time' })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Unschedule and ask again' }))
+    await waitFor(() => expect(unscheduled).toBe(1))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/w/acme-newsletter/campaigns/push-1/push-review'))
   })
 
   // Review 2026-11 CA-10: an approval covers the time, so the calendar says

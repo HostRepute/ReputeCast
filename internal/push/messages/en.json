@@ -56,6 +56,8 @@
   "problem.changedSinceReview": {"message": "The campaign changed since you reviewed it (now version {version}). Review it again.", "note": "version: the campaign's version number (7)"},
   "problem.blockingChecks": "Fix the blocking checks before sending.",
   "problem.unschedule": "Only a scheduled campaign that hasn't started can go back to a draft.",
+  "problem.move": "Only a scheduled campaign that hasn't started can be moved.",
+  "problem.moveLocal": "A push campaign goes out at one time for everyone: pick a day and time, not each subscriber's local time.",
   "problem.cancel": "Only a scheduled or sending campaign can be cancelled.",
   "problem.testNoKeys": "Turn push on first: the test is signed with the workspace's keys.",
   "problem.testSubscription": "This browser's subscription can't be used: allow notifications for this page and try again.",

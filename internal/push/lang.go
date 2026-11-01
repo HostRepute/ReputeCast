@@ -46,6 +46,8 @@ var (
 	mProblemChanged        = msgs.M("problem.changedSinceReview")
 	mProblemBlocked        = msgs.M("problem.blockingChecks")
 	mProblemUnschedule     = msgs.M("problem.unschedule")
+	mProblemMove           = msgs.M("problem.move")
+	mProblemMoveLocal      = msgs.M("problem.moveLocal")
 	mProblemCancel         = msgs.M("problem.cancel")
 
 	mProblemTestNoKeys       = msgs.M("problem.testNoKeys")

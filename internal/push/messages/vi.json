@@ -56,6 +56,8 @@
   "problem.changedSinceReview": "Chiến dịch đã thay đổi kể từ khi bạn kiểm tra (hiện là phiên bản {version}). Hãy kiểm tra lại.",
   "problem.blockingChecks": "Hãy sửa các mục kiểm tra đang chặn trước khi gửi.",
   "problem.unschedule": "Chỉ chiến dịch đã lên lịch và chưa bắt đầu mới có thể quay lại bản nháp.",
+  "problem.move": "Chỉ chiến dịch đã lên lịch và chưa bắt đầu mới dời được.",
+  "problem.moveLocal": "Chiến dịch push gửi cùng một lúc cho mọi người: hãy chọn ngày và giờ, không theo giờ địa phương của từng người đăng ký.",
   "problem.cancel": "Chỉ chiến dịch đã lên lịch hoặc đang gửi mới có thể hủy.",
   "problem.testNoKeys": "Hãy bật thông báo đẩy trước: thông báo thử được ký bằng khóa của không gian làm việc.",
   "problem.testSubscription": "Không dùng được lượt đăng ký của trình duyệt này: hãy cho phép thông báo trên trang này rồi thử lại.",

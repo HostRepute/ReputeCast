@@ -118,7 +118,7 @@ func Register(h huma.API, s *Service) {
 			return api.NoContent, s.Unschedule(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 		})
 	api.Post(h, api.Op{ID: "reschedule-campaign", Path: "/workspaces/{workspace}/campaigns/{campaignId}/reschedule", Summary: "Move a scheduled campaign to another time (logged)",
-		Description: "Send Readiness checks it again before it goes out. An approved campaign's time is part of its approval: unschedule it and ask again instead.",
+		Description: "Send Readiness checks an email again before it goes out. A text, push or WhatsApp campaign that hasn't started is re-planned by its channel, inside quiet hours in each recipient's zone; push takes one time for everyone (mode local is refused). An approved campaign's time is part of its approval: unschedule it and ask again instead.",
 		Tags:        review, Access: api.WorkspaceHuman(authz.CampaignsSend), Status: 204},
 		func(ctx context.Context, in *struct {
 			// The exported type itself: huma reads the path parameters of

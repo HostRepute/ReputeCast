@@ -335,7 +335,13 @@ func (s *Service) Calendar(ctx context.Context, ws *store.Workspace, from, to ti
 			Mode  string `json:"mode"`
 			Local string `json:"local"`
 		}
-		if json.Unmarshal(r.Schedule, &sc) == nil && sc.Mode == "local" && len(sc.Local) >= 16 {
+		if r.ChannelMode != "" {
+			// Texts and WhatsApp keep their schedule with the channel (CA-9).
+			sc.Mode, sc.Local = r.ChannelMode, r.ChannelLocal
+		} else {
+			_ = json.Unmarshal(r.Schedule, &sc)
+		}
+		if sc.Mode == "local" && len(sc.Local) >= 16 {
 			// Shown on its wall time's day, in the workspace's zone (the
 			// send itself starts in the earliest zone).
 			it.Local, it.LocalTime = true, sc.Local[11:16]

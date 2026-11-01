@@ -32,10 +32,18 @@ SELECT c.id, c.name, c.status, c.channel, c.audience_count, c.schedule,
        c.digest_id, c.digest_role, coalesce(dg.name, '')::text AS digest_name,
        coalesce(t.sent, 0)::bigint AS sent,
        -- An approval covers its time (review 2026-11 CA-10).
-       EXISTS (SELECT 1 FROM approval_requests ar WHERE ar.campaign_id = c.id AND ar.status = 'approved')::boolean AS approved
+       EXISTS (SELECT 1 FROM approval_requests ar WHERE ar.campaign_id = c.id AND ar.status = 'approved')::boolean AS approved,
+       -- A text or WhatsApp campaign at a time in each recipient's zone (CA-9).
+       -- channel_local is its wall time ("2026-10-14 09:00"), as an email's schedule keeps it.
+       coalesce(sc.schedule_mode, wc.schedule_mode, '')::text AS channel_mode,
+       coalesce(to_char(coalesce(sc.local_date, wc.local_date), 'YYYY-MM-DD') || ' ' ||
+                lpad((coalesce(sc.local_minute, wc.local_minute) / 60)::text, 2, '0') || ':' ||
+                lpad((coalesce(sc.local_minute, wc.local_minute) % 60)::text, 2, '0'), '')::text AS channel_local
 FROM campaigns c
 LEFT JOIN digests dg ON dg.id = c.digest_id
 LEFT JOIN LATERAL (SELECT sum(cc.sent) AS sent FROM campaign_counters cc WHERE cc.campaign_id = c.id) t ON true
+LEFT JOIN sms_campaigns sc ON c.channel = 'sms' AND sc.campaign_id = c.id
+LEFT JOIN whatsapp_campaigns wc ON c.channel = 'whatsapp' AND wc.campaign_id = c.id
 WHERE c.workspace_id = $1 AND c.deleted_at IS NULL AND c.digest_role IN ('', 'issue')
   AND c.status IN ('scheduled', 'sending', 'paused', 'sent')
   AND coalesce(c.started_at, c.scheduled_at) >= $2 AND coalesce(c.started_at, c.scheduled_at) < $3
@@ -62,6 +70,8 @@ type CampaignCalendarRow struct {
 	DigestName    string          `json:"digestName"`
 	Sent          int64           `json:"sent"`
 	Approved      bool            `json:"approved"`
+	ChannelMode   string          `json:"channelMode"`
+	ChannelLocal  string          `json:"channelLocal"`
 }
 
 // Scheduled and sent campaigns and digest issues between two times (CA-3).
@@ -87,6 +97,8 @@ func (q *Queries) CampaignCalendar(ctx context.Context, arg CampaignCalendarPara
 			&i.DigestName,
 			&i.Sent,
 			&i.Approved,
+			&i.ChannelMode,
+			&i.ChannelLocal,
 		); err != nil {
 			return nil, err
 		}

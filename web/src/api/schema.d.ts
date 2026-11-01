@@ -5233,7 +5233,7 @@ export interface paths {
         put?: never;
         /**
          * Move a scheduled campaign to another time (logged)
-         * @description Send Readiness checks it again before it goes out. An approved campaign's time is part of its approval: unschedule it and ask again instead.
+         * @description Send Readiness checks an email again before it goes out. A text, push or WhatsApp campaign that hasn't started is re-planned by its channel, inside quiet hours in each recipient's zone; push takes one time for everyone (mode local is refused). An approved campaign's time is part of its approval: unschedule it and ask again instead.
          */
         post: operations["reschedule-campaign"];
         delete?: never;

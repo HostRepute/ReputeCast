@@ -49,6 +49,21 @@ type ChannelCampaign struct {
 // implements it.
 type ChannelCampaigns interface {
 	DescribeForApproval(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID) (ChannelCampaign, error)
+	// MoveScheduled moves a scheduled campaign that hasn't started to
+	// another time: the calendar's reschedule (review 2026-11 CA-9). The
+	// channel re-plans its own sends (quiet hours, each recipient's zone)
+	// and writes the audit entry.
+	MoveScheduled(ctx context.Context, ws *store.Workspace, p *authz.Principal, campaignID uuid.UUID, to ChannelMove) error
+}
+
+// ChannelMove is the new time of a channel campaign: an instant, or with
+// Local a wall time (LocalDate, LocalMinute after midnight) in each
+// recipient's own zone. At is then when that time first comes, anywhere.
+type ChannelMove struct {
+	At          time.Time
+	Local       bool
+	LocalDate   time.Time
+	LocalMinute int
 }
 
 // channelOf is a campaign's channel ("email" when unknown).

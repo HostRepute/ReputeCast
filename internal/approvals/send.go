@@ -496,11 +496,11 @@ func (s *Service) Unschedule(ctx context.Context, ws *store.Workspace, p *authz.
 	})
 }
 
-// Reschedule moves a scheduled email campaign to another time (review
-// 2026-11 CA-3, the calendar's drag and its Reschedule button). Send
-// Readiness checks it again before it goes out, as any scheduled send. An
-// approval covers its time, so an approved campaign goes back through
-// approval instead.
+// Reschedule moves a scheduled campaign to another time (review 2026-11
+// CA-3, the calendar's drag and its Reschedule button). Send Readiness
+// checks an email again before it goes out, as any scheduled send; texts,
+// push and WhatsApp are moved by their channel (CA-9). An approval covers
+// its time, so an approved campaign goes back through approval instead.
 func (s *Service) Reschedule(ctx context.Context, ws *store.Workspace, p *authz.Principal, campaignID uuid.UUID, in readiness.ReadinessSchedule) error {
 	c, err := s.Readiness.Campaign(ctx, ws, campaignID)
 	if err != nil {
@@ -525,6 +525,18 @@ func (s *Service) Reschedule(ctx context.Context, ws *store.Workspace, p *authz.
 	now := s.now()
 	if at == nil || !at.After(now.Add(time.Minute)) {
 		return api.Invalid("body.time", say(ctx, mRescheduleFuture, nil))
+	}
+	if hook := s.channelHook(ctx, c.ID); hook != nil {
+		// Texts, push and WhatsApp re-plan their own sends (CA-9).
+		to := ChannelMove{At: *at}
+		if sched.Mode == "local" {
+			wall, err := time.Parse("2006-01-02 15:04", sched.Local)
+			if err != nil {
+				return api.Invalid("body.date", say(ctx, mRescheduleFuture, nil))
+			}
+			to.Local, to.LocalDate, to.LocalMinute = true, time.Date(wall.Year(), wall.Month(), wall.Day(), 0, 0, 0, 0, time.UTC), wall.Hour()*60+wall.Minute()
+		}
+		return hook.MoveScheduled(ctx, ws, p, c.ID, to)
 	}
 	sb, _ := json.Marshal(sched)
 	if err := s.starter().Cancel(ctx, c.ID, p.UserID); err != nil && !errors.Is(err, sending.ErrUnavailable) {

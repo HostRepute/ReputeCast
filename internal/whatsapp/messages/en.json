@@ -39,6 +39,7 @@
   "problem.staleReviewed": {"message": "The campaign changed since you reviewed it (now version {version}). Review it again.", "note": "version: the campaign's version number, 7"},
   "problem.blocking": "Fix the blocking checks before sending.",
   "problem.unscheduleOnly": "Only a scheduled campaign that hasn't started can go back to a draft.",
+  "problem.moveOnly": "Only a scheduled campaign that hasn't started can be moved.",
   "problem.cancelOnly": "Only a scheduled or sending campaign can be cancelled.",
   "problem.ratesDate": {"message": "Enter the rate card's date, like 2026-10-01.", "note": "2026-10-01 is the date format the field takes: keep it"},
   "problem.ratesDuplicate": "Each country and category has one price.",

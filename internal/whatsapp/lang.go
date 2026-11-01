@@ -68,6 +68,7 @@ var (
 	mStaleReviewed           = msgs.M("problem.staleReviewed")
 	mBlocking                = msgs.M("problem.blocking")
 	mUnscheduleOnly          = msgs.M("problem.unscheduleOnly")
+	mMoveOnly                = msgs.M("problem.moveOnly")
 	mCancelOnly              = msgs.M("problem.cancelOnly")
 	mRatesDate               = msgs.M("problem.ratesDate")
 	mRatesDuplicate          = msgs.M("problem.ratesDuplicate")

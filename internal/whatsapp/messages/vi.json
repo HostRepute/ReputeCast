@@ -39,6 +39,7 @@
   "problem.staleReviewed": "Chiến dịch đã thay đổi kể từ khi bạn kiểm tra (nay là phiên bản {version}). Hãy kiểm tra lại.",
   "problem.blocking": "Hãy sửa các mục kiểm tra đang chặn trước khi gửi.",
   "problem.unscheduleOnly": "Chỉ chiến dịch đã lên lịch và chưa bắt đầu mới có thể trở lại bản nháp.",
+  "problem.moveOnly": "Chỉ chiến dịch đã lên lịch và chưa bắt đầu mới dời được.",
   "problem.cancelOnly": "Chỉ có thể hủy chiến dịch đã lên lịch hoặc đang gửi.",
   "problem.ratesDate": "Hãy nhập ngày của bảng giá, ví dụ 2026-10-01.",
   "problem.ratesDuplicate": "Mỗi quốc gia và danh mục chỉ có một mức giá.",
