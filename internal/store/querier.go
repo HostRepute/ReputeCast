@@ -1456,6 +1456,7 @@ type Querier interface {
 	FailAutomationRun(ctx context.Context, arg FailAutomationRunParams) error
 	FailStaleDeliverabilityCheckRuns(ctx context.Context, aliveAfter time.Time) (int64, error)
 	FinishDeliverabilityCheckRun(ctx context.Context, arg FinishDeliverabilityCheckRunParams) error
+	// A done import drops its uploaded file: its rows are in (review 2026-11 DP-8).
 	FinishImport(ctx context.Context, arg FinishImportParams) error
 	FormAllowOrigin(ctx context.Context, arg FormAllowOriginParams) (Form, error)
 	// Origins rejected today that nobody chose to keep blocked yet.
@@ -1735,6 +1736,9 @@ type Querier interface {
 	HostReputeProviderForIP(ctx context.Context, arg HostReputeProviderForIPParams) (HostReputeProviderForIPRow, error)
 	HostReputeUserName(ctx context.Context, id uuid.UUID) (HostReputeUserNameRow, error)
 	HostReputeWorkspaceSlug(ctx context.Context, id uuid.UUID) (string, error)
+	// Finished imports' reports and files, which list every address read, go
+	// after their keeping time (review 2026-11 DP-8).
+	ImportFilesExpire(ctx context.Context, before *time.Time) (int64, error)
 	// Imports running in the background, and those that ended in the last two
 	// hours, for the jobs tray.
 	ImportJobs(ctx context.Context, arg ImportJobsParams) ([]ImportJobsRow, error)

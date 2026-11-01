@@ -41,6 +41,8 @@ export const mm = defineMessages('earn.members', {
   colSource: 'Source',
   hiddenName: 'Hidden',
   hiddenNote: 'Your role can’t see names and addresses.',
+  erasedName: 'Erased contact',
+  erasedNote: 'Erased on request. Amounts and dates stay for revenue reports.',
   test: 'Test',
   testMode: 'Stripe test mode',
   showing: 'Showing {shown} of {total, number} {status, select, with_access {with access · a row opens the paid member · amounts before tax} paying {paying · a row opens the paid member · amounts before tax} trialing {trialing · a row opens the paid member} past_due {past due · newest failure first} cancels_soon {cancelling soon · a row opens the paid member} complimentary {complimentary · a row opens the paid member} gift {with a gift · a row opens the paid member} ended {whose access ended in the last 30 days · a row opens the paid member} other {}}',

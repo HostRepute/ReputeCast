@@ -59,9 +59,18 @@ WHERE id = @id AND status = 'draft' AND staged_at IS NOT NULL;
 UPDATE imports SET progress = @progress, updated_at = now() WHERE id = @id;
 
 -- name: FinishImport :exec
+-- A done import drops its uploaded file: its rows are in (review 2026-11 DP-8).
 UPDATE imports SET status = @status, step = @step, stats = @stats, progress = @progress, report_csv = @report_csv,
-       skipped_csv = @skipped_csv, finished_at = now(), error = @error, updated_at = now()
+       skipped_csv = @skipped_csv, finished_at = now(), error = @error, updated_at = now(),
+       file_data = CASE WHEN @status::text = 'done' THEN NULL ELSE file_data END
 WHERE id = @id;
+
+-- name: ImportFilesExpire :execrows
+-- Finished imports' reports and files, which list every address read, go
+-- after their keeping time (review 2026-11 DP-8).
+UPDATE imports SET file_data = NULL, report_csv = NULL, skipped_csv = NULL
+WHERE status IN ('done', 'cancelled', 'failed') AND finished_at < @before
+  AND (file_data IS NOT NULL OR report_csv IS NOT NULL OR skipped_csv IS NOT NULL);
 
 -- name: DeleteImport :execrows
 DELETE FROM imports WHERE workspace_id = @workspace_id AND id = @id AND status IN ('draft', 'failed', 'cancelled', 'paused');

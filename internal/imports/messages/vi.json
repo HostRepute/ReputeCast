@@ -64,6 +64,7 @@
   "log.stoppedAfter": "Đã dừng nhập sau {rows} hàng",
   "log.analyzeFailed": "Không làm mới được thống kê của trình lập kế hoạch truy vấn: {reason}",
   "log.failed": "Đã dừng nhập: {reason}",
+  "log.fileErased": "Tệp đã tải lên bị xoá vì có tên một liên hệ đã bị xoá. Hãy tải lại tệp để tiếp tục.",
   "log.retry": "{source} trả về {status} khi đang đọc liên hệ; đang thử lại (lần {attempt})",
   "log.retry429": "{source} trả về 429 Too Many Requests; chờ {wait} rồi thử lại",
   "log.read": "Đã đọc {rows} hàng và {fields} trường từ {source}",
@@ -184,6 +185,7 @@
   "invalid.noMX": "tên miền không có bản ghi MX",
   "invalid.service": "bị dịch vụ xác minh từ chối",
 
+  "report.cleared": "Báo cáo này đã được xoá {days} ngày sau lần nhập, vì nó liệt kê mọi địa chỉ đã đọc.",
   "notify.title": "Đã nhập {count} liên hệ từ {source}",
   "notify.body": "{suppressed} bị chặn gửi, {skipped} bị bỏ qua. Báo cáo liệt kê từng hàng bị bỏ qua."
 }

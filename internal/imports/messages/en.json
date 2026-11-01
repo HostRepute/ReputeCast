@@ -64,6 +64,7 @@
   "log.stoppedAfter": "Import stopped after {rows} rows",
   "log.analyzeFailed": { "message": "Couldn't refresh the planner statistics: {reason}", "note": "the database's query planner; reason: the database's own words" },
   "log.failed": { "message": "Import stopped: {reason}", "note": "reason: the failure in the system's own words" },
+  "log.fileErased": { "message": "The uploaded file was removed because it named a contact who was erased. Upload it again to continue.", "note": "an import's log, after a contact in its file was erased" },
   "log.retry": { "message": "{source} answered {status} while reading contacts; retrying (attempt {attempt})", "note": "status: an HTTP status code, like 503" },
   "log.retry429": { "message": "{source} returned 429 Too Many Requests; waiting {wait} before retrying", "note": "429 Too Many Requests is the HTTP status, never translated; wait: like 2s or 1m0s" },
   "log.read": "Read {rows} rows and {fields} fields from {source}",
@@ -184,6 +185,7 @@
   "invalid.noMX": { "message": "no MX record", "note": "why an address is invalid: its domain can't receive mail" },
   "invalid.service": "rejected by the verification service",
 
+  "report.cleared": { "message": "This report was cleared {days} days after the import, since it listed every address the import read.", "note": "days: a number, 30" },
   "notify.title": { "message": "{count} contacts imported from {source}", "note": "the notification when an import finishes" },
   "notify.body": "{suppressed} suppressed, {skipped} skipped. The report lists every skipped row."
 }

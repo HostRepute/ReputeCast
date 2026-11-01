@@ -327,7 +327,12 @@ type ImportDetail struct {
 	CreatedAt      time.Time         `json:"createdAt"`
 	StartedAt      *time.Time        `json:"startedAt,omitempty"`
 	FinishedAt     *time.Time        `json:"finishedAt,omitempty"`
-	CreatedBy      string            `json:"createdBy"`
+	// ReportsUntil is when a finished import's report and skipped-row
+	// files are cleared; ReportsCleared says they were (they list every
+	// address read).
+	ReportsUntil   *time.Time `json:"reportsUntil,omitempty"`
+	ReportsCleared bool       `json:"reportsCleared"`
+	CreatedBy      string     `json:"createdBy"`
 	// Fields found in the source (merge fields, attributes, columns).
 	FieldCount int `json:"fieldCount"`
 	// Previous is the latest finished import, for "Previous imports".
@@ -409,6 +414,11 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, imp store.Imp
 		FileName: imp.FileName, HasCredentials: len(imp.CredentialsEnc) > 0, Options: parseOptions(imp.Options), StagedAt: imp.StagedAt,
 		CreatedAt: imp.CreatedAt, StartedAt: imp.StartedAt, FinishedAt: imp.FinishedAt, Log: []ImportLogEntry{}, ProviderSync: []ImportProviderPulled{},
 		FieldCount: len(conn.Fields), Error: conn.Error}
+	if imp.FinishedAt != nil {
+		until := ReportKeptUntil(*imp.FinishedAt)
+		out.ReportsUntil = &until
+		out.ReportsCleared = !s.now().Before(until)
+	}
 	if conn.Account != "" || len(conn.Lists) > 0 {
 		c := conn.ImportConnection
 		out.Connection = &c

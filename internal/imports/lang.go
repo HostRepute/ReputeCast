@@ -98,6 +98,8 @@ var (
 	mLogStoppedAfter   = msgs.M("log.stoppedAfter")
 	mLogAnalyzeFailed  = msgs.M("log.analyzeFailed")
 	mLogFailed         = msgs.M("log.failed")
+	mLogFileErased     = msgs.M("log.fileErased")
+	mReportCleared     = msgs.M("report.cleared")
 	mLogRetry          = msgs.M("log.retry")
 	mLogRetry429       = msgs.M("log.retry429")
 	mLogRead           = msgs.M("log.read")

@@ -337,6 +337,8 @@ export const m = defineMessages('imports', {
   skippedChanged: 'Skipped and changed rows',
   downloadSkipped: 'Download skipped rows · CSV, {count}',
   downloadReport: 'Download full report · CSV',
+  reportsKept: 'The files list every address the import read, so they’re kept until {date}.',
+  reportsCleared: 'The files were cleared {days} days after the import, since they listed every address it read.',
   importReport: 'Import report',
   colReason: 'Reason',
   colWhat: 'What happened',

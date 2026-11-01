@@ -5,7 +5,7 @@ import { ErrorPanel } from '@/components/ui/Feedback'
 import { TableScroll, Th } from '@/components/ui/Table'
 import { NotifuseTemplatesDone } from '@/features/transactional-import/NotifuseOption'
 import { WelcomePromptCard } from '@/features/welcome-prompt/WelcomePromptCard'
-import { andList, clock, count, dayMonthDate } from '@/lib/format'
+import { andList, clock, count, dayMonthDate, dayMonthYear } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { ImportFrame, stepPath, currentStep, useImportDetail, type Detail } from './ImportFrame'
 import { LiveLog } from './ProgressStep'
@@ -16,6 +16,9 @@ import { serviceReasonKeys, serviceReasonRow } from '@/features/verification/Imp
 import { t, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { m } from './messages'
+
+/** How long a finished import keeps its reports (imports.ReportKeepDays). */
+const REPORT_KEEP_DAYS = 30
 
 /** "3 minutes 10 seconds" */
 function took(ms: number) {
@@ -200,13 +203,18 @@ function Summary({ d, now }: { d: Detail; now: number }) {
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-4.5 py-3.5">
           <h3 className="h2">{tr(m.skippedChanged)}</h3>
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" disabled={skipped === 0} onClick={() => void downloadImportFile(slug, d.id, 'skipped')}>
+            <Button size="sm" disabled={skipped === 0 || d.reportsCleared} onClick={() => void downloadImportFile(slug, d.id, 'skipped')}>
               {tr(m.downloadSkipped, { count: count(skipped) })}
             </Button>
-            <Button size="sm" onClick={() => void downloadImportFile(slug, d.id, 'report')}>
+            <Button size="sm" disabled={d.reportsCleared} onClick={() => void downloadImportFile(slug, d.id, 'report')}>
               {tr(m.downloadReport)}
             </Button>
           </div>
+          {d.reportsUntil ? (
+            <p className="k m-0 w-full">
+              {d.reportsCleared ? tr(m.reportsCleared, { days: REPORT_KEEP_DAYS }) : tr(m.reportsKept, { date: dayMonthYear(d.reportsUntil) })}
+            </p>
+          ) : null}
         </div>
         <TableScroll label={tr(m.importReport)}>
           <table className="tbl">

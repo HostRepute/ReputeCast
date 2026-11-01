@@ -14,6 +14,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/imports"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -71,6 +72,12 @@ func (w *CleanupWorker) Work(ctx context.Context, _ *river.Job[CleanupArgs]) err
 		w.Log.InfoContext(ctx, "delivery_events partitions made", "partitions", made)
 	}
 	if _, err := w.Pool.Exec(ctx, `DELETE FROM delivery_event_keys WHERE received_at < $1`, time.Now().AddDate(0, 0, -180)); err != nil {
+		return err
+	}
+	// Import reports list every address read; they go after their keeping
+	// time (review 2026-11 DP-8).
+	reportsBefore := time.Now().AddDate(0, 0, -imports.ReportKeepDays)
+	if _, err := q.ImportFilesExpire(ctx, &reportsBefore); err != nil {
 		return err
 	}
 	if sessions+challenges+purged+lists+campaigns > 0 {

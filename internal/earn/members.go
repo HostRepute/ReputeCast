@@ -91,7 +91,10 @@ type EarnMemberRow struct {
 	Name      string `json:"name"`
 	Email     string `json:"email"`
 	// Hidden: the viewer lacks subscribers:view, so names and addresses aren't shown.
-	Hidden      bool                `json:"hidden"`
+	Hidden bool `json:"hidden"`
+	// Erased: the contact was erased; the row is kept for revenue history
+	// with no name or address ("Erased contact").
+	Erased      bool                `json:"erased"`
 	Test        bool                `json:"test"`
 	Kind        string              `json:"kind" enum:"stripe,complimentary,gift"`
 	Tier        string              `json:"tier"`
@@ -277,7 +280,8 @@ func memberOrder(status string) string {
 const memberColumns = `s.id, s.contact_id, coalesce(c.email, ''), coalesce(c.first_name, ''), coalesce(c.last_name, ''), s.mode, s.kind, s.tier_id,
 	coalesce(t.name, ''), s.period, s.amount_cents, s.currency, s.discount, coalesce(p.status, 'current'), s.status, s.cancel_at, s.started_at,
 	s.trial_end, s.current_period_end, s.ended_at, s.next_retry_at, s.grant_until, s.paid_cents, s.refunded_cents, s.source_kind, s.source_label,
-	s.source_campaign_id, s.source_detail, s.grant_reason, coalesce(u.name, ''), s.end_reason, s.cancel_reason, s.access_paused, s.billing_email`
+	s.source_campaign_id, s.source_detail, s.grant_reason, coalesce(u.name, ''), s.end_reason, s.cancel_reason, s.access_paused, s.billing_email,
+	c.erased_at IS NOT NULL`
 
 const memberFrom = `FROM paid_subscriptions s
 	JOIN contacts c ON c.id = s.contact_id
@@ -295,11 +299,15 @@ func scanMember(rows pgx.Rows, listNames func(*uuid.UUID) []string) (EarnMemberR
 	var paid, refunded int64
 	if err := rows.Scan(&id, &contact, &r.Email, &first, &last, &mode, &r.Kind, &tier, &r.TierName, &r.Period, &r.AmountCents, &r.Currency, &discount,
 		&priceStatus, &r.Status, &r.CancelAt, &r.Since, &trialEnd, &periodEnd, &ended, &retry, &grantUntil, &paid, &refunded, &r.Source.Kind,
-		&r.Source.Label, &campaign, &detail, &r.Source.Reason, &grantedBy, &r.EndReason, &r.CancelReason, &r.AccessPaused, &billing); err != nil {
+		&r.Source.Label, &campaign, &detail, &r.Source.Reason, &grantedBy, &r.EndReason, &r.CancelReason, &r.AccessPaused, &billing, &r.Erased); err != nil {
 		return r, err
 	}
 	r.ID, r.ContactID = id.String(), contact.String()
 	r.Name = strings.TrimSpace(first + " " + last)
+	if r.Erased {
+		// The contact's address is a placeholder now (review 2026-11 DP-9).
+		r.Name, r.Email = "", ""
+	}
 	r.Test = mode == "test"
 	r.Legacy = priceStatus == "legacy"
 	r.LTVCents, r.Refunded = paid-refunded, refunded
