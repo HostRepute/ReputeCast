@@ -107,6 +107,31 @@ What the run showed, and what changed:
   (pipefail) and still runs every step, so one run records every number. A
   pull request labelled `load-test` runs it before the branch merges.
 
+### Second run, on those changes
+
+[Run 41358794955](https://github.com/HostRepute/ReputeCast/actions/runs/41358794955),
+same runner and data; the job now fails because two thresholds are still
+crossed.
+
+| | First run | Second run | Target |
+|---|---|---|---|
+| contacts.js, requests a second | 116 | 153 | — |
+| contacts.js, pages p95 | 50 ms | 53 ms | under 200 ms: met |
+| contacts.js, search p95 | 513 ms | 291 ms | under 150 ms: missed |
+| Ten people browsing (Go test), p95 | 270 ms | 273 ms | under 200 ms: missed |
+| segments.js, p95 | 10.6 ms | 10.4 ms | under 2 s: met |
+| send.js, accepted | 48% (a session's 429s) | 100% with a key | — |
+| send.js, p95 | 760 ms | 827 ms | under 300 ms: missed |
+
+Sending through a key measured the send API itself: 76 messages a second,
+each taking a median 474 ms with 50 senders, while the worker drained the
+queue on the same four cores. A CPU profile of the send call showed most of
+it compiling and checking the template's MJML on every message; a version is
+now compiled once per process, which cut the send call's CPU by a quarter.
+Search, a median 52 ms on its own at a million contacts against 7 ms at
+200,000, grows with the table rather than with its matches, which points at
+its plan; that is the next thing to look at.
+
 The approvals inbox with 1,000 open requests (`TestInboxAtAThousandRequests`,
 review 2026-11 AP-3): 118 to 200 ms when every request was checked
 recently, as the inbox re-checks only stale ones; 460 ms when ten campaigns
