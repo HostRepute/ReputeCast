@@ -657,3 +657,62 @@ func TestWhatsAppLimitAndExpiredToken(t *testing.T) {
 		t.Fatalf("audit: %v", acts)
 	}
 }
+
+// Review 2026-11 CH-2: when Meta asks to slow down (130429), a message is
+// retried later, the wait growing with each attempt; after five attempts it
+// fails as unavailable, and the other recipients aren't held up.
+func TestWhatsAppRetriesWhenMetaSlowsDown(t *testing.T) {
+	f := newFixture(t)
+	env, c, p := f.env, f.owner, f.path
+	ctx := context.Background()
+	f.connect(t)
+	list, ids := f.people(t)
+	c.Do(http.MethodPut, p+"/whatsapp/settings", map[string]any{"quietHours": false}).MustStatus(t, 200)
+	for _, k := range []string{"sam", "ana"} {
+		c.Do(http.MethodPut, p+"/contacts/"+ids[k].String()+"/whatsapp/consent", map[string]any{"listId": list, "status": "subscribed", "evidence": evidence()}).
+			MustStatus(t, 200)
+	}
+	var ov whatsapp.WhatsAppOverview
+	c.Do(http.MethodGet, p+"/whatsapp", nil).MustStatus(t, 200).JSON(t, &ov)
+	tpl := ""
+	for _, tp := range ov.Templates {
+		if tp.Name == "summit_livestream" {
+			tpl = tp.ID
+		}
+	}
+	f.fake.Fail("+13125550123", 130429)
+	var camp whatsapp.WhatsAppCampaign
+	c.Do(http.MethodPost, p+"/whatsapp-campaigns", map[string]any{"name": "X22 slow down", "templateId": tpl, "lists": []string{list.String()}}).MustStatus(t, 201).JSON(t, &camp)
+	c.Do(http.MethodPatch, p+"/whatsapp-campaigns/"+camp.ID, map[string]any{"name": "X22 slow down", "templateId": tpl, "lists": []string{list.String()}, "mode": "now",
+		"version": camp.Version, "variables": []map[string]any{{"key": "1", "source": "text", "text": "go.acme.io/k3P9xq"}}}).MustStatus(t, 200).JSON(t, &camp)
+	var rv whatsapp.WhatsAppReview
+	c.Do(http.MethodGet, p+"/whatsapp-campaigns/"+camp.ID+"/review", nil).MustStatus(t, 200).JSON(t, &rv)
+	c.Do(http.MethodPost, p+"/whatsapp-campaigns/"+camp.ID+"/send", map[string]any{"version": rv.Version}).MustStatus(t, 200)
+	f.run(t)
+	if n := len(f.fake.SentMessages()); n != 1 {
+		t.Fatalf("Ana's message should go while Sam's waits: %d sent", n)
+	}
+	var status, reason string
+	var attempts int32
+	var after *time.Time
+	row := func() {
+		t.Helper()
+		if err := env.App.Pool.QueryRow(ctx, `SELECT status, reason, attempts, send_after FROM channel_messages WHERE campaign_id = $1 AND contact_id = $2`,
+			uuid.MustParse(camp.ID), ids["sam"]).Scan(&status, &reason, &attempts, &after); err != nil {
+			t.Fatal(err)
+		}
+	}
+	row()
+	if status != "queued" || reason != "retry" || attempts != 1 || after == nil || !after.After(time.Now()) {
+		t.Fatalf("after Meta's 130429: %s %s attempt %d, send after %v", status, reason, attempts, after)
+	}
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE channel_messages SET attempts = 4, send_after = now() - interval '1 second' WHERE campaign_id = $1 AND contact_id = $2`,
+		uuid.MustParse(camp.ID), ids["sam"]); err != nil {
+		t.Fatal(err)
+	}
+	f.run(t)
+	row()
+	if status != "failed" || reason != "unavailable" || attempts != 5 {
+		t.Fatalf("after five attempts: %s %s %d", status, reason, attempts)
+	}
+}

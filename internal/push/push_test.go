@@ -746,3 +746,46 @@ func TestPushRotationPromptsAndPermissions(t *testing.T) {
 		}
 	}
 }
+
+// Review 2026-11 CH-2: a busy push service (503) is retried later, the wait
+// growing with each attempt; after five attempts the notification fails as
+// unavailable and the subscription stays.
+func TestPushRetriesABusyService(t *testing.T) {
+	f := newFixture(t)
+	env := f.env
+	ctx := context.Background()
+	fake := env.App.PushFake()
+	f.pushOn(t, 5)
+	chrome, _ := f.subscribe(t, "chrome", chromeUA, nil)
+	fake.Answer(chrome, http.StatusServiceUnavailable)
+	fake.Reset()
+	busy := f.send(t, "X22 busy", "Busy service")
+	var status, reason string
+	var attempts int32
+	var after *time.Time
+	row := func() {
+		t.Helper()
+		if err := env.App.Pool.QueryRow(ctx, `SELECT m.status, m.reason, m.attempts, m.send_after FROM channel_messages m
+			JOIN push_messages pm ON pm.message_id = m.id JOIN push_subscriptions s ON s.id = pm.subscription_id
+			WHERE m.campaign_id = $1 AND s.endpoint = $2`, uuid.MustParse(busy.ID), chrome).
+			Scan(&status, &reason, &attempts, &after); err != nil {
+			t.Fatal(err)
+		}
+	}
+	row()
+	if status != "queued" || reason != "retry" || attempts != 1 || after == nil || !after.After(time.Now()) {
+		t.Fatalf("after a 503: %s %s attempt %d, send after %v", status, reason, attempts, after)
+	}
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE channel_messages SET attempts = 4, send_after = now() - interval '1 second' WHERE campaign_id = $1 AND status = 'queued'`,
+		uuid.MustParse(busy.ID)); err != nil {
+		t.Fatal(err)
+	}
+	f.run(t)
+	row()
+	if status != "failed" || reason != "unavailable" || attempts != 5 {
+		t.Fatalf("after five attempts: %s %s %d", status, reason, attempts)
+	}
+	if n := one[int64](t, env, `SELECT count(*) FROM push_subscriptions WHERE endpoint = $1 AND removed_at IS NULL`, chrome); n != 1 {
+		t.Fatal("a busy service removed the subscription")
+	}
+}

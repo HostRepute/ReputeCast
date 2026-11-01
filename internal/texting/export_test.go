@@ -3,6 +3,8 @@ package texting
 import (
 	"context"
 
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -15,4 +17,10 @@ func (s *Service) BudgetAlerts(ctx context.Context, ws *store.Workspace) error {
 	}
 	s.budgetAlerts(ctx, ws, r, nil)
 	return nil
+}
+
+// CheckAutoPause runs a send's auto-pause check, as a receipt or an
+// opt-out does.
+func (s *Service) CheckAutoPause(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID) {
+	s.checkAutoPause(ctx, ws, campaignID)
 }
