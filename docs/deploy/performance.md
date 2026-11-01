@@ -55,7 +55,54 @@ Converting `delivery_events` to monthly partitions took 5 seconds. Storing
 an event costs 0.05 ms more afterwards: its dedupe key goes to its own table
 ([partitioning](partitioning.md)).
 
-The k6 scripts weren't run for these numbers; the workflow runs them.
+### The Load test workflow, first run (review 2026-11 OP-13)
+
+1 November 2026, [run 41353963642](https://github.com/HostRepute/ReputeCast/actions/runs/41353963642):
+a GitHub runner (4 vCPUs) with PostgreSQL 18, the server, the database and
+k6 on one host. The data set loaded in 22 minutes 50 seconds: 1,000,000
+contacts, 2,427,738 messages, 3,183,918 delivery events.
+
+| Call | Median | After partitioning |
+|---|---|---|
+| Contacts, page 1 | 6 ms | 6 ms |
+| Contacts, page 400 | 7 ms | 6 ms |
+| Contacts, search "load4242" | 54 ms | 51 ms |
+| Contacts, exact email | 4 ms | 5 ms |
+| Contacts at one mailbox provider | 16 ms | 16 ms |
+| Campaigns list | 7 ms | 7 ms |
+| Overview, sender health | 12 ms | 11 ms |
+| Audience summary | 3 ms (kept) | 3 ms |
+| Campaign report, 975,000 recipients | 364 ms | 356 ms |
+| Segment count | 3 ms (kept) | 3 ms |
+
+Every call meets its target one at a time. Under load:
+
+| k6 script | Load | Result | Target |
+|---|---|---|---|
+| contacts.js, pages | 10 people, 1 minute, 116 requests a second | p95 50 ms, no errors | p95 under 200 ms: met |
+| contacts.js, search | the same | p95 513 ms, one request 27 s | p95 under 150 ms: missed |
+| segments.js | 4 people, 513 counts a second | p95 10.6 ms, no errors | p95 under 2 s: met |
+| send.js | rising to 200 a second | 48% accepted, p95 760 ms | see below |
+
+The Go test of ten people browsing at once on the runner: 128 requests a
+second, p50 28 ms, p95 270 ms (bound 200 ms), no errors. Job queues and
+webhook ingest had no lag at the end.
+
+What the run showed, and what changed:
+- **Search under load.** Every sample address contains "load", so the
+  email trigram index reads posting lists that hold the whole table for each
+  search, and a search also counted its matches with a second scan. The
+  first page now counts its own rows when they are all the matches, so a
+  search that finds a few contacts reads the indexes once. On four shared
+  cores the server, Postgres and k6 compete; the next run records the
+  result.
+- **Sending.** send.js sent through an owner's session, and a person's
+  sessions share 50 messages a second: the 52% that weren't accepted were
+  that limit's 429s, as designed. It now sends with a send-only key at 1,000
+  a second (`loadtest/sendkey.sh`), as an application does.
+- **The workflow** now fails when k6 or a timing test crosses its threshold
+  (pipefail) and still runs every step, so one run records every number. A
+  pull request labelled `load-test` runs it before the branch merges.
 
 The approvals inbox with 1,000 open requests (`TestInboxAtAThousandRequests`,
 review 2026-11 AP-3): 118 to 200 ms when every request was checked

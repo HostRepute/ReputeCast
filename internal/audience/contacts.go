@@ -90,9 +90,6 @@ func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f Conta
 		return ContactList{}, err
 	}
 	out := ContactList{Items: []ContactListItem{}, Page: pg.Page, PageSize: pg.PageSize}
-	if out.Total, out.TotalCapped, err = s.countContacts(ctx, fs, pg.Exact); err != nil {
-		return out, err
-	}
 	q, err := s.listQuery(ctx, fs, f, pg)
 	if err != nil {
 		return out, err
@@ -149,6 +146,14 @@ func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f Conta
 		return out, err
 	}
 	more := len(out.Items) > pg.PageSize
+	if cur == nil && pg.Page == 1 && !more {
+		// The first page holds every match: its size is the count, so a
+		// search that finds a few contacts reads the indexes once, not
+		// twice (review 2026-11 OP-13).
+		out.Total, out.TotalCapped = int64(len(out.Items)), false
+	} else if out.Total, out.TotalCapped, err = s.countContacts(ctx, fs, pg.Exact); err != nil {
+		return out, err
+	}
 	if more {
 		out.Items, ids, marks = out.Items[:pg.PageSize], ids[:pg.PageSize], marks[:pg.PageSize]
 	}

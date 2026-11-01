@@ -552,7 +552,7 @@ Found while building M47 (added to the backlog):
 |---|---|---|
 | OP-11 | Convert `delivery_events` at upgrade in a later release, once instances have run the opt-in command; then drop the legacy unique dedupe index. | ⏳ later release |
 | OP-12 | A segment count (about a second for two conditions on a million contacts) and the audience header counts (about 300 ms) read every contact: a count cache. | ✅ M51 |
-| OP-13 | Record the k6 numbers from a run of the Load test workflow in `docs/deploy/performance.md` (k6 couldn't run where these numbers were taken). | ⏳ CI run |
+| OP-13 | Record the k6 numbers from a run of the Load test workflow in `docs/deploy/performance.md` (k6 couldn't run where these numbers were taken). | ✅ M51 (run 41353963642; search under load and the send test followed up) |
 
 ## Frontend foundation (M48) ✅
 
@@ -758,8 +758,15 @@ Checked at the end of M51:
 - **Security.** `pnpm audit` found two advisories in seroval, which TanStack Router pulls in; it is
   pinned to the patched 1.6.11. A CI job now runs govulncheck and `pnpm audit` (it couldn't run here).
 
-Still open: OP-11 (a later release, by design) and OP-13 (the k6 numbers come from a run of the Load test
-workflow, which a pull request labelled `load-test` now starts; k6 can't run here).
+- **OP-13** the Load test workflow ran on a pull request labelled `load-test` (GitHub runs a hand-started
+  workflow only from the default branch). Every call met its target one at a time; pages (p95 50 ms) and
+  segment counts (p95 10.6 ms) held under load. Search under ten people missed (p95 513 ms on four shared
+  cores): the first page now counts its own rows when they are all the matches, which halves a narrow
+  search's reads. The send test had gone through a person's session (50 a second, so 52% were 429s by
+  design) and now sends with a key; the workflow fails when a threshold is crossed. Numbers in
+  `docs/deploy/performance.md`.
+
+Still open: OP-11 (a later release, by design).
 
 ## Competitor benchmark
 

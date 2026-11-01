@@ -51,33 +51,57 @@ jobs:
         with:
           go-version: "1.27.x"
       - run: go build -o bin/reputecast ./cmd/reputecast
+      # Every step below runs under pipefail, so a threshold that k6 or a
+      # timing test crosses fails the job; the steps after it still run, so
+      # one run records every number.
       - name: Seed
+        id: seed
+        shell: bash
         run: |
           export REPUTECAST_SECRETS__KEY_FILE="$RUNNER_TEMP/secret.key"
           ./bin/reputecast seed
           ./bin/reputecast seed --sample load --contacts "${{ inputs.contacts || '1000000' }}" | tee results.txt
       - name: Hot queries (targets and timings)
+        if: ${{ !cancelled() && steps.seed.outcome == 'success' }}
+        shell: bash
         run: go test -count=1 -v -run 'TestAudienceAtOneMillion|TestReportTimes|TestConcurrentBrowse' ./internal/loadtest/ | tee -a results.txt
       - name: Benchmarks
+        if: ${{ !cancelled() && steps.seed.outcome == 'success' }}
+        shell: bash
         run: go test -count=1 -run '^$' -bench . -benchtime 50x ./internal/loadtest/ | tee -a results.txt
       - name: Partition delivery_events, then time again
+        if: ${{ !cancelled() && steps.seed.outcome == 'success' }}
+        shell: bash
         run: |
           ./bin/reputecast migrate partition-events | tee -a results.txt
           go test -count=1 -v -run 'TestReportTimes' ./internal/loadtest/ | tee -a results.txt
       - name: Start the server
+        id: server
+        if: ${{ !cancelled() && steps.seed.outcome == 'success' }}
+        shell: bash
         run: |
           export REPUTECAST_SECRETS__KEY_FILE="$RUNNER_TEMP/secret.key"
           ./bin/reputecast serve > server.log 2>&1 &
           for i in $(seq 1 60); do ./bin/reputecast healthcheck && break; sleep 2; done
           echo "COOKIE=$(sh loadtest/session.sh load-test)" >> "$GITHUB_ENV"
-          echo "SEND_COOKIE=$(sh loadtest/session.sh acme-newsletter)" >> "$GITHUB_ENV"
+          # send.js sends with a send-only key, as an application does: a
+          # session's 50 per second would be what it measured.
+          token=$(COOKIE="$(sh loadtest/session.sh acme-newsletter)" sh loadtest/sendkey.sh acme-newsletter 1000)
+          test -n "$token"
+          echo "::add-mask::$token"
+          echo "SEND_TOKEN=$token" >> "$GITHUB_ENV"
       - uses: grafana/setup-k6-action@v1
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
       - name: k6
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        shell: bash
         run: |
-          k6 run --summary-export k6-contacts.json loadtest/k6/contacts.js | tee -a results.txt
-          k6 run --summary-export k6-segments.json loadtest/k6/segments.js | tee -a results.txt
-          COOKIE="$SEND_COOKIE" k6 run --summary-export k6-send.json loadtest/k6/send.js | tee -a results.txt
-          curl -s localhost:9464/metrics | grep -E '^reputecast_(jobs|job_queue_lag|provider|ingest)' | tee -a results.txt
+          status=0
+          k6 run --summary-export k6-contacts.json loadtest/k6/contacts.js | tee -a results.txt || status=1
+          k6 run --summary-export k6-segments.json loadtest/k6/segments.js | tee -a results.txt || status=1
+          TOKEN="$SEND_TOKEN" k6 run --summary-export k6-send.json loadtest/k6/send.js | tee -a results.txt || status=1
+          curl -s localhost:9464/metrics | grep -E '^reputecast_(jobs|job_queue_lag|provider|ingest)' | tee -a results.txt || true
+          exit $status
       - uses: actions/upload-artifact@v7
         if: always()
         with:

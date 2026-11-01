@@ -2,6 +2,9 @@
 // rising rate. Run it against a workspace with a published template
 // (TEMPLATE, password-reset in the demo's acme-newsletter) and test
 // recipients; the worker drains the queue through the workspace's route.
+// Send with an API key whose rate is above the test's (TOKEN, from
+// loadtest/sendkey.sh): a session shares 50 per second, and its 429s would
+// measure that limit rather than the server.
 import { check } from 'k6'
 import { base, post } from './common.js'
 

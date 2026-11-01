@@ -29,7 +29,7 @@ added writes an audit entry; where the row's test checks the entry, it says so (
 | Transactional (TX) | 7 | 6 | 0 | 1 (TX-7) | 0 | 0 |
 | Approvals, polls (AP) | 3 | 2 | 0 | 1 (AP-3) | 0 | 0 |
 | Integrations (IN) | 4 | 4 | 0 | 0 | 0 | 0 |
-| Operations (OP) | 14 | 10 | 1 (OP-x) | 1 (OP-12) | 0 | 2 (OP-11 by design, OP-13) |
+| Operations (OP) | 14 | 10 | 1 (OP-x) | 2 (OP-12, OP-13) | 0 | 1 (OP-11 by design) |
 | Frontend (FE) | 8 + 5 | 5 | 0 | 8 (FE-3 with FE-3b, FE-5 with FE-5b, FE-7 with FE-7b, FE-9, FE-10) | 0 | 0 |
 | Earn (EA) | 6 + 1 | 3 | 2 (EA-2b, EA-6) | 2 (EA-4, EA-5) | 0 | 0 |
 | Other channels (CH) | 2 | 1 | 0 | 1 (CH-2) | 0 | 0 |
@@ -185,7 +185,7 @@ first name, so it can't name a custom field and isn't read.
 | OP-x | Rebill test at a month's start | Done in M50 | `internal/demo/seed_agency.go` | `TestUsageAndRebill` (failed on 1 November before the fix) |
 | OP-11 | Convert `delivery_events` at upgrade | Open (by design) | — | A later release, once instances ran the opt-in command. |
 | OP-12 | Count cache for segments and header counts | Done (M51) | `internal/countcache`, the audit log's observer, `audience.Summary`, `segments.Preview` | `TestCountsAreKeptUntilTheAudienceChanges`, `countcache_test.go` |
-| OP-13 | Record k6 numbers | Open | — | k6 can't run where these milestones were built; a run of the Load test workflow records them in `docs/deploy/performance.md`. |
+| OP-13 | Record k6 numbers | Done (M51) | `.github/workflows/load.yml` (a `load-test` label runs it; it fails on a crossed threshold), `loadtest/sendkey.sh`, `docs/deploy/performance.md`; the contacts list counts a first page that holds every match from its rows (`internal/audience/contacts.go`) | Load test run 41353963642 |
 
 ## Frontend foundation (M48)
 
