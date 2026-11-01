@@ -399,7 +399,7 @@ type AutomationOptions struct {
 	// Segments and Campaigns are what "Enters a segment" and "Clicked a
 	// link" can start on (review 2026-11 AT-10).
 	Segments  []AutomationSegmentOption `json:"segments"`
-	Campaigns []AutomationOptionItem `json:"campaigns"`
+	Campaigns []AutomationOptionItem    `json:"campaigns"`
 }
 
 // AutomationMilestoneOption is a referral milestone a "Reached a
