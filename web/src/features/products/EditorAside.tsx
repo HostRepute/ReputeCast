@@ -213,6 +213,8 @@ export interface CheckRow {
   fix?: 'stripe' | 'template' | 'route' | 'pages'
   template?: string
   templateId?: string
+  /** A recommendation: it doesn't block publishing. */
+  advisory?: boolean
 }
 
 /**
@@ -281,6 +283,22 @@ export function checkRows(t: T, detail: ProductDetail): CheckRow[] {
             : { key: c.key, ok: false, title: t(pe.ckAltBad), detail: t(pe.ckAltBadDetail) },
         )
         break
+      case 'failed_notice':
+        rows.push(
+          c.ok
+            ? { key: c.key, ok: true, title: t(pe.ckFailed), detail: t(pe.ckTemplateDetail, { template: c.template ?? '', version: c.version ?? 1 }) }
+            : {
+                key: c.key,
+                ok: false,
+                advisory: true,
+                title: t(pe.ckFailedDraft, { template: c.template ?? '' }),
+                detail: t(pe.ckFailedDraftDetail),
+                fix: 'template',
+                template: c.template,
+                templateId: c.templateId,
+              },
+        )
+        break
       case 'sales_page':
         rows.push(
           c.ok
@@ -290,7 +308,12 @@ export function checkRows(t: T, detail: ProductDetail): CheckRow[] {
         break
     }
   }
-  return [...rows.filter((r) => !r.ok), ...rows.filter((r) => r.ok)]
+  return [...rows.filter((r) => !r.ok && !r.advisory), ...rows.filter((r) => !r.ok && r.advisory), ...rows.filter((r) => r.ok)]
+}
+
+/** The checks that block publishing and fail. */
+export function blockingRows(rows: CheckRow[]): CheckRow[] {
+  return rows.filter((r) => !r.ok && !r.advisory)
 }
 
 /** "$29, one-time", "Pay what you want, from $5". */
@@ -302,16 +325,22 @@ function priceCheck(t: T, p: Price, currency: string): string {
 export function ChecksCard({ detail, rows }: { detail: ProductDetail; rows: CheckRow[] }) {
   const t = useT()
   const canPublish = useCan('products:publish')
-  const passed = rows.filter((r) => r.ok).length
+  // A recommendation left undone doesn't count against publishing.
+  const required = rows.filter((r) => !r.advisory || r.ok)
+  const passed = required.filter((r) => r.ok).length
   const caption =
-    passed === rows.length ? (canPublish || detail.status !== 'draft' ? t(pe.checksAllPass, { count: rows.length }) : t(pe.checksAllPassNoRight, { count: rows.length })) : t(pe.checksSome, { passed, count: rows.length })
+    passed === required.length
+      ? canPublish || detail.status !== 'draft'
+        ? t(pe.checksAllPass, { count: required.length })
+        : t(pe.checksAllPassNoRight, { count: required.length })
+      : t(pe.checksSome, { passed, count: required.length })
   return (
     <section className="card" aria-labelledby="pr-checks-h">
       <CardSection id="pr-checks-h" title={t(pe.checks)} caption={caption} />
       <ul className="pad m-0 list-none pt-1.5 pb-2">
         {rows.map((r) => (
-          <li key={r.key} className={r.ok ? 'pr-ckl is-ok' : 'pr-ckl is-bad'}>
-            {r.ok ? <Icon name="check" size={14} strokeWidth={2.2} /> : <Icon name="alertCircle" size={15} />}
+          <li key={r.key} className={r.ok ? 'pr-ckl is-ok' : r.advisory ? 'pr-ckl is-warn' : 'pr-ckl is-bad'}>
+            {r.ok ? <Icon name="check" size={14} strokeWidth={2.2} /> : <Icon name={r.advisory ? 'alert' : 'alertCircle'} size={15} />}
             <span className="tx">
               <b>{r.title}</b>
               {r.detail ? <span className="k">{r.detail}</span> : null}

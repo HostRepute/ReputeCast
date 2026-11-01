@@ -491,8 +491,11 @@ func fileOf(f store.DownloadFile, by string) ProductFile {
 
 // ProductCheck is one publish check.
 type ProductCheck struct {
-	Key string `json:"key" enum:"stripe,file,price,template,route,cover_alt,sales_page"`
+	Key string `json:"key" enum:"stripe,file,price,template,route,cover_alt,sales_page,failed_notice"`
 	OK  bool   `json:"ok"`
+	// Advisory: a recommendation that doesn't block publishing (the
+	// payment-failed notice, review 2026-11 EN-10).
+	Advisory bool `json:"advisory,omitempty"`
 	// What the check found: the account and mode, the file, the price,
 	// the template and its version, the route, the sales page.
 	Account  string     `json:"account,omitempty"`
@@ -799,12 +802,23 @@ func (s *Service) checks(ctx context.Context, ws *store.Workspace, p store.Produ
 		}
 	}
 	out = append(out, sp)
+	// The notice a buyer gets when a bank debit fails after checkout is
+	// made as a draft: until it's published they hear nothing. It doesn't
+	// block publishing the product (review 2026-11 EN-10).
+	for _, t := range tpls {
+		if t.Key == FailedTemplateKey {
+			out = append(out, ProductCheck{Key: "failed_notice", Advisory: true, OK: t.Version > 0, Draft: t.Version == 0,
+				Template: t.Key, Version: t.Version, TemplateID: t.ID})
+			break
+		}
+	}
 	return out
 }
 
+// checksPass reports whether every check that blocks publishing passes.
 func checksPass(cs []ProductCheck) bool {
 	for _, c := range cs {
-		if !c.OK {
+		if !c.OK && !c.Advisory {
 			return false
 		}
 	}

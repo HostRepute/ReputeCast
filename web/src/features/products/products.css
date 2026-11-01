@@ -932,6 +932,9 @@
   .pr-ckl.is-bad > svg {
     color: #b91c1c;
   }
+  .pr-ckl.is-warn > svg {
+    color: var(--color-warn-fg);
+  }
   .pr-mail {
     width: 200px;
     flex: none;
