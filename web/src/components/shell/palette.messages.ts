@@ -21,6 +21,7 @@ export const mp = defineMessages('shell.palette', {
   forms: 'Forms',
   pages: 'Pages',
   settings: 'Settings',
+  settingIn: 'Settings › {tab}',
   kindCampaign: 'Campaign',
   kindContact: 'Contact',
   kindAutomation: 'Automation',

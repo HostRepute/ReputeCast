@@ -65,6 +65,22 @@ describe('the command palette', () => {
     expect(within(recent).getByText('Weekly Digest #142')).toBeInTheDocument()
   })
 
+  // Review 2026-11 FE-10: single settings by their own words.
+  it('finds a single setting and opens its page', async () => {
+    unmock = mockApi({ 'GET /api/v1/workspaces/acme-newsletter/search': () => json({ query: 'unconfirmed', groups: [] }) })
+    const { router } = await renderInWorkspace(<GlobalShortcuts />, { path: '/w/acme-newsletter' })
+    pressModK()
+    const box = await screen.findByRole('combobox')
+    // Not among the places to go before anything is typed.
+    expect(screen.queryByText('Erase signups never confirmed after')).not.toBeInTheDocument()
+    fireEvent.change(box, { target: { value: 'never confirmed' } })
+    const settings = await screen.findByRole('group', { name: 'Settings' })
+    const row = within(settings).getByRole('option', { name: /Erase signups never confirmed after/ })
+    expect(row).toHaveTextContent('Settings › General')
+    fireEvent.click(row)
+    await waitFor(() => expect(router.state.location.pathname).toBe('/w/acme-newsletter/settings'))
+  })
+
   it('says when nothing matches', async () => {
     unmock = mockApi({ 'GET /api/v1/workspaces/acme-newsletter/search': () => json({ query: 'wekly', groups: [] }) })
     await renderInWorkspace(<GlobalShortcuts />, { path: '/w/acme-newsletter' })

@@ -8,6 +8,7 @@ import { cn } from '@/lib/cn'
 import { shortDate } from '@/lib/format'
 import { useDebounced } from '@/lib/hooks'
 import { useOptionalWorkspace } from '@/lib/session'
+import { settingRows } from '@/features/settings/settingsIndex'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { m } from './messages'
 import { NAV } from './nav'
@@ -32,6 +33,8 @@ export interface Entry {
   dest: Dest
   /** Kept in Recent when opened (search results are; places aren't). */
   remember?: boolean
+  /** A single setting: shown only for what is typed, not among the places to go. */
+  setting?: boolean
 }
 
 /** The permission that opens each kind; Recent leaves out what the role can't open any more. */
@@ -217,6 +220,12 @@ function Palette({ workspace, permissions, close }: { workspace: string; permiss
     for (const tab of settingsTabs(workspace)) {
       if (typeof tab.label === 'string' && tab.to) out.push({ key: `goto:${tab.to}`, kind: 'goto', title: tab.label, detail: tt(mp.settings), dest: { to: tab.to, params: { workspace } } })
     }
+    // Single settings by their own words (review 2026-11 FE-10); only
+    // found by typing, after the tabs.
+    for (const row of settingRows) {
+      const title = tt(row.label)
+      out.push({ key: `setting:${row.to}:${title}`, kind: 'goto', title, detail: tt(mp.settingIn, { tab: tt(row.tab) }), dest: { to: row.to, params: { workspace } }, setting: true })
+    }
     return out
   }, [workspace, permissions]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -225,7 +234,7 @@ function Palette({ workspace, permissions, close }: { workspace: string; permiss
   if (!typed) {
     const recent = readRecent(workspace).filter((e) => e.kind !== 'goto' && can(kindPerm[e.kind as Kind]))
     if (recent.length) groups.push({ label: t(mp.recent), entries: recent })
-    groups.push({ label: t(mp.goTo), entries: places.slice(0, 6) })
+    groups.push({ label: t(mp.goTo), entries: places.filter((p) => !p.setting).slice(0, 6) })
   } else {
     if (term === typed || search.data) {
       for (const g of search.data?.groups ?? []) {
@@ -236,8 +245,10 @@ function Palette({ workspace, permissions, close }: { workspace: string; permiss
       }
     }
     const low = typed.toLowerCase()
-    const placeHits = places.filter((p) => p.title.toLowerCase().includes(low)).slice(0, 5)
+    const placeHits = places.filter((p) => !p.setting && p.title.toLowerCase().includes(low)).slice(0, 5)
     if (placeHits.length) groups.push({ label: t(mp.goTo), entries: placeHits })
+    const settingHits = places.filter((p) => p.setting && p.title.toLowerCase().includes(low)).slice(0, 5)
+    if (settingHits.length) groups.push({ label: t(mp.settings), entries: settingHits })
   }
   const flat = groups.flatMap((g) => g.entries)
   // The highlight starts over on the first row whenever the rows change.

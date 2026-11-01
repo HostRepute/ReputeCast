@@ -17,6 +17,7 @@ export default translate(mp, {
   forms: 'Biểu mẫu',
   pages: 'Trang',
   settings: 'Cài đặt',
+  settingIn: 'Cài đặt › {tab}',
   kindCampaign: 'Chiến dịch',
   kindContact: 'Liên hệ',
   kindAutomation: 'Tự động hóa',
