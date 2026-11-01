@@ -1,4 +1,4 @@
-import { clearRateLimit, getSystemStatus, probe, resetSystemStatus, systemStatusMiddleware } from './systemStatus'
+import { clearRateLimit, getSystemStatus, installPreloadRecovery, probe, resetSystemStatus, systemStatusMiddleware } from './systemStatus'
 
 type OnResponse = NonNullable<typeof systemStatusMiddleware.onResponse>
 type OnError = NonNullable<typeof systemStatusMiddleware.onError>
@@ -51,6 +51,36 @@ describe('system status middleware', () => {
     expect(getSystemStatus().maintenance).toBeDefined()
     await respond(new Response('{}', { status: 200 }))
     expect(getSystemStatus().maintenance).toBeUndefined()
+  })
+
+  it('notices when the server is upgraded while the tab is open', async () => {
+    await respond(new Response('{}', { status: 200, headers: { 'X-ReputeCast-Version': '1.5.2' } }))
+    expect(getSystemStatus().updatedTo).toBeUndefined()
+    await respond(new Response('{}', { status: 200, headers: { 'X-ReputeCast-Version': '1.5.2' } }))
+    expect(getSystemStatus().updatedTo).toBeUndefined()
+    await respond(new Response('{}', { status: 200, headers: { 'X-ReputeCast-Version': '1.6.0' } }))
+    expect(getSystemStatus().updatedTo).toBe('1.6.0')
+  })
+
+  it('reloads once when a chunk of the old build is gone', () => {
+    const target = new EventTarget() as unknown as Window
+    const reload = vi.fn()
+    const store = new Map<string, string>()
+    Object.assign(target, {
+      location: { reload },
+      sessionStorage: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v) },
+    })
+    installPreloadRecovery(target)
+    const fire = () => {
+      const e = new Event('vite:preloadError', { cancelable: true })
+      target.dispatchEvent(e)
+      return e.defaultPrevented
+    }
+    expect(fire()).toBe(true)
+    expect(reload).toHaveBeenCalledOnce()
+    // Again within a minute: no loop; the error shows as usual.
+    expect(fire()).toBe(false)
+    expect(reload).toHaveBeenCalledOnce()
   })
 
   it('marks the server unreachable when fetch fails, and online again when it answers', async () => {

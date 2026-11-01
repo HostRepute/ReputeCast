@@ -77,7 +77,7 @@ describe('GlobalShortcuts', () => {
     expect(router.state.location.pathname).toBe('/w/acme-newsletter/campaigns')
   })
 
-  it('⌘K focuses the page search; ⌘S goes to the screen that saves', async () => {
+  it('⌘K opens the command palette; ⌘S goes to the screen that saves', async () => {
     const save = vi.fn()
     function Screen() {
       useShortcutHandler('save', save)
@@ -93,17 +93,18 @@ describe('GlobalShortcuts', () => {
         <GlobalShortcuts />
       </>,
     )
-    expect(press('k', { metaKey: true })).toBe(false)
     const search = screen.getByLabelText('Search campaigns')
-    expect(search).toHaveFocus()
-    // Works from inside a field, too.
+    // From every page, even one with a search box of its own (FE-1).
+    expect(press('k', { metaKey: true })).toBe(false)
+    expect(await screen.findByRole('combobox', { name: /Search campaigns, contacts/ })).toHaveFocus()
+    fireEvent.keyDown(screen.getByRole('combobox', { name: /Search campaigns, contacts/ }), { key: 'Escape' })
+    // ⌘S works from inside a field, too.
     expect(press('s', { ctrlKey: true }, search)).toBe(false)
     expect(save).toHaveBeenCalledOnce()
   })
 
-  it("leaves ⌘S and ⌘K to the browser when the page doesn't handle them", async () => {
+  it("leaves ⌘S to the browser when the page doesn't handle it", async () => {
     await renderInWorkspace(<GlobalShortcuts />)
     expect(press('s', { metaKey: true })).toBe(true)
-    expect(press('k', { metaKey: true })).toBe(true)
   })
 })

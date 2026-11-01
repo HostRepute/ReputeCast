@@ -3654,6 +3654,19 @@ type Querier interface {
 	ScoringVersionInsert(ctx context.Context, arg ScoringVersionInsertParams) error
 	// Workspaces that set up scoring, with what the jobs need.
 	ScoringWorkspaces(ctx context.Context) ([]ScoringWorkspacesRow, error)
+	SearchAutomations(ctx context.Context, arg SearchAutomationsParams) ([]SearchAutomationsRow, error)
+	// The command palette's search (review 2026-11 FE-1): five of a kind,
+	// names starting with the text first. @pattern is '%text%' with LIKE's
+	// wildcards escaped; @prefix is 'text%'.
+	SearchCampaigns(ctx context.Context, arg SearchCampaignsParams) ([]SearchCampaignsRow, error)
+	// Uses the trigram indexes on email and name (migration 03372); an address
+	// with "@" is matched exactly. A member scoped to lists finds only their
+	// contacts.
+	SearchContacts(ctx context.Context, arg SearchContactsParams) ([]SearchContactsRow, error)
+	SearchForms(ctx context.Context, arg SearchFormsParams) ([]SearchFormsRow, error)
+	SearchLists(ctx context.Context, arg SearchListsParams) ([]SearchListsRow, error)
+	SearchPages(ctx context.Context, arg SearchPagesParams) ([]SearchPagesRow, error)
+	SearchSegments(ctx context.Context, arg SearchSegmentsParams) ([]SearchSegmentsRow, error)
 	// A watched segment's first evaluation: its members, no events.
 	SeedSegmentMembers(ctx context.Context, arg SeedSegmentMembersParams) error
 	SegmentMemberIDs(ctx context.Context, segmentID uuid.UUID) ([]uuid.UUID, error)

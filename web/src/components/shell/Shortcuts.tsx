@@ -3,8 +3,9 @@ import { Dialog as RDialog } from 'radix-ui'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { T, useT } from '@/i18n'
 import { deniedReason, useCan, useWorkspace } from '@/lib/session'
-import { focusPageSearch, GO_KEYS, modKeyLabel, runShortcutHandler, SEQUENCE_MS, shortcutFor, type GoTarget } from '@/lib/shortcuts'
+import { GO_KEYS, modKeyLabel, runShortcutHandler, SEQUENCE_MS, shortcutFor, type GoTarget } from '@/lib/shortcuts'
 import { toast } from '../ui/Toast'
+import { CommandPalette } from './CommandPalette'
 import { m } from './messages'
 import { NAV } from './nav'
 
@@ -119,6 +120,7 @@ export function GlobalShortcuts() {
   const { slug } = useWorkspace()
   const canCreate = useCan('campaigns:edit')
   const [help, setHelp] = useState(false)
+  const [palette, setPalette] = useState(false)
   const pending = useRef(false)
   const timer = useRef<number | undefined>(undefined)
 
@@ -133,7 +135,10 @@ export function GlobalShortcuts() {
       if (!a) return
       switch (a.type) {
         case 'search':
-          if (runShortcutHandler('search') || focusPageSearch()) e.preventDefault()
+          // ⌘K opens the command palette from every page (review 2026-11
+          // FE-1); a screen that handles it itself (an editor) still can.
+          e.preventDefault()
+          if (!runShortcutHandler('search')) setPalette(true)
           return
         case 'save':
           if (runShortcutHandler('save')) e.preventDefault()
@@ -162,5 +167,10 @@ export function GlobalShortcuts() {
     }
   }, [navigate, slug, canCreate])
 
-  return <ShortcutsDialog open={help} onOpenChange={setHelp} />
+  return (
+    <>
+      <ShortcutsDialog open={help} onOpenChange={setHelp} />
+      <CommandPalette open={palette} onOpenChange={setPalette} />
+    </>
+  )
 }

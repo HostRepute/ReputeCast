@@ -82,6 +82,24 @@ export function ReconnectingBanner({
   )
 }
 
+/** The server was upgraded while this tab was open (review 2026-11 FE-2). */
+export function UpdatedBanner({ version }: { version: string }) {
+  const t = useT()
+  return (
+    <SystemBanner
+      tone="info"
+      badge={t(m.bannerUpdated, { version })}
+      actions={
+        <Button size="sm" variant="primary" onClick={() => window.location.reload()}>
+          {t(m.bannerReload)}
+        </Button>
+      }
+    >
+      {t(m.bannerUpdatedBody, { version })}
+    </SystemBanner>
+  )
+}
+
 /** The instance is read-only while an upgrade installs. */
 export function MaintenanceBanner({ maintenance }: { maintenance: Maintenance }) {
   const t = useT()
@@ -188,6 +206,7 @@ export function SystemBanners() {
     <>
       {status.connection !== 'online' ? <OfflineBanner unreachable={status.connection === 'unreachable'} onRetry={() => void retry()} retrying={retrying} /> : null}
       {status.maintenance ? <MaintenanceBanner maintenance={status.maintenance} /> : null}
+      {status.updatedTo && !status.maintenance ? <UpdatedBanner version={status.updatedTo} /> : null}
     </>
   )
 }

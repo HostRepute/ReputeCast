@@ -120,7 +120,7 @@ export default translate(m, {
   recentEmpty: 'Chiến dịch hiện ở đây khi đã gửi đi, cùng số thư gửi thành công, lượt mở bởi người đọc và lượt nhấp.',
 
   // ── Search ───────────────────────────────────────────────────────────
-  searchPlaceholder: 'Tìm chiến dịch, liên hệ, sự kiện',
+  searchPlaceholder: 'Tìm chiến dịch và sự kiện nhà cung cấp',
   searchResults: 'Kết quả tìm kiếm',
   groupCampaigns: 'Chiến dịch',
   groupEvents: 'Sự kiện',
