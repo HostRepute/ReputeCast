@@ -2,7 +2,9 @@ package cli
 
 import (
 	"fmt"
+	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -35,6 +37,36 @@ func newMigrateCmd(o *rootOpts) *cobra.Command {
 			}
 			fmt.Fprintln(cmd.OutOrStdout(), "Database is up to date.")
 			return nil
+		}),
+	}, &cobra.Command{
+		Use:   "partition-events",
+		Short: "Split delivery_events into monthly partitions, without copying it (docs/deploy/partitioning.md)",
+		Long: "Turns delivery_events into a table partitioned by month. Nothing is copied: the current table\n" +
+			"becomes the partition of everything before next month, and later months get their own. It\n" +
+			"builds an index without blocking writes, checks a bound, then swaps tables in a moment's lock.\n" +
+			"Safe while ReputeCast runs and safe to run again. Back up first.",
+		RunE: run(func(cmd *cobra.Command) error {
+			cfg, log, err := o.load(cmd)
+			if err != nil {
+				return err
+			}
+			pool, err := db.Open(cmd.Context(), cfg.Database.URL, 4)
+			if err != nil {
+				return err
+			}
+			defer pool.Close()
+			res, err := db.PartitionDeliveryEvents(cmd.Context(), pool, log, time.Now())
+			if err != nil {
+				return err
+			}
+			out := cmd.OutOrStdout()
+			if res.Already {
+				_, err = fmt.Fprintf(out, "delivery_events is already partitioned; made %d partitions ahead.\n", len(res.Partitions))
+				return err
+			}
+			_, err = fmt.Fprintf(out, "delivery_events is partitioned by month from %s (%s): %d dedupe keys kept, partitions %s.\n",
+				res.FirstMonth.Format("2006-01"), res.Took.Round(time.Second), res.KeysCopied, strings.Join(res.Partitions, ", "))
+			return err
 		}),
 	}, &cobra.Command{
 		Use:   "segments-role",

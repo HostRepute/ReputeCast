@@ -1748,6 +1748,11 @@ type Querier interface {
 	IngestEventLog(ctx context.Context, arg IngestEventLogParams) ([]IngestEventLogRow, error)
 	IngestEventLogCount(ctx context.Context, arg IngestEventLogCountParams) (int64, error)
 	IngestGetRaw(ctx context.Context, id uuid.UUID) (ProviderRawEvent, error)
+	// One event per provider and dedupe key: the key is claimed in
+	// delivery_event_keys first, so the check holds across monthly partitions
+	// (review 2026-11 OP-8). An event without a key (or a provider) is always
+	// stored. ON CONFLICT DO NOTHING keeps the unpartitioned table's unique
+	// index from failing on an event stored before the keys table existed.
 	IngestInsertEvent(ctx context.Context, arg IngestInsertEventParams) (uuid.UUID, error)
 	// Webhook ingest, normalization and the provider event log.
 	IngestInsertRaw(ctx context.Context, arg IngestInsertRawParams) error

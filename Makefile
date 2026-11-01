@@ -118,6 +118,12 @@ sdk: ## Check, build and test the adapter SDK and template, then run the templat
 docker: ## Build the Docker image
 	docker build -t reputecast:$(VERSION) --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) .
 
+.PHONY: loadtest
+loadtest: ## Seed a million contacts into REPUTECAST_LOAD_DATABASE_URL's database and time the hot queries (docs/deploy/performance.md)
+	REPUTECAST_DATABASE__URL=$(REPUTECAST_LOAD_DATABASE_URL) go run ./cmd/reputecast seed
+	REPUTECAST_DATABASE__URL=$(REPUTECAST_LOAD_DATABASE_URL) go run ./cmd/reputecast seed --sample load
+	go test -count=1 -v -run 'TestAudienceAtOneMillion|TestReportTimes|TestConcurrentBrowse' ./internal/loadtest/
+
 .PHONY: clean
 clean: ## Remove build output
 	rm -rf bin tmp web/dist/assets web/dist/index.html site/dist site/.ssr

@@ -86,6 +86,7 @@ reachable from the internet. See [Reverse proxy and TLS](reverse-proxy.md).
 | `reputecast worker` | Runs only background jobs (same as `serve --role=worker`). |
 | `reputecast install` | Applies migrations and creates the first Owner (an instance admin with break-glass sign-in). |
 | `reputecast migrate up\|down\|status` | Manages the schema. |
+| `reputecast migrate partition-events` | Splits `delivery_events` into monthly partitions without copying it ([partitioning](partitioning.md)). |
 | `reputecast migrate segments-role` | Hands the SQL segments function back to its role after a restore on a new server ([backup and restore](backup-restore.md)). |
 | `reputecast doctor` | Checks the database, schema, secret key, files folder and roles; run it after a restore or a move. |
 | `reputecast healthcheck [--live]` | Asks the local process's `/readyz` (or `/healthz`); exits 1 when it isn't ready. For container health checks. |
@@ -132,6 +133,10 @@ the role SQL segments run as, which `pg_dump` doesn't carry), key rotation
 and the downgrade policy.
 
 ## Scaling
+
+[Performance](performance.md) has timings on a million contacts and how
+to measure your own; [partitioning](partitioning.md) splits the largest
+table by month.
 
 One process runs everything. For more throughput, run several
 `reputecast serve --role=web,ingest` instances behind the proxy and one or more

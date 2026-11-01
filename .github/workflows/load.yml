@@ -1,0 +1,82 @@
+name: Load test
+
+# Run by hand (Actions › Load test › Run workflow): a million contacts by
+# default, the hot queries' targets and timings, the delivery_events
+# partition conversion on that data, and the k6 scripts against a running
+# server (review 2026-11 OP-9). Results are kept as an artifact; record
+# them in docs/deploy/performance.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      contacts:
+        description: Contacts in the load test workspace
+        default: "1000000"
+      postgres:
+        description: Postgres major version
+        default: "18"
+
+permissions:
+  contents: read
+
+jobs:
+  load:
+    name: Load test · ${{ inputs.contacts }} contacts · Postgres ${{ inputs.postgres }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    services:
+      postgres:
+        image: postgres:${{ inputs.postgres }}-alpine
+        env:
+          POSTGRES_USER: reputecast
+          POSTGRES_PASSWORD: reputecast
+          POSTGRES_DB: reputecast
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U reputecast" --health-interval 2s --health-timeout 3s --health-retries 30
+    env:
+      REPUTECAST_ENV: development
+      REPUTECAST_DATABASE__URL: postgres://reputecast:reputecast@localhost:5432/reputecast?sslmode=disable
+      REPUTECAST_LOAD_DATABASE_URL: postgres://reputecast:reputecast@localhost:5432/reputecast?sslmode=disable
+      REPUTECAST_HTTP__RATE_LIMIT_API: "0"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.27.x"
+      - run: go build -o bin/reputecast ./cmd/reputecast
+      - name: Seed
+        run: |
+          export REPUTECAST_SECRETS__KEY_FILE="$RUNNER_TEMP/secret.key"
+          ./bin/reputecast seed
+          ./bin/reputecast seed --sample load --contacts "${{ inputs.contacts }}" | tee results.txt
+      - name: Hot queries (targets and timings)
+        run: go test -count=1 -v -run 'TestAudienceAtOneMillion|TestReportTimes|TestConcurrentBrowse' ./internal/loadtest/ | tee -a results.txt
+      - name: Benchmarks
+        run: go test -count=1 -run '^$' -bench . -benchtime 50x ./internal/loadtest/ | tee -a results.txt
+      - name: Partition delivery_events, then time again
+        run: |
+          ./bin/reputecast migrate partition-events | tee -a results.txt
+          go test -count=1 -v -run 'TestReportTimes' ./internal/loadtest/ | tee -a results.txt
+      - name: Start the server
+        run: |
+          export REPUTECAST_SECRETS__KEY_FILE="$RUNNER_TEMP/secret.key"
+          ./bin/reputecast serve > server.log 2>&1 &
+          for i in $(seq 1 60); do ./bin/reputecast healthcheck && break; sleep 2; done
+          echo "COOKIE=$(sh loadtest/session.sh load-test)" >> "$GITHUB_ENV"
+          echo "SEND_COOKIE=$(sh loadtest/session.sh acme-newsletter)" >> "$GITHUB_ENV"
+      - uses: grafana/setup-k6-action@v1
+      - name: k6
+        run: |
+          k6 run --summary-export k6-contacts.json loadtest/k6/contacts.js | tee -a results.txt
+          k6 run --summary-export k6-segments.json loadtest/k6/segments.js | tee -a results.txt
+          COOKIE="$SEND_COOKIE" k6 run --summary-export k6-send.json loadtest/k6/send.js | tee -a results.txt
+          curl -s localhost:9464/metrics | grep -E '^reputecast_(jobs|job_queue_lag|provider|ingest)' | tee -a results.txt
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: load-test-${{ inputs.contacts }}-pg${{ inputs.postgres }}
+          path: |
+            results.txt
+            k6-*.json
+            server.log

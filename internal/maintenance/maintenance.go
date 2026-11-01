@@ -63,6 +63,16 @@ func (w *CleanupWorker) Work(ctx context.Context, _ *river.Job[CleanupArgs]) err
 	if err != nil {
 		return err
 	}
+	// delivery_events' monthly partitions, made ahead (review 2026-11
+	// OP-8), and dedupe keys no provider replays any more.
+	if made, err := db.EnsureEventPartitions(ctx, w.Pool, time.Now()); err != nil {
+		w.Log.ErrorContext(ctx, "delivery_events partitions", "err", err)
+	} else if len(made) > 0 {
+		w.Log.InfoContext(ctx, "delivery_events partitions made", "partitions", made)
+	}
+	if _, err := w.Pool.Exec(ctx, `DELETE FROM delivery_event_keys WHERE received_at < $1`, time.Now().AddDate(0, 0, -180)); err != nil {
+		return err
+	}
 	if sessions+challenges+purged+lists+campaigns > 0 {
 		w.Log.InfoContext(ctx, "cleanup", "sessions", sessions, "challenges", challenges, "audit_events", purged, "deleted_lists", lists, "deleted_campaigns", campaigns)
 	}

@@ -212,13 +212,23 @@ func (q *Queries) IngestGetRaw(ctx context.Context, id uuid.UUID) (ProviderRawEv
 }
 
 const ingestInsertEvent = `-- name: IngestInsertEvent :one
+WITH claimed AS (
+    INSERT INTO delivery_event_keys (provider_id, dedupe_key, received_at)
+    SELECT $6::uuid, $21::text, $20::timestamptz
+    WHERE $6::uuid IS NOT NULL AND $21::text <> ''
+    ON CONFLICT DO NOTHING
+    RETURNING 1
+)
 INSERT INTO delivery_events (id, workspace_id, message_id, campaign_id, contact_id, provider_id, raw_event_id, type, occurred_at,
                              mailbox_provider, original_type, original_code, diagnostic, bounce_class, url, user_agent,
                              recipient, provider_message_id, source, received_at, dedupe_key)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
-        $10, $11, $12, $13, $14, $15, $16,
-        $17, $18, $19, $20, $21)
-ON CONFLICT (provider_id, dedupe_key) WHERE dedupe_key <> '' DO NOTHING
+SELECT $1, $2, $3, $4, $5, $6,
+       $7, $8, $9,
+       $10, $11, $12, $13, $14,
+       $15, $16, $17, $18, $19,
+       $20, $21
+WHERE $6::uuid IS NULL OR $21::text = '' OR EXISTS (SELECT 1 FROM claimed)
+ON CONFLICT DO NOTHING
 RETURNING id
 `
 
@@ -246,6 +256,11 @@ type IngestInsertEventParams struct {
 	DedupeKey         string     `json:"dedupeKey"`
 }
 
+// One event per provider and dedupe key: the key is claimed in
+// delivery_event_keys first, so the check holds across monthly partitions
+// (review 2026-11 OP-8). An event without a key (or a provider) is always
+// stored. ON CONFLICT DO NOTHING keeps the unpartitioned table's unique
+// index from failing on an event stored before the keys table existed.
 func (q *Queries) IngestInsertEvent(ctx context.Context, arg IngestInsertEventParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, ingestInsertEvent,
 		arg.ID,

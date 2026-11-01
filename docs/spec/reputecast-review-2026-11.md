@@ -271,7 +271,7 @@ Found while building M43 (added to the backlog):
 
 | ID | What | Status |
 |---|---|---|
-| AU-17 | The 1M-seed benchmarks of AU-1 and AU-2 (page 1 and page 400 under 200 ms, search under 150 ms) need OP-9's seed; run them with M47. | ⏳ (M47) |
+| AU-17 | The 1M-seed benchmarks of AU-1 and AU-2 (page 1 and page 400 under 200 ms, search under 150 ms) need OP-9's seed; run them with M47. | ✅ M47: 6 ms, 7 ms and 23 ms (`TestAudienceAtOneMillion`) |
 | AU-18 | What-uses-it checks read segments, forms, scoring, automations, unsent campaigns, digests and saved views, but not transactional templates, SMS and WhatsApp templates or a form's own confirmation email; a field used only there reads "Nothing". Add them to `internal/dependents`. | ⏳ |
 | AU-19 | A saved view has no address of its own, so "Saved view · Name" in a what-uses-it list can't open it; Contacts could take `?view=`. | ⏳ |
 
@@ -488,7 +488,7 @@ Found while building M46 (added to the backlog):
 | AP-3 | The approvals inbox's 1,000-request benchmark: the stale-only re-check is tested for correctness, not timed. | ⏳ |
 | OP-x | `TestUsageAndRebill` counts a workspace added in the first hours of a month (in the agency's time zone) in the month before; pin its clock. | ⏳ |
 
-## Operations (M47) ⏳
+## Operations (M47) ✅
 
 | ID | What | Done when | Size | Board |
 |---|---|---|---|---|
@@ -502,6 +502,57 @@ Found while building M46 (added to the backlog):
 | OP-8 | A plan, then a migration, for monthly partitions of `delivery_events`, with DP-6 dropping detail by partition. | Migration tested on the 1M seed. | L | — |
 | OP-9 | Load testing: a 1M-contact seed, k6 scripts (contacts list, segment counts, send throughput, webhook ingest) and Go benchmarks for the hot queries; numbers recorded in `docs/deploy`. | Run in a manual CI job. | M | — |
 | OP-10 | Instance admin › System: failed and discarded jobs (retry, discard), queue lag, database and largest tables' sizes, the files folder's size. | Tests. | M | New board: InstanceSettings › System |
+
+What M47 built (1 November 2026):
+
+- **OP-1** every process exports job queue depth, due-job lag and failures by kind
+  (`reputecast_jobs`, `reputecast_job_queue_lag_seconds`, `reputecast_job_failures_total`), messages
+  and calls to providers by adapter and result, webhook ingest requests and lag, outgoing webhook
+  deliveries and lag, and the database pool. Queue readings come from the database at most every
+  15 seconds (`TestOperationalMetricsAreScraped`).
+- **OP-2** `reputecast healthcheck` asks the local `/readyz` (the HTTP listener, then the metrics
+  listener); `/readyz` checks the database, the schema and, in a worker, that workers run; a
+  worker-only process answers health on the metrics listener. The Dockerfiles and
+  `deploy/docker-compose.yml` use it (`TestHealthcheck`).
+- **OP-3** a binary whose migrations are pending serves read-only: reads carry
+  `X-ReputeCast-Read-Only`, from which the web app shows the maintenance banner before any write;
+  writes answer 503 `maintenance`; provider webhooks are still stored; workers wait; `/readyz` is 503.
+  It carries on by itself once the migrations land (`TestPendingMigrationsServeReadOnly`).
+- **OP-4** `reputecast doctor` checks the database, the schema, that the key opens a sample of every
+  kind of sealed value, the files folder and the segments role; `reputecast migrate segments-role`
+  hands the segments function back to its role after a restore. The runbook
+  (`docs/deploy/backup-restore.md`) was tested on a fresh Postgres 16 cluster (`TestDoctor`).
+- **OP-5** `internal/sealed` lists all 47 sealed values with their associated data;
+  `reputecast secrets reseal` re-encrypts them with the current key, only where the value is still
+  the one read, and is audited. A test fails on any bytea column that is neither listed nor exempt
+  (`TestEverySealedColumnIsKnown`, `TestResealMovesEveryValueToTheCurrentKey`). Links in sent emails
+  were signed with the current key only, so a rotation broke every unsubscribe link already sent:
+  they now verify with the previous keys too (`TestPreviousKeysStillVerify`).
+- **OP-6** signed-in browsers are limited per session (600 a minute) after sign-in is checked, and
+  together per address at 6,000 (`http.rate_limit_ip`); limits per replica are documented
+  (`TestAPILimitsEachSession`, `TestRateLimitsBrowsersShareAHigherCap`).
+- **OP-7** a request's log lines carry `request_id`, `route`, `workspace` and `caller`
+  (`user:<id>`, `key:<id>`, `agent:<id>`), the access line included; a job's carry `job`
+  (`TestRequestLinesCarryTheRequest`).
+- **OP-8** `reputecast migrate partition-events` splits `delivery_events` by month on `received_at`
+  without copying it; dedupe keys move to `delivery_event_keys`; months are made ahead hourly; DP-6
+  clears a month's detail in one pass once it is past a cutoff. The plan is
+  `docs/deploy/partitioning.md`; on the 1M seed the conversion took 5 seconds and every count read the
+  same (`TestPartitionDeliveryEvents`; migration 03384).
+- **OP-9** `reputecast seed --sample load` (a million contacts, 3.2 million events), Go tests and
+  benchmarks of the hot calls, k6 scripts for contacts, segment counts, sends and ingest, and a manual
+  "Load test" workflow. Numbers in `docs/deploy/performance.md`.
+- **OP-10** Instance admin › System (new board InstanceSystem): failed jobs with their last error,
+  retried, cancelled or deleted (audited), queues and their lag, the largest tables and the files
+  folder (`TestSystemTab`, `SystemPage.test.tsx`).
+
+Found while building M47 (added to the backlog):
+
+| ID | What | Status |
+|---|---|---|
+| OP-11 | Convert `delivery_events` at upgrade in a later release, once instances have run the opt-in command; then drop the legacy unique dedupe index. | ⏳ |
+| OP-12 | A segment count (about a second for two conditions on a million contacts) and the audience header counts (about 300 ms) read every contact: a count cache. | ⏳ |
+| OP-13 | Record the k6 numbers from a run of the Load test workflow in `docs/deploy/performance.md` (k6 couldn't run where these numbers were taken). | ⏳ |
 
 ## Frontend foundation (M48) ⏳
 

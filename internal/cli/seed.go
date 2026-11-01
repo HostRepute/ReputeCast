@@ -2,17 +2,20 @@ package cli
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/hostrepute/reputecast/internal/app"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/demo"
+	"github.com/hostrepute/reputecast/internal/loadtest"
 )
 
 func newSeedCmd(o *rootOpts) *cobra.Command {
 	var reset bool
 	var sample string
+	var contacts int
 	cmd := &cobra.Command{
 		Use:   "seed",
 		Short: "Load the Acme demo data (development and screenshots only)",
@@ -52,8 +55,19 @@ func newSeedCmd(o *rootOpts) *cobra.Command {
 				fmt.Fprintf(out, "  Client approver jane.morales@contoso.example   password %q\n\n", res.Password)
 				return nil
 			}
+			if sample == "load" {
+				// The load test data set (review 2026-11 OP-9), on top of an
+				// instance that has a user.
+				res, err := loadtest.Seed(cmd.Context(), pool, contacts, log)
+				if err != nil {
+					return err
+				}
+				fmt.Fprintf(cmd.OutOrStdout(), "\n  Load test data loaded in %s: workspace %q, %d contacts, %d messages, %d delivery events.\n\n",
+					res.Took.Round(time.Second), loadtest.Slug, res.Contacts, res.Messages, res.Events)
+				return nil
+			}
 			if sample != "" && sample != "acme" {
-				return usageError{fmt.Errorf("unknown sample %q: use acme or northwind", sample)}
+				return usageError{fmt.Errorf("unknown sample %q: use acme, northwind or load", sample)}
 			}
 			res, err := demo.Seed(cmd.Context(), pool, cfg, box, log)
 			if err != nil {
@@ -68,6 +82,7 @@ func newSeedCmd(o *rootOpts) *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&reset, "force", false, "seed even when REPUTECAST_ENV is not development")
-	cmd.Flags().StringVar(&sample, "sample", "acme", "which sample: acme, or northwind (an agency with seven clients, into an empty database)")
+	cmd.Flags().StringVar(&sample, "sample", "acme", "which sample: acme; northwind (an agency with seven clients, into an empty database); or load (a large workspace for load tests, after acme)")
+	cmd.Flags().IntVar(&contacts, "contacts", 1_000_000, "with --sample load: how many contacts")
 	return cmd
 }
