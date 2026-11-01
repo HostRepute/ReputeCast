@@ -13,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -196,6 +197,9 @@ func (s *Service) ReportCSV(ctx context.Context, ws *store.Workspace, id uuid.UU
 		return nil, "", err
 	}
 	stem := strings.ToLower(SourceName(imp.Source)) + "-import-" + imp.CreatedAt.Format("2006-01-02")
+	if imp.FinishedAt != nil && !s.now().Before(ReportKeptUntil(*imp.FinishedAt)) {
+		return nil, "", api.Err(410, "report_cleared", say(ctx, mReportCleared, i18n.Args{"days": ReportKeepDays}))
+	}
 	if kind == "skipped" {
 		if len(imp.SkippedCsv) == 0 {
 			return nil, "", api.NotFound("Report")

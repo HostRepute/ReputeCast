@@ -146,7 +146,8 @@ func (q *Queries) DeleteImportRows(ctx context.Context, importID uuid.UUID) erro
 
 const finishImport = `-- name: FinishImport :exec
 UPDATE imports SET status = $1, step = $2, stats = $3, progress = $4, report_csv = $5,
-       skipped_csv = $6, finished_at = now(), error = $7, updated_at = now()
+       skipped_csv = $6, finished_at = now(), error = $7, updated_at = now(),
+       file_data = CASE WHEN $1::text = 'done' THEN NULL ELSE file_data END
 WHERE id = $8
 `
 
@@ -161,6 +162,7 @@ type FinishImportParams struct {
 	ID         uuid.UUID       `json:"id"`
 }
 
+// A done import drops its uploaded file: its rows are in (review 2026-11 DP-8).
 func (q *Queries) FinishImport(ctx context.Context, arg FinishImportParams) error {
 	_, err := q.db.Exec(ctx, finishImport,
 		arg.Status,
@@ -287,6 +289,22 @@ func (q *Queries) GetMXCache(ctx context.Context, arg GetMXCacheParams) ([]GetMX
 		return nil, err
 	}
 	return items, nil
+}
+
+const importFilesExpire = `-- name: ImportFilesExpire :execrows
+UPDATE imports SET file_data = NULL, report_csv = NULL, skipped_csv = NULL
+WHERE status IN ('done', 'cancelled', 'failed') AND finished_at < $1
+  AND (file_data IS NOT NULL OR report_csv IS NOT NULL OR skipped_csv IS NOT NULL)
+`
+
+// Finished imports' reports and files, which list every address read, go
+// after their keeping time (review 2026-11 DP-8).
+func (q *Queries) ImportFilesExpire(ctx context.Context, before *time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, importFilesExpire, before)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const importJobs = `-- name: ImportJobs :many

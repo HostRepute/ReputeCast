@@ -2,6 +2,7 @@ import type { Schemas } from '@/api/client'
 import type { Tone } from '@/components/ui/Badge'
 import { getI18n, t as tr, type useT } from '@/i18n'
 import { count, dayMonthDate, dayMonthYear, money as dollars } from '@/lib/format'
+import { mm } from './members.messages'
 import { me } from './messages'
 
 type T = ReturnType<typeof useT>
@@ -150,6 +151,17 @@ export function countryName(code: string): string {
   } catch {
     return code
   }
+}
+
+/**
+ * A paid member's name for lists and the panel: "Hidden" when the role
+ * can't see names, "Erased contact" once the contact was erased (the row
+ * stays for revenue history), else their name or address.
+ */
+export function memberName(t: T, r: Pick<MemberRow, 'hidden' | 'erased' | 'name' | 'email'>): string {
+  if (r.hidden) return t(mm.hiddenName)
+  if (r.erased) return t(mm.erasedName)
+  return r.name || r.email
 }
 
 /**

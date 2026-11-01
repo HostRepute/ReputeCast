@@ -19,7 +19,7 @@ import { clock, dayMonthDate, dayMonthYear, orList } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { ComplimentaryDialog } from './ComplimentaryDialog'
 import { EARN, copyText } from './EarnPage'
-import { cancelReason, day, money, nextLine, platformName, priceLine, reasonLabel, sourceLine, statusLabel, statusTone, tierLine } from './format'
+import { cancelReason, day, memberName, money, nextLine, platformName, priceLine, reasonLabel, sourceLine, statusLabel, statusTone, tierLine } from './format'
 import { mm } from './members.messages'
 import { me } from './messages'
 
@@ -65,7 +65,7 @@ function PanelBody({ m, onClose }: { m: Member; onClose: () => void }) {
   const { slug } = useWorkspace()
   const [dialog, setDialog] = useState<'cancel' | 'resend' | 'change' | 'remove' | 'give'>()
   const [resendEmail, setResendEmail] = useState<string>()
-  const name = m.hidden ? t(mm.hiddenName) : m.name || m.email
+  const name = memberName(t, m)
   const statusIcon: IconName = m.status === 'past_due' ? 'alert' : m.status === 'canceled' ? 'close' : m.status === 'trialing' ? 'clock' : 'check'
   const tone = { trialing: 'info', active: '', past_due: 'warn', canceled: 'mut', complimentary: 'pur', gift: 'pur' }[m.status] ?? ''
   const tierRow = m.kind === 'stripe' && m.period ? `${m.tierName} · ${m.period === 'year' ? t(me.yearly) : t(me.monthly)}` : m.tierName || m.tier
@@ -118,11 +118,11 @@ function PanelBody({ m, onClose }: { m: Member; onClose: () => void }) {
         <div className="flex min-w-0 flex-1 flex-col">
           <RDialog.Title className="m-0 text-[18px] font-bold">{name}</RDialog.Title>
           <span className="k">
-            {m.hidden ? t(mm.hiddenNote) : m.email} · {t(mm.paidMember)}
+            {m.hidden ? t(mm.hiddenNote) : m.erased ? t(mm.erasedNote) : m.email} · {t(mm.paidMember)}
           </span>
         </div>
         <div className="flex gap-2">
-          {m.hidden ? null : (
+          {m.hidden || m.erased ? null : (
             <ButtonLink to="/w/$workspace/audience/contacts/$contactId" params={{ workspace: slug, contactId: m.contactId }} size="sm">
               {t(mm.openContact)}
             </ButtonLink>

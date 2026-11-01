@@ -27105,6 +27105,7 @@ export interface components {
             email: string;
             emails: string[];
             endReason?: string;
+            erased: boolean;
             /** Format: date-time */
             failedAt?: string;
             failureReason?: string;
@@ -27256,6 +27257,7 @@ export interface components {
             discount?: components["schemas"]["EarnMemberDiscount"];
             email: string;
             endReason?: string;
+            erased: boolean;
             giftFrom?: string;
             /** Format: int64 */
             giftMonths?: number;
@@ -28703,6 +28705,9 @@ export interface components {
             previous?: components["schemas"]["ImportSummary"];
             progress: components["schemas"]["ImportProgress"];
             providerSync: components["schemas"]["ImportProviderPulled"][];
+            reportsCleared: boolean;
+            /** Format: date-time */
+            reportsUntil?: string;
             source: string;
             sourceName: string;
             /** Format: date-time */

@@ -7,12 +7,14 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/app"
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/imports"
 )
 
 const erasePath = "/workspaces/acme-newsletter/contacts/erase"
@@ -285,6 +287,37 @@ func TestErasureKeepsRevenueNumbers(t *testing.T) {
 		from := max(0, i-200)
 		t.Fatalf("revenue changed after erasing %d former members, at byte %d:\nbefore …%s\nafter  …%s", len(members), i, b[from:min(len(b), i+200)], a[from:min(len(a), i+200)])
 	}
+	// DP-9: the ended rows stay in Earn › Paid members as "Erased contact",
+	// with no name and no placeholder address.
+	var list struct {
+		Items []struct {
+			ContactID string `json:"contactId"`
+			Name      string `json:"name"`
+			Email     string `json:"email"`
+			Erased    bool   `json:"erased"`
+		} `json:"items"`
+	}
+	c.Do("GET", "/workspaces/acme-newsletter/earn/members?status=ended&pageSize=100", nil).MustStatus(t, 200).JSON(t, &list)
+	erased := map[string]bool{}
+	for _, id := range ids {
+		erased[id] = true
+	}
+	seen := 0
+	for _, r := range list.Items {
+		if !erased[r.ContactID] {
+			if r.Erased {
+				t.Fatalf("member %s reads as erased", r.ContactID)
+			}
+			continue
+		}
+		seen++
+		if !r.Erased || r.Name != "" || r.Email != "" {
+			t.Fatalf("erased member row: %+v", r)
+		}
+	}
+	if seen == 0 {
+		t.Fatal("no erased member in the ended list")
+	}
 }
 
 // stripVolatile drops the times the overview takes from the clock ("to",
@@ -372,4 +405,87 @@ func TestContactExportIsComplete(t *testing.T) {
 
 	// A missing contact is a 404 before anything streams.
 	c.Do("GET", "/workspaces/acme-newsletter/contacts/"+uuid.New().String()+"/export", nil).MustStatus(t, 404)
+}
+
+// DP-8: erasing a contact strips their address from the reports imports
+// keep and removes an uploaded file that names them; reports past their
+// keeping time can't be downloaded and maintenance clears them.
+func TestEraseStripsImportFiles(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	ctx := context.Background()
+	pool := env.App.Pool
+	var ws, contact uuid.UUID
+	var email string
+	if err := pool.QueryRow(ctx, `SELECT c.workspace_id, c.id, c.email FROM contacts c JOIN workspaces w ON w.id = c.workspace_id
+		WHERE w.slug = 'acme-newsletter' AND c.erased_at IS NULL AND NOT `+livePayer+` ORDER BY c.email LIMIT 1`).Scan(&ws, &contact, &email); err != nil {
+		t.Fatal(err)
+	}
+	upper := strings.ToUpper(email)
+	done, draft, old := uuid.Must(uuid.NewV7()), uuid.Must(uuid.NewV7()), uuid.Must(uuid.NewV7())
+	report := "row,email,source_status,outcome,reason\n1," + email + ",subscribed,merged,\n2,keep@example.com,subscribed,imported,\n"
+	skipped := "row,value,source_status,reason\n3,'" + upper + ",subscribed,duplicate\n4,other@example.com,subscribed,invalid\n"
+	if _, err := pool.Exec(ctx, `INSERT INTO imports (id, workspace_id, source, status, step, file_name, report_csv, skipped_csv, created_at, started_at, finished_at)
+		VALUES ($1, $3, 'csv', 'done', 'done', 'a.csv', $4, $5, now(), now(), now()),
+		       ($2, $3, 'csv', 'done', 'done', 'old.csv', $4, $5, now() - interval '40 days', now() - interval '40 days', now() - interval '40 days')`,
+		done, old, ws, []byte(report), []byte(skipped)); err != nil {
+		t.Fatal(err)
+	}
+	file := "Email;Name\nother@example.com;Other\n" + upper + ";Them\n"
+	if _, err := pool.Exec(ctx, `INSERT INTO imports (id, workspace_id, source, status, step, file_name, file_data, connection)
+		VALUES ($1, $2, 'csv', 'draft', 'source', 'list.csv', $3, '{"account":"list.csv"}')`, draft, ws, []byte(file)); err != nil {
+		t.Fatal(err)
+	}
+
+	c.Do("POST", erasePath, map[string]any{"ids": []string{contact.String()}, "confirm": 1}).MustStatus(t, 200)
+
+	var gotReport, gotSkipped string
+	if err := pool.QueryRow(ctx, `SELECT convert_from(report_csv, 'UTF8'), convert_from(skipped_csv, 'UTF8') FROM imports WHERE id = $1`, done).Scan(&gotReport, &gotSkipped); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(strings.ToLower(gotReport+gotSkipped), email) {
+		t.Fatalf("the reports still name the erased address:\n%s\n%s", gotReport, gotSkipped)
+	}
+	if !strings.Contains(gotReport, "keep@example.com") || !strings.Contains(gotSkipped, "other@example.com") || !strings.HasPrefix(gotReport, "row,email,") {
+		t.Fatalf("the other rows went too:\n%s\n%s", gotReport, gotSkipped)
+	}
+	var fileGone bool
+	var fileName, logged string
+	if err := pool.QueryRow(ctx, `SELECT file_data IS NULL, file_name, coalesce((SELECT message FROM import_log WHERE import_id = i.id ORDER BY occurred_at DESC LIMIT 1), '')
+		FROM imports i WHERE id = $1`, draft).Scan(&fileGone, &fileName, &logged); err != nil {
+		t.Fatal(err)
+	}
+	if !fileGone || fileName != "" || !strings.Contains(logged, "erased") {
+		t.Fatalf("draft after the erase: file gone %v, name %q, log %q", fileGone, fileName, logged)
+	}
+
+	base := "/workspaces/acme-newsletter/imports/"
+	var d struct {
+		ReportsUntil   *time.Time `json:"reportsUntil"`
+		ReportsCleared bool       `json:"reportsCleared"`
+	}
+	c.Do("GET", base+done.String(), nil).MustStatus(t, 200).JSON(t, &d)
+	if d.ReportsUntil == nil || d.ReportsCleared || time.Until(*d.ReportsUntil) < 29*24*time.Hour {
+		t.Fatalf("a new import's reports: %+v", d)
+	}
+	c.Do("GET", base+done.String()+"/files/report", nil).MustStatus(t, 200)
+	c.Do("GET", base+old.String(), nil).MustStatus(t, 200).JSON(t, &d)
+	if !d.ReportsCleared {
+		t.Fatalf("a 40-day-old import's reports: %+v", d)
+	}
+	c.Do("GET", base+old.String()+"/files/report", nil).MustStatus(t, 410)
+
+	before := time.Now().AddDate(0, 0, -imports.ReportKeepDays)
+	if n, err := env.App.Q.ImportFilesExpire(ctx, &before); err != nil || n < 1 {
+		t.Fatalf("expire: %d (%v)", n, err)
+	}
+	var cleared bool
+	if err := pool.QueryRow(ctx, `SELECT report_csv IS NULL AND skipped_csv IS NULL FROM imports WHERE id = $1`, old).Scan(&cleared); err != nil || !cleared {
+		t.Fatalf("old import's reports kept after expiry (%v)", err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT report_csv IS NOT NULL FROM imports WHERE id = $1`, done).Scan(&cleared); err != nil || !cleared {
+		t.Fatalf("a recent import's report went (%v)", err)
+	}
 }

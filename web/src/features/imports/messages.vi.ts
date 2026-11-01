@@ -338,6 +338,8 @@ export default translate(m, {
   skippedChanged: 'Hàng bị bỏ qua và bị thay đổi',
   downloadSkipped: 'Tải hàng bị bỏ qua · CSV, {count}',
   downloadReport: 'Tải báo cáo đầy đủ · CSV',
+  reportsKept: 'Các tệp liệt kê mọi địa chỉ đã đọc khi nhập, nên chỉ được giữ đến {date}.',
+  reportsCleared: 'Các tệp đã được xoá {days} ngày sau lần nhập, vì chúng liệt kê mọi địa chỉ đã đọc.',
   importReport: 'Báo cáo nhập',
   colReason: 'Lý do',
   colWhat: 'Điều đã xảy ra',

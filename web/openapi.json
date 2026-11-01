@@ -31052,6 +31052,9 @@
           "endReason": {
             "type": "string"
           },
+          "erased": {
+            "type": "boolean"
+          },
           "failedAt": {
             "format": "date-time",
             "type": "string"
@@ -31224,6 +31227,7 @@
           "name",
           "email",
           "hidden",
+          "erased",
           "test",
           "kind",
           "tier",
@@ -31594,6 +31598,9 @@
           "endReason": {
             "type": "string"
           },
+          "erased": {
+            "type": "boolean"
+          },
           "giftFrom": {
             "type": "string"
           },
@@ -31692,6 +31699,7 @@
           "name",
           "email",
           "hidden",
+          "erased",
           "test",
           "kind",
           "tier",
@@ -36582,6 +36590,13 @@
             },
             "type": "array"
           },
+          "reportsCleared": {
+            "type": "boolean"
+          },
+          "reportsUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
           "source": {
             "type": "string"
           },
@@ -36642,6 +36657,7 @@
           "progress",
           "log",
           "createdAt",
+          "reportsCleared",
           "createdBy",
           "fieldCount",
           "providerSync"

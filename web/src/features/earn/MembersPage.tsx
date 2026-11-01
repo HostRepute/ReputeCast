@@ -18,7 +18,7 @@ import { useCan, useMe, useWorkspace } from '@/lib/session'
 import { fileName, saveBlob } from '../audience/download'
 import { ComplimentaryDialog } from './ComplimentaryDialog'
 import { EARN, EarnPage, copyText } from './EarnPage'
-import { money, nextLine, platformName, priceLine, sourceLine, statusLabel, statusTone, tierLine, type MemberRow } from './format'
+import { memberName, money, nextLine, platformName, priceLine, sourceLine, statusLabel, statusTone, tierLine, type MemberRow } from './format'
 import { ImportDialog } from './ImportDialog'
 import { MemberPanel } from './MemberPanel'
 import { mm } from './members.messages'
@@ -444,8 +444,8 @@ function MembersTable({ list, search, onOpen, onClear, onSearchEnded }: { list: 
               <tr key={r.id} className={r.test ? 'ea-rowbtn ea-test' : 'ea-rowbtn'} onClick={() => onOpen(r.id)}>
                 <td className="ea-member">
                   <button type="button" className="m-0 flex flex-col items-start border-0 bg-transparent p-0 text-left" onClick={() => onOpen(r.id)}>
-                    <span className="nm">{r.hidden ? t(mm.hiddenName) : r.name || r.email}</span>
-                    {r.hidden ? null : r.name ? <span className="em">{r.email}</span> : null}
+                    <span className="nm">{memberName(t, r)}</span>
+                    {r.hidden || r.erased ? null : r.name ? <span className="em">{r.email}</span> : null}
                     {r.test ? <span className="em">{t(mm.testMode)}</span> : null}
                   </button>
                   {r.test ? <Badge tone="purple" className="mt-1">{t(mm.test)}</Badge> : null}
@@ -472,7 +472,7 @@ function MembersTable({ list, search, onOpen, onClear, onSearchEnded }: { list: 
         {list.items.map((r) => (
           <button key={r.id} type="button" className="ea-mcard" onClick={() => onOpen(r.id)}>
             <span className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold">{r.hidden ? t(mm.hiddenName) : r.name || r.email}</span>
+              <span className="font-semibold">{memberName(t, r)}</span>
               <StatusBadges r={r} />
             </span>
             <span className="text-[13px]">

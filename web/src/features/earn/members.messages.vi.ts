@@ -49,6 +49,8 @@ export default translate(mm, {
   colSource: 'Nguồn',
   hiddenName: 'Đã ẩn',
   hiddenNote: 'Vai trò của bạn không xem được tên và địa chỉ.',
+  erasedName: 'Liên hệ đã xoá',
+  erasedNote: 'Đã xoá theo yêu cầu. Số tiền và ngày được giữ lại cho báo cáo doanh thu.',
   test: 'Thử nghiệm',
   testMode: 'Chế độ thử nghiệm của Stripe',
   showing:

@@ -207,6 +207,12 @@ func TestCSVImport(t *testing.T) {
 	if s.Imported != 3 { // ana, info (no Broadcasts), dan
 		t.Fatalf("imported %d, want 3", s.Imported)
 	}
+	// Review 2026-11 DP-8: a done import drops its uploaded file; the
+	// reports stay for their keeping time.
+	var fileKept, reportKept bool
+	if err := env.App.Pool.QueryRow(ctx, `SELECT file_data IS NOT NULL, report_csv IS NOT NULL FROM imports WHERE id = $1`, id).Scan(&fileKept, &reportKept); err != nil || fileKept || !reportKept {
+		t.Errorf("after the run: file kept %v, report kept %v (%v)", fileKept, reportKept, err)
+	}
 
 	q := env.App.Q
 	cara, err := q.GetContactByEmail(ctx, store.GetContactByEmailParams{WorkspaceID: ws.ID, Email: "cara@outlook.com"})
