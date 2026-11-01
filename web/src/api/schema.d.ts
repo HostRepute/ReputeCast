@@ -44851,7 +44851,7 @@ export interface components {
         Use: {
             id: string;
             /** @enum {string} */
-            kind: "segment" | "form" | "scoring" | "automation" | "campaign" | "digest" | "view";
+            kind: "segment" | "form" | "scoring" | "automation" | "campaign" | "digest" | "view" | "transactional";
             name: string;
         };
         VariableUse: {

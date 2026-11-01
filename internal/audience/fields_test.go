@@ -40,6 +40,21 @@ func TestFieldsAndSegmentsShowWhatUsesThem(t *testing.T) {
 	if _, err := env.App.Pool.Exec(ctx, `UPDATE campaigns SET html = '<p>Your {{ contact.plan }} plan</p>' WHERE id = $1`, draft.ID); err != nil {
 		t.Fatal(err)
 	}
+	// Review 2026-11 AU-18: a text's body, a WhatsApp campaign's variables
+	// and a transactional template read the field too.
+	var text, wa struct{ ID string }
+	c.Do(http.MethodPost, base+"/campaigns", map[string]any{"name": "Plan text"}).MustStatus(t, 201).JSON(t, &text)
+	c.Do(http.MethodPost, base+"/campaigns", map[string]any{"name": "Plan WhatsApp"}).MustStatus(t, 201).JSON(t, &wa)
+	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO sms_campaigns (campaign_id, workspace_id, body) VALUES ($1, $2, 'Your {{ contact.plan }} plan renews soon')`, text.ID, ws); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO whatsapp_campaigns (campaign_id, workspace_id, variables) VALUES ($1, $2, '[{"key": "1", "source": "field", "field": "plan"}]')`, wa.ID, ws); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO transactional_templates (id, workspace_id, key, name, html) VALUES (gen_random_uuid(), $1, 'plan-receipt', 'Plan receipt', '<p>{{ contact.plan }}</p>'),
+		(gen_random_uuid(), $1, 'other-receipt', 'Other receipt', '<p>{{ contact.planet }}</p>')`, ws); err != nil {
+		t.Fatal(err)
+	}
 
 	var overview struct {
 		Usage []struct {
@@ -64,7 +79,7 @@ func TestFieldsAndSegmentsShowWhatUsesThem(t *testing.T) {
 	for _, u := range overview.Usage {
 		switch u.ID {
 		case plan.ID:
-			if u.Filled == nil || *u.Filled != 10 || !slices.Equal(kinds(u.Uses), []string{"campaign", "segment", "view"}) {
+			if u.Filled == nil || *u.Filled != 10 || !slices.Equal(kinds(u.Uses), []string{"campaign", "campaign", "campaign", "segment", "transactional", "view"}) {
 				t.Fatalf("plan: filled %v, uses %v", u.Filled, u.Uses)
 			}
 		case size.ID:
@@ -81,7 +96,7 @@ func TestFieldsAndSegmentsShowWhatUsesThem(t *testing.T) {
 
 	// Deleted: gone from the fields, waiting with its values.
 	c.Do(http.MethodGet, base+"/fields/"+plan.ID+"/impact", nil).MustStatus(t, 200).JSON(t, &impact)
-	if len(impact.Uses) != 3 {
+	if len(impact.Uses) != 6 {
 		t.Fatalf("field impact: %+v", impact.Uses)
 	}
 	c.Do(http.MethodDelete, base+"/fields/"+plan.ID, nil).MustStatus(t, 204)

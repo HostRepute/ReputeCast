@@ -503,7 +503,11 @@ function PerList({ h }: { h: Health }) {
                   <td className="font-semibold">
                     {r.kind === 'view' ? (
                       <>
-                        {r.name} <span className="k">{tr(m.savedView)}</span>
+                        {/* A saved view's own address (review 2026-11 AU-19). */}
+                        <Link to="/w/$workspace/audience" params={{ workspace: slug }} search={{ view: r.id }}>
+                          {r.name}
+                        </Link>{' '}
+                        <span className="k">{tr(m.savedView)}</span>
                       </>
                     ) : manage || verifyLabel ? (
                       // The row menu sits with the name, so the table keeps

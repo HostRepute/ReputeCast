@@ -17,6 +17,7 @@ import { Note } from '@/components/ui/Note'
 import { VerifyDialog } from '@/features/verification/VerifyDialog'
 import { ColumnChooser, columnLabels, defaultColumns, fieldKeys, parseColumns, SortHeader, type BuiltinColumn, type ColumnId, type ContactSort } from './ContactColumns'
 import { ViewChips } from './ViewChips'
+import { m as lfm } from './listsfields.messages'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
 import { AddressCheckFilter } from '@/features/verification/AddressCheck'
 import { AudienceTabs, useAudienceSummary } from './AudienceTabs'
@@ -87,6 +88,8 @@ export interface ContactsSearch {
   /** The page's keyset cursor (review 2026-11 AU-1), and the columns shown (AU-9). */
   cursor?: string
   cols?: string
+  /** A saved view's id: opens with its filters and columns (review 2026-11 AU-19). */
+  view?: string
 }
 
 type Item = Schemas['ContactListItem']
@@ -202,8 +205,24 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
         },
       },
     },
-    { placeholderData: keepPreviousData },
+    // ?view= is replaced by the view's filters before the list is read.
+    { placeholderData: keepPreviousData, enabled: !search.view },
   )
+  // A saved view's own address (review 2026-11 AU-19): open it with its
+  // filters and columns, or say it's gone.
+  const viewId = search.view
+  const savedViews = views.data
+  useEffect(() => {
+    if (!viewId || !savedViews) return
+    const v = savedViews.items.find((x) => x.id === viewId)
+    if (!v) toast({ kind: 'error', title: tr(lfm.viewMissing) })
+    void navigate({
+      to: '/w/$workspace/audience',
+      params: { workspace: slug },
+      search: v ? { ...(v.filters as ContactsSearch), cols: v.columns.length ? v.columns.join(',') : undefined, size: search.size } : { ...search, view: undefined },
+      replace: true,
+    })
+  }, [viewId, savedViews]) // eslint-disable-line react-hooks/exhaustive-deps
   // The selection belongs to one page of one filter: another page or filter
   // starts with nothing selected; "all matching" belongs to the filter.
   const key = JSON.stringify({ filter, page, size, cursor: search.cursor })

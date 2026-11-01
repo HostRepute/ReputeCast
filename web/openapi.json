@@ -92755,7 +92755,8 @@
               "automation",
               "campaign",
               "digest",
-              "view"
+              "view",
+              "transactional"
             ],
             "type": "string"
           },
