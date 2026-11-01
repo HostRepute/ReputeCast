@@ -276,6 +276,9 @@ func (s *Service) applyPaid(ctx context.Context, tx pgx.Tx, ws *store.Workspace,
 	if _, err := webhooks.Emit(ctx, tx, ws.ID, ws.Slug, "order.paid", orderHook(order)); err != nil {
 		return order, false, err
 	}
+	if s.CountsChanged != nil {
+		s.CountsChanged(ws.ID)
+	}
 	return order, true, nil
 }
 

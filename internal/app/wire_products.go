@@ -51,6 +51,7 @@ func productsService(a *App) *products.Service {
 			on, _ := websiteService(a).IsOn(ctx, ws)
 			return on
 		},
+		CountsChanged: a.Counts.Changed,
 	}
 	v, _ := productsServices.LoadOrStore(a, s)
 	return v.(*products.Service)

@@ -113,6 +113,10 @@ type Service struct {
 	// SiteOn says whether the publication website is on: buyers can sign in
 	// to its account page for a new link (nil: off).
 	SiteOn func(ctx context.Context, ws *store.Workspace) bool
+	// CountsChanged tells the kept audience counts that a workspace's buyers
+	// changed, so a "Bought a product" segment counts the new order at once
+	// (review 2026-11 OP-12; nil: nothing kept).
+	CountsChanged func(ws uuid.UUID)
 }
 
 func (s *Service) now() time.Time {

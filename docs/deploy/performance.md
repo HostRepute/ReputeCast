@@ -73,8 +73,10 @@ count that took a quarter of a second or more is kept, so a small
 workspace always counts afresh. The same request within the minute answers
 from memory, and readers asking at the same time share one count. A change made through ReputeCast (a
 contact, list, import, field or suppression: anything that writes an audit
-entry) drops the workspace's counts on that instance at once; a change
-another instance makes, or a public signup, shows within the minute. A
+entry) drops the workspace's counts on that instance at once, and so does a
+product order, which "Bought a product" segments count. A change another
+instance makes, a public signup, an open or click, or a store order synced
+from Shopify or WooCommerce shows within the minute. A
 segment preview says `cached` when its count was kept.
 
 ## Worth a look next

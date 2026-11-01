@@ -38,7 +38,10 @@ func TestBuyersAndContacts(t *testing.T) {
 		return l.Total
 	}
 
-	// segment counts the contacts of a "Bought a product" condition.
+	// segment counts the contacts of a "Bought a product" condition. Every
+	// count is kept, however quick, so an order must tell the kept counts
+	// it changed them (review 2026-11 OP-12), on any machine.
+	s.env.App.Counts.MinCost = 0
 	segment := func(op, value string) int64 {
 		t.Helper()
 		var r struct{ Count int64 }
