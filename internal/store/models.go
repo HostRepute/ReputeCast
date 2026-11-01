@@ -1296,6 +1296,18 @@ type DeliveryEvent struct {
 	Link              *int32      `json:"link"`
 }
 
+type DeliveryEventKey struct {
+	ProviderID uuid.UUID `json:"providerId"`
+	DedupeKey  string    `json:"dedupeKey"`
+	ReceivedAt time.Time `json:"receivedAt"`
+}
+
+type DeliveryEventPartition struct {
+	Partition  string    `json:"partition"`
+	DetailDays int32     `json:"detailDays"`
+	ClearedAt  time.Time `json:"clearedAt"`
+}
+
 type Digest struct {
 	ID           uuid.UUID       `json:"id"`
 	WorkspaceID  uuid.UUID       `json:"workspaceId"`

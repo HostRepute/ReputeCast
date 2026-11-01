@@ -78,6 +78,13 @@ func (s *Service) RunRetention(ctx context.Context, log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	// Whole monthly partitions past a cutoff first, in one pass each; the
+	// per-workspace batches below then find little left (OP-8).
+	if n, err := s.ClearDetailByPartition(ctx, now); err != nil {
+		return fmt.Errorf("detail by partition: %w", err)
+	} else if log != nil && n > 0 {
+		log.InfoContext(ctx, "data retention", "event_detail_cleared_by_partition", n)
+	}
 	for _, r := range rows {
 		res, err := s.RetainWorkspace(ctx, r.ID, r.UnconfirmedEraseDays, r.EventDetailDays)
 		if err != nil {
@@ -130,4 +137,75 @@ func (s *Service) RetainWorkspace(ctx context.Context, wsID uuid.UUID, unconfirm
 		}
 	}
 	return out, nil
+}
+
+// ClearDetailByPartition clears open and click detail (IP address, user
+// agent) a monthly partition of delivery_events at a time, when it is past
+// the cutoff of the workspaces keeping detail a given number of days: one
+// pass over the partition, recorded so it never runs again (review
+// 2026-11 OP-8, DP-6). A day's margin covers events stored a little after
+// they happened. Without partitions it does nothing.
+func (s *Service) ClearDetailByPartition(ctx context.Context, now time.Time) (int64, error) {
+	ok, err := db.EventsPartitioned(ctx, s.Pool)
+	if err != nil || !ok {
+		return 0, err
+	}
+	parts, err := db.EventPartitions(ctx, s.Pool)
+	if err != nil {
+		return 0, err
+	}
+	var days []int32
+	rows, err := s.Pool.Query(ctx, `SELECT DISTINCT event_detail_days FROM workspaces WHERE deleted_at IS NULL AND event_detail_days > 0 ORDER BY 1`)
+	if err != nil {
+		return 0, err
+	}
+	for rows.Next() {
+		var d int32
+		if err := rows.Scan(&d); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		days = append(days, d)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	var total int64
+	for _, p := range parts {
+		for _, d := range days {
+			if p.Till.After(now.AddDate(0, 0, -int(d)-1)) {
+				continue
+			}
+			var done bool
+			if err := s.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM delivery_event_partitions WHERE partition = $1 AND detail_days = $2)`, p.Name, d).Scan(&done); err != nil {
+				return total, err
+			}
+			if done {
+				continue
+			}
+			err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+				// The partition's name comes from the catalog and matches
+				// delivery_events_YYYY_MM.
+				tag, err := tx.Exec(ctx, `
+					UPDATE `+p.Name+` e SET ip = NULL, user_agent = ''
+					FROM workspaces w
+					WHERE w.id = e.workspace_id AND w.event_detail_days = $1
+					  AND e.type IN ('open', 'click') AND (e.ip IS NOT NULL OR e.user_agent <> '')
+					  AND (e.message_id IS NULL OR NOT EXISTS (
+					        SELECT 1 FROM messages m WHERE m.id = e.message_id AND m.stream NOT IN ('broadcast', 'automation')))`, d)
+				if err != nil {
+					return err
+				}
+				total += tag.RowsAffected()
+				_, err = tx.Exec(ctx, `INSERT INTO delivery_event_partitions (partition, detail_days, cleared_at) VALUES ($1, $2, $3)
+					ON CONFLICT DO NOTHING`, p.Name, d, now)
+				return err
+			})
+			if err != nil {
+				return total, err
+			}
+		}
+	}
+	return total, nil
 }
