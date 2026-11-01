@@ -173,6 +173,9 @@ export default translate(ms, {
   logShowing:
     'Hiển thị {shown} trên {total, number} sự kiện trong {range, select, 24h {24 giờ qua} 7d {7 ngày qua} 30d {30 ngày qua} other {90 ngày qua}} · sự kiện gốc được lưu 90 ngày',
   logEmpty: 'Không có sự kiện nào trong khoảng thời gian này.',
+  logNoMatch: 'Không có sự kiện nào khớp "{q}" trong khoảng thời gian này.',
+  logNoMatchGroup: 'Không có sự kiện loại này trong khoảng thời gian này.',
+  logClearFilters: 'Xoá tìm kiếm và bộ lọc',
   stApplied: 'Đã áp dụng',
   stIgnored: 'Đã bỏ qua',
   stFailed: 'Thất bại',

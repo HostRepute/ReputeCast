@@ -547,7 +547,7 @@ function CheckoutCard({ pay, c }: { pay: Payments; c: Conn }) {
 type Group = 'all' | 'payments' | 'failures' | 'refunds' | 'changes' | 'trials'
 type Range = '24h' | '7d' | '30d' | '90d'
 
-function EventLog({ test }: { test: boolean }) {
+export function EventLog({ test }: { test: boolean }) {
   const t = useT()
   const { slug } = useWorkspace()
   const [q, setQ] = useState('')
@@ -644,7 +644,17 @@ function EventLog({ test }: { test: boolean }) {
             {d && d.items.length === 0 ? (
               <tr>
                 <td colSpan={5} className="k">
-                  {t(ms.logEmpty)}
+                  {q.trim() || group !== 'all' ? (
+                    // A search or a kind that finds nothing says so, with the way back (review 2026-11 FE-3b).
+                    <span role="status" className="flex flex-wrap items-center gap-2.5">
+                      {q.trim() ? t(ms.logNoMatch, { q: q.trim() }) : t(ms.logNoMatchGroup)}
+                      <Button size="sm" onClick={() => (setQ(''), setGroup('all'), setPage(1))}>
+                        {t(ms.logClearFilters)}
+                      </Button>
+                    </span>
+                  ) : (
+                    t(ms.logEmpty)
+                  )}
                 </td>
               </tr>
             ) : null}
