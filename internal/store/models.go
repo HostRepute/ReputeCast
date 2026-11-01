@@ -3792,6 +3792,7 @@ type Segment struct {
 	TierCounts  json.RawMessage `json:"tierCounts"`
 	UpdatedBy   *uuid.UUID      `json:"updatedBy"`
 	WatchedAt   *time.Time      `json:"watchedAt"`
+	WatchMs     *int32          `json:"watchMs"`
 }
 
 type SegmentMember struct {

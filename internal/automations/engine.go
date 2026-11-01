@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -1404,15 +1405,27 @@ func (s *Service) watchSegments(ctx context.Context, now time.Time) error {
 	if err != nil {
 		return err
 	}
+	// The quick segments come first; a run stops starting new ones after
+	// watchBudget, so one slow segment can't hold up the rest (AT-15).
+	started := time.Now()
 	for _, sg := range segs {
-		if sg.WatchedAt != nil && now.Sub(*sg.WatchedAt) < segmentWatchEvery {
+		if sg.WatchedAt != nil && now.Sub(*sg.WatchedAt) < WatchInterval(sg.WatchMs) {
 			continue
 		}
+		if time.Since(started) > watchBudget {
+			break
+		}
+		t0 := time.Now()
 		ids, err := s.SegmentMembers(ctx, sg.WorkspaceID, sg.ID)
+		took := int32(min(time.Since(t0).Milliseconds(), math.MaxInt32))
 		if err != nil {
 			// One segment that can't be counted (a timeout, SQL that no
-			// longer runs) doesn't stop the others.
-			s.log().WarnContext(ctx, "automations: segment not evaluated", "segment", sg.ID, "err", err)
+			// longer runs) doesn't stop the others; it backs off by the time
+			// it took.
+			s.log().WarnContext(ctx, "automations: segment not evaluated", "segment", sg.ID, "ms", took, "err", err)
+			if err := s.Q.MarkSegmentWatchFailed(ctx, store.MarkSegmentWatchFailedParams{ID: sg.ID, At: &now, WatchMs: &took}); err != nil {
+				return err
+			}
 			continue
 		}
 		err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -1424,7 +1437,7 @@ func (s *Service) watchSegments(ctx context.Context, now time.Time) error {
 			} else if _, err := q.ReplaceSegmentMembers(ctx, store.ReplaceSegmentMembersParams{SegmentID: sg.ID, ContactIds: ids, At: now}); err != nil {
 				return err
 			}
-			return q.MarkSegmentWatched(ctx, store.MarkSegmentWatchedParams{ID: sg.ID, At: &now})
+			return q.MarkSegmentWatched(ctx, store.MarkSegmentWatchedParams{ID: sg.ID, At: &now, WatchMs: &took})
 		})
 		if err != nil {
 			return err
@@ -1435,6 +1448,24 @@ func (s *Service) watchSegments(ctx context.Context, now time.Time) error {
 
 // segmentWatchEvery is how often a watched segment is evaluated.
 const segmentWatchEvery = 10 * time.Minute
+
+// segmentWatchMax is the longest a slow segment waits between evaluations.
+const segmentWatchMax = 2 * time.Hour
+
+// watchBudget is how long one run starts new evaluations for.
+const watchBudget = time.Minute
+
+// WatchInterval is how often a watched segment is evaluated (review 2026-11
+// AT-15): every 10 minutes, or twenty times as long as its last evaluation
+// took when that is longer (a 90-second segment every 30 minutes), at most
+// every 2 hours.
+func WatchInterval(ms *int32) time.Duration {
+	if ms == nil {
+		return segmentWatchEvery
+	}
+	d := time.Duration(*ms) * time.Millisecond * 20
+	return min(max(d, segmentWatchEvery), segmentWatchMax).Round(time.Minute)
+}
 
 // EmitLinkClicked queues a "Clicked a link" trigger event for a person's
 // settled click in a campaign or an automation email (review 2026-11

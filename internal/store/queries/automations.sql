@@ -771,13 +771,15 @@ WHERE contact_id = @contact_id AND stream IN ('broadcast', 'automation') AND que
 SELECT marketing_cap_count, marketing_cap_days FROM workspaces WHERE id = @id;
 
 -- name: AutomationWatchedSegments :many
--- Dynamic segments a live flow starts on entering or leaving (AT-10).
-SELECT DISTINCT s.id, s.workspace_id, s.watched_at
-FROM automations a
-CROSS JOIN LATERAL jsonb_array_elements(a.triggers) t
-JOIN segments s ON s.id::text = t.value ->> 'segmentId' AND s.workspace_id = a.workspace_id
-WHERE a.status = 'live' AND a.deleted_at IS NULL AND t.value ->> 'kind' IN ('segment_entered', 'segment_left')
-  AND s.refresh <> 'static';
+-- Dynamic segments a live flow starts on entering or leaving (AT-10), the
+-- quick ones first (AT-15).
+SELECT s.id, s.workspace_id, s.watched_at, s.watch_ms
+FROM segments s
+WHERE s.refresh <> 'static' AND EXISTS (
+    SELECT 1 FROM automations a CROSS JOIN LATERAL jsonb_array_elements(a.triggers) t
+    WHERE a.workspace_id = s.workspace_id AND a.status = 'live' AND a.deleted_at IS NULL
+      AND t.value ->> 'kind' IN ('segment_entered', 'segment_left') AND t.value ->> 'segmentId' = s.id::text)
+ORDER BY coalesce(s.watch_ms, 0), s.watched_at NULLS FIRST, s.id;
 
 -- name: SeedSegmentMembers :exec
 -- A watched segment's first evaluation: its members, no events.
@@ -786,7 +788,12 @@ SELECT @segment_id, unnest(@contact_ids::uuid[]), @at::timestamptz
 ON CONFLICT DO NOTHING;
 
 -- name: MarkSegmentWatched :exec
-UPDATE segments SET watched_at = @at WHERE id = @id;
+UPDATE segments SET watched_at = @at, watch_ms = @watch_ms WHERE id = @id;
+
+-- name: MarkSegmentWatchFailed :exec
+-- An evaluation that failed (a timeout, SQL that no longer runs) is tried
+-- again after the back-off its time earns (AT-15).
+UPDATE segments SET watched_at = @at, watch_ms = @watch_ms WHERE id = @id;
 
 -- name: AutomationLinkClickListened :one
 -- Whether a live flow starts on a link click in this workspace (AT-10).
@@ -795,8 +802,9 @@ SELECT EXISTS (SELECT 1 FROM automations a
                  AND a.triggers @> '[{"kind": "link_clicked"}]'::jsonb);
 
 -- name: AutomationSegments :many
--- Segments a "Enters a segment" trigger can start on (AT-10).
-SELECT id, name FROM segments WHERE workspace_id = @workspace_id ORDER BY name, id;
+-- Segments a "Enters a segment" trigger can start on (AT-10), with how long
+-- the last evaluation took (AT-15).
+SELECT id, name, watch_ms FROM segments WHERE workspace_id = @workspace_id ORDER BY name, id;
 
 -- name: AutomationLinkCampaigns :many
 -- Campaigns a "Clicked a link" trigger can listen to: the sent ones, the

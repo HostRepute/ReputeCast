@@ -105,6 +105,7 @@ export const m = defineMessages('automations.complete', {
   segment: 'Segment',
   pickSegment: 'Pick a segment',
   segmentHint: "Checked every 10 minutes. Contacts already in it when the flow goes live don't count as entering.",
+  segmentSlow: 'This segment takes {seconds, plural, one {# second} other {# seconds}} to evaluate, so it is checked every {minutes} minutes instead of 10. Contacts enter the flow up to that long after they join it.',
   clickedIn: 'Clicked a link in',
   anyCampaignOrEmail: 'Any campaign or email',
   campaignsGroup: 'Campaigns',

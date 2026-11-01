@@ -99,6 +99,7 @@ export default translate(m, {
   segment: 'Phân khúc',
   pickSegment: 'Chọn một phân khúc',
   segmentHint: 'Được kiểm tra mỗi 10 phút. Liên hệ đã ở trong phân khúc khi quy trình bắt đầu chạy không tính là vào.',
+  segmentSlow: 'Phân khúc này cần {seconds} giây để tính, nên được kiểm tra mỗi {minutes} phút thay vì 10 phút. Liên hệ có thể vào quy trình chậm tới chừng ấy sau khi vào phân khúc.',
   clickedIn: 'Nhấp vào liên kết trong',
   anyCampaignOrEmail: 'Bất kỳ chiến dịch hoặc email nào',
   campaignsGroup: 'Chiến dịch',

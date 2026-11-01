@@ -3,7 +3,9 @@ package automations_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -628,4 +630,104 @@ func readinessParams(ws, list uuid.UUID) store.ReadinessRecipientsParams {
 	now := time.Now()
 	return store.ReadinessRecipientsParams{BouncedSince: now.AddDate(0, 0, -30), CapCount: 1, CapSince: now.AddDate(0, 0, -7), WorkspaceID: ws,
 		Lists: []uuid.UUID{list}, Contacts: []uuid.UUID{}, ExcludeLists: []uuid.UUID{}, ExcludeContacts: []uuid.UUID{}}
+}
+
+// Review 2026-11 AT-15: a watched segment that takes long is checked less
+// often and after the quick ones, one that fails backs off, and the
+// trigger's options say how often each is checked.
+func TestSlowWatchedSegmentsBackOff(t *testing.T) {
+	ms := func(v int32) *int32 { return &v }
+	for _, c := range []struct {
+		ms   *int32
+		want time.Duration
+	}{{nil, 10 * time.Minute}, {ms(2_000), 10 * time.Minute}, {ms(90_000), 30 * time.Minute}, {ms(600_000), 2 * time.Hour}} {
+		if got := automations.WatchInterval(c.ms); got != c.want {
+			t.Errorf("WatchInterval(%v) = %v, want %v", c.ms, got, c.want)
+		}
+	}
+
+	env, c := signedIn(t, "linh@acme.io")
+	ctx := context.Background()
+	clk := &clock{t: time.Now()}
+	svc := engine(env, clk)
+	var order []string
+	failing := ""
+	svc.SegmentMembers = func(_ context.Context, _ uuid.UUID, id uuid.UUID) ([]uuid.UUID, error) {
+		order = append(order, id.String())
+		if id.String() == failing {
+			return nil, errors.New("canceling statement due to statement timeout")
+		}
+		return nil, nil
+	}
+	mk := func(name string) string {
+		var s struct{ ID string }
+		c.Do("POST", "/workspaces/acme-newsletter/segments", map[string]any{"name": name, "mode": "builder", "refresh": "dynamic",
+			"definition": map[string]any{"groups": []map[string]any{{"match": "all", "conditions": []map[string]any{{"field": "tag", "op": "has", "value": name}}}}}}).
+			MustStatus(t, 201).JSON(t, &s)
+		publishFlow(t, c, "On "+name, automations.AutomationGraph{
+			Nodes: []automations.AutomationNode{
+				node("t", automations.NodeTrigger, trig(automations.AutomationTrigger{Kind: automations.TriggerSegmentEntered, SegmentID: s.ID})),
+				node("tag", automations.NodeList, tagStep(name+"-in")),
+			},
+			Edges: []automations.AutomationEdge{link("t", "tag", "")},
+		})
+		return s.ID
+	}
+	slow, quick := mk("slow-sql"), mk("quick")
+	// The slow one took 90 seconds last time; both were checked 15 minutes ago.
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE segments SET watched_at = $3, watch_ms = CASE WHEN id = $1 THEN 90000 ELSE 40 END WHERE id IN ($1, $2)`,
+		slow, quick, clk.now().Add(-15*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.Scan(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(order, quick) || slices.Contains(order, slow) {
+		t.Fatalf("after 15 minutes: evaluated %v; the quick one is due, the slow one waits 30", order)
+	}
+	// 31 minutes on, both are due: the quick one goes first.
+	order = nil
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE segments SET watched_at = $2 WHERE id IN ($1, $3)`, slow, clk.now().Add(-31*time.Minute), quick); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.Scan(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if len(order) < 2 || order[0] != quick || order[1] != slow {
+		t.Fatalf("order: %v, want the quick one first", order)
+	}
+	// A segment that fails is marked checked, and backs off by the time it took.
+	order, failing = nil, quick
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE segments SET watched_at = $2 WHERE id = $1`, quick, clk.now().Add(-11*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.Scan(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var watched time.Time
+	if err := env.App.Pool.QueryRow(ctx, `SELECT watched_at FROM segments WHERE id = $1`, quick).Scan(&watched); err != nil || watched.Before(clk.now().Add(-time.Minute)) {
+		t.Fatalf("a failed evaluation isn't marked: %v %v", watched, err)
+	}
+	var opts struct {
+		Segments []struct {
+			ID                        string
+			CheckMinutes, EvalSeconds int
+		}
+	}
+	c.Do("GET", wsPath+"/options", nil).MustStatus(t, 200).JSON(t, &opts)
+	for _, s := range opts.Segments {
+		if s.ID == slow && (s.CheckMinutes != 10 || s.EvalSeconds > 1) {
+			// Its last evaluation (just now, in the stub) was quick again.
+			t.Fatalf("slow segment's option: %+v", s)
+		}
+	}
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE segments SET watch_ms = 90000 WHERE id = $1`, slow); err != nil {
+		t.Fatal(err)
+	}
+	c.Do("GET", wsPath+"/options", nil).MustStatus(t, 200).JSON(t, &opts)
+	for _, s := range opts.Segments {
+		if s.ID == slow && (s.CheckMinutes != 30 || s.EvalSeconds != 90) {
+			t.Fatalf("slow segment's option: %+v", s)
+		}
+	}
 }

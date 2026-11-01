@@ -515,7 +515,8 @@ type Querier interface {
 	AutomationRunsExitBought(ctx context.Context, arg AutomationRunsExitBoughtParams) ([]AutomationRunsExitBoughtRow, error)
 	// Whether a contact entered a "Score crosses…" automation recently, or is in it.
 	AutomationScoreRunSince(ctx context.Context, arg AutomationScoreRunSinceParams) (bool, error)
-	// Segments a "Enters a segment" trigger can start on (AT-10).
+	// Segments a "Enters a segment" trigger can start on (AT-10), with how long
+	// the last evaluation took (AT-15).
 	AutomationSegments(ctx context.Context, workspaceID uuid.UUID) ([]AutomationSegmentsRow, error)
 	// Resume, "skip overdue emails": the overdue runs skip the next email they
 	// reach.
@@ -533,7 +534,8 @@ type Querier interface {
 	AutomationStoreRefs(ctx context.Context, workspaceID uuid.UUID) ([]AutomationStoreRefsRow, error)
 	AutomationTopTags(ctx context.Context, workspaceID uuid.UUID) ([]AutomationTopTagsRow, error)
 	AutomationUnsubscribeAll(ctx context.Context, contactID uuid.UUID) error
-	// Dynamic segments a live flow starts on entering or leaving (AT-10).
+	// Dynamic segments a live flow starts on entering or leaving (AT-10), the
+	// quick ones first (AT-15).
 	AutomationWatchedSegments(ctx context.Context) ([]AutomationWatchedSegmentsRow, error)
 	// Totals per automation since a day, for the KPI row.
 	AutomationWorkspaceStatsSince(ctx context.Context, arg AutomationWorkspaceStatsSinceParams) ([]AutomationWorkspaceStatsSinceRow, error)
@@ -2204,6 +2206,9 @@ type Querier interface {
 	MarkHostReputeTokenRejected(ctx context.Context, arg MarkHostReputeTokenRejectedParams) (int64, error)
 	MarkNotificationRead(ctx context.Context, arg MarkNotificationReadParams) (int64, error)
 	MarkReinviteRequested(ctx context.Context, id uuid.UUID) (int64, error)
+	// An evaluation that failed (a timeout, SQL that no longer runs) is tried
+	// again after the back-off its time earns (AT-15).
+	MarkSegmentWatchFailed(ctx context.Context, arg MarkSegmentWatchFailedParams) error
 	MarkSegmentWatched(ctx context.Context, arg MarkSegmentWatchedParams) error
 	McpAddSuppression(ctx context.Context, arg McpAddSuppressionParams) (uuid.UUID, error)
 	// The approvals queue: open requests first, then the last 30 days' decisions.

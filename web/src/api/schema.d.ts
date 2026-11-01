@@ -21894,7 +21894,7 @@ export interface components {
             products: components["schemas"]["AutomationOptionItem"][];
             providers: components["schemas"]["AutomationRouteProvider"][];
             scoreBands?: components["schemas"]["ScoringBands"];
-            segments: components["schemas"]["AutomationOptionItem"][];
+            segments: components["schemas"]["AutomationSegmentOption"][];
             tags: string[];
         };
         AutomationPathCount: {
@@ -22026,6 +22026,14 @@ export interface components {
         };
         AutomationSecretBody: {
             secret: string;
+        };
+        AutomationSegmentOption: {
+            /** Format: int64 */
+            checkMinutes: number;
+            /** Format: int64 */
+            evalSeconds?: number;
+            id: string;
+            name: string;
         };
         AutomationSendWindow: {
             enabled: boolean;

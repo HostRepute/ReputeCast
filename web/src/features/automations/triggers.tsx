@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Schemas } from '@/api/client'
 import { Button } from '@/components/ui/Button'
+import { Note } from '@/components/ui/Note'
 import { T, useT } from '@/i18n'
 import { m } from './complete.messages'
 import { mp } from './panels.messages'
@@ -36,6 +37,13 @@ export function NewKindFields({ t, set, options, disabled }: { t: TriggerConfig;
           ))}
         </select>
         <span className="k">{tr(m.segmentHint)}</span>
+        {(() => {
+          // A slow segment is checked less often (review 2026-11 AT-15).
+          const seg = options?.segments.find((s) => s.id === t.segmentId)
+          return seg && seg.checkMinutes > 10 ? (
+            <Note tone="warn">{tr(m.segmentSlow, { seconds: seg.evalSeconds ?? 0, minutes: seg.checkMinutes })}</Note>
+          ) : null
+        })()}
       </>
     )
   }

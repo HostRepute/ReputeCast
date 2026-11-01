@@ -1384,15 +1384,17 @@ func (q *Queries) AutomationRunsAtNode(ctx context.Context, arg AutomationRunsAt
 }
 
 const automationSegments = `-- name: AutomationSegments :many
-SELECT id, name FROM segments WHERE workspace_id = $1 ORDER BY name, id
+SELECT id, name, watch_ms FROM segments WHERE workspace_id = $1 ORDER BY name, id
 `
 
 type AutomationSegmentsRow struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
+	ID      uuid.UUID `json:"id"`
+	Name    string    `json:"name"`
+	WatchMs *int32    `json:"watchMs"`
 }
 
-// Segments a "Enters a segment" trigger can start on (AT-10).
+// Segments a "Enters a segment" trigger can start on (AT-10), with how long
+// the last evaluation took (AT-15).
 func (q *Queries) AutomationSegments(ctx context.Context, workspaceID uuid.UUID) ([]AutomationSegmentsRow, error) {
 	rows, err := q.db.Query(ctx, automationSegments, workspaceID)
 	if err != nil {
@@ -1402,7 +1404,7 @@ func (q *Queries) AutomationSegments(ctx context.Context, workspaceID uuid.UUID)
 	items := []AutomationSegmentsRow{}
 	for rows.Next() {
 		var i AutomationSegmentsRow
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		if err := rows.Scan(&i.ID, &i.Name, &i.WatchMs); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1720,21 +1722,24 @@ func (q *Queries) AutomationUnsubscribeAll(ctx context.Context, contactID uuid.U
 }
 
 const automationWatchedSegments = `-- name: AutomationWatchedSegments :many
-SELECT DISTINCT s.id, s.workspace_id, s.watched_at
-FROM automations a
-CROSS JOIN LATERAL jsonb_array_elements(a.triggers) t
-JOIN segments s ON s.id::text = t.value ->> 'segmentId' AND s.workspace_id = a.workspace_id
-WHERE a.status = 'live' AND a.deleted_at IS NULL AND t.value ->> 'kind' IN ('segment_entered', 'segment_left')
-  AND s.refresh <> 'static'
+SELECT s.id, s.workspace_id, s.watched_at, s.watch_ms
+FROM segments s
+WHERE s.refresh <> 'static' AND EXISTS (
+    SELECT 1 FROM automations a CROSS JOIN LATERAL jsonb_array_elements(a.triggers) t
+    WHERE a.workspace_id = s.workspace_id AND a.status = 'live' AND a.deleted_at IS NULL
+      AND t.value ->> 'kind' IN ('segment_entered', 'segment_left') AND t.value ->> 'segmentId' = s.id::text)
+ORDER BY coalesce(s.watch_ms, 0), s.watched_at NULLS FIRST, s.id
 `
 
 type AutomationWatchedSegmentsRow struct {
 	ID          uuid.UUID  `json:"id"`
 	WorkspaceID uuid.UUID  `json:"workspaceId"`
 	WatchedAt   *time.Time `json:"watchedAt"`
+	WatchMs     *int32     `json:"watchMs"`
 }
 
-// Dynamic segments a live flow starts on entering or leaving (AT-10).
+// Dynamic segments a live flow starts on entering or leaving (AT-10), the
+// quick ones first (AT-15).
 func (q *Queries) AutomationWatchedSegments(ctx context.Context) ([]AutomationWatchedSegmentsRow, error) {
 	rows, err := q.db.Query(ctx, automationWatchedSegments)
 	if err != nil {
@@ -1744,7 +1749,12 @@ func (q *Queries) AutomationWatchedSegments(ctx context.Context) ([]AutomationWa
 	items := []AutomationWatchedSegmentsRow{}
 	for rows.Next() {
 		var i AutomationWatchedSegmentsRow
-		if err := rows.Scan(&i.ID, &i.WorkspaceID, &i.WatchedAt); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.WatchedAt,
+			&i.WatchMs,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -3378,17 +3388,35 @@ func (q *Queries) MarkAutomationEventProcessed(ctx context.Context, arg MarkAuto
 	return err
 }
 
+const markSegmentWatchFailed = `-- name: MarkSegmentWatchFailed :exec
+UPDATE segments SET watched_at = $1, watch_ms = $2 WHERE id = $3
+`
+
+type MarkSegmentWatchFailedParams struct {
+	At      *time.Time `json:"at"`
+	WatchMs *int32     `json:"watchMs"`
+	ID      uuid.UUID  `json:"id"`
+}
+
+// An evaluation that failed (a timeout, SQL that no longer runs) is tried
+// again after the back-off its time earns (AT-15).
+func (q *Queries) MarkSegmentWatchFailed(ctx context.Context, arg MarkSegmentWatchFailedParams) error {
+	_, err := q.db.Exec(ctx, markSegmentWatchFailed, arg.At, arg.WatchMs, arg.ID)
+	return err
+}
+
 const markSegmentWatched = `-- name: MarkSegmentWatched :exec
-UPDATE segments SET watched_at = $1 WHERE id = $2
+UPDATE segments SET watched_at = $1, watch_ms = $2 WHERE id = $3
 `
 
 type MarkSegmentWatchedParams struct {
-	At *time.Time `json:"at"`
-	ID uuid.UUID  `json:"id"`
+	At      *time.Time `json:"at"`
+	WatchMs *int32     `json:"watchMs"`
+	ID      uuid.UUID  `json:"id"`
 }
 
 func (q *Queries) MarkSegmentWatched(ctx context.Context, arg MarkSegmentWatchedParams) error {
-	_, err := q.db.Exec(ctx, markSegmentWatched, arg.At, arg.ID)
+	_, err := q.db.Exec(ctx, markSegmentWatched, arg.At, arg.WatchMs, arg.ID)
 	return err
 }
 

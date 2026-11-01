@@ -343,6 +343,18 @@ type AutomationOptionItem struct {
 	Name string `json:"name"`
 }
 
+// AutomationSegmentOption is a segment an "Enters a segment" trigger can
+// start on, with how often it is checked (review 2026-11 AT-15).
+type AutomationSegmentOption struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	// CheckMinutes is how often the segment is evaluated: 10, or longer for
+	// a segment whose evaluation takes long; EvalSeconds is how long the
+	// last one took, when it was evaluated.
+	CheckMinutes int `json:"checkMinutes"`
+	EvalSeconds  int `json:"evalSeconds,omitempty"`
+}
+
 // AutomationFormOption is a signup form a trigger can listen to.
 type AutomationFormOption struct {
 	ID   string `json:"id"`
@@ -386,7 +398,7 @@ type AutomationOptions struct {
 	Milestones []AutomationMilestoneOption `json:"milestones"`
 	// Segments and Campaigns are what "Enters a segment" and "Clicked a
 	// link" can start on (review 2026-11 AT-10).
-	Segments  []AutomationOptionItem `json:"segments"`
+	Segments  []AutomationSegmentOption `json:"segments"`
 	Campaigns []AutomationOptionItem `json:"campaigns"`
 }
 
@@ -404,10 +416,14 @@ type AutomationMilestoneOption struct {
 // Options lists lists, forms, fields, emails, providers, tags and API events.
 func (s *Service) Options(ctx context.Context, ws *store.Workspace) (AutomationOptions, error) {
 	out := AutomationOptions{Lists: []AutomationOptionItem{}, Forms: []AutomationFormOption{}, Fields: []AutomationFieldOption{}, Emails: []AutomationEmailOption{}, Providers: []AutomationRouteProvider{}, Tags: []string{}, Events: []string{}, Milestones: []AutomationMilestoneOption{},
-		Products: []AutomationOptionItem{}, Segments: []AutomationOptionItem{}, Campaigns: []AutomationOptionItem{}}
+		Products: []AutomationOptionItem{}, Segments: []AutomationSegmentOption{}, Campaigns: []AutomationOptionItem{}}
 	if segs, err := s.Q.AutomationSegments(ctx, ws.ID); err == nil {
 		for _, sg := range segs {
-			out.Segments = append(out.Segments, AutomationOptionItem{ID: sg.ID.String(), Name: sg.Name})
+			o := AutomationSegmentOption{ID: sg.ID.String(), Name: sg.Name, CheckMinutes: int(WatchInterval(sg.WatchMs) / time.Minute)}
+			if sg.WatchMs != nil {
+				o.EvalSeconds = (int(*sg.WatchMs) + 999) / 1000
+			}
+			out.Segments = append(out.Segments, o)
 		}
 	} else {
 		return out, err

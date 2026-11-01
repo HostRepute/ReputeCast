@@ -12430,7 +12430,7 @@
           },
           "segments": {
             "items": {
-              "$ref": "#/components/schemas/AutomationOptionItem"
+              "$ref": "#/components/schemas/AutomationSegmentOption"
             },
             "type": "array"
           },
@@ -12862,6 +12862,31 @@
         },
         "required": [
           "secret"
+        ],
+        "type": "object"
+      },
+      "AutomationSegmentOption": {
+        "additionalProperties": false,
+        "properties": {
+          "checkMinutes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "evalSeconds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "checkMinutes"
         ],
         "type": "object"
       },
