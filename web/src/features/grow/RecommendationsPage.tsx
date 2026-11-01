@@ -16,6 +16,7 @@ import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { T, formatList, useT } from '@/i18n'
 import { clock, count, dayMonthDate, dayMonthYear, pct } from '@/lib/format'
+import { useOptimistic } from '@/lib/hooks'
 import { deniedReason, useCan, useWorkspace } from '@/lib/session'
 import { recBadge } from './OverviewPage'
 import { PreviewButton } from './Previews'
@@ -160,26 +161,27 @@ function YouRecommend({ v }: { v: View }) {
   const { slug } = useWorkspace()
   const canEdit = useCan('grow:edit')
   const refresh = useGrowRefresh()
-  const [order, setOrder] = useState<string[] | null>(null)
-  const items = order ? order.map((id) => v.items.find((x) => x.id === id)!).filter(Boolean) : v.items
+  // The new order shows at once and goes back if the server refuses it
+  // (review 2026-11 FE-7b, the shared hook).
+  const [items, change] = useOptimistic(v.items)
   const [announce, setAnnounce] = useState('')
   const move = async (id: string, by: number) => {
-    const ids = items.map((x) => x.id)
-    const i = ids.indexOf(id)
+    const i = items.findIndex((x) => x.id === id)
     const j = i + by
-    if (j < 0 || j >= ids.length) return
-    ;[ids[i], ids[j]] = [ids[j]!, ids[i]!]
-    setOrder(ids)
-    const it = items[i]!
-    setAnnounce(t(mc.moved, { name: it.name, place: j + 1 }))
-    try {
-      await http.PUT('/api/v1/workspaces/{workspace}/grow/recommendations/order', { params: { path: { workspace: slug } }, body: { ids } })
-      await refresh()
-      setOrder(null)
-    } catch (e) {
-      setOrder(null)
-      toast({ kind: 'error', title: errorMessage(e) })
-    }
+    if (i < 0 || j < 0 || j >= items.length) return
+    const next = [...items]
+    ;[next[i], next[j]] = [next[j]!, next[i]!]
+    setAnnounce(t(mc.moved, { name: items[i]!.name, place: j + 1 }))
+    await change(next, async () => {
+      try {
+        await http.PUT('/api/v1/workspaces/{workspace}/grow/recommendations/order', { params: { path: { workspace: slug } }, body: { ids: next.map((x) => x.id) } })
+        await refresh()
+        return true
+      } catch (e) {
+        toast({ kind: 'error', title: errorMessage(e) })
+        return false
+      }
+    })
   }
   const onKey = (e: KeyboardEvent, id: string) => {
     if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
