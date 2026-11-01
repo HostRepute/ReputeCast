@@ -16174,6 +16174,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/transactional/batches/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel every message of a batch that still waits for its send time
+         * @description The batch is the call's Idempotency-Key. Messages already on their way, sent or cancelled are counted as skipped. Each message is audited. Review 2026-11 TX-7.
+         */
+        post: operations["cancel-transactional-batch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/batches/reschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move every message of a batch that still waits to another send time
+         * @description Up to 72 hours from now, like send_at. Messages already on their way, sent or cancelled are counted as skipped. Each message is audited. Review 2026-11 TX-7.
+         */
+        post: operations["reschedule-transactional-batch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/transactional/categories": {
         parameters: {
             query?: never;
@@ -43493,6 +43533,24 @@ export interface components {
             /** Format: int64 */
             failed: number;
             results: components["schemas"]["TransactionalBatchItem"][];
+        };
+        TransactionalBatchScheduleInput: {
+            idempotencyKey: string;
+            /**
+             * Format: date-time
+             * @description For a move: the new send time, up to 72 hours from now
+             */
+            sendAt?: string;
+        };
+        TransactionalBatchScheduleResult: {
+            /** Format: int64 */
+            changed: number;
+            /** Format: int64 */
+            matched: number;
+            /** Format: date-time */
+            sendAt?: string;
+            /** Format: int64 */
+            skipped: number;
         };
         TransactionalBounce: {
             /** @description mailbox_unknown, mailbox_full, domain_invalid, policy_block, spam_block, reputation, temporary, other */
@@ -84711,6 +84769,78 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-transactional-batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalBatchScheduleInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalBatchScheduleResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reschedule-transactional-batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalBatchScheduleInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalBatchScheduleResult"];
+                };
             };
             /** @description Error */
             default: {

@@ -68,6 +68,7 @@
   "test.noSystemRoute": "Test emails go through the System route, and no provider sends it. Add one in Sending providers.",
   "test.refused": {"message": "The System route's provider refused the test: {error}", "note": "error: the provider's answer"},
   "schedule.notScheduled": "Only a message waiting for its send time can be cancelled or moved. This one is already on its way or done.",
+  "batch.notFound": "No message was sent with the Idempotency-Key {key}, or its log entries are past their retention.",
   "schedule.cancelled": "This message was already cancelled.",
   "schedule.future": "Pick a send time at least a minute from now.",
   "schedule.tooFar": {"message": "A send time can be at most {hours} hours from now.", "note": "hours: 72"},

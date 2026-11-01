@@ -139,3 +139,62 @@ func TestLogLivePoll(t *testing.T) {
 		t.Fatalf("the poll recounted: %d, cached %d", live.Counts.All, all)
 	}
 }
+
+// Review 2026-11 TX-7: a batch scheduled with one send_at is moved and
+// cancelled together by its Idempotency-Key; a message already gone is
+// skipped, and an unknown key is a 404.
+func TestBatchMovedAndCancelledTogether(t *testing.T) {
+	s := newSendEnv(t)
+	_, secret := s.key("Production", map[string]any{"preset": "send_only"})
+	at := s.clock.now().Add(2 * time.Hour)
+	msgs := []any{}
+	for _, to := range []string{"a@contoso.example", "b@contoso.example", "c@contoso.example"} {
+		b := resetBody(to)
+		b["send_at"] = at.Format(time.RFC3339)
+		msgs = append(msgs, b)
+	}
+	var out struct {
+		Results []struct{ ID string }
+	}
+	s.call(secret, "/messages/batch", "spring-batch", map[string]any{"messages": msgs}).MustStatus(t, 200).JSON(t, &out)
+	if len(out.Results) != 3 {
+		t.Fatalf("batch: %+v", out)
+	}
+	// One of them is cancelled on its own first.
+	s.owner.Do("POST", base+"/messages/"+out.Results[0].ID+"/cancel", nil).MustStatus(t, 200)
+
+	later := at.Add(time.Hour).UTC()
+	var moved struct {
+		Matched, Changed, Skipped int
+		SendAt                    *time.Time
+	}
+	s.call(secret, "/batches/reschedule", "", map[string]any{"idempotencyKey": "spring-batch", "sendAt": later.Format(time.RFC3339)}).MustStatus(t, 200).JSON(t, &moved)
+	if moved.Matched != 3 || moved.Changed != 2 || moved.Skipped != 1 || moved.SendAt == nil || !moved.SendAt.Equal(later) {
+		t.Fatalf("moved: %+v", moved)
+	}
+	s.call(secret, "/batches/reschedule", "", map[string]any{"idempotencyKey": "spring-batch", "sendAt": s.clock.now().Add(73 * time.Hour).Format(time.RFC3339)}).MustStatus(t, 422)
+	s.clock.add(2*time.Hour + time.Second)
+	if n := s.step(); n != 0 {
+		t.Fatalf("sent at the old time: %d", n)
+	}
+
+	var cancelled struct{ Matched, Changed, Skipped int }
+	s.owner.Do("POST", base+"/batches/cancel", map[string]any{"idempotencyKey": "spring-batch"}).MustStatus(t, 200).JSON(t, &cancelled)
+	if cancelled.Matched != 3 || cancelled.Changed != 2 || cancelled.Skipped != 1 {
+		t.Fatalf("cancelled: %+v", cancelled)
+	}
+	for _, r := range out.Results {
+		if st := s.status(r.ID); st != "cancelled" {
+			t.Fatalf("%s is %s", r.ID, st)
+		}
+	}
+	var audited int
+	s.one(`SELECT count(*) FROM audit_events WHERE action IN ('transactional.message_rescheduled', 'transactional.message_cancelled')`, &audited)
+	if audited != 5 {
+		t.Fatalf("audit entries: %d, want 2 moves and 3 cancels", audited)
+	}
+	p := s.owner.Do("POST", base+"/batches/cancel", map[string]any{"idempotencyKey": "no-such-batch"}).MustStatus(t, 404).Problem(t)
+	if p["code"] != "not_found" {
+		t.Fatalf("unknown key: %+v", p)
+	}
+}

@@ -165,6 +165,26 @@ func RegisterMessages(h huma.API, s *Service) {
 			out, err := s.Reschedule(ctx, api.WorkspaceFrom(ctx), id, in.Body)
 			return api.OK(out), err
 		})
+	api.Post(h, api.Op{ID: "cancel-transactional-batch", Path: Base + "/batches/cancel", Summary: "Cancel every message of a batch that still waits for its send time",
+		Description: "The batch is the call's Idempotency-Key. Messages already on their way, sent or cancelled are counted as skipped. Each message is audited. Review 2026-11 TX-7.",
+		Tags:        tagLog, Access: api.Workspace(authz.TransactionalSend)},
+		func(ctx context.Context, in *struct {
+			api.WorkspaceInput
+			Body TransactionalBatchScheduleInput
+		}) (*api.Body[TransactionalBatchScheduleResult], error) {
+			out, err := s.CancelBatch(ctx, api.WorkspaceFrom(ctx), in.Body)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "reschedule-transactional-batch", Path: Base + "/batches/reschedule", Summary: "Move every message of a batch that still waits to another send time",
+		Description: "Up to 72 hours from now, like send_at. Messages already on their way, sent or cancelled are counted as skipped. Each message is audited. Review 2026-11 TX-7.",
+		Tags:        tagLog, Access: api.Workspace(authz.TransactionalSend)},
+		func(ctx context.Context, in *struct {
+			api.WorkspaceInput
+			Body TransactionalBatchScheduleInput
+		}) (*api.Body[TransactionalBatchScheduleResult], error) {
+			out, err := s.RescheduleBatch(ctx, api.WorkspaceFrom(ctx), in.Body)
+			return api.OK(out), err
+		})
 	api.Get(h, api.Op{ID: "get-transactional-overview", Path: Base + "/overview", Summary: "The period's numbers, the route, alerts, incidents and the keys that can send",
 		Description: "The Templates tab's header and side cards, and the Overview's Transactional card.", Tags: tagLog, Access: view},
 		func(ctx context.Context, in *overviewInput) (*api.Body[TransactionalOverview], error) {

@@ -50,6 +50,37 @@ describe('Transactional › a scheduled message (review 2026-11 TX-1, TX-2)', ()
     await waitFor(() => expect(calls.map((c) => c.path)).toEqual(['reschedule', 'cancel']))
   })
 
+  // Review 2026-11 TX-7: a message sent in a batch can take its batch along.
+  it('moves and cancels the whole batch by its key', async () => {
+    const calls: { path: string; body?: unknown }[] = []
+    const d = detail({ idempotencyKey: 'spring-batch#2' })
+    mockApi({
+      [`POST /api/v1/workspaces/acme-newsletter/transactional/batches/reschedule`]: async (r) => {
+        calls.push({ path: 'batch-reschedule', body: await r.json() })
+        return json({ matched: 3, changed: 2, skipped: 1 })
+      },
+      [`POST /api/v1/workspaces/acme-newsletter/transactional/batches/cancel`]: async (r) => {
+        calls.push({ path: 'batch-cancel', body: await r.json() })
+        return json({ matched: 3, changed: 2, skipped: 1 })
+      },
+    })
+    await renderInWorkspace(<ScheduledCard d={d} />, { me: sender })
+    fireEvent.click(screen.getByRole('button', { name: 'Reschedule…' }))
+    const move = await screen.findByRole('dialog', { name: 'Move the send' })
+    expect(within(move).getByRole('radio', { name: 'Only this message' })).toBeChecked()
+    fireEvent.click(within(move).getByRole('radio', { name: /Every message of its batch that still waits/ }))
+    fireEvent.click(within(move).getByRole('button', { name: /^Move to/ }))
+    await waitFor(() => expect(calls).toEqual([{ path: 'batch-reschedule', body: { idempotencyKey: 'spring-batch', sendAt: '2030-01-08T14:00:00.000Z' } }]))
+    expect(await screen.findByText(/Moved 2 messages to .*; 1 already on their way or done/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel send…' }))
+    const cancel = await screen.findByRole('dialog', { name: 'Cancel this message?' })
+    fireEvent.click(within(cancel).getByRole('radio', { name: /Every message of its batch/ }))
+    fireEvent.click(within(cancel).getByRole('button', { name: 'Cancel send' }))
+    await waitFor(() => expect(calls.map((c) => c.path)).toEqual(['batch-reschedule', 'batch-cancel']))
+    expect(calls[1]!.body).toEqual({ idempotencyKey: 'spring-batch' })
+  })
+
   it('shows nothing to change without transactional:send', async () => {
     await renderInWorkspace(<ScheduledCard d={detail({})} />, { me: workspaceMe({ permissions: ['transactional:view'] }) })
     expect(screen.getByText(/Goes out/)).toBeInTheDocument()

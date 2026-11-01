@@ -68,6 +68,7 @@
   "test.noSystemRoute": "Email thử đi qua tuyến System, và chưa có nhà cung cấp nào gửi tuyến này. Hãy thêm một nhà cung cấp trong mục Nhà cung cấp gửi.",
   "test.refused": "Nhà cung cấp của tuyến System đã từ chối email thử: {error}",
   "schedule.notScheduled": "Chỉ có thể hủy hoặc dời tin nhắn đang chờ đến giờ gửi. Tin nhắn này đã đang được gửi hoặc đã xong.",
+  "batch.notFound": "Không có tin nhắn nào được gửi với Idempotency-Key {key}, hoặc mục nhật ký của chúng đã quá thời hạn lưu.",
   "schedule.cancelled": "Tin nhắn này đã bị hủy trước đó.",
   "schedule.future": "Hãy chọn thời điểm gửi cách hiện tại ít nhất một phút.",
   "schedule.tooFar": "Thời điểm gửi tối đa là {hours} giờ kể từ bây giờ.",

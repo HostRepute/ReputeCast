@@ -88062,6 +88062,52 @@
         ],
         "type": "object"
       },
+      "TransactionalBatchScheduleInput": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotencyKey": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sendAt": {
+            "description": "For a move: the new send time, up to 72 hours from now",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idempotencyKey"
+        ],
+        "type": "object"
+      },
+      "TransactionalBatchScheduleResult": {
+        "additionalProperties": false,
+        "properties": {
+          "changed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "matched": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sendAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "skipped": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "matched",
+          "changed",
+          "skipped"
+        ],
+        "type": "object"
+      },
       "TransactionalBounce": {
         "additionalProperties": false,
         "properties": {
@@ -175296,6 +175342,142 @@
         ],
         "x-access": "workspace",
         "x-permission": "transactional:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/batches/cancel": {
+      "post": {
+        "description": "The batch is the call's Idempotency-Key. Messages already on their way, sent or cancelled are counted as skipped. Each message is audited. Review 2026-11 TX-7.",
+        "operationId": "cancel-transactional-batch",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalBatchScheduleInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalBatchScheduleResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel every message of a batch that still waits for its send time",
+        "tags": [
+          "Transactional messages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:send"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/batches/reschedule": {
+      "post": {
+        "description": "Up to 72 hours from now, like send_at. Messages already on their way, sent or cancelled are counted as skipped. Each message is audited. Review 2026-11 TX-7.",
+        "operationId": "reschedule-transactional-batch",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalBatchScheduleInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalBatchScheduleResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Move every message of a batch that still waits to another send time",
+        "tags": [
+          "Transactional messages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:send"
       }
     },
     "/api/v1/workspaces/{workspace}/transactional/categories": {

@@ -91,27 +91,67 @@ export function ScheduledCard({ d }: { d: Detail }) {
   )
 }
 
+/** The batch a message was sent in: its Idempotency-Key without "#n" (review 2026-11 TX-7). */
+export function batchKeyOf(d: Pick<Detail, 'idempotencyKey'>): string | undefined {
+  const m = d.idempotencyKey?.match(/^(.+)#\d+$/)
+  return m?.[1]
+}
+
+/** Only this message, or every message of its batch that still waits. */
+function BatchChoice({ batch, all, onChange }: { batch: string; all: boolean; onChange: (all: boolean) => void }) {
+  const tr = useT()
+  const name = useId()
+  return (
+    <fieldset className="m-0 flex flex-col gap-1.5 border-0 p-0">
+      <legend className="lbl mb-1.5 p-0">{tr(msc.batchLegend)}</legend>
+      <label className="flex items-center gap-2">
+        <input type="radio" name={name} checked={!all} onChange={() => onChange(false)} />
+        {tr(msc.batchOne)}
+      </label>
+      <label className="flex items-center gap-2">
+        <input type="radio" name={name} checked={all} onChange={() => onChange(true)} />
+        <span>
+          {tr(msc.batchAll)} <span className="mono k">{batch}</span>
+        </span>
+      </label>
+    </fieldset>
+  )
+}
+
+type BatchResult = { matched: number; changed: number; skipped: number }
+
 function CancelDialog({ d, onClose }: { d: Detail; onClose: () => void }) {
   const tr = useT()
   const { slug } = useWorkspace()
   const refresh = useRefresh()
+  const batch = batchKeyOf(d)
+  const [all, setAll] = useState(false)
   return (
     <ConfirmDialog
       open
       onOpenChange={(o) => !o && onClose()}
       badge={tr(msc.cancelBadge)}
       title={tr(msc.cancelTitle)}
-      description={tr(msc.cancelBody, { email: d.email })}
+      description={all ? tr(msc.cancelBatchBody) : tr(msc.cancelBody, { email: d.email })}
       confirmLabel={tr(msc.cancelBadge)}
       cancelLabel={tr(msc.keepIt)}
       busyLabel={tr(msc.cancelling)}
       onConfirm={async () => {
-        await http.POST(`${API}/messages/{messageId}/cancel`, { params: { path: { workspace: slug, messageId: d.id } } })
-        await refresh()
-        toast({ kind: 'success', title: t(msc.cancelled) })
+        if (all && batch) {
+          const { data } = await http.POST(`${API}/batches/cancel`, { params: { path: { workspace: slug } }, body: { idempotencyKey: batch } })
+          const r = data as BatchResult
+          await refresh()
+          toast({ kind: 'success', title: t(msc.batchCancelled, { count: r.changed, skipped: r.skipped }) })
+        } else {
+          await http.POST(`${API}/messages/{messageId}/cancel`, { params: { path: { workspace: slug, messageId: d.id } } })
+          await refresh()
+          toast({ kind: 'success', title: t(msc.cancelled) })
+        }
         onClose()
       }}
-    />
+    >
+      {batch ? <BatchChoice batch={batch} all={all} onChange={setAll} /> : null}
+    </ConfirmDialog>
   )
 }
 
@@ -126,6 +166,8 @@ function MoveDialog({ d, onClose }: { d: Detail; onClose: () => void }) {
   const [time, setTime] = useState(start.time)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string>()
+  const batch = batchKeyOf(d)
+  const [all, setAll] = useState(false)
   const at = day && /^\d{2}:\d{2}$/.test(time) ? zonedInstant(day, time, zone) : undefined
   const when = at ? `${dayMonthYear(at)}, ${clock(at)}` : ''
   const save = async () => {
@@ -133,9 +175,16 @@ function MoveDialog({ d, onClose }: { d: Detail; onClose: () => void }) {
     setBusy(true)
     setErr(undefined)
     try {
-      await http.POST(`${API}/messages/{messageId}/reschedule`, { params: { path: { workspace: slug, messageId: d.id } }, body: { sendAt: at.toISOString() } })
-      await refresh()
-      toast({ kind: 'success', title: t(msc.moved, { when }) })
+      if (all && batch) {
+        const { data } = await http.POST(`${API}/batches/reschedule`, { params: { path: { workspace: slug } }, body: { idempotencyKey: batch, sendAt: at.toISOString() } })
+        const r = data as BatchResult
+        await refresh()
+        toast({ kind: 'success', title: t(msc.batchMoved, { count: r.changed, skipped: r.skipped, when }) })
+      } else {
+        await http.POST(`${API}/messages/{messageId}/reschedule`, { params: { path: { workspace: slug, messageId: d.id } }, body: { sendAt: at.toISOString() } })
+        await refresh()
+        toast({ kind: 'success', title: t(msc.moved, { when }) })
+      }
       onClose()
     } catch (e) {
       setErr(errorMessage(e))
@@ -181,6 +230,7 @@ function MoveDialog({ d, onClose }: { d: Detail; onClose: () => void }) {
             {tr(msc.moveHint, { zone })}
           </span>
         </fieldset>
+        {batch ? <BatchChoice batch={batch} all={all} onChange={setAll} /> : null}
         {err ? <Note tone="bad">{err}</Note> : null}
       </form>
     </Dialog>

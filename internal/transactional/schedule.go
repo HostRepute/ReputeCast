@@ -3,6 +3,7 @@ package transactional
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -135,4 +136,107 @@ func (s *Service) Reschedule(ctx context.Context, ws *store.Workspace, id uuid.U
 		return TransactionalSchedule{}, err
 	}
 	return TransactionalSchedule{ID: id.String(), Status: "scheduled", SendAt: &at}, nil
+}
+
+// A batch (review 2026-11 TX-7): a call that sent several messages with
+// one Idempotency-Key stores each with the key and its place ("key#0",
+// "key#1"…), at most MaxBatch of them. Cancelling or moving the batch acts
+// on each of its messages that still waits; the others are counted as
+// skipped. Each message's change is audited as for one message.
+
+// TransactionalBatchScheduleInput names a batch by the Idempotency-Key it was sent
+// with; SendAt, for a move, is the new send time.
+type TransactionalBatchScheduleInput struct {
+	IdempotencyKey string     `json:"idempotencyKey" minLength:"1" maxLength:"255"`
+	SendAt         *time.Time `json:"sendAt,omitempty" doc:"For a move: the new send time, up to 72 hours from now"`
+}
+
+// TransactionalBatchScheduleResult says what a batch cancel or move did.
+type TransactionalBatchScheduleResult struct {
+	// Matched counts the messages sent with the key, Changed those
+	// cancelled or moved, Skipped those already on their way, sent or
+	// cancelled.
+	Matched int        `json:"matched"`
+	Changed int        `json:"changed"`
+	Skipped int        `json:"skipped"`
+	SendAt  *time.Time `json:"sendAt,omitempty"`
+}
+
+// batchKeys are the idempotency keys a call with key stores: the key
+// itself (one message) and key#0 to key#MaxBatch-1 (a batch).
+func batchKeys(key string) []string {
+	out := make([]string, 0, MaxBatch+1)
+	out = append(out, key)
+	for i := range MaxBatch {
+		out = append(out, fmt.Sprintf("%s#%d", key, i))
+	}
+	return out
+}
+
+// batchMessages are a batch's messages, oldest first.
+func (s *Service) batchMessages(ctx context.Context, ws *store.Workspace, key string) ([]uuid.UUID, error) {
+	rows, err := s.Pool.Query(ctx, `SELECT message_id FROM transactional_messages
+		WHERE workspace_id = $1 AND idempotency_key = ANY ($2) ORDER BY accepted_at, message_id`, ws.ID, batchKeys(key))
+	if err != nil {
+		return nil, err
+	}
+	ids, err := pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
+	if err != nil {
+		return nil, err
+	}
+	if len(ids) == 0 {
+		return nil, problem(http.StatusNotFound, "not_found", say(ctx, "batch.notFound", i18n.Args{"key": key}))
+	}
+	return ids, nil
+}
+
+// notScheduled reports a message that can't change any more (409).
+func notScheduled(err error) bool {
+	var p *Problem
+	return errors.As(err, &p) && p.Status == http.StatusConflict
+}
+
+// CancelBatch cancels every message of a batch that still waits.
+func (s *Service) CancelBatch(ctx context.Context, ws *store.Workspace, in TransactionalBatchScheduleInput) (TransactionalBatchScheduleResult, error) {
+	ids, err := s.batchMessages(ctx, ws, in.IdempotencyKey)
+	if err != nil {
+		return TransactionalBatchScheduleResult{}, err
+	}
+	out := TransactionalBatchScheduleResult{Matched: len(ids)}
+	for _, id := range ids {
+		if _, err := s.CancelScheduled(ctx, ws, id); notScheduled(err) {
+			out.Skipped++
+		} else if err != nil {
+			return out, err
+		} else {
+			out.Changed++
+		}
+	}
+	return out, nil
+}
+
+// RescheduleBatch moves every message of a batch that still waits.
+func (s *Service) RescheduleBatch(ctx context.Context, ws *store.Workspace, in TransactionalBatchScheduleInput) (TransactionalBatchScheduleResult, error) {
+	if in.SendAt == nil {
+		return TransactionalBatchScheduleResult{}, api.Invalid("body.sendAt", say(ctx, "schedule.future", nil))
+	}
+	ids, err := s.batchMessages(ctx, ws, in.IdempotencyKey)
+	if err != nil {
+		return TransactionalBatchScheduleResult{}, err
+	}
+	out := TransactionalBatchScheduleResult{Matched: len(ids)}
+	for _, id := range ids {
+		r, err := s.Reschedule(ctx, ws, id, TransactionalRescheduleInput{SendAt: *in.SendAt})
+		switch {
+		case notScheduled(err):
+			out.Skipped++
+		case err != nil:
+			// An invalid time fails the first message: nothing moved.
+			return out, err
+		default:
+			out.Changed++
+			out.SendAt = r.SendAt
+		}
+	}
+	return out, nil
 }
