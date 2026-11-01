@@ -1,11 +1,13 @@
 package transactional
 
 import (
+	"crypto/sha256"
 	"errors"
 	"html"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/i18n"
@@ -44,6 +46,14 @@ type recipient struct {
 // the MJML says (links, images, text, conditional markers; composer review
 // CO-3); otherwise the server's own compile is.
 func (c content) compiledHTML() (string, error) {
+	if strings.TrimSpace(c.MJML) == "" {
+		return c.compileHTML()
+	}
+	return compiled.get(c)
+}
+
+// compileHTML is compiledHTML without the cache.
+func (c content) compileHTML() (string, error) {
 	if strings.TrimSpace(c.HTML) != "" {
 		if strings.TrimSpace(c.MJML) == "" {
 			return c.HTML, nil
@@ -62,6 +72,52 @@ func (c content) compiledHTML() (string, error) {
 		return "", &mjmlError{detail: res.Errors[0].Message}
 	}
 	return res.HTML, nil
+}
+
+// compiled keeps compiledHTML's answers. A published version's MJML is
+// the same for every message it sends, and compiling and checking it was
+// most of a send's CPU (review 2026-11 OP-13): each version is compiled
+// once per process. The answer depends only on what is hashed, so a kept
+// one is never stale; past compileCacheMax versions an arbitrary one goes.
+var compiled = &compileCache{m: map[[sha256.Size]byte]compileResult{}}
+
+const compileCacheMax = 512
+
+type compileCache struct {
+	mu sync.Mutex
+	m  map[[sha256.Size]byte]compileResult
+}
+
+type compileResult struct {
+	html string
+	err  error
+}
+
+func (cc *compileCache) get(c content) (string, error) {
+	h := sha256.New()
+	for _, part := range []string{c.MJML, c.HTML, c.Subject, c.Preheader} {
+		h.Write([]byte(part))
+		h.Write([]byte{0})
+	}
+	var key [sha256.Size]byte
+	h.Sum(key[:0])
+	cc.mu.Lock()
+	r, ok := cc.m[key]
+	cc.mu.Unlock()
+	if ok {
+		return r.html, r.err
+	}
+	out, err := c.compileHTML()
+	cc.mu.Lock()
+	if len(cc.m) >= compileCacheMax {
+		for k := range cc.m {
+			delete(cc.m, k)
+			break
+		}
+	}
+	cc.m[key] = compileResult{out, err}
+	cc.mu.Unlock()
+	return out, err
 }
 
 // bindings are the variables a render sees: what the call sent, the
