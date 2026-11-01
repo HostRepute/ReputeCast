@@ -274,6 +274,23 @@ func TestSponsorReportCountsOnlyBlockRecipients(t *testing.T) {
 	if r.LinkHost != "fabrikam-x17.example/shop" || r.LinkCampaign != "9" {
 		t.Errorf("link line: %s %s", r.LinkHost, r.LinkCampaign)
 	}
+	// Review 2026-11 EA-2b: the report and every booking download as CSV,
+	// with no people in them, and the downloads are logged.
+	rep := c.Do("GET", ws+"/sponsor-bookings/"+bid.String()+"/report/export", nil)
+	rep.MustStatus(t, 200)
+	if !strings.HasPrefix(rep.Header.Get("Content-Type"), "text/csv") || !strings.Contains(string(rep.Body), "delivered,3\n") ||
+		!strings.Contains(string(rep.Body), "unique_clickers,2\n") || strings.Contains(string(rep.Body), "@x17.example") {
+		t.Errorf("report CSV: %s", rep.Body)
+	}
+	all := c.Do("GET", ws+"/sponsor-bookings/export", nil)
+	all.MustStatus(t, 200)
+	if !strings.HasPrefix(string(all.Body), "slot,issue,issue_on,sponsor,status,price") || !strings.Contains(string(all.Body), ",9,") || !strings.Contains(string(all.Body), "500.00,usd") {
+		t.Errorf("bookings CSV: %s", all.Body)
+	}
+	var logged int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE workspace_id = $1 AND action IN ('sponsor.report_exported', 'sponsor.bookings_exported')`, wsID).Scan(&logged); err != nil || logged != 2 {
+		t.Errorf("export audit entries: %d (%v)", logged, err)
+	}
 	// The campaign's report shows the booking in its Sponsor section, and
 	// the Campaigns list's chip names the sponsor.
 	var cs sponsors.CampaignSponsor

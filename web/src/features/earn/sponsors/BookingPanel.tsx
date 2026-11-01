@@ -13,6 +13,8 @@ import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { andList, clock, count, dayMonthDate, dayMonthYear, orList, pct, shortDate } from '@/lib/format'
 import { roleName } from '@/lib/roles'
+import { downloadCsv } from '@/lib/download'
+import { m as dm } from '@/lib/download.messages'
 import { useMe, useWorkspace } from '@/lib/session'
 import { copyText } from '../EarnPage'
 import { day, money } from '../format'
@@ -833,6 +835,7 @@ function eventLine(t: ReturnType<typeof useT>, e: Schemas['SponsorBookingEvent']
 /** After the send: the sponsor report's numbers and the creative as sent. */
 function ReportSection({ b }: { b: Detail }) {
   const t = useT()
+  const { slug } = useWorkspace()
   const r = b.report!
   const link = b.shares[0]?.url
   const finalAt = r.finalAt
@@ -841,12 +844,23 @@ function ReportSection({ b }: { b: Detail }) {
     <Section
       title={t(mb.secReport)}
       aside={
-        link ? (
-          <a href={link} target="_blank" rel="noopener noreferrer" className="sp-lnk">
-            {t(mb.openReport)}
-            <Icon name="external" size={13} />
-          </a>
-        ) : null
+        <span className="flex flex-wrap items-center gap-3">
+          {/* The report as CSV (review 2026-11 EA-2b). */}
+          <Button
+            size="sm"
+            onClick={() =>
+              void downloadCsv('/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/report/export', { path: { workspace: slug, id: b.id } }, `sponsor-report-${r.issue}.csv`)
+            }
+          >
+            {t(dm.exportCsv)}
+          </Button>
+          {link ? (
+            <a href={link} target="_blank" rel="noopener noreferrer" className="sp-lnk">
+              {t(mb.openReport)}
+              <Icon name="external" size={13} />
+            </a>
+          ) : null}
+        </span>
       }
     >
       <span className="k" style={{ color: 'var(--ink-nav)' }}>
