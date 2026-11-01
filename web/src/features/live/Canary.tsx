@@ -165,7 +165,7 @@ function SeedDetails({ c }: { c: Canary }) {
           {total > 0 ? (
             <>
               <i style={{ flex: `${p.inbox} 1 0%`, background: 'var(--ok-strong, var(--ok-bar))' }} />
-              <i style={{ flex: `${p.promotions} 1 0%`, background: '#93c5fd' }} />
+              <i style={{ flex: `${p.promotions} 1 0%`, background: 'var(--color-info-soft)' }} />
               <i style={{ flex: `${p.spam} 1 0%`, background: 'var(--bad-strong)' }} />
             </>
           ) : null}
@@ -176,7 +176,7 @@ function SeedDetails({ c }: { c: Canary }) {
             {t(mc.seedLegendInbox, { count: p.inbox })}
           </span>
           <span className="flex items-center gap-1.5">
-            <Dot color="#93c5fd" />
+            <Dot color="var(--color-info-soft)" />
             {t(mc.seedLegendPromotions, { count: p.promotions })}
           </span>
           <span className="flex items-center gap-1.5">
@@ -317,7 +317,7 @@ function CanaryIcon({ phase }: { phase: Canary['phase'] }) {
   if (phase === 'held') {
     return (
       <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
-        <circle cx="20" cy="20" r="19" fill="#FECACA" />
+        <circle cx="20" cy="20" r="19" fill="var(--color-bad-soft)" />
         <path d="M20 11v11M20 27v1" stroke="var(--bad-fg)" strokeWidth="3" strokeLinecap="round" />
       </svg>
     )

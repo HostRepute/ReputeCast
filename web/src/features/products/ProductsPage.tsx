@@ -644,7 +644,7 @@ function BuyersCard({ data }: { data: Overview }) {
   const t = useT()
   const b = data.buyers
   const total = b.contacts + b.joined + b.none
-  const colors = { contacts: '#2a78d6', joined: '#1baf7a', none: '#8b94a3' }
+  const colors = { contacts: 'var(--chart-gmail)', joined: 'var(--chart-yahoo)', none: 'var(--line-input)' }
   return (
     <section className="card" aria-labelledby="pr-buyers-h">
       <CardSection id="pr-buyers-h" title={t(pm.buyersTitle)} caption={t(pm.buyersCaption)} />
@@ -736,15 +736,15 @@ function EmptyCover({ kind }: { kind: 'guide' | 'kit' | 'planner' }) {
     const sq = (left: string, top: string, background: string) => <span style={abs({ left, top, width: '34%', height: '22%', borderRadius: 2, background })} />
     return (
       <span style={{ ...box, background: 'var(--purple-bg)' }} aria-hidden="true">
-        {sq('12%', '24%', '#4338CA')}
-        {sq('54%', '24%', '#fff')}
-        {sq('12%', '52%', '#fff')}
+        {sq('12%', '24%', 'var(--publisher-accent)')}
+        {sq('54%', '24%', 'var(--surface)')}
+        {sq('12%', '52%', 'var(--surface)')}
         {sq('54%', '52%', '#3730A3')}
       </span>
     )
   }
   return (
-    <span style={{ ...box, background: '#fff', border: '1px solid #DDD6FE', boxSizing: 'border-box' }} aria-hidden="true">
+    <span style={{ ...box, background: 'var(--surface)', border: '1px solid #DDD6FE', boxSizing: 'border-box' }} aria-hidden="true">
       <span style={abs({ left: '14%', right: '14%', top: '12%', height: '12%', borderRadius: 2, background: 'var(--publisher-accent)' })} />
       {['40%', '55%', '70%', '85%'].map((top) => (
         <span key={top} style={abs({ left: '14%', right: '14%', top, height: 1, background: '#DDD6FE' })} />

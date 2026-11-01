@@ -30,7 +30,7 @@ added writes an audit entry; where the row's test checks the entry, it says so (
 | Approvals, polls (AP) | 3 | 2 | 0 | 1 (AP-3) | 0 | 0 |
 | Integrations (IN) | 4 | 4 | 0 | 0 | 0 | 0 |
 | Operations (OP) | 14 | 10 | 1 (OP-x) | 1 (OP-12) | 0 | 2 (OP-11 by design, OP-13) |
-| Frontend (FE) | 8 + 5 | 5 | 0 | 6 (FE-3 with FE-3b, FE-7 with FE-7b, FE-9, FE-10) | 2 (FE-5, FE-5b) | 0 |
+| Frontend (FE) | 8 + 5 | 5 | 0 | 8 (FE-3 with FE-3b, FE-5 with FE-5b, FE-7 with FE-7b, FE-9, FE-10) | 0 | 0 |
 | Earn (EA) | 6 + 1 | 3 | 2 (EA-2b, EA-6) | 2 (EA-4, EA-5) | 0 | 0 |
 | Other channels (CH) | 2 | 1 | 0 | 1 (CH-2) | 0 | 0 |
 | Integration and audit (X) | 5 | 5 | — | — | — | — |
@@ -195,12 +195,12 @@ first name, so it can't name a custom field and isn't read.
 | FE-2 | Updated-version banner, chunk recovery | Done (M48) | `web/src/lib/systemStatus.ts` | `systemStatus.test.ts` |
 | FE-3 | Shared parts | Done (M48; the rest in M51 as FE-3b) | `SwitchInput`, `lib/hooks`, `web/scripts/patterns-check.ts` | `pnpm lint` |
 | FE-4 | Error boundaries per card and chart | Done (M48) | `ErrorBoundary.tsx` | `ErrorBoundary.test.tsx` |
-| FE-5 | Colours from tokens | In part | `web/scripts/hex-baseline.json` (no increase allowed) | `pnpm lint`. Rest: FE-5b |
+| FE-5 | Colours from tokens | Done (M48; the rest in M51 as FE-5b) | `web/scripts/hex-baseline.json` (no increase allowed) | `pnpm lint` |
 | FE-6 | Stack question recorded | Done (M48) | `docs/TECH_STACK.md` note 12 | — (owner's answer pending) |
 | FE-7 | Optimistic updates | Done (M48; the rest in M51 as FE-7b) | notifications | `NotificationsPopover.test.tsx` |
 | FE-8 | CI smoke, axe and bundle budget | Done (M48) | `web/e2e/smoke.spec.ts`, `web/scripts/bundle-budget.ts` | CI `smoke` job |
 | FE-3b | Stepper, Pager, NoResults, one bulk pattern | Done (M51) | `components/ui/Stepper.tsx`: `Stepper` (six wizards, the import wizard included) and `StepTrail` (four dialogs); `components/ui/Pager.tsx` (eight lists); `lib/selection.ts` with `components/ui/SelectAll.tsx` (Campaigns, Grow › Review, Team); `NoResults` on fifteen page lists, `EmptyRow` in tables; `web/scripts/patterns-check.ts` | `Stepper.test.tsx`, `Pager.test.tsx`, `selection.test.tsx`, `eventLog.test.tsx`, `InboxPage.test.tsx`, `pnpm lint` |
-| FE-5b | 1,166 hex colours to tokens | In part (M51) | 87 files for classes and styles, 60 for SVG and chart attributes, 27 for status palettes; `web/scripts/hex-baseline.json` | `pnpm lint` (1,166 → 546). Left: colours with no token yet, files that treat a colour as text, the push prompt's default. |
+| FE-5b | 1,166 hex colours to tokens | Done (M51) | Classes and styles (87 files), SVG and chart attributes (60), status palettes (45), ten status steps named in `web/src/styles/app.css`; `web/scripts/hex-baseline.json` | `pnpm lint` (1,166 → 323: by design, kept as text, logos and identity palettes, not colours) |
 | FE-7b | Optimistic switches and reordering | Done (M51) | `useOptimistic` in `web/src/lib/hooks.ts`: sending rules' switches, recommendations' order | `optimistic.test.tsx` |
 | FE-9 | Split the route tree | Done (M51) | `integrations/platforms.ts`, `pages/templateKeys.ts`, the lazy agency menu, `web/scripts/bundle-budget.ts` (400 KB) | `pnpm budget`: first load 390 KB gzipped (439 KB before) |
 | FE-10 | Settings rows in the palette | Done (M51) | `web/src/features/settings/settingsIndex.ts`, `CommandPalette` | `CommandPalette.test.tsx` |

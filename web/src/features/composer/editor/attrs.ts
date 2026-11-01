@@ -35,7 +35,7 @@ export const MJML_DEFAULTS: Record<string, Attrs> = {
   },
   'mj-button': {
     'background-color': '#414141',
-    color: '#ffffff',
+    color: 'var(--surface)',
     'font-family': 'Ubuntu, Helvetica, Arial, sans-serif',
     'font-size': '13px',
     'font-weight': 'normal',

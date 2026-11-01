@@ -454,7 +454,7 @@ function WarnIcon() {
 function StyleIcon({ style }: { style: PushPromptConfig['style'] }) {
   return (
     <svg width="44" height="30" viewBox="0 0 44 30" aria-hidden="true">
-      <rect x=".5" y=".5" width="43" height="29" rx="4" fill="#fff" stroke="var(--line-hover)" />
+      <rect x=".5" y=".5" width="43" height="29" rx="4" fill="var(--surface)" stroke="var(--line-hover)" />
       {style === 'bar' ? (
         <>
           <rect x="5" y="20" width="34" height="6" rx="2" fill="var(--publisher-accent)" />

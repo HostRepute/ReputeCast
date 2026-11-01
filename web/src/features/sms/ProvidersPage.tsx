@@ -263,7 +263,7 @@ function inRouteOrder(card: Card): string[] {
 /** A metric over its pause limit: green, amber near it, red past it. */
 function Meter({ label, value, share }: { label: string; value: string; share: number }) {
   const w = Math.max(0, Math.min(100, share))
-  const color = share >= 100 ? '#B91C1C' : share >= 60 ? '#B45309' : '#15803D'
+  const color = share >= 100 ? 'var(--bad-strong)' : share >= 60 ? 'var(--warn-bar)' : 'var(--ok-bar)'
   return (
     <div className="sms-mt">
       <div className="l">
@@ -411,7 +411,7 @@ function HealthCard({ card, canManage, onCredentials }: { card: Card; canManage:
   const countries = card.held.length ? regionLabel(card.held) : card.countries.length ? regionLabel(card.countries) : 'none'
   const silent = card.status === 'degraded'
   return (
-    <section className="card min-w-0" style={{ borderColor: silent ? '#FCD34D' : 'var(--bad-line)' }}>
+    <section className="card min-w-0" style={{ borderColor: silent ? 'var(--color-warn-line-strong)' : 'var(--bad-line)' }}>
       <div className="sec">
         <div className="flex flex-wrap items-center gap-2.5">
           <span className="text-[16px] font-bold">{card.name}</span>

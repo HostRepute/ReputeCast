@@ -26,13 +26,13 @@ export function ClientTile({ ws, size = 24, className, style }: { ws: Pick<Agenc
 export function healthColors(tone: string): { dot: string; line: string } {
   switch (tone) {
     case 'warn':
-      return { dot: '#B45309', line: '#B45309' }
+      return { dot: 'var(--warn-bar)', line: 'var(--warn-bar)' }
     case 'bad':
-      return { dot: '#B91C1C', line: '#B91C1C' }
+      return { dot: 'var(--bad-strong)', line: 'var(--bad-strong)' }
     case 'ok':
-      return { dot: '#15803D', line: '#0F766E' }
+      return { dot: 'var(--ok-bar)', line: 'var(--accent)' }
     default:
-      return { dot: '#9AA3B2', line: '#9AA3B2' }
+      return { dot: 'var(--color-muted-line)', line: 'var(--color-muted-line)' }
   }
 }
 

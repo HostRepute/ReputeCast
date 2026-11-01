@@ -58,7 +58,7 @@ function ConsentLine({ s }: { s: Store }) {
   const ok = s.marketing === 'subscribed'
   return (
     <span className="flex items-start gap-1.5 text-[12px] font-medium text-ink-nav">
-      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke={ok ? 'var(--ok-bar)' : '#6B7280'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-0.5 flex-none">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke={ok ? 'var(--ok-bar)' : 'var(--color-muted-ink)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-0.5 flex-none">
         {ok ? <path d="m3 8 3.5 3.5L13 5" /> : <path d="M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM4.5 11.5l7-7" />}
       </svg>
       <span>{text}</span>

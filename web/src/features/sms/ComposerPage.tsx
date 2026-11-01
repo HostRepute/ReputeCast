@@ -315,7 +315,7 @@ function RouteBar({ data }: { data: Campaign }) {
       <span className="k">{t(m.route)}</span>
       {data.routes.map((r) =>
         r.skipped ? (
-          <span key={r.countries.join()} className="sms-pill" style={{ background: 'var(--color-warn-tint)', borderColor: '#FCD34D', color: 'var(--warn-fg)' }}>
+          <span key={r.countries.join()} className="sms-pill" style={{ background: 'var(--color-warn-tint)', borderColor: 'var(--color-warn-line-strong)', color: 'var(--warn-fg)' }}>
             {t(m.routeSkipped, { region: regionLabel(r.countries), reason: holdWord(t, r.skipped), count: count(r.recipients) })}
           </span>
         ) : (

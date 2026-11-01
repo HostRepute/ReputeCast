@@ -223,7 +223,7 @@ export function NewPageDialog({
             </form>
             <div className="pg-np-side">
               <div className="note i pg-note" role="note">
-                <Icon name="info" size={16} className="mt-px flex-none text-[#1D4ED8]" />
+                <Icon name="info" size={16} className="mt-px flex-none text-info-strong" />
                 <div className="flex min-w-0 flex-col gap-1">
                   <span className="font-bold">{t(m.npAdds, { template: t(info.name) })}</span>
                   <div>{t(info.adds)}</div>

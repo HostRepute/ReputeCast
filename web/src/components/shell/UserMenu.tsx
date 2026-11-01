@@ -58,7 +58,7 @@ export function UserMenu() {
               {me.workspaces.map((w, i) => (
                 <DropdownMenu.Item key={w.id} asChild>
                   <Link to="/w/$workspace" params={{ workspace: w.slug }} aria-current={w.slug === slug ? 'true' : undefined}>
-                    <span className="av" style={{ width: 20, height: 20, fontSize: 9, background: wsColor(i), color: '#fff', borderRadius: 5 }} aria-hidden="true">
+                    <span className="av" style={{ width: 20, height: 20, fontSize: 9, background: wsColor(i), color: 'var(--surface)', borderRadius: 5 }} aria-hidden="true">
                       {initials(w.name)}
                     </span>
                     <span className="min-w-0 flex-1 truncate">{w.name}</span>

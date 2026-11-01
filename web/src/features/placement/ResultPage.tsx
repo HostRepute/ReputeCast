@@ -387,7 +387,7 @@ function ProviderCard({ p, live, warn }: { p: ProviderResult; live: boolean; war
   const failed = [a.spf.fail ? 'SPF' : '', a.dkim.fail ? 'DKIM' : '', a.dmarc.fail ? 'DMARC' : ''].filter(Boolean)
   const res = (x: { pass: number; fail: number }) => (x.fail ? 'fail' : x.pass ? 'pass' : undefined)
   return (
-    <section className="card min-w-0" style={{ borderColor: warn ? '#FCD34D' : undefined }}>
+    <section className="card min-w-0" style={{ borderColor: warn ? 'var(--color-warn-line-strong)' : undefined }}>
       <div className="sec">
         <div className="flex min-w-0 flex-col gap-[3px]">
           <h2 className="h2 flex items-center gap-2">
@@ -583,7 +583,7 @@ function GuidanceCard({ g, d }: { g: Guidance; d: TestDetail }) {
       )
   }
   return (
-    <section className="card min-w-0" style={{ borderColor: '#FCD34D' }} aria-label={t(m.guidanceLabel)}>
+    <section className="card min-w-0" style={{ borderColor: 'var(--color-warn-line-strong)' }} aria-label={t(m.guidanceLabel)}>
       <div className="sec" style={{ background: 'var(--color-warn-tint)', borderRadius: '10px 10px 0 0', borderBottomColor: 'var(--color-warn-line)' }}>
         <div className="flex min-w-0 flex-nowrap items-start gap-2.5">
           <span className="mt-0.5 inline-flex flex-none">
@@ -598,7 +598,7 @@ function GuidanceCard({ g, d }: { g: Guidance; d: TestDetail }) {
                 ? t(m.guidanceTitleAt, { provider: g.providerName, spam: g.spam, copies: g.copies, places: andList(g.at) })
                 : t(m.guidanceTitle, { provider: g.providerName, spam: g.spam, copies: g.copies })}
             </h2>
-            <span className="k" style={{ color: '#78350F' }}>
+            <span className="k" style={{ color: 'var(--color-warn-ink)' }}>
               {t(m.guidanceRules)}
             </span>
           </div>

@@ -433,7 +433,7 @@ function LineSvg({ v, s, firstScored, desc }: { v: LineVariant; s: Score; firstS
       {d ? <path d={d} fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" /> : null}
       {firstScored >= 0 ? (
         <>
-          <circle cx={x(last)} cy={y(s.score)} r={5} fill="var(--accent)" stroke="#fff" strokeWidth={2} />
+          <circle cx={x(last)} cy={y(s.score)} r={5} fill="var(--accent)" stroke="var(--surface)" strokeWidth={2} />
           <text x={x(last) - 8} y={y(s.score) - 8} textAnchor="end" fontSize={12} fontWeight={700} fill="var(--ink)" fontFamily={FONT}>
             {s.score}
           </text>

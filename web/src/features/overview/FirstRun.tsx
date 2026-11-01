@@ -89,7 +89,7 @@ export function FirstRun({ audience }: { audience?: Schemas['OverviewAudience'] 
           <h3 className="h2 text-ink-3" id="ov-subs-p">
             {t(m.subscribers)}
           </h3>
-          <span className="n text-[28px] text-[#6B7280]">{count(subscribers)}</span>
+          <span className="n text-[28px] text-muted-ink">{count(subscribers)}</span>
           <span className="k">
             {!lists.length
               ? t(m.subscribersNoLists)

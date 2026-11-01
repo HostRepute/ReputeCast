@@ -81,14 +81,14 @@ export function ConnectingCard({ s }: { s: Snapshot }) {
 export function StreamLostBanner({ title, body, onReconnect, busy }: { title: string; body: string; onReconnect: () => void; busy?: boolean }) {
   const t = useT()
   return (
-    <div className="flex flex-wrap items-center gap-4 rounded-[12px] border border-bad-line bg-[#FEF2F2] px-5 py-4">
+    <div className="flex flex-wrap items-center gap-4 rounded-[12px] border border-bad-line bg-bad-wash px-5 py-4">
       <svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
-        <circle cx="20" cy="20" r="19" fill="#FECACA" />
+        <circle cx="20" cy="20" r="19" fill="var(--color-bad-soft)" />
         <path d="M20 11v11M20 27v1" stroke="var(--bad-fg)" strokeWidth="3" strokeLinecap="round" />
       </svg>
       <div role="alert" className="flex flex-col gap-0.5 max-md:min-w-[120px]" style={{ flex: '1 1 300px' }}>
-        <span className="text-[16px] font-bold text-[#7F1D1D]">{title}</span>
-        <span className="text-[13px] text-[#7F1D1D]">{body}</span>
+        <span className="text-[16px] font-bold text-bad-ink">{title}</span>
+        <span className="text-[13px] text-bad-ink">{body}</span>
       </div>
       <Button onClick={onReconnect} loading={busy}>
         {t(m.reconnectNow)}
@@ -104,14 +104,14 @@ export function StreamLostBanner({ title, body, onReconnect, busy }: { title: st
 export function StaleBanner({ title, body, onReconnect }: { title: string; body: string; onReconnect: () => void }) {
   const t = useT()
   return (
-    <div className="flex flex-wrap items-center gap-4 rounded-[12px] border border-[#FCD34D] bg-warn-tint px-5 py-4">
+    <div className="flex flex-wrap items-center gap-4 rounded-[12px] border border-warn-line-strong bg-warn-tint px-5 py-4">
       <svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
         <circle cx="20" cy="20" r="19" fill="var(--warn-bg)" />
         <path d="M20 12v8l5 3" stroke="var(--warn-fg)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
       </svg>
       <div role="status" className="flex flex-col gap-0.5 max-md:min-w-[120px]" style={{ flex: '1 1 300px' }}>
-        <span className="text-[16px] font-bold text-[#78350F]">{title}</span>
-        <span className="text-[13px] text-[#78350F]">{body}</span>
+        <span className="text-[16px] font-bold text-warn-ink">{title}</span>
+        <span className="text-[13px] text-warn-ink">{body}</span>
       </div>
       <Button onClick={onReconnect}>{t(m.reconnect)}</Button>
     </div>
@@ -134,14 +134,14 @@ export function FinishedView({ s, campaignId, actions, can }: { s: Snapshot; cam
   const params = { workspace: slug, campaignId }
   return (
     <>
-      <div className="flex flex-wrap items-center gap-[18px] rounded-[12px] border border-[#86EFAC] bg-ok-tint px-[22px] py-[18px]" role="status">
+      <div className="flex flex-wrap items-center gap-[18px] rounded-[12px] border border-ok-line-strong bg-ok-tint px-[22px] py-[18px]" role="status">
         <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
           <circle cx="20" cy="20" r="19" fill="var(--ok-line)" />
           <path d="m12 20.5 5.5 5.5L28 15" stroke="var(--ok-fg)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
         </svg>
         <div className="flex flex-col gap-0.5 max-md:min-w-[120px]" style={{ flex: '1 1 300px' }}>
-          <span className="text-[20px] font-bold tracking-[-0.01em] text-[#14532D]">{t.title}</span>
-          <span className="text-[#14532D]">{t.body}</span>
+          <span className="text-[20px] font-bold tracking-[-0.01em] text-ok-ink">{t.title}</span>
+          <span className="text-ok-ink">{t.body}</span>
         </div>
         <div className="flex flex-wrap gap-2.5">
           {shareReason ? (

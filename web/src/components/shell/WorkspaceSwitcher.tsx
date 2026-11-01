@@ -14,7 +14,7 @@ import { m } from './messages'
 const loadAgencyMenu = () => import('@/features/agency/AgencySwitcher')
 const AgencySwitcherMenu = lazy(() => loadAgencyMenu().then((x) => ({ default: x.AgencySwitcherMenu })))
 
-const wsColors = ['var(--accent)', '#1D4ED8', '#7C3AED', 'var(--warn-bar)', '#BE185D', '#047857']
+const wsColors = ['var(--accent)', 'var(--color-info-strong)', '#7C3AED', 'var(--warn-bar)', '#BE185D', '#047857']
 
 /** The colour of a workspace's initials square, by its position in my list. */
 export function wsColor(i: number) {
@@ -50,7 +50,7 @@ export function WorkspaceSwitcher({ variant = 'sidebar' }: { variant?: 'sidebar'
       <DropdownMenu.Trigger asChild>
         {variant === 'agency' && staff ? (
           <button className="ws" type="button" aria-label={t(m.switcherLabel, { workspace: staff.name, role: t(am.agencySub) })}>
-            <span className="av" style={{ width: 24, height: 24, fontSize: 10, background: 'var(--ink)', color: '#fff', borderRadius: 6 }} aria-hidden="true" data-initials={staff.initials} />
+            <span className="av" style={{ width: 24, height: 24, fontSize: 10, background: 'var(--ink)', color: 'var(--surface)', borderRadius: 6 }} aria-hidden="true" data-initials={staff.initials} />
             <span className="wsn">
               <b>{staff.name}</b> <span>{t(am.agencySub)}</span>
             </span>
@@ -58,7 +58,7 @@ export function WorkspaceSwitcher({ variant = 'sidebar' }: { variant?: 'sidebar'
           </button>
         ) : variant === 'sheet' ? (
           <button className="ws sheet-ws" type="button">
-            <span className="av" style={{ width: 28, height: 28, fontSize: 11, background: tile, color: '#fff', borderRadius: 7 }} aria-hidden="true" data-initials={initials(ws.workspace.name)} />
+            <span className="av" style={{ width: 28, height: 28, fontSize: 11, background: tile, color: 'var(--surface)', borderRadius: 7 }} aria-hidden="true" data-initials={initials(ws.workspace.name)} />
             {/* The space keeps the name and the line two phrases for speech input (WCAG 2.5.3). */}
             <span className="wsn">
               <b>{ws.workspace.name}</b> <span>{mine && staff ? t(am.sheetRoleVia, { role, agency: staff.name }) : t(m.moreSheetSwitcherRole, { role })}</span>
@@ -67,7 +67,7 @@ export function WorkspaceSwitcher({ variant = 'sidebar' }: { variant?: 'sidebar'
           </button>
         ) : (
           <button className="ws" type="button" aria-label={t(m.switcherLabel, { workspace: ws.workspace.name, role })}>
-            <span className="av" style={{ width: 24, height: 24, fontSize: 10, background: tile, color: '#fff', borderRadius: 6 }} aria-hidden="true" data-initials={initials(ws.workspace.name)} />
+            <span className="av" style={{ width: 24, height: 24, fontSize: 10, background: tile, color: 'var(--surface)', borderRadius: 6 }} aria-hidden="true" data-initials={initials(ws.workspace.name)} />
             {/* The space keeps "name role" two words for speech input (WCAG 2.5.3); the flex column doesn't render it. */}
             <span className="wsn">
               <b>{ws.workspace.name}</b> <span>{role}</span>
@@ -94,7 +94,7 @@ export function WorkspaceSwitcher({ variant = 'sidebar' }: { variant?: 'sidebar'
           {list.map((w, i) => (
             <DropdownMenu.Item key={w.id} asChild onSelect={() => navigate({ to: '/w/$workspace', params: { workspace: w.slug } })}>
               <Link to="/w/$workspace" params={{ workspace: w.slug }} aria-current={w.slug === slug ? 'true' : undefined} style={w.slug === slug ? { background: 'var(--accent-soft)' } : undefined}>
-                <span className="av" style={{ width: 26, height: 26, fontSize: 10, background: wsColor(i), color: '#fff', borderRadius: 6 }} aria-hidden="true">
+                <span className="av" style={{ width: 26, height: 26, fontSize: 10, background: wsColor(i), color: 'var(--surface)', borderRadius: 6 }} aria-hidden="true">
                   {initials(w.name)}
                 </span>
                 <span className="col min-w-0 flex-1" style={{ gap: 0 }}>

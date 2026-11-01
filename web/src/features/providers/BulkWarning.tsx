@@ -179,14 +179,14 @@ export function BulkWarningView({
 
   return (
     <>
-      <section role="alert" className="flex flex-wrap items-start gap-[18px] rounded-[12px] border border-[#FCD34D] bg-warn-tint px-[22px] py-[18px]">
+      <section role="alert" className="flex flex-wrap items-start gap-[18px] rounded-[12px] border border-warn-line-strong bg-warn-tint px-[22px] py-[18px]">
         <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
           <circle cx="20" cy="20" r="19" fill="var(--color-warn-line)" />
           <path d="M20 11v11M20 27v1" stroke="var(--warn-fg)" strokeWidth="3" strokeLinecap="round" />
         </svg>
         <div className="flex flex-[1_1_320px] flex-col gap-1">
-          <span className="text-[18px] font-bold tracking-[-0.01em] text-[#78350F]">{fallbackIssue ? t(mb.titleFallback) : t(mb.titleRoute)}</span>
-          <span className="text-[#78350F]">{body}</span>
+          <span className="text-[18px] font-bold tracking-[-0.01em] text-warn-ink">{fallbackIssue ? t(mb.titleFallback) : t(mb.titleRoute)}</span>
+          <span className="text-warn-ink">{body}</span>
         </div>
       </section>
 

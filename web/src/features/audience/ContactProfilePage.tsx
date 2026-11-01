@@ -852,12 +852,12 @@ const icons = {
 }
 
 const tone = {
-  blue: { bg: '#DBEAFE', fg: '#1E40AF' },
-  green: { bg: '#DCFCE7', fg: '#166534' },
-  purple: { bg: '#EDE9FE', fg: '#5B21B6' },
-  amber: { bg: '#FEF3C7', fg: '#92400E' },
-  red: { bg: '#FEE2E2', fg: '#991B1B' },
-  grey: { bg: '#EEF0F3', fg: '#4B5563' },
+  blue: { bg: 'var(--info-bg)', fg: 'var(--info-fg)' },
+  green: { bg: 'var(--ok-bg)', fg: 'var(--ok-fg)' },
+  purple: { bg: 'var(--purple-bg)', fg: 'var(--purple-fg)' },
+  amber: { bg: 'var(--warn-bg)', fg: 'var(--warn-fg)' },
+  red: { bg: 'var(--bad-bg)', fg: 'var(--bad-fg)' },
+  grey: { bg: 'var(--line-2)', fg: 'var(--ink-2)' },
 }
 
 function eventIcon(it: Item): [keyof typeof icons, keyof typeof tone] {

@@ -102,13 +102,13 @@ export function OutageAlert({ outage }: { outage: Outage }) {
   const columns = [...outage.streams].sort((a, b) => waits(a) - waits(b))
   return (
     <section role="alert" className="card flex flex-col border-bad-line">
-      <div className="flex flex-wrap items-start gap-[18px] rounded-t-[10px] bg-[#FEF2F2] px-[22px] py-5">
-        <AlertMark fill="#FECACA" stroke="#991B1B" />
+      <div className="flex flex-wrap items-start gap-[18px] rounded-t-[10px] bg-bad-wash px-[22px] py-5">
+        <AlertMark fill="var(--color-bad-soft)" stroke="var(--bad-fg)" />
         <div className="flex flex-[1_1_320px] flex-col gap-1">
-          <span className="text-[20px] font-bold tracking-[-0.01em] text-[#7F1D1D]">
+          <span className="text-[20px] font-bold tracking-[-0.01em] text-bad-ink">
             {t(mi.outageTitle, { provider: outage.provider, time: clock(outage.since), since: sinceText(outage.since) })}
           </span>
-          <span className="text-[#7F1D1D]">{outageSentence(outage)}</span>
+          <span className="text-bad-ink">{outageSentence(outage)}</span>
         </div>
         <div className="flex flex-wrap gap-2.5">
           {outage.down.statusUrl ? <ButtonAnchor href={outage.down.statusUrl}>{outage.down.statusLabel || t(mi.statusPage, { provider: outage.short })}</ButtonAnchor> : null}
@@ -462,7 +462,7 @@ export function SilentAlert({ silent }: { silent: Silent }) {
   const hours = Math.floor(minutes / 60)
   const host = hostOf(silent.webhookUrl)
   return (
-    <section role="alert" className="card flex flex-col border-[#FCD34D]">
+    <section role="alert" className="card flex flex-col border-warn-line-strong">
       <Dialog
         open={manual}
         onOpenChange={setManual}
@@ -480,21 +480,21 @@ export function SilentAlert({ silent }: { silent: Silent }) {
         </ol>
       </Dialog>
       <div className="flex flex-wrap items-start gap-[18px] rounded-t-[10px] bg-warn-tint px-[22px] py-5">
-        <AlertMark fill="#FDE68A" stroke="#92400E" />
+        <AlertMark fill="var(--color-warn-line)" stroke="var(--warn-fg)" />
         <div className="flex flex-[1_1_320px] flex-col gap-1">
-          <span className="text-[20px] font-bold tracking-[-0.01em] text-[#78350F]">
+          <span className="text-[20px] font-bold tracking-[-0.01em] text-warn-ink">
             {hours >= 1 ? t(mi.silentForHours, { provider: silent.short, hours }) : t(mi.silentFor, { provider: silent.short, duration: duration(minutes) })}
           </span>
           {silent.overdue > 0 ? (
-            <span className="flex flex-wrap items-center gap-2 text-[#78350F]">
+            <span className="flex flex-wrap items-center gap-2 text-warn-ink">
               <Badge tone="warn" dot>
                 {t(mi.eventsOverdue)}
               </Badge>
               <span className="font-semibold">{t(mi.overdueLine, { count: silent.overdue, hours: Math.max(hours, 6) })}</span>
             </span>
           ) : null}
-          <span className="text-[#78350F]">{t(mi.silentBody, { time: clock(silent.since), provider: silent.short, count: count(silent.accepted) })}</span>
-          {silent.broadcastShareHeld ? <span className="font-semibold text-[#78350F]">{t(mi.silentNoFailover, { provider: silent.short })}</span> : null}
+          <span className="text-warn-ink">{t(mi.silentBody, { time: clock(silent.since), provider: silent.short, count: count(silent.accepted) })}</span>
+          {silent.broadcastShareHeld ? <span className="font-semibold text-warn-ink">{t(mi.silentNoFailover, { provider: silent.short })}</span> : null}
         </div>
         <div className="flex max-w-[360px] flex-col items-end gap-1.5 max-md:max-w-none max-md:items-start">
           <div className="flex flex-wrap justify-end gap-2.5 max-md:justify-start">
@@ -707,14 +707,14 @@ export function AuthBanner({ af, onUpdate }: { af: AuthFailure; onUpdate: () => 
     return i === failing.length - 1 ? t(mi.authFailingOverRerouted, { ...values, count: count(af.rerouted) }) : t(mi.authFailingOver, values)
   })
   return (
-    <div role="alert" className="flex items-start gap-3.5 rounded-[10px] border border-[#FECACA] bg-[#FEF2F2] px-4 py-3.5 max-md:flex-wrap">
+    <div role="alert" className="flex items-start gap-3.5 rounded-[10px] border border-bad-soft bg-bad-wash px-4 py-3.5 max-md:flex-wrap">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--bad-strong)" strokeWidth="1.8" aria-hidden="true" className="flex-none">
         <circle cx="10" cy="10" r="8" />
         <path d="M10 6v5M10 13.5v.5" strokeLinecap="round" />
       </svg>
       <div className="flex flex-[1_1_300px] flex-col gap-1">
         <span className="font-semibold text-bad-fg">{t(mi.authTitle, { provider: af.provider, status, statusText: statusText[status] ?? 'Unauthorized', credential: words.title })}</span>
-        <span className="text-[13px] text-[#7F1D1D]">
+        <span className="text-[13px] text-bad-ink">
           {[t(mi.authEveryCall, { time: clock(af.down.since) }), ...clauses, t(mi.authRotated, { credential: words.short, provider: af.short })].join(' ')}
         </span>
         <div className="mt-1.5 flex flex-wrap gap-2.5">

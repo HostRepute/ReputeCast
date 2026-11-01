@@ -62,7 +62,7 @@ export function SiteFrame({
     height,
     border: 0,
     display: 'block',
-    background: '#fff',
+    background: 'var(--surface)',
     ...(scale === 1 ? {} : { transform: `scale(${scale})`, transformOrigin: '0 0' }),
     ...(thumb ? { pointerEvents: 'none' } : {}),
     ...style,

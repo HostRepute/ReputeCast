@@ -24,7 +24,7 @@ type Overview = Schemas['RevenueOverview']
 type Period = '30d' | '90d' | '12m'
 type TT = ReturnType<typeof useT>
 
-const tierColors = ['#104281', '#256abf', '#5598e7', '#86b6ef', '#b8d4f5']
+const tierColors = ['var(--chart-tier-1)', 'var(--chart-tier-2)', 'var(--chart-tier-3)', 'var(--chart-tier-4)', '#b8d4f5']
 
 /** ▲ $418 (+4.9%) */
 function Delta({ cents, pctValue, currency }: { cents: number; pctValue?: number | null; currency: string }) {

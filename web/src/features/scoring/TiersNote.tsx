@@ -13,7 +13,7 @@ export function TiersNote({ on }: { on: 'scoring' | 'health' }) {
   const { slug } = useWorkspace()
   return (
     <div className="note i" role="note">
-      <span className="sc-note-ic" style={{ color: '#1D4ED8' }}>
+      <span className="sc-note-ic" style={{ color: 'var(--color-info-strong)' }}>
         <Icon name="info" size={16} strokeWidth={1.8} />
       </span>
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">

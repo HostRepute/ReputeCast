@@ -97,11 +97,11 @@ export function FlowMiniMap({ nodes, selected }: { nodes: StepNodeType[]; select
               top: sy(n.position.y),
               width: Math.max(2, (n.measured?.width ?? 224) * kx),
               height: Math.max(2, (n.measured?.height ?? 60) * ky),
-              background: n.id === selected ? '#1D4ED8' : 'var(--line-hover)',
+              background: n.id === selected ? 'var(--color-info-strong)' : 'var(--line-hover)',
             }}
           />
         ))}
-        {vw > 0 && vh > 0 ? <div className="absolute box-border rounded-[3px]" style={{ left: vx, top: vy, width: vw, height: vh, border: '1.5px solid #1D4ED8' }} /> : null}
+        {vw > 0 && vh > 0 ? <div className="absolute box-border rounded-[3px]" style={{ left: vx, top: vy, width: vw, height: vh, border: '1.5px solid var(--color-info-strong)' }} /> : null}
       </div>
     </div>
   )

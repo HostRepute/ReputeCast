@@ -312,9 +312,9 @@ function Verdict({
     text = t(m.readyText, { n: passed, time: at })
   }
   const colors = {
-    ok: { border: 'var(--ok-line)', bg: 'var(--ok-tint)', ring: 'var(--ok-bg)', fg: '#14532D', icon: 'var(--ok-bar)' },
-    warn: { border: '#FCD34D', bg: 'var(--color-warn-tint)', ring: 'var(--warn-bg)', fg: '#78350F', icon: 'var(--warn-bar)' },
-    bad: { border: 'var(--bad-line)', bg: 'var(--bad-tint)', ring: 'var(--bad-bg)', fg: '#7F1D1D', icon: 'var(--bad-strong)' },
+    ok: { border: 'var(--ok-line)', bg: 'var(--ok-tint)', ring: 'var(--ok-bg)', fg: 'var(--color-ok-ink)', icon: 'var(--ok-bar)' },
+    warn: { border: 'var(--color-warn-line-strong)', bg: 'var(--color-warn-tint)', ring: 'var(--warn-bg)', fg: 'var(--color-warn-ink)', icon: 'var(--warn-bar)' },
+    bad: { border: 'var(--bad-line)', bg: 'var(--bad-tint)', ring: 'var(--bad-bg)', fg: 'var(--color-bad-ink)', icon: 'var(--bad-strong)' },
     info: { border: 'var(--color-info-line)', bg: 'var(--color-info-tint)', ring: 'var(--info-bg)', fg: '#1E3A8A', icon: 'var(--info-fg)' },
   }[tone]
   return (

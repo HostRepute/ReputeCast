@@ -40,7 +40,7 @@ export function SqlBlock({ sql: text, label }: { sql: string; label: string }) {
 }
 
 const theme = EditorView.theme({
-  '&': { backgroundColor: '#fff', color: 'var(--ink)', border: '1px solid var(--line-input)', borderRadius: '8px', fontSize: '12px' },
+  '&': { backgroundColor: 'var(--surface)', color: 'var(--ink)', border: '1px solid var(--line-input)', borderRadius: '8px', fontSize: '12px' },
   '.cm-content': { fontFamily: "'IBM Plex Mono', ui-monospace, monospace", padding: '12px 0', lineHeight: '1.55' },
   '.cm-gutters': { backgroundColor: 'var(--ground-3)', color: 'var(--ink-3)', borderRight: '1px solid var(--line-2)', borderRadius: '8px 0 0 8px' },
   '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: 'var(--accent-tint)' },

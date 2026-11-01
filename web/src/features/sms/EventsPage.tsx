@@ -277,15 +277,15 @@ function InboundDialog({ e, onClose }: { e: Event; onClose: () => void }) {
     {
       title: t(m.textedKeyword, { keyword: e.keyword ?? '' }),
       text: e.normalized === 'opted_in' ? t(m.matchedOptIn, { keyword: e.keyword ?? '' }) : t(m.matchedKeyword, { keyword: e.keyword ?? '' }),
-      tone: '#DBEAFE',
+      tone: 'var(--info-bg)',
     },
   ]
-  if (e.normalized === 'opted_out' && e.lists.length) steps.push({ title: t(m.consentWithdrawn), text: t(m.consentWithdrawnOn, { lists }), tone: '#DCFCE7' })
-  if (e.normalized === 'opted_in' && e.lists.length) steps.push({ title: t(m.consentBack), text: t(m.consentBackOn, { lists }), tone: '#DCFCE7' })
-  if (e.normalized === 'opted_out') steps.push({ title: t(m.addedToList), text: t(m.addedToListText, { provider: e.provider }), tone: '#DCFCE7' })
-  if (e.normalized === 'opted_in') steps.push({ title: t(m.liftedFromList), text: '', tone: '#DCFCE7' })
-  if (e.replied) steps.push({ title: t(m.replySent), text: t(m.replySentText), tone: '#DCFCE7' })
-  else if (e.providerAnswered) steps.push({ title: t(m.providerAnswered, { provider: e.provider }), text: t(m.providerAnsweredText), tone: '#DCFCE7' })
+  if (e.normalized === 'opted_out' && e.lists.length) steps.push({ title: t(m.consentWithdrawn), text: t(m.consentWithdrawnOn, { lists }), tone: 'var(--ok-bg)' })
+  if (e.normalized === 'opted_in' && e.lists.length) steps.push({ title: t(m.consentBack), text: t(m.consentBackOn, { lists }), tone: 'var(--ok-bg)' })
+  if (e.normalized === 'opted_out') steps.push({ title: t(m.addedToList), text: t(m.addedToListText, { provider: e.provider }), tone: 'var(--ok-bg)' })
+  if (e.normalized === 'opted_in') steps.push({ title: t(m.liftedFromList), text: '', tone: 'var(--ok-bg)' })
+  if (e.replied) steps.push({ title: t(m.replySent), text: t(m.replySentText), tone: 'var(--ok-bg)' })
+  else if (e.providerAnswered) steps.push({ title: t(m.providerAnswered, { provider: e.provider }), text: t(m.providerAnsweredText), tone: 'var(--ok-bg)' })
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()} title={t(m.stopTitle, { number: e.number, keyword: e.keyword ?? '' })} footer={<Button onClick={onClose}>{t(m.close)}</Button>}>
       <div className="flex flex-col">

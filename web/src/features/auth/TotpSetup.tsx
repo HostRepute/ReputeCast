@@ -31,7 +31,7 @@ export function QrCode({ value, size = 132, label }: { value: string; size?: num
   }, [value])
   return (
     <svg width={size} height={size} viewBox={`0 0 ${path.n} ${path.n}`} role="img" aria-label={label} shapeRendering="crispEdges">
-      <rect width={path.n} height={path.n} fill="#fff" />
+      <rect width={path.n} height={path.n} fill="var(--surface)" />
       <path d={path.d} fill="var(--ink)" />
     </svg>
   )

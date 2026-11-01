@@ -181,7 +181,7 @@ export function CreateKeyDialog({
                   type="button"
                   className="btn sm"
                   aria-pressed={on}
-                  style={on ? { background: 'var(--ink)', color: '#fff', borderColor: 'var(--ink)' } : undefined}
+                  style={on ? { background: 'var(--ink)', color: 'var(--surface)', borderColor: 'var(--ink)' } : undefined}
                   onClick={() => {
                     if (p.key === 'send_only') {
                       onSendOnly?.()

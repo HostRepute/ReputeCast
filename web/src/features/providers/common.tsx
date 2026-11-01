@@ -23,7 +23,7 @@ export const providerColor: Record<ColorKey, string> = {
 }
 
 /** Text colour on a provider-coloured segment (the routing split bar). */
-export const onProviderColor: Record<ColorKey, string> = { ses: '#fff', postal: '#3F0A1F', postmark: '#fff', other: 'var(--ink)' }
+export const onProviderColor: Record<ColorKey, string> = { ses: 'var(--surface)', postal: '#3F0A1F', postmark: 'var(--surface)', other: 'var(--ink)' }
 
 /** A stream's name in the app language (read when shown, so it follows the language). */
 export const streamName: Record<Stream, string> = {

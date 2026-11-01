@@ -62,8 +62,8 @@ export function DecisionView({
 }
 
 const tones = {
-  bad: { border: 'border-bad-line', head: 'bg-[#FEF2F2]', text: 'text-[#7F1D1D]' },
-  warn: { border: 'border-[#FCD34D]', head: 'bg-warn-tint', text: 'text-[#78350F]' },
+  bad: { border: 'border-bad-line', head: 'bg-bad-wash', text: 'text-bad-ink' },
+  warn: { border: 'border-warn-line-strong', head: 'bg-warn-tint', text: 'text-warn-ink' },
 }
 
 function IncidentPanel({ s, incident, actions, can, onCancelAll }: { s: Snapshot; incident: Incident; actions: LiveActions; can: LivePermissions; onCancelAll: () => void }) {
@@ -417,7 +417,7 @@ function MoveEstimate({ incident }: { incident: Incident }) {
 function PauseIcon() {
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
-      <circle cx="20" cy="20" r="19" fill="#FECACA" />
+      <circle cx="20" cy="20" r="19" fill="var(--color-bad-soft)" />
       <path d="M15 13v14M25 13v14" stroke="var(--bad-fg)" strokeWidth="3.5" strokeLinecap="round" />
     </svg>
   )

@@ -89,7 +89,7 @@ export function NextCampaignCard({ n }: { n: Schemas['OverviewNextCampaign'] }) 
         <div
           className={
             blocked
-              ? 'flex flex-col gap-1.5 rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3 text-[13px]'
+              ? 'flex flex-col gap-1.5 rounded-lg border border-bad-soft bg-bad-wash p-3 text-[13px]'
               : 'flex flex-col gap-1.5 rounded-lg border border-warn-line bg-warn-tint p-3 text-[13px]'
           }
         >

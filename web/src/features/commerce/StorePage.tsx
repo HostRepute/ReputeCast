@@ -642,14 +642,14 @@ function WhatItDoes({ page: p }: { page: Page_ }) {
 function syncColor(state: SyncState['state']): string {
   switch (state) {
     case 'connected':
-      return '#15803D'
+      return 'var(--ok-bar)'
     case 'importing':
     case 'connecting':
-      return '#1D4ED8'
+      return 'var(--color-info-strong)'
     case 'disconnected':
-      return '#B91C1C'
+      return 'var(--bad-strong)'
   }
-  return '#B45309'
+  return 'var(--warn-bar)'
 }
 
 function SyncCard({ page: p }: { page: Page_ }) {
@@ -781,7 +781,7 @@ function ConsentCard({ page: p, platform }: { page: Page_; platform: string }) {
           </select>
         </label>
         <div className="note w" role="note">
-          <AttentionIcon size={16} color="#B45309" />
+          <AttentionIcon size={16} color="var(--warn-bar)" />
           <div className="min-w-0 flex-[1_1_320px]">{t(cm.consentReminder, { store: p.store.name })}</div>
         </div>
         {p.consent.writeBackSupported ? (
@@ -937,7 +937,7 @@ function AttributionCard({ page: p }: { page: Page_ }) {
                         <span className="num">{money(r.revenue, cur)}</span>
                       </td>
                       <td>
-                        <Bar value={(r.orders / maxOrders) * 100} color="#0F766E" height={6} className="w-[160px]" />
+                        <Bar value={(r.orders / maxOrders) * 100} color="var(--accent)" height={6} className="w-[160px]" />
                       </td>
                     </tr>
                   ))}
@@ -951,7 +951,7 @@ function AttributionCard({ page: p }: { page: Page_ }) {
                         <span className="num">{money(a.others.revenue, cur)}</span>
                       </td>
                       <td>
-                        <Bar value={(a.others.orders / maxOrders) * 100} color="#0F766E" height={6} className="w-[160px]" />
+                        <Bar value={(a.others.orders / maxOrders) * 100} color="var(--accent)" height={6} className="w-[160px]" />
                       </td>
                     </tr>
                   ) : null}
@@ -1110,7 +1110,7 @@ function ImportCard({ page: p }: { page: Page_ }) {
           <b className="font-semibold">{label}</b>
           <span className="num">{waiting ? t(cm.importWaiting) : t(cm.progressOf, { done: count(done), total: count(total) })}</span>
         </div>
-        <Bar value={waiting ? 0 : v} color={waiting ? '#C9CED6' : '#0F766E'} height={6} label={label} />
+        <Bar value={waiting ? 0 : v} color={waiting ? 'var(--line-hover)' : 'var(--accent)'} height={6} label={label} />
         <span className="k">{sub}</span>
       </div>
     )

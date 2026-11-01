@@ -59,7 +59,7 @@ export function LibraryThumb({ item, height = 104 }: { item: Item; height?: numb
         <path d="M44 18h132a8 8 0 0 1 8 8v40a8 8 0 0 1-8 8H76l-14 12V74H44a8 8 0 0 1-8-8V26a8 8 0 0 1 8-8z" fill="var(--surface)" stroke="var(--line)" />
         <rect x="48" y="30" width="96" height="5" rx="2.5" fill="var(--color-muted-line)" />
         <rect x="48" y="41" width="122" height="5" rx="2.5" fill="var(--color-muted-line)" />
-        <rect x="48" y="52" width="70" height="5" rx="2.5" fill="#1D4ED8" opacity=".7" />
+        <rect x="48" y="52" width="70" height="5" rx="2.5" fill="var(--color-info-strong)" opacity=".7" />
         <rect x="48" y="63" width="84" height="4" rx="2" fill="var(--line-hover)" />
       </svg>
     )

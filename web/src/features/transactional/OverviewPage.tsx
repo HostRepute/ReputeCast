@@ -140,7 +140,7 @@ function RouteRow({ o, period, onPeriod }: { o: Overview; period: TxPeriod; onPe
               <span className="arw" aria-hidden="true">
                 →
               </span>
-              <span className="tx-pill" style={{ background: '#fff' }}>
+              <span className="tx-pill" style={{ background: 'var(--surface)' }}>
                 {r.fallback.name} <span className="k" style={{ fontWeight: 500 }}>{t(mo.fallback)}</span>
               </span>
             </>
@@ -765,7 +765,7 @@ function FailoverCard({ o }: { o: Overview }) {
         <span className="arw" aria-hidden="true">
           →
         </span>
-        <span className="tx-pill" style={{ borderColor: '#86EFAC', background: 'var(--ok-tint)' }}>
+        <span className="tx-pill" style={{ borderColor: 'var(--color-ok-line-strong)', background: 'var(--ok-tint)' }}>
           <span className="dot" style={{ color: 'var(--ok-bar)' }} />
           {t(mo.failoverTo, { to: f.to.name })}
         </span>

@@ -12,7 +12,7 @@ import { m } from './messages'
 
 /** The 40px verdict mark of the banners (warn, bad, ok) and the 36px error mark. */
 export function VerdictIcon({ kind, size = 40 }: { kind: 'warn' | 'bad' | 'ok' | 'error'; size?: number }) {
-  const circle = kind === 'warn' ? 'var(--color-warn-line)' : kind === 'ok' ? 'var(--ok-line)' : '#FECACA'
+  const circle = kind === 'warn' ? 'var(--color-warn-line)' : kind === 'ok' ? 'var(--ok-line)' : 'var(--color-bad-soft)'
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
       <circle cx="20" cy="20" r="19" fill={circle} />

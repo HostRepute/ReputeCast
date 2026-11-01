@@ -295,13 +295,13 @@ function WebhooksCard({ setup, webhook: w, reason }: { setup: Schemas['ConnectSe
   if (w.mode === 'polling') lead = <span className="text-[13px] text-ink-2">{t(mn.pollingLead, { provider: name })}</span>
   else if (missing)
     lead = (
-      <span className="text-[13px] text-[#78350F]">
+      <span className="text-[13px] text-warn-ink">
         <T msg={mn.testMissingLead} values={{ provider: name, url, mono }} />
       </span>
     )
   else if (blocked)
     lead = (
-      <span className="text-[13px] text-[#78350F]">
+      <span className="text-[13px] text-warn-ink">
         <T msg={mn.unreachableLead} values={{ provider: name, url, mono }} />
       </span>
     )
@@ -319,7 +319,7 @@ function WebhooksCard({ setup, webhook: w, reason }: { setup: Schemas['ConnectSe
     )
   const org = orgDomain(setup.domain.suggested)
   return (
-    <section className={cn('card flex flex-col', problem && 'border-[#FCD34D]')} aria-labelledby="hooks-h">
+    <section className={cn('card flex flex-col', problem && 'border-warn-line-strong')} aria-labelledby="hooks-h">
       <div className={cn('flex flex-col gap-1 px-5 py-4', problem && 'rounded-t-[10px] bg-warn-tint')}>
         <div className="flex flex-wrap items-center gap-2.5">
           <h3 className="h2" id="hooks-h">

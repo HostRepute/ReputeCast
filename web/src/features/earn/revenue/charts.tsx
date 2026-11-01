@@ -147,13 +147,13 @@ function MrrSvg({ v, chart, currency, desc }: { v: LineVariant; chart: Chart; cu
         <g key={`${m.kind}-${m.n}`} aria-hidden="true">
           <line x1={mx} x2={mx} y1={my} y2={v.bottom} stroke="var(--line-input)" strokeDasharray="2 3" />
           <circle cx={mx} cy={my} r={8} fill={INK} />
-          <text x={mx} y={my + 4} textAnchor="middle" fontSize={10.5} fontWeight={700} fill="#fff" fontFamily={FONT}>
+          <text x={mx} y={my + 4} textAnchor="middle" fontSize={10.5} fontWeight={700} fill="var(--surface)" fontFamily={FONT}>
             {m.n}
           </text>
         </g>
       ))}
-      <circle cx={last.x} cy={last.y} r={4} fill="#fff" stroke={LINE} strokeWidth={2.4} />
-      <circle cx={first.x} cy={first.y} r={3} fill="#fff" stroke={LINE} strokeWidth={2} />
+      <circle cx={last.x} cy={last.y} r={4} fill="var(--surface)" stroke={LINE} strokeWidth={2.4} />
+      <circle cx={first.x} cy={first.y} r={3} fill="var(--surface)" stroke={LINE} strokeWidth={2} />
       <text x={first.x + 2} y={first.y - 10} textAnchor="start" fontSize={11} fontWeight={600} fill={INK} fontFamily={FONT}>
         {money(first.p.mrrCents, currency, 'never')}
       </text>
@@ -171,9 +171,9 @@ function MrrSvg({ v, chart, currency, desc }: { v: LineVariant; chart: Chart; cu
       {tip ? (
         <g aria-hidden="true" pointerEvents="none">
           <line x1={tip.x} x2={tip.x} y1={v.top - 6} y2={v.bottom} stroke={INK} strokeWidth={1} />
-          <circle cx={tip.x} cy={tip.y} r={4.5} fill={LINE} stroke="#fff" strokeWidth={2} />
+          <circle cx={tip.x} cy={tip.y} r={4.5} fill={LINE} stroke="var(--surface)" strokeWidth={2} />
           <rect x={tipX} y={Math.max(tip.y - 34, 0)} width={tipW} height={22} rx={6} fill={INK} />
-          <text x={tipX + 9} y={Math.max(tip.y - 34, 0) + 15} fontSize={11.5} fontWeight={600} fill="#fff" fontFamily={FONT}>
+          <text x={tipX + 9} y={Math.max(tip.y - 34, 0) + 15} fontSize={11.5} fontWeight={600} fill="var(--surface)" fontFamily={FONT}>
             {tipText}
           </text>
         </g>
@@ -313,7 +313,7 @@ function MovementSvg({ v, movement, currency, desc }: { v: BarVariant; movement:
             <rect x={x - (slot - bw) / 2} y={v.gridTop - 30} width={slot} height={v.base - v.gridTop + 30} fill="transparent" />
             {h > 0 ? <rect x={x} y={yTop} width={bw} height={h} rx={3} fill={color} opacity={hover === null || hover === i ? 1 : 0.55} /> : null}
             {ends && base > 0 ? (
-              <path d={`M${(x - 1).toFixed(1)} ${v.base - 9} ${zigzag(bw)}`} fill="none" stroke="#fff" strokeWidth={2.2} aria-hidden="true" />
+              <path d={`M${(x - 1).toFixed(1)} ${v.base - 9} ${zigzag(bw)}`} fill="none" stroke="var(--surface)" strokeWidth={2.2} aria-hidden="true" />
             ) : null}
             {next !== null ? <line x1={x + bw} x2={x + slot} y1={y(next)} y2={y(next)} stroke="var(--line-input)" strokeDasharray="2 2" /> : null}
             <text x={x + bw / 2} y={yTop - 7} textAnchor="middle" fontSize={valueSize} fontWeight={700} fill={INK} fontFamily={FONT}>

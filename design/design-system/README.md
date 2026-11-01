@@ -23,7 +23,7 @@ Tokens are in `tokens.json`; the page's Colors view lists each with its use. Rul
 - **Status** comes in pairs of fill and text (`ok-bg`/`ok-fg`, `warn-bg`/`warn-fg`, `bad-bg`/`bad-fg`, `info-bg`/`info-fg`, `neutral-bg`/`neutral-fg`, `purple-bg`/`purple-fg`) plus a solid bar colour (`ok-bar`, `warn-bar`, `bad-bar`). A status badge always has a dot or icon and a word; colour alone is never the message. Alert cards use `bad-tint` with a `bad-line` border; success panels `ok-tint` with `ok-line`.
 - **Dark surfaces** (`ink`, `dark-surface`, `dark-line`, `dark-text`, `dark-muted`) are reserved for code and terminal blocks and the landing page's install section. The app itself is light only in this version.
 - **Public pages** belong to the publisher, not to ReputeCast: they take the workspace's brand colour (`publisher-accent`, sample Acme indigo) on a tinted ground and never show the teal.
-- **Tokens, not hex.** App screens take every colour from these tokens; the patterns check refuses a screen that gains a raw hex. The brand kit, email previews and chart series keep their literal colours.
+- **Tokens, not hex.** App screens take every colour from these tokens; the patterns check refuses a screen that gains a raw hex. The app also names the stronger and darker steps of the status families its alerts use (`warn-line-strong`, `bad-soft`, `bad-wash`, `warn-ink`, `bad-ink`, `ok-ink`, `ok-line-strong`, `info-strong`, `info-soft`, `muted-ink`). The brand kit, email and page content, third-party logos and the avatar and workspace identity palettes keep their literal colours.
 
 ### Chart palette
 

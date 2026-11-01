@@ -154,32 +154,32 @@ export function triggerKindWord(kind: string): string {
 
 /** Colour of a step type: the palette swatch and the node header. */
 export const typeColors: Record<StepType, string> = {
-  trigger: '#0F766E',
-  delay: '#6B7280',
-  email: '#4a3aa7',
-  branch: '#B45309',
-  filter: '#B45309',
-  split: '#B45309',
-  webhook: '#1D4ED8',
-  list: '#1D4ED8',
-  goal: '#0B1220',
-  exit: '#0B1220',
-  sms: '#0F766E',
-  push: '#0F766E',
-  whatsapp: '#0F766E',
+  trigger: 'var(--accent)',
+  delay: 'var(--color-muted-ink)',
+  email: 'var(--chart-ses)',
+  branch: 'var(--warn-bar)',
+  filter: 'var(--warn-bar)',
+  split: 'var(--warn-bar)',
+  webhook: 'var(--color-info-strong)',
+  list: 'var(--color-info-strong)',
+  goal: 'var(--ink)',
+  exit: 'var(--ink)',
+  sms: 'var(--accent)',
+  push: 'var(--accent)',
+  whatsapp: 'var(--accent)',
 }
 
 /** Node border colour on the canvas (the default border otherwise). */
 export function borderColor(t: StepType): string | undefined {
   switch (t) {
     case 'trigger':
-      return '#0F766E'
+      return 'var(--accent)'
     case 'branch':
     case 'split':
       return '#F59E0B'
     case 'goal':
     case 'exit':
-      return '#0B1220'
+      return 'var(--ink)'
   }
   return undefined
 }

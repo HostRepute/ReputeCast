@@ -69,7 +69,7 @@ export function PausedCard({ d, now }: { d: Detail; now: number }) {
   const row = d.error?.row ?? (d.stagedRows > 0 ? d.stagedRows : undefined)
   const wait = at ? Math.max(0, Math.round((new Date(at).getTime() - now) / 1000)) : undefined
   return (
-    <div role="alert" className="card flex flex-col gap-2 border-[#FCD34D] px-4.5 py-4">
+    <div role="alert" className="card flex flex-col gap-2 border-warn-line-strong px-4.5 py-4">
       <div className="flex items-center gap-2.5">
         <Badge tone="warn">{t(m.paused)}</Badge>
         <span className="font-semibold">{row ? t(m.rateLimitedAt, { source: d.sourceName, row: count(row) }) : t(m.rateLimited, { source: d.sourceName })}</span>

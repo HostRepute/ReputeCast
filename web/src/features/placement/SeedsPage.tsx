@@ -195,7 +195,7 @@ function since(s: SeedView, t: ReturnType<typeof useT>): string {
   return shortDate(at) === shortDate(new Date()) ? t(m.sinceToday, { time: clock(at) }) : t(m.sinceOn, { date: shortDate(at), time: clock(at) })
 }
 
-const rowTint = (s: SeedView) => (s.status === 'failed' ? 'var(--bad-tint)' : s.status === 'expired' ? '#FFFBEB' : undefined)
+const rowTint = (s: SeedView) => (s.status === 'failed' ? 'var(--bad-tint)' : s.status === 'expired' ? 'var(--color-warn-tint)' : undefined)
 
 function SeedsCard({ d, onAdd, onReconnect, onRemove }: { d: SeedList; onAdd: () => void; onReconnect: (s: SeedView) => void; onRemove: (s: SeedView) => void }) {
   const t = useT()

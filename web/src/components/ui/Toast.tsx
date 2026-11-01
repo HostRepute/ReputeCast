@@ -95,7 +95,7 @@ function ToastView({ t }: { t: ToastItem }) {
     <div className="toast" role={kind === 'error' ? 'alert' : 'status'}>
       {ic ? (
         <span className="ti" style={{ background: ic.bg }}>
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth={ic.sw} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--surface)" strokeWidth={ic.sw} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d={ic.path} />
           </svg>
         </span>

@@ -176,7 +176,7 @@ function TestPanels({ setup, status: s, reason }: { setup: Schemas['ConnectSetup
         ) : (
           <p className="k mt-2">{t(mst.timelineEmpty)}</p>
         )}
-        {s.roundTrip ? <div className="mt-2.5 rounded-lg border border-ok-line bg-ok-tint px-3 py-2.5 text-[13px] text-[#14532D]">{s.roundTrip}</div> : null}
+        {s.roundTrip ? <div className="mt-2.5 rounded-lg border border-ok-line bg-ok-tint px-3 py-2.5 text-[13px] text-ok-ink">{s.roundTrip}</div> : null}
       </section>
       <SeedDialog
         open={seedsOpen}

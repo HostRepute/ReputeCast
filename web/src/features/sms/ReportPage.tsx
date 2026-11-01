@@ -390,7 +390,7 @@ function Paused({ r }: { r: Report }) {
   const p = r.pause!
   const pctText = (v: number) => pct(v)
   return (
-    <section className="card flex min-w-0 flex-col" style={{ borderColor: '#FCD34D' }}>
+    <section className="card flex min-w-0 flex-col" style={{ borderColor: 'var(--color-warn-line-strong)' }}>
       <div className="sec">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h2 className="h2">{p.kind === 'auto' ? t(m.autoPausedTitle, { metric: p.metric || 'other' }) : p.kind === 'budget' ? t(m.budgetPaused, { held: p.held }) : t(m.pausedBy, { name: p.by ?? '', time: p.at ? clock(p.at) : '' })}</h2>
@@ -449,10 +449,10 @@ function Outage({ r }: { r: Report }) {
           </span>
         </Note>
         <div className="flex flex-col">
-          {o.lastAccepted ? <Ev tone="#DCFCE7" title={t(m.outageLast, { provider: o.provider })} at={o.lastAccepted} /> : null}
-          {o.since ? <Ev tone="#FEE2E2" title={t(m.outageAnswered, { provider: o.provider, answer: o.answer ?? '' })} text={t(m.outageStop)} at={o.since} /> : null}
-          {o.told.length && o.since ? <Ev tone="#DBEAFE" title={t(m.outageTold, { names: formatList(o.told) })} text={t(m.outageToldText)} at={o.since} /> : null}
-          {o.nextTry ? <Ev tone="#F3F4F6" title={t(m.outageRetrying)} text={t(m.outageNext, { time: clock(o.nextTry) })} at={o.nextTry} /> : null}
+          {o.lastAccepted ? <Ev tone="var(--ok-bg)" title={t(m.outageLast, { provider: o.provider })} at={o.lastAccepted} /> : null}
+          {o.since ? <Ev tone="var(--bad-bg)" title={t(m.outageAnswered, { provider: o.provider, answer: o.answer ?? '' })} text={t(m.outageStop)} at={o.since} /> : null}
+          {o.told.length && o.since ? <Ev tone="var(--info-bg)" title={t(m.outageTold, { names: formatList(o.told) })} text={t(m.outageToldText)} at={o.since} /> : null}
+          {o.nextTry ? <Ev tone="var(--ground)" title={t(m.outageRetrying)} text={t(m.outageNext, { time: clock(o.nextTry) })} at={o.nextTry} /> : null}
         </div>
         <span className="k">{t(m.outageExpiry, { window: r.window })}</span>
       </div>
@@ -1144,16 +1144,16 @@ function Sample({ r }: { r: Report }) {
             return (
               <Ev
                 key={i}
-                tone="#DCFCE7"
+                tone="var(--ok-bg)"
                 title={t(m.evDelivered, { name: r.name })}
                 text={<T msg={m.evDeliveredText} values={{ provider: e.provider ?? '', sender: e.sender ?? '', seconds: e.seconds ?? 0, mono: (c) => <span className="mono">{c}</span> }} />}
                 at={e.at}
               />
             )
           }
-          if (e.kind === 'clicked') return <Ev key={i} tone="#DBEAFE" title={t(m.evClicked, { link: e.link ?? '' })} text={t(m.evClickedText, { target: e.target ?? '' })} at={e.at} />
-          if (e.kind === 'replied') return <Ev key={i} tone="#F3F4F6" title={t(m.evReplied, { body: e.body ?? '' })} text={t(m.evRepliedText)} at={e.at} />
-          return <Ev key={i} tone="#F3F4F6" title={t(m.evOther, { kind: e.kind })} at={e.at} />
+          if (e.kind === 'clicked') return <Ev key={i} tone="var(--info-bg)" title={t(m.evClicked, { link: e.link ?? '' })} text={t(m.evClickedText, { target: e.target ?? '' })} at={e.at} />
+          if (e.kind === 'replied') return <Ev key={i} tone="var(--ground)" title={t(m.evReplied, { body: e.body ?? '' })} text={t(m.evRepliedText)} at={e.at} />
+          return <Ev key={i} tone="var(--ground)" title={t(m.evOther, { kind: e.kind })} at={e.at} />
         })}
       </div>
     </section>

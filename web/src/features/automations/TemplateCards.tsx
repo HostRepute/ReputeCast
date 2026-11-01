@@ -38,7 +38,7 @@ function MiniStrip({ preview, full }: { preview: string[]; full?: boolean }) {
   const color = (t: string) => {
     if (t === 'branch') return 'var(--warn-bar)'
     if (!full) return undefined
-    if (t === 'webhook') return '#1D4ED8'
+    if (t === 'webhook') return 'var(--color-info-strong)'
     if (t === 'goal' || t === 'exit') return 'var(--ink)'
     return undefined
   }

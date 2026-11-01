@@ -360,7 +360,7 @@ export function BulkResultPanel({ result, onDismiss }: { result: Schemas['Contac
   const suppressed = result.failures.filter((f) => f.code === 'suppressed').length
   const failed = { n: result.failed, count: count(result.failed) }
   return (
-    <div role="alert" className="card flex flex-col gap-2 border-[#FCD34D] px-4.5 py-4">
+    <div role="alert" className="card flex flex-col gap-2 border-warn-line-strong px-4.5 py-4">
       <div className="flex items-center gap-2.5 max-md:flex-wrap">
         <Badge tone="warn">{tr(m.partlyDone)}</Badge>
         <span className="font-semibold">

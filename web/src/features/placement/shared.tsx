@@ -29,7 +29,7 @@ export type PlanProvider = Schemas['PlacementProviderOption']
 export const base = '/api/v1/workspaces/{workspace}/placement' as const
 
 /** Where copies land, as the boards colour them. */
-export const FOLDER = { inbox: 'var(--ok-bar)', tab: '#93C5FD', spam: '#7F1D1D', notArrived: 'var(--line-input)' } as const
+export const FOLDER = { inbox: 'var(--ok-bar)', tab: 'var(--color-info-soft)', spam: 'var(--color-bad-ink)', notArrived: 'var(--line-input)' } as const
 
 /** A sending provider's chart colour (tokens --chart-ses, …). */
 export function providerColor(adapter: string | undefined): string {

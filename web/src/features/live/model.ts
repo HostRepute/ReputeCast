@@ -74,7 +74,7 @@ export const providerColor: Record<Provider['color'], string> = {
 /** The progress bar's other segments and legend dots (boards). */
 export const queuedColor = 'var(--line-hover)'
 export const heldMailboxColor = 'var(--bad-line)'
-export const heldRouteColor = '#FCD34D'
+export const heldRouteColor = 'var(--color-warn-line-strong)'
 export const waitingColor = 'var(--purple-fg)'
 /** Messages in doubt (review GS-1): neither sent nor queued. */
 export const inDoubtColor = 'var(--warn-bar)'

@@ -27,9 +27,9 @@ export function seriesPath(points: Point[], key: Series, delivered: number, yMax
 }
 
 const SERIES: { key: Series; color: string; dash?: string }[] = [
-  { key: 'privacyOpens', color: '#B4BAC5', dash: '6 4' },
-  { key: 'clicks', color: '#0F766E' },
-  { key: 'humanOpens', color: '#0B1220' },
+  { key: 'privacyOpens', color: 'var(--chart-machine)', dash: '6 4' },
+  { key: 'clicks', color: 'var(--accent)' },
+  { key: 'humanOpens', color: 'var(--ink)' },
 ]
 
 /** The hours the table shows: when the winner went out, then 6, 24, 48 and 72 hours. */

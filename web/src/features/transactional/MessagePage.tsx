@@ -436,21 +436,21 @@ function entryLook(kind: Entry['kind']): { bg: string; icon: IconName } {
     case 'deferred':
     case 'retry':
     case 'failed_over':
-      return { bg: '#FEF3C7', icon: 'clock' }
+      return { bg: 'var(--warn-bg)', icon: 'clock' }
     case 'bounced':
     case 'complained':
     case 'failed':
     case 'provider_rejected':
-      return { bg: '#FEE2E2', icon: 'alertCircle' }
+      return { bg: 'var(--bad-bg)', icon: 'alertCircle' }
     case 'rejected':
     case 'not_delivered':
-      return { bg: '#EEF0F3', icon: 'ban' }
+      return { bg: 'var(--line-2)', icon: 'ban' }
     case 'opened':
     case 'clicked':
     case 'webhook':
-      return { bg: '#DBEAFE', icon: kind === 'webhook' ? 'webhook' : 'eye' }
+      return { bg: 'var(--info-bg)', icon: kind === 'webhook' ? 'webhook' : 'eye' }
   }
-  return { bg: '#DCFCE7', icon: 'check' }
+  return { bg: 'var(--ok-bg)', icon: 'check' }
 }
 
 function entryText(t: ReturnType<typeof useT>, d: Detail, e: Entry): { title: string; detail: ReactNode } {

@@ -295,7 +295,7 @@ function BounceTable({ b, headlineBounces, actions }: { b: Schemas['ReportBounce
   )
 }
 
-const reasonColor: Record<string, string> = { ink: '#0B1220', muted: '#8b94a3', bad: '#B91C1C' }
+const reasonColor: Record<string, string> = { ink: 'var(--ink)', muted: 'var(--line-input)', bad: 'var(--bad-strong)' }
 
 function Unsubscribes({ u, imported }: { u: Schemas['ReportUnsubscribes']; imported: boolean }) {
   const t = useT()

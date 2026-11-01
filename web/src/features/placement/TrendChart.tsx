@@ -89,10 +89,10 @@ type Seg = { value: number; fill: string; ink: string }
 
 function segments(c: Counts): Seg[] {
   return [
-    { value: c.inbox, fill: FOLDER.inbox, ink: '#FFFFFF' },
-    { value: c.tab, fill: FOLDER.tab, ink: '#0B1220' },
-    { value: c.spam, fill: FOLDER.spam, ink: '#FFFFFF' },
-    { value: c.notArrived, fill: FOLDER.notArrived, ink: '#0B1220' },
+    { value: c.inbox, fill: FOLDER.inbox, ink: 'var(--surface)' },
+    { value: c.tab, fill: FOLDER.tab, ink: 'var(--ink)' },
+    { value: c.spam, fill: FOLDER.spam, ink: 'var(--surface)' },
+    { value: c.notArrived, fill: FOLDER.notArrived, ink: 'var(--ink)' },
   ].filter((s) => s.value > 0)
 }
 
@@ -116,9 +116,9 @@ function Chart({ bars, seeds }: { bars: Bar[]; seeds: number }) {
     <div ref={scrollRef} className="pl-tchart" {...scroll}>
       <svg width="100%" viewBox={`0 0 ${W} 290`} role="img" aria-label={label} style={{ maxWidth: '100%' }} onMouseLeave={() => setHover(undefined)}>
         {[
-          [0, '#C9CED6', '0'],
-          [mid, '#EEF0F3', String(mid)],
-          [max, '#EEF0F3', t(m.trendSeeds, { n: max })],
+          [0, 'var(--line-hover)', '0'],
+          [mid, 'var(--line-2)', String(mid)],
+          [max, 'var(--line-2)', t(m.trendSeeds, { n: max })],
         ].map(([v, stroke, text]) => {
           const y = BASE - (v as number) * unit
           return (

@@ -136,8 +136,8 @@ export function IncompleteBanner({ run, actions }: { run: Run; actions?: ReactNo
     <div className="rv-verdict v-bad" role="alert">
       <VerdictIcon kind="error" size={36} />
       <div className="rv-vtext">
-        <span className="text-[18px] font-bold text-[#7F1D1D]">{hostRepute ? t(m.incompleteHostRepute) : t(m.incompleteTitle)}</span>
-        <span className="text-[13px] text-[#7F1D1D]">
+        <span className="text-[18px] font-bold text-bad-ink">{hostRepute ? t(m.incompleteHostRepute) : t(m.incompleteTitle)}</span>
+        <span className="text-[13px] text-bad-ink">
           {/* The run's problem comes from the server, as it was recorded. */}
           {run.problem ? `${run.problem.replace(/\.$/, '')}. ` : ''}
           {line}

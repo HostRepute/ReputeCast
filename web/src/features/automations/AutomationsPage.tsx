@@ -312,7 +312,7 @@ function Alerts({ alerts }: { alerts: Schemas['AutomationAlert'][] }) {
   return (
     <Grid min={380} gap={16}>
       {alerts.map((a) => (
-        <div key={a.id} role="alert" className="card flex flex-col gap-2 px-4.5 py-4" style={{ borderColor: a.kind === 'sending_held' ? 'var(--bad-line)' : '#FCD34D' }}>
+        <div key={a.id} role="alert" className="card flex flex-col gap-2 px-4.5 py-4" style={{ borderColor: a.kind === 'sending_held' ? 'var(--bad-line)' : 'var(--color-warn-line-strong)' }}>
           <div className="flex items-center gap-2.5">
             {a.kind === 'sending_held' ? (
               <Badge tone="bad" dot>

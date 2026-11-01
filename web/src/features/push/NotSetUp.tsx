@@ -22,7 +22,7 @@ export function NotSetUp({ data }: { data: PushSetup }) {
       <svg width="64" height="56" viewBox="0 0 64 56" aria-hidden="true">
         <rect x="8" y="10" width="40" height="30" rx="4" fill="none" stroke="var(--color-muted-line)" strokeWidth="2" />
         <path d="M8 17h40" stroke="var(--color-muted-line)" strokeWidth="2" />
-        <path d="M46 30v-6a8 8 0 0 0-16 0v6l-3 3h22z" fill="#fff" stroke="var(--accent)" strokeWidth="2.2" strokeLinejoin="round" />
+        <path d="M46 30v-6a8 8 0 0 0-16 0v6l-3 3h22z" fill="var(--surface)" stroke="var(--accent)" strokeWidth="2.2" strokeLinejoin="round" />
         <path d="M35 37a3 3 0 0 0 6 0" fill="none" stroke="var(--accent)" strokeWidth="2.2" />
       </svg>
       <h2 className="tt" id="push-empty-title">

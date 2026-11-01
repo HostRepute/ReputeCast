@@ -323,8 +323,8 @@ function ConnectInvite({ canConnect }: { canConnect: boolean }) {
     <section className="card flex flex-wrap items-center gap-5 border-accent-line bg-accent-tint px-5.5 py-5" aria-labelledby="h-invite">
       <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
         <rect width="44" height="44" rx="11" fill="var(--accent)" />
-        <path d="M22 9 33 13.5v8c0 6-4.6 10.6-11 13-6.4-2.4-11-7-11-13v-8z" fill="none" stroke="#fff" strokeWidth="2" strokeLinejoin="round" />
-        <path d="m16.5 22 3.6 3.6 7.4-7.6" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M22 9 33 13.5v8c0 6-4.6 10.6-11 13-6.4-2.4-11-7-11-13v-8z" fill="none" stroke="var(--surface)" strokeWidth="2" strokeLinejoin="round" />
+        <path d="m16.5 22 3.6 3.6 7.4-7.6" fill="none" stroke="var(--surface)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <div className="flex flex-[1_1_360px] flex-col gap-1">
         <h2 className="m-0 text-[16px] font-bold" id="h-invite">
@@ -399,14 +399,14 @@ function UnreachableAlert({ o }: { o: Overview }) {
       : t(m.unreachableFallbackNothing, { sources: fallback.sources })
     : t(m.unreachableFallbackRuns)
   return (
-    <div role="alert" className="flex items-start gap-3.5 rounded-[10px] border border-[#FECACA] bg-[#FEF2F2] px-4 py-3.5 max-md:flex-wrap">
+    <div role="alert" className="flex items-start gap-3.5 rounded-[10px] border border-bad-soft bg-bad-wash px-4 py-3.5 max-md:flex-wrap">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--bad-strong)" strokeWidth="1.8" aria-hidden="true">
         <circle cx="10" cy="10" r="8" />
         <path d="M10 6v5M10 13.5v.5" strokeLinecap="round" />
       </svg>
       <div className="flex flex-[1_1_300px] flex-col gap-1">
         <span className="font-semibold text-bad-fg">{hr.unreachable?.message}</span>
-        <span className="text-[13px] text-[#7F1D1D]">{`${stale} ${current} ${fallbackText}`}</span>
+        <span className="text-[13px] text-bad-ink">{`${stale} ${current} ${fallbackText}`}</span>
         <div className="mt-1.5 flex flex-wrap gap-2.5">
           <Button size="sm" variant="primary" onClick={() => run.mutate({ params: { path: { workspace: slug } } })} loading={run.isPending}>
             {t(common.retry)}

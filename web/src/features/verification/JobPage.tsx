@@ -200,7 +200,7 @@ function JobCard({ j }: { j: Job }) {
           ) : null}
         </section>
       ) : j.status === 'stopped' ? (
-        <section className="card flex flex-col gap-3 px-5 py-[18px]" style={{ borderColor: '#FCD34D' }}>
+        <section className="card flex flex-col gap-3 px-5 py-[18px]" style={{ borderColor: 'var(--color-warn-line-strong)' }}>
           {head(t(m.jobStartedOn, { time: clock(startedAt), name: j.startedBy, count: j.total }), statusBadge(j, t))}
           <div className="vf-bar thin" role="progressbar" aria-valuemin={0} aria-valuemax={j.total} aria-valuenow={j.checked} aria-label={t(m.jobProgress, { checked: j.checked, total: j.total })}>
             <i style={{ flex: `${j.checked} 1 0%`, background: 'var(--warn-bar)' }} />

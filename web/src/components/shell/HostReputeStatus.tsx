@@ -13,7 +13,7 @@ export function useHostReputeLine(): { color: string; title: string; line: strin
     return { color: 'var(--ok-bar)', title: t(m.hostReputeConnected), line: t(m.hostReputeSynced, { team: hr.teamName, ago: ago(hr.lastSyncAt) }) }
   }
   if (hr) return { color: 'var(--warn-bar)', title: t(m.hostReputeAttention), line: t(m.hostReputeReconnect) }
-  return { color: '#6B7280', title: t(m.hostReputeConnect), line: t(m.hostReputeOptional) }
+  return { color: 'var(--color-muted-ink)', title: t(m.hostReputeConnect), line: t(m.hostReputeOptional) }
 }
 
 /** The sidebar footer's HostRepute card ("HostRepute connected · Acme Inc · synced 4 min ago"). */

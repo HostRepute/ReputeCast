@@ -50,9 +50,9 @@ const darkTheme = EditorView.theme(
     '.cm-activeLine': { backgroundColor: 'rgba(255,255,255,.04)' },
     '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': { backgroundColor: 'rgba(147,197,253,.28) !important' },
     '.cm-cursor': { borderLeftColor: 'var(--ground-3)' },
-    '.mj-tg': { color: '#93C5FD' },
+    '.mj-tg': { color: 'var(--color-info-soft)' },
     '.mj-at': { color: 'var(--color-warn-line)' },
-    '.mj-st': { color: '#86EFAC' },
+    '.mj-st': { color: 'var(--color-ok-line-strong)' },
     '.mj-cm': { color: 'var(--ink-4)' },
   },
   { dark: true },
@@ -61,7 +61,7 @@ const darkTheme = EditorView.theme(
 const lightTheme = EditorView.theme({
   '&': { color: 'var(--ink-nav)', backgroundColor: 'transparent', height: '100%' },
   '.cm-content': { padding: 0 },
-  '.cm-gutters': { backgroundColor: 'transparent', color: '#6B7280', border: 0 },
+  '.cm-gutters': { backgroundColor: 'transparent', color: 'var(--color-muted-ink)', border: 0 },
   '.cm-lineNumbers .cm-gutterElement': { minWidth: '28px', padding: '0 16px 0 0', textAlign: 'right' },
 })
 

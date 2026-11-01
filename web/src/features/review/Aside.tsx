@@ -104,7 +104,7 @@ export function RouteCard({ route, startAt }: { route: Run['estimates']['route']
       )}
       <div className="flex flex-col gap-1.5">
         {shares.map((s) => {
-          const color = s.available ? (providerColor[s.color] ?? providerColor.other) : '#B91C1C'
+          const color = s.available ? (providerColor[s.color] ?? providerColor.other) : 'var(--bad-strong)'
           return (
             <div key={s.providerId} className="contents">
               <div className="rv-sum">

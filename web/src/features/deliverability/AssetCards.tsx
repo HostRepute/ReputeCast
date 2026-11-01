@@ -151,7 +151,7 @@ function DomainCard({ a, connected }: { a: AssetHealth; connected: boolean }) {
   const builtin = a.blocklists.via !== 'hostrepute'
   if (connected && a.notMonitored) return <NotMonitoredCard a={a} />
   return (
-    <Card label={a.asset} className={a.tone === 'warn' ? 'border-[#FCD34D]' : a.tone === 'bad' ? 'border-bad-line' : undefined}>
+    <Card label={a.asset} className={a.tone === 'warn' ? 'border-warn-line-strong' : a.tone === 'bad' ? 'border-bad-line' : undefined}>
       <CardHead name={a.asset} badge={assetBadge(a, connected)} />
       <span className="k">{[t(m.sendingDomain), builtin ? t(m.builtinChecks) : usedBy(a.usedBy)].filter(Boolean).join(' · ')}</span>
       {builtin ? (
@@ -177,7 +177,7 @@ function IPCard({ a, connected, onDelist, delistReason, delisting }: { a: AssetH
   const { slug } = useWorkspace()
   const builtin = a.blocklists.via !== 'hostrepute'
   return (
-    <Card label={a.asset} className={a.tone === 'warn' ? 'border-[#FCD34D]' : a.tone === 'bad' ? 'border-bad-line' : undefined}>
+    <Card label={a.asset} className={a.tone === 'warn' ? 'border-warn-line-strong' : a.tone === 'bad' ? 'border-bad-line' : undefined}>
       <CardHead name={a.asset} mono badge={assetBadge(a, connected)} />
       <span className="k">{warmupLine(a)}</span>
       {builtin ? (

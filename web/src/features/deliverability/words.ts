@@ -74,7 +74,7 @@ export function toneOf(t: string): Tone {
 }
 
 /** Bar colours by tone, as on the board (ok-bar, warn-bar, bad-bar). */
-export const barColor: Record<string, string> = { ok: '#15803D', warn: '#B45309', bad: '#DC2626' }
+export const barColor: Record<string, string> = { ok: 'var(--ok-bar)', warn: 'var(--warn-bar)', bad: 'var(--bad-bar)' }
 
 /** Sending-provider series colours (README › Chart palette). */
 export function providerColor(adapter?: string): string {
@@ -87,7 +87,7 @@ export function providerColor(adapter?: string): string {
       return 'var(--chart-postmark)'
     case undefined:
     case '':
-      return '#B91C1C'
+      return 'var(--bad-strong)'
   }
   return 'var(--chart-other)'
 }

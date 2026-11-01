@@ -580,7 +580,7 @@ function EmptyPages({ d, builtinCount, starting, onStartAbout }: { d: Overview; 
       <svg width="64" height="56" viewBox="0 0 64 56" aria-hidden="true">
         <rect x="6" y="6" width="40" height="44" rx="4" fill="none" stroke="var(--color-muted-line)" strokeWidth="2" />
         <path d="M14 16h24M14 24h18M14 32h22" stroke="var(--color-muted-line)" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="48" cy="40" r="10" fill="#fff" stroke="var(--accent)" strokeWidth="2.2" />
+        <circle cx="48" cy="40" r="10" fill="var(--surface)" stroke="var(--accent)" strokeWidth="2.2" />
         <path d="M48 35v10M43 40h10" stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" />
       </svg>
       <h2 className="tt">{t(m.emptyTitle)}</h2>

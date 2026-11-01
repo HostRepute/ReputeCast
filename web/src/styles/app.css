@@ -91,6 +91,18 @@
   --color-side: #fbfbfc;
   --color-skeleton: #e9ecf0;
   --color-muted-line: #9aa3b2;
+  /* The boards' stronger and darker steps of the status families: alert
+     borders and washes, text on tinted panels (review 2026-11 FE-5b). */
+  --color-muted-ink: #6b7280;
+  --color-ok-ink: #14532d;
+  --color-ok-line-strong: #86efac;
+  --color-warn-ink: #78350f;
+  --color-warn-line-strong: #fcd34d;
+  --color-bad-ink: #7f1d1d;
+  --color-bad-soft: #fecaca;
+  --color-bad-wash: #fef2f2;
+  --color-info-strong: #1d4ed8;
+  --color-info-soft: #93c5fd;
 
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
