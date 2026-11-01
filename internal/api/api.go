@@ -10,6 +10,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"reflect"
 	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -143,6 +144,7 @@ func (o Op) operation() huma.Operation {
 
 // Register adds an operation with a typed handler.
 func Register[I, O any](a huma.API, o Op, h func(context.Context, *I) (*O, error)) {
+	checkInput(reflect.TypeFor[I](), o.ID)
 	huma.Register(a, o.operation(), h)
 }
 
