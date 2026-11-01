@@ -23,6 +23,7 @@ Tokens are in `tokens.json`; the page's Colors view lists each with its use. Rul
 - **Status** comes in pairs of fill and text (`ok-bg`/`ok-fg`, `warn-bg`/`warn-fg`, `bad-bg`/`bad-fg`, `info-bg`/`info-fg`, `neutral-bg`/`neutral-fg`, `purple-bg`/`purple-fg`) plus a solid bar colour (`ok-bar`, `warn-bar`, `bad-bar`). A status badge always has a dot or icon and a word; colour alone is never the message. Alert cards use `bad-tint` with a `bad-line` border; success panels `ok-tint` with `ok-line`.
 - **Dark surfaces** (`ink`, `dark-surface`, `dark-line`, `dark-text`, `dark-muted`) are reserved for code and terminal blocks and the landing page's install section. The app itself is light only in this version.
 - **Public pages** belong to the publisher, not to ReputeCast: they take the workspace's brand colour (`publisher-accent`, sample Acme indigo) on a tinted ground and never show the teal.
+- **Tokens, not hex.** App screens take every colour from these tokens; the patterns check refuses a screen that gains a raw hex. The brand kit, email previews and chart series keep their literal colours.
 
 ### Chart palette
 
@@ -87,7 +88,7 @@ Elevation: `shadow-sm` for menus, `shadow-md` for hover lifts and dragged nodes,
 
 **Nav**: 36px items, 8px radius, icon plus label; active item `accent-soft` fill with `accent` text. The rail shows only icons with a tooltip; the phone tab bar shows the five primary destinations.
 
-**Stepper** (wizards): 26px numbered circles; done steps `ok-bg` with a check, current step `accent`, upcoming steps outlined `line-strong`.
+**Stepper** (wizards): 26px numbered circles; done steps `ok-bg` with a check, current step `accent`, upcoming steps outlined `line-strong`. One stepper serves every setup wizard: the current step is marked for screen readers, a finished one is read as "Done: Provider", and on phones the strip scrolls sideways and takes keyboard focus while it does. Dialogs and checklists keep their compact step bar.
 
 **Status rows** (readiness, timeline): a badge, a sentence that states the finding, and the fix or detail link on the right. Blocked rows come first, then warnings, then passes.
 
@@ -98,6 +99,14 @@ Elevation: `shadow-sm` for menus, `shadow-md` for hover lifts and dragged nodes,
 **Banners**: full-width inside the content column, above everything; `bad-tint` with `bad-line` for an active pause or outage, `warn-bg` for a warning, `info-bg` for scheduled or informational notices. A banner always has an action.
 
 **Empty, loading, error**: an empty state is a card with a sentence that says what will appear here and the one action that makes it appear. Loading uses grey skeleton blocks shaped like the content, never a spinner alone. Errors say what failed, what ReputeCast already did about it and what the person can do next.
+
+**Command palette** (⌘K, Ctrl K): one search for places, campaigns, contacts, lists, segments and single settings, found by the words their page shows ("Keep open and click details for"). Results are grouped by kind; Enter opens, Escape closes and returns focus.
+
+**Show more**: a list read page by page ends in one button with the page's own label ("Load 50 more"). It says it is loading and can't fetch the same page twice, it goes once the last page is in, and the list's own line says how many are shown.
+
+**No results**: a search or filter that finds nothing says what was searched and offers the way back ("Clear search and filters"); it is never an empty table or the "nothing yet" state.
+
+**Switches** change at once and go back, with a message, when the server refuses; they never grey out while they save. Reordering that saves at once (Grow's recommendations) works the same way.
 
 **Code and terminal blocks**: `ink` or `dark-surface` background, `mono-code` or `mono-terminal`, tag / attribute / string colours from the `code-*` tokens, line numbers in `ink-4`.
 
