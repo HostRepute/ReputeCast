@@ -875,7 +875,8 @@ func (s *Service) numbers(ctx context.Context, ws *store.Workspace, p store.Prod
 }
 
 // automationNumbers are the numbers of a live "Bought a product" automation
-// for this product (or any product).
+// for this product (or any product), from any of its triggers (review
+// 2026-11 AT-14).
 func (s *Service) automationNumbers(ctx context.Context, ws *store.Workspace, productID uuid.UUID) (*ProductAutomationNumbers, error) {
 	var a ProductAutomationNumbers
 	var id uuid.UUID
@@ -884,9 +885,11 @@ func (s *Service) automationNumbers(ctx context.Context, ws *store.Workspace, pr
 		       (SELECT count(*) FROM automation_runs r WHERE r.automation_id = a.id)::bigint,
 		       (SELECT count(*) FROM automation_runs r WHERE r.automation_id = a.id AND r.exit_reason = 'refunded')::bigint
 		FROM automations a
+		CROSS JOIN LATERAL (SELECT bool_or(coalesce(t->>'productId', '') = $2) AS exact FROM jsonb_array_elements(a.triggers) t
+		                    WHERE t->>'kind' = 'bought_product' AND coalesce(t->>'productId', '') IN ('', $2)) m
 		WHERE a.workspace_id = $1 AND a.status = 'live' AND a.deleted_at IS NULL
-		  AND a.trigger->>'kind' = 'bought_product' AND (coalesce(a.trigger->>'productId', '') IN ('', $2))
-		ORDER BY coalesce(a.trigger->>'productId', '') = $2 DESC, a.created_at
+		  AND a.triggers @> '[{"kind": "bought_product"}]'::jsonb AND m.exact IS NOT NULL
+		ORDER BY m.exact DESC, a.created_at
 		LIMIT 1`, ws.ID, productID.String()).Scan(&id, &a.Name, &a.Contacts, &a.Refunded)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil

@@ -111,20 +111,21 @@ func (q *Queries) WelcomeImport(ctx context.Context, arg WelcomeImportParams) (W
 }
 
 const welcomeListTriggers = `-- name: WelcomeListTriggers :many
-SELECT id, name, status, trigger FROM automations
+SELECT id, name, status, triggers FROM automations
 WHERE workspace_id = $1 AND deleted_at IS NULL
-  AND trigger->>'kind' IN ('joined_list', 'form_submitted')
+  AND (triggers @> '[{"kind": "joined_list"}]'::jsonb OR triggers @> '[{"kind": "form_submitted"}]'::jsonb)
 ORDER BY created_at, id
 `
 
 type WelcomeListTriggersRow struct {
-	ID      uuid.UUID       `json:"id"`
-	Name    string          `json:"name"`
-	Status  string          `json:"status"`
-	Trigger json.RawMessage `json:"trigger"`
+	ID       uuid.UUID       `json:"id"`
+	Name     string          `json:"name"`
+	Status   string          `json:"status"`
+	Triggers json.RawMessage `json:"triggers"`
 }
 
-// Automations that start on a list or a form, with their status.
+// Automations that start on a list or a form, with their status: any of
+// their triggers (review 2026-11 AT-14).
 func (q *Queries) WelcomeListTriggers(ctx context.Context, workspaceID uuid.UUID) ([]WelcomeListTriggersRow, error) {
 	rows, err := q.db.Query(ctx, welcomeListTriggers, workspaceID)
 	if err != nil {
@@ -138,7 +139,7 @@ func (q *Queries) WelcomeListTriggers(ctx context.Context, workspaceID uuid.UUID
 			&i.ID,
 			&i.Name,
 			&i.Status,
-			&i.Trigger,
+			&i.Triggers,
 		); err != nil {
 			return nil, err
 		}

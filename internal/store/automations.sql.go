@@ -473,10 +473,12 @@ func (q *Queries) AutomationDateFieldMatches(ctx context.Context, arg Automation
 }
 
 const automationDateTriggers = `-- name: AutomationDateTriggers :many
-SELECT a.id, a.workspace_id, a.trigger, w.timezone
+SELECT a.id, a.workspace_id, dt.t::jsonb AS trigger, w.timezone
 FROM automations a
 JOIN workspaces w ON w.id = a.workspace_id
-WHERE a.status = 'live' AND a.deleted_at IS NULL AND a.trigger ->> 'kind' = 'date_field'
+CROSS JOIN LATERAL jsonb_array_elements(a.triggers) AS dt (t)
+WHERE a.status = 'live' AND a.deleted_at IS NULL AND a.triggers @> '[{"kind": "date_field"}]'::jsonb
+  AND dt.t ->> 'kind' = 'date_field'
 `
 
 type AutomationDateTriggersRow struct {
@@ -486,6 +488,8 @@ type AutomationDateTriggersRow struct {
 	Timezone    string          `json:"timezone"`
 }
 
+// Live flows' date triggers, one row per trigger, whichever of the flow's
+// triggers it is (review 2026-11 AT-14).
 func (q *Queries) AutomationDateTriggers(ctx context.Context) ([]AutomationDateTriggersRow, error) {
 	rows, err := q.db.Query(ctx, automationDateTriggers)
 	if err != nil {

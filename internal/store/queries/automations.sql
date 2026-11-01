@@ -617,10 +617,14 @@ LIMIT 1000
 FOR UPDATE OF r SKIP LOCKED;
 
 -- name: AutomationDateTriggers :many
-SELECT a.id, a.workspace_id, a.trigger, w.timezone
+-- Live flows' date triggers, one row per trigger, whichever of the flow's
+-- triggers it is (review 2026-11 AT-14).
+SELECT a.id, a.workspace_id, dt.t::jsonb AS trigger, w.timezone
 FROM automations a
 JOIN workspaces w ON w.id = a.workspace_id
-WHERE a.status = 'live' AND a.deleted_at IS NULL AND a.trigger ->> 'kind' = 'date_field';
+CROSS JOIN LATERAL jsonb_array_elements(a.triggers) AS dt (t)
+WHERE a.status = 'live' AND a.deleted_at IS NULL AND a.triggers @> '[{"kind": "date_field"}]'::jsonb
+  AND dt.t ->> 'kind' = 'date_field';
 
 -- name: AutomationLostWebhookRuns :many
 -- Runs waiting on a webhook call whose job never ran (lost or not enqueued).

@@ -447,9 +447,9 @@ VALUES (@id, @contact_id, sqlc.narg(list_id), @action, @source, @detail, @note, 
 SELECT key, label, type, options FROM custom_fields WHERE workspace_id = @workspace_id ORDER BY position, key;
 
 -- name: IntegrationEventFlows :many
--- Live automations with their trigger and graph, to name the flows an API
+-- Live automations with their triggers and graph, to name the flows an API
 -- event starts or ends ("which starts the Onboarding automation").
-SELECT a.name, a.trigger, v.graph
+SELECT a.name, a.triggers, v.graph
 FROM automations a
 JOIN automation_versions v ON v.automation_id = a.id AND v.version = a.live_version
 WHERE a.workspace_id = @workspace_id AND a.status = 'live' AND a.deleted_at IS NULL

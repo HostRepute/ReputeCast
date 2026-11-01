@@ -273,7 +273,11 @@ func (e *Engine) applyChanges(ctx context.Context, q *store.Queries, tx pgx.Tx, 
 		if err == nil {
 			var name string
 			var trigger json.RawMessage
-			if err := tx.QueryRow(ctx, `SELECT name, trigger FROM automations WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, aid, c.WorkspaceID).Scan(&name, &trigger); err == nil {
+			// The flow's first tag or list trigger, whichever of its
+			// triggers it is (review 2026-11 AT-14).
+			if err := tx.QueryRow(ctx, `SELECT a.name, coalesce((SELECT t FROM jsonb_array_elements(a.triggers) WITH ORDINALITY AS e (t, n)
+				WHERE t ->> 'kind' IN ('tag_added', 'joined_list') ORDER BY n LIMIT 1), '{}'::jsonb)
+				FROM automations a WHERE a.id = $1 AND a.workspace_id = $2 AND a.deleted_at IS NULL`, aid, c.WorkspaceID).Scan(&name, &trigger); err == nil {
 				var t struct {
 					Kind   string `json:"kind"`
 					Tag    string `json:"tag"`

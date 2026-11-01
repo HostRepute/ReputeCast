@@ -7,10 +7,11 @@ WHERE workspace_id = @workspace_id AND deleted_at IS NULL
 ORDER BY created_at DESC, id DESC;
 
 -- name: WelcomeListTriggers :many
--- Automations that start on a list or a form, with their status.
-SELECT id, name, status, trigger FROM automations
+-- Automations that start on a list or a form, with their status: any of
+-- their triggers (review 2026-11 AT-14).
+SELECT id, name, status, triggers FROM automations
 WHERE workspace_id = @workspace_id AND deleted_at IS NULL
-  AND trigger->>'kind' IN ('joined_list', 'form_submitted')
+  AND (triggers @> '[{"kind": "joined_list"}]'::jsonb OR triggers @> '[{"kind": "form_submitted"}]'::jsonb)
 ORDER BY created_at, id;
 
 -- name: WelcomeDismissedLists :many
