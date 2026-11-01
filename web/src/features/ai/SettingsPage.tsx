@@ -25,6 +25,7 @@ import { ALT_TEXT_WIDTH, calendarDay, dollars, seconds, tokens } from './format'
 import { m } from './messages'
 import { AINote, EyeOffIcon, featureName, featureSends, LeavesNote, OutcomeBadge, rowFeature, tags } from './parts'
 import './ai.css'
+import { Pager } from '@/components/ui/Pager'
 
 type Dialog = { kind: 'connect'; provider: AIProvider } | { kind: 'change' | 'key' | 'cap' | 'prices' | 'disconnect' } | null
 type TestState = { running: boolean; result?: AITest; error?: string }
@@ -768,9 +769,7 @@ function ActivityLog() {
           </div>
           {q.hasNextPage ? (
             <div className="ai-foot justify-center">
-              <Button size="sm" onClick={() => void q.fetchNextPage()} loading={q.isFetchingNextPage}>
-                {t(m.showMore)}
-              </Button>
+              <Pager query={q} label={t(m.showMore)} size="sm" />
             </div>
           ) : null}
         </>

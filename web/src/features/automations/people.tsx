@@ -14,6 +14,7 @@ import { common } from '@/i18n/common'
 import { clock, count, dayMonthDate, shortDate } from '@/lib/format'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
 import { m } from './complete.messages'
+import { Pager } from '@/components/ui/Pager'
 
 type StepContact = Schemas['AutomationStepContact']
 type ContactRun = Schemas['AutomationContactRun']
@@ -81,9 +82,7 @@ function StepContactsDialog({ automationId, automationName, nodeId, step, onClos
         q.hasNextPage ? (
           <>
             <span className="k mr-auto">{tr(m.shown, { shown: count(items.length), total: count(total) })}</span>
-            <Button loading={q.isFetchingNextPage} onClick={() => void q.fetchNextPage()}>
-              {tr(m.showMore)}
-            </Button>
+            <Pager query={q} label={tr(m.showMore)} size="md" />
           </>
         ) : undefined
       }

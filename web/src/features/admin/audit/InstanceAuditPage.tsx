@@ -23,6 +23,7 @@ import { AdminPage } from '../AdminPage'
 import { AgencyAuditFilter } from '@/features/agency/AdminParts'
 import { RetentionDialog, StreamDialog } from './AuditSettingsDialogs'
 import { m as mi } from './messages'
+import { Pager } from '@/components/ui/Pager'
 
 type Item = Schemas['InstanceAuditItem']
 type List = Schemas['InstanceAuditList']
@@ -135,9 +136,7 @@ function InstanceAudit({ search }: { search: InstanceAuditSearch }) {
             </AccessTable>
             {q.hasNextPage ? (
               <div className="row justify-center border-t border-line-2 px-4.5 py-3">
-                <Button size="sm" loading={q.isFetchingNextPage} onClick={() => void q.fetchNextPage()}>
-                  {t(ma.showOlder)}
-                </Button>
+                <Pager query={q} label={t(ma.showOlder)} size="sm" />
               </div>
             ) : null}
           </>

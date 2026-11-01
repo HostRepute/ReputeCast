@@ -1,7 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { http } from '@/api/client'
-import { Button } from '@/components/ui/Button'
 import { KeyValues } from '@/components/ui/Data'
 import { Dialog } from '@/components/ui/Dialog'
 import { Skeleton } from '@/components/ui/Feedback'
@@ -11,6 +10,7 @@ import { useWorkspace } from '@/lib/session'
 import { money, storesBase, type ActivityItem, type StorePage } from './api'
 import { ca, cm } from './messages'
 import './commerce.css'
+import { Pager } from '@/components/ui/Pager'
 
 type T = ReturnType<typeof useT>
 
@@ -277,9 +277,7 @@ export function ActivityLogDialog({ page, c, open, onOpenChange }: { page: Store
           </div>
         )}
         {q.hasNextPage ? (
-          <Button size="sm" className="self-start" onClick={() => void q.fetchNextPage()} disabled={q.isFetchingNextPage}>
-            {t(cm.activityMore)}
-          </Button>
+          <Pager query={q} label={t(cm.activityMore)} size="sm" className="self-start" />
         ) : null}
       </div>
     </Dialog>

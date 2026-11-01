@@ -21,6 +21,7 @@ import { mt } from './messages'
 import { ScheduledCard, SuppressionActions } from './schedule'
 import { msc } from './schedule.messages'
 import { CategoryCell, secs, sizeText, StatusBadge, TxTabs } from './shared'
+import { Pager } from '@/components/ui/Pager'
 
 type Detail = Schemas['TransactionalMessageDetail']
 type Entry = Schemas['TransactionalTimelineEntry']
@@ -146,9 +147,7 @@ function SideList({ current, search }: { current: string; search: LogSearch }) {
           <LogPhoneList items={items} current={current} compact />
           {q.hasNextPage ? (
             <div className="tx-foot" style={{ justifyContent: 'center' }}>
-              <Button size="sm" loading={q.isFetchingNextPage} onClick={() => void q.fetchNextPage()}>
-                {t(ml.loadMore)}
-              </Button>
+              <Pager query={q} label={t(ml.loadMore)} size="sm" />
             </div>
           ) : null}
         </>

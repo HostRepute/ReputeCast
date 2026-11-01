@@ -25,6 +25,7 @@ import { AccessTable, copyText } from '../access/parts'
 import { AuditStreamDialog } from './AuditStreamDialog'
 import { m } from './messages'
 import { zonedDayStart } from './zoned'
+import { Pager } from '@/components/ui/Pager'
 
 type Item = Schemas['AuditEventItem']
 type List = Schemas['AuditEventList']
@@ -124,9 +125,7 @@ export function AuditPage({ search }: { search: AuditSearch }) {
                   </AccessTable>
                   {q.hasNextPage ? (
                     <div className="row justify-center border-t border-line-2 px-4.5 py-3">
-                      <Button size="sm" loading={q.isFetchingNextPage} onClick={() => void q.fetchNextPage()}>
-                        {t(m.showOlder)}
-                      </Button>
+                      <Pager query={q} label={t(m.showOlder)} size="sm" />
                     </div>
                   ) : null}
                 </>

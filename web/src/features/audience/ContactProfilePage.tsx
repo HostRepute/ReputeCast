@@ -40,6 +40,7 @@ import { ContactWebsiteCard } from '@/features/website/elsewhere'
 import { ContactAutomationsCard } from '@/features/automations/people'
 import { channelActivityIcon, useChannelActivity } from '@/features/push/activity'
 import { ContactChannelCards } from '@/features/push/ContactCards'
+import { Pager } from '@/components/ui/Pager'
 
 type Profile = Schemas['ContactProfile']
 type Item = Schemas['ContactActivityItem']
@@ -811,9 +812,7 @@ function ActivityCard({ contactId, total }: { contactId: string; total: number }
             {tr(m.eventsCount, { listed: count(listed), shown: count(shown) })}
           </span>
           {q.hasNextPage ? (
-            <Button size="sm" loading={q.isFetchingNextPage} onClick={() => void q.fetchNextPage()}>
-              {tr(m.loadMore)}
-            </Button>
+            <Pager query={q} label={tr(m.loadMore)} size="sm" />
           ) : null}
         </div>
       ) : null}

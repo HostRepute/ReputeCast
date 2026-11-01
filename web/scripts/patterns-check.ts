@@ -7,6 +7,8 @@
 //   - a wizard's steps are drawn by Stepper (components/ui/Stepper, review
 //     2026-11 FE-3b); the files in ownSteps still draw a compact step bar
 //     of their own (a dialog's or a checklist's) and no other file may;
+//   - "Show more" under a list read page by page is Pager (components/ui/
+//     Pager), never a button calling fetchNextPage itself;
 //   - no file gains hex colours: colours come from the tokens in
 //     styles/app.css. scripts/hex-baseline.json holds what each file had
 //     when the check began; a file may only go down. `--update` writes the
@@ -47,6 +49,8 @@ for (const p of files(src)) {
   if (/function useDebounced\b/.test(text) && rel !== 'src/lib/hooks.ts') problems.push(`${rel}: import useDebounced from lib/hooks instead of a local copy`)
   if (/aria-current=(?:"step"|\{[^}]*'step')/.test(text) && rel !== 'src/components/ui/Stepper.tsx' && !ownSteps.has(rel))
     problems.push(`${rel}: draw a wizard's steps with Stepper from components/ui/Stepper`)
+  if (/onClick=\{\(\) => (?:void )?\w+\.fetchNextPage\(\)\}/.test(text) && rel !== 'src/components/ui/Pager.tsx')
+    problems.push(`${rel}: show the next page with Pager from components/ui/Pager`)
   if (/messages(\.vi)?\.ts$/.test(rel)) continue
   const n = (text.match(hex) ?? []).length
   if (n) counts[rel] = n
@@ -67,4 +71,4 @@ if (problems.length) {
   console.error(problems.join('\n'))
   process.exit(1)
 }
-console.log(`Patterns: switches, steppers and useDebounced shared; ${total} hex colours left in ${Object.keys(counts).length} files (none added).`)
+console.log(`Patterns: switches, steppers, pagers and useDebounced shared; ${total} hex colours left in ${Object.keys(counts).length} files (none added).`)

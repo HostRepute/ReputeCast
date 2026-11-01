@@ -16,6 +16,7 @@ import { common } from '@/i18n/common'
 import { byteSize, clock, count, logTime } from '@/lib/format'
 import { AdminPage } from '../AdminPage'
 import { m } from './messages'
+import { Pager } from '@/components/ui/Pager'
 
 type View = Schemas['SystemView']
 type Job = Schemas['SystemJob']
@@ -247,9 +248,7 @@ function FailedJobs() {
           </AccessTable>
           {q.hasNextPage ? (
             <div className="pad flex justify-center border-t border-line-2">
-              <Button size="sm" loading={q.isFetchingNextPage} onClick={() => void q.fetchNextPage()}>
-                {t(m.loadMore)}
-              </Button>
+              <Pager query={q} label={t(m.loadMore)} size="sm" />
             </div>
           ) : null}
         </>
