@@ -66,3 +66,10 @@ minimumReleaseAgeExclude:
   - typescript-eslint@8.71.2
   - vitest@5.0.4
   - zod@4.6.7
+
+# Security patches of transitive dependencies (pnpm audit): seroval 1.6.9,
+# which TanStack Router pulls in, has two script-injection advisories
+# (GHSA-9wx9-5pv9-3349 and a RegExp one) fixed in 1.6.10 and 1.6.11.
+overrides:
+  seroval: 1.6.11
+  seroval-plugins: 1.6.11
