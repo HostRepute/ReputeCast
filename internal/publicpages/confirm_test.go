@@ -156,21 +156,31 @@ func TestClientKeyGroupsIPv6(t *testing.T) {
 	}
 }
 
-// DP-3: a form flooded from many addresses (past 120 submissions a minute)
-// asks each submission for the Turnstile check while it lasts, though the
-// form doesn't ask for it otherwise.
+// DP-3: a form flooded from many addresses (beyond 120 submissions at once
+// and two a second after) asks each submission for the Turnstile check
+// while it lasts, though the form doesn't ask for it otherwise.
 func TestFloodedFormAsksForTurnstile(t *testing.T) {
 	env, ids := demo(t)
 	env.App.Mail = &fakeMail{}
 	if _, err := env.App.Pool.Exec(context.Background(), `UPDATE forms SET spam_protection = spam_protection || '{"rate_limit_per_ip": 1000, "turnstile": false}' WHERE workspace_id = $1`, ids.ws); err != nil {
 		t.Fatal(err)
 	}
+	// The bucket holds 120 and refills two a second, so a loop outruns it
+	// soon after the 120th however fast each submission is answered.
 	var last resp
-	for i := range 121 {
+	flooded := -1
+	for i := range 400 {
 		last = signUp(t, env, ids, "flood."+strconv.Itoa(i)+"@fastmail.com")
+		if strings.Contains(last.Body, "One more step") {
+			flooded = i
+			break
+		}
 		if i < 120 && !strings.Contains(last.Body, "Check your inbox") {
 			t.Fatalf("submission %d before the flood: %d %s", i, last.Status, clip(last.Body))
 		}
+	}
+	if flooded < 120 {
+		t.Fatalf("the Turnstile check came at submission %d, want after the first 120", flooded)
 	}
 	must(t, last, 200, "One more step")
 }
