@@ -5,6 +5,7 @@ import { count, dayMonthDate, dayMonthYear, monthName } from '@/lib/format'
 import { textWidth } from '@/features/scoring/SpreadChart'
 import { money } from '../format'
 import { mr } from './messages'
+import { withBoundary } from '@/components/ui/ErrorBoundary'
 
 type Chart = Schemas['RevenueChart']
 type Movement = Schemas['RevenueMovement']
@@ -66,7 +67,7 @@ function niceTop(max: number, steps: number): number {
  * history before the move, solid since; the numbered marks are the move and
  * the offers that started. A crosshair names the month under the pointer.
  */
-export function MrrChart({ chart, currency, desc }: { chart: Chart; currency: string; desc: string }) {
+function MrrChartInner({ chart, currency, desc }: { chart: Chart; currency: string; desc: string }) {
   return (
     <>
       {lineVariants.map((v) => (
@@ -235,7 +236,7 @@ export function moveBars(m: Movement): MoveBar[] {
 }
 
 /** The movement as a waterfall from the start to the end of the period. */
-export function MovementChart({ movement, currency, desc }: { movement: Movement; currency: string; desc: string }) {
+function MovementChartInner({ movement, currency, desc }: { movement: Movement; currency: string; desc: string }) {
   return (
     <>
       {barVariants.map((v) => (
@@ -351,3 +352,9 @@ function zigzag(w: number): string {
   const seg = (w + 2) / 4
   return `l${seg.toFixed(1)} -4 l${seg.toFixed(1)} 4 l${seg.toFixed(1)} -4 l${seg.toFixed(1)} 4`
 }
+
+/** MrrChart, failing on its own (review 2026-11 FE-4). */
+export const MrrChart = withBoundary(MrrChartInner)
+
+/** MovementChart, failing on its own (review 2026-11 FE-4). */
+export const MovementChart = withBoundary(MovementChartInner)

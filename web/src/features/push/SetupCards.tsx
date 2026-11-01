@@ -12,6 +12,7 @@ import { bareHost, browserName, copyText, styleName, useInvalidatePush, type Pus
 import { m } from './messages'
 import { RotateDialog } from './RotateDialog'
 import { useWhen } from './SetupPage'
+import { SwitchInput } from '@/components/ui/Field'
 
 const SITE_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#8b94a3']
 
@@ -368,10 +369,7 @@ export function GuardsCard({ data }: { data: PushSetup }) {
             <b>{t(m.quietTitle, { window: data.window })}</b>
             <span className="k">{t(m.quietText)}</span>
           </span>
-          <input
-            type="checkbox"
-            role="switch"
-            className="tg flex-none"
+          <SwitchInput className="flex-none"
             checked={data.quiet}
             disabled={ro || save.isPending}
             aria-label={t(m.quietLabel)}

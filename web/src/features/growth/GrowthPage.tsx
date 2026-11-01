@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { CardSection } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Feedback'
-import { Input, Select } from '@/components/ui/Field'
+import { Input, Select, SwitchInput } from '@/components/ui/Field'
 import { TableScroll } from '@/components/ui/Table'
 import { Segmented } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
@@ -159,7 +159,7 @@ function Filters({ d, search, onChange }: { d: Data; search: GrowthSearch; onCha
           ))}
         </Select>
         <label className="gr-imp">
-          <input type="checkbox" className="tg" role="switch" checked={d.includeImports} aria-label={t(m.includeImports)} onChange={(e) => onChange({ imports: e.target.checked || undefined })} />
+          <SwitchInput checked={d.includeImports} aria-label={t(m.includeImports)} onChange={(e) => onChange({ imports: e.target.checked || undefined })} />
           {t(m.includeImports)}
         </label>
       </div>

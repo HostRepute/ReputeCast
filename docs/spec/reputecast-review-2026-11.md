@@ -554,7 +554,7 @@ Found while building M47 (added to the backlog):
 | OP-12 | A segment count (about a second for two conditions on a million contacts) and the audience header counts (about 300 ms) read every contact: a count cache. | ⏳ |
 | OP-13 | Record the k6 numbers from a run of the Load test workflow in `docs/deploy/performance.md` (k6 couldn't run where these numbers were taken). | ⏳ |
 
-## Frontend foundation (M48) ⏳
+## Frontend foundation (M48) ✅
 
 | ID | What | Done when | Size | Board |
 |---|---|---|---|---|
@@ -566,6 +566,45 @@ Found while building M47 (added to the backlog):
 | FE-6 | One validation pattern for forms and the unused charts dependency, after the owner's answer (D6). | Decision recorded in `docs/TECH_STACK.md`. | S | — |
 | FE-7 | Optimistic updates for toggles, marking notifications read and reordering. | UI tests with a failing request roll back. | S | — |
 | FE-8 | CI runs a Playwright smoke test and the axe sweep (`web/scripts/a11y.ts`) against a seeded server, and enforces a bundle size budget. | CI job green. | M | — |
+
+What M48 built (1 November 2026):
+
+- **FE-1** ⌘K (Ctrl K) opens the command palette from every page (new board `CommandPalette`). One call,
+  `search-workspace`, searches campaigns, contacts, automations, lists, segments, forms and pages by
+  name, five a kind, only the kinds the role can open and only a list-scoped member's own contacts and
+  lists. Places to go are filtered by permission; Recent (the last eight opened, in the browser) leaves
+  out kinds the role can no longer open. It is an ARIA combobox with a listbox, ↑ ↓ ↵ esc and a polite
+  results count. Overview's search box says it searches campaigns and provider events
+  (`TestSearch`, `CommandPalette.test.tsx`, the smoke test).
+- **FE-2** every answer carries `X-ReputeCast-Version`; a tab that hears a new one shows
+  "Updated · 1.6 · Reload" (SystemStates extended), and a tab whose lazy chunk is gone after an upgrade
+  reloads itself, at most once a minute (`systemStatus.test.ts`).
+- **FE-3** in part: `SwitchInput` replaces 42 hand-made switches and the five copies of `useDebounced`
+  import `lib/hooks`; `pnpm lint` now runs `scripts/patterns-check.ts`, which refuses both patterns
+  coming back. Stepper, Pager, NoResults everywhere and one bulk-selection pattern are FE-3b below.
+- **FE-4** `Card`, `StatTile` and the growth, revenue, placement and score charts fail on their own: a
+  render error shows "This part couldn't show · Retry" in place and the page works. `TableScroll`
+  takes `maxHeight`, and then its header row stays in view (`ErrorBoundary.test.tsx`).
+- **FE-5** in part: the same check counts hex colours per file against `scripts/hex-baseline.json`
+  (1,166 in 206 files today) and refuses any increase; moving them to tokens is FE-5b.
+- **FE-6** the question is recorded in `docs/TECH_STACK.md` with the measurements (recharts imported
+  nowhere, react-hook-form in one file, zod in 67 for route search) and a recommendation; nothing is
+  removed until the owner answers.
+- **FE-7** in part: marking a notification read shows at once in every list and the bell, and a
+  refused request puts it back (`NotificationsPopover.test.tsx`). Toggles and reordering are FE-7b.
+- **FE-8** a CI job builds the app, checks the bundle budget (`pnpm budget`: first load, each chunk,
+  all scripts, gzipped), seeds a server and runs the Playwright smoke test (sign-in, seven screens on
+  desktop and phone, ⌘K) and the axe sweep (`web/e2e/smoke.spec.ts`; passed locally).
+
+Found while building M48 (added to the backlog):
+
+| ID | What | Status |
+|---|---|---|
+| FE-3b | `ui/Stepper` for the eight wizards, `ui/Pager` for the paged lists, `NoResults` on every search and filter, one bulk-selection pattern; the patterns check learns each as it lands. | ⏳ |
+| FE-5b | Move the 1,166 hex colours in TSX to tokens, file by file, lowering `hex-baseline.json` to zero outside the brand kit and email previews. | ⏳ |
+| FE-7b | Optimistic switches (with a shared hook) and reordering, rolled back on a refused request. | ⏳ |
+| FE-9 | The first load is 433 KB gzipped: every route's module (its search schema) is preloaded. Split the route tree so a page loads only its own. | ⏳ |
+| FE-10 | The command palette searches settings by tab name only; the board shows single settings ("Send weekdays only"). An index of settings rows. | ⏳ |
 
 ## Earn and other channels (M49) ⏳
 

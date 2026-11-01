@@ -17,6 +17,7 @@ import { count, notificationTime, timeOfDay } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { NotificationLink, notificationDotColor, useNotificationActions } from '@/components/shell/NotificationsPopover'
 import { m } from './messages'
+import { SwitchInput } from '@/components/ui/Field'
 
 export type NotificationFilter = 'all' | 'unread' | 'approvals' | 'sending' | 'providers' | 'team' | 'hostrepute'
 
@@ -231,20 +232,14 @@ function PreferencesCard() {
                   </div>
                 </Td>
                 <Td align="center">
-                  <input
-                    type="checkbox"
-                    className="tg"
-                    role="switch"
+                  <SwitchInput
                     checked={e.inApp}
                     onChange={(ev) => set(e.type, 'inApp', ev.target.checked)}
                     aria-label={t(m.inAppFor, { event: e.label })}
                   />
                 </Td>
                 <Td align="center">
-                  <input
-                    type="checkbox"
-                    className="tg"
-                    role="switch"
+                  <SwitchInput
                     checked={e.email}
                     onChange={(ev) => set(e.type, 'email', ev.target.checked)}
                     aria-label={t(m.emailFor, { event: e.label })}

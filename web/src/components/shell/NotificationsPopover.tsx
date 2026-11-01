@@ -1,4 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { Link, useRouter } from '@tanstack/react-router'
 import { Popover as RPopover } from 'radix-ui'
 import { useState, type MouseEvent, type ReactNode } from 'react'
@@ -26,17 +26,43 @@ export function useRefreshNotifications() {
     ])
 }
 
+type NotificationPage = { items: NotificationItem[]; unread: number }
+
+/**
+ * Marks a notification read in every cached list and the bell's count at
+ * once (review 2026-11 FE-7), and returns how to put them back.
+ */
+function markReadInCache(qc: QueryClient, slug: string, id: string): () => void {
+  const lists = qc.getQueriesData<NotificationPage>({ queryKey: ['get', '/api/v1/workspaces/{workspace}/notifications'] })
+  const me = qc.getQueryData<{ unread?: number }>(workspaceMeKey(slug))
+  const was = lists.some(([, d]) => d?.items?.some((n) => n.id === id && !n.read))
+  for (const [key, d] of lists) {
+    if (!d?.items) continue
+    const hit = d.items.some((n) => n.id === id && !n.read)
+    qc.setQueryData(key, { ...d, items: d.items.map((n) => (n.id === id ? { ...n, read: true } : n)), unread: hit ? Math.max(0, d.unread - 1) : d.unread })
+  }
+  if (was && me && typeof me.unread === 'number') qc.setQueryData(workspaceMeKey(slug), { ...me, unread: Math.max(0, me.unread - 1) })
+  return () => {
+    for (const [key, d] of lists) qc.setQueryData(key, d)
+    if (me) qc.setQueryData(workspaceMeKey(slug), me)
+  }
+}
+
 /** Mark one or every notification as read. */
 export function useNotificationActions() {
   const { slug } = useWorkspace()
+  const qc = useQueryClient()
   const refresh = useRefreshNotifications()
   const [marking, setMarking] = useState(false)
   const markRead = async (id: string) => {
+    // It shows as read at once; a refused request puts it back.
+    const undo = markReadInCache(qc, slug, id)
     try {
       await http.POST('/api/v1/workspaces/{workspace}/notifications/{id}/read', { params: { path: { workspace: slug, id } } })
-      await refresh()
+      void refresh()
     } catch {
-      // Opening still works; the item stays unread.
+      // Opening still works; the item goes back to unread.
+      undo()
     }
   }
   const markAll = async () => {

@@ -20,6 +20,7 @@ import { RelayAdminCard } from '@/features/transactional/RelayAdminCard'
 import { WorkspacesCard } from './WorkspacesCard'
 import { AdminAgencyCard } from '@/features/agency/AdminParts'
 import { m } from './messages'
+import { SwitchInput } from '@/components/ui/Field'
 
 const twoCards = 'grid items-start gap-5 [&>*]:min-w-0 grid-cols-[repeat(auto-fit,minmax(min(560px,100%),1fr))] max-md:grid-cols-1'
 
@@ -466,10 +467,7 @@ function Version({ v }: { v: Schemas['InstanceVersion'] }) {
       </div>
       {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label wraps its control; the title and description inside are its text */}
       <label className="row flex-nowrap gap-3 border-t border-line-2 pt-1.5">
-        <input
-          type="checkbox"
-          className="tg"
-          role="switch"
+        <SwitchInput
           checked={v.checkEnabled}
           disabled={!v.checkAllowed || toggle.isPending}
           onChange={async (e) => {

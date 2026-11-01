@@ -1,5 +1,5 @@
 import { keepPreviousData } from '@tanstack/react-query'
-import { Fragment, useEffect, useState, type ReactNode } from 'react'
+import { Fragment, useState, type ReactNode } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { Segmented } from '@/components/ui/Tabs'
@@ -9,15 +9,8 @@ import { useWorkspace } from '@/lib/session'
 import { providerColor, streamName, type Stream } from './common'
 import { costText, fallbackText, fieldText, mailboxName, splitPair, stepText, toInput, valueNames, type Condition, type Draft, type RoutingConfig } from './routing-model'
 import { mr } from './routing.messages'
+import { useDebounced } from '@/lib/hooks'
 
-function useDebounced<T>(value: T, ms: number): T {
-  const [v, setV] = useState(value)
-  useEffect(() => {
-    const h = window.setTimeout(() => setV(value), ms)
-    return () => window.clearTimeout(h)
-  }, [value, ms])
-  return v
-}
 
 const looksLikeEmail = (s: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s.trim())
 

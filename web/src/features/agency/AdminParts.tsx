@@ -12,6 +12,7 @@ import { useT } from '@/i18n'
 import { useAgencyMe, useRefreshAgency } from './api'
 import { m } from './messages'
 import { calendarDate, ClientTile } from './parts'
+import { SwitchInput } from '@/components/ui/Field'
 
 type Mode = Schemas['AgencyModeView']
 
@@ -114,7 +115,7 @@ function ModeForm({ v }: { v: Mode }) {
         <div className="flex flex-col gap-3">
           <label className="flex items-center justify-between gap-3">
             {modeText}
-            <input type="checkbox" className="tg" role="switch" checked={enabled} onChange={(e) => toggle(e.target.checked)} />
+            <SwitchInput checked={enabled} onChange={(e) => toggle(e.target.checked)} />
           </label>
           <label className="lbl">
             {t(m.adminName)}

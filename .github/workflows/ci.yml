@@ -42,6 +42,70 @@ jobs:
           path: web/dist
           include-hidden-files: true
 
+  smoke:
+    name: Web · smoke test, accessibility sweep, bundle budget
+    runs-on: ubuntu-latest
+    # Against the real server with the demo data (review 2026-11 FE-8).
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: reputecast
+          POSTGRES_PASSWORD: reputecast
+          POSTGRES_DB: reputecast
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U reputecast" --health-interval 2s --health-timeout 3s --health-retries 30
+    env:
+      REPUTECAST_ENV: development
+      REPUTECAST_DATABASE__URL: postgres://reputecast:reputecast@localhost:5432/reputecast?sslmode=disable
+      REPUTECAST_PUBLIC_URL: http://localhost:8080
+      REPUTECAST_AUTH__COOKIE_SECURE: "false"
+      REPUTECAST_HTTP__RATE_LIMIT_API: "0"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.27.x"
+      - run: pnpm install --frozen-lockfile
+        working-directory: web
+      - run: pnpm build
+        working-directory: web
+      - name: Bundle budget
+        run: pnpm budget
+        working-directory: web
+      - name: Seed and start the server
+        run: |
+          export REPUTECAST_SECRETS__KEY_FILE="$RUNNER_TEMP/secret.key"
+          go build -o bin/reputecast ./cmd/reputecast
+          ./bin/reputecast seed
+          ./bin/reputecast serve > server.log 2>&1 &
+          for i in $(seq 1 60); do ./bin/reputecast healthcheck && break; sleep 2; done
+      - run: pnpm exec playwright install --with-deps chromium
+        working-directory: web
+      - name: Smoke test
+        run: SMOKE_URL=http://localhost:8080 pnpm e2e
+        working-directory: web
+      - name: Accessibility sweep (axe, WCAG 2.2 AA)
+        run: node scripts/a11y.ts --app http://localhost:8080 --widths 1440,390 --out ../a11y
+        working-directory: web
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: smoke
+          path: |
+            web/playwright-report
+            a11y
+            server.log
+
   go:
     name: Go ${{ matrix.go }} · Postgres ${{ matrix.pg }} · shard ${{ matrix.shard }}/3
     runs-on: ubuntu-latest

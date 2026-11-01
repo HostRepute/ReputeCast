@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState, ErrorPanel, Skeleton } from '@/components/ui/Feedback'
-import { Select } from '@/components/ui/Field'
+import { Select, SwitchInput } from '@/components/ui/Field'
 import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
@@ -196,7 +196,7 @@ export function MembersPage({ search, onSearch }: { search: MembersSearch; onSea
               </div>
               <label className="ea-testtoggle">
                 {t(mm.showTest)}
-                <input type="checkbox" role="switch" className="tg" checked={Boolean(search.test)} onChange={(e) => set({ test: e.target.checked || undefined })} />
+                <SwitchInput checked={Boolean(search.test)} onChange={(e) => set({ test: e.target.checked || undefined })} />
               </label>
             </div>
             {status === 'past_due' && d.counts.pastDue > 0 ? <PastDueBanner list={d} search={search} /> : null}

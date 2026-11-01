@@ -24,6 +24,7 @@ import './approvals.css'
 import { im } from '@/features/digests/issueMessages'
 import { me as wm } from '@/features/website/elsewhere.messages'
 import { ChannelCostRule } from '@/features/sms/PolicyRule'
+import { SwitchInput } from '@/components/ui/Field'
 
 type Policy = Schemas['ApprovalPolicy']
 type View = Schemas['ApprovalPolicyView']
@@ -308,7 +309,7 @@ function PolicyForm({ view }: { view: View }) {
             </div>
             <div className="pad col gap-2.5!">
               <label className="row flex-nowrap! gap-3!">
-                <input type="checkbox" className="tg" role="switch" checked={p.emergencyBypass} disabled={read} onChange={(e) => set({ emergencyBypass: e.target.checked })} />
+                <SwitchInput checked={p.emergencyBypass} disabled={read} onChange={(e) => set({ emergencyBypass: e.target.checked })} />
                 <span className="col gap-px!">{bypassText}</span>
               </label>
               <dl className="kv">
@@ -355,7 +356,7 @@ function Rule({
   )
   return (
     <label className="ap-rule">
-      <input type="checkbox" className="tg" role="switch" checked={on} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+      <SwitchInput checked={on} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
       <span className="col min-w-0 flex-1 gap-px!">{text}</span>
       {extra}
     </label>

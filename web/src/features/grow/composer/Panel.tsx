@@ -2,7 +2,7 @@ import type { Component, Editor } from 'grapesjs'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { $api } from '@/api/client'
 import { Skeleton } from '@/components/ui/Feedback'
-import { OptionCard } from '@/components/ui/Field'
+import { OptionCard, SwitchInput } from '@/components/ui/Field'
 import { Menu, MenuItem, MenuLabel } from '@/components/ui/Menu'
 import { Note } from '@/components/ui/Note'
 import { useT } from '@/i18n'
@@ -356,7 +356,7 @@ function ReferralInspector({ c }: { c: Component }) {
         <div className="prop">
           <label className="flex items-center justify-between gap-3">
             <span className="t">{t(mb.progress)}</span>
-            <input type="checkbox" className="tg" role="switch" checked={eff.progress} onChange={(e) => write({ progress: e.target.checked })} />
+            <SwitchInput checked={eff.progress} onChange={(e) => write({ progress: e.target.checked })} />
           </label>
         </div>
       ) : null}

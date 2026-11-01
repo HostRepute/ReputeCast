@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { KeyValues } from '@/components/ui/Data'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
-import { Select } from '@/components/ui/Field'
+import { Select, SwitchInput } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { formatList, useT } from '@/i18n'
@@ -389,7 +389,7 @@ function StepCounting({ p, resumed, onBack, onNext }: { p: Program; resumed: boo
       {control}
     </div>
   )
-  const sw = (label: string, on: boolean, set: (v: boolean) => void) => <input type="checkbox" className="tg" role="switch" aria-label={label} checked={on} onChange={(e) => set(e.target.checked)} />
+  const sw = (label: string, on: boolean, set: (v: boolean) => void) => <SwitchInput aria-label={label} checked={on} onChange={(e) => set(e.target.checked)} />
   return (
     <StepCard
       n={3}
@@ -547,7 +547,7 @@ function StepEmails({ p, onBack, onNext }: { p: Program; onBack: () => void; onN
           </span>
           <span className="flex items-center justify-between">
             <span className="k">{p.leaderboard.on ? t(mu.boardOn) : t(mu.boardOff)}</span>
-            <input type="checkbox" className="tg" role="switch" aria-label={t(mu.board)} checked={p.leaderboard.on} disabled={boardBusy} onChange={(e) => void board(e.target.checked)} />
+            <SwitchInput aria-label={t(mu.board)} checked={p.leaderboard.on} disabled={boardBusy} onChange={(e) => void board(e.target.checked)} />
           </span>
         </div>
       </div>

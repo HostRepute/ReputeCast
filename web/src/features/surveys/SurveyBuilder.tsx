@@ -6,7 +6,7 @@ import { Page } from '@/components/shell/Page'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
-import { OptionCard } from '@/components/ui/Field'
+import { OptionCard, SwitchInput } from '@/components/ui/Field'
 import { toast } from '@/components/ui/Toast'
 import { formatList, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
@@ -629,7 +629,7 @@ function QuestionEditor({
             <span className="sv-f-l">{t(m.requiredLabel)}</span>
             <span className="k">{t(m.requiredHint)}</span>
           </span>
-          <input type="checkbox" role="switch" className="tg" aria-label={t(m.requiredLabel)} checked={q.required} onChange={(e) => onChange({ required: e.target.checked })} />
+          <SwitchInput aria-label={t(m.requiredLabel)} checked={q.required} onChange={(e) => onChange({ required: e.target.checked })} />
         </div>
         {choice ? (
           <div className="sv-f" role="group" aria-labelledby={`${id}-ans`}>
@@ -1008,14 +1008,14 @@ function SettingsTab({ s, draft, readOnly, onChange }: { s: Survey; draft: Draft
             <b>{t(m.oneResponse)}</b>
             <span className="k">{t(m.oneResponseHint)}</span>
           </span>
-          <input type="checkbox" role="switch" className="tg" aria-label={t(m.oneResponse)} checked={st.oneResponse} onChange={(e) => set({ oneResponse: e.target.checked })} />
+          <SwitchInput aria-label={t(m.oneResponse)} checked={st.oneResponse} onChange={(e) => set({ oneResponse: e.target.checked })} />
         </div>
         <div className="sv-toggle">
           <span className="flex flex-col gap-0.5">
             <b>{t(m.acceptNonContacts)}</b>
             <span className="k">{t(m.acceptNonContactsHint)}</span>
           </span>
-          <input type="checkbox" role="switch" className="tg" aria-label={t(m.acceptNonContacts)} checked={st.acceptNonContacts} onChange={(e) => set({ acceptNonContacts: e.target.checked })} />
+          <SwitchInput aria-label={t(m.acceptNonContacts)} checked={st.acceptNonContacts} onChange={(e) => set({ acceptNonContacts: e.target.checked })} />
         </div>
         <Field label={t(m.thanks)} id={`${id}-thanks`}>
           <textarea

@@ -17,6 +17,7 @@ import { useWorkspace } from '@/lib/session'
 import { commerceBase, money, storesBase } from './api'
 import { ce } from './elsewhere.messages'
 import './commerce.css'
+import { SwitchInput } from '@/components/ui/Field'
 
 export { ce }
 
@@ -427,7 +428,7 @@ export function StoreBlockStyle({ section }: { section: Component }) {
             <b className="text-[13px] font-semibold">{t(ce.compareAt)}</b>
             <span className="k">{t(ce.compareAtSub)}</span>
           </span>
-          <input type="checkbox" role="switch" className="tg" aria-label={t(ce.compareAt)} disabled={disabled} checked={!!block.compareAt} onChange={(e) => void update({ compareAt: e.target.checked })} />
+          <SwitchInput aria-label={t(ce.compareAt)} disabled={disabled} checked={!!block.compareAt} onChange={(e) => void update({ compareAt: e.target.checked })} />
         </div>
         <div className="flex items-center justify-between gap-3">
           <b className="text-[13px] font-semibold">{t(ce.button)}</b>

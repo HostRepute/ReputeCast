@@ -18,6 +18,7 @@ import { ConnectDialog, Footer } from './ConnectDialog'
 import { DisconnectDialog, RotateDialog, TakeOverDialog } from './KeyDialogs'
 import { m } from './messages'
 import { helpersText, KNOWN_PLUGIN, longDay, maintainer, PermChips, PLUGIN_URL, stamp, StatusBadge, tags, Tile, useRefreshHub, useWordPress, type Site, type WordPressPage as Data } from './shared'
+import { SwitchInput } from '@/components/ui/Field'
 
 type Check = Schemas['WordPressCheck']
 type SiteDialog = { kind: 'rotate' | 'take-over' | 'disconnect' | 'rule'; site: Site } | null
@@ -457,7 +458,7 @@ function Drafts({ data, site: s, onRule }: { data: Data; site: Site; onRule: () 
         </span>
         {data.canManage ? (
           <div className="row flex-nowrap gap-2">
-            <input type="checkbox" role="switch" className="tg" checked={r.enabled} disabled={busy} aria-label={t(m.ruleOnLabel)} onChange={(e) => setEnabled(e.target.checked)} />
+            <SwitchInput checked={r.enabled} disabled={busy} aria-label={t(m.ruleOnLabel)} onChange={(e) => setEnabled(e.target.checked)} />
             <Button size="sm" onClick={onRule}>
               {t(m.editRule)}
             </Button>
@@ -622,7 +623,7 @@ function RuleDialog({ data, site: s, onClose }: { data: Data; site: Site; onClos
       ) : null}
       <Footer>
         <label className="row mr-auto gap-2 text-[13px]">
-          <input type="checkbox" role="switch" className="tg" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+          <SwitchInput checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
           {t(m.ruleOn)}
         </label>
         <Button onClick={onClose}>{t(m.cancel)}</Button>

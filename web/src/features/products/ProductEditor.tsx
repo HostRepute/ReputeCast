@@ -11,7 +11,7 @@ import { CardSection } from '@/components/ui/Card'
 import { ConfirmDialog, UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
-import { Field, Input, Select, Textarea } from '@/components/ui/Field'
+import { Field, Input, Select, SwitchInput, Textarea } from '@/components/ui/Field'
 import { Menu, MenuItem } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
@@ -645,7 +645,7 @@ function Switch({ id, label, hint, checked, disabled, onChange }: { id: string; 
           </span>
         ) : null}
       </span>
-      <input id={id} type="checkbox" role="switch" className="tg" checked={checked} disabled={disabled} aria-describedby={hint ? hintId : undefined} onChange={(e) => onChange(e.target.checked)} />
+      <SwitchInput id={id} checked={checked} disabled={disabled} aria-describedby={hint ? hintId : undefined} onChange={(e) => onChange(e.target.checked)} />
     </div>
   )
 }

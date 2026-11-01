@@ -10,6 +10,7 @@ import { m } from './messages'
 import { useTx, type TxState } from './state'
 import { VAR_TYPES, type Check, type Variable, type VarType } from './types'
 import { NAME_RE, newVariable, RESERVED, usesVariable } from './variables'
+import { SwitchInput } from '@/components/ui/Field'
 
 export function typeLabel(t: ReturnType<typeof useT>, type: VarType): string {
   switch (type) {
@@ -171,14 +172,14 @@ function VarRow({ v, open, onToggle, onRenamed }: { v: Variable; open: boolean; 
           )}
           <div className="txe-sw">
             <span className="font-semibold">{t(m.required)}</span>
-            <input type="checkbox" role="switch" className="tg" aria-label={t(m.required)} checked={v.required} onChange={(e) => update({ required: e.target.checked, default: e.target.checked ? undefined : v.default })} />
+            <SwitchInput aria-label={t(m.required)} checked={v.required} onChange={(e) => update({ required: e.target.checked, default: e.target.checked ? undefined : v.default })} />
           </div>
           <div className="txe-sw items-start!">
             <span className="flex flex-col gap-0.5">
               <span className="font-semibold">{t(m.sensitive)}</span>
               <span className="k">{t(m.sensitiveHelp)}</span>
             </span>
-            <input type="checkbox" role="switch" className="tg" aria-label={t(m.sensitive)} checked={v.sensitive} onChange={(e) => update({ sensitive: e.target.checked })} />
+            <SwitchInput aria-label={t(m.sensitive)} checked={v.sensitive} onChange={(e) => update({ sensitive: e.target.checked })} />
           </div>
           <label className="lbl">
             {t(m.varDescription)}

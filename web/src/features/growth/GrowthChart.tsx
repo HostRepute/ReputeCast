@@ -7,6 +7,7 @@ import { textWidth } from '@/features/scoring/SpreadChart'
 import { m } from './messages'
 import { dayOf, shortName, signedCount, sourceName } from './sourceText'
 import { useScrollRegion } from '@/lib/hooks'
+import { withBoundary } from '@/components/ui/ErrorBoundary'
 
 type Chart = Schemas['GrowthChart']
 type Series = Schemas['GrowthSeries']
@@ -95,7 +96,7 @@ function roundedBottom(x: number, y: number, w: number, h: number, r: number): s
  * biggest and Other), with the import days as a marker when imports are
  * included. Chart or table.
  */
-export function GrowthChart({ chart, view, includeImports, from, to }: { chart: Chart; view: 'chart' | 'table'; includeImports: boolean; from: string; to: string }) {
+function GrowthChartInner({ chart, view, includeImports, from, to }: { chart: Chart; view: 'chart' | 'table'; includeImports: boolean; from: string; to: string }) {
   const t = useT()
   const bs = buckets(chart.days)
   const joined = sum(chart.series.map((s) => s.joined))
@@ -298,3 +299,6 @@ function ChartTable({ chart, bs, includeImports }: { chart: Chart; bs: Bucket[];
     </TableScroll>
   )
 }
+
+/** GrowthChart, failing on its own (review 2026-11 FE-4). */
+export const GrowthChart = withBoundary(GrowthChartInner)

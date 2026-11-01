@@ -7,15 +7,8 @@ import { useCan, useWorkspace } from '@/lib/session'
 import { useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { m } from './messages'
+import { useDebounced } from '@/lib/hooks'
 
-function useDebounced<T>(value: T, ms: number): T {
-  const [v, setV] = useState(value)
-  useEffect(() => {
-    const h = window.setTimeout(() => setV(value), ms)
-    return () => window.clearTimeout(h)
-  }, [value, ms])
-  return v
-}
 
 type Hit = { key: string; group: string; title: string; detail: string; go: () => void }
 

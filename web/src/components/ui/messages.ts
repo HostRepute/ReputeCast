@@ -18,5 +18,7 @@ export const m = defineMessages('ui', {
   unsavedChanges: 'Unsaved changes',
   stay: 'Stay',
   leaveWithoutSaving: 'Leave without saving',
+  partFailed: "This part couldn't show",
+  partFailedBody: 'The rest of the page works. Retry, or reload the page if it keeps happening.',
   loadFailedBody: "The server didn't answer. Nothing was lost.",
 })

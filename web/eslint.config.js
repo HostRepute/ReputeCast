@@ -11,6 +11,9 @@ export default tseslint.config(
     files: ['**/*.{ts,tsx}'],
     languageOptions: { ecmaVersion: 2023, globals: globals.browser },
     plugins: { 'react-hooks': reactHooks, 'jsx-a11y': jsxA11y },
+    // SwitchInput is an <input> (components/ui/Field): a label around it is
+    // labelling a control.
+    settings: { 'jsx-a11y': { components: { SwitchInput: 'input' } } },
     rules: {
       ...reactHooks.configs.recommended.rules,
       ...jsxA11y.flatConfigs.recommended.rules,

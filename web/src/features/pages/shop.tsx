@@ -9,6 +9,7 @@ import type { BuiltinPage } from '@/features/website/BuiltinPages'
 import { overviewKey, usePagesOverview, type Overview, type Shop } from './format'
 import { m } from './messages'
 import './pages.css'
+import { SwitchInput } from '@/components/ui/Field'
 
 /**
  * The shop's row in Built-in pages (PagesList): Shop · /products ·
@@ -58,10 +59,7 @@ function ShopSwitch({ shop }: { shop: Shop }) {
   }
   return (
     <DisabledReason reason={reason}>
-      <input
-        type="checkbox"
-        role="switch"
-        className="tg pg-tg"
+      <SwitchInput className="pg-tg"
         checked={shop.on}
         aria-label={t(m.shopToggle)}
         aria-busy={busy || undefined}

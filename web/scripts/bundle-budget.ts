@@ -1,0 +1,43 @@
+// The bundle's size budget (review 2026-11 FE-8), checked after `vite
+// build` in CI: what the first page load downloads, every lazy chunk, and
+// the whole app, gzipped. Raise a budget only on purpose, in the same
+// change that needs it.
+//
+//   node scripts/bundle-budget.ts
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { gzipSync } from 'node:zlib'
+
+const KB = 1024
+const budget = {
+  // index.html's script and the chunks it preloads, with its stylesheets.
+  // 433 KB on 1 November 2026: every route's module (its search schema)
+  // is preloaded; splitting them is in the review's backlog (FE-9).
+  initial: 450 * KB,
+  // Any one lazy chunk (the email composer's editor is the largest).
+  chunk: 400 * KB,
+  // Every script of the app.
+  total: 4.5 * 1024 * KB,
+}
+
+const dist = new URL('../dist/', import.meta.url).pathname
+const html = readFileSync(join(dist, 'index.html'), 'utf8')
+const gz = (file: string) => gzipSync(readFileSync(join(dist, file))).length
+const initialFiles = [...html.matchAll(/(?:src|href)="\/(assets\/[^"]+\.(?:js|css))"/g)].map((m) => m[1]!)
+const initial = initialFiles.reduce((n, f) => n + gz(f), 0)
+const chunks = readdirSync(join(dist, 'assets'))
+  .filter((f) => f.endsWith('.js'))
+  .map((f) => ({ f, size: gz(join('assets', f)) }))
+const total = chunks.reduce((n, c) => n + c.size, 0)
+const kb = (n: number) => `${(n / KB).toFixed(0)} KB`
+
+const problems: string[] = []
+if (initial > budget.initial) problems.push(`first load ${kb(initial)} gzipped, budget ${kb(budget.initial)} (${initialFiles.length} files)`)
+for (const c of chunks) if (c.size > budget.chunk) problems.push(`${c.f} ${kb(c.size)} gzipped, budget ${kb(budget.chunk)} a chunk`)
+if (total > budget.total) problems.push(`all scripts ${kb(total)} gzipped, budget ${kb(budget.total)}`)
+const largest = chunks.sort((a, b) => b.size - a.size)[0]
+console.log(`Bundle: first load ${kb(initial)} of ${kb(budget.initial)}; largest chunk ${largest?.f} ${kb(largest?.size ?? 0)} of ${kb(budget.chunk)}; all scripts ${kb(total)} of ${kb(budget.total)} (gzipped).`)
+if (problems.length) {
+  console.error(problems.join('\n'))
+  process.exit(1)
+}

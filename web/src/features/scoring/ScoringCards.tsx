@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react'
 import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { CardSection } from '@/components/ui/Card'
-import { Input } from '@/components/ui/Field'
+import { Input, SwitchInput } from '@/components/ui/Field'
 import { TableScroll } from '@/components/ui/Table'
 import { Segmented } from '@/components/ui/Tabs'
 import { tierClass, tierLabel } from '@/features/audience/labels'
@@ -278,7 +278,7 @@ export function DecayCard({ config, canEdit, onDecay }: { config: Config; canEdi
             {t(m.decayLead)}
           </span>
         </div>
-        <input type="checkbox" className="tg" role="switch" checked={d.enabled} disabled={!canEdit} aria-label={t(m.decay)} onChange={(e) => onDecay({ ...d, enabled: e.target.checked })} />
+        <SwitchInput checked={d.enabled} disabled={!canEdit} aria-label={t(m.decay)} onChange={(e) => onDecay({ ...d, enabled: e.target.checked })} />
       </div>
       <div className="px-4.5 pb-3.5">
         <div className="sc-dk">

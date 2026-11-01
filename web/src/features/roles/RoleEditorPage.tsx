@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
 import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { FullPageState } from '@/components/shell/SystemScreens'
@@ -19,6 +19,7 @@ import { deniedReason, useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import { editorNote, groupNote } from './notes'
 import { SaveRoleDialog, type SaveKind } from './SaveRoleDialog'
+import { useDebounced } from '@/lib/hooks'
 
 type RoleList = Schemas['RoleList']
 type Role = Schemas['RoleSummary']
@@ -84,14 +85,6 @@ function closure(catalog: Permission[], picked: string[]): string[] {
   return catalog.filter((p) => out.has(p.key)).map((p) => p.key)
 }
 
-function useDebounced<T>(value: T, ms: number): T {
-  const [v, setV] = useState(value)
-  useEffect(() => {
-    const h = window.setTimeout(() => setV(value), ms)
-    return () => window.clearTimeout(h)
-  }, [value, ms])
-  return v
-}
 
 function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role; source?: Role; saved?: RoleEditorSearch['saved'] }) {
   const { slug, me } = useWorkspace()
