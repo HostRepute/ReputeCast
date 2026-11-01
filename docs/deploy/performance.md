@@ -57,6 +57,11 @@ an event costs 0.05 ms more afterwards: its dedupe key goes to its own table
 
 The k6 scripts weren't run for these numbers; the workflow runs them.
 
+The approvals inbox with 1,000 open requests (`TestInboxAtAThousandRequests`,
+review 2026-11 AP-3): 118 ms when every request was checked recently, as
+the inbox re-checks only stale ones; 2.3 s when ten campaigns had changed,
+about 230 ms for each request it checks again with Send Readiness.
+
 ## Worth a look next
 
 - The segment count (about a second for two conditions on a million
