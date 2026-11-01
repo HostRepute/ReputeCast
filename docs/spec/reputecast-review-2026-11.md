@@ -737,6 +737,14 @@ What M51 built (1 November 2026):
   attributes and chart colours, avatar and workspace palettes, and colours with no token yet; brand
   kit, email previews and MJML defaults keep theirs by design.
 
+Checked at the end of M51:
+- **Accessibility.** An axe sweep (WCAG 2.0, 2.1 and 2.2 A and AA) of every screen at 1440 and 390 px
+  (`web/scripts/a11y.ts`). Its one violation, the saved views' 22px menu buttons, is fixed. The design
+  system's stricter 44px rule on phones went from 1,451 controls under it to 730, as buttons and fields
+  became 44px tall there. The rest are switches, filter chips and links inside rows.
+- **Security.** `pnpm audit` found two advisories in seroval, which TanStack Router pulls in; it is
+  pinned to the patched 1.6.11. A CI job now runs govulncheck and `pnpm audit` (it couldn't run here).
+
 Still open: OP-11 (a later release, by design), OP-13 (the k6 numbers come from a run of the Load test
 workflow; k6 can't run here), and the rest of FE-3b and FE-5b above.
 
