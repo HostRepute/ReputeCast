@@ -108,6 +108,10 @@ seat or workspace limit.
   monthly cap your workspace sets.
 - **Imports that keep consent** from Brevo, Mailchimp, MailerLite, listmonk,
   Keila, CSV or XLSX.
+- **Privacy built in.** Erasing a contact reaches every table that holds their
+  data, a contact's export is complete, link scanners can't confirm a double
+  opt-in, and open and click details and unconfirmed signups expire on the
+  schedule you set.
 - **Integrations.** Zapier, Make and n8n apps, a WordPress plugin, and Shopify
   and WooCommerce stores ([integrations](docs/integrations/hub.md)).
 - **API, webhooks and MCP.** A REST API described by OpenAPI 3.1, signed

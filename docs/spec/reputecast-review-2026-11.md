@@ -131,8 +131,8 @@ Found while building M41 (added to the backlog):
 
 | ID | What | Status |
 |---|---|---|
-| DP-8 | An import keeps its uploaded file (`imports.file_data`) and its report and skipped-row CSVs, which hold every address it read, until the import is deleted; erasing a contact doesn't reach them. Strip erased addresses from kept files and reports, or expire them after the import finishes. | ⏳ |
-| DP-9 | Earn › Paid members lists an erased member's ended subscription under the placeholder address; show "Erased contact" instead. | ⏳ |
+| DP-8 | An import keeps its uploaded file (`imports.file_data`) and its report and skipped-row CSVs, which hold every address it read, until the import is deleted; erasing a contact doesn't reach them. Strip erased addresses from kept files and reports, or expire them after the import finishes. | ✅ M50 |
+| DP-9 | Earn › Paid members lists an erased member's ended subscription under the placeholder address; show "Erased contact" instead. | ✅ M50 |
 
 ## Engines and events, correct (M42) ✅
 
@@ -191,7 +191,7 @@ Found while building M42 (added to the backlog):
 |---|---|---|
 | EN-8 | `email.*` webhooks are one delivery per event, like the catalog's other events. A 1M send to an endpoint that takes `email.delivered` queues 1M deliveries; batch them per endpoint (one POST with up to 100 events) behind a setting on the endpoint. | ⏳ |
 | EN-9 | A gift paid by bank debit was never marked paid: Earn didn't route `checkout.session.async_payment_succeeded` to gifts. Fixed with EN-7 (paid when it clears, abandoned when it fails); the gift's buyer isn't emailed about a failed debit, since gifts have no such template yet. | Fixed; email ⏳ |
-| EN-10 | `product-payment-failed` is made as a draft. Products › a product's publish checks list the delivery template only; add a non-blocking line for the notice so it gets published. | ⏳ |
+| EN-10 | `product-payment-failed` is made as a draft. Products › a product's publish checks list the delivery template only; add a non-blocking line for the notice so it gets published. | ✅ M50 |
 
 ## Audience at 1M contacts (M43) ✅
 
@@ -272,8 +272,8 @@ Found while building M43 (added to the backlog):
 | ID | What | Status |
 |---|---|---|
 | AU-17 | The 1M-seed benchmarks of AU-1 and AU-2 (page 1 and page 400 under 200 ms, search under 150 ms) need OP-9's seed; run them with M47. | ✅ M47: 6 ms, 7 ms and 23 ms (`TestAudienceAtOneMillion`) |
-| AU-18 | What-uses-it checks read segments, forms, scoring, automations, unsent campaigns, digests and saved views, but not transactional templates, SMS and WhatsApp templates or a form's own confirmation email; a field used only there reads "Nothing". Add them to `internal/dependents`. | ⏳ |
-| AU-19 | A saved view has no address of its own, so "Saved view · Name" in a what-uses-it list can't open it; Contacts could take `?view=`. | ⏳ |
+| AU-18 | What-uses-it checks read segments, forms, scoring, automations, unsent campaigns, digests and saved views, but not transactional templates, SMS and WhatsApp templates or a form's own confirmation email; a field used only there reads "Nothing". Add them to `internal/dependents`. | ✅ M50 |
+| AU-19 | A saved view has no address of its own, so "Saved view · Name" in a what-uses-it list can't open it; Contacts could take `?view=`. | ✅ M50 |
 
 ## Automations, complete (M44) ✅
 
@@ -348,7 +348,7 @@ Found while building M44 (added to the backlog):
 
 | ID | What | Status |
 |---|---|---|
-| AT-14 | The welcome prompt, Scoring's list of flows, the products and pages helpers and score ingest still read a flow's first trigger: a flow whose second trigger joins a list isn't that list's welcome series. Read `automations.triggers` there too. | ⏳ |
+| AT-14 | The welcome prompt, Scoring's list of flows, the products and pages helpers and score ingest still read a flow's first trigger: a flow whose second trigger joins a list isn't that list's welcome series. Read `automations.triggers` there too. | ✅ M50 |
 | AT-15 | Watched segments are all evaluated every 10 minutes; a slow SQL segment delays the others. Time each one and back off the slow ones, with a note on the trigger. | ⏳ |
 
 ## Campaigns and everyday sending (M45) ✅
@@ -418,9 +418,9 @@ Found while building M45 (added to the backlog):
 | ID | What | Status |
 |---|---|---|
 | CA-9 | The calendar moves email campaigns only: texts, push and WhatsApp keep their own schedule. Give them the same reschedule. | ⏳ |
-| CA-10 | Calendar items don't say whether an approval covers the time, so Reschedule on an approved campaign is refused only after the dialog. Carry the approval state and offer "Unschedule and ask again". | ⏳ |
-| CA-11 | A test that every operation's path parameters reach its handler, so an input embedding an unexported or aliased type fails CI instead of answering 404. | ⏳ |
-| CA-12 | The status tabs count the whole workspace while filters are on; count within the filters, or say so. | ⏳ |
+| CA-10 | Calendar items don't say whether an approval covers the time, so Reschedule on an approved campaign is refused only after the dialog. Carry the approval state and offer "Unschedule and ask again". | ✅ M50 |
+| CA-11 | A test that every operation's path parameters reach its handler, so an input embedding an unexported or aliased type fails CI instead of answering 404. | ✅ M50 |
+| CA-12 | The status tabs count the whole workspace while filters are on; count within the filters, or say so. | ✅ M50 |
 
 ## Transactional, approvals, polls and integrations (M46) ✅
 
@@ -486,7 +486,7 @@ Found while building M46 (added to the backlog):
 |---|---|---|
 | TX-7 | Scheduled messages can be moved one at a time; a batch sent with one send_at can't be cancelled together. Cancel or move a batch by its idempotency key. | ⏳ |
 | AP-3 | The approvals inbox's 1,000-request benchmark: the stale-only re-check is tested for correctness, not timed. | ⏳ |
-| OP-x | `TestUsageAndRebill` counts a workspace added in the first hours of a month (in the agency's time zone) in the month before; pin its clock. | ⏳ |
+| OP-x | `TestUsageAndRebill` counts a workspace added in the first hours of a month (in the agency's time zone) in the month before; pin its clock. | ✅ M50 |
 
 ## Operations (M47) ✅
 
@@ -636,13 +636,13 @@ Found while building M49 (added to the backlog):
 
 | ID | What | Status |
 |---|---|---|
-| EA-2b | CSV exports of sponsor bookings and sponsor reports, like the other Earn lists. | ⏳ |
+| EA-2b | CSV exports of sponsor bookings and sponsor reports, like the other Earn lists. | ✅ M50 |
 | EA-4 | Growth of paid members by tier and billing period on Earn › Overview. | ⏳ |
 | EA-5 | Money paths against the in-process Stripe fake: offer limits and end dates, gift link transfer and expiry, "end access at once", legacy prices. | ⏳ |
 | CH-2 | Behaviour tests for SMS auto-pause, push and WhatsApp retries, expired push subscriptions and the channel retention sweeps. | ⏳ |
-| EA-6 | UI tests for the Earn editors' leave guards and the exports' buttons (Earn has no web tests yet). | ⏳ |
+| EA-6 | UI tests for the Earn editors' leave guards and the exports' buttons (Earn has no web tests yet). | ✅ M50 |
 
-## Integration and audit (M50) ⏳
+## Integration and audit (M50) ✅
 
 | ID | What | Done when |
 |---|---|---|
@@ -651,6 +651,54 @@ Found while building M49 (added to the backlog):
 | X-3 | Roadmap, `docs/DESIGN_INVENTORY.md` (new boards, deviations such as D5) and README claims updated per milestone. | Per milestone. |
 | X-4 | Every state change writes an audit entry; every row names the test that pins it. | Review of each PR. |
 | X-5 | A traceability page like [`reputecast-review-2026-10-traceability.md`](reputecast-review-2026-10-traceability.md): each row read against the code, with its tests, at the end. | Page written; anything done in part finished. |
+
+What M50 built (1 November 2026):
+
+- **X-1** the Earn exports' locked buttons named `subscribers:export`; they say who can export, like
+  every other refusal (`earnUi.test.tsx` checks the copy).
+- **X-2** every new string is in English and Vietnamese; `pnpm i18n:check` reports 100% at each commit.
+- **X-3, X-4** the roadmap, `docs/DESIGN_INVENTORY.md` and the boards follow each change below; the
+  new state changes are audited (`sponsor.bookings_exported`, `sponsor.report_exported`), and the
+  traceability page marks the rows whose tests check the audit entry.
+- **X-5** [`reputecast-review-2026-11-traceability.md`](reputecast-review-2026-11-traceability.md)
+  reads every row against the code, with its tests.
+
+From the backlog the milestones found, M50 built:
+
+- **DP-8** a done import drops its uploaded file; finished imports keep their reports 30 days (the
+  report step says until when, downloads answer 410 after, maintenance clears them); an erase strips
+  the erased addresses from the reports still kept and removes an uploaded file that names one, with
+  a line in the import's log (`TestEraseStripsImportFiles`). Board: MigrationDone.
+- **DP-9** Earn › Paid members shows an erased member's kept subscription as "Erased contact", with no
+  address and no contact link (`TestErasureKeepsRevenueNumbers`).
+- **EN-10** the product's publish checks list the payment-failed notice as a recommendation that
+  doesn't block publishing, with a link to publish it (`TestDelayedPaymentThatFails`,
+  `products/checks.test.ts`). Boards: ProductEditor, ProductEditorStates.
+- **AU-18** what-uses-it reads transactional templates, texts' bodies, push messages and WhatsApp
+  campaigns' variables; a form's confirmation email names no custom field
+  (`TestFieldsAndSegmentsShowWhatUsesThem`).
+- **AU-19** Contacts takes `?view=`: a saved view opens with its filters and columns, or says it was
+  deleted; what-uses-it and List health link there (`ContactsPage.test.tsx`, `UsesList.test.tsx`).
+- **AT-14** the welcome prompt, score ingest, the integrations hub, a flow's push audience and a held
+  campaign's "add to automation" read `automations.triggers`; scoring, products, store and date-trigger
+  queries read the array too (`TestWelcomePromptReadsEveryTrigger`,
+  `TestAutomationEmailListsReadEveryTrigger`).
+- **CA-10** calendar items say when an approval covers the time; moving one offers "Unschedule and
+  ask again" (`TestReschedule`, `manage.test.tsx`). Board: CampaignsCalendar.
+- **CA-11** `api.Register` refuses an input whose parameter Huma can't set (an unexported field, or
+  one reached through an unexported or aliased embedded type) at start-up and in tests
+  (`TestParametersReachTheHandler`).
+- **CA-12** the campaigns tabs count within the filters, in one query (`TestListCampaigns`).
+- **OP-x** the Northwind sample's newest client stays in the current month, so `TestUsageAndRebill`
+  holds in a month's first hours (it failed on 1 November before).
+- **EA-2b** sponsor bookings and a booking's report export as CSV, audited
+  (`TestSponsorReportCountsOnlyBlockRecipients`). Boards: EarnSponsors, EarnBooking.
+- **EA-6** Earn's first UI tests: the offer editor's leave guard and the gifts export
+  (`earnUi.test.tsx`).
+
+Still open, carried to the roadmap's next milestone (M51): EN-8, EN-9's email, AT-15, CA-9, TX-7,
+AP-3, OP-11 (a later release by design), OP-12, OP-13, FE-3b, FE-5b, FE-7b, FE-9, FE-10, EA-4, EA-5
+and CH-2. The traceability page says what each needs.
 
 ## Competitor benchmark
 
