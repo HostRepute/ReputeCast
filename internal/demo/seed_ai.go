@@ -176,7 +176,21 @@ func (s *Seeder) aiRequests(ws store.Workspace) []aiRequest {
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 30, 0, 0, loc)
 	cutoff := s.aiAt(1, 11, 0)
 	if !cutoff.After(monthStart) {
-		cutoff = s.Now.Add(-time.Minute)
+		// Early in a month the board's two days fall in the month before:
+		// its rows move, in their order, into the second half of the month
+		// so far, and the rest go in the first half, so this month's totals
+		// and its latest rows hold on any day (as the Northwind sample does,
+		// review 2026-11 OP-x).
+		mid := monthStart.Add(s.Now.Sub(monthStart) / 2)
+		order := make([]int, len(fixed))
+		for i := range order {
+			order[i] = i
+		}
+		sort.SliceStable(order, func(a, b int) bool { return fixed[order[a]].at.Before(fixed[order[b]].at) })
+		for rank, i := range order {
+			fixed[i].at = mid.Add(s.Now.Sub(mid) * time.Duration(rank+1) / time.Duration(len(fixed)+1))
+		}
+		cutoff = mid.Add(-time.Minute)
 	}
 	targets := map[string][]string{
 		"subject_ideas":     {"Weekly Digest #143", "Weekly Digest #142", "November Product Update", "Beta Program: October check-in"},

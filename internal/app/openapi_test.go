@@ -87,6 +87,7 @@ var openToMembers = map[string]string{
 	"use-agency-library-item":      "agency staff only: the service checks agency:view and the item's edit permission here",
 	"report-wordpress-site":        "WordPress integration keys only, limited to the operations their integration was given",
 	"report-woocommerce-checkouts": "WordPress integration keys only, limited to the operations their integration was given",
+	"search-workspace":             "the command palette: each kind is searched only with the permission that opens it, a scoped member's within their lists",
 }
 
 // Every operation declares its access (an operation without one is
