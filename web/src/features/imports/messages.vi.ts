@@ -19,7 +19,6 @@ export default translate(m, {
   stepConsent: 'Sự đồng ý',
   stepPreview: 'Xem trước',
   stepImport: 'Nhập',
-  stepDone: '(xong)',
   stepOf: 'Bước {step}/{total}',
   exit: 'Thoát',
   back: 'Quay lại',

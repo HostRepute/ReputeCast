@@ -32,6 +32,7 @@ export const m = defineMessages('surveys', {
   submissions: '{count, plural, one {# submission} other {# submissions}} · {days, plural, one {# day} other {# days}}',
   startedCompleted: '{started} started · {completed} completed',
   noMatchForms: 'No form matches “{query}”.',
+  clearSearch: 'Clear search',
   emptyTitle: 'No forms yet',
   emptyBody: 'Signup forms and surveys you create show up here. The hosted subscribe page at {url} already works.',
   openHosted: 'Open hosted page',

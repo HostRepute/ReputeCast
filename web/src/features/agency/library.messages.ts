@@ -89,6 +89,7 @@ export const m = defineMessages('agencyLibrary', {
   kindSms: 'SMS text',
   kindTransactional: 'Transactional template',
   noMatch: 'Nothing in the library matches “{q}”.',
+  clearSearch: 'Clear search',
   emptyKind: 'Nothing of this kind yet. Add one from a client with “Add to library”.',
   showing: 'Showing {shown} of {n} · most used first',
   showingAll: 'Showing all {n} · most used first',

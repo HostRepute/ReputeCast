@@ -5,6 +5,7 @@ import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
+import { NoResults } from '@/components/ui/NoResults'
 import { CardSection } from '@/components/ui/Card'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Menu, MenuItem, MenuSeparator } from '@/components/ui/Menu'
@@ -75,9 +76,7 @@ function UsersCard({ search }: { search: UsersSearch }) {
         <UsersSkeleton />
       ) : q.data.items.length === 0 ? (
         <div className="pad">
-          <div className="note n">
-            <span>{t(m.noMatch)}</span>
-          </div>
+          <NoResults className="border-0" title={t(m.noMatch)} />
         </div>
       ) : (
         <UsersTable data={q.data} />

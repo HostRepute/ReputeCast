@@ -4,6 +4,7 @@ import { Icon } from '@/components/icons/Icon'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
+import { NoResults } from '@/components/ui/NoResults'
 import { Note } from '@/components/ui/Note'
 import { formatList, useT } from '@/i18n'
 import { useMe, useWorkspace } from '@/lib/session'
@@ -68,7 +69,9 @@ export function SearchPage() {
             <Skeleton w="65%" h={14} />
           </div>
         ) : d.total === 0 ? (
-          <p className="m-0 border-t border-line-2 px-4 py-4">{d.contact ? t(sm.noContact, { q: query, n: d.searched }) : t(sm.noMatch, { q: query })}</p>
+          <div className="border-t border-line-2 p-4">
+            <NoResults className="border-0" title={d.contact ? t(sm.noContact, { q: query, n: d.searched }) : t(sm.noMatch, { q: query })} />
+          </div>
         ) : (
           <>
             {d.groups.map((g) => (

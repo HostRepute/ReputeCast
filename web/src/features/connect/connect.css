@@ -24,7 +24,7 @@
     color: var(--ink);
   }
 
-  /* Stepper column and content column. */
+  /* The step rail (.stepper, styles/app.css) and the content column. */
   .cn-wiz {
     display: flex;
     flex-wrap: wrap;
@@ -35,13 +35,6 @@
     width: 100%;
     box-sizing: border-box;
     align-items: flex-start;
-  }
-  .cn-steps {
-    flex: 1 1 220px;
-    max-width: 250px;
-    padding: 14px 16px;
-    display: flex;
-    flex-direction: column;
   }
   .cn-main {
     flex: 999 1 560px;
@@ -208,26 +201,6 @@
 @media (max-width: 767px) {
   .cn-wiz {
     padding: 12px;
-  }
-  .cn-steps {
-    /* Holds the steps' visually hidden "Done:" (.vh, absolutely
-       positioned), so the page itself never scrolls sideways. */
-    position: relative;
-    max-width: none;
-    flex: 1 1 100%;
-    flex-direction: row;
-    overflow-x: auto;
-    gap: 14px;
-    padding: 10px 12px;
-  }
-  .cn-steps .cn-step {
-    flex: none;
-    padding: 2px 0;
-    align-items: center;
-  }
-  .cn-steps .cn-step .k,
-  .cn-steps .cn-foot {
-    display: none;
   }
   .cn-main {
     width: 100%;

@@ -461,52 +461,6 @@
     white-space: nowrap;
   }
 
-  /* Wizard and dialog steps: "✓ Source › ✓ Upload › 3 Match with Stripe". */
-  .ea-steps {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 10px;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--ink-2);
-  }
-  .ea-steps .s {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .ea-steps .n {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--ground);
-    font-size: 11.5px;
-    font-weight: 700;
-    color: var(--ink-2);
-  }
-  .ea-steps .done {
-    color: var(--accent);
-  }
-  .ea-steps .done .n {
-    background: var(--accent-soft);
-    color: var(--accent);
-  }
-  .ea-steps .cur {
-    color: var(--accent);
-    font-weight: 600;
-  }
-  .ea-steps .cur .n {
-    background: var(--accent);
-    color: #fff;
-  }
-  .ea-steps .sep {
-    color: var(--ink-4);
-  }
-
   /* Meters (the webhook's events by type, the import's progress). */
   .ea-meter {
     height: 6px;

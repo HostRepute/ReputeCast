@@ -7,6 +7,7 @@ import { Page } from '@/components/shell/Page'
 import { ForbiddenState } from '@/components/shell/SystemScreens'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
+import { NoResults } from '@/components/ui/NoResults'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { TableScroll, Th } from '@/components/ui/Table'
 import { useI18n, useT } from '@/i18n'
@@ -494,18 +495,23 @@ function StatusChips({ counts, value, onChange }: { counts?: Schemas['Transactio
 function EmptyLog({ filtered, onClear }: { filtered: boolean; onClear: () => void }) {
   const t = useT()
   const { slug } = useWorkspace()
+  if (filtered) {
+    return (
+      <div className="pad">
+        <NoResults className="border-0" title={t(ml.noMatchTitle)} actions={<Button onClick={onClear}>{t(ml.clearFilters)}</Button>}>
+          {t(ml.noMatchBody)}
+        </NoResults>
+      </div>
+    )
+  }
   return (
     <div className="pad">
       <div className="card tx-empty">
-        <span className="tt">{filtered ? t(ml.noMatchTitle) : t(ml.noMessagesTitle)}</span>
-        <span className="ds">{filtered ? t(ml.noMatchBody) : t(ml.noMessagesBody)}</span>
-        {filtered ? (
-          <Button onClick={onClear}>{t(ml.clearFilters)}</Button>
-        ) : (
-          <ButtonLink to="/w/$workspace/transactional/setup" params={{ workspace: slug }}>
-            {t(mt.tabSetup)}
-          </ButtonLink>
-        )}
+        <span className="tt">{t(ml.noMessagesTitle)}</span>
+        <span className="ds">{t(ml.noMessagesBody)}</span>
+        <ButtonLink to="/w/$workspace/transactional/setup" params={{ workspace: slug }}>
+          {t(mt.tabSetup)}
+        </ButtonLink>
       </div>
     </div>
   )

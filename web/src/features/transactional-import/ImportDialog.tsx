@@ -5,6 +5,7 @@ import { Icon } from '@/components/icons/Icon'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
+import { StepTrail } from '@/components/ui/Stepper'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
@@ -64,33 +65,17 @@ function NoteCell({ it }: { it: Item }) {
   return <CodeText text={text} />
 }
 
-function Stepper({ imp }: { imp: Import }) {
+/** The report's steps: every step before it done, the review current. */
+function Steps({ imp }: { imp: Import }) {
   const t = useT()
   const name = useSourceName()
-  const done = (label: string) => (
-    <li className="txi-step done">
-      <span className="txi-dot" aria-hidden="true">
-        <Icon name="check" size={12} strokeWidth={2.4} />
-      </span>
-      {label}
-      <span className="k" aria-hidden="true">
-        ›
-      </span>
-    </li>
-  )
-  return (
-    <ol className="txi-steps" aria-label={t(m.reportEyebrow)}>
-      {done(t(m.stepperSource, { source: name(imp.source) }))}
-      {imp.source === 'files' ? done(t(m.stepperUpload)) : done(t(m.stepperConnect))}
-      {imp.source === 'files' ? null : done(t(m.stepperPick, { count: imp.picked.length, total: imp.available.length }))}
-      <li className="txi-step now" aria-current="step">
-        <span className="txi-dot" aria-hidden="true">
-          {steps(imp.source)}
-        </span>
-        {t(m.stepperReview)}
-      </li>
-    </ol>
-  )
+  const titles = [
+    t(m.stepperSource, { source: name(imp.source) }),
+    imp.source === 'files' ? t(m.stepperUpload) : t(m.stepperConnect),
+    ...(imp.source === 'files' ? [] : [t(m.stepperPick, { count: imp.picked.length, total: imp.available.length })]),
+    t(m.stepperReview),
+  ]
+  return <StepTrail label={t(m.reportEyebrow)} current={titles.length} steps={titles.map((title, i) => ({ key: String(i), title }))} />
 }
 
 function accountLine(t: ReturnType<typeof useT>, imp: Import, source: string): string {
@@ -546,7 +531,7 @@ export function ImportDialog({ initial, onClose, onSession }: { initial?: Import
           </>
         }
       >
-        <Stepper imp={imp} />
+        <Steps imp={imp} />
         <div className="note i">
           <Icon name="info" size={16} />
           <div>{t(m.draftsNote)}</div>

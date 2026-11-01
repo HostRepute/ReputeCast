@@ -5,8 +5,9 @@ import { $api, errorMessage, http, type Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
+import { NoResults } from '@/components/ui/NoResults'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
-import { EmptyState, ErrorPanel, Skeleton } from '@/components/ui/Feedback'
+import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Select, SwitchInput } from '@/components/ui/Field'
 import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
@@ -402,9 +403,10 @@ function MembersTable({ list, search, onOpen, onClear, onSearchEnded }: { list: 
     if (search.q) {
       return (
         <div className="px-[18px] pb-6">
-          <EmptyState
+          <NoResults
+            className="border-0"
             title={t(mm.noResults, { q: search.q })}
-            action={
+            actions={
               <>
                 <Button onClick={onClear}>{t(mm.clearSearch)}</Button>
                 {search.status === 'ended' ? null : <Button onClick={onSearchEnded}>{t(mm.searchEnded)}</Button>}
@@ -412,7 +414,7 @@ function MembersTable({ list, search, onOpen, onClear, onSearchEnded }: { list: 
             }
           >
             {t(mm.noResultsText)}
-          </EmptyState>
+          </NoResults>
         </div>
       )
     }

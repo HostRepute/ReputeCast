@@ -5,6 +5,7 @@ import { Icon } from '@/components/icons/Icon'
 import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
+import { NoResults } from '@/components/ui/NoResults'
 import { Skeleton } from '@/components/ui/Feedback'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { T, useT, type MessageDescriptor } from '@/i18n'
@@ -222,7 +223,7 @@ function Catalog({
         </div>
       ) : null}
       {groups.length === 0 ? (
-        <NoResults query={search.trim()} onClear={() => setSearch('')} />
+        <NoMatch query={search.trim()} onClear={() => setSearch('')} />
       ) : (
         <div className="ih-page">
           {groups.map((g) => {
@@ -459,41 +460,43 @@ function Fact({ entry: e }: { entry: Entry }) {
   return null
 }
 
-function NoResults({ query, onClear }: { query: string; onClear: () => void }) {
+function NoMatch({ query, onClear }: { query: string; onClear: () => void }) {
   const apiReference = useApiReference()
   const { slug } = useWorkspace()
   const t = useT()
   const params = (kind: PlatformKind) => ({ workspace: slug, kind })
   return (
-    <section className="card ih-empty" aria-live="polite">
-      <Icon name="searchLarge" size={28} className="text-ink-3" />
-      <span className="ih-et">{t(m.noResultsTitle, { query })}</span>
-      <span className="ih-ed">{t(m.noResultsBody)}</span>
-      <div className="row justify-center gap-2">
-        <Button onClick={onClear}>{t(m.clearSearch)}</Button>
-        <ButtonLink to="/w/$workspace/settings/integrations/$kind" params={params('zapier')}>
-          {t(m.zapier)}
-        </ButtonLink>
-        <ButtonLink to="/w/$workspace/settings/integrations/$kind" params={params('make')}>
-          {t(m.make)}
-        </ButtonLink>
-        <ButtonLink to="/w/$workspace/settings/integrations/$kind" params={params('n8n')}>
-          {t(m.n8n)}
-        </ButtonLink>
-      </div>
-      <span className="k">
-        <T
-          msg={m.buildYourOwn}
-          values={{
-            a: (c) => (
-              <a href={apiReference} target="_blank" rel="noopener noreferrer">
-                {c}
-              </a>
-            ),
-          }}
-        />
-      </span>
-    </section>
+    <NoResults
+      title={t(m.noResultsTitle, { query })}
+      actions={
+        <>
+          <Button onClick={onClear}>{t(m.clearSearch)}</Button>
+          <ButtonLink to="/w/$workspace/settings/integrations/$kind" params={params('zapier')}>
+            {t(m.zapier)}
+          </ButtonLink>
+          <ButtonLink to="/w/$workspace/settings/integrations/$kind" params={params('make')}>
+            {t(m.make)}
+          </ButtonLink>
+          <ButtonLink to="/w/$workspace/settings/integrations/$kind" params={params('n8n')}>
+            {t(m.n8n)}
+          </ButtonLink>
+          <span className="k mt-1 basis-full">
+            <T
+              msg={m.buildYourOwn}
+              values={{
+                a: (c) => (
+                  <a href={apiReference} target="_blank" rel="noopener noreferrer">
+                    {c}
+                  </a>
+                ),
+              }}
+            />
+          </span>
+        </>
+      }
+    >
+      {t(m.noResultsBody)}
+    </NoResults>
   )
 }
 

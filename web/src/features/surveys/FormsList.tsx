@@ -5,6 +5,7 @@ import { Page } from '@/components/shell/Page'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel } from '@/components/ui/Feedback'
+import { NoResults } from '@/components/ui/NoResults'
 import { toast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
 import { count, shortDate } from '@/lib/format'
@@ -156,9 +157,9 @@ export function FormsList() {
           </table>
         </div>
       ) : (
-        <p className="k" style={{ padding: '4px 20px 18px' }}>
-          {t(m.noMatchForms, { query: q.trim() })}
-        </p>
+        <div className="px-5 pb-5">
+          <NoResults className="border-0" title={t(m.noMatchForms, { query: q.trim() })} actions={<Button onClick={() => setQ('')}>{t(m.clearSearch)}</Button>} />
+        </div>
       )}
     </section>,
   )

@@ -5,6 +5,7 @@ import { Icon } from '@/components/icons/Icon'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { Skeleton } from '@/components/ui/Feedback'
+import { StepTrail } from '@/components/ui/Stepper'
 import { toast } from '@/components/ui/Toast'
 import { copyText } from '@/features/access/parts'
 import { Footer } from '@/features/integrations/ConnectDialog'
@@ -132,7 +133,7 @@ export function ConnectStoreDialog({
       hideClose
       dismissible={current !== 'keys' && current !== 'key'}
     >
-      {settings ? null : <Stepper steps={steps} at={at} />}
+      {settings ? null : <Steps steps={steps} at={at} />}
       {q.isError ? (
         <Notice tone="b">{errorMessage(q.error)}</Notice>
       ) : loading && current !== 'address' ? (
@@ -183,25 +184,9 @@ export function ConnectStoreDialog({
 }
 
 /** "1 Store address › 2 Create the app › …", the steps before ticked. */
-function Stepper({ steps, at }: { steps: View[]; at: number }) {
+function Steps({ steps, at }: { steps: View[]; at: number }) {
   const t = useT()
-  return (
-    <ol className="ih-stp -mt-1" aria-label={t(cc.steps)}>
-      {steps.flatMap((s, i) => [
-        i > 0 ? (
-          <li key={`${s}-sep`} className="ih-sep" aria-hidden="true">
-            ›
-          </li>
-        ) : null,
-        <li key={s} className={i < at ? 'done' : i === at ? 'cur' : undefined} aria-current={i === at ? 'step' : undefined}>
-          <span className="ih-n" aria-hidden={i < at ? true : undefined}>
-            {i < at ? <Icon name="check" size={11} strokeWidth={2.4} /> : i + 1}
-          </span>
-          {t(stepLabel[s])}
-        </li>,
-      ])}
-    </ol>
-  )
+  return <StepTrail className="-mt-1" label={t(cc.steps)} current={at + 1} steps={steps.map((s) => ({ key: s, title: t(stepLabel[s]) }))} />
 }
 
 /** The boards' note with its icon: a warning (w) or a problem (b). */

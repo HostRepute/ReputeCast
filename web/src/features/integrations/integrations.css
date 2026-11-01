@@ -456,60 +456,6 @@
     align-items: center;
     white-space: nowrap;
   }
-  .ih-stp {
-    display: flex;
-    gap: 6px 8px;
-    flex-wrap: wrap;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    align-items: center;
-  }
-  .ih-stp li {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--ink-3);
-    white-space: nowrap;
-  }
-  .ih-stp .ih-n {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    border: 1.5px solid var(--line-hover);
-    box-sizing: border-box;
-    background: #fff;
-    color: var(--ink-2);
-  }
-  .ih-stp li.cur {
-    color: var(--accent);
-  }
-  .ih-stp li.cur .ih-n {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-  }
-  .ih-stp li.done {
-    color: var(--ok-fg);
-  }
-  .ih-stp li.done .ih-n {
-    background: var(--ok-bg);
-    border-color: #86efac;
-  }
-  .ih-stp li.off .ih-n {
-    border-style: dashed;
-  }
-  .ih-stp .ih-sep {
-    color: #6b7280;
-    font-weight: 500;
-  }
   .ih-inl {
     display: flex;
     gap: 8px;

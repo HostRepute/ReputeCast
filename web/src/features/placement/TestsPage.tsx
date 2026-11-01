@@ -3,6 +3,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { Icon, type IconName } from '@/components/icons/Icon'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button, ButtonLink } from '@/components/ui/Button'
+import { NoResults } from '@/components/ui/NoResults'
 import { Loading, Skeleton } from '@/components/ui/Feedback'
 import { Th } from '@/components/ui/Table'
 import { T, useT } from '@/i18n'
@@ -127,11 +128,8 @@ function TestsCard({ d }: { d: TestList }) {
         </select>
       </div>
       {shown.length === 0 ? (
-        <div className="flex flex-wrap items-center gap-3 px-[18px] py-5 text-[13px] text-ink-2" role="status">
-          <span>{t(m.noMatches)}</span>
-          <Button size="sm" onClick={clear}>
-            {t(m.clearFilters)}
-          </Button>
+        <div className="px-[18px] pb-5">
+          <NoResults className="border-0" title={t(m.noMatches)} actions={<Button onClick={clear}>{t(m.clearFilters)}</Button>} />
         </div>
       ) : (
         <>

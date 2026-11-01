@@ -34,6 +34,7 @@ export default translate(m, {
   submissions: '{count, plural, other {# lượt gửi}} · {days, plural, other {# ngày}}',
   startedCompleted: '{started} đã bắt đầu · {completed} đã hoàn thành',
   noMatchForms: 'Không có biểu mẫu nào khớp với “{query}”.',
+  clearSearch: 'Xóa tìm kiếm',
   emptyTitle: 'Chưa có biểu mẫu nào',
   emptyBody: 'Biểu mẫu đăng ký và khảo sát bạn tạo sẽ hiện ở đây. Trang đăng ký trên ReputeCast tại {url} đã hoạt động.',
   openHosted: 'Mở trang trên ReputeCast',

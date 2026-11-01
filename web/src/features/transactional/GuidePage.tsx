@@ -122,7 +122,7 @@ export function TransactionalGuidePage({ step, onStep }: { step?: GuideStep; onS
         </main>
       ) : !setup.data || !ov.data || !current ? (
         <div className="cn-wiz" aria-busy="true">
-          <div className="card cn-steps flex flex-col gap-3">
+          <div className="card stepper flex flex-col gap-3">
             {Array.from({ length: 5 }, (_, i) => (
               <Skeleton key={i} w="80%" h={14} />
             ))}

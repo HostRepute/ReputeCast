@@ -93,6 +93,7 @@ export default translate(m, {
   kindSms: 'Tin nhắn SMS',
   kindTransactional: 'Mẫu giao dịch',
   noMatch: 'Không có gì trong thư viện khớp với “{q}”.',
+  clearSearch: 'Xóa tìm kiếm',
   emptyKind: 'Chưa có mục nào thuộc loại này. Hãy thêm từ một khách hàng bằng “Thêm vào thư viện”.',
   showing: 'Hiển thị {shown} trên {n} · dùng nhiều nhất trước',
   showingAll: 'Hiển thị cả {n} · dùng nhiều nhất trước',

@@ -8,6 +8,7 @@ import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Field, OptionCard, Select, Toggle } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
+import { StepTrail } from '@/components/ui/Stepper'
 import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
@@ -79,23 +80,7 @@ function platformLabel(t: ReturnType<typeof useT>, s: Source): string {
 function Steps({ at, platform }: { at: number; platform: string }) {
   const t = useT()
   const names = [at > 1 ? t(mi.stepSourceDone, { platform }) : t(mi.stepSource), t(mi.stepUpload), t(mi.stepMatch), t(mi.stepPrices), t(mi.stepReview)]
-  return (
-    <ol className="ea-steps m-0 list-none p-0" aria-label={t(mi.stepsLabel)}>
-      {names.map((n, i) => (
-        <Fragment key={i}>
-          {i > 0 ? (
-            <li className="sep" aria-hidden="true">
-              ›
-            </li>
-          ) : null}
-          <li className={`s ${i + 1 < at ? 'done' : i + 1 === at ? 'cur' : ''}`} aria-current={i + 1 === at ? 'step' : undefined}>
-            <span className="n">{i + 1 < at ? <Icon name="check" size={12} /> : i + 1}</span>
-            {n}
-          </li>
-        </Fragment>
-      ))}
-    </ol>
-  )
+  return <StepTrail tone="soft" label={t(mi.stepsLabel)} current={at} steps={names.map((title, i) => ({ key: String(i), title }))} />
 }
 
 function Footer({ children }: { children: ReactNode }) {

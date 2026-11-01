@@ -1027,6 +1027,130 @@
     color: var(--ok-fg);
   }
 
+  /* Stepper (components/ui/Stepper): the wizard's step rail beside the
+     content; on phones one sideways-scrolling row above it. */
+  .stepper {
+    flex: 1 1 220px;
+    max-width: 250px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  @media (max-width: 767px) {
+    .stepper {
+      /* Holds the steps' visually hidden "Done:" (.vh, absolutely
+         positioned), so the page itself never scrolls sideways. */
+      position: relative;
+      max-width: none;
+      flex: 1 1 100%;
+      flex-direction: row;
+      overflow-x: auto;
+      gap: 14px;
+      padding: 10px 12px;
+    }
+    .stepper .step {
+      flex: none;
+      padding: 2px 0;
+      align-items: center;
+    }
+    .stepper .step .k,
+    .stepper .stepper-foot {
+      display: none;
+    }
+  }
+
+  /* StepTrail (components/ui/Stepper): a dialog's steps on one line,
+     "✓ Store address › 2 Create the app › 3 Paste the token". */
+  .trail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .trail li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-3);
+    white-space: nowrap;
+  }
+  .trail .sep {
+    margin-left: 2px;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .trail .n {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    font-size: 11px;
+    font-weight: 700;
+    border: 1.5px solid var(--line-hover);
+    box-sizing: border-box;
+    background: #fff;
+    color: var(--ink-2);
+  }
+  .trail .cur {
+    color: var(--accent);
+  }
+  .trail .cur .n {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .trail .done {
+    color: var(--ok-fg);
+  }
+  .trail .done .n {
+    background: var(--ok-bg);
+    border-color: #86efac;
+    color: var(--ok-fg);
+  }
+  .trail .off .n {
+    border-style: dashed;
+  }
+  /* Earn's dialogs: finished steps in the accent, numbers on the ground. */
+  .trail.soft {
+    gap: 8px 10px;
+  }
+  .trail.soft li {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-2);
+  }
+  .trail.soft .sep {
+    color: var(--ink-4);
+  }
+  .trail.soft .n {
+    border: 0;
+    background: var(--ground);
+    font-size: 11.5px;
+  }
+  .trail.soft .done {
+    color: var(--accent);
+  }
+  .trail.soft .done .n {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .trail.soft .cur {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .trail.soft .cur .n {
+    background: var(--accent);
+    color: #fff;
+  }
+
   /* Vertical step list (first sign-in, SSO setup, role editor) */
   .steps {
     display: flex;

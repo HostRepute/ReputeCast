@@ -4,9 +4,9 @@
 //   - a switch is drawn with SwitchInput or Toggle (components/ui/Field),
 //     never a hand-made <input role="switch">;
 //   - useDebounced comes from lib/hooks, never a local copy;
-//   - a wizard's steps are drawn by Stepper (components/ui/Stepper, review
-//     2026-11 FE-3b); the files in ownSteps still draw a compact step bar
-//     of their own (a dialog's or a checklist's) and no other file may;
+//   - a wizard's steps are drawn by Stepper, a dialog's by StepTrail (both
+//     components/ui/Stepper, review 2026-11 FE-3b); only the two lists in
+//     ownSteps, which aren't step bars, mark a step themselves;
 //   - "Show more" under a list read page by page is Pager (components/ui/
 //     Pager), never a button calling fetchNextPage itself;
 //   - a page's select-all checkbox is SelectAll (components/ui/SelectAll)
@@ -34,15 +34,10 @@ function files(dir: string): string[] {
 }
 
 const hex = /#[0-9A-Fa-f]{6}\b|['"`]#[0-9A-Fa-f]{3}['"`]/g
-const ownSteps = new Set([
-  'src/features/auth/SetupPage.tsx',
-  'src/features/commerce/ConnectStoreDialog.tsx',
-  'src/features/earn/ImportDialog.tsx',
-  'src/features/earn/Overview.tsx',
-  'src/features/imports/ImportFrame.tsx',
-  'src/features/integrations/ConnectDialog.tsx',
-  'src/features/transactional-import/ImportDialog.tsx',
-])
+// Not step bars: first sign-in's vertical list (the shared `.steps` of SSO
+// setup and the role editor) and Earn's setup checklist, whose rows carry
+// their own actions.
+const ownSteps = new Set(['src/features/auth/SetupPage.tsx', 'src/features/earn/Overview.tsx'])
 const problems: string[] = []
 const counts: Record<string, number> = {}
 for (const p of files(src)) {
@@ -51,7 +46,7 @@ for (const p of files(src)) {
   if (/role="switch"/.test(text) && rel !== 'src/components/ui/Field.tsx') problems.push(`${rel}: draw switches with SwitchInput or Toggle from components/ui/Field`)
   if (/function useDebounced\b/.test(text) && rel !== 'src/lib/hooks.ts') problems.push(`${rel}: import useDebounced from lib/hooks instead of a local copy`)
   if (/aria-current=(?:"step"|\{[^}]*'step')/.test(text) && rel !== 'src/components/ui/Stepper.tsx' && !ownSteps.has(rel))
-    problems.push(`${rel}: draw a wizard's steps with Stepper from components/ui/Stepper`)
+    problems.push(`${rel}: draw a wizard's steps with Stepper, or a dialog's with StepTrail, from components/ui/Stepper`)
   if (/onClick=\{\(\) => (?:void )?\w+\.fetchNextPage\(\)\}/.test(text) && rel !== 'src/components/ui/Pager.tsx')
     problems.push(`${rel}: show the next page with Pager from components/ui/Pager`)
   if (/\.indeterminate = /.test(text) && rel !== 'src/components/ui/SelectAll.tsx' && rel !== 'src/features/audience/ContactsPage.tsx')

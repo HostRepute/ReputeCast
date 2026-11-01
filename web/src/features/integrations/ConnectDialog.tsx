@@ -8,6 +8,7 @@ import { KeyValues } from '@/components/ui/Data'
 import { Dialog } from '@/components/ui/Dialog'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
+import { StepTrail } from '@/components/ui/Stepper'
 import { toast } from '@/components/ui/Toast'
 import { copyText } from '@/features/access/parts'
 import { T, formatList, useT } from '@/i18n'
@@ -180,33 +181,8 @@ export function Steps({ kind, step, blocked }: { kind: ConnectKind; step: Step; 
   const name = t(entryName[kind])
   const labels =
     kind === 'wordpress' ? [t(m.wpStep1), t(m.wpStep2), t(m.wpStep3)] : [t(m.step1, { name }), t(m.step2, { name }), t(m.step3, { name })]
-  const at = step === 'choose' ? 0 : step === 'paste' ? 1 : 2
-  return (
-    <ol className="ih-stp -mt-1" aria-label={t(m.steps)}>
-      {labels.map((label, i) => (
-        <li key={i} className="contents">
-          {i > 0 ? (
-            <span className="ih-sep" aria-hidden="true">
-              ›
-            </span>
-          ) : null}
-          <span
-            className={`flex items-center gap-1.5 text-[12.5px] font-semibold whitespace-nowrap ${i < at ? 'text-ok-fg' : i === at ? 'text-accent' : 'text-ink-3'}`}
-            aria-current={i === at ? 'step' : undefined}
-            aria-disabled={blocked && i > at ? true : undefined}
-          >
-            <span
-              className={`ih-n ${i < at ? '!border-[#86efac] !bg-ok-bg' : i === at ? '!border-accent !bg-accent !text-white' : blocked ? '!border-dashed' : ''}`}
-              aria-hidden="true"
-            >
-              {i < at ? <Icon name="check" size={11} strokeWidth={2.4} /> : i + 1}
-            </span>
-            {label}
-          </span>
-        </li>
-      ))}
-    </ol>
-  )
+  const current = step === 'choose' ? 1 : step === 'paste' ? 2 : 3
+  return <StepTrail className="-mt-1" label={t(m.steps)} current={current} blocked={blocked} steps={labels.map((title, i) => ({ key: String(i), title }))} />
 }
 
 /** The permissions the key gets for the items that are on, shortest form first. */

@@ -18,7 +18,6 @@ export const m = defineMessages('imports', {
   stepConsent: 'Consent',
   stepPreview: 'Preview',
   stepImport: 'Import',
-  stepDone: '(done)',
   stepOf: 'Step {step} of {total}',
   exit: 'Exit',
   back: 'Back',

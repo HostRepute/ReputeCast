@@ -5,6 +5,7 @@ import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
+import { NoResults } from '@/components/ui/NoResults'
 import { Select } from '@/components/ui/Field'
 import { Table, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
@@ -127,7 +128,13 @@ export function SmsSuppressions({ search, onSearch, switcher }: { search: SmsSup
           ))}
         </div>
       ) : d.items.length === 0 ? (
-        <div className="pad k">{d.total ? t(m.noMatch) : t(m.empty)}</div>
+        d.total ? (
+          <div className="pad">
+            <NoResults className="border-0" title={t(m.noMatch)} />
+          </div>
+        ) : (
+          <div className="pad k">{t(m.empty)}</div>
+        )
       ) : (
         <>
           <div className="sms-no-phone flex-col">

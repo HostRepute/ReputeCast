@@ -7,6 +7,7 @@ import { Page } from '@/components/shell/Page'
 import { ForbiddenState } from '@/components/shell/SystemScreens'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
+import { NoResults } from '@/components/ui/NoResults'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { Segmented } from '@/components/ui/Tabs'
@@ -310,18 +311,22 @@ function TemplatesCard({ q, period }: { q: { data?: Schemas['TransactionalTempla
           </div>
           {shown.length === 0 ? (
             <div className="pad">
-              <div className="card tx-empty">
-                <span className="tt">{t(mo.noMatchTitle, { query: query.trim() })}</span>
-                <span className="ds">{t(mo.noMatchBody, { count: items.length, query: query.trim() })}</span>
-                <div className="row" style={{ justifyContent: 'center' }}>
-                  <Button onClick={() => setQuery('')}>{t(mo.clearSearch)}</Button>
-                  {canEdit && query.trim() ? (
-                    <ButtonLink to="/w/$workspace/transactional/templates/new" params={{ workspace: slug }} search={{ name: query.trim() } as never}>
-                      {t(mo.newNamed, { name: query.trim() })}
-                    </ButtonLink>
-                  ) : null}
-                </div>
-              </div>
+              <NoResults
+                className="border-0"
+                title={t(mo.noMatchTitle, { query: query.trim() })}
+                actions={
+                  <>
+                    <Button onClick={() => setQuery('')}>{t(mo.clearSearch)}</Button>
+                    {canEdit && query.trim() ? (
+                      <ButtonLink to="/w/$workspace/transactional/templates/new" params={{ workspace: slug }} search={{ name: query.trim() } as never}>
+                        {t(mo.newNamed, { name: query.trim() })}
+                      </ButtonLink>
+                    ) : null}
+                  </>
+                }
+              >
+                {t(mo.noMatchBody, { count: items.length, query: query.trim() })}
+              </NoResults>
             </div>
           ) : (
             <>

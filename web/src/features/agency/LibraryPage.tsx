@@ -6,6 +6,7 @@ import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
+import { NoResults } from '@/components/ui/NoResults'
 import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
@@ -523,7 +524,11 @@ function SharedLibrary({ filter, setFilter }: { filter: string; setFilter: (v: s
                 ))}
               </div>
             ) : items.length === 0 ? (
-              <p className="k m-0">{filter ? t(lm.noMatch, { q: filter }) : t(lm.emptyKind)}</p>
+              filter ? (
+                <NoResults title={t(lm.noMatch, { q: filter })} actions={<Button onClick={() => setFilter('')}>{t(lm.clearSearch)}</Button>} />
+              ) : (
+                <p className="k m-0">{t(lm.emptyKind)}</p>
+              )
             ) : (
               <div className="grid items-stretch gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(210px,100%),1fr))' }}>
                 {shown.map((it) => (

@@ -1,11 +1,12 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { useRef, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { $api, type Schemas } from '@/api/client'
 import { LogoMark } from '@/components/icons/Icon'
+import { Stepper } from '@/components/ui/Stepper'
 import { cn } from '@/lib/cn'
 import { count, dayMonthDate } from '@/lib/format'
-import { useDocumentTitle, useOverflowX } from '@/lib/hooks'
+import { useDocumentTitle } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { T, useT, type MessageDescriptor } from '@/i18n'
 import { m } from './messages'
@@ -72,9 +73,6 @@ export function ImportFrame({
   const t = useT()
   const ws = useWorkspace()
   useDocumentTitle(`${documentTitle ?? title} · ${ws.me.workspace.name} · ReputeCast`)
-  // On phones the steps scroll sideways; then the rail takes keyboard focus.
-  const stepsRef = useRef<HTMLElement>(null)
-  const stepsScroll = useOverflowX(stepsRef)
   return (
     <div className="mig rc-app">
       <header>
@@ -97,26 +95,7 @@ export function ImportFrame({
         </main>
       ) : (
         <div className="wiz">
-          {/* A scrolling region is the exception to the rule: it must take focus. */}
-          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
-          <nav ref={stepsRef} className="card wizsteps" aria-label={t(m.steps)} tabIndex={stepsScroll ? 0 : undefined}>
-            {steps.map((s) => {
-              const state = s.n < step ? 'done' : s.n === step ? 'cur' : ''
-              return (
-                <div key={s.n} className={cn('step', state)} aria-current={state === 'cur' ? 'step' : undefined}>
-                  <span className="num">{state === 'done' ? '✓' : s.n}</span>
-                  <div>
-                    <div className="font-semibold">
-                      {t(s.label)}
-                      {state === 'done' ? <span className="vh"> {t(m.stepDone)}</span> : null}
-                    </div>
-                    {hints[s.n] ? <div className="k">{hints[s.n]}</div> : null}
-                  </div>
-                </div>
-              )
-            })}
-            {footer ? <div className="railfoot k mt-2.5 border-t border-line-2 pt-3">{footer}</div> : null}
-          </nav>
+          <Stepper label={t(m.steps)} current={step} steps={steps.map((s) => ({ key: String(s.n), title: t(s.label), line: hints[s.n] }))} foot={footer} />
           <main id="main" tabIndex={-1} className={mainClassName}>
             {children}
           </main>

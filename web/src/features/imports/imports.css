@@ -34,16 +34,6 @@
     box-sizing: border-box;
     align-items: flex-start;
   }
-  /* position: relative keeps the visually hidden "(done)" labels inside the
-     rail when it scrolls sideways on phones. */
-  .wizsteps {
-    position: relative;
-    flex: 1 1 220px;
-    max-width: 250px;
-    padding: 14px 16px;
-    display: flex;
-    flex-direction: column;
-  }
   .wiz > main {
     flex: 999 1 560px;
     min-width: 0;
@@ -183,23 +173,6 @@
     .mig .wiz {
       padding: 12px;
     }
-    .wizsteps {
-      max-width: none;
-      flex: 1 1 100%;
-      flex-direction: row;
-      overflow-x: auto;
-      gap: 14px;
-      padding: 10px 12px;
-    }
-    .wizsteps .step {
-      flex: none;
-      padding: 2px 0;
-      align-items: center;
-    }
-    .wizsteps .step .k,
-    .wizsteps > .railfoot {
-      display: none;
-    }
     .wiz > main,
     .wiz main > * {
       min-width: 0;
@@ -222,7 +195,7 @@
       padding-bottom: 2px;
       max-width: 100%;
     }
-    .wizsteps .badge {
+    .wiz .stepper .badge {
       white-space: nowrap;
     }
     .wiz .btn {
