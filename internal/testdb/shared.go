@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -40,7 +41,7 @@ func Shared(ctx context.Context, key string, fill func(pool *pgxpool.Pool, dir s
 		return "", "", err
 	}
 	defer func() { _ = admin.Close(ctx) }()
-	prefix := "rc_fill_" + key + "_" + hostTag + "_" + strconv.Itoa(runOwner) + "_"
+	prefix := sharedPrefix(key)
 	sum := sha256.Sum256([]byte(prefix))
 	lock := int64(binary.BigEndian.Uint64(sum[:8]))
 	if _, err := admin.Exec(ctx, `SELECT pg_advisory_lock($1)`, lock); err != nil {
@@ -73,6 +74,22 @@ func Shared(ctx context.Context, key string, fill func(pool *pgxpool.Pool, dir s
 		return "", "", fmt.Errorf("fill %s: %w", key, err)
 	}
 	return name, dir, nil
+}
+
+// maxSharedKey is the longest key a shared template's name carries as it
+// is. Postgres keeps the first 63 bytes of a name, and the name
+// (rc_fill_<key>_<host>_<pid>_<unix>_<rand>) also names the template's
+// folder: past that the database the others find is not the one the folder
+// was made for. A longer key goes in as a hash.
+const maxSharedKey = 20
+
+// sharedPrefix is the start of this run's shared template names for key.
+func sharedPrefix(key string) string {
+	if len(key) > maxSharedKey {
+		sum := sha256.Sum256([]byte(key))
+		key = "h" + hex.EncodeToString(sum[:6])
+	}
+	return "rc_fill_" + key + "_" + hostTag + "_" + strconv.Itoa(runOwner) + "_"
 }
 
 // newestShared finds the run's most recent complete template for prefix, if

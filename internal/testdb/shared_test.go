@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"strconv"
 	"testing"
 	"time"
 
@@ -57,11 +56,46 @@ func TestSharedFillsOncePerRun(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = admin.Close(ctx) }()
-	prefix := "rc_fill_" + key + "_" + hostTag + "_" + strconv.Itoa(runOwner) + "_"
+	prefix := sharedPrefix(key)
 	if got, ok := newestShared(ctx, admin, prefix, time.Now()); !ok || got != name {
 		t.Fatalf("newest: %q %v", got, ok)
 	}
 	if _, ok := newestShared(ctx, admin, prefix, time.Now().Add(sharedMaxAge)); ok {
 		t.Fatal("a template sharedMaxAge old is filled again")
+	}
+}
+
+// A long key (a sample seeded at a given moment) still finds the template
+// and its folder: Postgres cuts names at 63 bytes, and a cut name pointed
+// the siblings at a folder that didn't exist.
+func TestSharedLongKey(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration test: needs Postgres (run without -short)")
+	}
+	ctx := context.Background()
+	key := "demo_at_1792512000" + randHex(3) + "29891760"
+	fill := func(pool *pgxpool.Pool, dir string) error {
+		return os.WriteFile(filepath.Join(dir, "probe.txt"), []byte("x"), 0o600)
+	}
+	name, dir, err := Shared(ctx, key, fill)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if a, err := pgx.Connect(context.Background(), withDB(baseURL, "postgres")); err == nil {
+			_, _ = a.Exec(context.Background(), `DROP DATABASE IF EXISTS `+name+` WITH (FORCE)`)
+			_ = a.Close(context.Background())
+		}
+		_ = os.RemoveAll(dir)
+	})
+	if len(name) > 63 {
+		t.Fatalf("%q is %d bytes; Postgres keeps 63", name, len(name))
+	}
+	again, dir2, err := Shared(ctx, key, fill)
+	if err != nil || again != name || dir2 != dir {
+		t.Fatalf("second call: %s %s %v; first %s %s", again, dir2, err, name, dir)
+	}
+	if _, err := os.Stat(filepath.Join(dir2, "probe.txt")); err != nil {
+		t.Fatalf("the files of a reused template: %v", err)
 	}
 }
