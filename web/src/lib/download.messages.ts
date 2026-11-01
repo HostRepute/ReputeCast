@@ -6,6 +6,4 @@ export const m = defineMessages('lib.download', {
   exported: 'Exported as CSV',
   exportedDetail: 'The file is in your downloads. The export is in the audit log.',
   failed: "Couldn't export",
-  // permission: subscribers:export
-  needs: 'Exporting needs the subscribers:export permission',
 })

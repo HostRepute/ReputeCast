@@ -11,7 +11,7 @@ import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { ago, clock, count, dayMonthDate, dayMonthYear } from '@/lib/format'
-import { useCan, useMe, useWorkspace } from '@/lib/session'
+import { deniedReason, useCan, useMe, useWorkspace } from '@/lib/session'
 import { CreateKeyDialog } from '@/features/keys/CreateKeyDialog'
 import { KeySecretDialog } from '@/features/keys/KeySecretDialog'
 import { CodeBox, type CodeLang } from '@/features/transactional/shared'
@@ -284,7 +284,7 @@ function ConversionsLog({ s }: { s: Settings }) {
             size="sm"
             icon={canExport ? undefined : 'lock'}
             disabled={!canExport}
-            title={canExport ? undefined : t(dm.needs)}
+            title={canExport ? undefined : deniedReason('subscribers:export')}
             onClick={() => void downloadCsv(`${CONVERSIONS}/export`, { path: { workspace: slug } }, 'conversions.csv')}
           >
             {t(dm.exportCsv)}
