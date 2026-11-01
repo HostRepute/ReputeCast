@@ -168,6 +168,7 @@ export const entries: Entry[] = [
   { board: 'InstanceUserDialogs', manual: true },
   { board: 'InstanceAuth', path: `${ws}/admin/authentication` },
   { board: 'InstanceSettings', path: `${ws}/admin/instance` },
+  { board: 'InstanceSystem', path: `${ws}/admin/system` },
   { board: 'SSOSetup', path: `${ws}/admin/sso/{sso:Microsoft Entra ID}` },
   { board: 'SSOSetupTablet', path: `${ws}/admin/sso/{sso:Microsoft Entra ID}`, widths: [834] },
   { board: 'SSOSetupPhone', path: `${ws}/admin/sso/{sso:Microsoft Entra ID}`, widths: [390] },

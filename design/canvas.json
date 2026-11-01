@@ -4386,6 +4386,16 @@
    "w": 1440,
    "x": 9360,
    "y": 5598
+  },
+  "InstanceSystem.dc.html": {
+   "expand": "fill",
+   "h": 1410,
+   "is_interactive": true,
+   "page": "instance",
+   "title": "Instance admin · system: failed jobs, queues, database and files folder",
+   "w": 1440,
+   "x": 14040,
+   "y": 0
   }
  },
  "createdOnFiles": {
@@ -4608,7 +4618,7 @@
    "kind": "title1",
    "maxW": 7520,
    "page": "instance",
-   "text": "A5.10–5.11 Instance admin (users, authentication policies, instance settings, version & updates) and SSO over OpenID Connect: Google Workspace enabled, Microsoft Entra ID with group mapping, discovery and claim errors, domain enforcement.",
+   "text": "A5.10–5.11 Instance admin (users, authentication policies, instance settings, version & updates) and SSO over OpenID Connect: Google Workspace enabled, Microsoft Entra ID with group mapping, discovery and claim errors, domain enforcement. System (review 2026-11 OP-10): failed jobs with retry, cancel and delete, queue lag, the largest tables and the files folder.",
    "w": 240,
    "x": 0,
    "y": -300
@@ -5626,6 +5636,7 @@
   "SSOStates.dc.html",
   "InstanceBotFilter.dc.html",
   "InstanceBotFilterDialogs.dc.html",
+  "InstanceSystem.dc.html",
   "AuditInstance.dc.html",
   "InstanceUsersTablet.dc.html",
   "SSOSetupTablet.dc.html",

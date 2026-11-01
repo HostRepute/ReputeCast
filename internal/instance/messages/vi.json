@@ -91,5 +91,9 @@
 
   "update.noAnswer": "GitHub không trả lời: {error}",
   "update.status": "GitHub trả về {status} {statusText}.",
-  "update.noRelease": "Câu trả lời của GitHub không có bản phát hành nào."
+  "update.noRelease": "Câu trả lời của GitHub không có bản phát hành nào.",
+  "system.cursor": "Hãy tải lại danh sách: liên kết trang này không còn hợp lệ.",
+  "system.noJobs": "Tiến trình này không truy cập được các job chạy nền. Hãy thử lại sau giây lát.",
+  "system.jobGone": "Job này không còn nữa: nó đã chạy hoặc đã bị xoá kể từ khi danh sách được tải.",
+  "system.notFailed": "{kind} không còn là job lỗi nữa: nó đang chờ, đang chạy hoặc đã xong. Hãy tải lại danh sách."
 }

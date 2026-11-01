@@ -38,6 +38,8 @@ export function adminTabs(workspace: string): NavTab[] {
     { label: t(m.instance), to: '/w/$workspace/admin/instance', params },
     // The bot filter's networks and user agents (review AN-2).
     { label: t(m.botFilter), to: '/w/$workspace/admin/bot-filter', params },
+    // Failed jobs, queues, the database and the files folder (review 2026-11 OP-10).
+    { label: t(m.adminSystem), to: '/w/$workspace/admin/system', params },
     { label: t(m.instanceAudit), to: '/w/$workspace/admin/audit', params },
   ]
 }
