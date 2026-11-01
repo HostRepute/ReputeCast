@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { cn } from '@/lib/cn'
+import { CardBoundary } from './ErrorBoundary'
 
 /** A thin track with one filled segment (quota, rate, threshold usage). */
 export function Bar({
@@ -78,9 +79,11 @@ export function Metric({ label, value, sub, size = 18, className, valueClassName
 export function StatTile({ label, value, delta, deltaTone, className }: { label: ReactNode; value: ReactNode; delta?: ReactNode; deltaTone?: 'ok' | 'bad' | 'neutral'; className?: string }) {
   return (
     <div className={cn('tile', className)}>
-      <span className="k">{label}</span>
-      <span className="n text-[28px] leading-[1.1] tracking-[-0.02em]">{value}</span>
-      {delta ? <span className={cn('text-[12px] font-medium', deltaTone === 'ok' && 'text-ok-fg', deltaTone === 'bad' && 'text-bad-fg', (!deltaTone || deltaTone === 'neutral') && 'text-ink-3')}>{delta}</span> : null}
+      <CardBoundary compact>
+        <span className="k">{label}</span>
+        <span className="n text-[28px] leading-[1.1] tracking-[-0.02em]">{value}</span>
+        {delta ? <span className={cn('text-[12px] font-medium', deltaTone === 'ok' && 'text-ok-fg', deltaTone === 'bad' && 'text-bad-fg', (!deltaTone || deltaTone === 'neutral') && 'text-ink-3')}>{delta}</span> : null}
+      </CardBoundary>
     </div>
   )
 }

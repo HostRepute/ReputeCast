@@ -13,7 +13,7 @@
     "build": "node scripts/i18n-check.ts --summary && tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty",
-    "lint": "eslint .",
+    "lint": "eslint . && node scripts/patterns-check.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
@@ -22,7 +22,8 @@
     "tokens": "node scripts/tokens.ts",
     "shot": "node scripts/shot.ts",
     "qa": "node scripts/qa.ts",
-    "a11y": "node scripts/a11y.ts"
+    "a11y": "node scripts/a11y.ts",
+    "budget": "node scripts/bundle-budget.ts"
   },
   "dependencies": {
     "@codemirror/lang-html": "6.4.12",

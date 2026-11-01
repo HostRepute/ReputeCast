@@ -23,6 +23,7 @@ import { ConnectStoreDialog } from './ConnectStoreDialog'
 import { DisconnectStoreDialog } from './DisconnectStoreDialog'
 import { cm } from './messages'
 import './commerce.css'
+import { SwitchInput } from '@/components/ui/Field'
 
 type T_ = ReturnType<typeof useT>
 type Dialog = 'connect' | 'reconnect' | 'settings' | 'disconnect' | 'log' | null
@@ -789,10 +790,7 @@ function ConsentCard({ page: p, platform }: { page: Page_; platform: string }) {
               <b className="font-semibold">{t(cm.writeBack)}</b>
               <span className="k">{p.consent.writeGranted ? t(cm.writeBackGranted) : t(cm.writeBackNotGranted)}</span>
             </span>
-            <input
-              type="checkbox"
-              role="switch"
-              className="tg"
+            <SwitchInput
               aria-label={t(cm.writeBack)}
               checked={p.consent.writeBack && p.consent.writeGranted}
               disabled={off || !p.consent.writeGranted}
@@ -878,7 +876,7 @@ function AttributionCard({ page: p }: { page: Page_ }) {
             <span className="k">{t(cm.attrTagSub)}</span>
             <span className="mono k [overflow-wrap:anywhere]">{a.tagExample}</span>
           </span>
-          <input type="checkbox" role="switch" className="tg" aria-label={t(cm.attrTagLabel)} checked={a.tagLinks} disabled={off} onChange={(e) => settings.save({ tagLinks: e.target.checked })} />
+          <SwitchInput aria-label={t(cm.attrTagLabel)} checked={a.tagLinks} disabled={off} onChange={(e) => settings.save({ tagLinks: e.target.checked })} />
         </div>
         <div className="flex flex-col gap-2">
           <span className="font-semibold">{t(cm.attrLast, { days: p.numbers.days, orders: a.orders, amount: money(a.revenue, cur) })}</span>

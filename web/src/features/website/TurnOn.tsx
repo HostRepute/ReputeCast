@@ -17,6 +17,7 @@ import { bare, useInvalidateWebsite, type Overview } from './api'
 import { m } from './messages'
 import { ReadOnlyNote, ViewSite } from './WebsiteFrame'
 import './website.css'
+import { SwitchInput } from '@/components/ui/Field'
 
 type Layout = 'featured' | 'list' | 'grid'
 type SignupList = Overview['members']['signupLists'][number]
@@ -158,7 +159,7 @@ function PublicArchiveCard({ overview }: { overview: Overview }) {
           <span className="k">{a.issues ? t(m.archivePublicText, { url: bare(a.url), count: a.issues, year: a.since }) : t(m.archivePublicTextNone, { url: bare(a.url) })}</span>
         </div>
         <div className="ct">
-          <input type="checkbox" role="switch" className="tg" aria-labelledby="ws-arch-pub" checked={a.enabled} disabled={!ready} onChange={(e) => put({ enabled: e.target.checked })} />
+          <SwitchInput aria-labelledby="ws-arch-pub" checked={a.enabled} disabled={!ready} onChange={(e) => put({ enabled: e.target.checked })} />
         </div>
       </div>
       <div className="ws-sub">
@@ -190,7 +191,7 @@ function PublicArchiveCard({ overview }: { overview: Overview }) {
           <span className="k">{t(m.archiveIndexText)}</span>
         </div>
         <div className="ct">
-          <input type="checkbox" role="switch" className="tg" aria-labelledby="ws-arch-ix" checked={a.index} disabled={!ready} onChange={(e) => put({ index: e.target.checked })} />
+          <SwitchInput aria-labelledby="ws-arch-ix" checked={a.index} disabled={!ready} onChange={(e) => put({ index: e.target.checked })} />
         </div>
       </div>
       <div className="ws-foot">
@@ -354,7 +355,7 @@ function TurnOnForm({ overview, onStarted }: { overview: Overview; onStarted: ()
               <b id="ws-ton-signin">{t(m.membersSignin)}</b>
               <span className="k">{t(m.membersSigninText, { days: overview.members.sessionDays })}</span>
             </div>
-            <input type="checkbox" role="switch" className="tg" aria-labelledby="ws-ton-signin" checked={signinOn} onChange={(e) => setSigninOn(e.target.checked)} />
+            <SwitchInput aria-labelledby="ws-ton-signin" checked={signinOn} onChange={(e) => setSigninOn(e.target.checked)} />
           </div>
           <div className="ws-optbox">
             <div className="tx">

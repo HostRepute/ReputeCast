@@ -7,6 +7,7 @@ import { formatList, T, useT } from '@/i18n'
 import { shortDate } from '@/lib/format'
 import { m } from './messages'
 import { capInline, capPhrase, capText, ruleDetail, ruleWhen, signed, type Options, type Rule } from './ruleText'
+import { SwitchInput } from '@/components/ui/Field'
 
 const mono = (s: string): ReactNode => <span className="mono">{s}</span>
 
@@ -126,7 +127,7 @@ export function RulesCard({
                     </td>
                     <td className="nw">{capText(r)}</td>
                     <td className="c">
-                      <input type="checkbox" className="tg" role="switch" checked={r.enabled} disabled={!canEdit} aria-label={t(m.ruleOn, { n })} onChange={(e) => onToggle(i, e.target.checked)} />
+                      <SwitchInput checked={r.enabled} disabled={!canEdit} aria-label={t(m.ruleOn, { n })} onChange={(e) => onToggle(i, e.target.checked)} />
                     </td>
                     <td className="r">
                       <RowActions n={n} canEdit={canEdit} onEdit={() => onEdit(i)} onDuplicate={() => onDuplicate(i)} onDelete={() => onDelete(i)} />
@@ -152,7 +153,7 @@ export function RulesCard({
                 </span>
                 <span className="k">{t(m.capWith, { detail: ruleDetail(r), cap: capInline(r) })}</span>
               </button>
-              <input type="checkbox" className="tg" role="switch" checked={r.enabled} disabled={!canEdit} aria-label={t(m.ruleOn, { n })} onChange={(e) => onToggle(i, e.target.checked)} />
+              <SwitchInput checked={r.enabled} disabled={!canEdit} aria-label={t(m.ruleOn, { n })} onChange={(e) => onToggle(i, e.target.checked)} />
             </div>
           )
         })}

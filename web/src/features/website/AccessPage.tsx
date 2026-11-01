@@ -6,7 +6,7 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
-import { Field, Input, Select, Textarea } from '@/components/ui/Field'
+import { Field, Input, Select, SwitchInput, Textarea } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { Segmented } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
@@ -216,7 +216,7 @@ function SigninCard({ data, draft, set, ro, sessionBad }: CardProps & { data: Ac
           <span className="k">{draft.signinOn ? t(ma.signinOnText) : t(ma.signinOffText)}</span>
         </div>
         <div className="ct">
-          <input type="checkbox" role="switch" className="tg" aria-labelledby="ac-signin-on" checked={draft.signinOn} disabled={ro} onChange={(e) => set({ signinOn: e.target.checked })} />
+          <SwitchInput aria-labelledby="ac-signin-on" checked={draft.signinOn} disabled={ro} onChange={(e) => set({ signinOn: e.target.checked })} />
         </div>
       </div>
       {!draft.signinOn && data.signinOn ? (
@@ -294,7 +294,7 @@ function SignupCard({ data, draft, set, ro }: CardProps & { data: Access }) {
           <span className="k">{t(ma.signupOnText)}</span>
         </div>
         <div className="ct">
-          <input type="checkbox" role="switch" className="tg" aria-labelledby="ac-signup-on" checked={draft.signupOn} disabled={ro || !draft.signinOn} onChange={(e) => set({ signupOn: e.target.checked })} />
+          <SwitchInput aria-labelledby="ac-signup-on" checked={draft.signupOn} disabled={ro || !draft.signinOn} onChange={(e) => set({ signupOn: e.target.checked })} />
         </div>
       </div>
       <div className="ws-sub">
@@ -430,7 +430,7 @@ function MeterCard({
         <span className="k">{hint}</span>
       </div>
       <div className="ct">
-        <input type="checkbox" role="switch" className="tg" aria-label={switchLabel} checked={on} disabled={ro} onChange={(e) => setOn(e.target.checked)} />
+        <SwitchInput aria-label={switchLabel} checked={on} disabled={ro} onChange={(e) => setOn(e.target.checked)} />
       </div>
     </div>
   )

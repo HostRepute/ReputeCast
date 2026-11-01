@@ -1,6 +1,6 @@
 import { keepPreviousData, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { problemReference } from '@/components/shell/SystemScreens'
@@ -20,6 +20,7 @@ import { DeliveryDialog, OptionDialog } from './GiftDialogs'
 import { GiftIcon, giftWhen } from './parts'
 import { mg } from './messages'
 import './gifts.css'
+import { useDebounced } from '@/lib/hooks'
 
 type View = Schemas['GiftsView']
 type Row = Schemas['GiftRow']
@@ -39,14 +40,6 @@ async function copy(text: string): Promise<boolean> {
   }
 }
 
-function useDebounced<T>(value: T, ms: number): T {
-  const [v, setV] = useState(value)
-  useEffect(() => {
-    const id = setTimeout(() => setV(value), ms)
-    return () => clearTimeout(id)
-  }, [value, ms])
-  return v
-}
 
 /**
  * Earn › Gifts (EarnGifts): the numbers, the gift options and the gift

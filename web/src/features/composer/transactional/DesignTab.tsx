@@ -6,6 +6,7 @@ import { tagOf } from '../editor/labels'
 import { describe, SettingsFields, StyleFields } from '../Inspector'
 import { m } from './messages'
 import { useTx } from './state'
+import { SwitchInput } from '@/components/ui/Field'
 
 const KEY_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
@@ -108,11 +109,11 @@ function TemplateSettings() {
         <legend className="font-semibold">{t(m.tracking)}</legend>
         <div className="txe-sw">
           <span className="font-semibold">{t(m.trackOpens)}</span>
-          <input type="checkbox" role="switch" className="tg" aria-label={t(m.trackOpens)} checked={tx.meta.trackOpens} onChange={(e) => tx.setMeta({ trackOpens: e.target.checked })} />
+          <SwitchInput aria-label={t(m.trackOpens)} checked={tx.meta.trackOpens} onChange={(e) => tx.setMeta({ trackOpens: e.target.checked })} />
         </div>
         <div className="txe-sw">
           <span className="font-semibold">{t(m.trackClicks)}</span>
-          <input type="checkbox" role="switch" className="tg" aria-label={t(m.trackClicks)} checked={tx.meta.trackClicks} onChange={(e) => tx.setMeta({ trackClicks: e.target.checked })} />
+          <SwitchInput aria-label={t(m.trackClicks)} checked={tx.meta.trackClicks} onChange={(e) => tx.setMeta({ trackClicks: e.target.checked })} />
         </div>
         <span className="k">{tx.kind === 'essential' ? t(m.trackingEssential) : t(m.trackingHelp)}</span>
       </fieldset>

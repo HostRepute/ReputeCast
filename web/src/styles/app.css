@@ -501,6 +501,18 @@
   .tscroll:focus-visible {
     outline-offset: -2px;
   }
+  /* A table taller than its scroller keeps its header in view (review
+     2026-11 FE-4; TableScroll's maxHeight). */
+  .tscroll.tall {
+    overflow-y: auto;
+  }
+  .tscroll.tall thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--surface);
+    box-shadow: inset 0 -1px 0 var(--line);
+  }
 
   /* Bars and tracks: thin, rounded, 2px gaps between stacked segments. */
   .bar {

@@ -2,7 +2,7 @@ import { Dialog as RDialog } from 'radix-ui'
 import { useId, useState, type ReactNode } from 'react'
 import { Icon } from '@/components/icons/Icon'
 import { Button } from '@/components/ui/Button'
-import { Input, Select } from '@/components/ui/Field'
+import { Input, Select, SwitchInput } from '@/components/ui/Field'
 import { T, useT } from '@/i18n'
 import { count } from '@/lib/format'
 import { m } from './messages'
@@ -134,7 +134,7 @@ export function RulePanel({
                   <span className="text-[13px] font-semibold">{t(m.ruleSwitch)}</span>
                   <span className="k">{t(m.ruleSwitchLead)}</span>
                 </span>
-                <input type="checkbox" className="tg" role="switch" checked={rule.enabled} aria-label={t(m.ruleIsOn, { n })} onChange={(e) => onChange({ ...rule, enabled: e.target.checked })} />
+                <SwitchInput checked={rule.enabled} aria-label={t(m.ruleIsOn, { n })} onChange={(e) => onChange({ ...rule, enabled: e.target.checked })} />
               </div>
             </fieldset>
             {view ? null : previewing || impact ? (

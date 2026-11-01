@@ -7,7 +7,7 @@ import { CardSection } from '@/components/ui/Card'
 import { ConfirmDialog, UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { ErrorSummary, type FormError } from '@/components/ui/ErrorSummary'
 import { Loading, Skeleton } from '@/components/ui/Feedback'
-import { Field, Input, Select, Textarea } from '@/components/ui/Field'
+import { Field, Input, Select, SwitchInput, Textarea } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
@@ -444,7 +444,7 @@ function Head({ title, caption }: { title: string; caption: string }) {
 }
 
 function Switch({ label, checked, disabled, onChange }: { label: string; checked: boolean; disabled?: boolean; onChange: (v: boolean) => void }) {
-  return <input type="checkbox" className="tg" role="switch" aria-label={label} checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+  return <SwitchInput aria-label={label} checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
 }
 
 function ProgramCard({ p }: { p: Program }) {
@@ -520,7 +520,7 @@ function BoardCard({ p, d, setD, disabled }: { p: Program; d: Draft; setD: (f: (
     <section className="card">
       <CardSection title={t(ms.boardTitle)} caption={t(ms.boardCaption)} />
       <Row title={t(ms.board)} text={lb.on ? (lb.at ? (lb.by ? t(ms.boardOn, { date: dayMonthDate(lb.at), by: lb.by }) : t(ms.boardOnNoBy, { date: dayMonthDate(lb.at) })) : t(ms.boardOff)) : t(ms.boardOff)}>
-        <input type="checkbox" className="tg" role="switch" aria-label={t(ms.boardSwitch)} checked={lb.on} disabled={disabled || busy} onChange={(e) => void flip(e.target.checked)} />
+        <SwitchInput aria-label={t(ms.boardSwitch)} checked={lb.on} disabled={disabled || busy} onChange={(e) => void flip(e.target.checked)} />
       </Row>
       <Row title={t(ms.periods)} text={null}>
         {(['month', 'all'] as const).map((k) => (

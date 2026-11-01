@@ -18,5 +18,7 @@ export default translate(m, {
   unsavedChanges: 'Chưa lưu thay đổi',
   stay: 'Ở lại',
   leaveWithoutSaving: 'Rời đi mà không lưu',
+  partFailed: 'Không hiển thị được phần này',
+  partFailedBody: 'Phần còn lại của trang vẫn dùng được. Hãy thử lại, hoặc tải lại trang nếu lỗi tiếp diễn.',
   loadFailedBody: 'Máy chủ không phản hồi. Không có gì bị mất.',
 })

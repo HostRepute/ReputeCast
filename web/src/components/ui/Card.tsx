@@ -1,5 +1,6 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/lib/cn'
+import { CardBoundary } from './ErrorBoundary'
 
 type As = 'section' | 'article' | 'div' | 'aside'
 
@@ -7,9 +8,17 @@ export interface CardProps extends HTMLAttributes<HTMLElement> {
   as?: As
 }
 
-/** White surface with a 1px line border and a 10px radius. */
-export function Card({ as: Tag = 'section', className, ...rest }: CardProps) {
-  return <Tag className={cn('card', className)} {...rest} />
+/**
+ * White surface with a 1px line border and a 10px radius. Its content fails
+ * on its own: a render error shows a notice in the card, not a blank page
+ * (review 2026-11 FE-4).
+ */
+export function Card({ as: Tag = 'section', className, children, ...rest }: CardProps) {
+  return (
+    <Tag className={cn('card', className)} {...rest}>
+      <CardBoundary>{children}</CardBoundary>
+    </Tag>
+  )
 }
 
 /**

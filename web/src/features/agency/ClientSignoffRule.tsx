@@ -1,6 +1,7 @@
 import type { Schemas } from '@/api/client'
 import { formatList, useT } from '@/i18n'
 import { m } from './messages'
+import { SwitchInput } from '@/components/ui/Field'
 
 /**
  * Settings › Approvals in an agency's client workspace (agency accounts):
@@ -30,7 +31,7 @@ export function ClientSignoffRule({
   return (
     <div className="ap-rule flex-col! items-stretch! gap-2!">
       <label className="flex items-start gap-3">
-        <input type="checkbox" className="tg" role="switch" checked={value.enabled} disabled={disabled} onChange={(e) => onChange({ ...value, enabled: e.target.checked })} />
+        <SwitchInput checked={value.enabled} disabled={disabled} onChange={(e) => onChange({ ...value, enabled: e.target.checked })} />
         <span className="col min-w-0 flex-1 gap-px!">{text}</span>
       </label>
       {value.enabled ? (

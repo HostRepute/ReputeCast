@@ -5,6 +5,7 @@ import { useT } from '@/i18n'
 import { count, pct } from '@/lib/format'
 import { bandColor, bandName, bandOf, bandRange, bandOrder, type Band, type Bands } from './bands'
 import { m } from './messages'
+import { withBoundary } from '@/components/ui/ErrorBoundary'
 
 type Bucket = Schemas['ScoringBucket']
 
@@ -71,7 +72,7 @@ function barPath(x: number, y: number, w: number, base: number, r: number): stri
  * and focus, and a table view. With `after`, the edited spread is drawn
  * in band colours over today's in grey.
  */
-export function SpreadChart({ view, buckets, after, bands }: { view: 'chart' | 'table'; buckets: Bucket[]; after?: Bucket[]; bands: Bands }) {
+function SpreadChartInner({ view, buckets, after, bands }: { view: 'chart' | 'table'; buckets: Bucket[]; after?: Bucket[]; bands: Bands }) {
   const t = useT()
   const shown = after ?? buckets
   const desc = t(after ? m.spreadAfterDesc : m.spreadDesc, { buckets: shown.map((b) => `${b.from}–${b.to} ${count(b.contacts)}`).join(', ') })
@@ -247,3 +248,6 @@ function SpreadTable({ buckets, after, bands }: { buckets: Bucket[]; after?: Buc
     </TableScroll>
   )
 }
+
+/** SpreadChart, failing on its own (review 2026-11 FE-4). */
+export const SpreadChart = withBoundary(SpreadChartInner)

@@ -9,7 +9,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { KeyValues } from '@/components/ui/Data'
 import { Dialog } from '@/components/ui/Dialog'
 import { EmptyState, Loading, Skeleton } from '@/components/ui/Feedback'
-import { Field, Input, OptionCard, Select, Textarea } from '@/components/ui/Field'
+import { Field, Input, OptionCard, Select, SwitchInput, Textarea } from '@/components/ui/Field'
 import { Menu, MenuItem, MenuSeparator } from '@/components/ui/Menu'
 import { Note } from '@/components/ui/Note'
 import { TableScroll } from '@/components/ui/Table'
@@ -864,7 +864,7 @@ function WhereCard({ v }: { v: View }) {
           <span className="k">{t(mc.whereConfirmText, { count: v.confirmShows.length, names: formatList(v.confirmShows) })}</span>
         </div>
         <div className="ct">
-          <input type="checkbox" className="tg" role="switch" aria-label={t(mc.whereConfirmSwitch)} checked={v.confirmPage} disabled={!canEdit || busy} onChange={(e) => void flip(e.target.checked)} />
+          <SwitchInput aria-label={t(mc.whereConfirmSwitch)} checked={v.confirmPage} disabled={!canEdit || busy} onChange={(e) => void flip(e.target.checked)} />
         </div>
       </div>
       <div className="gw-set">

@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
-import { Field, Input, OptionCard } from '@/components/ui/Field'
+import { Field, Input, OptionCard, SwitchInput } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { TableScroll, Th } from '@/components/ui/Table'
@@ -163,7 +163,7 @@ function SettingsForm({ s, cats }: { s: Settings; cats: Schemas['TransactionalCa
               <h2 className="h2">{t(mg.retentionTitle)}</h2>
             </div>
             <SettingRow title={t(mg.linkContacts)} body={t(mg.linkContactsBody)}>
-              <input type="checkbox" role="switch" className="tg" aria-label={t(mg.linkContacts)} checked={v.linkContacts} disabled={ro} onChange={(e) => set('linkContacts', e.target.checked)} />
+              <SwitchInput aria-label={t(mg.linkContacts)} checked={v.linkContacts} disabled={ro} onChange={(e) => set('linkContacts', e.target.checked)} />
             </SettingRow>
             <SettingRow title={t(mg.keepContent)} body={t(mg.keepContentBody)}>
               <select className="in" style={{ width: 180 }} aria-label={t(mg.keepContent)} value={v.contentRetentionDays} disabled={ro} onChange={(e) => set('contentRetentionDays', Number(e.target.value))}>
@@ -229,10 +229,10 @@ function SettingsForm({ s, cats }: { s: Settings; cats: Schemas['TransactionalCa
               </label>
             </div>
             <SettingRow title={t(mg.trackOpens)} body={t(mg.trackOpensBody)}>
-              <input type="checkbox" role="switch" className="tg" aria-label={t(mg.trackOpens)} checked={v.defaultTrackOpens} disabled={ro} onChange={(e) => set('defaultTrackOpens', e.target.checked)} />
+              <SwitchInput aria-label={t(mg.trackOpens)} checked={v.defaultTrackOpens} disabled={ro} onChange={(e) => set('defaultTrackOpens', e.target.checked)} />
             </SettingRow>
             <SettingRow title={t(mg.trackClicks)} body={t(mg.trackClicksBody)}>
-              <input type="checkbox" role="switch" className="tg" aria-label={t(mg.trackClicks)} checked={v.defaultTrackClicks} disabled={ro} onChange={(e) => set('defaultTrackClicks', e.target.checked)} />
+              <SwitchInput aria-label={t(mg.trackClicks)} checked={v.defaultTrackClicks} disabled={ro} onChange={(e) => set('defaultTrackClicks', e.target.checked)} />
             </SettingRow>
           </section>
           <section className="card">

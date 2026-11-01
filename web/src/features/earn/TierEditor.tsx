@@ -21,6 +21,7 @@ import { me } from './messages'
 import { Grip, moved, useReorder } from './Reorder'
 import { mt } from './tier.messages'
 import './earn.css'
+import { SwitchInput } from '@/components/ui/Field'
 
 type Tier = Schemas['EarnTier']
 type Input = Schemas['EarnTierInput']
@@ -407,10 +408,7 @@ function TierForm({ tier, plans, account }: { tier?: Tier; plans: Plans; account
                   placeholder={t(mt.highlightDefault)}
                   onChange={(e) => set('highlight', e.target.value)}
                 />
-                <input
-                  type="checkbox"
-                  role="switch"
-                  className="tg"
+                <SwitchInput
                   aria-label={t(mt.highlightThis)}
                   checked={Boolean(v.highlight)}
                   disabled={ro}
@@ -546,10 +544,7 @@ function PricesCard({
             {r.line ? <span className="k">{r.line}</span> : null}
           </div>
           <div className="c">
-            <input
-              type="checkbox"
-              role="switch"
-              className="tg"
+            <SwitchInput
               aria-label={r.period === 'month' ? t(mt.offerMonthly) : t(mt.offerYearly)}
               checked={r.on}
               disabled={ro}

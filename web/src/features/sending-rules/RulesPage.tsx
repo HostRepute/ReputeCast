@@ -6,7 +6,7 @@ import { Page } from '@/components/shell/Page'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
-import { Field, Input, OptionCard, Select, Textarea, Toggle } from '@/components/ui/Field'
+import { Field, Input, OptionCard, Select, SwitchInput, Textarea, Toggle } from '@/components/ui/Field'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { common } from '@/i18n/common'
@@ -223,7 +223,7 @@ function RuleRow({
       </td>
       <td data-label={t(m.colStatus)} className="sr-st">
         <label className="sr-stat">
-          <input type="checkbox" className="tg" role="switch" checked={r.enabled} disabled={read || busy} aria-label={r.name} onChange={(e) => onToggle(e.target.checked)} />
+          <SwitchInput checked={r.enabled} disabled={read || busy} aria-label={r.name} onChange={(e) => onToggle(e.target.checked)} />
           <span>{r.enabled ? t(m.on) : t(m.off)}</span>
         </label>
       </td>

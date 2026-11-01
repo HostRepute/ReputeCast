@@ -356,7 +356,7 @@ function Palette({ workspace, permissions, close }: { workspace: string; permiss
           <kbd>↵</kbd> {t(mp.toOpen)}
         </span>
         <span>
-          <kbd>esc</kbd> {t(mp.toClose)}
+          <kbd>{t(mp.close)}</kbd> {t(mp.toClose)}
         </span>
         <span className="ml-auto">{t(mp.onlyYours)}</span>
       </div>

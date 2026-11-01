@@ -17,6 +17,7 @@ import { useWorkspace } from '@/lib/session'
 import { AdminPage } from '../AdminPage'
 import { m as am } from './messages'
 import { SocialSettingsDialog } from './SocialSettingsDialog'
+import { SwitchInput } from '@/components/ui/Field'
 
 type Policy = Schemas['InstancePolicy']
 type Input = Schemas['InstancePolicyInput']
@@ -133,7 +134,7 @@ function MethodRow({
     <div className="row flex-nowrap gap-3 rounded-lg border border-line px-3 py-2.5">
       {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label wraps its control; the title and description inside are its text */}
       <label className="row min-w-0 flex-1 flex-nowrap gap-3">
-        <input type="checkbox" className="tg" role="switch" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+        <SwitchInput checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
         <span className="col min-w-0 flex-1 gap-px">
           <span className="font-semibold">{title}</span>
           <span className="k whitespace-normal">{description}</span>
@@ -253,7 +254,7 @@ function PasswordCard({ v, set }: { v: Input; set: (x: Partial<Input>) => void }
         </div>
         {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label wraps its control; the title and description inside are its text */}
         <label className="row flex-nowrap gap-3">
-          <input type="checkbox" className="tg" role="switch" checked={v.breachedCheck} onChange={(e) => set({ breachedCheck: e.target.checked })} />
+          <SwitchInput checked={v.breachedCheck} onChange={(e) => set({ breachedCheck: e.target.checked })} />
           <span className="col gap-px">
             <span className="font-semibold">{t(am.breachedTitle)}</span>
             <span className="k">{t(am.breachedHint)}</span>

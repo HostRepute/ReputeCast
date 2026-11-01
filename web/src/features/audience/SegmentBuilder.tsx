@@ -28,6 +28,7 @@ import './audience.css'
 import { SignedInWhen } from '@/features/website/elsewhere'
 import { TargetVerify } from '@/features/verification/HealthEntry'
 import { m as vm } from '@/features/verification/messages'
+import { useDebounced } from '@/lib/hooks'
 
 type Catalog = Schemas['SegmentCatalog']
 type CatalogField = Schemas['SegmentCatalogField']
@@ -116,15 +117,6 @@ function toInput(d: Draft, catalog?: Catalog): Schemas['SegmentInput'] {
   }
 }
 
-/** Value a debounced copy of `v`, updated `ms` after the last change. */
-function useDebounced<T>(v: T, ms: number): T {
-  const [d, setD] = useState(v)
-  useEffect(() => {
-    const h = window.setTimeout(() => setD(v), ms)
-    return () => window.clearTimeout(h)
-  }, [v, ms])
-  return d
-}
 
 /** Parses "body.definition.groups[1].conditions[0].value" into [1, 0]. */
 function invalidAt(err: unknown): [number, number] | null {

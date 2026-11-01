@@ -43,12 +43,13 @@ export function Table({
 /**
  * The sideways scroller around a wide table. While the table overflows it
  * takes keyboard focus, so it can be scrolled without a mouse, and `label`
- * names it for screen readers.
+ * names it for screen readers. With `maxHeight` it scrolls down too, and
+ * the header row stays in view.
  */
-export function TableScroll({ label, className, children }: { label?: string; className?: string; children: ReactNode }) {
-  const [ref, scroll] = useScrollRegion<HTMLDivElement>(label)
+export function TableScroll({ label, className, maxHeight, children }: { label?: string; className?: string; maxHeight?: number | string; children: ReactNode }) {
+  const [ref, scroll] = useScrollRegion<HTMLDivElement>(label, maxHeight !== undefined)
   return (
-    <div ref={ref} className={cn('tscroll', className)} {...scroll}>
+    <div ref={ref} className={cn('tscroll', maxHeight !== undefined && 'tall', className)} style={maxHeight !== undefined ? { maxHeight } : undefined} {...scroll}>
       {children}
     </div>
   )

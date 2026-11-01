@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
-import { Field, Input, Select, Textarea } from '@/components/ui/Field'
+import { Field, Input, Select, SwitchInput, Textarea } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { Segmented } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
@@ -357,7 +357,7 @@ function Editor({ d }: { d: Detail }) {
                 <span className="font-semibold">{t(me.sendAt, { count: d.count })}</span>
                 <span className="k">{t(me.sendAtText)}</span>
               </span>
-              <input type="checkbox" className="tg" role="switch" aria-label={t(me.sendAtLabel, { count: d.count })} checked={on} disabled={!canEdit} onChange={(e) => void flip(e.target.checked)} />
+              <SwitchInput aria-label={t(me.sendAtLabel, { count: d.count })} checked={on} disabled={!canEdit} onChange={(e) => void flip(e.target.checked)} />
             </label>
             <div className="flex flex-col gap-0.5">
               <span className="lbl">{t(me.sender)}</span>

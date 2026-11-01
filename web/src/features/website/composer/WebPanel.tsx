@@ -12,6 +12,7 @@ import { ImagePickerDialog } from '../ImagePicker'
 import { isoToZonedLocal, visibilityIcon, zonedToISO } from '../postFormat'
 import { mc } from './messages'
 import './composer.css'
+import { SwitchInput } from '@/components/ui/Field'
 
 /** The settings a post's Web tab edits, from the post. */
 export function inputOfPost(p: Post): PostInput {
@@ -185,7 +186,7 @@ export function WebPanel({ ws, mode, host, canEdit, campaign, marker, onShowHidd
               <b id="wt-on">{t(mc.publishTo, { host })}</b>
               <span className="k">{d.webOn ? (sent ? t(mc.publishToTextSent) : t(mc.publishToText)) : t(mc.publishToOff)}</span>
             </div>
-            <input type="checkbox" role="switch" className="tg" aria-labelledby="wt-on" checked={d.webOn} disabled={ro} onChange={(e) => ws.set({ webOn: e.target.checked })} />
+            <SwitchInput aria-labelledby="wt-on" checked={d.webOn} disabled={ro} onChange={(e) => ws.set({ webOn: e.target.checked })} />
           </div>
         </section>
       ) : null}
@@ -459,7 +460,7 @@ export function WebPanel({ ws, mode, host, canEdit, campaign, marker, onShowHidd
           <section className="wtab-sec">
             <div className="flex items-center justify-between gap-3">
               <b id="wt-feat">{t(mc.featureOnHome)}</b>
-              <input type="checkbox" role="switch" className="tg" aria-labelledby="wt-feat" checked={d.featured} disabled={ro} onChange={(e) => ws.set({ featured: e.target.checked })} />
+              <SwitchInput aria-labelledby="wt-feat" checked={d.featured} disabled={ro} onChange={(e) => ws.set({ featured: e.target.checked })} />
             </div>
           </section>
           <section className="wtab-sec">

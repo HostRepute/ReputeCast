@@ -7,6 +7,7 @@ import { useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import { FOLDER, plainLine, providerColor, Pv, resultLine, Sw, type Counts, type TestRow } from './shared'
 import { useScrollRegion } from '@/lib/hooks'
+import { withBoundary } from '@/components/ui/ErrorBoundary'
 
 type Bar = { test: TestRow; provider: TestRow['providers'][number] }
 
@@ -18,7 +19,7 @@ const TOP = 54
 const FONT = 'IBM Plex Sans,system-ui,sans-serif'
 
 /** One bar per test and provider, oldest first: no line and no rate. */
-export function TrendChart({ tests, providers, seeds }: { tests: TestRow[]; providers: { id: string; name: string }[]; seeds: number }) {
+function TrendChartInner({ tests, providers, seeds }: { tests: TestRow[]; providers: { id: string; name: string }[]; seeds: number }) {
   const t = useT()
   const [view, setView] = useState<'chart' | 'table'>('chart')
   const [only, setOnly] = useState('')
@@ -242,3 +243,6 @@ function TrendTable({ bars }: { bars: Bar[] }) {
     </div>
   )
 }
+
+/** TrendChart, failing on its own (review 2026-11 FE-4). */
+export const TrendChart = withBoundary(TrendChartInner)

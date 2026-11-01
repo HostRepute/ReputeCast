@@ -8,7 +8,7 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
-import { Checkbox, Field, Input, Select } from '@/components/ui/Field'
+import { Checkbox, Field, Input, Select, SwitchInput } from '@/components/ui/Field'
 import { Menu, MenuItem } from '@/components/ui/Menu'
 import { Banner, Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
@@ -824,10 +824,7 @@ function TransactionalParts({
               : t(mr.firstInLineAny)}
           </span>
         </span>
-        <input
-          type="checkbox"
-          role="switch"
-          className="tg"
+        <SwitchInput
           aria-labelledby={`${id}-p`}
           checked={sd.priority}
           disabled={ro}

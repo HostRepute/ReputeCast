@@ -22,6 +22,7 @@ import { mu } from './guide.messages'
 import { stampMs } from './MessagePage'
 import { mt } from './messages'
 import { CodeBox, secs, sizeText, type CodeLang } from './shared'
+import { SwitchInput } from '@/components/ui/Field'
 
 const API = '/api/v1/workspaces/{workspace}/transactional' as const
 const W = '/api/v1/workspaces/{workspace}' as const
@@ -697,7 +698,7 @@ function RouteForm({
               : t(mu.priorityBody)}
           </span>
         </span>
-        <input type="checkbox" role="switch" className="tg" aria-labelledby="tx-guide-priority" checked={priority} onChange={(e) => setPriority(e.target.checked)} />
+        <SwitchInput aria-labelledby="tx-guide-priority" checked={priority} onChange={(e) => setPriority(e.target.checked)} />
       </div>
     </Panel>
   )

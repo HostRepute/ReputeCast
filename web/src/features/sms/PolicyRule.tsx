@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Schemas } from '@/api/client'
 import { useT } from '@/i18n'
 import { m } from './policy.messages'
+import { SwitchInput } from '@/components/ui/Field'
 
 type Cost = Schemas['ApprovalCostRule']
 
@@ -26,7 +27,7 @@ export function ChannelCostRule({ value, disabled, onChange }: { value?: Cost; d
   return (
     <>
       <label className="ap-rule">
-        <input type="checkbox" className="tg" role="switch" checked={v.enabled} disabled={disabled} onChange={(e) => onChange({ ...v, enabled: e.target.checked })} />
+        <SwitchInput checked={v.enabled} disabled={disabled} onChange={(e) => onChange({ ...v, enabled: e.target.checked })} />
         <span className="col min-w-0 flex-1 gap-px!">
           <span className="font-semibold">{t(m.costTitle)}</span>
           <span className="k whitespace-normal">{t(m.costDetail)}</span>

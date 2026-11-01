@@ -9,6 +9,7 @@ import { cn } from '@/lib/cn'
 import { useWorkspace, workspaceMeKey, type WorkspaceMe } from '@/lib/session'
 import { m } from './messages'
 import { NAV, hideableSections, type HideableSection } from './nav'
+import { SwitchInput } from '@/components/ui/Field'
 
 const descriptions: Record<HideableSection, MessageDescriptor> = {
   transactional: m.sectionsTransactional,
@@ -80,10 +81,7 @@ export function SidebarSectionsCard({ s }: { s: Settings }) {
                 </span>
               </span>
               <DisabledReason reason={reason}>
-                <input
-                  type="checkbox"
-                  role="switch"
-                  className="tg"
+                <SwitchInput
                   checked={shown(key)}
                   aria-label={t(m.sectionsSwitch, { section: name })}
                   aria-describedby={`${id}-d`}

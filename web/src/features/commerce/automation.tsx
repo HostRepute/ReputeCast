@@ -9,6 +9,7 @@ import { useWorkspace } from '@/lib/session'
 import { commerceBase, money } from './api'
 import { ct } from './elsewhere.messages'
 import './commerce.css'
+import { SwitchInput } from '@/components/ui/Field'
 
 export { ct }
 
@@ -160,7 +161,7 @@ export function StoreTriggerFields({ t: trig, set, disabled, graph }: { t: Trigg
               {hasGoal ? t(ct.goalOn) : t(ct.goalOff)}
             </span>
           </span>
-          <input type="checkbox" role="switch" className="tg" aria-label={t(ct.goalTitle)} aria-describedby="cm-goal-sub" checked={hasGoal} disabled readOnly />
+          <SwitchInput aria-label={t(ct.goalTitle)} aria-describedby="cm-goal-sub" checked={hasGoal} disabled readOnly />
         </div>
       ) : null}
       {abandoned ? <TriggerStats skipDays={trig.skipDays ?? 0} /> : null}

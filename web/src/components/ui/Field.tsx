@@ -120,6 +120,15 @@ export const Checkbox = forwardRef<HTMLInputElement, Omit<InputHTMLAttributes<HT
   },
 )
 
+/**
+ * The bare switch control, for rows that lay out their own label (review
+ * 2026-11 FE-3: the one way to draw a switch; `pnpm lint` refuses a
+ * hand-made one).
+ */
+export const SwitchInput = forwardRef<HTMLInputElement, Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'role'>>(function SwitchInput({ className, ...rest }, ref) {
+  return <input ref={ref} type="checkbox" role="switch" className={cn('tg', className)} {...rest} />
+})
+
 /** A toggle switch with a visible or visually hidden label. */
 export const Toggle = forwardRef<
   HTMLInputElement,
@@ -131,14 +140,14 @@ export const Toggle = forwardRef<
     // The box is the label, so all of it is the target (44 px on phones where a page sizes it).
     return (
       <label className={cn('flex items-center gap-3', className)}>
-        <input ref={ref} type="checkbox" role="switch" className="tg" id={tid} {...rest} />
+        <SwitchInput ref={ref} id={tid} {...rest} />
         <span className="vh">{label}</span>
       </label>
     )
   }
   return (
     <div className={cn('flex items-center gap-3', className)}>
-      <input ref={ref} type="checkbox" role="switch" className="tg" id={tid} {...rest} />
+      <SwitchInput ref={ref} id={tid} {...rest} />
       <label htmlFor={tid} className="flex min-w-0 flex-col gap-0.5">
         <span className="font-semibold">{label}</span>
         {description ? <span className="k">{description}</span> : null}

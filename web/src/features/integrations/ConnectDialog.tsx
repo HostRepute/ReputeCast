@@ -31,6 +31,7 @@ import {
   type ItemLock,
   type Secret,
 } from './shared'
+import { SwitchInput } from '@/components/ui/Field'
 
 type Info = Schemas['IntegrationConnectInfo']
 type Status = Schemas['IntegrationStatus']
@@ -489,10 +490,7 @@ export function ItemRow({ item, on, onChange, wp }: { item: ItemLock; on: boolea
           </span>
         ) : null}
       </div>
-      <input
-        type="checkbox"
-        role="switch"
-        className="tg"
+      <SwitchInput
         checked={on}
         disabled={item.locked}
         aria-label={name}

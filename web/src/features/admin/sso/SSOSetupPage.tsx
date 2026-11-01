@@ -24,6 +24,7 @@ import { richHint, shortURL } from './hints'
 import { m as sm } from './messages'
 import { m as ss } from './setup.messages'
 import { finishTestPopup, onTestDone, openTestPopup } from './testSignIn'
+import { SwitchInput } from '@/components/ui/Field'
 
 type Detail = Schemas['SSOProviderDetail']
 type Preset = Schemas['SSOPreset']
@@ -743,7 +744,7 @@ function AccessCard({ d, f, set, preset, onEnforce, onUnenforce }: CardProps & {
         </div>
         <div className="grid grid-cols-[auto_1fr_1fr] items-end gap-3.5 max-md:grid-cols-1">
           <label className="row flex-nowrap gap-3 pb-2">
-            <input type="checkbox" className="tg" role="switch" checked={f.jit.enabled} onChange={(e) => set({ jit: { ...f.jit, enabled: e.target.checked } })} />
+            <SwitchInput checked={f.jit.enabled} onChange={(e) => set({ jit: { ...f.jit, enabled: e.target.checked } })} />
             <span className="font-semibold">{t(ss.jitToggle)}</span>
           </label>
           <label className="lbl">
@@ -804,10 +805,7 @@ function AccessCard({ d, f, set, preset, onEnforce, onUnenforce }: CardProps & {
       <div className="pad col gap-2.5 border-t border-line-2">
         {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label wraps its control; the title and description inside are its text */}
         <label className="row flex-nowrap gap-3">
-          <input
-            type="checkbox"
-            className="tg"
-            role="switch"
+          <SwitchInput
             checked={enforcedOn}
             onChange={(e) => {
               if (d.status !== 'enabled' || domains.length === 0) {

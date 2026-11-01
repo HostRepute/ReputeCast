@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { EmptyState, ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
-import { Field, Input, OptionCard, Select } from '@/components/ui/Field'
+import { Field, Input, OptionCard, Select, SwitchInput } from '@/components/ui/Field'
 import { Grid } from '@/components/ui/Layout'
 import { Banner } from '@/components/ui/Note'
 import { Segmented } from '@/components/ui/Tabs'
@@ -656,11 +656,8 @@ function MailboxCaps({ plan }: { plan: WarmupPlan }) {
           <span className="k">{plan.overflowTo ? t(mw.overflowToday, { count: count(plan.overflowToday) }) : t(mw.overflowNone)}</span>
           {reason ? <span className="k">{reason}</span> : null}
         </label>
-        <input
+        <SwitchInput
           id={toggleId}
-          type="checkbox"
-          role="switch"
-          className="tg"
           checked={overflow}
           disabled={Boolean(reason) || save.isPending}
           onChange={(e) => save.mutate({ params: { path: { workspace: slug, planId: plan.id } }, body: { ...plan.settings, overflow: e.target.checked } })}

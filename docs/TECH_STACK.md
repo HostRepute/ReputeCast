@@ -115,3 +115,9 @@ Dev tools:
 9. **Single binary.** `go:embed` bundles the built SPA and the goose migrations. GoReleaser builds linux/darwin/windows for amd64/arm64, plus a multi-arch Docker image.
 10. **Every provider adapter** must pass the shared contract-test suite: Send, ParseWebhook (signature verification and event normalization), and Capabilities. These tests run against recorded fixtures, plus Mailpit for SMTP.
 11. **Integration apps** (`integrations/`) are JavaScript and PHP projects with their own package managers. The n8n nodes are MIT and the WordPress plugin GPL-2.0-or-later, because each platform's directory requires it; the Zapier and Make apps are AGPL-3.0 like the rest. `integrations/go.mod` makes the folder a module of its own, so the server module's `./...` never reaches their installed dependencies.
+12. **Forms and charts: an open question for the owner (review 2026-11 D6, FE-6).** Measured on 1 November 2026:
+    - **recharts** is listed and installed but imported nowhere: every chart is hand-drawn SVG (growth, revenue, placement trends, score spread, engagement), sized for the design's exact look and its table view.
+    - **react-hook-form** is used in one file (`features/audience/ContactDialogs.tsx`); every other form (several hundred fields) keeps its values in React state and shows server problems with `Field`'s `error`, which the RFC 9457 `errors[]` of the API fill.
+    - **zod** is used in 67 files, nearly all for route search parameters, where it belongs.
+
+    The recommendation is to keep zod; drop recharts (nothing to migrate); and either drop react-hook-form (move its one dialog to the state pattern the other forms use) or adopt it everywhere, not both. Nothing is removed or swapped until the owner answers (`CLAUDE.md`); until then the rule for new forms is the dominant pattern: state plus `Field` errors from the API's problem details.

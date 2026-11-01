@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { ConfirmDialog, UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
-import { Field, Input, Select, Textarea } from '@/components/ui/Field'
+import { Field, Input, Select, SwitchInput, Textarea } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { Segmented } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
@@ -366,7 +366,7 @@ function SectionsCard({ draft, set, ro, tags, featured }: { draft: HomeNavInput;
             const k = key(s)
             const tag = tagOf(s.tag)
             const toggle = (label: string) => (
-              <input type="checkbox" role="switch" className="tg" aria-label={label} checked={s.on} disabled={ro} onChange={(e) => update(k, { on: e.target.checked })} />
+              <SwitchInput aria-label={label} checked={s.on} disabled={ro} onChange={(e) => update(k, { on: e.target.checked })} />
             )
             let text: ReactNode
             let extra: ReactNode = null
@@ -552,7 +552,7 @@ function NavigationCard({ draft, set, ro, data, host }: { draft: HomeNavInput; s
         <b>{name}</b>
         <span className="k">{text}</span>
       </span>
-      <input type="checkbox" role="switch" className="tg" aria-label={t(mh.showInFooter, { name })} checked={checked} disabled={ro} onChange={(e) => on(e.target.checked)} />
+      <SwitchInput aria-label={t(mh.showInFooter, { name })} checked={checked} disabled={ro} onChange={(e) => on(e.target.checked)} />
     </div>
   )
   return (
@@ -775,7 +775,7 @@ function SeoCard({ draft, set, ro, data }: { draft: HomeNavInput; set: Setter; r
           <span className="k">{t(mh.indexSiteText)}</span>
         </div>
         <div className="ct">
-          <input type="checkbox" role="switch" className="tg" aria-labelledby="hn-index" checked={draft.index} disabled={ro} onChange={(e) => set({ index: e.target.checked })} />
+          <SwitchInput aria-labelledby="hn-index" checked={draft.index} disabled={ro} onChange={(e) => set({ index: e.target.checked })} />
         </div>
       </div>
       <dl className="ws-kv pad" style={{ borderTop: '1px solid var(--line-2)' }}>
@@ -925,7 +925,7 @@ function TagsCard({ data, overview, ro }: { data: HomeNav; overview: Overview; r
                   {x.posts === 0 && x.unpublished ? <div className="k">{t(mh.onlyUnpublished)}</div> : null}
                 </td>
                 <td>
-                  <input type="checkbox" role="switch" className="tg" aria-label={t(mh.showInNav, { name: x.name })} checked={x.inNav} disabled={ro} onChange={(e) => void toggleNav(x, e.target.checked)} />
+                  <SwitchInput aria-label={t(mh.showInNav, { name: x.name })} checked={x.inNav} disabled={ro} onChange={(e) => void toggleNav(x, e.target.checked)} />
                 </td>
                 <td className="mono k">{`/tag/${x.slug}/feed`}</td>
                 {ro ? null : (
@@ -1025,7 +1025,7 @@ function TagDialog({ tag, host, onClose }: { tag: Tag | null; host: string; onCl
           <Input value={description} maxLength={200} onChange={(e) => setDescription(e.target.value)} />
         </Field>
         <label className="flex items-center gap-3">
-          <input type="checkbox" role="switch" className="tg" checked={inNav} onChange={(e) => setInNav(e.target.checked)} />
+          <SwitchInput checked={inNav} onChange={(e) => setInNav(e.target.checked)} />
           <span className="font-semibold">{t(mh.tagInNav)}</span>
         </label>
         {tag && tag.posts === 0 ? (

@@ -2,6 +2,7 @@ import type { Component } from 'grapesjs'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useBuilder } from './context'
 import { attrOf } from './editor/nodes'
+import { SwitchInput } from '@/components/ui/Field'
 
 /**
  * The Block tab's fields, in the inspector's vocabulary (.prop, .lbl,
@@ -35,7 +36,7 @@ export function ToggleRow({ label, hint, checked, onChange, disabled }: { label:
         <b id={`${id}-l`}>{label}</b>
         {hint ? <span className="k">{hint}</span> : null}
       </span>
-      <input type="checkbox" role="switch" className="tg" aria-labelledby={`${id}-l`} checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+      <SwitchInput aria-labelledby={`${id}-l`} checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
     </div>
   )
 }
