@@ -14,9 +14,9 @@ import { RotateDialog } from './RotateDialog'
 import { useWhen } from './SetupPage'
 import { SwitchInput } from '@/components/ui/Field'
 
-const SITE_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#8b94a3']
+const SITE_COLORS = ['var(--chart-gmail)', 'var(--chart-outlook)', 'var(--chart-yahoo)', 'var(--chart-icloud)', 'var(--line-input)']
 
-export function InfoIcon({ color = '#4B5563' }: { color?: string }) {
+export function InfoIcon({ color = 'var(--ink-2)' }: { color?: string }) {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="8" cy="8" r="6.2" />
@@ -95,7 +95,7 @@ function WorkerAlert({ site, data }: { site: PushSite; data: PushSetup }) {
         </span>
       </div>
       <div className={bad ? 'note b' : 'note w'} role={bad ? 'alert' : 'note'}>
-        <AlertIcon color={bad ? '#B91C1C' : '#B45309'} />
+        <AlertIcon color={bad ? 'var(--bad-strong)' : 'var(--warn-bar)'} />
         <div className="px-note-body">
           <b>
             {bad
@@ -656,7 +656,7 @@ function AddSite({ data, addRef }: { data: PushSetup; addRef: RefObject<HTMLInpu
       ) : null}
       {data.website ? (
         <div className="note i" role="note">
-          <InfoIcon color="#1E40AF" />
+          <InfoIcon color="var(--info-fg)" />
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span>{t(m.addWebsiteNote, { host: bareHost(data.website) })}</span>
             <Button size="sm" onClick={() => submit(data.website)} loading={add.isPending}>

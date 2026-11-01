@@ -123,7 +123,7 @@ export function WhatsAppAccountPage() {
   )
 }
 
-function InfoIcon({ color = '#4B5563' }: { color?: string }) {
+function InfoIcon({ color = 'var(--ink-2)' }: { color?: string }) {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="8" cy="8" r="6.2" />

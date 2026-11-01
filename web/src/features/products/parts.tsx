@@ -121,7 +121,7 @@ export function IconNote({
   role?: 'note' | 'status' | 'alert'
   className?: string
 }) {
-  const color = { n: '#4B5563', w: '#B45309', pur: '#5B21B6', b: '#B91C1C', i: '#1E40AF' }[tone]
+  const color = { n: 'var(--ink-2)', w: 'var(--warn-bar)', pur: 'var(--purple-fg)', b: 'var(--bad-strong)', i: 'var(--info-fg)' }[tone]
   return (
     <div className={cn('note pr-note', tone === 'pur' ? 'pur' : tone, className)} role={role}>
       <CircleIcon kind={tone === 'w' || tone === 'b' ? 'alert' : 'info'} color={color} />

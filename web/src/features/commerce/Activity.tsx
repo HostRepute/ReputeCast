@@ -18,11 +18,11 @@ type T = ReturnType<typeof useT>
 type Glyph = 'dots' | 'check' | 'arrow' | 'clock' | 'cross'
 
 const iconStyle: Record<Glyph, { bg: string; stroke: string }> = {
-  dots: { bg: '#EEF0F3', stroke: '#4B5563' },
-  check: { bg: '#DCFCE7', stroke: '#166534' },
-  arrow: { bg: '#DBEAFE', stroke: '#1E40AF' },
-  clock: { bg: '#FEF3C7', stroke: '#92400E' },
-  cross: { bg: '#FEE2E2', stroke: '#991B1B' },
+  dots: { bg: 'var(--line-2)', stroke: 'var(--ink-2)' },
+  check: { bg: 'var(--ok-bg)', stroke: 'var(--ok-fg)' },
+  arrow: { bg: 'var(--info-bg)', stroke: 'var(--info-fg)' },
+  clock: { bg: 'var(--warn-bg)', stroke: 'var(--warn-fg)' },
+  cross: { bg: 'var(--bad-bg)', stroke: 'var(--bad-fg)' },
 }
 
 export function Glyph({ kind }: { kind: Glyph }) {

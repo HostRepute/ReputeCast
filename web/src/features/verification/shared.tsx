@@ -26,7 +26,7 @@ export type Origin = NonNullable<StartInput['origin']>
 export const base = '/api/v1/workspaces/{workspace}/verification' as const
 
 /** Results everywhere: valid, invalid, risky and unknown, as the boards colour them. */
-export const RESULT = { valid: '#15803D', invalid: '#B91C1C', risky: '#B45309', unknown: '#8B94A3' } as const
+export const RESULT = { valid: 'var(--ok-bar)', invalid: 'var(--bad-strong)', risky: 'var(--warn-bar)', unknown: 'var(--line-input)' } as const
 
 export function useRefreshVerification() {
   const qc = useQueryClient()

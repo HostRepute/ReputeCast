@@ -193,7 +193,7 @@ function Steps({ steps, at }: { steps: View[]; at: number }) {
 function Notice({ tone, children }: { tone: 'w' | 'b'; children: ReactNode }) {
   return (
     <div className={`note ${tone}`} role={tone === 'b' ? 'alert' : 'note'}>
-      <AttentionIcon size={16} color={tone === 'b' ? 'var(--bad-fg)' : '#B45309'} />
+      <AttentionIcon size={16} color={tone === 'b' ? 'var(--bad-fg)' : 'var(--warn-bar)'} />
       <div className="min-w-0 flex-[1_1_320px]">{children}</div>
     </div>
   )
@@ -686,7 +686,7 @@ function Plugin({ st, onBack, onDone }: { st: ConnectState; onBack: () => void; 
         ) : (
           <>
             <span className="flex items-center gap-2 text-[13px] font-semibold text-bad-fg" role="status">
-              <AttentionIcon size={14} color="#991B1B" />
+              <AttentionIcon size={14} color="var(--bad-fg)" />
               {t(cc.pluginNotFound, { host })}
             </span>
             <div className="flex flex-wrap gap-2">

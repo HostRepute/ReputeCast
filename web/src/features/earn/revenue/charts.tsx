@@ -11,13 +11,13 @@ type Chart = Schemas['RevenueChart']
 type Movement = Schemas['RevenueMovement']
 
 const FONT = 'IBM Plex Sans,system-ui,sans-serif'
-const INK = '#0B1220'
-const MUTED = '#5B6472'
-const GRID = '#EEF0F3'
-const LINE = '#0F766E'
+const INK = 'var(--ink)'
+const MUTED = 'var(--ink-3)'
+const GRID = 'var(--line-2)'
+const LINE = 'var(--accent)'
 
 /** The movement's colours (EarnOverview): start and end, new, expansion, contraction, churn. */
-export const moveColors = { ends: '#104281', new: '#2a78d6', reactivated: '#5598e7', expansion: '#1baf7a', contraction: '#eda100', churned: '#eb6834' }
+export const moveColors = { ends: 'var(--chart-tier-1)', new: 'var(--chart-gmail)', reactivated: 'var(--chart-tier-3)', expansion: 'var(--chart-yahoo)', contraction: 'var(--chart-icloud)', churned: 'var(--chart-outlook)' }
 
 /** "−$60" with a real minus and a word joiner, as the boards set it. */
 function signed(cents: number, currency: string): string {

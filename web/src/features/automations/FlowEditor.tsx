@@ -736,7 +736,7 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
                 ariaLabelConfig={ariaLabels}
                 className={cn(!(animate && !reduced) && 'fe-still')}
               >
-                <Background variant={BackgroundVariant.Dots} gap={GRID} size={2} offset={1} color="#D4D8DF" />
+                <Background variant={BackgroundVariant.Dots} gap={GRID} size={2} offset={1} color="var(--line-strong)" />
                 <Motion playing={animate} reduced={reduced} />
                 <CanvasControls locked={locked} onLock={setLocked} />
                 <FlowMiniMap nodes={flow.nodes} selected={selectedId} />

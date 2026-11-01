@@ -602,7 +602,7 @@ function TwoFactorStep({
       <AuthLayout title={t(m.passkeyTitle)} labelledBy="h-2fa-pk">
         <AuthHeading id="h-2fa-pk" title={t(m.passkeyTitle)} sub={t(m.signingInAs, { email: step.email })} />
         <div className="lock">
-          <PasskeyGlyph size={44} strokeWidth={1.4} color="#0F766E" />
+          <PasskeyGlyph size={44} strokeWidth={1.4} color="var(--accent)" />
           {step.passkeyHint ? <span className="pk-name">{step.passkeyHint}</span> : null}
           <span className="k">{busy ? t(m.browserAsking) : t(m.useButton)}</span>
         </div>

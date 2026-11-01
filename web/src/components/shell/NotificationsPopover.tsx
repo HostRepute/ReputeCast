@@ -125,11 +125,11 @@ export function NotificationLink({
 export function notificationDotColor(severity: string) {
   switch (severity) {
     case 'warn':
-      return '#B45309'
+      return 'var(--warn-bar)'
     case 'bad':
-      return '#B91C1C'
+      return 'var(--bad-strong)'
     case 'ok':
-      return '#15803D'
+      return 'var(--ok-bar)'
     default:
       return '#1D4ED8'
   }

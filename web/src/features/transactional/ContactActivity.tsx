@@ -58,18 +58,18 @@ function look(status: Message['status']): { bg: string; fg: string; icon: IconNa
   switch (status) {
     case 'delivered':
     case 'sent':
-      return { bg: '#DCFCE7', fg: '#166534', icon: 'check' }
+      return { bg: 'var(--ok-bg)', fg: 'var(--ok-fg)', icon: 'check' }
     case 'deferred':
     case 'queued':
-      return { bg: '#FEF3C7', fg: '#92400E', icon: 'clock' }
+      return { bg: 'var(--warn-bg)', fg: 'var(--warn-fg)', icon: 'clock' }
     case 'bounced':
     case 'complained':
     case 'failed':
-      return { bg: '#FEE2E2', fg: '#991B1B', icon: 'alertCircle' }
+      return { bg: 'var(--bad-bg)', fg: 'var(--bad-fg)', icon: 'alertCircle' }
     case 'test':
-      return { bg: '#EDE9FE', fg: '#5B21B6', icon: 'check' }
+      return { bg: 'var(--purple-bg)', fg: 'var(--purple-fg)', icon: 'check' }
   }
-  return { bg: '#EEF0F3', fg: '#4B5563', icon: 'ban' }
+  return { bg: 'var(--line-2)', fg: 'var(--ink-2)', icon: 'ban' }
 }
 
 /** "Delivered Password reset [Transactional] via Postmark · Today 10:42 · Acme Cloud · 1.3 s after the call". */

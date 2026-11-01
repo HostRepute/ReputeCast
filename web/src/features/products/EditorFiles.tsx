@@ -304,7 +304,7 @@ function UploadRow({ r, onCancel, onRetry, onRemove }: { r: Row; onCancel: () =>
         <b>{name}</b>
         <span className="k">{r.status === 'mismatch' && r.at ? t(pe.uploadedAt, { time: clock(r.at), size }) : size}</span>
         <div className="note b mt-1.5" role="alert">
-          <CircleIcon kind="alert" color="#B91C1C" />
+          <CircleIcon kind="alert" color="var(--bad-strong)" />
           <div>
             <b>{head}</b> {rest}
           </div>

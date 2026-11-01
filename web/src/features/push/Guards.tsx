@@ -187,7 +187,7 @@ function QuietCard({
   return (
     <div className="card flex flex-col gap-3 p-4">
       <div className="note i" role="note">
-        <InfoIcon color="#1E40AF" />
+        <InfoIcon color="var(--info-fg)" />
         <div className="px-note-body">
           <b>{t(m.quietTitle, { n: held, region })}</b>
           <div>
@@ -259,7 +259,7 @@ function heldWord(t: ReturnType<typeof useT>, z: Zone): string {
   return at.date !== today.date ? t(m.zoneHeldTomorrow, { time: at.time }) : t(m.zoneHeld, { time: at.time })
 }
 
-function InfoIcon({ color = '#4B5563' }: { color?: string }) {
+function InfoIcon({ color = 'var(--ink-2)' }: { color?: string }) {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="8" cy="8" r="6.2" />

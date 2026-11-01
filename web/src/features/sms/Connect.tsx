@@ -437,10 +437,10 @@ function TestText({ item, providerId, search, onSearch }: StepProps & { provider
       )}
       {v ? (
         <div>
-          <Ev tone="#DCFCE7" title={t(m.sentFrom, { sender: v.sender })} text={t(m.sentBody, { body: v.body, segments: v.segments })} at={v.sentAt ?? v.createdAt} />
+          <Ev tone="var(--ok-bg)" title={t(m.sentFrom, { sender: v.sender })} text={t(m.sentBody, { body: v.body, segments: v.segments })} at={v.sentAt ?? v.createdAt} />
           {v.providerMessageId ? (
             <Ev
-              tone="#DCFCE7"
+              tone="var(--ok-bg)"
               title={t(m.accepted, { name: item.name })}
               text={<T msg={m.acceptedRef} values={{ ref: shortRef(v.providerMessageId), status: v.events[0]?.kind ?? 'queued', mono: (c) => <span className="mono">{c}</span> }} />}
               at={v.sentAt ?? v.createdAt}
@@ -448,15 +448,15 @@ function TestText({ item, providerId, search, onSearch }: StepProps & { provider
           ) : null}
           {v.status === 'delivered' ? (
             <Ev
-              tone="#DCFCE7"
+              tone="var(--ok-bg)"
               title={t(m.delivered, { who: who?.name ?? v.recipient })}
               text={t(m.deliveredText, { adapter: item.adapter, seconds: decimal(v.seconds ?? 0, 1) })}
               at={v.deliveredAt ?? v.createdAt}
             />
           ) : v.status === 'failed' || v.status === 'undelivered' ? (
-            <Ev tone="#FEE2E2" title={t(m.failed)} text={t(m.failedText, { reason: v.reason ?? '' })} at={v.createdAt} />
+            <Ev tone="var(--bad-bg)" title={t(m.failed)} text={t(m.failedText, { reason: v.reason ?? '' })} at={v.createdAt} />
           ) : (
-            <Ev tone="#F3F4F6" title={t(m.waiting)} text="" at={v.createdAt} />
+            <Ev tone="var(--ground)" title={t(m.waiting)} text="" at={v.createdAt} />
           )}
         </div>
       ) : null}

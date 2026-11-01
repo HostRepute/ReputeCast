@@ -312,10 +312,10 @@ function Verdict({
     text = t(m.readyText, { n: passed, time: at })
   }
   const colors = {
-    ok: { border: 'var(--ok-line)', bg: '#F0FDF4', ring: '#DCFCE7', fg: '#14532D', icon: '#15803D' },
-    warn: { border: '#FCD34D', bg: '#FFFBEB', ring: '#FEF3C7', fg: '#78350F', icon: '#B45309' },
-    bad: { border: 'var(--bad-line)', bg: '#FFF5F5', ring: '#FEE2E2', fg: '#7F1D1D', icon: '#B91C1C' },
-    info: { border: 'var(--color-info-line)', bg: '#EFF6FF', ring: '#DBEAFE', fg: '#1E3A8A', icon: '#1E40AF' },
+    ok: { border: 'var(--ok-line)', bg: 'var(--ok-tint)', ring: 'var(--ok-bg)', fg: '#14532D', icon: 'var(--ok-bar)' },
+    warn: { border: '#FCD34D', bg: 'var(--color-warn-tint)', ring: 'var(--warn-bg)', fg: '#78350F', icon: 'var(--warn-bar)' },
+    bad: { border: 'var(--bad-line)', bg: 'var(--bad-tint)', ring: 'var(--bad-bg)', fg: '#7F1D1D', icon: 'var(--bad-strong)' },
+    info: { border: 'var(--color-info-line)', bg: 'var(--color-info-tint)', ring: 'var(--info-bg)', fg: '#1E3A8A', icon: 'var(--info-fg)' },
   }[tone]
   return (
     <section className="card flex flex-wrap items-center gap-3.5 px-5 py-4" style={{ borderColor: colors.border, background: colors.bg }} role={tone === 'bad' ? 'alert' : 'status'}>

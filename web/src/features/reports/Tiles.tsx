@@ -61,7 +61,7 @@ function Tile({
       <div className="rep-tile-n">
         <span className={cn('n text-[22px]', muted && 'text-ink-3')}>{value}</span>
         {trend && !asOf ? (
-          <Sparkline className="rep-spark" values={trend.values} width={64} height={24} color="#8B94A3" last="#0F766E" strokeWidth={1.5} baseline={false} label={trend.label} />
+          <Sparkline className="rep-spark" values={trend.values} width={64} height={24} color="var(--line-input)" last="var(--accent)" strokeWidth={1.5} baseline={false} label={trend.label} />
         ) : null}
       </div>
       {asOf ? (

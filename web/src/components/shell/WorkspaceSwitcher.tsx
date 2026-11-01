@@ -14,7 +14,7 @@ import { m } from './messages'
 const loadAgencyMenu = () => import('@/features/agency/AgencySwitcher')
 const AgencySwitcherMenu = lazy(() => loadAgencyMenu().then((x) => ({ default: x.AgencySwitcherMenu })))
 
-const wsColors = ['#0F766E', '#1D4ED8', '#7C3AED', '#B45309', '#BE185D', '#047857']
+const wsColors = ['var(--accent)', '#1D4ED8', '#7C3AED', 'var(--warn-bar)', '#BE185D', '#047857']
 
 /** The colour of a workspace's initials square, by its position in my list. */
 export function wsColor(i: number) {

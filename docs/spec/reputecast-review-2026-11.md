@@ -601,7 +601,7 @@ Found while building M48 (added to the backlog):
 | ID | What | Status |
 |---|---|---|
 | FE-3b | `ui/Stepper` for the eight wizards, `ui/Pager` for the paged lists, `NoResults` on every search and filter, one bulk-selection pattern; the patterns check learns each as it lands. | ✅ M51 |
-| FE-5b | Move the 1,166 hex colours in TSX to tokens, file by file, lowering `hex-baseline.json` to zero outside the brand kit and email previews. | In part (M51): 682 left |
+| FE-5b | Move the 1,166 hex colours in TSX to tokens, file by file, lowering `hex-baseline.json` to zero outside the brand kit and email previews. | In part (M51): 546 left |
 | FE-7b | Optimistic switches (with a shared hook) and reordering, rolled back on a refused request. | ✅ M51 |
 | FE-9 | The first load is 433 KB gzipped: every route's module (its search schema) is preloaded. Split the route tree so a page loads only its own. | ✅ M51 |
 | FE-10 | The command palette searches settings by tab name only; the board shows single settings ("Send weekdays only"). An index of settings rows. | ✅ M51 |
@@ -738,10 +738,12 @@ What M51 built (1 November 2026):
   pages), `EmptyRow` inside tables. The patterns check refuses new hand-made steppers, pagers and
   select-alls; only first sign-in's vertical list and Earn's setup checklist, which aren't step bars,
   mark a step themselves.
-- **FE-5b, in part** hex colours that equal a token became the token: 272 in classes and styles, then
-  212 in SVG and chart attributes, which browsers resolve with `var()` (1,166 → 682). Left: avatar and
-  workspace palettes, chart series colours and colours with no token yet; brand kit, email previews and
-  MJML defaults keep theirs by design.
+- **FE-5b, in part** hex colours that equal a token became the token: 272 in classes and styles, 212 in
+  SVG and chart attributes, which browsers resolve with `var()`, and 136 in status palettes (avatars,
+  toasts, activity and result colours) used only as style values (1,166 → 546). Left: colours with no
+  token yet (chart series, provider and workspace palettes), files that treat a colour as text (alpha
+  added, parsed, written into HTML) and the push prompt's default, which publishers' sites show; brand
+  kit, email previews and MJML defaults keep theirs by design.
 
 Checked at the end of M51:
 - **Accessibility.** An axe sweep (WCAG 2.0, 2.1 and 2.2 A and AA) of every screen at 1440 and 390 px

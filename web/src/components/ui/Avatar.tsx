@@ -1,16 +1,16 @@
 import { cn } from '@/lib/cn'
 
 const palettes = {
-  info: { bg: '#DBEAFE', fg: '#1E40AF' },
-  ok: { bg: '#DCFCE7', fg: '#166534' },
-  warn: { bg: '#FEF3C7', fg: '#92400E' },
-  purple: { bg: '#EDE9FE', fg: '#5B21B6' },
-  neutral: { bg: '#EEF0F3', fg: '#4B5563' },
-  bad: { bg: '#FEE2E2', fg: '#991B1B' },
-  accent: { bg: '#0F766E', fg: '#FFFFFF' },
+  info: { bg: 'var(--info-bg)', fg: 'var(--info-fg)' },
+  ok: { bg: 'var(--ok-bg)', fg: 'var(--ok-fg)' },
+  warn: { bg: 'var(--warn-bg)', fg: 'var(--warn-fg)' },
+  purple: { bg: 'var(--purple-bg)', fg: 'var(--purple-fg)' },
+  neutral: { bg: 'var(--line-2)', fg: 'var(--ink-2)' },
+  bad: { bg: 'var(--bad-bg)', fg: 'var(--bad-fg)' },
+  accent: { bg: 'var(--accent)', fg: 'var(--surface)' },
   // Team boards: Marcus Chen's avatar, and muted rows (deactivated members, invitees, the system).
   pink: { bg: '#FCE7F3', fg: '#9D174D' },
-  muted: { bg: '#EEF0F3', fg: '#5B6472' },
+  muted: { bg: 'var(--line-2)', fg: 'var(--ink-3)' },
   // Kenji Watanabe on InstanceUsers.
   sky: { bg: '#E0F2FE', fg: '#075985' },
 } as const

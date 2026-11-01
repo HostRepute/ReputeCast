@@ -107,9 +107,9 @@ export function ScoreRing({
   score,
   label,
   verdict,
-  verdictColor = '#166534',
+  verdictColor = 'var(--ok-fg)',
   size = 112,
-  color = '#0F766E',
+  color = 'var(--accent)',
 }: {
   score: number
   label: string
@@ -154,7 +154,7 @@ export function ScoreRing({
 export function Sparkline({
   values,
   height = 120,
-  color = '#0F766E',
+  color = 'var(--accent)',
   label,
   baseline = true,
   strokeWidth = 2.5,

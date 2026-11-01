@@ -105,7 +105,7 @@ function VariantPane({ v, x, final }: { v: Variant; x: AB; final: boolean }) {
       : final
         ? t(m.abSubClicks, { rate: pct1(v.clickRate), complaints: pct2(v.complaintRate) })
         : t(m.abSubClicksSoFar, { rate: pct1(v.clickRate) })
-  const color = winner ? 'var(--accent)' : x.state === 'decided' ? '#8B94A3' : 'var(--ink)'
+  const color = winner ? 'var(--accent)' : x.state === 'decided' ? 'var(--line-input)' : 'var(--ink)'
   const width = x.barMax > 0 && value !== undefined ? Math.min(100, (value / x.barMax) * 100) : 0
   return (
     <div className={winner ? 'rep-pane win' : 'rep-pane'}>

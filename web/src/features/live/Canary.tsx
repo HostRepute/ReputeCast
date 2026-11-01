@@ -303,7 +303,7 @@ function CanaryProgress({ s, c, now }: { s: Snapshot; c: Canary; now: Date }) {
           </span>
         ))}
         <span className="flex items-center gap-2">
-          <Dot color="#c9ced6" />
+          <Dot color="var(--line-hover)" />
           {p.queued}
         </span>
         {s.ab ? <span className="k ml-auto">{t(mc.abNote)}</span> : null}

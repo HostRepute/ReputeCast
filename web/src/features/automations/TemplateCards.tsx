@@ -36,10 +36,10 @@ export function useCreateAutomation() {
  */
 function MiniStrip({ preview, full }: { preview: string[]; full?: boolean }) {
   const color = (t: string) => {
-    if (t === 'branch') return '#B45309'
+    if (t === 'branch') return 'var(--warn-bar)'
     if (!full) return undefined
     if (t === 'webhook') return '#1D4ED8'
-    if (t === 'goal' || t === 'exit') return '#0B1220'
+    if (t === 'goal' || t === 'exit') return 'var(--ink)'
     return undefined
   }
   return (

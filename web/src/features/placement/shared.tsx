@@ -29,17 +29,17 @@ export type PlanProvider = Schemas['PlacementProviderOption']
 export const base = '/api/v1/workspaces/{workspace}/placement' as const
 
 /** Where copies land, as the boards colour them. */
-export const FOLDER = { inbox: '#15803D', tab: '#93C5FD', spam: '#7F1D1D', notArrived: '#8B94A3' } as const
+export const FOLDER = { inbox: 'var(--ok-bar)', tab: '#93C5FD', spam: '#7F1D1D', notArrived: 'var(--line-input)' } as const
 
 /** A sending provider's chart colour (tokens --chart-ses, …). */
 export function providerColor(adapter: string | undefined): string {
   switch (adapter) {
     case 'ses':
-      return '#4A3AA7'
+      return 'var(--chart-ses)'
     case 'postal':
-      return '#E87BA4'
+      return 'var(--chart-postal)'
     case 'postmark':
-      return '#008300'
+      return 'var(--chart-postmark)'
     case 'brevo':
       return '#0B996E'
     case 'mailgun':
@@ -47,11 +47,11 @@ export function providerColor(adapter: string | undefined): string {
     case 'sendgrid':
       return '#1A82E2'
     case 'resend':
-      return '#0B1220'
+      return 'var(--ink)'
     case 'smtp':
-      return '#5B6472'
+      return 'var(--ink-3)'
   }
-  return '#8B94A3'
+  return 'var(--line-input)'
 }
 
 /** Refreshes every placement screen. */
@@ -189,10 +189,10 @@ export function barLabel(c: Counts, waiting?: boolean): string {
 /** Inbox, tab, spam and not-arrived segments (and the copies still on their way). */
 export function PBar({ counts: c, lg, waiting }: { counts: Counts; lg?: boolean; waiting?: boolean }) {
   const segs: [number, string, string][] = [
-    [c.inbox, FOLDER.inbox, '#FFFFFF'],
-    [c.tab, FOLDER.tab, '#0B1220'],
-    [c.spam, FOLDER.spam, '#FFFFFF'],
-    [c.notArrived, FOLDER.notArrived, '#0B1220'],
+    [c.inbox, FOLDER.inbox, 'var(--surface)'],
+    [c.tab, FOLDER.tab, 'var(--ink)'],
+    [c.spam, FOLDER.spam, 'var(--surface)'],
+    [c.notArrived, FOLDER.notArrived, 'var(--ink)'],
   ]
   return (
     <div className={lg ? 'pl-pbar lg' : 'pl-pbar'} role="img" aria-label={barLabel(c, waiting)}>

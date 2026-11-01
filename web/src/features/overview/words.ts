@@ -11,14 +11,14 @@ export type ProviderCard = Schemas['ProviderCard']
 
 /** Ring and word colours of the sender health score. */
 export const scoreColors: Record<string, { ring: string; word: string }> = {
-  ok: { ring: '#0F766E', word: '#166534' },
-  warn: { ring: '#B45309', word: '#92400E' },
-  bad: { ring: '#DC2626', word: '#991B1B' },
-  neutral: { ring: '#9AA3B2', word: '#5B6472' },
+  ok: { ring: 'var(--accent)', word: 'var(--ok-fg)' },
+  warn: { ring: 'var(--warn-bar)', word: 'var(--warn-fg)' },
+  bad: { ring: 'var(--bad-bar)', word: 'var(--bad-fg)' },
+  neutral: { ring: 'var(--color-muted-line)', word: 'var(--ink-3)' },
 }
 
 /** Dot colours of the reasons under the score. */
-export const reasonDot: Record<string, string> = { ok: '#15803D', warn: '#D97706', bad: '#DC2626' }
+export const reasonDot: Record<string, string> = { ok: 'var(--ok-bar)', warn: '#D97706', bad: 'var(--bad-bar)' }
 
 /** "Sunday 12 Oct 2026 · news.acme.io" */
 export function overviewSubtitle(now: Date, domain: string | undefined, pending: boolean): string {

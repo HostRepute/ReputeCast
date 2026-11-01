@@ -59,10 +59,10 @@ function subscribe(l: () => void) {
 }
 
 const icons: Record<Exclude<ToastKind, 'progress'>, { bg: string; path: string; sw: number }> = {
-  success: { bg: '#166534', path: 'm3 8 3.5 3.5L13 5', sw: 2.4 },
-  deleted: { bg: '#4B5563', path: 'M3 4h10M6 4V3h4v1M5 4l1 9h4l1-9', sw: 2.2 },
-  error: { bg: '#B91C1C', path: 'M8 4v5M8 11.5v.5', sw: 2.4 },
-  info: { bg: '#1E40AF', path: 'M8 7.5V11M8 5v.5', sw: 2.4 },
+  success: { bg: 'var(--ok-fg)', path: 'm3 8 3.5 3.5L13 5', sw: 2.4 },
+  deleted: { bg: 'var(--ink-2)', path: 'M3 4h10M6 4V3h4v1M5 4l1 9h4l1-9', sw: 2.2 },
+  error: { bg: 'var(--bad-strong)', path: 'M8 4v5M8 11.5v.5', sw: 2.4 },
+  info: { bg: 'var(--info-fg)', path: 'M8 7.5V11M8 5v.5', sw: 2.4 },
 }
 
 export function toastDuration(t: ToastInput): number {

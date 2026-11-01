@@ -17,7 +17,7 @@ import './push.css'
 
 type Report = Schemas['PushReport']
 
-const SITE_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#8b94a3']
+const SITE_COLORS = ['var(--chart-gmail)', 'var(--chart-outlook)', 'var(--chart-yahoo)', 'var(--chart-icloud)', 'var(--line-input)']
 
 const statusBadge: Partial<Record<Report['status'], { tone: Tone; msg: MessageDescriptor }>> = {
   sent: { tone: 'ok', msg: m.statusSent },
