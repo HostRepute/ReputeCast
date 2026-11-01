@@ -606,7 +606,7 @@ Found while building M48 (added to the backlog):
 | FE-9 | The first load is 433 KB gzipped: every route's module (its search schema) is preloaded. Split the route tree so a page loads only its own. | ⏳ |
 | FE-10 | The command palette searches settings by tab name only; the board shows single settings ("Send weekdays only"). An index of settings rows. | ⏳ |
 
-## Earn and other channels (M49) ⏳
+## Earn and other channels (M49) ✅
 
 | ID | What | Done when | Size | Board |
 |---|---|---|---|---|
@@ -617,6 +617,30 @@ Found while building M48 (added to the backlog):
 | EA-5 | Money paths tested against the in-process Stripe fake: offer limits and end dates, gift link transfer and its 12-month expiry, "end access at once", legacy prices. | Table tests. | M | — |
 | CH-1 | SMS, push and WhatsApp campaigns get CA-1 and CA-2 (delete, archive, bulk, tags). | Tests. | M | Reuse CA-1/CA-2's boards |
 | CH-2 | Behaviour tests for SMS auto-pause, push and WhatsApp retries, expired push subscriptions and the retention sweeps. | Tests. | M | — |
+
+What M49 built (1 November 2026):
+
+- **EA-1** the tier, offer and upgrade page editors ask before leaving with unsaved changes (the shared
+  `UnsavedChangesGuard`); a save marks the form saved before it navigates, so saving never asks.
+- **EA-2** audited CSV exports, behind subscribers:export: the gifts a filter shows (`gift.exported`),
+  the conversions log (`conversion.exported`) and the payment event log a filter shows
+  (`payment_events.exported`), with Export CSV on each through one download helper (`TestEarnExports`).
+  Sponsor bookings and reports are EA-2b.
+- **EA-3** the MRR chart has the chart/table toggle the movement chart already had, and the paid
+  members list a rows-per-page picker (8, 25, 50, 100) kept in the address.
+- **CH-1** text, push and WhatsApp campaigns are deleted, restored, archived and tagged like email ones:
+  the unified Campaigns list gives every channel the row menu and bulk bar since M45; a test pins the
+  server side (`TestChannelCampaignsDeleteArchiveAndTag`).
+
+Found while building M49 (added to the backlog):
+
+| ID | What | Status |
+|---|---|---|
+| EA-2b | CSV exports of sponsor bookings and sponsor reports, like the other Earn lists. | ⏳ |
+| EA-4 | Growth of paid members by tier and billing period on Earn › Overview. | ⏳ |
+| EA-5 | Money paths against the in-process Stripe fake: offer limits and end dates, gift link transfer and expiry, "end access at once", legacy prices. | ⏳ |
+| CH-2 | Behaviour tests for SMS auto-pause, push and WhatsApp retries, expired push subscriptions and the channel retention sweeps. | ⏳ |
+| EA-6 | UI tests for the Earn editors' leave guards and the exports' buttons (Earn has no web tests yet). | ⏳ |
 
 ## Integration and audit (M50) ⏳
 

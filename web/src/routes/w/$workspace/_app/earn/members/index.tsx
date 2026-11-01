@@ -19,6 +19,8 @@ const search = z.object({
     .catch(undefined),
   test: z.boolean().optional().catch(undefined),
   page: z.number().int().min(1).max(100000).optional().catch(undefined),
+  // Rows per page (review 2026-11 EA-3).
+  size: z.union([z.literal(8), z.literal(25), z.literal(50), z.literal(100)]).optional().catch(undefined),
   /** The paid member shown in the panel. */
   member: z.uuid().optional().catch(undefined),
   /** The import dialog: "new" or an import's id. */

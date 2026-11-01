@@ -3,6 +3,7 @@ package earn
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -31,6 +32,14 @@ type idBody[T any] struct {
 	api.WorkspaceInput
 	ID   string `path:"id" format:"uuid" doc:"Id"`
 	Body T
+}
+
+// EarnEventsFile is a CSV download.
+type EarnEventsFile struct {
+	ContentType        string `header:"Content-Type"`
+	ContentDisposition string `header:"Content-Disposition"`
+	CacheControl       string `header:"Cache-Control"`
+	Body               []byte
 }
 
 type eventLogInput struct {
@@ -80,6 +89,17 @@ func Register(h huma.API, s *Service) {
 		func(ctx context.Context, in *api.WorkspaceInput) (*api.Body[EarnPayments], error) {
 			out, err := s.Payments(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx))
 			return api.OK(out), err
+		})
+	api.Get(h, api.Op{ID: "export-payment-events", Path: base + "/payments/events/export", Summary: "The payments event log a filter shows, as CSV (it holds members' addresses; logged)",
+		Tags: tags, Access: api.Workspace(authz.SubscribersExport)},
+		func(ctx context.Context, in *eventLogInput) (*EarnEventsFile, error) {
+			ws := api.WorkspaceFrom(ctx)
+			body, _, err := s.ExportEvents(ctx, ws, api.PrincipalFrom(ctx), in.EarnEventFilter)
+			if err != nil {
+				return nil, err
+			}
+			name := fmt.Sprintf("%s-payment-events-%s.csv", ws.Slug, time.Now().UTC().Format("2006-01-02"))
+			return &EarnEventsFile{ContentType: "text/csv; charset=utf-8", ContentDisposition: `attachment; filename="` + name + `"`, CacheControl: "no-store", Body: body}, nil
 		})
 	api.Get(h, api.Op{ID: "list-payment-events", Path: base + "/payments/events", Summary: "The payments event log: each provider event and what ReputeCast did with it",
 		Description: "Raw events are kept 90 days. Payment events never go to the audit log.", Tags: tags, Access: view},

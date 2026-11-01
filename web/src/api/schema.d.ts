@@ -8203,6 +8203,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/earn/payments/events/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The payments event log a filter shows, as CSV (it holds members' addresses; logged) */
+        get: operations["export-payment-events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/earn/plans": {
         parameters: {
             query?: never;
@@ -65970,6 +65987,52 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EarnEventLog"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-payment-events": {
+        parameters: {
+            query?: {
+                /** @description A group of event types */
+                group?: "all" | "payments" | "failures" | "refunds" | "changes" | "trials";
+                /** @description How far back (raw events are kept 90 days) */
+                range?: "24h" | "7d" | "30d" | "90d";
+                /** @description Search the event type, the event id, the paid member or the raw event */
+                q?: string;
+                /** @description Include test-mode events */
+                test?: boolean;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
                 };
             };
             /** @description Error */

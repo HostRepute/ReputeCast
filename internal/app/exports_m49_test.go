@@ -22,6 +22,7 @@ func TestEarnExports(t *testing.T) {
 	for _, x := range []struct{ path, header, action string }{
 		{"/workspaces/acme-newsletter/earn/gifts/export?status=all", "bought_at,buyer,buyer_email", "gift.exported"},
 		{"/workspaces/acme-newsletter/conversions/export", "received_at,occurred_at,name", "conversion.exported"},
+		{"/workspaces/acme-newsletter/earn/payments/events/export?range=90d", "received_at,occurred_at,type", "payment_events.exported"},
 	} {
 		r := linh.Do("GET", x.path, nil).MustStatus(t, http.StatusOK)
 		if !strings.HasPrefix(r.Header.Get("Content-Type"), "text/csv") || !strings.Contains(r.Header.Get("Content-Disposition"), ".csv") {

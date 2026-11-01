@@ -271,4 +271,10 @@ export const mr = defineMessages('earn.revenue', {
   sponsorLine: '{sponsor} · {price} · creative due {date}',
   sponsorLineShort: '{sponsor} · {price}',
   openLine: '{slot} · {price}',
+  colMonth: 'Month',
+  colFrom: 'From',
+  // platform: Substack, Ghost…
+  theProvider: 'The provider',
+  fromLive: 'ReputeCast',
+  mrrViewLabel: 'MRR view',
 })
