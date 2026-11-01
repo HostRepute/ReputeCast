@@ -1066,6 +1066,130 @@
     border-top-color: #fff;
   }
 
+  /* Command palette (⌘K; CommandPalette board, review 2026-11 FE-1) */
+  .pal-ovl {
+    align-items: flex-start;
+    padding-top: 12vh;
+  }
+  .pal {
+    width: 100%;
+    max-width: 640px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--surface);
+    border-radius: 12px;
+    box-shadow: 0 24px 60px rgba(11, 18, 32, 0.3);
+  }
+  .pal-q {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 52px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-3);
+  }
+  .pal-q input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 15px;
+    color: var(--ink);
+  }
+  .pal-list {
+    max-height: min(440px, 60vh);
+    overflow: auto;
+    padding: 6px 0;
+  }
+  .pal-grp {
+    padding: 10px 16px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .pal-opt {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    cursor: pointer;
+  }
+  .pal-opt.on {
+    background: var(--accent-tint);
+  }
+  .pal-ico {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: var(--line-2);
+    color: var(--ink-2);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .pal-opt.on .pal-ico {
+    background: var(--accent);
+    color: #fff;
+  }
+  .pal-t {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .pal-t b,
+  .pal-t span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .pal-t b {
+    font-weight: 600;
+  }
+  .pal-t span {
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+  .pal-t mark {
+    border-radius: 2px;
+    padding: 0 1px;
+    background: var(--warn-bg);
+    color: inherit;
+  }
+  .pal-empty {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    margin: 0;
+    padding: 28px 16px;
+    text-align: center;
+  }
+  .pal-foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+    padding: 10px 16px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+  @media (max-width: 767px) {
+    .pal-ovl {
+      padding: 12px;
+    }
+  }
+
   /* Stat tiles */
   .tile {
     display: flex;

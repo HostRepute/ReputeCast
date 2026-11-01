@@ -20,9 +20,10 @@ function useDebounced<T>(value: T, ms: number): T {
 type Hit = { key: string; group: string; title: string; detail: string; go: () => void }
 
 /**
- * "Search campaigns, contacts, events": results from the campaigns list and
- * the provider event log as you type (⌘K focuses it). Enter opens the
- * campaigns list filtered by the text.
+ * "Search campaigns and provider events": results from the campaigns list
+ * and the provider event log as you type. Enter opens the campaigns list
+ * filtered by the text. ⌘K opens the command palette, which searches
+ * everything (review 2026-11 FE-1).
  */
 export function OverviewSearch() {
   const t = useT()
@@ -91,7 +92,6 @@ export function OverviewSearch() {
       <input
         id={`${id}-q`}
         type="search"
-        data-shortcut="search"
         className="in w-[260px] max-md:w-full"
         placeholder={t(m.searchPlaceholder)}
         aria-label={t(m.searchPlaceholder)}

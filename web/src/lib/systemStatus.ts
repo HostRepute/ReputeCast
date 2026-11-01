@@ -17,6 +17,8 @@ import { useSyncExternalStore } from 'react'
  *               reads work, so the banner shows before the first write)
  *   rateLimit   set while the API answers 429 "rate_limited"; cleared when
  *               Retry-After has passed
+ *   updatedTo   the server's version, once it differs from the one this tab
+ *               started with (X-ReputeCast-Version)
  */
 export type Connection = 'online' | 'offline' | 'unreachable'
 
@@ -45,6 +47,11 @@ export interface SystemStatus {
   rateLimit?: RateLimit
   /** Epoch ms of the last API response that reached the server. */
   lastActivity: number
+  /** The server's version when this tab first heard from it. */
+  version?: string
+  /** Set when the server answers with another version: it was upgraded
+   * while the tab was open (review 2026-11 FE-2). */
+  updatedTo?: string
 }
 
 const initial: SystemStatus = {
@@ -178,6 +185,11 @@ export const systemStatusMiddleware: Middleware = {
     if (!isApi(request.url)) return undefined
     if (state.connection !== 'online') markOnline()
     if (response.status !== 401) set({ lastActivity: Date.now() })
+    const v = response.headers.get('X-ReputeCast-Version')
+    if (v) {
+      if (!state.version) set({ version: v })
+      else if (v !== state.version && v !== state.updatedTo) set({ updatedTo: v })
+    }
     const readOnly = response.headers.get('X-ReputeCast-Read-Only')
     if (readOnly && !state.maintenance) {
       set({
@@ -243,5 +255,31 @@ export function installSystemStatus(client: { use: (...m: Middleware[]) => void 
     const off = subscribeSystemStatus(update)
     update()
     return off
+  })
+}
+
+const RELOADED_KEY = 'rc.reloaded-at'
+
+/**
+ * After an upgrade the old build's lazy chunks are gone (404): a tab that
+ * fails to load one reloads itself, once a minute at most, so it never
+ * loops (review 2026-11 FE-2).
+ */
+export function installPreloadRecovery(target: Window = window) {
+  target.addEventListener('vite:preloadError', (event) => {
+    let last = 0
+    try {
+      last = Number(target.sessionStorage.getItem(RELOADED_KEY) ?? 0)
+    } catch {
+      // Storage blocked: reload anyway, the browser keeps it from looping.
+    }
+    if (Date.now() - last < 60_000) return
+    event.preventDefault()
+    try {
+      target.sessionStorage.setItem(RELOADED_KEY, String(Date.now()))
+    } catch {
+      // ignore
+    }
+    target.location.reload()
   })
 }

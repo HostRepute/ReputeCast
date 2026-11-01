@@ -13772,6 +13772,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search campaigns, contacts, automations, lists, segments, forms and pages by name (the command palette)
+         * @description Five results a kind. Kinds the caller's role can't open aren't searched; a member scoped to lists finds only their contacts and lists.
+         */
+        get: operations["search-workspace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/segments": {
         parameters: {
             query?: never;
@@ -39257,6 +39277,30 @@ export interface components {
             /** Format: int64 */
             threshold?: number;
             where?: string;
+        };
+        SearchGroup: {
+            items: components["schemas"]["SearchHit"][];
+            /** @enum {string} */
+            kind: "campaigns" | "contacts" | "automations" | "lists" | "segments" | "forms" | "pages";
+        };
+        SearchHit: {
+            /**
+             * Format: date-time
+             * @description A campaign's start, or its scheduled time
+             */
+            at?: string;
+            channel?: string;
+            /** Format: int64 */
+            count?: number;
+            detail?: string;
+            id: string;
+            slug?: string;
+            status?: string;
+            title: string;
+        };
+        SearchResults: {
+            groups: components["schemas"]["SearchGroup"][];
+            query: string;
         };
         SeedMailboxResult: {
             /** Format: int64 */
@@ -78874,6 +78918,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScoringPage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "search-workspace": {
+        parameters: {
+            query?: {
+                /** @description At least two characters */
+                q?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResults"];
                 };
             };
             /** @description Error */

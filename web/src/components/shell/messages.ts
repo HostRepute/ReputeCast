@@ -126,6 +126,10 @@ export const m = defineMessages('shell', {
   bannerReconnecting: 'Reconnecting',
   bannerReconnectNow: 'Reconnect now',
   bannerReconnectingBody: 'Live event stream dropped at {droppedAt}. Counts below are from {asOf}. Reconnecting automatically, attempt {attempt} of {max}.',
+  // version: the new release, such as 1.6.0.
+  bannerUpdated: 'Updated · {version}',
+  bannerUpdatedBody: 'ReputeCast was updated to {version} while this tab was open. Reload to use the new version.',
+  bannerReload: 'Reload',
   bannerMaintenance: 'Read-only · upgrade',
   bannerWhatsNew: "What's new",
   bannerMaintenanceBody:

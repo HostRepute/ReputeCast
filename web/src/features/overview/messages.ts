@@ -126,7 +126,7 @@ export const m = defineMessages('overview', {
   recentEmpty: 'Campaigns appear here once they go out, with their delivery, human opens and clicks.',
 
   // ── Search ───────────────────────────────────────────────────────────
-  searchPlaceholder: 'Search campaigns, contacts, events',
+  searchPlaceholder: 'Search campaigns and provider events',
   searchResults: 'Search results',
   groupCampaigns: 'Campaigns',
   groupEvents: 'Events',

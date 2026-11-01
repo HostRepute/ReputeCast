@@ -1902,7 +1902,7 @@
    "h": 1687,
    "is_interactive": true,
    "page": "system",
-   "title": "System states · 404, 403, 500, session, offline, maintenance, quota, limits",
+   "title": "System states · 404, 403, 500, session, offline, maintenance, quota, limits · updated while open, Reload (FE-2)",
    "w": 1440,
    "x": 1520,
    "y": 0
@@ -4396,6 +4396,16 @@
    "w": 1440,
    "x": 14040,
    "y": 0
+  },
+  "CommandPalette.dc.html": {
+   "expand": "fill",
+   "h": 1531,
+   "is_interactive": true,
+   "page": "system",
+   "title": "Command palette (⌘K): recent items, results by kind, nothing found, phone (review 2026-11 FE-1)",
+   "w": 1440,
+   "x": 6120,
+   "y": 0
   }
  },
  "createdOnFiles": {
@@ -5593,6 +5603,7 @@
   "DSLayout.dc.html",
   "AuthScreens.dc.html",
   "SystemStates.dc.html",
+  "CommandPalette.dc.html",
   "Dialogs.dc.html",
   "Feedback.dc.html",
   "AuthScreensPhone.dc.html",

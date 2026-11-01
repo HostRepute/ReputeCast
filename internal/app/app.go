@@ -246,6 +246,15 @@ func (a *App) Handler() http.Handler {
 	r.Use(server.AuditContext)
 	r.Use(server.SecurityHeaders(strings.HasPrefix(a.Cfg.HTTP.PublicURL, "https://")))
 	r.Use(a.readOnlyGuard)
+	// The running version on every answer: a tab opened before an upgrade
+	// offers to reload (review 2026-11 FE-2).
+	r.Use(func(next http.Handler) http.Handler {
+		v := version.Get().Version
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			w.Header().Set("X-ReputeCast-Version", v)
+			next.ServeHTTP(w, req)
+		})
+	})
 
 	r.Get("/healthz", healthz)
 	r.Get("/readyz", a.readyz)

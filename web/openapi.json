@@ -73567,6 +73567,90 @@
         ],
         "type": "object"
       },
+      "SearchGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
+            },
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "campaigns",
+              "contacts",
+              "automations",
+              "lists",
+              "segments",
+              "forms",
+              "pages"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "items"
+        ],
+        "type": "object"
+      },
+      "SearchHit": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "description": "A campaign's start, or its scheduled time",
+            "format": "date-time",
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title"
+        ],
+        "type": "object"
+      },
+      "SearchResults": {
+        "additionalProperties": false,
+        "properties": {
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/SearchGroup"
+            },
+            "type": "array"
+          },
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query",
+          "groups"
+        ],
+        "type": "object"
+      },
       "SeedMailboxResult": {
         "additionalProperties": false,
         "properties": {
@@ -163660,6 +163744,74 @@
         ],
         "x-access": "workspace",
         "x-permission": "scoring:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/search": {
+      "get": {
+        "description": "Five results a kind. Kinds the caller's role can't open aren't searched; a member scoped to lists finds only their contacts and lists.",
+        "operationId": "search-workspace",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "At least two characters",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "At least two characters",
+              "maxLength": 200,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResults"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search campaigns, contacts, automations, lists, segments, forms and pages by name (the command palette)",
+        "tags": [
+          "Search"
+        ],
+        "x-access": "workspace"
       }
     },
     "/api/v1/workspaces/{workspace}/segments": {
