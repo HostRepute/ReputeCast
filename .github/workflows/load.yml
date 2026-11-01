@@ -15,18 +15,24 @@ on:
       postgres:
         description: Postgres major version
         default: "18"
+  # A pull request labelled "load-test" runs it too, with the defaults: a
+  # workflow that isn't on the default branch yet can't be run by hand.
+  # The label needs write access, and a pull_request run gets no secrets.
+  pull_request:
+    types: [labeled]
 
 permissions:
   contents: read
 
 jobs:
   load:
-    name: Load test · ${{ inputs.contacts }} contacts · Postgres ${{ inputs.postgres }}
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'load-test'
+    name: Load test · ${{ inputs.contacts || '1000000' }} contacts · Postgres ${{ inputs.postgres || '18' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     services:
       postgres:
-        image: postgres:${{ inputs.postgres }}-alpine
+        image: postgres:${{ inputs.postgres || '18' }}-alpine
         env:
           POSTGRES_USER: reputecast
           POSTGRES_PASSWORD: reputecast
@@ -49,7 +55,7 @@ jobs:
         run: |
           export REPUTECAST_SECRETS__KEY_FILE="$RUNNER_TEMP/secret.key"
           ./bin/reputecast seed
-          ./bin/reputecast seed --sample load --contacts "${{ inputs.contacts }}" | tee results.txt
+          ./bin/reputecast seed --sample load --contacts "${{ inputs.contacts || '1000000' }}" | tee results.txt
       - name: Hot queries (targets and timings)
         run: go test -count=1 -v -run 'TestAudienceAtOneMillion|TestReportTimes|TestConcurrentBrowse' ./internal/loadtest/ | tee -a results.txt
       - name: Benchmarks
@@ -75,7 +81,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: load-test-${{ inputs.contacts }}-pg${{ inputs.postgres }}
+          name: load-test-${{ inputs.contacts || '1000000' }}-pg${{ inputs.postgres || '18' }}
           path: |
             results.txt
             k6-*.json
