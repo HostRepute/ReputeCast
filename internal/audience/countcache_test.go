@@ -11,11 +11,14 @@ import (
 )
 
 // The Audience header's counts and a segment preview's count are kept for
-// a minute (review 2026-11 OP-12): a change made through the app shows at
-// once, one made behind its back within the minute.
+// a minute when they are slow (review 2026-11 OP-12): a change made through
+// the app shows at once, one made behind its back within the minute.
 func TestCountsAreKeptUntilTheAudienceChanges(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
+	// The sample's counts are quick; keep every count, as a million
+	// contacts' would be kept.
+	env.App.Counts.MinCost = 0
 	ctx := context.Background()
 	c := env.Client()
 	c.SignInDemo("linh@acme.io")

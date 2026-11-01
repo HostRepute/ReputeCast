@@ -723,8 +723,9 @@ What M51 built (1 November 2026):
 - **CA-9** the calendar moves texts, push and WhatsApp campaigns too: texts are re-planned per recipient
   zone inside quiet hours; push takes one time for everyone (`TestCalendarMovesTexts`,
   `TestCalendarMovesPush`, `TestCalendarMovesWhatsApp`). Board: CampaignsCalendar.
-- **OP-12** the counts that read every contact are kept for a minute and dropped by this instance's
-  audited changes (`TestCountsAreKeptUntilTheAudienceChanges`, `internal/countcache`).
+- **OP-12** the slow counts that read every contact (a quarter of a second or more) are kept for a
+  minute and dropped by this instance's audited changes (`TestCountsAreKeptUntilTheAudienceChanges`,
+  `internal/countcache`).
 - **FE-9** the first load is 390 KB gzipped (439 KB before): routes' checks import only small modules,
   and an agency's menu loads for its staff only. The budget is 400 KB.
 - **FE-3b, in part** `ui/Stepper` for the five setup wizards with the numbered card, `ui/Pager` for the

@@ -62,11 +62,12 @@ review 2026-11 AP-3): 118 ms when every request was checked recently, as
 the inbox re-checks only stale ones; 2.3 s when ten campaigns had changed,
 about 230 ms for each request it checks again with Send Readiness.
 
-Counts that read every contact are kept for a minute (review 2026-11
+Slow counts that read every contact are kept for a minute (review 2026-11
 OP-12): the Audience header's counts (about 300 ms on a million contacts)
-and a segment preview's count (about a second for two conditions). The
-same request within the minute answers from memory, and readers asking at
-the same time share one count. A change made through ReputeCast (a
+and a segment preview's count (about a second for two conditions). Only a
+count that took a quarter of a second or more is kept, so a small
+workspace always counts afresh. The same request within the minute answers
+from memory, and readers asking at the same time share one count. A change made through ReputeCast (a
 contact, list, import, field or suppression: anything that writes an audit
 entry) drops the workspace's counts on that instance at once; a change
 another instance makes, or a public signup, shows within the minute. A

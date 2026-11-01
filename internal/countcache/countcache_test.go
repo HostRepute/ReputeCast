@@ -145,3 +145,22 @@ func TestAudienceChange(t *testing.T) {
 		}
 	}
 }
+
+func TestQuickCountsAreNotKept(t *testing.T) {
+	ctx := context.Background()
+	clk := &clock{t: time.Date(2026, 11, 1, 9, 0, 0, 0, time.UTC)}
+	c := countcache.New(time.Minute, 0, clk.now)
+	c.MinCost = 250 * time.Millisecond
+	ws := uuid.New()
+	loads := 0
+	quick := func(context.Context) (int, error) { loads++; return loads, nil }
+	slow := func(context.Context) (int, error) { loads++; clk.add(300 * time.Millisecond); return loads, nil }
+	_, _, _ = countcache.Get(ctx, c, ws, "quick", quick)
+	if v, _, _ := countcache.Get(ctx, c, ws, "quick", quick); v != 2 {
+		t.Fatal("a quick count was kept")
+	}
+	_, _, _ = countcache.Get(ctx, c, ws, "slow", slow)
+	if v, _, _ := countcache.Get(ctx, c, ws, "slow", slow); v != 3 {
+		t.Fatalf("a slow count wasn't kept: %d", v)
+	}
+}

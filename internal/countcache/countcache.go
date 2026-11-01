@@ -3,7 +3,9 @@
 // counts (about 300 ms on a million contacts) and a segment's count (about
 // a second for two conditions).
 //
-// An entry lives for TTL. A change this process makes to a workspace's
+// Only counts that took MinCost or longer are kept: a quick count is
+// cheaper to run again than to serve stale, so small workspaces always see
+// fresh numbers. An entry lives for TTL. A change this process makes to a workspace's
 // contacts, lists or suppressions drops the workspace's entries at once
 // (Changed, wired to the audit log, which every such change writes); a
 // change another process makes shows within TTL. Concurrent misses for the
@@ -25,8 +27,16 @@ const DefaultTTL = time.Minute
 // DefaultMax bounds the entries kept, across workspaces.
 const DefaultMax = 4096
 
+// SlowCount is the MinCost the app uses: a quarter of a second, about what
+// the Audience header's counts take on a million contacts.
+const SlowCount = 250 * time.Millisecond
+
 // Cache is safe for concurrent use. The zero value isn't: use New.
 type Cache struct {
+	// MinCost is the least time a count must have taken to be kept; zero
+	// keeps every count. Set it before the cache is used.
+	MinCost time.Duration
+
 	ttl time.Duration
 	max int
 	now func() time.Time
@@ -123,7 +133,7 @@ func Get[T any](ctx context.Context, c *Cache, ws uuid.UUID, name string, load f
 	c.mu.Lock()
 	delete(c.inflight, k)
 	cl.val, cl.at, cl.err = v, started, err
-	if err == nil && c.gen[ws] == gen {
+	if err == nil && c.gen[ws] == gen && c.now().Sub(started) >= c.MinCost {
 		c.store(k, entry{val: v, at: started, gen: gen})
 	}
 	c.mu.Unlock()

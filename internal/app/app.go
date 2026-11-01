@@ -61,8 +61,9 @@ type App struct {
 	Sending sending.Starter
 	// Links signs open, click, unsubscribe and preference tokens in emails.
 	Links *linktoken.Signer
-	// Counts keeps the audience counts that read every contact for a minute
-	// (review 2026-11 OP-12); audited contact changes drop a workspace's.
+	// Counts keeps the slow audience counts that read every contact for a
+	// minute (review 2026-11 OP-12); audited contact changes drop a
+	// workspace's.
 	Counts *countcache.Cache
 	// URLs builds public links (tracking, unsubscribe, preferences, archive,
 	// shared reports, provider webhooks) on the instance's public URL.
@@ -118,6 +119,7 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 		PublicURL: pub,
 		Counts:    countcache.New(0, 0, nil),
 	}
+	a.Counts.MinCost = countcache.SlowCount
 	a.Audit.Observe(func(ws uuid.UUID, action string) {
 		if countcache.AudienceChange(action) {
 			a.Counts.Changed(ws)
