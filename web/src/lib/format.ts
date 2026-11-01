@@ -475,3 +475,18 @@ export function decimal(v: number | null | undefined, digits = 1): string {
   if (!standard()) return formatDecimal(region(), v, digits)
   return v.toFixed(digits)
 }
+
+/** A size in binary units, as the server counts it: "4.2 GB", "812 MB", "640 KB", "512 B". */
+export function byteSize(bytes: number | null | undefined): string {
+  if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return '—'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
+  let v = Math.max(bytes, 0)
+  let i = 0
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024
+    i++
+  }
+  if (i === 0) return `${count(v)} B`
+  const r = v >= 100 ? Math.round(v) : Math.round(v * 10) / 10
+  return `${Number.isInteger(r) ? count(r) : decimal(r, 1)} ${units[i]}`
+}

@@ -85430,6 +85430,333 @@
         ],
         "type": "object"
       },
+      "SystemDatabase": {
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "connections": {
+            "description": "Open connections to this database, from every process",
+            "format": "int64",
+            "type": "integer"
+          },
+          "maxConnections": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "schemaCurrent": {
+            "type": "boolean"
+          },
+          "schemaVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tables": {
+            "description": "The 10 largest tables, partitions added up",
+            "items": {
+              "$ref": "#/components/schemas/SystemTable"
+            },
+            "type": "array"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "bytes",
+          "connections",
+          "maxConnections",
+          "schemaVersion",
+          "schemaCurrent",
+          "tables"
+        ],
+        "type": "object"
+      },
+      "SystemFiles": {
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "countedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dir": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "files": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "missing": {
+            "description": "The folder doesn't exist yet (nothing uploaded)",
+            "type": "boolean"
+          },
+          "partial": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "dir",
+          "files",
+          "bytes",
+          "countedAt"
+        ],
+        "type": "object"
+      },
+      "SystemJob": {
+        "additionalProperties": false,
+        "properties": {
+          "attempt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "error": {
+            "description": "The last attempt's error, cut to 500 characters",
+            "type": "string"
+          },
+          "failedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "maxAttempts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nextAt": {
+            "description": "A retrying job's next attempt",
+            "format": "date-time",
+            "type": "string"
+          },
+          "queue": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "retrying",
+              "given_up"
+            ],
+            "type": "string"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/SystemWorkspace"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "queue",
+          "state",
+          "attempt",
+          "maxAttempts"
+        ],
+        "type": "object"
+      },
+      "SystemJobList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SystemJob"
+            },
+            "type": "array"
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "SystemJobResult": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "state": {
+            "enum": [
+              "available",
+              "cancelled",
+              "deleted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "state"
+        ],
+        "type": "object"
+      },
+      "SystemJobs": {
+        "additionalProperties": false,
+        "properties": {
+          "givenUp": {
+            "description": "Out of attempts, kept 7 days",
+            "format": "int64",
+            "type": "integer"
+          },
+          "lagSeconds": {
+            "format": "double",
+            "type": "number"
+          },
+          "retrying": {
+            "description": "Failed, waiting for their next attempt",
+            "format": "int64",
+            "type": "integer"
+          },
+          "running": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "scheduled": {
+            "description": "Due later",
+            "format": "int64",
+            "type": "integer"
+          },
+          "waiting": {
+            "description": "Due and waiting for a worker",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "waiting",
+          "scheduled",
+          "running",
+          "retrying",
+          "givenUp",
+          "lagSeconds"
+        ],
+        "type": "object"
+      },
+      "SystemQueue": {
+        "additionalProperties": false,
+        "properties": {
+          "lagSeconds": {
+            "description": "How long the oldest due job has waited; absent when none waits",
+            "format": "double",
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "running": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "scheduled": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "waiting": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "waiting",
+          "scheduled",
+          "running"
+        ],
+        "type": "object"
+      },
+      "SystemTable": {
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {
+            "description": "With its indexes and TOAST",
+            "format": "int64",
+            "type": "integer"
+          },
+          "indexBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "rows": {
+            "description": "Postgres's estimate",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "rows",
+          "bytes",
+          "indexBytes"
+        ],
+        "type": "object"
+      },
+      "SystemView": {
+        "additionalProperties": false,
+        "properties": {
+          "database": {
+            "$ref": "#/components/schemas/SystemDatabase"
+          },
+          "files": {
+            "$ref": "#/components/schemas/SystemFiles"
+          },
+          "jobs": {
+            "$ref": "#/components/schemas/SystemJobs"
+          },
+          "queues": {
+            "items": {
+              "$ref": "#/components/schemas/SystemQueue"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "jobs",
+          "queues",
+          "database",
+          "files"
+        ],
+        "type": "object"
+      },
+      "SystemWorkspace": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug"
+        ],
+        "type": "object"
+      },
       "TOTPSetup": {
         "additionalProperties": false,
         "properties": {
@@ -103768,6 +104095,203 @@
         "summary": "Start a test sign-in: shows the claims, signs nobody in, changes nothing",
         "tags": [
           "Instance admin · SSO"
+        ],
+        "x-access": "instance_admin"
+      }
+    },
+    "/api/v1/admin/system": {
+      "get": {
+        "operationId": "get-instance-system",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Background jobs, queues, the database's size and largest tables, and the files folder",
+        "tags": [
+          "Instance admin · System"
+        ],
+        "x-access": "instance_admin"
+      }
+    },
+    "/api/v1/admin/system/jobs": {
+      "get": {
+        "operationId": "list-instance-failed-jobs",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "enum": [
+                "retrying",
+                "given_up"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "maxLength": 20,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemJobList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Failed background jobs, newest first: retrying, and given up (kept 7 days)",
+        "tags": [
+          "Instance admin · System"
+        ],
+        "x-access": "instance_admin"
+      }
+    },
+    "/api/v1/admin/system/jobs/{jobId}/discard": {
+      "post": {
+        "description": "Audited as instance.job_cancelled or instance.job_deleted.",
+        "operationId": "discard-instance-job",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemJobResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Cancel a retrying job, or delete a job that gave up",
+        "tags": [
+          "Instance admin · System"
+        ],
+        "x-access": "instance_admin"
+      }
+    },
+    "/api/v1/admin/system/jobs/{jobId}/retry": {
+      "post": {
+        "description": "Audited as instance.job_retried.",
+        "operationId": "retry-instance-job",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemJobResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Run a failed job again now",
+        "tags": [
+          "Instance admin · System"
         ],
         "x-access": "instance_admin"
       }

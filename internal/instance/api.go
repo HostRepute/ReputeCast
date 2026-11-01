@@ -39,6 +39,7 @@ func (p InstanceWorkspacePath) id() (uuid.UUID, error) {
 func Register(h huma.API, s *Service) {
 	users := []string{"Instance admin · Users"}
 	admin := api.InstanceAdmin
+	registerSystem(h, s)
 
 	api.Get(h, api.Op{ID: "list-instance-users", Path: "/admin/users", Summary: "Every account on the instance, with workspaces, sign-in methods and two-factor", Tags: users, Access: admin},
 		func(ctx context.Context, in *struct {

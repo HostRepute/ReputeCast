@@ -377,6 +377,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/system": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Background jobs, queues, the database's size and largest tables, and the files folder */
+        get: operations["get-instance-system"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/system/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Failed background jobs, newest first: retrying, and given up (kept 7 days) */
+        get: operations["list-instance-failed-jobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/system/jobs/{jobId}/discard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a retrying job, or delete a job that gave up
+         * @description Audited as instance.job_cancelled or instance.job_deleted.
+         */
+        post: operations["discard-instance-job"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/system/jobs/{jobId}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run a failed job again now
+         * @description Audited as instance.job_retried.
+         */
+        post: operations["retry-instance-job"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/tracking-networks": {
         parameters: {
             query?: never;
@@ -42557,6 +42631,134 @@ export interface components {
             /** Format: int64 */
             sent: number;
         };
+        SystemDatabase: {
+            /** Format: int64 */
+            bytes: number;
+            /**
+             * Format: int64
+             * @description Open connections to this database, from every process
+             */
+            connections: number;
+            /** Format: int64 */
+            maxConnections: number;
+            schemaCurrent: boolean;
+            /** Format: int64 */
+            schemaVersion: number;
+            /** @description The 10 largest tables, partitions added up */
+            tables: components["schemas"]["SystemTable"][];
+            version: string;
+        };
+        SystemFiles: {
+            /** Format: int64 */
+            bytes: number;
+            /** Format: date-time */
+            countedAt: string;
+            dir: string;
+            error?: string;
+            /** Format: int64 */
+            files: number;
+            /** @description The folder doesn't exist yet (nothing uploaded) */
+            missing?: boolean;
+            partial?: boolean;
+        };
+        SystemJob: {
+            /** Format: int64 */
+            attempt: number;
+            /** @description The last attempt's error, cut to 500 characters */
+            error?: string;
+            /** Format: date-time */
+            failedAt?: string;
+            /** Format: int64 */
+            id: number;
+            kind: string;
+            /** Format: int64 */
+            maxAttempts: number;
+            /**
+             * Format: date-time
+             * @description A retrying job's next attempt
+             */
+            nextAt?: string;
+            queue: string;
+            /** @enum {string} */
+            state: "retrying" | "given_up";
+            workspace?: components["schemas"]["SystemWorkspace"];
+        };
+        SystemJobList: {
+            items: components["schemas"]["SystemJob"][];
+            nextCursor?: string;
+        };
+        SystemJobResult: {
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            state: "available" | "cancelled" | "deleted";
+        };
+        SystemJobs: {
+            /**
+             * Format: int64
+             * @description Out of attempts, kept 7 days
+             */
+            givenUp: number;
+            /** Format: double */
+            lagSeconds: number;
+            /**
+             * Format: int64
+             * @description Failed, waiting for their next attempt
+             */
+            retrying: number;
+            /** Format: int64 */
+            running: number;
+            /**
+             * Format: int64
+             * @description Due later
+             */
+            scheduled: number;
+            /**
+             * Format: int64
+             * @description Due and waiting for a worker
+             */
+            waiting: number;
+        };
+        SystemQueue: {
+            /**
+             * Format: double
+             * @description How long the oldest due job has waited; absent when none waits
+             */
+            lagSeconds?: number;
+            name: string;
+            /** Format: int64 */
+            running: number;
+            /** Format: int64 */
+            scheduled: number;
+            /** Format: int64 */
+            waiting: number;
+        };
+        SystemTable: {
+            /**
+             * Format: int64
+             * @description With its indexes and TOAST
+             */
+            bytes: number;
+            /** Format: int64 */
+            indexBytes: number;
+            name: string;
+            /**
+             * Format: int64
+             * @description Postgres's estimate
+             */
+            rows: number;
+        };
+        SystemView: {
+            database: components["schemas"]["SystemDatabase"];
+            files: components["schemas"]["SystemFiles"];
+            jobs: components["schemas"]["SystemJobs"];
+            queues: components["schemas"]["SystemQueue"][];
+        };
+        SystemWorkspace: {
+            id: string;
+            name: string;
+            slug: string;
+        };
         TOTPSetup: {
             account: string;
             /** @description Pass back with the first code to confirm */
@@ -48249,6 +48451,129 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SSOTestStart"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-instance-system": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-instance-failed-jobs": {
+        parameters: {
+            query?: {
+                state?: "retrying" | "given_up";
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemJobList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "discard-instance-job": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemJobResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "retry-instance-job": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemJobResult"];
                 };
             };
             /** @description Error */

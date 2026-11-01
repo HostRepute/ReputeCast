@@ -91,5 +91,9 @@
 
   "update.noAnswer": {"message": "GitHub didn't answer: {error}", "note": "why the last update check failed, on Instance & updates; error: what the network library reported, in English"},
   "update.status": {"message": "GitHub answered {status} {statusText}.", "note": "statusText: HTTP's own words, in English"},
-  "update.noRelease": "GitHub's answer had no release."
+  "update.noRelease": "GitHub's answer had no release.",
+  "system.cursor": "Load the list again: this page link is no longer valid.",
+  "system.noJobs": "Background jobs can't be reached from this process. Try again in a moment.",
+  "system.jobGone": { "message": "This job is gone: it ran, or was deleted, since the list loaded.", "note": "a background job on Instance admin › System" },
+  "system.notFailed": { "message": "{kind} isn't a failed job any more: it is waiting, running or done. Reload the list.", "note": "kind: the job's technical name, such as webhooks.deliver" }
 }
