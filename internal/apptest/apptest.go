@@ -68,11 +68,14 @@ var (
 	midMonthSamples = map[string]*sample{}
 )
 
-// The time zones of the samples' workspaces, where their numbers count
-// whole days (Growth's last 30 days, a form's stats).
+// The time zones where the samples' numbers count whole days: their
+// workspaces' (Growth's last 30 days, a form's stats) and UTC, where the
+// HostRepute sample's DMARC reports cover whole days. A sample seeded before
+// midnight in any of them reads a day off after it, so each is a day
+// boundary for the shared template.
 var (
-	acmeZones      = zones("America/New_York")
-	northwindZones = zones("America/Chicago", "America/Denver", "America/Los_Angeles", "America/New_York")
+	acmeZones      = zones("America/New_York", "UTC")
+	northwindZones = zones("America/Chicago", "America/Denver", "America/Los_Angeles", "America/New_York", "UTC")
 )
 
 func zones(names ...string) []*time.Location {
