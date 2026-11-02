@@ -2198,7 +2198,10 @@ type Querier interface {
 	LockCampaignForManage(ctx context.Context, arg LockCampaignForManageParams) (LockCampaignForManageRow, error)
 	LockDeletedList(ctx context.Context, arg LockDeletedListParams) (List, error)
 	LockList(ctx context.Context, arg LockListParams) (List, error)
-	// Applies a domain's classification to every contact still waiting for it.
+	// Applies a domain's classification to up to @lim contacts still waiting
+	// for it. It never waits for a contact another transaction has locked (a
+	// tier run, an edit): that one keeps waiting for the next pass, and the
+	// classifier can't take part in a deadlock (review 2026-11 OP-13).
 	MailboxClassifyContacts(ctx context.Context, arg MailboxClassifyContactsParams) (int64, error)
 	// Company domains of contacts that were never classified from their MX
 	// records, skipping domains whose last lookup failed a moment ago.

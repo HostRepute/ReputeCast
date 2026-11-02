@@ -191,14 +191,31 @@ func (c *Classifier) classify(ctx context.Context, domains []string) (int64, err
 			continue
 		}
 		cl := FromHosting(d, r.Hosting)
-		n, err := c.Q.MailboxClassifyContacts(ctx, store.MailboxClassifyContactsParams{Provider: cl.Provider, Detail: cl.Detail, Domain: d})
+		n, err := c.classifyDomain(ctx, d, cl)
+		changed += n
 		if err != nil {
 			return changed, err
 		}
-		changed += n
 		c.remember(d, cl, now)
 	}
 	return changed, nil
+}
+
+// classifyBatch is how many of a domain's contacts one statement updates.
+const classifyBatch = 5000
+
+// classifyDomain applies a domain's classification to its waiting
+// contacts, a batch at a time, each its own short transaction. Contacts
+// another transaction holds are left for the next pass.
+func (c *Classifier) classifyDomain(ctx context.Context, domain string, cl Class) (int64, error) {
+	var changed int64
+	for {
+		n, err := c.Q.MailboxClassifyContacts(ctx, store.MailboxClassifyContactsParams{Provider: cl.Provider, Detail: cl.Detail, Domain: domain, Lim: classifyBatch})
+		changed += n
+		if err != nil || n < classifyBatch || ctx.Err() != nil {
+			return changed, err
+		}
+	}
 }
 
 func (c *Classifier) failed(domain string, at time.Time) {

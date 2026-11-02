@@ -12,21 +12,36 @@ import (
 )
 
 const mailboxClassifyContacts = `-- name: MailboxClassifyContacts :execrows
-UPDATE contacts
+WITH batch AS (
+    SELECT id FROM contacts
+    WHERE mailbox_checked_at IS NULL AND mailbox_provider = 'other' AND erased_at IS NULL
+      AND split_part(email, '@', 2) = $3::text
+    LIMIT $4
+    FOR UPDATE SKIP LOCKED
+)
+UPDATE contacts c
 SET mailbox_provider = $1, mailbox_detail = $2, mailbox_checked_at = now()
-WHERE mailbox_checked_at IS NULL AND mailbox_provider = 'other' AND erased_at IS NULL
-  AND split_part(email, '@', 2) = $3::text
+FROM batch WHERE c.id = batch.id
 `
 
 type MailboxClassifyContactsParams struct {
 	Provider string `json:"provider"`
 	Detail   string `json:"detail"`
 	Domain   string `json:"domain"`
+	Lim      int32  `json:"lim"`
 }
 
-// Applies a domain's classification to every contact still waiting for it.
+// Applies a domain's classification to up to @lim contacts still waiting
+// for it. It never waits for a contact another transaction has locked (a
+// tier run, an edit): that one keeps waiting for the next pass, and the
+// classifier can't take part in a deadlock (review 2026-11 OP-13).
 func (q *Queries) MailboxClassifyContacts(ctx context.Context, arg MailboxClassifyContactsParams) (int64, error) {
-	result, err := q.db.Exec(ctx, mailboxClassifyContacts, arg.Provider, arg.Detail, arg.Domain)
+	result, err := q.db.Exec(ctx, mailboxClassifyContacts,
+		arg.Provider,
+		arg.Detail,
+		arg.Domain,
+		arg.Lim,
+	)
 	if err != nil {
 		return 0, err
 	}

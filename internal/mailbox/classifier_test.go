@@ -144,3 +144,109 @@ func TestClassifier(t *testing.T) {
 		t.Fatalf("ForEmail unknown: %+v", got)
 	}
 }
+
+// TestClassifierAlongsideTierRun: the mailbox classifier and a tier run
+// update the same contacts at once without deadlocking, and between them
+// reach every contact. The tier run goes in batches (more than two here,
+// with many contacts joined at the same moment across a batch's edge), and
+// a second run finds nothing left to change (review 2026-11 OP-13).
+func TestClassifierAlongsideTierRun(t *testing.T) {
+	env := apptest.New(t)
+	ctx := context.Background()
+	owner := env.CreateUser(apptest.UserOpts{Email: "owner@example.com"})
+	ws := env.CreateWorkspace("Busy audience", owner.ID)
+	const contacts = 12000
+	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO contacts (id, workspace_id, email, mailbox_provider, created_at)
+		SELECT gen_random_uuid(), $1, 'reader' || g || '@busy-corp.example', 'other', now() - (g % 10) * interval '40 days'
+		FROM generate_series(1, $2::int) g`, ws.ID, contacts); err != nil {
+		t.Fatal(err)
+	}
+	dns := &fakeDNS{got: map[string]int{}, mx: map[string]string{"busy-corp.example": "aspmx.l.google.com"}}
+	c := &mailbox.Classifier{Q: env.App.Q, MX: &mailbox.MXChecker{Q: env.App.Q, Resolver: dns, Timeout: time.Second}}
+
+	var wg sync.WaitGroup
+	var tierErr, classErr error
+	var changed int64
+	wg.Go(func() {
+		run, err := env.App.Audience().RecomputeTiers(ctx, ws.ID)
+		changed, tierErr = run.Changed, err
+	})
+	wg.Go(func() { _, classErr = c.ClassifyPending(ctx, ws.ID, 30*time.Second) })
+	wg.Wait()
+	if tierErr != nil || classErr != nil {
+		t.Fatalf("tiers: %v; classifier: %v", tierErr, classErr)
+	}
+	if changed == 0 {
+		t.Fatal("the tier run changed nothing")
+	}
+	// Contacts the tier run held were left for the classifier's next pass.
+	if _, err := c.ClassifyPending(ctx, ws.ID, 30*time.Second); err != nil {
+		t.Fatal(err)
+	}
+	var waiting int
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM contacts WHERE workspace_id = $1 AND mailbox_checked_at IS NULL`, ws.ID).Scan(&waiting); err != nil {
+		t.Fatal(err)
+	}
+	if waiting != 0 {
+		t.Fatalf("%d contacts still wait for their mailbox provider", waiting)
+	}
+	again, err := env.App.Audience().RecomputeTiers(ctx, ws.ID)
+	if err != nil || again.Changed != 0 {
+		t.Fatalf("a second run changed %d (%v): the first missed contacts", again.Changed, err)
+	}
+	var tiers int
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(DISTINCT tier) FROM contacts WHERE workspace_id = $1`, ws.ID).Scan(&tiers); err != nil {
+		t.Fatal(err)
+	}
+	if tiers < 3 {
+		t.Fatalf("%d tiers across ten join dates a season apart", tiers)
+	}
+}
+
+// TestClassifierSkipsLockedContacts: a contact another transaction holds
+// (a tier batch, an edit) doesn't keep the classifier waiting; it is
+// classified on the next pass. A classifier that waited could deadlock with
+// a tier run, which is what kept the first tier run of a million contacts
+// starting over (review 2026-11 OP-13).
+func TestClassifierSkipsLockedContacts(t *testing.T) {
+	env := apptest.New(t)
+	ctx := context.Background()
+	owner := env.CreateUser(apptest.UserOpts{Email: "owner@example.com"})
+	ws := env.CreateWorkspace("Locked contact", owner.ID)
+	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO contacts (id, workspace_id, email, mailbox_provider)
+		SELECT gen_random_uuid(), $1, 'reader' || g || '@held-corp.example', 'other' FROM generate_series(1, 20) g`, ws.ID); err != nil {
+		t.Fatal(err)
+	}
+	tx, err := env.App.Pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if _, err := tx.Exec(ctx, `SELECT id FROM contacts WHERE email = 'reader7@held-corp.example' FOR UPDATE`); err != nil {
+		t.Fatal(err)
+	}
+	dns := &fakeDNS{got: map[string]int{}, mx: map[string]string{"held-corp.example": "aspmx.l.google.com"}}
+	c := &mailbox.Classifier{Q: env.App.Q, MX: &mailbox.MXChecker{Q: env.App.Q, Resolver: dns, Timeout: time.Second}}
+	wait, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	n, err := c.ClassifyPending(wait, ws.ID, 5*time.Second)
+	if err != nil || wait.Err() != nil {
+		t.Fatalf("the classifier waited for the held contact: %v %v", err, wait.Err())
+	}
+	if n != 19 {
+		t.Fatalf("classified %d of the 19 contacts nobody holds", n)
+	}
+	if err := tx.Rollback(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var held string
+	if err := env.App.Pool.QueryRow(ctx, `SELECT mailbox_provider FROM contacts WHERE email = 'reader7@held-corp.example'`).Scan(&held); err != nil {
+		t.Fatal(err)
+	}
+	if held != mailbox.Other {
+		t.Fatalf("the held contact was classified as %s while held", held)
+	}
+	if n, err := c.ClassifyPending(ctx, ws.ID, 5*time.Second); err != nil || n != 1 {
+		t.Fatalf("the next pass classified %d (%v), want the one that was held", n, err)
+	}
+}

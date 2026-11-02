@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/riverqueue/river"
 
 	"github.com/hostrepute/reputecast/internal/audit"
@@ -119,25 +120,12 @@ func (s *Service) RecomputeTiers(ctx context.Context, wsID uuid.UUID) (TierRun, 
 	p := ParsePolicy(ws.SunsetPolicy)
 	now := s.now()
 	loc := workspaceLocation(&ws)
+	reengage := p.Enabled && p.Reengage
+	if err := s.assignTiers(ctx, wsID, p, now, reengage, &out); err != nil {
+		return out, err
+	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		reengage := p.Enabled && p.Reengage
-		err := tx.QueryRow(ctx, fmt.Sprintf(`WITH calc AS (
-				SELECT c.id, c.tier AS old, %s AS new FROM contacts c WHERE c.workspace_id = $1 AND c.erased_at IS NULL
-			), upd AS (
-				UPDATE contacts c SET tier = calc.new, tier_changed_at = $2,
-				       sunset_at = CASE WHEN calc.new = 'sunset' THEN $2 END,
-				       broadcasts_stopped_at = CASE WHEN calc.new = 'sunset' THEN c.broadcasts_stopped_at END,
-				       tags = CASE WHEN calc.new = 'sunset' AND $3 AND NOT ('sunset' = ANY (c.tags)) THEN array_append(c.tags, 'sunset')
-				                   WHEN calc.new <> 'sunset' THEN array_remove(c.tags, 'sunset') ELSE c.tags END
-				FROM calc WHERE c.id = calc.id AND calc.old <> calc.new
-				RETURNING calc.old, calc.new
-			)
-			SELECT count(*), count(*) FILTER (WHERE new = 'sunset'), count(*) FILTER (WHERE old = 'sunset') FROM upd`, tierExpr(p, "$2::timestamptz")),
-			wsID, now, reengage).Scan(&out.Changed, &out.EnteredSunset, &out.LeftSunset)
-		if err != nil {
-			return err
-		}
 		if p.Enabled && p.StopBroadcasts {
 			tag, err := tx.Exec(ctx, `UPDATE contacts SET broadcasts_stopped_at = $2 WHERE workspace_id = $1 AND erased_at IS NULL AND tier = 'sunset'
 				AND broadcasts_stopped_at IS NULL AND sunset_at <= $2::timestamptz - make_interval(days => $3)`, wsID, now, p.StopAfterDays)
@@ -191,6 +179,66 @@ func (s *Service) RecomputeTiers(ctx context.Context, wsID uuid.UUID) (TierRun, 
 		}
 	}
 	return out, nil
+}
+
+// tierBatch is how many contacts one transaction of a tier run reads.
+const tierBatch = 5000
+
+// assignTiers moves the workspace's contacts to the tier their engagement
+// calls for, tierBatch at a time from the most recently joined. Each batch
+// is one statement, so its own short transaction, that locks only the
+// contacts it changes and locks them in that order. A single statement over
+// every contact held a million row locks for minutes, kept people's edits
+// waiting, and deadlocked with the mailbox classifier, so the run started
+// over again and again (review 2026-11 OP-13). A batch that still loses a
+// deadlock goes again.
+func (s *Service) assignTiers(ctx context.Context, wsID uuid.UUID, p SunsetPolicy, now time.Time, reengage bool, out *TierRun) error {
+	expr := tierExpr(p, "$2::timestamptz")
+	sql := fmt.Sprintf(`WITH win AS (
+			SELECT id, created_at FROM contacts
+			WHERE workspace_id = $1 AND created_at <= $4 AND (created_at < $4 OR id < $5)
+			ORDER BY created_at DESC, id DESC LIMIT %[1]d
+		), calc AS (
+			SELECT c.id, c.tier AS old, %[2]s AS new FROM contacts c
+			WHERE c.id IN (SELECT id FROM win) AND c.erased_at IS NULL AND c.tier <> (%[2]s)
+			ORDER BY c.created_at DESC, c.id DESC
+			FOR UPDATE OF c
+		), upd AS (
+			UPDATE contacts c SET tier = calc.new, tier_changed_at = $2,
+			       sunset_at = CASE WHEN calc.new = 'sunset' THEN $2 END,
+			       broadcasts_stopped_at = CASE WHEN calc.new = 'sunset' THEN c.broadcasts_stopped_at END,
+			       tags = CASE WHEN calc.new = 'sunset' AND $3 AND NOT ('sunset' = ANY (c.tags)) THEN array_append(c.tags, 'sunset')
+			                   WHEN calc.new <> 'sunset' THEN array_remove(c.tags, 'sunset') ELSE c.tags END
+			FROM calc WHERE c.id = calc.id
+			RETURNING calc.old, calc.new
+		), last AS (
+			SELECT id, created_at FROM win ORDER BY created_at, id LIMIT 1
+		)
+		SELECT (SELECT count(*) FROM win), (SELECT created_at FROM last), (SELECT id FROM last),
+		       count(*), count(*) FILTER (WHERE new = 'sunset'), count(*) FILTER (WHERE old = 'sunset') FROM upd`, tierBatch, expr)
+	at, after := time.Date(9999, 12, 31, 0, 0, 0, 0, time.UTC), uuid.Max
+	for tries := 0; ; {
+		var read, changed, entered, left int64
+		var lastAt *time.Time
+		var lastID *uuid.UUID
+		err := s.Pool.QueryRow(ctx, sql, wsID, now, reengage, at, after).Scan(&read, &lastAt, &lastID, &changed, &entered, &left)
+		var pe *pgconn.PgError
+		if errors.As(err, &pe) && pe.Code == "40P01" && tries < 3 { // deadlock_detected
+			tries++
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		tries = 0
+		out.Changed += changed
+		out.EnteredSunset += entered
+		out.LeftSunset += left
+		if read < tierBatch || lastAt == nil || lastID == nil {
+			return nil
+		}
+		at, after = *lastAt, *lastID
+	}
 }
 
 // writeRollups records today's tier mix per scope and the last three days
