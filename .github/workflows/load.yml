@@ -98,6 +98,14 @@ jobs:
           psql "$REPUTECAST_DATABASE__URL" -Atc "SELECT kind || ' ' || round(extract(epoch FROM coalesce(finalized_at, now()) - attempted_at)) || ' s'
             || CASE WHEN finalized_at IS NULL THEN ', still ' || state ELSE '' END || CASE WHEN attempt > 1 THEN ', attempt ' || attempt ELSE '' END
             FROM river_job WHERE coalesce(finalized_at, now()) - attempted_at > interval '10 seconds' ORDER BY attempted_at" | tee -a results.txt
+          # That first tier run rewrites most of the million contacts, and a
+          # tier and a tag are indexed, so every index takes a new entry for
+          # each. Autovacuum gets to the table minutes later, in the middle
+          # of k6; it runs now instead, as it would have long before a busy
+          # hour on a real instance, and its time is recorded.
+          start=$(date +%s)
+          psql "$REPUTECAST_DATABASE__URL" -qc "VACUUM (ANALYZE) contacts"
+          echo "VACUUM (ANALYZE) contacts after the first tier run: $(( $(date +%s) - start )) s" | tee -a results.txt
           echo "COOKIE=$(sh loadtest/session.sh load-test)" >> "$GITHUB_ENV"
           # send.js sends with a send-only key, as an application does: a
           # session's 50 per second would be what it measured.

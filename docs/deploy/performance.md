@@ -179,21 +179,24 @@ now reads its matches once, up to the 10,000 cap, and reads the page from
 them by id. And the jobs a worker runs when it starts ran through every k6
 script: the workflow now waits for them and lists those that ran long.
 
-[Run 41381703256](https://github.com/HostRepute/ReputeCast/actions/runs/41381703256):
+[Run 41381703256](https://github.com/HostRepute/ReputeCast/actions/runs/41381703256)
+(fourth) and, with the deadlock below fixed,
+[run 41386901262](https://github.com/HostRepute/ReputeCast/actions/runs/41386901262)
+(fifth):
 
-| | Third run | Fourth run | Target |
-|---|---|---|---|
-| contacts.js, requests a second | 160 | 219 | — |
-| contacts.js, pages p95 | 54 ms | 44 ms | under 200 ms: met |
-| contacts.js, search p95 | 307 ms | 199 ms | under 150 ms: missed |
-| Ten people browsing (Go test), p95 | 273 ms | 143 ms | under 200 ms: met |
-| Search on its own (Go test) | 51 ms | 27 ms | under 150 ms: met |
-| segments.js, p95 | 10.1 ms | 7.0 ms | under 2 s: met |
-| send.js, messages a second | 84 | 129 | — |
-| send.js, median | 400 ms | 215 ms | — |
-| send.js, p95 | 814 ms | 299 ms | under 300 ms: met |
-| send.js, worst | 1.89 s | 408 ms | — |
-| send.js, arrivals dropped (no free sender) | 7,851 | 1,023 | — |
+| | Third run | Fourth run | Fifth run | Target |
+|---|---|---|---|---|
+| contacts.js, requests a second | 160 | 219 | 246 | — |
+| contacts.js, pages p95 | 54 ms | 44 ms | 40 ms | under 200 ms: met |
+| contacts.js, search p95 | 307 ms | 199 ms | 160 ms | under 150 ms: missed |
+| Ten people browsing (Go test), p95 | 273 ms | 143 ms | 147 ms | under 200 ms: met |
+| Search on its own (Go test) | 51 ms | 27 ms | 28 ms | under 150 ms: met |
+| segments.js, p95 | 10.1 ms | 7.0 ms | 5.2 ms | under 2 s: met |
+| send.js, messages a second | 84 | 129 | 134 | — |
+| send.js, median | 400 ms | 215 ms | 25 ms | — |
+| send.js, p95 | 814 ms | 299 ms | 269 ms | under 300 ms: met |
+| send.js, worst | 1.89 s | 408 ms | 438 ms | — |
+| send.js, arrivals dropped (no free sender) | 7,851 | 1,023 | 304 | — |
 
 The run's Postgres log showed what still slowed search: the first tier run
 of the million contacts (`audience.tiers`, which a worker starts with) and
@@ -208,6 +211,17 @@ at a time and skips contacts another transaction holds, picking them up on
 its next pass, so it never waits and can't deadlock
 (`TestClassifierSkipsLockedContacts` waited for the held contact before).
 People's edits no longer wait behind a tier run either.
+
+In the fifth run that first tier run finished in one go, in 309 seconds, and
+nothing deadlocked. Search was the last target missed, by 10 ms, and k6 had
+started 36 seconds after the tier run ended: that run had rewritten most of
+the million contacts, and as a tier and a tag are indexed, every index took
+a new entry for each, the two trigram indexes search reads included.
+Autovacuum gets to such a table minutes later, which put it in the middle of
+k6. That happens once, after an import or on first start; a daily tier run
+changes the contacts that crossed a line that day. The workflow now runs
+`VACUUM (ANALYZE) contacts` itself after the start-up jobs, as autovacuum
+would have long before a busy hour, and records how long it took.
 
 The approvals inbox with 1,000 open requests (`TestInboxAtAThousandRequests`,
 review 2026-11 AP-3): 118 to 200 ms when every request was checked
