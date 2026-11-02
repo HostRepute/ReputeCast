@@ -207,6 +207,9 @@ func (h *Handler) siteTag(w http.ResponseWriter, r *http.Request) {
 	}
 	v.Title = v.T("site.title", "page", title, "site", v.Frame.Title)
 	v.Description = tag.Description
+	if v.Description == "" {
+		v.Description = v.Frame.Description
+	}
 	v.Canonical = s.canonPath("tag", tag.Slug)
 	v.Feeds = []siteFeed{{Title: v.T("site.feedOf", "tag", tag.Name, "site", v.Frame.Title), Href: s.canonPath("tag", tag.Slug, "feed")}}
 	v.mark("tag:"+tag.Slug, v.Frame)
@@ -317,6 +320,9 @@ func (h *Handler) siteArchive(w http.ResponseWriter, r *http.Request, s *site) {
 	b.PagesLabel = v.T("site.pages")
 	v.Body = b
 	v.Title = v.T("site.title", "page", v.T("site.archive"), "site", v.Frame.Title)
+	// The line under the heading ("Every post on news.acme.io since 2024")
+	// is what search results show for the archive.
+	v.Description = text
 	v.Canonical = s.canon.Archive()
 	if query != "" || page > 1 || f.Tag != nil {
 		v.Robots = "noindex, follow"

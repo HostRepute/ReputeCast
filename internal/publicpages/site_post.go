@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -247,7 +248,7 @@ func (h *Handler) postBody(ctx context.Context, s *site, v *siteView, p store.We
 	loc := location(s.ws)
 	at := pv.Post.PublishedAt.In(loc)
 	b := postBody{Label: pv.Post.Label, Title: pv.Post.Title, Dek: pv.Post.Excerpt, Date: v.labels.FullDate(at), ISO: pv.Post.PublishedAt.UTC().Format(time.RFC3339),
-		Minutes: v.T("site.readMin", "count", pv.Minutes), HTML: template.HTML(h.mediaHTML(pv.Body))} //nolint:gosec // the renderer's sanitized HTML of the publisher's own post
+		Minutes: v.T("site.readMin", "count", pv.Minutes), HTML: template.HTML(bodyHeadings(h.mediaHTML(pv.Body)))} //nolint:gosec // the renderer's sanitized HTML of the publisher's own post
 	for _, t := range pv.Post.Tags {
 		// A tag that only repeats the paid label ("Insider", next to
 		// "☆ Insider") is left to the label.
@@ -530,4 +531,14 @@ func (h *Handler) join(w http.ResponseWriter, r *http.Request, s *site, page str
 	default:
 		h.joinSent(w, r, s, out.Email, page)
 	}
+}
+
+// bodyH1 is a main heading in a post's body.
+var bodyH1 = regexp.MustCompile(`(?i)<(/?)h1\b`)
+
+// bodyHeadings turns a post body's main headings into second-level ones:
+// the post's title is the page's one main heading (site.css styles both
+// alike in the body, so nothing moves).
+func bodyHeadings(body string) string {
+	return bodyH1.ReplaceAllString(body, "<${1}h2")
 }

@@ -149,6 +149,7 @@ func (h *Handler) renderUpgrade(w http.ResponseWriter, r *http.Request, s *site,
 	body := upgradeBody{View: v, Action: earnLink(s.links, "upgrade/checkout"), Token: req.Token, Test: req.TestToken, MonthHref: period("month"),
 		YearHref: period("year"), ArchiveHref: s.links.Archive(), TermsURL: v.TermsURL, Upgrading: earn.TextIn(v.Lang, "page.upgrading", nil), Retry: r.URL.String()}
 	vw := h.earnView(r, s, h.earnTitle(s, v.Headline), body, pl)
+	vw.Description = v.Intro
 	vw.Canonical = earnLink(s.canon, "upgrade")
 	if req.Token == "" && req.TestToken == "" {
 		vw.Robots = "index, follow"
