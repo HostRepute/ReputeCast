@@ -1,4 +1,4 @@
-import { keepPreviousData } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { createColumnHelper, rowSelectionFeature, tableFeatures, useTable, type RowSelectionState } from '@tanstack/react-table'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
@@ -28,6 +28,7 @@ import { BandSelect, GrowthSourceField, ScoreCell, ScoreGrowthChips, ScoreGrowth
 import { fileName, saveBlob } from './download'
 import { consentFilterLabel, consentLabel, consentTone, mailboxColor, mailboxes, mailboxLabel, tierClass, tierLabel, tiers, type Consent, type Mailbox, type Tier } from './labels'
 import { LanguageFilter } from '@/features/page-languages/contacts'
+import { contactListQuery, contactViewsQuery, filterKeys, filterOf } from './queries'
 import { PaidStatusCell, PaidStatusSelect, PaidTierChip } from '@/features/earn/ContactsPaid'
 import { BoughtFilter } from '@/features/products/filter'
 import { StoreChips, StoreContactFields, storeMoreKeys, type StoreDraft } from '@/features/commerce/contacts'
@@ -97,61 +98,6 @@ export interface ContactsSearch {
 type Item = Schemas['ContactListItem']
 type Filter = Schemas['ContactFilter']
 
-const filterKeys = [
-  'q',
-  'list',
-  'tier',
-  'mailbox',
-  'consent',
-  'source',
-  'tag',
-  'joinedAfter',
-  'joinedBefore',
-  'import',
-  'segment',
-  'language',
-  // Scoring and Growth (X13).
-  'band',
-  'scoreFrom',
-  'scoreTo',
-  'growthSource',
-  'utmSource',
-  'utmMedium',
-  'utmCampaign',
-  'referringDomain',
-  'sort',
-  // The latest address check (X14).
-  'check',
-  // Paid status (Earn, X16).
-  'paid',
-  'paidTier',
-  // Members of the website (X18).
-  'signedIn',
-  // Buyers of digital products (X19).
-  'bought',
-  // Store customers and what they spent (X20).
-  'storeCustomer',
-  'spentFrom',
-  'spentTo',
-  // The phone and SMS consent (X21).
-  'phone',
-  'phoneCountry',
-  'smsConsent',
-  // Push subscribed and WhatsApp consent (X22).
-  'pushSubscribed',
-  'whatsAppConsent',
-] as const
-
-/** The filter part of the search params, without empty values. */
-export function filterOf(s: ContactsSearch): Filter {
-  const f: Record<string, string | boolean> = {}
-  for (const k of filterKeys) {
-    const v = s[k]
-    if (v) f[k] = typeof v === 'boolean' ? v : String(v)
-  }
-  return f as Filter
-}
-
 function sameFilter(a: Filter, b: Filter) {
   return filterKeys.every((k) => (a[k as keyof Filter] ?? '') === (b[k as keyof Filter] ?? ''))
 }
@@ -187,30 +133,12 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
   const paidOn = (summary.data?.paidTiers.length ?? 0) > 0
   const columns = parseColumns(search.cols) ?? defaultColumns(paidOn, phones)
   const fields = fieldKeys(columns)
-  const views = $api.useQuery('get', '/api/v1/workspaces/{workspace}/contacts/views', { params: { path: { workspace: slug } } })
+  const views = useQuery(contactViewsQuery(slug))
   // "Count all" asks for the exact count of this filter only (review D5).
   const filterKey = JSON.stringify(filter)
   const [exactFor, setExactFor] = useState<string>()
   const exact = exactFor === filterKey
-  const list = $api.useQuery(
-    'get',
-    '/api/v1/workspaces/{workspace}/contacts',
-    {
-      params: {
-        path: { workspace: slug },
-        query: {
-          ...filter,
-          cursor: search.cursor,
-          page: search.cursor ? undefined : page,
-          pageSize: size,
-          exact: exact || undefined,
-          fields: fields.length ? fields.join(',') : undefined,
-        },
-      },
-    },
-    // ?view= is replaced by the view's filters before the list is read.
-    { placeholderData: keepPreviousData, enabled: !search.view },
-  )
+  const list = useQuery(contactListQuery(slug, search, fields, exact))
   // A saved view's own address (review 2026-11 AU-19): open it with its
   // filters and columns, or say it's gone.
   const viewId = search.view

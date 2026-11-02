@@ -1,9 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { ContactsPage } from '@/features/audience/ContactsPage'
+import { contactsFirst } from '@/features/audience/queries'
 import { boughtParam } from '@/features/products/params'
 // The jobs tray lists imports from the server once this module loads.
 import '@/features/imports/jobsSource'
+import { prefetchFirst } from '@/lib/prefetch'
 
 const search = z.object({
   q: z.string().max(200).optional().catch(undefined),
@@ -93,6 +95,8 @@ const search = z.object({
 
 export const Route = createFileRoute('/w/$workspace/_app/audience/')({
   validateSearch: search,
+  // The screen's first data loads alongside its code, not after it.
+  loader: ({ context, params, location }) => prefetchFirst(context.queryClient, params.workspace, contactsFirst(params.workspace, location.search)),
   component: function ContactsRoute() {
     return <ContactsPage search={Route.useSearch()} />
   },

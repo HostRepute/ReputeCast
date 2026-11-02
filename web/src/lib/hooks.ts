@@ -55,18 +55,30 @@ function useOverflow(ref: RefObject<HTMLElement | null>, vertical: boolean): boo
     const el = ref.current
     if (!el || typeof ResizeObserver === 'undefined') return
     const check = () => setOver(el.scrollWidth > el.clientWidth + 1 || (vertical && el.scrollHeight > el.clientHeight + 1))
-    check()
     // The box resizing, or its content changing (a longer query in a code
-    // block, a new first child), can both change whether it scrolls.
+    // block, a new first child), can both change whether it scrolls. The
+    // observer's first report comes once the box has been laid out, and a
+    // change of content is measured once per frame: measuring as soon as the
+    // DOM changed made the browser lay out the page in the middle of React's
+    // work, once per table.
     const ro = new ResizeObserver(check)
     ro.observe(el)
     if (el.firstElementChild) ro.observe(el.firstElementChild)
-    const mo = new MutationObserver(check)
+    let frame = 0
+    const mo = new MutationObserver(() => {
+      if (!frame) {
+        frame = requestAnimationFrame(() => {
+          frame = 0
+          check()
+        })
+      }
+    })
     // Style and class changes too: the composer sizes its canvas through them.
     mo.observe(el, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style', 'class'] })
     return () => {
       ro.disconnect()
       mo.disconnect()
+      cancelAnimationFrame(frame)
     }
   }, [ref, vertical])
   return over

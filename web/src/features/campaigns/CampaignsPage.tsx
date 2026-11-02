@@ -1,4 +1,4 @@
-import { keepPreviousData } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useEffect, useId, useState, type ReactNode } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
@@ -15,6 +15,7 @@ import { clock, count, money, pct, rate, shortDate } from '@/lib/format'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
 import { useFirstLoadSettled } from '@/lib/hooks'
 import { m } from './messages'
+import { campaignListQuery, campaignSummaryQuery } from './queries'
 import { BulkBar, CalendarLink, deletedLine, RestoreButton, RowActionDialogs, RowMenu, TagPills, UnscheduleButton, type RowAction } from './manage'
 import { mm } from './manage.messages'
 import { RouteBadges } from './RouteBadges'
@@ -55,7 +56,6 @@ export interface CampaignsSearch {
   tag?: string
 }
 
-const PAGE_SIZE = 25
 
 /** YYYY-MM-DD of a local day. */
 function isoDay(d: Date) {
@@ -106,30 +106,7 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
   const newReason = usePermissionReason('campaigns:edit')
   const navigate = useNavigate()
   const range = whenRange(search)
-  const list = $api.useQuery(
-    'get',
-    '/api/v1/workspaces/{workspace}/campaigns',
-    {
-      params: {
-        path: { workspace: slug },
-        // Paid only (Earn): every status, campaigns for paid members only.
-        query: {
-          status: status === 'recurring' || status === 'paid' ? 'all' : status,
-          paidOnly: status === 'paid' || undefined,
-          q: search.q ?? '',
-          channel: search.channel,
-          from: range.from,
-          to: range.to,
-          sender: search.sender,
-          list: search.list,
-          tag: search.tag,
-          page,
-          pageSize: PAGE_SIZE,
-        },
-      },
-    },
-    { placeholderData: keepPreviousData },
-  )
+  const list = useQuery(campaignListQuery(slug, search, range))
   const counts = list.data?.counts
   // "New campaign" asks what kind first: Regular or Recurring digest (DigestSetup).
   const [picking, setPicking] = useState(false)
@@ -365,7 +342,7 @@ function FiltersBar({ search, onChange }: { search: CampaignsSearch; onChange: (
 function SummaryCards() {
   const t = useT()
   const { slug } = useWorkspace()
-  const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/campaigns/summary', { params: { path: { workspace: slug }, query: { days: 30 } } })
+  const q = useQuery(campaignSummaryQuery(slug))
   if (q.isPending || q.isError) {
     return (
       <Grid min={200} gap={16} aria-hidden={q.isPending}>

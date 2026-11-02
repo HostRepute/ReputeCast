@@ -269,6 +269,19 @@ That runner was faster than the sixth run's (the seed took 19 minutes
 rather than 23), so part of the gain is the machine: the sixth run is the
 fairer bar.
 
+### Eighth run: after the automation wake
+
+[Run 41540067366](https://github.com/HostRepute/ReputeCast/actions/runs/41540067366),
+on the commit that wakes the automation outbox after commit and skips the
+per-language query of a report in one language, passed every threshold with
+no failed request: search p95 73.5 ms, pages p95 18.8 ms (536 requests a
+second), segment counts p95 2.5 ms, sends p95 16.2 ms (median 6 ms, 136 a
+second, 2 arrivals dropped), ten people browsing p50 16 ms, p95 81 ms and p99
+96 ms. Its timing test read a campaign report on the million contacts in
+175–202 ms. The seed took 14 minutes, so this runner was faster again;
+the sixth run stays the fairer bar. The workflow now masks the k6 session
+cookie in its log, as it did the send key.
+
 The approvals inbox with 1,000 open requests (`TestInboxAtAThousandRequests`,
 review 2026-11 AP-3): 118 to 200 ms when every request was checked
 recently, as the inbox re-checks only stale ones; 460 ms when ten campaigns
@@ -367,6 +380,57 @@ left it as it was. On Contacts, without the CPU slowdown, the page's own
 script work went from about 600 ms to 410–420 ms once the composer's code
 stopped loading there.
 
+### Third pass: data alongside code, and fewer forced layouts
+
+With the screen's code loading during the session check, its data still
+waited for that code: Contacts asked for its list at 6.1 s, once the code was
+in, though the address said what to ask for at 3.9 s. Two changes:
+
+- The Overview, Campaigns and Contacts routes prefetch their first queries
+  from their `loader` (`prefetchFirst` in `lib/prefetch.ts`). The route
+  doesn't wait for them; only what the person's permissions show is asked
+  for; the list only for the screen as the menu opens it, so a filtered
+  address can't prefetch a list the screen won't show. The page and the
+  loader build each query in the same small module (`queries.ts`), so they
+  are the same query.
+- Nothing measures the page in the middle of React's work any more. A table
+  that may scroll sideways, a name cell that may be cut and the corner stack
+  above the toasts measured as soon as they mounted, which made the browser
+  lay out the whole page there; they now take the ResizeObserver's first
+  report, made after layout, and the corner stack writes its offsets on the
+  root element only when they change.
+
+Five loads of each screen, the same conditions as the second pass:
+
+| HTTP/2, phone | Largest paint before | After | Blocking time before | After |
+|---|---|---|---|---|
+| Overview | 6.81 s | 6.20 s | 1238 ms | 1104 ms |
+| Campaigns | 6.53 s | 5.86 s | 1483 ms | 1322 ms |
+| Contacts | 7.81 s | 7.40 s | 1355 ms | 1130 ms |
+
+Screenshots of five screens at 390 and 1440 px are the same before and
+after, pixel for pixel, except for relative times and live counts.
+
+What is left of the blocking time is the startup scripts (React, the router,
+TanStack Query, zod and every route's definition: 318 KB gzipped, about
+0.4 s on this CPU) and React rendering each screen as it and its data
+arrive (0.1–0.5 s a render). Tried, measured, and not kept, because none
+moved the blocking time beyond run-to-run noise (±0.3 s):
+
+- rendering the first screen at transition priority (`useDeferredValue`,
+  then `startTransition`), so React would build it in slices: the router and
+  TanStack Query hand React their changes through `useSyncExternalStore`,
+  which React renders in one pass, and the shell and the screen then took
+  two long tasks instead of one;
+- building each route's search schema on first use instead of at startup;
+- formatting a message without values once per language rather than on
+  every render.
+
+Bringing the blocking time well under a second on this phone would take
+rendering the first screen on the server, or loading each section's route
+definitions with that section; both change how the app is built and are
+left for a release of their own.
+
 ### The campaign report on a real send
 
 Profiled on a sent campaign of 29,797 recipients (the QA data set), the
@@ -375,11 +439,3 @@ was half of that. A campaign sent in one language has nothing to show
 there, and its send snapshot says so: the report now skips that query for
 it, and takes 20–21 ms for the same send in one language. A send in two or
 more languages still reads it (46–54 ms).
-
-## Worth a look next
-
-- A screen's data starts loading once its code has run: on Contacts the
-  list is asked for at 6.1 s, when the code is in, though the page knew
-  what to ask for at 3.9 s. A route loader that prefetches the screen's main
-  query would overlap the two.
-

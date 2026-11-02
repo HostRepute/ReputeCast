@@ -23,14 +23,27 @@ function useCornerOffsets(tray: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     const root = document.documentElement
     const toasts = document.querySelector<HTMLElement>('.toasts')
-    const update = () => {
-      const th = toasts?.getBoundingClientRect().height ?? 0
-      root.style.setProperty('--rc-toasts-h', th > 0 ? `${th + 8}px` : '0px')
-      const rh = tray.current?.getBoundingClientRect().height ?? 0
-      root.style.setProperty('--rc-tray-h', rh > 0 ? `${rh + 8}px` : '0px')
+    // A property on the root element restyles the whole page, so it is
+    // written only when it changes, and left out at zero (the CSS falls back
+    // to 0px).
+    const publish = (name: string, height: number) => {
+      const value = height > 0 ? `${height + 8}px` : ''
+      if (root.style.getPropertyValue(name) === value) return
+      if (value) root.style.setProperty(name, value)
+      else root.style.removeProperty(name)
     }
-    update()
-    if (typeof ResizeObserver === 'undefined') return
+    const update = () => {
+      publish('--rc-toasts-h', toasts?.getBoundingClientRect().height ?? 0)
+      publish('--rc-tray-h', tray.current?.getBoundingClientRect().height ?? 0)
+    }
+    if (typeof ResizeObserver === 'undefined') {
+      update()
+      return
+    }
+    // The observer reports each box once it has been laid out (the CSS falls
+    // back to 0px until then): measuring here, while the screen is still
+    // being committed, made the browser lay out the whole page in the middle
+    // of React's work.
     const ro = new ResizeObserver(update)
     if (toasts) ro.observe(toasts)
     if (tray.current) ro.observe(tray.current)

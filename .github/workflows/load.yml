@@ -109,7 +109,12 @@ jobs:
           start=$(date +%s)
           psql "$REPUTECAST_DATABASE__URL" -qc "VACUUM (ANALYZE) contacts"
           echo "VACUUM (ANALYZE) contacts after the first tier run: $(( $(date +%s) - start )) s" | tee -a results.txt
-          echo "COOKIE=$(sh loadtest/session.sh load-test)" >> "$GITHUB_ENV"
+          # The session is masked like the key: the job's log prints the
+          # environment of every later step.
+          cookie=$(sh loadtest/session.sh load-test)
+          test -n "$cookie"
+          echo "::add-mask::$cookie"
+          echo "COOKIE=$cookie" >> "$GITHUB_ENV"
           # send.js sends with a send-only key, as an application does: a
           # session's 50 per second would be what it measured.
           token=$(COOKIE="$(sh loadtest/session.sh acme-newsletter)" sh loadtest/sendkey.sh acme-newsletter 1000)

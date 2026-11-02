@@ -1,4 +1,4 @@
-import { cloneElement, useLayoutEffect, useState, type CSSProperties, type ReactElement, type Ref } from 'react'
+import { cloneElement, useEffect, useState, type CSSProperties, type ReactElement, type Ref } from 'react'
 import { cn } from '@/lib/cn'
 import { Tooltip } from './Menu'
 
@@ -20,11 +20,17 @@ type Truncatable = ReactElement<{ className?: string; style?: CSSProperties; ref
 export function Truncate({ text, children, max, className }: { text: string; children?: Truncatable; max?: number; className?: string }) {
   const [node, setNode] = useState<HTMLElement | null>(null)
   const [cut, setCut] = useState(false)
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!node) return
     const check = () => setCut(node.scrollWidth > node.clientWidth + 1)
-    check()
-    if (typeof ResizeObserver === 'undefined') return
+    if (typeof ResizeObserver === 'undefined') {
+      check()
+      return
+    }
+    // The observer's first report comes once the cell has been laid out:
+    // measuring here instead made the browser lay out the whole table once
+    // per commit, in the middle of React's work. The tooltip only matters on
+    // hover or focus, so it can wait for it.
     const ro = new ResizeObserver(check)
     ro.observe(node)
     return () => ro.disconnect()

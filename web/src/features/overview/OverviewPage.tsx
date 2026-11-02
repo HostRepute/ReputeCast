@@ -1,5 +1,6 @@
+import { useQuery } from '@tanstack/react-query'
 import { Fragment, type ReactNode } from 'react'
-import { $api, errorMessage } from '@/api/client'
+import { errorMessage } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { Grid } from '@/components/ui/Layout'
@@ -20,6 +21,7 @@ import { SenderHealthCard } from './SenderHealthCard'
 import { HealthSkeleton, NextSkeleton, ProvidersSkeleton, CardSkeleton } from './Skeletons'
 import { overviewSubtitle, refreshSentences } from './words'
 import { m } from './messages'
+import { overviewPerms, overviewQueries } from './queries'
 import { TransactionalOverviewCard } from '@/features/transactional/OverviewCard'
 import { EarnOverviewCard } from '@/features/earn/revenue/EarnCard'
 import { SmsOverviewCard } from '@/features/sms/OverviewCard'
@@ -85,13 +87,19 @@ export function OverviewPage() {
   const { slug } = useWorkspace()
   const now = useNow(60_000)
   const path = { workspace: slug }
-  const can = { health: useCan('deliverability:view'), campaigns: useCan('campaigns:view'), providers: useCan('providers:view'), audience: useCan('subscribers:view') }
+  const can = {
+    health: useCan(overviewPerms.health),
+    campaigns: useCan(overviewPerms.next),
+    providers: useCan(overviewPerms.providers),
+    audience: useCan(overviewPerms.audience),
+  }
+  const q = overviewQueries(slug)
   const opts = (enabled: boolean) => ({ enabled, refetchInterval: 60_000 })
-  const health = $api.useQuery('get', '/api/v1/workspaces/{workspace}/overview/sender-health', { params: { path } }, opts(can.health))
-  const next = $api.useQuery('get', '/api/v1/workspaces/{workspace}/overview/next-campaign', { params: { path } }, opts(can.campaigns))
-  const providers = $api.useQuery('get', '/api/v1/workspaces/{workspace}/overview/providers', { params: { path } }, opts(can.providers))
-  const audience = $api.useQuery('get', '/api/v1/workspaces/{workspace}/overview/audience', { params: { path, query: { days: 30 } } }, opts(can.audience))
-  const recent = $api.useQuery('get', '/api/v1/workspaces/{workspace}/overview/recent-campaigns', { params: { path } }, opts(can.campaigns))
+  const health = useQuery({ ...q.health, ...opts(can.health) })
+  const next = useQuery({ ...q.next, ...opts(can.campaigns) })
+  const providers = useQuery({ ...q.providers, ...opts(can.providers) })
+  const audience = useQuery({ ...q.audience, ...opts(can.audience) })
+  const recent = useQuery({ ...q.recent, ...opts(can.campaigns) })
   const editReason = usePermissionReason('campaigns:edit')
 
   const firstRun = providers.data?.connected === 0

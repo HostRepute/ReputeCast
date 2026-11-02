@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { CampaignsPage } from '@/features/campaigns/CampaignsPage'
+import { campaignsFirst } from '@/features/campaigns/queries'
+import { prefetchFirst } from '@/lib/prefetch'
 
 const search = z.object({
   status: z.enum(['all', 'drafts', 'scheduled', 'sending', 'sent', 'recurring', 'paid', 'archived', 'deleted']).optional().catch(undefined),
@@ -18,6 +20,8 @@ const search = z.object({
 
 export const Route = createFileRoute('/w/$workspace/_app/campaigns/')({
   validateSearch: search,
+  // The screen's first data loads alongside its code, not after it.
+  loader: ({ context, params, location }) => prefetchFirst(context.queryClient, params.workspace, campaignsFirst(params.workspace, location.search)),
   component: function CampaignsRoute() {
     return <CampaignsPage search={Route.useSearch()} />
   },

@@ -778,7 +778,9 @@ Checked at the end of M51:
   HTTP/2 on Chrome's "Slow 4G", found the screens loading other features' whole copy and the
   composer's code; without them, and with a screen's code loading during the session check,
   Contacts shows its heading at 6.4 s instead of 8.1 s, Campaigns at 5.7 s instead of 6.3 s and
-  the Overview at 5.9 s instead of 6.8 s. Layout shift is under 0.07 on every main screen at 390
+  the Overview at 5.9 s instead of 6.8 s. A third pass prefetches each main screen's first data from
+  its route while its code loads, and stops measuring the page in the middle of React's work: the
+  largest paint comes 0.4–0.7 s sooner again (Overview 6.2 s, Campaigns 5.9 s, Contacts 7.4 s). Layout shift is under 0.07 on every main screen at 390
   and 1440 px (it was up to 0.91): counts keep their room while loading, and screens whose parts
   arrive one by one keep their skeleton until they have. Public pages: one request of 3–5 KB,
   painted in under 0.55 s. The nginx example in `docs/deploy/reverse-proxy.md` now turns HTTP/2 on:

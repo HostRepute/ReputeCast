@@ -1,4 +1,4 @@
-import { $api } from '@/api/client'
+import { useQuery } from '@tanstack/react-query'
 import { NavTabs } from '@/components/ui/Tabs'
 import { m as scoring } from '@/features/scoring/messages'
 import { useT } from '@/i18n'
@@ -6,11 +6,12 @@ import { count } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { m as lf } from './listsfields.messages'
 import { m } from './messages'
+import { audienceSummaryQuery } from './queries'
 
 /** The audience summary behind the tabs and the empty state. */
 export function useAudienceSummary() {
   const { slug } = useWorkspace()
-  return $api.useQuery('get', '/api/v1/workspaces/{workspace}/audience', { params: { path: { workspace: slug } } })
+  return useQuery(audienceSummaryQuery(slug))
 }
 
 /**
