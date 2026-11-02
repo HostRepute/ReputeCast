@@ -2,6 +2,7 @@ package transactional
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -58,5 +59,50 @@ func TestTakeTokensSharedAcrossNodes(t *testing.T) {
 	// Idle buckets go after an hour.
 	if n, err := a.Q.TxnRateBucketsPurge(ctx, now.Add(2*time.Hour)); err != nil || n != 1 {
 		t.Fatalf("purge: %d %v", n, err)
+	}
+}
+
+// TestTakeTokensConcurrently: senders that take at the same moment get
+// exactly the bucket's tokens between them, neither more nor fewer, with
+// each take a single statement (review 2026-11 OP-13).
+func TestTakeTokensConcurrently(t *testing.T) {
+	pool := testdb.New(t)
+	ctx := context.Background()
+	s := &Service{Pool: pool, Q: store.New(pool)}
+	key, now := uuid.New(), time.Date(2026, 11, 2, 10, 0, 0, 0, time.UTC)
+	const rate, senders = 50, 200
+	var mu sync.Mutex
+	took, refused := 0, 0
+	var wg sync.WaitGroup
+	for range senders {
+		wg.Go(func() {
+			ok, wait, err := s.takeTokens(ctx, key, rate, 1, now)
+			mu.Lock()
+			defer mu.Unlock()
+			switch {
+			case err != nil:
+				t.Error(err)
+			case ok:
+				took++
+			case wait != time.Second/rate:
+				t.Errorf("an empty bucket waits a fiftieth of a second, not %s", wait)
+			default:
+				refused++
+			}
+		})
+	}
+	wg.Wait()
+	if took != rate || refused != senders-rate {
+		t.Fatalf("%d took and %d were refused; want %d and %d", took, refused, rate, senders-rate)
+	}
+	// Half a second later half the bucket is back.
+	n := 0
+	for range rate {
+		if ok, _, _ := s.takeTokens(ctx, key, rate, 1, now.Add(500*time.Millisecond)); ok {
+			n++
+		}
+	}
+	if n != rate/2 {
+		t.Fatalf("half a second refilled %d tokens, want %d", n, rate/2)
 	}
 }

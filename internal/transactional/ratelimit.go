@@ -2,6 +2,7 @@ package transactional
 
 import (
 	"context"
+	"errors"
 	"math"
 	"time"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -19,39 +19,51 @@ import (
 // holds a second's worth; a batch larger than that waits for a full one.
 
 // takeTokens takes n requests' worth from the key's bucket. When it can't,
-// it returns how long until it can.
+// it returns how long until it can. A take is one statement that commits
+// without waiting for its WAL flush, so a key's senders don't queue behind
+// each other's round trips and commits (review 2026-11 OP-13: the take
+// used to hold the row's lock for four round trips and a WAL flush, so a
+// key's concurrent sends went through it one at a time).
 func (s *Service) takeTokens(ctx context.Context, key uuid.UUID, perSecond, n int, now time.Time) (bool, time.Duration, error) {
 	if perSecond <= 0 {
 		perSecond = 50
 	}
-	if n > perSecond {
-		n = perSecond
-	}
-	rate, need := float64(perSecond), float64(n)
-	var ok bool
-	var wait time.Duration
-	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		b, err := q.TxnRateBucketLock(ctx, store.TxnRateBucketLockParams{BucketKey: key, Burst: rate, Now: now})
+	rate, need := float64(perSecond), float64(min(n, perSecond))
+	wait := time.Second / time.Duration(perSecond)
+	// A take races only a node that creates the bucket or empties it
+	// between the two reads below; three goes settle it.
+	for range 3 {
+		_, err := s.Q.TxnRateBucketTake(ctx, store.TxnRateBucketTakeParams{BucketKey: key, Rate: rate, Need: need, Now: now})
+		if err == nil {
+			return true, 0, nil
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return false, 0, err
+		}
+		b, err := s.Q.TxnRateBucketGet(ctx, key)
+		if errors.Is(err, pgx.ErrNoRows) {
+			// The key's first take: its bucket starts full.
+			created, err := s.Q.TxnRateBucketCreate(ctx, store.TxnRateBucketCreateParams{BucketKey: key, Tokens: rate - need, Now: now})
+			if err != nil {
+				return false, 0, err
+			}
+			if created == 1 {
+				return true, 0, nil
+			}
+			continue
+		}
 		if err != nil {
-			return err
+			return false, 0, err
 		}
-		// Refill by the time since the last take; a node whose clock is
-		// behind the last taker's adds nothing.
-		at, tokens := b.RefilledAt, b.Tokens
-		if now.After(at) {
-			tokens += now.Sub(at).Seconds() * rate
-			at = now
+		tokens := b.Tokens
+		if now.After(b.RefilledAt) {
+			tokens += now.Sub(b.RefilledAt).Seconds() * rate
 		}
-		tokens = math.Min(tokens, rate)
-		if tokens >= need {
-			ok, tokens = true, tokens-need
-		} else {
-			wait = time.Duration((need - tokens) / rate * float64(time.Second))
+		if tokens = math.Min(tokens, rate); tokens < need {
+			return false, time.Duration((need - tokens) / rate * float64(time.Second)), nil
 		}
-		return q.TxnRateBucketSet(ctx, store.TxnRateBucketSetParams{BucketKey: key, Tokens: tokens, RefilledAt: at})
-	})
-	return ok, wait, err
+	}
+	return false, wait, nil
 }
 
 func retrySeconds(d time.Duration) int { return max(1, int(math.Ceil(d.Seconds()))) }

@@ -4668,10 +4668,19 @@ type Querier interface {
 	// called in the period, test-mode keys included ("from 2 keys and the SMTP
 	// relay").
 	TxnOverviewStats(ctx context.Context, arg TxnOverviewStatsParams) (TxnOverviewStatsRow, error)
-	// A key's send-rate bucket, created full and locked until the transaction
-	// ends, so every web node takes from the same tokens (review 2026-11 TX-4).
-	TxnRateBucketLock(ctx context.Context, arg TxnRateBucketLockParams) (TxnRateBucketLockRow, error)
-	TxnRateBucketSet(ctx context.Context, arg TxnRateBucketSetParams) error
+	// A key's first take: its bucket starts full, less what the take needs.
+	TxnRateBucketCreate(ctx context.Context, arg TxnRateBucketCreateParams) (int64, error)
+	TxnRateBucketGet(ctx context.Context, bucketKey uuid.UUID) (TxnRateBucketGetRow, error)
+	// Takes @need tokens from a key's send-rate bucket, shared by every web node
+	// (review 2026-11 TX-4), when it holds them: refilled at @rate a second since
+	// the last take (a clock behind the last taker's adds nothing) and capped at
+	// a second's worth. One statement, so concurrent senders queue on the row
+	// only while it runs, never across a client round trip; a refused take
+	// writes nothing. The take commits without waiting for its WAL flush
+	// (set_config is local to this statement's transaction): a crash can only
+	// lose recent takes, which leaves the bucket a little fuller. No row: the
+	// bucket doesn't hold @need tokens, or the key has none yet.
+	TxnRateBucketTake(ctx context.Context, arg TxnRateBucketTakeParams) (TxnRateBucketTakeRow, error)
 	// Buckets idle for an hour are full again: they go.
 	TxnRateBucketsPurge(ctx context.Context, before time.Time) (int64, error)
 	// What the template's calls of a period sent: per call, the variable

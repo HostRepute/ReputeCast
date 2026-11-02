@@ -2478,46 +2478,85 @@ func (q *Queries) TxnOverviewStats(ctx context.Context, arg TxnOverviewStatsPara
 	return i, err
 }
 
-const txnRateBucketLock = `-- name: TxnRateBucketLock :one
-INSERT INTO transactional_rate_buckets AS b (bucket_key, tokens, refilled_at)
+const txnRateBucketCreate = `-- name: TxnRateBucketCreate :execrows
+INSERT INTO transactional_rate_buckets (bucket_key, tokens, refilled_at)
 VALUES ($1, $2::float8, $3::timestamptz)
-ON CONFLICT (bucket_key) DO UPDATE SET bucket_key = EXCLUDED.bucket_key
-RETURNING b.tokens, b.refilled_at
+ON CONFLICT (bucket_key) DO NOTHING
 `
 
-type TxnRateBucketLockParams struct {
+type TxnRateBucketCreateParams struct {
 	BucketKey uuid.UUID `json:"bucketKey"`
-	Burst     float64   `json:"burst"`
+	Tokens    float64   `json:"tokens"`
 	Now       time.Time `json:"now"`
 }
 
-type TxnRateBucketLockRow struct {
+// A key's first take: its bucket starts full, less what the take needs.
+func (q *Queries) TxnRateBucketCreate(ctx context.Context, arg TxnRateBucketCreateParams) (int64, error) {
+	result, err := q.db.Exec(ctx, txnRateBucketCreate, arg.BucketKey, arg.Tokens, arg.Now)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const txnRateBucketGet = `-- name: TxnRateBucketGet :one
+SELECT tokens, refilled_at FROM transactional_rate_buckets WHERE bucket_key = $1
+`
+
+type TxnRateBucketGetRow struct {
 	Tokens     float64   `json:"tokens"`
 	RefilledAt time.Time `json:"refilledAt"`
 }
 
-// A key's send-rate bucket, created full and locked until the transaction
-// ends, so every web node takes from the same tokens (review 2026-11 TX-4).
-func (q *Queries) TxnRateBucketLock(ctx context.Context, arg TxnRateBucketLockParams) (TxnRateBucketLockRow, error) {
-	row := q.db.QueryRow(ctx, txnRateBucketLock, arg.BucketKey, arg.Burst, arg.Now)
-	var i TxnRateBucketLockRow
+func (q *Queries) TxnRateBucketGet(ctx context.Context, bucketKey uuid.UUID) (TxnRateBucketGetRow, error) {
+	row := q.db.QueryRow(ctx, txnRateBucketGet, bucketKey)
+	var i TxnRateBucketGetRow
 	err := row.Scan(&i.Tokens, &i.RefilledAt)
 	return i, err
 }
 
-const txnRateBucketSet = `-- name: TxnRateBucketSet :exec
-UPDATE transactional_rate_buckets SET tokens = $1::float8, refilled_at = $2::timestamptz WHERE bucket_key = $3
+const txnRateBucketTake = `-- name: TxnRateBucketTake :one
+WITH p AS (SELECT $2::float8 AS rate, $3::float8 AS need, $4::timestamptz AS at)
+UPDATE transactional_rate_buckets AS b
+SET tokens = least(p.rate, b.tokens + greatest(0, date_part('epoch', p.at - b.refilled_at)) * p.rate) - p.need,
+    refilled_at = greatest(b.refilled_at, p.at)
+FROM p
+WHERE b.bucket_key = $1
+  AND least(p.rate, b.tokens + greatest(0, date_part('epoch', p.at - b.refilled_at)) * p.rate) >= p.need
+RETURNING b.tokens, set_config('synchronous_commit', 'off', true) AS commit_mode
 `
 
-type TxnRateBucketSetParams struct {
-	Tokens     float64   `json:"tokens"`
-	RefilledAt time.Time `json:"refilledAt"`
-	BucketKey  uuid.UUID `json:"bucketKey"`
+type TxnRateBucketTakeParams struct {
+	BucketKey uuid.UUID `json:"bucketKey"`
+	Rate      float64   `json:"rate"`
+	Need      float64   `json:"need"`
+	Now       time.Time `json:"now"`
 }
 
-func (q *Queries) TxnRateBucketSet(ctx context.Context, arg TxnRateBucketSetParams) error {
-	_, err := q.db.Exec(ctx, txnRateBucketSet, arg.Tokens, arg.RefilledAt, arg.BucketKey)
-	return err
+type TxnRateBucketTakeRow struct {
+	Tokens     float64 `json:"tokens"`
+	CommitMode string  `json:"commitMode"`
+}
+
+// Takes @need tokens from a key's send-rate bucket, shared by every web node
+// (review 2026-11 TX-4), when it holds them: refilled at @rate a second since
+// the last take (a clock behind the last taker's adds nothing) and capped at
+// a second's worth. One statement, so concurrent senders queue on the row
+// only while it runs, never across a client round trip; a refused take
+// writes nothing. The take commits without waiting for its WAL flush
+// (set_config is local to this statement's transaction): a crash can only
+// lose recent takes, which leaves the bucket a little fuller. No row: the
+// bucket doesn't hold @need tokens, or the key has none yet.
+func (q *Queries) TxnRateBucketTake(ctx context.Context, arg TxnRateBucketTakeParams) (TxnRateBucketTakeRow, error) {
+	row := q.db.QueryRow(ctx, txnRateBucketTake,
+		arg.BucketKey,
+		arg.Rate,
+		arg.Need,
+		arg.Now,
+	)
+	var i TxnRateBucketTakeRow
+	err := row.Scan(&i.Tokens, &i.CommitMode)
+	return i, err
 }
 
 const txnRateBucketsPurge = `-- name: TxnRateBucketsPurge :execrows

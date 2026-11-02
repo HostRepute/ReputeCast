@@ -860,16 +860,33 @@ UPDATE messages SET next_attempt_at = @send_at WHERE id = @id AND status = 'queu
 -- name: TxnRescheduleSendAt :exec
 UPDATE transactional_messages SET send_at = @send_at WHERE message_id = @id;
 
--- name: TxnRateBucketLock :one
--- A key's send-rate bucket, created full and locked until the transaction
--- ends, so every web node takes from the same tokens (review 2026-11 TX-4).
-INSERT INTO transactional_rate_buckets AS b (bucket_key, tokens, refilled_at)
-VALUES (@bucket_key, @burst::float8, @now::timestamptz)
-ON CONFLICT (bucket_key) DO UPDATE SET bucket_key = EXCLUDED.bucket_key
-RETURNING b.tokens, b.refilled_at;
+-- name: TxnRateBucketTake :one
+-- Takes @need tokens from a key's send-rate bucket, shared by every web node
+-- (review 2026-11 TX-4), when it holds them: refilled at @rate a second since
+-- the last take (a clock behind the last taker's adds nothing) and capped at
+-- a second's worth. One statement, so concurrent senders queue on the row
+-- only while it runs, never across a client round trip; a refused take
+-- writes nothing. The take commits without waiting for its WAL flush
+-- (set_config is local to this statement's transaction): a crash can only
+-- lose recent takes, which leaves the bucket a little fuller. No row: the
+-- bucket doesn't hold @need tokens, or the key has none yet.
+WITH p AS (SELECT @rate::float8 AS rate, @need::float8 AS need, @now::timestamptz AS at)
+UPDATE transactional_rate_buckets AS b
+SET tokens = least(p.rate, b.tokens + greatest(0, date_part('epoch', p.at - b.refilled_at)) * p.rate) - p.need,
+    refilled_at = greatest(b.refilled_at, p.at)
+FROM p
+WHERE b.bucket_key = @bucket_key
+  AND least(p.rate, b.tokens + greatest(0, date_part('epoch', p.at - b.refilled_at)) * p.rate) >= p.need
+RETURNING b.tokens, set_config('synchronous_commit', 'off', true) AS commit_mode;
 
--- name: TxnRateBucketSet :exec
-UPDATE transactional_rate_buckets SET tokens = @tokens::float8, refilled_at = @refilled_at::timestamptz WHERE bucket_key = @bucket_key;
+-- name: TxnRateBucketGet :one
+SELECT tokens, refilled_at FROM transactional_rate_buckets WHERE bucket_key = @bucket_key;
+
+-- name: TxnRateBucketCreate :execrows
+-- A key's first take: its bucket starts full, less what the take needs.
+INSERT INTO transactional_rate_buckets (bucket_key, tokens, refilled_at)
+VALUES (@bucket_key, @tokens::float8, @now::timestamptz)
+ON CONFLICT (bucket_key) DO NOTHING;
 
 -- name: TxnRateBucketsPurge :execrows
 -- Buckets idle for an hour are full again: they go.
