@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/scoring"
 	"github.com/hostrepute/reputecast/internal/segments"
@@ -91,10 +92,11 @@ func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f Conta
 	}
 	out := ContactList{Items: []ContactListItem{}, Page: pg.Page, PageSize: pg.PageSize}
 	counted := false
-	if strings.TrimSpace(f.Q) != "" && !pg.Exact {
+	if q := strings.ToLower(strings.TrimSpace(f.Q)); q != "" && !emailaddr.Valid(q) && !pg.Exact {
 		// A search reads its indexes once: the matches up to the cap give
 		// the count, and when they are all there the page is read from them
-		// by id, not by searching again (review 2026-11 OP-13).
+		// by id, not by searching again (review 2026-11 OP-13). A whole
+		// address has one match at most, from the unique index.
 		total, ids, capped, err := s.searchMatches(ctx, fs)
 		if err != nil {
 			return out, err
