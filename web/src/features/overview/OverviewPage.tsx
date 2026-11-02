@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 import { $api, errorMessage } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { Grid } from '@/components/ui/Layout'
-import { useNow } from '@/lib/hooks'
+import { useFirstLoadSettled, useNow } from '@/lib/hooks'
 import { clock } from '@/lib/format'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
 import { useT } from '@/i18n'
@@ -96,6 +96,11 @@ export function OverviewPage() {
 
   const firstRun = providers.data?.connected === 0
   const providersLoading = providers.isPending && can.providers
+  // Sender health, the next send and the providers come back together. Until
+  // all three have, one skeleton stands for the top of the page, so a card or
+  // a provider alert that comes back first doesn't push the rest down.
+  const topPending = (can.health && health.isPending) || (can.campaigns && next.isPending) || providersLoading
+  const settled = useFirstLoadSettled()
   const subtitle = overviewSubtitle(now, health.data?.domain, health.data?.state === 'pending' || (firstRun && !health.data?.domain))
   const stale = providers.data?.providers.find((p) => p.refresh)
   const alert = stale ? refreshSentences(stale, clock) : null
@@ -128,80 +133,92 @@ export function OverviewPage() {
         <FirstRun audience={audience.data} />
       ) : (
         <>
-          {alert && stale ? (
-            <StateAlert
-              title={alert.title}
-              actions={
-                <>
-                  <Button size="sm" onClick={() => void providers.refetch()}>
-                    {t(m.retryNow)}
-                  </Button>
-                  <ButtonLink size="sm" to="/w/$workspace/providers/events" params={path} search={{ provider: stale.card.id }}>
-                    {t(m.viewEventLog)}
-                  </ButtonLink>
-                  {stale.statusUrl ? (
-                    <ButtonAnchor size="sm" href={stale.statusUrl}>
-                      {stale.statusLabel}
-                    </ButtonAnchor>
-                  ) : null}
-                </>
-              }
-            >
-              {alert.body}
-            </StateAlert>
-          ) : null}
-          <Grid min={380} gap={20}>
-            <Section q={health} perm="deliverability:view" card="health" title={t(m.senderHealth)} skeleton={<HealthSkeleton />}>
-              {(h) => <SenderHealthCard h={h} />}
+          {topPending ? (
+            <Fragment key="top-loading">
+              <Grid min={380} gap={20}>
+                {can.health ? <HealthSkeleton /> : null}
+                {can.campaigns ? <NextSkeleton /> : null}
+              </Grid>
+              {can.providers ? (
+                // While the cards load, only their skeletons show (OverviewStates).
+                <section className="flex flex-col gap-3" aria-label={t(m.sendingProviders)}>
+                  <ProvidersSkeleton />
+                  <p className="k m-0">{t(m.checking)}</p>
+                </section>
+              ) : null}
+            </Fragment>
+          ) : (
+            <Fragment key="top">
+              {alert && stale ? (
+                <StateAlert
+                  title={alert.title}
+                  actions={
+                    <>
+                      <Button size="sm" onClick={() => void providers.refetch()}>
+                        {t(m.retryNow)}
+                      </Button>
+                      <ButtonLink size="sm" to="/w/$workspace/providers/events" params={path} search={{ provider: stale.card.id }}>
+                        {t(m.viewEventLog)}
+                      </ButtonLink>
+                      {stale.statusUrl ? (
+                        <ButtonAnchor size="sm" href={stale.statusUrl}>
+                          {stale.statusLabel}
+                        </ButtonAnchor>
+                      ) : null}
+                    </>
+                  }
+                >
+                  {alert.body}
+                </StateAlert>
+              ) : null}
+              <Grid min={380} gap={20}>
+                <Section q={health} perm="deliverability:view" card="health" title={t(m.senderHealth)} skeleton={<HealthSkeleton />}>
+                  {(h) => <SenderHealthCard h={h} />}
+                </Section>
+                <Section q={next} perm="campaigns:view" card="next" title={t(m.nextCampaign)} skeleton={<NextSkeleton />}>
+                  {(n) => <NextCampaignCard n={n} />}
+                </Section>
+              </Grid>
+              <section className="flex flex-col gap-3" aria-labelledby="ov-providers-h">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="h2" id="ov-providers-h">
+                    {t(m.sendingProviders)}
+                  </h2>
+                  <Link to="/w/$workspace/providers" params={path} className="text-[13px] font-medium">
+                    {t(m.manageProviders)}
+                  </Link>
+                </div>
+                <Section q={providers} perm="providers:view" card="providers" title={t(m.sendingProviders)} skeleton={<ProvidersSkeleton />}>
+                  {(p) => (
+                    <Grid min={340} gap={16}>
+                      {p.providers.map((c) => (
+                        <ProviderOverviewCard key={c.card.id} p={c} monthStart={p.monthStart} />
+                      ))}
+                    </Grid>
+                  )}
+                </Section>
+                {/* Phase 8: the SMS providers with the month's spend against the budget. */}
+                {can.providers ? <SmsOverviewCard /> : null}
+              </section>
+            </Fragment>
+          )}
+          {/* The cards below each come back on their own: they stay hidden but
+              loading until the first data is in, then show at once. */}
+          <div className={settled ? 'contents' : 'hidden'}>
+            <TransactionalOverviewCard />
+            <EarnOverviewCard />
+            <Grid min={380} gap={20}>
+              <Section q={audience} perm="subscribers:view" card="growth" title={t(m.subscriberGrowth)} skeleton={<CardSkeleton lines={5} />}>
+                {(a) => <GrowthCard a={a} />}
+              </Section>
+              <Section q={audience} perm="subscribers:view" card="tiers" title={t(m.engagementTiers)} skeleton={<CardSkeleton lines={5} />}>
+                {(a) => <TiersCard a={a} />}
+              </Section>
+            </Grid>
+            <Section q={recent} perm="campaigns:view" card="recent" title={t(m.recentCampaigns)} skeleton={<CardSkeleton lines={4} />}>
+              {(r) => <RecentCampaigns items={r.items} />}
             </Section>
-            <Section q={next} perm="campaigns:view" card="next" title={t(m.nextCampaign)} skeleton={<NextSkeleton />}>
-              {(n) => <NextCampaignCard n={n} />}
-            </Section>
-          </Grid>
-          <section
-            className="flex flex-col gap-3"
-            aria-labelledby={providersLoading ? undefined : 'ov-providers-h'}
-            aria-label={providersLoading ? t(m.sendingProviders) : undefined}
-          >
-            {/* While the cards load, only their skeletons show (OverviewStates). */}
-            {providersLoading ? null : (
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="h2" id="ov-providers-h">
-                  {t(m.sendingProviders)}
-                </h2>
-                <Link to="/w/$workspace/providers" params={path} className="text-[13px] font-medium">
-                  {t(m.manageProviders)}
-                </Link>
-              </div>
-            )}
-            <Section q={providers} perm="providers:view" card="providers" title={t(m.sendingProviders)} skeleton={<ProvidersSkeleton />}>
-              {(p) => (
-                <Grid min={340} gap={16}>
-                  {p.providers.map((c) => (
-                    <ProviderOverviewCard key={c.card.id} p={c} monthStart={p.monthStart} />
-                  ))}
-                </Grid>
-              )}
-            </Section>
-            {/* Phase 8: the SMS providers with the month's spend against the budget. */}
-            {can.providers ? <SmsOverviewCard /> : null}
-            {health.isPending && providers.isPending ? (
-              <p className="k m-0">{t(m.checking)}</p>
-            ) : null}
-          </section>
-          <TransactionalOverviewCard />
-          <EarnOverviewCard />
-          <Grid min={380} gap={20}>
-            <Section q={audience} perm="subscribers:view" card="growth" title={t(m.subscriberGrowth)} skeleton={<CardSkeleton lines={5} />}>
-              {(a) => <GrowthCard a={a} />}
-            </Section>
-            <Section q={audience} perm="subscribers:view" card="tiers" title={t(m.engagementTiers)} skeleton={<CardSkeleton lines={5} />}>
-              {(a) => <TiersCard a={a} />}
-            </Section>
-          </Grid>
-          <Section q={recent} perm="campaigns:view" card="recent" title={t(m.recentCampaigns)} skeleton={<CardSkeleton lines={4} />}>
-            {(r) => <RecentCampaigns items={r.items} />}
-          </Section>
+          </div>
         </>
       )}
     </Page>

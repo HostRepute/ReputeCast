@@ -71,6 +71,7 @@ export function InboxPage({ search }: { search: InboxSearch }) {
       filters={
         <FilterTabs
           label={t(m.filterLabel)}
+          pending={counts === undefined}
           className="ml-3 max-md:ml-0"
           value={status}
           onChange={(next) => set({ status: next === 'all' ? undefined : next })}

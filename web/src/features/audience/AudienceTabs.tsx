@@ -25,13 +25,15 @@ export function AudienceTabs() {
   const summary = useAudienceSummary()
   const s = summary.data
   const show = s && s.contacts > 0
+  // While the summary loads, the three tabs that show a count keep room for it.
+  const reserve = (ch: number) => (summary.isPending ? ch : undefined)
   return (
     <NavTabs
       label={t(m.sections)}
       className="ml-3 max-md:ml-0"
       tabs={[
-        { label: show ? t(m.tabContactsCount, { count: count(s.contacts) }) : t(m.tabContacts), to: '/w/$workspace/audience', params: { workspace: slug }, exact: true },
-        { label: show ? t(m.tabSegmentsCount, { count: count(s.segments) }) : t(m.tabSegments), to: '/w/$workspace/audience/segments', params: { workspace: slug } },
+        { label: show ? t(m.tabContactsCount, { count: count(s.contacts) }) : t(m.tabContacts), to: '/w/$workspace/audience', params: { workspace: slug }, exact: true, reserve: reserve(6) },
+        { label: show ? t(m.tabSegmentsCount, { count: count(s.segments) }) : t(m.tabSegments), to: '/w/$workspace/audience/segments', params: { workspace: slug }, reserve: reserve(2.5) },
         { label: t(lf.tab), to: '/w/$workspace/audience/lists', params: { workspace: slug } },
         { label: t(m.tabHealth), to: '/w/$workspace/audience/health', params: { workspace: slug } },
         // Scoring and Growth (X13).
@@ -41,6 +43,7 @@ export function AudienceTabs() {
           label: show ? t(m.tabSuppressionsCount, { count: count(s.suppressions) }) : t(m.tabSuppressions),
           to: '/w/$workspace/audience/suppressions',
           params: { workspace: slug },
+          reserve: reserve(5),
         },
       ]}
     />

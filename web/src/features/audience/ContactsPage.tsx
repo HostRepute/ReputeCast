@@ -20,6 +20,7 @@ import { ColumnChooser, columnLabels, defaultColumns, fieldKeys, parseColumns, S
 import { ViewChips } from './ViewChips'
 import { m as lfm } from './listsfields.messages'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
+import { useFirstLoadSettled } from '@/lib/hooks'
 import { AddressCheckFilter } from '@/features/verification/AddressCheck'
 import { AudienceTabs, useAudienceSummary } from './AudienceTabs'
 import { AddContactDialog, BulkDialog, BulkResultPanel, EraseDialog, SaveViewDialog, type BulkKind, type BulkSelection } from './ContactDialogs'
@@ -176,6 +177,7 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
   const tr = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
+  const settled = useFirstLoadSettled()
   const filter = filterOf(search)
   const page = search.page ?? 1
   const size = search.size ?? 10
@@ -281,111 +283,117 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
         <AudienceEmpty lists={summary.data?.lists ?? []} />
       ) : (
         <>
-          <ViewChips
-            views={views.data}
-            active={views.data?.items.find((v) => Object.keys(filter).length > 0 && sameFilter(filter, v.filters) && (v.columns.join(',') || undefined) === search.cols)?.id}
-            filter={filter}
-            columns={search.cols}
-            onPick={(f, cols) => go({ ...(f as ContactsSearch), cols, size: search.size })}
-            onSave={() => setSaving(true)}
-          />
-          {/* The website's members (features/website), while it's on. */}
-          <MembersChips
-            signedIn={Boolean(search.signedIn)}
-            onSignedIn={(on) => setFilter({ signedIn: on || undefined })}
-            paid={search.paid === 'with_access' && !search.paidTier}
-            onPaid={(on) => setFilter({ paid: on ? 'with_access' : undefined, paidTier: undefined })}
-          />
-          {/* Push subscribed and WhatsApp consent (X22). */}
-          <ChannelChips
-            push={Boolean(search.pushSubscribed)}
-            onPush={(on) => setFilter({ pushSubscribed: on || undefined })}
-            whatsapp={Boolean(search.whatsAppConsent)}
-            onWhatsApp={(on) => setFilter({ whatsAppConsent: on || undefined })}
-          />
-          <Filters
-            search={search}
-            total={data?.total}
-            capped={data?.totalCapped ?? false}
-            lists={summary.data?.lists ?? []}
-            paidTiers={summary.data?.paidTiers ?? []}
-            onChange={setFilter}
-            tools={
-              <>
-                <ColumnChooser columns={columns} onChange={(c) => go({ ...search, cols: c.join(',') })} onReset={() => go({ ...search, cols: undefined })} />
-                {Object.keys(filter).length > 0 ? (
-                  <Button disabledReason={exportReason} onClick={() => void startExport(slug, { allMatching: true, filter }, total)}>
-                    {tr(m.exportView)}
-                  </Button>
-                ) : null}
-              </>
-            }
-          />
-          <ExportsReady />
-          {result ? <BulkResultPanel result={result} onDismiss={() => setResult(null)} /> : null}
-          {ids.length > 0 || all ? (
-            <BulkBar
-              n={n}
-              all={all}
-              counting={all && (!exact || list.isFetching)}
-              onAction={(k) => (k === 'erase' ? setErasing(true) : k === 'verify' ? setVerifying(true) : setBulk(k))}
-              onExport={() => void (all ? startExport(slug, sel, n) : exportCSV(slug, { ids }, ids.length))}
-              onClear={() => setSelection({})}
+          {/* The filters grow a row as each feature's data arrives: until the
+              first data is in, they stay mounted but hidden behind the table's
+              skeleton, and then show at once, so nothing below jumps. */}
+          {settled ? null : <ContactsSkeleton total={summary.data?.contacts} />}
+          <div className={settled ? 'contents' : 'hidden'}>
+            <ViewChips
+              views={views.data}
+              active={views.data?.items.find((v) => Object.keys(filter).length > 0 && sameFilter(filter, v.filters) && (v.columns.join(',') || undefined) === search.cols)?.id}
+              filter={filter}
+              columns={search.cols}
+              onPick={(f, cols) => go({ ...(f as ContactsSearch), cols, size: search.size })}
+              onSave={() => setSaving(true)}
             />
-          ) : null}
-          {pageFull && more ? (
-            <div className="banner" role="status">
-              {all ? tr(m.allMatchingSelected, { count: countLine(total, data.totalCapped) }) : tr(m.pageSelected, { n: ids.length, count: count(ids.length) })}{' '}
-              <button
-                type="button"
-                className="font-semibold text-accent underline underline-offset-2"
-                onClick={() => {
-                  setAllFor(all ? undefined : filterKey)
-                  // Acting on everything needs the exact number (the erase types it).
-                  if (!all) setExactFor(filterKey)
-                }}
-              >
-                {all ? tr(m.selectPageOnly) : tr(m.selectAllMatching, { count: countLine(total, data.totalCapped) })}
-              </button>
-            </div>
-          ) : null}
-          {stale ? (
-            <Note tone="warn">
-              {tr(m.staleCursor)}{' '}
-              <button type="button" className="font-semibold text-accent underline underline-offset-2" onClick={() => go({ ...search, cursor: undefined, page: undefined })}>
-                {tr(m.firstPage)}
-              </button>
-            </Note>
-          ) : list.isError ? (
-            <ErrorPanel title={tr(m.loadFailed)} actions={<Button onClick={() => list.refetch()}>{tr(common.retry)}</Button>}>
-              {errorMessage(list.error)} {tr(m.nothingChanged)}
-            </ErrorPanel>
-          ) : list.isPending ? (
-            <ContactsSkeleton total={summary.data?.contacts} />
-          ) : (
-            <ContactsTable
-              data={list.data}
-              selection={selection}
-              onSelection={setSelection}
-              page={page}
-              size={size}
-              columns={columns}
-              filtered={Object.keys(filter).length > 0}
-              sort={sort}
-              counting={exact && list.isFetching}
-              onCountAll={() => setExactFor(filterKey)}
-              onSort={(s) => go({ ...search, sort: s === 'activity' ? undefined : s, page: undefined, cursor: undefined })}
-              onPage={(next) =>
-                next === 'next'
-                  ? go({ ...search, cursor: list.data.nextCursor, page: page + 1 })
-                  : page <= 2
-                    ? go({ ...search, cursor: undefined, page: undefined })
-                    : go({ ...search, cursor: list.data.prevCursor, page: page - 1 })
+            {/* The website's members (features/website), while it's on. */}
+            <MembersChips
+              signedIn={Boolean(search.signedIn)}
+              onSignedIn={(on) => setFilter({ signedIn: on || undefined })}
+              paid={search.paid === 'with_access' && !search.paidTier}
+              onPaid={(on) => setFilter({ paid: on ? 'with_access' : undefined, paidTier: undefined })}
+            />
+            {/* Push subscribed and WhatsApp consent (X22). */}
+            <ChannelChips
+              push={Boolean(search.pushSubscribed)}
+              onPush={(on) => setFilter({ pushSubscribed: on || undefined })}
+              whatsapp={Boolean(search.whatsAppConsent)}
+              onWhatsApp={(on) => setFilter({ whatsAppConsent: on || undefined })}
+            />
+            <Filters
+              search={search}
+              total={data?.total}
+              capped={data?.totalCapped ?? false}
+              lists={summary.data?.lists ?? []}
+              paidTiers={summary.data?.paidTiers ?? []}
+              onChange={setFilter}
+              tools={
+                <>
+                  <ColumnChooser columns={columns} onChange={(c) => go({ ...search, cols: c.join(',') })} onReset={() => go({ ...search, cols: undefined })} />
+                  {Object.keys(filter).length > 0 ? (
+                    <Button disabledReason={exportReason} onClick={() => void startExport(slug, { allMatching: true, filter }, total)}>
+                      {tr(m.exportView)}
+                    </Button>
+                  ) : null}
+                </>
               }
-              onSize={(s) => go({ ...search, size: s === 10 ? undefined : s, page: undefined, cursor: undefined })}
-              onClear={() => go({ size: search.size })}
             />
-          )}
+            <ExportsReady />
+            {result ? <BulkResultPanel result={result} onDismiss={() => setResult(null)} /> : null}
+            {ids.length > 0 || all ? (
+              <BulkBar
+                n={n}
+                all={all}
+                counting={all && (!exact || list.isFetching)}
+                onAction={(k) => (k === 'erase' ? setErasing(true) : k === 'verify' ? setVerifying(true) : setBulk(k))}
+                onExport={() => void (all ? startExport(slug, sel, n) : exportCSV(slug, { ids }, ids.length))}
+                onClear={() => setSelection({})}
+              />
+            ) : null}
+            {pageFull && more ? (
+              <div className="banner" role="status">
+                {all ? tr(m.allMatchingSelected, { count: countLine(total, data.totalCapped) }) : tr(m.pageSelected, { n: ids.length, count: count(ids.length) })}{' '}
+                <button
+                  type="button"
+                  className="font-semibold text-accent underline underline-offset-2"
+                  onClick={() => {
+                    setAllFor(all ? undefined : filterKey)
+                    // Acting on everything needs the exact number (the erase types it).
+                    if (!all) setExactFor(filterKey)
+                  }}
+                >
+                  {all ? tr(m.selectPageOnly) : tr(m.selectAllMatching, { count: countLine(total, data.totalCapped) })}
+                </button>
+              </div>
+            ) : null}
+            {stale ? (
+              <Note tone="warn">
+                {tr(m.staleCursor)}{' '}
+                <button type="button" className="font-semibold text-accent underline underline-offset-2" onClick={() => go({ ...search, cursor: undefined, page: undefined })}>
+                  {tr(m.firstPage)}
+                </button>
+              </Note>
+            ) : list.isError ? (
+              <ErrorPanel title={tr(m.loadFailed)} actions={<Button onClick={() => list.refetch()}>{tr(common.retry)}</Button>}>
+                {errorMessage(list.error)} {tr(m.nothingChanged)}
+              </ErrorPanel>
+            ) : list.isPending ? (
+              <ContactsSkeleton total={summary.data?.contacts} />
+            ) : (
+              <ContactsTable
+                data={list.data}
+                selection={selection}
+                onSelection={setSelection}
+                page={page}
+                size={size}
+                columns={columns}
+                filtered={Object.keys(filter).length > 0}
+                sort={sort}
+                counting={exact && list.isFetching}
+                onCountAll={() => setExactFor(filterKey)}
+                onSort={(s) => go({ ...search, sort: s === 'activity' ? undefined : s, page: undefined, cursor: undefined })}
+                onPage={(next) =>
+                  next === 'next'
+                    ? go({ ...search, cursor: list.data.nextCursor, page: page + 1 })
+                    : page <= 2
+                      ? go({ ...search, cursor: undefined, page: undefined })
+                      : go({ ...search, cursor: list.data.prevCursor, page: page - 1 })
+                }
+                onSize={(s) => go({ ...search, size: s === 10 ? undefined : s, page: undefined, cursor: undefined })}
+                onClear={() => go({ size: search.size })}
+              />
+            )}
+          </div>
         </>
       )}
       {adding ? <AddContactDialog onClose={() => setAdding(false)} lists={summary.data?.lists ?? []} /> : null}

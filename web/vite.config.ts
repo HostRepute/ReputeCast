@@ -41,6 +41,14 @@ function precompress(): Plugin {
   }
 }
 
+// Code-splitting groups (build.rolldownOptions below).
+const routesDir = /[\\/]src[\\/]routes[\\/]/
+const sharedDir = /[\\/]src[\\/](components|lib|i18n|api)[\\/]/
+function featureCopy(id: string) {
+  const m = /[\\/]src[\\/]features[\\/]([^\\/]+)[\\/](?:.*[\\/])?[^\\/]*messages(\.vi)?\.ts$/.exec(id)
+  return m ? `copy-${m[1]}${m[2] ?? ''}` : null
+}
+
 const LAYER_ORDER = '@layer properties, theme, base, components, utilities;'
 
 /**
@@ -102,6 +110,27 @@ export default defineConfig({
     emptyOutDir: true,
     assetsInlineLimit: 2048,
     chunkSizeWarningLimit: 1200,
+    rolldownOptions: {
+      output: {
+        // Left to itself, the bundler cut the app into about 990 files: a
+        // module that the startup code and a lazy page both use went into a
+        // chunk of its own, so the first load preloaded 145 scripts and a
+        // page some 200, which a phone's round trips make slow. These groups
+        // keep what always loads together in one file each (704 files; the
+        // first load 4 preloads and 315 KB instead of 388 KB).
+        codeSplitting: {
+          groups: [
+            // Every route's definition and search schema: the route tree
+            // imports them all at startup. A route's page (?tsr-split) stays lazy.
+            { name: 'routes', test: (id: string) => routesDir.test(id) && !id.includes('?tsr-split'), priority: 3 },
+            // Components, hooks, i18n and the API client every page shares.
+            { name: 'app', test: sharedDir, priority: 2 },
+            // A feature's copy in one file per language, not one per screen.
+            { name: (id: string) => featureCopy(id), priority: 1 },
+          ],
+        },
+      },
+    },
   },
   test: {
     environment: 'jsdom',

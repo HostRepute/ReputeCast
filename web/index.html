@@ -10,9 +10,24 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>ReputeCast</title>
+    <style>
+      /* Until the app shows its first screen (a main or a heading): the brand
+         on the app's ground (--ground, --ink), so the first paint isn't blank
+         while the scripts and the session load. Outside #root, which React
+         owns; only where :has() works, never in the way of a click, and gone
+         after 20 s whatever happens. */
+      .boot { display: none; }
+      @supports selector(body:has(main)) {
+        .boot { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; gap: 10px; background: #f3f4f6; color: #0b1220; font: 600 17px/1 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; pointer-events: none; animation: boot-out 0s 20s forwards; }
+        body:has(#root :is(main, h1)) > .boot { display: none; }
+      }
+      @keyframes boot-out { to { visibility: hidden; } }
+    </style>
+    <noscript><style>.boot { display: none !important; }</style></noscript>
   </head>
   <body>
     <div id="root"></div>
+    <div class="boot" aria-hidden="true"><img src="/favicon.svg" width="32" height="32" alt="" /><span>ReputeCast</span></div>
     <noscript>ReputeCast needs JavaScript. Public pages (subscribe, preferences, archive) work without it.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>

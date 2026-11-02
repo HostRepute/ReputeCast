@@ -13,6 +13,7 @@ import { t as tt, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { clock, count, money, pct, rate, shortDate } from '@/lib/format'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
+import { useFirstLoadSettled } from '@/lib/hooks'
 import { m } from './messages'
 import { BulkBar, CalendarLink, deletedLine, RestoreButton, RowActionDialogs, RowMenu, TagPills, UnscheduleButton, type RowAction } from './manage'
 import { mm } from './manage.messages'
@@ -201,9 +202,22 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
           </EmptyState>
         )
       ) : (
-        <CampaignTable data={list.data} page={page} status={status} search={search} top={top} />
+        <SettledTable>
+          <CampaignTable data={list.data} page={page} status={status} search={search} top={top} />
+        </SettledTable>
       )}
     </Page>
+  )
+}
+
+/** The table's channel chips load once the list has: the table keeps its skeleton until they have, instead of jumping down when they arrive. */
+function SettledTable({ children }: { children: ReactNode }) {
+  const settled = useFirstLoadSettled()
+  return (
+    <>
+      {settled ? null : <TableSkeleton />}
+      <div className={settled ? 'contents' : 'hidden'}>{children}</div>
+    </>
   )
 }
 
@@ -216,6 +230,7 @@ function CampaignFilters({ status, counts, search }: { status: CampaignFilter; c
   return (
     <FilterTabs
       label={t(m.filterLabel)}
+      pending={counts === undefined}
       className="ml-3 max-md:ml-0"
       value={status}
       onChange={(next) => void navigate({ to: '/w/$workspace/campaigns', params: { workspace: slug }, search: nextSearch(search, { status: next }) })}

@@ -734,16 +734,18 @@ function useZoomHeight(editor: Editor | null, zoom: number, tick: number, device
   }, [editor, zoom, tick, device, host])
 }
 
-/** GrapesJS's frame has no title of its own; screen readers announce the canvas by it. */
+/** GrapesJS's frame has no title of its own; screen readers announce the canvas by it. Set as soon as a frame is in the page (a device switch makes a new one), not when it has loaded. */
 function useFrameTitle(editor: Editor | null) {
   useEffect(() => {
     if (!editor) return
-    const set = () => editor.Canvas.getFrameEl()?.setAttribute('title', tt(mc.frameTitle))
-    set()
-    editor.on('canvas:frame:load', set)
-    return () => {
-      editor.off('canvas:frame:load', set)
+    const host = editor.Canvas.getElement()
+    const set = () => {
+      for (const f of host?.querySelectorAll('iframe') ?? []) if (!f.title) f.title = tt(mc.frameTitle)
     }
+    set()
+    const mo = new MutationObserver(set)
+    if (host) mo.observe(host, { childList: true, subtree: true })
+    return () => mo.disconnect()
   }, [editor])
 }
 
@@ -810,7 +812,9 @@ export function CanvasArea({
     [containerRef],
   )
   // When the canvas scrolls (on phones), it's a named tab stop; it stays the skip link's target.
-  const [canvasRef, canvasScroll] = useScrollRegion<HTMLDivElement>(t(m.canvasRegion), true)
+  // A region the keyboard can scroll from the start: an email is nearly
+  // always taller than the screen, and measuring it waits for the frame.
+  const [canvasRef, canvasScroll] = useScrollRegion<HTMLDivElement>(t(m.canvasRegion), true, true)
 
   if (c.isEmpty) {
     return (

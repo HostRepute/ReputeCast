@@ -1,3 +1,4 @@
+import { useIsFetching, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from 'react'
 
 export function useMediaQuery(query: string): boolean {
@@ -75,12 +76,14 @@ function useOverflow(ref: RefObject<HTMLElement | null>, vertical: boolean): boo
  * A scroller's ref and the props that make it reachable from the keyboard
  * while it scrolls (WCAG 2.1.1): a tab stop and, given a label, a named
  * region. A scroller that has a role already passes no label. It counts
- * sideways scrolling, and with `vertical` up and down too.
+ * sideways scrolling, and with `vertical` up and down too. With `always`,
+ * it is a region from the start, for a scroller whose content arrives
+ * later and nearly always overflows (the composer's canvas and its frame).
  */
-export function useScrollRegion<T extends HTMLElement>(label?: string, vertical = false): [RefObject<T | null>, { tabIndex?: number; role?: 'region'; 'aria-label'?: string }] {
+export function useScrollRegion<T extends HTMLElement>(label?: string, vertical = false, always = false): [RefObject<T | null>, { tabIndex?: number; role?: 'region'; 'aria-label'?: string }] {
   const ref = useRef<T>(null)
   const scrolls = useOverflow(ref, vertical)
-  return [ref, scrolls ? { tabIndex: 0, role: label ? 'region' : undefined, 'aria-label': label } : {}]
+  return [ref, scrolls || always ? { tabIndex: 0, role: label ? 'region' : undefined, 'aria-label': label } : {}]
 }
 
 /** value, once it has stayed the same for ms (a search box's query). */
@@ -117,4 +120,33 @@ export function useOptimistic<T>(server: T): [T, (next: T, save: () => Promise<b
     return ok
   }
   return [value, change]
+}
+
+/** A query loading for the first time: nothing to show yet. */
+const firstLoad = { predicate: (q: { state: { status: string } }) => q.state.status === 'pending' }
+
+/**
+ * False until the queries loading for the first time when a screen mounts
+ * have come back, or `maxMs` has passed. A screen whose parts each appear when
+ * their own data arrives (a filter bar that grows a row per feature) can keep
+ * them hidden but mounted until then, so their queries run, and show them at
+ * once instead of letting each push the rest down. Queries that already have
+ * data, refetching in the background, don't hold it.
+ */
+export function useFirstLoadSettled(maxMs = 3000): boolean {
+  const client = useQueryClient()
+  const loading = useIsFetching(firstLoad)
+  const [state, setState] = useState<'mounting' | 'loading' | 'settled'>('mounting')
+  // React's "adjust state when a value changes" pattern, no effect.
+  if (state === 'loading' && loading === 0) setState('settled')
+  useEffect(() => {
+    // After the first commit, once the children have started their queries.
+    const first = setTimeout(() => setState((s) => (s === 'mounting' ? (client.isFetching(firstLoad) > 0 ? 'loading' : 'settled') : s)), 0)
+    const last = setTimeout(() => setState('settled'), maxMs)
+    return () => {
+      clearTimeout(first)
+      clearTimeout(last)
+    }
+  }, [client, maxMs])
+  return state === 'settled'
 }

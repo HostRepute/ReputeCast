@@ -1735,6 +1735,20 @@
   .top .acts > .tools:first-child {
     margin-left: 0;
   }
+  /* A tab's count still loading: a short bar where " · 99" goes, so the
+     header keeps its width (FilterTabs' pending, NavTab's reserve). */
+  .tabs.tabs-pending > button::after,
+  .tabs .count-sk {
+    content: '';
+    display: inline-block;
+    width: 2.4ch;
+    height: 8px;
+    margin-left: 0.8ch;
+    border-radius: 4px;
+    background: currentColor;
+    opacity: 0.15;
+    vertical-align: middle;
+  }
   .top .tabs.sections {
     flex-basis: 100%;
     min-width: 0;
@@ -2932,7 +2946,7 @@ main :is(a, button):is(.underline, .gr-srcname, .ih-mby, .pl-lnk, .sms-lbtn, .sp
   /* Not fields or buttons: a screen sizes those itself (a full-width
      field on a phone), and the layered rule above gives a button its
      44px. */
-  main :is(.seg button, .ch-filter button, .ibtn, .vchip, .vchip-more, .tx-fchip, .ih-chip, .ea-schip, .pg-chip) {
+  main :is(.seg button, .ch-filter button, .ibtn, .vchip, .vchip-more, .tx-fchip, .ih-chip, .ea-schip, .pg-chip, .gr-srcname) {
     min-width: 44px;
   }
   main .vchip-more {

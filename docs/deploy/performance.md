@@ -288,6 +288,44 @@ instance makes, a public signup, an open or click, or a store order synced
 from Shopify or WooCommerce shows within the minute. A
 segment preview says `cached` when its count was kept.
 
+## The web app on a slow phone
+
+Measured on the production build served by the binary, in Chrome emulating a
+phone (390 px, the CPU four times slower, "Slow 4G": 150 ms round trips,
+1.6 Mbps), signed in to the demo workspace. Paint and layout-shift numbers
+come from the page's own PerformanceObserver.
+
+| | Before | After |
+|---|---|---|
+| Scripts and requests for one screen | 196–260 requests, 690–816 KB | 30–82 requests, 447–680 KB |
+| First load (scripts preloaded by `index.html`) | 145 scripts, 388 KB gzipped | 5 scripts, 316 KB gzipped |
+| First paint with content | 7.7–9.3 s (a blank page until then) | 1.0–1.2 s |
+| Largest paint (the screen's content) | 8.6–10.2 s | 4.7–6.3 s |
+| Layout shift (CLS), 390 and 1440 px | up to 0.91 (Campaigns at 1440) | 0.03 at most on phones, under 0.07 on desktop |
+
+- **Chunks.** Left to itself, the bundler cut the app into about 990 files: a
+  module that the startup code and a lazy page both used went into a chunk of
+  its own. `vite.config.ts` now groups the route definitions, the shared
+  components and each feature's copy (704 files). `pnpm budget` holds the
+  first load to 340 KB.
+- **First paint.** `index.html` shows the ReputeCast mark until the first
+  screen has a heading, instead of a blank page while the scripts and the
+  session load.
+- **Layout shift.** A tab's count keeps its room while it loads, and a screen
+  whose parts arrive one by one (Contacts' filters, the Overview's lower
+  cards, the automations summary, the campaigns' channel chips, the
+  deliverability status) keeps its skeleton until they have
+  (`useFirstLoadSettled`, `FilterTabs`' `pending`, `NavTab`'s `reserve`).
+  Per screen, at 390 / 1440 px: Overview 0.017 / 0.021, Campaigns 0.002 /
+  0.065, Contacts 0.001 / 0.007, Segments 0.000 / 0.015, Automations 0.028 /
+  0.012, Deliverability 0.010 / 0.031.
+- **Public pages** (home, archive, a tag, subscribe, upgrade): one request of
+  3–5 KB each, first and largest paint 0.36–0.52 s, no layout shift.
+- Total blocking time reads higher after the change (1.3–1.7 s) only because
+  the first paint now comes before the scripts run; the scripts' own work is
+  unchanged. Rendering the first screen of a large list is the next thing to
+  look at for a slow phone.
+
 ## Worth a look next
 
 - Automation emails still wake the outbox inside the automation engine's

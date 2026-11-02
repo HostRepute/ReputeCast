@@ -12,6 +12,8 @@ export type NavTab = {
   badge?: ReactNode
   /** Marks the tab current on a sub-page with its own URL (Settings › Keys & MCP › MCP server). */
   current?: boolean
+  /** Room, in ch, kept for a count still loading (" · 48,551"), so the header doesn't reflow when it arrives. */
+  reserve?: number
 }
 
 /**
@@ -33,6 +35,7 @@ export function NavTabs({ tabs, label, className }: { tabs: NavTab[]; label: str
           aria-current={t.current ? 'page' : undefined}
         >
           {t.label}
+          {t.reserve ? <span className="count-sk" style={{ width: `${t.reserve - 0.8}ch` }} aria-hidden="true" /> : null}
           {t.badge}
         </Link>
       ))}
@@ -51,15 +54,18 @@ export function FilterTabs<T extends string>({
   onChange,
   label,
   className,
+  pending,
 }: {
   value: T
   items: { value: T; label: ReactNode }[]
   onChange: (v: T) => void
   label: string
   className?: string
+  /** Counts that will join the labels are still loading: each tab keeps room for one, so the header doesn't reflow when they arrive. */
+  pending?: boolean
 }) {
   return (
-    <div className={cn('tabs scroll-sm', className)} role="group" aria-label={label}>
+    <div className={cn('tabs scroll-sm', pending && 'tabs-pending', className)} role="group" aria-label={label}>
       {items.map((it) => (
         <button key={it.value} type="button" aria-pressed={value === it.value} onClick={() => onChange(it.value)}>
           {it.label}

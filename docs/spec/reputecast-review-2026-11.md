@@ -770,6 +770,21 @@ Checked at the end of M51:
   layout bugs on the way, all fixed: the automation editor's side panel and the composer preview were
   wider than a 320 px phone, the contact profile's consent badges broke one letter per line on phones,
   and the public pages' header overflowed at 320 px.
+- **Speed and stability on a slow phone** (`docs/deploy/performance.md`). On a phone with a slow
+  connection and CPU, a screen took 196–260 requests and showed a blank page for 7.7–9.3 s. The
+  bundler had cut the app into about 990 files; grouping what always loads together leaves 704, a
+  first load of 5 scripts (316 KB, from 145 scripts and 388 KB) and 30–82 requests a screen. The
+  HTML shows the ReputeCast mark at once (first paint 1.0–1.2 s), and the screen's content arrives
+  at 4.7–6.3 s. Layout shift is under 0.07 on every main screen at 390 and 1440 px (it was up to
+  0.91): counts keep their room while loading, and screens whose parts arrive one by one keep their
+  skeleton until they have. Public pages: one request of 3–5 KB, painted in under 0.55 s.
+- **Against the boards.** `web/scripts/qa.ts` put every board next to its screen. Beyond the data
+  (the QA instance's providers can't reach AWS, so they read "stale"), the differences are the
+  features later milestones added to a screen and two written down as deviations: tiles two to a
+  row on phones (#609) and the loading states (#610, #611).
+- **SEO, audited in the browser.** On the rendered public pages: a title, a description, the viewport,
+  the language, an absolute canonical, valid hreflang and JSON-LD, no generic link text, every link
+  crawlable, every image with alt text, and all text 12 px or more; robots.txt and the sitemap answer.
 - **Security.** `pnpm audit` found two advisories in seroval, which TanStack Router pulls in; it is
   pinned to the patched 1.6.11. A CI job now runs govulncheck and `pnpm audit` (it couldn't run here).
   Its first runs found two reachable advisories in golang.org/x/net's HTML parser and renderer

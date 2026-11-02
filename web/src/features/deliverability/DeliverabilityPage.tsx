@@ -42,7 +42,15 @@ export function DeliverabilityPage() {
         <>
           {/* Health · Placement tests (X14). */}
           <DeliverabilityTabs />
-          {o ? <HeaderStatus o={o} /> : null}
+          {o ? (
+            <HeaderStatus o={o} />
+          ) : q.isPending ? (
+            // The status's place while it loads, so the header keeps its rows when it arrives.
+            <>
+              <Skeleton w={230} h={22} r={999} />
+              <Skeleton w={190} h={12} />
+            </>
+          ) : null}
         </>
       }
       actions={<Actions o={o} />}

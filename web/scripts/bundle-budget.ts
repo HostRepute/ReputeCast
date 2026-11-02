@@ -14,8 +14,10 @@ const budget = {
   // 390 KB after review 2026-11 FE-9 (433 KB before): a route's search
   // schema and checks load with the app, so they import only small modules
   // (integrations/platforms.ts, pages/templateKeys.ts), never a feature's
-  // pages or copy; an agency's menu loads for its staff only.
-  initial: 400 * KB,
+  // pages or copy; an agency's menu loads for its staff only. 315 KB in 5
+  // scripts since the route definitions and the shared components load as
+  // one file each (vite.config.ts, codeSplitting), down from 145 scripts.
+  initial: 340 * KB,
   // Any one lazy chunk (the email composer's editor is the largest).
   chunk: 400 * KB,
   // Every script of the app.

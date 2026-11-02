@@ -11,6 +11,7 @@ import { Table, Td, Th } from '@/components/ui/Table'
 import { FilterTabs } from '@/components/ui/Tabs'
 import { count, dayMonthDate, pct } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
+import { useFirstLoadSettled } from '@/lib/hooks'
 import { ct, RevenueCell } from '@/features/commerce/automation'
 import { t as tt, useT } from '@/i18n'
 import { common } from '@/i18n/common'
@@ -49,6 +50,9 @@ export function AutomationsPage({ status }: { status: AutomationFilter }) {
                 <span className="dot" style={{ color: 'var(--chart-ses)' }} aria-hidden="true" />
                 {t(m.route, { route: data.route.label })}
               </Badge>
+            ) : list.isPending ? (
+              // The route's place while the list loads, so the header doesn't grow when it arrives.
+              <Skeleton w={220} h={22} r={999} className="max-md:w-full!" />
             ) : null}
             <Button variant="primary" disabledReason={newReason} onClick={() => setCreating(true)}>
               {t(m.newAutomation)}
@@ -84,25 +88,32 @@ export function AutomationsPage({ status }: { status: AutomationFilter }) {
 function Loaded({ data, status, templates }: { data: Schemas['AutomationList']; status: AutomationFilter; templates?: Schemas['AutomationStarterTemplate'][] }) {
   const t = useT()
   const { slug } = useWorkspace()
+  // The summary loads after the list: until it has, the list's skeleton
+  // stays, so the table doesn't jump down when the numbers arrive.
+  const settled = useFirstLoadSettled()
   return (
     <>
-      {data.alerts.length > 0 ? <Alerts alerts={data.alerts} /> : null}
-      <Summary />
-      {data.items.length === 0 ? (
-        <EmptyState
-          title={t(m.noneWithStatus, { status })}
-          action={
-            <Link className="btn" to="/w/$workspace/automations" params={{ workspace: slug }}>
-              {t(m.showAll)}
-            </Link>
-          }
-        >
-          {t(m.noneWithStatusBody, { count: data.counts.all })}
-        </EmptyState>
-      ) : (
-        <AutomationTable items={data.items} />
-      )}
-      {templates ? <StarterTemplates templates={templates} /> : null}
+      {settled ? null : <ListSkeleton />}
+      <div className={settled ? 'contents' : 'hidden'}>
+        {data.alerts.length > 0 ? <Alerts alerts={data.alerts} /> : null}
+        <Summary />
+        {data.items.length === 0 ? (
+          <EmptyState
+            title={t(m.noneWithStatus, { status })}
+            action={
+              <Link className="btn" to="/w/$workspace/automations" params={{ workspace: slug }}>
+                {t(m.showAll)}
+              </Link>
+            }
+          >
+            {t(m.noneWithStatusBody, { count: data.counts.all })}
+          </EmptyState>
+        ) : (
+          <AutomationTable items={data.items} />
+        )}
+        {templates ? <StarterTemplates templates={templates} /> : null}
+    
+      </div>
     </>
   )
 }
@@ -115,6 +126,7 @@ function Filters({ status, counts }: { status: AutomationFilter; counts?: Schema
   return (
     <FilterTabs
       label={t(m.filterLabel)}
+      pending={counts === undefined}
       className="ml-3 max-md:ml-0"
       value={status}
       onChange={(next) => void navigate({ to: '/w/$workspace/automations', params: { workspace: slug }, search: { status: next === 'all' ? undefined : next } })}
