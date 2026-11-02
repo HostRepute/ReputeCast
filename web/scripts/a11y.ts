@@ -6,6 +6,7 @@
  *   node scripts/a11y.ts --only Campaigns,Main    # some boards' screens
  *   node scripts/a11y.ts --widths 834 --out ../tmp/a11y
  *   node scripts/a11y.ts --widths 390 --targets   # also target sizes
+ *   node scripts/a11y.ts --widths 390,834,1440 --overflow  # also sideways scrolling
  *
  * --targets adds the design system's target rule (design/design-system,
  * "Targets"): standalone controls at least 44px on phone widths (767px and
@@ -37,6 +38,24 @@ const workspace = 'acme-newsletter'
 const axePath = createRequire(import.meta.url).resolve('axe-core/axe.min.js')
 const axeOptions = { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] }, resultTypes: ['violations'] }
 const targets = args.includes('--targets')
+const overflow = args.includes('--overflow')
+// --overflow: the page itself scrolls sideways (a table or a code block in
+// its own scroller is fine). Reported like an axe rule, naming the outermost
+// elements that stick out past the viewport.
+const overflowCheck = `(() => {
+  const vw = document.documentElement.clientWidth
+  if (document.scrollingElement.scrollWidth <= vw + 1) return []
+  const out = (el) => el.getBoundingClientRect().right > vw + 1
+  const nodes = []
+  for (const el of document.querySelectorAll('body *')) {
+    if (nodes.length >= 5) break
+    if (!out(el) || el.getBoundingClientRect().width === 0) continue
+    if (el.parentElement && el.parentElement !== document.body && out(el.parentElement)) continue
+    const name = (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\\s+/).slice(0, 3).join('.') : '')
+    nodes.push({ target: [el.tagName.toLowerCase() + name + ' right ' + Math.round(el.getBoundingClientRect().right) + 'px of ' + vw], html: el.outerHTML.slice(0, 200) })
+  }
+  return [{ id: 'page-overflow-x', impact: 'serious', help: 'The page doesn\\'t scroll sideways at this width', helpUrl: 'design/design-system/README.md', nodes }]
+})()`
 // Reported like an axe rule. A string, like the axe call below.
 const targetCheck = `(() => {
   const min = innerWidth <= 767 ? 44 : 24
@@ -169,6 +188,7 @@ async function main() {
           // A string, like the other QA scripts: they compile without the DOM types.
           const violations = (await page.evaluate(`axe.run(document, ${JSON.stringify(axeOptions)}).then((r) => r.violations)`)) as Violation[]
           if (targets) violations.push(...((await page.evaluate(targetCheck)) as Violation[]))
+          if (overflow) violations.push(...((await page.evaluate(overflowCheck)) as Violation[]))
           findings.push({ path, width, violations })
           console.log(`${String(violations.length).padStart(3)} rule(s)  ${width}  ${path}`)
         } catch (err) {

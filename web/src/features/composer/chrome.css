@@ -1749,3 +1749,19 @@
     display: none;
   }
 }
+
+/* The preview on a phone: "Preview as", the test button and Review & send
+   are words, not icons, so they take a row of their own and wrap there
+   instead of running off the screen (the page scrolled sideways at 390px). */
+@media (max-width: 767px) {
+  .cmp.view-preview .cb-end {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+  .cmp.view-preview .cb-end .btn {
+    width: auto;
+    padding: 0 12px;
+  }
+}
