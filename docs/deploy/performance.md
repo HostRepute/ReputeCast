@@ -165,7 +165,10 @@ rows that every other send needed, until it committed:
   commits. A send now wakes the outbox once it has committed: one goroutine
   inserts the job, so a burst costs a few inserts, and it asks again while a
   running pass may have missed the mail. The watch still wakes anything a
-  lost wake leaves within 15 seconds.
+  lost wake leaves within 15 seconds. Automation emails, queued inside the
+  automation engine's transaction (or a referral reward's), now do the same
+  once that transaction commits (`db.AfterCommit`), so many automation
+  workers at once don't queue on that row either.
 
 Locally, with fsync on and the send.js profile replayed by a small Go
 client (k6 can't run there), the same 122 accepted sends a second went
@@ -305,9 +308,8 @@ come from the page's own PerformanceObserver.
 
 - **Chunks.** Left to itself, the bundler cut the app into about 990 files: a
   module that the startup code and a lazy page both used went into a chunk of
-  its own. `vite.config.ts` now groups the route definitions, the shared
-  components and each feature's copy (704 files). `pnpm budget` holds the
-  first load to 340 KB.
+  its own. `vite.config.ts` now groups the route definitions and the shared
+  components (803 files). `pnpm budget` holds the first load to 340 KB.
 - **First paint.** `index.html` shows the ReputeCast mark until the first
   screen has a heading, instead of a blank page while the scripts and the
   session load.
@@ -321,17 +323,63 @@ come from the page's own PerformanceObserver.
   0.012, Deliverability 0.010 / 0.031.
 - **Public pages** (home, archive, a tag, subscribe, upgrade): one request of
   3–5 KB each, first and largest paint 0.36–0.52 s, no layout shift.
-- Total blocking time reads higher after the change (1.3–1.7 s) only because
-  the first paint now comes before the scripts run; the scripts' own work is
-  unchanged. Rendering the first screen of a large list is the next thing to
-  look at for a slow phone.
+
+### Second pass: the screen's own code
+
+The numbers above stopped when the network had been quiet for half a second.
+On a CPU four times slower that can happen while the scripts are still
+running, before the screen's content, so their largest-paint figures read
+low. This pass waits for the screen's heading and then for the network, uses
+Chrome's own "Slow 4G" preset (562 ms round trips, 1.44 Mbps), and measures a
+returning member (the browser has signed in before). Each figure is the
+median of three loads with the cache off. HTTP/2 goes through a TLS proxy,
+as a deployment does (Caddy speaks it on its own; the nginx example in
+[reverse-proxy.md](reverse-proxy.md) turns it on). HTTP/1.1 is the binary on
+its own. `node web/scripts/phone-perf.ts --app <url>` repeats it.
+
+What the Contacts screen loaded besides the first load was 280 KB (brotli).
+Of that, 189 KB was copy: one chunk per feature held all of that feature's
+text, so a few filter labels brought in all of Earn's, SMS's and the
+composer's text. The language names and the brand name the contact screens
+show also came from the composer's and the Settings card's modules, 71 KB
+and 22 KB that ran on every Contacts load. Two more changes:
+
+- each feature's copy goes with the code that uses it;
+- a member's screen starts loading its code while its routes check the
+  session (`/api/v1/me`), not after (`preloadScreen` in `router.tsx`).
+
+| HTTP/2, phone | Before | After |
+|---|---|---|
+| Contacts: heading, largest paint | 8.07 s, 9.75 s | 6.38 s, 7.81 s |
+| Campaigns | 6.25 s, 7.40 s | 5.66 s, 6.26 s |
+| Overview | 6.80 s, 7.75 s | 5.85 s, 7.00 s |
+| All requests, data and fonts included (Contacts, Campaigns, Overview) | 100, 57, 76 | 98, 61, 82 |
+
+Over HTTP/1.1 a browser opens six connections, so the screen's 60 to 100
+requests wait their turn. There the two builds come within 0.5 s of each
+other, either way: Contacts' heading at 11.9 s, Campaigns' at 8.2 s and the
+Overview's at 10.1 s. Serve the app over HTTP/2.
+
+Total blocking time is 1.1–1.6 s on both builds. It is the startup scripts
+(React, the router, TanStack Query, zod and every route's definition,
+317 KB gzipped) being parsed and run on the slower CPU; the changes above
+left it as it was. On Contacts, without the CPU slowdown, the page's own
+script work went from about 600 ms to 410–420 ms once the composer's code
+stopped loading there.
+
+### The campaign report on a real send
+
+Profiled on a sent campaign of 29,797 recipients (the QA data set), the
+report took 46–54 ms, and reading every message for its per-language results
+was half of that. A campaign sent in one language has nothing to show
+there, and its send snapshot says so: the report now skips that query for
+it, and takes 20–21 ms for the same send in one language. A send in two or
+more languages still reads it (46–54 ms).
 
 ## Worth a look next
 
-- Automation emails still wake the outbox inside the automation engine's
-  transaction, as transactional sends did: many automation workers at once
-  would queue on that job's row. The same wake after commit would apply.
+- A screen's data starts loading once its code has run: on Contacts the
+  list is asked for at 6.1 s, when the code is in, though the page knew
+  what to ask for at 3.9 s. A route loader that prefetches the screen's main
+  query would overlap the two.
 
-- The campaign report (about 300 ms for 975,000 recipients). The load data
-  set's campaigns were generated, not sent, so they have no live counters:
-  profile it again on a real send.

@@ -5,7 +5,7 @@ import { $api } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { useI18n, useT } from '@/i18n'
-import { clock, dayMonthDate } from '@/lib/format'
+import { clock, dayMonthDate, languageLabel } from '@/lib/format'
 import { useCan } from '@/lib/session'
 import { useComposer } from '@/features/composer/context'
 import { pathOf, sectionOf } from '@/features/composer/editor/labels'
@@ -280,23 +280,6 @@ export function TestLanguagePicker({ value, onChange }: { value?: string; onChan
       </select>
     </label>
   )
-}
-
-const names = new Map<string, Intl.DisplayNames>()
-
-/** A language code's name in the app's language ("pt-BR" → "Portuguese"). */
-export function languageLabel(code: string, locale: string): string {
-  const base = code.toLowerCase().split(/[-_]/)[0] ?? code
-  try {
-    let n = names.get(locale)
-    if (!n) {
-      n = new Intl.DisplayNames([locale], { type: 'language' })
-      names.set(locale, n)
-    }
-    return n.of(base) ?? base
-  } catch {
-    return base
-  }
 }
 
 /**

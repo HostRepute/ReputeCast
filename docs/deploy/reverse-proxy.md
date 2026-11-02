@@ -23,7 +23,8 @@ changing either setting.
 
 ## Caddy
 
-Caddy gets and renews the certificate itself:
+Caddy gets and renews the certificate itself, and speaks HTTP/2 and HTTP/3
+to browsers without being asked:
 
 ```caddyfile
 news.example.com {
@@ -36,6 +37,11 @@ news.example.com {
 ```nginx
 server {
     listen 443 ssl;
+    # The web app loads a screen's code in many small files: over HTTP/2 a
+    # browser asks for them all at once, over HTTP/1.1 six at a time. On a
+    # slow phone network that is about 6 s or 12 s before Contacts shows.
+    # (Before nginx 1.25.1: `listen 443 ssl http2;` instead.)
+    http2 on;
     server_name news.example.com;
 
     ssl_certificate     /etc/letsencrypt/live/news.example.com/fullchain.pem;

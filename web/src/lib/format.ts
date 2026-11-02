@@ -490,3 +490,24 @@ export function byteSize(bytes: number | null | undefined): string {
   const r = v >= 100 ? Math.round(v) : Math.round(v * 10) / 10
   return `${Number.isInteger(r) ? count(r) : decimal(r, 1)} ${units[i]}`
 }
+
+const languageNames = new Map<string, Intl.DisplayNames>()
+
+/**
+ * A language code's name in the app's language ("pt-BR" → "Portuguese").
+ * Here rather than in the composer's language parts, so a screen that only
+ * names a contact's language doesn't load the composer's code.
+ */
+export function languageLabel(code: string, locale: string): string {
+  const base = code.toLowerCase().split(/[-_]/)[0] ?? code
+  try {
+    let n = languageNames.get(locale)
+    if (!n) {
+      n = new Intl.DisplayNames([locale], { type: 'language' })
+      languageNames.set(locale, n)
+    }
+    return n.of(base) ?? base
+  } catch {
+    return base
+  }
+}

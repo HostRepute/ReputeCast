@@ -44,10 +44,6 @@ function precompress(): Plugin {
 // Code-splitting groups (build.rolldownOptions below).
 const routesDir = /[\\/]src[\\/]routes[\\/]/
 const sharedDir = /[\\/]src[\\/](components|lib|i18n|api)[\\/]/
-function featureCopy(id: string) {
-  const m = /[\\/]src[\\/]features[\\/]([^\\/]+)[\\/](?:.*[\\/])?[^\\/]*messages(\.vi)?\.ts$/.exec(id)
-  return m ? `copy-${m[1]}${m[2] ?? ''}` : null
-}
 
 const LAYER_ORDER = '@layer properties, theme, base, components, utilities;'
 
@@ -116,8 +112,12 @@ export default defineConfig({
         // module that the startup code and a lazy page both use went into a
         // chunk of its own, so the first load preloaded 145 scripts and a
         // page some 200, which a phone's round trips make slow. These groups
-        // keep what always loads together in one file each (704 files; the
-        // first load 4 preloads and 315 KB instead of 388 KB).
+        // keep what always loads together in one file each (803 files; the
+        // first load 4 preloads and 317 KB instead of 388 KB). A feature's
+        // copy isn't grouped: one file per feature had Contacts download all
+        // of Earn's, SMS's and the composer's text (189 KB of its 280) for a
+        // few filter labels, which cost a slow phone more than the 4 to 9
+        // requests it saved.
         codeSplitting: {
           groups: [
             // Every route's definition and search schema: the route tree
@@ -125,8 +125,6 @@ export default defineConfig({
             { name: 'routes', test: (id: string) => routesDir.test(id) && !id.includes('?tsr-split'), priority: 3 },
             // Components, hooks, i18n and the API client every page shares.
             { name: 'app', test: sharedDir, priority: 2 },
-            // A feature's copy in one file per language, not one per screen.
-            { name: (id: string) => featureCopy(id), priority: 1 },
           ],
         },
       },

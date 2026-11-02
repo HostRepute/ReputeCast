@@ -82,16 +82,20 @@ async function apply(p: Preferences) {
   if (mode === 'member') write(APPLIED_KEY, p)
 }
 
-/** Applies the language before the first render. */
-export async function bootI18n(path = typeof location === 'undefined' ? '/' : location.pathname): Promise<void> {
+/**
+ * Applies the language before the first render. Answers whether it took a
+ * member's: this browser was signed in last time, on a screen for members.
+ */
+export async function bootI18n(path = typeof location === 'undefined' ? '/' : location.pathname): Promise<'member' | 'visitor'> {
   const last = read<Preferences>(APPLIED_KEY)
   if (!isVisitorPath(path) && last?.locale) {
     mode = 'member'
     await setPreferences(last)
-    return
+    return mode
   }
   mode = 'visitor'
   await setPreferences(visitorPreferences())
+  return mode
 }
 
 /** Applies a signed-in member's language from /me. */

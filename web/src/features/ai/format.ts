@@ -1,5 +1,5 @@
 import { getI18n, t } from '@/i18n'
-import { count, dayMonthYear, decimal, money } from '@/lib/format'
+import { count, dayMonthYear, decimal, languageLabel, money } from '@/lib/format'
 import { m } from './messages'
 
 /** The width images are resized to before they go to the model for alt text (internal/ai/image.go). */
@@ -45,22 +45,9 @@ export function seconds(ms: number): string {
   return decimal(ms / 1000, 1)
 }
 
-const languageNames = new Map<string, Intl.DisplayNames>()
-
 /** A language code's name in the app's language: "es" → "Spanish". */
 export function langName(code: string): string {
-  const locale = getI18n().locale
-  const base = code.toLowerCase().split(/[-_]/)[0] ?? code
-  try {
-    let n = languageNames.get(locale)
-    if (!n) {
-      n = new Intl.DisplayNames([locale], { type: 'language' })
-      languageNames.set(locale, n)
-    }
-    return n.of(base) ?? base
-  } catch {
-    return base
-  }
+  return languageLabel(code, getI18n().locale)
 }
 
 /**

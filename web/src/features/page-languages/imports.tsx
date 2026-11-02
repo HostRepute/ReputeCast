@@ -1,7 +1,6 @@
 import { $api, errorMessage } from '@/api/client'
 import { formatList, useI18n, useT } from '@/i18n'
-import { languageLabel } from '@/features/languages/composerParts'
-import { count } from '@/lib/format'
+import { count, languageLabel } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { WarnIcon } from './contacts'
 import { mi } from './messages'

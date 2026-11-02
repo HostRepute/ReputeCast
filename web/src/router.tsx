@@ -14,6 +14,16 @@ export const router = createRouter({
   defaultViewTransition: false,
 })
 
+/**
+ * Starts loading the code of the screen at `path` (each matched route's
+ * page) without running its checks or loaders: the router still runs those
+ * when it loads the screen, and uses the code already on its way.
+ */
+export function preloadScreen(path: string) {
+  const [routes] = router.getMatchedRoutes(path)
+  for (const route of routes) router.loadRouteChunk(route)?.catch(() => undefined)
+}
+
 declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router

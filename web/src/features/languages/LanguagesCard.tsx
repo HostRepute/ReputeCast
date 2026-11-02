@@ -14,6 +14,7 @@ import { T, formatList, useT } from '@/i18n'
 import { count, dayMonthYear } from '@/lib/format'
 import { useMe, useWorkspace } from '@/lib/session'
 import { AddLanguageDialog } from './AddLanguageDialog'
+import { brandOf } from './brand'
 import { ms } from './messages'
 import { RemoveLanguageDialog, defaultSelectId, fallbackSelectId } from './RemoveLanguageDialog'
 import './languages.css'
@@ -24,16 +25,6 @@ type Translate = ReturnType<typeof useT>
 
 export const languagesKey = (slug: string) =>
   $api.queryOptions('get', '/api/v1/workspaces/{workspace}/languages', { params: { path: { workspace: slug } } }).queryKey
-
-/** Trailing words a workspace name often carries that the copy leaves out. */
-const generic = new Set(['newsletter', 'newsletters', 'news', 'team', 'workspace', 'inc', 'inc.', 'ltd', 'ltd.', 'llc'])
-
-/** "Acme Newsletter" → "Acme": how the boards name the brand in page copy. */
-export function brandOf(name: string): string {
-  const words = name.trim().split(/\s+/)
-  while (words.length > 1 && generic.has((words[words.length - 1] ?? '').toLowerCase())) words.pop()
-  return words.join(' ')
-}
 
 /**
  * Settings › General › Languages (SettingsLanguages, LanguageStates): the

@@ -772,12 +772,17 @@ Checked at the end of M51:
   and the public pages' header overflowed at 320 px.
 - **Speed and stability on a slow phone** (`docs/deploy/performance.md`). On a phone with a slow
   connection and CPU, a screen took 196–260 requests and showed a blank page for 7.7–9.3 s. The
-  bundler had cut the app into about 990 files; grouping what always loads together leaves 704, a
-  first load of 5 scripts (316 KB, from 145 scripts and 388 KB) and 30–82 requests a screen. The
-  HTML shows the ReputeCast mark at once (first paint 1.0–1.2 s), and the screen's content arrives
-  at 4.7–6.3 s. Layout shift is under 0.07 on every main screen at 390 and 1440 px (it was up to
-  0.91): counts keep their room while loading, and screens whose parts arrive one by one keep their
-  skeleton until they have. Public pages: one request of 3–5 KB, painted in under 0.55 s.
+  bundler had cut the app into about 990 files; grouping what always loads together leaves 803 and
+  a first load of 5 scripts (317 KB, from 145 scripts and 388 KB). The HTML shows the ReputeCast
+  mark at once (first paint 1.0–1.8 s). A second pass, which waits for the screen's heading over
+  HTTP/2 on Chrome's "Slow 4G", found the screens loading other features' whole copy and the
+  composer's code; without them, and with a screen's code loading during the session check,
+  Contacts shows its heading at 6.4 s instead of 8.1 s, Campaigns at 5.7 s instead of 6.3 s and
+  the Overview at 5.9 s instead of 6.8 s. Layout shift is under 0.07 on every main screen at 390
+  and 1440 px (it was up to 0.91): counts keep their room while loading, and screens whose parts
+  arrive one by one keep their skeleton until they have. Public pages: one request of 3–5 KB,
+  painted in under 0.55 s. The nginx example in `docs/deploy/reverse-proxy.md` now turns HTTP/2 on:
+  over HTTP/1.1 the same screens take 8–12 s.
 - **Against the boards.** `web/scripts/qa.ts` put every board next to its screen. Beyond the data
   (the QA instance's providers can't reach AWS, so they read "stale"), the differences are the
   features later milestones added to a screen and two written down as deviations: tiles two to a
