@@ -252,6 +252,20 @@ next runs will tell whether it holds. Its cost is still the email trigram
 index on sample addresses that all contain "load" (above); on four cores
 shared with k6, ten people with no pause between requests keep the CPU busy.
 
+### Seventh run: partitioned from the start
+
+Since the upgrade converts `delivery_events` (review 2026-11 OP-11), the
+seed's `migrate up` partitions the table before the data goes in, so every
+timing reads the partitioned table.
+[Run 41402124614](https://github.com/HostRepute/ReputeCast/actions/runs/41402124614)
+passed every threshold: search p95 96 ms, pages p95 26 ms (392 requests a
+second), segment counts p95 3.6 ms, sends p95 94 ms (median 11 ms, 135 a
+second, 103 arrivals dropped), ten people browsing p95 108 ms, search on its
+own 23 ms. The first tier run took 274 seconds and the vacuum after it 3.
+That runner was faster than the sixth run's (the seed took 19 minutes
+rather than 23), so part of the gain is the machine: the sixth run is the
+fairer bar.
+
 The approvals inbox with 1,000 open requests (`TestInboxAtAThousandRequests`,
 review 2026-11 AP-3): 118 to 200 ms when every request was checked
 recently, as the inbox re-checks only stale ones; 460 ms when ten campaigns
