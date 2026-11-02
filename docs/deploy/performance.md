@@ -149,6 +149,66 @@ and their posting lists grow with the table. That is a worst case real lists
 don't have, and a search on its own meets its target; ten people searching
 at once on four shared cores don't.
 
+### Fourth run: what held the send test and the server back
+
+The third run's send log had a shape that CPU alone doesn't make: at under
+130 sends a second most sends took 10 to 20 ms, yet every 5 to 10 seconds
+all 50 senders stalled at once for about a second. Every send locked two
+rows that every other send needed, until it committed:
+
+- The key's rate bucket was locked with an upsert, read in Go and written
+  back: four round trips and a WAL flush under the lock. A take is now one
+  conditional UPDATE that commits without waiting for its flush (a crash can
+  only lose recent takes); a refused take writes nothing.
+- Each send inserted the outbox's unique wake-up job in its own
+  transaction, and River's insert locks that job's row until the send
+  commits. A send now wakes the outbox once it has committed: one goroutine
+  inserts the job, so a burst costs a few inserts, and it asks again while a
+  running pass may have missed the mail. The watch still wakes anything a
+  lost wake leaves within 15 seconds.
+
+Locally, with fsync on and the send.js profile replayed by a small Go
+client (k6 can't run there), the same 122 accepted sends a second went
+from p95 28 ms, p99 151 ms and a 773 ms worst to 22 ms, 46 ms and 298 ms,
+with no second of all 50 senders stalled (two before), and half the row
+versions on the bucket.
+
+Two more changes went into the run. A search with more than a page of
+matches read the trigram indexes twice, for the page and for the count; it
+now reads its matches once, up to the 10,000 cap, and reads the page from
+them by id. And the jobs a worker runs when it starts ran through every k6
+script: the workflow now waits for them and lists those that ran long.
+
+[Run 41381703256](https://github.com/HostRepute/ReputeCast/actions/runs/41381703256):
+
+| | Third run | Fourth run | Target |
+|---|---|---|---|
+| contacts.js, requests a second | 160 | 219 | — |
+| contacts.js, pages p95 | 54 ms | 44 ms | under 200 ms: met |
+| contacts.js, search p95 | 307 ms | 199 ms | under 150 ms: missed |
+| Ten people browsing (Go test), p95 | 273 ms | 143 ms | under 200 ms: met |
+| Search on its own (Go test) | 51 ms | 27 ms | under 150 ms: met |
+| segments.js, p95 | 10.1 ms | 7.0 ms | under 2 s: met |
+| send.js, messages a second | 84 | 129 | — |
+| send.js, median | 400 ms | 215 ms | — |
+| send.js, p95 | 814 ms | 299 ms | under 300 ms: met |
+| send.js, worst | 1.89 s | 408 ms | — |
+| send.js, arrivals dropped (no free sender) | 7,851 | 1,023 | — |
+
+The run's Postgres log showed what still slowed search: the first tier run
+of the million contacts (`audience.tiers`, which a worker starts with) and
+the mailbox classifier deadlocked again and again, one UPDATE over every
+contact against one over every contact of a domain. Each loss rolled back up
+to a million updated rows and the job started over, writing so much WAL
+that Postgres checkpointed every six seconds while k6 ran, and the wait for
+start-up jobs ended in one of its pauses between attempts. A tier run now
+assigns tiers 5,000 contacts at a time, each batch one statement that locks
+only the contacts it changes, in a fixed order; the classifier updates 5,000
+at a time and skips contacts another transaction holds, picking them up on
+its next pass, so it never waits and can't deadlock
+(`TestClassifierSkipsLockedContacts` waited for the held contact before).
+People's edits no longer wait behind a tier run either.
+
 The approvals inbox with 1,000 open requests (`TestInboxAtAThousandRequests`,
 review 2026-11 AP-3): 118 to 200 ms when every request was checked
 recently, as the inbox re-checks only stale ones; 460 ms when ten campaigns
@@ -172,6 +232,10 @@ from Shopify or WooCommerce shows within the minute. A
 segment preview says `cached` when its count was kept.
 
 ## Worth a look next
+
+- Automation emails still wake the outbox inside the automation engine's
+  transaction, as transactional sends did: many automation workers at once
+  would queue on that job's row. The same wake after commit would apply.
 
 - The campaign report (about 300 ms for 975,000 recipients). The load data
   set's campaigns were generated, not sent, so they have no live counters:
