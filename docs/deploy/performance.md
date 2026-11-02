@@ -107,27 +107,38 @@ What the run showed, and what changed:
   (pipefail) and still runs every step, so one run records every number. A
   pull request labelled `load-test` runs it before the branch merges.
 
-### Second run, on those changes
+### Second and third runs, on those changes
 
-[Run 41358794955](https://github.com/HostRepute/ReputeCast/actions/runs/41358794955),
-same runner and data; the job now fails because two thresholds are still
+[Run 41358794955](https://github.com/HostRepute/ReputeCast/actions/runs/41358794955)
+and, after the template compile cache below,
+[run 41364026420](https://github.com/HostRepute/ReputeCast/actions/runs/41364026420),
+same runner and data; the job fails because two thresholds are still
 crossed.
 
-| | First run | Second run | Target |
-|---|---|---|---|
-| contacts.js, requests a second | 116 | 153 | — |
-| contacts.js, pages p95 | 50 ms | 53 ms | under 200 ms: met |
-| contacts.js, search p95 | 513 ms | 291 ms | under 150 ms: missed |
-| Ten people browsing (Go test), p95 | 270 ms | 273 ms | under 200 ms: missed |
-| segments.js, p95 | 10.6 ms | 10.4 ms | under 2 s: met |
-| send.js, accepted | 48% (a session's 429s) | 100% with a key | — |
-| send.js, p95 | 760 ms | 827 ms | under 300 ms: missed |
+| | First run | Second run | Third run | Target |
+|---|---|---|---|---|
+| contacts.js, requests a second | 116 | 153 | 160 | — |
+| contacts.js, pages p95 | 50 ms | 53 ms | 54 ms | under 200 ms: met |
+| contacts.js, search p95 | 513 ms | 291 ms | 307 ms | under 150 ms: missed |
+| Ten people browsing (Go test), p95 | 270 ms | 273 ms | 273 ms | under 200 ms: missed |
+| segments.js, p95 | 10.6 ms | 10.4 ms | 10.1 ms | under 2 s: met |
+| send.js, accepted | 48% (a session's 429s) | 100% with a key | 100% with a key | — |
+| send.js, messages a second | — | 76 | 84 | — |
+| send.js, median | — | 474 ms | 400 ms | — |
+| send.js, p95 | 760 ms | 827 ms | 814 ms | under 300 ms: missed |
 
 Sending through a key measured the send API itself: 76 messages a second,
 each taking a median 474 ms with 50 senders, while the worker drained the
 queue on the same four cores. A CPU profile of the send call showed most of
 it compiling and checking the template's MJML on every message; a version is
 now compiled once per process, which cut the send call's CPU by a quarter.
+On the runner that moved the median from 474 ms to 400 ms and the rate from
+76 to 84 a second, but not the p95: k6's 50 senders, the server, the worker
+draining the queue and Postgres share four cores, so the tail is queueing
+for CPU. On a development machine, where the server doesn't share its
+cores with k6 and the worker, the same send path answered 494 calls a second
+(a third of them stopped by the key's rate limit) with a p95 of 118 ms.
+
 Search, a median 52 ms on its own at a million contacts against 7 ms at
 200,000, grows with the table rather than with its matches. Its plan is the
 right one (EXPLAIN ANALYZE at 200,000: a BitmapOr of the email and name
