@@ -204,7 +204,7 @@
     flex: none;
   }
   button.badge.afilter {
-    border: 0;
+    border-inline: 0;
     font: inherit;
     font-size: 12px;
     font-weight: 600;

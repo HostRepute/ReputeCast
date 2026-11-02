@@ -16,6 +16,7 @@ import { common } from '@/i18n/common'
 import { sectionWord } from './editor/labels'
 import { md } from './dialogs.messages'
 import { m } from './messages'
+import { Check } from '@/components/ui/SelectAll'
 
 type Version = Schemas['ComposerVersion']
 
@@ -55,7 +56,7 @@ function VersionRow({ v, pick, onPick, busy, onRestore, onNamed }: { v: Version;
   }
   return (
     <div className={`ver${v.current ? ' cur' : ''}`}>
-      <input type="checkbox" aria-label={t(md.compareVersion, { version: v.version })} checked={pick} onChange={onPick} />
+      <Check aria-label={t(md.compareVersion, { version: v.version })} checked={pick} onChange={onPick} />
       <span className="mono k" style={{ width: 38 }}>
         v{v.version}
       </span>

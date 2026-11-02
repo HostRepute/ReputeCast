@@ -22,7 +22,7 @@ import { AgencyMemberManaged, AgencyMemberSource } from '../agency/WorkspacePart
 import { DeactivateDialog } from './DeactivateDialog'
 import { InviteDialog } from './InviteDialog'
 import { m as tm } from './messages'
-import { SelectAll } from '@/components/ui/SelectAll'
+import { Check, SelectAll } from '@/components/ui/SelectAll'
 import { useSelection, type Selection } from '@/lib/selection'
 
 export interface TeamSearch {
@@ -183,7 +183,7 @@ function MemberRow({
       <Td>
         <div className="flex min-w-0 items-center gap-2.5">
           {manage ? (
-            <input type="checkbox" checked={selected} onChange={(e) => onSelect(e.target.checked)} aria-label={t(tm.select, { name: m.name })} />
+            <Check checked={selected} onChange={(e) => onSelect(e.target.checked)} aria-label={t(tm.select, { name: m.name })} />
           ) : null}
           <PersonCell name={m.name} sub={<Truncate text={m.email} />} color={active ? m.avatarColor : 'muted'} />
         </div>

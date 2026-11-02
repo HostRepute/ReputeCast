@@ -344,6 +344,7 @@
     .btn.sm,
     .btn.xs {
       min-height: 44px;
+      min-width: 44px;
     }
     .btn.ic,
     .btn.sm.ic {
@@ -653,6 +654,30 @@
     background: var(--accent-tint);
   }
 
+  /* A checkbox that stands alone (Check, SelectAll): the label around it is
+     the target, 24px with a mouse and 44px on touch widths, and its
+     negative margin keeps the 16px box where the box alone sat. */
+  label.hit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    min-width: 24px;
+    min-height: 24px;
+    margin: -1px;
+    cursor: pointer;
+  }
+  label.hit input {
+    margin: 0;
+  }
+  @media (max-width: 767px) {
+    label.hit {
+      min-width: 44px;
+      min-height: 44px;
+      margin: -11px;
+    }
+  }
+
   /* Toggle switch */
   input[type='checkbox'].tg {
     appearance: none;
@@ -688,6 +713,21 @@
   input[type='checkbox'].tg:disabled {
     opacity: 0.55;
     cursor: not-allowed;
+  }
+  /* On touch widths the switch is a 44px target: a transparent border
+     around the 40x24 track, inside a negative margin, so neither the track
+     nor the layout moves. */
+  @media (max-width: 767px) {
+    input[type='checkbox'].tg {
+      box-sizing: content-box;
+      border: 10px solid transparent;
+      margin: -10px;
+    }
+    /* After the states' background shorthands, which reset the clip. */
+    input[type='checkbox'].tg,
+    input[type='checkbox'].tg:checked {
+      background-clip: padding-box;
+    }
   }
 
   /* Segmented control (device switcher, mode toggles) */
@@ -2804,5 +2844,83 @@
   table.tbl.fit .badge,
   table.tbl.fit .btn {
     white-space: nowrap;
+  }
+}
+
+/* Targets (design system: 44px on touch widths, never under 24px for a
+   standalone control; inline links in sentences are exempt). Unlayered and
+   last, so a screen's own sizes can't undercut it; checked on every screen
+   by `node scripts/a11y.ts --targets`. Bordered controls (fields,
+   segments, chips, buttons) grow on touch widths. The rest keep their look
+   and grow inside an equal negative margin, so nothing around them moves:
+   borderless ones by padding, filled ones (a badge that is a link or a
+   button) by a transparent border their fill doesn't paint. */
+main :is(.er-tip, .ptag-x) {
+  width: 24px;
+  height: 24px;
+}
+main .er-tip {
+  margin: -5px -2px;
+}
+main .ptag-x {
+  margin: -2px;
+}
+main :is(.ws-drag .gr, .sms-kwd button) {
+  box-sizing: content-box;
+  padding: 3px;
+  margin: -3px;
+  justify-content: center;
+  align-items: center;
+}
+main :is(a, button).badge {
+  box-sizing: content-box;
+  border-block: 1px solid transparent;
+  background-clip: padding-box;
+  margin-block: -1px;
+}
+main :is(td, th) a:not(.btn, .badge),
+main :is(.flex, .inline-flex, .grid) > a:not(.btn, .badge),
+main a:not(.btn, .badge):not(:is(p, span, li, label, small, strong, b, em, dd, h1, h2, h3, h4, h5, h6) a),
+main :is(a, button):is(.underline, .gr-srcname, .ih-mby, .pl-lnk, .sms-lbtn, .sp-issue, .sc-sortbtn):not(.btn, .badge) {
+  padding-block: 4px;
+  margin-block: -4px;
+}
+@media (max-width: 767px) {
+  main :is(.in:not(textarea), .seg button, .tabs button, .ch-filter button, .btn, .ibtn, .vchip, .tx-fchip, .ih-chip, .ea-schip, .pg-chip, .cal-ev) {
+    min-height: 44px;
+  }
+  /* Not fields or buttons: a screen sizes those itself (a full-width
+     field on a phone), and the layered rule above gives a button its
+     44px. */
+  main :is(.seg button, .ch-filter button, .ibtn, .vchip, .vchip-more, .tx-fchip, .ih-chip, .ea-schip, .pg-chip) {
+    min-width: 44px;
+  }
+  main .vchip-more {
+    min-height: 44px;
+  }
+  main :is(.er-tip, .ptag-x) {
+    box-sizing: content-box;
+    padding: 10px;
+  }
+  main .er-tip {
+    margin: -15px -12px;
+  }
+  main .ptag-x {
+    margin: -12px;
+  }
+  main :is(.ws-drag .gr, .sms-kwd button) {
+    padding: 13px;
+    margin: -13px;
+  }
+  main :is(a, button).badge {
+    border-block-width: 11px;
+    margin-block: -11px;
+  }
+  main :is(td, th) a:not(.btn, .badge),
+  main :is(.flex, .inline-flex, .grid) > a:not(.btn, .badge),
+  main a:not(.btn, .badge):not(:is(p, span, li, label, small, strong, b, em, dd, h1, h2, h3, h4, h5, h6) a),
+  main :is(a, button):is(.underline, .gr-srcname, .ih-mby, .pl-lnk, .sms-lbtn, .sp-issue, .sc-sortbtn):not(.btn, .badge) {
+    padding-block: 13px;
+    margin-block: -13px;
   }
 }

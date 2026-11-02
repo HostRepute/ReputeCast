@@ -32,7 +32,7 @@ import type { Channel } from '@/features/channels/channel'
 import { m as chm } from '@/features/channels/messages'
 import { SmsCampaignHead, SmsCampaignRow } from '@/features/sms/CampaignRow'
 import { ChannelCampaignRow } from '@/features/push/CampaignRow'
-import { SelectAll } from '@/components/ui/SelectAll'
+import { Check, SelectAll } from '@/components/ui/SelectAll'
 import { useSelection } from '@/lib/selection'
 
 export type CampaignFilter = 'all' | 'drafts' | 'scheduled' | 'sending' | 'sent' | 'recurring' | 'paid' | 'archived' | 'deleted'
@@ -437,7 +437,7 @@ function CampaignTable({ data, page, status, search, top }: { data: Schemas['Cam
   const toggle = sel.toggle
   const pick = (c: Schemas['CampaignListItem']) =>
     selectable ? (
-      <input type="checkbox" className="mt-[3px] shrink-0" checked={sel.has(c.id)} aria-label={t(mm.selectOne, { name: c.name })} onChange={(e) => toggle(c.id, e.target.checked)} />
+      <Check checked={sel.has(c.id)} aria-label={t(mm.selectOne, { name: c.name })} onChange={(e) => toggle(c.id, e.target.checked)} />
     ) : undefined
   // Everything in the ⋯ menu but Report needs campaigns:edit: viewers get none.
   const menu = (c: Schemas['CampaignListItem']) => (status === 'deleted' ? <RestoreButton c={c} /> : canEdit ? <RowMenu c={c} onAction={setAction} /> : null)

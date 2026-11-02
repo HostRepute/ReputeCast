@@ -14,6 +14,7 @@ import { Initials } from '../parts'
 import { mcs } from './messages'
 import { applySponsor, ATTR_LABEL, ATTR_LAYOUT, isCurrent, sponsorBlocks, sponsorOf, type SponsorBlock, type SponsorLayout } from './sponsor'
 import '../sponsors.css'
+import { Check } from '@/components/ui/SelectAll'
 
 /**
  * The Sponsor block of a component as the server fills it. With fill, the
@@ -195,7 +196,7 @@ export function SponsorSettings({ c: comp }: { c: Component }) {
       </Prop>
       <Prop title={t(mcs.label)}>
         <div className="sp-clabel">
-          <input type="checkbox" checked disabled aria-label={t(mcs.labelValue)} aria-describedby={`${ids}-always`} />
+          <Check checked disabled aria-label={t(mcs.labelValue)} aria-describedby={`${ids}-always`} />
           <div className="flex flex-col gap-0.5">
             <span className="font-semibold">{t(mcs.labelValue)}</span>
             <span className="k" id={`${ids}-always`}>

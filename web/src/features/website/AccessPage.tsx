@@ -18,6 +18,7 @@ import { ma } from './access.messages'
 import { m } from './messages'
 import { visibilityIcon } from './postFormat'
 import { ReadOnlyNote, SavedLine, WebsitePage } from './WebsiteFrame'
+import { Check } from '@/components/ui/SelectAll'
 
 type Tier = Access['tiers'][number]
 
@@ -312,11 +313,11 @@ function SignupCard({ data, draft, set, ro }: CardProps & { data: Access }) {
                 </span>
                 <span className="ct" style={{ gap: 14 }}>
                   <label className="flex items-center gap-2 font-medium">
-                    <input type="checkbox" aria-label={t(ma.offeredFor, { name: l.name })} checked={Boolean(o)} disabled={ro || !draft.signupOn} onChange={(e) => toggle(l.id, l.consent, e.target.checked)} />
+                    <Check aria-label={t(ma.offeredFor, { name: l.name })} checked={Boolean(o)} disabled={ro || !draft.signupOn} onChange={(e) => toggle(l.id, l.consent, e.target.checked)} />
                     <span aria-hidden="true">{t(ma.offered)}</span>
                   </label>
                   <label className="flex items-center gap-2 font-medium">
-                    <input type="checkbox" aria-label={t(ma.checkedFor, { name: l.name })} checked={Boolean(o?.checked)} disabled={ro || !o || !draft.signupOn} onChange={(e) => check(l.id, e.target.checked)} />
+                    <Check aria-label={t(ma.checkedFor, { name: l.name })} checked={Boolean(o?.checked)} disabled={ro || !o || !draft.signupOn} onChange={(e) => check(l.id, e.target.checked)} />
                     <span aria-hidden="true">{t(ma.checked)}</span>
                   </label>
                 </span>

@@ -160,11 +160,11 @@ export function CalendarPage({ search }: { search: CalendarSearch }) {
     >
       <section className="card" aria-labelledby="cal-h">
         <div className="sec flex-wrap">
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
             <Button size="sm" aria-label={tr(view === 'week' ? mk.previousWeek : mk.previousMonth)} onClick={() => step(-1)}>
               <span aria-hidden="true">‹</span>
             </Button>
-            <h2 className="h2 min-w-[150px] text-center" id="cal-h" aria-live="polite">
+            <h2 className="h2 min-w-[150px] text-center max-md:min-w-0 max-md:flex-1" id="cal-h" aria-live="polite">
               {heading}
             </h2>
             <Button size="sm" aria-label={tr(view === 'week' ? mk.nextWeek : mk.nextMonth)} onClick={() => step(1)}>
@@ -370,7 +370,7 @@ function CalendarEvent({
         ? tr(mk.evScheduled, { time, count: it.recipients != null ? count(it.recipients) : 'none' })
         : // Texts and push notifications count what went out on their own reports: the audience stands in.
           tr(mk.evSent, { time, status: it.status, count: count(it.sent || it.recipients || 0) })
-  const cls = `flex min-w-0 flex-col gap-px rounded-md border-l-[3px] px-1.5 py-1 text-[11.5px] leading-[1.3] no-underline ${evTone[it.kind]} ${draggable ? 'cursor-grab' : ''} ${dragging ? 'opacity-55' : ''}`
+  const cls = `cal-ev flex min-w-0 flex-col gap-px rounded-md border-l-[3px] px-1.5 py-1 text-[11.5px] leading-[1.3] no-underline ${evTone[it.kind]} ${draggable ? 'cursor-grab' : ''} ${dragging ? 'opacity-55' : ''}`
   const body = (
     <>
       <b className="truncate">{it.name}</b>

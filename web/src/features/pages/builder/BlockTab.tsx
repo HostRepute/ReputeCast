@@ -43,6 +43,7 @@ import {
 } from './model'
 import { m } from './messages'
 import { kindDescription, kindName, localTime, wallText, zoneLabel, type T as TFn } from './wording'
+import { Check } from '@/components/ui/SelectAll'
 
 const BG_SWATCH: Record<Bg, string> = { white: '#FFFFFF', lavender: '#F5F3FF', indigo: '#4338CA', ink: '#0B1220' }
 
@@ -212,7 +213,7 @@ function ProductPanel({ c }: { c: Component }) {
         <AttrFlag c={c} name="offer" label={t(m.showOffer)} hint={t(m.offerHint)} />
         {offerText ? (
           <div className="pb-offerprev">
-            <input type="checkbox" disabled aria-label={t(m.offerPreview)} />
+            <Check disabled aria-label={t(m.offerPreview)} />
             <span>
               <b style={{ fontWeight: 600 }}>{offerText}</b>
               <br />

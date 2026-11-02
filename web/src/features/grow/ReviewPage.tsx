@@ -15,7 +15,7 @@ import { useCan, useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import { mv } from './review.messages'
 import { GROW, GrowPage, LoadError, ProgramNav, orNames, useGrowRefresh, useReferralPrograms } from './shared'
-import { SelectAll } from '@/components/ui/SelectAll'
+import { Check, SelectAll } from '@/components/ui/SelectAll'
 import { useSelection } from '@/lib/selection'
 
 type Queue = Schemas['ReferralReviewQueue']
@@ -222,7 +222,7 @@ function GroupCard({
       <div className="sec flex-wrap" style={{ alignItems: 'flex-start' }}>
         <div className="flex min-w-0 flex-[1_1_380px] items-start gap-3">
           {canReview ? (
-            <SelectAll className="mt-2" all={all} some={some} label={t(mv.selectAll, { count: g.items.length, name: r.name })} onChange={onSelectAll} />
+            <SelectAll className="mt-1" all={all} some={some} label={t(mv.selectAll, { count: g.items.length, name: r.name })} onChange={onSelectAll} />
           ) : null}
           <Avatar name={r.name} size={36} color="muted" />
           <div className="flex min-w-0 flex-col gap-0.5">
@@ -343,7 +343,7 @@ function HeldTable({ g, show, selected, onToggle }: { g: Group; show: boolean; s
                 <tr key={x.id} className={selected.has(x.id) ? 'sel' : undefined}>
                   {canReview ? (
                     <td>
-                      <input type="checkbox" aria-label={t(mv.selectOne, { email: name(x, i) })} checked={selected.has(x.id)} onChange={(e) => onToggle(x.id, e.target.checked)} />
+                      <Check aria-label={t(mv.selectOne, { email: name(x, i) })} checked={selected.has(x.id)} onChange={(e) => onToggle(x.id, e.target.checked)} />
                     </td>
                   ) : null}
                   <td className="mono text-[12.5px]">{name(x, i)}</td>
@@ -375,7 +375,7 @@ function HeldTable({ g, show, selected, onToggle }: { g: Group; show: boolean; s
       <div className="md:hidden">
         {g.items.map((x, i) => (
           <label key={x.id} className="gw-prow" style={{ alignItems: 'flex-start' }}>
-            {canReview ? <input type="checkbox" className="mt-1" aria-label={t(mv.selectOne, { email: name(x, i) })} checked={selected.has(x.id)} onChange={(e) => onToggle(x.id, e.target.checked)} /> : null}
+            {canReview ? <Check className="mt-0" aria-label={t(mv.selectOne, { email: name(x, i) })} checked={selected.has(x.id)} onChange={(e) => onToggle(x.id, e.target.checked)} /> : null}
             <span className="tx">
               <span className="mono text-[12.5px] font-semibold">{name(x, i)}</span>
               <span className="k">

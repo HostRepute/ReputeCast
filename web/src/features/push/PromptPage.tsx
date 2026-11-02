@@ -18,6 +18,7 @@ import { m } from './prompt.messages'
 import { BrowserPrompts, IosSheet, Mark, PromptOver, SiteFrame, type SiteLook } from './PromptPreviews'
 import './composer.css'
 import './prompt.css'
+import { Check } from '@/components/ui/SelectAll'
 
 type Prompt = Schemas['PushPrompt']
 type SiteOption = Schemas['PushPromptSiteOption']
@@ -516,7 +517,7 @@ function Rule({
   const t = useT()
   return (
     <div className="pp-rule clear-both">
-      <input type="checkbox" checked={checked} onChange={(e) => onCheck(e.target.checked)} aria-label={t(msg, { n: value })} />
+      <Check checked={checked} onChange={(e) => onCheck(e.target.checked)} aria-label={t(msg, { n: value })} />
       <span className="min-w-0 flex-1">
         <T msg={msg} values={{ n: <NumberInput value={value} onValue={(n) => onValue(Math.max(1, n))} label={label} /> }} />
       </span>
