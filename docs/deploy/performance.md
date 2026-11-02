@@ -223,6 +223,35 @@ changes the contacts that crossed a line that day. The workflow now runs
 `VACUUM (ANALYZE) contacts` itself after the start-up jobs, as autovacuum
 would have long before a busy hour, and records how long it took.
 
+### Sixth run: every target met
+
+[Run 41390919040](https://github.com/HostRepute/ReputeCast/actions/runs/41390919040),
+the same runner and data, passed: the workflow fails on any crossed k6
+threshold or timing test, and none was. The start-up jobs settled after 345
+seconds (the first tier run of the million contacts took 317), and the
+vacuum after them 2 seconds.
+
+| | First run | Fifth run | Sixth run | Target |
+|---|---|---|---|---|
+| contacts.js, requests a second | 116 | 246 | 278 | — |
+| contacts.js, pages p95 | 50 ms | 40 ms | 35 ms | under 200 ms: met |
+| contacts.js, search p95 | 513 ms | 160 ms | 140 ms | under 150 ms: met |
+| Ten people browsing (Go test), p95 | 270 ms | 147 ms | 140 ms | under 200 ms: met |
+| Search on its own (Go test) | 52 ms | 28 ms | 27 ms | under 150 ms: met |
+| segments.js, p95 | 10.6 ms | 5.2 ms | 5.0 ms | under 2 s: met |
+| send.js, messages a second | — | 134 | 135 | — |
+| send.js, median | — | 25 ms | 23 ms | — |
+| send.js, p95 | 760 ms | 269 ms | 247 ms | under 300 ms: met |
+| send.js, worst | — | 438 ms | 337 ms | — |
+| send.js, arrivals dropped (no free sender) | — | 304 | 117 | — |
+
+The first run's send numbers went through a person's session, so its
+latency isn't comparable. Search's margin is the thinnest, 10 ms, and a
+shared runner moves by tens of milliseconds from one run to the next: the
+next runs will tell whether it holds. Its cost is still the email trigram
+index on sample addresses that all contain "load" (above); on four cores
+shared with k6, ten people with no pause between requests keep the CPU busy.
+
 The approvals inbox with 1,000 open requests (`TestInboxAtAThousandRequests`,
 review 2026-11 AP-3): 118 to 200 ms when every request was checked
 recently, as the inbox re-checks only stale ones; 460 ms when ten campaigns

@@ -552,7 +552,7 @@ Found while building M47 (added to the backlog):
 |---|---|---|
 | OP-11 | Convert `delivery_events` at upgrade in a later release, once instances have run the opt-in command; then drop the legacy unique dedupe index. | ⏳ later release |
 | OP-12 | A segment count (about a second for two conditions on a million contacts) and the audience header counts (about 300 ms) read every contact: a count cache. | ✅ M51 |
-| OP-13 | Record the k6 numbers from a run of the Load test workflow in `docs/deploy/performance.md` (k6 couldn't run where these numbers were taken). | ✅ M51 (run 41353963642; search under load and the send test followed up) |
+| OP-13 | Record the k6 numbers from a run of the Load test workflow in `docs/deploy/performance.md` (k6 couldn't run where these numbers were taken). | ✅ M51 (runs 41353963642 to 41390919040; the sixth meets every target) |
 
 ## Frontend foundation (M48) ✅
 
@@ -767,7 +767,14 @@ Checked at the end of M51:
   segment counts (p95 10.6 ms) held under load. Search under ten people missed (p95 513 ms on four shared
   cores): the first page now counts its own rows when they are all the matches, which halves a narrow
   search's reads. The send test had gone through a person's session (50 a second, so 52% were 429s by
-  design) and now sends with a key; the workflow fails when a threshold is crossed. Numbers in
+  design) and now sends with a key; the workflow fails when a threshold is crossed. Five more runs
+  followed what each showed: a transactional template version compiles once; a send takes its rate
+  tokens in one statement and wakes the outbox after it commits (every send had locked the bucket's
+  row and the outbox job's row until it committed, so sends went one at a time); a search reads its
+  matches once; the first tier run of a million contacts and the mailbox classifier no longer deadlock
+  (tier runs go in short ordered batches, the classifier skips held contacts); and k6 starts after
+  the start-up jobs and a vacuum. The sixth run met every target: search p95 140 ms (from 513), send
+  p95 247 ms (from 760, median 23 ms), pages p95 35 ms, ten people browsing p95 140 ms. Numbers in
   `docs/deploy/performance.md`.
 
 Still open: OP-11 (a later release, by design).
