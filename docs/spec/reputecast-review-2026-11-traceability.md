@@ -29,7 +29,7 @@ added writes an audit entry; where the row's test checks the entry, it says so (
 | Transactional (TX) | 7 | 6 | 0 | 1 (TX-7) | 0 | 0 |
 | Approvals, polls (AP) | 3 | 2 | 0 | 1 (AP-3) | 0 | 0 |
 | Integrations (IN) | 4 | 4 | 0 | 0 | 0 | 0 |
-| Operations (OP) | 14 | 10 | 1 (OP-x) | 2 (OP-12, OP-13) | 0 | 1 (OP-11 by design) |
+| Operations (OP) | 14 | 10 | 1 (OP-x) | 3 (OP-11, OP-12, OP-13) | 0 | 0 |
 | Frontend (FE) | 8 + 5 | 5 | 0 | 8 (FE-3 with FE-3b, FE-5 with FE-5b, FE-7 with FE-7b, FE-9, FE-10) | 0 | 0 |
 | Earn (EA) | 6 + 1 | 3 | 2 (EA-2b, EA-6) | 2 (EA-4, EA-5) | 0 | 0 |
 | Other channels (CH) | 2 | 1 | 0 | 1 (CH-2) | 0 | 0 |
@@ -183,7 +183,7 @@ first name, so it can't name a custom field and isn't read.
 | OP-9 | Load tests | Done (M47) | `internal/loadtest`, `loadtest/k6` | `TestAudienceAtOneMillion`, benchmarks |
 | OP-10 | Instance admin › System | Done (M47) | `internal/instance/system.go` | `TestSystemTab`, `SystemPage.test.tsx` (audited) |
 | OP-x | Rebill test at a month's start | Done in M50 | `internal/demo/seed_agency.go` | `TestUsageAndRebill` (failed on 1 November before the fix) |
-| OP-11 | Convert `delivery_events` at upgrade | Open (by design) | — | A later release, once instances ran the opt-in command. |
+| OP-11 | Convert `delivery_events` at upgrade | Done (M51, decision D9) | `internal/db/partition.go` (`upgradeEvents`, run by `MigrateUp` after the migrations: converts when not partitioned, drops `delivery_events_dedupe_key` concurrently), `internal/testdb/testdb.go` (test databases made the same way), `docs/deploy/partitioning.md` (rollback in full) | `TestMigrateUpConvertsEvents`, `TestMigrateUpAfterTheOptInCommand`, `TestPartitionDeliveryEvents` (from the documented rollback) |
 | OP-12 | Count cache for segments and header counts | Done (M51) | `internal/countcache`, the audit log's observer, `audience.Summary`, `segments.Preview` | `TestCountsAreKeptUntilTheAudienceChanges`, `countcache_test.go` |
 | OP-13 | Record k6 numbers | Done (M51) | `.github/workflows/load.yml` (a `load-test` label runs it; it fails on a crossed threshold), `loadtest/sendkey.sh`, `docs/deploy/performance.md`; the contacts list counts a first page that holds every match from its rows and reads a search's matches once (`internal/audience/contacts.go`); a send takes its rate tokens in one statement (`internal/transactional/ratelimit.go`) and wakes the outbox after it commits (`internal/sending/engine/transactional.go`); tier runs go in ordered batches and the classifier skips held contacts (`internal/audience/tiers.go`, `internal/mailbox/classifier.go`) | Load test runs 41353963642 to 41390919040 (the sixth meets every target); `TestTakeTokensConcurrently`, `TestClassifierSkipsLockedContacts`, `TestClassifierAlongsideTierRun`, `TestContactCountStopsAtTenThousand` |
 

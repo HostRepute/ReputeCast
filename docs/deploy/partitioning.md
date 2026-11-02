@@ -17,21 +17,25 @@ at a time, and leaves room to archive or drop old months later (review
 | Dedupe keys in their own table | One event per provider and dedupe key must hold across months, which a per-partition unique index can't. `delivery_event_keys` takes the key in the same statement as the event; keys are kept 180 days (no provider replays older events). |
 | Detail retention by partition | DP-6 clears opens' and clicks' IP addresses and user agents after a workspace's setting (12 months by default). Once a month's partition is past a setting's cutoff (plus a day), it is cleared in one pass and recorded in `delivery_event_partitions`; the per-workspace batches handle the legacy partition and anything left. |
 
-The conversion is opt-in for this release: `reputecast migrate
-partition-events`. The code works the same on either shape, so instances
-convert when it suits them. A later release will convert the rest at
-upgrade.
+An upgrade converts the table (review 2026-11 OP-11): `reputecast migrate
+up`, and `reputecast serve --auto-migrate` (the Docker image), convert it
+after the schema's migrations when it isn't partitioned yet, then drop the
+unpartitioned table's unique dedupe index, which `delivery_event_keys`
+replaces. To pick the moment, run `reputecast migrate partition-events`
+before upgrading; the upgrade then only drops that index. The code works the
+same on either shape.
 
 ## Converting
 
-Back up first ([backup and restore](backup-restore.md)), then:
+Back up first ([backup and restore](backup-restore.md)). The upgrade does
+the rest, or ahead of it:
 
 ```bash
 reputecast migrate partition-events
 ```
 
-It holds the migration lock, so two runs never overlap, and it can run
-while ReputeCast runs:
+Either way it holds the migration lock, so two runs never overlap, and it
+can run while ReputeCast runs:
 
 1. Copies the dedupe keys of the last 180 days into `delivery_event_keys`.
 2. Builds the new primary key's index with `CREATE INDEX CONCURRENTLY`
@@ -45,9 +49,19 @@ while ReputeCast runs:
    keys and indexes, attaches the old table as its first partition (its
    indexes are matched, not rebuilt) and adds the default partition.
 5. Makes the monthly partitions and runs `ANALYZE`.
+6. At upgrade only: drops `delivery_events_dedupe_key`, the old table's
+   unique index on a provider's dedupe key, with `DROP INDEX CONCURRENTLY`
+   (writes go on). Dedupe keys of the last 180 days are in
+   `delivery_event_keys` (step 1); no provider replays older events.
 
 An interrupted run can run again: each step checks what is done. On a
 converted database it only makes missing months.
+
+How long the upgrade takes grows with the table: steps 2 and 3 read all of
+it, without blocking writes. With `--auto-migrate` the new process starts
+serving once they are done, and the previous one keeps serving meanwhile;
+on a very large table, run `reputecast migrate partition-events` first, at
+a quiet hour.
 
 On the one-million-contact load test data (3.2 million events, 1.4 GB) it
 took 5 seconds, and every count and report read the same before and after
@@ -55,13 +69,24 @@ took 5 seconds, and every count and report read the same before and after
 
 ## Rolling back
 
-Converting back isn't automated. To undo it, restore the backup taken
-before, or, while only the legacy partition holds rows, run in a
-transaction: `ALTER TABLE delivery_events DETACH PARTITION
-delivery_events_legacy`, drop the partitioned table and its monthly
-partitions (after moving their rows into the legacy table), rename
-`delivery_events_legacy` back to `delivery_events` and recreate its
-`delivery_events_pkey (id)` primary key.
+Converting back isn't automated, and the release before works on either
+shape, so a downgrade doesn't need it. To undo the conversion, restore the
+backup taken before, or run, in one transaction:
+
+```sql
+LOCK TABLE delivery_events IN ACCESS EXCLUSIVE MODE;
+ALTER TABLE delivery_events DETACH PARTITION delivery_events_legacy;
+ALTER TABLE delivery_events_legacy DROP CONSTRAINT delivery_events_before_partitions;
+INSERT INTO delivery_events_legacy SELECT * FROM delivery_events;  -- the newer months' rows
+DROP TABLE delivery_events;                                         -- and its monthly partitions
+ALTER TABLE delivery_events_legacy RENAME TO delivery_events;
+ALTER TABLE delivery_events DROP CONSTRAINT delivery_events_legacy_pkey;
+ALTER TABLE delivery_events ADD CONSTRAINT delivery_events_pkey PRIMARY KEY (id);
+```
+
+then rename each index ending in `_legacy` back without the suffix. The
+tests start from an unpartitioned table this way
+(`internal/db/unpartition_test.go`).
 
 ## Later
 

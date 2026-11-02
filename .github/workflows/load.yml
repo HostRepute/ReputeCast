@@ -1,10 +1,10 @@
 name: Load test
 
 # Run by hand (Actions › Load test › Run workflow): a million contacts by
-# default, the hot queries' targets and timings, the delivery_events
-# partition conversion on that data, and the k6 scripts against a running
-# server (review 2026-11 OP-9). Results are kept as an artifact; record
-# them in docs/deploy/performance.md.
+# default, the hot queries' targets and timings on a partitioned
+# delivery_events, and the k6 scripts against a running server (review
+# 2026-11 OP-9). Results are kept as an artifact; record them in
+# docs/deploy/performance.md.
 
 on:
   workflow_dispatch:
@@ -69,7 +69,10 @@ jobs:
         if: ${{ !cancelled() && steps.seed.outcome == 'success' }}
         shell: bash
         run: go test -count=1 -run '^$' -bench . -benchtime 50x ./internal/loadtest/ | tee -a results.txt
-      - name: Partition delivery_events, then time again
+      # The seed's `migrate up` partitioned delivery_events before the data
+      # went in (review 2026-11 OP-11), so the timings above already read
+      # the partitioned table; the opt-in command now only makes months ahead.
+      - name: Partitions ahead, then time again
         if: ${{ !cancelled() && steps.seed.outcome == 'success' }}
         shell: bash
         run: |

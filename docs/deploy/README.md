@@ -86,7 +86,7 @@ reachable from the internet. See [Reverse proxy and TLS](reverse-proxy.md).
 | `reputecast worker` | Runs only background jobs (same as `serve --role=worker`). |
 | `reputecast install` | Applies migrations and creates the first Owner (an instance admin with break-glass sign-in). |
 | `reputecast migrate up\|down\|status` | Manages the schema. |
-| `reputecast migrate partition-events` | Splits `delivery_events` into monthly partitions without copying it ([partitioning](partitioning.md)). |
+| `reputecast migrate partition-events` | Splits `delivery_events` into monthly partitions without copying it, ahead of the upgrade that would ([partitioning](partitioning.md)). |
 | `reputecast migrate segments-role` | Hands the SQL segments function back to its role after a restore on a new server ([backup and restore](backup-restore.md)). |
 | `reputecast doctor` | Checks the database, schema, secret key, files folder and roles; run it after a restore or a move. |
 | `reputecast healthcheck [--live]` | Asks the local process's `/readyz` (or `/healthz`); exits 1 when it isn't ready. For container health checks. |
@@ -106,6 +106,11 @@ reachable from the internet. See [Reverse proxy and TLS](reverse-proxy.md).
 - Docker: `docker compose pull && docker compose up -d`. Migrations run at
   start.
 - Binary: replace it, then run `reputecast migrate up`.
+
+The upgrade to the release with review 2026-11 converts `delivery_events` to
+monthly partitions if it isn't already; on a very large table run
+`reputecast migrate partition-events` first, at a quiet hour
+([partitioning](partitioning.md)).
 
 A process whose database is missing migrations it needs serves read-only:
 pages and the API read as usual with a banner ("ReputeCast is being

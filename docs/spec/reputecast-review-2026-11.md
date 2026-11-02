@@ -72,6 +72,10 @@ Until the owner decides otherwise, the build follows these.
   as campaigns leave them out. SMS, push and WhatsApp steps don't read the email pause.
 - **D8 Metrics** (owner, 31 October 2026). `/metrics` listens on its own port, `:9464` by default;
   the main listener serves it only to a bearer token (`metrics.token`) and answers 404 otherwise.
+- **D9 Partitions at upgrade** (owner, 2 November 2026). OP-11 ships in this release instead of the
+  next: the upgrade converts `delivery_events` to monthly partitions when the opt-in command hasn't,
+  and drops the legacy dedupe index. Operators with a very large table run the command first, at a
+  quiet hour (`docs/deploy/partitioning.md`).
 - **D4 Deleting campaigns.** Drafts and cancelled campaigns can be deleted (restorable for 30 days,
   like lists). Sent campaigns are archived, never deleted: reports, web posts, retries and approvals
   still point at them.
@@ -550,7 +554,7 @@ Found while building M47 (added to the backlog):
 
 | ID | What | Status |
 |---|---|---|
-| OP-11 | Convert `delivery_events` at upgrade in a later release, once instances have run the opt-in command; then drop the legacy unique dedupe index. | ⏳ later release |
+| OP-11 | Convert `delivery_events` at upgrade in a later release, once instances have run the opt-in command; then drop the legacy unique dedupe index. | ✅ M51 (in this release, D9) |
 | OP-12 | A segment count (about a second for two conditions on a million contacts) and the audience header counts (about 300 ms) read every contact: a count cache. | ✅ M51 |
 | OP-13 | Record the k6 numbers from a run of the Load test workflow in `docs/deploy/performance.md` (k6 couldn't run where these numbers were taken). | ✅ M51 (runs 41353963642 to 41390919040; the sixth meets every target) |
 
@@ -776,8 +780,14 @@ Checked at the end of M51:
   the start-up jobs and a vacuum. The sixth run met every target: search p95 140 ms (from 513), send
   p95 247 ms (from 760, median 23 ms), pages p95 35 ms, ten people browsing p95 140 ms. Numbers in
   `docs/deploy/performance.md`.
+- **OP-11** (D9: in this release) `reputecast migrate up` and `serve --auto-migrate` convert
+  `delivery_events` after the schema's migrations when it isn't partitioned, by the same online steps
+  as the opt-in command, then drop `delivery_events_dedupe_key` concurrently; an instance that ran the
+  command only loses that index. Test databases are made the same way, so every test runs on the
+  partitioned table; the conversion test starts from the documented rollback, which the docs now give
+  in full (`TestMigrateUpConvertsEvents`, `TestMigrateUpAfterTheOptInCommand`).
 
-Still open: OP-11 (a later release, by design).
+Nothing in the review is open.
 
 ## Competitor benchmark
 
