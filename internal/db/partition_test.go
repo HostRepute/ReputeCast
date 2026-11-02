@@ -24,6 +24,9 @@ func TestPartitionDeliveryEvents(t *testing.T) {
 	ctx := context.Background()
 	pool := env.App.Pool
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	// An upgrade converts the table (OP-11); this starts from one that
+	// hasn't been, as the opt-in command found it.
+	unpartition(t, ctx, pool, true)
 	c := env.Client()
 	c.SignInDemo("linh@acme.io")
 

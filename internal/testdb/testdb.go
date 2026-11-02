@@ -123,9 +123,11 @@ func ensureTemplate(ctx context.Context) error {
 	return err
 }
 
-// migrationsHash fingerprints every embedded migration file.
+// migrationsHash fingerprints every embedded migration file and the
+// upgrade steps that follow them.
 func migrationsHash() string {
 	h := sha256.New()
+	h.Write([]byte(db.UpgradeSteps))
 	entries, _ := fs.ReadDir(migrations.FS, ".")
 	for _, e := range entries {
 		b, _ := fs.ReadFile(migrations.FS, e.Name())

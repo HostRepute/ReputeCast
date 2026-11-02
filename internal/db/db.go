@@ -147,8 +147,18 @@ func withMigrateLock(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logge
 
 // MigrateUp applies all pending goose migrations, then River's migrations,
 // holding the migration lock throughout.
+//
+// After the schema's migrations it does the upgrade steps a goose migration
+// can't (review 2026-11 OP-11): delivery_events becomes monthly partitions
+// when `reputecast migrate partition-events` hasn't made it so already, and
+// the unpartitioned table's unique dedupe index goes.
 func MigrateUp(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger) error {
-	return withMigrateLock(ctx, pool, logger, func() error { return migrateUp(ctx, pool, logger) })
+	return withMigrateLock(ctx, pool, logger, func() error {
+		if err := migrateUp(ctx, pool, logger); err != nil {
+			return err
+		}
+		return upgradeEvents(ctx, pool, logger, time.Now())
+	})
 }
 
 func migrateUp(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger) error {

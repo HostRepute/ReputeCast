@@ -289,6 +289,39 @@ func partitionDeliveryEvents(ctx context.Context, pool *pgxpool.Pool, log *slog.
 	return res, err
 }
 
+// UpgradeSteps names the steps MigrateUp takes after the schema's
+// migrations; a test database made before they changed is made again.
+const UpgradeSteps = "op11-events-partitioned"
+
+// legacyDedupeIndex is the unpartitioned table's unique index on a
+// provider's dedupe key. A per-partition unique index can't hold across
+// months, so delivery_event_keys has held the keys since the conversion was
+// written (review 2026-11 OP-8); the old index stayed on the legacy
+// partition until the upgrade that converts every instance dropped it.
+const legacyDedupeIndex = "delivery_events_dedupe_key"
+
+// upgradeEvents is the step of an upgrade that converts delivery_events
+// (review 2026-11 OP-11). An instance that ran `reputecast migrate
+// partition-events` only gets its months ahead; any other is converted
+// here, the same way and as safely (nothing is copied, writes go on, the
+// swap waits at most ten seconds for the table). Then the legacy dedupe
+// index is dropped without blocking writes. The caller holds the migration
+// lock.
+func upgradeEvents(ctx context.Context, pool *pgxpool.Pool, log *slog.Logger, now time.Time) error {
+	res, err := partitionDeliveryEvents(ctx, pool, log, now)
+	if err != nil {
+		return fmt.Errorf("partition delivery_events: %w", err)
+	}
+	if !res.Already {
+		log.Info("delivery_events converted to monthly partitions at upgrade", "first_month", res.FirstMonth.Format("2006-01"),
+			"dedupe_keys", res.KeysCopied, "partitions", res.Partitions)
+	}
+	if _, err := pool.Exec(ctx, `DROP INDEX CONCURRENTLY IF EXISTS `+legacyDedupeIndex); err != nil {
+		return fmt.Errorf("drop the legacy dedupe index: %w", err)
+	}
+	return nil
+}
+
 func lockTimeout(err error) bool {
 	var pg interface{ SQLState() string }
 	return errors.As(err, &pg) && pg.SQLState() == "55P03"
