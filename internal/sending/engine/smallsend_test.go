@@ -93,6 +93,9 @@ func testSmallSendWatch(t *testing.T, f *sendtest.Fixture) {
 	}
 	defaultLimits(f)
 	setClock(t, f, end.Add(12*time.Hour))
+	// The demo transport's chance complaints go first: one of them in
+	// another counter row made the two below three, which alerts.
+	f.Exec(`UPDATE campaign_counters SET complained = 0 WHERE campaign_id = $1`, f.Campaign)
 	f.Exec(`UPDATE campaign_counters SET complained = 2 WHERE campaign_id = $1 AND mailbox_provider = 'outlook' AND delivered > 0
 		AND provider_id = (SELECT provider_id FROM campaign_counters WHERE campaign_id = $1 AND mailbox_provider = 'outlook' AND delivered > 0 LIMIT 1)`, f.Campaign)
 	if err := f.E.WatchComplaints(f.Ctx); err != nil {
