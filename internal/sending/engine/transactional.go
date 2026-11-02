@@ -8,13 +8,11 @@ import (
 	"math"
 	"net"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/riverqueue/river"
-	"github.com/riverqueue/river/rivertype"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
@@ -73,8 +71,7 @@ type TransactionalOutbox struct {
 	// mail to the mail catcher (Mailpit) and records it as delivered.
 	DevSMTP string
 
-	kickOnce sync.Once
-	kicks    chan struct{}
+	kick kicker
 }
 
 // transactionalHeadroom is how many of a provider's sends this second
@@ -186,56 +183,16 @@ func RegisterTransactional(reg *jobs.Registry, o *TransactionalOutbox) {
 	reg.Every(15*time.Second, func() (river.JobArgs, *river.InsertOpts) { return TransactionalWatchArgs{}, nil }, true)
 }
 
-// kickRecheck is how often a kick that found a pass running asks again
-// until that pass has ended; kickTimeout bounds one insert of the job.
-const (
-	kickRecheck = 250 * time.Millisecond
-	kickTimeout = 5 * time.Second
-)
-
 // Kick asks for a pass of the outbox for mail committed before the call,
 // and returns at once. One goroutine inserts the unique job, so a burst of
 // sends costs a few inserts instead of one each, and no send holds the
 // job's row: each send used to insert it in its own transaction, which
 // locked that row until the send committed, so concurrent sends went one
-// at a time (review 2026-11 OP-13). A running pass may have read the queue
-// before the mail committed, so a kick that finds one asks again until it
-// has ended. Mail that a lost kick leaves (the process stopping between a
-// commit and the insert) is woken by the watch within 15 seconds.
+// at a time (review 2026-11 OP-13). Mail that a lost kick leaves (the
+// process stopping between a commit and the insert) is woken by the watch
+// within 15 seconds.
 func (o *TransactionalOutbox) Kick() {
-	o.kickOnce.Do(func() {
-		o.kicks = make(chan struct{}, 1)
-		go o.kicker()
-	})
-	select {
-	case o.kicks <- struct{}{}:
-	default: // a kick is waiting already; it covers this mail too
-	}
-}
-
-func (o *TransactionalOutbox) kicker() {
-	for range o.kicks {
-		for o.wake() {
-			time.Sleep(kickRecheck)
-		}
-	}
-}
-
-// wake inserts the outbox job. It reports whether a pass was running, so
-// the job wasn't queued again.
-func (o *TransactionalOutbox) wake() bool {
-	c := o.E.jobs()
-	if c == nil {
-		return false
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), kickTimeout)
-	defer cancel()
-	res, err := c.Insert(ctx, TransactionalOutboxArgs{}, nil)
-	if err != nil {
-		o.E.log().WarnContext(ctx, "wake the transactional outbox", "err", err)
-		return false
-	}
-	return res.UniqueSkippedAsDuplicate && res.Job != nil && res.Job.State == rivertype.JobStateRunning
+	o.kick.Kick(func() bool { return o.E.wakeOutbox(TransactionalOutboxArgs{}) })
 }
 
 // Run sends due transactional mail for up to budget.

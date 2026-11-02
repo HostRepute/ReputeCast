@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/media"
@@ -27,8 +28,9 @@ import (
 )
 
 // AutomationMailer is the automations engine's "Send email" step: it routes
-// the contact on the Automations stream (automatic failover), records the
-// message and wakes the outbox, all inside the engine's transaction.
+// the contact on the Automations stream (automatic failover) and records the
+// message inside the engine's transaction, and wakes the outbox once that
+// transaction has committed.
 type AutomationMailer struct{ E *Engine }
 
 var _ automations.Mailer = AutomationMailer{}
@@ -87,7 +89,11 @@ func (m AutomationMailer) QueueAutomationEmail(ctx context.Context, tx pgx.Tx, o
 	}); err != nil {
 		return out, err
 	}
-	if !out.Held {
+	// The outbox is woken once the caller's transaction has committed:
+	// inserting its unique job here would hold the job's row until then, so
+	// concurrent automation workers would queue on it (review 2026-11
+	// OP-13). A transaction that isn't a db.Tx wakes it the old way.
+	if !out.Held && !db.AfterCommit(tx, m.E.KickAutomationOutbox) {
 		if err := m.E.insertTx(ctx, tx, OutboxArgs{}, nil); err != nil {
 			return out, err
 		}

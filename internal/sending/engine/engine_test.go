@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/sending/sendtest"
@@ -37,6 +38,7 @@ func TestSending(t *testing.T) {
 	t.Run("AudienceFromSeveralLists", func(t *testing.T) { testSeveralLists(t, s.Fixture(t, "Several lists")) })
 	t.Run("Languages", func(t *testing.T) { testLanguages(t, s.Fixture(t, "Languages")) })
 	t.Run("AutomationLanguages", func(t *testing.T) { testAutomationLanguages(t, s.Fixture(t, "Automation languages")) })
+	t.Run("AutomationOutboxWake", func(t *testing.T) { testAutomationOutboxWake(t, s.Fixture(t, "Automation outbox wake")) })
 	t.Run("MailboxFromMX", func(t *testing.T) { testMailboxFromMX(t, s.Fixture(t, "Mailbox from MX")) })
 }
 
@@ -766,5 +768,34 @@ func testLanguages(t *testing.T, f *sendtest.Fixture) {
 	}
 	if n := f.Count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND sent_at IS NOT NULL`, f.Campaign); n != 6 {
 		t.Fatalf("%d sent, want 6", n)
+	}
+
+	// The report's results per language: from the messages when the send's
+	// snapshot has language versions; none, without reading the messages,
+	// when it has none; and from the messages again when there's no
+	// snapshot to tell.
+	ws, err := f.Env.App.Q.GetWorkspace(f.Ctx, f.WS)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ls := &languages.Service{Pool: f.Env.App.Pool, Q: f.Env.App.Q}
+	results := func() *languages.ReportLanguages {
+		t.Helper()
+		r, err := ls.CampaignResults(f.Ctx, &ws, f.Campaign, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	if r := results(); r == nil || r.Languages < 2 || len(r.Rows) < 2 {
+		t.Fatalf("results per language of a send in several: %+v", r)
+	}
+	f.Exec(`UPDATE campaign_sends SET content = jsonb_set(content, '{languages}', '[]') WHERE campaign_id = $1`, f.Campaign)
+	if r := results(); r != nil {
+		t.Fatalf("a send whose snapshot has no versions has results per language: %+v", r)
+	}
+	f.Exec(`DELETE FROM campaign_sends WHERE campaign_id = $1`, f.Campaign)
+	if r := results(); r == nil || r.Languages < 2 {
+		t.Fatalf("without a snapshot the messages didn't tell: %+v", r)
 	}
 }

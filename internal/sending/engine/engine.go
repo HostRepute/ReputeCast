@@ -99,6 +99,8 @@ type Engine struct {
 	hubs     map[uuid.UUID]*hub
 	templMu  sync.Mutex
 	template map[string]*cachedTemplate
+	// automationKick wakes the automation outbox after commit.
+	automationKick kicker
 }
 
 func (e *Engine) now() time.Time {

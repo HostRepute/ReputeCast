@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -240,13 +241,18 @@ func HasPending(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger) (b
 }
 
 // Tx runs fn inside a transaction, committing on success and rolling back on
-// error or panic.
+// error or panic. What fn hands to AfterCommit runs once the commit is done.
 func Tx(ctx context.Context, pool *pgxpool.Pool, fn func(pgx.Tx) error) (err error) {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
+	conn, hooks := tx.Conn(), &commitHooks{}
+	afterCommit.Store(conn, hooks)
 	defer func() {
+		// Only this transaction's entry: once the connection is back in the
+		// pool, another transaction may have stored its own.
+		afterCommit.CompareAndDelete(conn, hooks)
 		if p := recover(); p != nil {
 			_ = tx.Rollback(ctx)
 			panic(p)
@@ -258,7 +264,51 @@ func Tx(ctx context.Context, pool *pgxpool.Pool, fn func(pgx.Tx) error) (err err
 	if err = fn(tx); err != nil {
 		return err
 	}
-	return tx.Commit(ctx)
+	afterCommit.CompareAndDelete(conn, hooks)
+	if err = tx.Commit(ctx); err != nil {
+		return err
+	}
+	hooks.run()
+	return nil
+}
+
+// afterCommit holds, for each connection running a Tx, what to do once that
+// transaction commits. Keyed by connection, so a savepoint inside it
+// (tx.Begin) reaches the same list.
+var afterCommit sync.Map // *pgx.Conn → *commitHooks
+
+type commitHooks struct {
+	mu  sync.Mutex
+	fns []func()
+}
+
+func (h *commitHooks) run() {
+	h.mu.Lock()
+	fns := h.fns
+	h.mu.Unlock()
+	for _, fn := range fns {
+		fn()
+	}
+}
+
+// AfterCommit runs fn once the transaction tx belongs to has committed, and
+// reports true, when that transaction is a Tx; otherwise it reports false and
+// fn doesn't run, so the caller does the work its old way. fn doesn't run when
+// the transaction rolls back, but does when only a savepoint it was handed in
+// rolls back: use it for work that is harmless if nothing changed (waking a
+// queue), not for effects of the transaction's writes. Work that holds a lock
+// until commit, such as inserting a unique job, belongs here instead (review
+// 2026-11 OP-13).
+func AfterCommit(tx pgx.Tx, fn func()) bool {
+	v, ok := afterCommit.Load(tx.Conn())
+	if !ok {
+		return false
+	}
+	h := v.(*commitHooks)
+	h.mu.Lock()
+	h.fns = append(h.fns, fn)
+	h.mu.Unlock()
+	return true
 }
 
 // SchemaState compares the database's schema with the migrations this

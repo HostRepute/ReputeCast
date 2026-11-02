@@ -118,6 +118,14 @@ func rateOf(n, d int64) *float64 {
 // CampaignResults returns a sent campaign's results per language, or nil
 // when it went out in one language.
 func (s *Service) CampaignResults(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID, audience json.RawMessage) (*ReportLanguages, error) {
+	var snap sendSnapshot
+	raw, err := s.Q.LanguagesCampaignSendContent(ctx, campaignID)
+	// A send whose snapshot has no language versions went out in its source
+	// alone: no need to read every message (on a large send, the report's
+	// slowest query). Without a snapshot, the messages tell.
+	if err == nil && len(raw) > 0 && json.Unmarshal(raw, &snap) == nil && len(snap.Languages) == 0 {
+		return nil, nil
+	}
 	rows, err := s.Q.LanguagesMessageResults(ctx, &campaignID)
 	if err != nil {
 		return nil, err
@@ -130,10 +138,6 @@ func (s *Service) CampaignResults(ctx context.Context, ws *store.Workspace, camp
 	}
 	if len(langs) < 2 {
 		return nil, nil
-	}
-	var snap sendSnapshot
-	if raw, err := s.Q.LanguagesCampaignSendContent(ctx, campaignID); err == nil {
-		_ = json.Unmarshal(raw, &snap)
 	}
 	from := map[string]int{}
 	for _, l := range snap.Languages {
