@@ -275,7 +275,7 @@ function TemplatesCard({ q, period }: { q: { data?: Schemas['TransactionalTempla
         </div>
         <label className="tx-search">
           <Icon name="search" size={16} />
-          <input aria-label={t(mo.search)} placeholder={t(mo.searchPlaceholder)} value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input type="search" aria-label={t(mo.search)} placeholder={t(mo.searchPlaceholder)} value={query} onChange={(e) => setQuery(e.target.value)} />
         </label>
       </div>
       {q.error ? (

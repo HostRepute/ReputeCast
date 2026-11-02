@@ -2865,29 +2865,69 @@ main .er-tip {
 main .ptag-x {
   margin: -2px;
 }
-main :is(.ws-drag .gr, .sms-kwd button) {
+main .ws-drag .gr {
   box-sizing: content-box;
-  padding: 3px;
+  padding: 5px;
   margin: -3px;
-  justify-content: center;
-  align-items: center;
+}
+/* The keyword's remove button has no padding of its own and sits 2px into
+   the chip's end. */
+main .sms-kwd button {
+  box-sizing: content-box;
+  padding: 5px;
+  margin: -5px -7px -5px -5px;
+}
+/* A consent card's action, 4px under its status line. */
+main .sms-lbtn-under {
+  padding-block: 3px;
+  margin: 1px 0 -3px;
 }
 main :is(a, button).badge {
   box-sizing: content-box;
-  border-block: 1px solid transparent;
+  border-block: 2px solid transparent;
   background-clip: padding-box;
-  margin-block: -1px;
+  margin-block: -2px;
 }
-main :is(td, th) a:not(.btn, .badge),
-main :is(.flex, .inline-flex, .grid) > a:not(.btn, .badge),
-main a:not(.btn, .badge):not(:is(p, span, li, label, small, strong, b, em, dd, h1, h2, h3, h4, h5, h6) a),
-main :is(a, button):is(.underline, .gr-srcname, .ih-mby, .pl-lnk, .sms-lbtn, .sp-issue, .sc-sortbtn):not(.btn, .badge) {
+/* A search field drawn as a bordered box with an icon: the input fills the
+   box, so the whole box takes the tap. */
+main label:has(> input[type='search']) > input {
+  align-self: stretch;
+}
+/* Links and link-like buttons grow by padding inside an equal negative
+   margin. Not one that pads or spaces itself (a row or a card that is a
+   link, or one with a padding or margin utility): this rule would replace
+   its padding, and the layout would move. */
+main :is(td, th) a:not(.btn, .badge):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])),
+main :is(.flex, .inline-flex, .grid) > a:not(.btn, .badge):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])),
+main :is(dd, h1, h2, h3, h4, h5, h6, .ws-bpg .nm, .er-lrow .lt) > a:not(.btn, .badge):first-child:where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])),
+main a:not(.btn, .badge):not(:is(p, span, li, label, small, strong, b, em, dd, h1, h2, h3, h4, h5, h6) a):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])),
+main :is(a, button):is(.underline, .gr-srcname, .ih-mby, .pl-lnk, .sms-lbtn, .sp-issue, .sp-lnk, .gw-lnk, .px-lnk, .sc-sortbtn):not(.btn, .badge):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])) {
   padding-block: 4px;
   margin-block: -4px;
 }
 @media (max-width: 767px) {
-  main :is(.in:not(textarea), .seg button, .tabs button, .ch-filter button, .btn, .ibtn, .vchip, .tx-fchip, .ih-chip, .ea-schip, .pg-chip, .cal-ev) {
+  main :is(.in:not(textarea), select, .seg button, .tabs button, .ch-filter button, .btn, .ibtn, .chip, .vchip, .tx-fchip, .rr-fchip, .ih-chip, .ea-schip, .pg-chip, .ws-fchip, .sp-fchip, .sms-fchip, .cal-ev, .sc-prow-main, .segrow) {
     min-height: 44px;
+  }
+  main :is([role='group'], [role='tablist']) > button:not(.btn, .badge),
+  main label:has(> input[type='search']) {
+    min-height: 44px;
+  }
+  main :is([role='group'], [role='tablist']) > button:not(.btn, .badge) {
+    min-width: 44px;
+  }
+  /* A chip's remove button: 44px inside the chip's own 24px, its hover
+     circle still 24px. */
+  main .chip > button {
+    box-sizing: content-box;
+    padding: 10px;
+    margin: -10px;
+    background-clip: content-box;
+  }
+  main :is(.gw-handle, .pl-lnk, button.badge.afilter) {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
   }
   /* Not fields or buttons: a screen sizes those itself (a full-width
      field on a phone), and the layered rule above gives a button its
@@ -2908,19 +2948,47 @@ main :is(a, button):is(.underline, .gr-srcname, .ih-mby, .pl-lnk, .sms-lbtn, .sp
   main .ptag-x {
     margin: -12px;
   }
-  main :is(.ws-drag .gr, .sms-kwd button) {
-    padding: 13px;
+  main .ws-drag .gr {
+    padding: 15px;
     margin: -13px;
   }
-  main :is(a, button).badge {
-    border-block-width: 11px;
-    margin-block: -11px;
+  main .sms-kwd button {
+    padding: 15px;
+    margin: -15px -17px -15px -15px;
   }
-  main :is(td, th) a:not(.btn, .badge),
-  main :is(.flex, .inline-flex, .grid) > a:not(.btn, .badge),
-  main a:not(.btn, .badge):not(:is(p, span, li, label, small, strong, b, em, dd, h1, h2, h3, h4, h5, h6) a),
-  main :is(a, button):is(.underline, .gr-srcname, .ih-mby, .pl-lnk, .sms-lbtn, .sp-issue, .sc-sortbtn):not(.btn, .badge) {
+  main .sms-lbtn-under {
     padding-block: 13px;
-    margin-block: -13px;
+    margin: -9px 0 -13px;
+  }
+  main :is(a, button).badge {
+    border-block-width: 12px;
+    margin-block: -12px;
+  }
+  main :is(td, th) a:not(.btn, .badge):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])),
+  main :is(.flex, .inline-flex, .grid) > a:not(.btn, .badge):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])),
+  main :is(dd, h1, h2, h3, h4, h5, h6, .ws-bpg .nm, .er-lrow .lt) > a:not(.btn, .badge):first-child:where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])),
+  main a:not(.btn, .badge):not(:is(p, span, li, label, small, strong, b, em, dd, h1, h2, h3, h4, h5, h6) a):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])),
+  main :is(a, button):is(.underline, .gr-srcname, .ih-mby, .pl-lnk, .sms-lbtn, .sp-issue, .sp-lnk, .gw-lnk, .px-lnk, .sc-sortbtn):not(.btn, .badge):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])) {
+    padding-block: 14px;
+    margin-block: -14px;
+  }
+}
+
+/* An option's label is its radio's or checkbox's target (Targets, above):
+   it grows by padding inside an equal negative margin. Not one that pads or
+   spaces itself (an option card, or one with a padding or margin utility):
+   its own padding would replace this one under this margin, and it would
+   overlap its neighbours. In the base layer, under every screen's own
+   rules. */
+@layer base {
+  main :is(label:has(> input:is([type='radio'], [type='checkbox'])), .chk > input + label[for]):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .opt, .rep-opt, .ap-rule, .ap-opt, .rv-radl, .pl-rad, .pc-optc, .ws-lcheck, .tr-swl, [style*='margin'], [style*='padding'])) {
+    padding-block: 3px;
+    margin-block: -3px;
+  }
+  @media (max-width: 767px) {
+    main :is(label:has(> input:is([type='radio'], [type='checkbox'])), .chk > input + label[for]):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .opt, .rep-opt, .ap-rule, .ap-opt, .rv-radl, .pl-rad, .pc-optc, .ws-lcheck, .tr-swl, [style*='margin'], [style*='padding'])) {
+      padding-block: 12px;
+      margin-block: -12px;
+    }
   }
 }

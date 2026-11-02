@@ -758,8 +758,18 @@ Checked at the end of M51:
 - **Accessibility.** An axe sweep (WCAG 2.0, 2.1 and 2.2 A and AA) of every screen at 1440 and 390 px
   (`web/scripts/a11y.ts`). Its one violation, the saved views' 22px menu buttons, is fixed. The design
   system's stricter 44px rule on phones went from 1,451 controls under it to 730, as buttons and fields
-  became 44px tall there. The rest are switches, filter chips and links inside rows. Run again after the
-  step trails, NoResults and the colour tokens landed: 251 screens and widths, no violations.
+  became 44px tall there. Run again after the step trails, NoResults and the colour tokens landed: 251
+  screens and widths, no violations.
+- **Targets and reflow.** The last sweep covers every screen at 320, 390, 834 and 1440 px (414 in all,
+  `a11y.ts --targets --overflow`): no axe violation, no page that scrolls sideways, and no standalone
+  control under the design system's targets (44px on phones, 24px elsewhere), down from 730 and 522.
+  Switches, row checkboxes (`Check`), chips, badges that are links and links in rows grow inside an
+  equal negative margin, so nothing around them moves; fields, segments and buttons are 44px tall on
+  phones. Checked against the commit before: every app screen's box edges at 834 and 1440 px are the
+  same, apart from the referrers' filter chips, which now have the board's style. The sweep found
+  layout bugs on the way, all fixed: the automation editor's side panel and the composer preview were
+  wider than a 320 px phone, the contact profile's consent badges broke one letter per line on phones,
+  and the public pages' header overflowed at 320 px.
 - **Security.** `pnpm audit` found two advisories in seroval, which TanStack Router pulls in; it is
   pinned to the patched 1.6.11. A CI job now runs govulncheck and `pnpm audit` (it couldn't run here).
   Its first runs found two reachable advisories in golang.org/x/net's HTML parser and renderer

@@ -157,6 +157,7 @@
   .fe-panel {
     max-width: none;
     flex: 1 1 100%;
+    min-width: 0;
   }
 }
 
@@ -219,6 +220,8 @@
 .fe-canvas {
   position: relative;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
   background: var(--ground);
 }
 .fe-canvas .react-flow {

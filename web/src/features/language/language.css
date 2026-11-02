@@ -139,6 +139,14 @@
   cursor: pointer;
 }
 
+@media (max-width: 767px) {
+  /* Targets: 44px on touch widths. */
+  .lang-auth-menu button {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+}
 .lang-auth-menu button:hover {
   color: var(--accent);
   text-decoration: underline;

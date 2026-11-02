@@ -126,7 +126,7 @@ function SideList({ current, search }: { current: string; search: LogSearch }) {
       <div className="flex flex-col gap-2.5 px-4 py-3">
         <label className="tx-search" style={{ width: '100%' }}>
           <Icon name="search" size={14} />
-          <input aria-label={t(ml.search)} placeholder={t(ml.searchList)} value={text} onChange={(e) => setText(e.target.value)} />
+          <input type="search" aria-label={t(ml.search)} placeholder={t(ml.searchList)} value={text} onChange={(e) => setText(e.target.value)} />
         </label>
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <span className="k">{t(ml.listSummary, { range: rangeLabel(search.range), count: first?.counts.all ?? 0 })}</span>
@@ -560,9 +560,11 @@ function Timeline({ d }: { d: Detail }) {
         )
       })}
       {d.provider && !d.raw ? (
-        <Link to="/w/$workspace/providers/events" params={{ workspace: slug }} className="tx-lnk" style={{ marginTop: 6 }}>
-          {t(ml.rawEvents, { provider: d.provider.name })}
-        </Link>
+        <div className="mt-1.5 flex flex-col">
+          <Link to="/w/$workspace/providers/events" params={{ workspace: slug }} className="tx-lnk">
+            {t(ml.rawEvents, { provider: d.provider.name })}
+          </Link>
+        </div>
       ) : null}
     </div>
   )

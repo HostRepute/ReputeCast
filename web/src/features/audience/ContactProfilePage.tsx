@@ -629,11 +629,11 @@ function ConsentCard({ p }: { p: Profile }) {
       <div className="flex flex-col px-4.5 pb-1.5">
         {p.lists.map((l) => (
           <div key={l.listId} className="pkv items-start">
-            <div className="flex flex-col gap-0.5">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <span className="font-semibold">{l.name}</span>
               <span className="k">{consentText(l, consentLanguage)}</span>
             </div>
-            <span className="flex items-center gap-2.5">
+            <span className="flex shrink-0 items-center gap-2.5">
               {consentBadge(l, p)}
               {editReason || l.status === 'none' ? null : (
                 <button

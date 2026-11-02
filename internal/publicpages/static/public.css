@@ -577,3 +577,11 @@ fieldset.qb > legend { display: contents; }
 /* Confirming a subscription: one button, then the confirmed page (review 2026-11 DP-3). */
 .cfform { display: flex; flex-direction: column; margin-top: 20px; }
 .cfnote { margin: 14px 0 0; text-align: center; font-size: 13px; color: var(--ink-3); }
+
+/* Targets (44px on touch widths, never under 24px). */
+.ea-top a, .ea-q summary { padding-block: 3px; margin-block: -3px; }
+@media (max-width: 767px) {
+  .ea-top a, .ea-q summary { padding-block: 12px; margin-block: -12px; }
+  .ea-toggle a, .pills label { height: 44px; }
+  .gseg a { min-height: 44px; }
+}

@@ -19,6 +19,7 @@ import { ImportFrame, PreviousImport, stepPath, useImportDetail, useRefreshImpor
 import { ReadingSource } from './states'
 import { PaidMembersImportHint } from '@/features/earn/entries'
 import { m } from './messages'
+import { Check } from '@/components/ui/SelectAll'
 
 type Source = Schemas['ImportCreateInput']['source']
 type ListChoice = Schemas['ImportListChoice']
@@ -629,8 +630,7 @@ function Choose({ d }: { d: Detail }) {
                 return (
                   <tr key={l.id}>
                     <td>
-                      <input
-                        type="checkbox"
+                      <Check
                         aria-label={t(m.importList, { name: l.name })}
                         checked={Boolean(c)}
                         onChange={(e) => setChoice(l.id, e.target.checked ? { sourceId: l.id, target: defaultTarget(l.name) } : null)}

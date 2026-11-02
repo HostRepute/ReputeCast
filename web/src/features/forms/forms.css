@@ -449,15 +449,22 @@
   /* The board stacks the columns; the side columns keep their widths. */
   .fb-left,
   .fb-right {
-    max-width: 340px;
+    max-width: min(340px, 100%);
+    min-width: 0;
   }
   .fb-right {
-    max-width: 360px;
+    max-width: min(360px, 100%);
   }
   .fb-left select.fb-in,
   .fb-left input.fb-in {
     width: 0;
     min-width: 100%;
+  }
+  /* Targets: 44px on touch widths, like the embedded form the preview draws. */
+  .fb-in:not(textarea),
+  .pf-field input,
+  .pf-field select {
+    height: 44px;
   }
   .fb-row {
     flex-wrap: wrap;

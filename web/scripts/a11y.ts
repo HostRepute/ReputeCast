@@ -7,6 +7,7 @@
  *   node scripts/a11y.ts --widths 834 --out ../tmp/a11y
  *   node scripts/a11y.ts --widths 390 --targets   # also target sizes
  *   node scripts/a11y.ts --widths 390,834,1440 --overflow  # also sideways scrolling
+ *   node scripts/a11y.ts --public http://localhost:8080   # public pages' own links go to --app
  *
  * --targets adds the design system's target rule (design/design-system,
  * "Targets"): standalone controls at least 44px on phone widths (767px and
@@ -37,6 +38,10 @@ const out = resolve(opt('out', '../tmp/a11y')!)
 const workspace = 'acme-newsletter'
 const axePath = createRequire(import.meta.url).resolve('axe-core/axe.min.js')
 const axeOptions = { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] }, resultTypes: ['violations'] }
+// --public: the origin a server writes into its public pages' links and
+// stylesheets when that isn't --app (its public URL names another port);
+// requests to it are sent to --app instead.
+const publicOrigin = opt('public')
 const targets = args.includes('--targets')
 const overflow = args.includes('--overflow')
 // --overflow: the page itself scrolls sideways (a table or a code block in
@@ -64,15 +69,22 @@ const targetCheck = `(() => {
     if (el.closest('[inert], [aria-hidden=true]')) continue
     const st = getComputedStyle(el)
     if (st.visibility === 'hidden' || (el.tagName === 'A' && st.display === 'inline')) continue
-    // A checkbox or radio is hit through its label too: take the larger of the two.
-    const label = /^(checkbox|radio)$/.test(el.type) && (el.closest('label') || (el.id && document.querySelector('label[for="' + CSS.escape(el.id) + '"]')))
-    const r = [el, label].filter(Boolean).map((x) => x.getBoundingClientRect()).sort((a, b) => b.width * b.height - a.width * a.height)[0]
+    // A link or a link-like button inside a sentence (text runs right
+    // beside it) is exempt, like an inline link.
+    if (/^(A|BUTTON)$/.test(el.tagName) && st.display.startsWith('inline') && !st.display.includes('flex') && Array.from(el.parentNode.childNodes).some((n) => n.nodeType === 3 && /[\\p{L}\\p{N}]/u.test(n.textContent))) continue
+    // A field is hit through the label around it too, and a checkbox or radio
+    // through its label wherever it is: either one big enough will do.
+    const label = el.tagName === 'INPUT' && (el.closest('label') || (/^(checkbox|radio)$/.test(el.type) && el.id && document.querySelector('label[for="' + CSS.escape(el.id) + '"]')))
+    const rects = [el, label].filter(Boolean).map((x) => x.getBoundingClientRect())
+    const r = rects[0]
     // Visually hidden controls (a file input behind its button) aren't pointer targets.
-    if (r.width <= 1 || r.height <= 1 || (r.width >= min - 0.5 && r.height >= min - 0.5)) continue
+    if (r.width <= 1 || r.height <= 1 || rects.some((x) => x.width >= min - 0.5 && x.height >= min - 0.5)) continue
     const name = (el.getAttribute('aria-label') || el.textContent || el.value || el.name || '').trim().replace(/\\s+/g, ' ').slice(0, 40)
     nodes.push({ target: [el.tagName.toLowerCase() + ' "' + name + '" ' + Math.round(r.width) + 'x' + Math.round(r.height)], html: el.outerHTML.slice(0, 200) })
   }
-  return nodes.length ? [{ id: 'target-size-' + min, impact: 'moderate', help: 'Targets are at least ' + min + 'px', helpUrl: 'design/design-system/README.md', nodes }] : []
+  const out = []
+  if (nodes.length) out.push({ id: 'target-size-' + min, impact: 'moderate', help: 'Targets are at least ' + min + 'px', helpUrl: 'design/design-system/README.md', nodes })
+  return out
 })()`
 
 type Node = { target: string[]; html: string; failureSummary?: string }
@@ -160,6 +172,7 @@ async function main() {
       if (!ctx) {
         // bypassCSP: the public pages allow no inline script, which is how axe is injected.
         ctx = await browser.newContext({ deviceScaleFactor: 1, reducedMotion: 'reduce', bypassCSP: true })
+        if (publicOrigin) await ctx.route(`${publicOrigin}/**`, (route) => route.continue({ url: app + route.request().url().slice(publicOrigin.length) }))
         try {
           if (user !== 'anon') await signIn(ctx, app, user)
         } catch {

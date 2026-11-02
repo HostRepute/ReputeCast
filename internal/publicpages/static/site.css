@@ -462,3 +462,23 @@ mark.st-hl { background: var(--pub-tint); color: var(--pub-hover); border-radius
 .st-pn-list:empty { display: none; }
 .st-linkbtn { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; min-height: 24px; }
 .st-linkbtn:disabled { opacity: 0.6; cursor: default; }
+
+/* Targets (44px on touch widths, never under 24px): chips grow on phones,
+   links in rows grow by padding inside an equal negative margin. */
+.st-lnk { padding-block: 3px; margin-block: -3px; }
+/* The search field's input fills its 48px box, so the whole box takes a tap. */
+.st-search input { align-self: stretch; }
+.st-tag { padding-block: 2px; margin-block: -2px; }
+@container (max-width: 599px) {
+  .st-chip, .st-btn, .st-btn2, .st-btn.sm, .st-btn2.sm, .st-act .st-btn, .st-act .st-btn2, .st-seg a, .st-seg button, .st-me { height: 44px; }
+  .st-menu > summary { width: 44px; height: 44px; }
+  .st-lnk { padding-block: 10px; margin-block: -10px; }
+  .st-tag { padding-block: 12px; margin-block: -12px; }
+  .st-chk { min-height: 44px; }
+}
+/* The narrowest phones (320px): the header's actions fit beside the mark. */
+@container (max-width: 359px) {
+  .st-w { padding-left: 14px; padding-right: 14px; }
+  .st-act { gap: 6px; }
+  .st-act .st-btn, .st-act .st-btn2 { padding: 0 10px; }
+}

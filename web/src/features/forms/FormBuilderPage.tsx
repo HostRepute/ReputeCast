@@ -262,7 +262,7 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
           <div className="fb-sec">
             <div className="fb-row flex items-center justify-between gap-2.5">
               <span className="font-semibold">{t(m.formName, { name: form.name })}</span>
-              <select aria-label={t(m.signupForm)} className="fb-in h-[30px]! w-[140px]!" value={form.id} onChange={(e) => pickForm(e.target.value)}>
+              <select aria-label={t(m.signupForm)} className="fb-in h-[30px]! w-[140px]! max-md:h-11!" value={form.id} onChange={(e) => pickForm(e.target.value)}>
                 {overview.forms.map((f) => (
                   <option key={f.id} value={f.id}>
                     {f.name}

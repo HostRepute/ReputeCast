@@ -108,7 +108,7 @@ function TestsCard({ d }: { d: TestList }) {
       <div className="pl-filters">
         <label className="pl-search">
           <Icon name="search" size={15} className="text-ink-3" />
-          <input aria-label={t(m.searchLabel)} placeholder={t(m.searchPlaceholder)} value={q} onChange={(e) => setQ(e.target.value)} />
+          <input type="search" aria-label={t(m.searchLabel)} placeholder={t(m.searchPlaceholder)} value={q} onChange={(e) => setQ(e.target.value)} />
         </label>
         <select className="in" style={{ width: 170 }} aria-label={t(m.providerFilter)} value={provider} onChange={(e) => setProvider(e.target.value)}>
           <option value="">{t(m.allProviders)}</option>

@@ -206,7 +206,7 @@ export function FormDownloadSection({ form, readOnly, doubleOptIn }: { form: Sig
               ) : (
                 <label className="flex items-center justify-between gap-2.5 text-[13px]">
                   {t(m.days)}
-                  <select className="fb-in h-[30px]! w-[120px]!" value={d.days} disabled={savingDays} onChange={(e) => void setDays(Number(e.target.value))}>
+                  <select className="fb-in h-[30px]! w-[120px]! max-md:h-11!" value={d.days} disabled={savingDays} onChange={(e) => void setDays(Number(e.target.value))}>
                     {dayOptions(d.days).map((n) => (
                       <option key={n} value={n}>
                         {t(m.daysOption, { days: n })}

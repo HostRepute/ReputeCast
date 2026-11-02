@@ -954,7 +954,7 @@ function ScopePicker({ lists, value, group, onChange }: { lists: Schemas['SSOLis
       trigger={
         <button
           type="button"
-          className="k inline-flex min-h-6 cursor-pointer items-center border-0 bg-transparent p-0 text-left hover:text-ink hover:underline"
+          className="k inline-flex min-h-6 cursor-pointer items-center border-0 bg-transparent p-0 text-left hover:text-ink hover:underline max-md:min-h-11 max-md:min-w-11"
           aria-label={t(ss.scopeFor, { group, scope: text })}
         >
           {text}

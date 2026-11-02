@@ -10,6 +10,7 @@ import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { Popover } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
+import { Check, SelectAll } from '@/components/ui/SelectAll'
 import { TableScroll, Th } from '@/components/ui/Table'
 import { andList, count, dayMonthDate, dayMonthYear, shortDate } from '@/lib/format'
 import { trackJob, updateJob, useBackgroundJobs } from '@/lib/jobs'
@@ -821,19 +822,15 @@ function ContactsTable({
         col.display({
           id: 'select',
           header: ({ table }) => (
-            <input
-              type="checkbox"
-              aria-label={t(m.selectAll)}
-              checked={table.getIsAllPageRowsSelected()}
-              ref={(el) => {
-                if (el) el.indeterminate = table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()
-              }}
-              onChange={table.getToggleAllPageRowsSelectedHandler()}
+            <SelectAll
+              label={t(m.selectAll)}
+              all={table.getIsAllPageRowsSelected()}
+              some={table.getIsSomePageRowsSelected()}
+              onChange={(on) => table.toggleAllPageRowsSelected(on)}
             />
           ),
           cell: ({ row }) => (
-            <input
-              type="checkbox"
+            <Check
               aria-label={t(m.selectRow, { name: row.original.name || row.original.email })}
               checked={row.getIsSelected()}
               onChange={row.getToggleSelectedHandler()}

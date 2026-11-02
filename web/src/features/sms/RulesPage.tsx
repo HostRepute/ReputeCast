@@ -1137,7 +1137,7 @@ function MessageRules({ data, form, set, ro }: { data: Rules; form: Form; set: <
         <div className="tx">
           <span className="font-semibold">{t(m.optOutText)}</span>
           <span className="k text-ink-2">{t(m.optOutTextText, { count: optOutLen })}</span>
-          <label className="mt-1 flex items-center gap-2 text-[13px]">
+          <label className="mt-0.5 -mb-0.5 flex items-center gap-2 py-0.5 text-[13px] max-md:-mt-2 max-md:-mb-3 max-md:py-3">
             <input type="checkbox" checked={form.optOutInSteps} disabled={ro} onChange={(e) => set('optOutInSteps', e.target.checked)} />
             {t(m.optOutInSteps)}
           </label>

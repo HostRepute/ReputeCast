@@ -138,6 +138,14 @@
 .ch-seg > * + * {
   border-left: 1px solid var(--line);
 }
+/* Targets: 44px on touch widths. */
+@media (max-width: 767px) {
+  .ch-seg button,
+  .ch-seg a {
+    height: 44px;
+    min-height: 44px !important;
+  }
+}
 .ch-seg .on {
   background: var(--ink);
   color: #fff;

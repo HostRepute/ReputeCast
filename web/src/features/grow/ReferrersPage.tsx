@@ -140,7 +140,7 @@ function Filters({
     }
   }
   const chip = (on: boolean, label: string, n: number, toggle: () => void) => (
-    <button type="button" className={on ? 'fchip on' : 'fchip'} aria-pressed={on} onClick={toggle}>
+    <button type="button" className={on ? 'rr-fchip on' : 'rr-fchip'} aria-pressed={on} onClick={toggle}>
       {label} <b>{count(n)}</b>
     </button>
   )

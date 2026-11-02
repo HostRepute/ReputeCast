@@ -237,6 +237,15 @@
   .rcf {
     padding: 20px;
   }
+  /* Targets: fields are 44px on touch widths. */
+  .rcf input[type='email'],
+  .rcf input[type='text'],
+  .rcf input[type='tel'],
+  .rcf input[type='number'],
+  .rcf input[type='date'],
+  .rcf select {
+    height: 44px;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .rcf * {

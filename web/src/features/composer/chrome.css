@@ -1765,3 +1765,16 @@
     padding: 0 12px;
   }
 }
+
+/* The preview's segments (email client, device) scroll inside their row on
+   the narrowest phones instead of widening the page (320px). */
+@media (max-width: 767px) {
+  .cmp .cmp-tools .seg {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .cmp .cmp-tools .seg button {
+    flex: none;
+    white-space: nowrap;
+  }
+}

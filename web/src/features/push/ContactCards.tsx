@@ -308,7 +308,7 @@ export function WhatsAppConsentCell({ contactId, l, d }: { contactId: string; l:
       {editable ? (
         <button
           type="button"
-          className="sms-lbtn mt-1 text-[12.5px]"
+          className="sms-lbtn sms-lbtn-under text-[12.5px]"
           disabled={withdraw.isPending}
           onClick={() =>
             l.whatsApp === 'not_subscribed'

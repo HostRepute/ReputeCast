@@ -145,7 +145,7 @@ function SmsCell({ contactId, l, d }: { contactId: string; l: Row; d: Channels }
       {d.canEdit && d.phone && l.sms !== 'opted_out' ? (
         <button
           type="button"
-          className="sms-lbtn mt-1 text-[12.5px]"
+          className="sms-lbtn sms-lbtn-under text-[12.5px]"
           disabled={set.isPending}
           onClick={() =>
             // Withdrawing needs nothing more; giving consent needs its evidence.

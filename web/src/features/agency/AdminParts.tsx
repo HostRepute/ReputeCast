@@ -147,7 +147,7 @@ function ModeForm({ v }: { v: Mode }) {
         <fieldset className="m-0 flex flex-col gap-1.5 border-0 p-0">
           <legend className="lbl mb-1.5 p-0">{t(m.adminClients, { n: candidates.filter((w) => clients.has(w.id)).length })}</legend>
           {candidates.map((w) => (
-            <label key={w.id} className="flex items-center gap-2 py-1 text-[13px]">
+            <label key={w.id} className="flex items-center gap-2 py-1 text-[13px] max-md:min-h-11">
               <input
                 type="checkbox"
                 checked={clients.has(w.id)}

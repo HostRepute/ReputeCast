@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { $api, errorMessage, http } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
+import { Check } from '@/components/ui/SelectAll'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { count, orList } from '@/lib/format'
@@ -59,9 +60,8 @@ export function FormAddressCheck({ formKey, formName }: { formKey: string; formN
     <>
       <div className={s.enabled ? 'flex flex-col gap-2 rounded-lg border border-accent bg-accent-tint p-3' : 'flex flex-col gap-2 rounded-lg border border-line p-3'}>
         <div className="fb-check start">
-          <input
+          <Check
             id={`${formKey}-check`}
-            type="checkbox"
             checked={s.enabled}
             disabled={busy || Boolean(why)}
             aria-describedby={`${formKey}-check-h${why ? ` ${formKey}-why` : ''}`}

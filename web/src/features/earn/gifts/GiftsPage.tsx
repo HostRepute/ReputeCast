@@ -390,7 +390,7 @@ function GiftsTable({ v, setDialog }: { v: View; setDialog: (d: PageDialog) => v
         <span className="flex flex-wrap items-center gap-2">
           <label className="gf-search">
             <Icon name="search" size={14} />
-            <input aria-label={t(mg.searchLabel)} placeholder={t(mg.search)} value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input type="search" aria-label={t(mg.searchLabel)} placeholder={t(mg.search)} value={search} onChange={(e) => setSearch(e.target.value)} />
           </label>
           {/* The gifts the filter shows, as CSV (review 2026-11 EA-2). */}
           <Button

@@ -411,7 +411,7 @@ function LogFilters({ search, onSearch, filters }: { search: LogSearch; onSearch
     <div className="tx-filters">
       <label className="tx-search" style={{ flex: '1 1 340px', width: 'auto', height: 36 }}>
         <Icon name="search" size={16} />
-        <input aria-label={t(ml.search)} placeholder={t(ml.searchPlaceholder)} value={text} onChange={(e) => setText(e.target.value)} />
+        <input type="search" aria-label={t(ml.search)} placeholder={t(ml.searchPlaceholder)} value={text} onChange={(e) => setText(e.target.value)} />
       </label>
       <select className="in" aria-label={t(ml.template)} value={search.template ?? ''} onChange={(e) => onSearch({ ...search, template: e.target.value || undefined })}>
         <option value="">{t(ml.allTemplates)}</option>
