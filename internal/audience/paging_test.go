@@ -161,6 +161,39 @@ func TestContactCountStopsAtTenThousand(t *testing.T) {
 	if p.Total != 10 || p.TotalCapped {
 		t.Fatalf("a narrow filter counts exactly: %d %v", p.Total, p.TotalCapped)
 	}
+	// A search reads its matches once and pages through them by id
+	// (review 2026-11 OP-13): the next page holds the other five, in order,
+	// with the same count, and a page back returns to the first.
+	first := p
+	p = pageOf{}
+	c.Do(http.MethodGet, base+"/contacts?pageSize=5&q=reader1&cursor="+url.QueryEscape(first.NextCursor), nil).MustStatus(t, 200).JSON(t, &p)
+	seen := map[string]bool{}
+	for _, it := range append(first.Items, p.Items...) {
+		if !strings.HasPrefix(it.Email, "reader1") {
+			t.Fatalf("%s doesn't match the search", it.Email)
+		}
+		seen[it.Email] = true
+	}
+	if len(seen) != 10 || p.Total != 10 || p.NextCursor != "" || p.PrevCursor == "" {
+		t.Fatalf("second page: %d distinct, total %d, next %q", len(seen), p.Total, p.NextCursor)
+	}
+	back := pageOf{}
+	c.Do(http.MethodGet, base+"/contacts?pageSize=5&q=reader1&cursor="+url.QueryEscape(p.PrevCursor), nil).MustStatus(t, 200).JSON(t, &back)
+	if len(back.Items) != 5 || back.Items[0].Email != first.Items[0].Email {
+		t.Fatalf("back to the first page: %+v", back.Items)
+	}
+	// A search past the cap reads "10,000+" and still shows its first page.
+	p = pageOf{}
+	c.Do(http.MethodGet, base+"/contacts?pageSize=5&q=paging", nil).MustStatus(t, 200).JSON(t, &p)
+	if p.Total != 10000 || !p.TotalCapped || len(p.Items) != 5 || p.NextCursor == "" {
+		t.Fatalf("a broad search: %d %v, %d rows", p.Total, p.TotalCapped, len(p.Items))
+	}
+	// A search with no match answers an empty page.
+	p = pageOf{}
+	c.Do(http.MethodGet, base+"/contacts?pageSize=5&q=nobody-here", nil).MustStatus(t, 200).JSON(t, &p)
+	if p.Total != 0 || p.TotalCapped || len(p.Items) != 0 {
+		t.Fatalf("no match: %d %v, %d rows", p.Total, p.TotalCapped, len(p.Items))
+	}
 }
 
 // Review 2026-11 AU-2, AU-3, AU-9: each order and the search can use an

@@ -90,6 +90,20 @@ func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f Conta
 		return ContactList{}, err
 	}
 	out := ContactList{Items: []ContactListItem{}, Page: pg.Page, PageSize: pg.PageSize}
+	counted := false
+	if strings.TrimSpace(f.Q) != "" && !pg.Exact {
+		// A search reads its indexes once: the matches up to the cap give
+		// the count, and when they are all there the page is read from them
+		// by id, not by searching again (review 2026-11 OP-13).
+		total, ids, capped, err := s.searchMatches(ctx, fs)
+		if err != nil {
+			return out, err
+		}
+		out.Total, out.TotalCapped, counted = total, capped, true
+		if !capped {
+			fs = filterSQL{where: "c.workspace_id = $1 AND c.id = ANY ($2::uuid[])", args: []any{ws.ID, ids}}
+		}
+	}
 	q, err := s.listQuery(ctx, fs, f, pg)
 	if err != nil {
 		return out, err
@@ -146,13 +160,15 @@ func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f Conta
 		return out, err
 	}
 	more := len(out.Items) > pg.PageSize
-	if cur == nil && pg.Page == 1 && !more {
-		// The first page holds every match: its size is the count, so a
-		// search that finds a few contacts reads the indexes once, not
-		// twice (review 2026-11 OP-13).
+	switch {
+	case counted:
+	case cur == nil && pg.Page == 1 && !more:
+		// The first page holds every match: its size is the count.
 		out.Total, out.TotalCapped = int64(len(out.Items)), false
-	} else if out.Total, out.TotalCapped, err = s.countContacts(ctx, fs, pg.Exact); err != nil {
-		return out, err
+	default:
+		if out.Total, out.TotalCapped, err = s.countContacts(ctx, fs, pg.Exact); err != nil {
+			return out, err
+		}
 	}
 	if more {
 		out.Items, ids, marks = out.Items[:pg.PageSize], ids[:pg.PageSize], marks[:pg.PageSize]
@@ -280,6 +296,21 @@ func (s *Service) countContacts(ctx context.Context, fs filterSQL, exact bool) (
 		return countCap, true, err
 	}
 	return n, false, err
+}
+
+// searchMatches reads a search's matches once, up to countCap and one
+// more. Up to the cap it returns their count and ids; past it, the cap,
+// no ids and capped.
+func (s *Service) searchMatches(ctx context.Context, fs filterSQL) (n int64, ids []uuid.UUID, capped bool, err error) {
+	err = s.Pool.QueryRow(ctx, fmt.Sprintf(`WITH m AS (SELECT c.id FROM contacts c WHERE %s LIMIT %d)
+		SELECT count(*), CASE WHEN count(*) <= %d THEN array_agg(id) END FROM m`, fs.where, countCap+1, countCap), fs.args...).Scan(&n, &ids)
+	if err != nil || n > countCap {
+		return countCap, nil, err == nil, err
+	}
+	if ids == nil {
+		ids = []uuid.UUID{}
+	}
+	return n, ids, false, nil
 }
 
 // sortDest are scan targets for an order's keys.
