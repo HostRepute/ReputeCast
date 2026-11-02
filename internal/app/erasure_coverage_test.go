@@ -77,8 +77,11 @@ var erasureExempt = map[string]string{
 func TestErasureCoversPersonalData(t *testing.T) {
 	ctx := context.Background()
 	pool := testdb.New(t)
+	// A partition (delivery_events' months, review 2026-11 OP-11) is erased
+	// through its parent: only tables that aren't partitions count.
 	rows, err := pool.Query(ctx, `SELECT table_name, column_name FROM information_schema.columns
 		WHERE table_schema = 'public' AND table_name NOT IN (SELECT table_name FROM information_schema.views WHERE table_schema = 'public')
+		  AND table_name::text NOT IN (SELECT relname FROM pg_class WHERE relispartition)
 		ORDER BY table_name, ordinal_position`)
 	if err != nil {
 		t.Fatal(err)
