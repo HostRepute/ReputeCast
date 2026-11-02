@@ -83,6 +83,20 @@ jobs:
           export REPUTECAST_SECRETS__KEY_FILE="$RUNNER_TEMP/secret.key"
           ./bin/reputecast serve > server.log 2>&1 &
           for i in $(seq 1 60); do ./bin/reputecast healthcheck && break; sleep 2; done
+          # The jobs a worker runs when it starts take minutes on a fresh
+          # million contacts (the first engagement tiers, rollups, counts),
+          # and they ran through every k6 script in the first runs. k6
+          # measures the steady state after them; the wait is recorded, and
+          # so is each job that ran for more than ten seconds.
+          start=$(date +%s)
+          for i in $(seq 1 180); do
+            sleep 5
+            busy=$(psql "$REPUTECAST_DATABASE__URL" -Atc "SELECT count(*) FROM river_job WHERE state = 'running' AND attempted_at < now() - interval '10 seconds'")
+            [ "$busy" = 0 ] && [ "$i" -ge 6 ] && break
+          done
+          echo "Jobs run at start settled after $(( $(date +%s) - start )) s:" | tee -a results.txt
+          psql "$REPUTECAST_DATABASE__URL" -Atc "SELECT kind || ' ' || round(extract(epoch FROM finalized_at - attempted_at)) || ' s' FROM river_job
+            WHERE finalized_at - attempted_at > interval '10 seconds' ORDER BY attempted_at" | tee -a results.txt
           echo "COOKIE=$(sh loadtest/session.sh load-test)" >> "$GITHUB_ENV"
           # send.js sends with a send-only key, as an application does: a
           # session's 50 per second would be what it measured.
