@@ -23,7 +23,6 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/api"
@@ -154,10 +153,10 @@ type Service struct {
 	Translations Translations
 	// Mail sends system mail (alert emails go through notify instead).
 	Mail func() mailer.Sender
-	// Outbox wakes the sending engine's transactional outbox in the
-	// transaction that queued messages.
-	Outbox func(ctx context.Context, tx pgx.Tx) error
-	Now    func() time.Time
+	// Kick wakes the sending engine's transactional outbox after a
+	// transaction that queued messages has committed. It returns at once.
+	Kick func()
+	Now  func() time.Time
 
 	// counts are the log's status counts, reused for a minute (TX-3).
 	counts countsCache

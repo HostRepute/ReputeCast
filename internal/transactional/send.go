@@ -124,6 +124,7 @@ func (c caller) testMode() bool { return c.key != nil && c.key.Mode == "test" }
 // prepared is a message ready to be recorded and queued.
 type prepared struct {
 	id            uuid.UUID
+	queued        bool // recorded for a provider: the outbox has it
 	accepted      time.Time
 	rendered      time.Time
 	lt            liveTemplate
@@ -843,10 +844,24 @@ func (s *Service) record(ctx context.Context, tx pgx.Tx, ws *store.Workspace, c 
 	if err := q.TxnInsertOutbox(ctx, store.TxnInsertOutboxParams{MessageID: p.id, Sealed: sealed, CreatedAt: p.accepted}); err != nil {
 		return err
 	}
-	if s.Outbox != nil {
-		return s.Outbox(ctx, tx)
-	}
+	p.queued = true
 	return nil
+}
+
+// kick wakes the outbox once the transaction that recorded ps has
+// committed, when any of them was queued for a provider. Waking it inside
+// that transaction locked the outbox job's row until the commit, so every
+// send waited for the one before it (review 2026-11 OP-13).
+func (s *Service) kick(ps ...*prepared) {
+	if s.Kick == nil {
+		return
+	}
+	for _, p := range ps {
+		if p != nil && p.queued {
+			s.Kick()
+			return
+		}
+	}
 }
 
 func userIfPerson(p *authz.Principal) *uuid.UUID {
@@ -1032,6 +1047,9 @@ func (s *Service) Send(ctx context.Context, ws *store.Workspace, in Transactiona
 		})
 		return err
 	})
+	if err == nil {
+		s.kick(p)
+	}
 	return status, body, err
 }
 
@@ -1134,5 +1152,8 @@ func (s *Service) SendBatch(ctx context.Context, ws *store.Workspace, in Transac
 		})
 		return err
 	})
+	if err == nil {
+		s.kick(preps...)
+	}
 	return body, err
 }

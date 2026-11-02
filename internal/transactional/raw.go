@@ -278,6 +278,9 @@ func (s *Service) SendRaw(ctx context.Context, cred SMTPCredential, m RawMessage
 		}
 		return nil
 	})
+	if err == nil {
+		s.kick(preps...)
+	}
 	return out, err
 }
 

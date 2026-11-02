@@ -58,9 +58,9 @@ func transactionalService(a *App) *transactional.Service {
 		},
 		Gate: transactionalGate(a),
 		Mail: func() mailer.Sender { return a.Mail },
-		// Queued messages wake the sending engine's transactional outbox in
-		// the transaction that queued them.
-		Outbox: func(ctx context.Context, tx pgx.Tx) error { return transactionalOutbox(a).Wake(ctx, tx) },
+		// Queued messages wake the sending engine's transactional outbox
+		// once their transaction has committed.
+		Kick: func() { transactionalOutbox(a).Kick() },
 
 		Translations: transactionalTranslations(a),
 	}

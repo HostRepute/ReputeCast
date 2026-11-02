@@ -292,8 +292,16 @@ func TestSendAndDeliver(t *testing.T) {
 	if n := s.count(`SELECT count(*) FROM transactional_outbox WHERE message_id = $1`, res.ID); n != 1 {
 		t.Fatalf("outbox %d", n)
 	}
-	if n := s.count(`SELECT count(*) FROM river_job WHERE kind = 'sending.transactional'`); n != 1 {
-		t.Fatalf("outbox wake jobs %d", n)
+	// The outbox is woken once the send has committed, by one job however
+	// many sends there were (review 2026-11 OP-13).
+	jobs := 0
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
+		if jobs = s.count(`SELECT count(*) FROM river_job WHERE kind = 'sending.transactional'`); jobs > 0 {
+			break
+		}
+	}
+	if jobs != 1 {
+		t.Fatalf("outbox wake jobs %d", jobs)
 	}
 
 	// A retry with the same key gets the same answer and sends nothing.

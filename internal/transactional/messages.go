@@ -1249,6 +1249,7 @@ func (s *Service) Resend(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 	if err != nil {
 		return TransactionalSendResult{}, err
 	}
+	s.kick(p)
 	if status >= 400 {
 		if pr, ok := res.(*Problem); ok {
 			return TransactionalSendResult{}, pr
