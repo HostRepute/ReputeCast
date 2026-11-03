@@ -11,12 +11,22 @@ import (
 	"github.com/hostrepute/reputecast/internal/sending/sendtest"
 )
 
+// blocksOutOfReach keeps the trip the complaints' where they are what the
+// test is about. The demo transport bounces about one Outlook message in
+// 750 for the sender's reputation, and a few of those among the first
+// hundreds sent are clearly over the block-bounce limit, which then acts
+// first (about one run in a hundred).
+func blocksOutOfReach(f *sendtest.Fixture) {
+	f.Exec(`UPDATE campaigns SET thresholds = thresholds || '{"block_bounce": 20}' WHERE id = $1`, f.Campaign)
+}
+
 // outlookTrip sends to 2,500 at-risk Outlook imports and 600 engaged Gmail
-// readers with the Outlook complaints scenario until the guard trips. It
-// returns where the clock stopped.
+// readers with the Outlook complaints scenario until the guard trips on
+// the complaints. It returns where the clock stopped.
 func outlookTrip(t *testing.T, f *sendtest.Fixture) time.Time {
 	t.Helper()
 	f.Exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.Campaign)
+	blocksOutOfReach(f)
 	f.AddContacts(
 		sendtest.ContactSpec{N: 2500, Mailbox: "outlook", Domain: "hotmail.com", Tier: "at_risk", Source: "import:mailchimp"},
 		sendtest.ContactSpec{N: 600, Mailbox: "gmail", Domain: "gmail.com", Engaged: true},
@@ -26,9 +36,13 @@ func outlookTrip(t *testing.T, f *sendtest.Fixture) time.Time {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n := f.Count(`SELECT count(*) FROM campaign_incidents WHERE campaign_id = $1 AND kind = 'threshold'`, f.Campaign); n != 1 {
+	var trips string
+	if err := f.Env.App.Pool.QueryRow(f.Ctx, `SELECT coalesce(string_agg(metric, ', '), '') FROM campaign_incidents WHERE campaign_id = $1 AND kind = 'threshold'`, f.Campaign).Scan(&trips); err != nil {
+		t.Fatal(err)
+	}
+	if trips != "complaint" {
 		f.Dump()
-		t.Fatalf("%d threshold incidents, want the one that tripped", n)
+		t.Fatalf("thresholds tripped: %q, want the complaints alone", trips)
 	}
 	return at
 }
