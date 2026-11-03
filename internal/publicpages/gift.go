@@ -98,6 +98,13 @@ func (h *Handler) renderGift(w http.ResponseWriter, r *http.Request, s *site, v 
 	}
 	vw := h.earnView(r, s, h.earnTitle(s, v.Heading), b, pl)
 	vw.Canonical = earnLink(s.canon, "gift")
+	// The page that sells gifts is found by search, as the upgrade page is;
+	// a page that says gifts aren't available, or answers a filled-in form,
+	// isn't.
+	if v.State == "form" && r.Method == http.MethodGet && !v.Canceled {
+		vw.Robots = "index, follow"
+		vw.Description = v.Intro
+	}
 	vw.Scripts = []string{s.links.Static("gift.js?v=" + h.version)}
 	// Paying is Stripe's page: the form's redirect goes there.
 	h.render(w, r, s, "gift", status, vw, csp{formAction: []string{"https://checkout.stripe.com"}}, v.State != "form")

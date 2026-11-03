@@ -15,8 +15,11 @@ type headFacts struct {
 	lang, title, robots, description, canonical string
 	viewport                                    bool
 	h1                                          int
-	imgsWithoutAlt                              []string
-	links                                       []string
+	// headingJumps are headings more than one level below the one before
+	// them (an h3 right after the h1): screen readers' outline skips a level.
+	headingJumps   []string
+	imgsWithoutAlt []string
+	links          []string
 }
 
 func readHead(body string) headFacts {
@@ -44,9 +47,17 @@ func readHead(body string) headFacts {
 		}
 		return b.String()
 	}
+	level := 0
 	var walk func(n *html.Node)
 	walk = func(n *html.Node) {
 		if n.Type == html.ElementNode {
+			if len(n.Data) == 2 && n.Data[0] == 'h' && n.Data[1] >= '1' && n.Data[1] <= '6' {
+				l := int(n.Data[1] - '0')
+				if l > level+1 {
+					f.headingJumps = append(f.headingJumps, fmt.Sprintf("h%d %q after h%d", l, strings.TrimSpace(text(n)), level))
+				}
+				level = l
+			}
 			switch n.Data {
 			case "html":
 				f.lang, _ = attr(n, "lang")
@@ -90,15 +101,16 @@ func readHead(body string) headFacts {
 
 // Every public page a reader or a search engine can reach from the
 // publication's front doors says its language, has a title, fits a phone's
-// width and says whether it may be indexed. A page that may be indexed also
-// has a description, a canonical address and one main heading, and every
-// image says what it shows (or that it shows nothing, alt=""). The crawl
-// follows the site's own links from the home page, the subscribe page and
-// the archive on the demo's custom domain.
+// width, says whether it may be indexed and never skips a heading level. A
+// page that may be indexed also has a description, a canonical address and
+// one main heading, and every image says what it shows (or that it shows
+// nothing, alt=""). The crawl follows the site's own links from the home
+// page, the subscribe page, the archive and the Earn pages (gift, upgrade)
+// on the demo's custom domain.
 func TestPublicPagesHead(t *testing.T) {
 	env, _ := demo(t)
 	const host = "news.acme.io"
-	queue := []string{"/", "/subscribe", "/archive"}
+	queue := []string{"/", "/subscribe", "/archive", "/gift", "/upgrade"}
 	seen := map[string]bool{}
 	indexable, checked := 0, 0
 	for len(queue) > 0 && checked < 120 {
@@ -129,6 +141,9 @@ func TestPublicPagesHead(t *testing.T) {
 		}
 		if len(f.imgsWithoutAlt) > 0 {
 			problems = append(problems, "images without alt: "+strings.Join(f.imgsWithoutAlt, ", "))
+		}
+		if len(f.headingJumps) > 0 {
+			problems = append(problems, "headings that skip a level: "+strings.Join(f.headingJumps, ", "))
 		}
 		if strings.HasPrefix(f.robots, "index") {
 			indexable++

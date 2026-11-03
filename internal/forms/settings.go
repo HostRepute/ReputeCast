@@ -111,17 +111,20 @@ func (b Branding) Initial() string {
 	return "N"
 }
 
-// FontStack is the CSS font-family of the pages.
+// FontStack is the CSS font-family of the pages. IBM Plex Sans is followed
+// by Arial scaled to its size (the pages' CSS defines 'IBM Plex Sans
+// Fallback'), so text doesn't move when the font arrives.
 func (b Branding) FontStack() string {
+	const plex = "'IBM Plex Sans','IBM Plex Sans Fallback',system-ui,sans-serif"
 	switch b.Font {
 	case "system":
 		return "system-ui,-apple-system,'Segoe UI',Roboto,sans-serif"
 	case "custom":
 		if b.CustomFontFamily != "" {
-			return cssString(b.CustomFontFamily) + ",'IBM Plex Sans',system-ui,sans-serif"
+			return cssString(b.CustomFontFamily) + "," + plex
 		}
 	}
-	return "'IBM Plex Sans',system-ui,sans-serif"
+	return plex
 }
 
 // cssString quotes a font family name for CSS.

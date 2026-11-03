@@ -363,3 +363,20 @@ func TestPlainDocumentEscapes(t *testing.T) {
 		t.Errorf("plain text isn't escaped: %s", doc)
 	}
 }
+
+// A post body's headings fit under the page's h1 without skipping a level,
+// and a heading whose level changed keeps the author's look in data-h.
+func TestBodyHeadings(t *testing.T) {
+	for _, c := range []struct{ in, want string }{
+		{`<h1>Intro</h1><p>x</p>`, `<h2>Intro</h2><p>x</p>`},
+		{`<h3>From the changelog</h3><p>x</p><h3>Next</h3>`, `<h2 data-h="3">From the changelog</h2><p>x</p><h2 data-h="3">Next</h2>`},
+		{`<h2>A</h2><h4 id="b">B</h4><h4>C</h4><h2>D</h2><h3>E</h3>`, `<h2>A</h2><h3 data-h="4" id="b">B</h3><h3 data-h="4">C</h3><h2>D</h2><h3>E</h3>`},
+		{`<h2>A</h2><h3>B</h3><h5>C</h5><h3>D</h3><h6>E</h6><h2>F</h2>`, `<h2>A</h2><h3>B</h3><h4 data-h="5">C</h4><h3>D</h3><h4 data-h="6">E</h4><h2>F</h2>`},
+		{`<p>No headings &lt;h3&gt; here</p>`, `<p>No headings &lt;h3&gt; here</p>`},
+		{`<H3>Shouting</H3>`, `<h2 data-h="3">Shouting</h2>`},
+	} {
+		if got := bodyHeadings(c.in); got != c.want {
+			t.Errorf("bodyHeadings(%q)\n got %q\nwant %q", c.in, got, c.want)
+		}
+	}
+}

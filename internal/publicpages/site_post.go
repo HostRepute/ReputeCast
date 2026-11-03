@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -533,12 +534,44 @@ func (h *Handler) join(w http.ResponseWriter, r *http.Request, s *site, page str
 	}
 }
 
-// bodyH1 is a main heading in a post's body.
-var bodyH1 = regexp.MustCompile(`(?i)<(/?)h1\b`)
+// bodyHeading is a heading tag in a post's body, opening or closing.
+var bodyHeading = regexp.MustCompile(`(?i)<(/?)h([1-6])\b`)
 
-// bodyHeadings turns a post body's main headings into second-level ones:
-// the post's title is the page's one main heading (site.css styles both
-// alike in the body, so nothing moves).
+// bodyHeadings fits a post body's headings under the page's: the post's
+// title is the page's one main heading, so the body's first heading is an
+// h2, and each heading goes at most one level below the one before it, as
+// a screen reader's outline expects (an author's h3 straight after the
+// title becomes an h2). A heading keeps the author's level for the eye:
+// one whose level changed carries it in data-h, which site.css styles as
+// that level, so nothing on the page moves.
 func bodyHeadings(body string) string {
-	return bodyH1.ReplaceAllString(body, "<${1}h2")
+	type level struct{ author, page int }
+	var open []level // the headings the current one sits under
+	current := 0
+	return bodyHeading.ReplaceAllStringFunc(body, func(tag string) string {
+		m := bodyHeading.FindStringSubmatch(tag)
+		closing, author := m[1] == "/", int(m[2][0]-'0')
+		if closing {
+			return "</h" + strconv.Itoa(current)
+		}
+		for len(open) > 0 && open[len(open)-1].author > author {
+			open = open[:len(open)-1]
+		}
+		page := 2
+		if n := len(open); n > 0 {
+			if open[n-1].author == author {
+				page = open[n-1].page
+				open = open[:n-1]
+			} else {
+				page = min(open[n-1].page+1, 6)
+			}
+		}
+		open = append(open, level{author, page})
+		current = page
+		if page == author || author <= 2 {
+			// h1 and h2 look alike in a body.
+			return "<h" + strconv.Itoa(page)
+		}
+		return "<h" + strconv.Itoa(page) + ` data-h="` + strconv.Itoa(author) + `"`
+	})
 }
