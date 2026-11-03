@@ -128,6 +128,7 @@
   "suppressionSource.export": "Tệp xuất từ {importer}",
   "suppressionSource.csv": "Tải lên CSV",
   "suppressionSource.manual": "Thủ công",
+  "suppressionSource.repermission": "Xin phép lại",
 
   "pulled.events": "từ thư trả lại và khiếu nại của nhà cung cấp",
   "pulled.ses": "đã lấy về từ danh sách cấp tài khoản",
@@ -154,6 +155,7 @@
   "detail.pauseLifted": "đã bỏ tạm dừng",
   "context.unsubscribePage": "Trang hủy đăng ký",
   "context.oneClick": "List-Unsubscribe một lần nhấp",
+  "context.repermissionExpired": "Không trả lời email xin phép lại sau {days} ngày",
   "context.csvUpload": "Tải lên CSV · {file}",
   "job.exportTitle": "Xuất · {count, plural, other {# liên hệ}}",
   "job.resendTitle": "Gửi lại email xác nhận · {count, plural, other {# liên hệ}}",

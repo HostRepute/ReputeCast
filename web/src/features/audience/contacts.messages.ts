@@ -155,12 +155,12 @@ export const m = defineMessages('audience.contacts', {
 
   // ── Erase ────────────────────────────────────────────────────────────
   erased: '{n, plural, one {Erased {count} contact} other {Erased {count} contacts}}',
-  erasedBody: 'Their addresses stay on the suppression list so they are never mailed again.',
+  erasedBody: 'Addresses already on the suppression list stay there.',
   eraseTitle: '{n, plural, one {Erase {count} contact?} other {Erase {count} contacts?}}',
   eraseBody: "Names, fields, tags, list memberships, consent history and preferences are removed for good. This can't be undone.",
   typeToConfirm: 'Type {n} to confirm.',
   eraseButton: '{n, plural, one {Erase {count} contact} other {Erase {count} contacts}}',
-  eraseNote: 'Their addresses are kept on the suppression list, so an erased contact is never emailed again, even if an import brings them back.',
+  eraseNote: 'Addresses already on the suppression list stay there, so an erased contact who unsubscribed, bounced or complained is still never emailed, even if an import brings them back.',
   typeLabel: 'Type {n} to confirm',
   eraseStripe: 'Stripe keeps its own records of paid members. Delete the customer in Stripe too if you need to.',
   erasePaidLink: 'Open Earn › Paid members',

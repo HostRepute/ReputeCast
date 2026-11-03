@@ -3362,6 +3362,15 @@ type Querier interface {
 	RetentionClearEventDetail(ctx context.Context, arg RetentionClearEventDetailParams) (int64, error)
 	// Confirmation email claims older than a day no longer limit anything.
 	RetentionOptInSendsPurge(ctx context.Context, before time.Time) (int64, error)
+	// Contacts an import's re-permission email reached who are still pending
+	// with no opt-in email since @before: never confirmed, no subscribed list
+	// and not suppressed yet. Workspaces in order, so a batch's contacts of one
+	// workspace are suppressed together.
+	RetentionRepermissionDue(ctx context.Context, arg RetentionRepermissionDueParams) ([]RetentionRepermissionDueRow, error)
+	// Suppresses Broadcasts and Automations to the addresses as an unsubscribe
+	// does, so a late confirmation or a new double opt-in signup lifts it
+	// (SignupLiftUnsubscribe).
+	RetentionRepermissionSuppress(ctx context.Context, arg RetentionRepermissionSuppressParams) ([]string, error)
 	// Contacts a double opt-in signup created who never confirmed, older than
 	// @before, with nothing else tying them to the workspace: never confirmed,
 	// imported or resubscribed, nothing since @before, no subscribed list, no

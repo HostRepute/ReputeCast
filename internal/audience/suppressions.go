@@ -429,7 +429,7 @@ func suppressionSource(l i18n.Lang, source, provider, adapter, user, importSourc
 			importSource = strings.TrimPrefix(source, "import:")
 		}
 		return SuppressionSource{Kind: "import", Label: mSupImport.Text(l, i18n.Args{"importer": importerLabelIn(l, importSource)})}
-	case source == "csv":
+	case source == "csv" || source == "repermission":
 		return SuppressionSource{Kind: source, Label: supSourceLabel(l, source)}
 	case strings.HasPrefix(source, "verify:"):
 		if name, ok := verificationServices[strings.TrimPrefix(source, "verify:")]; ok {

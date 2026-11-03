@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/erasure"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -26,7 +28,10 @@ import (
 //     events stay, so counts, scores, A/B decisions and reports don't move;
 //   - double opt-in signups never confirmed are erased after
 //     unconfirmed_erase_days (30 by default), through the erasure registry;
-//   - claims of the confirmation email limit older than a day go.
+//   - claims of the confirmation email limit older than a day go;
+//   - in every workspace, contacts an import's re-permission email reached
+//     who haven't confirmed repermissionDays after their latest opt-in
+//     email are suppressed (ExpireRepermission).
 
 // retentionBatch bounds one statement; retentionRounds bounds one run per
 // workspace, so a large backlog is worked off over several hours.
@@ -34,6 +39,11 @@ const (
 	retentionBatch  = 5000
 	retentionRounds = 20
 )
+
+// repermissionDays is how long an import's re-permission email waits for an
+// answer, as the import screens say ("Non-responders are suppressed
+// automatically after 14 days"). A resend from the team starts it again.
+const repermissionDays = 14
 
 // RetentionArgs runs the data retention of every workspace.
 type RetentionArgs struct{}
@@ -94,7 +104,69 @@ func (s *Service) RunRetention(ctx context.Context, log *slog.Logger) error {
 			log.InfoContext(ctx, "data retention", "workspace", r.ID, "event_detail_cleared", res.DetailCleared, "unconfirmed_erased", res.Erased)
 		}
 	}
+	n, err := s.ExpireRepermission(ctx)
+	if err != nil {
+		return fmt.Errorf("re-permission: %w", err)
+	}
+	if log != nil && n > 0 {
+		log.InfoContext(ctx, "data retention", "repermission_suppressed", n)
+	}
 	return nil
+}
+
+// ExpireRepermission suppresses Broadcasts and Automations to contacts an
+// import's re-permission email reached who are still pending
+// repermissionDays after their latest opt-in email, with one audit entry
+// per workspace and batch. The suppression is an unsubscribe's, from the
+// re-permission source: their confirmation link still works, and a
+// confirmation or a new double opt-in signup lifts it. It returns how many
+// addresses it suppressed.
+func (s *Service) ExpireRepermission(ctx context.Context) (int, error) {
+	now := s.now()
+	before := now.AddDate(0, 0, -repermissionDays)
+	note := kept(mContextRepermExpired, i18n.Args{"days": repermissionDays})
+	texts := KeptTexts(map[string]i18n.Text{"context": note.Text})
+	total := 0
+	for range retentionRounds {
+		rows, err := s.Q.RetentionRepermissionDue(ctx, store.RetentionRepermissionDueParams{Before: before, Lim: retentionBatch})
+		if err != nil || len(rows) == 0 {
+			return total, err
+		}
+		for start := 0; start < len(rows); {
+			ws := rows[start].WorkspaceID
+			end := start
+			for end < len(rows) && rows[end].WorkspaceID == ws {
+				end++
+			}
+			emails := make([]string, 0, end-start)
+			ids := make([]uuid.UUID, 0, end-start)
+			for _, r := range rows[start:end] {
+				emails = append(emails, r.Email)
+				ids = append(ids, uuid.Must(uuid.NewV7()))
+			}
+			err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+				q := store.New(tx)
+				added, err := q.RetentionRepermissionSuppress(ctx, store.RetentionRepermissionSuppressParams{
+					WorkspaceID: ws, Ids: ids, Emails: emails, Context: note.English, Texts: texts, At: now,
+				})
+				if err != nil || len(added) == 0 {
+					return err
+				}
+				total += len(added)
+				return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws, Action: "suppression.add", TargetType: "suppression", TargetName: strings.Join(first(added, 3), ", "),
+					Actor:    &audit.Actor{Type: authz.ActorSystem, Name: "System"},
+					Metadata: map[string]any{"count": len(added), "reason": "repermission", "afterDays": repermissionDays}})
+			})
+			if err != nil {
+				return total, err
+			}
+			start = end
+		}
+		if len(rows) < retentionBatch {
+			return total, nil
+		}
+	}
+	return total, nil
 }
 
 // RetainWorkspace applies one workspace's retention settings.

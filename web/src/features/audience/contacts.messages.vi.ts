@@ -152,12 +152,12 @@ export default translate(m, {
 
   // ── Erase ────────────────────────────────────────────────────────────
   erased: '{n, plural, other {Đã xóa vĩnh viễn {count} liên hệ}}',
-  erasedBody: 'Địa chỉ của họ vẫn nằm trong danh sách chặn gửi để không bao giờ bị gửi thư lại.',
+  erasedBody: 'Địa chỉ đã có trong danh sách chặn gửi vẫn được giữ ở đó.',
   eraseTitle: '{n, plural, other {Xóa vĩnh viễn {count} liên hệ?}}',
   eraseBody: 'Tên, trường, thẻ, danh sách đã tham gia, lịch sử đồng ý và tùy chọn sẽ bị xóa hẳn. Không thể hoàn tác.',
   typeToConfirm: 'Hãy nhập {n} để xác nhận.',
   eraseButton: '{n, plural, other {Xóa vĩnh viễn {count} liên hệ}}',
-  eraseNote: 'Địa chỉ của họ được giữ trong danh sách chặn gửi, nên liên hệ đã xóa không bao giờ nhận email nữa, kể cả khi một lần nhập đưa họ trở lại.',
+  eraseNote: 'Địa chỉ đã có trong danh sách chặn gửi vẫn được giữ ở đó, nên liên hệ đã xóa từng hủy đăng ký, bị trả lại hoặc khiếu nại vẫn không nhận email nào, kể cả khi một lần nhập đưa họ trở lại.',
   typeLabel: 'Nhập {n} để xác nhận',
   eraseStripe: 'Stripe giữ hồ sơ riêng của hội viên trả phí. Nếu cần, hãy xóa cả khách hàng trong Stripe.',
   erasePaidLink: 'Mở Earn › Hội viên trả phí',

@@ -7,6 +7,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -51,6 +52,99 @@ func (q *Queries) RetentionOptInSendsPurge(ctx context.Context, before time.Time
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const retentionRepermissionDue = `-- name: RetentionRepermissionDue :many
+SELECT c.workspace_id, c.email FROM contacts c JOIN workspaces w ON w.id = c.workspace_id AND w.deleted_at IS NULL
+WHERE c.erased_at IS NULL AND c.consent = 'pending'
+  AND EXISTS (SELECT 1 FROM consent_events e WHERE e.contact_id = c.id AND e.action = 'optin_sent' AND e.source = 'repermission')
+  AND NOT EXISTS (SELECT 1 FROM consent_events e WHERE e.contact_id = c.id
+                  AND (e.action IN ('confirmed', 'resubscribed') OR (e.action = 'optin_sent' AND e.occurred_at >= $1::timestamptz)))
+  AND NOT EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed')
+  AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)
+ORDER BY c.workspace_id, c.id
+LIMIT $2
+`
+
+type RetentionRepermissionDueParams struct {
+	Before time.Time `json:"before"`
+	Lim    int32     `json:"lim"`
+}
+
+type RetentionRepermissionDueRow struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Email       string    `json:"email"`
+}
+
+// Contacts an import's re-permission email reached who are still pending
+// with no opt-in email since @before: never confirmed, no subscribed list
+// and not suppressed yet. Workspaces in order, so a batch's contacts of one
+// workspace are suppressed together.
+func (q *Queries) RetentionRepermissionDue(ctx context.Context, arg RetentionRepermissionDueParams) ([]RetentionRepermissionDueRow, error) {
+	rows, err := q.db.Query(ctx, retentionRepermissionDue, arg.Before, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RetentionRepermissionDueRow{}
+	for rows.Next() {
+		var i RetentionRepermissionDueRow
+		if err := rows.Scan(&i.WorkspaceID, &i.Email); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const retentionRepermissionSuppress = `-- name: RetentionRepermissionSuppress :many
+INSERT INTO suppressions (id, workspace_id, email, reason, source, scope, context, created_at, texts)
+SELECT a.id, $1, a.email, 'unsubscribe', 'repermission', 'marketing', $2, $3, coalesce($4::jsonb, '{}')
+FROM (SELECT unnest($5::uuid[]) AS id, unnest($6::text[]) AS email) a
+ON CONFLICT (workspace_id, email) DO NOTHING
+RETURNING email
+`
+
+type RetentionRepermissionSuppressParams struct {
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Context     string          `json:"context"`
+	At          time.Time       `json:"at"`
+	Texts       json.RawMessage `json:"texts"`
+	Ids         []uuid.UUID     `json:"ids"`
+	Emails      []string        `json:"emails"`
+}
+
+// Suppresses Broadcasts and Automations to the addresses as an unsubscribe
+// does, so a late confirmation or a new double opt-in signup lifts it
+// (SignupLiftUnsubscribe).
+func (q *Queries) RetentionRepermissionSuppress(ctx context.Context, arg RetentionRepermissionSuppressParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, retentionRepermissionSuppress,
+		arg.WorkspaceID,
+		arg.Context,
+		arg.At,
+		arg.Texts,
+		arg.Ids,
+		arg.Emails,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var email string
+		if err := rows.Scan(&email); err != nil {
+			return nil, err
+		}
+		items = append(items, email)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const retentionUnconfirmedDue = `-- name: RetentionUnconfirmedDue :many

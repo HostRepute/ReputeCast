@@ -40,6 +40,31 @@ WHERE c.workspace_id = @workspace_id AND c.erased_at IS NULL AND c.consent = 'pe
 ORDER BY c.created_at
 LIMIT @lim;
 
+-- name: RetentionRepermissionDue :many
+-- Contacts an import's re-permission email reached who are still pending
+-- with no opt-in email since @before: never confirmed, no subscribed list
+-- and not suppressed yet. Workspaces in order, so a batch's contacts of one
+-- workspace are suppressed together.
+SELECT c.workspace_id, c.email FROM contacts c JOIN workspaces w ON w.id = c.workspace_id AND w.deleted_at IS NULL
+WHERE c.erased_at IS NULL AND c.consent = 'pending'
+  AND EXISTS (SELECT 1 FROM consent_events e WHERE e.contact_id = c.id AND e.action = 'optin_sent' AND e.source = 'repermission')
+  AND NOT EXISTS (SELECT 1 FROM consent_events e WHERE e.contact_id = c.id
+                  AND (e.action IN ('confirmed', 'resubscribed') OR (e.action = 'optin_sent' AND e.occurred_at >= @before::timestamptz)))
+  AND NOT EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed')
+  AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)
+ORDER BY c.workspace_id, c.id
+LIMIT @lim;
+
+-- name: RetentionRepermissionSuppress :many
+-- Suppresses Broadcasts and Automations to the addresses as an unsubscribe
+-- does, so a late confirmation or a new double opt-in signup lifts it
+-- (SignupLiftUnsubscribe).
+INSERT INTO suppressions (id, workspace_id, email, reason, source, scope, context, created_at, texts)
+SELECT a.id, @workspace_id, a.email, 'unsubscribe', 'repermission', 'marketing', @context, @at, coalesce(sqlc.narg(texts)::jsonb, '{}')
+FROM (SELECT unnest(@ids::uuid[]) AS id, unnest(@emails::text[]) AS email) a
+ON CONFLICT (workspace_id, email) DO NOTHING
+RETURNING email;
+
 -- name: RetentionOptInSendsPurge :execrows
 -- Confirmation email claims older than a day no longer limit anything.
 DELETE FROM optin_sends WHERE sent_at < @before::timestamptz;

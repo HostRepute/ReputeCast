@@ -128,6 +128,7 @@
   "suppressionSource.export": { "message": "{importer} export", "note": "a group of imported suppressions named after the tool's export file: Brevo export" },
   "suppressionSource.csv": "CSV upload",
   "suppressionSource.manual": "Manual",
+  "suppressionSource.repermission": "Re-permission",
 
   "pulled.events": { "message": "from its bounces and complaints", "note": "after a number: 12 from its bounces and complaints (a provider without a suppression API)" },
   "pulled.ses": "pulled from the account-level list",
@@ -154,6 +155,7 @@
   "detail.pauseLifted": "pause lifted",
   "context.unsubscribePage": "Unsubscribe page",
   "context.oneClick": "List-Unsubscribe one-click",
+  "context.repermissionExpired": { "message": "No answer to the re-permission email after {days, plural, one {# day} other {# days}}", "note": "why an imported address was suppressed: it never confirmed the re-permission email" },
   "context.csvUpload": { "message": "CSV upload · {file}", "note": "file: the uploaded file's name" },
   "job.exportTitle": "Export · {count, plural, one {# contact} other {# contacts}}",
   "job.resendTitle": "Resend opt-in · {count, plural, one {# contact} other {# contacts}}",

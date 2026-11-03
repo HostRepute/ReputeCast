@@ -152,8 +152,10 @@ var (
 	mDetailPaused      = msgs.M("detail.paused")
 	mDetailPauseLifted = msgs.M("detail.pauseLifted")
 	mContextUnsubPage  = msgs.M("context.unsubscribePage")
-	mContextOneClick   = msgs.M("context.oneClick")
-	mContextCSVUpload  = msgs.M("context.csvUpload")
+	// The context of a re-permission suppression (ExpireRepermission).
+	mContextRepermExpired = msgs.M("context.repermissionExpired")
+	mContextOneClick      = msgs.M("context.oneClick")
+	mContextCSVUpload     = msgs.M("context.csvUpload")
 )
 
 // lookup writes a message chosen by a key known at run time, or english
