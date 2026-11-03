@@ -615,6 +615,22 @@ loads of each build, alternating, read the same blocking time (medians
 machine than the fourth pass's table) and the largest paint 0.06 s
 (Overview) to 0.15 s (Contacts) sooner.
 
+Tried, measured, and not kept: preloading the screen's own chunks from
+the page's head too (the 41 files and 9 stylesheets of Contacts, from
+`early.ts`). Over Slow 4G the link is the limit, not the round trips: the
+chunks took its bandwidth from the startup scripts, and the largest paint
+came later (5.9–6.3 s, against 5.4–5.6 s).
+
+What a phone on Slow 4G waits for now is bytes: about 320 KB of startup
+scripts, 100 KB of the screen's own code and 121 KB of fonts (IBM Plex
+Sans in four weights, Plex Mono in two), about 2.8 s of transfer at
+1.6 Mbit/s before the screen can be drawn with its data. What would move
+it is fewer of them before the first screen: drawing it on the server, or
+loading the web fonts only once a screen is up (the fallback faces are
+matched to Plex's size, so text wouldn't move, but a first visit on a slow
+link would read in Arial). Both change how the app looks or is built, and
+are left for a decision.
+
 ### The campaign report on a real send
 
 Profiled on a sent campaign of 29,797 recipients (the QA data set), the
