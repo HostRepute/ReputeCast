@@ -565,6 +565,51 @@ and after, pixel for pixel, but for Grow's "Updated" time. Accessibility and bes
 desktop scores are unchanged (99–100, blocking 25–90 ms, within run-to-run
 noise).
 
+### Fifth pass: the first questions together
+
+Drawn once, a screen still waited for its data in waves. Over Slow 4G a
+round trip is more than half a second, and Contacts' data went out in five:
+/me once the app's scripts had run, then the workspace, then the screen's
+queries, then the ones its parts ask for once drawn (the filters' website,
+channels, languages, products, stores and fields; the Overview's
+Transactional, Earn and SMS cards; the jobs tray and the agency menu), then
+SMS's overview after the channels. The screen shows its parts when every
+first load is in, so it waited for the last wave.
+
+- **The session is asked for while the scripts load.** `src/early.ts` is an
+  entry of its own, 0.4 KB, in the page's head (`earlyEntry` in
+  `vite.config.ts`: listed in index.html, the build would have merged it
+  into the app's entry, which runs once every startup script is in). It
+  asks for /me and, on a workspace's address, the workspace. The app takes
+  each answer once, and only a 200 (`lib/early.ts`); anything else it asks
+  again through its API client, which handles a signed-out session.
+- **A route asks for its parts' data with its own.** The Contacts and
+  Overview loaders prefetch what their parts ask for, with the same address
+  and parameters as the parts' own queries, so one answer serves both.
+  SMS's overview follows the channels when texting is set up
+  (`FirstQuery.next`); a section the workspace hides isn't asked for
+  (`FirstQuery.section`). The workspace's route prefetches the jobs tray's
+  and the agency menu's.
+- **Contacts loads less code.** Its store filter's hook lived with the
+  composer's store blocks, and the website's member chips with the site's
+  preview frame: Contacts downloaded the composer's context, the
+  integrations catalog and the preview for them. `useCatalog` moved to
+  `commerce/api.ts` and the chips to `website/contacts.tsx`: 42 chunks
+  instead of 57.
+
+`web/scripts/phone-perf.ts` (Slow 4G, the CPU four times slower, HTTP/2),
+two rounds of four loads each, alternating with the fourth pass's build:
+
+| Phone, Slow 4G | Heading before | After | Largest paint before | After |
+|---|---|---|---|---|
+| Overview | 5.30–5.32 s | 5.03–5.16 s | 5.60–5.64 s | 5.00–5.08 s |
+| Contacts | 5.48–5.57 s | 5.21–5.39 s | 6.64–6.80 s | 5.21–5.32 s |
+| Campaigns | 5.15–5.29 s | 4.75–4.92 s | 5.44–5.60 s | 4.68–4.82 s |
+
+Campaigns' layout shift reads 0 instead of 0.03: its table no longer
+changes after its first data. The blocking time doesn't move (0.5–0.9 s
+on this machine with other servers running).
+
 ### The campaign report on a real send
 
 Profiled on a sent campaign of 29,797 recipients (the QA data set), the
