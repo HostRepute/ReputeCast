@@ -156,7 +156,7 @@ func NameIn(l i18n.Lang, code string) string {
 	namersMu.Unlock()
 	if n != nil {
 		if s := n.Name(tag); s != "" {
-			return s
+			return i18n.StandaloneLanguageName(l.Locale, s)
 		}
 	}
 	return lang.Name

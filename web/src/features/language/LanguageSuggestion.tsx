@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { errorMessage, http } from '@/api/client'
 import { Button } from '@/components/ui/Button'
 import { toast } from '@/components/ui/Toast'
-import { browserLanguage, languageName, useI18n, useT, useTIn, type AppLocale } from '@/i18n'
+import { browserLanguage, languageName, useI18n, useT, useTIn, type AppLocale, type PSEUDO_LOCALE } from '@/i18n'
 import { m } from './messages'
 import { useMemberLanguage, useSaveMemberLanguage } from './useLanguage'
 import './language.css'
@@ -40,7 +40,7 @@ const Cross = () => (
 
 /** Tells the server the suggestion was answered, so no other browser offers it again. */
 function report(answer: 'use' | 'keep' | 'dismiss', language: AppLocale) {
-  void http.PUT('/api/v1/me/language/suggestion', { body: { answer, language: language as 'en' | 'vi' } }).catch(() => {
+  void http.PUT('/api/v1/me/language/suggestion', { body: { answer, language: language as Exclude<AppLocale, typeof PSEUDO_LOCALE> } }).catch(() => {
     // This browser remembers the answer anyway.
   })
 }

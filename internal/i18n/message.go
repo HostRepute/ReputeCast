@@ -18,7 +18,7 @@ type argNode struct {
 	kind  string // "", "number", "date", "time"
 	style string
 	// inSentence is a plain argument that follows other words of its
-	// sentence, in a Vietnamese translation (names.go).
+	// sentence, in a translation whose language names change case (names.go).
 	inSentence bool
 }
 

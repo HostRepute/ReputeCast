@@ -37,7 +37,7 @@ type formatter struct {
 	tags   Tags
 	mode   mode
 	pseudo bool
-	names  bool // a Vietnamese translation: language names take the case their place needs
+	names  Locale // the translation's language: language names take the case their place needs (names.go)
 }
 
 func (f *formatter) nodes(ns []node, pound *float64) string {
@@ -140,9 +140,7 @@ func (f *formatter) arg(v argNode) string {
 		}
 		return htmlToText(string(x))
 	case string:
-		if f.names {
-			x = viNames(x, v.inSentence)
-		}
+		x = caseNames(f.names, x, v.inSentence)
 		return f.escape(x)
 	case time.Time:
 		return f.escape(f.lang.Region.Date(x))

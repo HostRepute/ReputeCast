@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"golang.org/x/text/language"
-	"golang.org/x/text/language/display"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
@@ -177,26 +175,16 @@ func tierName(l i18n.Lang, key string) string {
 }
 
 // languageName is a content language's name in the reader's language:
-// "Spanish", "Tiếng Tây Ban Nha" (CLDR's names, as the browser writes them
-// on the web). Languages a dictionary doesn't name keep their English name.
+// "Spanish", "Español", "Tiếng Tây Ban Nha" (CLDR's names, as the browser
+// writes them on the web). English readers, and languages CLDR doesn't
+// name, get the content languages' own English name.
 func languageName(l i18n.Lang, code string) string {
 	if code == "" {
 		return ""
 	}
 	base := baseLanguage(code)
-	if d := languageNames(l.Locale); d != nil {
-		if n := d.Name(language.Make(base)); n != "" {
-			return n
-		}
+	if n := i18n.LanguageName(l.Locale, base); n != "" {
+		return n
 	}
 	return languages.NameOf(base)
-}
-
-// languageNames is the dictionary of language names in an app language;
-// nil for English, which uses the content languages' own catalog.
-func languageNames(l i18n.Locale) display.Namer {
-	if l == i18n.Vietnamese {
-		return display.Vietnamese.Languages()
-	}
-	return nil
 }

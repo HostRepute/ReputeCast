@@ -1,6 +1,7 @@
 import { $api, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { getI18n, useT } from '@/i18n'
+import { languageLabel } from '@/lib/format'
 import { m } from './messages'
 import './accessibility.css'
 
@@ -23,7 +24,7 @@ export function GalleryCaption({ data }: { data?: Schemas['AccessibilityGallery'
   const t = useT()
   if (!data) return null
   const starters = data.templates.filter((r) => r.id.startsWith('starter:'))
-  const language = new Intl.DisplayNames([getI18n().locale], { type: 'language' }).of(data.language) ?? data.language
+  const language = languageLabel(data.language, getI18n().locale)
   return <span className="k">{starters.every((r) => !r.issues) ? t(m.galleryChecked, { language }) : t(m.galleryCheckedSome, { language })}</span>
 }
 

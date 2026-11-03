@@ -3,7 +3,7 @@ import { PSEUDO_LOCALE } from './pseudo'
 import { isRegionFormat, regionHourCycle, regionLocale, regionWeekStart, type HourCycle, type RegionFormat, type WeekStart } from './regions'
 
 /** The languages the app's own interface comes in, and the pseudo-locale. */
-export type AppLocale = 'en' | 'vi' | typeof PSEUDO_LOCALE
+export type AppLocale = 'en' | 'de' | 'es' | 'fr' | 'vi' | typeof PSEUDO_LOCALE
 
 export interface I18nState {
   /** The app language: picks the translation and the plural rules. */
@@ -19,13 +19,21 @@ export interface I18nState {
 
 type Loader = () => Promise<Catalog>
 
-// Translations sit next to their English source, as `messages.vi.ts` or
-// `<name>.messages.vi.ts`, and load only when the language is picked.
-const vi = import.meta.glob<Catalog>('../**/*messages.vi.ts', { import: 'default' })
+// Translations sit next to their English source, as `messages.<lang>.ts` or
+// `<name>.messages.<lang>.ts`, and load only when the language is picked.
+type Modules = Record<string, () => Promise<Catalog>>
+const translations: Record<Exclude<AppLocale, 'en' | typeof PSEUDO_LOCALE>, Modules> = {
+  de: import.meta.glob<Catalog>('../**/*messages.de.ts', { import: 'default' }),
+  es: import.meta.glob<Catalog>('../**/*messages.es.ts', { import: 'default' }),
+  fr: import.meta.glob<Catalog>('../**/*messages.fr.ts', { import: 'default' }),
+  vi: import.meta.glob<Catalog>('../**/*messages.vi.ts', { import: 'default' }),
+}
+
+const loadAll = (modules: Modules): Loader => async () => Object.assign({}, ...(await Promise.all(Object.values(modules).map((load) => load()))))
 
 const loaders = new Map<AppLocale, Loader>([
   ['en', async () => ({})],
-  ['vi', async () => Object.assign({}, ...(await Promise.all(Object.values(vi).map((load) => load()))))],
+  ...Object.entries(translations).map(([code, modules]) => [code as AppLocale, loadAll(modules)] as const),
   // The pseudo-locale transforms the English sources as they're formatted.
   [PSEUDO_LOCALE, async () => ({})],
 ])

@@ -96,7 +96,7 @@ type InstanceSettingsInput struct {
 	PublicURL       string `json:"publicUrl" maxLength:"300"`
 	DefaultTimezone string `json:"defaultTimezone" maxLength:"64"`
 	// DefaultLanguage and DefaultRegionFormat stay as they are when omitted.
-	DefaultLanguage     string `json:"defaultLanguage,omitempty" enum:"en,vi"`
+	DefaultLanguage     string `json:"defaultLanguage,omitempty" enum:"en,de,es,fr,vi"`
 	DefaultRegionFormat string `json:"defaultRegionFormat,omitempty" enum:"standard,en-US,vi-VN,de-DE,en-GB,es-ES,fr-FR,pt-BR"`
 }
 

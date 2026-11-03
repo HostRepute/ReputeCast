@@ -7,7 +7,7 @@ import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState, Loading, Skeleton } from '@/components/ui/Feedback'
 import { toast } from '@/components/ui/Toast'
-import { T, useI18n, useT } from '@/i18n'
+import { standaloneLanguageName, T, useI18n, useT } from '@/i18n'
 import { andList, clock, shortDate, weekdayDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
@@ -345,7 +345,7 @@ function languageName(code: string, locale: string): string {
       n = new Intl.DisplayNames([locale], { type: 'language' })
       names.set(locale, n)
     }
-    return n.of(code) ?? code
+    return standaloneLanguageName(locale, n.of(code) ?? code)
   } catch {
     return code
   }

@@ -3,9 +3,6 @@ package polls
 import (
 	"embed"
 
-	"golang.org/x/text/language"
-	"golang.org/x/text/language/display"
-
 	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/i18n"
@@ -64,12 +61,11 @@ func tierLabel(l i18n.Lang, tier string) string {
 }
 
 // languageLabel is a contact language's name in the reader's language:
-// "Spanish", "Tiếng Tây Ban Nha" (CLDR's names, as the browser writes them).
+// "Spanish", "Español", "Tiếng Tây Ban Nha" (CLDR's names, as the browser
+// writes them).
 func languageLabel(l i18n.Lang, code string) string {
-	if l.Locale == i18n.Vietnamese {
-		if n := display.Vietnamese.Languages().Name(language.Make(accessibility.BaseLanguage(code))); n != "" {
-			return n
-		}
+	if n := i18n.LanguageName(l.Locale, accessibility.BaseLanguage(code)); n != "" {
+		return n
 	}
 	return accessibility.LanguageName(code)
 }

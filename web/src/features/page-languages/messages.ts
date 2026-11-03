@@ -105,9 +105,9 @@ export const mf = defineMessages('pageLanguages.forms', {
   labelsTitle: 'Built-in labels · {language}',
   labelsCount: '{written} of {total}',
   labelsWrittenBy:
-    'Buttons, field labels, messages and the confirmation email. ReputeCast ships them in English and Vietnamese; {name} wrote the {language} ones, starting from “Copy English”.',
+    'Buttons, field labels, messages and the confirmation email. ReputeCast ships them in the languages of its own interface; {name} wrote the {language} ones, starting from “Copy English”.',
   labelsToWrite:
-    'Buttons, field labels, messages and the confirmation email. ReputeCast ships them in English and Vietnamese; write the {language} ones once, starting from “Copy English”.',
+    'Buttons, field labels, messages and the confirmation email. ReputeCast ships them in the languages of its own interface; write the {language} ones once, starting from “Copy English”.',
   labelsShipped: 'Ready, from ReputeCast’s translation',
   labelsReady: 'Ready',
   labelsEdit: 'Edit the {language} labels',

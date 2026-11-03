@@ -282,7 +282,7 @@ type TeamInviteInput struct {
 	SendEmail *bool `json:"sendEmail,omitempty"`
 	// Language is the invitation email's and the page's; the instance
 	// default when omitted. Once they sign in, members pick their own.
-	Language string `json:"language,omitempty" enum:"en,vi"`
+	Language string `json:"language,omitempty" enum:"en,de,es,fr,vi"`
 }
 
 // TeamCreatedInvitation is one created invitation with its link.

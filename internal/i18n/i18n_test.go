@@ -161,9 +161,13 @@ func TestNegotiate(t *testing.T) {
 		ok     bool
 	}{
 		{"vi-VN,vi;q=0.9,en-US;q=0.8", Vietnamese, true},
-		{"fr-FR,fr;q=0.9,vi;q=0.5", Vietnamese, true},
+		{"fr-FR,fr;q=0.9,vi;q=0.5", French, true},
+		{"it-IT,it;q=0.9,vi;q=0.5", Vietnamese, true},
 		{"en-GB", English, true},
-		{"de-DE", English, false},
+		{"de-DE", German, true},
+		{"es-MX,es;q=0.9", Spanish, true},
+		{"fr-CA", French, true},
+		{"it-IT", English, false},
 		{"", English, false},
 		{"en-XA", English, true},
 	}
@@ -196,6 +200,9 @@ func TestParseLocaleAndResolve(t *testing.T) {
 		{"", "", "en", "standard", Lang{English, Standard}},
 		{"", "", "vi", "standard", Lang{Vietnamese, Standard}},
 		{"vi", "", "en", "standard", Lang{Vietnamese, "vi-VN"}},
+		{"de", "", "en", "standard", Lang{German, "de-DE"}},
+		{"es-MX", "", "en", "standard", Lang{Spanish, "es-ES"}},
+		{"fr", "en-GB", "en", "standard", Lang{French, "en-GB"}},
 		{"en", "en-US", "en", "standard", Lang{English, "en-US"}},
 		{"", "de-DE", "en", "standard", Lang{English, "de-DE"}},
 		{"xx", "", "", "", Lang{English, Standard}},

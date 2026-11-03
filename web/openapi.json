@@ -38480,6 +38480,9 @@
           "defaultLanguage": {
             "enum": [
               "en",
+              "de",
+              "es",
+              "fr",
               "vi"
             ],
             "type": "string"
@@ -39044,6 +39047,9 @@
           "defaultLanguage": {
             "enum": [
               "en",
+              "de",
+              "es",
+              "fr",
               "vi"
             ],
             "type": "string"
@@ -45604,6 +45610,9 @@
             "enum": [
               "default",
               "en",
+              "de",
+              "es",
+              "fr",
               "vi",
               "en-XA"
             ],
@@ -84148,6 +84157,9 @@
             "description": "The language the browser suggested",
             "enum": [
               "en",
+              "de",
+              "es",
+              "fr",
               "vi"
             ],
             "type": "string"
@@ -86224,6 +86236,9 @@
           "language": {
             "enum": [
               "en",
+              "de",
+              "es",
+              "fr",
               "vi"
             ],
             "type": "string"
@@ -160264,7 +160279,7 @@
     },
     "/api/v1/workspaces/{workspace}/public-pages/labels/{language}": {
       "get": {
-        "description": "Buttons, field labels, messages and the confirmation email. ReputeCast ships them in English and Vietnamese; for other languages the workspace writes them.",
+        "description": "Buttons, field labels, messages and the confirmation email. ReputeCast ships them in the languages of its own interface (English, German, Spanish, French and Vietnamese); for other languages the workspace writes them.",
         "operationId": "get-public-page-labels",
         "parameters": [
           {
