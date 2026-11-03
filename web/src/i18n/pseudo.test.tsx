@@ -26,6 +26,8 @@ describe('pseudo-locale', () => {
 
   it('pads by about 40%, as on the stress-test boards', () => {
     expect(t(m.edit)).toBe('⟦Éðîţ ·⟧')
+    render(<T msg={m.edit} />)
+    expect(document.body.textContent).toBe('⟦Éðîţ ·⟧')
     expect(t(m.home)).toBe('⟦Ĥömé öƒ ReputeCast ······⟧')
     expect(pseudoWrap('Campaigns')).toEqual(['⟦', ' ···⟧'])
     expect(pseudoWrap('')).toEqual(['', ''])

@@ -2,6 +2,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { Dialog as RDialog } from 'radix-ui'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { T, useT } from '@/i18n'
+import { useOpenedOnce } from '@/lib/hooks'
 import { deniedReason, useCan, useWorkspace } from '@/lib/session'
 import { GO_KEYS, modKeyLabel, runShortcutHandler, SEQUENCE_MS, shortcutFor, type GoTarget } from '@/lib/shortcuts'
 import { toast } from '../ui/Toast'
@@ -120,6 +121,7 @@ export function GlobalShortcuts() {
   const { slug } = useWorkspace()
   const canCreate = useCan('campaigns:edit')
   const [help, setHelp] = useState(false)
+  const helpOpened = useOpenedOnce(help)
   const [palette, setPalette] = useState(false)
   const pending = useRef(false)
   const timer = useRef<number | undefined>(undefined)
@@ -169,7 +171,7 @@ export function GlobalShortcuts() {
 
   return (
     <>
-      <ShortcutsDialog open={help} onOpenChange={setHelp} />
+      {helpOpened ? <ShortcutsDialog open={help} onOpenChange={setHelp} /> : null}
       <CommandPalette open={palette} onOpenChange={setPalette} />
     </>
   )

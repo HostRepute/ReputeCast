@@ -70,10 +70,11 @@ afterEach(() => {
 describe('phone navigation and the More sheet', () => {
   it('keeps four sections in the tab bar and opens the others in a sheet', async () => {
     await phoneShell()
-    expect(sidebarLinks()).toEqual(['Overview', 'Campaigns', 'Automations', 'Transactional', 'Audience', 'Grow', 'Earn', 'Forms & pages', 'Deliverability', 'Sending providers', 'Settings'])
-    // The sections that live in the sheet leave the tab bar (`xm`, hidden at ≤767px).
-    const inSheet = screen.getAllByRole('link', { hidden: true }).filter((a) => a.classList.contains('xm'))
-    expect(inSheet.map((a) => a.textContent)).toEqual(['Automations', 'Transactional', 'Grow', 'Earn', 'Forms & pages', 'Sending providers', 'Settings'])
+    // The sections that live in the sheet aren't in the tab bar, nor are the
+    // logo, the switcher and the footer: at phone width they aren't rendered.
+    expect(sidebarLinks()).toEqual(['Overview', 'Campaigns', 'Audience', 'Deliverability'])
+    expect(screen.queryByRole('link', { name: 'ReputeCast home', hidden: true })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Import contacts', hidden: true })).toBeNull()
     expect(more()).toHaveAccessibleName('More: Automations, Transactional, Grow, Earn, Forms & pages, Sending providers and Settings')
     expect(more()).toHaveAttribute('aria-haspopup', 'dialog')
     expect(more()).toHaveAttribute('aria-expanded', 'false')
@@ -149,7 +150,7 @@ describe('phone navigation and the More sheet', () => {
 
   it('leaves hidden sections out of the sidebar, the tab bar and the sheet', async () => {
     await phoneShell('/w/acme-newsletter', owner({ hiddenSections: ['transactional', 'earn'] }))
-    expect(sidebarLinks()).toEqual(['Overview', 'Campaigns', 'Automations', 'Audience', 'Grow', 'Forms & pages', 'Deliverability', 'Sending providers', 'Settings'])
+    expect(sidebarLinks()).toEqual(['Overview', 'Campaigns', 'Audience', 'Deliverability'])
     expect(more()).toHaveAccessibleName('More: Automations, Grow, Forms & pages, Sending providers and Settings')
     fireEvent.click(more())
     const sheet = await screen.findByRole('dialog', { name: 'More' })

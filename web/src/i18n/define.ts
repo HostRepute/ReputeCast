@@ -12,7 +12,7 @@ export type Messages<K extends string> = { readonly [P in K]: MessageDescriptor 
 
 const sources = new Map<string, string>()
 
-/** Every English source message defined so far, by ID. */
+/** Every English source message defined so far, by ID (development and tests). */
 export function sourceMessages(): ReadonlyMap<string, string> {
   return sources
 }
@@ -31,11 +31,13 @@ export function defineMessages<K extends string>(namespace: string, messages: Re
   for (const key of Object.keys(messages) as K[]) {
     const id = `${namespace}.${key}`
     const message = messages[key]
-    const known = sources.get(id)
-    if (import.meta.env.DEV && known !== undefined && known !== message) {
-      console.warn(`i18n: ${id} is defined twice with different text`)
+    // The registry serves development and tests. Nothing reads it in a
+    // production build, where filling it was startup work for every message.
+    if (!import.meta.env.PROD) {
+      const known = sources.get(id)
+      if (known !== undefined && known !== message) console.warn(`i18n: ${id} is defined twice with different text`)
+      sources.set(id, message)
     }
-    sources.set(id, message)
     out[key] = Object.freeze({ id, message })
   }
   return out

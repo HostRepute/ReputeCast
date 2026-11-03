@@ -5,13 +5,12 @@ import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
-import { EmptyState, ErrorPanel, Skeleton } from '@/components/ui/Feedback'
+import { EmptyState, ErrorPanel, FirstLoadReveal, Skeleton } from '@/components/ui/Feedback'
 import { Grid } from '@/components/ui/Layout'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { FilterTabs } from '@/components/ui/Tabs'
 import { count, dayMonthDate, pct } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
-import { useFirstLoadSettled } from '@/lib/hooks'
 import { ct, RevenueCell } from '@/features/commerce/automation'
 import { t as tt, useT } from '@/i18n'
 import { common } from '@/i18n/common'
@@ -90,31 +89,26 @@ function Loaded({ data, status, templates }: { data: Schemas['AutomationList']; 
   const { slug } = useWorkspace()
   // The summary loads after the list: until it has, the list's skeleton
   // stays, so the table doesn't jump down when the numbers arrive.
-  const settled = useFirstLoadSettled()
   return (
-    <>
-      {settled ? null : <ListSkeleton />}
-      <div className={settled ? 'contents' : 'hidden'}>
-        {data.alerts.length > 0 ? <Alerts alerts={data.alerts} /> : null}
-        <Summary />
-        {data.items.length === 0 ? (
-          <EmptyState
-            title={t(m.noneWithStatus, { status })}
-            action={
-              <Link className="btn" to="/w/$workspace/automations" params={{ workspace: slug }}>
-                {t(m.showAll)}
-              </Link>
-            }
-          >
-            {t(m.noneWithStatusBody, { count: data.counts.all })}
-          </EmptyState>
-        ) : (
-          <AutomationTable items={data.items} />
-        )}
-        {templates ? <StarterTemplates templates={templates} /> : null}
-    
-      </div>
-    </>
+    <FirstLoadReveal skeleton={<ListSkeleton />}>
+      {data.alerts.length > 0 ? <Alerts alerts={data.alerts} /> : null}
+      <Summary />
+      {data.items.length === 0 ? (
+        <EmptyState
+          title={t(m.noneWithStatus, { status })}
+          action={
+            <Link className="btn" to="/w/$workspace/automations" params={{ workspace: slug }}>
+              {t(m.showAll)}
+            </Link>
+          }
+        >
+          {t(m.noneWithStatusBody, { count: data.counts.all })}
+        </EmptyState>
+      ) : (
+        <AutomationTable items={data.items} />
+      )}
+      {templates ? <StarterTemplates templates={templates} /> : null}
+    </FirstLoadReveal>
   )
 }
 

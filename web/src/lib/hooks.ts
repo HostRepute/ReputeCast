@@ -1,16 +1,47 @@
-import { useIsFetching, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from 'react'
+import { notifyManager, useQueryClient } from '@tanstack/react-query'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type RefObject } from 'react'
+
+const mediaLists = new Map<string, MediaQueryList>()
+let mediaListsOf: typeof window.matchMedia | undefined
+
+// One list per query: React reads the snapshot on every render, and each
+// matchMedia call parses the query again. A replaced matchMedia (tests that
+// emulate a phone) starts over.
+function mediaList(query: string): MediaQueryList {
+  if (mediaListsOf !== window.matchMedia) {
+    mediaLists.clear()
+    mediaListsOf = window.matchMedia
+  }
+  let m = mediaLists.get(query)
+  if (!m) {
+    m = window.matchMedia(query)
+    mediaLists.set(query, m)
+  }
+  return m
+}
 
 export function useMediaQuery(query: string): boolean {
   return useSyncExternalStore(
     (cb) => {
-      const m = window.matchMedia(query)
+      const m = mediaList(query)
       m.addEventListener('change', cb)
       return () => m.removeEventListener('change', cb)
     },
-    () => window.matchMedia(query).matches,
+    () => mediaList(query).matches,
     () => false,
   )
+}
+
+/**
+ * True once `open` has been true. A dialog that is closed until someone
+ * opens it renders nothing before then (its content's text and fields are
+ * work on every screen's first render), and stays mounted afterwards, so
+ * it closes with its animation.
+ */
+export function useOpenedOnce(open: boolean): boolean {
+  const [opened, setOpened] = useState(open)
+  if (open && !opened) setOpened(true)
+  return opened || open
 }
 
 /** Sets document.title while mounted. */
@@ -147,10 +178,22 @@ const firstLoad = { predicate: (q: { state: { status: string } }) => q.state.sta
  */
 export function useFirstLoadSettled(maxMs = 3000): boolean {
   const client = useQueryClient()
-  const loading = useIsFetching(firstLoad)
   const [state, setState] = useState<'mounting' | 'loading' | 'settled'>('mounting')
+  // Only whether a first load is running matters. A count (useIsFetching)
+  // re-rendered the whole screen as each of its queries started and came
+  // back, a dozen times on a phone's first load; and once settled, the
+  // screen stops listening. The news comes in TanStack Query's batches, as
+  // the queries' own data does, so the parts are drawn with their last data
+  // when they show, not a moment before it.
+  const watching = state !== 'settled'
+  const subscribe = useCallback((changed: () => void) => (watching ? client.getQueryCache().subscribe(notifyManager.batchCalls(changed)) : () => {}), [client, watching])
+  const loading = useSyncExternalStore(
+    subscribe,
+    () => watching && client.isFetching(firstLoad) > 0,
+    () => false,
+  )
   // React's "adjust state when a value changes" pattern, no effect.
-  if (state === 'loading' && loading === 0) setState('settled')
+  if (state === 'loading' && !loading) setState('settled')
   useEffect(() => {
     // After the first commit, once the children have started their queries.
     const first = setTimeout(() => setState((s) => (s === 'mounting' ? (client.isFetching(firstLoad) > 0 ? 'loading' : 'settled') : s)), 0)

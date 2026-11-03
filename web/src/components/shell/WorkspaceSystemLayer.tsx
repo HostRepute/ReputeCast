@@ -57,14 +57,14 @@ function useCornerOffsets(tray: React.RefObject<HTMLDivElement | null>) {
  * "Extend" quickly; the tray comes after the page.
  */
 export function WorkspaceSystemLayer({ children }: { children: ReactNode }) {
-  const status = useSystemStatus()
+  const rateLimit = useSystemStatus((s) => s.rateLimit)
   const tray = useRef<HTMLDivElement>(null)
   useCornerOffsets(tray)
   return (
     <>
       <div className="corner c-notices">
         <SessionGuard />
-        {status.rateLimit ? <RateLimitNotice limit={status.rateLimit} /> : null}
+        {rateLimit ? <RateLimitNotice limit={rateLimit} /> : null}
       </div>
       {children}
       <div className="corner c-tray" ref={tray}>

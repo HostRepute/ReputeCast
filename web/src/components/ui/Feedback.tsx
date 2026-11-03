@@ -1,12 +1,30 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { T } from '@/i18n'
 import { cn } from '@/lib/cn'
+import { useFirstLoadSettled } from '@/lib/hooks'
 import { Icon } from '../icons/Icon'
 import { m } from './messages'
 
 /** Grey block shaped like the content it stands in for. */
 export function Skeleton({ w, h = 12, r, className, style }: { w?: number | string; h?: number | string; r?: number; className?: string; style?: CSSProperties }) {
   return <span className={cn('sk shimmer', className)} style={{ width: w, height: h, borderRadius: r, ...style }} aria-hidden="true" />
+}
+
+/**
+ * A screen's parts that each come back on their own, kept mounted but
+ * hidden behind `skeleton` until the queries loading for the first time
+ * have come back (useFirstLoadSettled), then shown at once, so nothing
+ * jumps. Only this wrapper re-renders when they have: the parts are the
+ * screen's elements, reused as they are.
+ */
+export function FirstLoadReveal({ skeleton, children }: { skeleton?: ReactNode; children: ReactNode }) {
+  const settled = useFirstLoadSettled()
+  return (
+    <>
+      {settled ? null : skeleton}
+      <div className={settled ? 'contents' : 'hidden'}>{children}</div>
+    </>
+  )
 }
 
 /** Loading region: hidden skeleton visuals plus one announced sentence. */

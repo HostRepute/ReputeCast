@@ -42,7 +42,6 @@ export function AppShell({ children }: { children?: ReactNode } = {}) {
 
 function Sidebar() {
   const { slug, me: ws } = useWorkspace()
-  const { data: me } = useMe()
   const t = useT()
   const rail = useMediaQuery('(min-width: 768px) and (max-width: 1100px)')
   const phone = useMediaQuery('(max-width: 767px)')
@@ -56,58 +55,80 @@ function Sidebar() {
   // phone width, closes it.
   const [openOn, setOpenOn] = useState<string>()
   const sheetOpen = phone && openOn === pathname
+  // On a phone the sidebar is the tab bar: the logo, the switcher, the
+  // footer and the sections in the More sheet aren't drawn there (the sheet
+  // has its own switcher and footer), so they aren't rendered either; and
+  // More, the tab bar's, only renders there.
+  return (
+    <aside className={cn('side', sheetOpen && 'sheet-open')} aria-label={t(m.sidebarLabel)}>
+      {phone ? null : (
+        <>
+          <Link to="/w/$workspace" params={{ workspace: slug }} className="home" aria-label={t(m.homeLabel)}>
+            <LogoMark size={26} />
+            <span className="brand-t">ReputeCast</span>
+          </Link>
+          <WorkspaceSwitcher />
+        </>
+      )}
+      <nav className="nav" aria-label={t(m.mainNavLabel)}>
+        {visibleNav(hidden)
+          .filter((i) => shows(i.key) && (!phone || i.tab))
+          .map((item) => (
+            <NavLink key={item.key} item={item} current={current} rail={rail} />
+          ))}
+        {phone ? (
+          <MoreSheet open={sheetOpen} onOpenChange={(o) => setOpenOn(o ? pathname : undefined)} items={more} current={current}>
+            <button
+              type="button"
+              className={cn('more', moreIsCurrent(current, hidden, sheetOpen) && 'on')}
+              aria-label={t(m.moreTabLabel, { sections: formatList(more.map((i) => t(i.label))) })}
+              aria-current={moreIsCurrent(current, hidden) ? 'true' : undefined}
+            >
+              <Icon name="moreSections" />
+              <span className="nl">{t(m.moreTab)}</span>
+            </button>
+          </MoreSheet>
+        ) : null}
+      </nav>
+      {phone ? null : <SideFoot />}
+    </aside>
+  )
+}
+
+/**
+ * The footer sits at the bottom of the page (as on every board); until the
+ * screen's first data is in, the page is shorter than it will be, so it
+ * stays invisible, holding its place, instead of showing at the bottom of
+ * the window and jumping off it. It is its own component so that showing it
+ * doesn't re-render the sidebar.
+ */
+function SideFoot() {
+  const { slug, me: ws } = useWorkspace()
+  const { data: me } = useMe()
+  const t = useT()
   const settled = useFirstLoadSettled()
   const user = me?.user
   // An agency's client people see who manages the workspace (agency accounts).
   const clientPerson = useIsClientPerson()
   return (
-    <aside className={cn('side', sheetOpen && 'sheet-open')} aria-label={t(m.sidebarLabel)}>
-      <Link to="/w/$workspace" params={{ workspace: slug }} className="home" aria-label={t(m.homeLabel)}>
-        <LogoMark size={26} />
-        <span className="brand-t">ReputeCast</span>
-      </Link>
-      <WorkspaceSwitcher />
-      <nav className="nav" aria-label={t(m.mainNavLabel)}>
-        {visibleNav(hidden)
-          .filter((i) => shows(i.key))
-          .map((item) => (
-            <NavLink key={item.key} item={item} current={current} rail={rail} />
-          ))}
-        <MoreSheet open={sheetOpen} onOpenChange={(o) => setOpenOn(o ? pathname : undefined)} items={more} current={current}>
-          <button
-            type="button"
-            className={cn('more', moreIsCurrent(current, hidden, sheetOpen) && 'on')}
-            aria-label={t(m.moreTabLabel, { sections: formatList(more.map((i) => t(i.label))) })}
-            aria-current={moreIsCurrent(current, hidden) ? 'true' : undefined}
-          >
-            <Icon name="moreSections" />
-            <span className="nl">{t(m.moreTab)}</span>
-          </button>
-        </MoreSheet>
-      </nav>
-      {/* The footer sits at the bottom of the page (as on every board); until
-          the screen's first data is in, the page is shorter than it will be,
-          so it stays invisible, holding its place, instead of showing at the
-          bottom of the window and jumping off it. */}
-      <div className={cn('sidefoot', !settled && 'invisible')}>
-        {clientPerson ? null : (
-          <Link to="/w/$workspace/import" params={{ workspace: slug }} className="btn" style={{ justifyContent: 'flex-start' }} aria-label={t(m.importContacts)}>
-            <Icon name="import" />
-            {t(m.importContacts)}
-          </Link>
-        )}
-        {clientPerson ? <ManagedByCard /> : <HostReputeStatus />}
-        {user ? (
-          <div className="flex items-center gap-2 px-2 py-1">
-            <Avatar name={user.name || user.email} color={user.avatarColor} size={26} />
-            <div className="flex flex-col leading-[1.25]">
-              <span className="text-[12px] font-semibold">{user.name || user.email}</span>
-              <span className="k text-[11px]">{roleName({ key: ws.workspace.roleKey, name: ws.workspace.roleName })}</span>
-            </div>
+    <div className={cn('sidefoot', !settled && 'invisible')}>
+      {clientPerson ? null : (
+        <Link to="/w/$workspace/import" params={{ workspace: slug }} className="btn" style={{ justifyContent: 'flex-start' }} aria-label={t(m.importContacts)}>
+          <Icon name="import" />
+          {t(m.importContacts)}
+        </Link>
+      )}
+      {clientPerson ? <ManagedByCard /> : <HostReputeStatus />}
+      {user ? (
+        <div className="flex items-center gap-2 px-2 py-1">
+          <Avatar name={user.name || user.email} color={user.avatarColor} size={26} />
+          <div className="flex flex-col leading-[1.25]">
+            <span className="text-[12px] font-semibold">{user.name || user.email}</span>
+            <span className="k text-[11px]">{roleName({ key: ws.workspace.roleKey, name: ws.workspace.roleName })}</span>
           </div>
-        ) : null}
-      </div>
-    </aside>
+        </div>
+      ) : null}
+    </div>
   )
 }
 

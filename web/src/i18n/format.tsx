@@ -88,6 +88,17 @@ function compile(text: string, locale: string, region: string): Compiled | null 
   return c
 }
 
+// Most messages are plain text, with no argument, plural or tag: they are
+// their own output, so they skip the parser and the formatter (a phone
+// spent a tenth of a screen's first render on them). An apostrophe is only
+// special next to a brace or another apostrophe.
+const syntax = /[{}<]|''/
+
+/** Whether a message's text is its own output. */
+export function isPlainText(text: string): boolean {
+  return !syntax.test(text)
+}
+
 function resolve(state: I18nState, d: MessageDescriptor): { text: string; locale: string; pseudo?: boolean } {
   // The pseudo-locale accents the English source; formatting brackets it.
   if (state.locale === PSEUDO_LOCALE) return { text: pseudoSource(d.message), locale: 'en', pseudo: true }
@@ -96,6 +107,7 @@ function resolve(state: I18nState, d: MessageDescriptor): { text: string; locale
 }
 
 function plain(state: I18nState, d: MessageDescriptor, text: string, locale: string, values?: Values): string {
+  if (isPlainText(text)) return text
   const c = compile(text, locale, state.region)
   if (!c) return text
   try {
@@ -133,6 +145,11 @@ function keyed(nodes: ReactNode[]): ReactNode[] {
 /** Formats a message with React nodes and tag functions. */
 export function formatRich(state: I18nState, d: MessageDescriptor, values?: RichValues): ReactNode {
   const { text, locale, pseudo } = resolve(state, d)
+  if (isPlainText(text)) {
+    if (!pseudo) return text
+    const [open, close] = pseudoWrap(text)
+    return open + text + close
+  }
   const c = compile(text, locale, state.region)
   if (!c) return text
   const vals: Record<string, unknown> = { ...c.tags }

@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { http, type ApiError, type Schemas } from '@/api/client'
-import { getSystemStatus, subscribeSystemStatus } from './systemStatus'
+import { getSystemStatus, subscribeSystemStatus, useSystemStatus } from './systemStatus'
 
 /**
  * Mirrors when the browser session ends, so the app can warn two minutes
@@ -110,9 +110,15 @@ export function computeClock(s: Readonly<State>, lastActivity: number, now: numb
  */
 export function useSessionClock(): SessionClock {
   const s = useSyncExternalStore(subscribe, getSessionState, getSessionState)
-  const status = useSyncExternalStore(subscribeSystemStatus, getSystemStatus, getSystemStatus)
   const [now, setNow] = useState(() => Date.now())
-  const clock = computeClock(s, status.lastActivity, now)
+  // Every API response is activity, which moves the end later. While the
+  // warning shows, activity re-renders at once (it may end the warning);
+  // before it, the timer that wakes the clock when the warning is due reads
+  // the latest activity then, instead of a re-render per response.
+  const [live, setLive] = useState(false)
+  const tracked = useSystemStatus((st) => (live ? st.lastActivity : 0))
+  const clock = computeClock(s, live ? tracked : getSystemStatus().lastActivity, now)
+  if ((clock.phase === 'warning') !== live) setLive(clock.phase === 'warning')
 
   useEffect(() => {
     if (clock.phase === 'ended' || clock.phase === 'unknown' || clock.endsAt === undefined) return

@@ -1,12 +1,15 @@
 import { render, screen } from '@testing-library/react'
 import { act } from 'react'
 import { T, compareText, defineMessages, formatList, setCatalogLoader, setLocale, setRegion, sourceMessages, t, translate, useT } from '.'
+import { isPlainText } from './format'
 
 const m = defineMessages('test', {
   title: 'Transactional',
   sent: '{count, plural, one {# message} other {# messages}} sent',
   sentTo: 'Sent to <b>{name}</b>',
   rate: 'Delivered {rate, number, ::percent .0}',
+  plain: "Don't send #1 yet",
+  quoted: "It''s done",
 })
 
 const vi = translate(m, {
@@ -29,6 +32,17 @@ describe('i18n', () => {
   it('formats English sources with plurals', () => {
     expect(t(m.sent, { count: 1 })).toBe('1 message sent')
     expect(t(m.sent, { count: 48213 })).toBe('48,213 messages sent')
+  })
+
+  it('gives plain text back as it is, and formats the rest', () => {
+    expect(isPlainText(m.plain.message)).toBe(true)
+    expect(t(m.plain)).toBe("Don't send #1 yet")
+    // A doubled apostrophe is ICU's escape: the formatter still reads it.
+    expect(isPlainText(m.quoted.message)).toBe(false)
+    expect(t(m.quoted)).toBe("It's done")
+    expect(isPlainText(m.sentTo.message)).toBe(false)
+    render(<T msg={m.plain} />)
+    expect(document.body.textContent).toBe("Don't send #1 yet")
   })
 
   it('records every source message by ID', () => {

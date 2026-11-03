@@ -78,9 +78,20 @@ export function subscribeSystemStatus(l: () => void): () => void {
   return () => listeners.delete(l)
 }
 
-/** Current system status (re-renders on change). */
-export function useSystemStatus(): SystemStatus {
-  return useSyncExternalStore(subscribeSystemStatus, getSystemStatus, () => initial)
+/**
+ * Current system status, or the part of it `select` picks, re-rendering
+ * when that part changes. Every API response moves `lastActivity`: a
+ * component that reads the whole status re-renders on each one.
+ */
+export function useSystemStatus(): SystemStatus
+export function useSystemStatus<T>(select: (s: SystemStatus) => T): T
+export function useSystemStatus<T>(select?: (s: SystemStatus) => T): T | SystemStatus {
+  const pick = select ?? ((s: SystemStatus) => s)
+  return useSyncExternalStore(
+    subscribeSystemStatus,
+    () => pick(state),
+    () => pick(initial),
+  )
 }
 
 /** Test helper: back to a clean, online state. */

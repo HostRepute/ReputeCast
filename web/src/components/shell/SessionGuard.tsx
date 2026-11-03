@@ -4,6 +4,7 @@ import { useEffect, useId, useState, type FormEvent } from 'react'
 import { ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { t, useT } from '@/i18n'
 import { clock as clockTime, spanWords } from '@/lib/format'
+import { useOpenedOnce } from '@/lib/hooks'
 import {
   extendSession,
   getSessionState,
@@ -47,6 +48,8 @@ export function SessionGuard() {
   const qc = useQueryClient()
   const [extending, setExtending] = useState(false)
   const work = useSessionState().work
+  const ended = clock.phase === 'ended'
+  const asked = useOpenedOnce(ended)
 
   useEffect(() => {
     const off = registerSessionGuard()
@@ -82,7 +85,7 @@ export function SessionGuard() {
           workNote={work?.whileEnding}
         />
       ) : null}
-      <SignInAgainDialog open={clock.phase === 'ended'} reason={clock.ended ?? 'idle'} workNote={work?.afterEnded} />
+      {asked ? <SignInAgainDialog open={ended} reason={clock.ended ?? 'idle'} workNote={work?.afterEnded} /> : null}
     </>
   )
 }

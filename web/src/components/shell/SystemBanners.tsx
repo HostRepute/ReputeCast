@@ -195,7 +195,9 @@ export function QuotaBanner({
  * render it at the top of their own layout.
  */
 export function SystemBanners() {
-  const status = useSystemStatus()
+  const connection = useSystemStatus((s) => s.connection)
+  const maintenance = useSystemStatus((s) => s.maintenance)
+  const updatedTo = useSystemStatus((s) => s.updatedTo)
   const [retrying, setRetrying] = useState(false)
   const retry = async () => {
     setRetrying(true)
@@ -204,9 +206,9 @@ export function SystemBanners() {
   }
   return (
     <>
-      {status.connection !== 'online' ? <OfflineBanner unreachable={status.connection === 'unreachable'} onRetry={() => void retry()} retrying={retrying} /> : null}
-      {status.maintenance ? <MaintenanceBanner maintenance={status.maintenance} /> : null}
-      {status.updatedTo && !status.maintenance ? <UpdatedBanner version={status.updatedTo} /> : null}
+      {connection !== 'online' ? <OfflineBanner unreachable={connection === 'unreachable'} onRetry={() => void retry()} retrying={retrying} /> : null}
+      {maintenance ? <MaintenanceBanner maintenance={maintenance} /> : null}
+      {updatedTo && !maintenance ? <UpdatedBanner version={updatedTo} /> : null}
     </>
   )
 }

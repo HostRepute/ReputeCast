@@ -6,7 +6,7 @@ import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
-import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
+import { ErrorPanel, FirstLoadReveal, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { Popover } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
@@ -20,7 +20,6 @@ import { ColumnChooser, columnLabels, defaultColumns, fieldKeys, parseColumns, S
 import { ViewChips } from './ViewChips'
 import { m as lfm } from './listsfields.messages'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
-import { useFirstLoadSettled } from '@/lib/hooks'
 import { AddressCheckFilter } from '@/features/verification/AddressCheck'
 import { AudienceTabs, useAudienceSummary } from './AudienceTabs'
 import { AddContactDialog, BulkDialog, BulkResultPanel, EraseDialog, SaveViewDialog, type BulkKind, type BulkSelection } from './ContactDialogs'
@@ -123,7 +122,6 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
   const tr = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
-  const settled = useFirstLoadSettled()
   const filter = filterOf(search)
   const page = search.page ?? 1
   const size = search.size ?? 10
@@ -214,8 +212,7 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
           {/* The filters grow a row as each feature's data arrives: until the
               first data is in, they stay mounted but hidden behind the table's
               skeleton, and then show at once, so nothing below jumps. */}
-          {settled ? null : <ContactsSkeleton total={summary.data?.contacts} />}
-          <div className={settled ? 'contents' : 'hidden'}>
+          <FirstLoadReveal skeleton={<ContactsSkeleton total={summary.data?.contacts} />}>
             <ViewChips
               views={views.data}
               active={views.data?.items.find((v) => Object.keys(filter).length > 0 && sameFilter(filter, v.filters) && (v.columns.join(',') || undefined) === search.cols)?.id}
@@ -321,7 +318,7 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
                 onClear={() => go({ size: search.size })}
               />
             )}
-          </div>
+          </FirstLoadReveal>
         </>
       )}
       {adding ? <AddContactDialog onClose={() => setAdding(false)} lists={summary.data?.lists ?? []} /> : null}

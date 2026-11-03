@@ -3,8 +3,9 @@ import { Fragment, type ReactNode } from 'react'
 import { errorMessage } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
+import { FirstLoadReveal } from '@/components/ui/Feedback'
 import { Grid } from '@/components/ui/Layout'
-import { useFirstLoadSettled, useNow } from '@/lib/hooks'
+import { useNow } from '@/lib/hooks'
 import { clock } from '@/lib/format'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
 import { useT } from '@/i18n'
@@ -108,7 +109,6 @@ export function OverviewPage() {
   // all three have, one skeleton stands for the top of the page, so a card or
   // a provider alert that comes back first doesn't push the rest down.
   const topPending = (can.health && health.isPending) || (can.campaigns && next.isPending) || providersLoading
-  const settled = useFirstLoadSettled()
   const subtitle = overviewSubtitle(now, health.data?.domain, health.data?.state === 'pending' || (firstRun && !health.data?.domain))
   const stale = providers.data?.providers.find((p) => p.refresh)
   const alert = stale ? refreshSentences(stale, clock) : null
@@ -212,7 +212,7 @@ export function OverviewPage() {
           )}
           {/* The cards below each come back on their own: they stay hidden but
               loading until the first data is in, then show at once. */}
-          <div className={settled ? 'contents' : 'hidden'}>
+          <FirstLoadReveal>
             <TransactionalOverviewCard />
             <EarnOverviewCard />
             <Grid min={380} gap={20}>
@@ -226,7 +226,7 @@ export function OverviewPage() {
             <Section q={recent} perm="campaigns:view" card="recent" title={t(m.recentCampaigns)} skeleton={<CardSkeleton lines={4} />}>
               {(r) => <RecentCampaigns items={r.items} />}
             </Section>
-          </div>
+          </FirstLoadReveal>
         </>
       )}
     </Page>

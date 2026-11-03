@@ -4,7 +4,7 @@ import { useEffect, useId, useState, type ReactNode } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Button, ButtonLink } from '@/components/ui/Button'
-import { EmptyState, ErrorPanel, Skeleton } from '@/components/ui/Feedback'
+import { EmptyState, ErrorPanel, FirstLoadReveal, Skeleton } from '@/components/ui/Feedback'
 import { Grid } from '@/components/ui/Layout'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { FilterTabs } from '@/components/ui/Tabs'
@@ -13,7 +13,6 @@ import { t as tt, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { clock, count, money, pct, rate, shortDate } from '@/lib/format'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
-import { useFirstLoadSettled } from '@/lib/hooks'
 import { m } from './messages'
 import { campaignListQuery, campaignSummaryQuery } from './queries'
 import { BulkBar, CalendarLink, deletedLine, RestoreButton, RowActionDialogs, RowMenu, TagPills, UnscheduleButton, type RowAction } from './manage'
@@ -189,13 +188,7 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
 
 /** The table's channel chips load once the list has: the table keeps its skeleton until they have, instead of jumping down when they arrive. */
 function SettledTable({ children }: { children: ReactNode }) {
-  const settled = useFirstLoadSettled()
-  return (
-    <>
-      {settled ? null : <TableSkeleton />}
-      <div className={settled ? 'contents' : 'hidden'}>{children}</div>
-    </>
-  )
+  return <FirstLoadReveal skeleton={<TableSkeleton />}>{children}</FirstLoadReveal>
 }
 
 function CampaignFilters({ status, counts, search }: { status: CampaignFilter; counts?: Schemas['CampaignStatusCounts']; search: CampaignsSearch }) {
