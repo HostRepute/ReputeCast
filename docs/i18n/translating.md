@@ -1,6 +1,7 @@
 # Translating ReputeCast
 
-ReputeCast's own interface comes in English and Vietnamese: the app, the
+ReputeCast's own interface comes in English, German (Deutsch), Spanish
+(Español), French (Français) and Vietnamese (Tiếng Việt): the app, the
 sign-in and invitation pages, the server's messages to members (errors with
 their fix, "who can help", notifications) and the emails ReputeCast sends to
 members. This guide is for translators and for developers adding text.
@@ -13,9 +14,9 @@ in the composer. That is not covered here.
 
 | What | English source | Translation |
 |---|---|---|
-| The web app | `web/src/**/messages.ts`, `web/src/**/<screen>.messages.ts` | `messages.vi.ts` next to the source |
-| Server messages and member emails | `internal/<package>/messages/en.json` | `internal/<package>/messages/vi.json` |
-| The words ReputeCast uses | | [`glossary-vi.md`](glossary-vi.md) |
+| The web app | `web/src/**/messages.ts`, `web/src/**/<screen>.messages.ts` | `messages.<lang>.ts` next to the source (`messages.de.ts`, `messages.vi.ts`…) |
+| Server messages and member emails | `internal/<package>/messages/en.json` | `internal/<package>/messages/<lang>.json` |
+| The words ReputeCast uses | | [`glossary-de.md`](glossary-de.md), [`glossary-es.md`](glossary-es.md), [`glossary-fr.md`](glossary-fr.md), [`glossary-vi.md`](glossary-vi.md) |
 
 A web source declares its messages with an ID (`namespace.key`):
 
@@ -57,8 +58,9 @@ Messages are [ICU MessageFormat](https://unicode-org.github.io/icu/userguide/for
   `{date}`. Keep them, spelled exactly as in the English; move them to where
   your language puts them: `edited {time} by {name}` → `{name} sửa lúc {time}`.
 - **Plurals:** `{count, plural, one {# day} other {# days}}`. Use the plural
-  categories of your language (CLDR). Vietnamese has only `other`, so
-  `{count} ngày` is enough. `=1 {…}` matches an exact number when the
+  categories of your language (CLDR). German, Spanish and French need `one`
+  and `other` (French puts 0 in `one`; their `many` falls back to `other`).
+  Vietnamese has only `other`, so `{count} ngày` is enough. `=1 {…}` matches an exact number when the
   wording changes ("một lần").
 - **Choices:** `{status, select, drafts {…} sent {…} other {…}}`. Keep the
   values on the left (`drafts`, `sent`, `other`) and translate the text in
@@ -70,8 +72,11 @@ Messages are [ICU MessageFormat](https://unicode-org.github.io/icu/userguide/for
   on two messages being shown side by side in a certain order.
 - **Language names** (`{language}`, `{languages}`) come in the label form
   your language uses on its own. Vietnamese writes "tiếng" in lower case
-  inside a sentence: the app does that from the argument's place, so write
-  `{language}`, never "tiếng {language}" (the glossary's Voice section).
+  inside a sentence, and Spanish and French write the whole name in lower
+  case there ("Añadir inglés", "Version en anglais"): the app does that
+  from the argument's place, so write `{language}`, never "tiếng
+  {language}" or "el {language}" (each glossary's Voice section). German
+  names are capitalised nouns everywhere.
 - An apostrophe is fine as is (`isn't`, `l'été`). To show a brace as text,
   quote it: `'{'`.
 
@@ -114,7 +119,12 @@ It reads the web sources and translations and the server's catalogs, and:
 
 Then look at the screens: switch your own app language in **Account &
 security › Language & region**, and read the stress-test screens (Campaigns,
-Review & send, Settings › Team) at 1440 and 390 px. Long words must wrap or
+Review & send, Settings › Team) at 1440 and 390 px. With the demo data
+running, `node scripts/i18n-layout.ts --langs <code>` opens every screen of
+`scripts/qa-map.ts` in English and in the language, and lists what the
+language breaks that English doesn't: a page that scrolls sideways, text
+that spills out of its box or is cut off, a button or a badge on two
+lines. Long words must wrap or
 shorten as `docs/dev/CONVENTIONS.md` › "Text expansion" describes, never
 spill or get cut off. A server catalog is also checked when its package
 loads (syntax, keys and arguments), so a broken translation stops the server
@@ -134,9 +144,15 @@ the server runs with `i18n.pseudo_locale` on
 1. Write the glossary first (`docs/i18n/glossary-<code>.md`), from the
    Vietnamese one's sections.
 2. Add the language to `web/src/i18n/languages.ts` (`APP_LANGUAGES`, its name
-   in its own language) and to `internal/i18n/locale.go` (`appLocales`), and
-   pick the region format it follows by default (`defaultRegionFor`,
-   `DefaultRegion`). Plural rules come from CLDR on both sides.
+   in its own language), `web/src/i18n/store.ts` (`AppLocale` and its
+   `import.meta.glob`) and `internal/i18n/locale.go` (`appLocales`, `Name`,
+   `Tag`), and pick the region format it follows by default
+   (`DEFAULT_REGIONS`, `DefaultRegion`). Plural rules come from CLDR on both
+   sides. Add the words that join a list (`internal/i18n/lists.go`), and,
+   if the language writes language names in another case inside a
+   sentence, the rule in `internal/i18n/names.go` and
+   `web/src/i18n/names.ts`. The API's language enums (`enum:"en,de,…"`)
+   and `languages.BuiltinLabels` take the code too; run `make generate`.
 3. A missing region format goes in `internal/i18n/region.go` and
    `web/src/i18n/regions.ts`, with test vectors in
    `internal/i18n/testdata/regions.json` that both sides must pass.

@@ -1,6 +1,7 @@
 // Package i18n is ReputeCast's server-side localization: the app languages
-// (English, Vietnamese and the pseudo-locale used to check layouts), region
-// formats, language negotiation, CLDR plural rules and message catalogs.
+// (English, German, Spanish, French, Vietnamese and the pseudo-locale used
+// to check layouts), region formats, language negotiation, CLDR plural
+// rules and message catalogs.
 //
 // # Catalogs
 //
