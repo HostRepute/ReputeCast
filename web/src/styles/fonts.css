@@ -10,3 +10,11 @@
 @import '@fontsource/ibm-plex-mono/400.css';
 @import '@fontsource/ibm-plex-mono/500.css';
 @import '@fontsource/ibm-plex-mono/600.css';
+
+/* While the IBM Plex Sans files load, text is set in Arial (or Liberation
+   Sans, its metric twin) scaled to take IBM Plex Sans's room, so nothing
+   moves when they arrive (measured in Chrome against the same files). */
+@font-face { font-family: 'IBM Plex Sans Fallback'; font-style: normal; font-weight: 400; src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('LiberationSans'); size-adjust: 101.48%; ascent-override: 101%; descent-override: 27.1%; line-gap-override: 0%; }
+@font-face { font-family: 'IBM Plex Sans Fallback'; font-style: normal; font-weight: 500; src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('LiberationSans'); size-adjust: 103.48%; ascent-override: 99.05%; descent-override: 26.58%; line-gap-override: 0%; }
+@font-face { font-family: 'IBM Plex Sans Fallback'; font-style: normal; font-weight: 600; src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold'); size-adjust: 97.43%; ascent-override: 105.2%; descent-override: 28.23%; line-gap-override: 0%; }
+@font-face { font-family: 'IBM Plex Sans Fallback'; font-style: normal; font-weight: 700; src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold'); size-adjust: 98.7%; ascent-override: 103.85%; descent-override: 27.86%; line-gap-override: 0%; }

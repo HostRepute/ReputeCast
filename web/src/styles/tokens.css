@@ -101,6 +101,6 @@
   --ease-standard: ease;
   --ease-step: step-end;
   --ease-linear: linear;
-  --font-family-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-family-sans: 'IBM Plex Sans', 'IBM Plex Sans Fallback', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-family-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }

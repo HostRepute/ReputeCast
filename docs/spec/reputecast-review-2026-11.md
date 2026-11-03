@@ -792,6 +792,14 @@ Checked at the end of M51:
 - **SEO, audited in the browser.** On the rendered public pages: a title, a description, the viewport,
   the language, an absolute canonical, valid hreflang and JSON-LD, no generic link text, every link
   crawlable, every image with alt text, and all text 12 px or more; robots.txt and the sitemap answer.
+- **Lighthouse** (`docs/deploy/performance.md`). The public pages score 98–100 for performance and 100 for
+  accessibility, best practices and SEO on a phone; the app's main screens 99–100 for performance on
+  desktop and 100 for accessibility and best practices everywhere. It found, all fixed: the app drew every
+  screen twice for a member whose browser hadn't kept their language (most of a phone's blocking time);
+  a scrollbar arriving narrowed every screen and dropped a column from the Overview's providers; the
+  sidebar's footer and the web font moved content as a page loaded; zod's probe for `eval` broke the CSP
+  on every load; post lists skipped a heading level; the gift page wasn't indexed; and an email's poll was
+  published on the web with its answers as links to /0, /1 …
 - **Security.** `pnpm audit` found two advisories in seroval, which TanStack Router pulls in; it is
   pinned to the patched 1.6.11. A CI job now runs govulncheck and `pnpm audit` (it couldn't run here).
   Its first runs found two reachable advisories in golang.org/x/net's HTML parser and renderer

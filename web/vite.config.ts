@@ -120,6 +120,9 @@ export default defineConfig({
         // requests it saved.
         codeSplitting: {
           groups: [
+            // Settings read as the other chunks load (src/boot): their own
+            // file, which main.tsx imports first, runs before them.
+            { name: 'boot', test: /[\\/]src[\\/]boot[\\/]/, priority: 4 },
             // Every route's definition and search schema: the route tree
             // imports them all at startup. A route's page (?tsr-split) stays lazy.
             { name: 'routes', test: (id: string) => routesDir.test(id) && !id.includes('?tsr-split'), priority: 3 },

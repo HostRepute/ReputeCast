@@ -146,6 +146,17 @@
   html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    /* Room for the scrollbar from the first paint: where it takes space
+       (Windows, Linux), a page growing past the window as its data came
+       narrowed every screen by its width, and a grid at its limit dropped a
+       column (the Overview's providers, 0.35 layout shift). */
+    scrollbar-gutter: stable;
+  }
+  /* A dialog locks the page's scrolling and adds the scrollbar's width as a
+     margin itself (react-remove-scroll): the reserved room gives way to it,
+     or the page would narrow by the scrollbar twice. */
+  html:has(> body[data-scroll-locked]) {
+    scrollbar-gutter: auto;
   }
   body {
     margin: 0;

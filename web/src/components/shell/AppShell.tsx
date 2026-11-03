@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react'
 import { ManagedByCard, useClientSections, useIsClientPerson } from '@/features/agency/WorkspaceParts'
 import { formatList, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { useMediaQuery } from '@/lib/hooks'
+import { useFirstLoadSettled, useMediaQuery } from '@/lib/hooks'
 import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
 import { Icon, LogoMark } from '../icons/Icon'
@@ -56,6 +56,7 @@ function Sidebar() {
   // phone width, closes it.
   const [openOn, setOpenOn] = useState<string>()
   const sheetOpen = phone && openOn === pathname
+  const settled = useFirstLoadSettled()
   const user = me?.user
   // An agency's client people see who manages the workspace (agency accounts).
   const clientPerson = useIsClientPerson()
@@ -84,7 +85,11 @@ function Sidebar() {
           </button>
         </MoreSheet>
       </nav>
-      <div className="sidefoot">
+      {/* The footer sits at the bottom of the page (as on every board); until
+          the screen's first data is in, the page is shorter than it will be,
+          so it stays invisible, holding its place, instead of showing at the
+          bottom of the window and jumping off it. */}
+      <div className={cn('sidefoot', !settled && 'invisible')}>
         {clientPerson ? null : (
           <Link to="/w/$workspace/import" params={{ workspace: slug }} className="btn" style={{ justifyContent: 'flex-start' }} aria-label={t(m.importContacts)}>
             <Icon name="import" />

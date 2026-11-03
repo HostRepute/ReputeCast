@@ -431,6 +431,65 @@ rendering the first screen on the server, or loading each section's route
 definitions with that section; both change how the app is built and are
 left for a release of their own.
 
+### Lighthouse
+
+Lighthouse 12.8 (installed for the audit, not a dependency) on the production
+build behind a TLS proxy (HTTP/2), its default mobile run (a phone, the CPU
+four times slower, a slow 4G link, simulated) and its desktop preset, with
+the browser's storage cleared before each page as it does. Signed-in screens
+carry a session cookie. The public pages are on the demo's own site.
+
+What it found, and what changed:
+
+- **The app drew every screen twice for a member whose browser hadn't kept
+  their language** (a new device, cleared site data, every Lighthouse run).
+  The app started in the visitor's formats and drew the screen again from
+  the top when /me brought the member's (I18nRoot remounts on a change). Such
+  a screen now waits for /me and the member's language before its first
+  render; the ReputeCast mark is up meanwhile, and the routes ask for /me
+  anyway. On a phone that was most of the blocking time: Overview 3.67 s →
+  0.94 s, Contacts 4.38 s → 0.71 s, Campaigns 1.57 s → 0.52 s.
+- **A scrollbar arriving narrowed every screen.** Where scrollbars take room
+  (Windows, Linux), a page growing past the window as its data came lost
+  15 px of width, and the Overview's providers grid dropped a column (layout
+  shift 0.35 on desktop). The root keeps the scrollbar's room from the first
+  paint (`scrollbar-gutter: stable`), and gives it up while a dialog locks
+  scrolling, which adds the same margin itself.
+- **The sidebar's footer jumped.** It sits at the bottom of the page, as on
+  the boards; while a screen's data loaded, the page was shorter than the
+  window, so it showed at the bottom of the window and jumped off it (0.10).
+  It stays invisible, holding its place, until the screen's first data is in.
+- **The web font moved text.** Until IBM Plex Sans arrived, text was set in
+  the system font, which is wider or narrower; when it came, lines broke
+  again (0.25 on the archive on a phone). Text now waits in Arial (or
+  Liberation Sans) scaled to IBM Plex Sans's size and height, measured in
+  Chrome against the same files: on the archive the swap moves elements by
+  6 px on average instead of 37.
+- **zod tried `eval`** to compile its parsers, which the app's CSP forbids,
+  and the browser reported a policy violation on every load. zod is told
+  not to try, before it loads (`src/boot/zod.ts`).
+- **Public pages:** the archive, tag and "gone" pages put their posts' titles
+  in h3 straight under the page's h1 (now h2), a post's own headings could
+  skip a level (they now follow the outline from h2 and keep the author's
+  look), and the page selling gift subscriptions said `noindex` and had no
+  description (it is indexed, as the upgrade page is). An email's poll was
+  published on the web with its answers as links to /0, /1 … (each answer
+  is the recipient's own link): the web leaves a poll out, as it does the
+  footer, and a daily job redraws posts published before.
+
+| | Performance | Accessibility | Best practices | SEO |
+|---|---|---|---|---|
+| Public pages, phone (home, archive, tag, post, subscribe, upgrade, gift) | 98–100 | 100 | 100 | 100 |
+| Overview, Campaigns, Contacts, desktop | 99–100 | 100 | 100 | 63 |
+| Overview, Campaigns, Contacts, phone | 64–81 | 100 | 100 | 63 |
+
+The app's SEO score is its `noindex`: a signed-in workspace isn't for search
+engines. On a phone the app's screens still block for 0.4–0.9 s and paint
+their content at 3.3–3.9 s: the startup scripts and each screen's render on
+a CPU four times slower. A public page that once read 200–550 ms of
+blocking time did so from a task the browser runs itself, with no script in
+it, and reads 0 ms on the next load.
+
 ### The campaign report on a real send
 
 Profiled on a sent campaign of 29,797 recipients (the QA data set), the
