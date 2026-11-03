@@ -292,6 +292,9 @@ func testTransitions(t *testing.T, f *sendtest.Fixture) {
 // their locks in one order, so none of them deadlocks.
 func testLockOrder(t *testing.T, f *sendtest.Fixture) {
 	s := sentMessages(t, f, 40)
+	// Looked up before the workers start: script caches providers in a map
+	// they would otherwise read and write at once.
+	p := s.provider(s.ids[0])
 	ctx := context.Background()
 	var wg sync.WaitGroup
 	errs := make(chan error, 64)
@@ -310,7 +313,6 @@ func testLockOrder(t *testing.T, f *sendtest.Fixture) {
 					eng = append(eng, sending.Engagement{MessageID: id, UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/129.0", IP: "198.51.100.9", Method: "GET",
 						At: at.Add(time.Hour)})
 				}
-				p := s.provider(s.ids[0])
 				if err := db.Tx(ctx, f.Env.App.Pool, func(tx pgx.Tx) error {
 					_, err := f.E.Normalizer.ApplyAll(ctx, tx, p, nil, "webhook", f.Start, evs)
 					return err
