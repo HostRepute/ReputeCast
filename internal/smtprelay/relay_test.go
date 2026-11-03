@@ -62,14 +62,27 @@ func selfSigned(t *testing.T) (string, string, *x509.CertPool) {
 	return certFile, keyFile, pool
 }
 
-func freePort(t *testing.T) int {
+// freePorts returns n distinct free ports. Each listener stays open until
+// all n are taken: one closed before the next was asked for could be handed
+// out again, and two equal ports are a relay setting the API refuses.
+func freePorts(t *testing.T, n int) []int {
 	t.Helper()
-	l, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
+	ports := make([]int, 0, n)
+	open := make([]net.Listener, 0, n)
+	defer func() {
+		for _, l := range open {
+			_ = l.Close()
+		}
+	}()
+	for range n {
+		l, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		open = append(open, l)
+		ports = append(ports, l.Addr().(*net.TCPAddr).Port)
 	}
-	defer func() { _ = l.Close() }()
-	return l.Addr().(*net.TCPAddr).Port
+	return ports
 }
 
 type relayEnv struct {
@@ -139,7 +152,8 @@ func newRelayEnv(t *testing.T) *relayEnv {
 	// Turn the relay on, with a certificate from files.
 	certFile, keyFile, pool := selfSigned(t)
 	e.pool = pool
-	e.p587, e.p465 = freePort(t), freePort(t)
+	ports := freePorts(t, 2)
+	e.p587, e.p465 = ports[0], ports[1]
 	relay := env.App.SMTPRelay()
 	relay.ListenHost, relay.RootCAs, relay.Poll = "127.0.0.1", pool, 100*time.Millisecond
 	env.App.TransactionalOutbox().DevSMTP = e.sink.Addr
