@@ -608,7 +608,12 @@ two rounds of four loads each, alternating with the fourth pass's build:
 
 Campaigns' layout shift reads 0 instead of 0.03: its table no longer
 changes after its first data. The blocking time doesn't move (0.5–0.9 s
-on this machine with other servers running).
+on this machine with other servers running). Lighthouse's simulated run,
+which models the CPU's work more than the waits, sees little of it: nine
+loads of each build, alternating, read the same blocking time (medians
+597 and 603 ms on the Overview, 704 and 659 ms on Contacts, on a busier
+machine than the fourth pass's table) and the largest paint 0.06 s
+(Overview) to 0.15 s (Contacts) sooner.
 
 ### The campaign report on a real send
 
