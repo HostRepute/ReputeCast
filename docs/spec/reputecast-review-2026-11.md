@@ -799,7 +799,10 @@ Checked at the end of M51:
   a scrollbar arriving narrowed every screen and dropped a column from the Overview's providers; the
   sidebar's footer and the web font moved content as a page loaded; zod's probe for `eval` broke the CSP
   on every load; post lists skipped a heading level; the gift page wasn't indexed; and an email's poll was
-  published on the web with its answers as links to /0, /1 …
+  published on the web with its answers as links to /0, /1 … A fourth pass draws each screen once while
+  it loads: every API response, and every query starting or coming back, had redrawn the whole screen
+  (Contacts: 33 commits, 3,473 component renders; now 16 and 1,298). On a phone the main screens now
+  block for 0.27–0.50 s instead of 0.29–1.13 s, and score 72–84.
 - **Security.** `pnpm audit` found two advisories in seroval, which TanStack Router pulls in; it is
   pinned to the patched 1.6.11. A CI job now runs govulncheck and `pnpm audit` (it couldn't run here).
   Its first runs found two reachable advisories in golang.org/x/net's HTML parser and renderer

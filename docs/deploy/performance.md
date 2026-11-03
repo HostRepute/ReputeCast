@@ -487,14 +487,83 @@ What it found, and what changed:
 |---|---|---|---|---|
 | Public pages, phone (home, archive, tag, post, subscribe, upgrade, gift) | 98–100 | 100 | 100 | 100 |
 | Overview, Campaigns, Contacts, desktop | 99–100 | 100 | 100 | 63 |
-| Overview, Campaigns, Contacts, phone | 64–81 | 100 | 100 | 63 |
+| Overview, Campaigns, Contacts, phone | 72–80 (64–81 before the fourth pass) | 100 | 100 | 63 |
 
 The app's SEO score is its `noindex`: a signed-in workspace isn't for search
-engines. On a phone the app's screens still block for 0.4–0.9 s and paint
-their content at 3.3–3.9 s: the startup scripts and each screen's render on
-a CPU four times slower. A public page that once read 200–550 ms of
-blocking time did so from a task the browser runs itself, with no script in
-it, and reads 0 ms on the next load.
+engines. On a phone the app's screens still block for 0.3–0.5 s after the
+fourth pass below, and paint their content at 3.2–4.0 s: the startup
+scripts and each screen's render on a CPU four times slower. A public page
+that once read 200–550 ms of blocking time did so from a task the browser
+runs itself, with no script in it, and reads 0 ms on the next load.
+
+### Fourth pass: each screen drawn once
+
+React drawing a screen and its data was most of what a phone still blocked
+for. Counting React's commits during a load at 412 px showed why: Contacts
+committed 33 times, and most commits drew the sidebar, the session guard
+and the whole screen again, 3,473 component renders for one screen. Four
+things drew them:
+
+- **Every API response.** Each response records the last activity in the
+  system status, for the session clock. The workspace layer, the banners
+  and the session guard read the whole status, so the corner stack, the
+  session guard, the jobs tray and the shortcuts were drawn again on each
+  of a load's twenty-odd responses. They now read only their part
+  (`useSystemStatus(select)`), and the session clock follows activity live
+  only while its warning shows; before that, the timer that wakes it reads
+  the latest activity.
+- **Each query starting and coming back.** The screens that hold their
+  parts until the first data is in (Overview, Campaigns, Contacts,
+  Automations) and the sidebar's footer counted the queries loading
+  (`useIsFetching`): the count changed a dozen times a load, and the whole
+  screen was drawn each time. `useFirstLoadSettled` now changes once, when
+  the first loads are in, hears of them in TanStack Query's batches as the
+  queries' own data comes (a part shows with its data, not a moment before
+  it, which had moved Campaigns' filters by 119 px in one test load), and
+  stops listening once settled. The hold is a small wrapper
+  (`FirstLoadReveal`), so showing the parts redraws the wrapper alone.
+- **What a phone doesn't show.** On a phone the sidebar is the tab bar: its
+  logo, switcher, footer and the sections in More were rendered and hidden
+  with CSS. They aren't rendered there any more, and More, the tab bar's,
+  isn't rendered above phone width. The sign-in-again and keyboard
+  shortcuts dialogs render once they are first opened.
+- **Plain messages.** Two messages in three have no argument, plural or
+  tag: they are their own text, and skip the ICU parser and formatter
+  (`isPlainText`). The registry of source messages, read only in
+  development and tests, isn't filled in a production build. Precompiling
+  the other third at build time would save what is left of parsing, about
+  18 ms a load on this phone (5 ms at full speed), for a build step over
+  every catalog: it wasn't done.
+
+| Phone, 412 px | Commits before | After | Components drawn before | After |
+|---|---|---|---|---|
+| Overview | 29 | 15 | 2,375 | 436 |
+| Contacts | 33 | 16 | 3,473 | 1,298 |
+| Campaigns | 39 | 22 | 5,336 | 3,928 |
+
+Campaigns' table is still drawn twice: its Web column and its sponsors'
+chips come after the list. Profiled on Contacts with the CPU four times
+slower (mean of three loads), its scripts ran for 0.95 s instead of
+1.3–1.7 s, React's part 0.57 s instead of 0.84–1.12 s.
+
+Lighthouse's mobile run on the same build, median of five runs after and
+of fifteen before (three sessions, as a screen's blocking time varies by
+±0.3 s from one run to the next; five for Automations):
+
+| Phone, Lighthouse | Blocking time before | After | Performance before | After |
+|---|---|---|---|---|
+| Overview | 934 ms | 337 ms | 64–69 | 80 |
+| Contacts | 1,127 ms | 498 ms | 61–63 | 72 |
+| Campaigns | 646 ms | 489 ms | 71–75 | 77 |
+| Automations | 292 ms | 265 ms | 83 | 84 |
+
+The largest paint doesn't move (3.2–4.0 s): it waits for the network and
+the startup scripts, not for drawing.
+
+Screenshots of seven screens at 390, 834 and 1440 px are the same before
+and after, pixel for pixel, but for Grow's "Updated" time. Accessibility and best practices stay at 100;
+desktop scores are unchanged (99–100, blocking 25–90 ms, within run-to-run
+noise).
 
 ### The campaign report on a real send
 
