@@ -229,6 +229,10 @@ func audRollups(ctx context.Context, s *Seeder, a *audSeed, bits map[int]uuid.UU
 	month := [4]float64{0.589, 0.201, 0.122, 0.088}
 	monthCounts := [4]int64{28095, 9588, 5819, 4198} // of 47,700
 	var rows [][]any
+	// The workspace's days, counted back from today on its calendar: going
+	// back 24-hour steps from now and reading the local date gave one date
+	// twice in the hour after a clock went back (1 November in New York).
+	today0 := day(s.Now)
 	for d := 95; d >= 1; d-- {
 		var n int64
 		var shares [4]float64
@@ -259,7 +263,7 @@ func audRollups(ctx context.Context, s *Seeder, a *audSeed, bits map[int]uuid.UU
 			counts[2] = int64(math.Round(float64(n) * shares[2]))
 			counts[3] = n - counts[0] - counts[1] - counts[2]
 		}
-		rows = append(rows, []any{ws.ID, "workspace", ws.ID, day(s.Now.AddDate(0, 0, -d)), n, counts[0], counts[1], counts[2], counts[3]})
+		rows = append(rows, []any{ws.ID, "workspace", ws.ID, today0.AddDate(0, 0, -d), n, counts[0], counts[1], counts[2], counts[3]})
 	}
 	if _, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"audience_daily"}, []string{"workspace_id", "scope", "scope_id", "day", "contacts", "active", "cooling", "at_risk", "sunset"},
 		pgx.CopyFromRows(rows)); err != nil {
