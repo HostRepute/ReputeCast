@@ -37,7 +37,7 @@ const (
 
 // MemberLanguage is what a member chose in Language & region.
 type MemberLanguage struct {
-	Language     string `json:"language" enum:"default,en,vi,en-XA" doc:"default follows the instance default"`
+	Language     string `json:"language" enum:"default,en,de,es,fr,vi,en-XA" doc:"default follows the instance default"`
 	RegionFormat string `json:"regionFormat" enum:"auto,standard,en-US,vi-VN,de-DE,en-GB,es-ES,fr-FR,pt-BR" doc:"auto follows the app language"`
 	HourCycle    string `json:"hourCycle" enum:"auto,h23,h12" doc:"auto follows the region format"`
 	WeekStart    string `json:"weekStart" enum:"auto,monday,sunday" doc:"auto follows the region format"`
@@ -151,7 +151,7 @@ func (s *Service) Save(ctx context.Context, in MemberLanguage) (MemberLanguage, 
 // SuggestionAnswer is how a member answered "Your browser prefers …".
 type SuggestionAnswer struct {
 	Answer   string `json:"answer" enum:"use,keep,dismiss" doc:"use switched to the language; keep and dismiss didn't"`
-	Language string `json:"language" enum:"en,vi" doc:"The language the browser suggested"`
+	Language string `json:"language" enum:"en,de,es,fr,vi" doc:"The language the browser suggested"`
 }
 
 // AnswerSuggestion records that a member answered the browser's language

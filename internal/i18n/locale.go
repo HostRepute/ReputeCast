@@ -14,6 +14,9 @@ type Locale string
 
 const (
 	English    Locale = "en"
+	German     Locale = "de"
+	Spanish    Locale = "es"
+	French     Locale = "fr"
 	Vietnamese Locale = "vi"
 	// Pseudo is the pseudo-locale "Pseudo (+40%)": every letter accented,
 	// about 40% longer and wrapped in ⟦ ⟧. It checks layouts, and text that
@@ -22,8 +25,10 @@ const (
 	Pseudo Locale = "en-XA"
 )
 
-// appLocales are the languages ReputeCast is translated into, in picker order.
-var appLocales = []Locale{English, Vietnamese}
+// appLocales are the languages ReputeCast is translated into, in picker
+// order: English, then the others by their own names (Deutsch, Español,
+// Français, Tiếng Việt).
+var appLocales = []Locale{English, German, Spanish, French, Vietnamese}
 
 var pseudoOn atomic.Bool
 
@@ -34,7 +39,7 @@ func SetPseudo(on bool) { pseudoOn.Store(on) }
 func PseudoEnabled() bool { return pseudoOn.Load() }
 
 // Locales returns the app languages that can be picked, in picker order:
-// English, Vietnamese, then the pseudo-locale when it's on.
+// the app languages, then the pseudo-locale when it's on.
 func Locales() []Locale {
 	out := append([]Locale{}, appLocales...)
 	if PseudoEnabled() {
@@ -62,11 +67,17 @@ func (l Locale) Valid() bool {
 	return false
 }
 
-// Name is the language's name in itself: "English", "Tiếng Việt".
+// Name is the language's name in itself: "English", "Español", "Tiếng Việt".
 func (l Locale) Name() string {
 	switch l {
 	case English:
 		return "English"
+	case German:
+		return "Deutsch"
+	case Spanish:
+		return "Español"
+	case French:
+		return "Français"
 	case Vietnamese:
 		return "Tiếng Việt"
 	case Pseudo:
@@ -78,6 +89,12 @@ func (l Locale) Name() string {
 // Tag is the BCP 47 tag of the language, for plural rules and matching.
 func (l Locale) Tag() language.Tag {
 	switch l {
+	case German:
+		return language.German
+	case Spanish:
+		return language.Spanish
+	case French:
+		return language.French
 	case Vietnamese:
 		return language.Vietnamese
 	case Pseudo:
@@ -91,8 +108,8 @@ func (l Locale) Tag() language.Tag {
 // Locale("es")) follows that language's rules.
 func (l Locale) pluralTag() language.Tag {
 	switch l {
-	case Vietnamese:
-		return language.Vietnamese
+	case German, Spanish, French, Vietnamese:
+		return l.Tag()
 	case English, Pseudo, "":
 		return language.English
 	}
@@ -102,8 +119,8 @@ func (l Locale) pluralTag() language.Tag {
 	return language.English
 }
 
-// ParseLocale reads a stored or requested app language ("en", "vi",
-// "en-XA"), ignoring case. Regional variants of a supported language match
+// ParseLocale reads a stored or requested app language ("en", "de", "es",
+// "fr", "vi", "en-XA"), ignoring case. Regional variants of a supported language match
 // it ("vi-VN" is Vietnamese), except the pseudo-locale, which must be exact.
 func ParseLocale(s string) (Locale, bool) {
 	s = strings.TrimSpace(s)

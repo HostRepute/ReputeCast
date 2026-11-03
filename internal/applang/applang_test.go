@@ -76,8 +76,9 @@ func TestMemberLanguage(t *testing.T) {
 	if p := me.User.Preferences; p != (applang.MemberLanguage{Language: "default", RegionFormat: "auto", HourCycle: "auto", WeekStart: "auto"}) {
 		t.Fatalf("nothing chosen yet: %+v", p)
 	}
-	if me.Instance.DefaultLanguage != "en" || me.Instance.DefaultRegionFormat != "standard" || len(me.Instance.Languages) != 2 ||
-		me.Instance.Languages[1] != (applang.LanguageOption{Code: "vi", Name: "Tiếng Việt"}) {
+	if me.Instance.DefaultLanguage != "en" || me.Instance.DefaultRegionFormat != "standard" || len(me.Instance.Languages) != 5 ||
+		me.Instance.Languages[1] != (applang.LanguageOption{Code: "de", Name: "Deutsch"}) ||
+		me.Instance.Languages[4] != (applang.LanguageOption{Code: "vi", Name: "Tiếng Việt"}) {
 		t.Fatalf("instance languages: %+v", me.Instance)
 	}
 
@@ -105,7 +106,7 @@ func TestMemberLanguage(t *testing.T) {
 	if !strings.Contains(p["detail"].(string), "i18n.pseudo_locale") {
 		t.Fatalf("pseudo-locale: %v", p)
 	}
-	c.Do("PUT", "/me/language", choose("de", "auto")).MustStatus(t, 422)
+	c.Do("PUT", "/me/language", choose("it", "auto")).MustStatus(t, 422)
 	c.Do("PUT", "/me/language", choose("en", "xx-XX")).MustStatus(t, 422)
 	env.Client().Do("PUT", "/me/language", choose("en", "auto")).MustStatus(t, 401)
 
@@ -126,7 +127,7 @@ func TestPseudoLocaleWhenTurnedOn(t *testing.T) {
 	c.Do("PUT", "/me/language", choose("en-XA", "auto")).MustStatus(t, 200)
 	var me meView
 	c.Do("GET", "/me", nil).MustStatus(t, 200).JSON(t, &me)
-	if me.User.Preferences.Language != "en-XA" || len(me.Instance.Languages) != 3 || me.Instance.Languages[2].Name != "Pseudo (+40%)" {
+	if me.User.Preferences.Language != "en-XA" || len(me.Instance.Languages) != 6 || me.Instance.Languages[5].Name != "Pseudo (+40%)" {
 		t.Fatalf("pseudo-locale: %+v", me)
 	}
 	// Server messages come bracketed, so text that skipped the catalogs stands out.
@@ -157,7 +158,7 @@ func TestInstanceDefaults(t *testing.T) {
 	}
 	var meta map[string]any
 	env.Client().Do("GET", "/meta", nil).MustStatus(t, 200).JSON(t, &meta)
-	if meta["defaultLanguage"] != "vi" || meta["defaultRegionFormat"] != "vi-VN" || len(meta["languages"].([]any)) != 2 {
+	if meta["defaultLanguage"] != "vi" || meta["defaultRegionFormat"] != "vi-VN" || len(meta["languages"].([]any)) != 5 {
 		t.Fatalf("meta: %v", meta)
 	}
 	rows := auditRows(t, env, "instance.settings_updated")
@@ -288,7 +289,7 @@ func TestMemberEmailsInTheirLanguage(t *testing.T) {
 		DefaultRoleID   string                   `json:"defaultRoleId"`
 	}
 	linh.Do("GET", "/workspaces/acme-newsletter/invitations/options", nil).MustStatus(t, 200).JSON(t, &opts)
-	if opts.DefaultLanguage != "en" || len(opts.Languages) != 2 {
+	if opts.DefaultLanguage != "en" || len(opts.Languages) != 5 {
 		t.Fatalf("invite options: %+v", opts)
 	}
 	var res struct {

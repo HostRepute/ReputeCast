@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { act } from 'react'
-import { T, defineMessages, setCatalogLoader, setLocale, t, translate } from '.'
+import { T, defineMessages, formatList, setCatalogLoader, setLocale, standaloneLanguageName, t, translate } from '.'
 import { viNames } from './names'
 
 const m = defineMessages('namestest', {
@@ -70,5 +70,55 @@ describe('Vietnamese language names', () => {
   it('split lists on the list words only', () => {
     expect(viNames('Tiếng Anh, Tiếng Pháp hoặc Tiếng Đức', false)).toBe('Tiếng Anh, tiếng Pháp hoặc tiếng Đức')
     expect(viNames('Tiếng Trung (Phồn thể)', true)).toBe('tiếng Trung (Phồn thể)')
+  })
+})
+
+const es = translate(m, {
+  add: 'Añadir {language}',
+  label: '{language}',
+  readers: 'Lectores en {language}: reciben {gets}',
+  list: 'Publicada en {languages}',
+  named: 'Enviada a {list}',
+  menu: 'Idioma: {language}',
+})
+
+const fr = translate(m, {
+  add: 'Ajouter une version en {language}',
+  label: '{language}',
+  list: 'En ligne en {languages}',
+})
+
+describe('Spanish and French language names', () => {
+  beforeAll(() => {
+    setCatalogLoader('es', async () => es)
+    setCatalogLoader('fr', async () => fr)
+  })
+  afterEach(async () => {
+    await act(() => setLocale('en'))
+  })
+
+  it('stand alone capitalised and go lower case inside a sentence', async () => {
+    await setLocale('es')
+    expect(t(m.add, { language: 'Inglés' })).toBe('Añadir inglés')
+    expect(t(m.label, { language: 'inglés' })).toBe('Inglés')
+    expect(t(m.menu, { language: 'español' })).toBe('Idioma: Español')
+    expect(t(m.readers, { language: 'Español', gets: 'Inglés' })).toBe('Lectores en español: reciben inglés')
+    expect(t(m.list, { languages: formatList(['Inglés', 'Español', 'Italiano']) })).toBe('Publicada en inglés, español e italiano')
+    expect(t(m.label, { language: 'Inglés, Francés u Occitano' })).toBe('Inglés, francés u occitano')
+    // Names that aren't languages keep their case.
+    expect(t(m.named, { list: 'Inglés para todos' })).toBe('Enviada a Inglés para todos')
+    expect(t(m.named, { list: 'Weekly Digest y Español' })).toBe('Enviada a Weekly Digest y Español')
+
+    await setLocale('fr')
+    expect(t(m.add, { language: 'Anglais' })).toBe('Ajouter une version en anglais')
+    expect(t(m.label, { language: 'anglais' })).toBe('Anglais')
+    expect(t(m.list, { languages: 'Anglais, Espagnol et Allemand' })).toBe('En ligne en anglais, espagnol et allemand')
+  })
+
+  it('come from the browser capitalised on their own', () => {
+    expect(standaloneLanguageName('es', 'inglés')).toBe('Inglés')
+    expect(standaloneLanguageName('fr', 'portugais (Brésil)')).toBe('Portugais (Brésil)')
+    expect(standaloneLanguageName('de', 'Englisch')).toBe('Englisch')
+    expect(standaloneLanguageName('vi', 'Tiếng Anh')).toBe('Tiếng Anh')
   })
 })

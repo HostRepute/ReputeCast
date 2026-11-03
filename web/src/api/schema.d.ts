@@ -13002,7 +13002,7 @@ export interface paths {
         };
         /**
          * Get the built-in labels of a language
-         * @description Buttons, field labels, messages and the confirmation email. ReputeCast ships them in English and Vietnamese; for other languages the workspace writes them.
+         * @description Buttons, field labels, messages and the confirmation email. ReputeCast ships them in the languages of its own interface (English, German, Spanish, French and Vietnamese); for other languages the workspace writes them.
          */
         get: operations["get-public-page-labels"];
         /**
@@ -29351,7 +29351,7 @@ export interface components {
         };
         InstanceBasics: {
             /** @enum {string} */
-            defaultLanguage?: "en" | "vi";
+            defaultLanguage?: "en" | "de" | "es" | "fr" | "vi";
             name: string;
             /** Format: uri */
             publicUrl: string;
@@ -29509,7 +29509,7 @@ export interface components {
         };
         InstanceSettingsInput: {
             /** @enum {string} */
-            defaultLanguage?: "en" | "vi";
+            defaultLanguage?: "en" | "de" | "es" | "fr" | "vi";
             /** @enum {string} */
             defaultRegionFormat?: "standard" | "en-US" | "vi-VN" | "de-DE" | "en-GB" | "es-ES" | "fr-FR" | "pt-BR";
             defaultTimezone: string;
@@ -31435,7 +31435,7 @@ export interface components {
              * @description default follows the instance default
              * @enum {string}
              */
-            language: "default" | "en" | "vi" | "en-XA";
+            language: "default" | "en" | "de" | "es" | "fr" | "vi" | "en-XA";
             /**
              * @description auto follows the app language
              * @enum {string}
@@ -42398,7 +42398,7 @@ export interface components {
              * @description The language the browser suggested
              * @enum {string}
              */
-            language: "en" | "vi";
+            language: "en" | "de" | "es" | "fr" | "vi";
         };
         SunsetDryRun: {
             /** Format: int64 */
@@ -43040,7 +43040,7 @@ export interface components {
              */
             expiresInDays?: number;
             /** @enum {string} */
-            language?: "en" | "vi";
+            language?: "en" | "de" | "es" | "fr" | "vi";
             message?: string;
             /** Format: uuid */
             roleId: string;

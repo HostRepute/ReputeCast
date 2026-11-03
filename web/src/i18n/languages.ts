@@ -9,9 +9,16 @@ export interface AppLanguage {
   readonly name: string
 }
 
-/** The languages ReputeCast's interface is translated into, in picker order. */
+/**
+ * The languages ReputeCast's interface is translated into, in picker order:
+ * English, then the others by their own names. internal/i18n/locale.go
+ * (appLocales) has the same list.
+ */
 export const APP_LANGUAGES: readonly AppLanguage[] = [
   { code: 'en', name: 'English' },
+  { code: 'de', name: 'Deutsch' },
+  { code: 'es', name: 'Español' },
+  { code: 'fr', name: 'Français' },
   { code: 'vi', name: 'Tiếng Việt' },
 ]
 
@@ -48,9 +55,11 @@ export function regionOptions(): { code: RegionFormat; name: string }[] {
   return REGION_FORMATS.map((code) => ({ code, name: regionName(code) }))
 }
 
-/** The region format a language follows by default. */
+const DEFAULT_REGIONS: Partial<Record<AppLocale, RegionFormat>> = { de: 'de-DE', es: 'es-ES', fr: 'fr-FR', vi: 'vi-VN' }
+
+/** The region format a language follows by default: its own country's, the ReputeCast standard for English. */
 export function defaultRegionFor(locale: AppLocale): RegionFormat {
-  return locale === 'vi' ? 'vi-VN' : 'standard'
+  return DEFAULT_REGIONS[locale] ?? 'standard'
 }
 
 /**

@@ -197,7 +197,7 @@ type InstanceBasics struct {
 	UpdateCheck bool   `json:"updateCheck"`
 	// DefaultLanguage is the instance's default app language; the region
 	// format follows it. Unchanged when omitted.
-	DefaultLanguage string `json:"defaultLanguage,omitempty" enum:"en,vi"`
+	DefaultLanguage string `json:"defaultLanguage,omitempty" enum:"en,de,es,fr,vi"`
 }
 
 // SaveInstanceBasics stores the instance name, public URL, timezone and

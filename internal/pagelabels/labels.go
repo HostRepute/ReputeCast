@@ -5,7 +5,8 @@
 // descriptions, consent text) is page copy, kept by internal/forms.
 //
 // The labels ship in the languages ReputeCast is translated into: the app
-// languages, English and Vietnamese, as an internal/i18n catalog
+// languages (English, German, Spanish, French and Vietnamese), as an
+// internal/i18n catalog
 // (messages/<locale>.json). For any other language a workspace writes them
 // itself, starting from "Copy English"; For returns the labels of one
 // language either way.
@@ -105,8 +106,6 @@ func Lang(code string) i18n.Lang {
 	switch base {
 	case "", "en":
 		return i18n.Lang{Locale: i18n.English, Region: i18n.Standard}
-	case "vi":
-		return i18n.Lang{Locale: i18n.Vietnamese, Region: regions["vi"]}
 	}
 	r, ok := regions[base]
 	if !ok {

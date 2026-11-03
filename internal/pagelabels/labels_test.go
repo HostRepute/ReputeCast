@@ -9,14 +9,16 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
-func TestVietnameseShipsEveryLabel(t *testing.T) {
-	if missing := catalog.Missing(i18n.Vietnamese); len(missing) > 0 {
-		t.Fatalf("vi.json is missing %d labels: %v", len(missing), missing)
+func TestAppLanguagesShipEveryLabel(t *testing.T) {
+	for _, l := range []i18n.Locale{i18n.German, i18n.Spanish, i18n.French, i18n.Vietnamese} {
+		if missing := catalog.Missing(l); len(missing) > 0 {
+			t.Fatalf("%s.json is missing %d labels: %v", l, len(missing), missing)
+		}
 	}
 	if Count() < 100 || len(All()) != Count() {
 		t.Fatalf("Count() = %d, All() = %d", Count(), len(All()))
 	}
-	if !Shipped("vi-VN") || !Shipped("en") || Shipped("es") {
+	if !Shipped("vi-VN") || !Shipped("en") || !Shipped("es-MX") || !Shipped("fr") || !Shipped("de-AT") || Shipped("it") {
 		t.Fatal("Shipped should hold for the app languages only")
 	}
 }
@@ -36,18 +38,18 @@ func TestShippedLanguageNeedsNothingWritten(t *testing.T) {
 }
 
 func TestWrittenLabelsFallBackToEnglish(t *testing.T) {
-	es := For("es-MX", map[string]string{"form.button": "Suscribirme", "list.and": "{items} y {last}", "form.lists": "  "})
-	if got := es.Text("form.button", nil); got != "Suscribirme" {
-		t.Fatalf("es form.button = %q", got)
+	it := For("it-IT", map[string]string{"form.button": "Iscrivimi", "list.and": "{items} e {last}", "form.lists": "  "})
+	if got := it.Text("form.button", nil); got != "Iscrivimi" {
+		t.Fatalf("it form.button = %q", got)
 	}
-	if got := es.Text("form.lists", nil); got != "What would you like?" {
+	if got := it.Text("form.lists", nil); got != "What would you like?" {
 		t.Fatalf("blank label should show English, got %q", got)
 	}
-	if got := es.Join([]string{"Weekly Digest", "Product Updates", "Beta Program"}); got != "Weekly Digest, Product Updates y Beta Program" {
-		t.Fatalf("es join = %q", got)
+	if got := it.Join([]string{"Weekly Digest", "Product Updates", "Beta Program"}); got != "Weekly Digest, Product Updates e Beta Program" {
+		t.Fatalf("it join = %q", got)
 	}
-	missing := es.Missing()
-	if len(missing) != Count()-2 || es.Complete() {
+	missing := it.Missing()
+	if len(missing) != Count()-2 || it.Complete() {
 		t.Fatalf("missing %d of %d", len(missing), Count())
 	}
 	for _, k := range missing {
@@ -58,9 +60,9 @@ func TestWrittenLabelsFallBackToEnglish(t *testing.T) {
 }
 
 func TestHTMLEscapesWrittenText(t *testing.T) {
-	es := For("es", map[string]string{"form.confirm.text": "Enviamos un enlace a <b>{email}</b> & {publisher}."})
-	got := es.HTML("form.confirm.text", i18n.Args{"email": "a<b>@x.io", "publisher": "Acme"}, nil)
-	if got != "Enviamos un enlace a <b>a&lt;b&gt;@x.io</b> &amp; Acme." {
+	it := For("it", map[string]string{"form.confirm.text": "Abbiamo inviato un link a <b>{email}</b> & {publisher}."})
+	got := it.HTML("form.confirm.text", i18n.Args{"email": "a<b>@x.io", "publisher": "Acme"}, nil)
+	if got != "Abbiamo inviato un link a <b>a&lt;b&gt;@x.io</b> &amp; Acme." {
 		t.Fatalf("html = %q", got)
 	}
 	en := English().HTML("confirm.notSubscribed", i18n.Args{"offer": "release news"}, i18n.Tags{"link": func(s string) string { return `<a href="/p">` + s + `</a>` }})

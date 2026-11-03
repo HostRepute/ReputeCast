@@ -73,3 +73,97 @@ func TestVietnameseLanguageNamesTakeTheirPlacesCase(t *testing.T) {
 		t.Errorf("HTML: %q", got)
 	}
 }
+
+func TestSpanishAndFrenchLanguageNamesTakeTheirPlacesCase(t *testing.T) {
+	fsys := fstest.MapFS{
+		"messages/en.json": {Data: []byte(`{
+			"add": "Add {language}",
+			"label": "{language}",
+			"readers": "{language} readers get {gets}",
+			"list": "Live in {languages}",
+			"named": "Sent to {list}"
+		}`)},
+		"messages/es.json": {Data: []byte(`{
+			"add": "Añadir {language}",
+			"label": "{language}",
+			"readers": "Lectores en {language}: reciben {gets}",
+			"list": "Publicada en {languages}",
+			"named": "Enviada a {list}"
+		}`)},
+		"messages/fr.json": {Data: []byte(`{
+			"add": "Ajouter une version en {language}",
+			"label": "{language}",
+			"list": "En ligne en {languages}"
+		}`)},
+	}
+	c, err := Load(fsys, "namestest_romance")
+	if err != nil {
+		t.Fatal(err)
+	}
+	es, fr := For(Spanish), For(French)
+	for _, tc := range []struct {
+		l    Lang
+		key  string
+		args Args
+		want string
+	}{
+		{es, "add", Args{"language": "Inglés"}, "Añadir inglés"},
+		{es, "label", Args{"language": "inglés"}, "Inglés"},
+		{es, "readers", Args{"language": "Español", "gets": "Inglés"}, "Lectores en español: reciben inglés"},
+		{es, "list", Args{"languages": AndList(Spanish, []string{"Inglés", "Español", "Italiano"})}, "Publicada en inglés, español e italiano"},
+		{es, "label", Args{"language": "Inglés, Francés u Occitano"}, "Inglés, francés u occitano"},
+		{es, "label", Args{"language": "Inglés (Estados Unidos)"}, "Inglés (Estados Unidos)"},
+		// Names that aren't languages keep their case.
+		{es, "named", Args{"list": "Inglés para todos"}, "Enviada a Inglés para todos"},
+		{es, "named", Args{"list": "Weekly Digest y Español"}, "Enviada a Weekly Digest y Español"},
+		{fr, "add", Args{"language": "Anglais"}, "Ajouter une version en anglais"},
+		{fr, "label", Args{"language": "anglais"}, "Anglais"},
+		{fr, "list", Args{"languages": "Anglais, Espagnol et Allemand"}, "En ligne en anglais, espagnol et allemand"},
+	} {
+		if got := c.M(tc.key).Text(tc.l, tc.args); got != tc.want {
+			t.Errorf("%s %s %v: got %q, want %q", tc.l.Locale, tc.key, tc.args, got, tc.want)
+		}
+	}
+	// German names are capitalised nouns everywhere.
+	if got := LanguageName(German, "es"); got != "Spanisch" {
+		t.Errorf("de name: %q", got)
+	}
+	if got := LanguageName(Spanish, "en"); got != "Inglés" {
+		t.Errorf("es name: %q", got)
+	}
+	if got := LanguageName(French, "pt-BR"); got != "Portugais" {
+		t.Errorf("fr name: %q", got)
+	}
+	if got := LanguageName(English, "es"); got != "" {
+		t.Errorf("en name: %q", got)
+	}
+}
+
+func TestSpanishListsJoinBeforeTheNextSound(t *testing.T) {
+	for _, tc := range []struct {
+		items []string
+		or    bool
+		want  string
+	}{
+		{[]string{"español", "inglés"}, false, "español e inglés"},
+		{[]string{"agua", "hielo"}, false, "agua y hielo"},
+		{[]string{"francés", "hindi"}, false, "francés e hindi"},
+		{[]string{"siete", "ocho"}, true, "siete u ocho"},
+		{[]string{"inglés", "holandés"}, true, "inglés u holandés"},
+		{[]string{"inglés", "alemán"}, true, "inglés o alemán"},
+	} {
+		got := AndList(Spanish, tc.items)
+		if tc.or {
+			got = OrList(Spanish, tc.items)
+		}
+		if got != tc.want {
+			t.Errorf("%v: got %q, want %q", tc.items, got, tc.want)
+		}
+	}
+	if got := AndList(German, []string{"A", "B", "C"}); got != "A, B und C" {
+		t.Errorf("de: %q", got)
+	}
+	if got := OrList(French, []string{"A", "B"}); got != "A ou B" {
+		t.Errorf("fr: %q", got)
+	}
+}

@@ -8,7 +8,7 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { Skeleton } from '@/components/ui/Feedback'
 import { toast } from '@/components/ui/Toast'
-import { T, useI18n, useT } from '@/i18n'
+import { standaloneLanguageName, T, useI18n, useT } from '@/i18n'
 import { andList, clock, dayMonthDate, money, orList, shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { m } from './messages'
@@ -38,7 +38,7 @@ function languageName(code: string, locale: string): string {
       n = new Intl.DisplayNames([locale], { type: 'language' })
       names.set(locale, n)
     }
-    return n.of(code) ?? code
+    return standaloneLanguageName(locale, n.of(code) ?? code)
   } catch {
     return code
   }

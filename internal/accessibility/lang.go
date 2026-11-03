@@ -267,7 +267,7 @@ func languageMsg(code string) (i18n.Msg, bool) {
 // names it. A language without a name keeps its code.
 func LanguageNameIn(l i18n.Lang, code string) string {
 	if m, ok := languageMsg(code); ok {
-		return m.Text(l, nil)
+		return i18n.StandaloneLanguageName(l.Locale, m.Text(l, nil))
 	}
 	return code
 }
@@ -284,10 +284,11 @@ func LanguageListIn(l i18n.Lang, codes []string) string {
 
 // languageInSentence is a language's name inside a sentence. Vietnamese
 // names start with the common noun "tiếng", in lower case after the first
-// word of a sentence ("bằng tiếng Anh").
+// word of a sentence ("bằng tiếng Anh"); Spanish and French write the name
+// in lower case there ("en inglés", "en anglais").
 func languageInSentence(l i18n.Lang, code string) string {
 	name := LanguageNameIn(l, code)
-	if l.Locale == i18n.Vietnamese {
+	if i18n.LowersLanguageNames(l.Locale) {
 		return lowerFirstRune(name)
 	}
 	return name

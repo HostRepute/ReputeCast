@@ -105,9 +105,9 @@ export default {
     labelsTitle: 'Nhãn có sẵn · {language}',
     labelsCount: '{written} trên {total}',
     labelsWrittenBy:
-      'Nút, nhãn trường, thông báo và email xác nhận. ReputeCast cung cấp sẵn các nhãn này bằng Tiếng Anh và Tiếng Việt; {name} đã viết bản {language}, bắt đầu từ “Chép từ Tiếng Anh”.',
+      'Nút, nhãn trường, thông báo và email xác nhận. ReputeCast cung cấp sẵn các nhãn này bằng các ngôn ngữ giao diện của ReputeCast; {name} đã viết bản {language}, bắt đầu từ “Chép từ Tiếng Anh”.',
     labelsToWrite:
-      'Nút, nhãn trường, thông báo và email xác nhận. ReputeCast cung cấp sẵn các nhãn này bằng Tiếng Anh và Tiếng Việt; hãy viết bản {language} một lần, bắt đầu từ “Chép từ Tiếng Anh”.',
+      'Nút, nhãn trường, thông báo và email xác nhận. ReputeCast cung cấp sẵn các nhãn này bằng các ngôn ngữ giao diện của ReputeCast; hãy viết bản {language} một lần, bắt đầu từ “Chép từ Tiếng Anh”.',
     labelsShipped: 'Đã sẵn sàng, từ bản dịch của ReputeCast',
     labelsReady: 'Sẵn sàng',
     labelsEdit: 'Sửa nhãn {language}',

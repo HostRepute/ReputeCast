@@ -67,7 +67,7 @@ func registerCopy(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-public-page-labels", Path: "/workspaces/{workspace}/public-pages/labels/{language}", Summary: "Get the built-in labels of a language",
-		Description: "Buttons, field labels, messages and the confirmation email. ReputeCast ships them in English and Vietnamese; for other languages the workspace writes them.",
+		Description: "Buttons, field labels, messages and the confirmation email. ReputeCast ships them in the languages of its own interface (English, German, Spanish, French and Vietnamese); for other languages the workspace writes them.",
 		Tags:        ptags, Access: api.Workspace(viewPerm)},
 		func(ctx context.Context, in *pageLabelsPath) (*api.Body[PublicPageLabels], error) {
 			out, err := s.PageLabels(ctx, api.WorkspaceFrom(ctx), in.Language)

@@ -1,4 +1,4 @@
-import { formatList, getI18n, t } from '@/i18n'
+import { formatList, getI18n, standaloneLanguageName, t } from '@/i18n'
 import {
   formatDate,
   formatDecimal,
@@ -494,7 +494,9 @@ export function byteSize(bytes: number | null | undefined): string {
 const languageNames = new Map<string, Intl.DisplayNames>()
 
 /**
- * A language code's name in the app's language ("pt-BR" → "Portuguese").
+ * A language code's name in the app's language ("pt-BR" → "Portuguese"),
+ * as it stands on its own ("Portugués" in Spanish: a message puts it in
+ * lower case inside a sentence).
  * Here rather than in the composer's language parts, so a screen that only
  * names a contact's language doesn't load the composer's code.
  */
@@ -506,7 +508,7 @@ export function languageLabel(code: string, locale: string): string {
       n = new Intl.DisplayNames([locale], { type: 'language' })
       languageNames.set(locale, n)
     }
-    return n.of(base) ?? base
+    return standaloneLanguageName(locale, n.of(base) ?? base)
   } catch {
     return base
   }

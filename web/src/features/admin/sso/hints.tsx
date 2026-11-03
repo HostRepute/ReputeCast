@@ -3,14 +3,16 @@ import type { ReactNode } from 'react'
 /**
  * A preset hint as on the boards: the IdP's menu path in bold ("open
  * Token configuration → Add groups claim") and URLs in mono. The server
- * writes the hint in the app language: Vietnamese opens the path with "mở"
- * and goes on with "và" or "rồi".
+ * writes the hint in the app language, with the path right after the word
+ * that opens it and up to the word that goes on: "open … and/to" in
+ * English, "mở … và/rồi" in Vietnamese, "abre … y/para" in Spanish,
+ * "ouvrez … et/pour" in French, "zu … und/um" in German.
  */
 export function richHint(text: string): ReactNode {
   const parts: ReactNode[] = []
   let key = 0
   const pushText = (s: string) => {
-    const m = /(?:open|mở) ((?:[^.→]+ → )+[^.→]+?)(?= and | to | và | rồi |,|\.)/.exec(s)
+    const m = /(?:open|mở|abre|ouvrez|zu) ((?:[^.→]+ → )+[^.→]+?)(?= and | to | và | rồi | y | para | et | pour | und | um |,|\.)/.exec(s)
     if (!m) {
       parts.push(s)
       return

@@ -156,9 +156,18 @@ func (r Region) Name() string { return r.data().name }
 
 // DefaultRegion is the region format a language follows when the member
 // hasn't chosen one: ReputeCast standard for English (and the
-// pseudo-locale), Tiếng Việt (Việt Nam) for Vietnamese.
+// pseudo-locale), the language's own country for the others: Deutsch
+// (Deutschland), Español (España), Français (France), Tiếng Việt (Việt
+// Nam).
 func (l Locale) DefaultRegion() Region {
-	if l == Vietnamese {
+	switch l {
+	case German:
+		return "de-DE"
+	case Spanish:
+		return "es-ES"
+	case French:
+		return "fr-FR"
+	case Vietnamese:
 		return "vi-VN"
 	}
 	return Standard

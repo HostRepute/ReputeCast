@@ -39,7 +39,7 @@ type Language struct {
 // BuiltinLabels lists the languages ReputeCast's own page labels (buttons,
 // field labels, messages, the confirmation email) ship in: the languages the
 // app is translated into.
-var BuiltinLabels = map[string]bool{"en": true, "vi": true}
+var BuiltinLabels = map[string]bool{"en": true, "de": true, "es": true, "fr": true, "vi": true}
 
 // catalog is every language that can be added to a workspace, by code.
 var catalog = []Language{
