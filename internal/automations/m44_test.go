@@ -564,10 +564,24 @@ func TestPublishMovesManyContactsQuickly(t *testing.T) {
 	var detail struct{ Revision int64 }
 	c.Do("GET", wsPath+"/"+flow, nil).MustStatus(t, 200).JSON(t, &detail)
 	c.Do("PUT", wsPath+"/"+flow+"/draft", map[string]any{"graph": g, "revision": detail.Revision}).MustStatus(t, 200).JSON(t, &saved)
+	// Count the statements that write automation_runs during the publish. A
+	// clock can't tell them apart: the move takes under a second on its own
+	// and took 7 s on a CI runner busy with other packages under -race, where
+	// one statement per contact would take about as long.
+	if _, err := env.App.Pool.Exec(ctx, `
+		CREATE TABLE run_writes (n int NOT NULL);
+		INSERT INTO run_writes VALUES (0);
+		CREATE FUNCTION count_run_write() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN UPDATE run_writes SET n = n + 1; RETURN NULL; END $$;
+		CREATE TRIGGER count_run_writes AFTER INSERT OR UPDATE OR DELETE ON automation_runs FOR EACH STATEMENT EXECUTE FUNCTION count_run_write();`); err != nil {
+		t.Fatal(err)
+	}
 	start := time.Now()
 	c.Do("POST", wsPath+"/"+flow+"/publish", map[string]any{"version": saved.DraftVersion, "migration": "move"}).MustStatus(t, 200)
-	if took := time.Since(start); took > 5*time.Second {
-		t.Fatalf("publishing moved 20,000 contacts in %v", took)
+	took := time.Since(start)
+	if n := countWhere(t, env, `SELECT n FROM run_writes`); n > 10 {
+		t.Fatalf("publishing moved 20,000 contacts in %d statements (%v)", n, took)
+	} else {
+		t.Logf("publishing moved 20,000 contacts in %d statements, %v", n, took)
 	}
 	if n := countWhere(t, env, `SELECT count(*) FROM automation_runs WHERE automation_id = $1 AND version = $2
 		AND abs(extract(epoch FROM next_at - (node_entered_at + interval '2 days'))) < 1`, flow, saved.DraftVersion); n != 20000 {

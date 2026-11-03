@@ -147,8 +147,12 @@ func TestPreferencesAndDelivery(t *testing.T) {
 	}
 
 	mail := &fakeMail{available: true}
+	// The quiet hours above, 00:00–23:59, leave out a minute: run at 23:59,
+	// the held emails went out (a CI run did, its package ending at 00:01).
+	// The worker reads a clock set at midday.
+	midday := func() time.Time { return time.Date(2026, 11, 2, 12, 0, 0, 0, time.UTC) }
 	w := &notify.EmailWorker{Pool: env.App.Pool, Mail: func() mailer.Sender { return mail }, PublicURL: func(context.Context) string { return "https://reputecast.acme.io" },
-		Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+		Log: slog.New(slog.NewTextHandler(io.Discard, nil)), Now: midday}
 	if err := w.Work(ctx, nil); err != nil {
 		t.Fatal(err)
 	}
