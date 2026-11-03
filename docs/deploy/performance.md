@@ -631,6 +631,14 @@ matched to Plex's size, so text wouldn't move, but a first visit on a slow
 link would read in Arial). Both change how the app looks or is built, and
 are left for a decision.
 
+The fonts were then measured: a build whose text and boot screen don't
+ask for IBM Plex at all, alternating with this one over Slow 4G (four
+loads each, twice), drew the largest paint 0.2 s sooner on average
+(Overview 4.9–5.4 s against 5.3–5.4 s, Contacts 5.1–5.3 s against
+5.3–5.7 s), within the run-to-run spread. The fonts mostly come after the
+screen's first data, so they take little from it; loading them later
+isn't worth a first screen in Arial.
+
 ### The campaign report on a real send
 
 Profiled on a sent campaign of 29,797 recipients (the QA data set), the
