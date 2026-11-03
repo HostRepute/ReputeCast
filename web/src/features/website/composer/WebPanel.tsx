@@ -619,6 +619,8 @@ export function hiddenName(t: ReturnType<typeof useT>, h: WebCheck['hidden'][num
       return t(mc.hiddenReferral)
     case 'header':
       return t(mc.hiddenHeader)
+    case 'poll':
+      return t(mc.hiddenPoll)
     default:
       return h.name ? t(mc.hiddenConditional, { name: h.name }) : h.condition ? t(mc.hiddenConditional, { name: h.condition }) : t(mc.hiddenBlock)
   }

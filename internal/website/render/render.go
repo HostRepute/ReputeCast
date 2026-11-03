@@ -84,7 +84,7 @@ type Hidden struct {
 	// Name is the block's own name (rc-name), else "".
 	Name string `json:"name,omitempty"`
 	// Kind names a well-known block: view_online, footer, referral,
-	// header, or block.
+	// header, poll, or block.
 	Kind string `json:"kind"`
 	// Reason: email_only (its Show on, or the default for its kind),
 	// conditional (a Visibility rule), hidden ("Hide for everyone").
@@ -418,9 +418,14 @@ func visibleColumns(n *mjml.Node) []*mjml.Node {
 }
 
 // knownKind names the well-known blocks: the view-online line, the
-// footer, the referral block and the email's header.
+// footer, the referral block, a poll and the email's header.
 func knownKind(n *mjml.Node) string {
+	if _, ok := n.Get(mjml.AttrPoll); ok {
+		return "poll"
+	}
 	switch n.Marker {
+	case "poll":
+		return "poll"
 	case "footer", "transactional-footer":
 		return "footer"
 	case "referral", "referral-block":
@@ -443,9 +448,11 @@ func knownKind(n *mjml.Node) string {
 }
 
 // emailOnlyByDefault: footers, unsubscribe, view-online and referral
-// blocks only make sense in an inbox.
+// blocks only make sense in an inbox, and so does a poll: each answer is
+// the recipient's own link, which a web page has none of (on the web its
+// answers led to /0, /1 …).
 func emailOnlyByDefault(kind string) bool {
-	return kind == "footer" || kind == "view_online" || kind == "referral"
+	return kind == "footer" || kind == "view_online" || kind == "referral" || kind == "poll"
 }
 
 // innerOf is an element's text content as written (its own and its
@@ -734,6 +741,10 @@ func contactToken(key string) bool {
 	case strings.HasSuffix(key, "_url"), strings.HasSuffix(key, "_link"):
 		return false
 	case key == "issue", key == "feed", key == "order", key == "campaign", key == "workspace", key == "today", key == "now":
+		return false
+	case strings.HasPrefix(key, "rc_"):
+		// ReputeCast's own links for each recipient: a poll's answers
+		// (rc_poll_…), a survey (rc_survey_…).
 		return false
 	}
 	return true

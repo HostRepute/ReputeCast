@@ -77,6 +77,8 @@ func RegisterJobs(reg *jobs.Registry, s *Service) {
 	river.AddWorker(reg.Workers, &turnOnWorker{s: s})
 	river.AddWorker(reg.Workers, &tickWorker{s: s})
 	river.AddWorker(reg.Workers, &hourlyWorker{s: s})
+	river.AddWorker(reg.Workers, &redrawWorker{s: s})
+	reg.Every(24*time.Hour, func() (river.JobArgs, *river.InsertOpts) { return RedrawArgs{}, nil }, true)
 	reg.Every(time.Minute, func() (river.JobArgs, *river.InsertOpts) { return TickArgs{}, nil }, true)
 	reg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return HourlyArgs{}, nil }, true)
 }

@@ -176,6 +176,22 @@ UPDATE website_posts SET published_mjml = @published_mjml, published_version = @
     rendered_hash = @rendered_hash
 WHERE id = @id;
 
+-- name: WebsitePostsWithPollAnswers :many
+-- Published posts whose content has a poll, drawn before a poll stayed in
+-- the inbox: their body still shows its answers, as links to /0, /1 …
+SELECT id, workspace_id, published_mjml, title, cover_url, slug FROM website_posts
+WHERE status = 'published' AND published_mjml LIKE '%rc-poll%'
+  AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(coalesce(render_notes->'hidden', '[]'::jsonb)) h WHERE h->>'kind' = 'poll')
+ORDER BY id
+LIMIT 200;
+
+-- name: WebsitePostRedrawn :exec
+-- A published post's web version drawn again from the content it was
+-- published with: its version, hash and publication stay as they were.
+UPDATE website_posts SET body_html = @body_html, preview_html = @preview_html, has_marker = @has_marker, marker_after = @marker_after,
+    body_text = @body_text, preview_text = @preview_text, words = @words, render_notes = @render_notes, paid_blocks = @paid_blocks
+WHERE id = @id AND status = 'published';
+
 -- name: WebsitePostPublish :exec
 UPDATE website_posts SET status = 'published', published_at = @at::timestamptz, published_by = sqlc.narg(published_by),
     first_published_at = coalesce(first_published_at, @at::timestamptz), unpublished_at = NULL, unpublished_by = NULL, unpublish_reason = '', redirect_to = '',

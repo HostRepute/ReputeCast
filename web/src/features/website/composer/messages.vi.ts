@@ -225,6 +225,7 @@ export default translate(mc, {
   hiddenFooter: 'Chân thư + hủy đăng ký',
   hiddenReferral: 'Giới thiệu',
   hiddenHeader: 'Đầu thư',
+  hiddenPoll: 'Bình chọn (trả lời từ email)',
   hiddenBlock: 'một khối',
   hiddenConditional: 'khối {name}',
   saveSettingsFailed: 'Không lưu được cài đặt của bài viết',

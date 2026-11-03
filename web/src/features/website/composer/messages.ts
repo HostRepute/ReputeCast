@@ -220,6 +220,8 @@ export const mc = defineMessages('website.composer', {
   hiddenFooter: 'Footer + unsubscribe',
   hiddenReferral: 'Referral',
   hiddenHeader: 'Header',
+  // Its answers are each recipient's own link, which a web page has none of.
+  hiddenPoll: 'Poll (answered from the email)',
   hiddenBlock: 'a block',
   hiddenConditional: 'the {name} block',
   saveSettingsFailed: "Couldn't save the post's settings",

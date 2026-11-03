@@ -5033,6 +5033,9 @@ type Querier interface {
 	WebsitePostInsert(ctx context.Context, arg WebsitePostInsertParams) error
 	WebsitePostLock(ctx context.Context, arg WebsitePostLockParams) (WebsitePost, error)
 	WebsitePostPublish(ctx context.Context, arg WebsitePostPublishParams) error
+	// A published post's web version drawn again from the content it was
+	// published with: its version, hash and publication stay as they were.
+	WebsitePostRedrawn(ctx context.Context, arg WebsitePostRedrawnParams) error
 	WebsitePostSaveContent(ctx context.Context, arg WebsitePostSaveContentParams) error
 	WebsitePostSaveFields(ctx context.Context, arg WebsitePostSaveFieldsParams) error
 	WebsitePostSchedule(ctx context.Context, arg WebsitePostScheduleParams) error
@@ -5057,6 +5060,9 @@ type Querier interface {
 	// Posts whose time has come: scheduled at a time, or set to go live with
 	// their campaign's send once it started.
 	WebsitePostsDue(ctx context.Context, now time.Time) ([]WebsitePostsDueRow, error)
+	// Published posts whose content has a poll, drawn before a poll stayed in
+	// the inbox: their body still shows its answers, as links to /0, /1 …
+	WebsitePostsWithPollAnswers(ctx context.Context) ([]WebsitePostsWithPollAnswersRow, error)
 	// Paid tiers of readers
 	// The paid tiers a contact holds now (internal/earn's access rule).
 	WebsiteReaderTiers(ctx context.Context, arg WebsiteReaderTiersParams) ([]WebsiteReaderTiersRow, error)

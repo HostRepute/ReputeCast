@@ -96888,6 +96888,7 @@
               "footer",
               "referral",
               "header",
+              "poll",
               "block"
             ],
             "type": "string"

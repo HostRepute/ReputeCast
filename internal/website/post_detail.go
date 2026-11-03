@@ -29,9 +29,9 @@ type WebsiteHiddenBlock struct {
 	// ID is the block's Visibility id (the composer selects it).
 	ID string `json:"id,omitempty"`
 	// Name is the block's own name; Kind a well-known block (view_online,
-	// footer, referral, header) or block.
+	// footer, referral, header, poll) or block.
 	Name      string `json:"name,omitempty"`
-	Kind      string `json:"kind" enum:"view_online,footer,referral,header,block"`
+	Kind      string `json:"kind" enum:"view_online,footer,referral,header,poll,block"`
 	Reason    string `json:"reason" enum:"email_only,conditional,hidden"`
 	Condition string `json:"condition,omitempty"`
 	Line      int    `json:"line"`

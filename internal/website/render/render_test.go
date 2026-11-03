@@ -33,6 +33,11 @@ const digest = `<mjml>
       <mj-column><mj-text>Left column</mj-text></mj-column>
       <mj-column><mj-text>Right column</mj-text></mj-column>
     </mj-section>
+    <!-- rc:poll -->
+    <mj-section rc-poll='{"id":"p1","kind":"scale"}' rc-name="Poll"><mj-column>
+      <mj-text>How likely are you to recommend us?</mj-text>
+      <mj-text><a href="{{ rc_poll_p1 }}/0">0</a><a href="{{ rc_poll_p1 }}/10">10</a></mj-text>
+    </mj-column></mj-section>
     <!-- rc:footer -->
     <mj-section><mj-column><mj-text>Acme Inc · <a href="{{ unsubscribe_url }}">Unsubscribe</a></mj-text></mj-column></mj-section>
   </mj-body>
@@ -56,7 +61,7 @@ func TestRenderDrawsTheEmailInTheSitesTheme(t *testing.T) {
 			t.Errorf("body lacks %q\n%s", want, body)
 		}
 	}
-	for _, gone := range []string{"style=", "View in your browser", "Unsubscribe", "Beta Program readers", "Only in the inbox", "hero.png", "<h1", "Insider extras", "{{"} {
+	for _, gone := range []string{"style=", "View in your browser", "Unsubscribe", "Beta Program readers", "Only in the inbox", "hero.png", "<h1", "Insider extras", "{{", "recommend us", `href="/0"`} {
 		if strings.Contains(body, gone) {
 			t.Errorf("body keeps %q\n%s", gone, body)
 		}
@@ -73,6 +78,10 @@ func TestRenderDrawsTheEmailInTheSitesTheme(t *testing.T) {
 	}
 	if _, ok := kinds["footer/email_only"]; !ok {
 		t.Errorf("footer not hidden: %+v", res.Hidden)
+	}
+	// A poll's answers are each recipient's own link: the web has none.
+	if got, ok := kinds["poll/email_only"]; !ok || got != "Poll" {
+		t.Errorf("poll not hidden: %+v", res.Hidden)
 	}
 	if got := kinds["block/conditional"]; got != "Beta cornerBeta Program" {
 		t.Errorf("conditional block: %q (%+v)", got, res.Hidden)

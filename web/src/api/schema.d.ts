@@ -46114,7 +46114,7 @@ export interface components {
             condition?: string;
             id?: string;
             /** @enum {string} */
-            kind: "view_online" | "footer" | "referral" | "header" | "block";
+            kind: "view_online" | "footer" | "referral" | "header" | "poll" | "block";
             /** Format: int64 */
             line: number;
             name?: string;

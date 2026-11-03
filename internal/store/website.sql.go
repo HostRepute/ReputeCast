@@ -1222,6 +1222,43 @@ func (q *Queries) WebsitePostPublish(ctx context.Context, arg WebsitePostPublish
 	return err
 }
 
+const websitePostRedrawn = `-- name: WebsitePostRedrawn :exec
+UPDATE website_posts SET body_html = $1, preview_html = $2, has_marker = $3, marker_after = $4,
+    body_text = $5, preview_text = $6, words = $7, render_notes = $8, paid_blocks = $9
+WHERE id = $10 AND status = 'published'
+`
+
+type WebsitePostRedrawnParams struct {
+	BodyHtml    string          `json:"bodyHtml"`
+	PreviewHtml string          `json:"previewHtml"`
+	HasMarker   bool            `json:"hasMarker"`
+	MarkerAfter int32           `json:"markerAfter"`
+	BodyText    string          `json:"bodyText"`
+	PreviewText string          `json:"previewText"`
+	Words       int32           `json:"words"`
+	RenderNotes json.RawMessage `json:"renderNotes"`
+	PaidBlocks  json.RawMessage `json:"paidBlocks"`
+	ID          uuid.UUID       `json:"id"`
+}
+
+// A published post's web version drawn again from the content it was
+// published with: its version, hash and publication stay as they were.
+func (q *Queries) WebsitePostRedrawn(ctx context.Context, arg WebsitePostRedrawnParams) error {
+	_, err := q.db.Exec(ctx, websitePostRedrawn,
+		arg.BodyHtml,
+		arg.PreviewHtml,
+		arg.HasMarker,
+		arg.MarkerAfter,
+		arg.BodyText,
+		arg.PreviewText,
+		arg.Words,
+		arg.RenderNotes,
+		arg.PaidBlocks,
+		arg.ID,
+	)
+	return err
+}
+
 const websitePostSaveContent = `-- name: WebsitePostSaveContent :exec
 UPDATE website_posts SET mjml = $1, version = $2, autosaved_at = $3, updated_by = $4, updated_at = $5
 WHERE workspace_id = $6 AND id = $7
@@ -1840,6 +1877,52 @@ func (q *Queries) WebsitePostsDue(ctx context.Context, now time.Time) ([]Website
 	for rows.Next() {
 		var i WebsitePostsDueRow
 		if err := rows.Scan(&i.ID, &i.WorkspaceID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const websitePostsWithPollAnswers = `-- name: WebsitePostsWithPollAnswers :many
+SELECT id, workspace_id, published_mjml, title, cover_url, slug FROM website_posts
+WHERE status = 'published' AND published_mjml LIKE '%rc-poll%'
+  AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(coalesce(render_notes->'hidden', '[]'::jsonb)) h WHERE h->>'kind' = 'poll')
+ORDER BY id
+LIMIT 200
+`
+
+type WebsitePostsWithPollAnswersRow struct {
+	ID            uuid.UUID `json:"id"`
+	WorkspaceID   uuid.UUID `json:"workspaceId"`
+	PublishedMjml string    `json:"publishedMjml"`
+	Title         string    `json:"title"`
+	CoverUrl      string    `json:"coverUrl"`
+	Slug          string    `json:"slug"`
+}
+
+// Published posts whose content has a poll, drawn before a poll stayed in
+// the inbox: their body still shows its answers, as links to /0, /1 …
+func (q *Queries) WebsitePostsWithPollAnswers(ctx context.Context) ([]WebsitePostsWithPollAnswersRow, error) {
+	rows, err := q.db.Query(ctx, websitePostsWithPollAnswers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []WebsitePostsWithPollAnswersRow{}
+	for rows.Next() {
+		var i WebsitePostsWithPollAnswersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.PublishedMjml,
+			&i.Title,
+			&i.CoverUrl,
+			&i.Slug,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
