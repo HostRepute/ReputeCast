@@ -1,5 +1,7 @@
 import type { FetchQueryOptions, QueryClient } from '@tanstack/react-query'
-import { fetchWorkspaceMe, workspaceMeKey, type Permission } from './session'
+import { fetchWorkspaceMe, workspaceMeKey, type Permission, type WorkspaceMe } from './session'
+
+type HiddenSection = NonNullable<WorkspaceMe['hiddenSections']>[number]
 
 /** A query a screen asks for first, and the permission its endpoint needs. */
 export interface FirstQuery {
@@ -7,6 +9,11 @@ export interface FirstQuery {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   options: FetchQueryOptions<any, any, any, any>
   perm?: Permission
+  /** A sidebar section the query belongs to: not asked for while the workspace hides it. */
+  section?: HiddenSection
+  /** Queries the screen asks for once this one's data says so (texting set up: its overview). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  next?: (data: any) => FirstQuery[]
 }
 
 /**
@@ -21,7 +28,16 @@ export function prefetchFirst(client: QueryClient, slug: string, queries: FirstQ
   void client
     .ensureQueryData({ queryKey: workspaceMeKey(slug), queryFn: () => fetchWorkspaceMe(slug) })
     .then((me) => {
-      for (const q of queries) if (!q.perm || me.permissions.includes(q.perm)) void client.prefetchQuery(q.options)
+      const ask = (qs: FirstQuery[]) => {
+        for (const q of qs) {
+          if (q.perm && !me.permissions.includes(q.perm)) continue
+          if (q.section && me.hiddenSections?.includes(q.section)) continue
+          const asked = client.prefetchQuery(q.options)
+          if (q.next) void asked.then(() => ask(q.next!(client.getQueryData(q.options.queryKey))))
+          else void asked
+        }
+      }
+      ask(queries)
     })
     // The route's own loader reports a workspace that can't be read.
     .catch(() => undefined)

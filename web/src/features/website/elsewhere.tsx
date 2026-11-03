@@ -10,7 +10,7 @@ import { toast } from '@/components/ui/Toast'
 import { t, useT } from '@/i18n'
 import { clock, count, dayMonthDate, dayMonthYear, monthName } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
-import { bare, useWebsite } from './api'
+import { bare } from './api'
 import { me } from './elsewhere.messages'
 import { mp } from './posts.messages'
 import { dateTime } from './postFormat'
@@ -267,38 +267,6 @@ export function ContactWebsiteCard({ contactId, name }: { contactId: string; nam
         }}
       />
     </section>
-  )
-}
-
-/** The contacts filters' members: "Signed in to the website · 2,804" and "Paid members · 1,184". */
-export function MembersChips({
-  signedIn,
-  onSignedIn,
-  paid,
-  onPaid,
-}: {
-  signedIn: boolean
-  onSignedIn: (on: boolean) => void
-  /** Earn's "Paid status: with access" filter (X16). */
-  paid: boolean
-  onPaid: (on: boolean) => void
-}) {
-  const t = useT()
-  const ov = useWebsite()
-  const d = ov.data
-  if (!d || d.status !== 'on') return null
-  return (
-    <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t(me.filterLabel)}>
-      <span className="k mr-1">{t(me.filterLabel)}</span>
-      <button type="button" className="vchip" aria-pressed={signedIn} onClick={() => onSignedIn(!signedIn)}>
-        {t(me.filterSignedIn, { count: count(d.members.signedIn) })}
-      </button>
-      {d.members.paid ? (
-        <button type="button" className="vchip" aria-pressed={paid} onClick={() => onPaid(!paid)}>
-          {t(me.filterPaid, { count: count(d.members.paid) })}
-        </button>
-      ) : null}
-    </div>
   )
 }
 

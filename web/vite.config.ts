@@ -72,12 +72,44 @@ function layerOrder(): Plugin {
   }
 }
 
+const earlySrc = fileURLToPath(new URL('./src/early.ts', import.meta.url))
+
+/**
+ * src/early.ts asks for the session while the app's scripts load, so it is
+ * an entry of its own: listed in index.html, the build would merge it into
+ * the app's entry, which runs only once every startup script is in. This
+ * adds it as an input and puts its script in the page's head (the source
+ * file in development).
+ */
+function earlyEntry(): Plugin {
+  let build = false
+  return {
+    name: 'reputecast-early-entry',
+    configResolved(c) {
+      build = c.command === 'build'
+    },
+    transformIndexHtml: {
+      order: 'post',
+      handler(_html, ctx) {
+        let src = '/src/early.ts'
+        if (build) {
+          const chunk = Object.values(ctx.bundle ?? {}).find((c) => c.type === 'chunk' && c.isEntry && c.name === 'early')
+          if (!chunk) throw new Error('the early entry (src/early.ts) is missing from the build')
+          src = `/${chunk.fileName}`
+        }
+        return [{ tag: 'script', attrs: { type: 'module', src, async: true }, injectTo: 'head' }]
+      },
+    },
+  }
+}
+
 export default defineConfig({
   plugins: [
     tanstackRouter({ target: 'react', autoCodeSplitting: true, routesDirectory: './src/routes', generatedRouteTree: './src/routeTree.gen.ts' }),
     react(),
     tailwindcss(),
     layerOrder(),
+    earlyEntry(),
     precompress(),
   ],
   resolve: {
@@ -107,6 +139,7 @@ export default defineConfig({
     assetsInlineLimit: 2048,
     chunkSizeWarningLimit: 1200,
     rolldownOptions: {
+      input: { index: fileURLToPath(new URL('./index.html', import.meta.url)), early: earlySrc },
       output: {
         // Left to itself, the bundler cut the app into about 990 files: a
         // module that the startup code and a lazy page both use went into a

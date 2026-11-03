@@ -60,3 +60,13 @@ export function share(v: number): string {
 export function storefront(p: Pick<StorePage, 'publicDomain' | 'store'>): string {
   return p.publicDomain || p.store.domain || p.store.address
 }
+
+/**
+ * The workspace's stores with their collections: the composer's picker and
+ * blocks, and the contacts filters' store chips. Here rather than with the
+ * composer's code, which Contacts would otherwise download for this hook.
+ */
+export function useCatalog() {
+  const { slug } = useWorkspace()
+  return $api.useQuery('get', `${commerceBase}/catalog`, { params: { path: { workspace: slug } } }, { staleTime: 60_000 })
+}

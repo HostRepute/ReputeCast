@@ -1,4 +1,5 @@
 import { $api } from '@/api/client'
+import { channelsFirst } from '@/features/channels/queries'
 import type { FirstQuery } from '@/lib/prefetch'
 
 /*
@@ -27,8 +28,23 @@ export const overviewPerms = {
   recent: 'campaigns:view',
 } as const
 
-/** What the Overview asks for first, for its route's loader: every card it may show. */
+/**
+ * What the Overview asks for first, for its route's loader: every card it
+ * may show, the other features' cards below its own included (Transactional,
+ * Earn, SMS), with the same queries as those cards' own.
+ */
 export function overviewFirst(slug: string): FirstQuery[] {
   const q = overviewQueries(slug)
-  return (Object.keys(q) as (keyof typeof q)[]).map((k) => ({ options: q[k], perm: overviewPerms[k] }))
+  const path = { workspace: slug }
+  return [
+    ...(Object.keys(q) as (keyof typeof q)[]).map((k) => ({ options: q[k], perm: overviewPerms[k] })),
+    {
+      options: $api.queryOptions('get', '/api/v1/workspaces/{workspace}/transactional/overview', { params: { path, query: { period: '7d' } } }),
+      perm: 'transactional:view',
+      section: 'transactional',
+    },
+    { options: $api.queryOptions('get', '/api/v1/workspaces/{workspace}/transactional/settings', { params: { path } }), perm: 'transactional:view', section: 'transactional' },
+    { options: $api.queryOptions('get', '/api/v1/workspaces/{workspace}/earn/card', { params: { path } }), perm: 'earn:view', section: 'earn' },
+    channelsFirst(slug),
+  ]
 }

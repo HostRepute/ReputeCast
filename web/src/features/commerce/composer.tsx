@@ -14,7 +14,7 @@ import { AttentionIcon } from '@/features/integrations/shared'
 import { T, useT } from '@/i18n'
 import { clock, count, dayMonthDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
-import { commerceBase, money, storesBase } from './api'
+import { commerceBase, money, storesBase, useCatalog } from './api'
 import { ce } from './elsewhere.messages'
 import './commerce.css'
 import { SwitchInput } from '@/components/ui/Field'
@@ -71,12 +71,6 @@ function applyDrawing(section: Component, block: Block, html: string) {
 async function drawBlock(slug: string, block: Block): Promise<Render> {
   const { data } = await http.POST(`${commerceBase}/blocks/render`, { params: { path: { workspace: slug } }, body: { block } })
   return data as Render
-}
-
-/** The workspace's stores with their collections (the picker and the blocks). */
-export function useCatalog() {
-  const { slug } = useWorkspace()
-  return $api.useQuery('get', `${commerceBase}/catalog`, { params: { path: { workspace: slug } } }, { staleTime: 60_000 })
 }
 
 /** The Blocks panel's store blocks: a Product grid, when a store is connected. */

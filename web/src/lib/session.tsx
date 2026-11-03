@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import { http, type Schemas } from '@/api/client'
 import { t, type MessageDescriptor } from '@/i18n'
+import { takeEarlyMe, takeEarlyWorkspace } from './early'
 import { orList } from './format'
 import { m } from './session.messages'
 
@@ -14,6 +15,8 @@ export const workspaceMeKey = (slug: string) => ['workspace-me', slug] as const
 
 /** Loads the signed-in person; `null` when signed out. */
 export async function fetchMe(): Promise<Me | null> {
+  const early = (await takeEarlyMe()) as Me | undefined
+  if (early) return early
   try {
     const { data } = await http.GET('/api/v1/me')
     return data ?? null
@@ -28,6 +31,8 @@ export function useMe() {
 }
 
 export async function fetchWorkspaceMe(slug: string): Promise<WorkspaceMe> {
+  const early = (await takeEarlyWorkspace(slug)) as WorkspaceMe | undefined
+  if (early) return early
   const { data } = await http.GET('/api/v1/workspaces/{workspace}/me', { params: { path: { workspace: slug } } })
   return data!
 }

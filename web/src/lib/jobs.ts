@@ -94,6 +94,15 @@ function subscribe(l: () => void) {
 
 export const isActive = (j: BackgroundJob) => j.status === 'queued' || j.status === 'running'
 
+/** The server's list of a workspace's jobs: the jobs tray's, and its route's prefetch. */
+export function backgroundJobsQuery(workspace: string) {
+  return {
+    queryKey: ['background-jobs', workspace] as const,
+    queryFn: ({ signal }: { signal: AbortSignal }) => source.list(workspace, signal),
+    retry: false,
+  }
+}
+
 /** Server jobs merged with locally tracked ones; polls while any is active. */
 export function useBackgroundJobs(workspace: string) {
   const mine = useSyncExternalStore(
@@ -102,11 +111,9 @@ export function useBackgroundJobs(workspace: string) {
     () => EMPTY,
   )
   const q = useQuery({
-    queryKey: ['background-jobs', workspace],
-    queryFn: ({ signal }) => source.list(workspace, signal),
+    ...backgroundJobsQuery(workspace),
     refetchInterval: (query) => ((query.state.data ?? []).some(isActive) || mine.some(isActive) ? 3000 : 30_000),
     staleTime: 2000,
-    retry: false,
   })
   const server = q.data ?? EMPTY
   const byId = new Map<string, BackgroundJob>()

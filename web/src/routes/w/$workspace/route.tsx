@@ -1,10 +1,11 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
-import { ApiError } from '@/api/client'
+import { $api, ApiError } from '@/api/client'
 import { AppShell } from '@/components/shell/AppShell'
 import { WorkspaceNotFound } from '@/components/shell/SystemScreens'
 import { WorkspaceSystemLayer } from '@/components/shell/WorkspaceSystemLayer'
 import { setDisplayTimeZone } from '@/lib/format'
+import { backgroundJobsQuery } from '@/lib/jobs'
 import { fetchMe, fetchWorkspaceMe, meQueryKey, WorkspaceProvider, workspaceMeKey } from '@/lib/session'
 
 /**
@@ -18,6 +19,11 @@ export const Route = createFileRoute('/w/$workspace')({
     if (me.pending === 'password_change' || me.pending === 'instance_setup' || me.pending === 'two_factor_setup') throw redirect({ to: '/setup' })
   },
   loader: async ({ context, params }) => {
+    // The shell's own queries (the jobs tray, the agency's menu) start with
+    // the screen's, not once the shell has drawn: a screen shows its parts
+    // when every first load is in, these included.
+    void context.queryClient.prefetchQuery(backgroundJobsQuery(params.workspace))
+    void context.queryClient.prefetchQuery({ ...$api.queryOptions('get', '/api/v1/agency/me', {}), retry: false })
     try {
       await context.queryClient.ensureQueryData({ queryKey: workspaceMeKey(params.workspace), queryFn: () => fetchWorkspaceMe(params.workspace) })
     } catch (e) {

@@ -1,5 +1,6 @@
 import { keepPreviousData } from '@tanstack/react-query'
 import { $api, type Schemas } from '@/api/client'
+import { channelsFirst } from '@/features/channels/queries'
 import type { FirstQuery } from '@/lib/prefetch'
 import type { ContactsSearch } from './ContactsPage'
 
@@ -104,7 +105,27 @@ export function contactsFirst(slug: string, search: object): FirstQuery[] {
   const out: FirstQuery[] = [
     { options: audienceSummaryQuery(slug), perm },
     { options: contactViewsQuery(slug), perm },
+    ...contactsFilterQueries(slug),
   ]
   if (Object.keys(search).length === 0) out.push({ options: contactListQuery(slug, {}, [], false), perm })
   return out
+}
+
+/**
+ * What the filters and the column chooser ask for, each from its own
+ * feature (website, channels and texting, languages, products, stores,
+ * fields). The screen shows its parts once all of them are in, and they
+ * asked only once it had drawn, after its list. The same queries as the
+ * features' own: the same address and parameters, so one answer serves both.
+ */
+function contactsFilterQueries(slug: string): FirstQuery[] {
+  const init = { params: { path: { workspace: slug } } }
+  return [
+    { options: $api.queryOptions('get', '/api/v1/workspaces/{workspace}/website', init), perm: 'website:view' },
+    channelsFirst(slug),
+    { options: $api.queryOptions('get', '/api/v1/workspaces/{workspace}/languages', init) },
+    { options: $api.queryOptions('get', '/api/v1/workspaces/{workspace}/products', init), perm: 'products:view' },
+    { options: $api.queryOptions('get', '/api/v1/workspaces/{workspace}/commerce/catalog', init), perm: 'campaigns:view' },
+    { options: $api.queryOptions('get', '/api/v1/workspaces/{workspace}/fields', init), perm: 'subscribers:view' },
+  ]
 }

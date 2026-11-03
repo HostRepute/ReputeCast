@@ -1,8 +1,7 @@
 import { Field, Input, Select } from '@/components/ui/Field'
 import { useT } from '@/i18n'
 import '@/features/scoring/scoring.css'
-import { money } from './api'
-import { useCatalog } from './composer'
+import { money, useCatalog } from './api'
 import { cf } from './elsewhere.messages'
 import './commerce.css'
 
