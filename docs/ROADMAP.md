@@ -37,7 +37,7 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 | **M25 Referrals and recommendations** | Referral program, milestones and rewards, review queue, public hub and invite pages; recommendations and partner links | X15 | ✅ |
 | **M26 Payments and paid subscriptions** | Stripe with a restricted key, tiers and prices, upgrade page and checkout, paid status, paid members and their import, paid-only content, member emails | X16 | ✅ |
 | **M27 Offers, gifts, sponsorships and revenue** | Offers and the cancel page, gift subscriptions, sponsors and bookings, Earn overview, the conversion API and revenue attribution | X17 | ✅ |
-| **M28 Publication website** | Posts from campaigns and web-only posts, home, tags and navigation, members, visibility, the meter and paywall | X18 | ✅ (header and About links to pages open once M29's pages are in) |
+| **M28 Publication website** | Posts from campaigns and web-only posts, home, tags and navigation, members, visibility, the meter and paywall | X18 | ✅ (header links to custom pages and the About link to an About page came with M29) |
 | **M29 Landing and sales pages, digital products** | The page builder, landing, sales and webinar pages, the shop, products, orders and downloads | X19 | ✅ |
 | **M30 Shopify and WooCommerce** | Store connections, synced orders, products and customers, store triggers and blocks, revenue, the abandoned-cart starter | X20 | ✅ |
 | **M31 SMS** | SMS providers and senders, routing by country, phone numbers and SMS consent, keywords and quiet hours, the SMS composer, review and report | X21 | ✅ |
