@@ -10,9 +10,9 @@
   "scripts": {
     "dev": "vite",
     "dev:mock": "VITE_MOCK=1 vite",
-    "build": "node scripts/i18n-check.ts --summary && tsc -b && vite build",
+    "build": "node scripts/i18n-check.ts --summary && node --max-old-space-size=6144 node_modules/typescript/bin/tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b --pretty",
+    "typecheck": "node --max-old-space-size=6144 node_modules/typescript/bin/tsc -b --pretty",
     "lint": "eslint . && node scripts/patterns-check.ts",
     "test": "vitest run",
     "test:watch": "vitest",
