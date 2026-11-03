@@ -426,10 +426,16 @@ moved the blocking time beyond run-to-run noise (±0.3 s):
 - formatting a message without values once per language rather than on
   every render.
 
-Bringing the blocking time well under a second on this phone would take
-rendering the first screen on the server, or loading each section's route
-definitions with that section; both change how the app is built and are
-left for a release of their own.
+Where the rest goes, profiled on Contacts on a phone after the fixes in the
+Lighthouse section below (CPU four times slower): React drawing the screen
+and its data, 0.7–0.9 s, spread over the shell, the table, the filters and
+formatting their words, with no one part above a tenth of it; running the
+startup scripts, about 0.19 s, of which every route's definition and search
+schema is about a tenth (51 KB of route files and 21 KB of route tree in
+800 KB). Loading each section's route definitions with that section would
+save 20–40 ms of it, so it wasn't done. What would move it is less to draw
+per screen, or drawing the first screen on the server, which changes how
+the app is built.
 
 ### Lighthouse
 
