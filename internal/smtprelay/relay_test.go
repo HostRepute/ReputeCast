@@ -68,12 +68,18 @@ func selfSigned(t *testing.T) (string, string, *x509.CertPool) {
 func freePorts(t *testing.T, n int) []int {
 	t.Helper()
 	ports := make([]int, 0, n)
+	open := make([]net.Listener, 0, n)
+	defer func() {
+		for _, l := range open {
+			_ = l.Close()
+		}
+	}()
 	for range n {
 		l, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", "127.0.0.1:0")
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer func() { _ = l.Close() }()
+		open = append(open, l)
 		ports = append(ports, l.Addr().(*net.TCPAddr).Port)
 	}
 	return ports
