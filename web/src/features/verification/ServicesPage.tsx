@@ -22,6 +22,7 @@ import {
   ResultBadge,
   resultsLine,
   ServiceTile,
+  priceValue,
   StatusBadge,
   tagValue,
   useOverview,
@@ -495,7 +496,7 @@ function SettingsCard({ o, v, onReplace, onTest, testing }: { o: Overview; v: Se
     setBusy(true)
     const res = await http.PATCH(`${base}/services/{service}`, {
       params: { path: { workspace: slug, service: v.key } },
-      body: { price: Number(price) || 0, defaultBulk: bulk, defaultForms: forms, region: (v.region || undefined) as 'us' | undefined },
+      body: { price: priceValue(price) || 0, defaultBulk: bulk, defaultForms: forms, region: (v.region || undefined) as 'us' | undefined },
     })
     setBusy(false)
     if (!res.data) {
