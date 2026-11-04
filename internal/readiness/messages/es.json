@@ -169,7 +169,7 @@
   "fix.compare": "Comparar",
   "fix.markUpToDate": "Marcar como actualizada",
   "fix.markTranslated": "Marcar como traducida",
-  "fix.sendSourceTo": "Enviar la versión en {source} a los lectores en {language}",
+  "fix.sendSourceTo": "Enviar en {source} a lectores en {language}",
   "fix.openLanguage": "Abrir la versión en {language}",
   "fix.writePageCopy": "Escribir los textos de la página en {language}",
 

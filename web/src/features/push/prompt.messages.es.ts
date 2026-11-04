@@ -38,7 +38,7 @@ export default translate(m, {
   type: 'Tipo',
   typeEmbedded: 'Insertado',
   typePopup: 'Emergente',
-  typeHosted: 'Página en ReputeCast',
+  typeHosted: 'Página alojada',
   typePush: 'Aviso push',
   typeHint: 'Pide permiso a los lectores para enviarles notificaciones.',
   typeLocked: 'Un aviso push sigue siendo un aviso push. Para crear un formulario de suscripción, usa Nuevo formulario.',

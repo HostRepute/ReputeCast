@@ -48,7 +48,7 @@ export default {
     formTitle: 'Formulario · “{name}”',
     kindEmbedded: 'Insertado',
     kindPopup: 'Emergente',
-    kindHosted: 'Página en ReputeCast',
+    kindHosted: 'Página alojada',
     settingsAside: 'Configuración',
     languagesAside: 'Idiomas de este formulario',
     formLanguage: 'Idioma del formulario',
