@@ -60,6 +60,28 @@
 :root:not([lang='en']) .rv-rt {
   flex-basis: 320px;
 }
+/* The same in "Needs attention" (review/issues.css .rv-srow): the finding
+   keeps at least 320 px and the fixes wrap in their own column, instead of
+   the fixes ("Enviar la versión en inglés a los lectores en alemán")
+   squeezing the finding to a word a line. */
+@media (min-width: 768px) {
+  :root:not([lang='en']) .rv-srow {
+    grid-template-columns: auto minmax(min(320px, 100%), 1fr) minmax(0, auto);
+  }
+  /* A fix whose label is still wider than its column takes two lines
+     rather than running past the card's edge. */
+  :root:not([lang='en']) .rv-srow > .rv-sfixes {
+    min-width: 0;
+  }
+  :root:not([lang='en']) .rv-srow > .rv-sfixes .btn {
+    height: auto;
+    min-height: 32px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    white-space: normal;
+    text-align: left;
+  }
+}
 
 /* A Send Readiness group's caption ("14 liên kết trong mỗi phiên bản ·
    kiểm tra lúc 09:40") moves under its title instead of squeezing it onto
