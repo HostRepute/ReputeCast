@@ -1,0 +1,15 @@
+{
+  "problem.chooseImage": "Elige una imagen para subir.",
+  "problem.interrupted": "La subida se interrumpió. Vuelve a intentarlo.",
+  "problem.empty": "El archivo está vacío.",
+  "problem.tooLarge": "La imagen pesa {size} MB; el límite es de 5 MB. Las imágenes de correo funcionan mejor por debajo de 200 KB.",
+  "problem.uploadTooLarge": "El archivo pesa {size} MB; el límite es de 20 MB. Exporta la imagen más pequeña y vuelve a intentarlo.",
+  "problem.gifTooLarge": "El GIF pesa {size} MB; los GIF pueden pesar hasta 5 MB porque se guardan tal como se suben, para que las animaciones conserven sus fotogramas.",
+  "problem.stillTooLarge": "Incluso redimensionada y comprimida, la imagen pesa {size} MB; el límite es de 5 MB. Usa una imagen más pequeña.",
+  "problem.webp": "Las imágenes WebP no se muestran en Outlook ni en otros clientes de correo. Sube un PNG, JPEG o GIF.",
+  "problem.svg": "Las imágenes SVG no se muestran en Gmail ni en Outlook. Sube un PNG, JPEG o GIF.",
+  "problem.notImage": "Ese archivo no es una imagen que ReputeCast pueda usar. Sube un PNG, JPEG o GIF.",
+  "problem.damaged": "La imagen está dañada o incompleta y no se pudo leer. Vuelve a exportarla e inténtalo de nuevo.",
+  "problem.dimensions": "Las dimensiones de la imagen no son válidas o son demasiado grandes (50 megapíxeles como máximo).",
+  "problem.notFound": "No se encontró la imagen."
+}

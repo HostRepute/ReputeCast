@@ -1,0 +1,12 @@
+{
+  "problem.unknownService": "Elige Litmus o Mailgun Inspect.",
+  "problem.unknownClient": "{service} no incluye {client} en esta cuenta. Prueba la conexión para actualizar sus clientes.",
+  "problem.notConnected": "No hay ningún servicio de renderizado conectado a este espacio de trabajo.",
+  "problem.stillRunning": "Todavía hay un renderizado de esta campaña en curso. Sus capturas aparecen a medida que llegan.",
+  "problem.refused": "{service} rechazó la clave de API. Compruébala en tu cuenta de {service} y vuelve a pegarla.",
+  "problem.unreachable": "No se pudo contactar con {service} ({reason}). Vuelve a intentarlo dentro de un minuto.",
+  "problem.failed": "{service} respondió con un error (HTTP {status}). Vuelve a intentarlo dentro de un minuto.",
+  "render.gaveUp": "{service} no terminó en 15 minutos. Vuelve a renderizar para reintentarlo.",
+  "render.disconnected": "{service} se desconectó antes de que llegaran las capturas.",
+  "render.noScreenshots": "{service} no pudo capturar ninguno de los clientes."
+}

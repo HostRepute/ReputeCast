@@ -1,0 +1,65 @@
+{
+  "alt.title": "{image, select, logo {El logotipo} hero {La imagen hero} section {Una imagen de la sección {section}} other {Una imagen}} no tiene texto alternativo",
+  "alt.tag": "Imagen sin texto alternativo",
+  "alt.detail": "Las imágenes están desactivadas por defecto en Outlook y en muchos clientes corporativos; lo que se ve es el texto alternativo, y los filtros de spam penalizan más el correo que solo tiene imágenes.",
+  "alt.fix": "Guardar",
+
+  "size.near": "{kb} KB del límite de recorte de 102 KB de Gmail",
+  "size.over": "Con {kb} KB, supera el límite de recorte de 102 KB de Gmail",
+  "size.detail": "Gmail recorta el mensaje y oculta el pie, incluido el enlace de baja.",
+  "size.minify": "Minificar CSS en línea · ahorra unos {kb} KB",
+  "size.bulkOne": "La sección {section} es la mayor parte ({share, number, percent}).",
+  "size.bulkMany": "Las {count, plural, =2 {dos} =3 {tres} =4 {cuatro} =5 {cinco} =6 {seis} =7 {siete} =8 {ocho} =9 {nueve} =10 {diez} other {#}} secciones de {section} son la mayor parte ({share, number, percent}).",
+  "size.bulkCards": "{count, plural, =2 {Dos} =3 {Tres} =4 {Cuatro} =5 {Cinco} =6 {Seis} =7 {Siete} =8 {Ocho} =9 {Nueve} =10 {Diez} other {#}} {section}{css, select, yes { con CSS en línea} other {}} son la mayor parte.",
+  "size.removeSection": "Quitar la sección {section}",
+  "size.removeRow": "Quitar la {n, plural, =1 {primera} =2 {segunda} =3 {tercera} =4 {cuarta} =5 {quinta} =6 {sexta} =7 {séptima} =8 {octava} =9 {novena} =10 {décima} other {#.ª}} fila",
+
+  "ratio.title": "El {share, number, percent} del correo es imagen",
+  "ratio.detail": "Los filtros de spam penalizan más el correo con muchas imágenes, y la mayor parte desaparece cuando las imágenes están desactivadas. Añade texto o usa menos imágenes.",
+
+  "footer.both": "No hay enlace de baja ni dirección postal en el cuerpo",
+  "footer.bothTag": "Sin enlace de baja ni dirección postal",
+  "footer.address": "No hay dirección postal en el pie",
+  "footer.addressTag": "Sin dirección postal",
+  "footer.unsubscribe": "No hay enlace de baja en el cuerpo",
+  "footer.unsubscribeTag": "Sin enlace de baja",
+  "footer.detail": "Las cabeceras se añaden automáticamente, pero el enlace y la dirección visibles también son obligatorios.",
+  "footer.fix": "Insertar bloque de pie",
+
+  "liquid.title": "{where, select, subject {Asunto} preheader {Preencabezado} other {Cuerpo}}: {problem}",
+  "liquid.titleLine": "{where, select, subject {Asunto} preheader {Preencabezado} other {Cuerpo}}: Línea {line}: {problem}",
+  "liquid.detail": "Corrige la etiqueta de personalización; una etiqueta rota se mostraría como texto o detendría el envío.",
+  "unknownField.title": "{token} no es un campo del contacto; no muestra nada",
+  "unknownField.detail": "Revisa la ortografía o añade un valor alternativo, como | default: \"…\".",
+
+  "subject.missing": "El asunto está vacío",
+  "subject.missingDetail": "Las bandejas de entrada muestran primero el asunto; escribe uno antes de enviar.",
+  "subject.spam": "El asunto activa {count, plural, one {# indicio de spam} other {# indicios de spam}}",
+  "subject.suggested": "Sugerencia: {suggestion}",
+  "subject.useSuggestion": "Usar sugerencia",
+
+  "plainText.title": "La versión de texto sin formato está vacía",
+  "plainText.detail": "El correo no tiene texto, así que la parte text/plain está en blanco. Añade una frase que diga lo que muestran las imágenes.",
+
+  "link.emptyTitle": "El botón “{text}” no tiene enlace",
+  "link.emptyTag": "Botón sin enlace",
+  "link.emptyDetail": "La gente hará clic en él; haz que lleve a la página que promete.",
+  "link.edit": "Editar enlace",
+  "link.blocklistTitle": "{kind, select, button {El botón} image {La imagen} nav {El enlace del menú} social {El enlace a redes sociales} other {El enlace}} lleva a {host}, que figura en {lists}",
+  "link.blocklistTag": "Dominio del enlace en {lists}",
+  "link.blocklistDetail": "El correo que enlaza a un dominio de una lista de bloqueo se filtra sea cual sea tu reputación. Usa un dominio que controles.",
+  "link.replaceWithDestination": "Sustituir por la URL de destino",
+  "link.shortenerTitle": "{kind, select, button {El botón} image {La imagen} nav {El enlace del menú} social {El enlace a redes sociales} other {El enlace}} redirige a través de {host}, un acortador de URL",
+  "link.shortenerTag": "Enlace acortado",
+  "link.shortenerDetail": "Los enlaces acortados ocultan adónde llevan; los filtros los consideran sospechosos y muchos dominios de acortadores están en listas de bloqueo. Enlaza directamente a la página.",
+  "link.brokenTitle": "{kind, select, button {El botón} image {La imagen} nav {El enlace del menú} social {El enlace a redes sociales} other {El enlace}} a {url} {status, select, 0 {no responde} other {devuelve {status}}}",
+  "link.brokenTag": "Enlace roto",
+  "link.brokenDetail": "Quien hace clic recibe una página de error. Corrige la dirección o quita el enlace.",
+
+  "link.unknownTitle": "No se {count, plural, one {pudo comprobar # dominio de enlace} other {pudieron comprobar # dominios de enlace}} en {lists}",
+  "link.unknownTag": "Sin comprobar",
+  "link.unknownDetail": "{trouble, select, refused {Las listas rechazaron el resolutor DNS de este servidor; las consultas a listas de bloqueo necesitan tu propio resolutor recursivo.} other {El DNS no respondió a tiempo.}} No saberlo no significa que estén limpios: la revisión previa vuelve a consultarlos antes del envío.",
+
+  "unknownField.titleFallback": "{token} no es un campo del contacto, así que todos reciben “{fallback}”",
+  "unknownField.fallbackDetail": "El valor alternativo oculta la errata en las vistas previas, pero no a tus lectores. Revisa la ortografía con los campos del menú de etiquetas de personalización."
+}

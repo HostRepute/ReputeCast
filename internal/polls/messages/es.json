@@ -1,0 +1,33 @@
+{
+  "problem.pollQuestion": "Escribe la pregunta de la votación.",
+  "problem.pollTwoAnswers": "Una votación necesita al menos dos respuestas.",
+  "problem.pollFiveAnswers": "Una votación admite como máximo cinco respuestas.",
+  "problem.pollTags": "Asigna una etiqueta a cada respuesta o guarda la respuesta en un campo.",
+  "problem.pollField": "Elige el campo en el que se guarda la respuesta.",
+  "problem.pollSurvey": "Elige la encuesta a la que lleva la votación.",
+  "problem.pollClosed": "Esta votación ya está cerrada.",
+  "problem.pollOpen": "Esta votación ya está abierta.",
+
+  "problem.surveyFirstQuestion": "Añade la primera pregunta.",
+  "problem.surveyMaxQuestions": "Una encuesta admite hasta {max, plural, one {# pregunta} other {# preguntas}}.",
+  "problem.surveyQuestion": "Escribe la pregunta.",
+  "problem.surveyTwoAnswers": "Una pregunta de opciones necesita al menos dos respuestas.",
+  "problem.surveyField": "Elige el campo en el que se guarda la respuesta.",
+  "problem.surveyTags": "Asigna una etiqueta a cada respuesta o no guardes la respuesta.",
+  "problem.surveySlugTaken": "Otra encuesta de este espacio de trabajo ya tiene esa dirección. Elige otra.",
+  "problem.surveyIncomplete": "Para publicar, todas las preguntas deben estar completas: {problem}",
+  "problem.surveyType": "Elige un tipo para cada pregunta: opción única, opción múltiple, escala de 0 a 10, escala de emojis, texto corto o texto largo.",
+  "problem.surveyClosePassed": "La fecha de cierre ya pasó. Elige una fecha posterior o cierra la encuesta a mano.",
+  "problem.surveyNotPublished": "Esta encuesta aún no está publicada, así que no hay nada que cerrar.",
+  "problem.surveyCloseFuture": "Elige una fecha de cierre futura o cierra la encuesta a mano.",
+
+  "label.untitledSurvey": "Encuesta sin título",
+  "label.surveyThanks": "Se guardaron tus respuestas.",
+  "label.noTier": "Aún sin grupo",
+  "label.languageNotSet": "Sin definir",
+
+  "tier.active": "Activo",
+  "tier.cooling": "Enfriándose",
+  "tier.at_risk": "En riesgo",
+  "tier.sunset": "En retirada"
+}

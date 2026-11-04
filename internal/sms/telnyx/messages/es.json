@@ -1,0 +1,10 @@
+{
+  "summary": "Pago por uso · su propia red de operador en EE. UU.",
+  "badge.opt_out_sync.note": "solo lectura",
+  "badge.pricing.note": "costo de cada mensaje",
+  "field.api_key.label": "Clave de API",
+  "field.public_key.label": "Clave pública",
+  "field.public_key.help": "Portal › Keys & Credentials › Public key. ReputeCast comprueba con ella la firma de cada webhook.",
+  "field.messaging_profile_id.label": "Messaging profile ID",
+  "field.messaging_profile_id.help": "Déjalo vacío y ReputeCast creará un perfil de mensajería para sus webhooks."
+}

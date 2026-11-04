@@ -1,0 +1,35 @@
+import { translate } from '@/i18n'
+import { m } from './search.messages'
+
+/** Spanish (docs/i18n/glossary-es.md). */
+export default translate(m, {
+  title: 'Buscar en todos los clientes',
+  typeMore: 'Escribe al menos 2 caracteres: el nombre de una campaña, automatización, plantilla o formulario, o la dirección de correo exacta de un contacto.',
+  failed: 'No se pudo buscar',
+  nameCaption: 'Como {name}: {clients, plural, one {tu cliente} other {tus # clientes}} y la biblioteca · {n, plural, one {# resultado} other {# resultados}}',
+  nameCaptionAll: 'Como {name}: todos los clientes y la biblioteca · {n, plural, one {# resultado} other {# resultados}}',
+  contactCaption: 'Como {name} · los contactos solo coinciden con un correo o un teléfono exactos, en los clientes donde puedes ver contactos',
+  noMatch: 'Nada coincide con “{q}” en tus clientes ni en la biblioteca.',
+  noContact: '{n, plural, =0 {No hay ningún cliente en el que puedas ver contactos.} one {No hay ningún contacto con esa dirección en el cliente donde puedes ver contactos.} other {No hay ningún contacto con esa dirección en los # clientes donde puedes ver contactos.}}',
+  skipped: '{n, plural, one {No se buscaron contactos en # cliente: allí no puedes ver contactos.} other {No se buscaron contactos en # clientes: allí no puedes ver contactos.}}',
+  audited: 'Esta búsqueda queda en el registro de auditoría: quién buscó y qué dirección.',
+  libraryGroup: 'Biblioteca de {agency}',
+  libraryHit: '{kind} · v{version}',
+  kindCampaign: 'Campaña',
+  kindAutomation: 'Automatización',
+  kindSection: 'Sección guardada',
+  kindTemplate: 'Plantilla de campaña',
+  kindForm: 'Formulario de suscripción',
+  kindContact: 'Contacto',
+  contactSubscribed: 'Contacto · {lists} · se suscribió el {date}',
+  contactLeft: 'Contacto · {lists} · se dio de baja el {date}',
+  contactLists: 'Contacto · {lists}',
+  stApproval: 'Esperando aprobación',
+  stDraft: 'Borrador',
+  stScheduled: 'Programada',
+  stApproved: 'Aprobada',
+  stSending: 'Enviando',
+  stSent: 'Enviada',
+  stPaused: 'En pausa',
+  stLive: 'Activo',
+})

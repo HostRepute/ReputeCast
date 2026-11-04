@@ -1,0 +1,11 @@
+{
+  "token.first_name": "Nombre",
+  "token.last_name": "Apellidos",
+  "token.email": "Dirección de correo",
+  "token.unsubscribe_url": "Enlace de baja",
+  "token.preferences_url": "Enlace a las preferencias de correo",
+  "token.view_in_browser_url": "Enlace para ver en el navegador",
+  "fallback.first_name": "tú",
+  "problem.line": "Línea {line}: {message}",
+  "problem.loopLimit": "Los bucles están limitados a {max} elementos; ({from}..{to}) tiene {count}."
+}

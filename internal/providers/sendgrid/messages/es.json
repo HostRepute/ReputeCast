@@ -1,0 +1,25 @@
+{
+  "pricing": "plan, prueba gratuita de 100 al día y después desde 19,95 US$ al mes",
+  "dedicatedIps": "plan Pro y superiores, una incluida",
+  "terms.0.note": "Solo destinatarios con consentimiento demostrable, renovado tras una larga inactividad. Cada correo de marketing necesita una dirección postal, un enlace de baja y un enlace a la política de privacidad; nada de listas compradas.",
+  "events": "Event Webhook",
+  "domainSetup": "API",
+  "suppressionMode": "Bidireccional",
+  "field.api_key.label": "Clave de API",
+  "field.api_key.help": "SendGrid › Settings › API Keys. Full Access permite que ReputeCast registre el Event Webhook firmado, autentique dominios y sincronice supresiones.",
+  "field.region.label": "Región",
+  "field.region.help": "EU solo para un subusuario de la UE (planes Pro y superiores).",
+  "field.ip_pool.label": "Grupo de IP",
+  "field.ip_pool.help": "Opcional. Envía a través de este grupo de IP dedicadas.",
+  "field.webhook_verification_key.label": "Event Webhook verification key",
+  "field.webhook_verification_key.help": "Se lee de SendGrid para el webhook que registra ReputeCast. Pégala solo para un webhook que configuraste tú (Mail Settings › Event Webhook › Signature verification).",
+
+  "account": "{kind, select, free {Cuenta gratuita} other {Cuenta de pago}} · reputación {reputation, number} %",
+  "account.restricted": "Clave de API restringida · los detalles de la cuenta necesitan más ámbitos",
+  "tracking.scope": "Todos los mensajes que envía ReputeCast",
+  "tracking.off": "El seguimiento de aperturas y clics está desactivado en la cuenta y en todos los mensajes que envía ReputeCast.",
+  "tracking.on": "{on, select, open {El seguimiento de aperturas de la cuenta está activado, pero ReputeCast desactiva el seguimiento de SendGrid en cada mensaje que envía.} click {El seguimiento de clics de la cuenta está activado, pero ReputeCast desactiva el seguimiento de SendGrid en cada mensaje que envía.} other {El seguimiento de aperturas y clics de la cuenta está activado, pero ReputeCast desactiva el seguimiento de SendGrid en cada mensaje que envía.}}",
+  "error.noWebhookId": "SendGrid no devolvió el ID del webhook",
+  "error.domainMissing": "{domain} no está autenticado en SendGrid",
+  "error.ipsRestricted": "La clave de API no puede leer las direcciones IP de la cuenta: dale acceso de lectura a IP Management en SendGrid › Settings › API Keys y vuelve a comprobarlo."
+}

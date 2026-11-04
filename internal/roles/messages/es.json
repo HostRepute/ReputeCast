@@ -1,0 +1,36 @@
+{
+  "problem.name": "Ponle un nombre al rol.",
+  "problem.builtinName": "El nombre “{name}” ya lo usa un rol integrado. Elige otro nombre.",
+  "problem.nameTaken": "Ya existe un rol llamado “{name}”. Elige otro nombre.",
+  "problem.unknownPermission": "Permiso desconocido: “{permission}”.",
+  "problem.ownerOnly": "{permission} es exclusivo del rol Propietario.",
+  "problem.builtinEdit": "{role} es un rol integrado y no se puede editar. Duplícalo para personalizarlo.",
+  "problem.builtinDelete": "{role} es un rol integrado y no se puede eliminar.",
+  "problem.assigned": "El rol “{role}” está asignado a {count, plural, one {# miembro} other {# miembros}}. Pasa antes a {names} a otro rol y luego elimínalo.",
+  "problem.pendingInvite": "Una invitación pendiente usa el rol “{role}”. Revoca antes la invitación y luego elimínalo.",
+
+  "impact.sensitiveNone": "Ninguno seleccionado · no se exige la verificación en dos pasos",
+  "impact.sensitive": "{permissions} · se exige la verificación en dos pasos",
+  "impact.loses": "Perderán {permissions}: {who}.",
+  "count.members": "{count, plural, one {# miembro} other {# miembros}}",
+  "count.apiKeys": "{count, plural, one {# clave de API} other {# claves de API}}",
+  "count.agents": "{count, plural, one {# agente MCP} other {# agentes MCP}}",
+
+  "effect.stillEdit": "Puede seguir editando; debe solicitar aprobación para enviar",
+  "effect.noLonger": "Ya no puede {actions}",
+  "effect.twoFactorIdp": "La verificación en dos pasos pasa a ser obligatoria; su IdP ya la exige",
+  "effect.twoFactorGrace": "La verificación en dos pasos pasa a ser obligatoria ({days} días de gracia)",
+  "effect.gains": "Obtiene {permissions}",
+  "effect.same": "Igual que ahora",
+  "effect.keyAutomations": "Las automatizaciones que envían a través de ella fallarán con 403",
+  "effect.keyCalls": "Las llamadas que necesiten {permissions} fallarán con 403",
+
+  "approvals.sendApprove": "Quienes lo tienen pueden enviar y aprobar los envíos de otros miembros; no pueden aprobar los suyos",
+  "approvals.approve": "Quienes lo tienen pueden aprobar los envíos de otros miembros",
+  "approvals.send": "Quienes lo tienen pueden enviar; la política de aprobación se sigue aplicando a los envíos grandes o de riesgo",
+  "approvals.request": "Quienes lo tienen pueden solicitar aprobación para enviar, porque pueden editar campañas pero no enviarlas",
+  "approvals.none": "Quienes lo tienen no pueden enviar ni solicitar aprobación",
+
+  "audit.permissions": "{count, plural, one {# permiso} other {# permisos}}",
+  "audit.renamed": "antes se llamaba “{from}”"
+}

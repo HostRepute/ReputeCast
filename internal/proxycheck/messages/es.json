@@ -1,0 +1,9 @@
+{
+  "notify.title": "Las solicitudes llegan a través de un proxy en el que ReputeCast no confía",
+  "notify.body": "{peer} reenvía solicitudes a ReputeCast con {header}, pero {setting} no lo incluye. Todas las aperturas y los clics parecen venir de {peer}, así que el filtro de bots no puede ver las direcciones de los lectores. Añade {peer} a {setting} (variable de entorno {env}) y reinicia ReputeCast.",
+  "advice.none": "Ninguna solicitud llegó a través de un proxy en el que ReputeCast no confíe.",
+  "advice.some": "Añade estas direcciones a {setting} (variable de entorno {env}) y reinicia ReputeCast, para que las aperturas, los clics y los límites de velocidad vean las direcciones reales de los lectores.",
+  "notify.publicTitle": "La mayoría de las solicitudes llevan cabeceras de reenvío desde una dirección pública",
+  "notify.publicBody": "Las solicitudes de {peer} llevan cabeceras de reenvío ({header}) y, desde hace un tiempo, la mayor parte del tráfico de ReputeCast llega así. Si {peer} pertenece a tu CDN o a tu balanceador de carga, añade a {setting} (variable de entorno {env}) los rangos de direcciones desde los que envía, tal como los publica su proveedor, y reinicia ReputeCast. Si no reconoces {peer}, no cambies nada: cualquiera puede enviar estas cabeceras, y una dirección en la que ReputeCast confía puede inventarse las direcciones de los lectores.",
+  "advice.public": "Añade a {setting} (variable de entorno {env}) las direcciones de tu propia red y reinicia ReputeCast. No añadas una dirección pública tal cual: si pertenece a tu CDN o a tu balanceador de carga, añade los rangos de direcciones desde los que envía, tal como los publica su proveedor; si no la reconoces, déjala fuera, ya que cualquiera puede enviar cabeceras de reenvío."
+}

@@ -1,0 +1,52 @@
+{
+  "problem.name": "Ponle un nombre al espacio de trabajo.",
+  "problem.timezone": "Zona horaria desconocida.",
+  "problem.retention": "Elige uno de los periodos disponibles.",
+  "problem.sender": "Elige un remitente de este espacio de trabajo.",
+  "problem.signedInOwner": "Solo un Propietario con la sesión iniciada puede transferir la propiedad.",
+  "problem.password": "Esa contraseña no es correcta.",
+  "problem.reauth": "Vuelve a iniciar sesión con tu proveedor de identidad y haz la transferencia en los 10 minutos siguientes.",
+  "problem.pickOwner": "Elige al nuevo Propietario.",
+  "problem.notMember": "Solo los miembros activos de este espacio de trabajo pueden ser Propietario.",
+  "problem.notEligible": "{name} aún no tiene la verificación en dos pasos. Solo los miembros activos con verificación en dos pasos pueden ser Propietario.",
+  "problem.confirmName": "Escribe {name} exactamente para confirmar.",
+  "problem.section": "Elige Transaccional, Crecimiento o Monetización.",
+
+  "reason.manage": "Tu rol no puede cambiar la configuración del espacio de trabajo.",
+  "reason.manageAsk": "Tu rol no puede cambiar la configuración del espacio de trabajo. Pídeselo a {helpers}.",
+
+  "rule.audience": "audiencia ≥ {n, number}",
+  "rule.warming": "la ruta incluye un proveedor en calentamiento",
+  "rule.newProvider": "proveedor conectado en los últimos {days} días",
+  "rule.warnings": "la revisión previa tiene avisos",
+  "rule.lacksSend": "el autor no puede enviarla",
+  "rule.lists": "la audiencia incluye una lista que requiere aprobación",
+  "rule.clientSignoff": "todos los envíos, para el visto bueno del cliente",
+
+  "signIn.enforced": "SSO de {name} obligatorio para {domains}",
+  "signIn.ownerPassword": "contraseña conservada para el Propietario",
+  "signIn.sso": "SSO de {name} para {domains}",
+  "signIn.alsoPasswords": "también se permiten contraseñas y llaves de acceso",
+  "signIn.fallback": "Contraseña y llaves de acceso",
+  "signIn.password": "contraseña",
+  "signIn.passkeys": "llaves de acceso",
+  "signIn.social": "inicio de sesión social",
+  "signIn.twoFactorEveryone": "verificación en dos pasos obligatoria para todos",
+  "signIn.twoFactorSensitive": "verificación en dos pasos obligatoria para los permisos ⚑",
+
+  "note.twoFactor": "{name} usa {method, select, passkey {una llave de acceso} other {una aplicación de autenticación}}, así que se cumple el requisito de verificación en dos pasos del Propietario.",
+  "note.idp": "{name} inicia sesión a través de {provider} con la verificación en dos pasos exigida por el IdP, así que se cumple el requisito de cuenta de emergencia del Propietario.",
+  "note.singleSignOn": "inicio de sesión único",
+  "reason.noTwoFactor": "{name} aún no tiene la verificación en dos pasos.",
+
+  "notify.ownerTitle": "{name} te ha asignado el rol Propietario en {workspace}",
+  "notify.deletedTitle": "Se eliminó {name}",
+  "notify.deletedBody": "Quien administra la instancia puede restaurarlo hasta el {at, date}.",
+
+  "audit.nowAdmin": "{name} ahora tiene el rol Administrador",
+  "audit.restorable": "se puede restaurar hasta el {at, date}",
+  "audit.sendsStopped": "{count, plural, one {# envío programado detenido} other {# envíos programados detenidos}}",
+  "audit.exported": "contactos con consentimiento, campañas en MJML, informes en CSV, registro de auditoría en JSON",
+  "audit.section": "{section, select, transactional {Transaccional} grow {Crecimiento} other {Monetización}} {shown, select, yes {visible en la barra lateral} other {oculto en la barra lateral}}",
+  "problem.exportScope": "Una exportación completa incluye todos los contactos del espacio de trabajo, y tu acceso está limitado a algunas listas o dominios de remitente. Exporta desde Audiencia los contactos que puedes ver."
+}

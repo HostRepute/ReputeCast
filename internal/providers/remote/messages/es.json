@@ -1,0 +1,42 @@
+{
+  "label.webhooks": "webhooks",
+  "label.suppressionPull": "recepción de supresiones",
+  "label.suppressionPush": "envío de supresiones",
+  "label.suppressionSync": "sincronización de supresiones",
+  "label.batch": "lotes de {n}",
+  "label.domainAPI": "configuración del dominio por API",
+  "label.domainDKIM": "DKIM por API",
+  "label.quota": "detección de cuota",
+  "label.quotaRate": "detección de cuota y velocidad",
+
+  "terms.allowed": "El manifest del adaptador indica que las condiciones del proveedor permiten el marketing masivo a listas con consentimiento.",
+  "terms.forbidden": "El manifest del adaptador indica que las condiciones del proveedor prohíben el marketing masivo: úsalo para el correo de los flujos Automatizaciones y Sistema.",
+  "terms.yourPolicy": "Autoalojado: se aplica tu propia política.",
+
+  "events.webhooks": "Webhooks",
+  "events.none": "Ninguno",
+  "domain.api": "API",
+  "domain.dkim": "DKIM por API",
+  "domain.manual": "DNS manual",
+  "suppression.pull": "Solo recibir",
+  "suppression.push": "Solo enviar",
+  "suppression.twoWay": "Bidireccional",
+  "suppression.local": "Solo local",
+
+  "call.endpointRefused": "Se rechaza la dirección configurada para el adaptador {name}: {error}.",
+  "call.noAddress": "El adaptador {name} aún no tiene dirección. Quien administra la instancia la configura con `reputecast adapter set-url {id} '<url>'`.",
+  "call.paused": "El adaptador {name} no responde, así que ReputeCast pausa las llamadas hasta las {until}.",
+  "call.busy": "Ya había {count} llamadas en espera para el adaptador {name}.",
+  "call.unreachable": "No se puede conectar con el adaptador {name}: {error}.",
+  "call.cutOff": "La respuesta del adaptador {name} se cortó: {error}.",
+  "call.invalid": "El adaptador {name} respondió a {op} fuera del protocolo: {error}.",
+  "call.signature": "El adaptador {name} rechazó la firma de ReputeCast. Genera un secreto nuevo con `reputecast adapter secret {id}`, configúralo en el proceso del adaptador y comprueba los relojes de ambos.",
+  "call.refused": "El adaptador {name} rechazó la solicitud: {error}",
+  "call.failed": "El adaptador {name} falló: {error}",
+
+  "problem.manifestUnusable": "Este manifest no se puede usar: {error}.",
+  "problem.keyTaken": "{other} ya está registrado como {key}. Actualízalo o quítalo, o instala el adaptador con otro ID.",
+  "problem.address": "Esta dirección no se puede usar: {error}.",
+  "problem.inUse": "Proveedores conectados que usan {name}: {count}. Desconéctalos primero.",
+  "problem.adminOnly": "Los adaptadores de la comunidad se ejecutan para todos los espacios de trabajo de esta instancia, así que solo quienes administran la instancia pueden ver o cambiar dónde se ejecutan."
+}

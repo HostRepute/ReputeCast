@@ -1,0 +1,28 @@
+{
+  "pricing": "tu servidor o relay",
+  "terms.0.note": "Se aplica la política de uso aceptable de tu servidor SMTP o relay.",
+  "events": "Buzón de rebotes (IMAP/POP3)",
+  "domainSetup": "DNS manual",
+  "suppressionMode": "Solo local",
+  "field.host.label": "Host SMTP",
+  "field.port.label": "Puerto",
+  "field.tls.label": "Cifrado",
+  "field.username.label": "Nombre de usuario",
+  "field.password.label": "Contraseña",
+  "field.return_path.label": "Dirección de rebote",
+  "field.return_path.help": "El remitente del sobre; los rebotes llegan aquí, así que apúntala al buzón de rebotes.",
+  "field.bounce_mailbox.label": "Buzón de rebotes (IMAP o POP3)",
+  "field.bounce_mailbox.help": "SMTP no tiene webhooks. ReputeCast lee los rebotes y las quejas de este buzón cada minuto.",
+  "field.bounce_password.label": "Contraseña del buzón de rebotes",
+
+  "account": "{host} · acepta correo",
+  "test.summary": "{tls, select, starttls {STARTTLS, {version}} implicit {TLS implícito, {version}} other {Sin TLS}} · {auth, select, none {sin autenticación} other {AUTH {mechanism} aceptado}}",
+  "test.noHost": "Escribe el host SMTP.",
+  "test.noStartTLS": "{host} no ofrece STARTTLS en el puerto {port}. Usa TLS implícito en el 465 o desactiva el cifrado solo en una red privada.",
+  "test.noLoginMethod": "{host} no ofrece ningún método de inicio de sesión compatible con ReputeCast (ofrece: {offered}).",
+  "test.refused": "ECONNREFUSED · nada escucha en ese puerto",
+  "test.notFound": "ENOTFOUND · el nombre de host no se resuelve",
+  "test.timedOut": "ETIMEDOUT · sin respuesta en 15 s (puede que un firewall bloquee el puerto)",
+  "mailbox.rejected": "El buzón rechazó el nombre de usuario o la contraseña.",
+  "mailbox.missing": "aún no hay ningún buzón de rebotes configurado: escribe su servidor y sus datos de acceso"
+}

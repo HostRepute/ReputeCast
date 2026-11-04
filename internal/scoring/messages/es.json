@@ -1,0 +1,27 @@
+{
+  "error.tooManyRules": "El sistema de puntuación admite como máximo {max} reglas. Desactiva o elimina antes una.",
+  "error.duplicateRule": "Dos reglas tienen el mismo id. Vuelve a cargar Puntuación y repite el cambio.",
+  "error.points": "Los puntos van de −50 a +50 y no pueden ser 0.",
+  "error.list": "Esa lista ya no existe en este espacio de trabajo. Elige otra lista o cualquier lista.",
+  "error.contains": "El texto que buscar en el enlace debe tener menos de 200 caracteres.",
+  "error.formMissing": "Elige el formulario que cuenta.",
+  "error.formGone": "Ese formulario se eliminó. Elige otro formulario.",
+  "error.event": "Nombra el evento de API con letras, números y . _ : -, como trial_started.",
+  "error.field": "Elige el campo que comprobar.",
+  "error.fieldGone": "El campo {field} se eliminó. Elige otro campo.",
+  "error.values": "Introduce al menos un valor para {field}.",
+  "error.op": "Elige cómo se comprueba el campo: es uno de, no es o tiene valor.",
+  "error.kind": "Elige qué cuenta la regla: un evento o una condición de campo.",
+  "error.cap": "Elige un límite para la regla.",
+  "error.capBelowPoints": "Un límite de {cap} {period, select, day {al día} week {a la semana} other {al mes}} es menor que los {points} puntos que da {kind, select, open {una apertura} click {un clic} form {un envío de formulario} api_event {un evento de API} soft_bounce {un rebote temporal} other {una baja}}. Sube el límite a {points} o más, o reduce los puntos.",
+  "error.decayWeeks": "El decaimiento empieza tras 1 a 52 semanas sin aperturas ni clics humanos.",
+  "error.decayPercent": "El decaimiento resta del 1 % al 100 % de la puntuación cada semana.",
+  "error.warmFrom": "Templado empieza en una puntuación de 1 a 99.",
+  "error.hotFrom": "Caliente empieza por encima de Templado ({warm}) y como máximo en 100.",
+  "error.conflict": "Alguien guardó el sistema de puntuación después de que lo abrieras. Vuelve a cargarlo para ver sus cambios y luego repite los tuyos.",
+  "error.nothingToRetry": "No se detuvo ningún recálculo, así que no hay nada que reintentar.",
+  "error.notSetUp": "Este espacio de trabajo aún no ha configurado el sistema de puntuación.",
+
+  "notify.recalcTitle": "Recálculo de puntuaciones terminado",
+  "notify.recalcBody": "{changed, plural, one {1 contacto cambió de tramo} other {# contactos cambiaron de tramo}}{flows, select, one { · {flow1} {start, select, yes {se inició} other {no se inició}} para {n1}} two { · {flow1} {start, select, yes {se inició} other {no se inició}} para {n1} · {flow2} {start, select, yes {se inició} other {no se inició}} para {n2}} three { · {flow1} {start, select, yes {se inició} other {no se inició}} para {n1} · {flow2} {start, select, yes {se inició} other {no se inició}} para {n2} · {flow3} {start, select, yes {se inició} other {no se inició}} para {n3}} other {}}"
+}

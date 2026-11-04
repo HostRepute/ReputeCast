@@ -1,0 +1,39 @@
+{
+  "address.empty": "escribe la dirección de un feed o de una página, como blog.acme.io/feed/",
+  "address.invalid": "eso no es una dirección: escribe una como blog.acme.io/feed/",
+  "address.scheme": "los feeds se leen por https:// o http://",
+  "address.redirect": "el destino de la redirección no es una dirección",
+
+  "status.noLocation": "{host} respondió {status} sin indicar adónde ir",
+  "status.notFound": "{host} respondió {status} {statusText}: no hay ningún feed en {address}",
+  "status.signIn": "{host} respondió {status} {statusText}: el feed requiere iniciar sesión, algo que los boletines periódicos no admiten",
+  "status.tooMany": "{host} respondió 429 Too Many Requests: limita la frecuencia con la que se puede leer",
+  "status.other": "{host} respondió {status} {statusText}",
+  "redirects": "{host} redirigió más de {max} veces",
+  "tooLarge": "{host} envió más de {mb} MB, el límite para un feed",
+
+  "blocked.private": "no se puede leer {host}: {ip} es una dirección privada o de loopback. Quien administra la instancia puede permitir direcciones privadas para feeds autoalojados",
+  "blocked.special": "no se puede leer {host}: {ip} es una dirección link-local, de metadatos o multicast. Quien administra la instancia puede permitir direcciones privadas para feeds autoalojados",
+  "blocked.localName": "no se puede leer {host}: {name} es un nombre de host local. Quien administra la instancia puede permitir direcciones privadas para feeds autoalojados",
+  "blocked.other": "no se puede leer {host}: {reason}. Quien administra la instancia puede permitir direcciones privadas para feeds autoalojados",
+
+  "unreachable.timeout": "{host} no respondió: se agotó el tiempo de conexión tras {seconds} s",
+  "unreachable.dns": "{host} no respondió: su nombre no se resuelve (falló la consulta DNS)",
+  "unreachable.tls": "{host} no respondió de forma segura: su certificado TLS no es válido",
+  "unreachable.refused": "{host} no respondió: conexión rechazada",
+  "unreachable.reset": "{host} no respondió: se restableció la conexión",
+  "unreachable.other": "{host} no respondió: {detail}",
+
+  "notFeed.html": "{address} no es un feed: respondió con una página HTML",
+  "notFeed.plain": "{address} no es un feed",
+  "notFeed.empty": "{address} no es un feed: el documento está vacío",
+  "notFeed.neither": "{address} no es un feed: el documento no es ni XML ni JSON",
+  "notFeed.xml": "{address} no es un feed: el XML no se puede analizar: {detail}",
+  "notFeed.deep": "{address} no es un feed: el XML tiene demasiados niveles de anidación",
+  "notFeed.noElements": "{address} no es un feed: el XML no tiene elementos",
+  "notFeed.noChannel": "{address} no es un feed: el documento RSS no tiene channel",
+  "notFeed.root": "{address} no es un feed: es un documento XML cuya raíz es <{root}>",
+  "notFeed.json": "{address} no es un feed: el JSON no se puede analizar: {detail}",
+  "notFeed.notJSONFeed": "{address} no es un feed: es un documento JSON que no es un JSON Feed (no tiene versión de jsonfeed.org)",
+  "noFeedLink": "{address} es una página web que no enlaza a ningún feed"
+}
