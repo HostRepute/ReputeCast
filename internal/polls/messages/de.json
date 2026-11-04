@@ -1,0 +1,33 @@
+{
+  "problem.pollQuestion": "Schreiben Sie die Frage der Abstimmung.",
+  "problem.pollTwoAnswers": "Eine Abstimmung braucht mindestens zwei Antworten.",
+  "problem.pollFiveAnswers": "Eine Abstimmung hat höchstens fünf Antworten.",
+  "problem.pollTags": "Geben Sie jeder Antwort ein Tag oder speichern Sie die Antwort in einem Feld.",
+  "problem.pollField": "Wählen Sie das Feld, in dem die Antwort gespeichert wird.",
+  "problem.pollSurvey": "Wählen Sie die Umfrage, zu der die Abstimmung weiterführt.",
+  "problem.pollClosed": "Diese Abstimmung ist bereits geschlossen.",
+  "problem.pollOpen": "Diese Abstimmung ist bereits offen.",
+
+  "problem.surveyFirstQuestion": "Fügen Sie die erste Frage hinzu.",
+  "problem.surveyMaxQuestions": "Eine Umfrage hat höchstens {max, plural, one {# Frage} other {# Fragen}}.",
+  "problem.surveyQuestion": "Schreiben Sie die Frage.",
+  "problem.surveyTwoAnswers": "Eine Auswahlfrage braucht mindestens zwei Antworten.",
+  "problem.surveyField": "Wählen Sie das Feld, in dem die Antwort gespeichert wird.",
+  "problem.surveyTags": "Geben Sie jeder Antwort ein Tag oder speichern Sie die Antwort nicht.",
+  "problem.surveySlugTaken": "Eine andere Umfrage dieses Arbeitsbereichs hat diese Adresse. Wählen Sie eine andere.",
+  "problem.surveyIncomplete": "Die Veröffentlichung wartet, bis jede Frage vollständig ist: {problem}",
+  "problem.surveyType": "Wählen Sie für jede Frage einen Typ: Einfachauswahl, Mehrfachauswahl, Skala 0–10, Emoji-Skala, kurzer oder langer Text.",
+  "problem.surveyClosePassed": "Das Enddatum ist verstrichen. Wählen Sie ein späteres Datum oder schließen Sie die Umfrage manuell.",
+  "problem.surveyNotPublished": "Diese Umfrage ist noch nicht veröffentlicht, daher gibt es nichts zu schließen.",
+  "problem.surveyCloseFuture": "Wählen Sie ein Enddatum in der Zukunft oder schließen Sie die Umfrage manuell.",
+
+  "label.untitledSurvey": "Unbenannte Umfrage",
+  "label.surveyThanks": "Ihre Antworten wurden gespeichert.",
+  "label.noTier": "Noch keine Stufe",
+  "label.languageNotSet": "Nicht festgelegt",
+
+  "tier.active": "Aktiv",
+  "tier.cooling": "Nachlassend",
+  "tier.at_risk": "Gefährdet",
+  "tier.sunset": "Auslaufend"
+}

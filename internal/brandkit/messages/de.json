@@ -1,0 +1,19 @@
+{
+  "problem.badColor": "Verwenden Sie eine Farbe wie #4338CA.",
+  "problem.badFallback": "Wählen Sie eine der E-Mail-sicheren Ersatzschriften.",
+  "problem.badFontUrl": "Verwenden Sie den https-Stylesheet-Link der Webschrift, mit dem Namen der Schrift.",
+  "problem.badLogo": "Dieses Bild ist nicht in der Mediathek dieses Arbeitsbereichs. Laden Sie das Logo erneut hoch.",
+  "problem.oneSection": "Ein synchronisierter Block ist genau ein Abschnitt: ein mj-section oder ein mj-wrapper.",
+  "problem.compile": "Das MJML des Blocks lässt sich nicht kompilieren: {error}",
+  "problem.needsUnsubscribe": "Die Fußzeile braucht den Abmeldelink: Jede E-Mail, die sie enthält, muss einen haben.",
+  "problem.notSaved": "Speichern Sie zuerst das Brand-Kit; die synchronisierte Kopf- und Fußzeile basieren darauf.",
+  "problem.syncedName": "Geben Sie dem synchronisierten Block einen Namen, damit man ihn im Bereich Blöcke findet.",
+  "problem.alreadySynced": "Dieser Abschnitt ist bereits ein synchronisierter Block oder enthält einen. Heben Sie zuerst die Verknüpfung auf, um ihn als neuen zu speichern.",
+  "problem.holdsSynced": "Ein synchronisierter Block kann keinen anderen synchronisierten Block enthalten.",
+  "problem.keepHeaderFooter": "Die synchronisierte Kopf- und Fußzeile bleiben, denn jedes Brand-Kit hat sie. Bearbeiten Sie sie stattdessen.",
+  "problem.badWebsite": "Geben Sie die Adresse der Website ein, z. B. acme.io.",
+  "problem.unreachable": "{site} konnte nicht gelesen werden ({reason}). Prüfen Sie die Adresse und versuchen Sie es erneut.",
+  "import.linkContrast": "{color} wird nicht für Links verwendet. Der Kontrast auf Weiß beträgt {ratio}:1 und liegt unter den 4,5:1, die kleiner Text braucht. Links verwenden die nächste Farbe Ihrer Website.",
+  "import.svgLogo": "Das Logo auf {site} ist ein SVG, das Gmail und Outlook nicht anzeigen. Laden Sie eine PNG-Version hoch.",
+  "import.logoNotAdded": "Das Logo auf {site} wurde nicht zur Mediathek hinzugefügt: Nur wer Kampagnen bearbeitet, kann Bilder hinzufügen. Bitten Sie eine dieser Personen, es zu importieren."
+}

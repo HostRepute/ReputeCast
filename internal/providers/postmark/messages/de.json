@@ -1,0 +1,28 @@
+{
+  "pricing": "Tarif, ab 15 $ pro Monat",
+  "pricingPlan": "Tarif, {n} pro Monat",
+  "dedicatedIps": "ab 300.000 pro Monat",
+  "terms.0.variant": "Stream Transactional",
+  "terms.0.note": "Transactional-Streams sind für Einzel-E-Mails, die durch eine Nutzeraktion ausgelöst werden. Marketing darüber verstößt gegen die Bedingungen von Postmark.",
+  "terms.1.variant": "Stream Broadcast",
+  "terms.1.note": "Erfordert in jeder Nachricht einen Abmeldelink; Postmark fügt einen hinzu, wenn er fehlt.",
+  "events": "Webhooks",
+  "domainSetup": "API",
+  "suppressionMode": "Beidseitig",
+  "field.server_token.label": "Server API token",
+  "field.server_token.help": "Postmark › Servers › Ihr Server › API Tokens.",
+  "field.account_token.label": "Account API token",
+  "field.account_token.help": "Optional. Damit kann ReputeCast Ihre Domain hinzufügen und ihre DNS-Einträge abrufen.",
+  "field.message_stream.label": "Nachrichten-Stream",
+  "field.message_stream.help": "Der Transactional-Stream für E-Mails der Streams System und Automationen.",
+  "field.broadcast_stream.label": "Broadcast-Stream",
+  "field.broadcast_stream.help": "Erforderlich, bevor Massenversand Postmark nutzen kann. ReputeCast kann ihn anlegen.",
+  "field.monthly_limit.label": "Tarif · E-Mails pro Monat",
+  "field.monthly_limit.help": "Wird für den Kontingentbalken und die Kosten pro 1.000 verwendet.",
+
+  "account": "{plan, select, yes {Freigegeben · Tarif mit {n, number} pro Monat} other {Freigegeben}}",
+  "tracking.scope": "Server {name}",
+  "tracking.detail": "Die Servereinstellung TrackOpens ist {opens, select, on {aktiviert} other {deaktiviert}}, TrackLinks steht auf {links}.",
+  "error.streamsTaken": "beide Stream-IDs sind vergeben; legen Sie in Postmark einen Broadcast-Stream an und geben Sie seine ID ein",
+  "error.domainMissing": "{domain} ist in Postmark nicht eingerichtet"
+}

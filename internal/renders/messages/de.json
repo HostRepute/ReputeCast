@@ -1,0 +1,12 @@
+{
+  "problem.unknownService": "Wählen Sie Litmus oder Mailgun Inspect.",
+  "problem.unknownClient": "{service} führt {client} für dieses Konto nicht. Testen Sie die Verbindung, um die Clients zu aktualisieren.",
+  "problem.notConnected": "Mit diesem Arbeitsbereich ist kein Rendering-Dienst verbunden.",
+  "problem.stillRunning": "Ein Rendering dieser Kampagne läuft noch. Die Screenshots erscheinen, sobald sie eintreffen.",
+  "problem.refused": "{service} hat den API-Schlüssel abgelehnt. Prüfen Sie ihn in Ihrem Konto bei {service} und fügen Sie ihn erneut ein.",
+  "problem.unreachable": "{service} war nicht erreichbar ({reason}). Versuchen Sie es in einer Minute erneut.",
+  "problem.failed": "{service} hat mit einem Fehler geantwortet (HTTP {status}). Versuchen Sie es in einer Minute erneut.",
+  "render.gaveUp": "{service} war nicht innerhalb von 15 Minuten fertig. Rendern Sie erneut, um es noch einmal zu versuchen.",
+  "render.disconnected": "{service} wurde getrennt, bevor die Screenshots eintrafen.",
+  "render.noScreenshots": "{service} konnte keinen der Clients erfassen."
+}

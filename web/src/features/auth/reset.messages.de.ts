@@ -1,0 +1,38 @@
+import { translate } from '@/i18n'
+import { m } from './reset.messages'
+
+/** German (docs/i18n/glossary-de.md). */
+export default translate(m, {
+  title: 'Passwort zurücksetzen',
+  emailInvalid: 'Geben Sie Ihre geschäftliche E-Mail-Adresse ein, z. B. you@company.com.',
+  emailUnavailableLabel: 'E-Mail nicht verfügbar',
+  emailUnavailable: 'Mit dem Stream System ist noch kein Versandanbieter verbunden, daher kann die E-Mail zum Zurücksetzen nicht gesendet werden. Ein Instanz-Admin kann das Passwort auf dem Server zurücksetzen:',
+  commandNote: 'Der Befehl gibt einen Einmal-Link aus, der {minutes} Minuten lang gültig ist. Dasselbe gilt für das Zurücksetzen der Zwei-Faktor-Authentifizierung: <mono>reputecast user reset-2fa --email …</mono>',
+  backToSignIn: 'Zurück zur Anmeldung',
+  managedTitle: 'Ihr Passwort wird von {name} verwaltet',
+  ssoLabel: 'SSO',
+  managedNote: 'Konten von {domain} melden sich über {name} an. ReputeCast speichert für dieses Konto kein Passwort, daher gibt es hier nichts zurückzusetzen.',
+  continueWith: 'Weiter mit {name}',
+  lockedOut: 'Auch bei {provider} ausgesperrt? Wenden Sie sich an Ihren Admin für {name}.',
+  workEmail: 'Geschäftliche E-Mail',
+  emailMe: 'Link zum Zurücksetzen senden',
+  sentLabel: 'Gesendet',
+  sent: 'Wenn {email} zu einem Mitglied gehört, ist ein Link unterwegs. Er funktioniert einmal und läuft in {minutes} Minuten ab. Wenn er auf sich warten lässt, sehen Sie unter „Werbung“ oder im Spam nach.',
+  expiredLabel: 'Abgelaufen',
+  expired: 'Dieser Link zum Zurücksetzen ist älter als 15 Minuten oder wurde bereits verwendet. <link>Neuen Link anfordern</link>; Ihr aktuelles Passwort funktioniert weiter, bis Sie es ändern.',
+  foot: '<link>Zurück zur Anmeldung</link> · Arbeitsbereiche mit SSO setzen Passwörter über ihren Identitätsanbieter zurück.',
+  newTitle: 'Neues Passwort festlegen',
+  checking: 'Link zum Zurücksetzen wird geprüft…',
+  errorLabel: 'Fehler',
+  stillWorks: 'Der Link funktioniert weiterhin, bis er abläuft.',
+  tryAgain: 'Erneut versuchen',
+  tooShort: 'Verwenden Sie mindestens {min} Zeichen. Passphrasen sind in Ordnung.',
+  mismatch: 'Die beiden Passwörter stimmen nicht überein.',
+  notSavedLabel: 'Nicht gespeichert',
+  newPassword: 'Neues Passwort',
+  hintBreached: 'Mindestens {min} Zeichen. Wird mit bekannten Datenlecks abgeglichen.',
+  hintPassphrase: 'Mindestens {min} Zeichen. Passphrasen sind in Ordnung.',
+  confirmPassword: 'Neues Passwort bestätigen',
+  save: 'Neues Passwort speichern',
+  tokenFoot: 'Der Link funktioniert einmal, bis {time}. Beim Speichern werden alle Sitzungen abgemeldet; bei der Anmeldung gilt weiterhin die Zwei-Faktor-Authentifizierung.',
+})

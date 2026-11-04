@@ -3,6 +3,7 @@ package automations
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
 )
@@ -368,7 +369,7 @@ func durationAdjective(d *AutomationDuration) i18n.Text {
 // emailPrefix is the part of an email name before its quoted subject:
 // `Welcome · step 1 "You're in"` → "Welcome · step 1".
 func emailPrefix(name string) string {
-	if i := strings.IndexAny(name, "\"“"); i >= 0 {
+	if i := strings.IndexAny(name, "\"“„«"); i >= 0 {
 		name = name[:i]
 	}
 	return strings.TrimRight(strings.TrimSpace(name), " ·")
@@ -376,13 +377,14 @@ func emailPrefix(name string) string {
 
 // emailQuoted is the quoted part of an email name, without quotes.
 func emailQuoted(name string) string {
-	i := strings.IndexAny(name, "\"“")
+	i := strings.IndexAny(name, "\"“„«")
 	if i < 0 {
 		return ""
 	}
-	rest := name[i+1:]
-	if j := strings.IndexAny(rest, "\"”"); j >= 0 {
-		return rest[:j]
+	_, n := utf8.DecodeRuneInString(name[i:])
+	rest := strings.TrimLeft(name[i+n:], "\u00a0\u202f")
+	if j := strings.IndexAny(rest, "\"”“»"); j >= 0 {
+		return strings.TrimRight(rest[:j], "\u00a0\u202f")
 	}
 	return rest
 }
@@ -394,7 +396,7 @@ func EmailShortRef(name string) string {
 		p = p[i+len(" · "):]
 	}
 	if p == "" {
-		return strings.Trim(name, "\"“” ")
+		return strings.Trim(name, "\"“”„«» ")
 	}
 	return p
 }

@@ -1,0 +1,36 @@
+{
+  "problem.name": "Geben Sie der Rolle einen Namen.",
+  "problem.builtinName": "Der Rollenname „{name}“ gehört zu einer integrierten Rolle. Wählen Sie einen anderen Namen.",
+  "problem.nameTaken": "Eine Rolle namens „{name}“ gibt es bereits. Wählen Sie einen anderen Namen.",
+  "problem.unknownPermission": "Unbekannte Berechtigung „{permission}“.",
+  "problem.ownerOnly": "{permission} gehört nur zur Rolle Inhaber.",
+  "problem.builtinEdit": "{role} ist eine integrierte Rolle und kann nicht bearbeitet werden. Duplizieren Sie sie, um sie anzupassen.",
+  "problem.builtinDelete": "{role} ist eine integrierte Rolle und kann nicht gelöscht werden.",
+  "problem.assigned": "„{role}“ ist {count, plural, one {# Mitglied} other {# Mitgliedern}} zugewiesen. Verschieben Sie zuerst {names} in eine andere Rolle und löschen Sie dann.",
+  "problem.pendingInvite": "„{role}“ wird von einer offenen Einladung verwendet. Widerrufen Sie zuerst die Einladung und löschen Sie dann.",
+
+  "impact.sensitiveNone": "Keine ausgewählt · 2FA nicht erforderlich",
+  "impact.sensitive": "{permissions} · 2FA erforderlich",
+  "impact.loses": "Für {who} entfallen: {permissions}.",
+  "count.members": "{count, plural, one {# Mitglied} other {# Mitglieder}}",
+  "count.apiKeys": "{count, plural, one {# API-Schlüssel} other {# API-Schlüssel}}",
+  "count.agents": "{count, plural, one {# MCP-Agent} other {# MCP-Agenten}}",
+
+  "effect.stillEdit": "Kann weiterhin bearbeiten; muss für den Versand eine Freigabe anfordern",
+  "effect.noLonger": "Kann nicht mehr: {actions}",
+  "effect.twoFactorIdp": "2FA wird erforderlich; der IdP erzwingt sie bereits",
+  "effect.twoFactorGrace": "2FA wird erforderlich (Schonfrist von {days} Tagen)",
+  "effect.gains": "Erhält {permissions}",
+  "effect.same": "Wie bisher",
+  "effect.keyAutomations": "Automationen, die darüber senden, schlagen mit 403 fehl",
+  "effect.keyCalls": "Aufrufe, die {permissions} benötigen, schlagen mit 403 fehl",
+
+  "approvals.sendApprove": "Wer diese Rolle hat, kann senden und Versände anderer Mitglieder freigeben, aber nicht die eigenen",
+  "approvals.approve": "Wer diese Rolle hat, kann Versände anderer Mitglieder freigeben",
+  "approvals.send": "Wer diese Rolle hat, kann senden; die Freigaberichtlinie gilt weiterhin für große oder riskante Versände",
+  "approvals.request": "Wer diese Rolle hat, kann für Versände eine Freigabe anfordern, da Kampagnen bearbeitet, aber nicht gesendet werden können",
+  "approvals.none": "Wer diese Rolle hat, kann weder senden noch eine Freigabe anfordern",
+
+  "audit.permissions": "{count, plural, one {# Berechtigung} other {# Berechtigungen}}",
+  "audit.renamed": "umbenannt von „{from}“"
+}

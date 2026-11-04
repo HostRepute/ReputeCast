@@ -1,0 +1,57 @@
+{
+  "reason.default": "Dies ist eine automatische Nachricht von {brand}.",
+  "reason.password_reset": "Sie erhalten diese E-Mail, weil jemand das Zurücksetzen des Passworts für dieses Konto angefordert hat. Wenn Sie das nicht waren, ignorieren Sie diese E-Mail.",
+  "reason.email_change": "Sie erhalten diese E-Mail, weil sich jemand mit dieser Adresse anmelden möchte. Wenn Sie das nicht waren, ignorieren Sie diese E-Mail.",
+  "reason.email_changed": "An Ihre bisherige Adresse gesendet, damit eine Änderung, die Sie nicht vorgenommen haben, nicht unbemerkt bleibt.",
+  "reason.invite": "Sie erhalten diese E-Mail, weil ein Mitglied des Arbeitsbereichs diese Adresse eingeladen hat.",
+  "reason.campaign_test": "Dies ist ein Test einer Kampagne; Abonnenten erhalten die endgültige Version.",
+  "reason.test": "Dies ist ein Test, der beim Verbinden eines Versandanbieters gesendet wurde.",
+
+  "footer.sentBy": "Gesendet von {instance}",
+  "footer.sentByHost": "Gesendet von {instance} · {host}",
+  "footer.sentFor": "Gesendet von {instance} für {workspace}",
+  "footer.sentForHost": "Gesendet von {instance} für {workspace} · {host}",
+
+  "linkLine": "{label}: {url}",
+
+  "invite.subject": "{inviter} hat Sie zu {workspace} eingeladen",
+  "invite.lead": "{inviter} hat Sie als {role} zu {workspace} auf ReputeCast eingeladen.",
+  "invite.action": "Einladung annehmen",
+  "invite.expires": "Der Link gilt bis {date}.",
+
+  "reset.subject": "Passwort für {instance} zurücksetzen",
+  "reset.lead": "Jemand hat angefordert, das Passwort von <b>{email}</b> auf {instance} zurückzusetzen.",
+  "reset.action": "Neues Passwort festlegen",
+  "reset.note": "Der Link funktioniert nur einmal und läuft in 15 Minuten ab. Wenn Sie das nicht waren, ignorieren Sie diese E-Mail; Ihr Passwort bleibt unverändert.",
+
+  "resetSso.subject": "So melden Sie sich bei {instance} an",
+  "resetSso.lead": "Jemand hat angefordert, das Passwort von <b>{email}</b> auf {instance} zurückzusetzen. Dieses Konto hat kein Passwort: Die Anmeldung erfolgt über {provider}.",
+  "resetSso.action": "Anmelden",
+  "resetSso.note": "Wenn Sie das nicht waren, ignorieren Sie diese E-Mail.",
+
+  "adminReset.subject": "Passwort für {instance} zurücksetzen",
+  "adminReset.lead": "{admin} (Instanz-Admin) hat Ihnen einen Link geschickt, um ein neues Passwort für <b>{email}</b> auf {instance} festzulegen.",
+  "adminReset.action": "Neues Passwort festlegen",
+  "adminReset.note": "Der Link funktioniert nur einmal und läuft in 15 Minuten ab. Ihr aktuelles Passwort funktioniert weiter, bis Sie den Link verwenden.",
+
+  "emailChange.subject": "Bestätigen Sie Ihre neue E-Mail-Adresse für {instance}",
+  "emailChange.lead": "{email} möchte sich ab jetzt mit dieser Adresse bei {instance} anmelden.",
+  "emailChange.action": "Änderung bestätigen",
+  "emailChange.note": "Der Link gilt 24 Stunden. Wenn Sie das nicht angefordert haben, ignorieren Sie diese E-Mail.",
+
+  "emailChanged.subject": "Ihre E-Mail-Adresse für {instance} wurde geändert",
+  "emailChanged.lead": "Das Konto, das {old} auf {instance} verwendet hat, meldet sich jetzt mit {new} an. Wenn Sie das nicht waren, wenden Sie sich sofort an Ihren Instanz-Admin.",
+
+  "twofaReset.subject": "Die Zwei-Faktor-Authentifizierung Ihres Kontos auf {instance} wurde zurückgesetzt",
+  "twofaReset.lead": "{admin} (Instanz-Admin) hat die Zwei-Faktor-Authentifizierung Ihres Kontos <b>{email}</b> zurückgesetzt.",
+  "twofaReset.reason": "Grund: {reason}",
+  "twofaReset.note": "Melden Sie sich mit Ihrem Passwort an und richten Sie bis {date} erneut eine Authenticator-App ein. Wenn Sie das nicht angefordert haben, informieren Sie sofort Ihren Admin.",
+
+  "notify.subject": "[{workspace}] {title}",
+  "notify.digestSubject": "{count, plural, one {# Benachrichtigung} other {# Benachrichtigungen}}",
+  "notify.open": "In ReputeCast öffnen",
+  "notify.openShort": "Öffnen",
+  "notify.openText": "Öffnen: {url}",
+  "notify.why": "Sie erhalten diese E-Mail aufgrund Ihrer <link>Benachrichtigungseinstellungen</link>.",
+  "notify.whyText": "Sie erhalten diese E-Mail aufgrund Ihrer Benachrichtigungseinstellungen: {url}"
+}

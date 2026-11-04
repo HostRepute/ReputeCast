@@ -7,7 +7,7 @@ import { Dialog } from '@/components/ui/Dialog'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Checkbox, Field, Input, Textarea } from '@/components/ui/Field'
 import { toast } from '@/components/ui/Toast'
-import { useT } from '@/i18n'
+import { lowerInSentence, useT } from '@/i18n'
 import { dayMonthDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { ma, mc } from './messages'
@@ -39,7 +39,7 @@ function detail(l: Lang, fallbackName: string, t: Translate): string {
       return l.translatedBy && l.translatedAt ? t(ma.translatedBy, { name: l.translatedBy, date: dayMonthDate(l.translatedAt) }) : ''
     case 'outdated':
       return l.changedBlocks.length === 1
-        ? t(ma.outdatedBlock, { block: (l.changedBlocks[0] ?? '').split(' · ')[0]?.toLowerCase() ?? '', name: l.translatedBy || t(ma.someone) })
+        ? t(ma.outdatedBlock, { block: lowerInSentence((l.changedBlocks[0] ?? '').split(' · ')[0] ?? ''), name: l.translatedBy || t(ma.someone) })
         : t(ma.outdatedBlocks, { count: l.attention, name: l.translatedBy || t(ma.someone) })
     case 'draft':
       return t(ma.draftDetail, { language: l.name, fallback: fallbackName })

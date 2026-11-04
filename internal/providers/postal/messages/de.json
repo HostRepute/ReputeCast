@@ -1,0 +1,16 @@
+{
+  "pricing": "selbst gehostet",
+  "terms.0.variant": "selbst gehostet",
+  "terms.0.note": "Sie betreiben den Server, daher gilt stattdessen die Nutzungsrichtlinie Ihres Hosting-Anbieters.",
+  "events": "Webhooks",
+  "domainSetup": "Manuelles DNS",
+  "suppressionMode": "Nur lokal",
+  "field.server_url.label": "Server-URL",
+  "field.server_url.help": "Die Adresse Ihrer Postal-Weboberfläche, z. B. https://mta.acme.io.",
+  "field.api_key.label": "API-Schlüssel",
+  "field.api_key.help": "Postal › Ihr Mailserver › Credentials › API.",
+
+  "account": "Postal{hasVersion, select, yes { {version}} other {}} · erreichbar",
+  "error.badKey": "Der API-Schlüssel wurde nicht akzeptiert.",
+  "error.suspended": "Der Postal-Mailserver ist suspendiert."
+}

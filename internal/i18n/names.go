@@ -295,3 +295,9 @@ func lowerFirst(s string) string {
 	}
 	return string(unicode.ToLower(r)) + s[n:]
 }
+
+// KeepsCapitals reports whether l writes a phrase's first letter as it is
+// inside a sentence: German capitalises every noun, so a label put inside a
+// sentence ("Kampagnen senden") keeps its capital, where English and the
+// others start it with a small letter ("send campaigns").
+func KeepsCapitals(l Locale) bool { return l == German }

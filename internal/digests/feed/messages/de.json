@@ -1,0 +1,39 @@
+{
+  "address.empty": "geben Sie eine Feed- oder Seitenadresse ein, z. B. blog.acme.io/feed/",
+  "address.invalid": "das ist keine Adresse: Geben Sie eine wie blog.acme.io/feed/ ein",
+  "address.scheme": "Feeds werden über https:// oder http:// gelesen",
+  "address.redirect": "das Weiterleitungsziel ist keine Adresse",
+
+  "status.noLocation": "{host} hat mit {status} geantwortet, ohne ein Ziel anzugeben",
+  "status.notFound": "{host} hat mit {status} {statusText} geantwortet: Unter {address} gibt es keinen Feed",
+  "status.signIn": "{host} hat mit {status} {statusText} geantwortet: Der Feed erfordert eine Anmeldung, die wiederkehrende Newsletter nicht unterstützen",
+  "status.tooMany": "{host} hat mit 429 Too Many Requests geantwortet: Die Website begrenzt, wie oft sie gelesen werden kann",
+  "status.other": "{host} hat mit {status} {statusText} geantwortet",
+  "redirects": "{host} hat mehr als {max}-mal weitergeleitet",
+  "tooLarge": "{host} hat mehr als {mb} MB gesendet, das Limit für einen Feed",
+
+  "blocked.private": "{host} kann nicht gelesen werden: {ip} ist eine private oder Loopback-Adresse. Ein Instanz-Admin kann private Adressen für selbst gehostete Feeds erlauben",
+  "blocked.special": "{host} kann nicht gelesen werden: {ip} ist eine Link-Local-, Metadaten- oder Multicast-Adresse. Ein Instanz-Admin kann private Adressen für selbst gehostete Feeds erlauben",
+  "blocked.localName": "{host} kann nicht gelesen werden: {name} ist ein lokaler Hostname. Ein Instanz-Admin kann private Adressen für selbst gehostete Feeds erlauben",
+  "blocked.other": "{host} kann nicht gelesen werden: {reason}. Ein Instanz-Admin kann private Adressen für selbst gehostete Feeds erlauben",
+
+  "unreachable.timeout": "{host} hat nicht geantwortet: Zeitüberschreitung der Verbindung nach {seconds} s",
+  "unreachable.dns": "{host} hat nicht geantwortet: Der Name wird nicht aufgelöst (DNS-Abfrage fehlgeschlagen)",
+  "unreachable.tls": "{host} hat nicht sicher geantwortet: Das TLS-Zertifikat ist ungültig",
+  "unreachable.refused": "{host} hat nicht geantwortet: Verbindung abgelehnt",
+  "unreachable.reset": "{host} hat nicht geantwortet: Die Verbindung wurde zurückgesetzt",
+  "unreachable.other": "{host} hat nicht geantwortet: {detail}",
+
+  "notFeed.html": "{address} ist kein Feed: Die Antwort ist eine HTML-Seite",
+  "notFeed.plain": "{address} ist kein Feed",
+  "notFeed.empty": "{address} ist kein Feed: Das Dokument ist leer",
+  "notFeed.neither": "{address} ist kein Feed: Das Dokument ist weder XML noch JSON",
+  "notFeed.xml": "{address} ist kein Feed: Das XML lässt sich nicht parsen: {detail}",
+  "notFeed.deep": "{address} ist kein Feed: Das XML ist zu tief verschachtelt",
+  "notFeed.noElements": "{address} ist kein Feed: Das XML hat keine Elemente",
+  "notFeed.noChannel": "{address} ist kein Feed: Das RSS-Dokument hat keinen channel",
+  "notFeed.root": "{address} ist kein Feed: ein XML-Dokument mit dem Wurzelelement <{root}>",
+  "notFeed.json": "{address} ist kein Feed: Das JSON lässt sich nicht parsen: {detail}",
+  "notFeed.notJSONFeed": "{address} ist kein Feed: ein JSON-Dokument, das kein JSON Feed ist (ohne jsonfeed.org-Version)",
+  "noFeedLink": "{address} ist eine Webseite, die auf keinen Feed verlinkt"
+}

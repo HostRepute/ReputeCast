@@ -9,7 +9,7 @@ import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { ConnectChannels } from '@/features/channels/ConnectChannels'
 import { WizardLayout } from '@/features/connect/Wizard'
-import { formatList, T, useT } from '@/i18n'
+import { formatList, lowerInSentence, T, useT } from '@/i18n'
 import { clockSeconds, decimal } from '@/lib/format'
 import { deniedReason, useWorkspace } from '@/lib/session'
 import { Capabilities, CopyRow, countryName, CountryName, registrationBadge, useKindName, useRefreshSms } from './common'
@@ -516,7 +516,7 @@ function Countries({ item, providerId, search, onSearch }: StepProps & { provide
   const finish = $api.useMutation('post', '/api/v1/workspaces/{workspace}/sms/setups/{id}/finish')
   const all = [...countries, ...extra]
   const label = (s: Schemas['SmsSenderRow']) =>
-    s.canSend ? t(m.senderOption, { label: s.label || s.value, kind: kindName(s.kind).toLowerCase() }) : t(m.senderOptionPending, { label: s.label || s.value, kind: kindName(s.kind) })
+    s.canSend ? t(m.senderOption, { label: s.label || s.value, kind: lowerInSentence(kindName(s.kind)) }) : t(m.senderOptionPending, { label: s.label || s.value, kind: kindName(s.kind) })
   const done = async () => {
     setError(undefined)
     const existing = rules.data?.routes ?? []

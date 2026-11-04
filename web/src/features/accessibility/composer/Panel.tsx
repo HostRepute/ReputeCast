@@ -4,7 +4,7 @@ import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Segmented } from '@/components/ui/Tabs'
-import { formatList, useT } from '@/i18n'
+import { formatList, keepsCapitals, useT } from '@/i18n'
 import { useComposer } from '@/features/composer/context'
 import { pathOf } from '@/features/composer/editor/labels'
 import { componentAt, reveal } from '@/features/composer/fixes'
@@ -471,6 +471,7 @@ function Passing({ report, open }: { report: Report; open: boolean }) {
 }
 
 function lowerFirst(s: string): string {
+  if (keepsCapitals()) return s
   return s ? s[0]!.toLowerCase() + s.slice(1) : s
 }
 

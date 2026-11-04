@@ -13,7 +13,7 @@ import { Select } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { channelIcon } from '@/features/channels/channel'
-import { formatList, T, useT, type MessageDescriptor } from '@/i18n'
+import { formatList, lowerInSentence, type MessageDescriptor, T, useT } from '@/i18n'
 import { useDocumentTitle } from '@/lib/hooks'
 import { clock, count, dayMonthDate, dayMonthYear, monthName, money } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
@@ -449,7 +449,7 @@ function LengthSection({
             {fieldsUsed && minSeg !== maxSeg ? (
               <T
                 msg={m.counterHeadFields}
-                values={{ characters: live.base, field: t(m.fieldFirstName).toLowerCase(), min: minSeg, max: maxSeg, b: (x) => <b className="n">{x}</b> }}
+                values={{ characters: live.base, field: lowerInSentence(t(m.fieldFirstName)), min: minSeg, max: maxSeg, b: (x) => <b className="n">{x}</b> }}
               />
             ) : (
               <T msg={m.counterHead} values={{ characters: c.characters, segments, b: (x) => <b className="n">{x}</b> }} />
@@ -583,7 +583,7 @@ function PersonalizationSection({ data, live }: { data: Campaign; live: ReturnTy
       </Section>
     )
   }
-  const field = t(m.fieldFirstName).toLowerCase()
+  const field = lowerInSentence(t(m.fieldFirstName))
   return (
     <Section title={t(m.fieldsUsed)}>
       {c.spread.length > 1 && total ? (

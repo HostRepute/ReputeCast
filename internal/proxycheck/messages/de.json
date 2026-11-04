@@ -1,0 +1,9 @@
+{
+  "notify.title": "Anfragen kommen über einen Proxy, dem ReputeCast nicht vertraut",
+  "notify.body": "{peer} leitet Anfragen mit {header} an ReputeCast weiter, aber {setting} führt diese Adresse nicht auf. Jede Öffnung und jeder Klick scheint von {peer} zu kommen, daher kann der Bot-Filter die Adressen der Empfänger nicht sehen. Fügen Sie {peer} zu {setting} hinzu (Umgebungsvariable {env}) und starten Sie ReputeCast neu.",
+  "advice.none": "Keine Anfrage kam über einen Proxy, dem ReputeCast nicht vertraut.",
+  "advice.some": "Fügen Sie diese Adressen zu {setting} hinzu (Umgebungsvariable {env}) und starten Sie ReputeCast neu, damit Öffnungen, Klicks und Ratenlimits die echten Adressen der Empfänger sehen.",
+  "notify.publicTitle": "Die meisten Anfragen tragen Weiterleitungs-Header von einer öffentlichen Adresse",
+  "notify.publicBody": "Anfragen von {peer} tragen Weiterleitungs-Header ({header}), und seit einiger Zeit kommt der Großteil des Datenverkehrs von ReputeCast auf diesem Weg. Wenn {peer} zu Ihrem CDN oder Load Balancer gehört, fügen Sie die Adressbereiche, von denen er sendet, so wie sein Anbieter sie veröffentlicht, zu {setting} hinzu (Umgebungsvariable {env}) und starten Sie ReputeCast neu. Wenn Sie {peer} nicht kennen, ändern Sie nichts: Jeder kann diese Header senden, und eine Adresse, der ReputeCast vertraut, kann Adressen von Empfängern vortäuschen.",
+  "advice.public": "Fügen Sie die Adressen aus Ihrem eigenen Netzwerk zu {setting} hinzu (Umgebungsvariable {env}) und starten Sie ReputeCast neu. Fügen Sie eine öffentliche Adresse nicht unverändert hinzu: Wenn sie zu Ihrem CDN oder Load Balancer gehört, fügen Sie die Adressbereiche hinzu, von denen er sendet, so wie sein Anbieter sie veröffentlicht; wenn Sie sie nicht kennen, lassen Sie sie weg, denn jeder kann Weiterleitungs-Header senden."
+}

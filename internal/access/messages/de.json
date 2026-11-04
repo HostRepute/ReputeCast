@@ -1,0 +1,20 @@
+{
+  "scope.list": "nur Liste {list}",
+  "scope.only": "nur {name}",
+  "scope.lists": "{count, plural, one {# Liste} other {# Listen}}",
+  "scope.parts": "nur {parts}",
+  "scope.all": "alle Listen",
+  "problem.unknownList": "Unbekannte Liste „{value}“.",
+  "problem.unknownDomain": "Unbekannte Absender-Domain „{value}“.",
+
+  "cantGrant": "Sie können {permission} nicht vergeben, weil Sie diese Berechtigung nicht haben.",
+  "cantGrantAsk": "Sie können {permission} nicht vergeben, weil Sie diese Berechtigung nicht haben. Fragen Sie {helpers}.",
+  "notHoldable.ai": "KI-Funktionen sind für Menschen. Agenten bringen ihr eigenes Modell mit.",
+  "notHoldable.peopleOnly": "Nur Menschen können {permission} erhalten, API-Schlüssel und Agenten nicht.",
+  "notHoldable.verify": "Nicht für Agenten: Dabei verlassen Adressen ReputeCast",
+  "notHoldable.placementRun": "Nicht für Agenten: Dabei werden Kopien über Ihre Anbieter versendet",
+  "notHoldable.placementManage": "Nicht für Agenten: Passwörter und Tokens von Testpostfächern können ganze Postfächer lesen",
+  "notHoldable.agents": "MCP-Agenten können {permission} nicht erhalten. Vergeben Sie die Berechtigung an einen API-Schlüssel oder eine Person.",
+
+  "problem.audienceScope": "Ihr Zugriff ist auf einige Listen beschränkt: Senden Sie nur an diese Listen, nicht an andere Listen oder ein Segment."
+}

@@ -1,0 +1,9 @@
+{
+  "problem.permission": "„{permission}“ ist keine Berechtigung.",
+  "problem.alreadyHave": "Sie haben diese Berechtigung bereits. Laden Sie die Seite neu, um sie zu nutzen.",
+  "problem.nobody": "In diesem Arbeitsbereich kann niemand Rollen ändern. Fragen Sie einen Instanz-Admin.",
+  "problem.alreadyAsked": "Sie haben in den letzten 24 Stunden bereits Zugriff als {role, select, owner {Inhaber} admin {Admin} editor {Bearbeiter} other {Betrachter}} angefragt; die Anfrage liegt bei {names}. Wenn es dringend ist, wenden Sie sich direkt an diese Personen.",
+
+  "notify.title": "{name} bittet um Zugriff als {role, select, owner {Inhaber} admin {Admin} editor {Bearbeiter} other {Betrachter}}",
+  "notify.noNote": "Keine Notiz."
+}

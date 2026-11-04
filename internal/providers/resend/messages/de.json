@@ -1,0 +1,26 @@
+{
+  "pricing": "Tarif, bis 3.000 pro Monat kostenlos, danach ab 20 $ pro Monat",
+  "pricingPlan": "Tarif, {n, number} pro Monat",
+  "dedicatedIps": "Tarif Scale, 30 $ pro Monat",
+  "terms.0.note": "Nur Empfänger mit Opt-in. Massen-E-Mails brauchen einen sichtbaren Abmeldelink und List-Unsubscribe-Header für die Abmeldung mit einem Klick, die ReputeCast hinzufügt; Resend kann Konten über 0,08 % Beschwerden oder 4 % Bounces schließen.",
+  "events": "Webhooks",
+  "domainSetup": "API",
+  "suppressionMode": "Beidseitig",
+  "field.api_key.label": "API-Schlüssel",
+  "field.api_key.help": "Resend › API Keys. Mit einem Schlüssel mit Full access kann ReputeCast Webhooks registrieren, Domains einrichten und Sperrlisten synchronisieren; ein Schlüssel mit Sending access kann nur senden.",
+  "field.region.label": "Region",
+  "field.region.help": "Wo die Versand-Domains gehostet werden, die ReputeCast hinzufügt.",
+  "field.monthly_limit.label": "Tarif · E-Mails pro Monat",
+  "field.monthly_limit.help": "Wird für den Kontingentbalken und die Kosten pro 1.000 verwendet.",
+  "field.webhook_signing_secret.label": "Signaturschlüssel für Webhooks",
+  "field.webhook_signing_secret.help": "Nur für einen Webhook, den Sie selbst angelegt haben (Resend › Webhooks › Signing secret). Für die Webhooks, die ReputeCast registriert, liest es ihn selbst aus.",
+
+  "account": "{verified, plural, =0 {Keine verifizierte Domain · Test-E-Mails nur an Ihre eigene Adresse} one {# verifizierte Domain} other {# verifizierte Domains}}{plan, select, yes { · Tarif mit {limit, number} pro Monat} other {}}",
+  "account.sendingKey": "Schlüssel mit Sending access · Kontingent und Domains brauchen einen Schlüssel mit Full access",
+  "tracking.scope": "Domains",
+  "tracking.openClick": "Öffnungs-Tracking ist für {opens} aktiviert, Klick-Tracking für {clicks}.",
+  "tracking.open": "Öffnungs-Tracking ist für {opens} aktiviert.",
+  "tracking.click": "Klick-Tracking ist für {clicks} aktiviert.",
+  "tracking.off": "Öffnungs- und Klick-Tracking sind für alle Domains deaktiviert.",
+  "error.domainMissing": "{domain} ist in Resend nicht eingerichtet"
+}

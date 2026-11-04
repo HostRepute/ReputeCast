@@ -608,7 +608,11 @@ func memberEffect(l i18n.Lang, next authz.Set, added, removed []authz.Permission
 		var labels []string
 		for _, r := range removed {
 			if _, ok := authz.Lookup(r); ok {
-				labels = append(labels, lowerFirst(authz.LabelIn(l, r)))
+				label := authz.LabelIn(l, r)
+				if !i18n.KeepsCapitals(l.Locale) {
+					label = lowerFirst(label)
+				}
+				labels = append(labels, label)
 			}
 		}
 		parts = append(parts, msgs.M("effect.noLonger").Text(l, i18n.Args{"actions": strings.Join(labels, ", ")}))

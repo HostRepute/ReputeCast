@@ -1,0 +1,38 @@
+import { translate } from '@/i18n'
+import { m } from './messages'
+
+/** German (docs/i18n/glossary-de.md). */
+export default translate(m, {
+  exitSetup: 'Einrichtung verlassen',
+  stepBadge: 'Schritt {n} von 6',
+  title: 'Versandanbieter verbinden',
+  stepsLabel: 'Einrichtungsschritte',
+  stepProvider: 'Anbieter',
+  stepProviderLine: 'Aus dem Katalog wählen',
+  stepConnection: 'Verbindung',
+  stepConnectionLine: 'Schlüssel, Region, Webhooks',
+  stepDomain: 'Domain-Verifizierung',
+  stepDomainLine: 'DKIM, Return-Path, SPF, DMARC',
+  stepTest: 'Testversand',
+  stepTestLine: 'Ankunft des Ereignisses verfolgen',
+  stepStreams: 'Streams',
+  stepStreamsLine: 'Massenversand, Automationen, System',
+  stepContacts: 'Kontakte',
+  stepContactsLine: 'Importieren oder leer beginnen',
+  stepStreamsCurrent: 'Was {provider} übernimmt',
+  stepStreamsCurrentNoName: 'Was übernommen wird',
+  stepsFoot: 'Die meisten Einrichtungen dauern 10–15 Minuten; Amazon SES dauert länger, wenn ReputeCast nicht auf AWS läuft, und ein neues AWS-Konto kann bis zu 24 Stunden auf Produktionszugriff warten. Sie können später weitere Anbieter hinzufügen und über mehrere gleichzeitig senden.',
+  stateDone: 'Erledigt',
+  stateVerified: 'Verifiziert',
+  stateFailed: 'Fehlgeschlagen',
+  stateSkipped: 'Übersprungen',
+  statePending: 'Ausstehend',
+  stateYes: 'Ja',
+  statePartial: 'Teilweise',
+  stateNo: 'Nein',
+  copied: '{what, select, zone {Zonendatei kopiert} secret {Signaturschlüssel des Webhooks kopiert} url {Webhook-URL kopiert} other {Wert von {label} kopiert}}',
+  copyFailed: '{what, select, zone {Zonendatei konnte nicht kopiert werden} secret {Signaturschlüssel des Webhooks konnte nicht kopiert werden} url {Webhook-URL konnte nicht kopiert werden} other {Wert von {label} konnte nicht kopiert werden}}',
+  copyBlocked: 'Ihr Browser hat die Zwischenablage blockiert. Markieren Sie den Text, und kopieren Sie ihn stattdessen.',
+  readOnlyCatalog: 'Sie können den Katalog und von anderen begonnene Einrichtungen ansehen. Ihre Rolle darf keine Anbieter verbinden.',
+  readOnlySetup: 'Sie können diese Einrichtung verfolgen. Ihre Rolle darf keine Anbieter verbinden oder ändern.',
+})

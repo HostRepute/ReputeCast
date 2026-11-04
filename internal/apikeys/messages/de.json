@@ -1,0 +1,31 @@
+{
+  "problem.ownScope": "Ein Schlüssel kann keine Listen außerhalb Ihres eigenen Bereichs erreichen.",
+  "problem.expiry": "Wählen Sie ein Ablaufdatum in der Zukunft.",
+  "problem.sendOnlyKind": "Nur API-Schlüssel können Nur-Senden-Schlüssel sein.",
+  "problem.name": "Geben Sie dem Schlüssel einen Namen.",
+  "problem.integrationKey": "Dieser Schlüssel gehört zu einer Integration. Rotieren Sie ihn unter Einstellungen › Integrationen; dort funktioniert der alte Schlüssel noch 24 Stunden lang.",
+  "problem.rotateScope": "Dieser Schlüssel erreicht Listen außerhalb Ihres Bereichs, daher können Sie ihn nicht rotieren.",
+  "problem.deleteActive": "Nur abgelaufene oder widerrufene Schlüssel können gelöscht werden. Widerrufen Sie ihn zuerst.",
+  "problem.unknownPermission": "Unbekannte Berechtigung „{permission}“.",
+  "problem.sendOnlyPermission": "Ein Nur-Senden-Schlüssel hat transactional:send und sonst nichts.",
+  "problem.sendOnlyLists": "Nur-Senden-Schlüssel sind nicht auf Listen beschränkt; beschränken Sie sie stattdessen auf Vorlagen.",
+  "problem.preset": "Wählen Sie einen Nur-Senden-Schlüssel oder SMTP-Zugangsdaten.",
+  "problem.template": "Es gibt keine Vorlage mit der ID {id}.",
+  "problem.categories": "Wählen Sie Kategorien aus diesem Arbeitsbereich.",
+  "problem.testAddress": "„{address}“ ist keine Adresse und kein Muster wie qa+*@acme.io.",
+  "problem.testPattern": "„{address}“ ist kein gültiges Muster.",
+  "problem.testLive": "Erlaubte Testadressen gelten für Schlüssel im Testmodus; Live-Schlüssel stellen an alle zu.",
+
+  "label.formerMember": "Ehemaliges Mitglied",
+  "label.deletedCategory": "gelöschte Kategorie",
+  "agent.needs": "benötigt {permission}",
+
+  "audit.scopeAllTemplates": "alle Vorlagen",
+  "audit.scopeCategory": "Kategorie {names}",
+  "audit.scopeCategories": "Kategorien {names}",
+  "audit.testMode": "Testmodus",
+  "audit.smtp": "SMTP-Zugangsdaten",
+  "audit.expires": "läuft am {at, date} ab",
+  "audit.noExpiry": "ohne Ablaufdatum",
+  "audit.rotated": "neuer geheimer Schlüssel {masked} · alter {old} widerrufen"
+}

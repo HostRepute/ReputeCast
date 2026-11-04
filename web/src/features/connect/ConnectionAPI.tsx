@@ -5,7 +5,7 @@ import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { ScrollPre } from '@/components/ui/ScrollPre'
-import { T, useT } from '@/i18n'
+import { lowerFirstInSentence, T, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
 import { clock, clockSeconds } from '@/lib/format'
@@ -60,7 +60,7 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
   const main = fields.filter((f) => f.required || f.options.length > 0 || f.key === firstSecret)
   const extra = fields.filter((f) => !main.includes(f))
   const errorFor = (f: Schemas['ConnectField']): Schemas['ConnectError'] | undefined => {
-    if (missing.includes(f.key)) return { field: f.key, code: 'missing', message: t(mn.fieldMissing, { field: `${f.label.charAt(0).toLowerCase()}${f.label.slice(1)}` }) }
+    if (missing.includes(f.key)) return { field: f.key, code: 'missing', message: t(mn.fieldMissing, { field: lowerFirstInSentence(f.label) }) }
     return failedKey && (failedKey.field === f.key || (!failedKey.field && f.key === firstSecret)) ? failedKey : undefined
   }
   const extraOpen = extra.some((f) => errorFor(f) || (f.secret ? f.set : Boolean(f.value)))

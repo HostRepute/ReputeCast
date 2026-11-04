@@ -11,7 +11,7 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Select, SwitchInput } from '@/components/ui/Field'
 import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
-import { T, useT } from '@/i18n'
+import { lowerInSentence, T, useT } from '@/i18n'
 import { count, dayMonthDate, dayMonthYear, orList } from '@/lib/format'
 import { trackJob, updateJob } from '@/lib/jobs'
 import { roleName } from '@/lib/roles'
@@ -481,7 +481,7 @@ function MembersTable({ list, search, onOpen, onClear, onSearchEnded }: { list: 
               {tierLine(t, r)} · {priceLine(t, r)}
             </span>
             <span className="k">
-              {nextLine(t, r)} · {t(mm.memberSince).toLowerCase()} {dayMonthYear(r.since)} · {t(mm.ltv).toLowerCase()} {money(r.ltvCents, r.currency || 'usd', 'never')}
+              {nextLine(t, r)} · {lowerInSentence(t(mm.memberSince))} {dayMonthYear(r.since)} · {lowerInSentence(t(mm.ltv))} {money(r.ltvCents, r.currency || 'usd', 'never')}
             </span>
           </button>
         ))}

@@ -12,7 +12,7 @@ import { Field, Input, OptionCard, Select, Textarea } from '@/components/ui/Fiel
 import { Note } from '@/components/ui/Note'
 import { Table, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
-import { formatList, T, useT } from '@/i18n'
+import { formatList, lowerFirstInSentence, lowerInSentence, T, useT } from '@/i18n'
 import { ago, clock, count, dayMonthDate, dayMonthYear, monthName, money } from '@/lib/format'
 import { roleName } from '@/lib/roles'
 import { useWorkspace } from '@/lib/session'
@@ -242,7 +242,7 @@ function Routes({ data, ro }: { data: Rules; ro: boolean }) {
                         {b.text}
                       </Badge>
                     ) : (
-                      <span className="k">{t(m.senderLine, { kind: kindName(r.senderKind), status: b.text.charAt(0).toLowerCase() + b.text.slice(1) })}</span>
+                      <span className="k">{t(m.senderLine, { kind: kindName(r.senderKind), status: lowerFirstInSentence(b.text) })}</span>
                     )}
                   </div>
                 </td>
@@ -670,7 +670,7 @@ function KeywordGroup({ label, hint, words, all, ro, onChange }: { label: string
             <input
               ref={input}
               className="in mono h-6 w-[110px] px-2 text-[12px]"
-              aria-label={t(m.addKeywordLabel, { group: label.toLowerCase() })}
+              aria-label={t(m.addKeywordLabel, { group: lowerInSentence(label) })}
               value={value}
               onChange={(e) => setValue(e.target.value)}
               onKeyDown={(e) => {

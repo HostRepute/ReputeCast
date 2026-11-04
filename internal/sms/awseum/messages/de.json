@@ -1,0 +1,11 @@
+{
+  "summary": "Nutzungsbasiert · in Ihrem AWS-Konto, direkt neben SES",
+  "field.region.label": "Region",
+  "field.access.label": "Zugriff",
+  "field.role_arn.label": "Role ARN",
+  "field.role_arn.help": "Die Rolle, die die CloudFormation-Vorlage erstellt hat. ReputeCast übernimmt sie mit der External ID.",
+  "field.external_id.label": "External ID",
+  "field.access_key_id.label": "Access key ID",
+  "field.secret_access_key.label": "Secret access key",
+  "field.opt_out_list.label": "Abmeldeliste"
+}

@@ -1,0 +1,5 @@
+{
+  "password.short": "Verwenden Sie mindestens {min} Zeichen. Passphrasen sind in Ordnung.",
+  "password.long": "Verwenden Sie höchstens 256 Zeichen.",
+  "password.spaces": "Das Passwort darf nicht nur aus Leerzeichen bestehen."
+}

@@ -1,0 +1,18 @@
+{
+  "problem.currency": "Senden Sie einen Währungscode nach ISO 4217, z. B. USD, EUR oder GBP.",
+  "problem.domain": "„{domain}“ ist keine Domain. Senden Sie eine wie app.acme.io, ohne https:// und ohne Pfad.",
+  "problem.domainsNeeded": "Fügen Sie die Domains hinzu, auf denen das Klick-Token verwendet wird, z. B. app.acme.io.",
+  "problem.idempotencyKey": "Der Header Idempotency-Key darf bis zu 200 Zeichen lang sein.",
+  "problem.idempotencyReuse": "Dieser Idempotency-Key wurde bereits für eine andere Conversion verwendet. Verwenden Sie für jede Conversion einen neuen Schlüssel.",
+  "problem.missingIdentity": "Senden Sie die E-Mail-Adresse des Abonnenten, das Klick-Token (rc_click) oder beides.",
+  "problem.name": "Benennen Sie die Conversion, z. B. „Upgrade auf Tarif Team“.",
+  "problem.occurredAt": "occurred_at muss in den letzten 30 Tagen und darf nicht in der Zukunft liegen. Senden Sie den Zeitpunkt des Ereignisses.",
+  "problem.rateLimited": "Dieser Schlüssel sendet Conversions zu schnell. Versuchen Sie es in {seconds, plural, one {# Sekunde} other {# Sekunden}} erneut.",
+  "problem.value": "Senden Sie den Wert als Dezimal-String, z. B. „29.00“, nicht 29.",
+  "problem.valueDecimals": "Der Wert hat mehr Nachkommastellen als seine Währung.",
+  "problem.window": "Wählen Sie einen Zeitraum von 1 bis 30 Tagen.",
+
+  "test.name": "Test-Conversion",
+
+  "problem.campaignNotFound": "Kampagne nicht gefunden."
+}

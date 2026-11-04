@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router'
 import type { Schemas } from '@/api/client'
 import { ScoreRing } from '@/components/ui/Data'
 import { useWorkspace } from '@/lib/session'
-import { useT } from '@/i18n'
+import { lowerInSentence, useT } from '@/i18n'
 import { m } from './messages'
 import { reasonDot, scoreColors } from './words'
 
@@ -54,7 +54,7 @@ export function SenderHealthCard({ h }: { h: Schemas['OverviewSenderHealth'] }) 
         </Link>
       </div>
       <div className="flex flex-wrap items-center gap-5">
-        <ScoreRing score={h.score} label={t(m.scoreLabel, { score: h.score, verdict: verdict.toLowerCase() })} verdict={verdict.toUpperCase()} verdictColor={colors.word} color={colors.ring} />
+        <ScoreRing score={h.score} label={t(m.scoreLabel, { score: h.score, verdict: lowerInSentence(verdict) })} verdict={verdict.toUpperCase()} verdictColor={colors.word} color={colors.ring} />
         <ul className="m-0 flex flex-[1_1_220px] list-none flex-col gap-2 p-0 text-[13px]">
           {h.reasons.map((r, i) => (
             <li key={`${r.key}-${i}`} className="flex items-start gap-2">

@@ -1,0 +1,27 @@
+{
+  "scope.monitorRead": "Daten zu Blocklisten, Postmaster, SNDS und DMARC",
+  "scope.alertsRead": "Störungen",
+  "scope.assetsWrite": "Domains und IPs zur Überwachung hinzufügen",
+
+  "unreachable": "{host} konnte nicht erreicht werden ({reason, select, timeout_s {Zeitüberschreitung nach {n} s} timeout_ms {Zeitüberschreitung nach {n} ms} timeout {Zeitüberschreitung} refused {Verbindung abgelehnt} dns {DNS-Abfrage fehlgeschlagen} token {Token-Aktualisierung fehlgeschlagen} http {HTTP {status}} other {Netzwerkfehler}}, {attempts, plural, one {# Versuch} other {# Versuche}})",
+  "unreachableHostRepute": "HostRepute konnte nicht erreicht werden",
+  "syncFailed": "HostRepute-Synchronisierung fehlgeschlagen: {error}",
+
+  "problem.unavailable": "{reach}. {nothing, select, saved {Es wurde nichts gespeichert; versuchen Sie es in einer Minute erneut.} changed {Es wurde nichts geändert; versuchen Sie es in einer Minute erneut.} other {Es wurde nichts angefordert; versuchen Sie es in einer Minute erneut.}}",
+  "problem.keyFormat": "Fügen Sie den ganzen Schlüssel ohne Leerzeichen ein. Er beginnt mit hr_live_.",
+  "problem.answeredError": "HostRepute hat mit einem Fehler geantwortet ({error}). Es wurde nichts gespeichert.",
+  "problem.keyRejected": "HostRepute hat diesen Schlüssel nicht akzeptiert. Kopieren Sie ihn erneut unter HostRepute → Settings → API; er braucht die Scopes monitor:read, alerts:read und assets:write.",
+  "problem.notConnected": "HostRepute ist nicht verbunden. Verbinden Sie es zuerst unter Einstellungen › Integrationen.",
+  "problem.reconnect": "HostRepute hat das Token{when, select, yes { am {date}} other {}} abgelehnt. Verbinden Sie HostRepute erneut und versuchen Sie es dann noch einmal.",
+  "problem.noAssetsScope": "Dieser Verbindung fehlt der Scope assets:write, daher kann ReputeCast nichts zur Überwachung hinzufügen. Verbinden Sie HostRepute erneut und genehmigen Sie den Scope.",
+  "problem.notCandidate": "Nur die Versand-Domains, dedizierten IPs und Server-Hostnamen dieses Arbeitsbereichs können zur Überwachung hinzugefügt werden.",
+  "problem.limit": "Ihr HostRepute-Team „{team}“ überwacht {used, number} von {limit, number} Assets, die sein Tarif erlaubt, daher kann {asset} gerade nicht hinzugefügt werden. Das ist ein Limit von HostRepute, nicht von ReputeCast.",
+  "problem.notMonitored": "{asset} wird nicht von HostRepute überwacht.",
+
+  "notify.reconnectTitle": "HostRepute muss neu verbunden werden",
+  "notify.reconnectBody": "HostRepute hat das Token abgelehnt. Die Daten zu Blocklisten, Postmaster, SNDS und DMARC sind veraltet, bis jemand die Verbindung erneuert; die Versandbereitschaft markiert die Reputationsprüfung als unbekannt.",
+
+  "run.notConnected": "HostRepute ist nicht verbunden.",
+  "run.tokenRejected": "HostRepute hat das Token abgelehnt. Verbinden Sie es erneut, um fortzufahren.",
+  "run.tokenRejectedDetail": "HostRepute hat das Token abgelehnt (auf der Seite von HostRepute widerrufen oder abgelaufen)."
+}

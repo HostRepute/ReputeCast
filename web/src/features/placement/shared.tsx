@@ -5,7 +5,7 @@ import { $api, ApiError, type Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { NavTabs } from '@/components/ui/Tabs'
-import { T, t as tr, useT } from '@/i18n'
+import { lowerInSentence, T, t as tr, useT } from '@/i18n'
 import { clock, orList, shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { m } from './messages'
@@ -370,7 +370,7 @@ export function SeedAttention({ seeds, onReconnect }: { seeds: SeedView[]; onRec
             msg={expired ? m.attentionExpiredBody : m.attentionFailedBody}
             values={{
               company: first.company,
-              password: credentialName(first.passwordLabel).toLowerCase(),
+              password: lowerInSentence(credentialName(first.passwordLabel)),
               email: first.email,
               date: shortDate(at),
               time: clock(at),

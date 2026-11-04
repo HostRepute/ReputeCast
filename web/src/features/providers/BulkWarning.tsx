@@ -6,7 +6,7 @@ import { Field, Select } from '@/components/ui/Field'
 import { Grid } from '@/components/ui/Layout'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
-import { getI18n, t as tt, useT } from '@/i18n'
+import { getI18n, lowerInSentence, t as tt, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
 import { count, pct } from '@/lib/format'
@@ -173,7 +173,7 @@ export function BulkWarningView({
   }
   const body = [
     t(mb.bodySet, { where: issue.where, name: bad.name, variant, hasVariant: variant ? 'yes' : 'no' }),
-    t(mb.bodyTerms, { name: bad.name, hasVariant: variant ? 'yes' : 'no', variantLower: variant.toLowerCase() }),
+    t(mb.bodyTerms, { name: bad.name, hasVariant: variant ? 'yes' : 'no', variantLower: lowerInSentence(variant) }),
     ...(bad.broadcastStreamCreatable ? [t(mb.bodyCreatable, { name: bad.name })] : []),
   ].join(' ')
 

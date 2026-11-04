@@ -1,0 +1,37 @@
+import { translate } from '@/i18n'
+import { ms } from './setup.messages'
+
+/** German (docs/i18n/glossary-de.md). */
+export default translate(ms, {
+  backToCatalog: 'Zurück zum Katalog',
+  unknownAdapter: 'Dieser Anbieter ist in diesem Build nicht enthalten',
+  unknownAdapterBody: 'Wählen Sie einen anderen Anbieter aus dem Katalog, oder bitten Sie einen Instanz-Admin, seinen Adapter zu installieren.',
+  startFailed: 'Die Einrichtung konnte nicht gestartet werden',
+  starting: 'Einrichtung wird gestartet…',
+  notFound: 'Diese Einrichtung existiert nicht',
+  loadFailed: 'Die Einrichtung konnte nicht geladen werden',
+  loading: 'Einrichtung wird geladen…',
+  cancelledReason: 'Diese Einrichtung wurde abgebrochen. Beginnen Sie erneut im Katalog.',
+  cancelledNote: 'Diese Einrichtung wurde abgebrochen. Beginnen Sie erneut im Katalog, um den Anbieter zu verbinden.',
+  savedForLater: 'Gespeichert. Wählen Sie {provider} im Katalog, um weiterzumachen.',
+  saveFailed: 'Die Einrichtung konnte nicht gespeichert werden',
+  doneBadge: 'Erledigt',
+  took: '{minutes, plural, one {Die Einrichtung hat # Minute gedauert. Alles unten ist live.} other {Die Einrichtung hat # Minuten gedauert. Alles unten ist live.}}',
+  tookDomain: '{minutes, plural, one {Die Einrichtung hat # Minute gedauert. Alles unten ist live, und die Übersicht zeigt jetzt den Absenderzustand für {domain}.} other {Die Einrichtung hat # Minuten gedauert. Alles unten ist live, und die Übersicht zeigt jetzt den Absenderzustand für {domain}.}}',
+  configuredTitle: 'Was konfiguriert wurde',
+  configuredLine: 'alles unter Versandanbieter rückgängig zu machen',
+  importNow: 'Jetzt importieren',
+  recommendedTitle: 'Empfohlen vor Ihrer ersten Kampagne',
+  addProviderTitle: 'Weiteren Anbieter hinzufügen',
+  addProviderLine: 'Ein zweiter Anbieter für System-E-Mails oder ein Postal-Server für eine gewichtete Aufteilung. Mehrere können gleichzeitig laufen.',
+  addProvider: 'Weiteren Anbieter hinzufügen',
+  hostReputeTitle: 'HostRepute verbinden',
+  hostReputeConnected: 'Verbunden: 84 Blocklisten, Google Postmaster und Microsoft SNDS erscheinen in der Versandbereitschaft.',
+  hostReputeOptional: 'Optional, kostenlos: 84 Blocklisten, Google Postmaster und Microsoft SNDS in der Versandbereitschaft.',
+  open: 'Öffnen',
+  connect: 'Verbinden',
+  formTitle: 'Anmeldeformular erstellen',
+  formLine: 'Double-Opt-in ist standardmäßig aktiv; Bestätigungen gehen über den Stream System.',
+  buildForm: 'Formular erstellen',
+  goToOverview: 'Zur Übersicht',
+})

@@ -1,0 +1,14 @@
+{
+  "detail.mailboxFailing": "Bounce-Postfach nicht erreichbar",
+  "detail.rejecting": "Lehnt Nachrichten ab",
+  "detail.down": "Ausgefallen",
+  "detail.downAuth": "Ausgefallen · Auth-Fehler",
+  "detail.webhooksSilent": "Webhooks stumm",
+  "vet.available": "{detail, select, disconnected {{provider} ist getrennt.} down {{provider} ist ausgefallen.} paused {{provider} ist pausiert.} degraded {{provider} sendet keine Zustellereignisse, daher würde nichts diese E-Mails absichern.} other {{provider} kann gerade keine E-Mails annehmen.}}",
+  "vet.bulkTerms": "{detail, select, broadcast_streams_only {Die Bedingungen von {provider} erlauben Massen-E-Mails nur über einen Broadcast-Stream, und dieses Konto hat keinen.} other {Die Bedingungen von {provider} erlauben keine Massen-E-Mails.}}",
+  "vet.sandbox": "{provider} ist im Sandbox-Modus und sendet nur an verifizierte Adressen.",
+  "vet.domain": "{result, select, unknown {{detail, select, no_sender {Für diese E-Mails ist kein Absender gespeichert, der bei {provider} geprüft werden könnte.} other {ReputeCast kann nicht bestätigen, dass {provider} für die Domain des Absenders sendet: Der Anbieter hat keine Domain-API.}}} other {{detail, select, pending {Die Domain des Absenders wird bei {provider} noch verifiziert.} failed {{provider} konnte die Domain des Absenders nicht verifizieren.} not_used {Der Absender ist so eingestellt, dass er {provider} nicht nutzt.} other {Die Domain des Absenders ist bei {provider} nicht eingerichtet.}}}}",
+  "vet.quota": "{result, select, unknown {Das Kontingent von {provider} wurde noch nicht ausgelesen.} other {{provider} hat noch {left, number} Nachrichten im Kontingent; {need, number} würden verschoben.}}",
+  "vet.warm": "{detail, select, paused {Das Warm-up von {provider} ist pausiert.} other {{result, select, unknown {{provider} ist im Warm-up, und das heutige Limit ist nicht bekannt.} fail {{provider} ist im Warm-up: Vom heutigen Limit sind noch {left, number} Nachrichten übrig; {need, number} würden verschoben.} other {{provider} ist im Warm-up: Diese E-Mails würden {need, number} der heute noch verfügbaren {left, number} Nachrichten nutzen.}}}}",
+  "detail.queueFailing": "Ereigniswarteschlange nicht erreichbar"
+}

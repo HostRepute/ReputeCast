@@ -1,0 +1,65 @@
+{
+  "alt.title": "{image, select, logo {Logo} hero {Hero-Bild} section {Bild im Abschnitt {section}} other {Ein Bild}} hat keinen Alternativtext",
+  "alt.tag": "Bild ohne Alt-Text",
+  "alt.detail": "Bilder sind in Outlook und vielen Firmen-Clients standardmäßig aus; dann erscheint der Alternativtext, und Spamfilter bewerten reine Bild-E-Mails strenger.",
+  "alt.fix": "Speichern",
+
+  "size.near": "{kb} KB von 102 KB (Kürzungsgrenze von Gmail)",
+  "size.over": "Mit {kb} KB über der Kürzungsgrenze von Gmail (102 KB)",
+  "size.detail": "Gmail kürzt die Nachricht und blendet die Fußzeile aus, einschließlich des Abmeldelinks.",
+  "size.minify": "Inline-CSS minifizieren · spart etwa {kb} KB",
+  "size.bulkOne": "Der Abschnitt {section} macht den Großteil aus ({share, number, percent}).",
+  "size.bulkMany": "Die {count, plural, =2 {zwei} =3 {drei} =4 {vier} =5 {fünf} =6 {sechs} =7 {sieben} =8 {acht} =9 {neun} =10 {zehn} other {#}} Abschnitte vom Typ {section} machen den Großteil aus ({share, number, percent}).",
+  "size.bulkCards": "{count, plural, =2 {Zwei} =3 {Drei} =4 {Vier} =5 {Fünf} =6 {Sechs} =7 {Sieben} =8 {Acht} =9 {Neun} =10 {Zehn} other {#}} {section}{css, select, yes { mit Inline-CSS} other {}} machen den Großteil aus.",
+  "size.removeSection": "Abschnitt {section} entfernen",
+  "size.removeRow": "{n, plural, =1 {Erste} =2 {Zweite} =3 {Dritte} =4 {Vierte} =5 {Fünfte} =6 {Sechste} =7 {Siebte} =8 {Achte} =9 {Neunte} =10 {Zehnte} other {#.}} Zeile entfernen",
+
+  "ratio.title": "Die E-Mail besteht zu {share, number, percent} aus Bildern",
+  "ratio.detail": "Spamfilter bewerten bildlastige E-Mails strenger, und das meiste davon verschwindet, wenn Bilder aus sind. Fügen Sie Text hinzu oder verwenden Sie weniger Bilder.",
+
+  "footer.both": "Kein Abmeldelink und keine Postanschrift im Inhalt",
+  "footer.bothTag": "Kein Abmeldelink, keine Postanschrift",
+  "footer.address": "Keine Postanschrift in der Fußzeile",
+  "footer.addressTag": "Keine Postanschrift",
+  "footer.unsubscribe": "Kein Abmeldelink im Inhalt",
+  "footer.unsubscribeTag": "Kein Abmeldelink",
+  "footer.detail": "Die Header werden automatisch hinzugefügt, aber sichtbarer Link und Anschrift sind ebenfalls Pflicht.",
+  "footer.fix": "Fußzeilenblock einfügen",
+
+  "liquid.title": "{where, select, subject {Betreff} preheader {Vorschautext} other {Inhalt}}: {problem}",
+  "liquid.titleLine": "{where, select, subject {Betreff} preheader {Vorschautext} other {Inhalt}}: Zeile {line}: {problem}",
+  "liquid.detail": "Korrigieren Sie den Platzhalter; ein fehlerhafter Platzhalter würde als Text erscheinen oder den Versand stoppen.",
+  "unknownField.title": "{token} ist kein Kontaktfeld und gibt nichts aus",
+  "unknownField.detail": "Prüfen Sie die Schreibweise oder fügen Sie einen Ersatzwert hinzu, z. B. | default: \"…\".",
+
+  "subject.missing": "Der Betreff ist leer",
+  "subject.missingDetail": "Posteingänge zeigen den Betreff zuerst; verfassen Sie einen, bevor Sie senden.",
+  "subject.spam": "Betreff löst {count, plural, one {# Spam-Trigger} other {# Spam-Trigger}} aus",
+  "subject.suggested": "Vorschlag: {suggestion}",
+  "subject.useSuggestion": "Vorschlag übernehmen",
+
+  "plainText.title": "Die Textversion ist leer",
+  "plainText.detail": "Die E-Mail hat keinen Text, daher ist der text/plain-Teil leer. Fügen Sie einen Satz hinzu, der beschreibt, was die Bilder zeigen.",
+
+  "link.emptyTitle": "Button „{text}“ hat keinen Link",
+  "link.emptyTag": "Button ohne Link",
+  "link.emptyDetail": "Er wird angeklickt werden; verlinken Sie die Seite, die er verspricht.",
+  "link.edit": "Link bearbeiten",
+  "link.blocklistTitle": "{kind, select, button {Button} image {Bild} nav {Menülink} social {Social-Media-Link} other {Link}} verweist auf {host}, gelistet auf {lists}",
+  "link.blocklistTag": "Link-Domain auf {lists}",
+  "link.blocklistDetail": "E-Mails mit Links zu einer Domain auf einer Blockliste werden unabhängig von Ihrer Reputation gefiltert. Verwenden Sie eine Domain, die Sie kontrollieren.",
+  "link.replaceWithDestination": "Durch Ziel-URL ersetzen",
+  "link.shortenerTitle": "{kind, select, button {Button} image {Bild} nav {Menülink} social {Social-Media-Link} other {Link}} leitet über den URL-Kürzer {host} weiter",
+  "link.shortenerTag": "Kurzlink",
+  "link.shortenerDetail": "Kurzlinks verbergen ihr Ziel; Filter stufen sie als verdächtig ein, und viele Kürzer-Domains stehen auf Blocklisten. Verlinken Sie die Seite direkt.",
+  "link.brokenTitle": "{kind, select, button {Button} image {Bild} nav {Menülink} social {Social-Media-Link} other {Link}} zu {url} {status, select, 0 {ist nicht erreichbar} other {liefert {status}}}",
+  "link.brokenTag": "Defekter Link",
+  "link.brokenDetail": "Wer klickt, landet auf einer Fehlerseite. Korrigieren Sie die Adresse oder entfernen Sie den Link.",
+
+  "link.unknownTitle": "{count, plural, one {# Link-Domain konnte} other {# Link-Domains konnten}} nicht auf {lists} geprüft werden",
+  "link.unknownTag": "Nicht geprüft",
+  "link.unknownDetail": "{trouble, select, refused {Die Listen haben den DNS-Resolver dieses Servers abgewiesen; Blocklisten-Abfragen brauchen Ihren eigenen rekursiven Resolver.} other {DNS hat nicht rechtzeitig geantwortet.}} Unbekannt heißt nicht unbedenklich: Die Versandbereitschaft fragt sie vor dem Versand erneut ab.",
+
+  "unknownField.titleFallback": "{token} ist kein Kontaktfeld, daher erhalten alle „{fallback}“",
+  "unknownField.fallbackDetail": "Der Ersatzwert verbirgt den Tippfehler in Vorschauen, aber nicht vor Ihren Empfängern. Prüfen Sie die Schreibweise anhand der Felder im Platzhalter-Menü."
+}

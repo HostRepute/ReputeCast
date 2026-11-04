@@ -1,0 +1,42 @@
+{
+  "label.webhooks": "Webhooks",
+  "label.suppressionPull": "Sperrlisten-Abruf",
+  "label.suppressionPush": "Sperrlisten-Übertragung",
+  "label.suppressionSync": "Sperrlisten-Synchronisierung",
+  "label.batch": "Batch {n}",
+  "label.domainAPI": "Domain-Einrichtung per API",
+  "label.domainDKIM": "DKIM per API",
+  "label.quota": "Kontingent-Erkennung",
+  "label.quotaRate": "Kontingent- & Ratenerkennung",
+
+  "terms.allowed": "Laut Manifest des Adapters erlauben die Bedingungen des Anbieters Massenmarketing an Listen mit Opt-in.",
+  "terms.forbidden": "Laut Manifest des Adapters verbieten die Bedingungen des Anbieters Massenmarketing: Verwenden Sie ihn für Automationen und System-E-Mails.",
+  "terms.yourPolicy": "Selbst gehostet: Es gilt Ihre eigene Richtlinie.",
+
+  "events.webhooks": "Webhooks",
+  "events.none": "Keine",
+  "domain.api": "API",
+  "domain.dkim": "DKIM per API",
+  "domain.manual": "Manuelles DNS",
+  "suppression.pull": "Nur abrufen",
+  "suppression.push": "Nur übertragen",
+  "suppression.twoWay": "Beidseitig",
+  "suppression.local": "Nur lokal",
+
+  "call.endpointRefused": "Die für den Adapter {name} festgelegte Adresse wird abgelehnt: {error}.",
+  "call.noAddress": "Der Adapter {name} hat noch keine Adresse. Ein Instanz-Admin legt sie mit `reputecast adapter set-url {id} '<url>'` fest.",
+  "call.paused": "Der Adapter {name} antwortet nicht, daher pausiert ReputeCast Aufrufe an ihn bis {until}.",
+  "call.busy": "Bereits wartende Aufrufe an den Adapter {name}: {count}.",
+  "call.unreachable": "Der Adapter {name} ist nicht erreichbar: {error}.",
+  "call.cutOff": "Die Antwort des Adapters {name} wurde abgeschnitten: {error}.",
+  "call.invalid": "Der Adapter {name} hat auf {op} außerhalb des Protokolls geantwortet: {error}.",
+  "call.signature": "Der Adapter {name} hat die Signatur von ReputeCast abgelehnt. Erstellen Sie mit `reputecast adapter secret {id}` einen neuen geheimen Schlüssel, setzen Sie ihn im Adapter-Prozess und prüfen Sie beide Uhren.",
+  "call.refused": "Der Adapter {name} hat die Anfrage abgelehnt: {error}",
+  "call.failed": "Der Adapter {name} ist fehlgeschlagen: {error}",
+
+  "problem.manifestUnusable": "Dieses Manifest kann nicht verwendet werden: {error}.",
+  "problem.keyTaken": "{other} ist bereits als {key} registriert. Aktualisieren oder entfernen Sie diesen Adapter oder installieren Sie den neuen unter einer anderen ID.",
+  "problem.address": "Diese Adresse kann nicht verwendet werden: {error}.",
+  "problem.inUse": "Verbundene Anbieter, die {name} verwenden: {count}. Trennen Sie sie zuerst.",
+  "problem.adminOnly": "Community-Adapter laufen für alle Arbeitsbereiche dieser Instanz, daher können nur Instanz-Admins sehen oder ändern, wo sie laufen."
+}

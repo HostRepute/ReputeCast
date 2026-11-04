@@ -1,0 +1,23 @@
+{
+  "check.noHostname": "Noch kein Hostname",
+  "check.unresolved": "{host} wird nicht aufgelöst",
+  "check.unresolvedAdd": "{host} wird nicht aufgelöst: Fügen Sie einen A- oder AAAA-Eintrag hinzu, der auf diesen Server zeigt",
+  "check.portUnresolved": "Port {port} kann erst geprüft werden, wenn {host} aufgelöst wird",
+  "check.certUnresolved": "Das Zertifikat kann erst geprüft werden, wenn {host} aufgelöst wird",
+  "check.resolves": "DNS · {host} zeigt auf {addresses}",
+  "check.portUnreachable": "Port {port} ist unter {host} nicht erreichbar: {error}",
+  "check.portReachable": "Port {port} aus dem Internet erreichbar",
+  "check.certUnverified": "Das Zertifikat konnte nicht verifiziert werden: {error}",
+  "check.noCert": "Das Relay hat kein Zertifikat gesendet",
+  "check.certExpired": "Das Zertifikat ist am {at, date} abgelaufen",
+  "check.certValid": "Zertifikat gültig bis {at, date}",
+
+  "notify.title": "SMTP-Relay nicht erreichbar",
+  "notify.body": "{why, select, unresolved {Port {port} kann erst geprüft werden, wenn {host} aufgelöst wird} other {Port {port} ist unter {host} nicht erreichbar: {error}}}. Apps, die per SMTP senden, können keine Verbindung herstellen; die HTTP-API funktioniert weiter.",
+
+  "problem.hostnameNeeded": "Geben Sie den Hostnamen ein, mit dem sich Apps verbinden, etwa den eigenen Host der Instanz.",
+  "problem.hostnameFormat": "Geben Sie einen Hostnamen wie reputecast.acme.io ein.",
+  "problem.portsDiffer": "Die Ports für STARTTLS und TLS müssen sich unterscheiden.",
+  "problem.certFiles": "Geben Sie die Pfade der Zertifikats- und der Schlüsseldatei an, wie dieser Server sie sieht.",
+  "problem.certUnreadable": "Zertifikat und Schlüssel konnten nicht gelesen werden: {error}"
+}

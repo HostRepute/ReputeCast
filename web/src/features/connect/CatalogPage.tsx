@@ -7,7 +7,7 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { NoResults } from '@/components/ui/NoResults'
 import { ConnectChannels } from '@/features/channels/ConnectChannels'
 import { ReadOnlyNote } from '@/features/senders/ReadOnlyNote'
-import { T, useT } from '@/i18n'
+import { keepsCapitals, T, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
 import { count } from '@/lib/format'
@@ -332,6 +332,7 @@ function HelpMeChoose({
 
 /** "Allowed after production access" in the middle of a sentence. */
 function lowerFirst(s: string): string {
+  if (keepsCapitals()) return s
   return s.charAt(0).toLowerCase() + s.slice(1)
 }
 

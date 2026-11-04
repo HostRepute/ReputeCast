@@ -1,0 +1,13 @@
+{
+  "scope.tenant": "Tenant-Liste · {tenant}",
+  "scope.accountReadOnly": "Liste auf Kontoebene · nur lesen",
+  "scope.domain": "je Versand-Domain",
+  "detail.accountReadOnly": "Alle Apps in diesem AWS-Konto teilen sich die Liste auf Kontoebene von {provider}, daher liest ReputeCast sie nur. Richten Sie einen Tenant für diesen Arbeitsbereich ein, um in beide Richtungen zu synchronisieren.",
+  "scope.account": "Liste auf Kontoebene",
+  "scope.stream": "je Stream",
+  "scope.enforced": "vor dem Versand angewendet",
+  "scope.list": "Sperrliste",
+  "detail.local": "ReputeCast prüft die gemeinsame Liste, bevor E-Mails an {provider} übergeben werden.",
+  "provider.import": "{name} (Import)",
+  "detail.softBounces": "{count, plural, one {# Soft Bounce} other {# Soft Bounces}} in {days, plural, one {# Tag} other {# Tagen}} (zuletzt: {last})"
+}

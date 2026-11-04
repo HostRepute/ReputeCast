@@ -563,6 +563,8 @@ func accountWords(l i18n.Lang, cn Connection) string {
 		return ""
 	case english(l):
 		return strings.ToLower(a[:1]) + a[1:]
+	case i18n.KeepsCapitals(l.Locale):
+		return a
 	}
 	return lowerFirst(a)
 }
