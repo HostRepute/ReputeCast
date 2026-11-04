@@ -65,6 +65,7 @@ export default translate(m, {
   factAsScheduled: 'según lo programado',
   factScheduled: 'programada el {date}',
   factSent: 'enviada el {date}',
+  factSentNoDate: 'enviada',
   factKeyVersion: '{key} v{version}',
   factTestData: 'datos de prueba “{name}”',
   factFromReview: 'desde Revisar y enviar',

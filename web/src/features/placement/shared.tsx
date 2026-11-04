@@ -285,7 +285,7 @@ function contentFactList(row: TestRow): string[] {
         out.push(row.origin === 'review' || !row.contentAt ? tr(m.factAsScheduled) : tr(m.factScheduled, { date: dayTime(row.contentAt) }))
         break
       case 'sent':
-        out.push(row.contentAt ? tr(m.factSent, { date: shortDate(row.contentAt) }) : tr(m.factSent, { date: '' }).trim())
+        out.push(row.contentAt ? tr(m.factSent, { date: shortDate(row.contentAt) }) : tr(m.factSentNoDate))
         break
       default:
         out.push(tr(m.factDraft))

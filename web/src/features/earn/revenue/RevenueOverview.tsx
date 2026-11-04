@@ -416,7 +416,7 @@ function MrrCard({ o, provider }: { o: Overview; provider: string }) {
                   <tr key={p.at}>
                     <td>{dayMonthYear(p.at)}</td>
                     <td className="text-right tabular-nums">{money(p.mrrCents, cur, 'never')}</td>
-                    <td>{p.history ? t(mr.fromHistory, { platform: platform || t(mr.theProvider) }) : t(mr.fromLive)}</td>
+                    <td>{p.history ? t(mr.fromHistory, { provider: platform || t(mr.theProvider) }) : t(mr.fromLive)}</td>
                   </tr>
                 ))}
               </tbody>

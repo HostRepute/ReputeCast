@@ -74,6 +74,7 @@ export const m = defineMessages('placement', {
   factAsScheduled: 'as scheduled',
   factScheduled: 'scheduled {date}',
   factSent: 'sent {date}',
+  factSentNoDate: 'sent',
   factKeyVersion: '{key} v{version}',
   factTestData: 'test data “{name}”',
   factFromReview: 'from Review & send',
