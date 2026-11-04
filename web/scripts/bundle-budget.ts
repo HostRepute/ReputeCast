@@ -17,11 +17,15 @@ const budget = {
   // pages or copy; an agency's menu loads for its staff only. 315 KB in 5
   // scripts since the route definitions and the shared components load as
   // one file each (vite.config.ts, codeSplitting), down from 145 scripts.
+  // 305 KB since no language's translations, nor the list of them, load
+  // with the app (src/i18n/catalogs).
   initial: 340 * KB,
   // Any one lazy chunk (the email composer's editor is the largest).
   chunk: 400 * KB,
-  // Every script of the app.
-  total: 4.5 * 1024 * KB,
+  // Every script of the app. 4.5 MB until German, Spanish and French
+  // joined Vietnamese: each language's translations are about 365 KB,
+  // downloaded only by those who read the app in it (src/i18n/store.ts).
+  total: 5.75 * 1024 * KB,
 }
 
 const dist = new URL('../dist/', import.meta.url).pathname
