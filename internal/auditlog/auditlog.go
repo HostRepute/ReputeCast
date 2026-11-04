@@ -640,7 +640,7 @@ func DescribeIn(l i18n.Lang, action, targetType, targetName string) string {
 			en = TypeLabel(noun, false)
 		}
 		if targetName != "" {
-			return fmt.Sprintf("%s %s %s", v, en, quoteName(targetName))
+			return fmt.Sprintf("%s %s %s", v, en, quoteName(i18n.Default, targetName))
 		}
 		return fmt.Sprintf("%s %s", v, en)
 	}
@@ -654,7 +654,7 @@ func DescribeIn(l i18n.Lang, action, targetType, targetName string) string {
 	}
 	args := i18n.Args{"hasName": "no", "type": obj, "name": ""}
 	if targetName != "" {
-		args["hasName"], args["name"] = "yes", quoteName(targetName)
+		args["hasName"], args["name"] = "yes", quoteName(l, targetName)
 	}
 	return say(l, "what."+key, args)
 }
@@ -676,11 +676,13 @@ func TypeLabel(t string, capital bool) string {
 	return strings.Join(words, " ")
 }
 
-func quoteName(n string) string {
-	if strings.ContainsAny(n, "@/") || strings.HasPrefix(n, "“") {
+// quoteName puts a target's name between the reader's quotation marks,
+// unless it is an address or a path, or quoted already.
+func quoteName(l i18n.Lang, n string) string {
+	if strings.ContainsAny(n, "@/") || strings.HasPrefix(n, "“") || strings.HasPrefix(n, "„") || strings.HasPrefix(n, "«") {
 		return n
 	}
-	return "“" + n + "”"
+	return i18n.Quote(l.Locale, n)
 }
 
 var (

@@ -301,3 +301,16 @@ func lowerFirst(s string) string {
 // sentence ("Kampagnen senden") keeps its capital, where English and the
 // others start it with a small letter ("send campaigns").
 func KeepsCapitals(l Locale) bool { return l == German }
+
+// Quote puts a name between the quotation marks of l: „Weekly Digest“ in
+// German, « Weekly Digest » in French (with no-break spaces), “Weekly
+// Digest” in English and the others.
+func Quote(l Locale, s string) string {
+	switch l {
+	case German:
+		return "„" + s + "“"
+	case French:
+		return "« " + s + " »"
+	}
+	return "“" + s + "”"
+}
