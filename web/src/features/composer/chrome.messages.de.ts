@@ -149,7 +149,7 @@ export default translate(mh, {
   thumbPreview: 'Vorschau von {name}',
   quickNote: '<b>Schnelle Prüfung auf diesem Bildschirm.</b> Bearbeiten Sie hier Text, Betreff und Kommentare. Layout per Drag-and-drop bearbeiten Sie auf größeren Bildschirmen.',
   quickGroup: 'Schnelle Prüfung',
-  editText: 'Text bearbeiten',
+  editText: 'Bearbeiten',
   editTextLead: 'Tippen Sie auf einen umrandeten Text in der E-Mail, um ihn zu ändern. Fett, kursiv, Links und Personalisierung funktionieren hier; das Layout bleibt unverändert.',
   checks: 'Prüfungen',
   comments: 'Kommentare',

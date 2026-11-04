@@ -360,7 +360,7 @@ export default translate(m, {
   serviceDown: 'Dienst ausgefallen · pausiert, wird wiederholt',
   serviceDownBody: '{error} Der Auftrag ist pausiert und wird bis {until} alle 5 Minuten wiederholt. Schlägt er dann noch fehl, endet er mit den bisherigen Ergebnissen.',
   serviceDownPlain: '{name} antwortet nicht. Der Auftrag ist pausiert und wird bis {until} alle 5 Minuten wiederholt. Schlägt er dann noch fehl, endet er mit den bisherigen Ergebnissen.',
-  retryNow: 'Jetzt erneut versuchen',
+  retryNow: 'Jetzt wiederholen',
   stopKeep: 'Stoppen und {count, number} Ergebnisse behalten',
   keyRejectedJob: 'Der Schlüssel wurde abgelehnt',
   keyRejectedJobBody: '{name} hat den Schlüssel bei {checked, number} von {total, number} abgelehnt. Die bisherigen Ergebnisse bleiben erhalten. Ersetzen Sie den Schlüssel unter Einstellungen › Integrationen und klicken Sie dann auf Fortsetzen.',

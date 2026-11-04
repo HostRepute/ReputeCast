@@ -40,7 +40,7 @@ export default translate(m, {
   attempts: '{attempt, number} von {max, number}',
   nextTry: 'Nächster Versuch um {time}',
   noError: 'Kein Fehler erfasst',
-  retryNow: 'Jetzt erneut versuchen',
+  retryNow: 'Jetzt wiederholen',
   retry: 'Erneut versuchen',
   cancel: 'Abbrechen',
   delete: 'Löschen',

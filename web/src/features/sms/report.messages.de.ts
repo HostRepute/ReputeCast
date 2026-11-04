@@ -79,7 +79,7 @@ export default translate(m, {
   outageTitle: 'Anbieterausfall · {provider} antwortet nicht',
   outageText: '{provider} antwortet seit {time} nicht. {held, plural, one {# SMS} other {# SMS}} nach {region} {held, plural, one {wird} other {werden}} zurückgehalten.',
   outageAnswer: 'Antwort von {provider} auf {count, plural, one {# Versuch} other {# Versuche}}: {answer}. {fallback, select, yes {Die Route schaltet auf ihren Ersatz um.} other {Die Route für {region} hat keinen Ersatz: zurückhalten und benachrichtigen.}}',
-  retryNow: 'Jetzt erneut versuchen',
+  retryNow: 'Jetzt wiederholen',
   outageLast: 'Letzte von {provider} angenommene SMS',
   outageAnswered: 'Antwort von {provider}: {answer}',
   outageStop: 'SMS stoppen sofort; nichts geht verloren und nichts wird doppelt gesendet',

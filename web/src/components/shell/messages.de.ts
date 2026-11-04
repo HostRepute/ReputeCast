@@ -92,7 +92,7 @@ export default translate(m, {
   jobFailed: '{title} fehlgeschlagen',
   jobFailedDetail: 'Details im Aufgabenverlauf',
   bannerOffline: 'Offline',
-  bannerRetryNow: 'Jetzt erneut versuchen',
+  bannerRetryNow: 'Jetzt wiederholen',
   bannerUnreachableBody: 'ReputeCast ist nicht erreichbar. Änderungen werden auf diesem Gerät gespeichert und synchronisiert, sobald die Verbindung zurück ist. Versand und Live-Statistik sind pausiert.',
   bannerOfflineBody: 'Sie sind offline. Änderungen werden auf diesem Gerät gespeichert und synchronisiert, sobald die Verbindung zurück ist. Versand und Live-Statistik sind pausiert.',
   bannerReconnecting: 'Wird neu verbunden',
