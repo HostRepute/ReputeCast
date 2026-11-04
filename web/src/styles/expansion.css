@@ -582,3 +582,12 @@
     min-width: 0;
   }
 }
+
+/* The composer's phone bar (Composer on a phone): a label on two lines
+   breaks between syllables where the language allows it ("Commen-taires",
+   "Compro-baciones"), never after any letter. */
+:root:not([lang='en']) .cmp .qbar button {
+  hyphens: auto;
+  line-height: 1.2;
+  text-align: center;
+}
