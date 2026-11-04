@@ -114,7 +114,10 @@ func TestPageDefaultsInThePageLanguage(t *testing.T) {
 		got.Unsubscribe.FewerTitle != "Quá nhiều email? Hãy nhận ít hơn." || got.Unsubscribe.FewerButton != "Chỉ gửi cho tôi bản tuyển chọn hằng tháng" {
 		t.Errorf("Vietnamese page: %q / %+v", got.Subscribe.Footnote, got.Unsubscribe)
 	}
-	if got := p.Subscribe.FootnoteIn("es"); got != p.Subscribe.Footnote {
+	if got := p.Subscribe.FootnoteIn("es"); got != "Primero te enviaremos un enlace de confirmación. Nunca enviamos spam. Puedes cambiar de listas o pausar los correos desde cualquier mensaje." {
+		t.Errorf("Spanish page: %q", got)
+	}
+	if got := p.Subscribe.FootnoteIn("it"); got != p.Subscribe.Footnote {
 		t.Errorf("a language ReputeCast doesn't ship keeps the text: %q", got)
 	}
 	own := p

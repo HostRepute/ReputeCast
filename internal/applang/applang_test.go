@@ -205,6 +205,10 @@ func TestAccessErrorsInTheReadersLanguage(t *testing.T) {
 		t.Fatalf("vietnamese: %v", p)
 	}
 	c.Header = http.Header{"Accept-Language": {"fr-FR"}}
+	if p = c.Do("GET", path, nil).MustStatus(t, 403).Problem(t); p["detail"] != "Inviter des membres nécessite une autorisation que vous n’avez pas. Demandez à Linh Nguyen." {
+		t.Fatalf("french: %v", p)
+	}
+	c.Header = http.Header{"Accept-Language": {"it-IT"}}
 	if p = c.Do("GET", path, nil).MustStatus(t, 403).Problem(t); !strings.HasPrefix(p["detail"].(string), "Inviting members") {
 		t.Fatalf("a language ReputeCast doesn't have: %v", p)
 	}
